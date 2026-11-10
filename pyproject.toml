@@ -1,0 +1,86 @@
+[project]
+name = "sci2audio"
+dynamic = ["version"]
+description = "Turn scientific texts into faithful, offline audiobooks with local voices."
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]
+requires-python = ">=3.12"
+authors = [{ name = "Colin Meng" }]
+keywords = ["text-to-speech", "audiobook", "accessibility", "pdf", "epub", "science"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Text Processing",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://sci2audio.com"
+Repository = "https://github.com/dubidu22/sci2audio"
+Issues = "https://github.com/dubidu22/sci2audio/issues"
+
+[project.scripts]
+sci2audio = "sci2audio.cli:main"
+
+[dependency-groups]
+dev = [
+    "deptry>=0.25",
+    "import-linter>=2.16",
+    "pip-licenses>=5.5",
+    "pre-commit>=4.0",
+    "pytest>=9.0",
+    "pytest-xdist>=3.6",
+    "ruff>=0.17",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/sci2audio/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sci2audio"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PT"]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+markers = [
+    "slow: needs models, audio or the full sample corpus; runs nightly, not on every PR",
+]
+
+[tool.deptry]
+known_first_party = ["sci2audio"]
+
+[tool.importlinter]
+root_package = "sci2audio"
+
+[[tool.importlinter.contracts]]
+name = "Layers: entry points -> app -> pipeline stages -> core (D-46)"
+type = "layers"
+layers = [
+    "sci2audio.cli",
+    "sci2audio.web",
+    "sci2audio.app",
+    "sci2audio.extraction | sci2audio.textprep | sci2audio.voices | sci2audio.output",
+    "sci2audio.core",
+]
