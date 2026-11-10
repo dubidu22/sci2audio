@@ -12,7 +12,7 @@ dist/
 htmlcov/
 
 # Local output and caches (never commit audio, models or user documents)
-output/
+/output/
 *.mp3
 *.m4b
 *.opus
