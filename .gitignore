@@ -26,3 +26,6 @@ htmlcov/
 .idea/
 .vscode/
 *.swp
+
+# Mutation testing working copy
+mutants/

@@ -32,7 +32,8 @@ Keep a later web version possible: no global state (each job gets its settings a
 
 1. One Issue → one branch → one PR, in one lane (`.github/lanes.yml`). Stop if the Issue lacks acceptance criteria.
 2. Tests first: a failing test for a bug; a characterisation test before moving or splitting code; a regression case before any text rule change.
-3. Run before opening the PR: `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow"`.
+3. Run before opening the PR: `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow and not benchmark"`.
+6. A PR that adds the first code of a kind also adds its tests and CI wiring (table in `.claude/rules/tests.md`, D-58).
 4. PR title `<area>: <outcome> (#N)`; body with `Closes #N`, feature ID (e.g. `WI-02`), test summary, licence note, risk, and out-of-scope follow-ups.
 5. Keep PRs small. More than about 400 changed lines of non-generated code: split.
 
@@ -44,8 +45,11 @@ Licences and third-party content; anything that deletes or overwrites user files
 
 ```bash
 uv sync                        # set up
-uv run pytest -m "not slow"    # fast tests
+uv run pytest -m "not slow and not benchmark"   # fast tests (as in CI)
 uv run pytest                  # all tests
+uv run pytest --snapshot-update  # accept changed golden files (review the diff)
+uv run zizmor --offline .github/workflows  # workflow security
+uv run mutmut run && uv run mutmut results  # mutation testing (slow)
 uv run ruff check --fix        # lint and fix
 uv run ruff format             # format
 uv run lint-imports            # layer rules
