@@ -16,8 +16,10 @@ uv sync
 uv run ruff check && uv run ruff format --check
 uv run lint-imports
 uv run deptry src
-uv run pytest -m "not slow"
+uv run pytest -m "not slow and not benchmark"
 ```
+
+Which tests a change needs is described in `.claude/rules/tests.md` (it applies to people too). Before a release, follow `docs/release-checklist.md`.
 
 Install the pre-commit hooks once with `uv run pre-commit install`; they run ruff and a secret scan before each commit.
 

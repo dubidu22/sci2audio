@@ -1,0 +1,13 @@
+# serializer version: 1
+# name: test_help_text
+  '''
+  usage: sci2audio [-h] [--version]
+  
+  Turn scientific texts into faithful, offline audiobooks.
+  
+  options:
+    -h, --help  show this help message and exit
+    --version   show program's version number and exit
+  
+  '''
+# ---

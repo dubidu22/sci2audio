@@ -1,0 +1,59 @@
+name: Nightly
+
+# Slow tests (voices, models, the whole corpus, speech-recognition round-trip)
+# and benchmarks. Not required for merging; a red nightly run is a P1 Issue.
+on:
+  schedule:
+    - cron: "17 2 * * *"  # 02:17 UTC every day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  slow-tests:
+    name: slow tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - name: Slow tests
+        shell: bash
+        env:
+          HYPOTHESIS_PROFILE: nightly
+        # Exit code 5 means "no tests collected": allowed until the first slow test exists.
+        run: uv run pytest -m slow || [ $? -eq 5 ]
+
+  property-deep:
+    name: property-based tests, many examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - name: Hypothesis with the nightly profile
+        env:
+          HYPOTHESIS_PROFILE: nightly
+        run: uv run pytest -m "not slow and not benchmark"
+
+  benchmarks:
+    name: benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - name: Benchmarks (trend only; CI machines vary)
+        shell: bash
+        run: uv run pytest -m benchmark --benchmark-only --benchmark-json=benchmark.json || [ $? -eq 5 ]

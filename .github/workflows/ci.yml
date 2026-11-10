@@ -18,10 +18,12 @@ jobs:
     name: lint and layers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv sync --locked
-      - name: Ruff lint
+      - name: Ruff lint (incl. security rules)
         run: uv run ruff check --output-format=github
       - name: Ruff format
         run: uv run ruff format --check
@@ -34,8 +36,10 @@ jobs:
     name: licences
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       # Only the app's own run-time dependencies are checked, not the dev tools.
       - run: uv sync --locked --no-dev
       - name: Refuse AGPL, non-commercial and unknown licences
@@ -46,6 +50,22 @@ jobs:
           --fail-on="Affero;AGPL;SSPL;Non-Commercial;NonCommercial;UNKNOWN"
           --format=markdown
 
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - name: Known vulnerabilities in run-time dependencies (pip-audit)
+        run: |
+          uv export --locked --no-dev --no-emit-project --format requirements.txt -o runtime-requirements.txt
+          uv run pip-audit --requirement runtime-requirements.txt --disable-pip --no-deps --progress-spinner off
+      - name: Workflow security (zizmor)
+        run: uv run zizmor --offline .github/workflows
+
   tests:
     name: tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -54,22 +74,28 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv sync --locked
-      - name: Fast tests
-        run: uv run pytest -m "not slow" -n auto
+      - name: Fast tests (unit, property-based, golden files)
+        run: uv run pytest -m "not slow and not benchmark" -n auto
+        env:
+          HYPOTHESIS_PROFILE: ci
 
   # The only check required by the ruleset on main. Its name must not change.
   ci-passed:
     name: CI passed
     if: always()
-    needs: [lint, licences, tests]
+    needs: [lint, licences, security, tests]
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any required job did not succeed
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        env:
+          RESULTS: ${{ toJSON(needs) }}
         run: |
-          echo "At least one job did not succeed: ${{ toJSON(needs) }}"
+          echo "At least one job did not succeed: $RESULTS"
           exit 1
       - run: echo "All checks passed."

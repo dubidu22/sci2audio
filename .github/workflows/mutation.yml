@@ -1,0 +1,24 @@
+name: Mutation testing
+
+# Run by hand (Actions -> Mutation testing -> Run workflow), e.g. monthly or
+# before a release. Shows which code changes the tests fail to notice.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutmut:
+    name: mutmut
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - name: Mutation run
+        run: uv run mutmut run || true
+      - name: Results
+        run: uv run mutmut results
