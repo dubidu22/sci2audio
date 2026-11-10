@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local output and caches (never commit audio, models or user documents)
+/output/
+*.mp3
+*.m4b
+*.opus
+*.wav
+*.onnx
+*.pt
+*.pth
+
+# Editors and systems
+.DS_Store
+.idea/
+.vscode/
+*.swp

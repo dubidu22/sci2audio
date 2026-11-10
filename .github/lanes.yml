@@ -1,0 +1,27 @@
+# One agent thread per lane at a time. A PR changes files of its own lane only
+# (plus tests for those files and docs). Shared files need lane:infra.
+lanes:
+  core:
+    paths: [src/sci2audio/core/**]
+    single_threaded: true   # shared data objects: changes ripple everywhere
+  extraction:
+    paths: [src/sci2audio/extraction/**]
+  textprep:
+    paths: [src/sci2audio/textprep/**]
+  voices:
+    paths: [src/sci2audio/voices/**]
+  output:
+    paths: [src/sci2audio/output/**]
+  app:
+    paths: [src/sci2audio/app/**]
+    single_threaded: true
+  web:
+    paths: [src/sci2audio/web/**]
+    single_threaded: true
+  cli:
+    paths: [src/sci2audio/cli.py]
+  infra:
+    paths: [.github/**, pyproject.toml, uv.lock, .pre-commit-config.yaml]
+    single_threaded: true
+  docs:
+    paths: ["*.md", docs/**, .claude/**]

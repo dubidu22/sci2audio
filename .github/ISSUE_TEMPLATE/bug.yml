@@ -1,0 +1,29 @@
+name: Bug report
+description: Something sci2audio does wrong
+labels: [inbox, bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Please use a text you may share (your own, public domain or CC BY). Never attach copyrighted documents.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: sci2audio version and operating system
+      placeholder: "sci2audio 0.1.0, macOS 15"
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Error message or diagnostics file
+      render: text

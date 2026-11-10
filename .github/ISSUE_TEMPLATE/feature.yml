@@ -1,0 +1,30 @@
+name: Feature or task
+description: Something sci2audio should do or something to build
+labels: [inbox, feature]
+body:
+  - type: input
+    id: feature-id
+    attributes:
+      label: Feature ID
+      description: From the feature list, if there is one (e.g. WI-02)
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or outcome
+      description: What should be possible afterwards, and for whom? Describe the need, not only a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How do we check it is done? One line each.
+      placeholder: |
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Technical hints, licences, related Issues
