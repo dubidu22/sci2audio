@@ -3094,7 +3094,7 @@
   p1-l24  [52 612 191 623]  {SFRM1200 12}guage; Meaning; Semiotics.
   p1-l25  [66 730 190 740]  {SFRM0700 7}∗{SFTT1000 10}x.d.arsiwalla@gmail.com
   p1-l26  [296 759 302 770]  {SFRM1200 12}1
-  p1-l27  [14 249 37 620]  {Times-Roman 20}arXiv:2405.01148v1 [q-bio.NC] 2 May 2024
+  p1-l27  [box varies: font not embedded]  {Times-Roman 20}arXiv:2405.01148v1 [q-bio.NC] 2 May 2024
   == page 2  595 x 842  lines 39  pictures 0  drawings 0
   p2-l1  [52 72 125 87]  {SFBX1728 17.2}Contents
   p2-l2  [52 112 144 123]  {SFBX1200 12}1 Introduction
@@ -4292,7 +4292,7 @@
   p1-l95  [317 692 562 701]  {CMR10 10}energy plotted separately. The orbital Hall current op-
   p1-l96  [317 702 562 716]  {CMR10 10}erator ˆ{CMMIB10 10 i}j{CMR10 10} ={CMR7 7} 1 2{CMSY10 10 i} {{CMMIB10 10 i}L{CMR10 10}ˆ{CMMI10 10 i},{CMMIB10 10 i} v{CMR10 10}ˆ{CMSY10 10 i}}{CMR10 10} where{CMMIB10 10 i} L{CMR10 10}ˆ is the OAM operator and
   p1-l97  [317 716 562 725]  {CMMIB10 10 i}v{CMR10 10}ˆ the velocity operator. With the applied electric field
-  p1-l98  [14 175 37 615]  {Times-Roman 20}arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024
+  p1-l98  [box varies: font not embedded]  {Times-Roman 20}arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024
   == page 2  612 x 792  lines 167  pictures 0  drawings 135
   p2-l1  [557 29 562 38]  {CMR10 10}2
   p2-l2  [114 125 141 135]  {Mathematica-Bold 8.8 b}Δ={TimesNewRomanPS-BoldMT 9.3 b}1eV

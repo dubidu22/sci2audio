@@ -6,13 +6,20 @@ its page. Order, headings and furniture removal are checked in the layout tests.
 
 The golden files show each line's text and style, page by page. Accept a wanted change with
 `uv run pytest --snapshot-update` and explain the diff in the PR.
+
+A font the PDF doesn't embed (the arXiv stamp's Times-Roman) is drawn with a substitute font
+that differs between Linux, macOS and Windows, and so do the boxes of its text; the golden files
+leave those boxes out, so they match on every system. The text and style are still checked.
 """
 
+import ctypes
 import re
 import tomllib
 from functools import cache
 from pathlib import Path
 
+import pypdfium2 as pdfium
+import pypdfium2.raw as raw
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
@@ -99,10 +106,41 @@ def _split_across_lines(word: str, lines: list[TextLine]) -> bool:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
-    assert describe(content(paper)) == snapshot
+    assert describe(content(paper), not_embedded(paper)) == snapshot
 
 
-def describe(content: Content) -> str:
+def not_embedded(paper: Path) -> frozenset[str]:
+    """Names of the fonts the PDF uses without embedding them."""
+    names: set[str] = set()
+
+    def walk(handles: list) -> None:
+        for handle in handles:
+            kind = raw.FPDFPageObj_GetType(handle)
+            if kind == raw.FPDF_PAGEOBJ_TEXT:
+                font = raw.FPDFTextObj_GetFont(handle)
+                if not raw.FPDFFont_GetIsEmbedded(font):
+                    size = raw.FPDFFont_GetBaseFontName(font, None, 0)
+                    buffer = ctypes.create_string_buffer(size)
+                    raw.FPDFFont_GetBaseFontName(font, buffer, size)
+                    names.add(re.sub(r"^[A-Z]{6}\+", "", buffer.value.decode()))
+            elif kind == raw.FPDF_PAGEOBJ_FORM:
+                count = raw.FPDFFormObj_CountObjects(handle)
+                walk([raw.FPDFFormObj_GetObject(handle, i) for i in range(count)])
+
+    document = pdfium.PdfDocument(paper)
+    for page in document:
+        walk(
+            [
+                raw.FPDFPage_GetObject(page.raw, i)
+                for i in range(raw.FPDFPage_CountObjects(page.raw))
+            ]
+        )
+        page.close()
+    document.close()
+    return frozenset(names)
+
+
+def describe(content: Content, not_embedded: frozenset[str] = frozenset()) -> str:
     """Each line with its box and the style of each run; pictures with boxes; drawings counted."""
     meta = content.metadata
     out = [f"{content.source.name}  sha256 {content.source.sha256[:16]}"]
@@ -113,9 +151,18 @@ def describe(content: Content) -> str:
             f"lines {len(page.lines)}  pictures {len(page.pictures)}  "
             f"drawings {len(page.drawings)}"
         )
-        out.extend(f"{line.id}  {_box(line.box)}  {_runs(line)}" for line in page.lines)
+        out.extend(
+            f"{line.id}  "
+            f"{'[box varies: font not embedded]' if _uses(line, not_embedded) else _box(line.box)}"
+            f"  {_runs(line)}"
+            for line in page.lines
+        )
         out.extend(f"{picture.id}  {_box(picture.box)}  picture" for picture in page.pictures)
     return "\n".join(out) + "\n"
+
+
+def _uses(line: TextLine, fonts: frozenset[str]) -> bool:
+    return any(run.font in fonts for run in line.runs)
 
 
 def _box(box: object) -> str:
