@@ -112,10 +112,11 @@ def test_a_mark_that_is_a_line_of_its_own_is_read() -> None:
     assert footnotes(build(lines, rule())) == [("1", "1 A note."), ("2", "2 Second.")]
 
 
-def test_a_note_opens_with_its_mark_without_white_before_it() -> None:
-    """Review of #52: a mark run printed with white before it (" 1")."""
+def test_a_mark_with_white_before_it_is_read_and_the_text_kept_as_found() -> None:
+    """Review of #52: a mark run printed with white before it (" 1") gives the label "1";
+    the note's text keeps the white, as a block's text is its lines as found."""
     lines = [note(" 1", " A note.", RULE_Y + 6), note(" 2", " Second.", RULE_Y + 16)]
-    assert footnotes(build(lines, rule())) == [("1", "1 A note."), ("2", "2 Second.")]
+    assert footnotes(build(lines, rule())) == [("1", " 1 A note."), ("2", " 2 Second.")]
 
 
 def test_two_rules_over_one_column_give_each_note_once() -> None:
@@ -245,9 +246,10 @@ def page_feet(draw: st.DrawFn) -> tuple[list[TextLine], list[Drawing]]:
     for row in range(draw(st.integers(0, 8))):
         x0 = draw(st.sampled_from([LEFT, LEFT + 8, RIGHT_START, RIGHT_START + 8]))
         size = draw(st.sampled_from([8.0, 8.0, 8.0, 6.0, 10.0]))  # body size seldom
-        marked = draw(st.sampled_from(["", "1", "2", "\N{DAGGER}"]))
+        marked = draw(st.sampled_from(["", "1", " 2", "\N{DAGGER}"]))
+        white = draw(st.sampled_from(["", " ", "  "]))
         runs = ((TextRun(marked, "Times", 6.0),) if marked else ()) + (
-            TextRun(f"foot {row}", "Times", size),
+            TextRun(f"{white}foot {row}{white}", "Times", size),
         )
         y = 560 + draw(st.integers(0, 20)) * 8
         right = LEFT_END if x0 < MIDDLE else RIGHT
@@ -268,11 +270,17 @@ def test_any_rules_and_lines_at_the_foot_keep_every_line_in_one_block(
     found: tuple[list[TextLine], list[Drawing]],
 ) -> None:
     """Review of #52: overlapping zones, rules over body text or over nothing never fail
-    and never read a line twice; each footnote opens with its label."""
+    and never read a line twice; every line's text stands at its part's start; each
+    footnote opens with its label after any white."""
     lines, rules = found
     doc = build(lines, *rules)
     held = [p.item for b in doc.blocks for p in b.parts]
     assert len(held) == len(set(held))
+    texts = {li.id: li.text for page in doc.content.pages for li in page.lines}
     for block in doc.blocks:
+        for part in block.parts:  # a block's text is its lines as found
+            if part.item in texts:
+                text = texts[part.item]
+                assert block.text[part.start : part.start + len(text)] == text
         if block.kind is BlockKind.FOOTNOTE:
-            assert block.text.startswith(block.label)
+            assert block.text.lstrip().startswith(block.label)

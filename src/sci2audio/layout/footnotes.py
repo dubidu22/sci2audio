@@ -167,11 +167,11 @@ def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
 
 def _note(label: str, lines: list[list[TextLine]]) -> Block:
     """A footnote block: rows joined by a line break, pieces of a row by a space, each
-    piece without the white at its ends (so the note opens with its mark)."""
+    piece's text as found (white at its ends included, as in any block)."""
     text, parts = "", []
     for n, row in enumerate(lines):
         for k, piece in enumerate(row):
             text += "\n" if n and not k else " " if k else ""
             parts.append(Part(piece.id, len(text)))
-            text += piece.text.strip()
+            text += piece.text
     return Block(BlockKind.FOOTNOTE, text, tuple(parts), label=label)

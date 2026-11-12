@@ -346,7 +346,7 @@ def test_the_footnotes_are_the_truth_footnotes(paper: Path) -> None:
 def test_a_footnote_opens_with_its_mark(paper: Path) -> None:
     for block in document(paper).blocks:
         if block.kind is BlockKind.FOOTNOTE:
-            assert block.text.startswith(block.label)
+            assert block.text.lstrip().startswith(block.label)
 
 
 def test_headings_not_yet_found_are_still_in_the_truth() -> None:
