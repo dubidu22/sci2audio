@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
+from sci2audio.layout.captions import opens_caption
 from sci2audio.layout.geometry import same_row, union
 from sci2audio.layout.order import Element
 from sci2audio.layout.settings import LayoutSettings
@@ -50,9 +51,10 @@ class Row:
 @dataclass(frozen=True)
 class Held:
     """A block that is not joined with others (a figure, furniture, a line without a
-    position), in its place in the reading order."""
+    position), in its place in the reading order, and the page it is printed on if known."""
 
     block: Block
+    page: int | None = None
 
 
 Unit = Row | Held
@@ -203,6 +205,7 @@ class Paragraphs:
         self.held: list[Block] = []  # the interruption, in order: it follows the paragraph
         self.figure = False  # a figure came since the last row
         self.marked = False  # the interruption holds a figure or smaller letters
+        self.caption: Row | None = None  # the caption that opened the interruption
         rows = [unit for unit in units if isinstance(unit, Row)]
         self.pitch = _pitch(rows, settings) or settings.line_pitch
         self.body = _body_size(rows)
@@ -212,7 +215,7 @@ class Paragraphs:
     def blocks(self) -> list[Block]:
         for unit in self.units:
             if isinstance(unit, Held):
-                self._hold(unit.block)
+                self._hold(unit)
                 continue
             self._take(unit)
             self.figure = False
@@ -222,9 +225,11 @@ class Paragraphs:
         return self.out
 
     def _take(self, row: Row) -> None:
-        if self.open and self.continues(self.open, row):
+        # a caption right after a float (a formula across the page, #34) starts afresh
+        after_float = self.figure and opens_caption(row.pieces[0])
+        if self.open and not after_float and self.continues(self.open, row):
             self.open.append(row)
-            if self.aside and not self._interrupts(row, self.aside[-1]):
+            if self.aside and not self._interrupts(row, self.aside[-1]) and not self._float(row):
                 self._release()  # running text in the paragraph's style: it won't go on
             elif self.aside:
                 self.marked |= self._smaller(row, self.aside[-1])
@@ -232,6 +237,7 @@ class Paragraphs:
             self._finish()
             self.open, self.waiting = [*self.aside, row], self.held
             self.aside, self.held = [], []
+            self.caption = None
         elif self.aside and self._interrupts(row, self.aside[-1]):
             self._finish()
             self.open = [row]
@@ -240,18 +246,36 @@ class Paragraphs:
             self.aside, self.held = self.open, self.waiting
             self.open, self.waiting = [row], []
             self.marked = self.figure or self._smaller(row, self.aside[-1])
+            self.caption = row if after_float else None
+        elif self.aside and self._float(row):
+            self._finish()
+            self.open = [row]
         else:
             self._finish()
             if self.aside:
                 self._release()
             self.open = [row]
 
-    def _hold(self, block: Block) -> None:
-        """A figure or furniture waits for the open paragraph."""
-        if self.open:
+    def _float(self, row: Row) -> bool:
+        """True if the row belongs to the float whose caption interrupted the paragraph
+        (an algorithm's lines under its caption): the rest of the caption's column on its
+        page."""
+        caption = self.caption
+        return caption is not None and row.page == caption.page and row.left == caption.left
+
+    def _hold(self, unit: Held) -> None:
+        """A figure or furniture waits for the open paragraph. A formula stands where it is
+        printed: it ends the open paragraph, unless the paragraph runs on from an earlier
+        page and the formula stands at this page's top (#34)."""
+        block = unit.block
+        if self.open and block.kind is BlockKind.FORMULA and unit.page == self.open[-1].page:
+            self._finish()
+            self._emit([block])
+        elif self.open:
             self.waiting.append(block)
-            self.figure |= block.kind is BlockKind.FIGURE
-            self.marked |= bool(self.aside) and block.kind is BlockKind.FIGURE
+            floats = (BlockKind.FIGURE, BlockKind.FORMULA)
+            self.figure |= block.kind in floats
+            self.marked |= bool(self.aside) and block.kind in floats
         else:
             self._emit([block])
 
@@ -268,6 +292,7 @@ class Paragraphs:
         """The set-aside paragraph won't go on: it comes out, then what interrupted it."""
         self.out += [_paragraph(self.aside), *self.held]
         self.aside, self.held = [], []
+        self.caption = None
 
     def _pauses(self, row: Row) -> bool:
         """True if the open paragraph is running text that could go on and the row interrupts

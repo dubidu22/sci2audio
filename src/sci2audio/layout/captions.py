@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 from dataclasses import replace
 
-from sci2audio.core import Block, BlockKind, Content, TextLine
+from sci2audio.core import Block, BlockKind, Content, Part, TextLine
 from sci2audio.layout.split import line_starts, split_at
 
 _NAMES = "Figure|Fig\\.|Table|Algorithm|FIGURE|FIG\\.|TABLE|ALGORITHM"
@@ -53,6 +53,13 @@ def _label(block: Block, lines: dict[str, TextLine]) -> str | None:
     if _PUNCT.match(rest) or (rest[:1].isspace() and _bold_label(block, lines, label)):
         return label
     return None
+
+
+def opens_caption(line: TextLine) -> bool:
+    """True if the line opens as a caption does ("Table 2: …", "Algorithm 3 CKY" with the
+    label in bold): a paragraph never runs on into it."""
+    block = Block(BlockKind.PARAGRAPH, line.text, (Part(line.id),))
+    return _label(block, {line.id: line}) is not None
 
 
 def _bold_label(block: Block, lines: dict[str, TextLine], label: str) -> bool:

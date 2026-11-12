@@ -16,18 +16,28 @@ from sci2audio.core import (
 )
 from sci2audio.layout.captions import find_captions
 from sci2audio.layout.footnotes import find_footnotes
+from sci2audio.layout.formulas import find_formulas
 from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, find_furniture, page_label
 from sci2audio.layout.geometry import body_size, boxed, text_area
 from sci2audio.layout.graphics import find_graphics, link_captions
 from sci2audio.layout.headings import find_headings
 from sci2audio.layout.lists import find_lists
 from sci2audio.layout.order import Element, Reading, by_rows, figures, reading_order
-from sci2audio.layout.paragraphs import Held, Unit, make_row, paragraphs, rows_of, split_cells
+from sci2audio.layout.paragraphs import (
+    Held,
+    Row,
+    Unit,
+    make_row,
+    paragraphs,
+    rows_of,
+    split_cells,
+)
 from sci2audio.layout.settings import LayoutSettings
+from sci2audio.layout.split import read_rows
 
 
 def build_document(content: Content, settings: LayoutSettings | None = None) -> Document:
-    """The content in reading order as paragraphs, figures and furniture.
+    """The content in reading order as paragraphs, placeholders and furniture.
 
     Each page is read on its own: the furniture at its top edge first (running heads), then
     the text and figures in reading order, then the rest of its furniture (page numbers at
@@ -40,6 +50,14 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     units = [unit for page in content.pages for unit in layout.units(page)]
     blocks = find_footnotes(paragraphs(units, settings), content, layout.size, settings)
     blocks, links = find_graphics(find_captions(blocks, content), content, layout.size, settings)
+    columns = {
+        piece.id: (unit.left, unit.right)
+        for unit in units
+        if isinstance(unit, Row)
+        for piece in unit.pieces
+    }
+    named = set(links.named.values())
+    blocks = find_formulas(blocks, content, columns, named, layout.size, settings)
     blocks = find_lists(blocks, content)
     blocks, sections = find_headings(blocks, content, layout.size, settings)
     blocks = link_captions(blocks, links)
@@ -119,15 +137,15 @@ class _Layout:
         top = [e for e in edge if e.box.y1 <= self.settings.edge_band * (page.height or 0.0)]
         taken = {id(e) for e in top}
         overlap = self.settings.row_overlap
-        units: list[Unit] = [Held(_block(e, furniture)) for e in by_rows(top, overlap)]
+        units: list[Unit] = [Held(_block(e, furniture, overlap)) for e in by_rows(top, overlap)]
         groups = split_cells(rows_of(reading.ordered, edges, self.settings), edges)
         for group in groups:
             if group[0].line is None:
-                units += [Held(_block(e, furniture)) for e in group]
+                units += [Held(_block(e, furniture, overlap), page.number) for e in group]
             else:
                 units.append(make_row(group, edges[id(group[0])], page.number, self.settings))
         rest = by_rows([e for e in edge if id(e) not in taken], overlap)
-        units += [Held(_block(e, furniture)) for e in rest]
+        units += [Held(_block(e, furniture, overlap)) for e in rest]
         # items without a position: a line is a paragraph of its own, a graphic a figure
         units += [
             Held(Block(BlockKind.PARAGRAPH, li.text, (Part(li.id),)))
@@ -192,7 +210,10 @@ class _Layout:
         return {line.id: SIDEBAR for line in beside}
 
 
-def _block(element: Element, furniture: dict[str, FurnitureRole]) -> Block:
+def _block(element: Element, furniture: dict[str, FurnitureRole], overlap: float) -> Block:
+    if element.lines:  # a formula read across the page (#34)
+        text, parts = read_rows(list(element.lines), [], overlap)
+        return Block(BlockKind.FORMULA, text, tuple(parts))
     if element.line:
         role = furniture.get(element.line.id)
         kind = BlockKind.FURNITURE if role else BlockKind.PARAGRAPH

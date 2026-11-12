@@ -82,6 +82,30 @@ class LayoutSettings:
     mark_height: float = 2.0  # em: a graphic no caption names at most this tall is a mark
     #                            (an icon), not a figure
 
+    # Display formulas (placeholders)
+    formula_indent: float = 2.0  # em: a display line starts this far in from its column's
+    #                              left edge, or further
+    number_reach: float = 0.5  # em: an equation number ends this close to its column's
+    #                            right edge
+    math_share: float = 0.4  # a display line without a number is a formula if this share of
+    #                          its letters is set in a math font or is a math symbol
+    # the fonts that set mathematics (names start so; a subset prefix like "ABCDEF+" is left out)
+    math_fonts: tuple[str, ...] = (
+        "CMMI",
+        "CMSY",
+        "CMEX",
+        "CMBSY",
+        "MSAM",
+        "MSBM",
+        "EUFM",
+        "RSFS",
+        "STIXMath",
+        "STIXTwoMath",
+        "Symbol",
+        "CambriaMath",
+        "Cambria-Math",
+        "LatinModernMath",
+    )
     # Headings and sections
     heading_lines: int = 3  # a heading has at most this many lines ...
     heading_words: int = 20  # ... and words, ...
