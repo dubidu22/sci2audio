@@ -30,7 +30,7 @@ def small_pdf(folder: Path, name: str = "note.pdf", text: str = "A short note.")
 def contents(folder: Path) -> dict[str, bytes]:
     """Every file under the folder, by relative path."""
     return {
-        str(path.relative_to(folder)): path.read_bytes()
+        path.relative_to(folder).as_posix(): path.read_bytes()
         for path in sorted(folder.rglob("*"))
         if path.is_file()
     }
