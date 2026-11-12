@@ -14,10 +14,11 @@ page; the layout stage decides reading order, blocks and sections. So:
 
 - Headings and sentences are given in reading order, as a reader would follow the page.
 - Text that must not be read aloud (running heads and footers, page numbers, line numbers, the
-  arXiv side stamp, the venue footer on page 1, the JOSS metadata sidebar, a printed table of contents) is listed as
-  **furniture**. After layout it must sit in
-  `furniture` blocks only; in the listening script it must not appear at all.
-- Counts describe what is printed, so they hold whatever the layout stage decides about blocks.
+  arXiv side stamp, the venue footer on page 1, the JOSS metadata sidebar, a printed table of contents) is
+  listed as **furniture**. After layout it must sit in `furniture` blocks only; in the listening script it must not appear at all.
+- Footnotes, tables, figures, algorithms and equation numbers are listed with their printed
+  labels and pages, so later stages can link references ("see Table 2", "Eq. (9)") and exports
+  can name them. They describe what is printed, whatever the layout stage decides about blocks.
 
 ## File name and format
 
@@ -46,14 +47,18 @@ broken across lines is joined without a space.
 | `pages` | integer | Number of pages |
 | `columns` | list of 1 or 2 | Text columns on each page, one entry per page. A page with a full-width float or formula above two columns counts as 2 |
 | `headings` | list of `{ level, text }` | Every heading in reading order, from "Abstract" to the last appendix heading. `level` 1 = section (also Abstract, References, unnumbered end sections, appendices), 2 = subsection, 3 = sub-subsection. When the appendices sit under a common title ("Supplementary Material: Appendices"), that title is level 1 and each appendix moves one level down. `text` includes the printed number, e.g. "2.1 Setup". Paragraph run-in heads ("Proof.", "Definition 1.", PRL-style "Introduction.") are not headings. Empty when the paper prints no headings, with a comment saying so |
+| `footnotes` | list of `{ page, marks }` | Notes printed at the foot of a page below a short rule, by page in reading order, with their marks as printed ("1", "∗"); `""` for a note without a mark. A reference list is not footnotes |
+| `tables` | list of `{ page, labels }` | Tables by page in reading order, with their caption labels ("Table 2"); `""` for a table without a caption |
+| `figures` | list of `{ page, labels }` | Figures, images and charts by page, with their caption labels ("Figure 1"); `""` for one without a caption. Logos and icons are not figures |
+| `algorithms` | list of `{ page, labels }` | Pseudocode blocks ("Algorithm 3") by page, also those inside a figure |
 | `formula_numbers` | list of `{ page, numbers }` | The equation numbers printed next to display formulas, as text without brackets ("12", "16a"), in reading order and grouped by page. A display spanning several lines under one number lists it once; a number printed again (an equation restated in an appendix) is listed again. Empty when the paper numbers no formulas |
-| `counts.footnotes` | integer | Notes printed at the foot of a page below a short rule, with or without a mark. A reference list is not footnotes |
-| `counts.tables` | integer | Tables with a "Table N" caption, plus uncaptioned tables |
-| `counts.figures` | integer | Figures with a "Figure N" caption, plus uncaptioned images and charts. Logos and icons are not figures |
-| `counts.algorithms` | integer | Pseudocode blocks ("Algorithm N"), also those inside a figure. Optional, 0 when left out |
-| `counts.unnumbered_formulas` | integer | Display formulas set apart from the text without a number |
+| `unnumbered_formulas` | list of `{ page, count }` | How many display formulas without a number each page has |
+
 | `verbatim` | list of tables, 3 to 5 | Sentences that must come out word for word (see below) |
 | `furniture` | list of tables | Text that must not be read aloud (see below) |
+
+The lists from `footnotes` to `unnumbered_formulas` may be empty. Each names a page at most
+once, in page order.
 
 Each `[[verbatim]]` entry:
 

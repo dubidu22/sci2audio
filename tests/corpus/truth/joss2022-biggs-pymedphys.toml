@@ -41,11 +41,12 @@ furniture = [
 
 formula_numbers = []  # no numbered display formulas
 
-[counts]
-footnotes = 0  # superscripts after author names mark affiliations, not footnotes
-tables = 0
-figures = 0
-unnumbered_formulas = 0
+
+footnotes = []  # superscripts after author names mark affiliations, not footnotes
+tables = []
+figures = []
+algorithms = []
+unnumbered_formulas = []
 
 [[verbatim]]
 where = "plain"

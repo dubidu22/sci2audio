@@ -64,13 +64,26 @@ furniture = [
 
 formula_numbers = []  # no numbered display formulas
 
-[counts]
-# "∗ Work done while at UCLA." (page 1), 1 and 2 (page 3), 3 (page 5), 4 (page 9),
-# 5 (page 11), and the unmarked note under the checklist (page 13).
-footnotes = 7
-tables = 6
-figures = 0
-unnumbered_formulas = 0
+
+# Footnote marks as printed, by page. "" is a note without a mark: the line under the
+# checklist on page 13.
+footnotes = [
+  { page = 1, marks = ["∗"] },  # "Work done while at UCLA."
+  { page = 3, marks = ["1", "2"] },
+  { page = 5, marks = ["3"] },
+  { page = 9, marks = ["4"] },
+  { page = 11, marks = ["5"] },
+  { page = 13, marks = [""] },
+]
+tables = [
+  { page = 2, labels = ["Table 1"] },
+  { page = 4, labels = ["Table 2", "Table 3"] },
+  { page = 10, labels = ["Table 4"] },
+  { page = 12, labels = ["Table 5", "Table 6"] },
+]
+figures = []
+algorithms = []
+unnumbered_formulas = []
 
 [[verbatim]]
 # Splits "un-derstanding" and "bet-ter" across lines.

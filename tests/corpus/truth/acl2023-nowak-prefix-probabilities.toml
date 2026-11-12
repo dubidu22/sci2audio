@@ -56,12 +56,27 @@ formula_numbers = [
   { page = 10, numbers = ["25", "26"] },
 ]
 
-[counts]
-footnotes = 12  # 1-8 in the main text, 9-12 on page 10
-tables = 0
-figures = 2  # Figure 1 (pseudocode of Alg. 1 and 2), Figure 2 (two derivation trees)
-algorithms = 5  # Alg. 1 and 2 inside Figure 1; Alg. 3, 4 and 5 stand alone
-unnumbered_formulas = 1  # page 4: Eq. (9) repeated without its number
+
+footnotes = [
+  { page = 1, marks = ["1", "2", "3", "4", "5"] },
+  { page = 2, marks = ["6"] },
+  { page = 4, marks = ["7", "8"] },
+  { page = 10, marks = ["9", "10", "11", "12"] },
+]
+tables = []
+# Figure 1 holds the pseudocode of Algorithms 1 and 2; Figure 2 shows two derivation trees.
+figures = [
+  { page = 3, labels = ["Figure 1", "Figure 2"] },
+]
+algorithms = [
+  { page = 3, labels = ["Algorithm 1", "Algorithm 2"] },  # inside Figure 1
+  { page = 5, labels = ["Algorithm 3"] },
+  { page = 10, labels = ["Algorithm 4"] },
+  { page = 11, labels = ["Algorithm 5"] },
+]
+unnumbered_formulas = [
+  { page = 4, count = 1 },  # Eq. (9) shown again without its number
+]
 
 [[verbatim]]
 where = "plain"

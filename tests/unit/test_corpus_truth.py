@@ -26,14 +26,14 @@ FURNITURE_KINDS = {
     "sidebar",
     "contents",
 }
-COUNT_KEYS = {
-    "footnotes",
-    "tables",
-    "figures",
-    "algorithms",
-    "unnumbered_formulas",
+# Labelled items listed by page: key -> (field holding the labels, may a label be "").
+PAGE_GROUPS = {
+    "footnotes": ("marks", True),  # "" is a note without a mark
+    "tables": ("labels", True),  # "" is a table without a caption
+    "figures": ("labels", True),
+    "algorithms": ("labels", False),
+    "formula_numbers": ("numbers", False),
 }
-REQUIRED_COUNTS = COUNT_KEYS - {"algorithms"}
 MIN_VERBATIM, MAX_VERBATIM = 3, 5
 
 COMMON_KEYS = {"file", "drafted_from", "title"}
@@ -42,8 +42,8 @@ PAPER_KEYS = COMMON_KEYS | {
     "columns",
     "headings",
     "furniture",
-    "formula_numbers",
-    "counts",
+    *PAGE_GROUPS,
+    "unnumbered_formulas",
     "verbatim",
 }
 EPUB_KEYS = COMMON_KEYS | {"chapters", "endnotes"}
@@ -80,6 +80,29 @@ def check_pages(pages: object, last_page: int, where: str) -> None:
     for page in pages:
         assert type(page) is int, f"{where}: page {page!r} is not a whole number"
         assert 1 <= page <= last_page, f"{where}: page {page} outside 1..{last_page}"
+
+
+def check_page_order(groups: list[dict[str, Any]], key: str) -> None:
+    group_pages = [group["page"] for group in groups]
+    assert group_pages == sorted(set(group_pages)), f"{key}: one entry per page, in page order"
+
+
+def check_page_groups(
+    groups: object, key: str, field: str, may_be_empty: bool, last_page: int
+) -> None:
+    """A list of { page, <field> = [labels] } with labels as printed."""
+    assert isinstance(groups, list), f"{key} must be a list (empty if none)"
+    for group in groups:
+        assert set(group) == {"page", field}, f"{key} entries need page and {field}: {group}"
+        check_pages([group["page"]], last_page, key)
+        labels = group[field]
+        assert isinstance(labels, list), f"{key}.{field} must be a list"
+        assert labels, f"{key}: leave out pages without entries"
+        for label in labels:
+            assert isinstance(label, str), f"{key}: label {label!r} must be text"
+            if label or not may_be_empty:
+                assert is_text(label), f"{key}: label {label!r} must be non-empty, no outer spaces"
+    check_page_order(groups, key)
 
 
 def test_every_corpus_file_has_one_truth_file() -> None:
@@ -142,24 +165,19 @@ def test_paper_truth_follows_format(path: Path) -> None:
         assert heading["level"] in {1, 2, 3}, f"heading level must be 1 to 3: {heading}"
         assert is_text(heading["text"]), f"heading text must be non-empty: {heading}"
 
-    formulas = truth["formula_numbers"]
-    assert isinstance(formulas, list), "formula_numbers must be a list (empty if none)"
-    for group in formulas:
-        assert set(group) == {"page", "numbers"}, f"formula group needs page and numbers: {group}"
-        check_pages([group["page"]], pages, f"formula numbers {group['numbers']}")
-        assert isinstance(group["numbers"], list), "numbers must be a list"
-        assert group["numbers"], "a page group must list at least one number"
-        for number in group["numbers"]:
-            assert is_text(number), f"equation number must be non-empty text: {number!r}"
-            assert not number.startswith("("), f"write {number!r} without brackets"
-    group_pages = [group["page"] for group in formulas]
-    assert group_pages == sorted(set(group_pages)), "one group per page, in page order"
+    for key, (field, may_be_empty) in PAGE_GROUPS.items():
+        check_page_groups(truth[key], key, field, may_be_empty, pages)
+    for number in (n for group in truth["formula_numbers"] for n in group["numbers"]):
+        assert not number.startswith("("), f"write equation number {number!r} without brackets"
 
-    counts = truth["counts"]
-    assert set(counts) <= COUNT_KEYS, f"unknown counts {sorted(set(counts) - COUNT_KEYS)}"
-    assert set(counts) >= REQUIRED_COUNTS, f"missing counts {sorted(REQUIRED_COUNTS - set(counts))}"
-    for key, value in counts.items():
-        assert is_count(value), f"counts.{key} must be a whole number from 0"
+    unnumbered = truth["unnumbered_formulas"]
+    assert isinstance(unnumbered, list), "unnumbered_formulas must be a list (empty if none)"
+    for group in unnumbered:
+        assert set(group) == {"page", "count"}, f"unnumbered_formulas needs page, count: {group}"
+        check_pages([group["page"]], pages, "unnumbered_formulas")
+        assert is_count(group["count"]), "count must be a whole number"
+        assert group["count"] >= 1, "leave out pages without unnumbered formulas"
+    check_page_order(unnumbered, "unnumbered_formulas")
 
     verbatim = truth["verbatim"]
     assert MIN_VERBATIM <= len(verbatim) <= MAX_VERBATIM, f"{len(verbatim)} verbatim sentences"

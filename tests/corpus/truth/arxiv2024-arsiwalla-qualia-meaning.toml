@@ -69,16 +69,39 @@ formula_numbers = [
   { page = 16, numbers = ["4"] },
 ]
 
-[counts]
-# The author's e-mail note (∗, page 1) and footnotes 1-19; 20 \footnote commands in the source.
-footnotes = 20
-tables = 1  # Table 1, page 7 (ten kinds of experience)
-# The picture labelled as Eq. (4) on page 16 (srmap.png in the source). The commutative
-# diagram (2) on page 13 is a vector drawing typeset as an equation.
-figures = 1
-# "O → S → I" and the maps A_P and A_M (page 13), "Obj_P → Obj_M → Rel_M" (page 15), and the
-# self-maps S_Obj and S_Rel (page 16, one line).
-unnumbered_formulas = 5
+
+# Footnote marks as printed, by page: the author's e-mail note (∗) and footnotes 1-19
+# (20 \footnote commands in the source).
+footnotes = [
+  { page = 1, marks = ["∗"] },
+  { page = 3, marks = ["1"] },
+  { page = 4, marks = ["2"] },
+  { page = 5, marks = ["3"] },
+  { page = 7, marks = ["4"] },
+  { page = 9, marks = ["5", "6"] },
+  { page = 10, marks = ["7", "8", "9"] },
+  { page = 12, marks = ["10"] },
+  { page = 14, marks = ["11", "12"] },
+  { page = 15, marks = ["13", "14"] },
+  { page = 16, marks = ["15"] },
+  { page = 17, marks = ["16", "17"] },
+  { page = 18, marks = ["18"] },
+  { page = 19, marks = ["19"] },
+]
+tables = [
+  { page = 7, labels = ["Table 1"] },  # ten kinds of experience
+]
+# The picture labelled as Eq. (4) on page 16 (srmap.png in the source) has no caption: "".
+# The commutative diagram (2) on page 13 is a vector drawing typeset as an equation.
+figures = [
+  { page = 16, labels = [""] },
+]
+algorithms = []
+unnumbered_formulas = [
+  { page = 13, count = 3 },  # "O → S → I" and the maps A_P and A_M
+  { page = 15, count = 1 },  # "Obj_P → Obj_M → Rel_M"
+  { page = 16, count = 1 },  # the self-maps S_Obj and S_Rel, one line
+]
 
 [[verbatim]]
 where = "plain"

@@ -43,11 +43,14 @@ furniture = [
 
 formula_numbers = []  # no numbered display formulas
 
-[counts]
-footnotes = 0  # the "1" after the author's name marks the affiliation, not a footnote
-tables = 0
-figures = 1  # Figure 1 on page 2; the Python example above it is a code block
-unnumbered_formulas = 0
+
+footnotes = []  # the "1" after the author's name marks the affiliation, not a footnote
+tables = []
+figures = [
+  { page = 2, labels = ["Figure 1"] },  # the Python example above it is a code block
+]
+algorithms = []
+unnumbered_formulas = []
 
 [[verbatim]]
 where = "plain"
