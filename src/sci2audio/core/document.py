@@ -177,10 +177,13 @@ class Document:
             raise ValueError(f"{len(self.page_labels)} page labels for {pages} pages")
 
     def page_label(self, number: int) -> str:
-        """The label printed on page `number` (counted from 1), or "" if none is known."""
-        if self.page_labels and 1 <= number <= len(self.page_labels):
-            return self.page_labels[number - 1]
-        return ""
+        """The label printed on page `number` (counted from 1), or "" if none is known.
+
+        Raise ValueError for a page the document doesn't have.
+        """
+        if not 1 <= number <= len(self.content.pages):
+            raise ValueError(f"page {number} is not in 1..{len(self.content.pages)}")
+        return self.page_labels[number - 1] if self.page_labels else ""
 
     def check_span(self, span: Span) -> None:
         """Raise SpanError unless the span lies inside the text of its block."""

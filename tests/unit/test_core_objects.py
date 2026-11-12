@@ -138,8 +138,11 @@ def test_furniture_keeps_its_role_and_pages_their_printed_labels() -> None:
     """#31: what each furniture block is, and the page numbers as printed."""
     roles = [b.role for b in PAPER.blocks if b.role]
     assert roles == [FurnitureRole.RUNNING_HEAD]
-    assert [PAPER.page_label(n) for n in (1, 2, 3)] == ["39", "", ""]
+    assert [PAPER.page_label(n) for n in (1, 2)] == ["39", ""]
     assert replace(PAPER, page_labels=()).page_label(1) == ""
+    for missing in (0, 3):
+        with pytest.raises(ValueError, match=r"not in 1\.\.2"):
+            PAPER.page_label(missing)
 
 
 def test_captions_link_to_what_they_describe() -> None:
