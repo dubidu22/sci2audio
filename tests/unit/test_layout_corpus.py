@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from sci2audio.core import Block, BlockKind, Document
+from sci2audio.core import Block, BlockKind, Document, FurnitureRole
 from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
 from sci2audio.layout.build import columns_per_page
@@ -105,6 +105,59 @@ def test_furniture_blocks_hold_only_furniture(paper: Path) -> None:
         and not any(letters(block.text) in text for text in known.get(page_of(doc, block), []))
     ]
     assert wrong == []
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_furniture_blocks_have_the_truth_role(paper: Path) -> None:
+    """#31: each truth furniture item has a piece in a block with its role, and a block
+    that is a piece of an item has the item's role, unless it is a piece of another item
+    of its own role on that page (a page number "2" in a contents line "1 Introduction 2").
+    Every truth kind is a `FurnitureRole`, and every furniture block has a role."""
+    doc = document(paper)
+    blocks = [
+        (page_of(doc, block), squeezed(block.text), block.role.value)
+        for block in doc.blocks
+        if block.role and block.text.strip()
+    ]
+    items = [
+        (number, squeezed(item["text"]), FurnitureRole(item["kind"]).value)
+        for item in truth(paper)["furniture"]
+        for number in item["pages"]
+    ]
+    unnamed = [b.text for b in doc.blocks if b.kind is BlockKind.FURNITURE and b.role is None]
+    wrong = []
+    for number, text, kind in items:
+        pieces = [(t, role) for page, t, role in blocks if page == number and _same_piece(t, text)]
+        if kind not in {role for _, role in pieces}:
+            wrong.append(("no block with its role", number, kind, text))
+        for piece, role in pieces:
+            other = any(p == number and k == role and piece in t for p, t, k in items)
+            if role != kind and not other:
+                wrong.append((f"a piece is {role}", number, kind, text))
+    assert wrong == []
+    assert unnamed == []  # every furniture block says what it is
+
+
+def _same_piece(block: str, item: str) -> bool:
+    """True if the block holds the item or a piece of it (an item may span lines); a short
+    text such as a page number must match whole."""
+    return (
+        block == item or (len(block) >= 4 and block in item) or (len(item) >= 4 and item in block)
+    )
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_pages_carry_their_printed_page_numbers(paper: Path) -> None:
+    """#31: the page numbers the truth lists are the pages' labels; other pages have none."""
+    doc = document(paper)
+    printed = {
+        number: item["text"]
+        for item in truth(paper)["furniture"]
+        if item["kind"] == "page-number"
+        for number in item["pages"]
+    }
+    expected = [printed.get(page.number, "") for page in doc.content.pages]
+    assert list(doc.page_labels) == expected
 
 
 def _made_of(text: str, pieces: list[str]) -> bool:
@@ -237,9 +290,11 @@ def doc_blocks(paper: Path) -> list[Block]:
 def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
     doc = document(paper)
     out = [f"{paper.name}  language {doc.language}  blocks {len(doc.blocks)}"]
+    out.append("page labels  " + " ".join(label or "-" for label in doc.page_labels))
     for index, block in enumerate(doc.blocks):
         first, last = block.parts[0].item, block.parts[-1].item
         items = first if first == last else f"{first}..{last} ({len(block.parts)})"
         text = block.text.replace("\n", "\\n")  # one block per line of the golden file
-        out.append(f"{index}  p{page_of(doc, block)}  {block.kind.value}  [{items}]  {text}")
+        kind = f"{block.kind.value}/{block.role.value}" if block.role else block.kind.value
+        out.append(f"{index}  p{page_of(doc, block)}  {kind}  [{items}]  {text}")
     assert "\n".join(out) + "\n" == snapshot

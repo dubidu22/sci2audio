@@ -49,6 +49,11 @@ def two_columns(name: str, top: float, count: int) -> tuple[list[TextLine], list
     return left, right
 
 
+def roles(doc: Document) -> list[str]:
+    """The role of each furniture block, in reading order."""
+    return [b.role.value for b in doc.blocks if b.role]
+
+
 def short(li: TextLine) -> TextLine:
     """The line ending halfway: the last line of a paragraph."""
     box = li.box or Box(0, 0, 0, 0)
@@ -220,6 +225,8 @@ def test_running_heads_and_page_numbers_are_furniture_read_at_their_place() -> N
     assert "Journal of Tests 2026" in texts(doc, BlockKind.PARAGRAPH)
     assert texts(doc)[:2] == ["Journal of Tests 2026", "p1-0"]  # the head before the text
     assert texts(doc)[11] == "1"  # the page number after it
+    assert roles(doc) == ["running-head", "page-number"] * 3
+    assert doc.page_labels == ("1", "2", "3")
 
 
 def test_chapter_headings_and_a_continued_table_header_are_not_running_heads() -> None:
@@ -247,6 +254,7 @@ def test_a_word_alone_at_the_foot_is_not_a_page_number_but_a_numeral_is() -> Non
     numeral = line("xii", 295, 780, 305, size=8)
     doc = build_document(content([*body, *words], [*body_copy(body), numeral]))
     assert texts(doc, BlockKind.FURNITURE) == ["xii"]
+    assert doc.page_labels == ("", "xii")
 
 
 def test_figure_labels_are_not_furniture() -> None:
@@ -267,6 +275,8 @@ def test_footer_line_numbers_and_side_stamp_are_furniture() -> None:
     doc = build_document(content([*body, *numbers, stamp, footer, in_text]))
     furniture = texts(doc, BlockKind.FURNITURE)
     assert sorted(furniture) == sorted([stamp.text, footer.text, *(n.text for n in numbers)])
+    assert sorted(roles(doc)) == sorted(["side-stamp", "footer", *["line-number"] * 12])
+    assert doc.page_labels == ("",)
     assert "42" in texts(doc, BlockKind.PARAGRAPH)
 
 
@@ -280,6 +290,7 @@ def test_a_printed_table_of_contents_is_furniture() -> None:
     after = column("text-", LEFT, RIGHT, 200, 6)
     doc = build_document(content([title, *entries, *after]))
     assert texts(doc, BlockKind.PARAGRAPH) == [li.text for li in after]
+    assert roles(doc) == ["contents"] * 7
 
 
 def test_a_sidebar_in_small_letters_beside_the_text_is_furniture() -> None:
@@ -288,6 +299,45 @@ def test_a_sidebar_in_small_letters_beside_the_text_is_furniture() -> None:
     doc = build_document(content([*body, *sidebar], column("more-", 170, 550, 100, 40)))
     assert texts(doc, BlockKind.FURNITURE) == [li.text for li in sidebar]
     assert texts(doc)[:40] == [li.text for li in body]  # read after the page's text
+    assert roles(doc) == ["sidebar"] * 6
+
+
+def test_footnote_marks_that_go_up_with_the_page_are_read() -> None:
+    """One footnote per page, its mark a small line of its own at the left end of a row in
+    the bottom band: the marks go up by one per page but are not page numbers."""
+    pages, read = [], []
+    for n in (1, 2, 3):
+        body = column(f"p{n}-", LEFT, RIGHT, 100, 40)
+        body[-1] = short(body[-1])
+        mark = line(str(n), LEFT, 760 - 10 * n, LEFT + 4, size=6)
+        note = line(f"Note {'abc'[n - 1]} in small letters.", LEFT + 8, 760 - 10 * n, 400, size=8)
+        pages.append([*body, mark, note])
+        read.append(f"{mark.text} {note.text}")  # the mark joins its note's line
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert doc.page_labels == ("", "", "")
+    assert [text for text in texts(doc) if "Note" in text] == read
+
+
+def test_a_lone_superscript_digit_at_the_foot_does_not_stop_layout() -> None:
+    body = column("p-", LEFT, RIGHT, 100, 10)
+    doc = build_document(content([*body, line("\u00b2", 300, 770, 305, size=6)]))
+    assert "\u00b2" in texts(doc)
+
+
+def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
+    """A page number on the row of a footer line (JOSS) is not alone on its row; it counts
+    as a page number because it goes up by one from page to page. A number that stays the
+    same, such as a year, does not."""
+    pages = []
+    for number in (1, 2, 3):
+        body = column(f"p{number}-", LEFT, RIGHT, 100, 10)
+        body[-1] = short(body[-1])
+        cite = line("Doe, J. (2021). A paper. Journal of Tests, 2026", LEFT, 770, 500, size=8)
+        pages.append([*body, cite, line(str(number + 40), 510, 769, 520)])
+    doc = build_document(content(*pages))
+    assert roles(doc) == ["running-head", "page-number"] * 3
+    assert doc.page_labels == ("41", "42", "43")
 
 
 # Properties
