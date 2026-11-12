@@ -300,9 +300,33 @@ def test_each_section_starts_at_its_heading_with_its_printed_number(paper: Path)
     sections = flattened(doc.sections)
     headings = [i for i, block in enumerate(doc.blocks) if block.kind is BlockKind.HEADING]
     assert [section.start for section in sections] == headings
-    for section in sections:
-        number = PRINTED_NUMBER.match(section.title)
-        assert doc.blocks[section.start].label == (number[1] if number else "")
+    expected = [
+        heading["text"]
+        for heading in truth(paper)["headings"]
+        if (paper.stem, heading["text"]) not in NOT_YET_HEADINGS
+    ]
+    labels = [doc.blocks[section.start].label for section in sections]
+    assert labels == printed_numbers(expected)
+
+
+def printed_numbers(texts: list[str]) -> list[str]:
+    """The number each heading prints: digits always, a capital letter only where more
+    than one heading is numbered by letters ("A", "A.1"), not a title's one-letter first
+    word ("A Note on Ethics")."""
+    found = [number[1] if (number := PRINTED_NUMBER.match(text)) else "" for text in texts]
+    letters = {number for number in found if number[:1].isalpha()}
+    return [n if not n[:1].isalpha() or len(letters) > 1 else "" for n in found]
+
+
+def test_printed_numbers_follow_the_truth_text() -> None:
+    assert printed_numbers(["Abstract", "1 Intro", "2.1 Set", "A Proofs", "A.1 Lemma"]) == [
+        "",
+        "1",
+        "2.1",
+        "A",
+        "A.1",
+    ]
+    assert printed_numbers(["1 Intro", "A Note on Ethics"]) == ["1", ""]
 
 
 def test_headings_not_yet_found_are_still_in_the_truth() -> None:

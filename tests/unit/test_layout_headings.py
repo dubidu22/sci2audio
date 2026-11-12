@@ -8,6 +8,7 @@ import itertools
 
 from core_strategies import contents
 from hypothesis import given
+from hypothesis import strategies as st
 from test_layout import LEFT, RIGHT, content
 
 from sci2audio.core import BlockKind, Box, Content, Document, Section, TextLine, TextRun
@@ -212,3 +213,70 @@ def test_one_numbered_bold_line_does_not_make_a_document_numbered() -> None:
     doc = page.build()
     assert [text for text, _ in headings(doc)] == ["Summary", "3 GPUs", "Statement of need"]
     assert [s.level for s in doc.sections] == [1, 1, 1]
+
+
+def test_a_title_starting_with_a_one_letter_word_gets_no_made_up_number() -> None:
+    """Review of #50: "A" counts as a number only where letters number headings."""
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    page.heading("A Note on Ethics").body()
+    doc = page.build()
+    assert headings(doc)[-1] == ("A Note on Ethics", "")
+    assert [s.level for s in doc.sections] == [1, 1, 1]
+
+
+def test_letters_number_appendices_when_more_than_one_heading_uses_them() -> None:
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    page.heading("A Proofs").body().heading("A.1 Lemmas", 10.0).body()
+    assert [label for _, label in headings(page.build())] == ["1", "2", "A", "A.1"]
+
+
+def test_sizes_a_rounding_error_apart_are_one_style() -> None:
+    """Review of #50: 11.94 and 12.0 point headings are one style, not two."""
+    page = Page().heading("1 Introduction", 11.94).body().heading("2 Method", 12.0).body()
+    page.heading("3 Results", 11.94).body().heading("References", 12.0).body()
+    doc = page.build()
+    assert [s.title for s in doc.sections] == [
+        "1 Introduction",
+        "2 Method",
+        "3 Results",
+        "References",
+    ]
+
+
+@st.composite
+def numbered_papers(draw: st.DrawFn) -> tuple[Page, list[tuple[str, int, str]]]:
+    """A page of numbered sections and subsections over paragraphs, maybe an abstract
+    first and references last, with the headings it holds: title, level, number."""
+    names = st.sampled_from(["Introduction", "Method", "Results", "Data", "Discussion"])
+    page, expected = Page(), []
+
+    def heading(text: str, level: int, number: str) -> None:
+        page.heading(text, 12.0 if level == 1 else 10.0)
+        expected.append((text, level, number))
+        page.body(draw(st.integers(2, 3)))
+
+    if draw(st.booleans()):
+        heading("Abstract", 1, "")
+    for section in range(1, draw(st.integers(2, 3)) + 1):
+        heading(f"{section} {draw(names)}", 1, str(section))
+        for sub in range(1, draw(st.integers(0, 1)) + 1):
+            heading(f"{section}.{sub} {draw(names)}", 2, f"{section}.{sub}")
+    if draw(st.booleans()):
+        heading("References", 1, "")
+    return page, expected
+
+
+@given(numbered_papers())
+def test_any_numbered_paper_gets_its_headings_and_levels(
+    paper: tuple[Page, list[tuple[str, int, str]]],
+) -> None:
+    """Review of #50: a property that sees headings in every example."""
+    page, expected = paper
+    doc = page.build()
+    sections, stack = [], list(doc.sections)
+    while stack:
+        section = stack.pop(0)
+        sections.append(section)
+        stack[:0] = section.children
+    found = [(s.title, s.level, doc.blocks[s.start].label) for s in sections]
+    assert found == expected

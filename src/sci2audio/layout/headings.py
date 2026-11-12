@@ -52,10 +52,14 @@ def find_headings(
     """The blocks with their headings marked (kind, printed number as label), and the
     section tree the headings make."""
     lines = {line.id: line for page in content.pages for line in page.lines}
-    texts = [
-        _Text(index, block, _style(block, lines, settings))
+    found = [
+        (index, block, _style(block, lines, settings))
         for index, block in enumerate(blocks)
         if block.kind is BlockKind.PARAGRAPH and block.text.strip()
+    ]
+    sizes = _same_sizes([style.size for _, _, style in found], settings.same_size)
+    texts = [
+        _Text(index, block, Style(sizes[style.size], style.bold)) for index, block, style in found
     ]
     levels = _Headings(texts, body, settings).levels()
     out = list(blocks)
@@ -92,7 +96,19 @@ def _style(block: Block, lines: dict[str, TextLine], settings: LayoutSettings) -
     size = letters.most_common(1)[0][0]
     total = sum(len(run.text.strip()) for run in runs if run.size == size)
     bold = sum(len(run.text.strip()) for run in runs if run.size == size and run.bold)
-    return Style(round(size, 1), bool(total) and bold >= settings.heading_bold * total)
+    return Style(size, bool(total) and bold >= settings.heading_bold * total)
+
+
+def _same_sizes(sizes: list[float], share: float) -> dict[float, float]:
+    """Each size mapped to the smallest size of its group: sizes less than `share` apart
+    (11.94 and 12.0 point) are one size, so they make one style."""
+    found: dict[float, float] = {}
+    first = None
+    for size in sorted(set(sizes)):
+        if first is None or size - first >= share * size:
+            first = size
+        found[size] = first
+    return found
 
 
 class _Headings:
@@ -103,11 +119,17 @@ class _Headings:
         self.body = body
         self.settings = settings
         self.short = [k for k, text in enumerate(texts) if self._short(text)]
-        self.numbers = {
+        numbers = {
             k: found["label"]
             for k in self.short
             if (found := _NUMBER.match(texts[k].block.text.strip()))
         }
+        # a capital letter is a number only where letters number headings ("A", "A.1",
+        # "B"), not in a title that starts with a one-letter word ("A Note on Ethics")
+        letters = {label for label in numbers.values() if label[0].isalpha()}
+        if len(letters) < settings.heading_repeats:
+            numbers = {k: label for k, label in numbers.items() if not label[0].isalpha()}
+        self.numbers = numbers
 
     def levels(self) -> dict[int, tuple[int, str]]:
         """Each heading's block index, with its level and printed number ("" if none)."""
@@ -168,7 +190,7 @@ class _Headings:
         return (
             words.count("\n") < self.settings.heading_lines
             and len(words.split()) <= self.settings.heading_words
-            and sum(ch.isalpha() for ch in words) >= 2
+            and sum(ch.isalpha() for ch in words) >= self.settings.heading_letters
             and (text.style.bold or self._larger(text))
             and not words.endswith((".", ":", ";", ","))
         )

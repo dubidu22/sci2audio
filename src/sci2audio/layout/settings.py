@@ -66,14 +66,16 @@ class LayoutSettings:
     #                                between two lines ends a paragraph
     line_pitch: float = 1.2  # sizes: the line pitch to assume when no two lines show it
     same_size: float = 0.01  # lines whose sizes differ by less than this share are the same
-    #                          size (to measure the line pitch)
+    #                          size (to measure the line pitch, and in heading styles)
 
     # Headings and sections
     heading_lines: int = 3  # a heading has at most this many lines ...
-    heading_words: int = 20  # ... and words
+    heading_words: int = 20  # ... and words, ...
+    heading_letters: int = 2  # ... and at least this many letters (not a bold table number)
     heading_bold: float = 0.95  # a block with this share of its main-size letters bold is bold
-    heading_repeats: int = 2  # a document numbers its headings if this many have a number;
-    #                           without numbers, a heading style is used this often
+    heading_repeats: int = 2  # a document numbers its headings if this many have a number
+    #                           (letters count if this many distinct ones do); without
+    #                           numbers, a heading style is used this often
     # whole texts of headings that may stand in any bold or larger style. English only (v1.0):
     # papers in another language need their own list, passed in with that job's settings
     section_names: tuple[str, ...] = (
