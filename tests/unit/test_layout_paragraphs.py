@@ -89,6 +89,73 @@ def test_entries_with_hanging_indents_stay_apart() -> None:
     assert paragraphs(doc) == [joined(entry) for entry in entries]
 
 
+@given(st.sampled_from([(1, 2, 1), (1, 2, 1, 3, 1), (2, 1, 2, 1)]))
+def test_hanging_entries_of_one_and_two_lines_stay_apart(counts: tuple[int, ...]) -> None:
+    """Entries end in a short line; a two-line entry between one-line entries has its
+    second line further in, which is not the indented first line of a paragraph."""
+    entries, top = [], 100.0
+    for n, count in enumerate(counts):
+        entry = [line(f"e{n}-0", LEFT, top, RIGHT if count > 1 else 300)]
+        entry += [
+            line(f"e{n}-{k}", LEFT + 15, top + PITCH * k, RIGHT if k < count - 1 else 320)
+            for k in range(1, count)
+        ]
+        entries.append(entry)
+        top += PITCH * count
+    doc = build_document(content([li for entry in entries for li in entry]))
+    assert paragraphs(doc) == [joined(entry) for entry in entries]
+
+
+def test_a_paragraph_does_not_end_inside_a_hyphenated_word() -> None:
+    """A full line ending in a word split by a hyphen goes on, also between entries of a
+    list with hanging indents (the second line here starts further in)."""
+    first = line("[18] G. Montam-", LEFT, 100, RIGHT)
+    second = line("baux, The European Physical Journal B", LEFT + 15, 100 + PITCH, 320)
+    after = line("[19] A. Name, Journal", LEFT, 100 + 2 * PITCH, 300)
+    doc = build_document(content([first, second, after]))
+    assert paragraphs(doc) == [joined([first, second]), after.text]
+
+
+def test_a_bold_run_in_head_does_not_make_its_line_bold() -> None:
+    """A paragraph that opens with a bold head on its first line ("Definition 1.") is one
+    paragraph, whether the head is a piece of its own or a run of the line."""
+    head = bold("Domain-specific Continual Pre-training", LEFT, 100, 420)
+    rest = line("In the", 432, 100, RIGHT)
+    body = lines("a", LEFT, RIGHT, 100 + PITCH, 4)
+    runs = (
+        TextRun("Definition 1.", "Times-Bold", 10.0, bold=True),
+        TextRun(" A", "Times-Italic", 10.0, italic=True),
+        TextRun(" probabilistic context-free gram-", "Times-BoldItalic", 10.0, bold=True),
+    )
+    top = 100 + 6 * PITCH
+    defined = TextLine("def", runs, Box(LEFT, top, RIGHT, top + 10))
+    more = lines("b", LEFT, RIGHT, top + PITCH, 3)
+    doc = build_document(content([head, rest, *body, defined, *more]))
+    first = f"{head.text} {rest.text}\n{joined(body)}"
+    assert paragraphs(doc) == [first, joined([defined, *more])]
+
+
+def test_a_footnote_mark_or_subscripts_do_not_cut_a_paragraph() -> None:
+    """A line's size is the size most of its letters have: a small piece on its baseline
+    (a footnote mark, a subscript) does not make it a line in smaller letters."""
+    text = lines("a", LEFT, RIGHT, 100, 6)
+    y1, y2 = 100 + PITCH, 100 + 3 * PITCH
+    marked = [
+        line("rules of the grammar.", LEFT, y1, RIGHT - 6),
+        line("1", RIGHT - 5, y1 - 3, RIGHT, size=7),
+    ]
+    subscripts = [
+        line("where x", LEFT, y2, 120),
+        line("ij", 121, y2 + 3, 128, size=7),
+        line("is the weight of the edge from y", 131, y2, RIGHT - 9),
+        line("kl", RIGHT - 8, y2 + 3, RIGHT, size=7),
+    ]
+    rows = [[li] for li in text]
+    rows[1], rows[3] = marked, subscripts
+    doc = build_document(content([li for row in rows for li in row]))
+    assert paragraphs(doc) == ["\n".join(" ".join(li.text for li in row) for row in rows)]
+
+
 def test_a_narrower_block_is_not_cut_at_every_line() -> None:
     """An abstract set narrower than its column: its lines end before the column's edge."""
     abstract = lines("a", LEFT + 20, RIGHT - 20, 100, 5)

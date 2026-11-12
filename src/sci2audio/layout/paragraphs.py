@@ -5,10 +5,13 @@ on one baseline. Pieces next to each other in one column are one line again, unl
 white between them lines up with white in the row above or below: then they are the cells
 of a table or a list and stay apart.
 
-A paragraph ends where the next line is set in another size or weight, where the line
-before it stops short of its column's edge, where the next line is indented as a first
-line (or, in a list with hanging indents, starts further out), or where more white than the
-usual line spacing stands between the two. A paragraph goes on across a column or page
+A line's size is the size most of its letters have, so a footnote mark or a subscript does
+not change it; it is bold if nearly all its letters are and it ends in bold words, so a bold
+run-in head ("Definition 1.") does not make it bold. A paragraph ends where the next line
+is set in another size or weight, where the line before it stops short of its column's
+edge, where the next line is indented as a first line (or, in a list with hanging indents,
+starts further out), or where more white than the usual line spacing stands between the
+two; never inside a word split by a hyphen at a line's end. A paragraph goes on across a column or page
 break when its last line fills the column and the next column starts with a line in the
 same style that is not indented. Figures and furniture met while a paragraph is open wait
 until it closes, and so does text that interrupts it (`Paragraphs`): a paragraph is never
@@ -21,8 +24,8 @@ import itertools
 from dataclasses import dataclass
 from statistics import median
 
-from sci2audio.core import Block, BlockKind, Box, Part, TextLine
-from sci2audio.layout.geometry import line_size, same_row, union
+from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
+from sci2audio.layout.geometry import same_row, union
 from sci2audio.layout.order import Element
 from sci2audio.layout.settings import LayoutSettings
 
@@ -141,18 +144,35 @@ def make_row(
 ) -> Row:
     """The printed line these pieces make, in the column with these edges."""
     pieces = tuple(e.line for e in group if e.line is not None)
-    letters = sum(len(run.text) for piece in pieces for run in piece.runs)
-    bold = sum(len(run.text) for piece in pieces for run in piece.runs if run.bold)
-    sizes = [line_size(piece) for piece in pieces]
+    runs = [run for piece in pieces for run in piece.runs]
     return Row(
         pieces,
         union([e.box for e in group]),
         edges[0],
         edges[1],
         page,
-        median(sizes) or settings.body_size,
-        bold > settings.bold_share * letters if letters else False,
+        _letter_size(runs) or settings.body_size,
+        _bold(runs, settings),
     )
+
+
+def _letter_size(runs: list[TextRun]) -> float:
+    """The size most of the letters have: a footnote mark or a subscript on the line's
+    baseline doesn't change it."""
+    letters: dict[float, int] = {}
+    for run in runs:
+        letters[run.size] = letters.get(run.size, 0) + len(run.text.strip())
+    return max(letters, key=lambda size: letters[size]) if letters else 0.0
+
+
+def _bold(runs: list[TextRun], settings: LayoutSettings) -> bool:
+    """True if nearly all the letters are bold and the line ends in bold words: a line that
+    opens with a bold run-in head ("Definition 1.") and goes on in regular words is not."""
+    letters = sum(len(run.text) for run in runs)
+    bold = sum(len(run.text) for run in runs if run.bold)
+    worded = [run for run in runs if any(ch.isalpha() for ch in run.text)]
+    ends_bold = not worded or worded[-1].bold
+    return bool(letters) and bold > settings.bold_share * letters and ends_bold
 
 
 def paragraphs(units: list[Unit], settings: LayoutSettings) -> list[Block]:
@@ -317,18 +337,24 @@ class Paragraphs:
         size = max(last.size, next_row.size)
         if abs(last.size - next_row.size) > self.settings.size_change * size:
             return False
-        if last.bold != next_row.bold:
-            return False
-        if not self._display(last) and (
-            self._short(last, next_row)
-            or self._indented(next_row, last)
-            or self._outdented(rows, next_row)
-        ):
-            return False
+        if not _split_word(last, next_row) and self._breaks(rows, next_row):
+            return False  # (a paragraph does not end inside a word)
         return (
             not spacing
             or not _below(last, next_row, self.settings)
             or self._close_by(last, next_row)
+        )
+
+    def _breaks(self, rows: list[Row], next_row: Row) -> bool:
+        """True if a change of weight, a short line, an indent or an outdent ends the
+        paragraph before the next row."""
+        last = rows[-1]
+        if last.bold != next_row.bold:
+            return True
+        return not self._display(last) and (
+            self._short(last, next_row)
+            or self._indented(rows, next_row)
+            or self._outdented(rows, next_row)
         )
 
     def _display(self, row: Row) -> bool:
@@ -348,10 +374,15 @@ class Paragraphs:
         step = self.settings.indent * row.size
         return len(rows) > 1 and (last.box.x0 - last.left) - (row.box.x0 - row.left) >= step
 
-    def _indented(self, row: Row, last: Row) -> bool:
+    def _indented(self, rows: list[Row], row: Row) -> bool:
         """True if the row is the indented first line of a paragraph: it starts further in
         than the two rows before it, and the row after it is back at the left. In a list
-        with hanging indents, only the first line of an entry stands out."""
+        with hanging indents, only the first line of an entry stands out. A paragraph of one
+        line at the left is the first line of such an entry: the row further in goes on
+        with it."""
+        last = rows[-1]
+        if len(rows) < 2:
+            return False
         step = self.settings.indent * row.size
         inset = row.box.x0 - row.left
         before = [r for r in (last, self.earlier.get(id(last))) if r]
@@ -359,6 +390,13 @@ class Paragraphs:
         return all(inset - (r.box.x0 - r.left) >= step for r in before) and (
             after is None or inset - (after.box.x0 - after.left) >= step
         )
+
+
+def _split_word(row: Row, next_row: Row) -> bool:
+    """True if the row ends in a word split by a hyphen ("gram-") that the next row goes on
+    with in lower case ("mar")."""
+    end, start = row.text.rstrip(), next_row.text.lstrip()
+    return end[-2:-1].isalpha() and end.endswith("-") and start[:1].islower()
 
 
 def _ends(row: Row) -> bool:
