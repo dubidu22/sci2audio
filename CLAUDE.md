@@ -12,7 +12,7 @@ PDF, EPUB, Markdown or text in; a faithful listening script and MP3/M4B with cha
 - **The web interface binds to 127.0.0.1 only.**
 - **Licence gate:** every new dependency, copied file, model, voice or sample text names its licence in the PR body and in `THIRD_PARTY_LICENSES.md` (or `tests/corpus/LICENSES.md`). AGPL, non-commercial and unclear licences are refused. Third-party texts never enter the repo.
 - **Faithful text:** text steps propose marked edits (remove, replace, pause, ask) with a reason; nothing rewrites text silently and nothing summarises (D-57).
-- **Implementation threads never merge, never push to `main`, never force-push.** The coordinator merges a PR only after it passed review in a separate thread, by telling the review thread to merge it. Until v1.0 this covers critical PRs too; Colin is informed with one project-chat line per decision and per merge (D-68, D-77, D-80).
+- **Implementation threads never merge, never push to `main`, never force-push.** The coordinator merges a PR only after it passed review in a separate thread, by telling the review thread to merge it. Until v1.0 this covers critical PRs too (D-80); from v1.0 on a critical PR again needs Colin's approval (D-70). Colin is informed with one project-chat line per decision and per merge (D-68, D-77, D-80).
 
 ## Architecture (D-46): one program in layers
 
@@ -31,7 +31,7 @@ Keep a later web version possible: no global state (each job gets its settings a
 ## Workflow
 
 1. One Issue → one branch → one PR, in one lane (`.github/lanes.yml`). Stop if the Issue lacks acceptance criteria.
-2. Plan first: post a plan in the thread (modules or types, design choices, tests, rough size) before any code or tests. Non-critical work whose plan is clearly better than the alternatives starts at once; critical work, or a plan with a real open choice, waits for the coordinator's approval (D-72; until v1.0 the coordinator approves instead of Colin, D-80).
+2. Plan first: post a plan in the thread (modules or types, design choices, tests, rough size) before any code or tests. Non-critical work whose plan is clearly better than the alternatives starts at once; critical work, or a plan with a real open choice, waits for approval: the coordinator's until v1.0 (D-80), Colin's after that (D-72).
 3. Tests first: a failing test for a bug; a characterisation test before moving or splitting code; a regression case before any text rule change.
 4. Run before opening the PR: `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow and not benchmark"`.
 5. A PR that adds the first code of a kind also adds its tests and CI wiring (table in `.claude/rules/tests.md`, D-58).
@@ -39,7 +39,7 @@ Keep a later web version possible: no global state (each job gets its settings a
 7. No fixed size limit for PRs. Split a PR only when it splits naturally into parts that can be reviewed and merged on their own.
 8. Every PR is reviewed in a new thread that did not write it. Answer findings by listing exactly what was fixed and why; anything deferred gets an Issue (D-68).
 
-## Critical and `risk:high` (full plan and review process; until v1.0 the coordinator approves the merge, D-80)
+## Critical and `risk:high` (full plan and review process; Colin approves the merge, until v1.0 the coordinator does, D-80)
 
 A PR is **critical** if it changes a layer contract (the `lint-imports` layers, the voice plugin contract, the text-step interface), the core dataclasses (`sci2audio.core`), the KB (`sci2audio-design/docs/kb`) or a golden file (corpus truth files, snapshots, English regression cases), whatever its label says (D-69). Label it `risk:high`.
 
