@@ -7,6 +7,7 @@ from __future__ import annotations
 import errno
 import json
 import shutil
+import subprocess
 import sys
 from collections.abc import Iterable, Iterator, Sequence
 from pathlib import Path
@@ -224,6 +225,77 @@ def test_a_failed_rerun_leaves_no_old_readalong_file(job: Job, tmp_path: Path) -
     no_half_files(out)
 
 
+def test_interrupt_while_waiting_for_ffmpeg_kills_it(
+    job: Job, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review of PR #85, should-fix 2: Ctrl-C after the feed, while ffmpeg finishes."""
+    started: list[subprocess.Popen[bytes]] = []
+
+    class Interrupted(subprocess.Popen):  # type: ignore[type-arg]
+        def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+            super().__init__(*args, **kwargs)
+            self.interrupted = False
+            started.append(self)
+
+        def wait(self, timeout: float | None = None) -> int:
+            if not self.interrupted:
+                self.interrupted = True
+                raise KeyboardInterrupt
+            return super().wait(timeout)
+
+    monkeypatch.setattr(ffmpeg_module.subprocess, "Popen", Interrupted)
+    out = tmp_path / "out"
+    with pytest.raises(KeyboardInterrupt):
+        write_audiobook(job.folder, out, job.chapters, job.spoken, job.book)
+    assert len(started) == 1
+    assert started[0].returncode is not None  # killed and reaped, not left writing
+    no_half_files(out)
+    assert list(out.iterdir()) == []
+
+
+def test_a_file_appearing_during_the_run_is_not_replaced(job: Job, tmp_path: Path) -> None:
+    """Review of PR #85, small item 5: without overwrite, the final rename refuses a target
+    that appeared after the up-front check."""
+    out = tmp_path / "out"
+    target = out / "A Study of Tones.m4b"
+
+    def appear(args: Sequence[str], feed: Iterable[bytes]) -> str:
+        target.write_bytes(b"made by someone else meanwhile")
+        return REAL.run(args, feed)
+
+    with pytest.raises(FileExistsError):
+        write_audiobook(
+            job.folder, out, job.chapters, job.spoken, job.book, ffmpeg=Hooked(3, appear)
+        )
+    assert target.read_bytes() == b"made by someone else meanwhile"
+    no_half_files(out)
+
+
+@pytest.mark.parametrize(
+    ("title", "chapter"),
+    [("Ü" * 130, "Ä" * 130), ("量子" * 60, "力学" * 60), ("\U0001d538\U0001d539" * 70, "x" * 300)],
+)
+def test_long_non_ascii_titles_can_be_written(
+    job: Job, tmp_path: Path, title: str, chapter: str
+) -> None:
+    """Review of PR #85, must-fix 1: these stopped with ENAMETOOLONG before."""
+    from dataclasses import replace
+
+    chapters = [replace(c, title=chapter) for c in job.chapters]
+    written = write_audiobook(
+        job.folder,
+        tmp_path / "out",
+        chapters,
+        job.spoken,
+        replace(job.book, title=title),
+        ffmpeg=Touching(Path("unused")),
+    )
+    for path in [written.m4b, *written.mp3s, written.readalong]:
+        assert path is not None
+        assert path.exists()
+        assert len(path.name.encode("utf-8")) <= 255 - len("..partial")
+
+
 def test_bad_chunks_are_refused_before_anything_is_written(job: Job, tmp_path: Path) -> None:
     out = tmp_path / "out"
     (job.folder / job.spoken[1].chunk.file).unlink()
@@ -305,6 +377,23 @@ def test_missing_ffmpeg_gives_a_clear_message(
     assert "IMAGEIO_FFMPEG_EXE" in str(error.value)
 
 
+def test_missing_ffmpeg_changes_nothing_on_disk_even_with_overwrite(
+    job: Job, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review of PR #85, should-fix 3: ffmpeg is found before the old read-along file goes."""
+    out = tmp_path / "out"
+    first = write_audiobook(
+        job.folder, out, job.chapters, job.spoken, job.book, ffmpeg=Touching(Path("unused"))
+    )
+    before = sorted(p.name for p in out.iterdir())
+    monkeypatch.setitem(sys.modules, "imageio_ffmpeg", None)
+    monkeypatch.setattr(ffmpeg_module.shutil, "which", lambda name: None)
+    with pytest.raises(FfmpegNotFoundError):
+        write_audiobook(job.folder, out, job.chapters, job.spoken, job.book, overwrite=True)
+    assert first.readalong.exists()
+    assert sorted(p.name for p in out.iterdir()) == before
+
+
 def test_ffmpeg_error_message_holds_the_last_lines() -> None:
     error = FfmpegError(1, "\n".join(f"line {n}" for n in range(30)))
     assert "line 29" in str(error)
@@ -365,4 +454,16 @@ def test_readalong_file_golden(job: Job, tmp_path: Path, snapshot: SnapshotAsser
     text = written.readalong.read_text(encoding="utf-8")
     assert text.endswith("}\n")
     assert json.loads(text) == snapshot  # parsed, so the golden file's diffs stay readable
+    raw = json.loads(text)  # dicts keep the file's key order, which the format doc promises
+    assert list(raw) == [
+        "format",
+        "version",
+        "sample_rate",
+        "duration",
+        "m4b",
+        "chapters",
+        "chunks",
+    ]
+    assert list(raw["chapters"][0]) == ["title", "mp3", "start", "end", "first_chunk"]
+    assert list(raw["chunks"][0]) == ["chapter", "start", "end", "block", "start_char", "end_char"]
     assert write_module.AI_LABEL.startswith("AI-generated")

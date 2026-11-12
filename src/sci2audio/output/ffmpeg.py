@@ -85,20 +85,21 @@ class Ffmpeg:
             assert stdin is not None  # noqa: S101 (set by stdin=PIPE)
             stopped_early = False
             try:
-                for piece in feed:  # an error while reading the feed stops ffmpeg (below)
-                    try:
-                        stdin.write(piece)
-                    except OSError:  # a broken pipe (EINVAL on Windows): ffmpeg stopped
-                        stopped_early = True
-                        break
-            except BaseException:
+                try:
+                    for piece in feed:  # an error while reading the feed stops ffmpeg
+                        try:
+                            stdin.write(piece)
+                        except OSError:  # a broken pipe (EINVAL on Windows): ffmpeg stopped
+                            stopped_early = True
+                            break
+                finally:
+                    with contextlib.suppress(OSError):
+                        stdin.close()
+                code = process.wait()
+            except BaseException:  # also Ctrl-C while waiting: ffmpeg must not write on
                 process.kill()
                 process.wait()
                 raise
-            finally:
-                with contextlib.suppress(OSError):
-                    stdin.close()
-            code = process.wait()
             out.seek(0)
             err.seek(0)
             printed = out.read().decode("utf-8", "replace")

@@ -217,7 +217,27 @@ def test_names_are_safe_everywhere(title: str) -> None:
     assert name == name.strip(" .")
     assert name.split(".")[0].upper() not in {"CON", "PRN", "AUX", "NUL"}
     assert names.book_name(name) == name  # idempotent
-    name.encode("utf-8")  # no lone surrogates
+    assert len(name.encode("utf-8")) <= names.MAX_BYTES  # also no lone surrogates
+
+
+@given(st.text(), st.text(), st.integers(1, 9999))
+def test_every_file_name_fits_the_file_system(title: str, chapter: str, number: int) -> None:
+    """Review of PR #85, must-fix 1: 255 bytes (ext4, APFS) and 255 UTF-16 units (NTFS) for
+    every name output makes, partial names included."""
+    book = names.book_name(title)
+    mp3 = names.chapter_file(book, number, number, chapter)
+    made = [f"{book}.m4b", f"{book}.readalong.json", mp3]
+    for name in made + [f".{n}.partial" for n in made]:
+        assert len(name.encode("utf-8")) <= names.NAME_LIMIT, name
+        assert len(name.encode("utf-16-le")) // 2 <= names.NAME_LIMIT, name
+    assert f" - {number:02d} " in mp3
+
+
+@pytest.mark.parametrize("title", ["Ü" * 130, "量子" * 60, "\U0001d538" * 120, "\u03b1" * 200])
+def test_long_non_ascii_titles_are_cut_by_bytes(title: str) -> None:
+    name = names.book_name(title)
+    assert len(name.encode("utf-8")) <= names.MAX_BYTES
+    assert title.startswith(name)  # cut on a character boundary, nothing garbled
 
 
 # --- ffmetadata text ---------------------------------------------------------------------
@@ -287,6 +307,39 @@ def test_readalong_refuses_unknown_or_broken_files(change: dict[str, object], me
     raw.update(change)
     with pytest.raises(ReadAlongError, match=message):
         readalong.from_json(json.dumps(raw))
+
+
+@given(
+    books(),
+    st.data(),
+    st.one_of(st.none(), st.text(min_size=1)),
+    st.booleans(),
+)
+def test_readalong_round_trip_property(
+    book: tuple[list[Chapter], list[Spoken], list[int], int, OutputSettings],
+    data: st.DataObject,
+    m4b: str | None,
+    with_mp3s: bool,
+) -> None:
+    """Review of PR #85, should-fix 4: any timeline and spans survive the file."""
+    chapters, pieces, frames, rate, settings = book
+    spans = data.draw(
+        st.lists(
+            st.tuples(st.integers(0, 10**6), st.integers(0, 10**4), st.integers(0, 10**4)),
+            min_size=len(pieces),
+            max_size=len(pieces),
+        )
+    )
+    pieces = [
+        Spoken(AudioChunk(Span(b, min(x, y), max(x, y)), p.chunk.file, 0.1), p.pause)
+        for p, (b, x, y) in zip(pieces, spans, strict=True)
+    ]
+    mp3s = [f"{n:02d} {c.title}.mp3" for n, c in enumerate(chapters)] if with_mp3s else None
+    t = plan_timeline(chapters, pieces, frames, rate, settings)
+    built = readalong.build(t, pieces, m4b, mp3s)
+    assert readalong.from_json(readalong.to_json(built)) == built
+    assert [c.span for c in built.chunks] == [p.chunk.span for p in pieces]
+    assert [c.mp3 for c in built.chapters] == (mp3s or [None] * len(chapters))
 
 
 def test_readalong_refuses_text_that_is_not_json() -> None:

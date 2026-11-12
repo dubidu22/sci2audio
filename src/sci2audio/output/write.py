@@ -14,17 +14,19 @@ from __future__ import annotations
 
 import contextlib
 import os
+import sys
 import tempfile
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 
+from sci2audio import __version__
 from sci2audio.output import names, readalong
 from sci2audio.output.ffmpeg import LOCAL_ONLY, Ffmpeg, find_ffmpeg
 from sci2audio.output.model import BookInfo, Chapter, OutputSettings, Spoken, Written
 from sci2audio.output.timeline import ChapterRange, Timeline, check_chapters, plan_timeline
 from sci2audio.output.wav import ChunkAudio, ChunkAudioError, frames_of, inspect, silence
 
-AI_LABEL = "AI-generated audio: text-to-speech made with sci2audio."
+AI_LABEL = f"AI-generated audio: text-to-speech made with sci2audio {__version__}."
 GENRE = "Audiobook"
 # ISO 639-2 codes for the audio stream's language tag; anything else is "und" (undetermined)
 _ISO_639_2 = {
@@ -64,6 +66,8 @@ def write_audiobook(
     cover = _check_cover(book.cover)
     timeline = plan_timeline(chapters, spoken, [a.frames for a in audio], audio[0].rate, settings)
 
+    run = ffmpeg or Ffmpeg(find_ffmpeg())  # before anything on disk changes
+
     out_folder = out_folder.absolute()  # ffmpeg gets absolute paths, never "name:" lookalikes
     out_folder.mkdir(parents=True, exist_ok=True)
     base = names.book_name(book.title)
@@ -85,15 +89,14 @@ def write_audiobook(
     # the read-along file vouches for the audio: an old one must not outlive a failed rerun
     json_file.unlink(missing_ok=True)
 
-    run = ffmpeg or Ffmpeg(find_ffmpeg())
     for chapter, target in zip(timeline.chapters, mp3s, strict=False):
-        with _atomic(target) as partial:
+        with _atomic(target, overwrite) as partial:
             run.run(
                 _mp3_args(timeline, chapter, len(chapters), book, settings, cover, partial),
                 _feed(timeline, audio, chapter.first, chapter.stop),
             )
     if m4b is not None:
-        with _atomic(m4b) as partial, tempfile.TemporaryDirectory() as temp:
+        with _atomic(m4b, overwrite) as partial, tempfile.TemporaryDirectory() as temp:
             meta = Path(temp) / "chapters.txt"
             meta.write_text(_ffmetadata(timeline, book), encoding="utf-8")
             run.run(
@@ -103,7 +106,7 @@ def write_audiobook(
     data = readalong.build(
         timeline, spoken, m4b.name if m4b else None, [p.name for p in mp3s] if mp3s else None
     )
-    with _atomic(json_file) as partial:
+    with _atomic(json_file, overwrite) as partial:
         partial.write_text(readalong.to_json(data), encoding="utf-8")
     return Written(m4b, tuple(mp3s), json_file)
 
@@ -134,17 +137,37 @@ def _partial(target: Path) -> Path:
 
 
 @contextlib.contextmanager
-def _atomic(target: Path) -> Iterator[Path]:
-    """Yield a temporary path next to `target`; rename it to `target` if the block succeeds,
+def _atomic(target: Path, overwrite: bool) -> Iterator[Path]:
+    """Yield a temporary path next to `target`; move it to `target` if the block succeeds,
     remove it if anything goes wrong."""
     partial = _partial(target)
     try:
         yield partial
-        os.replace(partial, target)
+        _commit(partial, target, overwrite)
     except BaseException:
         with contextlib.suppress(OSError):
             partial.unlink(missing_ok=True)
         raise
+
+
+def _commit(partial: Path, target: Path, overwrite: bool) -> None:
+    """Move the finished file into place. Without `overwrite`, a file that appeared at the
+    target since the start of the run is never replaced (FileExistsError)."""
+    if overwrite:
+        os.replace(partial, target)
+    elif sys.platform == "win32":
+        os.rename(partial, target)  # refuses an existing target on Windows
+    else:
+        try:
+            os.link(partial, target)  # refuses an existing target
+        except FileExistsError:
+            raise
+        except OSError:  # no hard links here (FAT, some network drives): check, then rename
+            if target.exists():
+                raise FileExistsError(f"output file appeared during the run: {target}") from None
+            os.rename(partial, target)
+        else:
+            partial.unlink()
 
 
 def _feed(
