@@ -197,6 +197,13 @@ def test_a_number_on_a_line_of_its_own_is_not_a_marker() -> None:
     assert items(doc) == []
 
 
+def test_sub_figure_labels_on_one_line_are_not_a_list() -> None:
+    """nowak p3 "(a) ξ(Y | X) (b) ξ(Y Z | X)" and liu p3 "(a) (b)": the labels under a
+    figure's panels stand on one row, so they open one block, not two."""
+    assert items(build("(a) left panel (b) right panel")) == []
+    assert items(build("(a) (b)")) == []
+
+
 # Properties
 
 
