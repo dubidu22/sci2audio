@@ -94,7 +94,7 @@ def _case(raw: dict) -> Case:
         not isinstance(utterances, list) or not all(isinstance(u, str) for u in utterances)
     ):
         raise TypeError("utterances must be a list of strings")
-    if not raw["goal"].strip():
+    if not isinstance(raw["goal"], str) or not raw["goal"].strip():
         raise ValueError("goal must say what the owning issue's rule must reach")
     return Case(
         id=raw["id"],

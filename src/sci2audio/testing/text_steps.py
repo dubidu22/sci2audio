@@ -2,7 +2,8 @@
 
 `check_text_step(step)` runs the step on sample documents and raises `ConformanceError`
 listing everything it breaks: the declared attributes (id, languages, category, stage,
-`api_version`), edit spans inside their blocks, a reason and the step's id on every edit,
+`api_version`), edit spans inside their blocks, the step's id on every edit (a reason is
+enforced by `core.Edit` itself),
 no overlap among its own edits, whole-block edits for a block step, the same edits for the
 same input, no network access, and idempotence (run again on the text it produced, nothing
 more changes). Built-in steps also may not propose `ask` edits in v1.0 (`allow_ask=False`).
@@ -222,8 +223,6 @@ def _edit_problems(
     for edit in edits:
         if edit.step != step.id:
             problems.append(f"an edit names step {edit.step!r}, not {step.id!r}")
-        if not edit.reason.strip():
-            problems.append(f"an edit at {edit.span} has no reason")
         if edit.kind is EditKind.ASK and not allow_ask:
             problems.append(f"proposes an ask edit at {edit.span}; built-in steps may not")
     try:
