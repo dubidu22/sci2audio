@@ -48,6 +48,8 @@ figures = []
 algorithms = []
 unnumbered_formulas = []
 
+# No footnote-mark or inline-maths sentence: the paper has no footnotes and no inline maths
+# (the numbers after the author names are affiliation marks, not sentences).
 [[verbatim]]
 where = "plain"
 page = 1
