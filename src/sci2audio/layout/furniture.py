@@ -50,24 +50,25 @@ def find_furniture(content: Content, settings: LayoutSettings) -> dict[str, Furn
     size = body_size(content) or settings.body_size
     pages = [page for page in content.pages if page.height and page.width]
     heads = _running_heads(pages, size, settings)
-    counted = _counted(pages, settings)
+    counted = _counted(pages, size, settings)
     found: dict[str, FurnitureRole] = {}
     for page in pages:
         found.update(_Page(page, size, settings).furniture(heads, counted))
     return found
 
 
-def _counted(pages: list[Page], settings: LayoutSettings) -> set[str]:
+def _counted(pages: list[Page], size: float, settings: LayoutSettings) -> set[str]:
     """Numbers at the outer end of a top or bottom row that go up with the page, as page
     numbers do: one on each of at least `repeat_pages` pages, at the same end of the same
-    band, each the page's number plus the same offset (a page number set beside a footer)."""
+    band, each the page's number plus the same offset (a page number set beside a footer).
+    A number set smaller than the body text is a footnote mark, not a page number."""
     seen: dict[tuple[str, int, int], list[str]] = defaultdict(list)
     for page in pages:
         edge = [li for li in page.lines if li.box and _band(li.box, page, settings)]
         for row in rows(edge, settings.row_overlap):
             for side, line in ((0, row[0]), (1, row[-1])):
                 text = line.text.strip()
-                if text.isdigit() and len(text) <= 4:
+                if re.fullmatch(r"\d{1,4}", text) and line_size(line) >= settings.small * size:
                     band = _band(boxed(line), page, settings)
                     seen[band, side, int(text) - page.number].append(line.id)
     return {

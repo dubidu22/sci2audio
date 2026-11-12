@@ -302,6 +302,29 @@ def test_a_sidebar_in_small_letters_beside_the_text_is_furniture() -> None:
     assert roles(doc) == ["sidebar"] * 6
 
 
+def test_footnote_marks_that_go_up_with_the_page_are_read() -> None:
+    """One footnote per page, its mark a small line of its own at the left end of a row in
+    the bottom band: the marks go up by one per page but are not page numbers."""
+    pages, read = [], []
+    for n in (1, 2, 3):
+        body = column(f"p{n}-", LEFT, RIGHT, 100, 40)
+        body[-1] = short(body[-1])
+        mark = line(str(n), LEFT, 760 - 10 * n, LEFT + 4, size=6)
+        note = line(f"Note {'abc'[n - 1]} in small letters.", LEFT + 8, 760 - 10 * n, 400, size=8)
+        pages.append([*body, mark, note])
+        read.append(f"{mark.text} {note.text}")  # the mark joins its note's line
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert doc.page_labels == ("", "", "")
+    assert [text for text in texts(doc) if "Note" in text] == read
+
+
+def test_a_lone_superscript_digit_at_the_foot_does_not_stop_layout() -> None:
+    body = column("p-", LEFT, RIGHT, 100, 10)
+    doc = build_document(content([*body, line("\u00b2", 300, 770, 305, size=6)]))
+    assert "\u00b2" in texts(doc)
+
+
 def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
     """A page number on the row of a footer line (JOSS) is not alone on its row; it counts
     as a page number because it goes up by one from page to page. A number that stays the
