@@ -168,6 +168,34 @@ def test_a_diagram_its_arrows_join_is_one_formula() -> None:
     assert {"across", "left", "right", "under"} <= {part.item for part in found.parts}
 
 
+def test_a_frame_does_not_bring_a_quotation_into_a_formula() -> None:
+    """A framed box (a definition, a prompt) holding a formula and a centred quotation: the
+    frame's rules are no connectors, and plain text never joins a formula by growth, so the
+    quotation is still read (review of PR #61, round 2)."""
+    running_text = [
+        line(f"Running text, line {k}.", LEFT, y, RIGHT) for k, y in enumerate([180, 194, 208])
+    ]
+    quote = [
+        line("To be, or not to be,", 220, 230, 330),
+        line("that is the question.", 225, 244, 325),
+    ]
+    more = [
+        line(f"More running text, line {k}.", LEFT, y, RIGHT) for k, y in enumerate([262, 276, 290])
+    ]
+    frame = [
+        Drawing("top", Box(LEFT - 4, 150, RIGHT + 4, 150.5)),
+        Drawing("bottom", Box(LEFT - 4, 310, RIGHT + 4, 310.5)),
+        Drawing("left", Box(LEFT - 4, 150, LEFT - 3.5, 310.5)),
+        Drawing("right", Box(RIGHT + 3.5, 150, RIGHT + 4, 310.5)),
+    ]
+    page = [*paragraph(100, 3), math("a = b + c", 250, 160, 330), number("(1)", 160)]
+    doc = build([*page, *running_text, *quote, *more, *paragraph(340, 3), *frame])
+    assert formulas(doc) == [("1", "a = b + c (1)")]
+    texts = "\n".join(paragraph_texts(doc))
+    assert "To be, or not to be," in texts
+    assert "that is the question." in texts
+
+
 def test_a_caption_after_a_formula_at_a_page_top_is_no_part_of_the_paragraph() -> None:
     """nowak p5: the paragraph runs on past the formula at the page's top; the algorithm
     under the formula, caption and lines, comes out on its own, and the paragraph goes on

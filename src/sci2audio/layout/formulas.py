@@ -204,8 +204,12 @@ def _grown(
     chains: list[list[TextLine]], page: Page, edges: Edges, state: _State
 ) -> list[list[TextLine]]:
     """The chains, each grown by the loose graphics that reach into it (a diagram's arrows,
-    arsiwalla Eq. (2)) and by the chains those graphics reach in turn, until none is left."""
-    gap = state.settings.float_gap * state.body
+    arsiwalla Eq. (2)) and by the chains of maths those graphics reach in turn, until none
+    is left. A graphic as wide as the column is a rule or a frame, no connector; a chain of
+    plain text (a quotation in a framed box) never joins (review of PR #61)."""
+    settings = state.settings
+    gap = settings.float_gap * state.body
+    width = settings.full_line * (edges[1] - edges[0])
     loose = [
         graphic.box
         for graphic in (*page.pictures, *page.drawings)
@@ -215,6 +219,13 @@ def _grown(
         and state.kind(graphic.id) not in (BlockKind.FIGURE, BlockKind.TABLE)
         and edges[0] - gap <= graphic.box.x0
         and graphic.box.x1 <= edges[1] + gap
+        and graphic.box.x1 - graphic.box.x0 < width
+    ]
+    small = (1 - settings.size_change) * state.body
+    maths = [
+        math_letters(chain, settings.math_fonts) >= settings.math_share
+        or all(line_size(li) < small for li in chain)
+        for chain in chains
     ]
     out: list[list[TextLine]] = []
     rest = [union([li.box for li in chain]) for chain in chains]
@@ -229,7 +240,7 @@ def _grown(
             unused = [box for box in unused if not _meets(box, near)]
             area = union([area, *reached])
             near = _grow(area, gap)
-            joined = [k for k in waiting if _meets(rest[k], near)]
+            joined = [k for k in waiting if maths[k] and _meets(rest[k], near)]
             if not reached and not joined:
                 break
             for k in joined:
