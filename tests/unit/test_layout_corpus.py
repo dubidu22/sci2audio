@@ -5,10 +5,11 @@ order. Step 2: paragraphs; a verbatim sentence comes out word for word inside on
 across column and page breaks, footnotes and floats, and each heading is a block of its own.
 Step 3: the headings are the truth headings, with their levels and printed numbers, and the
 section tree follows them; the footnotes are the truth footnotes, with their marks; the
-captions are the truth's table, figure and algorithm captions, with their labels.
+captions are the truth's table, figure and algorithm captions, with their labels; the
+tables, figures and algorithms are placeholder blocks that their captions name.
 
-The golden files list every block with its kind, label, page and text (line breaks shown as
-\\n), then the section tree.
+The golden files list every block with its kind, label, the block a caption names, page and
+text (line breaks shown as \\n), then the section tree.
 Accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
 """
 
@@ -48,6 +49,12 @@ NOT_YET_HEADINGS = {
     ("acl2023-chi-plue", "ACL 2023 Responsible NLP Checklist"): 48,
     ("acl2023-hardt-ellipsis", "ACL 2023 Responsible NLP Checklist"): 48,
 }
+# Algorithms printed inside a figure, by page: the figure, and the algorithms it holds,
+# whose FIGURE block is the figure's (D-89).
+ALGORITHMS_IN_FIGURES = {
+    ("acl2023-nowak-prefix-probabilities", 3): ("Figure 1", ("Algorithm 1", "Algorithm 2")),
+}
+LINE_WIDTH = 10.0  # points: a drawing this thin is a line (`line_width` em at 10 point)
 PRINTED_NUMBER = re.compile(r"((?:\d+|[A-Z])(?:\.\d+)*) ")  # "2.1 Setup", "A Proofs"
 
 
@@ -372,6 +379,87 @@ def test_the_captions_are_the_truth_captions(paper: Path) -> None:
     }
 
 
+def placeholders(doc: Document, kind: BlockKind) -> dict[int, int]:
+    """How many blocks of the kind each page holds."""
+    found: dict[int, int] = {}
+    for block in doc.blocks:
+        if block.kind is kind:
+            found[page_of(doc, block)] = found.get(page_of(doc, block), 0) + 1
+    return found
+
+
+def truth_count(paper: Path, key: str) -> dict[int, int]:
+    return {entry["page"]: len(entry["labels"]) for entry in truth(paper).get(key, [])}
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_tables_are_the_truth_tables(paper: Path) -> None:
+    """Each truth table is one TABLE block on its page (step 3, PR D1)."""
+    assert placeholders(document(paper), BlockKind.TABLE) == truth_count(paper, "tables")
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_figures_are_the_truth_figures_and_algorithms(paper: Path) -> None:
+    """Each truth figure is one FIGURE block on its page, and so is each algorithm, unless
+    it is printed inside a figure (nowak's Figure 1 holds Algorithms 1 and 2, D-89)."""
+    expected = truth_count(paper, "figures")
+    for page, count in truth_count(paper, "algorithms").items():
+        _, inside = ALGORITHMS_IN_FIGURES.get((paper.stem, page), ("", ()))
+        expected[page] = expected.get(page, 0) + count - len(inside)
+    assert placeholders(document(paper), BlockKind.FIGURE) == expected
+
+
+def test_algorithms_inside_figures_share_the_figure_block() -> None:
+    """The captions of an algorithm printed inside a figure name the figure's block."""
+    for (stem, page), (figure, algorithms) in ALGORITHMS_IN_FIGURES.items():
+        doc = document(CORPUS / "papers" / f"{stem}.pdf")
+        named = {
+            block.label: block.describes
+            for block in doc.blocks
+            if block.kind is BlockKind.CAPTION and page_of(doc, block) == page
+        }
+        assert named[figure] is not None
+        assert [named[label] for label in algorithms] == [named[figure]] * len(algorithms)
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_each_truth_caption_names_a_block_of_its_kind(paper: Path) -> None:
+    """Every caption label in the truth's tables, figures and algorithms names (`describes`)
+    a TABLE (for a table) or FIGURE block on its page (step 3, PR D1, D-86)."""
+    doc = document(paper)
+    named = {}
+    for block in doc.blocks:
+        if block.kind is BlockKind.CAPTION and block.describes is not None:
+            target = doc.blocks[block.describes]
+            named[(page_of(doc, block), block.label)] = (page_of(doc, target), target.kind)
+    wrong = []
+    for key in ("tables", "figures", "algorithms"):
+        for entry in truth(paper).get(key, []):
+            kind = BlockKind.TABLE if key == "tables" else BlockKind.FIGURE
+            for label in filter(None, entry["labels"]):
+                if named.get((entry["page"], label)) != (entry["page"], kind):
+                    wrong.append((entry["page"], label))
+    assert wrong == []
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_no_figure_is_only_lines(paper: Path) -> None:
+    """A rule, a frame or an arrow alone is not a figure (#51): each FIGURE block holds a
+    picture, a drawing thicker than a line, or text."""
+    doc = document(paper)
+    items = doc.content.items()
+    for block in doc.blocks:
+        if block.kind is BlockKind.FIGURE:
+            boxes = [items[part.item][1].box for part in block.parts]
+            thick = [b for b in boxes if b and min(b.x1 - b.x0, b.y1 - b.y0) > LINE_WIDTH]
+            pictures = [p for p in block.parts if p.item in pictures_of(doc)]
+            assert block.text or thick or pictures, block.parts
+
+
+def pictures_of(doc: Document) -> set[str]:
+    return {picture.id for page in doc.content.pages for picture in page.pictures}
+
+
 def test_headings_not_yet_found_are_still_in_the_truth() -> None:
     """A known gap names a real truth heading, so the list can't hide a typo."""
     for stem, text in NOT_YET_HEADINGS:
@@ -410,6 +498,7 @@ def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
         text = block.text.replace("\n", "\\n")  # one block per line of the golden file
         kind = f"{block.kind.value}/{block.role.value}" if block.role else block.kind.value
         kind += f" ({block.label})" if block.label else ""
+        kind += f" -> {block.describes}" if block.describes is not None else ""
         out.append(f"{index}  p{page_of(doc, block)}  {kind}  [{items}]  {text}")
     out.append("sections")
     for section in flattened(doc.sections):

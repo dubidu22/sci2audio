@@ -345,16 +345,28 @@ def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
 
 @given(contents())
 @example(content([line("\n", LEFT, 100, 200)]))  # a line's own break is kept (review of #53)
+@example(  # a mark with no block before it stays before the running heads (review of #57)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            Page(1, (), (Picture("i0", Box(0, 0, 0, 0)), Picture("i1", Box(3, 0, 14, 21))), ()),
+            Page(2, (), (Picture("i2", Box(0, 0, 11, 21)),), ()),
+        ),
+        Metadata(),
+    )
+)
 def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
     doc = build_document(found)  # the Document itself checks that every item is in one block
     lines = {li.id: li.text for page in found.pages for li in page.lines}
-    for block in doc.blocks:
-        if block.kind is not BlockKind.FIGURE:  # the lines' text, joined by a space or a break
-            ends = [p.start for p in block.parts[1:]] + [len(block.text)]
-            for part, end in zip(block.parts, ends, strict=True):
-                text = lines[part.item]
-                assert block.text[part.start : part.start + len(text)] == text
-                assert block.text[part.start + len(text) : end] in ("", " ", "\n")
+    for block in doc.blocks:  # the lines' text, joined by a space or a break (graphics hold none)
+        read = [part for part in block.parts if part.item in lines]
+        if not read:
+            continue
+        ends = [p.start for p in read[1:]] + [len(block.text)]
+        for part, end in zip(read, ends, strict=True):
+            text = lines[part.item]
+            assert block.text[part.start : part.start + len(text)] == text
+            assert block.text[part.start + len(text) : end] in ("", " ", "\n")
         if block.kind in (BlockKind.FOOTNOTE, BlockKind.CAPTION, BlockKind.LIST_ITEM):
             assert block.text.lstrip().startswith(block.label)
     pages = [doc.content.items()[b.parts[0].item][0].number for b in doc.blocks]

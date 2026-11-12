@@ -99,10 +99,15 @@ def test_figure_and_table_named_in_running_text_stay_paragraphs() -> None:
 
 
 def test_an_algorithm_caption_ends_where_its_numbered_lines_start() -> None:
-    """The pseudocode below a caption stays a paragraph (#38 in PR D)."""
+    """The pseudocode below the caption is the algorithm the caption names (#38, PR D1)."""
     doc = build(bold("Algorithm 3", " Faster prefix probability"), "1: P = I - P", full=True)
     assert captions(doc) == [("Algorithm 3", "Algorithm 3 Faster prefix probability")]
-    assert "1: P = I - P" in [b.text for b in doc.blocks if b.kind is BlockKind.PARAGRAPH]
+    caption = next(b for b in doc.blocks if b.kind is BlockKind.CAPTION)
+    assert caption.describes is not None
+    assert (doc.blocks[caption.describes].kind, doc.blocks[caption.describes].text) == (
+        BlockKind.FIGURE,
+        "1: P = I - P",
+    )
 
 
 def test_a_table_or_figure_caption_is_not_cut_at_a_numbered_line() -> None:

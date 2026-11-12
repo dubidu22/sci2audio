@@ -75,6 +75,13 @@ class LayoutSettings:
     footnote_rule_width: float = 2.0  # em: ... is at least this wide ...
     footnote_rule_share: float = 0.5  # ... and at most this share of the column
 
+    # Tables, figures and algorithms (placeholders)
+    caption_reach: float = 2.0  # em: a table or figure stands this close to its caption, ...
+    float_gap: float = 1.0  # em: ... its rows and pieces this close to each other
+    line_width: float = 1.0  # em: a drawing at most this thick is a line (a rule, an arrow)
+    mark_height: float = 2.0  # em: a graphic no caption names at most this tall is a mark
+    #                            (an icon), not a figure
+
     # Headings and sections
     heading_lines: int = 3  # a heading has at most this many lines ...
     heading_words: int = 20  # ... and words, ...
