@@ -294,6 +294,20 @@ def test_a_logo_on_every_page_is_a_running_head() -> None:
     ] * 3
 
 
+def test_a_mark_before_a_running_head_joins_it_and_is_no_figure() -> None:
+    """A mark read before anything else, with a running-head logo after it, joins the
+    logo's block: it moves past no block and is announced as no figure."""
+    mark = Picture("mark", Box(20, 20, 24, 24))
+    logos = [Picture(f"logo{n}", Box(500, 30, 540, 70)) for n in range(4)]
+    doc = build(
+        *([mark, logos[0], *running()] if n == 0 else [logos[n], *running()] for n in range(4))
+    )
+    assert of(doc, BlockKind.FIGURE) == []
+    head = doc.blocks[0]
+    assert head.kind is BlockKind.FURNITURE
+    assert [part.item for part in head.parts] == ["mark", "logo0"]
+
+
 def test_a_rule_between_paragraphs_joins_the_paragraph_before_it() -> None:
     """D-90: its text stays as it was; the rule is its last part."""
     first, second = running(), running(top=270, count=4)

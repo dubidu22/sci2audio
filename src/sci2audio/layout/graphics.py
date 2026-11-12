@@ -493,18 +493,17 @@ def _ends(block: Block) -> list[int]:
 
 def _place(out: list[tuple[Block, str]]) -> list[Block]:
     """The blocks, with each loose graphic made furniture or joined to its neighbour: the
-    footnote just after it, else the block before it, else the one after it. Graphics that
-    would join the block after them never pass it: before furniture, or with nothing after
-    them, they stay a block of their own where they are read."""
+    footnote just after it, else the block before it, else the one after it, whatever its
+    kind, so they never pass it. With no block at all to join, they stay a block of their
+    own."""
     blocks: list[Block] = []
     pending: list[Part] = []  # graphics to join the next block (none before them)
     for n, (block, action) in enumerate(out):
         if action == "furniture":
-            if pending:
-                blocks.append(Block(BlockKind.FIGURE, "", tuple(Part(p.item) for p in pending)))
-                pending = []
             head = FurnitureRole.RUNNING_HEAD
-            blocks.append(Block(BlockKind.FURNITURE, "", block.parts, role=head))
+            parts = (*(Part(p.item) for p in pending), *block.parts)
+            blocks.append(Block(BlockKind.FURNITURE, "", parts, role=head))
+            pending = []
             continue
         if action != "join":
             if pending:
@@ -520,6 +519,6 @@ def _place(out: list[tuple[Block, str]]) -> list[Block]:
             blocks[-1] = replace(
                 last, parts=(*last.parts, *(Part(p.item, len(last.text)) for p in block.parts))
             )
-    if pending:  # nothing after them: they stay a block of their own
+    if pending:  # nothing at all to join: they stay a block of their own
         blocks.append(Block(BlockKind.FIGURE, "", tuple(Part(p.item) for p in pending)))
     return blocks
