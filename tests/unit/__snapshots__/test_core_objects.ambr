@@ -114,6 +114,7 @@
               'item': 'p2-l4',
             }),
           ]),
+          'role': 'running-head',
           'text': 'A Small Paper',
         }),
       ]),
@@ -324,6 +325,10 @@
         }),
       }),
       'language': 'en',
+      'page_labels': list([
+        '39',
+        '',
+      ]),
       'sections': list([
         dict({
           'children': list([

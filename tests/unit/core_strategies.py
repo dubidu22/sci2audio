@@ -15,6 +15,7 @@ from sci2audio.core import (
     Drawing,
     Edit,
     EditKind,
+    FurnitureRole,
     Metadata,
     Page,
     Part,
@@ -127,12 +128,18 @@ def documents(draw: st.DrawFn) -> Document:
             if isinstance(item, TextLine):
                 text += ("\n" if text else "") + item.text
                 parts[-1] = Part(item.id, len(text) - len(item.text))
-        blocks.append(Block(draw(st.sampled_from(BlockKind)), text, tuple(parts)))
+        kind = draw(st.sampled_from(BlockKind))
+        role = draw(st.none() | st.sampled_from(FurnitureRole))
+        blocks.append(
+            Block(kind, text, tuple(parts), role=role if kind is BlockKind.FURNITURE else None)
+        )
+    labels = st.tuples(*(st.sampled_from(["", "1", "39", "xii"]) for _ in content.pages))
     return Document(
         content=content,
         language=draw(st.sampled_from(["en", "en-GB", "de"])),
         blocks=tuple(blocks),
         sections=draw(sections(0, len(blocks), 1, 2)),
+        page_labels=draw(st.just(()) | labels),
     )
 
 
