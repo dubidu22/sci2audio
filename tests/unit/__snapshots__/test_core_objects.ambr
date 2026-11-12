@@ -1,0 +1,483 @@
+# serializer version: 1
+# name: test_export_golden_file
+  dict({
+    'chunks': list([
+      dict({
+        'duration': 2.5,
+        'file': 'audio/0001.wav',
+        'span': dict({
+          'block': 1,
+          'end': 28,
+          'start': 0,
+        }),
+      }),
+    ]),
+    'document': dict({
+      'blocks': list([
+        dict({
+          'kind': 'heading',
+          'parts': list([
+            dict({
+              'item': 'p1-l1',
+            }),
+          ]),
+          'text': '1 Introduction',
+        }),
+        dict({
+          'kind': 'paragraph',
+          'parts': list([
+            dict({
+              'item': 'p1-l2',
+            }),
+            dict({
+              'item': 'p2-l1',
+              'start': 17,
+            }),
+          ]),
+          'text': '''
+            Sound helps [3].
+            It runs on.
+          ''',
+        }),
+        dict({
+          'kind': 'formula',
+          'parts': list([
+            dict({
+              'item': 'p2-l2',
+            }),
+          ]),
+          'text': 'E = mc^2',
+        }),
+        dict({
+          'kind': 'table',
+          'parts': list([
+            dict({
+              'item': 'p2-d1',
+            }),
+            dict({
+              'item': 'p2-d2',
+            }),
+          ]),
+          'text': '',
+        }),
+        dict({
+          'describes': 3,
+          'kind': 'caption',
+          'parts': list([
+            dict({
+              'item': 'p2-l3',
+            }),
+          ]),
+          'text': 'Table 1: Results.',
+        }),
+        dict({
+          'kind': 'figure',
+          'parts': list([
+            dict({
+              'item': 'p2-pic1',
+            }),
+          ]),
+          'text': '',
+        }),
+        dict({
+          'describes': 5,
+          'kind': 'caption',
+          'parts': list([
+            dict({
+              'item': 'p2-l5',
+            }),
+          ]),
+          'text': 'Figure 1: A chart.',
+        }),
+        dict({
+          'kind': 'list_item',
+          'parts': list([
+            dict({
+              'item': 'p2-l6',
+            }),
+          ]),
+          'text': 'First point',
+        }),
+        dict({
+          'kind': 'footnote',
+          'parts': list([
+            dict({
+              'item': 'p2-l7',
+            }),
+          ]),
+          'text': '1 A note.',
+        }),
+        dict({
+          'kind': 'furniture',
+          'parts': list([
+            dict({
+              'item': 'p2-l4',
+            }),
+          ]),
+          'text': 'A Small Paper',
+        }),
+      ]),
+      'content': dict({
+        'metadata': dict({
+          'authors': list([
+            'A. Author',
+            'B. Author',
+          ]),
+          'date': '2024',
+          'title': 'A Small Paper',
+        }),
+        'pages': list([
+          dict({
+            'height': 792.0,
+            'lines': list([
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 90.0,
+                  'y1': 104.0,
+                }),
+                'id': 'p1-l1',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 14.0,
+                    'text': '1 Introduction',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 760.0,
+                  'y1': 770.0,
+                }),
+                'id': 'p1-l2',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'Sound helps [3].',
+                  }),
+                ]),
+              }),
+            ]),
+            'number': 1,
+            'width': 612.0,
+          }),
+          dict({
+            'drawings': list([
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 130.0,
+                  'y1': 130.5,
+                }),
+                'id': 'p2-d1',
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 300.0,
+                  'y1': 300.5,
+                }),
+                'id': 'p2-d2',
+              }),
+            ]),
+            'height': 792.0,
+            'lines': list([
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 72.0,
+                  'y1': 82.0,
+                }),
+                'id': 'p2-l1',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'It runs on.',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 100.0,
+                  'y1': 110.0,
+                }),
+                'id': 'p2-l2',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'E = mc^2',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 310.0,
+                  'y1': 320.0,
+                }),
+                'id': 'p2-l3',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'Table 1: Results.',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 20.0,
+                  'y1': 28.0,
+                }),
+                'id': 'p2-l4',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 8.0,
+                    'text': 'A Small Paper',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 600.0,
+                  'y1': 610.0,
+                }),
+                'id': 'p2-l5',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'Figure 1: A chart.',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 650.0,
+                  'y1': 660.0,
+                }),
+                'id': 'p2-l6',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'First point',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 760.0,
+                  'y1': 768.0,
+                }),
+                'id': 'p2-l7',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 8.0,
+                    'text': '1 A note.',
+                  }),
+                ]),
+              }),
+            ]),
+            'number': 2,
+            'pictures': list([
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 400.0,
+                  'y1': 590.0,
+                }),
+                'id': 'p2-pic1',
+              }),
+            ]),
+            'width': 612.0,
+          }),
+        ]),
+        'source': dict({
+          'format': 'pdf',
+          'name': 'paper.pdf',
+          'sha256': 'ab12',
+        }),
+      }),
+      'language': 'en',
+      'sections': list([
+        dict({
+          'children': list([
+            dict({
+              'end': 9,
+              'level': 2,
+              'start': 2,
+              'title': '1.1 Results',
+            }),
+          ]),
+          'end': 10,
+          'level': 1,
+          'start': 0,
+          'title': '1 Introduction',
+        }),
+      ]),
+    }),
+    'edits': list([
+      dict({
+        'kind': 'remove',
+        'reason': 'numeric citation',
+        'span': dict({
+          'block': 1,
+          'end': 15,
+          'start': 11,
+        }),
+        'step': 'citations',
+      }),
+      dict({
+        'kind': 'replace',
+        'reason': 'formula skipped (D-55)',
+        'replacement': 'A formula.',
+        'span': dict({
+          'block': 2,
+          'end': 8,
+          'start': 0,
+        }),
+        'step': 'formulas',
+      }),
+      dict({
+        'kind': 'replace',
+        'reason': 'table skipped',
+        'replacement': 'A table.',
+        'span': dict({
+          'block': 3,
+          'end': 0,
+          'start': 0,
+        }),
+        'step': 'tables',
+      }),
+      dict({
+        'kind': 'pause',
+        'reason': 'after a heading',
+        'span': dict({
+          'block': 0,
+          'end': 14,
+          'start': 14,
+        }),
+        'step': 'pauses',
+      }),
+    ]),
+    'script': list([
+      dict({
+        'span': dict({
+          'block': 0,
+          'end': 14,
+          'start': 0,
+        }),
+        'text': '1 Introduction',
+      }),
+      dict({
+        'pause': True,
+        'span': dict({
+          'block': 0,
+          'end': 14,
+          'start': 14,
+        }),
+        'text': '',
+      }),
+      dict({
+        'span': dict({
+          'block': 1,
+          'end': 11,
+          'start': 0,
+        }),
+        'text': 'Sound helps',
+      }),
+      dict({
+        'span': dict({
+          'block': 1,
+          'end': 28,
+          'start': 15,
+        }),
+        'text': '''
+          .
+          It runs on.
+        ''',
+      }),
+      dict({
+        'span': dict({
+          'block': 2,
+          'end': 8,
+          'start': 0,
+        }),
+        'text': 'A formula.',
+      }),
+      dict({
+        'span': dict({
+          'block': 3,
+          'end': 0,
+          'start': 0,
+        }),
+        'text': 'A table.',
+      }),
+      dict({
+        'span': dict({
+          'block': 4,
+          'end': 17,
+          'start': 0,
+        }),
+        'text': 'Table 1: Results.',
+      }),
+      dict({
+        'span': dict({
+          'block': 6,
+          'end': 18,
+          'start': 0,
+        }),
+        'text': 'Figure 1: A chart.',
+      }),
+      dict({
+        'span': dict({
+          'block': 7,
+          'end': 11,
+          'start': 0,
+        }),
+        'text': 'First point',
+      }),
+      dict({
+        'span': dict({
+          'block': 8,
+          'end': 9,
+          'start': 0,
+        }),
+        'text': '1 A note.',
+      }),
+      dict({
+        'span': dict({
+          'block': 9,
+          'end': 13,
+          'start': 0,
+        }),
+        'text': 'A Small Paper',
+      }),
+    ]),
+  })
+# ---
