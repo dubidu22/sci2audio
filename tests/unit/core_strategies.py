@@ -6,6 +6,7 @@ from itertools import pairwise
 from hypothesis import strategies as st
 
 from sci2audio.core import (
+    LABELLED_KINDS,
     AudioChunk,
     Block,
     BlockKind,
@@ -130,9 +131,11 @@ def documents(draw: st.DrawFn) -> Document:
                 parts[-1] = Part(item.id, len(text) - len(item.text))
         kind = draw(st.sampled_from(BlockKind))
         role = draw(st.none() | st.sampled_from(FurnitureRole))
-        blocks.append(
-            Block(kind, text, tuple(parts), role=role if kind is BlockKind.FURNITURE else None)
-        )
+        role = role if kind is BlockKind.FURNITURE else None
+        words_in = text.split()
+        label = draw(st.just("") | st.sampled_from(words_in)) if words_in else ""
+        label = label if kind in LABELLED_KINDS else ""
+        blocks.append(Block(kind, text, tuple(parts), role=role, label=label))
     labels = st.tuples(*(st.sampled_from(["", "1", "39", "xii"]) for _ in content.pages))
     return Document(
         content=content,

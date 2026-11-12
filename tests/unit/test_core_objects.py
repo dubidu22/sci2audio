@@ -59,7 +59,7 @@ CONTENT = Content(
             2,
             lines=(
                 line("p2-l1", "It runs on.", 72),
-                line("p2-l2", "E = mc^2", 100),
+                line("p2-l2", "E = mc^2 (1)", 100),
                 line("p2-l3", "Table 1: Results.", 310),
                 line("p2-l4", "A Small Paper", 20, 8),
                 line("p2-l5", "Figure 1: A chart.", 600),
@@ -81,17 +81,25 @@ PAPER = Document(
     content=CONTENT,
     language="en",
     blocks=(
-        Block(BlockKind.HEADING, "1 Introduction", (Part("p1-l1"),)),
+        Block(BlockKind.HEADING, "1 Introduction", (Part("p1-l1"),), label="1"),
         Block(
             BlockKind.PARAGRAPH, "Sound helps [3].\nIt runs on.", (Part("p1-l2"), Part("p2-l1", 17))
         ),
-        Block(BlockKind.FORMULA, "E = mc^2", (Part("p2-l2"),)),
+        Block(BlockKind.FORMULA, "E = mc^2 (1)", (Part("p2-l2"),), label="1"),
         Block(BlockKind.TABLE, "", (Part("p2-d1"), Part("p2-d2"))),
-        Block(BlockKind.CAPTION, "Table 1: Results.", (Part("p2-l3"),), describes=3),
+        Block(
+            BlockKind.CAPTION, "Table 1: Results.", (Part("p2-l3"),), describes=3, label="Table 1"
+        ),
         Block(BlockKind.FIGURE, "", (Part("p2-pic1"),)),
-        Block(BlockKind.CAPTION, "Figure 1: A chart.", (Part("p2-l5"),), describes=5),
+        Block(
+            BlockKind.CAPTION,
+            "Figure 1: A chart.",
+            (Part("p2-l5"),),
+            describes=5,
+            label="Figure 1",
+        ),
         Block(BlockKind.LIST_ITEM, "First point", (Part("p2-l6"),)),
-        Block(BlockKind.FOOTNOTE, "1 A note.", (Part("p2-l7"),)),
+        Block(BlockKind.FOOTNOTE, "1 A note.", (Part("p2-l7"),), label="1"),
         Block(
             BlockKind.FURNITURE,
             "A Small Paper",
@@ -104,7 +112,7 @@ PAPER = Document(
 )
 
 CITATION = Edit(Span(1, 11, 15), EditKind.REMOVE, reason="numeric citation", step="citations")
-FORMULA = Edit(Span(2, 0, 8), EditKind.REPLACE, "formula skipped (D-55)", "formulas", "A formula.")
+FORMULA = Edit(Span(2, 0, 12), EditKind.REPLACE, "formula skipped (D-55)", "formulas", "A formula.")
 TABLE = Edit(Span(3, 0, 0), EditKind.REPLACE, "table skipped", "tables", "A table.")
 PAUSE = Edit(Span(0, 14, 14), EditKind.PAUSE, reason="after a heading", step="pauses")
 
@@ -116,7 +124,7 @@ def test_apply_edits_builds_the_script() -> None:
         ScriptPiece("", Span(0, 14, 14), pause=True),
         ScriptPiece("Sound helps", Span(1, 0, 11)),
         ScriptPiece(".\nIt runs on.", Span(1, 15, 28)),
-        ScriptPiece("A formula.", Span(2, 0, 8)),
+        ScriptPiece("A formula.", Span(2, 0, 12)),
     )
     assert pieces[5] == ScriptPiece("A table.", Span(3, 0, 0))
 
@@ -143,6 +151,20 @@ def test_furniture_keeps_its_role_and_pages_their_printed_labels() -> None:
     for missing in (0, 3):
         with pytest.raises(ValueError, match=r"not in 1\.\.2"):
             PAPER.page_label(missing)
+
+
+def test_blocks_keep_their_printed_labels() -> None:
+    """#21: heading numbers, formula numbers, caption labels and footnote marks, as printed."""
+    labels = [(b.kind, b.label) for b in PAPER.blocks if b.label]
+    assert labels == [
+        (BlockKind.HEADING, "1"),
+        (BlockKind.FORMULA, "1"),
+        (BlockKind.CAPTION, "Table 1"),
+        (BlockKind.CAPTION, "Figure 1"),
+        (BlockKind.FOOTNOTE, "1"),
+    ]
+    assert PAPER.blocks[7].label == ""  # a list item printed without a marker
+    Block(BlockKind.LIST_ITEM, "(a) First", label="(a)")
 
 
 def test_captions_link_to_what_they_describe() -> None:
@@ -200,6 +222,12 @@ def test_edit_outside_the_document_is_refused() -> None:
         lambda: Block(BlockKind.PARAGRAPH, "ab", (Part("a", -1),)),
         lambda: Block(BlockKind.PARAGRAPH, "ab", describes=0),
         lambda: Block(BlockKind.PARAGRAPH, "ab", role=FurnitureRole.PAGE_NUMBER),
+        lambda: Block(BlockKind.PARAGRAPH, "1 ab", label="1"),  # paragraphs carry no label
+        lambda: Block(BlockKind.FURNITURE, "39", label="39"),  # a page label is the page's
+        lambda: Block(BlockKind.FIGURE, "1", label="1"),  # its caption carries the label
+        lambda: Block(BlockKind.HEADING, "2 Setup", label="3"),  # not printed in the block
+        lambda: Block(BlockKind.HEADING, "2 Setup", label=" 2"),  # not trimmed
+        lambda: Block(BlockKind.CAPTION, "Table\n2: x", label="Table\n2"),  # a line break
         lambda: replace(PAPER, page_labels=("39",)),  # one label for each of the two pages
         lambda: Section("A", 0, 0, 1),
         lambda: Section("A", 1, 0, 2, (Section("B", 2, 1, 3),)),

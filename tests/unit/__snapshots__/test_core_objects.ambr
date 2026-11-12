@@ -16,6 +16,7 @@
       'blocks': list([
         dict({
           'kind': 'heading',
+          'label': '1',
           'parts': list([
             dict({
               'item': 'p1-l1',
@@ -41,12 +42,13 @@
         }),
         dict({
           'kind': 'formula',
+          'label': '1',
           'parts': list([
             dict({
               'item': 'p2-l2',
             }),
           ]),
-          'text': 'E = mc^2',
+          'text': 'E = mc^2 (1)',
         }),
         dict({
           'kind': 'table',
@@ -63,6 +65,7 @@
         dict({
           'describes': 3,
           'kind': 'caption',
+          'label': 'Table 1',
           'parts': list([
             dict({
               'item': 'p2-l3',
@@ -82,6 +85,7 @@
         dict({
           'describes': 5,
           'kind': 'caption',
+          'label': 'Figure 1',
           'parts': list([
             dict({
               'item': 'p2-l5',
@@ -100,6 +104,7 @@
         }),
         dict({
           'kind': 'footnote',
+          'label': '1',
           'parts': list([
             dict({
               'item': 'p2-l7',
@@ -218,7 +223,7 @@
                   dict({
                     'font': 'Times-Roman',
                     'size': 10.0,
-                    'text': 'E = mc^2',
+                    'text': 'E = mc^2 (1)',
                   }),
                 ]),
               }),
@@ -363,7 +368,7 @@
         'replacement': 'A formula.',
         'span': dict({
           'block': 2,
-          'end': 8,
+          'end': 12,
           'start': 0,
         }),
         'step': 'formulas',
@@ -430,7 +435,7 @@
       dict({
         'span': dict({
           'block': 2,
-          'end': 8,
+          'end': 12,
           'start': 0,
         }),
         'text': 'A formula.',
