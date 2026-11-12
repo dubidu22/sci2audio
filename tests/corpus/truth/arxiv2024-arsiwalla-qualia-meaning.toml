@@ -115,10 +115,22 @@ page = 3
 text = "Fortunately, seminal works in the philosophy of mind and language [52] (see also [48, 135]), as well as mathematical advances in natural language semantics [40] equip us with the right conceptual groundwork for formalizing subjective meaning with regard to the problem of consciousness."
 
 [[verbatim]]
+# Footnote mark 1, then the full stop, with no space either side.
+where = "footnote-mark"
+page = 3
+text = "These are certainly useful to quantify computational processes or identify states of complexity, but that is still rather far from capturing the very phenomenal character of qualia1."
+
+[[verbatim]]
 # "mean-ing" is split across lines inside the boxed proposition.
 where = "hyphenation"
 page = 4
 text = "We hypothesize a notion of subjectively attributed meaning or subjective meaning as an inherent feature of the qualia of consciousness."
+
+[[verbatim]]
+# Subscripts P and M follow "Obj" with no space.
+where = "inline-maths"
+page = 14
+text = "In our case here, the collections of objects in both, ObjP and ObjM are not arbitrary collections."
 
 [[verbatim]]
 where = "plain"

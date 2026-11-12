@@ -174,6 +174,24 @@ def spans_in(draw: st.DrawFn, document: Document) -> Span:
 
 
 @st.composite
+def overlapping_spans(draw: st.DrawFn, document: Document, span: Span) -> Span:
+    """A span in the same block that overlaps `span` under `overlaps`, built directly
+    instead of filtered for (issue #47): two independent spans seldom overlap."""
+    length = len(document.blocks[span.block].text)
+    if span.start == span.end:
+        point = span.start
+        if not 0 < point < length or draw(st.booleans()):
+            return span  # only an equal empty span overlaps an empty span at the edge
+        start = draw(st.integers(0, point - 1))  # a non-empty span strictly around it
+        return Span(span.block, start, draw(st.integers(point + 1, length)))
+    if span.end - span.start >= 2 and draw(st.booleans()):
+        point = draw(st.integers(span.start + 1, span.end - 1))  # empty, strictly inside
+        return Span(span.block, point, point)
+    start = draw(st.integers(0, span.end - 1))  # non-empty, sharing at least one character
+    return Span(span.block, start, draw(st.integers(max(start, span.start) + 1, length)))
+
+
+@st.composite
 def edits_on(draw: st.DrawFn, span: Span) -> Edit:
     """Any edit whose kind fits the span."""
     empty = span.start == span.end

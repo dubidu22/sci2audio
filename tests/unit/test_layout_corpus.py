@@ -35,7 +35,21 @@ IDS = [paper.stem for paper in PAPERS]
 MAX_GAPS = 2  # times a sentence may be interrupted: a float, a footnote, a page's top
 MAX_SKIPPED_LINES = 10  # lines in one gap (2 at most in the corpus since #34)
 # Sentences not yet inside one block, each with the Issue that brings it there.
-NOT_YET_ONE_BLOCK: dict[tuple[str, int, str], int] = {}
+NOT_YET_ONE_BLOCK: dict[tuple[str, int, str], int] = {
+    # A space before a superscript or a full stop that the page does not print.
+    (
+        "acl2023-nowak-prefix-probabilities",
+        3,
+        "where the entry at the ith row and the jth column corresponds to",
+    ): 36,
+    (
+        "arxiv2024-arsiwalla-qualia-meaning",
+        3,
+        "These are certainly useful to quantify computational processes or identify states of"
+        " complexity, but that is still rather far from capturing the very phenomenal character"
+        " of qualia1.",
+    ): 36,
+}
 MIN_START = 8  # letters a sentence's start must have at a line's end to be found there
 # Truth headings not yet found, each with the Issue that brings it there.
 NOT_YET_HEADINGS = {

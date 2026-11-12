@@ -6,6 +6,7 @@ Testing strategy: D-58. One runner (pytest) for everything except the browser, w
 
 - Fast tests (no marker) run on every PR on Linux, macOS and Windows; keep the whole fast suite under about 2 minutes.
 - Mark tests that need voices, models, audio or the full sample corpus with `@pytest.mark.slow`; speed measurements with `@pytest.mark.benchmark`. Both run nightly (`.github/workflows/nightly.yml`).
+- Exception: a test that encodes or decodes only a few seconds of generated audio with ffmpeg may stay in the fast suite, so every PR proves the bundled ffmpeg works on all three systems (#69).
 - Hypothesis profiles: `dev` (local default), `ci` (every PR, deterministic), `nightly` (many examples). Set with `HYPOTHESIS_PROFILE`.
 - Golden files (syrupy): accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
 - Never weaken or delete a test to make CI green. If a test is wrong, say why in the PR.
