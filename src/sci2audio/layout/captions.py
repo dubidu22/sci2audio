@@ -6,8 +6,8 @@ number ("3", "A.2", "S1"), and then either a colon or a full stop ("Table 2: …
 Running text that opens the same way ("Figure 1 gives the accuracy …") is neither and
 stays a paragraph. The caption's label is "Table 2", "Figure 1" or "Algorithm 3", as
 printed. An algorithm's caption ends where its numbered lines ("1: …") start; those stay
-a paragraph for now (the pseudocode is #38). Which block a caption names (`describes`)
-is set with the placeholders in PR D (D-86).
+a paragraph for now (the pseudocode is #38). A table's or figure's caption is never cut.
+Which block a caption names (`describes`) is set with the placeholders in PR D (D-86).
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ _LABEL = re.compile(rf"(?P<label>(?:{_NAMES})\s(?:[A-Z]\.?)?\d{{1,3}}(?:\.\d{{1,
 _PUNCT = re.compile(r"[:.](?:\s|$)")
 # a numbered line of pseudocode: "1:", "12:"
 _CODE_LINE = re.compile(r"\d{1,3}:(?:\s|$)")
+_ALGORITHM = ("Algorithm", "ALGORITHM")
 
 
 def find_captions(blocks: list[Block], content: Content) -> list[Block]:
@@ -36,7 +37,8 @@ def find_captions(blocks: list[Block], content: Content) -> list[Block]:
         if label is None:
             out.append(block)
             continue
-        cuts = [k for k in line_starts(block)[1:] if _CODE_LINE.match(block.text, k)]
+        starts = line_starts(block)[1:] if label.startswith(_ALGORITHM) else []
+        cuts = [k for k in starts if _CODE_LINE.match(block.text, k)]
         caption, *code = split_at(block, cuts[:1])
         out += [replace(caption, kind=BlockKind.CAPTION, label=label), *code]
     return out

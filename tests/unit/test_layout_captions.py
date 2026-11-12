@@ -105,6 +105,14 @@ def test_an_algorithm_caption_ends_where_its_numbered_lines_start() -> None:
     assert "1: P = I - P" in [b.text for b in doc.blocks if b.kind is BlockKind.PARAGRAPH]
 
 
+def test_a_table_or_figure_caption_is_not_cut_at_a_numbered_line() -> None:
+    """Only an algorithm's caption ends where numbered lines start (D-87)."""
+    for name in ("Figure 1", "Table 1"):
+        doc = build(f"{name}: A caption whose next line", "1: is not code.", full=True)
+        assert captions(doc) == [(name, f"{name}: A caption whose next line\n1: is not code.")]
+        assert [b.kind for b in doc.blocks][-1] is BlockKind.CAPTION
+
+
 def test_a_caption_over_two_lines_is_one_caption() -> None:
     doc = build("Figure 2: Accuracy of the models over the", "test set.", full=True)
     assert captions(doc) == [("Figure 2", "Figure 2: Accuracy of the models over the\ntest set.")]
@@ -173,6 +181,23 @@ def test_one_numbered_line_is_not_a_list() -> None:
 
 def test_a_list_starts_at_its_first_marker() -> None:
     assert items(build("2. A second point;", "3. a third point.")) == []
+
+
+def test_a_block_whose_markers_make_no_list_stays_whole() -> None:
+    """A block is cut only where its pieces become items: one that starts at "2.", or
+    whose markers are not set alike, stays one paragraph (review of #53)."""
+    late = build("2. A second point that goes on", "3. a third point.", full=True)
+    assert items(late) == []
+    assert late.blocks[-1].text == "2. A second point that goes on\n3. a third point."
+    rows = [
+        text_line("(1)", 300, end=LEFT + 14),
+        text_line("William went running.", 300, x0=LEFT + 30, end=RIGHT),
+        text_line("(2) is understood as asserting this.", 300 + PITCH),
+    ]
+    mixed = build_document(content([*running(), *rows]))
+    assert items(mixed) == []
+    assert mixed.blocks[-1].kind is BlockKind.PARAGRAPH
+    assert mixed.blocks[-1].text.endswith("\n(2) is understood as asserting this.")
 
 
 def test_text_between_items_ends_the_list() -> None:

@@ -7,7 +7,7 @@ a bullet). Furniture, figures, captions and footnotes between two items don't en
 break, a float); a heading or a block without a marker does. A list inside an item (the
 bullets under "(iii)") is a list of its own and doesn't end the outer one. A block that
 holds several items, one per line ("1. First Party\\n2. Third Party"), is cut into one
-block per item.
+block per item; a block whose marker lines make no list stays whole.
 
 The items of one list are set alike: their markers all stand apart from their text (a
 gap, as in a hanging indent) or none do. This keeps a paragraph that opens by naming an
@@ -17,11 +17,12 @@ it. Each item is a LIST_ITEM block labelled by its marker as printed.
 
 from __future__ import annotations
 
+import itertools
 import re
 from dataclasses import dataclass, replace
 
 from sci2audio.core import Block, BlockKind, Content, TextLine
-from sci2audio.layout.split import line_starts, split_at
+from sci2audio.layout.split import line_starts, piece_starts, split_at
 
 _ROMAN = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
 _BULLETS = "•◦▪‣–"  # noqa: RUF001 (the en dash is meant)
@@ -57,7 +58,12 @@ class _Marker:
 def find_lists(blocks: list[Block], content: Content) -> list[Block]:
     """The blocks with each list's items as LIST_ITEM blocks (the marker as label)."""
     lines = {line.id: line for page in content.pages for line in page.lines}
-    cut = [piece for block in blocks for piece in _cut(block)]
+    # each block tried cut at its marker lines: (the block's index, the piece's start, piece)
+    tried = []
+    for n, block in enumerate(blocks):
+        starts = _cuts(block)
+        tried += [(n, k, piece) for k, piece in zip(starts, split_at(block, starts), strict=True)]
+    cut = [piece for _, _, piece in tried]
     markers = [_marker(block.text) if block.kind is BlockKind.PARAGRAPH else None for block in cut]
     items: set[int] = set()
     for start, marker in enumerate(markers):
@@ -68,27 +74,37 @@ def find_lists(blocks: list[Block], content: Content) -> list[Block]:
         apart = {_apart(cut[k], markers[k], lines) for k in found}
         if len(found) >= 2 and len(apart) == 1:
             items.update(found)
-    return [
-        replace(block, kind=BlockKind.LIST_ITEM, label=marker.text)
-        if k in items and marker
-        else block
-        for k, (block, marker) in enumerate(zip(cut, markers, strict=True))
-    ]
+    # a block is cut only next to an item: pieces that make no list stay together
+    item_at = {(n, k): markers[i] for i, (n, k, _) in enumerate(tried) if i in items}
+    out: list[Block] = []
+    for n, block in enumerate(blocks):
+        starts = [k for m, k, _ in tried if m == n]
+        keep = [
+            k
+            for before, k in itertools.pairwise(starts)
+            if (n, before) in item_at or (n, k) in item_at
+        ]
+        for k, piece in zip([0, *keep], split_at(block, keep), strict=True):
+            marker = item_at.get((n, k))
+            out.append(
+                replace(piece, kind=BlockKind.LIST_ITEM, label=marker.text) if marker else piece
+            )
+    return out
 
 
-def _cut(block: Block) -> list[Block]:
-    """A paragraph whose lines open with the markers of one list, in sequence, cut into
-    one block per item; any other block as it is."""
+def _cuts(block: Block) -> list[int]:
+    """Where a paragraph whose lines open with the markers of one list, in sequence, would
+    be cut into one block per item: the start of each piece (only 0 for any other block)."""
     first = _marker(block.text) if block.kind is BlockKind.PARAGRAPH else None
     if first is None:
-        return [block]
+        return [0]
     readings, cuts = set(first.readings), []
     for start in line_starts(block)[1:]:
         found = _marker(block.text[start:])
         hit = {r for r in found.readings if _next(r, readings)} if found else set()
         if hit:
             readings, cuts = hit, [*cuts, start]
-    return split_at(block, cuts)
+    return piece_starts(block, cuts)
 
 
 def _list_from(
