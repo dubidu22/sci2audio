@@ -9,11 +9,17 @@ A case file is TOML with one `[[case]]` table per case:
     goal = "removed"              # what that rule must reach; a note, not exact wording
     language = "en"               # optional, default "en"
     blocks = [{ kind = "paragraph", text = "..." }]  # optional: role, label, describes
+    sections = [{ title = "References", level = 1, start = 2, end = 5 }]  # optional
     expected = ["..."]            # the script today, one line per block that is read
     utterances = ["...", "..."]   # optional: how the cutter cuts the script, where it matters
 
 `expected` pins what the built-in steps produce now. A rule PR changes the cases its rule
 touches first (test-first) and the diff shows the before and after (tests.md).
+
+A block may give `runs` in place of `text`: strings and `{ sup = "1" }` tables, joined into
+the block's text, each `sup` a run of its own tagged as a superscript, as an EPUB or a PDF
+mark set small gives it: `runs = ["The effect was small.", { sup = "1" }, " It held."]`.
+Sections are flat (no children) and must cover blocks in order.
 """
 
 from __future__ import annotations
@@ -25,13 +31,16 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from sci2audio.core import Block, BlockKind, Document, FurnitureRole, ScriptPiece
+from sci2audio.core import Block, BlockKind, Document, FurnitureRole, ScriptPiece, Section
 from sci2audio.testing.documents import make_document
 from sci2audio.textprep import PAUSE_MARK, StepRun, cut_utterances, spoken_text
 
 _CASE_ID = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
-_CASE_KEYS = {"id", "audit", "issue", "goal", "language", "blocks", "expected", "utterances"}
-_BLOCK_KEYS = {"kind", "text", "role", "label", "describes"}
+_CASE_KEYS = {
+    "id", "audit", "issue", "goal", "language", "blocks", "sections", "expected", "utterances"
+}  # fmt: skip
+_BLOCK_KEYS = {"kind", "text", "runs", "role", "label", "describes"}
+_SECTION_KEYS = {"title", "level", "start", "end"}
 
 
 @dataclass(frozen=True)
@@ -72,19 +81,29 @@ def _case(raw: dict) -> Case:
         raise ValueError(f"unknown keys {sorted(unknown)}")
     if not _CASE_ID.match(raw["id"]):
         raise ValueError(f"id must be kebab-case, got {raw['id']!r}")
-    blocks = []
-    for given in raw["blocks"]:
+    blocks, tags = [], {}
+    for number, given in enumerate(raw["blocks"]):
         if unknown := set(given) - _BLOCK_KEYS:
             raise ValueError(f"unknown block keys {sorted(unknown)}")
+        text, tagged = _text(given)
+        if tagged:
+            tags[number] = tagged
         role = given.get("role")
         blocks.append(
             Block(
                 BlockKind(given["kind"]),
-                given["text"],
+                text,
                 describes=given.get("describes"),
                 role=FurnitureRole(role) if role else None,
                 label=given.get("label", ""),
             )
+        )
+    sections = []
+    for given in raw.get("sections", []):
+        if unknown := set(given) - _SECTION_KEYS:
+            raise ValueError(f"unknown section keys {sorted(unknown)}")
+        sections.append(
+            Section(given["title"], int(given["level"]), int(given["start"]), int(given["end"]))
         )
     expected = raw["expected"]
     if not isinstance(expected, list) or not all(isinstance(line, str) for line in expected):
@@ -101,10 +120,30 @@ def _case(raw: dict) -> Case:
         audit=int(raw["audit"]),
         issue=int(raw["issue"]),
         goal=raw["goal"],
-        document=make_document(blocks, raw.get("language", "en"), f"{raw['id']}.txt"),
+        document=make_document(
+            blocks, raw.get("language", "en"), f"{raw['id']}.txt", tags=tags, sections=sections
+        ),
         expected=tuple(expected),
         utterances=None if utterances is None else tuple(utterances),
     )
+
+
+def _text(given: dict) -> tuple[str, list[tuple[int, int, str]]]:
+    """A block's text and its superscript ranges, from `text` or from `runs`."""
+    if ("text" in given) == ("runs" in given):
+        raise ValueError("a block gives either text or runs")
+    if "text" in given:
+        return given["text"], []
+    text, tagged = "", []
+    for run in given["runs"]:
+        if isinstance(run, str):
+            text += run
+        elif isinstance(run, dict) and set(run) == {"sup"} and run["sup"]:
+            tagged.append((len(text), len(text) + len(run["sup"]), "sup"))
+            text += run["sup"]
+        else:
+            raise ValueError(f"a run is a string or {{ sup = \"...\" }}, got {run!r}")
+    return text, tagged
 
 
 def render(run: StepRun) -> list[str]:

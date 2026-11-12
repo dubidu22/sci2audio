@@ -152,3 +152,146 @@ blocks = [
     { kind = "furniture", role = "running-head", text = "Child Psychiatry Hum Dev (2016) 47:950–965 951" },
 ]
 expected = ["The bandage was wound around the wound."]
+
+# Formulas, tables, figures, footnotes and the reference list (#64, D-142 to D-148). Texts
+# written for these cases.
+
+[[case]]
+id = "table-with-caption-above"
+audit = 0
+issue = 64
+goal = "The table is replaced by one short notice named by its caption's label; the caption reads as printed in its place (FX-02, Q3)."
+blocks = [
+    { kind = "caption", text = "Table 2: Mean scores by group.", label = "Table 2", describes = 1 },
+    { kind = "table", text = "Group n Mean\nA 12 3.4\nB 15 2.9" },
+    { kind = "paragraph", text = "Group A scored higher." },
+]
+expected = ["Table 2: Mean scores by group.", "Table 2 is skipped.", "Group A scored higher."]
+
+[[case]]
+id = "figure-without-caption"
+audit = 0
+issue = 64
+goal = "A figure with no caption gets the unnamed notice (FX-02, Q3)."
+blocks = [
+    { kind = "paragraph", text = "The setup is drawn below." },
+    { kind = "figure", text = "" },
+]
+expected = ["The setup is drawn below.", "A figure is skipped."]
+
+[[case]]
+id = "figure-abbreviated-label"
+audit = 0
+issue = 64
+goal = "A caption label printed as 'Fig. 3' names the figure in full: 'Figure 3 is skipped.' (Q3, D-145)."
+blocks = [
+    { kind = "figure", text = "0 10 20\ntime (s)" },
+    { kind = "caption", text = "Fig. 3. Response over time.", label = "Fig. 3", describes = 0 },
+]
+expected = ["Figure 3 is skipped.", "Fig. 3. Response over time."]
+
+[[case]]
+id = "figure-with-two-captions"
+audit = 0
+issue = 64
+goal = "A placeholder named by several captions names them all, joined with 'and' (Q3, D-145)."
+blocks = [
+    { kind = "caption", text = "Algorithm 1 The first pass.", label = "Algorithm 1", describes = 1 },
+    { kind = "figure", text = "1: for each item do\n2: count it" },
+    { kind = "caption", text = "Figure 1: Both passes.", label = "Figure 1", describes = 1 },
+]
+expected = ["Algorithm 1 The first pass.", "Algorithm 1 and Figure 1 are skipped.", "Figure 1: Both passes."]
+
+[[case]]
+id = "numbered-formula"
+audit = 0
+issue = 64
+goal = "A display formula is replaced by a notice with its printed number (FX-01, D-55, Q3)."
+blocks = [
+    { kind = "paragraph", text = "The energy is" },
+    { kind = "formula", text = "E = mc2 (4)", label = "4" },
+    { kind = "paragraph", text = "where c is the speed of light." },
+]
+expected = ["The energy is", "Formula 4 is skipped.", "where c is the speed of light."]
+
+[[case]]
+id = "unnumbered-formula"
+audit = 0
+issue = 64
+goal = "A display formula without a number: 'A formula is skipped.' (FX-01, Q3)."
+blocks = [{ kind = "formula", text = "x = a + b" }]
+expected = ["A formula is skipped."]
+
+[[case]]
+id = "footnote-with-superscript-mark"
+audit = 0
+issue = 64
+goal = "The mark leaves the running text; the note is read where layout placed it, introduced by its mark (TP-05, Q2, D-143, D-144)."
+blocks = [
+    { kind = "paragraph", runs = ["The effect was small.", { sup = "1" }, " It held in both groups."] },
+    { kind = "footnote", text = "1 Measured with the short form.", label = "1" },
+]
+expected = ["The effect was small. It held in both groups.", "Footnote 1. Measured with the short form."]
+
+[[case]]
+id = "footnote-with-symbol-mark"
+audit = 0
+issue = 64
+goal = "A note marked by a symbol is introduced without the symbol (D-144)."
+blocks = [
+    { kind = "paragraph", runs = ["Jane Doe", { sup = "∗" }] },
+    { kind = "footnote", text = "∗Work done while at the institute.", label = "∗" },
+]
+expected = ["Jane Doe", "Footnote. Work done while at the institute."]
+
+[[case]]
+id = "footnote-without-mark"
+audit = 0
+issue = 64
+goal = "A note printed without a mark is still introduced (D-144)."
+blocks = [{ kind = "footnote", text = "The checklist is adopted from an earlier one." }]
+expected = ["Footnote. The checklist is adopted from an earlier one."]
+
+[[case]]
+id = "maths-exponent-is-not-a-mark"
+audit = 0
+issue = 64
+goal = "A superscript after a one-letter variable is maths, not a footnote mark, even when a note on the page has that label (D-143)."
+blocks = [
+    { kind = "paragraph", runs = ["It runs in time N", { sup = "3" }, " on dense grammars."] },
+    { kind = "footnote", text = "3 Sparse ones are faster.", label = "3" },
+]
+expected = ["It runs in time N3 on dense grammars.", "Footnote 3. Sparse ones are faster."]
+
+[[case]]
+id = "reference-list"
+audit = 0
+issue = 64
+goal = "The reference list section, its heading included, is not read; the appendix after it is (TP-06, D-146)."
+blocks = [
+    { kind = "heading", text = "6 Conclusion", label = "6" },
+    { kind = "paragraph", text = "The method works." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "Doe, J. (2020). A first study. Journal of Examples 1, 1–9." },
+    { kind = "paragraph", text = "Roe, R. (2021). A second study. Journal of Examples 2, 10–19." },
+    { kind = "heading", text = "A Appendix", label = "A" },
+    { kind = "paragraph", text = "More results." },
+]
+sections = [
+    { title = "6 Conclusion", level = 1, start = 0, end = 2 },
+    { title = "References", level = 1, start = 2, end = 5 },
+    { title = "A Appendix", level = 1, start = 5, end = 7 },
+]
+expected = ["6 Conclusion", "The method works.", "A Appendix", "More results."]
+
+[[case]]
+id = "numbered-bibliography"
+audit = 0
+issue = 64
+goal = "A numbered 'Bibliography' section is a reference list too (TP-06, D-83, D-146)."
+blocks = [
+    { kind = "heading", text = "7 Bibliography", label = "7" },
+    { kind = "paragraph", text = "[1] Doe, J. A first study. 2020." },
+]
+sections = [{ title = "7 Bibliography", level = 1, start = 0, end = 2 }]
+expected = []
