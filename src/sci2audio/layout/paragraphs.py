@@ -382,13 +382,15 @@ class Paragraphs:
         than the two rows before it, and the row after it is back at the left. In a list
         with hanging indents, only the first line of an entry stands out. A paragraph of one
         line at the left is the first line of such an entry: the row further in goes on
-        with it."""
+        with it. The paragraph's own first line may be indented too, so it is not one of
+        the rows compared with."""
         last = rows[-1]
         if len(rows) < 2:
             return False
         step = self.settings.indent * row.size
         inset = row.box.x0 - row.left
-        before = [r for r in (last, self.earlier.get(id(last))) if r]
+        two_back = self.earlier.get(id(last))
+        before = [r for r in (last, two_back) if r and r is not rows[0]]
         after = self.later.get(id(row))
         return all(inset - (r.box.x0 - r.left) >= step for r in before) and (
             after is None or inset - (after.box.x0 - after.left) >= step

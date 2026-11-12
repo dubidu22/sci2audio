@@ -89,6 +89,16 @@ def test_entries_with_hanging_indents_stay_apart() -> None:
     assert paragraphs(doc) == [joined(entry) for entry in entries]
 
 
+def test_two_line_paragraphs_with_indented_first_lines_stay_apart() -> None:
+    """The second paragraph's indent is measured against the line before it, not against
+    the first paragraph's own indented first line (nowak p4 footnotes 7 and 8)."""
+    intro = lines("p", LEFT, RIGHT, 100, 3)
+    first = lines("a", LEFT, RIGHT, 100 + 3 * PITCH, 2, indent=15, last=1.0)
+    second = lines("b", LEFT, RIGHT, 100 + 5 * PITCH, 2, indent=15)
+    doc = build_document(content([*intro, *first, *second]))
+    assert paragraphs(doc) == [joined(intro), joined(first), joined(second)]
+
+
 @given(st.sampled_from([(1, 2, 1), (1, 2, 1, 3, 1), (2, 1, 2, 1)]))
 def test_hanging_entries_of_one_and_two_lines_stay_apart(counts: tuple[int, ...]) -> None:
     """Entries end in a short line; a two-line entry between one-line entries has its
