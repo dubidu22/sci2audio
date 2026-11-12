@@ -101,13 +101,16 @@ def split_cells(
             for other in (_nearest(text, index, -1, edges), _nearest(text, index, 1, edges))
             if other and _close(other, group)
         ]
-        current = [group[0]]
-        for before, piece in itertools.pairwise(group):
-            middle = (before.box.x1 + piece.box.x0) / 2
-            if any(_white(other, middle) for other in near):
+        current, reach = [group[0]], group[0].box.x1
+        for piece in group[1:]:
+            # the white starts where the letters so far end (a subscript may stand below
+            # the end of the piece before it)
+            middle = (reach + piece.box.x0) / 2
+            if piece.box.x0 > reach and any(_white(other, middle) for other in near):
                 out.append(current)
                 current = []
             current.append(piece)
+            reach = max(reach, piece.box.x1)
         out.append(current)
     return out
 

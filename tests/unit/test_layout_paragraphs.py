@@ -245,6 +245,28 @@ def test_a_numbered_heading_split_from_its_title_is_one_line() -> None:
     assert paragraphs(doc)[0].startswith("2.1 Probing Models")
 
 
+def test_the_gap_after_a_subscript_is_measured_from_the_line_s_end() -> None:
+    """A subscript stored as a piece of its own may stand below the end of the piece before
+    it; the white after them starts where the line's letters end, not where the subscript
+    does (liu p2 "Next one feeds n(-1)E | into the")."""
+    text = lines("a", LEFT, RIGHT, 100, 5)
+    y = 100 + 2 * PITCH
+    split = [
+        line("ing integral. Next one feeds n", LEFT, y, 300),
+        line("E", 262, y + 3, 270, size=7),
+        line("into the", 316, y, RIGHT),
+    ]
+    # the row below has a sliver of white halfway between the subscript and "into the"
+    below = [
+        line("band off-diagonal", LEFT, y + PITCH, 292.9),
+        line("terms", 293.1, y + PITCH, RIGHT),
+    ]
+    rows = [[li] for li in text]
+    rows[2:4] = [split, below]
+    doc = build_document(content([li for row in rows for li in row]))
+    assert paragraphs(doc) == ["\n".join(" ".join(li.text for li in row) for row in rows)]
+
+
 def test_two_columns_with_a_narrow_gutter_are_not_joined() -> None:
     """The gutter is barely wider than a wide word gap; the columns still stay apart."""
     gutter = 10.0

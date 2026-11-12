@@ -1638,7 +1638,7 @@
 # ---
 # name: test_golden_file[arxiv2024-liu-orbital-hall]
   '''
-  arxiv2024-liu-orbital-hall.pdf  language en  blocks 230
+  arxiv2024-liu-orbital-hall.pdf  language en  blocks 229
   0  p1  paragraph  [p1-l1..p1-l2 (2)]  Dominance of extrinsic scattering mechanisms in the orbital Hall effect: graphene,\ntransition metal dichalcogenides and topological antiferromagnets
   1  p1  paragraph  [p1-l3]  Hong Liu1 and Dimitrie Culcer1
   2  p1  paragraph  [p1-l4]  1School of Physics and Australian Research Council Centre of Excellence in Low-Energy Electronics Technologies,
@@ -1725,150 +1725,149 @@
   83  p2  paragraph  [p2-l123]  ∂q δm,m′ + i ℏ � Em q −Em′
   84  p2  figure  [p2-d135]  
   85  p2  paragraph  [p2-l124..p2-l129 (6)]  q Rmm′ q . Only\nthe z-component of OAM for 2D massive Dirac model\nsurvives, Lz = −(1/gLµB)(v 2 F ∆/2E2 q )τ0 [59].
-  86  p2  paragraph  [p2-l130..p2-l159 (30)]  The disorder averaged density matrix ⟨ρˆ⟩ = ρ0 + ρE\nwith ρ0 the density matrix in equilibrium and correction\nby external electrical field ρE = nE + SE. The kinetic\nequation is solved in terms of band-diagonal contribution\nnE and band off-diagonal contribution SE. The expec-\ntation value of the orbital Hall current is calculated as\nj = Tr[⟨ρˆ⟩ ˆj] and Tr represents the full operator trace,\nand we focus on ˆj z y = 1/2{Lˆ z, vˆy}. Transport theory\nrequires EF τ /ℏ ≫ 1, where τ represents a character-\nistic momentum relaxation time that can be used as a\nmeasure of the disorder strength. The theory is formu-\nlated as an expansion in the small parameter ℏ/(EF τ ).\nThe first term leads to the Drude conductivity ∝ τ , for-\nmally of order (−1) in the small parameter. The next\nterm is of order zero in the disorder strength. Therefore,\none finds ρE = n (−1) E + S (0) E + n (0) E up to zero order in\nthe impurity density. The leading diagonal n (−1) E rep-\nresenting the shift in the Fermi surface induced by the\nelectric field is found from the band diagonal scatter-\ning integral J 1st 0 [n (−1) E ]. Next one feeds n (−1) E
-  87  p2  paragraph  [p2-l160..p3-l62 (31)]  into the\nband off-diagonal scattering integral J 1st 0 [n (−1) E ] to deter-\nmine the anomalous driving term D′ E, and ultimately the\nband off-diagonal density matrix S (0) E . At last, we feed\nS (0) E into J 1st dia [S (0) E ] to get the zero-order n (0) E . This contri-\nbution is contained in vertex corrections in the diagram-\nmatic formalism [53, 58]. These corrections represent\nspin/pseudospin-dependent scattering commonly termed\nskew scattering and side jump. They are associated with\nthe Fermi surface, and occur because the scattering po-\ntential also contributes to band mixing and inter-band\ncoherence. In this connection, an alternative interpre-\ntation is that disorder mixes the bands in the crystal,\ngiving a correction to the wave function, and this results\nin a correction to the band-expectation values of certain\nphysical observables, which is proportional to the disor-\nder strength. At the same time, an electric field shifts the\nFermi surface away from equilibrium, and this shift is in-\nversely proportional to the disorder strength. The net\nresult in the average of physical observables is the prod-\nuct of the correction to the band-expectation value and\nthe shift in the distribution function, and this product is\nformally independent of the disorder strength.
-  88  p3  furniture  [p3-l1]  3
-  89  p3  paragraph  [p3-l16..p3-l33 (2)]  (a) (b)
-  90  p3  paragraph  [p3-l13]  0
-  91  p3  figure  [p3-d1..p3-d85 (84)]  
-  92  p3  figure  [p3-d4]  
-  93  p3  paragraph  [p3-l2]  Skew scattering
-  94  p3  paragraph  [p3-l30]  0
-  95  p3  figure  [p3-d86..p3-d199 (113)]  
-  96  p3  figure  [p3-d90]  
-  97  p3  paragraph  [p3-l17]  Skew scattering
-  98  p3  paragraph  [p3-l3..p3-l18 (3)]  Side jump -1 Side jump
-  99  p3  paragraph  [p3-l12]  -2
-  100  p3  paragraph  [p3-l15..p3-l28 (4)]  σOH ( e / 2 π ) -4 σOH (10 - 3 e / 2 π ) -2
-  101  p3  paragraph  [p3-l27]  -3
-  102  p3  paragraph  [p3-l26..p3-l25 (3)]  -4\n-6\n-5
-  103  p3  paragraph  [p3-l9..p3-l23 (12)]  -8\n-6\n-2\n-1\n0\n1\n2\n-2\n-1\n0 1 2
-  104  p3  paragraph  [p3-l14..p3-l31 (2)]  EF(eV)\nEF(eV)
-  105  p3  paragraph  [p3-l34..p3-l39 (6)]  Figure 3. The skew scattering and side jump contributions\nto OH-conductance σOH vs the Fermi energy EF : (a) for the\n2H-phase monolayer MoS2 with the parameters vF = 3.6eV˚A\nand ∆ = 0.883eV; (b) for the tilted 2D massive Dirac model\nwith vF = 1eV˚A and ∆ = 0.1eV and vt = 0.1vF .
-  106  p3  paragraph  [p3-l63..p3-l65 (3)]  The intrinsic OHE arises from the intrinsic driving\nterm Dmm′ Eq = eE ℏ · iRmm′
-  107  p3  figure  [p3-d200]  
-  108  p3  paragraph  [p3-l66..p3-l70 (5)]  q [f (0)(Em q ) − f (0)(Em′ q )] with\nf (0)(Em q ) the Fermi distribution function in equilibrium.\nThe intrinsic OH-conductance is
-  109  p3  paragraph  [p3-l71..p3-l72 (2)]  σ int OH = − gsgν
-  110  p3  figure  [p3-d201..p3-d203 (3)]  
-  111  p3  paragraph  [p3-l74]  emev 2 F
-  112  p3  paragraph  [p3-l77]  (v 2 F q 2 F + ∆2) 3/2 .
-  113  p3  paragraph  [p3-l76]  ∆3
-  114  p3  paragraph  [p3-l78..p3-l75 (3)]  (5)\n4π 3ℏ 2∆
-  115  p3  paragraph  [p3-l79..p3-l81 (3)]  The side jump is further separated into two contributions:\none is from anomalous driving term D′ E and another is\nfrom JE(⟨ρˆ⟩) [58]. The total side jump contribution is
-  116  p3  paragraph  [p3-l82..p3-l83 (2)]  σ sd OH = − gsgν
-  117  p3  figure  [p3-d204..p3-d206 (3)]  
-  118  p3  paragraph  [p3-l85]  emev 2 F
-  119  p3  paragraph  [p3-l88]  (v 2 F q 2 F + ∆2) 3/2 .
-  120  p3  paragraph  [p3-l87]  12∆3
-  121  p3  paragraph  [p3-l89..p3-l86 (3)]  (6)\n4π 3ℏ 2∆
-  122  p3  paragraph  [p3-l90..p3-l92 (3)]  The skew scattering contribution stems from −J 1st 0 [S (0) E ],
-  123  p3  paragraph  [p3-l93..p3-l94 (2)]  σ sk OH = − gsgν
-  124  p3  figure  [p3-d207..p3-d209 (3)]  
-  125  p3  paragraph  [p3-l96]  emev 2 F
-  126  p3  paragraph  [p3-l99]  (v 2 F q 2 F + ∆2) 3/2 .
-  127  p3  paragraph  [p3-l98]  9∆3
-  128  p3  paragraph  [p3-l100..p3-l97 (3)]  (7)\n4π 3ℏ 2∆
-  129  p3  paragraph  [p3-l101..p3-l106 (6)]  The total extrinsic OHE is σ ext OH = σ sd OH + σ sk OH = 21σ int OH.\nThe individual contributions are plotted in Fig. 3.
-  130  p3  paragraph  [p3-l107..p3-l118 (12)]  Topological antiferromagnets. These are important for\norbital torque applications: i. an external electric field\ncan interact directly with orbital degrees of freedom with-\nout requiring the spin-orbit interaction, electrical gener-\nation of OAM can rely on light atomic elements [60–63],\nwidening the material choice for the electrical control of\nmagnetism [20, 64, 65]. ii. the absence of spin-orbit cou-\npling could result in long-lived magnetic information [5],\nthe orbital torque is investigated as an alternative to the\nspin torque, which has applications in data storage and\nnonvolatile logic [4, 66, 67]. Topological antiferromagnets\nare described by a tilted Dirac Hamiltonian [19]:
-  131  p3  paragraph  [p3-l119..p3-l120 (2)]  H0(q) = νvtqxτ0 + vF (qxτx − νqyτy) + ∆τz, (8)
-  132  p3  paragraph  [p3-l121..p3-l131 (11)]  where vt introduces a tilt along qx-axis. This Hamilto-\nnian breaks both T - and P- symmetry. With ν = 1,\nthe dispersion is E± q = vtqx ± Eq. The tilt will get\ninto the energy conservation function in the scattering\nintegral and Fermi distribution function, while the tilt\ndoesn’t get into the eigenstates. To determine the OHE\nfor the tilted 2D massive Dirac system one can expand\nthe tilt up to first order in the energy function by assum-\ning vt/vF ≪ 1. So in the scattering process, the energy\nconservation function can be expanded as δ(Em q −Em q′ ) ≈\nδ(Eq − Eq ′ ) + vtq � cos ϕ − cos ϕ ′ ∂δ(Eq−Eq′ )
-  133  p3  figure  [p3-d210]  
-  134  p3  paragraph  [p3-l132..p3-l136 (5)]  ∂Eq . The Fermi\ndistribution function in equilibrium and at the absolute\nzero of temperature can also be expanded f (0)(E+ q ) ≈\nΘ(EF − E+ q ) = Θ(EF − Eq) + vtq cos ϕ ∂Θ(EF −Eq)
-  135  p3  figure  [p3-d211]  
-  136  p3  paragraph  [p3-l137..p3-l149 (13)]  ∂Eq . Then\nthe density matrix can be decomposed as ρE +ρE,vt with\nρE,vt the correction to first order in the tilt. The expan-\nsion involves an angular factor, which, in the operator\ntrace, is further multiplied by angular factors in the den-\nsity matrix and velocity operator. The product of these\nthree angular factors causes the correction to the OHE to\nfirst order in the tilt to vanish. Therefore, our calculation\nof the OHE in the 2D massive Dirac model applies to the\ntilted 2D massive Dirac model as well, up to terms of sec-\nond order in the tilt. Based on the values in Refs. [68, 69],\nwe expect such terms to account for < 5% of the total.
-  137  p3  paragraph  [p3-l150..p3-l162 (13)]  Experimental observation. In systems with topological\ntextures disorder yields contributions formally of zeroth\norder in the disorder strength, which are hard to distin-\nguish experimentally from the intrinsic terms in the DC\nregime. However, it should be possible to distinguish the\nintrinsic and extrinsic contributions to the OHE using\nAC techniques. This would be the orbital transport ana-\nlogue of the magneto-optical Kerr effect [70], which was\nshown to be a strong probe of intrinsic transport in the\nanomalous Hall effect of topological insulators. Since dis-\norder effects are suppressed as 1/(ωτ ), with ω the light\nfrequency, one requires ωτ ≫ 1. Taking τ ∼ 0.1ps places\nthe wavelength in the ultraviolet range.
-  138  p3  paragraph  [p3-l163..p4-l16 (21)]  Comparison with previous work. The total OH-\nconductance calculated here also reflects knowledge built\nup during earlier studies of the anomalous and spin-Hall\neffects [50–53]. In the spin Hall effect disorder corrections\ncancel the intrinsic contribution altogether, while in the\nanomalous Hall effect they overwhelm the intrinsic con-\ntribution by a factor of 7 [52, 58]. Here the extrinsic OHE\nis 21 times the intrinsic contribution. Recalling that for\nDirac fermions the velocity and spin operators coincide,\nthese factors are understandable in light of the qualita-\ntive difference between the orbital and spin angular mo-\nmentum operators [71]. The intrinsic and extrinsic terms\ndiscussed here form the main contributions to the OHE\nin the good metal regime, in the sense used in Ref. [1] for\nthe anomalous Hall effect. Disorder effects beyond the\nfirst Born approximation, including correlations, may be\nimportant in certain regimes [72–74]. In particular, an\nadditional skew scattering term appears in the second\nBorn approximation, yielding a contribution to the OH-\nconductance ∝
-  139  p4  furniture  [p4-l1]  4
-  140  p4  figure  [p4-d1..p4-d2 (2)]  
-  141  p4  paragraph  [p4-l17..p4-l19 (3)]  U 3 1 (q 2 F v 2 F +∆2) , which dominates as the mev 2 F ∆2
-  142  p4  paragraph  [p4-l18]  2πniU4 0
-  143  p4  paragraph  [p4-l21..p4-l23 (3)]  ballistic limit is approached. The large extrinsic OHE in\ngraphene and monolayer TMDs systems is due to their\nDirac dispersion [75] and inversion symmetry breaking.
-  144  p4  paragraph  [p4-l24..p4-l32 (9)]  The extrinsic OHE, including skew-scattering and side-\njump, has been considered theoretically by Bernevig et al.\nin hole-doped Si [32]. The effect of impurities in the Kubo\nlinear response theory of Ref. [32] is twofold: through the\nvertex correction to the current operator and the self-\nenergy. Bernevig et al. showed that vertex corrections\nfrom impurity scattering vanish for a low-energy model\nfor hole-doped Si. However, a recent work [76] shows this\nis not the case in generic inversion symmetric systems.
-  145  p4  paragraph  [p4-l33..p4-l82 (50)]  Application of the theory. Some words are in order re-\ngarding the range of applicability of our theory. Firstly,\nsince most of the orbital moment contribution comes\nfrom the valley points [77], we considered the OHE from\nthe K and K′ points, without including the contribu-\ntion from the remainder of the Brillouin zone. Secondly,\nwe approximate the Fermi-Dirac function as a step func-\ntion which is the zero-temperature limit, whereas orbital\nHall measurements are performed at room temperature\ni.e. 25 meV [7, 41]. Our main assumption is that the\nfermion system is degenerate, i.e. EF ≫ kBT. How-\never, based on realistic values for τ , our theory requires\nthe Fermi energy to be away from the band edge by at\nleast 50 meV in order to satisfy EF τ /ℏ ≫ 1. This is\ntwice room temperature: whereas the assumption of de-\ngeneracy is not perfect, the system is still approximately\ndegenerate. Thirdly, we have assumed short-range disor-\nder. For a more generic disorder model, although we do\nnot expect the results to change qualitatively, the RHS of\nEqs. (6) and (7) will depend on the angular characteris-\ntics of the scattering potential. Finally but most impor-\ntantly, the theory requires EF τ /ℏ ≫ 1, which excludes\nthe low-density regions in the vicinity of the conduction\nand valence band edges. These regions are virtually im-\npossible to capture by most theoretical approaches. This\nis one of the fundamental paradoxes of transport theory:\ndisorder is needed on physical grounds, but it needs to\nsatisfy EF τ ≫ 1 (alternatively qF l ≫ 1, where l is the\nmean free path) for the theory to be applicable. The\nappearance of a term ∝ τ (i.e. ∝ 1/ni) is understood\non physical grounds: it represents the shift in the Fermi\nsurface induced by the electric field. The fact that this\nshift is ∝ τ reflects the need for disorder to be present so\nas to keep the Fermi surface near equilibrium. If disorder\nis removed entirely and τ formally tends to infinity this\nwould imply that an infinitesimally small electric field\ncan shift the Fermi surface infinitely far away from equi-\nlibrium. Such a process is unphysical, therefore the limit\nτ → ∞ is not captured in this formulation of transport\ntheory. The resolution is that the size of the sample now\nneeds to be considered and it is assumed that the mean\nfree path is larger than the size of the sample, so the sys-\ntem transitions into the Landauer-Buttiker regime. This\nregime can also be captured in our density matrix lan-\nguage [78], but is unlikely to be relevant to the materials\nstudied in the present work, where transport is diffusive.\nThe opposite limit, qF → 0, is equivalent to EF τ ≪ 1,\nwhich represents the transition to the localised regime.\nThe transport theory first needs to be augmented with\nthe Cooperon in order to describe weak localisation [79].
-  146  p4  paragraph  [p4-l83..p4-l93 (11)]  Conclusions. We have determined the disorder con-\ntribution to the OHE of 2D massive Dirac fermions and\nshown that it exceeds the intrinsic contribution by an\norder of magnitude, using graphene, transition metal\ndichalcogenides and topological antiferromagnets as pro-\ntotypes. The calculation offers an approach to tuning\nand maximizing the orbital torque and can be extended\nto other classes of materials, such as Weyl and Dirac\nsemimetals, topological insulators, and van der Waals\nheterostructures, as well as opening future perspectives\non graphene-based orbitronics and twistronics [80].
-  147  p4  paragraph  [p4-l94..p4-l99 (6)]  Acknowledgments. This work is supported by the Aus-\ntralian Research Council Centre of Excellence in Future\nLow-Energy Electronics Technologies, project number\nCE170100039. We acknowledge enlightening discussions\nwith Di Xiao, Giovanni Vignale, Eli Zeldov, Binghai Yan,\nAmit Agarwal and Kamal Das.
-  148  p4  figure  [p4-d3..p4-d6 (4)]  
-  149  p4  paragraph  [p4-l100..p4-l101 (2)]  [1] N. Nagaosa, J. Sinova, S. Onoda, A. H. MacDonald, and\nN. P. Ong, Rev. Mod. Phys. 82, 1539 (2010).
-  150  p4  paragraph  [p4-l102..p4-l103 (2)]  [2] J. Sinova, S. O. Valenzuela, J. Wunderlich, C. H. Back,\nand T. Jungwirth, Rev. Mod. Phys. 87, 1213 (2015).
-  151  p4  paragraph  [p4-l104..p4-l105 (2)]  [3] A. Johansson, B. G¨obel, J. Henk, M. Bibes, and I. Mer-\ntig, Phys. Rev. Res. 3, 013275 (2021).
-  152  p4  paragraph  [p4-l106..p4-l110 (5)]  [4] Q. Shao, P. Li, L. Liu, H. Yang, S. Fukami, A. Razavi,\nH. Wu, K. Wang, F. Freimuth, Y. Mokrousov, M. D.\nStiles, S. Emori, A. Hoffmann, J. ˚Akerman, K. Roy, J.-\nP. Wang, S.-H. Yang, K. Garello, and W. Zhang, IEEE\nTransactions on Magnetics 57, 1 (2021).
-  153  p4  paragraph  [p4-l111..p5-l2 (17)]  [5] T. S. Seifert, D. Go, H. Hayashi, R. Rouze-\ngar, F. Freimuth, K. Ando, Y. Mokrousov, and\nT. Kampfrath, Nature Nanotechnology (2023),\n10.1038/s41565-023-01470-8.
-  154  p5  furniture  [p5-l1]  5
-  155  p5  paragraph  [p5-l3..p5-l4 (2)]  [6] S. Kobayashi and A. Furusaki, Phys. Rev. B 104, 195114\n(2021).
-  156  p5  paragraph  [p5-l5..p5-l7 (3)]  [7] Y.-G. Choi, D. Jo, K.-H. Ko, D. Go, K.-H. Kim, H. G.\nPark, C. Kim, B.-C. Min, G.-M. Choi, and H.-W. Lee,\nNature 619, 52 (2023).
-  157  p5  paragraph  [p5-l8..p5-l10 (3)]  [8] P. Wang, Z. Feng, Y. Yang, D. Zhang, Q. Liu, Z. Xu,\nZ. Jia, Y. Wu, G. Yu, X. Xu, and Y. Jiang, npj Quantum\nMaterials 8, 28 (2023).
-  158  p5  paragraph  [p5-l11..p5-l12 (2)]  [9] F. Xue, V. Amin, and P. M. Haney, Phys. Rev. B 102,\n161103 (2020).
-  159  p5  paragraph  [p5-l13..p5-l14 (2)]  [10] D. Jo, D. Go, and H.-W. Lee, Phys. Rev. B 98, 214405\n(2018).
-  160  p5  paragraph  [p5-l15..p5-l17 (3)]  [11] Z. C. Zheng, Q. X. Guo, D. Jo, D. Go, L. H. Wang, H. C.\nChen, W. Yin, X. M. Wang, G. H. Yu, W. He, H.-W. Lee,\nJ. Teng, and T. Zhu, Phys. Rev. Res. 2, 013127 (2020).
-  161  p5  paragraph  [p5-l18..p5-l21 (4)]  [12] S. Lee, M.-G. Kang, D. Go, D. Kim, J.-H. Kang, T. Lee,\nG.-H. Lee, J. Kang, N. J. Lee, Y. Mokrousov, S. Kim,\nK.-J. Kim, K.-J. Lee, and B.-G. Park, Communications\nPhysics 4, 234 (2021).
-  162  p5  paragraph  [p5-l22..p5-l23 (2)]  [13] Y. Yafet, Solid State Physics Eds. Seitz and Turnbull 14,\n1 (1963).
-  163  p5  paragraph  [p5-l24..p5-l25 (2)]  [14] M.-C. Chang and Q. Niu, Phys. Rev. Lett. 75, 1348\n(1995).
-  164  p5  paragraph  [p5-l26..p5-l27 (2)]  [15] M.-C. Chang and Q. Niu, Journal of Physics: Condensed\nMatter 20, 193202 (2008).
-  165  p5  paragraph  [p5-l28..p5-l31 (4)]  [16] M.-C. Chang and Q. Niu, Phys. Rev. B 53, 7010 (1996).\n[17] G. Sundaram and Q. Niu, Phys. Rev. B 59, 14915 (1999).\n[18] J. N. Fuchs, F. Pi´echon, M. O. Goerbig, and G. Montam-\nbaux, The European Physical Journal B 77, 351 (2010).
-  166  p5  paragraph  [p5-l32..p5-l33 (2)]  [19] S. Lahiri, T. Bhore, K. Das, and A. Agarwal, Phys. Rev.\nB 105, 045421 (2022).
-  167  p5  paragraph  [p5-l34..p5-l35 (2)]  [20] J. Kim, D. Go, H. Tsai, D. Jo, K. Kondou, H.-W. Lee,\nand Y. Otani, Phys. Rev. B 103, L020407 (2021).
-  168  p5  paragraph  [p5-l36..p5-l37 (2)]  [21] J.-P. Hanke, F. Freimuth, S. Bl¨ugel, and Y. Mokrousov,\nScientific Reports 7, 41078 (2017).
-  169  p5  paragraph  [p5-l38..p5-l41 (4)]  [22] M. Eich, F. c. v. Herman, R. Pisoni, H. Overweg,\nA. Kurzmann, Y. Lee, P. Rickhaus, K. Watanabe,\nT. Taniguchi, M. Sigrist, T. Ihn, and K. Ensslin, Phys.\nRev. X 8, 031023 (2018).
-  170  p5  paragraph  [p5-l42..p5-l46 (5)]  [23] A. Kurzmann, M. Eich, H. Overweg, M. Mangold, F. Her-\nman, P. Rickhaus, R. Pisoni, Y. Lee, R. Garreis, C. Tong,\nK. Watanabe, T. Taniguchi, K. Ensslin, and T. Ihn,\nPhys. Rev. Lett. 123, 026803 (2019).
-  171  p5  paragraph  [p5-l47..p5-l48 (2)]  [24] K. Das, K. Ghorai, D. Culcer, and A. Agarwal, arXiv ,\n2307.12088 (2023).
-  172  p5  paragraph  [p5-l49..p5-l50 (2)]  [25] A. Faridi and R. Asgari, Phys. Rev. B 107, 235417\n(2023).
-  173  p5  paragraph  [p5-l51..p5-l52 (2)]  [26] D. Xiao, Y. Yao, Z. Fang, and Q. Niu, Phys. Rev. Lett.\n97, 026603 (2006).
-  174  p5  paragraph  [p5-l53..p5-l54 (2)]  [27] T. Yoda, T. Yokoyama, and S. Murakami, Scientific Re-\nports 5, 12024 (2015).
-  175  p5  paragraph  [p5-l55..p5-l56 (2)]  [28] S. Zhong, J. E. Moore, and I. Souza, Phys. Rev. Lett.\n116, 077201 (2016).
-  176  p5  paragraph  [p5-l57..p5-l58 (2)]  [29] T. Yoda, T. Yokoyama, and S. Murakami, Nano Letters\n18, 916 (2018).
-  177  p5  paragraph  [p5-l59..p5-l60 (2)]  [30] L. Salemi, M. Berritta, A. K. Nandy, and P. M. Oppe-\nneer, Nature Communications 10, 5381 (2019).
-  178  p5  paragraph  [p5-l61..p5-l64 (4)]  [31] S. Ding, Z. Liang, D. Go, C. Yun, M. Xue, Z. Liu,\nS. Becker, W. Yang, H. Du, C. Wang, Y. Yang, G. Jakob,\nM. Kl¨aui, Y. Mokrousov, and J. Yang, Phys. Rev. Lett.\n128, 067201 (2022).
-  179  p5  paragraph  [p5-l65..p5-l66 (2)]  [32] B. A. Bernevig, T. L. Hughes, and S.-C. Zhang, Phys.\nRev. Lett. 95, 066601 (2005).
-  180  p5  paragraph  [p5-l67..p5-l68 (2)]  [33] S. Bhowal and G. Vignale, Phys. Rev. B 103, 195309\n(2021).
-  181  p5  paragraph  [p5-l69..p5-l73 (5)]  [34] S. Grover, M. Bocarsly, A. Uri, P. Stepanov, G. Di Bat-\ntista, I. Roy, J. Xiao, A. Y. Meltzer, Y. Myasoedov,\nK. Pareek, K. Watanabe, T. Taniguchi, B. Yan, A. Stern,\nE. Berg, D. K. Efetov, and E. Zeldov, Nature Physics\n18, 885 (2022).
-  182  p5  paragraph  [p5-l74..p5-l75 (2)]  [35] L. Salemi and P. M. Oppeneer, Phys. Rev. B 106, 024410\n(2022).
-  183  p5  paragraph  [p5-l76..p5-l77 (2)]  [36] D. Go, D. Jo, C. Kim, and H.-W. Lee, Phys. Rev. Lett.\n121, 086602 (2018).
-  184  p5  paragraph  [p5-l78..p5-l79 (2)]  [37] H. Kontani, T. Tanaka, D. S. Hirashima, K. Yamada,\nand J. Inoue, Phys. Rev. Lett. 100, 096601 (2008).
-  185  p5  paragraph  [p5-l80..p5-l81 (2)]  [38] I. Baek and H.-W. Lee, Phys. Rev. B 104, 245204 (2021).\n[39] D. Go, D. Jo, H.-W. Lee, M. Kl¨aui, and Y. Mokrousov,
-  186  p5  paragraph  [p5-l82]  Europhysics Letters 135, 37001 (2021).
-  187  p5  paragraph  [p5-l83..p5-l86 (4)]  [40] D. Lee, D. Go, H.-J. Park, W. Jeong, H.-W. Ko, D. Yun,\nD. Jo, S. Lee, G. Go, J. H. Oh, K.-J. Kim, B.-G. Park,\nB.-C. Min, H. C. Koo, H.-W. Lee, O. Lee, and K.-J. Lee,\nNature Communications 12, 6710 (2021).
-  188  p5  paragraph  [p5-l87..p5-l91 (5)]  [41] S. Ding, A. Ross, D. Go, L. Baldrati, Z. Ren, F. Freimuth,\nS. Becker, F. Kammerbauer, J. Yang, G. Jakob,\nY. Mokrousov, and M. Kl¨aui, Phys. Rev. Lett. 125,\n177201 (2020).
-  189  p5  paragraph  [p5-l92..p5-l95 (4)]  [42] D. Go, F. Freimuth, J.-P. Hanke, F. Xue, O. Gomonay,\nK.-J. Lee, S. Bl¨ugel, P. M. Haney, H.-W. Lee, and\nY. Mokrousov, Phys. Rev. Res. 2, 033401 (2020).
-  190  p5  paragraph  [p5-l96..p5-l97 (2)]  [43] X. Chen, Y. Liu, G. Yang, H. Shi, C. Hu, M. Li, and\nH. Zeng, Nature Communications 9, 2569 (2018).
-  191  p5  paragraph  [p5-l98..p5-l99 (2)]  [44] D. Xiao, G.-B. Liu, W. Feng, X. Xu, and W. Yao, Phys.\nRev. Lett. 108, 196802 (2012).
-  192  p5  paragraph  [p5-l100..p5-l101 (2)]  [45] T. P. Cysne, S. Bhowal, G. Vignale, and T. G. Rap-\npoport, Phys. Rev. B 105, 195421 (2022).
-  193  p5  paragraph  [p5-l102..p5-l104 (3)]  [46] T. P. Cysne, M. Costa, L. M. Canonico, M. B. Nardelli,\nR. B. Muniz, and T. G. Rappoport, Phys. Rev. Lett.\n126, 056601 (2021).
-  194  p5  paragraph  [p5-l105..p5-l106 (2)]  [47] A. Pezo, D. Garc´ıa Ovalle, and A. Manchon, Phys. Rev.\nB 106, 104414 (2022).
-  195  p5  paragraph  [p5-l107..p5-l109 (3)]  [48] L. M. Canonico, T. P. Cysne, A. Molina-Sanchez, R. B.\nMuniz, and T. G. Rappoport, Phys. Rev. B 101, 161409\n(2020).
-  196  p5  paragraph  [p5-l110..p5-l111 (2)]  [49] S. Bhowal and S. Satpathy, Phys. Rev. B 102, 035409\n(2020).
-  197  p5  paragraph  [p5-l112..p5-l114 (3)]  [50] J.-i. Inoue, G. E. W. Bauer, and L. W. Molenkamp,\nPhys. Rev. B 70, 041303 (2004).
-  198  p5  paragraph  [p5-l115..p5-l118 (4)]  [51] J.-i. Inoue, T. Kato, Y. Ishikawa, H. Itoh, G. E. W.\nBauer, and L. W. Molenkamp, Phys. Rev. Lett. 97,\n046604 (2006).
-  199  p5  paragraph  [p5-l119..p5-l120 (2)]  [52] N. A. Sinitsyn, A. H. MacDonald, T. Jungwirth, V. K.\nDugaev, and J. Sinova, Phys. Rev. B 75, 045315 (2007).
-  200  p5  paragraph  [p5-l121..p5-l122 (2)]  [53] D. Culcer, A. Sekine, and A. H. MacDonald, Phys. Rev.\nB 96, 035106 (2017).
-  201  p5  paragraph  [p5-l123..p5-l124 (2)]  [54] S. Nandy and I. Sodemann, Phys. Rev. B 100, 195117\n(2019).
-  202  p5  paragraph  [p5-l125..p5-l126 (2)]  [55] C. Ortix, Advanced Quantum Technologies 4, 2100056\n(2021).
-  203  p5  paragraph  [p5-l127..p5-l128 (2)]  [56] Z. Z. Du, C. M. Wang, H.-P. Sun, H.-Z. Lu, and X. C.\nXie, Nature Communications 12, 5038 (2021).
-  204  p5  paragraph  [p5-l129..p5-l131 (3)]  [57] Z. Z. Du, H.-Z. Lu, and X. C. Xie, Nature Reviews\nPhysics 3, 744 (2021).
-  205  p5  paragraph  [p5-l132..p5-l133 (2)]  [58] R. B. Atencia, Q. Niu, and D. Culcer, Phys. Rev. Res.\n4, 013001 (2022).
-  206  p5  paragraph  [p5-l134..p6-l21 (22)]  [59] The limit of ∆ → 0 is related to the fact that the integral\nof a limit and the limit of an integral are generally not\nthe same. This behaviour is also present in the Berry\ncurvature, as discussed in Ref. [81] for anomalous Hall\neffect. In this paper, if we take the ∆ → 0 at the very\nbeginning of graphene Hamiltonian, the OHE disappears\naltogether. But if we take the ∆ → 0 limit for the orbital\nmoment, it yields lim∆→0∆/(q 2 v 2 F + ∆2 ) = πδ(q 2 v 2 F ).\nFor the intrinsic case, the Fermi energy lies exactly at the\nDirac point. The ∆ → 0 limit will make the intrinsic OH-\nconductance diverge after performing the integral over\nthe Fermi sea [33]. Hence, formally, the intrinsic OH-\nconductance will diverge when the EF is in band gap and\nthe extrinsic OH-conductance will vanish for graphene.\nHowever, in realistic samples, we expect that once the\ngap reaches below a certain value it will be overwhelmed\nby disorder and such a divergence will not be observable\nin practice. The limit of vanishing gap makes sense only\nfor graphene which is a gapless material in a pristine\nsituation. The ∆ → 0 limit is not applicable to TMDs,\nsince the band gap of monolayer TMDs is inherent to the\nband structure of materials [45].
-  207  p6  furniture  [p6-l1]  6
-  208  p6  paragraph  [p6-l22..p6-l24 (3)]  [60] T. Tanaka, H. Kontani, M. Naito, T. Naito, D. S. Hi-\nrashima, K. Yamada, and J. Inoue, Phys. Rev. B 77,\n165117 (2008).
-  209  p6  paragraph  [p6-l25..p6-l26 (2)]  [61] H. Kontani, T. Tanaka, D. S. Hirashima, K. Yamada,\nand J. Inoue, Phys. Rev. Lett. 102, 016601 (2009).
-  210  p6  paragraph  [p6-l27..p6-l28 (2)]  [62] L. Salemi and P. M. Oppeneer, Phys. Rev. Mater. 6,\n095001 (2022).
-  211  p6  paragraph  [p6-l29..p6-l30 (2)]  [63] K. Das and A. Agarwal, Phys. Rev. B 103, 125432\n(2021).
-  212  p6  paragraph  [p6-l31..p6-l34 (4)]  [64] S. Lee, M.-G. Kang, D. Go, D. Kim, J.-H. Kang, T. Lee,\nG.-H. Lee, J. Kang, N. J. Lee, Y. Mokrousov, S. Kim,\nK.-J. Kim, K.-J. Lee, and B.-G. Park, Communications\nPhysics 4, 234 (2021).
-  213  p6  paragraph  [p6-l35..p6-l36 (2)]  [65] D. Hovanˇc´ık, J. Posp´ıˇsil, K. Carva, V. Sechovsk´y, and\nC. Piamonteze, Nano Letters 23, 1175 (2023).
-  214  p6  paragraph  [p6-l37..p6-l40 (4)]  [66] A. Manchon, J. Zelezn´y, I. M. Miron, T. Jungwirth, ˇ\nJ. Sinova, A. Thiaville, K. Garello, and P. Gambardella,\nRev. Mod. Phys. 91, 035004 (2019).
-  215  p6  paragraph  [p6-l41..p6-l42 (2)]  [67] Y. Wang and H. Yang, Accounts of Materials Research,\nAccounts of Materials Research 3, 1061 (2022).
-  216  p6  paragraph  [p6-l43..p6-l44 (2)]  [68] C. Wang, Y. Gao, and D. Xiao, Phys. Rev. Lett. 127,\n277201 (2021).
-  217  p6  paragraph  [p6-l45..p6-l50 (6)]  [69] A. G. Linn, P. Hao, K. N. Gordon, D. Narayan, B. S.\nBerggren, N. Speiser, S. Reimers, R. P. Campion,\nV. Nov´ak, S. S. Dhesi, T. K. Kim, C. Cacho, L. Smejkal, ˇ\nT. Jungwirth, J. D. Denlinger, P. Wadley, and D. S.\nDessau, npj Quantum Materials 8, 19 (2023).
-  218  p6  paragraph  [p6-l51..p6-l52 (2)]  [70] W.-K. Tse and A. H. MacDonald, Phys. Rev. Lett. 105,\n057401 (2010).
-  219  p6  paragraph  [p6-l53..p6-l54 (2)]  [71] S. Han, H.-W. Lee, and K.-W. Kim, Phys. Rev. Lett.\n128, 176601 (2022).
-  220  p6  paragraph  [p6-l55..p6-l56 (2)]  [72] I. A. Ado, I. A. Dmitriev, P. M. Ostrovsky, and M. Titov,\nEurophysics Letters 111, 37004 (2015).
-  221  p6  paragraph  [p6-l57..p6-l58 (2)]  [73] J.-X. Zhang and W. Chen, Phys. Rev. B 107, 214204\n(2023).
-  222  p6  paragraph  [p6-l59..p6-l60 (2)]  [74] I. A. Ado, I. A. Dmitriev, P. M. Ostrovsky, and M. Titov,\nPhys. Rev. B 96, 235148 (2017).
-  223  p6  paragraph  [p6-l61..p6-l63 (3)]  [75] S. Tongay, J. Zhou, C. Ataca, K. Lo, T. S. Matthews,\nJ. Li, J. C. Grossman, and J. Wu, Nano Letters, Nano\nLetters 12, 5576 (2012).
-  224  p6  paragraph  [p6-l64..p6-l65 (2)]  [76] P. Tang and G. E. W. Bauer, arXiv:2401.17620 (2024).\n[77] S. Bhowal and S. Satpathy, Phys. Rev. B 101, 121112
-  225  p6  paragraph  [p6-l66]  (2020).
-  226  p6  paragraph  [p6-l67..p6-l69 (3)]  [78] P. Bhalla, M.-X. Deng, R.-Q. Wang, L. Wang, and\nD. Culcer, Phys. Rev. Lett. 127, 206801 (2021).
-  227  p6  paragraph  [p6-l70..p6-l72 (3)]  [79] H. Liu, R. B. Atencia, N. Medhekar, and D. Culcer,\nMaterials for Quantum Technology 3, 025002 (2023).
-  228  p6  paragraph  [p6-l73..p6-l74 (2)]  [80] E. Y. Andrei and A. H. MacDonald, Nature Materials\n19, 1265 (2020).
-  229  p6  paragraph  [p6-l75..p6-l76 (2)]  [81] D. Culcer, A. MacDonald, and Q. Niu, Phys. Rev. B 68,\n045327 (2003).
+  86  p2  paragraph  [p2-l130..p3-l62 (61)]  The disorder averaged density matrix ⟨ρˆ⟩ = ρ0 + ρE\nwith ρ0 the density matrix in equilibrium and correction\nby external electrical field ρE = nE + SE. The kinetic\nequation is solved in terms of band-diagonal contribution\nnE and band off-diagonal contribution SE. The expec-\ntation value of the orbital Hall current is calculated as\nj = Tr[⟨ρˆ⟩ ˆj] and Tr represents the full operator trace,\nand we focus on ˆj z y = 1/2{Lˆ z, vˆy}. Transport theory\nrequires EF τ /ℏ ≫ 1, where τ represents a character-\nistic momentum relaxation time that can be used as a\nmeasure of the disorder strength. The theory is formu-\nlated as an expansion in the small parameter ℏ/(EF τ ).\nThe first term leads to the Drude conductivity ∝ τ , for-\nmally of order (−1) in the small parameter. The next\nterm is of order zero in the disorder strength. Therefore,\none finds ρE = n (−1) E + S (0) E + n (0) E up to zero order in\nthe impurity density. The leading diagonal n (−1) E rep-\nresenting the shift in the Fermi surface induced by the\nelectric field is found from the band diagonal scatter-\ning integral J 1st 0 [n (−1) E ]. Next one feeds n (−1) E into the\nband off-diagonal scattering integral J 1st 0 [n (−1) E ] to deter-\nmine the anomalous driving term D′ E, and ultimately the\nband off-diagonal density matrix S (0) E . At last, we feed\nS (0) E into J 1st dia [S (0) E ] to get the zero-order n (0) E . This contri-\nbution is contained in vertex corrections in the diagram-\nmatic formalism [53, 58]. These corrections represent\nspin/pseudospin-dependent scattering commonly termed\nskew scattering and side jump. They are associated with\nthe Fermi surface, and occur because the scattering po-\ntential also contributes to band mixing and inter-band\ncoherence. In this connection, an alternative interpre-\ntation is that disorder mixes the bands in the crystal,\ngiving a correction to the wave function, and this results\nin a correction to the band-expectation values of certain\nphysical observables, which is proportional to the disor-\nder strength. At the same time, an electric field shifts the\nFermi surface away from equilibrium, and this shift is in-\nversely proportional to the disorder strength. The net\nresult in the average of physical observables is the prod-\nuct of the correction to the band-expectation value and\nthe shift in the distribution function, and this product is\nformally independent of the disorder strength.
+  87  p3  furniture  [p3-l1]  3
+  88  p3  paragraph  [p3-l16..p3-l33 (2)]  (a) (b)
+  89  p3  paragraph  [p3-l13]  0
+  90  p3  figure  [p3-d1..p3-d85 (84)]  
+  91  p3  figure  [p3-d4]  
+  92  p3  paragraph  [p3-l2]  Skew scattering
+  93  p3  paragraph  [p3-l30]  0
+  94  p3  figure  [p3-d86..p3-d199 (113)]  
+  95  p3  figure  [p3-d90]  
+  96  p3  paragraph  [p3-l17]  Skew scattering
+  97  p3  paragraph  [p3-l3..p3-l18 (3)]  Side jump -1 Side jump
+  98  p3  paragraph  [p3-l12]  -2
+  99  p3  paragraph  [p3-l15..p3-l28 (4)]  σOH ( e / 2 π ) -4 σOH (10 - 3 e / 2 π ) -2
+  100  p3  paragraph  [p3-l27]  -3
+  101  p3  paragraph  [p3-l26..p3-l25 (3)]  -4\n-6\n-5
+  102  p3  paragraph  [p3-l9..p3-l23 (12)]  -8\n-6\n-2\n-1\n0\n1\n2\n-2\n-1\n0 1 2
+  103  p3  paragraph  [p3-l14..p3-l31 (2)]  EF(eV)\nEF(eV)
+  104  p3  paragraph  [p3-l34..p3-l39 (6)]  Figure 3. The skew scattering and side jump contributions\nto OH-conductance σOH vs the Fermi energy EF : (a) for the\n2H-phase monolayer MoS2 with the parameters vF = 3.6eV˚A\nand ∆ = 0.883eV; (b) for the tilted 2D massive Dirac model\nwith vF = 1eV˚A and ∆ = 0.1eV and vt = 0.1vF .
+  105  p3  paragraph  [p3-l63..p3-l65 (3)]  The intrinsic OHE arises from the intrinsic driving\nterm Dmm′ Eq = eE ℏ · iRmm′
+  106  p3  figure  [p3-d200]  
+  107  p3  paragraph  [p3-l66..p3-l70 (5)]  q [f (0)(Em q ) − f (0)(Em′ q )] with\nf (0)(Em q ) the Fermi distribution function in equilibrium.\nThe intrinsic OH-conductance is
+  108  p3  paragraph  [p3-l71..p3-l72 (2)]  σ int OH = − gsgν
+  109  p3  figure  [p3-d201..p3-d203 (3)]  
+  110  p3  paragraph  [p3-l74]  emev 2 F
+  111  p3  paragraph  [p3-l77]  (v 2 F q 2 F + ∆2) 3/2 .
+  112  p3  paragraph  [p3-l76]  ∆3
+  113  p3  paragraph  [p3-l78..p3-l75 (3)]  (5)\n4π 3ℏ 2∆
+  114  p3  paragraph  [p3-l79..p3-l81 (3)]  The side jump is further separated into two contributions:\none is from anomalous driving term D′ E and another is\nfrom JE(⟨ρˆ⟩) [58]. The total side jump contribution is
+  115  p3  paragraph  [p3-l82..p3-l83 (2)]  σ sd OH = − gsgν
+  116  p3  figure  [p3-d204..p3-d206 (3)]  
+  117  p3  paragraph  [p3-l85]  emev 2 F
+  118  p3  paragraph  [p3-l88]  (v 2 F q 2 F + ∆2) 3/2 .
+  119  p3  paragraph  [p3-l87]  12∆3
+  120  p3  paragraph  [p3-l89..p3-l86 (3)]  (6)\n4π 3ℏ 2∆
+  121  p3  paragraph  [p3-l90..p3-l92 (3)]  The skew scattering contribution stems from −J 1st 0 [S (0) E ],
+  122  p3  paragraph  [p3-l93..p3-l94 (2)]  σ sk OH = − gsgν
+  123  p3  figure  [p3-d207..p3-d209 (3)]  
+  124  p3  paragraph  [p3-l96]  emev 2 F
+  125  p3  paragraph  [p3-l99]  (v 2 F q 2 F + ∆2) 3/2 .
+  126  p3  paragraph  [p3-l98]  9∆3
+  127  p3  paragraph  [p3-l100..p3-l97 (3)]  (7)\n4π 3ℏ 2∆
+  128  p3  paragraph  [p3-l101..p3-l106 (6)]  The total extrinsic OHE is σ ext OH = σ sd OH + σ sk OH = 21σ int OH.\nThe individual contributions are plotted in Fig. 3.
+  129  p3  paragraph  [p3-l107..p3-l118 (12)]  Topological antiferromagnets. These are important for\norbital torque applications: i. an external electric field\ncan interact directly with orbital degrees of freedom with-\nout requiring the spin-orbit interaction, electrical gener-\nation of OAM can rely on light atomic elements [60–63],\nwidening the material choice for the electrical control of\nmagnetism [20, 64, 65]. ii. the absence of spin-orbit cou-\npling could result in long-lived magnetic information [5],\nthe orbital torque is investigated as an alternative to the\nspin torque, which has applications in data storage and\nnonvolatile logic [4, 66, 67]. Topological antiferromagnets\nare described by a tilted Dirac Hamiltonian [19]:
+  130  p3  paragraph  [p3-l119..p3-l120 (2)]  H0(q) = νvtqxτ0 + vF (qxτx − νqyτy) + ∆τz, (8)
+  131  p3  paragraph  [p3-l121..p3-l131 (11)]  where vt introduces a tilt along qx-axis. This Hamilto-\nnian breaks both T - and P- symmetry. With ν = 1,\nthe dispersion is E± q = vtqx ± Eq. The tilt will get\ninto the energy conservation function in the scattering\nintegral and Fermi distribution function, while the tilt\ndoesn’t get into the eigenstates. To determine the OHE\nfor the tilted 2D massive Dirac system one can expand\nthe tilt up to first order in the energy function by assum-\ning vt/vF ≪ 1. So in the scattering process, the energy\nconservation function can be expanded as δ(Em q −Em q′ ) ≈\nδ(Eq − Eq ′ ) + vtq � cos ϕ − cos ϕ ′ ∂δ(Eq−Eq′ )
+  132  p3  figure  [p3-d210]  
+  133  p3  paragraph  [p3-l132..p3-l136 (5)]  ∂Eq . The Fermi\ndistribution function in equilibrium and at the absolute\nzero of temperature can also be expanded f (0)(E+ q ) ≈\nΘ(EF − E+ q ) = Θ(EF − Eq) + vtq cos ϕ ∂Θ(EF −Eq)
+  134  p3  figure  [p3-d211]  
+  135  p3  paragraph  [p3-l137..p3-l149 (13)]  ∂Eq . Then\nthe density matrix can be decomposed as ρE +ρE,vt with\nρE,vt the correction to first order in the tilt. The expan-\nsion involves an angular factor, which, in the operator\ntrace, is further multiplied by angular factors in the den-\nsity matrix and velocity operator. The product of these\nthree angular factors causes the correction to the OHE to\nfirst order in the tilt to vanish. Therefore, our calculation\nof the OHE in the 2D massive Dirac model applies to the\ntilted 2D massive Dirac model as well, up to terms of sec-\nond order in the tilt. Based on the values in Refs. [68, 69],\nwe expect such terms to account for < 5% of the total.
+  136  p3  paragraph  [p3-l150..p3-l162 (13)]  Experimental observation. In systems with topological\ntextures disorder yields contributions formally of zeroth\norder in the disorder strength, which are hard to distin-\nguish experimentally from the intrinsic terms in the DC\nregime. However, it should be possible to distinguish the\nintrinsic and extrinsic contributions to the OHE using\nAC techniques. This would be the orbital transport ana-\nlogue of the magneto-optical Kerr effect [70], which was\nshown to be a strong probe of intrinsic transport in the\nanomalous Hall effect of topological insulators. Since dis-\norder effects are suppressed as 1/(ωτ ), with ω the light\nfrequency, one requires ωτ ≫ 1. Taking τ ∼ 0.1ps places\nthe wavelength in the ultraviolet range.
+  137  p3  paragraph  [p3-l163..p4-l16 (21)]  Comparison with previous work. The total OH-\nconductance calculated here also reflects knowledge built\nup during earlier studies of the anomalous and spin-Hall\neffects [50–53]. In the spin Hall effect disorder corrections\ncancel the intrinsic contribution altogether, while in the\nanomalous Hall effect they overwhelm the intrinsic con-\ntribution by a factor of 7 [52, 58]. Here the extrinsic OHE\nis 21 times the intrinsic contribution. Recalling that for\nDirac fermions the velocity and spin operators coincide,\nthese factors are understandable in light of the qualita-\ntive difference between the orbital and spin angular mo-\nmentum operators [71]. The intrinsic and extrinsic terms\ndiscussed here form the main contributions to the OHE\nin the good metal regime, in the sense used in Ref. [1] for\nthe anomalous Hall effect. Disorder effects beyond the\nfirst Born approximation, including correlations, may be\nimportant in certain regimes [72–74]. In particular, an\nadditional skew scattering term appears in the second\nBorn approximation, yielding a contribution to the OH-\nconductance ∝
+  138  p4  furniture  [p4-l1]  4
+  139  p4  figure  [p4-d1..p4-d2 (2)]  
+  140  p4  paragraph  [p4-l17..p4-l19 (3)]  U 3 1 (q 2 F v 2 F +∆2) , which dominates as the mev 2 F ∆2
+  141  p4  paragraph  [p4-l18]  2πniU4 0
+  142  p4  paragraph  [p4-l21..p4-l23 (3)]  ballistic limit is approached. The large extrinsic OHE in\ngraphene and monolayer TMDs systems is due to their\nDirac dispersion [75] and inversion symmetry breaking.
+  143  p4  paragraph  [p4-l24..p4-l32 (9)]  The extrinsic OHE, including skew-scattering and side-\njump, has been considered theoretically by Bernevig et al.\nin hole-doped Si [32]. The effect of impurities in the Kubo\nlinear response theory of Ref. [32] is twofold: through the\nvertex correction to the current operator and the self-\nenergy. Bernevig et al. showed that vertex corrections\nfrom impurity scattering vanish for a low-energy model\nfor hole-doped Si. However, a recent work [76] shows this\nis not the case in generic inversion symmetric systems.
+  144  p4  paragraph  [p4-l33..p4-l82 (50)]  Application of the theory. Some words are in order re-\ngarding the range of applicability of our theory. Firstly,\nsince most of the orbital moment contribution comes\nfrom the valley points [77], we considered the OHE from\nthe K and K′ points, without including the contribu-\ntion from the remainder of the Brillouin zone. Secondly,\nwe approximate the Fermi-Dirac function as a step func-\ntion which is the zero-temperature limit, whereas orbital\nHall measurements are performed at room temperature\ni.e. 25 meV [7, 41]. Our main assumption is that the\nfermion system is degenerate, i.e. EF ≫ kBT. How-\never, based on realistic values for τ , our theory requires\nthe Fermi energy to be away from the band edge by at\nleast 50 meV in order to satisfy EF τ /ℏ ≫ 1. This is\ntwice room temperature: whereas the assumption of de-\ngeneracy is not perfect, the system is still approximately\ndegenerate. Thirdly, we have assumed short-range disor-\nder. For a more generic disorder model, although we do\nnot expect the results to change qualitatively, the RHS of\nEqs. (6) and (7) will depend on the angular characteris-\ntics of the scattering potential. Finally but most impor-\ntantly, the theory requires EF τ /ℏ ≫ 1, which excludes\nthe low-density regions in the vicinity of the conduction\nand valence band edges. These regions are virtually im-\npossible to capture by most theoretical approaches. This\nis one of the fundamental paradoxes of transport theory:\ndisorder is needed on physical grounds, but it needs to\nsatisfy EF τ ≫ 1 (alternatively qF l ≫ 1, where l is the\nmean free path) for the theory to be applicable. The\nappearance of a term ∝ τ (i.e. ∝ 1/ni) is understood\non physical grounds: it represents the shift in the Fermi\nsurface induced by the electric field. The fact that this\nshift is ∝ τ reflects the need for disorder to be present so\nas to keep the Fermi surface near equilibrium. If disorder\nis removed entirely and τ formally tends to infinity this\nwould imply that an infinitesimally small electric field\ncan shift the Fermi surface infinitely far away from equi-\nlibrium. Such a process is unphysical, therefore the limit\nτ → ∞ is not captured in this formulation of transport\ntheory. The resolution is that the size of the sample now\nneeds to be considered and it is assumed that the mean\nfree path is larger than the size of the sample, so the sys-\ntem transitions into the Landauer-Buttiker regime. This\nregime can also be captured in our density matrix lan-\nguage [78], but is unlikely to be relevant to the materials\nstudied in the present work, where transport is diffusive.\nThe opposite limit, qF → 0, is equivalent to EF τ ≪ 1,\nwhich represents the transition to the localised regime.\nThe transport theory first needs to be augmented with\nthe Cooperon in order to describe weak localisation [79].
+  145  p4  paragraph  [p4-l83..p4-l93 (11)]  Conclusions. We have determined the disorder con-\ntribution to the OHE of 2D massive Dirac fermions and\nshown that it exceeds the intrinsic contribution by an\norder of magnitude, using graphene, transition metal\ndichalcogenides and topological antiferromagnets as pro-\ntotypes. The calculation offers an approach to tuning\nand maximizing the orbital torque and can be extended\nto other classes of materials, such as Weyl and Dirac\nsemimetals, topological insulators, and van der Waals\nheterostructures, as well as opening future perspectives\non graphene-based orbitronics and twistronics [80].
+  146  p4  paragraph  [p4-l94..p4-l99 (6)]  Acknowledgments. This work is supported by the Aus-\ntralian Research Council Centre of Excellence in Future\nLow-Energy Electronics Technologies, project number\nCE170100039. We acknowledge enlightening discussions\nwith Di Xiao, Giovanni Vignale, Eli Zeldov, Binghai Yan,\nAmit Agarwal and Kamal Das.
+  147  p4  figure  [p4-d3..p4-d6 (4)]  
+  148  p4  paragraph  [p4-l100..p4-l101 (2)]  [1] N. Nagaosa, J. Sinova, S. Onoda, A. H. MacDonald, and\nN. P. Ong, Rev. Mod. Phys. 82, 1539 (2010).
+  149  p4  paragraph  [p4-l102..p4-l103 (2)]  [2] J. Sinova, S. O. Valenzuela, J. Wunderlich, C. H. Back,\nand T. Jungwirth, Rev. Mod. Phys. 87, 1213 (2015).
+  150  p4  paragraph  [p4-l104..p4-l105 (2)]  [3] A. Johansson, B. G¨obel, J. Henk, M. Bibes, and I. Mer-\ntig, Phys. Rev. Res. 3, 013275 (2021).
+  151  p4  paragraph  [p4-l106..p4-l110 (5)]  [4] Q. Shao, P. Li, L. Liu, H. Yang, S. Fukami, A. Razavi,\nH. Wu, K. Wang, F. Freimuth, Y. Mokrousov, M. D.\nStiles, S. Emori, A. Hoffmann, J. ˚Akerman, K. Roy, J.-\nP. Wang, S.-H. Yang, K. Garello, and W. Zhang, IEEE\nTransactions on Magnetics 57, 1 (2021).
+  152  p4  paragraph  [p4-l111..p5-l2 (17)]  [5] T. S. Seifert, D. Go, H. Hayashi, R. Rouze-\ngar, F. Freimuth, K. Ando, Y. Mokrousov, and\nT. Kampfrath, Nature Nanotechnology (2023),\n10.1038/s41565-023-01470-8.
+  153  p5  furniture  [p5-l1]  5
+  154  p5  paragraph  [p5-l3..p5-l4 (2)]  [6] S. Kobayashi and A. Furusaki, Phys. Rev. B 104, 195114\n(2021).
+  155  p5  paragraph  [p5-l5..p5-l7 (3)]  [7] Y.-G. Choi, D. Jo, K.-H. Ko, D. Go, K.-H. Kim, H. G.\nPark, C. Kim, B.-C. Min, G.-M. Choi, and H.-W. Lee,\nNature 619, 52 (2023).
+  156  p5  paragraph  [p5-l8..p5-l10 (3)]  [8] P. Wang, Z. Feng, Y. Yang, D. Zhang, Q. Liu, Z. Xu,\nZ. Jia, Y. Wu, G. Yu, X. Xu, and Y. Jiang, npj Quantum\nMaterials 8, 28 (2023).
+  157  p5  paragraph  [p5-l11..p5-l12 (2)]  [9] F. Xue, V. Amin, and P. M. Haney, Phys. Rev. B 102,\n161103 (2020).
+  158  p5  paragraph  [p5-l13..p5-l14 (2)]  [10] D. Jo, D. Go, and H.-W. Lee, Phys. Rev. B 98, 214405\n(2018).
+  159  p5  paragraph  [p5-l15..p5-l17 (3)]  [11] Z. C. Zheng, Q. X. Guo, D. Jo, D. Go, L. H. Wang, H. C.\nChen, W. Yin, X. M. Wang, G. H. Yu, W. He, H.-W. Lee,\nJ. Teng, and T. Zhu, Phys. Rev. Res. 2, 013127 (2020).
+  160  p5  paragraph  [p5-l18..p5-l21 (4)]  [12] S. Lee, M.-G. Kang, D. Go, D. Kim, J.-H. Kang, T. Lee,\nG.-H. Lee, J. Kang, N. J. Lee, Y. Mokrousov, S. Kim,\nK.-J. Kim, K.-J. Lee, and B.-G. Park, Communications\nPhysics 4, 234 (2021).
+  161  p5  paragraph  [p5-l22..p5-l23 (2)]  [13] Y. Yafet, Solid State Physics Eds. Seitz and Turnbull 14,\n1 (1963).
+  162  p5  paragraph  [p5-l24..p5-l25 (2)]  [14] M.-C. Chang and Q. Niu, Phys. Rev. Lett. 75, 1348\n(1995).
+  163  p5  paragraph  [p5-l26..p5-l27 (2)]  [15] M.-C. Chang and Q. Niu, Journal of Physics: Condensed\nMatter 20, 193202 (2008).
+  164  p5  paragraph  [p5-l28..p5-l31 (4)]  [16] M.-C. Chang and Q. Niu, Phys. Rev. B 53, 7010 (1996).\n[17] G. Sundaram and Q. Niu, Phys. Rev. B 59, 14915 (1999).\n[18] J. N. Fuchs, F. Pi´echon, M. O. Goerbig, and G. Montam-\nbaux, The European Physical Journal B 77, 351 (2010).
+  165  p5  paragraph  [p5-l32..p5-l33 (2)]  [19] S. Lahiri, T. Bhore, K. Das, and A. Agarwal, Phys. Rev.\nB 105, 045421 (2022).
+  166  p5  paragraph  [p5-l34..p5-l35 (2)]  [20] J. Kim, D. Go, H. Tsai, D. Jo, K. Kondou, H.-W. Lee,\nand Y. Otani, Phys. Rev. B 103, L020407 (2021).
+  167  p5  paragraph  [p5-l36..p5-l37 (2)]  [21] J.-P. Hanke, F. Freimuth, S. Bl¨ugel, and Y. Mokrousov,\nScientific Reports 7, 41078 (2017).
+  168  p5  paragraph  [p5-l38..p5-l41 (4)]  [22] M. Eich, F. c. v. Herman, R. Pisoni, H. Overweg,\nA. Kurzmann, Y. Lee, P. Rickhaus, K. Watanabe,\nT. Taniguchi, M. Sigrist, T. Ihn, and K. Ensslin, Phys.\nRev. X 8, 031023 (2018).
+  169  p5  paragraph  [p5-l42..p5-l46 (5)]  [23] A. Kurzmann, M. Eich, H. Overweg, M. Mangold, F. Her-\nman, P. Rickhaus, R. Pisoni, Y. Lee, R. Garreis, C. Tong,\nK. Watanabe, T. Taniguchi, K. Ensslin, and T. Ihn,\nPhys. Rev. Lett. 123, 026803 (2019).
+  170  p5  paragraph  [p5-l47..p5-l48 (2)]  [24] K. Das, K. Ghorai, D. Culcer, and A. Agarwal, arXiv ,\n2307.12088 (2023).
+  171  p5  paragraph  [p5-l49..p5-l50 (2)]  [25] A. Faridi and R. Asgari, Phys. Rev. B 107, 235417\n(2023).
+  172  p5  paragraph  [p5-l51..p5-l52 (2)]  [26] D. Xiao, Y. Yao, Z. Fang, and Q. Niu, Phys. Rev. Lett.\n97, 026603 (2006).
+  173  p5  paragraph  [p5-l53..p5-l54 (2)]  [27] T. Yoda, T. Yokoyama, and S. Murakami, Scientific Re-\nports 5, 12024 (2015).
+  174  p5  paragraph  [p5-l55..p5-l56 (2)]  [28] S. Zhong, J. E. Moore, and I. Souza, Phys. Rev. Lett.\n116, 077201 (2016).
+  175  p5  paragraph  [p5-l57..p5-l58 (2)]  [29] T. Yoda, T. Yokoyama, and S. Murakami, Nano Letters\n18, 916 (2018).
+  176  p5  paragraph  [p5-l59..p5-l60 (2)]  [30] L. Salemi, M. Berritta, A. K. Nandy, and P. M. Oppe-\nneer, Nature Communications 10, 5381 (2019).
+  177  p5  paragraph  [p5-l61..p5-l64 (4)]  [31] S. Ding, Z. Liang, D. Go, C. Yun, M. Xue, Z. Liu,\nS. Becker, W. Yang, H. Du, C. Wang, Y. Yang, G. Jakob,\nM. Kl¨aui, Y. Mokrousov, and J. Yang, Phys. Rev. Lett.\n128, 067201 (2022).
+  178  p5  paragraph  [p5-l65..p5-l66 (2)]  [32] B. A. Bernevig, T. L. Hughes, and S.-C. Zhang, Phys.\nRev. Lett. 95, 066601 (2005).
+  179  p5  paragraph  [p5-l67..p5-l68 (2)]  [33] S. Bhowal and G. Vignale, Phys. Rev. B 103, 195309\n(2021).
+  180  p5  paragraph  [p5-l69..p5-l73 (5)]  [34] S. Grover, M. Bocarsly, A. Uri, P. Stepanov, G. Di Bat-\ntista, I. Roy, J. Xiao, A. Y. Meltzer, Y. Myasoedov,\nK. Pareek, K. Watanabe, T. Taniguchi, B. Yan, A. Stern,\nE. Berg, D. K. Efetov, and E. Zeldov, Nature Physics\n18, 885 (2022).
+  181  p5  paragraph  [p5-l74..p5-l75 (2)]  [35] L. Salemi and P. M. Oppeneer, Phys. Rev. B 106, 024410\n(2022).
+  182  p5  paragraph  [p5-l76..p5-l77 (2)]  [36] D. Go, D. Jo, C. Kim, and H.-W. Lee, Phys. Rev. Lett.\n121, 086602 (2018).
+  183  p5  paragraph  [p5-l78..p5-l79 (2)]  [37] H. Kontani, T. Tanaka, D. S. Hirashima, K. Yamada,\nand J. Inoue, Phys. Rev. Lett. 100, 096601 (2008).
+  184  p5  paragraph  [p5-l80..p5-l81 (2)]  [38] I. Baek and H.-W. Lee, Phys. Rev. B 104, 245204 (2021).\n[39] D. Go, D. Jo, H.-W. Lee, M. Kl¨aui, and Y. Mokrousov,
+  185  p5  paragraph  [p5-l82]  Europhysics Letters 135, 37001 (2021).
+  186  p5  paragraph  [p5-l83..p5-l86 (4)]  [40] D. Lee, D. Go, H.-J. Park, W. Jeong, H.-W. Ko, D. Yun,\nD. Jo, S. Lee, G. Go, J. H. Oh, K.-J. Kim, B.-G. Park,\nB.-C. Min, H. C. Koo, H.-W. Lee, O. Lee, and K.-J. Lee,\nNature Communications 12, 6710 (2021).
+  187  p5  paragraph  [p5-l87..p5-l91 (5)]  [41] S. Ding, A. Ross, D. Go, L. Baldrati, Z. Ren, F. Freimuth,\nS. Becker, F. Kammerbauer, J. Yang, G. Jakob,\nY. Mokrousov, and M. Kl¨aui, Phys. Rev. Lett. 125,\n177201 (2020).
+  188  p5  paragraph  [p5-l92..p5-l95 (4)]  [42] D. Go, F. Freimuth, J.-P. Hanke, F. Xue, O. Gomonay,\nK.-J. Lee, S. Bl¨ugel, P. M. Haney, H.-W. Lee, and\nY. Mokrousov, Phys. Rev. Res. 2, 033401 (2020).
+  189  p5  paragraph  [p5-l96..p5-l97 (2)]  [43] X. Chen, Y. Liu, G. Yang, H. Shi, C. Hu, M. Li, and\nH. Zeng, Nature Communications 9, 2569 (2018).
+  190  p5  paragraph  [p5-l98..p5-l99 (2)]  [44] D. Xiao, G.-B. Liu, W. Feng, X. Xu, and W. Yao, Phys.\nRev. Lett. 108, 196802 (2012).
+  191  p5  paragraph  [p5-l100..p5-l101 (2)]  [45] T. P. Cysne, S. Bhowal, G. Vignale, and T. G. Rap-\npoport, Phys. Rev. B 105, 195421 (2022).
+  192  p5  paragraph  [p5-l102..p5-l104 (3)]  [46] T. P. Cysne, M. Costa, L. M. Canonico, M. B. Nardelli,\nR. B. Muniz, and T. G. Rappoport, Phys. Rev. Lett.\n126, 056601 (2021).
+  193  p5  paragraph  [p5-l105..p5-l106 (2)]  [47] A. Pezo, D. Garc´ıa Ovalle, and A. Manchon, Phys. Rev.\nB 106, 104414 (2022).
+  194  p5  paragraph  [p5-l107..p5-l109 (3)]  [48] L. M. Canonico, T. P. Cysne, A. Molina-Sanchez, R. B.\nMuniz, and T. G. Rappoport, Phys. Rev. B 101, 161409\n(2020).
+  195  p5  paragraph  [p5-l110..p5-l111 (2)]  [49] S. Bhowal and S. Satpathy, Phys. Rev. B 102, 035409\n(2020).
+  196  p5  paragraph  [p5-l112..p5-l114 (3)]  [50] J.-i. Inoue, G. E. W. Bauer, and L. W. Molenkamp,\nPhys. Rev. B 70, 041303 (2004).
+  197  p5  paragraph  [p5-l115..p5-l118 (4)]  [51] J.-i. Inoue, T. Kato, Y. Ishikawa, H. Itoh, G. E. W.\nBauer, and L. W. Molenkamp, Phys. Rev. Lett. 97,\n046604 (2006).
+  198  p5  paragraph  [p5-l119..p5-l120 (2)]  [52] N. A. Sinitsyn, A. H. MacDonald, T. Jungwirth, V. K.\nDugaev, and J. Sinova, Phys. Rev. B 75, 045315 (2007).
+  199  p5  paragraph  [p5-l121..p5-l122 (2)]  [53] D. Culcer, A. Sekine, and A. H. MacDonald, Phys. Rev.\nB 96, 035106 (2017).
+  200  p5  paragraph  [p5-l123..p5-l124 (2)]  [54] S. Nandy and I. Sodemann, Phys. Rev. B 100, 195117\n(2019).
+  201  p5  paragraph  [p5-l125..p5-l126 (2)]  [55] C. Ortix, Advanced Quantum Technologies 4, 2100056\n(2021).
+  202  p5  paragraph  [p5-l127..p5-l128 (2)]  [56] Z. Z. Du, C. M. Wang, H.-P. Sun, H.-Z. Lu, and X. C.\nXie, Nature Communications 12, 5038 (2021).
+  203  p5  paragraph  [p5-l129..p5-l131 (3)]  [57] Z. Z. Du, H.-Z. Lu, and X. C. Xie, Nature Reviews\nPhysics 3, 744 (2021).
+  204  p5  paragraph  [p5-l132..p5-l133 (2)]  [58] R. B. Atencia, Q. Niu, and D. Culcer, Phys. Rev. Res.\n4, 013001 (2022).
+  205  p5  paragraph  [p5-l134..p6-l21 (22)]  [59] The limit of ∆ → 0 is related to the fact that the integral\nof a limit and the limit of an integral are generally not\nthe same. This behaviour is also present in the Berry\ncurvature, as discussed in Ref. [81] for anomalous Hall\neffect. In this paper, if we take the ∆ → 0 at the very\nbeginning of graphene Hamiltonian, the OHE disappears\naltogether. But if we take the ∆ → 0 limit for the orbital\nmoment, it yields lim∆→0∆/(q 2 v 2 F + ∆2 ) = πδ(q 2 v 2 F ).\nFor the intrinsic case, the Fermi energy lies exactly at the\nDirac point. The ∆ → 0 limit will make the intrinsic OH-\nconductance diverge after performing the integral over\nthe Fermi sea [33]. Hence, formally, the intrinsic OH-\nconductance will diverge when the EF is in band gap and\nthe extrinsic OH-conductance will vanish for graphene.\nHowever, in realistic samples, we expect that once the\ngap reaches below a certain value it will be overwhelmed\nby disorder and such a divergence will not be observable\nin practice. The limit of vanishing gap makes sense only\nfor graphene which is a gapless material in a pristine\nsituation. The ∆ → 0 limit is not applicable to TMDs,\nsince the band gap of monolayer TMDs is inherent to the\nband structure of materials [45].
+  206  p6  furniture  [p6-l1]  6
+  207  p6  paragraph  [p6-l22..p6-l24 (3)]  [60] T. Tanaka, H. Kontani, M. Naito, T. Naito, D. S. Hi-\nrashima, K. Yamada, and J. Inoue, Phys. Rev. B 77,\n165117 (2008).
+  208  p6  paragraph  [p6-l25..p6-l26 (2)]  [61] H. Kontani, T. Tanaka, D. S. Hirashima, K. Yamada,\nand J. Inoue, Phys. Rev. Lett. 102, 016601 (2009).
+  209  p6  paragraph  [p6-l27..p6-l28 (2)]  [62] L. Salemi and P. M. Oppeneer, Phys. Rev. Mater. 6,\n095001 (2022).
+  210  p6  paragraph  [p6-l29..p6-l30 (2)]  [63] K. Das and A. Agarwal, Phys. Rev. B 103, 125432\n(2021).
+  211  p6  paragraph  [p6-l31..p6-l34 (4)]  [64] S. Lee, M.-G. Kang, D. Go, D. Kim, J.-H. Kang, T. Lee,\nG.-H. Lee, J. Kang, N. J. Lee, Y. Mokrousov, S. Kim,\nK.-J. Kim, K.-J. Lee, and B.-G. Park, Communications\nPhysics 4, 234 (2021).
+  212  p6  paragraph  [p6-l35..p6-l36 (2)]  [65] D. Hovanˇc´ık, J. Posp´ıˇsil, K. Carva, V. Sechovsk´y, and\nC. Piamonteze, Nano Letters 23, 1175 (2023).
+  213  p6  paragraph  [p6-l37..p6-l40 (4)]  [66] A. Manchon, J. Zelezn´y, I. M. Miron, T. Jungwirth, ˇ\nJ. Sinova, A. Thiaville, K. Garello, and P. Gambardella,\nRev. Mod. Phys. 91, 035004 (2019).
+  214  p6  paragraph  [p6-l41..p6-l42 (2)]  [67] Y. Wang and H. Yang, Accounts of Materials Research,\nAccounts of Materials Research 3, 1061 (2022).
+  215  p6  paragraph  [p6-l43..p6-l44 (2)]  [68] C. Wang, Y. Gao, and D. Xiao, Phys. Rev. Lett. 127,\n277201 (2021).
+  216  p6  paragraph  [p6-l45..p6-l50 (6)]  [69] A. G. Linn, P. Hao, K. N. Gordon, D. Narayan, B. S.\nBerggren, N. Speiser, S. Reimers, R. P. Campion,\nV. Nov´ak, S. S. Dhesi, T. K. Kim, C. Cacho, L. Smejkal, ˇ\nT. Jungwirth, J. D. Denlinger, P. Wadley, and D. S.\nDessau, npj Quantum Materials 8, 19 (2023).
+  217  p6  paragraph  [p6-l51..p6-l52 (2)]  [70] W.-K. Tse and A. H. MacDonald, Phys. Rev. Lett. 105,\n057401 (2010).
+  218  p6  paragraph  [p6-l53..p6-l54 (2)]  [71] S. Han, H.-W. Lee, and K.-W. Kim, Phys. Rev. Lett.\n128, 176601 (2022).
+  219  p6  paragraph  [p6-l55..p6-l56 (2)]  [72] I. A. Ado, I. A. Dmitriev, P. M. Ostrovsky, and M. Titov,\nEurophysics Letters 111, 37004 (2015).
+  220  p6  paragraph  [p6-l57..p6-l58 (2)]  [73] J.-X. Zhang and W. Chen, Phys. Rev. B 107, 214204\n(2023).
+  221  p6  paragraph  [p6-l59..p6-l60 (2)]  [74] I. A. Ado, I. A. Dmitriev, P. M. Ostrovsky, and M. Titov,\nPhys. Rev. B 96, 235148 (2017).
+  222  p6  paragraph  [p6-l61..p6-l63 (3)]  [75] S. Tongay, J. Zhou, C. Ataca, K. Lo, T. S. Matthews,\nJ. Li, J. C. Grossman, and J. Wu, Nano Letters, Nano\nLetters 12, 5576 (2012).
+  223  p6  paragraph  [p6-l64..p6-l65 (2)]  [76] P. Tang and G. E. W. Bauer, arXiv:2401.17620 (2024).\n[77] S. Bhowal and S. Satpathy, Phys. Rev. B 101, 121112
+  224  p6  paragraph  [p6-l66]  (2020).
+  225  p6  paragraph  [p6-l67..p6-l69 (3)]  [78] P. Bhalla, M.-X. Deng, R.-Q. Wang, L. Wang, and\nD. Culcer, Phys. Rev. Lett. 127, 206801 (2021).
+  226  p6  paragraph  [p6-l70..p6-l72 (3)]  [79] H. Liu, R. B. Atencia, N. Medhekar, and D. Culcer,\nMaterials for Quantum Technology 3, 025002 (2023).
+  227  p6  paragraph  [p6-l73..p6-l74 (2)]  [80] E. Y. Andrei and A. H. MacDonald, Nature Materials\n19, 1265 (2020).
+  228  p6  paragraph  [p6-l75..p6-l76 (2)]  [81] D. Culcer, A. MacDonald, and Q. Niu, Phys. Rev. B 68,\n045327 (2003).
   
   '''
 # ---
