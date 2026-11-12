@@ -1,0 +1,80 @@
+# Ground truth for papers/acl2023-nowak-prefix-probabilities.pdf. Format: README.md.
+file = "papers/acl2023-nowak-prefix-probabilities.pdf"
+drafted_from = ["pdf"]  # ACL Anthology: no author source online
+title = "A Fast Algorithm for Computing Prefix Probabilities"
+
+pages = 11
+# Pages 1-7 two columns (page 5 opens with Eq. 16 across the full width; page 7 is the
+# end of the references, left column only). Pages 8-11 are the one-column appendix.
+columns = [2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1]
+
+headings = [
+  { level = 1, text = "Abstract" },
+  { level = 1, text = "1 Introduction" },
+  { level = 1, text = "2 Preliminaries" },
+  { level = 1, text = "3 Jelinek and Lafferty (1991)" },
+  { level = 1, text = "4 Our Speed-up" },
+  { level = 1, text = "5 Generalization to Semirings" },
+  { level = 1, text = "6 Conclusion" },
+  { level = 1, text = "Limitations" },
+  { level = 1, text = "Ethics Statement" },
+  { level = 1, text = "Acknowledgements" },
+  { level = 1, text = "References" },
+  { level = 1, text = "A Proof of Lem. 1" },
+  { level = 1, text = "B Extension of Alg. 3 to Semirings" },
+  { level = 2, text = "B.1 Semirings" },
+  { level = 2, text = "B.2 Semiring-weighted prefix algorithm" },
+]
+
+# Must not be read aloud: after layout only in furniture blocks (README.md).
+furniture = [
+  { kind = "footer", pages = [1], text = "Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics" },
+  { kind = "footer", pages = [1], text = "Volume 2: Short Papers, pages 57–67" },
+  { kind = "footer", pages = [1], text = "July 9-14, 2023 ©2023 Association for Computational Linguistics" },
+  { kind = "page-number", pages = [1], text = "57" },
+  { kind = "page-number", pages = [2], text = "58" },
+  { kind = "page-number", pages = [3], text = "59" },
+  { kind = "page-number", pages = [4], text = "60" },
+  { kind = "page-number", pages = [5], text = "61" },
+  { kind = "page-number", pages = [6], text = "62" },
+  { kind = "page-number", pages = [7], text = "63" },
+  { kind = "page-number", pages = [8], text = "64" },
+  { kind = "page-number", pages = [9], text = "65" },
+  { kind = "page-number", pages = [10], text = "66" },
+  { kind = "page-number", pages = [11], text = "67" },
+]
+
+[counts]
+footnotes = 12  # 1-8 in the main text, 9-12 on page 10
+tables = 0
+figures = 2  # Figure 1 (pseudocode of Alg. 1 and 2), Figure 2 (two derivation trees)
+algorithms = 5  # Alg. 1 and 2 inside Figure 1; Alg. 3, 4 and 5 stand alone
+# (1)-(15), (16a)-(16f), (17)-(26), plus (10) and (11) restated in App. A: 31 + 2
+numbered_formulas = 33
+unnumbered_formulas = 1  # page 4: Eq. (9) repeated without its number
+
+[[verbatim]]
+where = "plain"
+page = 1
+text = "Probabilistic context-free grammars (PCFGs) are an important formalism in NLP (Eisenstein, 2019, Chapter 10)."
+
+[[verbatim]]
+where = "hyphenation"
+page = 1
+text = "However, some proposed algorithms are suboptimal with respect to the size of the grammar."
+
+[[verbatim]]
+where = "column-break"
+page = 1
+text = "The first is Jelinek and Lafferty’s (1991) algorithm which is derived from CKY (Kasami, 1965; Younger, 1967; Cocke and Schwartz, 1970) and, thus, requires the grammar to be in Chomsky normal form (CNF)."
+
+[[verbatim]]
+# The sentence goes on with inline maths on page 5, after Eq. (16) and Algorithm 3.
+where = "page-break"
+page = 4
+text = "Pre-computing γ and δ in lines 10–14 takes"
+
+[[verbatim]]
+where = "plain"
+page = 6
+text = "We do not foresee any ethical issues arising from this work."
