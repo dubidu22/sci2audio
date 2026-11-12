@@ -3068,11 +3068,11 @@
   arxiv2024-arsiwalla-qualia-meaning.pdf  sha256 5358bf0352ec8aa9
   metadata: title='' authors=[] date='2024-05-03'
   == page 1  595 x 842  lines 27  pictures 0  drawings 1
-  p1-l1  [83 118 514 136]  {SFBX2074 20.7}Qualia and the Formal Structure of Meaning
+  p1-l1  [83 118 514 136]  {SFBX2074 20.7 b}Qualia and the Formal Structure of Meaning
   p1-l2  [231 166 371 181]  {SFRM1440 14.3}Xerxes D. Arsiwalla{CMR10 10}1{CMMI10 10 i},{CMR10 10}2{CMMI10 10 i},{SFRM1000 10}∗
   p1-l3  [193 204 405 216]  {CMR8 8}1{SFTI1095 10.9 i}Pompeu Fabra University, Barcelona, Spain
   p1-l4  [220 222 377 234]  {CMR8 8}2{SFTI1095 10.9 i}Wolfram Institute, Illinois, USA
-  p1-l5  [275 292 323 302]  {SFBX1095 10.9}Abstract
+  p1-l5  [275 292 323 302]  {SFBX1095 10.9 b}Abstract
   p1-l6  [98 321 516 331]  {SFRM1095 10.9}This work explores the hypothesis that subjectively attributed meaning constitutes the
   p1-l7  [81 335 516 345]  {SFRM1095 10.9}phenomenal content of conscious experience. That is, phenomenal content is semantic. This
   p1-l8  [81 348 516 358]  {SFRM1095 10.9}form of subjective meaning manifests as an intrinsic and non-representational character of
@@ -3096,19 +3096,19 @@
   p1-l26  [296 759 302 770]  {SFRM1200 12}1
   p1-l27  [box varies: font not embedded]  {Times-Roman 20}arXiv:2405.01148v1 [q-bio.NC] 2 May 2024
   == page 2  595 x 842  lines 39  pictures 0  drawings 0
-  p2-l1  [52 72 125 87]  {SFBX1728 17.2}Contents
-  p2-l2  [52 112 144 123]  {SFBX1200 12}1 Introduction
-  p2-l3  [539 112 545 123]  {SFBX1200 12}2
-  p2-l4  [52 149 384 159]  {SFBX1200 12}2 Subjective Meaning in Phenomenology of Experience
-  p2-l5  [538 149 545 159]  {SFBX1200 12}4
-  p2-l6  [52 185 311 196]  {SFBX1200 12}3 Do Raw Feels Have Subjective Meaning?
-  p2-l7  [538 185 545 196]  {SFBX1200 12}9
-  p2-l8  [52 221 269 232]  {SFBX1200 12}4 The Formal Structure of Meaning
-  p2-l9  [532 222 545 232]  {SFBX1200 12}11
-  p2-l10  [52 258 131 269]  {SFBX1200 12}5 Discussion
-  p2-l11  [532 258 545 269]  {SFBX1200 12}18
-  p2-l12  [52 304 61 319]  {SFBX1728 17.2}1
-  p2-l13  [80 304 182 319]  {SFBX1728 17.2}Introduction
+  p2-l1  [52 72 125 87]  {SFBX1728 17.2 b}Contents
+  p2-l2  [52 112 144 123]  {SFBX1200 12 b}1 Introduction
+  p2-l3  [539 112 545 123]  {SFBX1200 12 b}2
+  p2-l4  [52 149 384 159]  {SFBX1200 12 b}2 Subjective Meaning in Phenomenology of Experience
+  p2-l5  [538 149 545 159]  {SFBX1200 12 b}4
+  p2-l6  [52 185 311 196]  {SFBX1200 12 b}3 Do Raw Feels Have Subjective Meaning?
+  p2-l7  [538 185 545 196]  {SFBX1200 12 b}9
+  p2-l8  [52 221 269 232]  {SFBX1200 12 b}4 The Formal Structure of Meaning
+  p2-l9  [532 222 545 232]  {SFBX1200 12 b}11
+  p2-l10  [52 258 131 269]  {SFBX1200 12 b}5 Discussion
+  p2-l11  [532 258 545 269]  {SFBX1200 12 b}18
+  p2-l12  [52 304 61 319]  {SFBX1728 17.2 b}1
+  p2-l13  [80 304 182 319]  {SFBX1728 17.2 b}Introduction
   p2-l14  [52 344 545 355]  {SFRM1200 12}How should one formulate a mathematical or metaphysical framework that admits a formalization
   p2-l15  [52 358 545 369]  {SFRM1200 12}of the phenomenal contents of conscious experience? The phenomenal contents or the so-called
   p2-l16  [52 373 545 384]  {SFRM1200 12}qualia of consciousness are inherently subjective attributes of experience, and by most accounts,
@@ -3188,9 +3188,9 @@
   p4-l5  [52 143 545 154]  {SFRM1200 12}notion of sense extends to the raw feels of conscious experience; in section 4, we formalize sub-
   p4-l6  [52 158 545 169]  {SFRM1200 12}jective meaning of mental representations in the context of the mind-matter relation; lastly, we
   p4-l7  [52 172 263 183]  {SFRM1200 12}conclude in section 5 with final thoughts.
-  p4-l8  [52 219 61 234]  {SFBX1728 17.2}2
-  p4-l9  [80 219 513 235]  {SFBX1728 17.2}Subjective Meaning in Phenomenology of Experience
-  p4-l10  [56 278 548 289]  {SFBX1200 12}Proposition 2.1.{SFTI1200 12 i} We hypothesize a notion of subjectively attributed meaning or subjective mean-
+  p4-l8  [52 219 61 234]  {SFBX1728 17.2 b}2
+  p4-l9  [80 219 513 235]  {SFBX1728 17.2 b}Subjective Meaning in Phenomenology of Experience
+  p4-l10  [56 278 548 289]  {SFBX1200 12 b}Proposition 2.1.{SFTI1200 12 i} We hypothesize a notion of subjectively attributed meaning or subjective mean-
   p4-l11  [56 292 548 303]  {SFTI1200 12 i}ing as an inherent feature of the qualia of consciousness. This subjective meaning constitutes the
   p4-l12  [56 307 304 318]  {SFTI1200 12 i}phenomenal content of all conscious experiences.
   p4-l13  [89 356 545 368]  {SFRM1200 12}Meaning is not merely about language{SFRM0800 8}2{SFRM1200 12} , nor is it merely a construct about the world "as
@@ -3238,7 +3238,7 @@
   p5-l18  [52 360 545 371]  {SFRM1200 12}elaborate how this form of meaning might be directly tied to the qualia of consciousness, and
   p5-l19  [52 375 545 386]  {SFRM1200 12}how it may in fact manifest as the phenomenal content of all experience. We also point to
   p5-l20  [52 389 299 400]  {SFRM1200 12}phenomenological evidence in favor of this view.
-  p5-l21  [52 414 545 424]  {SFBX1200 12}Remark 2.1.{SFTI1200 12 i} Earlier, we mentioned about meaning as discussed in the sense of Brentano’s notion
+  p5-l21  [52 414 545 424]  {SFBX1200 12 b}Remark 2.1.{SFTI1200 12 i} Earlier, we mentioned about meaning as discussed in the sense of Brentano’s notion
   p5-l22  [52 427 545 439]  {SFTI1200 12 i}of "intentionality" [33]. There, meaning is conceived as a relation between the physical and the
   p5-l23  [52 442 545 454]  {SFTI1200 12 i}mental (see also [23, 24]). Later, in section 4, we will indeed formalize such a relation between
   p5-l24  [52 457 545 468]  {SFTI1200 12 i}the physical and mental domains. How does this relational notion of meaning corroborate with
@@ -3254,7 +3254,7 @@
   p5-l34  [52 612 545 623]  {SFTI1200 12 i}have also referred to this notion of meaning as intrinsic meaning. The full relational map is only
   p5-l35  [52 626 545 637]  {SFTI1200 12 i}accessible to a metaphysical observer. Working from such an intrinsic point of view is of direct
   p5-l36  [52 641 348 651]  {SFTI1200 12 i}relevance to any experience-based theory of consciousness.
-  p5-l37  [52 665 545 676]  {SFBX1200 12}Remark 2.2.{SFTI1200 12 i} Let us make a brief comment about qualia in more general modalities. Even though
+  p5-l37  [52 665 545 676]  {SFBX1200 12 b}Remark 2.2.{SFTI1200 12 i} Let us make a brief comment about qualia in more general modalities. Even though
   p5-l38  [52 679 545 691]  {SFTI1200 12 i}a sizable fraction of works discussing qualia often anchor around sensory experiences ("the redness
   p5-l39  [66 702 545 712]  {SFRM0700 7}3{SFRM1000 10}As such, the "objective" use of meaning in language and social communication is only a matter of standard-
   p5-l40  [52 715 545 724]  {SFRM1000 10}ization of what symbols may refer to, or formation of social norms and conventions within and between groups of
@@ -3290,10 +3290,10 @@
   p6-l27  [52 468 292 479]  {SFRM1200 12}associated to the raw feel of the emotion itself.
   p6-l28  [89 493 545 504]  {SFRM1200 12}First, let us discuss why meaning of the above kind may be closely entwined with the
   p6-l29  [52 507 178 518]  {SFRM1200 12}subject’s own self-states.
-  p6-l30  [52 529 545 540]  {SFBX1200 12}Remark 2.3.{SFTI1200 12 i} Let us note that issues related to personal significance or personal value attribution
+  p6-l30  [52 529 545 540]  {SFBX1200 12 b}Remark 2.3.{SFTI1200 12 i} Let us note that issues related to personal significance or personal value attribution
   p6-l31  [52 543 521 554]  {SFTI1200 12 i}within the realm of a subject’s experiences are features closely associated to their self-model.
   p6-l32  [52 575 104 586]  {SFRM1200 12}Therefore:
-  p6-l33  [56 608 548 618]  {SFBX1200 12}Proposition 2.2.{SFTI1200 12 i} We posit that subjective meaning is phenomenologically relevant to all qualia
+  p6-l33  [56 608 548 618]  {SFBX1200 12 b}Proposition 2.2.{SFTI1200 12 i} We posit that subjective meaning is phenomenologically relevant to all qualia
   p6-l34  [56 622 548 633]  {SFTI1200 12 i}associated with the subject’s self-states, or at least those involving any relation between self-states
   p6-l35  [56 637 328 647]  {SFTI1200 12 i}to other states within the subject’s experiential realm.
   p6-l36  [89 686 545 697]  {SFRM1200 12}From a systems theory perspective, a self-model is a construct that encompasses an in-
@@ -3400,8 +3400,8 @@
   p9-l2  [52 89 545 101]  {SFRM1200 12}type) that constitute some form of personal meaning for the experiencing subject. We claim
   p9-l3  [52 104 545 115]  {SFRM1200 12}that the phenomenal content of these experiences is of a semantic type, that is, it is subjective
   p9-l4  [52 119 98 130]  {SFRM1200 12}meaning.
-  p9-l5  [52 166 61 181]  {SFBX1728 17.2}3
-  p9-l6  [80 165 414 181]  {SFBX1728 17.2}Do Raw Feels Have Subjective Meaning?
+  p9-l5  [52 166 61 181]  {SFBX1728 17.2 b}3
+  p9-l6  [80 165 414 181]  {SFBX1728 17.2 b}Do Raw Feels Have Subjective Meaning?
   p9-l7  [52 206 545 217]  {SFRM1200 12}The experiential phenomena enumerated in the section above, while predominantly of a non-
   p9-l8  [52 220 545 232]  {SFRM1200 12}sensory nature, have nonetheless been extensively studied in the consciousness literature (see
   p9-l9  [52 234 545 246]  {SFRM1200 12}references cited above). The important point of the above discussion was that a personal notion
@@ -3416,7 +3416,7 @@
   p9-l18  [52 374 545 386]  {SFRM1200 12}27,52]. Sense, perfectly well, applies also to experiences beyond those involving the purely sensory
   p9-l19  [52 389 545 401]  {SFRM1200 12}modalities (for instance, those involving internal states). Here we will anchor our discussion
   p9-l20  [52 403 301 415]  {SFRM1200 12}mainly on Frege’s use of the notion of sense [52].
-  p9-l21  [52 428 545 439]  {SFBX1200 12}Remark 3.1.{SFTI1200 12 i} In his seminal 1892 paper, "On Sense and Reference", Gottlob Frege developed
+  p9-l21  [52 428 545 439]  {SFBX1200 12 b}Remark 3.1.{SFTI1200 12 i} In his seminal 1892 paper, "On Sense and Reference", Gottlob Frege developed
   p9-l22  [52 442 545 454]  {SFTI1200 12 i}his ideas on sense and reference [52]. This laid the groundwork for the metaphysics of thought,
   p9-l23  [52 456 545 468]  {SFTI1200 12 i}theories of meaning in philosophy of mind, as well as discussions on semantics and language{SFRM0800 8} 5{SFTI1200 12 i} .
   p9-l24  [52 472 545 482]  {SFTI1200 12 i}Frege elaborates on the distinction between sense and reference, and suggests that both, sense and
@@ -3444,7 +3444,7 @@
   p10-l3  [89 125 545 136]  {SFRM1200 12}The relevant question then is: Do raw feels have a subjective "sense" for that what is
   p10-l4  [52 139 545 150]  {SFRM1200 12}being experienced? Is this a form of meaning, after all? Let us now answer these questions. In
   p10-l5  [52 153 335 164]  {SFRM1200 12}doing so, we will make use of the following proposition:
-  p10-l6  [56 189 548 200]  {SFBX1200 12}Proposition 3.1.{SFTI1200 12 i} Mental representations are to the mind, what symbolic expressions are to lan-
+  p10-l6  [56 189 548 200]  {SFBX1200 12 b}Proposition 3.1.{SFTI1200 12 i} Mental representations are to the mind, what symbolic expressions are to lan-
   p10-l7  [56 203 87 214]  {SFTI1200 12 i}guage.
   p10-l8  [89 252 545 263]  {SFRM1200 12}Building up on remark 3.1 above, let us analyze Frege’s notion of sense in the context of
   p10-l9  [52 266 545 277]  {SFRM1200 12}mind. In Frege’s view, the "sense of an expression" is a semantic attribute based on personal
@@ -3482,13 +3482,13 @@
   p10-l41  [293 759 305 770]  {SFRM1200 12}10
   == page 11  595 x 842  lines 42  pictures 0  drawings 0
   p11-l1  [52 75 210 86]  {SFRM1200 12}Two remarks are in order here:
-  p11-l2  [52 100 545 111]  {SFBX1200 12}Remark 3.2.{SFTI1200 12 i} There is of course room to argue that there may be other attributes of mental rep-
+  p11-l2  [52 100 545 111]  {SFBX1200 12 b}Remark 3.2.{SFTI1200 12 i} There is of course room to argue that there may be other attributes of mental rep-
   p11-l3  [52 114 545 125]  {SFTI1200 12 i}resentations such as its symbolic, computational or informational features that also partake in the
   p11-l4  [52 129 545 140]  {SFTI1200 12 i}realm of awareness. However, unlike meaning, these other features are not non-representational.
   p11-l5  [52 143 545 154]  {SFTI1200 12 i}Which is why, they do in fact admit a third-person description. However, qualia, having a phe-
   p11-l6  [52 158 545 169]  {SFTI1200 12 i}nomenal character, are deemed non-representational. For that reason, we maintain that subjective
   p11-l7  [52 172 521 183]  {SFTI1200 12 i}meaning is the more compelling candidate that captures the phenomenal character of qualia.
-  p11-l8  [52 197 546 207]  {SFBX1200 12}Remark 3.3.{SFTI1200 12 i} Let us also briefly comment on empirical studies that also invoke the notion of
+  p11-l8  [52 197 546 207]  {SFBX1200 12 b}Remark 3.3.{SFTI1200 12 i} Let us also briefly comment on empirical studies that also invoke the notion of
   p11-l9  [52 211 545 222]  {SFTI1200 12 i}sense in consciousness research. In empirical and clinical literature on consciousness, one often
   p11-l10  [52 225 545 236]  {SFTI1200 12 i}encounters sense via terms such as, "sense of agency", "sense of self", "sense of ownership",
   p11-l11  [52 239 545 251]  {SFTI1200 12 i}"sense of time", and so on [42,67,80,84,132]. In all of these contexts, sense is often described as
@@ -3497,8 +3497,8 @@
   p11-l14  [52 283 545 294]  {SFTI1200 12 i}for other examples of sense such as an intense sensation of pain, an abrupt sense of discomfort,
   p11-l15  [52 298 545 309]  {SFTI1200 12 i}or a sudden surge of pleasure. In fact, sense and feeling are sometimes used interchangeably in
   p11-l16  [52 312 124 323]  {SFTI1200 12 i}this literature.
-  p11-l17  [52 359 61 374]  {SFBX1728 17.2}4
-  p11-l18  [80 359 355 374]  {SFBX1728 17.2}The Formal Structure of Meaning
+  p11-l17  [52 359 61 374]  {SFBX1728 17.2 b}4
+  p11-l18  [80 359 355 374]  {SFBX1728 17.2 b}The Formal Structure of Meaning
   p11-l19  [52 399 545 410]  {SFRM1200 12}So far, we have put forth, mostly on phenomenological grounds, that meaning, generated intrin-
   p11-l20  [52 413 545 424]  {SFRM1200 12}sically by the experiencing self, is an integral and inseparable characteristic of qualia, across the
   p11-l21  [52 428 545 439]  {SFRM1200 12}board. Furthermore, the subjectivity, non-representational and as well, the transparency of, what
@@ -3554,7 +3554,7 @@
   p12-l28  [52 509 545 520]  {SFRM1200 12}may realize how abstract algebraic systems yield a geometric representation within an appropriate
   p12-l29  [52 523 545 535]  {SFRM1200 12}space (for instance, the representation theory of groups). In this case, the "intuition" or physical
   p12-l30  [52 538 344 549]  {SFRM1200 12}interpretation of the algebraic system is a geometric one.
-  p12-l31  [52 561 545 573]  {SFBX1200 12}Remark 4.1.{SFTI1200 12 i} It is interesting to see how eq.(1) compares to Charles S. Peirce’s Theory of Signs,
+  p12-l31  [52 561 545 573]  {SFBX1200 12 b}Remark 4.1.{SFTI1200 12 i} It is interesting to see how eq.(1) compares to Charles S. Peirce’s Theory of Signs,
   p12-l32  [52 575 545 587]  {SFTI1200 12 i}or Semiotics [102, 103]. Semiotics refers to a formal theory of signification of entities (across
   p12-l33  [52 590 545 602]  {SFTI1200 12 i}science and philosophy), their representation, in terms of suitable signs, and the meaning of those
   p12-l34  [52 604 545 616]  {SFTI1200 12 i}signs [22]. The essential elements of Peirce’s theory include a triad consisting of a sign{CMMI12 12 i} S{SFTI1200 12 i}, the
@@ -3687,7 +3687,7 @@
   p15-l31  [52 529 545 541]  {SFRM1200 12}domain) induces the association map{CMSY10 12 i} A{CMMI8 8 i}M{SFRM1200 12} (within the mental domain). Thus, meanings about
   p15-l32  [52 544 545 555]  {SFRM1200 12}things in the physical world can be read-off via mental states, following this relation between the
   p15-l33  [52 558 204 569]  {SFRM1200 12}physical and mental domains.
-  p15-l34  [52 582 545 593]  {SFBX1200 12}Remark 4.2.{SFTI1200 12 i} Once again, notice the parallels to Peirce’s object-sign-interpretant triad in semi-
+  p15-l34  [52 582 545 593]  {SFBX1200 12 b}Remark 4.2.{SFTI1200 12 i} Once again, notice the parallels to Peirce’s object-sign-interpretant triad in semi-
   p15-l35  [52 596 545 608]  {SFTI1200 12 i}otics. The{CMMI12 12 i} O{CMSY10 12 i} →{CMMI12 12 i} S{CMSY10 12 i} →{CMMI12 12 i} I{SFTI1200 12 i} relations in Remark 4.1 are precisely captured by the following sequence
   p15-l36  [52 611 143 623]  {SFTI1200 12 i}of maps in eq.(2):
   p15-l37  [239 625 358 637]  {CMMI12 12 i}Obj{CMMI8 8 i}P{CMSY10 12 i} →{CMMI12 12 i} Obj{CMMI8 8 i}M{CMSY10 12 i} →{CMMI12 12 i} Rel{CMMI8 8 i}M
@@ -3736,7 +3736,7 @@
   p16-l34  [293 759 305 770]  {SFRM1200 12}16
   p16-i1  [138 513 459 597]  picture
   == page 17  595 x 842  lines 38  pictures 0  drawings 1
-  p17-l1  [52 75 545 87]  {SFBX1200 12}Remark 4.3.{SFTI1200 12 i} The maps, in eqns.(2) and (4) above, demonstrate how meaning involves relations
+  p17-l1  [52 75 545 87]  {SFBX1200 12 b}Remark 4.3.{SFTI1200 12 i} The maps, in eqns.(2) and (4) above, demonstrate how meaning involves relations
   p17-l2  [52 90 545 101]  {SFTI1200 12 i}between the physical and mental domains. The mind-matter relation thus plays a central role in
   p17-l3  [52 104 545 115]  {SFTI1200 12 i}realizing subjective meaning within mental states. How does one realize sense and reference within
   p17-l4  [52 119 134 130]  {SFTI1200 12 i}this framework?
@@ -3759,7 +3759,7 @@
   p17-l21  [52 395 545 406]  {SFTI1200 12 i}experienced the planet Venus, either as the morning star, or the evening star. Hence with respect
   p17-l22  [52 410 545 421]  {SFTI1200 12 i}to sense as a relation, there are more than one possible paths that could be followed; which explains
   p17-l23  [52 424 323 435]  {SFTI1200 12 i}why there can be different senses for the same object.
-  p17-l24  [52 449 545 459]  {SFBX1200 12}Remark 4.4.{SFTI1200 12 i} Based on the above, sense and reference are both crucial to a subject’s experience.
+  p17-l24  [52 449 545 459]  {SFBX1200 12 b}Remark 4.4.{SFTI1200 12 i} Based on the above, sense and reference are both crucial to a subject’s experience.
   p17-l25  [52 463 545 474]  {SFTI1200 12 i}Major dissociations or disruptions between pathways related to sense and those to reference, would
   p17-l26  [52 478 352 488]  {SFTI1200 12 i}arguably be implicated in aberrant psychological conditions.
   p17-l27  [89 502 545 513]  {SFTI1200 12 i}For example, sense without reference would suggest domination of internal biases over
@@ -3775,8 +3775,8 @@
   p17-l37  [52 656 466 665]  {SFRM1000 10}this diagram along with admissible higher morphisms will be reported in a forthcoming article.
   p17-l38  [293 759 305 770]  {SFRM1200 12}17
   == page 18  595 x 842  lines 43  pictures 0  drawings 1
-  p18-l1  [52 72 61 87]  {SFBX1728 17.2}5
-  p18-l2  [80 72 165 87]  {SFBX1728 17.2}Discussion
+  p18-l1  [52 72 61 87]  {SFBX1728 17.2 b}5
+  p18-l2  [80 72 165 87]  {SFBX1728 17.2 b}Discussion
   p18-l3  [52 112 545 123]  {SFRM1200 12}This work posits that subjectively attributed meaning is ubiquitous in conscious experiences.
   p18-l4  [52 126 545 138]  {SFRM1200 12}Our hypothesis is that subjective meaning (or, one may also refer to it as intrinsic meaning)
   p18-l5  [52 141 545 152]  {SFRM1200 12}is intrinsic to the qualia of conscious experience, in that, the phenomenal content of conscious
@@ -3845,10 +3845,10 @@
   p19-l24  [52 418 545 429]  {SFRM1200 12}qualia of conscious experience, also suggests that one take ideas from the philosophy of language
   p19-l25  [52 432 545 443]  {SFRM1200 12}and semiotics more seriously towards the advancement of a comprehensive theoretical framework
   p19-l26  [52 447 419 458]  {SFRM1200 12}that satisfactorily addresses the phenomenal character of consciousness.
-  p19-l27  [52 493 197 509]  {SFBX1728 17.2}Acknowledgments
+  p19-l27  [52 493 197 509]  {SFBX1728 17.2 b}Acknowledgments
   p19-l28  [52 533 545 544]  {SFRM1200 12}The author would like to gratefully acknowledge Harald Atmanspacher, Dean Rickles and Giulio
   p19-l29  [52 548 396 559]  {SFRM1200 12}Katis for discussions and constructive feedback on this manuscript.
-  p19-l30  [52 594 139 610]  {SFBX1728 17.2}References
+  p19-l30  [52 594 139 610]  {SFBX1728 17.2 b}References
   p19-l31  [64 628 545 640]  {SFRM1200 12}[1] Arsiwalla, X.D., Verschure, P.F.M.J.: Integrated information for large complex networks.
   p19-l32  [82 643 545 655]  {SFRM1200 12}In: The 2013 International Joint Conference on Neural Networks (IJCNN). pp. 1–7 (Aug
   p19-l33  [82 657 110 669]  {SFRM1200 12}2013)
