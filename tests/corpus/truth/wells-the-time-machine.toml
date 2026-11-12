@@ -1,0 +1,18 @@
+# Ground truth for epub/wells-the-time-machine.epub. Format: README.md.
+file = "epub/wells-the-time-machine.epub"
+drafted_from = ["epub"]  # the EPUB is the source; read from its XHTML files
+title = "The Time Machine"
+
+# Spine order: titlepage, imprint, chapters I-XII, Epilogue, endnotes, colophon,
+# uncopyright. Only the story's own chapters are listed; the Standard Ebooks front and
+# back matter (titlepage, imprint, colophon, uncopyright) carries no chapter title.
+chapters = [
+  "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII",
+  "Epilogue",
+]
+
+# The one endnote, referenced in chapter VIII. Written without the invisible U+FEFF that
+# the file has between the dash and "Ed.", and without the back-link arrow.
+endnotes = [
+  { chapter = "VIII", text = "It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. —Ed." },
+]

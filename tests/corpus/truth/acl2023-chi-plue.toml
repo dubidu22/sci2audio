@@ -1,0 +1,109 @@
+# Ground truth for papers/acl2023-chi-plue.pdf. Format: README.md.
+file = "papers/acl2023-chi-plue.pdf"
+drafted_from = ["pdf"]  # ACL Anthology: no author source online
+title = "PLUE: Language Understanding Evaluation Benchmark for Privacy Policies in English"
+
+pages = 14
+# Pages 1-11 two columns: page 2 opens with Table 1 across the full width, page 4 with
+# Tables 2 and 3, page 9 with the "Supplementary Material" title, page 10 with Table 4.
+# Page 12 holds only Tables 5 and 6; pages 13-14 are the one-column ACL checklist.
+columns = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1]
+
+# Run-in paragraph heads ("Baselines", "License", "BERT", ...) are not headings.
+# The ACL checklist is printed in the paper, so it is read under its title. Its parts
+# ("A For every submission:", "B ☑ Did you use or create scientific artifacts?", ...) are
+# checklist questions, not headings.
+headings = [
+  { level = 1, text = "Abstract" },
+  { level = 1, text = "1 Introduction" },
+  { level = 1, text = "2 Policy Language Understanding Evaluation (PLUE) Benchmark" },
+  { level = 2, text = "2.1 Datasets and Tasks" },
+  { level = 2, text = "2.2 Pre-training Corpus Collection" },
+  { level = 2, text = "2.3 Models & Training" },
+  { level = 1, text = "3 Experiment Results" },
+  { level = 1, text = "4 Related Work" },
+  { level = 1, text = "5 Conclusion and Future work" },
+  { level = 1, text = "Limitations" },
+  { level = 1, text = "Ethics Statement" },
+  { level = 1, text = "Acknowledgements" },
+  { level = 1, text = "References" },
+  # The appendices sit under the "Supplementary Material: Appendices" title, one level down.
+  { level = 1, text = "Supplementary Material: Appendices" },
+  { level = 2, text = "A Dataset Details" },
+  { level = 3, text = "A.1 OPP-115 Privacy Practices" },
+  { level = 3, text = "A.2 APP-350 Privacy Practices" },
+  { level = 2, text = "B More Details of Pre-training Corpora" },
+  { level = 2, text = "C Baseline Models" },
+  { level = 2, text = "D More Implementation Details" },
+  { level = 3, text = "D.1 Domain-specific Continual Pre-training" },
+  { level = 3, text = "D.2 Task-specific Fine-tuning" },
+  { level = 3, text = "D.3 Software Tools" },
+  { level = 1, text = "ACL 2023 Responsible NLP Checklist" },
+]
+
+# Must not be read aloud: after layout only in furniture blocks (README.md).
+furniture = [
+  { kind = "footer", pages = [1], text = "Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics" },
+  { kind = "footer", pages = [1], text = "Volume 2: Short Papers, pages 352–365" },
+  { kind = "footer", pages = [1], text = "July 9-14, 2023 ©2023 Association for Computational Linguistics" },
+  { kind = "page-number", pages = [1], text = "352" },
+  { kind = "page-number", pages = [2], text = "353" },
+  { kind = "page-number", pages = [3], text = "354" },
+  { kind = "page-number", pages = [4], text = "355" },
+  { kind = "page-number", pages = [5], text = "356" },
+  { kind = "page-number", pages = [6], text = "357" },
+  { kind = "page-number", pages = [7], text = "358" },
+  { kind = "page-number", pages = [8], text = "359" },
+  { kind = "page-number", pages = [9], text = "360" },
+  { kind = "page-number", pages = [10], text = "361" },
+  { kind = "page-number", pages = [11], text = "362" },
+  { kind = "page-number", pages = [12], text = "363" },
+  { kind = "page-number", pages = [13], text = "364" },
+  { kind = "page-number", pages = [14], text = "365" },
+]
+
+formula_numbers = []  # no numbered display formulas
+
+
+# Footnote marks as printed, by page. "" is a note without a mark: the line under the
+# checklist on page 13.
+footnotes = [
+  { page = 1, marks = ["∗"] },  # "Work done while at UCLA."
+  { page = 3, marks = ["1", "2"] },
+  { page = 5, marks = ["3"] },
+  { page = 9, marks = ["4"] },
+  { page = 11, marks = ["5"] },
+  { page = 13, marks = [""] },
+]
+tables = [
+  { page = 2, labels = ["Table 1"] },
+  { page = 4, labels = ["Table 2", "Table 3"] },
+  { page = 10, labels = ["Table 4"] },
+  { page = 12, labels = ["Table 5", "Table 6"] },
+]
+figures = []
+algorithms = []
+unnumbered_formulas = []
+
+[[verbatim]]
+# Splits "un-derstanding" and "bet-ter" across lines.
+where = "hyphenation"
+page = 1
+text = "Natural language understanding (NLU) technologies can support individuals and practitioners to understand better privacy practices described in lengthy and complex documents."
+
+[[verbatim]]
+# Footnote ∗ sits between the two columns in storage order.
+where = "column-break"
+page = 1
+text = "Various natural language understanding (NLU) technologies have recently been developed to understand privacy policies (Wilson et al., 2016a; Harkous et al., 2018; Ravichander et al., 2019; Ahmad et al., 2020; Parvez et al., 2022; Ahmad et al., 2021; Bui et al., 2021)."
+
+[[verbatim]]
+# A long list sentence: fragment. Page 2 opens with Table 1 before the text goes on.
+where = "page-break"
+page = 1
+text = "(1) usefulness: the selected tasks can help practitioners in the domain quickly understand privacy practices without reading the whole privacy policy;"
+
+[[verbatim]]
+where = "plain"
+page = 5
+text = "This work focuses on the English language only, and the findings may not apply to other languages."

@@ -1,0 +1,68 @@
+# Ground truth for papers/arxiv2024-liu-orbital-hall.pdf. Format: README.md.
+file = "papers/arxiv2024-liu-orbital-hall.pdf"
+# Checked against the arXiv LaTeX source of 2308.14878v2 (revtex4-1, PRL style).
+drafted_from = ["pdf", "latex"]
+title = "Dominance of extrinsic scattering mechanisms in the orbital Hall effect: graphene, transition metal dichalcogenides and topological antiferromagnets"
+
+pages = 6
+# Two columns throughout; the title block and abstract on page 1 run across the full width.
+columns = [2, 2, 2, 2, 2, 2]
+
+# PRL style: no section headings and no "Abstract" or "References" heading. The paragraphs
+# open with italic run-in heads instead, in this order: "Introduction.", "Kinetic equation.",
+# "Graphene and TMDs.", "Topological antiferromagnets.", "Experimental observation.",
+# "Comparison with previous work.", "Application of the theory.", "Conclusions.",
+# "Acknowledgments."
+headings = []
+
+# Must not be read aloud: after layout only in furniture blocks (README.md).
+# Page 1 has no printed page number.
+furniture = [
+  { kind = "side-stamp", pages = [1], text = "arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024" },
+  { kind = "page-number", pages = [2], text = "2" },
+  { kind = "page-number", pages = [3], text = "3" },
+  { kind = "page-number", pages = [4], text = "4" },
+  { kind = "page-number", pages = [5], text = "5" },
+  { kind = "page-number", pages = [6], text = "6" },
+]
+
+# Equation numbers as printed, in reading order, grouped by page (eight equation
+# environments in the source).
+formula_numbers = [
+  { page = 2, numbers = ["1", "2", "3", "4"] },
+  { page = 3, numbers = ["5", "6", "7", "8"] },
+]
+
+
+# The one footnote is printed as entry [59] of the reference list (revtex "footinbib"),
+# not at the foot of a page.
+footnotes = []
+tables = []
+figures = [
+  { page = 1, labels = ["Figure 1"] },
+  { page = 2, labels = ["Figure 2"] },
+  { page = 3, labels = ["Figure 3"] },  # two panels, (a) and (b)
+]
+algorithms = []
+unnumbered_formulas = []
+
+[[verbatim]]
+where = "plain"
+page = 1
+text = "We find that, in doped systems, extrinsic effects associated with the Fermi surface (skew scattering and side jump) provide ≈ 95% of the OHE."
+
+[[verbatim]]
+# "nee-dle" is split across lines. "Øersted" is printed so (source: \O{}ersted).
+where = "hyphenation"
+page = 1
+text = "The electrical manipulation of magnetic degrees of freedom has been continuously investigated since Øersted discovered the deflection of a compass needle by a current-carrying wire."
+
+[[verbatim]]
+where = "page-break"
+page = 3
+text = "In the spin Hall effect disorder corrections cancel the intrinsic contribution altogether, while in the anomalous Hall effect they overwhelm the intrinsic contribution by a factor of 7 [52, 58]."
+
+[[verbatim]]
+where = "column-break"
+page = 4
+text = "For a more generic disorder model, although we do not expect the results to change qualitatively, the RHS of Eqs. (6) and (7) will depend on the angular characteristics of the scattering potential."

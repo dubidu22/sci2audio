@@ -1,0 +1,65 @@
+# Ground truth for papers/joss2022-biggs-pymedphys.pdf. Format: README.md.
+file = "papers/joss2022-biggs-pymedphys.pdf"
+# Checked against the JATS that JOSS builds from the authors' Markdown
+# (openjournals/joss-papers, joss.04555): same section titles, no figures or footnotes.
+drafted_from = ["pdf", "markdown"]
+title = "PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications"
+
+pages = 4
+# One text column. Page 1 also has the metadata sidebar on the left (furniture).
+columns = [1, 1, 1, 1]
+
+headings = [
+  { level = 1, text = "Summary" },
+  { level = 1, text = "Statement of need" },
+  { level = 1, text = "Acknowledgements" },
+  { level = 1, text = "References" },
+]
+
+# Must not be read aloud: after layout only in furniture blocks (README.md).
+# The JOSS logo and the ORCID icons after the author names are pictures, not text.
+furniture = [
+  { kind = "sidebar", pages = [1], text = "DOI: 10.21105/joss.04555" },
+  { kind = "sidebar", pages = [1], text = "Software" },
+  { kind = "sidebar", pages = [1], text = "Review" },
+  { kind = "sidebar", pages = [1], text = "Repository" },
+  { kind = "sidebar", pages = [1], text = "Archive" },
+  { kind = "sidebar", pages = [1], text = "Editor: Øystein Sørensen" },
+  { kind = "sidebar", pages = [1], text = "Reviewers:" },
+  { kind = "sidebar", pages = [1], text = "@ProfLeao" },
+  { kind = "sidebar", pages = [1], text = "@gbaltz" },
+  { kind = "sidebar", pages = [1], text = "Submitted: 12 June 2022" },
+  { kind = "sidebar", pages = [1], text = "Published: 16 October 2022" },
+  { kind = "sidebar", pages = [1], text = "License" },
+  { kind = "sidebar", pages = [1], text = "Authors of papers retain copyright and release the work under a Creative Commons Attribution 4.0 International License (CC BY 4.0)." },
+  { kind = "running-head", pages = [1, 2, 3, 4], text = "Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555." },
+  { kind = "page-number", pages = [1], text = "1" },
+  { kind = "page-number", pages = [2], text = "2" },
+  { kind = "page-number", pages = [3], text = "3" },
+  { kind = "page-number", pages = [4], text = "4" },
+]
+
+formula_numbers = []  # no numbered display formulas
+
+
+footnotes = []  # superscripts after author names mark affiliations, not footnotes
+tables = []
+figures = []
+algorithms = []
+unnumbered_formulas = []
+
+[[verbatim]]
+where = "plain"
+page = 1
+text = "PyMedPhys is an open-source medical physics library built for Python by a diverse community that values and prioritizes code sharing, review, continuous improvement, and peer development."
+
+[[verbatim]]
+# The sidebar's licence lines sit level with this sentence; they must not get into it.
+where = "plain"
+page = 1
+text = "This is particularly true in the field of radiation oncology, where the implementation of increasingly sophisticated technologies requires increasingly complex processes to maintain the improving standard of care."
+
+[[verbatim]]
+where = "page-break"
+page = 1
+text = "These solutions can be broadly categorised in two areas: data extraction/conversion of proprietary formats from a variety of radiotherapy systems, and manipulation of standard radiotherapy data to perform quality assurance (QA) tasks that are otherwise time-consuming or lack commercial solutions with the desired flexibility or true function."

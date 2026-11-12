@@ -14,6 +14,7 @@ LICENSES = CORPUS / "LICENSES.md"
 
 # Files in tests/corpus/ that are not sample texts.
 NOT_SAMPLES = {"LICENSES.md"}
+TRUTH = CORPUS / "truth"  # hand-checked ground truth about the samples (Issue #16)
 
 # SPDX identifiers (plus "public domain") allowed by .claude/rules/licences.md for texts.
 ALLOWED_LICENCES = {
@@ -57,7 +58,9 @@ def listed_file(row: dict[str, str]) -> str:
 
 def sample_files() -> list[Path]:
     return sorted(
-        path for path in CORPUS.rglob("*") if path.is_file() and path.name not in NOT_SAMPLES
+        path
+        for path in CORPUS.rglob("*")
+        if path.is_file() and path.name not in NOT_SAMPLES and TRUTH not in path.parents
     )
 
 

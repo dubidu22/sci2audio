@@ -1,0 +1,95 @@
+# Ground truth for papers/acl2023-hardt-ellipsis.pdf. Format: README.md.
+file = "papers/acl2023-hardt-ellipsis.pdf"
+drafted_from = ["pdf"]  # ACL Anthology: no author source online
+title = "Ellipsis-Dependent Reasoning: a New Challenge for Large Language Models"
+
+pages = 9
+# Pages 1-7 two columns (page 7 holds Table 3 and A.2 in the left column only).
+# Pages 8-9 are the one-column ACL 2023 Responsible NLP Checklist.
+columns = [2, 2, 2, 2, 2, 2, 2, 1, 1]
+
+# "Single Sentence" and "Two Actions" in A.1 are bold labels over groups of examples, not
+# headings: they stay in the text as read, like run-in heads.
+# The ACL checklist is printed in the paper, so it is read under its title. Its parts
+# ("A For every submission:", "B ☑ Did you use or create scientific artifacts?", ...) are
+# checklist questions, not headings.
+headings = [
+  { level = 1, text = "Abstract" },
+  { level = 1, text = "1 Introduction" },
+  { level = 1, text = "2 Related Work" },
+  { level = 2, text = "2.1 Probing Models for Knowledge" },
+  { level = 2, text = "2.2 Anaphora and Question Answering" },
+  { level = 2, text = "2.3 Ellipsis as a Task" },
+  { level = 2, text = "2.4 Relevance for Ellipsis-Dependent Reasoning" },
+  { level = 1, text = "3 Data" },
+  { level = 1, text = "4 Test" },
+  { level = 1, text = "5 Results" },
+  { level = 1, text = "6 Analysis" },
+  { level = 1, text = "7 Conclusion" },
+  { level = 1, text = "8 Limitations" },
+  { level = 1, text = "References" },
+  { level = 1, text = "A Appendix" },
+  { level = 2, text = "A.1 Sample Instantiations" },
+  { level = 2, text = "A.2 Substitutions" },
+  { level = 1, text = "ACL 2023 Responsible NLP Checklist" },
+]
+
+# Must not be read aloud: after layout only in furniture blocks (README.md).
+furniture = [
+  { kind = "footer", pages = [1], text = "Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics" },
+  { kind = "footer", pages = [1], text = "Volume 2: Short Papers, pages 39–47" },
+  { kind = "footer", pages = [1], text = "July 9-14, 2023 ©2023 Association for Computational Linguistics" },
+  { kind = "page-number", pages = [1], text = "39" },
+  { kind = "page-number", pages = [2], text = "40" },
+  { kind = "page-number", pages = [3], text = "41" },
+  { kind = "page-number", pages = [4], text = "42" },
+  { kind = "page-number", pages = [5], text = "43" },
+  { kind = "page-number", pages = [6], text = "44" },
+  { kind = "page-number", pages = [7], text = "45" },
+  { kind = "page-number", pages = [8], text = "46" },
+  { kind = "page-number", pages = [9], text = "47" },
+]
+
+# (1)-(4) on page 1 are numbered language examples, not formulas.
+formula_numbers = []
+
+
+# Footnote marks as printed, by page. "" is a note without a mark: the line under the
+# checklist on page 8.
+footnotes = [
+  { page = 3, marks = ["1"] },
+  { page = 8, marks = [""] },
+]
+tables = [
+  { page = 3, labels = ["Table 1", "Table 2"] },
+  { page = 7, labels = ["Table 3"] },
+]
+# Bar charts, two per column: Figures 1 and 2 on the left, 3 and 4 on the right (page 4).
+figures = [
+  { page = 4, labels = ["Figure 1", "Figure 2", "Figure 3", "Figure 4"] },
+  { page = 5, labels = ["Figure 5", "Figure 6", "Figure 7", "Figure 8"] },
+]
+algorithms = []
+unnumbered_formulas = []
+
+[[verbatim]]
+where = "hyphenation"
+page = 1
+text = "We define several structures of paired examples, where an ellipsis example is matched to its non-ellipsis counterpart, and a question is posed which requires resolution of the ellipsis."
+
+[[verbatim]]
+# Also splits "dis-course" across lines.
+where = "column-break"
+page = 1
+text = "As with pronominal anaphora and other discourse processes, there is great flexibility in the way ellipsis can occur in discourse."
+
+[[verbatim]]
+# "Sep-" ends page 2; "arate" follows Tables 1 and 2 on page 3.
+where = "page-break"
+page = 2
+text = "The first two structures, Separate Sentence, and Conjoined Sentence, involve two adjacent main clauses."
+
+[[verbatim]]
+where = "plain"
+page = 4
+text = "Most of the current rapid progress in NLP is due to pre-trained large language models."
