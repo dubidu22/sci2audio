@@ -181,7 +181,7 @@ class Paragraphs:
         self.figure = False  # a figure came since the last row
         self.marked = False  # the interruption holds a figure or smaller letters
         rows = [unit for unit in units if isinstance(unit, Row)]
-        self.pitch = _pitch(rows, settings) or 1.2  # line pitch in sizes, when none is found
+        self.pitch = _pitch(rows, settings) or settings.line_pitch
         self.body = _body_size(rows)
         self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
         self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
@@ -289,8 +289,8 @@ class Paragraphs:
 
     def _runs_on(self, row: Row) -> bool:
         """True if the row fills its column from edge to edge, as running text does."""
-        size = self.settings.indent * row.size
-        return row.box.x0 - row.left <= size and row.right - row.box.x1 <= size
+        slack = self.settings.fill_slack * row.size
+        return row.box.x0 - row.left <= slack and row.right - row.box.x1 <= slack
 
     def _smaller(self, row: Row, than: Row) -> bool:
         return row.size < (1 - self.settings.size_change) * than.size
@@ -301,7 +301,12 @@ class Paragraphs:
         window = [r for r in (self.earlier.get(id(row)), row, next_row) if r]
         slack = [r.right - r.box.x1 for r in window]
         reach = self.settings.align * row.size
-        aligned = [a for a in slack for b in slack if a is not b and abs(a - b) <= reach]
+        aligned = [
+            a
+            for i, a in enumerate(slack)
+            for j, b in enumerate(slack)
+            if i != j and abs(a - b) <= reach
+        ]
         edge = min(aligned, default=0.0)
         return row.right - row.box.x1 - edge > self.settings.short_line * row.size
 
@@ -388,7 +393,7 @@ def _pitch(rows: list[Row], settings: LayoutSettings) -> float:
     found = [
         min(b.box.y0 - a.box.y0, b.box.y1 - a.box.y1) / a.size
         for a, b in itertools.pairwise(rows)
-        if a.size and _below(a, b, settings) and abs(a.size - b.size) < 0.01 * a.size
+        if a.size and _below(a, b, settings) and abs(a.size - b.size) < settings.same_size * a.size
     ]
     return median(found) if found else 0.0
 

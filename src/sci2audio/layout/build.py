@@ -116,7 +116,7 @@ class _Layout:
         read across the page take the text area's edges, unless they lie inside one column
         the page has elsewhere (a band too short to find its columns in).
         """
-        reach = self.size
+        reach = self.settings.column_snap * self.size
         columns: list[tuple[float, float]] = []
 
         def snapped(left: float, right: float) -> tuple[float, float]:
@@ -138,12 +138,12 @@ class _Layout:
             inside = [c for c in columns if c[0] - reach <= box.x0 and box.x1 <= c[1] + reach]
             found[id(element)] = inside[0] if len(inside) == 1 else snapped(self.left, self.right)
         # a gutter may begin inside a column's longest lines (it allows a few to cross it):
-        # the column reaches as far as a quarter of its lines do
+        # the column reaches as far as a share of its lines do
         spread = {}
         for column in columns:
             members = [e.box for e in reading.ordered if e.line and found[id(e)] == column]
             if members:
-                k = len(members) // 4
+                k = int(len(members) * self.settings.column_spread)
                 lefts = sorted(box.x0 for box in members)
                 rights = sorted((box.x1 for box in members), reverse=True)
                 spread[column] = (min(column[0], lefts[k]), max(column[1], rights[k]))

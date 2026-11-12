@@ -43,6 +43,8 @@ class LayoutSettings:
     column_width: float = 0.25  # ... and this share of the text's width (not a margin of numbers)
     frame_items: int = 1  # a wide graphic around this many items is a frame or background
     figure_reach: float = 2.0  # points: pictures and drawings this close form one figure
+    column_snap: float = 1.0  # em: column edges this close in two bands are one column's
+    column_spread: float = 0.25  # a column reaches as far as this share of its lines do
 
     # Counting a page's columns
     column_text: float = 0.2  # a band counts if it holds this share of the page's text ...
@@ -56,7 +58,12 @@ class LayoutSettings:
     size_change: float = 0.08  # lines whose sizes differ by this share are in different styles
     bold_share: float = 0.8  # a line with this share of its letters bold is set in bold
     short_line: float = 1.5  # em: a line ending this far before its text's edge ends a paragraph
+    fill_slack: float = 0.7  # em: a line starting and ending this close to its column's edges
+    #                           fills it (running text)
     align: float = 0.3  # em: lines ending this close together share an edge
     indent: float = 0.7  # em: a line starting this much further in than the lines before it
     paragraph_space: float = 0.4  # em: this much more white than the usual line spacing
     #                                between two lines ends a paragraph
+    line_pitch: float = 1.2  # sizes: the line pitch to assume when no two lines show it
+    same_size: float = 0.01  # lines whose sizes differ by less than this share are the same
+    #                          size (to measure the line pitch)
