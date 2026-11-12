@@ -13,6 +13,9 @@
 # Line-end hyphens are written as layout gives them: a hyphen, then a line break (the sample
 # prints "develop- ment").
 #
+# `utterances`, where given, is how the cutter cuts the script into what the voice says in
+# one call each (sentence ends after abbreviations, D-115).
+#
 # `expected` is the script TODAY. A rule PR changes `expected` of the cases its rule touches
 # before it changes the rule, and the PR shows the diff. `goal` notes what the owning issue's
 # rule must reach; the wording is that issue's decision.
@@ -40,6 +43,10 @@ issue = 66
 goal = "URLs, the DOI link and the e-mail address removed and the sentences repaired: no 'available at and.' or 'Contact:.' (TP-07)."
 blocks = [{ kind = "paragraph", text = "Data are available at https://doi.org/10.1007/s10578-016-0626-7 and www.example.org/data. Contact: j.doe@uni-example.edu." }]
 expected = ["Data are available at https://doi.org/10.1007/s10578-016-0626-7 and www.example.org/data. Contact: j.doe@uni-example.edu."]
+utterances = [
+    "Data are available at https://doi.org/10.1007/s10578-016-0626-7 and www.example.org/data.",
+    "Contact: j.doe@uni-example.edu.",
+]
 
 [[case]]
 id = "line-end-hyphens"
@@ -72,6 +79,10 @@ issue = 67
 goal = "'n = 35' read 'n equals 35', 'p < .05' read 'p less than point zero five', 'CI' read 'confidence interval' (TP-11)."
 blocks = [{ kind = "paragraph", text = "A total of n = 35 studies met the criteria. The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4])." }]
 expected = ["A total of n = 35 studies met the criteria. The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4])."]
+utterances = [
+    "A total of n = 35 studies met the criteria.",
+    "The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4]).",
+]
 
 [[case]]
 id = "units"
@@ -88,6 +99,11 @@ issue = 68
 goal = "'i.e.', 'e.g.', 'vs.', 'Dr.', 'Fig.' and 'Approx.' read in full; 'Table 2' kept; the word after 'Approx.' not capitalised (TP-08)."
 blocks = [{ kind = "paragraph", text = "Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls." }]
 expected = ["Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls."]
+utterances = [
+    "Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1).",
+    "Dr. Smith compared them vs. controls (see Table 2).",
+    "Approx. half were girls.",
+]
 
 [[case]]
 id = "large-number"
@@ -120,6 +136,11 @@ issue = 18
 goal = "Left unchanged: misaki picks the pronunciation of 'read', 'record', 'wound' and 'lead' (D-54, TP-14)."
 blocks = [{ kind = "paragraph", text = "Parents read the record aloud; they now record the data and read it again. The bandage was wound around the wound. Lead exposure may lead to deficits." }]
 expected = ["Parents read the record aloud; they now record the data and read it again. The bandage was wound around the wound. Lead exposure may lead to deficits."]
+utterances = [
+    "Parents read the record aloud; they now record the data and read it again.",
+    "The bandage was wound around the wound.",
+    "Lead exposure may lead to deficits.",
+]
 
 [[case]]
 id = "running-footer"
