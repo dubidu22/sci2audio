@@ -1,0 +1,159 @@
+# serializer version: 1
+# name: test_export_golden_file
+  dict({
+    'epub': dict({
+      'pages': list([
+        dict({
+          'lines': list([
+            dict({
+              'id': 'c1-1',
+              'runs': list([
+                dict({
+                  'tags': list([
+                    'h2',
+                  ]),
+                  'text': 'Chapter One',
+                }),
+              ]),
+            }),
+            dict({
+              'id': 'c1-2',
+              'runs': list([
+                dict({
+                  'text': 'It was ',
+                }),
+                dict({
+                  'italic': True,
+                  'tags': list([
+                    'em',
+                  ]),
+                  'text': 'dark',
+                }),
+              ]),
+            }),
+          ]),
+          'number': 1,
+          'pictures': list([
+            dict({
+              'alt': 'A map of the island',
+              'id': 'c1-img1',
+            }),
+          ]),
+        }),
+      ]),
+      'source': dict({
+        'format': 'epub',
+        'name': 'book.epub',
+      }),
+    }),
+    'pdf': dict({
+      'metadata': dict({
+        'authors': list([
+          'A. Author',
+        ]),
+        'date': '2024',
+        'language': 'en',
+        'title': 'A Small Paper',
+      }),
+      'pages': list([
+        dict({
+          'height': 792.0,
+          'lines': list([
+            dict({
+              'id': 'p1-l1',
+              'runs': list([
+                dict({
+                  'bold': True,
+                  'font': 'Helvetica-Bold',
+                  'size': 14.0,
+                  'text': '1 Introduction',
+                }),
+              ]),
+            }),
+            dict({
+              'box': dict({
+                'x0': 72.0,
+                'x1': 150.0,
+                'y0': 700.0,
+                'y1': 712.0,
+              }),
+              'id': 'p1-l2',
+              'runs': list([
+                dict({
+                  'box': dict({
+                    'x0': 72.0,
+                    'x1': 120.0,
+                    'y0': 700.0,
+                    'y1': 712.0,
+                  }),
+                  'font': 'Times-Roman',
+                  'size': 10.0,
+                  'text': 'We study ',
+                }),
+                dict({
+                  'bold': True,
+                  'box': dict({
+                    'x0': 120.0,
+                    'x1': 150.0,
+                    'y0': 700.0,
+                    'y1': 712.0,
+                  }),
+                  'font': 'Times-Bold',
+                  'size': 10.0,
+                  'text': 'sound',
+                }),
+              ]),
+            }),
+          ]),
+          'number': 1,
+          'width': 612.0,
+        }),
+        dict({
+          'drawings': list([
+            dict({
+              'box': dict({
+                'x0': 72.0,
+                'x1': 540.0,
+                'y0': 410.0,
+                'y1': 410.5,
+              }),
+              'id': 'p2-d1',
+            }),
+          ]),
+          'height': 792.0,
+          'lines': list([
+            dict({
+              'id': 'p2-l1',
+              'runs': list([
+                dict({
+                  'font': 'Times-Italic',
+                  'italic': True,
+                  'size': 8.0,
+                  'text': 'A Small Paper',
+                }),
+              ]),
+            }),
+          ]),
+          'number': 2,
+          'pictures': list([
+            dict({
+              'box': dict({
+                'x0': 72.0,
+                'x1': 540.0,
+                'y0': 100.0,
+                'y1': 400.0,
+              }),
+              'id': 'p2-pic1',
+            }),
+          ]),
+          'width': 612.0,
+        }),
+      ]),
+      'source': dict({
+        'format': 'pdf',
+        'name': 'paper.pdf',
+        'sha256': 'ab12',
+      }),
+    }),
+  })
+# ---
