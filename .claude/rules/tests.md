@@ -25,7 +25,7 @@ A PR is not done if it introduces one of these for the first time without the ma
 | a module in `textprep/` | unit tests, a Hypothesis property test (no crash on any text; edit spans valid; idempotent), and an entry in the English regression cases |
 | the text-step or voice plugin interface | the conformance suite in `sci2audio.testing` that every plugin must pass, run against the built-in plugins |
 | a module in `extraction/` | golden files for corpus samples and a set of deliberately broken files that must fail with a clear message |
-| a module in `layout/` | corpus truth tests (columns per page, furniture in both directions: truth furniture only in furniture blocks and furniture blocks only truth furniture, verbatim sentences read in order), a golden file of every block for the corpus papers, and Hypothesis property tests (never fails on any `Content`, every item in exactly one block) (D-70) |
+| a module in `layout/` | corpus truth tests (columns per page, furniture in both directions: truth furniture only in furniture blocks and furniture blocks only truth furniture, verbatim sentences read in order), a golden file of every block for the corpus papers, and Hypothesis property tests (never fails on any `Content`, every item in exactly one block) (D-76) |
 | the FastAPI server in `web/` | TestClient tests, Schemathesis against the OpenAPI schema, and tests for 127.0.0.1-only binding, start-up token and origin check |
 | the HTML interface | Playwright tests (pytest-playwright) for the main flow with axe-core checks (`axe-playwright-python`), wired into CI |
 | a voice in `voices/` | a `slow` integration test (text → audio file) and the speech-recognition round-trip (faster-whisper) in the nightly run |
