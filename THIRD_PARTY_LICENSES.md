@@ -8,13 +8,25 @@ Not allowed: AGPL code, non-commercial or "research only" licences, models or vo
 
 | Component | Source | Licence | Where in this repo |
 |---|---|---|---|
-| *(none yet)* | | | |
+| Abogen voice plugin contract and Kokoro plugin (`tts_plugin/types.py`, `engine.py`, `errors.py`, `plugins/kokoro/`), revision `1807822f5871d1c92740cb470c5c6e8328b8f851` | [denizsafak/abogen](https://github.com/denizsafak/abogen) | MIT, © 2025 Deniz Şafak (notice kept at the top of each file) | `src/sci2audio/voices/types.py`, `engine.py`, `errors.py`, `kokoro_engine.py` (D-52) |
 
 ## Run-time dependencies
 
 | Package | Licence | Why |
 |---|---|---|
 | [pypdfium2](https://github.com/pypdfium2-team/pypdfium2) | Apache-2.0 OR BSD-3-Clause. The wheel bundles a PDFium binary (BSD-3-Clause) built with permissive libraries whose notices ship in the wheel's `licenses/BUILD_LICENSES`: FreeType (FTL), libjpeg-turbo (IJG, BSD-3-Clause), libpng, libtiff, zlib, OpenJPEG (BSD-2-Clause), Little CMS (MIT), ICU (Unicode), Abseil (Apache-2.0), AGG 2.3, HarfBuzz (MIT), Highway, simdutf, fast_float, dragonbox (Apache-2.0, MIT or BSD) | Reads PDFs: characters with font, size, weight and position, pictures and drawings (extraction, D-65) |
+| [kokoro](https://github.com/hexgrad/kokoro) | Apache-2.0 | The Kokoro speech model's inference code (voices, D-48, D-52) |
+| [misaki](https://github.com/hexgrad/misaki) (with its `en` extra, through kokoro) | Apache-2.0 | English letters-to-sounds for Kokoro (D-54) |
+| [torch](https://pytorch.org) | BSD-3-Clause, with bundled parts under Apache-2.0, Apache-2.0 WITH LLVM-exception, BSD-2-Clause, BSL-1.0, ISC, MIT, Zlib (wheel metadata); the Linux wheels also bundle libgomp (GPL-3.0-or-later WITH GCC-exception-3.1) | Runs the speech model (D-48). CI and our lock use the CPU-only build on Linux |
+| [numpy](https://numpy.org) | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | Audio samples |
+| [requests](https://github.com/psf/requests) | Apache-2.0 | The user-started voice download (D-47) |
+| [spaCy](https://spacy.io) | MIT | Loads the English model misaki uses for word classes (D-53) |
+| [transformers](https://github.com/huggingface/transformers), [huggingface_hub](https://github.com/huggingface/huggingface_hub), tokenizers, safetensors, hf-xet | Apache-2.0 | Pulled in by kokoro. huggingface_hub is never used to download: `HF_HUB_OFFLINE=1` is always set (VA-04) |
+| [espeakng-loader](https://github.com/thewh1teagle/espeakng-loader) (through misaki) | MIT for the loader (licence file in its repository; **its package metadata states no licence**, so CI lists it as checked by hand); it bundles the [espeak-ng](https://github.com/espeak-ng/espeak-ng) library and data, GPL-3.0-or-later | Pronounces words misaki does not know (fallback); no system install needed |
+| [phonemizer-fork](https://github.com/bootphon/phonemizer) (through misaki) | GPL-3.0-or-later | Calls espeak-ng for the fallback |
+| [num2words](https://github.com/savoirfairelinux/num2words) (through misaki) | LGPL-2.1 | Numbers as words inside misaki |
+| [certifi](https://github.com/certifi/python-certifi), [tqdm](https://tqdm.github.io) (through requests and transformers) | MPL-2.0 (tqdm: MPL-2.0 AND MIT) | Certificates for the download; progress bars |
+| All other packages these pull in (thinc, blis, srsly, pydantic, typer, regex, sympy, networkx, jinja2, ...) | MIT, BSD, Apache-2.0, ISC, PSF-2.0 or CNRI-Python | Checked on every PR by the `licences` CI job (`pip-licenses`) |
 | [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) 0.8.1 | BSD-2-Clause (the Python wrapper). The wheel bundles an FFmpeg program; its licence per platform is listed under "Bundled programs" below | Finds the ffmpeg program that output uses to write MP3 and M4B files (Q5, #69) |
 | [platformdirs](https://github.com/tox-dev/platformdirs) 4.14.5 | MIT (no dependencies) | Finds the user's configuration folder on Windows, macOS and Linux for the settings file (app, #70) |
 
@@ -36,9 +48,19 @@ Both licences can be combined with sci2audio's GPL-3.0-or-later. If no bundled b
 
 ## Models and voices (downloaded on first use, never bundled)
 
+Fetched only when the user starts the voice download (`sci2audio.voices.download_voice_files`), pinned by revision and sha256; the licences are shown before the download (VA-03).
+
 | Model or voice | Source | Licence | Notes |
 |---|---|---|---|
-| *(none yet)* | | | |
+| Kokoro-82M model (`config.json`, `kokoro-v1_0.pth`) and its 28 English voice packs (`voices/af_*`, `am_*`, `bf_*`, `bm_*`), revision `f3ff3571791e39611d31c381e3a41a3af07b4987` | [hexgrad/Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | Apache-2.0 | 327 MB plus 0.5 MB per voice. The model card states it was trained only on permissive or non-copyrighted audio (public domain, Apache/MIT-licensed audio, CC BY data it lists) |
+| spaCy English model `en_core_web_sm` 3.8.0 (wheel, unpacked into the model folder) | [explosion/spacy-models release](https://github.com/explosion/spacy-models/releases/tag/en_core_web_sm-3.8.0) | MIT | 12.8 MB. Not on PyPI, so not a package dependency. Its `LICENSES_SOURCES` names OntoNotes 5 (licensed to Explosion), ClearNLP and WordNet 3.0 (permissive) as training sources |
+
+## Test-only components (never installed with sci2audio)
+
+| Component | Licence | Used for |
+|---|---|---|
+| [faster-whisper](https://github.com/SYSTRAN/faster-whisper) with ctranslate2, onnxruntime, PyAV (dependency group `asr`) | MIT (PyAV: BSD-3-Clause; its bundled FFmpeg includes x264 and x265, so GPL-2.0-or-later) | Nightly speech-recognition round trip (#9) |
+| Whisper `small` for CTranslate2, revision `536b0662742c02347bc0e980a01041f333bce120` | [Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small), MIT | Same; downloaded by the nightly workflow only |
 
 ## External programs (installed by the user)
 
