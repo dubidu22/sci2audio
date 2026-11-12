@@ -57,24 +57,38 @@ runs = st.builds(
 def pages(draw: st.DrawFn, number: int, ids: Callable[[], str]) -> Page:
     """A page whose item ids come from `ids`, which hands out a fresh id per call."""
     size = draw(st.none() | st.tuples(st.floats(1, 5000), st.floats(1, 5000)))
+    lines = tuple(
+        TextLine(
+            ids(),
+            tuple(draw(st.lists(runs, min_size=1, max_size=3))),
+            draw(st.none() | boxes()),
+        )
+        for _ in range(draw(st.integers(0, 4)))
+    )
+    lefts = [line.box.x0 for line in lines if line.box]
     return Page(
         number=number,
-        lines=tuple(
-            TextLine(
-                ids(),
-                tuple(draw(st.lists(runs, min_size=1, max_size=3))),
-                draw(st.none() | boxes()),
-            )
-            for _ in range(draw(st.integers(0, 4)))
-        ),
+        lines=lines,
         pictures=tuple(
             Picture(ids(), draw(st.none() | boxes()), draw(words))
             for _ in range(draw(st.integers(0, 2)))
         ),
-        drawings=tuple(Drawing(ids(), draw(boxes())) for _ in range(draw(st.integers(0, 2)))),
+        drawings=tuple(
+            Drawing(ids(), draw(boxes() | rules(lefts, size[1] if size else 2000)))
+            for _ in range(draw(st.integers(0, 2)))
+        ),
         width=size[0] if size else None,
         height=size[1] if size else None,
     )
+
+
+@st.composite
+def rules(draw: st.DrawFn, lefts: list[float], height: float) -> Box:
+    """A thin short line in the lower half of a page, often starting where a text line
+    starts: the shape of a footnote rule."""
+    x0 = draw(st.sampled_from(lefts) | coords) if lefts else draw(coords)
+    y0 = draw(st.floats(height / 2, height))
+    return Box(x0, y0, x0 + draw(st.floats(0, 200)), y0 + draw(st.floats(0, 1.5)))
 
 
 @st.composite

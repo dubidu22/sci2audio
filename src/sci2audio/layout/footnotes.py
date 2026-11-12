@@ -1,7 +1,7 @@
 """Footnotes: the notes printed below a short rule at the foot of a column (Issue #21
 step 3, #37).
 
-A footnote rule is a thin horizontal line in the lower part of a page that starts at the
+A footnote rule is a thin horizontal line in the lower half of a page that starts at the
 left edge of a column and is much narrower than the column. The text below it in that
 column, set smaller than the body text, is the column's notes; a column whose text below
 the line has a line in body size is not (the line belongs to something else, a table).
@@ -16,10 +16,11 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 from statistics import median
 
-from sci2audio.core import Block, BlockKind, Box, Content, Page, Part, TextLine
+from sci2audio.core import Block, BlockKind, Box, Content, Page, Part, TextLine, TextRun
 from sci2audio.layout.geometry import rows
 from sci2audio.layout.settings import LayoutSettings
 
@@ -51,11 +52,16 @@ def find_footnotes(
     replaced: dict[int, list[Block]] = {}
     dropped: set[int] = set()
     for page in content.pages:
-        for zone in _zones(page, text, body, settings):
-            inside = _blocks_in(zone, page, blocks, owner, body, settings)
+        on_page = {line.id: line for line in page.lines}
+        # from the highest rule down: a block below two rules belongs to the upper one
+        for zone in sorted(_zones(page, text, body, settings), key=lambda z: z.top):
+            inside = [
+                k
+                for k in _blocks_in(zone, page, blocks, owner, body, settings)
+                if k not in replaced and k not in dropped
+            ]
             if not inside:
                 continue
-            on_page = {line.id: line for line in page.lines}
             lines = [on_page[part.item] for k in inside for part in blocks[k].parts]
             replaced[inside[0]] = _notes(lines, settings)
             dropped.update(inside[1:])
@@ -72,7 +78,7 @@ def _zones(page: Page, text: list[TextLine], body: float, settings: LayoutSettin
     """The notes areas of the page: one below each footnote rule. A rule's column is that
     of the document's lines that start at its left end: they reach, most of them, as far
     as the column's right edge (`text` holds the document's lines that are not furniture)."""
-    reach = settings.footnote_reach * body
+    reach, share = settings.footnote_reach * body, settings.footnote_rule_share
     found = []
     for rule in page.drawings:
         box = rule.box
@@ -82,14 +88,15 @@ def _zones(page: Page, text: list[TextLine], body: float, settings: LayoutSettin
         if not column:
             continue
         right = median(column)
-        if not 2 * body <= box.x1 - box.x0 <= settings.footnote_rule_share * (right - box.x0):
+        width = box.x1 - box.x0
+        if not settings.footnote_rule_width * body <= width <= share * (right - box.x0):
             continue
         found.append(_Zone(box.y1, box.x0 - reach, right))
     return found
 
 
 def _thin(box: Box, page: Page, settings: LayoutSettings) -> bool:
-    """True for a thin horizontal line in the lower part of the page."""
+    """True for a thin horizontal line in the lower half of the page."""
     return box.y1 - box.y0 <= settings.footnote_rule_height and box.y0 >= settings.footnote_band * (
         page.height or 0.0
     )
@@ -115,7 +122,7 @@ def _blocks_in(
         and line.id in owner
         and blocks[owner[line.id]].kind is not BlockKind.FURNITURE
     ]
-    if any(_size(line) >= smaller for line in below):
+    if any(_size(line.runs) >= smaller for line in below):
         return []
     ids = {line.id for line in below}
     found = sorted({owner[line.id] for line in below})
@@ -127,10 +134,10 @@ def _blocks_in(
     ]
 
 
-def _size(line: TextLine) -> float:
-    """The size most of the line's letters have."""
+def _size(runs: Iterable[TextRun]) -> float:
+    """The size most of the runs' letters have."""
     letters: Counter[float] = Counter()
-    for run in line.runs:
+    for run in runs:
         letters[run.size] += len(run.text.strip())
     return letters.most_common(1)[0][0] if letters else 0.0
 
@@ -140,7 +147,7 @@ def _notes(lines: list[TextLine], settings: LayoutSettings) -> list[Block]:
     notes where a row opens with a mark."""
     notes: list[tuple[str, list[list[TextLine]]]] = []
     for row in rows(lines, settings.row_overlap):
-        mark = _mark(row[0], settings)
+        mark = _mark(row, settings)
         if mark is not None or not notes:
             notes.append((mark or "", [row]))
         else:
@@ -148,21 +155,23 @@ def _notes(lines: list[TextLine], settings: LayoutSettings) -> list[Block]:
     return [_note(label, found) for label, found in notes]
 
 
-def _mark(line: TextLine, settings: LayoutSettings) -> str | None:
-    """The mark a line opens with: its first run, a number or note symbols set smaller
-    than the line's text."""
-    first = line.runs[0]
+def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
+    """The mark a row opens with: its first run, a number or note symbols set smaller
+    than the row's text (the mark may be a line of its own)."""
+    first = row[0].runs[0]
     text = first.text.strip()
-    smaller = first.size < (1 - settings.size_change) * _size(line)
+    size = _size(run for line in row for run in line.runs)
+    smaller = first.size < (1 - settings.size_change) * size
     return text if smaller and _MARK.fullmatch(text) else None
 
 
 def _note(label: str, lines: list[list[TextLine]]) -> Block:
-    """A footnote block: rows joined by a line break, pieces of a row by a space."""
+    """A footnote block: rows joined by a line break, pieces of a row by a space, each
+    piece without the white at its ends (so the note opens with its mark)."""
     text, parts = "", []
     for n, row in enumerate(lines):
         for k, piece in enumerate(row):
             text += "\n" if n and not k else " " if k else ""
             parts.append(Part(piece.id, len(text)))
-            text += piece.text
+            text += piece.text.strip()
     return Block(BlockKind.FOOTNOTE, text, tuple(parts), label=label)

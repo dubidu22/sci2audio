@@ -26,6 +26,11 @@ def note(mark: str, text: str, y: float, x0: float = LEFT, x1: float = LEFT_END)
     return TextLine(f"n{next(_ids)}", runs, Box(x0, y, x1, y + 8))
 
 
+def mark(text: str, y: float) -> TextLine:
+    """A mark in 6 point as a line of its own at the column's left edge."""
+    return TextLine(f"m{next(_ids)}", (TextRun(text, "Times", 6.0),), Box(LEFT, y, LEFT + 4, y + 6))
+
+
 def rule(x0: float = LEFT, width: float = 60.0, y: float = RULE_Y) -> Drawing:
     return Drawing(f"r{next(_ids)}", Box(x0, y, x0 + width, y + 0.4))
 
@@ -93,6 +98,32 @@ def test_a_narrow_justified_note_of_three_lines_is_one_note() -> None:
             "cessed at https://example.org/data/\nellipsis.",
         )
     ]
+
+
+def test_a_mark_that_is_a_line_of_its_own_is_read() -> None:
+    """Review of #52: the mark is a small line of its own at the left end of its row; its
+    size is compared with the row's text, not with itself."""
+    lines = [
+        mark("1", RULE_Y + 6),
+        note("", "A note.", RULE_Y + 6, LEFT + 8),
+        mark("2", RULE_Y + 16),
+        note("", "Second.", RULE_Y + 16, LEFT + 8),
+    ]
+    assert footnotes(build(lines, rule())) == [("1", "1 A note."), ("2", "2 Second.")]
+
+
+def test_a_note_opens_with_its_mark_without_white_before_it() -> None:
+    """Review of #52: a mark run printed with white before it (" 1")."""
+    lines = [note(" 1", " A note.", RULE_Y + 6), note(" 2", " Second.", RULE_Y + 16)]
+    assert footnotes(build(lines, rule())) == [("1", "1 A note."), ("2", "2 Second.")]
+
+
+def test_two_rules_over_one_column_give_each_note_once() -> None:
+    """Review of #52: a second short rule below the first (a rule within the notes) must
+    not read the notes below it a second time."""
+    lines = [note("1", " First.", RULE_Y + 6), note("2", " Second.", RULE_Y + 26)]
+    doc = build(lines, rule(), rule(y=RULE_Y + 20))
+    assert footnotes(doc) == [("1", "1 First."), ("2", "2 Second.")]
 
 
 def test_a_mark_may_be_a_note_symbol() -> None:
@@ -204,3 +235,44 @@ def test_any_notes_below_a_rule_are_read_note_by_note(
     held = [p.item for b in doc.blocks for p in b.parts]
     assert len(held) == len(set(held))
     assert {li.id for li in notes} <= set(held)
+
+
+@st.composite
+def page_feet(draw: st.DrawFn) -> tuple[list[TextLine], list[Drawing]]:
+    """Small and body-size lines at the foot of either column, under zero to three short
+    or long rules in the lower half of the page, most of them just above the lines."""
+    lines = []
+    for row in range(draw(st.integers(0, 8))):
+        x0 = draw(st.sampled_from([LEFT, LEFT + 8, RIGHT_START, RIGHT_START + 8]))
+        size = draw(st.sampled_from([8.0, 8.0, 8.0, 6.0, 10.0]))  # body size seldom
+        marked = draw(st.sampled_from(["", "1", "2", "\N{DAGGER}"]))
+        runs = ((TextRun(marked, "Times", 6.0),) if marked else ()) + (
+            TextRun(f"foot {row}", "Times", size),
+        )
+        y = 560 + draw(st.integers(0, 20)) * 8
+        right = LEFT_END if x0 < MIDDLE else RIGHT
+        lines.append(TextLine(f"f{next(_ids)}", runs, Box(x0, y, right, y + size)))
+    rules = [
+        rule(
+            draw(st.sampled_from([LEFT, RIGHT_START])),
+            draw(st.floats(20, 110) | st.floats(10, 230)),
+            draw(st.floats(510, 560) | st.floats(400, 760)),
+        )
+        for _ in range(draw(st.integers(0, 3)))
+    ]
+    return lines, rules
+
+
+@given(page_feet())
+def test_any_rules_and_lines_at_the_foot_keep_every_line_in_one_block(
+    found: tuple[list[TextLine], list[Drawing]],
+) -> None:
+    """Review of #52: overlapping zones, rules over body text or over nothing never fail
+    and never read a line twice; each footnote opens with its label."""
+    lines, rules = found
+    doc = build(lines, *rules)
+    held = [p.item for b in doc.blocks for p in b.parts]
+    assert len(held) == len(set(held))
+    for block in doc.blocks:
+        if block.kind is BlockKind.FOOTNOTE:
+            assert block.text.startswith(block.label)
