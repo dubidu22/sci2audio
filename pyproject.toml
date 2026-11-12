@@ -21,7 +21,9 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Text Processing",
 ]
-dependencies = []
+dependencies = [
+    "pypdfium2>=5.15.2",
+]
 
 [project.urls]
 Homepage = "https://sci2audio.com"
@@ -42,6 +44,7 @@ dev = [
     "pre-commit>=4.0",
     "pytest>=9.0",
     "pytest-benchmark>=5.3.1",
+    "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.6",
     "ruff>=0.17",
     "syrupy>=6.1.1",
