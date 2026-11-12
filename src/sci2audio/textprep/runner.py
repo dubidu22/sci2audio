@@ -179,7 +179,10 @@ class _Accepted:
         # Accepted spans never overlap, so sorted by start their ends never decrease: only
         # the span just before `start` can reach past it; later ones start at `start` or on.
         low = bisect_left(spans, (start, end))
-        for a, b, number in spans[max(low - 1, 0) :]:
+        # an index loop, not a slice: a slice would copy the rest of the list on every
+        # check and make the search linear per edit (review round 2 of #83)
+        for position in range(max(low - 1, 0), len(spans)):
+            a, b, number = spans[position]
             if a > end:
                 break
             if overlap(Span(edit.span.block, a, b), edit.span):
