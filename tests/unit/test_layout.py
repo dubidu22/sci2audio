@@ -25,7 +25,7 @@ from sci2audio.core import (
     TextRun,
 )
 from sci2audio.layout import LayoutSettings, build_document
-from sci2audio.layout.build import page_columns
+from sci2audio.layout.build import columns_per_page
 
 LEFT, RIGHT, GUTTER = 70.0, 526.0, 16.0
 MIDDLE = (LEFT + RIGHT) / 2
@@ -47,6 +47,11 @@ def two_columns(name: str, top: float, count: int) -> tuple[list[TextLine], list
     left = column(f"{name}-left-", LEFT, MIDDLE - GUTTER / 2, top, count)
     right = column(f"{name}-right-", MIDDLE + GUTTER / 2, RIGHT, top, count)
     return left, right
+
+
+def body_copy(lines: list[TextLine]) -> list[TextLine]:
+    """The same lines with fresh ids, for another page."""
+    return [line(li.text, *(lambda b: (b.x0, b.y0, b.x1))(li.box)) for li in lines]
 
 
 def interleaved(left: list[TextLine], right: list[TextLine]) -> list[TextLine]:
@@ -71,7 +76,7 @@ def texts(doc: Document, kind: BlockKind | None = None) -> list[str]:
 
 
 def columns_of(doc: Document) -> list[int]:
-    return [page_columns(doc.content, page, LayoutSettings()) for page in doc.content.pages]
+    return columns_per_page(doc.content)
 
 
 # Columns and reading order
@@ -94,7 +99,8 @@ def test_wide_title_and_figure_cut_the_page_into_bands() -> None:
     expected = [title.text, *(li.text for li in top_left + top_right), ""]
     expected += [li.text for li in bottom_left + bottom_right]
     assert texts(doc) == expected
-    assert doc.blocks[21].kind is BlockKind.FIGURE
+    figure_at = 1 + len(top_left + top_right)
+    assert [b.kind for b in doc.blocks].index(BlockKind.FIGURE) == figure_at
 
 
 def test_a_centred_line_over_the_gutter_does_not_join_the_columns() -> None:
@@ -110,6 +116,13 @@ def test_lines_that_only_touch_the_gutter_stay_in_their_column() -> None:
     right[5] = line("starts in the gutter", MIDDLE + 2, 100 + 14 * 5, RIGHT)
     doc = build_document(content(interleaved(left, right)))
     assert texts(doc) == [li.text for li in left + right]
+
+
+def test_a_page_background_or_a_frame_does_not_cut_the_columns() -> None:
+    for box in (Box(0, 0, 600, 800), Box(60, 90, 536, 520)):
+        left, right = two_columns("a", 100, 30)
+        doc = build_document(content(interleaved(left, right), drawings=(Drawing("d1", box),)))
+        assert texts(doc) == ["", *(li.text for li in left + right)]  # the frame, then its text
 
 
 def test_a_table_does_not_make_a_page_two_columns() -> None:
@@ -171,6 +184,42 @@ def test_running_heads_and_page_numbers_are_furniture_read_at_their_place() -> N
     assert texts(doc)[11] == "1"  # the page number after it
 
 
+def test_chapter_headings_and_a_continued_table_header_are_not_running_heads() -> None:
+    chapters = [
+        [line(f"Chapter {n}", LEFT, 40, 200, size=16), *column(f"c{n}-", LEFT, RIGHT, 70, 40)]
+        for n in (1, 2, 3)
+    ]
+    tables = [
+        [line("Model Accuracy F1", LEFT, 40, 300), *column(f"t{n}-", LEFT, 300, 54, 30)]
+        for n in (4, 5)
+    ]
+    doc = build_document(content(*chapters, *tables))
+    assert texts(doc, BlockKind.FURNITURE) == []
+
+
+def test_the_last_line_of_a_full_page_is_not_a_footer() -> None:
+    body = column("body-", LEFT, RIGHT, 40, 52)  # the last line stands at y 754 of 800
+    doc = build_document(content(body))
+    assert texts(doc, BlockKind.FURNITURE) == []
+
+
+def test_a_word_alone_at_the_foot_is_not_a_page_number_but_a_numeral_is() -> None:
+    body = column("text-", LEFT, RIGHT, 100, 47)  # down to y 754
+    words = [line(word, LEFT, 758, LEFT + 30) for word in ("Vivid",)]  # close to the text
+    numeral = line("xii", 295, 780, 305, size=8)
+    doc = build_document(content([*body, *words], [*body_copy(body), numeral]))
+    assert texts(doc, BlockKind.FURNITURE) == ["xii"]
+
+
+def test_figure_labels_are_not_furniture() -> None:
+    body = column("text-", LEFT, RIGHT, 100, 30)
+    axes = Drawing("axes", Box(100, 700, 500, 760))  # a plot at the foot of the page
+    tick = line("0", 95, 762, 101)  # alone below the axis, where a page number would stand
+    label = line("\u03c3 (e/2\u03c0) value", 30, 500, 44, height=90)  # turned, in the margin, short
+    doc = build_document(content([*body, tick, label], drawings=(axes,)))
+    assert texts(doc, BlockKind.FURNITURE) == []
+
+
 def test_footer_line_numbers_and_side_stamp_are_furniture() -> None:
     body = column("text-", 100, 500, 100, 12)
     numbers = [line(str(k + 1), 70, 100 + 14 * k, 80) for k in range(12)]
@@ -200,6 +249,7 @@ def test_a_sidebar_in_small_letters_beside_the_text_is_furniture() -> None:
     sidebar = [line(f"DOI 10.1/{k}", 40, 300 + 12 * k, 120, size=7) for k in range(6)]
     doc = build_document(content([*body, *sidebar], column("more-", 170, 550, 100, 40)))
     assert texts(doc, BlockKind.FURNITURE) == [li.text for li in sidebar]
+    assert texts(doc)[:40] == [li.text for li in body]  # read after the page's text
 
 
 # Properties
@@ -218,16 +268,28 @@ def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
 
 @st.composite
 def column_pages(draw: st.DrawFn) -> tuple[Content, list[str], int]:
-    """A clean page of 1 to 3 columns, its lines stored in any order."""
+    """A page of 1 to 3 columns of paragraphs, its lines stored in any order.
+
+    Paragraphs end in a line of any length, and a column may hold a centred heading.
+    """
     count = draw(st.integers(1, 3))
     width = (RIGHT - LEFT - GUTTER * (count - 1)) / count
     lines, expected = [], []
     for col in range(count):
-        x0 = LEFT + col * (width + GUTTER)
-        for row in range(draw(st.integers(5, 30))):
-            share = draw(st.floats(0.85, 1.0))
-            lines.append(line(f"c{col}r{row}", x0, 80 + 14 * row, x0 + share * width))
-            expected.append(lines[-1].text)
+        x0, row = LEFT + col * (width + GUTTER), 0
+        for _ in range(draw(st.integers(2, 4))):  # a column holds at least 5 lines
+            if draw(st.booleans()):  # a centred heading
+                share = draw(st.floats(0.2, 0.7))
+                start = x0 + (1 - share) * width / 2
+                lines.append(line(f"c{col}r{row}", start, 80 + 14 * row, start + share * width))
+                expected.append(lines[-1].text)
+                row += 1
+            length = draw(st.integers(3, 8))
+            for k in range(length):
+                share = draw(st.floats(0.85, 1.0) if k < length - 1 else st.floats(0.05, 1.0))
+                lines.append(line(f"c{col}r{row}", x0, 80 + 14 * row, x0 + share * width))
+                expected.append(lines[-1].text)
+                row += 1
     stored = draw(st.permutations(lines))
     return content(list(stored)), expected, count
 
@@ -237,4 +299,4 @@ def test_any_clean_column_page_reads_column_by_column(page: tuple[Content, list[
     found, expected, count = page
     doc = build_document(found)
     assert texts(doc) == expected
-    assert page_columns(found, found.pages[0], LayoutSettings()) == count
+    assert columns_per_page(found) == [count]

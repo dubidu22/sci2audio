@@ -1918,11 +1918,11 @@
   529  p7  paragraph  [p7-l1]  Category
   530  p7  paragraph  [p7-l2]  Substitution List
   531  p7  figure  [p7-d2..p7-d3 (2)]  
-  532  p7  paragraph  [p7-l3]  Subject
-  533  p7  paragraph  [p7-l4]  “Mary", “Harold", “Sam", “William",
-  534  p7  paragraph  [p7-l5]  “The teacher", “The student", “The driver",
-  535  p7  paragraph  [p7-l6]  “My friend", “John", “Elena", “Karen",
-  536  p7  figure  [p7-d4..p7-d10 (7)]  
+  532  p7  figure  [p7-d4..p7-d10 (7)]  
+  533  p7  paragraph  [p7-l3]  Subject
+  534  p7  paragraph  [p7-l4]  “Mary", “Harold", “Sam", “William",
+  535  p7  paragraph  [p7-l5]  “The teacher", “The student", “The driver",
+  536  p7  paragraph  [p7-l6]  “My friend", “John", “Elena", “Karen",
   537  p7  paragraph  [p7-l7]  “Mrs Jones"
   538  p7  paragraph  [p7-l8]  Verb
   539  p7  paragraph  [p7-l9]  “swimming", “shopping", “running",
@@ -3001,28 +3001,28 @@
   982  p10  paragraph  [p10-l44]  1: def Lehmann(M):
   983  p10  paragraph  [p10-l45]  2:
   984  p10  paragraph  [p10-l46]  d ←− dim(M)
-  985  p10  paragraph  [p10-l48]  3:
-  986  p10  paragraph  [p10-l49]  M(0) ←− M
-  987  p10  paragraph  [p10-l50]  4:
-  988  p10  paragraph  [p10-l51]  for j = 1, . . . , d :
-  989  p10  paragraph  [p10-l52]  5:
-  990  p10  paragraph  [p10-l53]  for i = 1, . . . , d :
-  991  p10  paragraph  [p10-l54]  6:
-  992  p10  paragraph  [p10-l55]  for k = 1, . . . , d :
-  993  p10  paragraph  [p10-l56]  7:
-  994  p10  paragraph  [p10-l57]  M (j)
-  995  p10  paragraph  [p10-l58]  ik ←− M (j−1)
-  996  p10  paragraph  [p10-l59]  ik
-  997  p10  paragraph  [p10-l67]  8:
-  998  p10  paragraph  [p10-l68]  return I + M(d)
-  999  p10  paragraph  [p10-l47]  ▷ M is a d × d matrix over a complete semiring
-  1000  p10  paragraph  [p10-l60]  ⊕ M (j−1)
-  1001  p10  paragraph  [p10-l61]  ij
-  1002  p10  paragraph  [p10-l62]  ⊗ M (j−1)
-  1003  p10  paragraph  [p10-l63]  jj
-  1004  p10  paragraph  [p10-l64]  ∗
-  1005  p10  paragraph  [p10-l65]  ⊗ M (j−1)
-  1006  p10  paragraph  [p10-l66]  jk
+  985  p10  paragraph  [p10-l47]  ▷ M is a d × d matrix over a complete semiring
+  986  p10  paragraph  [p10-l48]  3:
+  987  p10  paragraph  [p10-l49]  M(0) ←− M
+  988  p10  paragraph  [p10-l50]  4:
+  989  p10  paragraph  [p10-l51]  for j = 1, . . . , d :
+  990  p10  paragraph  [p10-l52]  5:
+  991  p10  paragraph  [p10-l53]  for i = 1, . . . , d :
+  992  p10  paragraph  [p10-l54]  6:
+  993  p10  paragraph  [p10-l55]  for k = 1, . . . , d :
+  994  p10  paragraph  [p10-l56]  7:
+  995  p10  paragraph  [p10-l57]  M (j)
+  996  p10  paragraph  [p10-l58]  ik ←− M (j−1)
+  997  p10  paragraph  [p10-l59]  ik
+  998  p10  paragraph  [p10-l60]  ⊕ M (j−1)
+  999  p10  paragraph  [p10-l61]  ij
+  1000  p10  paragraph  [p10-l62]  ⊗ M (j−1)
+  1001  p10  paragraph  [p10-l63]  jj
+  1002  p10  paragraph  [p10-l64]  ∗
+  1003  p10  paragraph  [p10-l65]  ⊗ M (j−1)
+  1004  p10  paragraph  [p10-l66]  jk
+  1005  p10  paragraph  [p10-l67]  8:
+  1006  p10  paragraph  [p10-l68]  return I + M(d)
   1007  p10  figure  [p10-d5]  
   1008  p10  figure  [p10-d6]  
   1009  p10  paragraph  [p10-l69]  9We require that W be commutative because the order of rule applications does not affect string weight in a weighted CFG.
@@ -3147,44 +3147,44 @@
   25  p1  paragraph  [p1-l25]  ∗x.d.arsiwalla@gmail.com
   26  p1  furniture  [p1-l27]  arXiv:2405.01148v1 [q-bio.NC] 2 May 2024
   27  p1  furniture  [p1-l26]  1
-  28  p2  furniture  [p2-l1]  Contents
-  29  p2  furniture  [p2-l2]  1 Introduction
-  30  p2  furniture  [p2-l3]  2
-  31  p2  furniture  [p2-l4]  2 Subjective Meaning in Phenomenology of Experience
-  32  p2  furniture  [p2-l5]  4
-  33  p2  furniture  [p2-l6]  3 Do Raw Feels Have Subjective Meaning?
-  34  p2  furniture  [p2-l7]  9
-  35  p2  furniture  [p2-l8]  4 The Formal Structure of Meaning
-  36  p2  furniture  [p2-l9]  11
-  37  p2  furniture  [p2-l10]  5 Discussion
-  38  p2  furniture  [p2-l11]  18
-  39  p2  paragraph  [p2-l12]  1
-  40  p2  paragraph  [p2-l13]  Introduction
-  41  p2  paragraph  [p2-l14]  How should one formulate a mathematical or metaphysical framework that admits a formalization
-  42  p2  paragraph  [p2-l15]  of the phenomenal contents of conscious experience? The phenomenal contents or the so-called
-  43  p2  paragraph  [p2-l16]  qualia of consciousness are inherently subjective attributes of experience, and by most accounts,
-  44  p2  paragraph  [p2-l17]  deemed non-representational [127]. They refer to the raw, immediate and phenomenal aspects
-  45  p2  paragraph  [p2-l18]  of perception, sensation or mental states. Phenomenal content, by its very nature, is subjective;
-  46  p2  paragraph  [p2-l19]  that is, available only through one’s first-person perspective. Qualia are at the heart of the "what
-  47  p2  paragraph  [p2-l20]  it’s like to be" character of conscious experience, as elucidated by Thomas Nagel in 1974 [97]. If
-  48  p2  paragraph  [p2-l21]  it were possible to provide a complete third-person description of phenomenal states, that would
-  49  p2  paragraph  [p2-l22]  resolve the "what it’s like to be" problem of consciousness. Qualia cannot be fully described, com-
-  50  p2  paragraph  [p2-l23]  municated or understood through any objective third-person account or computational routine.
-  51  p2  paragraph  [p2-l24]  For instance, attempts to fully convey the subjective experience of tasting chocolate or perceiving
-  52  p2  paragraph  [p2-l25]  the color red through objective descriptions or computational algorithms fall short of capturing
-  53  p2  paragraph  [p2-l26]  the full qualitative nature of those experiences. These observations collectively indicate that cer-
-  54  p2  paragraph  [p2-l27]  tain aspects of conscious experiences pose challenges for all attempts that seek to fully explain
-  55  p2  paragraph  [p2-l28]  or replicate qualia through either exclusively computational, or objective descriptions, that is,
-  56  p2  paragraph  [p2-l29]  potential third-person descriptions. Besides potential implications for philosophy of mind, this
-  57  p2  paragraph  [p2-l30]  problem also suggests new frontiers for the philosophy of science itself; namely, how does one ex-
-  58  p2  paragraph  [p2-l31]  tend the existing scientific paradigm based on third-person perspective to account for phenomena
-  59  p2  paragraph  [p2-l32]  that are subjective and non-representational - that is, amenable only via first-person perspective?
-  60  p2  paragraph  [p2-l33]  For these very reasons, a scientific description or theory elucidating the nature of qualia,
-  61  p2  paragraph  [p2-l34]  or one explaining the phenomenology of conscious experiences continues to be an extremely chal-
-  62  p2  paragraph  [p2-l35]  lenging problem at the heart of modern science. Attempts at any such theoretical description (of
-  63  p2  paragraph  [p2-l36]  qualia) call for at least two essential ingredients:
-  64  p2  paragraph  [p2-l37]  (i) A whole new scientific paradigm of subjectivity, one which describes phenomena from the
-  65  p2  paragraph  [p2-l38]  intrinsic point-of-view, or "the view from the inside".
+  28  p2  paragraph  [p2-l12]  1
+  29  p2  paragraph  [p2-l13]  Introduction
+  30  p2  paragraph  [p2-l14]  How should one formulate a mathematical or metaphysical framework that admits a formalization
+  31  p2  paragraph  [p2-l15]  of the phenomenal contents of conscious experience? The phenomenal contents or the so-called
+  32  p2  paragraph  [p2-l16]  qualia of consciousness are inherently subjective attributes of experience, and by most accounts,
+  33  p2  paragraph  [p2-l17]  deemed non-representational [127]. They refer to the raw, immediate and phenomenal aspects
+  34  p2  paragraph  [p2-l18]  of perception, sensation or mental states. Phenomenal content, by its very nature, is subjective;
+  35  p2  paragraph  [p2-l19]  that is, available only through one’s first-person perspective. Qualia are at the heart of the "what
+  36  p2  paragraph  [p2-l20]  it’s like to be" character of conscious experience, as elucidated by Thomas Nagel in 1974 [97]. If
+  37  p2  paragraph  [p2-l21]  it were possible to provide a complete third-person description of phenomenal states, that would
+  38  p2  paragraph  [p2-l22]  resolve the "what it’s like to be" problem of consciousness. Qualia cannot be fully described, com-
+  39  p2  paragraph  [p2-l23]  municated or understood through any objective third-person account or computational routine.
+  40  p2  paragraph  [p2-l24]  For instance, attempts to fully convey the subjective experience of tasting chocolate or perceiving
+  41  p2  paragraph  [p2-l25]  the color red through objective descriptions or computational algorithms fall short of capturing
+  42  p2  paragraph  [p2-l26]  the full qualitative nature of those experiences. These observations collectively indicate that cer-
+  43  p2  paragraph  [p2-l27]  tain aspects of conscious experiences pose challenges for all attempts that seek to fully explain
+  44  p2  paragraph  [p2-l28]  or replicate qualia through either exclusively computational, or objective descriptions, that is,
+  45  p2  paragraph  [p2-l29]  potential third-person descriptions. Besides potential implications for philosophy of mind, this
+  46  p2  paragraph  [p2-l30]  problem also suggests new frontiers for the philosophy of science itself; namely, how does one ex-
+  47  p2  paragraph  [p2-l31]  tend the existing scientific paradigm based on third-person perspective to account for phenomena
+  48  p2  paragraph  [p2-l32]  that are subjective and non-representational - that is, amenable only via first-person perspective?
+  49  p2  paragraph  [p2-l33]  For these very reasons, a scientific description or theory elucidating the nature of qualia,
+  50  p2  paragraph  [p2-l34]  or one explaining the phenomenology of conscious experiences continues to be an extremely chal-
+  51  p2  paragraph  [p2-l35]  lenging problem at the heart of modern science. Attempts at any such theoretical description (of
+  52  p2  paragraph  [p2-l36]  qualia) call for at least two essential ingredients:
+  53  p2  paragraph  [p2-l37]  (i) A whole new scientific paradigm of subjectivity, one which describes phenomena from the
+  54  p2  paragraph  [p2-l38]  intrinsic point-of-view, or "the view from the inside".
+  55  p2  furniture  [p2-l1]  Contents
+  56  p2  furniture  [p2-l2]  1 Introduction
+  57  p2  furniture  [p2-l3]  2
+  58  p2  furniture  [p2-l4]  2 Subjective Meaning in Phenomenology of Experience
+  59  p2  furniture  [p2-l5]  4
+  60  p2  furniture  [p2-l6]  3 Do Raw Feels Have Subjective Meaning?
+  61  p2  furniture  [p2-l7]  9
+  62  p2  furniture  [p2-l8]  4 The Formal Structure of Meaning
+  63  p2  furniture  [p2-l9]  11
+  64  p2  furniture  [p2-l10]  5 Discussion
+  65  p2  furniture  [p2-l11]  18
   66  p2  furniture  [p2-l39]  2
   67  p3  paragraph  [p3-l1]  (ii) A metaphysical (and possibly mathematical) formalization of non-representational entities
   68  p3  paragraph  [p3-l2]  (potentially in the form of abstract objects and their relations).
@@ -3379,17 +3379,17 @@
   257  p7  paragraph  [p7-l24]  ubiquitous to consciousness. Table 1 summarizes various examples of conscious experiences, typ-
   258  p7  paragraph  [p7-l25]  ically those besides the purely sensory ones, which explicitly evoke a personal form of meaning
   259  p7  paragraph  [p7-l26]  for the experiencing subject. The text thereafter, further elaborates on these.
-  260  p7  paragraph  [p7-l27]  1.
-  261  p7  paragraph  [p7-l28]  Spiritual realization and personal revelations
-  262  p7  paragraph  [p7-l29]  2.
-  263  p7  paragraph  [p7-l30]  Eureka moments and intuitive insights
-  264  p7  paragraph  [p7-l31]  3.
-  265  p7  paragraph  [p7-l32]  Experiences of aesthetic appreciation
-  266  p7  paragraph  [p7-l33]  4.
-  267  p7  paragraph  [p7-l34]  Feelings of love and empathy
-  268  p7  paragraph  [p7-l35]  5.
-  269  p7  paragraph  [p7-l36]  States of enlightenment and transcendence
-  270  p7  figure  [p7-d1..p7-d61 (61)]  
+  260  p7  figure  [p7-d1..p7-d61 (61)]  
+  261  p7  paragraph  [p7-l27]  1.
+  262  p7  paragraph  [p7-l28]  Spiritual realization and personal revelations
+  263  p7  paragraph  [p7-l29]  2.
+  264  p7  paragraph  [p7-l30]  Eureka moments and intuitive insights
+  265  p7  paragraph  [p7-l31]  3.
+  266  p7  paragraph  [p7-l32]  Experiences of aesthetic appreciation
+  267  p7  paragraph  [p7-l33]  4.
+  268  p7  paragraph  [p7-l34]  Feelings of love and empathy
+  269  p7  paragraph  [p7-l35]  5.
+  270  p7  paragraph  [p7-l36]  States of enlightenment and transcendence
   271  p7  paragraph  [p7-l37]  6.
   272  p7  paragraph  [p7-l38]  Altered states of consciousness
   273  p7  paragraph  [p7-l39]  7.
@@ -4343,10 +4343,10 @@
   101  p1  paragraph  [p1-l97]  vˆ the velocity operator. With the applied electric field
   102  p1  furniture  [p1-l98]  arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024
   103  p2  furniture  [p2-l1]  2
-  104  p2  furniture  [p2-l16]  0
-  105  p2  furniture  [p2-l18]  σexOH ( e / 2 π )
-  106  p2  paragraph  [p2-l15]  -10
-  107  p2  figure  [p2-d1..p2-d114 (114)]  
+  104  p2  paragraph  [p2-l15]  -10
+  105  p2  paragraph  [p2-l16]  0
+  106  p2  figure  [p2-d1..p2-d114 (114)]  
+  107  p2  paragraph  [p2-l18]  σexOH ( e / 2 π )
   108  p2  paragraph  [p2-l14]  -20
   109  p2  paragraph  [p2-l13]  -30
   110  p2  paragraph  [p2-l12]  -40
@@ -4528,21 +4528,21 @@
   286  p2  paragraph  [p2-l166]  band off-diagonal density matrix S (0)
   287  p2  paragraph  [p2-l167]  E . At last, we feed
   288  p3  furniture  [p3-l1]  3
-  289  p3  furniture  [p3-l13]  0
-  290  p3  furniture  [p3-l30]  0
-  291  p3  furniture  [p3-l15]  σOH ( e / 2 π )
-  292  p3  paragraph  [p3-l16]  (a)
-  293  p3  paragraph  [p3-l33]  (b)
-  294  p3  figure  [p3-d1..p3-d85 (84)]  
-  295  p3  figure  [p3-d4]  
-  296  p3  paragraph  [p3-l2]  Skew scattering
-  297  p3  figure  [p3-d86..p3-d199 (113)]  
-  298  p3  figure  [p3-d90]  
-  299  p3  paragraph  [p3-l17]  Skew scattering
-  300  p3  paragraph  [p3-l3]  Side jump
-  301  p3  paragraph  [p3-l29]  -1
-  302  p3  paragraph  [p3-l18]  Side jump
-  303  p3  paragraph  [p3-l12]  -2
+  289  p3  paragraph  [p3-l16]  (a)
+  290  p3  paragraph  [p3-l33]  (b)
+  291  p3  paragraph  [p3-l13]  0
+  292  p3  figure  [p3-d1..p3-d85 (84)]  
+  293  p3  figure  [p3-d4]  
+  294  p3  paragraph  [p3-l2]  Skew scattering
+  295  p3  paragraph  [p3-l30]  0
+  296  p3  figure  [p3-d86..p3-d199 (113)]  
+  297  p3  figure  [p3-d90]  
+  298  p3  paragraph  [p3-l17]  Skew scattering
+  299  p3  paragraph  [p3-l3]  Side jump
+  300  p3  paragraph  [p3-l29]  -1
+  301  p3  paragraph  [p3-l18]  Side jump
+  302  p3  paragraph  [p3-l12]  -2
+  303  p3  paragraph  [p3-l15]  σOH ( e / 2 π )
   304  p3  paragraph  [p3-l11]  -4
   305  p3  paragraph  [p3-l32]  σOH (10 - 3 e / 2 π )
   306  p3  paragraph  [p3-l28]  -2
@@ -5050,65 +5050,65 @@
 # name: test_golden_file[joss2021-waskom-seaborn]
   '''
   joss2021-waskom-seaborn.pdf  language en  blocks 229
-  0  p1  furniture  [p1-l4]  DOI: 10.21105/joss.03021
-  1  p1  furniture  [p1-l5]  Software
-  2  p1  furniture  [p1-l6]  • Review
-  3  p1  furniture  [p1-l7]  • Repository
-  4  p1  furniture  [p1-l8]  • Archive
-  5  p1  furniture  [p1-l9]  Editor: Lorena Pantano
-  6  p1  furniture  [p1-l10]  Reviewers:
-  7  p1  furniture  [p1-l11]  • @dangeles
-  8  p1  furniture  [p1-l12]  • @Sara-ShiHo
-  9  p1  furniture  [p1-l13]  Submitted: 29 January 2021
-  10  p1  furniture  [p1-l14]  Published: 06 April 2021
-  11  p1  furniture  [p1-l15]  License
-  12  p1  furniture  [p1-l16]  Authors of papers retain
-  13  p1  furniture  [p1-l17]  copyright and release the work
-  14  p1  figure  [p1-i1]  
-  15  p1  paragraph  [p1-l1]  seaborn: statistical data visualization
-  16  p1  paragraph  [p1-l2]  Michael L. Waskom1
-  17  p1  paragraph  [p1-l3]  1 Center for Neural Science, New York University
-  18  p1  figure  [p1-d1..p1-d3 (3)]  
-  19  p1  paragraph  [p1-l21]  Summary
-  20  p1  figure  [p1-d4..p1-d6 (3)]  
-  21  p1  figure  [p1-d7..p1-d9 (3)]  
-  22  p1  paragraph  [p1-l22]  seaborn is a library for making statistical graphics in Python. It provides a high-level interface
-  23  p1  paragraph  [p1-l23]  to matplotlib and integrates closely with pandas data structures. Functions in the seaborn
-  24  p1  figure  [p1-d10]  
-  25  p1  paragraph  [p1-l24]  library expose a declarative, dataset-oriented API that makes it easy to translate questions
-  26  p1  figure  [p1-d11..p1-d13 (3)]  
-  27  p1  paragraph  [p1-l25]  about data into graphics that can answer them. When given a dataset and a specification
-  28  p1  paragraph  [p1-l26]  of the plot to make, seaborn automatically maps the data values to visual attributes such
-  29  p1  paragraph  [p1-l27]  as color, size, or style, internally computes statistical transformations, and decorates the plot
-  30  p1  paragraph  [p1-l28]  with informative axis labels and a legend. Many seaborn functions can generate figures with
-  31  p1  paragraph  [p1-l29]  multiple panels that elicit comparisons between conditional subsets of data or across different
-  32  p1  paragraph  [p1-l30]  pairings of variables in a dataset. seaborn is designed to be useful throughout the lifecycle of
-  33  p1  paragraph  [p1-l31]  a scientific project. By producing complete graphics from a single function call with minimal
-  34  p1  paragraph  [p1-l32]  arguments, seaborn facilitates rapid prototyping and exploratory data analysis. And by
-  35  p1  paragraph  [p1-l33]  offering extensive options for customization, along with exposing the underlying matplotlib
-  36  p1  paragraph  [p1-l34]  objects, it can be used to create polished, publication-quality figures.
-  37  p1  paragraph  [p1-l35]  Statement of need
-  38  p1  paragraph  [p1-l36]  Data visualization is an indispensable part of the scientific process. Effective visualizations
-  39  p1  paragraph  [p1-l37]  will allow a scientist both to understand their own data and to communicate their insights to
-  40  p1  paragraph  [p1-l38]  others (Tukey, 1977). These goals can be furthered by tools for specifying a graph that provide
-  41  p1  paragraph  [p1-l39]  a good balance between efficiency and flexibility. Within the scientific Python ecosystem, the
-  42  p1  paragraph  [p1-l40]  matplotlib (Hunter, 2007) project is very well established, having been under continuous
-  43  p1  paragraph  [p1-l41]  development for nearly two decades. It is highly flexible, offering fine-grained control over the
-  44  p1  paragraph  [p1-l42]  placement and visual appearance of objects in a plot. It can be used interactively through GUI
-  45  p1  paragraph  [p1-l43]  applications, and it can output graphics to a wide range of static formats. Yet its relatively
-  46  p1  paragraph  [p1-l44]  low-level API can make some common tasks cumbersome to perform. For example, creating
-  47  p1  paragraph  [p1-l45]  a scatter plot where the marker size represents a numeric variable and the marker shape
-  48  p1  paragraph  [p1-l46]  represents a categorical variable requires one to transform the size values to graphical units
-  49  p1  paragraph  [p1-l47]  and to loop over the categorical levels, separately invoking a plotting function for each marker
-  50  p1  paragraph  [p1-l48]  type.
-  51  p1  paragraph  [p1-l49]  The seaborn library offers an interface to matplotlib that permits rapid data exploration
-  52  p1  paragraph  [p1-l50]  and prototyping of visualizations while retaining much of the flexibility and stability that are
-  53  p1  paragraph  [p1-l51]  necessary to produce publication-quality graphics. It is domain-general and can be used to
-  54  p1  paragraph  [p1-l52]  visualize a wide range of datasets that are well-represented within a tabular format.
-  55  p1  paragraph  [p1-l53]  Example
-  56  p1  paragraph  [p1-l54]  The following example demonstrates the creation of a figure with seaborn. The example
-  57  p1  paragraph  [p1-l55]  makes use of one of the built-in datasets that are provided for documentation and generation of
-  58  p1  figure  [p1-d14]  
+  0  p1  figure  [p1-i1]  
+  1  p1  paragraph  [p1-l1]  seaborn: statistical data visualization
+  2  p1  paragraph  [p1-l2]  Michael L. Waskom1
+  3  p1  paragraph  [p1-l3]  1 Center for Neural Science, New York University
+  4  p1  figure  [p1-d1..p1-d3 (3)]  
+  5  p1  paragraph  [p1-l21]  Summary
+  6  p1  figure  [p1-d4..p1-d6 (3)]  
+  7  p1  figure  [p1-d7..p1-d9 (3)]  
+  8  p1  paragraph  [p1-l22]  seaborn is a library for making statistical graphics in Python. It provides a high-level interface
+  9  p1  paragraph  [p1-l23]  to matplotlib and integrates closely with pandas data structures. Functions in the seaborn
+  10  p1  figure  [p1-d10]  
+  11  p1  paragraph  [p1-l24]  library expose a declarative, dataset-oriented API that makes it easy to translate questions
+  12  p1  figure  [p1-d11..p1-d13 (3)]  
+  13  p1  paragraph  [p1-l25]  about data into graphics that can answer them. When given a dataset and a specification
+  14  p1  paragraph  [p1-l26]  of the plot to make, seaborn automatically maps the data values to visual attributes such
+  15  p1  paragraph  [p1-l27]  as color, size, or style, internally computes statistical transformations, and decorates the plot
+  16  p1  paragraph  [p1-l28]  with informative axis labels and a legend. Many seaborn functions can generate figures with
+  17  p1  paragraph  [p1-l29]  multiple panels that elicit comparisons between conditional subsets of data or across different
+  18  p1  paragraph  [p1-l30]  pairings of variables in a dataset. seaborn is designed to be useful throughout the lifecycle of
+  19  p1  paragraph  [p1-l31]  a scientific project. By producing complete graphics from a single function call with minimal
+  20  p1  paragraph  [p1-l32]  arguments, seaborn facilitates rapid prototyping and exploratory data analysis. And by
+  21  p1  paragraph  [p1-l33]  offering extensive options for customization, along with exposing the underlying matplotlib
+  22  p1  paragraph  [p1-l34]  objects, it can be used to create polished, publication-quality figures.
+  23  p1  paragraph  [p1-l35]  Statement of need
+  24  p1  paragraph  [p1-l36]  Data visualization is an indispensable part of the scientific process. Effective visualizations
+  25  p1  paragraph  [p1-l37]  will allow a scientist both to understand their own data and to communicate their insights to
+  26  p1  paragraph  [p1-l38]  others (Tukey, 1977). These goals can be furthered by tools for specifying a graph that provide
+  27  p1  paragraph  [p1-l39]  a good balance between efficiency and flexibility. Within the scientific Python ecosystem, the
+  28  p1  paragraph  [p1-l40]  matplotlib (Hunter, 2007) project is very well established, having been under continuous
+  29  p1  paragraph  [p1-l41]  development for nearly two decades. It is highly flexible, offering fine-grained control over the
+  30  p1  paragraph  [p1-l42]  placement and visual appearance of objects in a plot. It can be used interactively through GUI
+  31  p1  paragraph  [p1-l43]  applications, and it can output graphics to a wide range of static formats. Yet its relatively
+  32  p1  paragraph  [p1-l44]  low-level API can make some common tasks cumbersome to perform. For example, creating
+  33  p1  paragraph  [p1-l45]  a scatter plot where the marker size represents a numeric variable and the marker shape
+  34  p1  paragraph  [p1-l46]  represents a categorical variable requires one to transform the size values to graphical units
+  35  p1  paragraph  [p1-l47]  and to loop over the categorical levels, separately invoking a plotting function for each marker
+  36  p1  paragraph  [p1-l48]  type.
+  37  p1  paragraph  [p1-l49]  The seaborn library offers an interface to matplotlib that permits rapid data exploration
+  38  p1  paragraph  [p1-l50]  and prototyping of visualizations while retaining much of the flexibility and stability that are
+  39  p1  paragraph  [p1-l51]  necessary to produce publication-quality graphics. It is domain-general and can be used to
+  40  p1  paragraph  [p1-l52]  visualize a wide range of datasets that are well-represented within a tabular format.
+  41  p1  paragraph  [p1-l53]  Example
+  42  p1  paragraph  [p1-l54]  The following example demonstrates the creation of a figure with seaborn. The example
+  43  p1  paragraph  [p1-l55]  makes use of one of the built-in datasets that are provided for documentation and generation of
+  44  p1  figure  [p1-d14]  
+  45  p1  furniture  [p1-l4]  DOI: 10.21105/joss.03021
+  46  p1  furniture  [p1-l5]  Software
+  47  p1  furniture  [p1-l6]  • Review
+  48  p1  furniture  [p1-l7]  • Repository
+  49  p1  furniture  [p1-l8]  • Archive
+  50  p1  furniture  [p1-l9]  Editor: Lorena Pantano
+  51  p1  furniture  [p1-l10]  Reviewers:
+  52  p1  furniture  [p1-l11]  • @dangeles
+  53  p1  furniture  [p1-l12]  • @Sara-ShiHo
+  54  p1  furniture  [p1-l13]  Submitted: 29 January 2021
+  55  p1  furniture  [p1-l14]  Published: 06 April 2021
+  56  p1  furniture  [p1-l15]  License
+  57  p1  furniture  [p1-l16]  Authors of papers retain
+  58  p1  furniture  [p1-l17]  copyright and release the work
   59  p1  furniture  [p1-l18]  under a Creative Commons
   60  p1  furniture  [p1-l19]  Attribution 4.0 International
   61  p1  furniture  [p1-l20]  License (CC BY 4.0).
@@ -5129,27 +5129,27 @@
   76  p2  paragraph  [p2-l11]  height=3.5, aspect=.8,
   77  p2  paragraph  [p2-l12]  )
   78  p2  paragraph  [p2-l13]  g.savefig("paper_demo.pdf")
-  79  p2  paragraph  [p2-l25]  region = parietal
-  80  p2  paragraph  [p2-l31]  region = frontal
+  79  p2  figure  [p2-d1..p2-d36 (36)]  
+  80  p2  paragraph  [p2-l25]  region = parietal
   81  p2  paragraph  [p2-l23]  0.3
   82  p2  paragraph  [p2-l22]  0.2
   83  p2  paragraph  [p2-l24]  signal
-  84  p2  paragraph  [p2-l32]  event
-  85  p2  paragraph  [p2-l21]  0.1
-  86  p2  paragraph  [p2-l33]  stim
-  87  p2  figure  [p2-d1..p2-d36 (36)]  
-  88  p2  paragraph  [p2-l34]  cue
-  89  p2  paragraph  [p2-l20]  0.0
-  90  p2  paragraph  [p2-l19]  0.1
-  91  p2  paragraph  [p2-l14]  0
-  92  p2  paragraph  [p2-l15]  5
-  93  p2  paragraph  [p2-l16]  10
-  94  p2  paragraph  [p2-l17]  15
-  95  p2  paragraph  [p2-l26]  0
-  96  p2  paragraph  [p2-l27]  5
-  97  p2  paragraph  [p2-l28]  10
-  98  p2  paragraph  [p2-l29]  15
-  99  p2  paragraph  [p2-l18]  timepoint
+  84  p2  paragraph  [p2-l21]  0.1
+  85  p2  paragraph  [p2-l20]  0.0
+  86  p2  paragraph  [p2-l19]  0.1
+  87  p2  paragraph  [p2-l14]  0
+  88  p2  paragraph  [p2-l15]  5
+  89  p2  paragraph  [p2-l16]  10
+  90  p2  paragraph  [p2-l18]  timepoint
+  91  p2  paragraph  [p2-l31]  region = frontal
+  92  p2  paragraph  [p2-l32]  event
+  93  p2  paragraph  [p2-l33]  stim
+  94  p2  paragraph  [p2-l34]  cue
+  95  p2  paragraph  [p2-l17]  15
+  96  p2  paragraph  [p2-l26]  0
+  97  p2  paragraph  [p2-l27]  5
+  98  p2  paragraph  [p2-l28]  10
+  99  p2  paragraph  [p2-l29]  15
   100  p2  paragraph  [p2-l30]  timepoint
   101  p2  paragraph  [p2-l35]  Figure 1: An example seaborn figure demonstrating some of its key features. The image was
   102  p2  paragraph  [p2-l36]  generated using seaborn v0.11.1.
@@ -5285,78 +5285,78 @@
 # name: test_golden_file[joss2022-biggs-pymedphys]
   '''
   joss2022-biggs-pymedphys.pdf  language en  blocks 236
-  0  p1  furniture  [p1-l27]  DOI: 10.21105/joss.04555
-  1  p1  furniture  [p1-l28]  Software
-  2  p1  figure  [p1-i1]  
-  3  p1  paragraph  [p1-l1]  PyMedPhys: A community effort to develop an open,
-  4  p1  paragraph  [p1-l2]  Python-based standard library for medical physics
-  5  p1  paragraph  [p1-l3]  applications
-  6  p1  paragraph  [p1-l4]  Simon Biggs
-  7  p1  figure  [p1-d1..p1-d2 (2)]  
-  8  p1  paragraph  [p1-l5]  1 , Matthew Jennings
-  9  p1  figure  [p1-d3..p1-d4 (2)]  
-  10  p1  paragraph  [p1-l6]  2 , Stuart Swerdloff 3 , Phillip
-  11  p1  figure  [p1-d5..p1-d6 (2)]  
-  12  p1  paragraph  [p1-l7]  Chlap
-  13  p1  figure  [p1-d7..p1-d8 (2)]  
-  14  p1  paragraph  [p1-l8]  4,5, Derek Lane
-  15  p1  figure  [p1-d9..p1-d10 (2)]  
-  16  p1  paragraph  [p1-l9]  6 , Jacob Rembish
-  17  p1  figure  [p1-d11..p1-d12 (2)]  
-  18  p1  paragraph  [p1-l10]  7 , Jacob McAloney
-  19  p1  figure  [p1-d13..p1-d14 (2)]  
-  20  p1  paragraph  [p1-l11]  8 , Paul
-  21  p1  paragraph  [p1-l12]  King
-  22  p1  figure  [p1-d15..p1-d16 (2)]  
-  23  p1  paragraph  [p1-l13]  9 , Rafael Ayala
-  24  p1  figure  [p1-d17..p1-d18 (2)]  
-  25  p1  paragraph  [p1-l14]  10, Fada Guan
-  26  p1  figure  [p1-d19..p1-d20 (2)]  
-  27  p1  paragraph  [p1-l15]  11, Nicola Lambri
-  28  p1  figure  [p1-d21..p1-d22 (2)]  
-  29  p1  paragraph  [p1-l16]  12,13, Cody
-  30  p1  paragraph  [p1-l17]  Crewson14, and Matthew Sobolewski8,15
-  31  p1  paragraph  [p1-l18]  1 Radiotherapy AI, Wagga Wagga, Australia 2 The Royal Adelaide Hospital, Adelaide, Australia 3
-  32  p1  paragraph  [p1-l19]  ELEKTA Pty Ltd, Auckland, New Zealand 4 University of New South Wales, Sydney, Australia 5 Ingham
-  33  p1  paragraph  [p1-l20]  Institute for Applied Medical Research, Liverpool, Australia 6 Elekta AB, Stockholm, Sweden 7 NYU
-  34  p1  paragraph  [p1-l21]  Langone Health, New York, New York, United States of America 8 Riverina Cancer Care Centre, Wagga
-  35  p1  paragraph  [p1-l22]  Wagga, Australia 9 Painless Skin Cancer Treatment Center, Meridian, Mississippi, United States of
-  36  p1  paragraph  [p1-l23]  America 10 Hospital G.U. Gregorio Marañón, Madrid, Spain 11 Yale University School of Medicine, New
-  37  p1  paragraph  [p1-l24]  Haven, Connecticut, United States of America 12 IRCCS Humanitas Research Hospital, Milan, Italy 13
-  38  p1  paragraph  [p1-l25]  Humanitas University, Milan, Italy 14 Saskatchewan Cancer Agency, Saskatoon, Canada 15 CancerCare
-  39  p1  paragraph  [p1-l26]  Partners, Sydney, Australia
-  40  p1  figure  [p1-d23..p1-d25 (3)]  
-  41  p1  paragraph  [p1-l43]  Summary
-  42  p1  figure  [p1-d26..p1-d28 (3)]  
-  43  p1  paragraph  [p1-l44]  PyMedPhys is an open-source medical physics library built for Python by a diverse community
-  44  p1  figure  [p1-d29..p1-d31 (3)]  
-  45  p1  paragraph  [p1-l45]  that values and prioritizes code sharing, review, continuous improvement, and peer development.
-  46  p1  paragraph  [p1-l46]  PyMedPhys aims to simplify and enhance both research and clinical work related to medical
-  47  p1  figure  [p1-d32]  
-  48  p1  paragraph  [p1-l47]  physics. It is inspired by the Astropy Project (Astropy Collaboration, 2013); a highly successful
-  49  p1  figure  [p1-d33..p1-d35 (3)]  
-  50  p1  figure  [p1-d36..p1-d37 (2)]  
-  51  p1  paragraph  [p1-l48]  collaborative work of our physics peers in astronomy.
-  52  p1  paragraph  [p1-l49]  Statement of need
-  53  p1  paragraph  [p1-l50]  Medical radiation applications are subject to fast-paced technological advancements. This is
-  54  p1  paragraph  [p1-l51]  particularly true in the field of radiation oncology, where the implementation of increasingly
-  55  p1  paragraph  [p1-l52]  sophisticated technologies requires increasingly complex processes to maintain the improving
-  56  p1  paragraph  [p1-l53]  standard of care. To help address this challenge, software tools that improve the quality, safety
-  57  p1  paragraph  [p1-l54]  and efficiency of clinical tasks are increasingly being developed in-house (Arumugam et al.,
-  58  p1  paragraph  [p1-l55]  2016; Bakhtiari et al., 2011; Bhagroo et al., 2019; Chan et al., 2015; Edvardsson et al., 2018;
-  59  p1  paragraph  [p1-l56]  Huang et al., 2021; Inaniwa & Kanematsu, 2018; Keall et al., 2014; Kimura et al., 2021; Kuo
-  60  p1  paragraph  [p1-l57]  et al., 2020; Latala et al., 2020; Li et al., 2010; Maughan et al., 2019; Skouboe et al., 2019).
-  61  p1  paragraph  [p1-l58]  Commercial options are often prohibitively expensive or insufficiently tailored to an individual
-  62  p1  paragraph  [p1-l59]  clinic’s needs. On the other hand, in-house development efforts are often limited to a single
-  63  p1  paragraph  [p1-l60]  institution. Similar tools that could otherwise be shared are instead “reinvented” in clinics
-  64  p1  paragraph  [p1-l61]  worldwide on a routine basis. Moreover, individual institutions typically lack the personnel and
-  65  p1  paragraph  [p1-l62]  resources to incorporate simple aspects of good development practice or to properly maintain
-  66  p1  paragraph  [p1-l63]  in-house software.
-  67  p1  paragraph  [p1-l64]  By creating and promoting an open-source repository, PyMedPhys aims to improve the quality
-  68  p1  paragraph  [p1-l65]  and accessibility of existing software solutions to problems faced across a range of medical
-  69  p1  paragraph  [p1-l66]  radiation applications, especially those traditionally within the remit of medical physicists. These
-  70  p1  paragraph  [p1-l67]  solutions can be broadly categorised in two areas: data extraction/conversion of proprietary
-  71  p1  figure  [p1-d38]  
+  0  p1  figure  [p1-i1]  
+  1  p1  paragraph  [p1-l1]  PyMedPhys: A community effort to develop an open,
+  2  p1  paragraph  [p1-l2]  Python-based standard library for medical physics
+  3  p1  paragraph  [p1-l3]  applications
+  4  p1  paragraph  [p1-l4]  Simon Biggs
+  5  p1  figure  [p1-d1..p1-d2 (2)]  
+  6  p1  paragraph  [p1-l5]  1 , Matthew Jennings
+  7  p1  figure  [p1-d3..p1-d4 (2)]  
+  8  p1  paragraph  [p1-l6]  2 , Stuart Swerdloff 3 , Phillip
+  9  p1  figure  [p1-d5..p1-d6 (2)]  
+  10  p1  paragraph  [p1-l7]  Chlap
+  11  p1  figure  [p1-d7..p1-d8 (2)]  
+  12  p1  paragraph  [p1-l8]  4,5, Derek Lane
+  13  p1  figure  [p1-d9..p1-d10 (2)]  
+  14  p1  paragraph  [p1-l9]  6 , Jacob Rembish
+  15  p1  figure  [p1-d11..p1-d12 (2)]  
+  16  p1  paragraph  [p1-l10]  7 , Jacob McAloney
+  17  p1  figure  [p1-d13..p1-d14 (2)]  
+  18  p1  paragraph  [p1-l11]  8 , Paul
+  19  p1  paragraph  [p1-l12]  King
+  20  p1  figure  [p1-d15..p1-d16 (2)]  
+  21  p1  paragraph  [p1-l13]  9 , Rafael Ayala
+  22  p1  figure  [p1-d17..p1-d18 (2)]  
+  23  p1  paragraph  [p1-l14]  10, Fada Guan
+  24  p1  figure  [p1-d19..p1-d20 (2)]  
+  25  p1  paragraph  [p1-l15]  11, Nicola Lambri
+  26  p1  figure  [p1-d21..p1-d22 (2)]  
+  27  p1  paragraph  [p1-l16]  12,13, Cody
+  28  p1  paragraph  [p1-l17]  Crewson14, and Matthew Sobolewski8,15
+  29  p1  paragraph  [p1-l18]  1 Radiotherapy AI, Wagga Wagga, Australia 2 The Royal Adelaide Hospital, Adelaide, Australia 3
+  30  p1  paragraph  [p1-l19]  ELEKTA Pty Ltd, Auckland, New Zealand 4 University of New South Wales, Sydney, Australia 5 Ingham
+  31  p1  paragraph  [p1-l20]  Institute for Applied Medical Research, Liverpool, Australia 6 Elekta AB, Stockholm, Sweden 7 NYU
+  32  p1  paragraph  [p1-l21]  Langone Health, New York, New York, United States of America 8 Riverina Cancer Care Centre, Wagga
+  33  p1  paragraph  [p1-l22]  Wagga, Australia 9 Painless Skin Cancer Treatment Center, Meridian, Mississippi, United States of
+  34  p1  paragraph  [p1-l23]  America 10 Hospital G.U. Gregorio Marañón, Madrid, Spain 11 Yale University School of Medicine, New
+  35  p1  paragraph  [p1-l24]  Haven, Connecticut, United States of America 12 IRCCS Humanitas Research Hospital, Milan, Italy 13
+  36  p1  paragraph  [p1-l25]  Humanitas University, Milan, Italy 14 Saskatchewan Cancer Agency, Saskatoon, Canada 15 CancerCare
+  37  p1  paragraph  [p1-l26]  Partners, Sydney, Australia
+  38  p1  figure  [p1-d23..p1-d25 (3)]  
+  39  p1  paragraph  [p1-l43]  Summary
+  40  p1  figure  [p1-d26..p1-d28 (3)]  
+  41  p1  paragraph  [p1-l44]  PyMedPhys is an open-source medical physics library built for Python by a diverse community
+  42  p1  figure  [p1-d29..p1-d31 (3)]  
+  43  p1  paragraph  [p1-l45]  that values and prioritizes code sharing, review, continuous improvement, and peer development.
+  44  p1  paragraph  [p1-l46]  PyMedPhys aims to simplify and enhance both research and clinical work related to medical
+  45  p1  figure  [p1-d32]  
+  46  p1  paragraph  [p1-l47]  physics. It is inspired by the Astropy Project (Astropy Collaboration, 2013); a highly successful
+  47  p1  figure  [p1-d33..p1-d35 (3)]  
+  48  p1  figure  [p1-d36..p1-d37 (2)]  
+  49  p1  paragraph  [p1-l48]  collaborative work of our physics peers in astronomy.
+  50  p1  paragraph  [p1-l49]  Statement of need
+  51  p1  paragraph  [p1-l50]  Medical radiation applications are subject to fast-paced technological advancements. This is
+  52  p1  paragraph  [p1-l51]  particularly true in the field of radiation oncology, where the implementation of increasingly
+  53  p1  paragraph  [p1-l52]  sophisticated technologies requires increasingly complex processes to maintain the improving
+  54  p1  paragraph  [p1-l53]  standard of care. To help address this challenge, software tools that improve the quality, safety
+  55  p1  paragraph  [p1-l54]  and efficiency of clinical tasks are increasingly being developed in-house (Arumugam et al.,
+  56  p1  paragraph  [p1-l55]  2016; Bakhtiari et al., 2011; Bhagroo et al., 2019; Chan et al., 2015; Edvardsson et al., 2018;
+  57  p1  paragraph  [p1-l56]  Huang et al., 2021; Inaniwa & Kanematsu, 2018; Keall et al., 2014; Kimura et al., 2021; Kuo
+  58  p1  paragraph  [p1-l57]  et al., 2020; Latala et al., 2020; Li et al., 2010; Maughan et al., 2019; Skouboe et al., 2019).
+  59  p1  paragraph  [p1-l58]  Commercial options are often prohibitively expensive or insufficiently tailored to an individual
+  60  p1  paragraph  [p1-l59]  clinic’s needs. On the other hand, in-house development efforts are often limited to a single
+  61  p1  paragraph  [p1-l60]  institution. Similar tools that could otherwise be shared are instead “reinvented” in clinics
+  62  p1  paragraph  [p1-l61]  worldwide on a routine basis. Moreover, individual institutions typically lack the personnel and
+  63  p1  paragraph  [p1-l62]  resources to incorporate simple aspects of good development practice or to properly maintain
+  64  p1  paragraph  [p1-l63]  in-house software.
+  65  p1  paragraph  [p1-l64]  By creating and promoting an open-source repository, PyMedPhys aims to improve the quality
+  66  p1  paragraph  [p1-l65]  and accessibility of existing software solutions to problems faced across a range of medical
+  67  p1  paragraph  [p1-l66]  radiation applications, especially those traditionally within the remit of medical physicists. These
+  68  p1  paragraph  [p1-l67]  solutions can be broadly categorised in two areas: data extraction/conversion of proprietary
+  69  p1  figure  [p1-d38]  
+  70  p1  furniture  [p1-l27]  DOI: 10.21105/joss.04555
+  71  p1  furniture  [p1-l28]  Software
   72  p1  furniture  [p1-l29]  • Review
   73  p1  furniture  [p1-l30]  • Repository
   74  p1  furniture  [p1-l31]  • Archive

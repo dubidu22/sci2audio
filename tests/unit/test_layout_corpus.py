@@ -18,8 +18,8 @@ from syrupy.assertion import SnapshotAssertion
 
 from sci2audio.core import Block, BlockKind, Document
 from sci2audio.extraction import extract_pdf
-from sci2audio.layout import LayoutSettings, build_document
-from sci2audio.layout.build import page_columns
+from sci2audio.layout import build_document
+from sci2audio.layout.build import columns_per_page
 
 pytestmark = pytest.mark.timeout(120)
 
@@ -56,9 +56,7 @@ def page_of(doc: Document, block: Block) -> int:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_columns_per_page(paper: Path) -> None:
-    content = extract_pdf(paper)
-    found = [page_columns(content, page, LayoutSettings()) for page in content.pages]
-    assert found == truth(paper)["columns"]
+    assert columns_per_page(document(paper).content) == truth(paper)["columns"]
 
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
@@ -79,6 +77,24 @@ def test_furniture_is_only_in_furniture_blocks(paper: Path) -> None:
                 wrong.append(("not furniture", number, item["text"]))
             elif len(text) >= 4 and any(text in t for t in read):  # "12" may be read elsewhere
                 wrong.append(("also read", number, item["text"]))
+    assert wrong == []
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_furniture_blocks_hold_only_furniture(paper: Path) -> None:
+    """The other direction: no body text is taken for furniture (and dropped from the script)."""
+    doc = document(paper)
+    known: dict[int, list[str]] = {}
+    for item in truth(paper)["furniture"]:
+        for number in item["pages"]:
+            known.setdefault(number, []).append(letters(item["text"]))
+    wrong = [
+        (page_of(doc, block), block.text)
+        for block in doc.blocks
+        if block.kind is BlockKind.FURNITURE
+        and letters(block.text)
+        and not any(letters(block.text) in text for text in known.get(page_of(doc, block), []))
+    ]
     assert wrong == []
 
 

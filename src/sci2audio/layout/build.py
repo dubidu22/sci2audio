@@ -5,7 +5,8 @@ from __future__ import annotations
 from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Content, Document, Page, Part, TextLine
-from sci2audio.layout.furniture import SIDEBAR, body_size, boxed, find_furniture, text_area
+from sci2audio.layout.furniture import SIDEBAR, find_furniture
+from sci2audio.layout.geometry import body_size, boxed, text_area
 from sci2audio.layout.order import Element, by_rows, figures, reading_order
 from sci2audio.layout.settings import LayoutSettings
 
@@ -13,9 +14,10 @@ from sci2audio.layout.settings import LayoutSettings
 def build_document(content: Content, settings: LayoutSettings | None = None) -> Document:
     """The content in reading order: one block per line for now, furniture marked.
 
-    Each page is read on its own: its furniture in the upper half first, then the text and
-    figures in reading order, then the rest of its furniture. Items without a position follow
-    in the order the file stores them.
+    Each page is read on its own: the furniture at its top edge first (running heads), then
+    the text and figures in reading order, then the rest of its furniture (page numbers at
+    the foot, footers, side stamps, a sidebar). Items without a position follow in the order
+    the file stores them.
     """
     settings = settings or LayoutSettings()
     layout = _Layout(content, settings)
@@ -24,17 +26,20 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     return Document(content=content, language=language, blocks=tuple(blocks))
 
 
-def page_columns(content: Content, page: Page, settings: LayoutSettings) -> int:
-    """How many columns of text a page is set in (a sidebar doesn't count).
+def columns_per_page(content: Content, settings: LayoutSettings | None = None) -> list[int]:
+    """How many columns of text each page is set in (a sidebar doesn't count).
 
     A page whose text all stands in one half of a two-column document, as on a last page
     that ends in the left column, follows the document's columns.
     """
-    layout = _Layout(content, settings)
-    found = {p.number: layout.read(p)[1] for p in content.pages}
-    if found[page.number] == 1 and 2 in found.values() and layout.in_one_half(page):
-        return 2
-    return found[page.number]
+    layout = _Layout(content, settings or LayoutSettings())
+    found = [layout.read(page)[1] for page in content.pages]
+    if 2 not in found:
+        return found
+    return [
+        2 if count == 1 and layout.in_one_half(page) else count
+        for count, page in zip(found, content.pages, strict=True)
+    ]
 
 
 class _Layout:
@@ -43,14 +48,14 @@ class _Layout:
     def __init__(self, content: Content, settings: LayoutSettings) -> None:
         self.settings = settings
         self.furniture = find_furniture(content, settings)
-        self.size = body_size(content) or 10.0
+        self.size = body_size(content) or settings.body_size
         lines = [
             line
             for page in content.pages
             for line in page.lines
             if line.box and line.id not in self.furniture
         ]
-        self.left, self.right = text_area(lines, share=0.1)
+        self.left, self.right = text_area(lines, settings.text_share)
 
     def read(self, page: Page) -> tuple[list[Element], int, dict[str, str]]:
         """The page's text and figures in reading order, its columns, and its furniture."""
@@ -65,17 +70,20 @@ class _Layout:
     def in_one_half(self, page: Page) -> bool:
         """True if nearly all the page's text lies in one half of the text area."""
         middle = (self.left + self.right) / 2
-        slack = 0.1 * (self.right - self.left)  # a table may reach a little into the gutter
+        slack = self.settings.one_half_slack * (self.right - self.left)  # a table may reach
         boxes = [line.box for line in page.lines if line.box and line.id not in self.furniture]
         left = sum(box.x1 <= middle + slack for box in boxes)
         right = sum(box.x0 >= middle - slack for box in boxes)
-        return bool(boxes) and max(left, right) >= 0.9 * len(boxes)
+        return bool(boxes) and max(left, right) >= self.settings.one_half * len(boxes)
 
     def blocks(self, page: Page) -> list[Block]:
         ordered, _, furniture = self.read(page)
         edge = [Element(line.box, line) for line in page.lines if line.box and line.id in furniture]
-        top = [e for e in edge if e.box.y1 <= (page.height or 0.0) / 2]
-        ordered = by_rows(top) + ordered + by_rows([e for e in edge if e not in top])
+        top = [e for e in edge if e.box.y1 <= self.settings.edge_band * (page.height or 0.0)]
+        taken = {id(e) for e in top}
+        overlap = self.settings.row_overlap
+        ordered = by_rows(top, overlap) + ordered
+        ordered += by_rows([e for e in edge if id(e) not in taken], overlap)
         nowhere = Box(0, 0, 0, 0)  # items without a position are placed after, never measured
         ordered += [Element(nowhere, line) for line in page.lines if not line.box]
         loose = [g for g in (*page.pictures, *page.drawings) if not g.box]

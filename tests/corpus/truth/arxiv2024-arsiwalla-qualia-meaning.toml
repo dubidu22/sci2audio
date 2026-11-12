@@ -29,7 +29,12 @@ furniture = [
   { kind = "contents", pages = [2], text = "3 Do Raw Feels Have Subjective Meaning?" },
   { kind = "contents", pages = [2], text = "4 The Formal Structure of Meaning" },
   { kind = "contents", pages = [2], text = "5 Discussion" },
-  # The contents page also prints the page numbers 2, 4, 9, 11 and 18 beside the entries.
+  # The page numbers printed beside the entries (2, 4, 9, 11, 18) belong to the contents too.
+  { kind = "contents", pages = [2], text = "1 Introduction 2" },
+  { kind = "contents", pages = [2], text = "2 Subjective Meaning in Phenomenology of Experience 4" },
+  { kind = "contents", pages = [2], text = "3 Do Raw Feels Have Subjective Meaning? 9" },
+  { kind = "contents", pages = [2], text = "4 The Formal Structure of Meaning 11" },
+  { kind = "contents", pages = [2], text = "5 Discussion 18" },
   { kind = "page-number", pages = [1], text = "1" },
   { kind = "page-number", pages = [2], text = "2" },
   { kind = "page-number", pages = [3], text = "3" },
