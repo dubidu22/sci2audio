@@ -11,6 +11,7 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 
 from sci2audio.core import (
+    LABELLED_KINDS,
     AudioChunk,
     Block,
     BlockKind,
@@ -164,7 +165,37 @@ def test_blocks_keep_their_printed_labels() -> None:
         (BlockKind.FOOTNOTE, "1"),
     ]
     assert PAPER.blocks[7].label == ""  # a list item printed without a marker
-    Block(BlockKind.LIST_ITEM, "(a) First", label="(a)")
+
+
+@pytest.mark.parametrize("kind", list(BlockKind))
+def test_only_labelled_kinds_take_a_label(kind: BlockKind) -> None:
+    """Headings, footnotes, captions, formulas and list items carry a label; tables and
+    figures are named by their caption, a page number by the page's label (#31)."""
+    if kind in LABELLED_KINDS:
+        assert Block(kind, "1 x", label="1").label == "1"
+    else:
+        with pytest.raises(ValueError, match="carries no label"):
+            Block(kind, "1 x", label="1")
+    assert {
+        BlockKind.HEADING,
+        BlockKind.FOOTNOTE,
+        BlockKind.CAPTION,
+        BlockKind.FORMULA,
+        BlockKind.LIST_ITEM,
+    } == LABELLED_KINDS
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"kind": "figure", "text": "1 x", "label": "1"},  # not a labelled kind
+        {"kind": "heading", "text": "2 Setup", "label": "3"},  # not printed in the text
+        {"kind": "heading", "text": "2 Setup", "label": "2 "},  # not trimmed
+    ],
+)
+def test_from_data_refuses_a_bad_label(data: object) -> None:
+    with pytest.raises(ValueError, match="label"):
+        from_data(Block, data)  # type: ignore[arg-type]
 
 
 def test_captions_link_to_what_they_describe() -> None:
@@ -222,12 +253,11 @@ def test_edit_outside_the_document_is_refused() -> None:
         lambda: Block(BlockKind.PARAGRAPH, "ab", (Part("a", -1),)),
         lambda: Block(BlockKind.PARAGRAPH, "ab", describes=0),
         lambda: Block(BlockKind.PARAGRAPH, "ab", role=FurnitureRole.PAGE_NUMBER),
-        lambda: Block(BlockKind.PARAGRAPH, "1 ab", label="1"),  # paragraphs carry no label
-        lambda: Block(BlockKind.FURNITURE, "39", label="39"),  # a page label is the page's
-        lambda: Block(BlockKind.FIGURE, "1", label="1"),  # its caption carries the label
         lambda: Block(BlockKind.HEADING, "2 Setup", label="3"),  # not printed in the block
         lambda: Block(BlockKind.HEADING, "2 Setup", label=" 2"),  # not trimmed
         lambda: Block(BlockKind.CAPTION, "Table\n2: x", label="Table\n2"),  # a line break
+        lambda: Block(BlockKind.CAPTION, "Table\r2: x", label="Table\r2"),
+        lambda: Block(BlockKind.CAPTION, "Table\u20282: x", label="Table\u20282"),
         lambda: replace(PAPER, page_labels=("39",)),  # one label for each of the two pages
         lambda: Section("A", 0, 0, 1),
         lambda: Section("A", 1, 0, 2, (Section("B", 2, 1, 3),)),

@@ -104,7 +104,7 @@ class Block:
     def _check_label(self) -> None:
         if self.kind not in LABELLED_KINDS:
             raise ValueError(f"a {self.kind} carries no label, got {self.label!r}")
-        if self.label != self.label.strip() or "\n" in self.label:
+        if self.label != self.label.strip() or len(self.label.splitlines()) != 1:
             raise ValueError(f"a label is one trimmed line, got {self.label!r}")
         if self.label not in self.text:
             raise ValueError(f"label {self.label!r} is not printed in the block's text")
