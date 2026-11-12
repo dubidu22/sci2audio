@@ -58,6 +58,13 @@ page = 1
 text = "The electrical manipulation of magnetic degrees of freedom has been continuously investigated since Øersted discovered the deflection of a compass needle by a current-carrying wire."
 
 [[verbatim]]
+# Subscript E follows n and S with no space. The paper has no footnotes (the 1 after
+# each author is an affiliation mark).
+where = "inline-maths"
+page = 2
+text = "The kinetic equation is solved in terms of band-diagonal contribution nE and band off-diagonal contribution SE."
+
+[[verbatim]]
 where = "page-break"
 page = 3
 text = "In the spin Hall effect disorder corrections cancel the intrinsic contribution altogether, while in the anomalous Hall effect they overwhelm the intrinsic contribution by a factor of 7 [52, 58]."

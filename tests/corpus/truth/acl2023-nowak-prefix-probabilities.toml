@@ -94,6 +94,20 @@ page = 1
 text = "The first is Jelinek and Lafferty’s (1991) algorithm which is derived from CKY (Kasami, 1965; Younger, 1967; Cocke and Schwartz, 1970) and, thus, requires the grammar to be in Chomsky normal form (CNF)."
 
 [[verbatim]]
+# Fragment: the sentence opens with a formula. Footnote marks 4 and 5, each with no space
+# before it; "liter-ature" is split across lines.
+where = "footnote-mark"
+page = 1
+text = "which is the fastest attested in the literature for dense grammars in CNF,4 matching the complexity of CKY adapted for dense grammars by Eisner and Blatz (2007).5"
+
+[[verbatim]]
+# Fragment: the sentence holds formulas further on. The superscripts "th" of i and j
+# follow their letter with no space.
+where = "inline-maths"
+page = 3
+text = "where the entry at the ith row and the jth column corresponds to"
+
+[[verbatim]]
 # The sentence goes on with inline maths on page 5, after Eq. (16) and Algorithm 3.
 where = "page-break"
 page = 4

@@ -90,6 +90,13 @@ page = 2
 text = "The first two structures, Separate Sentence, and Conjoined Sentence, involve two adjacent main clauses."
 
 [[verbatim]]
+# The page prints a word space between the full stop and footnote mark 1, so the truth
+# keeps it. The paper has no inline maths.
+where = "footnote-mark"
+page = 3
+text = "The substitution lists are given in the appendix, along with samples of each structure and the size of the resulting sets. 1"
+
+[[verbatim]]
 where = "plain"
 page = 4
 text = "Most of the current rapid progress in NLP is due to pre-trained large language models."

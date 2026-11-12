@@ -8,7 +8,14 @@ import dataclasses
 import json
 
 import pytest
-from core_strategies import chunks_in, documents, edits_on, overlaps, spans_in
+from core_strategies import (
+    chunks_in,
+    documents,
+    edits_on,
+    overlapping_spans,
+    overlaps,
+    spans_in,
+)
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
@@ -81,10 +88,11 @@ def test_no_edits_reads_every_block_unchanged(document: Document) -> None:
 @given(document=non_empty_documents, data=st.data())
 def test_overlapping_edits_are_refused(document: Document, data: st.DataObject) -> None:
     first = data.draw(edits_on(data.draw(spans_in(document))))
-    second = data.draw(edits_on(data.draw(spans_in(document))))
-    assume(overlaps(first.span, second.span))
+    second = data.draw(edits_on(data.draw(overlapping_spans(document, first.span))))
+    assert overlaps(first.span, second.span)  # checks the strategy against the rule
+    pair = data.draw(st.permutations([first, second]))
     with pytest.raises(OverlappingEditsError, match="overlaps") as error:
-        apply_edits(document, [first, second])
+        apply_edits(document, pair)
     assert {error.value.first, error.value.second} == {first, second}
 
 
