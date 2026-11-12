@@ -7,6 +7,12 @@ not on PyPI). `download_plan()` lists every file with its size and licence for t
 screen; `download_voice_files()` fetches what is missing. The CLI (#72) and the interface
 (#76, #77) call these two and nothing else.
 
+Hosts: the listed URLs are on huggingface.co and github.com. Both answer with a redirect to
+their download servers (Hugging Face to its CDN and its LFS/Xet storage, GitHub to
+objects.githubusercontent.com), which `requests` follows; the consent screen should say so.
+The checksums make the content independent of the host that serves it, and no file may
+be larger than its listed size.
+
 Writing is safe against interruption: each file is streamed to `<name>.part`, checked
 against its sha256 and only then renamed into place, and the spaCy wheel is unpacked into
 a temporary folder that is renamed when complete. Running the download again skips every
@@ -268,9 +274,20 @@ def _download_one(
     else:
         target.parent.mkdir(parents=True, exist_ok=True)
         part = target.with_name(target.name + ".part")
+    received = 0
+
+    def counted(n: int) -> None:
+        nonlocal received
+        received += n
+        if received > file.size:
+            raise DownloadError(
+                f"{file.url} sent more than its expected {file.size} bytes; nothing was kept"
+            )
+        on_bytes(n)
+
     try:
         with part.open("wb") as out:
-            fetch(file.url, out, on_bytes)
+            fetch(file.url, out, counted)
         actual = _sha256(part)
         if actual != file.sha256:
             raise DownloadError(

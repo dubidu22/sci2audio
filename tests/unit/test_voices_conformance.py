@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import math
 import socket
 from pathlib import Path
@@ -10,7 +11,7 @@ from typing import Any
 import numpy as np
 import pytest
 
-from sci2audio.testing.voices import NetworkAccessError, check_voice_engine, no_network
+from sci2audio.testing import NetworkUsedError, check_voice_engine, no_network
 from sci2audio.voices import (
     API_VERSION,
     PCM_FLOAT32,
@@ -151,13 +152,27 @@ def test_an_engine_that_goes_online_while_loading_fails() -> None:
         socket.getaddrinfo("huggingface.co", 443)
         return Engine()
 
-    with pytest.raises(NetworkAccessError):
+    with pytest.raises(AssertionError, match="network access attempted while creating the engine"):
         check_voice_engine(make)
+
+
+class QuietlyOnline(Session):
+    """Tries the network, swallows the refusal, and answers anyway."""
+
+    def synthesize(self, request: SynthesisRequest) -> SynthesizedAudio:
+        with contextlib.suppress(Exception):
+            socket.create_connection(("example.org", 443))
+        return super().synthesize(request)
+
+
+def test_an_engine_that_hides_its_network_attempt_still_fails() -> None:
+    with pytest.raises(AssertionError, match="network access attempted while speaking"):
+        check_voice_engine(engine_with(QuietlyOnline))
 
 
 def test_no_network_restores_the_socket_module() -> None:
     before = (socket.socket.connect, socket.create_connection, socket.getaddrinfo)
-    with pytest.raises(NetworkAccessError), no_network():
+    with pytest.raises(NetworkUsedError), no_network():
         socket.socket().connect(("127.0.0.1", 9))
     assert (socket.socket.connect, socket.create_connection, socket.getaddrinfo) == before
 

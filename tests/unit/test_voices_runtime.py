@@ -20,12 +20,13 @@ def test_sets_mps_fallback_and_hugging_face_offline(monkeypatch: pytest.MonkeyPa
     assert os.environ["HF_HUB_OFFLINE"] == "1"
 
 
-def test_puts_the_spacy_folder_on_the_path_once(
+def test_adds_the_spacy_folder_to_the_end_of_the_path_once(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     isolate_environment(monkeypatch)
+    before = list(sys.path)
     prepare_environment(tmp_path)
     prepare_environment(tmp_path)
     folder = str(tmp_path / "spacy" / "en_core_web_sm-3.8.0")
-    assert sys.path[0] == folder
-    assert sys.path.count(folder) == 1
+    # At the end, so a user-writable folder can never shadow the standard library.
+    assert sys.path == [*before, folder]

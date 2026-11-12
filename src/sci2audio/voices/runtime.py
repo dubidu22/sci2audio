@@ -26,11 +26,12 @@ ENVIRONMENT = {
 def prepare_environment(models_dir: Path | None = None) -> None:
     """Set the process settings the voices need and make the spaCy model findable.
 
-    With `models_dir`, the folder holding the unpacked spaCy English model goes to the
-    front of `sys.path` (once), so misaki finds it and never tries to download it.
+    With `models_dir`, the folder holding the unpacked spaCy English model is added to the
+    end of `sys.path` (once), so misaki finds it and never tries to download it. At the end
+    it cannot shadow the standard library or an installed package.
     """
     os.environ.update(ENVIRONMENT)
     if models_dir is not None:
         folder = str(spacy_dir(models_dir))
         if folder not in sys.path:
-            sys.path.insert(0, folder)
+            sys.path.append(folder)

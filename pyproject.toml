@@ -22,7 +22,11 @@ classifiers = [
     "Topic :: Text Processing",
 ]
 dependencies = [
+    "imageio-ffmpeg>=0.8.1,<0.9",
     "kokoro>=0.9.4,<0.10",
+    # Not imported: bounded here because the offline guarantee relies on how misaki 0.9
+    # loads its spaCy model (D-121); kokoro alone would accept any later misaki.
+    "misaki[en]>=0.9.4,<0.10",
     "numpy>=2.0",
     "pypdfium2>=5.15.2,<6",
     "requests>=2.32",
@@ -110,11 +114,15 @@ pytest_add_cli_args_test_selection = ["tests/"]
 [tool.deptry]
 known_first_party = ["sci2audio"]
 
+[tool.deptry.per_rule_ignores]
+# misaki is not imported; it is listed to bound its version (see dependencies).
+DEP002 = ["misaki"]
+
 [tool.importlinter]
 root_package = "sci2audio"
 
 [[tool.importlinter.contracts]]
-name = "Layers: entry points -> app -> pipeline stages -> core (D-46, D-63)"
+name = "Layers: entry points -> app | testing -> pipeline stages -> core (D-46, D-63, Q11)"
 type = "layers"
 layers = [
     "sci2audio.cli",
@@ -123,3 +131,9 @@ layers = [
     "sci2audio.extraction | sci2audio.layout | sci2audio.textprep | sci2audio.voices | sci2audio.output",
     "sci2audio.core",
 ]
+
+[[tool.importlinter.contracts]]
+name = "Nothing in the program imports the conformance suite (Q11)"
+type = "forbidden"
+source_modules = ["sci2audio.cli", "sci2audio.web"]
+forbidden_modules = ["sci2audio.testing"]

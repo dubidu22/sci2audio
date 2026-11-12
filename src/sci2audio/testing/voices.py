@@ -2,20 +2,21 @@
 
 `check_voice_engine(make_engine)` runs every check against an engine factory; the
 built-in Kokoro engine passes it in the nightly run, and a fake pipeline in every PR.
-Network access is blocked while the factory runs and while every voice speaks, so an
-engine that goes online fails (VA-04).
+Network access is blocked while the factory runs and while every voice speaks (the same
+`no_network` as the text-step suite), so an engine that goes online fails, even when it
+catches the refusal itself (VA-04).
 """
 
 from __future__ import annotations
 
 import math
-import socket
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 
 import numpy as np
 
+from sci2audio.testing.text_steps import NetworkUsedError, no_network
 from sci2audio.voices import (
     API_VERSION,
     PCM_FLOAT32,
@@ -33,40 +34,20 @@ from sci2audio.voices import (
 SAMPLE_TEXT = "The voice reads this sentence aloud."
 
 
-class NetworkAccessError(AssertionError):
-    """A plugin tried to open a network connection while network access was blocked."""
+def _fail(message: str) -> None:
+    raise AssertionError(message)
 
 
 @contextmanager
-def no_network() -> Iterator[None]:
-    """Make every attempt to open a connection or look up a host fail loudly."""
-
-    def refuse(*args: Any, **kwargs: Any) -> Any:
-        raise NetworkAccessError(f"network access attempted: {args[:2]!r}")
-
-    saved = (
-        socket.socket.connect,
-        socket.socket.connect_ex,
-        socket.create_connection,
-        socket.getaddrinfo,
-    )
-    socket.socket.connect = refuse  # type: ignore[method-assign]
-    socket.socket.connect_ex = refuse  # type: ignore[method-assign]
-    socket.create_connection = refuse
-    socket.getaddrinfo = refuse
-    try:
-        yield
-    finally:
-        (
-            socket.socket.connect,
-            socket.socket.connect_ex,
-            socket.create_connection,
-            socket.getaddrinfo,
-        ) = saved
-
-
-def _fail(message: str) -> None:
-    raise AssertionError(message)
+def _offline(what: str) -> Iterator[None]:
+    """Run a block with the network blocked; any attempt fails the check."""
+    with no_network() as attempts:
+        try:
+            yield
+        except NetworkUsedError as error:
+            raise AssertionError(f"network access attempted while {what}: {error}") from error
+    if attempts:
+        _fail(f"network access attempted while {what}: {', '.join(attempts)}")
 
 
 def _request(text: str, voice: str, **parameters: Any) -> SynthesisRequest:
@@ -128,7 +109,7 @@ def check_voice_engine(
 
     `voices` picks which of the listed voices speak the sample (default: all of them).
     """
-    with no_network():
+    with _offline("creating the engine"):
         engine = make_engine()
     if getattr(engine, "api_version", None) != API_VERSION:
         _fail(
@@ -152,7 +133,7 @@ def check_voice_engine(
     if not isinstance(session, EngineSession):
         _fail("createSession did not return an EngineSession")
     chosen = voices(listed) if voices else listed
-    with no_network():
+    with _offline("speaking"):
         for voice in chosen:
             samples = check_audio(
                 session.synthesize(_request(SAMPLE_TEXT, voice.id)), f"voice {voice.id}"

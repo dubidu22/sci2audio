@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from sci2audio.testing.voices import check_voice_engine, no_network
+from sci2audio.testing import check_voice_engine, no_network
 from sci2audio.voices import KokoroEngine, create_kokoro_engine, speak_to_wav
 
 CORPUS = Path(__file__).parents[1] / "corpus"

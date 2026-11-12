@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 from voice_fakes import FakeFactory, FakeResult, isolate_environment, make_fake_engine
 
-from sci2audio.testing.voices import check_voice_engine, no_network
+from sci2audio.testing import check_voice_engine, no_network
 from sci2audio.voices import (
     DEFAULT_VOICE,
     ENGLISH_VOICES,
@@ -195,7 +195,7 @@ def test_creating_the_engine_runs_the_start_up_function(
     make_fake_engine(tmp_path, monkeypatch)
     assert os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] == "1"
     assert os.environ["HF_HUB_OFFLINE"] == "1"
-    assert str(tmp_path / "spacy" / "en_core_web_sm-3.8.0") == sys.path[0]
+    assert sys.path[-1] == str(tmp_path / "spacy" / "en_core_web_sm-3.8.0")
 
 
 def test_factory_error_becomes_engine_error(

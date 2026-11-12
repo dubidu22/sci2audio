@@ -19,7 +19,7 @@ from typing import BinaryIO
 import pytest
 import requests
 
-from sci2audio.testing.voices import no_network
+from sci2audio.testing import no_network
 from sci2audio.voices import (
     DownloadError,
     DownloadPlan,
@@ -174,6 +174,43 @@ def test_damaged_file_of_the_right_size_is_fetched_again(tmp_path: Path) -> None
 
 
 @pytest.mark.usefixtures("small_plan")
+def test_a_file_of_the_wrong_size_counts_as_missing(tmp_path: Path) -> None:
+    download_voice_files(tmp_path, fetch=FakeServer())
+    weights = tmp_path / "kokoro/weights.pth"
+    weights.write_bytes(weights.read_bytes()[:-1])  # truncated by one byte
+    assert missing_files(tmp_path) == [FILES[1]]
+    weights.write_bytes(weights.read_bytes() + b"xx")  # one byte too long
+    assert missing_files(tmp_path) == [FILES[1]]
+
+
+@pytest.mark.usefixtures("small_plan")
+def test_damaged_spacy_folder_is_replaced(tmp_path: Path) -> None:
+    download_voice_files(tmp_path, fetch=FakeServer())
+    folder = tmp_path / "spacy/en_core_web_sm-3.8.0"
+    (folder / "en_core_web_sm-3.8.0.dist-info" / "RECORD").unlink()
+    (folder / "stale.txt").write_text("left from a broken run")
+    assert missing_files(tmp_path) == [FILES[2]]
+
+    again = FakeServer()
+    download_voice_files(tmp_path, fetch=again)
+    assert again.fetched == [FILES[2].url]
+    assert (folder / "en_core_web_sm-3.8.0.dist-info" / "RECORD").is_file()
+    assert not (folder / "stale.txt").exists()
+    assert missing_files(tmp_path) == []
+    assert leftovers(tmp_path) == []
+
+
+@pytest.mark.usefixtures("small_plan")
+def test_a_server_sending_too_much_is_cut_off(tmp_path: Path) -> None:
+    endless = dict(SERVED, **{FILES[1].url: b"w" * 9000})  # listed size is 5000
+    server = FakeServer(endless)
+    with pytest.raises(DownloadError, match="more than its expected 5000 bytes"):
+        download_voice_files(tmp_path, fetch=server)
+    assert not (tmp_path / "kokoro/weights.pth").exists()
+    assert leftovers(tmp_path) == []
+
+
+@pytest.mark.usefixtures("small_plan")
 def test_wrong_checksum_keeps_nothing(tmp_path: Path) -> None:
     tampered = dict(SERVED, **{FILES[1].url: b"evil" * 1250})
     with pytest.raises(DownloadError, match="checksum"):
@@ -226,10 +263,11 @@ def test_damaged_wheel_leaves_no_half_unpacked_folder(
     assert leftovers(tmp_path) == []
 
 
+@pytest.mark.parametrize("member", ["../escaped.py", "/abs.py", "en_core_web_sm\\..\\x.py"])
 def test_wheel_with_unsafe_paths_is_refused(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, member: str
 ) -> None:
-    evil = wheel_bytes({"../escaped.py": b"print('hi')"})
+    evil = wheel_bytes({member: b"print('hi')"})
     served = dict(SERVED, **{"https://example.test/evil.whl": evil})
     files = (
         RemoteFile(
