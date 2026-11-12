@@ -9,7 +9,8 @@ lanes:
   layout:
     paths: [src/sci2audio/layout/**]
   textprep:
-    paths: [src/sci2audio/textprep/**]
+    # sci2audio.testing holds the conformance suites (Q11); the voice part follows in #18
+    paths: [src/sci2audio/textprep/**, src/sci2audio/testing/**]
   voices:
     paths: [src/sci2audio/voices/**]
   output:
