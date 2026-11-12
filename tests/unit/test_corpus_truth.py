@@ -16,7 +16,14 @@ TRUTH = CORPUS / "truth"
 
 SAMPLE_SUFFIXES = {".pdf", ".epub"}
 DRAFT_SOURCES = {"pdf", "epub", "latex", "markdown"}
-VERBATIM_PLACES = {"plain", "column-break", "page-break", "hyphenation"}
+VERBATIM_PLACES = {
+    "plain",
+    "column-break",
+    "page-break",
+    "hyphenation",
+    "footnote-mark",
+    "inline-maths",
+}
 FURNITURE_KINDS = {
     "running-head",
     "page-number",
@@ -34,7 +41,7 @@ PAGE_GROUPS = {
     "algorithms": ("labels", False),
     "formula_numbers": ("numbers", False),
 }
-MIN_VERBATIM, MAX_VERBATIM = 3, 5
+MIN_VERBATIM, MAX_VERBATIM = 3, 7  # 5 plus a footnote mark and inline maths (#39)
 
 COMMON_KEYS = {"file", "drafted_from", "title"}
 PAPER_KEYS = COMMON_KEYS | {
@@ -103,6 +110,17 @@ def check_page_groups(
             if label or not may_be_empty:
                 assert is_text(label), f"{key}: label {label!r} must be non-empty, no outer spaces"
     check_page_order(groups, key)
+
+
+def footnote_marks(truth: dict[str, Any], page: int) -> set[str]:
+    """The printed marks of the footnotes on a page, without the notes that have none."""
+    return {
+        mark
+        for group in truth["footnotes"]
+        if group["page"] == page
+        for mark in group["marks"]
+        if mark
+    }
 
 
 def test_every_corpus_file_has_one_truth_file() -> None:
@@ -188,6 +206,11 @@ def test_paper_truth_follows_format(path: Path) -> None:
         assert is_text(entry["text"]), "verbatim text must be non-empty, without outer spaces"
         assert "\n" not in entry["text"], "verbatim text is one line: line breaks become spaces"
         assert len(entry["text"].split()) >= 6, f"verbatim text too short: {entry['text']!r}"
+        if entry["where"] == "footnote-mark":
+            marks = footnote_marks(truth, entry["page"])
+            assert any(mark in entry["text"] for mark in marks), (
+                f"no footnote mark of page {entry['page']} ({sorted(marks)}) in {entry['text']!r}"
+            )
 
     for entry in truth["furniture"]:
         assert set(entry) == {"kind", "pages", "text"}, (
