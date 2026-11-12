@@ -44,14 +44,18 @@ BOLD_WEIGHT = 600  # a font weight from this value on is bold
 _ITALIC_FLAG = 1 << 6  # PDF font descriptor flag "Italic"
 _FORCE_BOLD_FLAG = 1 << 18
 # "Medi" is URW's bold cut (NimbusRomNo9L-Medi); "-Medium" (weight 500) is not bold.
-# CM-Super and EC fonts (the T1 Computer Modern, e.g. SFBX1095) name their cut and design
-# size: bx bold, bi bold italic, bo bold slanted, ti and it italic, sl slanted.
+# CM-Super and EC fonts (the T1 Computer Modern, e.g. SFBX1095) name their cut before the
+# design size. Bold cuts: bx, bl, bi, xc, oc, rb, bm, sx, so; italic or slanted cuts: sl, ti,
+# ci, sc, bl, bi, oc, si, so, it, st, vi (from the cm-super AFM files: Weight Bold, or an
+# ItalicAngle other than 0). Upright italic (ui) and the other cuts stay plain.
 _TEX_CUT = r"(?:^|\+)(?:sf|ec)"
 _BOLD_NAME = re.compile(
-    rf"bold|black|heavy|demi|medi(?!um)|cm\w*bx|{_TEX_CUT}b[xio]\d{{4}}", re.IGNORECASE
+    rf"bold|black|heavy|demi|medi(?!um)|cm\w*bx|{_TEX_CUT}(?:bx|bl|bi|xc|oc|rb|bm|sx|so)\d{{4}}",
+    re.IGNORECASE,
 )
 _ITALIC_NAME = re.compile(
-    rf"ital|oblique|cmti|cmbxti|cmsl|cmmi|{_TEX_CUT}(?:ti|it|sl|bi|bo)\d{{4}}", re.IGNORECASE
+    rf"ital|oblique|cmti|cmbxti|cmsl|cmmi|{_TEX_CUT}(?:sl|ti|ci|sc|bl|bi|oc|si|so|it|st|vi)\d{{4}}",
+    re.IGNORECASE,
 )
 _LINE_END_HYPHEN = 0x02  # how PDFium reports a hyphen printed at a line end
 _SOFT_HYPHEN = "\u00ad"  # kept as it is: joining words is a text step (TP-02)
