@@ -18,6 +18,7 @@ from sci2audio.layout.captions import find_captions
 from sci2audio.layout.footnotes import find_footnotes
 from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, find_furniture, page_label
 from sci2audio.layout.geometry import body_size, boxed, text_area
+from sci2audio.layout.graphics import find_graphics, link_captions
 from sci2audio.layout.headings import find_headings
 from sci2audio.layout.lists import find_lists
 from sci2audio.layout.order import Element, Reading, by_rows, figures, reading_order
@@ -38,8 +39,10 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     layout = _Layout(content, settings)
     units = [unit for page in content.pages for unit in layout.units(page)]
     blocks = find_footnotes(paragraphs(units, settings), content, layout.size, settings)
-    blocks = find_lists(find_captions(blocks, content), content)
+    blocks, links = find_graphics(find_captions(blocks, content), content, layout.size, settings)
+    blocks = find_lists(blocks, content)
     blocks, sections = find_headings(blocks, content, layout.size, settings)
+    blocks = link_captions(blocks, links)
     language = settings.language or content.metadata.language or "en"
     labels = tuple(layout.label(page) for page in content.pages)
     return Document(

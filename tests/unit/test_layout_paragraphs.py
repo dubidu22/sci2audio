@@ -26,6 +26,11 @@ def lines(name: str, x0: float, x1: float, top: float, count: int, **shape: floa
     return found
 
 
+def worded(found: list[TextLine]) -> list[TextLine]:
+    """The lines with more words, so that their size is the body size."""
+    return [line(f"{li.text} of running text", li.box.x0, li.box.y0, li.box.x1) for li in found]
+
+
 def bold(text: str, x0: float, y0: float, x1: float) -> TextLine:
     line_ = line(text, x0, y0, x1)
     return TextLine(line_.id, (TextRun(text, "Times-Bold", 10.0, bold=True),), line_.box)
@@ -223,22 +228,25 @@ def test_a_footnote_does_not_cut_a_paragraph_and_follows_it() -> None:
     rule = Drawing("rule", Box(LEFT, 700, LEFT + 60, 700.5))
     note = line("1 A note in small letters.", LEFT, 705, LEFT + 120, size=8)
     doc = build_document(content([*left, note, *right], drawings=(rule,)))
-    texts = [b.text for b in doc.blocks]
-    assert texts == [joined(left, right), "", note.text]
+    assert [b.text for b in doc.blocks] == [joined(left, right), note.text]
+    assert [p.item for p in doc.blocks[-1].parts] == ["rule", note.id]  # #51
 
 
 def test_a_table_at_the_top_of_the_next_page_does_not_cut_a_paragraph() -> None:
-    first = lines("a", LEFT, RIGHT, 100, 10, last=1.0)
+    """The table has no rules: its rows of cells, set smaller than the running text, are
+    one TABLE block (PR D1)."""
+    first = worded(lines("a", LEFT, RIGHT, 100, 10, last=1.0))
     cells = [
         line(f"c{r}{c}", LEFT + 120 * c, 80 + 12 * r, LEFT + 60 + 120 * c, size=9)
         for r in range(4)
         for c in range(3)
     ]
     caption = line("Table 1: Numbers.", 200, 140, 300, size=9)
-    rest = lines("b", LEFT, RIGHT, 180, 4)
+    rest = worded(lines("b", LEFT, RIGHT, 180, 4))
     doc = build_document(content(first, [*cells, caption, *rest]))
-    assert paragraphs(doc)[0] == joined(first, rest)
-    assert paragraphs(doc)[1:] == [*(li.text for li in cells), caption.text]
+    assert paragraphs(doc) == [joined(first, rest), caption.text]
+    rows = (" ".join(cell.text for cell in cells[3 * r : 3 * r + 3]) for r in range(4))
+    assert [b.text for b in doc.blocks if b.kind is BlockKind.TABLE] == ["\n".join(rows)]
 
 
 # Lines split by extraction (#27)

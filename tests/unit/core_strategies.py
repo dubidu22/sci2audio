@@ -41,9 +41,13 @@ def boxes(draw: st.DrawFn) -> Box:
     return Box(x0, y0, x1, y1)
 
 
+# text that opens a caption, a numbered line of pseudocode or a list item now and then
+printed = st.sampled_from(
+    ["Table 1: Data", "Figure 2. A", "Algorithm 1 B", "1: x", "1. a", "(i) b"]
+)
 runs = st.builds(
     TextRun,
-    text=st.text(min_size=1, max_size=15),
+    text=st.text(min_size=1, max_size=15) | printed,
     font=st.sampled_from(["", "Times-Roman", "Helvetica-Bold"]),
     size=st.floats(0, 72),
     bold=st.booleans(),
