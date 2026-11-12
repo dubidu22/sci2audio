@@ -4,8 +4,17 @@ from __future__ import annotations
 
 from statistics import median
 
-from sci2audio.core import Block, BlockKind, Content, Document, Page, Part, TextLine
-from sci2audio.layout.furniture import SIDEBAR, find_furniture
+from sci2audio.core import (
+    Block,
+    BlockKind,
+    Content,
+    Document,
+    FurnitureRole,
+    Page,
+    Part,
+    TextLine,
+)
+from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, find_furniture, page_label
 from sci2audio.layout.geometry import body_size, boxed, text_area
 from sci2audio.layout.order import Element, Reading, by_rows, figures, reading_order
 from sci2audio.layout.paragraphs import Held, Unit, make_row, paragraphs, rows_of, split_cells
@@ -26,7 +35,13 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     units = [unit for page in content.pages for unit in layout.units(page)]
     blocks = paragraphs(units, settings)
     language = settings.language or content.metadata.language or "en"
-    return Document(content=content, language=language, blocks=tuple(blocks))
+    labels = tuple(layout.label(page) for page in content.pages)
+    return Document(
+        content=content,
+        language=language,
+        blocks=tuple(blocks),
+        page_labels=labels,
+    )
 
 
 def columns_per_page(content: Content, settings: LayoutSettings | None = None) -> list[int]:
@@ -60,7 +75,7 @@ class _Layout:
         ]
         self.left, self.right = text_area(lines, settings.text_share)
 
-    def read(self, page: Page) -> tuple[Reading, dict[str, str]]:
+    def read(self, page: Page) -> tuple[Reading, dict[str, FurnitureRole]]:
         """The page's text and figures in reading order, and its furniture."""
         lines = [line for line in page.lines if line.box and line.id not in self.furniture]
         sidebar = self._sidebar(lines)
@@ -71,6 +86,11 @@ class _Layout:
         spread = max(b.x1 for b in boxes) - min(b.x0 for b in boxes) if boxes else 0.0
         width = max(self.right - self.left, spread) or (page.width or 0.0)
         return reading_order(body, width, self.size, self.settings), self.furniture | sidebar
+
+    def label(self, page: Page) -> str:
+        """The page label the page prints in its page number, or "" if it prints none."""
+        numbers = [li for li in page.lines if self.furniture.get(li.id) == PAGE_NUMBER]
+        return page_label(numbers[0].text) if numbers else ""
 
     def in_one_half(self, page: Page) -> bool:
         """True if nearly all the page's text lies in one half of the text area."""
@@ -149,7 +169,7 @@ class _Layout:
                 spread[column] = (min(column[0], lefts[k]), max(column[1], rights[k]))
         return {key: spread.get(column, column) for key, column in found.items()}
 
-    def _sidebar(self, lines: list[TextLine]) -> dict[str, str]:
+    def _sidebar(self, lines: list[TextLine]) -> dict[str, FurnitureRole]:
         """Lines beside the document's text area, in smaller letters (the JOSS metadata)."""
         beside = [
             line
@@ -162,8 +182,9 @@ class _Layout:
         return {line.id: SIDEBAR for line in beside}
 
 
-def _block(element: Element, furniture: dict[str, str]) -> Block:
+def _block(element: Element, furniture: dict[str, FurnitureRole]) -> Block:
     if element.line:
-        kind = BlockKind.FURNITURE if element.line.id in furniture else BlockKind.PARAGRAPH
-        return Block(kind, element.line.text, (Part(element.line.id),))
+        role = furniture.get(element.line.id)
+        kind = BlockKind.FURNITURE if role else BlockKind.PARAGRAPH
+        return Block(kind, element.line.text, (Part(element.line.id),), role=role)
     return Block(BlockKind.FIGURE, "", tuple(Part(g.id) for g in element.graphics))
