@@ -44,8 +44,15 @@ BOLD_WEIGHT = 600  # a font weight from this value on is bold
 _ITALIC_FLAG = 1 << 6  # PDF font descriptor flag "Italic"
 _FORCE_BOLD_FLAG = 1 << 18
 # "Medi" is URW's bold cut (NimbusRomNo9L-Medi); "-Medium" (weight 500) is not bold.
-_BOLD_NAME = re.compile(r"bold|black|heavy|demi|medi(?!um)|cm\w*bx", re.IGNORECASE)
-_ITALIC_NAME = re.compile(r"ital|oblique|cmti|cmbxti|cmsl|cmmi", re.IGNORECASE)
+# CM-Super and EC fonts (the T1 Computer Modern, e.g. SFBX1095) name their cut and design
+# size: bx bold, bi bold italic, bo bold slanted, ti and it italic, sl slanted.
+_TEX_CUT = r"(?:^|\+)(?:sf|ec)"
+_BOLD_NAME = re.compile(
+    rf"bold|black|heavy|demi|medi(?!um)|cm\w*bx|{_TEX_CUT}b[xio]\d{{4}}", re.IGNORECASE
+)
+_ITALIC_NAME = re.compile(
+    rf"ital|oblique|cmti|cmbxti|cmsl|cmmi|{_TEX_CUT}(?:ti|it|sl|bi|bo)\d{{4}}", re.IGNORECASE
+)
 _LINE_END_HYPHEN = 0x02  # how PDFium reports a hyphen printed at a line end
 _SOFT_HYPHEN = "\u00ad"  # kept as it is: joining words is a text step (TP-02)
 _UNKNOWN = "\ufffd"  # a glyph PDFium can't map to Unicode: recorded, not dropped

@@ -187,6 +187,13 @@ def test_character_codes(code: int, hyphen: bool, text: str | None) -> None:
         pytest.param("SomeFont", 400, 1 << 18, True, False, id="force-bold-flag"),
         pytest.param("SomeFont", 400, 1 << 6, False, True, id="italic-flag"),
         pytest.param("CMTI10", 400, 0, False, True, id="computer-modern-italic"),
+        pytest.param("SFBX1095", 400, 0, True, False, id="cm-super-bold"),
+        pytest.param("ABCDEF+ECBX1200", 400, 0, True, False, id="ec-bold-subset"),
+        pytest.param("SFBI1000", 400, 0, True, True, id="cm-super-bold-italic"),
+        pytest.param("SFTI1095", 400, 0, False, True, id="cm-super-italic"),
+        pytest.param("SFSL1200", 400, 0, False, True, id="cm-super-slanted"),
+        pytest.param("SFRM1095", 400, 0, False, False, id="cm-super-roman"),
+        pytest.param("SFProText-Regular", 400, 0, False, False, id="sf-pro-is-not-cm-super"),
         pytest.param("", 400, 0, False, False, id="unknown-font"),
     ],
 )
