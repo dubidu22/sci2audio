@@ -7,7 +7,7 @@ x 70 and x 526 unless a test says otherwise.
 import itertools
 
 from core_strategies import contents
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 from sci2audio.core import (
@@ -344,6 +344,7 @@ def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
 
 
 @given(contents())
+@example(content([line("\n", LEFT, 100, 200)]))  # a line's own break is kept (review of #53)
 def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
     doc = build_document(found)  # the Document itself checks that every item is in one block
     lines = {li.id: li.text for page in found.pages for li in page.lines}

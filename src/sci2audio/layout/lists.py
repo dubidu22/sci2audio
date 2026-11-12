@@ -63,6 +63,9 @@ def find_lists(blocks: list[Block], content: Content) -> list[Block]:
     for n, block in enumerate(blocks):
         starts = _cuts(block)
         tried += [(n, k, piece) for k, piece in zip(starts, split_at(block, starts), strict=True)]
+    tried_starts: dict[int, list[int]] = {}
+    for n, k, _ in tried:
+        tried_starts.setdefault(n, []).append(k)
     cut = [piece for _, _, piece in tried]
     markers = [_marker(block.text) if block.kind is BlockKind.PARAGRAPH else None for block in cut]
     items: set[int] = set()
@@ -78,7 +81,7 @@ def find_lists(blocks: list[Block], content: Content) -> list[Block]:
     item_at = {(n, k): markers[i] for i, (n, k, _) in enumerate(tried) if i in items}
     out: list[Block] = []
     for n, block in enumerate(blocks):
-        starts = [k for m, k, _ in tried if m == n]
+        starts = tried_starts[n]
         keep = [
             k
             for before, k in itertools.pairwise(starts)

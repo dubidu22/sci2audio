@@ -22,7 +22,8 @@ def piece_starts(block: Block, cuts: list[int]) -> list[int]:
 def split_at(block: Block, cuts: list[int]) -> list[Block]:
     """The block cut before each of `cuts` (places in its text), each piece keeping the
     block's kind and the parts whose text starts in it. A cut where no part starts, or at
-    the very start, is left out (`piece_starts`)."""
+    the very start, is left out (`piece_starts`). Each piece's text is the block's text
+    from its start up to the one break or space before the next piece, kept as found."""
     edges = piece_starts(block, cuts)
     out = []
     for n, begin in enumerate(edges):
@@ -30,5 +31,5 @@ def split_at(block: Block, cuts: list[int]) -> list[Block]:
         parts = tuple(
             Part(part.item, part.start - begin) for part in block.parts if begin <= part.start < end
         )
-        out.append(replace(block, text=block.text[begin:end].rstrip("\n"), parts=parts))
+        out.append(replace(block, text=block.text[begin : end - 1], parts=parts))
     return out
