@@ -345,6 +345,16 @@ def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
 
 @given(contents())
 @example(content([line("\n", LEFT, 100, 200)]))  # a line's own break is kept (review of #53)
+@example(  # a mark with no block before it stays before the running heads (review of #57)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            Page(1, (), (Picture("i0", Box(0, 0, 0, 0)), Picture("i1", Box(3, 0, 14, 21))), ()),
+            Page(2, (), (Picture("i2", Box(0, 0, 11, 21)),), ()),
+        ),
+        Metadata(),
+    )
+)
 def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
     doc = build_document(found)  # the Document itself checks that every item is in one block
     lines = {li.id: li.text for page in found.pages for li in page.lines}

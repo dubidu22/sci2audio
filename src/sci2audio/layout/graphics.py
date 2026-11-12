@@ -1,15 +1,19 @@
 """Tables, figures and algorithms as placeholder blocks (Issue #21 step 3, PR D1, D-88 to
-D-91; #38, #51).
+D-92; #38, #51).
 
 A caption names the float next to it. The float is read from the caption's edge away from
 it: an algorithm's lines below its caption; a table or figure on the side where something
 stands within `caption_reach`, the side whose walk takes a graphic, else the nearer one.
 The walk takes, by distance, the text lines and graphics that stand across the caption, or
 across what it took so far (a table's rule is as wide as the table), each within
-`float_gap` of the last, up to white, another caption, a footnote or furniture. Until a
+`float_gap` of the last, up to white, another caption, a footnote or furniture. A graphic
+brings the graphics drawn close to it (the group read as one figure before this step), and
+an item passed by because it stood beside what was taken is taken once the float grows
+across it, so what a walk takes does not hang on the order items are met in. Until a
 graphic shows how wide the float is, a line set smaller than the body text brings the small
-lines on its row (the cells of a table without rules). A float
-met on the way is taken whole: nowak's Figure 1 holds Algorithms 1 and 2, and its caption
+lines on its row (the cells of a table without rules). Between two rules of the same width,
+white up to `caption_reach` is a row's padding (D-92). A float met on the way is taken
+whole: nowak's Figure 1 holds Algorithms 1 and 2, and its caption
 and theirs all name one FIGURE block (D-89). The line just above an algorithm's caption is
 the top of the algorithm's box.
 
@@ -31,6 +35,9 @@ The graphics no caption names:
 
 from __future__ import annotations
 
+import bisect
+import heapq
+import itertools
 from collections.abc import Iterable
 from dataclasses import dataclass, field, replace
 
@@ -145,12 +152,10 @@ def _read_float(k: int, items: list[_Item], state: _State) -> None:
         return
     box = union([i.box for i in caption])
     others = [i for i in items if i.block != k]
-    down = True if label.startswith(_ALGORITHM) else _side(box, others, state)
-    if down is None:
-        return
-    found = _walk(box, down, others, state)
     if label.startswith(_ALGORITHM):
-        found += _box_top(box, others, state)
+        found = _walk(box, True, others, state) + _box_top(box, others, state)
+    else:
+        found = _side(box, others, state)
     if not found:
         return
     met = sorted({state.taken[i.id] for i in found if i.id in state.taken})
@@ -183,69 +188,122 @@ def _gap(box: Box | float, item: _Item, down: bool) -> float:
     return item.box.y0 - edge if down else edge - item.box.y1
 
 
-def _side(box: Box, others: list[_Item], state: _State) -> bool | None:
-    """True to read the float below the caption, False above, None if nothing stands near:
-    the side whose walk takes a graphic, or else the side where something stands nearer."""
+def _side(box: Box, others: list[_Item], state: _State) -> list[_Item]:
+    """The walk on the side the caption reads toward (nothing if nothing stands near): the
+    side whose walk takes a graphic, or else the side where something stands nearer."""
     found = []
     for down in (True, False):
         walk = _walk(box, down, others, state)
         if walk:
             graphic = any(i.line is None for i in walk)
-            found.append((not graphic, _gap(box, walk[0], down), down))
-    return min(found)[2] if found else None
+            found.append((not graphic, min(_gap(box, i, down) for i in walk), down, walk))
+    return min(found, key=lambda f: f[:3])[3] if found else []
 
 
 def _walk(box: Box, down: bool, others: list[_Item], state: _State) -> list[_Item]:
     """What stands across the caption (or across what was taken), from its edge outward,
-    each item within `float_gap` of the last (the first within `caption_reach`). Until a
+    each item within `float_gap` of the last (the first within `caption_reach`). An item
+    passed by because it stood beside what was taken so far is taken once the float grows
+    across it, so what is taken does not hang on the order items are met in. Until a
     graphic shows how wide the float is, a line set smaller than the body text brings the
     small lines on its row: the cells of a table without rules. Between two rules of the
     same width, white up to `caption_reach` is a row's padding (chi's Table 4)."""
     reach = state.settings.caption_reach * state.body
     gap = state.settings.float_gap * state.body
-    left, right = box.x0, box.x1
-    edge = box.y1 if down else box.y0
-    found: list[_Item] = []
-    seen: set[str] = set()
+    walk = _Walk(box, down, others, state)
     ahead = _beyond(box, down, others)
     for n, item in enumerate(ahead):
-        if item.id in seen or not _across(item, left, right):
+        if item.id in walk.seen:
             continue
-        white = _gap(edge, item, down)
+        if not _across(item, walk.left, walk.right):
+            walk.pass_by(item)
+            continue
+        white = _gap(walk.edge, item, down)
         if state.kind(item) not in _TAKE or white > reach:
             break
-        if white > gap and found and not _ruled(found, ahead[n:], down, left, right, state):
+        if white > gap and walk.found and not _ruled(walk, ahead[n:], state):
             break
-        row = [item]
-        if _small(item, state) and all(i.line for i in found):  # no rule shows the width
-            row += [
-                i
-                for i in others
-                if i.id != item.id
-                and i.id not in seen
-                and _small(i, state)
-                and state.kind(i) in _TAKE
-                and same_row(i.box, item.box, state.settings.row_overlap)
-            ]
-        for taken in row:
-            found.append(taken)
-            seen.add(taken.id)
-            edge = max(edge, taken.box.y1) if down else min(edge, taken.box.y0)
-            left, right = min(left, taken.box.x0), max(right, taken.box.x1)
-    return found
+        walk.take(item)
+    return walk.found
 
 
-def _ruled(
-    found: list[_Item], ahead: list[_Item], down: bool, left: float, right: float, state: _State
-) -> bool:
+class _Walk:
+    """A caption's walk so far: what it took, how far and how wide that reaches, and the
+    items it passed by on either side."""
+
+    def __init__(self, box: Box, down: bool, others: list[_Item], state: _State) -> None:
+        self.down, self.state = down, state
+        self.left, self.right = box.x0, box.x1
+        self.edge = box.y1 if down else box.y0
+        self.found: list[_Item] = []
+        self.seen: set[str] = set()
+        self.west: list[tuple[float, int, _Item]] = []  # passed by on the left, by -x1
+        self.east: list[tuple[float, int, _Item]] = []  # passed by on the right, by x0
+        self.order = itertools.count()
+        self.drawn: dict[int, list[_Item]] = {}  # the graphics of each figure block
+        for i in others:
+            if i.line is None and state.blocks[i.block].kind is BlockKind.FIGURE:
+                self.drawn.setdefault(i.block, []).append(i)
+        small = [i for i in others if _small(i, state) and state.kind(i) in _TAKE]
+        self.small = sorted(small, key=lambda i: i.box.y0)
+        self.tops = [i.box.y0 for i in self.small]
+
+    def pass_by(self, item: _Item) -> None:
+        """Keep an item the walk passes by, beside what it took, if a float may take it."""
+        if self.state.kind(item) not in _TAKE:
+            return
+        if item.box.x1 <= self.left:
+            heapq.heappush(self.west, (-item.box.x1, next(self.order), item))
+        else:
+            heapq.heappush(self.east, (item.box.x0, next(self.order), item))
+
+    def take(self, item: _Item) -> None:
+        """Take the item, the small lines on its row while no graphic shows the float's
+        width, and every passed item the float grows across, until none is left."""
+        todo = [item]
+        while todo:
+            taken = todo.pop()
+            if taken.id in self.seen:
+                continue
+            self.seen.add(taken.id)
+            self.found.append(taken)
+            if self.down:
+                self.edge = max(self.edge, taken.box.y1)
+            else:
+                self.edge = min(self.edge, taken.box.y0)
+            self.left, self.right = min(self.left, taken.box.x0), max(self.right, taken.box.x1)
+            if _small(taken, self.state) and all(i.line for i in self.found):
+                todo += self._row(taken)
+            if taken.line is None:  # the graphics drawn with it, whole
+                todo += self.drawn.pop(taken.block, [])
+            while self.west and -self.west[0][0] > self.left:
+                todo.append(heapq.heappop(self.west)[2])
+            while self.east and self.east[0][0] < self.right:
+                todo.append(heapq.heappop(self.east)[2])
+
+    def _row(self, item: _Item) -> list[_Item]:
+        """The small lines on the item's row not yet taken."""
+        overlap = self.state.settings.row_overlap
+        last = bisect.bisect_left(self.tops, item.box.y1)
+        return [
+            i
+            for i in self.small[:last]
+            if i.box.y1 > item.box.y0
+            and i.id not in self.seen
+            and same_row(i.box, item.box, overlap)
+        ]
+
+
+def _ruled(walk: _Walk, ahead: list[_Item], state: _State) -> bool:
     """True if a rule as wide as one already taken lies ahead, with only what a float may
     take, nothing further than `caption_reach` apart, up to it: the white is inside a
     table whose rows the rules divide."""
     reach = state.settings.caption_reach * state.body
     slack = state.settings.float_gap * state.body
+    down, found = walk.down, walk.found
     widths = [(i.box.x0, i.box.x1) for i in found if _is_line(i, state)]
     edge: float | None = None
-    for item in (i for i in ahead if _across(i, left, right)):
+    for item in (i for i in ahead if _across(i, walk.left, walk.right)):
         if state.kind(item) not in _TAKE or (edge is not None and _gap(edge, item, down) > reach):
             return False
         if _is_line(item, state) and any(
@@ -424,20 +482,27 @@ def _without(block: Block, taken: set[str]) -> Block | None:
 def _ends(block: Block) -> list[int]:
     """Where each part's text ends: before the one break or space ahead of the next part
     that starts later, or at the end of the text."""
-    out = []
-    for n, part in enumerate(block.parts):
-        later = [p.start for p in block.parts[n + 1 :] if p.start > part.start]
-        out.append(later[0] - 1 if later else len(block.text))
-    return out
+    out, end = [], len(block.text)
+    for n in range(len(block.parts) - 1, -1, -1):
+        after = block.parts[n + 1].start if n + 1 < len(block.parts) else None
+        if after is not None and after > block.parts[n].start:
+            end = after - 1
+        out.append(end)
+    return out[::-1]
 
 
 def _place(out: list[tuple[Block, str]]) -> list[Block]:
     """The blocks, with each loose graphic made furniture or joined to its neighbour: the
-    footnote just after it, else the block before it (else the one after it)."""
+    footnote just after it, else the block before it, else the one after it. Graphics that
+    would join the block after them never pass it: before furniture, or with nothing after
+    them, they stay a block of their own where they are read."""
     blocks: list[Block] = []
     pending: list[Part] = []  # graphics to join the next block (none before them)
     for n, (block, action) in enumerate(out):
         if action == "furniture":
+            if pending:
+                blocks.append(Block(BlockKind.FIGURE, "", tuple(Part(p.item) for p in pending)))
+                pending = []
             head = FurnitureRole.RUNNING_HEAD
             blocks.append(Block(BlockKind.FURNITURE, "", block.parts, role=head))
             continue

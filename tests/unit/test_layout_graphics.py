@@ -169,6 +169,36 @@ def test_a_chart_holds_its_axis_text() -> None:
     assert found.text == "10\n0\ntime"
 
 
+def test_a_short_caption_takes_the_text_its_figure_grows_to() -> None:
+    """A caption narrower than its chart: the axis shows how wide the chart is, and the
+    tick labels beside the caption are the chart's, though they are read before the axis."""
+    frame, axis = (
+        Drawing("frame", Box(LEFT, 200, RIGHT, 200.5)),
+        Drawing("axis", Box(LEFT, 400, RIGHT, 400.5)),
+    )
+    ticks = [line(str(k), LEFT + 50 * k, 404, LEFT + 50 * k + 10) for k in range(10)]
+    caption = line("Figure 1: Results.", 270, 420, 330)
+    doc = build([*running(60, 5), frame, axis, *ticks, caption, *running(440, 3)])
+    found = named(doc, "Figure 1")
+    assert {t.id for t in ticks} <= {part.item for part in found.parts}
+    assert found.text == "0 1 2 3 4 5 6 7 8 9"
+    assert all(t.text not in p.text.split() for p in of(doc, BlockKind.PARAGRAPH) for t in ticks)
+
+
+def test_a_caption_takes_every_marker_of_a_wide_cloud() -> None:
+    """A cloud of small markers wider than its caption is one figure, whatever order the
+    markers are met in."""
+    cloud = [
+        Drawing(f"m{c}-{r}", Box(LEFT + 3 * c, 200 + 3 * r, LEFT + 3 * c + 2.5, 202.5 + 3 * r))
+        for c in range(100)
+        for r in range(20)
+    ]
+    caption = line("Figure 1: Cloud.", 300, 270, 360)
+    doc = build([*running(60, 5), *cloud, caption, *running(300, 3)])
+    found = named(doc, "Figure 1")
+    assert {m.id for m in cloud} <= {part.item for part in found.parts}
+
+
 def test_running_text_that_names_a_figure_names_nothing() -> None:
     """ "Figure 1 gives …" is no caption (D-85): the picture above it is a figure no caption
     names, and the text stays a paragraph."""
