@@ -2,6 +2,7 @@
 # name: test_golden_file[acl2023-chi-plue]
   '''
   acl2023-chi-plue.pdf  language en  blocks 542
+  page labels  352 353 354 355 356 357 358 359 360 361 362 363 364 365
   0  p1  paragraph  [p1-l4..p1-l5 (2)]  PLUE: Language Understanding Evaluation Benchmark\nfor Privacy Policies in English
   1  p1  paragraph  [p1-l6..p1-l8 (3)]  Jianfeng Chi1,2 Wasi Uddin Ahmad3∗ Yuan Tian3 Kai-Wei Chang3
   2  p1  paragraph  [p1-l9..p1-l10 (2)]  1Meta AI, 2University of Virginia, 3University of California, Los Angeles\njianfengchi@meta.com,{wasiahmad,yuant,kwchang}@ucla.edu
@@ -15,10 +16,10 @@
   10  p1  paragraph  [p1-l67..p1-l86 (20)]  To address these problems and encourage re-\nsearch to develop NLU technologies in the pri-\nvacy policy domain, we introduce the Privacy Pol-\nicy Language Understanding Evaluation (PLUE)\nbenchmark, to evaluate the privacy policy language\nunderstanding across six tasks, including text clas-\nsification, question answering, semantic parsing,\nand named-entity recognition. PLUE also includes\na pre-training privacy policy corpus that we crawl\nfrom the websites to enable privacy policy domain-\nspecific language model pre-training. We use this\ncorpus to pre-train BERT (Devlin et al., 2019),\nRoBERTa (Liu et al., 2019), Electra (Clark et al.,\n2020), and SpanBERT (Joshi et al., 2020) and fine-\ntune them on the downstream tasks. We demon-\nstrate that domain-specific continual pre-training\noffers performance improvements across all tasks.\nWe will release the benchmark to assist natural\nlanguage processing (NLP) researchers and practi-\ntioners in future exploration.
   11  p1  paragraph  [p1-l87..p1-l88 (2)]  2 Policy Language Understanding\nEvaluation (PLUE) Benchmark
   12  p1  paragraph  [p1-l89..p2-l71 (16)]  PLUE is centered on six English privacy policy lan-\nguage understanding tasks. The datasets and tasks\nare selected based on the following principles: (1)\nusefulness: the selected tasks can help practitioners\nin the domain quickly understand privacy practices\nwithout reading the whole privacy policy; (2) task\ndiversity: the selected tasks focus on different se-\nmantic levels, e.g., words (phrases), sentences, and\nparagraphs; (3) task difficulty: the selected tasks\nshould be adequately challenging for more room\nfor improvement; (4) training efficiency: all tasks\ncan be trainable on a single moderate GPU (e.g.,\nGeForce GTX 1080 Ti) for no more than ten hours;\n(5) accessibility: all datasets are publicly available\nunder licenses that allow usage and redistribution\nfor research purposes.
-  13  p1  furniture  [p1-l93]  352
-  14  p1  furniture  [p1-l1]  Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
-  15  p1  furniture  [p1-l2]  Volume 2: Short Papers, pages 352–365
-  16  p1  furniture  [p1-l3]  July 9-14, 2023 ©2023 Association for Computational Linguistics
+  13  p1  furniture/page-number  [p1-l93]  352
+  14  p1  furniture/footer  [p1-l1]  Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
+  15  p1  furniture/footer  [p1-l2]  Volume 2: Short Papers, pages 352–365
+  16  p1  furniture/footer  [p1-l3]  July 9-14, 2023 ©2023 Association for Computational Linguistics
   17  p2  figure  [p2-d1]  
   18  p2  paragraph  [p2-l1..p2-l8 (8)]  Dataset Task Sub-domain |Policy| |Train| |Dev| |Test| Metric
   19  p2  figure  [p2-d2]  
@@ -70,7 +71,7 @@
   65  p2  paragraph  [p2-l119..p2-l141 (23)]  PolicyIE Ahmad et al. (2021) proposed a seman-\ntic parsing dataset composed of two tasks: intent\nclassification and slot filling. Given a sentence in a\nprivacy policy, the task is to predict the sentence’s\nintent (i.e., privacy practice) and identify the seman-\ntic concepts associated with the privacy practice.\nBased on the role of the slots in privacy practices,\nPolicyIE groups them into type-I and type-II slots.\nIn total, there are four intent labels and 14 type-I\nand four type-II slot labels. We individually train\na text classifier and sequence taggers to perform\nintent classification and slot filling, respectively.\nPI-Extract Bui et al. (2021) presented PI-Extract,\na named-entity recognition (NER) dataset. It aims\nto identify what types of user data are (not) col-\nlected or shared mentioned in the privacy policies.\nIt contains 4 types of named entities: COLLECT,\nNOT_COLLECT, SHARE and NOT_SHARE. Note that\nthe named entities of different types may overlap.\nThus, we report the results for collection-related\nand share-related entities, respectively.
   66  p2  paragraph  [p2-l142..p2-l143 (2)]  2.2 Pre-training Corpus Collection
   67  p2  paragraph  [p2-l144..p3-l17 (19)]  The existing pre-trained language models (PLMs)\nmostly use data from BooksCorpus (Zhu et al.,\n2015) and English Wikipedia. Language models\npre-trained on text from those sources might not\nperform well on the downstream privacy policy lan-\nguage understanding tasks, as privacy policies are\ncomposed of text written by domain experts (e.g.,\nlawyers). Gururangan et al. (2020) suggested that\nadapting to the domain’s unlabeled data (domain-\nadaptive pre-training) improves the performance\nof domain-specific tasks. Therefore, we collect\na large privacy policy corpus for language model\npre-training. In order to achieve broad coverage\nacross privacy practices written in privacy policies\n(William, 2020; Ahmad et al., 2021), we collect the\nprivacy policies from two sources: mobile applica-\ntion privacy policies and website privacy policies.\nAppendix B provides more details about how we\ncollect these two types of privacy policies.
-  68  p2  furniture  [p2-l146]  353
+  68  p2  furniture/page-number  [p2-l146]  353
   69  p3  paragraph  [p3-l18..p3-l19 (2)]  2.3 Models & Training
   70  p3  paragraph  [p3-l20..p3-l26 (7)]  Baselines We benchmark pre-trained language\nmodels (PLMs), BERT (Devlin et al., 2019),\nRoBERTa (Liu et al., 2019), SpanBERT (Joshi\net al., 2020), Electra (Clark et al., 2020), and\nLEGAL-BERT (Chalkidis et al., 2020). We present\nthe details of the PLMs in Appendix C.
   71  p3  paragraph  [p3-l27..p3-l34 (8)]  Domain-specific Continual Pre-training In or-\nder to adapt PLMs to the privacy policy domain,\nwe continue to train BERT, Electra, SpanBERT,\nand RoBERTa on the pre-training corpus described\nin Section 2.2. We refer to them as PP-BERT, PP-\nRoBERTa, PP-SpanBERT, and PP-Electra, respec-\ntively.1 We present details in Appendix D.1.
@@ -86,7 +87,7 @@
   81  p3  paragraph  [p3-l98..p4-l266 (15)]  Privacy Policy Benchmarks The Usable Privacy\nPolicy Project (Sadeh et al., 2013) is the most sig-\nnificant effort to date, resulting in a large pool of\nworks (Wilson et al., 2016a,b; Sathyendra et al.,\n2016; Mysore Sathyendra et al., 2017; Bhatia and\nBreaux, 2015; Bhatia et al., 2016; Hosseini et al.,\n2016; Zimmeck et al., 2019) to facilitate the au-\ntomation of privacy policy analysis. A wide range\nof NLP techniques have been explored accordingly\n(Liu et al., 2014; Ramanath et al., 2014; Wilson\net al., 2016a; Harkous et al., 2018; Zimmeck et al.,\n2019; Shvartzshanider et al., 2018; Harkous et al.,\n2018; Ravichander et al., 2019; Ahmad et al., 2020;\nBui et al., 2021; Ahmad et al., 2021).
   82  p3  figure  [p3-d2]  
   83  p3  paragraph  [p3-l103..p3-l104 (2)]  2Ravichander et al. (2019) reported 39.8% F1 score for\nBERT model; however, we are able to achieve 36.3%.
-  84  p3  furniture  [p3-l105]  354
+  84  p3  furniture/page-number  [p3-l105]  354
   85  p4  figure  [p4-d1]  
   86  p4  paragraph  [p4-l1..p4-l3 (3)]  Models |Model| OPP-115
   87  p4  paragraph  [p4-l4..p4-l7 (4)]  APP-350\nPrivacyQA\nPolicyQA\nPI-Extract
@@ -293,7 +294,7 @@
   288  p4  figure  [p4-d1836]  
   289  p4  paragraph  [p4-l254..p4-l256 (3)]  Table 3: Performance comparison of pre-trained models on intent classification and slot filling tasks (PolicyIE) and\naverage scores of all PLUE tasks. We fine-tune all the models three times with different seeds and report average\nperformances. Human performances are reported from the respective works.
   290  p4  paragraph  [p4-l267..p5-l2 (14)]  Pre-trained Language Models In the last few\nyears, NLP research has witnessed a radical change\nwith the advent of PLMs like ELMo (Peters et al.,\n2018) and BERT (Devlin et al., 2019). PLMs\nachieved state-of-the-art results in many language\nunderstanding benchmarks. Consequently, PLMs\nhave been developed for a wide range of domains,\ne.g., scientific (Beltagy et al., 2019), medical (Lee\net al., 2020; Rasmy et al., 2021; Alsentzer et al.,\n2019), legal (Chalkidis et al., 2020), and cybersecu-\nrity (Ranade et al., 2021; Bayer et al., 2022). This\nwork investigates the adaptation of PLMs to facili-\ntate NLP research in the privacy policy domain.
-  291  p4  furniture  [p4-l279]  355
+  291  p4  furniture/page-number  [p4-l279]  355
   292  p5  paragraph  [p5-l3]  5 Conclusion and Future work
   293  p5  paragraph  [p5-l4..p5-l10 (7)]  Reliable aggregation of datasets and benchmark-\ning foundation models on them facilitate future\nresearch. This work presents PLUE, a benchmark\nfor training and evaluating new security and pri-\nvacy policy models. PLUE will help researchers\nbenchmark policy language understanding under a\nunified setup and facilitate reliable comparison.
   294  p5  paragraph  [p5-l11..p5-l20 (10)]  PLUE also presents some challenges in lan-\nguage understanding evaluation for privacy poli-\ncies. For example, the imbalance data issue for\nprivacy practices is a major challenge in the Priva-\ncyQA task (Parvez et al., 2022). Data efficiency is\nalso a challenge for continual pre-training as the\namount of unlabeled data is also small for this do-\nmain. Approaches such as (Qin et al., 2022) could\nbe investigated to continually adapt LMs for the\nemerging data in this domain.
@@ -311,7 +312,7 @@
   306  p5  paragraph  [p5-l92..p5-l98 (7)]  Ryan Amos, Gunes Acar, Eli Lucherini, Mihir Kshir-\nsagar, Arvind Narayanan, and Jonathan Mayer. 2021.\nPrivacy policies over time: Curation and analysis of\na million-document dataset. In Proceedings of the\nWeb Conference 2021, WWW ’21, page 2165–2176,\nNew York, NY, USA. Association for Computing\nMachinery.
   307  p5  figure  [p5-d1]  
   308  p5  paragraph  [p5-l99..p5-l101 (3)]  3Calculated using https://mlco2.github.io/impact,\nbased on a total of 100 hours of training on Tesla V100 and\nAmazon Web Services as the provider.
-  309  p5  furniture  [p5-l102]  356
+  309  p5  furniture/page-number  [p5-l102]  356
   310  p6  paragraph  [p6-l1..p6-l5 (5)]  Markus Bayer, Philipp Kuehn, Ramin Shanehsaz, and\nChristian Reuter. 2022. Cysecbert: A domain-\nadapted language model for the cybersecurity domain.\narXiv preprint arXiv:2212.02974.
   311  p6  paragraph  [p6-l6..p6-l13 (8)]  Iz Beltagy, Kyle Lo, and Arman Cohan. 2019. SciB-\nERT: A pretrained language model for scientific text.\nIn Proceedings of the 2019 Conference on Empirical\nMethods in Natural Language Processing and the\n9th International Joint Conference on Natural Lan-\nguage Processing (EMNLP-IJCNLP), pages 3615–\n3620, Hong Kong, China. Association for Computa-\ntional Linguistics.
   312  p6  paragraph  [p6-l14..p6-l17 (4)]  Jaspreet Bhatia and Travis D Breaux. 2015. Towards an\ninformation type lexicon for privacy policies. In 2015\nIEEE eighth international workshop on requirements\nengineering and law (RELAW), pages 19–24. IEEE.
@@ -332,7 +333,7 @@
   327  p6  paragraph  [p6-l103..p6-l107 (5)]  Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-\ndar Joshi, Danqi Chen, Omer Levy, Mike Lewis,\nLuke Zettlemoyer, and Veselin Stoyanov. 2019.\nRoberta: A robustly optimized bert pretraining ap-\nproach. arXiv preprint arXiv:1907.11692.
   328  p6  paragraph  [p6-l108..p6-l111 (4)]  Florencia Marotta-Wurgler. 2015. Does “notice and\nchoice” disclosure regulation work? an empirical\nstudy of privacy policies,”. In Michigan Law: Law\nand Economics Workshop.
   329  p6  paragraph  [p6-l112..p6-l118 (7)]  Kanthashree Mysore Sathyendra, Shomir Wilson, Flo-\nrian Schaub, Sebastian Zimmeck, and Norman Sadeh.\n2017. Identifying the provision of choices in privacy\npolicy text. In Proceedings of the 2017 Conference\non Empirical Methods in Natural Language Process-\ning, pages 2774–2779, Copenhagen, Denmark. Asso-\nciation for Computational Linguistics.
-  330  p6  furniture  [p6-l119]  357
+  330  p6  furniture/page-number  [p6-l119]  357
   331  p7  paragraph  [p7-l1..p7-l4 (4)]  Md Rizwan Parvez, Jianfeng Chi, Wasi Uddin Ahmad,\nYuan Tian, and Kai-Wei Chang. 2022. Retrieval en-\nhanced data augmentation for question answering on\nprivacy policies. arXiv preprint arXiv:2204.08952.
   332  p7  paragraph  [p7-l5..p7-l10 (6)]  Adam Paszke, Sam Gross, Francisco Massa, Adam\nLerer, James Bradbury, Gregory Chanan, Trevor\nKilleen, Zeming Lin, Natalia Gimelshein, Luca\nAntiga, et al. 2019. Pytorch: An imperative style,\nhigh-performance deep learning library. Advances in\nneural information processing systems, 32.
   333  p7  paragraph  [p7-l11..p7-l19 (9)]  Matthew E. Peters, Mark Neumann, Mohit Iyyer, Matt\nGardner, Christopher Clark, Kenton Lee, and Luke\nZettlemoyer. 2018. Deep contextualized word repre-\nsentations. In Proceedings of the 2018 Conference of\nthe North American Chapter of the Association for\nComputational Linguistics: Human Language Tech-\nnologies, Volume 1 (Long Papers), pages 2227–2237,\nNew Orleans, Louisiana. Association for Computa-\ntional Linguistics.
@@ -351,10 +352,10 @@
   346  p7  paragraph  [p7-l94..p7-l95 (2)]  Henry William. 2020. Do web apps and mobile apps\nneed separate privacy policies?
   347  p7  paragraph  [p7-l96..p7-l106 (11)]  Shomir Wilson, Florian Schaub, Aswarth Abhilash\nDara, Frederick Liu, Sushain Cherivirala, Pedro\nGiovanni Leon, Mads Schaarup Andersen, Sebas-\ntian Zimmeck, Kanthashree Mysore Sathyendra,\nN. Cameron Russell, Thomas B. Norton, Eduard\nHovy, Joel Reidenberg, and Norman Sadeh. 2016a.\nThe creation and analysis of a website privacy policy\ncorpus. In Proceedings of the 54th Annual Meet-\ning of the Association for Computational Linguistics\n(Volume 1: Long Papers), pages 1330–1340, Berlin,\nGermany. Association for Computational Linguistics.
   348  p7  paragraph  [p7-l107..p7-l113 (7)]  Shomir Wilson, Florian Schaub, Rohan Ramanath, Nor-\nman Sadeh, Fei Liu, Noah A Smith, and Frederick\nLiu. 2016b. Crowdsourcing annotations for websites’\nprivacy policies: Can it really work? In Proceedings\nof the 25th International Conference on World Wide\nWeb, pages 133–143. International World Wide Web\nConferences Steering Committee.
-  349  p7  furniture  [p7-l114]  358
+  349  p7  furniture/page-number  [p7-l114]  358
   350  p8  paragraph  [p8-l1..p8-l7 (7)]  Yukun Zhu, Ryan Kiros, Rich Zemel, Ruslan Salakhut-\ndinov, Raquel Urtasun, Antonio Torralba, and Sanja\nFidler. 2015. Aligning books and movies: Towards\nstory-like visual explanations by watching movies\nand reading books. In Proceedings of the IEEE in-\nternational conference on computer vision, pages\n19–27.
   351  p8  paragraph  [p8-l8..p8-l13 (6)]  Sebastian Zimmeck, Peter Story, Daniel Smullen, Ab-\nhilasha Ravichander, Ziqi Wang, Joel Reidenberg,\nN Cameron Russell, and Norman Sadeh. 2019. Maps:\nScaling privacy compliance analysis to a million apps.\nProceedings on Privacy Enhancing Technologies,\n2019(3):66–86.
-  352  p8  furniture  [p8-l14]  359
+  352  p8  furniture/page-number  [p8-l14]  359
   353  p9  paragraph  [p9-l1]  Supplementary Material: Appendices
   354  p9  paragraph  [p9-l2]  A Dataset Details
   355  p9  paragraph  [p9-l3..p9-l4 (2)]  A.1 OPP-115 Privacy Practices
@@ -392,7 +393,7 @@
   387  p9  paragraph  [p9-l94..p10-l46 (10)]  RoBERTa Liu et al. (2019) presented a replica-\ntion study of BERT pretraining where they showed\nthat BERT was significantly undertrained and pro-\nposed RoBERTa that tunes key hyperparameters\nand uses more training data to achieve remarkable\nperformance improvements. Note that while BERT,\nElectra, and SpanBERT use the same vocabulary,\nRoBERTa uses a different vocabulary resulting in\n15M more parameters in the model.
   388  p9  figure  [p9-d1]  
   389  p9  paragraph  [p9-l99..p9-l100 (2)]  4The corpus is publicly available at https://github.\ncom/citp/privacy-policy-historical.
-  390  p9  furniture  [p9-l101]  360
+  390  p9  furniture/page-number  [p9-l101]  360
   391  p10  figure  [p10-d1]  
   392  p10  paragraph  [p10-l1..p10-l6 (6)]  OPP-115 Text: Secure Online Ordering For your security, we only store your credit card information if\nyou choose to set up an authorized account with one of our Sites. In that case, it is stored on\na secure computer in an encrypted format. If you do not set up an account, you will have to\nenter your credit card information each time you order. We understand that this may be a little\ninconvenient for you, but some customers appreciate the added security.
   393  p10  paragraph  [p10-l7]  Classes: Data Security, User Choice/Control, First Party Collection/Use
@@ -417,7 +418,7 @@
   412  p10  figure  [p10-d7]  
   413  p10  paragraph  [p10-l41]  Table 4: Examples from the tasks in PLUE.
   414  p10  paragraph  [p10-l47..p10-l57 (11)]  LEGAL-BERT Chalkidis et al. (2020) pre-\ntrained BERT using 12 GB of the English text\n(over 351K documents) from several legal fields\n(e.g., contracts, legislation, court cases) scraped\nfrom publicly available resources. Since privacy\npolicies serve as official documents to protect the\ncompany and consumers’ privacy rights and might\ncontain contents in response to privacy law (e.g.,\nGDPR), we study LEGAL-BERT’s effectiveness\non the PLUE tasks.
-  415  p10  furniture  [p10-l58]  361
+  415  p10  furniture/page-number  [p10-l58]  361
   416  p11  paragraph  [p11-l1]  D More Implementation Details
   417  p11  paragraph  [p11-l2..p11-l3 (2)]  D.1 Domain-specific Continual Pre-training
   418  p11  paragraph  [p11-l4..p11-l14 (11)]  Since BERT, Electra, and SpanBERT share the\nsame model architectures, we use almost the same\nhyperparameters (e.g., learning rate, train steps,\nbatch size) for them following the original papers.\nWe scale down the train steps by the same factor,\nas the size of our pre-training corpus is roughly\n1/10 the size of the pre-training corpus of BERT.\nWe adhere to the guidelines outlined in Liu et al.\n(2019) to train RoBERTa with larger batch size,\nhigher learning rate, and fewer train steps. Table 5\npresents the training hyperparameters for PLMs.
@@ -428,7 +429,7 @@
   423  p11  paragraph  [p11-l37..p11-l47 (11)]  To facilitate using PLUE, we release our implemen-\ntation, which is built with Pytorch (Paszke et al.,\n2019) and the Huggingface transformers5 pack-\nage. Our implementation includes the continual\npre-training of our baselines and the evaluation\nof any PLMs supported by the Huggingface trans-\nformers package on the PLUE benchmark tasks.\nIn addition to PLUE datasets, we release the pre-\ntraining corpus and all data pre-processing scripts,\nincluding the pre-training corpus crawling scripts,\nto assist future research in this area.
   424  p11  figure  [p11-d1]  
   425  p11  paragraph  [p11-l48]  5 https://github.com/huggingface/transformers
-  426  p11  furniture  [p11-l49]  362
+  426  p11  furniture/page-number  [p11-l49]  362
   427  p12  figure  [p12-d1]  
   428  p12  paragraph  [p12-l1..p12-l4 (4)]  PP-BERT PP-SpanBERT PP-Electra PP-RoBERTa
   429  p12  figure  [p12-d2]  
@@ -493,7 +494,7 @@
   488  p12  paragraph  [p12-l79]  20
   489  p12  figure  [p12-d6]  
   490  p12  paragraph  [p12-l80]  Table 6: Hyperparameters for fine-tuning pre-trained language models on different PLUE tasks.
-  491  p12  furniture  [p12-l81]  363
+  491  p12  furniture/page-number  [p12-l81]  363
   492  p13  paragraph  [p13-l1]  ACL 2023 Responsible NLP Checklist
   493  p13  figure  [p13-d1]  
   494  p13  paragraph  [p13-l2..p13-l3 (2)]  A For every submission:
@@ -525,7 +526,7 @@
   520  p13  paragraph  [p13-l41]  In the section "Ethics Statement."
   521  p13  figure  [p13-d2]  
   522  p13  paragraph  [p13-l42..p13-l43 (2)]  The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing\nassistance.
-  523  p13  furniture  [p13-l44]  364
+  523  p13  furniture/page-number  [p13-l44]  364
   524  p14  paragraph  [p14-l1..p14-l2 (2)]  ✓ C2. Did you discuss the experimental setup, including hyperparameter search and best-found\nhyperparameter values?
   525  p14  paragraph  [p14-l3]  Section 2.
   526  p14  paragraph  [p14-l4..p14-l6 (3)]  ✓ C3. Did you report descriptive statistics about your results (e.g., error bars around results, summary\nstatistics from sets of experiments), and is it transparent whether you are reporting the max, mean,\netc. or just a single run?
@@ -543,13 +544,14 @@
   538  p14  paragraph  [p14-l25..p14-l26 (2)]  D4. Was the data collection protocol approved (or determined exempt) by an ethics review board?\nNot applicable. Left blank.
   539  p14  paragraph  [p14-l27..p14-l28 (2)]  D5. Did you report the basic demographic and geographic characteristics of the annotator population\nthat is the source of the data?
   540  p14  paragraph  [p14-l29]  Not applicable. Left blank.
-  541  p14  furniture  [p14-l30]  365
+  541  p14  furniture/page-number  [p14-l30]  365
   
   '''
 # ---
 # name: test_golden_file[acl2023-hardt-ellipsis]
   '''
   acl2023-hardt-ellipsis.pdf  language en  blocks 230
+  page labels  39 40 41 42 43 44 45 46 47
   0  p1  paragraph  [p1-l4..p1-l5 (2)]  Ellipsis-Dependent Reasoning: a New Challenge for Large Language\nModels
   1  p1  paragraph  [p1-l6]  Daniel Hardt
   2  p1  paragraph  [p1-l7..p1-l8 (2)]  Copenhagen Business School\ndha.msc@cbs.dk
@@ -570,10 +572,10 @@
   17  p1  paragraph  [p1-l76..p1-l77 (2)]  2.1 Probing Models for Knowledge
   18  p1  paragraph  [p1-l78..p1-l84 (7)]  The Winograd Schema (Kocijan et al. (2022);\nLevesque et al. (2012)) involves test examples that\nuse the linguistic problem of pronoun resolution\nto gain insight into the commonsense reasoning\nabilities of an AI system. To do this, the Winograd\nSchema requires pairs of examples that differ only\nin one specific, small way, as in (4):
   19  p1  paragraph  [p1-l85..p1-l88 (4)]  (4) The city councilmen refused the demonstra-\ntors a permit because they feared/advocated\nviolence.
-  20  p1  furniture  [p1-l89]  39
-  21  p1  furniture  [p1-l1]  Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
-  22  p1  furniture  [p1-l2]  Volume 2: Short Papers, pages 39–47
-  23  p1  furniture  [p1-l3]  July 9-14, 2023 ©2023 Association for Computational Linguistics
+  20  p1  furniture/page-number  [p1-l89]  39
+  21  p1  furniture/footer  [p1-l1]  Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
+  22  p1  furniture/footer  [p1-l2]  Volume 2: Short Papers, pages 39–47
+  23  p1  furniture/footer  [p1-l3]  July 9-14, 2023 ©2023 Association for Computational Linguistics
   24  p2  paragraph  [p2-l1..p2-l11 (11)]  With “feared", the pronoun “they" refers to the city\ncouncilmen, while with “advocated", it refers to the\ndemonstrators. Humans understand this because\nof general, commonsense knowledge about what\nwould reasonably explain the refusal of a permit\nin the two cases. It is difficult to ensure that such\nexamples can only be solved through such sophis-\nticated reasoning, and, according to Kocijan et al.\n(2022)[p. 8], “Solving Winograd schemas is not\na surrogate for the ability to do commonsense rea-\nsoning".
   25  p2  paragraph  [p2-l12..p2-l22 (11)]  A different approach is exemplified by Lin et al.\n(2019): here, examples are constructed which test\nspecific aspects of linguistic knowledge of a sys-\ntem, namely, whether BERT embeddings “encode\nhierarchical information". For example, a task is\ndefined to identify the main auxiliary verb in a\nsentence, even in cases where the main auxiliary\nis not the first auxiliary verb to appear. Training\nand testing datasets are automatically generated us-\ning a context-free grammar for several such tasks\ninvolving hierarchical syntactic information.
   26  p2  paragraph  [p2-l23..p2-l24 (2)]  2.2 Anaphora and Question Answering
@@ -586,7 +588,7 @@
   33  p2  paragraph  [p2-l94]  3 Data
   34  p2  paragraph  [p2-l95..p2-l98 (4)]  There is a great deal of variety in the structural\nconfigurations in which ellipsis can occur. In ta-\nbles 1 and 2 we define structures for ellipsis and\nantecedent occurrences.
   35  p2  paragraph  [p2-l99..p3-l41 (16)]  In all structures, there is an ellipsis occurrence,\nand the question targets the ellipsis occurrence. Fur-\nthermore, each ellipsis example is paired with a\nnon-ellipsis version. The first two structures, Sep-\narate Sentence, and Conjoined Sentence, involve\ntwo adjacent main clauses. This is followed by two\nstructures in which either the VPE or antecedent oc-\ncur in a subordinate clause. There is a Backwards\nstructure where the VPE precedes the antecedent;\nhere the VPE is in a subordinate clause. Finally, we\nhave a Two Actions structure; that is, two ellipsis\noccurrences each with their respective antecedent\nVPs. We have two versions: one in which the target\nquestion has a correct answer of “Yes", shown in\ntable 1, and another where the target question has\na correct answer of “No", shown in table 2.
-  36  p2  furniture  [p2-l103]  40
+  36  p2  furniture/page-number  [p2-l103]  40
   37  p3  figure  [p3-d1]  
   38  p3  figure  [p3-d2..p3-d3 (2)]  
   39  p3  paragraph  [p3-l1..p3-l2 (2)]  Structure Example
@@ -648,7 +650,7 @@
   95  p3  paragraph  [p3-l100]  5 Results
   96  p3  paragraph  [p3-l101..p3-l118 (18)]  Figure 1 gives the accuracy for ellipsis and non-\nellipsis, for each of the five models. We have set\nup the test examples so that an ellipsis example\nis paired with a non-ellipsis example that is oth-\nerwise identical. Because of this, we claim that\nthe difference in accuracy of the non-ellipsis case\nvs. the ellipsis case provides a measurement of the\ndifficulty specifically posed by ellipsis. For all but\nthe least powerful model, Ada, the non-ellipsis ac-\ncuracy is substantially higher than ellipsis accuracy,\nsupporting the hypothesis that ellipsis-dependent\nreasoning presents a difficult challenge for these\nmodels. While the Ada model actually performs\nsomewhat better for ellipsis than non-ellipsis, this\nis not because the Ada model does well with ellip-\nsis cases; rather, the model has great difficulty with\nboth the ellipsis and non-ellipsis cases, and is close\nto a random guessing baseline of .50.
   97  p3  paragraph  [p3-l119..p4-l12 (16)]  In figures 2 through 6, we present results for each\nmodel. We show the accuracy for each structure,\nfor both the ellipsis version and the non-ellipsis ver-\nsion. Consider the most powerful models, Davinci-\n003 and Davinci-002. In figures 2 and 3, we can see\nthat ellipsis is not difficult in the first two structures:\n2Sent (Separate Sentence) and 1Sent (Conjoined\nSentence). Here the accuracy is nearly perfect for\nthe ellipsis as well as the non-ellipsis condition.\nHowever, in all the other structures, there is a large\ndivergence in accuracy between ellipsis and non-\nellipsis, for both the Davinci-003 and Davinci-002\nmodels. Subordination for either antecedent or el-\nlipsis is quite challenging, with accuracies ranging\nfrom 48.8 to 85.8. The Backwards and Two Ac-\ntions structures are even more difficult for ellipsis.
-  98  p3  furniture  [p3-l127]  41
+  98  p3  furniture/page-number  [p3-l127]  41
   99  p4  figure  [p4-i1]  
   100  p4  paragraph  [p4-l1..p4-l2 (2)]  Figure 1: Model Accuracy – Ellipsis vs. Non-Ellipsis\n(5000 examples per model.)
   101  p4  figure  [p4-i2]  
@@ -663,7 +665,7 @@
   110  p4  paragraph  [p4-l33..p4-l40 (8)]  There are striking differences in the distribution\nof errors. For both the Davinci-003 and Davinci-\n002 models, errors are nearly always false negatives\n– that is, incorrect “No" answers. There are virtually\nno false positives, either for the ellipsis case or non-\nellipsis case. For the other three models, there are\nmany errors of each type, with a much higher ratio\nof false positives.
   111  p4  paragraph  [p4-l41]  7 Conclusion
   112  p4  paragraph  [p4-l42..p5-l13 (12)]  Most of the current rapid progress in NLP is due\nto pre-trained large language models. GPT-3 is\nan impressive publicly available collection of such\nmodels, and is able to perform in a way that sug-\ngests human-level understanding. Because of this,\nit is important to explore areas in which it might\nstill differ from human language understanding. In\nthis paper we have argued that ellipsis is one such\narea. For many simple ellipsis structures, the most\npowerful GPT-3 models struggle, with accuracies\nfar lower on ellipsis examples than on non-elliptical\ncounterparts.
-  113  p4  furniture  [p4-l45]  42
+  113  p4  furniture/page-number  [p4-l45]  42
   114  p5  figure  [p5-i1]  
   115  p5  paragraph  [p5-l1..p5-l2 (2)]  Figure 5: Ellipsis Accuracy – babbage-001 (1000 exam-\nples per structure.)
   116  p5  figure  [p5-i2]  
@@ -677,7 +679,7 @@
   124  p5  paragraph  [p5-l28..p5-l37 (10)]  This paper argues that the proposed task of ellipsis-\ndependent reasoning is a difficult challenge for\nGPT-3 models, which are among the most power-\nful current language models. The data constructed\nhere is restricted to English, and furthermore is re-\nstricted to a single form of ellipsis, namely verb\nphrase ellipsis. It may well be that other forms of\nellipsis may give rise to different effects, and it is\nalso important to test the claims made here on other\nlanguages.
   125  p5  paragraph  [p5-l38]  References
   126  p5  paragraph  [p5-l39..p5-l40 (2)]  OpenAI GPT-3 Models Overview. Accessed on 2023-\n01-10.
-  127  p5  furniture  [p5-l41]  43
+  127  p5  furniture/page-number  [p5-l41]  43
   128  p6  paragraph  [p6-l1..p6-l7 (7)]  Rahul Aralikatte, Matthew Lamm, Daniel Hardt, and\nAnders Søgaard. 2021. Ellipsis resolution as ques-\ntion answering: An evaluation. In Proceedings of the\n16th Conference of the European Chapter of the Asso-\nciation for Computational Linguistics: Main Volume,\npages 810–817, Online. Association for Computa-\ntional Linguistics.
   129  p6  paragraph  [p6-l8..p6-l10 (3)]  Johan Bos and Jennifer Spenader. 2011. An annotated\ncorpus for the analysis of VP ellipsis. Language\nresources and evaluation, 45(4):463–494.
   130  p6  paragraph  [p6-l11..p6-l19 (9)]  Pradeep Dasigi, Nelson F Liu, Ana Marasovic, Noah A ´\nSmith, and Matt Gardner. 2019. Quoref: A\nreading comprehension dataset with questions re-\nquiring coreferential reasoning. arXiv preprint\narXiv:1908.05803.
@@ -713,7 +715,7 @@
   160  p6  paragraph  [p6-l102]  Q: Did Harold go swimming?
   161  p6  paragraph  [p6-l103]  A: Yes
   162  p6  paragraph  [p6-l104..p6-l105 (2)]  Q: Did Harold go shopping?\nA: No
-  163  p6  furniture  [p6-l106]  44
+  163  p6  furniture/page-number  [p6-l106]  44
   164  p7  figure  [p7-d1]  
   165  p7  paragraph  [p7-l1]  Category
   166  p7  paragraph  [p7-l2]  Substitution List
@@ -729,7 +731,7 @@
   176  p7  paragraph  [p7-l11]  Table 3: Substitutions
   177  p7  paragraph  [p7-l12..p7-l13 (2)]  A.2 Substitutions
   178  p7  paragraph  [p7-l14..p7-l16 (3)]  The examples are produced using the substitutions\nfor subjects and verbs in the different structures, as\nshown in table 3.
-  179  p7  furniture  [p7-l17]  45
+  179  p7  furniture/page-number  [p7-l17]  45
   180  p8  paragraph  [p8-l1]  ACL 2023 Responsible NLP Checklist
   181  p8  figure  [p8-d1]  
   182  p8  paragraph  [p8-l2..p8-l3 (2)]  A For every submission:
@@ -761,7 +763,7 @@
   208  p8  paragraph  [p8-l41]  standard access to GPT3 models
   209  p8  figure  [p8-d2]  
   210  p8  paragraph  [p8-l42..p8-l43 (2)]  The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing\nassistance.
-  211  p8  furniture  [p8-l44]  46
+  211  p8  furniture/page-number  [p8-l44]  46
   212  p9  paragraph  [p9-l1..p9-l2 (2)]  ✗ C2. Did you discuss the experimental setup, including hyperparameter search and best-found\nhyperparameter values?
   213  p9  paragraph  [p9-l3]  no search of hyperparameters
   214  p9  paragraph  [p9-l4..p9-l6 (3)]  ✓ C3. Did you report descriptive statistics about your results (e.g., error bars around results, summary\nstatistics from sets of experiments), and is it transparent whether you are reporting the max, mean,\netc. or just a single run?
@@ -779,13 +781,14 @@
   226  p9  paragraph  [p9-l25..p9-l26 (2)]  D4. Was the data collection protocol approved (or determined exempt) by an ethics review board?\nNo response.
   227  p9  paragraph  [p9-l27..p9-l28 (2)]  D5. Did you report the basic demographic and geographic characteristics of the annotator population\nthat is the source of the data?
   228  p9  paragraph  [p9-l29]  No response.
-  229  p9  furniture  [p9-l30]  47
+  229  p9  furniture/page-number  [p9-l30]  47
   
   '''
 # ---
 # name: test_golden_file[acl2023-nowak-prefix-probabilities]
   '''
   acl2023-nowak-prefix-probabilities.pdf  language en  blocks 483
+  page labels  57 58 59 60 61 62 63 64 65 66 67
   0  p1  paragraph  [p1-l4]  A Fast Algorithm for Computing Prefix Probabilities
   1  p1  paragraph  [p1-l5..p1-l6 (2)]  Franz Nowak\nRyan Cotterell
   2  p1  paragraph  [p1-l7]  {franz.nowak, ryan.cotterell}@inf.ethz.ch
@@ -812,10 +815,10 @@
   23  p1  paragraph  [p1-l91..p1-l93 (3)]  3Note that Earley’s and, by extension, Stolcke’s algorithms\nalso implicitly binarize the grammar during execution by using\ndotted rules as additional non-terminals.
   24  p1  paragraph  [p1-l94..p1-l95 (2)]  4A PCFG in CNF is dense if for every X, Y, Z ∈ N , we\nhave a production rule X → Y Z ∈ R.
   25  p1  paragraph  [p1-l96..p1-l101 (6)]  5Note that there exist approximate parsing algorithms with\nlower complexity bounds (Cohen et al., 2013). Moreover,\nthere are parsing algorithms that asymptotically run in sub-\ncubic time in the input length using fast matrix multiplication\n(Valiant, 1975; Benedí and Sánchez, 2007). However, they are\nof limited practical use (Lee, 1997).
-  26  p1  furniture  [p1-l102]  57
-  27  p1  furniture  [p1-l1]  Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
-  28  p1  furniture  [p1-l2]  Volume 2: Short Papers, pages 57–67
-  29  p1  furniture  [p1-l3]  July 9-14, 2023 ©2023 Association for Computational Linguistics
+  26  p1  furniture/page-number  [p1-l102]  57
+  27  p1  furniture/footer  [p1-l1]  Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
+  28  p1  furniture/footer  [p1-l2]  Volume 2: Short Papers, pages 57–67
+  29  p1  furniture/footer  [p1-l3]  July 9-14, 2023 ©2023 Association for Computational Linguistics
   30  p2  paragraph  [p2-l1..p2-l3 (3)]  Definition 1. A probabilistic context-free gram-\nmar (PCFG) is a five-tuple G = (N , Σ, S, R, p),\nmade up of:
   31  p2  paragraph  [p2-l4]  • A finite set of non-terminal symbols N ;
   32  p2  paragraph  [p2-l5]  • A finite set of terminal symbols Σ, Σ ∩ N =∅;
@@ -849,7 +852,7 @@
   60  p2  paragraph  [p2-l112]  u∈Σ∗
   61  p2  paragraph  [p2-l115..p2-l118 (3)]  ξ(Y Z | X) def = X ξ(X′ | X) · p(X′−→Y Z) (9)
   62  p2  paragraph  [p2-l117]  X′∈N
-  63  p2  furniture  [p2-l119]  58
+  63  p2  furniture/page-number  [p2-l119]  58
   64  p3  figure  [p3-d1]  
   65  p3  paragraph  [p3-l1]  Algorithm 1 CKY
   66  p3  figure  [p3-d2]  
@@ -956,7 +959,7 @@
   167  p3  paragraph  [p3-l137]  Y∈N
   168  p3  paragraph  [p3-l139]  Proof. A proof of Lem. 1 is given in App. A.
   169  p3  paragraph  [p3-l140..p4-l1 (12)]  The above formulation of the prefix probability is\nclosely related to that of the inside probability from\nBaker’s (1979) inside–outside algorithm, which\ncan be efficiently computed using CKY, see Alg. 1.\nNext, the left-corner expectations ξ as defined by\nEq. (8) can be computed efficiently as follows. Let\nP denote the square matrix of dimension |N |, with\nrows and columns indexed by the non-terminals N\n(in some fixed order), where the entry at the i th row\nand the j th column corresponds to p(Xi −→ Xj _),\ni.e., the probability of deriving Xj on the left corner\nfrom Xi in one step (we use _ as a wildcard):
-  170  p3  furniture  [p3-l151]  59
+  170  p3  furniture/page-number  [p3-l151]  59
   171  p4  paragraph  [p4-l2..p4-l6 (4)]  p(Xi −→ Xj _) def = X p(Xi −→ Xj Y) (12)
   172  p4  paragraph  [p4-l4]  Y∈N
   173  p4  paragraph  [p4-l7..p4-l9 (3)]  We can find the probability of getting to non-\nterminal Xj after k derivation steps starting from\nXi by multiplying P with itself k times:
@@ -986,7 +989,7 @@
   197  p4  paragraph  [p4-l96..p4-l97 (2)]  Our improved algorithm for computing all prefix\nprobabilities is shown in Alg. 3.
   198  p4  paragraph  [p4-l98..p4-l99 (2)]  Proposition 3. The complexity of our improved\nalgorithm is O(N2 |N |3 + N3 |N |2 ).
   199  p4  paragraph  [p4-l100..p4-l108 (9)]  Proof. As before, Alg. 3 starts by precomputing\nand assigning the left-corner expectations in lines 1–\n3, which takes O(|N |3 ) and O(|N |2 ), respectively.\nWe then initialize the prefix probabilities and com-\npute the inside probabilities in lines 5–8, taking\nO(N2 |N |). As Eisner and Blatz (2007) show, one\ncan compute β (line 9) in O(N2 |N |3 + N3 |N |2 ),\nthus improving the runtime of Alg. 1 for dense\ngrammars. Pre-computing γ and δ in lines 10–14
-  200  p4  furniture  [p4-l109]  60
+  200  p4  furniture/page-number  [p4-l109]  60
   201  p5  paragraph  [p5-l4]  k−1
   202  p5  paragraph  [p5-l1..p5-l3 (2)]  π(i, X, k) = X ξ(Y, Z | X) · X
   203  p5  paragraph  [p5-l2..p5-l5 (2)]  Y,Z∈N j=i+1
@@ -1066,7 +1069,7 @@
   277  p5  paragraph  [p5-l117..p5-l130 (14)]  It turns out that Jelinek–Lafferty, and, by extension,\nour improved algorithm, can be generalized to\nwork for semiring-weighted CFGs, with the same\ntime complexity, under the condition that the\nsemiring is closed, i.e., it has a Kleene star. This\nfollows from the fact that the only operations used\nby the algorithm are addition and multiplication\nif we use Lehmann’s (1977) algorithm for the\ncomputation of left-corner expectations, ξ. We\ncan even relax the condition of local normalization\nby changing how left-corner expectations and the\nweight of the prefix ε are computed. The relevant\ndefinitions and derivation of the adapted algorithm\ncan be found in App. B.
   278  p5  paragraph  [p5-l131]  6 Conclusion
   279  p5  paragraph  [p5-l132..p5-l139 (8)]  In this paper, we have shown how to efficiently\ncompute prefix probabilities for PCFGs in CNF,\nadapting Jelinek–Lafferty to use additional memo-\nization, thereby reducing the time complexity from\nO(N3 |N |3 + |N |4 ) to O(N2 |N |3 + N3 |N |2 ).\nWe thereby addressed one of the main limitations\nof the original formulation, of being slow for large\ngrammar sizes.
-  280  p5  furniture  [p5-l140]  61
+  280  p5  furniture/page-number  [p5-l140]  61
   281  p6  paragraph  [p6-l1]  Limitations
   282  p6  paragraph  [p6-l2..p6-l13 (12)]  While we have improved the asymptotic running\ntime of a classic algorithm with regard to grammar\nsize, the time complexity of our algorithm is still\ncubic in the length of the input. Our result follows\nthe tradition of dynamic programming algorithms\nthat trade time for space by memoizing and reusing\nprecomputed intermediate results. The usefulness\nof this trade-off in practice depends on the specifics\nof the grammar, and while the complexity is strictly\nbetter in terms of non-terminals, it will be most\nnoticeable for denser grammars with many non-\nterminals.
   283  p6  paragraph  [p6-l14]  Ethics Statement
@@ -1092,7 +1095,7 @@
   303  p6  paragraph  [p6-l88..p6-l91 (4)]  Frederick Jelinek and John D. Lafferty. 1991. Computa-\ntion of the probability of initial substring generation\nby stochastic context-free grammars. Computational\nLinguistics, 17(3):315–353.
   304  p6  paragraph  [p6-l92..p6-l95 (4)]  Tadao Kasami. 1965. An efficient recognition and\nsyntax-analysis algorithm for context-free languages.\nIn Technical Report, Air Force Cambridge Research\nLab, Bedford, MA.
   305  p6  paragraph  [p6-l96..p6-l103 (8)]  Yoon Kim, Alexander Rush, Lei Yu, Adhiguna Kuncoro,\nChris Dyer, and Gábor Melis. 2019. Unsupervised\nrecurrent neural network grammars. In Proceedings\nof the 2019 Conference of the North American Chap-\nter of the Association for Computational Linguistics:\nHuman Language Technologies, Volume 1 (Long and\nShort Papers), pages 1105–1117, Minneapolis, Min-\nnesota. Association for Computational Linguistics.
-  306  p6  furniture  [p6-l104]  62
+  306  p6  furniture/page-number  [p6-l104]  62
   307  p7  paragraph  [p7-l1..p7-l3 (3)]  S. C. Kleene. 1956. Representation of Events in Nerve\nNets and Finite Automata, pages 3–42. Princeton\nUniversity Press, Princeton.
   308  p7  paragraph  [p7-l4..p7-l10 (7)]  Lillian Lee. 1997. Fast context-free parsing requires fast\nBoolean matrix multiplication. In 35th Annual Meet-\ning of the Association for Computational Linguistics\nand 8th Conference of the European Chapter of the\nAssociation for Computational Linguistics, pages 9–\n15, Madrid, Spain. Association for Computational\nLinguistics.
   309  p7  paragraph  [p7-l11..p7-l13 (3)]  M. C. J. Leermakers, A. Augusteijn, and F.E.J. Kruse-\nman Aretz. 1992. A functional LR parser. Theoreti-\ncal Computer Science, 104(2):313–323.
@@ -1107,7 +1110,7 @@
   318  p7  paragraph  [p7-l49..p7-l51 (3)]  Leslie G. Valiant. 1975. General context-free recogni-\ntion in less than cubic time. Journal of Computer\nand System Sciences, 10(2):308–315.
   319  p7  paragraph  [p7-l52..p7-l53 (2)]  Stephen Warshall. 1962. A theorem on boolean matri-\nces. Journal of the ACM, 9(1):11–12.
   320  p7  paragraph  [p7-l54..p7-l56 (3)]  Daniel H. Younger. 1967. Recognition and parsing of\ncontext-free languages in time n 3 . Information and\nControl, 10(2):189–208.
-  321  p7  furniture  [p7-l57]  63
+  321  p7  furniture/page-number  [p7-l57]  63
   322  p8  paragraph  [p8-l1]  A Proof of Lem. 1
   323  p8  paragraph  [p8-l2..p8-l3 (2)]  Lemma 1. Given a tight, trim PCFG in CNF and a string w = w1 · · · wN , the prefix probability of a\nsubstring wi+1 · · · wk of w being derived from X can be defined recursively as follows:
   324  p8  paragraph  [p8-l7]  k−1
@@ -1135,7 +1138,7 @@
   346  p8  paragraph  [p8-l62]  β(i, Y, j) · π(j, Z, k)
   347  p8  paragraph  [p8-l58..p8-l61 (2)]  Y,Z∈N j=i+1
   348  p8  paragraph  [p8-l64]  ■
-  349  p8  furniture  [p8-l65]  64
+  349  p8  furniture/page-number  [p8-l65]  64
   350  p9  paragraph  [p9-l1]  B Extension of Alg. 3 to Semirings
   351  p9  paragraph  [p9-l2..p9-l3 (2)]  In the following, we give the necessary background on semirings and then show how the algorithms\nintroduced above can be framed in terms of semirings.
   352  p9  paragraph  [p9-l4..p9-l5 (2)]  B.1 Semirings
@@ -1178,7 +1181,7 @@
   389  p9  paragraph  [p9-l54]  analogously to matrices over the real numbers.
   390  p9  paragraph  [p9-l55..p9-l57 (3)]  Definition 13. We define semiring matrix addition as follows. Let A and B be d × d matrices whose\nentries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the sum ("+") of A and B is\ndefined as:
   391  p9  paragraph  [p9-l58..p10-l3 (7)]  (A + B)ij def = Aij ⊕ Bij i, j ∈ 1, . . . , d (24)\nDefinition 14. We define semiring matrix multiplication as follows. Let A and B be d × d matrices\nwhose entries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the product of A and B\nis defined as:
-  392  p9  furniture  [p9-l62]  65
+  392  p9  furniture/page-number  [p9-l62]  65
   393  p10  paragraph  [p10-l6]  d
   394  p10  paragraph  [p10-l4..p10-l10 (5)]  (AB)ij def = M Aik ⊗ Bkj i, j ∈ 1, . . . , d (25)
   395  p10  paragraph  [p10-l7]  k=1
@@ -1215,7 +1218,7 @@
   426  p10  paragraph  [p10-l71..p10-l72 (2)]  normalized, the treesum of a semiring-weighted WCFG can be computed through fixed point iteration in a similar way to\nNewton’s method (Esparza et al., 2007).
   427  p10  paragraph  [p10-l73]  11Note that the Kleene closure exists since matrices with elements from a complete semiring are complete.
   428  p10  paragraph  [p10-l74..p10-l76 (3)]  12The generalization is by way of choosing the appropriate semiring for the given problem. By the same token, Lehmann’s\nalgorithm can also be seen as a generalization of Kleene’s (1956) algorithm for converting finite-state automata to regular\nexpressions and the Gauss–Jordan algorithm for computing matrix inversion (see e.g. Althoen and McLaughlin (1987)).
-  429  p10  furniture  [p10-l77]  66
+  429  p10  furniture/page-number  [p10-l77]  66
   430  p11  paragraph  [p11-l1..p11-l3 (3)]  Lastly, since we no longer have normalized rule weights, we need to set the prefix weight of ε under\nany non-terminal X ∈ N to the treesum under X. With this, we can now generalize our prefix weight\nalgorithm to semirings, as shown in Alg. 5.
   431  p11  figure  [p11-d1]  
   432  p11  paragraph  [p11-l4]  Algorithm 5 Faster prefix algorithm over semirings
@@ -1268,13 +1271,14 @@
   479  p11  figure  [p11-d3]  
   480  p11  paragraph  [p11-l68]  Proposition 4. The semiring-weighted version of our algorithm runs in O(N2 |N |3 + N3 |N |2 ).
   481  p11  paragraph  [p11-l69..p11-l75 (7)]  Proof. Lehmann’s algorithm, as presented in Alg. 4, has three nested for loops of d iterations each, where\nd is the dimension of the input matrix. In our case, d is the number of non-terminals, |N |. Assuming the\nKleene closure of elements in W can be evaluated in O(1), this means that computing the left corner\nexpectations in line 1 of Alg. 5 takes O(|N |3 ), as before. Hence, the complexity of the overall algorithm\nremains unchanged, that is, we can compute the prefix probabilities under a semiring-weighted, locally\nnormalized CFG G in O(N2 |N |3 + N3 |N |2 ). ■
-  482  p11  furniture  [p11-l76]  67
+  482  p11  furniture/page-number  [p11-l76]  67
   
   '''
 # ---
 # name: test_golden_file[arxiv2024-arsiwalla-qualia-meaning]
   '''
   arxiv2024-arsiwalla-qualia-meaning.pdf  language en  blocks 358
+  page labels  1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28
   0  p1  paragraph  [p1-l1]  Qualia and the Formal Structure of Meaning
   1  p1  paragraph  [p1-l2]  Xerxes D. Arsiwalla1,2,∗
   2  p1  paragraph  [p1-l3]  1Pompeu Fabra University, Barcelona, Spain
@@ -1284,24 +1288,24 @@
   6  p1  paragraph  [p1-l23..p1-l24 (2)]  Keywords: Consciousness Science; Qualia; Mind-Matter Problem; Formal Structures; Lan-\nguage; Meaning; Semiotics.
   7  p1  figure  [p1-d1]  
   8  p1  paragraph  [p1-l25]  ∗x.d.arsiwalla@gmail.com
-  9  p1  furniture  [p1-l27]  arXiv:2405.01148v1 [q-bio.NC] 2 May 2024
-  10  p1  furniture  [p1-l26]  1
+  9  p1  furniture/side-stamp  [p1-l27]  arXiv:2405.01148v1 [q-bio.NC] 2 May 2024
+  10  p1  furniture/page-number  [p1-l26]  1
   11  p2  paragraph  [p2-l12..p2-l13 (2)]  1 Introduction
   12  p2  paragraph  [p2-l14..p2-l32 (19)]  How should one formulate a mathematical or metaphysical framework that admits a formalization\nof the phenomenal contents of conscious experience? The phenomenal contents or the so-called\nqualia of consciousness are inherently subjective attributes of experience, and by most accounts,\ndeemed non-representational [127]. They refer to the raw, immediate and phenomenal aspects\nof perception, sensation or mental states. Phenomenal content, by its very nature, is subjective;\nthat is, available only through one’s first-person perspective. Qualia are at the heart of the "what\nit’s like to be" character of conscious experience, as elucidated by Thomas Nagel in 1974 [97]. If\nit were possible to provide a complete third-person description of phenomenal states, that would\nresolve the "what it’s like to be" problem of consciousness. Qualia cannot be fully described, com-\nmunicated or understood through any objective third-person account or computational routine.\nFor instance, attempts to fully convey the subjective experience of tasting chocolate or perceiving\nthe color red through objective descriptions or computational algorithms fall short of capturing\nthe full qualitative nature of those experiences. These observations collectively indicate that cer-\ntain aspects of conscious experiences pose challenges for all attempts that seek to fully explain\nor replicate qualia through either exclusively computational, or objective descriptions, that is,\npotential third-person descriptions. Besides potential implications for philosophy of mind, this\nproblem also suggests new frontiers for the philosophy of science itself; namely, how does one ex-\ntend the existing scientific paradigm based on third-person perspective to account for phenomena\nthat are subjective and non-representational - that is, amenable only via first-person perspective?
   13  p2  paragraph  [p2-l33..p2-l36 (4)]  For these very reasons, a scientific description or theory elucidating the nature of qualia,\nor one explaining the phenomenology of conscious experiences continues to be an extremely chal-\nlenging problem at the heart of modern science. Attempts at any such theoretical description (of\nqualia) call for at least two essential ingredients:
   14  p2  paragraph  [p2-l37..p2-l38 (2)]  (i) A whole new scientific paradigm of subjectivity, one which describes phenomena from the\nintrinsic point-of-view, or "the view from the inside".
-  15  p2  furniture  [p2-l1]  Contents
-  16  p2  furniture  [p2-l2]  1 Introduction
-  17  p2  furniture  [p2-l3]  2
-  18  p2  furniture  [p2-l4]  2 Subjective Meaning in Phenomenology of Experience
-  19  p2  furniture  [p2-l5]  4
-  20  p2  furniture  [p2-l6]  3 Do Raw Feels Have Subjective Meaning?
-  21  p2  furniture  [p2-l7]  9
-  22  p2  furniture  [p2-l8]  4 The Formal Structure of Meaning
-  23  p2  furniture  [p2-l9]  11
-  24  p2  furniture  [p2-l10]  5 Discussion
-  25  p2  furniture  [p2-l11]  18
-  26  p2  furniture  [p2-l39]  2
+  15  p2  furniture/contents  [p2-l1]  Contents
+  16  p2  furniture/contents  [p2-l2]  1 Introduction
+  17  p2  furniture/contents  [p2-l3]  2
+  18  p2  furniture/contents  [p2-l4]  2 Subjective Meaning in Phenomenology of Experience
+  19  p2  furniture/contents  [p2-l5]  4
+  20  p2  furniture/contents  [p2-l6]  3 Do Raw Feels Have Subjective Meaning?
+  21  p2  furniture/contents  [p2-l7]  9
+  22  p2  furniture/contents  [p2-l8]  4 The Formal Structure of Meaning
+  23  p2  furniture/contents  [p2-l9]  11
+  24  p2  furniture/contents  [p2-l10]  5 Discussion
+  25  p2  furniture/contents  [p2-l11]  18
+  26  p2  furniture/page-number  [p2-l39]  2
   27  p3  paragraph  [p3-l1..p3-l2 (2)]  (ii) A metaphysical (and possibly mathematical) formalization of non-representational entities\n(potentially in the form of abstract objects and their relations).
   28  p3  paragraph  [p3-l3..p3-l11 (9)]  Currently, in the absence of a complete description of (or difficulty conceptualizing) the\nabove two ingredients, one often relies on constructs using information, computation or causality\n[43, 99, 124]. These are certainly useful to quantify computational processes or identify states of\ncomplexity, but that is still rather far from capturing the very phenomenal character of qualia1 .\nPossibly, a metaphysical formalization of phenomenal properties is what is needed. Even though\na satisfactory solution to this problem does not exist yet, here we put forth a proposal that\nidentifies subjectively attributed meaning with the phenomenal content of conscious experience.\nWe then discuss how subjective meaning of this kind can be formalized within the setting of the\nmind-matter relation.
   29  p3  paragraph  [p3-l12..p3-l17 (6)]  More broadly, within the cognitive sciences (inclusive of approaches focussing on cognition,\nconsciousness, computation, and clinical practice), meaning has been discussed in one of two\nways: either as a by-product of explicit neuronal or computational mechanisms [45], or as an\nintentionality relation between mental representations and what they represent [24, 89]. These\ntwo approaches differ in metaphysical ontology. The former assumes a purely physicalistic stance,\nwhereas the latter presupposes a fundamental relationality between the physical and the mental.
@@ -1309,7 +1313,7 @@
   31  p3  paragraph  [p3-l30..p4-l2 (12)]  In contrast to meaning as a cognitive by-product, the second approach mentioned above,\ndecrees a more prominent role for meaning with regard to consciousness. Here, meaning is dis-\ncussed in the sense of Brentano’s notion of "intentionality" [33]. In the present work, our discus-\nsions align more with the stance that meaning is indeed fundamental to consciousness. Further-\nmore, we propose that subjective meaning constitutes the phenomenal content of all conscious\nexperience. Compiling evidence from phenomenological studies, we demonstrate that this form\nof meaning is ubiquitous to the qualia of consciousness. As mentioned, it is also important to\nformalize the mathematical or metaphysical structure of this kind of meaning, if one is to make\nprogress on the problem of qualia. Fortunately, seminal works in the philosophy of mind and\nlanguage [52] (see also [48, 135]), as well as mathematical advances in natural language seman-\ntics [40] equip us with the right conceptual groundwork for formalizing subjective meaning with\nregard to the problem of consciousness.
   32  p3  figure  [p3-d1]  
   33  p3  paragraph  [p3-l40..p3-l43 (4)]  1Roger Penrose has been a vociferous proponent of the view that consciousness necessarily involves a funda-\nmentally non-computational process [105] (see also [15] for a recent perspective on this point). An early remnant\nof this view, though not explicitly expressed in terms of consciousness, may be traced back to Alan Turing’s PhD\nthesis, where he contrasts between intuition and ingenuity [126].
-  34  p3  furniture  [p3-l44]  3
+  34  p3  furniture/page-number  [p3-l44]  3
   35  p4  paragraph  [p4-l3..p4-l7 (5)]  The outline of this paper is as follows: in section 2, we provide phenomenological evidence\nto support the claim that meaning is omnipresent in qualia; in section 3, we discuss how Frege’s\nnotion of sense extends to the raw feels of conscious experience; in section 4, we formalize sub-\njective meaning of mental representations in the context of the mind-matter relation; lastly, we\nconclude in section 5 with final thoughts.
   36  p4  paragraph  [p4-l8..p4-l9 (2)]  2 Subjective Meaning in Phenomenology of Experience
   37  p4  figure  [p4-d1..p4-d4 (4)]  
@@ -1320,7 +1324,7 @@
   42  p4  paragraph  [p4-l26..p5-l7 (16)]  Let us briefly compare the above two kinds of significance attributions. Computationally repre-\nsentable attributions are the ones that are particularly well-aligned with an embodied cognition\nperspective, where an agent has to learn the affordances of its environment for planning its ac-\ntions and directing itself towards its goals [95, 118]. By some accounts, this process also requires\nthe agent to actively infer or at least conceptualize its own actions and perceptions, as well as\nthat of other agents in the world [57, 87]. Meaning (in this context of cognitive functions) per-\ntains to the knowledge or significance that an experience acquires via mechanistic controls or\ncomputational processes, over and above its raw phenomenal content. In that sense, this is a\ndeliberative meaning-making process. For example, meaning associated to perceptual processes\ninvolve the interpretation and understanding (often deliberative) of sensory stimuli, such as recog-\nnizing various representations of shapes, colors and patterns, or perceiving objects in the external\nworld. In language and cognitive semiotics, meaning involves the understanding of language-\nbased representations, concepts and symbols, when cognitive agents engage in understanding and\ncommunicating through language, signs and gestures [140]. Similarly, cognitive states involving\nbeliefs, biases or intentions, involve some kind of value attribution by the individual (based on\npsychological conditioning) [73, 119].
   43  p4  figure  [p4-d5]  
   44  p4  paragraph  [p4-l35]  2 It was David Mumford who first pointed out that "Grammar isn’t merely part of language" [96].
-  45  p4  furniture  [p4-l36]  4
+  45  p4  furniture/page-number  [p4-l36]  4
   46  p5  paragraph  [p5-l8..p5-l14 (7)]  On the other hand, non-representational significance attributions are of the type that are\nimmediate (as opposed to deliberative) and of a phenomenal character. They distinctly mean\nsomething to the experiencing subject. Examples include moments of intuitive insights, profound\npersonal revelations, states of transcendence [28, 86, 113] (and more such examples discussed in\nTable 1 below). While the phenomenology of these experiences can certainly be investigated qual-\nitatively using introspective methods, the full scope of the meaning experienced in all of these\ninstances is only available through first-person perspective.
   47  p5  paragraph  [p5-l15..p5-l16 (2)]  For these reasons, such subjectively attributed meaning is an observer-dependent construct: it lit-\nerally holds in the mind of the beholder!
   48  p5  paragraph  [p5-l17..p5-l20 (4)]  Meaning of this form is a genuinely subjective quality3 . In the discussion that follows, we will\nelaborate how this form of meaning might be directly tied to the qualia of consciousness, and\nhow it may in fact manifest as the phenomenal content of all experience. We also point to\nphenomenological evidence in favor of this view.
@@ -1329,7 +1333,7 @@
   51  p5  paragraph  [p5-l37..p6-l9 (11)]  Remark 2.2. Let us make a brief comment about qualia in more general modalities. Even though\na sizable fraction of works discussing qualia often anchor around sensory experiences ("the redness\nof red", for instance), it is to be noted that qualia also refer to aspects of conscious experiences\nbeyond the purely sensory [37, 88, 127]. Examples include; (a) qualia associated to subjective\nfeelings and emotions, like the feeling of joy, sadness, or fear, which might not be directly tied\n(though indirectly related) to sensory input; (b) qualia associated to thought processes, such as\nthe immediate awareness of having a thought, a mental image or an idea; (c) qualia associated to\nintrospective states, such as the subjective sense of self-awareness, reflective thought, or experience\nof one’s own mental states; to name a few (see [37, 88, 127] and references therein). The above\nand other examples of qualia not exclusively tied to sensory perceptions will be relevant for us\nlater.
   52  p5  figure  [p5-d1]  
   53  p5  paragraph  [p5-l39..p5-l41 (3)]  3As such, the "objective" use of meaning in language and social communication is only a matter of standard-\nization of what symbols may refer to, or formation of social norms and conventions within and between groups of\nagents [3, 55, 79, 110].
-  54  p5  furniture  [p5-l42]  5
+  54  p5  furniture/page-number  [p5-l42]  5
   55  p6  paragraph  [p6-l10..p6-l27 (18)]  Empirically, how could subjective meaning manifest as the phenomenal content of qualia\n(in the broader sense of qualia mentioned in the remark above)? For instance, consider the case\nof qualia associated to emotions: one may ask whether emotional feelings might come endowed\nwith some form of subjective meaning that is immediate to the experience? Now, emotions\nand feelings as intricate mental states certainly do carry a personal form of significance for the\nexperiencing subject. Furthermore, this form of significance is highly subjective, contextual to\nthe individual’s history, and intimately tied to their internal states. But significance of this kind\nis in fact a semantic quality, in that, it means something to the subject (in the next section\nwe compare this notion of subjective meaning to Frege’s notion of sense). It is this aspect of\nmeaning that we claim is raw and immediate to the emotion (as opposed to a form of deliberative\ninterpretation of the emotion). Now, discussions about phenomenal properties usually refer to the\nimmediate, intrinsic and non-representational qualities of conscious experiences that constitute\nthe "what it is like" aspect of those experiences [97]. The form of meaning that we are referring\nto above, is intrinsically subjective (involving personal significance and value attribution) and\nnon-representational in the same way that sensory qualia are. One may report one’s emotional\nexperiences categorically, but there is no way to convey an objectively third-person perspective as\nto what that emotion means to the experiencing subject. This meaning or significance is closely\nassociated to the raw feel of the emotion itself.
   56  p6  paragraph  [p6-l28..p6-l29 (2)]  First, let us discuss why meaning of the above kind may be closely entwined with the\nsubject’s own self-states.
   57  p6  paragraph  [p6-l30..p6-l31 (2)]  Remark 2.3. Let us note that issues related to personal significance or personal value attribution\nwithin the realm of a subject’s experiences are features closely associated to their self-model.
@@ -1337,7 +1341,7 @@
   59  p6  figure  [p6-d1..p6-d4 (4)]  
   60  p6  paragraph  [p6-l33..p6-l35 (3)]  Proposition 2.2. We posit that subjective meaning is phenomenologically relevant to all qualia\nassociated with the subject’s self-states, or at least those involving any relation between self-states\nto other states within the subject’s experiential realm.
   61  p6  paragraph  [p6-l36..p7-l15 (19)]  From a systems theory perspective, a self-model is a construct that encompasses an in-\ndividual’s interpretations, value attributions and representations concerning their own identity,\ninternal states, belief systems, emotional states and behaviors [89, 91]. This internal model con-\ntributes to the recognition of one’s own goals and value systems, and consequently, it influences\nall external models of the subject (such as those pertaining to the world, or models of other\nagents that the subject interacts with). In the more specific context of consciousness studies, the\nrelevant kind of self-models are what are referred to as "phenomenal self-models". These models\nwere proposed by Thomas Metzinger in 2004 [89]. They are internal dynamical representations\nof the agent, and carry phenomenal content. A feature of these self-models is that they not only\nconstitute a representation of the agent, but they also co-represent the representational relation\n(between the agent and the world) itself [89, 91]. In other words, they are equipped with a phe-\nnomenal model of the intentionality relation4 . According to Metzinger, phenomenal self-models\nare characterized by phenomenal properties pertaining to ownership, perspectivalness and self-\nhood; all of which are essential for creating a first-person perspective [89, 91]. Presumably, these\nphenomenal properties realize what is referred to as sense of ownership, sense of situatedness\nand sense of self respectively. The "sense" in the above terms is indeed a form of subjective\nsignificance or knowingness, and hence a form of meaning (the link between sense and meaning is\nfurther discussed in the next section). For that reason, an experience of self, necessarily features\nsubjective meaning of the kind we have noted above.
-  62  p6  furniture  [p6-l40]  6
+  62  p6  furniture/page-number  [p6-l40]  6
   63  p7  paragraph  [p7-l16..p7-l21 (6)]  Furthermore, one may extrapolate that the above stated properties of a phenomenal self-\nmodel would also ascribe subjective significance to the very manner in which an agent interacts\nwith and perceives the world. In other words, the subjective meaning attached to (or in part,\ndefining) one’s self attributes, will influence the way a subject experiences the world from their\nfirst-person perspective. Their meaning-attributes of self affect their meaning-attributes of the\nworld (and vice-versa, owing to feedback from the environment).
   64  p7  paragraph  [p7-l22..p7-l26 (5)]  Let us now discuss literature examples which demonstrate the above. What we are sug-\ngesting here that subjective meaning, as the phenomenal content of experience, may well be\nubiquitous to consciousness. Table 1 summarizes various examples of conscious experiences, typ-\nically those besides the purely sensory ones, which explicitly evoke a personal form of meaning\nfor the experiencing subject. The text thereafter, further elaborates on these.
   65  p7  figure  [p7-d1..p7-d61 (61)]  
@@ -1355,7 +1359,7 @@
   77  p7  paragraph  [p7-l47]  Table 1: Examples of conscious experiences that constitute subjective meaning.
   78  p7  figure  [p7-d62]  
   79  p7  paragraph  [p7-l48..p7-l50 (3)]  4According to Metzinger, a system of "third-order embodiment" possess phenomenal self-models [91]. Such a\nsystem explicitly models itself as an embodied being, and maps some of the representational content generated in\nthis process directly onto conscious experience. In other words, it consciously experiences itself as embodied.
-  80  p7  furniture  [p7-l51]  7
+  80  p7  furniture/page-number  [p7-l51]  7
   81  p8  paragraph  [p8-l1..p8-l6 (6)]  1. Moments of personal revelation, existential realization or sudden transformative life experi-\nences like a spiritual realization, a meditative revelation or an epiphany have been discussed\nin [26, 61, 86, 93, 128]. These experiences have been reported to involve a deep and immedi-\nate personal significance to the experiencing subject. For that reason, the aforementioned\nstudies investigating these experiences lean towards consciousness, rather than seeking ex-\nplanations based on purely cognitive control or processing.
   82  p8  paragraph  [p8-l7..p8-l11 (5)]  2. Sudden realizations such as "eureka" moments, intuitive insights, instinctive or gut feel-\nings, that provide an immediate sense or perceived understanding to complex problems also\npossess subjective meaning within conscious experiences (see [113,131]). Likewise, for intro-\nspective awareness; that is, the immediate awareness of one’s own mental states, thoughts\nor introspective processes [129].
   83  p8  paragraph  [p8-l12..p8-l15 (4)]  3. Profound experiences of artistic or aesthetic appreciation, such as being deeply moved by\na piece of music, art or even nature. Feelings of awe, wonder or personal connection when\nexperiencing aesthetic perceptions. All of these constitute examples of conscious experiences\nthat invoke an immediate kind of meaning in the form of personal significance [39, 49, 111].
@@ -1366,7 +1370,7 @@
   88  p8  paragraph  [p8-l30..p8-l33 (4)]  8. Instances of transpersonal experiences, such as out-of-body experiences, which involve a\nsensation of being detached from one’s physical body and perceiving the world from a\nlocation outside the physical body [31, 32, 90]. These experiences are intimately concerned\nwith sense of self.
   89  p8  paragraph  [p8-l34..p8-l37 (4)]  9. Also, near-death experiences such as experiences of vivid and panoramic life reviews, where\nsubjects relive or review significant events or memories from their lives in a comprehensive\nmanner (these are sometimes reported with feelings of peace or transcendence while seeming\nto enter into a different realm during the experience) [30, 31, 130]
   90  p8  paragraph  [p8-l38..p8-l40 (3)]  10. Lastly, experiences of being in a state of flow, where immediate, ineffable insights and\nintense focus arise during engaging activities like creating art, playing music or solving\ncomplex problems [70, 98, 133].
-  91  p8  furniture  [p8-l41]  8
+  91  p8  furniture/page-number  [p8-l41]  8
   92  p9  paragraph  [p9-l1..p9-l4 (4)]  The above are all examples of conscious experiences (although not of a typically sensory\ntype) that constitute some form of personal meaning for the experiencing subject. We claim\nthat the phenomenal content of these experiences is of a semantic type, that is, it is subjective\nmeaning.
   93  p9  paragraph  [p9-l5..p9-l6 (2)]  3 Do Raw Feels Have Subjective Meaning?
   94  p9  paragraph  [p9-l7..p9-l12 (6)]  The experiential phenomena enumerated in the section above, while predominantly of a non-\nsensory nature, have nonetheless been extensively studied in the consciousness literature (see\nreferences cited above). The important point of the above discussion was that a personal notion\nof meaning is ubiquitous to a wide variety of conscious experiences (particularly, those referring\nto non-sensory modalities). What about the raw feels of consciousness? Are they associated to\nmeaning?
@@ -1376,7 +1380,7 @@
   98  p9  figure  [p9-d1]  
   99  p9  paragraph  [p9-l38..p9-l40 (3)]  5Following Frege’s seminal essay, other works that have extensively addressed the relation between language,\nmeaning and mind include those of Bertrand Russell, Ludwig Wittgenstein, Hilary Putnam and Saul Kripke, to\nname a few [75, 81, 109, 114].
   100  p9  paragraph  [p9-l41]  6Some authors also use the term "denotation" for "reference" [135].
-  101  p9  furniture  [p9-l42]  9
+  101  p9  furniture/page-number  [p9-l42]  9
   102  p10  paragraph  [p10-l3..p10-l5 (3)]  The relevant question then is: Do raw feels have a subjective "sense" for that what is\nbeing experienced? Is this a form of meaning, after all? Let us now answer these questions. In\ndoing so, we will make use of the following proposition:
   103  p10  figure  [p10-d1..p10-d4 (4)]  
   104  p10  paragraph  [p10-l6..p10-l7 (2)]  Proposition 3.1. Mental representations are to the mind, what symbolic expressions are to lan-\nguage.
@@ -1386,14 +1390,14 @@
   108  p10  paragraph  [p10-l34..p10-l37 (4)]  7Psychophysical studies involving preverbal human infants have demonstrated compelling evidence of the use\nof logical reasoning and probabilistic inference in the way humans learn and construct mental representations of\nobjects in the world [36, 121]. These early representations are constructed using logical primitives and rules of\ncomposition [106].
   109  p10  paragraph  [p10-l38..p10-l39 (2)]  8See [47] for discussions on mathematical foundations of "what is a thing?"; and [134] for a discussion on the\nmetaphysics of abstract and concrete objects.
   110  p10  paragraph  [p10-l40]  9Several philosophers including Husserl and Merleau-Ponty have emphasized this point [68, 88] .
-  111  p10  furniture  [p10-l41]  10
+  111  p10  furniture/page-number  [p10-l41]  10
   112  p11  paragraph  [p11-l1]  Two remarks are in order here:
   113  p11  paragraph  [p11-l2..p11-l7 (6)]  Remark 3.2. There is of course room to argue that there may be other attributes of mental rep-\nresentations such as its symbolic, computational or informational features that also partake in the\nrealm of awareness. However, unlike meaning, these other features are not non-representational.\nWhich is why, they do in fact admit a third-person description. However, qualia, having a phe-\nnomenal character, are deemed non-representational. For that reason, we maintain that subjective\nmeaning is the more compelling candidate that captures the phenomenal character of qualia.
   114  p11  paragraph  [p11-l8..p11-l16 (9)]  Remark 3.3. Let us also briefly comment on empirical studies that also invoke the notion of\nsense in consciousness research. In empirical and clinical literature on consciousness, one often\nencounters sense via terms such as, "sense of agency", "sense of self", "sense of ownership",\n"sense of time", and so on [42,67,80,84,132]. In all of these contexts, sense is often described as\na subjective perception or comprehension of something. Notice that such a description is precisely a\nsemantic attribute based on personal significance to the experiencing subject. The same can be said\nfor other examples of sense such as an intense sensation of pain, an abrupt sense of discomfort,\nor a sudden surge of pleasure. In fact, sense and feeling are sometimes used interchangeably in\nthis literature.
   115  p11  paragraph  [p11-l17..p11-l18 (2)]  4 The Formal Structure of Meaning
   116  p11  paragraph  [p11-l19..p11-l27 (9)]  So far, we have put forth, mostly on phenomenological grounds, that meaning, generated intrin-\nsically by the experiencing self, is an integral and inseparable characteristic of qualia, across the\nboard. Furthermore, the subjectivity, non-representational and as well, the transparency of, what\nhas been referred to as subjective meaning, suggests why it may be directly linked to the phenom-\nenal contents of conscious experience. However, to simply label meaning as a mental property,\ndoes not do full justice to the important role that meaning plays with regard to the mind-matter\nrelation. This view has also been proposed in [23, 24], albeit, based on different motivations. To\nelucidate the character of meaning with respect to the nature of qualia, and also its relevance to\nthe mind-matter relation, we first need to discuss the formal structure of meaning itself.
   117  p11  paragraph  [p11-l28..p12-l2 (16)]  Of course, the concept of meaning is not exclusive to the philosophy of mind. Rather,\nit has a shared history across disciplines, including linguistics, semiotics, programming language\ntheory, type theory, category theory and metamathematics, to name a few. Based on the specific\ndomain, one considers or constructs appropriate semantic frameworks for given syntactic systems\n(both, verbal or non-verbal). A semantic framework provides an interpretation space for syntactic\nexpressions. For instance, a symbolic expression such as a sentence or a logical proof, by itself,\nis a purely syntactic construct. It is its semantics that elucidates what the sentence or proof\nrefers to or how it can be interpreted. For this reason, one works with a formal interpretation\nspace within which syntactic expressions may be evaluated. These evaluations may either yield\ntruth values or, more generally, meaning vectors (see distributional models of meaning [40]).\nSemantic models thus enable value or categorical evaluations of the syntax. However, what is\nimportant are not the specific categories or values that a syntactic structure may acquire within\na model (which often depend on model constraints); rather, it is that these evaluations establish\nrelations between syntactic expressions. For example, relations of similarity. It is such relations\nthat are hypothesized to give words and sentences their meanings, which is how the so-called\n"compositional distributional models of meaning" operate [38].
-  118  p11  furniture  [p11-l42]  11
+  118  p11  furniture/page-number  [p11-l42]  11
   119  p12  paragraph  [p12-l3..p12-l21 (19)]  Let us consider the case of natural language semantics. Here, one may want to study\nlexical semantics which refers to word meanings, and how meanings between similar words might\nrelate. In that case, an often used dictum due to J. R. Firth goes as, "You shall know a word\nby the company it keeps" [50]. That is, words with similar linguistic distributional properties\n(in large corpus data) have similar meanings. This is known as the distributional hypothesis of\nmeaning [62]. Additionally, besides word meanings, one may also want to investigate meanings\nof phrases and sentences (given the meanings of the words contained therein). In this case, one\nresorts to the "principle of semantic compositionality", which is also known as Frege’s principle\n[104]. According to this, the meaning of a complex expression is derived from the meanings of its\nconstituent expressions and the syntactic rules used to combine them10. Hence, the meaning of a\nsentence is then obtained by putting together these two principles, which yields what is known as\nthe "Compositional Distributional Semantics" framework [40]. The mathematical formalization of\nthis framework in terms of monoidal categories of vector spaces and Lambek’s pregroup grammar\nenables one to compute the meaning of well-typed sentences from the meaning of its constituent\nwords, by inducing the type reduction mechanisms of the pregroup grammar to the whole category.\nThese sentence meanings live in a single space, realized via monoidal (tensor) products of the\ncategory. Meaning is thus evaluated via a category-theoretic functor from a syntactic space\ngoverned by rules of grammar, to a semantic space, functioning as an interpretation space for\nsyntactic constructs.
   120  p12  paragraph  [p12-l22..p12-l25 (4)]  Interestingly, such a functorial perspective (as elucidated above) turns out to be much\nmore general than its particular instantiation in linguistics alone. In fact, in mathematical logic\nand abstract algebra this goes by the name of "Functorial Semantics" [78]. For example, an\nassociation map from a given syntactic system to a semantic system, such as:
   121  p12  paragraph  [p12-l26..p12-l27 (2)]  Association Map : Syntactic Space → Semantic Space (1)
@@ -1401,7 +1405,7 @@
   123  p12  paragraph  [p12-l31..p12-l37 (7)]  Remark 4.1. It is interesting to see how eq.(1) compares to Charles S. Peirce’s Theory of Signs,\nor Semiotics [102, 103]. Semiotics refers to a formal theory of signification of entities (across\nscience and philosophy), their representation, in terms of suitable signs, and the meaning of those\nsigns [22]. The essential elements of Peirce’s theory include a triad consisting of a sign S, the\nobject O, and the interpretant I. The sign can be thought of as a symbol or a signifier of the thing\n(the object) being signified. Whereas, the interpretant is the understanding (sometimes described\nas a "translation") that the user of the sign has of the object-sign relation [22, 117].
   124  p12  figure  [p12-d1]  
   125  p12  paragraph  [p12-l38..p12-l43 (6)]  10Of course, compositionality is not the only guiding principle for semantics of complex expressions or conceptual\ncombinations. One also has to take into account contributions from non-compositional semantics, as illustrated\nin [34]. These authors emphasize that the latter is markedly distinct from the former in terms of contextual\ndependence. This additional contribution is necessary for a more comprehensive treatment of natural language\nsemantics and pragmatics. However, for our purposes here, compositional models will suffice for what follows.\nAdditional contextual contributions can be included thereafter.
-  126  p12  furniture  [p12-l44]  12
+  126  p12  furniture/page-number  [p12-l44]  12
   127  p13  paragraph  [p13-l1..p13-l2 (2)]  The object determines the sign, and in turn, the sign, via the specific representation of the\nobject, influences and shapes the interpretant. The order of these relations is so:
   128  p13  paragraph  [p13-l3]  O → S → I
   129  p13  paragraph  [p13-l4..p13-l7 (4)]  One can think of the relation O → S as a Representation of the object, while the relation S → I\ncan be viewed as the Interpretation of the sign (or an Association that maps signs to what they\nrefer to). The meaning of the sign, then manifests via the interpretation of the representation of\nthe object being signified.
@@ -1425,7 +1429,7 @@
   147  p13  paragraph  [p13-l30..p13-l33 (4)]  In fact, the association map AP defines relations contained within RelP . Note that these relations\ncan be of general arity (in which case, the objects in RelP may be diagrammatically presented\nas hyperedges, and the AP denote multi-source / target maps for constructing hyperedges).\nTogether, the collection {ObjP , AP (ObjP )} forms the physical domain, denoted P.
   148  p13  paragraph  [p13-l34..p13-l35 (2)]  Likewise, ObjM denotes collections of mental objects, and RelM contains relations (unary,\nbinary or any higher arity) between mental objects. Here again, the association map
   149  p13  paragraph  [p13-l36]  AM : ObjM → RelM
-  150  p13  furniture  [p13-l37]  13
+  150  p13  furniture/page-number  [p13-l37]  13
   151  p14  paragraph  [p14-l1..p14-l2 (2)]  defines relations contained within RelM. We will refer to the collection {ObjM, AM(ObjM)} as\nthe mental domain M.
   152  p14  paragraph  [p14-l3]  Furthermore, the two representation maps
   153  p14  paragraph  [p14-l4..p14-l7 (4)]  RObj : ObjP → ObjM and RRel : RelP → RelM (3)
@@ -1435,7 +1439,7 @@
   157  p14  figure  [p14-d1]  
   158  p14  paragraph  [p14-l43..p14-l44 (2)]  11More generally, mental representations may also encompass models of internal states, such as one’s self model\n(see [107] for an overview).
   159  p14  paragraph  [p14-l45]  12The neuroscientist experimenting upon the agent, is merely inferring what the model may be about.
-  160  p14  furniture  [p14-l46]  14
+  160  p14  furniture/page-number  [p14-l46]  14
   161  p15  paragraph  [p15-l10..p15-l21 (12)]  Therefore, on one hand, we have rules constraining the space ObjP (and its representation\nin ObjM), that allow for only very specific compositions of physical (respectively, mental) objects\ncorresponding to existing constructs in the world (mind). On the other hand, we have an associ-\nation map AP , that defines relations between physically permissible objects, leading to the space\nof physical relations RelP , which in turn, functions as a semantic space for the physical domain.\nCorrespondingly, we have the association map AM, defining relations between permissible mental\nobjects (obtained as representations of physical objects or of internal states of the agent), and\nleading to the space of mental relations RelM, which now functions as a semantic space for the\nmental domain. As per eq.(1), in the system in eq.(2) we now have two possible levels at which\nmeaning may manifest as a distributional and compositional attribute of these mappings from\nsyntactic to semantic spaces: the physical level, as well as the mental level. However, these levels\nare not independent, and neither is the kind of meaning associated to these domains.
   162  p15  paragraph  [p15-l22..p15-l33 (12)]  Our central question is how does subjectively attributed meaning arise in the mind, and\nhow does that associate to the broader mind-matter relation? Our map AP suggests that a\nformal notion of meaning also ought to exist within the physical domain (in terms of relations\nand interactions between physical structures, constrained by causal and statistical laws). However,\nthere needs to be something to read-off this meaning associated to the physical world14. Now this\nis where mental states come into the picture. They serve as a means to read-off associations in\nthe world. This is how that may be so: through the representation maps RObj and RRel, models\nof physical objects and their relations are constructed within the mental domain. Then, following\nsimply the commutativity of the diagram in eq.(2), the association map AP (within the physical\ndomain) induces the association map AM (within the mental domain). Thus, meanings about\nthings in the physical world can be read-off via mental states, following this relation between the\nphysical and mental domains.
   163  p15  paragraph  [p15-l34..p15-l36 (3)]  Remark 4.2. Once again, notice the parallels to Peirce’s object-sign-interpretant triad in semi-\notics. The O → S → I relations in Remark 4.1 are precisely captured by the following sequence\nof maps in eq.(2):
@@ -1444,7 +1448,7 @@
   166  p15  figure  [p15-d1]  
   167  p15  paragraph  [p15-l40..p15-l41 (2)]  13Needless to say, there have been numerous debates in the literature as to whether grammar, in some form,\nmay be innate to cognitive agents [60].
   168  p15  paragraph  [p15-l42..p15-l44 (3)]  14One may well call such an entity an "Observer". Though this is by no means a sufficient condition to define an\nobserver. Hence, to read-off any kind of meaning, an observer is imperative. A discussion about observer theory\nfrom the perspective of second-order cybernetics can be found in [112].
-  169  p15  furniture  [p15-l45]  15
+  169  p15  furniture/page-number  [p15-l45]  15
   170  p16  paragraph  [p16-l3..p16-l6 (4)]  Returning to our discussion about the meaning of things in the physical world, the astute\nreader will immediately notice that this is not the only instantiation of meaning available to one’s\nmental faculties. That is indeed so. And this is where internal states, as well as perceptual\nlimitations of the subject, matter. Let us discuss this now:
   171  p16  paragraph  [p16-l7..p16-l13 (7)]  (i) First, as has been well documented in the literature, mental representations of objects and\nrelations in the physical world, need not always be complete or accurate descriptions of those\nphysical entities [107]. In practice, the cognitive / conscious agent has to build models of both,\nthe world as well as that of other agents from incomplete social, behavioral and sensorimotor data\n(either due to stimulus uncertainty, hidden states of other agents, or the agent’s own limitations\nin processing and parsing all that information), about objects and agents in its environment,\nobtained in real-time [8–10, 16, 44, 54, 56, 115].
   172  p16  paragraph  [p16-l14..p16-l21 (8)]  (ii) Second, and more importantly, minds can also model their own internal states. The self-model\nbeing a classic example. And these internal models within the mental domain also influence each\nother. Again, the example being how the self-model modulates the way the agent probes its\nenvironment to construct a world model, and how through its self-model, the agent perceives its\nsituated and embodied self, immersed within the world. What this means is that there is a self-\nreferential aspect within the design of mental models, which is arguably a peculiar feature of the\nmental domain. This self-referential feature, or circular feedback, can be modeled via self-loops\nwithin the mental domain. This gives us the following maps15:
@@ -1455,7 +1459,7 @@
   177  p16  paragraph  [p16-l27..p16-l32 (6)]  In other words, in ObjM we have additional syntactic rules (compared to those in the\npurely physical domain) governing how mental models interact with each other. For instance,\nhow the self-model (which includes models of the agent’s psychological as well as bodily faculties)\nmay interact with or influence parameters within the subject’s world-model in order to generate\nanticipatory and adaptive control responses to a planned action [12, 65, 66, 91]. Correspondingly,\nthe semantic space RelM also captures relations within and between all internal models.
   178  p16  figure  [p16-d1]  
   179  p16  paragraph  [p16-l33]  15Note that these are not identity morphisms, but non-trivial mappings within the mental domain.
-  180  p16  furniture  [p16-l34]  16
+  180  p16  furniture/page-number  [p16-l34]  16
   181  p17  paragraph  [p17-l1..p17-l4 (4)]  Remark 4.3. The maps, in eqns.(2) and (4) above, demonstrate how meaning involves relations\nbetween the physical and mental domains. The mind-matter relation thus plays a central role in\nrealizing subjective meaning within mental states. How does one realize sense and reference within\nthis framework?
   182  p17  paragraph  [p17-l5..p17-l9 (5)]  The map from ObjP to RelM following the composition16 AP ◦RRel suggests how reference\n(as a relation between the physical and the mental) about things in the world, as perceived by an\nagent with mental states, may be formalized:- As a map from structure in the world to relations in\nthe mind, that factors through physical relations actually found in the physical world, and hence\nrelies on the association map AP .
   183  p17  paragraph  [p17-l10..p17-l15 (6)]  On the other hand, the composition RObj◦AM suggests how sense (as a relation between the\nphysical and the mental), as perceived by the observing agent, may be formalized:- As a map from\nstructure in the world to relations in the mind, that now factors through various mental models\nthat the agent may have, and hence relies on the association map AM. However, to fully account\nfor sense as this composition of maps, one has to admit a slight generalization of the diagram in\neq.(2) such that it is commutative up to higher homotopy (in this case, a 2-morphism)17 .
@@ -1466,7 +1470,7 @@
   188  p17  figure  [p17-d1]  
   189  p17  paragraph  [p17-l34..p17-l35 (2)]  16In mathematical literature such a composition of maps is often written in right-to-left notation, but here we\nprefer the left-to-right presentation for the sake of better readibility.
   190  p17  paragraph  [p17-l36..p17-l37 (2)]  17We thank Giulio Katis for bringing this point to our attention. A thorough category-theoretic treatment of\nthis diagram along with admissible higher morphisms will be reported in a forthcoming article.
-  191  p17  furniture  [p17-l38]  17
+  191  p17  furniture/page-number  [p17-l38]  17
   192  p18  paragraph  [p18-l1..p18-l2 (2)]  5 Discussion
   193  p18  paragraph  [p18-l3..p18-l9 (7)]  This work posits that subjectively attributed meaning is ubiquitous in conscious experiences.\nOur hypothesis is that subjective meaning (or, one may also refer to it as intrinsic meaning)\nis intrinsic to the qualia of conscious experience, in that, the phenomenal content of conscious\nexperience is precisely this type of meaning. In other words, we claim that the content of conscious\nexperience is semantic. To support this proposal, we have discussed literature examples from the\nphenomenology of consciousness, which demonstrate the close connection between meaning and\nexperience.
   194  p18  paragraph  [p18-l10..p18-l13 (4)]  Our notion of subjective meaning closely relates to what Frege has referred to as "sense".\nFurthermore, we have noted out how subjective meaning also parallels Peirce’s "interpretant" in\nsemiotics. As a special case of Peirce’s theory of signs, Peirce’s object-sign-interpretant triad is\ncaptured following the sequence of maps ObjP → ObjM → RelM, in eq.(2).
@@ -1476,7 +1480,7 @@
   198  p18  paragraph  [p18-l32..p19-l8 (16)]  Given that this work places meaning of an intrinsic kind at the heart of the problem of\nconsciousness, or the qualia of it thereof, it is reasonable to ask whether or not conscious aware-\nness itself is a guise of subjective meaning, as structurally defined in eq.(2) above? Though this\nview may appear to be in contrast to other proposals, such as consciousness being integrated\ninformation [125], or that, consciousness being identical to a specific maximally irreducible causal\nstructure [99], or that, consciousness being a form of computation [43]; it may well be that these\nare different pieces of the larger puzzle, and perhaps one may find convergence of some of these\ndifferent ideas in future theories of consciousness. For instance, a suggestion of how Integrated\nInformation Theory itself may be extended to include compositional meaning was already pro-\nposed19 in [2]. However, note that any such synthesis of ideas does not imply that information,\ncausality, computation or meaning can simply be used interchangeably as a theoretical basis for\nconsciousness science. Each of these are conceptually distinct (and also differ in the way they\ncould be used as a basis of a scientific theory). However, different ways of looking at the problem\n(of consciousness) may certainly be a very fruitful exercise. What this work attempts to highlight\nis that meaning, of the kind that is subjectively attributed, seems to account for the phenomenal\nand non-representational aspects of conscious experience.
   199  p18  figure  [p18-d1]  
   200  p18  paragraph  [p18-l40..p18-l42 (3)]  18Of course, one may certainly choose to consider other points of view, other than the one that is intrinsic to\nexperience, as considered here. Each such case will have its own metaphysical considerations to take into account,\nas well as how that may translate to experience.
-  201  p18  furniture  [p18-l43]  18
+  201  p18  furniture/page-number  [p18-l43]  18
   202  p19  paragraph  [p19-l9..p19-l26 (18)]  Taking Frege’s philosophy of language and mind seriously, we surmise that that syntax\nand semantics are also relevant to a theory of consciousness. In particular, mental representations\nare to the mind, what symbolic expressions are to language. Within such a philosophical framing,\nwhen one speaks about awareness about "something", one may then ask: precisely what attribute\nof the "thing" is it, that the subject is actually aware of? The answer, subjective meaning "of"\nthe subject’s mental representation of the "thing", seems better suited than alternatives such\nas information, causality or computation. That is not to say that information, causality or\ncomputation are not useful to study how consciousness may work. In fact, these are absolutely\nindispensable for quantifying neuronal processes in brain networks (or for that matter, artificial\nneural networks), that may correlate to empirical states of consciousness [1, 11, 13, 14, 17–21,\n116]. However, if one wants to explain what may constitute the non-representational content of\nphenomenal experience, then, the proposal of subjective meaning seems to offer a promising new\navenue for conceptualizing theories of consciousness. Such a notion of meaning is the attribute\n(of the thing observed) that the subject may well be aware of, or may sense (à la Frege) during\nconscious experience. This hypothesis, of subjective meaning as the phenomenal constituent of\nqualia of conscious experience, also suggests that one take ideas from the philosophy of language\nand semiotics more seriously towards the advancement of a comprehensive theoretical framework\nthat satisfactorily addresses the phenomenal character of consciousness.
   203  p19  paragraph  [p19-l27]  Acknowledgments
   204  p19  paragraph  [p19-l28..p19-l29 (2)]  The author would like to gratefully acknowledge Harald Atmanspacher, Dean Rickles and Giulio\nKatis for discussions and constructive feedback on this manuscript.
@@ -1485,7 +1489,7 @@
   207  p19  paragraph  [p19-l34..p19-l35 (2)]  [2] Arsiwalla, X.D.: Computing meaning from conceptual structures in integrated information\ntheory. In: Models of Consciousness Conference, 2019. University of Oxford (2019)
   208  p19  figure  [p19-d1]  
   209  p19  paragraph  [p19-l36..p19-l37 (2)]  19Presented at the Models of Consciousness Conference 2019, University of Oxford: https://podcasts.ox.ac.\nuk/xerxes-arsiwalla-computing-meaning-conceptual-structures-integrated-information-theory
-  210  p19  furniture  [p19-l38]  19
+  210  p19  furniture/page-number  [p19-l38]  19
   211  p20  paragraph  [p20-l1..p20-l2 (2)]  [3] Arsiwalla, X.D.: A cognitive account of the puzzle of ideography. Behavioral and Brain\nSciences 46, e235 (2023)
   212  p20  paragraph  [p20-l3..p20-l5 (3)]  [4] Arsiwalla, X.D., Chester, D., Kauffman, L.H.: On the operator origins of classical and\nquantum wave functions. Quantum Studies: Mathematics and Foundations pp. 1–23 (2023),\nhttps://doi.org/10.1007/s40509-023-00311-6
   213  p20  paragraph  [p20-l6..p20-l8 (3)]  [5] Arsiwalla, X.D., Elshatlawy, H., Rickles, D.: Pregeometry, formal language and construc-\ntivist foundations of physics. arXiv preprint arXiv:2311.03973 (2023), https://doi.org/\n10.48550/arXiv.2311.03973
@@ -1498,7 +1502,7 @@
   220  p20  paragraph  [p20-l27..p20-l28 (2)]  [12] Arsiwalla, X.D., Moreno-Bote, R., Verschure, P.: Beyond neural coding? lessons from\nperceptual control theory. Behavioral and Brain Sciences 42, e217 (2019)
   221  p20  paragraph  [p20-l29..p20-l33 (5)]  [13] Arsiwalla, X.D., Pacheco, D., Principe, A., Rocamora, R., Verschure, P.: A tempo-\nral estimate of integrated information for intracranial functional connectivity. In: Artifi-\ncial Neural Networks and Machine Learning–ICANN 2018: 27th International Conference\non Artificial Neural Networks. pp. 403–412. Springer (2018), https://doi.org/10.1007/\n978-3-030-01421-6_39
   222  p20  paragraph  [p20-l34..p20-l39 (6)]  [14] Arsiwalla, X.D., Signorelli, C.M., Puigbo, J.Y., Freire, I.T., Verschure, P.: What is\nthe physics of intelligence? In: Frontiers in Artificial Intelligence and Applications:\nProceedings of the 21st International Conference of the Catalan Association for Artifi-\ncial Intelligence. vol. 308, pp. 283–286. IOS Press (2018), https://doi.org/10.3233/\n978-1-61499-918-8-283
-  223  p20  furniture  [p20-l40]  20
+  223  p20  furniture/page-number  [p20-l40]  20
   224  p21  paragraph  [p21-l1..p21-l3 (3)]  [15] Arsiwalla, X.D., Signorelli, C.M., Puigbo, J.Y., Freire, I.T., Verschure, P.F.: Are brains\ncomputers, emulators or simulators? In: Biomimetic and Biohybrid Systems: 7th Interna-\ntional Conference, Living Machines 2018. pp. 11–15. Springer (2018)
   225  p21  paragraph  [p21-l4..p21-l6 (3)]  [16] Arsiwalla, X.D., Solé, R., Moulin-Frier, C., Herreros, I., Sánchez-Fibla, M., Verschure, P.:\nThe morphospace of consciousness: Three kinds of complexity for minds and machines.\nNeuroSci 4(2), 79–102 (2023)
   226  p21  paragraph  [p21-l7..p21-l9 (3)]  [17] Arsiwalla, X.D., Verschure, P.: Computing information integration in brain networks. In:\nAdvances in Network Science: 12th International Conference and School, NetSci-X 2016.\npp. 136–146. Springer (2016)
@@ -1514,7 +1518,7 @@
   236  p21  paragraph  [p21-l33]  [27] Austin, J.L., Warnock, G.J.: Sense and sensibilia, vol. 83. Oxford University Press (1962)
   237  p21  paragraph  [p21-l34..p21-l35 (2)]  [28] Barušs, I., Mossbridge, J.: Transcendent mind: Rethinking the science of consciousness.\nAmerican Psychological Association (2017)
   238  p21  paragraph  [p21-l36..p21-l37 (2)]  [29] Bayne, T., Carter, O.: Dimensions of consciousness and the psychedelic state. Neuroscience\nof consciousness 2018(1), niy008 (2018)
-  239  p21  furniture  [p21-l38]  21
+  239  p21  furniture/page-number  [p21-l38]  21
   240  p22  paragraph  [p22-l1..p22-l2 (2)]  [30] Blackmore, S.J.: Near-death experiences. Journal of the Royal Society of Medicine 89(2),\n73–76 (1996)
   241  p22  paragraph  [p22-l3..p22-l4 (2)]  [31] Blanke, O., Faivre, N., Dieguez, S.: Leaving body and life behind: Out-of-body and near-\ndeath experience. In: The neurology of conciousness, pp. 323–347. Elsevier (2016)
   242  p22  paragraph  [p22-l5..p22-l6 (2)]  [32] Blanke, O., Landis, T., Spinelli, L., Seeck, M.: Out-of-body experience and autoscopy of\nneurological origin. Brain 127(2), 243–258 (2004)
@@ -1531,7 +1535,7 @@
   253  p22  paragraph  [p22-l30..p22-l31 (2)]  [43] Dehaene, S., Lau, H., Kouider, S.: What is consciousness, and could machines have it?\nScience 358(6362), 486–492 (2017)
   254  p22  paragraph  [p22-l32..p22-l34 (3)]  [44] Demirel, B., Moulin-Frier, C., Arsiwalla, X.D., Verschure, P.F., Sánchez-Fibla, M.: Dis-\ntinguishing self, other, and autonomy from visual feedback: A combined correlation and\nacceleration transfer analysis. Frontiers in Human Neuroscience p. 443 (2021)
   255  p22  paragraph  [p22-l35]  [45] Dennett, D.C.: Consciousness explained. Penguin uk (1993)
-  256  p22  furniture  [p22-l36]  22
+  256  p22  furniture/page-number  [p22-l36]  22
   257  p23  paragraph  [p23-l1..p23-l2 (2)]  [46] Donati, M.: Beyond synchronicity: the worldview of carl gustav jung and wolfgang pauli.\nJournal of Analytical Psychology 49(5), 707–728 (2004)
   258  p23  paragraph  [p23-l3..p23-l4 (2)]  [47] Döring, A., Isham, C.: "what is a thing?": Topos theory in the foundations of physics. In:\nNew structures for physics, pp. 753–937. Springer (2010)
   259  p23  paragraph  [p23-l5]  [48] Dummett, M.: The interpretation of frege’s philosophy. Erkenntnis 20(2), 243–251 (1983)
@@ -1550,7 +1554,7 @@
   272  p23  paragraph  [p23-l30..p23-l31 (2)]  [61] Greenberg, J., Koole, S.L., Pyszczynski, T.A.: Handbook of experimental existential psy-\nchology. Guilford Press (2004)
   273  p23  paragraph  [p23-l32]  [62] Harris, Z.S.: Distributional structure. Word 10(2-3), 146–162 (1954)
   274  p23  paragraph  [p23-l33..p23-l34 (2)]  [63] Hartshorne, C., Weiss, P., Burks, A.W.: Collected Papers of Charles Sanders Peirce, vol. 1\n- 8. Harvard University Press (1931 - 1958)
-  275  p23  furniture  [p23-l35]  23
+  275  p23  furniture/page-number  [p23-l35]  23
   276  p24  paragraph  [p24-l1..p24-l2 (2)]  [64] Hawkins, D.R.: Transcending the levels of consciousness: The stairway to enlightenment.\nHay House, Inc (2015)
   277  p24  paragraph  [p24-l3..p24-l5 (3)]  [65] Herreros, I., Arsiwalla, X., Verschure, P.: A forward model at purkinje cell synapses fa-\ncilitates cerebellar anticipatory control. In: Advances in Neural Information Processing\nSystems. pp. 3828–3836 (2016)
   278  p24  paragraph  [p24-l6..p24-l8 (3)]  [66] Herreros, I., Arsiwalla, X.D., Della Santina, C., Puigbo, J.Y., Bicchi, A., Verschure, P.:\nCerebellar-inspired learning rule for gain adaptation of feedback controllers. In: 2017 25th\nMediterranean Conference on Control and Automation (MED). pp. 565–570. IEEE (2017)
@@ -1567,7 +1571,7 @@
   289  p24  paragraph  [p24-l32..p24-l33 (2)]  [77] Lambek, J.: From Word to Sentence: a computational algebraic approach to grammar.\nPolimetrica (2008)
   290  p24  paragraph  [p24-l34..p24-l35 (2)]  [78] Lawvere, F.W.: Functorial semantics of algebraic theories. Proceedings of the National\nAcademy of Sciences 50(5), 869–872 (1963)
   291  p24  paragraph  [p24-l36]  [79] Lewis, D.: Convention: A philosophical study. Harvard University Press (1969)
-  292  p24  furniture  [p24-l37]  24
+  292  p24  furniture/page-number  [p24-l37]  24
   293  p25  paragraph  [p25-l1..p25-l3 (3)]  [80] Lopez-Sola, E., Moreno-Bote, R., Arsiwalla, X.D.: Sense of agency for mental actions:\nInsights from a belief-based action-effect paradigm. Consciousness and Cognition 96, 103225\n(2021)
   294  p25  paragraph  [p25-l4..p25-l5 (2)]  [81] Ludwig, W.: Philosophical investigations. G.E.M. Anscombe and R. Rhees (eds.), G.E.M.\nAnscombe (trans.), Oxford: Blackwell (1953)
   295  p25  paragraph  [p25-l6]  [82] Macpherson, F.: Impossible figures. Sage Encyclopedia of Perception (2010)
@@ -1586,7 +1590,7 @@
   308  p25  paragraph  [p25-l29..p25-l32 (4)]  [95] Moulin-Frier, C., Puigbo, J.Y., Arsiwalla, X.D., Sanchez-Fibla, M., Verschure, P.F.: Em-\nbodied artificial intelligence through distributed adaptive control: An integrated framework.\nIn: 2017 Joint IEEE International Conference on Development and Learning and Epigenetic\nRobotics (ICDL-EpiRob). pp. 324–330. IEEE (2017)
   309  p25  paragraph  [p25-l33..p25-l34 (2)]  [96] Mumford, D.: Grammar isn’t merely part of language (2016), https://www.dam.brown.\nedu/people/mumford/blog/2016/grammar.html
   310  p25  paragraph  [p25-l35]  [97] Nagel, T.: What is it like to be a bat? The philosophical review 83(4), 435–450 (1974)
-  311  p25  furniture  [p25-l36]  25
+  311  p25  furniture/page-number  [p25-l36]  25
   312  p26  paragraph  [p26-l1..p26-l2 (2)]  [98] Nakamura, J., Csikszentmihalyi, M.: The concept of flow. Handbook of positive psychology\n89, 105 (2002)
   313  p26  paragraph  [p26-l3..p26-l5 (3)]  [99] Oizumi, M., Albantakis, L., Tononi, G.: From the phenomenology to the mechanisms\nof consciousness: integrated information theory 3.0. PLoS Computational Biology 10(5),\ne1003588 (2014)
   314  p26  paragraph  [p26-l6..p26-l9 (4)]  [100] Pacheco Estefan, D., Zucca, R., Arsiwalla, X., Principe, A., Zhang, H., Rocamora, R.,\nAxmacher, N., Verschure, P.F.: Volitional learning promotes theta phase coding in the hu-\nman hippocampus. Proceedings of the National Academy of Sciences 118(10), e2021238118\n(2021)
@@ -1602,7 +1606,7 @@
   324  p26  paragraph  [p26-l28..p26-l29 (2)]  [110] Ray, P.S.: Language standardization. Readings in the Sociology of Language pp. 754–765\n(1968)
   325  p26  paragraph  [p26-l30..p26-l32 (3)]  [111] Reinerman-Jones, L., Sollins, B., Gallagher, S., Janz, B.: Neurophenomenology: an inte-\ngrated approach to exploring awe and wonder. South African Journal of Philosophy 32(4),\n295–309 (2013)
   326  p26  paragraph  [p26-l33..p26-l35 (3)]  [112] Rickles, D., Elshatlawy, H., Arsiwalla, X.D.: Ruliology: Linking computation, observers\nand physical law. arXiv preprint arXiv:2308.16068 (2023), https://doi.org/10.48550/\narXiv.2308.16068
-  327  p26  furniture  [p26-l36]  26
+  327  p26  furniture/page-number  [p26-l36]  26
   328  p27  paragraph  [p27-l1..p27-l2 (2)]  [113] Rosenblatt, A.D., Thickstun, J.T.: Intuition and consciousness. The Psychoanalytic Quar-\nterly 63(4), 696–714 (1994)
   329  p27  paragraph  [p27-l3]  [114] Russell, B.: On denoting. Mind 14(56), 479–493 (1905)
   330  p27  paragraph  [p27-l4..p27-l7 (4)]  [115] Sánchez-Fibla, M., Moulin-Frier, C., Arsiwalla, X., Verschure, P.: Social sensorimotor\ncontingencies: Towards theory of mind in synthetic agents. In: Recent Advances in Ar-\ntificial Intelligence Research and Development, pp. 251–256. IOS Press (2017), https:\n//doi.org/10.3233/978-1-61499-806-8-251
@@ -1618,7 +1622,7 @@
   340  p27  paragraph  [p27-l30..p27-l31 (2)]  [125] Tononi, G.: Integrated information theory of consciousness: an updated account. Arch Ital\nBiol 150(2-3), 56–90 (2012)
   341  p27  paragraph  [p27-l32..p27-l33 (2)]  [126] Turing, A.M.: Systems of logic based on ordinals. Proceedings of the London Mathematical\nSociety, Series 2 45, 161–228 (1939)
   342  p27  paragraph  [p27-l34..p27-l35 (2)]  [127] Tye, M.: Qualia. In: Zalta, E.N. (ed.) The Stanford Encyclopedia of Philosophy. Meta-\nphysics Research Lab, Stanford University, Fall 2021 edn. (2021)
-  343  p27  furniture  [p27-l36]  27
+  343  p27  furniture/page-number  [p27-l36]  27
   344  p28  paragraph  [p28-l1..p28-l2 (2)]  [128] Van Elk, M., Aleman, A.: Brain mechanisms in religion and spirituality: An integrative\npredictive processing framework. Neuroscience & Biobehavioral Reviews 73, 359–378 (2017)
   345  p28  paragraph  [p28-l3..p28-l4 (2)]  [129] Van Gulick, R.: Inward and upward: Reflection, introspection, and self-awareness. Philo-\nsophical Topics 28(2), 275–305 (2000)
   346  p28  paragraph  [p28-l5..p28-l6 (2)]  [130] Van Lommel, P.: Near-death experiences: the experience of the self as real and not as an\nillusion. Annals of the New York Academy of Sciences 1234(1), 19–28 (2011)
@@ -1632,13 +1636,14 @@
   354  p28  paragraph  [p28-l23]  [138] Zeki, S.: The neurobiology of love. FEBS letters 581(14), 2575–2579 (2007)
   355  p28  paragraph  [p28-l24..p28-l25 (2)]  [139] Zhu, S.C., Mumford, D.: A stochastic grammar of images. Foundations and Trends® in\nComputer Graphics and Vision 2(4), 259–362 (2007)
   356  p28  paragraph  [p28-l26]  [140] Zlatev, J.: Cognitive semiotics. International handbook of semiotics pp. 1043–1067 (2015)
-  357  p28  furniture  [p28-l27]  28
+  357  p28  furniture/page-number  [p28-l27]  28
   
   '''
 # ---
 # name: test_golden_file[arxiv2024-liu-orbital-hall]
   '''
   arxiv2024-liu-orbital-hall.pdf  language en  blocks 229
+  page labels  - 2 3 4 5 6
   0  p1  paragraph  [p1-l1..p1-l2 (2)]  Dominance of extrinsic scattering mechanisms in the orbital Hall effect: graphene,\ntransition metal dichalcogenides and topological antiferromagnets
   1  p1  paragraph  [p1-l3]  Hong Liu1 and Dimitrie Culcer1
   2  p1  paragraph  [p1-l4]  1School of Physics and Australian Research Council Centre of Excellence in Low-Energy Electronics Technologies,
@@ -1663,8 +1668,8 @@
   21  p1  paragraph  [p1-l72..p1-l75 (4)]  Figure 1. The total, extrinsic and intrinsic OH-conductance\nσOH vs the Fermi energy EF for the 2H-phase monolayer\nMoS2. The parameters are Fermi velocity vF = 3.6eV˚A and\nenergy gap 2∆ = 1.766eV.
   22  p1  paragraph  [p1-l76..p1-l97 (22)]  In this article, we calculate the full OHE, including in-\ntrinsic and extrinsic contributions, for two-dimensional\n(2D) massive Dirac fermions, using graphene, TMDs,\nand topological antiferromagnets as prototype systems.\nWe employ a quantum kinetic equation for the density\nmatrix ˆρ, derived from the quantum Liouville equation,\nfollowing the blueprint of Refs. [53, 58]. Our main find-\ning is that, remarkably, the extrinsic OH-conductance\noverwhelms the intrinsic OH-conductance in doped sys-\ntems and provides the dominant contribution to the OHE\nwhen the Fermi energy lies in the conduction or valence\nbands. This finding overhauls the conventional interpre-\ntation of experimental data and suggests that what is\nmeasured experimentally is overwhelmingly the extrin-\nsic contribution. For the model studied here of massive\nDirac fermions, and assuming short-range impurities, the\nextrinsic contribution is 21 times of the intrinsic one.\nOur central result is summarized in Fig. 1 with the to-\ntal, intrinsic and extrinsic OH-conductance σOH vs Fermi\nenergy plotted separately. The orbital Hall current op-\nerator ˆj = 1 2 {Lˆ, vˆ} where Lˆ is the OAM operator and\nvˆ the velocity operator. With the applied electric field
   23  p1  figure  [p1-d97]  
-  24  p1  furniture  [p1-l98]  arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024
-  25  p2  furniture  [p2-l1]  2
+  24  p1  furniture/side-stamp  [p1-l98]  arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024
+  25  p2  furniture/page-number  [p2-l1]  2
   26  p2  paragraph  [p2-l15..p2-l16 (2)]  -10\n0
   27  p2  figure  [p2-d1..p2-d114 (114)]  
   28  p2  paragraph  [p2-l18..p2-l14 (2)]  σexOH ( e / 2 π ) -20
@@ -1726,7 +1731,7 @@
   84  p2  figure  [p2-d135]  
   85  p2  paragraph  [p2-l124..p2-l129 (6)]  q Rmm′ q . Only\nthe z-component of OAM for 2D massive Dirac model\nsurvives, Lz = −(1/gLµB)(v 2 F ∆/2E2 q )τ0 [59].
   86  p2  paragraph  [p2-l130..p3-l62 (61)]  The disorder averaged density matrix ⟨ρˆ⟩ = ρ0 + ρE\nwith ρ0 the density matrix in equilibrium and correction\nby external electrical field ρE = nE + SE. The kinetic\nequation is solved in terms of band-diagonal contribution\nnE and band off-diagonal contribution SE. The expec-\ntation value of the orbital Hall current is calculated as\nj = Tr[⟨ρˆ⟩ ˆj] and Tr represents the full operator trace,\nand we focus on ˆj z y = 1/2{Lˆ z, vˆy}. Transport theory\nrequires EF τ /ℏ ≫ 1, where τ represents a character-\nistic momentum relaxation time that can be used as a\nmeasure of the disorder strength. The theory is formu-\nlated as an expansion in the small parameter ℏ/(EF τ ).\nThe first term leads to the Drude conductivity ∝ τ , for-\nmally of order (−1) in the small parameter. The next\nterm is of order zero in the disorder strength. Therefore,\none finds ρE = n (−1) E + S (0) E + n (0) E up to zero order in\nthe impurity density. The leading diagonal n (−1) E rep-\nresenting the shift in the Fermi surface induced by the\nelectric field is found from the band diagonal scatter-\ning integral J 1st 0 [n (−1) E ]. Next one feeds n (−1) E into the\nband off-diagonal scattering integral J 1st 0 [n (−1) E ] to deter-\nmine the anomalous driving term D′ E, and ultimately the\nband off-diagonal density matrix S (0) E . At last, we feed\nS (0) E into J 1st dia [S (0) E ] to get the zero-order n (0) E . This contri-\nbution is contained in vertex corrections in the diagram-\nmatic formalism [53, 58]. These corrections represent\nspin/pseudospin-dependent scattering commonly termed\nskew scattering and side jump. They are associated with\nthe Fermi surface, and occur because the scattering po-\ntential also contributes to band mixing and inter-band\ncoherence. In this connection, an alternative interpre-\ntation is that disorder mixes the bands in the crystal,\ngiving a correction to the wave function, and this results\nin a correction to the band-expectation values of certain\nphysical observables, which is proportional to the disor-\nder strength. At the same time, an electric field shifts the\nFermi surface away from equilibrium, and this shift is in-\nversely proportional to the disorder strength. The net\nresult in the average of physical observables is the prod-\nuct of the correction to the band-expectation value and\nthe shift in the distribution function, and this product is\nformally independent of the disorder strength.
-  87  p3  furniture  [p3-l1]  3
+  87  p3  furniture/page-number  [p3-l1]  3
   88  p3  paragraph  [p3-l16..p3-l33 (2)]  (a) (b)
   89  p3  paragraph  [p3-l13]  0
   90  p3  figure  [p3-d1..p3-d85 (84)]  
@@ -1777,7 +1782,7 @@
   135  p3  paragraph  [p3-l137..p3-l149 (13)]  ∂Eq . Then\nthe density matrix can be decomposed as ρE +ρE,vt with\nρE,vt the correction to first order in the tilt. The expan-\nsion involves an angular factor, which, in the operator\ntrace, is further multiplied by angular factors in the den-\nsity matrix and velocity operator. The product of these\nthree angular factors causes the correction to the OHE to\nfirst order in the tilt to vanish. Therefore, our calculation\nof the OHE in the 2D massive Dirac model applies to the\ntilted 2D massive Dirac model as well, up to terms of sec-\nond order in the tilt. Based on the values in Refs. [68, 69],\nwe expect such terms to account for < 5% of the total.
   136  p3  paragraph  [p3-l150..p3-l162 (13)]  Experimental observation. In systems with topological\ntextures disorder yields contributions formally of zeroth\norder in the disorder strength, which are hard to distin-\nguish experimentally from the intrinsic terms in the DC\nregime. However, it should be possible to distinguish the\nintrinsic and extrinsic contributions to the OHE using\nAC techniques. This would be the orbital transport ana-\nlogue of the magneto-optical Kerr effect [70], which was\nshown to be a strong probe of intrinsic transport in the\nanomalous Hall effect of topological insulators. Since dis-\norder effects are suppressed as 1/(ωτ ), with ω the light\nfrequency, one requires ωτ ≫ 1. Taking τ ∼ 0.1ps places\nthe wavelength in the ultraviolet range.
   137  p3  paragraph  [p3-l163..p4-l16 (21)]  Comparison with previous work. The total OH-\nconductance calculated here also reflects knowledge built\nup during earlier studies of the anomalous and spin-Hall\neffects [50–53]. In the spin Hall effect disorder corrections\ncancel the intrinsic contribution altogether, while in the\nanomalous Hall effect they overwhelm the intrinsic con-\ntribution by a factor of 7 [52, 58]. Here the extrinsic OHE\nis 21 times the intrinsic contribution. Recalling that for\nDirac fermions the velocity and spin operators coincide,\nthese factors are understandable in light of the qualita-\ntive difference between the orbital and spin angular mo-\nmentum operators [71]. The intrinsic and extrinsic terms\ndiscussed here form the main contributions to the OHE\nin the good metal regime, in the sense used in Ref. [1] for\nthe anomalous Hall effect. Disorder effects beyond the\nfirst Born approximation, including correlations, may be\nimportant in certain regimes [72–74]. In particular, an\nadditional skew scattering term appears in the second\nBorn approximation, yielding a contribution to the OH-\nconductance ∝
-  138  p4  furniture  [p4-l1]  4
+  138  p4  furniture/page-number  [p4-l1]  4
   139  p4  figure  [p4-d1..p4-d2 (2)]  
   140  p4  paragraph  [p4-l17..p4-l19 (3)]  U 3 1 (q 2 F v 2 F +∆2) , which dominates as the mev 2 F ∆2
   141  p4  paragraph  [p4-l18]  2πniU4 0
@@ -1792,7 +1797,7 @@
   150  p4  paragraph  [p4-l104..p4-l105 (2)]  [3] A. Johansson, B. G¨obel, J. Henk, M. Bibes, and I. Mer-\ntig, Phys. Rev. Res. 3, 013275 (2021).
   151  p4  paragraph  [p4-l106..p4-l110 (5)]  [4] Q. Shao, P. Li, L. Liu, H. Yang, S. Fukami, A. Razavi,\nH. Wu, K. Wang, F. Freimuth, Y. Mokrousov, M. D.\nStiles, S. Emori, A. Hoffmann, J. ˚Akerman, K. Roy, J.-\nP. Wang, S.-H. Yang, K. Garello, and W. Zhang, IEEE\nTransactions on Magnetics 57, 1 (2021).
   152  p4  paragraph  [p4-l111..p5-l2 (17)]  [5] T. S. Seifert, D. Go, H. Hayashi, R. Rouze-\ngar, F. Freimuth, K. Ando, Y. Mokrousov, and\nT. Kampfrath, Nature Nanotechnology (2023),\n10.1038/s41565-023-01470-8.
-  153  p5  furniture  [p5-l1]  5
+  153  p5  furniture/page-number  [p5-l1]  5
   154  p5  paragraph  [p5-l3..p5-l4 (2)]  [6] S. Kobayashi and A. Furusaki, Phys. Rev. B 104, 195114\n(2021).
   155  p5  paragraph  [p5-l5..p5-l7 (3)]  [7] Y.-G. Choi, D. Jo, K.-H. Ko, D. Go, K.-H. Kim, H. G.\nPark, C. Kim, B.-C. Min, G.-M. Choi, and H.-W. Lee,\nNature 619, 52 (2023).
   156  p5  paragraph  [p5-l8..p5-l10 (3)]  [8] P. Wang, Z. Feng, Y. Yang, D. Zhang, Q. Liu, Z. Xu,\nZ. Jia, Y. Wu, G. Yu, X. Xu, and Y. Jiang, npj Quantum\nMaterials 8, 28 (2023).
@@ -1845,7 +1850,7 @@
   203  p5  paragraph  [p5-l129..p5-l131 (3)]  [57] Z. Z. Du, H.-Z. Lu, and X. C. Xie, Nature Reviews\nPhysics 3, 744 (2021).
   204  p5  paragraph  [p5-l132..p5-l133 (2)]  [58] R. B. Atencia, Q. Niu, and D. Culcer, Phys. Rev. Res.\n4, 013001 (2022).
   205  p5  paragraph  [p5-l134..p6-l21 (22)]  [59] The limit of ∆ → 0 is related to the fact that the integral\nof a limit and the limit of an integral are generally not\nthe same. This behaviour is also present in the Berry\ncurvature, as discussed in Ref. [81] for anomalous Hall\neffect. In this paper, if we take the ∆ → 0 at the very\nbeginning of graphene Hamiltonian, the OHE disappears\naltogether. But if we take the ∆ → 0 limit for the orbital\nmoment, it yields lim∆→0∆/(q 2 v 2 F + ∆2 ) = πδ(q 2 v 2 F ).\nFor the intrinsic case, the Fermi energy lies exactly at the\nDirac point. The ∆ → 0 limit will make the intrinsic OH-\nconductance diverge after performing the integral over\nthe Fermi sea [33]. Hence, formally, the intrinsic OH-\nconductance will diverge when the EF is in band gap and\nthe extrinsic OH-conductance will vanish for graphene.\nHowever, in realistic samples, we expect that once the\ngap reaches below a certain value it will be overwhelmed\nby disorder and such a divergence will not be observable\nin practice. The limit of vanishing gap makes sense only\nfor graphene which is a gapless material in a pristine\nsituation. The ∆ → 0 limit is not applicable to TMDs,\nsince the band gap of monolayer TMDs is inherent to the\nband structure of materials [45].
-  206  p6  furniture  [p6-l1]  6
+  206  p6  furniture/page-number  [p6-l1]  6
   207  p6  paragraph  [p6-l22..p6-l24 (3)]  [60] T. Tanaka, H. Kontani, M. Naito, T. Naito, D. S. Hi-\nrashima, K. Yamada, and J. Inoue, Phys. Rev. B 77,\n165117 (2008).
   208  p6  paragraph  [p6-l25..p6-l26 (2)]  [61] H. Kontani, T. Tanaka, D. S. Hirashima, K. Yamada,\nand J. Inoue, Phys. Rev. Lett. 102, 016601 (2009).
   209  p6  paragraph  [p6-l27..p6-l28 (2)]  [62] L. Salemi and P. M. Oppeneer, Phys. Rev. Mater. 6,\n095001 (2022).
@@ -1874,6 +1879,7 @@
 # name: test_golden_file[joss2021-waskom-seaborn]
   '''
   joss2021-waskom-seaborn.pdf  language en  blocks 94
+  page labels  1 2 3 4
   0  p1  figure  [p1-i1]  
   1  p1  paragraph  [p1-l1]  seaborn: statistical data visualization
   2  p1  paragraph  [p1-l2]  Michael L. Waskom1
@@ -1891,26 +1897,26 @@
   14  p1  paragraph  [p1-l53]  Example
   15  p1  paragraph  [p1-l54..p2-l3 (5)]  The following example demonstrates the creation of a figure with seaborn. The example\nmakes use of one of the built-in datasets that are provided for documentation and generation of\nreproducible bug reports. It illustrates several of the features described in the Overview section,\nincluding the declarative API, semantic mappings, faceting across subplots, aggregation with\nerror bars, and visual theme control.
   16  p1  figure  [p1-d14]  
-  17  p1  furniture  [p1-l4]  DOI: 10.21105/joss.03021
-  18  p1  furniture  [p1-l5]  Software
-  19  p1  furniture  [p1-l6]  • Review
-  20  p1  furniture  [p1-l7]  • Repository
-  21  p1  furniture  [p1-l8]  • Archive
-  22  p1  furniture  [p1-l9]  Editor: Lorena Pantano
-  23  p1  furniture  [p1-l10]  Reviewers:
-  24  p1  furniture  [p1-l11]  • @dangeles
-  25  p1  furniture  [p1-l12]  • @Sara-ShiHo
-  26  p1  furniture  [p1-l13]  Submitted: 29 January 2021
-  27  p1  furniture  [p1-l14]  Published: 06 April 2021
-  28  p1  furniture  [p1-l15]  License
-  29  p1  furniture  [p1-l16]  Authors of papers retain
-  30  p1  furniture  [p1-l17]  copyright and release the work
-  31  p1  furniture  [p1-l18]  under a Creative Commons
-  32  p1  furniture  [p1-l19]  Attribution 4.0 International
-  33  p1  furniture  [p1-l20]  License (CC BY 4.0).
-  34  p1  furniture  [p1-l56]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
-  35  p1  furniture  [p1-l58]  1
-  36  p1  furniture  [p1-l57]  03021
+  17  p1  furniture/sidebar  [p1-l4]  DOI: 10.21105/joss.03021
+  18  p1  furniture/sidebar  [p1-l5]  Software
+  19  p1  furniture/sidebar  [p1-l6]  • Review
+  20  p1  furniture/sidebar  [p1-l7]  • Repository
+  21  p1  furniture/sidebar  [p1-l8]  • Archive
+  22  p1  furniture/sidebar  [p1-l9]  Editor: Lorena Pantano
+  23  p1  furniture/sidebar  [p1-l10]  Reviewers:
+  24  p1  furniture/sidebar  [p1-l11]  • @dangeles
+  25  p1  furniture/sidebar  [p1-l12]  • @Sara-ShiHo
+  26  p1  furniture/sidebar  [p1-l13]  Submitted: 29 January 2021
+  27  p1  furniture/sidebar  [p1-l14]  Published: 06 April 2021
+  28  p1  furniture/sidebar  [p1-l15]  License
+  29  p1  furniture/sidebar  [p1-l16]  Authors of papers retain
+  30  p1  furniture/sidebar  [p1-l17]  copyright and release the work
+  31  p1  furniture/sidebar  [p1-l18]  under a Creative Commons
+  32  p1  furniture/sidebar  [p1-l19]  Attribution 4.0 International
+  33  p1  furniture/sidebar  [p1-l20]  License (CC BY 4.0).
+  34  p1  furniture/running-head  [p1-l56]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
+  35  p1  furniture/page-number  [p1-l58]  1
+  36  p1  furniture/running-head  [p1-l57]  03021
   37  p2  figure  [p2-i1]  
   38  p2  paragraph  [p2-l4]  import seaborn as sns
   39  p2  paragraph  [p2-l5]  sns.set_theme(context="paper")
@@ -1939,9 +1945,9 @@
   62  p2  paragraph  [p2-l37]  Overview
   63  p2  paragraph  [p2-l38..p3-l5 (18)]  Users interface with seaborn through a collection of plotting functions that share a common\nAPI for plot specification and offer many more specific options for customization. These\nfunctions range from basic plot types such as scatter and line plots to functions that apply\nvarious transformations and abstractions, such as histogram binning, kernel density estimation,\nand regression model fitting. Functions in seaborn are classified as either “axes-level” or\n“figure-level.” Axes-level functions behave like most plotting functions in the matplotlib.\npyplot namespace. By default, they hook into the state machine that tracks a “current”\nfigure and add a layer to it, but they can also accept a matplotlib axes object to control\nwhere the plot is drawn, similar to using the matplotlib “object-oriented” interface. Figure-\nlevel functions create their own figure when invoked, allowing them to “facet” the dataset\nby creating multiple conditional subplots, along with adding conveniences such as putting\nthe legend outside the space of the plot by default. Each figure-level function corresponds\nto several axes-level functions that serve similar purposes, with a single parameter selecting\nthe kind of plot to make. For example, the displot function can produce several different\nrepresentations of a distribution, including a histogram, kernel density estimate, or empirical\ncumulative distribution function. The figure-level functions make use of a seaborn class that\ncontrols the layout of the figure, mediating between the axes-level functions and matplotlib.\nThese classes are part of the public API and can be used directly for advanced applications.
   64  p2  figure  [p2-d37]  
-  65  p2  furniture  [p2-l51]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
-  66  p2  furniture  [p2-l53]  2
-  67  p2  furniture  [p2-l52]  03021
+  65  p2  furniture/running-head  [p2-l51]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
+  66  p2  furniture/page-number  [p2-l53]  2
+  67  p2  furniture/running-head  [p2-l52]  03021
   68  p3  figure  [p3-i1]  
   69  p3  paragraph  [p3-l6..p3-l15 (10)]  One of the key features in seaborn is that variables in a dataset can be automatically\n“mapped” to visual attributes of the graph. These transformations are referred to as “se-\nmantic” mappings because they endow the attributes with meaning vis a vis the dataset. By\nfreeing the user from manually specifying the transformations – which often requires looping\nand multiple function invocations when using matplotlib directly – seaborn allows rapid\nexploration of multidimensional relationships. To further aid efficiency, the default parameters\nof the mappings are opinionated. For example, when mapping the color of the elements in a\nplot, seaborn infers whether to use a qualitative or quantitative mapping based on whether\nthe input data are categorical or numeric. This behavior can be further configured or even\noverridden by setting additional parameters of each plotting function.
   70  p3  paragraph  [p3-l16..p3-l26 (11)]  Several seaborn functions also apply statistical transformations to the input data before\nplotting, ranging from estimating the mean or median to fitting a general linear model. When\ndata are transformed in this way, seaborn automatically computes and shows error bars to\nprovide a visual cue about the uncertainty of the estimate. Unlike many graphical libraries,\nseaborn shows 95% confidence interval error bars by default, rather than standard errors. The\nconfidence intervals are computed with a bootstrap algorithm, allowing them to generalize over\nmany different statistics, and the default level allows the user to perform “inference by eye”\n(Cumming & Finch, 2005). Historically, error bar specification has been relatively limited, but\na forthcoming release (v0.12) will introduce a new configuration system that makes it possible\nto show nonparametric percentile intervals and scaled analytic estimates of standard error or\nstandard deviation statistics.
@@ -1949,9 +1955,9 @@
   72  p3  paragraph  [p3-l41..p3-l52 (12)]  seaborn also offers multiple built-in themes that users can select to modify the visual appear-\nance of their graphs. The themes make use of the matplotlib rcParams system, meaning\nthat they will take effect for any figure created using matplotlib, not just those made by\nseaborn. The themes are defined by two disjoint sets of parameters that separately control\nthe style of the figure and the scaling of its elements (such as line widths and font sizes). This\nseparation makes it easy to generate multiple versions of a figure that are scaled for different\ncontexts, such as written reports and slide presentations. The theming system can also be\nused to set a default color palette. As color is particularly important in data visualization and\nno single set of defaults is universally appropriate, every plotting function makes it easy to\nchoose an alternate categorical palette or continuous gradient mapping that is well-suited for\nthe particular dataset and plot type. The seaborn documentation contains a tutorial on the\nuse of color in data visualization to help users make this important decision.
   73  p3  paragraph  [p3-l53..p4-l15 (16)]  seaborn does not aim to completely encapsulate or replace matplotlib. Many useful\ngraphs can be created through the seaborn interface, but more advanced applications –\nsuch as defining composite figures with multiple arbitrary plot types – will require importing\nand using matplotlib as well. Even when calling only seaborn functions, deeper cus-\ntomization of the plot appearance is achieved by specifying parameters that are passed-\nthrough to the underlying matplotlib functions, and tweaks to the default axis limits,\nticks, and labels are made by calling methods on the matplotlib object that axes-level\nseaborn functions return. This approach is distinct from other statistical graphing sys-\ntems, such as ggplot2 (Wickham, 2016). While seaborn offers some similar features\nand, in some cases, uses similar terminology to ggplot2, it does not implement the for-\nmal Grammar of Graphics and cannot be used to produce arbitrary visualizations. Rather, its\naim is to facilitate rapid exploration and prototyping through named functions and opinion-\nated defaults while allowing the user to leverage the considerable flexibility of matplotlib\nto create more domain-specific graphics and to polish figures for publication. An exam-\nple of a successful use of this approach to produce reproducible figures can be found at\nhttps://github.com/WagnerLabPapers/Waskom_PNAS_2017 (Waskom & Wagner, 2017).
   74  p3  figure  [p3-d1]  
-  75  p3  furniture  [p3-l54]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
-  76  p3  furniture  [p3-l56]  3
-  77  p3  furniture  [p3-l55]  03021
+  75  p3  furniture/running-head  [p3-l54]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
+  76  p3  furniture/page-number  [p3-l56]  3
+  77  p3  furniture/running-head  [p3-l55]  03021
   78  p4  figure  [p4-i1]  
   79  p4  paragraph  [p4-l16]  Acknowledgements
   80  p4  paragraph  [p4-l17..p4-l20 (4)]  M.L.W. has been supported by the National Science Foundation IGERT program (0801700)\nand by the Simons Foundation as a Junior Fellow in the Simons Society of Fellows (527794).\nMany others have helped improve seaborn by asking questions, reporting bugs, and con-\ntributing code; thank you to this community.
@@ -1965,15 +1971,16 @@
   88  p4  paragraph  [p4-l39..p4-l40 (2)]  Wickham, H. (2014). Tidy data. Journal of Statistical Software, Articles, 59(10), 1–23.\nhttps://doi.org/10.18637/jss.v059.i10
   89  p4  paragraph  [p4-l41..p4-l45 (5)]  Wickham, H. (2016). ggplot2: Elegant graphics for data analysis. Springer-Verlag.\nISBN: 978-3-319-24277-4
   90  p4  figure  [p4-d1]  
-  91  p4  furniture  [p4-l46]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
-  92  p4  furniture  [p4-l48]  4
-  93  p4  furniture  [p4-l47]  03021
+  91  p4  furniture/running-head  [p4-l46]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
+  92  p4  furniture/page-number  [p4-l48]  4
+  93  p4  furniture/running-head  [p4-l47]  03021
   
   '''
 # ---
 # name: test_golden_file[joss2022-biggs-pymedphys]
   '''
   joss2022-biggs-pymedphys.pdf  language en  blocks 103
+  page labels  1 2 3 4
   0  p1  figure  [p1-i1]  
   1  p1  paragraph  [p1-l1..p1-l3 (3)]  PyMedPhys: A community effort to develop an open,\nPython-based standard library for medical physics\napplications
   2  p1  paragraph  [p1-l4..p1-l7 (4)]  Simon Biggs\n1 , Matthew Jennings\n2 , Stuart Swerdloff 3 , Phillip\nChlap
@@ -2007,25 +2014,25 @@
   30  p1  paragraph  [p1-l50..p1-l63 (14)]  Medical radiation applications are subject to fast-paced technological advancements. This is\nparticularly true in the field of radiation oncology, where the implementation of increasingly\nsophisticated technologies requires increasingly complex processes to maintain the improving\nstandard of care. To help address this challenge, software tools that improve the quality, safety\nand efficiency of clinical tasks are increasingly being developed in-house (Arumugam et al.,\n2016; Bakhtiari et al., 2011; Bhagroo et al., 2019; Chan et al., 2015; Edvardsson et al., 2018;\nHuang et al., 2021; Inaniwa & Kanematsu, 2018; Keall et al., 2014; Kimura et al., 2021; Kuo\net al., 2020; Latala et al., 2020; Li et al., 2010; Maughan et al., 2019; Skouboe et al., 2019).\nCommercial options are often prohibitively expensive or insufficiently tailored to an individual\nclinic’s needs. On the other hand, in-house development efforts are often limited to a single\ninstitution. Similar tools that could otherwise be shared are instead “reinvented” in clinics\nworldwide on a routine basis. Moreover, individual institutions typically lack the personnel and\nresources to incorporate simple aspects of good development practice or to properly maintain\nin-house software.
   31  p1  paragraph  [p1-l64..p2-l3 (7)]  By creating and promoting an open-source repository, PyMedPhys aims to improve the quality\nand accessibility of existing software solutions to problems faced across a range of medical\nradiation applications, especially those traditionally within the remit of medical physicists. These\nsolutions can be broadly categorised in two areas: data extraction/conversion of proprietary\nformats from a variety of radiotherapy systems, and manipulation of standard radiotherapy data\nto perform quality assurance (QA) tasks that are otherwise time-consuming or lack commercial\nsolutions with the desired flexibility or true function.
   32  p1  figure  [p1-d38]  
-  33  p1  furniture  [p1-l27]  DOI: 10.21105/joss.04555
-  34  p1  furniture  [p1-l28]  Software
-  35  p1  furniture  [p1-l29]  • Review
-  36  p1  furniture  [p1-l30]  • Repository
-  37  p1  furniture  [p1-l31]  • Archive
-  38  p1  furniture  [p1-l32]  Editor: Øystein Sørensen
-  39  p1  furniture  [p1-l33]  Reviewers:
-  40  p1  furniture  [p1-l34]  • @ProfLeao
-  41  p1  furniture  [p1-l35]  • @gbaltz
-  42  p1  furniture  [p1-l36]  Submitted: 12 June 2022
-  43  p1  furniture  [p1-l37]  Published: 16 October 2022
-  44  p1  furniture  [p1-l38]  License
-  45  p1  furniture  [p1-l39]  Authors of papers retain copyright
-  46  p1  furniture  [p1-l40]  and release the work under a
-  47  p1  furniture  [p1-l41]  Creative Commons Attribution 4.0
-  48  p1  furniture  [p1-l42]  International License (CC BY 4.0).
-  49  p1  furniture  [p1-l68]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
-  50  p1  furniture  [p1-l70]  1
-  51  p1  furniture  [p1-l69]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
+  33  p1  furniture/sidebar  [p1-l27]  DOI: 10.21105/joss.04555
+  34  p1  furniture/sidebar  [p1-l28]  Software
+  35  p1  furniture/sidebar  [p1-l29]  • Review
+  36  p1  furniture/sidebar  [p1-l30]  • Repository
+  37  p1  furniture/sidebar  [p1-l31]  • Archive
+  38  p1  furniture/sidebar  [p1-l32]  Editor: Øystein Sørensen
+  39  p1  furniture/sidebar  [p1-l33]  Reviewers:
+  40  p1  furniture/sidebar  [p1-l34]  • @ProfLeao
+  41  p1  furniture/sidebar  [p1-l35]  • @gbaltz
+  42  p1  furniture/sidebar  [p1-l36]  Submitted: 12 June 2022
+  43  p1  furniture/sidebar  [p1-l37]  Published: 16 October 2022
+  44  p1  furniture/sidebar  [p1-l38]  License
+  45  p1  furniture/sidebar  [p1-l39]  Authors of papers retain copyright
+  46  p1  furniture/sidebar  [p1-l40]  and release the work under a
+  47  p1  furniture/sidebar  [p1-l41]  Creative Commons Attribution 4.0
+  48  p1  furniture/sidebar  [p1-l42]  International License (CC BY 4.0).
+  49  p1  furniture/running-head  [p1-l68]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
+  50  p1  furniture/page-number  [p1-l70]  1
+  51  p1  furniture/running-head  [p1-l69]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
   52  p2  figure  [p2-i1]  
   53  p2  paragraph  [p2-l4..p2-l12 (9)]  Data extraction and conversion currently includes: two treatment planning systems, an oncology\ninformation system, and a linear accelerator vendor family of systems. Data in proprietary\nformats from these systems are extracted and converted to allow for integration in a myriad of\napplications. Applications that use planning system information include: electron cut-out factor\ndetermination, CT extension, and extraction of dose information for patient QA purposes.\nApplications that use the oncology information systems include: clinical dashboards that\nsummarise data, quality task tracking, and comparison of dose information to planning systems.\nApplications that use the linear accelerator data include: patient specific QA analysis against\nplanning data, and analysis of machine performance such as the Winston-Lutz test.
   54  p2  paragraph  [p2-l13..p2-l18 (6)]  QA tasks using standard radiotherapy data include: anonymisation, extraction of dose data\nfor analysis, manipulation of contour files to allow merging or adjustments/scaling of relative\nelectron density, modifying machine names in plans, and most frequently used, the calculation\nof a Gamma index, a widely recognised metric in radiotherapy analysis that quantifies the\ndifference between measured and calculated dose distributions on a point-by-point basis in\nterms of both dose and distance to agreement (DTA) differences.
@@ -2039,9 +2046,9 @@
   62  p2  paragraph  [p2-l41..p2-l43 (3)]  Baltz, G. C., & Kirsner, S. M. (2021). Validation of spline modeling for calculation of electron\ninsert factors for Varian linear accelerators. Journal of Applied Clinical Medical Physics,\n22(11), 64–70. https://doi.org/10.1002/acm2.13430
   63  p2  paragraph  [p2-l44..p3-l2 (4)]  Bert, C., Bertholet, J., Essers, M., Heijmen, B., Jornet, N., Koutsouveli, E., Schwarz, M.,\nBodale, M., Casares-Magaz, O., Gerskevitch, E., & others. (2021). Core curriculum for\nmedical physics experts in radiotherapy 3rd edition. https://www.efomp.org/uploads/\n595e3c8a-52d9-440f-b50b-183c3a00cb00/Radiotherapy_cc_2022.pdf
   64  p2  figure  [p2-d1]  
-  65  p2  furniture  [p2-l46]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
-  66  p2  furniture  [p2-l48]  2
-  67  p2  furniture  [p2-l47]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
+  65  p2  furniture/running-head  [p2-l46]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
+  66  p2  furniture/page-number  [p2-l48]  2
+  67  p2  furniture/running-head  [p2-l47]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
   68  p3  figure  [p3-i1]  
   69  p3  paragraph  [p3-l3..p3-l5 (3)]  Bhagroo, S., French, S., Mathews, J., & Nazareth, D. (2019). Secondary monitor unit\ncalculations for VMAT using parallelized Monte Carlo simulations. Journal of Applied\nClinical Medical Physics. https://doi.org/10.1002/acm2.12605
   70  p3  paragraph  [p3-l6..p3-l8 (3)]  Castle, J. R., Duan, J., Feng, X., & Chen, Q. (2022). Development of a virtual source model\nfor Monte Carlo-based independent dose calculation for varian linac. Journal of Applied\nClinical Medical Physics, e13556. https://doi.org/10.1002/acm2.13556
@@ -2058,9 +2065,9 @@
   81  p3  paragraph  [p3-l43..p3-l46 (4)]  Kuo, L., Zhang, P., Pham, H., & Ballangrud, A. (2020). Implementation and validation of\nan in-house geometry optimization software for SRS VMAT planning of multiple cranial\nmetastases. Journal of Applied Clinical Medical Physics. https://doi.org/10.1002/acm2.\n12961
   82  p3  paragraph  [p3-l47..p4-l1 (3)]  Latala, A., Fujak, E., Walewska, A., & Kukołowicz, P. (2020). The comparison of VMAT\ntest results for clinac 2300C/D and TrueBeam accelerators. Medical Dosimetry. https:\n//doi.org/10.1016/j.meddos.2019.12.007
   83  p3  figure  [p3-d1]  
-  84  p3  furniture  [p3-l49]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
-  85  p3  furniture  [p3-l51]  3
-  86  p3  furniture  [p3-l50]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
+  84  p3  furniture/running-head  [p3-l49]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
+  85  p3  furniture/page-number  [p3-l51]  3
+  86  p3  furniture/running-head  [p3-l50]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
   87  p4  figure  [p4-i1]  
   88  p4  paragraph  [p4-l2..p4-l3 (2)]  Li, J., Lin, T., Chen, L., Price, R. J., & Ma, C. (2010). Uncertainties in IMRT dosimetry.\nMedical Physics. https://doi.org/10.1118/1.3413997
   89  p4  paragraph  [p4-l4..p4-l7 (4)]  Lysakovski, P., Ferrari, A., Tessonnier, T., Besuglow, J., Kopp, B., Mein, S., Haberer, T.,\nDebus, J., & Mairani, A. (2021). Development and benchmarking of a Monte Carlo dose\nengine for proton radiation therapy. Frontiers in Physics, 655. https://doi.org/10.3389/\nfphy.2021.741453
@@ -2074,9 +2081,9 @@
   97  p4  paragraph  [p4-l32..p4-l34 (3)]  Tsuneda, M., Nishio, T., Ezura, T., & Karasawa, K. (2021). Plastic scintillation dosimeter with\na conical mirror for measuring 3D dose distribution. Medical Physics, 48(10), 5639–5650.\nhttps://doi.org/10.1002/mp.15164
   98  p4  paragraph  [p4-l35..p4-l39 (5)]  Yang, M., Wang, X., Guan, F., Titt, U., Iga, K., Jiang, D., Takaoka, T., Totake, S.,\nKatayose, T., Umezawa, M., Schüler, E., Frank, S. J., Lin, S. H., Sahoo, N., Koong,\nA. C., Mohan, R., & Zhu, X. R. (2022). Adaptation and dosimetric commissioning of\na synchrotron-based proton beamline for FLASH experiments. Physics in Medicine and\nBiology. https://doi.org/10.1088/1361-6560/ac8269
   99  p4  figure  [p4-d1]  
-  100  p4  furniture  [p4-l40]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
-  101  p4  furniture  [p4-l42]  4
-  102  p4  furniture  [p4-l41]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
+  100  p4  furniture/running-head  [p4-l40]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
+  101  p4  furniture/page-number  [p4-l42]  4
+  102  p4  furniture/running-head  [p4-l41]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
   
   '''
 # ---

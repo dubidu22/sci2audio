@@ -14,39 +14,65 @@ import re
 from collections import defaultdict
 from statistics import median
 
-from sci2audio.core import Box, Content, Page, TextLine
+from sci2audio.core import Box, Content, FurnitureRole, Page, TextLine
 from sci2audio.layout.geometry import body_size, boxed, line_size, rows, text_area
 from sci2audio.layout.settings import LayoutSettings
 
-PAGE_NUMBER = "page-number"
-RUNNING_HEAD = "running-head"
-FOOTER = "footer"
-SIDE_STAMP = "side-stamp"
-LINE_NUMBER = "line-number"
-CONTENTS = "contents"
-SIDEBAR = "sidebar"
+PAGE_NUMBER = FurnitureRole.PAGE_NUMBER
+RUNNING_HEAD = FurnitureRole.RUNNING_HEAD
+FOOTER = FurnitureRole.FOOTER
+SIDE_STAMP = FurnitureRole.SIDE_STAMP
+LINE_NUMBER = FurnitureRole.LINE_NUMBER
+CONTENTS = FurnitureRole.CONTENTS
+SIDEBAR = FurnitureRole.SIDEBAR
 
 _ROMAN = r"(?=[ivxlcdm])m{0,4}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3})"
 _PAGE_NUMBER = re.compile(
-    r"^(?:page\s+)?[(\[\-\u2013\u2014]?\s*(?:\d{1,4}|" + _ROMAN + r")\s*[)\]\-\u2013\u2014]?"
+    r"^(?:page\s+)?[(\[\-\u2013\u2014]?\s*(?P<label>\d{1,4}|" + _ROMAN + r")\s*[)\]\-\u2013\u2014]?"
     r"(?:\s*(?:of|/)\s*\d{1,4})?$",
     re.IGNORECASE,
 )
 _CONTENTS_TITLE = {"contents", "tableofcontents"}
 _LEADER = re.compile(r"(?:\.\s?){4,}\s*\d{1,4}$|(?:…\s?){2,}\s*\d{1,4}$")
 
+
+def page_label(text: str) -> str:
+    """The page label a page-number line prints: "39" in "- 39 -" or "Page 39 of 40"."""
+    found = _PAGE_NUMBER.match(text.strip())
+    return found.group("label") if found else text.strip()
+
+
 Heads = dict[tuple[str, str], list[tuple[int, float]]]  # (band, shape) -> (page, height)
 
 
-def find_furniture(content: Content, settings: LayoutSettings) -> dict[str, str]:
+def find_furniture(content: Content, settings: LayoutSettings) -> dict[str, FurnitureRole]:
     """The furniture kind of every line that is furniture, by line id."""
     size = body_size(content) or settings.body_size
     pages = [page for page in content.pages if page.height and page.width]
     heads = _running_heads(pages, size, settings)
-    found: dict[str, str] = {}
+    counted = _counted(pages, settings)
+    found: dict[str, FurnitureRole] = {}
     for page in pages:
-        found.update(_Page(page, size, settings).furniture(heads))
+        found.update(_Page(page, size, settings).furniture(heads, counted))
     return found
+
+
+def _counted(pages: list[Page], settings: LayoutSettings) -> set[str]:
+    """Numbers at the outer end of a top or bottom row that go up with the page, as page
+    numbers do: one on each of at least `repeat_pages` pages, at the same end of the same
+    band, each the page's number plus the same offset (a page number set beside a footer)."""
+    seen: dict[tuple[str, int, int], list[str]] = defaultdict(list)
+    for page in pages:
+        edge = [li for li in page.lines if li.box and _band(li.box, page, settings)]
+        for row in rows(edge, settings.row_overlap):
+            for side, line in ((0, row[0]), (1, row[-1])):
+                text = line.text.strip()
+                if text.isdigit() and len(text) <= 4:
+                    band = _band(boxed(line), page, settings)
+                    seen[band, side, int(text) - page.number].append(line.id)
+    return {
+        line_id for ids in seen.values() if len(ids) >= settings.repeat_pages for line_id in ids
+    }
 
 
 def _band(box: Box, page: Page, settings: LayoutSettings) -> str:
@@ -92,7 +118,7 @@ class _Page:
         self.graphics = [g.box for g in (*page.pictures, *page.drawings) if g.box]
         self.apart = self._apart()
 
-    def furniture(self, heads: Heads) -> dict[str, str]:
+    def furniture(self, heads: Heads, counted: set[str]) -> dict[str, FurnitureRole]:
         found = dict.fromkeys(self.stamps, SIDE_STAMP)
         settings, height = self.settings, self.page.height or 0.0
         for line in self.lines:
@@ -103,7 +129,7 @@ class _Page:
             loose = line_size(line) < settings.small * self.size or line.id in self.apart
             places = heads.get((band, _shape(text)), [])
             drift = settings.head_drift * self.size
-            if band and self._is_page_number(line):
+            if band and (line.id in counted or self._is_page_number(line)):
                 found[line.id] = PAGE_NUMBER
             elif loose and _repeated(places, box.y0, drift) >= settings.repeat_pages:
                 found[line.id] = RUNNING_HEAD
@@ -188,7 +214,7 @@ def _white(a: list[Box], b: list[Box]) -> float:
     )
 
 
-def _line_numbers(lines: list[TextLine], settings: LayoutSettings) -> dict[str, str]:
+def _line_numbers(lines: list[TextLine], settings: LayoutSettings) -> dict[str, FurnitureRole]:
     """Bare numbers beside the text, as in a draft with numbered lines."""
     words = [line for line in lines if not line.text.strip().isdigit()]
     left, right = text_area(words, settings.edge_share)
@@ -202,9 +228,9 @@ def _line_numbers(lines: list[TextLine], settings: LayoutSettings) -> dict[str, 
     return {line.id: LINE_NUMBER for line in beside}
 
 
-def _contents(lines: list[TextLine], settings: LayoutSettings) -> dict[str, str]:
+def _contents(lines: list[TextLine], settings: LayoutSettings) -> dict[str, FurnitureRole]:
     """A printed table of contents: its title and the entries under it with their pages."""
-    found: dict[str, str] = {}
+    found: dict[str, FurnitureRole] = {}
     _, right = text_area(lines, settings.edge_share)
     size = median(run.size for line in lines for run in line.runs) if lines else 0.0
     reach = settings.contents_reach * max(size, 1.0)
