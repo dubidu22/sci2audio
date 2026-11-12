@@ -18,7 +18,7 @@ Feature ID: <!-- e.g. WI-02, from the feature list -->
 
 ## Risk
 
-<!-- low / risk:high (licences, deleting user files, network, release, layer contracts and plugin interfaces, core dataclasses, golden files; any of these makes the PR critical) -->
+<!-- low / risk:high (licences, deleting user files, network, release, layer contracts and plugin interfaces, core dataclasses, golden files; any of these makes the PR critical; until v1.0 the coordinator merges critical PRs after review and Colin is informed, D-80) -->
 
 ## Out of scope
 
