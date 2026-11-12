@@ -8,13 +8,16 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
 - White space, line breaks included, is read as one space (`spoken_text`), not an edit.
 - A sentence ends after ".", "?" or "!" (closing quotes or brackets may follow) when white
   space and then an upper-case letter, a digit or an opening quote or bracket follow, except
-  after an abbreviation of the language ("Fig.", "et al.", "e.g.") or a single initial.
+  after an abbreviation of the language ("Fig.", "et al.", "e.g."; "No.", "p." and the like
+  only before a number) or a single initial ("J. Smith"; so "set A. Then" stays one
+  utterance, which the length limit still caps), and never inside a replacement.
 - The voice takes only so much text per call (Kokoro: about 510 phoneme tokens). A sentence
   longer than `max_chars` is cut at the last ";" or ":" that fits, else the last comma,
   else a dash, else the last space; a single word longer than that is cut where it must be.
-- Spans: kept text maps character by character, so a cut inside it is exact. A replacement
-  is read as a whole where possible; its span belongs to the utterance that starts it, and
-  an utterance that starts in the middle of one starts at its end. Spans in a block are in
+- Spans: kept text (a piece whose text is the document's original text of its span) maps
+  character by character, so a cut inside it is exact. A replacement is read as a whole
+  where it fits; its span belongs to the utterance that holds its first spoken character,
+  and an utterance that starts after that, inside it, starts at its end. Spans in a block are in
   order and never overlap; removed text between pieces lies inside the span around it.
 """
 
@@ -26,7 +29,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from itertools import pairwise
 
-from sci2audio.core import ScriptPiece, Span
+from sci2audio.core import Document, ScriptPiece, Span
 from sci2audio.textprep.spoken import spoken_text
 
 DEFAULT_MAX_CHARS = 300  # well under Kokoro's per-call limit; #18 sets the voice's own
@@ -78,6 +81,10 @@ _CLOSING = "\"')]\u201d\u2019"  # quotes and brackets that may follow a full sto
 _OPENING = "\"'([{\u201c\u2018"  # ... and that may open the next sentence
 _SENTENCE_END = re.compile(rf"[.?!]+[{re.escape(_CLOSING)}]*(?=\s+(\S))")
 _INITIAL = re.compile(r"\A[A-Z]\.\Z")
+_LAST_WORD = re.compile(r"\S+\Z")
+# abbreviations that stand before a number ("No. 5", "p. 12"); before anything else their
+# full stop may end a sentence ("The answer is no. Then ...")
+_BEFORE_NUMBERS = frozenset({"no.", "nos.", "p.", "pp.", "vol."})
 _CLAUSE_MARKS = (";:", ",", "\u2013\u2014")  # in the order a long sentence is cut at them
 
 
@@ -100,62 +107,74 @@ class _Run:
     block: int
     text: str
     pieces: tuple[tuple[int, ScriptPiece], ...]  # (offset in text, piece)
+    kept: tuple[bool, ...]  # per piece: the original text, not a replacement
     offsets: tuple[int, ...] = field(init=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "offsets", tuple(offset for offset, _ in self.pieces))
 
-    def piece_at(self, index: int) -> tuple[int, ScriptPiece]:
-        """The piece holding the character at `index`, with its offset in the text."""
-        return self.pieces[bisect_right(self.offsets, index) - 1]
-
-    def is_kept(self, piece: ScriptPiece) -> bool:
-        return len(piece.text) == piece.span.end - piece.span.start
+    def piece_at(self, index: int) -> tuple[int, ScriptPiece, bool]:
+        """The piece holding the character at `index`, its offset in the text, and whether
+        it is kept original text."""
+        number = bisect_right(self.offsets, index) - 1
+        offset, piece = self.pieces[number]
+        return offset, piece, self.kept[number]
 
     def start_of(self, index: int) -> int:
         """The original offset where the character at `index` begins."""
-        offset, piece = self.piece_at(index)
-        if self.is_kept(piece):
+        offset, piece, kept = self.piece_at(index)
+        if kept:
             return piece.span.start + index - offset
-        return piece.span.start if index == offset else piece.span.end
+        # a replacement's span goes to the utterance that starts it, white space before
+        # its first spoken character included
+        starts_it = not piece.text[: index - offset].strip()
+        return piece.span.start if starts_it else piece.span.end
 
     def end_of(self, index: int) -> int:
         """The original offset just after the character at `index`."""
-        offset, piece = self.piece_at(index)
-        if self.is_kept(piece):
+        offset, piece, kept = self.piece_at(index)
+        if kept:
             return piece.span.start + index - offset + 1
         return piece.span.end
 
     def inside_replacement(self, index: int) -> tuple[int, int] | None:
         """The replacement's range in the text if `index` lies strictly inside one."""
-        offset, piece = self.piece_at(index)
+        offset, piece, kept = self.piece_at(index)
         end = offset + len(piece.text)
-        if not self.is_kept(piece) and offset < index < end:
+        if not kept and offset < index < end:
             return offset, end
         return None
 
 
 def cut_utterances(
-    pieces: Iterable[ScriptPiece], language: str = "en", max_chars: int = DEFAULT_MAX_CHARS
+    document: Document,
+    pieces: Iterable[ScriptPiece],
+    language: str | None = None,
+    max_chars: int = DEFAULT_MAX_CHARS,
 ) -> tuple[Utterance, ...]:
-    """The utterances of a listening script, in order (see the module docstring)."""
+    """The utterances of the document's listening script, in order (see the module docstring).
+
+    The document tells kept text from replacements (a piece is kept when its text is the
+    original text of its span); `language` defaults to the document's.
+    """
     if max_chars < 1:
         raise ValueError(f"max_chars must be at least 1, got {max_chars}")
+    language = language or document.language
     abbreviations = ABBREVIATIONS.get(language.split("-", 1)[0].lower(), frozenset())
     utterances: list[Utterance] = []
-    for run_or_pause in _runs(pieces):
+    for run_or_pause in _runs(document, pieces):
         if isinstance(run_or_pause, ScriptPiece):
             utterances.append(Utterance("", run_or_pause.span, pause=True))
             continue
         run = run_or_pause
-        for start, end in _sentences(run.text, abbreviations):
+        for start, end in _sentences(run, abbreviations):
             for a, b in _fitted(run, start, end, max_chars):
                 if utterance := _utterance(run, a, b):
                     utterances.append(utterance)
     return tuple(utterances)
 
 
-def _runs(pieces: Iterable[ScriptPiece]) -> list[_Run | ScriptPiece]:
+def _runs(document: Document, pieces: Iterable[ScriptPiece]) -> list[_Run | ScriptPiece]:
     out: list[_Run | ScriptPiece] = []
     current: list[ScriptPiece] = []
 
@@ -166,7 +185,8 @@ def _runs(pieces: Iterable[ScriptPiece]) -> list[_Run | ScriptPiece]:
                 entries.append((offset, piece))
                 offset += len(piece.text)
             text = "".join(piece.text for piece in current)
-            out.append(_Run(current[0].span.block, text, tuple(entries)))
+            kept = tuple(piece.text == document.text_of(piece.span) for piece in current)
+            out.append(_Run(current[0].span.block, text, tuple(entries), kept))
             current.clear()
 
     for piece in pieces:
@@ -182,18 +202,30 @@ def _runs(pieces: Iterable[ScriptPiece]) -> list[_Run | ScriptPiece]:
     return out
 
 
-def _sentences(text: str, abbreviations: frozenset[str]) -> list[tuple[int, int]]:
-    """Ranges of the text, one per sentence; white space stays with the sentence before."""
+def _sentences(run: _Run, abbreviations: frozenset[str]) -> list[tuple[int, int]]:
+    """Ranges of the run's text, one per sentence; white space stays with the sentence
+    before. A sentence end inside a replacement is not a cut: the replacement is read whole,
+    and the fallback cut still keeps it under the limit."""
+    text = run.text
     cuts = [0]
     for match in _SENTENCE_END.finditer(text):
         following = match.group(1)[0]
         if not (following.isupper() or following.isdigit() or following in _OPENING):
             continue
-        word_start = max(text.rfind(c, 0, match.start()) for c in " \t\n\r\f\v") + 1
-        word = text[word_start : match.end()].lstrip(_OPENING).rstrip(_CLOSING)
-        if word.lower() in abbreviations or _INITIAL.match(word):
+        # the word before the gap; any white space (a no-break space too) ends it
+        word = _LAST_WORD.search(text, 0, match.end()).group().lstrip(_OPENING).rstrip(_CLOSING)
+        lowered = word.lower()
+        if lowered in abbreviations and not (
+            lowered in _BEFORE_NUMBERS and not following.isdigit()
+        ):
             continue
-        cuts.append(match.start(1))
+        if _INITIAL.match(word):
+            continue
+        cut = match.start(1)
+        inside = run.inside_replacement(cut)
+        if inside and text[inside[0] : cut].strip():  # replacement text before the cut
+            continue
+        cuts.append(cut)
     cuts.append(len(text))
     return [(a, b) for a, b in pairwise(cuts) if a < b]
 
@@ -215,11 +247,19 @@ def _fitted(run: _Run, start: int, end: int, max_chars: int) -> list[tuple[int, 
     """Cut text[start:end] into ranges whose spoken text has at most max_chars."""
     out = []
     while True:
-        counts = _counts(run.text[start:end])
+        # look only as far as the limit needs, so a long text costs linear time, not
+        # quadratic: widen the window until its spoken text is over the limit
+        width = 2 * max_chars + 2
+        while True:
+            stop = min(end, start + width)
+            counts = _counts(run.text[start:stop])
+            if counts[-1] > max_chars or stop == end:
+                break
+            width *= 2
         if counts[-1] <= max_chars:
             out.append((start, end))
             return out
-        cut = start + _cut_point(run.text[start:end], counts, max_chars)
+        cut = start + _cut_point(run.text[start:stop], counts, max_chars)
         cut = _outside_replacement(run, start, cut, counts, max_chars)
         out.append((start, cut))
         start = cut
@@ -227,8 +267,8 @@ def _fitted(run: _Run, start: int, end: int, max_chars: int) -> list[tuple[int, 
 
 def _cut_point(text: str, counts: list[int], max_chars: int) -> int:
     """Where to cut a text whose spoken length is over max_chars (an index > 0)."""
-    fits = [i for i in range(1, len(text) + 1) if 0 < counts[i] <= max_chars]
-    last_fit = fits[-1]  # at least one character always fits, as max_chars >= 1
+    # counts never decrease, and the first spoken character always fits (max_chars >= 1)
+    last_fit = bisect_right(counts, max_chars) - 1
     for marks in _CLAUSE_MARKS:
         for i in range(last_fit, 0, -1):
             if text[i - 1] in marks and (i == len(text) or text[i].isspace()):

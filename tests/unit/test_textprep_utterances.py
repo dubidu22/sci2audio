@@ -1,6 +1,7 @@
 """The utterance cutter: sentences, the fallback cut for long ones, spans (#63, D-98, Q4)."""
 
 import re
+import time
 from functools import cache
 from itertools import pairwise
 from pathlib import Path
@@ -26,7 +27,9 @@ from sci2audio.textprep import (
 
 def cut(text: str, max_chars: int = DEFAULT_MAX_CHARS, language: str = "en") -> list[str]:
     document = make_document([(BlockKind.PARAGRAPH, text)], language)
-    return [u.text for u in cut_utterances(apply_edits(document, []), language, max_chars)]
+    return [
+        u.text for u in cut_utterances(document, apply_edits(document, []), language, max_chars)
+    ]
 
 
 @pytest.mark.parametrize(
@@ -54,11 +57,24 @@ def test_sentences_end_at_full_stops_before_a_new_sentence(text: str, sentences:
 @pytest.mark.parametrize(
     "abbreviation",
     ["Fig.", "Figs.", "Eq.", "Sec.", "Tab.", "et al.", "e.g.", "i.e.", "cf.", "vs.", "Dr.",
-     "Prof.", "No.", "approx.", "Approx.", "resp.", "ca.", "incl.", "(Fig.", "(e.g."],
+     "Prof.", "approx.", "Approx.", "resp.", "ca.", "incl.", "(Fig.", "(e.g."],
 )  # fmt: skip
 def test_no_sentence_ends_after_an_abbreviation(abbreviation: str) -> None:
     text = f"As shown {abbreviation} One more word. Next sentence."
     assert cut(text) == [f"As shown {abbreviation} One more word.", "Next sentence."]
+
+
+def test_no_and_p_are_abbreviations_only_before_a_number() -> None:
+    assert cut("See No. 5 and p. 12 there. Next.") == ["See No. 5 and p. 12 there.", "Next."]
+    assert cut("The answer is no. Then we stop.") == ["The answer is no.", "Then we stop."]
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["Smith et al.\u00a0(2019) showed it.", "As in Fig.\u00a02 we see.", "See\u00a0Fig. 2 now."],
+)
+def test_a_no_break_space_does_not_hide_an_abbreviation(text: str) -> None:
+    assert cut(text) == [text.replace("\u00a0", " ")]
 
 
 def test_no_sentence_ends_after_an_initial() -> None:
@@ -107,7 +123,7 @@ def test_a_1000_character_sentence_fits_the_limit() -> None:
 
 def test_max_chars_must_be_positive() -> None:
     with pytest.raises(ValueError, match="at least 1"):
-        cut_utterances((), max_chars=0)
+        cut_utterances(make_document([]), (), max_chars=0)
 
 
 def test_spans_point_at_the_original_and_pauses_stand_alone() -> None:
@@ -118,7 +134,7 @@ def test_spans_point_at_the_original_and_pauses_stand_alone() -> None:
         Edit(Span(0, 37, 40), EditKind.REPLACE, "abbreviation", "x", replacement="Doctor"),
         Edit(Span(1, 9, 9), EditKind.PAUSE, "after a heading", "x"),
     ]
-    utterances = cut_utterances(apply_edits(document, edits))
+    utterances = cut_utterances(document, apply_edits(document, edits))
     assert utterances == (
         Utterance("Several studies agree.", Span(0, 0, 36)),
         Utterance("Doctor Lee disagrees.", Span(0, 37, 55)),
@@ -130,7 +146,7 @@ def test_spans_point_at_the_original_and_pauses_stand_alone() -> None:
 def test_a_cut_does_not_split_a_replacement_that_fits() -> None:
     document = make_document([(BlockKind.PARAGRAPH, "aa bb x cc dd")])
     edit = Edit(Span(0, 6, 7), EditKind.REPLACE, "r", "x", replacement="one two")
-    utterances = cut_utterances(apply_edits(document, [edit]), max_chars=12)
+    utterances = cut_utterances(document, apply_edits(document, [edit]), max_chars=12)
     # the last space that fits lies inside "one two": the cut moves to before it
     assert utterances == (
         Utterance("aa bb", Span(0, 0, 5)),
@@ -139,10 +155,47 @@ def test_a_cut_does_not_split_a_replacement_that_fits() -> None:
     )
 
 
+def test_a_sentence_end_inside_a_replacement_does_not_split_it() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "See note 1 here. More.")])
+    edit = Edit(Span(0, 9, 10), EditKind.REPLACE, "r", "x", replacement="one. The note says hi.")
+    assert cut_utterances(document, apply_edits(document, [edit])) == (
+        Utterance("See note one. The note says hi. here.", Span(0, 0, 16)),
+        Utterance("More.", Span(0, 17, 22)),
+    )
+
+
+def test_a_replacement_starting_with_white_space_keeps_its_span() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "First part. X tail.")])
+    edit = Edit(Span(0, 12, 13), EditKind.REPLACE, "r", "x", replacement=" Footnote one")
+    assert cut_utterances(document, apply_edits(document, [edit])) == (
+        Utterance("First part.", Span(0, 0, 11)),
+        Utterance("Footnote one tail.", Span(0, 12, 19)),
+    )
+
+
+def test_a_same_length_replacement_is_still_a_replacement() -> None:
+    # "A. B" has the length of "x yz", but is not the original text: it is read whole
+    document = make_document([(BlockKind.PARAGRAPH, "Go x yz now.")])
+    edit = Edit(Span(0, 3, 7), EditKind.REPLACE, "r", "x", replacement="a. Bc")
+    assert [u.text for u in cut_utterances(document, apply_edits(document, [edit]))] == [
+        "Go a. Bc now."
+    ]
+
+
+@pytest.mark.timeout(60)
+def test_a_long_text_without_a_full_stop_is_cut_in_linear_time() -> None:
+    text = "word " * 60_000  # 300,000 characters; the quadratic cut took about 11 s here
+    started = time.perf_counter()
+    parts = cut(text)
+    assert time.perf_counter() - started < 5
+    assert all(len(part) <= DEFAULT_MAX_CHARS for part in parts)
+    assert " ".join(parts) == text.strip()
+
+
 def test_a_replacement_longer_than_the_limit_gives_later_parts_an_empty_span() -> None:
     document = make_document([(BlockKind.PARAGRAPH, "a X b")])
     edit = Edit(Span(0, 2, 3), EditKind.REPLACE, "r", "x", replacement="long " * 6)
-    utterances = cut_utterances(apply_edits(document, [edit]), max_chars=12)
+    utterances = cut_utterances(document, apply_edits(document, [edit]), max_chars=12)
     spans = [u.span for u in utterances]
     assert spans[0] == Span(0, 0, 1)
     assert spans[1] == Span(0, 2, 3)
@@ -172,7 +225,7 @@ def test_utterances_cover_the_script_inside_their_blocks_in_order(
     case: tuple[Document, tuple[ScriptPiece, ...]], max_chars: int, language: str
 ) -> None:
     document, script = case
-    utterances = cut_utterances(script, language, max_chars)
+    utterances = cut_utterances(document, script, language, max_chars)
     for utterance in utterances:
         document.check_span(utterance.span)
         if utterance.pause:
@@ -188,12 +241,17 @@ def test_utterances_cover_the_script_inside_their_blocks_in_order(
         said = [u.text for u in utterances if u.span.block == index and not u.pause]
         # nothing lost or added; a cut inside a word adds a space, so compare without them
         assert re.sub(r"\s", "", "".join(said)) == re.sub(r"\s", "", spoken)
+        pieces = [p for p in script if p.span.block == index]
         if all(len(word) <= max_chars for word in spoken.split()) and all(
-            len(p.text) == p.span.end - p.span.start and not p.pause
-            for p in script
-            if p.span.block == index
+            not p.pause and p.text == document.text_of(p.span) for p in pieces
         ):  # no replacement or pause, which may cut inside a word
             assert " ".join(said) == spoken
+        # a replacement that fits the limit is read whole, inside one utterance
+        for piece in pieces:
+            words = spoken_text([piece])
+            replaced = not piece.pause and piece.text != document.text_of(piece.span)
+            if replaced and 0 < len(words) <= max_chars:
+                assert any(words in text for text in said), (words, said)
     pauses = [p.span for p in script if p.pause]
     assert [u.span for u in utterances if u.pause] == pauses
 
@@ -201,7 +259,7 @@ def test_utterances_cover_the_script_inside_their_blocks_in_order(
 @given(documents())
 def test_the_built_in_script_cuts_without_failing(document: Document) -> None:
     run = run_steps(document, StepContext(document.language), strict=True)
-    cut_utterances(run.script(), document.language)
+    cut_utterances(document, run.script())
 
 
 # ---- corpus -----------------------------------------------------------------------------
@@ -219,19 +277,21 @@ def paper_script(paper: Path) -> tuple[Document, tuple[ScriptPiece, ...]]:
 @pytest.mark.parametrize("paper", PAPERS, ids=[paper.stem for paper in PAPERS])
 def test_every_corpus_paper_cuts_into_utterances_under_the_limit(paper: Path) -> None:
     document, script = paper_script(paper)
-    utterances = cut_utterances(script, document.language)
+    utterances = cut_utterances(document, script)
     assert utterances
     assert all(0 < len(u.text) <= DEFAULT_MAX_CHARS for u in utterances)
     for utterance in utterances:
         document.check_span(utterance.span)
     for a, b in pairwise(utterances):
         assert (a.span.block, a.span.end) <= (b.span.block, b.span.start)
-    said = re.sub(r"\s", "", "".join(u.text for u in utterances))
-    assert said == re.sub(r"\s", "", "".join(p.text for p in script))
+    for index in range(len(document.blocks)):
+        spoken = spoken_text([p for p in script if p.span.block == index and not p.pause])
+        said = [u.text for u in utterances if u.span.block == index and not u.pause]
+        assert " ".join(said) == spoken  # exact, block by block
 
 
 @pytest.mark.benchmark
 def test_benchmark_cutting_the_largest_paper(benchmark) -> None:
     largest = max(PAPERS, key=lambda paper: paper.stat().st_size)
     document, script = paper_script(largest)
-    benchmark(cut_utterances, script, document.language)
+    benchmark(cut_utterances, document, script)

@@ -118,8 +118,7 @@ def render(run: StepRun) -> list[str]:
 
 def said(run: StepRun) -> list[str]:
     """The utterances the cutter makes of the script; pauses show as "[pause]"."""
-    language = run.document.language
-    return [u.text or PAUSE_MARK for u in cut_utterances(run.script(), language)]
+    return [u.text or PAUSE_MARK for u in cut_utterances(run.document, run.script())]
 
 
 def diff(expected: Sequence[str], got: Sequence[str]) -> str:
