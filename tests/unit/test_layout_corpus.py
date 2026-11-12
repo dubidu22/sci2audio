@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from sci2audio.core import Block, BlockKind, Document, FurnitureRole, Section
+from sci2audio.core import Block, BlockKind, Document, FurnitureRole, Section, TextLine
 from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
 from sci2audio.layout.build import columns_per_page
@@ -33,7 +33,7 @@ CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 PAPERS = sorted((CORPUS / "papers").glob("*.pdf"))
 IDS = [paper.stem for paper in PAPERS]
 MAX_GAPS = 2  # times a sentence may be interrupted: a float, a footnote, a page's top
-MAX_SKIPPED_LINES = 100  # lines in one gap (nowak p4 needs 81 until #34)
+MAX_SKIPPED_LINES = 10  # lines in one gap (2 at most in the corpus since #34)
 # Sentences not yet inside one block, each with the Issue that brings it there.
 NOT_YET_ONE_BLOCK: dict[tuple[str, int, str], int] = {}
 MIN_START = 8  # letters a sentence's start must have at a line's end to be found there
@@ -500,6 +500,42 @@ def test_a_figure_numbered_as_a_formula_is_held_by_that_formula() -> None:
             and page_of(doc, block) == page
         )
         assert [p for p in formula.parts if p.item in pictures_of(doc)]
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_each_line_stands_in_its_block_as_found(paper: Path) -> None:
+    """Every printed line's text stands at its part's place in its block's text, as found:
+    no letter dropped or added when blocks are cut and kept (D-57)."""
+    doc = document(paper)
+    items = doc.content.items()
+    wrong = []
+    for block in doc.blocks:
+        for part in block.parts:
+            item = items[part.item][1]
+            if isinstance(item, TextLine):
+                found = block.text[part.start : part.start + len(item.text)]
+                if found != item.text:
+                    wrong.append((part.item, item.text, found))
+    assert wrong == []
+
+
+# Formulas whose every printed piece the review of PR #61 checked, by the items they hold:
+# nowak's Eq. (14), two rows each with its limits; arsiwalla's Eq. (2), a diagram of six
+# terms joined by eight arrows.
+WHOLE_FORMULAS = {
+    ("acl2023-nowak-prefix-probabilities", "14"): {f"p4-l{k}" for k in range(16, 26)},
+    ("arxiv2024-arsiwalla-qualia-meaning", "2"): (
+        {f"p13-l{k}" for k in range(14, 23)} | {f"p13-d{k}" for k in range(1, 9)}
+    ),
+}
+
+
+@pytest.mark.parametrize(("paper", "label"), sorted(WHOLE_FORMULAS), ids=str)
+def test_a_formula_holds_all_its_pieces(paper: str, label: str) -> None:
+    doc = document(CORPUS / "papers" / f"{paper}.pdf")
+    found = [b for b in doc.blocks if b.kind is BlockKind.FORMULA and b.label == label]
+    assert len(found) == 1
+    assert {part.item for part in found[0].parts} == WHOLE_FORMULAS[paper, label]
 
 
 def test_headings_not_yet_found_are_still_in_the_truth() -> None:

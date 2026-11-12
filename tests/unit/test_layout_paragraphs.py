@@ -8,8 +8,11 @@ from hypothesis import given
 from hypothesis import strategies as st
 from test_layout import GUTTER, LEFT, MIDDLE, RIGHT, content, line
 
-from sci2audio.core import BlockKind, Box, Document, Drawing, TextLine, TextRun
+from sci2audio.core import Block, BlockKind, Box, Document, Drawing, Part, TextLine, TextRun
 from sci2audio.layout import build_document
+from sci2audio.layout.paragraphs import Held, Row
+from sci2audio.layout.paragraphs import paragraphs as make_paragraphs
+from sci2audio.layout.settings import LayoutSettings
 
 PITCH = 14.0
 LEFT_END, RIGHT_START = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
@@ -411,3 +414,63 @@ def run_on_pages(draw: st.DrawFn) -> tuple:
 def test_paragraphs_run_on_across_columns_and_past_a_footnote(page: tuple) -> None:
     found, expected = page
     assert paragraphs(build_document(found)) == expected
+
+
+# A float at a page's top, then a caption (review of PR #61)
+
+
+def _row(text: str, x0: float, y0: float, x1: float, column: tuple[float, float], page: int):
+    found = line(text, x0, y0, x1)
+    box = found.box or Box(x0, y0, x1, y0 + 10)
+    return Row((found,), box, column[0], column[1], page, 10.0, False)
+
+
+def _caption(text: str, label: str, x0: float, y0: float, column: tuple[float, float]):
+    runs = (TextRun(label, "Times-Bold", 10.0, bold=True), TextRun(text, "Times", 10.0))
+    found = TextLine(f"cap{y0}", runs, Box(x0, y0, x0 + 120, y0 + 10))
+    return Row((found,), found.box, column[0], column[1], 2, 10.0, False)
+
+
+LEFT_COLUMN, RIGHT_COLUMN = (LEFT, LEFT_END), (RIGHT_START, RIGHT)
+
+
+def _float_then_caption(*after: Row, kind: BlockKind = BlockKind.FORMULA) -> list[Block]:
+    """A paragraph running on at the foot of page 1's right column; on page 2 a float at
+    the top, a caption under it in the left column, then `after`."""
+    words = [f"Running text, line {k}" for k in range(3)]
+    units: list = [
+        _row(w, RIGHT_START, 100 + PITCH * k, RIGHT, RIGHT_COLUMN, 1) for k, w in enumerate(words)
+    ]
+    units.append(Held(Block(kind, "the float", (Part("float"),)), 2))
+    units.append(_caption(" Fast prefix", "Algorithm 3", LEFT, 120, LEFT_COLUMN))
+    return make_paragraphs([*units, *after], LayoutSettings())
+
+
+def test_a_caption_after_a_float_is_never_read_into_the_paragraph() -> None:
+    """The caption after a held float starts afresh: here after a figure, as after a formula
+    (nowak p5's "Algorithm 3" under Eq. (16a) to (16f))."""
+    on = _row("goes on and ends here.", RIGHT_START, 120, RIGHT, RIGHT_COLUMN, 2)
+    for kind in (BlockKind.FORMULA, BlockKind.FIGURE):
+        blocks = _float_then_caption(on, kind=kind)
+        texts = [b.text for b in blocks]
+        assert texts[0].endswith("Running text, line 2\ngoes on and ends here.")
+        assert texts[1:] == ["the float", "Algorithm 3 Fast prefix"]
+
+
+def test_the_lines_of_a_caption_s_float_do_not_end_the_paragraph_set_aside() -> None:
+    """The algorithm's lines under its caption, even one that fills its column, belong to
+    the float: the paragraph set aside still goes on after them, in the other column."""
+    code = [
+        _row(
+            "for k in 0 to N: compute the prefix probability", LEFT, 134, LEFT_END, LEFT_COLUMN, 2
+        ),
+        _row("return π", LEFT + 30, 148, LEFT + 90, LEFT_COLUMN, 2),
+    ]
+    on = _row("goes on and ends here.", RIGHT_START, 120, RIGHT, RIGHT_COLUMN, 2)
+    texts = [b.text for b in _float_then_caption(*code, on)]
+    assert texts == [
+        "Running text, line 0\nRunning text, line 1\nRunning text, line 2\ngoes on and ends here.",
+        "the float",
+        "Algorithm 3 Fast prefix",
+        "for k in 0 to N: compute the prefix probability\nreturn π",
+    ]

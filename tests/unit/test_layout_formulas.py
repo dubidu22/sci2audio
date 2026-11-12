@@ -11,7 +11,7 @@ import itertools
 from hypothesis import given
 from hypothesis import strategies as st
 from test_layout import GUTTER, LEFT, MIDDLE, RIGHT, line, short
-from test_layout_graphics import build, of, running
+from test_layout_graphics import build, listing, of, running
 
 from sci2audio.core import BlockKind, Box, Document, Drawing, Picture, TextLine, TextRun
 
@@ -124,6 +124,71 @@ def test_a_picture_with_an_equation_number_is_that_formula() -> None:
     found = of(doc, BlockKind.FORMULA)
     assert [b.label for b in found] == ["4"]
     assert "diagram" in [part.item for part in found[0].parts]
+
+
+def test_a_row_piece_reaching_the_edge_is_part_of_its_formula() -> None:
+    """nowak (14): the second row's last piece ends near the column's edge, but it starts a
+    formula's indent in, so it is no running text (review of PR #61)."""
+    rows = [math("P = I + P + P", 110, 160, 300), math("= I + P", 110, 176, 170)]
+    edge = math("P n = (I - P) -1", 175, 176, RIGHT - 4)
+    doc = build([*paragraph(100, 4), *rows, edge, number("(14)", 160), *paragraph(210, 3)])
+    assert formulas(doc) == [("14", "P = I + P + P (14)\n= I + P P n = (I - P) -1")]
+
+
+def test_inline_maths_on_a_row_of_running_text_stays_in_its_paragraph() -> None:
+    """A piece of maths on the same row as running text, just below a formula, is no row
+    of the formula (liu p3, the extrinsic OHE as a sum)."""
+    above = paragraph(100, 4)
+    formula = [math("a = b", 250, 157, 300), number("(7)", 157)]
+    below = [line("The total is", LEFT, 173, 160), math("s = s sd + s sk", 165, 173, 260)]
+    below += [line("as plotted.", 265, 173, RIGHT), line("And the text goes on.", LEFT, 187, 200)]
+    doc = build([*above, *formula, *below])
+    assert formulas(doc) == [("7", "a = b (7)")]
+    assert paragraph_texts(doc)[-1] == (
+        "The total is s = s sd + s sk as plotted.\nAnd the text goes on."
+    )
+
+
+def test_a_diagram_its_arrows_join_is_one_formula() -> None:
+    """arsiwalla Eq. (2): the arrows reach from the numbered row to the rows above and
+    below, and bring them into the formula (review of PR #61)."""
+    top = [math("A", 285, 140, 295), math("X", 200, 152, 215), math("Y", 370, 152, 385)]
+    middle = [math("R", 180, 190, 192), math("S", 390, 190, 402), number("(2)", 190)]
+    bottom = [math("U", 200, 228, 215), math("V", 370, 228, 385), math("B", 285, 240, 295)]
+    arrows = [
+        Drawing("across", Box(220, 157, 365, 158)),
+        Drawing("left", Box(207, 164, 208, 226)),
+        Drawing("right", Box(377, 164, 378, 226)),
+        Drawing("under", Box(220, 233, 365, 234)),
+    ]
+    page = [*paragraph(100, 2), *top, *middle, *bottom, *arrows, *paragraph(270, 3)]
+    doc = build(page)
+    assert formulas(doc) == [("2", "A\nX Y\nR S (2)\nU V\nB")]
+    found = of(doc, BlockKind.FORMULA)[0]
+    assert {"across", "left", "right", "under"} <= {part.item for part in found.parts}
+
+
+def test_a_caption_after_a_formula_at_a_page_top_is_no_part_of_the_paragraph() -> None:
+    """nowak p5: the paragraph runs on past the formula at the page's top; the algorithm
+    under the formula, caption and lines, comes out on its own, and the paragraph goes on
+    in the other column (paragraphs.py, review of PR #61)."""
+    left_x1, right_x0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    page1 = [line(f"Left column, line {k}.", LEFT, 100 + 14 * k, left_x1) for k in range(30)]
+    page1 += [line(f"Right column, line {k}.", right_x0, 100 + 14 * k, RIGHT) for k in range(29)]
+    page1 += [line("and the sentence goes on", right_x0, 100 + 14 * 29, RIGHT)]
+    pieces = [math("π(i, X, k) = Σ", 130, 90, 290), math("ξ(Y, Z | X) · β(i, Y, j)", 296, 90, 420)]
+    code = ["def Fast(w):", "π ← 0", "return π"]
+    page2 = [*pieces, number("(16a)", 90), *listing(LEFT, 120, "Algorithm 3", "Fast", code)]
+    page2 += [line(f"onto the next page {k}.", right_x0, 120 + 14 * k, RIGHT) for k in range(20)]
+    doc = build(page1, page2)
+    texts = [b.text for b in doc.blocks]
+    running_on = next(b for b in doc.blocks if "and the sentence goes on" in b.text)
+    assert "onto the next page 0." in running_on.text
+    assert "Algorithm 3" not in running_on.text
+    assert "π ← 0" not in running_on.text
+    caption = next(b for b in doc.blocks if b.text.startswith("Algorithm 3"))
+    assert caption.kind is BlockKind.CAPTION
+    assert texts.index(running_on.text) < texts.index(caption.text)
 
 
 # Not formulas

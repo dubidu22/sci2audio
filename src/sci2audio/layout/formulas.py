@@ -109,7 +109,7 @@ def _on_page(page: Page, state: _State) -> list[_Formula]:
     found: list[_Formula] = []
     for edges, members in by_column.items():
         numbers = _numbers(members, edges, state)
-        for group in _chains(members, edges, numbers, state):
+        for group in _grown(_chains(members, edges, numbers, state), page, edges, state):
             graphics = _graphics(group, numbers, page, edges, state)
             formulas = [f for f in _split(group, graphics, numbers) if _holds_more(f)]
             if not formulas and not numbers.keys() & {li.id for li in group}:
@@ -161,15 +161,27 @@ def _chains(
         or any(same_row(line.box, head.box, settings.row_overlap) for head in heads)
         or (line.box.x0 >= left + indent and line.box.x1 <= right - slack)
     }
-    # the rest of a display line's row, unless it is running text (from the column's edge)
+    # the rest of a display line's row, unless it is running text: running text starts at
+    # the column's edge or one paragraph indent in, and fills the column. A piece that
+    # starts a formula's indent in is no running text even if it reaches the edge
+    # (the second row of nowak's Eq. (14))
     start = settings.indent * state.body
     shown = [line for line in paragraph if line.id in display]
     display |= {
         line.id
         for line in paragraph
         if line.box.x0 > left + start
-        and line.box.x1 <= right - slack
+        and (line.box.x1 <= right - slack or line.box.x0 >= left + indent)
         and any(same_row(line.box, other.box, settings.row_overlap) for other in shown)
+    }
+    # a piece on a row of running text is inline maths, never a display line
+    running = [li for li in paragraph if li.id not in display and li.box.x0 <= left + start]
+    display -= {
+        line.id
+        for line in paragraph
+        if line.id in display
+        and line.id not in numbers
+        and any(same_row(line.box, other.box, settings.row_overlap) for other in running)
     }
     chains: list[list[TextLine]] = []
     current: list[TextLine] = []
@@ -186,6 +198,54 @@ def _chains(
         current.append(line)
         bottom = max(bottom, box.y1) if len(current) > 1 else box.y1
     return chains + ([current] if current else [])
+
+
+def _grown(
+    chains: list[list[TextLine]], page: Page, edges: Edges, state: _State
+) -> list[list[TextLine]]:
+    """The chains, each grown by the loose graphics that reach into it (a diagram's arrows,
+    arsiwalla Eq. (2)) and by the chains those graphics reach in turn, until none is left."""
+    gap = state.settings.float_gap * state.body
+    loose = [
+        graphic.box
+        for graphic in (*page.pictures, *page.drawings)
+        if graphic.box
+        and graphic.id in state.owner
+        and graphic.id not in state.taken
+        and state.kind(graphic.id) not in (BlockKind.FIGURE, BlockKind.TABLE)
+        and edges[0] - gap <= graphic.box.x0
+        and graphic.box.x1 <= edges[1] + gap
+    ]
+    out: list[list[TextLine]] = []
+    rest = [union([li.box for li in chain]) for chain in chains]
+    waiting = list(range(len(chains)))
+    while waiting:
+        group, area = list(chains[waiting[0]]), rest[waiting[0]]
+        waiting.pop(0)
+        unused = list(loose)
+        while True:
+            near = _grow(area, gap)
+            reached = [box for box in unused if _meets(box, near)]
+            unused = [box for box in unused if not _meets(box, near)]
+            area = union([area, *reached])
+            near = _grow(area, gap)
+            joined = [k for k in waiting if _meets(rest[k], near)]
+            if not reached and not joined:
+                break
+            for k in joined:
+                group += chains[k]
+                area = union([area, rest[k]])
+            waiting = [k for k in waiting if k not in joined]
+        out.append(sorted(group, key=lambda li: li.box.y0) if len(group) > 1 else group)
+    return out
+
+
+def _grow(box: Box, by: float) -> Box:
+    return Box(box.x0 - by, box.y0 - by, box.x1 + by, box.y1 + by)
+
+
+def _meets(a: Box, b: Box) -> bool:
+    return a.x0 <= b.x1 and b.x0 <= a.x1 and a.y0 <= b.y1 and b.y0 <= a.y1
 
 
 def _graphics(

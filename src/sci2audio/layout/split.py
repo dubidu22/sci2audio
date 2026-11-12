@@ -38,23 +38,27 @@ def split_at(block: Block, cuts: list[int]) -> list[Block]:
     return out
 
 
-def part_ends(block: Block) -> list[int]:
-    """Where each part's text ends: before the one break or space ahead of the next part
-    that starts later, or at the end of the text."""
-    out, end = [], len(block.text)
-    for n in range(len(block.parts) - 1, -1, -1):
-        after = block.parts[n + 1].start if n + 1 < len(block.parts) else None
-        if after is not None and after > block.parts[n].start:
+def part_ends(block: Block, lines: set[str]) -> dict[str, int]:
+    """Where each line part's text ends: before the one break or space ahead of the next
+    line part that starts later, or at the end of the text. Parts that are no line (a
+    graphic) hold no text, so they never end a line, wherever they stand."""
+    out, end = {}, len(block.text)
+    after: int | None = None
+    for part in reversed(block.parts):
+        if part.item not in lines:
+            continue
+        if after is not None and after > part.start:
             end = after - 1
-        out.append(end)
-    return out[::-1]
+        out[part.item] = end
+        after = part.start
+    return out
 
 
 def kept(block: Block, parts: Iterable[Part], lines: set[str]) -> Block:
     """The block holding only these of its parts, in its order: each kept line's text as
     found, with the break or space that stood before it. A part that is no line (a graphic)
     holds no text; it stands where the text read before it ends."""
-    ends = {part.item: end for part, end in zip(block.parts, part_ends(block), strict=True)}
+    ends = part_ends(block, lines)
     text, out = "", []
     for part in parts:
         if part.item not in lines:
