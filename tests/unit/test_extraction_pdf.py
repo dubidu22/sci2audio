@@ -12,13 +12,15 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from pdf_maker import HEIGHT, Rect, Text, in_form, make_pdf
 
-from sci2audio.core import Content, SourceFormat
+from sci2audio.core import Content, Metadata, SourceFormat
 from sci2audio.extraction import ExtractionError, extract_pdf, read_pdf
+from sci2audio.extraction.pdf import _char_text, _style
 
 pytestmark = pytest.mark.timeout(60)
 
 TESTS = Path(__file__).resolve().parents[1]
-BROKEN = TESTS / "fixtures" / "broken"
+FIXTURES = TESTS / "fixtures"
+BROKEN = FIXTURES / "broken"
 PAPER = TESTS / "corpus" / "papers" / "acl2023-hardt-ellipsis.pdf"
 EPUB = TESTS / "corpus" / "epub" / "wells-the-time-machine.epub"
 
@@ -136,13 +138,60 @@ def test_threads_reading_at_once_do_not_crash() -> None:
         pytest.param(
             (BROKEN / "password-protected.pdf").read_bytes(), "password-protected", id="password"
         ),
-        pytest.param(make_pdf(), "damaged", id="no-pages"),  # PDFium refuses to open it
+        # PDFium refuses to open a PDF without pages, so it reads as damaged; the "has no
+        # pages" check in read_pdf only guards against a PDFium that opens one.
+        pytest.param(make_pdf(), "damaged", id="zero-pages-refused-by-pdfium"),
     ],
 )
 def test_broken_files_fail_with_a_clear_message(data: bytes, message: str) -> None:
     with pytest.raises(ExtractionError, match=message) as error:
         read_pdf(data, "broken.pdf")
     assert str(error.value).startswith("broken.pdf: ")
+
+
+def test_metadata_is_recorded_as_the_file_gives_it() -> None:
+    # PDFium can't write an Info dictionary or /Lang, so this file is stored (fixtures/README.md).
+    assert extract_pdf(FIXTURES / "metadata.pdf").metadata == Metadata(
+        title="A Made-Up Paper",
+        authors=("Lovelace, Ada; Babbage, Charles",),  # kept whole: any split is a guess
+        date="2024-03-05",
+        language="en-GB",
+    )
+
+
+@pytest.mark.parametrize(
+    ("code", "hyphen", "text"),
+    [
+        pytest.param(ord("a"), False, "a", id="letter"),
+        pytest.param(0, False, "\ufffd", id="no-unicode-mapping-is-kept-as-unknown"),
+        pytest.param(0x110000, False, "\ufffd", id="beyond-unicode"),
+        pytest.param(0x02, True, "-", id="pdfium-line-end-hyphen"),
+        pytest.param(ord("-"), True, "-", id="printed-hyphen"),
+        pytest.param(0xAD, True, "\u00ad", id="soft-hyphen-stays-soft"),
+        pytest.param(ord(" "), False, None, id="space-separates-words"),
+        pytest.param(0x07, False, None, id="control-code-separates-words"),
+    ],
+)
+def test_character_codes(code: int, hyphen: bool, text: str | None) -> None:
+    assert _char_text(code, hyphen) == text
+
+
+@pytest.mark.parametrize(
+    ("font", "weight", "flags", "bold", "italic"),
+    [
+        pytest.param("NimbusRomNo9L-Medi", 400, 0, True, False, id="urw-medi-is-bold"),
+        pytest.param("Roboto-Medium", 500, 0, False, False, id="medium-is-not-bold"),
+        pytest.param("HelveticaNeue-Medium", 500, 0, False, False, id="medium-again"),
+        pytest.param("CMBX12", 545, 0, True, False, id="computer-modern-bold"),
+        pytest.param("SomeFont", 700, 0, True, False, id="weight-700"),
+        pytest.param("SomeFont", 400, 1 << 18, True, False, id="force-bold-flag"),
+        pytest.param("SomeFont", 400, 1 << 6, False, True, id="italic-flag"),
+        pytest.param("CMTI10", 400, 0, False, True, id="computer-modern-italic"),
+        pytest.param("", 400, 0, False, False, id="unknown-font"),
+    ],
+)
+def test_bold_and_italic(font: str, weight: int, flags: int, bold: bool, italic: bool) -> None:
+    assert _style(font, weight, flags) == (bold, italic)
 
 
 def test_a_missing_file_fails_with_a_clear_message(tmp_path: Path) -> None:

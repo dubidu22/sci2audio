@@ -4416,7 +4416,7 @@
   p2-l120  [416 394 562 406]  {CMMI10 10 i}δ{CMR10 10}({CMMIB10 10 i}q{CMSY10 10 i}−{CMMIB10 10 i}q{CMSY7 7 i} ′{CMR10 10} ) and the velocity operator
   p2-l121  [317 410 370 424]  {CMR10 10}is{CMSY10 10 i} ⟨{CMMI10 10 i}u{CMMI7 7 i} m{CMMIB7 7 i} q{CMSY10 10 i} |{CMMIB10 10 i}v{CMR10 10}ˆ{CMSY10 10 i}|{CMMI10 10 i}u{CMMI7 7 i} m{CMSY5 5 i}′
   p2-l122  [361 408 413 424]  {CMMIB7 7 i}q{CMSY10 10 i} ⟩{CMR10 10} ={CMR7 7} 1{MSBM7 7} ℏ{CMMI7 7 i} ∂E{CMMI5 5 i}m{CMMIB5 5 i} q
-  p2-l123  [401 410 501 425]  {CMMI7 7 i}∂q{CMMI10 10 i} δ{CMMI7 7 i}m,m{CMSY5 5 i}′{CMR10 10} +{CMMI7 7 i} i{MSBM7 7} ℏ{CMEX10 10} {CMMI10 10 i} E{CMMI7 7 i}m{CMMIB7 7 i} q{CMSY10 10 i} −{CMMI10 10 i}E{CMMI7 7 i}m{CMSY5 5 i}′
+  p2-l123  [401 410 501 425]  {CMMI7 7 i}∂q{CMMI10 10 i} δ{CMMI7 7 i}m,m{CMSY5 5 i}′{CMR10 10} +{CMMI7 7 i} i{MSBM7 7} ℏ{CMEX10 10} �{CMMI10 10 i} E{CMMI7 7 i}m{CMMIB7 7 i} q{CMSY10 10 i} −{CMMI10 10 i}E{CMMI7 7 i}m{CMSY5 5 i}′
   p2-l124  [491 418 496 424]  {CMMIB7 7 i}q
   p2-l125  [507 409 533 422]  {CMBSY10 10 i}R{CMMI7 7 i}mm{CMSY5 5 i}′
   p2-l126  [517 418 521 424]  {CMMIB7 7 i}q
@@ -4592,7 +4592,7 @@
   p3-l128  [317 301 562 310]  {CMR10 10}the tilt up to first order in the energy function by assum-
   p3-l129  [317 312 562 323]  {CMR10 10}ing{CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}/v{CMMI7 7 i}F{CMSY10 10 i} ≪{CMR10 10} 1. So in the scattering process, the energy
   p3-l130  [317 323 562 335]  {CMR10 10}conservation function can be expanded as{CMMI10 10 i} δ{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i} q{CMSY10 10 i} −{CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i} q{CMSY5 5 i}′{CMR10 10} ){CMSY10 10 i} ≈
-  p3-l131  [317 336 507 351]  {CMMI10 10 i}δ{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}q{CMSY10 10 i} −{CMMI10 10 i} E{CMMI7 7 i}q{CMSY5 5 i} ′{CMR10 10} ) +{CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}q{CMEX10 10} {CMR10 10} cos{CMMI10 10 i} ϕ{CMSY10 10 i} −{CMR10 10} cos{CMMI10 10 i} ϕ{CMSY7 7 i} ′{CMMI7 7 i} ∂δ{CMR7 7}({CMMI7 7 i}E{CMMI5 5 i}q{CMSY7 7 i}−{CMMI7 7 i}E{CMMI5 5 i}q{CMSY5 5 i}′{CMR7 7} )
+  p3-l131  [317 336 507 351]  {CMMI10 10 i}δ{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}q{CMSY10 10 i} −{CMMI10 10 i} E{CMMI7 7 i}q{CMSY5 5 i} ′{CMR10 10} ) +{CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}q{CMEX10 10} �{CMR10 10} cos{CMMI10 10 i} ϕ{CMSY10 10 i} −{CMR10 10} cos{CMMI10 10 i} ϕ{CMSY7 7 i} ′{CMMI7 7 i} ∂δ{CMR7 7}({CMMI7 7 i}E{CMMI5 5 i}q{CMSY7 7 i}−{CMMI7 7 i}E{CMMI5 5 i}q{CMSY5 5 i}′{CMR7 7} )
   p3-l132  [478 346 492 353]  {CMMI7 7 i}∂E{CMMI5 5 i}q
   p3-l133  [508 341 562 350]  {CMR10 10}. The Fermi
   p3-l134  [317 354 562 363]  {CMR10 10}distribution function in equilibrium and at the absolute

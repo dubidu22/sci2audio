@@ -43,9 +43,12 @@ SAME_LINE = 0.3  # a character overlapping the line by this share of its height 
 BOLD_WEIGHT = 600  # a font weight from this value on is bold
 _ITALIC_FLAG = 1 << 6  # PDF font descriptor flag "Italic"
 _FORCE_BOLD_FLAG = 1 << 18
-_BOLD_NAME = re.compile(r"bold|black|heavy|demi|medi|cm\w*bx", re.IGNORECASE)
+# "Medi" is URW's bold cut (NimbusRomNo9L-Medi); "-Medium" (weight 500) is not bold.
+_BOLD_NAME = re.compile(r"bold|black|heavy|demi|medi(?!um)|cm\w*bx", re.IGNORECASE)
 _ITALIC_NAME = re.compile(r"ital|oblique|cmti|cmbxti|cmsl|cmmi", re.IGNORECASE)
-_HYPHEN_CODES = {0x02, 0xAD}  # PDFium's line-end hyphen, soft hyphen
+_LINE_END_HYPHEN = 0x02  # how PDFium reports a hyphen printed at a line end
+_SOFT_HYPHEN = "\u00ad"  # kept as it is: joining words is a text step (TP-02)
+_UNKNOWN = "\ufffd"  # a glyph PDFium can't map to Unicode: recorded, not dropped
 _SUBSET = re.compile(r"^[A-Z]{6}\+")
 _PDF_DATE = re.compile(r"^D:(\d{4})(\d{2})?(\d{2})?")
 
@@ -95,13 +98,15 @@ def _load_message(name: str, data: bytes, detail: str) -> str:
 
 def _metadata(document: pdfium.PdfDocument) -> Metadata:
     info = document.get_metadata_dict(skip_empty=True)
-    authors = tuple(a.strip() for a in info.get("Author", "").split(";") if a.strip())
+    # The Author entry is kept whole: files separate names with ";", "," or "and", and
+    # "Last, First" makes any split a guess.
+    author = info.get("Author", "").strip()
     date = ""
     if found := _PDF_DATE.match(info.get("CreationDate", "")):
         date = "-".join(part for part in found.groups() if part)
     return Metadata(
         title=info.get("Title", "").strip(),
-        authors=authors,
+        authors=(author,) if author else (),
         date=date,
         language=_language(document),
     )
@@ -112,7 +117,9 @@ def _language(document: pdfium.PdfDocument) -> str:
     if size <= 2:  # nothing but the terminating zero
         return ""
     buffer = ctypes.create_string_buffer(size)
-    raw.FPDFCatalog_GetLanguage(document.raw, buffer, size)
+    raw.FPDFCatalog_GetLanguage(
+        document.raw, ctypes.cast(buffer, ctypes.POINTER(ctypes.c_ushort)), size
+    )
     return buffer.raw[: size - 2].decode("utf-16-le", errors="replace").strip()
 
 
@@ -190,11 +197,9 @@ def _chars(textpage: pdfium.PdfTextPage, height: float) -> Iterator[_Char | None
     rect = raw.FS_RECTF()
     matrix = raw.FS_MATRIX()
     for i in range(textpage.count_chars()):
-        code = raw.FPDFText_GetUnicode(handle, i)
-        text = chr(code) if 0 < code < 0x110000 else ""
-        if code in _HYPHEN_CODES or raw.FPDFText_IsHyphen(handle, i) == 1:
-            text = "-"  # PDFium reports a hyphen at a line end as a control code
-        if not text.isprintable() or text.isspace() or raw.FPDFText_IsGenerated(handle, i) == 1:
+        hyphen = raw.FPDFText_IsHyphen(handle, i) == 1
+        text = _char_text(raw.FPDFText_GetUnicode(handle, i), hyphen)
+        if text is None or raw.FPDFText_IsGenerated(handle, i) == 1:
             yield None
             continue
         if not raw.FPDFText_GetLooseCharBox(handle, i, rect):
@@ -205,18 +210,41 @@ def _chars(textpage: pdfium.PdfTextPage, height: float) -> Iterator[_Char | None
             continue
         x0, y0 = min(coords[0], coords[2]), min(coords[1], coords[3])
         x1, y1 = max(coords[0], coords[2]), max(coords[1], coords[3])
-        raw.FPDFText_GetFontInfo(handle, i, name, len(name), ctypes.byref(flags))
-        font = _SUBSET.sub("", name.value.decode("utf-8", errors="replace"))
+        flags.value = 0
+        needed = raw.FPDFText_GetFontInfo(handle, i, name, len(name), ctypes.byref(flags))
+        if needed > len(name):
+            name = ctypes.create_string_buffer(needed)
+            needed = raw.FPDFText_GetFontInfo(handle, i, name, len(name), ctypes.byref(flags))
+        # On failure the buffer still holds the previous character's font: don't inherit it.
+        font = _SUBSET.sub("", name.value.decode("utf-8", errors="replace")) if needed else ""
         size = raw.FPDFText_GetFontSize(handle, i) * _scale(handle, i, matrix)
         size = round(size, 1) if math.isfinite(size) and size > 0 else 0.0
-        weight = raw.FPDFText_GetFontWeight(handle, i)
-        bold = weight >= BOLD_WEIGHT or bool(flags.value & _FORCE_BOLD_FLAG)
-        bold = bold or bool(_BOLD_NAME.search(font))
-        italic = bool(flags.value & _ITALIC_FLAG) or bool(_ITALIC_NAME.search(font))
+        bold, italic = _style(font, raw.FPDFText_GetFontWeight(handle, i), flags.value)
         angle = raw.FPDFText_GetCharAngle(handle, i)
         angle = angle if math.isfinite(angle) and angle >= 0 else 0.0
         u0, v0, u1, v1 = _in_text_direction((x0, y0, x1, y1), angle)
         yield _Char(text, (font, size, bold, italic), (x0, y0, x1, y1), angle, u0, u1, v0, v1)
+
+
+def _char_text(code: int, hyphen: bool) -> str | None:
+    """The character's text, or None where it only separates words (a space, a line end)."""
+    if code == _LINE_END_HYPHEN or (hyphen and code != ord(_SOFT_HYPHEN)):
+        return "-"
+    if code == ord(_SOFT_HYPHEN):
+        return _SOFT_HYPHEN
+    if not 0 < code < 0x110000:
+        return _UNKNOWN  # code 0: a glyph without a Unicode mapping
+    text = chr(code)
+    if text.isspace() or not text.isprintable():
+        return None
+    return text
+
+
+def _style(font: str, weight: int, flags: int) -> tuple[bool, bool]:
+    """Bold and italic, from the font's weight and flags or, failing those, its name."""
+    bold = weight >= BOLD_WEIGHT or bool(flags & _FORCE_BOLD_FLAG) or bool(_BOLD_NAME.search(font))
+    italic = bool(flags & _ITALIC_FLAG) or bool(_ITALIC_NAME.search(font))
+    return bold, italic
 
 
 def _scale(handle: object, index: int, matrix: raw.FS_MATRIX) -> float:
