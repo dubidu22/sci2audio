@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from sci2audio.core import Block, BlockKind, Document
+from sci2audio.core import Block, BlockKind, Document, FurnitureRole
 from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
 from sci2audio.layout.build import columns_per_page
@@ -111,7 +111,8 @@ def test_furniture_blocks_hold_only_furniture(paper: Path) -> None:
 def test_furniture_blocks_have_the_truth_role(paper: Path) -> None:
     """#31: each truth furniture item has a piece in a block with its role, and a block
     that is a piece of an item has the item's role, unless it is a piece of another item
-    of its own role on that page (a page number "2" in a contents line "1 Introduction 2")."""
+    of its own role on that page (a page number "2" in a contents line "1 Introduction 2").
+    Every truth kind is a `FurnitureRole`, and every furniture block has a role."""
     doc = document(paper)
     blocks = [
         (page_of(doc, block), squeezed(block.text), block.role.value)
@@ -119,10 +120,11 @@ def test_furniture_blocks_have_the_truth_role(paper: Path) -> None:
         if block.role and block.text.strip()
     ]
     items = [
-        (number, squeezed(item["text"]), item["kind"])
+        (number, squeezed(item["text"]), FurnitureRole(item["kind"]).value)
         for item in truth(paper)["furniture"]
         for number in item["pages"]
     ]
+    unnamed = [b.text for b in doc.blocks if b.kind is BlockKind.FURNITURE and b.role is None]
     wrong = []
     for number, text, kind in items:
         pieces = [(t, role) for page, t, role in blocks if page == number and _same_piece(t, text)]
@@ -133,6 +135,7 @@ def test_furniture_blocks_have_the_truth_role(paper: Path) -> None:
             if role != kind and not other:
                 wrong.append((f"a piece is {role}", number, kind, text))
     assert wrong == []
+    assert unnamed == []  # every furniture block says what it is
 
 
 def _same_piece(block: str, item: str) -> bool:
