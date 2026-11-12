@@ -37,6 +37,18 @@ class BlockKind(StrEnum):
 PLACEHOLDER_KINDS = frozenset({BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE})
 
 
+class FurnitureRole(StrEnum):
+    """What a furniture block is (#31), named as in the corpus truth files."""
+
+    PAGE_NUMBER = "page-number"
+    RUNNING_HEAD = "running-head"  # a line repeated at the top or foot of pages
+    FOOTER = "footer"  # a one-off venue or licence line
+    SIDE_STAMP = "side-stamp"  # e.g. the arXiv id along the margin
+    LINE_NUMBER = "line-number"
+    CONTENTS = "contents"  # a printed table of contents
+    SIDEBAR = "sidebar"  # e.g. the JOSS metadata column
+
+
 @dataclass(frozen=True)
 class Part:
     """An extracted item a block is made of, and where its text starts in the block's text."""
@@ -58,6 +70,7 @@ class Block:
     text: str
     parts: tuple[Part, ...] = ()  # in reading order, starts not decreasing
     describes: int | None = None  # a caption: index of the table, formula or figure block
+    role: FurnitureRole | None = None  # furniture: what it is, if known
 
     def __post_init__(self) -> None:
         starts = [part.start for part in self.parts]
@@ -67,6 +80,8 @@ class Block:
             raise ValueError(f"part starts must increase within the text, got {starts}")
         if self.describes is not None and self.kind is not BlockKind.CAPTION:
             raise ValueError(f"only a caption describes another block, not a {self.kind}")
+        if self.role is not None and self.kind is not BlockKind.FURNITURE:
+            raise ValueError(f"only furniture has a furniture role, not a {self.kind}")
 
     @property
     def is_placeholder(self) -> bool:
@@ -135,6 +150,9 @@ class Document:
     language: str  # BCP 47 tag, e.g. "en" or "en-GB"
     blocks: tuple[Block, ...]
     sections: tuple[Section, ...] = ()
+    # the page label each page prints ("39", "xii"; "" where it prints none), page by
+    # page; empty when not known
+    page_labels: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.language:
@@ -154,6 +172,15 @@ class Document:
             ):
                 raise ValueError(f"caption {index} must describe a table, formula or figure")
         _check_ranges(self.sections, 0, len(self.blocks), "document")
+        pages = len(self.content.pages)
+        if self.page_labels and len(self.page_labels) != pages:
+            raise ValueError(f"{len(self.page_labels)} page labels for {pages} pages")
+
+    def page_label(self, number: int) -> str:
+        """The label printed on page `number` (counted from 1), or "" if none is known."""
+        if self.page_labels and 1 <= number <= len(self.page_labels):
+            return self.page_labels[number - 1]
+        return ""
 
     def check_span(self, span: Span) -> None:
         """Raise SpanError unless the span lies inside the text of its block."""

@@ -20,6 +20,7 @@ from sci2audio.core import (
     Drawing,
     Edit,
     EditKind,
+    FurnitureRole,
     Metadata,
     OverlappingEditsError,
     Page,
@@ -91,9 +92,15 @@ PAPER = Document(
         Block(BlockKind.CAPTION, "Figure 1: A chart.", (Part("p2-l5"),), describes=5),
         Block(BlockKind.LIST_ITEM, "First point", (Part("p2-l6"),)),
         Block(BlockKind.FOOTNOTE, "1 A note.", (Part("p2-l7"),)),
-        Block(BlockKind.FURNITURE, "A Small Paper", (Part("p2-l4"),)),
+        Block(
+            BlockKind.FURNITURE,
+            "A Small Paper",
+            (Part("p2-l4"),),
+            role=FurnitureRole.RUNNING_HEAD,
+        ),
     ),
     sections=(Section("1 Introduction", 1, 0, 10, (Section("1.1 Results", 2, 2, 9),)),),
+    page_labels=("39", ""),
 )
 
 CITATION = Edit(Span(1, 11, 15), EditKind.REMOVE, reason="numeric citation", step="citations")
@@ -125,6 +132,14 @@ def test_part_at_finds_the_page_of_a_position() -> None:
 def test_placeholders() -> None:
     kinds = [b.kind for b in PAPER.blocks if b.is_placeholder]
     assert kinds == [BlockKind.FORMULA, BlockKind.TABLE, BlockKind.FIGURE]
+
+
+def test_furniture_keeps_its_role_and_pages_their_printed_labels() -> None:
+    """#31: what each furniture block is, and the page numbers as printed."""
+    roles = [b.role for b in PAPER.blocks if b.role]
+    assert roles == [FurnitureRole.RUNNING_HEAD]
+    assert [PAPER.page_label(n) for n in (1, 2, 3)] == ["39", "", ""]
+    assert replace(PAPER, page_labels=()).page_label(1) == ""
 
 
 def test_captions_link_to_what_they_describe() -> None:
@@ -181,6 +196,8 @@ def test_edit_outside_the_document_is_refused() -> None:
         lambda: Block(BlockKind.PARAGRAPH, "ab", (Part("a", 3),)),
         lambda: Block(BlockKind.PARAGRAPH, "ab", (Part("a", -1),)),
         lambda: Block(BlockKind.PARAGRAPH, "ab", describes=0),
+        lambda: Block(BlockKind.PARAGRAPH, "ab", role=FurnitureRole.PAGE_NUMBER),
+        lambda: replace(PAPER, page_labels=("39",)),  # one label for each of the two pages
         lambda: Section("A", 0, 0, 1),
         lambda: Section("A", 1, 0, 2, (Section("B", 2, 1, 3),)),
         lambda: Section("A", 1, 0, 4, (Section("B", 2, 0, 2), Section("C", 2, 1, 3))),
