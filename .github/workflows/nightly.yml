@@ -23,13 +23,24 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-      - run: uv sync --locked
-      - name: Slow tests
+      - run: uv sync --locked --group asr
+      - name: Cache the voice and speech-recognition models
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/test-models
+          # Bump with the pinned revisions in voices/download.py and prepare_models.py.
+          key: test-models-${{ runner.os }}-kokoro-f3ff357-spacy-3.8.0-whisper-536b066
+      # The only step with network: sci2audio's own voice download plus the whisper model.
+      - name: Fetch the models (skips files already cached)
+        shell: bash
+        run: uv run python tests/integration/prepare_models.py "$RUNNER_TEMP/test-models/voices" "$RUNNER_TEMP/test-models/whisper"
+      - name: Slow tests (the network is blocked inside the tests)
         shell: bash
         env:
           HYPOTHESIS_PROFILE: nightly
-        # Exit code 5 means "no tests collected": allowed until the first slow test exists.
-        run: uv run pytest -m slow || [ $? -eq 5 ]
+          SCI2AUDIO_TEST_MODELS: ${{ runner.temp }}/test-models/voices
+          SCI2AUDIO_TEST_WHISPER: ${{ runner.temp }}/test-models/whisper
+        run: uv run pytest -m slow -rA
 
   property-deep:
     name: property-based tests, many examples
@@ -53,7 +64,19 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-      - run: uv sync --locked
+      - run: uv sync --locked --group asr
+      - name: Cache the voice and speech-recognition models
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/test-models
+          # Bump with the pinned revisions in voices/download.py and prepare_models.py.
+          key: test-models-${{ runner.os }}-kokoro-f3ff357-spacy-3.8.0-whisper-536b066
+      # The only step with network: sci2audio's own voice download plus the whisper model.
+      - name: Fetch the models (skips files already cached)
+        shell: bash
+        run: uv run python tests/integration/prepare_models.py "$RUNNER_TEMP/test-models/voices" "$RUNNER_TEMP/test-models/whisper"
       - name: Benchmarks (trend only; CI machines vary)
         shell: bash
-        run: uv run pytest -m benchmark --benchmark-only --benchmark-json=benchmark.json || [ $? -eq 5 ]
+        env:
+          SCI2AUDIO_TEST_MODELS: ${{ runner.temp }}/test-models/voices
+        run: uv run pytest -m benchmark --benchmark-only --benchmark-json=benchmark.json
