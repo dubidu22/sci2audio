@@ -299,3 +299,66 @@ def paragraph_pages(draw: st.DrawFn) -> tuple:
 def test_any_clean_page_keeps_each_paragraph_in_one_block(page: tuple) -> None:
     found, expected = page
     assert paragraphs(build_document(found)) == expected
+
+
+@st.composite
+def run_on_pages(draw: st.DrawFn) -> tuple:
+    """A page of 2 or 3 columns whose paragraphs may end in a full line: inside a column
+    the next paragraph then starts with an indent or after white; at a column's foot it
+    runs on into the next column. The first column may end in a footnote under a short
+    rule, which follows the paragraph open there. Stored in any order."""
+    count = draw(st.integers(2, 3))
+    width = (RIGHT - LEFT - GUTTER * (count - 1)) / count
+    stored: list[TextLine] = []
+    found: list[list[TextLine]] = []  # the paragraphs in reading order
+    note, after = None, -1  # the footnote, and the paragraph it follows
+    drawings: tuple = ()
+    running = False  # the last paragraph runs on into this column
+    for col in range(count):
+        x0, top = LEFT + col * (width + GUTTER), 80.0
+        chunks = draw(st.integers(2, 3))
+        for k in range(chunks):
+            last_chunk = k == chunks - 1
+            run_on = last_chunk and col < count - 1 and draw(st.booleans())
+            full = run_on if last_chunk else draw(st.booleans())
+            goes_on = running and k == 0
+            ended_full = k > 0 and found[-1][-1].box.x1 >= x0 + width - 1
+            if goes_on:
+                indent, gap = 0.0, 0.0
+            else:
+                ways = ["indent", "white", "both"] if ended_full else ["none", "indent", "white"]
+                way = draw(st.sampled_from(ways))
+                indent = 12.0 if way in ("indent", "both") else 0.0
+                gap = 8.0 if k and way in ("white", "both") else 0.0
+            top += gap
+            text = lines(
+                f"c{col}p{k}-",
+                x0,
+                x0 + width,
+                top,
+                draw(st.integers(3, 5)),
+                indent=indent,
+                last=1.0 if full else draw(st.floats(0.1, 0.7)),
+            )
+            stored += text
+            if goes_on:
+                found[-1] += text
+            else:
+                found.append(text)
+            top += PITCH * len(text)
+            running = run_on
+        if col == 0 and draw(st.booleans()):
+            drawings = (Drawing("rule", Box(x0, 700, x0 + 60, 700.5)),)
+            note = line("1 A note in small letters.", x0, 705, x0 + 0.6 * width, size=8)
+            stored.append(note)
+            after = len(found) - 1
+    expected = [joined(paragraph) for paragraph in found]
+    if note:
+        expected.insert(after + 1, note.text)
+    return content(draw(st.permutations(stored)), drawings=drawings), expected
+
+
+@given(run_on_pages())
+def test_paragraphs_run_on_across_columns_and_past_a_footnote(page: tuple) -> None:
+    found, expected = page
+    assert paragraphs(build_document(found)) == expected

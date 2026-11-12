@@ -11,11 +11,11 @@ run-in head ("Definition 1.") does not make it bold. A paragraph ends where the 
 is set in another size or weight, where the line before it stops short of its column's
 edge, where the next line is indented as a first line (or, in a list with hanging indents,
 starts further out), or where more white than the usual line spacing stands between the
-two; never inside a word split by a hyphen at a line's end. A paragraph goes on across a column or page
-break when its last line fills the column and the next column starts with a line in the
-same style that is not indented. Figures and furniture met while a paragraph is open wait
-until it closes, and so does text that interrupts it (`Paragraphs`): a paragraph is never
-cut by a footnote or a float.
+two; never inside a word split by a hyphen at a line's end. A paragraph goes on across a
+column or page break when its last line fills the column and the next column starts with a
+line in the same style that is not indented. Figures and furniture met while a paragraph
+is open wait until it closes, and so does text that interrupts it (`Paragraphs`): a
+paragraph is never cut by a footnote or a float.
 """
 
 from __future__ import annotations

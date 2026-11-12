@@ -1,8 +1,8 @@
 """Layout on the corpus papers, checked against the hand-made ground truth (Issue #21, D-60).
 
 Step 1 of #21 (D-67): furniture, columns and reading order; a verbatim sentence reads in
-order. Step 2: paragraphs; a verbatim sentence comes out inside one block, across column and
-page breaks, footnotes and floats.
+order. Step 2: paragraphs; a verbatim sentence comes out word for word inside one block,
+across column and page breaks, footnotes and floats, and each heading is a block of its own.
 
 The golden files list every block with its kind, page and text (line breaks shown as \\n).
 Accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
@@ -27,7 +27,7 @@ CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 PAPERS = sorted((CORPUS / "papers").glob("*.pdf"))
 IDS = [paper.stem for paper in PAPERS]
 MAX_GAPS = 2  # times a sentence may be interrupted: a float, a footnote, a page's top
-MAX_SKIPPED_LINES = 150  # blocks in one gap
+MAX_SKIPPED_LINES = 100  # lines in one gap (nowak p4 needs 81 until #34)
 # Sentences not yet inside one block, each with the Issue that brings it there.
 NOT_YET_ONE_BLOCK = {
     # Eq. (16) across both columns of page 5 is read as part of the columns.
@@ -121,9 +121,10 @@ def _made_of(text: str, pieces: list[str]) -> bool:
 def test_verbatim_sentences_read_in_order(paper: Path) -> None:
     doc = document(paper)
     lines = [
-        (page_of(doc, b), letters(b.text))
+        (number, letters(text))
         for b in doc.blocks
         if b.kind is not BlockKind.FURNITURE and b.text
+        for number, text in printed_lines(doc, b)
     ]
     missing = [
         (item["page"], item["text"])
@@ -131,6 +132,19 @@ def test_verbatim_sentences_read_in_order(paper: Path) -> None:
         if not _reads_in_order(letters(item["text"]), item["page"], lines)
     ]
     assert missing == []
+
+
+def printed_lines(doc: Document, block: Block) -> list[tuple[int, str]]:
+    """The block's lines (its text between line breaks), each with the page it stands on."""
+    items = doc.content.items()
+    found = []
+    for k, part in enumerate(block.parts):
+        if k == 0 or block.text[part.start - 1] == "\n":
+            found.append((items[part.item][0].number, part.start))
+    ends = [start - 1 for _, start in found[1:]] + [len(block.text)]
+    return [
+        (number, block.text[start:end]) for (number, start), end in zip(found, ends, strict=True)
+    ]
 
 
 def _reads_in_order(target: str, page: int, lines: list[tuple[int, str]]) -> bool:
@@ -175,15 +189,44 @@ def _goes_on(rest: str, lines: list[tuple[int, str]], strict: bool) -> bool:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_verbatim_sentences_are_inside_one_block(paper: Path) -> None:
-    """Word for word in one paragraph: not cut by a column or page break, a footnote, a
+    """Word for word in one paragraph (spaces may be line breaks, and a word may be split
+    by a hyphen at a line's end): not cut by a column or page break, a footnote, a
     figure or a table, nor by a wide gap that split one of its lines (#27)."""
-    blocks = [letters(b.text) for b in doc_blocks(paper)]
+    blocks = [b.text for b in doc_blocks(paper)]
     cut = {
         (paper.stem, item["page"], item["text"])
         for item in truth(paper)["verbatim"]
-        if not any(letters(item["text"]) in text for text in blocks)
+        if not any(word_for_word(item["text"]).search(text) for text in blocks)
     }
     assert cut == {key for key in NOT_YET_ONE_BLOCK if key[0] == paper.stem}
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_each_heading_is_a_block_of_its_own(paper: Path) -> None:
+    """No heading is joined with the text before or after it, nor split (step 3 of #21
+    gives these blocks their kind)."""
+    blocks = [b.text.strip() for b in doc_blocks(paper)]
+    joined_or_split = [
+        heading["text"]
+        for heading in truth(paper)["headings"]
+        if not any(word_for_word(heading["text"]).fullmatch(text) for text in blocks)
+    ]
+    assert joined_or_split == []
+
+
+def word_for_word(sentence: str) -> re.Pattern[str]:
+    """The sentence as a block may hold it: any white space where it has a space, and a
+    line break after a hyphen, or after a letter that a hyphen and a line break may follow
+    (the truth drops a hyphen that only splits a word)."""
+    pattern = []
+    for ch in sentence:
+        if ch.isspace():
+            pattern.append(r"\s+")
+        elif ch == "-":
+            pattern.append(r"-\n?")
+        else:
+            pattern.append(re.escape(ch) + (r"(?:-\n)?" if ch.isalpha() else ""))
+    return re.compile("".join(pattern))
 
 
 def doc_blocks(paper: Path) -> list[Block]:
