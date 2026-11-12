@@ -32,9 +32,15 @@ def bold(text: str, x0: float, y0: float, x1: float) -> TextLine:
 
 
 def paragraphs(doc: Document) -> list[str]:
-    """The text blocks: paragraphs, and the headings and footnotes step 3 of #21 tells
-    apart from them."""
-    text = {BlockKind.PARAGRAPH, BlockKind.HEADING, BlockKind.FOOTNOTE}
+    """The text blocks: paragraphs, and the headings, footnotes, captions and list items
+    step 3 of #21 tells apart from them."""
+    text = {
+        BlockKind.PARAGRAPH,
+        BlockKind.HEADING,
+        BlockKind.FOOTNOTE,
+        BlockKind.CAPTION,
+        BlockKind.LIST_ITEM,
+    }
     return [b.text for b in doc.blocks if b.kind in text]
 
 

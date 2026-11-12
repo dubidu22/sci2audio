@@ -1,7 +1,7 @@
 # serializer version: 1
 # name: test_golden_file[acl2023-chi-plue]
   '''
-  acl2023-chi-plue.pdf  language en  blocks 542
+  acl2023-chi-plue.pdf  language en  blocks 559
   page labels  352 353 354 355 356 357 358 359 360 361 362 363 364 365
   0  p1  paragraph  [p1-l4..p1-l5 (2)]  PLUE: Language Understanding Evaluation Benchmark\nfor Privacy Policies in English
   1  p1  paragraph  [p1-l6..p1-l8 (3)]  Jianfeng Chi1,2 Wasi Uddin Ahmad3∗ Yuan Tian3 Kai-Wei Chang3
@@ -61,7 +61,7 @@
   55  p2  figure  [p2-d5]  
   56  p2  paragraph  [p2-l51..p2-l58 (8)]  PI-Extract NER Websites 30 3,034 – 1,028 F1
   57  p2  figure  [p2-d6]  
-  58  p2  paragraph  [p2-l59]  Table 1: Statistics of the PLUE datasets and tasks.
+  58  p2  caption (Table 1)  [p2-l59]  Table 1: Statistics of the PLUE datasets and tasks.
   59  p2  heading (2.1)  [p2-l72..p2-l73 (2)]  2.1 Datasets and Tasks
   60  p2  paragraph  [p2-l74..p2-l77 (4)]  PLUE includes six tasks in four categories. Ta-\nble 1 presents an overview of the datasets and tasks\nwithin PLUE, and Table 4 in the Appendix gives\nan example for each task.
   61  p2  paragraph  [p2-l78..p2-l85 (8)]  OPP-115 Wilson et al. (2016a) presented 115\nOnline Privacy Policies (OPP-115). The dataset\ncomprises website privacy policies with text seg-\nments annotated with one or more privacy practices\nfrom ten categories (see Appendix A.1). We train a\nmulti-label classifier to predict the privacy practices\ngiven a sentence from a policy document.
@@ -185,7 +185,7 @@
   179  p4  paragraph  [p4-l115]  49.3 / 39.5 / 40.4
   180  p4  paragraph  [p4-l116..p4-l117 (2)]  61.1 / 33.2\n71.6 / 66.9
   181  p4  figure  [p4-d1005]  
-  182  p4  paragraph  [p4-l118..p4-l120 (3)]  Table 2: Performance comparison of pre-trained models on text classification, question answering, and named entity\nrecognition tasks. We fine-tune all the models three times with different seeds and report average performances.\nHuman performances are reported from the respective works.
+  182  p4  caption (Table 2)  [p4-l118..p4-l120 (3)]  Table 2: Performance comparison of pre-trained models on text classification, question answering, and named entity\nrecognition tasks. We fine-tune all the models three times with different seeds and report average performances.\nHuman performances are reported from the respective works.
   183  p4  figure  [p4-d1006]  
   184  p4  paragraph  [p4-l123]  Intent
   185  p4  paragraph  [p4-l121..p4-l125 (3)]  Models |Model| Classification
@@ -292,7 +292,7 @@
   286  p4  paragraph  [p4-l252]  32.3
   287  p4  paragraph  [p4-l253]  53.7
   288  p4  figure  [p4-d1836]  
-  289  p4  paragraph  [p4-l254..p4-l256 (3)]  Table 3: Performance comparison of pre-trained models on intent classification and slot filling tasks (PolicyIE) and\naverage scores of all PLUE tasks. We fine-tune all the models three times with different seeds and report average\nperformances. Human performances are reported from the respective works.
+  289  p4  caption (Table 3)  [p4-l254..p4-l256 (3)]  Table 3: Performance comparison of pre-trained models on intent classification and slot filling tasks (PolicyIE) and\naverage scores of all PLUE tasks. We fine-tune all the models three times with different seeds and report average\nperformances. Human performances are reported from the respective works.
   290  p4  paragraph  [p4-l267..p5-l2 (14)]  Pre-trained Language Models In the last few\nyears, NLP research has witnessed a radical change\nwith the advent of PLMs like ELMo (Peters et al.,\n2018) and BERT (Devlin et al., 2019). PLMs\nachieved state-of-the-art results in many language\nunderstanding benchmarks. Consequently, PLMs\nhave been developed for a wide range of domains,\ne.g., scientific (Beltagy et al., 2019), medical (Lee\net al., 2020; Rasmy et al., 2021; Alsentzer et al.,\n2019), legal (Chalkidis et al., 2020), and cybersecu-\nrity (Ranade et al., 2021; Bayer et al., 2022). This\nwork investigates the adaptation of PLMs to facili-\ntate NLP research in the privacy policy domain.
   291  p4  furniture/page-number  [p4-l279]  355
   292  p5  heading (5)  [p5-l3]  5 Conclusion and Future work
@@ -359,192 +359,209 @@
   353  p9  heading  [p9-l1]  Supplementary Material: Appendices
   354  p9  heading (A)  [p9-l2]  A Dataset Details
   355  p9  heading (A.1)  [p9-l3..p9-l4 (2)]  A.1 OPP-115 Privacy Practices
-  356  p9  paragraph  [p9-l5..p9-l7 (3)]  1. First Party Collection/Use\n2. Third Party Sharing/Collection\n3. User Choice/Control
-  357  p9  paragraph  [p9-l8..p9-l9 (2)]  4. User Access, Edit, and Deletion\n5. Data Retention
-  358  p9  paragraph  [p9-l10..p9-l12 (3)]  6. Data Security\n7. Policy Change\n8. Do Not Track
-  359  p9  paragraph  [p9-l13..p9-l14 (2)]  9. International and Specific Audiences\n10. Other
-  360  p9  heading (A.2)  [p9-l15..p9-l16 (2)]  A.2 APP-350 Privacy Practices
-  361  p9  paragraph  [p9-l17]  1. Contact
-  362  p9  paragraph  [p9-l18..p9-l19 (2)]  2. Contact_Address_Book\n3. Contact_City
-  363  p9  paragraph  [p9-l20..p9-l21 (2)]  4. Contact_E_Mail_Address\n5. Contact_Password
-  364  p9  paragraph  [p9-l22..p9-l24 (3)]  6. Contact_Phone_Number\n7. Contact_Postal_Address\n8. Contact_ZIP
-  365  p9  paragraph  [p9-l25]  9. Demographic
-  366  p9  paragraph  [p9-l26]  10. Demographic_Age
-  367  p9  paragraph  [p9-l27]  11. Demographic_Gender
-  368  p9  paragraph  [p9-l28]  12. Facebook_SSO
-  369  p9  paragraph  [p9-l29]  13. Identifier
-  370  p9  paragraph  [p9-l30]  14. Identifier_Ad_ID
-  371  p9  paragraph  [p9-l31..p9-l32 (2)]  15. Identifier_Cookie_or_similar_Tech\n16. Identifier_Device_ID
-  372  p9  paragraph  [p9-l33..p9-l36 (4)]  17. Identifier_IMEI\n18. Identifier_IMSI\n19. Identifier_IP_Address\n20. Identifier_MAC
-  373  p9  paragraph  [p9-l37..p9-l38 (2)]  21. Identifier_Mobile_Carrier\n22. Identifier_SIM_Serial
-  374  p9  paragraph  [p9-l39..p9-l40 (2)]  23. Identifier_SSID_BSSID\n24. Location
-  375  p9  paragraph  [p9-l41]  25. Location_Bluetooth
-  376  p9  paragraph  [p9-l42]  26. Location_Cell_Tower
-  377  p9  paragraph  [p9-l43]  27. Location_GPS
-  378  p9  paragraph  [p9-l44..p9-l45 (2)]  28. Location_IP_Address\n29. Location_WiFi
-  379  p9  paragraph  [p9-l46]  30. SSO
-  380  p9  heading (B)  [p9-l47]  B More Details of Pre-training Corpora
-  381  p9  paragraph  [p9-l48..p9-l67 (20)]  We use MAPS, the mobile application privacy pol-\nicy corpus presented by Zimmeck et al. (2019).\nMAPS consists of the URLs of 441K mobile ap-\nplication privacy policies, which were collected\nfrom April to May 2018 from the Google Play\nstore. We remove the duplicated URLs, crawl the\nprivacy policy documents in HTML/PDF format,\nconvert them to raw text format, and filter out the\ndocuments with noise (e.g., empty documents re-\nsulting from obsolete URLs). Finally, we ended\nup with 64K privacy policy documents. For web-\nsite privacy policies, we use the Princeton-Leuven\nLongitudinal Corpus of Privacy Policies (Amos\net al., 2021).4 The Princeton-Leuven Longitudinal\nCorpus of Privacy Policies contains 130K website\nprivacy policies spanning over two decades. We\nuse the documents with the latest date and con-\nvert them (from markdown format) into text format.\nCombining these two corpora, we obtain our pre-\ntraining corpus with 332M words.
-  382  p9  heading (C)  [p9-l68]  C Baseline Models
-  383  p9  paragraph  [p9-l69..p9-l70 (2)]  We benchmark a few pre-trained language models\nas baselines to facilitate future work.
-  384  p9  paragraph  [p9-l71..p9-l76 (6)]  BERT Devlin et al. (2019) proposed Transformer\n(Vaswani et al., 2017) based language model pre-\ntrained on BooksCorpus and English Wikipedia\ndata using masked language modeling (MLM) and\nnext sentence prediction.
-  385  p9  paragraph  [p9-l77..p9-l86 (10)]  Electra Clark et al. (2020) pre-trains a generator\nand a discriminator on the same corpus as BERT,\nwhere the generator takes a masked text as input\nand is trained using the MLM objective. The dis-\ncriminator takes the predictions from the generator\nand detects which tokens are replaced by the gener-\nator. After pre-training, the generator is discarded,\nand the discriminator is used as the language model\nfor the downstream tasks.
-  386  p9  paragraph  [p9-l87..p9-l93 (7)]  SpanBERT Joshi et al. (2020) shares the same\narchitecture and pre-training corpus as BERT but\ndiffers in the pre-training objectives. It extends\nBERT by masking contiguous spans instead of sin-\ngle tokens and training the span boundary represen-\ntations to predict the masked spans.
-  387  p9  paragraph  [p9-l94..p10-l46 (10)]  RoBERTa Liu et al. (2019) presented a replica-\ntion study of BERT pretraining where they showed\nthat BERT was significantly undertrained and pro-\nposed RoBERTa that tunes key hyperparameters\nand uses more training data to achieve remarkable\nperformance improvements. Note that while BERT,\nElectra, and SpanBERT use the same vocabulary,\nRoBERTa uses a different vocabulary resulting in\n15M more parameters in the model.
-  388  p9  figure  [p9-d1]  
-  389  p9  footnote (4)  [p9-l99..p9-l100 (2)]  4The corpus is publicly available at https://github.\ncom/citp/privacy-policy-historical.
-  390  p9  furniture/page-number  [p9-l101]  360
-  391  p10  figure  [p10-d1]  
-  392  p10  paragraph  [p10-l1..p10-l6 (6)]  OPP-115 Text: Secure Online Ordering For your security, we only store your credit card information if\nyou choose to set up an authorized account with one of our Sites. In that case, it is stored on\na secure computer in an encrypted format. If you do not set up an account, you will have to\nenter your credit card information each time you order. We understand that this may be a little\ninconvenient for you, but some customers appreciate the added security.
-  393  p10  paragraph  [p10-l7]  Classes: Data Security, User Choice/Control, First Party Collection/Use
-  394  p10  figure  [p10-d2]  
-  395  p10  paragraph  [p10-l8..p10-l13 (6)]  APP-350 Text: Our Use of Web Beacons and Analytics Services Microsoft web pages may contain\nelectronic images known as web beacons (also called single-pixel gifs) that we use to help\ndeliver cookies on our websites, count users who have visited those websites and deliver\nco-branded products. We also include web beacons in our promotional email messages or\nnewsletters to determine whether you open and act on them.
-  396  p10  paragraph  [p10-l14]  Classes: Contact_E_Mail_Address, Identifier_Cookie_or_similar_Tech
-  397  p10  figure  [p10-d3]  
-  398  p10  paragraph  [p10-l15..p10-l18 (4)]  PrivacyQA Sentence: We may collect and use information about your location (such as your country) or\ninfer your approximate location based on your IP address in order to provide you with tailored\neducational experiences for your region, but we don’t collect the precise geolocation of you or\nyour device.
-  399  p10  paragraph  [p10-l19]  Question: Does the app track my location? Answer: Relevant
-  400  p10  figure  [p10-d4]  
-  401  p10  paragraph  [p10-l20..p10-l25 (6)]  PolicyQA Text: Illini Media never shares personally identifiable information provided to us online in\nways unrelated to the ones described above without allowing you to opt out or otherwise\nprohibit such unrelated uses. Google or any ad server may use information (not including your\nname, address, email address, or telephone number) about your visits to this and other websites\nin order to provide advertisements about goods and services of interest to you.
-  402  p10  paragraph  [p10-l26..p10-l27 (2)]  Question: Do you share my data with others? If yes, what is the type of data?\nAnswer: information (not including your name, address, email address or telephone number)
-  403  p10  figure  [p10-d5]  
-  404  p10  paragraph  [p10-l28..p10-l30 (3)]  PolicyIE Sentence: We may also use or display your username and icon or profile photo for marketing\npurposes or press releases.
-  405  p10  paragraph  [p10-l31..p10-l35 (5)]  Intent: Data Collection/Usage Slots: (1) Data Collector: First Party Entity–We, (2)\nAction–use, (3) Data Provider: User–your, (4) Data Collected: User Online Activities/Profiles–\nusername, (5) Data Collected: User Online Activities/Profiles–icon or profile photo, (6)\nPurpose: Advertising/Marketing–marketing purpose or press releases.
-  406  p10  figure  [p10-d6]  
-  407  p10  paragraph  [p10-l36]  PI-
-  408  p10  paragraph  [p10-l38]  Text: We may share aggregate demographic and usage information with our prospective and
-  409  p10  paragraph  [p10-l37]  Extract
-  410  p10  paragraph  [p10-l39]  actual business partners, advertisers, and other third parties for any business purpose.
-  411  p10  paragraph  [p10-l40]  Entities: SHARE – aggregate demographic and usage information
-  412  p10  figure  [p10-d7]  
-  413  p10  paragraph  [p10-l41]  Table 4: Examples from the tasks in PLUE.
-  414  p10  paragraph  [p10-l47..p10-l57 (11)]  LEGAL-BERT Chalkidis et al. (2020) pre-\ntrained BERT using 12 GB of the English text\n(over 351K documents) from several legal fields\n(e.g., contracts, legislation, court cases) scraped\nfrom publicly available resources. Since privacy\npolicies serve as official documents to protect the\ncompany and consumers’ privacy rights and might\ncontain contents in response to privacy law (e.g.,\nGDPR), we study LEGAL-BERT’s effectiveness\non the PLUE tasks.
-  415  p10  furniture/page-number  [p10-l58]  361
-  416  p11  heading (D)  [p11-l1]  D More Implementation Details
-  417  p11  heading (D.1)  [p11-l2..p11-l3 (2)]  D.1 Domain-specific Continual Pre-training
-  418  p11  paragraph  [p11-l4..p11-l14 (11)]  Since BERT, Electra, and SpanBERT share the\nsame model architectures, we use almost the same\nhyperparameters (e.g., learning rate, train steps,\nbatch size) for them following the original papers.\nWe scale down the train steps by the same factor,\nas the size of our pre-training corpus is roughly\n1/10 the size of the pre-training corpus of BERT.\nWe adhere to the guidelines outlined in Liu et al.\n(2019) to train RoBERTa with larger batch size,\nhigher learning rate, and fewer train steps. Table 5\npresents the training hyperparameters for PLMs.
-  419  p11  heading (D.2)  [p11-l15..p11-l16 (2)]  D.2 Task-specific Fine-tuning
-  420  p11  paragraph  [p11-l17..p11-l26 (10)]  We fine-tune the models for each task using the\nAdam (Kingma and Ba, 2015) optimizer with a\nbatch size of 32. We fine-tune the models on the\nQA tasks for 3 epochs and other tasks for 20 epochs\nand perform a grid search on the learning rate for\neach task with validation examples. We chose the\nlearning rate for tasks without validation examples\nbased on our findings from the tasks with validation\nexamples. Table 6 lists the hyperparameters for all\nthe downstream tasks.
-  421  p11  paragraph  [p11-l27..p11-l34 (8)]  In OPP-115 and APP-350, we compute the class\nweights (the class weights are inversely propor-\ntional to the occurrences of the classes) and apply\nthem in fine-tuning, as we find out both datasets\nhave the class-imbalance problem and using class\nweights brings gains to overall performance. We\nalso report the human performances for PrivacyQA\nand PolicyIE from the original works.
-  422  p11  heading (D.3)  [p11-l35..p11-l36 (2)]  D.3 Software Tools
-  423  p11  paragraph  [p11-l37..p11-l47 (11)]  To facilitate using PLUE, we release our implemen-\ntation, which is built with Pytorch (Paszke et al.,\n2019) and the Huggingface transformers5 pack-\nage. Our implementation includes the continual\npre-training of our baselines and the evaluation\nof any PLMs supported by the Huggingface trans-\nformers package on the PLUE benchmark tasks.\nIn addition to PLUE datasets, we release the pre-\ntraining corpus and all data pre-processing scripts,\nincluding the pre-training corpus crawling scripts,\nto assist future research in this area.
-  424  p11  figure  [p11-d1]  
-  425  p11  footnote (5)  [p11-l48]  5 https://github.com/huggingface/transformers
-  426  p11  furniture/page-number  [p11-l49]  362
-  427  p12  figure  [p12-d1]  
-  428  p12  paragraph  [p12-l1..p12-l4 (4)]  PP-BERT PP-SpanBERT PP-Electra PP-RoBERTa
-  429  p12  figure  [p12-d2]  
-  430  p12  paragraph  [p12-l5]  Learning Rate
-  431  p12  paragraph  [p12-l6..p12-l10 (2)]  1e-4\nTrain Steps
-  432  p12  paragraph  [p12-l11..p12-l15 (2)]  100,000\nbatch Size
-  433  p12  paragraph  [p12-l16..p12-l20 (2)]  256\nLearning Rate Schedule
-  434  p12  paragraph  [p12-l21..p12-l25 (2)]  linear\n# warm-up steps
-  435  p12  paragraph  [p12-l26..p12-l30 (2)]  1000\nOptimizer
-  436  p12  paragraph  [p12-l31..p12-l7 (2)]  AdamW\n1e-4
-  437  p12  paragraph  [p12-l8]  1e-4
-  438  p12  paragraph  [p12-l9]  6e-4
-  439  p12  paragraph  [p12-l12]  100,000
-  440  p12  paragraph  [p12-l13]  100,000
-  441  p12  paragraph  [p12-l14]  12,500
-  442  p12  paragraph  [p12-l17]  256
-  443  p12  paragraph  [p12-l18]  256
-  444  p12  paragraph  [p12-l19]  2048
-  445  p12  paragraph  [p12-l22]  polynomial_decay
-  446  p12  paragraph  [p12-l23]  linear
-  447  p12  paragraph  [p12-l24]  linear
-  448  p12  paragraph  [p12-l27]  1000
-  449  p12  paragraph  [p12-l28]  1000
-  450  p12  paragraph  [p12-l29]  600
-  451  p12  paragraph  [p12-l32]  AdamW
-  452  p12  paragraph  [p12-l33]  AdamW
-  453  p12  paragraph  [p12-l34]  AdamW
-  454  p12  figure  [p12-d3]  
-  455  p12  paragraph  [p12-l35]  Table 5: Hyperparameters for pre-training language models.
-  456  p12  figure  [p12-d4]  
-  457  p12  paragraph  [p12-l37..p12-l42 (7)]  Classification\nText\nAnswering\nQuestion Semantic\nParsing NER
-  458  p12  figure  [p12-d5]  
-  459  p12  paragraph  [p12-l43]  Dropout
-  460  p12  paragraph  [p12-l44..p12-l48 (2)]  0.1\nWeight decay
-  461  p12  paragraph  [p12-l49..p12-l53 (2)]  0.0\nOptimizer
-  462  p12  paragraph  [p12-l54..p12-l58 (2)]  AdamW\nBatch Size
-  463  p12  paragraph  [p12-l59..p12-l63 (2)]  32\nLearning rate
-  464  p12  paragraph  [p12-l45]  0.1
-  465  p12  paragraph  [p12-l46]  0.1
-  466  p12  paragraph  [p12-l47]  0.1
-  467  p12  paragraph  [p12-l50]  0.0
-  468  p12  paragraph  [p12-l51]  0.0
-  469  p12  paragraph  [p12-l52]  0.0
-  470  p12  paragraph  [p12-l55]  AdamW
-  471  p12  paragraph  [p12-l56]  AdamW
-  472  p12  paragraph  [p12-l57]  AdamW
-  473  p12  paragraph  [p12-l60]  32
-  474  p12  paragraph  [p12-l61]  32
-  475  p12  paragraph  [p12-l62]  32
-  476  p12  paragraph  [p12-l64]  [3e-4, 1e-4, 5e-5, 3e-5, 1e-5, 5e-6, 3e-6]
-  477  p12  paragraph  [p12-l65]  Learning Rate Schedule
-  478  p12  paragraph  [p12-l66..p12-l70 (2)]  Linear\nWarm-up Ratio
-  479  p12  paragraph  [p12-l71..p12-l75 (2)]  0.05\n# epoch
-  480  p12  paragraph  [p12-l76..p12-l67 (2)]  20\nLinear
-  481  p12  paragraph  [p12-l68]  Linear
-  482  p12  paragraph  [p12-l69]  Linear
-  483  p12  paragraph  [p12-l72]  0.0
-  484  p12  paragraph  [p12-l73]  0.05
-  485  p12  paragraph  [p12-l74]  0.05
-  486  p12  paragraph  [p12-l77]  3
-  487  p12  paragraph  [p12-l78]  20
-  488  p12  paragraph  [p12-l79]  20
-  489  p12  figure  [p12-d6]  
-  490  p12  paragraph  [p12-l80]  Table 6: Hyperparameters for fine-tuning pre-trained language models on different PLUE tasks.
-  491  p12  furniture/page-number  [p12-l81]  363
-  492  p13  paragraph  [p13-l1]  ACL 2023 Responsible NLP Checklist
-  493  p13  figure  [p13-d1]  
-  494  p13  paragraph  [p13-l2..p13-l3 (2)]  A For every submission:
-  495  p13  paragraph  [p13-l4]  ✓ A1. Did you describe the limitations of your work?
-  496  p13  paragraph  [p13-l5]  In the section "Limitations"
-  497  p13  paragraph  [p13-l6]  ✓ A2. Did you discuss any potential risks of your work?
-  498  p13  paragraph  [p13-l7]  In the sections "Limitations" and "Ethics Statement"
-  499  p13  paragraph  [p13-l8]  ✓ A3. Do the abstract and introduction summarize the paper’s main claims?
-  500  p13  paragraph  [p13-l9]  In the abstract and section 1 "Introduction"
-  501  p13  paragraph  [p13-l10]  ✓ A4. Have you used AI writing assistants when working on this paper?
-  502  p13  paragraph  [p13-l11..p13-l12 (2)]  Yes, we use Grammarly and ChatGPT for assistance purely with the language of the paper (e.g.,\ngrammar error checking and paper paraphrasing). We mainly use them in the introduction.
-  503  p13  paragraph  [p13-l13]  B ✓ Did you use or create scientific artifacts?
-  504  p13  paragraph  [p13-l14]  In section 2, we describe the creation of our benchmark.
-  505  p13  paragraph  [p13-l15]  ✓ B1. Did you cite the creators of artifacts you used?
-  506  p13  paragraph  [p13-l16]  In section 2, we cite the creators of the artifacts we used.
-  507  p13  paragraph  [p13-l17]  ✓ B2. Did you discuss the license or terms for use and / or distribution of any artifacts?
-  508  p13  paragraph  [p13-l18]  In the section "Ethics Statement."
-  509  p13  paragraph  [p13-l19..p13-l22 (4)]  ✓ B3. Did you discuss if your use of existing artifact(s) was consistent with their intended use, provided\nthat it was specified? For the artifacts you create, do you specify intended use and whether that is\ncompatible with the original access conditions (in particular, derivatives of data accessed for research\npurposes should not be used outside of research contexts)?
-  510  p13  paragraph  [p13-l23]  In the section "Ethics Statement."
-  511  p13  paragraph  [p13-l24..p13-l26 (3)]  B4. Did you discuss the steps taken to check whether the data that was collected / used contains any\ninformation that names or uniquely identifies individual people or offensive content, and the steps\ntaken to protect / anonymize it?
-  512  p13  paragraph  [p13-l27]  Not applicable. Left blank.
-  513  p13  paragraph  [p13-l28..p13-l29 (2)]  ✓ B5. Did you provide documentation of the artifacts, e.g., coverage of domains, languages, and\nlinguistic phenomena, demographic groups represented, etc.?
-  514  p13  paragraph  [p13-l30]  Section 2.
-  515  p13  paragraph  [p13-l31..p13-l35 (5)]  ✓ B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,\netc. for the data that you used / created? Even for commonly-used benchmark datasets, include the\nnumber of examples in train / validation / test splits, as these provide necessary context for a reader\nto understand experimental results. For example, small differences in accuracy on large test sets may\nbe significant, while on small test sets they may not be.
-  516  p13  paragraph  [p13-l36]  Section 2.
-  517  p13  paragraph  [p13-l37]  C ✓ Did you run computational experiments?
-  518  p13  paragraph  [p13-l38]  Section 3.
-  519  p13  paragraph  [p13-l39..p13-l40 (2)]  ✓ C1. Did you report the number of parameters in the models used, the total computational budget\n(e.g., GPU hours), and computing infrastructure used?
-  520  p13  paragraph  [p13-l41]  In the section "Ethics Statement."
-  521  p13  figure  [p13-d2]  
-  522  p13  footnote  [p13-l42..p13-l43 (2)]  The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing\nassistance.
-  523  p13  furniture/page-number  [p13-l44]  364
-  524  p14  paragraph  [p14-l1..p14-l2 (2)]  ✓ C2. Did you discuss the experimental setup, including hyperparameter search and best-found\nhyperparameter values?
-  525  p14  paragraph  [p14-l3]  Section 2.
-  526  p14  paragraph  [p14-l4..p14-l6 (3)]  ✓ C3. Did you report descriptive statistics about your results (e.g., error bars around results, summary\nstatistics from sets of experiments), and is it transparent whether you are reporting the max, mean,\netc. or just a single run?
-  527  p14  paragraph  [p14-l7]  Section 3.
-  528  p14  paragraph  [p14-l8..p14-l10 (3)]  ✓ C4. If you used existing packages (e.g., for preprocessing, for normalization, or for evaluation), did\nyou report the implementation, model, and parameter settings used (e.g., NLTK, Spacy, ROUGE,\netc.)?
-  529  p14  paragraph  [p14-l11]  In appendix D.
-  530  p14  paragraph  [p14-l12]  D ✗ Did you use human annotators (e.g., crowdworkers) or research with human participants?
-  531  p14  paragraph  [p14-l13]  Left blank.
-  532  p14  paragraph  [p14-l14..p14-l15 (2)]  D1. Did you report the full text of instructions given to participants, including e.g., screenshots,\ndisclaimers of any risks to participants or annotators, etc.?
-  533  p14  paragraph  [p14-l16]  Not applicable. Left blank.
-  534  p14  paragraph  [p14-l17..p14-l19 (3)]  D2. Did you report information about how you recruited (e.g., crowdsourcing platform, students)\nand paid participants, and discuss if such payment is adequate given the participants’ demographic\n(e.g., country of residence)?
-  535  p14  paragraph  [p14-l20]  Not applicable. Left blank.
-  536  p14  paragraph  [p14-l21..p14-l23 (3)]  D3. Did you discuss whether and how consent was obtained from people whose data you’re\nusing/curating? For example, if you collected data via crowdsourcing, did your instructions to\ncrowdworkers explain how the data would be used?
-  537  p14  paragraph  [p14-l24]  Not applicable. Left blank.
-  538  p14  paragraph  [p14-l25..p14-l26 (2)]  D4. Was the data collection protocol approved (or determined exempt) by an ethics review board?\nNot applicable. Left blank.
-  539  p14  paragraph  [p14-l27..p14-l28 (2)]  D5. Did you report the basic demographic and geographic characteristics of the annotator population\nthat is the source of the data?
-  540  p14  paragraph  [p14-l29]  Not applicable. Left blank.
-  541  p14  furniture/page-number  [p14-l30]  365
+  356  p9  list_item (1.)  [p9-l5]  1. First Party Collection/Use
+  357  p9  list_item (2.)  [p9-l6]  2. Third Party Sharing/Collection
+  358  p9  list_item (3.)  [p9-l7]  3. User Choice/Control
+  359  p9  list_item (4.)  [p9-l8]  4. User Access, Edit, and Deletion
+  360  p9  list_item (5.)  [p9-l9]  5. Data Retention
+  361  p9  list_item (6.)  [p9-l10]  6. Data Security
+  362  p9  list_item (7.)  [p9-l11]  7. Policy Change
+  363  p9  list_item (8.)  [p9-l12]  8. Do Not Track
+  364  p9  list_item (9.)  [p9-l13]  9. International and Specific Audiences
+  365  p9  list_item (10.)  [p9-l14]  10. Other
+  366  p9  heading (A.2)  [p9-l15..p9-l16 (2)]  A.2 APP-350 Privacy Practices
+  367  p9  list_item (1.)  [p9-l17]  1. Contact
+  368  p9  list_item (2.)  [p9-l18]  2. Contact_Address_Book
+  369  p9  list_item (3.)  [p9-l19]  3. Contact_City
+  370  p9  list_item (4.)  [p9-l20]  4. Contact_E_Mail_Address
+  371  p9  list_item (5.)  [p9-l21]  5. Contact_Password
+  372  p9  list_item (6.)  [p9-l22]  6. Contact_Phone_Number
+  373  p9  list_item (7.)  [p9-l23]  7. Contact_Postal_Address
+  374  p9  list_item (8.)  [p9-l24]  8. Contact_ZIP
+  375  p9  list_item (9.)  [p9-l25]  9. Demographic
+  376  p9  list_item (10.)  [p9-l26]  10. Demographic_Age
+  377  p9  list_item (11.)  [p9-l27]  11. Demographic_Gender
+  378  p9  list_item (12.)  [p9-l28]  12. Facebook_SSO
+  379  p9  list_item (13.)  [p9-l29]  13. Identifier
+  380  p9  list_item (14.)  [p9-l30]  14. Identifier_Ad_ID
+  381  p9  list_item (15.)  [p9-l31]  15. Identifier_Cookie_or_similar_Tech
+  382  p9  list_item (16.)  [p9-l32]  16. Identifier_Device_ID
+  383  p9  list_item (17.)  [p9-l33]  17. Identifier_IMEI
+  384  p9  list_item (18.)  [p9-l34]  18. Identifier_IMSI
+  385  p9  list_item (19.)  [p9-l35]  19. Identifier_IP_Address
+  386  p9  list_item (20.)  [p9-l36]  20. Identifier_MAC
+  387  p9  list_item (21.)  [p9-l37]  21. Identifier_Mobile_Carrier
+  388  p9  list_item (22.)  [p9-l38]  22. Identifier_SIM_Serial
+  389  p9  list_item (23.)  [p9-l39]  23. Identifier_SSID_BSSID
+  390  p9  list_item (24.)  [p9-l40]  24. Location
+  391  p9  list_item (25.)  [p9-l41]  25. Location_Bluetooth
+  392  p9  list_item (26.)  [p9-l42]  26. Location_Cell_Tower
+  393  p9  list_item (27.)  [p9-l43]  27. Location_GPS
+  394  p9  list_item (28.)  [p9-l44]  28. Location_IP_Address
+  395  p9  list_item (29.)  [p9-l45]  29. Location_WiFi
+  396  p9  list_item (30.)  [p9-l46]  30. SSO
+  397  p9  heading (B)  [p9-l47]  B More Details of Pre-training Corpora
+  398  p9  paragraph  [p9-l48..p9-l67 (20)]  We use MAPS, the mobile application privacy pol-\nicy corpus presented by Zimmeck et al. (2019).\nMAPS consists of the URLs of 441K mobile ap-\nplication privacy policies, which were collected\nfrom April to May 2018 from the Google Play\nstore. We remove the duplicated URLs, crawl the\nprivacy policy documents in HTML/PDF format,\nconvert them to raw text format, and filter out the\ndocuments with noise (e.g., empty documents re-\nsulting from obsolete URLs). Finally, we ended\nup with 64K privacy policy documents. For web-\nsite privacy policies, we use the Princeton-Leuven\nLongitudinal Corpus of Privacy Policies (Amos\net al., 2021).4 The Princeton-Leuven Longitudinal\nCorpus of Privacy Policies contains 130K website\nprivacy policies spanning over two decades. We\nuse the documents with the latest date and con-\nvert them (from markdown format) into text format.\nCombining these two corpora, we obtain our pre-\ntraining corpus with 332M words.
+  399  p9  heading (C)  [p9-l68]  C Baseline Models
+  400  p9  paragraph  [p9-l69..p9-l70 (2)]  We benchmark a few pre-trained language models\nas baselines to facilitate future work.
+  401  p9  paragraph  [p9-l71..p9-l76 (6)]  BERT Devlin et al. (2019) proposed Transformer\n(Vaswani et al., 2017) based language model pre-\ntrained on BooksCorpus and English Wikipedia\ndata using masked language modeling (MLM) and\nnext sentence prediction.
+  402  p9  paragraph  [p9-l77..p9-l86 (10)]  Electra Clark et al. (2020) pre-trains a generator\nand a discriminator on the same corpus as BERT,\nwhere the generator takes a masked text as input\nand is trained using the MLM objective. The dis-\ncriminator takes the predictions from the generator\nand detects which tokens are replaced by the gener-\nator. After pre-training, the generator is discarded,\nand the discriminator is used as the language model\nfor the downstream tasks.
+  403  p9  paragraph  [p9-l87..p9-l93 (7)]  SpanBERT Joshi et al. (2020) shares the same\narchitecture and pre-training corpus as BERT but\ndiffers in the pre-training objectives. It extends\nBERT by masking contiguous spans instead of sin-\ngle tokens and training the span boundary represen-\ntations to predict the masked spans.
+  404  p9  paragraph  [p9-l94..p10-l46 (10)]  RoBERTa Liu et al. (2019) presented a replica-\ntion study of BERT pretraining where they showed\nthat BERT was significantly undertrained and pro-\nposed RoBERTa that tunes key hyperparameters\nand uses more training data to achieve remarkable\nperformance improvements. Note that while BERT,\nElectra, and SpanBERT use the same vocabulary,\nRoBERTa uses a different vocabulary resulting in\n15M more parameters in the model.
+  405  p9  figure  [p9-d1]  
+  406  p9  footnote (4)  [p9-l99..p9-l100 (2)]  4The corpus is publicly available at https://github.\ncom/citp/privacy-policy-historical.
+  407  p9  furniture/page-number  [p9-l101]  360
+  408  p10  figure  [p10-d1]  
+  409  p10  paragraph  [p10-l1..p10-l6 (6)]  OPP-115 Text: Secure Online Ordering For your security, we only store your credit card information if\nyou choose to set up an authorized account with one of our Sites. In that case, it is stored on\na secure computer in an encrypted format. If you do not set up an account, you will have to\nenter your credit card information each time you order. We understand that this may be a little\ninconvenient for you, but some customers appreciate the added security.
+  410  p10  paragraph  [p10-l7]  Classes: Data Security, User Choice/Control, First Party Collection/Use
+  411  p10  figure  [p10-d2]  
+  412  p10  paragraph  [p10-l8..p10-l13 (6)]  APP-350 Text: Our Use of Web Beacons and Analytics Services Microsoft web pages may contain\nelectronic images known as web beacons (also called single-pixel gifs) that we use to help\ndeliver cookies on our websites, count users who have visited those websites and deliver\nco-branded products. We also include web beacons in our promotional email messages or\nnewsletters to determine whether you open and act on them.
+  413  p10  paragraph  [p10-l14]  Classes: Contact_E_Mail_Address, Identifier_Cookie_or_similar_Tech
+  414  p10  figure  [p10-d3]  
+  415  p10  paragraph  [p10-l15..p10-l18 (4)]  PrivacyQA Sentence: We may collect and use information about your location (such as your country) or\ninfer your approximate location based on your IP address in order to provide you with tailored\neducational experiences for your region, but we don’t collect the precise geolocation of you or\nyour device.
+  416  p10  paragraph  [p10-l19]  Question: Does the app track my location? Answer: Relevant
+  417  p10  figure  [p10-d4]  
+  418  p10  paragraph  [p10-l20..p10-l25 (6)]  PolicyQA Text: Illini Media never shares personally identifiable information provided to us online in\nways unrelated to the ones described above without allowing you to opt out or otherwise\nprohibit such unrelated uses. Google or any ad server may use information (not including your\nname, address, email address, or telephone number) about your visits to this and other websites\nin order to provide advertisements about goods and services of interest to you.
+  419  p10  paragraph  [p10-l26..p10-l27 (2)]  Question: Do you share my data with others? If yes, what is the type of data?\nAnswer: information (not including your name, address, email address or telephone number)
+  420  p10  figure  [p10-d5]  
+  421  p10  paragraph  [p10-l28..p10-l30 (3)]  PolicyIE Sentence: We may also use or display your username and icon or profile photo for marketing\npurposes or press releases.
+  422  p10  paragraph  [p10-l31..p10-l35 (5)]  Intent: Data Collection/Usage Slots: (1) Data Collector: First Party Entity–We, (2)\nAction–use, (3) Data Provider: User–your, (4) Data Collected: User Online Activities/Profiles–\nusername, (5) Data Collected: User Online Activities/Profiles–icon or profile photo, (6)\nPurpose: Advertising/Marketing–marketing purpose or press releases.
+  423  p10  figure  [p10-d6]  
+  424  p10  paragraph  [p10-l36]  PI-
+  425  p10  paragraph  [p10-l38]  Text: We may share aggregate demographic and usage information with our prospective and
+  426  p10  paragraph  [p10-l37]  Extract
+  427  p10  paragraph  [p10-l39]  actual business partners, advertisers, and other third parties for any business purpose.
+  428  p10  paragraph  [p10-l40]  Entities: SHARE – aggregate demographic and usage information
+  429  p10  figure  [p10-d7]  
+  430  p10  caption (Table 4)  [p10-l41]  Table 4: Examples from the tasks in PLUE.
+  431  p10  paragraph  [p10-l47..p10-l57 (11)]  LEGAL-BERT Chalkidis et al. (2020) pre-\ntrained BERT using 12 GB of the English text\n(over 351K documents) from several legal fields\n(e.g., contracts, legislation, court cases) scraped\nfrom publicly available resources. Since privacy\npolicies serve as official documents to protect the\ncompany and consumers’ privacy rights and might\ncontain contents in response to privacy law (e.g.,\nGDPR), we study LEGAL-BERT’s effectiveness\non the PLUE tasks.
+  432  p10  furniture/page-number  [p10-l58]  361
+  433  p11  heading (D)  [p11-l1]  D More Implementation Details
+  434  p11  heading (D.1)  [p11-l2..p11-l3 (2)]  D.1 Domain-specific Continual Pre-training
+  435  p11  paragraph  [p11-l4..p11-l14 (11)]  Since BERT, Electra, and SpanBERT share the\nsame model architectures, we use almost the same\nhyperparameters (e.g., learning rate, train steps,\nbatch size) for them following the original papers.\nWe scale down the train steps by the same factor,\nas the size of our pre-training corpus is roughly\n1/10 the size of the pre-training corpus of BERT.\nWe adhere to the guidelines outlined in Liu et al.\n(2019) to train RoBERTa with larger batch size,\nhigher learning rate, and fewer train steps. Table 5\npresents the training hyperparameters for PLMs.
+  436  p11  heading (D.2)  [p11-l15..p11-l16 (2)]  D.2 Task-specific Fine-tuning
+  437  p11  paragraph  [p11-l17..p11-l26 (10)]  We fine-tune the models for each task using the\nAdam (Kingma and Ba, 2015) optimizer with a\nbatch size of 32. We fine-tune the models on the\nQA tasks for 3 epochs and other tasks for 20 epochs\nand perform a grid search on the learning rate for\neach task with validation examples. We chose the\nlearning rate for tasks without validation examples\nbased on our findings from the tasks with validation\nexamples. Table 6 lists the hyperparameters for all\nthe downstream tasks.
+  438  p11  paragraph  [p11-l27..p11-l34 (8)]  In OPP-115 and APP-350, we compute the class\nweights (the class weights are inversely propor-\ntional to the occurrences of the classes) and apply\nthem in fine-tuning, as we find out both datasets\nhave the class-imbalance problem and using class\nweights brings gains to overall performance. We\nalso report the human performances for PrivacyQA\nand PolicyIE from the original works.
+  439  p11  heading (D.3)  [p11-l35..p11-l36 (2)]  D.3 Software Tools
+  440  p11  paragraph  [p11-l37..p11-l47 (11)]  To facilitate using PLUE, we release our implemen-\ntation, which is built with Pytorch (Paszke et al.,\n2019) and the Huggingface transformers5 pack-\nage. Our implementation includes the continual\npre-training of our baselines and the evaluation\nof any PLMs supported by the Huggingface trans-\nformers package on the PLUE benchmark tasks.\nIn addition to PLUE datasets, we release the pre-\ntraining corpus and all data pre-processing scripts,\nincluding the pre-training corpus crawling scripts,\nto assist future research in this area.
+  441  p11  figure  [p11-d1]  
+  442  p11  footnote (5)  [p11-l48]  5 https://github.com/huggingface/transformers
+  443  p11  furniture/page-number  [p11-l49]  362
+  444  p12  figure  [p12-d1]  
+  445  p12  paragraph  [p12-l1..p12-l4 (4)]  PP-BERT PP-SpanBERT PP-Electra PP-RoBERTa
+  446  p12  figure  [p12-d2]  
+  447  p12  paragraph  [p12-l5]  Learning Rate
+  448  p12  paragraph  [p12-l6..p12-l10 (2)]  1e-4\nTrain Steps
+  449  p12  paragraph  [p12-l11..p12-l15 (2)]  100,000\nbatch Size
+  450  p12  paragraph  [p12-l16..p12-l20 (2)]  256\nLearning Rate Schedule
+  451  p12  paragraph  [p12-l21..p12-l25 (2)]  linear\n# warm-up steps
+  452  p12  paragraph  [p12-l26..p12-l30 (2)]  1000\nOptimizer
+  453  p12  paragraph  [p12-l31..p12-l7 (2)]  AdamW\n1e-4
+  454  p12  paragraph  [p12-l8]  1e-4
+  455  p12  paragraph  [p12-l9]  6e-4
+  456  p12  paragraph  [p12-l12]  100,000
+  457  p12  paragraph  [p12-l13]  100,000
+  458  p12  paragraph  [p12-l14]  12,500
+  459  p12  paragraph  [p12-l17]  256
+  460  p12  paragraph  [p12-l18]  256
+  461  p12  paragraph  [p12-l19]  2048
+  462  p12  paragraph  [p12-l22]  polynomial_decay
+  463  p12  paragraph  [p12-l23]  linear
+  464  p12  paragraph  [p12-l24]  linear
+  465  p12  paragraph  [p12-l27]  1000
+  466  p12  paragraph  [p12-l28]  1000
+  467  p12  paragraph  [p12-l29]  600
+  468  p12  paragraph  [p12-l32]  AdamW
+  469  p12  paragraph  [p12-l33]  AdamW
+  470  p12  paragraph  [p12-l34]  AdamW
+  471  p12  figure  [p12-d3]  
+  472  p12  caption (Table 5)  [p12-l35]  Table 5: Hyperparameters for pre-training language models.
+  473  p12  figure  [p12-d4]  
+  474  p12  paragraph  [p12-l37..p12-l42 (7)]  Classification\nText\nAnswering\nQuestion Semantic\nParsing NER
+  475  p12  figure  [p12-d5]  
+  476  p12  paragraph  [p12-l43]  Dropout
+  477  p12  paragraph  [p12-l44..p12-l48 (2)]  0.1\nWeight decay
+  478  p12  paragraph  [p12-l49..p12-l53 (2)]  0.0\nOptimizer
+  479  p12  paragraph  [p12-l54..p12-l58 (2)]  AdamW\nBatch Size
+  480  p12  paragraph  [p12-l59..p12-l63 (2)]  32\nLearning rate
+  481  p12  paragraph  [p12-l45]  0.1
+  482  p12  paragraph  [p12-l46]  0.1
+  483  p12  paragraph  [p12-l47]  0.1
+  484  p12  paragraph  [p12-l50]  0.0
+  485  p12  paragraph  [p12-l51]  0.0
+  486  p12  paragraph  [p12-l52]  0.0
+  487  p12  paragraph  [p12-l55]  AdamW
+  488  p12  paragraph  [p12-l56]  AdamW
+  489  p12  paragraph  [p12-l57]  AdamW
+  490  p12  paragraph  [p12-l60]  32
+  491  p12  paragraph  [p12-l61]  32
+  492  p12  paragraph  [p12-l62]  32
+  493  p12  paragraph  [p12-l64]  [3e-4, 1e-4, 5e-5, 3e-5, 1e-5, 5e-6, 3e-6]
+  494  p12  paragraph  [p12-l65]  Learning Rate Schedule
+  495  p12  paragraph  [p12-l66..p12-l70 (2)]  Linear\nWarm-up Ratio
+  496  p12  paragraph  [p12-l71..p12-l75 (2)]  0.05\n# epoch
+  497  p12  paragraph  [p12-l76..p12-l67 (2)]  20\nLinear
+  498  p12  paragraph  [p12-l68]  Linear
+  499  p12  paragraph  [p12-l69]  Linear
+  500  p12  paragraph  [p12-l72]  0.0
+  501  p12  paragraph  [p12-l73]  0.05
+  502  p12  paragraph  [p12-l74]  0.05
+  503  p12  paragraph  [p12-l77]  3
+  504  p12  paragraph  [p12-l78]  20
+  505  p12  paragraph  [p12-l79]  20
+  506  p12  figure  [p12-d6]  
+  507  p12  caption (Table 6)  [p12-l80]  Table 6: Hyperparameters for fine-tuning pre-trained language models on different PLUE tasks.
+  508  p12  furniture/page-number  [p12-l81]  363
+  509  p13  paragraph  [p13-l1]  ACL 2023 Responsible NLP Checklist
+  510  p13  figure  [p13-d1]  
+  511  p13  paragraph  [p13-l2..p13-l3 (2)]  A For every submission:
+  512  p13  paragraph  [p13-l4]  ✓ A1. Did you describe the limitations of your work?
+  513  p13  paragraph  [p13-l5]  In the section "Limitations"
+  514  p13  paragraph  [p13-l6]  ✓ A2. Did you discuss any potential risks of your work?
+  515  p13  paragraph  [p13-l7]  In the sections "Limitations" and "Ethics Statement"
+  516  p13  paragraph  [p13-l8]  ✓ A3. Do the abstract and introduction summarize the paper’s main claims?
+  517  p13  paragraph  [p13-l9]  In the abstract and section 1 "Introduction"
+  518  p13  paragraph  [p13-l10]  ✓ A4. Have you used AI writing assistants when working on this paper?
+  519  p13  paragraph  [p13-l11..p13-l12 (2)]  Yes, we use Grammarly and ChatGPT for assistance purely with the language of the paper (e.g.,\ngrammar error checking and paper paraphrasing). We mainly use them in the introduction.
+  520  p13  paragraph  [p13-l13]  B ✓ Did you use or create scientific artifacts?
+  521  p13  paragraph  [p13-l14]  In section 2, we describe the creation of our benchmark.
+  522  p13  paragraph  [p13-l15]  ✓ B1. Did you cite the creators of artifacts you used?
+  523  p13  paragraph  [p13-l16]  In section 2, we cite the creators of the artifacts we used.
+  524  p13  paragraph  [p13-l17]  ✓ B2. Did you discuss the license or terms for use and / or distribution of any artifacts?
+  525  p13  paragraph  [p13-l18]  In the section "Ethics Statement."
+  526  p13  paragraph  [p13-l19..p13-l22 (4)]  ✓ B3. Did you discuss if your use of existing artifact(s) was consistent with their intended use, provided\nthat it was specified? For the artifacts you create, do you specify intended use and whether that is\ncompatible with the original access conditions (in particular, derivatives of data accessed for research\npurposes should not be used outside of research contexts)?
+  527  p13  paragraph  [p13-l23]  In the section "Ethics Statement."
+  528  p13  paragraph  [p13-l24..p13-l26 (3)]  B4. Did you discuss the steps taken to check whether the data that was collected / used contains any\ninformation that names or uniquely identifies individual people or offensive content, and the steps\ntaken to protect / anonymize it?
+  529  p13  paragraph  [p13-l27]  Not applicable. Left blank.
+  530  p13  paragraph  [p13-l28..p13-l29 (2)]  ✓ B5. Did you provide documentation of the artifacts, e.g., coverage of domains, languages, and\nlinguistic phenomena, demographic groups represented, etc.?
+  531  p13  paragraph  [p13-l30]  Section 2.
+  532  p13  paragraph  [p13-l31..p13-l35 (5)]  ✓ B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,\netc. for the data that you used / created? Even for commonly-used benchmark datasets, include the\nnumber of examples in train / validation / test splits, as these provide necessary context for a reader\nto understand experimental results. For example, small differences in accuracy on large test sets may\nbe significant, while on small test sets they may not be.
+  533  p13  paragraph  [p13-l36]  Section 2.
+  534  p13  paragraph  [p13-l37]  C ✓ Did you run computational experiments?
+  535  p13  paragraph  [p13-l38]  Section 3.
+  536  p13  paragraph  [p13-l39..p13-l40 (2)]  ✓ C1. Did you report the number of parameters in the models used, the total computational budget\n(e.g., GPU hours), and computing infrastructure used?
+  537  p13  paragraph  [p13-l41]  In the section "Ethics Statement."
+  538  p13  figure  [p13-d2]  
+  539  p13  footnote  [p13-l42..p13-l43 (2)]  The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing\nassistance.
+  540  p13  furniture/page-number  [p13-l44]  364
+  541  p14  paragraph  [p14-l1..p14-l2 (2)]  ✓ C2. Did you discuss the experimental setup, including hyperparameter search and best-found\nhyperparameter values?
+  542  p14  paragraph  [p14-l3]  Section 2.
+  543  p14  paragraph  [p14-l4..p14-l6 (3)]  ✓ C3. Did you report descriptive statistics about your results (e.g., error bars around results, summary\nstatistics from sets of experiments), and is it transparent whether you are reporting the max, mean,\netc. or just a single run?
+  544  p14  paragraph  [p14-l7]  Section 3.
+  545  p14  paragraph  [p14-l8..p14-l10 (3)]  ✓ C4. If you used existing packages (e.g., for preprocessing, for normalization, or for evaluation), did\nyou report the implementation, model, and parameter settings used (e.g., NLTK, Spacy, ROUGE,\netc.)?
+  546  p14  paragraph  [p14-l11]  In appendix D.
+  547  p14  paragraph  [p14-l12]  D ✗ Did you use human annotators (e.g., crowdworkers) or research with human participants?
+  548  p14  paragraph  [p14-l13]  Left blank.
+  549  p14  paragraph  [p14-l14..p14-l15 (2)]  D1. Did you report the full text of instructions given to participants, including e.g., screenshots,\ndisclaimers of any risks to participants or annotators, etc.?
+  550  p14  paragraph  [p14-l16]  Not applicable. Left blank.
+  551  p14  paragraph  [p14-l17..p14-l19 (3)]  D2. Did you report information about how you recruited (e.g., crowdsourcing platform, students)\nand paid participants, and discuss if such payment is adequate given the participants’ demographic\n(e.g., country of residence)?
+  552  p14  paragraph  [p14-l20]  Not applicable. Left blank.
+  553  p14  paragraph  [p14-l21..p14-l23 (3)]  D3. Did you discuss whether and how consent was obtained from people whose data you’re\nusing/curating? For example, if you collected data via crowdsourcing, did your instructions to\ncrowdworkers explain how the data would be used?
+  554  p14  paragraph  [p14-l24]  Not applicable. Left blank.
+  555  p14  paragraph  [p14-l25..p14-l26 (2)]  D4. Was the data collection protocol approved (or determined exempt) by an ethics review board?\nNot applicable. Left blank.
+  556  p14  paragraph  [p14-l27..p14-l28 (2)]  D5. Did you report the basic demographic and geographic characteristics of the annotator population\nthat is the source of the data?
+  557  p14  paragraph  [p14-l29]  Not applicable. Left blank.
+  558  p14  furniture/page-number  [p14-l30]  365
   sections
     1  blocks 3-5  Abstract
     1  blocks 5-11  1 Introduction
@@ -559,16 +576,16 @@
     1  blocks 297-300  Ethics Statement
     1  blocks 300-302  Acknowledgements
     1  blocks 302-353  References
-    1  blocks 353-542  Supplementary Material: Appendices
-      2  blocks 354-380  A Dataset Details
-        3  blocks 355-360  A.1 OPP-115 Privacy Practices
-        3  blocks 360-380  A.2 APP-350 Privacy Practices
-      2  blocks 380-382  B More Details of Pre-training Corpora
-      2  blocks 382-416  C Baseline Models
-      2  blocks 416-542  D More Implementation Details
-        3  blocks 417-419  D.1 Domain-specific Continual Pre-training
-        3  blocks 419-422  D.2 Task-specific Fine-tuning
-        3  blocks 422-542  D.3 Software Tools
+    1  blocks 353-559  Supplementary Material: Appendices
+      2  blocks 354-397  A Dataset Details
+        3  blocks 355-366  A.1 OPP-115 Privacy Practices
+        3  blocks 366-397  A.2 APP-350 Privacy Practices
+      2  blocks 397-399  B More Details of Pre-training Corpora
+      2  blocks 399-433  C Baseline Models
+      2  blocks 433-559  D More Implementation Details
+        3  blocks 434-436  D.1 Domain-specific Continual Pre-training
+        3  blocks 436-439  D.2 Task-specific Fine-tuning
+        3  blocks 439-559  D.3 Software Tools
   
   '''
 # ---
@@ -638,7 +655,7 @@
   59  p3  paragraph  [p3-l26]  and John didn’t.
   60  p3  figure  [p3-d24..p3-d25 (2)]  
   61  p3  paragraph  [p3-l27..p3-l28 (2)]  Question Did John go running?
-  62  p3  paragraph  [p3-l29]  Table 1: Structures for Positive Answer
+  62  p3  caption (Table 1)  [p3-l29]  Table 1: Structures for Positive Answer
   63  p3  paragraph  [p3-l42..p3-l46 (5)]  We generate large numbers of examples of each\nstructure by performing random substitutions for\nboth the subject and verb. The substitution lists are\ngiven in the appendix, along with samples of each\nstructure and the size of the resulting sets. 1
   64  p3  heading (4)  [p3-l47]  4 Test
   65  p3  paragraph  [p3-l48..p3-l99 (12)]  For each instantiation of a given structure, we pro-\nduce paired ellipsis and non-ellipsis examples, with\nan associated Yes/No question. We randomly select\n1000 examples for each structure, including 500\nellipsis examples and 500 examples which are their\nnon-elliptical counterparts. Each example is pre-\nsented to the system, preceded by the text, “Please\ngive a Yes or No answer:". We test five GPT-3 mod-\nels on these structures: Davinci-003, Davinci-002,\nCurie-001, Babbage-001, and Ada-001. According\nto the GPT-3 documentation, Davinci-003 is the\nmost powerful model and Ada-001, the least.
@@ -668,35 +685,35 @@
   89  p3  paragraph  [p3-l93]  and John didn’t.
   90  p3  figure  [p3-d50..p3-d51 (2)]  
   91  p3  paragraph  [p3-l94..p3-l95 (2)]  Question Did John go running?
-  92  p3  paragraph  [p3-l96]  Table 2: Structures for Negative Answer
+  92  p3  caption (Table 2)  [p3-l96]  Table 2: Structures for Negative Answer
   93  p3  heading (5)  [p3-l100]  5 Results
   94  p3  paragraph  [p3-l101..p3-l118 (18)]  Figure 1 gives the accuracy for ellipsis and non-\nellipsis, for each of the five models. We have set\nup the test examples so that an ellipsis example\nis paired with a non-ellipsis example that is oth-\nerwise identical. Because of this, we claim that\nthe difference in accuracy of the non-ellipsis case\nvs. the ellipsis case provides a measurement of the\ndifficulty specifically posed by ellipsis. For all but\nthe least powerful model, Ada, the non-ellipsis ac-\ncuracy is substantially higher than ellipsis accuracy,\nsupporting the hypothesis that ellipsis-dependent\nreasoning presents a difficult challenge for these\nmodels. While the Ada model actually performs\nsomewhat better for ellipsis than non-ellipsis, this\nis not because the Ada model does well with ellip-\nsis cases; rather, the model has great difficulty with\nboth the ellipsis and non-ellipsis cases, and is close\nto a random guessing baseline of .50.
   95  p3  paragraph  [p3-l119..p4-l12 (16)]  In figures 2 through 6, we present results for each\nmodel. We show the accuracy for each structure,\nfor both the ellipsis version and the non-ellipsis ver-\nsion. Consider the most powerful models, Davinci-\n003 and Davinci-002. In figures 2 and 3, we can see\nthat ellipsis is not difficult in the first two structures:\n2Sent (Separate Sentence) and 1Sent (Conjoined\nSentence). Here the accuracy is nearly perfect for\nthe ellipsis as well as the non-ellipsis condition.\nHowever, in all the other structures, there is a large\ndivergence in accuracy between ellipsis and non-\nellipsis, for both the Davinci-003 and Davinci-002\nmodels. Subordination for either antecedent or el-\nlipsis is quite challenging, with accuracies ranging\nfrom 48.8 to 85.8. The Backwards and Two Ac-\ntions structures are even more difficult for ellipsis.
   96  p3  furniture/page-number  [p3-l127]  41
   97  p4  figure  [p4-i1]  
-  98  p4  paragraph  [p4-l1..p4-l2 (2)]  Figure 1: Model Accuracy – Ellipsis vs. Non-Ellipsis\n(5000 examples per model.)
+  98  p4  caption (Figure 1)  [p4-l1..p4-l2 (2)]  Figure 1: Model Accuracy – Ellipsis vs. Non-Ellipsis\n(5000 examples per model.)
   99  p4  figure  [p4-i2]  
-  100  p4  paragraph  [p4-l3..p4-l4 (2)]  Figure 2: Ellipsis Accuracy – davinci-003 (1000 exam-\nples per structure.)
+  100  p4  caption (Figure 2)  [p4-l3..p4-l4 (2)]  Figure 2: Ellipsis Accuracy – davinci-003 (1000 exam-\nples per structure.)
   101  p4  heading (6)  [p4-l13]  6 Analysis
   102  p4  paragraph  [p4-l14..p4-l20 (7)]  For the two most powerful models, it is clear that\nellipsis poses a difficult challenge, except in the two\nsimplest ellipsis structures. For the less powerful\nmodels, the picture is mixed. For these models,\nthe non-ellipsis examples are themselves a difficult\nchallenge, so we are not able to observe the specific\ndifficulties posed by ellipsis.
   103  p4  paragraph  [p4-l21..p4-l32 (8)]  As we can see in figure 1, the Davinci-002 model\nperforms somewhat better overall than Davinci-\n003, on both ellipsis and non-ellipsis. However,\nfigures 2 and 3 show that the advantage of Davinci-\n002 on ellipsis is exclusively due to the subordi-\nnate antecedent construction. In every other el-\nlipsis structure, Davinci-003 performs better than\nDavinci-002.
   104  p4  figure  [p4-i3]  
-  105  p4  paragraph  [p4-l23..p4-l24 (2)]  Figure 3: Ellipsis Accuracy – davinci-002 (1000 exam-\nples per structure.)
+  105  p4  caption (Figure 3)  [p4-l23..p4-l24 (2)]  Figure 3: Ellipsis Accuracy – davinci-002 (1000 exam-\nples per structure.)
   106  p4  figure  [p4-i4]  
-  107  p4  paragraph  [p4-l25..p4-l26 (2)]  Figure 4: Ellipsis Accuracy – curie-001 (1000 examples\nper structure.)
+  107  p4  caption (Figure 4)  [p4-l25..p4-l26 (2)]  Figure 4: Ellipsis Accuracy – curie-001 (1000 examples\nper structure.)
   108  p4  paragraph  [p4-l33..p4-l40 (8)]  There are striking differences in the distribution\nof errors. For both the Davinci-003 and Davinci-\n002 models, errors are nearly always false negatives\n– that is, incorrect “No" answers. There are virtually\nno false positives, either for the ellipsis case or non-\nellipsis case. For the other three models, there are\nmany errors of each type, with a much higher ratio\nof false positives.
   109  p4  heading (7)  [p4-l41]  7 Conclusion
   110  p4  paragraph  [p4-l42..p5-l13 (12)]  Most of the current rapid progress in NLP is due\nto pre-trained large language models. GPT-3 is\nan impressive publicly available collection of such\nmodels, and is able to perform in a way that sug-\ngests human-level understanding. Because of this,\nit is important to explore areas in which it might\nstill differ from human language understanding. In\nthis paper we have argued that ellipsis is one such\narea. For many simple ellipsis structures, the most\npowerful GPT-3 models struggle, with accuracies\nfar lower on ellipsis examples than on non-elliptical\ncounterparts.
   111  p4  furniture/page-number  [p4-l45]  42
   112  p5  figure  [p5-i1]  
-  113  p5  paragraph  [p5-l1..p5-l2 (2)]  Figure 5: Ellipsis Accuracy – babbage-001 (1000 exam-\nples per structure.)
+  113  p5  caption (Figure 5)  [p5-l1..p5-l2 (2)]  Figure 5: Ellipsis Accuracy – babbage-001 (1000 exam-\nples per structure.)
   114  p5  figure  [p5-i2]  
-  115  p5  paragraph  [p5-l3..p5-l4 (2)]  Figure 6: Ellipsis Accuracy – ada-001 (1000 examples\nper structure.)
+  115  p5  caption (Figure 6)  [p5-l3..p5-l4 (2)]  Figure 6: Ellipsis Accuracy – ada-001 (1000 examples\nper structure.)
   116  p5  paragraph  [p5-l14..p5-l20 (7)]  In many ways, GPT-3 appears to understand\nthe texts that it processes, often being able to\nanswer questions that appear to rely on sophisti-\ncated reasoning. However, the challenge of ellipsis-\ndependent reasoning provides evidence that GPT-3\nis not able to understand in anything like the way\nhumans do.
   117  p5  figure  [p5-i3]  
-  118  p5  paragraph  [p5-l21..p5-l23 (3)]  Figure 7: Ellipsis case – Errors by model. False Pos-\nitives (Incorrect “Yes") vs. False Negatives (Incorrect\n“No")
+  118  p5  caption (Figure 7)  [p5-l21..p5-l23 (3)]  Figure 7: Ellipsis case – Errors by model. False Pos-\nitives (Incorrect “Yes") vs. False Negatives (Incorrect\n“No")
   119  p5  figure  [p5-i4]  
-  120  p5  paragraph  [p5-l24..p5-l26 (3)]  Figure 8: Non-ellipsis case – Errors by model. False\nPositives (Incorrect “Yes") vs. False Negatives (Incor-\nrect “No")
+  120  p5  caption (Figure 8)  [p5-l24..p5-l26 (3)]  Figure 8: Non-ellipsis case – Errors by model. False\nPositives (Incorrect “Yes") vs. False Negatives (Incor-\nrect “No")
   121  p5  heading (8)  [p5-l27]  8 Limitations
   122  p5  paragraph  [p5-l28..p5-l37 (10)]  This paper argues that the proposed task of ellipsis-\ndependent reasoning is a difficult challenge for\nGPT-3 models, which are among the most power-\nful current language models. The data constructed\nhere is restricted to English, and furthermore is re-\nstricted to a single form of ellipsis, namely verb\nphrase ellipsis. It may well be that other forms of\nellipsis may give rise to different effects, and it is\nalso important to test the claims made here on other\nlanguages.
   123  p5  heading  [p5-l38]  References
@@ -750,7 +767,7 @@
   171  p7  paragraph  [p7-l7]  “Mrs Jones"
   172  p7  paragraph  [p7-l8..p7-l9 (2)]  Verb “swimming", “shopping", “running",
   173  p7  paragraph  [p7-l10]  “walking", “skiing", “jogging", “hiking"
-  174  p7  paragraph  [p7-l11]  Table 3: Substitutions
+  174  p7  caption (Table 3)  [p7-l11]  Table 3: Substitutions
   175  p7  heading (A.2)  [p7-l12..p7-l13 (2)]  A.2 Substitutions
   176  p7  paragraph  [p7-l14..p7-l16 (3)]  The examples are produced using the substitutions\nfor subjects and verbs in the different structures, as\nshown in table 3.
   177  p7  furniture/page-number  [p7-l17]  45
@@ -827,7 +844,7 @@
 # ---
 # name: test_golden_file[acl2023-nowak-prefix-probabilities]
   '''
-  acl2023-nowak-prefix-probabilities.pdf  language en  blocks 482
+  acl2023-nowak-prefix-probabilities.pdf  language en  blocks 484
   page labels  57 58 59 60 61 62 63 64 65 66 67
   0  p1  paragraph  [p1-l4]  A Fast Algorithm for Computing Prefix Probabilities
   1  p1  paragraph  [p1-l5..p1-l6 (2)]  Franz Nowak\nRyan Cotterell
@@ -859,11 +876,11 @@
   27  p1  furniture/footer  [p1-l2]  Volume 2: Short Papers, pages 57–67
   28  p1  furniture/footer  [p1-l3]  July 9-14, 2023 ©2023 Association for Computational Linguistics
   29  p2  paragraph  [p2-l1..p2-l3 (3)]  Definition 1. A probabilistic context-free gram-\nmar (PCFG) is a five-tuple G = (N , Σ, S, R, p),\nmade up of:
-  30  p2  paragraph  [p2-l4]  • A finite set of non-terminal symbols N ;
-  31  p2  paragraph  [p2-l5]  • A finite set of terminal symbols Σ, Σ ∩ N =∅;
-  32  p2  paragraph  [p2-l6]  • A distinguished start symbol S ∈ N ;
-  33  p2  paragraph  [p2-l7..p2-l10 (4)]  • A finite set of production rules R ⊂ N ×\n(N ∪ Σ)∗ where each rule is written as X −→\nα with X ∈ N and α ∈ (N ∪ Σ)∗ . Here, ∗\ndenotes the Kleene closure;
-  34  p2  paragraph  [p2-l11..p2-l18 (7)]  • A weighting function p: R → [0, 1] assigning\neach rule r ∈ R a probability such that p\nis locally normalized, meaning that for all\nX ∈ N that appear on the left-hand side of a\nrule, P p(X −→ α) = 1.
+  30  p2  list_item (•)  [p2-l4]  • A finite set of non-terminal symbols N ;
+  31  p2  list_item (•)  [p2-l5]  • A finite set of terminal symbols Σ, Σ ∩ N =∅;
+  32  p2  list_item (•)  [p2-l6]  • A distinguished start symbol S ∈ N ;
+  33  p2  list_item (•)  [p2-l7..p2-l10 (4)]  • A finite set of production rules R ⊂ N ×\n(N ∪ Σ)∗ where each rule is written as X −→\nα with X ∈ N and α ∈ (N ∪ Σ)∗ . Here, ∗\ndenotes the Kleene closure;
+  34  p2  list_item (•)  [p2-l11..p2-l18 (7)]  • A weighting function p: R → [0, 1] assigning\neach rule r ∈ R a probability such that p\nis locally normalized, meaning that for all\nX ∈ N that appear on the left-hand side of a\nrule, P p(X −→ α) = 1.
   35  p2  paragraph  [p2-l17]  X−→α∈R
   36  p2  paragraph  [p2-l19..p2-l26 (8)]  Note that not every locally normalized PCFG\nconstitutes a valid distribution over Σ ∗ . Specifi-\ncally, some may place probability mass on infinite\ntrees (Chi and Geman, 1998). PCFGs that do con-\nstitute a valid distribution over Σ ∗ are referred to as\ntight. Furthermore, if all non-terminals of the gram-\nmar can be reached from the start non-terminal via\nproduction rules, we say the PCFG is trim.
   37  p2  paragraph  [p2-l27..p2-l29 (3)]  Definition 2. A PCFG G = (N , Σ, S, R, p) is in\nChomsky normal form (CNF) if each production\nrule in R is in one of the following forms:
@@ -893,7 +910,7 @@
   61  p2  paragraph  [p2-l117]  X′∈N
   62  p2  furniture/page-number  [p2-l119]  58
   63  p3  figure  [p3-d1]  
-  64  p3  paragraph  [p3-l1]  Algorithm 1 CKY
+  64  p3  caption (Algorithm 1)  [p3-l1]  Algorithm 1 CKY
   65  p3  figure  [p3-d2]  
   66  p3  paragraph  [p3-l2]  1: def CKY(w = w1 · · · wN ):
   67  p3  paragraph  [p3-l3]  2:
@@ -929,7 +946,7 @@
   97  p3  paragraph  [p3-l43..p3-l44 (2)]  19: return β
   98  p3  figure  [p3-d3]  
   99  p3  figure  [p3-d4]  
-  100  p3  paragraph  [p3-l45]  Algorithm 2 Jelinek–Lafferty
+  100  p3  caption (Algorithm 2)  [p3-l45]  Algorithm 2 Jelinek–Lafferty
   101  p3  figure  [p3-d5]  
   102  p3  paragraph  [p3-l46]  1: P ′ ←− (I − P) −1
   103  p3  paragraph  [p3-l47..p3-l49 (3)]  ▷ Precompute P ∗ by Eq. (14)\n2: for Xi , Xj ∈ N : ▷ Assign ξ(Y | X)
@@ -966,7 +983,7 @@
   134  p3  paragraph  [p3-l96]  j=i+1
   135  p3  paragraph  [p3-l98..p3-l99 (2)]  20: return π
   136  p3  figure  [p3-d6]  
-  137  p3  paragraph  [p3-l100]  Figure 1: Pseudocode for the CKY algorithm (left) and Jelinek–Lafferty (right)
+  137  p3  caption (Figure 1)  [p3-l100]  Figure 1: Pseudocode for the CKY algorithm (left) and Jelinek–Lafferty (right)
   138  p3  paragraph  [p3-l105]  X
   139  p3  paragraph  [p3-l101]  X
   140  p3  figure  [p3-d14..p3-d15 (2)]  
@@ -983,7 +1000,7 @@
   151  p3  figure  [p3-d16]  
   152  p3  figure  [p3-d17]  
   153  p3  paragraph  [p3-l104..p3-l110 (2)]  (a) ξ(Y | X) (b) ξ(Y Z | X)
-  154  p3  paragraph  [p3-l111]  Figure 2: Visualization of left-corner expectations
+  154  p3  caption (Figure 2)  [p3-l111]  Figure 2: Visualization of left-corner expectations
   155  p3  paragraph  [p3-l112..p3-l118 (7)]  The left-corner expectation ξ(Y | X) is hence\nthe sum of the probabilities of partial derivation\nsubtrees rooted in X that have Y as the left-most\nleaf; see Fig. 2a for a visualization. Similarly,\nξ(Y Z | X) is the sum of the probabilities of\npartial derivation subtrees that have Y and Z as the\nleftmost leaves; see Fig. 2b.
   156  p3  heading (3)  [p3-l119]  3 Jelinek and Lafferty (1991)
   157  p3  paragraph  [p3-l120..p3-l122 (3)]  We now give a derivation of the Jelinek–Lafferty\nalgorithm. The first step is to derive an expression\nfor the prefix probability in PCFG terms.
@@ -1054,279 +1071,281 @@
   222  p5  paragraph  [p5-l36..p5-l37 (2)]  and δij (X, Z) def = X
   223  p5  paragraph  [p5-l38]  X′∈N
   224  p5  figure  [p5-d1]  
-  225  p5  paragraph  [p5-l41..p5-l42 (2)]  Algorithm 3 Faster prefix probability algorithm\n1: P ′ ←− (I − P) −1
-  226  p5  figure  [p5-d2]  
-  227  p5  paragraph  [p5-l43..p5-l45 (3)]  ▷ Precompute P ∗ with Eq. (14)\n2: for Xi , Xj ∈ N : ▷ Assign ξ(Y | X)
-  228  p5  paragraph  [p5-l46..p5-l47 (2)]  3: ξ(Xj | Xi) ←− P ′ ij
-  229  p5  paragraph  [p5-l48]  4: def FastJL(w = w1 · · · wN ):
-  230  p5  paragraph  [p5-l49]  5:
-  231  p5  paragraph  [p5-l50..p5-l52 (3)]  π(·, ·, ·) ←− 0 ▷ Initialize prefix probabilities\n6:
-  232  p5  paragraph  [p5-l53]  for k ∈ 0, . . . , N :
-  233  p5  paragraph  [p5-l54]  7:
-  234  p5  paragraph  [p5-l55..p5-l57 (3)]  for X ∈ N : ▷ Prefix probability of ε\n8:
-  235  p5  paragraph  [p5-l58]  π(k, X, k) ←− 1
-  236  p5  paragraph  [p5-l59]  9:
-  237  p5  paragraph  [p5-l60..p5-l62 (3)]  β ←− CKY(w) ▷ Compute β with Alg. 1\n10:
-  238  p5  paragraph  [p5-l63]  for i, j = 0, . . . , N :
-  239  p5  paragraph  [p5-l64]  11:
-  240  p5  paragraph  [p5-l65..p5-l67 (3)]  for X, Z ∈ N : ▷ Compute γ by Eq. (16e)\n12:
-  241  p5  paragraph  [p5-l68]  γij (X,Z)←− P
-  242  p5  paragraph  [p5-l70]  p(X−→YZ)·β(i, Y, j)
-  243  p5  paragraph  [p5-l69]  Y∈N
-  244  p5  paragraph  [p5-l71]  13:
-  245  p5  paragraph  [p5-l72]  for X, Z ∈ N :
-  246  p5  paragraph  [p5-l73..p5-l74 (2)]  ▷ Compute δ by Eq. (16f)\n14:
-  247  p5  paragraph  [p5-l75]  δij (X,Z)←− P
-  248  p5  paragraph  [p5-l77]  ξ(Y | X) · γij (Y, Z)
-  249  p5  paragraph  [p5-l76]  Y∈N
-  250  p5  paragraph  [p5-l78]  15:
-  251  p5  paragraph  [p5-l79]  for k ∈ 0, . . . , N − 1 :
-  252  p5  paragraph  [p5-l80]  16:
-  253  p5  paragraph  [p5-l81..p5-l83 (3)]  for X ∈ N : ▷ Compute base case\n17:
-  254  p5  paragraph  [p5-l84]  π(k, X, k+1) ←− P
-  255  p5  paragraph  [p5-l86]  ξ(Y | X)
-  256  p5  paragraph  [p5-l85]  Y∈N
-  257  p5  paragraph  [p5-l87]  ·p(Y −→ wk+1)
-  258  p5  paragraph  [p5-l88]  18:
-  259  p5  paragraph  [p5-l89]  for ℓ ∈ 2 . . . N :
-  260  p5  paragraph  [p5-l90]  19:
-  261  p5  paragraph  [p5-l91]  for i ∈ 1 . . . N − ℓ :
-  262  p5  paragraph  [p5-l92]  20:
-  263  p5  paragraph  [p5-l93]  k ←− i + ℓ
-  264  p5  paragraph  [p5-l94]  21:
-  265  p5  paragraph  [p5-l95..p5-l96 (2)]  for X, Z ∈ N : ▷ Recursively compute π
-  266  p5  paragraph  [p5-l99]  k
-  267  p5  paragraph  [p5-l101]  −1
-  268  p5  paragraph  [p5-l97..p5-l103 (4)]  22: π(i, X, k)+= P δij (X, Z)·π(j, Z, k)
-  269  p5  paragraph  [p5-l102]  j=i+1
-  270  p5  paragraph  [p5-l104..p5-l105 (2)]  23: return π
-  271  p5  figure  [p5-d3]  
-  272  p5  paragraph  [p5-l106..p5-l108 (3)]  takes O(N2 |N |3 ), as we sum over non-terminals,\nand both charts each have two dimensions index-\ning N and two indexing N . Computing the base
-  273  p5  paragraph  [p5-l40]  (16f)
-  274  p5  paragraph  [p5-l109..p5-l115 (7)]  case π(k, X, k + 1) for all non-terminals X and\npositions k in lines 15–17 takes O(N|N |2 ), as be-\nfore. Finally, the loops computing π in lines 18–\n22 take O(N3 |N |2 ), as we are now iterating over\nX, Z ∈ N and ℓ, i, j ≤ N. Hence, our new overall\ntime complexity is O(N2 |N |3 + N3 |N |2 ). ■
-  275  p5  heading (5)  [p5-l116]  5 Generalization to Semirings
-  276  p5  paragraph  [p5-l117..p5-l130 (14)]  It turns out that Jelinek–Lafferty, and, by extension,\nour improved algorithm, can be generalized to\nwork for semiring-weighted CFGs, with the same\ntime complexity, under the condition that the\nsemiring is closed, i.e., it has a Kleene star. This\nfollows from the fact that the only operations used\nby the algorithm are addition and multiplication\nif we use Lehmann’s (1977) algorithm for the\ncomputation of left-corner expectations, ξ. We\ncan even relax the condition of local normalization\nby changing how left-corner expectations and the\nweight of the prefix ε are computed. The relevant\ndefinitions and derivation of the adapted algorithm\ncan be found in App. B.
-  277  p5  heading (6)  [p5-l131]  6 Conclusion
-  278  p5  paragraph  [p5-l132..p5-l139 (8)]  In this paper, we have shown how to efficiently\ncompute prefix probabilities for PCFGs in CNF,\nadapting Jelinek–Lafferty to use additional memo-\nization, thereby reducing the time complexity from\nO(N3 |N |3 + |N |4 ) to O(N2 |N |3 + N3 |N |2 ).\nWe thereby addressed one of the main limitations\nof the original formulation, of being slow for large\ngrammar sizes.
-  279  p5  furniture/page-number  [p5-l140]  61
-  280  p6  heading  [p6-l1]  Limitations
-  281  p6  paragraph  [p6-l2..p6-l13 (12)]  While we have improved the asymptotic running\ntime of a classic algorithm with regard to grammar\nsize, the time complexity of our algorithm is still\ncubic in the length of the input. Our result follows\nthe tradition of dynamic programming algorithms\nthat trade time for space by memoizing and reusing\nprecomputed intermediate results. The usefulness\nof this trade-off in practice depends on the specifics\nof the grammar, and while the complexity is strictly\nbetter in terms of non-terminals, it will be most\nnoticeable for denser grammars with many non-\nterminals.
-  282  p6  heading  [p6-l14]  Ethics Statement
-  283  p6  paragraph  [p6-l15..p6-l16 (2)]  We do not foresee any ethical issues arising from\nthis work.
-  284  p6  heading  [p6-l17]  Acknowledgements
-  285  p6  paragraph  [p6-l18..p6-l22 (5)]  We thank the anonymous reviewers for their help-\nful comments and suggestions. We also extend\nour gratitude to Abra Ganz, Andreas Opedal, Anej\nSvete, and Tim Vieira for their valuable feedback\non various versions of this paper.
-  286  p6  heading  [p6-l23]  References
-  287  p6  paragraph  [p6-l24..p6-l26 (3)]  Steven C. Althoen and Renate McLaughlin. 1987.\nGauss-jordan reduction: A brief history. The Ameri-\ncan Mathematical Monthly, 94(2):130–142.
-  288  p6  paragraph  [p6-l27..p6-l30 (4)]  J. K. Baker. 1979. Trainable grammars for speech recog-\nnition. In Speech Communication Papers presented\nat the 97th Meeting of the Acoustical Society of Amer-\nica, pages 547–550, MIT, Cambridge, Massachusetts.
-  289  p6  paragraph  [p6-l31..p6-l35 (5)]  José-Miguel Benedí and Joan-Andreu Sánchez. 2007.\nFast stochastic context-free parsing: A stochastic ver-\nsion of the valiant algorithm. In Pattern Recognition\nand Image Analysis, pages 80–88, Berlin, Heidelberg.\nSpringer Berlin Heidelberg.
-  290  p6  paragraph  [p6-l36..p6-l38 (3)]  Zhiyi Chi and Stuart Geman. 1998. Estimation of prob-\nabilistic context-free grammars. Computational Lin-\nguistics, 24(2):299–305.
-  291  p6  paragraph  [p6-l39..p6-l42 (4)]  John Cocke and J.T. Schwartz. 1970. Programming\nlanguages and their compilers: Preliminary notes.\nCourant Institute of Mathematical Sciences, New\nYork University.
-  292  p6  paragraph  [p6-l43..p6-l49 (7)]  Shay B. Cohen, Giorgio Satta, and Michael Collins.\n2013. Approximate PCFG parsing using tensor de-\ncomposition. In Proceedings of the 2013 Conference\nof the North American Chapter of the Association\nfor Computational Linguistics: Human Language\nTechnologies, pages 487–496, Atlanta, Georgia. As-\nsociation for Computational Linguistics.
-  293  p6  paragraph  [p6-l50..p6-l54 (5)]  A. Corazza, R. De Mori, R. Gretter, and G. Satta.\n1994. Optimal probabilistic evaluation functions for\nsearch controlled by stochastic context-free gram-\nmars. IEEE Transactions on Pattern Analysis and\nMachine Intelligence, 16(10):1018–1027.
-  294  p6  paragraph  [p6-l55..p6-l59 (5)]  Chris Dyer. 2017. Should neural network architec-\nture reflect linguistic structure? In Proceedings of\nthe 21st Conference on Computational Natural Lan-\nguage Learning (CoNLL 2017), page 1, Vancouver,\nCanada. Association for Computational Linguistics.
-  295  p6  paragraph  [p6-l60..p6-l66 (7)]  Chris Dyer, Adhiguna Kuncoro, Miguel Ballesteros,\nand Noah A. Smith. 2016. Recurrent neural network\ngrammars. In Proceedings of the 2016 Conference\nof the North American Chapter of the Association\nfor Computational Linguistics: Human Language\nTechnologies, pages 199–209, San Diego, California.\nAssociation for Computational Linguistics.
-  296  p6  paragraph  [p6-l67..p6-l68 (2)]  Jay Earley. 1970. An efficient context-free parsing algo-\nrithm. Communications of the ACM, 13(2):94–102.
-  297  p6  paragraph  [p6-l69..p6-l71 (3)]  Jacob Eisenstein. 2019. Introduction to Natural Lan-\nguage Processing. Adaptive Computation and Ma-\nchine Learning series. MIT Press.
-  298  p6  paragraph  [p6-l72..p6-l76 (5)]  Jason Eisner and John Blatz. 2007. Program transfor-\nmations for optimization of parsing algorithms and\nother weighted logic programs. In Proceedings of\nFG 2006: The 11th Conference on Formal Grammar,\npages 45–85. CSLI Publications.
-  299  p6  paragraph  [p6-l77..p6-l81 (5)]  Javier Esparza, Stefan Kiefer, and Michael Luttenberger.\n2007. On fixed point equations over commutative\nsemirings. In Proceedings of the 24th Annual Con-\nference on Theoretical Aspects of Computer Science,\npage 296–307, Berlin, Heidelberg. Springer-Verlag.
-  300  p6  paragraph  [p6-l82..p6-l83 (2)]  Robert W. Floyd. 1962. Algorithm 97: Shortest path.\nCommunications of the ACM, 5(6):345.
-  301  p6  paragraph  [p6-l84..p6-l87 (4)]  Susan L. Graham, Michael Harrison, and Walter L.\nRuzzo. 1980. An improved context-free recognizer.\nACM Transactions on Programming Languages and\nSystems, 2(3):415–462.
-  302  p6  paragraph  [p6-l88..p6-l91 (4)]  Frederick Jelinek and John D. Lafferty. 1991. Computa-\ntion of the probability of initial substring generation\nby stochastic context-free grammars. Computational\nLinguistics, 17(3):315–353.
-  303  p6  paragraph  [p6-l92..p6-l95 (4)]  Tadao Kasami. 1965. An efficient recognition and\nsyntax-analysis algorithm for context-free languages.\nIn Technical Report, Air Force Cambridge Research\nLab, Bedford, MA.
-  304  p6  paragraph  [p6-l96..p6-l103 (8)]  Yoon Kim, Alexander Rush, Lei Yu, Adhiguna Kuncoro,\nChris Dyer, and Gábor Melis. 2019. Unsupervised\nrecurrent neural network grammars. In Proceedings\nof the 2019 Conference of the North American Chap-\nter of the Association for Computational Linguistics:\nHuman Language Technologies, Volume 1 (Long and\nShort Papers), pages 1105–1117, Minneapolis, Min-\nnesota. Association for Computational Linguistics.
-  305  p6  furniture/page-number  [p6-l104]  62
-  306  p7  paragraph  [p7-l1..p7-l3 (3)]  S. C. Kleene. 1956. Representation of Events in Nerve\nNets and Finite Automata, pages 3–42. Princeton\nUniversity Press, Princeton.
-  307  p7  paragraph  [p7-l4..p7-l10 (7)]  Lillian Lee. 1997. Fast context-free parsing requires fast\nBoolean matrix multiplication. In 35th Annual Meet-\ning of the Association for Computational Linguistics\nand 8th Conference of the European Chapter of the\nAssociation for Computational Linguistics, pages 9–\n15, Madrid, Spain. Association for Computational\nLinguistics.
-  308  p7  paragraph  [p7-l11..p7-l13 (3)]  M. C. J. Leermakers, A. Augusteijn, and F.E.J. Kruse-\nman Aretz. 1992. A functional LR parser. Theoreti-\ncal Computer Science, 104(2):313–323.
-  309  p7  paragraph  [p7-l14..p7-l16 (3)]  Daniel J. Lehmann. 1977. Algebraic structures for\ntransitive closure. Theoretical Computer Science,\n4(1):59–76.
-  310  p7  paragraph  [p7-l17..p7-l21 (5)]  Robert C. Moore. 2000. Time as a measure of parsing ef-\nficiency. In Proceedings of the COLING-2000 Work-\nshop on Efficiency In Large-Scale Parsing Systems,\npages 23–28, Centre Universitaire, Luxembourg. In-\nternational Committee on Computational Linguistics.
-  311  p7  paragraph  [p7-l22..p7-l26 (5)]  Andreas Opedal, Ran Zmigrod, Tim Vieira, Ryan Cot-\nterell, and Jason Eisner. 2023. Efficient semiring-\nweighted Earley parsing. In Proceedings of the 61st\nAnnual Meeting of the Association for Computational\nLinguistics, Toronto, Canada.
-  312  p7  paragraph  [p7-l27..p7-l29 (3)]  Bernard Roy. 1959. Transitivité et connexité. Comptes\nrendus hebdomadaires des séances de l’Académie\ndes sciences, 249:216–218.
-  313  p7  paragraph  [p7-l30..p7-l33 (4)]  Grzegorz Rozenberg and Arto Salomaa, editors. 1997.\nHandbook of Formal Languages, Vol. 1: Word, Lan-\nguage, Grammar. Springer-Verlag, Berlin, Heidel-\nberg.
-  314  p7  paragraph  [p7-l34..p7-l39 (6)]  Joan-Andreu Sánchez and José-Miguel Benedí. 1997.\nComputation of the probability of the best derivation\nof an initial substring from a stochastic context-free\ngrammar. Proceedings of the VII Spanish Symposium\non Pattern Recognition and Image Analysis, pages\n181–186.
-  315  p7  paragraph  [p7-l40..p7-l43 (4)]  Noah A. Smith and Mark Johnson. 2007. Weighted\nand probabilistic context-free grammars are equally\nexpressive. Computational Linguistics, 33(4):477–\n491.
-  316  p7  paragraph  [p7-l44..p7-l48 (5)]  Andreas Stolcke. 1995. An efficient probabilistic\ncontext-free parsing algorithm that computes prefix\nprobabilities. Computational Linguistics, 21(2):165–\n201.
-  317  p7  paragraph  [p7-l49..p7-l51 (3)]  Leslie G. Valiant. 1975. General context-free recogni-\ntion in less than cubic time. Journal of Computer\nand System Sciences, 10(2):308–315.
-  318  p7  paragraph  [p7-l52..p7-l53 (2)]  Stephen Warshall. 1962. A theorem on boolean matri-\nces. Journal of the ACM, 9(1):11–12.
-  319  p7  paragraph  [p7-l54..p7-l56 (3)]  Daniel H. Younger. 1967. Recognition and parsing of\ncontext-free languages in time n 3 . Information and\nControl, 10(2):189–208.
-  320  p7  furniture/page-number  [p7-l57]  63
-  321  p8  heading (A)  [p8-l1]  A Proof of Lem. 1
-  322  p8  paragraph  [p8-l2..p8-l3 (2)]  Lemma 1. Given a tight, trim PCFG in CNF and a string w = w1 · · · wN , the prefix probability of a\nsubstring wi+1 · · · wk of w being derived from X can be defined recursively as follows:
-  323  p8  paragraph  [p8-l7]  k−1
-  324  p8  paragraph  [p8-l4..p8-l10 (4)]  π(i, X, k) = X ξ(Y Z | X) · X β(i, Y, j) · π(j, Z, k) (10)
-  325  p8  paragraph  [p8-l5..p8-l8 (2)]  Y,Z∈N j=i+1
-  326  p8  paragraph  [p8-l11]  Base case (for all k ∈ 0 . . . N − 1 and all X ∈ N ):
-  327  p8  paragraph  [p8-l12..p8-l15 (3)]  π(k, X, k+1) = X ξ(Y | X) · p(Y−→wk+1) (11)
-  328  p8  paragraph  [p8-l13]  Y∈N
-  329  p8  paragraph  [p8-l16..p8-l19 (4)]  Proof. Eq. (11): The base case, π(k, X, k+1), is the probability of wk+1 being the left-most terminal\nin the parse subtree under X. It is, therefore, simply the sum of probabilities of any non-terminal Y being\non the left corner of the parse subtree under X multiplied by the corresponding probability of Y directly\nderiving wk+1.
-  330  p8  paragraph  [p8-l20..p8-l22 (3)]  Eq. (10): Given the PCFG is in CNF and assuming k > i + 1, in order to derive the prefix wi+1 · · · wk\nwe must first apply some rule X −→ Y Z, where the first part of the substring is then derived from Y and\nthe remainder (and potentially more) from Z:
-  331  p8  paragraph  [p8-l27]  k−1
-  332  p8  paragraph  [p8-l23..p8-l25 (2)]  π(i, X, k) = X p(X −→ Y Z)
-  333  p8  paragraph  [p8-l26..p8-l30 (3)]  X β(i, Y, j) · π(j, Z, k) + π(i, Y, k) (17)
-  334  p8  paragraph  [p8-l24..p8-l28 (2)]  Y,Z∈N j=i+1
-  335  p8  paragraph  [p8-l31..p8-l36 (6)]  where the last term, π(i, Y, k), handles the case where the whole prefix is derived from Y alone.\nThis term is clearly recursively defined through Eq. (17), with X replaced by Y. Defining\nR(Y, Z) def = Pk−1 j=i+1 β(i, Y, j)π(j, Z, k), we can rewrite Eq. (17) as:
-  336  p8  paragraph  [p8-l37..p8-l42 (4)]  π(i, X, k) = X p(X −→ Y Z) · R(Y, Z) + X p(X −→ A B) · π(i, A, k) (18)
-  337  p8  paragraph  [p8-l38..p8-l40 (2)]  Y,Z∈N A,B∈N
-  338  p8  paragraph  [p8-l43]  After repeated substitutions ad infinitum, we get:
-  339  p8  paragraph  [p8-l44..p8-l49 (4)]  π(i, X, k) = X p(X ∗⇒ A B) X p(A −→ Y Z) · R(Y, Z) (19)
-  340  p8  paragraph  [p8-l45..p8-l47 (2)]  A,B∈N Y,Z∈N
-  341  p8  paragraph  [p8-l50..p8-l51 (2)]  Note that, in the last step, infinite derivations do not carry any probability mass since we assumed the\nPCFG to be tight and trim. Hence, the final form of the equation is:
-  342  p8  paragraph  [p8-l52..p8-l56 (3)]  π(i, X, k) = X p(X ∗⇒ A B) X p(A −→ Y Z) · R(Y, Z)
-  343  p8  paragraph  [p8-l53..p8-l55 (2)]  A,B∈N Y,Z∈N
-  344  p8  paragraph  [p8-l60..p8-l59 (4)]  k−1 (20)\n= X ξ(Y Z | X) X
-  345  p8  paragraph  [p8-l62]  β(i, Y, j) · π(j, Z, k)
-  346  p8  paragraph  [p8-l58..p8-l61 (2)]  Y,Z∈N j=i+1
-  347  p8  paragraph  [p8-l64]  ■
-  348  p8  furniture/page-number  [p8-l65]  64
-  349  p9  heading (B)  [p9-l1]  B Extension of Alg. 3 to Semirings
-  350  p9  paragraph  [p9-l2..p9-l3 (2)]  In the following, we give the necessary background on semirings and then show how the algorithms\nintroduced above can be framed in terms of semirings.
-  351  p9  heading (B.1)  [p9-l4..p9-l5 (2)]  B.1 Semirings
-  352  p9  paragraph  [p9-l6]  We start by introducing the necessary definitions and notation.
-  353  p9  paragraph  [p9-l7]  Definition 10. A monoid is a 3-tuple ⟨A, ◦, 1⟩ where:
-  354  p9  paragraph  [p9-l8]  (i) A is a non-empty set;
-  355  p9  paragraph  [p9-l9]  (ii) ◦ is an associative binary operation: ∀a, b, c ∈ A,(a ◦ b) ◦ c = a ◦ (b ◦ c);
-  356  p9  paragraph  [p9-l10]  (iii) 1 is a left and right identity element: ∀a ∈ A, 1 ◦ a = a ◦ 1 = a
-  357  p9  paragraph  [p9-l11]  (iv) A is closed under the operation ◦: ∀a, b ∈ A, a ◦ b ∈ A
-  358  p9  paragraph  [p9-l12]  A monoid is commutative if ∀a, b ∈ A : a ◦ b = b ◦ a.
-  359  p9  paragraph  [p9-l13]  Definition 11. A semiring is a 5-tuple W = ⟨A, ⊕, ⊗, 0, 1⟩, where
-  360  p9  paragraph  [p9-l14]  (i) ⟨A, ⊕, 0⟩ is a commutative monoid over A with identity element 0 under the addition operation ⊕;
-  361  p9  paragraph  [p9-l15]  (ii) ⟨A, ⊗, 1⟩ is a monoid over A with identity element 1 under the multiplication operation ⊗;
-  362  p9  paragraph  [p9-l16]  (iii) Multiplication is distributive over addition, that is, ∀a, b, c ∈ A:
-  363  p9  paragraph  [p9-l17..p9-l18 (2)]  • a ⊗ (b ⊕ c) = a ⊗ b ⊕ a ⊗ c;\n• (b ⊕ c) ⊗ a = b ⊗ a ⊕ c ⊗ a.
-  364  p9  paragraph  [p9-l19]  (iv) 0 is an annihilator for A, that is, ∀a ∈ A, 0 ⊗ a = a ⊗ 0 = 0.
-  365  p9  paragraph  [p9-l20..p9-l21 (2)]  A semiring is commutative if ⟨A, ⊗, 1⟩ is a commutative monoid. A semiring is idempotent if ∀a ∈ A :\na ⊕ a = a.
-  366  p9  paragraph  [p9-l22..p9-l25 (4)]  Definition 12. A semiring W = ⟨A, ⊕, ⊗, 0, 1⟩ is complete if it is possible to extend the addition operator\n⊕ to infinite sums, maintaining the properties of associativity, commutativity, and distributivity from the\nfinite case (Rozenberg and Salomaa, 1997, Chapter 9). In this case, we can define the unary operation of\nthe Kleene star denoted by a superscript ∗ as the infinite sum over powers of its operand, that is, ∀a ∈ A:
-  367  p9  paragraph  [p9-l28]  ∞
-  368  p9  paragraph  [p9-l26..p9-l30 (3)]  a ∗ def = M a i
-  369  p9  paragraph  [p9-l29]  i=0
-  370  p9  paragraph  [p9-l32]  Analogously to Eq. (14), it then follows that:
-  371  p9  paragraph  [p9-l34..p9-l37 (2)]  ∞ ∞
-  372  p9  paragraph  [p9-l33]  a ∗ = M
-  373  p9  paragraph  [p9-l36]  a i = a 0 ⊕ M
-  374  p9  paragraph  [p9-l31]  (21)
-  375  p9  paragraph  [p9-l40]  ∞
-  376  p9  paragraph  [p9-l42]  a i = 1 ⊕ a ⊗ a ∗
-  377  p9  paragraph  [p9-l39]  a i = 1 ⊕ a ⊗ M
-  378  p9  paragraph  [p9-l35..p9-l38 (2)]  i=0 i=1
-  379  p9  paragraph  [p9-l44]  and, similarly:
-  380  p9  paragraph  [p9-l46..p9-l49 (2)]  ∞ ∞
-  381  p9  paragraph  [p9-l43]  (22)
-  382  p9  paragraph  [p9-l41]  i=0
-  383  p9  paragraph  [p9-l51]  a i ⊗ a = 1 ⊕ a ∗ ⊗ a
-  384  p9  paragraph  [p9-l45]  a ∗ = a 0 ⊕ M
-  385  p9  paragraph  [p9-l48]  a i = 1 ⊕ M
-  386  p9  paragraph  [p9-l47..p9-l50 (2)]  i=1 i=0
-  387  p9  paragraph  [p9-l52..p9-l53 (2)]  (23)\nWe now discuss how complete semirings can be lifted to square matrices. The definitions follow
-  388  p9  paragraph  [p9-l54]  analogously to matrices over the real numbers.
-  389  p9  paragraph  [p9-l55..p9-l57 (3)]  Definition 13. We define semiring matrix addition as follows. Let A and B be d × d matrices whose\nentries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the sum ("+") of A and B is\ndefined as:
-  390  p9  paragraph  [p9-l58..p10-l3 (7)]  (A + B)ij def = Aij ⊕ Bij i, j ∈ 1, . . . , d (24)\nDefinition 14. We define semiring matrix multiplication as follows. Let A and B be d × d matrices\nwhose entries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the product of A and B\nis defined as:
-  391  p9  furniture/page-number  [p9-l62]  65
-  392  p10  paragraph  [p10-l6]  d
-  393  p10  paragraph  [p10-l4..p10-l10 (5)]  (AB)ij def = M Aik ⊗ Bkj i, j ∈ 1, . . . , d (25)
-  394  p10  paragraph  [p10-l7]  k=1
-  395  p10  paragraph  [p10-l11..p10-l16 (6)]  We also define the zero matrix, O, over the complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩, such that all\nentries are 0, and the unit matrix I as (I)ij = 1 iff i = j and 0 otherwise for all indices i, j ∈ 0, . . . , d.\nIt is then straightforward to show that matrix addition is associative and commutative, while matrix\nmultiplication is associative and distributive over matrix addition. Hence, the set of square matrices\nof dimension d over a semiring, with addition and multiplication as defined above, is itself a semiring.\nFurthermore, by the element-wise definition of its addition operation, it is also complete.
-  396  p10  heading (B.2)  [p10-l17..p10-l18 (2)]  B.2 Semiring-weighted prefix algorithm
-  397  p10  paragraph  [p10-l19..p10-l25 (7)]  We now consider a semiring-weighted CFG G = ⟨N , Σ, S, R, p, W⟩, where N , Σ, S, R are defined as\nbefore but the weighting function p: R → W now maps rules to elements of a commutative semiring\nW. 9 Note that we no longer require the rule weights to sum to one. As before, we define the matrix P\nas the square matrix of dimension |N | whose rows and columns are indexed by the non-terminals N in\nsome fixed order so that the entry Pij corresponds to the weight of getting the non-terminal Xj on the left\nafter one rule application to Xi . Since the rule weights are no longer locally normalized, however, we\nneed to include the treesum under the right non-terminal of each rule as an additional term:10
-  398  p10  paragraph  [p10-l26..p10-l30 (4)]  Pij = p(Xi −→ Xj _) def = M p(Xi −→ XjY) · treesum(Y) (26)
-  399  p10  paragraph  [p10-l28]  Y∈N
-  400  p10  paragraph  [p10-l31..p10-l34 (5)]  We can then calculate the weight of getting Xj from Xi at the leftmost non-terminal after exactly k\nderivation steps as (P k )ij , where P k def = P · · · P . Finally, to get the left-corner expectations, we then\n| {z }
-  401  p10  figure  [p10-d1]  
-  402  p10  figure  [p10-d2]  
-  403  p10  paragraph  [p10-l35]  k times
-  404  p10  paragraph  [p10-l37..p10-l42 (6)]  need to calculate the Kleene closure over the matrix P, 11 that is, we want to find P ∗ = P∞ k=0 P k . To\ncompute the Kleene closure over the transition matrix we can use an efficient algorithm by Lehmann\n(1977) which is a generalization of the well-known shortest-path algorithm usually attributed to Floyd\n(1962) and Warshall (1962), but introduced previously by Roy (1959).12 The algorithm works under the\ncondition that the Kleene closure of all individual matrix entries from semiring W exists, which is true for\nour case since we assumed W to be complete. The algorithm is shown in Alg. 4.
-  405  p10  figure  [p10-d3]  
-  406  p10  paragraph  [p10-l43]  Algorithm 4 Lehmann’s algorithm for computing the Kleene closure over a transition matrix
-  407  p10  figure  [p10-d4]  
-  408  p10  paragraph  [p10-l44]  1: def Lehmann(M):
-  409  p10  paragraph  [p10-l45]  2:
-  410  p10  paragraph  [p10-l46..p10-l48 (3)]  d ←− dim(M) ▷ M is a d × d matrix over a complete semiring\n3:
-  411  p10  paragraph  [p10-l49]  M(0) ←− M
-  412  p10  paragraph  [p10-l50]  4:
-  413  p10  paragraph  [p10-l51]  for j = 1, . . . , d :
-  414  p10  paragraph  [p10-l52]  5:
-  415  p10  paragraph  [p10-l53]  for i = 1, . . . , d :
-  416  p10  paragraph  [p10-l54]  6:
-  417  p10  paragraph  [p10-l55]  for k = 1, . . . , d :
-  418  p10  paragraph  [p10-l56]  7:
-  419  p10  paragraph  [p10-l57..p10-l63 (7)]  M (j) ik ←− M (j−1) ik ⊕ M (j−1) ij ⊗ M (j−1) jj
-  420  p10  paragraph  [p10-l64..p10-l66 (3)]  ∗ ⊗ M (j−1) jk
-  421  p10  paragraph  [p10-l67..p10-l68 (2)]  8: return I + M(d)
-  422  p10  figure  [p10-d5]  
-  423  p10  figure  [p10-d6]  
-  424  p10  footnote (9)  [p10-l69]  9We require that W be commutative because the order of rule applications does not affect string weight in a weighted CFG.
-  425  p10  footnote (10)  [p10-l70..p10-l72 (3)]  10For locally normalized semirings, the treesum of any non-terminal is 1. In the general case when the weights are not\nnormalized, the treesum of a semiring-weighted WCFG can be computed through fixed point iteration in a similar way to\nNewton’s method (Esparza et al., 2007).
-  426  p10  footnote (11)  [p10-l73]  11Note that the Kleene closure exists since matrices with elements from a complete semiring are complete.
-  427  p10  footnote (12)  [p10-l74..p10-l76 (3)]  12The generalization is by way of choosing the appropriate semiring for the given problem. By the same token, Lehmann’s\nalgorithm can also be seen as a generalization of Kleene’s (1956) algorithm for converting finite-state automata to regular\nexpressions and the Gauss–Jordan algorithm for computing matrix inversion (see e.g. Althoen and McLaughlin (1987)).
-  428  p10  furniture/page-number  [p10-l77]  66
-  429  p11  paragraph  [p11-l1..p11-l3 (3)]  Lastly, since we no longer have normalized rule weights, we need to set the prefix weight of ε under\nany non-terminal X ∈ N to the treesum under X. With this, we can now generalize our prefix weight\nalgorithm to semirings, as shown in Alg. 5.
-  430  p11  figure  [p11-d1]  
-  431  p11  paragraph  [p11-l4]  Algorithm 5 Faster prefix algorithm over semirings
-  432  p11  figure  [p11-d2]  
-  433  p11  paragraph  [p11-l5]  1: P ′ ←− Lehmann(P)
-  434  p11  paragraph  [p11-l6]  ▷ Precompute P ∗ with Alg. 4
-  435  p11  paragraph  [p11-l7]  2: for Xi , Xj ∈ N :
-  436  p11  paragraph  [p11-l8]  ▷ Assign ξ(Xj | Xi)
-  437  p11  paragraph  [p11-l9..p11-l10 (2)]  3: ξ(Xj | Xi) ←− P ′ ij
-  438  p11  paragraph  [p11-l11]  4: def FastSemiringJL(w = w1 · · · wN , G):
-  439  p11  paragraph  [p11-l12]  5:
-  440  p11  paragraph  [p11-l13..p11-l15 (3)]  π(·, ·, ·) ←− 0 ▷ Initialize prefix probabilities\n6:
-  441  p11  paragraph  [p11-l16]  for k ∈ 0, . . . , N :
-  442  p11  paragraph  [p11-l17]  7:
-  443  p11  paragraph  [p11-l18..p11-l20 (3)]  for X ∈ N : ▷ Prefix weight of ε\n8:
-  444  p11  paragraph  [p11-l21]  π(k, X, k) ←− treesum(X)
-  445  p11  paragraph  [p11-l22]  9:
-  446  p11  paragraph  [p11-l23..p11-l25 (3)]  β ←− CKY(w) ▷ Compute β with Alg. 1\n10:
-  447  p11  paragraph  [p11-l26]  for i, j = 0, . . . , N :
-  448  p11  paragraph  [p11-l27]  11:
-  449  p11  paragraph  [p11-l28..p11-l30 (3)]  for X, Z ∈ N : ▷ Compute γ by Eq. (16e)\n12:
-  450  p11  paragraph  [p11-l31]  γij (X, Z)←− L
-  451  p11  paragraph  [p11-l33]  p(X−→YZ) ⊗ β(i, Y, j)
-  452  p11  paragraph  [p11-l32]  Y∈N
-  453  p11  paragraph  [p11-l34]  13:
-  454  p11  paragraph  [p11-l35..p11-l37 (3)]  for X, Z ∈ N : ▷ Compute δ by Eq. (16f)\n14:
-  455  p11  paragraph  [p11-l38]  δij (X, Z)←− L
-  456  p11  paragraph  [p11-l40]  ξ(Y | X) ⊗ γij (Y, Z)
-  457  p11  paragraph  [p11-l39]  Y∈N
-  458  p11  paragraph  [p11-l41]  15:
-  459  p11  paragraph  [p11-l42]  for k ∈ 0, . . . , N − 1 :
-  460  p11  paragraph  [p11-l43]  16:
-  461  p11  paragraph  [p11-l44..p11-l46 (3)]  for X ∈ N : ▷ Compute base case\n17:
-  462  p11  paragraph  [p11-l47]  π(k, X, k+1)←− L
-  463  p11  paragraph  [p11-l49]  ξ(Y | X) ⊗ p(Y−→wk+1)
-  464  p11  paragraph  [p11-l48]  Y∈N
-  465  p11  paragraph  [p11-l50]  18:
-  466  p11  paragraph  [p11-l51]  for ℓ ∈ 2 . . . N :
-  467  p11  paragraph  [p11-l52]  19:
-  468  p11  paragraph  [p11-l53]  for i ∈ 1 . . . N − ℓ :
-  469  p11  paragraph  [p11-l54]  20:
-  470  p11  paragraph  [p11-l55]  k ←− i + ℓ
-  471  p11  paragraph  [p11-l56]  21:
-  472  p11  paragraph  [p11-l57..p11-l58 (2)]  for X, Z ∈ N : ▷ Recursively compute π
-  473  p11  paragraph  [p11-l61]  k
-  474  p11  paragraph  [p11-l63]  −1
-  475  p11  paragraph  [p11-l59..p11-l65 (4)]  22: π(i, X, k) += L δij (X, Z) ⊗ π(j, Z, k)
-  476  p11  paragraph  [p11-l64]  j=i+1
-  477  p11  paragraph  [p11-l66..p11-l67 (2)]  23: return π
-  478  p11  figure  [p11-d3]  
-  479  p11  paragraph  [p11-l68]  Proposition 4. The semiring-weighted version of our algorithm runs in O(N2 |N |3 + N3 |N |2 ).
-  480  p11  paragraph  [p11-l69..p11-l75 (7)]  Proof. Lehmann’s algorithm, as presented in Alg. 4, has three nested for loops of d iterations each, where\nd is the dimension of the input matrix. In our case, d is the number of non-terminals, |N |. Assuming the\nKleene closure of elements in W can be evaluated in O(1), this means that computing the left corner\nexpectations in line 1 of Alg. 5 takes O(|N |3 ), as before. Hence, the complexity of the overall algorithm\nremains unchanged, that is, we can compute the prefix probabilities under a semiring-weighted, locally\nnormalized CFG G in O(N2 |N |3 + N3 |N |2 ). ■
-  481  p11  furniture/page-number  [p11-l76]  67
+  225  p5  caption (Algorithm 3)  [p5-l41]  Algorithm 3 Faster prefix probability algorithm
+  226  p5  paragraph  [p5-l42]  1: P ′ ←− (I − P) −1
+  227  p5  figure  [p5-d2]  
+  228  p5  paragraph  [p5-l43..p5-l45 (3)]  ▷ Precompute P ∗ with Eq. (14)\n2: for Xi , Xj ∈ N : ▷ Assign ξ(Y | X)
+  229  p5  paragraph  [p5-l46..p5-l47 (2)]  3: ξ(Xj | Xi) ←− P ′ ij
+  230  p5  paragraph  [p5-l48]  4: def FastJL(w = w1 · · · wN ):
+  231  p5  paragraph  [p5-l49]  5:
+  232  p5  paragraph  [p5-l50..p5-l52 (3)]  π(·, ·, ·) ←− 0 ▷ Initialize prefix probabilities\n6:
+  233  p5  paragraph  [p5-l53]  for k ∈ 0, . . . , N :
+  234  p5  paragraph  [p5-l54]  7:
+  235  p5  paragraph  [p5-l55..p5-l57 (3)]  for X ∈ N : ▷ Prefix probability of ε\n8:
+  236  p5  paragraph  [p5-l58]  π(k, X, k) ←− 1
+  237  p5  paragraph  [p5-l59]  9:
+  238  p5  paragraph  [p5-l60..p5-l62 (3)]  β ←− CKY(w) ▷ Compute β with Alg. 1\n10:
+  239  p5  paragraph  [p5-l63]  for i, j = 0, . . . , N :
+  240  p5  paragraph  [p5-l64]  11:
+  241  p5  paragraph  [p5-l65..p5-l67 (3)]  for X, Z ∈ N : ▷ Compute γ by Eq. (16e)\n12:
+  242  p5  paragraph  [p5-l68]  γij (X,Z)←− P
+  243  p5  paragraph  [p5-l70]  p(X−→YZ)·β(i, Y, j)
+  244  p5  paragraph  [p5-l69]  Y∈N
+  245  p5  paragraph  [p5-l71]  13:
+  246  p5  paragraph  [p5-l72]  for X, Z ∈ N :
+  247  p5  paragraph  [p5-l73..p5-l74 (2)]  ▷ Compute δ by Eq. (16f)\n14:
+  248  p5  paragraph  [p5-l75]  δij (X,Z)←− P
+  249  p5  paragraph  [p5-l77]  ξ(Y | X) · γij (Y, Z)
+  250  p5  paragraph  [p5-l76]  Y∈N
+  251  p5  paragraph  [p5-l78]  15:
+  252  p5  paragraph  [p5-l79]  for k ∈ 0, . . . , N − 1 :
+  253  p5  paragraph  [p5-l80]  16:
+  254  p5  paragraph  [p5-l81..p5-l83 (3)]  for X ∈ N : ▷ Compute base case\n17:
+  255  p5  paragraph  [p5-l84]  π(k, X, k+1) ←− P
+  256  p5  paragraph  [p5-l86]  ξ(Y | X)
+  257  p5  paragraph  [p5-l85]  Y∈N
+  258  p5  paragraph  [p5-l87]  ·p(Y −→ wk+1)
+  259  p5  paragraph  [p5-l88]  18:
+  260  p5  paragraph  [p5-l89]  for ℓ ∈ 2 . . . N :
+  261  p5  paragraph  [p5-l90]  19:
+  262  p5  paragraph  [p5-l91]  for i ∈ 1 . . . N − ℓ :
+  263  p5  paragraph  [p5-l92]  20:
+  264  p5  paragraph  [p5-l93]  k ←− i + ℓ
+  265  p5  paragraph  [p5-l94]  21:
+  266  p5  paragraph  [p5-l95..p5-l96 (2)]  for X, Z ∈ N : ▷ Recursively compute π
+  267  p5  paragraph  [p5-l99]  k
+  268  p5  paragraph  [p5-l101]  −1
+  269  p5  paragraph  [p5-l97..p5-l103 (4)]  22: π(i, X, k)+= P δij (X, Z)·π(j, Z, k)
+  270  p5  paragraph  [p5-l102]  j=i+1
+  271  p5  paragraph  [p5-l104..p5-l105 (2)]  23: return π
+  272  p5  figure  [p5-d3]  
+  273  p5  paragraph  [p5-l106..p5-l108 (3)]  takes O(N2 |N |3 ), as we sum over non-terminals,\nand both charts each have two dimensions index-\ning N and two indexing N . Computing the base
+  274  p5  paragraph  [p5-l40]  (16f)
+  275  p5  paragraph  [p5-l109..p5-l115 (7)]  case π(k, X, k + 1) for all non-terminals X and\npositions k in lines 15–17 takes O(N|N |2 ), as be-\nfore. Finally, the loops computing π in lines 18–\n22 take O(N3 |N |2 ), as we are now iterating over\nX, Z ∈ N and ℓ, i, j ≤ N. Hence, our new overall\ntime complexity is O(N2 |N |3 + N3 |N |2 ). ■
+  276  p5  heading (5)  [p5-l116]  5 Generalization to Semirings
+  277  p5  paragraph  [p5-l117..p5-l130 (14)]  It turns out that Jelinek–Lafferty, and, by extension,\nour improved algorithm, can be generalized to\nwork for semiring-weighted CFGs, with the same\ntime complexity, under the condition that the\nsemiring is closed, i.e., it has a Kleene star. This\nfollows from the fact that the only operations used\nby the algorithm are addition and multiplication\nif we use Lehmann’s (1977) algorithm for the\ncomputation of left-corner expectations, ξ. We\ncan even relax the condition of local normalization\nby changing how left-corner expectations and the\nweight of the prefix ε are computed. The relevant\ndefinitions and derivation of the adapted algorithm\ncan be found in App. B.
+  278  p5  heading (6)  [p5-l131]  6 Conclusion
+  279  p5  paragraph  [p5-l132..p5-l139 (8)]  In this paper, we have shown how to efficiently\ncompute prefix probabilities for PCFGs in CNF,\nadapting Jelinek–Lafferty to use additional memo-\nization, thereby reducing the time complexity from\nO(N3 |N |3 + |N |4 ) to O(N2 |N |3 + N3 |N |2 ).\nWe thereby addressed one of the main limitations\nof the original formulation, of being slow for large\ngrammar sizes.
+  280  p5  furniture/page-number  [p5-l140]  61
+  281  p6  heading  [p6-l1]  Limitations
+  282  p6  paragraph  [p6-l2..p6-l13 (12)]  While we have improved the asymptotic running\ntime of a classic algorithm with regard to grammar\nsize, the time complexity of our algorithm is still\ncubic in the length of the input. Our result follows\nthe tradition of dynamic programming algorithms\nthat trade time for space by memoizing and reusing\nprecomputed intermediate results. The usefulness\nof this trade-off in practice depends on the specifics\nof the grammar, and while the complexity is strictly\nbetter in terms of non-terminals, it will be most\nnoticeable for denser grammars with many non-\nterminals.
+  283  p6  heading  [p6-l14]  Ethics Statement
+  284  p6  paragraph  [p6-l15..p6-l16 (2)]  We do not foresee any ethical issues arising from\nthis work.
+  285  p6  heading  [p6-l17]  Acknowledgements
+  286  p6  paragraph  [p6-l18..p6-l22 (5)]  We thank the anonymous reviewers for their help-\nful comments and suggestions. We also extend\nour gratitude to Abra Ganz, Andreas Opedal, Anej\nSvete, and Tim Vieira for their valuable feedback\non various versions of this paper.
+  287  p6  heading  [p6-l23]  References
+  288  p6  paragraph  [p6-l24..p6-l26 (3)]  Steven C. Althoen and Renate McLaughlin. 1987.\nGauss-jordan reduction: A brief history. The Ameri-\ncan Mathematical Monthly, 94(2):130–142.
+  289  p6  paragraph  [p6-l27..p6-l30 (4)]  J. K. Baker. 1979. Trainable grammars for speech recog-\nnition. In Speech Communication Papers presented\nat the 97th Meeting of the Acoustical Society of Amer-\nica, pages 547–550, MIT, Cambridge, Massachusetts.
+  290  p6  paragraph  [p6-l31..p6-l35 (5)]  José-Miguel Benedí and Joan-Andreu Sánchez. 2007.\nFast stochastic context-free parsing: A stochastic ver-\nsion of the valiant algorithm. In Pattern Recognition\nand Image Analysis, pages 80–88, Berlin, Heidelberg.\nSpringer Berlin Heidelberg.
+  291  p6  paragraph  [p6-l36..p6-l38 (3)]  Zhiyi Chi and Stuart Geman. 1998. Estimation of prob-\nabilistic context-free grammars. Computational Lin-\nguistics, 24(2):299–305.
+  292  p6  paragraph  [p6-l39..p6-l42 (4)]  John Cocke and J.T. Schwartz. 1970. Programming\nlanguages and their compilers: Preliminary notes.\nCourant Institute of Mathematical Sciences, New\nYork University.
+  293  p6  paragraph  [p6-l43..p6-l49 (7)]  Shay B. Cohen, Giorgio Satta, and Michael Collins.\n2013. Approximate PCFG parsing using tensor de-\ncomposition. In Proceedings of the 2013 Conference\nof the North American Chapter of the Association\nfor Computational Linguistics: Human Language\nTechnologies, pages 487–496, Atlanta, Georgia. As-\nsociation for Computational Linguistics.
+  294  p6  paragraph  [p6-l50..p6-l54 (5)]  A. Corazza, R. De Mori, R. Gretter, and G. Satta.\n1994. Optimal probabilistic evaluation functions for\nsearch controlled by stochastic context-free gram-\nmars. IEEE Transactions on Pattern Analysis and\nMachine Intelligence, 16(10):1018–1027.
+  295  p6  paragraph  [p6-l55..p6-l59 (5)]  Chris Dyer. 2017. Should neural network architec-\nture reflect linguistic structure? In Proceedings of\nthe 21st Conference on Computational Natural Lan-\nguage Learning (CoNLL 2017), page 1, Vancouver,\nCanada. Association for Computational Linguistics.
+  296  p6  paragraph  [p6-l60..p6-l66 (7)]  Chris Dyer, Adhiguna Kuncoro, Miguel Ballesteros,\nand Noah A. Smith. 2016. Recurrent neural network\ngrammars. In Proceedings of the 2016 Conference\nof the North American Chapter of the Association\nfor Computational Linguistics: Human Language\nTechnologies, pages 199–209, San Diego, California.\nAssociation for Computational Linguistics.
+  297  p6  paragraph  [p6-l67..p6-l68 (2)]  Jay Earley. 1970. An efficient context-free parsing algo-\nrithm. Communications of the ACM, 13(2):94–102.
+  298  p6  paragraph  [p6-l69..p6-l71 (3)]  Jacob Eisenstein. 2019. Introduction to Natural Lan-\nguage Processing. Adaptive Computation and Ma-\nchine Learning series. MIT Press.
+  299  p6  paragraph  [p6-l72..p6-l76 (5)]  Jason Eisner and John Blatz. 2007. Program transfor-\nmations for optimization of parsing algorithms and\nother weighted logic programs. In Proceedings of\nFG 2006: The 11th Conference on Formal Grammar,\npages 45–85. CSLI Publications.
+  300  p6  paragraph  [p6-l77..p6-l81 (5)]  Javier Esparza, Stefan Kiefer, and Michael Luttenberger.\n2007. On fixed point equations over commutative\nsemirings. In Proceedings of the 24th Annual Con-\nference on Theoretical Aspects of Computer Science,\npage 296–307, Berlin, Heidelberg. Springer-Verlag.
+  301  p6  paragraph  [p6-l82..p6-l83 (2)]  Robert W. Floyd. 1962. Algorithm 97: Shortest path.\nCommunications of the ACM, 5(6):345.
+  302  p6  paragraph  [p6-l84..p6-l87 (4)]  Susan L. Graham, Michael Harrison, and Walter L.\nRuzzo. 1980. An improved context-free recognizer.\nACM Transactions on Programming Languages and\nSystems, 2(3):415–462.
+  303  p6  paragraph  [p6-l88..p6-l91 (4)]  Frederick Jelinek and John D. Lafferty. 1991. Computa-\ntion of the probability of initial substring generation\nby stochastic context-free grammars. Computational\nLinguistics, 17(3):315–353.
+  304  p6  paragraph  [p6-l92..p6-l95 (4)]  Tadao Kasami. 1965. An efficient recognition and\nsyntax-analysis algorithm for context-free languages.\nIn Technical Report, Air Force Cambridge Research\nLab, Bedford, MA.
+  305  p6  paragraph  [p6-l96..p6-l103 (8)]  Yoon Kim, Alexander Rush, Lei Yu, Adhiguna Kuncoro,\nChris Dyer, and Gábor Melis. 2019. Unsupervised\nrecurrent neural network grammars. In Proceedings\nof the 2019 Conference of the North American Chap-\nter of the Association for Computational Linguistics:\nHuman Language Technologies, Volume 1 (Long and\nShort Papers), pages 1105–1117, Minneapolis, Min-\nnesota. Association for Computational Linguistics.
+  306  p6  furniture/page-number  [p6-l104]  62
+  307  p7  paragraph  [p7-l1..p7-l3 (3)]  S. C. Kleene. 1956. Representation of Events in Nerve\nNets and Finite Automata, pages 3–42. Princeton\nUniversity Press, Princeton.
+  308  p7  paragraph  [p7-l4..p7-l10 (7)]  Lillian Lee. 1997. Fast context-free parsing requires fast\nBoolean matrix multiplication. In 35th Annual Meet-\ning of the Association for Computational Linguistics\nand 8th Conference of the European Chapter of the\nAssociation for Computational Linguistics, pages 9–\n15, Madrid, Spain. Association for Computational\nLinguistics.
+  309  p7  paragraph  [p7-l11..p7-l13 (3)]  M. C. J. Leermakers, A. Augusteijn, and F.E.J. Kruse-\nman Aretz. 1992. A functional LR parser. Theoreti-\ncal Computer Science, 104(2):313–323.
+  310  p7  paragraph  [p7-l14..p7-l16 (3)]  Daniel J. Lehmann. 1977. Algebraic structures for\ntransitive closure. Theoretical Computer Science,\n4(1):59–76.
+  311  p7  paragraph  [p7-l17..p7-l21 (5)]  Robert C. Moore. 2000. Time as a measure of parsing ef-\nficiency. In Proceedings of the COLING-2000 Work-\nshop on Efficiency In Large-Scale Parsing Systems,\npages 23–28, Centre Universitaire, Luxembourg. In-\nternational Committee on Computational Linguistics.
+  312  p7  paragraph  [p7-l22..p7-l26 (5)]  Andreas Opedal, Ran Zmigrod, Tim Vieira, Ryan Cot-\nterell, and Jason Eisner. 2023. Efficient semiring-\nweighted Earley parsing. In Proceedings of the 61st\nAnnual Meeting of the Association for Computational\nLinguistics, Toronto, Canada.
+  313  p7  paragraph  [p7-l27..p7-l29 (3)]  Bernard Roy. 1959. Transitivité et connexité. Comptes\nrendus hebdomadaires des séances de l’Académie\ndes sciences, 249:216–218.
+  314  p7  paragraph  [p7-l30..p7-l33 (4)]  Grzegorz Rozenberg and Arto Salomaa, editors. 1997.\nHandbook of Formal Languages, Vol. 1: Word, Lan-\nguage, Grammar. Springer-Verlag, Berlin, Heidel-\nberg.
+  315  p7  paragraph  [p7-l34..p7-l39 (6)]  Joan-Andreu Sánchez and José-Miguel Benedí. 1997.\nComputation of the probability of the best derivation\nof an initial substring from a stochastic context-free\ngrammar. Proceedings of the VII Spanish Symposium\non Pattern Recognition and Image Analysis, pages\n181–186.
+  316  p7  paragraph  [p7-l40..p7-l43 (4)]  Noah A. Smith and Mark Johnson. 2007. Weighted\nand probabilistic context-free grammars are equally\nexpressive. Computational Linguistics, 33(4):477–\n491.
+  317  p7  paragraph  [p7-l44..p7-l48 (5)]  Andreas Stolcke. 1995. An efficient probabilistic\ncontext-free parsing algorithm that computes prefix\nprobabilities. Computational Linguistics, 21(2):165–\n201.
+  318  p7  paragraph  [p7-l49..p7-l51 (3)]  Leslie G. Valiant. 1975. General context-free recogni-\ntion in less than cubic time. Journal of Computer\nand System Sciences, 10(2):308–315.
+  319  p7  paragraph  [p7-l52..p7-l53 (2)]  Stephen Warshall. 1962. A theorem on boolean matri-\nces. Journal of the ACM, 9(1):11–12.
+  320  p7  paragraph  [p7-l54..p7-l56 (3)]  Daniel H. Younger. 1967. Recognition and parsing of\ncontext-free languages in time n 3 . Information and\nControl, 10(2):189–208.
+  321  p7  furniture/page-number  [p7-l57]  63
+  322  p8  heading (A)  [p8-l1]  A Proof of Lem. 1
+  323  p8  paragraph  [p8-l2..p8-l3 (2)]  Lemma 1. Given a tight, trim PCFG in CNF and a string w = w1 · · · wN , the prefix probability of a\nsubstring wi+1 · · · wk of w being derived from X can be defined recursively as follows:
+  324  p8  paragraph  [p8-l7]  k−1
+  325  p8  paragraph  [p8-l4..p8-l10 (4)]  π(i, X, k) = X ξ(Y Z | X) · X β(i, Y, j) · π(j, Z, k) (10)
+  326  p8  paragraph  [p8-l5..p8-l8 (2)]  Y,Z∈N j=i+1
+  327  p8  paragraph  [p8-l11]  Base case (for all k ∈ 0 . . . N − 1 and all X ∈ N ):
+  328  p8  paragraph  [p8-l12..p8-l15 (3)]  π(k, X, k+1) = X ξ(Y | X) · p(Y−→wk+1) (11)
+  329  p8  paragraph  [p8-l13]  Y∈N
+  330  p8  paragraph  [p8-l16..p8-l19 (4)]  Proof. Eq. (11): The base case, π(k, X, k+1), is the probability of wk+1 being the left-most terminal\nin the parse subtree under X. It is, therefore, simply the sum of probabilities of any non-terminal Y being\non the left corner of the parse subtree under X multiplied by the corresponding probability of Y directly\nderiving wk+1.
+  331  p8  paragraph  [p8-l20..p8-l22 (3)]  Eq. (10): Given the PCFG is in CNF and assuming k > i + 1, in order to derive the prefix wi+1 · · · wk\nwe must first apply some rule X −→ Y Z, where the first part of the substring is then derived from Y and\nthe remainder (and potentially more) from Z:
+  332  p8  paragraph  [p8-l27]  k−1
+  333  p8  paragraph  [p8-l23..p8-l25 (2)]  π(i, X, k) = X p(X −→ Y Z)
+  334  p8  paragraph  [p8-l26..p8-l30 (3)]  X β(i, Y, j) · π(j, Z, k) + π(i, Y, k) (17)
+  335  p8  paragraph  [p8-l24..p8-l28 (2)]  Y,Z∈N j=i+1
+  336  p8  paragraph  [p8-l31..p8-l36 (6)]  where the last term, π(i, Y, k), handles the case where the whole prefix is derived from Y alone.\nThis term is clearly recursively defined through Eq. (17), with X replaced by Y. Defining\nR(Y, Z) def = Pk−1 j=i+1 β(i, Y, j)π(j, Z, k), we can rewrite Eq. (17) as:
+  337  p8  paragraph  [p8-l37..p8-l42 (4)]  π(i, X, k) = X p(X −→ Y Z) · R(Y, Z) + X p(X −→ A B) · π(i, A, k) (18)
+  338  p8  paragraph  [p8-l38..p8-l40 (2)]  Y,Z∈N A,B∈N
+  339  p8  paragraph  [p8-l43]  After repeated substitutions ad infinitum, we get:
+  340  p8  paragraph  [p8-l44..p8-l49 (4)]  π(i, X, k) = X p(X ∗⇒ A B) X p(A −→ Y Z) · R(Y, Z) (19)
+  341  p8  paragraph  [p8-l45..p8-l47 (2)]  A,B∈N Y,Z∈N
+  342  p8  paragraph  [p8-l50..p8-l51 (2)]  Note that, in the last step, infinite derivations do not carry any probability mass since we assumed the\nPCFG to be tight and trim. Hence, the final form of the equation is:
+  343  p8  paragraph  [p8-l52..p8-l56 (3)]  π(i, X, k) = X p(X ∗⇒ A B) X p(A −→ Y Z) · R(Y, Z)
+  344  p8  paragraph  [p8-l53..p8-l55 (2)]  A,B∈N Y,Z∈N
+  345  p8  paragraph  [p8-l60..p8-l59 (4)]  k−1 (20)\n= X ξ(Y Z | X) X
+  346  p8  paragraph  [p8-l62]  β(i, Y, j) · π(j, Z, k)
+  347  p8  paragraph  [p8-l58..p8-l61 (2)]  Y,Z∈N j=i+1
+  348  p8  paragraph  [p8-l64]  ■
+  349  p8  furniture/page-number  [p8-l65]  64
+  350  p9  heading (B)  [p9-l1]  B Extension of Alg. 3 to Semirings
+  351  p9  paragraph  [p9-l2..p9-l3 (2)]  In the following, we give the necessary background on semirings and then show how the algorithms\nintroduced above can be framed in terms of semirings.
+  352  p9  heading (B.1)  [p9-l4..p9-l5 (2)]  B.1 Semirings
+  353  p9  paragraph  [p9-l6]  We start by introducing the necessary definitions and notation.
+  354  p9  paragraph  [p9-l7]  Definition 10. A monoid is a 3-tuple ⟨A, ◦, 1⟩ where:
+  355  p9  list_item ((i))  [p9-l8]  (i) A is a non-empty set;
+  356  p9  list_item ((ii))  [p9-l9]  (ii) ◦ is an associative binary operation: ∀a, b, c ∈ A,(a ◦ b) ◦ c = a ◦ (b ◦ c);
+  357  p9  list_item ((iii))  [p9-l10]  (iii) 1 is a left and right identity element: ∀a ∈ A, 1 ◦ a = a ◦ 1 = a
+  358  p9  list_item ((iv))  [p9-l11]  (iv) A is closed under the operation ◦: ∀a, b ∈ A, a ◦ b ∈ A
+  359  p9  paragraph  [p9-l12]  A monoid is commutative if ∀a, b ∈ A : a ◦ b = b ◦ a.
+  360  p9  paragraph  [p9-l13]  Definition 11. A semiring is a 5-tuple W = ⟨A, ⊕, ⊗, 0, 1⟩, where
+  361  p9  list_item ((i))  [p9-l14]  (i) ⟨A, ⊕, 0⟩ is a commutative monoid over A with identity element 0 under the addition operation ⊕;
+  362  p9  list_item ((ii))  [p9-l15]  (ii) ⟨A, ⊗, 1⟩ is a monoid over A with identity element 1 under the multiplication operation ⊗;
+  363  p9  list_item ((iii))  [p9-l16]  (iii) Multiplication is distributive over addition, that is, ∀a, b, c ∈ A:
+  364  p9  list_item (•)  [p9-l17]  • a ⊗ (b ⊕ c) = a ⊗ b ⊕ a ⊗ c;
+  365  p9  list_item (•)  [p9-l18]  • (b ⊕ c) ⊗ a = b ⊗ a ⊕ c ⊗ a.
+  366  p9  list_item ((iv))  [p9-l19]  (iv) 0 is an annihilator for A, that is, ∀a ∈ A, 0 ⊗ a = a ⊗ 0 = 0.
+  367  p9  paragraph  [p9-l20..p9-l21 (2)]  A semiring is commutative if ⟨A, ⊗, 1⟩ is a commutative monoid. A semiring is idempotent if ∀a ∈ A :\na ⊕ a = a.
+  368  p9  paragraph  [p9-l22..p9-l25 (4)]  Definition 12. A semiring W = ⟨A, ⊕, ⊗, 0, 1⟩ is complete if it is possible to extend the addition operator\n⊕ to infinite sums, maintaining the properties of associativity, commutativity, and distributivity from the\nfinite case (Rozenberg and Salomaa, 1997, Chapter 9). In this case, we can define the unary operation of\nthe Kleene star denoted by a superscript ∗ as the infinite sum over powers of its operand, that is, ∀a ∈ A:
+  369  p9  paragraph  [p9-l28]  ∞
+  370  p9  paragraph  [p9-l26..p9-l30 (3)]  a ∗ def = M a i
+  371  p9  paragraph  [p9-l29]  i=0
+  372  p9  paragraph  [p9-l32]  Analogously to Eq. (14), it then follows that:
+  373  p9  paragraph  [p9-l34..p9-l37 (2)]  ∞ ∞
+  374  p9  paragraph  [p9-l33]  a ∗ = M
+  375  p9  paragraph  [p9-l36]  a i = a 0 ⊕ M
+  376  p9  paragraph  [p9-l31]  (21)
+  377  p9  paragraph  [p9-l40]  ∞
+  378  p9  paragraph  [p9-l42]  a i = 1 ⊕ a ⊗ a ∗
+  379  p9  paragraph  [p9-l39]  a i = 1 ⊕ a ⊗ M
+  380  p9  paragraph  [p9-l35..p9-l38 (2)]  i=0 i=1
+  381  p9  paragraph  [p9-l44]  and, similarly:
+  382  p9  paragraph  [p9-l46..p9-l49 (2)]  ∞ ∞
+  383  p9  paragraph  [p9-l43]  (22)
+  384  p9  paragraph  [p9-l41]  i=0
+  385  p9  paragraph  [p9-l51]  a i ⊗ a = 1 ⊕ a ∗ ⊗ a
+  386  p9  paragraph  [p9-l45]  a ∗ = a 0 ⊕ M
+  387  p9  paragraph  [p9-l48]  a i = 1 ⊕ M
+  388  p9  paragraph  [p9-l47..p9-l50 (2)]  i=1 i=0
+  389  p9  paragraph  [p9-l52..p9-l53 (2)]  (23)\nWe now discuss how complete semirings can be lifted to square matrices. The definitions follow
+  390  p9  paragraph  [p9-l54]  analogously to matrices over the real numbers.
+  391  p9  paragraph  [p9-l55..p9-l57 (3)]  Definition 13. We define semiring matrix addition as follows. Let A and B be d × d matrices whose\nentries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the sum ("+") of A and B is\ndefined as:
+  392  p9  paragraph  [p9-l58..p10-l3 (7)]  (A + B)ij def = Aij ⊕ Bij i, j ∈ 1, . . . , d (24)\nDefinition 14. We define semiring matrix multiplication as follows. Let A and B be d × d matrices\nwhose entries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the product of A and B\nis defined as:
+  393  p9  furniture/page-number  [p9-l62]  65
+  394  p10  paragraph  [p10-l6]  d
+  395  p10  paragraph  [p10-l4..p10-l10 (5)]  (AB)ij def = M Aik ⊗ Bkj i, j ∈ 1, . . . , d (25)
+  396  p10  paragraph  [p10-l7]  k=1
+  397  p10  paragraph  [p10-l11..p10-l16 (6)]  We also define the zero matrix, O, over the complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩, such that all\nentries are 0, and the unit matrix I as (I)ij = 1 iff i = j and 0 otherwise for all indices i, j ∈ 0, . . . , d.\nIt is then straightforward to show that matrix addition is associative and commutative, while matrix\nmultiplication is associative and distributive over matrix addition. Hence, the set of square matrices\nof dimension d over a semiring, with addition and multiplication as defined above, is itself a semiring.\nFurthermore, by the element-wise definition of its addition operation, it is also complete.
+  398  p10  heading (B.2)  [p10-l17..p10-l18 (2)]  B.2 Semiring-weighted prefix algorithm
+  399  p10  paragraph  [p10-l19..p10-l25 (7)]  We now consider a semiring-weighted CFG G = ⟨N , Σ, S, R, p, W⟩, where N , Σ, S, R are defined as\nbefore but the weighting function p: R → W now maps rules to elements of a commutative semiring\nW. 9 Note that we no longer require the rule weights to sum to one. As before, we define the matrix P\nas the square matrix of dimension |N | whose rows and columns are indexed by the non-terminals N in\nsome fixed order so that the entry Pij corresponds to the weight of getting the non-terminal Xj on the left\nafter one rule application to Xi . Since the rule weights are no longer locally normalized, however, we\nneed to include the treesum under the right non-terminal of each rule as an additional term:10
+  400  p10  paragraph  [p10-l26..p10-l30 (4)]  Pij = p(Xi −→ Xj _) def = M p(Xi −→ XjY) · treesum(Y) (26)
+  401  p10  paragraph  [p10-l28]  Y∈N
+  402  p10  paragraph  [p10-l31..p10-l34 (5)]  We can then calculate the weight of getting Xj from Xi at the leftmost non-terminal after exactly k\nderivation steps as (P k )ij , where P k def = P · · · P . Finally, to get the left-corner expectations, we then\n| {z }
+  403  p10  figure  [p10-d1]  
+  404  p10  figure  [p10-d2]  
+  405  p10  paragraph  [p10-l35]  k times
+  406  p10  paragraph  [p10-l37..p10-l42 (6)]  need to calculate the Kleene closure over the matrix P, 11 that is, we want to find P ∗ = P∞ k=0 P k . To\ncompute the Kleene closure over the transition matrix we can use an efficient algorithm by Lehmann\n(1977) which is a generalization of the well-known shortest-path algorithm usually attributed to Floyd\n(1962) and Warshall (1962), but introduced previously by Roy (1959).12 The algorithm works under the\ncondition that the Kleene closure of all individual matrix entries from semiring W exists, which is true for\nour case since we assumed W to be complete. The algorithm is shown in Alg. 4.
+  407  p10  figure  [p10-d3]  
+  408  p10  caption (Algorithm 4)  [p10-l43]  Algorithm 4 Lehmann’s algorithm for computing the Kleene closure over a transition matrix
+  409  p10  figure  [p10-d4]  
+  410  p10  paragraph  [p10-l44]  1: def Lehmann(M):
+  411  p10  paragraph  [p10-l45]  2:
+  412  p10  paragraph  [p10-l46..p10-l48 (3)]  d ←− dim(M) ▷ M is a d × d matrix over a complete semiring\n3:
+  413  p10  paragraph  [p10-l49]  M(0) ←− M
+  414  p10  paragraph  [p10-l50]  4:
+  415  p10  paragraph  [p10-l51]  for j = 1, . . . , d :
+  416  p10  paragraph  [p10-l52]  5:
+  417  p10  paragraph  [p10-l53]  for i = 1, . . . , d :
+  418  p10  paragraph  [p10-l54]  6:
+  419  p10  paragraph  [p10-l55]  for k = 1, . . . , d :
+  420  p10  paragraph  [p10-l56]  7:
+  421  p10  paragraph  [p10-l57..p10-l63 (7)]  M (j) ik ←− M (j−1) ik ⊕ M (j−1) ij ⊗ M (j−1) jj
+  422  p10  paragraph  [p10-l64..p10-l66 (3)]  ∗ ⊗ M (j−1) jk
+  423  p10  paragraph  [p10-l67..p10-l68 (2)]  8: return I + M(d)
+  424  p10  figure  [p10-d5]  
+  425  p10  figure  [p10-d6]  
+  426  p10  footnote (9)  [p10-l69]  9We require that W be commutative because the order of rule applications does not affect string weight in a weighted CFG.
+  427  p10  footnote (10)  [p10-l70..p10-l72 (3)]  10For locally normalized semirings, the treesum of any non-terminal is 1. In the general case when the weights are not\nnormalized, the treesum of a semiring-weighted WCFG can be computed through fixed point iteration in a similar way to\nNewton’s method (Esparza et al., 2007).
+  428  p10  footnote (11)  [p10-l73]  11Note that the Kleene closure exists since matrices with elements from a complete semiring are complete.
+  429  p10  footnote (12)  [p10-l74..p10-l76 (3)]  12The generalization is by way of choosing the appropriate semiring for the given problem. By the same token, Lehmann’s\nalgorithm can also be seen as a generalization of Kleene’s (1956) algorithm for converting finite-state automata to regular\nexpressions and the Gauss–Jordan algorithm for computing matrix inversion (see e.g. Althoen and McLaughlin (1987)).
+  430  p10  furniture/page-number  [p10-l77]  66
+  431  p11  paragraph  [p11-l1..p11-l3 (3)]  Lastly, since we no longer have normalized rule weights, we need to set the prefix weight of ε under\nany non-terminal X ∈ N to the treesum under X. With this, we can now generalize our prefix weight\nalgorithm to semirings, as shown in Alg. 5.
+  432  p11  figure  [p11-d1]  
+  433  p11  caption (Algorithm 5)  [p11-l4]  Algorithm 5 Faster prefix algorithm over semirings
+  434  p11  figure  [p11-d2]  
+  435  p11  paragraph  [p11-l5]  1: P ′ ←− Lehmann(P)
+  436  p11  paragraph  [p11-l6]  ▷ Precompute P ∗ with Alg. 4
+  437  p11  paragraph  [p11-l7]  2: for Xi , Xj ∈ N :
+  438  p11  paragraph  [p11-l8]  ▷ Assign ξ(Xj | Xi)
+  439  p11  paragraph  [p11-l9..p11-l10 (2)]  3: ξ(Xj | Xi) ←− P ′ ij
+  440  p11  paragraph  [p11-l11]  4: def FastSemiringJL(w = w1 · · · wN , G):
+  441  p11  paragraph  [p11-l12]  5:
+  442  p11  paragraph  [p11-l13..p11-l15 (3)]  π(·, ·, ·) ←− 0 ▷ Initialize prefix probabilities\n6:
+  443  p11  paragraph  [p11-l16]  for k ∈ 0, . . . , N :
+  444  p11  paragraph  [p11-l17]  7:
+  445  p11  paragraph  [p11-l18..p11-l20 (3)]  for X ∈ N : ▷ Prefix weight of ε\n8:
+  446  p11  paragraph  [p11-l21]  π(k, X, k) ←− treesum(X)
+  447  p11  paragraph  [p11-l22]  9:
+  448  p11  paragraph  [p11-l23..p11-l25 (3)]  β ←− CKY(w) ▷ Compute β with Alg. 1\n10:
+  449  p11  paragraph  [p11-l26]  for i, j = 0, . . . , N :
+  450  p11  paragraph  [p11-l27]  11:
+  451  p11  paragraph  [p11-l28..p11-l30 (3)]  for X, Z ∈ N : ▷ Compute γ by Eq. (16e)\n12:
+  452  p11  paragraph  [p11-l31]  γij (X, Z)←− L
+  453  p11  paragraph  [p11-l33]  p(X−→YZ) ⊗ β(i, Y, j)
+  454  p11  paragraph  [p11-l32]  Y∈N
+  455  p11  paragraph  [p11-l34]  13:
+  456  p11  paragraph  [p11-l35..p11-l37 (3)]  for X, Z ∈ N : ▷ Compute δ by Eq. (16f)\n14:
+  457  p11  paragraph  [p11-l38]  δij (X, Z)←− L
+  458  p11  paragraph  [p11-l40]  ξ(Y | X) ⊗ γij (Y, Z)
+  459  p11  paragraph  [p11-l39]  Y∈N
+  460  p11  paragraph  [p11-l41]  15:
+  461  p11  paragraph  [p11-l42]  for k ∈ 0, . . . , N − 1 :
+  462  p11  paragraph  [p11-l43]  16:
+  463  p11  paragraph  [p11-l44..p11-l46 (3)]  for X ∈ N : ▷ Compute base case\n17:
+  464  p11  paragraph  [p11-l47]  π(k, X, k+1)←− L
+  465  p11  paragraph  [p11-l49]  ξ(Y | X) ⊗ p(Y−→wk+1)
+  466  p11  paragraph  [p11-l48]  Y∈N
+  467  p11  paragraph  [p11-l50]  18:
+  468  p11  paragraph  [p11-l51]  for ℓ ∈ 2 . . . N :
+  469  p11  paragraph  [p11-l52]  19:
+  470  p11  paragraph  [p11-l53]  for i ∈ 1 . . . N − ℓ :
+  471  p11  paragraph  [p11-l54]  20:
+  472  p11  paragraph  [p11-l55]  k ←− i + ℓ
+  473  p11  paragraph  [p11-l56]  21:
+  474  p11  paragraph  [p11-l57..p11-l58 (2)]  for X, Z ∈ N : ▷ Recursively compute π
+  475  p11  paragraph  [p11-l61]  k
+  476  p11  paragraph  [p11-l63]  −1
+  477  p11  paragraph  [p11-l59..p11-l65 (4)]  22: π(i, X, k) += L δij (X, Z) ⊗ π(j, Z, k)
+  478  p11  paragraph  [p11-l64]  j=i+1
+  479  p11  paragraph  [p11-l66..p11-l67 (2)]  23: return π
+  480  p11  figure  [p11-d3]  
+  481  p11  paragraph  [p11-l68]  Proposition 4. The semiring-weighted version of our algorithm runs in O(N2 |N |3 + N3 |N |2 ).
+  482  p11  paragraph  [p11-l69..p11-l75 (7)]  Proof. Lehmann’s algorithm, as presented in Alg. 4, has three nested for loops of d iterations each, where\nd is the dimension of the input matrix. In our case, d is the number of non-terminals, |N |. Assuming the\nKleene closure of elements in W can be evaluated in O(1), this means that computing the left corner\nexpectations in line 1 of Alg. 5 takes O(|N |3 ), as before. Hence, the complexity of the overall algorithm\nremains unchanged, that is, we can compute the prefix probabilities under a semiring-weighted, locally\nnormalized CFG G in O(N2 |N |3 + N3 |N |2 ). ■
+  483  p11  furniture/page-number  [p11-l76]  67
   sections
     1  blocks 4-9  Abstract
     1  blocks 9-19  1 Introduction
     1  blocks 19-156  2 Preliminaries
     1  blocks 156-194  3 Jelinek and Lafferty (1991)
-    1  blocks 194-275  4 Our Speed-up
-    1  blocks 275-277  5 Generalization to Semirings
-    1  blocks 277-280  6 Conclusion
-    1  blocks 280-282  Limitations
-    1  blocks 282-284  Ethics Statement
-    1  blocks 284-286  Acknowledgements
-    1  blocks 286-321  References
-    1  blocks 321-349  A Proof of Lem. 1
-    1  blocks 349-482  B Extension of Alg. 3 to Semirings
-      2  blocks 351-396  B.1 Semirings
-      2  blocks 396-482  B.2 Semiring-weighted prefix algorithm
+    1  blocks 194-276  4 Our Speed-up
+    1  blocks 276-278  5 Generalization to Semirings
+    1  blocks 278-281  6 Conclusion
+    1  blocks 281-283  Limitations
+    1  blocks 283-285  Ethics Statement
+    1  blocks 285-287  Acknowledgements
+    1  blocks 287-322  References
+    1  blocks 322-350  A Proof of Lem. 1
+    1  blocks 350-484  B Extension of Alg. 3 to Semirings
+      2  blocks 352-398  B.1 Semirings
+      2  blocks 398-484  B.2 Semiring-weighted prefix algorithm
   
   '''
 # ---
@@ -1348,7 +1367,7 @@
   11  p2  heading (1)  [p2-l12..p2-l13 (2)]  1 Introduction
   12  p2  paragraph  [p2-l14..p2-l32 (19)]  How should one formulate a mathematical or metaphysical framework that admits a formalization\nof the phenomenal contents of conscious experience? The phenomenal contents or the so-called\nqualia of consciousness are inherently subjective attributes of experience, and by most accounts,\ndeemed non-representational [127]. They refer to the raw, immediate and phenomenal aspects\nof perception, sensation or mental states. Phenomenal content, by its very nature, is subjective;\nthat is, available only through one’s first-person perspective. Qualia are at the heart of the "what\nit’s like to be" character of conscious experience, as elucidated by Thomas Nagel in 1974 [97]. If\nit were possible to provide a complete third-person description of phenomenal states, that would\nresolve the "what it’s like to be" problem of consciousness. Qualia cannot be fully described, com-\nmunicated or understood through any objective third-person account or computational routine.\nFor instance, attempts to fully convey the subjective experience of tasting chocolate or perceiving\nthe color red through objective descriptions or computational algorithms fall short of capturing\nthe full qualitative nature of those experiences. These observations collectively indicate that cer-\ntain aspects of conscious experiences pose challenges for all attempts that seek to fully explain\nor replicate qualia through either exclusively computational, or objective descriptions, that is,\npotential third-person descriptions. Besides potential implications for philosophy of mind, this\nproblem also suggests new frontiers for the philosophy of science itself; namely, how does one ex-\ntend the existing scientific paradigm based on third-person perspective to account for phenomena\nthat are subjective and non-representational - that is, amenable only via first-person perspective?
   13  p2  paragraph  [p2-l33..p2-l36 (4)]  For these very reasons, a scientific description or theory elucidating the nature of qualia,\nor one explaining the phenomenology of conscious experiences continues to be an extremely chal-\nlenging problem at the heart of modern science. Attempts at any such theoretical description (of\nqualia) call for at least two essential ingredients:
-  14  p2  paragraph  [p2-l37..p2-l38 (2)]  (i) A whole new scientific paradigm of subjectivity, one which describes phenomena from the\nintrinsic point-of-view, or "the view from the inside".
+  14  p2  list_item ((i))  [p2-l37..p2-l38 (2)]  (i) A whole new scientific paradigm of subjectivity, one which describes phenomena from the\nintrinsic point-of-view, or "the view from the inside".
   15  p2  furniture/contents  [p2-l1]  Contents
   16  p2  furniture/contents  [p2-l2]  1 Introduction
   17  p2  furniture/contents  [p2-l3]  2
@@ -1361,7 +1380,7 @@
   24  p2  furniture/contents  [p2-l10]  5 Discussion
   25  p2  furniture/contents  [p2-l11]  18
   26  p2  furniture/page-number  [p2-l39]  2
-  27  p3  paragraph  [p3-l1..p3-l2 (2)]  (ii) A metaphysical (and possibly mathematical) formalization of non-representational entities\n(potentially in the form of abstract objects and their relations).
+  27  p3  list_item ((ii))  [p3-l1..p3-l2 (2)]  (ii) A metaphysical (and possibly mathematical) formalization of non-representational entities\n(potentially in the form of abstract objects and their relations).
   28  p3  paragraph  [p3-l3..p3-l11 (9)]  Currently, in the absence of a complete description of (or difficulty conceptualizing) the\nabove two ingredients, one often relies on constructs using information, computation or causality\n[43, 99, 124]. These are certainly useful to quantify computational processes or identify states of\ncomplexity, but that is still rather far from capturing the very phenomenal character of qualia1 .\nPossibly, a metaphysical formalization of phenomenal properties is what is needed. Even though\na satisfactory solution to this problem does not exist yet, here we put forth a proposal that\nidentifies subjectively attributed meaning with the phenomenal content of conscious experience.\nWe then discuss how subjective meaning of this kind can be formalized within the setting of the\nmind-matter relation.
   29  p3  paragraph  [p3-l12..p3-l17 (6)]  More broadly, within the cognitive sciences (inclusive of approaches focussing on cognition,\nconsciousness, computation, and clinical practice), meaning has been discussed in one of two\nways: either as a by-product of explicit neuronal or computational mechanisms [45], or as an\nintentionality relation between mental representations and what they represent [24, 89]. These\ntwo approaches differ in metaphysical ontology. The former assumes a purely physicalistic stance,\nwhereas the latter presupposes a fundamental relationality between the physical and the mental.
   30  p3  paragraph  [p3-l18..p3-l29 (12)]  For instance, in the former scenario, the meaning associated to one’s experience is believed\nto arise from various cognitive processes and associations thereof [45, 58, 71]. Such cognitive\nprocesses may then serve as accessories to conscious experience. In such a view, when an individual\nexperiences a scene, it triggers associations, memories, emotions and cognitive mechanisms that\nprovide cognitive significance to that particular experience. For instance, the color red might\nevoke emotions, cultural associations or memories linked to the color. Here, meaning is not\nconsidered an inherent feature of qualia, but something that is constructed and attributed by\nan individual based upon their cognitive deliberations and psychological states. The significance\nand interpretation of any experience, is then shaped by one’s perceptions, memories, beliefs and\nalso cultural influences. In other words, meaning construction is discussed through the lens of\ncognitive (and metacognitive) mechanistic explanations [45]; that is, as an interpretative layer\nimposed on top of experience, rather than an inherent feature of raw subjective experience itself.
@@ -1411,20 +1430,20 @@
   74  p7  paragraph  [p7-l42..p7-l43 (2)]  Out-of-body experiences\n9.
   75  p7  paragraph  [p7-l44..p7-l45 (2)]  Near-death experiences\n10.
   76  p7  paragraph  [p7-l46]  States of flow
-  77  p7  paragraph  [p7-l47]  Table 1: Examples of conscious experiences that constitute subjective meaning.
+  77  p7  caption (Table 1)  [p7-l47]  Table 1: Examples of conscious experiences that constitute subjective meaning.
   78  p7  figure  [p7-d62]  
   79  p7  footnote (4)  [p7-l48..p7-l50 (3)]  4According to Metzinger, a system of "third-order embodiment" possess phenomenal self-models [91]. Such a\nsystem explicitly models itself as an embodied being, and maps some of the representational content generated in\nthis process directly onto conscious experience. In other words, it consciously experiences itself as embodied.
   80  p7  furniture/page-number  [p7-l51]  7
-  81  p8  paragraph  [p8-l1..p8-l6 (6)]  1. Moments of personal revelation, existential realization or sudden transformative life experi-\nences like a spiritual realization, a meditative revelation or an epiphany have been discussed\nin [26, 61, 86, 93, 128]. These experiences have been reported to involve a deep and immedi-\nate personal significance to the experiencing subject. For that reason, the aforementioned\nstudies investigating these experiences lean towards consciousness, rather than seeking ex-\nplanations based on purely cognitive control or processing.
-  82  p8  paragraph  [p8-l7..p8-l11 (5)]  2. Sudden realizations such as "eureka" moments, intuitive insights, instinctive or gut feel-\nings, that provide an immediate sense or perceived understanding to complex problems also\npossess subjective meaning within conscious experiences (see [113,131]). Likewise, for intro-\nspective awareness; that is, the immediate awareness of one’s own mental states, thoughts\nor introspective processes [129].
-  83  p8  paragraph  [p8-l12..p8-l15 (4)]  3. Profound experiences of artistic or aesthetic appreciation, such as being deeply moved by\na piece of music, art or even nature. Feelings of awe, wonder or personal connection when\nexperiencing aesthetic perceptions. All of these constitute examples of conscious experiences\nthat invoke an immediate kind of meaning in the form of personal significance [39, 49, 111].
-  84  p8  paragraph  [p8-l16..p8-l18 (3)]  4. Intensely felt connections in personal relationships, profound moments of empathy or ex-\nperiences of deep understanding and resonance with others, including feelings of love, are\nexamples of experiences deeply tied to a purely subjective notion of meaning [35, 122, 138].
-  85  p8  paragraph  [p8-l19..p8-l23 (5)]  5. Moments of transcendence (either through meditation, contemplation or religious practices),\nperceived states of enlightenment, metaphysical awareness, spiritual awakening, mystical\nencounters eliciting immediate, ineffable feelings of unity and connectedness either with a\nhigher state of being or a divine presence [28,51,64,85,120]. These too, hold deep personal\nsignificance for the subject.
-  86  p8  paragraph  [p8-l24..p8-l26 (3)]  6. Experiences involving altered states of consciousness, induced by meditation, trance or\naltered perceptions; such as those during lucid dreaming, mindfulness, heightened self-\nawareness, or those induced by hallucinogens [29, 94, 123].
-  87  p8  paragraph  [p8-l27..p8-l29 (3)]  7. Following Carl Jung, there are several literature studies involving instances of synchronicity\nor meaningful coincidences that evoke immediate, ineffable feelings of interconnectedness\nfor the experiencing subject [41, 46, 72, 101].
-  88  p8  paragraph  [p8-l30..p8-l33 (4)]  8. Instances of transpersonal experiences, such as out-of-body experiences, which involve a\nsensation of being detached from one’s physical body and perceiving the world from a\nlocation outside the physical body [31, 32, 90]. These experiences are intimately concerned\nwith sense of self.
-  89  p8  paragraph  [p8-l34..p8-l37 (4)]  9. Also, near-death experiences such as experiences of vivid and panoramic life reviews, where\nsubjects relive or review significant events or memories from their lives in a comprehensive\nmanner (these are sometimes reported with feelings of peace or transcendence while seeming\nto enter into a different realm during the experience) [30, 31, 130]
-  90  p8  paragraph  [p8-l38..p8-l40 (3)]  10. Lastly, experiences of being in a state of flow, where immediate, ineffable insights and\nintense focus arise during engaging activities like creating art, playing music or solving\ncomplex problems [70, 98, 133].
+  81  p8  list_item (1.)  [p8-l1..p8-l6 (6)]  1. Moments of personal revelation, existential realization or sudden transformative life experi-\nences like a spiritual realization, a meditative revelation or an epiphany have been discussed\nin [26, 61, 86, 93, 128]. These experiences have been reported to involve a deep and immedi-\nate personal significance to the experiencing subject. For that reason, the aforementioned\nstudies investigating these experiences lean towards consciousness, rather than seeking ex-\nplanations based on purely cognitive control or processing.
+  82  p8  list_item (2.)  [p8-l7..p8-l11 (5)]  2. Sudden realizations such as "eureka" moments, intuitive insights, instinctive or gut feel-\nings, that provide an immediate sense or perceived understanding to complex problems also\npossess subjective meaning within conscious experiences (see [113,131]). Likewise, for intro-\nspective awareness; that is, the immediate awareness of one’s own mental states, thoughts\nor introspective processes [129].
+  83  p8  list_item (3.)  [p8-l12..p8-l15 (4)]  3. Profound experiences of artistic or aesthetic appreciation, such as being deeply moved by\na piece of music, art or even nature. Feelings of awe, wonder or personal connection when\nexperiencing aesthetic perceptions. All of these constitute examples of conscious experiences\nthat invoke an immediate kind of meaning in the form of personal significance [39, 49, 111].
+  84  p8  list_item (4.)  [p8-l16..p8-l18 (3)]  4. Intensely felt connections in personal relationships, profound moments of empathy or ex-\nperiences of deep understanding and resonance with others, including feelings of love, are\nexamples of experiences deeply tied to a purely subjective notion of meaning [35, 122, 138].
+  85  p8  list_item (5.)  [p8-l19..p8-l23 (5)]  5. Moments of transcendence (either through meditation, contemplation or religious practices),\nperceived states of enlightenment, metaphysical awareness, spiritual awakening, mystical\nencounters eliciting immediate, ineffable feelings of unity and connectedness either with a\nhigher state of being or a divine presence [28,51,64,85,120]. These too, hold deep personal\nsignificance for the subject.
+  86  p8  list_item (6.)  [p8-l24..p8-l26 (3)]  6. Experiences involving altered states of consciousness, induced by meditation, trance or\naltered perceptions; such as those during lucid dreaming, mindfulness, heightened self-\nawareness, or those induced by hallucinogens [29, 94, 123].
+  87  p8  list_item (7.)  [p8-l27..p8-l29 (3)]  7. Following Carl Jung, there are several literature studies involving instances of synchronicity\nor meaningful coincidences that evoke immediate, ineffable feelings of interconnectedness\nfor the experiencing subject [41, 46, 72, 101].
+  88  p8  list_item (8.)  [p8-l30..p8-l33 (4)]  8. Instances of transpersonal experiences, such as out-of-body experiences, which involve a\nsensation of being detached from one’s physical body and perceiving the world from a\nlocation outside the physical body [31, 32, 90]. These experiences are intimately concerned\nwith sense of self.
+  89  p8  list_item (9.)  [p8-l34..p8-l37 (4)]  9. Also, near-death experiences such as experiences of vivid and panoramic life reviews, where\nsubjects relive or review significant events or memories from their lives in a comprehensive\nmanner (these are sometimes reported with feelings of peace or transcendence while seeming\nto enter into a different realm during the experience) [30, 31, 130]
+  90  p8  list_item (10.)  [p8-l38..p8-l40 (3)]  10. Lastly, experiences of being in a state of flow, where immediate, ineffable insights and\nintense focus arise during engaging activities like creating art, playing music or solving\ncomplex problems [70, 98, 133].
   91  p8  furniture/page-number  [p8-l41]  8
   92  p9  paragraph  [p9-l1..p9-l4 (4)]  The above are all examples of conscious experiences (although not of a typically sensory\ntype) that constitute some form of personal meaning for the experiencing subject. We claim\nthat the phenomenal content of these experiences is of a semantic type, that is, it is subjective\nmeaning.
   93  p9  heading (3)  [p9-l5..p9-l6 (2)]  3 Do Raw Feels Have Subjective Meaning?
@@ -1505,8 +1524,8 @@
   168  p15  footnote (14)  [p15-l42..p15-l44 (3)]  14One may well call such an entity an "Observer". Though this is by no means a sufficient condition to define an\nobserver. Hence, to read-off any kind of meaning, an observer is imperative. A discussion about observer theory\nfrom the perspective of second-order cybernetics can be found in [112].
   169  p15  furniture/page-number  [p15-l45]  15
   170  p16  paragraph  [p16-l3..p16-l6 (4)]  Returning to our discussion about the meaning of things in the physical world, the astute\nreader will immediately notice that this is not the only instantiation of meaning available to one’s\nmental faculties. That is indeed so. And this is where internal states, as well as perceptual\nlimitations of the subject, matter. Let us discuss this now:
-  171  p16  paragraph  [p16-l7..p16-l13 (7)]  (i) First, as has been well documented in the literature, mental representations of objects and\nrelations in the physical world, need not always be complete or accurate descriptions of those\nphysical entities [107]. In practice, the cognitive / conscious agent has to build models of both,\nthe world as well as that of other agents from incomplete social, behavioral and sensorimotor data\n(either due to stimulus uncertainty, hidden states of other agents, or the agent’s own limitations\nin processing and parsing all that information), about objects and agents in its environment,\nobtained in real-time [8–10, 16, 44, 54, 56, 115].
-  172  p16  paragraph  [p16-l14..p16-l21 (8)]  (ii) Second, and more importantly, minds can also model their own internal states. The self-model\nbeing a classic example. And these internal models within the mental domain also influence each\nother. Again, the example being how the self-model modulates the way the agent probes its\nenvironment to construct a world model, and how through its self-model, the agent perceives its\nsituated and embodied self, immersed within the world. What this means is that there is a self-\nreferential aspect within the design of mental models, which is arguably a peculiar feature of the\nmental domain. This self-referential feature, or circular feedback, can be modeled via self-loops\nwithin the mental domain. This gives us the following maps15:
+  171  p16  list_item ((i))  [p16-l7..p16-l13 (7)]  (i) First, as has been well documented in the literature, mental representations of objects and\nrelations in the physical world, need not always be complete or accurate descriptions of those\nphysical entities [107]. In practice, the cognitive / conscious agent has to build models of both,\nthe world as well as that of other agents from incomplete social, behavioral and sensorimotor data\n(either due to stimulus uncertainty, hidden states of other agents, or the agent’s own limitations\nin processing and parsing all that information), about objects and agents in its environment,\nobtained in real-time [8–10, 16, 44, 54, 56, 115].
+  172  p16  list_item ((ii))  [p16-l14..p16-l21 (8)]  (ii) Second, and more importantly, minds can also model their own internal states. The self-model\nbeing a classic example. And these internal models within the mental domain also influence each\nother. Again, the example being how the self-model modulates the way the agent probes its\nenvironment to construct a world model, and how through its self-model, the agent perceives its\nsituated and embodied self, immersed within the world. What this means is that there is a self-\nreferential aspect within the design of mental models, which is arguably a peculiar feature of the\nmental domain. This self-referential feature, or circular feedback, can be modeled via self-loops\nwithin the mental domain. This gives us the following maps15:
   173  p16  paragraph  [p16-l22..p16-l24 (3)]  SObj : ObjM → ObjM and SRel : RelM → RelM
   174  p16  paragraph  [p16-l25]  which extend the diagram in eq.(2) by:
   175  p16  figure  [p16-i1]  
@@ -1729,7 +1748,7 @@
   18  p1  paragraph  [p1-l58]  Intrinsic
   19  p1  paragraph  [p1-l64..p1-l63 (6)]  -10\n-2 -1 0 1 2
   20  p1  paragraph  [p1-l70]  EF(eV)
-  21  p1  paragraph  [p1-l72..p1-l75 (4)]  Figure 1. The total, extrinsic and intrinsic OH-conductance\nσOH vs the Fermi energy EF for the 2H-phase monolayer\nMoS2. The parameters are Fermi velocity vF = 3.6eV˚A and\nenergy gap 2∆ = 1.766eV.
+  21  p1  caption (Figure 1)  [p1-l72..p1-l75 (4)]  Figure 1. The total, extrinsic and intrinsic OH-conductance\nσOH vs the Fermi energy EF for the 2H-phase monolayer\nMoS2. The parameters are Fermi velocity vF = 3.6eV˚A and\nenergy gap 2∆ = 1.766eV.
   22  p1  paragraph  [p1-l76..p1-l97 (22)]  In this article, we calculate the full OHE, including in-\ntrinsic and extrinsic contributions, for two-dimensional\n(2D) massive Dirac fermions, using graphene, TMDs,\nand topological antiferromagnets as prototype systems.\nWe employ a quantum kinetic equation for the density\nmatrix ˆρ, derived from the quantum Liouville equation,\nfollowing the blueprint of Refs. [53, 58]. Our main find-\ning is that, remarkably, the extrinsic OH-conductance\noverwhelms the intrinsic OH-conductance in doped sys-\ntems and provides the dominant contribution to the OHE\nwhen the Fermi energy lies in the conduction or valence\nbands. This finding overhauls the conventional interpre-\ntation of experimental data and suggests that what is\nmeasured experimentally is overwhelmingly the extrin-\nsic contribution. For the model studied here of massive\nDirac fermions, and assuming short-range impurities, the\nextrinsic contribution is 21 times of the intrinsic one.\nOur central result is summarized in Fig. 1 with the to-\ntal, intrinsic and extrinsic OH-conductance σOH vs Fermi\nenergy plotted separately. The orbital Hall current op-\nerator ˆj = 1 2 {Lˆ, vˆ} where Lˆ is the OAM operator and\nvˆ the velocity operator. With the applied electric field
   23  p1  figure  [p1-d97]  
   24  p1  furniture/side-stamp  [p1-l98]  arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024
@@ -1743,7 +1762,7 @@
   32  p2  paragraph  [p2-l4]  Δ=0.25eV
   33  p2  paragraph  [p2-l10..p2-l9 (6)]  -60\n-2.0 -1.5 -1.0 -0.5 0.0
   34  p2  paragraph  [p2-l17]  EF(eV)
-  35  p2  paragraph  [p2-l19..p2-l23 (5)]  Figure 2. The extrinsic OH-conductance σ ext OH vs the Fermi\nenergy EF for different energy band gaps. For graphene the\nparameters are vF = 3 2 at with a = 1.42˚A and t = 2.8eV.
+  35  p2  caption (Figure 2)  [p2-l19..p2-l23 (5)]  Figure 2. The extrinsic OH-conductance σ ext OH vs the Fermi\nenergy EF for different energy band gaps. For graphene the\nparameters are vF = 3 2 at with a = 1.42˚A and t = 2.8eV.
   36  p2  figure  [p2-d115]  
   37  p2  paragraph  [p2-l24..p2-l26 (3)]  Ex along the xˆ-direction, the orbital Hall current j z y for\nthe z-component of the OAM flows along the yˆ-direction,\nand σOH = σ z yx = j z y /Ex. The total OH-conductance
   38  p2  paragraph  [p2-l27..p2-l28 (2)]  σ tot OH ≈ − egsgν
@@ -1812,7 +1831,7 @@
   101  p3  paragraph  [p3-l26..p3-l25 (3)]  -4\n-6\n-5
   102  p3  paragraph  [p3-l9..p3-l23 (12)]  -8\n-6\n-2\n-1\n0\n1\n2\n-2\n-1\n0 1 2
   103  p3  paragraph  [p3-l14..p3-l31 (2)]  EF(eV)\nEF(eV)
-  104  p3  paragraph  [p3-l34..p3-l39 (6)]  Figure 3. The skew scattering and side jump contributions\nto OH-conductance σOH vs the Fermi energy EF : (a) for the\n2H-phase monolayer MoS2 with the parameters vF = 3.6eV˚A\nand ∆ = 0.883eV; (b) for the tilted 2D massive Dirac model\nwith vF = 1eV˚A and ∆ = 0.1eV and vt = 0.1vF .
+  104  p3  caption (Figure 3)  [p3-l34..p3-l39 (6)]  Figure 3. The skew scattering and side jump contributions\nto OH-conductance σOH vs the Fermi energy EF : (a) for the\n2H-phase monolayer MoS2 with the parameters vF = 3.6eV˚A\nand ∆ = 0.883eV; (b) for the tilted 2D massive Dirac model\nwith vF = 1eV˚A and ∆ = 0.1eV and vt = 0.1vF .
   105  p3  paragraph  [p3-l63..p3-l65 (3)]  The intrinsic OHE arises from the intrinsic driving\nterm Dmm′ Eq = eE ℏ · iRmm′
   106  p3  figure  [p3-d200]  
   107  p3  paragraph  [p3-l66..p3-l70 (5)]  q [f (0)(Em q ) − f (0)(Em′ q )] with\nf (0)(Em q ) the Fermi distribution function in equilibrium.\nThe intrinsic OH-conductance is
@@ -2006,7 +2025,7 @@
   58  p2  paragraph  [p2-l33..p2-l34 (2)]  stim\ncue
   59  p2  paragraph  [p2-l17..p2-l29 (5)]  15 0 5 10 15
   60  p2  paragraph  [p2-l30]  timepoint
-  61  p2  paragraph  [p2-l35..p2-l36 (2)]  Figure 1: An example seaborn figure demonstrating some of its key features. The image was\ngenerated using seaborn v0.11.1.
+  61  p2  caption (Figure 1)  [p2-l35..p2-l36 (2)]  Figure 1: An example seaborn figure demonstrating some of its key features. The image was\ngenerated using seaborn v0.11.1.
   62  p2  heading  [p2-l37]  Overview
   63  p2  paragraph  [p2-l38..p3-l5 (18)]  Users interface with seaborn through a collection of plotting functions that share a common\nAPI for plot specification and offer many more specific options for customization. These\nfunctions range from basic plot types such as scatter and line plots to functions that apply\nvarious transformations and abstractions, such as histogram binning, kernel density estimation,\nand regression model fitting. Functions in seaborn are classified as either “axes-level” or\n“figure-level.” Axes-level functions behave like most plotting functions in the matplotlib.\npyplot namespace. By default, they hook into the state machine that tracks a “current”\nfigure and add a layer to it, but they can also accept a matplotlib axes object to control\nwhere the plot is drawn, similar to using the matplotlib “object-oriented” interface. Figure-\nlevel functions create their own figure when invoked, allowing them to “facet” the dataset\nby creating multiple conditional subplots, along with adding conveniences such as putting\nthe legend outside the space of the plot by default. Each figure-level function corresponds\nto several axes-level functions that serve similar purposes, with a single parameter selecting\nthe kind of plot to make. For example, the displot function can produce several different\nrepresentations of a distribution, including a histogram, kernel density estimate, or empirical\ncumulative distribution function. The figure-level functions make use of a seaborn class that\ncontrols the layout of the figure, mediating between the axes-level functions and matplotlib.\nThese classes are part of the public API and can be used directly for advanced applications.
   64  p2  figure  [p2-d37]  

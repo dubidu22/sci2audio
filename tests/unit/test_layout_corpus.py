@@ -4,7 +4,8 @@ Step 1 of #21 (D-67): furniture, columns and reading order; a verbatim sentence 
 order. Step 2: paragraphs; a verbatim sentence comes out word for word inside one block,
 across column and page breaks, footnotes and floats, and each heading is a block of its own.
 Step 3: the headings are the truth headings, with their levels and printed numbers, and the
-section tree follows them; the footnotes are the truth footnotes, with their marks.
+section tree follows them; the footnotes are the truth footnotes, with their marks; the
+captions are the truth's table, figure and algorithm captions, with their labels.
 
 The golden files list every block with its kind, label, page and text (line breaks shown as
 \\n), then the section tree.
@@ -343,10 +344,32 @@ def test_the_footnotes_are_the_truth_footnotes(paper: Path) -> None:
 
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
-def test_a_footnote_opens_with_its_mark(paper: Path) -> None:
+def test_a_footnote_caption_or_list_item_opens_with_its_label(paper: Path) -> None:
+    opening = {BlockKind.FOOTNOTE, BlockKind.CAPTION, BlockKind.LIST_ITEM}
     for block in document(paper).blocks:
-        if block.kind is BlockKind.FOOTNOTE:
+        if block.kind in opening:
             assert block.text.lstrip().startswith(block.label)
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_captions_are_the_truth_captions(paper: Path) -> None:
+    """Every caption label in the truth's tables, figures and algorithms is a caption block
+    on its page, and nothing else is a caption (step 3, PR C2; "" is a figure without a
+    caption)."""
+    doc = document(paper)
+    found: dict[int, list[str]] = {}
+    for block in doc.blocks:
+        if block.kind is BlockKind.CAPTION:
+            found.setdefault(page_of(doc, block), []).append(block.label)
+    expected: dict[int, list[str]] = {}
+    for key in ("tables", "figures", "algorithms"):
+        for entry in truth(paper).get(key, []):
+            labels = [label for label in entry["labels"] if label]
+            if labels:
+                expected.setdefault(entry["page"], []).extend(labels)
+    assert {page: sorted(labels) for page, labels in found.items()} == {
+        page: sorted(labels) for page, labels in expected.items()
+    }
 
 
 def test_headings_not_yet_found_are_still_in_the_truth() -> None:
