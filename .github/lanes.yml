@@ -6,6 +6,8 @@ lanes:
     single_threaded: true   # shared data objects: changes ripple everywhere
   extraction:
     paths: [src/sci2audio/extraction/**]
+  layout:
+    paths: [src/sci2audio/layout/**]
   textprep:
     paths: [src/sci2audio/textprep/**]
   voices:

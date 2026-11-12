@@ -93,12 +93,12 @@ known_first_party = ["sci2audio"]
 root_package = "sci2audio"
 
 [[tool.importlinter.contracts]]
-name = "Layers: entry points -> app -> pipeline stages -> core (D-46)"
+name = "Layers: entry points -> app -> pipeline stages -> core (D-46, D-63)"
 type = "layers"
 layers = [
     "sci2audio.cli",
     "sci2audio.web",
     "sci2audio.app",
-    "sci2audio.extraction | sci2audio.textprep | sci2audio.voices | sci2audio.output",
+    "sci2audio.extraction | sci2audio.layout | sci2audio.textprep | sci2audio.voices | sci2audio.output",
     "sci2audio.core",
 ]
