@@ -1,11 +1,11 @@
 """Layout on the corpus papers, checked against the hand-made ground truth (Issue #21, D-60).
 
-Step 1 of #21 (D-67): furniture, columns and reading order. Blocks are still single lines, so
-a verbatim sentence must read in order line after line; that it comes out inside one block is
-checked once paragraphs exist (step 2).
+Step 1 of #21 (D-67): furniture, columns and reading order; a verbatim sentence reads in
+order. Step 2: paragraphs; a verbatim sentence comes out inside one block, across column and
+page breaks, footnotes and floats.
 
-The golden files list every block with its kind and page. Accept a wanted change with
-`uv run pytest --snapshot-update` and explain the diff in the PR.
+The golden files list every block with its kind, page and text (line breaks shown as \\n).
+Accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
 """
 
 import re
@@ -27,7 +27,16 @@ CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 PAPERS = sorted((CORPUS / "papers").glob("*.pdf"))
 IDS = [paper.stem for paper in PAPERS]
 MAX_GAPS = 2  # times a sentence may be interrupted: a float, a footnote, a page's top
-MAX_SKIPPED_LINES = 150  # lines in one gap (one line per block until paragraphs exist)
+MAX_SKIPPED_LINES = 150  # blocks in one gap
+# Sentences not yet inside one block, each with the Issue that brings it there.
+NOT_YET_ONE_BLOCK = {
+    # Eq. (16) across both columns of page 5 is read as part of the columns.
+    (
+        "acl2023-nowak-prefix-probabilities",
+        4,
+        "Pre-computing \u03b3 and \u03b4 in lines 10\u201314 takes",
+    ): 34,
+}
 MIN_START = 8  # letters a sentence's start must have at a line's end to be found there
 
 
@@ -165,11 +174,29 @@ def _goes_on(rest: str, lines: list[tuple[int, str]], strict: bool) -> bool:
 
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_verbatim_sentences_are_inside_one_block(paper: Path) -> None:
+    """Word for word in one paragraph: not cut by a column or page break, a footnote, a
+    figure or a table, nor by a wide gap that split one of its lines (#27)."""
+    blocks = [letters(b.text) for b in doc_blocks(paper)]
+    cut = {
+        (paper.stem, item["page"], item["text"])
+        for item in truth(paper)["verbatim"]
+        if not any(letters(item["text"]) in text for text in blocks)
+    }
+    assert cut == {key for key in NOT_YET_ONE_BLOCK if key[0] == paper.stem}
+
+
+def doc_blocks(paper: Path) -> list[Block]:
+    return [b for b in document(paper).blocks if b.kind is not BlockKind.FURNITURE]
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
     doc = document(paper)
     out = [f"{paper.name}  language {doc.language}  blocks {len(doc.blocks)}"]
     for index, block in enumerate(doc.blocks):
         first, last = block.parts[0].item, block.parts[-1].item
         items = first if first == last else f"{first}..{last} ({len(block.parts)})"
-        out.append(f"{index}  p{page_of(doc, block)}  {block.kind.value}  [{items}]  {block.text}")
+        text = block.text.replace("\n", "\\n")  # one block per line of the golden file
+        out.append(f"{index}  p{page_of(doc, block)}  {block.kind.value}  [{items}]  {text}")
     assert "\n".join(out) + "\n" == snapshot

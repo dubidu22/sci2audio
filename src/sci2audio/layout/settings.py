@@ -51,3 +51,12 @@ class LayoutSettings:
     one_half: float = 0.9  # a page with this share of its lines in one half of the text area
     one_half_slack: float = 0.1  # (lines may reach this share of the text width past the middle)
     #                               follows the document's columns
+
+    # Paragraphs
+    size_change: float = 0.08  # lines whose sizes differ by this share are in different styles
+    bold_share: float = 0.8  # a line with this share of its letters bold is set in bold
+    short_line: float = 1.5  # em: a line ending this far before its text's edge ends a paragraph
+    align: float = 0.3  # em: lines ending this close together share an edge
+    indent: float = 0.7  # em: a line starting this much further in than the lines before it
+    paragraph_space: float = 0.4  # em: this much more white than the usual line spacing
+    #                                between two lines ends a paragraph

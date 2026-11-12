@@ -19,6 +19,7 @@ from sci2audio.layout.settings import LayoutSettings
 
 Cuts = list[tuple[float, float]]
 Edges = list[tuple[float, "Element | None"]]  # where bands end, and what is read there
+Sides = dict[int, tuple[float | None, float | None]]  # id(element): its column's gutters
 
 
 @dataclass(frozen=True)
@@ -59,9 +60,22 @@ def figures(graphics: list[Picture | Drawing], reach: float) -> list[Element]:
     ]
 
 
+@dataclass
+class Reading:
+    """A page read: its elements in order, its columns, and where each column ends.
+
+    `sides` gives, for an element read inside a column, the gutter on its left and on its
+    right (None at the text's edge); an element read across the page has no entry.
+    """
+
+    ordered: list[Element]
+    columns: int
+    sides: Sides
+
+
 def reading_order(
     elements: list[Element], width: float, size: float, settings: LayoutSettings
-) -> tuple[list[Element], int]:
+) -> Reading:
     """The elements in reading order, and how many columns the page's running text has.
 
     A band counts for the columns if it holds a fair share of the page's text and a column
@@ -70,17 +84,17 @@ def reading_order(
     """
     wide = [e for e in elements if e.box.x1 - e.box.x0 > settings.wide * width]
     taken = {id(e) for e in wide}
-    ordered: list[Element] = []
-    columns, total = 1, _text(elements)
+    reading = Reading([], 1, {})
+    total = _text(elements)
     rest = [e for e in elements if id(e) not in taken]
     for band, after in _bands(rest, _edges(wide, elements, settings)):
         cuts = gutters(band, width, size, settings)
-        ordered += _read_band(band, cuts, settings)
+        reading.ordered += _read_band(band, cuts, settings, reading.sides)
         if _text(band) >= settings.column_text * total and _filled(band, cuts, settings):
-            columns = max(columns, len(cuts) + 1)
+            reading.columns = max(reading.columns, len(cuts) + 1)
         if after:
-            ordered.append(after)
-    return ordered, columns
+            reading.ordered.append(after)
+    return reading
 
 
 def _text(elements: list[Element]) -> int:
@@ -144,14 +158,15 @@ def gutters(elements: list[Element], width: float, size: float, settings: Layout
     right = max(e.box.x1 for e in elements)
     crossings = int(settings.gutter_crossings * len(elements))
     found: Cuts = []
-    opened = left  # where the column left of the next gutter starts
+    opened = left  # where the last gutter ends
+    after = left  # where it starts: what starts from here on is right of it
 
     def splits(start: float, end: float) -> bool:
-        """True if the strip is wide enough, inside the band, and has a column on each side."""
+        """True if the strip is wide enough, inside the band, and has a column on each side.
+        A line may end inside a strip, as strips allow a few crossings."""
         if end - start < settings.gutter * size or not left < start < end < right:
             return False
-        # a line may end in the strip, as strips allow a few crossings
-        column = [e for e in elements if e.box.x0 >= opened and e.box.x1 <= end]
+        column = [e for e in elements if e.box.x0 >= after and e.box.x1 <= end]
         rest = [e for e in elements if e.box.x0 >= end]
         return _is_column(column, width, settings) and _is_column(rest, width, settings)
 
@@ -160,7 +175,7 @@ def gutters(elements: list[Element], width: float, size: float, settings: Layout
         for start, end in candidates:
             if start >= opened and splits(start, end):
                 found.append((start, end))
-                opened = end
+                opened, after = end, start
     return found
 
 
@@ -208,14 +223,19 @@ def _is_column(side: list[Element], width: float, settings: LayoutSettings) -> b
     return broad >= settings.column_width * width
 
 
-def _read_band(elements: list[Element], cuts: Cuts, settings: LayoutSettings) -> list[Element]:
+def _read_band(
+    elements: list[Element], cuts: Cuts, settings: LayoutSettings, sides: Sides
+) -> list[Element]:
     """Columns left to right, cut again where an element crosses a gutter."""
     crossers = [e for e in elements if _spans(e, cuts)]
     taken = {id(e) for e in crossers}
     rest = [e for e in elements if id(e) not in taken]
     ordered: list[Element] = []
+    edges: list[float | None] = [None, *(x for cut in cuts for x in cut), None]
     for band, after in _bands(rest, _edges(crossers, elements, settings)):
-        for column in _columns(band, cuts):
+        for index, column in enumerate(_columns(band, cuts)):
+            if cuts:
+                sides.update((id(e), (edges[2 * index], edges[2 * index + 1])) for e in column)
             ordered += by_rows(column, settings.row_overlap)
         if after:
             ordered.append(after)
@@ -248,5 +268,6 @@ def _spans(element: Element, cuts: Cuts) -> bool:
 
 
 def _column(element: Element, cuts: Cuts) -> int:
-    middle = (element.box.x0 + element.box.x1) / 2
-    return sum(middle > start for start, _ in cuts)
+    """The column the element starts in. A gutter may begin inside the longest lines of the
+    column to its left (it allows a few to cross), so their middle can lie past its start."""
+    return sum(element.box.x0 >= start for start, _ in cuts)
