@@ -8,6 +8,8 @@ pages = 9
 # Pages 8-9 are the one-column ACL 2023 Responsible NLP Checklist.
 columns = [2, 2, 2, 2, 2, 2, 2, 1, 1]
 
+# "Single Sentence" and "Two Actions" in A.1 are bold labels over groups of examples, not
+# headings: they stay in the text as read, like run-in heads.
 # The checklist is printed in the paper, so it is read. Its section letters are printed
 # with a tick box between letter and text ("B ☑ Did you ..."); the box is left out here.
 headings = [
@@ -27,8 +29,6 @@ headings = [
   { level = 1, text = "References" },
   { level = 1, text = "A Appendix" },
   { level = 2, text = "A.1 Sample Instantiations" },
-  { level = 3, text = "Single Sentence" },
-  { level = 3, text = "Two Actions" },
   { level = 2, text = "A.2 Substitutions" },
   { level = 1, text = "ACL 2023 Responsible NLP Checklist" },
   { level = 2, text = "A For every submission:" },
