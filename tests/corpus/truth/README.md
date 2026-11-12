@@ -32,6 +32,15 @@ a sentence become one space; a hyphen at a line end is dropped when it only spli
 ("subop-/timal" becomes "suboptimal") and kept when the word is really hyphenated. A URL or DOI
 broken across lines is joined without a space.
 
+A footnote mark and inline maths (sub- and superscripts, Greek letters, symbols) are written in
+line, as the characters the page prints, at the place they stand: "the environment.3" for mark 3
+after a full stop, "ObjP" for Obj with subscript P, "the ith row" for i with superscript th.
+Symbols and Greek letters are their Unicode characters (∗, σ, ℏ). A space is written only where
+the page shows one: as wide as a word space between the two pieces, as in Hardt's "sets. 1"; a
+mark or script set close to its neighbour gets none. Where a superscript stands above a
+subscript, the superscript is written first. The mark stays in the truth even though a text
+step later leaves it out of the script (TP-05): the truth describes what layout reads.
+
 ### Keys for every file
 
 | Key | Type | Meaning |
@@ -54,7 +63,7 @@ broken across lines is joined without a space.
 | `formula_numbers` | list of `{ page, numbers }` | The equation numbers printed next to display formulas, as text without brackets ("12", "16a"), in reading order and grouped by page. A display spanning several lines under one number lists it once; a number printed again (an equation restated in an appendix) is listed again. Empty when the paper numbers no formulas |
 | `unnumbered_formulas` | list of `{ page, count }` | How many display formulas without a number each page has |
 
-| `verbatim` | list of tables, 3 to 5 | Sentences that must come out word for word (see below) |
+| `verbatim` | list of tables, 3 to 7 | Sentences that must come out word for word (see below) |
 | `furniture` | list of tables | Text that must not be read aloud (see below) |
 
 The lists from `footnotes` to `unnumbered_formulas` may be empty. Each names a page at most
@@ -64,11 +73,12 @@ Each `[[verbatim]]` entry:
 
 | Key | Type | Meaning |
 |---|---|---|
-| `where` | string | `plain`, `column-break` (the sentence runs from one column into the next), `page-break` (runs onto the next page) or `hyphenation` (a word in it is split across lines with a hyphen) |
+| `where` | string | `plain`, `column-break` (the sentence runs from one column into the next), `page-break` (runs onto the next page), `hyphenation` (a word in it is split across lines with a hyphen), `footnote-mark` (it holds a footnote mark that the page's `footnotes` list) or `inline-maths` (it holds a sub- or superscript) |
 | `page` | integer | Page where it starts, counted from 1 |
-| `text` | string | The sentence. Where a sentence holds inline maths or runs very long, a fragment of at least six words is used instead, and a comment says so |
+| `text` | string | The sentence. Where a sentence runs very long, or holds maths that cannot be written in line (a fraction, a stacked formula), a fragment of at least six words is used instead, and a comment says so |
 
-Include one `column-break`, one `page-break` and one `hyphenation` entry where the paper has them.
+Include one `column-break`, one `page-break`, one `hyphenation`, one `footnote-mark` and one
+`inline-maths` entry where the paper has them, and say in a comment when it has none (#39).
 
 Each `furniture` entry (an inline table, one per line):
 
