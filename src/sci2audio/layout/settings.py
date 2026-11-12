@@ -74,7 +74,8 @@ class LayoutSettings:
     heading_bold: float = 0.95  # a block with this share of its main-size letters bold is bold
     heading_repeats: int = 2  # a document numbers its headings if this many have a number;
     #                           without numbers, a heading style is used this often
-    # whole texts of headings that may stand in any bold or larger style (English, v1.0)
+    # whole texts of headings that may stand in any bold or larger style. English only (v1.0):
+    # papers in another language need their own list, passed in with that job's settings
     section_names: tuple[str, ...] = (
         "Abstract",
         "Summary",
