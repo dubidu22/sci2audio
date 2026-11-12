@@ -17,11 +17,11 @@ PDF, EPUB, Markdown or text in; a faithful listening script and MP3/M4B with cha
 ## Architecture (D-46): one program in layers
 
 ```
-cli → web → app → [extraction | textprep | voices | output] → core
+cli → web → app → [extraction | layout | textprep | voices | output] → core
 ```
 
 - `core`: shared data objects only (document, spans, edits, audio chunks).
-- The four pipeline stages import only `core`, never each other and never `app`, `web` or `cli`.
+- The five pipeline stages import only `core`, never each other and never `app`, `web` or `cli`.
 - `app`: job runner and settings; wires the stages together.
 - `web`: local FastAPI server and the HTML interface. `cli`: command line.
 - `lint-imports` enforces this in CI. Fix the design, never the contract.

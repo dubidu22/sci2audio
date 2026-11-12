@@ -24,12 +24,12 @@ headings = [
 furniture = [
   { kind = "side-stamp", pages = [1], text = "arXiv:2405.01148v1 [q-bio.NC] 2 May 2024" },
   { kind = "contents", pages = [2], text = "Contents" },
-  { kind = "contents", pages = [2], text = "1 Introduction" },
-  { kind = "contents", pages = [2], text = "2 Subjective Meaning in Phenomenology of Experience" },
-  { kind = "contents", pages = [2], text = "3 Do Raw Feels Have Subjective Meaning?" },
-  { kind = "contents", pages = [2], text = "4 The Formal Structure of Meaning" },
-  { kind = "contents", pages = [2], text = "5 Discussion" },
-  # The contents page also prints the page numbers 2, 4, 9, 11 and 18 beside the entries.
+  # Each entry with the page number printed beside it.
+  { kind = "contents", pages = [2], text = "1 Introduction 2" },
+  { kind = "contents", pages = [2], text = "2 Subjective Meaning in Phenomenology of Experience 4" },
+  { kind = "contents", pages = [2], text = "3 Do Raw Feels Have Subjective Meaning? 9" },
+  { kind = "contents", pages = [2], text = "4 The Formal Structure of Meaning 11" },
+  { kind = "contents", pages = [2], text = "5 Discussion 18" },
   { kind = "page-number", pages = [1], text = "1" },
   { kind = "page-number", pages = [2], text = "2" },
   { kind = "page-number", pages = [3], text = "3" },
