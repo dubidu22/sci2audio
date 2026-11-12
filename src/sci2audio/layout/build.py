@@ -14,6 +14,7 @@ from sci2audio.core import (
     Part,
     TextLine,
 )
+from sci2audio.layout.footnotes import find_footnotes
 from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, find_furniture, page_label
 from sci2audio.layout.geometry import body_size, boxed, text_area
 from sci2audio.layout.headings import find_headings
@@ -34,7 +35,8 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     settings = settings or LayoutSettings()
     layout = _Layout(content, settings)
     units = [unit for page in content.pages for unit in layout.units(page)]
-    blocks, sections = find_headings(paragraphs(units, settings), content, layout.size, settings)
+    blocks = find_footnotes(paragraphs(units, settings), content, layout.size, settings)
+    blocks, sections = find_headings(blocks, content, layout.size, settings)
     language = settings.language or content.metadata.language or "en"
     labels = tuple(layout.label(page) for page in content.pages)
     return Document(
