@@ -184,7 +184,7 @@ def test_a_same_length_replacement_is_still_a_replacement() -> None:
 
 @pytest.mark.timeout(60)
 def test_a_long_text_without_a_full_stop_is_cut_in_linear_time() -> None:
-    text = "word " * 60_000  # 300,000 characters; the quadratic cut took about 11 s here
+    text = "word " * 60_000  # 300,000 characters: 0.08 s; the quadratic cut would take about 11 s
     started = time.perf_counter()
     parts = cut(text)
     assert time.perf_counter() - started < 5
