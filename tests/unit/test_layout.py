@@ -354,6 +354,8 @@ def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
                 text = lines[part.item]
                 assert block.text[part.start : part.start + len(text)] == text
                 assert block.text[part.start + len(text) : end] in ("", " ", "\n")
+        if block.kind in (BlockKind.FOOTNOTE, BlockKind.CAPTION, BlockKind.LIST_ITEM):
+            assert block.text.lstrip().startswith(block.label)
     pages = [doc.content.items()[b.parts[0].item][0].number for b in doc.blocks]
     assert pages == sorted(pages)
 
