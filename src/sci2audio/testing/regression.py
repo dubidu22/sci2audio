@@ -10,6 +10,7 @@ A case file is TOML with one `[[case]]` table per case:
     language = "en"               # optional, default "en"
     blocks = [{ kind = "paragraph", text = "..." }]  # optional: role, label, describes
     expected = ["..."]            # the script today, one line per block that is read
+    utterances = ["...", "..."]   # optional: how the cutter cuts the script, where it matters
 
 `expected` pins what the built-in steps produce now. A rule PR changes the cases its rule
 touches first (test-first) and the diff shows the before and after (tests.md).
@@ -26,10 +27,10 @@ from pathlib import Path
 
 from sci2audio.core import Block, BlockKind, Document, FurnitureRole, ScriptPiece
 from sci2audio.testing.documents import make_document
-from sci2audio.textprep import StepRun, spoken_text
+from sci2audio.textprep import PAUSE_MARK, StepRun, cut_utterances, spoken_text
 
 _CASE_ID = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
-_CASE_KEYS = {"id", "audit", "issue", "goal", "language", "blocks", "expected"}
+_CASE_KEYS = {"id", "audit", "issue", "goal", "language", "blocks", "expected", "utterances"}
 _BLOCK_KEYS = {"kind", "text", "role", "label", "describes"}
 
 
@@ -43,6 +44,7 @@ class Case:
     goal: str
     document: Document
     expected: tuple[str, ...]
+    utterances: tuple[str, ...] | None = None  # None: not checked for this case
 
 
 def load_cases(path: Path) -> list[Case]:
@@ -87,6 +89,11 @@ def _case(raw: dict) -> Case:
     expected = raw["expected"]
     if not isinstance(expected, list) or not all(isinstance(line, str) for line in expected):
         raise TypeError("expected must be a list of strings, one per block that is read")
+    utterances = raw.get("utterances")
+    if utterances is not None and (
+        not isinstance(utterances, list) or not all(isinstance(u, str) for u in utterances)
+    ):
+        raise TypeError("utterances must be a list of strings")
     if not raw["goal"].strip():
         raise ValueError("goal must say what the owning issue's rule must reach")
     return Case(
@@ -96,6 +103,7 @@ def _case(raw: dict) -> Case:
         goal=raw["goal"],
         document=make_document(blocks, raw.get("language", "en"), f"{raw['id']}.txt"),
         expected=tuple(expected),
+        utterances=None if utterances is None else tuple(utterances),
     )
 
 
@@ -106,6 +114,12 @@ def render(run: StepRun) -> list[str]:
         by_block[piece.span.block].append(piece)
     lines = [spoken_text(pieces, show_pauses=True) for pieces in by_block]
     return [line for line in lines if line]
+
+
+def said(run: StepRun) -> list[str]:
+    """The utterances the cutter makes of the script; pauses show as "[pause]"."""
+    language = run.document.language
+    return [u.text or PAUSE_MARK for u in cut_utterances(run.script(), language)]
 
 
 def diff(expected: Sequence[str], got: Sequence[str]) -> str:

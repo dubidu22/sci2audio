@@ -2,7 +2,8 @@
 
 A `TextStep` proposes `Edit`s; `run_steps` runs the built-in steps (`BUILT_IN_STEPS`, coarse
 to fine), settles overlapping edits (the earlier step wins) and keeps every proposal for the
-report; `StepRun.script()` is the listening script.
+report; `StepRun.script()` is the listening script, and `cut_utterances` cuts it into what
+the voice says in one call each.
 
 Pipeline stage; may import only ``sci2audio.core``.
 """
@@ -29,10 +30,18 @@ from sci2audio.textprep.steps import (
     TextStep,
     step_problems,
 )
+from sci2audio.textprep.utterances import (
+    ABBREVIATIONS,
+    DEFAULT_MAX_CHARS,
+    Utterance,
+    cut_utterances,
+)
 
 __all__ = [
+    "ABBREVIATIONS",
     "ANY_LANGUAGE",
     "BUILT_IN_STEPS",
+    "DEFAULT_MAX_CHARS",
     "PAUSE_MARK",
     "TEXT_STEP_API",
     "Category",
@@ -45,7 +54,9 @@ __all__ = [
     "StepProblem",
     "StepRun",
     "TextStep",
+    "Utterance",
     "check_registry",
+    "cut_utterances",
     "overlap",
     "run_steps",
     "spoken_text",

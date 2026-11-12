@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from sci2audio.testing.regression import Case, diff, load_cases, render
+from sci2audio.testing.regression import Case, diff, load_cases, render, said
 from sci2audio.textprep import StepContext, run_steps
 
 CASES_FILE = Path(__file__).resolve().parents[1] / "regression" / "english.toml"
@@ -20,6 +20,11 @@ def test_the_script_is_the_expected_one(case: Case) -> None:
     run = run_steps(case.document, StepContext(case.document.language), strict=True)
     got = render(run)
     assert list(case.expected) == got, f"script of {case.id} changed:\n{diff(case.expected, got)}"
+    if case.utterances is not None:
+        cut = said(run)
+        assert list(case.utterances) == cut, (
+            f"utterances of {case.id} changed:\n{diff(case.utterances, cut)}"
+        )
 
 
 def test_the_14_audit_rows_are_all_there() -> None:
