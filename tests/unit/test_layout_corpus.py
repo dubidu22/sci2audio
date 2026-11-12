@@ -4,7 +4,7 @@ Step 1 of #21 (D-67): furniture, columns and reading order; a verbatim sentence 
 order. Step 2: paragraphs; a verbatim sentence comes out word for word inside one block,
 across column and page breaks, footnotes and floats, and each heading is a block of its own.
 Step 3: the headings are the truth headings, with their levels and printed numbers, and the
-section tree follows them.
+section tree follows them; the footnotes are the truth footnotes, with their marks.
 
 The golden files list every block with its kind, label, page and text (line breaks shown as
 \\n), then the section tree.
@@ -327,6 +327,26 @@ def test_printed_numbers_follow_the_truth_text() -> None:
         "A.1",
     ]
     assert printed_numbers(["1 Intro", "A Note on Ethics"]) == ["1", ""]
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_footnotes_are_the_truth_footnotes(paper: Path) -> None:
+    """Every note below a footnote rule is a footnote block with its mark as printed, page
+    by page in reading order, and nothing else is a footnote (step 3, PR C1)."""
+    doc = document(paper)
+    found: dict[int, list[str]] = {}
+    for block in doc.blocks:
+        if block.kind is BlockKind.FOOTNOTE:
+            found.setdefault(page_of(doc, block), []).append(block.label)
+    expected = {note["page"]: note["marks"] for note in truth(paper)["footnotes"]}
+    assert found == expected
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_a_footnote_opens_with_its_mark(paper: Path) -> None:
+    for block in document(paper).blocks:
+        if block.kind is BlockKind.FOOTNOTE:
+            assert block.text.startswith(block.label)
 
 
 def test_headings_not_yet_found_are_still_in_the_truth() -> None:
