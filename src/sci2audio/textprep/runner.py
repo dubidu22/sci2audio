@@ -4,7 +4,9 @@ Every step whose languages fit the job runs, also the steps of switched-off cate
 the report can show what each switch would change without a second run. Their edits are
 marked switched off and block nothing. The switched-on edits are then taken in step order
 (the registry order: coarse to fine), and inside one step in document order: an edit that
-overlaps an edit already accepted is set aside, and remembers the edit that won. `ask`
+overlaps an edit already accepted is set aside, and remembers the edit that won. A block
+that an accepted block-stage edit covers takes no further edit at all, not even a mark at
+its start or end. `ask`
 edits are accepted like any other; `apply_edits` reads the original for them (D-61 (3)).
 
 A step that raises or returns invalid edits is dropped, with a problem in the result: the
@@ -13,7 +15,7 @@ run never stops halfway (D-61 (3)). `strict=True` raises instead, for tests.
 
 from __future__ import annotations
 
-from bisect import insort
+from bisect import bisect_left, insort
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -115,7 +117,7 @@ def run_steps(
             elif (winner := accepted.overlapping(edit)) is not None:
                 outcomes.append(Outcome(edit, step.category, Status.SET_ASIDE, winner))
             else:
-                accepted.add(edit)
+                accepted.add(edit, step.stage)
                 outcomes.append(Outcome(edit, step.category, Status.ACCEPTED))
     return StepRun(document, tuple(outcomes), tuple(problems), tuple(not_run))
 
@@ -155,34 +157,38 @@ def overlap(a: Span, b: Span) -> bool:
 
 
 class _Accepted:
-    """The accepted edits per block, sorted by span, for fast overlap checks."""
+    """The accepted edits per block, sorted by span, for fast overlap checks.
+
+    A block whose whole text an accepted block-stage edit covers is claimed by it: every
+    later edit in that block is set aside, including marks at the block's two ends, which
+    touch no character and so overlap nothing by the core rule (D-105: whole-block
+    decisions stay intact).
+    """
 
     def __init__(self) -> None:
         self._blocks: dict[int, list[tuple[int, int, int]]] = {}
         self._edits: list[Edit] = []
+        self._claimed: dict[int, Edit] = {}  # block index -> its accepted block-stage edit
 
     def overlapping(self, edit: Edit) -> Edit | None:
-        """The accepted edit this one overlaps, if any."""
+        """The accepted edit this one overlaps, or the edit that claimed its block, if any."""
+        if (claim := self._claimed.get(edit.span.block)) is not None:
+            return claim
         spans = self._blocks.get(edit.span.block, [])
         start, end = edit.span.start, edit.span.end
         # Accepted spans never overlap, so sorted by start their ends never decrease: only
         # the span just before `start` can reach past it; later ones start at `start` or on.
-        low, high = 0, len(spans)
-        while low < high:
-            middle = (low + high) // 2
-            if spans[middle][:2] < (start, end):
-                low = middle + 1
-            else:
-                high = middle
-        for position in range(max(low - 1, 0), len(spans)):
-            a, b, number = spans[position]
-            if position >= low and a > end:
+        low = bisect_left(spans, (start, end))
+        for a, b, number in spans[max(low - 1, 0) :]:
+            if a > end:
                 break
             if overlap(Span(edit.span.block, a, b), edit.span):
                 return self._edits[number]
         return None
 
-    def add(self, edit: Edit) -> None:
+    def add(self, edit: Edit, stage: Stage) -> None:
         spans = self._blocks.setdefault(edit.span.block, [])
         insort(spans, (edit.span.start, edit.span.end, len(self._edits)))
         self._edits.append(edit)
+        if stage is Stage.BLOCK:
+            self._claimed[edit.span.block] = edit

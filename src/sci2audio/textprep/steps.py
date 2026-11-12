@@ -63,8 +63,9 @@ _LABELS = {
 class Stage(StrEnum):
     """How much of a block a step's edits cover; D-57's "stage" field.
 
-    Block steps run before inline steps (coarse to fine), so a whole-block removal wins over
-    a rule inside that block when the two overlap.
+    Block steps run before inline steps (coarse to fine). An accepted block edit claims its
+    block: no later edit in that block is used, not even a mark at its start or end, so a
+    whole-block removal or notice always wins over the rules inside the block (D-105).
     """
 
     BLOCK = "block"  # every edit covers a whole block: furniture, reference list, notices

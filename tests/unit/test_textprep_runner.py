@@ -84,15 +84,25 @@ def test_a_whole_block_removal_sets_aside_every_rule_inside_that_block() -> None
                   category=Category.PAGE_FURNITURE)  # fmt: skip
     inline = Fixed("inline", [say(1, 0, 7, "J."), pause(1, 7), pause(1, 13), pause(1, 0)])
     run = run_steps(DOC, EN, [block, inline], strict=True)
-    statuses = [o.status for o in run.outcomes]
-    # a mark strictly inside is set aside; marks at the block's two ends touch no character
-    assert statuses == [
-        Status.ACCEPTED,  # the furniture block
-        Status.ACCEPTED,  # the pause at its start
-        Status.SET_ASIDE,  # the replacement inside it
-        Status.SET_ASIDE,  # the pause inside it
-        Status.ACCEPTED,  # the pause at its end
+    # the block step claims the whole block: even marks at its two ends, which touch no
+    # character, are set aside, so nothing is read where the block was removed (D-105)
+    assert [o.status for o in run.outcomes] == [Status.ACCEPTED] + [Status.SET_ASIDE] * 4
+    assert all(o.won_by == block.edits[0] for o in run.outcomes[1:])
+    assert render_blocks(DOC, run.script())[1] == ""
+
+
+def test_an_insertion_at_the_start_of_a_removed_block_is_not_read() -> None:
+    block = Fixed("furniture", [remove(1, 0, 13)], stage=Stage.BLOCK,
+                  category=Category.PAGE_FURNITURE)  # fmt: skip
+    inline = Fixed("inline", [say(1, 0, 0, "Note: "), pause(1, 13), pause(0, 0)])
+    run = run_steps(DOC, EN, [block, inline], strict=True)
+    assert [o.status for o in run.outcomes] == [
+        Status.ACCEPTED,
+        Status.ACCEPTED,  # block 0 is not claimed
+        Status.SET_ASIDE,
+        Status.SET_ASIDE,
     ]
+    assert [p for p in run.script() if p.span.block == 1] == []
 
 
 def test_two_marks_at_one_position_overlap() -> None:
@@ -183,16 +193,23 @@ def proposals(draw: st.DrawFn, document: Document, step_id: str, stage: Stage) -
     if not document.blocks:
         return []
     edits: list[Edit] = []
-    for _ in range(draw(st.integers(0, 6))):
+    with_text = [i for i, block in enumerate(document.blocks) if block.text]
+    for _ in range(draw(st.integers(1, 6))):
         if stage is Stage.BLOCK:
-            index = draw(st.integers(0, len(document.blocks) - 1))
+            index = draw(st.sampled_from(with_text or range(len(document.blocks))))
             span = Span(index, 0, len(document.blocks[index].text))
             if not span.end:
                 continue
             edit = replace(draw(edits_on(span).filter(lambda e: e.kind is not EditKind.PAUSE)),
                            step=step_id)  # fmt: skip
         else:
-            edit = replace(draw(edits_on(draw(spans_in(document)))), step=step_id)
+            span = draw(spans_in(document))
+            if with_text and not document.blocks[span.block].text and draw(st.booleans()):
+                index = draw(st.sampled_from(with_text))  # mostly blocks with text
+                length = len(document.blocks[index].text)
+                start = draw(st.integers(0, length))
+                span = Span(index, start, draw(st.integers(start, length)))
+            edit = replace(draw(edits_on(span)), step=step_id)
         if not any(overlaps(edit.span, other.span) for other in edits):
             edits.append(edit)
     return edits
@@ -201,7 +218,7 @@ def proposals(draw: st.DrawFn, document: Document, step_id: str, stage: Stage) -
 @st.composite
 def runs(draw: st.DrawFn) -> tuple[Document, list[Fixed]]:
     document = draw(documents())
-    stages = sorted(draw(st.lists(st.sampled_from(Stage), max_size=4)),
+    stages = sorted(draw(st.lists(st.sampled_from(Stage), min_size=1, max_size=4)),
                     key=lambda stage: stage is Stage.INLINE)  # fmt: skip
     steps = []
     for number, stage in enumerate(stages):
@@ -213,14 +230,20 @@ def runs(draw: st.DrawFn) -> tuple[Document, list[Fixed]]:
 
 
 def greedy(steps: list[Fixed], switched_off: set[Category]) -> list[Edit]:
-    """The overlap rule written plainly: in step order, keep what overlaps nothing kept."""
+    """The overlap rule written plainly: in step order, keep what overlaps nothing kept and
+    lies in no block a kept block-stage edit covers."""
     kept: list[Edit] = []
+    claimed: set[int] = set()
     for step in steps:
         if step.category in switched_off:
             continue
         for edit in sorted(step.edits, key=lambda e: (e.span.block, e.span.start, e.span.end)):
+            if edit.span.block in claimed:
+                continue
             if not any(overlaps(edit.span, other.span) for other in kept):
                 kept.append(edit)
+                if step.stage is Stage.BLOCK:
+                    claimed.add(edit.span.block)
     return kept
 
 
@@ -240,13 +263,20 @@ def test_the_runner_settles_any_proposals_by_the_written_rule(
     check_edits(document, run.accepted)
     apply_edits(document, run.accepted)
     order = {step.id: number for number, step in enumerate(steps)}
+    stages = {step.id: step.stage for step in steps}
+    # a block an accepted block-stage edit covers holds no other step's accepted edit
+    claimed = {e.span.block: e.step for e in run.accepted if stages[e.step] is Stage.BLOCK}
+    assert all(claimed.get(e.span.block, e.step) == e.step for e in run.accepted)
     for outcome in run.outcomes:
         off = outcome.category in switched_off
         assert (outcome.status is Status.SWITCHED_OFF) is off
         if outcome.status is Status.SET_ASIDE:
             winner = outcome.won_by
             assert winner in run.accepted
-            assert overlap(winner.span, outcome.edit.span)
+            claims = (
+                stages[winner.step] is Stage.BLOCK and winner.span.block == outcome.edit.span.block
+            )
+            assert overlap(winner.span, outcome.edit.span) or claims
             assert order[winner.step] < order[outcome.edit.step]
         else:
             assert outcome.won_by is None
@@ -263,6 +293,8 @@ def test_switching_a_category_off_is_like_leaving_its_steps_out(
                         strict=True)  # fmt: skip
     assert switched.accepted == without.accepted
     assert switched.script() == without.script()
+    # the other steps' outcomes, statuses and winners included, are those of the run without
+    assert [o for o in switched.outcomes if o.category is not category] == list(without.outcomes)
 
 
 @given(documents())

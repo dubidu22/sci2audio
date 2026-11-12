@@ -2,10 +2,16 @@
 # produce for them, one line per block that is read. Format: sci2audio.testing.regression.
 #
 # The first 14 cases are the 14 rows of the English audit (KB
-# 02-product-and-pipeline/audit-english-rules-vs-spacy-2026-11-09.md §4), with text from its
-# sample, which was written for that test (tools/english_check/sample_en.md, project-owned,
-# no third-party text). Line-end hyphens are written as layout gives them: a hyphen, then a
-# line break.
+# 02-product-and-pipeline/audit-english-rules-vs-spacy-2026-11-09.md §4). Their text comes
+# from the audit's sample, which was written for that test (tools/english_check/sample_en.md,
+# project-owned, no third-party text):
+# - verbatim sentences of the sample: author-year-citations, numeric-citations,
+#   url-and-e-mail, line-end-hyphens, units, running-footer;
+# - adapted from the sample, so that each case tests one rule (words left out or added, such
+#   as "Dr. Smith compared them vs. controls"): ligature, symbols, statistics, abbreviations,
+#   large-number, roman-numerals, acronyms, homographs.
+# Line-end hyphens are written as layout gives them: a hyphen, then a line break (the sample
+# prints "develop- ment").
 #
 # `expected` is the script TODAY. A rule PR changes `expected` of the cases its rule touches
 # before it changes the rule, and the PR shows the diff. `goal` notes what the owning issue's

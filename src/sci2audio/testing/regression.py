@@ -87,7 +87,7 @@ def _case(raw: dict) -> Case:
     expected = raw["expected"]
     if not isinstance(expected, list) or not all(isinstance(line, str) for line in expected):
         raise TypeError("expected must be a list of strings, one per block that is read")
-    if not raw["goal"].strip():
+    if not isinstance(raw["goal"], str) or not raw["goal"].strip():
         raise ValueError("goal must say what the owning issue's rule must reach")
     return Case(
         id=raw["id"],

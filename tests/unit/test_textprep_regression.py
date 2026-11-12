@@ -39,6 +39,10 @@ def test_a_bad_case_file_names_the_case(tmp_path: Path) -> None:
                    'expected = []\nextra = 1\n')  # fmt: skip
     with pytest.raises(ValueError, match="unknown keys"):
         load_cases(bad)
+    bad.write_text('[[case]]\nid = "one"\naudit = 0\nissue = 1\ngoal = 3\nblocks = []\n'
+                   'expected = []\n')  # fmt: skip
+    with pytest.raises(ValueError, match="case one: goal must say"):
+        load_cases(bad)
 
 
 def test_the_diff_shows_before_and_after() -> None:
