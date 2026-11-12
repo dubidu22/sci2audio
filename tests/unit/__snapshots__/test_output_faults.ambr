@@ -1,0 +1,67 @@
+# serializer version: 1
+# name: test_readalong_file_golden
+  dict({
+    'chapters': list([
+      dict({
+        'end': 2.45,
+        'first_chunk': 0,
+        'mp3': 'A Study of Tones - 01 Introduction.mp3',
+        'start': 0.0,
+        'title': 'Introduction',
+      }),
+      dict({
+        'end': 4.55,
+        'first_chunk': 2,
+        'mp3': 'A Study of Tones - 02 Methods; data = 1 # 2.mp3',
+        'start': 2.45,
+        'title': 'Methods; data = 1 # 2',
+      }),
+      dict({
+        'end': 6.6,
+        'first_chunk': 3,
+        'mp3': 'A Study of Tones - 03 Results.mp3',
+        'start': 4.55,
+        'title': 'Results',
+      }),
+    ]),
+    'chunks': list([
+      dict({
+        'block': 0,
+        'chapter': 0,
+        'end': 2.1,
+        'end_char': 5,
+        'start': 2.0,
+        'start_char': 0,
+      }),
+      dict({
+        'block': 1,
+        'chapter': 0,
+        'end': 2.45,
+        'end_char': 5,
+        'start': 2.4,
+        'start_char': 0,
+      }),
+      dict({
+        'block': 2,
+        'chapter': 1,
+        'end': 4.55,
+        'end_char': 5,
+        'start': 4.45,
+        'start_char': 0,
+      }),
+      dict({
+        'block': 3,
+        'chapter': 2,
+        'end': 6.6,
+        'end_char': 5,
+        'start': 6.55,
+        'start_char': 0,
+      }),
+    ]),
+    'duration': 6.6,
+    'format': 'sci2audio-readalong',
+    'm4b': 'A Study of Tones.m4b',
+    'sample_rate': 24000,
+    'version': 1,
+  })
+# ---
