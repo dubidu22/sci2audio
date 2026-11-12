@@ -45,7 +45,7 @@ broken across lines is joined without a space.
 |---|---|---|
 | `pages` | integer | Number of pages |
 | `columns` | list of 1 or 2 | Text columns on each page, one entry per page. A page with a full-width float or formula above two columns counts as 2 |
-| `headings` | list of `{ level, text }` | Every heading in reading order, from "Abstract" to the last appendix heading. `level` 1 = section (also Abstract, References, unnumbered end sections, appendices), 2 = subsection, 3 = sub-subsection. `text` includes the printed number, e.g. "2.1 Setup". Paragraph run-in heads ("Proof.", "Definition 1.", PRL-style "Introduction.") are not headings. Empty when the paper prints no headings, with a comment saying so |
+| `headings` | list of `{ level, text }` | Every heading in reading order, from "Abstract" to the last appendix heading. `level` 1 = section (also Abstract, References, unnumbered end sections, appendices), 2 = subsection, 3 = sub-subsection. When the appendices sit under a common title ("Supplementary Material: Appendices"), that title is level 1 and each appendix moves one level down. `text` includes the printed number, e.g. "2.1 Setup". Paragraph run-in heads ("Proof.", "Definition 1.", PRL-style "Introduction.") are not headings. Empty when the paper prints no headings, with a comment saying so |
 | `counts.footnotes` | integer | Notes printed at the foot of a page below a short rule, with or without a mark. A reference list is not footnotes |
 | `counts.tables` | integer | Tables with a "Table N" caption, plus uncaptioned tables |
 | `counts.figures` | integer | Figures with a "Figure N" caption, plus uncaptioned images and charts. Logos and icons are not figures |
