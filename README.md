@@ -18,6 +18,17 @@
 - **Free and open source** under the GNU GPL v3 or later.
 - **Accessible:** the interface is built to work with screen readers and the keyboard.
 
+## Installing (once released)
+
+```bash
+uv tool install sci2audio                      # macOS (Apple chips) and Windows
+uv tool install sci2audio --torch-backend cpu  # Linux: 1.3 GB instead of 5.6 GB
+```
+
+On Linux the plain command also works; it installs the PyTorch build with NVIDIA GPU libraries. With pipx, use Python 3.12 (`pipx install --python python3.12 sci2audio`): the Kokoro packages do not yet declare support for newer Python versions. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
+
+The voice (about 355 MB: the Kokoro model, its English voices and a spaCy English model) is downloaded only when you start it, and its licences are shown first. After that, sci2audio works without a network.
+
 ## Development
 
 You need [uv](https://docs.astral.sh/uv/) and Python 3.12.
