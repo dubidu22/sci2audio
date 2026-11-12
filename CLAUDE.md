@@ -36,7 +36,7 @@ Keep a later web version possible: no global state (each job gets its settings a
 4. Run before opening the PR: `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow and not benchmark"`.
 5. A PR that adds the first code of a kind also adds its tests and CI wiring (table in `.claude/rules/tests.md`, D-58).
 6. PR title `<area>: <outcome> (#N)`; body with `Closes #N`, feature ID (e.g. `WI-02`), test summary, licence note, risk, and out-of-scope follow-ups.
-7. Keep PRs small. More than about 400 changed lines of non-generated code: split.
+7. No fixed size limit for PRs. Split a PR only when it splits naturally into parts that can be reviewed and merged on their own.
 8. Every PR is reviewed in a new thread that did not write it. Answer findings by listing exactly what was fixed and why; anything deferred gets an Issue (D-68).
 
 ## Critical and `risk:high` (Colin reads the whole diff and approves the merge)
