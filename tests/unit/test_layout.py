@@ -49,6 +49,12 @@ def two_columns(name: str, top: float, count: int) -> tuple[list[TextLine], list
     return left, right
 
 
+def short(li: TextLine) -> TextLine:
+    """The line ending halfway: the last line of a paragraph."""
+    box = li.box or Box(0, 0, 0, 0)
+    return line(li.text, box.x0, box.y0, (box.x0 + box.x1) / 2)
+
+
 def body_copy(lines: list[TextLine]) -> list[TextLine]:
     """The same lines with fresh ids, for another page."""
     return [line(li.text, *(lambda b: (b.x0, b.y0, b.x1))(li.box)) for li in lines]
@@ -72,7 +78,10 @@ def content(*pages: list[TextLine], metadata: Metadata | None = None, **first: t
 
 
 def texts(doc: Document, kind: BlockKind | None = None) -> list[str]:
-    return [b.text for b in doc.blocks if kind is None or b.kind is kind]
+    """The printed lines of the blocks, in reading order (a paragraph holds several)."""
+    return [
+        line for b in doc.blocks if kind is None or b.kind is kind for line in b.text.split("\n")
+    ]
 
 
 def columns_of(doc: Document) -> list[int]:
@@ -92,6 +101,7 @@ def test_two_columns_read_left_column_then_right() -> None:
 def test_wide_title_and_figure_cut_the_page_into_bands() -> None:
     title = line("A Title Across The Page", LEFT, 60, RIGHT, size=14)
     top_left, top_right = two_columns("top", 100, 10)
+    top_right[-1] = short(top_right[-1])  # a paragraph ends above the figure
     bottom_left, bottom_right = two_columns("bottom", 440, 10)
     figure = Drawing("d1", Box(LEFT, 320, RIGHT, 420))
     lines = [title, *interleaved(top_left, top_right), *interleaved(bottom_left, bottom_right)]
@@ -99,8 +109,8 @@ def test_wide_title_and_figure_cut_the_page_into_bands() -> None:
     expected = [title.text, *(li.text for li in top_left + top_right), ""]
     expected += [li.text for li in bottom_left + bottom_right]
     assert texts(doc) == expected
-    figure_at = 1 + len(top_left + top_right)
-    assert [b.kind for b in doc.blocks].index(BlockKind.FIGURE) == figure_at
+    kinds = [b.kind for b in doc.blocks]
+    assert kinds.index(BlockKind.FIGURE) == 2  # after the title and the paragraph above it
 
 
 def test_a_centred_line_over_the_gutter_does_not_join_the_columns() -> None:
@@ -116,6 +126,33 @@ def test_lines_that_only_touch_the_gutter_stay_in_their_column() -> None:
     right[5] = line("starts in the gutter", MIDDLE + 2, 100 + 14 * 5, RIGHT)
     doc = build_document(content(interleaved(left, right)))
     assert texts(doc) == [li.text for li in left + right]
+
+
+def test_a_short_column_beside_a_long_one_is_read_after_it() -> None:
+    """Few lines in the right column: the document's text area, found with a share of the
+    lines left out, misses its edge, but the left column's lines still don't span the page."""
+    left = column("left-", LEFT, MIDDLE - GUTTER / 2, 80, 33)
+    ends = [443.5, RIGHT, RIGHT, 416, RIGHT, RIGHT, 416]
+    right = [line(f"right-{k}", MIDDLE + GUTTER / 2, 80 + 14 * k, x1) for k, x1 in enumerate(ends)]
+    doc = build_document(content(interleaved(left[:7], right) + left[7:]))
+    assert texts(doc) == [li.text for li in left + right]
+
+
+def test_a_gutter_that_begins_inside_a_column_keeps_its_long_lines_in_it() -> None:
+    """The middle column holds three paragraphs of two lines, each indented and then short,
+    as many as the crossings a gutter allows: so the strip to its left ends where the indented
+    lines begin, and the strip to its right begins where the short lines end."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0s = [LEFT + k * (width + GUTTER) for k in range(3)]
+    first, last = column("a-", x0s[0], x0s[0] + width, 80, 15), column("c-", x0s[2], RIGHT, 80, 15)
+    middle = [
+        line(f"b-{k}", x0s[1] + (12 if k % 2 == 0 else 0), 80 + 14 * k, x0s[1] + width / 2)
+        if k % 2
+        else line(f"b-{k}", x0s[1] + 12, 80 + 14 * k, x0s[1] + width)
+        for k in range(6)
+    ]
+    doc = build_document(content(interleaved(middle, last[:6]) + first + last[6:]))
+    assert texts(doc) == [li.text for li in first + middle + last]
 
 
 def test_a_page_background_or_a_frame_does_not_cut_the_columns() -> None:
@@ -168,6 +205,7 @@ def test_running_heads_and_page_numbers_are_furniture_read_at_their_place() -> N
     pages = []
     for number in (1, 2, 3):
         body = column(f"p{number}-", LEFT, RIGHT, 100, 10)
+        body[-1] = short(body[-1])  # the page's last paragraph ends on it
         if number == 2:
             body.append(line("Journal of Tests 2026", LEFT, 300, 200))  # quoted in the text
         pages.append(
@@ -260,8 +298,12 @@ def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
     doc = build_document(found)  # the Document itself checks that every item is in one block
     lines = {li.id: li.text for page in found.pages for li in page.lines}
     for block in doc.blocks:
-        if block.kind is not BlockKind.FIGURE:
-            assert block.text == lines[block.parts[0].item]
+        if block.kind is not BlockKind.FIGURE:  # the lines' text, joined by a space or a break
+            ends = [p.start for p in block.parts[1:]] + [len(block.text)]
+            for part, end in zip(block.parts, ends, strict=True):
+                text = lines[part.item]
+                assert block.text[part.start : part.start + len(text)] == text
+                assert block.text[part.start + len(text) : end] in ("", " ", "\n")
     pages = [doc.content.items()[b.parts[0].item][0].number for b in doc.blocks]
     assert pages == sorted(pages)
 
