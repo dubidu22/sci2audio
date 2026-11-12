@@ -31,14 +31,21 @@ COUNT_KEYS = {
     "tables",
     "figures",
     "algorithms",
-    "numbered_formulas",
     "unnumbered_formulas",
 }
 REQUIRED_COUNTS = COUNT_KEYS - {"algorithms"}
 MIN_VERBATIM, MAX_VERBATIM = 3, 5
 
 COMMON_KEYS = {"file", "drafted_from", "title"}
-PAPER_KEYS = COMMON_KEYS | {"pages", "columns", "headings", "counts", "verbatim", "furniture"}
+PAPER_KEYS = COMMON_KEYS | {
+    "pages",
+    "columns",
+    "headings",
+    "furniture",
+    "formula_numbers",
+    "counts",
+    "verbatim",
+}
 EPUB_KEYS = COMMON_KEYS | {"chapters", "endnotes"}
 
 
@@ -134,6 +141,19 @@ def test_paper_truth_follows_format(path: Path) -> None:
         assert set(heading) == {"level", "text"}, f"heading needs level and text: {heading}"
         assert heading["level"] in {1, 2, 3}, f"heading level must be 1 to 3: {heading}"
         assert is_text(heading["text"]), f"heading text must be non-empty: {heading}"
+
+    formulas = truth["formula_numbers"]
+    assert isinstance(formulas, list), "formula_numbers must be a list (empty if none)"
+    for group in formulas:
+        assert set(group) == {"page", "numbers"}, f"formula group needs page and numbers: {group}"
+        check_pages([group["page"]], pages, f"formula numbers {group['numbers']}")
+        assert isinstance(group["numbers"], list), "numbers must be a list"
+        assert group["numbers"], "a page group must list at least one number"
+        for number in group["numbers"]:
+            assert is_text(number), f"equation number must be non-empty text: {number!r}"
+            assert not number.startswith("("), f"write {number!r} without brackets"
+    group_pages = [group["page"] for group in formulas]
+    assert group_pages == sorted(set(group_pages)), "one group per page, in page order"
 
     counts = truth["counts"]
     assert set(counts) <= COUNT_KEYS, f"unknown counts {sorted(set(counts) - COUNT_KEYS)}"

@@ -60,6 +60,15 @@ furniture = [
   { kind = "page-number", pages = [28], text = "28" },
 ]
 
+# Equation numbers as printed, in reading order. (2) is the commutative diagram on page 13,
+# (4) the picture on page 16 (also counted under figures).
+formula_numbers = [
+  { page = 12, numbers = ["1"] },
+  { page = 13, numbers = ["2"] },
+  { page = 14, numbers = ["3"] },
+  { page = 16, numbers = ["4"] },
+]
+
 [counts]
 # The author's e-mail note (∗, page 1) and footnotes 1-19; 20 \footnote commands in the source.
 footnotes = 20
@@ -67,8 +76,6 @@ tables = 1  # Table 1, page 7 (ten kinds of experience)
 # The picture labelled as Eq. (4) on page 16 (srmap.png in the source). The commutative
 # diagram (2) on page 13 is a vector drawing typeset as an equation.
 figures = 1
-# (1) page 12, (2) the diagram on page 13, (3) page 14, (4) the picture on page 16.
-numbered_formulas = 4
 # "O → S → I" and the maps A_P and A_M (page 13), "Obj_P → Obj_M → Rel_M" (page 15), and the
 # self-maps S_Obj and S_Rel (page 16, one line).
 unnumbered_formulas = 5

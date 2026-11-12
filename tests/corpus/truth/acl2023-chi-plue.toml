@@ -62,13 +62,14 @@ furniture = [
   { kind = "page-number", pages = [14], text = "365" },
 ]
 
+formula_numbers = []  # no numbered display formulas
+
 [counts]
 # "∗ Work done while at UCLA." (page 1), 1 and 2 (page 3), 3 (page 5), 4 (page 9),
 # 5 (page 11), and the unmarked note under the checklist (page 13).
 footnotes = 7
 tables = 6
 figures = 0
-numbered_formulas = 0
 unnumbered_formulas = 0
 
 [[verbatim]]

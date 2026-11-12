@@ -26,13 +26,19 @@ furniture = [
   { kind = "page-number", pages = [6], text = "6" },
 ]
 
+# Equation numbers as printed, in reading order, grouped by page (eight equation
+# environments in the source).
+formula_numbers = [
+  { page = 2, numbers = ["1", "2", "3", "4"] },
+  { page = 3, numbers = ["5", "6", "7", "8"] },
+]
+
 [counts]
 # The one footnote is printed as entry [59] of the reference list (revtex "footinbib"),
 # not at the foot of a page.
 footnotes = 0
 tables = 0
 figures = 3  # Figure 3 has two panels, (a) and (b)
-numbered_formulas = 8  # (1)-(8), eight equation environments in the source
 unnumbered_formulas = 0
 
 [[verbatim]]
