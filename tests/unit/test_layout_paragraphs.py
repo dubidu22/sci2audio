@@ -32,7 +32,8 @@ def bold(text: str, x0: float, y0: float, x1: float) -> TextLine:
 
 
 def paragraphs(doc: Document) -> list[str]:
-    return [b.text for b in doc.blocks if b.kind is BlockKind.PARAGRAPH]
+    """The text blocks: paragraphs, and headings, which step 3 of #21 tells apart."""
+    return [b.text for b in doc.blocks if b.kind in {BlockKind.PARAGRAPH, BlockKind.HEADING}]
 
 
 def joined(*groups: list[TextLine]) -> str:

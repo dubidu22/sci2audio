@@ -67,3 +67,21 @@ class LayoutSettings:
     line_pitch: float = 1.2  # sizes: the line pitch to assume when no two lines show it
     same_size: float = 0.01  # lines whose sizes differ by less than this share are the same
     #                          size (to measure the line pitch)
+
+    # Headings and sections
+    heading_lines: int = 3  # a heading has at most this many lines ...
+    heading_words: int = 20  # ... and words
+    heading_bold: float = 0.95  # a block with this share of its main-size letters bold is bold
+    heading_repeats: int = 2  # a document numbers its headings if this many have a number;
+    #                           without numbers, a heading style is used this often
+    # whole texts of headings that may stand in any bold or larger style (English, v1.0)
+    section_names: tuple[str, ...] = (
+        "Abstract",
+        "Summary",
+        "Acknowledgements",
+        "Acknowledgments",
+        "References",
+        "Bibliography",
+        "Appendix",
+        "Appendices",
+    )

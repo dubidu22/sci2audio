@@ -3,8 +3,11 @@
 Step 1 of #21 (D-67): furniture, columns and reading order; a verbatim sentence reads in
 order. Step 2: paragraphs; a verbatim sentence comes out word for word inside one block,
 across column and page breaks, footnotes and floats, and each heading is a block of its own.
+Step 3: the headings are the truth headings, with their levels and printed numbers, and the
+section tree follows them.
 
-The golden files list every block with its kind, page and text (line breaks shown as \\n).
+The golden files list every block with its kind, label, page and text (line breaks shown as
+\\n), then the section tree.
 Accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
 """
 
@@ -16,7 +19,7 @@ from pathlib import Path
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from sci2audio.core import Block, BlockKind, Document, FurnitureRole
+from sci2audio.core import Block, BlockKind, Document, FurnitureRole, Section
 from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
 from sci2audio.layout.build import columns_per_page
@@ -38,6 +41,13 @@ NOT_YET_ONE_BLOCK = {
     ): 34,
 }
 MIN_START = 8  # letters a sentence's start must have at a line's end to be found there
+# Truth headings not yet found, each with the Issue that brings it there.
+NOT_YET_HEADINGS = {
+    # Bold at body size, like the numbered subsections and the table headers on its pages.
+    ("acl2023-chi-plue", "ACL 2023 Responsible NLP Checklist"): 48,
+    ("acl2023-hardt-ellipsis", "ACL 2023 Responsible NLP Checklist"): 48,
+}
+PRINTED_NUMBER = re.compile(r"((?:\d+|[A-Z])(?:\.\d+)*) ")  # "2.1 Setup", "A Proofs"
 
 
 @cache
@@ -267,6 +277,42 @@ def test_each_heading_is_a_block_of_its_own(paper: Path) -> None:
     assert joined_or_split == []
 
 
+def flattened(sections: tuple[Section, ...]) -> list[Section]:
+    """The sections in reading order, each before its children."""
+    return [s for section in sections for s in (section, *flattened(section.children))]
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_sections_are_the_truth_headings(paper: Path) -> None:
+    """Every truth heading, with its level and nothing else, in reading order (step 3)."""
+    expected = [
+        (heading["text"], heading["level"])
+        for heading in truth(paper)["headings"]
+        if (paper.stem, heading["text"]) not in NOT_YET_HEADINGS
+    ]
+    found = [(section.title, section.level) for section in flattened(document(paper).sections)]
+    assert found == expected
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_each_section_starts_at_its_heading_with_its_printed_number(paper: Path) -> None:
+    doc = document(paper)
+    sections = flattened(doc.sections)
+    headings = [i for i, block in enumerate(doc.blocks) if block.kind is BlockKind.HEADING]
+    assert [section.start for section in sections] == headings
+    for section in sections:
+        number = PRINTED_NUMBER.match(section.title)
+        assert doc.blocks[section.start].label == (number[1] if number else "")
+
+
+def test_headings_not_yet_found_are_still_in_the_truth() -> None:
+    """A known gap names a real truth heading, so the list can't hide a typo."""
+    for stem, text in NOT_YET_HEADINGS:
+        paper = CORPUS / "papers" / f"{stem}.pdf"
+        assert text in [heading["text"] for heading in truth(paper)["headings"]]
+        assert text not in [section.title for section in flattened(document(paper).sections)]
+
+
 def word_for_word(sentence: str) -> re.Pattern[str]:
     """The sentence as a block may hold it: any white space where it has a space, and a
     line break after a hyphen, or after a letter that a hyphen and a line break may follow
@@ -296,5 +342,12 @@ def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
         items = first if first == last else f"{first}..{last} ({len(block.parts)})"
         text = block.text.replace("\n", "\\n")  # one block per line of the golden file
         kind = f"{block.kind.value}/{block.role.value}" if block.role else block.kind.value
+        kind += f" ({block.label})" if block.label else ""
         out.append(f"{index}  p{page_of(doc, block)}  {kind}  [{items}]  {text}")
+    out.append("sections")
+    for section in flattened(doc.sections):
+        indent = "  " * section.level
+        out.append(
+            f"{indent}{section.level}  blocks {section.start}-{section.end}  {section.title}"
+        )
     assert "\n".join(out) + "\n" == snapshot

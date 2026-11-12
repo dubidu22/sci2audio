@@ -6,15 +6,15 @@
   0  p1  paragraph  [p1-l4..p1-l5 (2)]  PLUE: Language Understanding Evaluation Benchmark\nfor Privacy Policies in English
   1  p1  paragraph  [p1-l6..p1-l8 (3)]  Jianfeng Chi1,2 Wasi Uddin Ahmad3∗ Yuan Tian3 Kai-Wei Chang3
   2  p1  paragraph  [p1-l9..p1-l10 (2)]  1Meta AI, 2University of Virginia, 3University of California, Los Angeles\njianfengchi@meta.com,{wasiahmad,yuant,kwchang}@ucla.edu
-  3  p1  paragraph  [p1-l11]  Abstract
+  3  p1  heading  [p1-l11]  Abstract
   4  p1  paragraph  [p1-l12..p1-l35 (24)]  Privacy policies provide individuals with infor-\nmation about their rights and how their personal\ninformation is handled. Natural language un-\nderstanding (NLU) technologies can support\nindividuals and practitioners to understand bet-\nter privacy practices described in lengthy and\ncomplex documents. However, existing ef-\nforts that use NLU technologies are limited\nby processing the language in a way exclusive\nto a single task focusing on certain privacy\npractices. To this end, we introduce the Pri-\nvacy Policy Language Understanding Evalua-\ntion (PLUE) benchmark, a multi-task bench-\nmark for evaluating the privacy policy lan-\nguage understanding across various tasks. We\nalso collect a large corpus of privacy policies\nto enable privacy policy domain-specific lan-\nguage model pre-training. We evaluate several\ngeneric pre-trained language models and con-\ntinue pre-training them on the collected corpus.\nWe demonstrate that domain-specific continual\npre-training offers performance improvements\nacross all tasks. The code and models are re-\nleased at https://github.com/JFChi/PLUE.
-  5  p1  paragraph  [p1-l36]  1 Introduction
+  5  p1  heading (1)  [p1-l36]  1 Introduction
   6  p1  paragraph  [p1-l37..p1-l47 (11)]  Privacy policies are documents that outline how a\ncompany or organization collects, uses, shares, and\nprotects individuals’ personal information. Without\na clear understanding of privacy policies, individu-\nals may not know how their personal information is\nbeing used or who it is being shared with. The pri-\nvacy violation might cause potential harm to them.\nHowever, privacy policies are lengthy and complex,\nprohibiting users from reading and understanding\nthem in detail (Commission et al., 2012; Gluck\net al., 2016; Marotta-Wurgler, 2015).
   7  p1  paragraph  [p1-l48..p1-l66 (18)]  Various natural language understanding (NLU)\ntechnologies have recently been developed to un-\nderstand privacy policies (Wilson et al., 2016a;\nHarkous et al., 2018; Ravichander et al., 2019;\nAhmad et al., 2020; Parvez et al., 2022; Ahmad\net al., 2021; Bui et al., 2021). These tasks focus\non understanding specific privacy practices at dif-\nferent syntax or semantics levels and require sig-\nnificant effort for data annotations (e.g., domain\nexperts). It is hard to develop generic pre-trained\nlanguage models (e.g., BERT (Devlin et al., 2019))\nwith task-specific fine-tuning using limited anno-\ntated data. Besides, the unique characteristics of\nprivacy policies, such as reasoning over ambiguity\nand vagueness, modality, and document structure\n(Ravichander et al., 2021), make it challenging to\ndirectly apply generic pre-trained language models\nto the privacy policy domain.
   8  p1  figure  [p1-d1]  
   9  p1  paragraph  [p1-l52]  ∗Work done while at UCLA.
   10  p1  paragraph  [p1-l67..p1-l86 (20)]  To address these problems and encourage re-\nsearch to develop NLU technologies in the pri-\nvacy policy domain, we introduce the Privacy Pol-\nicy Language Understanding Evaluation (PLUE)\nbenchmark, to evaluate the privacy policy language\nunderstanding across six tasks, including text clas-\nsification, question answering, semantic parsing,\nand named-entity recognition. PLUE also includes\na pre-training privacy policy corpus that we crawl\nfrom the websites to enable privacy policy domain-\nspecific language model pre-training. We use this\ncorpus to pre-train BERT (Devlin et al., 2019),\nRoBERTa (Liu et al., 2019), Electra (Clark et al.,\n2020), and SpanBERT (Joshi et al., 2020) and fine-\ntune them on the downstream tasks. We demon-\nstrate that domain-specific continual pre-training\noffers performance improvements across all tasks.\nWe will release the benchmark to assist natural\nlanguage processing (NLP) researchers and practi-\ntioners in future exploration.
-  11  p1  paragraph  [p1-l87..p1-l88 (2)]  2 Policy Language Understanding\nEvaluation (PLUE) Benchmark
+  11  p1  heading (2)  [p1-l87..p1-l88 (2)]  2 Policy Language Understanding\nEvaluation (PLUE) Benchmark
   12  p1  paragraph  [p1-l89..p2-l71 (16)]  PLUE is centered on six English privacy policy lan-\nguage understanding tasks. The datasets and tasks\nare selected based on the following principles: (1)\nusefulness: the selected tasks can help practitioners\nin the domain quickly understand privacy practices\nwithout reading the whole privacy policy; (2) task\ndiversity: the selected tasks focus on different se-\nmantic levels, e.g., words (phrases), sentences, and\nparagraphs; (3) task difficulty: the selected tasks\nshould be adequately challenging for more room\nfor improvement; (4) training efficiency: all tasks\ncan be trainable on a single moderate GPU (e.g.,\nGeForce GTX 1080 Ti) for no more than ten hours;\n(5) accessibility: all datasets are publicly available\nunder licenses that allow usage and redistribution\nfor research purposes.
   13  p1  furniture/page-number  [p1-l93]  352
   14  p1  furniture/footer  [p1-l1]  Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
@@ -62,28 +62,28 @@
   56  p2  paragraph  [p2-l51..p2-l58 (8)]  PI-Extract NER Websites 30 3,034 – 1,028 F1
   57  p2  figure  [p2-d6]  
   58  p2  paragraph  [p2-l59]  Table 1: Statistics of the PLUE datasets and tasks.
-  59  p2  paragraph  [p2-l72..p2-l73 (2)]  2.1 Datasets and Tasks
+  59  p2  heading (2.1)  [p2-l72..p2-l73 (2)]  2.1 Datasets and Tasks
   60  p2  paragraph  [p2-l74..p2-l77 (4)]  PLUE includes six tasks in four categories. Ta-\nble 1 presents an overview of the datasets and tasks\nwithin PLUE, and Table 4 in the Appendix gives\nan example for each task.
   61  p2  paragraph  [p2-l78..p2-l85 (8)]  OPP-115 Wilson et al. (2016a) presented 115\nOnline Privacy Policies (OPP-115). The dataset\ncomprises website privacy policies with text seg-\nments annotated with one or more privacy practices\nfrom ten categories (see Appendix A.1). We train a\nmulti-label classifier to predict the privacy practices\ngiven a sentence from a policy document.
   62  p2  paragraph  [p2-l86..p2-l96 (11)]  APP-350 Zimmeck et al. (2019) presented APP-\n350, a collection of mobile application privacy poli-\ncies annotating what types of users’ data mobile\napplications collect or share. Like OPP-115, each\ntext segment in a policy document is annotated\nwith zero or more privacy practices (listed in Ap-\npendix A.2). In total, there are 30 data-type-related\nclasses in APP-350, and we assign one more class,\nNo_Mention, to those text segments that do not\npertain to such practices.
   63  p2  paragraph  [p2-l97..p2-l106 (10)]  PrivacyQA Ravichander et al. (2019) proposed a\nquestion-answering dataset, PrivacyQA, comprised\nof 35 mobile application privacy policies. Given\na question from a mobile application user and a\nsentence from a privacy policy, the task is to predict\nwhether the sentence is relevant to the question.\nPrivacyQA includes unanswerable and subjective\nquestions and formulates the QA task as a binary\nsentence classification task.
   64  p2  paragraph  [p2-l107..p2-l118 (12)]  PolicyQA Ahmad et al. (2020) proposed a read-\ning comprehension (Rajpurkar et al., 2016) style\ndataset, PolicyQA. The dataset is derived from\nOPP-115 annotations that include a set of fine-\ngrained attributes and evidence text spans that sup-\nport the annotations. Considering the annotated\nspans as the answer spans, PolicyQA generates\ndiverse questions relating to the corresponding pri-\nvacy practices and attributes. The task is to predict\nthe answer text span given the corresponding text\nsegment and question.
   65  p2  paragraph  [p2-l119..p2-l141 (23)]  PolicyIE Ahmad et al. (2021) proposed a seman-\ntic parsing dataset composed of two tasks: intent\nclassification and slot filling. Given a sentence in a\nprivacy policy, the task is to predict the sentence’s\nintent (i.e., privacy practice) and identify the seman-\ntic concepts associated with the privacy practice.\nBased on the role of the slots in privacy practices,\nPolicyIE groups them into type-I and type-II slots.\nIn total, there are four intent labels and 14 type-I\nand four type-II slot labels. We individually train\na text classifier and sequence taggers to perform\nintent classification and slot filling, respectively.\nPI-Extract Bui et al. (2021) presented PI-Extract,\na named-entity recognition (NER) dataset. It aims\nto identify what types of user data are (not) col-\nlected or shared mentioned in the privacy policies.\nIt contains 4 types of named entities: COLLECT,\nNOT_COLLECT, SHARE and NOT_SHARE. Note that\nthe named entities of different types may overlap.\nThus, we report the results for collection-related\nand share-related entities, respectively.
-  66  p2  paragraph  [p2-l142..p2-l143 (2)]  2.2 Pre-training Corpus Collection
+  66  p2  heading (2.2)  [p2-l142..p2-l143 (2)]  2.2 Pre-training Corpus Collection
   67  p2  paragraph  [p2-l144..p3-l17 (19)]  The existing pre-trained language models (PLMs)\nmostly use data from BooksCorpus (Zhu et al.,\n2015) and English Wikipedia. Language models\npre-trained on text from those sources might not\nperform well on the downstream privacy policy lan-\nguage understanding tasks, as privacy policies are\ncomposed of text written by domain experts (e.g.,\nlawyers). Gururangan et al. (2020) suggested that\nadapting to the domain’s unlabeled data (domain-\nadaptive pre-training) improves the performance\nof domain-specific tasks. Therefore, we collect\na large privacy policy corpus for language model\npre-training. In order to achieve broad coverage\nacross privacy practices written in privacy policies\n(William, 2020; Ahmad et al., 2021), we collect the\nprivacy policies from two sources: mobile applica-\ntion privacy policies and website privacy policies.\nAppendix B provides more details about how we\ncollect these two types of privacy policies.
   68  p2  furniture/page-number  [p2-l146]  353
-  69  p3  paragraph  [p3-l18..p3-l19 (2)]  2.3 Models & Training
+  69  p3  heading (2.3)  [p3-l18..p3-l19 (2)]  2.3 Models & Training
   70  p3  paragraph  [p3-l20..p3-l26 (7)]  Baselines We benchmark pre-trained language\nmodels (PLMs), BERT (Devlin et al., 2019),\nRoBERTa (Liu et al., 2019), SpanBERT (Joshi\net al., 2020), Electra (Clark et al., 2020), and\nLEGAL-BERT (Chalkidis et al., 2020). We present\nthe details of the PLMs in Appendix C.
   71  p3  paragraph  [p3-l27..p3-l34 (8)]  Domain-specific Continual Pre-training In or-\nder to adapt PLMs to the privacy policy domain,\nwe continue to train BERT, Electra, SpanBERT,\nand RoBERTa on the pre-training corpus described\nin Section 2.2. We refer to them as PP-BERT, PP-\nRoBERTa, PP-SpanBERT, and PP-Electra, respec-\ntively.1 We present details in Appendix D.1.
   72  p3  paragraph  [p3-l35..p3-l41 (7)]  Task-specific Fine-tuning We fine-tune PLMs\nfor each PLUE task. We only tune the learning\nrate for each task, as we found in the preliminary\nexperiments that model performances are highly\nsensitive to the learning rate. We present more\ndetails in Appendix D.2.
-  73  p3  paragraph  [p3-l42]  3 Experiment Results
+  73  p3  heading (3)  [p3-l42]  3 Experiment Results
   74  p3  paragraph  [p3-l43..p3-l68 (23)]  Tables 2 and 3 present the results for all the ex-\nperiment models for PLUE tasks. Rows 2-9 show\nthe results of the base PLMs and their correspond-\ning variants with privacy policy domain-specific\ncontinual pre-training. Similar to GLUE (Wang\net al., 2019), we also provide the average scores\nof all PLUE tasks in the last column of Table 3.\nWe observe that the language models (PP-BERT,\nPP-SpanBERT, PP-Electra, PP-RoBERTa) adapted\nto the privacy policy domain outperform the gen-\neral language models consistently in all the tasks,\nand PP-RoBERTa performs the best among all base\nmodels in terms of the average scores of all PLUE\ntasks. In particular, PP-RoBERTa performs the\nbest for OPP-115, APP-350, PrivacyQA,2 and PI-\nExtract, among all base models. PP-BERT and\nPP-RoBERTa perform the best for PolicyQA; PP-\nElectra and PP-RoBERTa achieve the best perfor-\nmance for PolicyIE. In contrast, LEGAL-BERT\n(row 10) performs comparably or shows moder-\nate improvements over BERT, indicating that pre-\ntraining on the general legal corpus does not neces-\nsarily help privacy policy language understanding.
   75  p3  figure  [p3-d1]  
   76  p3  paragraph  [p3-l51..p3-l53 (3)]  1We continually pre-train only the base models to mitigate\nthe environmental impact of our experiments, but our code\nsupports continual pre-training of large PLMs too.
   77  p3  paragraph  [p3-l69..p3-l78 (10)]  It is interesting to see that continual pre-training\nof the language models using the privacy policy\ndomain data benefits them differently. For exam-\nple, in the text classification tasks (i.e., OPP-115\nand APP-350), the performance difference between\nSpanBERT and PP-SpanBERT are most significant,\nwhile models using MLM (BERT and RoBERTa)\nalready shows relatively high performance before\ncontinual pre-training and continual pre-training\nbrings moderate gains to BERT and RoBERTa.
   78  p3  paragraph  [p3-l79..p3-l90 (12)]  We further investigate the improvement of large\nvariants of PLMs over base variants of PLMs on\nPLUE tasks. Since PP-RoBERTaBASE performs the\nbest among all base models, we also continue pre-\ntrain RoBERTaLARGE (PP-RoBERTaLARGE). As\nshown in the last five rows in Tables 2 and 3,\nthe large pre-trained language models mostly out-\nperform their base counterparts. Noticeably, PP-\nRoBERTaLARGE is the best-performing model in\nAPP-350, PolicyQA, PI-Extract, and sub-tasks in\nPolicyIE, and it also achieves the highest average\nscores of all PLUE tasks among all models.
   79  p3  paragraph  [p3-l91..p3-l96 (6)]  Lastly, even though domain-specific pre-training\nand large PLMs help boost the performance for all\ntasks, the performance of some tasks and datasets\n(e.g., APP-350, PrivacyQA, slot filling in PolicyIE)\nremains low, which indicates much potential for\nfurther work on NLP for the privacy policy domain.
-  80  p3  paragraph  [p3-l97]  4 Related Work
+  80  p3  heading (4)  [p3-l97]  4 Related Work
   81  p3  paragraph  [p3-l98..p4-l266 (15)]  Privacy Policy Benchmarks The Usable Privacy\nPolicy Project (Sadeh et al., 2013) is the most sig-\nnificant effort to date, resulting in a large pool of\nworks (Wilson et al., 2016a,b; Sathyendra et al.,\n2016; Mysore Sathyendra et al., 2017; Bhatia and\nBreaux, 2015; Bhatia et al., 2016; Hosseini et al.,\n2016; Zimmeck et al., 2019) to facilitate the au-\ntomation of privacy policy analysis. A wide range\nof NLP techniques have been explored accordingly\n(Liu et al., 2014; Ramanath et al., 2014; Wilson\net al., 2016a; Harkous et al., 2018; Zimmeck et al.,\n2019; Shvartzshanider et al., 2018; Harkous et al.,\n2018; Ravichander et al., 2019; Ahmad et al., 2020;\nBui et al., 2021; Ahmad et al., 2021).
   82  p3  figure  [p3-d2]  
   83  p3  paragraph  [p3-l103..p3-l104 (2)]  2Ravichander et al. (2019) reported 39.8% F1 score for\nBERT model; however, we are able to achieve 36.3%.
@@ -295,17 +295,17 @@
   289  p4  paragraph  [p4-l254..p4-l256 (3)]  Table 3: Performance comparison of pre-trained models on intent classification and slot filling tasks (PolicyIE) and\naverage scores of all PLUE tasks. We fine-tune all the models three times with different seeds and report average\nperformances. Human performances are reported from the respective works.
   290  p4  paragraph  [p4-l267..p5-l2 (14)]  Pre-trained Language Models In the last few\nyears, NLP research has witnessed a radical change\nwith the advent of PLMs like ELMo (Peters et al.,\n2018) and BERT (Devlin et al., 2019). PLMs\nachieved state-of-the-art results in many language\nunderstanding benchmarks. Consequently, PLMs\nhave been developed for a wide range of domains,\ne.g., scientific (Beltagy et al., 2019), medical (Lee\net al., 2020; Rasmy et al., 2021; Alsentzer et al.,\n2019), legal (Chalkidis et al., 2020), and cybersecu-\nrity (Ranade et al., 2021; Bayer et al., 2022). This\nwork investigates the adaptation of PLMs to facili-\ntate NLP research in the privacy policy domain.
   291  p4  furniture/page-number  [p4-l279]  355
-  292  p5  paragraph  [p5-l3]  5 Conclusion and Future work
+  292  p5  heading (5)  [p5-l3]  5 Conclusion and Future work
   293  p5  paragraph  [p5-l4..p5-l10 (7)]  Reliable aggregation of datasets and benchmark-\ning foundation models on them facilitate future\nresearch. This work presents PLUE, a benchmark\nfor training and evaluating new security and pri-\nvacy policy models. PLUE will help researchers\nbenchmark policy language understanding under a\nunified setup and facilitate reliable comparison.
   294  p5  paragraph  [p5-l11..p5-l20 (10)]  PLUE also presents some challenges in lan-\nguage understanding evaluation for privacy poli-\ncies. For example, the imbalance data issue for\nprivacy practices is a major challenge in the Priva-\ncyQA task (Parvez et al., 2022). Data efficiency is\nalso a challenge for continual pre-training as the\namount of unlabeled data is also small for this do-\nmain. Approaches such as (Qin et al., 2022) could\nbe investigated to continually adapt LMs for the\nemerging data in this domain.
-  295  p5  paragraph  [p5-l21]  Limitations
+  295  p5  heading  [p5-l21]  Limitations
   296  p5  paragraph  [p5-l22..p5-l32 (11)]  The pre-training privacy policy corpus and the\ndownstream task datasets are unlikely to contain\ntoxic or biased content. Therefore, they should\nnot magnify toxicity or bias in the pre-trained\nand fine-tuned models, although the models may\nexhibit such behavior due to their original pre-\ntraining. The pre-training and benchmark datasets\nare formed based on privacy policies crawled in\nthe past; as a result, they could be outdated by now.\nThis work focuses on the English language only,\nand the findings may not apply to other languages.
-  297  p5  paragraph  [p5-l33]  Ethics Statement
+  297  p5  heading  [p5-l33]  Ethics Statement
   298  p5  paragraph  [p5-l34..p5-l46 (13)]  License The OPP-115 and APP-350 datasets\nare made available for research, teaching, and\nscholarship purposes only, with further parameters\nin the spirit of a Creative Commons Attribution-\nNonCommercial License (CC BY-NC). The Pol-\nicyQA and PI-Extract datasets are derived from\nOPP-115 datasets. The PrivacyQA and PolicyIE\ndatasets are released under an MIT license. The\npre-training corpus, MAPS Policies Dataset, is re-\nleased under CC BY-NC. We strictly adhere to\nthese licenses and will release the PLUE bench-\nmark resources under CC BY-NC-SA 4.0.
   299  p5  paragraph  [p5-l47..p5-l59 (13)]  Carbon Footprint We only use RoBERTa large\nmodels for continual training on the privacy pol-\nicy domain to reduce the environmental impacts\nof training large models. The PP-BERT, PP-\nSpanBERT, PP-Electra, and PP-RoBERTa models\nwere trained for 100k steps on Tesla V100 GPUs\nthat took 1-2 days. Therefore, the training would\nemit only 9kg of carbon into the environment.3\nAll fine-tuning experiments were very lightweight\ndue to the small size of the datasets, resulting in\napproximately 12kg of carbon emission.
-  300  p5  paragraph  [p5-l60]  Acknowledgements
+  300  p5  heading  [p5-l60]  Acknowledgements
   301  p5  paragraph  [p5-l61..p5-l69 (9)]  We thank the anonymous reviewers for their insight-\nful comments. This work was supported in part by\nNational Science Foundation Grant OAC 2002985,\nOAC 1920462, and CNS 1943100, Google Re-\nsearch Award, CISCO Research Award, and Meta\nResearch Award. Any opinions, findings, conclu-\nsions, or recommendations expressed herein are\nthose of the authors and do not necessarily reflect\nthose of the US Government or NSF.
-  302  p5  paragraph  [p5-l70]  References
+  302  p5  heading  [p5-l70]  References
   303  p5  paragraph  [p5-l71..p5-l78 (8)]  Wasi Ahmad, Jianfeng Chi, Tu Le, Thomas Norton,\nYuan Tian, and Kai-Wei Chang. 2021. Intent classifi-\ncation and slot filling for privacy policies. In Proceed-\nings of the 59th Annual Meeting of the Association for\nComputational Linguistics and the 11th International\nJoint Conference on Natural Language Processing\n(Volume 1: Long Papers), pages 4402–4417, Online.\nAssociation for Computational Linguistics.
   304  p5  paragraph  [p5-l79..p5-l84 (6)]  Wasi Ahmad, Jianfeng Chi, Yuan Tian, and Kai-Wei\nChang. 2020. PolicyQA: A reading comprehension\ndataset for privacy policies. In Findings of the Associ-\nation for Computational Linguistics: EMNLP 2020,\npages 743–749, Online. Association for Computa-\ntional Linguistics.
   305  p5  paragraph  [p5-l85..p5-l91 (7)]  Emily Alsentzer, John Murphy, William Boag, Wei-\nHung Weng, Di Jindi, Tristan Naumann, and\nMatthew McDermott. 2019. Publicly available clin-\nical BERT embeddings. In Proceedings of the 2nd\nClinical Natural Language Processing Workshop,\npages 72–78, Minneapolis, Minnesota, USA. Associ-\nation for Computational Linguistics.
@@ -356,14 +356,14 @@
   350  p8  paragraph  [p8-l1..p8-l7 (7)]  Yukun Zhu, Ryan Kiros, Rich Zemel, Ruslan Salakhut-\ndinov, Raquel Urtasun, Antonio Torralba, and Sanja\nFidler. 2015. Aligning books and movies: Towards\nstory-like visual explanations by watching movies\nand reading books. In Proceedings of the IEEE in-\nternational conference on computer vision, pages\n19–27.
   351  p8  paragraph  [p8-l8..p8-l13 (6)]  Sebastian Zimmeck, Peter Story, Daniel Smullen, Ab-\nhilasha Ravichander, Ziqi Wang, Joel Reidenberg,\nN Cameron Russell, and Norman Sadeh. 2019. Maps:\nScaling privacy compliance analysis to a million apps.\nProceedings on Privacy Enhancing Technologies,\n2019(3):66–86.
   352  p8  furniture/page-number  [p8-l14]  359
-  353  p9  paragraph  [p9-l1]  Supplementary Material: Appendices
-  354  p9  paragraph  [p9-l2]  A Dataset Details
-  355  p9  paragraph  [p9-l3..p9-l4 (2)]  A.1 OPP-115 Privacy Practices
+  353  p9  heading  [p9-l1]  Supplementary Material: Appendices
+  354  p9  heading (A)  [p9-l2]  A Dataset Details
+  355  p9  heading (A.1)  [p9-l3..p9-l4 (2)]  A.1 OPP-115 Privacy Practices
   356  p9  paragraph  [p9-l5..p9-l7 (3)]  1. First Party Collection/Use\n2. Third Party Sharing/Collection\n3. User Choice/Control
   357  p9  paragraph  [p9-l8..p9-l9 (2)]  4. User Access, Edit, and Deletion\n5. Data Retention
   358  p9  paragraph  [p9-l10..p9-l12 (3)]  6. Data Security\n7. Policy Change\n8. Do Not Track
   359  p9  paragraph  [p9-l13..p9-l14 (2)]  9. International and Specific Audiences\n10. Other
-  360  p9  paragraph  [p9-l15..p9-l16 (2)]  A.2 APP-350 Privacy Practices
+  360  p9  heading (A.2)  [p9-l15..p9-l16 (2)]  A.2 APP-350 Privacy Practices
   361  p9  paragraph  [p9-l17]  1. Contact
   362  p9  paragraph  [p9-l18..p9-l19 (2)]  2. Contact_Address_Book\n3. Contact_City
   363  p9  paragraph  [p9-l20..p9-l21 (2)]  4. Contact_E_Mail_Address\n5. Contact_Password
@@ -383,9 +383,9 @@
   377  p9  paragraph  [p9-l43]  27. Location_GPS
   378  p9  paragraph  [p9-l44..p9-l45 (2)]  28. Location_IP_Address\n29. Location_WiFi
   379  p9  paragraph  [p9-l46]  30. SSO
-  380  p9  paragraph  [p9-l47]  B More Details of Pre-training Corpora
+  380  p9  heading (B)  [p9-l47]  B More Details of Pre-training Corpora
   381  p9  paragraph  [p9-l48..p9-l67 (20)]  We use MAPS, the mobile application privacy pol-\nicy corpus presented by Zimmeck et al. (2019).\nMAPS consists of the URLs of 441K mobile ap-\nplication privacy policies, which were collected\nfrom April to May 2018 from the Google Play\nstore. We remove the duplicated URLs, crawl the\nprivacy policy documents in HTML/PDF format,\nconvert them to raw text format, and filter out the\ndocuments with noise (e.g., empty documents re-\nsulting from obsolete URLs). Finally, we ended\nup with 64K privacy policy documents. For web-\nsite privacy policies, we use the Princeton-Leuven\nLongitudinal Corpus of Privacy Policies (Amos\net al., 2021).4 The Princeton-Leuven Longitudinal\nCorpus of Privacy Policies contains 130K website\nprivacy policies spanning over two decades. We\nuse the documents with the latest date and con-\nvert them (from markdown format) into text format.\nCombining these two corpora, we obtain our pre-\ntraining corpus with 332M words.
-  382  p9  paragraph  [p9-l68]  C Baseline Models
+  382  p9  heading (C)  [p9-l68]  C Baseline Models
   383  p9  paragraph  [p9-l69..p9-l70 (2)]  We benchmark a few pre-trained language models\nas baselines to facilitate future work.
   384  p9  paragraph  [p9-l71..p9-l76 (6)]  BERT Devlin et al. (2019) proposed Transformer\n(Vaswani et al., 2017) based language model pre-\ntrained on BooksCorpus and English Wikipedia\ndata using masked language modeling (MLM) and\nnext sentence prediction.
   385  p9  paragraph  [p9-l77..p9-l86 (10)]  Electra Clark et al. (2020) pre-trains a generator\nand a discriminator on the same corpus as BERT,\nwhere the generator takes a masked text as input\nand is trained using the MLM objective. The dis-\ncriminator takes the predictions from the generator\nand detects which tokens are replaced by the gener-\nator. After pre-training, the generator is discarded,\nand the discriminator is used as the language model\nfor the downstream tasks.
@@ -419,13 +419,13 @@
   413  p10  paragraph  [p10-l41]  Table 4: Examples from the tasks in PLUE.
   414  p10  paragraph  [p10-l47..p10-l57 (11)]  LEGAL-BERT Chalkidis et al. (2020) pre-\ntrained BERT using 12 GB of the English text\n(over 351K documents) from several legal fields\n(e.g., contracts, legislation, court cases) scraped\nfrom publicly available resources. Since privacy\npolicies serve as official documents to protect the\ncompany and consumers’ privacy rights and might\ncontain contents in response to privacy law (e.g.,\nGDPR), we study LEGAL-BERT’s effectiveness\non the PLUE tasks.
   415  p10  furniture/page-number  [p10-l58]  361
-  416  p11  paragraph  [p11-l1]  D More Implementation Details
-  417  p11  paragraph  [p11-l2..p11-l3 (2)]  D.1 Domain-specific Continual Pre-training
+  416  p11  heading (D)  [p11-l1]  D More Implementation Details
+  417  p11  heading (D.1)  [p11-l2..p11-l3 (2)]  D.1 Domain-specific Continual Pre-training
   418  p11  paragraph  [p11-l4..p11-l14 (11)]  Since BERT, Electra, and SpanBERT share the\nsame model architectures, we use almost the same\nhyperparameters (e.g., learning rate, train steps,\nbatch size) for them following the original papers.\nWe scale down the train steps by the same factor,\nas the size of our pre-training corpus is roughly\n1/10 the size of the pre-training corpus of BERT.\nWe adhere to the guidelines outlined in Liu et al.\n(2019) to train RoBERTa with larger batch size,\nhigher learning rate, and fewer train steps. Table 5\npresents the training hyperparameters for PLMs.
-  419  p11  paragraph  [p11-l15..p11-l16 (2)]  D.2 Task-specific Fine-tuning
+  419  p11  heading (D.2)  [p11-l15..p11-l16 (2)]  D.2 Task-specific Fine-tuning
   420  p11  paragraph  [p11-l17..p11-l26 (10)]  We fine-tune the models for each task using the\nAdam (Kingma and Ba, 2015) optimizer with a\nbatch size of 32. We fine-tune the models on the\nQA tasks for 3 epochs and other tasks for 20 epochs\nand perform a grid search on the learning rate for\neach task with validation examples. We chose the\nlearning rate for tasks without validation examples\nbased on our findings from the tasks with validation\nexamples. Table 6 lists the hyperparameters for all\nthe downstream tasks.
   421  p11  paragraph  [p11-l27..p11-l34 (8)]  In OPP-115 and APP-350, we compute the class\nweights (the class weights are inversely propor-\ntional to the occurrences of the classes) and apply\nthem in fine-tuning, as we find out both datasets\nhave the class-imbalance problem and using class\nweights brings gains to overall performance. We\nalso report the human performances for PrivacyQA\nand PolicyIE from the original works.
-  422  p11  paragraph  [p11-l35..p11-l36 (2)]  D.3 Software Tools
+  422  p11  heading (D.3)  [p11-l35..p11-l36 (2)]  D.3 Software Tools
   423  p11  paragraph  [p11-l37..p11-l47 (11)]  To facilitate using PLUE, we release our implemen-\ntation, which is built with Pytorch (Paszke et al.,\n2019) and the Huggingface transformers5 pack-\nage. Our implementation includes the continual\npre-training of our baselines and the evaluation\nof any PLMs supported by the Huggingface trans-\nformers package on the PLUE benchmark tasks.\nIn addition to PLUE datasets, we release the pre-\ntraining corpus and all data pre-processing scripts,\nincluding the pre-training corpus crawling scripts,\nto assist future research in this area.
   424  p11  figure  [p11-d1]  
   425  p11  paragraph  [p11-l48]  5 https://github.com/huggingface/transformers
@@ -545,6 +545,30 @@
   539  p14  paragraph  [p14-l27..p14-l28 (2)]  D5. Did you report the basic demographic and geographic characteristics of the annotator population\nthat is the source of the data?
   540  p14  paragraph  [p14-l29]  Not applicable. Left blank.
   541  p14  furniture/page-number  [p14-l30]  365
+  sections
+    1  blocks 3-5  Abstract
+    1  blocks 5-11  1 Introduction
+    1  blocks 11-73  2 Policy Language Understanding Evaluation (PLUE) Benchmark
+      2  blocks 59-66  2.1 Datasets and Tasks
+      2  blocks 66-69  2.2 Pre-training Corpus Collection
+      2  blocks 69-73  2.3 Models & Training
+    1  blocks 73-80  3 Experiment Results
+    1  blocks 80-292  4 Related Work
+    1  blocks 292-295  5 Conclusion and Future work
+    1  blocks 295-297  Limitations
+    1  blocks 297-300  Ethics Statement
+    1  blocks 300-302  Acknowledgements
+    1  blocks 302-353  References
+    1  blocks 353-542  Supplementary Material: Appendices
+      2  blocks 354-380  A Dataset Details
+        3  blocks 355-360  A.1 OPP-115 Privacy Practices
+        3  blocks 360-380  A.2 APP-350 Privacy Practices
+      2  blocks 380-382  B More Details of Pre-training Corpora
+      2  blocks 382-416  C Baseline Models
+      2  blocks 416-542  D More Implementation Details
+        3  blocks 417-419  D.1 Domain-specific Continual Pre-training
+        3  blocks 419-422  D.2 Task-specific Fine-tuning
+        3  blocks 422-542  D.3 Software Tools
   
   '''
 # ---
@@ -555,9 +579,9 @@
   0  p1  paragraph  [p1-l4..p1-l5 (2)]  Ellipsis-Dependent Reasoning: a New Challenge for Large Language\nModels
   1  p1  paragraph  [p1-l6]  Daniel Hardt
   2  p1  paragraph  [p1-l7..p1-l8 (2)]  Copenhagen Business School\ndha.msc@cbs.dk
-  3  p1  paragraph  [p1-l9]  Abstract
+  3  p1  heading  [p1-l9]  Abstract
   4  p1  paragraph  [p1-l10..p1-l18 (9)]  We propose a novel challenge for large lan-\nguage models: ellipsis-dependent reasoning.\nWe define several structures of paired exam-\nples, where an ellipsis example is matched to\nits non-ellipsis counterpart, and a question is\nposed which requires resolution of the ellipsis.\nTest results show that the best models perform\nwell on non-elliptical examples but struggle\nwith all but the simplest ellipsis structures.
-  5  p1  paragraph  [p1-l19]  1 Introduction
+  5  p1  heading (1)  [p1-l19]  1 Introduction
   6  p1  paragraph  [p1-l20..p1-l25 (6)]  Ellipsis is a fundamental feature of human lan-\nguage, occurring in all registers, where parts of\nsentences are omitted, although the missing parts\nare essential for understanding the meaning. The\nfollowing is an example of Verb Phrase Ellipsis\n(VPE)(Bos and Spenader, 2011):
   7  p1  paragraph  [p1-l26..p1-l27 (2)]  (1) William went running. Harold did too.
   8  p1  paragraph  [p1-l28..p1-l33 (6)]  (1) is understood as asserting that Harold went run-\nning; that is, the hearer or reader naturally fills\nin the missing material. This is done by identify-\ning the antecedent VP, went running, in the first\nsentence. The following is the non-elliptical coun-\nterpart of (1):
@@ -567,9 +591,9 @@
   12  p1  paragraph  [p1-l42..p1-l46 (5)]  If a system answers the question incorrectly for (1),\nthe ellipsis example, but answers correctly for (2),\nthe non-elliptical counterpart of (1), we can ascribe\nthe result specifically to the challenge of ellipsis,\nsince the examples are otherwise identical.
   13  p1  paragraph  [p1-l47..p1-l55 (9)]  As with pronominal anaphora and other dis-\ncourse processes, there is great flexibility in the\nway ellipsis can occur in discourse. Example (1)\ninvolves two simple adjacent sentences. It is also\npossible for ellipsis or the antecedent to occur in\nembedded clauses. Furthermore, ellipsis can occur\neither before or after the antecedent. Finally, an\narbitrary amount of material can intervene between\nthe antecedent and the ellipsis occurrence.
   14  p1  paragraph  [p1-l56..p1-l66 (11)]  In this paper, we propose the challenge of\nellipsis-dependent reasoning. This challenge con-\nsists of examples involving an ellipsis clause, the\ntarget. Each ellipsis example is paired with its non-\nelliptical counterpart, where the target clause is\novert rather than elliptical. We then pose a question\nwhose answer is dependent on the target clause. A\nkey aspect of the challenge is that ellipsis occur-\nrences are possible in a variety of diverse structural\nconfigurations. We test a series of GPT-3 models\n(GPT) on several such ellipsis structures.
-  15  p1  paragraph  [p1-l67]  2 Related Work
+  15  p1  heading (2)  [p1-l67]  2 Related Work
   16  p1  paragraph  [p1-l68..p1-l75 (8)]  There is a large literature concerning the prob-\ning of language models from a variety of perspec-\ntives. Furthermore, there has been substantial work\nspecifically addressing ellipsis in NLP. In this pa-\nper, we are proposing the challenge of ellipsis-\ndependent reasoning. This proposal builds on var-\nious strands of prior research; below we consider\nsome particularly relevant aspects of this literature.
-  17  p1  paragraph  [p1-l76..p1-l77 (2)]  2.1 Probing Models for Knowledge
+  17  p1  heading (2.1)  [p1-l76..p1-l77 (2)]  2.1 Probing Models for Knowledge
   18  p1  paragraph  [p1-l78..p1-l84 (7)]  The Winograd Schema (Kocijan et al. (2022);\nLevesque et al. (2012)) involves test examples that\nuse the linguistic problem of pronoun resolution\nto gain insight into the commonsense reasoning\nabilities of an AI system. To do this, the Winograd\nSchema requires pairs of examples that differ only\nin one specific, small way, as in (4):
   19  p1  paragraph  [p1-l85..p1-l88 (4)]  (4) The city councilmen refused the demonstra-\ntors a permit because they feared/advocated\nviolence.
   20  p1  furniture/page-number  [p1-l89]  39
@@ -578,14 +602,14 @@
   23  p1  furniture/footer  [p1-l3]  July 9-14, 2023 ©2023 Association for Computational Linguistics
   24  p2  paragraph  [p2-l1..p2-l11 (11)]  With “feared", the pronoun “they" refers to the city\ncouncilmen, while with “advocated", it refers to the\ndemonstrators. Humans understand this because\nof general, commonsense knowledge about what\nwould reasonably explain the refusal of a permit\nin the two cases. It is difficult to ensure that such\nexamples can only be solved through such sophis-\nticated reasoning, and, according to Kocijan et al.\n(2022)[p. 8], “Solving Winograd schemas is not\na surrogate for the ability to do commonsense rea-\nsoning".
   25  p2  paragraph  [p2-l12..p2-l22 (11)]  A different approach is exemplified by Lin et al.\n(2019): here, examples are constructed which test\nspecific aspects of linguistic knowledge of a sys-\ntem, namely, whether BERT embeddings “encode\nhierarchical information". For example, a task is\ndefined to identify the main auxiliary verb in a\nsentence, even in cases where the main auxiliary\nis not the first auxiliary verb to appear. Training\nand testing datasets are automatically generated us-\ning a context-free grammar for several such tasks\ninvolving hierarchical syntactic information.
-  26  p2  paragraph  [p2-l23..p2-l24 (2)]  2.2 Anaphora and Question Answering
+  26  p2  heading (2.2)  [p2-l23..p2-l24 (2)]  2.2 Anaphora and Question Answering
   27  p2  paragraph  [p2-l25..p2-l39 (15)]  Quoref (Dasigi et al. (2019); Zhang and Zhao\n(2022)) is a question-answer dataset designed so\nthat correct answers cannot be given unless a coref-\nerence relationship is correctly identified; that is,\nthe reasoning involved in question answering is\ndependent on resolving coreference. This is, in a\nsense, the inverse of the Winograd schema, where\nresolving coreference is dependent upon reasoning.\nJust as with the Winograd schema, it is difficult to\nensure that resolving this dependency is required\nfor system success. (Dasigi et al., 2019)[p. 1] note\nthat this is “challenging, because it is hard to avoid\nlexical cues that shortcut complex reasoning", and\nbased on a random sample, found that coreference\nresolution was required for 78% of questions.
-  28  p2  paragraph  [p2-l40..p2-l41 (2)]  2.3 Ellipsis as a Task
+  28  p2  heading (2.3)  [p2-l40..p2-l41 (2)]  2.3 Ellipsis as a Task
   29  p2  paragraph  [p2-l42..p2-l58 (17)]  There has been substantial work on ellipsis as a\ndiscrete NLP task (Khullar (2020), Zhang et al.\n(2019); Kenyon-Dean et al. (2016); Bos and Spe-\nnader (2011)). Vanderlyn et al. (2022) surveys a\nvariety of forms of what they call “implicit ref-\nerence", which includes ellipsis and related phe-\nnomena. Aralikatte et al. (2021) frame ellipsis as\na question-answering task, i.e., a task of locating\nan antecedent, understood as a span of tokens in\ncontext. Aralikatte et al. (2021) report token F1\nscores of 78.66 for VPE and 86.01 for sluicing, an-\nother form of ellipsis. It’s important to note that the\ntask here, of antecedent identification, is a sub-part\nof the ellipsis challenge. Before the antecedent is\nidentified, an ellipsis occurrence must be identified,\nand after the antecedent is identified, it must be\ninterpreted, or “reconstructed", at the ellipsis site.
-  30  p2  paragraph  [p2-l59..p2-l61 (3)]  2.4 Relevance for Ellipsis-Dependent\nReasoning
+  30  p2  heading (2.4)  [p2-l59..p2-l61 (3)]  2.4 Relevance for Ellipsis-Dependent\nReasoning
   31  p2  paragraph  [p2-l62..p2-l76 (15)]  The specific task of ellipsis is addressed in work\nlike that of Aralikatte et al. (2021), but the key\ndifference here is that we are probing for a com-\nplete solution to the ellipsis problem. The proposed\nellipsis-dependent reasoning task involves a ques-\ntion that can only be answered correctly if the el-\nlipsis is properly identified and interpreted. This\ncombines aspects of the preceding works in a novel\nway: like the Winograd schema and the syntactic\nwork by Lin et al. (2019), it probes for what we\nsee as a specific type of psychologically-defined\nknowledge: namely, a representation of context\nthat supports the resolution of ellipsis. Similarly to\nthe work on Quoref, we use targeted questions to\nprobe for discourse-related knowledge.
   32  p2  paragraph  [p2-l77..p2-l93 (17)]  There is an extensive literature on the contextual\ninterpretation of natural language, resting on the\nidea of a dynamic, ongoing model of discourse. For\nexample, Discourse Representation Theory (Kamp,\n1981) describes a semantic model supporting dis-\ncourse phenomena such as pronominal and tempo-\nral anaphora, and Sag and Hankamer (1984) argue\nexplicitly that ellipsis and other such phenomena\nare interpreted with respect to a discourse model\n(Garnham, 2010). As one study puts it, “Inter-\npreting a verb-phrase ellipsis (VP ellipsis) requires\naccessing an antecedent in memory, and then in-\ntegrating a representation of this antecedent into\nthe local context" (Martin and McElree, 2008). In\nthis paper, we seek to determine whether a large\nlanguage model is capable of such an interpretive\nprocess.
-  33  p2  paragraph  [p2-l94]  3 Data
+  33  p2  heading (3)  [p2-l94]  3 Data
   34  p2  paragraph  [p2-l95..p2-l98 (4)]  There is a great deal of variety in the structural\nconfigurations in which ellipsis can occur. In ta-\nbles 1 and 2 we define structures for ellipsis and\nantecedent occurrences.
   35  p2  paragraph  [p2-l99..p3-l41 (16)]  In all structures, there is an ellipsis occurrence,\nand the question targets the ellipsis occurrence. Fur-\nthermore, each ellipsis example is paired with a\nnon-ellipsis version. The first two structures, Sep-\narate Sentence, and Conjoined Sentence, involve\ntwo adjacent main clauses. This is followed by two\nstructures in which either the VPE or antecedent oc-\ncur in a subordinate clause. There is a Backwards\nstructure where the VPE precedes the antecedent;\nhere the VPE is in a subordinate clause. Finally, we\nhave a Two Actions structure; that is, two ellipsis\noccurrences each with their respective antecedent\nVPs. We have two versions: one in which the target\nquestion has a correct answer of “Yes", shown in\ntable 1, and another where the target question has\na correct answer of “No", shown in table 2.
   36  p2  furniture/page-number  [p2-l103]  40
@@ -616,7 +640,7 @@
   61  p3  paragraph  [p3-l27..p3-l28 (2)]  Question Did John go running?
   62  p3  paragraph  [p3-l29]  Table 1: Structures for Positive Answer
   63  p3  paragraph  [p3-l42..p3-l46 (5)]  We generate large numbers of examples of each\nstructure by performing random substitutions for\nboth the subject and verb. The substitution lists are\ngiven in the appendix, along with samples of each\nstructure and the size of the resulting sets. 1
-  64  p3  paragraph  [p3-l47]  4 Test
+  64  p3  heading (4)  [p3-l47]  4 Test
   65  p3  paragraph  [p3-l48..p3-l99 (12)]  For each instantiation of a given structure, we pro-\nduce paired ellipsis and non-ellipsis examples, with\nan associated Yes/No question. We randomly select\n1000 examples for each structure, including 500\nellipsis examples and 500 examples which are their\nnon-elliptical counterparts. Each example is pre-\nsented to the system, preceded by the text, “Please\ngive a Yes or No answer:". We test five GPT-3 mod-\nels on these structures: Davinci-003, Davinci-002,\nCurie-001, Babbage-001, and Ada-001. According\nto the GPT-3 documentation, Davinci-003 is the\nmost powerful model and Ada-001, the least.
   66  p3  figure  [p3-d26]  
   67  p3  paragraph  [p3-l57]  1Datasets
@@ -647,7 +671,7 @@
   92  p3  figure  [p3-d50..p3-d51 (2)]  
   93  p3  paragraph  [p3-l94..p3-l95 (2)]  Question Did John go running?
   94  p3  paragraph  [p3-l96]  Table 2: Structures for Negative Answer
-  95  p3  paragraph  [p3-l100]  5 Results
+  95  p3  heading (5)  [p3-l100]  5 Results
   96  p3  paragraph  [p3-l101..p3-l118 (18)]  Figure 1 gives the accuracy for ellipsis and non-\nellipsis, for each of the five models. We have set\nup the test examples so that an ellipsis example\nis paired with a non-ellipsis example that is oth-\nerwise identical. Because of this, we claim that\nthe difference in accuracy of the non-ellipsis case\nvs. the ellipsis case provides a measurement of the\ndifficulty specifically posed by ellipsis. For all but\nthe least powerful model, Ada, the non-ellipsis ac-\ncuracy is substantially higher than ellipsis accuracy,\nsupporting the hypothesis that ellipsis-dependent\nreasoning presents a difficult challenge for these\nmodels. While the Ada model actually performs\nsomewhat better for ellipsis than non-ellipsis, this\nis not because the Ada model does well with ellip-\nsis cases; rather, the model has great difficulty with\nboth the ellipsis and non-ellipsis cases, and is close\nto a random guessing baseline of .50.
   97  p3  paragraph  [p3-l119..p4-l12 (16)]  In figures 2 through 6, we present results for each\nmodel. We show the accuracy for each structure,\nfor both the ellipsis version and the non-ellipsis ver-\nsion. Consider the most powerful models, Davinci-\n003 and Davinci-002. In figures 2 and 3, we can see\nthat ellipsis is not difficult in the first two structures:\n2Sent (Separate Sentence) and 1Sent (Conjoined\nSentence). Here the accuracy is nearly perfect for\nthe ellipsis as well as the non-ellipsis condition.\nHowever, in all the other structures, there is a large\ndivergence in accuracy between ellipsis and non-\nellipsis, for both the Davinci-003 and Davinci-002\nmodels. Subordination for either antecedent or el-\nlipsis is quite challenging, with accuracies ranging\nfrom 48.8 to 85.8. The Backwards and Two Ac-\ntions structures are even more difficult for ellipsis.
   98  p3  furniture/page-number  [p3-l127]  41
@@ -655,7 +679,7 @@
   100  p4  paragraph  [p4-l1..p4-l2 (2)]  Figure 1: Model Accuracy – Ellipsis vs. Non-Ellipsis\n(5000 examples per model.)
   101  p4  figure  [p4-i2]  
   102  p4  paragraph  [p4-l3..p4-l4 (2)]  Figure 2: Ellipsis Accuracy – davinci-003 (1000 exam-\nples per structure.)
-  103  p4  paragraph  [p4-l13]  6 Analysis
+  103  p4  heading (6)  [p4-l13]  6 Analysis
   104  p4  paragraph  [p4-l14..p4-l20 (7)]  For the two most powerful models, it is clear that\nellipsis poses a difficult challenge, except in the two\nsimplest ellipsis structures. For the less powerful\nmodels, the picture is mixed. For these models,\nthe non-ellipsis examples are themselves a difficult\nchallenge, so we are not able to observe the specific\ndifficulties posed by ellipsis.
   105  p4  paragraph  [p4-l21..p4-l32 (8)]  As we can see in figure 1, the Davinci-002 model\nperforms somewhat better overall than Davinci-\n003, on both ellipsis and non-ellipsis. However,\nfigures 2 and 3 show that the advantage of Davinci-\n002 on ellipsis is exclusively due to the subordi-\nnate antecedent construction. In every other el-\nlipsis structure, Davinci-003 performs better than\nDavinci-002.
   106  p4  figure  [p4-i3]  
@@ -663,7 +687,7 @@
   108  p4  figure  [p4-i4]  
   109  p4  paragraph  [p4-l25..p4-l26 (2)]  Figure 4: Ellipsis Accuracy – curie-001 (1000 examples\nper structure.)
   110  p4  paragraph  [p4-l33..p4-l40 (8)]  There are striking differences in the distribution\nof errors. For both the Davinci-003 and Davinci-\n002 models, errors are nearly always false negatives\n– that is, incorrect “No" answers. There are virtually\nno false positives, either for the ellipsis case or non-\nellipsis case. For the other three models, there are\nmany errors of each type, with a much higher ratio\nof false positives.
-  111  p4  paragraph  [p4-l41]  7 Conclusion
+  111  p4  heading (7)  [p4-l41]  7 Conclusion
   112  p4  paragraph  [p4-l42..p5-l13 (12)]  Most of the current rapid progress in NLP is due\nto pre-trained large language models. GPT-3 is\nan impressive publicly available collection of such\nmodels, and is able to perform in a way that sug-\ngests human-level understanding. Because of this,\nit is important to explore areas in which it might\nstill differ from human language understanding. In\nthis paper we have argued that ellipsis is one such\narea. For many simple ellipsis structures, the most\npowerful GPT-3 models struggle, with accuracies\nfar lower on ellipsis examples than on non-elliptical\ncounterparts.
   113  p4  furniture/page-number  [p4-l45]  42
   114  p5  figure  [p5-i1]  
@@ -675,9 +699,9 @@
   120  p5  paragraph  [p5-l21..p5-l23 (3)]  Figure 7: Ellipsis case – Errors by model. False Pos-\nitives (Incorrect “Yes") vs. False Negatives (Incorrect\n“No")
   121  p5  figure  [p5-i4]  
   122  p5  paragraph  [p5-l24..p5-l26 (3)]  Figure 8: Non-ellipsis case – Errors by model. False\nPositives (Incorrect “Yes") vs. False Negatives (Incor-\nrect “No")
-  123  p5  paragraph  [p5-l27]  8 Limitations
+  123  p5  heading (8)  [p5-l27]  8 Limitations
   124  p5  paragraph  [p5-l28..p5-l37 (10)]  This paper argues that the proposed task of ellipsis-\ndependent reasoning is a difficult challenge for\nGPT-3 models, which are among the most power-\nful current language models. The data constructed\nhere is restricted to English, and furthermore is re-\nstricted to a single form of ellipsis, namely verb\nphrase ellipsis. It may well be that other forms of\nellipsis may give rise to different effects, and it is\nalso important to test the claims made here on other\nlanguages.
-  125  p5  paragraph  [p5-l38]  References
+  125  p5  heading  [p5-l38]  References
   126  p5  paragraph  [p5-l39..p5-l40 (2)]  OpenAI GPT-3 Models Overview. Accessed on 2023-\n01-10.
   127  p5  furniture/page-number  [p5-l41]  43
   128  p6  paragraph  [p6-l1..p6-l7 (7)]  Rahul Aralikatte, Matthew Lamm, Daniel Hardt, and\nAnders Søgaard. 2021. Ellipsis resolution as ques-\ntion answering: An evaluation. In Proceedings of the\n16th Conference of the European Chapter of the Asso-\nciation for Computational Linguistics: Main Volume,\npages 810–817, Online. Association for Computa-\ntional Linguistics.
@@ -695,8 +719,8 @@
   140  p6  paragraph  [p6-l57..p6-l64 (8)]  Lindsey Vanderlyn, Talita Anthonio, Daniel Ortega,\nMichael Roth, and Ngoc Thang Vu. 2022. Toward\nimplicit reference in dialog: A survey of methods and\ndata. In Proceedings of the 2nd Conference of the\nAsia-Pacific Chapter of the Association for Compu-\ntational Linguistics and the 12th International Joint\nConference on Natural Language Processing, pages\n587–600.
   141  p6  paragraph  [p6-l65..p6-l69 (5)]  Wei-Nan Zhang, Yue Zhang, Yuanxing Liu, Donglin\nDi, and Ting Liu. 2019. A neural network approach\nto verb phrase ellipsis resolution. In Proceedings\nof the AAAI Conference on Artificial Intelligence,\nvolume 33, pages 7468–7475.
   142  p6  paragraph  [p6-l70..p6-l74 (5)]  Zhuosheng Zhang and Hai Zhao. 2022. Tracing origins:\nCoreference-aware machine reading comprehension.\nIn Proceedings of the 60th Annual Meeting of the\nAssociation for Computational Linguistics (Volume\n1: Long Papers), pages 1281–1292.
-  143  p6  paragraph  [p6-l75]  A Appendix
-  144  p6  paragraph  [p6-l76..p6-l77 (2)]  A.1 Sample Instantiations
+  143  p6  heading (A)  [p6-l75]  A Appendix
+  144  p6  heading (A.1)  [p6-l76..p6-l77 (2)]  A.1 Sample Instantiations
   145  p6  paragraph  [p6-l78..p6-l83 (6)]  Below are sample instantiations for the Single\nSentence and Two Action structures. The complete\ndatasets for all the structures can be accessed\nat https://github.com/DanHardtDK/\nellipsisGPT3.
   146  p6  paragraph  [p6-l84]  Single Sentence
   147  p6  paragraph  [p6-l85]  Mary went swimming, and Harold did too.
@@ -729,7 +753,7 @@
   174  p7  paragraph  [p7-l8..p7-l9 (2)]  Verb “swimming", “shopping", “running",
   175  p7  paragraph  [p7-l10]  “walking", “skiing", “jogging", “hiking"
   176  p7  paragraph  [p7-l11]  Table 3: Substitutions
-  177  p7  paragraph  [p7-l12..p7-l13 (2)]  A.2 Substitutions
+  177  p7  heading (A.2)  [p7-l12..p7-l13 (2)]  A.2 Substitutions
   178  p7  paragraph  [p7-l14..p7-l16 (3)]  The examples are produced using the substitutions\nfor subjects and verbs in the different structures, as\nshown in table 3.
   179  p7  furniture/page-number  [p7-l17]  45
   180  p8  paragraph  [p8-l1]  ACL 2023 Responsible NLP Checklist
@@ -782,6 +806,24 @@
   227  p9  paragraph  [p9-l27..p9-l28 (2)]  D5. Did you report the basic demographic and geographic characteristics of the annotator population\nthat is the source of the data?
   228  p9  paragraph  [p9-l29]  No response.
   229  p9  furniture/page-number  [p9-l30]  47
+  sections
+    1  blocks 3-5  Abstract
+    1  blocks 5-15  1 Introduction
+    1  blocks 15-33  2 Related Work
+      2  blocks 17-26  2.1 Probing Models for Knowledge
+      2  blocks 26-28  2.2 Anaphora and Question Answering
+      2  blocks 28-30  2.3 Ellipsis as a Task
+      2  blocks 30-33  2.4 Relevance for Ellipsis-Dependent Reasoning
+    1  blocks 33-64  3 Data
+    1  blocks 64-95  4 Test
+    1  blocks 95-103  5 Results
+    1  blocks 103-111  6 Analysis
+    1  blocks 111-123  7 Conclusion
+    1  blocks 123-125  8 Limitations
+    1  blocks 125-143  References
+    1  blocks 143-230  A Appendix
+      2  blocks 144-177  A.1 Sample Instantiations
+      2  blocks 177-230  A.2 Substitutions
   
   '''
 # ---
@@ -793,12 +835,12 @@
   1  p1  paragraph  [p1-l5..p1-l6 (2)]  Franz Nowak\nRyan Cotterell
   2  p1  paragraph  [p1-l7]  {franz.nowak, ryan.cotterell}@inf.ethz.ch
   3  p1  figure  [p1-i1..p1-d5 (6)]  
-  4  p1  paragraph  [p1-l8]  Abstract
+  4  p1  heading  [p1-l8]  Abstract
   5  p1  paragraph  [p1-l9..p1-l21 (13)]  Multiple algorithms are known for efficiently\ncalculating the prefix probability of a string\nunder a probabilistic context-free grammar\n(PCFG). Good algorithms for the problem have\na runtime cubic in the length of the input string.\nHowever, some proposed algorithms are subop-\ntimal with respect to the size of the grammar.\nThis paper proposes a novel speed-up of Je-\nlinek and Lafferty’s (1991) algorithm, whose\noriginal runtime is O(N3 |N |3 + |N |4 ), where\nN is the input length and |N | is the number of\nnon-terminals in the grammar. In contrast, our\nspeed-up runs in O(N2 |N |3 + N3 |N |2 ).
   6  p1  figure  [p1-i2]  
   7  p1  paragraph  [p1-l22]  https://github.com/rycolab/
   8  p1  paragraph  [p1-l23]  prefix-parsing
-  9  p1  paragraph  [p1-l24]  1 Introduction
+  9  p1  heading (1)  [p1-l24]  1 Introduction
   10  p1  paragraph  [p1-l25..p1-l42 (18)]  Probabilistic context-free grammars (PCFGs) are\nan important formalism in NLP (Eisenstein, 2019,\nChapter 10). One common use of PCFGs is to con-\nstruct a language model. For instance, PCFGs form\nthe backbone of many neural language models, e.g.,\nrecurrent neural network grammars (RNNGs; Dyer\net al., 2016; Dyer, 2017; Kim et al., 2019). How-\never, in order to use a PCFG as a language model,\none needs to be able to compute prefix probabilities,\ni.e., the probability that the yield of a derivation\nstarts with the given string. In notation, given a\nstring w = w1 · · · wN , we seek the probability\np(S ∗⇒ w · · ·) where S is the distinguished start\nsymbol of the grammar and ∗⇒ is the closure over\napplications of derivation rules of the grammar.1\nOur paper gives a more efficient algorithm for the\nsimultaneous computation of the prefix probabil-\nities of all prefixes of a string w under a PCFG.
   11  p1  paragraph  [p1-l43..p1-l64 (12)]  The authors are aware of two existing efficient\nalgorithms to compute prefix probabilities under\na PCFG.2 The first is Jelinek and Lafferty’s (1991)\nalgorithm which is derived from CKY (Kasami,\n1965; Younger, 1967; Cocke and Schwartz, 1970)\nand, thus, requires the grammar to be in Chomsky\nnormal form (CNF). Jelinek–Lafferty runs in\nO(N3 |N |3 + |N |4 ) time, where N is the length\nof the input and N is the number of non-terminals\nof the grammar, slower than the O(N3 |N |3 )\nrequired for parsing with CKY, when the number\nof non-terminals |N | is taken into account.
   12  p1  figure  [p1-d6]  
@@ -809,7 +851,7 @@
   17  p1  paragraph  [p1-l51..p1-l55 (5)]  2Upon publication of this work, the authors were made\naware of two other algorithms for finding prefix probabilities\nin the special case of idempotent semirings (Corazza et al.\n1994; Sánchez and Benedí 1997). See App. B for a discussion\nof prefix parsing under a semiring.
   18  p1  paragraph  [p1-l65..p1-l75 (11)]  The second, due to Stolcke (1995), is derived\nfrom Earley parsing (Earley, 1970) and can parse\narbitrary PCFGs,3 with a runtime of O(N3 |N |3 ).\nMany previous authors have improved the runtime\nof Earley’s (Graham et al., 1980; Leermakers\net al., 1992; Moore, 2000, inter alia), and Opedal\net al. (2023) successfully applied this speed-up\nto computing prefix probabilities, achieving a\nruntime of O(N3 |G|), where |G| is the size of\nthe grammar, that is, the sum of the number of\nsymbols in all production rules.
   19  p1  paragraph  [p1-l76..p1-l87 (12)]  Our paper provides a more efficient version of\nJelinek and Lafferty (1991) for the computation of\nprefix probabilities under a PCFG in CNF. Specif-\nically, we give an O(N2 |N |3 + N3 |N |2 ) time al-\ngorithm, which is the fastest attested in the liter-\nature for dense grammars in CNF,4 matching the\ncomplexity of CKY adapted for dense grammars\nby Eisner and Blatz (2007).5 We provide a full\nderivation and proof of correctness, as well as an\nopen-source implementation on GitHub. We also\nbriefly discuss how our improved algorithm can be\nextended to work for semiring-weighted CFGs.
-  20  p1  paragraph  [p1-l88]  2 Preliminaries
+  20  p1  heading (2)  [p1-l88]  2 Preliminaries
   21  p1  paragraph  [p1-l89..p1-l90 (2)]  We start by introducing the necessary background\non probabilistic context-free grammars.
   22  p1  figure  [p1-d9]  
   23  p1  paragraph  [p1-l91..p1-l93 (3)]  3Note that Earley’s and, by extension, Stolcke’s algorithms\nalso implicitly binarize the grammar during execution by using\ndotted rules as additional non-terminals.
@@ -946,7 +988,7 @@
   154  p3  paragraph  [p3-l104..p3-l110 (2)]  (a) ξ(Y | X) (b) ξ(Y Z | X)
   155  p3  paragraph  [p3-l111]  Figure 2: Visualization of left-corner expectations
   156  p3  paragraph  [p3-l112..p3-l118 (7)]  The left-corner expectation ξ(Y | X) is hence\nthe sum of the probabilities of partial derivation\nsubtrees rooted in X that have Y as the left-most\nleaf; see Fig. 2a for a visualization. Similarly,\nξ(Y Z | X) is the sum of the probabilities of\npartial derivation subtrees that have Y and Z as the\nleftmost leaves; see Fig. 2b.
-  157  p3  paragraph  [p3-l119]  3 Jelinek and Lafferty (1991)
+  157  p3  heading (3)  [p3-l119]  3 Jelinek and Lafferty (1991)
   158  p3  paragraph  [p3-l120..p3-l122 (3)]  We now give a derivation of the Jelinek–Lafferty\nalgorithm. The first step is to derive an expression\nfor the prefix probability in PCFG terms.
   159  p3  paragraph  [p3-l123..p3-l126 (4)]  Lemma 1. Given a tight, trim PCFG in CNF and\na string w = w1 · · · wN , the prefix probability of a\nsubstring wi+1 · · · wk of w being derived from X\ncan be defined recursively as follows:
   160  p3  paragraph  [p3-l127..p3-l129 (2)]  π(i, X, k) = X ξ(Y Z | X)
@@ -984,7 +1026,7 @@
   192  p4  paragraph  [p4-l57..p4-l58 (2)]  8 For a generalization of the algorithm that does not require\nlocally normalized rule weights, see App. B.
   193  p4  paragraph  [p4-l59..p4-l60 (2)]  Proposition 2. The total time complexity of Jelinek–\nLafferty is O(N3 |N |3 + |N |4 ):
   194  p4  paragraph  [p4-l61..p4-l82 (22)]  Proof. First, we precompute any values that are\nindependent of the input. In lines 1–3, we pre-\ncompute all the left-corner expectations ξ(Y | X)\nusing Eq. (14), which has the complexity of in-\nverting the matrix P, i.e., O(|N |3 ), and move the\nvalues into a map of left-corner expectations in\nO(|N |2 ) (this is just for readability). In lines 4–\n5, we then use Eq. (9) to compute ξ(Y Z | X),\niterating once over all non-terminals X for each\nrule, which takes O(|R||N |), that is, O(|N |4 ). Af-\nter initializing the probabilities in lines 7–10 in\nO(N2 |N |), we begin by pre-computing all the in-\nside probabilities β in line 11 of Alg. 2, which takes\nO(N3 |N |3 ) by Prop. 1. Computing π(k, X, k + 1)\nfor all X ∈ N by Eq. (11) in lines 12–14 takes\nO(N|N |2 ) as we iterate over all positions k ∈ N\nand over all Y ∈ N for each X ∈ N . And fi-\nnally, computing the π chart in lines 15–19 takes\nO(N3 |N |3 ) since we iterate over all ℓ, i, j ≤ N\nand X, Y, Z ∈ N . This yields an overall time com-\nplexity of O(N3 |N |3 + |N |4 ). ■
-  195  p4  paragraph  [p4-l83]  4 Our Speed-up
+  195  p4  heading (4)  [p4-l83]  4 Our Speed-up
   196  p4  paragraph  [p4-l84..p4-l95 (12)]  We now turn to our development of a faster dy-\nnamic program to compute all prefix probabilities.\nThe speed-up comes from a different way to\nfactorize π(i, X, k), which allows additional mem-\noization. Starting with the definition of the prefix\nprobability in Eq. (16a), we first expand ξ(Y Z | X)\nby Eq. (9), as seen in Eq. (16b). Then, we factor\nout all terms that depend on the left-corner non-\nterminal Y in Eq. (16c), which we store in a chart\nγ, see Eq. (16e). We then do the same for all terms\ndepending on X′ , factoring them out in Eq. (16d)\nand storing them in another chart δ, see Eq. (16f).
   197  p4  paragraph  [p4-l96..p4-l97 (2)]  Our improved algorithm for computing all prefix\nprobabilities is shown in Alg. 3.
   198  p4  paragraph  [p4-l98..p4-l99 (2)]  Proposition 3. The complexity of our improved\nalgorithm is O(N2 |N |3 + N3 |N |2 ).
@@ -1065,18 +1107,18 @@
   273  p5  paragraph  [p5-l106..p5-l108 (3)]  takes O(N2 |N |3 ), as we sum over non-terminals,\nand both charts each have two dimensions index-\ning N and two indexing N . Computing the base
   274  p5  paragraph  [p5-l40]  (16f)
   275  p5  paragraph  [p5-l109..p5-l115 (7)]  case π(k, X, k + 1) for all non-terminals X and\npositions k in lines 15–17 takes O(N|N |2 ), as be-\nfore. Finally, the loops computing π in lines 18–\n22 take O(N3 |N |2 ), as we are now iterating over\nX, Z ∈ N and ℓ, i, j ≤ N. Hence, our new overall\ntime complexity is O(N2 |N |3 + N3 |N |2 ). ■
-  276  p5  paragraph  [p5-l116]  5 Generalization to Semirings
+  276  p5  heading (5)  [p5-l116]  5 Generalization to Semirings
   277  p5  paragraph  [p5-l117..p5-l130 (14)]  It turns out that Jelinek–Lafferty, and, by extension,\nour improved algorithm, can be generalized to\nwork for semiring-weighted CFGs, with the same\ntime complexity, under the condition that the\nsemiring is closed, i.e., it has a Kleene star. This\nfollows from the fact that the only operations used\nby the algorithm are addition and multiplication\nif we use Lehmann’s (1977) algorithm for the\ncomputation of left-corner expectations, ξ. We\ncan even relax the condition of local normalization\nby changing how left-corner expectations and the\nweight of the prefix ε are computed. The relevant\ndefinitions and derivation of the adapted algorithm\ncan be found in App. B.
-  278  p5  paragraph  [p5-l131]  6 Conclusion
+  278  p5  heading (6)  [p5-l131]  6 Conclusion
   279  p5  paragraph  [p5-l132..p5-l139 (8)]  In this paper, we have shown how to efficiently\ncompute prefix probabilities for PCFGs in CNF,\nadapting Jelinek–Lafferty to use additional memo-\nization, thereby reducing the time complexity from\nO(N3 |N |3 + |N |4 ) to O(N2 |N |3 + N3 |N |2 ).\nWe thereby addressed one of the main limitations\nof the original formulation, of being slow for large\ngrammar sizes.
   280  p5  furniture/page-number  [p5-l140]  61
-  281  p6  paragraph  [p6-l1]  Limitations
+  281  p6  heading  [p6-l1]  Limitations
   282  p6  paragraph  [p6-l2..p6-l13 (12)]  While we have improved the asymptotic running\ntime of a classic algorithm with regard to grammar\nsize, the time complexity of our algorithm is still\ncubic in the length of the input. Our result follows\nthe tradition of dynamic programming algorithms\nthat trade time for space by memoizing and reusing\nprecomputed intermediate results. The usefulness\nof this trade-off in practice depends on the specifics\nof the grammar, and while the complexity is strictly\nbetter in terms of non-terminals, it will be most\nnoticeable for denser grammars with many non-\nterminals.
-  283  p6  paragraph  [p6-l14]  Ethics Statement
+  283  p6  heading  [p6-l14]  Ethics Statement
   284  p6  paragraph  [p6-l15..p6-l16 (2)]  We do not foresee any ethical issues arising from\nthis work.
-  285  p6  paragraph  [p6-l17]  Acknowledgements
+  285  p6  heading  [p6-l17]  Acknowledgements
   286  p6  paragraph  [p6-l18..p6-l22 (5)]  We thank the anonymous reviewers for their help-\nful comments and suggestions. We also extend\nour gratitude to Abra Ganz, Andreas Opedal, Anej\nSvete, and Tim Vieira for their valuable feedback\non various versions of this paper.
-  287  p6  paragraph  [p6-l23]  References
+  287  p6  heading  [p6-l23]  References
   288  p6  paragraph  [p6-l24..p6-l26 (3)]  Steven C. Althoen and Renate McLaughlin. 1987.\nGauss-jordan reduction: A brief history. The Ameri-\ncan Mathematical Monthly, 94(2):130–142.
   289  p6  paragraph  [p6-l27..p6-l30 (4)]  J. K. Baker. 1979. Trainable grammars for speech recog-\nnition. In Speech Communication Papers presented\nat the 97th Meeting of the Acoustical Society of Amer-\nica, pages 547–550, MIT, Cambridge, Massachusetts.
   290  p6  paragraph  [p6-l31..p6-l35 (5)]  José-Miguel Benedí and Joan-Andreu Sánchez. 2007.\nFast stochastic context-free parsing: A stochastic ver-\nsion of the valiant algorithm. In Pattern Recognition\nand Image Analysis, pages 80–88, Berlin, Heidelberg.\nSpringer Berlin Heidelberg.
@@ -1111,7 +1153,7 @@
   319  p7  paragraph  [p7-l52..p7-l53 (2)]  Stephen Warshall. 1962. A theorem on boolean matri-\nces. Journal of the ACM, 9(1):11–12.
   320  p7  paragraph  [p7-l54..p7-l56 (3)]  Daniel H. Younger. 1967. Recognition and parsing of\ncontext-free languages in time n 3 . Information and\nControl, 10(2):189–208.
   321  p7  furniture/page-number  [p7-l57]  63
-  322  p8  paragraph  [p8-l1]  A Proof of Lem. 1
+  322  p8  heading (A)  [p8-l1]  A Proof of Lem. 1
   323  p8  paragraph  [p8-l2..p8-l3 (2)]  Lemma 1. Given a tight, trim PCFG in CNF and a string w = w1 · · · wN , the prefix probability of a\nsubstring wi+1 · · · wk of w being derived from X can be defined recursively as follows:
   324  p8  paragraph  [p8-l7]  k−1
   325  p8  paragraph  [p8-l4..p8-l10 (4)]  π(i, X, k) = X ξ(Y Z | X) · X β(i, Y, j) · π(j, Z, k) (10)
@@ -1139,9 +1181,9 @@
   347  p8  paragraph  [p8-l58..p8-l61 (2)]  Y,Z∈N j=i+1
   348  p8  paragraph  [p8-l64]  ■
   349  p8  furniture/page-number  [p8-l65]  64
-  350  p9  paragraph  [p9-l1]  B Extension of Alg. 3 to Semirings
+  350  p9  heading (B)  [p9-l1]  B Extension of Alg. 3 to Semirings
   351  p9  paragraph  [p9-l2..p9-l3 (2)]  In the following, we give the necessary background on semirings and then show how the algorithms\nintroduced above can be framed in terms of semirings.
-  352  p9  paragraph  [p9-l4..p9-l5 (2)]  B.1 Semirings
+  352  p9  heading (B.1)  [p9-l4..p9-l5 (2)]  B.1 Semirings
   353  p9  paragraph  [p9-l6]  We start by introducing the necessary definitions and notation.
   354  p9  paragraph  [p9-l7]  Definition 10. A monoid is a 3-tuple ⟨A, ◦, 1⟩ where:
   355  p9  paragraph  [p9-l8]  (i) A is a non-empty set;
@@ -1186,7 +1228,7 @@
   394  p10  paragraph  [p10-l4..p10-l10 (5)]  (AB)ij def = M Aik ⊗ Bkj i, j ∈ 1, . . . , d (25)
   395  p10  paragraph  [p10-l7]  k=1
   396  p10  paragraph  [p10-l11..p10-l16 (6)]  We also define the zero matrix, O, over the complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩, such that all\nentries are 0, and the unit matrix I as (I)ij = 1 iff i = j and 0 otherwise for all indices i, j ∈ 0, . . . , d.\nIt is then straightforward to show that matrix addition is associative and commutative, while matrix\nmultiplication is associative and distributive over matrix addition. Hence, the set of square matrices\nof dimension d over a semiring, with addition and multiplication as defined above, is itself a semiring.\nFurthermore, by the element-wise definition of its addition operation, it is also complete.
-  397  p10  paragraph  [p10-l17..p10-l18 (2)]  B.2 Semiring-weighted prefix algorithm
+  397  p10  heading (B.2)  [p10-l17..p10-l18 (2)]  B.2 Semiring-weighted prefix algorithm
   398  p10  paragraph  [p10-l19..p10-l25 (7)]  We now consider a semiring-weighted CFG G = ⟨N , Σ, S, R, p, W⟩, where N , Σ, S, R are defined as\nbefore but the weighting function p: R → W now maps rules to elements of a commutative semiring\nW. 9 Note that we no longer require the rule weights to sum to one. As before, we define the matrix P\nas the square matrix of dimension |N | whose rows and columns are indexed by the non-terminals N in\nsome fixed order so that the entry Pij corresponds to the weight of getting the non-terminal Xj on the left\nafter one rule application to Xi . Since the rule weights are no longer locally normalized, however, we\nneed to include the treesum under the right non-terminal of each rule as an additional term:10
   399  p10  paragraph  [p10-l26..p10-l30 (4)]  Pij = p(Xi −→ Xj _) def = M p(Xi −→ XjY) · treesum(Y) (26)
   400  p10  paragraph  [p10-l28]  Y∈N
@@ -1272,6 +1314,22 @@
   480  p11  paragraph  [p11-l68]  Proposition 4. The semiring-weighted version of our algorithm runs in O(N2 |N |3 + N3 |N |2 ).
   481  p11  paragraph  [p11-l69..p11-l75 (7)]  Proof. Lehmann’s algorithm, as presented in Alg. 4, has three nested for loops of d iterations each, where\nd is the dimension of the input matrix. In our case, d is the number of non-terminals, |N |. Assuming the\nKleene closure of elements in W can be evaluated in O(1), this means that computing the left corner\nexpectations in line 1 of Alg. 5 takes O(|N |3 ), as before. Hence, the complexity of the overall algorithm\nremains unchanged, that is, we can compute the prefix probabilities under a semiring-weighted, locally\nnormalized CFG G in O(N2 |N |3 + N3 |N |2 ). ■
   482  p11  furniture/page-number  [p11-l76]  67
+  sections
+    1  blocks 4-9  Abstract
+    1  blocks 9-20  1 Introduction
+    1  blocks 20-157  2 Preliminaries
+    1  blocks 157-195  3 Jelinek and Lafferty (1991)
+    1  blocks 195-276  4 Our Speed-up
+    1  blocks 276-278  5 Generalization to Semirings
+    1  blocks 278-281  6 Conclusion
+    1  blocks 281-283  Limitations
+    1  blocks 283-285  Ethics Statement
+    1  blocks 285-287  Acknowledgements
+    1  blocks 287-322  References
+    1  blocks 322-350  A Proof of Lem. 1
+    1  blocks 350-483  B Extension of Alg. 3 to Semirings
+      2  blocks 352-397  B.1 Semirings
+      2  blocks 397-483  B.2 Semiring-weighted prefix algorithm
   
   '''
 # ---
@@ -1283,14 +1341,14 @@
   1  p1  paragraph  [p1-l2]  Xerxes D. Arsiwalla1,2,∗
   2  p1  paragraph  [p1-l3]  1Pompeu Fabra University, Barcelona, Spain
   3  p1  paragraph  [p1-l4]  2Wolfram Institute, Illinois, USA
-  4  p1  paragraph  [p1-l5]  Abstract
+  4  p1  heading  [p1-l5]  Abstract
   5  p1  paragraph  [p1-l6..p1-l22 (17)]  This work explores the hypothesis that subjectively attributed meaning constitutes the\nphenomenal content of conscious experience. That is, phenomenal content is semantic. This\nform of subjective meaning manifests as an intrinsic and non-representational character of\nqualia. Empirically, subjective meaning is ubiquitous in conscious experiences. We point\nto phenomenological studies that lend evidence to support this. Furthermore, this notion\nof meaning closely relates to what Frege refers to as "sense", in metaphysics and philoso-\nphy of language. It also aligns with Peirce’s "interpretant", in semiotics. We discuss how\nFrege’s sense can also be extended to the raw feels of consciousness. Sense and reference\nboth play a role in phenomenal experience. Moreover, within the context of the mind-matter\nrelation, we provide a formalization of subjective meaning associated to one’s mental repre-\nsentations. Identifying the precise maps between the physical and mental domains, we argue\nthat syntactic and semantic structures transcend language, and are realized within each of\nthese domains. Formally, meaning is a relational attribute, realized via a map that interprets\nsyntactic structures of a formal system within an appropriate semantic space. The image of\nthis map within the mental domain is what is relevant for experience, and thus comprises\nthe phenomenal content of qualia. We conclude with possible implications this may have for\nexperience-based theories of consciousness.
   6  p1  paragraph  [p1-l23..p1-l24 (2)]  Keywords: Consciousness Science; Qualia; Mind-Matter Problem; Formal Structures; Lan-\nguage; Meaning; Semiotics.
   7  p1  figure  [p1-d1]  
   8  p1  paragraph  [p1-l25]  ∗x.d.arsiwalla@gmail.com
   9  p1  furniture/side-stamp  [p1-l27]  arXiv:2405.01148v1 [q-bio.NC] 2 May 2024
   10  p1  furniture/page-number  [p1-l26]  1
-  11  p2  paragraph  [p2-l12..p2-l13 (2)]  1 Introduction
+  11  p2  heading (1)  [p2-l12..p2-l13 (2)]  1 Introduction
   12  p2  paragraph  [p2-l14..p2-l32 (19)]  How should one formulate a mathematical or metaphysical framework that admits a formalization\nof the phenomenal contents of conscious experience? The phenomenal contents or the so-called\nqualia of consciousness are inherently subjective attributes of experience, and by most accounts,\ndeemed non-representational [127]. They refer to the raw, immediate and phenomenal aspects\nof perception, sensation or mental states. Phenomenal content, by its very nature, is subjective;\nthat is, available only through one’s first-person perspective. Qualia are at the heart of the "what\nit’s like to be" character of conscious experience, as elucidated by Thomas Nagel in 1974 [97]. If\nit were possible to provide a complete third-person description of phenomenal states, that would\nresolve the "what it’s like to be" problem of consciousness. Qualia cannot be fully described, com-\nmunicated or understood through any objective third-person account or computational routine.\nFor instance, attempts to fully convey the subjective experience of tasting chocolate or perceiving\nthe color red through objective descriptions or computational algorithms fall short of capturing\nthe full qualitative nature of those experiences. These observations collectively indicate that cer-\ntain aspects of conscious experiences pose challenges for all attempts that seek to fully explain\nor replicate qualia through either exclusively computational, or objective descriptions, that is,\npotential third-person descriptions. Besides potential implications for philosophy of mind, this\nproblem also suggests new frontiers for the philosophy of science itself; namely, how does one ex-\ntend the existing scientific paradigm based on third-person perspective to account for phenomena\nthat are subjective and non-representational - that is, amenable only via first-person perspective?
   13  p2  paragraph  [p2-l33..p2-l36 (4)]  For these very reasons, a scientific description or theory elucidating the nature of qualia,\nor one explaining the phenomenology of conscious experiences continues to be an extremely chal-\nlenging problem at the heart of modern science. Attempts at any such theoretical description (of\nqualia) call for at least two essential ingredients:
   14  p2  paragraph  [p2-l37..p2-l38 (2)]  (i) A whole new scientific paradigm of subjectivity, one which describes phenomena from the\nintrinsic point-of-view, or "the view from the inside".
@@ -1315,7 +1373,7 @@
   33  p3  paragraph  [p3-l40..p3-l43 (4)]  1Roger Penrose has been a vociferous proponent of the view that consciousness necessarily involves a funda-\nmentally non-computational process [105] (see also [15] for a recent perspective on this point). An early remnant\nof this view, though not explicitly expressed in terms of consciousness, may be traced back to Alan Turing’s PhD\nthesis, where he contrasts between intuition and ingenuity [126].
   34  p3  furniture/page-number  [p3-l44]  3
   35  p4  paragraph  [p4-l3..p4-l7 (5)]  The outline of this paper is as follows: in section 2, we provide phenomenological evidence\nto support the claim that meaning is omnipresent in qualia; in section 3, we discuss how Frege’s\nnotion of sense extends to the raw feels of conscious experience; in section 4, we formalize sub-\njective meaning of mental representations in the context of the mind-matter relation; lastly, we\nconclude in section 5 with final thoughts.
-  36  p4  paragraph  [p4-l8..p4-l9 (2)]  2 Subjective Meaning in Phenomenology of Experience
+  36  p4  heading (2)  [p4-l8..p4-l9 (2)]  2 Subjective Meaning in Phenomenology of Experience
   37  p4  figure  [p4-d1..p4-d4 (4)]  
   38  p4  paragraph  [p4-l10..p4-l12 (3)]  Proposition 2.1. We hypothesize a notion of subjectively attributed meaning or subjective mean-\ning as an inherent feature of the qualia of consciousness. This subjective meaning constitutes the\nphenomenal content of all conscious experiences.
   39  p4  paragraph  [p4-l13..p4-l17 (5)]  Meaning is not merely about language2 , nor is it merely a construct about the world "as\nis". The notion of meaning has been extensively discussed by several philosophers in the context of\nlanguage, mind, metaphysics and epistemology [52,63,68,74]. How cognitive and artificial agents\nlearn to make associations about things in the world, is deeply relevant to our understanding of\nbiological and artificial intelligence.
@@ -1372,7 +1430,7 @@
   90  p8  paragraph  [p8-l38..p8-l40 (3)]  10. Lastly, experiences of being in a state of flow, where immediate, ineffable insights and\nintense focus arise during engaging activities like creating art, playing music or solving\ncomplex problems [70, 98, 133].
   91  p8  furniture/page-number  [p8-l41]  8
   92  p9  paragraph  [p9-l1..p9-l4 (4)]  The above are all examples of conscious experiences (although not of a typically sensory\ntype) that constitute some form of personal meaning for the experiencing subject. We claim\nthat the phenomenal content of these experiences is of a semantic type, that is, it is subjective\nmeaning.
-  93  p9  paragraph  [p9-l5..p9-l6 (2)]  3 Do Raw Feels Have Subjective Meaning?
+  93  p9  heading (3)  [p9-l5..p9-l6 (2)]  3 Do Raw Feels Have Subjective Meaning?
   94  p9  paragraph  [p9-l7..p9-l12 (6)]  The experiential phenomena enumerated in the section above, while predominantly of a non-\nsensory nature, have nonetheless been extensively studied in the consciousness literature (see\nreferences cited above). The important point of the above discussion was that a personal notion\nof meaning is ubiquitous to a wide variety of conscious experiences (particularly, those referring\nto non-sensory modalities). What about the raw feels of consciousness? Are they associated to\nmeaning?
   95  p9  paragraph  [p9-l13..p9-l20 (8)]  Expositions concerning sensory qualia are often discussed in terms of raw feels [127]. In\norder to make the case that raw feels too, cannot be devoid of meaning that is intrinsic to the\nexperiencing subject, let us consider a bridging concept between feels and meaning: namely, that\nof "sense". In philosophy of mind, the term sense has multiple connotations: it may refer to a\nsubjective perception, an understanding or significance of something, or a form of knowledge [25,\n27,52]. Sense, perfectly well, applies also to experiences beyond those involving the purely sensory\nmodalities (for instance, those involving internal states). Here we will anchor our discussion\nmainly on Frege’s use of the notion of sense [52].
   96  p9  paragraph  [p9-l21..p9-l25 (5)]  Remark 3.1. In his seminal 1892 paper, "On Sense and Reference", Gottlob Frege developed\nhis ideas on sense and reference [52]. This laid the groundwork for the metaphysics of thought,\ntheories of meaning in philosophy of mind, as well as discussions on semantics and language 5 .\nFrege elaborates on the distinction between sense and reference, and suggests that both, sense and\nreference contribute to meaning (with respect to both, expressions as well as thoughts).
@@ -1394,7 +1452,7 @@
   112  p11  paragraph  [p11-l1]  Two remarks are in order here:
   113  p11  paragraph  [p11-l2..p11-l7 (6)]  Remark 3.2. There is of course room to argue that there may be other attributes of mental rep-\nresentations such as its symbolic, computational or informational features that also partake in the\nrealm of awareness. However, unlike meaning, these other features are not non-representational.\nWhich is why, they do in fact admit a third-person description. However, qualia, having a phe-\nnomenal character, are deemed non-representational. For that reason, we maintain that subjective\nmeaning is the more compelling candidate that captures the phenomenal character of qualia.
   114  p11  paragraph  [p11-l8..p11-l16 (9)]  Remark 3.3. Let us also briefly comment on empirical studies that also invoke the notion of\nsense in consciousness research. In empirical and clinical literature on consciousness, one often\nencounters sense via terms such as, "sense of agency", "sense of self", "sense of ownership",\n"sense of time", and so on [42,67,80,84,132]. In all of these contexts, sense is often described as\na subjective perception or comprehension of something. Notice that such a description is precisely a\nsemantic attribute based on personal significance to the experiencing subject. The same can be said\nfor other examples of sense such as an intense sensation of pain, an abrupt sense of discomfort,\nor a sudden surge of pleasure. In fact, sense and feeling are sometimes used interchangeably in\nthis literature.
-  115  p11  paragraph  [p11-l17..p11-l18 (2)]  4 The Formal Structure of Meaning
+  115  p11  heading (4)  [p11-l17..p11-l18 (2)]  4 The Formal Structure of Meaning
   116  p11  paragraph  [p11-l19..p11-l27 (9)]  So far, we have put forth, mostly on phenomenological grounds, that meaning, generated intrin-\nsically by the experiencing self, is an integral and inseparable characteristic of qualia, across the\nboard. Furthermore, the subjectivity, non-representational and as well, the transparency of, what\nhas been referred to as subjective meaning, suggests why it may be directly linked to the phenom-\nenal contents of conscious experience. However, to simply label meaning as a mental property,\ndoes not do full justice to the important role that meaning plays with regard to the mind-matter\nrelation. This view has also been proposed in [23, 24], albeit, based on different motivations. To\nelucidate the character of meaning with respect to the nature of qualia, and also its relevance to\nthe mind-matter relation, we first need to discuss the formal structure of meaning itself.
   117  p11  paragraph  [p11-l28..p12-l2 (16)]  Of course, the concept of meaning is not exclusive to the philosophy of mind. Rather,\nit has a shared history across disciplines, including linguistics, semiotics, programming language\ntheory, type theory, category theory and metamathematics, to name a few. Based on the specific\ndomain, one considers or constructs appropriate semantic frameworks for given syntactic systems\n(both, verbal or non-verbal). A semantic framework provides an interpretation space for syntactic\nexpressions. For instance, a symbolic expression such as a sentence or a logical proof, by itself,\nis a purely syntactic construct. It is its semantics that elucidates what the sentence or proof\nrefers to or how it can be interpreted. For this reason, one works with a formal interpretation\nspace within which syntactic expressions may be evaluated. These evaluations may either yield\ntruth values or, more generally, meaning vectors (see distributional models of meaning [40]).\nSemantic models thus enable value or categorical evaluations of the syntax. However, what is\nimportant are not the specific categories or values that a syntactic structure may acquire within\na model (which often depend on model constraints); rather, it is that these evaluations establish\nrelations between syntactic expressions. For example, relations of similarity. It is such relations\nthat are hypothesized to give words and sentences their meanings, which is how the so-called\n"compositional distributional models of meaning" operate [38].
   118  p11  furniture/page-number  [p11-l42]  11
@@ -1471,7 +1529,7 @@
   189  p17  paragraph  [p17-l34..p17-l35 (2)]  16In mathematical literature such a composition of maps is often written in right-to-left notation, but here we\nprefer the left-to-right presentation for the sake of better readibility.
   190  p17  paragraph  [p17-l36..p17-l37 (2)]  17We thank Giulio Katis for bringing this point to our attention. A thorough category-theoretic treatment of\nthis diagram along with admissible higher morphisms will be reported in a forthcoming article.
   191  p17  furniture/page-number  [p17-l38]  17
-  192  p18  paragraph  [p18-l1..p18-l2 (2)]  5 Discussion
+  192  p18  heading (5)  [p18-l1..p18-l2 (2)]  5 Discussion
   193  p18  paragraph  [p18-l3..p18-l9 (7)]  This work posits that subjectively attributed meaning is ubiquitous in conscious experiences.\nOur hypothesis is that subjective meaning (or, one may also refer to it as intrinsic meaning)\nis intrinsic to the qualia of conscious experience, in that, the phenomenal content of conscious\nexperience is precisely this type of meaning. In other words, we claim that the content of conscious\nexperience is semantic. To support this proposal, we have discussed literature examples from the\nphenomenology of consciousness, which demonstrate the close connection between meaning and\nexperience.
   194  p18  paragraph  [p18-l10..p18-l13 (4)]  Our notion of subjective meaning closely relates to what Frege has referred to as "sense".\nFurthermore, we have noted out how subjective meaning also parallels Peirce’s "interpretant" in\nsemiotics. As a special case of Peirce’s theory of signs, Peirce’s object-sign-interpretant triad is\ncaptured following the sequence of maps ObjP → ObjM → RelM, in eq.(2).
   195  p18  paragraph  [p18-l14..p18-l17 (4)]  Building upon the above, we have argued that raw feels can not be devoid of subjective\nmeaning. It is this form of meaning of one’s mental representation (of the stimuli) that the subject\nis aware of during a conscious experience. The raw feel of a conscious experience has a sense to\nit (à la Frege), one that comes from the mental representation of that what is being experienced.
@@ -1482,9 +1540,9 @@
   200  p18  paragraph  [p18-l40..p18-l42 (3)]  18Of course, one may certainly choose to consider other points of view, other than the one that is intrinsic to\nexperience, as considered here. Each such case will have its own metaphysical considerations to take into account,\nas well as how that may translate to experience.
   201  p18  furniture/page-number  [p18-l43]  18
   202  p19  paragraph  [p19-l9..p19-l26 (18)]  Taking Frege’s philosophy of language and mind seriously, we surmise that that syntax\nand semantics are also relevant to a theory of consciousness. In particular, mental representations\nare to the mind, what symbolic expressions are to language. Within such a philosophical framing,\nwhen one speaks about awareness about "something", one may then ask: precisely what attribute\nof the "thing" is it, that the subject is actually aware of? The answer, subjective meaning "of"\nthe subject’s mental representation of the "thing", seems better suited than alternatives such\nas information, causality or computation. That is not to say that information, causality or\ncomputation are not useful to study how consciousness may work. In fact, these are absolutely\nindispensable for quantifying neuronal processes in brain networks (or for that matter, artificial\nneural networks), that may correlate to empirical states of consciousness [1, 11, 13, 14, 17–21,\n116]. However, if one wants to explain what may constitute the non-representational content of\nphenomenal experience, then, the proposal of subjective meaning seems to offer a promising new\navenue for conceptualizing theories of consciousness. Such a notion of meaning is the attribute\n(of the thing observed) that the subject may well be aware of, or may sense (à la Frege) during\nconscious experience. This hypothesis, of subjective meaning as the phenomenal constituent of\nqualia of conscious experience, also suggests that one take ideas from the philosophy of language\nand semiotics more seriously towards the advancement of a comprehensive theoretical framework\nthat satisfactorily addresses the phenomenal character of consciousness.
-  203  p19  paragraph  [p19-l27]  Acknowledgments
+  203  p19  heading  [p19-l27]  Acknowledgments
   204  p19  paragraph  [p19-l28..p19-l29 (2)]  The author would like to gratefully acknowledge Harald Atmanspacher, Dean Rickles and Giulio\nKatis for discussions and constructive feedback on this manuscript.
-  205  p19  paragraph  [p19-l30]  References
+  205  p19  heading  [p19-l30]  References
   206  p19  paragraph  [p19-l31..p19-l33 (3)]  [1] Arsiwalla, X.D., Verschure, P.F.M.J.: Integrated information for large complex networks.\nIn: The 2013 International Joint Conference on Neural Networks (IJCNN). pp. 1–7 (Aug\n2013)
   207  p19  paragraph  [p19-l34..p19-l35 (2)]  [2] Arsiwalla, X.D.: Computing meaning from conceptual structures in integrated information\ntheory. In: Models of Consciousness Conference, 2019. University of Oxford (2019)
   208  p19  figure  [p19-d1]  
@@ -1637,6 +1695,15 @@
   355  p28  paragraph  [p28-l24..p28-l25 (2)]  [139] Zhu, S.C., Mumford, D.: A stochastic grammar of images. Foundations and Trends® in\nComputer Graphics and Vision 2(4), 259–362 (2007)
   356  p28  paragraph  [p28-l26]  [140] Zlatev, J.: Cognitive semiotics. International handbook of semiotics pp. 1043–1067 (2015)
   357  p28  furniture/page-number  [p28-l27]  28
+  sections
+    1  blocks 4-11  Abstract
+    1  blocks 11-36  1 Introduction
+    1  blocks 36-93  2 Subjective Meaning in Phenomenology of Experience
+    1  blocks 93-115  3 Do Raw Feels Have Subjective Meaning?
+    1  blocks 115-192  4 The Formal Structure of Meaning
+    1  blocks 192-203  5 Discussion
+    1  blocks 203-205  Acknowledgments
+    1  blocks 205-358  References
   
   '''
 # ---
@@ -1873,6 +1940,7 @@
   226  p6  paragraph  [p6-l70..p6-l72 (3)]  [79] H. Liu, R. B. Atencia, N. Medhekar, and D. Culcer,\nMaterials for Quantum Technology 3, 025002 (2023).
   227  p6  paragraph  [p6-l73..p6-l74 (2)]  [80] E. Y. Andrei and A. H. MacDonald, Nature Materials\n19, 1265 (2020).
   228  p6  paragraph  [p6-l75..p6-l76 (2)]  [81] D. Culcer, A. MacDonald, and Q. Niu, Phys. Rev. B 68,\n045327 (2003).
+  sections
   
   '''
 # ---
@@ -1885,16 +1953,16 @@
   2  p1  paragraph  [p1-l2]  Michael L. Waskom1
   3  p1  paragraph  [p1-l3]  1 Center for Neural Science, New York University
   4  p1  figure  [p1-d1..p1-d3 (3)]  
-  5  p1  paragraph  [p1-l21]  Summary
+  5  p1  heading  [p1-l21]  Summary
   6  p1  figure  [p1-d4..p1-d6 (3)]  
   7  p1  figure  [p1-d7..p1-d9 (3)]  
   8  p1  paragraph  [p1-l22..p1-l34 (13)]  seaborn is a library for making statistical graphics in Python. It provides a high-level interface\nto matplotlib and integrates closely with pandas data structures. Functions in the seaborn\nlibrary expose a declarative, dataset-oriented API that makes it easy to translate questions\nabout data into graphics that can answer them. When given a dataset and a specification\nof the plot to make, seaborn automatically maps the data values to visual attributes such\nas color, size, or style, internally computes statistical transformations, and decorates the plot\nwith informative axis labels and a legend. Many seaborn functions can generate figures with\nmultiple panels that elicit comparisons between conditional subsets of data or across different\npairings of variables in a dataset. seaborn is designed to be useful throughout the lifecycle of\na scientific project. By producing complete graphics from a single function call with minimal\narguments, seaborn facilitates rapid prototyping and exploratory data analysis. And by\noffering extensive options for customization, along with exposing the underlying matplotlib\nobjects, it can be used to create polished, publication-quality figures.
   9  p1  figure  [p1-d10]  
   10  p1  figure  [p1-d11..p1-d13 (3)]  
-  11  p1  paragraph  [p1-l35]  Statement of need
+  11  p1  heading  [p1-l35]  Statement of need
   12  p1  paragraph  [p1-l36..p1-l48 (13)]  Data visualization is an indispensable part of the scientific process. Effective visualizations\nwill allow a scientist both to understand their own data and to communicate their insights to\nothers (Tukey, 1977). These goals can be furthered by tools for specifying a graph that provide\na good balance between efficiency and flexibility. Within the scientific Python ecosystem, the\nmatplotlib (Hunter, 2007) project is very well established, having been under continuous\ndevelopment for nearly two decades. It is highly flexible, offering fine-grained control over the\nplacement and visual appearance of objects in a plot. It can be used interactively through GUI\napplications, and it can output graphics to a wide range of static formats. Yet its relatively\nlow-level API can make some common tasks cumbersome to perform. For example, creating\na scatter plot where the marker size represents a numeric variable and the marker shape\nrepresents a categorical variable requires one to transform the size values to graphical units\nand to loop over the categorical levels, separately invoking a plotting function for each marker\ntype.
   13  p1  paragraph  [p1-l49..p1-l52 (4)]  The seaborn library offers an interface to matplotlib that permits rapid data exploration\nand prototyping of visualizations while retaining much of the flexibility and stability that are\nnecessary to produce publication-quality graphics. It is domain-general and can be used to\nvisualize a wide range of datasets that are well-represented within a tabular format.
-  14  p1  paragraph  [p1-l53]  Example
+  14  p1  heading  [p1-l53]  Example
   15  p1  paragraph  [p1-l54..p2-l3 (5)]  The following example demonstrates the creation of a figure with seaborn. The example\nmakes use of one of the built-in datasets that are provided for documentation and generation of\nreproducible bug reports. It illustrates several of the features described in the Overview section,\nincluding the declarative API, semantic mappings, faceting across subplots, aggregation with\nerror bars, and visual theme control.
   16  p1  figure  [p1-d14]  
   17  p1  furniture/sidebar  [p1-l4]  DOI: 10.21105/joss.03021
@@ -1942,7 +2010,7 @@
   59  p2  paragraph  [p2-l17..p2-l29 (5)]  15 0 5 10 15
   60  p2  paragraph  [p2-l30]  timepoint
   61  p2  paragraph  [p2-l35..p2-l36 (2)]  Figure 1: An example seaborn figure demonstrating some of its key features. The image was\ngenerated using seaborn v0.11.1.
-  62  p2  paragraph  [p2-l37]  Overview
+  62  p2  heading  [p2-l37]  Overview
   63  p2  paragraph  [p2-l38..p3-l5 (18)]  Users interface with seaborn through a collection of plotting functions that share a common\nAPI for plot specification and offer many more specific options for customization. These\nfunctions range from basic plot types such as scatter and line plots to functions that apply\nvarious transformations and abstractions, such as histogram binning, kernel density estimation,\nand regression model fitting. Functions in seaborn are classified as either “axes-level” or\n“figure-level.” Axes-level functions behave like most plotting functions in the matplotlib.\npyplot namespace. By default, they hook into the state machine that tracks a “current”\nfigure and add a layer to it, but they can also accept a matplotlib axes object to control\nwhere the plot is drawn, similar to using the matplotlib “object-oriented” interface. Figure-\nlevel functions create their own figure when invoked, allowing them to “facet” the dataset\nby creating multiple conditional subplots, along with adding conveniences such as putting\nthe legend outside the space of the plot by default. Each figure-level function corresponds\nto several axes-level functions that serve similar purposes, with a single parameter selecting\nthe kind of plot to make. For example, the displot function can produce several different\nrepresentations of a distribution, including a histogram, kernel density estimate, or empirical\ncumulative distribution function. The figure-level functions make use of a seaborn class that\ncontrols the layout of the figure, mediating between the axes-level functions and matplotlib.\nThese classes are part of the public API and can be used directly for advanced applications.
   64  p2  figure  [p2-d37]  
   65  p2  furniture/running-head  [p2-l51]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
@@ -1959,9 +2027,9 @@
   76  p3  furniture/page-number  [p3-l56]  3
   77  p3  furniture/running-head  [p3-l55]  03021
   78  p4  figure  [p4-i1]  
-  79  p4  paragraph  [p4-l16]  Acknowledgements
+  79  p4  heading  [p4-l16]  Acknowledgements
   80  p4  paragraph  [p4-l17..p4-l20 (4)]  M.L.W. has been supported by the National Science Foundation IGERT program (0801700)\nand by the Simons Foundation as a Junior Fellow in the Simons Society of Fellows (527794).\nMany others have helped improve seaborn by asking questions, reporting bugs, and con-\ntributing code; thank you to this community.
-  81  p4  paragraph  [p4-l21]  References
+  81  p4  heading  [p4-l21]  References
   82  p4  paragraph  [p4-l22..p4-l24 (3)]  Cumming, G., & Finch, S. (2005). Inference by eye: confidence intervals and how to read\npictures of data. The American Psychologist, 60(2), 170–180. https://doi.org/10.1037/\n0003-066X.60.2.170
   83  p4  paragraph  [p4-l25..p4-l29 (5)]  Harris, C. R., Millman, K. J., Walt, S. J. van der, Gommers, R., Virtanen, P., Cournapeau,\nD., Wieser, E., Taylor, J., Berg, S., Smith, N. J., Kern, R., Picus, M., Hoyer, S., Kerkwijk,\nM. H. van, Brett, M., Haldane, A., R’ıo, J. F. del, Wiebe, M., Peterson, P., … Oliphant,\nT. E. (2020). Array programming with NumPy. Nature, 585(7825), 357–362. https:\n//doi.org/10.1038/s41586-020-2649-2
   84  p4  paragraph  [p4-l30..p4-l31 (2)]  Hunter, J. D. (2007). Matplotlib: A 2D graphics environment. Computing in Science &\nEngineering, 9(3), 90–95. https://doi.org/10.1109/MCSE.2007.55
@@ -1974,6 +2042,13 @@
   91  p4  furniture/running-head  [p4-l46]  Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.
   92  p4  furniture/page-number  [p4-l48]  4
   93  p4  furniture/running-head  [p4-l47]  03021
+  sections
+    1  blocks 5-11  Summary
+    1  blocks 11-14  Statement of need
+    1  blocks 14-62  Example
+    1  blocks 62-79  Overview
+    1  blocks 79-81  Acknowledgements
+    1  blocks 81-94  References
   
   '''
 # ---
@@ -2003,14 +2078,14 @@
   19  p1  paragraph  [p1-l19..p1-l22 (4)]  ELEKTA Pty Ltd, Auckland, New Zealand 4 University of New South Wales, Sydney, Australia 5 Ingham\nInstitute for Applied Medical Research, Liverpool, Australia 6 Elekta AB, Stockholm, Sweden 7 NYU\nLangone Health, New York, New York, United States of America 8 Riverina Cancer Care Centre, Wagga\nWagga, Australia 9 Painless Skin Cancer Treatment Center, Meridian, Mississippi, United States of
   20  p1  paragraph  [p1-l23..p1-l26 (4)]  America 10 Hospital G.U. Gregorio Marañón, Madrid, Spain 11 Yale University School of Medicine, New\nHaven, Connecticut, United States of America 12 IRCCS Humanitas Research Hospital, Milan, Italy 13\nHumanitas University, Milan, Italy 14 Saskatchewan Cancer Agency, Saskatoon, Canada 15 CancerCare\nPartners, Sydney, Australia
   21  p1  figure  [p1-d23..p1-d25 (3)]  
-  22  p1  paragraph  [p1-l43]  Summary
+  22  p1  heading  [p1-l43]  Summary
   23  p1  figure  [p1-d26..p1-d28 (3)]  
   24  p1  paragraph  [p1-l44..p1-l48 (5)]  PyMedPhys is an open-source medical physics library built for Python by a diverse community\nthat values and prioritizes code sharing, review, continuous improvement, and peer development.\nPyMedPhys aims to simplify and enhance both research and clinical work related to medical\nphysics. It is inspired by the Astropy Project (Astropy Collaboration, 2013); a highly successful\ncollaborative work of our physics peers in astronomy.
   25  p1  figure  [p1-d29..p1-d31 (3)]  
   26  p1  figure  [p1-d32]  
   27  p1  figure  [p1-d33..p1-d35 (3)]  
   28  p1  figure  [p1-d36..p1-d37 (2)]  
-  29  p1  paragraph  [p1-l49]  Statement of need
+  29  p1  heading  [p1-l49]  Statement of need
   30  p1  paragraph  [p1-l50..p1-l63 (14)]  Medical radiation applications are subject to fast-paced technological advancements. This is\nparticularly true in the field of radiation oncology, where the implementation of increasingly\nsophisticated technologies requires increasingly complex processes to maintain the improving\nstandard of care. To help address this challenge, software tools that improve the quality, safety\nand efficiency of clinical tasks are increasingly being developed in-house (Arumugam et al.,\n2016; Bakhtiari et al., 2011; Bhagroo et al., 2019; Chan et al., 2015; Edvardsson et al., 2018;\nHuang et al., 2021; Inaniwa & Kanematsu, 2018; Keall et al., 2014; Kimura et al., 2021; Kuo\net al., 2020; Latala et al., 2020; Li et al., 2010; Maughan et al., 2019; Skouboe et al., 2019).\nCommercial options are often prohibitively expensive or insufficiently tailored to an individual\nclinic’s needs. On the other hand, in-house development efforts are often limited to a single\ninstitution. Similar tools that could otherwise be shared are instead “reinvented” in clinics\nworldwide on a routine basis. Moreover, individual institutions typically lack the personnel and\nresources to incorporate simple aspects of good development practice or to properly maintain\nin-house software.
   31  p1  paragraph  [p1-l64..p2-l3 (7)]  By creating and promoting an open-source repository, PyMedPhys aims to improve the quality\nand accessibility of existing software solutions to problems faced across a range of medical\nradiation applications, especially those traditionally within the remit of medical physicists. These\nsolutions can be broadly categorised in two areas: data extraction/conversion of proprietary\nformats from a variety of radiotherapy systems, and manipulation of standard radiotherapy data\nto perform quality assurance (QA) tasks that are otherwise time-consuming or lack commercial\nsolutions with the desired flexibility or true function.
   32  p1  figure  [p1-d38]  
@@ -2037,9 +2112,9 @@
   53  p2  paragraph  [p2-l4..p2-l12 (9)]  Data extraction and conversion currently includes: two treatment planning systems, an oncology\ninformation system, and a linear accelerator vendor family of systems. Data in proprietary\nformats from these systems are extracted and converted to allow for integration in a myriad of\napplications. Applications that use planning system information include: electron cut-out factor\ndetermination, CT extension, and extraction of dose information for patient QA purposes.\nApplications that use the oncology information systems include: clinical dashboards that\nsummarise data, quality task tracking, and comparison of dose information to planning systems.\nApplications that use the linear accelerator data include: patient specific QA analysis against\nplanning data, and analysis of machine performance such as the Winston-Lutz test.
   54  p2  paragraph  [p2-l13..p2-l18 (6)]  QA tasks using standard radiotherapy data include: anonymisation, extraction of dose data\nfor analysis, manipulation of contour files to allow merging or adjustments/scaling of relative\nelectron density, modifying machine names in plans, and most frequently used, the calculation\nof a Gamma index, a widely recognised metric in radiotherapy analysis that quantifies the\ndifference between measured and calculated dose distributions on a point-by-point basis in\nterms of both dose and distance to agreement (DTA) differences.
   55  p2  paragraph  [p2-l19..p2-l28 (10)]  Many of these tools are in use clinically at affiliated sites, and additionally, aspects of PyMedPhys\nare implemented around the world for some applications. Many parties have embraced the\ngamma analysis module (Castle et al., 2022; Cronholm et al., 2020; Gajewski et al., 2021;\nGalić et al., 2020; Lysakovski et al., 2021; Milan et al., 2019; Pastor-Serrano & Perkó, 2021;\nRodrı́guez et al., 2020; Spezialetti et al., 2021; Tsuneda et al., 2021; Yang et al., 2022), while\nimplementations of the electron cutout factor module and others (Baltz & Kirsner, 2021;\nDouglass & Keal, 2021; Rembish, 2021) have also been reported. Additionally, the work\nhas been recognized by the European Society for Radiotherapy and Oncology (ESTRO) and\nreferenced as recommended literature in their 3rd Edition of Core Curriculum for Medical\nPhysics Experts in Radiotherapy (Bert et al., 2021).
-  56  p2  paragraph  [p2-l29]  Acknowledgements
+  56  p2  heading  [p2-l29]  Acknowledgements
   57  p2  paragraph  [p2-l30..p2-l31 (2)]  We acknowledge the support of all who have contributed to the development of PyMedPhys\nalong the way.
-  58  p2  paragraph  [p2-l32]  References
+  58  p2  heading  [p2-l32]  References
   59  p2  paragraph  [p2-l33..p2-l35 (3)]  Arumugam, S., Sidhom, M., Xing, A., & Holloway, L. (2016). An online x-ray based position\nvalidation system for prostate hypofractionated radiotherapy. Medical Physics. https:\n//doi.org/10.1118/1.4940351
   60  p2  paragraph  [p2-l36..p2-l37 (2)]  Astropy Collaboration. (2013). Astropy: A community Python package for astronomy.\nAstronomy and Astrophysics, 558. https://doi.org/10.1051/0004-6361/201322068
   61  p2  paragraph  [p2-l38..p2-l40 (3)]  Bakhtiari, M., Kumaraswamy, L., Bailey, D., Boer, S. de, Malhotra, H., & Podgorsak, M.\n(2011). Using an EPID for patient-specific VMAT quality assurance. Medical Physics.\nhttps://doi.org/10.1118/1.3552925
@@ -2084,6 +2159,11 @@
   100  p4  furniture/running-head  [p4-l40]  Biggs et al. (2022). PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications. Journal
   101  p4  furniture/page-number  [p4-l42]  4
   102  p4  furniture/running-head  [p4-l41]  of Open Source Software, 7(78), 4555. https://doi.org/10.21105/joss.04555.
+  sections
+    1  blocks 22-29  Summary
+    1  blocks 29-56  Statement of need
+    1  blocks 56-58  Acknowledgements
+    1  blocks 58-103  References
   
   '''
 # ---
