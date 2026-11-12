@@ -13,8 +13,9 @@ The **reading result**, not what extraction finds (D-63). Extraction records eve
 page; the layout stage decides reading order, blocks and sections. So:
 
 - Headings and sentences are given in reading order, as a reader would follow the page.
-- Text that must not be read aloud (running heads, page numbers, line numbers, the arXiv side
-  stamp, the venue footer on page 1) is listed as **furniture**. After layout it must sit in
+- Text that must not be read aloud (running heads and footers, page numbers, line numbers, the
+  arXiv side stamp, the venue footer on page 1, the JOSS metadata sidebar, a printed table of contents) is listed as
+  **furniture**. After layout it must sit in
   `furniture` blocks only; in the listening script it must not appear at all.
 - Counts describe what is printed, so they hold whatever the layout stage decides about blocks.
 
@@ -27,7 +28,8 @@ welcome wherever a reviewer needs a reason.
 
 Text is written as printed, with the file's own Unicode punctuation (’ “ ” – —). Line breaks inside
 a sentence become one space; a hyphen at a line end is dropped when it only splits a word
-("subop-/timal" becomes "suboptimal") and kept when the word is really hyphenated.
+("subop-/timal" becomes "suboptimal") and kept when the word is really hyphenated. A URL or DOI
+broken across lines is joined without a space.
 
 ### Keys for every file
 
@@ -43,8 +45,8 @@ a sentence become one space; a hyphen at a line end is dropped when it only spli
 |---|---|---|
 | `pages` | integer | Number of pages |
 | `columns` | list of 1 or 2 | Text columns on each page, one entry per page. A page with a full-width float or formula above two columns counts as 2 |
-| `headings` | list of `{ level, text }` | Every heading in reading order, from "Abstract" to the last appendix heading. `level` 1 = section (also Abstract, References, unnumbered end sections, appendices), 2 = subsection, 3 = sub-subsection. `text` includes the printed number, e.g. "2.1 Setup". Paragraph run-in heads ("Proof.", "Definition 1.") are not headings |
-| `counts.footnotes` | integer | Footnotes printed at the foot of a page (by their marks; a JOSS reference list is not footnotes) |
+| `headings` | list of `{ level, text }` | Every heading in reading order, from "Abstract" to the last appendix heading. `level` 1 = section (also Abstract, References, unnumbered end sections, appendices), 2 = subsection, 3 = sub-subsection. `text` includes the printed number, e.g. "2.1 Setup". Paragraph run-in heads ("Proof.", "Definition 1.", PRL-style "Introduction.") are not headings. Empty when the paper prints no headings, with a comment saying so |
+| `counts.footnotes` | integer | Notes printed at the foot of a page below a short rule, with or without a mark. A reference list is not footnotes |
 | `counts.tables` | integer | Tables with a "Table N" caption, plus uncaptioned tables |
 | `counts.figures` | integer | Figures with a "Figure N" caption, plus uncaptioned images and charts. Logos and icons are not figures |
 | `counts.algorithms` | integer | Pseudocode blocks ("Algorithm N"), also those inside a figure. Optional, 0 when left out |
@@ -59,7 +61,7 @@ Each `[[verbatim]]` entry:
 |---|---|---|
 | `where` | string | `plain`, `column-break` (the sentence runs from one column into the next), `page-break` (runs onto the next page) or `hyphenation` (a word in it is split across lines with a hyphen) |
 | `page` | integer | Page where it starts, counted from 1 |
-| `text` | string | The sentence. Where a sentence holds inline maths, a fragment of at least six words without maths is used instead, and a comment says so |
+| `text` | string | The sentence. Where a sentence holds inline maths or runs very long, a fragment of at least six words is used instead, and a comment says so |
 
 Include one `column-break`, one `page-break` and one `hyphenation` entry where the paper has them.
 
@@ -67,7 +69,7 @@ Each `furniture` entry (an inline table, one per line):
 
 | Key | Type | Meaning |
 |---|---|---|
-| `kind` | string | `running-head`, `page-number`, `line-number`, `side-stamp` (e.g. the arXiv id along the margin) or `footer` (venue or licence lines) |
+| `kind` | string | `running-head` (a line repeated at the top or bottom of pages), `page-number`, `line-number`, `side-stamp` (e.g. the arXiv id along the margin), `footer` (one-off venue or licence lines), `sidebar` (the JOSS metadata column on page 1: DOI, links, editor, reviewers, dates, licence) or `contents` (a printed table of contents, its title and page numbers; chapter navigation replaces it) |
 | `pages` | list of integers | Pages it appears on, counted from 1 |
 | `text` | string | The text as printed on those pages. Tying it to pages keeps short strings such as a page number checkable |
 

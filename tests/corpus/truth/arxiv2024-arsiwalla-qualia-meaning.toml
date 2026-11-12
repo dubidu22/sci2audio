@@ -1,0 +1,96 @@
+# Ground truth for papers/arxiv2024-arsiwalla-qualia-meaning.pdf. Format: README.md.
+file = "papers/arxiv2024-arsiwalla-qualia-meaning.pdf"
+# Checked against the arXiv LaTeX source of 2405.01148v1 (article class, 12pt).
+drafted_from = ["pdf", "latex"]
+title = "Qualia and the Formal Structure of Meaning"
+
+pages = 28
+columns = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+# The "Contents" page (page 2) is furniture, below. Run-in "Proposition 2.1.", "Remark 3.2."
+# and "Keywords:" are not headings.
+headings = [
+  { level = 1, text = "Abstract" },
+  { level = 1, text = "1 Introduction" },
+  { level = 1, text = "2 Subjective Meaning in Phenomenology of Experience" },
+  { level = 1, text = "3 Do Raw Feels Have Subjective Meaning?" },
+  { level = 1, text = "4 The Formal Structure of Meaning" },
+  { level = 1, text = "5 Discussion" },
+  { level = 1, text = "Acknowledgments" },
+  { level = 1, text = "References" },
+]
+
+# Must not be read aloud: after layout only in furniture blocks (README.md).
+furniture = [
+  { kind = "side-stamp", pages = [1], text = "arXiv:2405.01148v1 [q-bio.NC] 2 May 2024" },
+  { kind = "contents", pages = [2], text = "Contents" },
+  { kind = "contents", pages = [2], text = "1 Introduction" },
+  { kind = "contents", pages = [2], text = "2 Subjective Meaning in Phenomenology of Experience" },
+  { kind = "contents", pages = [2], text = "3 Do Raw Feels Have Subjective Meaning?" },
+  { kind = "contents", pages = [2], text = "4 The Formal Structure of Meaning" },
+  { kind = "contents", pages = [2], text = "5 Discussion" },
+  # The contents page also prints the page numbers 2, 4, 9, 11 and 18 beside the entries.
+  { kind = "page-number", pages = [1], text = "1" },
+  { kind = "page-number", pages = [2], text = "2" },
+  { kind = "page-number", pages = [3], text = "3" },
+  { kind = "page-number", pages = [4], text = "4" },
+  { kind = "page-number", pages = [5], text = "5" },
+  { kind = "page-number", pages = [6], text = "6" },
+  { kind = "page-number", pages = [7], text = "7" },
+  { kind = "page-number", pages = [8], text = "8" },
+  { kind = "page-number", pages = [9], text = "9" },
+  { kind = "page-number", pages = [10], text = "10" },
+  { kind = "page-number", pages = [11], text = "11" },
+  { kind = "page-number", pages = [12], text = "12" },
+  { kind = "page-number", pages = [13], text = "13" },
+  { kind = "page-number", pages = [14], text = "14" },
+  { kind = "page-number", pages = [15], text = "15" },
+  { kind = "page-number", pages = [16], text = "16" },
+  { kind = "page-number", pages = [17], text = "17" },
+  { kind = "page-number", pages = [18], text = "18" },
+  { kind = "page-number", pages = [19], text = "19" },
+  { kind = "page-number", pages = [20], text = "20" },
+  { kind = "page-number", pages = [21], text = "21" },
+  { kind = "page-number", pages = [22], text = "22" },
+  { kind = "page-number", pages = [23], text = "23" },
+  { kind = "page-number", pages = [24], text = "24" },
+  { kind = "page-number", pages = [25], text = "25" },
+  { kind = "page-number", pages = [26], text = "26" },
+  { kind = "page-number", pages = [27], text = "27" },
+  { kind = "page-number", pages = [28], text = "28" },
+]
+
+[counts]
+# The author's e-mail note (∗, page 1) and footnotes 1-19; 20 \footnote commands in the source.
+footnotes = 20
+tables = 1  # Table 1, page 7 (ten kinds of experience)
+# The picture labelled as Eq. (4) on page 16 (srmap.png in the source). The commutative
+# diagram (2) on page 13 is a vector drawing typeset as an equation.
+figures = 1
+# (1) page 12, (2) the diagram on page 13, (3) page 14, (4) the picture on page 16.
+numbered_formulas = 4
+# "O → S → I" and the maps A_P and A_M (page 13), "Obj_P → Obj_M → Rel_M" (page 15), and the
+# self-maps S_Obj and S_Rel (page 16, one line).
+unnumbered_formulas = 5
+
+[[verbatim]]
+where = "plain"
+page = 1
+text = "This work explores the hypothesis that subjectively attributed meaning constitutes the phenomenal content of conscious experience."
+
+[[verbatim]]
+# "seman-" ends page 3 above footnote 1; "tics [40]" opens page 4.
+where = "page-break"
+page = 3
+text = "Fortunately, seminal works in the philosophy of mind and language [52] (see also [48, 135]), as well as mathematical advances in natural language semantics [40] equip us with the right conceptual groundwork for formalizing subjective meaning with regard to the problem of consciousness."
+
+[[verbatim]]
+# "mean-ing" is split across lines inside the boxed proposition.
+where = "hyphenation"
+page = 4
+text = "We hypothesize a notion of subjectively attributed meaning or subjective meaning as an inherent feature of the qualia of consciousness."
+
+[[verbatim]]
+where = "plain"
+page = 18
+text = "This work posits that subjectively attributed meaning is ubiquitous in conscious experiences."

@@ -1,0 +1,71 @@
+# Ground truth for papers/joss2021-waskom-seaborn.pdf. Format: README.md.
+file = "papers/joss2021-waskom-seaborn.pdf"
+# Checked against the JATS that JOSS builds from the author's Markdown
+# (openjournals/joss-papers, joss.03021): same section titles, one figure, no footnotes.
+drafted_from = ["pdf", "markdown"]
+title = "seaborn: statistical data visualization"
+
+pages = 4
+# One text column. Page 1 also has the metadata sidebar on the left (furniture).
+columns = [1, 1, 1, 1]
+
+headings = [
+  { level = 1, text = "Summary" },
+  { level = 1, text = "Statement of need" },
+  { level = 1, text = "Example" },
+  { level = 1, text = "Overview" },
+  { level = 1, text = "Acknowledgements" },
+  { level = 1, text = "References" },
+]
+
+# Must not be read aloud: after layout only in furniture blocks (README.md).
+# The JOSS logo at the top of each page is a picture, not text.
+furniture = [
+  { kind = "sidebar", pages = [1], text = "DOI: 10.21105/joss.03021" },
+  { kind = "sidebar", pages = [1], text = "Software" },
+  { kind = "sidebar", pages = [1], text = "Review" },
+  { kind = "sidebar", pages = [1], text = "Repository" },
+  { kind = "sidebar", pages = [1], text = "Archive" },
+  { kind = "sidebar", pages = [1], text = "Editor: Lorena Pantano" },
+  { kind = "sidebar", pages = [1], text = "Reviewers:" },
+  { kind = "sidebar", pages = [1], text = "@dangeles" },
+  { kind = "sidebar", pages = [1], text = "@Sara-ShiHo" },
+  { kind = "sidebar", pages = [1], text = "Submitted: 29 January 2021" },
+  { kind = "sidebar", pages = [1], text = "Published: 06 April 2021" },
+  { kind = "sidebar", pages = [1], text = "License" },
+  { kind = "sidebar", pages = [1], text = "Authors of papers retain copyright and release the work under a Creative Commons Attribution 4.0 International License (CC BY 4.0)." },
+  { kind = "running-head", pages = [1, 2, 3, 4], text = "Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.03021" },
+  { kind = "page-number", pages = [1], text = "1" },
+  { kind = "page-number", pages = [2], text = "2" },
+  { kind = "page-number", pages = [3], text = "3" },
+  { kind = "page-number", pages = [4], text = "4" },
+]
+
+[counts]
+footnotes = 0  # the "1" after the author's name marks the affiliation, not a footnote
+tables = 0
+figures = 1  # Figure 1 on page 2; the Python example above it is a code block
+numbered_formulas = 0
+unnumbered_formulas = 0
+
+[[verbatim]]
+where = "plain"
+page = 1
+text = "seaborn is a library for making statistical graphics in Python."
+
+[[verbatim]]
+where = "plain"
+page = 1
+text = "Data visualization is an indispensable part of the scientific process."
+
+[[verbatim]]
+# "generation of" ends page 1 above the running footer; "reproducible" opens page 2.
+where = "page-break"
+page = 1
+text = "The example makes use of one of the built-in datasets that are provided for documentation and generation of reproducible bug reports."
+
+[[verbatim]]
+# "se-mantic" is split across lines.
+where = "hyphenation"
+page = 3
+text = "These transformations are referred to as “semantic” mappings because they endow the attributes with meaning vis a vis the dataset."

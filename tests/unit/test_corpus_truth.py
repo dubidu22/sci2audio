@@ -17,7 +17,15 @@ TRUTH = CORPUS / "truth"
 SAMPLE_SUFFIXES = {".pdf", ".epub"}
 DRAFT_SOURCES = {"pdf", "epub", "latex", "markdown"}
 VERBATIM_PLACES = {"plain", "column-break", "page-break", "hyphenation"}
-FURNITURE_KINDS = {"running-head", "page-number", "line-number", "side-stamp", "footer"}
+FURNITURE_KINDS = {
+    "running-head",
+    "page-number",
+    "line-number",
+    "side-stamp",
+    "footer",
+    "sidebar",
+    "contents",
+}
 COUNT_KEYS = {
     "footnotes",
     "tables",
@@ -121,8 +129,7 @@ def test_paper_truth_follows_format(path: Path) -> None:
     assert set(columns) <= {1, 2}, "columns per page must be 1 or 2"
 
     headings = truth["headings"]
-    assert isinstance(headings, list), "headings must be a list"
-    assert headings, "headings must not be empty"
+    assert isinstance(headings, list), "headings must be a list (empty if the paper has none)"
     for heading in headings:
         assert set(heading) == {"level", "text"}, f"heading needs level and text: {heading}"
         assert heading["level"] in {1, 2, 3}, f"heading level must be 1 to 3: {heading}"
