@@ -26,6 +26,7 @@ from sci2audio.core.content import (
     TextRun,
 )
 from sci2audio.core.document import (
+    LABELLED_KINDS,
     Block,
     BlockKind,
     Document,
@@ -46,6 +47,7 @@ from sci2audio.core.edits import (
 from sci2audio.core.export import from_data, to_data
 
 __all__ = [
+    "LABELLED_KINDS",
     "AudioChunk",
     "Block",
     "BlockKind",

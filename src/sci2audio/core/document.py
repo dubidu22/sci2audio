@@ -36,6 +36,18 @@ class BlockKind(StrEnum):
 
 PLACEHOLDER_KINDS = frozenset({BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE})
 
+# kinds that can carry a printed label (#21): a heading number, footnote mark, caption
+# label, formula number or list marker; a table or figure is named by its caption
+LABELLED_KINDS = frozenset(
+    {
+        BlockKind.HEADING,
+        BlockKind.FOOTNOTE,
+        BlockKind.CAPTION,
+        BlockKind.FORMULA,
+        BlockKind.LIST_ITEM,
+    }
+)
+
 
 class FurnitureRole(StrEnum):
     """What a furniture block is (#31), named as in the corpus truth files."""
@@ -71,6 +83,10 @@ class Block:
     parts: tuple[Part, ...] = ()  # in reading order, starts not decreasing
     describes: int | None = None  # a caption: index of the table, formula or figure block
     role: FurnitureRole | None = None  # furniture: what it is, if known
+    # the identifier printed with the block, as printed and found in its text: "2.1"
+    # (heading), "*" (footnote mark), "Table 2" (caption), "12" (formula number, without
+    # brackets), "(a)" (list marker); "" when none is printed
+    label: str = ""
 
     def __post_init__(self) -> None:
         starts = [part.start for part in self.parts]
@@ -82,6 +98,16 @@ class Block:
             raise ValueError(f"only a caption describes another block, not a {self.kind}")
         if self.role is not None and self.kind is not BlockKind.FURNITURE:
             raise ValueError(f"only furniture has a furniture role, not a {self.kind}")
+        if self.label:
+            self._check_label()
+
+    def _check_label(self) -> None:
+        if self.kind not in LABELLED_KINDS:
+            raise ValueError(f"a {self.kind} carries no label, got {self.label!r}")
+        if self.label != self.label.strip() or len(self.label.splitlines()) != 1:
+            raise ValueError(f"a label is one trimmed line, got {self.label!r}")
+        if self.label not in self.text:
+            raise ValueError(f"label {self.label!r} is not printed in the block's text")
 
     @property
     def is_placeholder(self) -> bool:
