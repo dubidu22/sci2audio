@@ -10,7 +10,9 @@ pages = 14
 columns = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1]
 
 # Run-in paragraph heads ("Baselines", "License", "BERT", ...) are not headings.
-# The checklist section letters carry a tick box ("B ☑ Did you ..."), left out here.
+# The ACL checklist is printed in the paper, so it is read under its title. Its parts
+# ("A For every submission:", "B ☑ Did you use or create scientific artifacts?", ...) are
+# checklist questions, not headings.
 headings = [
   { level = 1, text = "Abstract" },
   { level = 1, text = "1 Introduction" },
@@ -37,10 +39,6 @@ headings = [
   { level = 3, text = "D.2 Task-specific Fine-tuning" },
   { level = 3, text = "D.3 Software Tools" },
   { level = 1, text = "ACL 2023 Responsible NLP Checklist" },
-  { level = 2, text = "A For every submission:" },
-  { level = 2, text = "B Did you use or create scientific artifacts?" },
-  { level = 2, text = "C Did you run computational experiments?" },
-  { level = 2, text = "D Did you use human annotators (e.g., crowdworkers) or research with human participants?" },
 ]
 
 # Must not be read aloud: after layout only in furniture blocks (README.md).

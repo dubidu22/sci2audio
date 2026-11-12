@@ -10,8 +10,9 @@ columns = [2, 2, 2, 2, 2, 2, 2, 1, 1]
 
 # "Single Sentence" and "Two Actions" in A.1 are bold labels over groups of examples, not
 # headings: they stay in the text as read, like run-in heads.
-# The checklist is printed in the paper, so it is read. Its section letters are printed
-# with a tick box between letter and text ("B ☑ Did you ..."); the box is left out here.
+# The ACL checklist is printed in the paper, so it is read under its title. Its parts
+# ("A For every submission:", "B ☑ Did you use or create scientific artifacts?", ...) are
+# checklist questions, not headings.
 headings = [
   { level = 1, text = "Abstract" },
   { level = 1, text = "1 Introduction" },
@@ -31,10 +32,6 @@ headings = [
   { level = 2, text = "A.1 Sample Instantiations" },
   { level = 2, text = "A.2 Substitutions" },
   { level = 1, text = "ACL 2023 Responsible NLP Checklist" },
-  { level = 2, text = "A For every submission:" },
-  { level = 2, text = "B Did you use or create scientific artifacts?" },
-  { level = 2, text = "C Did you run computational experiments?" },
-  { level = 2, text = "D Did you use human annotators (e.g., crowdworkers) or research with human participants?" },
 ]
 
 # Must not be read aloud: after layout only in furniture blocks (README.md).
