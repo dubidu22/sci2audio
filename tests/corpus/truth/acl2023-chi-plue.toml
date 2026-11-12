@@ -104,6 +104,19 @@ page = 1
 text = "(1) usefulness: the selected tasks can help practitioners in the domain quickly understand privacy practices without reading the whole privacy policy;"
 
 [[verbatim]]
+# Subscripts BASE and LARGE, set in small capitals, follow "RoBERTa" with no space.
+# "pre-train" is really hyphenated, broken after "pre-".
+where = "inline-maths"
+page = 3
+text = "Since PP-RoBERTaBASE performs the best among all base models, we also continue pre-train RoBERTaLARGE (PP-RoBERTaLARGE)."
+
+[[verbatim]]
 where = "plain"
 page = 5
 text = "This work focuses on the English language only, and the findings may not apply to other languages."
+
+[[verbatim]]
+# Footnote mark 3 right after the full stop.
+where = "footnote-mark"
+page = 5
+text = "Therefore, the training would emit only 9kg of carbon into the environment.3"
