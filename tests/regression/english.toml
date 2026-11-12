@@ -1,0 +1,133 @@
+# English regression cases (#4, PE-03): input blocks and the script the built-in text steps
+# produce for them, one line per block that is read. Format: sci2audio.testing.regression.
+#
+# The first 14 cases are the 14 rows of the English audit (KB
+# 02-product-and-pipeline/audit-english-rules-vs-spacy-2026-11-09.md §4). Their text comes
+# from the audit's sample, which was written for that test (tools/english_check/sample_en.md,
+# project-owned, no third-party text):
+# - verbatim sentences of the sample: author-year-citations, numeric-citations,
+#   url-and-e-mail, line-end-hyphens, units, running-footer;
+# - adapted from the sample, so that each case tests one rule (words left out or added, such
+#   as "Dr. Smith compared them vs. controls"): ligature, symbols, statistics, abbreviations,
+#   large-number, roman-numerals, acronyms, homographs.
+# Line-end hyphens are written as layout gives them: a hyphen, then a line break (the sample
+# prints "develop- ment").
+#
+# `expected` is the script TODAY. A rule PR changes `expected` of the cases its rule touches
+# before it changes the rule, and the PR shows the diff. `goal` notes what the owning issue's
+# rule must reach; the wording is that issue's decision.
+
+[[case]]
+id = "author-year-citations"
+audit = 1
+issue = 66
+goal = "Removed, or read as a short note without 'et al.' spelled out (TP-03, TP-04)."
+blocks = [{ kind = "paragraph", text = "Several studies have examined the effects of environmental noise on young children (Smith et al., 2019; Jones & Lee, 2020)." }]
+expected = ["Several studies have examined the effects of environmental noise on young children (Smith et al., 2019; Jones & Lee, 2020)."]
+
+[[case]]
+id = "numeric-citations"
+audit = 2
+issue = 66
+goal = "The bracketed citation, ranges and lists included, removed with no space left before the full stop (TP-03)."
+blocks = [{ kind = "paragraph", text = "However, findings remain inconsistent [2–6, 16, 17]." }]
+expected = ["However, findings remain inconsistent [2–6, 16, 17]."]
+
+[[case]]
+id = "url-and-e-mail"
+audit = 3
+issue = 66
+goal = "URLs, the DOI link and the e-mail address removed and the sentences repaired: no 'available at and.' or 'Contact:.' (TP-07)."
+blocks = [{ kind = "paragraph", text = "Data are available at https://doi.org/10.1007/s10578-016-0626-7 and www.example.org/data. Contact: j.doe@uni-example.edu." }]
+expected = ["Data are available at https://doi.org/10.1007/s10578-016-0626-7 and www.example.org/data. Contact: j.doe@uni-example.edu."]
+
+[[case]]
+id = "line-end-hyphens"
+audit = 4
+issue = 65
+goal = "Joined where the joined word is a word: 'development', 'difficulties', 'processing' (TP-02)."
+blocks = [{ kind = "paragraph", text = "Exposure to trauma may interfere with infants' normal develop-\nment and cause diffi-\nculties in emotional pro-\ncessing." }]
+expected = ["Exposure to trauma may interfere with infants' normal develop- ment and cause diffi- culties in emotional pro- cessing."]
+
+[[case]]
+id = "ligature"
+audit = 5
+issue = 65
+goal = "The ligature read as its letters: 'Androff' (IN-04)."
+blocks = [{ kind = "paragraph", text = "Dr. Androﬀ notes that the effect was small." }]
+expected = ["Dr. Androﬀ notes that the effect was small."]
+
+[[case]]
+id = "symbols"
+audit = 6
+issue = 68
+goal = "'≥ 18' read 'greater than or equal to 18' and '± 12%' read 'plus or minus 12 percent'; the digits stay for misaki (TP-10)."
+blocks = [{ kind = "paragraph", text = "Participants (± 12%) were enrolled vs. 980 controls ≥ 18 years." }]
+expected = ["Participants (± 12%) were enrolled vs. 980 controls ≥ 18 years."]
+
+[[case]]
+id = "statistics"
+audit = 7
+issue = 67
+goal = "'n = 35' read 'n equals 35', 'p < .05' read 'p less than point zero five', 'CI' read 'confidence interval' (TP-11)."
+blocks = [{ kind = "paragraph", text = "A total of n = 35 studies met the criteria. The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4])." }]
+expected = ["A total of n = 35 studies met the criteria. The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4])."]
+
+[[case]]
+id = "units"
+audit = 8
+issue = 68
+goal = "'3.5 mg/kg' read 'milligrams per kilogram' and '37 °C' read 'degrees Celsius' (TP-10)."
+blocks = [{ kind = "paragraph", text = "Doses of 3.5 mg/kg were given at 37 °C." }]
+expected = ["Doses of 3.5 mg/kg were given at 37 °C."]
+
+[[case]]
+id = "abbreviations"
+audit = 9
+issue = 68
+goal = "'i.e.', 'e.g.', 'vs.', 'Dr.', 'Fig.' and 'Approx.' read in full; 'Table 2' kept; the word after 'Approx.' not capitalised (TP-08)."
+blocks = [{ kind = "paragraph", text = "Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls." }]
+expected = ["Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls."]
+
+[[case]]
+id = "large-number"
+audit = 10
+issue = 67
+goal = "'1,234' left as a number for misaki ('one thousand two hundred thirty-four'), never read as a year (TP-09)."
+blocks = [{ kind = "paragraph", text = "Approx. 1,234 participants were enrolled." }]
+expected = ["Approx. 1,234 participants were enrolled."]
+
+[[case]]
+id = "roman-numerals"
+audit = 11
+issue = 67
+goal = "'World War II' read 'World War Two', 'Phase III' read 'Phase three' (TP-13, a Should; #67 decides whether v1.0 covers it)."
+blocks = [{ kind = "paragraph", text = "During World War II and in Phase III trials, parents kept diaries." }]
+expected = ["During World War II and in Phase III trials, parents kept diaries."]
+
+[[case]]
+id = "acronyms"
+audit = 12
+issue = 18
+goal = "Left unchanged: misaki spells PTSD, ADHD and CBCL letter by letter (D-54)."
+blocks = [{ kind = "paragraph", text = "PTSD and ADHD were assessed with the CBCL." }]
+expected = ["PTSD and ADHD were assessed with the CBCL."]
+
+[[case]]
+id = "homographs"
+audit = 13
+issue = 18
+goal = "Left unchanged: misaki picks the pronunciation of 'read', 'record', 'wound' and 'lead' (D-54, TP-14)."
+blocks = [{ kind = "paragraph", text = "Parents read the record aloud; they now record the data and read it again. The bandage was wound around the wound. Lead exposure may lead to deficits." }]
+expected = ["Parents read the record aloud; they now record the data and read it again. The bandage was wound around the wound. Lead exposure may lead to deficits."]
+
+[[case]]
+id = "running-footer"
+audit = 14
+issue = 63
+goal = "The journal footer layout marks as furniture is not read (TP-01)."
+blocks = [
+    { kind = "paragraph", text = "The bandage was wound around the wound." },
+    { kind = "furniture", role = "running-head", text = "Child Psychiatry Hum Dev (2016) 47:950–965 951" },
+]
+expected = ["The bandage was wound around the wound."]
