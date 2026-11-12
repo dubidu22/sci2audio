@@ -6,7 +6,8 @@ across column and page breaks, footnotes and floats, and each heading is a block
 Step 3: the headings are the truth headings, with their levels and printed numbers, and the
 section tree follows them; the footnotes are the truth footnotes, with their marks; the
 captions are the truth's table, figure and algorithm captions, with their labels; the
-tables, figures and algorithms are placeholder blocks that their captions name.
+tables, figures and algorithms are placeholder blocks that their captions name; each display
+formula is a FORMULA block with its printed number, if it has one (PR D2, D-93).
 
 The golden files list every block with its kind, label, the block a caption names, page and
 text (line breaks shown as \\n), then the section tree.
@@ -34,14 +35,7 @@ IDS = [paper.stem for paper in PAPERS]
 MAX_GAPS = 2  # times a sentence may be interrupted: a float, a footnote, a page's top
 MAX_SKIPPED_LINES = 100  # lines in one gap (nowak p4 needs 81 until #34)
 # Sentences not yet inside one block, each with the Issue that brings it there.
-NOT_YET_ONE_BLOCK = {
-    # Eq. (16) across both columns of page 5 is read as part of the columns.
-    (
-        "acl2023-nowak-prefix-probabilities",
-        4,
-        "Pre-computing \u03b3 and \u03b4 in lines 10\u201314 takes",
-    ): 34,
-}
+NOT_YET_ONE_BLOCK: dict[tuple[str, int, str], int] = {}
 MIN_START = 8  # letters a sentence's start must have at a line's end to be found there
 # Truth headings not yet found, each with the Issue that brings it there.
 NOT_YET_HEADINGS = {
@@ -54,6 +48,8 @@ NOT_YET_HEADINGS = {
 ALGORITHMS_IN_FIGURES = {
     ("acl2023-nowak-prefix-probabilities", 3): ("Figure 1", ("Algorithm 1", "Algorithm 2")),
 }
+# Truth figures printed with an equation number: the FORMULA with that number holds them (D-93).
+NUMBERED_AS_FORMULAS = {("arxiv2024-arsiwalla-qualia-meaning", 16): "4"}
 LINE_WIDTH = 10.0  # points: a drawing this thin is a line (`line_width` em at 10 point)
 PRINTED_NUMBER = re.compile(r"((?:\d+|[A-Z])(?:\.\d+)*) ")  # "2.1 Setup", "A Proofs"
 
@@ -406,7 +402,12 @@ def test_the_figures_are_the_truth_figures_and_algorithms(paper: Path) -> None:
     for page, count in truth_count(paper, "algorithms").items():
         _, inside = ALGORITHMS_IN_FIGURES.get((paper.stem, page), ("", ()))
         expected[page] = expected.get(page, 0) + count - len(inside)
-    assert placeholders(document(paper), BlockKind.FIGURE) == expected
+    for stem, page in NUMBERED_AS_FORMULAS:
+        if stem == paper.stem:
+            expected[page] -= 1
+    assert placeholders(document(paper), BlockKind.FIGURE) == {
+        k: n for k, n in expected.items() if n
+    }
 
 
 def test_algorithms_inside_figures_share_the_figure_block() -> None:
@@ -458,6 +459,47 @@ def test_no_figure_is_only_lines(paper: Path) -> None:
 
 def pictures_of(doc: Document) -> set[str]:
     return {picture.id for page in doc.content.pages for picture in page.pictures}
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_formula_numbers_are_the_truth_numbers(paper: Path) -> None:
+    """Each numbered display formula is one FORMULA block labelled with its number as
+    printed, in reading order, page by page (step 3, PR D2, D-93)."""
+    expected = {
+        e["page"]: e["numbers"] for e in truth(paper).get("formula_numbers", []) if e["numbers"]
+    }
+    doc = document(paper)
+    found: dict[int, list[str]] = {}
+    for block in doc.blocks:
+        if block.kind is BlockKind.FORMULA and block.label:
+            found.setdefault(page_of(doc, block), []).append(block.label)
+    assert found == expected
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_unnumbered_formulas_are_the_truth_formulas(paper: Path) -> None:
+    """Each display formula printed without a number is one FORMULA block without a label."""
+    expected = {e["page"]: e["count"] for e in truth(paper).get("unnumbered_formulas", [])}
+    doc = document(paper)
+    found: dict[int, int] = {}
+    for block in doc.blocks:
+        if block.kind is BlockKind.FORMULA and not block.label:
+            found[page_of(doc, block)] = found.get(page_of(doc, block), 0) + 1
+    assert found == expected
+
+
+def test_a_figure_numbered_as_a_formula_is_held_by_that_formula() -> None:
+    """The truth figure printed with an equation number is in the FORMULA with that number."""
+    for (stem, page), number in NUMBERED_AS_FORMULAS.items():
+        doc = document(CORPUS / "papers" / f"{stem}.pdf")
+        formula = next(
+            block
+            for block in doc.blocks
+            if block.kind is BlockKind.FORMULA
+            and block.label == number
+            and page_of(doc, block) == page
+        )
+        assert [p for p in formula.parts if p.item in pictures_of(doc)]
 
 
 def test_headings_not_yet_found_are_still_in_the_truth() -> None:
