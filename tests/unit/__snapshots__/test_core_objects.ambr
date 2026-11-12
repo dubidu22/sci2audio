@@ -16,132 +16,330 @@
       'blocks': list([
         dict({
           'kind': 'heading',
-          'origin': dict({
-            'regions': list([
-              dict({
-                'page': 1,
-                'x0': 72.0,
-                'x1': 300.0,
-                'y0': 90.0,
-                'y1': 104.0,
-              }),
-            ]),
-          }),
+          'parts': list([
+            dict({
+              'item': 'p1-l1',
+            }),
+          ]),
           'text': '1 Introduction',
         }),
         dict({
           'kind': 'paragraph',
-          'origin': dict({
-            'regions': list([
-              dict({
-                'page': 1,
-                'x0': 72.0,
-                'x1': 300.0,
-                'y0': 700.0,
-                'y1': 760.0,
-              }),
-              dict({
-                'page': 2,
-                'start': 17,
-                'x0': 72.0,
-                'x1': 300.0,
-                'y0': 72.0,
-                'y1': 90.0,
-              }),
-            ]),
-          }),
-          'text': 'Sound helps [3]. It runs on.',
+          'parts': list([
+            dict({
+              'item': 'p1-l2',
+            }),
+            dict({
+              'item': 'p2-l1',
+              'start': 17,
+            }),
+          ]),
+          'text': '''
+            Sound helps [3].
+            It runs on.
+          ''',
         }),
         dict({
           'kind': 'formula',
-          'origin': dict({
-            'regions': list([
-              dict({
-                'page': 2,
-                'x0': 100.0,
-                'x1': 200.0,
-                'y0': 100.0,
-                'y1': 120.0,
-              }),
-            ]),
-          }),
+          'parts': list([
+            dict({
+              'item': 'p2-l2',
+            }),
+          ]),
           'text': 'E = mc^2',
         }),
         dict({
           'kind': 'table',
-          'origin': dict({
-            'regions': list([
-              dict({
-                'page': 2,
-                'x0': 72.0,
-                'x1': 540.0,
-                'y0': 130.0,
-                'y1': 300.0,
-              }),
-            ]),
-          }),
+          'parts': list([
+            dict({
+              'item': 'p2-d1',
+            }),
+            dict({
+              'item': 'p2-d2',
+            }),
+          ]),
           'text': '',
         }),
         dict({
+          'describes': 3,
           'kind': 'caption',
-          'origin': dict({
-            'regions': list([
-              dict({
-                'page': 2,
-                'x0': 72.0,
-                'x1': 540.0,
-                'y0': 310.0,
-                'y1': 324.0,
-              }),
-            ]),
-          }),
+          'parts': list([
+            dict({
+              'item': 'p2-l3',
+            }),
+          ]),
           'text': 'Table 1: Results.',
         }),
         dict({
+          'kind': 'figure',
+          'parts': list([
+            dict({
+              'item': 'p2-pic1',
+            }),
+          ]),
+          'text': '',
+        }),
+        dict({
+          'describes': 5,
+          'kind': 'caption',
+          'parts': list([
+            dict({
+              'item': 'p2-l5',
+            }),
+          ]),
+          'text': 'Figure 1: A chart.',
+        }),
+        dict({
           'kind': 'list_item',
-          'origin': dict({
-            'chapter': 3,
-          }),
+          'parts': list([
+            dict({
+              'item': 'p2-l6',
+            }),
+          ]),
           'text': 'First point',
         }),
         dict({
           'kind': 'footnote',
-          'origin': dict({
-            'line': 12,
-          }),
+          'parts': list([
+            dict({
+              'item': 'p2-l7',
+            }),
+          ]),
           'text': '1 A note.',
         }),
+        dict({
+          'kind': 'furniture',
+          'parts': list([
+            dict({
+              'item': 'p2-l4',
+            }),
+          ]),
+          'text': 'A Small Paper',
+        }),
       ]),
-      'language': 'en',
-      'metadata': dict({
-        'authors': list([
-          'A. Author',
-          'B. Author',
+      'content': dict({
+        'metadata': dict({
+          'authors': list([
+            'A. Author',
+            'B. Author',
+          ]),
+          'date': '2024',
+          'title': 'A Small Paper',
+        }),
+        'pages': list([
+          dict({
+            'height': 792.0,
+            'lines': list([
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 90.0,
+                  'y1': 104.0,
+                }),
+                'id': 'p1-l1',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 14.0,
+                    'text': '1 Introduction',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 760.0,
+                  'y1': 770.0,
+                }),
+                'id': 'p1-l2',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'Sound helps [3].',
+                  }),
+                ]),
+              }),
+            ]),
+            'number': 1,
+            'width': 612.0,
+          }),
+          dict({
+            'drawings': list([
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 130.0,
+                  'y1': 130.5,
+                }),
+                'id': 'p2-d1',
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 300.0,
+                  'y1': 300.5,
+                }),
+                'id': 'p2-d2',
+              }),
+            ]),
+            'height': 792.0,
+            'lines': list([
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 72.0,
+                  'y1': 82.0,
+                }),
+                'id': 'p2-l1',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'It runs on.',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 100.0,
+                  'y1': 110.0,
+                }),
+                'id': 'p2-l2',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'E = mc^2',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 310.0,
+                  'y1': 320.0,
+                }),
+                'id': 'p2-l3',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'Table 1: Results.',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 20.0,
+                  'y1': 28.0,
+                }),
+                'id': 'p2-l4',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 8.0,
+                    'text': 'A Small Paper',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 600.0,
+                  'y1': 610.0,
+                }),
+                'id': 'p2-l5',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'Figure 1: A chart.',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 650.0,
+                  'y1': 660.0,
+                }),
+                'id': 'p2-l6',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 10.0,
+                    'text': 'First point',
+                  }),
+                ]),
+              }),
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 760.0,
+                  'y1': 768.0,
+                }),
+                'id': 'p2-l7',
+                'runs': list([
+                  dict({
+                    'font': 'Times-Roman',
+                    'size': 8.0,
+                    'text': '1 A note.',
+                  }),
+                ]),
+              }),
+            ]),
+            'number': 2,
+            'pictures': list([
+              dict({
+                'box': dict({
+                  'x0': 72.0,
+                  'x1': 540.0,
+                  'y0': 400.0,
+                  'y1': 590.0,
+                }),
+                'id': 'p2-pic1',
+              }),
+            ]),
+            'width': 612.0,
+          }),
         ]),
-        'date': '2024',
-        'title': 'A Small Paper',
+        'source': dict({
+          'format': 'pdf',
+          'name': 'paper.pdf',
+          'sha256': 'ab12',
+        }),
       }),
+      'language': 'en',
       'sections': list([
         dict({
           'children': list([
             dict({
-              'end': 7,
+              'end': 9,
               'level': 2,
               'start': 2,
               'title': '1.1 Results',
             }),
           ]),
-          'end': 7,
+          'end': 10,
           'level': 1,
           'start': 0,
           'title': '1 Introduction',
         }),
       ]),
-      'source': dict({
-        'format': 'pdf',
-        'name': 'paper.pdf',
-        'sha256': 'ab12',
-      }),
     }),
     'edits': list([
       dict({
@@ -219,7 +417,10 @@
           'end': 28,
           'start': 15,
         }),
-        'text': '. It runs on.',
+        'text': '''
+          .
+          It runs on.
+        ''',
       }),
       dict({
         'span': dict({
@@ -247,7 +448,15 @@
       }),
       dict({
         'span': dict({
-          'block': 5,
+          'block': 6,
+          'end': 18,
+          'start': 0,
+        }),
+        'text': 'Figure 1: A chart.',
+      }),
+      dict({
+        'span': dict({
+          'block': 7,
           'end': 11,
           'start': 0,
         }),
@@ -255,11 +464,19 @@
       }),
       dict({
         'span': dict({
-          'block': 6,
+          'block': 8,
           'end': 9,
           'start': 0,
         }),
         'text': '1 A note.',
+      }),
+      dict({
+        'span': dict({
+          'block': 9,
+          'end': 13,
+          'start': 0,
+        }),
+        'text': 'A Small Paper',
       }),
     ]),
   })

@@ -1,5 +1,6 @@
 """Hypothesis strategies for the core objects, shared by the core tests."""
 
+from collections.abc import Callable
 from itertools import pairwise
 
 from hypothesis import strategies as st
@@ -8,46 +9,95 @@ from sci2audio.core import (
     AudioChunk,
     Block,
     BlockKind,
+    Box,
+    Content,
     Document,
+    Drawing,
     Edit,
     EditKind,
     Metadata,
-    Origin,
-    Region,
+    Page,
+    Part,
+    Picture,
     Section,
     Source,
     SourceFormat,
     Span,
+    TextLine,
+    TextRun,
 )
 
 names = st.text(st.characters(exclude_characters="/\\"), min_size=1, max_size=12)
 words = st.text(max_size=12)
-coords = st.floats(min_value=0, max_value=1000, allow_nan=False, allow_infinity=False)
+coords = st.floats(min_value=0, max_value=2000, allow_nan=False, allow_infinity=False)
 
 
 @st.composite
-def regions(draw: st.DrawFn, length: int) -> tuple[Region, ...]:
-    starts = sorted(draw(st.sets(st.integers(0, length), max_size=3)) | {0})
-    out = []
-    for start in starts:
-        x0, x1 = sorted((draw(coords), draw(coords)))
-        y0, y1 = sorted((draw(coords), draw(coords)))
-        out.append(Region(draw(st.integers(1, 500)), x0, y0, x1, y1, start))
-    return tuple(out)
+def boxes(draw: st.DrawFn) -> Box:
+    x0, x1 = sorted((draw(coords), draw(coords)))
+    y0, y1 = sorted((draw(coords), draw(coords)))
+    return Box(x0, y0, x1, y1)
+
+
+runs = st.builds(
+    TextRun,
+    text=st.text(min_size=1, max_size=15),
+    font=st.sampled_from(["", "Times-Roman", "Helvetica-Bold"]),
+    size=st.floats(0, 72),
+    bold=st.booleans(),
+    italic=st.booleans(),
+    box=st.none() | boxes(),
+    tags=st.lists(st.sampled_from(["h1", "h2", "li", "em", "p"]), max_size=2).map(tuple),
+)
 
 
 @st.composite
-def blocks(draw: st.DrawFn) -> Block:
-    text = draw(st.text(max_size=40))
-    origin = draw(
-        st.one_of(
-            st.builds(Origin),
-            st.builds(Origin, regions=regions(len(text))),
-            st.builds(Origin, chapter=st.integers(1, 50)),
-            st.builds(Origin, line=st.integers(1, 5000)),
-        )
+def pages(draw: st.DrawFn, number: int, ids: Callable[[], str]) -> Page:
+    """A page whose item ids come from `ids`, which hands out a fresh id per call."""
+    size = draw(st.none() | st.tuples(st.floats(1, 5000), st.floats(1, 5000)))
+    return Page(
+        number=number,
+        lines=tuple(
+            TextLine(
+                ids(),
+                tuple(draw(st.lists(runs, min_size=1, max_size=3))),
+                draw(st.none() | boxes()),
+            )
+            for _ in range(draw(st.integers(0, 4)))
+        ),
+        pictures=tuple(
+            Picture(ids(), draw(st.none() | boxes()), draw(words))
+            for _ in range(draw(st.integers(0, 2)))
+        ),
+        drawings=tuple(Drawing(ids(), draw(boxes())) for _ in range(draw(st.integers(0, 2)))),
+        width=size[0] if size else None,
+        height=size[1] if size else None,
     )
-    return Block(draw(st.sampled_from(BlockKind)), text, origin)
+
+
+@st.composite
+def contents(draw: st.DrawFn) -> Content:
+    counter = iter(range(10_000))
+
+    def ids() -> str:
+        return f"i{next(counter)}"
+
+    return Content(
+        source=Source(
+            draw(names),
+            draw(st.sampled_from(SourceFormat)),
+            draw(st.text("0123456789abcdef", max_size=8)),
+        ),
+        pages=tuple(draw(pages(n, ids)) for n in range(1, draw(st.integers(0, 3)) + 1)),
+        metadata=draw(
+            st.builds(
+                Metadata,
+                title=words,
+                authors=st.lists(words, max_size=3).map(tuple),
+                language=st.sampled_from(["", "en", "en-GB"]),
+            )
+        ),
+    )
 
 
 @st.composite
@@ -63,19 +113,26 @@ def sections(draw: st.DrawFn, start: int, end: int, level: int, depth: int) -> t
 
 @st.composite
 def documents(draw: st.DrawFn) -> Document:
-    body = tuple(draw(st.lists(blocks(), max_size=6)))
+    """Content laid out like the layout stage would: every item in exactly one block."""
+    content = draw(contents())
+    items = draw(st.permutations([item for _, item in content.items().values()]))
+    cuts = sorted([*draw(st.lists(st.integers(0, len(items)), max_size=6)), 0, len(items)])
+    blocks = []
+    for a, b in pairwise(cuts):
+        if a == b:
+            continue
+        text, parts = "", []
+        for item in items[a:b]:
+            parts.append(Part(item.id, len(text)))
+            if isinstance(item, TextLine):
+                text += ("\n" if text else "") + item.text
+                parts[-1] = Part(item.id, len(text) - len(item.text))
+        blocks.append(Block(draw(st.sampled_from(BlockKind)), text, tuple(parts)))
     return Document(
-        source=Source(
-            draw(names),
-            draw(st.sampled_from(SourceFormat)),
-            draw(st.text("0123456789abcdef", max_size=8)),
-        ),
+        content=content,
         language=draw(st.sampled_from(["en", "en-GB", "de"])),
-        blocks=body,
-        metadata=draw(
-            st.builds(Metadata, title=words, authors=st.lists(words, max_size=3).map(tuple))
-        ),
-        sections=draw(sections(0, len(body), 1, 2)),
+        blocks=tuple(blocks),
+        sections=draw(sections(0, len(blocks), 1, 2)),
     )
 
 
@@ -99,13 +156,8 @@ def edits_on(draw: st.DrawFn, span: Span) -> Edit:
         replacement = draw(st.text(min_size=1, max_size=10))
     elif kind is EditKind.ASK:
         replacement = draw(st.text(max_size=10))
-    return Edit(
-        span,
-        kind,
-        reason="test reason",
-        step=draw(st.sampled_from(["s1", "s2"])),
-        replacement=replacement,
-    )
+    step = draw(st.sampled_from(["s1", "s2"]))
+    return Edit(span, kind, reason="test reason", step=step, replacement=replacement)
 
 
 def chunks_in(document: Document) -> st.SearchStrategy[AudioChunk]:

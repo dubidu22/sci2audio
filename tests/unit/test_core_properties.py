@@ -4,6 +4,7 @@ Rules that must hold for any document and any edits: spans stay inside their blo
 overlapping edits are refused with a clear error, and applying valid edits never raises.
 """
 
+import dataclasses
 import json
 
 import pytest
@@ -119,3 +120,13 @@ def test_edits_and_chunks_round_trip(
     assert from_data(AudioChunk, to_data(chunk)) == chunk
     for edit in edits:
         assert from_data(Edit, json.loads(json.dumps(to_data(edit)))) == edit
+
+
+@given(document=documents(), data=st.data())
+def test_a_document_that_loses_an_item_is_refused(document: Document, data: st.DataObject) -> None:
+    with_parts = [i for i, block in enumerate(document.blocks) if block.parts]
+    assume(with_parts)
+    index = data.draw(st.sampled_from(with_parts))
+    blocks = document.blocks[:index] + document.blocks[index + 1 :]
+    with pytest.raises(ValueError, match="nothing may be lost"):
+        dataclasses.replace(document, blocks=blocks, sections=())

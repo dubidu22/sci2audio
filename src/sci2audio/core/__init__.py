@@ -1,25 +1,36 @@
-"""Shared data objects (document, spans, edits, audio chunks).
+"""Shared data objects: the contract between the pipeline stages (D-46, D-63).
 
-The contract between the pipeline stages (D-46). How a paper flows through them: extraction
-builds a `Document` of `Block`s, each with its `Origin` in the source; text steps return
-`Edit`s on `Span`s and never change the text (D-57); the app applies the accepted edits with
-`apply_edits` to get the listening script as `ScriptPiece`s; the voice returns `AudioChunk`s
-that point back at their spans, which output uses for chapters and read-along timing (OU-02).
+How a file flows through them: extraction records `Content` (pages with text lines, styled
+runs, pictures and drawings, each with its position) and decides nothing; the layout stage
+builds a `Document` of `Block`s in reading order, each pointing back at the items it is made
+of; text steps return `Edit`s on `Span`s and never change the text (D-57); the app applies the
+accepted edits with `apply_edits` to get the listening script as `ScriptPiece`s; the voice
+returns `AudioChunk`s that point back at their spans, which output uses for chapters and
+read-along timing (OU-02).
 
 Lowest layer: standard library only, imports nothing else from sci2audio.
 """
 
 from sci2audio.core.audio import AudioChunk
+from sci2audio.core.content import (
+    Box,
+    Content,
+    Drawing,
+    Item,
+    Metadata,
+    Page,
+    Picture,
+    Source,
+    SourceFormat,
+    TextLine,
+    TextRun,
+)
 from sci2audio.core.document import (
     Block,
     BlockKind,
     Document,
-    Metadata,
-    Origin,
-    Region,
+    Part,
     Section,
-    Source,
-    SourceFormat,
     Span,
     SpanError,
 )
@@ -37,19 +48,26 @@ __all__ = [
     "AudioChunk",
     "Block",
     "BlockKind",
+    "Box",
+    "Content",
     "Document",
+    "Drawing",
     "Edit",
     "EditKind",
+    "Item",
     "Metadata",
-    "Origin",
     "OverlappingEditsError",
-    "Region",
+    "Page",
+    "Part",
+    "Picture",
     "ScriptPiece",
     "Section",
     "Source",
     "SourceFormat",
     "Span",
     "SpanError",
+    "TextLine",
+    "TextRun",
     "apply_edits",
     "check_edits",
     "from_data",

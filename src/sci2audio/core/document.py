@@ -1,135 +1,85 @@
-"""The document every stage passes along: blocks of source text, sections and spans.
+"""The reading document the layout stage builds from the extracted content (D-63).
 
-Extraction builds a `Document`; nothing changes it afterwards. Text steps point into it with
-`Span`s, so the original text stays available for read-along and the "what changed" report.
+Layout decides the reading order, groups the extracted items into `Block`s, gives each a
+kind and builds the `Section` tree. Every extracted item ends up in exactly one block, so
+nothing is lost silently; page furniture is a block kind that a text step removes with a
+marked edit (TP-01). After layout nothing changes the document: text steps point into it
+with `Span`s, so the original stays available for read-along and the "what changed" report.
 """
 
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass, field
+from collections import Counter
+from dataclasses import dataclass
 from enum import StrEnum
+
+from sci2audio.core.content import Content
 
 
 class SpanError(ValueError):
     """A span that does not lie inside the text of its block."""
 
 
-class SourceFormat(StrEnum):
-    """The kind of file a document was read from."""
-
-    PDF = "pdf"
-    EPUB = "epub"
-    MARKDOWN = "markdown"
-    TEXT = "text"
-
-
-@dataclass(frozen=True)
-class Source:
-    """Where a document came from: the file name (never a full path), its format and hash."""
-
-    name: str
-    format: SourceFormat
-    sha256: str = ""  # hex digest of the file's bytes, to recognise the same file again
-
-    def __post_init__(self) -> None:
-        if not self.name or "/" in self.name or "\\" in self.name:
-            raise ValueError(f"source name must be a bare file name, got {self.name!r}")
-
-
-@dataclass(frozen=True)
-class Metadata:
-    """What the file says about itself; empty where it says nothing."""
-
-    title: str = ""
-    authors: tuple[str, ...] = ()
-    date: str = ""  # as the file gives it, e.g. "2024" or "2024-03-01"
-    identifier: str = ""  # DOI, ISBN or arXiv id
-
-
-@dataclass(frozen=True)
-class Region:
-    """A rectangle on a PDF page, in points from the top left, where part of a block stands.
-
-    `start` is the character offset in the block's text where this region's text begins, so a
-    paragraph that runs across a column or page break knows which page each sentence is on.
-    """
-
-    page: int  # 1 = first page of the file
-    x0: float
-    y0: float
-    x1: float
-    y1: float
-    start: int = 0
-
-    def __post_init__(self) -> None:
-        for name in ("x0", "y0", "x1", "y1"):  # 72 and 72.0 export the same
-            object.__setattr__(self, name, float(getattr(self, name)))
-        if self.page < 1 or self.start < 0:
-            raise ValueError(f"region needs page >= 1 and start >= 0, got {self}")
-        coords = (self.x0, self.y0, self.x1, self.y1)
-        if not all(math.isfinite(c) for c in coords) or self.x0 > self.x1 or self.y0 > self.y1:
-            raise ValueError(f"region needs finite x0 <= x1 and y0 <= y1, got {self}")
-
-
-@dataclass(frozen=True)
-class Origin:
-    """Where a block stands in the source: regions for PDF, chapter for EPUB, line for text."""
-
-    regions: tuple[Region, ...] = ()  # in reading order, `start` strictly increasing from 0
-    chapter: int | None = None  # 1 = first document in the EPUB spine
-    line: int | None = None  # 1 = first line of a Markdown or text file
-
-    def __post_init__(self) -> None:
-        starts = [r.start for r in self.regions]
-        if starts and (starts[0] != 0 or starts != sorted(set(starts))):
-            raise ValueError(f"region starts must begin at 0 and increase, got {starts}")
-        for name in ("chapter", "line"):
-            value = getattr(self, name)
-            if value is not None and value < 1:
-                raise ValueError(f"origin {name} must be >= 1, got {value}")
-
-    @property
-    def page(self) -> int | None:
-        """The page the block starts on, or None outside PDFs."""
-        return self.regions[0].page if self.regions else None
-
-
 class BlockKind(StrEnum):
-    """What a block is. Tables and formulas are placeholders in v1.0 (D-55)."""
+    """What a block is. Tables, formulas and figures are placeholders in v1.0 (D-55)."""
 
     PARAGRAPH = "paragraph"
     HEADING = "heading"
     FOOTNOTE = "footnote"
     CAPTION = "caption"
     LIST_ITEM = "list_item"
+    FURNITURE = "furniture"  # running heads, page and line numbers, side stamps
     TABLE = "table"
     FORMULA = "formula"
+    FIGURE = "figure"  # images, charts, diagrams
 
 
-PLACEHOLDER_KINDS = frozenset({BlockKind.TABLE, BlockKind.FORMULA})
+PLACEHOLDER_KINDS = frozenset({BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE})
+
+
+@dataclass(frozen=True)
+class Part:
+    """An extracted item a block is made of, and where its text starts in the block's text."""
+
+    item: str  # id of a TextLine, Picture or Drawing in the content
+    start: int = 0
 
 
 @dataclass(frozen=True)
 class Block:
-    """One piece of the source text as extracted, never changed afterwards.
+    """One unit of the reading order: its kind, its text and the items it came from.
 
-    A table or formula block is a placeholder: its text is what extraction found (may be
-    empty), and a text step proposes the spoken notice that replaces it (D-55).
+    The text is the block's lines joined by line breaks, as layout found them; joining
+    hyphenated words is a text step (TP-02). A placeholder's text is whatever text its items
+    hold, possibly none; a text step proposes the spoken notice that replaces it (D-55).
     """
 
     kind: BlockKind
     text: str
-    origin: Origin = field(default_factory=Origin)
+    parts: tuple[Part, ...] = ()  # in reading order, starts not decreasing
+    describes: int | None = None  # a caption: index of the table, formula or figure block
 
     def __post_init__(self) -> None:
-        if self.origin.regions and self.origin.regions[-1].start > len(self.text):
-            raise ValueError("a region starts beyond the end of the block's text")
+        starts = [part.start for part in self.parts]
+        if starts != sorted(starts) or (
+            starts and not 0 <= starts[0] <= starts[-1] <= len(self.text)
+        ):
+            raise ValueError(f"part starts must increase within the text, got {starts}")
+        if self.describes is not None and self.kind is not BlockKind.CAPTION:
+            raise ValueError(f"only a caption describes another block, not a {self.kind}")
 
     @property
     def is_placeholder(self) -> bool:
-        """True for tables and formulas, which are not read out in v1.0."""
+        """True for tables, formulas and figures, which are not read out in v1.0."""
         return self.kind in PLACEHOLDER_KINDS
+
+    def part_at(self, offset: int) -> Part | None:
+        """The part whose text holds the character at `offset` (read-along), if any."""
+        found = None
+        for part in self.parts:
+            if part.start <= offset:
+                found = part
+        return found
 
 
 @dataclass(frozen=True)
@@ -179,25 +129,36 @@ def _check_ranges(sections: tuple[Section, ...], start: int, end: int, where: st
 
 @dataclass(frozen=True)
 class Document:
-    """A whole source file as blocks in reading order, with its section tree."""
+    """The extracted content in reading order: blocks, sections, and the content itself."""
 
-    source: Source
+    content: Content
     language: str  # BCP 47 tag, e.g. "en" or "en-GB"
     blocks: tuple[Block, ...]
-    metadata: Metadata = field(default_factory=Metadata)
     sections: tuple[Section, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.language:
             raise ValueError("document language must be set, e.g. 'en'")
+        used = Counter(part.item for block in self.blocks for part in block.parts)
+        known = self.content.items().keys()
+        if unknown := sorted(used.keys() - known):
+            raise ValueError(f"blocks point at items the content doesn't have: {unknown}")
+        if missing := sorted(known - used.keys()):
+            raise ValueError(f"items in no block (nothing may be lost): {missing}")
+        if doubled := sorted(item for item, n in used.items() if n > 1):
+            raise ValueError(f"items in more than one block: {doubled}")
+        for index, block in enumerate(self.blocks):
+            target = block.describes
+            if target is not None and not (
+                0 <= target < len(self.blocks) and self.blocks[target].is_placeholder
+            ):
+                raise ValueError(f"caption {index} must describe a table, formula or figure")
         _check_ranges(self.sections, 0, len(self.blocks), "document")
 
     def check_span(self, span: Span) -> None:
         """Raise SpanError unless the span lies inside the text of its block."""
         if span.block >= len(self.blocks):
-            raise SpanError(
-                f"{span} points at block {span.block}, but there are {len(self.blocks)}"
-            )
+            raise SpanError(f"{span} points at block {span.block}; there are {len(self.blocks)}")
         if span.end > len(self.blocks[span.block].text):
             length = len(self.blocks[span.block].text)
             raise SpanError(f"{span} ends after the block's text ({length} characters)")
