@@ -1,9 +1,14 @@
 # serializer version: 1
 # name: test_help_text
   '''
-  usage: sci2audio [-h] [--version]
+  usage: sci2audio [-h] [--version] COMMAND ...
   
   Turn scientific texts into faithful, offline audiobooks.
+  
+  positional arguments:
+    COMMAND
+      ui        open the sci2audio interface in your browser (it stays on this
+                computer)
   
   options:
     -h, --help  show this help message and exit
