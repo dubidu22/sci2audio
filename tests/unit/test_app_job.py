@@ -26,6 +26,8 @@ from sci2audio.textprep import Category
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 SEABORN = CORPUS / "papers" / "joss2021-waskom-seaborn.pdf"
 TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
+OWN_MARKDOWN = CORPUS / "markdown" / "sci2audio-sample-note.md"
+OWN_TEXT = CORPUS / "text" / "sci2audio-sample-plain.txt"
 
 
 def small_pdf(folder: Path, name: str = "note.pdf") -> Path:
@@ -91,20 +93,22 @@ def test_the_output_folder_and_settings_are_used(tmp_path: Path) -> None:
 
 
 def test_extraction_is_picked_by_the_file_suffix_in_any_case(tmp_path: Path) -> None:
-    assert set(EXTRACTORS) == {".epub", ".pdf"}
+    assert set(EXTRACTORS) == {".epub", ".markdown", ".md", ".pdf", ".txt"}  # D-350
     source = small_pdf(tmp_path, "UPPER.PDF")
     job = run_script_job(source, JobSettings(), tmp_path / "w")
     assert job.files.script.name == "UPPER.script.txt"
 
 
-@pytest.mark.parametrize("name", ["paper.docx", "notes.md", "plain.txt", "no-suffix"])
+@pytest.mark.parametrize("name", ["paper.docx", "notes.rtf", "notes.text", "no-suffix"])
 def test_a_file_type_it_cannot_read_is_refused_before_anything_runs(
     tmp_path: Path, name: str
 ) -> None:
     source = tmp_path / name
     source.write_text("text", encoding="utf-8")
     phases: list[Phase] = []
-    with pytest.raises(UnsupportedFileError, match=r"can read \.epub, \.pdf files only"):
+    with pytest.raises(
+        UnsupportedFileError, match=r"can read \.epub, \.markdown, \.md, \.pdf, \.txt files only"
+    ):
         run_script_job(source, JobSettings(), tmp_path / "w", progress=phases.append)
     assert phases == []
     assert not (tmp_path / "w").exists()
@@ -117,6 +121,46 @@ def test_an_epub_becomes_a_script(tmp_path: Path) -> None:
     assert "Source: wells-the-time-machine.epub\nLanguage: en-GB\n" in script
     assert "The Time Traveller (for so it will be convenient to speak of him)" in script
     assert job.result.document.content.metadata.authors == ("H. G. Wells",)
+
+
+@pytest.mark.parametrize(
+    ("sample", "said"),
+    [
+        (OWN_MARKDOWN, "Spoken text runs at about 150 words per minute"),
+        (OWN_TEXT, "This note describes a made-up pilot study and no real data."),
+    ],
+)
+def test_markdown_and_text_become_a_script(tmp_path: Path, sample: Path, said: str) -> None:
+    """Until #75 the lines come out as paragraphs in file order; read, not refused (D-350)."""
+    job = run_script_job(sample, JobSettings(output_folder=tmp_path / "out"), tmp_path / "w")
+    script = job.files.script.read_text(encoding="utf-8")
+    assert f"Source: {sample.name}\n" in script
+    assert said in script
+    assert job.report.warnings == ()
+    assert json.loads(job.files.report_json.read_text(encoding="utf-8"))["warnings"] == []
+
+
+def test_pasted_text_reads_as_a_text_file(tmp_path: Path) -> None:
+    source = tmp_path / "pasted text.txt"  # as the web keeps it (D-350)
+    source.write_text("Pasted words.\n\nA second paragraph.\n", encoding="utf-8")
+    job = run_script_job(source, JobSettings(), tmp_path / "w")
+    assert "Pasted words." in job.files.script.read_text(encoding="utf-8")
+    assert job.result.document.content.source.format == "text"
+
+
+def test_a_guessed_encoding_is_a_report_warning(tmp_path: Path) -> None:
+    """A text file that is not UTF-8 is read as Windows-1252, and the report says so (D-346)."""
+    source = tmp_path / "old notes.md"
+    source.write_bytes("# Caf\u00e9 notes\n\nSome \u201cquoted\u201d text.\n".encode("cp1252"))
+    job = run_script_job(source, JobSettings(), tmp_path / "w")
+    warning = (
+        "old notes.md is not saved as UTF-8; it was read as Windows-1252, a guess. "
+        "If letters look wrong, save it as UTF-8 and open it again."
+    )
+    assert job.report.warnings == (warning,)
+    assert json.loads(job.files.report_json.read_text(encoding="utf-8"))["warnings"] == [warning]
+    assert warning in job.files.report_markdown.read_text(encoding="utf-8")
+    assert "Caf\u00e9 notes" in job.files.script.read_text(encoding="utf-8")
 
 
 def test_a_damaged_epub_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:

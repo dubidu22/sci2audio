@@ -1,0 +1,24 @@
+# Ground truth for text/sci2audio-sample-plain.txt. Format: README.md ("Own samples").
+# Written for sci2audio (#74); every value can be read off the text file.
+file = "text/sci2audio-sample-plain.txt"
+drafted_from = ["text"]
+title = "LISTENING TO PAPERS"
+
+# Plain text marks no headings: "1. Introduction" is a paragraph of its own.
+headings = []
+footnotes = []
+tables = 0
+figures = []
+formulas = []
+
+[[verbatim]]
+where = "plain"  # wrapped by hand over two lines
+text = "Every sentence in it is our own, and its lines are wrapped by hand at about seventy characters, as plain-text files often are."
+
+[[verbatim]]
+where = "hyphenation"  # "exam-" ends a line, "ple," starts the next
+text = "A word may be split across lines, as in this example, which a listener hears whole."
+
+[[verbatim]]
+where = "plain"
+text = "Some readers prefer the café at noon; others read in Zürich at 7 °C."

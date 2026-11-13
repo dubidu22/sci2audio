@@ -1,0 +1,27 @@
+LISTENING TO PAPERS
+A pilot note written for the sci2audio tests
+
+This note describes a made-up pilot study and no real data. Every
+sentence in it is our own, and its lines are wrapped by hand at about
+seventy characters, as plain-text files often are.
+
+1. Introduction
+
+People listen to papers while they walk, cook or commute. Spoken text
+runs at about 150 words per minute, so a 6,000-word paper takes forty
+minutes. A word may be split across lines, as in this exam-
+ple, which a listener hears whole.
+
+	A paragraph that starts with a tab, followed by    several spaces.
+   
+The line above holds only spaces, so it ends a paragraph too. Some
+readers prefer the café at noon; others read in Zürich at 7 °C. A dash
+– en, and one — em; quotes “like these” and µs for microseconds.
+
+- first point
+- second point
+
+Roses are red,
+the listener waits;
+a line in a poem
+keeps where it breaks.

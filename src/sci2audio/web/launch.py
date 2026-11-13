@@ -63,6 +63,23 @@ def uvicorn_config(app: ASGIApp) -> uvicorn.Config:
     return config
 
 
+class _Server(uvicorn.Server):
+    """uvicorn's server, calling `on_started` once it has started (#161). uvicorn puts its
+    Ctrl-C handler in place before it starts; until then Python's own handler raises
+    KeyboardInterrupt wherever the program is, and if that is inside the import of the
+    event loop's module, Python drops it ("Exception ignored") and the server runs on. So
+    the "running" line comes from here: once it shows, Ctrl-C stops the server."""
+
+    def __init__(self, config: uvicorn.Config, on_started: Callable[[], None]) -> None:
+        super().__init__(config)
+        self._on_started = on_started
+
+    async def startup(self, sockets: list[socket.socket] | None = None) -> None:
+        await super().startup(sockets=sockets)
+        if self.started:
+            self._on_started()
+
+
 def serve(
     sock: socket.socket,
     config: ServerConfig,
@@ -70,14 +87,18 @@ def serve(
     open_browser: bool = True,
     say: Callable[[str], None] = print,
 ) -> None:
-    """Run the server on `sock` until Ctrl-C; the running job is cancelled on the way out."""
+    """Run the server on `sock` until Ctrl-C; the running job is cancelled on the way out.
+    The link is printed, and the browser opened, once the server has started (#161)."""
     app = create_app(config)
     state = app.state.sci2audio
-    server = uvicorn.Server(uvicorn_config(app))
-    say(f"sci2audio is running at {config.start_url}")
-    say("Keep this window open while you use sci2audio; press Ctrl-C to stop it.")
-    if open_browser:
-        webbrowser.open(config.start_url)
+
+    def started() -> None:
+        say(f"sci2audio is running at {config.start_url}")
+        say("Keep this window open while you use sci2audio; press Ctrl-C to stop it.")
+        if open_browser:
+            webbrowser.open(config.start_url)
+
+    server = _Server(uvicorn_config(app), started)
     try:
         server.run(sockets=[sock])
     except KeyboardInterrupt:  # uvicorn raises Ctrl-C again once it has shut down

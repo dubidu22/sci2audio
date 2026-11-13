@@ -7,6 +7,7 @@ import errno
 import hashlib
 import io
 import os
+import time
 from collections.abc import Iterator
 from pathlib import Path, PurePath
 from typing import Any
@@ -23,7 +24,6 @@ from web_helpers import (
     upload,
 )
 
-from sci2audio.app import job as app_job
 from sci2audio.extraction import extract_pdf
 from sci2audio.web import documents
 from sci2audio.web.documents import DocumentStore, stored_name
@@ -197,18 +197,9 @@ def test_another_write_error_is_named(
     assert leftovers(config.work_root) == []
 
 
-def test_pasted_text_waits_for_text_files(server: tuple[FastAPI, Any]) -> None:
+def test_pasted_text_is_kept_as_a_text_file(server: tuple[FastAPI, Any]) -> None:
+    """Text files are read (#74), so pasted text is taken as `<name>.txt` (D-350)."""
     app, config = server
-    response = program(app, config).post("/api/v1/documents/text", json={"text": "Hello."})
-    assert response.status_code == 415
-    assert "pasted text.txt" in response.json()["message"]
-
-
-def test_pasted_text_is_kept_as_a_text_file(
-    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    app, config = server
-    monkeypatch.setitem(app_job.EXTRACTORS, ".txt", lambda path: None)  # as #74 will add
     client = program(app, config)
     response = client.post("/api/v1/documents/text", json={"text": "Grüße.\n", "name": "Notes"})
     assert response.status_code == 201
@@ -226,7 +217,6 @@ def test_pasted_text_over_the_limit_is_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     app, config = app_and_config(tmp_path, text_limit=10)
-    monkeypatch.setitem(app_job.EXTRACTORS, ".txt", lambda path: None)
     response = program(app, config).post("/api/v1/documents/text", json={"text": "ü" * 6})
     assert response.status_code == 413  # 12 bytes of UTF-8
 
@@ -276,21 +266,24 @@ def test_any_name_is_kept_inside_its_folder(name: str) -> None:
     assert os.path.normpath(folder / kept).startswith(str(folder))
 
 
-@pytest.mark.quarantined(
-    issue=157, reason="a fresh file's mtime can be after time.time() on Windows", platform="win32"
-)
 def test_a_new_server_removes_uploads_a_killed_one_left_behind(tmp_path: Path) -> None:
     incoming = tmp_path / "work" / documents.INCOMING
     incoming.mkdir(parents=True)
     stale, fresh, other = incoming / "a.part", incoming / "b.part", incoming / "note.txt"
     for path in (stale, fresh, other):
         path.write_bytes(b"x")
-    hour_ago = stale.stat().st_mtime - documents.STALE_UPLOAD
-    os.utime(stale, (hour_ago, hour_ago))
+    # times from time.time() with a minute to spare, never a file's own mtime against it:
+    # on Windows a file written just now can carry an mtime a little after time.time() (#157)
+    over_an_hour_ago = time.time() - documents.STALE_UPLOAD - 60
+    os.utime(stale, (over_an_hour_ago, over_an_hour_ago))
     app_and_config(tmp_path)  # starting a server clears what is stale
     assert sorted(path.name for path in incoming.iterdir()) == ["b.part", "note.txt"]
+    # a minute old against a limit of half a minute, not "just now" against 0
+    minute_ago = time.time() - 60
+    os.utime(fresh, (minute_ago, minute_ago))
     store = DocumentStore(tmp_path / "work", upload_limit=10, text_limit=10)
-    assert store.clear_stale_uploads(older_than=0) == [fresh]
+    assert store.clear_stale_uploads(older_than=30) == [fresh]
+    assert sorted(path.name for path in incoming.iterdir()) == ["note.txt"]
     assert (
         DocumentStore(tmp_path / "nothing", upload_limit=1, text_limit=1).clear_stale_uploads()
         == []

@@ -7,6 +7,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # The Python of .python-version (3.12.16 or newer), as uv downloads it; never the runner's
+  # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
+  UV_PYTHON_PREFERENCE: only-managed
+
 jobs:
   build:
     name: build

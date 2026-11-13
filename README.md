@@ -25,7 +25,7 @@ uv tool install sci2audio                      # macOS (Apple chips) and Windows
 uv tool install sci2audio --torch-backend cpu  # Linux: 1.3 GB instead of 5.6 GB
 ```
 
-On Linux the plain command also works; it installs the PyTorch build with NVIDIA GPU libraries. With pipx, use Python 3.12 (`pipx install --python python3.12 sci2audio`): the Kokoro packages do not yet declare support for newer Python versions. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
+On Linux the plain command also works; it installs the PyTorch build with NVIDIA GPU libraries. With pipx, use Python 3.12.16 or newer in the 3.12 series (`pipx install --python python3.12 sci2audio`): the Kokoro packages do not yet declare support for newer Python versions, and older 3.12 releases read some broken HTML and Markdown differently. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
 
 The voice (about 355 MB: the Kokoro model, its English voices and a spaCy English model) is downloaded only when you start it, and its licences are shown first. After that, sci2audio works without a network.
 
@@ -58,7 +58,7 @@ Exit codes, for scripts:
 
 ## Development
 
-You need [uv](https://docs.astral.sh/uv/) and Python 3.12.
+You need a recent [uv](https://docs.astral.sh/uv/) (0.13.8 or newer; older ones do not know Python 3.12.16). `.python-version` pins Python 3.12.16, which uv downloads on the first `uv sync`; CI and the release workflow use the same uv-managed Python, never a runner's own (D-378).
 
 ```bash
 uv sync                       # install the project and development tools

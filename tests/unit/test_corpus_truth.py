@@ -14,8 +14,8 @@ import pytest
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 TRUTH = CORPUS / "truth"
 
-SAMPLE_SUFFIXES = {".pdf", ".epub"}
-DRAFT_SOURCES = {"pdf", "epub", "latex", "markdown"}
+SAMPLE_SUFFIXES = {".pdf", ".epub", ".md", ".txt"}
+DRAFT_SOURCES = {"pdf", "epub", "latex", "markdown", "text"}
 VERBATIM_PLACES = {
     "plain",
     "column-break",
@@ -54,13 +54,18 @@ PAPER_KEYS = COMMON_KEYS | {
     "verbatim",
 }
 EPUB_KEYS = COMMON_KEYS | {"chapters", "endnotes"}
+OWN_KEYS = COMMON_KEYS | {"headings", "footnotes", "tables", "figures", "formulas", "verbatim"}
+OWN_PLACES = {"plain", "hyphenation", "footnote-mark", "inline-maths"}  # one page
 
 
 def sample_files() -> list[Path]:
     return sorted(
         path
         for path in CORPUS.rglob("*")
-        if path.is_file() and path.suffix in SAMPLE_SUFFIXES and TRUTH not in path.parents
+        if path.is_file()
+        and path.suffix in SAMPLE_SUFFIXES
+        and TRUTH not in path.parents
+        and path.name != "LICENSES.md"
     )
 
 
@@ -158,6 +163,7 @@ def truth_for(suffix: str) -> list[Path]:
 
 PAPERS = truth_for(".pdf")
 EPUBS = truth_for(".epub")
+OWN = truth_for(".md") + truth_for(".txt")
 
 
 @pytest.mark.parametrize("path", PAPERS, ids=lambda path: path.name)
@@ -238,3 +244,34 @@ def test_epub_truth_follows_format(path: Path) -> None:
         assert set(note) == {"chapter", "text"}, f"endnote needs chapter and text: {note}"
         assert note["chapter"] in chapters, f"endnote names unknown chapter {note['chapter']!r}"
         assert is_text(note["text"]), "endnote text must be non-empty"
+
+
+@pytest.mark.parametrize("path", OWN, ids=lambda path: path.name)
+def test_own_sample_truth_follows_format(path: Path) -> None:
+    """The own Markdown and text samples (#74, D-348): one page, so nothing names a page."""
+    truth = load(path)
+    assert set(truth) == OWN_KEYS, (
+        f"missing {sorted(OWN_KEYS - set(truth))}, unknown {sorted(set(truth) - OWN_KEYS)}"
+    )
+    assert truth["drafted_from"] == ["markdown" if truth["file"].endswith(".md") else "text"]
+    for heading in truth["headings"]:
+        assert set(heading) == {"level", "text"}, f"heading needs level and text: {heading}"
+        assert heading["level"] in range(1, 7), f"heading level must be 1 to 6: {heading}"
+        assert is_text(heading["text"]), f"heading text must be non-empty: {heading}"
+    for note in truth["footnotes"]:
+        assert set(note) == {"mark", "text"}, f"footnote needs mark and text: {note}"
+        assert is_text(note["mark"]), f"footnote mark must be non-empty: {note}"
+        assert is_text(note["text"]), f"footnote text must be non-empty: {note}"
+    assert is_count(truth["tables"]), "tables must be a whole number"
+    assert all(isinstance(alt, str) for alt in truth["figures"]), "figures are alt texts"
+    for formula in truth["formulas"]:
+        assert set(formula) == {"display", "text"}, f"formula needs display and text: {formula}"
+        assert type(formula["display"]) is bool, f"display must be true or false: {formula}"
+        assert is_text(formula["text"]), f"formula text must be non-empty: {formula}"
+    verbatim = truth["verbatim"]
+    assert MIN_VERBATIM <= len(verbatim) <= MAX_VERBATIM, f"{len(verbatim)} verbatim sentences"
+    for entry in verbatim:
+        assert set(entry) == {"where", "text"}, f"verbatim needs where and text: {entry}"
+        assert entry["where"] in OWN_PLACES, f"unknown verbatim place {entry['where']!r}"
+        assert is_text(entry["text"]), "verbatim text must be non-empty, without outer spaces"
+        assert len(entry["text"].split()) >= 6, f"verbatim text too short: {entry['text']!r}"

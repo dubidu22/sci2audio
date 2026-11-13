@@ -15,3 +15,9 @@ EPUBs for tests are never stored here: every made-up and broken EPUB (password, 
 container, zip bombs, entity declarations, ...) is built inside the tests by
 `tests/unit/epub_maker.py` (#73, D-316). The one real EPUB is the corpus file
 `tests/corpus/epub/wells-the-time-machine.epub`.
+
+Markdown and text files for tests are never stored here either: the made-up and broken ones
+(empty, only white space, NUL bytes, a PDF or zip named `.txt`, every byte order mark,
+Windows-1252, nesting past the limit, CommonMark's pathological inputs) are built inside the
+tests (#74, D-347, D-348). The two real samples are the own corpus files
+`tests/corpus/markdown/sci2audio-sample-note.md` and `tests/corpus/text/sci2audio-sample-plain.txt`.

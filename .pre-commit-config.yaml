@@ -15,5 +15,8 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=1024]
       - id: check-merge-conflict
+      # The sample corpus is stored byte for byte (a Markdown hard break is two trailing spaces)
       - id: end-of-file-fixer
+        exclude: ^tests/corpus/
       - id: trailing-whitespace
+        exclude: ^tests/corpus/
