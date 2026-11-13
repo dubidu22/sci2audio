@@ -121,6 +121,23 @@ def test_a_1000_character_sentence_fits_the_limit() -> None:
     assert " ".join(parts) == text
 
 
+def test_only_the_parts_after_a_length_cut_continue_their_sentence() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "aaa bbb, ccc ddd. Next one. Last.")])
+    utterances = cut_utterances(document, apply_edits(document, []), max_chars=12)
+    assert [(u.text, u.continues) for u in utterances] == [
+        ("aaa bbb,", False),
+        ("ccc ddd.", True),
+        ("Next one.", False),
+        ("Last.", False),
+    ]
+
+
+def test_a_new_block_never_continues() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "x" * 15), (BlockKind.PARAGRAPH, "y" * 5)])
+    utterances = cut_utterances(document, apply_edits(document, []), max_chars=10)
+    assert [u.continues for u in utterances] == [False, True, False]
+
+
 def test_max_chars_must_be_positive() -> None:
     with pytest.raises(ValueError, match="at least 1"):
         cut_utterances(make_document([]), (), max_chars=0)
@@ -150,8 +167,8 @@ def test_a_cut_does_not_split_a_replacement_that_fits() -> None:
     # the last space that fits lies inside "one two": the cut moves to before it
     assert utterances == (
         Utterance("aa bb", Span(0, 0, 5)),
-        Utterance("one two cc", Span(0, 6, 10)),
-        Utterance("dd", Span(0, 11, 13)),
+        Utterance("one two cc", Span(0, 6, 10), continues=True),
+        Utterance("dd", Span(0, 11, 13), continues=True),
     )
 
 
@@ -254,6 +271,30 @@ def test_utterances_cover_the_script_inside_their_blocks_in_order(
                 assert any(words in text for text in said), (words, said)
     pauses = [p.span for p in script if p.pause]
     assert [u.span for u in utterances if u.pause] == pauses
+
+
+@given(scripts(), st.integers(1, 80))
+def test_continuing_utterances_join_into_the_uncut_sentences(
+    case: tuple[Document, tuple[ScriptPiece, ...]], max_chars: int
+) -> None:
+    document, script = case
+    cut_ = cut_utterances(document, script, max_chars=max_chars)
+    whole = cut_utterances(document, script, max_chars=10**9)
+    assert not any(u.continues for u in whole)
+    groups: list[list[Utterance]] = []
+    for utterance in cut_:
+        if utterance.continues:
+            assert groups
+            assert not groups[-1][-1].pause
+            assert groups[-1][-1].span.block == utterance.span.block
+            groups[-1].append(utterance)
+        else:
+            groups.append([utterance])
+    assert [u.pause for u in whole] == [group[0].pause for group in groups]
+    for group, sentence in zip(groups, whole, strict=True):
+        joined = "".join(u.text for u in group)
+        assert re.sub(r"\s", "", joined) == re.sub(r"\s", "", sentence.text)
+        assert group[0].span.start == sentence.span.start
 
 
 @given(documents())
