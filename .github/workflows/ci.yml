@@ -41,11 +41,13 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       # Only the app's own run-time dependencies are checked, not the dev tools.
+      # espeakng-loader states no licence in its package metadata; it was checked by hand
+      # (loader MIT, bundled espeak-ng GPL-3.0-or-later) and is listed in THIRD_PARTY_LICENSES.md.
       - run: uv sync --locked --no-dev
       - name: Refuse AGPL, non-commercial and unknown licences
         run: >
           uv run --no-sync --with pip-licenses pip-licenses
-          --ignore-packages sci2audio pip-licenses prettytable wcwidth
+          --ignore-packages sci2audio pip-licenses prettytable wcwidth espeakng-loader
           --partial-match
           --fail-on="Affero;AGPL;SSPL;Non-Commercial;NonCommercial;UNKNOWN"
           --format=markdown
