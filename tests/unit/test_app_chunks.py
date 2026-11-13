@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import time
 import wave
 from pathlib import Path
 
@@ -128,8 +129,17 @@ def test_another_process_holding_the_lock_keeps_the_job_out(tmp_path: Path) -> N
             pass
         child.kill()  # killed outright: the system frees the lock
         child.wait(timeout=30)
-        with work_folder_lock(work):
-            pass
+        # Linux and macOS free it at once; Windows "depends upon available system
+        # resources" (msvcrt.locking docs): the lock itself waits WINDOWS_GRACE for it
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                with work_folder_lock(work):
+                    break
+            except JobBusyError:
+                assert sys.platform == "win32", "the lock outlived its process"
+                assert time.monotonic() < deadline, "the lock was not freed in 15 s"
+                time.sleep(0.1)
     finally:
         if child.poll() is None:
             child.kill()
