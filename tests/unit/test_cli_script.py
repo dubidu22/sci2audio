@@ -4,6 +4,7 @@ settings file read as defaults but never written (D-213, D-214, D-215, D-216).""
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -49,9 +50,14 @@ def test_prints_the_chapters_to_choose_from(
     result = cli("script", SEABORN, "-o", tmp_path, "-q")
     assert result.code == 0
     assert result.err == ""  # -q: no progress
-    # only the chapter list is pinned: the edit counts change with every new text step
+    # the snapshot pins what layout and the chapter rules decide (numbers, marks, titles,
+    # the reference-list note); sentence and edit counts change with every text step, so
+    # they are checked here as positive numbers and left out of the snapshot
     chapters, edits = result.out.split("Wrote:")[0].split("Edits that change what is heard:\n")
-    assert chapters == snapshot
+    counts = [int(n) for n in re.findall(r"(\d+) sentences", chapters)]
+    assert len(counts) == 6
+    assert all(n > 0 for n in counts)
+    assert re.sub(r"\d+ sentences", "N sentences", chapters) == snapshot
     assert edits.splitlines()[0].startswith("  Page furniture: ")
     for name in SCRIPT_FILES:
         assert str(tmp_path / name) in result.out

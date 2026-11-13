@@ -2,12 +2,12 @@
 # name: test_prints_the_chapters_to_choose_from
   '''
   Chapters (choose with --chapters):
-      1  [x]  seaborn: statistical data visualization  3 sentences
-      2  [x]  Summary  8 sentences
-      3  [x]  Statement of need  12 sentences
-      4  [x]  Example  17 sentences
-      5  [x]  Overview  45 sentences
-      6  [x]  Acknowledgements  3 sentences
+      1  [x]  seaborn: statistical data visualization  N sentences
+      2  [x]  Summary  N sentences
+      3  [x]  Statement of need  N sentences
+      4  [x]  Example  N sentences
+      5  [x]  Overview  N sentences
+      6  [x]  Acknowledgements  N sentences
       7  [ ]  References  not read  (reference list)
   
   '''
