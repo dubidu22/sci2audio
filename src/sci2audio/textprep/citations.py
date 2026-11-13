@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.links import SKIPPED_KINDS
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
+from sci2audio.textprep.wording import Wording, wording_for
 
 _MAX_BRACKET = 4000  # characters; a longer bracket is not a citation and is not parsed
 
@@ -39,10 +40,6 @@ _MAX_BRACKET = 4000  # characters; a longer bracket is not a citation and is not
 class CitationWords:
     """The words of one language that the citation rules use, lower case."""
 
-    reference: str  # "reference 12"
-    references: str  # "references 3 and 5"
-    and_: str  # the last join of a list
-    to: str  # a range "2 to 6"
     before: frozenset[str]  # words after which a numeric citation is part of the sentence
     refs: frozenset[str]  # "Ref." and the like, replaced along with the citation
     nouns: frozenset[str]  # words after which a bracketed author-year citation is a noun
@@ -56,10 +53,6 @@ class CitationWords:
 # fmt: off
 WORDS: dict[str, CitationWords] = {
     "en": CitationWords(
-        reference="reference",
-        references="references",
-        and_="and",
-        to="to",
         before=frozenset((
             "in", "by", "of", "from", "to", "see", "also", "and", "or", "with", "following",
             "than", "like", "unlike", "on", "under", "via", "cf.", "e.g.", "e.g.,", "i.e.",
@@ -186,7 +179,7 @@ class CitationStep(TextStep):
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         words = WORDS[context.language.split("-", 1)[0].lower()]
-        rules = _Rules(words)
+        rules = _Rules(words, wording_for(context.language))
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text.strip():
@@ -203,8 +196,9 @@ _Found = tuple[int, int, EditKind, str, str]  # start, end, kind, replacement, r
 
 
 class _Rules:
-    def __init__(self, words: CitationWords) -> None:
+    def __init__(self, words: CitationWords, wording: Wording) -> None:
         self.words = words
+        self.wording = wording
         self.part = _part_pattern(words)
         self.numeric_aside = _numeric_aside_pattern(words)
 
@@ -298,16 +292,18 @@ class _Rules:
         for match in _ITEMS.finditer(inside):
             first, last = match.group(1), match.group(2)
             if last:
-                items.append(f"{first} {self.words.to} {last}")
+                items.append(f"{first} {self.wording.range_to} {last}")
                 single = False
             else:
                 items.append(first)
         if len(items) > 1:
             single = False
-        noun = self.words.reference if single else self.words.references
+        noun = self.wording.reference if single else self.wording.references
         if len(items) == 1:
             return f"{noun} {items[0]}"
-        return f"{noun} {', '.join(items[:-1])} {self.words.and_} {items[-1]}"
+        return (
+            f"{noun} {self.wording.list_comma.join(items[:-1])}{self.wording.list_and}{items[-1]}"
+        )
 
     # author-year citations
 
@@ -441,7 +437,7 @@ class _Rules:
         names = [self._part_authors(text, part) for part in parts]
         found: list[_Found] = [(node.open, names[0][0], EditKind.REMOVE, "", reason)]
         for number in range(1, len(names)):
-            join = f" {self.words.and_} " if number == len(names) - 1 else ", "
+            join = self.wording.list_and if number == len(names) - 1 else self.wording.list_comma
             found.append((names[number - 1][1], names[number][0], EditKind.REPLACE, join, reason))
         found.append((names[-1][1], end, EditKind.REMOVE, "", reason))
         return [item for item in found if item[0] < item[1]]
