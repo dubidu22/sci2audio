@@ -195,3 +195,105 @@ def test_kokoro_speed_on_cpu(engine: KokoroEngine, tmp_path: Path, benchmark: ob
     benchmark.extra_info["characters_per_second"] = round(len(BENCHMARK_TEXT) / elapsed, 1)  # type: ignore[attr-defined]
     benchmark.extra_info["realtime_factor"] = round(seconds / elapsed, 2)  # type: ignore[attr-defined]
     assert seconds > 5
+
+
+# --- units read as words (#68, D-243) -----------------------------------------------------
+
+# Whisper writes some spoken units back as symbols; these turn its spelling into words
+# before comparing, so the check is on what was heard, not on how whisper prints it.
+HEARD_AS_SYMBOLS = {
+    "mg/kg": "milligrams per kilogram",
+    "°c": "degrees celsius",
+    "° c": "degrees celsius",
+    "mg": "milligrams",
+    "kg": "kilograms",
+}
+UNITS_WER_LIMIT = 0.25
+
+
+def heard_words(text: str) -> list[str]:
+    text = text.lower()
+    for symbol, spoken in HEARD_AS_SYMBOLS.items():
+        text = text.replace(symbol, f" {spoken} ")
+    return words(text)
+
+
+@pytest.mark.slow
+def test_units_are_heard_as_words(engine: KokoroEngine, tmp_path: Path) -> None:
+    """The `units` regression case, as the built-in steps write it, spoken and heard back:
+    "milligrams per kilogram" and "degrees Celsius" are heard (D-243)."""
+    whisper_dir = os.environ.get("SCI2AUDIO_TEST_WHISPER")
+    if not whisper_dir:
+        pytest.skip("SCI2AUDIO_TEST_WHISPER is not set (run tests/integration/prepare_models.py)")
+    from faster_whisper import WhisperModel
+
+    from sci2audio.testing.regression import load_cases, render
+    from sci2audio.textprep import StepContext, run_steps
+
+    cases = load_cases(Path(__file__).parents[1] / "regression" / "english.toml")
+    case = next(case for case in cases if case.id == "units")
+    (script,) = render(run_steps(case.document, StepContext("en"), strict=True))
+    assert "milligrams per kilogram" in script
+    path = tmp_path / "units.wav"
+    with no_network():
+        speak_to_wav(engine.createSession(), script, "af_heart", path)
+        recogniser = WhisperModel(whisper_dir, device="cpu", compute_type="int8")
+        segments, _ = recogniser.transcribe(at_16_khz(path), language="en", beam_size=5)
+    heard = " ".join(s.text for s in segments)
+    got = heard_words(heard)
+    joined = " ".join(got)
+    assert "milligrams per kilogram" in joined, heard
+    assert "degrees celsius" in joined, heard
+    expected = words(script)
+    wer = edit_distance(expected, got) / len(expected)
+    assert wer < UNITS_WER_LIMIT, f"WER {wer:.2f}: said {script!r}, heard {heard!r}"
+
+
+# --- statistics read as words (#67, D-191) ------------------------------------------------
+
+# Whisper writes some spoken statistics back as signs or as "0.05"; these turn its spelling
+# into the words and digits of the script before comparing.
+HEARD_AS_STATISTICS = {
+    "<": " less than ",
+    ">": " greater than ",
+    "=": " equals ",
+}
+STATISTICS_WER_LIMIT = 0.25
+
+
+def heard_statistics(text: str) -> list[str]:
+    text = text.lower()
+    for sign, spoken in HEARD_AS_STATISTICS.items():
+        text = text.replace(sign, spoken)
+    return words(re.sub(r"\b0(?=\.\d)", "", text))  # "0.05" as printed: ".05"
+
+
+@pytest.mark.slow
+def test_statistics_are_heard_as_words(engine: KokoroEngine, tmp_path: Path) -> None:
+    """The `statistics` regression case, as the built-in steps write it, spoken and heard
+    back: "less than", "equals" and "confidence interval" are heard (D-191)."""
+    whisper_dir = os.environ.get("SCI2AUDIO_TEST_WHISPER")
+    if not whisper_dir:
+        pytest.skip("SCI2AUDIO_TEST_WHISPER is not set (run tests/integration/prepare_models.py)")
+    from faster_whisper import WhisperModel
+
+    from sci2audio.testing.regression import load_cases, render
+    from sci2audio.textprep import StepContext, run_steps
+
+    cases = load_cases(Path(__file__).parents[1] / "regression" / "english.toml")
+    case = next(case for case in cases if case.id == "statistics")
+    (script,) = render(run_steps(case.document, StepContext("en"), strict=True))
+    assert "p less than .05" in script
+    path = tmp_path / "statistics.wav"
+    with no_network():
+        speak_to_wav(engine.createSession(), script, "af_heart", path)
+        recogniser = WhisperModel(whisper_dir, device="cpu", compute_type="int8")
+        segments, _ = recogniser.transcribe(at_16_khz(path), language="en", beam_size=5)
+    heard = " ".join(s.text for s in segments)
+    got = heard_statistics(heard)
+    joined = " ".join(got)
+    for spoken in ("less than", "equals", "confidence interval"):
+        assert spoken in joined, heard
+    expected = words(script)
+    wer = edit_distance(expected, got) / len(expected)
+    assert wer < STATISTICS_WER_LIMIT, f"WER {wer:.2f}: said {script!r}, heard {heard!r}"

@@ -113,6 +113,8 @@ def test_the_built_in_registry_is_valid() -> None:
         "footnotes",
         "statistics",
         "numbers",
+        "units",
+        "abbreviations",
         "unicode-clean-up",  # characters and hyphenation run last (D-150)
         "line-end-hyphens",
     ]

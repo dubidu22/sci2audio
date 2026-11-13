@@ -66,9 +66,10 @@ def test_each_placeholder_reads_one_notice(blocks: list, notice: str) -> None:
     index = next(i for i, b in enumerate(document.blocks) if b.is_placeholder)
     spoken = read(document)
     assert spoken[index] == notice
-    for i, block in enumerate(document.blocks):  # the caption reads as printed
-        if block.kind is BlockKind.CAPTION:
-            assert spoken[i] == spoken_text_of(block.text)
+    for i, block in enumerate(document.blocks):  # the caption reads in its place,
+        if block.kind is BlockKind.CAPTION:  # its label word in full (#68)
+            printed = spoken_text_of(block.text)
+            assert spoken[i] == wording_for("en").label(block.label) + printed[len(block.label) :]
 
 
 def spoken_text_of(text: str) -> str:

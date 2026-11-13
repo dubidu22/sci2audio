@@ -98,6 +98,8 @@ _LETTER_POWER = re.compile(
     r"(?![\w" + _SUPERSCRIPTS + "])"
 )
 _SQUARED_STATISTICS = frozenset("Rrηωεχ")  # read by the statistics step ("R squared")
+# a unit chain after a number ("2 m s⁻¹", "3 W m⁻²"): the units step reads it (#68, D-178)
+_UNIT_CHAIN = re.compile(r"\d\s*(?:[^\W\d_]{1,3}[" + _SUPERSCRIPTS + r"⁺⁻]*[\s·⋅]+)+\Z")
 
 # --- N7 ratios, N8 fractions -----------------------------------------------------------------
 # a ratio not after a hyphen: "10-23:3" is a hyphenated pair, left as printed
@@ -312,6 +314,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         found.append((Candidate(start, end, words, _power_reason(text, match, words)), base))
     for match in _LETTER_POWER.finditer(plain):
         if match["base"] in _SQUARED_STATISTICS and match["exp"] == "²":
+            continue
+        if _UNIT_CHAIN.search(plain, 0, match.start("base")):
             continue
         start, end = match.span("exp")
         exponent = "".join(_SUPER_DIGIT.get(c, c) for c in match["exp"])

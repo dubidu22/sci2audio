@@ -1,6 +1,7 @@
 # serializer version: 1
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-chi-plue]
   dict({
+    'abbreviations: accepted': 23,
     'characters: accepted': 97,
     'characters: set-aside': 63,
     'citations: accepted': 48,
@@ -9,7 +10,7 @@
     'footnotes: set-aside': 1,
     'links: accepted': 5,
     'links: set-aside': 3,
-    'numbers-and-units: accepted': 4,
+    'numbers-and-units: accepted': 14,
     'numbers-and-units: set-aside': 30,
     'page-furniture: accepted': 17,
     'references: accepted': 45,
@@ -18,6 +19,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-hardt-ellipsis]
   dict({
+    'abbreviations: accepted': 10,
     'characters: accepted': 69,
     'characters: set-aside': 15,
     'citations: accepted': 17,
@@ -33,6 +35,8 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-nowak-prefix-probabilities]
   dict({
+    'abbreviations: accepted': 45,
+    'abbreviations: set-aside': 1,
     'characters: accepted': 43,
     'characters: set-aside': 44,
     'citations: accepted': 29,
@@ -40,7 +44,7 @@
     'footnotes: accepted': 24,
     'formulas: accepted': 34,
     'links: accepted': 2,
-    'numbers-and-units: accepted': 49,
+    'numbers-and-units: accepted': 53,
     'numbers-and-units: set-aside': 25,
     'page-furniture: accepted': 14,
     'references: accepted': 33,
@@ -49,6 +53,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-arsiwalla-qualia-meaning]
   dict({
+    'abbreviations: accepted': 15,
     'characters: accepted': 59,
     'characters: set-aside': 26,
     'citations: accepted': 93,
@@ -67,12 +72,14 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-liu-orbital-hall]
   dict({
-    'characters: accepted': 103,
-    'characters: set-aside': 2,
+    'abbreviations: accepted': 6,
+    'abbreviations: set-aside': 5,
+    'characters: accepted': 99,
+    'characters: set-aside': 6,
     'citations: accepted': 128,
     'formulas: accepted': 8,
     'links: accepted': 2,
-    'numbers-and-units: accepted': 59,
+    'numbers-and-units: accepted': 79,
     'numbers-and-units: set-aside': 14,
     'page-furniture: accepted': 6,
     'tables-and-figures: accepted': 3,
@@ -80,6 +87,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2021-waskom-seaborn]
   dict({
+    'abbreviations: accepted': 1,
     'characters: accepted': 11,
     'citations: accepted': 8,
     'links: accepted': 1,

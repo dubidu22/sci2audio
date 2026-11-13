@@ -149,7 +149,7 @@
     ]),
     'counts': dict({
       'abbreviations': dict({
-        'applied': 0,
+        'applied': 10,
         'label': 'Abbreviations',
         'not_spoken': 0,
         'set_aside': 0,
@@ -1822,6 +1822,166 @@
           'start': 0,
           'step': 'reference-list',
         }),
+      }),
+      dict({
+        'block': 29,
+        'category': 'abbreviations',
+        'chapter': 3,
+        'end': 376,
+        'kind': 'replace',
+        'original': 'i.e.',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'abbreviation "i.e." read as "that is"',
+        'said': 'that is',
+        'spoken': True,
+        'start': 372,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 139,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 58,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 8,
+        'printed_page': '46',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 54,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 145,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 102,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 8,
+        'printed_page': '46',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 98,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 151,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 68,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 9,
+        'printed_page': '47',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 64,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 153,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 39,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 9,
+        'printed_page': '47',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 35,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 153,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 174,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 9,
+        'printed_page': '47',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 170,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 155,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 38,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 9,
+        'printed_page': '47',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 34,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 157,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 86,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 9,
+        'printed_page': '47',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 82,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 159,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 60,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 9,
+        'printed_page': '47',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 56,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 159,
+        'category': 'abbreviations',
+        'chapter': 11,
+        'end': 200,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 9,
+        'printed_page': '47',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 196,
+        'status': 'accepted',
+        'step': 'abbreviations',
       }),
       dict({
         'block': 80,
@@ -3614,7 +3774,7 @@
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 11 | 0 | 0 | 0 |
   | Reference list | 0 | 17 | 0 | 0 |
-  | Abbreviations | 0 | 0 | 0 | 0 |
+  | Abbreviations | 10 | 0 | 0 | 0 |
   | Numbers, symbols, units and statistics | 0 | 0 | 12 | 0 |
   
   ## Page furniture (12)
@@ -3793,6 +3953,19 @@
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Wei-Nan Zhang, Yue Zhang, Yuanxing Liu, Donglin Di, and Ting Liu. 2019. A neural network approach to verb phrase ellipsis resolution. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, pages 7468–7475.” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Zhuosheng Zhang and Hai Zhao. 2022. Tracing origins: Coreference-aware machine reading comprehension. In Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 1281–1292.” → left out. Reason: the reference list is not read. Step: reference-list.
   
+  ## Abbreviations (10)
+  
+  - page 2 (printed 40), chapter 4, applied: “i.e.” → read as “that is”. Reason: abbreviation "i.e." read as "that is". Step: abbreviations.
+  - page 8 (printed 46), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 8 (printed 46), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  
   ## Numbers, symbols, units and statistics (12)
   
   - page 5 (printed 43), chapter 11, set aside: the remove edit of step reference-list (page 5 (printed 43)) won: “2023- 01-10” → read as “10 January 2023”. Reason: date "2023-
@@ -3901,7 +4074,7 @@
     ]),
     'counts': dict({
       'abbreviations': dict({
-        'applied': 0,
+        'applied': 1,
         'label': 'Abbreviations',
         'not_spoken': 0,
         'set_aside': 0,
@@ -5188,6 +5361,22 @@
         }),
       }),
       dict({
+        'block': 52,
+        'category': 'abbreviations',
+        'chapter': 4,
+        'end': 767,
+        'kind': 'replace',
+        'original': 'e.g.',
+        'page': 3,
+        'printed_page': '3',
+        'reason': 'abbreviation "e.g." read as "for example"',
+        'said': 'for example',
+        'spoken': True,
+        'start': 763,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
         'block': 45,
         'category': 'characters',
         'chapter': 4,
@@ -5454,7 +5643,7 @@
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 1 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
-  | Abbreviations | 0 | 0 | 0 | 0 |
+  | Abbreviations | 1 | 0 | 0 | 0 |
   | Numbers, symbols, units and statistics | 5 | 0 | 6 | 0 |
   
   ## Page furniture (29)
@@ -5539,6 +5728,10 @@
   - page 4, chapter 7, not spoken (chapter not chosen): “Waskom, M. L., & Wagner, A. D. (2017). Distributed representation of context by intrinsic subnetworks in prefrontal cortex. Proceedings of the National Academy of Sciences, 2030– 2035. https://doi.org/10.1073/pnas.1615269114” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 4, chapter 7, not spoken (chapter not chosen): “Wickham, H. (2014). Tidy data. Journal of Statistical Software, Articles, 59(10), 1–23. https://doi.org/10.18637/jss.v059.i10” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 4, chapter 7, not spoken (chapter not chosen): “Wickham, H. (2016). ggplot2: Elegant graphics for data analysis. Springer-Verlag. ISBN: 978-3-319-24277-4” → left out. Reason: the reference list is not read. Step: reference-list.
+  
+  ## Abbreviations (1)
+  
+  - page 3, chapter 5, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
   
   ## Numbers, symbols, units and statistics (11)
   
@@ -5649,7 +5842,7 @@
   
   There has been substantial work on ellipsis as a discrete NLP task.
   Vanderlyn et al. surveys a variety of forms of what they call “implicit reference", which includes ellipsis and related phenomena.
-  Aralikatte et al. frame ellipsis as a question-answering task, i.e., a task of locating an antecedent, understood as a span of tokens in context.
+  Aralikatte et al. frame ellipsis as a question-answering task, that is, a task of locating an antecedent, understood as a span of tokens in context.
   Aralikatte et al. report token F1 scores of 78.66 for VPE and 86.01 for sluicing, another form of ellipsis.
   It’s important to note that the task here, of antecedent identification, is a sub-part of the ellipsis challenge.
   Before the antecedent is identified, an ellipsis occurrence must be identified, and after the antecedent is identified, it must be interpreted, or “reconstructed", at the ellipsis site.
@@ -5900,7 +6093,7 @@
   We created simple synthetic data and see no issues here
   
   ✓ B5.
-  Did you provide documentation of the artifacts, e.g., coverage of domains, languages, and linguistic phenomena, demographic groups represented, etc.?
+  Did you provide documentation of the artifacts, for example, coverage of domains, languages, and linguistic phenomena, demographic groups represented, etc.?
   
   section 3
   
@@ -5917,7 +6110,7 @@
   section 4
   
   ✗ C1.
-  Did you report the number of parameters in the models used, the total computational budget (e.g., GPU hours), and computing infrastructure used?
+  Did you report the number of parameters in the models used, the total computational budget (for example, GPU hours), and computing infrastructure used?
   
   standard access to GPT3 models
   
@@ -5930,27 +6123,27 @@
   no search of hyperparameters
   
   ✓ C3.
-  Did you report descriptive statistics about your results (e.g., error bars around results, summary statistics from sets of experiments), and is it transparent whether you are reporting the max, mean, etc. or just a single run?
+  Did you report descriptive statistics about your results (for example, error bars around results, summary statistics from sets of experiments), and is it transparent whether you are reporting the max, mean, etc. or just a single run?
   
   section 5
   
   C4.
-  If you used existing packages (e.g., for preprocessing, for normalization, or for evaluation), did you report the implementation, model, and parameter settings used (e.g., NLTK, Spacy, ROUGE, etc.)?
+  If you used existing packages (for example, for preprocessing, for normalization, or for evaluation), did you report the implementation, model, and parameter settings used (for example, NLTK, Spacy, ROUGE, etc.)?
   
   Not applicable.
   Left blank.
   
-  D ✗ Did you use human annotators (e.g., crowdworkers) or research with human participants?
+  D ✗ Did you use human annotators (for example, crowdworkers) or research with human participants?
   
   Left blank.
   
   D1.
-  Did you report the full text of instructions given to participants, including e.g., screenshots, disclaimers of any risks to participants or annotators, etc.?
+  Did you report the full text of instructions given to participants, including for example, screenshots, disclaimers of any risks to participants or annotators, etc.?
   
   No response.
   
   D2.
-  Did you report information about how you recruited (e.g., crowdsourcing platform, students) and paid participants, and discuss if such payment is adequate given the participants’ demographic (e.g., country of residence)?
+  Did you report information about how you recruited (for example, crowdsourcing platform, students) and paid participants, and discuss if such payment is adequate given the participants’ demographic (for example, country of residence)?
   
   No response.
   
@@ -6079,7 +6272,7 @@
   The most convenient usage pattern provides a pandas dataframe with variables encoded in a long-form or “tidy” format.
   With this format, columns in the dataframe can be explicitly assigned to roles in the plot, such as specifying the x and y positions of a scatterplot along with size and shape semantics.
   Long-form data supports efficient exploration and prototyping because variables can be assigned different roles in the plot without modifying anything about the original dataset.
-  But most seaborn functions can also consume and visualize “wide-form” data, typically producing similar output to how the analogous matplot lib function would interpret a 2D array (e.g.,
+  But most seaborn functions can also consume and visualize “wide-form” data, typically producing similar output to how the analogous matplot lib function would interpret a 2D array (for example,
   producing a boxplot where each box represents a column in the dataframe) while making use of the index and column names to label the graph.
   Using the label information in a pandas object can help make plots that are interpretable without further tweaking – reducing the chance of interpretive errors – but seaborn also accepts data from a variety of more basic formats, including numpy arrays and simple Python collection types.
   
