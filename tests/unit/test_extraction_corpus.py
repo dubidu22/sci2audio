@@ -4,8 +4,12 @@ Extraction decides nothing, so the truth files (#16) are checked only for what m
 *recorded*: the page count, the title, every verbatim sentence and every piece of furniture on
 its page. Order, headings and furniture removal are checked in the layout tests.
 
-The golden files show each line's text and style, page by page. Accept a wanted change with
-`uv run pytest --snapshot-update` and explain the diff in the PR.
+The outline (PDF bookmarks, #24) is checked entry by entry as stored, and against the truth
+headings: every entry names a truth heading once its printed number is taken off, except the
+entries listed in `NOT_TRUTH_HEADINGS` with their reason (D-269).
+
+The golden files show the outline, then each line's text and style, page by page. Accept a
+wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
 
 A font the PDF doesn't embed (the arXiv stamp's Times-Roman) is drawn with a substitute font
 that differs between Linux, macOS and Windows, and so do the boxes of its text; the golden files
@@ -23,7 +27,7 @@ import pypdfium2.raw as raw
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from sci2audio.core import Content, Page, TextLine
+from sci2audio.core import Content, OutlineEntry, Page, TextLine
 from sci2audio.extraction import extract_pdf
 
 pytestmark = pytest.mark.timeout(120)
@@ -31,6 +35,56 @@ pytestmark = pytest.mark.timeout(120)
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 PAPERS = sorted((CORPUS / "papers").glob("*.pdf"))
 IDS = [paper.stem for paper in PAPERS]
+
+
+# Each corpus paper's bookmarks as stored (titles with their spaces, level, page), matched
+# against the truth headings by the test below. The ACL papers have none.
+OUTLINES: dict[str, tuple[OutlineEntry, ...]] = {
+    "acl2023-chi-plue": (),
+    "acl2023-hardt-ellipsis": (),
+    "acl2023-nowak-prefix-probabilities": (),
+    "arxiv2024-arsiwalla-qualia-meaning": (
+        OutlineEntry("Introduction", 1, 2),
+        OutlineEntry("Subjective Meaning in Phenomenology of Experience", 1, 4),
+        OutlineEntry("Do Raw Feels Have Subjective Meaning? ", 1, 9),
+        OutlineEntry("The Formal Structure of Meaning", 1, 11),
+        OutlineEntry("Discussion ", 1, 18),
+    ),
+    "arxiv2024-liu-orbital-hall": (
+        OutlineEntry(
+            "Dominance of extrinsic scattering mechanisms in the orbital Hall effect: graphene,"
+            " transition metal dichalcogenides and topological antiferromagnets",
+            1,
+            1,
+        ),
+        OutlineEntry("Abstract", 2, 1),
+        OutlineEntry("References", 2, 4),
+    ),
+    "joss2021-waskom-seaborn": (
+        OutlineEntry("Summary", 1, 1),
+        OutlineEntry("Statement of need", 1, 1),
+        OutlineEntry("Example", 1, 1),
+        OutlineEntry("Overview", 1, 2),
+        OutlineEntry("Acknowledgements", 1, 4),
+        OutlineEntry("References", 1, 4),
+    ),
+    "joss2022-biggs-pymedphys": (
+        OutlineEntry("Summary", 1, 1),
+        OutlineEntry("Statement of need", 1, 1),
+        OutlineEntry("Acknowledgements", 1, 2),
+        OutlineEntry("References", 1, 2),
+    ),
+}
+# Outline entries that are not truth headings, with the reason (D-269). The liu paper is set in
+# PRL style: its truth has no headings at all.
+NOT_TRUTH_HEADINGS = {
+    # the paper's title, as the single top entry over the rest (a "title root")
+    ("arxiv2024-liu-orbital-hall", 1): "title",
+    # bookmarks for headings the page does not print
+    ("arxiv2024-liu-orbital-hall", 2): "not printed",
+    ("arxiv2024-liu-orbital-hall", 3): "not printed",
+}
+PRINTED_NUMBER = re.compile(r"^(?:\d+|[A-Z])(?:\.\d+)* ")  # "2.1 ", "A ": at the start only
 
 
 @cache
@@ -94,6 +148,44 @@ def test_every_word_of_the_verbatim_sentences_is_recorded(paper: Path) -> None:
     assert missing == []
 
 
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_outline_is_recorded_as_stored(paper: Path) -> None:
+    assert content(paper).outline == OUTLINES[paper.stem]
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_each_outline_entry_names_a_truth_heading(paper: Path) -> None:
+    """Allowing for the printed number the outline leaves out, and white space; the entries
+    that are not headings are named with their reason."""
+    headings = [
+        " ".join(PRINTED_NUMBER.sub("", heading["text"], count=1).split())
+        for heading in truth(paper)["headings"]
+    ]
+    unmatched = [
+        (k, entry.title)
+        for k, entry in enumerate(content(paper).outline, 1)
+        if " ".join(entry.title.split()) not in headings
+    ]
+    assert unmatched == [
+        (k, entry.title)
+        for k, entry in enumerate(content(paper).outline, 1)
+        if (paper.stem, k) in NOT_TRUTH_HEADINGS
+    ]
+
+
+def test_a_printed_number_is_taken_off_the_front_only() -> None:
+    """Review of #133: nothing in the middle of a heading looks like a number to strip."""
+    assert PRINTED_NUMBER.sub("", "2.1 Setup", count=1) == "Setup"
+    assert PRINTED_NUMBER.sub("", "A Proofs", count=1) == "Proofs"
+    checklist = "ACL 2023 Responsible NLP Checklist"
+    assert PRINTED_NUMBER.sub("", checklist, count=1) == checklist
+
+
+def test_outlines_named_here_are_the_corpus_papers() -> None:
+    assert sorted(OUTLINES) == IDS
+    assert all(stem in IDS for stem, _ in NOT_TRUTH_HEADINGS)
+
+
 def _split_across_lines(word: str, lines: list[TextLine]) -> bool:
     """A word hyphenated at the end of one line or page and finished on another."""
     ends = [letters(line.text) for line in lines]
@@ -141,10 +233,15 @@ def not_embedded(paper: Path) -> frozenset[str]:
 
 
 def describe(content: Content, not_embedded: frozenset[str] = frozenset()) -> str:
-    """Each line with its box and the style of each run; pictures with boxes; drawings counted."""
+    """The outline entries; each line with its box and the style of each run; pictures with
+    boxes; drawings counted."""
     meta = content.metadata
     out = [f"{content.source.name}  sha256 {content.source.sha256[:16]}"]
     out.append(f"metadata: title={meta.title!r} authors={list(meta.authors)} date={meta.date!r}")
+    out.extend(
+        f"outline: level {entry.level}  page {entry.page}  {entry.title!r}"
+        for entry in content.outline
+    )
     for page in content.pages:
         out.append(
             f"== page {page.number}  {page.width:.0f} x {page.height:.0f}  "
