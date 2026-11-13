@@ -92,6 +92,15 @@ def test_a_missing_file_gives_the_defaults_without_a_warning(tmp_path: Path) -> 
     assert load_settings(tmp_path / "none.json") == (JobSettings(), [])
 
 
+def test_a_file_without_the_switches_starts_from_the_default_ones(tmp_path: Path) -> None:
+    file = tmp_path / "settings.json"
+    file.write_text('{"version": 1, "voice": "af_heart"}', encoding="utf-8")
+    settings, warnings = load_settings(file)
+    assert (settings.switched_off, warnings) == (DEFAULT_SWITCHED_OFF, [])  # D-142
+    file.write_text('{"version": 1, "switched_off": []}', encoding="utf-8")
+    assert load_settings(file)[0].switched_off == frozenset()  # every category on, as chosen
+
+
 @pytest.mark.parametrize(
     ("text", "warning"),
     [
