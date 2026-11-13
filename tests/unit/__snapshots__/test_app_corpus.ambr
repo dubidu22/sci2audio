@@ -3808,89 +3808,89 @@
   ## Characters and hyphenation (84)
   
   - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “´” → left out. Reason: accent mark "´" without its letter not read. Step: unicode-clean-up.
-  - page 1 (printed 39), chapter 2, applied: “-” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 2, applied: “-” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "running" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "identifying". Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "counterpart" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "running" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "discourse" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "consists". Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "non-elliptical" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "occurrences" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "probing" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "perspectives". Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "paper" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 4, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "various". Step: line-end-hyphens.
-  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "demonstrators" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "sophisticated". Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "reasoning" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "system" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "using" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "coreference" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, set aside: the remove edit of step citations (page 2 (printed 40)) won: “-” → left out. Reason: word split at a line end joined: "Spenader" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "reference" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "phenomena" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "another" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "complete" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "question" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "discourse" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "temporal". Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "Interpreting". Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "integrating". Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "tables". Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "Furthermore" (the document prints it so). Step: line-end-hyphens.
-  - page 2 (printed 40), chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "Separate" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "occur" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "produce". Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "presented". Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "models" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "accessed" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 7, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "otherwise" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "accuracy" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "version" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 7, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-003" (next to a digit or mark). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 7, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "Actions" (the document prints it so). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 8, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-003," (next to a digit or mark). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 8, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-002" (next to a digit or mark). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 8, applied: “-” → left out. Reason: word split at a line end joined: "subordinate" (the document prints it so). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 8, applied: “-” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 8, applied: “-” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 8, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-002" (next to a digit or mark). Step: line-end-hyphens.
-  - page 4 (printed 42), chapter 8, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "suggests". Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "sophisticated". Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 9, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "Positives" (the document prints it so). Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "Incorrect" (the document prints it so). Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 10, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 10, applied: “-” → left out. Reason: word split at a line end joined: "powerful" (the document prints it so). Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 10, applied: “-” → left out. Reason: word split at a line end joined: "restricted" (the document prints it so). Step: line-end-hyphens.
-  - page 5 (printed 43), chapter 11, set aside: the remove edit of step reference-list (page 5 (printed 43)) won: “” → left out. Reason: hyphen at a line end kept, read as one word: "2023-01-10." (next to a digit or mark). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "question" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "Association" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "requiring". Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "using" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "Empirical". Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "Student" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "Thirteenth". Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "contentaddressable". Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "comprehension" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 12, applied: “-” → left out. Reason: word split at a line end joined: "swimming" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 12, applied: “-” → left out. Reason: word split at a line end joined: "swimming" (the document prints it so). Step: line-end-hyphens.
-  - page 6 (printed 44), chapter 12, applied: “-” → left out. Reason: word split at a line end joined: "shopping" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "running" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "identifying". Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "counterpart" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "running" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "discourse" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "consists". Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "non-elliptical" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "occurrences" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "probing" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "perspectives". Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "paper" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "various". Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "demonstrators" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "sophisticated". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "reasoning" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "system" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "using" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "coreference" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, set aside: the remove edit of step citations (page 2 (printed 40)) won: “-↵” → left out. Reason: word split at a line end joined: "Spenader" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "reference" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "phenomena" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "another" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "complete" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "question" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "discourse" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "temporal". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "Interpreting". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "integrating". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "tables". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "Furthermore" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "Separate" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "occur" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "produce". Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "presented". Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "models" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "accessed" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "otherwise" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "accuracy" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "version" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-003" (next to a digit or mark). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 7, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Actions" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-003," (next to a digit or mark). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-002" (next to a digit or mark). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “-↵” → left out. Reason: word split at a line end joined: "subordinate" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “-↵” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “-↵” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-002" (next to a digit or mark). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-↵” → left out. Reason: word split at a line end joined: "suggests". Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-↵” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-↵” → left out. Reason: word split at a line end joined: "sophisticated". Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-↵” → left out. Reason: word split at a line end joined: "Positives" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-↵” → left out. Reason: word split at a line end joined: "Incorrect" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 10, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 10, applied: “-↵” → left out. Reason: word split at a line end joined: "powerful" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 10, applied: “-↵” → left out. Reason: word split at a line end joined: "restricted" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 11, set aside: the remove edit of step reference-list (page 5 (printed 43)) won: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "2023-01-10." (next to a digit or mark). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "question" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "Association" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "requiring". Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "using" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "Empirical". Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "Student" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "Thirteenth". Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "contentaddressable". Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "comprehension" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “-↵” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 12, applied: “-↵” → left out. Reason: word split at a line end joined: "swimming" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 12, applied: “-↵” → left out. Reason: word split at a line end joined: "swimming" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 12, applied: “-↵” → left out. Reason: word split at a line end joined: "shopping" (the document prints it so). Step: line-end-hyphens.
   
   ## Footnotes (3)
   
@@ -5693,17 +5693,17 @@
   
   ## Characters and hyphenation (11)
   
-  - page 2, chapter 5, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Figure-level" (the document prints it so). Step: line-end-hyphens.
-  - page 3, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "semantic" (the document prints it so). Step: line-end-hyphens.
-  - page 3, chapter 5, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "long-form" (the document prints it so). Step: line-end-hyphens.
-  - page 3, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "appearance" (the document prints it so). Step: line-end-hyphens.
-  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "customization" (the document prints it so). Step: line-end-hyphens.
-  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "passedthrough". Step: line-end-hyphens.
-  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "systems". Step: line-end-hyphens.
-  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "formal". Step: line-end-hyphens.
-  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "opinionated" (the document prints it so). Step: line-end-hyphens.
-  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "example" (the document prints it so). Step: line-end-hyphens.
-  - page 4, chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "contributing". Step: line-end-hyphens.
+  - page 2, chapter 5, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Figure-level" (the document prints it so). Step: line-end-hyphens.
+  - page 3, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "semantic" (the document prints it so). Step: line-end-hyphens.
+  - page 3, chapter 5, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "long-form" (the document prints it so). Step: line-end-hyphens.
+  - page 3, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "appearance" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "customization" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "passedthrough". Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "systems". Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "formal". Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "opinionated" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "example" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "contributing". Step: line-end-hyphens.
   
   ## Citations (8)
   
@@ -5757,7 +5757,7 @@
   - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "357–362" read with "to". Step: numbers.
   - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "90–95" read with "to". Step: numbers.
   - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "51–56" read with "to". Step: numbers.
-  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "2030– 2035" read with "to". Step: numbers.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–↵” → read as “to”. Reason: range "2030– 2035" read with "to". Step: numbers.
   - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "1–23" read with "to". Step: numbers.
   
   '''
