@@ -850,3 +850,14 @@ def test_a_folder_that_keeps_filling_up_is_not_reported_as_removed(
     assert response.json()["message"] == (
         f"could not remove {folder / 'late.txt'}: it was written during the removal"
     )
+
+
+def test_the_openapi_document_never_says_internal_server_error(tmp_path: Path) -> None:
+    """Review round 3, M4: the ZAP baseline scan reads the phrase in /openapi.json as an
+    error disclosure (90022, 10023); the removal's 500 answer has its own words."""
+    _app, client, _config = server(tmp_path)
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    assert "Internal Server Error" not in response.text
+    answers = response.json()["paths"]["/api/v1/documents/{document_id}"]["delete"]["responses"]
+    assert answers["500"]["description"] == api.DESCRIPTIONS[500]

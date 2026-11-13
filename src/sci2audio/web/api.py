@@ -46,10 +46,21 @@ MEDIA_TYPES = {
 }
 
 
+# Our own words for answers whose standard phrase reads like a leaked server error: the
+# OpenAPI document must never say "Internal Server Error" (the ZAP baseline scan flags it
+# as error disclosure, alerts 90022 and 10023; #120 review round 3)
+DESCRIPTIONS = {500: "sci2audio could not finish; the message says what is left to do"}
+
+
 def _errors(*codes: int) -> dict[int | str, dict[str, Any]]:
     """The error answers of a route, for the OpenAPI document; every route can answer 400
     (a body or path that can't be read) and 422 (one that doesn't fit)."""
-    return {code: {"model": models.ErrorOut} for code in sorted({*codes, 400, 422})}
+    answers: dict[int | str, dict[str, Any]] = {}
+    for code in sorted({*codes, 400, 422}):
+        answers[code] = {"model": models.ErrorOut}
+        if code in DESCRIPTIONS:
+            answers[code]["description"] = DESCRIPTIONS[code]
+    return answers
 
 
 BODY = (411, 413)  # from the size limit (limits.py)
