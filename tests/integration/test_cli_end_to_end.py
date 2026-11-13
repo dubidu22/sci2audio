@@ -173,8 +173,9 @@ def test_convert_reads_an_epub_and_keeps_its_cover(tmp_path: Path) -> None:
     assert converted.returncode == 0, converted.stderr
     assert "Traceback" not in converted.stderr
     spoke, total, reused = spoken_and_reused(converted.stdout)
-    assert spoke == total > 0
-    assert reused == 0
+    assert spoke + reused == total
+    assert spoke > 0
+    assert reused == 1  # "A figure is skipped." twice: spoken once, then reused (D-155)
     (m4b,) = out.glob("*.m4b")
     with zipfile.ZipFile(TIME_MACHINE) as whole:
         assert (work / "cover.jpg").read_bytes() == whole.read("epub/images/cover.jpg")
