@@ -643,8 +643,8 @@
   183  p9  paragraph  [p9-l53..p9-l54 (2)]  We now discuss how complete semirings can be lifted to square matrices. The definitions follow\nanalogously to matrices over the real numbers.
   184  p9  paragraph  [p9-l55..p9-l57 (3)]  Definition 13. We define semiring matrix addition as follows. Let A and B be d × d matrices whose\nentries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the sum ("+") of A and B is\ndefined as:
   185  p9  formula (24)  [p9-l58..p9-l61 (4)]  (A + B)ij def= Aij ⊕ Bij i, j ∈ 1, . . . , d (24)
-  186  p10  paragraph  [p10-l1..p10-l3 (3)]  Definition 14. We define semiring matrix multiplication as follows. Let A and B be d × d matrices\nwhose entries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the product of A and B\nis defined as:
-  187  p9  furniture/page-number  [p9-l62]  65
+  186  p9  furniture/page-number  [p9-l62]  65
+  187  p10  paragraph  [p10-l1..p10-l3 (3)]  Definition 14. We define semiring matrix multiplication as follows. Let A and B be d × d matrices\nwhose entries are elements from a complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩. Then the product of A and B\nis defined as:
   188  p10  formula (25)  [p10-l6..p10-l7 (7)]  d\n(AB)ij def= M Aik ⊗ Bkj i, j ∈ 1, . . . , d (25)\nk=1
   189  p10  paragraph  [p10-l11..p10-l16 (6)]  We also define the zero matrix, O, over the complete semiring W = ⟨A, ⊕, ⊗, 0, 1⟩, such that all\nentries are 0, and the unit matrix I as (I)ij = 1 iff i = j and 0 otherwise for all indices i, j ∈ 0, . . . , d.\nIt is then straightforward to show that matrix addition is associative and commutative, while matrix\nmultiplication is associative and distributive over matrix addition. Hence, the set of square matrices\nof dimension d over a semiring, with addition and multiplication as defined above, is itself a semiring.\nFurthermore, by the element-wise definition of its addition operation, it is also complete.
   190  p10  heading (B.2)  [p10-l17..p10-l18 (2)]  B.2 Semiring-weighted prefix algorithm

@@ -67,6 +67,7 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     named = set(links.named.values())
     blocks = find_formulas(blocks, content, columns, named, layout.size, settings)
     blocks = find_lists(blocks, content)
+    blocks = _in_page_order(blocks, content)
     blocks, sections = find_headings(blocks, content, layout.size, settings)
     blocks = link_captions(blocks, links)
     language = settings.language or content.metadata.language or "en"
@@ -94,6 +95,28 @@ def columns_per_page(content: Content, settings: LayoutSettings | None = None) -
         2 if count == 1 and layout.in_one_half(page) else count
         for count, page in zip(found, content.pages, strict=True)
     ]
+
+
+def _in_page_order(blocks: list[Block], content: Content) -> list[Block]:
+    """The blocks with each one read after a block from a later page moved back to just
+    after the nearest earlier block from its page or before (D-434, #196).
+
+    What met a paragraph while it was open waits until it ends (`paragraphs`), even when
+    the paragraph runs on to the next page. A later step may cut that paragraph again (a
+    formula, a list): the waiting blocks then follow the piece that starts on their page,
+    not the piece from the next page. Blocks already in page order stay where they are.
+    """
+    items = content.items()
+    out: list[tuple[int, Block]] = []
+    for block in blocks:
+        # a block without items has nothing to place it by: it stays where it is read
+        last = out[-1][0] if out else 1
+        page = items[block.parts[0].item][0].number if block.parts else last
+        k = len(out)
+        while k and out[k - 1][0] > page:
+            k -= 1
+        out.insert(k, (page, block))
+    return [block for _, block in out]
 
 
 class _Layout:
