@@ -2,7 +2,8 @@
 
 `JobBoard` keeps the jobs of one server run (D-200): a second start while one runs is
 refused with `BoardBusyError`, whatever its kind (script, audio, voice download). Each
-job has an id `<document id>-<kind>-<n>` (`voices-<n>` for the voice download), a state,
+job has an id `<document id>-<kind>-<n>` (`voices-<n>` for the voice download, `preview-<n>`
+for a voice preview), a state,
 its latest progress and, when it ends, its error or the files it wrote. What lasts beyond
 the server run is on disk (the job records, the report, the audiobook).
 
@@ -29,6 +30,7 @@ class JobKind(StrEnum):
     SCRIPT = "script"
     AUDIO = "audio"
     VOICES = "voices"
+    PREVIEW = "preview"  # a voice preview (D-249)
 
 
 class JobState(StrEnum):

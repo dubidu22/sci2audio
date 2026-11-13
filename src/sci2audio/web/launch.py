@@ -85,6 +85,7 @@ def serve(
     finally:
         state.stopping.set()
         state.board.shutdown(SHUTDOWN_WAIT)
+        state.kept.dispose()
     say("sci2audio has stopped.")
 
 

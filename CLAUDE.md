@@ -33,7 +33,7 @@ Keep a later web version possible: no global state (each job gets its settings a
 1. One Issue → one branch → one PR, in one lane (`.github/lanes.yml`). Stop if the Issue lacks acceptance criteria.
 2. Plan first: post a plan in the thread (modules or types, design choices, tests, rough size) before any code or tests. Non-critical work whose plan is clearly better than the alternatives starts at once; critical work, or a plan with a real open choice, waits for approval: the coordinator's until v1.0 (D-80), Colin's after that (D-72).
 3. Tests first: a failing test for a bug; a characterisation test before moving or splitting code; a regression case before any text rule change.
-4. Run before opening the PR: `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow and not benchmark"`.
+4. Run before opening the PR: `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow and not benchmark and not browser"`; for a change to the interface also `uv run pytest -m browser`.
 5. A PR that adds the first code of a kind also adds its tests and CI wiring (table in `.claude/rules/tests.md`, D-58).
 6. PR title `<area>: <outcome> (#N)`; body with `Closes #N`, feature ID (e.g. `WI-02`), test summary, licence note, risk, and out-of-scope follow-ups.
 7. No fixed size limit for PRs. Split a PR only when it splits naturally into parts that can be reviewed and merged on their own.
@@ -49,7 +49,9 @@ Also `risk:high`, and so critical: licences and third-party content; anything th
 
 ```bash
 uv sync                        # set up
-uv run pytest -m "not slow and not benchmark"   # fast tests (as in CI)
+uv run pytest -m "not slow and not benchmark and not browser"   # fast tests (as in CI)
+uv run playwright install chromium  # once: the browser for the browser tests
+uv run pytest -m browser       # the interface in Chromium (main flow, keyboard, axe-core)
 uv run pytest                  # all tests
 uv run pytest --snapshot-update  # accept changed golden files (review the diff)
 uv run zizmor --offline .github/workflows  # workflow security

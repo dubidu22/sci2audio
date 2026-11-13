@@ -1,48 +1,40 @@
 {% extends "base.html" %}
 {% block main %}
-<h1>Open a document</h1>
-<form id="open-file" data-api="/api/v1/documents">
-  <label for="file">File ({{ suffixes }})</label>
-  <input id="file" name="file" type="file" required>
-  <button type="submit">Open</button>
+<h1>{{ t('home.title') }}</h1>
+<p>{{ t('home.intro') }}</p>
+<form id="open-file" class="stack" data-api="/api/v1/documents">
+  <label for="file">{{ t('home.file_label') }}</label>
+  <p class="hint" id="file-hint">{{ t('home.file_hint', types=types, limit=limit) }}</p>
+  <input id="file" name="file" type="file" accept="{{ accept }}" aria-describedby="file-hint" required>
+  <p><button type="submit">{{ t('home.open') }}</button></p>
 </form>
-<form id="open-text" data-api="/api/v1/documents/text">
-  <label for="text">Or paste text</label>
+{% if paste %}
+<form id="open-text" class="stack" data-api="/api/v1/documents/text">
+  <label for="text">{{ t('home.text_label') }}</label>
   <textarea id="text" name="text" rows="6" required></textarea>
-  <label for="text-name">Name</label>
-  <input id="text-name" name="name" value="pasted text">
-  <button type="submit">Open the text</button>
+  <label for="text-name">{{ t('home.text_name') }}</label>
+  <input id="text-name" name="name" value="{{ t('home.text_name_default') }}">
+  <p><button type="submit">{{ t('home.open_text') }}</button></p>
 </form>
-<p id="message" role="status"></p>
+{% endif %}
+<p id="message" class="message" role="status" tabindex="-1"></p>
 
-<h2>Documents</h2>
+<h2>{{ t('home.documents') }}</h2>
 {% if documents %}
-<ul>
+<ul class="documents">
   {% for document in documents %}
-  <li><a href="/documents/{{ document.id }}">{{ document.name }}</a> <code>{{ document.id }}</code></li>
+  <li><a href="/documents/{{ document.id }}">{{ document.name }}</a>
+    <span class="hint">({{ t('home.analysed') if document.report_file.is_file() else t('home.not_analysed') }}{% if document.has_audio %}, {{ t('home.audio_made') }}{% endif %})</span></li>
   {% endfor %}
 </ul>
 {% else %}
-<p>No document opened yet.</p>
+<p>{{ t('home.no_documents') }}</p>
 {% endif %}
 
-<h2>Voice</h2>
+<h2>{{ t('home.voice') }}</h2>
 {% if voice_installed %}
-<p>The voice is installed.</p>
+<p>{{ t('home.voice_installed') }}</p>
 {% else %}
-<p>The voice is not installed yet.</p>
-<div id="voice-download" hidden>
-  <p id="voice-plan"></p>
-  <button type="button" id="voice-consent">I agree: download the voice files</button>
-</div>
-{% endif %}
-
-{% if jobs %}
-<h2>Jobs of this run</h2>
-<ul>
-  {% for job in jobs %}
-  <li><a href="/jobs/{{ job.id }}">{{ job.id }}</a>: {{ job.state }}</li>
-  {% endfor %}
-</ul>
+<p>{{ t('home.voice_missing') }} <a href="/voice">{{ t('home.voice_setup') }}</a></p>
 {% endif %}
 {% endblock %}

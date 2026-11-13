@@ -1,17 +1,65 @@
 {% extends "base.html" %}
-{% block title %}{{ job.id }} · sci2audio{% endblock %}
+{% block title %}{{ job.title }} · {{ t('common.app') }}{% endblock %}
 {% block main %}
-<h1>Job <code>{{ job.id }}</code></h1>
-<div id="job" data-events="/api/v1/jobs/{{ job.id }}/events" data-cancel="/api/v1/jobs/{{ job.id }}/cancel">
-  <p>State: <strong id="job-state">{{ job.state }}</strong></p>
-  <p id="job-progress" role="status" aria-live="polite"></p>
-  <p id="job-error">{% if job.error %}{{ job.error.message }}{% endif %}</p>
-  {% if job.cancellable %}<button type="button" id="job-cancel">Cancel</button>{% endif %}
-  <ul id="job-files">
-    {% for file in job.files %}
-    <li><a href="/api/v1/jobs/{{ job.id }}/files/{{ file.name | urlencode }}">{{ file.name }}</a></li>
-    {% endfor %}
-  </ul>
-  {% if job.document %}<p><a href="/documents/{{ job.document }}">Back to the document</a></p>{% endif %}
+<h1 id="job-title" tabindex="-1">{{ job.title }}</h1>
+<div id="job" data-id="{{ job.id }}" data-kind="{{ job.kind }}" data-state="{{ job.state }}"
+     data-document="{{ job.document or '' }}" data-settings="{{ job.settings | tojson | forceescape }}"
+     data-events="/api/v1/jobs/{{ job.id }}/events" data-cancel="/api/v1/jobs/{{ job.id }}/cancel">
+<p>{{ t('job.state') }}: <strong id="job-state">{{ t('job.state_' + job.state) }}</strong></p>
+
+{% if job.state == 'running' %}
+<h2 id="progress-heading">{{ t('job.progress') }}</h2>
+<progress id="job-bar" max="100" aria-labelledby="progress-heading" aria-describedby="job-progress"></progress>
+<p id="job-progress"></p>
+<p id="job-status" class="visually-hidden" role="status"></p>
+{% if job.cancellable %}<p class="buttons"><button type="button" id="job-cancel">{{ t('job.cancel') }}</button></p>{% endif %}
+{% endif %}
+<p id="message" class="message" role="status" tabindex="-1"></p>
+
+{% if job.state == 'done' and job.kind == 'audio' %}
+<h2 id="result" tabindex="-1">{{ t('job.done_title') }}</h2>
+{% if job.progress and job.progress.reused %}<p>{{ t('job.reused', n=job.progress.reused) }}</p>{% endif %}
+<h3>{{ t('job.files') }}</h3>
+<ul class="files">
+  {% for file in job.files %}
+  <li><a href="/api/v1/jobs/{{ job.id }}/files/{{ file.name | urlencode }}?download=true">{{ t('job.download', name=file.name, size=size_text(file.size)) }}</a></li>
+  {% endfor %}
+</ul>
+{% if folder %}<p>{{ t('job.folder', folder=folder) }}</p>{% endif %}
+{% if skipped %}
+<p>{{ t('job.skipped') }}</p>
+<ul>{% for item in skipped %}<li>{{ t('job.skipped_line', chapter=item.chapter + 1, page=item.printed_page or item.page or '?', text=item.text) }}</li>{% endfor %}</ul>
+{% endif %}
+{% endif %}
+
+{% if job.state == 'done' and job.kind == 'preview' %}
+<h2 id="result" tabindex="-1">{{ t('js.preview_ready') }}</h2>
+{% for file in job.files %}<audio controls src="/api/v1/jobs/{{ job.id }}/files/{{ file.name | urlencode }}" aria-label="{{ t('voice.preview_player') }}"></audio>{% endfor %}
+{% endif %}
+
+{% if job.state == 'done' and job.kind == 'voices' %}
+<h2 id="result" tabindex="-1">{{ t('setup.installed') }}</h2>
+{% endif %}
+
+{% if job.state == 'failed' %}
+<h2 id="result" tabindex="-1">{{ t('job.failed', message=job.error.message) }}</h2>
+{% if job.error.error == 'output-exists' and job.kind == 'audio' %}
+<p>{{ t('job.exists') }}</p>
+<p class="buttons"><button type="button" id="job-replace">{{ t('job.replace') }}</button></p>
+{% endif %}
+{% endif %}
+{% if job.state == 'cancelled' %}
+<h2 id="result" tabindex="-1">{{ t('job.cancelled') }}</h2>
+{% endif %}
+{% if job.kind == 'audio' and job.state in ('failed', 'cancelled') and not (job.error and job.error.error == 'output-exists') %}
+<p class="buttons"><button type="button" id="job-again">{{ t('job.again') }}</button></p>
+{% endif %}
+
+{% if job.kind == 'audio' and job.state != 'running' and document %}
+<p id="cache-text">{% if cache_bytes %}{{ t('job.cache', size=size_text(cache_bytes)) }}{% else %}{{ t('job.cache_freed') }}{% endif %}</p>
+{% if cache_bytes %}<p class="buttons"><button type="button" id="cache-free">{{ t('job.cache_free') }}</button></p>{% endif %}
+{% endif %}
+
+{% if document %}<p><a href="/documents/{{ document.id }}">{{ t('job.back') }}</a></p>{% endif %}
 </div>
 {% endblock %}

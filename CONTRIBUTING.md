@@ -16,7 +16,9 @@ uv sync
 uv run ruff check && uv run ruff format --check
 uv run lint-imports
 uv run deptry src
-uv run pytest -m "not slow and not benchmark"
+uv run pytest -m "not slow and not benchmark and not browser"
+uv run playwright install chromium   # once, for the browser tests
+uv run pytest -m browser
 ```
 
 Which tests a change needs is described in `.claude/rules/tests.md` (it applies to people too). Before a release, follow `docs/release-checklist.md`.

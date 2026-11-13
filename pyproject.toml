@@ -51,6 +51,7 @@ sci2audio = "sci2audio.cli:main"
 
 [dependency-groups]
 dev = [
+    "axe-playwright-python>=0.1.8,<1",
     "deptry>=0.25",
     "httpx>=0.28.1,<1",
     "hypothesis>=6.170.15",
@@ -58,9 +59,11 @@ dev = [
     "mutmut>=3.8.1",
     "pip-audit>=2.10.1",
     "pip-licenses>=5.5",
+    "playwright>=1.65.1,<2",
     "pre-commit>=4.0",
     "pytest>=9.0",
     "pytest-benchmark>=5.3.1",
+    "pytest-playwright>=0.10.0,<1",
     "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.6",
     "ruff>=0.17",
@@ -114,11 +117,13 @@ addopts = ["-ra", "--strict-markers"]
 markers = [
     "slow: needs models, audio or the full sample corpus; runs nightly, not on every PR",
     "benchmark: speed measurement with pytest-benchmark; runs nightly",
+    "browser: drives the interface in a real browser (Playwright, tests/browser); own CI job",
 ]
 
 [tool.mutmut]
 source_paths = ["src/sci2audio/"]
 pytest_add_cli_args_test_selection = ["tests/"]
+pytest_add_cli_args = ["-m", "not browser"]  # needs a Playwright browser (D-259)
 
 [tool.deptry]
 known_first_party = ["sci2audio"]
