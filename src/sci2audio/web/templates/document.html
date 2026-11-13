@@ -109,7 +109,7 @@
   <select id="voice" name="voice" aria-describedby="voice-licence">
     {% for option in voices %}<option value="{{ option.id }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
   </select>
-  <p class="hint" id="voice-licence">{{ t('voice.licence', licences=licences) }}</p>
+  <p class="hint" id="voice-licence">{{ t('voice.licence') }} <span lang="en">{{ licences }}</span></p>
   <label for="speed">{{ t('voice.speed') }}</label>
   <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
   <output id="speed-value" for="speed" aria-hidden="true">{{ speed_text }}</output></p>

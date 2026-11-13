@@ -31,6 +31,7 @@ from urllib.parse import parse_qs
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from sci2audio.web.config import ServerConfig
+from sci2audio.web.i18n import COOKIE, language_from, strings
 
 SAFE_METHODS = frozenset({"GET", "HEAD"})
 FETCH_SITES = frozenset({"same-origin", "none"})
@@ -142,7 +143,7 @@ class LocalOnly:
             if method not in SAFE_METHODS and origin is None:
                 return _error(403, "wrong-origin", "requests from other pages are refused")
             return None
-        return _unauthorised(path)
+        return _unauthorised(path, headers)
 
     def _start(self, scope: Scope, method: str) -> ASGIApp:
         if method not in SAFE_METHODS:
@@ -150,7 +151,7 @@ class LocalOnly:
         query = parse_qs(scope.get("query_string", b"").decode("latin-1"))
         tokens = query.get("token", [])
         if len(tokens) != 1 or not _same(tokens[0], self.config.token):
-            return _unauthorised("/start")
+            return _unauthorised("/start", _headers(scope))
         cookie = f"{self.config.cookie_name}={self.config.token}; HttpOnly; SameSite=Strict; Path=/"
         return _respond(
             303, b"", "text/plain; charset=utf-8", [("location", "/"), ("set-cookie", cookie)]
@@ -177,13 +178,17 @@ def _error(status: int, kind: str, message: str) -> ASGIApp:
     return _respond(status, body, "application/json")
 
 
-def _unauthorised(path: str) -> ASGIApp:
+def _unauthorised(path: str, headers: dict[str, list[str]]) -> ASGIApp:
+    """401: for programs the API's error in the app's words; for a browser a page in its
+    language (the switch's cookie, else `Accept-Language`; D-288), from the table."""
     message = "open the link sci2audio showed in the terminal when it started"
     if path.startswith("/api/") or path == "/openapi.json":
         return _error(401, "no-token", message)
+    s = strings(language_from(_cookies(headers, COOKIE), _one(headers, "accept-language")))
     page = (
-        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-        "<title>sci2audio</title></head><body><main><h1>sci2audio</h1>"
-        f"<p>{html.escape(message[0].upper() + message[1:])}.</p></main></body></html>"
+        f'<!doctype html><html lang="{s.language}"><head><meta charset="utf-8">'
+        f"<title>{html.escape(s('common.app'))}</title></head><body><main>"
+        f"<h1>{html.escape(s('common.app'))}</h1>"
+        f"<p>{html.escape(s('error.no-token'))}</p></main></body></html>"
     )
     return _respond(401, page.encode(), "text/html; charset=utf-8")

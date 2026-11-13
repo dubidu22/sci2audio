@@ -378,6 +378,47 @@ def test_the_language_cookie_grants_nothing(server_: tuple[FastAPI, Any]) -> Non
     assert config.cookie_name != COOKIE
 
 
+@pytest.mark.parametrize(
+    ("cookie", "accept", "language"),
+    [
+        (None, None, "en"),
+        ("de", None, "de"),
+        (None, "de-DE,de;q=0.9", "de"),
+        ("en", "de", "en"),
+        ("fr", "de", "de"),
+    ],
+)
+def test_the_page_without_the_start_cookie_is_in_the_readers_language(
+    server_: tuple[FastAPI, Any], cookie: str | None, accept: str | None, language: str
+) -> None:
+    """The 401 page someone sees before the start link is the only page outside the
+    templates; it follows the same choice of language (review of PR #142, S1)."""
+    app, _ = server_
+    client = anonymous(app)
+    if cookie is not None:
+        client.cookies.set(COOKIE, cookie)
+    headers = {"Accept-Language": accept} if accept else {}
+    for path in ("/", "/start?token=wrong", "/privacy"):
+        response = client.get(path, headers=headers)
+        assert response.status_code == 401, path
+        assert f'<html lang="{language}">' in response.text
+        table = load_table(language)
+        assert html.escape(table["error.no-token"]) in response.text
+        assert f"<title>{table['common.app']}</title>" in response.text
+    # what a program reads stays one machine-readable English answer
+    api = client.get("/api/v1/jobs", headers=headers)
+    assert api.status_code == 401
+    assert api.json()["error"] == "no-token"
+    assert "terminal" in api.json()["message"]
+
+
+def test_an_unknown_key_names_itself() -> None:
+    with pytest.raises(KeyError, match="nope"):
+        strings("en").t("nope")
+    with pytest.raises(KeyError, match="nope"):
+        strings("de").t("nope", n=2)
+
+
 def test_the_switch_is_on_every_page_and_marks_the_language(
     server_: tuple[FastAPI, Any],
 ) -> None:

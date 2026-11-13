@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 import tomllib
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import cache
 from importlib.resources import files
@@ -81,8 +81,10 @@ class Strings:
         A key with plural forms picks `one` or `other` by the value `n`.
         """
         text = self.table.get(key)
+        if text is None and "n" in values:
+            text = self.table.get(f"{key}.{plural_form(values['n'])}")
         if text is None:
-            text = self.table[f"{key}.{plural_form(values['n'])}"]
+            raise KeyError(key)
         return text.format(**values) if values else text
 
     def __call__(self, key: str, /, **values: Any) -> str:
@@ -144,12 +146,19 @@ def from_accept_language(header: str | None) -> str | None:
     return min(ranked)[2] if ranked else None
 
 
+def language_from(cookies: Iterable[str | None], accept_language: str | None) -> str:
+    """The page language from the switch cookie's values, else from the browser's
+    `Accept-Language`, else English (D-288)."""
+    for value in cookies:
+        chosen = known_language(value)
+        if chosen is not None:
+            return chosen
+    return from_accept_language(accept_language) or DEFAULT_LANGUAGE
+
+
 def language_of(request: Request) -> str:
-    """The page language: the switch's cookie, else the browser's, else English (D-288)."""
-    chosen = known_language(request.cookies.get(COOKIE))
-    if chosen is not None:
-        return chosen
-    return from_accept_language(request.headers.get("accept-language")) or DEFAULT_LANGUAGE
+    """The page language of a request (D-288)."""
+    return language_from([request.cookies.get(COOKIE)], request.headers.get("accept-language"))
 
 
 def strings_of(request: Request) -> Strings:
