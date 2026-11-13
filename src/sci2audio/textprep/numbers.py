@@ -90,7 +90,7 @@ _CARET = re.compile(
     r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)|(?P<bare>[+\u2212-]?\d+)))"
     r"(?![\w.])"
 )
-_TIMES_TEN = re.compile(r"\d\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,])")
+_TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,])")
 # not after a number and a space ("5 m²" is a unit, the units step's); a caret exponent before
 # the space is no such number, since the caret rule may turn it into a word ("x^2 x⁶")
 _LETTER_POWER = re.compile(
@@ -149,7 +149,8 @@ _ROMAN_RUN = re.compile(
     + _ROMAN
     + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:and|or|&)\s+)"
     + _ROMAN
-    + r")*)(?![\w⁺⁻])"  # "Phase II⁻⁴" is left as printed
+    # a power after it is the powers rule's: "Phase II⁻⁴", "Phase I²" (later "I squared")
+    + r")*)(?![\w⁺⁻]|\s+(?:squared|cubed|to the power of)\b)"
 )
 _ROMAN_PART = re.compile(r"(?P<numeral>" + _ROMAN + r")|(?P<sep>\s*[/\u2013-]\s*)")
 _VALID_ROMAN = re.compile(r"\A(?P<tens>X{0,3})(?P<units>IX|IV|V?I{0,3})\Z")
