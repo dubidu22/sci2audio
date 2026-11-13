@@ -221,6 +221,7 @@ def test_pathological_blocks_take_linear_time(text: str) -> None:
         ("on 2019-\u00ad\n03-12 and 3\u200b\u20135", "on 12 March 2019 and 3 to 5"),
         ("p <\u200b.05", "p less than .05"),
         ("x <\u00af 3 and 3 \u00b4\u2013 5", "x less than 3 and 3 to 5"),  # stray accents
+        ("00\u00b1\u00b8C", "00 plus or minus \u00c7"),  # an accent before its letter
     ],
 )
 def test_characters_not_read_do_not_hide_a_number(printed: str, said: str) -> None:

@@ -23,6 +23,7 @@ import bisect
 import re
 
 from sci2audio.core import Document, Edit
+from sci2audio.textprep.characters import ACCENTS
 from sci2audio.textprep.notation import (
     SKIPPED_KINDS,
     Candidate,
@@ -64,8 +65,10 @@ _QUANTITY_SIGNS = "∆∇∞"
 # signs the units step (#68) reads as words ("times", "approximately"), so they are words to
 # this step on a second run too
 _UNIT_SIGNS = "×≈~"
+# an accent printed apart before its letter is that letter once the Unicode step joins them
 _OPERAND = re.compile(
     r"[\w(\[{|√+\-−⟨" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + r"]|\.\d"
+    r"|[" + "".join(ACCENTS) + r"][^\W\d_]"
 )
 _LEFT_OF_EQUALS = re.compile(r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + re.escape(_SIGNS) + "]")
 _SPACE = re.compile(r"\s*")
