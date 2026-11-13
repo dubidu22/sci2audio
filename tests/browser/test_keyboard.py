@@ -9,7 +9,7 @@ import re
 from playwright.sync_api import Page, expect
 from test_flow import PDF
 
-from conftest import Live
+from conftest import Live, settled
 
 MAX_TABS = 80
 # WebKit tabs to links only with Alt held, as Safari does unless its setting is on
@@ -67,6 +67,7 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     press_on(page, "Open and analyse")
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
+    settled(page)
 
     # a switch, a chapter, then the update; the focus comes back to the step's heading
     press_on(page, "category-citations", "Space")
@@ -122,6 +123,7 @@ def test_tab_goes_round_every_page_without_a_trap(signed_in: Page, live: Live) -
     page.get_by_role("button", name="Open and analyse").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
+    settled(page)
     for path in (page.url, live.url + "/", live.url + "/voice"):
         page.goto(path)
         stops = []

@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "unit"))
 import uvicorn
 from audio_fakes import FakeVoice
 from axe_playwright_python.sync_playwright import Axe
-from playwright.sync_api import Page, Route
+from playwright.sync_api import Page, Route, expect
 from web_helpers import make_config, offline  # noqa: F401 - fixture
 
 from sci2audio.voices import download as download_module
@@ -186,6 +186,13 @@ def axe_problems(page: Page, where: str) -> list[str]:
             targets = [node.get("target") for node in violation.get("nodes", [])][:3]
             found.append(f"{where}: {violation['id']} ({violation.get('impact')}) {targets}")
     return found
+
+
+def settled(page: Page) -> None:
+    """Wait until the document page no longer follows the analysis. The report can be on
+    disk while the job is still the running one; a page drawn in that moment shows the
+    summary and still reloads itself when the job ends, under a test's key presses (#138)."""
+    expect(page.locator("#document[data-events]")).to_have_count(0)
 
 
 def check_axe(page: Page, where: str) -> None:
