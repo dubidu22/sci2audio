@@ -82,7 +82,9 @@ MAX_PAGES = 10_000
 MAX_PAGE_CHARS = 100_000
 MAX_CHARS = 10_000_000
 HEADER_ZONE = 1024  # a PDF's %PDF- header stands within its first 1,024 bytes (PDF 32000-1)
-_OBJECT = re.compile(rb"\d+\s+\d+\s+obj\b")  # "12 0 obj": the start of an object
+# "12 0 obj": the start of an object. Anchored at the start of a digit run and possessive, so
+# a long run of digits or white space costs one pass, not one per start (review M2 of #188).
+_OBJECT = re.compile(rb"(?<!\d)\d++\s++\d++\s++obj\b")
 # Permission bits of the /P entry (PDF 32000-1, table 22), counted from 1 as the standard does
 _COPY = 1 << 4  # bit 5: copy or extract text
 _ACCESSIBILITY = 1 << 9  # bit 10: extract text for accessibility (revision 3 on)
@@ -127,7 +129,7 @@ def read_pdf(data: bytes, name: str) -> Content:
 def _check(document: pdfium.PdfDocument, name: str, data: bytes) -> None:
     """Refuse, before reading any page, a file cut short (D-395), one whose owner forbids
     reading its text out (D-396), and one without pages or with too many (D-394)."""
-    if _cut_short(data):
+    if _cut_short(data, bool(raw.FPDF_DocumentHasValidCrossReferenceTable(document.raw))):
         raise ExtractionError(_CUT_SHORT.format(name=name))
     if _forbids_reading(document):
         raise ExtractionError(
@@ -144,17 +146,22 @@ def _check(document: pdfium.PdfDocument, name: str, data: bytes) -> None:
 _CUT_SHORT = "{name}: the PDF is cut short (an unfinished download?); download it again"
 
 
-def _cut_short(data: bytes) -> bool:
+def _cut_short(data: bytes, xref_valid: bool) -> bool:
     """True if the file starts like a PDF but its end is missing (D-395, as applied after
-    review round 1 of #188): it has no %%EOF at all, or object data follows its last one,
-    so the cut fell inside a later section (an incremental update, the rest of a linearized
-    file). PDFium reads such a file as far as it can, and the rest is lost without a word.
-    Bytes after a whole file's last %%EOF that hold no object (zeros, a web page) are no
-    cut. One search from the last %%EOF on; nothing walks the objects."""
+    review rounds 1 and 2 of #188): object data follows its last %%EOF, so the cut fell
+    inside a later section (an incremental update, the rest of a linearized file); or it
+    has no %%EOF at all and PDFium had to rebuild the cross-reference table or couldn't
+    open the file. PDFium reads a cut file as far as it can, and the rest is lost without
+    a word. A file without %%EOF whose table PDFium found valid ends where its startxref
+    says; at most the marker is missing. Bytes after a whole file's last %%EOF that hold no
+    object (zeros, a web page) are no cut. One search from the last %%EOF on, linear in
+    what follows it; nothing walks the objects."""
     if b"%PDF-" not in data[:HEADER_ZONE]:
         return False
     end = data.rfind(b"%%EOF")
-    return end < 0 or _OBJECT.search(data, end) is not None
+    if end < 0:
+        return not xref_valid
+    return _OBJECT.search(data, end) is not None
 
 
 def _forbids_reading(document: pdfium.PdfDocument) -> bool:
@@ -231,7 +238,7 @@ def _load_message(name: str, data: bytes, error: pdfium.PdfiumError) -> str:
             f"{name}: the PDF is protected by DRM or a certificate;"
             " sci2audio can read only PDFs without it"
         )
-    if _cut_short(data):  # D-395
+    if _cut_short(data, xref_valid=False):  # D-395
         return _CUT_SHORT.format(name=name)
     return f"{name}: not a PDF, or the file is damaged"
 

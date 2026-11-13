@@ -7,10 +7,12 @@ damaged files PDFium repairs, which must still be read. Every file is written by
 none is stored except the password-protected one.
 """
 
+import time
 from functools import cache
 from pathlib import Path
 
 import pypdfium2 as pdfium
+import pypdfium2.raw as raw
 import pytest
 from broken_pdfs import ALL, COPY, CUT_SHORT, REFUSED, Refused
 from hypothesis import given, settings
@@ -410,11 +412,64 @@ def test_a_corpus_paper_cut_inside_an_incremental_update_is_cut_short() -> None:
         read_pdf(updated[: len(original) + 50], paper.name)
 
 
-def test_a_file_without_any_eof_is_cut_short() -> None:
-    """Without a %%EOF PDFium doesn't trust the cross-reference table and rebuilds it, so a
-    whole file whose writer left %%EOF out can't be told from a cut one; both are refused."""
+@pytest.mark.parametrize("paper", PAPERS, ids=[paper.stem for paper in PAPERS])
+def test_a_paper_without_its_eof_marker_is_cut_short_only_if_pdfium_rebuilds_its_table(
+    paper: Path,
+) -> None:
+    """Review S5 of #188: with only the five bytes %%EOF removed, PDFium still finds a valid
+    table for six papers, so their end is there and they are read; nowak is linearized, its
+    table is rebuilt, and it is refused (its end can't be told from a cut). The decision
+    only, as in the trailing-bytes test."""
+    data = paper.read_bytes()
+    end = data.rindex(b"%%EOF")
+    data = data[:end] + data[end + 5 :]
+    document = pdfium.PdfDocument(data)
+    try:
+        rebuilt = not raw.FPDF_DocumentHasValidCrossReferenceTable(document.raw)
+        assert rebuilt == (paper.stem == "acl2023-nowak-prefix-probabilities")
+        if rebuilt:
+            with pytest.raises(ExtractionError, match="cut short"):
+                pdf._check(document, paper.name, data)
+        else:
+            pdf._check(document, paper.name, data)
+    finally:
+        document.close()
+
+
+def test_a_paper_without_its_eof_marker_reads_the_same_lines() -> None:
+    paper = CORPUS / "joss2021-waskom-seaborn.pdf"
+    data = paper.read_bytes().replace(b"%%EOF", b"")
+    assert read_pdf(data, paper.name).pages == smallest_paper_alone().pages
+
+
+def test_a_file_without_eof_and_a_table_pdfium_rebuilds_is_cut_short() -> None:
     whole = one_page_pdf()
     for data in (whole.replace(b"%%EOF", b""), whole[: whole.index(b"xref")]):
         with pytest.raises(ExtractionError) as error:
             read_pdf(data, "cut.pdf")
         assert str(error.value) == CUT_SHORT.format(name="cut.pdf")
+
+
+TAILS_OF_DIGITS = {
+    "1-mb-of-digits": b"1" * (1 << 20),
+    "1-mb-of-digit-space-pairs": b"1 " * (1 << 19),
+    "1-mb-of-spaces-after-a-digit": b"1" + b" " * (1 << 20),
+    "digit-runs-and-spaces": (b"1" * 1000 + b" ") * 1000,
+}
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.parametrize("tail", TAILS_OF_DIGITS.values(), ids=TAILS_OF_DIGITS.keys())
+def test_digits_after_the_end_are_searched_in_linear_time(tail: bytes) -> None:
+    """Review M2 of #188: the first object pattern took 53 s for 100 KB of digits."""
+    data = one_page_pdf() + tail
+    start = time.perf_counter()
+    assert not pdf._cut_short(data, xref_valid=True)
+    assert time.perf_counter() - start < 1.0
+    assert text_of(data) == ["Hello world"]
+
+
+def test_the_object_pattern_finds_objects_and_nothing_else() -> None:
+    assert pdf._OBJECT.search(b"%%EOF\n12 0 obj\n<< >>")
+    assert pdf._OBJECT.search(b"%%EOF\r\n7\t1   obj<<")
+    assert not pdf._OBJECT.search(b"%%EOF\nendobj 12 obj objective 1 0 objects")
