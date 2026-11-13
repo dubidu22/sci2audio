@@ -1,0 +1,14 @@
+# serializer version: 1
+# name: test_the_real_download_is_described_in_full
+  '''
+  The voice download puts these files into models:
+  - 30 files, 342 MB, from huggingface.co
+    Kokoro-82M model and voices by hexgrad: Apache License 2.0. The model card states it was trained only on permissive or non-copyrighted audio. https://huggingface.co/hexgrad/Kokoro-82M
+  - 1 file, 13 MB, from github.com
+    spaCy English model en_core_web_sm 3.8.0 by Explosion: MIT License. https://github.com/explosion/spacy-models
+  In total 355 MB.
+  The hosts hand the files out from their download servers: github.com from objects.githubusercontent.com; huggingface.co from its CDN and its LFS/Xet storage.
+  Every file is checked against its SHA-256 checksum. Nothing about you or your files is sent.
+  
+  '''
+# ---
