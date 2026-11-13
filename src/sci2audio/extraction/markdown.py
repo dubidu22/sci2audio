@@ -19,7 +19,9 @@ so a file that reaches the limit fails instead of losing text (D-351).
 
 Three things in the file are not read, as markdown-it and its footnote plugin have it: a
 note that no mark cites and everything after a ``<!--`` that is never closed (GitHub and a
-browser drop these too), and all but the last of two notes with one label.
+browser drop these too), and all but the last of two notes with one label. The unclosed
+comment is decided here, not left to Python's HTML parser, which reads it differently in
+different patch versions.
 """
 
 from __future__ import annotations
@@ -105,6 +107,7 @@ def _parser() -> MarkdownIt:
         "footnote_open": _note_open,
         "footnote_close": _note_close,
         "footnote_anchor": _nothing,  # the back-link arrow is not in the file
+        "html_block": _html_block,
         "math_inline": _maths_inline,
         "math_inline_double": _maths_block,
         "math_block": _maths_block,
@@ -117,6 +120,15 @@ def _parser() -> MarkdownIt:
 
 def _nothing(self: object, tokens: Sequence[Token], idx: int, *_: object) -> str:
     return ""
+
+
+def _html_block(self: object, tokens: Sequence[Token], idx: int, *_: object) -> str:
+    """Raw HTML as typed, except a comment that is never closed: it hides the rest of the
+    file, decided here because Python's HTML parser has read it as text in some versions."""
+    content = tokens[idx].content
+    if content.lstrip().startswith("<!--") and "-->" not in content:
+        return ""
+    return content
 
 
 def _number(token: Token) -> str:

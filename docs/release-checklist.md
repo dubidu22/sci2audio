@@ -7,6 +7,7 @@ Copy this list into the release Issue and tick each item. Steps marked *(not yet
 - [ ] CI on `main` is green (`CI passed`).
 - [ ] Last nightly run is green: slow tests, property tests with many examples, benchmarks.
 - [ ] No open Dependabot security alert.
+- [ ] CI, nightly and release ran on a uv-managed Python 3.12.16 or newer (each job's log says `Using CPython 3.12.x`, never an interpreter at a runner path such as `/usr/local/bin` or `hostedtoolcache`) (D-378).
 
 ## By hand (about an hour)
 

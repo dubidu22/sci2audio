@@ -241,6 +241,14 @@ def test_an_unclosed_html_comment_hides_the_rest_of_the_file() -> None:
     assert texts(read("Before.\n\n<!-- hello\n\nworld\n")) == ["Before."]
 
 
+def test_the_unclosed_comment_is_dropped_before_the_html_parser_sees_it() -> None:
+    """Python's HTML parser reads an unclosed comment as text in some patch versions
+    (3.12.10), so the renderer leaves it out itself; closed comments pass through."""
+    render = markdown_module._parser().render
+    assert render("Before.\n\n<!-- hello\n\nworld\n") == "<p>Before.</p>\n"
+    assert render("  <!-- a\nb -->\n\nText\n") == "  <!-- a\nb -->\n<p>Text</p>\n"
+
+
 def test_maths_is_tagged_and_keeps_the_tex_as_typed() -> None:
     content = read("Let $a_1 * b^2$ hold.\n\n$$\n\\frac{1}{2} < x\n$$\n\n$$y = 1$$ (eq1)\n")
     first = content.pages[0].lines[0]
@@ -428,11 +436,12 @@ PATHOLOGICAL = {
 
 @pytest.mark.parametrize("text", PATHOLOGICAL.values(), ids=PATHOLOGICAL.keys())
 def test_pathological_inputs_are_read_in_linear_time(text: str) -> None:
-    """Measured at most 0.7 s each; a case that grew quadratically would take minutes. The
-    bound leaves room for slow CI machines."""
+    """Measured at most 0.7 s each on Linux and 5.1 s for the table rows on a Windows runner;
+    a case that grew quadratically would take minutes at this size, so the bound is
+    loose enough for any slow machine and still catches that."""
     start = time.perf_counter()
     outcome(text)
-    assert time.perf_counter() - start < 5
+    assert time.perf_counter() - start < 30
 
 
 # ---- properties --------------------------------------------------------------------------
