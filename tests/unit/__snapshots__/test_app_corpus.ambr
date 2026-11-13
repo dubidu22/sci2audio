@@ -137,14 +137,26 @@
       dict({
         'blocks': list([
           93,
-          167,
+          119,
         ]),
         'first_page': 6,
         'index': 11,
         'references': False,
         'selected': True,
         'title': 'A Appendix',
-        'utterances': 99,
+        'utterances': 26,
+      }),
+      dict({
+        'blocks': list([
+          119,
+          167,
+        ]),
+        'first_page': 8,
+        'index': 12,
+        'references': False,
+        'selected': True,
+        'title': 'ACL 2023 Responsible NLP Checklist',
+        'utterances': 73,
       }),
     ]),
     'counts': dict({
@@ -390,7 +402,7 @@
       dict({
         'block': 148,
         'category': 'page-furniture',
-        'chapter': 11,
+        'chapter': 12,
         'end': 2,
         'kind': 'remove',
         'original': '46',
@@ -406,7 +418,7 @@
       dict({
         'block': 166,
         'category': 'page-furniture',
-        'chapter': 11,
+        'chapter': 12,
         'end': 2,
         'kind': 'remove',
         'original': '47',
@@ -1020,7 +1032,7 @@
       dict({
         'block': 147,
         'category': 'footnote-texts',
-        'chapter': 11,
+        'chapter': 12,
         'end': 132,
         'kind': 'remove',
         'original': '''
@@ -1504,7 +1516,7 @@
       dict({
         'block': 147,
         'category': 'footnotes',
-        'chapter': 11,
+        'chapter': 12,
         'end': 0,
         'kind': 'replace',
         'original': '',
@@ -1842,7 +1854,7 @@
       dict({
         'block': 139,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 58,
         'kind': 'replace',
         'original': 'e.g.',
@@ -1858,7 +1870,7 @@
       dict({
         'block': 145,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 102,
         'kind': 'replace',
         'original': 'e.g.',
@@ -1874,7 +1886,7 @@
       dict({
         'block': 151,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 68,
         'kind': 'replace',
         'original': 'e.g.',
@@ -1890,7 +1902,7 @@
       dict({
         'block': 153,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 39,
         'kind': 'replace',
         'original': 'e.g.',
@@ -1906,7 +1918,7 @@
       dict({
         'block': 153,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 174,
         'kind': 'replace',
         'original': 'e.g.',
@@ -1922,7 +1934,7 @@
       dict({
         'block': 155,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 38,
         'kind': 'replace',
         'original': 'e.g.',
@@ -1938,7 +1950,7 @@
       dict({
         'block': 157,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 86,
         'kind': 'replace',
         'original': 'e.g.',
@@ -1954,7 +1966,7 @@
       dict({
         'block': 159,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 60,
         'kind': 'replace',
         'original': 'e.g.',
@@ -1970,7 +1982,7 @@
       dict({
         'block': 159,
         'category': 'abbreviations',
-        'chapter': 11,
+        'chapter': 12,
         'end': 200,
         'kind': 'replace',
         'original': 'e.g.',
@@ -3759,7 +3771,8 @@
   | 9 | 7 Conclusion | 4 | yes | 18 |
   | 10 | 8 Limitations | 5 | yes | 4 |
   | 11 | References | 5 | no (reference list) | 0 |
-  | 12 | A Appendix | 6 | yes | 99 |
+  | 12 | A Appendix | 6 | yes | 26 |
+  | 13 | ACL 2023 Responsible NLP Checklist | 8 | yes | 73 |
   
   ## Edits per category
   
@@ -3789,8 +3802,8 @@
   - page 5 (printed 43), chapter 11, not spoken (chapter not chosen): “43” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 6 (printed 44), chapter 12, applied: “44” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 7 (printed 45), chapter 12, applied: “45” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
-  - page 8 (printed 46), chapter 12, applied: “46” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
-  - page 9 (printed 47), chapter 12, applied: “47” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
+  - page 8 (printed 46), chapter 13, applied: “46” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
+  - page 9 (printed 47), chapter 13, applied: “47” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   
   ## Characters and hyphenation (84)
   
@@ -3883,12 +3896,12 @@
   
   - page 3 (printed 41), chapter 5, applied: “1” → left out. Reason: footnote mark 1 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
   - page 3 (printed 41), chapter 6, applied: “1” → read as “Footnote 1.”. Reason: footnote 1 is introduced by its mark. Step: footnotes.
-  - page 8 (printed 46), chapter 12, applied: (position) → read as “Footnote.”. Reason: a footnote is introduced. Step: footnotes.
+  - page 8 (printed 46), chapter 13, applied: (position) → read as “Footnote.”. Reason: a footnote is introduced. Step: footnotes.
   
   ## Footnote texts (2)
   
   - page 3 (printed 41), chapter 6, switched off: “1Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 8 (printed 46), chapter 12, switched off: “The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing assistance.” → left out. Reason: a footnote is left out (all footnotes are left out). Step: footnote-texts.
+  - page 8 (printed 46), chapter 13, switched off: “The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing assistance.” → left out. Reason: a footnote is left out (all footnotes are left out). Step: footnote-texts.
   
   ## Citations (17)
   
@@ -3956,15 +3969,15 @@
   ## Abbreviations (10)
   
   - page 2 (printed 40), chapter 4, applied: “i.e.” → read as “that is”. Reason: abbreviation "i.e." read as "that is". Step: abbreviations.
-  - page 8 (printed 46), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
-  - page 8 (printed 46), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
-  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
-  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
-  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
-  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
-  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
-  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
-  - page 9 (printed 47), chapter 12, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 8 (printed 46), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 8 (printed 46), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
+  - page 9 (printed 47), chapter 13, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
   
   ## Numbers, symbols, units and statistics (12)
   
@@ -6042,6 +6055,8 @@
   A.2 Substitutions
   
   The examples are produced using the substitutions for subjects and verbs in the different structures, as shown in table 3.
+  
+  # 13. ACL 2023 Responsible NLP Checklist
   
   ACL 2023 Responsible NLP Checklist
   
