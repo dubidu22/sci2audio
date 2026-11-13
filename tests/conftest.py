@@ -70,10 +70,8 @@ def pytest_report_collectionfinish(config: pytest.Config, items: list[pytest.Ite
     for item in items:
         marker = item.get_closest_marker("quarantined")
         if marker is not None:
-            where = marker.kwargs.get("platform")
-            lines.append(
-                f"  #{marker.kwargs.get('issue')} {item.nodeid}" + (f" (on {where})" if where else "")
-            )
+            issue, where = marker.kwargs.get("issue"), marker.kwargs.get("platform")
+            lines.append(f"  #{issue} {item.nodeid}" + (f" (on {where})" if where else ""))
     if not lines:
         return []
     return [f"{len(lines)} quarantined test(s), all to be fixed before v1.0 (D-374, #80):", *lines]
