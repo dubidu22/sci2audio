@@ -1,8 +1,9 @@
 """Record what a PDF holds as `Content`, with pypdfium2, deciding nothing (D-63, D-65).
 
 Characters become styled runs, runs become lines, and lines, pictures and drawings keep their
-boxes and the order the file stores them in. Reading order, headings and page furniture are the
-layout stage's work. Coordinates are points with the origin at the top left of the page.
+boxes and the order the file stores them in. The bookmarks become the outline, as stored (#24).
+Reading order, headings and page furniture are the layout stage's work. Coordinates are points
+with the origin at the top left of the page.
 
 PDFium crashes when two threads call it at once, even for different files, so every call goes
 through `_PDFIUM`: the one piece of global state this stage has (KB audit "PDFium thread-safety
@@ -28,6 +29,7 @@ from sci2audio.core import (
     Content,
     Drawing,
     Metadata,
+    OutlineEntry,
     Page,
     Picture,
     Source,
@@ -72,6 +74,7 @@ _SOFT_HYPHEN = "\u00ad"  # kept as it is: joining words is a text step (TP-02)
 _UNKNOWN = "\ufffd"  # a glyph PDFium can't map to Unicode: recorded, not dropped
 _SUBSET = re.compile(r"^[A-Z]{6}\+")
 _PDF_DATE = re.compile(r"^D:(\d{4})(\d{2})?(\d{2})?")
+OUTLINE_DEPTH = 15  # bookmark levels read; deeper ones are left out (D-267)
 
 
 def extract_pdf(path: Path) -> Content:
@@ -98,11 +101,12 @@ def read_pdf(data: bytes, name: str) -> Content:
                 raise ExtractionError(f"{name}: the PDF has no pages")
             pages = tuple(_page(document, index) for index in range(len(document)))
             metadata = _metadata(document)
+            outline = _outline(document, len(pages))
         except pdfium.PdfiumError as error:
             raise ExtractionError(f"{name}: the PDF is damaged ({error})") from error
         finally:
             document.close()
-    return Content(source=source, pages=pages, metadata=metadata)
+    return Content(source=source, pages=pages, metadata=metadata, outline=outline)
 
 
 COVER_SIZE = 1400  # pixels on the longer side of a PDF's cover (D-313)
@@ -172,6 +176,38 @@ def _metadata(document: pdfium.PdfDocument) -> Metadata:
         date=date,
         language=_language(document),
     )
+
+
+def _outline(document: pdfium.PdfDocument, pages: int) -> tuple[OutlineEntry, ...]:
+    """The bookmarks in the file's order, titles as stored (D-266). A damaged outline gives
+    what could be read and never fails the file (D-268): pypdfium2 stops at a bookmark that
+    points back at an earlier one, and levels below `OUTLINE_DEPTH` are left out (D-267)."""
+    return tuple(
+        OutlineEntry(_title(bookmark.raw), bookmark.level + 1, _target(bookmark, pages))
+        for bookmark in document.get_toc(max_depth=OUTLINE_DEPTH)
+    )
+
+
+def _title(bookmark: object) -> str:
+    """The bookmark's title as stored, as PDFium reads it: PDFium turns a control character
+    (a line break, a zero byte) into a space; nothing is stripped or dropped. A code PDFium
+    can't decode becomes U+FFFD."""
+    size = raw.FPDFBookmark_GetTitle(bookmark, None, 0)
+    if size <= 2:  # nothing but the terminating zero
+        return ""
+    buffer = ctypes.create_string_buffer(size)
+    raw.FPDFBookmark_GetTitle(bookmark, buffer, size)
+    return buffer.raw[: size - 2].decode("utf-16-le", errors="replace")
+
+
+def _target(bookmark: pdfium.PdfBookmark, pages: int) -> int | None:
+    """The number of the page the bookmark points at, or None. PDFium follows a GoTo action
+    as well as a destination; a URI or launch action, or a page the file lacks, give None."""
+    dest = bookmark.get_dest()
+    if dest is None:
+        return None
+    index = dest.get_index()
+    return index + 1 if index is not None and 0 <= index < pages else None
 
 
 def _language(document: pdfium.PdfDocument) -> str:
