@@ -322,6 +322,16 @@ def _remove_folder(folder: Path) -> None:
         _remove_entry(folder / LOCK_NAME)
 
 
+class _Left(Exception):
+    """A path the removal could not remove, carried out of `shutil.rmtree` untouched: not
+    an OSError, so no version of rmtree renames it to the folder it was in."""
+
+    def __init__(self, path: str, error: OSError) -> None:
+        super().__init__(path)
+        self.path = path
+        self.error = error
+
+
 def _remove_entry(path: Path) -> None:
     """Remove a file, a link (never what it points to) or a folder tree. A file already
     gone counts as removed; a read-only one is made writable and tried once more."""
@@ -330,9 +340,15 @@ def _remove_entry(path: Path) -> None:
             shutil.rmtree(path, onexc=_retry_writable)
         else:
             _unlink(path)
+    except _Left as left:
+        raise _remove_error(Path(left.path), left.error) from left.error
     except OSError as error:
-        left = Path(error.filename) if error.filename else path
-        raise RemoveError(f"could not remove {left}: {error.strerror or error}", left) from error
+        left_path = Path(error.filename) if error.filename else path
+        raise _remove_error(left_path, error) from error
+
+
+def _remove_error(path: Path, error: OSError) -> RemoveError:
+    return RemoveError(f"could not remove {path}: {error.strerror or error}", path)
 
 
 def _unlink(path: Path) -> None:
@@ -345,23 +361,31 @@ def _unlink(path: Path) -> None:
 
 def _retry_writable(function: Callable[..., object], name: str, error: BaseException) -> None:
     """`shutil.rmtree`'s handler: a file gone already is fine; a read-only file or folder
-    (Windows refuses to remove those) is made writable and tried once more."""
+    (Windows refuses to remove those) is made writable and tried once more. What still
+    can't be removed leaves as `_Left`, naming itself."""
+    if isinstance(error, _Left):
+        raise error
     if isinstance(error, FileNotFoundError):
         return
     if not isinstance(error, PermissionError):
-        raise error
+        raise _Left(name, error) if isinstance(error, OSError) else error
     path = Path(name)
     _make_writable(path)
-    if function in (os.unlink, os.rmdir):
-        with contextlib.suppress(FileNotFoundError):
-            function(name)
-    else:  # a folder that could not be opened or listed: once more, now that it can be
-        shutil.rmtree(path, onexc=_gone_is_fine)
+    try:
+        if function in (os.unlink, os.rmdir):
+            with contextlib.suppress(FileNotFoundError):
+                function(name)
+        else:  # a folder that could not be opened or listed: once more, now that it can be
+            shutil.rmtree(path, onexc=_gone_is_fine)
+    except OSError as again:
+        raise _Left(name, again) from again
 
 
 def _gone_is_fine(function: Callable[..., object], name: str, error: BaseException) -> None:
-    if not isinstance(error, FileNotFoundError):
+    if isinstance(error, _Left):
         raise error
+    if not isinstance(error, FileNotFoundError):
+        raise _Left(name, error) if isinstance(error, OSError) else error
 
 
 def _make_writable(path: Path) -> None:

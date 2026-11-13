@@ -83,11 +83,12 @@ def start(client: TestClient, document: str, kind: str) -> dict[str, Any]:
 
 
 def snapshot(folder: Path) -> dict[str, bytes]:
-    """Every file under `folder` with its bytes."""
+    """Every file under `folder` with its bytes; a lock file only by its name (it holds
+    nothing, and Windows refuses to read it while a job holds it)."""
     if not folder.exists():
         return {}
     return {
-        path.relative_to(folder).as_posix(): path.read_bytes()
+        path.relative_to(folder).as_posix(): b"" if path.name == LOCK_NAME else path.read_bytes()
         for path in sorted(folder.rglob("*"))
         if path.is_file()
     }
