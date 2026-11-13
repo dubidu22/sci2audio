@@ -8,12 +8,13 @@ from itertools import count
 
 import pytest
 
-from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
+from sci2audio.core import BlockKind, Document, Edit, EditKind, Section, Span
 from sci2audio.testing import (
     SAMPLE_DOCUMENTS,
     ConformanceError,
     NetworkUsedError,
     check_text_step,
+    make_document,
     no_network,
     text_step_problems,
 )
@@ -129,3 +130,29 @@ def test_the_testing_package_imports_neither_pytest_nor_hypothesis() -> None:
         [sys.executable, "-c", code], capture_output=True, text=True, check=True
     ).stdout.strip()
     assert found == "[]"
+
+
+@pytest.mark.parametrize("step", BUILT_IN_STEPS, ids=[step.id for step in BUILT_IN_STEPS])
+def test_the_sample_documents_give_every_built_in_step_work(step: TextStep) -> None:
+    """Otherwise the contract checks above would check a step that proposes nothing."""
+    assert any(
+        step.find(document, StepContext(document.language))
+        for document in SAMPLE_DOCUMENTS
+        if step.handles(document.language)
+    )
+
+
+def test_make_document_cuts_tagged_ranges_into_runs_of_their_own() -> None:
+    document = make_document(
+        [(BlockKind.PARAGRAPH, "ab1\ncd2"), (BlockKind.HEADING, "R")],
+        tags={0: [(2, 3, "sup"), (6, 7, "sup")]},
+        sections=[Section("R", 1, 1, 2)],
+    )
+    lines = document.content.pages[0].lines
+    assert [[(r.text, r.tags) for r in line.runs] for line in lines[:2]] == [
+        [("ab", ()), ("1", ("sup",))],
+        [("cd", ()), ("2", ("sup",))],
+    ]
+    assert document.sections == (Section("R", 1, 1, 2),)
+    with pytest.raises(ValueError, match="inside one line"):
+        make_document([(BlockKind.PARAGRAPH, "ab\ncd")], tags={0: [(1, 4, "sup")]})

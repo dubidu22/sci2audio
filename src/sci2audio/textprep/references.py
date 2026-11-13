@@ -1,0 +1,65 @@
+"""The reference list is not read (TP-06, D-146).
+
+A section whose title is a usual name of a reference list (D-83: References, Bibliography),
+after a printed number if there is one ("7 References"), is left out one block at a time,
+its heading included, at any level of the section tree. The "Reference list" switch keeps
+it. Footnotes inside the section are kept, since their marks stand in the body text (a note
+at the foot of the page where the list starts), and furniture is the furniture step's.
+
+A reference list printed without a heading (PRL style) is not found here (issue filed).
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterator
+
+from sci2audio.core import BlockKind, Document, Edit, EditKind, Section, Span
+from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
+
+# D-83's names of a reference list, English only for v1.0 (layout keeps its own list in its
+# settings; textprep may not import layout)
+REFERENCE_TITLES = ("References", "Bibliography")
+
+# an optional printed number ("7", "8.1", "A", "IV", with or without a full stop), then a
+# usual name in any case ("REFERENCES")
+_TITLE = re.compile(
+    r"\A\s*(?:(?:\d{1,3}(?:\.\d{1,3})*|[A-Z]|[IVXL]{1,6})\.?\s+)?(?i:"
+    + "|".join(map(re.escape, REFERENCE_TITLES))
+    + r")\s*\Z"
+)
+_KEPT = frozenset({BlockKind.FOOTNOTE, BlockKind.FURNITURE})
+
+
+class ReferenceListStep(TextStep):
+    """Remove every block of a reference-list section, one edit per block."""
+
+    id = "reference-list"
+    languages = ("en",)
+    category = Category.REFERENCES
+    stage = Stage.BLOCK
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        edits = []
+        indexes: set[int] = set()
+        for section in _sections(document.sections):
+            if _TITLE.match(section.title):
+                indexes.update(range(section.start, section.end))
+        for index in sorted(indexes):
+            block = document.blocks[index]
+            if block.text and block.kind not in _KEPT:
+                edits.append(
+                    Edit(
+                        Span(index, 0, len(block.text)),
+                        EditKind.REMOVE,
+                        reason="the reference list is not read",
+                        step=self.id,
+                    )
+                )
+        return edits
+
+
+def _sections(sections: tuple[Section, ...]) -> Iterator[Section]:
+    for section in sections:
+        yield section
+        yield from _sections(section.children)

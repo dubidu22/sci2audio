@@ -38,6 +38,7 @@ def test_the_categories_are_the_fixed_list_with_labels_people_know() -> None:
         "page-furniture",
         "characters",
         "footnotes",
+        "footnote-texts",
         "citations",
         "links",
         "formulas",
@@ -101,7 +102,14 @@ def test_a_step_context_needs_a_language() -> None:
 
 def test_the_built_in_registry_is_valid() -> None:
     check_registry(BUILT_IN_STEPS)
-    assert [step.id for step in BUILT_IN_STEPS] == ["page-furniture"]
+    assert [step.id for step in BUILT_IN_STEPS] == [
+        "page-furniture",
+        "reference-list",
+        "formula-notices",
+        "table-figure-notices",
+        "footnote-texts",
+        "footnotes",
+    ]
 
 
 def test_block_steps_must_come_before_inline_steps() -> None:

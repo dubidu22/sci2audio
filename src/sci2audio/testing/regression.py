@@ -142,7 +142,7 @@ def _text(given: dict) -> tuple[str, list[tuple[int, int, str]]]:
             tagged.append((len(text), len(text) + len(run["sup"]), "sup"))
             text += run["sup"]
         else:
-            raise ValueError(f"a run is a string or {{ sup = \"...\" }}, got {run!r}")
+            raise ValueError(f'a run is a string or {{ sup = "..." }}, got {run!r}')
     return text, tagged
 
 
