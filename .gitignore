@@ -29,3 +29,4 @@ htmlcov/
 
 # Mutation testing working copy
 mutants/
+zap-out/
