@@ -163,6 +163,20 @@ def test_each_edit_quotes_the_printed_number() -> None:
     assert {e.step for e in edits} == {"numbers"}
 
 
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("3 × 10\u22124\u207b\u2074", "3 × 10\u22124\u207b\u2074"),  # glued minus sign
+        ("3 × 10-4\u207b\u2074", "3 × 10-4\u207b\u2074"),
+        ("5 \u2212 10\u2076", "5 minus 10 to the power of 6"),  # spaced: read as "minus"
+    ],
+)
+def test_a_power_joined_to_a_number_reads_the_same_on_a_second_run(printed: str, said: str) -> None:
+    """Run 1 must not read a base that run 2 would read differently (review of #132, round 3)."""
+    assert read(printed) == said
+    assert read(said) == said
+
+
 def test_a_range_dash_at_a_line_end_takes_the_line_break() -> None:
     # so the line-end hyphen step (#65), which runs later, has nothing left to keep there
     document = make_document([(BlockKind.PARAGRAPH, "aged 18-\n25")])

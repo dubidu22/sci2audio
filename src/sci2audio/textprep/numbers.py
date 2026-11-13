@@ -240,6 +240,7 @@ def find_numbers(text: str) -> list[Candidate]:
 # the "to" or "minus" this step reads a range, ratio or figure dash with, or by nothing at
 # all ("10⁶3")
 _JOINED_AFTER = re.compile(r"\s*[\u2013\u2014\u2012:/-]\s*\.?\d|\.?\d|\s\d|\s+(?:to|minus)\s+\.?\d")
+_GLUED_MINUS = re.compile(r"\d\u2212\Z")
 _JOINED_BEFORE = re.compile(r"\d\s*(?:[\u2013\u2014\u2012:/-]|\sto\s)\s*\Z|\d\s\Z")
 # every look back before a match reads at most this many characters, so a long block takes
 # linear time (review of PR #132); what the rules look for before a number is a few words
@@ -377,8 +378,15 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         words = _letter_power(exponent) or f" to the power of {_exponent_words(match['exp'])}"
         found.append((Candidate(start, end, words, _power_reason(text, match, words)), None))
     # the base is the number whose reading changes: "3:10²" is left as printed (`_unjoined`);
-    # a letter base (None) is read the same whatever stands before it
-    return [c for c, base in found if base is None or not _joined_before(text, base)]
+    # a letter base (None) is read the same whatever stands before it. A minus sign glued to
+    # a number before the base joins it too ("10−4⁻⁴" would read "10−4" as a power next time),
+    # but a spaced one is read as "minus" in the same run ("5 − 10⁶").
+    return [
+        c
+        for c, base in found
+        if base is None
+        or not (_joined_before(text, base) or _GLUED_MINUS.match(text, max(0, base - 2), base))
+    ]
 
 
 def _letter_power(exponent: str) -> str | None:
