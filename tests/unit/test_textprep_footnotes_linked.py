@@ -1,6 +1,7 @@
 """Footnote marks tied to their notes by link tags (#189, D-420 to D-428): EPUB and Markdown
 noterefs, notes on other pages, introductions from the mark, back-links."""
 
+import gc
 import time
 
 import pytest
@@ -469,10 +470,20 @@ def test_many_marks_and_notes_take_linear_time() -> None:
         return make_document([(BlockKind.PARAGRAPH, text), *notes], tags={0: ranges})
 
     def seconds(document: Document) -> float:
-        start = time.perf_counter()
-        FootnoteStep().find(document, EN)
-        return time.perf_counter() - start
+        """The best of three runs, with garbage collection off while timing, so a busy
+        machine (pytest -n 8) does not make one slow run look like a quadratic one."""
+        best = float("inf")
+        for _ in range(3):
+            gc.disable()
+            try:
+                start = time.perf_counter()
+                FootnoteStep().find(document, EN)
+                best = min(best, time.perf_counter() - start)
+            finally:
+                gc.enable()
+        return best
 
     small, large = seconds(sized(2_000)), seconds(sized(20_000))
     assert large < 2.0
-    assert large < 25 * max(small, 1e-3)  # ten times the work: not a hundred times the time
+    # ten times the work: linear is about 10 times the time, quadratic about 100
+    assert large < 40 * max(small, 1e-3)
