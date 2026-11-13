@@ -33,7 +33,7 @@ def find_captions(blocks: list[Block], content: Content) -> list[Block]:
     lines = {line.id: line for page in content.pages for line in page.lines}
     out: list[Block] = []
     for block in blocks:
-        label = _label(block, lines) if block.kind is BlockKind.PARAGRAPH else None
+        label = caption_label(block, lines) if block.kind is BlockKind.PARAGRAPH else None
         if label is None:
             out.append(block)
             continue
@@ -44,7 +44,7 @@ def find_captions(blocks: list[Block], content: Content) -> list[Block]:
     return out
 
 
-def _label(block: Block, lines: dict[str, TextLine]) -> str | None:
+def caption_label(block: Block, lines: dict[str, TextLine]) -> str | None:
     """The caption label the block opens with, or None if it is not a caption."""
     found = _LABEL.match(block.text)
     if found is None:
@@ -59,7 +59,7 @@ def opens_caption(line: TextLine) -> bool:
     """True if the line opens as a caption does ("Table 2: …", "Algorithm 3 CKY" with the
     label in bold): a paragraph never runs on into it."""
     block = Block(BlockKind.PARAGRAPH, line.text, (Part(line.id),))
-    return _label(block, {line.id: line}) is not None
+    return caption_label(block, {line.id: line}) is not None
 
 
 def _bold_label(block: Block, lines: dict[str, TextLine], label: str) -> bool:
