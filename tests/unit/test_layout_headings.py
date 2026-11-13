@@ -31,6 +31,7 @@ from sci2audio.core import (
 from sci2audio.core import Page as PdfPage
 from sci2audio.layout import build_document
 from sci2audio.layout.headings import title
+from sci2audio.layout.tagged import positioned
 
 PITCH = 14.0
 _ids = itertools.count()
@@ -556,14 +557,39 @@ def outlined(draw: st.DrawFn) -> Content:
 
 
 @given(outlined())
+@example(  # an outline entry on level 2 sets the base level of a page without positions (#199)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            PdfPage(
+                1,
+                lines=(
+                    TextLine("i0", (TextRun("0", tags=("h1",)),)),
+                    TextLine("i1", (TextRun("0"), TextRun("0"), TextRun("A"))),
+                ),
+            ),
+        ),
+        Metadata(),
+        outline=(
+            OutlineEntry("0", 1, 1),
+            OutlineEntry("0", 1, 1),
+            OutlineEntry("00A", 2, 1),
+        ),
+    )
+)
 def test_an_outline_only_adds_headings(found: Content) -> None:
     """On any content: layout never fails, and every heading found without the outline is
-    a heading with it, with the same label and section level (D-270, D-271)."""
+    a heading with it, with the same label and section start (D-270, D-271). With positions
+    its level stays too; without (EPUB, Markdown, text) the outline sets each page's base
+    heading level, so a level may change (D-405 to D-418, #199)."""
     without = build_document(dataclasses.replace(found, outline=()))
     doc = build_document(found)
-    assert {(s.start, s.level) for s in walk(without.sections)} <= {
-        (s.start, s.level) for s in walk(doc.sections)
-    }
+    if positioned(found):
+        assert {(s.start, s.level) for s in walk(without.sections)} <= {
+            (s.start, s.level) for s in walk(doc.sections)
+        }
+    else:
+        assert {s.start for s in walk(without.sections)} <= {s.start for s in walk(doc.sections)}
     for index, block in enumerate(without.blocks):
         if block.kind is BlockKind.HEADING:
             assert doc.blocks[index].kind is BlockKind.HEADING
