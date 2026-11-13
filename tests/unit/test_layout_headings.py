@@ -579,14 +579,66 @@ def outlined(draw: st.DrawFn) -> Content:
 
 
 @given(outlined())
+@example(  # an outline entry on level 2 sets the base level of a page without positions (#199)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            PdfPage(
+                1,
+                lines=(
+                    TextLine("i0", (TextRun("0", tags=("h1",)),)),
+                    TextLine("i1", (TextRun("0"), TextRun("0"), TextRun("A"))),
+                ),
+            ),
+        ),
+        Metadata(),
+        outline=(
+            OutlineEntry("0", 1, 1),
+            OutlineEntry("0", 1, 1),
+            OutlineEntry("00A", 2, 1),
+        ),
+    )
+)
+@example(  # two ranks on one page: both move by the base level the outline sets (#199)
+    Content(
+        Source("0", SourceFormat.EPUB),
+        (
+            PdfPage(
+                1,
+                lines=(
+                    TextLine("i0", (TextRun("Part", tags=("h1",)),)),
+                    TextLine("i1", (TextRun("Chapter", tags=("h2",)),)),
+                    TextLine("i2", (TextRun("Text."),)),
+                ),
+            ),
+        ),
+        Metadata(),
+        outline=(OutlineEntry("0", 1, 1), OutlineEntry("0", 1, 1), OutlineEntry("Part", 2, 1)),
+    )
+)
 def test_an_outline_only_adds_headings(found: Content) -> None:
     """On any content: layout never fails, and every heading found without the outline is
-    a heading with it, with the same label and section level (D-270, D-271)."""
+    a heading with it, with the same label and section start (D-270, D-271). With positions
+    its level stays too; without (EPUB, Markdown, text) the outline sets each page's base
+    heading level, so a level may change (D-405 to D-418, #199)."""
     without = build_document(dataclasses.replace(found, outline=()))
     doc = build_document(found)
-    assert {(s.start, s.level) for s in walk(without.sections)} <= {
-        (s.start, s.level) for s in walk(doc.sections)
-    }
+    if positioned(found):
+        assert {(s.start, s.level) for s in walk(without.sections)} <= {
+            (s.start, s.level) for s in walk(doc.sections)
+        }
+    else:
+        assert {s.start for s in walk(without.sections)} <= {s.start for s in walk(doc.sections)}
+        # the outline moves a page's headings by one amount, its base level (D-407); a
+        # heading an entry names by `item` takes the entry's level, but `outlined()` never
+        # sets `item`
+        items = found.items()
+        levels = {s.start: s.level for s in walk(doc.sections)}
+        shifts: dict[int, set[int]] = {}
+        for s in walk(without.sections):
+            page = items[without.blocks[s.start].parts[0].item][0].number
+            shifts.setdefault(page, set()).add(levels[s.start] - s.level)
+        assert all(len(shift) == 1 for shift in shifts.values())
     for index, block in enumerate(without.blocks):
         if block.kind is BlockKind.HEADING:
             assert doc.blocks[index].kind is BlockKind.HEADING
