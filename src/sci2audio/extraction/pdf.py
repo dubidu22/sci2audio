@@ -35,6 +35,8 @@ from sci2audio.core import (
     TextLine,
     TextRun,
 )
+from sci2audio.extraction.cover import Cover, png
+from sci2audio.extraction.errors import ExtractionError
 
 _PDFIUM = threading.Lock()
 
@@ -72,10 +74,6 @@ _SUBSET = re.compile(r"^[A-Z]{6}\+")
 _PDF_DATE = re.compile(r"^D:(\d{4})(\d{2})?(\d{2})?")
 
 
-class ExtractionError(Exception):
-    """A file that cannot be read, with a message a user can act on."""
-
-
 def extract_pdf(path: Path) -> Content:
     """Read the PDF at `path` into `Content`; raise ExtractionError if it can't be read."""
     try:
@@ -105,6 +103,51 @@ def read_pdf(data: bytes, name: str) -> Content:
         finally:
             document.close()
     return Content(source=source, pages=pages, metadata=metadata)
+
+
+COVER_SIZE = 1400  # pixels on the longer side of a PDF's cover (D-313)
+
+
+def extract_pdf_cover(path: Path) -> Cover | None:
+    """The PDF's first page as a PNG, `COVER_SIZE` pixels on its longer side; None if the
+    file can't be read or rendered (a missing cover never stops a job)."""
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    with _PDFIUM:
+        try:
+            document = pdfium.PdfDocument(data)
+        except pdfium.PdfiumError:
+            return None
+        try:
+            if len(document) == 0:
+                return None
+            page = document[0]
+            try:
+                width, height = page.get_size()
+                if not (math.isfinite(width) and math.isfinite(height)) or min(width, height) <= 0:
+                    return None
+                bitmap = page.render(scale=COVER_SIZE / max(width, height), rev_byteorder=True)
+                try:
+                    if bitmap.n_channels != 3:
+                        return None
+                    pixels = bytes(
+                        ctypes.cast(
+                            bitmap.buffer,
+                            ctypes.POINTER(ctypes.c_ubyte * (bitmap.stride * bitmap.height)),
+                        ).contents
+                    )
+                    image = png(bitmap.width, bitmap.height, pixels, bitmap.stride)
+                finally:
+                    bitmap.close()
+            finally:
+                page.close()
+        except (pdfium.PdfiumError, ValueError):
+            return None
+        finally:
+            document.close()
+    return Cover(image, "image/png")
 
 
 def _load_message(name: str, data: bytes, detail: str) -> str:
