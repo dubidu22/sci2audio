@@ -1,17 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ t('common.language') }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}sci2audio{% endblock %}</title>
+  <title>{% block title %}{{ t('common.app') }}{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css">
+  <script id="strings" type="application/json">{{ script_strings() | safe }}</script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
-  <header><a href="/">sci2audio</a></header>
-  <main>
+  <a class="skip" href="#main">{{ t('common.skip') }}</a>
+  <header>
+    <a class="home" href="/">{{ t('common.app') }}</a>
+    {% if running %}
+    <p class="running">{{ t('common.job_running', what=running.title) }} <a href="/jobs/{{ running.id }}">{{ t('common.job_running_link') }}</a></p>
+    {% endif %}
+  </header>
+  <main id="main" tabindex="-1">
     {% block main %}{% endblock %}
   </main>
-  <footer><p>Everything stays on this computer. The only network use is the voice download you start.</p></footer>
+  <footer><p>{{ t('common.footer') }}</p></footer>
 </body>
 </html>

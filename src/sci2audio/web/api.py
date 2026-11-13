@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Annotated, Any
 from urllib.parse import urlsplit
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, Query, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 
 from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
@@ -36,6 +36,7 @@ REDIRECTS = {
     "github.com": "objects.githubusercontent.com (GitHub's download server)",
 }
 MEDIA_TYPES = {
+    ".wav": "audio/wav",
     ".m4b": "audio/mp4",
     ".mp3": "audio/mpeg",
     ".json": "application/json",
@@ -54,22 +55,26 @@ BODY = (411, 413)  # from the size limit (limits.py)
 
 
 State = Annotated[ServerState, state_of]
+Download = Annotated[
+    bool, Query(description="true: sent as an attachment to save, not shown (D-255)")
+]
+_FILE_ANSWERS: dict[int | str, dict[str, Any]] = {
+    200: {"content": {"application/octet-stream": {}}, "description": "the file"},
+    206: {"content": {"application/octet-stream": {}}, "description": "part of the file"},
+}
 
 
 # --- documents -------------------------------------------------------------------------
 
 
 def _document_out(document: StoredDocument) -> models.DocumentOut:
-    try:
-        size = document.source.stat().st_size
-    except OSError:
-        size = 0
     return models.DocumentOut(
         id=document.id,
         name=document.name,
-        size=size,
+        size=document.size,
         has_report=document.report_file.is_file(),
         has_audio=document.has_audio,
+        speech_cache_bytes=document.speech_cache_bytes,
     )
 
 
@@ -174,6 +179,24 @@ def get_report(state: State, document_id: str) -> dict[str, Any]:
 def get_chapters(state: State, document_id: str) -> list[models.ChapterOut]:
     chapters = _report(state, document_id).get("chapters", [])
     return [models.ChapterOut.model_validate(chapter) for chapter in chapters]
+
+
+@router.get(
+    "/documents/{document_id}/files/{name}",
+    response_class=FileResponse,
+    responses={**_FILE_ANSWERS, **_errors(404)},
+    summary="A file of the latest pre-analysis: the script or the report",
+)
+def document_file(
+    state: State, document_id: str, name: str, download: Download = False
+) -> FileResponse:
+    """The listening script, `report.json` or `report.md` of the latest pre-analysis, by
+    name as written (D-255); they outlast the job that wrote them."""
+    document = _document(state, document_id)
+    found = next((path for path in document.analysis_files() if path.name == name), None)
+    if found is None:
+        raise ApiError(404, "not-found", f"{document.name} has no analysis file {name!r}")
+    return _file(found, download)
 
 
 @router.delete(
@@ -449,28 +472,31 @@ async def job_events(state: State, job_id: str) -> StreamingResponse:
 @router.get(
     "/jobs/{job_id}/files/{name}",
     response_class=FileResponse,
-    responses={
-        200: {"content": {"application/octet-stream": {}}, "description": "the file"},
-        206: {"content": {"application/octet-stream": {}}, "description": "part of the file"},
-        **_errors(404),
-    },
+    responses={**_FILE_ANSWERS, **_errors(404)},
     summary="A file the job wrote",
 )
-def job_file(state: State, job_id: str, name: str) -> FileResponse:
+def job_file(state: State, job_id: str, name: str, download: Download = False) -> FileResponse:
     job = _job(state, job_id)
     file = job.file(name)
     if file is None or not file.path.is_file():
         raise ApiError(404, "not-found", f"job {job_id} wrote no file {name!r}")
-    media_type = MEDIA_TYPES.get(file.path.suffix.lower(), "application/octet-stream")
+    return _file(file.path, download)
+
+
+def _file(path: Path, download: bool) -> FileResponse:
+    """A file as the browser shows it (`inline`) or saves it (`download`, D-255)."""
+    media_type = MEDIA_TYPES.get(path.suffix.lower(), "application/octet-stream")
+    disposition = "attachment" if download else "inline"
     return FileResponse(
-        file.path, media_type=media_type, filename=file.name, content_disposition_type="inline"
+        path, media_type=media_type, filename=path.name, content_disposition_type=disposition
     )
 
 
 # --- voices ----------------------------------------------------------------------------
 
 
-def _hosts(urls: list[str]) -> list[str]:
+def plan_hosts(urls: list[str]) -> list[str]:
+    """The hosts the voice download talks to, then where they redirect (D-141)."""
     hosts = sorted({urlsplit(url).hostname or "" for url in urls} - {""})
     return [*hosts, *(REDIRECTS[host] for host in hosts if host in REDIRECTS)]
 
@@ -493,7 +519,7 @@ def get_voices(state: State) -> models.VoicesOut:
             total_bytes=plan.total_bytes,
             missing_bytes=sum(file.size for file in missing),
             licences=list(plan.licences),
-            hosts=_hosts([file.url for file in plan.files]),
+            hosts=plan_hosts([file.url for file in plan.files]),
             files=[
                 models.PlanFileOut(
                     url=f.url, target=f.target, size=f.size, sha256=f.sha256, licence=f.licence
@@ -519,6 +545,36 @@ def download_voices(state: State, body: models.DownloadIn) -> models.JobOut:
     work = voices_work(state.config.models_dir, state.fetch)
     try:
         job = state.board.start(JobKind.VOICES, None, None, work, cancellable=True)
+    except BoardBusyError as error:
+        raise ApiError(409, "busy", str(error)) from error
+    return _job_out(job)
+
+
+@router.post(
+    "/voices/preview",
+    status_code=202,
+    response_model=models.JobOut,
+    responses=_errors(409, *BODY),
+    summary="Speak a preview sentence with one voice at one speed",
+)
+def preview_voice(state: State, body: models.PreviewIn) -> models.JobOut:
+    """A preview job (D-249): its one file is the WAV to play. The voice stays loaded
+    afterwards for the next preview and the audio job (D-250)."""
+    text = " ".join(body.text.split())
+    if not text:
+        raise ApiError(422, "invalid", "text: the preview sentence is empty")
+    settings = _job_settings(voice=_voice(body.voice), speed=body.speed)
+    if missing_files(state.config.models_dir):
+        raise ApiError(409, "voice-missing", "the voice is not installed yet; download it first")
+    work = state.preview_work(text, settings.voice, settings.speed)
+    try:
+        job = state.board.start(
+            JobKind.PREVIEW,
+            None,
+            {"voice": settings.voice, "speed": settings.speed},
+            work,
+            cancellable=False,
+        )
     except BoardBusyError as error:
         raise ApiError(409, "busy", str(error)) from error
     return _job_out(job)

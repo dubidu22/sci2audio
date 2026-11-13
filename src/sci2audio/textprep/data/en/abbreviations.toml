@@ -1,0 +1,209 @@
+# English abbreviations read in full by the `abbreviations` step (TP-08, D-230).
+# Written for sci2audio, GPL-3.0-or-later; no list is copied.
+#
+# Only abbreviations the voice reads wrongly are here (D-227): misaki already says "doctor",
+# "mister", "versus", "number five", "etcetera" and "et al" (D-231, D-232). Abbreviations that
+# occur only in reference lists (p., pp., vol., ed.) are left out (D-233).
+#
+# Each entry:
+#   printed  the forms as printed, in lower or title case as usually written; the step also
+#            finds the form with its first letter in the other case and in capitals
+#   reads    the words read instead; the first letter follows the printed one
+#   before   where the abbreviation is read in full:
+#            "anything"  anywhere ("e.g.", "approx.")
+#            "number"    only before a number ("ca. 1900")
+#            "label"     only before a label: a digit, "(", or a capital letter or Roman
+#                        numeral standing alone ("Fig. 2a", "Eq. (8)", "App. B", "Sec. III")
+#            "word"      only before a capitalised word or a label ("Suppl. Fig. 3")
+#   can_end_sentence  true if the abbreviation can end a sentence: there its full stop is
+#            kept as printed, so the sentence still ends (D-234)
+
+[[abbreviation]]
+printed = ["i.e.", "i. e."]
+reads = "that is"
+before = "anything"
+
+[[abbreviation]]
+printed = ["e.g.", "e. g."]
+reads = "for example"
+before = "anything"
+
+[[abbreviation]]
+printed = ["cf."]
+reads = "compare"
+before = "anything"
+
+[[abbreviation]]
+printed = ["viz."]
+reads = "namely"
+before = "anything"
+
+[[abbreviation]]
+printed = ["w.r.t."]
+reads = "with respect to"
+before = "anything"
+
+[[abbreviation]]
+printed = ["s.t."]
+reads = "such that"
+before = "anything"
+
+[[abbreviation]]
+printed = ["w.l.o.g."]
+reads = "without loss of generality"
+before = "anything"
+
+[[abbreviation]]
+printed = ["approx."]
+reads = "approximately"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["resp."]
+reads = "respectively"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["incl."]
+reads = "including"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["esp."]
+reads = "especially"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["avg."]
+reads = "average"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["Prof."]
+reads = "Professor"
+before = "anything"
+
+[[abbreviation]]
+printed = ["ca."]
+reads = "circa"
+before = "number"
+
+[[abbreviation]]
+printed = ["Nos."]
+reads = "Numbers"
+before = "number"
+
+[[abbreviation]]
+printed = ["Fig."]
+reads = "Figure"
+before = "label"
+
+[[abbreviation]]
+printed = ["Figs."]
+reads = "Figures"
+before = "label"
+
+[[abbreviation]]
+printed = ["Eq.", "Eqn."]
+reads = "Equation"
+before = "label"
+
+[[abbreviation]]
+printed = ["Eqs.", "Eqns."]
+reads = "Equations"
+before = "label"
+
+[[abbreviation]]
+printed = ["Sec.", "Sect."]
+reads = "Section"
+before = "label"
+
+[[abbreviation]]
+printed = ["Secs.", "Sects."]
+reads = "Sections"
+before = "label"
+
+[[abbreviation]]
+printed = ["Tab."]
+reads = "Table"
+before = "label"
+
+[[abbreviation]]
+printed = ["Tabs."]
+reads = "Tables"
+before = "label"
+
+[[abbreviation]]
+printed = ["Alg."]
+reads = "Algorithm"
+before = "label"
+
+[[abbreviation]]
+printed = ["Algs."]
+reads = "Algorithms"
+before = "label"
+
+[[abbreviation]]
+printed = ["Thm."]
+reads = "Theorem"
+before = "label"
+
+[[abbreviation]]
+printed = ["Def."]
+reads = "Definition"
+before = "label"
+
+[[abbreviation]]
+printed = ["Prop."]
+reads = "Proposition"
+before = "label"
+
+[[abbreviation]]
+printed = ["Cor."]
+reads = "Corollary"
+before = "label"
+
+[[abbreviation]]
+printed = ["Lem."]
+reads = "Lemma"
+before = "label"
+
+[[abbreviation]]
+printed = ["App."]
+reads = "Appendix"
+before = "label"
+
+[[abbreviation]]
+printed = ["Ch.", "Chap."]
+reads = "Chapter"
+before = "label"
+
+[[abbreviation]]
+printed = ["Ref."]
+reads = "Reference"
+before = "label"
+
+[[abbreviation]]
+printed = ["Refs."]
+reads = "References"
+before = "label"
+
+[[abbreviation]]
+printed = ["Ex."]
+reads = "Example"
+before = "label"
+
+[[abbreviation]]
+printed = ["Exp."]
+reads = "Experiment"
+before = "label"
+
+[[abbreviation]]
+printed = ["Suppl."]
+reads = "Supplementary"
+before = "word"

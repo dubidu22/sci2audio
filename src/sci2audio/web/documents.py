@@ -30,7 +30,8 @@ from dataclasses import dataclass
 from pathlib import Path, PurePath
 from typing import BinaryIO
 
-from sci2audio.app import EXTRACTORS, JobSettings, script_files
+from sci2audio.app import EXTRACTORS, JobSettings, ScriptFiles, script_files
+from sci2audio.app.chunks import CHUNKS
 from sci2audio.output.names import clean
 
 ID = re.compile(r"\A[0-9a-f]{16}\Z")
@@ -79,8 +80,34 @@ class StoredDocument:
     @property
     def report_file(self) -> Path:
         """The latest pre-analysis report (`sci2audio-report` v1), if one was written."""
+        return self._script_files().report_json
+
+    def analysis_files(self) -> list[Path]:
+        """The latest pre-analysis' files that exist: script, report JSON, report Markdown
+        (D-255), in that order."""
+        return [path for path in self._script_files().outputs if path.is_file()]
+
+    def _script_files(self) -> ScriptFiles:
         settings = JobSettings(output_folder=self.script_folder)
-        return script_files(self.source, settings, self.folder).report_json
+        return script_files(self.source, settings, self.folder)
+
+    @property
+    def speech_cache_bytes(self) -> int:
+        """Bytes of kept speech chunks (D-158); 0 when there are none."""
+        total = 0
+        for path in (self.folder / CHUNKS).rglob("*"):
+            with contextlib.suppress(OSError):
+                if path.is_file():
+                    total += path.stat().st_size
+        return total
+
+    @property
+    def size(self) -> int:
+        """Bytes of the opened file; 0 when it can't be read."""
+        try:
+            return self.source.stat().st_size
+        except OSError:
+            return 0
 
     @property
     def has_audio(self) -> bool:

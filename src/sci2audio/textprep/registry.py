@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from sci2audio.textprep.abbreviations import AbbreviationStep
 from sci2audio.textprep.characters import UnicodeStep
 from sci2audio.textprep.citations import CitationStep
 from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
@@ -31,6 +32,7 @@ from sci2audio.textprep.links import LinkStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
 from sci2audio.textprep.references import ReferenceListStep
 from sci2audio.textprep.steps import Stage, TextStep, step_problems
+from sci2audio.textprep.units import UnitStep
 
 BUILT_IN_STEPS: tuple[TextStep, ...] = (
     FurnitureStep(),
@@ -41,6 +43,9 @@ BUILT_IN_STEPS: tuple[TextStep, ...] = (
     LinkStep(),
     CitationStep(),
     FootnoteStep(),
+    # units then abbreviations (#68), after the numbers and statistics steps (#67, D-190)
+    UnitStep(),
+    AbbreviationStep(),
     # characters and hyphenation stay the last inline steps (D-150)
     UnicodeStep(),
     LineEndHyphenStep(),

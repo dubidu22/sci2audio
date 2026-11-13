@@ -54,7 +54,35 @@ jobs:
       - name: Hypothesis with the nightly profile
         env:
           HYPOTHESIS_PROFILE: nightly
-        run: uv run pytest -m "not slow and not benchmark"
+        run: uv run pytest -m "not slow and not benchmark and not browser"
+
+  browsers:
+    name: browser (${{ matrix.browser }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # #8: all three engines; WebKit on macOS too, the engine of the app window (D-47)
+        include:
+          - { os: ubuntu-latest, browser: chromium }
+          - { os: ubuntu-latest, browser: firefox }
+          - { os: ubuntu-latest, browser: webkit }
+          - { os: macos-latest, browser: webkit }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - name: Install the browser for Playwright
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: uv run playwright install --with-deps "$BROWSER"
+      - name: Browser tests (main flow, keyboard, axe-core)
+        env:
+          BROWSER: ${{ matrix.browser }}
+          HYPOTHESIS_PROFILE: nightly
+        run: uv run pytest -m browser --browser "$BROWSER" -rA
 
   benchmarks:
     name: benchmarks
