@@ -22,7 +22,13 @@ from enum import StrEnum
 
 from sci2audio.core import Document, Edit, ScriptPiece, Span, apply_edits, check_edits
 from sci2audio.textprep.registry import BUILT_IN_STEPS, check_registry
-from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
+from sci2audio.textprep.steps import (
+    DEFAULT_SWITCHED_OFF,
+    Category,
+    Stage,
+    StepContext,
+    TextStep,
+)
 
 
 class Status(StrEnum):
@@ -86,11 +92,14 @@ def run_steps(
     document: Document,
     context: StepContext,
     steps: Sequence[TextStep] = BUILT_IN_STEPS,
-    switched_off: Collection[Category] = frozenset(),
+    switched_off: Collection[Category] = DEFAULT_SWITCHED_OFF,
     *,
     strict: bool = False,
 ) -> StepRun:
     """Run the steps on the document and settle their edits.
+
+    `switched_off` defaults to the categories that are off unless the user turns them on
+    (`DEFAULT_SWITCHED_OFF`: "Footnote texts"); pass an empty set to use every category.
 
     Raise ValueError if the steps are not in a valid order (`check_registry`); in a strict
     run also StepError for a step that fails or breaks the rules.

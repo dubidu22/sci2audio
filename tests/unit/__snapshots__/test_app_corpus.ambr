@@ -60,7 +60,7 @@
         'references': False,
         'selected': True,
         'title': '3 Data',
-        'utterances': 23,
+        'utterances': 14,
       }),
       dict({
         'blocks': list([
@@ -72,7 +72,7 @@
         'references': False,
         'selected': True,
         'title': '4 Test',
-        'utterances': 17,
+        'utterances': 10,
       }),
       dict({
         'blocks': list([
@@ -84,7 +84,7 @@
         'references': False,
         'selected': True,
         'title': '5 Results',
-        'utterances': 16,
+        'utterances': 18,
       }),
       dict({
         'blocks': list([
@@ -96,7 +96,7 @@
         'references': False,
         'selected': True,
         'title': '6 Analysis',
-        'utterances': 13,
+        'utterances': 15,
       }),
       dict({
         'blocks': list([
@@ -108,7 +108,7 @@
         'references': False,
         'selected': True,
         'title': '7 Conclusion',
-        'utterances': 14,
+        'utterances': 18,
       }),
       dict({
         'blocks': list([
@@ -144,7 +144,7 @@
         'references': False,
         'selected': True,
         'title': 'A Appendix',
-        'utterances': 98,
+        'utterances': 99,
       }),
     ]),
     'counts': dict({
@@ -169,8 +169,15 @@
         'set_aside': 0,
         'switched_off': 0,
       }),
-      'footnotes': dict({
+      'footnote-texts': dict({
         'applied': 0,
+        'label': 'Footnote texts',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 2,
+      }),
+      'footnotes': dict({
+        'applied': 3,
         'label': 'Footnotes',
         'not_spoken': 0,
         'set_aside': 0,
@@ -207,12 +214,12 @@
       'references': dict({
         'applied': 0,
         'label': 'Reference list',
-        'not_spoken': 0,
+        'not_spoken': 17,
         'set_aside': 0,
         'switched_off': 0,
       }),
       'tables-and-figures': dict({
-        'applied': 0,
+        'applied': 11,
         'label': 'Tables and figures',
         'not_spoken': 0,
         'set_aside': 0,
@@ -412,6 +419,671 @@
         'status': 'accepted',
         'step': 'page-furniture',
       }),
+      dict({
+        'block': 75,
+        'category': 'references',
+        'chapter': 10,
+        'end': 10,
+        'kind': 'remove',
+        'original': 'References',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 76,
+        'category': 'references',
+        'chapter': 10,
+        'end': 54,
+        'kind': 'remove',
+        'original': '''
+          OpenAI GPT-3 Models Overview. Accessed on 2023-
+          01-10.
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 78,
+        'category': 'references',
+        'chapter': 10,
+        'end': 326,
+        'kind': 'remove',
+        'original': '''
+          Rahul Aralikatte, Matthew Lamm, Daniel Hardt, and
+          Anders Søgaard. 2021. Ellipsis resolution as ques-
+          tion answering: An evaluation. In Proceedings of the
+          16th Conference of the European Chapter of the Asso-
+          ciation for Computational Linguistics: Main Volume,
+          pages 810–817, Online. Association for Computa-
+          tional Linguistics.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 79,
+        'category': 'references',
+        'chapter': 10,
+        'end': 141,
+        'kind': 'remove',
+        'original': '''
+          Johan Bos and Jennifer Spenader. 2011. An annotated
+          corpus for the analysis of VP ellipsis. Language
+          resources and evaluation, 45(4):463–494.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 80,
+        'category': 'references',
+        'chapter': 10,
+        'end': 209,
+        'kind': 'remove',
+        'original': '''
+          Pradeep Dasigi, Nelson F Liu, Ana Marasovic, Noah A ´
+          Smith, and Matt Gardner. 2019. Quoref: A
+          reading comprehension dataset with questions re-
+          quiring coreferential reasoning. arXiv preprint
+          arXiv:1908.05803.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 81,
+        'category': 'references',
+        'chapter': 10,
+        'end': 118,
+        'kind': 'remove',
+        'original': '''
+          Alan Garnham. 2010. Models of processing: Discourse.
+          Wiley Interdisciplinary Reviews: Cognitive Science,
+          1(6):845–853.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 82,
+        'category': 'references',
+        'chapter': 10,
+        'end': 122,
+        'kind': 'remove',
+        'original': '''
+          Hans Kamp. 1981. A theory of truth and semantic
+          representation. In Formal methods in the study of
+          language, pages 277–322.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 83,
+        'category': 'references',
+        'chapter': 10,
+        'end': 260,
+        'kind': 'remove',
+        'original': '''
+          Kian Kenyon-Dean, Jackie Chi Kit Cheung, and Doina
+          Precup. 2016. Verb phrase ellipsis resolution us-
+          ing discriminative and margin-infused algorithms.
+          In Proceedings of the 2016 Conference on Empiri-
+          cal Methods in Natural Language Processing, pages
+          1734–1743.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 84,
+        'category': 'references',
+        'chapter': 10,
+        'end': 351,
+        'kind': 'remove',
+        'original': '''
+          Payal Khullar. 2020. Exploring statistical and neural
+          models for noun ellipsis detection and resolution in
+          english. In Proceedings of the 1st Conference of the
+          Asia-Pacific Chapter of the Association for Compu-
+          tational Linguistics and the 10th International Joint
+          Conference on Natural Language Processing: Stu-
+          dent Research Workshop, pages 139–145.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 85,
+        'category': 'references',
+        'chapter': 10,
+        'end': 166,
+        'kind': 'remove',
+        'original': '''
+          Vid Kocijan, Ernest Davis, Thomas Lukasiewicz, Gary
+          Marcus, and Leora Morgenstern. 2022. The Defeat
+          of the Winograd Schema Challenge. arXiv preprint
+          arXiv:2201.02387.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 86,
+        'category': 'references',
+        'chapter': 10,
+        'end': 192,
+        'kind': 'remove',
+        'original': '''
+          Hector Levesque, Ernest Davis, and Leora Morgenstern.
+          2012. The Winograd Schema Challenge. In Thir-
+          teenth international conference on the principles of
+          knowledge representation and reasoning.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 87,
+        'category': 'references',
+        'chapter': 10,
+        'end': 140,
+        'kind': 'remove',
+        'original': '''
+          Yongjie Lin, Yi Chern Tan, and Robert Frank. 2019.
+          Open Sesame: getting inside BERT’s linguistic
+          knowledge. arXiv preprint arXiv:1906.01698.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 88,
+        'category': 'references',
+        'chapter': 10,
+        'end': 179,
+        'kind': 'remove',
+        'original': '''
+          Andrea E Martin and Brian McElree. 2008. A content-
+          addressable pointer mechanism underlies comprehen-
+          sion of verb-phrase ellipsis. Journal of Memory and
+          Language, 58(3):879–906.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 89,
+        'category': 'references',
+        'chapter': 10,
+        'end': 120,
+        'kind': 'remove',
+        'original': '''
+          Ivan A Sag and Jorge Hankamer. 1984. Toward a theory
+          of anaphoric processing. Linguistics and philosophy,
+          pages 325–345.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 90,
+        'category': 'references',
+        'chapter': 10,
+        'end': 363,
+        'kind': 'remove',
+        'original': '''
+          Lindsey Vanderlyn, Talita Anthonio, Daniel Ortega,
+          Michael Roth, and Ngoc Thang Vu. 2022. Toward
+          implicit reference in dialog: A survey of methods and
+          data. In Proceedings of the 2nd Conference of the
+          Asia-Pacific Chapter of the Association for Compu-
+          tational Linguistics and the 12th International Joint
+          Conference on Natural Language Processing, pages
+          587–600.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 91,
+        'category': 'references',
+        'chapter': 10,
+        'end': 227,
+        'kind': 'remove',
+        'original': '''
+          Wei-Nan Zhang, Yue Zhang, Yuanxing Liu, Donglin
+          Di, and Ting Liu. 2019. A neural network approach
+          to verb phrase ellipsis resolution. In Proceedings
+          of the AAAI Conference on Artificial Intelligence,
+          volume 33, pages 7468–7475.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 92,
+        'category': 'references',
+        'chapter': 10,
+        'end': 234,
+        'kind': 'remove',
+        'original': '''
+          Zhuosheng Zhang and Hai Zhao. 2022. Tracing origins:
+          Coreference-aware machine reading comprehension.
+          In Proceedings of the 60th Annual Meeting of the
+          Association for Computational Linguistics (Volume
+          1: Long Papers), pages 1281–1292.
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 37,
+        'category': 'tables-and-figures',
+        'chapter': 4,
+        'end': 417,
+        'kind': 'replace',
+        'original': '''
+          Structure Example
+          Separate William went running.
+          Sentence John did too.
+          Conjoined William went running,
+          Sentence and John did too.
+          Subordinate Because William went running,
+          Antecedent John did.
+          Subordinate William went running
+          VPE after John did.
+          Backwards Because John did,
+          William went running.
+          Two Actions William didn’t go running
+          but John did.
+          William went shopping
+          and John didn’t.
+          Question Did John go running?
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'Table 1 is not read; a short notice is read instead (D-55)',
+        'said': 'Table 1 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 43,
+        'category': 'tables-and-figures',
+        'chapter': 5,
+        'end': 428,
+        'kind': 'replace',
+        'original': '''
+          Structure Example
+          Separate William went running.
+          Sentence But John didn’t.
+          Conjoined William went running,
+          Sentence but John didn’t.
+          Subordinate Because William went running,
+          Antecedent John didn’t.
+          Subordinate William went running
+          VPE after John didn’t.
+          Backwards Because John didn’t,
+          William went running.
+          Two Actions William didn’t go shopping
+          but John did.
+          William went running
+          and John didn’t.
+          Question Did John go running?
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'Table 2 is not read; a short notice is read instead (D-55)',
+        'said': 'Table 2 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 49,
+        'category': 'tables-and-figures',
+        'chapter': 6,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'Figure 1 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 1 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 51,
+        'category': 'tables-and-figures',
+        'chapter': 6,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'Figure 2 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 2 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 56,
+        'category': 'tables-and-figures',
+        'chapter': 7,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'Figure 3 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 3 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 58,
+        'category': 'tables-and-figures',
+        'chapter': 7,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'Figure 4 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 4 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 64,
+        'category': 'tables-and-figures',
+        'chapter': 8,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'Figure 5 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 5 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 66,
+        'category': 'tables-and-figures',
+        'chapter': 8,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'Figure 6 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 6 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 69,
+        'category': 'tables-and-figures',
+        'chapter': 8,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'Figure 7 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 7 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 71,
+        'category': 'tables-and-figures',
+        'chapter': 8,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'Figure 8 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 8 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 114,
+        'category': 'tables-and-figures',
+        'chapter': 11,
+        'end': 246,
+        'kind': 'replace',
+        'original': '''
+          Category Substitution List
+          Subject “Mary", “Harold", “Sam", “William",
+          “The teacher", “The student", “The driver",
+          “My friend", “John", “Elena", “Karen",
+          “Mrs Jones"
+          Verb “swimming", “shopping", “running",
+          “walking", “skiing", “jogging", “hiking"
+        ''',
+        'page': 7,
+        'printed_page': '45',
+        'reason': 'Table 3 is not read; a short notice is read instead (D-55)',
+        'said': 'Table 3 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
+      dict({
+        'block': 42,
+        'category': 'footnote-texts',
+        'chapter': 5,
+        'end': 99,
+        'kind': 'remove',
+        'original': '''
+          1Datasets and associated programs can be ac-
+          cessed at https://github.com/DanHardtDK/
+          ellipsisGPT3.
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'footnote 1 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 147,
+        'category': 'footnote-texts',
+        'chapter': 11,
+        'end': 132,
+        'kind': 'remove',
+        'original': '''
+          The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing
+          assistance.
+        ''',
+        'page': 8,
+        'printed_page': '46',
+        'reason': 'a footnote is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 39,
+        'category': 'footnotes',
+        'chapter': 4,
+        'end': 246,
+        'kind': 'remove',
+        'original': '1',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'footnote mark 1 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 245,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 42,
+        'category': 'footnotes',
+        'chapter': 5,
+        'end': 1,
+        'kind': 'replace',
+        'original': '1',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'footnote 1 is introduced by its mark',
+        'said': 'Footnote 1. ',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 147,
+        'category': 'footnotes',
+        'chapter': 11,
+        'end': 0,
+        'kind': 'replace',
+        'original': '',
+        'page': 8,
+        'printed_page': '46',
+        'reason': 'a footnote is introduced',
+        'said': 'Footnote. ',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
@@ -425,6 +1097,7 @@
       'language': '',
       'speed': 1.0,
       'switched_off': list([
+        'footnote-texts',
       ]),
       'voice': '',
     }),
@@ -452,14 +1125,14 @@
   | 2 | Abstract | 1 | yes | 4 |
   | 3 | 1 Introduction | 1 | yes | 24 |
   | 4 | 2 Related Work | 1 | yes | 39 |
-  | 5 | 3 Data | 2 | yes | 23 |
-  | 6 | 4 Test | 3 | yes | 17 |
-  | 7 | 5 Results | 3 | yes | 16 |
-  | 8 | 6 Analysis | 4 | yes | 13 |
-  | 9 | 7 Conclusion | 4 | yes | 14 |
+  | 5 | 3 Data | 2 | yes | 14 |
+  | 6 | 4 Test | 3 | yes | 10 |
+  | 7 | 5 Results | 3 | yes | 18 |
+  | 8 | 6 Analysis | 4 | yes | 15 |
+  | 9 | 7 Conclusion | 4 | yes | 18 |
   | 10 | 8 Limitations | 5 | yes | 4 |
   | 11 | References | 5 | no (reference list) | 0 |
-  | 12 | A Appendix | 6 | yes | 98 |
+  | 12 | A Appendix | 6 | yes | 99 |
   
   ## Edits per category
   
@@ -467,12 +1140,13 @@
   |---|---|---|---|---|
   | Page furniture | 11 | 1 | 0 | 0 |
   | Characters and hyphenation | 0 | 0 | 0 | 0 |
-  | Footnotes | 0 | 0 | 0 | 0 |
+  | Footnotes | 3 | 0 | 0 | 0 |
+  | Footnote texts | 0 | 0 | 0 | 2 |
   | Citations | 0 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 0 | 0 | 0 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
-  | Tables and figures | 0 | 0 | 0 | 0 |
-  | Reference list | 0 | 0 | 0 | 0 |
+  | Tables and figures | 11 | 0 | 0 | 0 |
+  | Reference list | 0 | 17 | 0 | 0 |
   | Abbreviations | 0 | 0 | 0 | 0 |
   | Numbers, symbols, units and statistics | 0 | 0 | 0 | 0 |
   
@@ -490,6 +1164,51 @@
   - page 7 (printed 45), chapter 12, applied: “45” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 8 (printed 46), chapter 12, applied: “46” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 9 (printed 47), chapter 12, applied: “47” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
+  
+  ## Footnotes (3)
+  
+  - page 3 (printed 41), chapter 5, applied: “1” → left out. Reason: footnote mark 1 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 3 (printed 41), chapter 6, applied: “1” → read as “Footnote 1.”. Reason: footnote 1 is introduced by its mark. Step: footnotes.
+  - page 8 (printed 46), chapter 12, applied: (position) → read as “Footnote.”. Reason: a footnote is introduced. Step: footnotes.
+  
+  ## Footnote texts (2)
+  
+  - page 3 (printed 41), chapter 6, switched off: “1Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 8 (printed 46), chapter 12, switched off: “The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing assistance.” → left out. Reason: a footnote is left out (all footnotes are left out). Step: footnote-texts.
+  
+  ## Tables and figures (11)
+  
+  - page 3 (printed 41), chapter 5, applied: “Structure Example Separate William went running. Sentence John did too. Conjoined William went running, Sentence and John did too. Subordinate Because William went running, Antecedent John did. Subordinate William went running VPE after John did. Backwards Because John did, William went running. Two Actions William didn’t go running but John did. William went shopping and John didn’t. Question Did John go running?” → read as “Table 1 is skipped.”. Reason: Table 1 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 3 (printed 41), chapter 6, applied: “Structure Example Separate William went running. Sentence But John didn’t. Conjoined William went running, Sentence but John didn’t. Subordinate Because William went running, Antecedent John didn’t. Subordinate William went running VPE after John didn’t. Backwards Because John didn’t, William went running. Two Actions William didn’t go shopping but John did. William went running and John didn’t. Question Did John go running?” → read as “Table 2 is skipped.”. Reason: Table 2 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 4 (printed 42), chapter 7, applied: (position) → read as “Figure 1 is skipped.”. Reason: Figure 1 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 4 (printed 42), chapter 7, applied: (position) → read as “Figure 2 is skipped.”. Reason: Figure 2 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 4 (printed 42), chapter 8, applied: (position) → read as “Figure 3 is skipped.”. Reason: Figure 3 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 4 (printed 42), chapter 8, applied: (position) → read as “Figure 4 is skipped.”. Reason: Figure 4 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 5 (printed 43), chapter 9, applied: (position) → read as “Figure 5 is skipped.”. Reason: Figure 5 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 5 (printed 43), chapter 9, applied: (position) → read as “Figure 6 is skipped.”. Reason: Figure 6 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 5 (printed 43), chapter 9, applied: (position) → read as “Figure 7 is skipped.”. Reason: Figure 7 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 5 (printed 43), chapter 9, applied: (position) → read as “Figure 8 is skipped.”. Reason: Figure 8 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  - page 7 (printed 45), chapter 12, applied: “Category Substitution List Subject “Mary", “Harold", “Sam", “William", “The teacher", “The student", “The driver", “My friend", “John", “Elena", “Karen", “Mrs Jones" Verb “swimming", “shopping", “running", “walking", “skiing", “jogging", “hiking"” → read as “Table 3 is skipped.”. Reason: Table 3 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  
+  ## Reference list (17)
+  
+  - page 5 (printed 43), chapter 11, not spoken (chapter not chosen): “References” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 5 (printed 43), chapter 11, not spoken (chapter not chosen): “OpenAI GPT-3 Models Overview. Accessed on 2023- 01-10.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Rahul Aralikatte, Matthew Lamm, Daniel Hardt, and Anders Søgaard. 2021. Ellipsis resolution as ques- tion answering: An evaluation. In Proceedings of the 16th Conference of the European Chapter of the Asso- ciation for Computational Linguistics: Main Volume, pages 810–817, Online. Association for Computa- tional Linguistics.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Johan Bos and Jennifer Spenader. 2011. An annotated corpus for the analysis of VP ellipsis. Language resources and evaluation, 45(4):463–494.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Pradeep Dasigi, Nelson F Liu, Ana Marasovic, Noah A ´ Smith, and Matt Gardner. 2019. Quoref: A reading comprehension dataset with questions re- quiring coreferential reasoning. arXiv preprint arXiv:1908.05803.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Alan Garnham. 2010. Models of processing: Discourse. Wiley Interdisciplinary Reviews: Cognitive Science, 1(6):845–853.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Hans Kamp. 1981. A theory of truth and semantic representation. In Formal methods in the study of language, pages 277–322.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Kian Kenyon-Dean, Jackie Chi Kit Cheung, and Doina Precup. 2016. Verb phrase ellipsis resolution us- ing discriminative and margin-infused algorithms. In Proceedings of the 2016 Conference on Empiri- cal Methods in Natural Language Processing, pages 1734–1743.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Payal Khullar. 2020. Exploring statistical and neural models for noun ellipsis detection and resolution in english. In Proceedings of the 1st Conference of the Asia-Pacific Chapter of the Association for Compu- tational Linguistics and the 10th International Joint Conference on Natural Language Processing: Stu- dent Research Workshop, pages 139–145.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Vid Kocijan, Ernest Davis, Thomas Lukasiewicz, Gary Marcus, and Leora Morgenstern. 2022. The Defeat of the Winograd Schema Challenge. arXiv preprint arXiv:2201.02387.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Hector Levesque, Ernest Davis, and Leora Morgenstern. 2012. The Winograd Schema Challenge. In Thir- teenth international conference on the principles of knowledge representation and reasoning.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Yongjie Lin, Yi Chern Tan, and Robert Frank. 2019. Open Sesame: getting inside BERT’s linguistic knowledge. arXiv preprint arXiv:1906.01698.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Andrea E Martin and Brian McElree. 2008. A content- addressable pointer mechanism underlies comprehen- sion of verb-phrase ellipsis. Journal of Memory and Language, 58(3):879–906.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Ivan A Sag and Jorge Hankamer. 1984. Toward a theory of anaphoric processing. Linguistics and philosophy, pages 325–345.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Lindsey Vanderlyn, Talita Anthonio, Daniel Ortega, Michael Roth, and Ngoc Thang Vu. 2022. Toward implicit reference in dialog: A survey of methods and data. In Proceedings of the 2nd Conference of the Asia-Pacific Chapter of the Association for Compu- tational Linguistics and the 12th International Joint Conference on Natural Language Processing, pages 587–600.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Wei-Nan Zhang, Yue Zhang, Yuanxing Liu, Donglin Di, and Ting Liu. 2019. A neural network approach to verb phrase ellipsis resolution. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, pages 7468–7475.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Zhuosheng Zhang and Hai Zhao. 2022. Tracing origins: Coreference-aware machine reading comprehension. In Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 1281–1292.” → left out. Reason: the reference list is not read. Step: reference-list.
   
   '''
 # ---
@@ -603,6 +1322,13 @@
         'set_aside': 0,
         'switched_off': 0,
       }),
+      'footnote-texts': dict({
+        'applied': 0,
+        'label': 'Footnote texts',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
       'footnotes': dict({
         'applied': 0,
         'label': 'Footnotes',
@@ -641,12 +1367,12 @@
       'references': dict({
         'applied': 0,
         'label': 'Reference list',
-        'not_spoken': 0,
+        'not_spoken': 9,
         'set_aside': 0,
         'switched_off': 0,
       }),
       'tables-and-figures': dict({
-        'applied': 0,
+        'applied': 1,
         'label': 'Tables and figures',
         'not_spoken': 0,
         'set_aside': 0,
@@ -1118,6 +1844,205 @@
         'status': 'accepted',
         'step': 'page-furniture',
       }),
+      dict({
+        'block': 61,
+        'category': 'references',
+        'chapter': 6,
+        'end': 10,
+        'kind': 'remove',
+        'original': 'References',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 62,
+        'category': 'references',
+        'chapter': 6,
+        'end': 192,
+        'kind': 'remove',
+        'original': '''
+          Cumming, G., & Finch, S. (2005). Inference by eye: confidence intervals and how to read
+          pictures of data. The American Psychologist, 60(2), 170–180. https://doi.org/10.1037/
+          0003-066X.60.2.170
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 63,
+        'category': 'references',
+        'chapter': 6,
+        'end': 388,
+        'kind': 'remove',
+        'original': '''
+          Harris, C. R., Millman, K. J., Walt, S. J. van der, Gommers, R., Virtanen, P., Cournapeau,
+          D., Wieser, E., Taylor, J., Berg, S., Smith, N. J., Kern, R., Picus, M., Hoyer, S., Kerkwijk,
+          M. H. van, Brett, M., Haldane, A., R’ıo, J. F. del, Wiebe, M., Peterson, P., … Oliphant,
+          T. E. (2020). Array programming with NumPy. Nature, 585(7825), 357–362. https:
+          //doi.org/10.1038/s41586-020-2649-2
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 64,
+        'category': 'references',
+        'chapter': 6,
+        'end': 146,
+        'kind': 'remove',
+        'original': '''
+          Hunter, J. D. (2007). Matplotlib: A 2D graphics environment. Computing in Science &
+          Engineering, 9(3), 90–95. https://doi.org/10.1109/MCSE.2007.55
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 65,
+        'category': 'references',
+        'chapter': 6,
+        'end': 223,
+        'kind': 'remove',
+        'original': '''
+          McKinney, W. (2010). Data structures for statistical computing in python. In S. van der Walt
+          & J. Millman (Eds.), Proceedings of the 9th Python in Science Conference (pp. 51–56).
+          https://doi.org/10.25080/Majora-92bf1922-00a
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 66,
+        'category': 'references',
+        'chapter': 6,
+        'end': 84,
+        'kind': 'remove',
+        'original': 'Tukey, J. W. (1977). Exploratory data analysis. Addison-Wesley. ISBN: 978-0201076165',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 67,
+        'category': 'references',
+        'chapter': 6,
+        'end': 224,
+        'kind': 'remove',
+        'original': '''
+          Waskom, M. L., & Wagner, A. D. (2017). Distributed representation of context by intrinsic
+          subnetworks in prefrontal cortex. Proceedings of the National Academy of Sciences, 2030–
+          2035. https://doi.org/10.1073/pnas.1615269114
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 68,
+        'category': 'references',
+        'chapter': 6,
+        'end': 125,
+        'kind': 'remove',
+        'original': '''
+          Wickham, H. (2014). Tidy data. Journal of Statistical Software, Articles, 59(10), 1–23.
+          https://doi.org/10.18637/jss.v059.i10
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 69,
+        'category': 'references',
+        'chapter': 6,
+        'end': 105,
+        'kind': 'remove',
+        'original': '''
+          Wickham, H. (2016). ggplot2: Elegant graphics for data analysis. Springer-Verlag.
+          ISBN: 978-3-319-24277-4
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 42,
+        'category': 'tables-and-figures',
+        'chapter': 3,
+        'end': 116,
+        'kind': 'replace',
+        'original': '''
+          region = parietal region = frontal
+          0.3
+          0.2
+          signal event
+          0.1
+          stim
+          cue
+          0.0
+          0.1
+          0 5 10 15 0 5 10 15
+          timepoint timepoint
+        ''',
+        'page': 2,
+        'printed_page': '2',
+        'reason': 'Figure 1 is not read; a short notice is read instead (D-55)',
+        'said': 'Figure 1 is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
@@ -1131,6 +2056,7 @@
       'language': '',
       'speed': 1.0,
       'switched_off': list([
+        'footnote-texts',
       ]),
       'voice': '',
     }),
@@ -1169,11 +2095,12 @@
   | Page furniture | 26 | 3 | 0 | 0 |
   | Characters and hyphenation | 0 | 0 | 0 | 0 |
   | Footnotes | 0 | 0 | 0 | 0 |
+  | Footnote texts | 0 | 0 | 0 | 0 |
   | Citations | 0 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 0 | 0 | 0 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
-  | Tables and figures | 0 | 0 | 0 | 0 |
-  | Reference list | 0 | 0 | 0 | 0 |
+  | Tables and figures | 1 | 0 | 0 | 0 |
+  | Reference list | 0 | 9 | 0 | 0 |
   | Abbreviations | 0 | 0 | 0 | 0 |
   | Numbers, symbols, units and statistics | 0 | 0 | 0 | 0 |
   
@@ -1208,6 +2135,22 @@
   - page 4, chapter 7, not spoken (chapter not chosen): “Waskom, M. L., (2021). seaborn: statistical data visualization. Journal of Open Source Software, 6(60), 3021. https://doi.org/10.21105/joss.” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
   - page 4, chapter 7, not spoken (chapter not chosen): “4” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 4, chapter 7, not spoken (chapter not chosen): “03021” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  
+  ## Tables and figures (1)
+  
+  - page 2, chapter 4, applied: “region = parietal region = frontal 0.3 0.2 signal event 0.1 stim cue 0.0 0.1 0 5 10 15 0 5 10 15 timepoint timepoint” → read as “Figure 1 is skipped.”. Reason: Figure 1 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
+  
+  ## Reference list (9)
+  
+  - page 4, chapter 7, not spoken (chapter not chosen): “References” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 4, chapter 7, not spoken (chapter not chosen): “Cumming, G., & Finch, S. (2005). Inference by eye: confidence intervals and how to read pictures of data. The American Psychologist, 60(2), 170–180. https://doi.org/10.1037/ 0003-066X.60.2.170” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 4, chapter 7, not spoken (chapter not chosen): “Harris, C. R., Millman, K. J., Walt, S. J. van der, Gommers, R., Virtanen, P., Cournapeau, D., Wieser, E., Taylor, J., Berg, S., Smith, N. J., Kern, R., Picus, M., Hoyer, S., Kerkwijk, M. H. van, Brett, M., Haldane, A., R’ıo, J. F. del, Wiebe, M., Peterson, P., … Oliphant, T. E. (2020). Array programming with NumPy. Nature, 585(7825), 357–362. https: //doi.org/10.1038/s41586-020-2649-2” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 4, chapter 7, not spoken (chapter not chosen): “Hunter, J. D. (2007). Matplotlib: A 2D graphics environment. Computing in Science & Engineering, 9(3), 90–95. https://doi.org/10.1109/MCSE.2007.55” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 4, chapter 7, not spoken (chapter not chosen): “McKinney, W. (2010). Data structures for statistical computing in python. In S. van der Walt & J. Millman (Eds.), Proceedings of the 9th Python in Science Conference (pp. 51–56). https://doi.org/10.25080/Majora-92bf1922-00a” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 4, chapter 7, not spoken (chapter not chosen): “Tukey, J. W. (1977). Exploratory data analysis. Addison-Wesley. ISBN: 978-0201076165” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 4, chapter 7, not spoken (chapter not chosen): “Waskom, M. L., & Wagner, A. D. (2017). Distributed representation of context by intrinsic subnetworks in prefrontal cortex. Proceedings of the National Academy of Sciences, 2030– 2035. https://doi.org/10.1073/pnas.1615269114” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 4, chapter 7, not spoken (chapter not chosen): “Wickham, H. (2014). Tidy data. Journal of Statistical Software, Articles, 59(10), 1–23. https://doi.org/10.18637/jss.v059.i10” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 4, chapter 7, not spoken (chapter not chosen): “Wickham, H. (2016). ggplot2: Elegant graphics for data analysis. Springer-Verlag. ISBN: 978-3-319-24277-4” → left out. Reason: the reference list is not read. Step: reference-list.
   
   '''
 # ---
@@ -1339,21 +2282,12 @@
   Finally, we have a Two Actions structure; that is, two ellipsis occurrences each with their respective antecedent VPs.
   We have two versions: one in which the target question has a correct answer of “Yes", shown in table 1, and another where the target question has a correct answer of “No", shown in table 2.
   
-  Structure Example Separate William went running.
-  Sentence John did too.
-  Conjoined William went running, Sentence and John did too.
-  Subordinate Because William went running, Antecedent John did.
-  Subordinate William went running VPE after John did.
-  Backwards Because John did, William went running.
-  Two Actions William didn’t go running but John did.
-  William went shopping and John didn’t.
-  Question Did John go running?
+  Table 1 is skipped.
   
   Table 1: Structures for Positive Answer
   
   We generate large numbers of examples of each structure by performing random substitutions for both the subject and verb.
   The substitution lists are given in the appendix, along with samples of each structure and the size of the resulting sets.
-  1
   
   # 6. 4 Test
   
@@ -1365,17 +2299,10 @@
   We test five GPT-3 mod- els on these structures: Davinci-003, Davinci-002, Curie-001, Babbage-001, and Ada-001.
   According to the GPT-3 documentation, Davinci-003 is the most powerful model and Ada-001, the least.
   
-  1Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.
+  Footnote 1.
+  Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.
   
-  Structure Example Separate William went running.
-  Sentence But John didn’t.
-  Conjoined William went running, Sentence but John didn’t.
-  Subordinate Because William went running, Antecedent John didn’t.
-  Subordinate William went running VPE after John didn’t.
-  Backwards Because John didn’t, William went running.
-  Two Actions William didn’t go shopping but John did.
-  William went running and John didn’t.
-  Question Did John go running?
+  Table 2 is skipped.
   
   Table 2: Structures for Negative Answer
   
@@ -1398,7 +2325,11 @@
   Subordination for either antecedent or el- lipsis is quite challenging, with accuracies ranging from 48.8 to 85.8.
   The Backwards and Two Ac- tions structures are even more difficult for ellipsis.
   
+  Figure 1 is skipped.
+  
   Figure 1: Model Accuracy – Ellipsis vs. Non-Ellipsis (5000 examples per model.)
+  
+  Figure 2 is skipped.
   
   Figure 2: Ellipsis Accuracy – davinci-003 (1000 exam- ples per structure.)
   
@@ -1414,7 +2345,11 @@
   However, figures 2 and 3 show that the advantage of Davinci- 002 on ellipsis is exclusively due to the subordi- nate antecedent construction.
   In every other el- lipsis structure, Davinci-003 performs better than Davinci-002.
   
+  Figure 3 is skipped.
+  
   Figure 3: Ellipsis Accuracy – davinci-002 (1000 exam- ples per structure.)
+  
+  Figure 4 is skipped.
   
   Figure 4: Ellipsis Accuracy – curie-001 (1000 examples per structure.)
   
@@ -1433,15 +2368,23 @@
   In this paper we have argued that ellipsis is one such area.
   For many simple ellipsis structures, the most powerful GPT-3 models struggle, with accuracies far lower on ellipsis examples than on non-elliptical counterparts.
   
+  Figure 5 is skipped.
+  
   Figure 5: Ellipsis Accuracy – babbage-001 (1000 exam- ples per structure.)
+  
+  Figure 6 is skipped.
   
   Figure 6: Ellipsis Accuracy – ada-001 (1000 examples per structure.)
   
   In many ways, GPT-3 appears to understand the texts that it processes, often being able to answer questions that appear to rely on sophisti- cated reasoning.
   However, the challenge of ellipsis- dependent reasoning provides evidence that GPT-3 is not able to understand in anything like the way humans do.
   
+  Figure 7 is skipped.
+  
   Figure 7: Ellipsis case – Errors by model.
   False Pos- itives (Incorrect “Yes") vs. False Negatives (Incorrect “No")
+  
+  Figure 8 is skipped.
   
   Figure 8: Non-ellipsis case – Errors by model.
   False Positives (Incorrect “Yes") vs. False Negatives (Incor- rect “No")
@@ -1500,7 +2443,7 @@
   Q: Did Harold go shopping?
   A: No
   
-  Category Substitution List Subject “Mary", “Harold", “Sam", “William", “The teacher", “The student", “The driver", “My friend", “John", “Elena", “Karen", “Mrs Jones" Verb “swimming", “shopping", “running", “walking", “skiing", “jogging", “hiking"
+  Table 3 is skipped.
   
   Table 3: Substitutions
   
@@ -1579,6 +2522,7 @@
   
   standard access to GPT3 models
   
+  Footnote.
   The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing assistance.
   
   ✗ C2.
@@ -1699,7 +2643,7 @@
   
   g.savefig("paper_demo.pdf")
   
-  region = parietal region = frontal 0.3 0.2 signal event 0.1 stim cue 0.0 0.1 0 5 10 15 0 5 10 15 timepoint timepoint
+  Figure 1 is skipped.
   
   Figure 1: An example seaborn figure demonstrating some of its key features.
   The image was generated using seaborn v0.11.1.
