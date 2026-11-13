@@ -31,6 +31,19 @@ jobs:
         run: uv run lint-imports
       - name: Dependencies (deptry)
         run: uv run deptry src
+      # D-374: flaky tests are skipped with a linked issue; all must be fixed before v1.0.
+      - name: Quarantined tests (listed in the job summary)
+        run: |
+          uv run pytest -m quarantined --collect-only -q -p no:cacheprovider | tee quarantined.txt
+          {
+            echo "## Quarantined tests (D-374)"
+            echo
+            echo "Each is skipped until its issue is fixed; all must be fixed before v1.0 (#80)."
+            echo
+            echo '```'
+            grep -E '^ +#[0-9]+ ' quarantined.txt || echo "none"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   licences:
     name: licences

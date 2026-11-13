@@ -7,6 +7,7 @@ Copy this list into the release Issue and tick each item. Steps marked *(not yet
 - [ ] CI on `main` is green (`CI passed`).
 - [ ] Last nightly run is green: slow tests, property tests with many examples, benchmarks.
 - [ ] No open Dependabot security alert.
+- [ ] No quarantined tests (D-374): `uv run pytest -m quarantined --collect-only -q` collects none, and the "Quarantined tests" list in the CI job summary says "none". Fix each one and close its issue first.
 
 ## By hand (about an hour)
 
