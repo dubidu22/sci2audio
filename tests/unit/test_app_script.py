@@ -10,7 +10,8 @@ from hypothesis import strategies as st
 
 from sci2audio.app import JobSettings, build_report, prepare_script, report_data
 from sci2audio.app.job import settings_data
-from sci2audio.core import BlockKind, Document, Edit, EditKind, Section, Span
+from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Section, Span
+from sci2audio.testing import make_document
 from sci2audio.textprep import (
     BUILT_IN_STEPS,
     Category,
@@ -252,8 +253,19 @@ def test_the_built_in_steps_always_prepare_a_script(document: Document) -> None:
     result = prepare_script(document, JobSettings(), BUILT_IN_STEPS)
     report = build_report(result, {})
     assert report.problems == ()
+    # every edit comes from a built-in step (since #64 they edit more than furniture: notes,
+    # placeholders, the reference list), and the default job leaves no note out (D-142)
     ids = {step.id for step in BUILT_IN_STEPS}
     for entry in report.edits:
         assert entry.step in ids
-        if entry.step == "page-furniture":
-            assert document.blocks[entry.where.span.block].kind is BlockKind.FURNITURE
+    assert all(o.status is not Status.ACCEPTED for o in result.run.outcomes
+               if o.edit.step == "footnote-texts")  # fmt: skip
+
+
+def test_a_default_job_reads_each_note_and_footnote_texts_leaves_them_out() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "Body."),
+                              Block(BlockKind.FOOTNOTE, "1 A note.", label="1")])  # fmt: skip
+    read = [u.text for u in prepare_script(document, JobSettings()).utterances]
+    assert "Footnote 1." in read
+    everything = JobSettings(switched_off=frozenset())  # Footnote texts turned on
+    assert [u.text for u in prepare_script(document, everything).utterances] == ["Body."]

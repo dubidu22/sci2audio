@@ -16,7 +16,6 @@ folder, written last: the record the audio job (#71) resumes from.
 from __future__ import annotations
 
 import json
-import threading
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -34,7 +33,7 @@ from sci2audio.app.report import (
 )
 from sci2audio.app.script import ScriptResult, prepare_script
 from sci2audio.app.settings import JobSettings
-from sci2audio.core import Content
+from sci2audio.core import Content, Document
 from sci2audio.extraction import ExtractionError, extract_pdf
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.output.names import clean
@@ -54,7 +53,10 @@ class Phase(StrEnum):
     READING = "reading"  # extraction
     LAYOUT = "layout"
     TEXT_STEPS = "text-steps"  # the steps, chapters and cutting into utterances
-    WRITING = "writing"
+    LOADING_VOICE = "loading-voice"  # audio job: the voice model loads (skipped if all cached)
+    SPEAKING = "speaking"  # audio job: the voice speaks the chunks not yet in the cache
+    ENCODING = "encoding"  # audio job: output writes the MP3s, the M4B and the read-along
+    WRITING = "writing"  # script job: its three files
     DONE = "done"
 
 
@@ -71,7 +73,12 @@ class OutputExistsError(JobError):
 
 
 class JobBusyError(JobError):
-    """The runner is already running a job (one job at a time)."""
+    """The runner, or another process on the same working folder, is already running a job
+    (one job at a time)."""
+
+
+class JobCancelledError(JobError):
+    """The person cancelled the job; what was finished is kept for a rerun."""
 
 
 @dataclass(frozen=True)
@@ -121,44 +128,6 @@ def settings_data(settings: JobSettings) -> dict[str, Any]:
     }
 
 
-class JobRunner:
-    """Runs one job at a time. The cli and the server each make one; no global state."""
-
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-
-    @property
-    def busy(self) -> bool:
-        return self._lock.locked()
-
-    def run_script(
-        self,
-        source: Path,
-        settings: JobSettings,
-        work: Path,
-        *,
-        overwrite: bool = False,
-        progress: Callable[[Phase], None] | None = None,
-        steps: Sequence[TextStep] = BUILT_IN_STEPS,
-        max_chars: int = DEFAULT_MAX_CHARS,
-    ) -> ScriptJob:
-        """`run_script_job` on this runner; JobBusyError if a job is running on it."""
-        if not self._lock.acquire(blocking=False):
-            raise JobBusyError("another job is running; wait until it has finished")
-        try:
-            return run_script_job(
-                source,
-                settings,
-                work,
-                overwrite=overwrite,
-                progress=progress,
-                steps=steps,
-                max_chars=max_chars,
-            )
-        finally:
-            self._lock.release()
-
-
 def run_script_job(
     source: Path,
     settings: JobSettings,
@@ -176,26 +145,14 @@ def run_script_job(
     JobError (or a subclass) when the job cannot go on; nothing half-written is left.
     """
     report: Callable[[Phase], None] = progress or (lambda phase: None)
-    extract = EXTRACTORS.get(source.suffix.lower())
-    if extract is None:
-        known = ", ".join(sorted(EXTRACTORS))
-        raise UnsupportedFileError(f"{source.name}: sci2audio can read {known} files only")
+    check_readable(source)
     files = script_files(source, settings, work)
-    _check_folders(files)
+    check_folders((files.script.parent, files.record.parent))
     if not overwrite and (existing := [path for path in files.outputs if path.exists()]):
         names = ", ".join(path.name for path in existing)
         raise OutputExistsError(f"these files exist already: {names}; choose to replace them")
 
-    report(Phase.READING)
-    try:
-        content = extract(source)
-    except ExtractionError as error:
-        raise JobError(str(error)) from error
-    except OSError as error:
-        raise JobError(f"{source.name}: cannot be opened ({error.strerror})") from error
-
-    report(Phase.LAYOUT)
-    document = build_document(content, LayoutSettings(language=settings.language))
+    document = read_document(source, settings, report)
 
     report(Phase.TEXT_STEPS)
     result = prepare_script(document, settings, steps, max_chars)
@@ -216,7 +173,7 @@ def _write(
 ) -> None:
     texts = {
         files.script: script_text(result),
-        files.report_json: _json(report_data(job_report)),
+        files.report_json: json_text(report_data(job_report)),
         files.report_markdown: report_markdown(job_report),
     }
     for folder in (files.script.parent, files.record.parent):
@@ -227,7 +184,7 @@ def _write(
     try:
         write_texts(texts, overwrite=overwrite)
         record = _record(files, result, settings)
-        write_text_atomically(files.record, _json(record), overwrite=True)
+        write_text_atomically(files.record, json_text(record), overwrite=True)
     except FileExistsError as error:
         target = error.filename2 or error.filename
         name = PurePath(str(target)).name if target else "an output file"
@@ -237,9 +194,31 @@ def _write(
         raise JobError(f"could not write {where}: {error.strerror or error}") from error
 
 
-def _check_folders(files: ScriptFiles) -> None:
+def check_readable(source: Path) -> None:
+    """Refuse before any work a file type the job can't read."""
+    if source.suffix.lower() not in EXTRACTORS:
+        known = ", ".join(sorted(EXTRACTORS))
+        raise UnsupportedFileError(f"{source.name}: sci2audio can read {known} files only")
+
+
+def read_document(source: Path, settings: JobSettings, report: Callable[[Phase], None]) -> Document:
+    """Extraction (picked by file type) and layout; JobError if the file can't be read."""
+    check_readable(source)
+    extract = EXTRACTORS[source.suffix.lower()]
+    report(Phase.READING)
+    try:
+        content = extract(source)
+    except ExtractionError as error:
+        raise JobError(str(error)) from error
+    except OSError as error:
+        raise JobError(f"{source.name}: cannot be opened ({error.strerror})") from error
+    report(Phase.LAYOUT)
+    return build_document(content, LayoutSettings(language=settings.language))
+
+
+def check_folders(folders: Sequence[Path]) -> None:
     """Refuse before any work an output or working folder that is a file."""
-    for folder in (files.script.parent, files.record.parent):
+    for folder in folders:
         for path in (folder, *folder.parents):
             if path.exists():
                 if not path.is_dir():
@@ -278,5 +257,5 @@ def _record(files: ScriptFiles, result: ScriptResult, settings: JobSettings) -> 
     }
 
 
-def _json(data: Any) -> str:
+def json_text(data: Any) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2) + "\n"

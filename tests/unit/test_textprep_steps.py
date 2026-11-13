@@ -38,6 +38,7 @@ def test_the_categories_are_the_fixed_list_with_labels_people_know() -> None:
         "page-furniture",
         "characters",
         "footnotes",
+        "footnote-texts",
         "citations",
         "links",
         "formulas",
@@ -103,6 +104,13 @@ def test_the_built_in_registry_is_valid() -> None:
     check_registry(BUILT_IN_STEPS)
     assert [step.id for step in BUILT_IN_STEPS] == [
         "page-furniture",
+        "reference-list",
+        "formula-notices",
+        "table-figure-notices",
+        "footnote-texts",
+        "links",  # URLs before citations, after the block steps and before footnote marks (D-167)
+        "citations",
+        "footnotes",
         "unicode-clean-up",  # characters and hyphenation run last (D-150)
         "line-end-hyphens",
     ]

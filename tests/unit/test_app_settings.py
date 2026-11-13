@@ -9,13 +9,13 @@ import pytest
 from sci2audio.app import JobSettings, default_config_file, load_settings, save_settings
 from sci2audio.app import config as config_module
 from sci2audio.app.files import partial_path
-from sci2audio.textprep import Category
+from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
 
 
 def test_the_defaults() -> None:
     settings = JobSettings()
     assert settings.language == ""
-    assert settings.switched_off == frozenset()
+    assert settings.switched_off == DEFAULT_SWITCHED_OFF == {Category.FOOTNOTE_TEXTS}  # D-142
     assert settings.chapters is None
     assert (settings.voice, settings.speed, settings.output_folder) == ("", 1.0, None)
 
@@ -90,6 +90,15 @@ def test_the_file_keeps_every_setting_but_the_chosen_chapters(tmp_path: Path) ->
 
 def test_a_missing_file_gives_the_defaults_without_a_warning(tmp_path: Path) -> None:
     assert load_settings(tmp_path / "none.json") == (JobSettings(), [])
+
+
+def test_a_file_without_the_switches_starts_from_the_default_ones(tmp_path: Path) -> None:
+    file = tmp_path / "settings.json"
+    file.write_text('{"version": 1, "voice": "af_heart"}', encoding="utf-8")
+    settings, warnings = load_settings(file)
+    assert (settings.switched_off, warnings) == (DEFAULT_SWITCHED_OFF, [])  # D-142
+    file.write_text('{"version": 1, "switched_off": []}', encoding="utf-8")
+    assert load_settings(file)[0].switched_off == frozenset()  # every category on, as chosen
 
 
 @pytest.mark.parametrize(

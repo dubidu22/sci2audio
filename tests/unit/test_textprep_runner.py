@@ -8,10 +8,12 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from sci2audio.core import (
+    Block,
     BlockKind,
     Document,
     Edit,
     EditKind,
+    Section,
     Span,
     apply_edits,
     check_edits,
@@ -19,6 +21,7 @@ from sci2audio.core import (
 from sci2audio.testing import make_document, rebuilt_from_script
 from sci2audio.textprep import (
     BUILT_IN_STEPS,
+    DEFAULT_SWITCHED_OFF,
     Category,
     Stage,
     Status,
@@ -181,8 +184,36 @@ def test_steps_in_a_bad_order_are_refused() -> None:
 def test_the_default_steps_are_the_built_in_ones() -> None:
     run = run_steps(DOC, EN, strict=True)
     assert run == run_steps(DOC, EN, BUILT_IN_STEPS, strict=True)
-    assert [o.edit.step for o in run.outcomes] == ["page-furniture"]  # the others find nothing
-    assert render_blocks(DOC, run.script()) == ["Several studies (Smith, 2019) agree.", ""]
+    assert [o.edit.step for o in run.outcomes] == ["page-furniture", "citations"]
+    assert render_blocks(DOC, run.script()) == ["Several studies agree.", ""]
+    # a document every built-in step has something to do in: each runs, in registry order
+    every = make_document(
+        [
+            (BlockKind.FURNITURE, "12"),
+            (BlockKind.PARAGRAPH, "Noise matters.1"),
+            Block(BlockKind.FOOTNOTE, "1 A note.", label="1"),
+            Block(BlockKind.FORMULA, "x = 1 (2)", label="2"),
+            (BlockKind.TABLE, "a b"),
+            (BlockKind.HEADING, "References"),
+            (BlockKind.PARAGRAPH, "Doe, J. (2020). A study."),
+            (BlockKind.PARAGRAPH, "It is released at https://example.org/a."),
+            (BlockKind.PARAGRAPH, "Noise (Smith, 2019) matters."),
+            (BlockKind.PARAGRAPH, "An e\N{LATIN SMALL LIGATURE FFI}cient develop-\nment."),
+        ],
+        tags={1: [(14, 15, "sup")]},
+        sections=[Section("References", 1, 5, 7)],
+    )
+    steps = [o.edit.step for o in run_steps(every, EN, strict=True).outcomes]
+    assert list(dict.fromkeys(steps)) == [step.id for step in BUILT_IN_STEPS]
+
+
+def test_footnote_texts_are_off_unless_switched_on() -> None:
+    assert {c for c in Category if not c.on_by_default} == {Category.FOOTNOTE_TEXTS}
+    assert {Category.FOOTNOTE_TEXTS} == DEFAULT_SWITCHED_OFF
+    note = make_document([Block(BlockKind.FOOTNOTE, "1 A note.", label="1")])
+    assert render_blocks(note, run_steps(note, EN, strict=True).script()) == ["Footnote 1. A note."]
+    everything = run_steps(note, EN, switched_off=(), strict=True)
+    assert render_blocks(note, everything.script()) == [""]
 
 
 # ---- properties -------------------------------------------------------------------------
@@ -291,7 +322,7 @@ def test_switching_a_category_off_is_like_leaving_its_steps_out(
     context = StepContext(document.language)
     switched = run_steps(document, context, steps, {category}, strict=True)
     without = run_steps(document, context, [s for s in steps if s.category is not category],
-                        strict=True)  # fmt: skip
+                        (), strict=True)  # fmt: skip
     assert switched.accepted == without.accepted
     assert switched.script() == without.script()
     # the other steps' outcomes, statuses and winners included, are those of the run without
