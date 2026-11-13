@@ -96,7 +96,7 @@ def find_formulas(
             state.taken |= {p.item for p in block.parts}
     for page in content.pages:
         found += _on_page(page, state)
-    return _assemble(blocks, found, set(lines), settings)
+    return _assemble(blocks, found, {k: len(line.text) for k, line in lines.items()}, settings)
 
 
 def _on_page(page: Page, state: _State) -> list[_Formula]:
@@ -344,7 +344,7 @@ def _unnumbered(group: list[TextLine], members: list[TextLine], state: _State) -
 
 
 def _assemble(
-    blocks: list[Block], found: list[_Formula], lines: set[str], settings: LayoutSettings
+    blocks: list[Block], found: list[_Formula], lines: dict[str, int], settings: LayoutSettings
 ) -> list[Block]:
     """The blocks with each formula where its first line is read: a block that holds a
     formula's line is cut there, the text on either side of it kept as found."""
@@ -374,7 +374,7 @@ def _assemble(
     return out
 
 
-def _flush(block: Block, segment: list[Part], lines: set[str], out: list[Block]) -> None:
+def _flush(block: Block, segment: list[Part], lines: dict[str, int], out: list[Block]) -> None:
     """Put out the block's parts kept so far: as a block if they hold text, else as parts
     of the block before them (a graphic joins the block read before it, D-90)."""
     if not segment:
@@ -388,5 +388,5 @@ def _flush(block: Block, segment: list[Part], lines: set[str], out: list[Block])
 
 
 def _placeholder(formula: _Formula, settings: LayoutSettings) -> Block:
-    text, parts = read_rows(formula.lines, formula.graphics, settings.row_overlap)
+    text, parts = read_rows(formula.lines, formula.graphics, settings)
     return Block(BlockKind.FORMULA, text, tuple(parts), label=formula.label)

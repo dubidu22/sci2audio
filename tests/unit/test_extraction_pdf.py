@@ -10,11 +10,19 @@ from pathlib import Path
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from pdf_maker import HEIGHT, Mark, Rect, Text, in_form, make_pdf, outlined_pdf
+from pdf_maker import HEIGHT, Mark, Rect, Text, in_form, make_pdf, outlined_pdf, width
 
 from sci2audio.core import Content, Metadata, OutlineEntry, SourceFormat
 from sci2audio.extraction import ExtractionError, extract_pdf, read_pdf
-from sci2audio.extraction.pdf import OUTLINE_DEPTH, _char_text, _style
+from sci2audio.extraction.pdf import (
+    _GENERATED,
+    _SPACE,
+    OUTLINE_DEPTH,
+    _Char,
+    _char_text,
+    _Line,
+    _style,
+)
 
 pytestmark = pytest.mark.timeout(60)
 
@@ -60,6 +68,137 @@ def test_a_raised_smaller_number_stays_in_its_line_as_its_own_run() -> None:
     data = make_pdf([Text("E = mc", 50, 200), Text("2", 81, 196, size=6)])
     (line,) = read_pdf(data, "made.pdf").pages[0].lines
     assert [(run.text, run.size) for run in line.runs] == [("E = mc", 10.0), ("2", 6.0)]
+
+
+# Spaces PDFium adds itself (#36, D-274 to D-276)
+
+
+def test_a_mark_set_close_between_a_word_and_a_full_stop_gets_no_space() -> None:
+    """Arsiwalla p3 "qualia1.": PDFium adds a space where the baseline changes, however
+    close the letters stand; the page prints none."""
+    end = 100 + width("qualia")
+    mark = end + 0.3 + width("1", size=7)
+    data = make_pdf(
+        [Text("qualia", 100, 100), Text("1", end + 0.3, 96, size=7), Text(".", mark + 0.5, 100)]
+    )
+    assert lines_of(data) == ["qualia1."]
+
+
+def test_a_mark_after_a_word_space_keeps_the_space() -> None:
+    """Hardt p3 "sets. 1": 5 pt of white stand before the mark."""
+    end = 100 + width("sets.")
+    assert lines_of(make_pdf([Text("sets.", 100, 100), Text("1", end + 5, 96, size=7)])) == [
+        "sets. 1"
+    ]
+
+
+def test_a_subscript_then_a_word_after_a_word_space() -> None:
+    end = 100 + width("x")
+    after = end + 0.2 + width("i", size=7)
+    data = make_pdf(
+        [Text("x", 100, 100), Text("i", end + 0.2, 103, size=7), Text("is", after + 3, 100)]
+    )
+    assert lines_of(data) == ["xi is"]
+
+
+def test_white_after_a_stacked_script_is_measured_from_the_row_s_letters() -> None:
+    """Liu p2 "J^1st_0[n": the subscript "0", stored after the superscript, starts back
+    under it and becomes a line of its own; the "[" after it stands close to the end of
+    "1st", not 4 pt after the "0"."""
+    j = 100 + width("J")
+    end = j + width("1st", size=7)
+    data = make_pdf(
+        [
+            Text("J", 100, 100),
+            Text("1st", j, 96, size=7),
+            Text("0", j, 103, size=7),
+            Text("[n", end + 0.5, 100),
+        ]
+    )
+    assert lines_of(data) == ["J1st", "0[n"]
+
+
+@pytest.mark.parametrize("start", [100, 90])
+@pytest.mark.parametrize("leading", [10.5, 11, 12])
+def test_a_wrapped_line_keeps_the_spaces_after_its_scripts(start: float, leading: float) -> None:
+    """Review M1 of #128: the next printed line of a paragraph starts back under the line
+    above and, with tight leading, overlaps its loose boxes; it is no script stacked under
+    that line, so its spaces are measured from its own letters ("word1 is", not "word1is")."""
+    font = "Times-Roman"
+    y = 100 + leading
+    end = 100 + width("Then the word", font)
+    mark = end + 0.3 + width("1", font, 7)
+    data = make_pdf(
+        [
+            Text("A line of text set above the next one, ending in x", start, 100, font),
+            Text(
+                "2",
+                start + width("A line of text set above the next one, ending in x", font),
+                103,
+                font,
+                7,
+            ),
+            Text("Then the word", 100, y, font),
+            Text("1", end + 0.3, y - 4, font, 7),
+            Text("is next.", mark + 4, y, font),
+        ]
+    )
+    assert lines_of(data)[-1] == "Then the word1 is next."
+
+
+@pytest.mark.parametrize(
+    ("numerator", "denominator", "after", "white", "printed"),
+    [
+        ("1", "2", "{L", 0.3, "j = 1 2{L"),  # Liu: j = 1/2 {L, v}
+        ("3", "2", "at", 2.5, "j = 3 2 at"),  # Liu: v = 3/2 at
+        ("1", "22", "t", 0.3, "j = 1 22t"),  # Liu: 1/22 sigma
+    ],
+)
+def test_digits_of_a_stacked_fraction_keep_their_space(
+    numerator: str, denominator: str, after: str, white: float, printed: str
+) -> None:
+    """Review M2 of #128: a fraction 1/2 set as numerator over denominator must not read
+    "12" (twelve). The denominator starts back under the numerator, so their letters touch
+    along the line; the space PDFium adds between two digits on different baselines stays."""
+    x = 100 + width("j = ")
+    top, bottom = width(numerator, size=7), width(denominator, size=7)
+    wide = max(top, bottom)
+    data = make_pdf(
+        [
+            Text("j = ", 100, 100),
+            Text(numerator, x + (wide - top) / 2, 96, size=7),
+            Text(denominator, x + (wide - bottom) / 2, 104, size=7),
+            Text(after, x + wide + white, 100),
+        ]
+    )
+    assert lines_of(data) == [printed]
+
+
+def char(text: str, u0: float, u1: float, base: float = 100.0, size: float = 10.0) -> _Char:
+    style = ("Times", size, False, False)
+    return _Char(text, style, (u0, base - size, u1, base), 0.0, u0, u1, base - size, base, base)
+
+
+@pytest.mark.parametrize(
+    ("before", "after", "space", "spaced"),
+    [
+        (char("N", 0, 8), char("|", 7.9, 10), _GENERATED, False),  # touching: "|N|"
+        (char("N", 0, 8), char("|", 7.9, 10), _SPACE, True),  # the file's own space stays
+        (char("f", 0, 5), char("a", 5.3, 10), _GENERATED, True),  # "of a": f reaches over
+        (char("1", 0, 4, 96, 7), char(".", 4.5, 7), _GENERATED, False),  # 0.05 em: script
+        (char("1", 0, 4, 96, 7), char(".", 4.5, 7), _SPACE, True),  # a real space stays
+        (char("2", 0, 4, 96, 7), char(")", 5.2, 8), _GENERATED, False),  # 0.12 em: fraction
+        (char(".", 0, 3), char("1", 4.5, 8, 96, 7), _GENERATED, True),  # 0.15 em: kept
+        (char("x", 0, 5), char("y", 6, 10), None, False),  # no space at all
+    ],
+)
+def test_which_spaces_are_kept(
+    before: _Char, after: _Char, space: str | None, spaced: bool
+) -> None:
+    line = _Line()
+    line.add(before, None)
+    line.add(after, space)
+    assert (1 in line.spaces) is spaced
 
 
 def test_text_turned_upwards_reads_as_one_line() -> None:
