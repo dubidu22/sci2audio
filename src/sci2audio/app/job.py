@@ -39,8 +39,10 @@ from sci2audio.extraction import (
     ExtractionError,
     extract_epub,
     extract_epub_cover,
+    extract_markdown,
     extract_pdf,
     extract_pdf_cover,
+    extract_text,
 )
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.output.names import clean
@@ -50,8 +52,14 @@ RECORD = "job.json"
 RECORD_FORMAT = "sci2audio-job"
 RECORD_VERSION = 1
 
-# extraction by file suffix; Markdown and text join as #74 lands
-EXTRACTORS: Mapping[str, Callable[[Path], Content]] = {".epub": extract_epub, ".pdf": extract_pdf}
+# extraction by file suffix (D-350); pasted text is kept as a .txt file, so it reads as text
+EXTRACTORS: Mapping[str, Callable[[Path], Content]] = {
+    ".epub": extract_epub,
+    ".markdown": extract_markdown,
+    ".md": extract_markdown,
+    ".pdf": extract_pdf,
+    ".txt": extract_text,
+}
 # the cover image a file type gives, or None (D-313); a type without one has no entry
 COVERS: Mapping[str, Callable[[Path], Cover | None]] = {
     ".epub": extract_epub_cover,

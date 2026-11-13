@@ -8,7 +8,8 @@ first sentences and run again, which must continue from the speech cache; a thir
 port, so any HTTP request they tried would fail. An EPUB (#73) is converted too: the corpus
 book cut to three short spine documents that still give an outline, two pictures and the
 cover (the whole book is about 70 minutes of speech on a CPU; D-316 note), and its M4B must
-carry the book's cover.
+carry the book's cover. The own Markdown sample (#74) is converted as well: a short file
+that reaches the voice through the Markdown reader, with no cover.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from sci2audio.output import find_ffmpeg
 CORPUS = Path(__file__).parents[1] / "corpus"
 PYMEDPHYS = CORPUS / "papers" / "joss2022-biggs-pymedphys.pdf"
 TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
+OWN_MARKDOWN = CORPUS / "markdown" / "sci2audio-sample-note.md"
 KEPT = ("titlepage.xhtml", "imprint.xhtml", "epilogue.xhtml")  # spine documents kept
 
 
@@ -188,3 +190,17 @@ def test_convert_reads_an_epub_and_keeps_its_cover(tmp_path: Path) -> None:
         check=False,
     )
     assert "attached pic" in probe.stderr
+
+
+@pytest.mark.slow
+def test_convert_reads_markdown(tmp_path: Path) -> None:
+    out, work = tmp_path / "out", tmp_path / "work"
+    converted = run(convert_args(out, work, source=OWN_MARKDOWN))
+    assert converted.returncode == 0, converted.stderr
+    assert "Traceback" not in converted.stderr
+    assert "sci2audio: warning" not in converted.stderr  # UTF-8: no guessed encoding (D-346)
+    spoke, total, reused = spoken_and_reused(converted.stdout)
+    assert spoke + reused == total
+    assert spoke > 0
+    assert len(list(out.glob("*.m4b"))) == 1
+    assert not list(work.glob("cover.*"))  # Markdown has no cover

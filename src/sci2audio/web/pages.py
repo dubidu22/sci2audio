@@ -143,7 +143,7 @@ def index(request: Request, state: State) -> HTMLResponse:
         types=", ".join(suffix.removeprefix(".").upper() for suffix in suffixes),
         accept=",".join(suffixes),
         limit=UPLOAD_LIMIT // (1024 * 1024),
-        paste=".txt" in suffixes,  # pasted text is kept as .txt; readable once #74 lands
+        paste=".txt" in suffixes,  # pasted text is kept as a .txt file and read as text (#74)
     )
 
 

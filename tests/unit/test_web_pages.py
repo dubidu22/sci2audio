@@ -68,9 +68,9 @@ def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any
     assert "No document opened yet." in index.text
     assert "The voice is not installed yet." in index.text
     assert 'href="/voice"' in index.text
-    assert 'accept=".epub,.pdf"' in index.text
-    assert "sci2audio reads EPUB, PDF files" in index.text
-    assert 'id="open-text"' not in index.text  # no text extractor yet (D-261)
+    assert 'accept=".epub,.markdown,.md,.pdf,.txt"' in index.text
+    assert "sci2audio reads EPUB, MARKDOWN, MD, PDF, TXT files" in index.text
+    assert 'id="open-text"' in index.text  # text files are read, so pasted text is (#74)
     doc = upload(client, pdf_bytes(), "a &amp; b 'x'.pdf")
     page = client.get("/").text
     assert "a &amp;amp; b &#39;x&#39;.pdf" in page

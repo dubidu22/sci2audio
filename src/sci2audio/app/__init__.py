@@ -46,7 +46,14 @@ from sci2audio.app.job import (
     run_script_job,
     script_files,
 )
-from sci2audio.app.report import Report, build_report, report_data, report_markdown, script_text
+from sci2audio.app.report import (
+    Report,
+    build_report,
+    encoding_warning,
+    report_data,
+    report_markdown,
+    script_text,
+)
 from sci2audio.app.runner import JobRunner
 from sci2audio.app.script import ChapterScript, ScriptResult, prepare_script
 from sci2audio.app.settings import JobSettings
@@ -84,6 +91,7 @@ __all__ = [
     "default_selection",
     "default_work_folder",
     "document_title",
+    "encoding_warning",
     "find_chapters",
     "is_reference_title",
     "kokoro_voice",

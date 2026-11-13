@@ -298,3 +298,13 @@ def test_skipped_sentences_are_listed(tmp_path: Path, source: Path) -> None:
         "sci2audio: warning: the voice could not say this sentence on page 1, so it is left "
         "out: 'Then comes a third one.'"
     ) in result.err
+
+
+def test_a_guessed_encoding_is_named_when_converting(cli: Cli, tmp_path: Path) -> None:
+    """D-346, as for `script`."""
+    source = tmp_path / "in" / "old notes.txt"
+    source.parent.mkdir()
+    source.write_bytes("Café notes in an old file.\n".encode("cp1252"))
+    result = cli("convert", source, "-o", tmp_path / "book", "-q")
+    assert result.code == 0, result.err
+    assert result.err.count("old notes.txt is not saved as UTF-8; it was read as Windows-1252") == 1

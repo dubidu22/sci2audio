@@ -19,7 +19,7 @@ from typing import Any
 from sci2audio import __version__
 from sci2audio.app.chapters import Chapter
 from sci2audio.app.script import ScriptResult
-from sci2audio.core import Document, EditKind, Span
+from sci2audio.core import Document, EditKind, Source, Span
 from sci2audio.textprep import PAUSE_MARK, Category, Outcome, Status
 
 FORMAT = "sci2audio-report"
@@ -114,12 +114,14 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         )
         for script in result.chapters
     )
+    source = document.content.source
     warnings = tuple(
         f"chapter {index} was chosen, but the document has chapters 0 to "
         f"{len(chapters) - 1} only; ignored"
         for index in result.ignored_chapters
     )
-    source = document.content.source
+    if guessed := encoding_warning(source):
+        warnings = (guessed, *warnings)
     return Report(
         source_name=source.name,
         source_format=str(source.format),
@@ -133,6 +135,20 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         not_run=result.run.not_run,
         warnings=warnings,
     )
+
+
+def encoding_warning(source: Source) -> str | None:
+    """The warning for a text file whose encoding was a guess (D-346), else None."""
+    if not source.encoding_guessed:
+        return None
+    name = _ENCODING_NAMES.get(source.encoding, source.encoding)
+    return (
+        f"{source.name} is not saved as UTF-8; it was read as {name}, a guess. "
+        "If letters look wrong, save it as UTF-8 and open it again."
+    )
+
+
+_ENCODING_NAMES = {"windows-1252": "Windows-1252"}  # as people know it
 
 
 def report_data(report: Report) -> dict[str, Any]:
