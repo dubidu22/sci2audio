@@ -18,9 +18,9 @@ and theirs all name one FIGURE block (D-89). The line just above an algorithm's 
 the top of the algorithm's box.
 
 The float is one block: a TABLE for a "Table" caption, else a FIGURE. Its text is its lines
-read row by row (pieces of a row joined by a space, rows by a line break), each listing of
-a merged float on its own, as found: a table row, or a numbered line of pseudocode with its
-number first (#38). Its graphics stand among its parts where they are read.
+read row by row (pieces of a row joined by a space where the page prints one, rows by a line
+break), each listing of a merged float on its own, as found: a table row, or a numbered line
+of pseudocode with its number first (#38). Its graphics stand among its parts where they are read.
 
 The graphics no caption names:
 - the same box on `repeat_pages` pages (a journal's logo) is FURNITURE, a RUNNING_HEAD
@@ -96,7 +96,7 @@ class _State:
     blocks: list[Block]
     body: float
     settings: LayoutSettings
-    lines: set[str] = field(default_factory=set)  # the ids of the text lines
+    lines: dict[str, int] = field(default_factory=dict)  # each text line's id: its length
     floats: list[_Float] = field(default_factory=list)
     taken: dict[str, int] = field(default_factory=dict)  # item id: its float
 
@@ -113,7 +113,8 @@ def find_graphics(
 ) -> tuple[list[Block], Links]:
     """The blocks with tables, figures and algorithms as placeholders, and the graphics no
     caption names as furniture, figures or parts of the blocks next to them."""
-    state = _State(blocks, body, settings, {li.id for page in content.pages for li in page.lines})
+    lengths = {li.id: len(li.text) for page in content.pages for li in page.lines}
+    state = _State(blocks, body, settings, lengths)
     owner = {part.item: k for k, block in enumerate(blocks) for part in block.parts}
     pages = [_items(page, owner) for page in content.pages]
     read: set[int] = set()  # a caption over two pages names a float on its first page
@@ -450,7 +451,7 @@ def _placeholder(f: _Float, settings: LayoutSettings) -> Block:
     for listing in f.listings:
         lines = [i.line for i in listing if i.line]
         graphics = [(i.id, i.box) for i in listing if i.line is None]
-        read, more = read_rows(lines, graphics, settings.row_overlap)
+        read, more = read_rows(lines, graphics, settings)
         start = len(text) + 1 if text and read else len(text)
         # graphics read before the listing's first line stand where the text so far ends
         ids = {line.id for line in lines}
@@ -461,7 +462,7 @@ def _placeholder(f: _Float, settings: LayoutSettings) -> Block:
     return Block(f.kind, text, tuple(parts))
 
 
-def _without(block: Block, taken: set[str], lines: set[str]) -> Block | None:
+def _without(block: Block, taken: set[str], lines: dict[str, int]) -> Block | None:
     """The block without the taken items (None if nothing is left): each kept line's text
     as found, with the break or space that stood before it."""
     rest = [part for part in block.parts if part.item not in taken]

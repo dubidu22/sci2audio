@@ -26,7 +26,7 @@ from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
 from sci2audio.layout.captions import opens_caption
-from sci2audio.layout.geometry import same_row, union
+from sci2audio.layout.geometry import letter_size, same_row, separators, union
 from sci2audio.layout.order import Element
 from sci2audio.layout.settings import LayoutSettings
 
@@ -156,18 +156,9 @@ def make_row(
         edges[0],
         edges[1],
         page,
-        _letter_size(runs) or settings.body_size,
+        letter_size(runs) or settings.body_size,
         _bold(runs, settings),
     )
-
-
-def _letter_size(runs: list[TextRun]) -> float:
-    """The size most of the letters have: a footnote mark or a subscript on the line's
-    baseline doesn't change it."""
-    letters: dict[float, int] = {}
-    for run in runs:
-        letters[run.size] = letters.get(run.size, 0) + len(run.text.strip())
-    return max(letters, key=lambda size: letters[size]) if letters else 0.0
 
 
 def _bold(runs: list[TextRun], settings: LayoutSettings) -> bool:
@@ -285,12 +276,12 @@ class Paragraphs:
     def _finish(self) -> None:
         """The open paragraph ends: it comes out, then what waited for it."""
         if self.open:
-            self._emit([_paragraph(self.open), *self.waiting])
+            self._emit([_paragraph(self.open, self.settings), *self.waiting])
         self.open, self.waiting = [], []
 
     def _release(self) -> None:
         """The set-aside paragraph won't go on: it comes out, then what interrupted it."""
-        self.out += [_paragraph(self.aside), *self.held]
+        self.out += [_paragraph(self.aside, self.settings), *self.held]
         self.aside, self.held = [], []
         self.caption = None
 
@@ -466,12 +457,14 @@ def _pitch(rows: list[Row], settings: LayoutSettings) -> float:
     return median(found) if found else 0.0
 
 
-def _paragraph(rows: list[Row]) -> Block:
-    """The rows' text, lines joined by a line break and pieces of a line by a space."""
+def _paragraph(rows: list[Row], settings: LayoutSettings) -> Block:
+    """The rows' text, lines joined by a line break and the pieces of a line by a space
+    where the page prints one (`separators`)."""
     text, parts = "", []
     for n, row in enumerate(rows):
+        joins = separators(row.pieces, row.size, settings.word_space, settings.stack_reach)
         for k, piece in enumerate(row.pieces):
-            text += "\n" if n and not k else " " if k else ""
+            text += "\n" if n and not k else joins[k]
             parts.append(Part(piece.id, len(text)))
             text += piece.text
     return Block(BlockKind.PARAGRAPH, text, tuple(parts))
