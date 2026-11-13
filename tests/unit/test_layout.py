@@ -470,6 +470,29 @@ def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
         Metadata(),
     )
 )
+@example(  # a paragraph runs on to page 2, a line without a position waits for it, and a
+    # formula is cut out of its page-2 piece: blocks stay in page order (#196)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            Page(
+                1,
+                (
+                    TextLine("i0", (TextRun("0", size=0.0),)),
+                    TextLine("i1", (TextRun("0", size=1.0),), Box(0, 0, 0, 0)),
+                ),
+            ),
+            Page(
+                2,
+                (
+                    TextLine("i2", (TextRun("÷", size=1.0),), Box(1, 0, 1, 0)),
+                    TextLine("i3", (TextRun("000", size=1.175494351e-38),)),
+                ),
+            ),
+        ),
+        Metadata(),
+    )
+)
 def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
     doc = build_document(found)  # the Document itself checks that every item is in one block
     lines = {li.id: li.text for page in found.pages for li in page.lines}

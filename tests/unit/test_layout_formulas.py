@@ -106,6 +106,24 @@ def test_a_paragraph_holding_a_formula_is_cut_at_it() -> None:
     assert [b.text for b in doc.blocks] == [joined(before), "p(x) = q(x) (8)", joined(after)]
 
 
+def test_what_waited_for_a_paragraph_cut_at_a_formula_follows_its_own_page() -> None:
+    """A figure at page 1's foot waits for the paragraph that runs on to page 2; the
+    formula at page 1's foot cuts it again. The figure follows the formula, the end of
+    page 1, not the text on page 2 (D-434, #196)."""
+    before = [line(f"Running text, line {k}.", LEFT, 100 + 14 * k, RIGHT) for k in range(3)]
+    formula = math("p(x) = q(x)", 250, 142, 330)
+    figure = Picture("fig", Box(150, 300, 450, 400))
+    after = [line(f"where text goes on, line {k}.", LEFT, 100 + 14 * k, RIGHT) for k in range(3)]
+    doc = build([*before, formula, number("(8)", 142), figure], after)
+    assert [(b.kind, b.text) for b in doc.blocks] == [
+        (BlockKind.PARAGRAPH, joined(before)),
+        (BlockKind.FORMULA, "p(x) = q(x) (8)"),
+        (BlockKind.FIGURE, ""),
+        (BlockKind.PARAGRAPH, joined(after)),
+    ]
+    assert doc.blocks[2].parts[0].item == "fig"
+
+
 def test_a_fraction_bar_is_part_of_its_formula() -> None:
     bar = Drawing("bar", Box(250, 165, 290, 165.5))
     rows = [math("a", 266, 154, 274), math("b", 266, 167, 274), math("= c", 295, 160, 315)]
