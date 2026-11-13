@@ -29,6 +29,33 @@ On Linux the plain command also works; it installs the PyTorch build with NVIDIA
 
 The voice (about 355 MB: the Kokoro model, its English voices and a spaCy English model) is downloaded only when you start it, and its licences are shown first. After that, sci2audio works without a network.
 
+## Command line
+
+```bash
+sci2audio voices download            # once: shows the files, sizes and licences, then asks
+sci2audio script paper.pdf           # the listening script and a report of every change
+sci2audio convert paper.pdf          # the audiobook: M4B with chapters, MP3s, read-along file
+```
+
+`script` needs no voice and lists the chapters; choose them with `--chapters 1,3-5` (counted from 1, or `all`; by default every chapter but the reference list). Switch a kind of text handling off with `--off citations` (read as printed) or on with `--on footnote-texts` (leave the notes out); `sci2audio script --help` lists the categories. `convert` takes the same options and `--voice`, `--speed`, `--format both|m4b|mp3` and `--with-script`.
+
+Files go next to the input file, or into the folder given with `-o`; existing files are replaced only with `--overwrite`. If `convert` is stopped (Ctrl-C, a crash, a closed laptop), run the same command again: the sentences already spoken are kept in a speech cache in your cache folder, and `sci2audio clean paper.pdf` removes it. The command line takes its defaults from the settings saved by the interface and never changes them; `--ignore-settings` uses the built-in defaults.
+
+Exit codes, for scripts:
+
+| Code | Meaning |
+|---|---|
+| 0 | done |
+| 1 | failed for another reason (a write, the disk, ffmpeg, the voice, the download, or "no" to the download) |
+| 2 | a bad option or value |
+| 3 | the file does not exist or is not a file |
+| 4 | a file type sci2audio can't read |
+| 5 | the file is damaged, protected or can't be opened |
+| 6 | the voice files are not installed (`sci2audio voices download`) |
+| 7 | output files exist (add `--overwrite`) |
+| 8 | another sci2audio job is working on this file |
+| 130 | stopped with Ctrl-C |
+
 ## Development
 
 You need [uv](https://docs.astral.sh/uv/) and Python 3.12.
