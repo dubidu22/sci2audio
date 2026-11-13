@@ -8,6 +8,7 @@ around citations.
 """
 
 import re
+import time
 
 import pytest
 from hypothesis import given
@@ -288,6 +289,42 @@ def test_the_step_is_english_only_and_its_switch_reads_citations_as_printed() ->
     assert render(off) == [text]
 
 
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [
+        # M2 (review of #103): a removal never leaves two marks side by side
+        ("It holds. (Smith, 2019). Then more.", "It holds. Then more."),
+        ("We use it, presented by Zimmeck et al. (2019). Then more.",
+         "We use it, presented by Zimmeck et al. Then more."),
+        ("Kocijan et al. (2022)[p. 8], “Solving", "Kocijan et al., “Solving"),
+        ("Noise matters, [3]. Then more.", "Noise matters. Then more."),
+        ("Noise matters, [1] [2].", "Noise matters."),
+        ("It works, e.g., (see also [48, 135]).", "It works, e.g."),
+        ("[12]. Noise [12]. [12], [12].", "Noise."),
+        # S3: no capital after an abbreviation; a bracket after "Eq." is its number
+        ("as shown before, cf. [4], and so", "as shown before, cf. reference 4, and so"),
+        ("This e.g. [3] shows it.", "This e.g. reference 3 shows it."),
+        ("Eq. [3] holds and Fig. [2] too.", "Eq. [3] holds and Fig. [2] too."),
+        ("It works. [12] showed it.", "It works. Reference 12 showed it."),
+    ],
+)  # fmt: skip
+def test_no_removal_leaves_doubled_marks_or_a_wrong_capital(text: str, spoken: str) -> None:
+    assert read(text) == spoken
+
+
+def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
+    text = "(" * 5000 + "Smith, 2019" + ")" * 5000
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    check_text_step(STEP, [document], allow_ask=False)
+
+
+@pytest.mark.parametrize("text", ["[1] " * 25_000, "Smith (2019) shows it [3]. " * 4000])
+def test_a_long_block_takes_linear_time(text: str) -> None:  # S2: 100,000 characters
+    started = time.perf_counter()
+    edits(text)
+    assert time.perf_counter() - started < 5  # about 0.4 s; it took 17 s for 80,000 before
+
+
 def test_a_very_long_bracket_is_not_parsed() -> None:
     text = "x (" + "Smith, 2019; " * 400 + "Lee, 2020) y"
     assert edits(text) == []
@@ -351,7 +388,8 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
         before = spoken[: left.start()]
         assert left.group() in LEFT_ALONE or re.search(r"(?:[=∈]|CI)\s*\Z", before), (text, spoken)
     # every word outside the citations is still read, in order
-    outside = text
+    # a bracket of lead words and citations goes whole: "( see [12])" (D-172)
+    outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*\[\d[\d,;–\s-]*\]\s*\)", " ", text)
     for citation in placed:
         outside = outside.replace(citation, " ")
     outside = YEAR_OR_NUMBER.sub(" ", outside)
@@ -365,6 +403,8 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
         position += 1
     assert " ." not in spoken
     assert " ," not in spoken
+    for doubled in ("..", ",.", ";."):  # ".," stays after "et al." ("et al., “Solving")
+        assert spoken.count(doubled) <= text.count(doubled), (doubled, text, spoken)
 
 
 @given(st.text(alphabet=st.sampled_from("([])Smith, 2019;et al.&and e.g. 12–5\n"), max_size=80))

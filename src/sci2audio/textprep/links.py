@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
@@ -158,7 +158,8 @@ _START = re.compile(
             r"(?P<doi>(?<![\w/.-])(?:doi:\s?)?10\.\d{4,9}/)",
             r"(?P<arxiv>(?<![\w/.-])arxiv:\s?(?:\d{4}\.\d{4,5}|[a-z][a-z.-]*/\d{7})(?:v\d+)?)",
             r"(?P<mail>(?<![\w.+-])(?:\{[\w.+-]+(?:\s*,\s*[\w.+-]+)*\}|[\w+-]+(?:\.[\w+-]+)*)"
-            r"@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,})",
+            # the top-level domain is all lower or all upper case: "x@ucla.edu.The end"
+            r"@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?-i:[a-z]{2,}|[A-Z]{2,}(?![a-z])))",
             rf"(?P<host>(?<![\w@/.-])(?:[a-z0-9-]+\.)+(?:{_TLDS})/)",
         ]
     ),
@@ -177,8 +178,12 @@ _TRAILING = ".,;:!?'\"’”*"  # punctuation at a URL's end belongs to the sent
 _PAIRS = {")": "(", "]": "[", ">": "<"}
 _SPACE = re.compile(r"\s+")
 _POINTER_WORDS = 6  # the most words after a link that a pointer sentence may have
+_PURPOSES = frozenset({"for", "to", "about", "regarding"})  # "See ... for details."
 _SENTENCE_START = re.compile(r"(?:\A|[.!?][\"'”’)\]]*\s+)\Z")
-_SENTENCE_END = re.compile(r"\A[.!?]?(?:\s|\Z)")
+_AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z|(?=[A-Z\])\"'”’]))")
+_STOP = re.compile(r"[.!?](?=[\"'”’)\]]*(?:\s|\Z))")  # the full stop that ends a sentence
+_LEADING_SPACE = re.compile(r"\s*")
+_LOOK_BACK = 300  # characters looked at before a link, so a long block costs linear time
 
 
 @dataclass(frozen=True)
@@ -217,12 +222,30 @@ class LinkStep(TextStep):
             return [Edit(Span(index, 0, len(text)), EditKind.REMOVE, reason, self.id)]
         edits = []
         claimed = 0  # where the previous removal ended: repairs never reach back over it
-        for run in runs:
-            start, end, repair = _repair(text, run, words, claimed)
+        sentence_at = -1  # ... if that removal started a sentence, so the next one does too
+        position = 0
+        while position < len(runs):
+            run = runs[position]
+            start, end, repair = _repair(text, run, words, claimed, sentence_at)
+            position += 1
+            # a repair that reaches over later runs takes them into the same edit
+            while position < len(runs) and runs[position][0].start < end:
+                end = max(end, runs[position][-1].end)
+                run = run + runs[position]
+                position += 1
             if len(run) > 1:
                 repair = re.sub(r" it(?=[ ,])", " them", repair)
-            start, end = _with_space(text, start, end, claimed)
-            end = _whole_sentence(text, start, end)
+            at_start = _starts_sentence(text, start, sentence_at)
+            stop = _AFTER_START.match(text, end) if at_start else None
+            if stop and start > 0:
+                # "Foo. https://x.org/a. Bar" reads "Foo. Bar": the punctuation after it goes
+                end = stop.end()
+                if not text[end - 1 : end].isspace() and end < len(text):
+                    # "Foo. https://x.org/a.)" reads "Foo.)": the space before goes instead
+                    start, _ = _with_space(text, start, start, claimed)
+            else:
+                start, end = _with_space(text, start, end, claimed)
+                end = _whole_sentence(text, start, end, sentence_at)
             edits.append(
                 Edit(
                     Span(index, start, end),
@@ -232,7 +255,26 @@ class LinkStep(TextStep):
                 )
             )
             claimed = end
-        return edits
+            sentence_at = end if at_start else -1
+        return _tidied(text, edits)
+
+
+def _tidied(text: str, edits: list[Edit]) -> list[Edit]:
+    """A comma or semicolon that several removals leave before a full stop goes with the
+    first of them: "x, https://a.org (see https://b.org)." reads "x."."""
+    kept_end, mark_at, first_after = 0, -1, 0
+    spans = [[edit.span.start, edit.span.end] for edit in edits]
+    for index, (start, end) in enumerate(spans):
+        kept = text[max(kept_end, start - _LOOK_BACK) : start].rstrip()
+        if kept:
+            mark_at, first_after = max(kept_end, start - _LOOK_BACK) + len(kept) - 1, index
+        if mark_at >= 0 and text[mark_at] in ",;" and text[end : end + 1] in (".", "!", "?"):
+            spans[first_after][0] = min(spans[first_after][0], mark_at)
+        kept_end = end
+    return [
+        replace(edit, span=Span(edit.span.block, start, end))
+        for edit, (start, end) in zip(edits, spans, strict=True)
+    ]
 
 
 def find_links(text: str) -> list[_Link]:
@@ -275,7 +317,7 @@ def _token_end(text: str, position: int) -> int:
         if not gap:
             return end
         rest = re.match(rf"{_URL_CHARS}+", text[end + gap.end() :])
-        if not rest or not _continues(text[:end], rest.group()):
+        if not rest or not _continues(text[max(0, end - 8) : end], rest.group()):
             return end
         end += gap.end() + rest.end()
 
@@ -341,10 +383,13 @@ def _only_links(text: str, runs: list[list[_Link]], label: str) -> bool:
     return all(unicodedata.category(char)[0] in "PZ" or char.isspace() for char in left)
 
 
-def _repair(text: str, run: list[_Link], words: LinkWords, claimed: int) -> tuple[int, int, str]:
+def _repair(
+    text: str, run: list[_Link], words: LinkWords, claimed: int, sentence_at: int = -1
+) -> tuple[int, int, str]:
     """The span to remove for a run, and what the reason says about the repair."""
     start, end = run[0].start, run[-1].end
-    before, after = text[claimed:start], text[end:]
+    before = text[max(claimed, start - _LOOK_BACK) : start]
+    claimed = max(claimed, start - _LOOK_BACK)  # positions in `before` count from here
     # 1. a bracket that holds only the run and lead words
     leads = "|".join(re.escape(lead) for lead in sorted(words.lead, key=len, reverse=True))
     befores = "|".join(re.escape(word) for word in sorted(words.before, key=len, reverse=True))
@@ -354,16 +399,16 @@ def _repair(text: str, run: list[_Link], words: LinkWords, claimed: int) -> tupl
     opened = re.search(rf"([(\[<])\s*(?:{introduced}\s*)?\Z", before, re.IGNORECASE)
     if opened:
         closing = {"(": ")", "[": "]", "<": ">"}[opened.group(1)]
-        closed = re.match(rf"\s*{re.escape(closing)}", after)
+        closed = re.compile(rf"\s*{re.escape(closing)}").match(text, end)
         if closed:
-            stop = end + closed.end()
+            stop = closed.end()
             # "shown in [https://...], it" reads "shown, it", not "shown in, it"
             word = re.search(
                 rf"(?<![\w.-])({befores})\s*\Z",
                 text[claimed : claimed + opened.start()],
                 re.IGNORECASE,
             )
-            if word and re.match(r"[.,;:!?]|\Z", text[stop:]):
+            if word and re.compile(r"[.,;:!?]|\Z").match(text, stop):
                 return (
                     claimed + word.start(),
                     stop,
@@ -381,9 +426,12 @@ def _repair(text: str, run: list[_Link], words: LinkWords, claimed: int) -> tupl
     if labelled:
         label_start = claimed + labelled.start()
         name = _SPACE.sub(" ", labelled.group("label"))
-        ending = _SENTENCE_END.match(after)
-        if _SENTENCE_START.search(text[:label_start]) and ending:
-            stop = end + len(ending.group().rstrip())
+        stop = (
+            _only_pointers_after(text, end, words)
+            if _starts_sentence(text, label_start, sentence_at)
+            else None
+        )
+        if stop is not None:
             return label_start, stop, f'; with the label "{name}" the whole sentence goes'
         return label_start, end, f'; the label "{name}" goes too'
     # 3. a colon right before it
@@ -393,7 +441,7 @@ def _repair(text: str, run: list[_Link], words: LinkWords, claimed: int) -> tupl
     # 4. a preposition or verb right before it
     word = re.search(rf"(?<![\w.-])({befores})\s+\Z", before, re.IGNORECASE)
     if word and re.fullmatch(pointers, word.group(1), re.IGNORECASE):
-        pointed = _pointer(text, claimed + word.start(), end, word.group(1))
+        pointed = _pointer(text, claimed + word.start(), end, word.group(1), words, sentence_at)
         if pointed:
             return pointed
     if word:
@@ -405,37 +453,81 @@ def _repair(text: str, run: list[_Link], words: LinkWords, claimed: int) -> tupl
     return start, end, ""
 
 
-def _pointer(text: str, start: int, end: int, word: str) -> tuple[int, int, str] | None:
+def _pointer(
+    text: str, start: int, end: int, word: str, words: LinkWords, sentence_at: int = -1
+) -> tuple[int, int, str] | None:
     """A sentence or bracket that a pointer word starts only points to the link: it goes whole.
 
     "See https://... for details." and "(see https://... for the code)" are not read at all.
     Only a short rest qualifies: a longer one may say more than where the link leads.
     """
-    if _SENTENCE_START.search(text[:start]):
-        ending = re.search(r"[.!?](?=[\"'”’)\]]*(?:\s|\Z))", text[end:])
-        stop = end + ending.end() if ending else len(text)
-        if _short(text[end:stop]):
+    if _starts_sentence(text, start, sentence_at):
+        ending = _STOP.search(text, end)
+        stop = ending.end() if ending else len(text)
+        if _short(text[end:stop], words):
             return (
                 start,
                 stop,
                 f'; "{word}" starts a sentence that only points to it, so the sentence goes whole',
             )
-    opened = re.search(r"([(\[])\s*\Z", text[:start])
+    window = max(0, start - _LOOK_BACK)
+    opened = re.search(r"([(\[])\s*\Z", text[window:start])
     if opened:
         closing = {"(": ")", "[": "]"}[opened.group(1)]
-        closed = re.match(rf"[^()\[\]]*?{re.escape(closing)}", text[end:])
-        if closed and _short(text[end : end + closed.end()]):
+        closed = re.compile(rf"[^()\[\]]*?{re.escape(closing)}").match(text, end)
+        if closed and _short(text[end : closed.end() - 1], words):
             return (
-                opened.start(),
-                end + closed.end(),
+                window + opened.start(),
+                closed.end(),
                 f'; "{word}" starts a bracket that only points to it, so the bracket goes whole',
             )
     return None
 
 
-def _short(rest: str) -> bool:
-    """At most six words and no clause inside: "for details", "for the code and data"."""
-    return len(rest.split()) <= _POINTER_WORDS and not re.search(r"[,;:]", rest)
+def _only_pointers_after(text: str, end: int, words: LinkWords) -> int | None:
+    """The end of the sentence if after the link it holds only more links and the words
+    that join or point to them ("Contact: a@b.org or see https://c.org/x."), else None."""
+    ending = _STOP.search(text, end)
+    stop = ending.end() if ending else len(text)
+    if stop - end > _LOOK_BACK:
+        return None
+    return stop if _link_words_only(text[end:stop], words) else None
+
+
+def _without_links(rest: str) -> str:
+    for link in reversed(find_links(rest)):
+        rest = rest[: link.start] + " " + rest[link.end :]
+    return rest
+
+
+def _link_words_only(rest: str, words: LinkWords) -> bool:
+    """True if, links left out, the text holds only words that join or point to links."""
+    allowed = {*words.joins, *words.before, *words.pointers, *words.lead, "also"}
+    return all(word in allowed for word in _words(_without_links(rest)))
+
+
+def _short(rest: str, words: LinkWords) -> bool:
+    """What follows a pointer and its link: nothing, more links and their words ("and also
+    www.b.org/y"), or a short purpose and no clause ("for details", "to learn more")."""
+    if len(rest) > _LOOK_BACK:
+        return False
+    bare = _without_links(rest)
+    allowed = {*words.joins, *words.before, *words.pointers, *words.lead, "also"}
+    left = _words(bare)
+    while left and left[0] in allowed:  # "(or www.b.org/x) for details"
+        left.pop(0)
+    if not left:
+        return True
+    return (
+        len(left) <= _POINTER_WORDS
+        and left[0] in _PURPOSES
+        and not re.search(r"[,;:]|[.!?]\s", bare)
+    )
+
+
+def _words(text: str) -> list[str]:
+    """The words of a text, lower case, without punctuation."""
+    return re.sub(r"[^\w\s.-]|(?<!\w)[.-]|[.-](?!\w)", " ", text).lower().split()
 
 
 def _with_space(text: str, start: int, end: int, claimed: int) -> tuple[int, int]:
@@ -457,22 +549,34 @@ def _with_space(text: str, start: int, end: int, claimed: int) -> tuple[int, int
             start -= 1
             while start > claimed and text[start - 1].isspace():
                 start -= 1
-    elif not text[:space_start].strip():
+    elif _LEADING_SPACE.match(text).end() >= space_start:
         start = 0 if claimed == 0 else space_start
         while end < len(text) and text[end].isspace():
             end += 1
     return start, end
 
 
-def _whole_sentence(text: str, start: int, end: int) -> int:
+def _whole_sentence(text: str, start: int, end: int, sentence_at: int = -1) -> int:
     """A removal that starts a sentence takes the punctuation right after it along.
 
     "https://x.org/a. Then" reads "Then", not ". Then"; "https://x.org/a, then" reads "then".
     """
-    if not _SENTENCE_START.search(text[:start]):
+    if not _starts_sentence(text, start, sentence_at):
         return end
-    stop = re.match(r"[.!?,;:]+(?:\s+|\Z)", text[end:])
-    return end + stop.end() if stop else end
+    stop = _AFTER_START.match(text, end)
+    return stop.end() if stop else end
+
+
+def _starts_sentence(text: str, position: int, sentence_at: int = -1) -> bool:
+    """True at the start of the block or after a sentence end; also right after a removal
+    that started a sentence (`sentence_at`, where that removal ended)."""
+    if 0 <= sentence_at <= position and not text[sentence_at:position].strip():
+        return True
+    window = max(0, position - _LOOK_BACK)
+    before = text[window:position]
+    if window == 0 and not before.strip():
+        return True
+    return bool(_SENTENCE_START.search(before)) and bool(before.strip())
 
 
 def _printed(text: str, run: list[_Link]) -> str:

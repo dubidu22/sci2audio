@@ -6,6 +6,7 @@ exact spans and reasons, and Hypothesis properties on sentences built around lin
 """
 
 import itertools
+import time
 from collections import Counter
 
 import pytest
@@ -241,6 +242,46 @@ def test_each_edit_names_the_link_as_printed_and_its_repair() -> None:
     assert {edit.step for edit in (first, second)} == {"links"}
 
 
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [
+        # M1 (review of #103): a repair that reaches over a later link takes it along
+        ("See https://a.org (mirror at www.b.org/x).", "(mirror)."),  # "mirror" is a word
+        ("See https://a.org (or www.b.org/x) for details.", ""),
+        ("It works (see https://a.org/x and also www.b.org/y).", "It works."),
+        ("cf. www.b.org/y See 10.1000/xyz", ""),
+        # M2: a removal at the start of a sentence takes the mark after it, not the space
+        ("Foo bar. https://x.org/a. Bar baz.", "Foo bar. Bar baz."),
+        ("Foo bar. https://x.org/a, then more.", "Foo bar. then more."),
+        ("Foo bar. https://x.org/a.) More.", "Foo bar.) More."),
+        # S1: the label takes the whole sentence only if nothing but links and their words
+        # follow the link
+        ("Code: https://x.org/a is where it lives.", "is where it lives."),
+        ("Contact: a@b.org or see https://c.org/x.", ""),
+        # S4: an e-mail domain stops before a glued sentence
+        ("Write to x@ucla.edu.The end.", "Write.The end."),
+        ("x@ucla.edu.The end.", "The end."),
+        ("Mail X@UCLA.EDU now.", "Mail now."),
+        # a pointer sentence needs a purpose after the link, or nothing
+        ("See https://x.org/a on the data.", "on the data."),
+    ],
+)
+def test_review_cases_of_the_first_round(text: str, spoken: str) -> None:
+    assert read(text) == spoken
+
+
+def test_merged_runs_are_one_edit_that_names_both_links() -> None:
+    (edit,) = edits("It works (see https://a.org/x and also www.b.org/y).")
+    assert edit.reason.startswith('URLs "https://a.org/x" and "www.b.org/y" are not read;')
+
+
+def test_a_long_block_of_links_takes_linear_time() -> None:  # S2
+    text = "Data at https://x.org/a and more. " * 3000  # 102,000 characters
+    started = time.perf_counter()
+    assert len(edits(text)) == 3000
+    assert time.perf_counter() - started < 5
+
+
 def test_a_pointer_sentence_names_its_pointer_word() -> None:
     (edit,) = edits("See https://x.org/a and www.x.org for details.")
     assert edit.reason == (
@@ -274,7 +315,7 @@ def test_a_footnote_with_text_keeps_its_text() -> None:
 
 
 def test_two_repairs_in_one_block_never_overlap() -> None:
-    text = "See https://a.org/x at https://b.org/y at https://c.org/z."
+    text = "Data at https://a.org/x at https://b.org/y at https://c.org/z."
     found = edits(text)
     assert len(found) == 3
     assert all(a.span.end <= b.span.start for a, b in itertools.pairwise(found))
@@ -358,7 +399,8 @@ def test_no_link_is_left_and_only_links_and_repair_words_go(case: tuple[str, lis
     for marker in ("https", "www.", "doi:", "10.1038/", "arXiv:", "@"):
         assert marker not in spoken
     repair = {"see", "also", "at", "from", "via", "using", "on", "contact:", "e-mail:", "url:",
-              "(see", "(", ")", "and"}  # fmt: skip
+              "(see", "(", ")", "and", "released", "available"}  # fmt: skip
+    # "released" and "available" introduce a link: "(released at https://...)" goes whole
     kept = Counter(spoken.split())
     for word in Counter(text.split()):
         if any(word.startswith(link.split()[0][:6]) for link in placed) or word.lower() in repair:
@@ -368,6 +410,8 @@ def test_no_link_is_left_and_only_links_and_repair_words_go(case: tuple[str, lis
             assert sum(n for w, n in kept.items() if stripped in w) >= 1, (word, text, spoken)
     assert " ." not in spoken
     assert " ," not in spoken  # the generated text has neither, so no repair may make one
+    for doubled in ("..", ".,", ",.", ";."):  # a removal at a sentence start leaves none (M2)
+        assert spoken.count(doubled) <= text.count(doubled), (doubled, text, spoken)
 
 
 @given(st.text(max_size=200))

@@ -41,7 +41,7 @@ LEFT = re.compile(
     re.IGNORECASE,
 )
 # what a careless removal leaves behind; no repair may add one of these
-LEFTOVERS = (" .", " ,", " ;", "()", "( )", "[]", " at.", " at,", ":.", " in.", " by.")
+LEFTOVERS = (" .", " ,", " ;", "()", "( )", "[]", " at.", " at,", ":.", " in.", " by.", "..")
 
 
 @cache

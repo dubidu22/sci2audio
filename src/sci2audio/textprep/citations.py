@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.links import SKIPPED_KINDS
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
+from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
 
 _MAX_BRACKET = 4000  # characters; a longer bracket is not a citation and is not parsed
@@ -46,6 +47,7 @@ class CitationWords:
     asides: tuple[str, ...]  # phrases after which a citation is an aside after all
     lead: tuple[str, ...]  # words that may stand before citations inside brackets
     maths: frozenset[str]  # words after which square brackets are an interval, not citations
+    numbered: frozenset[str]  # words after which square brackets hold a label's number
     particles: frozenset[str]  # lower-case parts of names
     months: frozenset[str]  # never the first word of an author
 
@@ -83,6 +85,11 @@ WORDS: dict[str, CitationWords] = {
             "i.e.",
         ),
         maths=frozenset(["ci", "interval", "intervals", "range", "ranges"]),
+        numbered=frozenset((
+            "eq.", "eqs.", "equation", "equations", "fig.", "figs.", "figure", "figures",
+            "tab.", "table", "tables", "sec.", "section", "sections", "step", "steps", "line",
+            "lines", "algorithm", "chapter", "appendix", "theorem", "lemma",
+        )),
         particles=frozenset((
             "van", "von", "de", "der", "den", "del", "della", "di", "da", "du", "la", "le", "ten",
             "ter", "dos", "das",
@@ -118,7 +125,10 @@ _NAME_WORD = rf"(?!(?:and|et)\b){_WORD}"
 _GROUP = rf"{_NAME_WORD}(?:[ \t]+{_NAME_WORD}|\s*-\n{_LETTER}+)*(?:\s+et\s+al\.)?"
 _AUTHORS = rf"{_GROUP}(?:\s*,\s*(?:(?:and|&)\s+)?{_GROUP}|\s+(?:and|&)\s+{_GROUP})*"
 _SPACE = re.compile(r"\s+")
-_SENTENCE_START = re.compile(r"(?:\A\s*|[.!?][\"'”’)\]]*\s+)\Z")
+_GLUED_PAGE = re.compile(r"[\[(]\s*pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?\s*[\])]")
+_LOWER_NEXT = re.compile(r"\s+[a-z]")
+_AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
+_LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
 
 
 def _part_pattern(words: CitationWords) -> re.Pattern[str]:
@@ -179,7 +189,10 @@ class CitationStep(TextStep):
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         words = WORDS[context.language.split("-", 1)[0].lower()]
-        rules = _Rules(words, wording_for(context.language))
+        language = context.language.split("-", 1)[0].lower()
+        rules = _Rules(
+            words, wording_for(context.language), ABBREVIATIONS.get(language, frozenset())
+        )
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text.strip():
@@ -196,9 +209,12 @@ _Found = tuple[int, int, EditKind, str, str]  # start, end, kind, replacement, r
 
 
 class _Rules:
-    def __init__(self, words: CitationWords, wording: Wording) -> None:
+    def __init__(
+        self, words: CitationWords, wording: Wording, abbreviations: frozenset[str]
+    ) -> None:
         self.words = words
         self.wording = wording
+        self.abbreviations = abbreviations
         self.part = _part_pattern(words)
         self.numeric_aside = _numeric_aside_pattern(words)
 
@@ -207,18 +223,64 @@ class _Rules:
         for node in brackets(text):
             self._visit(text, node, found)
         found.sort()
-        return _settled(text, found)
+        return self._tidied(text, _settled(text, found))
 
-    def _visit(self, text: str, node: _Bracket, found: list[_Found]) -> None:
-        handled = self._decide(text, node)
-        if handled is None:
-            for child in node.children:
-                self._visit(text, child, found)
-            return
-        found += handled
-        for child in node.children:  # inner brackets of kept text are still looked at
-            if not any(start <= child.open and child.close < end for start, end, *_ in handled):
-                self._visit(text, child, found)
+    def _tidied(self, text: str, found: list[_Found]) -> list[_Found]:
+        """Removals that would leave two marks side by side take one along (M2 of the #66
+        review): "Smith et al. (2019). Then" reads "Smith et al. Then"; "noise [12], [3]." reads
+        "noise."; "x. [12]. [3]." reads "x."."""
+        result = [list(item) for item in found]
+        kept_end = 0  # end of the text kept before the next edit
+        last, last_at, first_after = "", -1, 0  # the last mark heard, where, and the edit after
+        before_last = ""
+        for index, item in enumerate(result):
+            start, end, kind, replacement = item[0], item[1], item[2], item[3]
+            mark_at = _last_mark_at(text, kept_end, start)
+            if mark_at >= 0:
+                heard = text[max(kept_end, mark_at - _LOOK_BACK) : mark_at].rstrip()
+                before_last = heard[-1] if heard else last  # what was heard before that mark
+                last, last_at, first_after = text[mark_at], mark_at, index
+            after = text[end : end + 1]
+            following = result[index + 1][0] if index + 1 < len(result) else len(text) + 1
+            if kind is EditKind.REMOVE and last and after and end + 1 <= following:
+                if last in ",;:" and after in ".!?" and last_at >= 0:
+                    result[first_after][0] = last_at  # "noise, [3]." reads "noise."
+                    if before_last == ".":  # "e.g., [3]." reads "e.g."
+                        item[1] = end + 1
+                elif (
+                    (last in ".!?" and after in ".,;:") or (last in ",;" and after in ",;")
+                ) and not (after != "." and self._abbreviation_before(text, kept_end, start)):
+                    item[1] = end + 1  # "et al. (2019). Then" reads "et al. Then"
+            kept_end = item[1]
+            if kind is EditKind.REPLACE:
+                last, last_at = replacement[-1:] or last, -1
+        return [(a, b, kind, replacement, why) for a, b, kind, replacement, why in result]
+
+    def _abbreviation_before(self, text: str, kept_end: int, start: int) -> bool:
+        """True if the kept text before `start` ends with an abbreviation ("et al.")."""
+        words = text[max(kept_end, start - _LOOK_BACK) : start].split()
+        return bool(words) and words[-1].lstrip("([").lower() in self.abbreviations
+
+    def _visit(self, text: str, root: _Bracket, found: list[_Found]) -> None:
+        """Decide a bracket, then the inner brackets of what stays; no recursion, so a deep
+        nest of brackets cannot overflow the stack."""
+        pending = [root]
+        while pending:
+            node = pending.pop()
+            handled = self._decide(text, node)
+            if handled is None:
+                pending += reversed(node.children)
+                continue
+            found += handled
+            pending += reversed(
+                [  # inner brackets of kept text are still looked at
+                    child
+                    for child in node.children
+                    if not any(
+                        start <= child.open and child.close < end for start, end, *_ in handled
+                    )
+                ]
+            )
 
     def _decide(self, text: str, node: _Bracket) -> list[_Found] | None:
         inside = text[node.open + 1 : node.close]
@@ -232,7 +294,7 @@ class _Rules:
             end = self._glued_page(text, node.close + 1)
             printed = _printed(f"{names} {text[node.open : end]}")
             reason = f'year of the citation "{printed}" is not read; the names stay (TP-04)'
-            start, end = _with_space(text, node.open, end)
+            start, end = self._with_space(text, node.open, end)
             return [(start, end, EditKind.REMOVE, "", reason)]
         parts = self._parts(text, node)
         if parts is None:
@@ -253,17 +315,19 @@ class _Rules:
 
     def _numeric(self, text: str, node: _Bracket, inside: str) -> list[_Found] | None:
         if not _NUMERIC.match(inside):
-            if _PAGE_ONLY.match(inside) and re.search(r"[\"”’']\s*\Z", text[: node.open]):
+            if _PAGE_ONLY.match(inside) and re.search(r"[\"”’']\s*\Z", _before(text, node.open)):
                 return [self._removed(text, node.open, node.close + 1, "page reference")]
             return None
         glued = text[node.open - 1 : node.open]
         if glued and (glued.isalnum() or glued in ")]"):
             return None
-        before = text[: node.open].rstrip()
+        window = max(0, node.open - _LOOK_BACK)
+        before = text[window : node.open].rstrip()
         previous = before.split()[-1] if before.split() else ""
         if previous and (
             previous[-1] in _MATHS_SIGNS
             or previous.lower() in self.words.maths
+            or previous.lower().lstrip("([") in self.words.numbered
             or previous.endswith("%")
         ):
             return None
@@ -271,7 +335,7 @@ class _Rules:
         word = re.sub(r"\A\W*\d*", "", previous).lower()  # "8See" -> "see", "(see" -> "see"
         start = node.open
         if previous.lower() in self.words.refs:
-            start = len(before) - len(previous)
+            start = window + len(before) - len(previous)
             printed = _printed(text[start : node.close + 1])
         elif (
             word not in self.words.before
@@ -280,8 +344,8 @@ class _Rules:
             return [self._removed(text, node.open, node.close + 1, "numeric citation")]
         spoken = self._spoken(inside)
         if before.endswith("("):  # "( [53] discusses": no space after the bracket
-            start = len(before)
-        if _SENTENCE_START.search(text[:start]):
+            start = window + len(before)
+        if self._starts_sentence(text, start):
             spoken = spoken[0].upper() + spoken[1:]
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
@@ -350,7 +414,7 @@ class _Rules:
                     depth += 1
                 elif char in ")]":
                     depth -= 1
-                elif char == "," and depth == 0 and text[:position].rstrip().endswith(")"):
+                elif char == "," and depth == 0 and _before(text, position).rstrip().endswith(")"):
                     pieces.append((cursor, position))
                     cursor = position + 1
             pieces.append((cursor, end))
@@ -393,7 +457,7 @@ class _Rules:
 
     def _names_before(self, text: str, position: int) -> str:
         """The name or "et al." right before a bracket of years, or "" if none."""
-        before = text[:position]
+        before = _before(text, position)
         found = re.search(rf"({_LETTER}+-\n)?(\S+)\s*\Z", before)
         if not found:
             return ""
@@ -413,19 +477,37 @@ class _Rules:
 
     def _previous_word(self, text: str, position: int) -> str:
         """The word before a position, lower case, without brackets or a glued footnote mark."""
-        words = text[:position].split()
+        words = _before(text, position).split()
         return re.sub(r"\A\W*\d*", "", words[-1]).lower() if words else ""
 
     def _glued_page(self, text: str, end: int) -> int:
         """The end of a page bracket glued to a citation ("(2022)[p. 8]"), or `end`."""
-        page = re.match(r"[\[(]\s*pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?\s*[\])]", text[end:])
-        return end + page.end() if page else end
+        page = _GLUED_PAGE.match(text, end)
+        return page.end() if page else end
 
     def _is_subject(self, text: str, start: int, end: int) -> bool:
         """True if the citation starts a sentence (or a bracket) and a lower-case word follows."""
-        before = text[:start]
-        starts = bool(_SENTENCE_START.search(before)) or before.rstrip().endswith("(")
-        return starts and bool(re.match(r"\s+[a-z]", text[end:]))
+        starts = self._starts_sentence(text, start) or _before(text, start).rstrip().endswith("(")
+        return starts and bool(_LOWER_NEXT.match(text, end))
+
+    def _starts_sentence(self, text: str, position: int) -> bool:
+        """True at the start of the block or after a sentence end, but not after an
+        abbreviation ("cf. [4]", "Eq. [3]", "et al. (2019)")."""
+        window = max(0, position - _LOOK_BACK)
+        before = text[window:position]
+        stripped = before.rstrip()
+        if not stripped:
+            return window == 0
+        if len(stripped) == len(before):
+            return False
+        core = stripped.rstrip("\"'”’)]")
+        if not core or core[-1] not in ".!?":
+            return False
+        if core[-1] == ".":
+            word = core.split()[-1].lstrip("\"'([{“‘").lower()
+            if word in self.abbreviations:
+                return False
+        return True
 
     def _subject(
         self, text: str, node: _Bracket, parts: list[tuple[int, int]], end: int, role: str
@@ -474,8 +556,20 @@ class _Rules:
     def _removed(self, text: str, start: int, end: int, what: str) -> _Found:
         printed = _printed(text[start:end])
         reason = f'{what} "{printed}" is not read (TP-03)'
-        start, end = _with_space(text, start, end)
+        start, end = self._with_space(text, start, end)
         return (start, end, EditKind.REMOVE, "", reason)
+
+    def _with_space(self, text: str, start: int, end: int) -> tuple[int, int]:
+        """Take the white space before the removal along, or after it at the start of a block.
+
+        At the start of a sentence the punctuation after it goes instead: "It holds. (Smith,
+        2019). Then" reads "It holds. Then", not "It holds.. Then".
+        """
+        if self._starts_sentence(text, start):
+            punctuation = _AFTER_START.match(text, end)
+            if punctuation:
+                return start, punctuation.end()
+        return _with_space(text, start, end)
 
 
 def _is_name(word: str) -> bool:
@@ -513,6 +607,19 @@ def _with_space(text: str, start: int, end: int) -> tuple[int, int]:
     while end < len(text) and text[end].isspace():
         end += 1
     return 0, end
+
+
+def _last_mark_at(text: str, kept_end: int, start: int) -> int:
+    """Where the last character other than white space in text[kept_end:start] stands, or
+    -1 if there is none."""
+    window = max(kept_end, start - _LOOK_BACK)
+    kept = text[window:start].rstrip()
+    return window + len(kept) - 1 if kept else -1
+
+
+def _before(text: str, position: int) -> str:
+    """The text just before a position, as much as the rules look at."""
+    return text[max(0, position - _LOOK_BACK) : position]
 
 
 def _settled(text: str, found: list[_Found]) -> list[_Found]:

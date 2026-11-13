@@ -609,3 +609,35 @@ issue = 66
 goal = "A link at the end of a bracket takes the comma before it along (D-168)."
 blocks = [{ kind = "paragraph", text = "The corpus (12 languages, https://example.org/corpus) is open." }]
 expected = ["The corpus (12 languages) is open."]
+
+[[case]]
+id = "link-at-a-sentence-start"
+audit = 0
+issue = 66
+goal = "A link that starts a sentence takes the mark after it, so no '..' or '.,' is left (D-168, review of PR #103)."
+blocks = [{ kind = "paragraph", text = "The code is public. https://example.org/code. It runs offline." }]
+expected = ["The code is public. It runs offline."]
+
+[[case]]
+id = "citation-at-a-sentence-start"
+audit = 0
+issue = 66
+goal = "A citation removed between two sentences, or before a full stop after 'et al.', leaves one full stop (D-173, review of PR #103)."
+blocks = [{ kind = "paragraph", text = "It holds. (Smith, 2019). The corpus of Zimmeck et al. (2019). Then more." }]
+expected = ["It holds. The corpus of Zimmeck et al. Then more."]
+
+[[case]]
+id = "label-before-a-link-inside-a-sentence"
+audit = 0
+issue = 66
+goal = "A label takes the whole sentence only when nothing but links and their words follow the link (D-168, review of PR #103)."
+blocks = [{ kind = "paragraph", text = "Contact: help@example.org or see https://example.org/help. Code: https://example.org/code is where it lives." }]
+expected = ["is where it lives."]
+
+[[case]]
+id = "numeric-citation-after-an-abbreviation"
+audit = 0
+issue = 66
+goal = "'Reference' is not capitalised after 'cf.', and a bracket after 'Eq.' is its number, not a citation (D-171, D-172, review of PR #103)."
+blocks = [{ kind = "paragraph", text = "This was shown before, cf. [4], and Eq. [3] holds." }]
+expected = ["This was shown before, cf. reference 4, and Eq. [3] holds."]
