@@ -1,0 +1,68 @@
+name: ZAP baseline scan
+
+# OWASP ZAP looks at everything the local server sends while a browser walks the main
+# flow in English and German, then crawls it (#12, AQ-03; D-364 to D-372). Passive only:
+# ZAP never attacks. High and Medium alerts fail; Low ones fail unless
+# scripts/zap/accepted.toml accepts them with a reason; a route never scanned fails too.
+# Not part of "CI passed" (path-filtered); a red run is a must-fix in review (D-368).
+# A red nightly run gets an Issue opened by hand (milestone v1.0 until the release); the
+# workflow can't open one itself, as it has read access only.
+on:
+  pull_request:
+    paths:
+      - "src/sci2audio/web/**"
+      - "src/sci2audio/app/**"
+      - "scripts/zap_scan.py"
+      - "scripts/zap/**"
+      - "tests/browser/conftest.py"
+      - "tests/unit/web_helpers.py"
+      - "tests/unit/audio_fakes.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/zap.yml"
+  schedule:
+    - cron: "47 3 * * *"  # 03:47 UTC every day, after the nightly run
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The Python of .python-version (3.12.16 or newer), as uv downloads it; never the runner's
+  # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
+  UV_PYTHON_PREFERENCE: only-managed
+
+concurrency:
+  group: zap-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zap:
+    name: ZAP baseline scan (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      # CI downloads of the test browser and of ZAP's image (pinned by digest in the
+      # script, D-370); sci2audio and the walk itself never use the network.
+      - name: Install Chromium for Playwright
+        run: uv run playwright install --with-deps chromium
+      - name: Scan (server, ZAP in Docker, the walk, the spider, the verdict)
+        run: uv run python scripts/zap_scan.py --out "$RUNNER_TEMP/zap"
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/zap/zap-summary.md" ]; then
+            cat "$RUNNER_TEMP/zap/zap-summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: zap-report
+          path: ${{ runner.temp }}/zap/
+          if-no-files-found: ignore
+          retention-days: 30
