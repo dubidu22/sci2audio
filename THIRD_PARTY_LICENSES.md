@@ -74,6 +74,7 @@ Fetched only when the user starts the voice download (`sci2audio.voices.download
 | [axe-playwright-python](https://github.com/pamelafox/axe-playwright-python) 0.1.8 (dev group) | MIT; it bundles [axe-core](https://github.com/dequelabs/axe-core) 4.12.1 (`axe.min.js`, MPL-2.0, © Deque Systems, notice kept in the file) | The accessibility checks on every page state (AQ-01, D-257) |
 | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) with ctranslate2, onnxruntime, PyAV (dependency group `asr`) | MIT (PyAV: BSD-3-Clause; its bundled FFmpeg includes x264 and x265, so GPL-2.0-or-later) | Nightly speech-recognition round trip (#9) |
 | Whisper `small` for CTranslate2, revision `536b0662742c02347bc0e980a01041f333bce120` | [Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small), MIT | Same; downloaded by the nightly workflow only |
+| [hatchling](https://github.com/pypa/hatch) with pathspec, tomlkit, trove-classifiers (dependency group `dev`; also the build backend) | MIT (pathspec: MPL-2.0; tomlkit: MIT; trove-classifiers: Apache-2.0) | Test that the wheel ships the package data files (#68) |
 
 ## External programs (installed by the user)
 
