@@ -7,8 +7,12 @@ here so every rule PR places its step deliberately. Planned order for v1.0:
 
 - block: page furniture (#63), reference list, placeholder notices for formulas, tables and
   figures, footnote texts (#64)
-- inline: URLs, DOIs and e-mail addresses, citations (#66), footnote marks (#64), characters
-  and hyphenation (#65), numbers, symbols, units and statistics (#67, #68), abbreviations (#68)
+- inline: URLs, DOIs and e-mail addresses, citations (#66), footnote marks (#64), numbers,
+  symbols, units and statistics (#67, #68), abbreviations (#68), and last characters and
+  hyphenation (#65): a one-character fix placed earlier would block the rules after it, so it
+  only applies where no other rule rewrote the text (D-150). So the rules before it see the
+  printed characters (ligatures, maths letters, TeX accents set apart, "eV˚A") and must
+  match those forms themselves
 
 No built-in v1.0 step proposes `ask` edits (the interface has no way to answer them before
 UC-04); the conformance test enforces it. Plugins (`sci2audio.text_steps`) follow in v1.1.
@@ -18,9 +22,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from sci2audio.textprep.characters import UnicodeStep
 from sci2audio.textprep.citations import CitationStep
 from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
+from sci2audio.textprep.hyphens import LineEndHyphenStep
 from sci2audio.textprep.links import LinkStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
 from sci2audio.textprep.references import ReferenceListStep
@@ -35,6 +41,9 @@ BUILT_IN_STEPS: tuple[TextStep, ...] = (
     LinkStep(),
     CitationStep(),
     FootnoteStep(),
+    # characters and hyphenation stay the last inline steps (D-150)
+    UnicodeStep(),
+    LineEndHyphenStep(),
 )
 
 

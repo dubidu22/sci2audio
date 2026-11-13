@@ -51,7 +51,7 @@ audit = 4
 issue = 65
 goal = "Joined where the joined word is a word: 'development', 'difficulties', 'processing' (TP-02)."
 blocks = [{ kind = "paragraph", text = "Exposure to trauma may interfere with infants' normal develop-\nment and cause diffi-\nculties in emotional pro-\ncessing." }]
-expected = ["Exposure to trauma may interfere with infants' normal develop- ment and cause diffi- culties in emotional pro- cessing."]
+expected = ["Exposure to trauma may interfere with infants' normal development and cause difficulties in emotional processing."]
 
 [[case]]
 id = "ligature"
@@ -59,7 +59,92 @@ audit = 5
 issue = 65
 goal = "The ligature read as its letters: 'Androff' (IN-04)."
 blocks = [{ kind = "paragraph", text = "Dr. Androﬀ notes that the effect was small." }]
-expected = ["Dr. Androﬀ notes that the effect was small."]
+expected = ["Dr. Androff notes that the effect was small."]
+
+# Cases of issue #65 (IN-04, TP-02, FX-04), written for these rules (audit = 0).
+
+[[case]]
+id = "ligatures"
+audit = 0
+issue = 65
+goal = "Every ligature read as its letters (IN-04)."
+blocks = [{ kind = "paragraph", text = "The ﬁrst ﬂow was eﬃcient; the oﬄine staﬀ were baﬄed." }]
+expected = ["The first flow was efficient; the offline staff were baffled."]
+
+[[case]]
+id = "soft-hyphens"
+audit = 0
+issue = 65
+goal = "Soft hyphens are not read; one at a line end joins the word (IN-04)."
+blocks = [{ kind = "paragraph", text = "An extra\u00ADordinary result was re\u00AD\nported." }]
+expected = ["An extraordinary result was reported."]
+
+[[case]]
+id = "invisible-characters"
+audit = 0
+issue = 65
+goal = "Zero-width and other invisible characters are not read (IN-04)."
+blocks = [{ kind = "paragraph", text = "The data\u200Bset was open\u2060 and\uFEFF free." }]
+expected = ["The dataset was open and free."]
+
+[[case]]
+id = "odd-spaces"
+audit = 0
+issue = 65
+goal = "No-break, thin and narrow spaces read as plain spaces, without edits (D-151)."
+blocks = [{ kind = "paragraph", text = "Groups\u00A0A and\u2009B met at\u202Fnoon." }]
+expected = ["Groups A and B met at noon."]
+
+[[case]]
+id = "math-letters"
+audit = 0
+issue = 65
+goal = "Mathematical letters read as plain letters; Greek stays Greek (FX-04)."
+blocks = [{ kind = "paragraph", text = "Let 𝑥 be the input, 𝐀𝐱 the product and 𝛼 the rate on ℝ." }]
+expected = ["Let x be the input, Ax the product and α the rate on R."]
+
+[[case]]
+id = "tex-accents"
+audit = 0
+issue = 65
+goal = "An accent printed apart from its letter is read as one letter; a stray accent is not read (D-153)."
+blocks = [{ kind = "paragraph", text = "As Garc´ıa and G¨obel showed, ˚Akerman agreed with Marasovic, ´ Swabha." }]
+expected = ["As García and Göbel showed, Åkerman agreed with Marasovic, Swabha."]
+
+[[case]]
+id = "suspended-hyphen"
+audit = 0
+issue = 65
+goal = "A hyphen before 'and' or 'or' at a line end stays, with a space after it (TP-02)."
+blocks = [{ kind = "paragraph", text = "Both pre-\nand post-test scores rose." }]
+expected = ["Both pre- and post-test scores rose."]
+
+[[case]]
+id = "compounds-kept"
+audit = 0
+issue = 65
+goal = "A hyphen that belongs to the word stays and the word is read as one (TP-02)."
+blocks = [{ kind = "paragraph", text = "A state-of-the-\nart model on a non-\nEnglish corpus, plotted on the x-\naxis, with a language-\nbased and self-\nreported measure." }]
+expected = ["A state-of-the-art model on a non-English corpus, plotted on the x-axis, with a language-based and self-reported measure."]
+
+[[case]]
+id = "own-spelling"
+audit = 0
+issue = 65
+goal = "The form the document prints elsewhere wins: 'pre-training' stays hyphenated, 'prefix' is joined (TP-02)."
+blocks = [
+    { kind = "paragraph", text = "We start with pre-training on each prefix." },
+    { kind = "paragraph", text = "The pre-\ntraining set gives every pre-\nfix a score." },
+]
+expected = ["We start with pre-training on each prefix.", "The pre-training set gives every prefix a score."]
+
+[[case]]
+id = "hyphen-next-to-digits"
+audit = 0
+issue = 65
+goal = "A hyphen next to a digit or full stop at a line end stays: ranges, names, initials (TP-02)."
+blocks = [{ kind = "paragraph", text = "From 2019-\n2020, COVID-\n19 cases rose, as J.-\nP. Martin wrote." }]
+expected = ["From 2019-2020, COVID-19 cases rose, as J.-P. Martin wrote."]
 
 [[case]]
 id = "symbols"
@@ -649,3 +734,14 @@ issue = 66
 goal = "'Reference [12]' and 'References [3, 5]' are read along with the number; 'the EM algorithm [5]' is a citation, 'Algorithm [5]' a number (D-171, D-172)."
 blocks = [{ kind = "paragraph", text = "As discussed in Reference [12], the EM algorithm [5] converges. References [3, 5] show it, and Algorithm [5] runs." }]
 expected = ["As discussed in reference 12, the EM algorithm converges. References 3 and 5 show it, and Algorithm [5] runs."]
+
+# Issue #91: the utterance cutter and abbreviations glued to a bracket (TP-01, Q4).
+
+[[case]]
+id = "abbreviation-glued-to-a-bracket"
+audit = 0
+issue = 91
+goal = "An abbreviation glued to a bracket or to the word before it is no sentence end: 'curve(Fig. 3)' and 'data(e.g. Table 2)' stay in one utterance (TP-01). The issue's '(2022)[p. 8]' is now removed by the citations step (#66) before the cutter sees it."
+blocks = [{ kind = "paragraph", text = "As the curve(Fig. 3) shows, it rises. The data(e.g. Table 2) agree with it." }]
+expected = ["As the curve(Fig. 3) shows, it rises. The data(e.g. Table 2) agree with it."]
+utterances = ["As the curve(Fig. 3) shows, it rises.", "The data(e.g. Table 2) agree with it."]

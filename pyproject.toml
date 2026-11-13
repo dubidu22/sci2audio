@@ -109,6 +109,10 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PT", "S"]
 [tool.ruff.lint.per-file-ignores]
 # assert is how pytest checks; subprocess in tests runs our own CLI.
 "tests/**" = ["S101", "S603"]
+# These modules and their tests are about look-alike characters: their docstrings, comments
+# and test strings show them on purpose (code strings in src use escapes).
+"src/sci2audio/textprep/{characters,hyphens}.py" = ["RUF002", "RUF003"]
+"tests/unit/test_textprep_{characters,hyphens}.py" = ["RUF001", "RUF002", "RUF003"]
 
 [tool.pytest.ini_options]
 minversion = "9.0"
