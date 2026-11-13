@@ -104,7 +104,52 @@ def test_an_output_that_appears_during_the_run_is_not_replaced(tmp_path: Path) -
     with pytest.raises(OutputExistsError, match=r"note\.report\.json appeared during the run"):
         run_script_job(source, JobSettings(), tmp_path / "work", progress=appear)
     assert (tmp_path / "note.report.json").read_text(encoding="utf-8") == "someone else's"
-    assert not [name for name in contents(tmp_path) if name.endswith(".partial")]
+    # all or nothing: the script renamed before the clash is taken back, no record written
+    assert sorted(contents(tmp_path)) == ["note.pdf", "note.report.json"]
+
+
+@pytest.mark.parametrize("last", ["note.script.txt", "note.report.json", "note.report.md"])
+def test_without_overwrite_the_outputs_are_put_in_place_all_or_none(
+    tmp_path: Path, last: str
+) -> None:
+    source = small_pdf(tmp_path)
+
+    def appear(phase: Phase) -> None:
+        if phase is Phase.WRITING:
+            (tmp_path / last).write_text("someone else's", encoding="utf-8")
+
+    with pytest.raises(OutputExistsError):
+        run_script_job(source, JobSettings(), tmp_path / "work", progress=appear)
+    assert contents(tmp_path) == {"note.pdf": source.read_bytes(), last: b"someone else's"}
+    (tmp_path / last).unlink()
+    run_script_job(source, JobSettings(), tmp_path / "work")  # a second run is not refused
+
+
+def test_an_output_folder_that_is_a_file_is_refused_before_any_work(tmp_path: Path) -> None:
+    source = small_pdf(tmp_path)
+    (tmp_path / "outfile").write_text("x", encoding="utf-8")
+    phases: list[Phase] = []
+    for folder in (tmp_path / "outfile", tmp_path / "outfile" / "below"):
+        with pytest.raises(JobError, match="outfile is not a folder") as raised:
+            run_script_job(source, JobSettings(output_folder=folder), tmp_path / "w",
+                           progress=phases.append)  # fmt: skip
+        assert not isinstance(raised.value, OutputExistsError)
+    assert phases == []
+    with pytest.raises(JobError, match="outfile is not a folder"):
+        run_script_job(source, JobSettings(), tmp_path / "outfile" / "work")
+
+
+def test_an_output_folder_that_becomes_a_file_during_the_run_is_named(tmp_path: Path) -> None:
+    source = small_pdf(tmp_path)
+    folder = tmp_path / "out"
+
+    def block(phase: Phase) -> None:
+        if phase is Phase.WRITING:
+            folder.write_text("x", encoding="utf-8")
+
+    with pytest.raises(JobError, match="out is not a folder") as raised:
+        run_script_job(source, JobSettings(output_folder=folder), tmp_path / "w", progress=block)
+    assert not isinstance(raised.value, OutputExistsError)
 
 
 def test_the_job_never_uses_the_network(tmp_path: Path) -> None:

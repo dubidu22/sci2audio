@@ -228,7 +228,11 @@ def report_markdown(report: Report) -> str:
 
 
 def script_text(result: ScriptResult) -> str:
-    """The listening script: one utterance per line, a blank line between blocks."""
+    """The listening script: one utterance per line, a blank line between blocks.
+
+    For people to read: an utterance that reads "[pause]" or starts with "# " looks like a
+    pause or a chapter heading here. Programs read the report JSON and the job's data.
+    """
     source = result.document.content.source
     out = [SCRIPT_TITLE, f"Source: {source.name}", f"Language: {result.document.language}"]
     for script in result.chapters:

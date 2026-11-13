@@ -181,6 +181,7 @@ def run_script_job(
         known = ", ".join(sorted(EXTRACTORS))
         raise UnsupportedFileError(f"{source.name}: sci2audio can read {known} files only")
     files = script_files(source, settings, work)
+    _check_folders(files)
     if not overwrite and (existing := [path for path in files.outputs if path.exists()]):
         names = ", ".join(path.name for path in existing)
         raise OutputExistsError(f"these files exist already: {names}; choose to replace them")
@@ -218,9 +219,12 @@ def _write(
         files.report_json: _json(report_data(job_report)),
         files.report_markdown: report_markdown(job_report),
     }
+    for folder in (files.script.parent, files.record.parent):
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            raise _folder_error(folder, error) from error
     try:
-        files.script.parent.mkdir(parents=True, exist_ok=True)
-        files.record.parent.mkdir(parents=True, exist_ok=True)
         write_texts(texts, overwrite=overwrite)
         record = _record(files, result, settings)
         write_text_atomically(files.record, _json(record), overwrite=True)
@@ -231,6 +235,22 @@ def _write(
     except OSError as error:
         where = PurePath(str(error.filename)).name if error.filename else "the output"
         raise JobError(f"could not write {where}: {error.strerror or error}") from error
+
+
+def _check_folders(files: ScriptFiles) -> None:
+    """Refuse before any work an output or working folder that is a file."""
+    for folder in (files.script.parent, files.record.parent):
+        for path in (folder, *folder.parents):
+            if path.exists():
+                if not path.is_dir():
+                    raise JobError(f"{path.name} is not a folder; choose another output folder")
+                break
+
+
+def _folder_error(folder: Path, error: OSError) -> JobError:
+    if isinstance(error, FileExistsError | NotADirectoryError):
+        return JobError(f"{folder.name} is not a folder; choose another output folder")
+    return JobError(f"could not make the folder {folder.name}: {error.strerror or error}")
 
 
 def _record(files: ScriptFiles, result: ScriptResult, settings: JobSettings) -> dict[str, Any]:

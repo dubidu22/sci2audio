@@ -165,29 +165,62 @@ def test_a_pause_shows_in_the_report_and_the_utterances() -> None:
     assert result.chapters[1].spoken == 3
 
 
+Run = tuple[Document, list[Edit], frozenset[int] | None]
+
+_TEXT = st.text(alphabet="ab C. ,!\n", min_size=1, max_size=40).filter(str.strip)
+_KINDS = st.sampled_from(["paragraph", "paragraph", "heading", "furniture", "footnote"])
+
+
 @st.composite
-def runs(draw: st.DrawFn) -> tuple[Document, list[Edit], frozenset[int] | None]:
-    document = draw(documents())
+def edits_in(draw: st.DrawFn, document: Document) -> list[Edit]:
+    """Two to eight edits on random blocks: removals, replacements and pauses."""
     edits = []
-    for _ in range(draw(st.integers(0, 4))):
-        if not document.blocks:
-            break
+    for _ in range(draw(st.integers(2, 8))):
         block = draw(st.integers(0, len(document.blocks) - 1))
         length = len(document.blocks[block].text)
         start = draw(st.integers(0, length))
         end = draw(st.integers(start, length))
-        if end > start:
-            edits.append(edit(block, start, end))
-    chapters = draw(st.none() | st.frozensets(st.integers(0, 8)))
-    return document, edits, chapters
+        kind = draw(st.sampled_from([EditKind.REMOVE, EditKind.REPLACE, EditKind.PAUSE]))
+        if kind is EditKind.PAUSE:
+            edits.append(edit(block, start, start, kind))
+        elif end > start:
+            replacement = "said" if kind is EditKind.REPLACE else ""
+            edits.append(edit(block, start, end, kind, replacement))
+    return edits
 
 
-@given(runs())
-def test_cutting_the_chosen_chapters_equals_cutting_all_and_dropping_the_rest(
-    run: tuple[Document, list[Edit], frozenset[int] | None],
-) -> None:
+@st.composite
+def chaptered(draw: st.DrawFn) -> Run:
+    """A document with two to five top-level sections (and maybe front text), edits in
+    random blocks, and a choice drawn from its own chapter indices (sometimes with an
+    index it doesn't have, sometimes the default)."""
+    count = draw(st.integers(2, 12))
+    blocks = [(draw(_KINDS), draw(_TEXT)) for _ in range(count)]
+    starts = sorted(draw(st.sets(st.integers(0, count - 1), min_size=2, max_size=5)))
+    ends = [*starts[1:], count]
+    sections = tuple(Section(blocks[a][1], 1, a, b) for a, b in zip(starts, ends, strict=True))
+    document = document_with(blocks, sections, title="T")
+    chapters = len(starts) + (starts[0] > 0)
+    chosen = {index for index in range(chapters) if draw(st.booleans())}
+    if len(chosen) in (0, chapters) and draw(st.sampled_from([True] * 9 + [False])):
+        chosen ^= {draw(st.integers(0, chapters - 1))}  # mostly a partial choice
+    if draw(st.sampled_from([False] * 9 + [True])):
+        chosen |= {chapters + draw(st.integers(0, 3))}  # an index the document doesn't have
+    choice = None if draw(st.sampled_from([False] * 9 + [True])) else frozenset(chosen)
+    return document, draw(edits_in(document)), choice
+
+
+@st.composite
+def anything(draw: st.DrawFn) -> Run:
+    """Any document the core strategies make, with edits and any choice."""
+    document = draw(documents())
+    edits = draw(edits_in(document)) if document.blocks else []
+    return document, edits, draw(st.none() | st.frozensets(st.integers(0, 8)))
+
+
+def check_chapter_choice(run: Run) -> None:
     document, edits, chapters = run
-    steps = [Fixed(f"s{n}", [e]) for n, e in enumerate(edits)]
+    steps = [*BUILT_IN_STEPS, *(Fixed(f"s{n}", [e]) for n, e in enumerate(edits))]
     result = prepare_script(document, JobSettings(chapters=chapters), steps)
     everything = cut_utterances(document, result.run.script())
     chosen = {c.chapter.index for c in result.chapters if c.selected}
@@ -202,6 +235,16 @@ def test_cutting_the_chosen_chapters_equals_cutting_all_and_dropping_the_rest(
         assert entry.spoken == (entry.status is Status.ACCEPTED and chapter.selected)
     total = sum(c.applied + c.not_spoken + c.set_aside + c.switched_off for c in report.counts)
     assert total == len(report.edits) == len(result.run.outcomes)
+
+
+@given(chaptered())
+def test_cutting_the_chosen_chapters_equals_cutting_all_and_dropping_the_rest(run: Run) -> None:
+    check_chapter_choice(run)
+
+
+@given(anything())
+def test_the_chapter_choice_holds_on_any_document(run: Run) -> None:
+    check_chapter_choice(run)
 
 
 @given(documents())

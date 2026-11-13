@@ -2,7 +2,8 @@
 
 Each file is written under a temporary name (`.<name>.partial`) next to its target and
 renamed when complete; on any error the partial files are removed. `write_texts` writes
-all its files before it renames any, so a full disk leaves every earlier file as it was.
+all its files before it renames any, so a full disk leaves every earlier file as it was,
+and without `overwrite` it puts either all of its files in place or none.
 An existing file is only replaced with `overwrite=True`; without it, a file that appeared
 at the target during the run is never replaced either. A run killed outright may leave a
 partial file behind; the next run writes over it.
@@ -31,9 +32,15 @@ def write_texts(texts: Mapping[Path, str], *, overwrite: bool) -> None:
     """Write each text to its file: all partial files first, then rename them in order.
 
     Raises FileExistsError if a target exists and `overwrite` is false, OSError if writing
-    fails; no partial file is left, and if writing (not renaming) fails no target changed.
+    fails. No partial file is left, and if writing (not renaming) fails no target changed.
+    Without `overwrite` the set is all or nothing: if one rename fails (a target appeared
+    during the run), the targets already renamed by this call are removed again; they did
+    not exist before, so nothing of the person's is deleted. With `overwrite`, a rename
+    that fails after earlier ones succeeded cannot be undone (the old files are gone); on
+    one file system, after every file was written in full, that is not expected to happen.
     """
     partials = {target: partial_path(target) for target in texts}
+    committed: list[Path] = []
     try:
         for target, text in texts.items():
             with partials[target].open("w", encoding="utf-8", newline="\n") as file:
@@ -42,10 +49,15 @@ def write_texts(texts: Mapping[Path, str], *, overwrite: bool) -> None:
                 os.fsync(file.fileno())
         for target, partial in partials.items():
             _commit(partial, target, overwrite)
+            committed.append(target)
     except BaseException:
         for partial in partials.values():
             with contextlib.suppress(OSError):
                 partial.unlink(missing_ok=True)
+        if not overwrite:
+            for target in committed:
+                with contextlib.suppress(OSError):
+                    target.unlink(missing_ok=True)
         raise
 
 

@@ -111,6 +111,23 @@ def test_a_broken_file_gives_the_defaults_and_a_warning(
     assert warning in warnings[0]
 
 
+def test_a_deeply_nested_file_gives_the_defaults_and_a_warning(tmp_path: Path) -> None:
+    file = tmp_path / "settings.json"
+    file.write_text("[" * 100_000 + "]" * 100_000, encoding="utf-8")
+    settings, warnings = load_settings(file)
+    assert settings == JobSettings()
+    assert warnings == ["the settings file is damaged (nested too deeply); using the defaults"]
+
+
+@pytest.mark.parametrize("version", [True, 1.0, "1", None])
+def test_only_the_number_1_is_version_1(tmp_path: Path, version: object) -> None:
+    file = tmp_path / "settings.json"
+    file.write_text(json.dumps({"version": version, "speed": 1.5}), encoding="utf-8")
+    settings, warnings = load_settings(file)
+    assert settings == JobSettings(speed=1.5)
+    assert warnings == [f"the settings file has version {version!r}; reading what fits"]
+
+
 def test_an_unreadable_file_gives_the_defaults_and_a_warning(tmp_path: Path) -> None:
     file = tmp_path / "settings.json"
     file.write_bytes(b"\xff\xfe\x00bad")

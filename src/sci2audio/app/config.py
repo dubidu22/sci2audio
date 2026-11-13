@@ -58,7 +58,7 @@ def settings_from_data(data: object) -> tuple[JobSettings, list[str]]:
         return JobSettings(), ["the settings file does not hold settings; using the defaults"]
     warnings = []
     version = data.get("version")
-    if version != CONFIG_VERSION:
+    if type(version) is not int or version != CONFIG_VERSION:  # true is not version 1
         warnings.append(f"the settings file has version {version!r}; reading what fits")
     values: dict[str, Any] = {}
     for key, value in data.items():
@@ -87,8 +87,9 @@ def load_settings(file: Path) -> tuple[JobSettings, list[str]]:
         return JobSettings(), [f"the settings file can't be read ({error}); using the defaults"]
     try:
         data = json.loads(text)
-    except json.JSONDecodeError as error:
-        return JobSettings(), [f"the settings file is damaged ({error}); using the defaults"]
+    except (ValueError, RecursionError) as error:  # JSONDecodeError; nesting too deep
+        detail = error if isinstance(error, ValueError) else "nested too deeply"
+        return JobSettings(), [f"the settings file is damaged ({detail}); using the defaults"]
     return settings_from_data(data)
 
 
