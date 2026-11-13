@@ -428,7 +428,7 @@ def choose_language(request: Request, language: str = "", back: str = "") -> Red
     """Remembers the chosen language in its own cookie and goes back to the page the switch
     was on: a path on this server, never another address.
 
-    A GET form, not a POST: every answer carries `Referrer-Policy: no-referrer` (D-194), so
+    A GET form, not a POST (D-321): every answer carries `Referrer-Policy: no-referrer` (D-194), so
     browsers send `Origin: null` with a form POST, which the origin check refuses. The GET
     is guarded like every page (start cookie, `Sec-Fetch-Site`), sets nothing but the
     language, and another site can't reach it: its navigation is cross-site and carries no
