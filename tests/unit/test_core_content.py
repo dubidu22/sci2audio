@@ -63,7 +63,8 @@ PAPER = Content(
     ),
 )
 
-# The same idea from an EPUB: no positions, but the source's own tags.
+# The same idea from an EPUB: no positions, but the source's own tags, the order of lines
+# and pictures, where the image is stored, and an outline entry pointing at an anchor.
 EPUB = Content(
     source=Source("book.epub", SourceFormat.EPUB),
     pages=(
@@ -72,11 +73,13 @@ EPUB = Content(
             lines=(
                 TextLine("c1-1", (TextRun("Chapter One", tags=("h2",)),)),
                 TextLine("c1-2", (TextRun("It was "), TextRun("dark", italic=True, tags=("em",)))),
+                TextLine("c1-3", (TextRun("Part Two", tags=("h3", "#part-2")),)),
             ),
-            pictures=(Picture("c1-img1", alt="A map of the island"),),
+            pictures=(Picture("c1-img1", alt="A map of the island", ref="epub/images/map.png"),),
+            order=("c1-1", "c1-img1", "c1-2", "c1-3"),
         ),
     ),
-    outline=(OutlineEntry("Chapter One", 1, 1),),
+    outline=(OutlineEntry("Chapter One", 1, 1), OutlineEntry("Part Two", 2, 1, item="c1-3")),
 )
 
 
@@ -88,7 +91,7 @@ def test_items_by_id() -> None:
     page, item = PAPER.items()["p2-pic1"]
     assert page.number == 2
     assert isinstance(item, Picture)
-    assert len(EPUB.items()) == 3
+    assert len(EPUB.items()) == 4
 
 
 def test_objects_are_frozen() -> None:
@@ -139,6 +142,28 @@ def test_objects_are_frozen() -> None:
         lambda: Content(PAPER.source, (Page(1),), outline=(OutlineEntry("Methods", 1, 0),)),
         lambda: Content(PAPER.source, (Page(1),), outline=(OutlineEntry("Methods", 1, 2),)),
         lambda: Content(PAPER.source, (), outline=(OutlineEntry("Methods", 1, 1),)),
+        lambda: Page(
+            1, lines=(TextLine("l1", (TextRun("a"),)),), order=("l2",)
+        ),  # an id not on the page
+        lambda: Page(
+            1, lines=(TextLine("l1", (TextRun("a"),)),), pictures=(Picture("i1"),), order=("l1",)
+        ),  # one left out
+        lambda: Page(1, lines=(TextLine("l1", (TextRun("a"),)),), order=("l1", "l1")),  # one twice
+        lambda: Content(  # an item on another page
+            PAPER.source,
+            (Page(1, lines=(TextLine("l1", (TextRun("a"),)),)), Page(2)),
+            outline=(OutlineEntry("Methods", 1, 2, item="l1"),),
+        ),
+        lambda: Content(  # an item without a page
+            PAPER.source,
+            (Page(1, lines=(TextLine("l1", (TextRun("a"),)),)),),
+            outline=(OutlineEntry("Methods", 1, item="l1"),),
+        ),
+        lambda: Content(  # an item the content does not have
+            PAPER.source,
+            (Page(1, lines=(TextLine("l1", (TextRun("a"),)),)),),
+            outline=(OutlineEntry("Methods", 1, 1, "l9"),),
+        ),
     ],
 )
 def test_invalid_values_are_refused(make: object) -> None:
@@ -158,6 +183,32 @@ def test_an_outline_keeps_its_nesting_in_its_levels() -> None:
     content = Content(PAPER.source, (Page(1),), outline=outline)
     assert content.outline == outline
     assert Content(PAPER.source, (Page(1),)).outline == ()
+
+
+def test_a_page_without_positions_keeps_the_order_of_lines_and_pictures() -> None:
+    """`order` places the picture between the heading and the paragraph (D-309); a page
+    whose items have boxes needs none, and an outline entry can point at an item (D-311)."""
+    page = EPUB.pages[0]
+    assert page.order == ("c1-1", "c1-img1", "c1-2", "c1-3")
+    assert PAPER.pages[1].order == ()
+    assert EPUB.items()[EPUB.outline[1].item][1].text == "Part Two"  # type: ignore[union-attr]
+    assert page.pictures[0].ref == "epub/images/map.png"
+
+
+def test_an_outline_item_without_a_page_is_named_as_such() -> None:
+    line = TextLine("l1", (TextRun("a"),))
+    with pytest.raises(ValueError, match="points at item 'l1' but at no page"):
+        Content(PAPER.source, (Page(1, lines=(line,)),), outline=(OutlineEntry("M", 1, item="l1"),))
+
+
+@pytest.mark.timeout(10)
+def test_many_anchors_into_one_long_page_are_checked_quickly() -> None:
+    """One large chapter file with a long anchored table of contents (D-311): each page's
+    ids are collected once, not once per entry (review of PR #140, finding 1)."""
+    lines = tuple(TextLine(f"l{n}", (TextRun("a"),)) for n in range(50_000))
+    outline = tuple(OutlineEntry(f"S{n}", 1, 1, item=f"l{n * 25}") for n in range(2_000))
+    content = Content(PAPER.source, (Page(1, lines=lines),), outline=outline)
+    assert len(content.outline) == 2_000
 
 
 @pytest.mark.parametrize(

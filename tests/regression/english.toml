@@ -792,6 +792,14 @@ blocks = [
 expected = []
 
 [[case]]
+id = "link-only-footnote-mark-set-close"
+audit = 0
+issue = 36
+goal = "A footnote's mark set close to its link, as printed ('5https://...'), still leaves nothing to read: links are searched after the mark (D-278)."
+blocks = [{ kind = "footnote", text = "5https://github.com/huggingface/transformers", label = "5" }]
+expected = []
+
+[[case]]
 id = "pointer-sentence"
 audit = 0
 issue = 66

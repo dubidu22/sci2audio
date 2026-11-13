@@ -49,6 +49,19 @@ def make_pdf(*pages: list[Text | Rect]) -> bytes:
     return buffer.getvalue()
 
 
+def width(text: str, font: str = "Helvetica", size: float = 10.0) -> float:
+    """How wide the text is set, in points, to place the next piece right after it."""
+    document = pdfium.PdfDocument.new()
+    obj = _text(document, Text(text, 0.0, 0.0, font, size))
+    left, bottom, right, top = (ctypes.c_float() for _ in range(4))
+    raw.FPDFPageObj_GetBounds(
+        obj, ctypes.byref(left), ctypes.byref(bottom), ctypes.byref(right), ctypes.byref(top)
+    )
+    raw.FPDFPageObj_Destroy(obj)
+    document.close()
+    return right.value - left.value
+
+
 def _text(document: pdfium.PdfDocument, item: Text) -> object:
     font = raw.FPDFText_LoadStandardFont(document.raw, item.font.encode())
     obj = raw.FPDFPageObj_CreateTextObj(document.raw, font, item.size)
