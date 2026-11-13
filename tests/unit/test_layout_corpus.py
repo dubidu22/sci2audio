@@ -574,6 +574,19 @@ def test_headings_not_yet_found_are_still_in_the_truth() -> None:
         assert text not in [section.title for section in flattened(document(paper).sections)]
 
 
+def test_the_underbrace_in_nowak_footnote_1_stands_in_its_line() -> None:
+    """#58 (D-329, D-332): nowak p1's underbrace of "n times", drawn in two halves inside
+    footnote 1's line "| {z }" (p1-l48), is read just after that line, not after footnote 2."""
+    paper = CORPUS / "papers" / "acl2023-nowak-prefix-probabilities.pdf"
+    doc = document(paper)
+    note = next(b for b in doc.blocks if b.kind is BlockKind.FOOTNOTE and b.label == "1")
+    items = [p.item for p in note.parts]
+    at = items.index("p1-l48")
+    assert items[at + 1 : at + 3] == ["p1-d7", "p1-d8"]
+    end = note.parts[at].start + len("| {z }")
+    assert {p.start for p in note.parts[at + 1 : at + 3]} == {end}
+
+
 def word_for_word(sentence: str) -> re.Pattern[str]:
     """The sentence as a block may hold it: any white space where it has a space, and a
     line break after a hyphen, or after a letter that a hyphen and a line break may follow

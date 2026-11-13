@@ -332,11 +332,83 @@ def test_a_footnote_rule_is_part_of_the_footnote() -> None:
 
 
 def test_an_icon_joins_the_block_before_it() -> None:
-    """An ORCID icon by an author's name is no figure."""
-    icon = Picture("icon", Box(200, 101, 208, 109))
+    """An ORCID icon by an author's name is no figure. Set below the last line, outside its
+    box, it stands in no line and joins the block read before it (D-90; inside a line, #58)."""
+    icon = Picture("icon", Box(200, 238, 208, 246))
     doc = build([*running(), icon])
     assert of(doc, BlockKind.FIGURE) == []
     assert doc.blocks[0].parts[-1].item == "icon"
+
+
+def parts_of(doc: Document, item: str) -> list[tuple[str, int]]:
+    """The parts, (item, start), of the block that holds the item."""
+    block = next(b for b in doc.blocks if any(p.item == item for p in b.parts))
+    return [(p.item, p.start) for p in block.parts]
+
+
+def test_an_icon_drawn_in_a_line_stands_just_after_that_line() -> None:
+    """#58 (D-329, D-331, D-332), as biggs's ORCID icons: the icon is drawn in two pieces
+    inside the box of the paragraph's second line; it is read just after that line, where
+    its text ends, not after the paragraph's last line."""
+    lines = running(count=4)
+    box = lines[1].box
+    assert box is not None
+    ring = Drawing("ring", Box(300, box.y0 + 1, 308, box.y0 + 9))
+    dot = Picture("dot", Box(302, box.y0 + 3, 306, box.y0 + 7))
+    doc = build([*lines, ring, dot])
+    text = "\n".join(li.text for li in lines)
+    assert [b.text for b in doc.blocks] == [text]
+    end = text.index(lines[1].text) + len(lines[1].text)
+    assert parts_of(doc, "ring")[1:4] == [
+        (lines[1].id, end - len(lines[1].text)),
+        ("dot", end),
+        ("ring", end),
+    ] or parts_of(doc, "ring")[1:4] == [
+        (lines[1].id, end - len(lines[1].text)),
+        ("ring", end),
+        ("dot", end),
+    ]
+
+
+def test_a_mark_only_partly_inside_a_line_joins_the_block_before_it() -> None:
+    """D-329, D-330: wholly inside, without slack; a fraction bar 0.4 pt below a line's box
+    touches it but stands in no line, so D-90 holds: the end of the block read before it."""
+    lines = running(count=4)
+    box = lines[1].box
+    assert box is not None
+    bar = Drawing("bar", Box(300, box.y1 - 0.4, 310, box.y1 + 0.4))
+    doc = build([*lines, bar])
+    assert parts_of(doc, "bar")[-1] == ("bar", len(doc.blocks[0].text))
+
+
+def test_a_group_only_partly_inside_a_line_keeps_the_old_rule() -> None:
+    """D-331: the group drawn close together counts as one; here its second piece reaches
+    out of the line's box, so the whole group joins the block read before it."""
+    lines = running(count=4)
+    box = lines[1].box
+    assert box is not None
+    inside = Drawing("inside", Box(300, box.y0 + 1, 304, box.y0 + 5))
+    out = Drawing("out", Box(305, box.y0 + 3, 309, box.y1 + 3))  # 1 pt away: one group
+    doc = build([*lines, inside, out])
+    end = len(doc.blocks[0].text)
+    assert parts_of(doc, "inside")[-2:] in (
+        [("inside", end), ("out", end)],
+        [("out", end), ("inside", end)],
+    )
+
+
+def test_a_mark_in_two_lines_stands_in_the_smaller() -> None:
+    """D-329: a tall line box (a stacked formula's row) holds a short line set inside it;
+    the mark inside both stands in the smaller box."""
+    lines = running(count=3)
+    tall = line("Sum over k of x k", LEFT, 160, 300, height=30)
+    small = line("k = 1", 120, 172, 160, size=7)
+    after = running(top=200, count=2)
+    bar = Drawing("bar", Box(125, 178, 155, 178.5))
+    doc = build([*lines, tall, small, *after, bar])
+    parts = parts_of(doc, "bar")
+    at = [item for item, _ in parts].index("bar")
+    assert parts[at - 1][0] == small.id
 
 
 # Properties
@@ -369,3 +441,42 @@ def test_any_table_between_rules_is_one_table_its_caption_names(
     doc = build(items)
     assert [b.text for b in of(doc, BlockKind.TABLE)] == [read]
     assert named(doc, label).text == read
+
+
+@st.composite
+def marked_pages(draw: st.DrawFn) -> tuple[list, dict[str, str]]:
+    """Two paragraphs and a note below a rule, with thin marks drawn wholly inside some
+    lines' boxes (a fraction bar, an underbrace), and the line each mark stands in."""
+    first = running(count=draw(st.integers(1, 5)))
+    second = running(top=300, count=draw(st.integers(1, 5)))
+    notes = [line(f"{k + 1} A note.", LEFT, 705 + 10 * k, LEFT + 150, size=8) for k in range(2)]
+    texts = [*first, *second, *notes]
+    marks, hosts = [], {}
+    for k, host in enumerate(draw(st.lists(st.sampled_from(texts), max_size=4, unique=True))):
+        box = host.box
+        assert box is not None
+        x0 = draw(st.floats(box.x0, box.x1 - 4))
+        x1 = draw(st.floats(x0 + 1, min(x0 + 30, box.x1)))
+        y0 = draw(st.floats(box.y0, box.y1 - 0.5))
+        mark = Drawing(f"m{k}", Box(x0, y0, x1, y0 + 0.5))
+        marks.append(mark)
+        hosts[mark.id] = host.id
+    return [*texts, Drawing("rule", Box(LEFT, 700, LEFT + 60, 700.5)), *marks], hosts
+
+
+@given(marked_pages())
+def test_a_mark_drawn_inside_a_line_stands_just_after_it(
+    found: tuple[list, dict[str, str]],
+) -> None:
+    """#58 (D-329 to D-333): each mark is read in the block of the line it stands in, after
+    that line and any other mark standing there, with no text between."""
+    items, hosts = found
+    doc = build(items)
+    texts = {li.id: li.text for li in items if isinstance(li, TextLine)}
+    for mark, host in hosts.items():
+        parts = parts_of(doc, mark)
+        at = [item for item, _ in parts].index(mark)
+        before = [item for item, _ in parts[:at] if item not in hosts]
+        assert before[-1] == host
+        start = dict(parts)[host]
+        assert parts[at][1] == start + len(texts[host])

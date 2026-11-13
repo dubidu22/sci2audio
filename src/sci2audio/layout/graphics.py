@@ -26,8 +26,11 @@ The graphics no caption names:
 - the same box on `repeat_pages` pages (a journal's logo) is FURNITURE, a RUNNING_HEAD
   (D-91);
 - lines only (a rule, a frame, arrows), or a mark no taller than `mark_height` (an icon, a
-  logo by the authors): part of the footnote just below it (a footnote rule, #51), else of
-  the block read just before it (D-90), whose text stays as it was;
+  logo by the authors): part of the block whose text it stands in, if its whole box lies
+  inside the box of one text line on its page (the smallest such box; an underbrace or a
+  fraction bar drawn in a line, an icon by a name), read just after that line, where its
+  text ends (#58, D-329 to D-333); else part of the footnote just below it (a footnote rule,
+  #51), else of the block read just before it (D-90). The block's text stays as it was;
 - anything else is a FIGURE, with the other such graphics within `float_gap` of it. It
   takes no text: without a caption, a frame or background around running text can't be
   told from a figure.
@@ -53,7 +56,7 @@ from sci2audio.core import (
 )
 from sci2audio.layout.geometry import line_size, same_row, union
 from sci2audio.layout.settings import LayoutSettings
-from sci2audio.layout.split import kept, read_rows
+from sci2audio.layout.split import kept, part_ends, read_rows
 
 # what a float may take: running text and graphics. Anything else ends its walk
 _TAKE = {BlockKind.PARAGRAPH, BlockKind.FIGURE}
@@ -125,7 +128,8 @@ def find_graphics(
     actions = _repeated(pages, state)
     for items in pages:
         actions |= _loose(items, state, actions)
-    return _assemble(state, actions)
+    hosts = {k: line for items in pages for k, line in _hosts(items, state, actions).items()}
+    return _assemble(state, actions, hosts)
 
 
 def link_captions(blocks: list[Block], links: Links) -> list[Block]:
@@ -372,6 +376,36 @@ def _loose(items: list[_Item], state: _State, actions: dict[int, str]) -> dict[i
     return found
 
 
+def _hosts(items: list[_Item], state: _State, actions: dict[int, str]) -> dict[int, str]:
+    """The line each joining group of graphics stands in, by the group's block: the text
+    line on the page whose box holds the group's whole box, without slack (D-329, D-330);
+    the smallest such box, on a tie the line read first. A group is judged as one (D-331)."""
+    read = {part.item: (k, n) for k, b in enumerate(state.blocks) for n, part in enumerate(b.parts)}
+    lines = [i for i in items if i.line is not None]
+    found = {}
+    for k, group in _groups(items, state).items():
+        if actions.get(k) != "join":
+            continue
+        box = union([i.box for i in group])
+        holding = [i for i in lines if _holds(i.box, box)]
+        if holding:
+            found[k] = min(holding, key=lambda i: (_area(i.box), read[i.id])).id
+    return found
+
+
+def _holds(outer: Box, inner: Box) -> bool:
+    return (
+        outer.x0 <= inner.x0
+        and inner.x1 <= outer.x1
+        and outer.y0 <= inner.y0
+        and inner.y1 <= outer.y1
+    )
+
+
+def _area(box: Box) -> float:
+    return (box.x1 - box.x0) * (box.y1 - box.y0)
+
+
 def _minor(group: list[_Item], state: _State) -> bool:
     """True for lines only (a rule, a frame, arrows) or a mark no taller than
     `mark_height` (an icon)."""
@@ -414,10 +448,13 @@ def _meets(a: Box, b: Box) -> bool:
     return a.x0 <= b.x1 and b.x0 <= a.x1 and a.y0 <= b.y1 and b.y0 <= a.y1
 
 
-def _assemble(state: _State, actions: dict[int, str]) -> tuple[list[Block], Links]:
+def _assemble(
+    state: _State, actions: dict[int, str], hosts: dict[int, str]
+) -> tuple[list[Block], Links]:
     """The blocks with the taken items moved into their placeholders, each placeholder
     where its first line of text was read (an algorithm's box opens above its caption, its
-    lines below it), and the loose graphics placed by `actions`."""
+    lines below it), the loose graphics placed by `actions`, and those standing in a line
+    (`hosts`, by their block) placed in the block that holds the line."""
     floats = {n: f for n, f in enumerate(state.floats) if not f.merged}
     anchor: dict[int, list[int]] = {}
     for n, f in floats.items():
@@ -428,13 +465,17 @@ def _assemble(state: _State, actions: dict[int, str]) -> tuple[list[Block], Link
     taken = set(state.taken)
     placeholders = {n: _placeholder(f, state.settings) for n, f in floats.items()}
     out: list[tuple[Block, str]] = []  # each block, and what to do with it
+    stand: list[tuple[str, tuple[Part, ...]]] = []  # graphics standing in a line
     for k, block in enumerate(state.blocks):
         here = [(placeholders[n], "") for n in anchor.get(k, [])]
         rest = _without(block, taken, state.lines)
         first_taken = bool(block.parts) and block.parts[0].item in state.taken
+        if k in hosts and rest and all(p.item not in state.lines for p in rest.parts):
+            stand.append((hosts[k], rest.parts))  # placed once every block stands
+            rest = None
         kept = [(rest, actions.get(k, ""))] if rest else []
         out += here + kept if first_taken else kept + here
-    blocks = _place(out)
+    blocks = _stand(_place(out), stand, state.lines)
     named = {
         part.item: placeholders[n].parts[0].item
         for n, f in floats.items()
@@ -443,6 +484,28 @@ def _assemble(state: _State, actions: dict[int, str]) -> tuple[list[Block], Link
         if placeholders[n].parts
     }
     return blocks, Links(named)
+
+
+def _stand(
+    blocks: list[Block], stand: list[tuple[str, tuple[Part, ...]]], lines: dict[str, int]
+) -> list[Block]:
+    """The blocks with each group of graphics that stands in a line (`stand`: the line, the
+    group's parts) in the block that holds the line, whatever its kind (D-333), read just
+    after the line and after the graphics already read there, where the line's text ends
+    (D-332): what `kept` makes of a graphic, so later cuts keep it with its line."""
+    where = {part.item: k for k, block in enumerate(blocks) for part in block.parts}
+    for host, graphics in stand:
+        k = where[host]
+        block = blocks[k]
+        end = part_ends(block, lines)[host]
+        parts = list(block.parts)
+        n = next(n for n, p in enumerate(parts) if p.item == host) + 1
+        while n < len(parts) and parts[n].item not in lines and parts[n].start == end:
+            n += 1
+        parts[n:n] = [Part(g.item, end) for g in graphics]
+        blocks[k] = replace(block, parts=tuple(parts))
+        where.update({g.item: k for g in graphics})
+    return blocks
 
 
 def _placeholder(f: _Float, settings: LayoutSettings) -> Block:
