@@ -12,7 +12,9 @@ import zlib
 from pathlib import Path
 
 import pytest
-from epub_maker import Item, make_epub
+from epub_maker import Book, Item, make_epub, pack, xhtml
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from pdf_maker import Text, make_pdf
 
 from sci2audio.extraction import Cover, extract_epub_cover, extract_pdf_cover
@@ -66,6 +68,8 @@ def test_media_type_comes_from_the_bytes() -> None:
         None,
         None,
     )
+    assert media_type(b"\xff\xd8\x00" + JPEG[3:]) is None  # all three signature bytes
+    assert media_type(PNG[:7] + b"\x00" + PNG[8:]) is None
     assert Cover(JPEG, "image/jpeg").suffix == ".jpg"
     assert Cover(PNG, "image/png").suffix == ".png"
     with pytest.raises(ValueError, match="JPEG or PNG"):
@@ -195,3 +199,59 @@ def test_an_unreadable_epub_gives_no_cover(tmp_path: Path, data: bytes | None) -
     if data is not None:
         path.write_bytes(data)
     assert extract_epub_cover(path) is None
+
+
+def test_a_cover_whose_address_cannot_be_parsed_gives_none(tmp_path: Path) -> None:
+    items = [Item("c", "http://[x", "image/jpeg", "cover-image", content=None, in_spine=False)]
+    path = tmp_path / "book.epub"
+    path.write_bytes(make_epub("<p>x</p>", items=items))
+    assert extract_epub_cover(path) is None
+
+
+def cover_outcome(folder: Path, data: bytes) -> Cover | None:
+    """`extract_epub_cover` on `data`; any exception fails the test (D-313: never raises)."""
+    path = folder / "book.epub"
+    path.write_bytes(data)
+    return extract_epub_cover(path)
+
+
+@settings(deadline=None)
+@given(st.binary(max_size=2000))
+def test_any_bytes_give_a_cover_or_none(
+    tmp_path_factory: pytest.TempPathFactory, data: bytes
+) -> None:
+    cover_outcome(tmp_path_factory.mktemp("any"), data)
+
+
+COVERED = Book(
+    items=[
+        Item("c1", "c1.xhtml", content=xhtml("<p>x</p>")),
+        Item("cover", "cover.jpg", "image/jpeg", "cover-image", content=JPEG, in_spine=False),
+    ]
+)
+PACKAGES = st.sampled_from(
+    [
+        COVERED.package(),
+        COVERED.package().replace('href="cover.jpg"', 'href="http://[x"'),
+        COVERED.package().replace('properties="cover-image"', ""),
+    ]
+)
+
+
+@settings(deadline=None)
+@given(
+    PACKAGES,
+    st.lists(
+        st.tuples(st.integers(0, 2000), st.text(alphabet="<>&;/=\"' ab#:[\x00", max_size=6)),
+        max_size=8,
+    ),
+)
+def test_a_damaged_package_gives_a_cover_or_none(
+    tmp_path_factory: pytest.TempPathFactory, package: str, inserts: list[tuple[int, str]]
+) -> None:
+    for position, piece in sorted(inserts, reverse=True):
+        at = min(position, len(package))
+        package = package[:at] + piece + package[at:]
+    files = dict(COVERED.files(), **{"OEBPS/content.opf": package})
+    cover = cover_outcome(tmp_path_factory.mktemp("damaged"), pack(files))
+    assert cover is None or cover == Cover(JPEG, "image/jpeg")

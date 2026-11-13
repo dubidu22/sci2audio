@@ -51,6 +51,7 @@ MAX_TOTAL = 512 * 1024 * 1024  # bytes all files read from one EPUB may unpack t
 MAX_SPINE = 10_000  # documents in the reading order
 MAX_COVER = 20 * 1024 * 1024  # bytes of a cover image
 MAX_TAGGED = 100  # nested elements that add tags; deeper ones add none
+MAX_TAGS = 200  # tags one element carries, its ancestors' included; more are left out
 MAX_OUTLINE_LEVEL = 15  # as for PDF bookmarks (D-267)
 
 CONTAINER = "META-INF/container.xml"
@@ -322,8 +323,12 @@ def _clean(path: str) -> str | None:
 
 def _resolve(base: str, href: str) -> tuple[str | None, str]:
     """The zip path and fragment an `href` in the file at `base` points at; the path is None
-    when the link leaves the book (a web address, mail, or a path outside the zip)."""
-    parts = urlsplit(href)
+    when the link leaves the book (a web address, mail, or a path outside the zip) and for
+    an address that cannot be parsed at all (e.g. "http://[x")."""
+    try:
+        parts = urlsplit(href)
+    except ValueError:
+        return None, ""
     fragment = unquote(parts.fragment)
     if parts.scheme or parts.netloc:
         return None, fragment
@@ -350,7 +355,10 @@ def _decode(data: bytes) -> str:
             codec = "utf-8"
         if codec.startswith("utf-16") or codec.startswith("utf-32"):
             codec = "utf-8"  # declared but written without a byte-order mark: not readable
-    return data.decode(codec, errors="replace")
+    try:
+        return data.decode(codec, errors="replace")
+    except (LookupError, ValueError):  # not a text codec (hex, base64) or one that can't
+        return data.decode("utf-8", errors="replace")  # replace (idna, punycode)
 
 
 def _fold(text: str) -> str:
@@ -541,7 +549,6 @@ class _Reader(HTMLParser):
         self.waiting: list[Picture] = []  # pictures inside the line being read
         self.pending: list[str] = []  # anchors waiting for the next item
         self.continues = False  # the next line continues an element after a <br>
-        self.after_pre_start = False
 
     def read(self, text: str) -> None:
         self.feed(text)
@@ -594,10 +601,7 @@ class _Reader(HTMLParser):
         if self.open["title"] and self.svgs:
             self.svgs[-1][0].append(data)  # an SVG's title is its pictures' alternative text
             return
-        if self.open["pre"]:
-            if self.after_pre_start and data.startswith("\n"):
-                data = data[1:]  # a line feed right after <pre> is not content (HTML)
-            self.after_pre_start = False
+        if self.open["pre"]:  # (a line feed right after <pre> gives an empty line: none)
             first, *rest = data.split("\n")
             self.add(first)
             for piece in rest:
@@ -626,12 +630,13 @@ class _Reader(HTMLParser):
             return
         tagged = parent.tagged if parent else 0
         own: tuple[str, ...] = ()
+        inherited = parent.tags if parent else ()
         if tag not in ("html", "body") and tagged < MAX_TAGGED:
-            own, tagged = self.tags(tag, attrs), tagged + 1
+            own, tagged = self.tags(tag, attrs)[: MAX_TAGS - len(inherited)], tagged + 1
         self.push(
             _Element(
                 tag,
-                (parent.tags if parent else ()) + own,
+                inherited + own,
                 tag in _BOLD or bool(parent and parent.bold),
                 tag in _ITALIC or bool(parent and parent.italic),
                 tagged,
@@ -639,8 +644,6 @@ class _Reader(HTMLParser):
         )
         if tag == "svg":
             self.svgs.append(([], []))
-        elif tag == "pre":
-            self.after_pre_start = True
 
     def push(self, element: _Element) -> None:
         self.stack.append(element)
@@ -765,15 +768,14 @@ def _resolve_links(pages: tuple[Page, ...], anchors: _Anchors) -> tuple[Page, ..
     def tag(value: str) -> str:
         return names[int(value[len(_LINK) :])] if value.startswith(_LINK) else value
 
+    def resolved(run: TextRun) -> TextRun:
+        if not any(value.startswith(_LINK) for value in run.tags):
+            return run
+        return replace(run, tags=tuple(map(tag, run.tags)))
+
     out = []
     for page in pages:
-        lines = tuple(
-            replace(
-                line,
-                runs=tuple(replace(run, tags=tuple(map(tag, run.tags))) for run in line.runs),
-            )
-            for line in page.lines
-        )
+        lines = tuple(replace(line, runs=tuple(map(resolved, line.runs))) for line in page.lines)
         out.append(replace(page, lines=lines))
     return tuple(out)
 
@@ -853,7 +855,8 @@ class _NavReader(HTMLParser):
         elif tag == self.label_tag and self.label is not None:
             self.found[-1].title = _fold("".join(self.label))
             self.label, self.label_tag = None, ""
-            self.labelled[-1] = True
+            if self.labelled:  # its <li> may have closed first in damaged markup
+                self.labelled[-1] = True
 
     def handle_data(self, data: str) -> None:
         if self.label is not None:

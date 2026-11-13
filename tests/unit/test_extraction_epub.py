@@ -10,6 +10,8 @@ never a traceback or a hang (D-315).
 
 from __future__ import annotations
 
+import time
+import tracemalloc
 import zipfile
 from pathlib import Path
 
@@ -192,7 +194,8 @@ def test_links_name_the_item_they_point_at() -> None:
             '<a href="../outside.xhtml">outside</a> and <a href="mailto:a@b.c">mail</a>.</p>'
             '<p id="top">Top</p>',
             '<h2>Notes</h2><ol><li id="n1"><p>The note. <a href="c1.xhtml#ref1">back</a></p></li>'
-            '</ol><p id="end"></p>',
+            '</ol><p id="end"></p><span id="last"></span>',
+            '<p><a href="c2.xhtml#end">end</a> and <a href="c2.xhtml#last">last</a></p>',
         )
     )
 
@@ -208,8 +211,51 @@ def test_links_name_the_item_they_point_at() -> None:
     assert link("outside") == "href:../outside.xhtml"
     assert link("mail") == "href:mailto:a@b.c"
     assert link("back") == "link:p1-l1"
+    # anchors after the page's last item point at the whole page
+    assert link("end") == link("last") == "link:p2"
     line, index = run_of(content, "1")
     assert line.runs[index].tags == ("p", "a", "#ref1", "epub:noteref", "link:p2-l2")
+
+
+def test_an_address_that_cannot_be_parsed_is_kept_as_stored() -> None:
+    """`urlsplit` refuses "http://[x" (D-307: an href that does not resolve is kept)."""
+    body = '<p><a href="http://[x">bad</a> <a href="c1.xhtml#ok">ok</a></p><img src="http://[y"/>'
+    book = Book(
+        items=[
+            Item("c1", "c1.xhtml", content=xhtml(body)),
+            Item("odd", "http://[z", "image/png", content=None, in_spine=False),
+        ]
+    )
+    content = read(book.bytes())
+    line, index = run_of(content, "bad")
+    assert line.runs[index].tags[-1] == "href:http://[x"
+    assert content.pages[0].pictures == (Picture("p1-i1", ref="http://[y"),)
+
+
+def test_no_path_above_the_zip_root_is_ever_read() -> None:
+    """A member stored as `../outside.xhtml` exists, but a path that leaves the root is
+    never looked up: the spine item is not listed, a picture keeps its source as stored."""
+    book = Book(
+        items=[
+            Item("c1", "c1.xhtml", content=xhtml('<p>In</p><img src="../../secret.png"/>')),
+            Item("out", "../../outside.xhtml", in_spine=False),
+        ],
+        extra_files={"../outside.xhtml": xhtml("<p>Outside</p>")},
+    )
+    content = read(book.bytes())
+    assert texts(content.pages[0]) == ["In"]
+    assert content.pages[0].pictures == (Picture("p1-i1", ref="../../secret.png"),)
+    book.items[1].in_spine = True
+    with pytest.raises(ExtractionError, match="names 'out', which it does not list"):
+        read(book.bytes())
+
+
+def test_no_break_spaces_at_the_ends_are_kept() -> None:
+    """Folding strips only ASCII white space; U+00A0 is text as stored (D-306)."""
+    title = "<dc:title>\u00a0Title\u00a0</dc:title>"
+    content = read(make_epub("<p> \u00a0kept\u00a0 </p>", metadata=title))
+    assert texts(content.pages[0]) == ["\u00a0kept\u00a0"]
+    assert content.metadata.title == "\u00a0Title\u00a0"
 
 
 def test_pictures_keep_their_place_path_and_alternative_text() -> None:
@@ -274,6 +320,22 @@ def test_text_in_utf_16_and_with_bad_bytes_is_read() -> None:
     ]
 
 
+@pytest.mark.parametrize("codec", ["hex", "base64", "rot13", "zlib", "uu", "idna", "punycode"])
+def test_a_declared_codec_that_is_not_for_text_reads_as_utf_8(codec: str) -> None:
+    document = xhtml("<p>Plain café</p>").replace('encoding="utf-8"', f'encoding="{codec}"')
+    assert texts(read(make_epub_document(document)).pages[0]) == ["Plain café"]
+
+
+@pytest.mark.parametrize("codec", ["utf-16", "UTF-32", "utf-16-le"])
+def test_utf_16_or_32_declared_without_a_byte_order_mark_reads_as_utf_8(codec: str) -> None:
+    document = xhtml("<p>Plain café</p>").replace('encoding="utf-8"', f'encoding="{codec}"')
+    assert texts(read(make_epub_document(document)).pages[0]) == ["Plain café"]
+
+
+def make_epub_document(document: str) -> bytes:
+    return Book(items=[Item("c1", "c1.xhtml", content=document.encode("utf-8"))]).bytes()
+
+
 def test_spine_documents_of_other_kinds() -> None:
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
@@ -304,7 +366,27 @@ def test_deep_nesting_is_read_with_tags_for_the_outer_elements_only() -> None:
     body = "<div>" * depth + "deep" + "</div>" * depth
     line = read(make_epub(body)).pages[0].lines[0]
     assert line.text == "deep"
-    assert line.runs[0].tags == ("div",) * epub_module.MAX_TAGGED
+    assert line.runs[0].tags == ("div",) * 100  # MAX_TAGGED, as decided (D-315)
+
+
+def test_many_tokens_on_many_elements_stay_small_and_fast() -> None:
+    """Tags are capped per element (`MAX_TAGS`), so 100,000 `epub:type` tokens on a parent
+    are not copied into each of its 2,000 children (it took 1.56 GB before the cap)."""
+    tokens = " ".join(f"t{n}" for n in range(100_000))
+    body = f'<div epub:type="{tokens}" role="{tokens}">' + "<span>x</span>" * 2000 + "</div>"
+    data = make_epub(body)
+    tracemalloc.start()
+    started = time.perf_counter()
+    try:
+        content = read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert time.perf_counter() - started < 10
+    assert peak < 100 * 1024 * 1024
+    runs = content.pages[0].lines[0].runs
+    assert runs[0].tags[:3] == ("div", "epub:t0", "epub:t1")
+    assert all(len(run.tags) == 200 for run in runs)  # MAX_TAGS, ancestors' included
 
 
 # ---- outline -------------------------------------------------------------------------------
@@ -408,6 +490,30 @@ def test_a_damaged_outline_never_fails_the_file(ncx: str | bytes | None) -> None
     content = read(ncx_book(ncx).bytes())
     assert content.outline == ()
     assert len(content.pages) == 2
+
+
+@pytest.mark.parametrize(
+    "entries",
+    [
+        '<li><a href="c1.xhtml">A</li></a>',
+        '</li></a></span><li><span>B</li></span><a href="c1.xhtml">C</a>',
+        '<li><a href="c1.xhtml">A</ol></nav><li><a href="c1.xhtml">B</a></li>',
+    ],
+)
+def test_a_damaged_navigation_document_never_fails_the_file(entries: str) -> None:
+    content = read(make_epub("<p>x</p>", nav_entries=entries))
+    assert texts(content.pages[0]) == ["x"]
+
+
+def test_a_deeply_nested_ncx_stops_at_level_fifteen() -> None:
+    depth = 2000
+    points = "".join(
+        f'<navPoint id="n{n}"><navLabel><text>L{n}</text></navLabel><content src="c1.xhtml"/>'
+        for n in range(depth)
+    )
+    ncx = NCX.split("<navMap>")[0] + "<navMap>" + points + "</navPoint>" * depth + "</navMap></ncx>"
+    outline = read(ncx_book(ncx).bytes()).outline
+    assert [entry.level for entry in outline] == list(range(1, 16))
 
 
 def test_outline_levels_stop_at_fifteen() -> None:
@@ -601,6 +707,17 @@ def test_too_large_files_are_refused(
         read(data)
 
 
+def test_the_limits_are_the_decided_ones() -> None:
+    """D-313 and D-315; the other tests lower them to keep the files small."""
+    assert epub_module.MAX_MEMBER == 64 * 1024 * 1024
+    assert epub_module.MAX_TOTAL == 512 * 1024 * 1024
+    assert epub_module.MAX_SPINE == 10_000
+    assert epub_module.MAX_COVER == 20 * 1024 * 1024
+    assert epub_module.MAX_TAGGED == 100
+    assert epub_module.MAX_TAGS == 200
+    assert epub_module.MAX_OUTLINE_LEVEL == 15
+
+
 def test_a_zip_bomb_stops_at_the_real_limit() -> None:
     """65 MB of spaces pack into about 64 KB; reading stops at 64 MB, not trusting the size
     the zip states."""
@@ -660,7 +777,17 @@ pieces = st.one_of(
     st.sampled_from(TAGS).map(lambda tag: f"<{tag}>"),
     st.sampled_from(TAGS).map(lambda tag: f"</{tag}>"),
     st.sampled_from(TAGS).map(lambda tag: f"<{tag}/>"),
-    st.sampled_from(['<p id="x">', '<a href="#x">', '<img src="a.png" alt=" "/>', "<!-- c -->"]),
+    st.sampled_from(
+        [
+            '<p id="x">',
+            '<a href="#x">',
+            '<a href="c1.xhtml#x">',
+            '<a href="http://[x">',
+            '<img src="a.png" alt=" "/>',
+            '<img src="http://[y"/>',
+            "<!-- c -->",
+        ]
+    ),
 )
 
 
@@ -677,6 +804,15 @@ def test_any_markup_gives_folded_lines_with_unique_ids(body: str) -> None:
     ids = [item.id for item in (*page.lines, *page.pictures)]
     assert sorted(page.order) == sorted(ids)
     assert len(set(ids)) == len(ids)
+
+
+@settings(deadline=None)
+@given(st.lists(pieces, max_size=40).map("".join))
+def test_any_navigation_markup_gives_content(entries: str) -> None:
+    """A damaged table of contents never fails the file (D-311)."""
+    content = read(make_epub("<p>x</p>", nav_entries=entries))
+    assert texts(content.pages[0]) == ["x"]
+    assert all(entry.page in (None, 1) for entry in content.outline)
 
 
 def _sample_files() -> dict[str, bytes]:
