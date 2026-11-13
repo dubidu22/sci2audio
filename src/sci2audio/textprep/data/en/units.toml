@@ -1,0 +1,548 @@
+# English units, symbols and words read by the `units` step (TP-10, K8; D-236 to D-242).
+# Written for sci2audio, GPL-3.0-or-later; no list is copied.
+#
+# A unit is read in full only after a number (D-236). Every unit is listed as printed, with
+# no prefixes combined automatically, so each collision is decided here: "in" (inch), "pm"
+# (a time), "a", "y", "pt", "M" (molar or million), "kb" and "Mb" (kilobase or kilobit) and
+# "um" are left out on purpose. A unit of one ASCII letter is read only with a space after
+# the number ("5 m", not "5m"). Spelling is British, as in the issue (D-238).
+#
+# Each entry:
+#   printed   the forms as printed, compared exactly (case matters: "mg" is not "Mg")
+#   singular  read after exactly "1" and in a denominator ("per kilogram")
+#   plural    read after any other number (D-237); the same as singular for "kelvin"
+#   length    true if a power 2 or 3 reads "square" or "cubic" before it (D-239)
+#   per_only  true for a word read as a unit only after "per" or with a negative exponent:
+#             "day" in "mg kg⁻¹ day⁻¹" or "mg/kg/day"; "5 day" is left as printed
+#   not_before_word  true for a unit that is also an English word: not read before a word in
+#             lower case, so a footnote "1 A note." keeps its "A"
+
+[words]
+per = "per"
+square = "square"
+cubic = "cubic"
+squared = "squared"
+cubed = "cubed"
+approximately = "approximately"
+about = "about"
+times = "times"
+# words before a number that make it a label, so a capital letter after it is not a unit
+# ("Figure 2 A", "Table 3 C"); compared in lower case
+labels = [
+    "figure", "fig.", "figs.", "table", "tab.", "section", "sec.", "experiment", "exp.",
+    "study", "group", "condition", "phase", "type", "model", "panel", "chapter", "appendix",
+    "lemma", "theorem", "equation", "eq.", "line", "row", "step", "case", "part", "item",
+    "page", "no.", "number", "class", "level", "stage", "version", "trial", "wave", "set",
+    "figures", "tables", "sections", "panels", "experiments", "studies", "groups", "conditions",
+    "phases", "types", "chapters", "appendices", "lemmas", "theorems", "equations",
+    "eqs.", "lines", "rows", "steps", "cases", "parts", "items", "pages", "nos.", "numbers",
+    "classes", "levels", "stages", "versions", "trials", "waves", "sets", "secs.", "tabs.",
+    "exps.",
+]
+# words before a number that make it attributive: "a 1 m pole" (D-237)
+articles = ["a", "an"]
+
+# a letter printed against a number for thousand, million or billion: "441K", "15M" (D-241)
+[[magnitude]]
+printed = ["K", "k"]
+reads = "thousand"
+
+[[magnitude]]
+printed = ["M"]
+reads = "million"
+
+[[magnitude]]
+printed = ["B", "bn"]
+reads = "billion"
+
+# length
+[[unit]]
+printed = ["m"]
+singular = "metre"
+plural = "metres"
+length = true
+
+[[unit]]
+printed = ["km"]
+singular = "kilometre"
+plural = "kilometres"
+length = true
+
+[[unit]]
+printed = ["cm"]
+singular = "centimetre"
+plural = "centimetres"
+length = true
+
+[[unit]]
+printed = ["mm"]
+singular = "millimetre"
+plural = "millimetres"
+length = true
+
+[[unit]]
+printed = ["µm", "μm"]
+singular = "micrometre"
+plural = "micrometres"
+length = true
+
+[[unit]]
+printed = ["nm"]
+singular = "nanometre"
+plural = "nanometres"
+length = true
+
+[[unit]]
+printed = ["Å", "Å", "˚A"]
+singular = "angstrom"
+plural = "angstroms"
+length = true
+
+[[unit]]
+printed = ["ft"]
+singular = "foot"
+plural = "feet"
+length = true
+
+[[unit]]
+printed = ["mi"]
+singular = "mile"
+plural = "miles"
+length = true
+
+# mass
+[[unit]]
+printed = ["g"]
+singular = "gram"
+plural = "grams"
+
+[[unit]]
+printed = ["kg"]
+singular = "kilogram"
+plural = "kilograms"
+
+[[unit]]
+printed = ["mg"]
+singular = "milligram"
+plural = "milligrams"
+
+[[unit]]
+printed = ["µg", "μg"]
+singular = "microgram"
+plural = "micrograms"
+
+[[unit]]
+printed = ["ng"]
+singular = "nanogram"
+plural = "nanograms"
+
+[[unit]]
+printed = ["lb", "lbs"]
+singular = "pound"
+plural = "pounds"
+
+[[unit]]
+printed = ["oz"]
+singular = "ounce"
+plural = "ounces"
+
+# volume
+[[unit]]
+printed = ["L", "l"]
+singular = "litre"
+plural = "litres"
+
+[[unit]]
+printed = ["mL", "ml"]
+singular = "millilitre"
+plural = "millilitres"
+
+[[unit]]
+printed = ["µL", "μL", "µl", "μl"]
+singular = "microlitre"
+plural = "microlitres"
+
+[[unit]]
+printed = ["dL", "dl"]
+singular = "decilitre"
+plural = "decilitres"
+
+# time
+[[unit]]
+printed = ["s"]
+singular = "second"
+plural = "seconds"
+
+[[unit]]
+printed = ["ms"]
+singular = "millisecond"
+plural = "milliseconds"
+
+[[unit]]
+printed = ["µs", "μs"]
+singular = "microsecond"
+plural = "microseconds"
+
+[[unit]]
+printed = ["ns"]
+singular = "nanosecond"
+plural = "nanoseconds"
+
+[[unit]]
+printed = ["ps"]
+singular = "picosecond"
+plural = "picoseconds"
+
+[[unit]]
+printed = ["fs"]
+singular = "femtosecond"
+plural = "femtoseconds"
+
+[[unit]]
+printed = ["min"]
+singular = "minute"
+plural = "minutes"
+
+[[unit]]
+printed = ["h", "hr", "hrs"]
+singular = "hour"
+plural = "hours"
+
+[[unit]]
+printed = ["d"]
+singular = "day"
+plural = "days"
+
+[[unit]]
+printed = ["wk", "wks"]
+singular = "week"
+plural = "weeks"
+
+[[unit]]
+printed = ["mo"]
+singular = "month"
+plural = "months"
+
+[[unit]]
+printed = ["yr", "yrs"]
+singular = "year"
+plural = "years"
+
+# words that are units only after "per" or with a negative exponent
+[[unit]]
+printed = ["day"]
+singular = "day"
+plural = "days"
+per_only = true
+
+[[unit]]
+printed = ["week"]
+singular = "week"
+plural = "weeks"
+per_only = true
+
+[[unit]]
+printed = ["month"]
+singular = "month"
+plural = "months"
+per_only = true
+
+[[unit]]
+printed = ["year"]
+singular = "year"
+plural = "years"
+per_only = true
+
+# frequency
+[[unit]]
+printed = ["Hz"]
+singular = "hertz"
+plural = "hertz"
+
+[[unit]]
+printed = ["kHz"]
+singular = "kilohertz"
+plural = "kilohertz"
+
+[[unit]]
+printed = ["MHz"]
+singular = "megahertz"
+plural = "megahertz"
+
+[[unit]]
+printed = ["GHz"]
+singular = "gigahertz"
+plural = "gigahertz"
+
+# electricity
+[[unit]]
+printed = ["V"]
+singular = "volt"
+plural = "volts"
+
+[[unit]]
+printed = ["mV"]
+singular = "millivolt"
+plural = "millivolts"
+
+[[unit]]
+printed = ["kV"]
+singular = "kilovolt"
+plural = "kilovolts"
+
+[[unit]]
+printed = ["A"]
+singular = "ampere"
+plural = "amperes"
+not_before_word = true
+
+[[unit]]
+printed = ["mA"]
+singular = "milliampere"
+plural = "milliamperes"
+
+[[unit]]
+printed = ["µA", "μA"]
+singular = "microampere"
+plural = "microamperes"
+
+[[unit]]
+printed = ["W"]
+singular = "watt"
+plural = "watts"
+
+[[unit]]
+printed = ["mW"]
+singular = "milliwatt"
+plural = "milliwatts"
+
+[[unit]]
+printed = ["kW"]
+singular = "kilowatt"
+plural = "kilowatts"
+
+[[unit]]
+printed = ["MW"]
+singular = "megawatt"
+plural = "megawatts"
+
+[[unit]]
+printed = ["Ω", "Ω"]
+singular = "ohm"
+plural = "ohms"
+
+[[unit]]
+printed = ["kΩ", "kΩ"]
+singular = "kilohm"
+plural = "kilohms"
+
+[[unit]]
+printed = ["MΩ", "MΩ"]
+singular = "megaohm"
+plural = "megaohms"
+
+# energy
+[[unit]]
+printed = ["J"]
+singular = "joule"
+plural = "joules"
+
+[[unit]]
+printed = ["kJ"]
+singular = "kilojoule"
+plural = "kilojoules"
+
+[[unit]]
+printed = ["eV"]
+singular = "electronvolt"
+plural = "electronvolts"
+
+[[unit]]
+printed = ["meV"]
+singular = "millielectronvolt"
+plural = "millielectronvolts"
+
+[[unit]]
+printed = ["keV"]
+singular = "kiloelectronvolt"
+plural = "kiloelectronvolts"
+
+[[unit]]
+printed = ["MeV"]
+singular = "megaelectronvolt"
+plural = "megaelectronvolts"
+
+[[unit]]
+printed = ["GeV"]
+singular = "gigaelectronvolt"
+plural = "gigaelectronvolts"
+
+[[unit]]
+printed = ["cal"]
+singular = "calorie"
+plural = "calories"
+
+[[unit]]
+printed = ["kcal"]
+singular = "kilocalorie"
+plural = "kilocalories"
+
+[[unit]]
+printed = ["Wh"]
+singular = "watt hour"
+plural = "watt hours"
+
+[[unit]]
+printed = ["kWh"]
+singular = "kilowatt hour"
+plural = "kilowatt hours"
+
+# force and pressure
+[[unit]]
+printed = ["N"]
+singular = "newton"
+plural = "newtons"
+
+[[unit]]
+printed = ["Pa"]
+singular = "pascal"
+plural = "pascals"
+
+[[unit]]
+printed = ["kPa"]
+singular = "kilopascal"
+plural = "kilopascals"
+
+[[unit]]
+printed = ["MPa"]
+singular = "megapascal"
+plural = "megapascals"
+
+[[unit]]
+printed = ["bar"]
+singular = "bar"
+plural = "bars"
+
+[[unit]]
+printed = ["mbar"]
+singular = "millibar"
+plural = "millibars"
+
+[[unit]]
+printed = ["atm"]
+singular = "atmosphere"
+plural = "atmospheres"
+
+[[unit]]
+printed = ["psi"]
+singular = "pound per square inch"
+plural = "pounds per square inch"
+
+# temperature and angle (D-240)
+[[unit]]
+printed = ["K"]
+singular = "kelvin"
+plural = "kelvin"
+
+[[unit]]
+printed = ["°C", "℃", "˚C", "ºC"]
+singular = "degree Celsius"
+plural = "degrees Celsius"
+
+[[unit]]
+printed = ["°F", "℉", "˚F", "ºF"]
+singular = "degree Fahrenheit"
+plural = "degrees Fahrenheit"
+
+[[unit]]
+printed = ["°"]
+singular = "degree"
+plural = "degrees"
+
+# amount of substance
+[[unit]]
+printed = ["mol"]
+singular = "mole"
+plural = "moles"
+
+[[unit]]
+printed = ["mmol"]
+singular = "millimole"
+plural = "millimoles"
+
+[[unit]]
+printed = ["mM"]
+singular = "millimolar"
+plural = "millimolar"
+
+[[unit]]
+printed = ["µM", "μM"]
+singular = "micromolar"
+plural = "micromolar"
+
+[[unit]]
+printed = ["nM"]
+singular = "nanomolar"
+plural = "nanomolar"
+
+# sound, data, radiation dose
+[[unit]]
+printed = ["dB"]
+singular = "decibel"
+plural = "decibels"
+
+[[unit]]
+printed = ["KB", "kB"]
+singular = "kilobyte"
+plural = "kilobytes"
+
+[[unit]]
+printed = ["MB"]
+singular = "megabyte"
+plural = "megabytes"
+
+[[unit]]
+printed = ["GB"]
+singular = "gigabyte"
+plural = "gigabytes"
+
+[[unit]]
+printed = ["TB"]
+singular = "terabyte"
+plural = "terabytes"
+
+[[unit]]
+printed = ["Gy"]
+singular = "gray"
+plural = "gray"
+
+[[unit]]
+printed = ["cGy"]
+singular = "centigray"
+plural = "centigray"
+
+[[unit]]
+printed = ["mGy"]
+singular = "milligray"
+plural = "milligray"
+
+[[unit]]
+printed = ["Sv"]
+singular = "sievert"
+plural = "sieverts"
+
+[[unit]]
+printed = ["mSv"]
+singular = "millisievert"
+plural = "millisieverts"
+
+[[unit]]
+printed = ["Bq"]
+singular = "becquerel"
+plural = "becquerels"
+
+# per mille (D-242): read after a number like a unit
+[[unit]]
+printed = ["‰"]
+singular = "per mille"
+plural = "per mille"
