@@ -167,10 +167,12 @@ def test_bookmark_titles_are_decoded_as_stored() -> None:
             Mark("Über die Größe ∑ ✓"),  # UTF-16 with a byte-order mark
             Mark(b"Caf\xe9 \x8eQuoted\x8d"),  # PDFDocEncoding: é, ” and “
             Mark(b"\xfe\xff\xd8\x00\x00A"),  # UTF-16 with a lone surrogate
+            Mark(b"A\x00B"),  # control characters: PDFium reads them as spaces
+            Mark("x\ny\x01"),
         ),
     )
     titles = [entry.title for entry in read_pdf(data, "m.pdf").outline]
-    assert titles == ["Über die Größe ∑ ✓", "Café ”Quoted“", "\ufffdA"]
+    assert titles == ["Über die Größe ∑ ✓", "Café ”Quoted“", "\ufffdA", "A B", "x y "]
 
 
 def test_a_file_without_bookmarks_has_an_empty_outline() -> None:
@@ -181,6 +183,16 @@ def test_a_file_without_bookmarks_has_an_empty_outline() -> None:
 def test_a_bookmark_loop_ends_and_the_pages_are_still_read() -> None:
     """A damaged outline gives what could be read and never fails the file (D-268)."""
     data = outlined_pdf(2, (Mark("a", 1, (Mark("b", 2),)), Mark("c", 2)), circular=True)
+    content = read_pdf(data, "m.pdf")
+    assert content.outline == (
+        OutlineEntry("a", 1, 1),
+        OutlineEntry("b", 2, 2),
+        OutlineEntry("c", 1, 2),
+    )
+    assert [line.text for page in content.pages for line in page.lines] == ["Page 1", "Page 2"]
+
+    # a child list that points back at an ancestor (review of #133, N3)
+    data = outlined_pdf(2, (Mark("a", 1, (Mark("b", 2, loop=True),)), Mark("c", 2)))
     content = read_pdf(data, "m.pdf")
     assert content.outline == (
         OutlineEntry("a", 1, 1),

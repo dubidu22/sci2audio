@@ -138,7 +138,9 @@ def _outline(document: pdfium.PdfDocument, pages: int) -> tuple[OutlineEntry, ..
 
 
 def _title(bookmark: object) -> str:
-    """The bookmark's title as stored; a code PDFium can't decode becomes U+FFFD."""
+    """The bookmark's title as stored, as PDFium reads it: PDFium turns a control character
+    (a line break, a zero byte) into a space; nothing is stripped or dropped. A code PDFium
+    can't decode becomes U+FFFD."""
     size = raw.FPDFBookmark_GetTitle(bookmark, None, 0)
     if size <= 2:  # nothing but the terminating zero
         return ""
