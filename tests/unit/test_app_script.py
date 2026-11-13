@@ -8,7 +8,7 @@ from core_strategies import documents
 from hypothesis import given
 from hypothesis import strategies as st
 
-from sci2audio.app import JobSettings, build_report, prepare_script, report_data
+from sci2audio.app import JobSettings, build_report, prepare_script, report_data, report_markdown
 from sci2audio.app.job import settings_data
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Section, Span
 from sci2audio.testing import make_document
@@ -111,8 +111,25 @@ def test_unknown_chapters_are_ignored_with_a_warning() -> None:
     assert result.ignored_chapters == (9,)
     report = build_report(result, {})
     assert report.warnings == (
-        "chapter 9 was chosen, but the document has chapters 0 to 3 only; ignored",
+        "chapter 10 was chosen, but the document has chapters 1 to 4 only; ignored",
     )
+
+
+def test_the_unknown_chapter_line_counts_from_1_as_the_chapter_table_does() -> None:
+    """#104: the report's problem line and its chapter table use one numbering; programs
+    find the 0-based indices in the recorded settings."""
+    result = prepare_script(paper(), JobSettings(chapters=frozenset({3, 4})), [])
+    assert result.ignored_chapters == (4,)
+    report = build_report(result, settings_data(JobSettings(chapters=frozenset({3, 4}))))
+    text = report_markdown(report)
+    assert "| 4 | " in text  # the table's last row is chapter 4
+    assert "| 5 | " not in text
+    assert "- chapter 5 was chosen, but the document has chapters 1 to 4 only; ignored" in text
+    data = report_data(report)
+    assert data["warnings"] == [
+        "chapter 5 was chosen, but the document has chapters 1 to 4 only; ignored"
+    ]
+    assert data["settings"]["chapters"] == [3, 4]
 
 
 def test_a_failing_step_and_an_ask_edit_never_stop_the_run() -> None:

@@ -26,6 +26,7 @@ FORMAT = "sci2audio-report"
 VERSION = 1
 SCRIPT_TITLE = "sci2audio listening script"
 _SPACES = re.compile(r"\s+")
+LINE_BREAK = "\u21b5"  # "↵": how a quote shows a line break in an edit's original text
 _MARKDOWN = re.compile(r"([\\`*_\[\]<>|#])")
 
 
@@ -115,9 +116,9 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         for script in result.chapters
     )
     source = document.content.source
-    warnings = tuple(
-        f"chapter {index} was chosen, but the document has chapters 0 to "
-        f"{len(chapters) - 1} only; ignored"
+    warnings = tuple(  # numbered from 1, as the chapter table and the command line (#104)
+        f"chapter {index + 1} was chosen, but the document has chapters 1 to "
+        f"{len(chapters)} only; ignored"
         for index in result.ignored_chapters
     )
     if guessed := encoding_warning(source):
@@ -354,7 +355,7 @@ def _edit_line(edit: ReportEdit) -> str:
         EditKind.PAUSE: "a pause",
         EditKind.ASK: "read as printed until you decide",
     }[edit.kind]
-    what = f"“{_md(_one_line(edit.original))}”" if edit.original else "(position)"
+    what = f"“{_md(shown_original(edit.original))}”" if edit.original else "(position)"
     if edit.status is Status.SET_ASIDE and edit.won_by is not None:
         step, kind, where = edit.won_by
         status = f"set aside: the {kind} edit of step {_md(step)} ({_page_text(where)}) won"
@@ -380,6 +381,18 @@ def _page_text(where: Where) -> str:
 
 def _one_line(text: str) -> str:
     return _SPACES.sub(" ", text).strip()
+
+
+def shown_original(text: str) -> str:
+    """An edit's original text on one line, as a quote shows it (#118).
+
+    Line breaks count as spaces, except in a text without a letter or digit: there each one
+    shows as "↵". An edit of a line-end hyphen holds only a line break, or a hyphen and one,
+    and would otherwise look empty ("“” → left out"); in running text a "↵" would only get
+    in the way of reading."""
+    if "\n" in text and not any(char.isalnum() for char in text):
+        return LINE_BREAK.join(_one_line(line) for line in text.split("\n"))
+    return _one_line(text)
 
 
 def _md(text: str) -> str:

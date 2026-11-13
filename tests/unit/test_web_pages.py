@@ -285,3 +285,16 @@ def test_static_files_are_served(server: tuple[FastAPI, Any]) -> None:
     )
     assert client.get("/static/app.css").headers["content-type"].startswith("text/css")
     assert client.get("/static/../server.py").status_code == 404
+
+
+def test_the_check_table_shows_a_line_break_in_an_edit_as_the_report_does() -> None:
+    """#118: an edit of a line-end hyphen quotes "↵" or "-↵", not an empty cell."""
+    s = strings("en")
+    edit = {"category": "characters", "status": "accepted", "spoken": True, "kind": "remove"}
+    kept = pages._row({**edit, "original": "\n"}, {}, s)
+    joined = pages._row({**edit, "original": "-\n"}, {}, s)
+    running = pages._row({**edit, "original": "(Smith,\n2019)"}, {}, s)
+    position = pages._row({**edit, "kind": "pause", "original": ""}, {}, s)
+    assert (kept.printed, joined.printed, running.printed) == ("↵", "-↵", "(Smith, 2019)")
+    assert kept.printed_is_text
+    assert (position.printed, position.printed_is_text) == (s("check.position"), False)
