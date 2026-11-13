@@ -1,0 +1,18 @@
+# Low ZAP alerts accepted with a written reason (#12, D-367 to D-369).
+#
+# `scripts/zap_scan.py` fails on every High and Medium alert, and on every Low alert that
+# no entry here accepts. Informational alerts are listed in the summary and never fail.
+# Only Low alerts can be accepted: a High or Medium one is fixed, or gets an Issue with
+# milestone v1.0 and the scan stays red until it is fixed (D-369).
+#
+# One entry per accepted alert, all five keys required:
+#
+#   [[accepted]]
+#   rule = 10031                                  # the ZAP rule number
+#   risk = "Low"                                  # always "Low"
+#   url = '/documents/[0-9a-f]{16}\?category=.*'  # Python regex on path and query, in full
+#   reason = "why this is not a problem here, in a sentence or two"
+#   decision = "D-123"                            # the KB decision that accepted it
+#
+# Keep `url` as narrow as the finding. An entry that matched nothing in a run is listed
+# in the summary as stale; remove it then.
