@@ -68,7 +68,8 @@ def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any
     assert "No document opened yet." in index.text
     assert "The voice is not installed yet." in index.text
     assert 'href="/voice"' in index.text
-    assert 'accept=".pdf"' in index.text
+    assert 'accept=".epub,.pdf"' in index.text
+    assert "sci2audio reads EPUB, PDF files" in index.text
     assert 'id="open-text"' not in index.text  # no text extractor yet (D-261)
     doc = upload(client, pdf_bytes(), "a &amp; b 'x'.pdf")
     page = client.get("/").text
@@ -259,14 +260,18 @@ def test_no_page_loads_anything_from_outside() -> None:
     assert {"templates/base.html", "static/app.js", "static/app.css"} <= set(texts)
     for name, text in texts.items():
         assert not EXTERNAL.search(text), name
-    script = texts["static/app.js"]
-    for url in re.findall(r"[\"'`](/[^\"'`]*)", script):
-        assert url.startswith(("/api/v1/", "/documents/", "/jobs/")), url
+    for script in (texts["static/app.js"], texts["static/player.js"]):
+        for url in re.findall(r"[\"'`](/[^\"'`]*)", script):
+            assert url.startswith(("/api/v1/", "/documents/", "/jobs/")), url
     templates = "".join(t for n, t in texts.items() if n.startswith("templates"))
-    assert re.findall(r"<script[^>]*>", templates, re.IGNORECASE) == [
-        '<script id="strings" type="application/json">',  # data, not code (D-256)
-        '<script src="/static/app.js" defer>',
-    ]
+    assert sorted(re.findall(r"<script[^>]*>", templates, re.IGNORECASE)) == sorted(
+        [
+            '<script id="strings" type="application/json">',  # data, not code (D-256)
+            '<script src="/static/app.js" defer>',
+            '<script src="/static/player.js" defer>',  # the listen page only (D-302)
+            '<script id="player-data" type="application/json">',  # data, not code
+        ]
+    )
     assert " style=" not in "".join(texts.values())  # the CSP allows no inline styles
     assert re.search(r"<[^>]*\son[a-z]+=", templates) is None  # no inline handlers
 

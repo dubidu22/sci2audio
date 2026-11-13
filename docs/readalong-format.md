@@ -3,7 +3,8 @@
 Written by the output stage (`sci2audio.output`, issue #69) next to the audio files as
 `<Book>.readalong.json`. It tells a player when each chunk of the voice is spoken and which
 original words it reads, so the player (#78) can highlight the document's own block text
-(OU-02, decision Q9). Output owns this format; `sci2audio.output.read_readalong` reads it.
+(OU-02, decision Q9). Output owns this format; `sci2audio.output.read_readalong` reads it. The
+browser's Listen page (`sci2audio.web.player`) uses it with the audio job's `document.json`.
 
 The file is written last, after every audio file it names is complete. If it exists, the
 audio is complete. A run that replaces earlier output removes the old file first.

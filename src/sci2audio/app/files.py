@@ -28,6 +28,11 @@ def write_text_atomically(target: Path, text: str, *, overwrite: bool) -> None:
     write_texts({target: text}, overwrite=overwrite)
 
 
+def write_bytes_atomically(target: Path, data: bytes, *, overwrite: bool) -> None:
+    """Write `data` to `target`, all of it or nothing (as `write_texts`)."""
+    _write_all({target: data}, overwrite=overwrite)
+
+
 def write_texts(texts: Mapping[Path, str], *, overwrite: bool) -> None:
     """Write each text to its file: all partial files first, then rename them in order.
 
@@ -39,14 +44,15 @@ def write_texts(texts: Mapping[Path, str], *, overwrite: bool) -> None:
     that fails after earlier ones succeeded cannot be undone (the old files are gone); on
     one file system, after every file was written in full, that is not expected to happen.
     """
-    partials = {target: partial_path(target) for target in texts}
+    _write_all(texts, overwrite=overwrite)
+
+
+def _write_all(contents: Mapping[Path, str | bytes], *, overwrite: bool) -> None:
+    partials = {target: partial_path(target) for target in contents}
     committed: list[Path] = []
     try:
-        for target, text in texts.items():
-            with partials[target].open("w", encoding="utf-8", newline="\n") as file:
-                file.write(text)
-                file.flush()
-                os.fsync(file.fileno())
+        for target, content in contents.items():
+            _write_partial(partials[target], content)
         for target, partial in partials.items():
             _commit(partial, target, overwrite)
             committed.append(target)
@@ -59,6 +65,19 @@ def write_texts(texts: Mapping[Path, str], *, overwrite: bool) -> None:
                 with contextlib.suppress(OSError):
                     target.unlink(missing_ok=True)
         raise
+
+
+def _write_partial(partial: Path, content: str | bytes) -> None:
+    if isinstance(content, bytes):
+        with partial.open("wb") as binary:
+            binary.write(content)
+            binary.flush()
+            os.fsync(binary.fileno())
+    else:
+        with partial.open("w", encoding="utf-8", newline="\n") as text:
+            text.write(content)
+            text.flush()
+            os.fsync(text.fileno())
 
 
 def _commit(partial: Path, target: Path, overwrite: bool) -> None:

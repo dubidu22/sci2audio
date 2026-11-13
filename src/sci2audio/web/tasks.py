@@ -24,6 +24,7 @@ import dataclasses
 import errno
 import hashlib
 import json
+import logging
 import threading
 from collections.abc import Callable, Sequence
 from dataclasses import replace
@@ -53,6 +54,9 @@ from sci2audio.voices import (
 )
 from sci2audio.web.documents import StoredDocument
 from sci2audio.web.jobs import JobCancelled, JobFailure, JobRecord, JobState
+from sci2audio.web.player import write_record
+
+logger = logging.getLogger(__name__)
 
 Fetch = Callable[[str, BinaryIO, Callable[[int], None]], None]
 PREVIEW_FOLDER = "preview"  # in the work root; holds the latest preview only
@@ -171,6 +175,13 @@ def audio_work(
             }
         )
         written = result.written
+        try:
+            # where the player finds the audiobook (D-295); the audiobook is complete
+            # either way, and without the record the player looks in the saved and the
+            # default output folder
+            write_record(document.folder, document.id, written.readalong.parent)
+        except OSError as error:
+            logger.warning("could not note where the audiobook is: %s", error)
         return [*([written.m4b] if written.m4b else []), *written.mp3s, written.readalong]
 
     return work
