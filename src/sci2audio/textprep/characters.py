@@ -51,7 +51,9 @@ ACCENTS = {
     "\u02c6": "\u0302",  # ˆ circumflex: only inside a word, a hat on a symbol is maths
 }
 _CIRCUMFLEX = "\u02c6"
+_VOWELS = "aeiou"  # TeX sets a circumflex on these ("J´erˆome"); on others it is a maths hat
 _DOTLESS = {"\u0131": "i", "\u0237": "j"}  # TeX puts accents on ı and ȷ
+_LETTERLIKE_FIRST, _LETTERLIKE_LAST = "\u2100", "\u214f"  # the Letterlike Symbols block
 _INFORMATION_SOURCE = "\u2139"  # ℹ: a letterlike symbol, but not a letter in text
 # "it´s", "we´re": an acute used as an apostrophe, not an accent on the letter after it
 _CONTRACTION = re.compile(r"(?:s|t|d|m|re|ve|ll)(?![^\W\d_])")
@@ -167,8 +169,8 @@ def _accent(text: str, i: int) -> _Run | None:
     letter, rest = _DOTLESS.get(letters[:1], letters[:1]), letters[1:]
     if letter.isascii() and letter.isalpha():
         inside_word = before.isalpha()
-        if char == _CIRCUMFLEX and not inside_word:
-            return None  # "ˆj", "ˆρ": a hat in maths
+        if char == _CIRCUMFLEX and not (inside_word and letter.lower() in _VOWELS):
+            return None  # "ˆj", "vˆy": a hat in maths (review M1 of #98)
         if char == "\u00b4" and inside_word and _CONTRACTION.match(_read_on(text, j)):
             return None  # "it´s": an apostrophe
         composed = unicodedata.normalize("NFC", letter + ACCENTS[char])
@@ -228,6 +230,9 @@ def _reason(run: _Run, original: str) -> str:
     if run.kind == "ligature":
         return f'ligature "{original}" read as "{run.replacement}"'
     if run.kind == "math":
+        if any(_LETTERLIKE_FIRST <= char <= _LETTERLIKE_LAST for char in original):
+            # "K" (Kelvin sign) looks like "K": name the characters (review N3 of #98)
+            return f'mathematical characters {_names(original)} read as "{run.replacement}"'
         return f'mathematical characters "{original}" read as "{run.replacement}"'
     if run.kind == "accent":
         shown = _shown(original)
@@ -238,8 +243,12 @@ def _reason(run: _Run, original: str) -> str:
         if original.endswith("\n"):
             return "soft hyphen at a line end: the word is joined"
         return "soft hyphen not read"
-    names = ", ".join(
+    return f"invisible character not read: {_names(original)}"
+
+
+def _names(text: str) -> str:
+    """Each distinct character of `text` by code point and name, in order."""
+    return ", ".join(
         f"U+{ord(char):04X} {unicodedata.name(char, 'format character')}"
-        for char in dict.fromkeys(original)
+        for char in dict.fromkeys(text)
     )
-    return f"invisible character not read: {names}"

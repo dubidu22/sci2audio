@@ -242,3 +242,25 @@ def test_edits_only_remove_or_replace_and_never_touch_plain_characters(text: str
         # the letter under an accent or the line break after a soft hyphen
         assert changed[0] not in PLAIN
         assert edit.reason.strip()
+
+
+def test_a_maths_hat_inside_a_word_is_left_alone() -> None:
+    """Review M1 of #98: in liu, "v\N{MODIFIER LETTER CIRCUMFLEX ACCENT}y" is the hat of v,
+    not "y" with a circumflex."""
+    liu = "1/2{L\N{MODIFIER LETTER CIRCUMFLEX ACCENT} z, v\N{MODIFIER LETTER CIRCUMFLEX ACCENT}y}"
+    assert edits_of(liu) == []
+    accented = "J\N{ACUTE ACCENT}er\N{MODIFIER LETTER CIRCUMFLEX ACCENT}ome"
+    assert (
+        read(accented)
+        == "J\N{LATIN SMALL LETTER E WITH ACUTE}r\N{LATIN SMALL LETTER O WITH CIRCUMFLEX}me"
+    )
+
+
+def test_a_letterlike_symbol_that_looks_like_its_letter_is_named() -> None:
+    """Review N3 of #98: 'read "K" as "K"' would look like an edit that does nothing."""
+    assert edits_of("at 300 \N{KELVIN SIGN} only")[0][3] == (
+        'mathematical characters U+212A KELVIN SIGN read as "K"'
+    )
+    assert edits_of("on \N{SCRIPT SMALL L}")[0][3] == (
+        'mathematical characters U+2113 SCRIPT SMALL L read as "l"'
+    )

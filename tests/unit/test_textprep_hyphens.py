@@ -175,6 +175,39 @@ def test_rule_5_self_compounds_keep_the_hyphen() -> None:
     assert read("self-\nreported scores") == ["self-reported scores"]
 
 
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [
+        ("Kl\N{DIAERESIS}a-\nui", "Kl\N{DIAERESIS}aui"),  # the accent is part of the word
+        (
+            "Garc\N{ACUTE ACCENT}\N{LATIN SMALL LETTER DOTLESS I}-\na",
+            "Garc\N{ACUTE ACCENT}\N{LATIN SMALL LETTER DOTLESS I}a",
+        ),
+        (
+            "\N{LATIN SMALL LIGATURE FI}-\nnally",
+            "\N{LATIN SMALL LIGATURE FI}nally",
+        ),  # not one letter
+        ("Kl-\n\N{DIAERESIS}aui", "Kl\N{DIAERESIS}aui"),  # an accent starts the next line
+    ],
+)
+def test_the_rule_reads_through_tex_accents_and_ligatures(printed: str, spoken: str) -> None:
+    """Review S1 of #98: an accent set apart or a ligature does not end or shorten a word."""
+    assert read(printed) == [spoken]
+
+
+def test_the_document_spelling_ignores_accents() -> None:
+    """ "Kl\N{DIAERESIS}aui" and "Kl\N{LATIN SMALL LETTER A WITH DIAERESIS}ui" count as one word."""
+    doc = make_document(
+        [
+            (
+                BlockKind.PARAGRAPH,
+                "Kl\N{DIAERESIS}aui and Kl\N{LATIN SMALL LETTER A WITH DIAERESIS}ui",
+            )
+        ]
+    )
+    assert printed_words(doc)["klaui"] == 2
+
+
 def test_rule_6_otherwise_the_word_is_joined() -> None:
     assert read("bet-\nter", "infor-\nmation", "Pri-\nvacy") == ["better", "information", "Privacy"]
 
@@ -200,7 +233,8 @@ def test_english_only_for_now() -> None:
 
 # Property tests: words joined mostly by line-end hyphens, so most examples exercise the rule
 # (about 3 in 4 propose an edit; the Unicode tests reach about the same).
-WORDS = ["ab", "cd", "x", "Ab", "and", "self", "based", "pre", "pre-train", "1", ".", "\ufb01"]
+WORDS = ["ab", "cd", "x", "Ab", "and", "self", "based", "pre", "pre-train", "1", ".", "ﬁ",
+         "Kl\N{DIAERESIS}a", "Garc\N{ACUTE ACCENT}\N{LATIN SMALL LETTER DOTLESS I}"]  # fmt: skip
 GAPS = ["-\n", "-\n", "-\n", "\N{HYPHEN}\n", " ", "\n", "-", " -\n", "-\n-\n"]
 texts = st.lists(st.tuples(st.sampled_from(WORDS), st.sampled_from(GAPS)), max_size=8).map(
     lambda pairs: "".join(word + gap for word, gap in pairs)

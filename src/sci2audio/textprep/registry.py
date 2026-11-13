@@ -10,7 +10,9 @@ here so every rule PR places its step deliberately. Planned order for v1.0:
 - inline: URLs, DOIs and e-mail addresses, citations (#66), footnote marks (#64), numbers,
   symbols, units and statistics (#67, #68), abbreviations (#68), and last characters and
   hyphenation (#65): a one-character fix placed earlier would block the rules after it, so it
-  only applies where no other rule rewrote the text (D-150)
+  only applies where no other rule rewrote the text (D-150). So the rules before it see the
+  printed characters (ligatures, maths letters, TeX accents set apart, "eV˚A") and must
+  match those forms themselves
 
 No built-in v1.0 step proposes `ask` edits (the interface has no way to answer them before
 UC-04); the conformance test enforces it. Plugins (`sci2audio.text_steps`) follow in v1.1.

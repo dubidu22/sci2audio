@@ -61,7 +61,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-liu-orbital-hall]
   dict({
-    'characters: accepted': 104,
+    'characters: accepted': 103,
     'characters: set-aside': 2,
     'citations: accepted': 128,
     'formulas: accepted': 8,

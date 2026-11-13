@@ -32,6 +32,7 @@ import unicodedata
 from collections import Counter
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
+from sci2audio.textprep.characters import ACCENTS
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 HYPHENS = "-\u2010"  # hyphen-minus and HYPHEN
@@ -46,12 +47,14 @@ SECOND_WORDS = frozenset(
 # a "-" at a line end in a formula is a minus, in a table often an empty cell
 SKIPPED_KINDS = frozenset({BlockKind.FORMULA, BlockKind.TABLE})
 
-_LETTERS = r"[^\W\d_]+"
+# a TeX accent set apart ("Kl\u00a8aui") is part of its word (review S1 of #98)
+_ACCENT_CLASS = re.escape("".join(ACCENTS))
+_LETTERS = rf"(?:[^\W\d_]|[{_ACCENT_CLASS}])+"
 _CHAIN = rf"{_LETTERS}(?:[{HYPHENS}]{_LETTERS})*"  # letters, maybe joined by hyphens
 _LINE_END = re.compile(rf"[{HYPHENS}]\n")
 _BEFORE = re.compile(rf"{_CHAIN}\Z")
 _AFTER = re.compile(_CHAIN)
-_WORD = re.compile(rf"(?<![^\W\d_]){_CHAIN}")
+_WORD = re.compile(rf"(?<![^\W\d_])(?<![{_ACCENT_CLASS}]){_CHAIN}")
 _MASKED_LINE_END = re.compile(rf"[{HYPHENS}\u00ad]\n")
 _TOKEN_BEFORE = re.compile(r"\S+\Z")
 _TOKEN_AFTER = re.compile(r"\S+")
@@ -85,7 +88,7 @@ class LineEndHyphenStep(TextStep):
         line_break = hyphen + 1
         previous = text[hyphen - 1 : hyphen]
         following = text[line_break + 1 : line_break + 2]
-        if not (previous.isalpha() and following.isalpha()):
+        if not (_is_letter(previous) and _is_letter(following)):
             if not previous or previous.isspace() or not following.isalnum():
                 return None  # a dash between words, or nothing to join to
             before = _TOKEN_BEFORE.search(text, max(0, hyphen - _LOOK_BACK), hyphen)
@@ -99,12 +102,14 @@ class LineEndHyphenStep(TextStep):
         if before_match is None or after_match is None:  # unreachable: letters on both sides
             return None
         before, after = before_match.group(), after_match.group()
-        first_after = re.split(f"[{HYPHENS}]", after, maxsplit=1)[0]
-        last_before = re.split(f"[{HYPHENS}]", before)[-1]
+        # the parts as they are read: accents left out, ligatures as their letters
+        first_after = _plain(re.split(f"[{HYPHENS}]", after, maxsplit=1)[0])
+        last_before = _plain(re.split(f"[{HYPHENS}]", before)[-1])
         hyphenated = f"{before}{text[hyphen]}{after}"
         # "and" itself split at the next line end ("and-\nab") is not a conjunction
         split_again = text[after_match.end() : after_match.end() + 1] in tuple(HYPHENS)
-        if first_after.lower() in SUSPENDED and first_after == after and not split_again:
+        one_word = not re.search(f"[{HYPHENS}]", after)
+        if first_after.lower() in SUSPENDED and one_word and not split_again:
             return None
         joined_count = spelling[_key(before + after)]
         hyphenated_count = spelling[_key(hyphenated)]
@@ -114,9 +119,9 @@ class LineEndHyphenStep(TextStep):
             return self._join(block, hyphen, before + after, "the document prints it so")
         if (
             len(last_before) == 1
-            or last_before[-1].isupper()
-            or before != last_before
-            or first_after[0].isupper()
+            or last_before[-1:].isupper()
+            or re.search(f"[{HYPHENS}]", before)
+            or first_after[:1].isupper()
         ):
             return self._keep(block, line_break, hyphenated, "a compound")
         if last_before.lower() == SELF or first_after.lower() in SECOND_WORDS:
@@ -145,7 +150,7 @@ def printed_words(document: Document) -> Counter[str]:
     """How often each word is printed in the document, outside line-end hyphens.
 
     Words are letters, maybe joined by hyphens ("pre-training"), compared without case and
-    after Unicode compatibility folding (a ligature counts as its letters).
+    as they are read (`_plain`: a ligature counts as its letters, an accent is left out).
     """
     counts: Counter[str] = Counter()
     for block in document.blocks:
@@ -155,4 +160,16 @@ def printed_words(document: Document) -> Counter[str]:
 
 
 def _key(word: str) -> str:
-    return unicodedata.normalize("NFKC", word).replace("\u2010", "-").casefold()
+    return _plain(word).replace("\u2010", "-").casefold()
+
+
+def _plain(word: str) -> str:
+    """The word as it is read: TeX accents and combining marks left out, ligatures and
+    maths letters folded ("Kl\u00a8aui" and "Kl\u00e4ui" are both "Klaui", "\ufb01" is "fi")."""
+    unaccented = "".join(char for char in word if char not in ACCENTS)
+    folded = unicodedata.normalize("NFKD", unaccented)
+    return "".join(char for char in folded if not unicodedata.combining(char))
+
+
+def _is_letter(char: str) -> bool:
+    return char.isalpha() or (bool(char) and char in ACCENTS)
