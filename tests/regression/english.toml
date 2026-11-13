@@ -34,7 +34,7 @@ audit = 2
 issue = 66
 goal = "The bracketed citation, ranges and lists included, removed with no space left before the full stop (TP-03)."
 blocks = [{ kind = "paragraph", text = "However, findings remain inconsistent [2–6, 16, 17]." }]
-expected = ["However, findings remain inconsistent [2–6, 16, 17]."]
+expected = ["However, findings remain inconsistent [2 to 6, 16, 17]."]
 
 [[case]]
 id = "url-and-e-mail"
@@ -67,10 +67,10 @@ expected = ["Dr. Androﬀ notes that the effect was small."]
 [[case]]
 id = "symbols"
 audit = 6
-issue = 68
-goal = "'≥ 18' read 'greater than or equal to 18' and '± 12%' read 'plus or minus 12 percent'; the digits stay for misaki (TP-10)."
+issue = 67
+goal = "'≥ 18' read 'greater than or equal to 18' and '± 12%' read 'plus or minus 12 percent'; the digits stay for misaki (TP-11; moved from #68 by D-178)."
 blocks = [{ kind = "paragraph", text = "Participants (± 12%) were enrolled vs. 980 controls ≥ 18 years." }]
-expected = ["Participants (± 12%) were enrolled vs. 980 controls ≥ 18 years."]
+expected = ["Participants (plus or minus 12%) were enrolled vs. 980 controls greater than or equal to 18 years."]
 
 [[case]]
 id = "statistics"
@@ -78,10 +78,10 @@ audit = 7
 issue = 67
 goal = "'n = 35' read 'n equals 35', 'p < .05' read 'p less than point zero five', 'CI' read 'confidence interval' (TP-11)."
 blocks = [{ kind = "paragraph", text = "A total of n = 35 studies met the criteria. The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4])." }]
-expected = ["A total of n = 35 studies met the criteria. The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4])."]
+expected = ["A total of n equals 35 studies met the criteria. The mean age was M equals 4.2 (SD equals 1.1) years; the effect was significant (p less than .05, 95% confidence interval 1.2 to 3.4)."]
 utterances = [
-    "A total of n = 35 studies met the criteria.",
-    "The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4]).",
+    "A total of n equals 35 studies met the criteria.",
+    "The mean age was M equals 4.2 (SD equals 1.1) years; the effect was significant (p less than .05, 95% confidence interval 1.2 to 3.4).",
 ]
 
 [[case]]
@@ -98,9 +98,9 @@ audit = 9
 issue = 68
 goal = "'i.e.', 'e.g.', 'vs.', 'Dr.', 'Fig.' and 'Approx.' read in full; 'Table 2' kept; the word after 'Approx.' not capitalised (TP-08)."
 blocks = [{ kind = "paragraph", text = "Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls." }]
-expected = ["Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls."]
+expected = ["Children aged 0 to 6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls."]
 utterances = [
-    "Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1).",
+    "Children aged 0 to 6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1).",
     "Dr. Smith compared them vs. controls (see Table 2).",
     "Approx. half were girls.",
 ]
@@ -117,9 +117,9 @@ expected = ["Approx. 1,234 participants were enrolled."]
 id = "roman-numerals"
 audit = 11
 issue = 67
-goal = "'World War II' read 'World War Two', 'Phase III' read 'Phase three' (TP-13, a Should; #67 decides whether v1.0 covers it)."
+goal = "'World War II' read 'World War Two', 'Phase III' read 'Phase three' (TP-13, a Should; in v1.0 by D-185)."
 blocks = [{ kind = "paragraph", text = "During World War II and in Phase III trials, parents kept diaries." }]
-expected = ["During World War II and in Phase III trials, parents kept diaries."]
+expected = ["During World War 2 and in Phase 3 trials, parents kept diaries."]
 
 [[case]]
 id = "acronyms"
@@ -319,3 +319,123 @@ blocks = [
 ]
 sections = [{ title = "7 Bibliography", level = 1, start = 0, end = 2 }]
 expected = []
+
+[[case]]
+id = "df-parentheses"
+audit = 0
+issue = 67
+goal = "Degrees of freedom read 'of' and the operators as words; the numbers stay for misaki (TP-11, D-179)."
+blocks = [{ kind = "paragraph", text = "The groups differed, t(34) = 2.45, p = .021, and F(2, 57) = 4.31, p < .001." }]
+expected = ["The groups differed, t of 34 equals 2.45, p equals .021, and F of 2 and 57 equals 4.31, p less than .001."]
+
+[[case]]
+id = "squared-statistics"
+audit = 0
+issue = 67
+goal = "R2, η² and χ2 with its df read 'R squared', 'eta squared', 'chi-square of 1' (TP-11)."
+blocks = [{ kind = "paragraph", text = "The model explained R2 = .45 of the variance (η² = .06), χ2(1, N = 120) = 5.6." }]
+expected = ["The model explained R squared equals .45 of the variance (eta squared equals .06), chi-square of 1, N equals 120 equals 5.6."]
+
+[[case]]
+id = "odds-ratio"
+audit = 0
+issue = 67
+goal = "'OR' before an operator read 'odds ratio'; SD and HR left for the voice to spell (TP-11, D-181)."
+blocks = [{ kind = "paragraph", text = "Smokers had higher odds (OR = 1.5, 95% CI [1.1, 2.0]) and HR = 2.1 (SD = 0.4)." }]
+expected = ["Smokers had higher odds (odds ratio equals 1.5, 95% confidence interval 1.1 to 2 point 0) and HR equals 2.1 (SD equals 0.4)."]
+
+[[case]]
+id = "operators-in-prose"
+audit = 0
+issue = 67
+goal = "'<' without spaces, '≤' and the PDF form of '≠' read as words; arrows left as printed (TP-11, D-177)."
+blocks = [{ kind = "paragraph", text = "Only p<.01 counted; we require 0 ≤ i ≤ N and Y, Z \u0338= S, but X -> Y stays." }]
+expected = ["Only p less than .01 counted; we require 0 less than or equal to i less than or equal to N and Y, Z not equal to S, but X -> Y stays."]
+
+[[case]]
+id = "minus-sign"
+audit = 0
+issue = 67
+goal = "The minus sign before a number read 'minus', also before a leading point (TP-09)."
+blocks = [{ kind = "paragraph", text = "Scores fell from −0.5 to −3 (r = −.32)." }]
+expected = ["Scores fell from minus 0.5 to minus 3 (r equals minus .32)."]
+
+[[case]]
+id = "number-ranges"
+audit = 0
+issue = 67
+goal = "En-dash, spaced and hyphen ranges between numbers read 'to'; decimal ranges keep their points (TP-09, D-183)."
+blocks = [{ kind = "paragraph", text = "Children aged 3–5 and 18-25 years, scores of 1.2–3.4, from 2010–2015, in lines 4 – 9." }]
+expected = ["Children aged 3 to 5 and 18 to 25 years, scores of 1.2 to 3.4, from 2010 to 2015, in lines 4 to 9."]
+
+[[case]]
+id = "hyphens-that-are-not-ranges"
+audit = 0
+issue = 67
+goal = "A score, an ISO date and 'COVID-19' are not ranges (TP-09, D-183)."
+blocks = [{ kind = "paragraph", text = "The team won 3-1 against COVID-19 on 2021-03-12." }]
+expected = ["The team won 3-1 against COVID-19 on 12 March 2021."]
+
+[[case]]
+id = "four-digit-count"
+audit = 0
+issue = 67
+goal = "A bare four-digit count read as a number, not a year (TP-09, D-182)."
+blocks = [{ kind = "paragraph", text = "We enrolled 1234 participants and n = 1999 controls." }]
+expected = ["We enrolled 1,234 participants and n equals 1,999 controls."]
+
+[[case]]
+id = "four-digit-years"
+audit = 0
+issue = 67
+goal = "Years, round hundreds and model numbers left to misaki (TP-09, D-176, D-182)."
+blocks = [{ kind = "paragraph", text = "In 2019 studies used the 2019 guidelines; we select 1000 examples on a GTX 1080 Ti." }]
+expected = ["In 2019 studies used the 2019 guidelines; we select 1000 examples on a GTX 1080 Ti."]
+
+[[case]]
+id = "ordinary-numbers"
+audit = 0
+issue = 67
+goal = "Numbers, decimals, percentages, ordinals, decades and written dates misaki reads correctly get no edit (TP-09, D-176)."
+blocks = [{ kind = "paragraph", text = "On 12 March 2019, 1,234 of 10,000 (12.5%) answered for the 3rd time since the 1990s; p = .05." }]
+expected = ["On 12 March 2019, 1,234 of 10,000 (12.5%) answered for the 3rd time since the 1990s; p equals .05."]
+
+[[case]]
+id = "trailing-zeros"
+audit = 0
+issue = 67
+goal = "Trailing zeros after the point kept as printed (TP-09, D-184)."
+blocks = [{ kind = "paragraph", text = "The mean was 2.50 and the slope 1.00, compared with .050 before." }]
+expected = ["The mean was 2 point 5 0 and the slope 1 point 0 0, compared with .050 before."]
+
+[[case]]
+id = "powers"
+audit = 0
+issue = 67
+goal = "Powers of ten and of a letter read 'to the power of' or 'squared' (TP-09, D-187)."
+blocks = [{ kind = "paragraph", text = "Rates of 10⁶ per second fell to 3 × 10−4 and 10^-2; the variance σ² stayed." }]
+expected = ["Rates of 10 to the power of 6 per second fell to 3 × 10 to the power of minus 4 and 10 to the power of minus 2; the variance σ squared stayed."]
+
+[[case]]
+id = "ratios-and-fractions"
+audit = 0
+issue = 67
+goal = "Ratios read 'to', simple fractions as fraction words, other fractions 'out of'; times left (TP-09, D-186)."
+blocks = [{ kind = "paragraph", text = "A 3:1 mix at 10:30 cut it to 1/10 the size, and 17/20 passed." }]
+expected = ["A 3 to 1 mix at 10:30 cut it to 1 tenth the size, and 17 out of 20 passed."]
+
+[[case]]
+id = "grouped-digits"
+audit = 0
+issue = 67
+goal = "Digits grouped by a thin space or by plain spaces in two or more groups read as one number (TP-09, D-189)."
+blocks = [{ kind = "paragraph", text = "About 50\u2009000 cells and 1 000 000 reads." }]
+expected = ["About 50,000 cells and 1,000,000 reads."]
+
+[[case]]
+id = "roman-numerals-in-statistics"
+audit = 0
+issue = 67
+goal = "'Type I' and 'Phase I/II' read with numbers; a king's name and the pronoun 'I' left (TP-13, D-185)."
+blocks = [{ kind = "paragraph", text = "A Type I error in the Phase I/II trial of Henry VIII, the part I think matters." }]
+expected = ["A Type 1 error in the Phase 1 and 2 trial of Henry VIII, the part I think matters."]
