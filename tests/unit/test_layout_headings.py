@@ -385,6 +385,23 @@ def test_an_added_numbered_heading_under_the_appendices_title_moves_down_too() -
     ]
 
 
+def test_the_shift_starts_at_the_first_common_title_and_not_before() -> None:
+    """Review of #146, round 2: a second common title does not move the shift's start, and
+    an added numbered heading before the first one is not shifted."""
+    page = Page().heading("1 Introduction").body()
+    plain(page, "1.1 Early").body()
+    page.heading("2 Method").body().heading("2.1 Setup", 10.0).body()
+    page.heading("Appendices", 16.0).body().heading("A Proofs").body()
+    page.heading("A.1 First", 10.0).body()
+    plain(page, "A.2 Second").body()
+    page.heading("Supplement", 16.0).body().heading("B More").body()
+    page.heading("B.1 Third", 10.0).body()
+    doc = page.build(OutlineEntry("Early", 1, 1), OutlineEntry("Second", 1, 1))
+    levels = {s.title: s.level for s in walk(doc.sections)}
+    assert levels["1.1 Early"] == levels["2.1 Setup"] == 2
+    assert levels["A.2 Second"] == levels["A.1 First"] == 3
+
+
 def test_the_first_of_two_entries_naming_one_block_decides_its_level() -> None:
     """Review of #146 (N1)."""
     page = Page().heading("Summary", 14.0).body().heading("Statement of need", 14.0).body()

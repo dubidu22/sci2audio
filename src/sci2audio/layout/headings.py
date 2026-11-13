@@ -186,7 +186,8 @@ class _Headings:
                 started = True
             elif label is None and started and style > max(styles.values()):
                 found[k], shift = (1, ""), 1
-                self.shift_from = self.texts[k].index
+                if self.shift_from is None:  # the shift starts at the first such title
+                    self.shift_from = self.texts[k].index
             elif label is None and (style == top or self._named(k)):
                 found[k] = (1 + shift, "")
         return found
