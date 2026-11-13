@@ -93,7 +93,8 @@ def _case(raw: dict) -> Case:
         if tagged:
             tags[number] = tagged
         if "page" in given:
-            if not isinstance(given["page"], int) or given["page"] < 1:
+            page = given["page"]
+            if isinstance(page, bool) or not isinstance(page, int) or page < 1:
                 raise ValueError(f"page must be a whole number from 1, got {given['page']!r}")
             pages[number] = given["page"]
         role = given.get("role")

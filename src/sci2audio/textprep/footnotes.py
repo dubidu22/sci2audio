@@ -202,7 +202,9 @@ class FootnoteStep(TextStep):
                 spans[-1][1] = end
             else:
                 spans.append([offset, end])
-        taken = 0  # where the last back-link edit ends: the next one starts after it
+        # where the last back-link edit ends: the next one's white space starts after it. Each
+        # edit ends on a letter (rstrip), so this only guards the no-overlap rule (#194 N1).
+        taken = 0
         for start, end in spans:
             text = block.text[start:end]
             if not text.strip():

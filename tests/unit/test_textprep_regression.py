@@ -111,6 +111,7 @@ def test_a_run_may_carry_several_tags_and_a_block_a_later_page(tmp_path: Path) -
         ('{ kind = "paragraph", runs = [{ text = "1", tags = [""] }] }', "a run is a string or"),
         ('{ kind = "paragraph", text = "a", page = 0 }', "page must be a whole number"),
         ('{ kind = "paragraph", text = "a", page = "2" }', "page must be a whole number"),
+        ('{ kind = "paragraph", text = "a", page = true }', "page must be a whole number"),
     ],
 )
 def test_a_bad_run_names_the_case(tmp_path: Path, block: str, problem: str) -> None:

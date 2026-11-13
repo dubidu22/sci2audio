@@ -135,6 +135,76 @@ def test_the_printed_label_rule_never_takes_a_noteref() -> None:
     assert read(document) == ["The effect.1", "Footnote 1. A note."]
 
 
+def test_one_noteref_token_is_enough_for_a_mark_and_one_back_link_token_for_a_back_link() -> None:
+    # an EPUB without ARIA roles (epub:noteref only) and a back-link with the role only
+    text, note = "Sloped.1 End.", f"Hill. {ARROW}"
+    document = make_document(
+        [(BlockKind.PARAGRAPH, text), (BlockKind.FOOTNOTE, note)],
+        tags={
+            0: [at(text, "1", ("a", "epub:noteref", "link:b1l0"))],
+            1: [at(note, ARROW, ("a", "role:doc-backlink", "link:b0l0"))],
+        },
+    )
+    assert read(document) == ["Sloped. End.", "Footnote 1. Hill."]
+    document = make_document(
+        [(BlockKind.PARAGRAPH, text), (BlockKind.FOOTNOTE, note)],
+        tags={
+            0: [at(text, "1", ("a", "role:doc-noteref", "link:b1l0"))],
+            1: [at(note, ARROW, ("a", "epub:backlink", "link:b0l0"))],
+        },
+    )
+    assert read(document) == ["Sloped. End.", "Footnote 1. Hill."]
+
+
+def test_marks_with_one_link_on_two_lines_are_two_edits() -> None:
+    text = "Word 1\n1 word"
+    document = make_document(
+        [(BlockKind.PARAGRAPH, text), (BlockKind.FOOTNOTE, "A note.")],
+        tags={0: [(5, 6, to(1)), (7, 8, to(1))]},
+    )
+    edits = [e for e in FootnoteStep().find(document, EN) if e.kind is EditKind.REMOVE]
+    assert [e.span for e in edits] == [Span(0, 5, 6), Span(0, 7, 8)]
+    assert read(document)[0] == "Word word"
+
+
+def test_a_note_that_seems_to_start_with_footnote_because_of_a_removed_mark() -> None:
+    # "Footnote1 rest." reads "Footnote rest." once its "1" (a mark of another note) is
+    # removed: it starts with "Footnote" as it reads, so it gets no introduction (D-144)
+    note = "Footnote1 rest."
+    document = make_document(
+        [
+            (BlockKind.PARAGRAPH, "Body.2"),
+            (BlockKind.FOOTNOTE, note),
+            (BlockKind.FOOTNOTE, "Other."),
+        ],
+        tags={0: [at("Body.2", "2", to(1))], 1: [at(note, "1", to(2))]},
+    )
+    assert read(document) == ["Body.", "Footnote rest.", "Footnote 1. Other."]
+
+
+def test_a_printed_label_that_is_another_notes_mark_is_not_the_notes_mark() -> None:
+    note = "2 See note two."
+    document = make_document(
+        [
+            (BlockKind.PARAGRAPH, "Body.1"),
+            Block(BlockKind.FOOTNOTE, note, label="2"),
+            (BlockKind.FOOTNOTE, "Note two."),
+        ],
+        tags={0: [at("Body.1", "1", to(1))], 1: [at(note, "2", to(2))]},
+    )
+    # the label "2" is removed as a mark, so the note has no printed mark of its own; a
+    # labelled note is never introduced by a linked mark (D-425), so it reads "Footnote."
+    assert read(document) == ["Body.", "Footnote. See note two.", "Footnote 2. Note two."]
+
+
+def test_a_back_link_that_ends_where_the_printed_label_starts_leaves_the_label() -> None:
+    note = f"{ARROW}1. Text"
+    document = make_document(
+        [Block(BlockKind.FOOTNOTE, note, label="1")], tags={0: [at(note, ARROW, BACKLINK)]}
+    )
+    assert read(document) == ["Footnote 1. Text"]
+
+
 def test_a_mark_in_a_note_is_left_out_but_not_one_linking_to_its_own_note() -> None:
     first, second = "See also note 2.2", "Back to this one.1"
     document = make_document(
