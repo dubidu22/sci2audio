@@ -9,8 +9,10 @@ Pipeline stage; may import only ``sci2audio.core``.
 """
 
 from sci2audio.textprep.abbreviations import AbbreviationStep
+from sci2audio.textprep.citations import CitationStep
 from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
+from sci2audio.textprep.links import LinkStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
 from sci2audio.textprep.references import (
     REFERENCE_TITLES,
@@ -60,10 +62,12 @@ __all__ = [
     "WORDING",
     "AbbreviationStep",
     "Category",
+    "CitationStep",
     "FootnoteStep",
     "FootnoteTextStep",
     "FormulaNoticeStep",
     "FurnitureStep",
+    "LinkStep",
     "Outcome",
     "ReferenceListStep",
     "Stage",

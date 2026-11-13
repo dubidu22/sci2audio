@@ -158,8 +158,9 @@ def test_a_good_unit_list_parses() -> None:
         ("ca. that time", "ca. that time"),
         ("Nos. 4 and 5", "Numbers 4 and 5"),
         (
-            "in Eq. (8), eq.(1), Eqs. 2 and 3, Eqn. 4",
-            "in Equation (8), equation (1), Equations 2 and 3, Equation 4",
+            "in Eq. (8), eq.(1), Eq. [3], Eq.[4], Eqs. 2 and 3, Eqn. 4",
+            "in Equation (8), equation (1), Equation [3], Equation [4], Equations 2 and 3, "
+            "Equation 4",
         ),
         (
             "Fig. 2a, Fig.4, Figs. 3, FIG. 3, fig. 2",
@@ -353,6 +354,9 @@ def test_the_steps_declare_their_categories_and_stage() -> None:
             "441 thousand apps, 332 million words, 100 thousand steps, 175 billion tokens, "
             "2 billion people, 1.5 thousand items",
         ),
+        ("trained on 15M", "trained on 15 million"),  # at the end of the block (review)
+        ("441K", "441 thousand"),
+        ("300K.", "300 thousand."),
         # left as printed
         (
             "the 1990s, 2D maps, 5G, 5m, 5s, 2a, 3 in, at 5 pm, 12%, 12 %",
@@ -367,10 +371,26 @@ def test_the_steps_declare_their_categories_and_stage() -> None:
             "COVID-19 m, GPT-3 h, x2 m, B12 g, 10:30 h, 1/2 h, 0,5 mg",
         ),
         ("1 A note, 5 A current, 5 A.", "1 A note, 5 A current, 5 amperes."),
+        # a number inside a power is no number of its own
+        ("5\u00b0^-1B, 5 s^{-1}B, 5 s^{2}K", "5\u00b0^-1B, 5 s^{-1}B, 5 s^{2}K"),
         ("5 m A and 10 V A", "5 metres A and 10 volts A"),
         ("5 day course and 2 weeks", "5 day course and 2 weeks"),
         ("5 mgs and 5 mg2 and 5 m3x", "5 mgs and 5 mg2 and 5 m3x"),
         ("5 K/s glued 5K/s", "5 kelvin per second glued 5K/s"),
+        # a label word carries over a list of labels; a plural label word is a label word too
+        (
+            "Figures 2B and 3B, Figs. 2A and 3B, panels 2A and 4B, Tables 1A, 1B, and 2C",
+            "Figures 2B and 3B, Figs. 2A and 3B, panels 2A and 4B, Tables 1A, 1B, and 2C",
+        ),
+        (
+            "Types 1A or 2B, Figure 1, panels A and 3B, Fig. 3B\u2013D and 4B, Figures 2 and 3 A",
+            "Types 1A or 2B, Figure 1, panels A and 3B, Fig. 3B\u2013D and 4B, Figures 2 and 3 A",
+        ),
+        (
+            "Our 7B model, the 175B model, trained 7B and 13B models, between 2 and 3 B",
+            "Our 7 billion model, the 175 billion model, trained 7 billion and 13 billion models, "
+            "between 2 and 3 B",
+        ),
     ],
 )
 def test_units_read(text: str, expected: str) -> None:
@@ -415,6 +435,15 @@ def test_a_unit_edit_names_the_printed_unit_and_its_reading() -> None:
         (
             "0x1F, x86, 2 x n, 2xl, 0003-066X, 10.1/2x3",
             "0x1F, x86, 2 x n, 2xl, 0003-066X, 10.1/2x3",
+        ),
+        # in a formula the x is the variable: an operator before the number or after the x
+        (
+            "y = 2x + 1, the term 3x^2, f(x) = 4x., 2x(1+y), 5x/2, 1 - 3x, x<2x",
+            "y = 2x + 1, the term 3x^2, f(x) = 4x., 2x(1+y), 5x/2, 1 - 3x, x<2x",
+        ),
+        (
+            "a speedup (10x), 10x, and 4x faster",
+            "a speedup (10 times), 10 times, and 4 times faster",
         ),
         ("35 \u2030 and 35\u2030", "35 per mille and 35 per mille"),
         (

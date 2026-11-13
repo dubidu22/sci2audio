@@ -49,7 +49,8 @@ _DASHES = "-\u2013\u2014\u2012"
 _GAP = " \u00a0\u2009\u202f\u2007\n"  # what may stand between a number and its unit
 # a number as printed: digits with "," groups or a leading point, a decimal part, an exponent
 _NUMBER = re.compile(
-    r"(?:(?<![\w.,:/^\u2070-\u209f])|(?<=\d[xX]))"  # also after the x of "5x86mg"
+    # not inside a power ("^-1", "^{2}", "^{-1}"), but after the x of "5x86mg"
+    r"(?:(?<![\w.,:/^\u2070-\u209f])(?<!\^[-\u2212{])(?<!\^\{[-\u2212])|(?<=\d[xX]))"
     r"(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)"
     r"(?P<exponent>[\u207b\u2212]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+|\^[-\u2212]?\d+|\^\{[-\u2212]?\d+\})?"
 )
@@ -70,6 +71,12 @@ _POWER = re.compile("|".join(sorted(map(re.escape, _POWERS), key=len, reverse=Tr
 _PLAIN_POWER = re.compile(r"[23]")  # "5 m2": a superscript the PDF gave as a plain digit
 _PLAIN_NEGATIVE = re.compile(rf"[{_MINUS}]([123])")  # "m s-1", after another unit only
 _WORD_BEFORE = re.compile(r"([^\W\d_][\w.]*)\s+\Z")  # the word right before a number
+# a label word, then labels joined by ",", "and", "or", "&" or a dash, right before a number
+_ONE_LABEL = r"(?:\d+[A-Za-z]{0,2}|[A-Z]{1,2}|[ivxlIVXL]+)"
+_LABEL_JOIN = r"(?:\s*(?:,|&|[-\u2013\u2014])\s*|\s+(?:and|or)\s+|,\s*(?:and|or)\s+)"
+_LABEL_LIST = re.compile(
+    rf"(?<![\w.])([^\W\d_][\w.]*)\s+{_ONE_LABEL}(?:{_LABEL_JOIN}{_ONE_LABEL})*{_LABEL_JOIN}\Z"
+)
 _TILDE = re.compile(r"[~\u223c](?=[ \u00a0]{0,2}[+\-\u2212]?\.?\d)")
 # a number, then x; the number may follow another "x" of a chain ("5x86x86")
 _LETTER_X = re.compile(
@@ -78,6 +85,7 @@ _LETTER_X = re.compile(
 _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a unit: "5K/s"
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
 _HEX = frozenset("0123456789abcdefABCDEF")
+_OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a variable
 _OPENING = "([{\u201c\u2018\"'"
 _CLOSING = ".,;:!?)]}\u201d\u2019\"'"
 
@@ -245,11 +253,16 @@ def _unit_after(
         if (
             magnitude
             and _boundary(text, magnitude.end())
-            and text[magnitude.end() : magnitude.end() + 1] not in _UNIT_JOINTS
+            and not _starts_with_joint(text, magnitude.end())
         ):
             words = table.words.magnitudes[magnitude.group()]
             return end, magnitude.end(), f" {words}", magnitude.group()
     return None
+
+
+def _starts_with_joint(text: str, at: int) -> bool:
+    """True if a unit joint follows ("5K/s" is a unit, not "5 thousand"); False at the end."""
+    return at < len(text) and text[at] in _UNIT_JOINTS
 
 
 def _in_name(text: str, start: int) -> bool:
@@ -276,7 +289,11 @@ def _single_letter(printed: str, unit: Unit) -> bool:
 
 
 def _is_label(text: str, start: int, table: _Table) -> bool:
-    word = _WORD_BEFORE.search(text, max(0, start - 24), start)
+    """True for a number after a label word, or in a list of labels after one: "Fig. 3B",
+    "Figures 2B and 3B", "panels A, 2C or 3B"."""
+    word = _LABEL_LIST.search(text, max(0, start - 64), start)
+    if word is None:
+        word = _WORD_BEFORE.search(text, max(0, start - 24), start)
     return word is not None and word.group(1).lower() in table.words.labels
 
 
@@ -405,4 +422,14 @@ def _times_x(text: str, match: re.Match[str]) -> bool:
         return rest[:1].isdigit() or (rest[:1] == " " and rest[1:2].isdigit())
     if match["number"] == "0" and rest[:1] in _HEX and rest[:1] != "":
         return False  # "0x1F"
-    return rest[:1].isdigit() or _boundary(text, after)
+    if rest[:1].isdigit():
+        return True
+    return _boundary(text, after) and not _in_algebra(text, match.start("number"), after)
+
+
+def _in_algebra(text: str, start: int, end: int) -> bool:
+    """True for "2x" in a formula: an operator right before the number or after the x
+    ("y = 2x + 1", "3x^2", "= 4x."), so the x is the variable, not "times"."""
+    before = text[max(0, start - 3) : start].rstrip(" ")[-1:]
+    after = text[end : end + 3].lstrip(" ")[:1]
+    return (before != "" and before in _OPERATORS) or (after != "" and after in _OPERATORS + "(")

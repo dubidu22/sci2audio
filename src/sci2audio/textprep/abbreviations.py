@@ -7,8 +7,8 @@ says it is meant:
 
 - "anything": anywhere, as a word of its own ("e.g.", "approx.");
 - "number": before a number ("ca. 1900");
-- "label": before a label: a digit, "(", or a capital letter or Roman numeral standing alone
-  ("Fig. 2a", "Eq. (8)", "App. B", "Sec. III");
+- "label": before a label: a digit, "(" or "[", or a capital letter or Roman numeral standing
+  alone ("Fig. 2a", "Eq. (8)", "Eq. [3]", "App. B", "Sec. III");
 - "word": before a capitalised word or a label ("Suppl. Fig. 3").
 
 The reading's first letter follows the printed one ("E.g." reads "For example", "fig. 2"
@@ -30,7 +30,7 @@ from sci2audio.textprep.wordlists import Abbreviation, abbreviations
 
 # what may follow an abbreviation read only before a label, a number or a word
 _SPACE = r"[^\S\r]{0,2}"
-_LABEL = re.compile(_SPACE + r"(?:\d|\(\w|[A-Z](?![a-z]|\.[A-Za-z]))")
+_LABEL = re.compile(_SPACE + r"(?:\d|[(\[]\w|[A-Z](?![a-z]|\.[A-Za-z]))")
 _NUMBER = re.compile(_SPACE + r"\d")
 _WORD = re.compile(r"[^\S\r]{1,2}(?:[A-Z]|\d)")
 _FOLLOWS = {"label": _LABEL, "number": _NUMBER, "word": _WORD}
@@ -70,7 +70,7 @@ class AbbreviationStep(TextStep):
             reads = _cased(entry.reads, printed)
             if entry.can_end_sentence and _ends_sentence(text, end):
                 end -= 1  # the full stop stays and still ends the sentence
-            elif end < len(text) and (text[end].isalnum() or text[end] == "("):
+            elif end < len(text) and (text[end].isalnum() or text[end] in "(["):
                 reads += " "  # glued: "eq.(1)", "Fig.4", "App.B"
             shown = " ".join(printed.split())
             yield Edit(

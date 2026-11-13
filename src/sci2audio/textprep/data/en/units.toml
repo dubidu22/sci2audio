@@ -33,6 +33,11 @@ labels = [
     "study", "group", "condition", "phase", "type", "model", "panel", "chapter", "appendix",
     "lemma", "theorem", "equation", "eq.", "line", "row", "step", "case", "part", "item",
     "page", "no.", "number", "class", "level", "stage", "version", "trial", "wave", "set",
+    "figures", "tables", "sections", "panels", "experiments", "studies", "groups", "conditions",
+    "phases", "types", "chapters", "appendices", "lemmas", "theorems", "equations",
+    "eqs.", "lines", "rows", "steps", "cases", "parts", "items", "pages", "nos.", "numbers",
+    "classes", "levels", "stages", "versions", "trials", "waves", "sets", "secs.", "tabs.",
+    "exps.",
 ]
 # words before a number that make it attributive: "a 1 m pole" (D-237)
 articles = ["a", "an"]
