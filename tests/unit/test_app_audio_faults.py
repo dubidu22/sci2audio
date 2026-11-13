@@ -130,9 +130,10 @@ def test_a_full_disk_while_speaking_fails_cleanly_and_keeps_finished_chunks(
     real = voices_wav.os.replace
 
     def replace(source: str, target: str) -> None:
-        calls[0] += 1
-        if calls[0] == at:
-            raise OSError(errno.ENOSPC, "No space left on device")
+        if str(target).endswith(".wav"):  # the chunks only; the cover is written before
+            calls[0] += 1
+            if calls[0] == at:
+                raise OSError(errno.ENOSPC, "No space left on device")
         real(source, target)
 
     monkeypatch.setattr(voices_wav.os, "replace", replace)
