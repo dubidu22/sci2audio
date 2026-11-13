@@ -82,6 +82,22 @@ EPUB = Content(
     outline=(OutlineEntry("Chapter One", 1, 1), OutlineEntry("Part Two", 2, 1, item="c1-3")),
 )
 
+# A plain-text file that was not UTF-8: read as Windows-1252, a guess (D-345, D-346). One
+# page; the second printed line of the paragraph continues the first (D-344).
+TEXT = Content(
+    source=Source("notes.txt", SourceFormat.TEXT, encoding="windows-1252", encoding_guessed=True),
+    pages=(
+        Page(
+            1,
+            lines=(
+                TextLine("p1-l1", (TextRun("Caf\u00e9 notes \u2013 first line", tags=("p",)),)),
+                TextLine("p1-l2", (TextRun("and its second line", tags=("p", "br")),)),
+            ),
+            order=("p1-l1", "p1-l2"),
+        ),
+    ),
+)
+
 
 def test_line_text_joins_its_runs() -> None:
     assert PAPER.pages[0].lines[1].text == "We study sound"
@@ -105,6 +121,7 @@ def test_objects_are_frozen() -> None:
         lambda: Source("dir/paper.pdf", SourceFormat.PDF),
         lambda: Source("C:\\paper.pdf", SourceFormat.PDF),
         lambda: Source("", SourceFormat.PDF),
+        lambda: Source("notes.txt", SourceFormat.TEXT, encoding_guessed=True),  # guessed what?
         lambda: Box(5, 0, 1, 1),
         lambda: Box(0, 5, 1, 1),
         lambda: Box(float("nan"), 0, 1, 1),
@@ -226,7 +243,17 @@ def test_from_data_refuses_data_that_does_not_fit(data: object) -> None:
 
 
 def test_export_golden_file(snapshot: SnapshotAssertion) -> None:
-    assert {"pdf": to_data(PAPER), "epub": to_data(EPUB)} == snapshot
+    assert {"pdf": to_data(PAPER), "epub": to_data(EPUB), "text": to_data(TEXT)} == snapshot
+
+
+def test_a_source_says_how_its_text_was_read() -> None:
+    """A text file names its encoding and whether it was a guess (D-346); PDF and EPUB bring
+    their own, so their sources keep the defaults and export without the two fields."""
+    assert (TEXT.source.encoding, TEXT.source.encoding_guessed) == ("windows-1252", True)
+    assert Source("notes.md", SourceFormat.MARKDOWN, encoding="utf-8").encoding_guessed is False
+    assert "encoding" not in to_data(PAPER.source)
+    assert "encoding_guessed" not in to_data(EPUB.source)
+    assert from_data(Content, to_data(TEXT)) == TEXT
 
 
 @given(content=contents())
