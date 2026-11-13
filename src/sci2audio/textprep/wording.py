@@ -1,7 +1,8 @@
 """Every word the text steps add to the script, in one table per language (Q3, D-145).
 
 The steps of #64 add short notices where something is not read ("Table 2 is skipped.") and
-introduce each footnote ("Footnote 1."). Their wording lives here, and only here, so a
+introduce each footnote ("Footnote 1."); the citations step of #66 reads a numeric citation
+the sentence needs as "reference 12" (D-172). Their wording lives here, and only here, so a
 language added later (the German interface, #79) adds one row and changes no step. v1.0
 reads English notices only (D-50, Q10).
 """
@@ -29,6 +30,9 @@ class Wording:
     formula: str  # "Formula {}": a formula named by its printed number
     footnote: str  # "Footnote {}.": a note introduced by its number or letter
     footnote_unnamed: str  # "Footnote.": a note with a symbol mark or none
+    reference: str  # "reference 12": a numeric citation the sentence needs (D-172)
+    references: str  # "references 3 and 5"
+    range_to: str  # "references 2 to 6"
     # label words printed in short, read in full: "Fig. 3" is read "Figure 3"
     label_words: Mapping[str, str] = field(default_factory=dict)
 
@@ -67,6 +71,9 @@ ENGLISH = Wording(
     formula="Formula {}",
     footnote="Footnote {}.",
     footnote_unnamed="Footnote.",
+    reference="reference",
+    references="references",
+    range_to="to",
     label_words={
         "Fig.": "Figure",
         "Figs.": "Figures",
