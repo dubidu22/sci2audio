@@ -526,3 +526,61 @@ def test_a_mark_drawn_inside_a_line_stands_just_after_it(
         assert before[-1] == host
         start = dict(parts)[host]
         assert parts[at][1] == start + len(texts[host])
+
+
+# A mark drawn inside a line does not cut its paragraph (#163, D-438 to D-441)
+
+
+def _broken_line(*marks: Drawing) -> tuple[list, TextLine, TextLine]:
+    """Running text whose second printed line comes as two pieces, "… 1" and "2 …" (an
+    inline fraction), with the marks drawn on that line."""
+    lines = running(count=4)
+    first = line("the share is 1", LEFT, 114, 200)
+    second = line("2 of the whole and it goes on", 196, 115, RIGHT)
+    return [lines[0], first, second, *marks, *lines[2:]], first, second
+
+
+def test_a_fraction_bar_between_two_pieces_of_a_line_does_not_cut_the_paragraph() -> None:
+    """As liu p2's "contribution is 1/2 of the total": the bar inside the first piece is
+    read between the two; the paragraph runs on, and the bar stands just after its line
+    (#58)."""
+    bar = Drawing("bar", Box(185, 118, 193, 118.6))
+    items, first, second = _broken_line(bar)
+    doc = build(items)
+    assert len(doc.blocks) == 1
+    assert [p.item for p in doc.blocks[0].parts][1:4] == [first.id, "bar", second.id]
+
+
+def test_a_bar_across_two_pieces_of_a_line_does_not_cut_the_paragraph() -> None:
+    """liu p2's "1/ℏ ∂Emq/∂q": the bars lie inside the two pieces together, in neither
+    alone (D-438)."""
+    bar = Drawing("bar", Box(195, 118, 205, 118.6))
+    items, _, _ = _broken_line(bar)
+    doc = build(items)
+    assert [b.kind for b in doc.blocks] == [BlockKind.PARAGRAPH]
+
+
+def test_a_graphic_reaching_out_of_the_line_keeps_todays_reading() -> None:
+    """Out of scope (#163): a graphic between the pieces that reaches out of the line is
+    read as before: it ends the row, and the loose line joins the block before it (D-90)."""
+    tall = Drawing("tall", Box(185, 118, 193, 126))
+    items, first, second = _broken_line(tall)
+    doc = build(items)
+    assert [b.kind for b in doc.blocks] == [BlockKind.PARAGRAPH]
+    assert [p.item for p in doc.blocks[0].parts][1:3] == [first.id, second.id]
+    assert doc.blocks[0].parts[-1].item == "tall"
+
+
+def test_a_mark_in_a_line_is_no_float_before_a_line_that_opens_like_a_caption() -> None:
+    """A line that goes on with a paragraph may start like a caption ("Table 2. Then");
+    after a float it would start afresh, but a mark drawn in the line before is no float
+    (D-439)."""
+    lines = running(count=2)
+    on = line("Table 2. Then the text goes on and on", LEFT, 128, RIGHT)
+    rest = running(top=142, count=2)
+    bar = Drawing("bar", Box(300, 121, 308, 121.6))  # inside the second line
+    doc = build([*lines, bar, on, *rest])
+    assert [b.kind for b in doc.blocks] == [BlockKind.PARAGRAPH]
+    assert [p.item for p in doc.blocks[0].parts] == [lines[0].id, lines[1].id, "bar", on.id] + [
+        li.id for li in rest
+    ]

@@ -26,7 +26,7 @@ from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
 from sci2audio.layout.captions import opens_caption
-from sci2audio.layout.geometry import letter_size, same_row, separators, union
+from sci2audio.layout.geometry import holds, letter_size, minor, same_row, separators, union
 from sci2audio.layout.order import Element
 from sci2audio.layout.settings import LayoutSettings
 
@@ -55,32 +55,76 @@ class Held:
 
     block: Block
     page: int | None = None
+    # a loose line or mark drawn in a printed line: it waits for the open paragraph without
+    # counting as a figure, so the paragraph reads as it would without it (#163, D-439)
+    inline: bool = False
 
 
 Unit = Row | Held
 
 
 def rows_of(
-    ordered: list[Element], edges: dict[int, tuple[float, float]], settings: LayoutSettings
+    ordered: list[Element],
+    edges: dict[int, tuple[float, float]],
+    settings: LayoutSettings,
+    size: float,
 ) -> list[list[Element]]:
     """The page's text lines grouped into printed lines: neighbours in the reading order on
-    one baseline in one column (`edges` gives each element's column edges)."""
+    one baseline in one column (`edges` gives each element's column edges). A loose line or
+    mark read between two pieces of one printed line, inside the two together (a fraction
+    bar, an icon by a name), does not end the line: it is read just after it (#163, D-438).
+    `size` is the body text's size."""
     found: list[list[Element]] = []
+    after: list[Element] = []  # marks drawn inside the printed line being read
+    following = _following_lines(ordered)
     for element in ordered:
-        if element.line is None:
-            found.append([element])
-            continue
         last = found[-1] if found else None
-        if (
-            last
-            and last[-1].line is not None
-            and edges[id(last[-1])] == edges[id(element)]
-            and same_row(last[-1].box, element.box, settings.row_overlap)
-        ):
-            last.append(element)
-        else:
-            found.append([element])
+        latest = last[-1] if last and last[-1].line is not None else None
+        if element.line is None:
+            ahead = following[id(element)]
+            if (
+                latest is not None
+                and ahead is not None
+                and _one_line(latest, ahead, edges, settings)
+                and holds(union([latest.box, ahead.box]), element.box)
+                and inline_mark(element, size, settings)
+            ):
+                after.append(element)
+                continue
+        elif latest is not None and _one_line(latest, element, edges, settings):
+            found[-1].append(element)
+            continue
+        found += [[mark] for mark in after]
+        after = []
+        found.append([element])
+    found += [[mark] for mark in after]
     return [sorted(group, key=lambda e: e.box.x0) for group in found]
+
+
+def inline_mark(element: Element, size: float, settings: LayoutSettings) -> bool:
+    """True for graphics read as one that are a loose line or mark (`geometry.minor`), the
+    kind that stands in a line of text."""
+    boxes = [g.box for g in element.graphics if g.box]
+    mark, width = settings.mark_height * size, settings.line_width * size
+    return bool(boxes) and minor(boxes, mark, width)
+
+
+def _one_line(
+    a: Element, b: Element, edges: dict[int, tuple[float, float]], settings: LayoutSettings
+) -> bool:
+    """True if two text pieces read one after the other are one printed line."""
+    return edges[id(a)] == edges[id(b)] and same_row(a.box, b.box, settings.row_overlap)
+
+
+def _following_lines(ordered: list[Element]) -> dict[int, Element | None]:
+    """The text line read next after each element, if any."""
+    found: dict[int, Element | None] = {}
+    ahead: Element | None = None
+    for element in reversed(ordered):
+        found[id(element)] = ahead
+        if element.line is not None:
+            ahead = element
+    return found
 
 
 def split_cells(
@@ -257,8 +301,12 @@ class Paragraphs:
     def _hold(self, unit: Held) -> None:
         """A figure or furniture waits for the open paragraph. A formula stands where it is
         printed: it ends the open paragraph, unless the paragraph runs on from an earlier
-        page and the formula stands at this page's top (#34)."""
+        page and the formula stands at this page's top (#34). A mark drawn in a line waits
+        too, but is no figure (#163)."""
         block = unit.block
+        if unit.inline and self.open:
+            self.waiting.append(block)
+            return
         if self.open and block.kind is BlockKind.FORMULA and unit.page == self.open[-1].page:
             self._finish()
             self._emit([block])
