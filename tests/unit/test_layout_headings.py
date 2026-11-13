@@ -626,6 +626,28 @@ def test_a_rule_under_the_first_of_two_lines_marks_no_heading() -> None:
     assert ("Ethics Review\nForm Two", "") not in headings(doc)
 
 
+def placed(text: str, x0: float, y0: float, bold: bool = True) -> TextLine:
+    """A 10 point line at this place, 5 points a letter."""
+    run = TextRun(text, "Times-Bold" if bold else "Times", 10.0, bold=bold)
+    return TextLine(f"p{next(_ids)}", (run,), Box(x0, y0, x0 + 5 * len(text), y0 + 10))
+
+
+def test_a_rule_under_the_last_of_two_lines_is_measured_against_that_line_only() -> None:
+    """The last row is the lines at the last line's height: a longer first line above it
+    does not count. A rule under the short second line, one em longer than it, marks a
+    heading."""
+    page = numbered()
+    top = page.y + 8
+    first, second = placed("Ethics Review Board of the", LEFT, top), placed("Study", LEFT, top + 12)
+    rule = Drawing(f"d{next(_ids)}", Box(LEFT, top + 20.5, LEFT + 35, top + 21.3))
+    page.lines += [first, second]
+    page.drawings.append(rule)
+    page.y = top + 28
+    doc = page.body().build()
+    assert rule.id in holder(doc, "Ethics Review Board of the\nStudy")
+    assert ("Ethics Review Board of the\nStudy", "") in headings(doc)
+
+
 def test_a_rule_just_below_the_line_and_one_em_longer_marks_a_heading() -> None:
     """The limits themselves: half an em below the line box, one em past the words."""
     words = LEFT + 5 * len("Ethics Review Form")
@@ -671,6 +693,27 @@ def test_after_the_appendices_title_a_ruled_heading_is_level_one_and_the_shift_g
         "Ethics Review Form": 1,
         "B More": 2,
     }
+
+
+def test_a_header_row_split_into_cells_over_a_table_rule_is_not_a_heading() -> None:
+    """Review of #180 (M1): the rule is measured against the block's whole last row. An
+    uncaptioned table's bold header cells read as one block over a booktabs rule that
+    overhangs the row by 6 points (`\\tabcolsep`) at each end: less than one em, so no
+    heading, though it starts far before the last cell ("F1")."""
+    for x0, x1 in ((LEFT, RIGHT), (170.0, 370.0)):
+        page = numbered()
+        top = page.y + 8
+        cells = [("Model", x0 + 6), ("Accuracy", (x0 + x1) / 2), ("F1", x1 - 16)]
+        row = [placed(text, left, top) for text, left in cells]
+        rule = Drawing(f"d{next(_ids)}", Box(x0, top + 11, x1, top + 12))
+        rows = [placed(f"m{k} 0.{k} 0.{k}", x0 + 6, top + 14 * k, bold=False) for k in (1, 2, 3)]
+        page.lines += [*row, *rows]
+        page.drawings.append(rule)
+        page.y = top + 14 * 6
+        doc = page.body().build()
+        holding = next(b for b in doc.blocks if rule.id in [p.item for p in b.parts])
+        assert {c.id for c in row} <= {p.item for p in holding.parts}, (x0, x1)
+        assert holding.kind is not BlockKind.HEADING, (x0, x1)
 
 
 def test_a_bold_line_over_a_wide_rule_inside_a_table_stays_in_the_table() -> None:

@@ -21,9 +21,10 @@ also after a common title over the appendices, whose shift goes on for the numbe
 after it ("ACL 2023 Responsible NLP Checklist", set like the subsections, with a rule under
 it across the page). The rule is one of the block's own graphic parts, where the graphics
 step put it (#58, D-90): at most `line_width` em thick, its top between the middle of the
-line and `heading_rule_gap` em below the line, across the whole line and at least
+last row and `heading_rule_gap` em below it, across the whole row and at least
 `heading_rule_reach` em longer than its words at one end, so an underline of the words
-themselves (a link) does not count.
+themselves (a link) does not count. The last row is the block's lines that stand at its
+last line's height: a table's header row split into cells is measured as one row.
 
 The file's own outline (PDF bookmarks, #24) is a second signal, used after the font rules and
 settled by these rules (D-270 to D-272):
@@ -52,6 +53,7 @@ from collections import Counter
 from dataclasses import dataclass, replace
 
 from sci2audio.core import Block, BlockKind, Box, Content, OutlineEntry, Section, TextLine
+from sci2audio.layout.geometry import union
 from sci2audio.layout.settings import LayoutSettings
 
 # a printed heading number: "2", "2.1", "A", "A.1", with an optional dot, before the title
@@ -246,12 +248,15 @@ class _Headings:
         )
 
     def _ruled(self, k: int) -> bool:
-        """True if the block holds a rule drawn under its last line (module docstring)."""
+        """True if the block holds a rule drawn under its last row (module docstring)."""
         block, em, settings = self.texts[k].block, self.body, self.settings
         boxes = [self.lines[part.item].box for part in block.parts if part.item in self.lines]
-        line = boxes[-1] if boxes else None
-        if line is None:
+        last = boxes[-1] if boxes else None
+        if last is None:
             return False
+        # the last row: the block's lines that stand at the last one's height (a table's
+        # header split into cells is one row; review of #180, M1)
+        line = union([box for box in boxes if box and last.y0 <= (box.y0 + box.y1) / 2 <= last.y1])
         rules = (self.drawings[part.item] for part in block.parts if part.item in self.drawings)
         return any(
             rule.y1 - rule.y0 <= settings.line_width * em
