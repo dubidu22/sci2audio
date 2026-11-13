@@ -17,6 +17,8 @@ import shutil
 import wave
 from pathlib import Path
 
+from sci2audio.app.lock import work_folder_lock
+
 CHUNKS = "chunks"  # the cache's folder inside the working folder
 KEY_FORMAT = 1  # bump when anything else starts to change the sound
 _SAMPLE_WIDTH = 2  # 16-bit PCM (D-117)
@@ -88,8 +90,13 @@ def clean_work_folder(work: Path) -> int:
     """Remove the chunk cache from a working folder; return the bytes freed.
 
     Only the `chunks` folder goes; the records (`audio.json`, `document.json`, `job.json`)
-    stay, so a finished job can still be listed and played. The next run speaks again.
+    and the lock file stay, so a finished job can still be listed and played. The next run
+    speaks again. It holds the working folder's lock while it removes the cache, so it never
+    removes chunks under a running job: JobBusyError while a job works on the folder (D-226).
     """
-    size = cache_size(work)
-    shutil.rmtree(work / CHUNKS, ignore_errors=True)
-    return size
+    if not work.is_dir():
+        return 0  # nothing to clean; the lock would only create the folder
+    with work_folder_lock(work):
+        size = cache_size(work)
+        shutil.rmtree(work / CHUNKS, ignore_errors=True)
+        return size
