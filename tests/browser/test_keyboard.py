@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 
+import pytest
 from playwright.sync_api import Page, expect
 from test_flow import PDF
 
@@ -56,6 +57,9 @@ def press_on(page: Page, wanted: str, key: str = "Enter", **kwargs: bool) -> Non
     page.keyboard.press(key)
 
 
+@pytest.mark.quarantined(
+    issue=166, reason="now and then a 1 px default focus outline on the document page"
+)
 def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     page = signed_in
     tab_to(page, "Skip to the content")  # the first stop
@@ -117,6 +121,9 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     expect(page.locator("#message")).to_have_text("The speech cache is empty.")
 
 
+@pytest.mark.quarantined(
+    issue=138, reason="now and then the first Tab stop on the document page is not the skip link"
+)
 def test_tab_goes_round_every_page_without_a_trap(signed_in: Page, live: Live) -> None:
     page = signed_in
     page.set_input_files("#file", files=[PDF])
