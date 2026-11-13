@@ -11,6 +11,8 @@
   --note: #fff4ce;
   --error: #a50e0e;
   --focus: #0b57d0;
+  --now: #fff0a8;
+  --now-line: #7a5c00;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -26,6 +28,8 @@
     --note: #2e2a14;
     --error: #ff9b91;
     --focus: #9cc0ff;
+    --now: #3d3500;
+    --now-line: #ffd84d;
   }
 }
 * { box-sizing: border-box; }
@@ -106,6 +110,37 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }
+/* the player (#78) */
+.player-bar {
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0; margin-bottom: 1rem;
+}
+/* the bar stays in view only where it fits: player.js pins it only while it takes at most
+   a quarter of the window's height. On a narrow or short view (a phone, 400 % zoom, longer
+   German labels) it scrolls away with the page instead (WCAG 1.4.10, 2.4.11), and while it
+   is pinned the page's scroll padding is the bar's real height */
+.player-bar.pinned { position: sticky; top: 0; z-index: 1; }
+.player-bar p { margin: 0.25rem 0; }
+.player-line { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.player-line audio { width: 18rem; max-width: 100%; height: 2.5rem; }
+.ai-notice { color: var(--muted); }
+.chapter-list { padding-left: 1.5rem; }
+.chapter-list li { margin: 0.25rem 0; }
+.chapter-list button { background: transparent; color: var(--link); border-color: transparent; padding: 0.1rem 0.3rem; text-decoration: underline; text-align: left; }
+.read-along { line-height: 1.7; }
+.read-along .s { cursor: pointer; }
+/* the sentence being read: colour and an underline, not colour alone (D-300) */
+.read-along .now {
+  background: var(--now); text-decoration: underline 2px var(--now-line);
+  text-underline-offset: 0.2em; box-shadow: 0 0 0 2px var(--now);
+}
+.page-mark { color: var(--muted); font-size: 0.85rem; margin: 0.75rem 0 0.25rem; border-top: 1px dashed var(--border); padding-top: 0.25rem; }
+.notice { border-left: 4px solid var(--border); background: var(--note); padding: 0.25rem 0.75rem; margin: 0.75rem 0; }
+.notice p { margin: 0.25rem 0; }
+.notice .printed { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
+.unread { color: var(--muted); }
+.unread-tag { font-weight: bold; font-size: 0.85rem; }
+.block.footnote, .block.caption { font-size: 0.95rem; }
 footer { margin-top: 2rem; font-size: 0.9rem; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

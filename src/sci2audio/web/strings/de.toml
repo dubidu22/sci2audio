@@ -56,6 +56,7 @@ voice = "Stimme"
 voice_installed = "Die Stimme ist installiert."
 voice_missing = "Die Stimme ist noch nicht installiert. sci2audio braucht sie, um Hörbücher zu erstellen."
 voice_setup = "Stimme einrichten"
+listen = "{name} mit dem Text anhören"
 
 [document]
 title = "{name}"
@@ -202,6 +203,40 @@ hosts = "Der Download verbindet sich mit diesen Hosts:"
 consent = "Ich bin einverstanden, diese Dateien von diesen Hosts herunterzuladen."
 privacy = "Was sci2audio mit dem Netz und Ihren Dateien macht"
 download = "Stimme herunterladen"
+
+[listen]
+title = "Anhören: {name}"
+intro = "Der Text wie gedruckt; der Satz, der gerade gelesen wird, ist hervorgehoben. Klicken Sie auf einen Satz, um ab dort abzuspielen."
+ai_notice = "Dieses Hörbuch liest eine synthetische Stimme ({voice}), erstellt mit sci2audio."
+link = "Mit dem Text anhören"
+player = "Wiedergabe"
+previous_sentence = "Vorheriger Satz"
+next_sentence = "Nächster Satz"
+previous_chapter = "Vorheriges Kapitel"
+next_chapter = "Nächstes Kapitel"
+back_to_reading = "Zurück zur Lesestelle"
+audio = "Audio des Kapitels"
+follow = "Beim Lesen mitscrollen"
+chapters = "Kapitel"
+left_out = "Nicht in diesem Hörbuch:"
+text = "Text des Dokuments"
+page = "Seite {page}"
+not_read = "Nicht vorgelesen:"
+found = "In der Datei gefundener Text"
+back = "Zurück zum Dokument, um das Hörbuch zu erstellen"
+back_document = "Zurück zum Dokument"
+no_audiobook = "Von diesem Dokument gibt es noch kein Hörbuch."
+missing = "Die Dateien des Hörbuchs sind nicht mehr in {folder}. Erstellen Sie das Hörbuch neu."
+changed = "Die Dateien in {folder} gehören jetzt zu einem anderen Hörbuch. Erstellen Sie das Hörbuch neu."
+mismatch = "Die Mitlesedatei passt nicht zu diesem Dokument. Erstellen Sie das Hörbuch neu."
+broken = "Die Angaben zu diesem Hörbuch lassen sich nicht lesen. Erstellen Sie das Hörbuch neu."
+
+[player]  # das Skript des Players (#78)
+play = "Abspielen"
+pause = "Anhalten"
+chapter = "Kapitel {n} von {total}:"  # der Titel folgt, in der Sprache des Texts
+cannot_play = "Dieser Browser kann die M4B-Datei des Hörbuchs nicht abspielen. Speichern Sie sie auf der Auftragsseite des Dokuments und spielen Sie sie in einem anderen Programm ab."
+load_failed = "Das Audio ließ sich nicht laden. Läuft sci2audio noch?"
 
 [js]
 opening = "Wird geöffnet …"
