@@ -80,6 +80,20 @@ def test_no_sentence_ends_after_an_abbreviation(abbreviation: str) -> None:
         ("It holds (in 2022)[ours]. Then more.", ["It holds (in 2022)[ours].", "Then more."]),
         # "no." glued to a bracket is still an abbreviation only before a number
         ("The answer [no.] Then we stop.", ["The answer [no.]", "Then we stop."]),
+        # glued to a dash or a slash (review of #105, S1)
+        ("Results\u2014e.g. Table 2 shows it.", ["Results\u2014e.g. Table 2 shows it."]),
+        ("Results\u2013e.g. Table 2 shows it.", ["Results\u2013e.g. Table 2 shows it."]),
+        ("The results/e.g. Table 2 agree.", ["The results/e.g. Table 2 agree."]),
+        # a capital glued to a bracket or an apostrophe is no initial: these end a sentence
+        # (review of #105, M1)
+        ("I SAID I DON'T. Then we left.", ["I SAID I DON'T.", "Then we left."]),
+        ("We cite [1]A. Next.", ["We cite [1]A.", "Next."]),
+        ("It is in Table 1(a)B. Next.", ["It is in Table 1(a)B.", "Next."]),
+        ("The value was x)A. Next.", ["The value was x)A.", "Next."]),
+        ("It was 5'A. Next.", ["It was 5'A.", "Next."]),
+        ("We call it Plan(B. Next one.", ["We call it Plan(B.", "Next one."]),
+        # ... while an initial after an opening bracket or quote still is one
+        ("Thanks to (J. Smith) for it.", ["Thanks to (J. Smith) for it."]),
     ],
 )  # fmt: skip
 def test_an_abbreviation_glued_to_a_bracket_is_no_sentence_end(
@@ -88,7 +102,7 @@ def test_an_abbreviation_glued_to_a_bracket_is_no_sentence_end(
     assert cut(text) == utterances
 
 
-_GLUE = "([{\"'\u201c\u2018)]}"  # brackets and quotes, curly ones too
+_GLUE = "([{\"'\u201c\u2018)]}\u2013\u2014/"  # brackets, quotes, dashes and a slash
 
 
 @given(
