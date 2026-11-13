@@ -142,17 +142,17 @@ expected = ["We start with pre-training on each prefix.", "The pre-training set 
 id = "hyphen-next-to-digits"
 audit = 0
 issue = 65
-goal = "A hyphen next to a digit or full stop at a line end stays: ranges, names, initials (TP-02)."
+goal = "A hyphen next to a digit or full stop at a line end stays: ranges, names, initials (TP-02); the range is then read with \"to\" (#67)."
 blocks = [{ kind = "paragraph", text = "From 2019-\n2020, COVID-\n19 cases rose, as J.-\nP. Martin wrote." }]
-expected = ["From 2019-2020, COVID-19 cases rose, as J.-P. Martin wrote."]
+expected = ["From 2019 to 2020, COVID-19 cases rose, as J.-P. Martin wrote."]
 
 [[case]]
 id = "symbols"
 audit = 6
 issue = 67
-goal = "'≥ 18' read 'greater than or equal to 18' and '± 12%' read 'plus or minus 12 percent'; the digits stay for misaki (TP-10)."
+goal = "'≥ 18' read 'greater than or equal to 18' and '± 12%' read 'plus or minus 12 percent'; the digits stay for misaki (TP-11; moved from #68 by D-178)."
 blocks = [{ kind = "paragraph", text = "Participants (± 12%) were enrolled vs. 980 controls ≥ 18 years." }]
-expected = ["Participants (± 12%) were enrolled vs. 980 controls ≥ 18 years."]
+expected = ["Participants (plus or minus 12%) were enrolled vs. 980 controls greater than or equal to 18 years."]
 
 [[case]]
 id = "statistics"
@@ -160,10 +160,10 @@ audit = 7
 issue = 67
 goal = "'n = 35' read 'n equals 35', 'p < .05' read 'p less than point zero five', 'CI' read 'confidence interval' (TP-11)."
 blocks = [{ kind = "paragraph", text = "A total of n = 35 studies met the criteria. The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4])." }]
-expected = ["A total of n = 35 studies met the criteria. The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4])."]
+expected = ["A total of n equals 35 studies met the criteria. The mean age was M equals 4.2 (SD equals 1.1) years; the effect was significant (p less than .05, 95% confidence interval 1.2 to 3.4)."]
 utterances = [
-    "A total of n = 35 studies met the criteria.",
-    "The mean age was M = 4.2 (SD = 1.1) years; the effect was significant (p < .05, 95% CI [1.2, 3.4]).",
+    "A total of n equals 35 studies met the criteria.",
+    "The mean age was M equals 4.2 (SD equals 1.1) years; the effect was significant (p less than .05, 95% confidence interval 1.2 to 3.4).",
 ]
 
 [[case]]
@@ -180,9 +180,9 @@ audit = 9
 issue = 68
 goal = "'i.e.', 'e.g.', 'vs.', 'Dr.', 'Fig.' and 'Approx.' read in full; 'Table 2' kept; the word after 'Approx.' not capitalised (TP-08)."
 blocks = [{ kind = "paragraph", text = "Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls." }]
-expected = ["Children aged 0–6 years were included, that is, preschoolers and toddlers, for example, in day-care (Figure 1). Dr. Smith compared them vs. controls (see Table 2). Approximately half were girls."]
+expected = ["Children aged 0 to 6 years were included, that is, preschoolers and toddlers, for example, in day-care (Figure 1). Dr. Smith compared them vs. controls (see Table 2). Approximately half were girls."]
 utterances = [
-    "Children aged 0–6 years were included, that is, preschoolers and toddlers, for example, in day-care (Figure 1).",
+    "Children aged 0 to 6 years were included, that is, preschoolers and toddlers, for example, in day-care (Figure 1).",
     "Dr. Smith compared them vs. controls (see Table 2).",
     "Approximately half were girls.",
 ]
@@ -199,9 +199,9 @@ expected = ["Approximately 1,234 participants were enrolled."]
 id = "roman-numerals"
 audit = 11
 issue = 67
-goal = "'World War II' read 'World War Two', 'Phase III' read 'Phase three' (TP-13, a Should; #67 decides whether v1.0 covers it)."
+goal = "'World War II' read 'World War Two', 'Phase III' read 'Phase three' (TP-13, a Should; in v1.0 by D-185)."
 blocks = [{ kind = "paragraph", text = "During World War II and in Phase III trials, parents kept diaries." }]
-expected = ["During World War II and in Phase III trials, parents kept diaries."]
+expected = ["During World War 2 and in Phase 3 trials, parents kept diaries."]
 
 [[case]]
 id = "acronyms"
@@ -402,6 +402,134 @@ blocks = [
 sections = [{ title = "7 Bibliography", level = 1, start = 0, end = 2 }]
 expected = []
 
+[[case]]
+id = "df-parentheses"
+audit = 0
+issue = 67
+goal = "Degrees of freedom read 'of' and the operators as words; the numbers stay for misaki (TP-11, D-179)."
+blocks = [{ kind = "paragraph", text = "The groups differed, t(34) = 2.45, p = .021, and F(2, 57) = 4.31, p < .001." }]
+expected = ["The groups differed, t of 34 equals 2.45, p equals .021, and F of 2 and 57 equals 4.31, p less than .001."]
+
+[[case]]
+id = "squared-statistics"
+audit = 0
+issue = 67
+goal = "R2, η² and χ2 with its df read 'R squared', 'eta squared', 'chi-square of 1' (TP-11)."
+blocks = [{ kind = "paragraph", text = "The model explained R2 = .45 of the variance (η² = .06), χ2(1, N = 120) = 5.6." }]
+expected = ["The model explained R squared equals .45 of the variance (eta squared equals .06), chi-square of 1, N equals 120 equals 5.6."]
+
+[[case]]
+id = "odds-ratio"
+audit = 0
+issue = 67
+goal = "'OR' before an operator read 'odds ratio'; SD and HR left for the voice to spell (TP-11, D-181)."
+blocks = [{ kind = "paragraph", text = "Smokers had higher odds (OR = 1.5, 95% CI [1.1, 2.0]) and HR = 2.1 (SD = 0.4)." }]
+expected = ["Smokers had higher odds (odds ratio equals 1.5, 95% confidence interval 1.1 to 2 point 0) and HR equals 2.1 (SD equals 0.4)."]
+
+[[case]]
+id = "operators-in-prose"
+audit = 0
+issue = 67
+goal = "'<' without spaces, '≤' and the PDF form of '≠' read as words; arrows left as printed (TP-11, D-177)."
+blocks = [{ kind = "paragraph", text = "Only p<.01 counted; we require 0 ≤ i ≤ N and Y, Z \u0338= S, but X -> Y stays." }]
+expected = ["Only p less than .01 counted; we require 0 less than or equal to i less than or equal to N and Y, Z not equal to S, but X -> Y stays."]
+
+[[case]]
+id = "minus-sign"
+audit = 0
+issue = 67
+goal = "The minus sign before a number read 'minus', also before a leading point (TP-09)."
+blocks = [{ kind = "paragraph", text = "Scores fell from −0.5 to −3 (r = −.32)." }]
+expected = ["Scores fell from minus 0.5 to minus 3 (r equals minus .32)."]
+
+[[case]]
+id = "number-ranges"
+audit = 0
+issue = 67
+goal = "En-dash, spaced and hyphen ranges between numbers read 'to'; decimal ranges keep their points (TP-09, D-183)."
+blocks = [{ kind = "paragraph", text = "Children aged 3–5 and 18-25 years, scores of 1.2–3.4, from 2010–2015, in lines 4 – 9." }]
+expected = ["Children aged 3 to 5 and 18 to 25 years, scores of 1.2 to 3.4, from 2010 to 2015, in lines 4 to 9."]
+
+[[case]]
+id = "hyphens-that-are-not-ranges"
+audit = 0
+issue = 67
+goal = "A score, an ISO date and 'COVID-19' are not ranges (TP-09, D-183)."
+blocks = [{ kind = "paragraph", text = "The team won 3-1 against COVID-19 on 2021-03-12." }]
+expected = ["The team won 3-1 against COVID-19 on 12 March 2021."]
+
+[[case]]
+id = "four-digit-count"
+audit = 0
+issue = 67
+goal = "A bare four-digit count read as a number, not a year (TP-09, D-182)."
+blocks = [{ kind = "paragraph", text = "We enrolled 1234 participants and n = 1999 controls." }]
+expected = ["We enrolled 1,234 participants and n equals 1,999 controls."]
+
+[[case]]
+id = "four-digit-years"
+audit = 0
+issue = 67
+goal = "Years, round hundreds and model numbers left to misaki (TP-09, D-176, D-182)."
+blocks = [{ kind = "paragraph", text = "In 2019 studies used the 2019 guidelines; we select 1000 examples on a GTX 1080 Ti." }]
+expected = ["In 2019 studies used the 2019 guidelines; we select 1000 examples on a GTX 1080 Ti."]
+
+[[case]]
+id = "ordinary-numbers"
+audit = 0
+issue = 67
+goal = "Numbers, decimals, percentages, ordinals, decades and written dates misaki reads correctly get no edit (TP-09, D-176)."
+blocks = [{ kind = "paragraph", text = "On 12 March 2019, 1,234 of 10,000 (12.5%) answered for the 3rd time since the 1990s; p = .05." }]
+expected = ["On 12 March 2019, 1,234 of 10,000 (12.5%) answered for the 3rd time since the 1990s; p equals .05."]
+
+[[case]]
+id = "trailing-zeros"
+audit = 0
+issue = 67
+goal = "Trailing zeros after the point kept as printed (TP-09, D-184)."
+blocks = [{ kind = "paragraph", text = "The mean was 2.50 and the slope 1.00, compared with .050 before." }]
+expected = ["The mean was 2 point 5 0 and the slope 1 point 0 0, compared with .050 before."]
+
+[[case]]
+id = "powers"
+audit = 0
+issue = 67
+goal = "Powers of ten and of a letter read 'to the power of' or 'squared' (TP-09, D-187); '×' is the units step's 'times' (#68)."
+blocks = [{ kind = "paragraph", text = "Rates of 10⁶ per second fell to 3 × 10−4 and 10^-2; the variance σ² stayed." }]
+expected = ["Rates of 10 to the power of 6 per second fell to 3 times 10 to the power of minus 4 and 10 to the power of minus 2; the variance σ squared stayed."]
+
+[[case]]
+id = "ratios-and-fractions"
+audit = 0
+issue = 67
+goal = "Ratios read 'to', simple fractions as fraction words, other fractions 'out of'; times left (TP-09, D-186)."
+blocks = [{ kind = "paragraph", text = "A 3:1 mix at 10:30 cut it to 1/10 the size, and 17/20 passed." }]
+expected = ["A 3 to 1 mix at 10:30 cut it to 1 tenth the size, and 17 out of 20 passed."]
+
+[[case]]
+id = "grouped-digits"
+audit = 0
+issue = 67
+goal = "Digits grouped by a thin space or by plain spaces in two or more groups read as one number (TP-09, D-189)."
+blocks = [{ kind = "paragraph", text = "About 50\u2009000 cells and 1 000 000 reads." }]
+expected = ["About 50,000 cells and 1,000,000 reads."]
+
+[[case]]
+id = "roman-numerals-in-statistics"
+audit = 0
+issue = 67
+goal = "'Type I' and 'Phase I/II' read with numbers; a king's name and the pronoun 'I' left (TP-13, D-185)."
+blocks = [{ kind = "paragraph", text = "A Type I error in the Phase I/II trial of Henry VIII, the part I think matters." }]
+expected = ["A Type 1 error in the Phase 1 and 2 trial of Henry VIII, the part I think matters."]
+
+[[case]]
+id = "roman-numerals-after-short-keywords"
+audit = 0
+issue = 67
+goal = "A Roman numeral after a keyword printed short ('Fig.', 'Exp.', 'Sec.') is read as a number on the first run, beside the keyword read in full by #68 (TP-13, D-185; review of PR #132)."
+blocks = [{ kind = "paragraph", text = "See Fig. II and Exp. III in Sec. IV, but not the end. II" }]
+expected = ["See Figure 2 and Experiment 3 in Section 4, but not the end. II"]
+
 # Issue #66: citations (TP-03, TP-04) and URLs, DOIs and e-mail addresses (TP-07), D-167 to D-175.
 
 [[case]]
@@ -472,9 +600,9 @@ expected = ["It is non-computational (see also reference 15 for a recent perspec
 id = "numeric-not-citations"
 audit = 0
 issue = 66
-goal = "Maths, intervals and statistics in square brackets are not citations (D-171)."
+goal = "Maths, intervals and statistics in square brackets are not citations (D-171); the confidence interval is then read as words (#67)."
 blocks = [{ kind = "paragraph", text = "Let p: R → [0, 1], the interval [2, 5], 95% CI [1, 3] and Tr[ρ] be given." }]
-expected = ["Let p: R → [0, 1], the interval [2, 5], 95% CI [1, 3] and Tr[ρ] be given."]
+expected = ["Let p: R → [0, 1], the interval [2, 5], 95% confidence interval 1 to 3 and Tr[ρ] be given."]
 
 [[case]]
 id = "author-year-single"
@@ -776,9 +904,9 @@ expected = ["We take the gradient with respect to the weights, such that the los
 id = "abbreviations-labels"
 audit = 0
 issue = 68
-goal = "Label abbreviations read in full before a label, glued ones split: 'eq.(1)', 'Fig.4', 'App.B' (TP-08, D-230)."
+goal = "Label abbreviations read in full before a label, glued ones split: 'eq.(1)', 'Fig.4', 'App.B' (TP-08, D-230); the Roman numeral after 'Sec.' is read by #67 (D-185)."
 blocks = [{ kind = "paragraph", text = "As shown in Eq. (8) and eq.(1), see Figs. 2 and 3, Fig.4, Sec. III, Alg. 1, Lem. 2, Thm. 3 and App.B." }]
-expected = ["As shown in Equation (8) and equation (1), see Figures 2 and 3, Figure 4, Section III, Algorithm 1, Lemma 2, Theorem 3 and Appendix B."]
+expected = ["As shown in Equation (8) and equation (1), see Figures 2 and 3, Figure 4, Section 3, Algorithm 1, Lemma 2, Theorem 3 and Appendix B."]
 
 [[case]]
 id = "abbreviations-label-needs-a-label"
@@ -824,9 +952,9 @@ expected = ["Professor Lee and Dr. Kim et al. compared No. 5 vs. No. 6, etc."]
 id = "units-plural-and-singular"
 audit = 0
 issue = 68
-goal = "A unit after exactly 1 is singular, after any other number plural, '1.0' included (K8, D-237)."
+goal = "A unit after exactly 1 is singular, after any other number plural, '1.0' included (K8, D-237); its trailing zero and the range are read by #67 (D-184, D-183)."
 blocks = [{ kind = "paragraph", text = "The rods were 1 m, 1.0 m, 0.5 m and 2 m long; the run took 1 h, then 1–2 h." }]
-expected = ["The rods were 1 metre, 1.0 metres, 0.5 metres and 2 metres long; the run took 1 hour, then 1–2 hours."]
+expected = ["The rods were 1 metre, 1 point 0 metres, 0.5 metres and 2 metres long; the run took 1 hour, then 1 to 2 hours."]
 
 [[case]]
 id = "units-attributive"
@@ -936,17 +1064,17 @@ expected = ["Salinity was 35 per mille and 12% higher."]
 id = "symbols-micro-sign"
 audit = 0
 issue = 68
-goal = "A micro sign that is no unit prefix becomes the Greek letter mu; 'µm' reads 'micrometres' (D-242)."
+goal = "A micro sign that is no unit prefix becomes the Greek letter mu; 'µm' reads 'micrometres' (D-242); '=' reads 'equals' (#67, D-177)."
 blocks = [{ kind = "paragraph", text = "With µ = 3 and µB, the 5 µm and 2 μm films." }]
-expected = ["With μ = 3 and μB, the 5 micrometres and 2 micrometres films."]
+expected = ["With μ equals 3 and μB, the 5 micrometres and 2 micrometres films."]
 
 [[case]]
 id = "symbols-x-in-a-formula"
 audit = 0
 issue = 68
-goal = "A glued x next to an operator is the variable, not 'times'; '10x speedup' still reads 'times' (D-242, review of PR #116)."
+goal = "A glued x next to an operator is the variable, not 'times'; '10x speedup' still reads 'times' (D-242, review of PR #116); '=' reads 'equals' (#67, D-177)."
 blocks = [{ kind = "paragraph", text = "We set y = 2x + 1. The term 3x^2 dominates. Let f(x) = 4x. It gives a 10x speedup." }]
-expected = ["We set y = 2x + 1. The term 3x^2 dominates. Let f(x) = 4x. It gives a 10 times speedup."]
+expected = ["We set y equals 2x + 1. The term 3x^2 dominates. Let f(x) equals 4x. It gives a 10 times speedup."]
 
 [[case]]
 id = "units-sub-figure-labels-in-lists"
