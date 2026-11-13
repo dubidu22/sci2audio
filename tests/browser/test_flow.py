@@ -132,7 +132,7 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     expect(page.locator("#result")).to_be_focused()
     links = page.locator("ul.files a")
     names = [re.sub(r"^Save (.*) \(.*\)$", r"\1", text) for text in links.all_inner_texts()]
-    assert names[0] == "Introduction.m4b" or names[0].endswith(".m4b")
+    assert names[0] == "paper.m4b"  # named after the file, as the PDF has no title
     assert any(name.endswith(".mp3") for name in names)
     assert names[-1].endswith(".readalong.json")
     for link in links.all():
@@ -250,3 +250,90 @@ def test_a_lost_server_is_named(signed_in: Page, live: Live) -> None:
     expect(page.locator("#message")).to_have_text(
         "sci2audio can't be reached. Is it still running in its terminal window?"
     )
+
+
+LOST = "sci2audio can't be reached. Is it still running in its terminal window?"
+
+
+def lose_the_server(page: Page, live: Live) -> None:
+    """The server goes away under an open page: its event streams end and every new request
+    is refused, as when the terminal window was closed."""
+    page.route(f"{live.url}/api/**", lambda route: route.abort("connectionrefused"))
+    live.state.stopping.set()
+
+
+def test_the_job_page_says_when_the_server_is_gone(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    document = open_paper(page, live)
+    job, gate = gated(live.state, JobKind.AUDIO, document)
+    try:
+        page.goto(f"{live.url}/jobs/{job.id}")
+        expect(page.get_by_role("progressbar", name="Progress")).to_be_visible()
+        lose_the_server(page, live)
+        expect(page.locator("#message")).to_have_text(LOST, timeout=15_000)  # LOST_AFTER is 5 s
+        expect(page.locator("#message")).to_be_focused()
+    finally:
+        gate.set()
+        job.join(10)
+
+
+def test_the_document_page_says_when_the_server_is_gone_while_it_analyses(
+    signed_in: Page, live: Live
+) -> None:
+    page = signed_in
+    document = open_paper(page, live)
+    job, gate = gated(live.state, JobKind.SCRIPT, document)
+    try:
+        page.reload()
+        expect(page.locator("#message")).to_have_text("Analysing the document…")
+        expect(page.get_by_role("button", name="Analyse the document")).to_have_count(0)
+        check_axe(page, "document while it analyses")
+        lose_the_server(page, live)
+        expect(page.locator("#message")).to_have_text(LOST, timeout=15_000)  # LOST_AFTER is 5 s
+        expect(page.locator("#message")).to_be_focused()
+    finally:
+        gate.set()
+        job.join(10)
+
+
+def test_make_starts_nothing_until_the_report_matches_and_has_a_chapter(
+    signed_in: Page, live: Live
+) -> None:
+    page = signed_in
+    live.install_voice()
+    open_paper(page, live)
+    make = page.get_by_role("button", name="Make the audiobook")
+    expect(make).not_to_have_attribute("aria-disabled", "true")
+
+    # a switch changed and not yet analysed: Make says so and starts nothing (D-245)
+    page.get_by_role("checkbox", name=re.compile("^Citations")).uncheck()
+    expect(make).to_have_attribute("aria-disabled", "true")
+    expect(page.locator("#make-note")).to_have_text(
+        "Update the analysis first to see what your changes do."
+    )
+    make.click(force=True)  # aria-disabled: Playwright would wait for it to be enabled
+    expect(page.locator("#message")).to_have_text(
+        "Update the analysis first to see what your changes do."
+    )
+    expect(page.locator("#message")).to_be_focused()
+    page.get_by_role("checkbox", name=re.compile("^Citations")).check()
+
+    # no chapter chosen: nothing to read, so nothing starts
+    page.get_by_role("button", name="Choose none").click()
+    update(page)
+    expect(page.locator("#summary")).to_contain_text("3 chapters, 0 of them chosen")
+    expect(make).to_have_attribute("aria-disabled", "true")
+    note = "Choose at least one chapter and update the analysis."
+    expect(page.locator("#make-note")).to_have_text(note)
+    make.click(force=True)  # aria-disabled: Playwright would wait for it to be enabled
+    expect(page.locator("#message")).to_have_text(note)
+    expect(page.locator("#message")).to_be_focused()
+    # choosing one shows the update is due; once updated, Make is free again
+    page.get_by_role("checkbox", name="Methods").check()
+    expect(page.locator("#make-note")).to_have_text(
+        "Update the analysis first to see what your changes do."
+    )
+    update(page)
+    expect(make).not_to_have_attribute("aria-disabled", "true")
+    kinds = [job.kind for job in live.state.board.all()]
+    assert JobKind.AUDIO not in kinds  # no press of Make started anything

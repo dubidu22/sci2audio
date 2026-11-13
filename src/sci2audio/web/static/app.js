@@ -3,6 +3,7 @@
 "use strict";
 
 const ANNOUNCE_EVERY = 30000; // ms between progress announcements, phase changes aside (D-253)
+const LOST_AFTER = 5000; // ms an event stream may stay away before the page says the server is lost
 
 let STRINGS = {};
 
@@ -43,10 +44,23 @@ function reloadAt(hash) {
   location.reload();
 }
 
-// Follows a job's events (D-201): `progress` gets each progress, `end` the final job.
+// Follows a job's events (D-201): `progress` gets each progress, `end` the final job. A
+// stream that breaks off is reopened by the browser on its own and stays CONNECTING while
+// the server is away, so a stream that hasn't reopened LOST_AFTER ms after an error counts
+// as lost: the page says so and stops trying.
 function follow(url, progress, end) {
   const events = new EventSource(url);
   let ended = false;
+  let waiting = null;
+  function lost() {
+    clearTimeout(waiting);
+    events.close();
+    say(tr("js.lost"), true);
+  }
+  events.addEventListener("open", () => {
+    clearTimeout(waiting);
+    waiting = null;
+  });
   events.addEventListener("snapshot", (event) => {
     const job = JSON.parse(event.data);
     if (job.progress) progress(job.progress);
@@ -59,7 +73,8 @@ function follow(url, progress, end) {
   });
   events.addEventListener("error", () => {
     if (ended) return;
-    if (events.readyState === EventSource.CLOSED) say(tr("js.lost"), true);
+    if (events.readyState === EventSource.CLOSED) lost();
+    else if (waiting === null) waiting = setTimeout(lost, LOST_AFTER);
   });
   return events;
 }
@@ -132,8 +147,10 @@ function documentPage() {
     if (!changed) return;
     const differs = !same(controls(), shown);
     changed.hidden = !differs;
+    // the controls differ from the report: the update comes first, as no chapter on the
+    // report may be the very thing being changed; a missing analysis or voice stays first
     let blocked = blockedFirst;
-    if (!blocked && differs) blocked = "needs_update";
+    if (differs && (!blocked || blocked === "needs_chapters")) blocked = "needs_update";
     make.dataset.blocked = blocked;
     if (blocked) {
       make.setAttribute("aria-disabled", "true");
@@ -198,7 +215,7 @@ function documentPage() {
         const job = await send("/api/v1/voices/preview", json("POST", body));
         follow(`/api/v1/jobs/${job.id}/events`, () => {}, (ended) => {
           if (ended.state !== "done" || !ended.files.length) {
-            say(ended.error ? ended.error.message : ended.state, true);
+            say(ended.error ? ended.error.message : tr(`job.state_${ended.state}`), true);
             return;
           }
           audio.src = `/api/v1/jobs/${ended.id}/files/${encodeURIComponent(ended.files[0].name)}`;
@@ -233,11 +250,12 @@ function documentPage() {
         speed: Number(speed.value),
         output_folder: folder,
       };
-      // remembered for the next document (D-246); chapters stay with the document
-      await send("/api/v1/settings", json("PUT", settings));
       const job = await send("/api/v1/jobs", json("POST", {
         kind: "audio", document: id, settings: { ...settings, chapters: shown.chapters },
       }));
+      // remembered for the next document once the audiobook has started (D-246); a start
+      // refused as busy changes nothing; chapters stay with the document
+      await send("/api/v1/settings", json("PUT", settings)).catch(() => {});  // the job runs either way
       location.assign(`/jobs/${job.id}`);
     } catch (error) {
       say(error.message, true);

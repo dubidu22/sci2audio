@@ -73,7 +73,7 @@ def t(key: str, /, **values: Any) -> str:
     return text.format(**values) if values else text
 
 
-SCRIPT_KEYS = ("js.", "phase.", "make.needs_", "voice.speed_value")
+SCRIPT_KEYS = ("js.", "phase.", "make.needs_", "job.state_", "voice.speed_value")
 
 
 def script_strings() -> str:
@@ -240,7 +240,7 @@ def _voice_options(chosen: str) -> list[dict[str, Any]]:
     options = []
     for voice in ordered:
         key = "voice.accent_female" if voice.gender == "female" else "voice.accent_male"
-        label = t(key, name=voice.name, accent=voice.language)
+        label = t(key, name=voice.name, accent=t(f"accent.{voice.language}"))
         if voice.id == default:
             label = f"{label} {t('voice.default')}"
         options.append({"id": voice.id, "label": label, "selected": voice.id == chosen})

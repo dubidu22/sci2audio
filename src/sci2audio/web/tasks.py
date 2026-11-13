@@ -147,6 +147,8 @@ def audio_work(
         except (JobCancelledError, OutputExistsError, JobBusyError):
             raise  # the engine is fine
         except BaseException:
+            # the app wraps a voice failure in a JobError like any other (app/audio.py), so
+            # any failure drops the engine; a rare failure costs one reload (D-250)
             on_failure()
             raise
         job.report(
@@ -204,7 +206,9 @@ def preview_work(
     on_failure: Callable[[], None] = lambda: None,
 ) -> Callable[[JobRecord], Sequence[Path]]:
     """Speak `text` into `folder/preview.wav` (replacing the last preview, D-249);
-    `voice_id` "" is the source's default voice."""
+    `voice_id` "" is the source's default voice. Every preview writes the same file, so
+    the file link of an earlier preview job plays the newest preview; the page only ever
+    plays the preview it just made."""
     chosen = voice_id or voice.default_voice
 
     def work(job: JobRecord) -> Sequence[Path]:

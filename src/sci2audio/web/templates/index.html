@@ -24,7 +24,7 @@
 <ul class="documents">
   {% for document in documents %}
   <li><a href="/documents/{{ document.id }}">{{ document.name }}</a>
-    <span class="hint">({{ t('home.analysed') if document.report_file.is_file() else t('home.not_analysed') }}{% if document.has_audio %}, {{ t('home.audio_made') }}{% endif %})</span></li>
+    <span class="hint">({{ size_text(document.size) }}, {{ t('home.analysed') if document.report_file.is_file() else t('home.not_analysed') }}{% if document.has_audio %}, {{ t('home.audio_made') }}{% endif %})</span></li>
   {% endfor %}
 </ul>
 {% else %}

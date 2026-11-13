@@ -26,7 +26,9 @@ from web_helpers import (
 )
 
 from sci2audio.textprep import Category
+from sci2audio.voices import ENGLISH_VOICES
 from sci2audio.web import pages
+from sci2audio.web.jobs import JobKind, JobState
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -73,7 +75,7 @@ def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any
     page = client.get("/").text
     assert "a &amp;amp; b &#39;x&#39;.pdf" in page
     assert f'href="/documents/{doc["id"]}"' in page
-    assert "not analysed yet" in page
+    assert f"({pages.size_text(doc['size'])}, not analysed yet)" in page
 
 
 def test_the_paste_box_appears_once_text_files_are_read(
@@ -135,6 +137,19 @@ def test_the_controls_start_from_the_report_on_screen(server: tuple[FastAPI, Any
     assert shown == {"switched_off": ["citations"], "chapters": [1]}
 
 
+def test_make_is_blocked_while_the_report_has_no_chapter_chosen(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(pages, "missing_files", lambda folder: [])
+    client = client_of(server)
+    doc = analysed(client, {"chapters": []})
+    page = client.get(f"/documents/{doc['id']}").text
+    assert 'data-blocked="needs_chapters"' in page
+    assert "Choose at least one chapter and update the analysis." in page
+    doc = analysed(client, {"chapters": [1]})
+    assert 'data-blocked=""' in client.get(f"/documents/{doc['id']}").text
+
+
 def test_every_proposed_change_is_listed_with_its_fate(
     server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -164,7 +179,8 @@ def test_the_voice_step_once_the_voice_is_installed(
     assert "This is how this voice reads your text." in page  # #18's preview sentence
     assert 'maxlength="300"' in page
     assert 'data-blocked=""' in page
-    assert "Heart, en-US, female (default)" in page
+    assert "Heart, American English, female (default)" in page
+    assert "George, British English, male" in page
     assert page.index("(default)") < page.index("George")  # the default voice first
     assert "Kokoro-82M model and voices by hexgrad: Apache License 2.0." in page
 
@@ -242,12 +258,13 @@ def used_keys() -> set[str]:
     templates = "".join(text for name, text in texts.items() if name.startswith("templates"))
     found |= set(re.findall(r"""\bt\(\s*'([a-z_.-]+[a-z])'""", templates))
     found |= {f"make.{key}" for key in re.findall(r"'(needs_[a-z]+)'", templates)}
-    found |= {f"job.state_{s}" for s in ("running", "done", "failed", "cancelled")}
-    found |= {f"job.title_{kind}" for kind in ("script", "audio", "voices", "preview")}
+    found |= {f"job.state_{s}" for s in JobState}
+    found |= {f"job.title_{kind}" for kind in JobKind}
     script = texts["static/app.js"]
     found |= set(re.findall(r"""tr\(\s*["`']([a-z_.]+)["`']""", script))
-    found |= {f"make.needs_{key}" for key in ("analysis", "voice", "update")}
+    found |= {f"make.needs_{key}" for key in ("analysis", "voice", "update", "chapters")}
     found |= {f"category.{category}" for category in Category}
+    found |= {f"accent.{voice.language}" for voice in ENGLISH_VOICES}
     source = Path(pages.__file__).read_text(encoding="utf-8")
     found |= set(re.findall(r"""\bt\(\s*["']([a-z_.-]+[a-z])["']""", source))
     found |= {key for key in pages.STRINGS if key.startswith("phase.")}

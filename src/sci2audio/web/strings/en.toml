@@ -121,6 +121,10 @@ speed = "Speed"
 speed_value = "{value} times"
 remembered = "sci2audio remembers the changes, the voice, the speed and the folder for the next document when you make an audiobook."
 
+[accent]  # one per language code of a voice (ready for #79)
+en-US = "American English"
+en-GB = "British English"
+
 [make]
 folder = "Folder for the audiobook"
 folder_hint = "A full path. sci2audio writes one MP3 per chapter, an M4B with chapter marks and a read-along file there."
@@ -128,6 +132,7 @@ start = "Make the audiobook"
 needs_voice = "Set up the voice first."
 needs_update = "Update the analysis first to see what your changes do."
 needs_analysis = "Analyse the document first."
+needs_chapters = "Choose at least one chapter and update the analysis."
 
 [job]
 title_script = "Analysis of {name}"

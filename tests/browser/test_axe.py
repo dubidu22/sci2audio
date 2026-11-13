@@ -11,6 +11,7 @@ from playwright.sync_api import Page, expect
 from test_flow import open_paper
 
 from conftest import Live, axe_problems, check_axe
+from sci2audio.voices import EngineError
 from sci2audio.web.jobs import JobKind
 
 
@@ -102,3 +103,15 @@ def test_progress_is_announced_at_most_every_30_seconds(signed_in: Page, live: L
     finally:
         gate.set()
         job.join(10)
+
+
+def test_a_job_that_failed(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    live.install_voice()
+    open_paper(page, live)
+    live.voice.fail_to_make = EngineError("the model file is damaged")
+    page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    expect(page.locator("#result")).to_contain_text("The job failed")
+    expect(page.get_by_role("button", name="Start again")).to_be_visible()
+    check_axe(page, "audiobook failed")

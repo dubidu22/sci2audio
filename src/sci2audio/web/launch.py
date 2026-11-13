@@ -85,7 +85,10 @@ def serve(
     finally:
         state.stopping.set()
         state.board.shutdown(SHUTDOWN_WAIT)
-        state.kept.dispose()
+        # a preview can't be cancelled: while one still speaks, its engine stays with it
+        # and goes when the process ends
+        if state.board.current is None:
+            state.kept.dispose()
     say("sci2audio has stopped.")
 
 

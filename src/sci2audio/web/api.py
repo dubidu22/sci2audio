@@ -68,14 +68,10 @@ _FILE_ANSWERS: dict[int | str, dict[str, Any]] = {
 
 
 def _document_out(document: StoredDocument) -> models.DocumentOut:
-    try:
-        size = document.source.stat().st_size
-    except OSError:
-        size = 0
     return models.DocumentOut(
         id=document.id,
         name=document.name,
-        size=size,
+        size=document.size,
         has_report=document.report_file.is_file(),
         has_audio=document.has_audio,
         speech_cache_bytes=document.speech_cache_bytes,

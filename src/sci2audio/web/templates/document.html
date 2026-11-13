@@ -112,7 +112,7 @@
   <p class="hint" id="voice-licence">{{ t('voice.licence', licences=licences) }}</p>
   <label for="speed">{{ t('voice.speed') }}</label>
   <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ t('voice.speed_value', value=speed) }}">
-  <output id="speed-value" for="speed">{{ t('voice.speed_value', value=speed) }}</output></p>
+  <output id="speed-value" for="speed" aria-hidden="true">{{ t('voice.speed_value', value=speed) }}</output></p>
   {% if voice_installed %}
   <form id="preview" class="stack">
     <label for="preview-text">{{ t('voice.preview_label') }}</label>
@@ -132,7 +132,7 @@
   <p class="hint" id="folder-hint">{{ t('make.folder_hint') }}</p>
   <input id="output-folder" name="output_folder" value="{{ output_folder }}" aria-describedby="folder-hint" spellcheck="false" autocomplete="off">
   <p class="hint">{{ t('voice.remembered') }}</p>
-  {% set blocked = 'needs_analysis' if not report else ('needs_voice' if not voice_installed else '') %}
+  {% set blocked = 'needs_analysis' if not report else ('needs_chapters' if not chosen_chapters else ('needs_voice' if not voice_installed else '')) %}
   <p class="buttons"><button type="button" id="make" data-blocked="{{ blocked }}"{% if blocked %} aria-disabled="true"{% endif %} aria-describedby="make-note">{{ t('make.start') }}</button></p>
   <p id="make-note" class="note"{% if not blocked %} hidden{% endif %}>{% if blocked %}{{ t('make.' + blocked) }}{% endif %}</p>
 </div>

@@ -102,6 +102,14 @@ class StoredDocument:
         return total
 
     @property
+    def size(self) -> int:
+        """Bytes of the opened file; 0 when it can't be read."""
+        try:
+            return self.source.stat().st_size
+        except OSError:
+            return 0
+
+    @property
     def has_audio(self) -> bool:
         return (self.folder / AUDIO_RECORD).is_file()
 
