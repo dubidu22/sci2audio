@@ -7,19 +7,28 @@ per character than short ones, so the seconds of one call are modelled as
 
 with every coefficient zero or more, fitted by least squares on the chunks measured so far
 in this run (D-380). The time left is that cost summed over every chunk still to speak.
-The fit falls back to the plain rate (measured seconds / measured characters, D-159) when
-it has fewer than MIN_CHUNKS measured chunks (twice its coefficients, so a short run never
-gets a curve through a handful of points), when the chunks have fewer different lengths
-than it has coefficients, or when it does not explain the measured chunks
-better than the plain rate does.
 
-Every sum is kept as a running total, so adding a chunk and asking for the time left are
-constant time however long the book is.
+What keeps a curve from running wild:
+- fewer than MIN_CHUNKS measured chunks (twice the coefficients), or fewer different
+  lengths than coefficients: the plain rate (measured seconds / measured characters,
+  D-159) instead of the fit;
+- the curve is never used beyond the longest measured chunk L: a longer chunk costs
+  model(L) / L per character, the cost per character at the edge of what was measured
+  (D-384). A first chapter of names, headings or a list measures only short chunks,
+  and the curve fitted on them can say almost twice the real time for long paragraphs.
+The fit also keeps the plain rate when it explains the measured chunks no better than the
+rate does; since the per-character-only fit is one of its candidates, that happens only
+when the cost is exactly per character.
+
+The measured chunks are kept as running sums, so adding one is constant time; the chunks
+still to speak are counted by length, so the time left costs one step per different
+length (at most the voice's longest utterance, 300 characters by default).
 """
 
 from __future__ import annotations
 
 import itertools
+from collections import Counter
 from dataclasses import dataclass, field
 
 TERMS = 3  # constant, per character, per character squared
@@ -71,7 +80,7 @@ class Estimate:
     measured_chunks: int = 0
     _measured: _Sums = field(default_factory=_Sums)
     _lengths: set[int] = field(default_factory=set)
-    _left: list[float] = field(default_factory=lambda: [0.0] * TERMS)  # sums of c**k left
+    _left: Counter[int] = field(default_factory=Counter)  # length -> chunks still to speak
 
     def measure(self, characters: int, seconds: float) -> None:
         """One voice call of `characters` characters took `seconds`."""
@@ -83,15 +92,13 @@ class Estimate:
 
     def expect(self, characters: int) -> None:
         """A chunk of `characters` characters is still to be spoken."""
-        self._shift(characters, 1.0)
+        self._left[characters] += 1
 
     def done(self, characters: int) -> None:
         """A chunk `expect`ed earlier is spoken (or failed): it is no longer left."""
-        self._shift(characters, -1.0)
-
-    def _shift(self, characters: int, sign: float) -> None:
-        for k in range(TERMS):
-            self._left[k] += sign * float(characters) ** k
+        self._left[characters] -= 1
+        if self._left[characters] <= 0:
+            del self._left[characters]
 
     def speed(self) -> float | None:
         """Measured characters per second, the plain rate; None before any measurement."""
@@ -116,13 +123,18 @@ class Estimate:
         return CostModel(constant, per_character / SCALE, per_square / SCALE**2)
 
     def seconds_left(self) -> float | None:
-        """The model summed over every chunk still to speak; None before any measurement."""
+        """The model summed over every chunk still to speak, never beyond the longest
+        measured chunk; None before any measurement."""
         model = self.model()
         if model is None:
             return None
-        count, characters, squares = self._left
-        seconds = model.constant * count + model.per_character * characters
-        return max(0.0, seconds + model.per_square * squares)
+        longest = max(self._lengths)
+        per_character_beyond = model.seconds(longest) / longest
+        seconds = sum(
+            count * (model.seconds(length) if length <= longest else per_character_beyond * length)
+            for length, count in self._left.items()
+        )
+        return max(0.0, seconds)
 
     def _error(self, model: CostModel) -> float:
         """Sum of squared errors of `model` over the measured chunks."""

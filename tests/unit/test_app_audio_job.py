@@ -187,7 +187,8 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
     assert done[-1] == events_spoken[-1].characters_total
     # the speed: every chunk takes 1 s on the clock; the first four (warm-up) are not
     # measured (D-381)
-    warm_up = audio_module.WARM_UP_CALLS
+    warm_up = 4  # D-381
+    assert warm_up == audio_module.WARM_UP_CALLS
     texts = [u.text for u in job.result.utterances if not u.pause]
     measured = sum(len(t) for t in texts[warm_up:])
     assert events_spoken[-1].characters_per_second == pytest.approx(measured / (chunks() - warm_up))
@@ -233,7 +234,8 @@ def test_the_estimate_fits_a_cost_per_call_per_character_and_per_square(
     def cost(characters: int) -> float:
         return 0.4 + 0.02 * characters + 0.0001 * characters**2
 
-    clock = CostClock(cost, slow=audio_module.WARM_UP_CALLS)
+    assert audio_module.WARM_UP_CALLS == 4  # D-381
+    clock = CostClock(cost, slow=4)
     voice = FakeVoice(on_speak=clock.speak)
     events: list[AudioProgress] = []
     run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=clock)

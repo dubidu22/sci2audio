@@ -11,9 +11,9 @@ MP3 per chapter, the M4B and the read-along file → the job's records.
   All chapters are encoded again at the end (seconds, against minutes of speech).
 - Pauses (D-116, D-157): the app gives every chunk one `Pause` kind; output turns kinds
   into seconds and opens every chapter with the chapter pause.
-- Progress and the time estimate (D-159, D-380 to D-382, `estimate.py`) are measured on
-  this run's own speech; cancel (D-160) by a `threading.Event`; one job per working
-  folder (D-161).
+- Progress and the time estimate (D-159, D-380 to D-382, D-384, `estimate.py`) are
+  measured on this run's own speech; cancel (D-160) by a `threading.Event`; one job per
+  working folder (D-161).
 - It never stops to ask (D-61 (3)): an utterance the voice fails on is left out and
   listed, five failures in a row stop the job (D-162). It fails with a `JobError` a person
   can act on, and nothing half-written, when it cannot go on (D-140): the existing
@@ -378,8 +378,9 @@ class _Speech:
         return self.estimate.speed()
 
     def seconds_left(self) -> float | None:
-        """The cost model summed over the chunks still to speak (D-380); None while the
-        first chapter is spoken and until enough characters are measured (D-159, D-382)."""
+        """The cost model summed over the chunks still to speak (D-380, D-384); None
+        while the first chapter is spoken and until enough characters are measured (D-159,
+        D-382)."""
         if (
             not self.first_chapter_done
             or self.estimate.measured_characters < ESTIMATE_MIN_CHARACTERS

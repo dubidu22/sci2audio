@@ -47,7 +47,7 @@ def test_the_fit_finds_a_cost_per_call_per_character_and_per_square() -> None:
 def test_a_fixed_cost_per_call_is_found() -> None:
     """Every call costs a second whatever its length: the time left is one second a chunk."""
     estimate = measured(*((n, 1.0) for n in (10, 50, 90, 130, 170, 210)))
-    for characters in (20, 280, 5):
+    for characters in (20, 200, 5):
         estimate.expect(characters)
     assert estimate.seconds_left() == pytest.approx(3.0)
 
@@ -78,6 +78,47 @@ def test_a_cost_exactly_per_character_keeps_the_plain_rate() -> None:
     assert estimate.model() == plain_rate(estimate)
     estimate.expect(400)
     assert estimate.seconds_left() == pytest.approx(10.0)
+
+
+def test_the_curve_is_not_used_beyond_the_longest_measured_chunk() -> None:
+    """A first chapter of names and headings measures only short chunks; the curve fitted
+    on them must not price the long paragraphs that follow (#136 review, D-384). The
+    voice costs about what Kokoro does on CPU (0.5 s a call, 0.012 s a character,
+    0.00005 s a character squared), with noise of up to 15 % on each measured call. The
+    curve fitted on chunks of 10 to 60 characters says 31 % too little for chunks of 150
+    to 300; capped at the longest measured chunk, 15 %, inside the ±25 % budget."""
+
+    def cost(characters: int) -> float:
+        return 0.5 + 0.012 * characters + 0.00005 * characters**2
+
+    noise = (1.15, 0.85, 1.1, 0.9, 1.15, 0.85, 1.05, 0.95, 1.15, 0.85)
+    short = [12, 25, 40, 18, 55, 33, 60, 21, 47, 15, 38, 58, 27, 44, 10, 52, 30, 60, 36, 49]
+    estimate = measured(*((n, cost(n) * noise[i % len(noise)]) for i, n in enumerate(short)))
+    left = [180, 240, 300, 210, 275, 150, 300, 260]
+    for characters in left:
+        estimate.expect(characters)
+    real = sum(cost(n) for n in left)
+    seconds = estimate.seconds_left()
+    assert seconds is not None
+    assert abs(seconds - real) / real <= 0.25
+    model = estimate.model()
+    assert model is not None
+    assert model.per_square > 0  # the curve is fitted; only its use beyond 60 is capped
+    beyond = model.seconds(60) / 60
+    assert seconds == pytest.approx(sum(beyond * n for n in left))
+
+
+def test_chunks_up_to_the_longest_measured_one_use_the_curve() -> None:
+    def cost(characters: int) -> float:
+        return 0.5 + 0.01 * characters + 0.00005 * characters**2
+
+    estimate = measured(*((n, cost(n)) for n in (10, 40, 80, 120, 200, 250)))
+    for characters in (250, 30, 251):
+        estimate.expect(characters)
+    model = estimate.model()
+    assert model is not None
+    expected = cost(250) + cost(30) + model.seconds(250) / 250 * 251
+    assert estimate.seconds_left() == pytest.approx(expected)
 
 
 def test_spoken_and_failed_chunks_are_no_longer_left() -> None:
@@ -122,4 +163,9 @@ def test_the_model_is_never_negative_and_never_worse_than_the_rate(
     seconds = estimate.seconds_left()
     assert seconds is not None
     assert seconds >= 0
-    assert seconds == pytest.approx(sum(model.seconds(n) for n in left), rel=1e-6, abs=1e-6)
+    longest = max(n for n, _ in spoken)
+
+    def capped(n: int) -> float:  # never the curve beyond the longest measured chunk (D-384)
+        return model.seconds(n) if n <= longest else model.seconds(longest) / longest * n
+
+    assert seconds == pytest.approx(sum(capped(n) for n in left), rel=1e-6, abs=1e-6)
