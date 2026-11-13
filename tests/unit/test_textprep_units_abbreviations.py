@@ -13,7 +13,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from sci2audio.core import Block, BlockKind, Document, EditKind, Span, check_edits
+from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span, check_edits
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import (
     AbbreviationStep,
@@ -25,6 +25,7 @@ from sci2audio.textprep import (
     spoken_text,
     wording_for,
 )
+from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.wordlists import (
     abbreviations,
     parse_abbreviations,
@@ -542,3 +543,58 @@ def test_a_very_long_block_takes_no_more_than_linear_time() -> None:
     edits = UNITS.find(document, EN) + ABBREVIATIONS.find(document, EN)
     assert time.perf_counter() - started < 3
     assert len(edits) > 9_000
+
+
+# ---- second runs (#159, #160) -------------------------------------------------------------
+
+
+def _both_runs(text: str) -> tuple[str, str]:
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    first = spoken_text(run_steps(document, EN, strict=True).script())
+    again = make_document([(BlockKind.PARAGRAPH, first)])
+    return first, spoken_text(run_steps(again, EN, strict=True).script())
+
+
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [  # #159: a soft hyphen or zero-width space does not hide a unit or an abbreviation
+        ("0\u00adK", "0 thousand"),
+        ("5\u00adkg", "5 kilograms"),
+        ("5 \u200bmg", "5 milligrams"),
+        ("e.\u00adg. this", "for example this"),
+        ("Fig\u200b. 3 shows", "Figure 3 shows"),
+        # #160: once "x" reads "times", the number after it is found on the first run too
+        ("5 5 mg/kg, e.g. 5 x86K", "5 5 milligrams per kilogram, for example 5 times 86 thousand"),
+        ("5 x86K", "5 times 86 thousand"),
+    ],
+)
+def test_units_and_abbreviations_read_the_same_on_the_first_and_second_run(
+    printed: str, spoken: str
+) -> None:
+    assert _both_runs(printed) == (spoken, spoken)
+
+
+def test_an_edit_behind_an_unread_character_is_mapped_onto_the_printed_text() -> None:
+    """#159: the edit's span is mapped back onto the printed text: the unit itself, after
+    the soft hyphen, which the Unicode step leaves out."""
+    document = make_document([(BlockKind.PARAGRAPH, "5\u00adkg and 5k\u200bg")])
+    edits = UNITS.find(document, EN)
+    assert [(e.span.start, e.span.end, e.replacement) for e in edits] == [
+        (2, 4, " kilograms"),
+        (10, 13, " kilograms"),  # an unread character inside the unit is taken in
+    ]
+    assert all("\u00ad" not in e.reason and "\u200b" not in e.reason for e in edits)
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [
+        Edit(Span(0, 0, 1), EditKind.REMOVE, "gone", "fake"),
+        Edit(Span(0, 1, 1), EditKind.PAUSE, "a breath", "fake"),
+    ],
+)
+def test_only_replace_edits_are_mapped_back_through_unread_characters(edit: Edit) -> None:
+    """Review F3 of PR #208: a remove or pause edit would come back as a remove of another
+    span, so the adapter refuses it instead (#159)."""
+    with pytest.raises(ValueError, match="only replace edits"):
+        edits_through_unread(0, "5\u00adkg", lambda read: [edit], "fake")

@@ -39,6 +39,7 @@ from dataclasses import dataclass
 from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
+from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, units
 
@@ -49,8 +50,9 @@ _DASHES = "-\u2013\u2014\u2012"
 _GAP = " \u00a0\u2009\u202f\u2007\n"  # what may stand between a number and its unit
 # a number as printed: digits with "," groups or a leading point, a decimal part, an exponent
 _NUMBER = re.compile(
-    # not inside a power ("^-1", "^{2}", "^{-1}"), but after the x of "5x86mg"
-    r"(?:(?<![\w.,:/^\u2070-\u209f])(?<!\^[-\u2212{])(?<!\^\{[-\u2212])|(?<=\d[xX]))"
+    # not inside a power ("^-1", "^{2}", "^{-1}"), but after the x of "5x86mg" or "5 x86K"
+    # (the x reads "times" either way, so a second run finds the same number, #160)
+    r"(?:(?<![\w.,:/^\u2070-\u209f])(?<!\^[-\u2212{])(?<!\^\{[-\u2212])|(?<=\d[xX])|(?<=\d [xX]))"
     r"(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)"
     r"(?P<exponent>[\u207b\u2212]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+|\^[-\u2212]?\d+|\^\{[-\u2212]?\d+\})?"
 )
@@ -125,7 +127,12 @@ class UnitStep(TextStep):
         for index, block in enumerate(document.blocks):
             if _skipped(block):
                 continue
-            edits += _without_overlaps(self._edits(index, block.text, table))
+            edits += edits_through_unread(
+                index,
+                block.text,
+                lambda read: _without_overlaps(self._edits(index, read, table)),  # noqa: B023
+                self.id,
+            )
         return edits
 
     def _edits(self, index: int, text: str, table: _Table) -> Iterator[Edit]:

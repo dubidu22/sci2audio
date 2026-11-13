@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 from sci2audio.core import BlockKind, EditKind, Span, apply_edits
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import StepContext, UnicodeStep, spoken_text
-from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN
+from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN, _read_on
 
 EN = StepContext("en")
 STEP = UnicodeStep()
@@ -264,3 +264,30 @@ def test_a_letterlike_symbol_that_looks_like_its_letter_is_named() -> None:
     assert edits_of("on \N{SCRIPT SMALL L}")[0][3] == (
         'mathematical characters U+2113 SCRIPT SMALL L read as "l"'
     )
+
+
+def test_an_accent_after_a_ligature_reads_the_same_on_a_second_run() -> None:
+    """#160: the acute before "ℓ" is no apostrophe of "'ll", because the "ˇℓ" after it
+    reads "ľ"; so it is composed on the first run, as on the second."""
+    first = read("\ufb00\u00b4\u2113\u02c7\u2113")
+    assert first == "ff\u013a\u013e"
+    assert read(first) == first
+
+
+def test_an_apostrophe_accent_before_a_contraction_stays() -> None:
+    assert read("it\u00b4ll go") == "it\u00b4ll go"
+    assert read("it\u00b4s fine") == "it\u00b4s fine"
+
+
+@pytest.mark.parametrize(
+    ("text", "read_on"),
+    [  # what the contraction check sees after an acute (#160, review F3 of PR #208)
+        ("\u2113\u02c7\u2113", "l\u013e"),  # a math letter folded, an accent composed
+        ("\u02c7\u0131", "\u01d0"),  # TeX's dotless i takes the accent as "i"
+        ("\u00b4q", "q"),  # no single letter for "q" with an acute: the accent is dropped
+        ("\u00b4\u00fc", "\u00fc"),  # only a plain letter takes an accent, as in the step
+        ("\u02c7l\u00ads", "\u013es"),  # a soft hyphen after the composed letter is unread
+    ],
+)
+def test_reading_on_composes_accents_as_the_step_does(text: str, read_on: str) -> None:
+    assert _read_on(text, 0) == read_on

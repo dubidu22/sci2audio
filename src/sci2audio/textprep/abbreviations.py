@@ -25,6 +25,7 @@ from collections.abc import Iterator
 from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
+from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Abbreviation, abbreviations
 
@@ -55,7 +56,12 @@ class AbbreviationStep(TextStep):
         for index, block in enumerate(document.blocks):
             if _skipped(block):
                 continue
-            edits += self._edits(index, block.text, pattern, by_form)
+            edits += edits_through_unread(
+                index,
+                block.text,
+                lambda read: self._edits(index, read, pattern, by_form),  # noqa: B023
+                self.id,
+            )
         return edits
 
     def _edits(

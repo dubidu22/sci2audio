@@ -4,7 +4,8 @@ them (TP-03, TP-04, K2; D-171 to D-173).
 
 Numeric citations are square brackets of whole numbers, lists and ranges ("[12]",
 "[2–6, 16, 17]"), never glued to a word ("Tr[ρ]") and never after a maths or statistics
-sign or word ("∈ [0, 1]", "CI [1, 3]"). An aside is removed; a citation that is part of the
+sign or word ("∈ [0, 1]", "CI [1, 3]", "CI: [1, 3]"), nor joined on to such a bracket
+("CIs [1, 3] and [2, 4]", D-450). An aside is removed; a citation that is part of the
 sentence ("discussed in [26].", "Refs. [53, 58]", "[12] showed") is read as "reference 26",
 "references 53 and 58"; a bracket holding only lead words and citations ("(see also [48,
 135])") goes whole.
@@ -15,7 +16,11 @@ Author-year citations are brackets whose every ";"-part is a citation: optional 
 mixed bracket only the citation parts go ("(RNNGs; Dyer et al., 2016)" reads "(RNNGs)");
 used as the subject ("(Dasigi et al., 2019) note that") its names stay. A bracket of years
 right after a name is a narrative citation ("Smith (2019) shows"): only the bracket goes, so
-the names stay (TP-04). A page bracket glued to a citation ("(2022)[p. 8]") goes with it.
+the names stay (TP-04); after an article the word names a thing, not an author ("the
+Olympics (2016)", D-448), unless "et al." or a second author shows a citation. A bracket of
+lead words and a narrative citation goes whole ("(see Smith (2019))"), a full stop inside
+it too when the bracket starts a sentence (D-447). A page bracket glued to a citation
+("(2022)[p. 8]") goes with it.
 
 Brackets are worked outermost first: a bracket that goes takes everything inside it along,
 and inside one that stays, its inner brackets are looked at in turn. "et al." stays as
@@ -30,6 +35,7 @@ from dataclasses import dataclass, field
 
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.links import SKIPPED_KINDS
+from sci2audio.textprep.statistics import interval_openings
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -51,6 +57,7 @@ class CitationWords:
     numbered: frozenset[str]  # words after which square brackets hold a label's number
     particles: frozenset[str]  # lower-case parts of names
     months: frozenset[str]  # never the first word of an author
+    articles: frozenset[str]  # before a name, a year bracket is no citation: "the Olympics (2016)"
 
 
 # fmt: off
@@ -86,7 +93,7 @@ WORDS: dict[str, CitationWords] = {
             "i.e.,",
             "i.e.",
         ),
-        maths=frozenset(["ci", "interval", "intervals", "range", "ranges"]),
+        maths=frozenset(["ci", "cis", "interval", "intervals", "range", "ranges"]),
         numbered=frozenset((
             "eq.", "eqs.", "equation", "equations", "fig.", "figs.", "figure", "figures",
             "tab.", "table", "tables", "sec.", "section", "sections", "step", "steps", "line",
@@ -101,6 +108,7 @@ WORDS: dict[str, CitationWords] = {
             "dec", "january", "february", "march", "april", "june", "july", "august", "september",
             "october", "november", "december",
         )),
+        articles=frozenset(["the", "a", "an"]),
     ),
 }
 # fmt: on
@@ -131,6 +139,7 @@ _GLUED_PAGE = re.compile(r"[\[(]\s*pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?\s*[\])]")
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
+_FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
 
 
 def _part_pattern(words: CitationWords) -> re.Pattern[str]:
@@ -140,7 +149,8 @@ def _part_pattern(words: CitationWords) -> re.Pattern[str]:
     return re.compile(
         rf"\A\s*(?:(?:{leads})\s+)*(?P<authors>{_AUTHORS})"
         rf"(?:\s*\(\s*{_YEARS}{_LOCATOR}\s*\)|\s*,?\s+{_YEARS}{_LOCATOR}|\s*,\s*{_YEARS}{_LOCATOR})"
-        rf"(?P<tail>{_LOCATOR})\s*\Z",
+        # a full stop may end the part: "(See Smith (2019).)" (D-447, #145)
+        rf"(?P<tail>{_LOCATOR})\s*\.?\s*\Z",
         re.IGNORECASE,
     )
 
@@ -219,6 +229,7 @@ class _Rules:
         self.abbreviations = abbreviations
         self.part = _part_pattern(words)
         self.numeric_aside = _numeric_aside_pattern(words)
+        self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
 
     def block(self, text: str) -> list[_Found]:
         found: list[_Found] = []
@@ -298,6 +309,8 @@ class _Rules:
             reason = f'year of the citation "{printed}" is not read; the names stay (TP-04)'
             start, end = self._with_space(text, node.open, end)
             return [(start, end, EditKind.REMOVE, "", reason)]
+        if _FULL_STOP_INSIDE.search(inside) and not self._starts_sentence(text, node.open):
+            return None  # "It holds (Smith, 2019.)": its full stop ends the sentence outside
         parts = self._parts(text, node)
         if parts is None:
             return None
@@ -323,16 +336,11 @@ class _Rules:
         glued = text[node.open - 1 : node.open]
         if glued and (glued.isalnum() or glued in ")]"):
             return None
+        if self._not_citations(text, node.open):
+            return None
         window = max(0, node.open - _LOOK_BACK)
         before = text[window : node.open].rstrip()
         previous = before.split()[-1] if before.split() else ""
-        if previous and (
-            previous[-1] in _MATHS_SIGNS
-            or previous.lower() in self.words.maths
-            or _is_label_word(previous.lstrip("(["), self.words.numbered)
-            or previous.endswith("%")
-        ):
-            return None
         printed = _printed(text[node.open : node.close + 1])
         word = re.sub(r"\A\W*\d*", "", previous).lower()  # "8See" -> "see", "(see" -> "see"
         start = node.open
@@ -351,6 +359,29 @@ class _Rules:
             spoken = spoken[0].upper() + spoken[1:]
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
+
+    def _not_citations(self, text: str, position: int) -> bool:
+        """True if the square bracket at `position` holds an interval or a label's number, not
+        citations: after a maths sign, a maths word ("CI", "CI:", "CIs", D-450), a label word
+        ("Eq.") or a percentage, or where the statistics step reads a confidence interval
+        joined on to one ("CIs [1, 3] and [2, 4]", #151): only a pair it reads, so "CI [1, 3]
+        and [12]" still cites reference 12."""
+        before = text[max(0, position - _LOOK_BACK) : position].rstrip()
+        previous = before.split()[-1] if before.split() else ""
+        if previous and (
+            previous[-1] in _MATHS_SIGNS
+            or previous.lower().rstrip(":") in self.words.maths
+            or _is_label_word(previous.lstrip("(["), self.words.numbered)
+            or previous.endswith("%")
+        ):
+            return True
+        return position in self._intervals(text)
+
+    def _intervals(self, text: str) -> frozenset[int]:
+        """The statistics step's interval brackets in this block, worked out once."""
+        if self._intervals_of[0] != text:
+            self._intervals_of = (text, interval_openings(text))
+        return self._intervals_of[1]
 
     def _spoken(self, inside: str) -> str:
         items = []
@@ -475,6 +506,11 @@ class _Rules:
         pair = re.search(r"(\S+)\s+(?:and|&)\s+\S+\s*\Z", before)
         if pair and _is_name(pair.group(1)):
             return _printed(pair.group())
+        # "the Olympics (2016)": after an article the word names a thing, not an author
+        # (D-448, #110); "et al." or a second author (above) still make it a citation
+        article = re.search(r"(\S+)\s+\Z", before[: found.start()])
+        if article and article.group(1).lower() in self.words.articles:
+            return ""
         return joined
 
     def _previous_word(self, text: str, position: int) -> str:
