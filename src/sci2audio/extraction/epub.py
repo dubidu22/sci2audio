@@ -20,16 +20,13 @@ from __future__ import annotations
 import codecs
 import hashlib
 import io
-import posixpath
 import re
 import xml.etree.ElementTree as ET
 import zipfile
 import zlib
-from collections import Counter
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
 from xml.parsers import expat
 
 from sci2audio.core import (
@@ -40,18 +37,22 @@ from sci2audio.core import (
     Picture,
     Source,
     SourceFormat,
-    TextLine,
-    TextRun,
 )
 from sci2audio.extraction.cover import Cover, media_type
 from sci2audio.extraction.errors import ExtractionError
+from sci2audio.extraction.markup import (
+    Anchors,
+    PageReader,
+    clean_path,
+    fold,
+    resolve,
+    resolve_links,
+)
 
 MAX_MEMBER = 64 * 1024 * 1024  # bytes one file in the zip may unpack to
 MAX_TOTAL = 512 * 1024 * 1024  # bytes all files read from one EPUB may unpack to
 MAX_SPINE = 10_000  # documents in the reading order
 MAX_COVER = 20 * 1024 * 1024  # bytes of a cover image
-MAX_TAGGED = 100  # nested elements that add tags; deeper ones add none
-MAX_TAGS = 200  # tags one element carries, its ancestors' included; more are left out
 MAX_OUTLINE_LEVEL = 15  # as for PDF bookmarks (D-267)
 
 CONTAINER = "META-INF/container.xml"
@@ -60,27 +61,6 @@ _DRM_FILES = ("META-INF/rights.xml", "META-INF/sinf.xml", "META-INF/license.lcpl
 _FONT_OBFUSCATION = {"http://www.idpf.org/2008/embedding", "http://ns.adobe.com/pdf/enc#RC"}
 
 _XHTML_TYPES = {"application/xhtml+xml", "text/html", "image/svg+xml"}
-# HTML block elements (and SVG text): each one ends the line before it and starts a new one.
-_BLOCKS = frozenset(
-    {
-        *("address", "article", "aside", "blockquote", "body", "caption", "center", "dd"),
-        *("details", "dialog", "dir", "div", "dl", "dt", "fieldset", "figcaption", "figure"),
-        *("footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "hr"),
-        *("html", "legend", "li", "main", "menu", "nav", "ol", "p", "pre", "search"),
-        *("section", "summary", "table", "tbody", "td", "text", "tfoot", "th", "thead"),
-        *("tr", "ul"),
-    }
-)
-_VOID = frozenset(
-    {
-        *("area", "base", "br", "col", "embed", "hr", "img", "input", "image", "link"),
-        *("meta", "param", "source", "track", "wbr"),
-    }
-)
-_SKIPPED = frozenset({"head", "script", "style", "template"})
-_BOLD = frozenset({"b", "strong", "th", "h1", "h2", "h3", "h4", "h5", "h6"})
-_ITALIC = frozenset({"i", "em", "cite", "dfn", "var", "address"})
-_WHITE = re.compile(r"[ \t\n\r\f]+")  # HTML's ASCII white space; a no-break space is text
 _ENCODING = re.compile(rb"""^\s*<\?xml[^>]*?encoding\s*=\s*["']([A-Za-z0-9._-]+)["']""")
 _DATE = re.compile(r"^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?")
 
@@ -100,7 +80,7 @@ def read_epub(data: bytes, name: str) -> Content:
     try:
         package = book.package()
         pages, anchors = book.pages(package)
-        pages = _resolve_links(pages, anchors)
+        pages = resolve_links(pages, anchors)
         outline = book.outline(package, anchors)
         metadata = _metadata(package)
     finally:
@@ -229,18 +209,18 @@ class _Book:
         if not roots:
             raise ExtractionError(f"{self.name}: the EPUB's container file names no package file")
         preferred = [e for e in roots if e.get("media-type", "") == "application/oebps-package+xml"]
-        path = _clean((preferred or roots)[0].get("full-path", ""))
+        path = clean_path((preferred or roots)[0].get("full-path", ""))
         if path is None or path not in self.members:
             shown = (preferred or roots)[0].get("full-path", "")
             raise ExtractionError(f"{self.name}: the EPUB's package file {shown} is missing")
         return _Package.parse(path, _xml(self.read(path), self, "package file"))
 
-    def pages(self, package: _Package) -> tuple[tuple[Page, ...], _Anchors]:
+    def pages(self, package: _Package) -> tuple[tuple[Page, ...], Anchors]:
         if not package.spine:
             raise ExtractionError(f"{self.name}: the EPUB has no chapters")
         if len(package.spine) > MAX_SPINE:
             raise ExtractionError(f"{self.name}: the EPUB is too large or damaged")
-        anchors = _Anchors()
+        anchors = Anchors()
         pages = []
         for number, idref in enumerate(package.spine, 1):
             item = package.manifest.get(idref)
@@ -252,11 +232,11 @@ class _Book:
             pages.append(self._page(number, package.readable(item), anchors))
         return tuple(pages), anchors
 
-    def _page(self, number: int, item: _Item, anchors: _Anchors) -> Page:
+    def _page(self, number: int, item: _Item, anchors: Anchors) -> Page:
         anchors.pages.setdefault(item.path, number)
         data = self.read(item.path)
         if item.media_type in _XHTML_TYPES:
-            reader = _Reader(number, item.path, anchors)
+            reader = PageReader(number, item.path, anchors)
             try:
                 reader.read(_decode(data))
             except (AssertionError, ValueError) as error:  # html.parser gave up
@@ -269,7 +249,7 @@ class _Book:
             return Page(number, pictures=(picture,), order=(picture.id,))
         return Page(number)
 
-    def outline(self, package: _Package, anchors: _Anchors) -> tuple[OutlineEntry, ...]:
+    def outline(self, package: _Package, anchors: Anchors) -> tuple[OutlineEntry, ...]:
         """The table of contents as the file stores it; a damaged one gives what could be
         read, never an error (D-311)."""
         try:
@@ -313,30 +293,6 @@ def _local(tag: object) -> str:
     return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
 
 
-def _clean(path: str) -> str | None:
-    """A path inside the zip, normalised; None if it leaves the zip's root."""
-    path = posixpath.normpath(path.lstrip("/"))
-    if path in (".", "") or path.startswith("../") or path == "..":
-        return None
-    return path
-
-
-def _resolve(base: str, href: str) -> tuple[str | None, str]:
-    """The zip path and fragment an `href` in the file at `base` points at; the path is None
-    when the link leaves the book (a web address, mail, or a path outside the zip) and for
-    an address that cannot be parsed at all (e.g. "http://[x")."""
-    try:
-        parts = urlsplit(href)
-    except ValueError:
-        return None, ""
-    fragment = unquote(parts.fragment)
-    if parts.scheme or parts.netloc:
-        return None, fragment
-    if not parts.path:
-        return base, fragment
-    return _clean(posixpath.join(posixpath.dirname(base), unquote(parts.path))), fragment
-
-
 def _decode(data: bytes) -> str:
     """XHTML bytes as text: a byte-order mark first, then the XML declaration, else UTF-8;
     bytes that don't decode become U+FFFD (D-315)."""
@@ -359,10 +315,6 @@ def _decode(data: bytes) -> str:
         return data.decode(codec, errors="replace")
     except (LookupError, ValueError):  # not a text codec (hex, base64) or one that can't
         return data.decode("utf-8", errors="replace")  # replace (idna, punycode)
-
-
-def _fold(text: str) -> str:
-    return _WHITE.sub(" ", text).strip(" ")
 
 
 # ---- the package file ------------------------------------------------------------------
@@ -406,7 +358,7 @@ class _Package:
                 for entry in element:
                     if _local(entry.tag) != "item" or not entry.get("id") or not entry.get("href"):
                         continue
-                    target, _ = _resolve(path, entry.get("href", ""))
+                    target, _ = resolve(path, entry.get("href", ""))
                     if target is None:
                         continue
                     manifest.setdefault(
@@ -475,11 +427,11 @@ def _metadata(package: _Package) -> Metadata:
     for creator in dc("creator"):
         own = [v.strip().lower() for k, v in creator.attrib.items() if _local(k) == "role"]
         given = own + roles.get(creator.get("id", ""), [])
-        text = _fold("".join(creator.itertext()))
+        text = fold("".join(creator.itertext()))
         if text and (not given or "aut" in given):
             authors.append(text)
-    titles = [t for t in (_fold("".join(e.itertext())) for e in dc("title")) if t]
-    dates = [d for d in (_fold("".join(e.itertext())) for e in dc("date")) if d]
+    titles = [t for t in (fold("".join(e.itertext())) for e in dc("title")) if t]
+    dates = [d for d in (fold("".join(e.itertext())) for e in dc("date")) if d]
     date = ""
     if dates and (found := _DATE.match(dates[0])):
         date = "-".join(part for part in found.groups() if part)
@@ -487,297 +439,14 @@ def _metadata(package: _Package) -> Metadata:
     chosen = next(
         (e for e in identifiers if package.unique_id and e.get("id") == package.unique_id), None
     )
-    languages = [t for t in (_fold("".join(e.itertext())) for e in dc("language")) if t]
+    languages = [t for t in (fold("".join(e.itertext())) for e in dc("language")) if t]
     return Metadata(
         title=titles[0] if titles else "",
         authors=tuple(authors),
         date=date,
-        identifier=_fold("".join(chosen.itertext())) if chosen is not None else "",
+        identifier=fold("".join(chosen.itertext())) if chosen is not None else "",
         language=languages[0] if languages else "",
     )
-
-
-# ---- the text of a spine document --------------------------------------------------------
-
-
-@dataclass
-class _Anchors:
-    """Where each anchor of the book lands, for links and the outline, filled while reading."""
-
-    pages: dict[str, int] = field(default_factory=dict)  # zip path → page number
-    items: dict[tuple[str, str], str] = field(default_factory=dict)  # (path, id) → item id
-    links: list[tuple[str, str | None, str]] = field(default_factory=list)  # base, path, frag
-
-    def target(self, path: str | None, fragment: str) -> str | None:
-        """`link:` target for a place in the book: an item id, or "p<n>" for a whole page."""
-        if path is None or path not in self.pages:
-            return None
-        if fragment:
-            return self.items.get((path, fragment))
-        return f"p{self.pages[path]}"
-
-
-@dataclass
-class _Element:
-    name: str
-    tags: tuple[str, ...]  # its own tags and its ancestors', outermost first
-    bold: bool
-    italic: bool
-    tagged: int  # elements on the way down that added tags, this one included
-
-
-_LINK = "\x00link:"  # a placeholder tag, replaced once every page is read
-
-
-class _Reader(HTMLParser):
-    """One spine document into lines and pictures, in the order the file stores them.
-
-    Work per element and per piece of text does not grow with the nesting depth, so a
-    deeply nested hostile file is read in linear time.
-    """
-
-    def __init__(self, number: int, path: str, anchors: _Anchors) -> None:
-        super().__init__(convert_charrefs=True)
-        self.number, self.path, self.anchors = number, path, anchors
-        self.stack: list[_Element] = []
-        self.open: Counter[str] = Counter()  # open elements by name
-        self.svgs: list[tuple[list[str], list[int]]] = []  # per open <svg>: title, pictures
-        self.segments: list[tuple[str, tuple[str, ...], bool, bool]] = []
-        self.lines: list[TextLine] = []
-        self.pictures: list[Picture] = []
-        self.order: list[str] = []
-        self.waiting: list[Picture] = []  # pictures inside the line being read
-        self.pending: list[str] = []  # anchors waiting for the next item
-        self.continues = False  # the next line continues an element after a <br>
-
-    def read(self, text: str) -> None:
-        self.feed(text)
-        self.close()
-        self.flush()
-
-    def page(self) -> Page:
-        for anchor in self.pending:  # anchors after the last item point at the whole page
-            self.anchors.items.setdefault((self.path, anchor), f"p{self.number}")
-        return Page(
-            self.number,
-            lines=tuple(self.lines),
-            pictures=tuple(self.pictures),
-            order=tuple(self.order),
-        )
-
-    @property
-    def skipping(self) -> bool:
-        return any(self.open[name] for name in _SKIPPED)
-
-    # -- parser callbacks
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        self.start(tag, dict(attrs))
-
-    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        self.start(tag, dict(attrs))
-        if tag not in _VOID:
-            self.handle_endtag(tag)
-
-    def handle_endtag(self, tag: str) -> None:
-        if not self.open[tag]:
-            return
-        if tag in _BLOCKS and not self.skipping:
-            self.flush()
-            self.continues = False
-        while self.stack:
-            element = self.stack.pop()
-            self.closed(element)
-            if element.name == tag:
-                return
-
-    def unknown_decl(self, data: str) -> None:
-        if data.startswith("CDATA["):  # XHTML may wrap text in a CDATA section
-            self.handle_data(data[len("CDATA[") :])
-
-    def handle_data(self, data: str) -> None:
-        if self.skipping:
-            return
-        if self.open["title"] and self.svgs:
-            self.svgs[-1][0].append(data)  # an SVG's title is its pictures' alternative text
-            return
-        if self.open["pre"]:  # (a line feed right after <pre> gives an empty line: none)
-            first, *rest = data.split("\n")
-            self.add(first)
-            for piece in rest:
-                self.flush(continued=True)
-                self.add(piece)
-            return
-        self.add(data)
-
-    # -- building
-
-    def start(self, tag: str, attrs: dict[str, str | None]) -> None:
-        parent = self.stack[-1] if self.stack else None
-        if self.skipping or tag in _SKIPPED:
-            if tag not in _VOID:
-                self.push(_Element(tag, parent.tags if parent else (), False, False, 0))
-            return
-        if tag in _BLOCKS or tag == "br":
-            self.flush(continued=tag == "br")
-            if tag != "br":
-                self.continues = False
-        if anchor := attrs.get("id"):
-            self.pending.append(anchor)
-        if tag in ("img", "image"):
-            self.picture(attrs)
-        if tag in _VOID:
-            return
-        tagged = parent.tagged if parent else 0
-        own: tuple[str, ...] = ()
-        inherited = parent.tags if parent else ()
-        if tag not in ("html", "body") and tagged < MAX_TAGGED:
-            own, tagged = self.tags(tag, attrs)[: MAX_TAGS - len(inherited)], tagged + 1
-        self.push(
-            _Element(
-                tag,
-                inherited + own,
-                tag in _BOLD or bool(parent and parent.bold),
-                tag in _ITALIC or bool(parent and parent.italic),
-                tagged,
-            )
-        )
-        if tag == "svg":
-            self.svgs.append(([], []))
-
-    def push(self, element: _Element) -> None:
-        self.stack.append(element)
-        self.open[element.name] += 1
-
-    def closed(self, element: _Element) -> None:
-        self.open[element.name] -= 1
-        if element.name == "svg" and self.svgs and not self.skipping:
-            title, indexes = self.svgs.pop()
-            alt = _fold("".join(title))
-            for index in indexes:
-                self.pictures[index] = replace(self.pictures[index], alt=alt)
-
-    def tags(self, tag: str, attrs: dict[str, str | None]) -> tuple[str, ...]:
-        found = [tag]
-        if anchor := attrs.get("id"):
-            found.append(f"#{anchor}")
-        found += [f"epub:{token}" for token in (attrs.get("epub:type") or "").split()]
-        found += [f"role:{token}" for token in (attrs.get("role") or "").split()]
-        if language := (attrs.get("lang") or attrs.get("xml:lang") or "").strip():
-            found.append(f"lang:{language}")
-        if "hidden" in attrs:
-            found.append("hidden")
-        if (attrs.get("aria-hidden") or "").strip().lower() == "true":
-            found.append("aria-hidden")
-        if tag == "a" and (href := attrs.get("href")) is not None:
-            path, fragment = _resolve(self.path, href)
-            self.anchors.links.append((href, path, fragment))
-            found.append(f"{_LINK}{len(self.anchors.links) - 1}")
-        return tuple(found)
-
-    def picture(self, attrs: dict[str, str | None]) -> None:
-        source = attrs.get("src") or attrs.get("xlink:href") or attrs.get("href") or ""
-        ref = ""
-        if source and not source.startswith("data:"):
-            path, _ = _resolve(self.path, source)
-            ref = path if path is not None else source
-        number = len(self.pictures) + 1
-        picture = Picture(f"p{self.number}-i{number}", alt=attrs.get("alt") or "", ref=ref)
-        if self.svgs:
-            self.svgs[-1][1].append(len(self.pictures))
-        self.pictures.append(picture)
-        if self.segments:  # inside a line: placed after that line
-            self.waiting.append(picture)
-        else:
-            self.place(picture.id)
-
-    def add(self, text: str) -> None:
-        if not text:
-            return
-        top = self.stack[-1] if self.stack else None
-        tags = top.tags if top else ()
-        self.segments.append((text, tags, bool(top and top.bold), bool(top and top.italic)))
-
-    def flush(self, continued: bool = False) -> None:
-        """End the line being read; `continued` when a <br> or a line feed in <pre> ends it."""
-        runs = _runs(self.segments, keep_white=self.open["pre"] > 0)
-        self.segments = []
-        if runs:
-            if self.continues:
-                runs = [replace(run, tags=(*run.tags, "br")) for run in runs]
-            line = TextLine(f"p{self.number}-l{len(self.lines) + 1}", tuple(runs))
-            self.lines.append(line)
-            self.place(line.id)
-            self.continues = continued
-        elif not continued:
-            self.continues = False
-        for picture in self.waiting:
-            self.place(picture.id)
-        self.waiting = []
-
-    def place(self, item: str) -> None:
-        self.order.append(item)
-        for anchor in self.pending:
-            self.anchors.items.setdefault((self.path, anchor), item)
-        self.pending = []
-
-
-def _runs(
-    segments: list[tuple[str, tuple[str, ...], bool, bool]], keep_white: bool
-) -> list[TextRun]:
-    """Runs from the pieces of one line, white space folded as a browser shows it (D-306)."""
-    pieces: list[list] = []
-    for text, tags, bold, italic in segments:
-        if not keep_white:
-            text = _WHITE.sub(" ", text)
-            if text.startswith(" ") and (not pieces or pieces[-1][0].endswith(" ")):
-                text = text[1:]
-        if text:
-            pieces.append([text, tags, bold, italic])
-    if not keep_white:
-        while pieces and not pieces[0][0].strip(" "):
-            pieces.pop(0)
-        while pieces and not pieces[-1][0].strip(" "):
-            pieces.pop()
-        if pieces:
-            pieces[0][0] = pieces[0][0].lstrip(" ")
-            pieces[-1][0] = pieces[-1][0].rstrip(" ")
-    elif not "".join(piece[0] for piece in pieces).strip():
-        return []
-    runs: list[TextRun] = []
-    for text, tags, bold, italic in pieces:
-        if not text:
-            continue
-        if runs and (runs[-1].tags, runs[-1].bold, runs[-1].italic) == (tags, bold, italic):
-            runs[-1] = replace(runs[-1], text=runs[-1].text + text)
-        else:
-            runs.append(TextRun(text, bold=bold, italic=italic, tags=tags))
-    return runs
-
-
-def _resolve_links(pages: tuple[Page, ...], anchors: _Anchors) -> tuple[Page, ...]:
-    """Each link placeholder becomes `link:<item id>` (or `link:p<n>`) for a place in the
-    book that was read, else `href:<as stored>` (D-307)."""
-    if not anchors.links:
-        return pages
-    names = []
-    for href, path, fragment in anchors.links:
-        target = anchors.target(path, fragment)
-        names.append(f"link:{target}" if target else f"href:{href}")
-
-    def tag(value: str) -> str:
-        return names[int(value[len(_LINK) :])] if value.startswith(_LINK) else value
-
-    def resolved(run: TextRun) -> TextRun:
-        if not any(value.startswith(_LINK) for value in run.tags):
-            return run
-        return replace(run, tags=tuple(map(tag, run.tags)))
-
-    out = []
-    for page in pages:
-        lines = tuple(replace(line, runs=tuple(map(resolved, line.runs))) for line in page.lines)
-        out.append(replace(page, lines=lines))
-    return tuple(out)
 
 
 # ---- the outline ---------------------------------------------------------------------------
@@ -834,7 +503,7 @@ class _NavReader(HTMLParser):
         ):
             self.label, self.label_tag = [], tag
             if tag == "a" and (href := values.get("href")):
-                path, fragment = _resolve(self.path, href)
+                path, fragment = resolve(self.path, href)
                 self.found[-1].path, self.found[-1].fragment = path, fragment
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -853,7 +522,7 @@ class _NavReader(HTMLParser):
         elif tag == "li" and self.labelled:
             self.labelled.pop()
         elif tag == self.label_tag and self.label is not None:
-            self.found[-1].title = _fold("".join(self.label))
+            self.found[-1].title = fold("".join(self.label))
             self.label, self.label_tag = None, ""
             if self.labelled:  # its <li> may have closed first in damaged markup
                 self.labelled[-1] = True
@@ -877,12 +546,12 @@ def _ncx_entries(root: ET.Element, path: str) -> list[_Entry]:
             for child in point:
                 if _local(child.tag) == "navLabel":
                     texts = [t for t in child if _local(t.tag) == "text"]
-                    title = _fold("".join(texts[0].itertext())) if texts else ""
+                    title = fold("".join(texts[0].itertext())) if texts else ""
                 elif _local(child.tag) == "content" and source is None:
                     source = child.get("src")
             entry = _Entry(title, level)
             if source:
-                entry.path, entry.fragment = _resolve(path, source)
+                entry.path, entry.fragment = resolve(path, source)
             found.append(entry)
             walk(point, level + 1)
 
@@ -892,7 +561,7 @@ def _ncx_entries(root: ET.Element, path: str) -> list[_Entry]:
     return found
 
 
-def _outline(entries: list[_Entry], anchors: _Anchors) -> tuple[OutlineEntry, ...]:
+def _outline(entries: list[_Entry], anchors: Anchors) -> tuple[OutlineEntry, ...]:
     out: list[OutlineEntry] = []
     for entry in entries:
         level = min(max(entry.level, 1), out[-1].level + 1 if out else 1)
