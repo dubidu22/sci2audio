@@ -287,6 +287,31 @@ def flattened(sections: tuple[Section, ...]) -> list[Section]:
 
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_each_outline_entry_naming_a_truth_heading_is_its_heading_block(paper: Path) -> None:
+    """#24: an outline entry whose title is a truth heading (its printed number taken off)
+    falls on that HEADING block on its page; the other entries (the liu paper's title and
+    its two bookmarks for unprinted headings) add no heading, so the truth stays met."""
+    doc = document(paper)
+    names = {
+        " ".join(PRINTED_NUMBER.sub("", heading["text"], count=1).split()): heading["text"]
+        for heading in truth(paper)["headings"]
+    }
+    pages = {item: page.number for item, (page, _) in doc.content.items().items()}
+    on_pages = {
+        (pages[block.parts[0].item], block.text.replace("\n", " "))
+        for block in doc.blocks
+        if block.kind is BlockKind.HEADING
+    }
+    missed = [
+        entry
+        for entry in doc.content.outline
+        if (name := " ".join(entry.title.split())) in names
+        and (entry.page, names[name]) not in on_pages
+    ]
+    assert missed == []
+
+
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_the_sections_are_the_truth_headings(paper: Path) -> None:
     """Every truth heading, with its level and nothing else, in reading order (step 3)."""
     expected = [
