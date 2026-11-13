@@ -24,7 +24,7 @@ import contextlib
 import sys
 import threading
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import IntEnum
 from pathlib import Path
 from typing import IO, Any, TextIO
@@ -460,14 +460,7 @@ def _settings(args: argparse.Namespace, env: CliEnv, source: Path) -> JobSetting
         if getattr(args, name, None) is not None:
             changes[name] = getattr(args, name)
     try:
-        settings = JobSettings(
-            language=changes.get("language", base.language),
-            switched_off=changes["switched_off"],
-            chapters=changes.get("chapters", base.chapters),
-            voice=changes.get("voice", base.voice),
-            speed=changes.get("speed", base.speed),
-            output_folder=changes.get("output_folder", base.output_folder),
-        )
+        settings = replace(base, **changes)  # checks every value again
     except ValueError as error:
         raise CliError(str(error), Exit.USAGE) from error
     if hasattr(args, "chapters") and args.chapters is None:  # --chapters all
@@ -479,14 +472,7 @@ def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
     """`--chapters all`: the chapter count is only known once the file is read."""
     document = read_document(source, settings, lambda phase: None)
     chapters = frozenset(chapter.index for chapter in find_chapters(document))
-    return JobSettings(
-        language=settings.language,
-        switched_off=settings.switched_off,
-        chapters=chapters,
-        voice=settings.voice,
-        speed=settings.speed,
-        output_folder=settings.output_folder,
-    )
+    return replace(settings, chapters=chapters)
 
 
 def _ignored(env: CliEnv, ignored: Sequence[int], count: int) -> None:
