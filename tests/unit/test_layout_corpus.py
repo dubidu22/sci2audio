@@ -9,11 +9,14 @@ captions are the truth's table, figure and algorithm captions, with their labels
 tables, figures and algorithms are placeholder blocks that their captions name; each display
 formula is a FORMULA block with its printed number, if it has one (PR D2, D-93).
 
-The golden files list every block with its kind, label, the block a caption names, page and
-text (line breaks shown as \\n), then the section tree.
+The golden files list every block with its kind, label, the block a caption names, page, its
+graphics where they stand in its text and its text (line breaks shown as \\n), then the section
+tree. The graphics are written in braces as runs of graphic parts read one after another at one
+place: "p1-d7@119" or "p3-d1..p3-d9 (9)@0" (#58, D-334).
 Accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
 """
 
+import itertools
 import re
 import tomllib
 from functools import cache
@@ -590,9 +593,27 @@ def doc_blocks(paper: Path) -> list[Block]:
     return [b for b in document(paper).blocks if b.kind is not BlockKind.FURNITURE]
 
 
+def graphic_runs(block: Block, lines: set[str]) -> str:
+    """The block's graphic parts as runs read one after another at one place in its text:
+    "p1-d7@119", or "p3-d1..p3-d9 (9)@0" for a longer run ("" if it holds no graphic)."""
+    runs = []
+    for (graphic, start), group in itertools.groupby(
+        block.parts, key=lambda part: (part.item not in lines, part.start)
+    ):
+        if not graphic:
+            continue
+        found = list(group)
+        first, last = found[0].item, found[-1].item
+        runs.append(
+            f"{first}@{start}" if first == last else f"{first}..{last} ({len(found)})@{start}"
+        )
+    return " ".join(runs)
+
+
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
     doc = document(paper)
+    lines = {line.id for page in doc.content.pages for line in page.lines}
     out = [f"{paper.name}  language {doc.language}  blocks {len(doc.blocks)}"]
     out.append("page labels  " + " ".join(label or "-" for label in doc.page_labels))
     for index, block in enumerate(doc.blocks):
@@ -602,7 +623,9 @@ def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
         kind = f"{block.kind.value}/{block.role.value}" if block.role else block.kind.value
         kind += f" ({block.label})" if block.label else ""
         kind += f" -> {block.describes}" if block.describes is not None else ""
-        out.append(f"{index}  p{page_of(doc, block)}  {kind}  [{items}]  {text}")
+        drawn = graphic_runs(block, lines)
+        drawn = f"  {{{drawn}}}" if drawn else ""
+        out.append(f"{index}  p{page_of(doc, block)}  {kind}  [{items}]{drawn}  {text}")
     out.append("sections")
     for section in flattened(doc.sections):
         indent = "  " * section.level
