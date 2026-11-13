@@ -1,0 +1,17 @@
+{#- Removing a document (#120, D-359 to D-362): a disclosure that says what goes and what
+    stays; the press of its one button is the confirmation. Import it "with context". -#}
+{% macro remove_box(document, removal, busy, named) %}
+<details class="remove">
+  <summary>{% if named %}{{ t('remove.summary_named', name=document.name) }}{% else %}{{ t('remove.summary') }}{% endif %}</summary>
+  <div class="stack">
+    <p>{{ t('remove.goes', size=size_text(removal.bytes)) }}</p>
+    {% if removal.folder %}<p>{{ t('remove.stays_folder', folder=removal.folder) }}</p>{% elif removal.has_audio %}<p>{{ t('remove.stays') }}</p>{% endif %}
+    <p>{{ t('remove.original') }}</p>
+    {% if busy %}
+    <p class="note">{{ t('remove.busy') }}</p>
+    {% else %}
+    <p class="buttons"><button type="button" class="remove-now" data-document="{{ document.id }}" data-audio="{{ 'yes' if removal.has_audio else '' }}">{{ t('remove.now', name=document.name) }}</button></p>
+    {% endif %}
+  </div>
+</details>
+{% endmacro %}

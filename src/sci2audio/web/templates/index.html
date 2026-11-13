@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_remove.html" import remove_box with context %}
 {% block main %}
 <h1>{{ t('home.title') }}</h1>
 <p>{{ t('home.intro') }}</p>
@@ -21,15 +22,15 @@
 
 <h2>{{ t('home.documents') }}</h2>
 {% if documents %}
-<ul class="documents">
+<ul class="documents" id="documents">
   {% for document in documents %}
   <li><a href="/documents/{{ document.id }}">{{ document.name }}</a>
-    <span class="hint">({{ size_text(document.size) }}, {{ t('home.analysed') if document.report_file.is_file() else t('home.not_analysed') }}{% if document.has_audio %}, {{ t('home.audio_made') }}{% endif %})</span>{% if document.has_audio %} <a href="/documents/{{ document.id }}/listen">{{ t('home.listen', name=document.name) }}</a>{% endif %}</li>
+    <span class="hint">({{ size_text(document.size) }}, {{ t('home.analysed') if document.report_file.is_file() else t('home.not_analysed') }}{% if document.has_audio %}, {{ t('home.audio_made') }}{% endif %})</span>{% if document.has_audio %} <a href="/documents/{{ document.id }}/listen">{{ t('home.listen', name=document.name) }}</a>{% endif %}
+    {{ remove_box(document, removals[document.id], document.id == busy_document, true) }}</li>
   {% endfor %}
 </ul>
-{% else %}
-<p>{{ t('home.no_documents') }}</p>
 {% endif %}
+<p id="no-documents"{% if documents %} hidden{% endif %}>{{ t('home.no_documents') }}</p>
 
 <h2>{{ t('home.voice') }}</h2>
 {% if voice_installed %}

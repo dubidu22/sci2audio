@@ -45,7 +45,7 @@ from sci2audio.web.i18n import (
 )
 from sci2audio.web.jobs import JobKind, JobRecord, JobState
 from sci2audio.web.models import PREVIEW_LIMIT
-from sci2audio.web.player import PlayerError, player_for
+from sci2audio.web.player import PlayerError, player_for, recorded_folder
 from sci2audio.web.state import ServerState, state_of
 from sci2audio.web.tasks import plan_digest
 
@@ -108,18 +108,37 @@ def _not_found(request: Request, state: ServerState, s: Strings, what: str) -> H
     return _page(request, state, s, "missing.html", 404, what=what)
 
 
+def _removal(document: StoredDocument) -> dict[str, Any]:
+    """What removing the document takes away and where its audiobook stays (D-359)."""
+    folder = recorded_folder(document.folder, document.id)
+    return {
+        "bytes": document.folder_bytes,
+        "folder": None if folder is None else str(folder),
+        "has_audio": document.has_audio,
+    }
+
+
+def _busy_document(state: ServerState) -> str | None:
+    """The document this server's running job works on, if any (D-362)."""
+    current = state.board.current
+    return None if current is None else current.document
+
+
 # --- the start page --------------------------------------------------------------------
 
 
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request, state: State) -> HTMLResponse:
     suffixes = supported_suffixes()
+    documents = state.store.all()
     return _page(
         request,
         state,
         strings_of(request),
         "index.html",
-        documents=state.store.all(),
+        documents=documents,
+        removals={document.id: _removal(document) for document in documents},
+        busy_document=_busy_document(state),
         voice_installed=not missing_files(state.config.models_dir),
         types=", ".join(suffix.removeprefix(".").upper() for suffix in suffixes),
         accept=",".join(suffixes),
@@ -338,6 +357,8 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         preview_limit=PREVIEW_LIMIT,
         preview_text=PREVIEW_TEXT,
         output_folder=str(saved.output_folder or state.config.output_folder),
+        removal=_removal(found),
+        busy=_busy_document(state) == found.id,
     )
 
 
