@@ -76,6 +76,28 @@ def test_runs_give_superscripts_and_sections_are_read(tmp_path: Path) -> None:
     assert [(s.title, s.start, s.end) for s in case.document.sections] == [("References", 0, 2)]
 
 
+def test_a_run_may_carry_several_tags_and_a_block_a_later_page(tmp_path: Path) -> None:
+    good = tmp_path / "good.toml"
+    good.write_text(
+        '[[case]]\nid = "one"\naudit = 0\nissue = 189\ngoal = "g"\n'
+        'blocks = [{ kind = "paragraph", runs = ["Noise", '
+        '{ text = "1", tags = ["a", "epub:noteref", "link:b2l0"] }, " here."] },\n'
+        '          { kind = "paragraph", text = "Between.", page = 2 },\n'
+        '          { kind = "footnote", text = "A note.", page = 4 }]\n'
+        "expected = []\n"
+    )
+    (case,) = load_cases(good)
+    pages = case.document.content.pages
+    assert [page.number for page in pages] == [1, 2, 3, 4]
+    ids = [[line.id for line in page.lines] for page in pages]
+    assert ids == [["b0l0"], ["b1l0"], [], ["b2l0"]]
+    assert [(run.text, run.tags) for run in pages[0].lines[0].runs] == [
+        ("Noise", ()),
+        ("1", ("a", "epub:noteref", "link:b2l0")),
+        (" here.", ()),
+    ]
+
+
 @pytest.mark.parametrize(
     ("block", "problem"),
     [
@@ -83,6 +105,13 @@ def test_runs_give_superscripts_and_sections_are_read(tmp_path: Path) -> None:
         ('{ kind = "paragraph" }', "a block gives either text or runs"),
         ('{ kind = "paragraph", runs = [{ sub = "1" }] }', "a run is a string or"),
         ('{ kind = "paragraph", runs = [3] }', "a run is a string or"),
+        ('{ kind = "paragraph", runs = [{ text = "1", tags = [] }] }', "a run is a string or"),
+        ('{ kind = "paragraph", runs = [{ text = "", tags = ["a"] }] }', "a run is a string or"),
+        ('{ kind = "paragraph", runs = [{ text = "1", tags = "a" }] }', "a run is a string or"),
+        ('{ kind = "paragraph", runs = [{ text = "1", tags = [""] }] }', "a run is a string or"),
+        ('{ kind = "paragraph", text = "a", page = 0 }', "page must be a whole number"),
+        ('{ kind = "paragraph", text = "a", page = "2" }', "page must be a whole number"),
+        ('{ kind = "paragraph", text = "a", page = true }', "page must be a whole number"),
     ],
 )
 def test_a_bad_run_names_the_case(tmp_path: Path, block: str, problem: str) -> None:
@@ -92,6 +121,18 @@ def test_a_bad_run_names_the_case(tmp_path: Path, block: str, problem: str) -> N
         "expected = []\n"
     )
     with pytest.raises(ValueError, match=f"case one: {problem}"):
+        load_cases(bad)
+
+
+def test_pages_never_go_back(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        '[[case]]\nid = "one"\naudit = 0\nissue = 1\ngoal = "g"\n'
+        'blocks = [{ kind = "paragraph", text = "a", page = 2 },\n'
+        '          { kind = "paragraph", text = "b" }]\n'
+        "expected = []\n"
+    )
+    with pytest.raises(ValueError, match="case one: block 1 is on page 1, after page 2"):
         load_cases(bad)
 
 
