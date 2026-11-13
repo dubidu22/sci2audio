@@ -68,6 +68,12 @@ class LayoutSettings:
     same_size: float = 0.01  # lines whose sizes differ by less than this share are the same
     #                          size (to measure the line pitch, and in heading styles)
 
+    # Joining the pieces of one printed line (#36, D-274 to D-280)
+    word_space: float = 0.15  # em: white this wide after a line's letters before its next
+    #                           piece is a space (extraction's SPACE, D-275)
+    stack_reach: float = 2.0  # em: a piece starting further back than this under the
+    #                           letters before it is out of its place and keeps a space (D-277)
+
     # Footnotes
     footnote_rule_height: float = 1.5  # points: a footnote rule is at most this thick, ...
     footnote_band: float = 0.5  # ... starts below this share of the page's height, ...

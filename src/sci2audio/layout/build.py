@@ -136,16 +136,16 @@ class _Layout:
         edge = [Element(line.box, line) for line in page.lines if line.box and line.id in furniture]
         top = [e for e in edge if e.box.y1 <= self.settings.edge_band * (page.height or 0.0)]
         taken = {id(e) for e in top}
-        overlap = self.settings.row_overlap
-        units: list[Unit] = [Held(_block(e, furniture, overlap)) for e in by_rows(top, overlap)]
+        overlap, settings = self.settings.row_overlap, self.settings
+        units: list[Unit] = [Held(_block(e, furniture, settings)) for e in by_rows(top, overlap)]
         groups = split_cells(rows_of(reading.ordered, edges, self.settings), edges)
         for group in groups:
             if group[0].line is None:
-                units += [Held(_block(e, furniture, overlap), page.number) for e in group]
+                units += [Held(_block(e, furniture, settings), page.number) for e in group]
             else:
                 units.append(make_row(group, edges[id(group[0])], page.number, self.settings))
         rest = by_rows([e for e in edge if id(e) not in taken], overlap)
-        units += [Held(_block(e, furniture, overlap)) for e in rest]
+        units += [Held(_block(e, furniture, settings)) for e in rest]
         # items without a position: a line is a paragraph of its own, a graphic a figure
         units += [
             Held(Block(BlockKind.PARAGRAPH, li.text, (Part(li.id),)))
@@ -210,9 +210,11 @@ class _Layout:
         return {line.id: SIDEBAR for line in beside}
 
 
-def _block(element: Element, furniture: dict[str, FurnitureRole], overlap: float) -> Block:
+def _block(
+    element: Element, furniture: dict[str, FurnitureRole], settings: LayoutSettings
+) -> Block:
     if element.lines:  # a formula read across the page (#34)
-        text, parts = read_rows(list(element.lines), [], overlap)
+        text, parts = read_rows(list(element.lines), [], settings)
         return Block(BlockKind.FORMULA, text, tuple(parts))
     if element.line:
         role = furniture.get(element.line.id)
