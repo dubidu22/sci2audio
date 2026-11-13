@@ -241,6 +241,22 @@ def test_title_joins_a_word_split_at_a_line_end() -> None:
 
 
 @given(contents())
+@example(  # an algorithm caption and a drawing, both flat, on one box (#123)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            PdfPage(
+                1,
+                lines=(
+                    TextLine(
+                        "i0", (TextRun("Algorithm 0 ", bold=True), TextRun("0")), Box(0, 0, 1, 0)
+                    ),
+                ),
+                drawings=(Drawing("d", Box(0, 0, 1, 0)),),
+            ),
+        ),
+    )
+)
 @example(  # an outline entry on a page of content without positions that has no heading (#195)
     Content(
         Source("0", SourceFormat.PDF),
