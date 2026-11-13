@@ -110,11 +110,13 @@ class TextLine:
 
 @dataclass(frozen=True)
 class Picture:
-    """An image in the file. The image itself is not kept; its box is enough to find it again."""
+    """An image in the file. The image itself is not kept: its box finds it again on a PDF
+    page, and `ref` where the file stores images apart from the text (D-310)."""
 
     id: str
     box: Box | None = None
     alt: str = ""  # alternative text, where the source gives one
+    ref: str = ""  # where the file stores the image, e.g. its path inside an EPUB
 
 
 @dataclass(frozen=True)
@@ -129,7 +131,10 @@ class Drawing:
 class Page:
     """One page of a PDF, one spine document of an EPUB, or the whole of a text file.
 
-    Each kind of item keeps the order the file stores it in.
+    Each kind of item keeps the order the file stores it in. Where items have no position
+    (EPUB, Markdown), `order` lists the ids of all of them, lines and pictures alike, in the
+    order the file stores them, so a picture's place between two lines is kept (D-309); it is
+    empty where the boxes place the items (PDF).
     """
 
     number: int  # 1 = first page
@@ -138,6 +143,7 @@ class Page:
     drawings: tuple[Drawing, ...] = ()
     width: float | None = None  # points; None where pages have no fixed size
     height: float | None = None
+    order: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.number < 1:
@@ -150,6 +156,10 @@ class Page:
                 if not math.isfinite(value) or value <= 0:
                     raise ValueError(f"page {self.number} {name} must be > 0, got {value}")
                 object.__setattr__(self, name, float(value))
+        if self.order and sorted(self.order) != sorted(item.id for item in _items(self)):
+            raise ValueError(
+                f"page {self.number} order must list each of its item ids once, got {self.order}"
+            )
 
 
 Item = TextLine | Picture | Drawing
@@ -162,11 +172,14 @@ class OutlineEntry:
 
     The title is kept exactly as the file stores it, also when it is empty or ends in a space;
     a printed heading number is often left out of it ("Introduction" for "1 Introduction").
+    `item` is set where the entry points at a place inside its page, as an EPUB link to an
+    anchor in a chapter file does: the id of the first item at or after that place (D-311).
     """
 
     title: str
     level: int  # 1 = top; an entry under another is one level deeper
     page: int | None = None  # the `Page.number` it points at; None if it points at no page
+    item: str = ""  # the id of the item it points at on that page; "" for the whole page
 
     def __post_init__(self) -> None:
         if self.level < 1:
@@ -191,7 +204,7 @@ class Content:
         numbers = [page.number for page in self.pages]
         if numbers != list(range(1, len(numbers) + 1)):
             raise ValueError(f"pages must be numbered 1, 2, 3, ... in order, got {numbers}")
-        _check_outline(self.outline, len(self.pages))
+        _check_outline(self.outline, self.pages)
         counts = Counter(item.id for page in self.pages for item in _items(page))
         doubled = sorted(i for i, n in counts.items() if n > 1)
         if doubled or "" in counts:
@@ -202,7 +215,7 @@ class Content:
         return {item.id: (page, item) for page in self.pages for item in _items(page)}
 
 
-def _check_outline(outline: tuple[OutlineEntry, ...], pages: int) -> None:
+def _check_outline(outline: tuple[OutlineEntry, ...], pages: tuple[Page, ...]) -> None:
     level = 0  # the level before the first entry
     for entry in outline:
         if entry.level > level + 1:
@@ -210,10 +223,18 @@ def _check_outline(outline: tuple[OutlineEntry, ...], pages: int) -> None:
                 f"outline entry {entry.title!r} is at level {entry.level}, more than one level"
                 f" below the entry before it (level {level})"
             )
-        if entry.page is not None and not 1 <= entry.page <= pages:
+        if entry.page is not None and not 1 <= entry.page <= len(pages):
             raise ValueError(
                 f"outline entry {entry.title!r} points at page {entry.page}, which the content"
-                f" does not have (pages 1 to {pages})"
+                f" does not have (pages 1 to {len(pages)})"
+            )
+        if entry.item and (
+            entry.page is None
+            or entry.item not in {item.id for item in _items(pages[entry.page - 1])}
+        ):
+            raise ValueError(
+                f"outline entry {entry.title!r} points at item {entry.item!r}, which is not on"
+                f" its page ({entry.page})"
             )
         level = entry.level
 
