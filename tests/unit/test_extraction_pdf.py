@@ -1,19 +1,28 @@
-"""PDF extraction on small made-up PDFs and broken files (Issue #23, D-63, D-65).
+"""PDF extraction on small made-up PDFs (Issue #23, D-63, D-65).
 
 Extraction records what the PDF holds and decides nothing; each test shows one thing it must
-record faithfully, or one file it must refuse with a clear message.
+record faithfully. Broken and hostile PDFs are in `test_extraction_pdf_broken.py` (#5).
 """
 
 import threading
 from pathlib import Path
 
 import pytest
-from hypothesis import given, settings
-from hypothesis import strategies as st
-from pdf_maker import HEIGHT, Mark, Rect, Text, in_form, make_pdf, outlined_pdf, width
+from pdf_maker import (
+    HEIGHT,
+    Mark,
+    Rect,
+    Text,
+    in_form,
+    make_pdf,
+    outlined_pdf,
+    raw_pdf,
+    stream,
+    width,
+)
 
 from sci2audio.core import Content, Metadata, OutlineEntry, SourceFormat
-from sci2audio.extraction import ExtractionError, extract_pdf, read_pdf
+from sci2audio.extraction import extract_pdf, read_pdf
 from sci2audio.extraction.pdf import (
     _GENERATED,
     _SPACE,
@@ -25,12 +34,6 @@ from sci2audio.extraction.pdf import (
 )
 
 pytestmark = pytest.mark.timeout(60)
-
-TESTS = Path(__file__).resolve().parents[1]
-FIXTURES = TESTS / "fixtures"
-BROKEN = FIXTURES / "broken"
-PAPER = TESTS / "corpus" / "papers" / "acl2023-hardt-ellipsis.pdf"
-EPUB = TESTS / "corpus" / "epub" / "wells-the-time-machine.epub"
 
 
 def lines_of(data: bytes) -> list[str]:
@@ -220,8 +223,11 @@ def test_boxes_are_measured_from_the_top_left() -> None:
 
 def test_drawings_inside_a_form_get_page_positions() -> None:
     # The rectangle sits at x 100..300, y 100..200 on its own page; the form halves it and
-    # moves it 10 pt right and 20 pt up (PDF space): 60..160 across, 430..480 down.
-    data = in_form(make_pdf([Rect(100, 100, 300, 200)]), scale=0.5, dx=10, dy=20)
+    # moves it 10 pt right and 20 pt up (PDF space): 60..160 across, 430..480 down. The
+    # caption is there because a PDF without any text is refused (D-393).
+    data = in_form(
+        make_pdf([Rect(100, 100, 300, 200), Text("A caption", 100, 230)]), scale=0.5, dx=10, dy=20
+    )
     (drawing,) = read_pdf(data, "form.pdf").pages[0].drawings
     box = drawing.box
     assert (box.x0, box.y0, box.x1, box.y1) == (60, 430, 160, 480)
@@ -350,34 +356,22 @@ def test_bookmarks_deeper_than_the_limit_are_left_out() -> None:
     assert levels == list(range(1, OUTLINE_DEPTH + 1))
 
 
-# Broken files: a clear message naming the file, never a traceback or a hang (#5).
-
-
-@pytest.mark.parametrize(
-    ("data", "message"),
-    [
-        pytest.param(b"", "the file is empty", id="empty"),
-        pytest.param(b"Just some words, no PDF at all.", "not a PDF", id="plain-text"),
-        pytest.param(EPUB.read_bytes(), "not a PDF", id="epub-named-pdf"),
-        pytest.param(PAPER.read_bytes()[:1000], "damaged", id="truncated-start"),
-        pytest.param(PAPER.read_bytes()[: PAPER.stat().st_size // 2], "damaged", id="half"),
-        pytest.param(
-            (BROKEN / "password-protected.pdf").read_bytes(), "password-protected", id="password"
-        ),
-        # PDFium refuses to open a PDF without pages, so it reads as damaged; the "has no
-        # pages" check in read_pdf only guards against a PDFium that opens one.
-        pytest.param(make_pdf(), "damaged", id="zero-pages-refused-by-pdfium"),
-    ],
-)
-def test_broken_files_fail_with_a_clear_message(data: bytes, message: str) -> None:
-    with pytest.raises(ExtractionError, match=message) as error:
-        read_pdf(data, "broken.pdf")
-    assert str(error.value).startswith("broken.pdf: ")
-
-
 def test_metadata_is_recorded_as_the_file_gives_it() -> None:
-    # PDFium can't write an Info dictionary or /Lang, so this file is stored (fixtures/README.md).
-    assert extract_pdf(FIXTURES / "metadata.pdf").metadata == Metadata(
+    # PDFium can't write an Info dictionary or /Lang, so the file is written object by object.
+    data = raw_pdf(
+        {
+            1: b"<< /Type /Catalog /Pages 2 0 R /Lang (en-GB) >>",
+            2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            3: b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200]"
+            b" /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            4: stream(b"BT /F1 12 Tf 20 150 Td (A made-up paper) Tj ET"),
+            5: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            6: b"<< /Title (A Made-Up Paper) /Author (Lovelace, Ada; Babbage, Charles)"
+            b" /CreationDate (D:20240305120000Z) >>",
+        },
+        trailer=b"/Info 6 0 R",
+    )
+    assert read_pdf(data, "m.pdf").metadata == Metadata(
         title="A Made-Up Paper",
         authors=("Lovelace, Ada; Babbage, Charles",),  # kept whole: any split is a guess
         date="2024-03-05",
@@ -431,60 +425,3 @@ def test_character_codes(code: int, hyphen: bool, text: str | None) -> None:
 )
 def test_bold_and_italic(font: str, weight: int, flags: int, bold: bool, italic: bool) -> None:
     assert _style(font, weight, flags) == (bold, italic)
-
-
-def test_a_missing_file_fails_with_a_clear_message(tmp_path: Path) -> None:
-    with pytest.raises(ExtractionError, match=r"^gone\.pdf: cannot be opened"):
-        extract_pdf(tmp_path / "gone.pdf")
-
-
-SMALL = make_pdf(
-    [Text("A heading", 50, 60, font="Helvetica-Bold", size=14), Text("Body text", 50, 100)],
-    [Rect(50, 300, 250, 301), Text("arXiv stamp", 20, 600, turned=True)],
-)
-
-
-def outcome(data: bytes, name: str) -> Content | str:
-    """The content, or the message of the ExtractionError (any other exception fails the test)."""
-    try:
-        return read_pdf(data, name)
-    except ExtractionError as error:
-        return str(error)
-
-
-@settings(deadline=None)
-@given(st.binary(max_size=2000))
-def test_any_bytes_give_content_or_a_clear_error(data: bytes) -> None:
-    result = outcome(data, "random.pdf")
-    assert isinstance(result, Content) or result.startswith("random.pdf: ")
-
-
-@settings(deadline=None)
-@given(
-    st.integers(0, len(SMALL)),
-    st.lists(st.tuples(st.integers(0, len(SMALL) - 1), st.integers(0, 255)), max_size=20),
-)
-def test_a_damaged_pdf_gives_content_or_a_clear_error(
-    keep: int, changes: list[tuple[int, int]]
-) -> None:
-    data = bytearray(SMALL[:keep] if keep < len(SMALL) // 2 else SMALL)
-    for position, value in changes:
-        if position < len(data):
-            data[position] = value
-    result = outcome(bytes(data), "damaged.pdf")
-    assert (isinstance(result, Content) and result.pages) or result.startswith("damaged.pdf: ")
-
-
-OUTLINED = outlined_pdf(2, (Mark("1 Intro", 1, (Mark("1.1 Part", 2, goto=True),)), Mark("End")))
-
-
-@settings(deadline=None)
-@given(st.lists(st.tuples(st.integers(0, len(OUTLINED) - 1), st.integers(0, 255)), max_size=20))
-def test_a_damaged_outline_gives_content_or_a_clear_error(changes: list[tuple[int, int]]) -> None:
-    """Bytes changed anywhere, bookmarks included: an outline is read as far as it can be,
-    and every entry still fits the content (D-268)."""
-    data = bytearray(OUTLINED)
-    for position, value in changes:
-        data[position] = value
-    result = outcome(bytes(data), "damaged.pdf")
-    assert isinstance(result, Content) or result.startswith("damaged.pdf: ")
