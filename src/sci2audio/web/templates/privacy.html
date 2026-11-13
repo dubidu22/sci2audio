@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ t('privacy.title') }} · {{ t('common.app') }}{% endblock %}
+{% block main %}
+<h1>{{ t('privacy.title') }}</h1>
+<p>{{ t('privacy.intro') }}</p>
+
+<h2>{{ t('privacy.local_title') }}</h2>
+<p>{{ t('privacy.local') }}</p>
+
+<h2>{{ t('privacy.network_title') }}</h2>
+<p>{{ t('privacy.network') }}</p>
+<p id="privacy-hosts">{{ t('setup.hosts') }}</p>
+<ul aria-labelledby="privacy-hosts">
+  {% for host in hosts %}<li>{{ host }}</li>{% endfor %}
+</ul>
+<p><a href="/voice">{{ t('privacy.voice_link') }}</a></p>
+
+<h2>{{ t('privacy.telemetry_title') }}</h2>
+<p>{{ t('privacy.telemetry') }}</p>
+
+<h2>{{ t('privacy.interface_title') }}</h2>
+<ul>
+  <li>{{ t('privacy.interface_local') }}</li>
+  <li>{{ t('privacy.interface_key') }}</li>
+  <li>{{ t('privacy.interface_pages') }}</li>
+  <li>{{ t('privacy.interface_log') }}</li>
+</ul>
+
+<h2>{{ t('privacy.files_title') }}</h2>
+<p>{{ t('privacy.files_intro') }}</p>
+<dl class="folders">
+  {% for name, path in folders %}
+  <dt>{{ t('privacy.' + name + '_label') }}</dt>
+  <dd>{{ t('privacy.' + name) }}<br><code>{{ path }}</code></dd>
+  {% endfor %}
+</dl>
+<p>{{ t('privacy.remove') }}</p>
+
+<h2>{{ t('privacy.cookies_title') }}</h2>
+<p>{{ t('privacy.cookies') }}</p>
+
+<h2>{{ t('privacy.limits_title') }}</h2>
+<p>{{ t('privacy.limits') }}</p>
+
+<h2>{{ t('privacy.licence_title') }}</h2>
+<p>{{ t('privacy.licence') }}</p>
+{% endblock %}

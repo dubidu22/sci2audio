@@ -102,3 +102,91 @@ def in_form(data: bytes, scale: float, dx: float, dy: float) -> bytes:
     document.close()
     source.close()
     return buffer.getvalue()
+
+
+@dataclass(frozen=True)
+class Mark:
+    """A bookmark for `outlined_pdf`. `title` as text is stored in UTF-16 with a byte-order
+    mark; as bytes it is stored as it is (PDFDocEncoding). `page` counts from 1; a page the
+    file does not have points at a missing object. `goto` stores the target as a GoTo action
+    instead of a destination; `loop` makes the bookmark's first child its own parent."""
+
+    title: str | bytes
+    page: int | None = None
+    children: tuple[Mark, ...] = ()
+    goto: bool = False
+    loop: bool = False  # its /First and /Last point back at its parent, as in a damaged file
+
+
+def outlined_pdf(pages: int, marks: tuple[Mark, ...], *, circular: bool = False) -> bytes:
+    """A PDF written object by object, with `pages` pages of one Helvetica line each and the
+    bookmarks `marks`; pypdfium2 cannot write bookmarks. With `circular`, the last top
+    bookmark's /Next points back at the first, as in a damaged file."""
+    objects: dict[int, bytes] = {}
+    first_page = 4
+    kids = " ".join(f"{first_page + 2 * i} 0 R" for i in range(pages))
+    objects[1] = b"<< /Type /Catalog /Pages 2 0 R /Outlines 3 0 R >>"
+    objects[2] = f"<< /Type /Pages /Kids [{kids}] /Count {pages} >>".encode()
+    font = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+    for i in range(pages):
+        number = first_page + 2 * i
+        stream = f"BT /F1 12 Tf 72 720 Td (Page {i + 1}) Tj ET".encode()
+        objects[number] = (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {WIDTH:g} {HEIGHT:g}]"
+            f" /Resources << /Font << /F1 {font} >> >> /Contents {number + 1} 0 R >>"
+        ).encode()
+        objects[number + 1] = b"<< /Length %d >>\nstream\n%s\nendstream" % (len(stream), stream)
+    numbers = iter(range(first_page + 2 * pages, 1_000_000))
+
+    def target(mark: Mark) -> str:
+        if mark.page is None:
+            return ""
+        page = first_page + 2 * (mark.page - 1) if mark.page <= pages else 999
+        dest = f"[{page} 0 R /XYZ 72 750 0]"
+        return f" /A << /S /GoTo /D {dest} >>" if mark.goto else f" /Dest {dest}"
+
+    def title(mark: Mark) -> str:
+        data = mark.title if isinstance(mark.title, bytes) else mark.title.encode("utf-16")
+        if not isinstance(mark.title, bytes) and not data.startswith(b"\xfe\xff"):
+            data = b"\xfe\xff" + mark.title.encode("utf-16-be")
+        return f"<{data.hex()}>"
+
+    def write(marks: tuple[Mark, ...], parent: int, loop: bool) -> tuple[int, int]:
+        ids = [next(numbers) for _ in marks]
+        for k, (mark, own) in enumerate(zip(marks, ids, strict=True)):
+            links = f" /Parent {parent} 0 R"
+            if k > 0:
+                links += f" /Prev {ids[k - 1]} 0 R"
+            if k + 1 < len(ids):
+                links += f" /Next {ids[k + 1]} 0 R"
+            elif loop:
+                links += f" /Next {ids[0]} 0 R"
+            if mark.children:
+                first, last = write(mark.children, own, loop=False)
+                links += f" /First {first} 0 R /Last {last} 0 R /Count {len(mark.children)}"
+            elif mark.loop:
+                links += f" /First {parent} 0 R /Last {parent} 0 R /Count 1"
+            objects[own] = f"<< /Title {title(mark)}{links}{target(mark)} >>".encode()
+        return ids[0], ids[-1]
+
+    outline = "<< /Type /Outlines >>"
+    if marks:
+        first, last = write(marks, 3, circular)
+        outline = f"<< /Type /Outlines /First {first} 0 R /Last {last} 0 R /Count {len(marks)} >>"
+    objects[3] = outline.encode()
+    out = io.BytesIO()
+    out.write(b"%PDF-1.7\n")
+    offsets = {}
+    for number in sorted(objects):
+        offsets[number] = out.tell()
+        out.write(b"%d 0 obj\n%s\nendobj\n" % (number, objects[number]))
+    start = out.tell()
+    size = max(objects) + 1
+    out.write(b"xref\n0 %d\n0000000000 65535 f \n" % size)
+    for number in range(1, size):
+        if number in offsets:
+            out.write(b"%010d 00000 n \n" % offsets[number])
+        else:
+            out.write(b"0000000000 65535 f \n")
+    out.write(b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (size, start))
+    return out.getvalue()

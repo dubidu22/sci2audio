@@ -12,6 +12,13 @@
   <a class="skip" href="#main">{{ t('common.skip') }}</a>
   <header>
     <a class="home" href="/">{{ t('common.app') }}</a>
+    <form class="languages" method="get" action="/language">
+      <input type="hidden" name="back" value="{{ here }}">
+      <fieldset>
+        <legend>{{ t('common.language_switch') }}</legend>
+        {% for code in languages %}<button type="submit" name="language" value="{{ code }}" lang="{{ code }}" aria-pressed="{{ 'true' if code == strings.language else 'false' }}">{{ t('common.language_' + code) }}</button>{% if not loop.last %} {% endif %}{% endfor %}
+      </fieldset>
+    </form>
     {% if running %}
     <p class="running">{{ t('common.job_running', what=running.title) }} <a href="/jobs/{{ running.id }}">{{ t('common.job_running_link') }}</a></p>
     {% endif %}
@@ -19,6 +26,6 @@
   <main id="main" tabindex="-1">
     {% block main %}{% endblock %}
   </main>
-  <footer><p>{{ t('common.footer') }}</p></footer>
+  <footer><p>{{ t('common.footer') }} <a href="/privacy">{{ t('common.privacy_link') }}</a></p></footer>
 </body>
 </html>

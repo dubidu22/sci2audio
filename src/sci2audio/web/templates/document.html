@@ -7,24 +7,24 @@
      {% if analysis_job %}data-events="/api/v1/jobs/{{ analysis_job }}/events"{% endif %}>
 <p id="message" class="message" role="status" tabindex="-1">{% if analysing %}{{ t('document.analysing') }}{% endif %}</p>
 {% if failed %}
-<p class="error" id="analysis-error">{{ t('document.analysis_failed', message=failed.message) }}</p>
+<p class="error" id="analysis-error">{{ t('document.analysis_failed', reason=failed.reason) }}{% if failed.details %} {{ t('common.details') }} <span lang="en">{{ failed.details }}</span>{% endif %}</p>
 {% endif %}
 
 <section aria-labelledby="step-check">
 <h2 id="step-check" tabindex="-1">{{ t('document.step_check') }}</h2>
 {% if report %}
-<p id="summary">{{ t('document.summary', chapters=chapters|length, chosen=chosen_chapters, edits=edit_count, heard=heard) }}</p>
+<p id="summary">{{ t('document.summary_chapters', n=chapters|length, chosen=chosen_chapters) }} {{ t('document.summary_edits', n=edit_count) }} {{ t('document.summary_heard', n=heard) }}</p>
 {% if report.problems %}
 <div class="note">
   <p>{{ t('document.problems') }}</p>
-  <ul>{% for problem in report.problems %}<li>{{ t('document.problem', step=problem.step, message=problem.message) }}</li>{% endfor %}</ul>
+  <ul>{% for problem in report.problems %}<li lang="en">{{ t('document.problem', step=problem.step, message=problem.message) }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 {% if report.not_run %}<p class="note">{{ t('document.not_run', steps=report.not_run|join(', ')) }}</p>{% endif %}
 {% if report.warnings %}
 <div class="note">
   <p>{{ t('document.warnings') }}</p>
-  <ul>{% for warning in report.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+  <ul>{% for warning in report.warnings %}<li lang="en">{{ warning }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 
@@ -53,8 +53,8 @@
     {% for chapter in chapters %}
       <li>
         <input type="checkbox" id="chapter-{{ chapter.index }}" name="chapter" value="{{ chapter.index }}"{% if chapter.selected %} checked{% endif %} aria-describedby="chapter-details-{{ chapter.index }}">
-        <label for="chapter-{{ chapter.index }}">{{ t('check.chapter_line', title=chapter.title) }}</label>
-        <span class="hint" id="chapter-details-{{ chapter.index }}">({% if chapter.first_page %}{{ t('check.chapter_details', page=chapter.first_page, utterances=chapter.utterances) }}{% else %}{{ t('check.chapter_details_no_page', utterances=chapter.utterances) }}{% endif %}{% if chapter.references %}; {{ t('check.references') }}{% endif %})</span>
+        <label for="chapter-{{ chapter.index }}" lang="{{ text_language }}">{{ t('check.chapter_line', title=chapter.title) }}</label>
+        <span class="hint" id="chapter-details-{{ chapter.index }}">({% if chapter.first_page %}{{ t('check.chapter_details', page=chapter.first_page, n=chapter.utterances) }}{% else %}{{ t('check.chapter_details_no_page', n=chapter.utterances) }}{% endif %}{% if chapter.references %}; {{ t('check.references') }}{% endif %})</span>
       </li>
     {% endfor %}
     </ol>
@@ -78,7 +78,7 @@
     </tr></thead>
     <tbody>
     {% for row in category.rows %}
-      <tr><td>{{ row.page }}</td><td>{{ row.chapter }}</td><td class="text">{{ row.printed }}</td><td class="text">{{ row.said }}</td><td>{{ row.reason }}</td><td>{{ row.status }}</td></tr>
+      <tr><td>{{ row.page }}</td><td lang="{{ text_language }}">{{ row.chapter }}</td><td class="text"{% if row.printed_is_text %} lang="{{ text_language }}"{% endif %}>{{ row.printed }}</td><td class="text"{% if row.said_is_text %} lang="{{ text_language }}"{% endif %}>{{ row.said }}</td><td lang="en">{{ row.reason }}</td><td>{{ row.status }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
@@ -109,15 +109,15 @@
   <select id="voice" name="voice" aria-describedby="voice-licence">
     {% for option in voices %}<option value="{{ option.id }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
   </select>
-  <p class="hint" id="voice-licence">{{ t('voice.licence', licences=licences) }}</p>
+  <p class="hint" id="voice-licence">{{ t('voice.licence') }} <span lang="en">{{ licences }}</span></p>
   <label for="speed">{{ t('voice.speed') }}</label>
-  <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ t('voice.speed_value', value=speed) }}">
-  <output id="speed-value" for="speed" aria-hidden="true">{{ t('voice.speed_value', value=speed) }}</output></p>
+  <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
+  <output id="speed-value" for="speed" aria-hidden="true">{{ speed_text }}</output></p>
   {% if voice_installed %}
   <form id="preview" class="stack">
     <label for="preview-text">{{ t('voice.preview_label') }}</label>
     <p class="hint" id="preview-hint">{{ t('voice.preview_hint', limit=preview_limit) }}</p>
-    <textarea id="preview-text" name="text" rows="2" maxlength="{{ preview_limit }}" aria-describedby="preview-hint" required>{{ preview_text }}</textarea>
+    <textarea id="preview-text" name="text" lang="en" rows="2" maxlength="{{ preview_limit }}" aria-describedby="preview-hint" required>{{ preview_text }}</textarea>
     <p class="buttons"><button type="submit">{{ t('voice.listen') }}</button></p>
     <audio id="preview-audio" controls hidden aria-label="{{ t('voice.preview_player') }}"></audio>
   </form>
