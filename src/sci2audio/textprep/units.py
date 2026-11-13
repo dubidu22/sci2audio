@@ -159,7 +159,7 @@ class UnitStep(TextStep):
             if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
                 yield self._symbol(index, text, match.start(), words["about"], before_number=True)
         for match in _LETTER_X.finditer(text):
-            if _times_x(text, match):
+            if _times_x(text, match, words["times"]):
                 yield self._symbol(index, text, match.start("x"), words["times"])
 
     def _symbol(
@@ -417,7 +417,7 @@ def _said(term: _Term, plural: bool, words: dict[str, str]) -> str:
     return f"{name} {words['squared' if term.power == 2 else 'cubed']}"
 
 
-def _times_x(text: str, match: re.Match[str]) -> bool:
+def _times_x(text: str, match: re.Match[str], times: str) -> bool:
     """True if the letter x stands for "times": between numbers, or glued after one."""
     after = match.end("x")
     rest = text[after : after + 2]
@@ -427,12 +427,16 @@ def _times_x(text: str, match: re.Match[str]) -> bool:
         return False  # "0x1F"
     if rest[:1].isdigit():
         return True
-    return _boundary(text, after) and not _in_algebra(text, match.start("number"), after)
+    return _boundary(text, after) and not _in_algebra(text, match.start("number"), after, times)
 
 
-def _in_algebra(text: str, start: int, end: int) -> bool:
+def _in_algebra(text: str, start: int, end: int, times: str) -> bool:
     """True for "2x" in a formula: an operator right before the number or after the x
-    ("y = 2x + 1", "3x^2", "= 4x."), so the x is the variable, not "times"."""
-    before = text[max(0, start - 3) : start].rstrip(" ")[-1:]
+    ("y = 2x + 1", "3x^2", "= 4x."), so the x is the variable, not "times". The word this
+    step reads for "×" counts as that operator, so "×5x" and its reading "times 5x" agree."""
+    head = text[max(0, start - len(times) - 3) : start].rstrip(" ")
+    if head.endswith(times) and not head[: -len(times)][-1:].isalnum():
+        return True
+    before = head[-1:]
     after = text[end : end + 3].lstrip(" ")[:1]
     return (before != "" and before in _OPERATORS) or (after != "" and after in _OPERATORS + "(")

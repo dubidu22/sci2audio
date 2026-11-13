@@ -447,6 +447,7 @@ def test_a_unit_edit_names_the_printed_unit_and_its_reading() -> None:
             "a speedup (10x), 10x, and 4x faster",
             "a speedup (10 times), 10 times, and 4 times faster",
         ),
+        ("\u00d75x and times 5x", "times 5x and times 5x"),  # "\u00d7" and its reading: operators
         ("35 \u2030 and 35\u2030", "35 per mille and 35 per mille"),
         (
             "\u00b5 = 3, \u00b5B, 5 \u00b5m, \u03bc = 2",

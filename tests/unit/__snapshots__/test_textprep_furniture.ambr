@@ -2,6 +2,8 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-chi-plue]
   dict({
     'abbreviations: accepted': 23,
+    'characters: accepted': 97,
+    'characters: set-aside': 63,
     'citations: accepted': 48,
     'footnote-texts: switched-off': 7,
     'footnotes: accepted': 12,
@@ -17,6 +19,8 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-hardt-ellipsis]
   dict({
     'abbreviations: accepted': 10,
+    'characters: accepted': 69,
+    'characters: set-aside': 15,
     'citations: accepted': 17,
     'footnote-texts: switched-off': 2,
     'footnotes: accepted': 3,
@@ -31,6 +35,8 @@
   dict({
     'abbreviations: accepted': 45,
     'abbreviations: set-aside': 1,
+    'characters: accepted': 43,
+    'characters: set-aside': 44,
     'citations: accepted': 29,
     'footnote-texts: switched-off': 12,
     'footnotes: accepted': 24,
@@ -45,6 +51,8 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-arsiwalla-qualia-meaning]
   dict({
     'abbreviations: accepted': 15,
+    'characters: accepted': 59,
+    'characters: set-aside': 26,
     'citations: accepted': 93,
     'citations: set-aside': 185,
     'footnote-texts: switched-off': 20,
@@ -62,6 +70,8 @@
   dict({
     'abbreviations: accepted': 6,
     'abbreviations: set-aside': 5,
+    'characters: accepted': 99,
+    'characters: set-aside': 6,
     'citations: accepted': 128,
     'formulas: accepted': 8,
     'links: accepted': 2,
@@ -73,6 +83,7 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2021-waskom-seaborn]
   dict({
     'abbreviations: accepted': 1,
+    'characters: accepted': 11,
     'citations: accepted': 8,
     'links: accepted': 1,
     'links: set-aside': 6,
@@ -83,6 +94,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2022-biggs-pymedphys]
   dict({
+    'characters: set-aside': 2,
     'citations: accepted': 5,
     'links: set-aside': 31,
     'page-furniture: accepted': 28,
