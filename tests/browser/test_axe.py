@@ -59,7 +59,7 @@ def test_a_running_download_and_its_page(signed_in: Page, live: Live) -> None:
     page.get_by_role("checkbox", name=re.compile("I agree")).check()
     page.get_by_role("button", name="Download the voice").click()
     page.wait_for_url(re.compile(r"/jobs/voices-\d+"))
-    expect(page.locator("#job-progress")).to_contain_text(re.compile(r"downloading, \d+ %"))
+    expect(page.locator("#job-progress")).to_contain_text(re.compile(r"downloading, \d+\s%"))
     expect(page.get_by_role("button", name="Cancel")).to_be_visible()
     check_axe(page, "voice download running")
     page.get_by_role("button", name="Cancel").click()

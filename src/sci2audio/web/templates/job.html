@@ -28,7 +28,7 @@
 {% if folder %}<p>{{ t('job.folder', folder=folder) }}</p>{% endif %}
 {% if skipped %}
 <p>{{ t('job.skipped') }}</p>
-<ul>{% for item in skipped %}<li>{{ t('job.skipped_line', chapter=item.chapter + 1, page=item.printed_page or item.page or '?', text=item.text) }}</li>{% endfor %}</ul>
+<ul>{% for item in skipped %}<li>{{ t('job.skipped_line', chapter=item.chapter + 1, page=item.printed_page or item.page or '?') }} <span lang="en">{{ item.text }}</span></li>{% endfor %}</ul>
 {% endif %}
 {% endif %}
 
@@ -42,9 +42,9 @@
 {% endif %}
 
 {% if job.state == 'failed' %}
-<h2 id="result" tabindex="-1">{{ t('job.failed', message=job.error.message) }}</h2>
+<h2 id="result" tabindex="-1">{{ t('job.failed', reason=job.failure.reason) }}</h2>
+{% if job.failure.details %}<p>{{ t('common.details') }} <span lang="en">{{ job.failure.details }}</span></p>{% endif %}
 {% if job.error.error == 'output-exists' and job.kind == 'audio' %}
-<p>{{ t('job.exists') }}</p>
 <p class="buttons"><button type="button" id="job-replace">{{ t('job.replace') }}</button></p>
 {% endif %}
 {% endif %}
