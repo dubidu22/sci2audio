@@ -37,7 +37,7 @@ from web_helpers import (
 import sci2audio.web
 from sci2audio.textprep import Category
 from sci2audio.voices import ENGLISH_VOICES, download_plan
-from sci2audio.web import i18n, pages, server
+from sci2audio.web import i18n, pages, player, server
 from sci2audio.web.api import REDIRECTS, plan_hosts
 from sci2audio.web.config import HOST
 from sci2audio.web.i18n import (
@@ -152,8 +152,15 @@ def used_keys() -> set[str]:
         found |= {f"privacy.{name}", f"privacy.{name}_label"}
     found |= {f"job.state_{s}" for s in JobState}
     found |= {f"job.title_{kind}" for kind in JobKind}
-    script = texts["static/app.js"]
-    found |= set(re.findall(r"""tr\(\s*["`']([a-z_.]+)["`']""", script))
+    for script in (texts["static/app.js"], texts["static/player.js"]):
+        found |= set(re.findall(r"""tr\(\s*["`']([a-z_.]+)["`']""", script))
+    # the player's reasons, named where they are raised (#78)
+    found |= set(
+        re.findall(
+            r"""PlayerError\(\s*["']([a-z_.]+)["']""",
+            Path(player.__file__).read_text(encoding="utf-8"),
+        )
+    )
     found |= {f"make.needs_{key}" for key in ("analysis", "voice", "update", "chapters")}
     found |= {f"category.{category}" for category in Category}
     found |= {f"accent.{voice.language}" for voice in ENGLISH_VOICES}
@@ -244,10 +251,12 @@ def test_numbers_and_sizes() -> None:
 
 
 def test_the_script_strings_cannot_end_the_data_block() -> None:
-    table = {**EN, "js.lost": "</script><script>alert(1)</script>"}
-    s = i18n.Strings("en", table)
-    assert "</script>" not in s.script_json()
-    assert json.loads(s.script_json())["js.lost"].startswith("</script>")
+    odd = "</script><script>alert(1)</script> <!--<script> & -->"
+    s = i18n.Strings("en", {**EN, "js.lost": odd})
+    block = s.script_json()
+    assert not set("<>&") & set(block)  # nothing in it can change how the page parses
+    assert json.loads(block)["js.lost"] == odd
+    assert json.loads(i18n.data_block({"t": odd})) == {"t": odd}
 
 
 # --- the page language (D-288) ----------------------------------------------------------

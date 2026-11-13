@@ -116,6 +116,21 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     expect(page.get_by_role("link", name=re.compile(r"^paper\.m4b speichern \("))).to_be_visible()
     check_axe(page, "de: audiobook done")
 
+    # the player (#78): German controls; chapter titles keep the document's language (D-291)
+    page.get_by_role("link", name="Mit dem Text anhören").click()
+    expect(page.get_by_role("heading", level=1)).to_have_text(re.compile(r"^Anhören: "))
+    expect(page.get_by_role("button", name="Abspielen")).to_be_visible()
+    language = page.locator("#text").get_attribute("lang")
+    assert language
+    expect(page.locator(".chapter-button").first).to_have_attribute("lang", language)
+    expect(page.locator("#now span")).to_have_attribute("lang", language)
+    check_axe(page, "de: listen page")
+    page.get_by_role("button", name="Nächstes Kapitel").click()
+    expect(page.locator("#now")).to_have_text(re.compile(r"^Kapitel 2 von 2: \S"))
+    expect(page.locator("#now span")).to_have_attribute("lang", language)
+    expect(page.locator("#message")).to_have_text(re.compile(r"^Kapitel 2 von 2: \S"))
+    check_axe(page, "de: listen page after a jump")
+
     # again: the files exist; the kind's sentence in German, the app's words as details
     page.get_by_role("link", name="Zurück zum Dokument").click()
     page.get_by_role("button", name="Hörbuch erstellen").click()

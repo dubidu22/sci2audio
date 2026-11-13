@@ -84,5 +84,8 @@ def test_no_page_scrolls_sideways_at_320_pixels(signed_in: Page, live: Live, lan
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     expect(page.locator("ul.files a").first).to_be_visible()
     check_reflow(page, "audiobook done")
+    page.goto(f"{live.url}/documents/{document}/listen")
+    expect(page.locator("#play")).to_be_visible()
+    check_reflow(page, "listen page")
     page.goto(live.url + "/")
     check_reflow(page, "start page with a document")

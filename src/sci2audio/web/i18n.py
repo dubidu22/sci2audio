@@ -40,6 +40,7 @@ SCRIPT_KEYS = (
     "voice.speed_value",
     "common.decimal",
     "common.details",
+    "player.",
 )
 
 
@@ -106,9 +107,15 @@ class Strings:
 
     def script_json(self) -> str:
         """The strings the script uses, as JSON for the page's data block."""
-        keys = {k: v for k, v in self.table.items() if k.startswith(SCRIPT_KEYS)}
-        # `</` can't end the data block early: JSON allows `\/`
-        return json.dumps(keys, ensure_ascii=False).replace("</", "<\\/")
+        return data_block({k: v for k, v in self.table.items() if k.startswith(SCRIPT_KEYS)})
+
+
+def data_block(data: Any) -> str:
+    """`data` as JSON for a `<script type="application/json">` block. `<`, `>` and `&`
+    are written as JSON escapes, so no text in it (`</script>`, `<!--<script>`) can
+    change how the browser parses the page; JSON.parse reads the same data back."""
+    text = json.dumps(data, ensure_ascii=False)
+    return text.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
 
 _KNOWN = {code: code for code in LANGUAGES}
