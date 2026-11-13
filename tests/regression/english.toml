@@ -26,7 +26,7 @@ audit = 1
 issue = 66
 goal = "Removed, or read as a short note without 'et al.' spelled out (TP-03, TP-04)."
 blocks = [{ kind = "paragraph", text = "Several studies have examined the effects of environmental noise on young children (Smith et al., 2019; Jones & Lee, 2020)." }]
-expected = ["Several studies have examined the effects of environmental noise on young children (Smith et al., 2019; Jones & Lee, 2020)."]
+expected = ["Several studies have examined the effects of environmental noise on young children."]
 
 [[case]]
 id = "numeric-citations"
@@ -34,7 +34,7 @@ audit = 2
 issue = 66
 goal = "The bracketed citation, ranges and lists included, removed with no space left before the full stop (TP-03)."
 blocks = [{ kind = "paragraph", text = "However, findings remain inconsistent [2–6, 16, 17]." }]
-expected = ["However, findings remain inconsistent [2–6, 16, 17]."]
+expected = ["However, findings remain inconsistent."]
 
 [[case]]
 id = "url-and-e-mail"
@@ -42,11 +42,8 @@ audit = 3
 issue = 66
 goal = "URLs, the DOI link and the e-mail address removed and the sentences repaired: no 'available at and.' or 'Contact:.' (TP-07)."
 blocks = [{ kind = "paragraph", text = "Data are available at https://doi.org/10.1007/s10578-016-0626-7 and www.example.org/data. Contact: j.doe@uni-example.edu." }]
-expected = ["Data are available at https://doi.org/10.1007/s10578-016-0626-7 and www.example.org/data. Contact: j.doe@uni-example.edu."]
-utterances = [
-    "Data are available at https://doi.org/10.1007/s10578-016-0626-7 and www.example.org/data.",
-    "Contact: j.doe@uni-example.edu.",
-]
+expected = ["Data are available."]
+utterances = ["Data are available."]
 
 [[case]]
 id = "line-end-hyphens"
@@ -320,13 +317,346 @@ blocks = [
 sections = [{ title = "7 Bibliography", level = 1, start = 0, end = 2 }]
 expected = []
 
+# Issue #66: citations (TP-03, TP-04) and URLs, DOIs and e-mail addresses (TP-07), D-167 to D-175.
+
+[[case]]
+id = "numeric-citation-single"
+audit = 0
+issue = 66
+goal = "An aside citation is removed with the space before it (TP-03)."
+blocks = [{ kind = "paragraph", text = "Meaning is not merely representational [127]. They refer to raw feels." }]
+expected = ["Meaning is not merely representational. They refer to raw feels."]
+
+[[case]]
+id = "numeric-citation-list-and-ranges"
+audit = 0
+issue = 66
+goal = "Lists, ranges with a hyphen or an en dash, semicolons and a line break inside the brackets: all removed (TP-03)."
+blocks = [{ kind = "paragraph", text = "The effect was reported before [5-12; 14], and again\nlater [11, 12, 20, 34, 40–\n43]." }]
+expected = ["The effect was reported before, and again later."]
+
+[[case]]
+id = "numeric-citation-in-the-sentence"
+audit = 0
+issue = 66
+goal = "A citation the sentence needs is read as 'references ...' (TP-04, D-172)."
+blocks = [{ kind = "paragraph", text = "These experiences have been discussed in [26, 61, 86, 93, 128]." }]
+expected = ["These experiences have been discussed in references 26, 61, 86, 93 and 128."]
+
+[[case]]
+id = "numeric-citation-refs"
+audit = 0
+issue = 66
+goal = "'Ref. [1]' and 'Refs. [53, 58]' are read as 'reference 1' and 'references 53 and 58' (TP-04)."
+blocks = [{ kind = "paragraph", text = "We follow the blueprint of Refs. [53, 58], in the sense used in Ref. [1] for the anomalous Hall effect." }]
+expected = ["We follow the blueprint of references 53 and 58, in the sense used in reference 1 for the anomalous Hall effect."]
+
+[[case]]
+id = "numeric-citation-subject"
+audit = 0
+issue = 66
+goal = "A citation that is the subject is read: 'reference 53 discusses' (TP-04)."
+blocks = [{ kind = "paragraph", text = "The sense of a sentence is a thought ( [53] discusses the metaphysics). [12] showed that it holds." }]
+expected = ["The sense of a sentence is a thought (reference 53 discusses the metaphysics). Reference 12 showed that it holds."]
+
+[[case]]
+id = "numeric-citation-range-read"
+audit = 0
+issue = 66
+goal = "A range the sentence needs is read with 'to' (TP-04)."
+blocks = [{ kind = "paragraph", text = "As shown by [2–6], the effect holds." }]
+expected = ["As shown by references 2 to 6, the effect holds."]
+
+[[case]]
+id = "numeric-citation-see-also-bracket"
+audit = 0
+issue = 66
+goal = "A bracket holding only 'see also' and citations is removed whole (TP-03)."
+blocks = [{ kind = "paragraph", text = "It lies in the philosophy of mind [52] (see also [48, 135]), as well as elsewhere." }]
+expected = ["It lies in the philosophy of mind, as well as elsewhere."]
+
+[[case]]
+id = "numeric-citation-see-also-sentence"
+audit = 0
+issue = 66
+goal = "'see also [15] for ...' keeps its sentence and reads the citation (TP-04)."
+blocks = [{ kind = "paragraph", text = "It is non-computational [105] (see also [15] for a recent perspective)." }]
+expected = ["It is non-computational (see also reference 15 for a recent perspective)."]
+
+[[case]]
+id = "numeric-not-citations"
+audit = 0
+issue = 66
+goal = "Maths, intervals and statistics in square brackets are not citations (D-171)."
+blocks = [{ kind = "paragraph", text = "Let p: R → [0, 1], the interval [2, 5], 95% CI [1, 3] and Tr[ρ] be given." }]
+expected = ["Let p: R → [0, 1], the interval [2, 5], 95% CI [1, 3] and Tr[ρ] be given."]
+
+[[case]]
+id = "author-year-single"
+audit = 0
+issue = 66
+goal = "A bracketed author-year citation is removed (TP-03)."
+blocks = [{ kind = "paragraph", text = "This differs from ggplot2 (Wickham, 2016). It is a library." }]
+expected = ["This differs from ggplot2. It is a library."]
+
+[[case]]
+id = "author-year-variants"
+audit = 0
+issue = 66
+goal = "Several years with letters, 'in press', no comma, locators and 'inter alia' (TP-03)."
+blocks = [{ kind = "paragraph", text = "Parsing is cubic (Smith et al. 2019a, 2019b; Jones, in press; Eisenstein, 2019, Chapter 10; Moore, 2000, inter alia)." }]
+expected = ["Parsing is cubic."]
+
+[[case]]
+id = "author-year-lead-words"
+audit = 0
+issue = 66
+goal = "'e.g.,' and 'see also' inside the brackets go with the citation (TP-03)."
+blocks = [{ kind = "paragraph", text = "Models differ (e.g., Smith & Lee, 2019; see also van der Berg, 2020). Corporate authors too (WHO, 2020)." }]
+expected = ["Models differ. Corporate authors too."]
+
+[[case]]
+id = "author-year-mixed-bracket"
+audit = 0
+issue = 66
+goal = "In a bracket that also holds other text only the citations go (TP-03)."
+blocks = [{ kind = "paragraph", text = "We use recurrent neural network grammars (RNNGs; Dyer et al., 2016; Kim et al., 2019) here." }]
+expected = ["We use recurrent neural network grammars (RNNGs) here."]
+
+[[case]]
+id = "author-year-nested"
+audit = 0
+issue = 66
+goal = "A citation inside another bracket is removed; the outer bracket stays (TP-03)."
+blocks = [{ kind = "paragraph", text = "We use language models (e.g., BERT (Devlin et al., 2019)) as a baseline." }]
+expected = ["We use language models (e.g., BERT) as a baseline."]
+
+[[case]]
+id = "author-year-nested-years"
+audit = 0
+issue = 66
+goal = "Hardt's nested form: the whole bracket of citations goes (TP-03)."
+blocks = [{ kind = "paragraph", text = "Quoref (Dasigi et al. (2019); Zhang and Zhao\n(2022)) is a question-answer dataset." }]
+expected = ["Quoref is a question-answer dataset."]
+
+[[case]]
+id = "narrative-citation"
+audit = 0
+issue = 66
+goal = "K2: names that are part of the sentence stay, only the year goes (TP-04)."
+blocks = [{ kind = "paragraph", text = "As shown by Smith (2019), the effect holds. Smith et al. (2020a) show it too, as does Baker’s (1979) algorithm." }]
+expected = ["As shown by Smith, the effect holds. Smith et al. show it too, as does Baker’s algorithm."]
+
+[[case]]
+id = "narrative-citation-page"
+audit = 0
+issue = 66
+goal = "A page reference glued to a narrative citation goes with the year (TP-04)."
+blocks = [{ kind = "paragraph", text = "It is difficult, and, according to Kocijan et al.\n(2022)[p. 8], “Solving Winograd schemas is not a surrogate”." }]
+expected = ["It is difficult, and, according to Kocijan et al., “Solving Winograd schemas is not a surrogate”."]
+utterances = ["It is difficult, and, according to Kocijan et al., “Solving Winograd schemas is not a surrogate”."]
+
+[[case]]
+id = "author-year-subject"
+audit = 0
+issue = 66
+goal = "A bracketed citation used as the subject keeps its names (TP-04)."
+blocks = [{ kind = "paragraph", text = "It is hard. (Dasigi et al., 2019)[p. 1] note that this is challenging." }]
+expected = ["It is hard. Dasigi et al. note that this is challenging."]
+
+[[case]]
+id = "author-year-not-citations"
+audit = 0
+issue = 66
+goal = "Dates, events and year ranges in brackets are not citations (D-173)."
+blocks = [{ kind = "paragraph", text = "It was revised (Aug 2013), shown at a workshop (CoNLL 2017), dated (1931 - 1958) and stamped (Dated: April 5, 2024)." }]
+expected = ["It was revised (Aug 2013), shown at a workshop (CoNLL 2017), dated (1931 - 1958) and stamped (Dated: April 5, 2024)."]
+
+[[case]]
+id = "url-sentence-end"
+audit = 0
+issue = 66
+goal = "A URL and the preposition before it go; the full stop stays (TP-07, D-168)."
+blocks = [{ kind = "paragraph", text = "The code and models are released at https://github.com/JFChi/PLUE." }]
+expected = ["The code and models are released."]
+
+[[case]]
+id = "url-line-break-after-dot"
+audit = 0
+issue = 66
+goal = "A URL broken after a dot at a line end is removed whole (D-170)."
+blocks = [{ kind = "paragraph", text = "The corpus is publicly available at https://github.\ncom/citp/privacy-policy-historical." }]
+expected = ["The corpus is publicly available."]
+
+[[case]]
+id = "url-line-break-after-slash"
+audit = 0
+issue = 66
+goal = "A URL broken after a slash, and one broken after 'https:', are removed whole (D-170)."
+blocks = [
+    { kind = "paragraph", text = "Programs can be accessed at https://github.com/DanHardtDK/\nellipsisGPT3." },
+    { kind = "paragraph", text = "Its record is https:\n//doi.org/10.1007/s10773-024-05576-0 today." },
+]
+expected = ["Programs can be accessed.", "Its record is today."]
+
+[[case]]
+id = "url-in-brackets"
+audit = 0
+issue = 66
+goal = "A bracket holding only a link and 'see' goes whole (TP-07)."
+blocks = [{ kind = "paragraph", text = "Install it with pip (see https://pypi.org/project/x/). Then run it." }]
+expected = ["Install it with pip. Then run it."]
+
+[[case]]
+id = "url-label"
+audit = 0
+issue = 66
+goal = "A label before a link goes with it (TP-07)."
+blocks = [{ kind = "paragraph", text = "Code: https://github.com/rycolab/prefix. The data are public." }]
+expected = ["The data are public."]
+
+[[case]]
+id = "url-mid-sentence"
+audit = 0
+issue = 66
+goal = "A link inside a sentence goes with the word before it (TP-07)."
+blocks = [{ kind = "paragraph", text = "Calculated using https://mlco2.github.io/impact,\nbased on a total of 100 hours. We used the tool at www.example.org to compute it." }]
+expected = ["Calculated, based on a total of 100 hours. We used the tool to compute it."]
+
+[[case]]
+id = "url-colon"
+audit = 0
+issue = 66
+goal = "A colon before a link goes with it (TP-07)."
+blocks = [{ kind = "paragraph", text = "Presented at the Conference 2019, University of Oxford: https://podcasts.ox.ac.\nuk/xerxes-arsiwalla." }]
+expected = ["Presented at the Conference 2019, University of Oxford."]
+
+[[case]]
+id = "url-trailing-bracket"
+audit = 0
+issue = 66
+goal = "A closing bracket after a URL belongs to the sentence (TP-07)."
+blocks = [{ kind = "paragraph", text = "The tool (found at https://example.org/tool) works." }]
+expected = ["The tool works."]
+
+[[case]]
+id = "e-mail-brace-groups"
+audit = 0
+issue = 66
+goal = "E-mail addresses with brace groups are removed (TP-07)."
+blocks = [
+    { kind = "paragraph", text = "Copenhagen Business School\ndha.msc@cbs.dk" },
+    { kind = "paragraph", text = "jianfengchi@meta.com,{wasiahmad,yuant,kwchang}@ucla.edu" },
+    { kind = "paragraph", text = "{franz.nowak, ryan.cotterell}@inf.ethz.ch" },
+]
+expected = ["Copenhagen Business School"]
+
+[[case]]
+id = "e-mail-mailto"
+audit = 0
+issue = 66
+goal = "A mailto address and its label go (TP-07)."
+blocks = [{ kind = "paragraph", text = "Questions are welcome. E-mail: mailto:help@example.org." }]
+expected = ["Questions are welcome."]
+
+[[case]]
+id = "doi-forms"
+audit = 0
+issue = 66
+goal = "'doi:', 'DOI:' and a bare DOI are removed (TP-07)."
+blocks = [{ kind = "paragraph", text = "The record is listed as doi:10.1000/xyz123. The dataset is archived (DOI: 10.1038/s41565-023-01470-8). Both are public, see also 10.5281/zenodo.1234567." }]
+expected = ["The record is listed. The dataset is archived. Both are public."]
+
+[[case]]
+id = "arxiv-identifier"
+audit = 0
+issue = 66
+goal = "An arXiv identifier is removed like a link (D-169)."
+blocks = [{ kind = "paragraph", text = "The preprint was posted as arXiv:2311.03973v2 in 2023." }]
+expected = ["The preprint was posted in 2023."]
+
+[[case]]
+id = "link-only-footnote"
+audit = 0
+issue = 66
+goal = "A footnote holding only its mark and a link reads nothing (D-168)."
+blocks = [
+    { kind = "footnote", text = "5 https://github.com/huggingface/transformers", label = "5" },
+    { kind = "paragraph", text = "https://github.com/rycolab/" },
+]
+expected = []
+
+[[case]]
+id = "pointer-sentence"
+audit = 0
+issue = 66
+goal = "A short sentence or bracket that 'see' or 'visit' starts only points to the link and goes whole (D-168)."
+blocks = [{ kind = "paragraph", text = "The model is small. See https://example.org/model for details. It runs on a laptop (see www.example.org for the code)." }]
+expected = ["The model is small. It runs on a laptop."]
+
+[[case]]
+id = "link-in-brackets-after-preposition"
+audit = 0
+issue = 66
+goal = "A bracketed link after a preposition takes the preposition along before a comma (D-168)."
+blocks = [{ kind = "paragraph", text = "As shown in [https://example.org/demo], the tool works offline." }]
+expected = ["As shown, the tool works offline."]
+
+[[case]]
+id = "link-at-the-end-of-a-bracket"
+audit = 0
+issue = 66
+goal = "A link at the end of a bracket takes the comma before it along (D-168)."
+blocks = [{ kind = "paragraph", text = "The corpus (12 languages, https://example.org/corpus) is open." }]
+expected = ["The corpus (12 languages) is open."]
+
+[[case]]
+id = "link-at-a-sentence-start"
+audit = 0
+issue = 66
+goal = "A link that starts a sentence takes the mark after it, so no '..' or '.,' is left (D-168, review of PR #103)."
+blocks = [{ kind = "paragraph", text = "The code is public. https://example.org/code. It runs offline." }]
+expected = ["The code is public. It runs offline."]
+
+[[case]]
+id = "citation-at-a-sentence-start"
+audit = 0
+issue = 66
+goal = "A citation removed between two sentences, or before a full stop after 'et al.', leaves one full stop (D-173, review of PR #103)."
+blocks = [{ kind = "paragraph", text = "It holds. (Smith, 2019). The corpus of Zimmeck et al. (2019). Then more." }]
+expected = ["It holds. The corpus of Zimmeck et al. Then more."]
+
+[[case]]
+id = "label-before-a-link-inside-a-sentence"
+audit = 0
+issue = 66
+goal = "A label takes the whole sentence only when nothing but links and their words follow the link (D-168, review of PR #103)."
+blocks = [{ kind = "paragraph", text = "Contact: help@example.org or see https://example.org/help. Code: https://example.org/code is where it lives." }]
+expected = ["is where it lives."]
+
+[[case]]
+id = "numeric-citation-after-an-abbreviation"
+audit = 0
+issue = 66
+goal = "'Reference' is not capitalised after 'cf.', and a bracket after 'Eq.' is its number, not a citation (D-171, D-172, review of PR #103)."
+blocks = [{ kind = "paragraph", text = "This was shown before, cf. [4], and Eq. [3] holds." }]
+expected = ["This was shown before, cf. reference 4, and Eq. [3] holds."]
+
+[[case]]
+id = "reference-word-before-a-numeric-citation"
+audit = 0
+issue = 66
+goal = "'Reference [12]' and 'References [3, 5]' are read along with the number; 'the EM algorithm [5]' is a citation, 'Algorithm [5]' a number (D-171, D-172)."
+blocks = [{ kind = "paragraph", text = "As discussed in Reference [12], the EM algorithm [5] converges. References [3, 5] show it, and Algorithm [5] runs." }]
+expected = ["As discussed in reference 12, the EM algorithm converges. References 3 and 5 show it, and Algorithm [5] runs."]
+
 # Issue #91: the utterance cutter and abbreviations glued to a bracket (TP-01, Q4).
 
 [[case]]
 id = "abbreviation-glued-to-a-bracket"
 audit = 0
 issue = 91
-goal = "An abbreviation glued to a bracket before it is no sentence end: '(2022)[p. 8]' stays in one utterance (TP-01)."
-blocks = [{ kind = "paragraph", text = "As shown by Smith (2022)[p. 8], it works. The curve rises [Fig. 3] at night." }]
-expected = ["As shown by Smith (2022)[p. 8], it works. The curve rises [Fig. 3] at night."]
-utterances = ["As shown by Smith (2022)[p. 8], it works.", "The curve rises [Fig. 3] at night."]
+goal = "An abbreviation glued to a bracket or to the word before it is no sentence end: 'curve(Fig. 3)' and 'data(e.g. Table 2)' stay in one utterance (TP-01). The issue's '(2022)[p. 8]' is now removed by the citations step (#66) before the cutter sees it."
+blocks = [{ kind = "paragraph", text = "As the curve(Fig. 3) shows, it rises. The data(e.g. Table 2) agree with it." }]
+expected = ["As the curve(Fig. 3) shows, it rises. The data(e.g. Table 2) agree with it."]
+utterances = ["As the curve(Fig. 3) shows, it rises.", "The data(e.g. Table 2) agree with it."]

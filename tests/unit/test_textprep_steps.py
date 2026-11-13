@@ -108,6 +108,8 @@ def test_the_built_in_registry_is_valid() -> None:
         "formula-notices",
         "table-figure-notices",
         "footnote-texts",
+        "links",  # URLs before citations, after the block steps and before footnote marks (D-167)
+        "citations",
         "footnotes",
     ]
 

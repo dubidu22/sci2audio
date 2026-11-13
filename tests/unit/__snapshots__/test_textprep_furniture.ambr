@@ -1,8 +1,12 @@
 # serializer version: 1
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-chi-plue]
   dict({
+    'citations: accepted': 48,
     'footnote-texts: switched-off': 7,
-    'footnotes: accepted': 13,
+    'footnotes: accepted': 12,
+    'footnotes: set-aside': 1,
+    'links: accepted': 5,
+    'links: set-aside': 3,
     'page-furniture: accepted': 17,
     'references: accepted': 45,
     'tables-and-figures: accepted': 6,
@@ -10,8 +14,11 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-hardt-ellipsis]
   dict({
+    'citations: accepted': 17,
     'footnote-texts: switched-off': 2,
     'footnotes: accepted': 3,
+    'links: accepted': 3,
+    'links: set-aside': 3,
     'page-furniture: accepted': 12,
     'references: accepted': 17,
     'tables-and-figures: accepted': 11,
@@ -19,9 +26,11 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-nowak-prefix-probabilities]
   dict({
+    'citations: accepted': 29,
     'footnote-texts: switched-off': 12,
     'footnotes: accepted': 24,
     'formulas: accepted': 34,
+    'links: accepted': 2,
     'page-furniture: accepted': 14,
     'references: accepted': 33,
     'tables-and-figures: accepted': 5,
@@ -29,9 +38,14 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-arsiwalla-qualia-meaning]
   dict({
+    'citations: accepted': 93,
+    'citations: set-aside': 185,
     'footnote-texts: switched-off': 20,
-    'footnotes: accepted': 40,
+    'footnotes: accepted': 39,
+    'footnotes: set-aside': 1,
     'formulas: accepted': 9,
+    'links: accepted': 2,
+    'links: set-aside': 16,
     'page-furniture: accepted': 40,
     'references: accepted': 141,
     'tables-and-figures: accepted': 1,
@@ -39,13 +53,18 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-liu-orbital-hall]
   dict({
+    'citations: accepted': 128,
     'formulas: accepted': 8,
+    'links: accepted': 2,
     'page-furniture: accepted': 6,
     'tables-and-figures: accepted': 3,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2021-waskom-seaborn]
   dict({
+    'citations: accepted': 8,
+    'links: accepted': 1,
+    'links: set-aside': 6,
     'page-furniture: accepted': 29,
     'references: accepted': 9,
     'tables-and-figures: accepted': 1,
@@ -53,6 +72,8 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2022-biggs-pymedphys]
   dict({
+    'citations: accepted': 5,
+    'links: set-aside': 31,
     'page-furniture: accepted': 28,
     'references: accepted': 31,
   })
