@@ -16,6 +16,7 @@ from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
 from sci2audio.testing import make_document
 from sci2audio.textprep import (
+    ABBREVIATIONS,
     DEFAULT_MAX_CHARS,
     StepContext,
     Utterance,
@@ -23,6 +24,7 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
+from sci2audio.textprep.utterances import _BEFORE_NUMBERS
 
 
 def cut(text: str, max_chars: int = DEFAULT_MAX_CHARS, language: str = "en") -> list[str]:
@@ -62,6 +64,61 @@ def test_sentences_end_at_full_stops_before_a_new_sentence(text: str, sentences:
 def test_no_sentence_ends_after_an_abbreviation(abbreviation: str) -> None:
     text = f"As shown {abbreviation} One more word. Next sentence."
     assert cut(text) == [f"As shown {abbreviation} One more word.", "Next sentence."]
+
+
+@pytest.mark.parametrize(
+    ("text", "utterances"),
+    [
+        # #91: the abbreviation is glued to a bracket or other text before it
+        ("Smith (2022)[p. 8], it works.", ["Smith (2022)[p. 8], it works."]),
+        ("See it [Fig. 3] here. Next.", ["See it [Fig. 3] here.", "Next."]),
+        ("Data (2020)(pp. 3-5) hold. Next.", ["Data (2020)(pp. 3-5) hold.", "Next."]),
+        ("As in “Fig. 2” we see.", ["As in “Fig. 2” we see."]),
+        ("He said “e.g. This” works.", ["He said “e.g. This” works."]),
+        # ... but a word glued to a bracket that is no abbreviation still ends a sentence
+        ("It was seen [here]. Then more.", ["It was seen [here].", "Then more."]),
+        ("It holds (in 2022)[ours]. Then more.", ["It holds (in 2022)[ours].", "Then more."]),
+        # "no." glued to a bracket is still an abbreviation only before a number
+        ("The answer [no.] Then we stop.", ["The answer [no.]", "Then we stop."]),
+        # glued to a dash or a slash (review of #105, S1)
+        ("Results\u2014e.g. Table 2 shows it.", ["Results\u2014e.g. Table 2 shows it."]),
+        ("Results\u2013e.g. Table 2 shows it.", ["Results\u2013e.g. Table 2 shows it."]),
+        ("The results/e.g. Table 2 agree.", ["The results/e.g. Table 2 agree."]),
+        # a capital glued to a bracket or an apostrophe is no initial: these end a sentence
+        # (review of #105, M1)
+        ("I SAID I DON'T. Then we left.", ["I SAID I DON'T.", "Then we left."]),
+        ("We cite [1]A. Next.", ["We cite [1]A.", "Next."]),
+        ("It is in Table 1(a)B. Next.", ["It is in Table 1(a)B.", "Next."]),
+        ("The value was x)A. Next.", ["The value was x)A.", "Next."]),
+        ("It was 5'A. Next.", ["It was 5'A.", "Next."]),
+        ("We call it Plan(B. Next one.", ["We call it Plan(B.", "Next one."]),
+        # ... while an initial after an opening bracket or quote still is one
+        ("Thanks to (J. Smith) for it.", ["Thanks to (J. Smith) for it."]),
+    ],
+)  # fmt: skip
+def test_an_abbreviation_glued_to_a_bracket_is_no_sentence_end(
+    text: str, utterances: list[str]
+) -> None:
+    assert cut(text) == utterances
+
+
+_GLUE = "([{\"'\u201c\u2018)]}\u2013\u2014/"  # brackets, quotes, dashes and a slash
+
+
+@given(
+    st.sampled_from(sorted(ABBREVIATIONS["en"])),
+    st.text(alphabet=_GLUE + "0123456789", max_size=6),
+    st.sampled_from(_GLUE),
+    st.sampled_from(["One", "Two", "5", "(A", "“Then"]),
+)
+def test_an_abbreviation_with_anything_glued_before_it_is_never_a_sentence_end(
+    abbreviation: str, glued: str, bracket: str, following: str
+) -> None:
+    glued += bracket  # "(2022)[" before "p.": the abbreviation starts after a bracket or quote
+    if abbreviation in _BEFORE_NUMBERS and not following[0].isdigit():
+        following = "5"
+    text = f"As shown {glued}{abbreviation} {following} more."
+    assert cut(text) == [text]
 
 
 def test_no_and_p_are_abbreviations_only_before_a_number() -> None:
@@ -121,6 +178,23 @@ def test_a_1000_character_sentence_fits_the_limit() -> None:
     assert " ".join(parts) == text
 
 
+def test_only_the_parts_after_a_length_cut_continue_their_sentence() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "aaa bbb, ccc ddd. Next one. Last.")])
+    utterances = cut_utterances(document, apply_edits(document, []), max_chars=12)
+    assert [(u.text, u.continues) for u in utterances] == [
+        ("aaa bbb,", False),
+        ("ccc ddd.", True),
+        ("Next one.", False),
+        ("Last.", False),
+    ]
+
+
+def test_a_new_block_never_continues() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "x" * 15), (BlockKind.PARAGRAPH, "y" * 5)])
+    utterances = cut_utterances(document, apply_edits(document, []), max_chars=10)
+    assert [u.continues for u in utterances] == [False, True, False]
+
+
 def test_max_chars_must_be_positive() -> None:
     with pytest.raises(ValueError, match="at least 1"):
         cut_utterances(make_document([]), (), max_chars=0)
@@ -150,8 +224,8 @@ def test_a_cut_does_not_split_a_replacement_that_fits() -> None:
     # the last space that fits lies inside "one two": the cut moves to before it
     assert utterances == (
         Utterance("aa bb", Span(0, 0, 5)),
-        Utterance("one two cc", Span(0, 6, 10)),
-        Utterance("dd", Span(0, 11, 13)),
+        Utterance("one two cc", Span(0, 6, 10), continues=True),
+        Utterance("dd", Span(0, 11, 13), continues=True),
     )
 
 
@@ -254,6 +328,30 @@ def test_utterances_cover_the_script_inside_their_blocks_in_order(
                 assert any(words in text for text in said), (words, said)
     pauses = [p.span for p in script if p.pause]
     assert [u.span for u in utterances if u.pause] == pauses
+
+
+@given(scripts(), st.integers(1, 80))
+def test_continuing_utterances_join_into_the_uncut_sentences(
+    case: tuple[Document, tuple[ScriptPiece, ...]], max_chars: int
+) -> None:
+    document, script = case
+    cut_ = cut_utterances(document, script, max_chars=max_chars)
+    whole = cut_utterances(document, script, max_chars=10**9)
+    assert not any(u.continues for u in whole)
+    groups: list[list[Utterance]] = []
+    for utterance in cut_:
+        if utterance.continues:
+            assert groups
+            assert not groups[-1][-1].pause
+            assert groups[-1][-1].span.block == utterance.span.block
+            groups[-1].append(utterance)
+        else:
+            groups.append([utterance])
+    assert [u.pause for u in whole] == [group[0].pause for group in groups]
+    for group, sentence in zip(groups, whole, strict=True):
+        joined = "".join(u.text for u in group)
+        assert re.sub(r"\s", "", joined) == re.sub(r"\s", "", sentence.text)
+        assert group[0].span.start == sentence.span.start
 
 
 @given(documents())

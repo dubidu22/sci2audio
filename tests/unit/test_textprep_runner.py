@@ -183,8 +183,9 @@ def test_steps_in_a_bad_order_are_refused() -> None:
 
 def test_the_default_steps_are_the_built_in_ones() -> None:
     run = run_steps(DOC, EN, strict=True)
-    assert [o.edit.step for o in run.outcomes] == ["page-furniture"]
-    assert render_blocks(DOC, run.script()) == ["Several studies (Smith, 2019) agree.", ""]
+    assert run == run_steps(DOC, EN, BUILT_IN_STEPS, strict=True)
+    assert [o.edit.step for o in run.outcomes] == ["page-furniture", "citations"]
+    assert render_blocks(DOC, run.script()) == ["Several studies agree.", ""]
     # a document every built-in step has something to do in: each runs, in registry order
     every = make_document(
         [
@@ -195,6 +196,9 @@ def test_the_default_steps_are_the_built_in_ones() -> None:
             (BlockKind.TABLE, "a b"),
             (BlockKind.HEADING, "References"),
             (BlockKind.PARAGRAPH, "Doe, J. (2020). A study."),
+            (BlockKind.PARAGRAPH, "It is released at https://example.org/a."),
+            (BlockKind.PARAGRAPH, "Noise (Smith, 2019) matters."),
+            (BlockKind.PARAGRAPH, "An e\N{LATIN SMALL LIGATURE FFI}cient develop-\nment."),
             (BlockKind.PARAGRAPH, "It held (p < .05) in 3\u20135 cases."),
         ],
         tags={1: [(14, 15, "sup")]},

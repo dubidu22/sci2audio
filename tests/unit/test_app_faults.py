@@ -13,7 +13,14 @@ from pathlib import Path
 import pytest
 from pdf_maker import Text, make_pdf
 
-from sci2audio.app import JobError, JobSettings, OutputExistsError, Phase, run_script_job
+from sci2audio.app import (
+    JobError,
+    JobSettings,
+    OutputExistsError,
+    Phase,
+    UnreadableFileError,
+    run_script_job,
+)
 from sci2audio.app import files as files_module
 from sci2audio.testing import no_network
 
@@ -89,7 +96,7 @@ def test_a_source_removed_during_the_run_fails_with_a_clear_message(tmp_path: Pa
         if phase is Phase.READING:
             source.unlink()
 
-    with pytest.raises(JobError, match=r"note\.pdf: cannot be opened"):
+    with pytest.raises(UnreadableFileError, match=r"note\.pdf: cannot be opened"):
         run_script_job(source, JobSettings(), tmp_path / "work", progress=remove)
     assert contents(tmp_path) == {}
 

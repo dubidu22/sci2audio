@@ -16,6 +16,7 @@ from sci2audio.app import (
     JobSettings,
     OutputExistsError,
     Phase,
+    UnreadableFileError,
     UnsupportedFileError,
     run_script_job,
     script_files,
@@ -111,13 +112,13 @@ def test_a_file_type_it_cannot_read_is_refused_before_anything_runs(
 def test_a_damaged_pdf_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:
     source = tmp_path / "broken.pdf"
     source.write_bytes(b"%PDF-1.7\nnot really")
-    with pytest.raises(JobError, match=r"broken\.pdf"):
+    with pytest.raises(UnreadableFileError, match=r"broken\.pdf"):  # D-223
         run_script_job(source, JobSettings(), tmp_path / "w")
     assert sorted(p.name for p in tmp_path.iterdir()) == ["broken.pdf"]
 
 
 def test_a_missing_file_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:
-    with pytest.raises(JobError, match=r"gone\.pdf: cannot be opened"):
+    with pytest.raises(UnreadableFileError, match=r"gone\.pdf: cannot be opened"):
         run_script_job(tmp_path / "gone.pdf", JobSettings(), tmp_path / "w")
 
 
@@ -137,7 +138,8 @@ def test_existing_outputs_are_replaced_only_when_asked(tmp_path: Path) -> None:
 def test_progress_reports_each_phase_in_order(tmp_path: Path) -> None:
     phases: list[Phase] = []
     run_script_job(small_pdf(tmp_path), JobSettings(), tmp_path / "w", progress=phases.append)
-    assert phases == list(Phase)
+    # the audio job's phases (loading the voice, speaking, encoding) never come here
+    assert phases == [Phase.READING, Phase.LAYOUT, Phase.TEXT_STEPS, Phase.WRITING, Phase.DONE]
 
 
 def test_the_files_a_job_writes_are_known_before_it_runs(tmp_path: Path) -> None:

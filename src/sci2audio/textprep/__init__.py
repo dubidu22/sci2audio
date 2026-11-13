@@ -8,8 +8,12 @@ the voice says in one call each.
 Pipeline stage; may import only ``sci2audio.core``.
 """
 
+from sci2audio.textprep.characters import UnicodeStep
+from sci2audio.textprep.citations import CitationStep
 from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
+from sci2audio.textprep.hyphens import LineEndHyphenStep
+from sci2audio.textprep.links import LinkStep
 from sci2audio.textprep.numbers import NumbersStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
 from sci2audio.textprep.references import (
@@ -59,10 +63,13 @@ __all__ = [
     "TEXT_STEP_API",
     "WORDING",
     "Category",
+    "CitationStep",
     "FootnoteStep",
     "FootnoteTextStep",
     "FormulaNoticeStep",
     "FurnitureStep",
+    "LineEndHyphenStep",
+    "LinkStep",
     "NumbersStep",
     "Outcome",
     "ReferenceListStep",
@@ -75,6 +82,7 @@ __all__ = [
     "StepRun",
     "TableFigureNoticeStep",
     "TextStep",
+    "UnicodeStep",
     "Utterance",
     "Wording",
     "check_registry",
