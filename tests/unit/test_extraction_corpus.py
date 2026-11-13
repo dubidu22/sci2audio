@@ -8,7 +8,8 @@ The outline (PDF bookmarks, #24) is checked entry by entry as stored, and agains
 headings: every entry names a truth heading once its printed number is taken off, except the
 entries listed in `NOT_TRUTH_HEADINGS` with their reason (D-269).
 
-The golden files show the outline, then each line's text and style, page by page. Accept a
+The golden files show the metadata and the outline, then each line's text and style and
+each picture and drawing with its box, page by page. Accept a
 wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
 
 A font the PDF doesn't embed (the arXiv stamp's Times-Roman) is drawn with a substitute font
@@ -233,11 +234,14 @@ def not_embedded(paper: Path) -> frozenset[str]:
 
 
 def describe(content: Content, not_embedded: frozenset[str] = frozenset()) -> str:
-    """The outline entries; each line with its box and the style of each run; pictures with
-    boxes; drawings counted."""
+    """The metadata and outline entries; each line with its box and the style of each run;
+    pictures and drawings with their boxes (drawings since #5, D-399)."""
     meta = content.metadata
     out = [f"{content.source.name}  sha256 {content.source.sha256[:16]}"]
-    out.append(f"metadata: title={meta.title!r} authors={list(meta.authors)} date={meta.date!r}")
+    out.append(
+        f"metadata: title={meta.title!r} authors={list(meta.authors)} date={meta.date!r}"
+        f" language={meta.language!r}"
+    )
     out.extend(
         f"outline: level {entry.level}  page {entry.page}  {entry.title!r}"
         for entry in content.outline
@@ -255,6 +259,7 @@ def describe(content: Content, not_embedded: frozenset[str] = frozenset()) -> st
             for line in page.lines
         )
         out.extend(f"{picture.id}  {_box(picture.box)}  picture" for picture in page.pictures)
+        out.extend(f"{drawing.id}  {_box(drawing.box)}  drawing" for drawing in page.drawings)
     return "\n".join(out) + "\n"
 
 
