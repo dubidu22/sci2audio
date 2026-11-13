@@ -83,6 +83,14 @@ jobs:
         env:
           BROWSER: ${{ matrix.browser }}
         run: uv run playwright install --with-deps "$BROWSER"
+      # A runner has no sound card. Firefox, unlike Chromium and WebKit, then fails every
+      # <audio> with OnMediaSinkAudioError, so the player tests need a sound server that
+      # plays into its null sink (#205).
+      - name: A silent sound server for Firefox
+        if: matrix.browser == 'firefox'
+        run: |
+          sudo apt-get install --yes --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1
       - name: Browser tests (main flow, keyboard, axe-core)
         env:
           BROWSER: ${{ matrix.browser }}

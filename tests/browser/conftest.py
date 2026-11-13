@@ -144,12 +144,19 @@ def live(
         sock.close()
 
 
+def inside(url: str, origin: str) -> bool:
+    """True for a request to the test server, or for a `blob:` URL of its origin: an object
+    in the page's memory, never a network request. WebKit routes those too, as images, once
+    a file is chosen in a file input (#205)."""
+    return url.startswith((origin + "/", "blob:" + origin + "/"))
+
+
 @pytest.fixture
 def signed_in(page: Page, live: Live) -> Iterator[Page]:
     """The page, signed in through the start link like a person, and fenced in."""
 
     def fence(route: Route) -> None:
-        if route.request.url.startswith(live.url + "/"):
+        if inside(route.request.url, live.url):
             route.continue_()
         else:
             live.outside.append(route.request.url)

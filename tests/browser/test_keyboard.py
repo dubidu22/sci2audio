@@ -141,7 +141,13 @@ def test_tab_goes_round_every_page_without_a_trap(signed_in: Page, live: Live) -
             now = focused(page)
             if now["tag"] == "body":
                 break
-            stops.append((now["tag"], now["id"], now["text"][:30]))
+            stop = (now["tag"], now["id"], now["text"][:30])
+            if stops and stops[-1] == stop:
+                # Firefox: the press after the page's last stop leaves focus in place (on
+                # its way to the browser's own controls); the next one reaches the body.
+                # A trap that never lets go still fails below, a cycle at the set (#205).
+                continue
+            stops.append(stop)
         else:
             raise AssertionError(f"Tab never left {path}: {stops[-5:]}")
         assert stops[0][2] == "Skip to the content"
