@@ -12,7 +12,7 @@
           'title': 'note',
         }),
       ]),
-      'characters_per_second': 21.0,
+      'characters_per_second': None,
       'chunks': dict({
         'reused': 0,
         'skipped': 0,

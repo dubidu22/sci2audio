@@ -185,20 +185,73 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
     done = [e.characters_done for e in events_spoken]
     assert done == sorted(done)
     assert done[-1] == events_spoken[-1].characters_total
-    # the speed: every chunk takes 1 s on the clock; the first one (warm-up) is not measured
+    # the speed: every chunk takes 1 s on the clock; the first four (warm-up) are not
+    # measured (D-381)
+    warm_up = 4  # D-381
+    assert warm_up == audio_module.WARM_UP_CALLS
     texts = [u.text for u in job.result.utterances if not u.pause]
-    measured = sum(len(t) for t in texts[1:])
-    assert events_spoken[-1].characters_per_second == pytest.approx(measured / (chunks() - 1))
+    measured = sum(len(t) for t in texts[warm_up:])
+    assert events_spoken[-1].characters_per_second == pytest.approx(measured / (chunks() - warm_up))
     first_chapter = [e for e in events_spoken if e.chapter == 0]
+    shown = 0
     for event in events_spoken:
-        measured_so_far = event.characters_done - len(texts[0])
-        ready = event.chunks_done >= len(first_chapter) and measured_so_far >= 500
+        measured_so_far = event.characters_done - sum(len(t) for t in texts[:warm_up])
+        ready = event.chunks_done >= len(first_chapter) and measured_so_far >= 1000  # D-382
         assert (event.seconds_left is not None) == ready, event
-        if event.seconds_left is not None:  # what is left, at the speed measured so far
-            left = event.characters_total - event.characters_done
-            assert event.characters_per_second is not None
-            assert event.seconds_left == pytest.approx(left / event.characters_per_second)
+        if event.seconds_left is not None:  # every call costs 1 s whatever its length, and
+            shown += 1  # the cost model finds that: one second per chunk left (D-380)
+            left = event.chunks_total - event.chunks_done
+            assert event.seconds_left == pytest.approx(left)
+    assert shown > 0
     assert events_spoken[-1].seconds_left == 0
+
+
+class CostClock:
+    """A clock the fake voice moves on: each call costs `cost(characters)` seconds, the
+    first `slow` calls twice that (a voice warming up)."""
+
+    def __init__(self, cost, slow: int = 0) -> None:  # type: ignore[no-untyped-def]
+        self.now = 0.0
+        self.cost = cost
+        self.slow = slow
+        self.calls = 0
+
+    def __call__(self) -> float:
+        return self.now
+
+    def speak(self, text: str) -> None:
+        self.calls += 1
+        self.now += self.cost(len(text)) * (2 if self.calls <= self.slow else 1)
+
+
+def test_the_estimate_fits_a_cost_per_call_per_character_and_per_square(
+    tmp_path: Path,
+) -> None:
+    """A voice whose calls cost 0.4 s + 0.02 s per character + 0.0001 s per character
+    squared, and whose first four calls are twice as slow: once shown, the estimate is the
+    real time left (D-380, D-381); the plain rate would be off."""
+
+    def cost(characters: int) -> float:
+        return 0.4 + 0.02 * characters + 0.0001 * characters**2
+
+    assert audio_module.WARM_UP_CALLS == 4  # D-381
+    clock = CostClock(cost, slow=4)
+    voice = FakeVoice(on_speak=clock.speak)
+    events: list[AudioProgress] = []
+    run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=clock)
+    lengths = [len(text) for text in voice.texts]
+    estimates = [
+        e for e in events if e.phase is Phase.SPEAKING and e.chunks_done and e.seconds_left
+    ]
+    assert len(estimates) > 5
+    plain_rate_off = 0.0
+    for event in estimates:
+        real = sum(cost(n) for n in lengths[event.chunks_done :])
+        assert event.seconds_left == pytest.approx(real, rel=1e-6)
+        assert event.characters_per_second is not None
+        plain = (event.characters_total - event.characters_done) / event.characters_per_second
+        plain_rate_off = max(plain_rate_off, abs(plain - real) / real)
+    assert plain_rate_off > 0.05
 
 
 def test_cancel_before_the_start_does_nothing(tmp_path: Path) -> None:

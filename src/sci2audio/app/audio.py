@@ -11,8 +11,9 @@ MP3 per chapter, the M4B and the read-along file → the job's records.
   All chapters are encoded again at the end (seconds, against minutes of speech).
 - Pauses (D-116, D-157): the app gives every chunk one `Pause` kind; output turns kinds
   into seconds and opens every chapter with the chapter pause.
-- Progress and the time estimate (D-159) are measured on this run's own speech; cancel
-  (D-160) by a `threading.Event`; one job per working folder (D-161).
+- Progress and the time estimate (D-159, D-380 to D-382, D-384, `estimate.py`) are
+  measured on this run's own speech; cancel (D-160) by a `threading.Event`; one job per
+  working folder (D-161).
 - It never stops to ask (D-61 (3)): an utterance the voice fails on is left out and
   listed, five failures in a row stop the job (D-162). It fails with a `JobError` a person
   can act on, and nothing half-written, when it cannot go on (D-140): the existing
@@ -44,6 +45,7 @@ from sci2audio.app.chunks import (
     is_finished,
     remove_partials,
 )
+from sci2audio.app.estimate import Estimate
 from sci2audio.app.files import write_bytes_atomically, write_texts
 from sci2audio.app.job import (
     COVERS,
@@ -95,7 +97,8 @@ RECORD_FORMAT = "sci2audio-audio"
 RECORD_VERSION = 1
 DOCUMENT = "document.json"
 COVER_NAMES = ("cover.jpg", "cover.png")  # the cover in the working folder (D-313)
-ESTIMATE_MIN_CHARACTERS = 500  # measured before the first estimate (D-159)
+ESTIMATE_MIN_CHARACTERS = 1000  # measured before the first estimate (D-159, D-382)
+WARM_UP_CALLS = 4  # the voice's first calls are slower; they are not measured (D-381)
 FAILURES_IN_A_ROW = 5  # the voice is taken as broken after this many (D-162)
 
 
@@ -363,9 +366,8 @@ class _Speech:
     reused: int = 0
     spoken: int = 0
     characters_done: int = 0
-    measured_characters: int = 0
-    measured_seconds: float = 0.0
-    warmed_up: bool = False
+    estimate: Estimate = field(default_factory=Estimate)
+    calls: int = 0  # voice calls that spoke a chunk in this run
     first_chapter: int | None = None  # chapter of the first chunk spoken in this run
     first_chapter_done: bool = False
     durations: dict[str, float] = field(default_factory=dict)
@@ -373,19 +375,18 @@ class _Speech:
     failures_in_a_row: int = 0
 
     def speed(self) -> float | None:
-        if self.measured_characters == 0 or self.measured_seconds <= 0:
-            return None
-        return self.measured_characters / self.measured_seconds
+        return self.estimate.speed()
 
     def seconds_left(self) -> float | None:
-        speed = self.speed()
+        """The cost model summed over the chunks still to speak (D-380, D-384); None
+        while the first chapter is spoken and until enough characters are measured (D-159,
+        D-382)."""
         if (
-            speed is None
-            or not self.first_chapter_done
-            or self.measured_characters < ESTIMATE_MIN_CHARACTERS
+            not self.first_chapter_done
+            or self.estimate.measured_characters < ESTIMATE_MIN_CHARACTERS
         ):
             return None
-        return max(0, self.characters_total - self.characters_done) / speed
+        return self.estimate.seconds_left()
 
     def progress(self, chunk: PlannedChunk, title: str) -> AudioProgress:
         return AudioProgress(
@@ -537,6 +538,8 @@ def _speak(
         chapters=len(last_of_chapter),
         last_of_chapter=last_of_chapter,
     )
+    for characters in needed.values():
+        speech.estimate.expect(characters)
     engine: Engine | None = None
     session: EngineSession | None = None
     try:
@@ -612,6 +615,7 @@ def _one(
     except EngineError as error:
         speech.failed[key] = str(error) or type(error).__name__
         speech.characters_done += len(text)
+        speech.estimate.done(len(text))
         speech.failures_in_a_row += 1
         if speech.failures_in_a_row >= FAILURES_IN_A_ROW:
             raise JobError(
@@ -629,12 +633,12 @@ def _one(
     speech.spoken += 1
     speech.failures_in_a_row = 0
     speech.characters_done += len(text)
+    speech.estimate.done(len(text))
     if speech.first_chapter is None:
         speech.first_chapter = chunk.chapter
-    if speech.warmed_up:  # the first call warms the model up; it is not measured
-        speech.measured_characters += len(text)
-        speech.measured_seconds += elapsed
-    speech.warmed_up = True
+    speech.calls += 1
+    if speech.calls > WARM_UP_CALLS:  # the first calls warm the voice up (D-381)
+        speech.estimate.measure(len(text), elapsed)
 
 
 def _encode(
