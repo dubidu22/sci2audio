@@ -544,6 +544,17 @@ def test_a_subscript_stacked_under_a_superscript_follows_it() -> None:
     assert _third(_one_row(*pieces)) == "the scattering integral J1st0[n] gives the field"
 
 
+def test_digits_of_a_stacked_fraction_keep_their_space() -> None:
+    """Review M2 of #128, Liu p4 "vF = 3/2 at": the denominator starts back under the
+    numerator; joined, the two digits would read as one number ("32", thirty-two)."""
+    pieces = (
+        at("the Fermi velocity vF = 3", LEFT, 300),
+        at("2", 296, 300, raised=-4, size=7),
+        at("at the edge of the band", 303, RIGHT),
+    )
+    assert _third(_one_row(*pieces)) == "the Fermi velocity vF = 3 2 at the edge of the band"
+
+
 def test_two_words_split_at_a_wide_gap_keep_their_space() -> None:
     """Extraction cuts a line at a gap of 1 em (#27): that is always a word space."""
     pieces = (at("a widely spaced", LEFT, 250), at("justified line", 262, RIGHT))

@@ -110,6 +110,62 @@ def test_white_after_a_stacked_script_is_measured_from_the_row_s_letters() -> No
     assert lines_of(data) == ["J1st", "0[n"]
 
 
+@pytest.mark.parametrize("start", [100, 90])
+@pytest.mark.parametrize("leading", [10.5, 11, 12])
+def test_a_wrapped_line_keeps_the_spaces_after_its_scripts(start: float, leading: float) -> None:
+    """Review M1 of #128: the next printed line of a paragraph starts back under the line
+    above and, with tight leading, overlaps its loose boxes; it is no script stacked under
+    that line, so its spaces are measured from its own letters ("word1 is", not "word1is")."""
+    font = "Times-Roman"
+    y = 100 + leading
+    end = 100 + width("Then the word", font)
+    mark = end + 0.3 + width("1", font, 7)
+    data = make_pdf(
+        [
+            Text("A line of text set above the next one, ending in x", start, 100, font),
+            Text(
+                "2",
+                start + width("A line of text set above the next one, ending in x", font),
+                103,
+                font,
+                7,
+            ),
+            Text("Then the word", 100, y, font),
+            Text("1", end + 0.3, y - 4, font, 7),
+            Text("is next.", mark + 4, y, font),
+        ]
+    )
+    assert lines_of(data)[-1] == "Then the word1 is next."
+
+
+@pytest.mark.parametrize(
+    ("numerator", "denominator", "after", "white", "printed"),
+    [
+        ("1", "2", "{L", 0.3, "j = 1 2{L"),  # Liu: j = 1/2 {L, v}
+        ("3", "2", "at", 2.5, "j = 3 2 at"),  # Liu: v = 3/2 at
+        ("1", "22", "t", 0.3, "j = 1 22t"),  # Liu: 1/22 sigma
+    ],
+)
+def test_digits_of_a_stacked_fraction_keep_their_space(
+    numerator: str, denominator: str, after: str, white: float, printed: str
+) -> None:
+    """Review M2 of #128: a fraction 1/2 set as numerator over denominator must not read
+    "12" (twelve). The denominator starts back under the numerator, so their letters touch
+    along the line; the space PDFium adds between two digits on different baselines stays."""
+    x = 100 + width("j = ")
+    top, bottom = width(numerator, size=7), width(denominator, size=7)
+    wide = max(top, bottom)
+    data = make_pdf(
+        [
+            Text("j = ", 100, 100),
+            Text(numerator, x + (wide - top) / 2, 96, size=7),
+            Text(denominator, x + (wide - bottom) / 2, 104, size=7),
+            Text(after, x + wide + white, 100),
+        ]
+    )
+    assert lines_of(data) == [printed]
+
+
 def char(text: str, u0: float, u1: float, base: float = 100.0, size: float = 10.0) -> _Char:
     style = ("Times", size, False, False)
     return _Char(text, style, (u0, base - size, u1, base), 0.0, u0, u1, base - size, base, base)

@@ -46,6 +46,7 @@ LINE_GAP = 1.0  # a gap this many em wide ends a line, so columns and table cell
 # by the same measure (LayoutSettings.word_space).
 SPACE = 0.15  # em of the larger letter: the narrowest white that is a space between baselines
 SHIFT = 0.1  # em of the smaller letter: baselines further apart than this are two baselines
+STACK = 2.0  # em: a script stacked under another starts at most this far back under it
 SAME_LINE = 0.3  # a character overlapping the line by this share of its height continues it
 BOLD_WEIGHT = 600  # a font weight from this value on is bold
 _ITALIC_FLAG = 1 << 6  # PDF font descriptor flag "Italic"
@@ -206,20 +207,27 @@ class _Line:
         added): the letters don't touch, and across a change of baseline the white from
         where the letters so far end is at least `SPACE` em."""
         last = self.chars[-1]
-        if char.u0 - last.u1 <= 0:
-            return False
         small = min(last.style[1], char.style[1]) or 1.0
-        if not abs(char.base - last.base) > SHIFT * small:
+        shifted = abs(char.base - last.base) > SHIFT * small
+        if char.u0 - last.u1 <= 0:
+            # letters that touch get no space, except a digit under a digit (a fraction 1/2
+            # set as 1 over 2), which would read as one number, "12" (review M2 of #128)
+            return shifted and last.text.isdigit() and char.text.isdigit()
+        if not shifted:
             return True
         reach = max(last.u1, self.before)
         return char.u0 - reach >= SPACE * max(last.style[1], char.style[1], 1.0)
 
     def stacks(self, char: _Char) -> bool:
-        """True if the char starts back under this line's letters and beside them, as a
-        subscript stored after the superscript above it."""
+        """True if the char starts back under the end of this line's letters and beside
+        them, as a subscript stored after the superscript above it: at most `STACK` em back,
+        and after the line's first letter, so the next printed line of a paragraph, whose
+        loose boxes may overlap this one's, is no script (review M1 of #128)."""
         reach = max(c.u1 for c in self.chars)
+        size = max(self.chars[-1].style[1], char.style[1], 1.0)
         overlap = min(self.bottom, char.v1) - max(self.top, char.v0)
-        return self.chars[0].u0 <= char.u0 < reach and overlap > 0
+        back = reach - char.u0
+        return self.chars[0].u0 < char.u0 and 0 < back <= STACK * size and overlap > 0
 
 
 def _lines(textpage: pdfium.PdfTextPage, height: float, number: int) -> tuple[TextLine, ...]:

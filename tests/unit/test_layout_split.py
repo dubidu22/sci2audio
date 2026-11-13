@@ -99,6 +99,10 @@ def test_separators() -> None:
     assert separators(wide, size, space, reach) == ["", " "]
     assert separators(stacked, size, space, reach) == ["", "", ""]
     assert separators(far, size, space, reach) == ["", " "]
+    fraction = [piece("x = 1", 0, 10), piece("22", 5, 13, 105), piece("t", 13.5, 16)]
+    assert separators(fraction, size, space, reach) == ["", " ", ""]  # 1/22 is no "122"
+    script = [piece("J1st", 0, 10), piece("0n", 5, 9, 105)]  # a letter or digit after
+    assert separators(script, size, space, reach) == ["", ""]  # a letter: no number to misread
     assert separators(close, 0.0, space, reach) == ["", " "]  # no sizes: a space, as before
     unplaced = [TextLine("u", (TextRun("u"),)), TextLine("v", (TextRun("v"),))]
     assert separators(unplaced, size, space, reach) == ["", " "]  # EPUB, text: as before
