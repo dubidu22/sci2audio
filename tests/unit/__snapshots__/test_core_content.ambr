@@ -208,5 +208,47 @@
         'sha256': 'ab12',
       }),
     }),
+    'text': dict({
+      'pages': list([
+        dict({
+          'lines': list([
+            dict({
+              'id': 'p1-l1',
+              'runs': list([
+                dict({
+                  'tags': list([
+                    'p',
+                  ]),
+                  'text': 'Café notes – first line',
+                }),
+              ]),
+            }),
+            dict({
+              'id': 'p1-l2',
+              'runs': list([
+                dict({
+                  'tags': list([
+                    'p',
+                    'br',
+                  ]),
+                  'text': 'and its second line',
+                }),
+              ]),
+            }),
+          ]),
+          'number': 1,
+          'order': list([
+            'p1-l1',
+            'p1-l2',
+          ]),
+        }),
+      ]),
+      'source': dict({
+        'encoding': 'windows-1252',
+        'encoding_guessed': True,
+        'format': 'text',
+        'name': 'notes.txt',
+      }),
+    }),
   })
 # ---
