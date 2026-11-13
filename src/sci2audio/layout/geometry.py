@@ -25,6 +25,24 @@ def union(boxes: list[Box]) -> Box:
     )
 
 
+def holds(outer: Box, inner: Box) -> bool:
+    """True if the inner box lies wholly inside the outer one (edges may touch)."""
+    return (
+        outer.x0 <= inner.x0
+        and inner.x1 <= outer.x1
+        and outer.y0 <= inner.y0
+        and inner.y1 <= outer.y1
+    )
+
+
+def minor(boxes: Sequence[Box], mark: float, width: float) -> bool:
+    """True for graphics read as one that are lines only, each at most `width` thick (a
+    rule, a frame, arrows, a fraction bar), or no taller than `mark` together (an icon): a
+    loose line or mark (D-90, D-92), not a figure."""
+    box = union(list(boxes))
+    return box.y1 - box.y0 <= mark or all(min(b.x1 - b.x0, b.y1 - b.y0) <= width for b in boxes)
+
+
 def same_row(a: Box, b: Box, overlap: float) -> bool:
     """True if the boxes overlap vertically by `overlap` of the lower one's height."""
     shared = min(a.y1, b.y1) - max(a.y0, b.y0)

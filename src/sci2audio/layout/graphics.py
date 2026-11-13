@@ -54,7 +54,7 @@ from sci2audio.core import (
     Part,
     TextLine,
 )
-from sci2audio.layout.geometry import line_size, same_row, union
+from sci2audio.layout.geometry import holds, line_size, minor, same_row, union
 from sci2audio.layout.settings import LayoutSettings
 from sci2audio.layout.split import kept, part_ends, read_rows
 
@@ -398,19 +398,10 @@ def _hosts(
         if actions.get(k) != "join":
             continue
         box = union([i.box for i in group])
-        holding = [i for i in lines if _holds(i.box, box)]
+        holding = [i for i in lines if holds(i.box, box)]
         if holding:
             found[k] = min(holding, key=lambda i: (_area(i.box), read[i.id])).id
     return found
-
-
-def _holds(outer: Box, inner: Box) -> bool:
-    return (
-        outer.x0 <= inner.x0
-        and inner.x1 <= outer.x1
-        and outer.y0 <= inner.y0
-        and inner.y1 <= outer.y1
-    )
 
 
 def _area(box: Box) -> float:
@@ -419,10 +410,10 @@ def _area(box: Box) -> float:
 
 def _minor(group: list[_Item], state: _State) -> bool:
     """True for lines only (a rule, a frame, arrows) or a mark no taller than
-    `mark_height` (an icon)."""
-    box = union([i.box for i in group])
-    mark = box.y1 - box.y0 <= state.settings.mark_height * state.body
-    return mark or all(_is_line(i, state) for i in group)
+    `mark_height` (an icon): `geometry.minor`, which the reading order shares (#163)."""
+    settings = state.settings
+    mark, width = settings.mark_height * state.body, settings.line_width * state.body
+    return minor([i.box for i in group], mark, width)
 
 
 def _repeated(pages: list[list[_Item]], state: _State) -> dict[int, str]:
