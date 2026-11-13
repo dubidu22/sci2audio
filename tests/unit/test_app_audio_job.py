@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from audio_fakes import FakeVoice
+from audio_fakes import FakeVoice, chunk_count
 from pdf_maker import Text, make_pdf
 
 from sci2audio.app import (
@@ -35,6 +35,11 @@ from sci2audio.voices import ModelNotFoundError
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 PYMEDPHYS = CORPUS / "papers" / "joss2022-biggs-pymedphys.pdf"
+
+
+def chunks() -> int:
+    """The chunks a default job on the PyMedPhys paper speaks (41 before #66's steps)."""
+    return chunk_count(PYMEDPHYS)
 
 
 class Replacing(TextStep):
@@ -92,7 +97,7 @@ def test_a_paper_becomes_mp3s_an_m4b_a_read_along_file_and_records(tmp_path: Pat
     assert sum(n.endswith(".mp3") for n in names) == 4
     assert job.written.m4b is not None
     assert job.written.m4b.name in names
-    assert (job.spoken, job.reused, job.skipped) == (41, 0, ())
+    assert (job.spoken, job.reused, job.skipped) == (chunks(), 0, ())
     assert voice.made == voice.released == voice.sessions_disposed == 1
     readalong = read_readalong(job.written.readalong)
     planned = [u.span for u in job.result.utterances if not u.pause]
@@ -102,7 +107,7 @@ def test_a_paper_becomes_mp3s_an_m4b_a_read_along_file_and_records(tmp_path: Pat
     ]
     record = json.loads(job.record.read_text(encoding="utf-8"))
     assert (record["format"], record["version"]) == ("sci2audio-audio", 1)
-    assert record["chunks"] == {"total": 41, "spoken": 41, "reused": 0, "skipped": 0}
+    assert record["chunks"] == {"total": chunks(), "spoken": chunks(), "reused": 0, "skipped": 0}
     assert record["duration"] == readalong.duration == job.duration
     assert [c["selected"] for c in record["chapters"]] == [True, True, True, True, False]
     assert record["files"]["m4b"] == job.written.m4b.name
@@ -117,9 +122,9 @@ def test_a_rerun_reuses_every_chunk_and_never_loads_the_voice(tmp_path: Path) ->
     before = first.written.readalong.read_text(encoding="utf-8")
     voice = FakeVoice()
     again = run(PYMEDPHYS, tmp_path, voice, overwrite=True)
-    assert (again.spoken, again.reused, voice.made) == (0, 41, 0)
+    assert (again.spoken, again.reused, voice.made) == (0, chunks(), 0)
     assert again.written.readalong.read_text(encoding="utf-8") == before
-    assert json.loads(again.record.read_text())["chunks"]["reused"] == 41
+    assert json.loads(again.record.read_text())["chunks"]["reused"] == chunks()
 
 
 def test_existing_audiobook_files_are_refused_before_the_voice_is_made(tmp_path: Path) -> None:
@@ -174,18 +179,18 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
         Phase.ENCODING,
         Phase.DONE,
     ]
-    chunks = [e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0]
-    assert [e.chunks_done for e in chunks] == list(range(1, 42))
-    assert all(e.chunks_total == 41 and e.chapters == 4 for e in chunks)
-    done = [e.characters_done for e in chunks]
+    events_spoken = [e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0]
+    assert [e.chunks_done for e in events_spoken] == list(range(1, chunks() + 1))
+    assert all(e.chunks_total == chunks() and e.chapters == 4 for e in events_spoken)
+    done = [e.characters_done for e in events_spoken]
     assert done == sorted(done)
-    assert done[-1] == chunks[-1].characters_total
+    assert done[-1] == events_spoken[-1].characters_total
     # the speed: every chunk takes 1 s on the clock; the first one (warm-up) is not measured
     texts = [u.text for u in job.result.utterances if not u.pause]
     measured = sum(len(t) for t in texts[1:])
-    assert chunks[-1].characters_per_second == pytest.approx(measured / 40)
-    first_chapter = [e for e in chunks if e.chapter == 0]
-    for event in chunks:
+    assert events_spoken[-1].characters_per_second == pytest.approx(measured / (chunks() - 1))
+    first_chapter = [e for e in events_spoken if e.chapter == 0]
+    for event in events_spoken:
         measured_so_far = event.characters_done - len(texts[0])
         ready = event.chunks_done >= len(first_chapter) and measured_so_far >= 500
         assert (event.seconds_left is not None) == ready, event
@@ -193,7 +198,7 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
             left = event.characters_total - event.characters_done
             assert event.characters_per_second is not None
             assert event.seconds_left == pytest.approx(left / event.characters_per_second)
-    assert chunks[-1].seconds_left == 0
+    assert events_spoken[-1].seconds_left == 0
 
 
 def test_cancel_before_the_start_does_nothing(tmp_path: Path) -> None:
@@ -220,7 +225,7 @@ def test_cancel_while_speaking_keeps_the_finished_chunks_for_a_rerun(tmp_path: P
     assert outputs(tmp_path) == []
     rest = FakeVoice()
     job = run(PYMEDPHYS, tmp_path, rest)
-    assert (len(rest.spoken), job.reused) == (36, 5)
+    assert (len(rest.spoken), job.reused) == (chunks() - 5, 5)
 
 
 def test_cancel_while_encoding_leaves_no_audiobook_file(tmp_path: Path) -> None:
@@ -234,7 +239,7 @@ def test_cancel_while_encoding_leaves_no_audiobook_file(tmp_path: Path) -> None:
         run(PYMEDPHYS, tmp_path, FakeVoice(), cancel=cancel, progress=progress)
     assert outputs(tmp_path) == []  # no partial file, no target
     job = run(PYMEDPHYS, tmp_path, FakeVoice())
-    assert job.reused == 41
+    assert job.reused == chunks()
 
 
 def test_an_unknown_voice_is_refused_before_any_work(tmp_path: Path) -> None:

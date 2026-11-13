@@ -641,3 +641,11 @@ issue = 66
 goal = "'Reference' is not capitalised after 'cf.', and a bracket after 'Eq.' is its number, not a citation (D-171, D-172, review of PR #103)."
 blocks = [{ kind = "paragraph", text = "This was shown before, cf. [4], and Eq. [3] holds." }]
 expected = ["This was shown before, cf. reference 4, and Eq. [3] holds."]
+
+[[case]]
+id = "reference-word-before-a-numeric-citation"
+audit = 0
+issue = 66
+goal = "'Reference [12]' and 'References [3, 5]' are read along with the number; 'the EM algorithm [5]' is a citation, 'Algorithm [5]' a number (D-171, D-172)."
+blocks = [{ kind = "paragraph", text = "As discussed in Reference [12], the EM algorithm [5] converges. References [3, 5] show it, and Algorithm [5] runs." }]
+expected = ["As discussed in reference 12, the EM algorithm converges. References 3 and 5 show it, and Algorithm [5] runs."]

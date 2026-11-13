@@ -11,11 +11,13 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import cache
 from pathlib import Path
 
 import numpy as np
 
-from sci2audio.app import VoiceSource
+from sci2audio.app import JobSettings, VoiceSource, plan_audio, prepare_script
+from sci2audio.app.job import read_document
 from sci2audio.voices import (
     PCM_FLOAT32,
     Duration,
@@ -125,3 +127,16 @@ class FakeEngine:
 
     def dispose(self) -> None:
         self.disposed = True
+
+
+@cache
+def chunk_count(source: Path) -> int:
+    """How many different chunks a job with the default settings speaks for `source`.
+
+    It follows from the text steps, so tests that count chunks do not change when a step
+    reads a paper differently.
+    """
+    settings = JobSettings(output_folder=source.parent)
+    result = prepare_script(read_document(source, settings, lambda phase: None), settings)
+    plan = plan_audio(result, engine="fake", engine_version="1", voice="v", speed=1.0)
+    return len({chunk.key for chunk in plan.chunks})

@@ -305,6 +305,16 @@ def test_the_step_is_english_only_and_its_switch_reads_citations_as_printed() ->
         ("as shown before, cf. [4], and so", "as shown before, cf. reference 4, and so"),
         ("This e.g. [3] shows it.", "This e.g. reference 3 shows it."),
         ("Eq. [3] holds and Fig. [2] too.", "Eq. [3] holds and Fig. [2] too."),
+        ("Algorithm [5] runs.", "Algorithm [5] runs."),
+        # ... but only a capitalised label word: these are citations (review round 2, R2-2)
+        ("the EM algorithm [5] works.", "the EM algorithm works."),
+        ("the Schrödinger equation [4] holds.", "the Schrödinger equation holds."),
+        ("Bayes' theorem [3] holds.", "Bayes' theorem holds."),
+        ("the first step [7] holds.", "the first step holds."),
+        # "Reference" and "References" are read along, as "Ref." is (KB review, K5)
+        ("As discussed in Reference [12], it holds.", "As discussed in reference 12, it holds."),
+        ("References [3, 5] show it.", "References 3 and 5 show it."),
+        ("the reference [52] list", "the reference list"),
         ("It works. [12] showed it.", "It works. Reference 12 showed it."),
     ],
 )  # fmt: skip

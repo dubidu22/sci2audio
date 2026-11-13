@@ -43,6 +43,7 @@ class CitationWords:
 
     before: frozenset[str]  # words after which a numeric citation is part of the sentence
     refs: frozenset[str]  # "Ref." and the like, replaced along with the citation
+    ref_words: frozenset[str]  # "Reference [12]", replaced along only when capitalised
     nouns: frozenset[str]  # words after which a bracketed author-year citation is a noun
     asides: tuple[str, ...]  # phrases after which a citation is an aside after all
     lead: tuple[str, ...]  # words that may stand before citations inside brackets
@@ -61,6 +62,7 @@ WORDS: dict[str, CitationWords] = {
             "i.e.,", "per", "within", "into", "about", "against",
         )),
         refs=frozenset(["ref.", "refs."]),
+        ref_words=frozenset(["Reference", "References"]),
         nouns=frozenset((
             "in", "by", "of", "from", "to", "see", "with", "following", "than", "like", "unlike",
             "on", "under", "via", "cf.", "as", "per", "within", "into", "about", "against",
@@ -327,14 +329,14 @@ class _Rules:
         if previous and (
             previous[-1] in _MATHS_SIGNS
             or previous.lower() in self.words.maths
-            or previous.lower().lstrip("([") in self.words.numbered
+            or _is_label_word(previous.lstrip("(["), self.words.numbered)
             or previous.endswith("%")
         ):
             return None
         printed = _printed(text[node.open : node.close + 1])
         word = re.sub(r"\A\W*\d*", "", previous).lower()  # "8See" -> "see", "(see" -> "see"
         start = node.open
-        if previous.lower() in self.words.refs:
+        if previous.lower() in self.words.refs or previous in self.words.ref_words:
             start = window + len(before) - len(previous)
             printed = _printed(text[start : node.close + 1])
         elif (
@@ -607,6 +609,12 @@ def _with_space(text: str, start: int, end: int) -> tuple[int, int]:
     while end < len(text) and text[end].isspace():
         end += 1
     return 0, end
+
+
+def _is_label_word(word: str, numbered: frozenset[str]) -> bool:
+    """A capitalised label word ("Eq.", "Fig.", "Table"): "the EM algorithm [5]" and "the
+    first step [7]" are citations, "Algorithm [5]" is a number."""
+    return word[:1].isupper() and word.lower() in numbered
 
 
 def _last_mark_at(text: str, kept_end: int, start: int) -> int:
