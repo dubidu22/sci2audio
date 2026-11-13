@@ -202,11 +202,15 @@ class FootnoteStep(TextStep):
                 spans[-1][1] = end
             else:
                 spans.append([offset, end])
+        taken = 0  # where the last back-link edit ends: the next one starts after it
         for start, end in spans:
-            if not block.text[start:end].strip():
+            text = block.text[start:end]
+            if not text.strip():
                 continue
-            while start > 0 and block.text[start - 1].isspace():
+            end = start + len(text.rstrip())
+            while start > taken and block.text[start - 1].isspace():
                 start -= 1
+            taken = end
             yield Edit(
                 Span(index, start, end),
                 EditKind.REMOVE,
@@ -309,8 +313,10 @@ class FootnoteStep(TextStep):
 
 
 def _noteref_link(run: TextRun) -> str | None:
-    """The item a noteref run links to; None for any other run."""
-    if not NOTEREF_TAGS & set(run.tags):
+    """The item a noteref run links to; None for any other run (a back-link tagged as a
+    noteref too is a back-link)."""
+    tags = set(run.tags)
+    if not NOTEREF_TAGS & tags or BACKLINK_TAGS & tags:
         return None
     return next((tag[len(_LINK) :] for tag in run.tags if tag.startswith(_LINK)), None)
 

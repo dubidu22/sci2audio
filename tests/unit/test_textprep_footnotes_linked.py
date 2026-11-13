@@ -252,6 +252,15 @@ def test_back_links_side_by_side_are_one_edit_and_apart_are_two() -> None:
     assert read(document) == ["Footnote. One. Two."]
 
 
+def test_a_back_link_ending_in_a_space_leaves_that_space_to_the_next_one() -> None:
+    text = f"Note {ARROW}  {ARROW}"  # the first back-link run holds the space after it
+    document = make_document(
+        [(BlockKind.FOOTNOTE, text)], tags={0: [(5, 8, BACKLINK), (9, 11, BACKLINK)]}
+    )
+    assert removed(document) == [f" {ARROW}", f"  {ARROW}"]
+    assert read(document) == ["Footnote. Note"]
+
+
 def test_a_back_link_at_the_start_of_a_note_comes_before_its_introduction() -> None:
     text = f"{ARROW} The note."
     document = make_document(
@@ -267,6 +276,17 @@ def test_a_note_of_only_a_back_link_gets_no_introduction() -> None:
         tags={0: [at("Body.1", "1", to(1))], 1: [at(f"  {ARROW} ", ARROW, BACKLINK)]},
     )
     assert read(document) == ["Body.", ""]
+
+
+def test_a_back_link_also_tagged_as_a_noteref_is_a_back_link() -> None:
+    text = f"The note. {ARROW}"
+    both = ("a", "epub:noteref", "epub:backlink", "link:b1l0")
+    document = make_document(
+        [(BlockKind.FOOTNOTE, text), (BlockKind.FOOTNOTE, "Another.")],
+        tags={0: [at(text, ARROW, both)]},
+    )
+    assert removed(document) == [f" {ARROW}"]
+    assert read(document) == ["Footnote. The note.", "Footnote. Another."]
 
 
 def test_a_back_link_outside_a_note_is_read() -> None:
@@ -323,13 +343,14 @@ def linked_documents(draw: st.DrawFn) -> Document:
         text, ranges = "", []
         for _ in range(draw(st.integers(0, 6))):
             piece = draw(_PIECES)
-            role = draw(st.sampled_from(["plain", "noteref", "backlink", "sup", "epub"]))
+            role = draw(st.sampled_from(["plain", "noteref", "backlink", "sup", "epub", "both"]))
             if piece and role != "plain":
                 link = f"link:b{draw(st.integers(0, count))}l0"  # count: links to nothing
                 tag = {
                     "noteref": ("sup", "role:doc-noteref", link),
                     "epub": ("epub:noteref", link),
                     "backlink": ("role:doc-backlink", link),
+                    "both": ("epub:noteref", "epub:backlink", link),
                     "sup": ("sup",),
                 }[role]
                 ranges.append((len(text), len(text) + len(piece), tag))
