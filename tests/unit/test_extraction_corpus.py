@@ -84,7 +84,7 @@ NOT_TRUTH_HEADINGS = {
     ("arxiv2024-liu-orbital-hall", 2): "not printed",
     ("arxiv2024-liu-orbital-hall", 3): "not printed",
 }
-PRINTED_NUMBER = re.compile(r"(?:\d+|[A-Z])(?:\.\d+)* ")  # "2.1 ", "A "
+PRINTED_NUMBER = re.compile(r"^(?:\d+|[A-Z])(?:\.\d+)* ")  # "2.1 ", "A ": at the start only
 
 
 @cache
@@ -171,6 +171,14 @@ def test_each_outline_entry_names_a_truth_heading(paper: Path) -> None:
         for k, entry in enumerate(content(paper).outline, 1)
         if (paper.stem, k) in NOT_TRUTH_HEADINGS
     ]
+
+
+def test_a_printed_number_is_taken_off_the_front_only() -> None:
+    """Review of #133: nothing in the middle of a heading looks like a number to strip."""
+    assert PRINTED_NUMBER.sub("", "2.1 Setup", count=1) == "Setup"
+    assert PRINTED_NUMBER.sub("", "A Proofs", count=1) == "Proofs"
+    checklist = "ACL 2023 Responsible NLP Checklist"
+    assert PRINTED_NUMBER.sub("", checklist, count=1) == checklist
 
 
 def test_outlines_named_here_are_the_corpus_papers() -> None:

@@ -96,12 +96,13 @@ class Mark:
     """A bookmark for `outlined_pdf`. `title` as text is stored in UTF-16 with a byte-order
     mark; as bytes it is stored as it is (PDFDocEncoding). `page` counts from 1; a page the
     file does not have points at a missing object. `goto` stores the target as a GoTo action
-    instead of a destination."""
+    instead of a destination; `loop` makes the bookmark's first child its own parent."""
 
     title: str | bytes
     page: int | None = None
     children: tuple[Mark, ...] = ()
     goto: bool = False
+    loop: bool = False  # its /First and /Last point back at its parent, as in a damaged file
 
 
 def outlined_pdf(pages: int, marks: tuple[Mark, ...], *, circular: bool = False) -> bytes:
@@ -150,6 +151,8 @@ def outlined_pdf(pages: int, marks: tuple[Mark, ...], *, circular: bool = False)
             if mark.children:
                 first, last = write(mark.children, own, loop=False)
                 links += f" /First {first} 0 R /Last {last} 0 R /Count {len(mark.children)}"
+            elif mark.loop:
+                links += f" /First {parent} 0 R /Last {parent} 0 R /Count 1"
             objects[own] = f"<< /Title {title(mark)}{links}{target(mark)} >>".encode()
         return ids[0], ids[-1]
 
