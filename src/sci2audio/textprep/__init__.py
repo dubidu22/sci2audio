@@ -8,7 +8,9 @@ the voice says in one call each.
 Pipeline stage; may import only ``sci2audio.core``.
 """
 
+from sci2audio.textprep.characters import UnicodeStep
 from sci2audio.textprep.furniture import FurnitureStep
+from sci2audio.textprep.hyphens import LineEndHyphenStep
 from sci2audio.textprep.registry import BUILT_IN_STEPS, check_registry
 from sci2audio.textprep.runner import (
     Outcome,
@@ -46,6 +48,7 @@ __all__ = [
     "TEXT_STEP_API",
     "Category",
     "FurnitureStep",
+    "LineEndHyphenStep",
     "Outcome",
     "Stage",
     "Status",
@@ -54,6 +57,7 @@ __all__ = [
     "StepProblem",
     "StepRun",
     "TextStep",
+    "UnicodeStep",
     "Utterance",
     "check_registry",
     "cut_utterances",

@@ -79,7 +79,7 @@ id = "soft-hyphens"
 audit = 0
 issue = 65
 goal = "Soft hyphens are not read; one at a line end joins the word (IN-04)."
-blocks = [{ kind = "paragraph", text = "An extra­ordinary result was re­\nported." }]
+blocks = [{ kind = "paragraph", text = "An extra\u00ADordinary result was re\u00AD\nported." }]
 expected = ["An extraordinary result was reported."]
 
 [[case]]
@@ -87,7 +87,7 @@ id = "invisible-characters"
 audit = 0
 issue = 65
 goal = "Zero-width and other invisible characters are not read (IN-04)."
-blocks = [{ kind = "paragraph", text = "The data​set was open⁠ and﻿ free." }]
+blocks = [{ kind = "paragraph", text = "The data\u200Bset was open\u2060 and\uFEFF free." }]
 expected = ["The dataset was open and free."]
 
 [[case]]
@@ -95,7 +95,7 @@ id = "odd-spaces"
 audit = 0
 issue = 65
 goal = "No-break, thin and narrow spaces read as plain spaces, without edits (D-151)."
-blocks = [{ kind = "paragraph", text = "Groups A and B met at noon." }]
+blocks = [{ kind = "paragraph", text = "Groups\u00A0A and\u2009B met at\u202Fnoon." }]
 expected = ["Groups A and B met at noon."]
 
 [[case]]

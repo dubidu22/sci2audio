@@ -1,7 +1,8 @@
 """Page furniture is not read (TP-01, #63): unit cases and the corpus papers.
 
-The golden file holds, per corpus paper, how many edits each category proposed and what
-became of them, so later rule PRs show their effect on real papers as a small diff.
+The golden file holds, per corpus paper, how many edits each category of all built-in steps
+proposed and what became of them, so later rule PRs show their effect on real papers as a
+small diff.
 Accept a wanted change with `uv run pytest --snapshot-update` and explain it in the PR.
 """
 
@@ -61,18 +62,21 @@ def test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed(
     paper: Path, snapshot: SnapshotAssertion
 ) -> None:
     doc = document(paper)
-    run = run_steps(doc, StepContext(doc.language), strict=True)
+    # the furniture step alone: every other block reads exactly as printed
+    alone = run_steps(doc, StepContext(doc.language), (FurnitureStep(),), strict=True)
     furniture = {i for i, block in enumerate(doc.blocks) if block.kind is BlockKind.FURNITURE}
-    assert {edit.span.block for edit in run.accepted} == {
+    assert {edit.span.block for edit in alone.accepted} == {
         i for i in furniture if doc.blocks[i].text
     }
-    assert not run.problems
-    assert not run.not_run
     read: dict[int, str] = {}
-    for piece in run.script():
+    for piece in alone.script():
         read[piece.span.block] = read.get(piece.span.block, "") + piece.text
     for index, block in enumerate(doc.blocks):
         assert read.get(index, "") == ("" if index in furniture else block.text)
+    # all built-in steps: the summary shows each rule's effect on the paper
+    run = run_steps(doc, StepContext(doc.language), strict=True)
+    assert not run.problems
+    assert not run.not_run
     summary = Counter(f"{o.category}: {o.status}" for o in run.outcomes)
     assert dict(sorted(summary.items())) == snapshot
     assert summary[f"page-furniture: {Status.ACCEPTED}"] > 0

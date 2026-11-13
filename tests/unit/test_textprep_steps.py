@@ -101,7 +101,11 @@ def test_a_step_context_needs_a_language() -> None:
 
 def test_the_built_in_registry_is_valid() -> None:
     check_registry(BUILT_IN_STEPS)
-    assert [step.id for step in BUILT_IN_STEPS] == ["page-furniture"]
+    assert [step.id for step in BUILT_IN_STEPS] == [
+        "page-furniture",
+        "unicode-clean-up",  # characters and hyphenation run last (D-150)
+        "line-end-hyphens",
+    ]
 
 
 def test_block_steps_must_come_before_inline_steps() -> None:

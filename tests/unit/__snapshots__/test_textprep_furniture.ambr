@@ -1,36 +1,43 @@
 # serializer version: 1
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-chi-plue]
   dict({
+    'characters: accepted': 160,
     'page-furniture: accepted': 17,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-hardt-ellipsis]
   dict({
+    'characters: accepted': 84,
     'page-furniture: accepted': 12,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-nowak-prefix-probabilities]
   dict({
+    'characters: accepted': 87,
     'page-furniture: accepted': 14,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-arsiwalla-qualia-meaning]
   dict({
+    'characters: accepted': 85,
     'page-furniture: accepted': 40,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-liu-orbital-hall]
   dict({
+    'characters: accepted': 106,
     'page-furniture: accepted': 6,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2021-waskom-seaborn]
   dict({
+    'characters: accepted': 11,
     'page-furniture: accepted': 29,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2022-biggs-pymedphys]
   dict({
+    'characters: accepted': 2,
     'page-furniture: accepted': 28,
   })
 # ---

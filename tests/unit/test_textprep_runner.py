@@ -180,7 +180,8 @@ def test_steps_in_a_bad_order_are_refused() -> None:
 
 def test_the_default_steps_are_the_built_in_ones() -> None:
     run = run_steps(DOC, EN, strict=True)
-    assert [o.edit.step for o in run.outcomes] == [step.id for step in BUILT_IN_STEPS]
+    assert run == run_steps(DOC, EN, BUILT_IN_STEPS, strict=True)
+    assert [o.edit.step for o in run.outcomes] == ["page-furniture"]  # the others find nothing
     assert render_blocks(DOC, run.script()) == ["Several studies (Smith, 2019) agree.", ""]
 
 
