@@ -50,7 +50,6 @@ def test_an_audio_job_writes_the_audiobook_to_the_output_folder(tmp_path: Path) 
     doc = upload(client, note(), "note.pdf")
     job = start_audio(client, doc["id"])
     assert job["id"] == f"{doc['id']}-audio-1"
-    assert job["cancellable"] is True
     seen = events(client, job["id"])
     assert seen[0][0] == "snapshot"
     assert seen[-1][0] == "end"
@@ -154,6 +153,7 @@ def test_cancelling_while_speaking_keeps_the_chunks(tmp_path: Path) -> None:
     doc = upload(client, note())
     job = start_audio(client, doc["id"])
     assert reached.wait(30)
+    assert client.get(f"/api/v1/jobs/{job['id']}").json()["cancellable"] is True
     busy = client.delete(f"/api/v1/documents/{doc['id']}/chunks")
     assert busy.status_code == 409
     assert busy.json()["error"] == "busy"
@@ -161,6 +161,7 @@ def test_cancelling_while_speaking_keeps_the_chunks(tmp_path: Path) -> None:
     gate.set()
     done = wait(client, job["id"])
     assert done["state"] == "cancelled"
+    assert done["cancellable"] is False
     assert done["files"] == []
     assert not config.output_folder.exists() or list(config.output_folder.iterdir()) == []
     assert list((config.work_root / doc["id"] / "chunks").rglob("*.wav"))

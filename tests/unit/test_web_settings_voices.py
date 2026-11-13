@@ -269,6 +269,8 @@ def test_the_download_with_consent_puts_the_files_in_place(
     tmp_path: Path, small_plan: DownloadPlan
 ) -> None:
     fake = FakeServer(SERVED)
+    gate = threading.Event()
+    fake.on_block = lambda url, start: None if gate.wait(10) else pytest.fail("gate")
     client, config = voices_app(tmp_path, fake)
     response = client.post(
         "/api/v1/voices/download", json={"consent": True, "plan": plan_digest(small_plan)}
@@ -278,9 +280,11 @@ def test_the_download_with_consent_puts_the_files_in_place(
     assert job["id"] == "voices-1"
     assert job["kind"] == "voices"
     assert job["document"] is None
-    assert job["cancellable"] is True
+    assert job["cancellable"] is True  # held at the first block: still running
+    gate.set()
     done = wait(client, job["id"])
     assert done["state"] == "done", done
+    assert done["cancellable"] is False
     assert done["progress"] == {"phase": "done"}
     assert (config.models_dir / "voice" / "a.bin").read_bytes() == SERVED[
         "https://example.test/a.bin"
