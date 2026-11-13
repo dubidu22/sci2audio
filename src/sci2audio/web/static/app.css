@@ -101,6 +101,9 @@ input[type="range"] { width: 16rem; max-width: 70%; accent-color: var(--button);
 progress { width: 100%; height: 1.25rem; accent-color: var(--button); }
 details { margin: 0.5rem 0; }
 summary { cursor: pointer; font-weight: bold; }
+/* removing a document (#120): a long file name or folder wraps instead of widening the page */
+.remove, #removed, .message { overflow-wrap: anywhere; }
+.remove button { max-width: 100%; text-align: left; }
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; margin: 0.5rem 0; }
 caption { text-align: left; font-weight: bold; }

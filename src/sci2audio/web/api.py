@@ -21,9 +21,9 @@ from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
 from sci2audio.textprep import Category
 from sci2audio.voices import DEFAULT_VOICE, ENGLISH_VOICES, download_plan, missing_files
 from sci2audio.web import models
-from sci2audio.web.documents import StoredDocument, StoreError
+from sci2audio.web.documents import DocumentBusyError, RemoveError, StoredDocument, StoreError
 from sci2audio.web.jobs import BoardBusyError, JobKind, JobRecord, JobState
-from sci2audio.web.player import audiobook_file
+from sci2audio.web.player import audiobook_file, recorded_folder
 from sci2audio.web.state import ApiError, ServerState, state_of
 from sci2audio.web.tasks import plan_digest, script_work, voices_work
 
@@ -46,10 +46,21 @@ MEDIA_TYPES = {
 }
 
 
+# Our own words for answers whose standard phrase reads like a leaked server error: the
+# OpenAPI document must never say "Internal Server Error" (the ZAP baseline scan flags it
+# as error disclosure, alerts 90022 and 10023; #120 review round 3)
+DESCRIPTIONS = {500: "sci2audio could not finish; the message says what is left to do"}
+
+
 def _errors(*codes: int) -> dict[int | str, dict[str, Any]]:
     """The error answers of a route, for the OpenAPI document; every route can answer 400
     (a body or path that can't be read) and 422 (one that doesn't fit)."""
-    return {code: {"model": models.ErrorOut} for code in sorted({*codes, 400, 422})}
+    answers: dict[int | str, dict[str, Any]] = {}
+    for code in sorted({*codes, 400, 422}):
+        answers[code] = {"model": models.ErrorOut}
+        if code in DESCRIPTIONS:
+            answers[code]["description"] = DESCRIPTIONS[code]
+    return answers
 
 
 BODY = (411, 413)  # from the size limit (limits.py)
@@ -86,10 +97,18 @@ def _document(state: ServerState, document_id: str) -> StoredDocument:
     return document
 
 
-def _not_in_use(state: ServerState, document_id: str) -> None:
+def _job_on(state: ServerState, document_id: str) -> str | None:
+    """Why the document can't be changed now: this server's running job works on it."""
     job = state.board.current
     if job is not None and job.document == document_id:
-        raise ApiError(409, "busy", f"job {job.id} is working on this document; wait for it")
+        return f"job {job.id} is working on this document; wait for it"
+    return None
+
+
+def _not_in_use(state: ServerState, document_id: str) -> None:
+    reason = _job_on(state, document_id)
+    if reason is not None:
+        raise ApiError(409, "busy", reason)
 
 
 def _stored(state: ServerState, store: Any) -> models.DocumentOut:
@@ -136,6 +155,36 @@ def open_text(state: State, body: models.TextIn) -> models.DocumentOut:
 )
 def list_documents(state: State) -> list[models.DocumentOut]:
     return [_document_out(document) for document in state.store.all()]
+
+
+@router.delete(
+    "/documents/{document_id}",
+    response_model=models.RemovedOut,
+    responses=_errors(404, 409, 500),
+    summary="Remove a document and its whole working folder",
+)
+def remove_document(state: State, document_id: str) -> models.RemovedOut:
+    """Removes the copy of the file, its analysis, the speech cache and the records; never
+    anything in an output folder, so the audiobook stays (#120, D-353 to D-358). Refused
+    with 409 while a job works on the document; 500 names what could not be removed, and
+    the document then stays listed for another try."""
+    document = _document(state, document_id)
+    folder = recorded_folder(document.folder, document.id)
+    try:
+        removed = state.store.remove(document_id, busy=lambda: _job_on(state, document_id))
+    except DocumentBusyError as error:
+        raise ApiError(409, "busy", str(error)) from error
+    except RemoveError as error:
+        raise ApiError(500, "remove-failed", str(error)) from error
+    if removed is None:  # removed meanwhile by another request
+        raise ApiError(404, "not-found", f"no document {document_id}; open the file again")
+    state.board.forget(document_id)
+    return models.RemovedOut(
+        id=removed.id,
+        name=removed.name,
+        freed_bytes=removed.freed_bytes,
+        audiobook_folder=None if folder is None else str(folder),
+    )
 
 
 @router.get(
@@ -388,12 +437,17 @@ def start_job(state: State, body: models.JobIn) -> models.JobOut:
     else:
         work = script_work(state.runner, document, settings)
         kind = JobKind.SCRIPT
-    try:
-        job = state.board.start(
-            kind, document.id, _settings_data(settings), work, cancellable=kind is JobKind.AUDIO
-        )
-    except BoardBusyError as error:
-        raise ApiError(409, "busy", str(error)) from error
+    # the check and the start are one step against a removal (D-356): either the job runs
+    # before the removal looks for one (409 there), or the removal began and this is 404
+    with state.store.unchanged(document.id) as still:
+        if still is None:
+            raise ApiError(404, "not-found", f"no document {document.id}; open the file again")
+        try:
+            job = state.board.start(
+                kind, document.id, _settings_data(settings), work, cancellable=kind is JobKind.AUDIO
+            )
+        except BoardBusyError as error:
+            raise ApiError(409, "busy", str(error)) from error
     return _job_out(job)
 
 
