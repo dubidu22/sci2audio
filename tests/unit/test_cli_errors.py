@@ -146,7 +146,7 @@ def test_clean_with_the_work_folder_option(cli: Cli, tmp_path: Path) -> None:
 
 def test_a_console_without_every_character_never_fails() -> None:
     raw = io.BytesIO()
-    stream = io.TextIOWrapper(raw, encoding="cp1252")
+    stream = io.TextIOWrapper(raw, encoding="cp1252", newline="\n")
     _never_fail_on_characters(stream)
     stream.write("Garc\u0131a and \U0001d45d < .05\n")
     stream.flush()
