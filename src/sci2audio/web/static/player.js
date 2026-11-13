@@ -36,10 +36,13 @@ function readAlong() {
   let frame = 0;
   let pending = null; // what to do once the file being loaded is ready
 
-  // while the bar sticks, nothing focused or scrolled to may hide under it (WCAG 2.4.11)
+  // the bar is pinned to the top only while it takes at most a quarter of the window, and
+  // then nothing focused or scrolled to may hide under it (WCAG 1.4.10, 2.4.11). Pinning
+  // does not change the bar's height, so the observer below does not loop.
   function pad() {
-    const sticky = getComputedStyle(bar).position === "sticky";
-    document.documentElement.style.scrollPaddingTop = sticky ? `${bar.offsetHeight + 8}px` : "";
+    const fits = bar.offsetHeight <= window.innerHeight / 4;
+    bar.classList.toggle("pinned", fits);
+    document.documentElement.style.scrollPaddingTop = fits ? `${bar.offsetHeight + 8}px` : "";
   }
   pad();
   if (window.ResizeObserver) new ResizeObserver(pad).observe(bar);

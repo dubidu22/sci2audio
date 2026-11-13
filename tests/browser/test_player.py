@@ -319,8 +319,12 @@ def test_the_player_bar_never_hides_the_page(signed_in: Page, live: Live) -> Non
                         height: bar.getBoundingClientRect().height};
             }"""
         )
-        if bar["sticky"]:
-            assert bar["height"] <= height / 4, f"{where}: a sticky bar of {bar}"
+        # pinned exactly while it takes at most a quarter of the window
+        assert bar["sticky"] == (bar["height"] <= height / 4), f"{where}: {bar}"
+        if (width, height) == (1280, 800):
+            assert bar["sticky"], f"{where}: a wide window keeps the bar in view: {bar}"
+        padding = page.evaluate("() => document.documentElement.style.scrollPaddingTop")
+        assert (padding != "") == bar["sticky"], f"{where}: scroll padding {padding!r}"
         # every chapter button reached by keyboard is in view and not under the bar
         page.locator("#follow").focus()
         for _ in range(2):

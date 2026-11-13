@@ -115,12 +115,11 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
   background: var(--bg); border-bottom: 1px solid var(--border);
   padding: 0.5rem 0; margin-bottom: 1rem;
 }
-/* the bar stays in view only where it fits: on a narrow or short view (a phone, or 400 %
-   zoom) it would hide the text, so it scrolls away with the page (WCAG 1.4.10, 2.4.11);
-   player.js keeps the page's scroll padding at the bar's real height while it sticks */
-@media (min-width: 48rem) and (min-height: 40rem) {
-  .player-bar { position: sticky; top: 0; z-index: 1; }
-}
+/* the bar stays in view only where it fits: player.js pins it only while it takes at most
+   a quarter of the window's height. On a narrow or short view (a phone, 400 % zoom, longer
+   German labels) it scrolls away with the page instead (WCAG 1.4.10, 2.4.11), and while it
+   is pinned the page's scroll padding is the bar's real height */
+.player-bar.pinned { position: sticky; top: 0; z-index: 1; }
 .player-bar p { margin: 0.25rem 0; }
 .player-line { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
 .player-line audio { width: 18rem; max-width: 100%; height: 2.5rem; }
