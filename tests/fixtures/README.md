@@ -10,3 +10,8 @@ the corpus. All files here are our own work, made for these tests, CC0-1.0.
 | `metadata.pdf` | A blank 200 × 200 pt page with Title, Author (`Lovelace, Ada; Babbage, Charles`), CreationDate (5 March 2024) and `/Lang` `en-GB`, which PDFium can't write | pikepdf, once |
 
 pikepdf (MPL-2.0) is not a dependency; it was only used to make these files.
+
+EPUBs for tests are never stored here: every made-up and broken EPUB (password, DRM, missing
+container, zip bombs, entity declarations, ...) is built inside the tests by
+`tests/unit/epub_maker.py` (#73, D-316). The one real EPUB is the corpus file
+`tests/corpus/epub/wells-the-time-machine.epub`.
