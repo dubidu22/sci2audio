@@ -318,7 +318,7 @@ def test_a_paper_the_job_cannot_read_is_refused_before_any_work(tmp_path: Path) 
         say=said.append,
     )
     assert code == 1
-    assert said == ["speed: notes.md: sci2audio can read .pdf files only"]
+    assert said == ["speed: notes.md: sci2audio can read .epub, .pdf files only"]
     assert not (tmp_path / "r.json").exists()
 
 

@@ -190,7 +190,7 @@ def test_errors_in_german_with_the_apps_words(signed_in: Page, live: Live) -> No
     message = page.locator("#message")
     expect(message).to_contain_text("Diese Art von Datei kann sci2audio nicht lesen.")
     expect(message.locator("span[lang=en]")).to_have_text(
-        "notes.docx: sci2audio can read .pdf files only"
+        "notes.docx: sci2audio can read .epub, .pdf files only"
     )
     expect(message).to_be_focused()
     check_axe(page, "de: start page with an error")

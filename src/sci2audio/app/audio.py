@@ -18,6 +18,10 @@ MP3 per chapter, the M4B and the read-along file → the job's records.
   can act on, and nothing half-written, when it cannot go on (D-140): the existing
   audiobook without `overwrite` (checked before any speech, D-163), missing voice files,
   a full disk, a removed output folder, ffmpeg failing.
+- The cover (D-313): the file's own cover image, written to the working folder as
+  `cover.jpg` or `cover.png` and decoded once by ffmpeg before any speech, goes into every
+  MP3 and the M4B. A file without one, or a cover that cannot be read, decoded or
+  written, gives an audiobook without a cover, never a failed job.
 """
 
 from __future__ import annotations
@@ -27,7 +31,7 @@ import threading
 import time
 import wave
 from collections.abc import Callable, Iterable, Iterator, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -40,8 +44,9 @@ from sci2audio.app.chunks import (
     is_finished,
     remove_partials,
 )
-from sci2audio.app.files import write_texts
+from sci2audio.app.files import write_bytes_atomically, write_texts
 from sci2audio.app.job import (
+    COVERS,
     JobCancelledError,
     JobError,
     OutputExistsError,
@@ -75,6 +80,7 @@ from sci2audio.output import (
     read_readalong,
     write_audiobook,
 )
+from sci2audio.output.ffmpeg import LOCAL_ONLY
 from sci2audio.textprep import BUILT_IN_STEPS, DEFAULT_MAX_CHARS, TextStep, Utterance
 from sci2audio.voices import (
     Engine,
@@ -88,6 +94,7 @@ RECORD = "audio.json"
 RECORD_FORMAT = "sci2audio-audio"
 RECORD_VERSION = 1
 DOCUMENT = "document.json"
+COVER_NAMES = ("cover.jpg", "cover.png")  # the cover in the working folder (D-313)
 ESTIMATE_MIN_CHARACTERS = 500  # measured before the first estimate (D-159)
 FAILURES_IN_A_ROW = 5  # the voice is taken as broken after this many (D-162)
 
@@ -236,12 +243,58 @@ def assemble(
 
 
 def book_info(document: Document) -> BookInfo:
-    """The book's title, authors and language for the files' metadata (cover: #73)."""
+    """The book's title, authors and language for the files' metadata (the cover is
+    `write_cover`'s)."""
     return BookInfo(
         title=document_title(document),
         authors=tuple(a for a in document.content.metadata.authors if a.strip()),
         language=document.language or "en",
     )
+
+
+def write_cover(source: Path, work: Path) -> Path | None:
+    """The source's cover image written to the working folder, or None (D-313).
+
+    None for a file type or file without a usable cover, and for a cover that cannot be
+    read or written: a missing cover never stops a job. A cover left by an earlier run is
+    removed first, so the audiobook never shows the cover of another file.
+    """
+    for name in COVER_NAMES:
+        with contextlib.suppress(OSError):
+            (work / name).unlink(missing_ok=True)
+    find = COVERS.get(source.suffix.lower())
+    if find is None:
+        return None
+    try:
+        cover = find(source)
+    except Exception:  # the cover functions give None on any damage; a bug must not stop the job
+        return None
+    if cover is None:
+        return None
+    target = work / f"cover{cover.suffix}"
+    try:
+        write_bytes_atomically(target, cover.data, overwrite=True)
+    except OSError:
+        return None
+    return target
+
+
+def usable_cover(cover: Path | None, exe: Path) -> Path | None:
+    """`cover` if ffmpeg can decode it, else None and the file removed (D-313).
+
+    `Cover` checks only the first bytes; a damaged image behind a good signature would make
+    ffmpeg refuse the first MP3 after all the speech. Decoding its first frame now, before
+    any speech, finds that out in a fraction of a second.
+    """
+    if cover is None:
+        return None
+    try:
+        Ffmpeg(exe).run([*LOCAL_ONLY, "-i", str(cover), "-frames:v", "1", "-f", "null", "-"])
+    except (FfmpegError, OSError):
+        with contextlib.suppress(OSError):
+            cover.unlink(missing_ok=True)
+        return None
+    return cover
 
 
 def audiobook_files(
@@ -408,6 +461,7 @@ def run_audio_job(
             )
         except FfmpegNotFoundError as error:
             raise JobError(str(error)) from error
+        book = replace(book, cover=usable_cover(write_cover(source, work), run.exe))
         _check_cancel(cancel)
 
         speech = _speak(plan, work, voice, voice_id, settings.speed, titles, tell, cancel, clock)

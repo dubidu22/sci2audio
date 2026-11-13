@@ -34,7 +34,14 @@ from sci2audio.app.report import (
 from sci2audio.app.script import ScriptResult, prepare_script
 from sci2audio.app.settings import JobSettings
 from sci2audio.core import Content, Document
-from sci2audio.extraction import ExtractionError, extract_pdf
+from sci2audio.extraction import (
+    Cover,
+    ExtractionError,
+    extract_epub,
+    extract_epub_cover,
+    extract_pdf,
+    extract_pdf_cover,
+)
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.output.names import clean
 from sci2audio.textprep import BUILT_IN_STEPS, DEFAULT_MAX_CHARS, TextStep
@@ -43,8 +50,13 @@ RECORD = "job.json"
 RECORD_FORMAT = "sci2audio-job"
 RECORD_VERSION = 1
 
-# extraction by file suffix; EPUB, Markdown and text join as #73 and #74 land
-EXTRACTORS: Mapping[str, Callable[[Path], Content]] = {".pdf": extract_pdf}
+# extraction by file suffix; Markdown and text join as #74 lands
+EXTRACTORS: Mapping[str, Callable[[Path], Content]] = {".epub": extract_epub, ".pdf": extract_pdf}
+# the cover image a file type gives, or None (D-313); a type without one has no entry
+COVERS: Mapping[str, Callable[[Path], Cover | None]] = {
+    ".epub": extract_epub_cover,
+    ".pdf": extract_pdf_cover,
+}
 
 
 class Phase(StrEnum):
