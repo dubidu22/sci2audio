@@ -186,8 +186,8 @@ def test_the_voice_setup_page_shows_the_whole_download(server: tuple[FastAPI, An
     page = client.get("/voice").text
     assert "Set up the voice" in page
     assert "kokoro-v1_0.pth" in page
-    assert "huggingface.co" in page
-    assert "github.com" in page
+    hosts = re.findall(r"<li>([^<]*)</li>", page)
+    assert hosts[:2] == ["github.com", "huggingface.co"]  # with their redirect hosts after
     assert 'id="voice-consent" name="consent" required' in page
     assert re.search(r'data-plan="[0-9a-f]{64}"', page)
 
@@ -298,8 +298,7 @@ def test_no_page_loads_anything_from_outside() -> None:
     for url in re.findall(r"[\"'`](/[^\"'`]*)", script):
         assert url.startswith(("/api/v1/", "/documents/", "/jobs/")), url
     templates = "".join(t for n, t in texts.items() if n.startswith("templates"))
-    assert "<script>" not in templates
-    assert re.findall(r"<script[^>]*>", templates) == [
+    assert re.findall(r"<script[^>]*>", templates, re.IGNORECASE) == [
         '<script id="strings" type="application/json">',  # data, not code (D-256)
         '<script src="/static/app.js" defer>',
     ]
