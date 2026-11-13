@@ -102,7 +102,7 @@ def find_headings(
     for index, (level, label) in sorted(levels.items()):
         out[index] = replace(blocks[index], kind=BlockKind.HEADING, label=label)
         heads.append((index, level, title(blocks[index].text)))
-    return out, _sections(heads, len(blocks))
+    return out, section_tree(heads, len(blocks))
 
 
 def title(text: str) -> str:
@@ -292,13 +292,13 @@ def _from_outline(
         page = next((pages[p.item] for p in text.block.parts if p.item in pages), None)
         if page is None:
             continue
-        label, rest = _printed_number(title(text.block.text), lettered)
-        candidates.setdefault((page, _key(rest)), []).append((text.index, label))
+        label, rest = printed_number(title(text.block.text), lettered)
+        candidates.setdefault((page, title_key(rest)), []).append((text.index, label))
     added: dict[int, tuple[int, str]] = {}
-    for entry in _entries(content):
+    for entry in outline_entries(content):
         if entry.page is None:
             continue
-        keys = {_key(entry.title), _key(_printed_number(entry.title.strip(), lettered)[1])}
+        keys = {title_key(entry.title), title_key(printed_number(entry.title.strip(), lettered)[1])}
         matches = {m for key in keys for m in candidates.get((entry.page, key), [])}
         if len(matches) != 1:
             continue
@@ -309,21 +309,21 @@ def _from_outline(
     return added
 
 
-def _entries(content: Content) -> list[OutlineEntry]:
+def outline_entries(content: Content) -> list[OutlineEntry]:
     """The outline entries that may name a heading, with a title root taken off (rule 3)."""
     entries = list(content.outline)
     tops = [entry for entry in entries if entry.level == 1]
     if len(tops) == 1 and len(entries) > 1:
         entries = [replace(entry, level=entry.level - 1) for entry in entries[1:]]
-    document = _key(content.metadata.title)
+    document = title_key(content.metadata.title)
     return [
         entry
         for entry in entries
-        if any(ch.isalpha() for ch in entry.title) and _key(entry.title) != document
+        if any(ch.isalpha() for ch in entry.title) and title_key(entry.title) != document
     ]
 
 
-def _printed_number(text: str, lettered: bool) -> tuple[str, str]:
+def printed_number(text: str, lettered: bool) -> tuple[str, str]:
     """The printed number at the front of a heading and the rest; ("", text) if it has none.
     A capital letter counts only where letters number the headings (`lettered`)."""
     found = _NUMBER.match(text)
@@ -332,7 +332,7 @@ def _printed_number(text: str, lettered: bool) -> tuple[str, str]:
     return found["label"], text[found.end() :]
 
 
-def _key(text: str) -> str:
+def title_key(text: str) -> str:
     """The text as outline titles and printed headings are compared: NFKC, case folded,
     white space folded."""
     return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
@@ -342,7 +342,7 @@ def _depth(label: str) -> int:
     return label.count(".") + 1
 
 
-def _sections(heads: list[tuple[int, int, str]], end: int) -> tuple[Section, ...]:
+def section_tree(heads: list[tuple[int, int, str]], end: int) -> tuple[Section, ...]:
     """The section tree: a heading's section runs to the next heading of its level or
     above (or `end`), and holds the deeper ones in between."""
     out = []
@@ -353,6 +353,6 @@ def _sections(heads: list[tuple[int, int, str]], end: int) -> tuple[Section, ...
         while j < len(heads) and heads[j][1] > level:
             j += 1
         stop = heads[j][0] if j < len(heads) else end
-        out.append(Section(name, level, index, stop, _sections(heads[k + 1 : j], stop)))
+        out.append(Section(name, level, index, stop, section_tree(heads[k + 1 : j], stop)))
         k = j
     return tuple(out)

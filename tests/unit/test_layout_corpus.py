@@ -622,9 +622,14 @@ def graphic_runs(block: Block, lines: set[str]) -> str:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
-    doc = document(paper)
+    assert golden_text(paper.name, document(paper)) == snapshot
+
+
+def golden_text(name: str, doc: Document) -> str:
+    """Every block of the document, one per line, then the section tree (also used for the
+    documents without positions, #75)."""
     lines = {line.id for page in doc.content.pages for line in page.lines}
-    out = [f"{paper.name}  language {doc.language}  blocks {len(doc.blocks)}"]
+    out = [f"{name}  language {doc.language}  blocks {len(doc.blocks)}"]
     out.append("page labels  " + " ".join(label or "-" for label in doc.page_labels))
     for index, block in enumerate(doc.blocks):
         first, last = block.parts[0].item, block.parts[-1].item
@@ -642,4 +647,4 @@ def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
         out.append(
             f"{indent}{section.level}  blocks {section.start}-{section.end}  {section.title}"
         )
-    assert "\n".join(out) + "\n" == snapshot
+    return "\n".join(out) + "\n"

@@ -12,6 +12,7 @@ from sci2audio.core import TextLine
 _NUMBER = r"(?:[A-Z]\.?)?\d{1,3}(?:\.\d{1,2})*[a-z]?"
 _ALONE = re.compile(rf"\s*\((?P<number>{_NUMBER})\)\s*")
 _AT_END = re.compile(rf".*\S\s+\((?P<number>{_NUMBER})\)\s*")
+_TAG = re.compile(rf"\\tag\*?\{{\s*(?P<number>{_NUMBER})\s*\}}")  # TeX: \tag{3}
 
 
 def number_alone(line: TextLine) -> str | None:
@@ -24,6 +25,12 @@ def number_at_end(line: TextLine) -> str | None:
     """The equation number that ends a longer line ("a = b (2)" gives "2")."""
     found = _AT_END.fullmatch(line.text)
     return found["number"] if found else None
+
+
+def number_tagged(line: TextLine) -> str | None:
+    """The equation number a line of TeX gives with ``\\tag{3}`` (the last one), if any."""
+    found = list(_TAG.finditer(line.text))
+    return found[-1]["number"] if found else None
 
 
 def math_letters(lines: list[TextLine], fonts: tuple[str, ...]) -> float:

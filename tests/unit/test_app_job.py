@@ -131,7 +131,7 @@ def test_an_epub_becomes_a_script(tmp_path: Path) -> None:
     ],
 )
 def test_markdown_and_text_become_a_script(tmp_path: Path, sample: Path, said: str) -> None:
-    """Until #75 the lines come out as paragraphs in file order; read, not refused (D-350)."""
+    """Read, not refused (D-350); since #75 layout reads their structure from the tags."""
     job = run_script_job(sample, JobSettings(output_folder=tmp_path / "out"), tmp_path / "w")
     script = job.files.script.read_text(encoding="utf-8")
     assert f"Source: {sample.name}\n" in script

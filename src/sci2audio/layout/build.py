@@ -34,6 +34,7 @@ from sci2audio.layout.paragraphs import (
 )
 from sci2audio.layout.settings import LayoutSettings
 from sci2audio.layout.split import read_rows
+from sci2audio.layout.tagged import build_tagged, positioned
 
 
 def build_document(content: Content, settings: LayoutSettings | None = None) -> Document:
@@ -44,8 +45,13 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     the foot, footers, side stamps, a sidebar). Items without a position follow in the order
     the file stores them. The text lines are then joined into paragraphs, which may run on
     across columns and pages (`paragraphs`).
+
+    A document none of whose items has a position (EPUB, Markdown, text) is read from its
+    tags instead (`tagged`, D-405).
     """
     settings = settings or LayoutSettings()
+    if not positioned(content):
+        return build_tagged(content, settings)
     layout = _Layout(content, settings)
     units = [unit for page in content.pages for unit in layout.units(page)]
     blocks = find_footnotes(paragraphs(units, settings), content, layout.size, settings)
