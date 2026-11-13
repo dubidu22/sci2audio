@@ -109,6 +109,8 @@ def test_the_built_in_registry_is_valid() -> None:
         "table-figure-notices",
         "footnote-texts",
         "footnotes",
+        "units",
+        "abbreviations",
     ]
 
 

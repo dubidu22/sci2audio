@@ -7,8 +7,9 @@ here so every rule PR places its step deliberately. Planned order for v1.0:
 
 - block: page furniture (#63), reference list, placeholder notices for formulas, tables and
   figures, footnote texts (#64)
-- inline: URLs, DOIs and e-mail addresses, citations (#66), footnote marks (#64), characters
-  and hyphenation (#65), numbers, symbols, units and statistics (#67, #68), abbreviations (#68)
+- inline: URLs, DOIs and e-mail addresses, citations (#66), footnote marks (#64), statistics
+  and numbers (#67), units and symbols, then abbreviations (#68), characters and hyphenation
+  (#65)
 
 No built-in v1.0 step proposes `ask` edits (the interface has no way to answer them before
 UC-04); the conformance test enforces it. Plugins (`sci2audio.text_steps`) follow in v1.1.
@@ -18,11 +19,13 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from sci2audio.textprep.abbreviations import AbbreviationStep
 from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
 from sci2audio.textprep.references import ReferenceListStep
 from sci2audio.textprep.steps import Stage, TextStep, step_problems
+from sci2audio.textprep.units import UnitStep
 
 BUILT_IN_STEPS: tuple[TextStep, ...] = (
     FurnitureStep(),
@@ -31,6 +34,9 @@ BUILT_IN_STEPS: tuple[TextStep, ...] = (
     TableFigureNoticeStep(),
     FootnoteTextStep(),
     FootnoteStep(),
+    # units then abbreviations (#68), after the numbers and statistics steps (#67, D-190)
+    UnitStep(),
+    AbbreviationStep(),
 )
 
 

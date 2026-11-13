@@ -190,6 +190,7 @@ def test_the_default_steps_are_the_built_in_ones() -> None:
         [
             (BlockKind.FURNITURE, "12"),
             (BlockKind.PARAGRAPH, "Noise matters.1"),
+            (BlockKind.PARAGRAPH, "It took 5 mg, e.g. here."),
             Block(BlockKind.FOOTNOTE, "1 A note.", label="1"),
             Block(BlockKind.FORMULA, "x = 1 (2)", label="2"),
             (BlockKind.TABLE, "a b"),
@@ -197,7 +198,7 @@ def test_the_default_steps_are_the_built_in_ones() -> None:
             (BlockKind.PARAGRAPH, "Doe, J. (2020). A study."),
         ],
         tags={1: [(14, 15, "sup")]},
-        sections=[Section("References", 1, 5, 7)],
+        sections=[Section("References", 1, 6, 8)],
     )
     steps = [o.edit.step for o in run_steps(every, EN, strict=True).outcomes]
     assert list(dict.fromkeys(steps)) == [step.id for step in BUILT_IN_STEPS]

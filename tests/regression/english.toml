@@ -67,7 +67,7 @@ expected = ["Dr. Androﬀ notes that the effect was small."]
 [[case]]
 id = "symbols"
 audit = 6
-issue = 68
+issue = 67
 goal = "'≥ 18' read 'greater than or equal to 18' and '± 12%' read 'plus or minus 12 percent'; the digits stay for misaki (TP-10)."
 blocks = [{ kind = "paragraph", text = "Participants (± 12%) were enrolled vs. 980 controls ≥ 18 years." }]
 expected = ["Participants (± 12%) were enrolled vs. 980 controls ≥ 18 years."]
@@ -90,7 +90,7 @@ audit = 8
 issue = 68
 goal = "'3.5 mg/kg' read 'milligrams per kilogram' and '37 °C' read 'degrees Celsius' (TP-10)."
 blocks = [{ kind = "paragraph", text = "Doses of 3.5 mg/kg were given at 37 °C." }]
-expected = ["Doses of 3.5 mg/kg were given at 37 °C."]
+expected = ["Doses of 3.5 milligrams per kilogram were given at 37 degrees Celsius."]
 
 [[case]]
 id = "abbreviations"
@@ -98,11 +98,11 @@ audit = 9
 issue = 68
 goal = "'i.e.', 'e.g.', 'vs.', 'Dr.', 'Fig.' and 'Approx.' read in full; 'Table 2' kept; the word after 'Approx.' not capitalised (TP-08)."
 blocks = [{ kind = "paragraph", text = "Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls." }]
-expected = ["Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1). Dr. Smith compared them vs. controls (see Table 2). Approx. half were girls."]
+expected = ["Children aged 0–6 years were included, that is, preschoolers and toddlers, for example, in day-care (Figure 1). Dr. Smith compared them vs. controls (see Table 2). Approximately half were girls."]
 utterances = [
-    "Children aged 0–6 years were included, i.e., preschoolers and toddlers, e.g., in day-care (Fig. 1).",
+    "Children aged 0–6 years were included, that is, preschoolers and toddlers, for example, in day-care (Figure 1).",
     "Dr. Smith compared them vs. controls (see Table 2).",
-    "Approx. half were girls.",
+    "Approximately half were girls.",
 ]
 
 [[case]]
@@ -111,7 +111,7 @@ audit = 10
 issue = 67
 goal = "'1,234' left as a number for misaki ('one thousand two hundred thirty-four'), never read as a year (TP-09)."
 blocks = [{ kind = "paragraph", text = "Approx. 1,234 participants were enrolled." }]
-expected = ["Approx. 1,234 participants were enrolled."]
+expected = ["Approximately 1,234 participants were enrolled."]
 
 [[case]]
 id = "roman-numerals"
@@ -188,7 +188,7 @@ blocks = [
     { kind = "figure", text = "0 10 20\ntime (s)" },
     { kind = "caption", text = "Fig. 3. Response over time.", label = "Fig. 3", describes = 0 },
 ]
-expected = ["Figure 3 is skipped.", "Fig. 3. Response over time."]
+expected = ["Figure 3 is skipped.", "Figure 3. Response over time."]
 
 [[case]]
 id = "figure-label-in-capitals"
@@ -201,7 +201,7 @@ blocks = [
     { kind = "figure", text = "0 5" },
     { kind = "caption", text = "Fig.4 Response at rest.", label = "Fig.4", describes = 2 },
 ]
-expected = ["Figure 3 is skipped.", "FIG. 3. Response over time.", "Figure 4 is skipped.", "Fig.4 Response at rest."]
+expected = ["Figure 3 is skipped.", "Figure 3. Response over time.", "Figure 4 is skipped.", "Figure 4 Response at rest."]
 
 [[case]]
 id = "figure-with-two-captions"
@@ -319,3 +319,190 @@ blocks = [
 ]
 sections = [{ title = "7 Bibliography", level = 1, start = 0, end = 2 }]
 expected = []
+
+# Abbreviations, symbols and units (#68, D-227 to D-243). Texts written for these cases.
+
+[[case]]
+id = "abbreviations-latin"
+audit = 0
+issue = 68
+goal = "'e.g.', 'i.e.', 'cf.' and 'viz.' read in full, a capital kept at a sentence start (TP-08, D-230)."
+blocks = [{ kind = "paragraph", text = "E.g., the first model, i.e. the baseline, did worse; cf. the second, viz. the large one." }]
+expected = ["For example, the first model, that is the baseline, did worse; compare the second, namely the large one."]
+
+[[case]]
+id = "abbreviations-maths"
+audit = 0
+issue = 68
+goal = "'w.r.t.', 's.t.' and 'w.l.o.g.' read in full (TP-08, D-230)."
+blocks = [{ kind = "paragraph", text = "We take the gradient w.r.t. the weights, s.t. the loss falls; w.l.o.g. we assume n is even." }]
+expected = ["We take the gradient with respect to the weights, such that the loss falls; without loss of generality we assume n is even."]
+
+[[case]]
+id = "abbreviations-labels"
+audit = 0
+issue = 68
+goal = "Label abbreviations read in full before a label, glued ones split: 'eq.(1)', 'Fig.4', 'App.B' (TP-08, D-230)."
+blocks = [{ kind = "paragraph", text = "As shown in Eq. (8) and eq.(1), see Figs. 2 and 3, Fig.4, Sec. III, Alg. 1, Lem. 2, Thm. 3 and App.B." }]
+expected = ["As shown in Equation (8) and equation (1), see Figures 2 and 3, Figure 4, Section III, Algorithm 1, Lemma 2, Theorem 3 and Appendix B."]
+
+[[case]]
+id = "abbreviations-label-needs-a-label"
+audit = 0
+issue = 68
+goal = "A label abbreviation not before a label stays as printed (D-230)."
+blocks = [{ kind = "paragraph", text = "The Tab. key and the Sec. office were closed." }]
+expected = ["The Tab. key and the Sec. office were closed."]
+
+[[case]]
+id = "abbreviations-capitals"
+audit = 0
+issue = 68
+goal = "A label printed in capitals reads capitalised; a lower-case one stays lower case (D-230)."
+blocks = [{ kind = "paragraph", text = "FIG. 3 and fig. 2a and EQ. 4 agree." }]
+expected = ["Figure 3 and figure 2a and Equation 4 agree."]
+
+[[case]]
+id = "abbreviations-sentence-end"
+audit = 0
+issue = 68
+goal = "An abbreviation that ends a sentence keeps its full stop, so the sentence still ends (D-234)."
+blocks = [{ kind = "paragraph", text = "Groups A and B scored 3 and 4, resp. The next test was harder." }]
+expected = ["Groups A and B scored 3 and 4, respectively. The next test was harder."]
+
+[[case]]
+id = "abbreviations-before-number-and-word"
+audit = 0
+issue = 68
+goal = "'ca.' read 'circa' before a number, 'Suppl.' read 'Supplementary' before a label word (D-230)."
+blocks = [{ kind = "paragraph", text = "The house was built ca. 1900; see Suppl. Fig. 3 and Nos. 4 and 5." }]
+expected = ["The house was built circa 1900; see Supplementary Figure 3 and Numbers 4 and 5."]
+
+[[case]]
+id = "abbreviations-left-to-the-voice"
+audit = 0
+issue = 68
+goal = "'Dr.', 'Prof.', 'et al.', 'etc.', 'vs.' and 'No.': the voice reads all but 'Prof.' right, so only 'Prof.' is read in full (D-231, D-232)."
+blocks = [{ kind = "paragraph", text = "Prof. Lee and Dr. Kim et al. compared No. 5 vs. No. 6, etc." }]
+expected = ["Professor Lee and Dr. Kim et al. compared No. 5 vs. No. 6, etc."]
+
+[[case]]
+id = "units-plural-and-singular"
+audit = 0
+issue = 68
+goal = "A unit after exactly 1 is singular, after any other number plural, '1.0' included (K8, D-237)."
+blocks = [{ kind = "paragraph", text = "The rods were 1 m, 1.0 m, 0.5 m and 2 m long; the run took 1 h, then 1–2 h." }]
+expected = ["The rods were 1 metre, 1.0 metres, 0.5 metres and 2 metres long; the run took 1 hour, then 1–2 hours."]
+
+[[case]]
+id = "units-attributive"
+audit = 0
+issue = 68
+goal = "A unit joined to its number by a hyphen, or after 'a', reads singular (K8, D-237)."
+blocks = [{ kind = "paragraph", text = "A 5-km race, a 10-mg dose and a 1 m pole." }]
+expected = ["A 5-kilometre race, a 10-milligram dose and a 1 metre pole."]
+
+[[case]]
+id = "units-per"
+audit = 0
+issue = 68
+goal = "'/' and negative exponents read 'per', every unit after 'per' singular (TP-10, D-239)."
+blocks = [{ kind = "paragraph", text = "Speeds of 5 km/h and 2 m s⁻¹, doses of 2 mg kg⁻¹ day⁻¹ and 5 mg/kg/day, and 3 J/(kg·K)." }]
+expected = ["Speeds of 5 kilometres per hour and 2 metres per second, doses of 2 milligrams per kilogram per day and 5 milligrams per kilogram per day, and 3 joules per kilogram per kelvin."]
+
+[[case]]
+id = "units-powers"
+audit = 0
+issue = 68
+goal = "Powers read 'square' or 'cubic' before a length and 'squared' after other units, also as plain digits (D-239)."
+blocks = [{ kind = "paragraph", text = "An area of 5 m², a volume of 4 cm³, 3 W m⁻², 9.8 m/s² and, as PDFs print it, 5 m2 and 9.8 m/s2." }]
+expected = ["An area of 5 square metres, a volume of 4 cubic centimetres, 3 watts per square metre, 9.8 metres per second squared and, as PDFs print it, 5 square metres and 9.8 metres per second squared."]
+
+[[case]]
+id = "units-products"
+audit = 0
+issue = 68
+goal = "Units joined by a space or '·' are one compound; a single capital letter after a space is not joined (D-239)."
+blocks = [{ kind = "paragraph", text = "A torque of 5 N m used 2 kW h and 3 kW·h; the 5 m A wire stayed." }]
+expected = ["A torque of 5 newton metres used 2 kilowatt hours and 3 kilowatt hours; the 5 metres A wire stayed."]
+
+[[case]]
+id = "units-degrees"
+audit = 0
+issue = 68
+goal = "Degrees, Celsius, Fahrenheit and kelvin in all printed forms, singular after 1 (D-240)."
+blocks = [{ kind = "paragraph", text = "At 37°C, 37 ˚C, 1 °C, 98 °F, 300 K, an angle of 45° and a turn of 1°." }]
+expected = ["At 37 degrees Celsius, 37 degrees Celsius, 1 degree Celsius, 98 degrees Fahrenheit, 300 kelvin, an angle of 45 degrees and a turn of 1 degree."]
+
+[[case]]
+id = "units-glued-and-spaced"
+audit = 0
+issue = 68
+goal = "Units of more than one letter may be glued to the number, single letters need a space (D-236)."
+blocks = [{ kind = "paragraph", text = "It emits 9kg of carbon, in 0.1ps and 25 meV; the 1990s, 2D maps and 5m stay." }]
+expected = ["It emits 9 kilograms of carbon, in 0.1 picoseconds and 25 millielectronvolts; the 1990s, 2D maps and 5m stay."]
+
+[[case]]
+id = "units-angstrom"
+audit = 0
+issue = 68
+goal = "'Å' and the PDF form '˚A' read 'angstroms' (D-236)."
+blocks = [{ kind = "paragraph", text = "Bonds of 1.42˚A and 5 Å." }]
+expected = ["Bonds of 1.42 angstroms and 5 angstroms."]
+
+[[case]]
+id = "units-after-label-words"
+audit = 0
+issue = 68
+goal = "No unit is read after a label word: 'Figure 2 A', 'Table 3 C' stay as printed (D-236)."
+blocks = [{ kind = "paragraph", text = "See Figure 2 A and Table 3 C; the lamp drew 5 A." }]
+expected = ["See Figure 2 A and Table 3 C; the lamp drew 5 amperes."]
+
+[[case]]
+id = "units-left-out"
+audit = 0
+issue = 68
+goal = "Units that collide with words or times are not in the table: 'in', 'pm' (D-236)."
+blocks = [{ kind = "paragraph", text = "It was 3 in wide; at 5 pm we left." }]
+expected = ["It was 3 in wide; at 5 pm we left."]
+
+[[case]]
+id = "units-magnitudes"
+audit = 0
+issue = 68
+goal = "A glued K, M or B reads thousand, million or billion (D-241)."
+blocks = [{ kind = "paragraph", text = "There are 441K apps, 332M words, 100k steps and a 175B model." }]
+expected = ["There are 441 thousand apps, 332 million words, 100 thousand steps and a 175 billion model."]
+
+[[case]]
+id = "symbols-approximately-about"
+audit = 0
+issue = 68
+goal = "'≈' reads 'approximately' and '~' before a number 'about'; '~' between operands stays (D-242)."
+blocks = [{ kind = "paragraph", text = "It gave ≈ 95% of the effect, x ≈ 3, ~5 runs, τ ∼ 0.1 ps, and X ~ N(0, 1)." }]
+expected = ["It gave approximately 95% of the effect, x approximately 3, about 5 runs, τ about 0.1 picoseconds, and X ~ N(0, 1)."]
+
+[[case]]
+id = "symbols-times"
+audit = 0
+issue = 68
+goal = "'×' and the letter x between or glued after numbers read 'times'; '0x1F' and 'x86' stay (D-242)."
+blocks = [{ kind = "paragraph", text = "A 3 × 4 grid, d × d matrices, 2× faster, a 10x speedup, 3 x 4, 0x1F and x86." }]
+expected = ["A 3 times 4 grid, d times d matrices, 2 times faster, a 10 times speedup, 3 times 4, 0x1F and x86."]
+
+[[case]]
+id = "symbols-per-mille-and-percent"
+audit = 0
+issue = 68
+goal = "'‰' reads 'per mille'; '%' is left to the voice (D-242)."
+blocks = [{ kind = "paragraph", text = "Salinity was 35 ‰ and 12% higher." }]
+expected = ["Salinity was 35 per mille and 12% higher."]
+
+[[case]]
+id = "symbols-micro-sign"
+audit = 0
+issue = 68
+goal = "A micro sign that is no unit prefix becomes the Greek letter mu; 'µm' reads 'micrometres' (D-242)."
+blocks = [{ kind = "paragraph", text = "With µ = 3 and µB, the 5 µm and 2 μm films." }]
+expected = ["With μ = 3 and μB, the 5 micrometres and 2 micrometres films."]
+

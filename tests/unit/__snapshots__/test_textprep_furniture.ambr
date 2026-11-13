@@ -1,8 +1,10 @@
 # serializer version: 1
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-chi-plue]
   dict({
+    'abbreviations: accepted': 23,
     'footnote-texts: switched-off': 7,
     'footnotes: accepted': 13,
+    'numbers-and-units: accepted': 10,
     'page-furniture: accepted': 17,
     'references: accepted': 45,
     'tables-and-figures: accepted': 6,
@@ -10,6 +12,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-hardt-ellipsis]
   dict({
+    'abbreviations: accepted': 10,
     'footnote-texts: switched-off': 2,
     'footnotes: accepted': 3,
     'page-furniture: accepted': 12,
@@ -19,9 +22,11 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-nowak-prefix-probabilities]
   dict({
+    'abbreviations: accepted': 46,
     'footnote-texts: switched-off': 12,
     'footnotes: accepted': 24,
     'formulas: accepted': 34,
+    'numbers-and-units: accepted': 4,
     'page-furniture: accepted': 14,
     'references: accepted': 33,
     'tables-and-figures: accepted': 5,
@@ -29,6 +34,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-arsiwalla-qualia-meaning]
   dict({
+    'abbreviations: accepted': 15,
     'footnote-texts: switched-off': 20,
     'footnotes: accepted': 40,
     'formulas: accepted': 9,
@@ -39,13 +45,16 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-liu-orbital-hall]
   dict({
+    'abbreviations: accepted': 6,
     'formulas: accepted': 8,
+    'numbers-and-units: accepted': 20,
     'page-furniture: accepted': 6,
     'tables-and-figures: accepted': 3,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2021-waskom-seaborn]
   dict({
+    'abbreviations: accepted': 1,
     'page-furniture: accepted': 29,
     'references: accepted': 9,
     'tables-and-figures: accepted': 1,
