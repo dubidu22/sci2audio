@@ -1,5 +1,6 @@
-"""Layout on made-up pages: headings and the section tree (Issue #21 step 3), and the
-file's outline as a second signal for headings (#24, D-270 to D-272).
+"""Layout on made-up pages: headings and the section tree (Issue #21 step 3), the file's
+outline as a second signal for headings (#24, D-270 to D-272), and headings with a rule
+drawn under them (#48, D-385 to D-391).
 
 One column between x 70 and x 526, body text in 10 point on a 14 point line pitch, as in
 `test_layout_paragraphs`. Headings stand on a line of their own with white above them.
@@ -18,6 +19,7 @@ from sci2audio.core import (
     Box,
     Content,
     Document,
+    Drawing,
     Metadata,
     OutlineEntry,
     Section,
@@ -43,12 +45,40 @@ class Page:
 
     def __init__(self) -> None:
         self.lines: list[TextLine] = []
+        self.drawings: list[Drawing] = []
         self.y = 80.0
 
     def heading(self, text: str, size: float = 12.0, bold: bool = True) -> "Page":
         self.y += 8
         self.lines.append(set_line(text, self.y, size, bold))
         self.y += size + 6
+        return self
+
+    def ruled(
+        self,
+        text: str,
+        size: float = 10.0,
+        x0: float = LEFT,
+        x1: float = RIGHT,
+        top: float = -1.5,
+        thick: float = 0.8,
+        indent: float = 0.0,
+    ) -> "Page":
+        """A bold heading line with a rule drawn under it, by default across the column with
+        its top 1.5 points above the line box's foot (inside it, as on the ACL checklist):
+        `top` is measured from the box's foot, `x0` and `x1` are the rule's ends, `indent`
+        sets the line that far in from the column's left edge."""
+        self.heading(text, size)
+        found = self.lines[-1]
+        box = found.box
+        assert box is not None
+        if indent:
+            box = Box(box.x0 + indent, box.y0, box.x1 + indent, box.y1)
+            self.lines[-1] = dataclasses.replace(found, box=box)
+        foot = box.y1
+        box = Box(x0, foot + top, x1, foot + top + thick)
+        self.drawings.append(Drawing(f"d{next(_ids)}", box))
+        self.y = max(self.y, box.y1 + 6)
         return self
 
     def body(self, count: int = 4, size: float = 10.0) -> "Page":
@@ -64,7 +94,7 @@ class Page:
 
     def build(self, *outline: OutlineEntry, metadata: Metadata | None = None) -> Document:
         """The document of this page, with the outline entries given (all on page 1)."""
-        found = content(self.lines, metadata=metadata)
+        found = content(self.lines, metadata=metadata, drawings=tuple(self.drawings))
         return build_document(dataclasses.replace(found, outline=outline))
 
 
@@ -527,3 +557,183 @@ def walk(sections: tuple[Section, ...]) -> list[Section]:
         out.append(section)
         out.extend(walk(section.children))
     return out
+
+
+# A heading marked by a rule drawn under it (#48, D-385 to D-391): "ACL 2023 Responsible NLP
+# Checklist" is set like the numbered subsections, with a rule under it across the page.
+
+
+def numbered() -> Page:
+    """A numbered paper with subsections in bold at body size."""
+    page = Page().heading("1 Data").body().heading("1.1 Setup", 10.0).body()
+    return page.heading("2 Results").body()
+
+
+def holder(doc: Document, text: str) -> list[str]:
+    """The item ids of the block whose text is `text`."""
+    return [p.item for b in doc.blocks if b.text == text for p in b.parts]
+
+
+def test_a_line_with_a_rule_under_it_is_a_level_one_heading() -> None:
+    """The rule decides, not the words (D-385)."""
+    page = numbered().ruled("Ethics Review Form").body()
+    doc = page.build()
+    assert ("Ethics Review Form", "") in headings(doc)
+    assert tree(doc.sections)[-1] == ("Ethics Review Form", 1)
+    assert page.drawings[0].id in holder(doc, "Ethics Review Form")  # its own part (D-391)
+
+
+def test_the_same_line_without_a_rule_is_not_a_heading() -> None:
+    """hardt's "Single Sentence" and "Two Actions": bold labels at body size."""
+    doc = numbered().heading("Ethics Review Form", 10.0).body().build()
+    assert ("Ethics Review Form", "") not in headings(doc)
+
+
+def underline(page: Page) -> Page:
+    """A rule exactly under the words, as a link is underlined."""
+    return page.ruled("Ethics Review Form", x0=LEFT, x1=LEFT + 5 * len("Ethics Review Form"))
+
+
+def test_a_rule_that_is_not_under_the_line_or_not_longer_than_it_marks_no_heading() -> None:
+    """Each of the rule's conditions on its own (D-385): an underline of the words, a rule
+    more than `heading_rule_gap` below the line, a bar thicker than `line_width`, a rule
+    stopping short of the line's end, one starting after the line's start."""
+    words = LEFT + 5 * len("Ethics Review Form")
+    cases = {
+        "underline": {"x1": words},
+        "far below": {"top": 6.0},
+        "thick": {"thick": 12.0},
+        "short": {"indent": 200.0, "x1": words + 200.0 - 10},
+        "starts late": {"x0": LEFT + 10},
+    }
+    for name, rule in cases.items():
+        page = numbered().ruled("Ethics Review Form", **rule).body()  # type: ignore[arg-type]
+        doc = page.build()
+        assert page.drawings[0].id in holder(doc, "Ethics Review Form"), name
+        assert ("Ethics Review Form", "") not in headings(doc), name
+
+
+def test_a_rule_under_the_first_of_two_lines_marks_no_heading() -> None:
+    """The rule must stand under the block's last line, below its middle."""
+    page = numbered()
+    page.ruled("Ethics Review")
+    first = page.lines[-1]
+    second = set_line("Form Two", first.box.y1 + 2, bold=True)  # type: ignore[union-attr]
+    page.lines.append(second)
+    page.y = second.box.y1 + 6  # type: ignore[union-attr]
+    doc = page.body().build()
+    assert page.drawings[0].id in holder(doc, "Ethics Review\nForm Two")
+    assert ("Ethics Review\nForm Two", "") not in headings(doc)
+
+
+def placed(text: str, x0: float, y0: float, bold: bool = True) -> TextLine:
+    """A 10 point line at this place, 5 points a letter."""
+    run = TextRun(text, "Times-Bold" if bold else "Times", 10.0, bold=bold)
+    return TextLine(f"p{next(_ids)}", (run,), Box(x0, y0, x0 + 5 * len(text), y0 + 10))
+
+
+def test_a_rule_under_the_last_of_two_lines_is_measured_against_that_line_only() -> None:
+    """The last row is the lines at the last line's height: a longer first line above it
+    does not count. A rule under the short second line, one em longer than it, marks a
+    heading."""
+    page = numbered()
+    top = page.y + 8
+    first, second = placed("Ethics Review Board of the", LEFT, top), placed("Study", LEFT, top + 12)
+    rule = Drawing(f"d{next(_ids)}", Box(LEFT, top + 20.5, LEFT + 35, top + 21.3))
+    page.lines += [first, second]
+    page.drawings.append(rule)
+    page.y = top + 28
+    doc = page.body().build()
+    assert rule.id in holder(doc, "Ethics Review Board of the\nStudy")
+    assert ("Ethics Review Board of the\nStudy", "") in headings(doc)
+
+
+def test_a_rule_just_below_the_line_and_one_em_longer_marks_a_heading() -> None:
+    """The limits themselves: half an em below the line box, one em past the words."""
+    words = LEFT + 5 * len("Ethics Review Form")
+    page = numbered().ruled("Ethics Review Form", x1=words + 10.0, top=5.0).body()
+    assert ("Ethics Review Form", "") in headings(page.build())
+
+
+def test_a_ruled_line_before_the_first_numbered_heading_is_not_a_heading() -> None:
+    """A title framed by rules (D-388)."""
+    page = Page().ruled("A Study of Things", 14.0).body().heading("1 Data").body()
+    doc = page.heading("1.1 Setup", 10.0).body().heading("2 End").body().build()
+    assert headings(doc) == [("1 Data", "1"), ("1.1 Setup", "1.1"), ("2 End", "2")]
+
+
+def test_a_ruled_line_in_a_document_without_numbered_headings_is_not_a_heading() -> None:
+    page = Page().heading("Summary", 14.0).body().heading("Statement of need", 14.0).body()
+    doc = page.ruled("Ethics Review Form").body().build()
+    assert headings(doc) == [("Summary", ""), ("Statement of need", "")]
+
+
+def test_a_ruled_line_ending_as_a_lead_in_is_not_a_heading() -> None:
+    doc = numbered().ruled("Ethics Review Form:").body().build()
+    assert ("Ethics Review Form:", "") not in headings(doc)
+
+
+def test_a_numbered_heading_with_a_rule_under_it_keeps_its_level() -> None:
+    page = Page().heading("1 Data").body().ruled("1.1 Setup").body().heading("2 End").body()
+    assert tree(page.build().sections) == [("1 Data", 1), [("1.1 Setup", 2)], ("2 End", 1)]
+
+
+def test_after_the_appendices_title_a_ruled_heading_is_level_one_and_the_shift_goes_on() -> None:
+    """D-386 and D-387: chi's checklist after "Supplementary Material: Appendices"."""
+    page = Page().heading("1 Introduction").body().heading("References").body()
+    page.heading("Appendices", 14.0).heading("A Proofs").body().heading("A.1 Lemmas", 10.0)
+    page.body().ruled("Ethics Review Form").body().heading("B More").body()
+    levels = {s.title: s.level for s in walk(page.build().sections)}
+    assert levels == {
+        "1 Introduction": 1,
+        "References": 1,
+        "Appendices": 1,
+        "A Proofs": 2,
+        "A.1 Lemmas": 3,
+        "Ethics Review Form": 1,
+        "B More": 2,
+    }
+
+
+def test_a_header_row_split_into_cells_over_a_table_rule_is_not_a_heading() -> None:
+    """Review of #180 (M1): the rule is measured against the block's whole last row. An
+    uncaptioned table's bold header cells read as one block over a booktabs rule that
+    overhangs the row by 6 points (`\\tabcolsep`) at each end: less than one em, so no
+    heading, though it starts far before the last cell ("F1")."""
+    for x0, x1 in ((LEFT, RIGHT), (170.0, 370.0)):
+        page = numbered()
+        top = page.y + 8
+        cells = [("Model", x0 + 6), ("Accuracy", (x0 + x1) / 2), ("F1", x1 - 16)]
+        row = [placed(text, left, top) for text, left in cells]
+        rule = Drawing(f"d{next(_ids)}", Box(x0, top + 11, x1, top + 12))
+        rows = [placed(f"m{k} 0.{k} 0.{k}", x0 + 6, top + 14 * k, bold=False) for k in (1, 2, 3)]
+        page.lines += [*row, *rows]
+        page.drawings.append(rule)
+        page.y = top + 14 * 6
+        doc = page.body().build()
+        holding = next(b for b in doc.blocks if rule.id in [p.item for p in b.parts])
+        assert {c.id for c in row} <= {p.item for p in holding.parts}, (x0, x1)
+        assert holding.kind is not BlockKind.HEADING, (x0, x1)
+
+
+def test_a_bold_line_over_a_wide_rule_inside_a_table_stays_in_the_table() -> None:
+    """The risk of the rule: a table's bold header row over its rule. A table its caption
+    names takes the row and the rule, and only paragraphs can become headings."""
+    page = numbered()
+    top = page.y + 20
+    header = set_line("Structure Example", top, bold=True)
+    rows = [set_line(f"Row {k} of the table", top + 14 * (k + 1)) for k in range(3)]
+    rules = [
+        Drawing("t1", Box(LEFT, top - 3, RIGHT, top - 2.5)),
+        Drawing("t2", Box(LEFT, top + 8.5, RIGHT, top + 9.3)),
+        Drawing("t3", Box(LEFT, top + 14 * 4 - 2, RIGHT, top + 14 * 4 - 1.5)),
+    ]
+    caption = set_line("Table 1: The structures.", top + 14 * 4 + 6)
+    page.lines += [header, *rows, caption]
+    page.drawings += rules
+    page.y = top + 14 * 6
+    doc = page.body().build()
+    table = next(b for b in doc.blocks if b.kind is BlockKind.TABLE)
+    assert header.id in [p.item for p in table.parts]
+    assert "t2" in [p.item for p in table.parts]
+    assert ("Structure Example", "") not in headings(doc)

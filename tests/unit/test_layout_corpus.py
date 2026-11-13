@@ -40,12 +40,9 @@ MAX_SKIPPED_LINES = 10  # lines in one gap (2 at most in the corpus since #34)
 # Sentences not yet inside one block, each with the Issue that brings it there.
 NOT_YET_ONE_BLOCK: dict[tuple[str, int, str], int] = {}
 MIN_START = 8  # letters a sentence's start must have at a line's end to be found there
-# Truth headings not yet found, each with the Issue that brings it there.
-NOT_YET_HEADINGS = {
-    # Bold at body size, like the numbered subsections and the table headers on its pages.
-    ("acl2023-chi-plue", "ACL 2023 Responsible NLP Checklist"): 48,
-    ("acl2023-hardt-ellipsis", "ACL 2023 Responsible NLP Checklist"): 48,
-}
+# Truth headings not yet found, each with the Issue that brings it there. Empty since #48
+# (D-385): the ACL checklist titles are found by the rule drawn under them.
+NOT_YET_HEADINGS: dict[tuple[str, str], int] = {}
 # Algorithms printed inside a figure, by page: the figure, and the algorithms it holds,
 # whose FIGURE block is the figure's (D-89).
 ALGORITHMS_IN_FIGURES = {
