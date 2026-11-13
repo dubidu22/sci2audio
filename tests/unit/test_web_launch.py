@@ -3,6 +3,7 @@ start link, `sci2audio ui`, stopping, and a restart after the server was killed.
 
 from __future__ import annotations
 
+import asyncio
 import http.cookiejar
 import json
 import logging
@@ -19,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import uvicorn
 from pdf_maker import Text, make_pdf
 from web_helpers import make_config
 
@@ -59,8 +61,19 @@ def test_serve_prints_the_link_opens_the_browser_and_cancels_on_the_way_out(
     opened: list[str] = []
     said: list[str] = []
     ran: list[Any] = []
+    before_start: list[tuple[int, int]] = []
+
+    async def startup(self: Any, sockets: Any = None) -> None:
+        before_start.append((len(said), len(opened)))
+        self.started = True
+
+    def run(self: Any, sockets: Any) -> None:
+        ran.append(self)
+        asyncio.run(self.startup(sockets))
+
     monkeypatch.setattr(launch.webbrowser, "open", opened.append)
-    monkeypatch.setattr(launch.uvicorn.Server, "run", lambda self, sockets: ran.append(self))
+    monkeypatch.setattr(launch.uvicorn.Server, "startup", startup)
+    monkeypatch.setattr(launch.uvicorn.Server, "run", run)
     sock = bind()
     try:
         from web_helpers import make_config
@@ -69,6 +82,7 @@ def test_serve_prints_the_link_opens_the_browser_and_cancels_on_the_way_out(
         launch.serve(sock, config, say=said.append)
     finally:
         sock.close()
+    assert before_start == [(0, 0)]  # nothing is said or opened before uvicorn started (#161)
     assert opened == [config.start_url]
     assert config.start_url == f"http://127.0.0.1:{config.port}/start?token={TOKEN}"
     assert said[0] == f"sci2audio is running at {config.start_url}"
@@ -113,6 +127,40 @@ def test_stopping_disposes_the_kept_voice_unless_a_preview_still_speaks(
         for job in jobs:
             job.join(10)
     assert released == ([] if still_speaking else [engine])
+
+
+def test_ctrl_c_as_soon_as_the_link_shows_stops_the_server(tmp_path: Path) -> None:
+    """The "running" line comes once uvicorn's Ctrl-C handler is in place, so a Ctrl-C
+    pressed the moment it shows stops the server (#161). Before, the line came first, and
+    a Ctrl-C in the next few milliseconds could be dropped by Python."""
+    if threading.current_thread() is not threading.main_thread():
+        pytest.skip("uvicorn takes Ctrl-C only in the main thread")
+    said: list[str] = []
+    handlers: list[Any] = []
+
+    def say(text: str) -> None:
+        said.append(text)
+        if len(said) == 1:
+            handler = signal.getsignal(signal.SIGINT)
+            handlers.append(handler)
+            if getattr(handler, "__func__", None) is not uvicorn.Server.handle_exit:
+                # Python's own handler: a Ctrl-C now would surface here or be lost
+                raise RuntimeError(f"the link shows before uvicorn takes Ctrl-C: {handler}")
+            signal.raise_signal(signal.SIGINT)  # Ctrl-C, the moment the line shows
+
+    sock = bind()
+    try:
+        config = make_config(tmp_path, port=sock.getsockname()[1], token=TOKEN)
+        launch.serve(sock, config, open_browser=False, say=say)
+    finally:
+        sock.close()
+    assert len(handlers) == 1
+    assert said == [
+        f"sci2audio is running at {config.start_url}",
+        "Keep this window open while you use sci2audio; press Ctrl-C to stop it.",
+        "sci2audio has stopped.",
+    ]
+    assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
 
 
 def test_sci2audio_ui_starts_the_server(monkeypatch: pytest.MonkeyPatch) -> None:
