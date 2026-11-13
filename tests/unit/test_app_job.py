@@ -16,6 +16,7 @@ from sci2audio.app import (
     JobSettings,
     OutputExistsError,
     Phase,
+    UnreadableFileError,
     UnsupportedFileError,
     run_script_job,
     script_files,
@@ -111,13 +112,13 @@ def test_a_file_type_it_cannot_read_is_refused_before_anything_runs(
 def test_a_damaged_pdf_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:
     source = tmp_path / "broken.pdf"
     source.write_bytes(b"%PDF-1.7\nnot really")
-    with pytest.raises(JobError, match=r"broken\.pdf"):
+    with pytest.raises(UnreadableFileError, match=r"broken\.pdf"):  # D-223
         run_script_job(source, JobSettings(), tmp_path / "w")
     assert sorted(p.name for p in tmp_path.iterdir()) == ["broken.pdf"]
 
 
 def test_a_missing_file_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:
-    with pytest.raises(JobError, match=r"gone\.pdf: cannot be opened"):
+    with pytest.raises(UnreadableFileError, match=r"gone\.pdf: cannot be opened"):
         run_script_job(tmp_path / "gone.pdf", JobSettings(), tmp_path / "w")
 
 

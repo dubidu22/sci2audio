@@ -85,6 +85,15 @@ jobs:
         run: uv run pytest -m "not slow and not benchmark" -n auto
         env:
           HYPOTHESIS_PROFILE: ci
+      # PE-02 (D-224): the installed command on one corpus PDF, as a person runs it.
+      - name: Smoke test (sci2audio script on a corpus PDF)
+        shell: bash
+        run: |
+          uv run sci2audio script tests/corpus/papers/joss2021-waskom-seaborn.pdf \
+            -o "$RUNNER_TEMP/smoke" --work-folder "$RUNNER_TEMP/smoke-work" --ignore-settings
+          for suffix in script.txt report.json report.md; do
+            test -s "$RUNNER_TEMP/smoke/joss2021-waskom-seaborn.$suffix"
+          done
 
   # The only check required by the ruleset on main. Its name must not change.
   ci-passed:

@@ -68,6 +68,10 @@ class UnsupportedFileError(JobError):
     """A file type the job can't read."""
 
 
+class UnreadableFileError(JobError):
+    """A file of a type the job reads that can't be opened or is damaged (D-223)."""
+
+
 class OutputExistsError(JobError):
     """An output file exists and `overwrite` was not given."""
 
@@ -209,9 +213,9 @@ def read_document(source: Path, settings: JobSettings, report: Callable[[Phase],
     try:
         content = extract(source)
     except ExtractionError as error:
-        raise JobError(str(error)) from error
+        raise UnreadableFileError(str(error)) from error
     except OSError as error:
-        raise JobError(f"{source.name}: cannot be opened ({error.strerror})") from error
+        raise UnreadableFileError(f"{source.name}: cannot be opened ({error.strerror})") from error
     report(Phase.LAYOUT)
     return build_document(content, LayoutSettings(language=settings.language))
 
