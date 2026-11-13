@@ -67,13 +67,17 @@ def _one(headers: dict[str, list[str]], name: str) -> str | None:
     return values[0] if len(values) == 1 else ""
 
 
-def _cookie(headers: dict[str, list[str]], name: str) -> str | None:
+def _cookies(headers: dict[str, list[str]], name: str) -> list[str]:
+    """Every value of the cookie `name`. Cookies ignore ports, so a page on another local
+    port can set a second one with that name (sent first when its path is longer): the
+    real one must still count."""
+    found: list[str] = []
     for header in headers.get("cookie", ()):
         for part in header.split(";"):
             key, _, value = part.strip().partition("=")
             if key == name:
-                return value
-    return None
+                found.append(value)
+    return found
 
 
 def _same(given: str | None, token: str) -> bool:
@@ -134,7 +138,7 @@ class LocalOnly:
         scheme, _, bearer = authorization.partition(" ")
         if scheme.lower() == "bearer" and _same(bearer.strip(), config.token):
             return None
-        if _same(_cookie(headers, config.cookie_name), config.token):
+        if any(_same(value, config.token) for value in _cookies(headers, config.cookie_name)):
             if method not in SAFE_METHODS and origin is None:
                 return _error(403, "wrong-origin", "requests from other pages are refused")
             return None

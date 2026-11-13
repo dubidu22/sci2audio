@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import http.cookiejar
 import json
+import logging
 import signal
 import socket
 import subprocess
@@ -17,9 +18,10 @@ from typing import Any
 
 import pytest
 from pdf_maker import Text, make_pdf
+from web_helpers import make_config
 
 from sci2audio import cli
-from sci2audio.web import bind, launch
+from sci2audio.web import bind, create_app, launch
 
 SERVER = """
 import sys
@@ -166,9 +168,39 @@ def other_address() -> str | None:
     return None if address.startswith("127.") or address == "0.0.0.0" else address  # noqa: S104
 
 
+def test_uvicorn_runs_without_websockets_or_an_access_log(tmp_path: Path) -> None:
+    config = launch.uvicorn_config(create_app(make_config(tmp_path)))
+    assert config.ws == "none"
+    assert config.access_log is False
+    assert config.server_header is False
+    assert config.lifespan == "off"
+    errors = logging.getLogger("uvicorn.error")
+    for message, shown in [
+        ("Unsupported upgrade request.", False),
+        ("No supported WebSocket library detected. Please use ...", False),
+        ("Something else went wrong", True),
+    ]:
+        record = logging.LogRecord("uvicorn.error", logging.WARNING, "", 0, message, None, None)
+        assert bool(errors.filter(record)) is shown
+
+
+def websocket_upgrade(port: int) -> bytes:
+    with socket.create_connection(("127.0.0.1", port), 10) as sock:
+        sock.sendall(
+            (
+                f"GET /api/v1/jobs HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n"
+                f"Authorization: Bearer {TOKEN}\r\nUpgrade: websocket\r\n"
+                "Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\n"
+                "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
+            ).encode()
+        )
+        return sock.recv(200)
+
+
 def test_a_real_server_answers_only_on_127_0_0_1_and_stops_on_ctrl_c(tmp_path: Path) -> None:
     server = Running(tmp_path)
     try:
+        assert not websocket_upgrade(server.port).startswith(b"HTTP/1.1 101")
         opener = no_proxy()
         with opener.open(server.url, timeout=30) as response:  # the start link: cookie, redirect
             assert response.status == 200
@@ -188,6 +220,9 @@ def test_a_real_server_answers_only_on_127_0_0_1_and_stops_on_ctrl_c(tmp_path: P
         code = server.stop()
     if sys.platform != "win32":
         assert code == 0  # uvicorn stops cleanly on Ctrl-C
+    assert server.process.stdout is not None
+    printed = server.process.stdout.read()
+    assert "WebSocket" not in printed, printed  # no hint to install a websocket library
 
 
 def test_a_killed_server_starts_again_and_finds_its_documents(tmp_path: Path) -> None:

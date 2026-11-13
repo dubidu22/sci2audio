@@ -161,6 +161,7 @@ def test_job_settings_come_from_the_saved_ones_with_the_jobs_choices_on_top(
         {"voice": "xx_nobody"},
         {"language": "not a tag"},
         {"output_folder": "relative/folder"},
+        {"output_folder": "/books\u0000"},
         {"other": 1},
     ],
 )
@@ -172,6 +173,21 @@ def test_wrong_job_settings_are_refused(
     doc = upload(client, pdf_bytes())
     response = client.post(
         "/api/v1/jobs", json={"kind": "script", "document": doc["id"], "settings": settings}
+    )
+    assert response.status_code == 422
+    assert response.json()["error"] == "invalid"
+    assert client.get("/api/v1/jobs").json() == []
+
+
+@pytest.mark.parametrize("loose", ["yes", "true", "1", 1, 0, None])
+def test_overwrite_is_true_or_false_and_nothing_else(
+    server: tuple[FastAPI, Any], loose: Any
+) -> None:
+    app, config = server
+    client = program(app, config)
+    doc = upload(client, pdf_bytes())
+    response = client.post(
+        "/api/v1/jobs", json={"kind": "audio", "document": doc["id"], "overwrite": loose}
     )
     assert response.status_code == 422
     assert response.json()["error"] == "invalid"

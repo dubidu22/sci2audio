@@ -7,11 +7,13 @@ nothing else can take it in between. There is no option for another address.
 
 from __future__ import annotations
 
+import logging
 import socket
 import webbrowser
 from collections.abc import Callable
 
 import uvicorn
+from starlette.types import ASGIApp
 
 from sci2audio.web.config import HOST, ServerConfig, server_config
 from sci2audio.web.server import create_app
@@ -32,6 +34,35 @@ def bind() -> socket.socket:
     return sock
 
 
+class _NoUpgradeHint(logging.Filter):
+    """uvicorn answers any `Upgrade:` request it can't serve with a warning, and for a
+    websocket one with a hint to install a websocket library: neither means anything to
+    the person reading the terminal, and sci2audio has no websockets (D-196)."""
+
+    HINTS = ("Unsupported upgrade request", "No supported WebSocket library")
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not str(record.msg).startswith(self.HINTS)
+
+
+def uvicorn_config(app: ASGIApp) -> uvicorn.Config:
+    """How uvicorn runs the app (D-196). Making the config sets up uvicorn's loggers, so the
+    filter goes on afterwards."""
+    config = uvicorn.Config(
+        app,
+        access_log=False,  # it would print the start link's token and file names
+        log_level="warning",
+        server_header=False,
+        timeout_graceful_shutdown=SHUTDOWN_WAIT,
+        lifespan="off",
+        ws="none",  # never websockets, even if a websocket library gets installed
+    )
+    errors = logging.getLogger("uvicorn.error")
+    if not any(isinstance(f, _NoUpgradeHint) for f in errors.filters):
+        errors.addFilter(_NoUpgradeHint())
+    return config
+
+
 def serve(
     sock: socket.socket,
     config: ServerConfig,
@@ -42,16 +73,7 @@ def serve(
     """Run the server on `sock` until Ctrl-C; the running job is cancelled on the way out."""
     app = create_app(config)
     state = app.state.sci2audio
-    server = uvicorn.Server(
-        uvicorn.Config(
-            app,
-            access_log=False,  # it would print the start link's token and file names
-            log_level="warning",
-            server_header=False,
-            timeout_graceful_shutdown=SHUTDOWN_WAIT,
-            lifespan="off",
-        )
-    )
+    server = uvicorn.Server(uvicorn_config(app))
     say(f"sci2audio is running at {config.start_url}")
     say("Keep this window open while you use sci2audio; press Ctrl-C to stop it.")
     if open_browser:

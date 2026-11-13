@@ -210,6 +210,8 @@ def _settings_model(settings: JobSettings) -> models.SettingsModel:
 def _folder(text: str | None) -> Path | None:
     if text is None or text == "":
         return None
+    if "\0" in text:
+        raise ApiError(422, "invalid", "output_folder must not contain a NUL character")
     folder = Path(text)
     if not folder.is_absolute():
         raise ApiError(422, "invalid", f"output_folder must be a full path, got {text!r}")

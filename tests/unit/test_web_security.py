@@ -74,9 +74,26 @@ def test_wrong_tokens_are_refused(server: tuple[FastAPI, Any]) -> None:
         {"Authorization": config.token},
         {"Cookie": f"{config.cookie_name}={wrong}"},
         {"Cookie": f"sci2audio-{PORT + 1}={config.token}"},  # another server's cookie
+        {"Cookie": f"{config.cookie_name}={wrong}; {config.cookie_name}=x"},
         {"Authorization": "Bearer "},
     ):
         assert client.get("/api/v1/settings", headers=headers).status_code == 401, headers
+
+
+def test_a_cookie_tossed_from_another_local_port_does_not_lock_the_person_out(
+    server: tuple[FastAPI, Any],
+) -> None:
+    """Cookies ignore ports: a page on 127.0.0.1 at another port can set a second cookie with
+    this server's name and a longer path, which the browser then sends first."""
+    app, config = server
+    client = anonymous(app)
+    for cookie in (
+        f"{config.cookie_name}=x; {config.cookie_name}={config.token}",
+        f"{config.cookie_name}={config.token}; {config.cookie_name}=x",
+        f"{config.cookie_name}=; other=1; {config.cookie_name}={config.token}",
+    ):
+        response = client.get("/api/v1/settings", headers={"Cookie": cookie})
+        assert response.status_code == 200, cookie
 
 
 def test_start_trades_the_token_for_a_strict_cookie(server: tuple[FastAPI, Any]) -> None:

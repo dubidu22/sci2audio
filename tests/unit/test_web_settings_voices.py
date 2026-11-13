@@ -100,6 +100,7 @@ def test_a_broken_settings_file_is_reported_not_fatal(server: tuple[FastAPI, Any
         {"voice": "xx_nobody"},
         {"language": "English!"},
         {"output_folder": "relative"},
+        {"output_folder": "/books\u0000/x"},
         {"chapters": [1]},  # not a kept setting
         {"unknown": True},
     ],
@@ -147,7 +148,9 @@ SETTINGS = st.fixed_dictionaries(
         "switched_off": st.lists(st.sampled_from([*map(str, Category), "nothing"]), max_size=4),
         "voice": st.sampled_from(["", "af_heart", "bm_lewis", "nobody"]),
         "speed": st.floats(0.0, 3.0) | st.integers(-1, 3),
-        "output_folder": st.none() | st.sampled_from(["/books", "books", ""]),
+        "output_folder": st.none()
+        | st.sampled_from(["/books", "books", "", "/a\u0000b"])
+        | st.text(max_size=8).map(lambda text: "/" + text),
         "other": JSON,
     },
 )
@@ -252,6 +255,11 @@ def test_no_download_without_consent(tmp_path: Path, small_plan: DownloadPlan) -
     digest = plan_digest(small_plan)
     for body, status, kind in (
         ({"consent": False, "plan": digest}, 422, "no-consent"),
+        # only `true` is consent: nothing that pydantic's lax mode would turn into it
+        *(
+            ({"consent": loose, "plan": digest}, 422, "invalid")
+            for loose in ("yes", "on", "true", "1", 1, 1.0, [True], {"yes": True}, None)
+        ),
         ({"plan": digest}, 422, "invalid"),
         ({"consent": True}, 422, "invalid"),
         ({"consent": True, "plan": "0" * 64}, 409, "stale-plan"),

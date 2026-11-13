@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
 
@@ -98,7 +98,9 @@ class JobIn(Strict):
     kind: Literal["script", "audio"]
     document: str = Field(max_length=64)
     settings: JobSettingsIn = Field(default_factory=JobSettingsIn)
-    overwrite: bool = Field(default=False, description="replace audiobook files that exist")
+    overwrite: StrictBool = Field(
+        default=False, description="replace audiobook files that exist; only `true` does"
+    )
 
 
 class FileOut(BaseModel):
@@ -146,5 +148,5 @@ class VoicesOut(BaseModel):
 
 
 class DownloadIn(Strict):
-    consent: bool
+    consent: StrictBool = Field(description="only `true` starts the download")
     plan: str = Field(max_length=64, description="the digest of the plan the person agreed to")

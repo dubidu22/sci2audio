@@ -12,7 +12,8 @@ new name replaces the old one.
 
 Writing is safe against interruption and a full disk: the bytes stream to a `.part` file
 in `<work_root>/.incoming/` while being counted and hashed, and are renamed into place
-only when complete and within the size limit.
+only when complete and within the size limit. A server killed mid-upload leaves its
+`.part` file behind; the next server removes those not written to for an hour.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ import hashlib
 import os
 import re
 import secrets
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path, PurePath
@@ -33,6 +35,7 @@ from sci2audio.output.names import clean
 
 ID = re.compile(r"\A[0-9a-f]{16}\Z")
 INCOMING = ".incoming"
+STALE_UPLOAD = 3600  # seconds since a `.part` file was last written to
 SOURCE = "source"
 SCRIPT = "script"  # the pre-analysis files of the server's script jobs (D-199)
 AUDIO_RECORD = "audio.json"  # written by the audio job (D-165)
@@ -109,6 +112,19 @@ class DocumentStore:
         self.root = work_root
         self.upload_limit = upload_limit
         self.text_limit = text_limit
+
+    def clear_stale_uploads(self, older_than: float = STALE_UPLOAD) -> list[Path]:
+        """Remove `.part` files of uploads a killed server left behind: those not written
+        to for `older_than` seconds (a second server on the same folders may be writing a
+        fresh one). Returns what was removed; a file that can't be removed is left."""
+        removed: list[Path] = []
+        now = time.time()
+        for part in sorted((self.root / INCOMING).glob("*.part")):
+            with contextlib.suppress(OSError):
+                if now - part.stat().st_mtime >= older_than:
+                    part.unlink()
+                    removed.append(part)
+        return removed
 
     def get(self, document_id: str) -> StoredDocument | None:
         if not ID.match(document_id):

@@ -49,6 +49,7 @@ class ServerState:
             upload_limit=self.config.upload_limit,
             text_limit=self.config.text_limit,
         )
+        self.store.clear_stale_uploads()  # left behind by a server that was killed
         self.board = JobBoard(classify)
 
     def audio_work(self, document: StoredDocument, settings: JobSettings, overwrite: bool) -> Work:

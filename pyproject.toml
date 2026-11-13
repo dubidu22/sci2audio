@@ -164,4 +164,12 @@ source_modules = [
     "sci2audio.app",
     "sci2audio.testing",
 ]
-forbidden_modules = ["fastapi", "starlette", "uvicorn", "jinja2", "multipart", "pydantic"]
+forbidden_modules = [
+    "fastapi",
+    "starlette",
+    "uvicorn",
+    "jinja2",
+    "multipart",
+    "python_multipart",
+    "pydantic",
+]
