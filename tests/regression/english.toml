@@ -1157,3 +1157,67 @@ issue = 68
 goal = "A label word before a bracketed number reads in full: 'Eq. [3]' (D-230, D-171, review of PR #116)."
 blocks = [{ kind = "paragraph", text = "Eq. [3] and Eq.[4] hold." }]
 expected = ["Equation [3] and Equation [4] hold."]
+
+[[case]]
+id = "links-url-cut-before-a-sentence-word"
+audit = 0
+issue = 109
+goal = "After a URL cut at a line end after '/', a common English word on the next line goes on the sentence; a word with an address character still joins the URL (D-449)."
+blocks = [
+    { kind = "paragraph", text = "The data are available at https://x.org/\nand more text follows." },
+    { kind = "paragraph", text = "The code is at https://github.com/x/\nsrc/main.py today." },
+]
+expected = ["The data are available and more text follows.", "The code is today."]
+
+[[case]]
+id = "citations-year-bracket-after-an-article"
+audit = 0
+issue = 110
+goal = "A year bracket after a word that follows an article is no citation and is read; with 'et al.' or a second author it is one (D-448, D-173)."
+blocks = [
+    { kind = "paragraph", text = "The Olympics (2016) were held in Rio." },
+    { kind = "paragraph", text = "As Smith (2019) shows, the effect holds, as the Smith and Jones (2020) and the Lee et al. (2021) studies found." },
+]
+expected = [
+    "The Olympics (2016) were held in Rio.",
+    "As Smith shows, the effect holds, as the Smith and Jones and the Lee et al. studies found.",
+]
+
+[[case]]
+id = "citations-lead-words-and-a-narrative-citation"
+audit = 0
+issue = 145
+goal = "A bracket that holds only lead words and a narrative author-year citation goes whole, like '( see [12])'; a full stop inside it goes too when the bracket starts a sentence (D-447, D-172)."
+blocks = [
+    { kind = "paragraph", text = "( see Smith (2019))" },
+    { kind = "paragraph", text = "It holds. (see Smith (2019))" },
+    { kind = "paragraph", text = "It holds [12]. (See Smith (2019).)" },
+]
+expected = ["It holds.", "It holds."]
+
+[[case]]
+id = "statistics-confidence-interval-forms"
+audit = 0
+issue = 151
+goal = "A bracketed pair after 'CI:', 'CIs' or 'CI =', and a pair joined on by 'and', is a confidence interval, not a citation (D-450, D-180)."
+blocks = [
+    { kind = "paragraph", text = "The CI: [1, 3] is wide." },
+    { kind = "paragraph", text = "The two CIs [1, 3] and [2, 4] overlap." },
+    { kind = "paragraph", text = "The CI = [1, 3] holds." },
+]
+expected = [
+    "The confidence interval: 1 to 3 is wide.",
+    "The two confidence intervals 1 to 3 and 2 to 4 overlap.",
+    "The confidence interval equals 1 to 3 holds.",
+]
+
+[[case]]
+id = "units-behind-unread-characters"
+audit = 0
+issue = 159
+goal = "A soft hyphen or zero-width space before a magnitude or unit does not hide it: it reads on the first run (D-150)."
+blocks = [
+    { kind = "paragraph", text = "The cache holds 0­K." },
+    { kind = "paragraph", text = "We gave 5­kg and 5 ​mg." },
+]
+expected = ["The cache holds 0 thousand.", "We gave 5 kilograms and 5 milligrams."]

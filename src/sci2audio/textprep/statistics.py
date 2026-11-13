@@ -12,7 +12,8 @@ printed; the numbers themselves stay digits for the voice (D-176).
 - S3: R², η², ηp², ω², ε² read "squared" and χ² "chi-square"; with a plain 2, as PDFs give
   it, only before an operator or a df parenthesis.
 - S4 (D-180): "CI" read "confidence interval" after a percentage or before a bracket, "="
-  or ":"; a bracketed pair of numbers after it read "1.2 to 3.4".
+  or ":"; a bracketed pair of numbers after it read "1.2 to 3.4", and so is each pair joined
+  on by "and", "or" or a comma ("CIs [1, 3] and [2, 4]", D-450).
 - S5 (D-181): "OR" before an operator read "odds ratio"; other statistic letters are left
   to the voice, which spells them.
 """
@@ -21,6 +22,7 @@ from __future__ import annotations
 
 import bisect
 import re
+from collections.abc import Iterator
 
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.characters import ACCENTS
@@ -116,6 +118,8 @@ _INTERVAL = re.compile(
     r"\s*(?:[=:]\s*)?(?P<open>[\[(]\s*)(?P<a>" + _SIGNED + r")(?P<sep>\s*[,;]\s*)"
     r"(?P<b>" + _SIGNED + r")(?P<close>\s*[\])])"
 )
+_JOIN = re.compile(r"\s*(?:,\s*)?(?:and|or)(?=[\s\[(])|\s*,")  # "[1, 3] and [2, 4]"
+MAX_JOINED_INTERVALS = 8  # intervals read after one "CIs", so a long list costs linear time
 
 # S5: odds ratio
 _ODDS_RATIO = re.compile(r"(?<![\w′'])OR(?![\w′'])" + _THEN_OPERATOR)
@@ -191,29 +195,63 @@ def _squared(text: str, plain: str) -> list[Candidate]:
 
 def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
     found = []
+    for match, intervals in _ci_runs(plain):
+        start, end = match.span()
+        words = "confidence intervals" if match["plural"] else "confidence interval"
+        reading = padded(text, start, end, words)  # "95%CI[1, 3]": not "95%confidence"
+        found.append(Candidate(start, end, reading, f'"{text[start:end]}" read as "{words}"'))
+        for interval in intervals:
+            found += _interval(text, plain, interval)
+    return found
+
+
+def _ci_runs(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]]:
+    """Each "CI" read as words, with the intervals read after it: the bracketed pair right
+    after it, then each pair joined on by "and", "or" or a comma ("CIs [1, 3] and [2, 4]",
+    #151, D-450), at most `MAX_JOINED_INTERVALS` in all."""
     for match in _CI.finditer(plain):
         start, end = match.span()
         after_percent = bool(_AFTER_PERCENT.search(plain, max(0, start - _WINDOW), start))
         if not after_percent and not _BEFORE_CI_THING.match(plain, end):
             continue
-        words = "confidence intervals" if match["plural"] else "confidence interval"
-        reading = padded(text, start, end, words)  # "95%CI[1, 3]": not "95%confidence"
-        found.append(Candidate(start, end, reading, f'"{text[start:end]}" read as "{words}"'))
+        intervals = []
         interval = _INTERVAL.match(plain, end)
-        if interval is None:
-            continue
-        printed = text[interval.start("open") : interval.end("close")]
-        about = f'confidence interval "{printed}" read as "{interval["a"]} to {interval["b"]}"'
-        found.append(Candidate(*interval.span("open"), "", f"{about}: bracket not read"))
-        sep_start, sep_end = interval.span("sep")
-        found.append(Candidate(sep_start, sep_end, " to ", f'{about}: "," read as "to"'))
-        close_start, close_end = interval.span("close")
-        # a word glued after the bracket ("[1, 3]of") keeps a space from the number
-        glued = close_end < len(plain) and plain[close_end].isalnum()
-        found.append(
-            Candidate(close_start, close_end, " " if glued else "", f"{about}: bracket not read")
-        )
-    return found
+        while interval is not None and len(intervals) < MAX_JOINED_INTERVALS:
+            intervals.append(interval)
+            joined = _JOIN.match(plain, interval.end())
+            interval = _INTERVAL.match(plain, joined.end()) if joined else None
+        yield match, intervals
+
+
+def interval_openings(text: str) -> frozenset[int]:
+    """Where, in the printed text, the brackets open that this step reads as confidence
+    intervals. The citations step leaves exactly these alone, so the two steps agree on
+    every joined pair (#151). Found as the step finds them: in the text as read, without
+    unread characters and with math letters folded ("𝐶𝐼s"), then mapped back."""
+
+    def openings(read: str) -> list[Candidate]:
+        return [
+            Candidate(at, at + 1, "[", "interval")
+            for _, intervals in _ci_runs(fold(read))
+            for at in (interval.start("open") for interval in intervals)
+        ]
+
+    return frozenset(found.start for found in through_unread(text, openings))
+
+
+def _interval(text: str, plain: str, interval: re.Match[str]) -> list[Candidate]:
+    """The bracket of an interval left out and its comma read "to"."""
+    printed = text[interval.start("open") : interval.end("close")]
+    about = f'confidence interval "{printed}" read as "{interval["a"]} to {interval["b"]}"'
+    sep_start, sep_end = interval.span("sep")
+    close_start, close_end = interval.span("close")
+    # a word glued after the bracket ("[1, 3]of") keeps a space from the number
+    glued = close_end < len(plain) and plain[close_end].isalnum()
+    return [
+        Candidate(*interval.span("open"), "", f"{about}: bracket not read"),
+        Candidate(sep_start, sep_end, " to ", f'{about}: "," read as "to"'),
+        Candidate(close_start, close_end, " " if glued else "", f"{about}: bracket not read"),
+    ]
 
 
 def _odds_ratios(text: str, plain: str) -> list[Candidate]:

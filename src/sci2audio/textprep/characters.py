@@ -212,13 +212,23 @@ def _skip_back(text: str, k: int) -> int:
 def _read_on(text: str, j: int, length: int = 4) -> str:
     """The next few letters from `j` as they will be read, folded.
 
-    Unread characters and accents are left out: an accent either joins the letter after it or
-    is dropped, so it never ends a word.
+    Unread characters are left out. An accent joins the letter after it when they compose
+    ("ℓˇℓ" reads "lľ", as this step makes it, #160), else it is dropped, so it never ends a
+    word.
     """
     read = []
     j = _skip_forward(text, j)
     while j < len(text) and len(read) < length:
-        if text[j] not in ACCENTS:
+        if text[j] in ACCENTS:
+            k = _skip_forward(text, j + 1)
+            letter = unicodedata.normalize("NFKC", text[k : k + 1])[:1]
+            letter = _DOTLESS.get(letter, letter)
+            composed = unicodedata.normalize("NFC", letter + ACCENTS[text[j]]) if letter else ""
+            if len(composed) == 1 and letter.isascii() and letter.isalpha():
+                read.append(composed)
+                j = _skip_forward(text, k + 1)
+                continue
+        else:
             read.append(text[j])
         j = _skip_forward(text, j + 1)
     return unicodedata.normalize("NFKC", "".join(read))[:length]

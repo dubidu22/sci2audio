@@ -19,7 +19,9 @@ block that holds nothing but links, or a footnote that holds nothing but its mar
 loses its whole text in one edit, so no lone "Footnote 5." is read (#64's intro is set aside).
 
 A URL broken at a line end continues on the next line when it ends in a character that
-cannot end a URL, or in "." before a word that looks like the rest of an address (D-170).
+cannot end a URL, or in "." before a word that looks like the rest of an address (D-170);
+after a character that cannot end a URL, a next-line word that is a common English word
+with no character of an address ("and", "the") goes on the sentence instead (D-449, #109).
 Every reason names the link as printed, without the line breaks inside it (D-175).
 """
 
@@ -174,6 +176,21 @@ _KIND_NAMES = {
     "arxiv": ("arXiv identifier", "arXiv identifiers"),
 }
 _ENDS_NOTHING = "/-_~=&?#%"  # a URL cut after one of these goes on in the next line
+_PATH_LIKE = re.compile(r"[/._\-=?#&%~\d]")  # a next-line word with one of these is address
+# Common English words that start the rest of a sentence, never a path segment (#109,
+# D-449): after "https://x.org/" and a line break, "and more text" is the sentence again.
+_SENTENCE_WORDS = frozenset((
+    "a", "about", "after", "all", "also", "an", "and", "are", "as", "at", "be", "because",
+    "been", "before", "being", "both", "but", "by", "can", "could", "did", "do", "does",
+    "each", "either", "for", "from", "had", "has", "have", "he", "her", "here", "his", "how",
+    "however", "i", "if", "in", "into", "is", "it", "its", "may", "might", "more", "most",
+    "much", "must", "my", "neither", "no", "nor", "not", "now", "of", "on", "once", "only",
+    "or", "other", "our", "she", "should", "since", "so", "some", "such", "than", "that",
+    "the", "their", "them", "then", "there", "these", "they", "this", "those", "though",
+    "thus", "to", "too", "under", "unless", "until", "up", "upon", "us", "was", "we", "were",
+    "what", "when", "where", "whether", "which", "while", "who", "whom", "whose", "why",
+    "will", "with", "within", "without", "would", "yet", "you", "your",
+))  # fmt: skip
 _TRAILING = ".,;:!?'\"’”*"  # punctuation at a URL's end belongs to the sentence
 _PAIRS = {")": "(", "]": "[", ">": "<"}
 _SPACE = re.compile(r"\s+")
@@ -338,7 +355,9 @@ def _continues(before: str, word: str) -> bool:
     """True if a URL ending at a line break with `before` goes on with `word` (D-170)."""
     last = before[-1:]
     if last in _ENDS_NOTHING:
-        return bool(re.match(r"[\w/.~%-]", word))
+        # the rest of the address, unless a plain word that goes on the sentence (#109)
+        plain = not _PATH_LIKE.search(word) and word.lower() in _SENTENCE_WORDS
+        return bool(re.match(r"[\w/.~%-]", word)) and not plain
     if last == ":":
         return bool(re.search(r"(?:https?|ftp):\Z", before, re.IGNORECASE)) and word.startswith(
             "//"

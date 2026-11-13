@@ -143,11 +143,34 @@ def test_a_link_broken_at_a_line_end_goes_on_in_the_next_line(text: str, found: 
         "released at https://github.com/JFChi/PLUE.\nWe demonstrate it.",  # sentence ends
         "see https://example.org/a.\nthe next line",  # no "/" or digits only in the next word
         "see https://example.org/a\nand more",  # no character that cannot end a URL
+        # #109, D-449: a common English word after "/" goes on the sentence
+        "Data at https://x.org/\nand more text follows.",
+        "Data at https://x.org/a_\nThe end.",
+        "See https://x.org/code-\nfor details.",
     ],
 )
 def test_a_link_that_ends_at_a_line_end_does_not_take_the_next_line(text: str) -> None:
     (found,) = links(text)
     assert "\n" not in found
+
+
+@pytest.mark.parametrize(
+    ("text", "found"),
+    [  # #109: after "/" a word that holds a character of an address, or is no common word
+        ("at https://x.org/\nsrc/main.py today", "https://x.org/\nsrc/main.py"),
+        ("at https://x.org/\nv2 today", "https://x.org/\nv2"),
+        ("at https://github.com/x/\nellipsisGPT3.", "https://github.com/x/\nellipsisGPT3"),
+        ("at https://github.com/x/\nrepo today", "https://github.com/x/\nrepo"),
+    ],
+)
+def test_after_a_slash_the_next_line_joins_unless_it_is_a_sentence_word(
+    text: str, found: str
+) -> None:
+    assert links(text) == [found]
+
+
+def test_the_sentence_after_a_cut_url_keeps_its_words() -> None:
+    assert read("Data at https://x.org/\nand more text follows.") == "Data and more text follows."
 
 
 def test_a_link_broken_at_a_hyphen_is_claimed_whole_so_a_later_hyphen_rule_is_set_aside() -> None:
