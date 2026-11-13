@@ -48,7 +48,7 @@
         'references': False,
         'selected': True,
         'title': '2 Related Work',
-        'utterances': 39,
+        'utterances': 36,
       }),
       dict({
         'blocks': list([
@@ -163,7 +163,7 @@
         'switched_off': 0,
       }),
       'citations': dict({
-        'applied': 0,
+        'applied': 17,
         'label': 'Citations',
         'not_spoken': 0,
         'set_aside': 0,
@@ -191,10 +191,10 @@
         'switched_off': 0,
       }),
       'links': dict({
-        'applied': 0,
+        'applied': 3,
         'label': 'URLs, DOIs and e-mail addresses',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 3,
         'switched_off': 0,
       }),
       'numbers-and-units': dict({
@@ -1037,6 +1037,439 @@
         'step': 'footnote-texts',
       }),
       dict({
+        'block': 2,
+        'category': 'links',
+        'chapter': 0,
+        'end': 41,
+        'kind': 'remove',
+        'original': '''
+          
+          dha.msc@cbs.dk
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'e-mail address "dha.msc@cbs.dk" is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 26,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 42,
+        'category': 'links',
+        'chapter': 5,
+        'end': 98,
+        'kind': 'remove',
+        'original': '''
+           at https://github.com/DanHardtDK/
+          ellipsisGPT3
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'URL "https://github.com/DanHardtDK/ellipsisGPT3" is not read; "at" before it goes too, so the sentence still reads (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 51,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 80,
+        'category': 'links',
+        'chapter': 10,
+        'end': 208,
+        'kind': 'remove',
+        'original': '''
+          
+          arXiv:1908.05803
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'arXiv identifier "arXiv:1908.05803" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 191,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 80,
+          'end': 209,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 85,
+        'category': 'links',
+        'chapter': 10,
+        'end': 165,
+        'kind': 'remove',
+        'original': '''
+          
+          arXiv:2201.02387
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'arXiv identifier "arXiv:2201.02387" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 148,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 85,
+          'end': 166,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 87,
+        'category': 'links',
+        'chapter': 10,
+        'end': 139,
+        'kind': 'remove',
+        'original': ' arXiv:1906.01698',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'arXiv identifier "arXiv:1906.01698" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 122,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 87,
+          'end': 140,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 95,
+        'category': 'links',
+        'chapter': 11,
+        'end': 190,
+        'kind': 'remove',
+        'original': '''
+          
+          at https://github.com/DanHardtDK/
+          ellipsisGPT3
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'URL "https://github.com/DanHardtDK/ellipsisGPT3" is not read; "at" before it goes too, so the sentence still reads (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 143,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 6,
+        'category': 'citations',
+        'chapter': 2,
+        'end': 274,
+        'kind': 'remove',
+        'original': '(Bos and Spenader, 2011)',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'citation "(Bos and Spenader, 2011)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 250,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 18,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 67,
+        'kind': 'remove',
+        'original': '''
+           (Kocijan et al. (2022);
+          Levesque et al. (2012))
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'citation "(Kocijan et al. (2022); Levesque et al. (2012))" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 19,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 24,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 413,
+        'kind': 'remove',
+        'original': '''
+          
+          (2022)[p. 8]
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'year of the citation "Kocijan et al. (2022)[p. 8]" is not read; the names stay (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 400,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 25,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 56,
+        'kind': 'remove',
+        'original': '''
+          
+          (2019)
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'year of the citation "Lin et al. (2019)" is not read; the names stay (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 49,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 27,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 52,
+        'kind': 'remove',
+        'original': '''
+           (Dasigi et al. (2019); Zhang and Zhao
+          (2022))
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'citation "(Dasigi et al. (2019); Zhang and Zhao (2022))" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 6,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 27,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 523,
+        'kind': 'remove',
+        'original': '(',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'citation "(Dasigi et al., 2019)[p. 1]" is the subject of the sentence: only its names are read (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 522,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 27,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 549,
+        'kind': 'remove',
+        'original': ', 2019)[p. 1]',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'citation "(Dasigi et al., 2019)[p. 1]" is the subject of the sentence: only its names are read (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 536,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 29,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 158,
+        'kind': 'remove',
+        'original': '''
+           (Khullar (2020), Zhang et al.
+          (2019); Kenyon-Dean et al. (2016); Bos and Spe-
+          nader (2011))
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'citation "(Khullar (2020), Zhang et al. (2019); Kenyon-Dean et al. (2016); Bos and Spe- nader (2011))" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 66,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 29,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 183,
+        'kind': 'remove',
+        'original': ' (2022)',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'year of the citation "Vanderlyn et al. (2022)" is not read; the names stay (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 176,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 29,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 326,
+        'kind': 'remove',
+        'original': ' (2021)',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'year of the citation "Aralikatte et al. (2021)" is not read; the names stay (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 319,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 29,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 479,
+        'kind': 'remove',
+        'original': ' (2021)',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'year of the citation "Aralikatte et al. (2021)" is not read; the names stay (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 472,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 31,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 88,
+        'kind': 'remove',
+        'original': ' (2021)',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'year of the citation "Aralikatte et al. (2021)" is not read; the names stay (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 81,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 31,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 484,
+        'kind': 'remove',
+        'original': ' (2019)',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'year of the citation "Lin et al. (2019)" is not read; the names stay (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 477,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 32,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 206,
+        'kind': 'remove',
+        'original': '''
+           (Kamp,
+          1981)
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'citation "(Kamp, 1981)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 193,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 32,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 338,
+        'kind': 'remove',
+        'original': ' (1984)',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'year of the citation "Sag and Hankamer (1984)" is not read; the names stay (TP-04)',
+        'said': '',
+        'spoken': True,
+        'start': 331,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 32,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 460,
+        'kind': 'remove',
+        'original': '''
+          
+          (Garnham, 2010)
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'citation "(Garnham, 2010)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 444,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 32,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 690,
+        'kind': 'remove',
+        'original': ' (Martin and McElree, 2008)',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'citation "(Martin and McElree, 2008)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 663,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
         'block': 39,
         'category': 'footnotes',
         'chapter': 4,
@@ -1124,7 +1557,7 @@
   | 1 | acl2023-hardt-ellipsis | 1 | yes | 3 |
   | 2 | Abstract | 1 | yes | 4 |
   | 3 | 1 Introduction | 1 | yes | 24 |
-  | 4 | 2 Related Work | 1 | yes | 39 |
+  | 4 | 2 Related Work | 1 | yes | 36 |
   | 5 | 3 Data | 2 | yes | 14 |
   | 6 | 4 Test | 3 | yes | 10 |
   | 7 | 5 Results | 3 | yes | 18 |
@@ -1142,8 +1575,8 @@
   | Characters and hyphenation | 0 | 0 | 0 | 0 |
   | Footnotes | 3 | 0 | 0 | 0 |
   | Footnote texts | 0 | 0 | 0 | 2 |
-  | Citations | 0 | 0 | 0 | 0 |
-  | URLs, DOIs and e-mail addresses | 0 | 0 | 0 | 0 |
+  | Citations | 17 | 0 | 0 | 0 |
+  | URLs, DOIs and e-mail addresses | 3 | 0 | 3 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 11 | 0 | 0 | 0 |
   | Reference list | 0 | 17 | 0 | 0 |
@@ -1175,6 +1608,35 @@
   
   - page 3 (printed 41), chapter 6, switched off: “1Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
   - page 8 (printed 46), chapter 12, switched off: “The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing assistance.” → left out. Reason: a footnote is left out (all footnotes are left out). Step: footnote-texts.
+  
+  ## Citations (17)
+  
+  - page 1 (printed 39), chapter 3, applied: “(Bos and Spenader, 2011)” → left out. Reason: citation "(Bos and Spenader, 2011)" is not read (TP-03). Step: citations.
+  - page 1 (printed 39), chapter 4, applied: “(Kocijan et al. (2022); Levesque et al. (2012))” → left out. Reason: citation "(Kocijan et al. (2022); Levesque et al. (2012))" is not read (TP-03). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(2022)\[p. 8\]” → left out. Reason: year of the citation "Kocijan et al. (2022)\[p. 8\]" is not read; the names stay (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(2019)” → left out. Reason: year of the citation "Lin et al. (2019)" is not read; the names stay (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(Dasigi et al. (2019); Zhang and Zhao (2022))” → left out. Reason: citation "(Dasigi et al. (2019); Zhang and Zhao (2022))" is not read (TP-03). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(” → left out. Reason: citation "(Dasigi et al., 2019)\[p. 1\]" is the subject of the sentence: only its names are read (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “, 2019)\[p. 1\]” → left out. Reason: citation "(Dasigi et al., 2019)\[p. 1\]" is the subject of the sentence: only its names are read (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(Khullar (2020), Zhang et al. (2019); Kenyon-Dean et al. (2016); Bos and Spe- nader (2011))” → left out. Reason: citation "(Khullar (2020), Zhang et al. (2019); Kenyon-Dean et al. (2016); Bos and Spe- nader (2011))" is not read (TP-03). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(2022)” → left out. Reason: year of the citation "Vanderlyn et al. (2022)" is not read; the names stay (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(2021)” → left out. Reason: year of the citation "Aralikatte et al. (2021)" is not read; the names stay (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(2021)” → left out. Reason: year of the citation "Aralikatte et al. (2021)" is not read; the names stay (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(2021)” → left out. Reason: year of the citation "Aralikatte et al. (2021)" is not read; the names stay (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(2019)” → left out. Reason: year of the citation "Lin et al. (2019)" is not read; the names stay (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(Kamp, 1981)” → left out. Reason: citation "(Kamp, 1981)" is not read (TP-03). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(1984)” → left out. Reason: year of the citation "Sag and Hankamer (1984)" is not read; the names stay (TP-04). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(Garnham, 2010)” → left out. Reason: citation "(Garnham, 2010)" is not read (TP-03). Step: citations.
+  - page 2 (printed 40), chapter 4, applied: “(Martin and McElree, 2008)” → left out. Reason: citation "(Martin and McElree, 2008)" is not read (TP-03). Step: citations.
+  
+  ## URLs, DOIs and e-mail addresses (6)
+  
+  - page 1 (printed 39), chapter 1, applied: “dha.msc@cbs.dk” → left out. Reason: e-mail address "dha.msc@cbs.dk" is not read (TP-07). Step: links.
+  - page 3 (printed 41), chapter 6, applied: “at https://github.com/DanHardtDK/ ellipsisGPT3” → left out. Reason: URL "https://github.com/DanHardtDK/ellipsisGPT3" is not read; "at" before it goes too, so the sentence still reads (TP-07). Step: links.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “arXiv:1908.05803” → left out. Reason: arXiv identifier "arXiv:1908.05803" is not read (TP-07). Step: links.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “arXiv:2201.02387” → left out. Reason: arXiv identifier "arXiv:2201.02387" is not read (TP-07). Step: links.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “arXiv:1906.01698” → left out. Reason: arXiv identifier "arXiv:1906.01698" is not read (TP-07). Step: links.
+  - page 6 (printed 44), chapter 12, applied: “at https://github.com/DanHardtDK/ ellipsisGPT3” → left out. Reason: URL "https://github.com/DanHardtDK/ellipsisGPT3" is not read; "at" before it goes too, so the sentence still reads (TP-07). Step: links.
   
   ## Tables and figures (11)
   
@@ -1273,7 +1735,7 @@
         'references': False,
         'selected': True,
         'title': 'Overview',
-        'utterances': 45,
+        'utterances': 44,
       }),
       dict({
         'blocks': list([
@@ -1316,7 +1778,7 @@
         'switched_off': 0,
       }),
       'citations': dict({
-        'applied': 0,
+        'applied': 8,
         'label': 'Citations',
         'not_spoken': 0,
         'set_aside': 0,
@@ -1344,10 +1806,10 @@
         'switched_off': 0,
       }),
       'links': dict({
-        'applied': 0,
+        'applied': 1,
         'label': 'URLs, DOIs and e-mail addresses',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 6,
         'switched_off': 0,
       }),
       'numbers-and-units': dict({
@@ -2043,6 +2505,318 @@
         'status': 'accepted',
         'step': 'table-figure-notices',
       }),
+      dict({
+        'block': 54,
+        'category': 'links',
+        'chapter': 4,
+        'end': 1373,
+        'kind': 'remove',
+        'original': '''
+           at
+          https://github.com/WagnerLabPapers/Waskom_PNAS_2017
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'URL "https://github.com/WagnerLabPapers/Waskom_PNAS_2017" is not read; "at" before it goes too, so the sentence still reads (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 1318,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 62,
+        'category': 'links',
+        'chapter': 6,
+        'end': 192,
+        'kind': 'remove',
+        'original': '''
+           https://doi.org/10.1037/
+          0003-066X.60.2.170
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'URL "https://doi.org/10.1037/0003-066X.60.2.170" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 148,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 62,
+          'end': 192,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 63,
+        'category': 'links',
+        'chapter': 6,
+        'end': 388,
+        'kind': 'remove',
+        'original': '''
+           https:
+          //doi.org/10.1038/s41586-020-2649-2
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'URL "https://doi.org/10.1038/s41586-020-2649-2" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 345,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 63,
+          'end': 388,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 64,
+        'category': 'links',
+        'chapter': 6,
+        'end': 146,
+        'kind': 'remove',
+        'original': ' https://doi.org/10.1109/MCSE.2007.55',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'URL "https://doi.org/10.1109/MCSE.2007.55" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 109,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 64,
+          'end': 146,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 65,
+        'category': 'links',
+        'chapter': 6,
+        'end': 223,
+        'kind': 'remove',
+        'original': '''
+          
+          https://doi.org/10.25080/Majora-92bf1922-00a
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'URL "https://doi.org/10.25080/Majora-92bf1922-00a" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 178,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 65,
+          'end': 223,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 67,
+        'category': 'links',
+        'chapter': 6,
+        'end': 224,
+        'kind': 'remove',
+        'original': ' https://doi.org/10.1073/pnas.1615269114',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'URL "https://doi.org/10.1073/pnas.1615269114" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 184,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 67,
+          'end': 224,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 68,
+        'category': 'links',
+        'chapter': 6,
+        'end': 125,
+        'kind': 'remove',
+        'original': '''
+          
+          https://doi.org/10.18637/jss.v059.i10
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'URL "https://doi.org/10.18637/jss.v059.i10" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 87,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 68,
+          'end': 125,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 7,
+        'category': 'citations',
+        'chapter': 2,
+        'end': 210,
+        'kind': 'remove',
+        'original': ' (Tukey, 1977)',
+        'page': 1,
+        'printed_page': '1',
+        'reason': 'citation "(Tukey, 1977)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 196,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 7,
+        'category': 'citations',
+        'chapter': 2,
+        'end': 406,
+        'kind': 'remove',
+        'original': ' (Hunter, 2007)',
+        'page': 1,
+        'printed_page': '1',
+        'reason': 'citation "(Hunter, 2007)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 391,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 51,
+        'category': 'citations',
+        'chapter': 4,
+        'end': 672,
+        'kind': 'remove',
+        'original': '''
+          
+          (Cumming & Finch, 2005)
+        ''',
+        'page': 3,
+        'printed_page': '3',
+        'reason': 'citation "(Cumming & Finch, 2005)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 648,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 52,
+        'category': 'citations',
+        'chapter': 4,
+        'end': 132,
+        'kind': 'remove',
+        'original': ' (McKinney, 2010)',
+        'page': 3,
+        'printed_page': '3',
+        'reason': 'citation "(McKinney, 2010)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 115,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 52,
+        'category': 'citations',
+        'chapter': 4,
+        'end': 207,
+        'kind': 'remove',
+        'original': ' (Wickham, 2014)',
+        'page': 3,
+        'printed_page': '3',
+        'reason': 'citation "(Wickham, 2014)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 191,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 52,
+        'category': 'citations',
+        'chapter': 4,
+        'end': 1176,
+        'kind': 'remove',
+        'original': ' (Harris et al., 2020)',
+        'page': 3,
+        'printed_page': '3',
+        'reason': 'citation "(Harris et al., 2020)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 1154,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 54,
+        'category': 'citations',
+        'chapter': 4,
+        'end': 735,
+        'kind': 'remove',
+        'original': ' (Wickham, 2016)',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'citation "(Wickham, 2016)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 719,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 54,
+        'category': 'citations',
+        'chapter': 4,
+        'end': 1397,
+        'kind': 'remove',
+        'original': ' (Waskom & Wagner, 2017)',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'citation "(Waskom & Wagner, 2017)" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 1373,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
@@ -2084,7 +2858,7 @@
   | 2 | Summary | 1 | yes | 8 |
   | 3 | Statement of need | 1 | yes | 12 |
   | 4 | Example | 1 | yes | 17 |
-  | 5 | Overview | 2 | yes | 45 |
+  | 5 | Overview | 2 | yes | 44 |
   | 6 | Acknowledgements | 4 | yes | 3 |
   | 7 | References | 4 | no (reference list) | 0 |
   
@@ -2096,8 +2870,8 @@
   | Characters and hyphenation | 0 | 0 | 0 | 0 |
   | Footnotes | 0 | 0 | 0 | 0 |
   | Footnote texts | 0 | 0 | 0 | 0 |
-  | Citations | 0 | 0 | 0 | 0 |
-  | URLs, DOIs and e-mail addresses | 0 | 0 | 0 | 0 |
+  | Citations | 8 | 0 | 0 | 0 |
+  | URLs, DOIs and e-mail addresses | 1 | 0 | 6 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 1 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
@@ -2136,6 +2910,27 @@
   - page 4, chapter 7, not spoken (chapter not chosen): “4” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 4, chapter 7, not spoken (chapter not chosen): “03021” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
   
+  ## Citations (8)
+  
+  - page 1, chapter 3, applied: “(Tukey, 1977)” → left out. Reason: citation "(Tukey, 1977)" is not read (TP-03). Step: citations.
+  - page 1, chapter 3, applied: “(Hunter, 2007)” → left out. Reason: citation "(Hunter, 2007)" is not read (TP-03). Step: citations.
+  - page 3, chapter 5, applied: “(Cumming & Finch, 2005)” → left out. Reason: citation "(Cumming & Finch, 2005)" is not read (TP-03). Step: citations.
+  - page 3, chapter 5, applied: “(McKinney, 2010)” → left out. Reason: citation "(McKinney, 2010)" is not read (TP-03). Step: citations.
+  - page 3, chapter 5, applied: “(Wickham, 2014)” → left out. Reason: citation "(Wickham, 2014)" is not read (TP-03). Step: citations.
+  - page 3, chapter 5, applied: “(Harris et al., 2020)” → left out. Reason: citation "(Harris et al., 2020)" is not read (TP-03). Step: citations.
+  - page 4, chapter 5, applied: “(Wickham, 2016)” → left out. Reason: citation "(Wickham, 2016)" is not read (TP-03). Step: citations.
+  - page 4, chapter 5, applied: “(Waskom & Wagner, 2017)” → left out. Reason: citation "(Waskom & Wagner, 2017)" is not read (TP-03). Step: citations.
+  
+  ## URLs, DOIs and e-mail addresses (7)
+  
+  - page 4, chapter 5, applied: “at https://github.com/WagnerLabPapers/Waskom\_PNAS\_2017” → left out. Reason: URL "https://github.com/WagnerLabPapers/Waskom\_PNAS\_2017" is not read; "at" before it goes too, so the sentence still reads (TP-07). Step: links.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “https://doi.org/10.1037/ 0003-066X.60.2.170” → left out. Reason: URL "https://doi.org/10.1037/0003-066X.60.2.170" is not read (TP-07). Step: links.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “https: //doi.org/10.1038/s41586-020-2649-2” → left out. Reason: URL "https://doi.org/10.1038/s41586-020-2649-2" is not read (TP-07). Step: links.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “https://doi.org/10.1109/MCSE.2007.55” → left out. Reason: URL "https://doi.org/10.1109/MCSE.2007.55" is not read (TP-07). Step: links.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “https://doi.org/10.25080/Majora-92bf1922-00a” → left out. Reason: URL "https://doi.org/10.25080/Majora-92bf1922-00a" is not read (TP-07). Step: links.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “https://doi.org/10.1073/pnas.1615269114” → left out. Reason: URL "https://doi.org/10.1073/pnas.1615269114" is not read (TP-07). Step: links.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “https://doi.org/10.18637/jss.v059.i10” → left out. Reason: URL "https://doi.org/10.18637/jss.v059.i10" is not read (TP-07). Step: links.
+  
   ## Tables and figures (1)
   
   - page 2, chapter 4, applied: “region = parietal region = frontal 0.3 0.2 signal event 0.1 stim cue 0.0 0.1 0 5 10 15 0 5 10 15 timepoint timepoint” → read as “Figure 1 is skipped.”. Reason: Figure 1 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
@@ -2166,7 +2961,7 @@
   
   Daniel Hardt
   
-  Copenhagen Business School dha.msc@cbs.dk
+  Copenhagen Business School
   
   # 2. Abstract
   
@@ -2181,7 +2976,7 @@
   1 Introduction
   
   Ellipsis is a fundamental feature of human lan- guage, occurring in all registers, where parts of sentences are omitted, although the missing parts are essential for understanding the meaning.
-  The following is an example of Verb Phrase Ellipsis (VPE)(Bos and Spenader, 2011):
+  The following is an example of Verb Phrase Ellipsis (VPE):
   
   (1) William went running.
   Harold did too.
@@ -2223,48 +3018,45 @@
   
   2.1 Probing Models for Knowledge
   
-  The Winograd Schema (Kocijan et al. (2022); Levesque et al. (2012)) involves test examples that use the linguistic problem of pronoun resolution to gain insight into the commonsense reasoning abilities of an AI system.
+  The Winograd Schema involves test examples that use the linguistic problem of pronoun resolution to gain insight into the commonsense reasoning abilities of an AI system.
   To do this, the Winograd Schema requires pairs of examples that differ only in one specific, small way, as in (4):
   
   (4) The city councilmen refused the demonstra- tors a permit because they feared/advocated violence.
   
   With “feared", the pronoun “they" refers to the city councilmen, while with “advocated", it refers to the demonstrators.
   Humans understand this because of general, commonsense knowledge about what would reasonably explain the refusal of a permit in the two cases.
-  It is difficult to ensure that such examples can only be solved through such sophis- ticated reasoning, and, according to Kocijan et al. (2022)[p.
-  8], “Solving Winograd schemas is not a surrogate for the ability to do commonsense rea- soning".
+  It is difficult to ensure that such examples can only be solved through such sophis- ticated reasoning, and, according to Kocijan et al., “Solving Winograd schemas is not a surrogate for the ability to do commonsense rea- soning".
   
-  A different approach is exemplified by Lin et al. (2019): here, examples are constructed which test specific aspects of linguistic knowledge of a sys- tem, namely, whether BERT embeddings “encode hierarchical information".
+  A different approach is exemplified by Lin et al.: here, examples are constructed which test specific aspects of linguistic knowledge of a sys- tem, namely, whether BERT embeddings “encode hierarchical information".
   For example, a task is defined to identify the main auxiliary verb in a sentence, even in cases where the main auxiliary is not the first auxiliary verb to appear.
   Training and testing datasets are automatically generated us- ing a context-free grammar for several such tasks involving hierarchical syntactic information.
   
   2.2 Anaphora and Question Answering
   
-  Quoref (Dasigi et al. (2019); Zhang and Zhao (2022)) is a question-answer dataset designed so that correct answers cannot be given unless a coref- erence relationship is correctly identified; that is, the reasoning involved in question answering is dependent on resolving coreference.
+  Quoref is a question-answer dataset designed so that correct answers cannot be given unless a coref- erence relationship is correctly identified; that is, the reasoning involved in question answering is dependent on resolving coreference.
   This is, in a sense, the inverse of the Winograd schema, where resolving coreference is dependent upon reasoning.
   Just as with the Winograd schema, it is difficult to ensure that resolving this dependency is required for system success.
-  (Dasigi et al., 2019)[p.
-  1] note that this is “challenging, because it is hard to avoid lexical cues that shortcut complex reasoning", and based on a random sample, found that coreference resolution was required for 78% of questions.
+  Dasigi et al. note that this is “challenging, because it is hard to avoid lexical cues that shortcut complex reasoning", and based on a random sample, found that coreference resolution was required for 78% of questions.
   
   2.3 Ellipsis as a Task
   
-  There has been substantial work on ellipsis as a discrete NLP task (Khullar (2020), Zhang et al. (2019); Kenyon-Dean et al. (2016); Bos and Spe- nader (2011)).
-  Vanderlyn et al. (2022) surveys a variety of forms of what they call “implicit ref- erence", which includes ellipsis and related phe- nomena.
-  Aralikatte et al. (2021) frame ellipsis as a question-answering task, i.e., a task of locating an antecedent, understood as a span of tokens in context.
-  Aralikatte et al. (2021) report token F1 scores of 78.66 for VPE and 86.01 for sluicing, an- other form of ellipsis.
+  There has been substantial work on ellipsis as a discrete NLP task.
+  Vanderlyn et al. surveys a variety of forms of what they call “implicit ref- erence", which includes ellipsis and related phe- nomena.
+  Aralikatte et al. frame ellipsis as a question-answering task, i.e., a task of locating an antecedent, understood as a span of tokens in context.
+  Aralikatte et al. report token F1 scores of 78.66 for VPE and 86.01 for sluicing, an- other form of ellipsis.
   It’s important to note that the task here, of antecedent identification, is a sub-part of the ellipsis challenge.
   Before the antecedent is identified, an ellipsis occurrence must be identified, and after the antecedent is identified, it must be interpreted, or “reconstructed", at the ellipsis site.
   
   2.4 Relevance for Ellipsis-Dependent Reasoning
   
-  The specific task of ellipsis is addressed in work like that of Aralikatte et al. (2021), but the key difference here is that we are probing for a com- plete solution to the ellipsis problem.
+  The specific task of ellipsis is addressed in work like that of Aralikatte et al., but the key difference here is that we are probing for a com- plete solution to the ellipsis problem.
   The proposed ellipsis-dependent reasoning task involves a ques- tion that can only be answered correctly if the el- lipsis is properly identified and interpreted.
-  This combines aspects of the preceding works in a novel way: like the Winograd schema and the syntactic work by Lin et al. (2019), it probes for what we see as a specific type of psychologically-defined knowledge: namely, a representation of context that supports the resolution of ellipsis.
+  This combines aspects of the preceding works in a novel way: like the Winograd schema and the syntactic work by Lin et al., it probes for what we see as a specific type of psychologically-defined knowledge: namely, a representation of context that supports the resolution of ellipsis.
   Similarly to the work on Quoref, we use targeted questions to probe for discourse-related knowledge.
   
   There is an extensive literature on the contextual interpretation of natural language, resting on the idea of a dynamic, ongoing model of discourse.
-  For example, Discourse Representation Theory (Kamp, 1981) describes a semantic model supporting dis- course phenomena such as pronominal and tempo- ral anaphora,
-  and Sag and Hankamer (1984) argue explicitly that ellipsis and other such phenomena are interpreted with respect to a discourse model (Garnham, 2010).
-  As one study puts it, “Inter- preting a verb-phrase ellipsis (VP ellipsis) requires accessing an antecedent in memory, and then in- tegrating a representation of this antecedent into the local context" (Martin and McElree, 2008).
+  For example, Discourse Representation Theory describes a semantic model supporting dis- course phenomena such as pronominal and tempo- ral anaphora, and Sag and Hankamer argue explicitly that ellipsis and other such phenomena are interpreted with respect to a discourse model.
+  As one study puts it, “Inter- preting a verb-phrase ellipsis (VP ellipsis) requires accessing an antecedent in memory, and then in- tegrating a representation of this antecedent into the local context".
   In this paper, we seek to determine whether a large language model is capable of such an interpretive process.
   
   # 5. 3 Data
@@ -2300,7 +3092,7 @@
   According to the GPT-3 documentation, Davinci-003 is the most powerful model and Ada-001, the least.
   
   Footnote 1.
-  Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.
+  Datasets and associated programs can be ac- cessed.
   
   Table 2 is skipped.
   
@@ -2406,7 +3198,7 @@
   A.1 Sample Instantiations
   
   Below are sample instantiations for the Single Sentence and Two Action structures.
-  The complete datasets for all the structures can be accessed at https://github.com/DanHardtDK/ ellipsisGPT3.
+  The complete datasets for all the structures can be accessed.
   
   Single Sentence
   
@@ -2603,9 +3395,9 @@
   Statement of need
   
   Data visualization is an indispensable part of the scientific process.
-  Effective visualizations will allow a scientist both to understand their own data and to communicate their insights to others (Tukey, 1977).
+  Effective visualizations will allow a scientist both to understand their own data and to communicate their insights to others.
   These goals can be furthered by tools for specifying a graph that provide a good balance between efficiency and flexibility.
-  Within the scientific Python ecosystem, the matplotlib (Hunter, 2007) project is very well established, having been under continuous development for nearly two decades.
+  Within the scientific Python ecosystem, the matplotlib project is very well established, having been under continuous development for nearly two decades.
   It is highly flexible, offering fine-grained control over the placement and visual appearance of objects in a plot.
   It can be used interactively through GUI applications, and it can output graphics to a wide range of static formats.
   Yet its relatively low-level API can make some common tasks cumbersome to perform.
@@ -2673,17 +3465,16 @@
   Several seaborn functions also apply statistical transformations to the input data before plotting, ranging from estimating the mean or median to fitting a general linear model.
   When data are transformed in this way, seaborn automatically computes and shows error bars to provide a visual cue about the uncertainty of the estimate.
   Unlike many graphical libraries, seaborn shows 95% confidence interval error bars by default, rather than standard errors.
-  The confidence intervals are computed with a bootstrap algorithm, allowing them to generalize over many different statistics, and the default level allows the user to perform “inference by eye” (Cumming & Finch, 2005).
+  The confidence intervals are computed with a bootstrap algorithm, allowing them to generalize over many different statistics, and the default level allows the user to perform “inference by eye”.
   Historically, error bar specification has been relatively limited, but a forthcoming release (v0.12) will introduce a new configuration system that makes it possible to show nonparametric percentile intervals and scaled analytic estimates of standard error or standard deviation statistics.
   
   seaborn aims to be flexible about the format of its input data.
-  The most convenient usage pattern provides a pandas (McKinney, 2010) dataframe with variables encoded in a long- form or “tidy” (Wickham, 2014) format.
+  The most convenient usage pattern provides a pandas dataframe with variables encoded in a long- form or “tidy” format.
   With this format, columns in the dataframe can be explicitly assigned to roles in the plot, such as specifying the x and y positions of a scatterplot along with size and shape semantics.
   Long-form data supports efficient exploration and prototyping because variables can be assigned different roles in the plot without modifying anything about the original dataset.
   But most seaborn functions can also consume and visualize “wide-form” data, typically producing similar output to how the analogous matplot lib function would interpret a 2D array (e.g.,
   producing a boxplot where each box represents a column in the dataframe) while making use of the index and column names to label the graph.
-  Using the label information in a pandas object can help make plots that are interpretable without further tweaking – reducing the chance of interpretive errors – but seaborn also accepts data from a variety of more basic formats, including numpy (Harris et al.,
-  2020) arrays and simple Python collection types.
+  Using the label information in a pandas object can help make plots that are interpretable without further tweaking – reducing the chance of interpretive errors – but seaborn also accepts data from a variety of more basic formats, including numpy arrays and simple Python collection types.
   
   seaborn also offers multiple built-in themes that users can select to modify the visual appear- ance of their graphs.
   The themes make use of the matplotlib rcParams system, meaning that they will take effect for any figure created using matplotlib, not just those made by seaborn.
@@ -2697,10 +3488,10 @@
   Many useful graphs can be created through the seaborn interface, but more advanced applications – such as defining composite figures with multiple arbitrary plot types – will require importing and using matplotlib as well.
   Even when calling only seaborn functions, deeper cus- tomization of the plot appearance is achieved by specifying parameters that are passed- through to the underlying matplotlib functions, and tweaks to the default axis limits, ticks,
   and labels are made by calling methods on the matplotlib object that axes-level seaborn functions return.
-  This approach is distinct from other statistical graphing sys- tems, such as ggplot2 (Wickham, 2016).
+  This approach is distinct from other statistical graphing sys- tems, such as ggplot2.
   While seaborn offers some similar features and, in some cases, uses similar terminology to ggplot2, it does not implement the for- mal Grammar of Graphics and cannot be used to produce arbitrary visualizations.
   Rather, its aim is to facilitate rapid exploration and prototyping through named functions and opinion- ated defaults while allowing the user to leverage the considerable flexibility of matplotlib to create more domain-specific graphics and to polish figures for publication.
-  An exam- ple of a successful use of this approach to produce reproducible figures can be found at https://github.com/WagnerLabPapers/Waskom_PNAS_2017 (Waskom & Wagner, 2017).
+  An exam- ple of a successful use of this approach to produce reproducible figures can be found.
   
   # 6. Acknowledgements
   
