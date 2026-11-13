@@ -7,6 +7,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
+from sci2audio.voices import PREVIEW_TEXT
+
+PREVIEW_LIMIT = 300  # characters of a preview sentence: the cutter's utterance limit (Q4)
 
 
 class Strict(BaseModel):
@@ -24,6 +27,9 @@ class DocumentOut(BaseModel):
     size: int
     has_report: bool
     has_audio: bool
+    speech_cache_bytes: int = Field(
+        description="bytes of kept speech chunks; freed by DELETE …/chunks (D-158)"
+    )
 
 
 class TextIn(Strict):
@@ -111,7 +117,7 @@ class FileOut(BaseModel):
 
 class JobOut(BaseModel):
     id: str
-    kind: Literal["script", "audio", "voices"]
+    kind: Literal["script", "audio", "voices", "preview"]
     document: str | None
     state: Literal["running", "done", "failed", "cancelled"]
     started: str
@@ -150,3 +156,11 @@ class VoicesOut(BaseModel):
 class DownloadIn(Strict):
     consent: StrictBool = Field(description="only `true` starts the download")
     plan: str = Field(max_length=64, description="the digest of the plan the person agreed to")
+
+
+class PreviewIn(Strict):
+    """A voice preview (VA-05, D-249): one sentence with one voice at one speed."""
+
+    voice: str = Field(default="", max_length=64, description='"" = the default voice')
+    speed: float = 1.0
+    text: str = Field(default=PREVIEW_TEXT, min_length=1, max_length=PREVIEW_LIMIT)
