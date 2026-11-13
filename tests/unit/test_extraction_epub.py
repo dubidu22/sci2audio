@@ -23,6 +23,7 @@ from hypothesis import strategies as st
 from sci2audio.core import Content, OutlineEntry, Page, Picture, SourceFormat, TextLine
 from sci2audio.extraction import ExtractionError, extract_epub, read_epub
 from sci2audio.extraction import epub as epub_module
+from sci2audio.extraction import markup as markup_module
 
 pytestmark = pytest.mark.timeout(60)
 
@@ -713,8 +714,8 @@ def test_the_limits_are_the_decided_ones() -> None:
     assert epub_module.MAX_TOTAL == 512 * 1024 * 1024
     assert epub_module.MAX_SPINE == 10_000
     assert epub_module.MAX_COVER == 20 * 1024 * 1024
-    assert epub_module.MAX_TAGGED == 100
-    assert epub_module.MAX_TAGS == 200
+    assert markup_module.MAX_TAGGED == 100  # shared with Markdown since #74 (D-340)
+    assert markup_module.MAX_TAGS == 200
     assert epub_module.MAX_OUTLINE_LEVEL == 15
 
 

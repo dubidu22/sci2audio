@@ -7,9 +7,9 @@ Rules, checked by `tests/unit/test_corpus.py` on every PR:
 - Every file in `tests/corpus/` has exactly one row below, and every row names a file that exists.
 - `Licence` is one of `CC0-1.0`, `CC-BY-2.0`, `CC-BY-2.5`, `CC-BY-3.0`, `CC-BY-4.0` or `public domain`, as stated at the source.
 - No file over 1 MB; the whole corpus under 10 MB; 5 to 10 papers (`papers/*.pdf`) and at least one EPUB (`epub/*.epub`).
-- Files are stored exactly as downloaded, so their content matches the source.
+- Files are stored exactly as downloaded, so their content matches the source; files written for sci2audio (`markdown/`, `text/`) are stored byte for byte as written (`.gitattributes` turns off line-end conversion).
 
-`Covers` names the layout and text features a file is meant to exercise, so tests can pick the right sample: two-column, footnotes, tables, formulas, citations, URLs, code, pseudocode, examples, chapters.
+`Covers` names the layout and text features a file is meant to exercise, so tests can pick the right sample: two-column, footnotes, tables, formulas, citations, URLs, code, pseudocode, examples, chapters, hard-wrapped paragraphs, hyphenation.
 
 | File | Title | Authors | Source | Licence | Covers | Added in |
 |---|---|---|---|---|---|---|
@@ -21,3 +21,5 @@ Rules, checked by `tests/unit/test_corpus.py` on every PR:
 | `papers/arxiv2024-liu-orbital-hall.pdf` | Dominance of extrinsic scattering mechanisms in the orbital Hall effect: graphene, transition metal dichalcogenides and topological antiferromagnets. arXiv:2308.14878v2 | Hong Liu, Dimitrie Culcer | https://arxiv.org/pdf/2308.14878v2 (licence on https://arxiv.org/abs/2308.14878) | CC0-1.0 | two-column, formulas, citations | #15 |
 | `papers/arxiv2024-arsiwalla-qualia-meaning.pdf` | Qualia and the Formal Structure of Meaning. arXiv:2405.01148v1 | Xerxes D. Arsiwalla | https://arxiv.org/pdf/2405.01148v1 (licence on https://arxiv.org/abs/2405.01148) | CC-BY-4.0 | footnotes, formulas, citations, URLs | #15 |
 | `epub/wells-the-time-machine.epub` | The Time Machine (1895) | H. G. Wells | https://standardebooks.org/ebooks/h-g-wells/the-time-machine (text public domain in the US; Wells died 1946, so also public domain in life+70 countries; Standard Ebooks dedicates its own work under CC0 1.0) | public domain | chapters, footnotes (one endnote) | #15 |
+| `markdown/sci2audio-sample-note.md` | Listening to Papers: a Pilot Note (a made-up research note) | written for sci2audio | written for this repository (#74); no third-party text | CC0-1.0 | headings, footnotes, tables, formulas, code, URLs | #74 |
+| `text/sci2audio-sample-plain.txt` | Listening to Papers (a made-up note in plain text) | written for sci2audio | written for this repository (#74); no third-party text | CC0-1.0 | hard-wrapped paragraphs, hyphenation | #74 |

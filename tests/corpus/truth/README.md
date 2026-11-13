@@ -46,7 +46,7 @@ step later leaves it out of the script (TP-05): the truth describes what layout 
 | Key | Type | Meaning |
 |---|---|---|
 | `file` | string | Path of the corpus file below `tests/corpus/`, e.g. `papers/x.pdf` |
-| `drafted_from` | list of strings | What the draft was made from: `pdf`, `epub`, `latex` (arXiv source), `markdown` (JOSS source). Author sources are only a check; they are never added to the repo |
+| `drafted_from` | list of strings | What the draft was made from: `pdf`, `epub`, `latex` (arXiv source), `markdown` (JOSS source, or an own Markdown sample), `text` (an own text sample). Author sources are only a check; they are never added to the repo |
 | `title` | string | The title as printed |
 
 ### Papers (`papers/*.pdf`)
@@ -94,6 +94,20 @@ Each `furniture` entry (an inline table, one per line):
 |---|---|---|
 | `chapters` | list of strings | Chapter titles in reading order, as printed |
 | `endnotes` | list of `{ chapter, text }` | Each endnote: the chapter title it is referenced from, and its text |
+
+### Own samples (`markdown/*.md`, `text/*.txt`)
+
+Short files written for sci2audio (#74, D-348), so every value can be read off the source. They
+have one page, so nothing is tied to pages.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `headings` | list of `{ level, text }` | Every heading in reading order, `level` 1 to 6 as the Markdown marks it (`#` to `######`). Empty for plain text, which marks none |
+| `footnotes` | list of `{ mark, text }` | Each note with the mark a reader sees (Markdown numbers notes in the order of first use) and its text |
+| `tables` | integer | Number of tables |
+| `figures` | list of strings | Each image's alternative text in reading order; `""` for one without |
+| `formulas` | list of `{ display, text }` | Each formula in reading order: `display` true for one on its own line (`$$`), its TeX as typed |
+| `verbatim` | list of tables, 3 to 7 | `{ where, text }` as for papers, without `page` |
 
 ## Drafting and checking
 
