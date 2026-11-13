@@ -1,0 +1,17 @@
+# serializer version: 1
+# name: test_every_footnote_edit_is_as_recorded[sci2audio-sample-note]
+  list([
+    'remove block 1: very sentence here is our own.[1]',
+    'remove block 7: Do footnotes[2] help or hurt?',
+    'remove block 26: Listeners kept up.[2]',
+    "replace block 27: []Nothing in this note is taken  -> 'Footnote 1. '",
+    "replace block 28: []A footnote with bold text, con -> 'Footnote 2. '",
+  ])
+# ---
+# name: test_every_footnote_edit_is_as_recorded[wells-the-time-machine]
+  list([
+    'remove block 240:  of the gallery sloped at all.[1] The end I had come in at was ',
+    "replace block 331: []It may be, of course, that the -> 'Footnote 1. '",
+    'remove block 331: into the side of a hill. —\ufeffEd.[ ↩︎]',
+  ])
+# ---

@@ -27,28 +27,41 @@ def make_document(
     language: str = "en",
     name: str = "test.txt",
     *,
-    tags: Mapping[int, Sequence[tuple[int, int, str]]] | None = None,
+    tags: Mapping[int, Sequence[tuple[int, int, str | tuple[str, ...]]]] | None = None,
     sections: Sequence[Section] = (),
+    pages: Mapping[int, int] | None = None,
 ) -> Document:
-    """A document of these blocks on one page, one text line per printed line.
+    """A document of these blocks, one text line per printed line, all on page 1 unless
+    `pages` says otherwise.
 
     Each block is a `Block` (its parts are ignored and made new) or a `(kind, text)` pair.
     Captions keep `describes`, furniture keeps its role, labels are kept as given.
     `tags` gives, per block index, character ranges `(start, end, tag)` that become runs of
-    their own with that source tag, e.g. `(10, 11, "sup")` for a superscript footnote mark;
-    a range may not cross a line break. `sections` is the document's section tree.
+    their own with that source tag, e.g. `(10, 11, "sup")` for a superscript footnote mark,
+    or with several tags, e.g. `(10, 11, ("sup", "role:doc-noteref", "link:b3l0"))`; a range
+    may not cross a line break. Line ids are `b<block>l<line>` (line counted in the block's
+    text from 0), so a `link:` tag can point at a block's first line. `sections` is the
+    document's section tree. `pages` gives, per block index, the page a block stands on (1
+    if not given); pages may not go back, and a page in between with no block is empty
+    (D-426).
     """
     tags = tags or {}
-    lines: list[TextLine] = []
+    pages = pages or {}
+    lines: dict[int, list[TextLine]] = {}
     made: list[Block] = []
+    last_page = 1
     for number, given in enumerate(blocks):
+        page = pages.get(number, 1)
+        if page < last_page:
+            raise ValueError(f"block {number} is on page {page}, after page {last_page}")
+        last_page = page
         block = given if isinstance(given, Block) else Block(BlockKind(given[0]), given[1])
-        ranges = sorted(tags.get(number, ()))
+        ranges = sorted(tags.get(number, ()), key=lambda r: (r[0], r[1]))
         parts, start = [], 0
         for line_number, line in enumerate(block.text.split("\n")):
             if line:
                 line_id = f"b{number}l{line_number}"
-                lines.append(TextLine(line_id, _runs(line, start, ranges)))
+                lines.setdefault(page, []).append(TextLine(line_id, _runs(line, start, ranges)))
                 parts.append(Part(line_id, start))
             start += len(line) + 1
         made.append(
@@ -61,14 +74,19 @@ def make_document(
                 label=block.label,
             )
         )
-    content = Content(Source(name, SourceFormat.TEXT), (Page(1, tuple(lines)),))
+    content = Content(
+        Source(name, SourceFormat.TEXT),
+        tuple(Page(n, tuple(lines.get(n, ()))) for n in range(1, last_page + 1)),
+    )
     return Document(
         content=content, language=language, blocks=tuple(made), sections=tuple(sections)
     )
 
 
-def _runs(line: str, offset: int, ranges: Sequence[tuple[int, int, str]]) -> tuple[TextRun, ...]:
-    """The line cut into runs: each tagged range that lies in it is a run with its tag."""
+def _runs(
+    line: str, offset: int, ranges: Sequence[tuple[int, int, str | tuple[str, ...]]]
+) -> tuple[TextRun, ...]:
+    """The line cut into runs: each tagged range that lies in it is a run with its tags."""
     runs, cursor = [], 0
     for start, end, tag in ranges:
         a, b = start - offset, end - offset
@@ -78,7 +96,7 @@ def _runs(line: str, offset: int, ranges: Sequence[tuple[int, int, str]]) -> tup
             raise ValueError(f"tagged range {start}-{end} must lie inside one line, in order")
         if a > cursor:
             runs.append(TextRun(line[cursor:a]))
-        runs.append(TextRun(line[a:b], tags=(tag,)))
+        runs.append(TextRun(line[a:b], tags=(tag,) if isinstance(tag, str) else tuple(tag)))
         cursor = b
     if cursor < len(line):
         runs.append(TextRun(line[cursor:]))

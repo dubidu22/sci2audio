@@ -16,6 +16,17 @@ the label of a note on the same page, after a word of at least two letters (digi
 follow: "Ahmad3" before an asterisk mark) or closing punctuation, and not followed by a
 maths operator. So "N3" and "|N|3" in a formula set in line stay. Each label is taken once
 per page, at its first match in reading order. A note whose mark is not found is still read.
+
+EPUB and Markdown tie a mark to its note by tags instead (D-428): a run tagged
+`role:doc-noteref` or `epub:noteref` whose `link:` points at an item of a FOOTNOTE block is a
+**linked mark**. It is removed wherever the note stands (another page, an Endnotes chapter),
+every time it is used (D-421), in body text and in notes alike (D-420), without the four
+conditions above; a noteref linking anywhere else, or to the note it stands in, is read as
+printed (D-423), and the printed-label rule never looks at a noteref run. A note whose own
+label is "" is introduced by its first linked mark in reading order (D-425), a mark printed
+in brackets by what is inside them: "[1]" gives "Footnote 1." (D-422). A back-link in a note
+(`role:doc-backlink`, `epub:backlink`, the "↩" back to the mark) is removed with the white
+space before it (D-424); a note that holds nothing else gets no introduction.
 """
 
 from __future__ import annotations
@@ -45,11 +56,18 @@ SMALLER = 0.08
 MARKED_KINDS = frozenset(
     {BlockKind.PARAGRAPH, BlockKind.HEADING, BlockKind.CAPTION, BlockKind.LIST_ITEM}
 )
+# the tags of a mark that links to its note, and of a note's link back to its mark (D-307)
+NOTEREF_TAGS = frozenset({"role:doc-noteref", "epub:noteref"})
+BACKLINK_TAGS = frozenset({"role:doc-backlink", "epub:backlink"})
+# the kinds of block whose text can hold a linked mark (D-420)
+LINKED_KINDS = MARKED_KINDS | {BlockKind.FOOTNOTE}
+_LINK = "link:"
 _CLOSING = frozenset(".,;:!?)]}\u2019\u201d\"'")  # also the closing quotes
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
 _INTRODUCED = re.compile(r"Footnote\b")
+_BRACKETED = re.compile(r"\[([^\[\]]+)\]|\(([^()]+)\)")  # "[1]" or "(1)": one pair
 
 
 class FootnoteTextStep(TextStep):
@@ -84,32 +102,144 @@ class FootnoteStep(TextStep):
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         wording = wording_for(context.language)
         items = document.content.items()  # once: it is built anew on every call
+        notes = {
+            part.item: index
+            for index, block in enumerate(document.blocks)
+            if block.kind is BlockKind.FOOTNOTE
+            for part in block.parts
+        }
+        found: set[tuple[int, str]] = set()  # (page, label) of every mark taken
+        linked: dict[int, str] = {}  # note block -> its first linked mark
+        marks: dict[int, list[Edit]] = {}  # block -> its linked-mark removals
+        if notes:
+            for index, block in enumerate(document.blocks):
+                if block.kind in LINKED_KINDS:
+                    for page, edit, note in self._linked_marks(items, index, block, notes):
+                        marks.setdefault(index, []).append(edit)
+                        mark = document.text_of(edit.span)
+                        linked.setdefault(note, mark)
+                        if label := document.blocks[note].label:
+                            found.add((page, label))
         edits = []
         labels: set[tuple[int, str]] = set()  # (page, label) of every note with a mark
         for index, block in enumerate(document.blocks):
             if block.kind is BlockKind.FOOTNOTE:
-                if edit := self._introduction(index, block, wording):
+                backlinks = list(self._backlinks(items, index, block))
+                edits += backlinks
+                # the note starts after what is removed: back-links and marks of other notes
+                removed = [e.span for e in (*backlinks, *marks.get(index, ()))]
+                if edit := self._introduction(index, block, wording, linked.get(index), removed):
                     edits.append(edit)
                 if block.label and block.parts:
                     labels.add((items[block.parts[0].item][0].number, block.label))
-        found: set[tuple[int, str]] = set()
+        for index in sorted(marks):
+            edits += marks[index]
         for index, block in enumerate(document.blocks):
             if block.kind in MARKED_KINDS and labels:
                 edits += self._marks(items, index, block, labels, found)
         return edits
 
-    def _introduction(self, index: int, block: Block, wording: Wording) -> Edit | None:
+    def _linked_marks(
+        self,
+        items: Mapping[str, tuple[Page, Item]],
+        index: int,
+        block: Block,
+        notes: Mapping[str, int],
+    ) -> Iterator[tuple[int, Edit, int]]:
+        """Remove-edits for the linked marks in one block, each with the page it stands on
+        and the note it links to (D-428). Runs next to each other with the same noteref
+        link are one mark."""
+        group: list[tuple[int, int, int, str]] = []  # (page, start, end, link) of one mark
+        for page, offset, run in [*_runs(items, block), (0, -1, None)]:
+            link = _noteref_link(run) if run is not None else None
+            if group and (link != group[-1][3] or offset != group[-1][2]):
+                if found := self._linked_mark(index, block, group, notes):
+                    yield found
+                group = []
+            if link is not None:
+                group.append((page, offset, offset + len(run.text), link))
+
+    def _linked_mark(
+        self,
+        index: int,
+        block: Block,
+        group: list[tuple[int, int, int, str]],
+        notes: Mapping[str, int],
+    ) -> tuple[int, Edit, int] | None:
+        page, start, _, link = group[0]
+        end = group[-1][2]
+        note = notes.get(link)
+        if note is None or note == index:  # links elsewhere or to its own note (D-423)
+            return None
+        text = block.text[start:end]
+        mark = text.strip()
+        if not mark:
+            return None
+        start += len(text) - len(text.lstrip())
+        return (
+            page,
+            Edit(
+                Span(index, start, start + len(mark)),
+                EditKind.REMOVE,
+                reason=f"footnote mark {mark} is not read; the note is read where the file "
+                "places it (Q2, D-414)",
+                step=self.id,
+            ),
+            note,
+        )
+
+    def _backlinks(
+        self, items: Mapping[str, tuple[Page, Item]], index: int, block: Block
+    ) -> Iterator[Edit]:
+        """Remove-edits for a note's back-links, each with the white space before it
+        (D-424). Back-link runs next to each other are one."""
+        spans: list[list[int]] = []
+        for _, offset, run in _runs(items, block):
+            if not BACKLINK_TAGS & set(run.tags):
+                continue
+            end = offset + len(run.text)
+            if spans and spans[-1][1] == offset:
+                spans[-1][1] = end
+            else:
+                spans.append([offset, end])
+        # where the last back-link edit ends: the next one's white space starts after it. Each
+        # edit ends on a letter (rstrip), so this only guards the no-overlap rule (#194 N1).
+        taken = 0
+        for start, end in spans:
+            text = block.text[start:end]
+            if not text.strip():
+                continue
+            end = start + len(text.rstrip())
+            while start > taken and block.text[start - 1].isspace():
+                start -= 1
+            taken = end
+            yield Edit(
+                Span(index, start, end),
+                EditKind.REMOVE,
+                reason="the back-link of a footnote is not read",
+                step=self.id,
+            )
+
+    def _introduction(
+        self,
+        index: int,
+        block: Block,
+        wording: Wording,
+        linked: str | None = None,
+        removed: Iterable[Span] = (),
+    ) -> Edit | None:
         """The edit that introduces a note: its mark read as "Footnote 1.", or "Footnote."
-        put before a note without one; none for a note already introduced or empty."""
+        put before a note without one; none for a note already introduced or empty.
+        `linked` is the first mark that links to the note; `removed` are the spans other
+        edits remove from it (back-links, marks of other notes): the note starts after them,
+        and a printed mark that overlaps one is not read as the note's mark."""
         text = block.text
-        lead = len(text) - len(text.lstrip())
-        if lead == len(text) or _INTRODUCED.match(text, lead):
+        lead = _lead(text, removed)
+        if lead == len(text) or _INTRODUCED.match(_without(text, removed, lead)):
             return None
         label = block.label
-        if label and text.startswith(label, lead):
-            end = lead + len(label)
-            if text[end : end + 1] in (".", ")") and not text[end + 1 : end + 2].strip():
-                end += 1  # a note printed "1. Text" or "1) Text": the "." or ")" goes too
+        end = _printed_end(text, label, lead, removed)
+        if end is not None:
             spoken = (
                 wording.footnote.format(label)
                 if _SPOKEN_MARK.fullmatch(label)
@@ -123,6 +253,21 @@ class FootnoteStep(TextStep):
                 reason=f"footnote {label} is introduced by its mark",
                 step=self.id,
                 replacement=spoken,
+            )
+        if not label and linked is not None:
+            inner = _BRACKETED.fullmatch(linked)
+            mark = next(g for g in inner.groups() if g is not None) if inner else linked
+            spoken = (
+                wording.footnote.format(mark)
+                if _SPOKEN_MARK.fullmatch(mark)
+                else wording.footnote_unnamed
+            )
+            return Edit(
+                Span(index, lead, lead),
+                EditKind.REPLACE,
+                reason=f"footnote {linked} is introduced by the mark that links to it",
+                step=self.id,
+                replacement=spoken + " ",
             )
         return Edit(
             Span(index, lead, lead),
@@ -147,8 +292,8 @@ class FootnoteStep(TextStep):
         for page, offset, run in runs:
             mark = run.text.strip()
             key = (page, mark)
-            if not mark or key not in labels or key in found:
-                continue
+            if not mark or key not in labels or key in found or NOTEREF_TAGS & set(run.tags):
+                continue  # a noteref is a linked mark or read as printed (D-423, D-428)
             start = offset + run.text.index(mark)
             end = start + len(mark)
             if (
@@ -167,6 +312,57 @@ class FootnoteStep(TextStep):
                     )
                 )
         return edits
+
+
+def _noteref_link(run: TextRun) -> str | None:
+    """The item a noteref run links to; None for any other run (a back-link tagged as a
+    noteref too is a back-link)."""
+    tags = set(run.tags)
+    if not NOTEREF_TAGS & tags or BACKLINK_TAGS & tags:
+        return None
+    return next((tag[len(_LINK) :] for tag in run.tags if tag.startswith(_LINK)), None)
+
+
+def _printed_end(text: str, label: str, lead: int, removed: Iterable[Span]) -> int | None:
+    """Where a note's printed mark ends, a "." or ")" after it included ("1. Text"); None
+    if the note does not start with its label, or a removed span lies in it."""
+    if not label or not text.startswith(label, lead):
+        return None
+    end = lead + len(label)
+    if text[end : end + 1] in (".", ")") and not text[end + 1 : end + 2].strip():
+        end += 1  # a note printed "1. Text" or "1) Text": the "." or ")" goes too
+    if any(span.start < end and lead < span.end for span in removed):
+        return None
+    return end
+
+
+def _without(text: str, removed: Iterable[Span], start: int) -> str:
+    """The text from `start` on as it reads with the removed spans taken out."""
+    kept, position = [], start
+    for span in sorted(removed, key=lambda span: span.start):
+        if span.end <= position:
+            continue
+        kept.append(text[position : max(position, span.start)])
+        position = max(position, span.end)
+    kept.append(text[position:])
+    return "".join(kept)
+
+
+def _lead(text: str, removed: Iterable[Span]) -> int:
+    """Where a note's text starts: its first character that is not white space and not in
+    a removed span; len(text) if there is none."""
+    spans = sorted((span.start, span.end) for span in removed)
+    position, next_span = 0, 0
+    while position < len(text):
+        while next_span < len(spans) and spans[next_span][1] <= position:
+            next_span += 1
+        if next_span < len(spans) and spans[next_span][0] <= position:
+            position = spans[next_span][1]
+        elif text[position].isspace():
+            position += 1
+        else:
+            return position
+    return len(text)
 
 
 def _name(block: Block) -> str:
