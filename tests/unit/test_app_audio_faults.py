@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from audio_fakes import FakeVoice
+from audio_fakes import FakeVoice, chunk_count
 
 from sci2audio.app import (
     AudioProgress,
@@ -46,6 +46,10 @@ def run(folder: Path, voice: FakeVoice, **kwargs):  # type: ignore[no-untyped-de
     return run_audio_job(PYMEDPHYS, settings, folder / "work", voice=voice.source(), **kwargs)
 
 
+def chunks() -> int:
+    return chunk_count(PYMEDPHYS)
+
+
 def leftovers(folder: Path) -> list[str]:
     """Partial files anywhere under the folder."""
     return [p.name for p in folder.rglob("*") if p.name.endswith((".part", ".partial"))]
@@ -61,7 +65,7 @@ KILLED_JOB = textwrap.dedent(
     import sys
     from pathlib import Path
     sys.path.insert(0, sys.argv[1])
-    from audio_fakes import FakeVoice
+    from audio_fakes import FakeVoice, chunk_count
     from sci2audio.app import JobSettings, run_audio_job
 
     folder, stop_after = Path(sys.argv[2]), int(sys.argv[3])
@@ -100,7 +104,7 @@ def test_a_job_killed_mid_run_resumes_without_speaking_finished_chunks(tmp_path:
 
     voice = FakeVoice()
     job = run(killed, voice)
-    assert len(voice.spoken) == 41 - 12
+    assert len(voice.spoken) == chunks() - 12
     assert job.reused == 12
     assert leftovers(killed) == []
     whole = run(tmp_path / "uninterrupted", FakeVoice())
@@ -113,7 +117,7 @@ def test_a_job_killed_mid_run_resumes_without_speaking_finished_chunks(tmp_path:
 def test_the_whole_job_runs_with_the_network_blocked(tmp_path: Path) -> None:
     with no_network():
         job = run(tmp_path, FakeVoice())
-    assert job.spoken == 41
+    assert job.spoken == chunks() > 12
     assert job.written.m4b is not None
     assert job.written.m4b.exists()
 
@@ -142,7 +146,7 @@ def test_a_full_disk_while_speaking_fails_cleanly_and_keeps_finished_chunks(
     rest = FakeVoice()
     job = run(tmp_path, rest)
     assert job.reused == at - 1
-    assert len(rest.spoken) == 41 - (at - 1)
+    assert len(rest.spoken) == chunks() - (at - 1)
 
 
 @dataclass(frozen=True)
@@ -181,7 +185,7 @@ def test_a_full_disk_while_encoding_leaves_no_file_and_the_rerun_needs_no_overwr
     assert leftovers(tmp_path) == []
     assert outputs(tmp_path) == []  # the MP3s finished before the failure are removed too
     job = run(tmp_path, FakeVoice())  # without overwrite: nothing of the failed run is left
-    assert job.reused == 41
+    assert job.reused == chunks()
     assert len(outputs(tmp_path)) == ENCODES + 1  # and the read-along file
 
 
@@ -206,7 +210,7 @@ def test_cancel_part_way_through_encoding_leaves_no_file_and_the_rerun_needs_no_
     assert outputs(tmp_path) == []
     voice = FakeVoice()
     job = run(tmp_path, voice)
-    assert (job.reused, voice.made) == (41, 0)  # every chunk was kept, the voice not loaded
+    assert (job.reused, voice.made) == (chunks(), 0)  # every chunk was kept, the voice not loaded
 
 
 def test_ctrl_c_while_encoding_leaves_no_file(tmp_path: Path) -> None:
@@ -219,7 +223,7 @@ def test_ctrl_c_while_encoding_leaves_no_file(tmp_path: Path) -> None:
         run(tmp_path, FakeVoice(), ffmpeg=ffmpeg)
     assert leftovers(tmp_path) == []
     assert outputs(tmp_path) == []
-    assert run(tmp_path, FakeVoice()).reused == 41
+    assert run(tmp_path, FakeVoice()).reused == chunks()
 
 
 def test_a_failed_encoding_never_removes_a_file_that_came_from_elsewhere(tmp_path: Path) -> None:
@@ -253,7 +257,7 @@ def test_a_rerun_that_fails_while_encoding_leaves_no_old_record(tmp_path: Path) 
     assert not any(name.endswith(".readalong.json") for name in outputs(tmp_path))
     job = run(tmp_path, FakeVoice(), overwrite=True)
     assert job.record.exists()
-    assert job.reused == 41
+    assert job.reused == chunks()
 
 
 def test_cached_chunks_at_different_sample_rates_say_to_clean_the_working_folder(
@@ -274,7 +278,7 @@ def test_cached_chunks_at_different_sample_rates_say_to_clean_the_working_folder
             run(tmp_path, FakeVoice(), overwrite=True)
     clean_work_folder(tmp_path / "work")
     voice = FakeVoice()
-    assert run(tmp_path, voice, overwrite=True).spoken == 41
+    assert run(tmp_path, voice, overwrite=True).spoken == chunks()
 
 
 def test_a_full_disk_while_writing_the_read_along_file_leaves_no_half_file(
@@ -301,7 +305,7 @@ def test_the_output_folder_removed_during_the_run_gives_a_clear_message(tmp_path
     assert not (tmp_path / "out").exists()
     assert leftovers(tmp_path) == []
     job = run(tmp_path, FakeVoice())
-    assert job.reused == 41
+    assert job.reused == chunks()
 
 
 def test_a_chunk_removed_before_encoding_gives_a_clear_message(tmp_path: Path) -> None:
@@ -333,4 +337,4 @@ def test_records_are_written_last_and_a_failed_record_says_the_audiobook_is_ther
     assert not (tmp_path / "work" / "audio.json").exists()
     monkeypatch.undo()
     job = run(tmp_path, FakeVoice(), overwrite=True)
-    assert json.loads(job.record.read_text())["chunks"]["reused"] == 41
+    assert json.loads(job.record.read_text())["chunks"]["reused"] == chunks()

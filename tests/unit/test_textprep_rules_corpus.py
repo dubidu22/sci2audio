@@ -19,7 +19,14 @@ from syrupy.assertion import SnapshotAssertion
 from sci2audio.core import BlockKind, Document, EditKind, Section
 from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
-from sci2audio.textprep import StepContext, StepRun, is_reference_title, run_steps, spoken_text
+from sci2audio.textprep import (
+    StepContext,
+    StepRun,
+    is_reference_title,
+    run_steps,
+    spoken_text,
+    whole_block,
+)
 
 pytestmark = pytest.mark.timeout(120)
 
@@ -102,9 +109,18 @@ def test_every_footnote_is_introduced_and_its_mark_left_out(
     doc, said = document(paper), spoken(paper)
     items = doc.content.items()
     notes = {}
+    # a note holding nothing but its mark and links reads nothing at all (D-168, #66)
+    only_links = {
+        edit.span.block
+        for edit in run(paper).accepted
+        if edit.step == "links" and edit.span == whole_block(doc, edit.span.block)
+    }
     for index, block in enumerate(doc.blocks):
         if block.kind is BlockKind.FOOTNOTE:
-            assert said[index].startswith("Footnote"), said[index][:60]
+            if index in only_links:
+                assert said[index] == ""
+            else:
+                assert said[index].startswith("Footnote"), said[index][:60]
             if block.label:
                 notes[(items[block.parts[0].item][0].number, block.label)] = index
     removed = []
