@@ -1,0 +1,46 @@
+# Ground truth for markdown/sci2audio-sample-note.md. Format: README.md ("Own samples").
+# Written for sci2audio (#74); every value can be read off the Markdown source.
+file = "markdown/sci2audio-sample-note.md"
+drafted_from = ["markdown"]
+title = "Listening to Papers: a Pilot Note"  # from the front matter, which is not read aloud
+
+headings = [
+  { level = 1, text = "Listening to Papers" },
+  { level = 2, text = "1 Introduction" },
+  { level = 3, text = "1.1 Questions" },
+  { level = 2, text = "2 Method" },
+  { level = 2, text = "3 Results" },
+]
+
+# Numbered in the order of first use; note 2 is referenced twice.
+footnotes = [
+  { mark = "1", text = "Nothing in this note is taken from anyone else." },
+  { mark = "2", text = "A footnote with bold text, continued on a second line." },
+]
+
+tables = 1
+
+# Alternative texts; "" for the image without one.
+figures = ["A bar chart of minutes per group", ""]
+
+# TeX as typed. "$5 and $10" is money, not maths.
+formulas = [
+  { display = false, text = "E = mc^2" },
+  { display = true, text = '\bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i' },
+]
+
+[[verbatim]]
+where = "plain"  # runs over a soft line break in the source
+text = "Spoken text runs at about 150 words per minute, so a 6,000-word paper takes 40 minutes."
+
+[[verbatim]]
+where = "footnote-mark"
+text = "Every sentence here is our own.1"
+
+[[verbatim]]
+where = "inline-maths"
+text = "How fast can a listener follow a formula such as E = mc^2?"
+
+[[verbatim]]
+where = "plain"
+text = "Some readers prefer the café at noon; others read in Zürich at 7 °C."

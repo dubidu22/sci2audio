@@ -1,0 +1,80 @@
+# serializer version: 1
+# name: test_markdown_golden_file
+  '''
+  sci2audio-sample-note.md  sha256 a9d0cedfcfd176ff
+  encoding: utf-8
+  metadata: title='Listening to Papers: a Pilot Note' authors=['A. Example', 'B. Sample'] date='2026-11-13' identifier='10.0000/sci2audio.sample' language='en-GB'
+  outline:
+  == page 1  lines 37  pictures 2
+  p1-l1  {h1; b}Listening to Papers
+  p1-l2  {p}This note was written for the sci2audio tests. It describes a {p em; i}made-up{p} pilot study and {p strong; b}no real data{p}. Every sentence here is our own.{p sup a #fnref1 role:doc-noteref link:p1-l36}1
+  p1-l3  {h2; b}1 Introduction
+  p1-l4  {p}People listen to papers while they walk, cook or commute. Spoken text runs at about 150 words per minute, so a 6,000-word paper takes 40 minutes.
+  p1-l5  {p br}A hard line break sits just before this line.
+  p1-l6  {p}Some readers prefer the café at noon; others read in Zürich at 7 °C. A dash – en, and one — em; quotes “like these” and µs for microseconds.
+  p1-l7  {h3; b}1.1 Questions
+  p1-l8  {ol li}How fast can a listener follow a formula such as {ol li span role:math}E = mc^2{ol li}?
+  p1-l9  {ol li}Do footnotes{ol li sup a #fnref2 role:doc-noteref link:p1-l37}2{ol li} help or hurt?
+  p1-l10  {ol li ul li}when read in place
+  p1-l11  {ol li ul li}when read at the end
+  p1-l12  {p}Prices like $5 and $10 stay text.
+  p1-l13  {h2; b}2 Method
+  p1-l14  {blockquote p}Listening is not reading.
+  p1-l15  {blockquote blockquote p}A quote inside a quote.
+  p1-l16  {p}We timed each session with this function:
+  p1-l17  {pre code}def words_per_minute(words, seconds):
+  p1-l18  {pre code br}    return 60 * words / seconds
+  p1-l19  {pre code}indented code is code too
+  p1-l20  {table thead tr th; b}Group
+  p1-l21  {table thead tr th; b}Listeners
+  p1-l22  {table thead tr th; b}Minutes
+  p1-l23  {table tbody tr td}A
+  p1-l24  {table tbody tr td}12
+  p1-l25  {table tbody tr td}41
+  p1-l26  {table tbody tr td}B
+  p1-l27  {table tbody tr td}9
+  p1-l28  {table tbody tr td}38
+  p1-i1  picture ref='figures/minutes.png' alt='A bar chart of minutes per group'
+  p1-i2  picture ref='figures/decoration.png' alt=''
+  p1-l29  {p}The mean is
+  p1-l30  {div role:math}\bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
+  p1-l31  {p}and the sources are on {p a href:https://example.org/sci2audio}the project page{p} and {p a href:https://example.org/data}https://example.org/data{p}; see also {p a href:#method}the method{p} and {p a link:p1-l36}note 1{p}.
+  p1-l32  {p}Raw HTML stays: H{p sub}2{p}O and x{p sup}2{p}.
+  p1-l33  {p s}An old claim.{p} AT&T © 2026.
+  p1-l34  {h2; b}3 Results
+  p1-l35  {p}Listeners kept up.{p sup a #fnref2:1 role:doc-noteref link:p1-l37}2
+  p1-l36  {section role:doc-endnotes ol li #fn1 role:doc-endnote p}Nothing in this note is taken from anyone else.
+  p1-l37  {section role:doc-endnotes ol li #fn2 role:doc-endnote p}A footnote with {section role:doc-endnotes ol li #fn2 role:doc-endnote p strong; b}bold{section role:doc-endnotes ol li #fn2 role:doc-endnote p} text, continued on a second line.
+  
+  '''
+# ---
+# name: test_text_golden_file
+  '''
+  sci2audio-sample-plain.txt  sha256 c8459ba7eb6a3245
+  encoding: utf-8
+  metadata: title='' authors=[] date='' identifier='' language=''
+  outline:
+  == page 1  lines 20  pictures 0
+  p1-l1  {p}LISTENING TO PAPERS
+  p1-l2  {p br}A pilot note written for the sci2audio tests
+  p1-l3  {p}This note describes a made-up pilot study and no real data. Every
+  p1-l4  {p br}sentence in it is our own, and its lines are wrapped by hand at about
+  p1-l5  {p br}seventy characters, as plain-text files often are.
+  p1-l6  {p}1. Introduction
+  p1-l7  {p}People listen to papers while they walk, cook or commute. Spoken text
+  p1-l8  {p br}runs at about 150 words per minute, so a 6,000-word paper takes forty
+  p1-l9  {p br}minutes. A word may be split across lines, as in this exam-
+  p1-l10  {p br}ple, which a listener hears whole.
+  p1-l11  {p}A paragraph that starts with a tab, followed by several spaces.
+  p1-l12  {p}The line above holds only spaces, so it ends a paragraph too. Some
+  p1-l13  {p br}readers prefer the café at noon; others read in Zürich at 7 °C. A dash
+  p1-l14  {p br}– en, and one — em; quotes “like these” and µs for microseconds.
+  p1-l15  {p}- first point
+  p1-l16  {p br}- second point
+  p1-l17  {p}Roses are red,
+  p1-l18  {p br}the listener waits;
+  p1-l19  {p br}a line in a poem
+  p1-l20  {p br}keeps where it breaks.
+  
+  '''
+# ---
