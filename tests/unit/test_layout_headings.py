@@ -347,6 +347,55 @@ def test_the_font_rules_level_stands_when_the_outline_disagrees() -> None:
     assert tree(doc.sections) == [("1 Introduction", 1), [("1.1 Setup", 2)], ("2 Method", 1)]
 
 
+def test_the_font_rules_level_stands_for_unnumbered_headings_too() -> None:
+    """Review of #146 (M1): without numbers the outline's level would differ (D-271)."""
+    page = Page().heading("Summary", 14.0).body().heading("Details", 12.0).body()
+    page.heading("Statement of need", 14.0).body().heading("More", 12.0).body()
+    alone = page.build()
+    assert tree(alone.sections) == [
+        ("Summary", 1),
+        [("Details", 2)],
+        ("Statement of need", 1),
+        [("More", 2)],
+    ]
+    doc = page.build(OutlineEntry("Summary", 1, 1), OutlineEntry("Details", 1, 1))
+    assert tree(doc.sections) == tree(alone.sections)
+
+
+def test_an_added_numbered_heading_under_the_appendices_title_moves_down_too() -> None:
+    """Review of #146 (S1): the same shift as the font rules give "A.1"."""
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    page.heading("Appendices", 16.0).body().heading("A Proofs").body()
+    page.heading("A.1 First", 10.0).body()
+    plain(page, "A.2 Second").body()
+    page.heading("B More").body().heading("B.1 Third", 10.0).body()
+    alone = page.build()
+    assert ("A.2 Second", "") not in headings(alone)
+    doc = page.build(OutlineEntry("Second", 1, 1))
+    assert tree(doc.sections) == [
+        ("1 Introduction", 1),
+        ("2 Method", 1),
+        ("Appendices", 1),
+        [
+            ("A Proofs", 2),
+            [("A.1 First", 3), ("A.2 Second", 3)],
+            ("B More", 2),
+            [("B.1 Third", 3)],
+        ],
+    ]
+
+
+def test_the_first_of_two_entries_naming_one_block_decides_its_level() -> None:
+    """Review of #146 (N1)."""
+    page = Page().heading("Summary", 14.0).body().heading("Statement of need", 14.0).body()
+    plain(page, "A Closer Look").body()
+    first = (OutlineEntry("Summary", 1, 1), OutlineEntry("Statement of need", 1, 1))
+    doc = page.build(
+        *first, OutlineEntry("A Closer Look", 2, 1), OutlineEntry("A Closer Look", 1, 1)
+    )
+    assert tree(doc.sections)[-1] == [("A Closer Look", 2)]
+
+
 def test_a_heading_missing_from_the_outline_stays() -> None:
     """Outlines are often partial (arsiwalla lists 5 of its 8 headings)."""
     page = Page().heading("Abstract").body().heading("1 Introduction").body()
@@ -411,11 +460,17 @@ def test_an_entry_without_letters_adds_nothing() -> None:
 
 
 def test_titles_are_compared_after_nfkc_case_and_spaces() -> None:
-    """A ligature on the page ("ﬁ"), another case and extra spaces in the bookmark."""
+    """A ligature on the page ("ﬁ"), full-width letters (only NFKC folds them, review of
+    #146, S2), another case and extra spaces in the bookmark."""
     page = Page().heading("1 Introduction").body().heading("2 Method").body()
     plain(page, "Final  Deﬁnitions").body()
-    doc = page.build(OutlineEntry(" final definitions ", 1, 1))
-    assert headings(doc)[-1] == ("Final  Deﬁnitions", "")
+    plain(page, "Closing Words").body()
+    doc = page.build(
+        OutlineEntry(" final definitions ", 1, 1),
+        # "Closing" in full-width letters
+        OutlineEntry("\uff23\uff4c\uff4f\uff53\uff49\uff4e\uff47 Words", 1, 1),
+    )
+    assert headings(doc)[-2:] == [("Final  Deﬁnitions", ""), ("Closing Words", "")]
 
 
 @st.composite

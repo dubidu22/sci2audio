@@ -27,8 +27,10 @@ settled by these rules (D-270 to D-272):
 3. A single top entry with entries under it names the document, not a heading: it is
    skipped and the entries under it move up one level. An entry whose text is the file's
    own title is skipped too.
-4. An added heading's level comes from its printed number when it has one, else from the
+4. An added heading's level comes from its printed number when it has one, one level
+   deeper after a common title over the appendices as for the font rules, else from the
    entry's level after rule 3; when both found a heading, the font rules' level stands.
+   When two entries name the same block, the first one decides its level.
 """
 
 from __future__ import annotations
@@ -80,7 +82,7 @@ def find_headings(
     ]
     rules = _Headings(texts, body, settings)
     levels = rules.levels()
-    levels |= _from_outline(texts, content, levels, rules.lettered)
+    levels |= _from_outline(texts, content, levels, rules)
     out = list(blocks)
     heads = []
     for index, (level, label) in sorted(levels.items()):
@@ -147,6 +149,9 @@ class _Headings:
         # "B"), not in a title that starts with a one-letter word ("A Note on Ethics")
         letters = {label for label in numbers.values() if label[0].isalpha()}
         self.lettered = len(letters) >= settings.heading_repeats
+        # the block index of a common title over the appendices: numbered headings after it
+        # are one level deeper (set by `levels`)
+        self.shift_from: int | None = None
         if not self.lettered:
             numbers = {k: label for k, label in numbers.items() if not label[0].isalpha()}
         self.numbers = numbers
@@ -181,6 +186,7 @@ class _Headings:
                 started = True
             elif label is None and started and style > max(styles.values()):
                 found[k], shift = (1, ""), 1
+                self.shift_from = self.texts[k].index
             elif label is None and (style == top or self._named(k)):
                 found[k] = (1 + shift, "")
         return found
@@ -229,10 +235,11 @@ class _Headings:
 
 
 def _from_outline(
-    texts: list[_Text], content: Content, found: dict[int, tuple[int, str]], lettered: bool
+    texts: list[_Text], content: Content, found: dict[int, tuple[int, str]], rules: _Headings
 ) -> dict[int, tuple[int, str]]:
     """Headings the outline adds to those the font rules `found`, by block index, with their
     level and printed number (rules 2 to 4 in the module docstring)."""
+    lettered = rules.lettered
     pages = {item.id: page.number for page in content.pages for item in page.lines}
     candidates: dict[tuple[int, str], list[tuple[int, str]]] = {}
     for text in texts:
@@ -251,7 +258,8 @@ def _from_outline(
             continue
         ((index, label),) = matches
         if index not in found and index not in added:
-            added[index] = (_depth(label) if label else entry.level, label)
+            shift = int(rules.shift_from is not None and index > rules.shift_from)
+            added[index] = (_depth(label) + shift if label else entry.level, label)
     return added
 
 
