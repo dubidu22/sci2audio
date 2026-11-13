@@ -19,9 +19,9 @@ MP3 per chapter, the M4B and the read-along file → the job's records.
   audiobook without `overwrite` (checked before any speech, D-163), missing voice files,
   a full disk, a removed output folder, ffmpeg failing.
 - The cover (D-313): the file's own cover image, written to the working folder as
-  `cover.jpg` or `cover.png`, goes into every MP3 and the M4B. A file without one, or a
-  cover that cannot be read or written, gives an audiobook without a cover, never a failed
-  job.
+  `cover.jpg` or `cover.png` and decoded once by ffmpeg before any speech, goes into every
+  MP3 and the M4B. A file without one, or a cover that cannot be read, decoded or
+  written, gives an audiobook without a cover, never a failed job.
 """
 
 from __future__ import annotations
@@ -80,6 +80,7 @@ from sci2audio.output import (
     read_readalong,
     write_audiobook,
 )
+from sci2audio.output.ffmpeg import LOCAL_ONLY
 from sci2audio.textprep import BUILT_IN_STEPS, DEFAULT_MAX_CHARS, TextStep, Utterance
 from sci2audio.voices import (
     Engine,
@@ -278,6 +279,24 @@ def write_cover(source: Path, work: Path) -> Path | None:
     return target
 
 
+def usable_cover(cover: Path | None, exe: Path) -> Path | None:
+    """`cover` if ffmpeg can decode it, else None and the file removed (D-313).
+
+    `Cover` checks only the first bytes; a damaged image behind a good signature would make
+    ffmpeg refuse the first MP3 after all the speech. Decoding its first frame now, before
+    any speech, finds that out in a fraction of a second.
+    """
+    if cover is None:
+        return None
+    try:
+        Ffmpeg(exe).run([*LOCAL_ONLY, "-i", str(cover), "-frames:v", "1", "-f", "null", "-"])
+    except (FfmpegError, OSError):
+        with contextlib.suppress(OSError):
+            cover.unlink(missing_ok=True)
+        return None
+    return cover
+
+
 def audiobook_files(
     out_folder: Path, book: BookInfo, titles: Sequence[str], settings: OutputSettings
 ) -> list[Path]:
@@ -434,7 +453,7 @@ def run_audio_job(
         if not plan.chunks:
             raise JobError("there is nothing to read in the chosen chapters")
         titles = {chapter.chapter.index: chapter.chapter.title for chapter in result.chapters}
-        book = replace(book_info(document), cover=write_cover(source, work))
+        book = book_info(document)
         _check_targets(out_folder, book, plan, titles, output_settings, overwrite)
         try:
             run = _CancellableFfmpeg(
@@ -442,6 +461,7 @@ def run_audio_job(
             )
         except FfmpegNotFoundError as error:
             raise JobError(str(error)) from error
+        book = replace(book, cover=usable_cover(write_cover(source, work), run.exe))
         _check_cancel(cancel)
 
         speech = _speak(plan, work, voice, voice_id, settings.speed, titles, tell, cancel, clock)
