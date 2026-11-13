@@ -32,6 +32,18 @@ class DocumentOut(BaseModel):
     )
 
 
+class RemovedOut(BaseModel):
+    """What removing a document took away, and where its audiobook stays (D-358)."""
+
+    id: str
+    name: str = Field(description="the file name as opened")
+    freed_bytes: int = Field(description="bytes of the working folder that were removed")
+    audiobook_folder: str | None = Field(
+        description="the folder of the document's latest audiobook, which stays; null when "
+        "none was recorded"
+    )
+
+
 class TextIn(Strict):
     text: str = Field(min_length=1)
     name: str = Field(default="pasted text", max_length=200)
