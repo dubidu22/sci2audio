@@ -3067,6 +3067,11 @@
   '''
   arxiv2024-arsiwalla-qualia-meaning.pdf  sha256 5358bf0352ec8aa9
   metadata: title='' authors=[] date='2024-05-03'
+  outline: level 1  page 2  'Introduction'
+  outline: level 1  page 4  'Subjective Meaning in Phenomenology of Experience'
+  outline: level 1  page 9  'Do Raw Feels Have Subjective Meaning? '
+  outline: level 1  page 11  'The Formal Structure of Meaning'
+  outline: level 1  page 18  'Discussion '
   == page 1  595 x 842  lines 27  pictures 0  drawings 1
   p1-l1  [83 118 514 136]  {SFBX2074 20.7 b}Qualia and the Formal Structure of Meaning
   p1-l2  [231 166 371 181]  {SFRM1440 14.3}Xerxes D. Arsiwalla{CMR10 10}1{CMMI10 10 i},{CMR10 10}2{CMMI10 10 i},{SFRM1000 10}∗
@@ -4194,6 +4199,9 @@
   '''
   arxiv2024-liu-orbital-hall.pdf  sha256 c7bdd6793e110683
   metadata: title='' authors=[] date='2024-04-05'
+  outline: level 1  page 1  'Dominance of extrinsic scattering mechanisms in the orbital Hall effect: graphene, transition metal dichalcogenides and topological antiferromagnets'
+  outline: level 2  page 1  'Abstract'
+  outline: level 2  page 4  'References'
   == page 1  612 x 792  lines 98  pictures 0  drawings 97
   p1-l1  [65 54 551 64]  {CMBX12 12 b}Dominance of extrinsic scattering mechanisms in the orbital Hall effect: graphene,
   p1-l2  [115 68 501 78]  {CMBX12 12 b}transition metal dichalcogenides and topological antiferromagnets
@@ -4977,6 +4985,12 @@
   '''
   joss2021-waskom-seaborn.pdf  sha256 163e1f3a1c502b0c
   metadata: title='seaborn: statistical data visualization' authors=[] date='2021-04-06'
+  outline: level 1  page 1  'Summary'
+  outline: level 1  page 1  'Statement of need'
+  outline: level 1  page 1  'Example'
+  outline: level 1  page 2  'Overview'
+  outline: level 1  page 4  'Acknowledgements'
+  outline: level 1  page 4  'References'
   == page 1  595 x 842  lines 58  pictures 1  drawings 14
   p1-l1  [167 137 417 154]  {LMSans17-Regular 17.2}seaborn: statistical data visualization
   p1-l2  [167 168 280 181]  {LMSans10-Bold 12 b}Michael L. Waskom{LMSans8-Regular 8}1
@@ -5207,6 +5221,10 @@
   '''
   joss2022-biggs-pymedphys.pdf  sha256 2b991e5f85af79de
   metadata: title='PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications' authors=[] date='2022-10-16'
+  outline: level 1  page 1  'Summary'
+  outline: level 1  page 1  'Statement of need'
+  outline: level 1  page 2  'Acknowledgements'
+  outline: level 1  page 2  'References'
   == page 1  595 x 842  lines 70  pictures 1  drawings 38
   p1-l1  [167 131 552 156]  {NewCMSans10-Book 17.2}PyMedPhys: A community effort to develop an open,
   p1-l2  [167 153 523 178]  {NewCMSans10-Book 17.2}Python-based standard library for medical physics
