@@ -28,6 +28,7 @@ dependencies = [
     # loads its spaCy model (D-121); kokoro alone would accept any later misaki.
     "misaki[en]>=0.9.4,<0.10",
     "numpy>=2.0",
+    "platformdirs>=4.14.5,<5",
     "pypdfium2>=5.15.2,<6",
     "requests>=2.32",
     "spacy>=3.8,<4",

@@ -28,6 +28,7 @@ Not allowed: AGPL code, non-commercial or "research only" licences, models or vo
 | [certifi](https://github.com/certifi/python-certifi), [tqdm](https://tqdm.github.io) (through requests and transformers) | MPL-2.0 (tqdm: MPL-2.0 AND MIT) | Certificates for the download; progress bars |
 | All other packages these pull in (thinc, blis, srsly, pydantic, typer, regex, sympy, networkx, jinja2, ...) | MIT, BSD, Apache-2.0, ISC, PSF-2.0 or CNRI-Python | Checked on every PR by the `licences` CI job (`pip-licenses`) |
 | [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) 0.8.1 | BSD-2-Clause (the Python wrapper). The wheel bundles an FFmpeg program; its licence per platform is listed under "Bundled programs" below | Finds the ffmpeg program that output uses to write MP3 and M4B files (Q5, #69) |
+| [platformdirs](https://github.com/tox-dev/platformdirs) 4.14.5 | MIT (no dependencies) | Finds the user's configuration folder on Windows, macOS and Linux for the settings file (app, #70) |
 
 ## Bundled programs (come with a run-time dependency)
 
