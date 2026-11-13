@@ -226,10 +226,16 @@ def test_a_header_sent_twice_is_refused(server: tuple[FastAPI, Any]) -> None:
             seen.append(message["status"])
 
     import asyncio
+    import threading
 
     middleware = LocalOnly(app, config)
     scope = {"type": "http", "method": "GET", "path": "/", "headers": scope_headers}
-    asyncio.run(middleware(scope, receive, send))  # type: ignore[arg-type]
+    # on a thread of its own: when browser tests ran earlier in the same session,
+    # Playwright's sync API leaves an event loop running on this one (#129)
+    call = middleware(scope, receive, send)  # type: ignore[arg-type]
+    worker = threading.Thread(target=asyncio.run, args=(call,))
+    worker.start()
+    worker.join(10)
     assert seen == [421]
 
 
