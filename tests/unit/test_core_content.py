@@ -17,6 +17,7 @@ from sci2audio.core import (
     Content,
     Drawing,
     Metadata,
+    OutlineEntry,
     Page,
     Picture,
     Source,
@@ -30,7 +31,8 @@ from sci2audio.core import (
 ROMAN = TextRun("We study ", font="Times-Roman", size=10, box=Box(72, 700, 120, 712))
 BOLD = TextRun("sound", font="Times-Bold", size=10, bold=True, box=Box(120, 700, 150, 712))
 
-# A made-up two-page PDF: a heading, a line in two styles, a running head, a chart.
+# A made-up two-page PDF: a heading, a line in two styles, a running head, a chart, and
+# bookmarks as a PDF stores them: no printed number, a trailing space, one with no target.
 PAPER = Content(
     source=Source("paper.pdf", SourceFormat.PDF, sha256="ab12"),
     metadata=Metadata(title="A Small Paper", authors=("A. Author",), date="2024", language="en"),
@@ -53,6 +55,12 @@ PAPER = Content(
             height=792,
         ),
     ),
+    outline=(
+        OutlineEntry("Introduction", 1, 1),
+        OutlineEntry("Motivation ", 2, 1),
+        OutlineEntry("Results", 1, 2),
+        OutlineEntry("", 1),
+    ),
 )
 
 # The same idea from an EPUB: no positions, but the source's own tags.
@@ -68,6 +76,7 @@ EPUB = Content(
             pictures=(Picture("c1-img1", alt="A map of the island"),),
         ),
     ),
+    outline=(OutlineEntry("Chapter One", 1, 1),),
 )
 
 
@@ -110,11 +119,45 @@ def test_objects_are_frozen() -> None:
             (Page(1, pictures=(Picture("x"),), drawings=(Drawing("x", Box(0, 0, 1, 1)),)),),
         ),
         lambda: Content(PAPER.source, (Page(1, pictures=(Picture(""),)),)),
+        lambda: OutlineEntry("Introduction", 0),
+        lambda: Content(PAPER.source, (Page(1),), outline=(OutlineEntry("Setup", 2, 1),)),
+        lambda: Content(
+            PAPER.source,
+            (Page(1),),
+            outline=(OutlineEntry("Methods", 1, 1), OutlineEntry("Data", 3, 1)),
+        ),
+        lambda: Content(  # back up a level, then two deeper
+            PAPER.source,
+            (Page(1),),
+            outline=(
+                OutlineEntry("A", 1, 1),
+                OutlineEntry("A.1", 2, 1),
+                OutlineEntry("B", 1, 1),
+                OutlineEntry("B.1.1", 3, 1),
+            ),
+        ),
+        lambda: Content(PAPER.source, (Page(1),), outline=(OutlineEntry("Methods", 1, 0),)),
+        lambda: Content(PAPER.source, (Page(1),), outline=(OutlineEntry("Methods", 1, 2),)),
+        lambda: Content(PAPER.source, (), outline=(OutlineEntry("Methods", 1, 1),)),
     ],
 )
 def test_invalid_values_are_refused(make: object) -> None:
     with pytest.raises(ValueError):  # noqa: PT011 - each case has its own message
         make()  # type: ignore[operator]
+
+
+def test_an_outline_keeps_its_nesting_in_its_levels() -> None:
+    """Entries go deeper one level at a time and come back up any number of levels; titles
+    stay as stored, an entry may point at no page, and a file without an outline has none."""
+    outline = (
+        OutlineEntry("A", 1, 1),
+        OutlineEntry("A.1", 2, 1),
+        OutlineEntry("A.1.1 ", 3),
+        OutlineEntry("", 1, 1),
+    )
+    content = Content(PAPER.source, (Page(1),), outline=outline)
+    assert content.outline == outline
+    assert Content(PAPER.source, (Page(1),)).outline == ()
 
 
 @pytest.mark.parametrize(
