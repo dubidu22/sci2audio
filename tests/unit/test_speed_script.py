@@ -79,6 +79,25 @@ def test_the_estimate_is_compared_with_the_real_remaining_time() -> None:
     assert accuracy["samples"][-1]["error"] is None
 
 
+def test_every_spoken_chunk_is_recorded_with_its_characters_and_seconds() -> None:
+    """The time and characters of each chunk, so the estimate's model can be checked (#136)."""
+    events = [
+        Event(1.0, str(Phase.LOADING_VOICE)),
+        Event(4.0, SPEAKING, 0, 1000, None),  # the speaking phase starts
+        speaking(6.5, 120, None),  # the first chunk, warm-up included
+        speaking(7.0, 120, None),  # taken from the cache: no characters, left out
+        speaking(8.25, 400, None),
+        speaking(9.0, 1000, 3.0),
+        Event(9.5, str(Phase.ENCODING), 0, 1000, None),
+    ]
+    assert speed.chunk_times(events) == [
+        {"characters": 120, "seconds": 2.5},
+        {"characters": 280, "seconds": 1.25},
+        {"characters": 600, "seconds": 0.75},
+    ]
+    assert speed.chunk_times([Event(0.0, SPEAKING, 0, 0, None)]) == []
+
+
 def test_an_estimate_that_never_appears_is_reported_as_never_shown() -> None:
     events = [Event(0.0, SPEAKING, 0, 300, None), speaking(5, 300, None, total=300)]
     accuracy = speed.estimate_accuracy(events, speaking_end=6.0)
@@ -259,6 +278,8 @@ def test_a_quick_run_writes_every_number_offline(tmp_path: Path) -> None:
     assert job["audio_seconds"] > 0
     assert job["estimate"]["shown"] is True
     assert job["estimate"]["samples"]
+    assert sum(chunk["characters"] for chunk in job["chunk_times"]) == job["characters"]
+    assert all(chunk["seconds"] > 0 for chunk in job["chunk_times"])
 
     assert len(result["budget"]) == 8  # four lines per device
     assert len(result["markdown"]["voice"]) == 2

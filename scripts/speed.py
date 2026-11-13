@@ -12,7 +12,8 @@ A. The voice alone, per voice and device: a fixed English paragraph spoken sente
    is not counted.
 B. The audio job on a corpus paper, per device, from a cold cache: the time of every
    phase, characters per second, the real-time factor, and how close the job's time
-   estimate (D-159) came to the real remaining time (D-284).
+   estimate (D-159, D-380) came to the real remaining time (D-284), and the characters and
+   seconds of every spoken chunk (#136).
 
 It prints a summary, checks the performance budget in `docs/baseline.md` (D-286) and
 always writes a JSON file (format "sci2audio-speed", version 1) with every number and
@@ -39,6 +40,7 @@ from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from importlib import metadata
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -119,6 +121,24 @@ def phase_times(events: Sequence[Event]) -> dict[str, float]:
         starts.setdefault(event.phase, event.at)
     order = sorted(starts.items(), key=lambda item: item[1])
     return {phase: round(order[i + 1][1] - start, 3) for i, (phase, start) in enumerate(order[:-1])}
+
+
+def chunk_times(events: Sequence[Event]) -> list[dict[str, Any]]:
+    """The characters and seconds of every chunk the voice spoke, in order (#136).
+
+    Taken between consecutive progress events of the speaking phase (the job sends one as
+    the phase starts and one after every chunk); a chunk taken from the cache adds no
+    characters and is left out. The first chunk includes the voice's warm-up.
+    """
+    speaking = [event for event in events if event.phase == Phase.SPEAKING]
+    return [
+        {
+            "characters": now.characters_done - before.characters_done,
+            "seconds": round(now.at - before.at, 4),
+        }
+        for before, now in pairwise(speaking)
+        if now.characters_done > before.characters_done
+    ]
 
 
 def estimate_accuracy(events: Sequence[Event], speaking_end: float) -> dict[str, Any]:
@@ -385,6 +405,7 @@ def measure_job(
         "realtime_factor_whole": round(job.duration / whole, 2) if whole else None,
         "encoding_times_realtime": round(job.duration / encoding, 1) if encoding else None,
         "estimate": estimate_accuracy(events, speaking_end),
+        "chunk_times": chunk_times(events),
     }
 
 

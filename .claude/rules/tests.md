@@ -37,4 +37,4 @@ A PR is not done if it introduces one of these for the first time without the ma
 
 ## Before each release
 
-Follow `docs/release-checklist.md`: listening test, screen-reader pass, OWASP ZAP baseline scan, mutation run, speed numbers.
+Follow `docs/release-checklist.md`: listening test, screen-reader pass, OWASP ZAP baseline scan (the last run of `.github/workflows/zap.yml` on `main`, #12), mutation run, speed numbers.

@@ -265,6 +265,9 @@ def test_any_name_is_kept_inside_its_folder(name: str) -> None:
     assert os.path.normpath(folder / kept).startswith(str(folder))
 
 
+@pytest.mark.quarantined(
+    issue=157, reason="a fresh file's mtime can be after time.time() on Windows", platform="win32"
+)
 def test_a_new_server_removes_uploads_a_killed_one_left_behind(tmp_path: Path) -> None:
     incoming = tmp_path / "work" / documents.INCOMING
     incoming.mkdir(parents=True)

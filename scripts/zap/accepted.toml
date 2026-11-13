@@ -1,0 +1,53 @@
+# Low ZAP alerts accepted with a written reason, and why each informational one is no
+# problem (#12, D-367 to D-369).
+#
+# `scripts/zap_scan.py` fails on every High and Medium alert, and on every Low alert that
+# no entry here accepts. Informational alerts are listed in the summary and never fail.
+# Only Low alerts can be accepted: a High or Medium one is fixed, or gets an Issue with
+# milestone v1.0 and the scan stays red until it is fixed (D-369).
+#
+# One entry per accepted alert, all five keys required:
+#
+#   [[accepted]]
+#   rule = 10031                                  # the ZAP rule number
+#   risk = "Low"                                  # always "Low"
+#   url = '/documents/[0-9a-f]{16}\?category=.*'  # Python regex on path and query, in full
+#   reason = "why this is not a problem here, in a sentence or two"
+#   decision = "D-123"                            # the KB decision that accepted it
+#
+# Keep `url` as narrow as the finding. An entry that matched nothing in a run is listed
+# in the summary as stale; remove it then.
+#
+# Informational alerts never fail. Each rule that raises one is explained once below, and
+# the summary prints the explanation next to the alert ("not yet explained" if missing).
+# Three keys, all required:
+#
+#   [[informational]]
+#   rule = 10027
+#   reason = "why this is no problem here"
+#   decision = "D-123"
+
+[[informational]]
+rule = 10024
+reason = "The start link carries the start-up token once: /start trades it for the HttpOnly, SameSite=Strict cookie and redirects to / without it, and Referrer-Policy: no-referrer keeps it out of every Referer. Taking it off the browser's command line is #117."
+decision = "D-193"
+
+[[informational]]
+rule = 10027
+reason = "Ordinary code comments in app.js and player.js that contain words like 'address' or 'where'; they name no secret, host, user or bug."
+decision = "D-367"
+
+[[informational]]
+rule = 10029
+reason = "The language cookie is only ever 'en' or 'de' (known_language(), never the request's text), and the start cookie only ever holds the server's own token after a constant-time compare; no parameter can put its own text into a cookie."
+decision = "D-288"
+
+[[informational]]
+rule = 10031
+reason = "The document page echoes the preview form's query values into attributes; Jinja2 autoescaping escapes them and the CSP (script-src 'self', no inline script) would stop a script even if one got through."
+decision = "D-194"
+
+[[informational]]
+rule = 10112
+reason = "ZAP noting that /start sets the session cookie: that is the start-up token's cookie, HttpOnly and SameSite=Strict, named after the port."
+decision = "D-193"

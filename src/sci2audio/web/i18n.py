@@ -41,6 +41,9 @@ SCRIPT_KEYS = (
     "common.decimal",
     "common.details",
     "player.",
+    "remove.removing",
+    "remove.done",
+    "remove.stays",  # and remove.stays_folder
 )
 
 

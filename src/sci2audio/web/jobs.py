@@ -236,6 +236,21 @@ class JobBoard:
         else:
             job._end(JobState.DONE, None, files)
 
+    def forget(self, document_id: str) -> int:
+        """Drop the ended jobs of a removed document (D-357); a running one stays. Returns
+        how many were dropped."""
+        with self._lock:
+            gone = [
+                job_id
+                for job_id, job in self._jobs.items()
+                if job.document == document_id and job.state is not JobState.RUNNING
+            ]
+            for job_id in gone:
+                del self._jobs[job_id]
+            if self._current is not None and self._current.id in gone:
+                self._current = None
+        return len(gone)
+
     def cancel(self, job_id: str) -> JobRecord | None:
         job = self.get(job_id)
         if job is not None:
