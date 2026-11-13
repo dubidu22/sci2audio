@@ -52,6 +52,7 @@ sci2audio = "sci2audio.cli:main"
 [dependency-groups]
 dev = [
     "deptry>=0.25",
+    "hatchling>=1.27",
     "httpx>=0.28.1,<1",
     "hypothesis>=6.170.15",
     "import-linter>=2.16",
