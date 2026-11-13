@@ -286,3 +286,22 @@ def test_the_citations_step_leaves_alone_exactly_the_intervals_read_here() -> No
     openings = interval_openings(text)
     assert len(openings) == MAX_JOINED_INTERVALS
     assert sorted(openings) == [m.start() for m in re.finditer(r"\[", text)][:MAX_JOINED_INTERVALS]
+
+
+@pytest.mark.parametrize(
+    "printed",
+    [  # review F4 of PR #208: the citations step finds the intervals in the text as read
+        "two CIs [1, 3] and \u200b[2, 4] overlap.",
+        "two CIs [1, 3]\u200b and [2, 4] overlap.",
+        "two C\u00adIs [1, 3] and [2, 4] overlap.",
+        "two \U0001d436\U0001d43cs [1, 3] and [2, 4] overlap.",
+    ],
+)
+def test_intervals_behind_unread_characters_and_math_letters_are_no_citations(
+    printed: str,
+) -> None:
+    document = make_document([(BlockKind.PARAGRAPH, printed)])
+    first = spoken_text(run_steps(document, EN, strict=True).script())
+    again = make_document([(BlockKind.PARAGRAPH, first)])
+    assert first == "two confidence intervals 1 to 3 and 2 to 4 overlap."
+    assert spoken_text(run_steps(again, EN, strict=True).script()) == first

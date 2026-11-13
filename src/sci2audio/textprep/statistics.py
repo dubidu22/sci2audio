@@ -224,11 +224,19 @@ def _ci_runs(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]]:
 
 
 def interval_openings(text: str) -> frozenset[int]:
-    """Where the brackets open that this step reads as confidence intervals. The citations
-    step leaves exactly these alone, so the two steps agree on every joined pair (#151)."""
-    return frozenset(
-        interval.start("open") for _, intervals in _ci_runs(text) for interval in intervals
-    )
+    """Where, in the printed text, the brackets open that this step reads as confidence
+    intervals. The citations step leaves exactly these alone, so the two steps agree on
+    every joined pair (#151). Found as the step finds them: in the text as read, without
+    unread characters and with math letters folded ("𝐶𝐼s"), then mapped back."""
+
+    def openings(read: str) -> list[Candidate]:
+        return [
+            Candidate(at, at + 1, "[", "interval")
+            for _, intervals in _ci_runs(fold(read))
+            for at in (interval.start("open") for interval in intervals)
+        ]
+
+    return frozenset(found.start for found in through_unread(text, openings))
 
 
 def _interval(text: str, plain: str, interval: re.Match[str]) -> list[Candidate]:
