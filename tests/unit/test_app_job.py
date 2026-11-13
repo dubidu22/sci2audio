@@ -25,6 +25,7 @@ from sci2audio.textprep import Category
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 SEABORN = CORPUS / "papers" / "joss2021-waskom-seaborn.pdf"
+TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
 
 
 def small_pdf(folder: Path, name: str = "note.pdf") -> Path:
@@ -90,23 +91,40 @@ def test_the_output_folder_and_settings_are_used(tmp_path: Path) -> None:
 
 
 def test_extraction_is_picked_by_the_file_suffix_in_any_case(tmp_path: Path) -> None:
-    assert set(EXTRACTORS) == {".pdf"}
+    assert set(EXTRACTORS) == {".epub", ".pdf"}
     source = small_pdf(tmp_path, "UPPER.PDF")
     job = run_script_job(source, JobSettings(), tmp_path / "w")
     assert job.files.script.name == "UPPER.script.txt"
 
 
-@pytest.mark.parametrize("name", ["book.epub", "notes.md", "plain.txt", "no-suffix"])
+@pytest.mark.parametrize("name", ["paper.docx", "notes.md", "plain.txt", "no-suffix"])
 def test_a_file_type_it_cannot_read_is_refused_before_anything_runs(
     tmp_path: Path, name: str
 ) -> None:
     source = tmp_path / name
     source.write_text("text", encoding="utf-8")
     phases: list[Phase] = []
-    with pytest.raises(UnsupportedFileError, match=r"can read \.pdf files only"):
+    with pytest.raises(UnsupportedFileError, match=r"can read \.epub, \.pdf files only"):
         run_script_job(source, JobSettings(), tmp_path / "w", progress=phases.append)
     assert phases == []
     assert not (tmp_path / "w").exists()
+
+
+def test_an_epub_becomes_a_script(tmp_path: Path) -> None:
+    job = run_script_job(TIME_MACHINE, JobSettings(output_folder=tmp_path / "out"), tmp_path / "w")
+    script = job.files.script.read_text(encoding="utf-8")
+    assert job.files.script.name == "wells-the-time-machine.script.txt"
+    assert "Source: wells-the-time-machine.epub\nLanguage: en-GB\n" in script
+    assert "The Time Traveller (for so it will be convenient to speak of him)" in script
+    assert job.result.document.content.metadata.authors == ("H. G. Wells",)
+
+
+def test_a_damaged_epub_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:
+    source = tmp_path / "broken.EPUB"
+    source.write_bytes(b"PK\x03\x04 not really")
+    with pytest.raises(UnreadableFileError, match=r"broken\.EPUB: not an EPUB"):
+        run_script_job(source, JobSettings(), tmp_path / "w")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["broken.EPUB"]
 
 
 def test_a_damaged_pdf_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:

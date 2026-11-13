@@ -5,7 +5,9 @@ The installed command runs in a process of its own on a corpus paper with the vo
 fetched by `prepare_models.py` (SCI2AUDIO_TEST_MODELS). The first run is killed after its
 first sentences and run again, which must continue from the speech cache; a third run with
 `--overwrite` must speak nothing. The processes get proxies that point at a closed local
-port, so any HTTP request they tried would fail. The EPUB joins this test with #73.
+port, so any HTTP request they tried would fail. An EPUB (#73) is converted too: the corpus
+book cut to three short spine documents (the whole book is about 70 minutes of speech on a
+CPU), and its M4B must carry the book's cover.
 """
 
 from __future__ import annotations
@@ -16,12 +18,17 @@ import socket
 import subprocess
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 import pytest
 
+from sci2audio.output import find_ffmpeg
+
 CORPUS = Path(__file__).parents[1] / "corpus"
 PYMEDPHYS = CORPUS / "papers" / "joss2022-biggs-pymedphys.pdf"
+TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
+KEPT = ("titlepage.xhtml", "imprint.xhtml", "epilogue.xhtml")  # spine documents kept
 
 
 def models_dir() -> Path:
@@ -50,11 +57,11 @@ def offline_env() -> dict[str, str]:
     return env
 
 
-def convert_args(out: Path, work: Path, *extra: str) -> list[str]:
+def convert_args(out: Path, work: Path, *extra: str, source: Path = PYMEDPHYS) -> list[str]:
     return [
         str(command()),
         "convert",
-        str(PYMEDPHYS),
+        str(source),
         "-o",
         str(out),
         "--work-folder",
@@ -127,3 +134,42 @@ def test_convert_is_killed_resumes_and_reruns_from_the_cache(tmp_path: Path) -> 
     again = run(convert_args(out, work, "-q", "--overwrite"))
     assert again.returncode == 0, again.stderr
     assert spoken_and_reused(again.stdout) == (0, total, total)
+
+
+def short_book(folder: Path) -> Path:
+    """The corpus EPUB with only the `KEPT` documents in its reading order."""
+    path = folder / "short-book.epub"
+    with zipfile.ZipFile(TIME_MACHINE) as source, zipfile.ZipFile(path, "w") as target:
+        for info in source.infolist():
+            data = source.read(info)
+            if info.filename == "epub/content.opf":
+                data = re.sub(
+                    rb'\s*<itemref idref="([^"]+)"/>',
+                    lambda m: m.group(0) if m.group(1).decode() in KEPT else b"",
+                    data,
+                )
+            target.writestr(info, data)
+    return path
+
+
+@pytest.mark.slow
+def test_convert_reads_an_epub_and_keeps_its_cover(tmp_path: Path) -> None:
+    out, work = tmp_path / "out", tmp_path / "work"
+    converted = run(convert_args(out, work, source=short_book(tmp_path)))
+    assert converted.returncode == 0, converted.stderr
+    assert "Traceback" not in converted.stderr
+    spoke, total, reused = spoken_and_reused(converted.stdout)
+    assert spoke == total > 0
+    assert reused == 0
+    (m4b,) = out.glob("*.m4b")
+    with zipfile.ZipFile(TIME_MACHINE) as book:
+        assert (work / "cover.jpg").read_bytes() == book.read("epub/images/cover.jpg")
+    probe = subprocess.run(
+        [str(find_ffmpeg()), "-hide_banner", "-i", str(m4b)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    assert "attached pic" in probe.stderr

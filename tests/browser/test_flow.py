@@ -244,10 +244,10 @@ def test_a_file_sci2audio_cant_read_is_refused(signed_in: Page, live: Live) -> N
     # the kind's sentence, then the app's own words as details in English (D-291)
     expect(page.locator("#message")).to_have_text(
         "sci2audio can't read this kind of file. "
-        "Details from sci2audio: notes.docx: sci2audio can read .pdf files only"
+        "Details from sci2audio: notes.docx: sci2audio can read .epub, .pdf files only"
     )
     expect(page.locator("#message span[lang=en]")).to_have_text(
-        "notes.docx: sci2audio can read .pdf files only"
+        "notes.docx: sci2audio can read .epub, .pdf files only"
     )
     expect(page.locator("#message")).to_be_focused()
     check_axe(page, "start page with an error")
