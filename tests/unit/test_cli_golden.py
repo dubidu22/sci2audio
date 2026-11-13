@@ -22,7 +22,7 @@ def test_help_text(capsys: pytest.CaptureFixture[str], snapshot: SnapshotAsserti
 
 
 @pytest.mark.parametrize(
-    "command", [["script"], ["convert"], ["voices"], ["voices", "download"], ["clean"]]
+    "command", [["script"], ["convert"], ["voices"], ["voices", "download"], ["clean"], ["ui"]]
 )
 def test_command_help_text(
     command: list[str], capsys: pytest.CaptureFixture[str], snapshot: SnapshotAssertion

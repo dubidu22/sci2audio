@@ -162,6 +162,19 @@
   
   '''
 # ---
+# name: test_command_help_text[command5]
+  '''
+  usage: sci2audio ui [-h] [--no-browser]
+  
+  Start the sci2audio interface on this computer (127.0.0.1 only) and open it in
+  your browser. Press Ctrl-C to stop it.
+  
+  options:
+    -h, --help    show this help message and exit
+    --no-browser  only print the link; do not open a browser
+  
+  '''
+# ---
 # name: test_help_text
   '''
   usage: sci2audio [-h] [--version] COMMAND ...
@@ -175,6 +188,8 @@
                 a read-along file
       voices    list the voices; `voices download` installs their files
       clean     remove the speech cache of FILE
+      ui        open the sci2audio interface in your browser (it stays on this
+                computer)
   
   options:
     -h, --help  show this help message and exit

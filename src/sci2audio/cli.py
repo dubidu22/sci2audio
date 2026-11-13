@@ -396,6 +396,12 @@ def add_clean(parser: _Parser) -> None:
     )
 
 
+def add_ui(parser: _Parser) -> None:
+    parser.add_argument(
+        "--no-browser", action="store_true", help="only print the link; do not open a browser"
+    )
+
+
 @dataclass(frozen=True)
 class Command:
     name: str
@@ -885,6 +891,15 @@ def run_clean_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     return Exit.OK
 
 
+# ---- ui ---------------------------------------------------------------------------------
+
+
+def run_ui_command(args: argparse.Namespace, env: CliEnv) -> Exit:
+    from sci2audio.web import run as serve  # loads the web framework only for this command
+
+    return Exit(serve(open_browser=not args.no_browser))
+
+
 COMMANDS: tuple[Command, ...] = (
     Command(
         "script",
@@ -919,6 +934,14 @@ COMMANDS: tuple[Command, ...] = (
         "audiobook and the records stay.",
         add_clean,
         run_clean_command,
+    ),
+    Command(
+        "ui",
+        "open the sci2audio interface in your browser (it stays on this computer)",
+        "Start the sci2audio interface on this computer (127.0.0.1 only) and open it in "
+        "your browser. Press Ctrl-C to stop it.",
+        add_ui,
+        run_ui_command,
     ),
 )
 

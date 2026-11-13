@@ -5,6 +5,7 @@ with one of its documented exit codes (D-212), and never with "this is a bug". I
 with every folder in a temporary place and the network blocked.
 """
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -22,6 +23,8 @@ WORDS = st.sampled_from(
         "voices",
         "download",
         "clean",
+        "ui",
+        "--no-browser",
         "--chapters",
         "--on",
         "--off",
@@ -37,6 +40,14 @@ WORDS = st.sampled_from(
     ]
 )
 arguments = st.lists(st.one_of(WORDS, st.text(min_size=0, max_size=20)), max_size=6)
+
+
+@pytest.fixture(autouse=True, scope="module")
+def no_server() -> Iterator[None]:
+    """`sci2audio ui` would start the server and open a browser: never from these tests."""
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr("sci2audio.web.run", lambda **kwargs: 0)
+        yield
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
