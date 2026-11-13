@@ -156,9 +156,9 @@
         'switched_off': 0,
       }),
       'characters': dict({
-        'applied': 0,
+        'applied': 70,
         'label': 'Characters and hyphenation',
-        'not_spoken': 0,
+        'not_spoken': 14,
         'set_aside': 0,
         'switched_off': 0,
       }),
@@ -412,6 +412,1599 @@
         'status': 'accepted',
         'step': 'page-furniture',
       }),
+      dict({
+        'block': 80,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 53,
+        'kind': 'remove',
+        'original': '´',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'accent mark "´" without its letter not read',
+        'said': '',
+        'spoken': False,
+        'start': 52,
+        'status': 'accepted',
+        'step': 'unicode-clean-up',
+      }),
+      dict({
+        'block': 4,
+        'category': 'characters',
+        'chapter': 1,
+        'end': 44,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "language" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 42,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 4,
+        'category': 'characters',
+        'chapter': 1,
+        'end': 133,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "examples" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 131,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 6,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 48,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "language" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 46,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 8,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 53,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "running" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 51,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 8,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 156,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "identifying"',
+        'said': '',
+        'spoken': True,
+        'start': 154,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 8,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 258,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "counterpart" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 256,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 9,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 43,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "running" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 41,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 13,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 43,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "discourse" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 41,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 14,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 93,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "consists"',
+        'said': '',
+        'spoken': True,
+        'start': 91,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 14,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 199,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'hyphen at a line end kept, read as one word: "non-elliptical" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 198,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 14,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 406,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "occurrences" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 404,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 16,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 49,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "probing" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 47,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 16,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 99,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "perspectives"',
+        'said': '',
+        'spoken': True,
+        'start': 97,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 16,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 204,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "paper" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 202,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 16,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 253,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 252,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 16,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 303,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "various"',
+        'said': '',
+        'spoken': True,
+        'start': 301,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 19,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 47,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '39',
+        'reason': 'word split at a line end joined: "demonstrators" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 45,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 24,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 349,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "sophisticated"',
+        'said': '',
+        'spoken': True,
+        'start': 347,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 24,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 499,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "reasoning" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 497,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 25,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 151,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "system" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 149,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 25,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 449,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "using" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 447,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 27,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 147,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "coreference" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 145,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 29,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 145,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "Spenader" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 143,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 29,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 244,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "reference" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 242,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 29,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 294,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "phenomena" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 292,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 29,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 548,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "another" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 546,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 31,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 152,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "complete" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 150,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 31,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 256,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "question" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 254,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 31,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 308,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "ellipsis" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 306,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 32,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 250,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "discourse" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 248,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 32,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 297,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "temporal"',
+        'said': '',
+        'spoken': True,
+        'start': 295,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 32,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 492,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "Interpreting"',
+        'said': '',
+        'spoken': True,
+        'start': 490,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 32,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 594,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "integrating"',
+        'said': '',
+        'spoken': True,
+        'start': 592,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 34,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 102,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "tables"',
+        'said': '',
+        'spoken': True,
+        'start': 100,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 35,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 107,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "Furthermore" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 105,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 35,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 209,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '40',
+        'reason': 'word split at a line end joined: "Separate" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 207,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 35,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 361,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "occur" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 359,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 41,
+        'category': 'characters',
+        'chapter': 5,
+        'end': 53,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "produce"',
+        'said': '',
+        'spoken': True,
+        'start': 51,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 41,
+        'category': 'characters',
+        'chapter': 5,
+        'end': 305,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "presented"',
+        'said': '',
+        'spoken': True,
+        'start': 303,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 41,
+        'category': 'characters',
+        'chapter': 5,
+        'end': 408,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "models" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 406,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 42,
+        'category': 'characters',
+        'chapter': 5,
+        'end': 45,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "accessed" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 43,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 46,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 50,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 49,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 46,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 201,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "otherwise" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 199,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 46,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 461,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "accuracy" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 459,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 46,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 767,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "ellipsis" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 765,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 47,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 156,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'word split at a line end joined: "version" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 154,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 47,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 206,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'hyphen at a line end kept, read as one word: "Davinci-003" (next to a digit or mark)',
+        'said': '',
+        'spoken': True,
+        'start': 205,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 47,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 572,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 571,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 47,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 674,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'word split at a line end joined: "ellipsis" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 672,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 47,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 772,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'word split at a line end joined: "Actions" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 770,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 52,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 54,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'word split at a line end joined: "examples" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 52,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 55,
+        'category': 'characters',
+        'chapter': 7,
+        'end': 96,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'hyphen at a line end kept, read as one word: "Davinci-003," (next to a digit or mark)',
+        'said': '',
+        'spoken': True,
+        'start': 95,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 55,
+        'category': 'characters',
+        'chapter': 7,
+        'end': 197,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'hyphen at a line end kept, read as one word: "Davinci-002" (next to a digit or mark)',
+        'said': '',
+        'spoken': True,
+        'start': 196,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 55,
+        'category': 'characters',
+        'chapter': 7,
+        'end': 248,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'word split at a line end joined: "subordinate" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 246,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 55,
+        'category': 'characters',
+        'chapter': 7,
+        'end': 297,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'word split at a line end joined: "ellipsis" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 295,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 57,
+        'category': 'characters',
+        'chapter': 7,
+        'end': 54,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'word split at a line end joined: "examples" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 52,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 60,
+        'category': 'characters',
+        'chapter': 7,
+        'end': 100,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'hyphen at a line end kept, read as one word: "Davinci-002" (next to a digit or mark)',
+        'said': '',
+        'spoken': True,
+        'start': 99,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 60,
+        'category': 'characters',
+        'chapter': 7,
+        'end': 265,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 4,
+        'printed_page': '42',
+        'reason': 'hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 264,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 62,
+        'category': 'characters',
+        'chapter': 8,
+        'end': 198,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'word split at a line end joined: "suggests"',
+        'said': '',
+        'spoken': True,
+        'start': 196,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 65,
+        'category': 'characters',
+        'chapter': 8,
+        'end': 54,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'word split at a line end joined: "examples" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 52,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 68,
+        'category': 'characters',
+        'chapter': 8,
+        'end': 141,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'word split at a line end joined: "sophisticated"',
+        'said': '',
+        'spoken': True,
+        'start': 139,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 68,
+        'category': 'characters',
+        'chapter': 8,
+        'end': 194,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 193,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 70,
+        'category': 'characters',
+        'chapter': 8,
+        'end': 54,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'word split at a line end joined: "Positives" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 52,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 72,
+        'category': 'characters',
+        'chapter': 8,
+        'end': 109,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'word split at a line end joined: "Incorrect" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 107,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 74,
+        'category': 'characters',
+        'chapter': 9,
+        'end': 54,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 53,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 74,
+        'category': 'characters',
+        'chapter': 9,
+        'end': 149,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'word split at a line end joined: "powerful" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 147,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 74,
+        'category': 'characters',
+        'chapter': 9,
+        'end': 253,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'word split at a line end joined: "restricted" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 251,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 76,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 48,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': 'hyphen at a line end kept, read as one word: "2023-01-10." (next to a digit or mark)',
+        'said': '',
+        'spoken': False,
+        'start': 47,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 78,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 101,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "question" (the document prints it so)',
+        'said': '',
+        'spoken': False,
+        'start': 99,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 78,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 207,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "Association" (the document prints it so)',
+        'said': '',
+        'spoken': False,
+        'start': 205,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 78,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 307,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "Computational" (the document prints it so)',
+        'said': '',
+        'spoken': False,
+        'start': 305,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 80,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 144,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "requiring"',
+        'said': '',
+        'spoken': False,
+        'start': 142,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 83,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 101,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "using" (the document prints it so)',
+        'said': '',
+        'spoken': False,
+        'start': 99,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 83,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 200,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "Empirical"',
+        'said': '',
+        'spoken': False,
+        'start': 198,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 84,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 211,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "Computational" (the document prints it so)',
+        'said': '',
+        'spoken': False,
+        'start': 209,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 84,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 313,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "Student" (the document prints it so)',
+        'said': '',
+        'spoken': False,
+        'start': 311,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 86,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 100,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "Thirteenth"',
+        'said': '',
+        'spoken': False,
+        'start': 98,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 88,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 52,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "contentaddressable"',
+        'said': '',
+        'spoken': False,
+        'start': 50,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 88,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 103,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "comprehension" (the document prints it so)',
+        'said': '',
+        'spoken': False,
+        'start': 101,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 90,
+        'category': 'characters',
+        'chapter': 10,
+        'end': 252,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "Computational" (the document prints it so)',
+        'said': '',
+        'spoken': False,
+        'start': 250,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 102,
+        'category': 'characters',
+        'chapter': 11,
+        'end': 47,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "swimming" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 45,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 108,
+        'category': 'characters',
+        'chapter': 11,
+        'end': 48,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "swimming" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 46,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 109,
+        'category': 'characters',
+        'chapter': 11,
+        'end': 46,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'word split at a line end joined: "shopping" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 44,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
@@ -466,7 +2059,7 @@
   | Category | Applied | Not spoken (chapter not chosen) | Set aside | Switched off |
   |---|---|---|---|---|
   | Page furniture | 11 | 1 | 0 | 0 |
-  | Characters and hyphenation | 0 | 0 | 0 | 0 |
+  | Characters and hyphenation | 70 | 14 | 0 | 0 |
   | Footnotes | 0 | 0 | 0 | 0 |
   | Citations | 0 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 0 | 0 | 0 | 0 |
@@ -490,6 +2083,93 @@
   - page 7 (printed 45), chapter 12, applied: “45” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 8 (printed 46), chapter 12, applied: “46” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 9 (printed 47), chapter 12, applied: “47” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
+  
+  ## Characters and hyphenation (84)
+  
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “´” → left out. Reason: accent mark "´" without its letter not read. Step: unicode-clean-up.
+  - page 1 (printed 39), chapter 2, applied: “-” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 2, applied: “-” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "running" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "identifying". Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "counterpart" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "running" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "discourse" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "consists". Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "non-elliptical" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 3, applied: “-” → left out. Reason: word split at a line end joined: "occurrences" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "probing" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "perspectives". Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "paper" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "various". Step: line-end-hyphens.
+  - page 1 (printed 39), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "demonstrators" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "sophisticated". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "reasoning" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "system" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "using" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "coreference" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "Spenader" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "reference" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "phenomena" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "another" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "complete" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "question" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "discourse" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "temporal". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "Interpreting". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 4, applied: “-” → left out. Reason: word split at a line end joined: "integrating". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "tables". Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "Furthermore" (the document prints it so). Step: line-end-hyphens.
+  - page 2 (printed 40), chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "Separate" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "occur" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "produce". Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "presented". Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "models" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "accessed" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "otherwise" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "accuracy" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "version" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 7, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-003" (next to a digit or mark). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 7, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "Actions" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 7, applied: “-” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-003," (next to a digit or mark). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-002" (next to a digit or mark). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “-” → left out. Reason: word split at a line end joined: "subordinate" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “-” → left out. Reason: word split at a line end joined: "ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “-” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Davinci-002" (next to a digit or mark). Step: line-end-hyphens.
+  - page 4 (printed 42), chapter 8, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "suggests". Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "sophisticated". Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "Positives" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 9, applied: “-” → left out. Reason: word split at a line end joined: "Incorrect" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 10, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "ellipsis-dependent" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 10, applied: “-” → left out. Reason: word split at a line end joined: "powerful" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 10, applied: “-” → left out. Reason: word split at a line end joined: "restricted" (the document prints it so). Step: line-end-hyphens.
+  - page 5 (printed 43), chapter 11, not spoken (chapter not chosen): “” → left out. Reason: hyphen at a line end kept, read as one word: "2023-01-10." (next to a digit or mark). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "question" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "Association" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "requiring". Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "using" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "Empirical". Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "Student" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "Thirteenth". Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "contentaddressable". Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "comprehension" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “-” → left out. Reason: word split at a line end joined: "Computational" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 12, applied: “-” → left out. Reason: word split at a line end joined: "swimming" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 12, applied: “-” → left out. Reason: word split at a line end joined: "swimming" (the document prints it so). Step: line-end-hyphens.
+  - page 6 (printed 44), chapter 12, applied: “-” → left out. Reason: word split at a line end joined: "shopping" (the document prints it so). Step: line-end-hyphens.
   
   '''
 # ---
@@ -590,7 +2270,7 @@
         'switched_off': 0,
       }),
       'characters': dict({
-        'applied': 0,
+        'applied': 11,
         'label': 'Characters and hyphenation',
         'not_spoken': 0,
         'set_aside': 0,
@@ -1118,6 +2798,215 @@
         'status': 'accepted',
         'step': 'page-furniture',
       }),
+      dict({
+        'block': 45,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 826,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 2,
+        'printed_page': '2',
+        'reason': 'hyphen at a line end kept, read as one word: "Figure-level" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 825,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 50,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 177,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '3',
+        'reason': 'word split at a line end joined: "semantic" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 175,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 52,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 177,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 3,
+        'printed_page': '3',
+        'reason': 'hyphen at a line end kept, read as one word: "long-form" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 176,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 53,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 96,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '3',
+        'reason': 'word split at a line end joined: "appearance" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 94,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 54,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 347,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'word split at a line end joined: "customization" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 345,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 54,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 435,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'word split at a line end joined: "passedthrough"',
+        'said': '',
+        'spoken': True,
+        'start': 433,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 54,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 698,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'word split at a line end joined: "systems"',
+        'said': '',
+        'spoken': True,
+        'start': 696,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 54,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 868,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'word split at a line end joined: "formal"',
+        'said': '',
+        'spoken': True,
+        'start': 866,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 54,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 1052,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'word split at a line end joined: "opinionated" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 1050,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 54,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 1233,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'word split at a line end joined: "example" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 1231,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 60,
+        'category': 'characters',
+        'chapter': 5,
+        'end': 262,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'word split at a line end joined: "contributing"',
+        'said': '',
+        'spoken': True,
+        'start': 260,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
@@ -1167,7 +3056,7 @@
   | Category | Applied | Not spoken (chapter not chosen) | Set aside | Switched off |
   |---|---|---|---|---|
   | Page furniture | 26 | 3 | 0 | 0 |
-  | Characters and hyphenation | 0 | 0 | 0 | 0 |
+  | Characters and hyphenation | 11 | 0 | 0 | 0 |
   | Footnotes | 0 | 0 | 0 | 0 |
   | Citations | 0 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 0 | 0 | 0 | 0 |
@@ -1209,6 +3098,20 @@
   - page 4, chapter 7, not spoken (chapter not chosen): “4” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 4, chapter 7, not spoken (chapter not chosen): “03021” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
   
+  ## Characters and hyphenation (11)
+  
+  - page 2, chapter 5, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "Figure-level" (the document prints it so). Step: line-end-hyphens.
+  - page 3, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "semantic" (the document prints it so). Step: line-end-hyphens.
+  - page 3, chapter 5, applied: “” → left out. Reason: hyphen at a line end kept, read as one word: "long-form" (the document prints it so). Step: line-end-hyphens.
+  - page 3, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "appearance" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "customization" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "passedthrough". Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "systems". Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "formal". Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "opinionated" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 5, applied: “-” → left out. Reason: word split at a line end joined: "example" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 6, applied: “-” → left out. Reason: word split at a line end joined: "contributing". Step: line-end-hyphens.
+  
   '''
 # ---
 # name: test_the_script_is_as_recorded[acl2023-hardt-ellipsis]
@@ -1229,26 +3132,26 @@
   
   Abstract
   
-  We propose a novel challenge for large lan- guage models: ellipsis-dependent reasoning.
-  We define several structures of paired exam- ples, where an ellipsis example is matched to its non-ellipsis counterpart, and a question is posed which requires resolution of the ellipsis.
+  We propose a novel challenge for large language models: ellipsis-dependent reasoning.
+  We define several structures of paired examples, where an ellipsis example is matched to its non-ellipsis counterpart, and a question is posed which requires resolution of the ellipsis.
   Test results show that the best models perform well on non-elliptical examples but struggle with all but the simplest ellipsis structures.
   
   # 3. 1 Introduction
   
   1 Introduction
   
-  Ellipsis is a fundamental feature of human lan- guage, occurring in all registers, where parts of sentences are omitted, although the missing parts are essential for understanding the meaning.
+  Ellipsis is a fundamental feature of human language, occurring in all registers, where parts of sentences are omitted, although the missing parts are essential for understanding the meaning.
   The following is an example of Verb Phrase Ellipsis (VPE)(Bos and Spenader, 2011):
   
   (1) William went running.
   Harold did too.
   
-  (1) is understood as asserting that Harold went run- ning; that is, the hearer or reader naturally fills in the missing material.
-  This is done by identify- ing the antecedent VP, went running, in the first sentence.
-  The following is the non-elliptical coun- terpart of (1):
+  (1) is understood as asserting that Harold went running; that is, the hearer or reader naturally fills in the missing material.
+  This is done by identifying the antecedent VP, went running, in the first sentence.
+  The following is the non-elliptical counterpart of (1):
   
   (2) William went running.
-  Harold went run- ning too.
+  Harold went running too.
   
   With such examples, we can test understanding of ellipsis by targeting the ellipsis phrase with a simple Yes/No question:
   
@@ -1256,47 +3159,47 @@
   
   If a system answers the question incorrectly for (1), the ellipsis example, but answers correctly for (2), the non-elliptical counterpart of (1), we can ascribe the result specifically to the challenge of ellipsis, since the examples are otherwise identical.
   
-  As with pronominal anaphora and other dis- course processes, there is great flexibility in the way ellipsis can occur in discourse.
+  As with pronominal anaphora and other discourse processes, there is great flexibility in the way ellipsis can occur in discourse.
   Example (1) involves two simple adjacent sentences.
   It is also possible for ellipsis or the antecedent to occur in embedded clauses.
   Furthermore, ellipsis can occur either before or after the antecedent.
   Finally, an arbitrary amount of material can intervene between the antecedent and the ellipsis occurrence.
   
   In this paper, we propose the challenge of ellipsis-dependent reasoning.
-  This challenge con- sists of examples involving an ellipsis clause, the target.
-  Each ellipsis example is paired with its non- elliptical counterpart, where the target clause is overt rather than elliptical.
+  This challenge consists of examples involving an ellipsis clause, the target.
+  Each ellipsis example is paired with its non-elliptical counterpart, where the target clause is overt rather than elliptical.
   We then pose a question whose answer is dependent on the target clause.
-  A key aspect of the challenge is that ellipsis occur- rences are possible in a variety of diverse structural configurations.
+  A key aspect of the challenge is that ellipsis occurrences are possible in a variety of diverse structural configurations.
   We test a series of GPT-3 models (GPT) on several such ellipsis structures.
   
   # 4. 2 Related Work
   
   2 Related Work
   
-  There is a large literature concerning the prob- ing of language models from a variety of perspec- tives.
+  There is a large literature concerning the probing of language models from a variety of perspectives.
   Furthermore, there has been substantial work specifically addressing ellipsis in NLP.
-  In this pa- per, we are proposing the challenge of ellipsis- dependent reasoning.
-  This proposal builds on var- ious strands of prior research; below we consider some particularly relevant aspects of this literature.
+  In this paper, we are proposing the challenge of ellipsis-dependent reasoning.
+  This proposal builds on various strands of prior research; below we consider some particularly relevant aspects of this literature.
   
   2.1 Probing Models for Knowledge
   
   The Winograd Schema (Kocijan et al. (2022); Levesque et al. (2012)) involves test examples that use the linguistic problem of pronoun resolution to gain insight into the commonsense reasoning abilities of an AI system.
   To do this, the Winograd Schema requires pairs of examples that differ only in one specific, small way, as in (4):
   
-  (4) The city councilmen refused the demonstra- tors a permit because they feared/advocated violence.
+  (4) The city councilmen refused the demonstrators a permit because they feared/advocated violence.
   
   With “feared", the pronoun “they" refers to the city councilmen, while with “advocated", it refers to the demonstrators.
   Humans understand this because of general, commonsense knowledge about what would reasonably explain the refusal of a permit in the two cases.
-  It is difficult to ensure that such examples can only be solved through such sophis- ticated reasoning, and, according to Kocijan et al. (2022)[p.
-  8], “Solving Winograd schemas is not a surrogate for the ability to do commonsense rea- soning".
+  It is difficult to ensure that such examples can only be solved through such sophisticated reasoning, and, according to Kocijan et al. (2022)[p.
+  8], “Solving Winograd schemas is not a surrogate for the ability to do commonsense reasoning".
   
-  A different approach is exemplified by Lin et al. (2019): here, examples are constructed which test specific aspects of linguistic knowledge of a sys- tem, namely, whether BERT embeddings “encode hierarchical information".
+  A different approach is exemplified by Lin et al. (2019): here, examples are constructed which test specific aspects of linguistic knowledge of a system, namely, whether BERT embeddings “encode hierarchical information".
   For example, a task is defined to identify the main auxiliary verb in a sentence, even in cases where the main auxiliary is not the first auxiliary verb to appear.
-  Training and testing datasets are automatically generated us- ing a context-free grammar for several such tasks involving hierarchical syntactic information.
+  Training and testing datasets are automatically generated using a context-free grammar for several such tasks involving hierarchical syntactic information.
   
   2.2 Anaphora and Question Answering
   
-  Quoref (Dasigi et al. (2019); Zhang and Zhao (2022)) is a question-answer dataset designed so that correct answers cannot be given unless a coref- erence relationship is correctly identified; that is, the reasoning involved in question answering is dependent on resolving coreference.
+  Quoref (Dasigi et al. (2019); Zhang and Zhao (2022)) is a question-answer dataset designed so that correct answers cannot be given unless a coreference relationship is correctly identified; that is, the reasoning involved in question answering is dependent on resolving coreference.
   This is, in a sense, the inverse of the Winograd schema, where resolving coreference is dependent upon reasoning.
   Just as with the Winograd schema, it is difficult to ensure that resolving this dependency is required for system success.
   (Dasigi et al., 2019)[p.
@@ -1304,24 +3207,24 @@
   
   2.3 Ellipsis as a Task
   
-  There has been substantial work on ellipsis as a discrete NLP task (Khullar (2020), Zhang et al. (2019); Kenyon-Dean et al. (2016); Bos and Spe- nader (2011)).
-  Vanderlyn et al. (2022) surveys a variety of forms of what they call “implicit ref- erence", which includes ellipsis and related phe- nomena.
+  There has been substantial work on ellipsis as a discrete NLP task (Khullar (2020), Zhang et al. (2019); Kenyon-Dean et al. (2016); Bos and Spenader (2011)).
+  Vanderlyn et al. (2022) surveys a variety of forms of what they call “implicit reference", which includes ellipsis and related phenomena.
   Aralikatte et al. (2021) frame ellipsis as a question-answering task, i.e., a task of locating an antecedent, understood as a span of tokens in context.
-  Aralikatte et al. (2021) report token F1 scores of 78.66 for VPE and 86.01 for sluicing, an- other form of ellipsis.
+  Aralikatte et al. (2021) report token F1 scores of 78.66 for VPE and 86.01 for sluicing, another form of ellipsis.
   It’s important to note that the task here, of antecedent identification, is a sub-part of the ellipsis challenge.
   Before the antecedent is identified, an ellipsis occurrence must be identified, and after the antecedent is identified, it must be interpreted, or “reconstructed", at the ellipsis site.
   
   2.4 Relevance for Ellipsis-Dependent Reasoning
   
-  The specific task of ellipsis is addressed in work like that of Aralikatte et al. (2021), but the key difference here is that we are probing for a com- plete solution to the ellipsis problem.
-  The proposed ellipsis-dependent reasoning task involves a ques- tion that can only be answered correctly if the el- lipsis is properly identified and interpreted.
+  The specific task of ellipsis is addressed in work like that of Aralikatte et al. (2021), but the key difference here is that we are probing for a complete solution to the ellipsis problem.
+  The proposed ellipsis-dependent reasoning task involves a question that can only be answered correctly if the ellipsis is properly identified and interpreted.
   This combines aspects of the preceding works in a novel way: like the Winograd schema and the syntactic work by Lin et al. (2019), it probes for what we see as a specific type of psychologically-defined knowledge: namely, a representation of context that supports the resolution of ellipsis.
   Similarly to the work on Quoref, we use targeted questions to probe for discourse-related knowledge.
   
   There is an extensive literature on the contextual interpretation of natural language, resting on the idea of a dynamic, ongoing model of discourse.
-  For example, Discourse Representation Theory (Kamp, 1981) describes a semantic model supporting dis- course phenomena such as pronominal and tempo- ral anaphora,
+  For example, Discourse Representation Theory (Kamp, 1981) describes a semantic model supporting discourse phenomena such as pronominal and temporal anaphora,
   and Sag and Hankamer (1984) argue explicitly that ellipsis and other such phenomena are interpreted with respect to a discourse model (Garnham, 2010).
-  As one study puts it, “Inter- preting a verb-phrase ellipsis (VP ellipsis) requires accessing an antecedent in memory, and then in- tegrating a representation of this antecedent into the local context" (Martin and McElree, 2008).
+  As one study puts it, “Interpreting a verb-phrase ellipsis (VP ellipsis) requires accessing an antecedent in memory, and then integrating a representation of this antecedent into the local context" (Martin and McElree, 2008).
   In this paper, we seek to determine whether a large language model is capable of such an interpretive process.
   
   # 5. 3 Data
@@ -1329,12 +3232,12 @@
   3 Data
   
   There is a great deal of variety in the structural configurations in which ellipsis can occur.
-  In ta- bles 1 and 2 we define structures for ellipsis and antecedent occurrences.
+  In tables 1 and 2 we define structures for ellipsis and antecedent occurrences.
   
   In all structures, there is an ellipsis occurrence, and the question targets the ellipsis occurrence.
-  Fur- thermore, each ellipsis example is paired with a non-ellipsis version.
-  The first two structures, Sep- arate Sentence, and Conjoined Sentence, involve two adjacent main clauses.
-  This is followed by two structures in which either the VPE or antecedent oc- cur in a subordinate clause.
+  Furthermore, each ellipsis example is paired with a non-ellipsis version.
+  The first two structures, Separate Sentence, and Conjoined Sentence, involve two adjacent main clauses.
+  This is followed by two structures in which either the VPE or antecedent occur in a subordinate clause.
   There is a Backwards structure where the VPE precedes the antecedent; here the VPE is in a subordinate clause.
   Finally, we have a Two Actions structure; that is, two ellipsis occurrences each with their respective antecedent VPs.
   We have two versions: one in which the target question has a correct answer of “Yes", shown in table 1, and another where the target question has a correct answer of “No", shown in table 2.
@@ -1359,13 +3262,13 @@
   
   4 Test
   
-  For each instantiation of a given structure, we pro- duce paired ellipsis and non-ellipsis examples, with an associated Yes/No question.
+  For each instantiation of a given structure, we produce paired ellipsis and non-ellipsis examples, with an associated Yes/No question.
   We randomly select 1000 examples for each structure, including 500 ellipsis examples and 500 examples which are their non-elliptical counterparts.
-  Each example is pre- sented to the system, preceded by the text, “Please give a Yes or No answer:".
-  We test five GPT-3 mod- els on these structures: Davinci-003, Davinci-002, Curie-001, Babbage-001, and Ada-001.
+  Each example is presented to the system, preceded by the text, “Please give a Yes or No answer:".
+  We test five GPT-3 models on these structures: Davinci-003, Davinci-002, Curie-001, Babbage-001, and Ada-001.
   According to the GPT-3 documentation, Davinci-003 is the most powerful model and Ada-001, the least.
   
-  1Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.
+  1Datasets and associated programs can be accessed at https://github.com/DanHardtDK/ ellipsisGPT3.
   
   Structure Example Separate William went running.
   Sentence But John didn’t.
@@ -1383,24 +3286,24 @@
   
   5 Results
   
-  Figure 1 gives the accuracy for ellipsis and non- ellipsis, for each of the five models.
-  We have set up the test examples so that an ellipsis example is paired with a non-ellipsis example that is oth- erwise identical.
+  Figure 1 gives the accuracy for ellipsis and non-ellipsis, for each of the five models.
+  We have set up the test examples so that an ellipsis example is paired with a non-ellipsis example that is otherwise identical.
   Because of this, we claim that the difference in accuracy of the non-ellipsis case vs. the ellipsis case provides a measurement of the difficulty specifically posed by ellipsis.
-  For all but the least powerful model, Ada, the non-ellipsis ac- curacy is substantially higher than ellipsis accuracy, supporting the hypothesis that ellipsis-dependent reasoning presents a difficult challenge for these models.
-  While the Ada model actually performs somewhat better for ellipsis than non-ellipsis, this is not because the Ada model does well with ellip- sis cases; rather, the model has great difficulty with both the ellipsis and non-ellipsis cases, and is close to a random guessing baseline of .50.
+  For all but the least powerful model, Ada, the non-ellipsis accuracy is substantially higher than ellipsis accuracy, supporting the hypothesis that ellipsis-dependent reasoning presents a difficult challenge for these models.
+  While the Ada model actually performs somewhat better for ellipsis than non-ellipsis, this is not because the Ada model does well with ellipsis cases; rather, the model has great difficulty with both the ellipsis and non-ellipsis cases, and is close to a random guessing baseline of .50.
   
   In figures 2 through 6, we present results for each model.
-  We show the accuracy for each structure, for both the ellipsis version and the non-ellipsis ver- sion.
-  Consider the most powerful models, Davinci- 003 and Davinci-002.
+  We show the accuracy for each structure, for both the ellipsis version and the non-ellipsis version.
+  Consider the most powerful models, Davinci-003 and Davinci-002.
   In figures 2 and 3, we can see that ellipsis is not difficult in the first two structures: 2Sent (Separate Sentence) and 1Sent (Conjoined Sentence).
   Here the accuracy is nearly perfect for the ellipsis as well as the non-ellipsis condition.
-  However, in all the other structures, there is a large divergence in accuracy between ellipsis and non- ellipsis, for both the Davinci-003 and Davinci-002 models.
-  Subordination for either antecedent or el- lipsis is quite challenging, with accuracies ranging from 48.8 to 85.8.
-  The Backwards and Two Ac- tions structures are even more difficult for ellipsis.
+  However, in all the other structures, there is a large divergence in accuracy between ellipsis and non-ellipsis, for both the Davinci-003 and Davinci-002 models.
+  Subordination for either antecedent or ellipsis is quite challenging, with accuracies ranging from 48.8 to 85.8.
+  The Backwards and Two Actions structures are even more difficult for ellipsis.
   
   Figure 1: Model Accuracy – Ellipsis vs. Non-Ellipsis (5000 examples per model.)
   
-  Figure 2: Ellipsis Accuracy – davinci-003 (1000 exam- ples per structure.)
+  Figure 2: Ellipsis Accuracy – davinci-003 (1000 examples per structure.)
   
   # 8. 6 Analysis
   
@@ -1410,17 +3313,17 @@
   For the less powerful models, the picture is mixed.
   For these models, the non-ellipsis examples are themselves a difficult challenge, so we are not able to observe the specific difficulties posed by ellipsis.
   
-  As we can see in figure 1, the Davinci-002 model performs somewhat better overall than Davinci- 003, on both ellipsis and non-ellipsis.
-  However, figures 2 and 3 show that the advantage of Davinci- 002 on ellipsis is exclusively due to the subordi- nate antecedent construction.
-  In every other el- lipsis structure, Davinci-003 performs better than Davinci-002.
+  As we can see in figure 1, the Davinci-002 model performs somewhat better overall than Davinci-003, on both ellipsis and non-ellipsis.
+  However, figures 2 and 3 show that the advantage of Davinci-002 on ellipsis is exclusively due to the subordinate antecedent construction.
+  In every other ellipsis structure, Davinci-003 performs better than Davinci-002.
   
-  Figure 3: Ellipsis Accuracy – davinci-002 (1000 exam- ples per structure.)
+  Figure 3: Ellipsis Accuracy – davinci-002 (1000 examples per structure.)
   
   Figure 4: Ellipsis Accuracy – curie-001 (1000 examples per structure.)
   
   There are striking differences in the distribution of errors.
-  For both the Davinci-003 and Davinci- 002 models, errors are nearly always false negatives – that is, incorrect “No" answers.
-  There are virtually no false positives, either for the ellipsis case or non- ellipsis case.
+  For both the Davinci-003 and Davinci-002 models, errors are nearly always false negatives – that is, incorrect “No" answers.
+  There are virtually no false positives, either for the ellipsis case or non-ellipsis case.
   For the other three models, there are many errors of each type, with a much higher ratio of false positives.
   
   # 9. 7 Conclusion
@@ -1428,30 +3331,30 @@
   7 Conclusion
   
   Most of the current rapid progress in NLP is due to pre-trained large language models.
-  GPT-3 is an impressive publicly available collection of such models, and is able to perform in a way that sug- gests human-level understanding.
+  GPT-3 is an impressive publicly available collection of such models, and is able to perform in a way that suggests human-level understanding.
   Because of this, it is important to explore areas in which it might still differ from human language understanding.
   In this paper we have argued that ellipsis is one such area.
   For many simple ellipsis structures, the most powerful GPT-3 models struggle, with accuracies far lower on ellipsis examples than on non-elliptical counterparts.
   
-  Figure 5: Ellipsis Accuracy – babbage-001 (1000 exam- ples per structure.)
+  Figure 5: Ellipsis Accuracy – babbage-001 (1000 examples per structure.)
   
   Figure 6: Ellipsis Accuracy – ada-001 (1000 examples per structure.)
   
-  In many ways, GPT-3 appears to understand the texts that it processes, often being able to answer questions that appear to rely on sophisti- cated reasoning.
-  However, the challenge of ellipsis- dependent reasoning provides evidence that GPT-3 is not able to understand in anything like the way humans do.
+  In many ways, GPT-3 appears to understand the texts that it processes, often being able to answer questions that appear to rely on sophisticated reasoning.
+  However, the challenge of ellipsis-dependent reasoning provides evidence that GPT-3 is not able to understand in anything like the way humans do.
   
   Figure 7: Ellipsis case – Errors by model.
-  False Pos- itives (Incorrect “Yes") vs. False Negatives (Incorrect “No")
+  False Positives (Incorrect “Yes") vs. False Negatives (Incorrect “No")
   
   Figure 8: Non-ellipsis case – Errors by model.
-  False Positives (Incorrect “Yes") vs. False Negatives (Incor- rect “No")
+  False Positives (Incorrect “Yes") vs. False Negatives (Incorrect “No")
   
   # 10. 8 Limitations
   
   8 Limitations
   
-  This paper argues that the proposed task of ellipsis- dependent reasoning is a difficult challenge for GPT-3 models, which are among the most power- ful current language models.
-  The data constructed here is restricted to English, and furthermore is re- stricted to a single form of ellipsis, namely verb phrase ellipsis.
+  This paper argues that the proposed task of ellipsis-dependent reasoning is a difficult challenge for GPT-3 models, which are among the most powerful current language models.
+  The data constructed here is restricted to English, and furthermore is restricted to a single form of ellipsis, namely verb phrase ellipsis.
   It may well be that other forms of ellipsis may give rise to different effects, and it is also important to test the claims made here on other languages.
   
   # 11. References (not spoken)
@@ -1477,7 +3380,7 @@
   
   Mary went swimming, but Harold didn’t.
   
-  Mary went swimming, but Harold didn’t go swim- ming.
+  Mary went swimming, but Harold didn’t go swimming.
   
   Q: Did Harold go swimming?
   
@@ -1489,9 +3392,9 @@
   
   Mary went shopping and Harold didn’t.
   
-  Mary didn’t go swimming but Harold did go swim- ming.
+  Mary didn’t go swimming but Harold did go swimming.
   
-  Mary went shopping and Harold didn’t go shop- ping.
+  Mary went shopping and Harold didn’t go shopping.
   
   Q: Did Harold go swimming?
   
@@ -1713,14 +3616,14 @@
   Functions in seaborn are classified as either “axes-level” or “figure-level.”
   Axes-level functions behave like most plotting functions in the matplotlib. pyplot namespace.
   By default, they hook into the state machine that tracks a “current” figure and add a layer to it, but they can also accept a matplotlib axes object to control where the plot is drawn, similar to using the matplotlib “object-oriented” interface.
-  Figure- level functions create their own figure when invoked, allowing them to “facet” the dataset by creating multiple conditional subplots, along with adding conveniences such as putting the legend outside the space of the plot by default.
+  Figure-level functions create their own figure when invoked, allowing them to “facet” the dataset by creating multiple conditional subplots, along with adding conveniences such as putting the legend outside the space of the plot by default.
   Each figure-level function corresponds to several axes-level functions that serve similar purposes, with a single parameter selecting the kind of plot to make.
   For example, the displot function can produce several different representations of a distribution, including a histogram, kernel density estimate, or empirical cumulative distribution function.
   The figure-level functions make use of a seaborn class that controls the layout of the figure, mediating between the axes-level functions and matplotlib.
   These classes are part of the public API and can be used directly for advanced applications.
   
   One of the key features in seaborn is that variables in a dataset can be automatically “mapped” to visual attributes of the graph.
-  These transformations are referred to as “se- mantic” mappings because they endow the attributes with meaning vis a vis the dataset.
+  These transformations are referred to as “semantic” mappings because they endow the attributes with meaning vis a vis the dataset.
   By freeing the user from manually specifying the transformations – which often requires looping and multiple function invocations when using matplotlib directly – seaborn allows rapid exploration of multidimensional relationships.
   To further aid efficiency, the default parameters of the mappings are opinionated.
   For example, when mapping the color of the elements in a plot, seaborn infers whether to use a qualitative or quantitative mapping based on whether the input data are categorical or numeric.
@@ -1733,7 +3636,7 @@
   Historically, error bar specification has been relatively limited, but a forthcoming release (v0.12) will introduce a new configuration system that makes it possible to show nonparametric percentile intervals and scaled analytic estimates of standard error or standard deviation statistics.
   
   seaborn aims to be flexible about the format of its input data.
-  The most convenient usage pattern provides a pandas (McKinney, 2010) dataframe with variables encoded in a long- form or “tidy” (Wickham, 2014) format.
+  The most convenient usage pattern provides a pandas (McKinney, 2010) dataframe with variables encoded in a long-form or “tidy” (Wickham, 2014) format.
   With this format, columns in the dataframe can be explicitly assigned to roles in the plot, such as specifying the x and y positions of a scatterplot along with size and shape semantics.
   Long-form data supports efficient exploration and prototyping because variables can be assigned different roles in the plot without modifying anything about the original dataset.
   But most seaborn functions can also consume and visualize “wide-form” data, typically producing similar output to how the analogous matplot lib function would interpret a 2D array (e.g.,
@@ -1741,7 +3644,7 @@
   Using the label information in a pandas object can help make plots that are interpretable without further tweaking – reducing the chance of interpretive errors – but seaborn also accepts data from a variety of more basic formats, including numpy (Harris et al.,
   2020) arrays and simple Python collection types.
   
-  seaborn also offers multiple built-in themes that users can select to modify the visual appear- ance of their graphs.
+  seaborn also offers multiple built-in themes that users can select to modify the visual appearance of their graphs.
   The themes make use of the matplotlib rcParams system, meaning that they will take effect for any figure created using matplotlib, not just those made by seaborn.
   The themes are defined by two disjoint sets of parameters that separately control the style of the figure and the scaling of its elements (such as line widths and font sizes).
   This separation makes it easy to generate multiple versions of a figure that are scaled for different contexts, such as written reports and slide presentations.
@@ -1751,19 +3654,19 @@
   
   seaborn does not aim to completely encapsulate or replace matplotlib.
   Many useful graphs can be created through the seaborn interface, but more advanced applications – such as defining composite figures with multiple arbitrary plot types – will require importing and using matplotlib as well.
-  Even when calling only seaborn functions, deeper cus- tomization of the plot appearance is achieved by specifying parameters that are passed- through to the underlying matplotlib functions, and tweaks to the default axis limits, ticks,
+  Even when calling only seaborn functions, deeper customization of the plot appearance is achieved by specifying parameters that are passedthrough to the underlying matplotlib functions, and tweaks to the default axis limits, ticks,
   and labels are made by calling methods on the matplotlib object that axes-level seaborn functions return.
-  This approach is distinct from other statistical graphing sys- tems, such as ggplot2 (Wickham, 2016).
-  While seaborn offers some similar features and, in some cases, uses similar terminology to ggplot2, it does not implement the for- mal Grammar of Graphics and cannot be used to produce arbitrary visualizations.
-  Rather, its aim is to facilitate rapid exploration and prototyping through named functions and opinion- ated defaults while allowing the user to leverage the considerable flexibility of matplotlib to create more domain-specific graphics and to polish figures for publication.
-  An exam- ple of a successful use of this approach to produce reproducible figures can be found at https://github.com/WagnerLabPapers/Waskom_PNAS_2017 (Waskom & Wagner, 2017).
+  This approach is distinct from other statistical graphing systems, such as ggplot2 (Wickham, 2016).
+  While seaborn offers some similar features and, in some cases, uses similar terminology to ggplot2, it does not implement the formal Grammar of Graphics and cannot be used to produce arbitrary visualizations.
+  Rather, its aim is to facilitate rapid exploration and prototyping through named functions and opinionated defaults while allowing the user to leverage the considerable flexibility of matplotlib to create more domain-specific graphics and to polish figures for publication.
+  An example of a successful use of this approach to produce reproducible figures can be found at https://github.com/WagnerLabPapers/Waskom_PNAS_2017 (Waskom & Wagner, 2017).
   
   # 6. Acknowledgements
   
   Acknowledgements
   
   M.L.W. has been supported by the National Science Foundation IGERT program (0801700) and by the Simons Foundation as a Junior Fellow in the Simons Society of Fellows (527794).
-  Many others have helped improve seaborn by asking questions, reporting bugs, and con- tributing code; thank you to this community.
+  Many others have helped improve seaborn by asking questions, reporting bugs, and contributing code; thank you to this community.
   
   # 7. References (not spoken)
   

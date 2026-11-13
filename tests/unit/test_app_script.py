@@ -252,5 +252,8 @@ def test_the_built_in_steps_always_prepare_a_script(document: Document) -> None:
     result = prepare_script(document, JobSettings(), BUILT_IN_STEPS)
     report = build_report(result, {})
     assert report.problems == ()
+    ids = {step.id for step in BUILT_IN_STEPS}
     for entry in report.edits:
-        assert document.blocks[entry.where.span.block].kind is BlockKind.FURNITURE
+        assert entry.step in ids
+        if entry.step == "page-furniture":
+            assert document.blocks[entry.where.span.block].kind is BlockKind.FURNITURE
