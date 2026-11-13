@@ -9,6 +9,7 @@ import re
 import pytest
 from playwright.sync_api import Page, expect
 from test_flow import PDF
+from test_german import settled
 
 from conftest import Live
 
@@ -62,6 +63,7 @@ def test_no_page_scrolls_sideways_at_320_pixels(signed_in: Page, live: Live, lan
     page.locator("#open-file button[type=submit]").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
+    settled(page)
     document = page.url.rsplit("/", 1)[1].split("#")[0]
     check_reflow(page, "document, voice missing")
     for details in page.locator("details").all():

@@ -33,7 +33,15 @@ def open_paper(page: Page) -> str:
     page.get_by_role("button", name="Öffnen und analysieren").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
+    settled(page)
     return page.url.rsplit("/", 1)[1].split("#")[0]
+
+
+def settled(page: Page) -> None:
+    """Wait until the document page no longer follows the analysis. The report can be on
+    disk while the job is still the running one; a page drawn in that moment shows the
+    summary and still reloads itself when the job ends, under a test's key presses."""
+    expect(page.locator("#document[data-events]")).to_have_count(0)
 
 
 def expect_german(page: Page) -> None:
