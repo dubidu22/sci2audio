@@ -10,7 +10,7 @@ import dataclasses
 import itertools
 
 from core_strategies import contents
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 from test_layout import LEFT, RIGHT, content
 
@@ -23,9 +23,12 @@ from sci2audio.core import (
     Metadata,
     OutlineEntry,
     Section,
+    Source,
+    SourceFormat,
     TextLine,
     TextRun,
 )
+from sci2audio.core import Page as PdfPage
 from sci2audio.layout import build_document
 from sci2audio.layout.headings import title
 
@@ -236,6 +239,22 @@ def test_title_joins_a_word_split_at_a_line_end() -> None:
 
 
 @given(contents())
+@example(  # an algorithm caption and a drawing, both flat, on one box (#123)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            PdfPage(
+                1,
+                lines=(
+                    TextLine(
+                        "i0", (TextRun("Algorithm 0 ", bold=True), TextRun("0")), Box(0, 0, 1, 0)
+                    ),
+                ),
+                drawings=(Drawing("d", Box(0, 0, 1, 0)),),
+            ),
+        ),
+    )
+)
 def test_sections_start_at_headings_and_carry_their_text(found: Content) -> None:
     """On any content: each section starts at a heading block whose lines are its title, and
     each heading starts a section (the Document checks that sections nest)."""

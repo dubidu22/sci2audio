@@ -162,7 +162,8 @@ def _read_float(k: int, items: list[_Item], state: _State) -> None:
     box = union([i.box for i in caption])
     others = [i for i in items if i.block != k]
     if label.startswith(_ALGORITHM):
-        found = _walk(box, True, others, state) + _box_top(box, others, state)
+        below = _walk(box, True, others, state)
+        found = below + _box_top(box, others, state, {i.id for i in below})
     else:
         found = _side(box, others, state)
     if not found:
@@ -330,12 +331,14 @@ def _small(item: _Item, state: _State) -> bool:
     return item.line is not None and line_size(item.line) < smaller
 
 
-def _box_top(box: Box, others: list[_Item], state: _State) -> list[_Item]:
-    """The line just above an algorithm's caption: the top of the algorithm's box."""
+def _box_top(box: Box, others: list[_Item], state: _State, below: set[str]) -> list[_Item]:
+    """The line just above an algorithm's caption: the top of the algorithm's box. Not one
+    a float took already, or the walk `below` the caption: a flat drawing on a flat
+    caption's line stands both below and above it (#123)."""
     gap = state.settings.float_gap * state.body
     above = [i for i in _beyond(box, False, others) if _across(i, box.x0, box.x1)]
     if above and _is_line(above[0], state) and _gap(box, above[0], False) <= gap:
-        return [] if above[0].id in state.taken else [above[0]]
+        return [] if above[0].id in state.taken or above[0].id in below else [above[0]]
     return []
 
 
