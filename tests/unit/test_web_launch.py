@@ -6,6 +6,7 @@ from __future__ import annotations
 import http.cookiejar
 import json
 import logging
+import secrets
 import signal
 import socket
 import subprocess
@@ -141,10 +142,11 @@ def no_proxy() -> urllib.request.OpenerDirector:
 
 
 class Running:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, token: str = TOKEN) -> None:
+        self.token = token
         flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
         self.process = subprocess.Popen(
-            [sys.executable, "-u", "-c", SERVER, str(root), TOKEN],
+            [sys.executable, "-u", "-c", SERVER, str(root), token],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -161,7 +163,7 @@ class Running:
         request = urllib.request.Request(  # noqa: S310 - always http://127.0.0.1
             self.origin + path,
             data=data,
-            headers={"Authorization": f"Bearer {TOKEN}", **headers},
+            headers={"Authorization": f"Bearer {self.token}", **headers},
         )
         try:
             with no_proxy().open(request, timeout=30) as response:
@@ -299,10 +301,39 @@ def test_a_killed_server_starts_again_and_finds_its_documents(tmp_path: Path) ->
         server.stop()
 
 
+def still_served(port: int, token: str) -> bool:
+    """Whether the server with `token`, or a process that kept its socket, still takes
+    connections on `port` (#147). The port is free once the server stopped, so in a run of
+    many tests at once (`-n auto`) another test's server may get it, and a connection to a
+    free port can even meet itself (TCP's simultaneous open, when the system picks that
+    port as the connection's own). Neither is this server: a server of another test answers
+    and turns this token away; a process that kept the socket takes the connection and
+    never answers."""
+    try:
+        sock = socket.create_connection(("127.0.0.1", port), 2)
+    except ConnectionRefusedError:
+        return False
+    with sock:
+        if sock.getsockname() == sock.getpeername():
+            return False  # the connection met itself: nothing listens there
+        sock.settimeout(10)
+        sock.sendall(
+            (
+                f"GET /api/v1/settings HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n"
+                f"Authorization: Bearer {token}\r\nConnection: close\r\n\r\n"
+            ).encode()
+        )
+        try:
+            answer = sock.recv(100)
+        except TimeoutError:
+            return True
+    return answer.startswith(b"HTTP/1.1 200")
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX signal")
 def test_nothing_listens_after_the_server_stopped(tmp_path: Path) -> None:
-    server = Running(tmp_path)
+    server = Running(tmp_path, token=secrets.token_urlsafe(32))  # no other server takes it
     port = server.port
-    server.stop()
-    with pytest.raises(ConnectionRefusedError), socket.create_connection(("127.0.0.1", port), 2):
-        pass
+    assert still_served(port, server.token)
+    assert server.stop() == 0
+    assert not still_served(port, server.token)
