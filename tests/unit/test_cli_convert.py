@@ -155,6 +155,18 @@ def test_busy_while_another_job_holds_the_work_folder(
     assert cli.voice.spoken == []
 
 
+STOPPING = "stopping after the current sentence"
+
+
+def wait_for_stopping(cli: Cli) -> None:
+    """Wait until the main thread has taken the Ctrl-C (its line is on stderr), so a test
+    never depends on how fast a loaded machine handles it."""
+    deadline = time.monotonic() + 10
+    while cli.env is None or STOPPING not in cli.env.err.getvalue():  # type: ignore[attr-defined]
+        assert time.monotonic() < deadline, "the Ctrl-C was not taken within 10 s"
+        time.sleep(0.01)
+
+
 def test_ctrl_c_stops_after_the_current_sentence_and_the_rerun_continues(
     tmp_path: Path, source: Path
 ) -> None:
@@ -164,8 +176,7 @@ def test_ctrl_c_stops_after_the_current_sentence_and_the_rerun_continues(
         if not interrupted.is_set():
             interrupted.set()
             _thread.interrupt_main()  # what Ctrl-C does: KeyboardInterrupt in the main thread
-            # let the main thread see it and set the cancel event before this sentence ends
-            threading.Event().wait(0.5)
+            wait_for_stopping(cli)  # the cancel event is set before this sentence ends
         return False
 
     cli = Cli(tmp_path, voice=FakeVoice(fail_on=press_ctrl_c))
@@ -197,7 +208,7 @@ def test_a_second_ctrl_c_stops_at_once(tmp_path: Path, source: Path) -> None:
         if not pressed.is_set():
             pressed.set()
             _thread.interrupt_main()
-            threading.Event().wait(0.5)
+            wait_for_stopping(cli)  # the first Ctrl-C is taken; now the second
             _thread.interrupt_main()
             threading.Event().wait(10)  # a sentence that takes long
         return False

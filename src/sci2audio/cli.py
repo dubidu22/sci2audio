@@ -715,10 +715,13 @@ def _audio_in_thread(
         finally:
             finished.set()
 
-    threading.Thread(target=work_on, name="sci2audio-audio-job", daemon=True).start()
+    worker = threading.Thread(target=work_on, name="sci2audio-audio-job", daemon=True)
     try:
+        worker.start()  # inside the try: a Ctrl-C while it starts is a first Ctrl-C too
         _wait(finished)
     except KeyboardInterrupt:
+        if worker.ident is None:  # it never started: nothing to stop politely
+            raise
         cancel.set()
         progress.end()
         env.err.write(f"{PROG}: stopping after the current sentence; finished sentences are kept\n")
