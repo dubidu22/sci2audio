@@ -56,6 +56,11 @@ def marked(text: str, mark: str, label: str | None = None) -> Document:
         ("Printed 4 later.", "4", "Footnote. Printed 4 later."),  # label not at the start
         ("Footnote 2 is already said.", "2", "Footnote 2 is already said."),
         ("Footnotes are discussed here.", "", "Footnote. Footnotes are discussed here."),
+        ("1. Measured twice.", "1", "Footnote 1. Measured twice."),  # the "." goes with the mark
+        ("1) Measured twice.", "1", "Footnote 1. Measured twice."),
+        ("b.\nMeasured twice.", "b", "Footnote b. Measured twice."),
+        ("2.", "2", "Footnote 2."),
+        (f"{STAR}) Work done at home.", STAR, "Footnote. Work done at home."),
     ],
 )
 def test_each_note_is_introduced_once(text: str, label: str, spoken: str) -> None:
@@ -74,6 +79,12 @@ def test_the_introduction_replaces_the_mark_itself() -> None:
     assert (edit.span, edit.kind, edit.replacement) == (Span(0, 0, 1), EditKind.REPLACE,
                                                         "Footnote 1.")  # fmt: skip
     assert edit.reason == "footnote 1 is introduced by its mark"
+
+
+def test_a_point_or_parenthesis_after_the_mark_is_replaced_with_it() -> None:
+    document = make_document([Block(BlockKind.FOOTNOTE, "1) A note.", label="1")])
+    (edit,) = FootnoteStep().find(document, EN)
+    assert (edit.span, edit.replacement) == (Span(0, 0, 2), "Footnote 1.")
 
 
 # ---- marks in the running text -------------------------------------------------------------

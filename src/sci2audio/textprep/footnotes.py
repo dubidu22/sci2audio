@@ -108,6 +108,8 @@ class FootnoteStep(TextStep):
         label = block.label
         if label and text.startswith(label, lead):
             end = lead + len(label)
+            if text[end : end + 1] in (".", ")") and not text[end + 1 : end + 2].strip():
+                end += 1  # a note printed "1. Text" or "1) Text": the "." or ")" goes too
             spoken = (
                 wording.footnote.format(label)
                 if _SPOKEN_MARK.fullmatch(label)

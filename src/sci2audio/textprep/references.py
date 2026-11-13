@@ -28,13 +28,20 @@ REFERENCE_TITLES = (
     "Literature cited",
 )
 
-# an optional printed number ("7", "8.1", "A", "IV", with or without a full stop), then a
-# usual name in any case ("REFERENCES")
-_TITLE = re.compile(
-    r"\A\s*(?:(?:\d{1,3}(?:\.\d{1,3})*|[A-Z]|[IVXL]{1,6})\.?\s+)?(?i:"
-    + "|".join(map(re.escape, REFERENCE_TITLES))
-    + r")\s*\Z"
-)
+# Matched as the app matches a chapter title (`app.chapters.is_reference_title`, D-132), so
+# the step and the chapter choice agree; a test keeps the two equal: white space read as one
+# space, an optional printed number ("7", "7.", "8.1", "A", "A.1", "IV.") taken off, then the
+# name without case and without a closing "." or ":" ("REFERENCES", "References:").
+_NUMBER = re.compile(r"\A(?:\d{1,2}|[A-Z]|[IVX]{1,5})(?:\.\d{1,2})*\.?\s+")
+_NAMES = frozenset(name.casefold() for name in REFERENCE_TITLES)
+
+
+def is_reference_title(title: str) -> bool:
+    """True if a section title names a reference list ("7 References", "Bibliography:")."""
+    name = _NUMBER.sub("", " ".join(title.split()), count=1)
+    return name.casefold().rstrip(".:") in _NAMES
+
+
 _KEPT = frozenset({BlockKind.FOOTNOTE, BlockKind.FURNITURE})
 
 
@@ -50,7 +57,7 @@ class ReferenceListStep(TextStep):
         edits = []
         indexes: set[int] = set()
         for section in _sections(document.sections):
-            if _TITLE.match(section.title):
+            if is_reference_title(section.title):
                 indexes.update(range(section.start, section.end))
         for index in sorted(indexes):
             block = document.blocks[index]

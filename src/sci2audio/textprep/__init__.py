@@ -11,7 +11,11 @@ Pipeline stage; may import only ``sci2audio.core``.
 from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
-from sci2audio.textprep.references import REFERENCE_TITLES, ReferenceListStep
+from sci2audio.textprep.references import (
+    REFERENCE_TITLES,
+    ReferenceListStep,
+    is_reference_title,
+)
 from sci2audio.textprep.registry import BUILT_IN_STEPS, check_registry
 from sci2audio.textprep.runner import (
     Outcome,
@@ -71,6 +75,7 @@ __all__ = [
     "Wording",
     "check_registry",
     "cut_utterances",
+    "is_reference_title",
     "overlap",
     "run_steps",
     "spoken_text",

@@ -5,6 +5,8 @@ import pytest
 from hypothesis import given
 from textprep_documents import rule_documents
 
+from sci2audio.app.chapters import REFERENCE_NAMES
+from sci2audio.app.chapters import is_reference_title as app_is_reference_title
 from sci2audio.core import Block, BlockKind, Document, EditKind, Section, Span
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import (
@@ -14,6 +16,7 @@ from sci2audio.textprep import (
     ReferenceListStep,
     StepContext,
     TableFigureNoticeStep,
+    is_reference_title,
     run_steps,
     spoken_text,
     wording_for,
@@ -125,6 +128,35 @@ def test_the_wording_lives_in_one_table_and_british_english_uses_it() -> None:
     assert english.footnote.format("3") == "Footnote 3."
 
 
+@pytest.mark.parametrize(
+    ("printed", "read_as"),
+    [
+        ("FIG. 3", "Figure 3"),  # APS and PRL print the label in capitals
+        ("fig. 3", "Figure 3"),
+        ("TABLE 2", "TABLE 2"),  # a full word is read as printed
+        ("Fig.3", "Figure 3"),  # the short word against its number
+        ("FIGS.3a", "Figures 3a"),
+        ("Eq.(4)", "Equation (4)"),
+        ("Tab.IV", "Table IV"),
+        ("Fig.", "Figure"),
+        ("S.3", "S.3"),  # not a label word: as printed
+        ("Figure 2", "Figure 2"),
+        ("Scheme 1", "Scheme 1"),
+    ],
+)
+def test_a_short_label_word_is_read_in_full_in_any_case_and_spacing(
+    printed: str, read_as: str
+) -> None:
+    assert wording_for("en").label(printed) == read_as
+
+
+def test_a_capital_short_caption_label_reads_its_notice_in_full() -> None:
+    document = make_document([(BlockKind.FIGURE, "x"), caption("FIG. 3", 0, ". Shown.")])
+    assert read(document)[0] == "Figure 3 is skipped."
+    document = make_document([(BlockKind.FIGURE, "x"), caption("Fig.3", 0, ". Shown.")])
+    assert read(document)[0] == "Figure 3 is skipped."
+
+
 def test_notices_are_english_only() -> None:
     german = make_document([(BlockKind.TABLE, "a b")], "de")
     run = run_steps(german, StepContext("de"), strict=True)
@@ -159,7 +191,7 @@ def references(title: str, *, level: int = 1, nested: bool = False) -> Document:
     "title",
     ["References", "REFERENCES", "references", "7 References", "8. Bibliography",
      "8.1 Bibliography", "A References", "IV Bibliography", " References ", "Works Cited",
-     "Literature cited", "9 Reference List"],
+     "Literature cited", "9 Reference List", "References:", "A.1 References"],
 )  # fmt: skip
 def test_a_reference_section_is_not_read_but_notes_and_what_follows_are(title: str) -> None:
     document = references(title)
@@ -207,6 +239,27 @@ def test_the_switch_keeps_the_reference_list() -> None:
         "Works cited",
         "Literature cited",
     )
+
+
+TITLES = [
+    "References", "REFERENCES", "References:", "References.", "7 References", "7. References",
+    "8.1 Bibliography", "A References", "A.1 References", "IV Bibliography", "IV. Bibliography",
+    " References ", "Works Cited", "Works  cited", "Reference list", "Literature cited:",
+    "100 References", "Further references", "References and notes", "The References",
+    "Results", "Notes", "Literature", "", "7", "References 2", "a References",
+    "VI.2 Bibliography",
+]  # fmt: skip
+
+
+def test_the_names_are_the_apps_chapter_names() -> None:
+    """One source: the app's English chapter names are the step's own tuple (D-132, D-146)."""
+    assert REFERENCE_NAMES["en"] is REFERENCE_TITLES
+
+
+@pytest.mark.parametrize("title", TITLES)
+def test_the_step_and_the_chapter_choice_agree_on_every_title(title: str) -> None:
+    """The same titles, matched the same way (number, case, a closing "." or ":")."""
+    assert is_reference_title(title) == app_is_reference_title(title)
 
 
 # ---- properties ------------------------------------------------------------------------------

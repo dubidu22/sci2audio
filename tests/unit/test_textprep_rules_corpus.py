@@ -16,10 +16,10 @@ from pathlib import Path
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from sci2audio.core import BlockKind, Document, EditKind
+from sci2audio.core import BlockKind, Document, EditKind, Section
 from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
-from sci2audio.textprep import REFERENCE_TITLES, StepContext, StepRun, run_steps, spoken_text
+from sci2audio.textprep import StepContext, StepRun, is_reference_title, run_steps, spoken_text
 
 pytestmark = pytest.mark.timeout(120)
 
@@ -76,13 +76,17 @@ def test_no_placeholder_text_is_read_and_each_notice_names_the_truth_item(paper:
     assert names == expected
 
 
+def all_sections(sections: tuple[Section, ...]) -> list[Section]:
+    return [s for section in sections for s in (section, *all_sections(section.children))]
+
+
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_no_reference_list_is_read(paper: Path) -> None:
     doc, said = document(paper), spoken(paper)
-    sections = [s for s in doc.sections if s.title.strip() in REFERENCE_TITLES]
+    sections = [s for s in all_sections(doc.sections) if is_reference_title(s.title)]
     headings = [h["text"] for h in truth(paper)["headings"]]
     # every paper that prints a reference-list heading has its section found
-    assert len(sections) == sum(h in REFERENCE_TITLES for h in headings)
+    assert len(sections) == sum(is_reference_title(h) for h in headings)
     for section in sections:
         for index in range(section.start, section.end):
             if doc.blocks[index].kind is not BlockKind.FOOTNOTE:

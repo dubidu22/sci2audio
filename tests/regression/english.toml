@@ -191,6 +191,19 @@ blocks = [
 expected = ["Figure 3 is skipped.", "Fig. 3. Response over time."]
 
 [[case]]
+id = "figure-label-in-capitals"
+audit = 0
+issue = 64
+goal = "A short label printed in capitals or against its number ('FIG. 3', 'Fig.4') names the figure in full (Q3, D-145)."
+blocks = [
+    { kind = "figure", text = "0 10 20" },
+    { kind = "caption", text = "FIG. 3. Response over time.", label = "FIG. 3", describes = 0 },
+    { kind = "figure", text = "0 5" },
+    { kind = "caption", text = "Fig.4 Response at rest.", label = "Fig.4", describes = 2 },
+]
+expected = ["Figure 3 is skipped.", "FIG. 3. Response over time.", "Figure 4 is skipped.", "Fig.4 Response at rest."]
+
+[[case]]
 id = "figure-with-two-captions"
 audit = 0
 issue = 64
@@ -251,6 +264,17 @@ issue = 64
 goal = "A note printed without a mark is still introduced (D-144)."
 blocks = [{ kind = "footnote", text = "The checklist is adopted from an earlier one." }]
 expected = ["Footnote. The checklist is adopted from an earlier one."]
+
+[[case]]
+id = "footnote-numbered-with-a-point"
+audit = 0
+issue = 64
+goal = "A note printed '1. Text' or '2) Text' reads 'Footnote 1. Text': the point or parenthesis after the mark is not read (D-144)."
+blocks = [
+    { kind = "footnote", text = "1. Measured twice.", label = "1" },
+    { kind = "footnote", text = "2) Measured once.", label = "2" },
+]
+expected = ["Footnote 1. Measured twice.", "Footnote 2. Measured once."]
 
 [[case]]
 id = "maths-exponent-is-not-a-mark"

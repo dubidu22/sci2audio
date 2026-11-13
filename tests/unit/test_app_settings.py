@@ -9,13 +9,13 @@ import pytest
 from sci2audio.app import JobSettings, default_config_file, load_settings, save_settings
 from sci2audio.app import config as config_module
 from sci2audio.app.files import partial_path
-from sci2audio.textprep import Category
+from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
 
 
 def test_the_defaults() -> None:
     settings = JobSettings()
     assert settings.language == ""
-    assert settings.switched_off == frozenset()
+    assert settings.switched_off == DEFAULT_SWITCHED_OFF == {Category.FOOTNOTE_TEXTS}  # D-142
     assert settings.chapters is None
     assert (settings.voice, settings.speed, settings.output_folder) == ("", 1.0, None)
 

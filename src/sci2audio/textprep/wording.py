@@ -8,10 +8,13 @@ reads English notices only (D-50, Q10).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 from sci2audio.core import BlockKind
+
+_GLUED = re.compile(r"([^\W\d_]+\.)(\S+)")  # "Fig.3": a short word, then its number
 
 
 @dataclass(frozen=True)
@@ -39,9 +42,16 @@ class Wording:
         return self.skipped_many.format(listed)
 
     def label(self, printed: str) -> str:
-        """A caption label as it is read: its first word in full if it is printed short."""
+        """A caption label as it is read: its first word in full if it is printed short.
+
+        The word is looked up in any case ("FIG. 3" is read "Figure 3"), and a short word
+        printed against its number is split from it ("Fig.3" is read "Figure 3").
+        """
+        words = {short.casefold(): full for short, full in self.label_words.items()}
         word, space, rest = printed.partition(" ")
-        return self.label_words.get(word, word) + space + rest
+        if not space and (glued := _GLUED.match(word)) and glued[1].casefold() in words:
+            word, space, rest = glued[1], " ", glued[2]
+        return words.get(word.casefold(), word) + space + rest
 
 
 ENGLISH = Wording(
