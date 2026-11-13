@@ -126,6 +126,16 @@ def test_objects_are_frozen() -> None:
             (Page(1),),
             outline=(OutlineEntry("Methods", 1, 1), OutlineEntry("Data", 3, 1)),
         ),
+        lambda: Content(  # back up a level, then two deeper
+            PAPER.source,
+            (Page(1),),
+            outline=(
+                OutlineEntry("A", 1, 1),
+                OutlineEntry("A.1", 2, 1),
+                OutlineEntry("B", 1, 1),
+                OutlineEntry("B.1.1", 3, 1),
+            ),
+        ),
         lambda: Content(PAPER.source, (Page(1),), outline=(OutlineEntry("Methods", 1, 0),)),
         lambda: Content(PAPER.source, (Page(1),), outline=(OutlineEntry("Methods", 1, 2),)),
         lambda: Content(PAPER.source, (), outline=(OutlineEntry("Methods", 1, 1),)),

@@ -82,7 +82,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv sync --locked
       - name: Fast tests (unit, property-based, golden files)
-        run: uv run pytest -m "not slow and not benchmark" -n auto
+        run: uv run pytest -m "not slow and not benchmark and not browser" -n auto
         env:
           HYPOTHESIS_PROFILE: ci
       # PE-02 (D-224): the installed command on one corpus PDF, as a person runs it.
@@ -95,11 +95,30 @@ jobs:
             test -s "$RUNNER_TEMP/smoke/joss2021-waskom-seaborn.$suffix"
           done
 
+  # The interface in a real browser (#77, #8, D-259): main flow, keyboard-only path and
+  # axe-core. Chromium on Linux on every PR; Firefox and WebKit run nightly.
+  browser:
+    name: browser (Linux, Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      # A CI download of the test browser; the tests themselves never use the network.
+      - name: Install Chromium for Playwright
+        run: uv run playwright install --with-deps chromium
+      - name: Browser tests (main flow, keyboard, axe-core)
+        run: uv run pytest -m browser --browser chromium -rA
+        env:
+          HYPOTHESIS_PROFILE: ci
+
   # The only check required by the ruleset on main. Its name must not change.
   ci-passed:
     name: CI passed
     if: always()
-    needs: [lint, licences, security, tests]
+    needs: [lint, licences, security, tests, browser]
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any required job did not succeed

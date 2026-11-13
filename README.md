@@ -62,7 +62,8 @@ You need [uv](https://docs.astral.sh/uv/) and Python 3.12.
 
 ```bash
 uv sync                       # install the project and development tools
-uv run pytest -m "not slow and not benchmark"   # fast tests
+uv run pytest -m "not slow and not benchmark and not browser"   # fast tests
+uv run pytest -m browser       # the interface in a browser (after `uv run playwright install chromium`)
 uv run ruff check             # lint
 uv run lint-imports           # layer rules
 uv run pre-commit install     # run checks before every commit
