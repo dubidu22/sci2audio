@@ -41,6 +41,14 @@ from sci2audio.core import (
 _PDFIUM = threading.Lock()
 
 LINE_GAP = 1.0  # a gap this many em wide ends a line, so columns and table cells stay apart
+# A space PDFium adds itself (the file has none there) is kept only where white of a space
+# stands: never between letters that touch, and between two baselines (a sub- or superscript
+# and its neighbour) only from SPACE em on. TeX leaves 0.05 em after a script and 0.12 em at a
+# fraction; a thin space is 0.17 em (#36, D-274 to D-276). Layout joins the pieces of a line
+# by the same measure (LayoutSettings.word_space).
+SPACE = 0.15  # em of the larger letter: the narrowest white that is a space between baselines
+SHIFT = 0.1  # em of the smaller letter: baselines further apart than this are two baselines
+STACK = 2.0  # em: a script stacked under another starts at most this far back under it
 SAME_LINE = 0.3  # a character overlapping the line by this share of its height continues it
 BOLD_WEIGHT = 600  # a font weight from this value on is bold
 _ITALIC_FLAG = 1 << 6  # PDF font descriptor flag "Italic"
@@ -196,6 +204,11 @@ class _Char:
     u1: float
     v0: float  # extent across the line
     v1: float
+    base: float = math.nan  # where the baseline stands across the line (nan if unknown)
+
+
+# what stands between two characters: a space the file holds, or one PDFium added itself
+_SPACE, _GENERATED = "space", "generated"
 
 
 @dataclass
@@ -204,6 +217,9 @@ class _Line:
     spaces: set[int] = field(default_factory=set)  # a space goes before chars[i]
     top: float = math.inf  # extent across the line so far
     bottom: float = -math.inf
+    # where the letters of the line before end, when this line starts back under them as a
+    # script stacked under another ("0" under "1st" in J with 1st over 0)
+    before: float = -math.inf
 
     def accepts(self, char: _Char) -> bool:
         last = self.chars[-1]
@@ -215,39 +231,73 @@ class _Line:
         overlap = min(self.bottom, char.v1) - max(self.top, char.v0)
         return overlap >= SAME_LINE * min(self.bottom - self.top, char.v1 - char.v0)
 
-    def add(self, char: _Char, space: bool) -> None:
-        if space and self.chars:
+    def add(self, char: _Char, space: str | None) -> None:
+        """Add the character; `space` is what stood before it in the file, if anything."""
+        if self.chars and (space == _SPACE or (space == _GENERATED and self._white(char))):
             self.spaces.add(len(self.chars))
         self.chars.append(char)
         self.top, self.bottom = min(self.top, char.v0), max(self.bottom, char.v1)
 
+    def _white(self, char: _Char) -> bool:
+        """True if white as wide as a space stands before the char (for a space PDFium
+        added): the letters don't touch, and across a change of baseline the white from
+        where the letters so far end is at least `SPACE` em."""
+        last = self.chars[-1]
+        small = min(last.style[1], char.style[1]) or 1.0
+        shifted = abs(char.base - last.base) > SHIFT * small
+        if char.u0 - last.u1 <= 0:
+            # letters that touch get no space, except a digit under a digit (a fraction 1/2
+            # set as 1 over 2), which would read as one number, "12" (review M2 of #128)
+            return shifted and last.text.isdigit() and char.text.isdigit()
+        if not shifted:
+            return True
+        reach = max(last.u1, self.before)
+        return char.u0 - reach >= SPACE * max(last.style[1], char.style[1], 1.0)
+
+    def stacks(self, char: _Char) -> bool:
+        """True if the char starts back under the end of this line's letters and beside
+        them, as a subscript stored after the superscript above it: at most `STACK` em back,
+        and after the line's first letter, so the next printed line of a paragraph, whose
+        loose boxes may overlap this one's, is no script (review M1 of #128)."""
+        reach = max(c.u1 for c in self.chars)
+        size = max(self.chars[-1].style[1], char.style[1], 1.0)
+        overlap = min(self.bottom, char.v1) - max(self.top, char.v0)
+        back = reach - char.u0
+        return self.chars[0].u0 < char.u0 and 0 < back <= STACK * size and overlap > 0
+
 
 def _lines(textpage: pdfium.PdfTextPage, height: float, number: int) -> tuple[TextLine, ...]:
     lines: list[_Line] = []
-    space = False
+    space: str | None = None
     for char in _chars(textpage, height):
-        if char is None:
-            space = True
+        if isinstance(char, str):
+            space = _SPACE if _SPACE in (space, char) else char
             continue
         if not (lines and lines[-1].accepts(char)):
-            lines.append(_Line())
+            line = _Line()
+            if lines and lines[-1].stacks(char):
+                line.before = max(c.u1 for c in lines[-1].chars)
+            lines.append(line)
         lines[-1].add(char, space)
-        space = False
+        space = None
     return tuple(_text_line(line, f"p{number}-l{i}") for i, line in enumerate(lines, 1))
 
 
-def _chars(textpage: pdfium.PdfTextPage, height: float) -> Iterator[_Char | None]:
-    """Each character in stored order; None for a space or a line end between words."""
+def _chars(textpage: pdfium.PdfTextPage, height: float) -> Iterator[_Char | str]:
+    """Each character in stored order; `_SPACE` for a space or a line end between words
+    that the file holds, `_GENERATED` for one PDFium added itself."""
     handle = textpage.raw
     name = ctypes.create_string_buffer(256)
     flags = ctypes.c_int()
     rect = raw.FS_RECTF()
     matrix = raw.FS_MATRIX()
+    origin_x, origin_y = ctypes.c_double(), ctypes.c_double()
     for i in range(textpage.count_chars()):
         hyphen = raw.FPDFText_IsHyphen(handle, i) == 1
         text = _char_text(raw.FPDFText_GetUnicode(handle, i), hyphen)
-        if text is None or raw.FPDFText_IsGenerated(handle, i) == 1:
-            yield None
+        generated = raw.FPDFText_IsGenerated(handle, i) == 1
+        if text is None or generated:
+            yield _GENERATED if generated else _SPACE
             continue
         if not raw.FPDFText_GetLooseCharBox(handle, i, rect):
             continue
@@ -270,7 +320,12 @@ def _chars(textpage: pdfium.PdfTextPage, height: float) -> Iterator[_Char | None
         angle = raw.FPDFText_GetCharAngle(handle, i)
         angle = angle if math.isfinite(angle) and angle >= 0 else 0.0
         u0, v0, u1, v1 = _in_text_direction((x0, y0, x1, y1), angle)
-        yield _Char(text, (font, size, bold, italic), (x0, y0, x1, y1), angle, u0, u1, v0, v1)
+        base = math.nan
+        if raw.FPDFText_GetCharOrigin(handle, i, ctypes.byref(origin_x), ctypes.byref(origin_y)):
+            origin = (origin_x.value, height - origin_y.value)
+            base = _in_text_direction((*origin, *origin), angle)[1]
+        style = (font, size, bold, italic)
+        yield _Char(text, style, (x0, y0, x1, y1), angle, u0, u1, v0, v1, base)
 
 
 def _char_text(code: int, hyphen: bool) -> str | None:

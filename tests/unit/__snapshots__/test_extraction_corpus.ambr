@@ -1192,7 +1192,7 @@
   p11-l45  [71 665 291 678]  {NimbusRomNo9L-Regu 10.9}training corpus and all data pre-processing scripts,
   p11-l46  [71 679 290 692]  {NimbusRomNo9L-Regu 10.9}including the pre-training corpus crawling scripts,
   p11-l47  [71 692 227 705]  {NimbusRomNo9L-Regu 10.9}to assist future research in this area.
-  p11-l48  [84 762 280 773]  {NimbusRomNo9L-Regu 6}5{Inconsolatazi4-Regular 9} https://github.com/huggingface/transformers
+  p11-l48  [84 762 280 773]  {NimbusRomNo9L-Regu 6}5{Inconsolatazi4-Regular 9}https://github.com/huggingface/transformers
   p11-l49  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}362
   == page 12  595 x 842  lines 81  pictures 0  drawings 6
   p12-l1  [217 268 263 282]  {NimbusRomNo9L-Medi 10.9 b}PP-BERT
@@ -2003,10 +2003,10 @@
   p1-l15  [88 254 274 263]  {NimbusRomNo9L-Regu 10}timal with respect to the size of the grammar.
   p1-l16  [88 266 274 275]  {NimbusRomNo9L-Regu 10}This paper proposes a novel speed-up of Je-
   p1-l17  [88 278 272 287]  {NimbusRomNo9L-Regu 10}linek and Lafferty’s (1991) algorithm, whose
-  p1-l18  [88 288 272 299]  {NimbusRomNo9L-Regu 10}original runtime is{CMSY10 10 i} O{CMR10 10}({CMMI10 10 i}N{CMR7 7}3{CMSY10 10 i} |N |{CMR7 7}3{CMR10 10} +{CMSY10 10 i} |N |{CMR7 7}4{CMR10 10} ){NimbusRomNo9L-Regu 10}, where
-  p1-l19  [88 301 273 311]  {CMMI10 10 i}N{NimbusRomNo9L-Regu 10} is the input length and{CMSY10 10 i} |N |{NimbusRomNo9L-Regu 10} is the number of
+  p1-l18  [88 288 272 299]  {NimbusRomNo9L-Regu 10}original runtime is{CMSY10 10 i} O{CMR10 10}({CMMI10 10 i}N{CMR7 7}3{CMSY10 10 i}|N|{CMR7 7}3{CMR10 10} +{CMSY10 10 i} |N|{CMR7 7}4{CMR10 10}){NimbusRomNo9L-Regu 10}, where
+  p1-l19  [88 301 273 311]  {CMMI10 10 i}N{NimbusRomNo9L-Regu 10} is the input length and{CMSY10 10 i} |N|{NimbusRomNo9L-Regu 10} is the number of
   p1-l20  [88 314 272 323]  {NimbusRomNo9L-Regu 10}non-terminals in the grammar. In contrast, our
-  p1-l21  [88 324 253 335]  {NimbusRomNo9L-Regu 10}speed-up runs in{CMSY10 10 i} O{CMR10 10}({CMMI10 10 i}N{CMR7 7}2{CMSY10 10 i} |N |{CMR7 7}3{CMR10 10} +{CMMI10 10 i} N{CMR7 7}3{CMSY10 10 i} |N |{CMR7 7}2{CMR10 10} ){NimbusRomNo9L-Regu 10}.
+  p1-l21  [88 324 253 335]  {NimbusRomNo9L-Regu 10}speed-up runs in{CMSY10 10 i} O{CMR10 10}({CMMI10 10 i}N{CMR7 7}2{CMSY10 10 i}|N|{CMR7 7}3{CMR10 10} +{CMMI10 10 i} N{CMR7 7}3{CMSY10 10 i}|N|{CMR7 7}2{CMR10 10}){NimbusRomNo9L-Regu 10}.
   p1-l22  [110 346 245 354]  {Inconsolatazi4-Regular 10}https://github.com/rycolab/
   p1-l23  [110 358 181 366]  {Inconsolatazi4-Regular 10}prefix-parsing
   p1-l24  [71 377 154 388]  {NimbusRomNo9L-Medi 12 b}1 Introduction
@@ -2021,7 +2021,7 @@
   p1-l33  [71 508 291 518]  {NimbusRomNo9L-Regu 10.9}one needs to be able to compute prefix probabilities,
   p1-l34  [71 521 289 531]  {NimbusRomNo9L-Regu 10.9}i.e., the probability that the yield of a derivation
   p1-l35  [71 535 289 545]  {NimbusRomNo9L-Regu 10.9}starts with the given string. In notation, given a
-  p1-l36  [71 548 290 559]  {NimbusRomNo9L-Regu 10.9}string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9} , we seek the probability
+  p1-l36  [71 548 290 559]  {NimbusRomNo9L-Regu 10.9}string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9}, we seek the probability
   p1-l37  [71 557 289 572]  {CMMI10 10.9 i}p{CMR10 10.9}(S{CMSY8 8 i} ∗{CMSY10 10.9 i}⇒{CMMIB10 10.9 i} w{CMSY10 10.9 i} · · ·{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} where{CMR10 10.9} S{NimbusRomNo9L-Regu 10.9} is the distinguished start
   p1-l38  [71 572 289 586]  {NimbusRomNo9L-Regu 10.9}symbol of the grammar and{CMSY8 8 i} ∗{CMSY10 10.9 i}⇒{NimbusRomNo9L-Regu 10.9} is the closure over
   p1-l39  [71 588 289 600]  {NimbusRomNo9L-Regu 10.9}applications of derivation rules of the grammar.{NimbusRomNo9L-Regu 8}1
@@ -2031,7 +2031,7 @@
   p1-l43  [82 644 289 654]  {NimbusRomNo9L-Regu 10.9}The authors are aware of two existing efficient
   p1-l44  [71 658 289 668]  {NimbusRomNo9L-Regu 10.9}algorithms to compute prefix probabilities under
   p1-l45  [71 670 290 681]  {NimbusRomNo9L-Regu 10.9}a PCFG.{NimbusRomNo9L-Regu 8}2{NimbusRomNo9L-Regu 10.9} The first is Jelinek and Lafferty’s (1991)
-  p1-l46  [84 690 289 702]  {NimbusRomNo9L-Regu 6}1{NimbusRomNo9L-Regu 9} Specifically,{CMMIB9 9 b i} α{CMSY6 6 i} ∗{CMSY9 9 i}⇒{CMMIB9 9 b i} β{NimbusRomNo9L-Regu 9} means that there exists an{CMMI9 9 i} n{CMSY9 9 i} ≥{CMR9 9} 0
+  p1-l46  [84 690 289 702]  {NimbusRomNo9L-Regu 6}1{NimbusRomNo9L-Regu 9}Specifically,{CMMIB9 9 b i} α{CMSY6 6 i} ∗{CMSY9 9 i}⇒{CMMIB9 9 b i} β{NimbusRomNo9L-Regu 9} means that there exists an{CMMI9 9 i} n{CMSY9 9 i} ≥{CMR9 9} 0
   p1-l47  [71 703 148 712]  {NimbusRomNo9L-Regu 9}such that{CMMIB9 9 b i} α{CMSY9 9 i} ⇒ · · · ⇒
   p1-l48  [114 711 148 719]  {CMEX9 9}| {z }
   p1-l49  [121 718 140 724]  {CMMI6 6 i}n{NimbusRomNo9L-Regu 6} times
@@ -2045,26 +2045,26 @@
   p1-l57  [305 173 525 183]  {NimbusRomNo9L-Regu 10.9}1965; Younger, 1967; Cocke and Schwartz, 1970)
   p1-l58  [306 187 525 196]  {NimbusRomNo9L-Regu 10.9}and, thus, requires the grammar to be in Chomsky
   p1-l59  [306 200 524 210]  {NimbusRomNo9L-Regu 10.9}normal form (CNF). Jelinek–Lafferty runs in
-  p1-l60  [306 212 524 224]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} |N |{CMR8 8}4{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9} time, where{CMMI10 10.9 i} N{NimbusRomNo9L-Regu 10.9} is the length
+  p1-l60  [306 212 524 224]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} |N|{CMR8 8}4{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} time, where{CMMI10 10.9 i} N{NimbusRomNo9L-Regu 10.9} is the length
   p1-l61  [306 226 524 237]  {NimbusRomNo9L-Regu 10.9}of the input and{CMSY10 10.9 i} N{NimbusRomNo9L-Regu 10.9} is the number of non-terminals
-  p1-l62  [306 239 526 251]  {NimbusRomNo9L-Regu 10.9}of the grammar, slower than the{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} )
+  p1-l62  [306 239 526 251]  {NimbusRomNo9L-Regu 10.9}of the grammar, slower than the{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9})
   p1-l63  [306 254 525 264]  {NimbusRomNo9L-Regu 10.9}required for parsing with CKY, when the number
-  p1-l64  [306 267 493 278]  {NimbusRomNo9L-Regu 10.9}of non-terminals{CMSY10 10.9 i} |N |{NimbusRomNo9L-Regu 10.9} is taken into account.
+  p1-l64  [306 267 493 278]  {NimbusRomNo9L-Regu 10.9}of non-terminals{CMSY10 10.9 i} |N|{NimbusRomNo9L-Regu 10.9} is taken into account.
   p1-l65  [317 282 524 292]  {NimbusRomNo9L-Regu 10.9}The second, due to Stolcke (1995), is derived
   p1-l66  [306 295 524 305]  {NimbusRomNo9L-Regu 10.9}from Earley parsing (Earley, 1970) and can parse
-  p1-l67  [306 307 526 319]  {NimbusRomNo9L-Regu 10.9}arbitrary PCFGs,{NimbusRomNo9L-Regu 8}3{NimbusRomNo9L-Regu 10.9} with a runtime of{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}.
+  p1-l67  [306 307 526 319]  {NimbusRomNo9L-Regu 10.9}arbitrary PCFGs,{NimbusRomNo9L-Regu 8}3{NimbusRomNo9L-Regu 10.9} with a runtime of{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}.
   p1-l68  [306 322 524 332]  {NimbusRomNo9L-Regu 10.9}Many previous authors have improved the runtime
   p1-l69  [306 336 524 346]  {NimbusRomNo9L-Regu 10.9}of Earley’s (Graham et al., 1980; Leermakers
   p1-l70  [306 350 524 359]  {NimbusRomNo9L-Regu 10.9}et al., 1992; Moore, 2000,{NimbusRomNo9L-ReguItal 10.9 i} inter alia{NimbusRomNo9L-Regu 10.9}), and Opedal
   p1-l71  [306 363 524 373]  {NimbusRomNo9L-Regu 10.9}et al. (2023) successfully applied this speed-up
   p1-l72  [306 377 524 386]  {NimbusRomNo9L-Regu 10.9}to computing prefix probabilities, achieving a
-  p1-l73  [306 388 525 400]  {NimbusRomNo9L-Regu 10.9}runtime of{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |G|{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, where{CMSY10 10.9 i} |G|{NimbusRomNo9L-Regu 10.9} is the size of
+  p1-l73  [306 388 525 400]  {NimbusRomNo9L-Regu 10.9}runtime of{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|G|{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, where{CMSY10 10.9 i} |G|{NimbusRomNo9L-Regu 10.9} is the size of
   p1-l74  [306 404 525 414]  {NimbusRomNo9L-Regu 10.9}the grammar, that is, the sum of the number of
   p1-l75  [306 417 444 427]  {NimbusRomNo9L-Regu 10.9}symbols in all production rules.
   p1-l76  [317 431 525 441]  {NimbusRomNo9L-Regu 10.9}Our paper provides a more efficient version of
   p1-l77  [306 445 525 455]  {NimbusRomNo9L-Regu 10.9}Jelinek and Lafferty (1991) for the computation of
   p1-l78  [306 458 526 468]  {NimbusRomNo9L-Regu 10.9}prefix probabilities under a PCFG in CNF. Specif-
-  p1-l79  [306 470 526 482]  {NimbusRomNo9L-Regu 10.9}ically, we give an{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9} time al-
+  p1-l79  [306 470 526 482]  {NimbusRomNo9L-Regu 10.9}ically, we give an{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} time al-
   p1-l80  [306 485 526 495]  {NimbusRomNo9L-Regu 10.9}gorithm, which is the fastest attested in the liter-
   p1-l81  [306 497 524 509]  {NimbusRomNo9L-Regu 10.9}ature for dense grammars in CNF,{NimbusRomNo9L-Regu 8}4{NimbusRomNo9L-Regu 10.9} matching the
   p1-l82  [306 513 524 522]  {NimbusRomNo9L-Regu 10.9}complexity of CKY adapted for dense grammars
@@ -2079,7 +2079,7 @@
   p1-l91  [319 662 524 672]  {NimbusRomNo9L-Regu 6}3{NimbusRomNo9L-Regu 9}Note that Earley’s and, by extension, Stolcke’s algorithms
   p1-l92  [306 673 524 682]  {NimbusRomNo9L-Regu 9}also implicitly binarize the grammar during execution by using
   p1-l93  [306 683 450 691]  {NimbusRomNo9L-Regu 9}dotted rules as additional non-terminals.
-  p1-l94  [319 693 524 702]  {NimbusRomNo9L-Regu 6}4{NimbusRomNo9L-Regu 9}A PCFG in CNF is dense if for every{CMR9 9} X{CMMI9 9 i},{CMR9 9} Y{CMMI9 9 i},{CMR9 9} Z{CMSY9 9 i} ∈ N{NimbusRomNo9L-Regu 9} , we
+  p1-l94  [319 693 524 702]  {NimbusRomNo9L-Regu 6}4{NimbusRomNo9L-Regu 9}A PCFG in CNF is dense if for every{CMR9 9} X{CMMI9 9 i},{CMR9 9} Y{CMMI9 9 i},{CMR9 9} Z{CMSY9 9 i} ∈ N{NimbusRomNo9L-Regu 9}, we
   p1-l95  [306 704 445 712]  {NimbusRomNo9L-Regu 9}have a production rule{CMR9 9} X{CMSY9 9 i} →{CMR9 9} Y Z{CMSY9 9 i} ∈ R{NimbusRomNo9L-Regu 9}.
   p1-l96  [319 713 524 723]  {NimbusRomNo9L-Regu 6}5{NimbusRomNo9L-Regu 9}Note that there exist approximate parsing algorithms with
   p1-l97  [306 725 526 733]  {NimbusRomNo9L-Regu 9}lower complexity bounds (Cohen et al., 2013). Moreover,
@@ -2092,14 +2092,14 @@
   p1-i2  [88 346 100 358]  picture
   == page 2  595 x 842  lines 119  pictures 0  drawings 1
   p2-l1  [71 74 291 84]  {NimbusRomNo9L-Medi 10.9 b}Definition 1.{NimbusRomNo9L-ReguItal 10.9 i} A{NimbusRomNo9L-MediItal 10.9 b i} probabilistic context-free gram-
-  p2-l2  [71 87 291 98]  {NimbusRomNo9L-MediItal 10.9 b i}mar{NimbusRomNo9L-ReguItal 10.9 i} (PCFG) is a five-tuple{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i} ,{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i},
+  p2-l2  [71 87 291 98]  {NimbusRomNo9L-MediItal 10.9 b i}mar{NimbusRomNo9L-ReguItal 10.9 i} (PCFG) is a five-tuple{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i},{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i},
   p2-l3  [71 101 123 111]  {NimbusRomNo9L-ReguItal 10.9 i}made up of:
-  p2-l4  [84 122 264 133]  {NimbusRomNo9L-Regu 10.9}•{NimbusRomNo9L-ReguItal 10.9 i} A finite set of non-terminal symbols{CMSY10 10.9 i} N{NimbusRomNo9L-ReguItal 10.9 i} ;
-  p2-l5  [84 140 291 151]  {NimbusRomNo9L-Regu 10.9}•{NimbusRomNo9L-ReguItal 10.9 i} A finite set of terminal symbols{CMR10 10.9} Σ{NimbusRomNo9L-ReguItal 10.9 i},{CMR10 10.9} Σ{CMSY10 10.9 i} ∩ N{CMR10 10.9} ={CMSY10 10.9 i}∅{NimbusRomNo9L-ReguItal 10.9 i};
-  p2-l6  [84 158 252 169]  {NimbusRomNo9L-Regu 10.9}•{NimbusRomNo9L-ReguItal 10.9 i} A distinguished start symbol{CMR10 10.9} S{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i} ;
+  p2-l4  [84 122 264 133]  {NimbusRomNo9L-Regu 10.9}•{NimbusRomNo9L-ReguItal 10.9 i} A finite set of non-terminal symbols{CMSY10 10.9 i} N{NimbusRomNo9L-ReguItal 10.9 i};
+  p2-l5  [84 140 291 151]  {NimbusRomNo9L-Regu 10.9}•{NimbusRomNo9L-ReguItal 10.9 i} A finite set of terminal symbols{CMR10 10.9} Σ{NimbusRomNo9L-ReguItal 10.9 i},{CMR10 10.9} Σ{CMSY10 10.9 i} ∩ N{CMR10 10.9}={CMSY10 10.9 i}∅{NimbusRomNo9L-ReguItal 10.9 i};
+  p2-l6  [84 158 252 169]  {NimbusRomNo9L-Regu 10.9}•{NimbusRomNo9L-ReguItal 10.9 i} A distinguished start symbol{CMR10 10.9} S{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i};
   p2-l7  [84 176 289 187]  {NimbusRomNo9L-Regu 10.9}•{NimbusRomNo9L-ReguItal 10.9 i} A finite set of production rules{CMSY10 10.9 i} R ⊂ N ×
   p2-l8  [91 187 289 200]  {CMR10 10.9}({CMSY10 10.9 i}N ∪{CMR10 10.9} Σ){CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i} where each rule is written as{CMR10 10.9} X{CMSY10 10.9 i} −→
-  p2-l9  [93 200 289 214]  {CMMIB10 10.9 i}α{NimbusRomNo9L-ReguItal 10.9 i} with{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i} and{CMMIB10 10.9 i} α{CMSY10 10.9 i} ∈{CMR10 10.9} ({CMSY10 10.9 i}N ∪{CMR10 10.9} Σ){CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i} . Here,{CMSY8 8 i} ∗
+  p2-l9  [93 200 289 214]  {CMMIB10 10.9 i}α{NimbusRomNo9L-ReguItal 10.9 i} with{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i} and{CMMIB10 10.9 i} α{CMSY10 10.9 i} ∈{CMR10 10.9} ({CMSY10 10.9 i}N ∪{CMR10 10.9} Σ){CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i}. Here,{CMSY8 8 i} ∗
   p2-l10  [93 217 213 227]  {NimbusRomNo9L-ReguItal 10.9 i}denotes the Kleene closure;
   p2-l11  [84 235 289 245]  {NimbusRomNo9L-Regu 10.9}•{NimbusRomNo9L-ReguItal 10.9 i} A weighting function{CMMI10 10.9 i} p{CMR10 10.9}:{CMSY10 10.9 i} R →{CMR10 10.9} [0{CMMI10 10.9 i},{CMR10 10.9} 1]{NimbusRomNo9L-ReguItal 10.9 i} assigning
   p2-l12  [93 248 289 259]  {NimbusRomNo9L-ReguItal 10.9 i}each rule{CMMI10 10.9 i} r{CMSY10 10.9 i} ∈ R{NimbusRomNo9L-ReguItal 10.9 i} a probability such that{CMMI10 10.9 i} p
@@ -2110,14 +2110,14 @@
   p2-l17  [116 299 152 309]  {CMR8 8}X{CMSY10 10.9 i}−→{CMMIB8 8 b i}α{CMSY8 8 i}∈R
   p2-l18  [154 289 224 300]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMSY10 10.9 i} −→{CMMIB10 10.9 i} α{CMR10 10.9}) = 1{NimbusRomNo9L-ReguItal 10.9 i}.
   p2-l19  [82 318 289 327]  {NimbusRomNo9L-Regu 10.9}Note that not every locally normalized PCFG
-  p2-l20  [71 329 291 341]  {NimbusRomNo9L-Regu 10.9}constitutes a valid distribution over{CMR10 10.9} Σ{CMSY8 8 i} ∗{NimbusRomNo9L-Regu 10.9} . Specifi-
+  p2-l20  [71 329 291 341]  {NimbusRomNo9L-Regu 10.9}constitutes a valid distribution over{CMR10 10.9} Σ{CMSY8 8 i}∗{NimbusRomNo9L-Regu 10.9}. Specifi-
   p2-l21  [71 345 289 355]  {NimbusRomNo9L-Regu 10.9}cally, some may place probability mass on infinite
   p2-l22  [71 358 291 368]  {NimbusRomNo9L-Regu 10.9}trees (Chi and Geman, 1998). PCFGs that{NimbusRomNo9L-ReguItal 10.9 i} do{NimbusRomNo9L-Regu 10.9} con-
-  p2-l23  [71 369 289 382]  {NimbusRomNo9L-Regu 10.9}stitute a valid distribution over{CMR10 10.9} Σ{CMSY8 8 i} ∗{NimbusRomNo9L-Regu 10.9} are referred to as
+  p2-l23  [71 369 289 382]  {NimbusRomNo9L-Regu 10.9}stitute a valid distribution over{CMR10 10.9} Σ{CMSY8 8 i}∗{NimbusRomNo9L-Regu 10.9} are referred to as
   p2-l24  [71 385 291 395]  {NimbusRomNo9L-Medi 10.9 b}tight{NimbusRomNo9L-Regu 10.9}. Furthermore, if all non-terminals of the gram-
   p2-l25  [71 399 289 409]  {NimbusRomNo9L-Regu 10.9}mar can be reached from the start non-terminal via
   p2-l26  [71 412 260 422]  {NimbusRomNo9L-Regu 10.9}production rules, we say the PCFG is{NimbusRomNo9L-Medi 10.9 b} trim{NimbusRomNo9L-Regu 10.9}.
-  p2-l27  [71 429 289 440]  {NimbusRomNo9L-Medi 10.9 b}Definition 2.{NimbusRomNo9L-ReguItal 10.9 i} A PCFG{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i} ,{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i} is in
+  p2-l27  [71 429 289 440]  {NimbusRomNo9L-Medi 10.9 b}Definition 2.{NimbusRomNo9L-ReguItal 10.9 i} A PCFG{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i},{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i} is in
   p2-l28  [71 443 289 453]  {NimbusRomNo9L-MediItal 10.9 b i}Chomsky normal form{NimbusRomNo9L-ReguItal 10.9 i} (CNF) if each production
   p2-l29  [71 456 254 466]  {NimbusRomNo9L-ReguItal 10.9 i}rule in{CMSY10 10.9 i} R{NimbusRomNo9L-ReguItal 10.9 i} is in one of the following forms:
   p2-l30  [159 480 201 490]  {CMR10 10.9}X{CMSY10 10.9 i} −→{CMR10 10.9} Y Z
@@ -2130,7 +2130,7 @@
   p2-l37  [71 548 185 560]  {NimbusRomNo9L-ReguItal 10.9 i}and{CMMI10 10.9 i} ε{NimbusRomNo9L-ReguItal 10.9 i} is the empty string.{NimbusRomNo9L-Regu 8}6
   p2-l38  [71 567 291 577]  {NimbusRomNo9L-Medi 10.9 b}Definition 3.{NimbusRomNo9L-ReguItal 10.9 i} A{NimbusRomNo9L-MediItal 10.9 b i} derivation step{CMMIB10 10.9 i} α{CMSY10 10.9 i} ⇒{CMMIB10 10.9 i} β{NimbusRomNo9L-ReguItal 10.9 i} is an appli-
   p2-l39  [71 579 289 591]  {NimbusRomNo9L-ReguItal 10.9 i}cation of the binary relation{CMSY10 10.9 i} ⇒{CMR10 10.9}: ({CMSY10 10.9 i}N ∪{CMR10 10.9} Σ){CMSY8 8 i}∗{CMSY10 10.9 i} ×{CMR10 10.9} ({CMSY10 10.9 i}N ∪
-  p2-l40  [70 592 289 605]  {CMR10 10.9}Σ){CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i} , which rewrites the left-most non-terminal in{CMMIB10 10.9 i} α
+  p2-l40  [70 592 289 605]  {CMR10 10.9}Σ){CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i}, which rewrites the left-most non-terminal in{CMMIB10 10.9 i} α
   p2-l41  [71 608 291 618]  {NimbusRomNo9L-ReguItal 10.9 i}according to a rule in{CMSY10 10.9 i} R{NimbusRomNo9L-ReguItal 10.9 i} from the left-hand side of
   p2-l42  [71 622 289 632]  {NimbusRomNo9L-ReguItal 10.9 i}that rule to its right-hand side, resulting in{CMMIB10 10.9 i} β{NimbusRomNo9L-ReguItal 10.9 i}. The
   p2-l43  [70 635 291 645]  {NimbusRomNo9L-ReguItal 10.9 i}probability of a derivation step is the probability of
@@ -2138,9 +2138,9 @@
   p2-l45  [228 649 288 660]  {CMR10 10.9}={CMMI10 10.9 i} p{CMR10 10.9}(X{CMSY10 10.9 i} −→{CMMIB10 10.9 i} β{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i}.
   p2-l46  [71 667 289 677]  {NimbusRomNo9L-Medi 10.9 b}Definition 4.{NimbusRomNo9L-ReguItal 10.9 i} A{NimbusRomNo9L-MediItal 10.9 b i} derivation{NimbusRomNo9L-ReguItal 10.9 i} under a grammar
   p2-l47  [71 680 289 691]  {CMSY10 10.9 i}G{NimbusRomNo9L-ReguItal 10.9 i} is a sequence{CMMIB10 10.9 i} α{CMR8 8}0{CMMI10 10.9 i},{CMMIB10 10.9 i} α{CMR8 8}1{CMMI10 10.9 i},{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} ,{CMMIB10 10.9 i} α{CMMI8 8 i}m{NimbusRomNo9L-ReguItal 10.9 i}, where{CMMIB10 10.9 i} α{CMR8 8}0{CMSY10 10.9 i} ∈
-  p2-l48  [71 692 291 705]  {CMSY10 10.9 i}N{CMMI10 10.9 i} ,{CMMIB10 10.9 i} α{CMR8 8}1{CMMI10 10.9 i},{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} ,{CMMIB10 10.9 i} α{CMMI8 8 i}m{CMSY8 8 i}−{CMR8 8}1{CMSY10 10.9 i} ∈{CMR10 10.9} ({CMSY10 10.9 i}N ∪{CMR10 10.9} Σ){CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i} , and{CMMIB10 10.9 i} α{CMMI8 8 i}m{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i} ∗{NimbusRomNo9L-ReguItal 10.9 i} ,
+  p2-l48  [71 692 291 705]  {CMSY10 10.9 i}N{CMMI10 10.9 i},{CMMIB10 10.9 i} α{CMR8 8}1{CMMI10 10.9 i},{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} ,{CMMIB10 10.9 i} α{CMMI8 8 i}m{CMSY8 8 i}−{CMR8 8}1{CMSY10 10.9 i} ∈{CMR10 10.9} ({CMSY10 10.9 i}N ∪{CMR10 10.9} Σ){CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i}, and{CMMIB10 10.9 i} α{CMMI8 8 i}m{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i},
   p2-l49  [71 708 291 718]  {NimbusRomNo9L-ReguItal 10.9 i}in which each{CMMIB10 10.9 i} α{CMMI8 8 i}i{CMR8 8}+1{NimbusRomNo9L-ReguItal 10.9 i} is formed by applying a deriva-
-  p2-l50  [71 719 289 732]  {NimbusRomNo9L-ReguItal 10.9 i}tion step to{CMMIB10 10.9 i} α{CMMI8 8 i}i{NimbusRomNo9L-ReguItal 10.9 i} .{CMMIB10 10.9 i} α{CMMI8 8 i}m{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i} ∗{NimbusRomNo9L-ReguItal 10.9 i} is called
+  p2-l50  [71 719 289 732]  {NimbusRomNo9L-ReguItal 10.9 i}tion step to{CMMIB10 10.9 i} α{CMMI8 8 i}i{NimbusRomNo9L-ReguItal 10.9 i}.{CMMIB10 10.9 i} α{CMMI8 8 i}m{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i} is called
   p2-l51  [71 735 289 746]  {NimbusRomNo9L-ReguItal 10.9 i}the{NimbusRomNo9L-MediItal 10.9 b i} yield{NimbusRomNo9L-ReguItal 10.9 i} of the derivation. If{CMMIB10 10.9 i} α{CMR8 8}0{NimbusRomNo9L-ReguItal 10.9 i} is not the start
   p2-l52  [84 753 289 763]  {NimbusRomNo9L-Regu 6}6{NimbusRomNo9L-Regu 9}Note that any PCFG can be converted to an equivalent
   p2-l53  [71 765 223 773]  {NimbusRomNo9L-Regu 9}PCFG in CNF (Smith and Johnson, 2007).
@@ -2168,9 +2168,9 @@
   p2-l75  [512 303 525 313]  {NimbusRomNo9L-Regu 10.9}(4)
   p2-l76  [306 332 526 343]  {NimbusRomNo9L-Medi 10.9 b}Definition 6.{CMSY10 10.9 i} T{CMR8 8}X{CMR10 10.9}({CMMI10 10.9 i}w{CMMI8 8 i}i{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}k{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i} is the set of all deriva-
   p2-l77  [306 346 516 357]  {NimbusRomNo9L-ReguItal 10.9 i}tion subtrees{CMMIB10 10.9 i} τ{NimbusRomNo9L-ReguItal 10.9 i} rooted at{CMR10 10.9} X{NimbusRomNo9L-ReguItal 10.9 i} with yield{CMMI10 10.9 i} w{CMMI8 8 i}i{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}k{NimbusRomNo9L-ReguItal 10.9 i}.
-  p2-l78  [306 361 526 372]  {NimbusRomNo9L-Medi 10.9 b}Definition 7.{NimbusRomNo9L-ReguItal 10.9 i} Given a PCFG{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i} ,{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i},
-  p2-l79  [306 373 524 386]  {NimbusRomNo9L-ReguItal 10.9 i}a string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i} ∗{NimbusRomNo9L-ReguItal 10.9 i} , and a non-terminal
-  p2-l80  [306 388 524 399]  {CMR10 10.9}X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i} , the{NimbusRomNo9L-MediItal 10.9 b i} inside probability{NimbusRomNo9L-ReguItal 10.9 i} of{CMR10 10.9} X{NimbusRomNo9L-ReguItal 10.9 i} between indices
+  p2-l78  [306 361 526 372]  {NimbusRomNo9L-Medi 10.9 b}Definition 7.{NimbusRomNo9L-ReguItal 10.9 i} Given a PCFG{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i},{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i},
+  p2-l79  [306 373 524 386]  {NimbusRomNo9L-ReguItal 10.9 i}a string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i}, and a non-terminal
+  p2-l80  [306 388 524 399]  {CMR10 10.9}X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i}, the{NimbusRomNo9L-MediItal 10.9 b i} inside probability{NimbusRomNo9L-ReguItal 10.9 i} of{CMR10 10.9} X{NimbusRomNo9L-ReguItal 10.9 i} between indices
   p2-l81  [306 402 506 413]  {CMMI10 10.9 i}i{NimbusRomNo9L-ReguItal 10.9 i} and{CMMI10 10.9 i} k{NimbusRomNo9L-ReguItal 10.9 i} (where{CMR10 10.9} 0{CMSY10 10.9 i} ≤{CMMI10 10.9 i} i{CMSY10 10.9 i} ≤{CMMI10 10.9 i} k{CMSY10 10.9 i} ≤{CMMI10 10.9 i} N{NimbusRomNo9L-ReguItal 10.9 i}) is defined as:
   p2-l82  [341 421 396 434]  {CMMI10 10.9 i}β{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9}){NimbusRomNo9L-Regu 6} def
   p2-l83  [387 419 489 434]  {CMR10 10.9}={CMMI10 10.9 i} p{CMR10 10.9}(X{CMSY8 8 i} ∗{CMSY10 10.9 i}⇒{CMMI10 10.9 i} w{CMMI8 8 i}i{CMR8 8}+1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}k{CMR10 10.9})
@@ -2182,9 +2182,9 @@
   p2-l89  [512 443 525 453]  {NimbusRomNo9L-Regu 10.9}(6)
   p2-l90  [306 474 524 484]  {NimbusRomNo9L-ReguItal 10.9 i}That is, the sum of the probabilities of all derivation
   p2-l91  [306 487 510 499]  {NimbusRomNo9L-ReguItal 10.9 i}trees{CMMIB10 10.9 i} τ{NimbusRomNo9L-ReguItal 10.9 i} starting at{CMMI10 10.9 i} X{NimbusRomNo9L-ReguItal 10.9 i} that have yield{CMMI10 10.9 i} w{CMMI8 8 i}i{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}k{NimbusRomNo9L-ReguItal 10.9 i}.
-  p2-l92  [306 503 526 514]  {NimbusRomNo9L-Medi 10.9 b}Definition 8.{NimbusRomNo9L-ReguItal 10.9 i} Given a PCFG{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i} ,{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i},
-  p2-l93  [306 515 524 528]  {NimbusRomNo9L-ReguItal 10.9 i}a string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i} ∗{NimbusRomNo9L-ReguItal 10.9 i} , and a non-terminal
-  p2-l94  [306 530 524 541]  {CMR10 10.9}X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i} , we define the{NimbusRomNo9L-MediItal 10.9 b i} prefix probability{CMMI10 10.9 i} π{NimbusRomNo9L-ReguItal 10.9 i}, i.e., the
+  p2-l92  [306 503 526 514]  {NimbusRomNo9L-Medi 10.9 b}Definition 8.{NimbusRomNo9L-ReguItal 10.9 i} Given a PCFG{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i},{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i},
+  p2-l93  [306 515 524 528]  {NimbusRomNo9L-ReguItal 10.9 i}a string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i}∗{NimbusRomNo9L-ReguItal 10.9 i}, and a non-terminal
+  p2-l94  [306 530 524 541]  {CMR10 10.9}X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i}, we define the{NimbusRomNo9L-MediItal 10.9 b i} prefix probability{CMMI10 10.9 i} π{NimbusRomNo9L-ReguItal 10.9 i}, i.e., the
   p2-l95  [305 544 497 554]  {NimbusRomNo9L-ReguItal 10.9 i}probability of{CMMIB10 10.9 i} w{NimbusRomNo9L-ReguItal 10.9 i} being a prefix under{CMSY10 10.9 i} G{NimbusRomNo9L-ReguItal 10.9 i}, as:
   p2-l96  [347 563 400 575]  {CMMI10 10.9 i}π{CMR10 10.9}({CMMIB10 10.9 i}w{CMSY10 10.9 i} |{CMR10 10.9} X){NimbusRomNo9L-Regu 6} def
   p2-l97  [392 562 422 578]  {CMR10 10.9}={CMEX10 10.9} X
@@ -2194,11 +2194,11 @@
   p2-l101  [317 592 524 602]  {NimbusRomNo9L-Regu 10.9}In words,{CMMI10 10.9 i} π{NimbusRomNo9L-Regu 10.9} is the probability of deriving{CMMIB10 10.9 i} w{NimbusRomNo9L-Regu 10.9} with
   p2-l102  [306 605 524 615]  {NimbusRomNo9L-Regu 10.9}an arbitrary continuation from{CMR10 10.9} X{NimbusRomNo9L-Regu 10.9}, that is, the sum
   p2-l103  [306 619 524 629]  {NimbusRomNo9L-Regu 10.9}of probabilities of deriving{CMMIB10 10.9 i} wu{NimbusRomNo9L-Regu 10.9} from{CMR10 10.9} X{NimbusRomNo9L-Regu 10.9} over all
-  p2-l104  [306 630 524 642]  {NimbusRomNo9L-Regu 10.9}possible suffixes{CMMIB10 10.9 i} u{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i} ∗{NimbusRomNo9L-Regu 10.9} . In the following, we
+  p2-l104  [306 630 524 642]  {NimbusRomNo9L-Regu 10.9}possible suffixes{CMMIB10 10.9 i} u{CMSY10 10.9 i} ∈{CMR10 10.9} Σ{CMSY8 8 i}∗{NimbusRomNo9L-Regu 10.9}. In the following, we
   p2-l105  [306 646 524 656]  {NimbusRomNo9L-Regu 10.9}write the prefix probability of deriving prefix{CMMIB10 10.9 i} w{CMR10 10.9} =
   p2-l106  [306 659 452 670]  {CMMI10 10.9 i}w{CMMI8 8 i}i{CMR8 8}+1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}k{NimbusRomNo9L-Regu 10.9} from{CMR10 10.9} X{NimbusRomNo9L-Regu 10.9} as{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}.
   p2-l107  [306 675 525 685]  {NimbusRomNo9L-Medi 10.9 b}Definition 9.{NimbusRomNo9L-ReguItal 10.9 i} Let{CMSY10 10.9 i} G{NimbusRomNo9L-ReguItal 10.9 i} be a PCFG in CNF. Then for
-  p2-l108  [306 688 526 699]  {NimbusRomNo9L-ReguItal 10.9 i}non-terminals{CMR10 10.9} X{CMMI10 10.9 i},{CMR10 10.9} Y{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i} , the{NimbusRomNo9L-MediItal 10.9 b i} left-corner{NimbusRomNo9L-ReguItal 10.9 i} expec-
+  p2-l108  [306 688 526 699]  {NimbusRomNo9L-ReguItal 10.9 i}non-terminals{CMR10 10.9} X{CMMI10 10.9 i},{CMR10 10.9} Y{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i}, the{NimbusRomNo9L-MediItal 10.9 b i} left-corner{NimbusRomNo9L-ReguItal 10.9 i} expec-
   p2-l109  [306 702 515 713]  {NimbusRomNo9L-ReguItal 10.9 i}tations{CMMI10 10.9 i} ξ{CMR10 10.9}(Y{CMSY10 10.9 i} |{CMR10 10.9} X){NimbusRomNo9L-ReguItal 10.9 i} and{CMMI10 10.9 i} ξ{CMR10 10.9}(Y Z{CMSY10 10.9 i} |{CMR10 10.9} X){NimbusRomNo9L-ReguItal 10.9 i} are defined as:
   p2-l110  [323 721 374 734]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y{CMSY10 10.9 i} |{CMR10 10.9} X){NimbusRomNo9L-Regu 6} def
   p2-l111  [366 720 396 736]  {CMR10 10.9}={CMEX10 10.9} X
@@ -2212,7 +2212,7 @@
   p2-l119  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}58
   == page 3  595 x 842  lines 151  pictures 0  drawings 17
   p3-l1  [70 86 153 95]  {NimbusRomNo9L-Medi 10.9 b}Algorithm 1{NimbusRomNo9L-Regu 10.9} CKY
-  p3-l2  [77 101 209 113]  {NimbusRomNo9L-Regu 9}1:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} CKY({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9} ):
+  p3-l2  [77 101 209 113]  {NimbusRomNo9L-Regu 9}1:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} CKY({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9}):
   p3-l3  [77 115 84 123]  {NimbusRomNo9L-Regu 9}2:
   p3-l4  [98 115 210 123]  {CMMI9 9 i}▷{NimbusRomNo9L-ReguItal 9.1 i} Initialize inside probabilities
   p3-l5  [77 130 84 138]  {NimbusRomNo9L-Regu 9}3:
@@ -2256,19 +2256,19 @@
   p3-l43  [72 370 84 378]  {NimbusRomNo9L-Regu 9}19:
   p3-l44  [98 368 137 378]  {NimbusRomNo9L-Medi 10.9 b}return{CMMI10 10.9 i} β
   p3-l45  [297 86 428 96]  {NimbusRomNo9L-Medi 10.9 b}Algorithm 2{NimbusRomNo9L-Regu 10.9} Jelinek–Lafferty
-  p3-l46  [304 101 391 115]  {NimbusRomNo9L-Regu 9}1:{CMMI10 10.9 i} P{CMSY8 8 i} ′{CMSY10 10.9 i} ←−{CMR10 10.9} ({CMMI10 10.9 i}I{CMSY10 10.9 i} −{CMMI10 10.9 i} P{CMR10 10.9}){CMSY8 8 i} −{CMR8 8}1
-  p3-l47  [418 104 525 115]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Precompute{CMMI9 9 i} P{CMSY6 6 i} ∗{NimbusRomNo9L-ReguItal 9 i} by Eq.{NimbusRomNo9L-Regu 9} (14)
-  p3-l48  [304 114 391 126]  {NimbusRomNo9L-Regu 9}2:{NimbusRomNo9L-Medi 10.9 b} for{CMR10 10.9} X{CMMI8 8 i}i{CMMI10 10.9 i} ,{CMR10 10.9} X{CMMI8 8 i}j{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
+  p3-l46  [304 101 391 115]  {NimbusRomNo9L-Regu 9}1:{CMMI10 10.9 i} P{CMSY8 8 i}′{CMSY10 10.9 i} ←−{CMR10 10.9} ({CMMI10 10.9 i}I{CMSY10 10.9 i} −{CMMI10 10.9 i} P{CMR10 10.9}){CMSY8 8 i}−{CMR8 8}1
+  p3-l47  [418 104 525 115]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Precompute{CMMI9 9 i} P{CMSY6 6 i}∗{NimbusRomNo9L-ReguItal 9 i} by Eq.{NimbusRomNo9L-Regu 9} (14)
+  p3-l48  [304 114 391 126]  {NimbusRomNo9L-Regu 9}2:{NimbusRomNo9L-Medi 10.9 b} for{CMR10 10.9} X{CMMI8 8 i}i{CMMI10 10.9 i},{CMR10 10.9} X{CMMI8 8 i}j{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
   p3-l49  [456 115 525 125]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Assign{CMMI9 9 i} ξ{CMR9 9}(Y{CMSY9 9 i} |{CMMI9 9 i} X{CMR9 9})
   p3-l50  [304 129 311 137]  {NimbusRomNo9L-Regu 9}3:
-  p3-l51  [325 126 402 140]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMMI8 8 i}j{CMSY10 10.9 i} |{CMR10 10.9} X{CMMI8 8 i}i{CMR10 10.9}){CMSY10 10.9 i} ←−{CMMI10 10.9 i} P{CMSY8 8 i} ′{CMMI8 8 i} ij
+  p3-l51  [325 126 402 140]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMMI8 8 i}j{CMSY10 10.9 i} |{CMR10 10.9} X{CMMI8 8 i}i{CMR10 10.9}){CMSY10 10.9 i} ←−{CMMI10 10.9 i} P{CMSY8 8 i}′{CMMI8 8 i}ij
   p3-l52  [304 141 407 153]  {NimbusRomNo9L-Regu 9}4:{NimbusRomNo9L-Medi 10.9 b} for{CMR10 10.9} X{CMSY8 8 i}′{CMSY10 10.9 i} −→{CMR10 10.9} Y Z{CMSY10 10.9 i} ∈ R{NimbusRomNo9L-Regu 10.9} :
   p3-l53  [430 143 525 153]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Precompute{CMMI9 9 i} ξ{CMR9 9}(Y Z{CMSY9 9 i} |{CMMI9 9 i} X{CMR9 9})
   p3-l54  [304 156 311 164]  {NimbusRomNo9L-Regu 9}5:
   p3-l55  [325 154 402 165]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y Z{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i}←−{CMEX10 10.9} P
   p3-l56  [386 166 406 174]  {CMR8 8}X{CMSY8 8 i}∈N
   p3-l57  [408 152 510 165]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} p{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i}−→{CMR10 10.9}Y Z)
-  p3-l58  [304 176 423 187]  {NimbusRomNo9L-Regu 9}6:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} JL({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9} ):
+  p3-l58  [304 176 423 187]  {NimbusRomNo9L-Regu 9}6:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} JL({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9}):
   p3-l59  [304 189 311 197]  {NimbusRomNo9L-Regu 9}7:
   p3-l60  [325 186 381 197]  {CMMI10 10.9 i}π{CMR10 10.9}({CMSY10 10.9 i}·{CMMI10 10.9 i},{CMSY10 10.9 i} ·{CMMI10 10.9 i},{CMSY10 10.9 i} ·{CMR10 10.9}){CMSY10 10.9 i} ←−{CMR10 10.9} 0
   p3-l61  [414 187 524 197]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Initialize prefix probabilities
@@ -2334,7 +2334,7 @@
   p3-l121  [71 719 289 729]  {NimbusRomNo9L-Regu 10.9}algorithm. The first step is to derive an expression
   p3-l122  [71 733 249 742]  {NimbusRomNo9L-Regu 10.9}for the prefix probability in PCFG terms.
   p3-l123  [71 750 289 760]  {NimbusRomNo9L-Medi 10.9 b}Lemma 1.{NimbusRomNo9L-ReguItal 10.9 i} Given a tight, trim PCFG in CNF and
-  p3-l124  [71 763 289 774]  {NimbusRomNo9L-ReguItal 10.9 i}a string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-ReguItal 10.9 i} , the prefix probability of a
+  p3-l124  [71 763 289 774]  {NimbusRomNo9L-ReguItal 10.9 i}a string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-ReguItal 10.9 i}, the prefix probability of a
   p3-l125  [306 427 525 439]  {NimbusRomNo9L-ReguItal 10.9 i}substring{CMMI10 10.9 i} w{CMMI8 8 i}i{CMR8 8}+1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}k{NimbusRomNo9L-ReguItal 10.9 i} of{CMMIB10 10.9 i} w{NimbusRomNo9L-ReguItal 10.9 i} being derived from{CMR10 10.9} X
   p3-l126  [306 442 470 451]  {NimbusRomNo9L-ReguItal 10.9 i}can be defined recursively as follows:
   p3-l127  [348 469 427 485]  {CMMI10 10.9 i}π{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9}) ={CMEX10 10.9} X
@@ -2345,7 +2345,7 @@
   p3-l132  [366 528 391 535]  {CMMI8 8 i}j{CMR8 8}={CMMI8 8 i}i{CMR8 8}+1
   p3-l133  [391 512 483 523]  {CMMI10 10.9 i}β{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} Y{CMMI10 10.9 i}, j{CMR10 10.9}){CMSY10 10.9 i} ·{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
   p3-l134  [507 497 525 507]  {NimbusRomNo9L-Regu 10.9}(10)
-  p3-l135  [306 547 526 558]  {NimbusRomNo9L-ReguItal 10.9 i}Base case (for all{CMMI10 10.9 i} k{CMSY10 10.9 i} ∈{CMR10 10.9} 0{CMMI10 10.9 i} . . . N{CMSY10 10.9 i} −{CMR10 10.9} 1{NimbusRomNo9L-ReguItal 10.9 i} and all{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i} ):
+  p3-l135  [306 547 526 558]  {NimbusRomNo9L-ReguItal 10.9 i}Base case (for all{CMMI10 10.9 i} k{CMSY10 10.9 i} ∈{CMR10 10.9} 0{CMMI10 10.9 i} . . . N{CMSY10 10.9 i} −{CMR10 10.9} 1{NimbusRomNo9L-ReguItal 10.9 i} and all{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i}):
   p3-l136  [312 571 404 587]  {CMMI10 10.9 i}π{CMR10 10.9}({CMMI10 10.9 i}k,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9}+1) ={CMEX10 10.9} X
   p3-l137  [386 589 406 597]  {CMR8 8}Y{CMSY8 8 i}∈N
   p3-l138  [408 574 525 585]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y{CMSY10 10.9 i}|{CMR10 10.9}X){CMSY10 10.9 i}·{CMMI10 10.9 i}p{CMR10 10.9}(Y{CMSY10 10.9 i}−→{CMMI10 10.9 i}w{CMMI8 8 i}k{CMR8 8}+1{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} (11)
@@ -2356,10 +2356,10 @@
   p3-l143  [306 669 526 678]  {NimbusRomNo9L-Regu 10.9}can be efficiently computed using CKY, see Alg. 1.
   p3-l144  [306 682 525 692]  {NimbusRomNo9L-Regu 10.9}Next, the left-corner expectations{CMMI10 10.9 i} ξ{NimbusRomNo9L-Regu 10.9} as defined by
   p3-l145  [306 696 524 706]  {NimbusRomNo9L-Regu 10.9}Eq. (8) can be computed efficiently as follows. Let
-  p3-l146  [306 708 524 720]  {CMMI10 10.9 i}P{NimbusRomNo9L-Regu 10.9} denote the square matrix of dimension{CMSY10 10.9 i} |N |{NimbusRomNo9L-Regu 10.9}, with
+  p3-l146  [306 708 524 720]  {CMMI10 10.9 i}P{NimbusRomNo9L-Regu 10.9} denote the square matrix of dimension{CMSY10 10.9 i} |N|{NimbusRomNo9L-Regu 10.9}, with
   p3-l147  [306 722 525 733]  {NimbusRomNo9L-Regu 10.9}rows and columns indexed by the non-terminals{CMSY10 10.9 i} N
-  p3-l148  [306 735 525 746]  {NimbusRomNo9L-Regu 10.9}(in some fixed order), where the entry at the{CMMI10 10.9 i} i{NimbusRomNo9L-Regu 8} th{NimbusRomNo9L-Regu 10.9} row
-  p3-l149  [306 748 526 761]  {NimbusRomNo9L-Regu 10.9}and the{CMMI10 10.9 i} j{NimbusRomNo9L-Regu 8} th{NimbusRomNo9L-Regu 10.9} column corresponds to{CMMI10 10.9 i} p{CMR10 10.9}(X{CMMI8 8 i}i{CMSY10 10.9 i} −→{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} _{CMR10 10.9}){NimbusRomNo9L-Regu 10.9},
+  p3-l148  [306 735 525 746]  {NimbusRomNo9L-Regu 10.9}(in some fixed order), where the entry at the{CMMI10 10.9 i} i{NimbusRomNo9L-Regu 8}th{NimbusRomNo9L-Regu 10.9} row
+  p3-l149  [306 748 526 761]  {NimbusRomNo9L-Regu 10.9}and the{CMMI10 10.9 i} j{NimbusRomNo9L-Regu 8}th{NimbusRomNo9L-Regu 10.9} column corresponds to{CMMI10 10.9 i} p{CMR10 10.9}(X{CMMI8 8 i}i{CMSY10 10.9 i} −→{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} _{CMR10 10.9}){NimbusRomNo9L-Regu 10.9},
   p3-l150  [306 763 525 774]  {NimbusRomNo9L-Regu 10.9}i.e., the probability of deriving{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} on the left corner
   p3-l151  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}59
   == page 4  595 x 842  lines 109  pictures 0  drawings 1
@@ -2372,24 +2372,24 @@
   p4-l7  [70 133 291 143]  {NimbusRomNo9L-Regu 10.9}We can find the probability of getting to non-
   p4-l8  [71 147 289 158]  {NimbusRomNo9L-Regu 10.9}terminal{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} after{CMMI10 10.9 i} k{NimbusRomNo9L-Regu 10.9} derivation steps starting from
   p4-l9  [70 160 245 171]  {CMR10 10.9}X{CMMI8 8 i}i{NimbusRomNo9L-Regu 10.9} by multiplying{CMMI10 10.9 i} P{NimbusRomNo9L-Regu 10.9} with itself{CMMI10 10.9 i} k{NimbusRomNo9L-Regu 10.9} times:
-  p4-l10  [126 183 233 198]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMMI8 8 i}i k{CMSY10 10.9 i} −→{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} _{CMR10 10.9}) = ({CMMI10 10.9 i}P{CMMI8 8 i} k{CMR10 10.9} ){CMMI8 8 i}ij
+  p4-l10  [126 183 233 198]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMMI8 8 i}i k{CMSY10 10.9 i}−→{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} _{CMR10 10.9}) = ({CMMI10 10.9 i}P{CMMI8 8 i}k{CMR10 10.9}){CMMI8 8 i}ij
   p4-l11  [272 187 290 197]  {NimbusRomNo9L-Regu 10.9}(13)
-  p4-l12  [70 209 291 221]  {NimbusRomNo9L-Regu 10.9}We can hence get the matrix{CMMI10 10.9 i} P{CMSY8 8 i} ∗{NimbusRomNo9L-Regu 10.9} , whose entries cor-
+  p4-l12  [70 209 291 221]  {NimbusRomNo9L-Regu 10.9}We can hence get the matrix{CMMI10 10.9 i} P{CMSY8 8 i}∗{NimbusRomNo9L-Regu 10.9}, whose entries cor-
   p4-l13  [71 225 289 236]  {NimbusRomNo9L-Regu 10.9}respond to deriving{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} from{CMR10 10.9} X{CMMI8 8 i}i{NimbusRomNo9L-Regu 10.9} after{NimbusRomNo9L-ReguItal 10.9 i} any{NimbusRomNo9L-Regu 10.9} number
   p4-l14  [71 238 289 248]  {NimbusRomNo9L-Regu 10.9}of derivation steps, by summing over all the powers
-  p4-l15  [71 250 145 262]  {NimbusRomNo9L-Regu 10.9}of the matrix{CMMI10 10.9 i} P{NimbusRomNo9L-Regu 10.9}:{NimbusRomNo9L-Regu 8} 7
-  p4-l16  [77 279 102 291]  {CMMI10 10.9 i}P{CMSY8 8 i} ∗{NimbusRomNo9L-Regu 6} def
-  p4-l17  [93 278 242 294]  {CMR10 10.9}={CMMI10 10.9 i} I{CMR10 10.9} +{CMMI10 10.9 i} P{CMR10 10.9} +{CMMI10 10.9 i} P{CMR8 8} 2{CMR10 10.9} +{CMMI10 10.9 i} P{CMR8 8} 3{CMR10 10.9} +{CMSY10 10.9 i} · · ·{CMR10 10.9} ={CMEX10 10.9} X
+  p4-l15  [71 250 145 262]  {NimbusRomNo9L-Regu 10.9}of the matrix{CMMI10 10.9 i} P{NimbusRomNo9L-Regu 10.9}:{NimbusRomNo9L-Regu 8}7
+  p4-l16  [77 279 102 291]  {CMMI10 10.9 i}P{CMSY8 8 i}∗{NimbusRomNo9L-Regu 6} def
+  p4-l17  [93 278 242 294]  {CMR10 10.9}={CMMI10 10.9 i} I{CMR10 10.9} +{CMMI10 10.9 i} P{CMR10 10.9} +{CMMI10 10.9 i} P{CMR8 8}2{CMR10 10.9} +{CMMI10 10.9 i} P{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} · · ·{CMR10 10.9} ={CMEX10 10.9} X
   p4-l18  [230 270 238 277]  {CMSY8 8 i}∞
   p4-l19  [226 297 242 304]  {CMMI8 8 i}n{CMR8 8}=0
-  p4-l20  [244 279 257 291]  {CMMI10 10.9 i}P{CMMI8 8 i} n
+  p4-l20  [244 279 257 291]  {CMMI10 10.9 i}P{CMMI8 8 i}n
   p4-l21  [272 282 290 292]  {NimbusRomNo9L-Regu 10.9}(14)
   p4-l22  [93 315 150 330]  {CMR10 10.9}={CMMI10 10.9 i} I{CMR10 10.9} +{CMMI10 10.9 i} P{CMEX10 10.9} X
   p4-l23  [138 306 146 313]  {CMSY8 8 i}∞
   p4-l24  [134 333 150 340]  {CMMI8 8 i}n{CMR8 8}=0
-  p4-l25  [152 315 283 328]  {CMMI10 10.9 i}P{CMMI8 8 i} n{CMR10 10.9} ={CMMI10 10.9 i} I{CMR10 10.9} +{CMMI10 10.9 i} P P{CMSY8 8 i}∗{CMR10 10.9} = ({CMMI10 10.9 i}I{CMSY10 10.9 i} −{CMMI10 10.9 i} P{CMR10 10.9}){CMSY8 8 i} −{CMR8 8}1
-  p4-l26  [71 351 291 363]  {NimbusRomNo9L-Regu 10.9}Note that the entry at the{CMMI10 10.9 i} i{NimbusRomNo9L-Regu 8} th{NimbusRomNo9L-Regu 10.9} row and{CMMI10 10.9 i} j{NimbusRomNo9L-Regu 8} th{NimbusRomNo9L-Regu 10.9} col-
-  p4-l27  [71 364 289 376]  {NimbusRomNo9L-Regu 10.9}umn of{CMMI10 10.9 i} P{CMSY8 8 i} ∗{NimbusRomNo9L-Regu 10.9} is exactly the left-corner expectation
+  p4-l25  [152 315 283 328]  {CMMI10 10.9 i}P{CMMI8 8 i}n{CMR10 10.9} ={CMMI10 10.9 i} I{CMR10 10.9} +{CMMI10 10.9 i} P P{CMSY8 8 i}∗{CMR10 10.9} = ({CMMI10 10.9 i}I{CMSY10 10.9 i} −{CMMI10 10.9 i} P{CMR10 10.9}){CMSY8 8 i}−{CMR8 8}1
+  p4-l26  [71 351 291 363]  {NimbusRomNo9L-Regu 10.9}Note that the entry at the{CMMI10 10.9 i} i{NimbusRomNo9L-Regu 8}th{NimbusRomNo9L-Regu 10.9} row and{CMMI10 10.9 i} j{NimbusRomNo9L-Regu 8}th{NimbusRomNo9L-Regu 10.9} col-
+  p4-l27  [71 364 289 376]  {NimbusRomNo9L-Regu 10.9}umn of{CMMI10 10.9 i} P{CMSY8 8 i}∗{NimbusRomNo9L-Regu 10.9} is exactly the left-corner expectation
   p4-l28  [71 379 289 391]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMMI8 8 i}j{CMSY10 10.9 i} |{CMR10 10.9} X{CMMI8 8 i}i{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}. Finally, we can compute the left-corner
   p4-l29  [71 393 238 404]  {NimbusRomNo9L-Regu 10.9}expectations{CMMI10 10.9 i} ξ{CMR10 10.9}(Y Z{CMSY10 10.9 i} |{CMR10 10.9} X){NimbusRomNo9L-Regu 10.9} using Eq. (9):
   p4-l30  [85 416 144 429]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y Z{CMSY10 10.9 i} |{CMR10 10.9} X){NimbusRomNo9L-Regu 6} def
@@ -2408,42 +2408,42 @@
   p4-l43  [71 569 289 580]  {NimbusRomNo9L-Regu 10.9}putation of prefix probabilities{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} S{CMMI10 10.9 i}, k{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}. For the
   p4-l44  [71 584 183 593]  {NimbusRomNo9L-Regu 10.9}full algorithm, see Alg. 2.
   p4-l45  [71 601 290 611]  {NimbusRomNo9L-Medi 10.9 b}Proposition 1.{NimbusRomNo9L-ReguItal 10.9 i} The time complexity of the CKY
-  p4-l46  [71 612 280 625]  {NimbusRomNo9L-ReguItal 10.9 i}algorithm as presented in Alg. 1 is{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-ReguItal 10.9 i}.
+  p4-l46  [71 612 280 625]  {NimbusRomNo9L-ReguItal 10.9 i}algorithm as presented in Alg. 1 is{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i}.
   p4-l47  [71 635 289 645]  {NimbusRomNo9L-ReguItal 10.9 i}Proof.{NimbusRomNo9L-Regu 10.9} Clearly, the computationally critical part is
   p4-l48  [71 649 289 658]  {NimbusRomNo9L-Regu 10.9}in lines 11–18, where we iterate over all indices
   p4-l49  [71 662 289 672]  {NimbusRomNo9L-Regu 10.9}of{CMMIB10 10.9 i} w{NimbusRomNo9L-Regu 10.9} for{CMMI10 10.9 i} i{NimbusRomNo9L-Regu 10.9},{CMMI10 10.9 i} j{NimbusRomNo9L-Regu 10.9}, and{CMMI10 10.9 i} k{NimbusRomNo9L-Regu 10.9}, as well as over the whole
-  p4-l50  [71 674 289 686]  {NimbusRomNo9L-Regu 10.9}set of grammar rules, thus taking{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |R|{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}. In a
+  p4-l50  [71 674 289 686]  {NimbusRomNo9L-Regu 10.9}set of grammar rules, thus taking{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|R|{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}. In a
   p4-l51  [71 689 291 699]  {NimbusRomNo9L-Regu 10.9}PCFG in CNF, with the size of{CMR10 10.9} Σ{NimbusRomNo9L-Regu 10.9} taken as constant,
-  p4-l52  [71 701 289 713]  {NimbusRomNo9L-Regu 10.9}the number of rules,{CMSY10 10.9 i} |R|{NimbusRomNo9L-Regu 10.9}, is{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}, making the
-  p4-l53  [71 714 249 726]  {NimbusRomNo9L-Regu 10.9}overall complexity of CKY{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}.
+  p4-l52  [71 701 289 713]  {NimbusRomNo9L-Regu 10.9}the number of rules,{CMSY10 10.9 i} |R|{NimbusRomNo9L-Regu 10.9}, is{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, making the
+  p4-l53  [71 714 249 726]  {NimbusRomNo9L-Regu 10.9}overall complexity of CKY{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}.
   p4-l54  [281 716 289 724]  {MSAM10 10.9}■
   p4-l55  [84 732 289 742]  {NimbusRomNo9L-Regu 6}7{NimbusRomNo9L-Regu 9}Note that this sum converges if the PCFG is tight and trim
   p4-l56  [71 744 289 752]  {NimbusRomNo9L-Regu 9}since infinite derivation (sub)trees have zero probability mass.
-  p4-l57  [84 753 289 763]  {NimbusRomNo9L-Regu 6}8{NimbusRomNo9L-Regu 9} For a generalization of the algorithm that does not require
+  p4-l57  [84 753 289 763]  {NimbusRomNo9L-Regu 6}8{NimbusRomNo9L-Regu 9}For a generalization of the algorithm that does not require
   p4-l58  [71 765 230 773]  {NimbusRomNo9L-Regu 9}locally normalized rule weights, see App. B.
   p4-l59  [306 74 527 84]  {NimbusRomNo9L-Medi 10.9 b}Proposition 2.{NimbusRomNo9L-ReguItal 10.9 i} The total time complexity of Jelinek–
-  p4-l60  [306 86 445 98]  {NimbusRomNo9L-ReguItal 10.9 i}Lafferty is{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} |N |{CMR8 8}4{CMR10 10.9} ){NimbusRomNo9L-ReguItal 10.9 i}:
+  p4-l60  [306 86 445 98]  {NimbusRomNo9L-ReguItal 10.9 i}Lafferty is{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} |N|{CMR8 8}4{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i}:
   p4-l61  [306 109 524 119]  {NimbusRomNo9L-ReguItal 10.9 i}Proof.{NimbusRomNo9L-Regu 10.9} First, we precompute any values that are
   p4-l62  [306 123 526 133]  {NimbusRomNo9L-Regu 10.9}independent of the input. In lines 1–3, we pre-
   p4-l63  [306 136 526 147]  {NimbusRomNo9L-Regu 10.9}compute all the left-corner expectations{CMMI10 10.9 i} ξ{CMR10 10.9}(Y{CMSY10 10.9 i} |{CMR10 10.9} X)
   p4-l64  [306 150 526 160]  {NimbusRomNo9L-Regu 10.9}using Eq. (14), which has the complexity of in-
-  p4-l65  [306 162 524 174]  {NimbusRomNo9L-Regu 10.9}verting the matrix{CMMI10 10.9 i} P{NimbusRomNo9L-Regu 10.9}, i.e.,{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}, and move the
+  p4-l65  [306 162 524 174]  {NimbusRomNo9L-Regu 10.9}verting the matrix{CMMI10 10.9 i} P{NimbusRomNo9L-Regu 10.9}, i.e.,{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, and move the
   p4-l66  [306 177 524 187]  {NimbusRomNo9L-Regu 10.9}values into a map of left-corner expectations in
-  p4-l67  [306 189 526 201]  {CMSY10 10.9 i}O{CMR10 10.9}({CMSY10 10.9 i}|N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9} (this is just for readability). In lines 4–
+  p4-l67  [306 189 526 201]  {CMSY10 10.9 i}O{CMR10 10.9}({CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} (this is just for readability). In lines 4–
   p4-l68  [306 204 526 215]  {NimbusRomNo9L-Regu 10.9}5, we then use Eq. (9) to compute{CMMI10 10.9 i} ξ{CMR10 10.9}(Y Z{CMSY10 10.9 i} |{CMR10 10.9} X){NimbusRomNo9L-Regu 10.9},
   p4-l69  [306 218 524 228]  {NimbusRomNo9L-Regu 10.9}iterating once over all non-terminals{CMR10 10.9} X{NimbusRomNo9L-Regu 10.9} for each
-  p4-l70  [306 229 526 242]  {NimbusRomNo9L-Regu 10.9}rule, which takes{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|R||N |{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, that is,{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N |{CMR8 8}4{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}. Af-
+  p4-l70  [306 229 526 242]  {NimbusRomNo9L-Regu 10.9}rule, which takes{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|R||N|{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, that is,{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N|{CMR8 8}4{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}. Af-
   p4-l71  [306 245 524 255]  {NimbusRomNo9L-Regu 10.9}ter initializing the probabilities in lines 7–10 in
-  p4-l72  [306 256 526 269]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, we begin by pre-computing all the in-
+  p4-l72  [306 256 526 269]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, we begin by pre-computing all the in-
   p4-l73  [306 272 524 282]  {NimbusRomNo9L-Regu 10.9}side probabilities{CMMI10 10.9 i} β{NimbusRomNo9L-Regu 10.9} in line 11 of Alg. 2, which takes
-  p4-l74  [306 284 526 296]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9} by Prop. 1. Computing{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}k,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9} + 1)
+  p4-l74  [306 284 526 296]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} by Prop. 1. Computing{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}k,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9} + 1)
   p4-l75  [306 298 524 309]  {NimbusRomNo9L-Regu 10.9}for all{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} by Eq. (11) in lines 12–14 takes
-  p4-l76  [306 311 524 323]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMSY10 10.9 i}|N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9} as we iterate over all positions{CMMI10 10.9 i} k{CMSY10 10.9 i} ∈{CMMI10 10.9 i} N
-  p4-l77  [306 325 526 336]  {NimbusRomNo9L-Regu 10.9}and over all{CMR10 10.9} Y{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} for each{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} . And fi-
+  p4-l76  [306 311 524 323]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} as we iterate over all positions{CMMI10 10.9 i} k{CMSY10 10.9 i} ∈{CMMI10 10.9 i} N
+  p4-l77  [306 325 526 336]  {NimbusRomNo9L-Regu 10.9}and over all{CMR10 10.9} Y{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} for each{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9}. And fi-
   p4-l78  [306 340 524 350]  {NimbusRomNo9L-Regu 10.9}nally, computing the{CMMI10 10.9 i} π{NimbusRomNo9L-Regu 10.9} chart in lines 15–19 takes
-  p4-l79  [306 351 524 364]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9} since we iterate over all{CMMI10 10.9 i} ℓ, i, j{CMSY10 10.9 i} ≤{CMMI10 10.9 i} N
-  p4-l80  [306 366 526 377]  {NimbusRomNo9L-Regu 10.9}and{CMR10 10.9} X{CMMI10 10.9 i},{CMR10 10.9} Y{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} . This yields an overall time com-
-  p4-l81  [306 378 442 391]  {NimbusRomNo9L-Regu 10.9}plexity of{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} |N |{CMR8 8}4{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}.
+  p4-l79  [306 351 524 364]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} since we iterate over all{CMMI10 10.9 i} ℓ, i, j{CMSY10 10.9 i} ≤{CMMI10 10.9 i} N
+  p4-l80  [306 366 526 377]  {NimbusRomNo9L-Regu 10.9}and{CMR10 10.9} X{CMMI10 10.9 i},{CMR10 10.9} Y{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9}. This yields an overall time com-
+  p4-l81  [306 378 442 391]  {NimbusRomNo9L-Regu 10.9}plexity of{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} |N|{CMR8 8}4{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}.
   p4-l82  [516 380 524 388]  {MSAM10 10.9}■
   p4-l83  [306 404 396 415]  {NimbusRomNo9L-Medi 12 b}4 Our Speed-up
   p4-l84  [306 426 526 436]  {NimbusRomNo9L-Regu 10.9}We now turn to our development of a faster dy-
@@ -2456,19 +2456,19 @@
   p4-l91  [306 521 526 531]  {NimbusRomNo9L-Regu 10.9}out all terms that depend on the left-corner non-
   p4-l92  [306 534 524 544]  {NimbusRomNo9L-Regu 10.9}terminal{CMR10 10.9} Y{NimbusRomNo9L-Regu 10.9} in Eq. (16c), which we store in a chart
   p4-l93  [306 548 524 558]  {CMMI10 10.9 i}γ{NimbusRomNo9L-Regu 10.9}, see Eq. (16e). We then do the same for all terms
-  p4-l94  [306 559 525 571]  {NimbusRomNo9L-Regu 10.9}depending on{CMR10 10.9} X{CMSY8 8 i}′{NimbusRomNo9L-Regu 10.9} , factoring them out in Eq. (16d)
+  p4-l94  [306 559 525 571]  {NimbusRomNo9L-Regu 10.9}depending on{CMR10 10.9} X{CMSY8 8 i}′{NimbusRomNo9L-Regu 10.9}, factoring them out in Eq. (16d)
   p4-l95  [306 575 523 585]  {NimbusRomNo9L-Regu 10.9}and storing them in another chart{CMMI10 10.9 i} δ{NimbusRomNo9L-Regu 10.9}, see Eq. (16f).
   p4-l96  [317 589 525 599]  {NimbusRomNo9L-Regu 10.9}Our improved algorithm for computing all prefix
   p4-l97  [306 602 446 612]  {NimbusRomNo9L-Regu 10.9}probabilities is shown in Alg. 3.
   p4-l98  [306 620 525 630]  {NimbusRomNo9L-Medi 10.9 b}Proposition 3.{NimbusRomNo9L-ReguItal 10.9 i} The complexity of our improved
-  p4-l99  [306 632 468 644]  {NimbusRomNo9L-ReguItal 10.9 i}algorithm is{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-ReguItal 10.9 i}.
+  p4-l99  [306 632 468 644]  {NimbusRomNo9L-ReguItal 10.9 i}algorithm is{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i}.
   p4-l100  [306 655 524 665]  {NimbusRomNo9L-ReguItal 10.9 i}Proof.{NimbusRomNo9L-Regu 10.9} As before, Alg. 3 starts by precomputing
   p4-l101  [306 669 527 679]  {NimbusRomNo9L-Regu 10.9}and assigning the left-corner expectations in lines 1–
-  p4-l102  [306 680 526 692]  {NimbusRomNo9L-Regu 10.9}3, which takes{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9} and{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}, respectively.
+  p4-l102  [306 680 526 692]  {NimbusRomNo9L-Regu 10.9}3, which takes{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} and{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, respectively.
   p4-l103  [306 696 526 706]  {NimbusRomNo9L-Regu 10.9}We then initialize the prefix probabilities and com-
   p4-l104  [306 709 524 719]  {NimbusRomNo9L-Regu 10.9}pute the inside probabilities in lines 5–8, taking
-  p4-l105  [306 721 524 733]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}. As Eisner and Blatz (2007) show, one
-  p4-l106  [306 734 526 747]  {NimbusRomNo9L-Regu 10.9}can compute{CMMI10 10.9 i} β{NimbusRomNo9L-Regu 10.9} (line 9) in{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9},
+  p4-l105  [306 721 524 733]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}. As Eisner and Blatz (2007) show, one
+  p4-l106  [306 734 526 747]  {NimbusRomNo9L-Regu 10.9}can compute{CMMI10 10.9 i} β{NimbusRomNo9L-Regu 10.9} (line 9) in{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9},
   p4-l107  [306 750 524 760]  {NimbusRomNo9L-Regu 10.9}thus improving the runtime of Alg. 1 for dense
   p4-l108  [306 763 524 773]  {NimbusRomNo9L-Regu 10.9}grammars. Pre-computing{CMMI10 10.9 i} γ{NimbusRomNo9L-Regu 10.9} and{CMMI10 10.9 i} δ{NimbusRomNo9L-Regu 10.9} in lines 10–14
   p4-l109  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}60
@@ -2484,43 +2484,43 @@
   p5-l9  [189 150 217 158]  {CMR8 8}Y{CMMI8 8 i},{CMR8 8}Z{CMSY8 8 i}∈N
   p5-l10  [222 132 238 148]  {CMEX10 10.9}X
   p5-l11  [219 150 242 158]  {CMR8 8}X{CMSY6 6 i}′{CMSY8 8 i}∈N
-  p5-l12  [243 132 380 148]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMSY8 8 i} ′{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} p{CMR10 10.9}(X{CMSY8 8 i} ′{CMSY10 10.9 i} −→{CMR10 10.9} Y Z){CMSY10 10.9 i} ·{CMEX10 10.9} X
+  p5-l12  [243 132 380 148]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} p{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i} −→{CMR10 10.9} Y Z){CMSY10 10.9 i} ·{CMEX10 10.9} X
   p5-l13  [364 124 380 131]  {CMMI8 8 i}k{CMSY8 8 i}−{CMR8 8}1
   p5-l14  [360 151 384 158]  {CMMI8 8 i}j{CMR8 8}={CMMI8 8 i}i{CMR8 8}+1
   p5-l15  [386 135 479 146]  {CMMI10 10.9 i}β{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} Y{CMMI10 10.9 i}, j{CMR10 10.9}){CMSY10 10.9 i} ·{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
   p5-l16  [502 136 525 146]  {NimbusRomNo9L-Regu 10.9}(16b)
   p5-l17  [178 173 212 188]  {CMR10 10.9}={CMEX10 10.9} X
-  p5-l18  [189 190 220 198]  {CMR8 8}X{CMSY6 6 i}′{CMMI8 8 i} ,{CMR8 8}Z{CMSY8 8 i}∈N
-  p5-l19  [221 173 291 188]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMSY8 8 i} ′{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMEX10 10.9} X
+  p5-l18  [189 190 220 198]  {CMR8 8}X{CMSY6 6 i}′{CMMI8 8 i},{CMR8 8}Z{CMSY8 8 i}∈N
+  p5-l19  [221 173 291 188]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMEX10 10.9} X
   p5-l20  [276 164 291 171]  {CMMI8 8 i}k{CMSY8 8 i}−{CMR8 8}1
   p5-l21  [271 191 295 198]  {CMMI8 8 i}j{CMR8 8}={CMMI8 8 i}i{CMR8 8}+1
-  p5-l22  [297 173 392 187]  {CMMI10 10.9 i}γ{CMMI8 8 i}ij{CMR10 10.9} (X{CMSY8 8 i} ′{CMMI10 10.9 i} ,{CMR10 10.9} Z){CMSY10 10.9 i} ·{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
+  p5-l22  [297 173 392 187]  {CMMI10 10.9 i}γ{CMMI8 8 i}ij{CMR10 10.9}(X{CMSY8 8 i}′{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i} ·{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
   p5-l23  [502 176 525 186]  {NimbusRomNo9L-Regu 10.9}(16c)
   p5-l24  [178 213 207 229]  {CMR10 10.9}={CMEX10 10.9} X
   p5-l25  [189 231 208 238]  {CMR8 8}Z{CMSY8 8 i}∈N
   p5-l26  [214 213 230 229]  {CMEX10 10.9}X
   p5-l27  [214 204 230 212]  {CMMI8 8 i}k{CMSY8 8 i}−{CMR8 8}1
   p5-l28  [210 231 234 238]  {CMMI8 8 i}j{CMR8 8}={CMMI8 8 i}i{CMR8 8}+1
-  p5-l29  [236 216 327 227]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9} (X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i} ·{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
+  p5-l29  [236 216 327 227]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9}(X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i} ·{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
   p5-l30  [502 216 525 226]  {NimbusRomNo9L-Regu 10.9}(16d)
-  p5-l31  [116 244 202 258]  {NimbusRomNo9L-Regu 10.9}where{CMMI10 10.9 i} γ{CMMI8 8 i}ij{CMR10 10.9} (X{CMSY8 8 i} ′{CMMI10 10.9 i} ,{CMR10 10.9} Z){NimbusRomNo9L-Regu 6} def
+  p5-l31  [116 244 202 258]  {NimbusRomNo9L-Regu 10.9}where{CMMI10 10.9 i} γ{CMMI8 8 i}ij{CMR10 10.9}(X{CMSY8 8 i}′{CMMI10 10.9 i},{CMR10 10.9} Z){NimbusRomNo9L-Regu 6} def
   p5-l32  [193 244 223 260]  {CMR10 10.9}={CMEX10 10.9} X
   p5-l33  [205 262 225 270]  {CMR8 8}Y{CMSY8 8 i}∈N
-  p5-l34  [227 244 336 258]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMSY8 8 i} ′{CMSY10 10.9 i} −→{CMR10 10.9} Y Z){CMSY10 10.9 i} ·{CMMI10 10.9 i} β{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} Y{CMMI10 10.9 i}, j{CMR10 10.9})
+  p5-l34  [227 244 336 258]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i} −→{CMR10 10.9} Y Z){CMSY10 10.9 i} ·{CMMI10 10.9 i} β{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} Y{CMMI10 10.9 i}, j{CMR10 10.9})
   p5-l35  [502 247 525 257]  {NimbusRomNo9L-Regu 10.9}(16e)
-  p5-l36  [131 275 202 288]  {NimbusRomNo9L-Regu 10.9}and{CMMI10 10.9 i} δ{CMMI8 8 i}ij{CMR10 10.9} (X{CMMI10 10.9 i},{CMR10 10.9} Z){NimbusRomNo9L-Regu 6} def
+  p5-l36  [131 275 202 288]  {NimbusRomNo9L-Regu 10.9}and{CMMI10 10.9 i} δ{CMMI8 8 i}ij{CMR10 10.9}(X{CMMI10 10.9 i},{CMR10 10.9} Z){NimbusRomNo9L-Regu 6} def
   p5-l37  [193 274 224 290]  {CMR10 10.9}={CMEX10 10.9} X
   p5-l38  [205 292 228 300]  {CMR8 8}X{CMSY6 6 i}′{CMSY8 8 i}∈N
-  p5-l39  [230 275 324 288]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMSY8 8 i} ′{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} γ{CMMI8 8 i}ij{CMR10 10.9} (X{CMSY8 8 i} ′{CMMI10 10.9 i} ,{CMR10 10.9} Z)
+  p5-l39  [230 275 324 288]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} γ{CMMI8 8 i}ij{CMR10 10.9}(X{CMSY8 8 i}′{CMMI10 10.9 i},{CMR10 10.9} Z)
   p5-l40  [503 278 525 288]  {NimbusRomNo9L-Regu 10.9}(16f)
   p5-l41  [70 335 280 345]  {NimbusRomNo9L-Medi 10.9 b}Algorithm 3{NimbusRomNo9L-Regu 10.9} Faster prefix probability algorithm
-  p5-l42  [77 350 165 363]  {NimbusRomNo9L-Regu 9}1:{CMMI10 10.9 i} P{CMSY8 8 i} ′{CMSY10 10.9 i} ←−{CMR10 10.9} ({CMMI10 10.9 i}I{CMSY10 10.9 i} −{CMMI10 10.9 i} P{CMR10 10.9}){CMSY8 8 i} −{CMR8 8}1
-  p5-l43  [176 352 290 362]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Precompute{CMMI9 9 i} P{CMSY6 6 i} ∗{NimbusRomNo9L-ReguItal 9 i} with Eq.{NimbusRomNo9L-Regu 9} (14)
-  p5-l44  [77 364 164 376]  {NimbusRomNo9L-Regu 9}2:{NimbusRomNo9L-Medi 10.9 b} for{CMR10 10.9} X{CMMI8 8 i}i{CMMI10 10.9 i} ,{CMR10 10.9} X{CMMI8 8 i}j{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
+  p5-l42  [77 350 165 363]  {NimbusRomNo9L-Regu 9}1:{CMMI10 10.9 i} P{CMSY8 8 i}′{CMSY10 10.9 i} ←−{CMR10 10.9} ({CMMI10 10.9 i}I{CMSY10 10.9 i} −{CMMI10 10.9 i} P{CMR10 10.9}){CMSY8 8 i}−{CMR8 8}1
+  p5-l43  [176 352 290 362]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Precompute{CMMI9 9 i} P{CMSY6 6 i}∗{NimbusRomNo9L-ReguItal 9 i} with Eq.{NimbusRomNo9L-Regu 9} (14)
+  p5-l44  [77 364 164 376]  {NimbusRomNo9L-Regu 9}2:{NimbusRomNo9L-Medi 10.9 b} for{CMR10 10.9} X{CMMI8 8 i}i{CMMI10 10.9 i},{CMR10 10.9} X{CMMI8 8 i}j{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
   p5-l45  [221 365 290 375]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Assign{CMMI9 9 i} ξ{CMR9 9}(Y{CMSY9 9 i} |{CMMI9 9 i} X{CMR9 9})
   p5-l46  [77 379 84 387]  {NimbusRomNo9L-Regu 9}3:
-  p5-l47  [98 375 176 389]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMMI8 8 i}j{CMSY10 10.9 i} |{CMR10 10.9} X{CMMI8 8 i}i{CMR10 10.9}){CMSY10 10.9 i} ←−{CMMI10 10.9 i} P{CMSY8 8 i} ′{CMMI8 8 i} ij
-  p5-l48  [77 393 215 405]  {NimbusRomNo9L-Regu 9}4:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} FastJL({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9} ):
+  p5-l47  [98 375 176 389]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMMI8 8 i}j{CMSY10 10.9 i} |{CMR10 10.9} X{CMMI8 8 i}i{CMR10 10.9}){CMSY10 10.9 i} ←−{CMMI10 10.9 i} P{CMSY8 8 i}′{CMMI8 8 i}ij
+  p5-l48  [77 393 215 405]  {NimbusRomNo9L-Regu 9}4:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} FastJL({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9}):
   p5-l49  [77 408 84 416]  {NimbusRomNo9L-Regu 9}5:
   p5-l50  [98 406 155 416]  {CMMI10 10.9 i}π{CMR10 10.9}({CMSY10 10.9 i}·{CMMI10 10.9 i},{CMSY10 10.9 i} ·{CMMI10 10.9 i},{CMSY10 10.9 i} ·{CMR10 10.9}){CMSY10 10.9 i} ←−{CMR10 10.9} 0
   p5-l51  [179 406 289 416]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Initialize prefix probabilities
@@ -2540,16 +2540,16 @@
   p5-l65  [107 481 173 492]  {NimbusRomNo9L-Medi 10.9 b}for{CMR10 10.9} X{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
   p5-l66  [195 482 290 492]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Compute{CMMI9 9 i} γ{NimbusRomNo9L-ReguItal 9 i} by Eq.{NimbusRomNo9L-Regu 9} (16e)
   p5-l67  [72 496 84 504]  {NimbusRomNo9L-Regu 9}12:
-  p5-l68  [116 493 184 505]  {CMMI10 10.9 i}γ{CMMI8 8 i}ij{CMR10 10.9} (X{CMMI10 10.9 i},{CMR10 10.9}Z){CMSY10 10.9 i}←−{CMEX10 10.9} P
+  p5-l68  [116 493 184 505]  {CMMI10 10.9 i}γ{CMMI8 8 i}ij{CMR10 10.9}(X{CMMI10 10.9 i},{CMR10 10.9}Z){CMSY10 10.9 i}←−{CMEX10 10.9} P
   p5-l69  [168 506 189 513]  {CMR8 8}Y{CMSY8 8 i}∈N
   p5-l70  [190 494 284 505]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMSY10 10.9 i}−→{CMR10 10.9}YZ){CMSY10 10.9 i}·{CMMI10 10.9 i}β{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} Y{CMMI10 10.9 i}, j{CMR10 10.9})
   p5-l71  [72 520 84 528]  {NimbusRomNo9L-Regu 9}13:
   p5-l72  [107 517 173 528]  {NimbusRomNo9L-Medi 10.9 b}for{CMR10 10.9} X{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
   p5-l73  [197 518 290 528]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Compute{CMMI9 9 i} δ{NimbusRomNo9L-ReguItal 9 i} by Eq.{NimbusRomNo9L-Regu 9} (16f)
   p5-l74  [72 532 84 540]  {NimbusRomNo9L-Regu 9}14:
-  p5-l75  [116 529 183 541]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9} (X{CMMI10 10.9 i},{CMR10 10.9}Z){CMSY10 10.9 i}←−{CMEX10 10.9} P
+  p5-l75  [116 529 183 541]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9}(X{CMMI10 10.9 i},{CMR10 10.9}Z){CMSY10 10.9 i}←−{CMEX10 10.9} P
   p5-l76  [168 542 188 549]  {CMR8 8}Y{CMSY8 8 i}∈N
-  p5-l77  [190 530 278 541]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} γ{CMMI8 8 i}ij{CMR10 10.9} (Y{CMMI10 10.9 i},{CMR10 10.9} Z)
+  p5-l77  [190 530 278 541]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} γ{CMMI8 8 i}ij{CMR10 10.9}(Y{CMMI10 10.9 i},{CMR10 10.9} Z)
   p5-l78  [72 555 84 564]  {NimbusRomNo9L-Regu 9}15:
   p5-l79  [98 553 198 564]  {NimbusRomNo9L-Medi 10.9 b}for{CMMI10 10.9 i} k{CMSY10 10.9 i} ∈{CMR10 10.9} 0{CMMI10 10.9 i}, . . . , N{CMSY10 10.9 i} −{CMR10 10.9} 1{NimbusRomNo9L-Regu 10.9} :
   p5-l80  [72 568 84 576]  {NimbusRomNo9L-Regu 9}16:
@@ -2575,18 +2575,18 @@
   p5-l100  [187 670 199 681]  {CMEX10 10.9}P
   p5-l101  [190 662 201 670]  {CMSY8 8 i}−{CMR8 8}1
   p5-l102  [181 683 205 690]  {CMMI8 8 i}j{CMR8 8}={CMMI8 8 i}i{CMR8 8}+1
-  p5-l103  [207 670 292 682]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9} (X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i}·{CMMI10 10.9 i}π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
+  p5-l103  [207 670 292 682]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9}(X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i}·{CMMI10 10.9 i}π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
   p5-l104  [72 697 84 705]  {NimbusRomNo9L-Regu 9}23:
   p5-l105  [98 695 137 705]  {NimbusRomNo9L-Medi 10.9 b}return{CMMI10 10.9 i} π
-  p5-l106  [71 734 290 747]  {NimbusRomNo9L-Regu 10.9}takes{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}, as we sum over non-terminals,
+  p5-l106  [71 734 290 747]  {NimbusRomNo9L-Regu 10.9}takes{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, as we sum over non-terminals,
   p5-l107  [71 750 291 760]  {NimbusRomNo9L-Regu 10.9}and both charts each have two dimensions index-
-  p5-l108  [71 763 289 773]  {NimbusRomNo9L-Regu 10.9}ing{CMMI10 10.9 i} N{NimbusRomNo9L-Regu 10.9} and two indexing{CMSY10 10.9 i} N{NimbusRomNo9L-Regu 10.9} . Computing the base
+  p5-l108  [71 763 289 773]  {NimbusRomNo9L-Regu 10.9}ing{CMMI10 10.9 i} N{NimbusRomNo9L-Regu 10.9} and two indexing{CMSY10 10.9 i} N{NimbusRomNo9L-Regu 10.9}. Computing the base
   p5-l109  [306 335 524 346]  {NimbusRomNo9L-Regu 10.9}case{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}k,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9} + 1){NimbusRomNo9L-Regu 10.9} for all non-terminals{CMR10 10.9} X{NimbusRomNo9L-Regu 10.9} and
-  p5-l110  [306 347 526 359]  {NimbusRomNo9L-Regu 10.9}positions{CMMI10 10.9 i} k{NimbusRomNo9L-Regu 10.9} in lines 15–17 takes{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMSY10 10.9 i}|N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}, as be-
+  p5-l110  [306 347 526 359]  {NimbusRomNo9L-Regu 10.9}positions{CMMI10 10.9 i} k{NimbusRomNo9L-Regu 10.9} in lines 15–17 takes{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, as be-
   p5-l111  [306 363 526 372]  {NimbusRomNo9L-Regu 10.9}fore. Finally, the loops computing{CMMI10 10.9 i} π{NimbusRomNo9L-Regu 10.9} in lines 18–
-  p5-l112  [306 374 525 386]  {NimbusRomNo9L-Regu 10.9}22 take{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}, as we are now iterating over
+  p5-l112  [306 374 525 386]  {NimbusRomNo9L-Regu 10.9}22 take{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, as we are now iterating over
   p5-l113  [306 389 524 400]  {CMR10 10.9}X{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} and{CMMI10 10.9 i} ℓ, i, j{CMSY10 10.9 i} ≤{CMMI10 10.9 i} N{NimbusRomNo9L-Regu 10.9}. Hence, our new overall
-  p5-l114  [306 401 496 413]  {NimbusRomNo9L-Regu 10.9}time complexity is{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}.
+  p5-l114  [306 401 496 413]  {NimbusRomNo9L-Regu 10.9}time complexity is{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}.
   p5-l115  [516 403 524 411]  {MSAM10 10.9}■
   p5-l116  [306 426 467 437]  {NimbusRomNo9L-Medi 12 b}5 Generalization to Semirings
   p5-l117  [306 448 526 458]  {NimbusRomNo9L-Regu 10.9}It turns out that Jelinek–Lafferty, and, by extension,
@@ -2608,7 +2608,7 @@
   p5-l133  [306 682 526 692]  {NimbusRomNo9L-Regu 10.9}compute prefix probabilities for PCFGs in CNF,
   p5-l134  [306 696 526 706]  {NimbusRomNo9L-Regu 10.9}adapting Jelinek–Lafferty to use additional memo-
   p5-l135  [306 709 524 719]  {NimbusRomNo9L-Regu 10.9}ization, thereby reducing the time complexity from
-  p5-l136  [306 721 526 733]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} |N |{CMR8 8}4{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9} to{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}.
+  p5-l136  [306 721 526 733]  {CMSY10 10.9 i}O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMSY10 10.9 i} |N|{CMR8 8}4{CMR10 10.9}){NimbusRomNo9L-Regu 10.9} to{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}.
   p5-l137  [306 736 524 746]  {NimbusRomNo9L-Regu 10.9}We thereby addressed one of the main limitations
   p5-l138  [306 750 524 760]  {NimbusRomNo9L-Regu 10.9}of the original formulation, of being slow for large
   p5-l139  [306 764 372 773]  {NimbusRomNo9L-Regu 10.9}grammar sizes.
@@ -2773,12 +2773,12 @@
   p7-l52  [71 708 291 717]  {NimbusRomNo9L-Regu 10}Stephen Warshall. 1962. A theorem on boolean matri-
   p7-l53  [82 719 231 728]  {NimbusRomNo9L-Regu 10}ces.{NimbusRomNo9L-ReguItal 10 i} Journal of the ACM{NimbusRomNo9L-Regu 10}, 9(1):11–12.
   p7-l54  [71 737 290 746]  {NimbusRomNo9L-Regu 10}Daniel H. Younger. 1967. Recognition and parsing of
-  p7-l55  [82 747 289 757]  {NimbusRomNo9L-Regu 10}context-free languages in time{CMMI10 10 i} n{CMR7 7} 3{NimbusRomNo9L-Regu 10} .{NimbusRomNo9L-ReguItal 10 i} Information and
+  p7-l55  [82 747 289 757]  {NimbusRomNo9L-Regu 10}context-free languages in time{CMMI10 10 i} n{CMR7 7}3{NimbusRomNo9L-Regu 10}.{NimbusRomNo9L-ReguItal 10 i} Information and
   p7-l56  [81 759 179 768]  {NimbusRomNo9L-ReguItal 10 i}Control{NimbusRomNo9L-Regu 10}, 10(2):189–208.
   p7-l57  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}63
   == page 8  595 x 842  lines 65  pictures 0  drawings 0
   p8-l1  [71 74 171 84]  {NimbusRomNo9L-Medi 12 b}A Proof of Lem. 1
-  p8-l2  [71 95 524 106]  {NimbusRomNo9L-Medi 10.9 b}Lemma 1.{NimbusRomNo9L-ReguItal 10.9 i} Given a tight, trim PCFG in CNF and a string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-ReguItal 10.9 i} , the prefix probability of a
+  p8-l2  [71 95 524 106]  {NimbusRomNo9L-Medi 10.9 b}Lemma 1.{NimbusRomNo9L-ReguItal 10.9 i} Given a tight, trim PCFG in CNF and a string{CMMIB10 10.9 i} w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-ReguItal 10.9 i}, the prefix probability of a
   p8-l3  [71 108 452 120]  {NimbusRomNo9L-ReguItal 10.9 i}substring{CMMI10 10.9 i} w{CMMI8 8 i}i{CMR8 8}+1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}k{NimbusRomNo9L-ReguItal 10.9 i} of{CMMIB10 10.9 i} w{NimbusRomNo9L-ReguItal 10.9 i} being derived from{CMR10 10.9} X{NimbusRomNo9L-ReguItal 10.9 i} can be defined recursively as follows:
   p8-l4  [167 144 246 160]  {CMMI10 10.9 i}π{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9}) ={CMEX10 10.9} X
   p8-l5  [224 162 252 170]  {CMR8 8}Y{CMMI8 8 i},{CMR8 8}Z{CMSY8 8 i}∈N
@@ -2787,7 +2787,7 @@
   p8-l8  [310 163 334 170]  {CMMI8 8 i}j{CMR8 8}={CMMI8 8 i}i{CMR8 8}+1
   p8-l9  [336 147 428 158]  {CMMI10 10.9 i}β{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} Y{CMMI10 10.9 i}, j{CMR10 10.9}){CMSY10 10.9 i} ·{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
   p8-l10  [507 148 525 157]  {NimbusRomNo9L-Regu 10.9}(10)
-  p8-l11  [70 182 295 193]  {NimbusRomNo9L-ReguItal 10.9 i}Base case (for all{CMMI10 10.9 i} k{CMSY10 10.9 i} ∈{CMR10 10.9} 0{CMMI10 10.9 i} . . . N{CMSY10 10.9 i} −{CMR10 10.9} 1{NimbusRomNo9L-ReguItal 10.9 i} and all{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i} ):
+  p8-l11  [70 182 295 193]  {NimbusRomNo9L-ReguItal 10.9 i}Base case (for all{CMMI10 10.9 i} k{CMSY10 10.9 i} ∈{CMR10 10.9} 0{CMMI10 10.9 i} . . . N{CMSY10 10.9 i} −{CMR10 10.9} 1{NimbusRomNo9L-ReguItal 10.9 i} and all{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-ReguItal 10.9 i}):
   p8-l12  [198 205 289 221]  {CMMI10 10.9 i}π{CMR10 10.9}({CMMI10 10.9 i}k,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9}+1) ={CMEX10 10.9} X
   p8-l13  [271 223 291 231]  {CMR8 8}Y{CMSY8 8 i}∈N
   p8-l14  [293 208 398 219]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} p{CMR10 10.9}(Y{CMSY10 10.9 i}−→{CMMI10 10.9 i}w{CMMI8 8 i}k{CMR8 8}+1{CMR10 10.9})
@@ -2868,32 +2868,32 @@
   p9-l23  [71 484 524 494]  {CMSY10 10.9 i}⊕{NimbusRomNo9L-ReguItal 10.9 i} to infinite sums, maintaining the properties of associativity, commutativity, and distributivity from the
   p9-l24  [69 498 526 508]  {NimbusRomNo9L-ReguItal 10.9 i}finite case (Rozenberg and Salomaa, 1997, Chapter 9). In this case, we can define the unary operation of
   p9-l25  [71 509 526 521]  {NimbusRomNo9L-ReguItal 10.9 i}the{NimbusRomNo9L-MediItal 10.9 b i} Kleene star{NimbusRomNo9L-ReguItal 10.9 i} denoted by a superscript{CMSY8 8 i} ∗{NimbusRomNo9L-ReguItal 10.9 i} as the infinite sum over powers of its operand, that is,{CMSY10 10.9 i} ∀{CMMI10 10.9 i}a{CMSY10 10.9 i} ∈ A{NimbusRomNo9L-ReguItal 10.9 i}:
-  p9-l26  [271 540 293 553]  {CMMI10 10.9 i}a{CMSY8 8 i} ∗{NimbusRomNo9L-Regu 6} def
+  p9-l26  [271 540 293 553]  {CMMI10 10.9 i}a{CMSY8 8 i}∗{NimbusRomNo9L-Regu 6} def
   p9-l27  [285 540 313 556]  {CMR10 10.9}={CMEX10 10.9} M
   p9-l28  [300 531 309 539]  {CMSY8 8 i}∞
   p9-l29  [298 558 312 565]  {CMMI8 8 i}i{CMR8 8}=0
-  p9-l30  [315 541 323 553]  {CMMI10 10.9 i}a{CMMI8 8 i} i
+  p9-l30  [315 541 323 553]  {CMMI10 10.9 i}a{CMMI8 8 i}i
   p9-l31  [507 543 525 553]  {NimbusRomNo9L-Regu 10.9}(21)
   p9-l32  [70 576 266 586]  {NimbusRomNo9L-Regu 10.9}Analogously to Eq. (14), it then follows that:
-  p9-l33  [166 605 208 620]  {CMMI10 10.9 i}a{CMSY8 8 i} ∗{CMR10 10.9} ={CMEX10 10.9} M
+  p9-l33  [166 605 208 620]  {CMMI10 10.9 i}a{CMSY8 8 i}∗{CMR10 10.9} ={CMEX10 10.9} M
   p9-l34  [195 596 204 603]  {CMSY8 8 i}∞
   p9-l35  [193 623 206 630]  {CMMI8 8 i}i{CMR8 8}=0
-  p9-l36  [210 605 274 620]  {CMMI10 10.9 i}a{CMMI8 8 i} i{CMR10 10.9} ={CMMI10 10.9 i} a{CMR8 8} 0{CMSY10 10.9 i} ⊕{CMEX10 10.9} M
+  p9-l36  [210 605 274 620]  {CMMI10 10.9 i}a{CMMI8 8 i}i{CMR10 10.9} ={CMMI10 10.9 i} a{CMR8 8}0{CMSY10 10.9 i} ⊕{CMEX10 10.9} M
   p9-l37  [261 596 270 603]  {CMSY8 8 i}∞
   p9-l38  [259 623 272 630]  {CMMI8 8 i}i{CMR8 8}=1
-  p9-l39  [275 605 354 620]  {CMMI10 10.9 i}a{CMMI8 8 i} i{CMR10 10.9} ={CMBX10 10.9 b} 1{CMSY10 10.9 i} ⊕{CMMI10 10.9 i} a{CMSY10 10.9 i} ⊗{CMEX10 10.9} M
+  p9-l39  [275 605 354 620]  {CMMI10 10.9 i}a{CMMI8 8 i}i{CMR10 10.9} ={CMBX10 10.9 b} 1{CMSY10 10.9 i} ⊕{CMMI10 10.9 i} a{CMSY10 10.9 i} ⊗{CMEX10 10.9} M
   p9-l40  [342 596 350 603]  {CMSY8 8 i}∞
   p9-l41  [339 623 353 630]  {CMMI8 8 i}i{CMR8 8}=0
-  p9-l42  [356 605 429 618]  {CMMI10 10.9 i}a{CMMI8 8 i} i{CMR10 10.9} ={CMBX10 10.9 b} 1{CMSY10 10.9 i} ⊕{CMMI10 10.9 i} a{CMSY10 10.9 i} ⊗{CMMI10 10.9 i} a{CMSY8 8 i} ∗
+  p9-l42  [356 605 429 618]  {CMMI10 10.9 i}a{CMMI8 8 i}i{CMR10 10.9} ={CMBX10 10.9 b} 1{CMSY10 10.9 i} ⊕{CMMI10 10.9 i} a{CMSY10 10.9 i} ⊗{CMMI10 10.9 i} a{CMSY8 8 i}∗
   p9-l43  [507 608 525 618]  {NimbusRomNo9L-Regu 10.9}(22)
   p9-l44  [71 641 134 651]  {NimbusRomNo9L-Regu 10.9}and, similarly:
-  p9-l45  [187 659 253 675]  {CMMI10 10.9 i}a{CMSY8 8 i} ∗{CMR10 10.9} ={CMMI10 10.9 i} a{CMR8 8} 0{CMSY10 10.9 i} ⊕{CMEX10 10.9} M
+  p9-l45  [187 659 253 675]  {CMMI10 10.9 i}a{CMSY8 8 i}∗{CMR10 10.9} ={CMMI10 10.9 i} a{CMR8 8}0{CMSY10 10.9 i} ⊕{CMEX10 10.9} M
   p9-l46  [240 650 249 658]  {CMSY8 8 i}∞
   p9-l47  [238 677 251 684]  {CMMI8 8 i}i{CMR8 8}=1
-  p9-l48  [254 659 314 675]  {CMMI10 10.9 i}a{CMMI8 8 i} i{CMR10 10.9} ={CMBX10 10.9 b} 1{CMSY10 10.9 i} ⊕{CMEX10 10.9} M
+  p9-l48  [254 659 314 675]  {CMMI10 10.9 i}a{CMMI8 8 i}i{CMR10 10.9} ={CMBX10 10.9 b} 1{CMSY10 10.9 i} ⊕{CMEX10 10.9} M
   p9-l49  [302 650 310 658]  {CMSY8 8 i}∞
   p9-l50  [299 677 313 684]  {CMMI8 8 i}i{CMR8 8}=0
-  p9-l51  [316 659 408 672]  {CMMI10 10.9 i}a{CMMI8 8 i} i{CMSY10 10.9 i} ⊗{CMMI10 10.9 i} a{CMR10 10.9} ={CMBX10 10.9 b} 1{CMSY10 10.9 i} ⊕{CMMI10 10.9 i} a{CMSY8 8 i} ∗{CMSY10 10.9 i} ⊗{CMMI10 10.9 i} a
+  p9-l51  [316 659 408 672]  {CMMI10 10.9 i}a{CMMI8 8 i}i{CMSY10 10.9 i} ⊗{CMMI10 10.9 i} a{CMR10 10.9} ={CMBX10 10.9 b} 1{CMSY10 10.9 i} ⊕{CMMI10 10.9 i} a{CMSY8 8 i}∗{CMSY10 10.9 i} ⊗{CMMI10 10.9 i} a
   p9-l52  [507 662 525 672]  {NimbusRomNo9L-Regu 10.9}(23)
   p9-l53  [82 691 525 701]  {NimbusRomNo9L-Regu 10.9}We now discuss how complete semirings can be lifted to square matrices. The definitions follow
   p9-l54  [71 705 274 714]  {NimbusRomNo9L-Regu 10.9}analogously to matrices over the real numbers.
@@ -2924,12 +2924,12 @@
   p10-l16  [71 226 458 235]  {NimbusRomNo9L-Regu 10.9}Furthermore, by the element-wise definition of its addition operation, it is also complete.
   p10-l17  [71 249 86 259]  {NimbusRomNo9L-Medi 10.9 b}B.2
   p10-l18  [97 249 264 259]  {NimbusRomNo9L-Medi 10.9 b}Semiring-weighted prefix algorithm
-  p10-l19  [70 267 524 278]  {NimbusRomNo9L-Regu 10.9}We now consider a semiring-weighted CFG{CMSY10 10.9 i} G{CMR10 10.9} ={CMSY10 10.9 i} ⟨N{CMMI10 10.9 i} ,{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p,{CMSY10 10.9 i} W⟩{NimbusRomNo9L-Regu 10.9}, where{CMSY10 10.9 i} N{CMMI10 10.9 i} ,{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{NimbusRomNo9L-Regu 10.9} are defined as
+  p10-l19  [70 267 524 278]  {NimbusRomNo9L-Regu 10.9}We now consider a semiring-weighted CFG{CMSY10 10.9 i} G{CMR10 10.9} ={CMSY10 10.9 i} ⟨N{CMMI10 10.9 i},{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p,{CMSY10 10.9 i} W⟩{NimbusRomNo9L-Regu 10.9}, where{CMSY10 10.9 i} N{CMMI10 10.9 i},{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{NimbusRomNo9L-Regu 10.9} are defined as
   p10-l20  [71 280 524 291]  {NimbusRomNo9L-Regu 10.9}before but the weighting function{CMMI10 10.9 i} p{CMR10 10.9}:{CMSY10 10.9 i} R → W{NimbusRomNo9L-Regu 10.9} now maps rules to elements of a commutative semiring
-  p10-l21  [71 293 524 305]  {CMSY10 10.9 i}W{NimbusRomNo9L-Regu 10.9}.{NimbusRomNo9L-Regu 8} 9{NimbusRomNo9L-Regu 10.9} Note that we no longer require the rule weights to sum to one. As before, we define the matrix{CMMI10 10.9 i} P
-  p10-l22  [71 307 524 318]  {NimbusRomNo9L-Regu 10.9}as the square matrix of dimension{CMSY10 10.9 i} |N |{NimbusRomNo9L-Regu 10.9} whose rows and columns are indexed by the non-terminals{CMSY10 10.9 i} N{NimbusRomNo9L-Regu 10.9} in
+  p10-l21  [71 293 524 305]  {CMSY10 10.9 i}W{NimbusRomNo9L-Regu 10.9}.{NimbusRomNo9L-Regu 8}9{NimbusRomNo9L-Regu 10.9} Note that we no longer require the rule weights to sum to one. As before, we define the matrix{CMMI10 10.9 i} P
+  p10-l22  [71 307 524 318]  {NimbusRomNo9L-Regu 10.9}as the square matrix of dimension{CMSY10 10.9 i} |N|{NimbusRomNo9L-Regu 10.9} whose rows and columns are indexed by the non-terminals{CMSY10 10.9 i} N{NimbusRomNo9L-Regu 10.9} in
   p10-l23  [71 322 524 333]  {NimbusRomNo9L-Regu 10.9}some fixed order so that the entry{CMMI10 10.9 i} P{CMMI8 8 i}ij{NimbusRomNo9L-Regu 10.9} corresponds to the weight of getting the non-terminal{CMR10 10.9} X{CMR8 8}j{NimbusRomNo9L-Regu 10.9} on the left
-  p10-l24  [71 335 524 346]  {NimbusRomNo9L-Regu 10.9}after one rule application to{CMR10 10.9} X{CMR8 8}i{NimbusRomNo9L-Regu 10.9} . Since the rule weights are no longer locally normalized, however, we
+  p10-l24  [71 335 524 346]  {NimbusRomNo9L-Regu 10.9}after one rule application to{CMR10 10.9} X{CMR8 8}i{NimbusRomNo9L-Regu 10.9}. Since the rule weights are no longer locally normalized, however, we
   p10-l25  [71 347 476 359]  {NimbusRomNo9L-Regu 10.9}need to include the treesum under the right non-terminal of each rule as an additional term:{NimbusRomNo9L-Regu 8}10
   p10-l26  [172 373 276 387]  {CMMI10 10.9 i}P{CMMI8 8 i}ij{CMR10 10.9} ={CMMI10 10.9 i} p{CMR10 10.9}(X{CMMI8 8 i}i{CMSY10 10.9 i} −→{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} _{CMR10 10.9}){NimbusRomNo9L-Regu 6} def
   p10-l27  [267 372 297 388]  {CMR10 10.9}={CMEX10 10.9} M
@@ -2937,12 +2937,12 @@
   p10-l29  [301 375 423 387]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMMI8 8 i}i{CMSY10 10.9 i} −→{CMR10 10.9} X{CMMI8 8 i}j{CMR10 10.9}Y){CMSY10 10.9 i} ·{NimbusRomNo9L-Regu 10.9} treesum{CMR10 10.9}(Y)
   p10-l30  [507 376 525 386]  {NimbusRomNo9L-Regu 10.9}(26)
   p10-l31  [70 411 524 422]  {NimbusRomNo9L-Regu 10.9}We can then calculate the weight of getting{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} from{CMR10 10.9} X{CMMI8 8 i}i{NimbusRomNo9L-Regu 10.9} at the leftmost non-terminal after exactly{CMMI10 10.9 i} k
-  p10-l32  [71 424 249 438]  {NimbusRomNo9L-Regu 10.9}derivation steps as{CMR10 10.9} ({CMMI10 10.9 i}P{CMMI8 8 i} k{CMR10 10.9} ){CMMI8 8 i}ij{NimbusRomNo9L-Regu 10.9} , where{CMMI10 10.9 i} P{CMMI8 8 i} k{NimbusRomNo9L-Regu 6} def
+  p10-l32  [71 424 249 438]  {NimbusRomNo9L-Regu 10.9}derivation steps as{CMR10 10.9} ({CMMI10 10.9 i}P{CMMI8 8 i}k{CMR10 10.9}){CMMI8 8 i}ij{NimbusRomNo9L-Regu 10.9}, where{CMMI10 10.9 i} P{CMMI8 8 i}k{NimbusRomNo9L-Regu 6} def
   p10-l33  [241 426 286 436]  {CMR10 10.9}={CMMI10 10.9 i} P{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} P
   p10-l34  [253 435 287 445]  {CMEX10 10.9}| {z }
   p10-l35  [258 443 282 451]  {CMMI8 8 i}k{NimbusRomNo9L-Regu 8} times
   p10-l36  [287 427 524 437]  {NimbusRomNo9L-Regu 10.9}. Finally, to get the left-corner expectations, we then
-  p10-l37  [71 450 524 465]  {NimbusRomNo9L-Regu 10.9}need to calculate the Kleene closure over the matrix{CMMI10 10.9 i} P{NimbusRomNo9L-Regu 10.9},{NimbusRomNo9L-Regu 8} 11{NimbusRomNo9L-Regu 10.9} that is, we want to find{CMMI10 10.9 i} P{CMSY8 8 i} ∗{CMR10 10.9} ={CMEX10 10.9} P{CMSY8 8 i}∞{CMMI8 8 i} k{CMR8 8}=0{CMMI10 10.9 i} P{CMMI8 8 i} k{NimbusRomNo9L-Regu 10.9} . To
+  p10-l37  [71 450 524 465]  {NimbusRomNo9L-Regu 10.9}need to calculate the Kleene closure over the matrix{CMMI10 10.9 i} P{NimbusRomNo9L-Regu 10.9},{NimbusRomNo9L-Regu 8}11{NimbusRomNo9L-Regu 10.9} that is, we want to find{CMMI10 10.9 i} P{CMSY8 8 i}∗{CMR10 10.9} ={CMEX10 10.9} P{CMSY8 8 i}∞{CMMI8 8 i}k{CMR8 8}=0{CMMI10 10.9 i} P{CMMI8 8 i}k{NimbusRomNo9L-Regu 10.9}. To
   p10-l38  [71 467 524 477]  {NimbusRomNo9L-Regu 10.9}compute the Kleene closure over the transition matrix we can use an efficient algorithm by Lehmann
   p10-l39  [71 480 524 490]  {NimbusRomNo9L-Regu 10.9}(1977) which is a generalization of the well-known shortest-path algorithm usually attributed to Floyd
   p10-l40  [71 492 524 504]  {NimbusRomNo9L-Regu 10.9}(1962) and Warshall (1962), but introduced previously by Roy (1959).{NimbusRomNo9L-Regu 8}12{NimbusRomNo9L-Regu 10.9} The algorithm works under the
@@ -2962,15 +2962,15 @@
   p10-l54  [77 632 84 640]  {NimbusRomNo9L-Regu 9}6:
   p10-l55  [116 630 194 640]  {NimbusRomNo9L-Medi 10.9 b}for{CMMI10 10.9 i} k{CMR10 10.9} = 1{CMMI10 10.9 i}, . . . , d{NimbusRomNo9L-Regu 10.9} :
   p10-l56  [77 648 84 656]  {NimbusRomNo9L-Regu 9}7:
-  p10-l57  [125 642 148 656]  {CMMI10 10.9 i}M{CMR8 8} ({CMMI8 8 i}j{CMR8 8})
-  p10-l58  [136 642 198 659]  {CMMI8 8 i}ik{CMSY10 10.9 i} ←−{CMMI10 10.9 i} M{CMR8 8} ({CMMI8 8 i}j{CMSY8 8 i}−{CMR8 8}1)
+  p10-l57  [125 642 148 656]  {CMMI10 10.9 i}M{CMR8 8}({CMMI8 8 i}j{CMR8 8})
+  p10-l58  [136 642 198 659]  {CMMI8 8 i}ik{CMSY10 10.9 i} ←−{CMMI10 10.9 i} M{CMR8 8}({CMMI8 8 i}j{CMSY8 8 i}−{CMR8 8}1)
   p10-l59  [176 652 183 659]  {CMMI8 8 i}ik
-  p10-l60  [201 642 245 656]  {CMSY10 10.9 i}⊕{CMMI10 10.9 i} M{CMR8 8} ({CMMI8 8 i}j{CMSY8 8 i}−{CMR8 8}1)
+  p10-l60  [201 642 245 656]  {CMSY10 10.9 i}⊕{CMMI10 10.9 i} M{CMR8 8}({CMMI8 8 i}j{CMSY8 8 i}−{CMR8 8}1)
   p10-l61  [222 652 229 659]  {CMMI8 8 i}ij
-  p10-l62  [248 642 298 656]  {CMSY10 10.9 i}⊗{CMMI10 10.9 i} M{CMR8 8} ({CMMI8 8 i}j{CMSY8 8 i}−{CMR8 8}1)
+  p10-l62  [248 642 298 656]  {CMSY10 10.9 i}⊗{CMMI10 10.9 i} M{CMR8 8}({CMMI8 8 i}j{CMSY8 8 i}−{CMR8 8}1)
   p10-l63  [276 652 283 659]  {CMMI8 8 i}jj
   p10-l64  [305 639 310 646]  {CMSY8 8 i}∗
-  p10-l65  [313 642 356 656]  {CMSY10 10.9 i}⊗{CMMI10 10.9 i} M{CMR8 8} ({CMMI8 8 i}j{CMSY8 8 i}−{CMR8 8}1)
+  p10-l65  [313 642 356 656]  {CMSY10 10.9 i}⊗{CMMI10 10.9 i} M{CMR8 8}({CMMI8 8 i}j{CMSY8 8 i}−{CMR8 8}1)
   p10-l66  [334 652 342 659]  {CMMI8 8 i}jk
   p10-l67  [77 669 84 677]  {NimbusRomNo9L-Regu 9}8:
   p10-l68  [98 665 172 677]  {NimbusRomNo9L-Medi 10.9 b}return{CMBX10 10.9 b} I{CMR10 10.9} +{CMMI10 10.9 i} M{CMR8 8}({CMMI8 8 i}d{CMR8 8})
@@ -2988,13 +2988,13 @@
   p11-l2  [71 87 524 98]  {NimbusRomNo9L-Regu 10.9}any non-terminal{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} to the treesum under{CMR10 10.9} X{NimbusRomNo9L-Regu 10.9}. With this, we can now generalize our prefix weight
   p11-l3  [71 101 259 111]  {NimbusRomNo9L-Regu 10.9}algorithm to semirings, as shown in Alg. 5.
   p11-l4  [70 126 297 136]  {NimbusRomNo9L-Medi 10.9 b}Algorithm 5{NimbusRomNo9L-Regu 10.9} Faster prefix algorithm over semirings
-  p11-l5  [77 141 176 154]  {NimbusRomNo9L-Regu 9}1:{CMMI10 10.9 i} P{CMSY8 8 i} ′{CMSY10 10.9 i} ←−{NimbusRomNo9L-Regu 10.9} Lehmann{CMR10 10.9}({CMMI10 10.9 i}P{CMR10 10.9})
-  p11-l6  [418 143 524 153]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Precompute{CMMI9 9 i} P{CMSY6 6 i} ∗{NimbusRomNo9L-ReguItal 9 i} with Alg. 4
-  p11-l7  [77 156 164 168]  {NimbusRomNo9L-Regu 9}2:{NimbusRomNo9L-Medi 10.9 b} for{CMR10 10.9} X{CMMI8 8 i}i{CMMI10 10.9 i} ,{CMR10 10.9} X{CMMI8 8 i}j{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
+  p11-l5  [77 141 176 154]  {NimbusRomNo9L-Regu 9}1:{CMMI10 10.9 i} P{CMSY8 8 i}′{CMSY10 10.9 i} ←−{NimbusRomNo9L-Regu 10.9} Lehmann{CMR10 10.9}({CMMI10 10.9 i}P{CMR10 10.9})
+  p11-l6  [418 143 524 153]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Precompute{CMMI9 9 i} P{CMSY6 6 i}∗{NimbusRomNo9L-ReguItal 9 i} with Alg. 4
+  p11-l7  [77 156 164 168]  {NimbusRomNo9L-Regu 9}2:{NimbusRomNo9L-Medi 10.9 b} for{CMR10 10.9} X{CMMI8 8 i}i{CMMI10 10.9 i},{CMR10 10.9} X{CMMI8 8 i}j{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
   p11-l8  [451 157 525 167]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Assign{CMMI9 9 i} ξ{CMR9 9}(X{CMMI6 6 i}j{CMSY9 9 i} |{CMR9 9} X{CMMI6 6 i}i{CMR9 9})
   p11-l9  [77 172 84 180]  {NimbusRomNo9L-Regu 9}3:
-  p11-l10  [98 168 180 181]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMMI8 8 i}j{CMSY10 10.9 i} |{CMR10 10.9} X{CMMI8 8 i}i{CMR10 10.9}){CMSY10 10.9 i} ←−{CMMI10 10.9 i} P{CMSY8 8 i} ′{CMMI8 8 i} ij
-  p11-l11  [77 187 267 198]  {NimbusRomNo9L-Regu 9}4:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} FastSemiringJL({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{CMMI10 10.9 i} ,{CMSY10 10.9 i} G{NimbusRomNo9L-Regu 10.9}):
+  p11-l10  [98 168 180 181]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMMI8 8 i}j{CMSY10 10.9 i} |{CMR10 10.9} X{CMMI8 8 i}i{CMR10 10.9}){CMSY10 10.9 i} ←−{CMMI10 10.9 i} P{CMSY8 8 i}′{CMMI8 8 i}ij
+  p11-l11  [77 187 267 198]  {NimbusRomNo9L-Regu 9}4:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} FastSemiringJL({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{CMMI10 10.9 i},{CMSY10 10.9 i} G{NimbusRomNo9L-Regu 10.9}):
   p11-l12  [77 202 84 210]  {NimbusRomNo9L-Regu 9}5:
   p11-l13  [98 200 156 211]  {CMMI10 10.9 i}π{CMR10 10.9}({CMSY10 10.9 i}·{CMMI10 10.9 i},{CMSY10 10.9 i} ·{CMMI10 10.9 i},{CMSY10 10.9 i} ·{CMR10 10.9}){CMSY10 10.9 i} ←−{CMBX10 10.9 b} 0
   p11-l14  [414 201 524 210]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Initialize prefix probabilities
@@ -3014,16 +3014,16 @@
   p11-l28  [107 284 173 295]  {NimbusRomNo9L-Medi 10.9 b}for{CMR10 10.9} X{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
   p11-l29  [431 285 525 294]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Compute{CMMI9 9 i} γ{NimbusRomNo9L-ReguItal 9 i} by Eq.{NimbusRomNo9L-Regu 9} (16e)
   p11-l30  [72 300 84 308]  {NimbusRomNo9L-Regu 9}12:
-  p11-l31  [116 297 186 309]  {CMMI10 10.9 i}γ{CMMI8 8 i}ij{CMR10 10.9} (X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i}←−{CMEX10 10.9} L
+  p11-l31  [116 297 186 309]  {CMMI10 10.9 i}γ{CMMI8 8 i}ij{CMR10 10.9}(X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i}←−{CMEX10 10.9} L
   p11-l32  [170 310 191 317]  {CMR8 8}Y{CMSY8 8 i}∈N
   p11-l33  [192 298 296 309]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMSY10 10.9 i}−→{CMR10 10.9}YZ){CMSY10 10.9 i} ⊗{CMMI10 10.9 i} β{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} Y{CMMI10 10.9 i}, j{CMR10 10.9})
   p11-l34  [72 325 84 333]  {NimbusRomNo9L-Regu 9}13:
   p11-l35  [107 322 173 333]  {NimbusRomNo9L-Medi 10.9 b}for{CMR10 10.9} X{CMMI10 10.9 i},{CMR10 10.9} Z{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} :
   p11-l36  [432 323 525 333]  {CMMI10 10.9 i}▷{NimbusRomNo9L-ReguItal 9 i} Compute{CMMI9 9 i} δ{NimbusRomNo9L-ReguItal 9 i} by Eq.{NimbusRomNo9L-Regu 9} (16f)
   p11-l37  [72 338 84 346]  {NimbusRomNo9L-Regu 9}14:
-  p11-l38  [116 336 186 348]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9} (X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i}←−{CMEX10 10.9} L
+  p11-l38  [116 336 186 348]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9}(X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i}←−{CMEX10 10.9} L
   p11-l39  [169 348 190 356]  {CMR8 8}Y{CMSY8 8 i}∈N
-  p11-l40  [191 336 286 348]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ⊗{CMMI10 10.9 i} γ{CMMI8 8 i}ij{CMR10 10.9} (Y{CMMI10 10.9 i},{CMR10 10.9} Z)
+  p11-l40  [191 336 286 348]  {CMMI10 10.9 i}ξ{CMR10 10.9}(Y{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ⊗{CMMI10 10.9 i} γ{CMMI8 8 i}ij{CMR10 10.9}(Y{CMMI10 10.9 i},{CMR10 10.9} Z)
   p11-l41  [72 363 84 372]  {NimbusRomNo9L-Regu 9}15:
   p11-l42  [98 361 198 372]  {NimbusRomNo9L-Medi 10.9 b}for{CMMI10 10.9 i} k{CMSY10 10.9 i} ∈{CMR10 10.9} 0{CMMI10 10.9 i}, . . . , N{CMSY10 10.9 i} −{CMR10 10.9} 1{NimbusRomNo9L-Regu 10.9} :
   p11-l43  [72 377 84 385]  {NimbusRomNo9L-Regu 9}16:
@@ -3048,16 +3048,16 @@
   p11-l62  [190 474 203 485]  {CMEX10 10.9}L
   p11-l63  [193 466 204 474]  {CMSY8 8 i}−{CMR8 8}1
   p11-l64  [184 487 209 494]  {CMMI8 8 i}j{CMR8 8}={CMMI8 8 i}i{CMR8 8}+1
-  p11-l65  [210 474 306 486]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9} (X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i} ⊗{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
+  p11-l65  [210 474 306 486]  {CMMI10 10.9 i}δ{CMMI8 8 i}ij{CMR10 10.9}(X{CMMI10 10.9 i},{CMR10 10.9} Z){CMSY10 10.9 i} ⊗{CMMI10 10.9 i} π{CMR10 10.9}({CMMI10 10.9 i}j,{CMR10 10.9} Z{CMMI10 10.9 i}, k{CMR10 10.9})
   p11-l66  [72 503 84 511]  {NimbusRomNo9L-Regu 9}23:
   p11-l67  [98 501 137 511]  {NimbusRomNo9L-Medi 10.9 b}return{CMMI10 10.9 i} π
-  p11-l68  [71 531 492 543]  {NimbusRomNo9L-Medi 10.9 b}Proposition 4.{NimbusRomNo9L-ReguItal 10.9 i} The semiring-weighted version of our algorithm runs in{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-ReguItal 10.9 i}.
+  p11-l68  [71 531 492 543]  {NimbusRomNo9L-Medi 10.9 b}Proposition 4.{NimbusRomNo9L-ReguItal 10.9 i} The semiring-weighted version of our algorithm runs in{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i}.
   p11-l69  [71 553 524 563]  {NimbusRomNo9L-ReguItal 10.9 i}Proof.{NimbusRomNo9L-Regu 10.9} Lehmann’s algorithm, as presented in Alg. 4, has three nested for loops of{CMMI10 10.9 i} d{NimbusRomNo9L-Regu 10.9} iterations each, where
-  p11-l70  [71 566 524 577]  {CMMI10 10.9 i}d{NimbusRomNo9L-Regu 10.9} is the dimension of the input matrix. In our case,{CMMI10 10.9 i} d{NimbusRomNo9L-Regu 10.9} is the number of non-terminals,{CMSY10 10.9 i} |N |{NimbusRomNo9L-Regu 10.9}. Assuming the
+  p11-l70  [71 566 524 577]  {CMMI10 10.9 i}d{NimbusRomNo9L-Regu 10.9} is the dimension of the input matrix. In our case,{CMMI10 10.9 i} d{NimbusRomNo9L-Regu 10.9} is the number of non-terminals,{CMSY10 10.9 i} |N|{NimbusRomNo9L-Regu 10.9}. Assuming the
   p11-l71  [71 580 525 591]  {NimbusRomNo9L-Regu 10.9}Kleene closure of elements in{CMSY10 10.9 i} W{NimbusRomNo9L-Regu 10.9} can be evaluated in{CMSY10 10.9 i} O{CMR10 10.9}(1){NimbusRomNo9L-Regu 10.9}, this means that computing the left corner
-  p11-l72  [71 592 524 604]  {NimbusRomNo9L-Regu 10.9}expectations in line 1 of Alg. 5 takes{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N |{CMR8 8}3{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}, as before. Hence, the complexity of the overall algorithm
+  p11-l72  [71 592 524 604]  {NimbusRomNo9L-Regu 10.9}expectations in line 1 of Alg. 5 takes{CMSY10 10.9 i} O{CMR10 10.9}({CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}, as before. Hence, the complexity of the overall algorithm
   p11-l73  [71 608 525 618]  {NimbusRomNo9L-Regu 10.9}remains unchanged, that is, we can compute the prefix probabilities under a semiring-weighted, locally
-  p11-l74  [71 619 273 631]  {NimbusRomNo9L-Regu 10.9}normalized CFG{CMSY10 10.9 i} G{NimbusRomNo9L-Regu 10.9} in{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i} |N |{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i} |N |{CMR8 8}2{CMR10 10.9} ){NimbusRomNo9L-Regu 10.9}.
+  p11-l74  [71 619 273 631]  {NimbusRomNo9L-Regu 10.9}normalized CFG{CMSY10 10.9 i} G{NimbusRomNo9L-Regu 10.9} in{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}.
   p11-l75  [516 621 524 629]  {MSAM10 10.9}■
   p11-l76  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}67
   
@@ -3146,7 +3146,7 @@
   p3-l3  [89 114 545 126]  {SFRM1200 12}Currently, in the absence of a complete description of (or difficulty conceptualizing) the
   p3-l4  [52 129 545 140]  {SFRM1200 12}above two ingredients, one often relies on constructs using information, computation or causality
   p3-l5  [52 143 545 155]  {SFRM1200 12}[43, 99, 124]. These are certainly useful to quantify computational processes or identify states of
-  p3-l6  [52 157 545 169]  {SFRM1200 12}complexity, but that is still rather far from capturing the very phenomenal character of qualia{SFRM0800 8}1{SFRM1200 12} .
+  p3-l6  [52 157 545 169]  {SFRM1200 12}complexity, but that is still rather far from capturing the very phenomenal character of qualia{SFRM0800 8}1{SFRM1200 12}.
   p3-l7  [52 172 545 183]  {SFRM1200 12}Possibly, a metaphysical formalization of phenomenal properties is what is needed. Even though
   p3-l8  [52 187 545 198]  {SFRM1200 12}a satisfactory solution to this problem does not exist yet, here we put forth a proposal that
   p3-l9  [52 201 545 212]  {SFRM1200 12}identifies subjectively attributed meaning with the phenomenal content of conscious experience.
@@ -3198,7 +3198,7 @@
   p4-l10  [56 278 548 289]  {SFBX1200 12 b}Proposition 2.1.{SFTI1200 12 i} We hypothesize a notion of subjectively attributed meaning or subjective mean-
   p4-l11  [56 292 548 303]  {SFTI1200 12 i}ing as an inherent feature of the qualia of consciousness. This subjective meaning constitutes the
   p4-l12  [56 307 304 318]  {SFTI1200 12 i}phenomenal content of all conscious experiences.
-  p4-l13  [89 356 545 368]  {SFRM1200 12}Meaning is not merely about language{SFRM0800 8}2{SFRM1200 12} , nor is it merely a construct about the world "as
+  p4-l13  [89 356 545 368]  {SFRM1200 12}Meaning is not merely about language{SFRM0800 8}2{SFRM1200 12}, nor is it merely a construct about the world "as
   p4-l14  [52 372 545 383]  {SFRM1200 12}is". The notion of meaning has been extensively discussed by several philosophers in the context of
   p4-l15  [52 386 545 398]  {SFRM1200 12}language, mind, metaphysics and epistemology [52,63,68,74]. How cognitive and artificial agents
   p4-l16  [52 401 545 412]  {SFRM1200 12}learn to make associations about things in the world, is deeply relevant to our understanding of
@@ -3220,7 +3220,7 @@
   p4-l32  [52 671 545 682]  {SFRM1200 12}tains to the knowledge or significance that an experience acquires via mechanistic controls or
   p4-l33  [52 685 545 696]  {SFRM1200 12}computational processes, over and above its raw phenomenal content. In that sense, this is a
   p4-l34  [52 700 545 711]  {SFRM1200 12}deliberative meaning-making process. For example, meaning associated to perceptual processes
-  p4-l35  [66 721 492 732]  {SFRM0700 7}2{SFRM1000 10} It was David Mumford who first pointed out that "Grammar isn’t merely part of language" [96].
+  p4-l35  [66 721 492 732]  {SFRM0700 7}2{SFRM1000 10}It was David Mumford who first pointed out that "Grammar isn’t merely part of language" [96].
   p4-l36  [296 759 302 770]  {SFRM1200 12}4
   == page 5  595 x 842  lines 42  pictures 0  drawings 1
   p5-l1  [52 75 545 87]  {SFRM1200 12}involve the interpretation and understanding (often deliberative) of sensory stimuli, such as recog-
@@ -3239,7 +3239,7 @@
   p5-l14  [52 274 354 284]  {SFRM1200 12}instances is only available through first-person perspective.
   p5-l15  [52 302 545 313]  {SFSS1200 12}For these reasons, such subjectively attributed meaning is an observer-dependent construct: it lit-
   p5-l16  [52 317 248 328]  {SFSS1200 12}erally holds in the mind of the beholder!
-  p5-l17  [52 344 545 357]  {SFRM1200 12}Meaning of this form is a genuinely subjective quality{SFRM0800 8}3{SFRM1200 12} . In the discussion that follows, we will
+  p5-l17  [52 344 545 357]  {SFRM1200 12}Meaning of this form is a genuinely subjective quality{SFRM0800 8}3{SFRM1200 12}. In the discussion that follows, we will
   p5-l18  [52 360 545 371]  {SFRM1200 12}elaborate how this form of meaning might be directly tied to the qualia of consciousness, and
   p5-l19  [52 375 545 386]  {SFRM1200 12}how it may in fact manifest as the phenomenal content of all experience. We also point to
   p5-l20  [52 389 299 400]  {SFRM1200 12}phenomenological evidence in favor of this view.
@@ -3314,7 +3314,7 @@
   p7-l5  [52 133 545 144]  {SFRM1200 12}of the agent, and carry phenomenal content. A feature of these self-models is that they not only
   p7-l6  [52 148 545 159]  {SFRM1200 12}constitute a representation of the agent, but they also co-represent the representational relation
   p7-l7  [52 162 545 174]  {SFRM1200 12}(between the agent and the world) itself [89, 91]. In other words, they are equipped with a phe-
-  p7-l8  [52 175 545 188]  {SFRM1200 12}nomenal model of the intentionality relation{SFRM0800 8}4{SFRM1200 12} . According to Metzinger, phenomenal self-models
+  p7-l8  [52 175 545 188]  {SFRM1200 12}nomenal model of the intentionality relation{SFRM0800 8}4{SFRM1200 12}. According to Metzinger, phenomenal self-models
   p7-l9  [52 191 545 202]  {SFRM1200 12}are characterized by phenomenal properties pertaining to ownership, perspectivalness and self-
   p7-l10  [52 205 545 217]  {SFRM1200 12}hood; all of which are essential for creating a first-person perspective [89, 91]. Presumably, these
   p7-l11  [52 220 545 231]  {SFRM1200 12}phenomenal properties realize what is referred to as sense of ownership, sense of situatedness
@@ -3423,7 +3423,7 @@
   p9-l20  [52 403 301 415]  {SFRM1200 12}mainly on Frege’s use of the notion of sense [52].
   p9-l21  [52 428 545 439]  {SFBX1200 12 b}Remark 3.1.{SFTI1200 12 i} In his seminal 1892 paper, "On Sense and Reference", Gottlob Frege developed
   p9-l22  [52 442 545 454]  {SFTI1200 12 i}his ideas on sense and reference [52]. This laid the groundwork for the metaphysics of thought,
-  p9-l23  [52 456 545 468]  {SFTI1200 12 i}theories of meaning in philosophy of mind, as well as discussions on semantics and language{SFRM0800 8} 5{SFTI1200 12 i} .
+  p9-l23  [52 456 545 468]  {SFTI1200 12 i}theories of meaning in philosophy of mind, as well as discussions on semantics and language{SFRM0800 8} 5{SFTI1200 12 i}.
   p9-l24  [52 472 545 482]  {SFTI1200 12 i}Frege elaborates on the distinction between sense and reference, and suggests that both, sense and
   p9-l25  [52 485 492 497]  {SFTI1200 12 i}reference contribute to meaning (with respect to both, expressions as well as thoughts).
   p9-l26  [89 509 546 522]  {SFTI1200 12 i}According to Frege, reference{SFRM0800 8}6{SFTI1200 12 i} is concerned with naming objects or entities. It refers to, or
@@ -3469,7 +3469,7 @@
   p10-l23  [52 468 545 480]  {SFRM1200 12}the representation. Mental representations thus have a structural (syntactic) aspect, as well as a
   p10-l24  [52 483 545 494]  {SFRM1200 12}semantic aspect. In the phenomenology of consciousness, when one speaks about awareness, or
   p10-l25  [52 496 545 508]  {SFRM1200 12}being aware about "something", it is certainly not the "thing" itself{SFRM0800 8}8{SFRM1200 12} that the subject is, or even
-  p10-l26  [52 510 545 523]  {SFRM1200 12}possibly could be aware of{SFRM0800 8}9{SFRM1200 12} . Furthermore, the fact that qualia are transparent, implies that one
+  p10-l26  [52 510 545 523]  {SFRM1200 12}possibly could be aware of{SFRM0800 8}9{SFRM1200 12}. Furthermore, the fact that qualia are transparent, implies that one
   p10-l27  [52 526 545 537]  {SFRM1200 12}does not experience their mental representations as representations either. Rather, it is only cer-
   p10-l28  [52 540 545 552]  {SFRM1200 12}tain attributes of one’s mental representation (of the "thing" being "observed") that the subject
   p10-l29  [52 555 527 566]  {SFRM1200 12}gains awareness of. And, a prominent attribute of a representation is its subjective meaning.
@@ -3601,12 +3601,12 @@
   p13-l25  [52 538 545 549]  {SFRM1200 12}cussed above in earlier sections. After that, we indicate how this system of maps weighs on the
   p13-l26  [52 552 163 563]  {SFRM1200 12}mind-matter relation.
   p13-l27  [89 577 545 589]  {SFRM1200 12}The top row maps collections of physical objects{CMMI12 12 i} Obj{CMMI8 8 i}P{SFRM1200 12} to relations between these, indicated
-  p13-l28  [52 591 221 603]  {SFRM1200 12}by{CMMI12 12 i} Rel{CMMI8 8 i}P{SFRM1200 12} , via the association map
+  p13-l28  [52 591 221 603]  {SFRM1200 12}by{CMMI12 12 i} Rel{CMMI8 8 i}P{SFRM1200 12}, via the association map
   p13-l29  [251 605 346 618]  {CMSY10 12 i}A{CMMI8 8 i}P{CMR12 12} :{CMMI12 12 i} Obj{CMMI8 8 i}P{CMSY10 12 i} →{CMMI12 12 i} Rel{CMMI8 8 i}P
-  p13-l30  [52 624 545 637]  {SFRM1200 12}In fact, the association map{CMSY10 12 i} A{CMMI8 8 i}P{SFRM1200 12} defines relations contained within{CMMI12 12 i} Rel{CMMI8 8 i}P{SFRM1200 12} . Note that these relations
+  p13-l30  [52 624 545 637]  {SFRM1200 12}In fact, the association map{CMSY10 12 i} A{CMMI8 8 i}P{SFRM1200 12} defines relations contained within{CMMI12 12 i} Rel{CMMI8 8 i}P{SFRM1200 12}. Note that these relations
   p13-l31  [52 639 545 651]  {SFRM1200 12}can be of general arity (in which case, the objects in{CMMI12 12 i} Rel{CMMI8 8 i}P{SFRM1200 12} may be diagrammatically presented
   p13-l32  [52 653 545 666]  {SFRM1200 12}as hyperedges, and the{CMSY10 12 i} A{CMMI8 8 i}P{SFRM1200 12} denote multi-source / target maps for constructing hyperedges).
-  p13-l33  [52 668 477 680]  {SFRM1200 12}Together, the collection{CMSY10 12 i} {{CMMI12 12 i}Obj{CMMI8 8 i}P{CMMI12 12 i} ,{CMSY10 12 i} A{CMMI8 8 i}P{CMR12 12} ({CMMI12 12 i}Obj{CMMI8 8 i}P{CMR12 12} ){CMSY10 12 i}}{SFRM1200 12} forms the physical domain, denoted{CMSY10 12 i} P{SFRM1200 12}.
+  p13-l33  [52 668 477 680]  {SFRM1200 12}Together, the collection{CMSY10 12 i} {{CMMI12 12 i}Obj{CMMI8 8 i}P{CMMI12 12 i},{CMSY10 12 i} A{CMMI8 8 i}P{CMR12 12}({CMMI12 12 i}Obj{CMMI8 8 i}P{CMR12 12}){CMSY10 12 i}}{SFRM1200 12} forms the physical domain, denoted{CMSY10 12 i} P{SFRM1200 12}.
   p13-l34  [89 693 545 705]  {SFRM1200 12}Likewise,{CMMI12 12 i} Obj{CMMI8 8 i}M{SFRM1200 12} denotes collections of mental objects, and{CMMI12 12 i} Rel{CMMI8 8 i}M{SFRM1200 12} contains relations (unary,
   p13-l35  [52 707 486 719]  {SFRM1200 12}binary or any higher arity) between mental objects. Here again, the association map
   p13-l36  [247 729 350 741]  {CMSY10 12 i}A{CMMI8 8 i}M{CMR12 12} :{CMMI12 12 i} Obj{CMMI8 8 i}M{CMSY10 12 i} →{CMMI12 12 i} Rel{CMMI8 8 i}M
@@ -3671,8 +3671,8 @@
   p15-l10  [89 215 545 228]  {SFRM1200 12}Therefore, on one hand, we have rules constraining the space{CMMI12 12 i} Obj{CMMI8 8 i}P{SFRM1200 12} (and its representation
   p15-l11  [52 230 545 242]  {SFRM1200 12}in{CMMI12 12 i} Obj{CMMI8 8 i}M{SFRM1200 12}), that allow for only very specific compositions of physical (respectively, mental) objects
   p15-l12  [52 244 545 256]  {SFRM1200 12}corresponding to existing constructs in the world (mind). On the other hand, we have an associ-
-  p15-l13  [52 259 545 271]  {SFRM1200 12}ation map{CMSY10 12 i} A{CMMI8 8 i}P{SFRM1200 12} , that defines relations between physically permissible objects, leading to the space
-  p15-l14  [52 274 545 285]  {SFRM1200 12}of physical relations{CMMI12 12 i} Rel{CMMI8 8 i}P{SFRM1200 12} , which in turn, functions as a semantic space for the physical domain.
+  p15-l13  [52 259 545 271]  {SFRM1200 12}ation map{CMSY10 12 i} A{CMMI8 8 i}P{SFRM1200 12}, that defines relations between physically permissible objects, leading to the space
+  p15-l14  [52 274 545 285]  {SFRM1200 12}of physical relations{CMMI12 12 i} Rel{CMMI8 8 i}P{SFRM1200 12}, which in turn, functions as a semantic space for the physical domain.
   p15-l15  [52 288 545 300]  {SFRM1200 12}Correspondingly, we have the association map{CMSY10 12 i} A{CMMI8 8 i}M{SFRM1200 12}, defining relations between permissible mental
   p15-l16  [52 302 545 314]  {SFRM1200 12}objects (obtained as representations of physical objects or of internal states of the agent), and
   p15-l17  [52 317 545 329]  {SFRM1200 12}leading to the space of mental relations{CMMI12 12 i} Rel{CMMI8 8 i}M{SFRM1200 12}, which now functions as a semantic space for the
@@ -3749,13 +3749,13 @@
   p17-l6  [52 158 545 169]  {SFTI1200 12 i}(as a relation between the physical and the mental) about things in the world, as perceived by an
   p17-l7  [52 172 545 183]  {SFTI1200 12 i}agent with mental states, may be formalized:- As a map from structure in the world to relations in
   p17-l8  [52 187 545 198]  {SFTI1200 12 i}the mind, that factors through physical relations actually found in the physical world, and hence
-  p17-l9  [52 201 225 213]  {SFTI1200 12 i}relies on the association map{CMSY10 12 i} A{CMMI8 8 i}P{SFTI1200 12 i} .
+  p17-l9  [52 201 225 213]  {SFTI1200 12 i}relies on the association map{CMSY10 12 i} A{CMMI8 8 i}P{SFTI1200 12 i}.
   p17-l10  [89 226 545 238]  {SFTI1200 12 i}On the other hand, the composition{CMSY10 12 i} R{CMMI8 8 i}Obj{CMSY10 12 i}◦A{CMMI8 8 i}M{SFTI1200 12 i} suggests how sense (as a relation between the
   p17-l11  [52 240 545 252]  {SFTI1200 12 i}physical and the mental), as perceived by the observing agent, may be formalized:- As a map from
   p17-l12  [52 255 545 266]  {SFTI1200 12 i}structure in the world to relations in the mind, that now factors through various mental models
   p17-l13  [52 269 546 281]  {SFTI1200 12 i}that the agent may have, and hence relies on the association map{CMSY10 12 i} A{CMMI8 8 i}M{SFTI1200 12 i}. However, to fully account
   p17-l14  [52 284 545 295]  {SFTI1200 12 i}for sense as this composition of maps, one has to admit a slight generalization of the diagram in
-  p17-l15  [52 297 506 310]  {SFTI1200 12 i}eq.(2) such that it is commutative up to higher homotopy (in this case, a 2-morphism){SFRM0800 8}17{SFTI1200 12 i} .
+  p17-l15  [52 297 506 310]  {SFTI1200 12 i}eq.(2) such that it is commutative up to higher homotopy (in this case, a 2-morphism){SFRM0800 8}17{SFTI1200 12 i}.
   p17-l16  [89 323 545 334]  {SFTI1200 12 i}As an example, consider a physical object; say, the planet Venus. Its reference map passes
   p17-l17  [52 337 545 349]  {SFTI1200 12 i}through physical relations in the world (such as the planet between Mercury and Earth) which
   p17-l18  [52 352 545 363]  {SFTI1200 12 i}constrain its concept within the mental domain; and that yields its meaning as reference. On
@@ -3810,7 +3810,7 @@
   p18-l28  [52 514 545 525]  {SFRM1200 12}we could have also referred to this notion of meaning as intrinsic meaning. The full relational
   p18-l29  [52 528 545 540]  {SFRM1200 12}map of meaning (linking the physical to the mental) is only accessible to a metaphysical observer.
   p18-l30  [52 543 545 554]  {SFRM1200 12}Working from such an intrinsic point of view is of direct relevance to any experience-based theory
-  p18-l31  [52 556 146 569]  {SFRM1200 12}of consciousness{SFRM0800 8}18{SFRM1200 12} .
+  p18-l31  [52 556 146 569]  {SFRM1200 12}of consciousness{SFRM0800 8}18{SFRM1200 12}.
   p18-l32  [89 582 545 593]  {SFRM1200 12}Given that this work places meaning of an intrinsic kind at the heart of the problem of
   p18-l33  [52 597 545 608]  {SFRM1200 12}consciousness, or the qualia of it thereof, it is reasonable to ask whether or not conscious aware-
   p18-l34  [52 611 545 623]  {SFRM1200 12}ness itself is a guise of subjective meaning, as structurally defined in eq.(2) above? Though this
@@ -4273,7 +4273,7 @@
   p1-l68  [343 248 357 261]  {Mathematica-Bold 11.2 b}-{TimesNewRomanPS-BoldMT 11.6 b}2
   p1-l69  [351 225 357 238]  {TimesNewRomanPS-BoldMT 11.6 b}0
   p1-l70  [441 366 470 377]  {TimesNewRomanPS-BoldItalicMT 9.3 b i}E{TimesNewRomanPS-BoldItalicMT 6.6 b i}F{Mathematica-Bold 8.8 b}({TimesNewRomanPS-BoldMT 9.3 b}eV{Mathematica-Bold 8.8 b})
-  p1-l71  [323 270 334 310]  {Mathematica-Bold 8.8 b}σ{TimesNewRomanPS-BoldMT 6.6 b}OH{Mathematica-Bold 8.8 b} ({TimesNewRomanPS-BoldMT 9.3 b} e{Mathematica-Bold 8.8 b} /{TimesNewRomanPS-BoldMT 9.3 b} 2{Mathematica-Bold 8.8 b} π )
+  p1-l71  [323 270 334 310]  {Mathematica-Bold 8.8 b}σ{TimesNewRomanPS-BoldMT 6.6 b}OH{Mathematica-Bold 8.8 b}({TimesNewRomanPS-BoldMT 9.3 b} e{Mathematica-Bold 8.8 b} /{TimesNewRomanPS-BoldMT 9.3 b} 2{Mathematica-Bold 8.8 b}π )
   p1-l72  [317 391 562 399]  {CMR9 9}Figure 1. The total, extrinsic and intrinsic OH-conductance
   p1-l73  [317 402 562 410]  {CMMI9 9 i}σ{CMR6 6}OH{CMR9 9} vs the Fermi energy{CMMI9 9 i} E{CMMI6 6 i}F{CMR9 9} for the 2H-phase monolayer
   p1-l74  [317 410 562 420]  {CMR9 9}MoS{CMR6 6}2{CMR9 9}. The parameters are Fermi velocity{CMMI9 9 i} v{CMMI6 6 i}F{CMR9 9} = 3{CMMI9 9 i}.{CMR9 9}6eV˚{CMMI9 9 i}A{CMR9 9} and
@@ -4298,7 +4298,7 @@
   p1-l93  [317 669 562 678]  {CMR10 10}Our central result is summarized in Fig. 1 with the to-
   p1-l94  [317 681 562 691]  {CMR10 10}tal, intrinsic and extrinsic OH-conductance{CMMI10 10 i} σ{CMR7 7}OH{CMR10 10} vs Fermi
   p1-l95  [317 692 562 701]  {CMR10 10}energy plotted separately. The orbital Hall current op-
-  p1-l96  [317 702 562 716]  {CMR10 10}erator ˆ{CMMIB10 10 i}j{CMR10 10} ={CMR7 7} 1 2{CMSY10 10 i} {{CMMIB10 10 i}L{CMR10 10}ˆ{CMMI10 10 i},{CMMIB10 10 i} v{CMR10 10}ˆ{CMSY10 10 i}}{CMR10 10} where{CMMIB10 10 i} L{CMR10 10}ˆ is the OAM operator and
+  p1-l96  [317 702 562 716]  {CMR10 10}erator ˆ{CMMIB10 10 i}j{CMR10 10} ={CMR7 7} 1 2{CMSY10 10 i}{{CMMIB10 10 i}L{CMR10 10}ˆ{CMMI10 10 i},{CMMIB10 10 i} v{CMR10 10}ˆ{CMSY10 10 i}}{CMR10 10} where{CMMIB10 10 i} L{CMR10 10}ˆ is the OAM operator and
   p1-l97  [317 716 562 725]  {CMMIB10 10 i}v{CMR10 10}ˆ the velocity operator. With the applied electric field
   p1-l98  [box varies: font not embedded]  {Times-Roman 20}arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024
   == page 2  612 x 792  lines 167  pictures 0  drawings 135
@@ -4319,38 +4319,38 @@
   p2-l15  [75 71 94 84]  {Mathematica-Bold 11.2 b}-{TimesNewRomanPS-BoldMT 11.6 b}10
   p2-l16  [88 52 94 65]  {TimesNewRomanPS-BoldMT 11.6 b}0
   p2-l17  [176 190 205 202]  {TimesNewRomanPS-BoldItalicMT 9.3 b i}E{TimesNewRomanPS-BoldItalicMT 6.6 b i}F{Mathematica-Bold 8.8 b}({TimesNewRomanPS-BoldMT 9.3 b}eV{Mathematica-Bold 8.8 b})
-  p2-l18  [59 92 71 139]  {Mathematica-Bold 8.8 b}σ{TimesNewRomanPS-BoldMT 6.6 b}exOH{Mathematica-Bold 8.8 b} ({TimesNewRomanPS-BoldMT 9.3 b} e{Mathematica-Bold 8.8 b} /{TimesNewRomanPS-BoldMT 9.3 b} 2{Mathematica-Bold 8.8 b} π )
+  p2-l18  [59 92 71 139]  {Mathematica-Bold 8.8 b}σ{TimesNewRomanPS-BoldMT 6.6 b}exOH{Mathematica-Bold 8.8 b}({TimesNewRomanPS-BoldMT 9.3 b} e{Mathematica-Bold 8.8 b} /{TimesNewRomanPS-BoldMT 9.3 b} 2{Mathematica-Bold 8.8 b}π )
   p2-l19  [54 216 91 224]  {CMR9 9}Figure 2.
-  p2-l20  [101 214 243 224]  {CMR9 9}The extrinsic OH-conductance{CMMI9 9 i} σ{CMR6 6} ext
+  p2-l20  [101 214 243 224]  {CMR9 9}The extrinsic OH-conductance{CMMI9 9 i} σ{CMR6 6}ext
   p2-l21  [233 216 299 225]  {CMR6 6}OH{CMR9 9} vs the Fermi
   p2-l22  [54 226 299 235]  {CMR9 9}energy{CMMI9 9 i} E{CMMI6 6 i}F{CMR9 9} for different energy band gaps. For graphene the
-  p2-l23  [54 235 281 247]  {CMR9 9}parameters are{CMMI9 9 i} v{CMMI6 6 i}F{CMR9 9} ={CMR6 6} 3 2{CMMI9 9 i} at{CMR9 9} with{CMMI9 9 i} a{CMR9 9} = 1{CMMI9 9 i}.{CMR9 9}42˚{CMMI9 9 i}A{CMR9 9} and{CMMI9 9 i} t{CMR9 9} = 2{CMMI9 9 i}.{CMR9 9}8eV.
-  p2-l24  [54 277 299 290]  {CMMI10 10 i}E{CMMI7 7 i}x{CMR10 10} along the{CMMIB10 10 i} x{CMR10 10}ˆ-direction, the orbital Hall current{CMMI10 10 i} j{CMMI7 7 i} z y{CMR10 10} for
+  p2-l23  [54 235 281 247]  {CMR9 9}parameters are{CMMI9 9 i} v{CMMI6 6 i}F{CMR9 9} ={CMR6 6} 3 2{CMMI9 9 i}at{CMR9 9} with{CMMI9 9 i} a{CMR9 9} = 1{CMMI9 9 i}.{CMR9 9}42˚{CMMI9 9 i}A{CMR9 9} and{CMMI9 9 i} t{CMR9 9} = 2{CMMI9 9 i}.{CMR9 9}8eV.
+  p2-l24  [54 277 299 290]  {CMMI10 10 i}E{CMMI7 7 i}x{CMR10 10} along the{CMMIB10 10 i} x{CMR10 10}ˆ-direction, the orbital Hall current{CMMI10 10 i} j{CMMI7 7 i}zy{CMR10 10} for
   p2-l25  [54 290 299 299]  {CMR10 10}the{CMMI10 10 i} z{CMR10 10}-component of the OAM flows along the{CMMIB10 10 i} y{CMR10 10}ˆ-direction,
-  p2-l26  [54 300 283 313]  {CMR10 10}and{CMMI10 10 i} σ{CMR7 7}OH{CMR10 10} ={CMMI10 10 i} σ{CMMI7 7 i} z yx{CMR10 10} ={CMMI10 10 i} j{CMMI7 7 i} z y{CMMI10 10 i} /E{CMMI7 7 i}x{CMR10 10}. The total OH-conductance
-  p2-l27  [100 330 116 340]  {CMMI10 10 i}σ{CMR7 7} tot
-  p2-l28  [106 325 163 342]  {CMR7 7}OH{CMSY10 10 i} ≈ −{CMMI10 10 i} eg{CMMI7 7 i}s{CMMI10 10 i}g{CMMI7 7 i}ν
+  p2-l26  [54 300 283 313]  {CMR10 10}and{CMMI10 10 i} σ{CMR7 7}OH{CMR10 10} ={CMMI10 10 i} σ{CMMI7 7 i}zyx{CMR10 10} ={CMMI10 10 i} j{CMMI7 7 i}zy{CMMI10 10 i}/E{CMMI7 7 i}x{CMR10 10}. The total OH-conductance
+  p2-l27  [100 330 116 340]  {CMMI10 10 i}σ{CMR7 7}tot
+  p2-l28  [106 325 163 342]  {CMR7 7}OH{CMSY10 10 i} ≈ −{CMMI10 10 i}eg{CMMI7 7 i}s{CMMI10 10 i}g{CMMI7 7 i}ν
   p2-l29  [144 338 159 347]  {CMR10 10}12{CMMI10 10 i}π
   p2-l30  [166 325 178 334]  {CMMI10 10 i}m{CMMI7 7 i}e
   p2-l31  [166 337 179 347]  {CMMI10 10 i}m{CMSY7 7 i}∗
   p2-l32  [204 323 226 333]  {CMR10 10}22∆{CMR7 7}3
-  p2-l33  [182 331 253 350]  {CMR10 10}({CMMI10 10 i}v{CMR7 7} 2{CMMI7 7 i} F{CMMI10 10 i} q{CMR7 7} 2{CMMI7 7 i} F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}){CMR7 7} 3{CMMI7 7 i}/{CMR7 7}2{CMMI10 10 i} ,
+  p2-l33  [182 331 253 350]  {CMR10 10}({CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F{CMMI10 10 i}q{CMR7 7}2{CMMI7 7 i}F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}){CMR7 7}3{CMMI7 7 i}/{CMR7 7}2{CMMI10 10 i} ,
   p2-l34  [286 331 299 341]  {CMR10 10}(1)
-  p2-l35  [54 358 299 371]  {CMR10 10}where{CMMI10 10 i} m{CMMI7 7 i}e{CMR10 10} is the electron mass and{CMMI10 10 i} m{CMSY7 7 i}∗{CMR10 10} ={MSBM10 10} ℏ{CMR7 7} 2{CMR10 10}∆{CMMI10 10 i}/v{CMR7 7}2{CMMI7 7 i} F{CMR10 10} is
+  p2-l35  [54 358 299 371]  {CMR10 10}where{CMMI10 10 i} m{CMMI7 7 i}e{CMR10 10} is the electron mass and{CMMI10 10 i} m{CMSY7 7 i}∗{CMR10 10} ={MSBM10 10} ℏ{CMR7 7}2{CMR10 10}∆{CMMI10 10 i}/v{CMR7 7}2{CMMI7 7 i}F{CMR10 10} is
   p2-l36  [54 372 299 382]  {CMR10 10}the effective mass of massive Dirac electron,{CMMI10 10 i} v{CMMI7 7 i}F{CMR10 10} is the
   p2-l37  [54 383 299 393]  {CMR10 10}Fermi velocity and 2∆ is the energy gap and{CMMI10 10 i} g{CMMI7 7 i}s{CMMI10 10 i}, g{CMMI7 7 i}ν{CMR10 10} are
   p2-l38  [54 394 299 404]  {CMR10 10}spin/valley degeneracy.{CMMI10 10 i} q{CMMI7 7 i}F{CMR10 10} is defined by the Fermi en-
-  p2-l39  [54 405 299 419]  {CMR10 10}ergy{CMMI10 10 i} E{CMMI7 7 i}F{CMR10 10} ={CMEX10 10} p{CMMI10 10 i} v{CMR7 7} 2{CMMI7 7 i} F{CMMI10 10 i} q{CMR7 7} 2{CMMI7 7 i} F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}. The extrinsic contribution is
-  p2-l40  [54 417 162 428]  {CMR10 10}Fermi surface effect{CMMI10 10 i} σ{CMR7 7} ext
+  p2-l39  [54 405 299 419]  {CMR10 10}ergy{CMMI10 10 i} E{CMMI7 7 i}F{CMR10 10} ={CMEX10 10} p{CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F{CMMI10 10 i}q{CMR7 7}2{CMMI7 7 i}F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}. The extrinsic contribution is
+  p2-l40  [54 417 162 428]  {CMR10 10}Fermi surface effect{CMMI10 10 i} σ{CMR7 7}ext
   p2-l41  [151 417 190 430]  {CMR7 7}OH{CMR10 10} ={CMR7 7} 21
-  p2-l42  [182 417 207 431]  {CMR7 7}22{CMMI10 10 i}σ{CMR7 7} tot
+  p2-l42  [182 417 207 431]  {CMR7 7}22{CMMI10 10 i}σ{CMR7 7}tot
   p2-l43  [197 419 299 430]  {CMR7 7}OH{CMR10 10}. The intrinsic con-
-  p2-l44  [54 430 122 441]  {CMR10 10}tribution is{CMMI10 10 i} σ{CMR7 7} int
-  p2-l45  [113 430 166 444]  {CMR7 7}OH{CMR10 10} ={CMR7 7} 1 22{CMMI10 10 i}σ{CMR7 7} tot
+  p2-l44  [54 430 122 441]  {CMR10 10}tribution is{CMMI10 10 i} σ{CMR7 7}int
+  p2-l45  [113 430 166 444]  {CMR7 7}OH{CMR10 10} ={CMR7 7} 1 22{CMMI10 10 i}σ{CMR7 7}tot
   p2-l46  [156 432 299 443]  {CMR7 7}OH{CMR10 10}. It is a continuous Fermi sea
   p2-l47  [54 443 298 453]  {CMR10 10}effect and attains the maximum absolute value when{CMMI10 10 i} E{CMMI7 7 i}F
-  p2-l48  [54 453 182 464]  {CMR10 10}is within the energy gap{CMMI10 10 i} σ{CMR7 7} int
-  p2-l49  [172 452 228 466]  {CMR7 7}OH{CMR10 10} ={CMSY10 10 i} −{CMMI7 7 i} eg{CMMI5 5 i}s{CMMI7 7 i}g{CMMI5 5 i}ν
+  p2-l48  [54 453 182 464]  {CMR10 10}is within the energy gap{CMMI10 10 i} σ{CMR7 7}int
+  p2-l49  [172 452 228 466]  {CMR7 7}OH{CMR10 10} ={CMSY10 10 i} −{CMMI7 7 i}eg{CMMI5 5 i}s{CMMI7 7 i}g{CMMI5 5 i}ν
   p2-l50  [213 460 225 466]  {CMR7 7}12{CMMI7 7 i}π
   p2-l51  [231 453 242 460]  {CMMI7 7 i}m{CMMI5 5 i}e
   p2-l52  [231 455 299 466]  {CMMI7 7 i}m{CMSY5 5 i}∗{CMR10 10} . Physically,
@@ -4375,10 +4375,10 @@
   p2-l71  [138 683 147 692]  {CMMI10 10 i}∂t
   p2-l72  [151 676 159 685]  {CMR10 10}+
   p2-l73  [164 669 167 678]  {CMMI10 10 i}i
-  p2-l74  [163 674 185 690]  {MSBM10 10}ℏ{CMEX10 10} -{CMMI10 10 i} H,
+  p2-l74  [163 674 185 690]  {MSBM10 10}ℏ{CMEX10 10}-{CMMI10 10 i}H,
   p2-l75  [176 673 217 685]  {CMR10 10}ˆ{CMMI10 10 i} ρ{CMR10 10}ˆ = 0{CMMI10 10 i},
   p2-l76  [286 675 299 685]  {CMR10 10}(2)
-  p2-l77  [54 701 299 713]  {CMR10 10}where the total Hamiltonian{CMMI10 10 i} H{CMR10 10}ˆ ={CMMI10 10 i} H{CMR10 10}ˆ{CMR7 7} 0{CMR10 10} +{CMMI10 10 i} V{CMR10 10}ˆ +{CMMI10 10 i} U{CMR10 10}ˆ.{CMMI10 10 i} H{CMR10 10}ˆ{CMR7 7} 0{CMR10 10} is the
+  p2-l77  [54 701 299 713]  {CMR10 10}where the total Hamiltonian{CMMI10 10 i} H{CMR10 10}ˆ ={CMMI10 10 i} H{CMR10 10}ˆ{CMR7 7}0{CMR10 10} +{CMMI10 10 i} V{CMR10 10}ˆ +{CMMI10 10 i} U{CMR10 10}ˆ.{CMMI10 10 i} H{CMR10 10}ˆ{CMR7 7}0{CMR10 10} is the
   p2-l78  [54 712 299 724]  {CMR10 10}band Hamiltonian,{CMMI10 10 i} V{CMR10 10}ˆ ={CMMI10 10 i} e{CMMIB10 10 i}E{CMSY10 10 i}·{CMMIB10 10 i}r{CMR10 10}ˆ is the external longitudinal
   p2-l79  [317 53 562 64]  {CMR10 10}electrical field, and{CMMI10 10 i} U{CMR10 10}ˆ represents the disorder scattering
   p2-l80  [317 67 562 76]  {CMR10 10}potential, which we take to be scalar and short-range.
@@ -4390,85 +4390,85 @@
   p2-l86  [328 146 337 155]  {CMMI10 10 i}∂t
   p2-l87  [344 140 351 148]  {CMR10 10}+
   p2-l88  [354 133 358 142]  {CMMI10 10 i}i
-  p2-l89  [353 133 481 153]  {MSBM10 10}ℏ{CMEX10 10} -{CMMI10 10 i} H{CMR10 10}ˆ{CMR7 7} 0{CMMI10 10 i},{CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10} +{CMMI10 10 i}J{CMR7 7}0{CMR10 10}({CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10}) ={CMSY10 10 i} −{CMMI10 10 i} i{MSBM10 10} ℏ{CMEX10 10} -{CMMI10 10 i} V ,
+  p2-l89  [353 133 481 153]  {MSBM10 10}ℏ{CMEX10 10}-{CMMI10 10 i}H{CMR10 10}ˆ{CMR7 7}0{CMMI10 10 i},{CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10} +{CMMI10 10 i}J{CMR7 7}0{CMR10 10}({CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10}) ={CMSY10 10 i} −{CMMI10 10 i} i{MSBM10 10}ℏ{CMEX10 10}-{CMMI10 10 i}V ,
   p2-l90  [472 137 562 149]  {CMR10 10}ˆ{CMSY10 10 i} ⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩ −{CMMI10 10 i}J{CMMI7 7 i}E{CMR10 10}({CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10}){CMMI10 10 i},{CMR10 10} (3)
   p2-l91  [317 164 562 173]  {CMR10 10}where the electrical field corrected scattering term
   p2-l92  [317 175 472 185]  {CMMI10 10 i}J{CMMI7 7 i}E{CMR10 10}({CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10}) is given in the Supplement.
-  p2-l93  [327 186 562 198]  {CMTI10 10 i}Graphene and TMDs.{CMMI10 10 i} H{CMR10 10}ˆ{CMR7 7} 0{CMR10 10} of monolayer graphene or
+  p2-l93  [327 186 562 198]  {CMTI10 10 i}Graphene and TMDs.{CMMI10 10 i} H{CMR10 10}ˆ{CMR7 7}0{CMR10 10} of monolayer graphene or
   p2-l94  [317 200 517 209]  {CMR10 10}TMDs has the form in momentum Pauli basis
-  p2-l95  [367 220 512 230]  {CMMI10 10 i}H{CMR7 7}0{CMR10 10}({CMMIB10 10 i}q{CMR10 10}) ={CMMI10 10 i} v{CMMI7 7 i}F{CMR10 10} ({CMMI10 10 i}ντ{CMMI7 7 i}x{CMMI10 10 i}q{CMMI7 7 i}x{CMSY10 10 i} −{CMMI10 10 i} τ{CMMI7 7 i}y{CMMI10 10 i}q{CMMI7 7 i}y{CMR10 10}) + ∆{CMMI10 10 i}τ{CMMI7 7 i}z{CMMI10 10 i}.
+  p2-l95  [367 220 512 230]  {CMMI10 10 i}H{CMR7 7}0{CMR10 10}({CMMIB10 10 i}q{CMR10 10}) ={CMMI10 10 i} v{CMMI7 7 i}F{CMR10 10}({CMMI10 10 i}ντ{CMMI7 7 i}x{CMMI10 10 i}q{CMMI7 7 i}x{CMSY10 10 i} −{CMMI10 10 i} τ{CMMI7 7 i}y{CMMI10 10 i}q{CMMI7 7 i}y{CMR10 10}) + ∆{CMMI10 10 i}τ{CMMI7 7 i}z{CMMI10 10 i}.
   p2-l96  [549 220 562 230]  {CMR10 10}(4)
   p2-l97  [317 241 562 251]  {CMR10 10}2∆ represents a gap that can be induced by inver-
   p2-l98  [317 252 562 262]  {CMR10 10}sion/time reversal symmetry breaking,{CMMI10 10 i} ν{CMR10 10} ={CMSY10 10 i} ±{CMR10 10}1 is the
   p2-l99  [317 264 562 274]  {CMR10 10}valley index for materials with valley degree,{CMMI10 10 i} τ{CMMI7 7 i}x,y,z{CMR10 10} are
   p2-l100  [317 276 562 285]  {CMR10 10}the Pauli matrices: in graphene or TMDs these repre-
   p2-l101  [317 287 562 297]  {CMR10 10}sent the sub-lattice pseudospin, and arctan{CMMI10 10 i} ϕ{CMR10 10} ={CMMI10 10 i} q{CMMI7 7 i}y{CMMI10 10 i}/q{CMMI7 7 i}x{CMR10 10}.
-  p2-l102  [317 297 431 310]  {CMR10 10}The band dispersion{CMMI10 10 i} E{CMMI7 7 i}m{CMMIB7 7 i} q
+  p2-l102  [317 297 431 310]  {CMR10 10}The band dispersion{CMMI10 10 i} E{CMMI7 7 i}m{CMMIB7 7 i}q
   p2-l103  [438 298 562 309]  {CMR10 10}={CMMI10 10 i} mE{CMMI7 7 i}q{CMR10 10} with{CMMI10 10 i} m{CMR10 10} ={CMSY10 10 i} ±{CMR10 10} and
-  p2-l104  [317 311 562 324]  {CMMI10 10 i}E{CMMI7 7 i}q{CMR10 10} ={CMEX10 10} p{CMMI10 10 i} v{CMR7 7} 2{CMMI7 7 i} F{CMMI10 10 i} q{CMR7 7} 2{CMR10 10} + ∆{CMR7 7}2{CMR10 10}. The symmetrized OAM operator is
+  p2-l104  [317 311 562 324]  {CMMI10 10 i}E{CMMI7 7 i}q{CMR10 10} ={CMEX10 10} p{CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F{CMMI10 10 i}q{CMR7 7}2{CMR10 10} + ∆{CMR7 7}2{CMR10 10}. The symmetrized OAM operator is
   p2-l105  [317 324 389 335]  {CMR10 10}given by{CMMIB10 10 i} L{CMR10 10}ˆ ={CMMI7 7 i} m{CMR5 5}0
   p2-l106  [382 326 562 338]  {CMR7 7}4{CMR10 10} ({CMMIB10 10 i}r{CMR10 10}ˆ{CMSY10 10 i}×{CMMIB10 10 i} v{CMR10 10}ˆ{CMSY10 10 i} −{CMMIB10 10 i} v{CMR10 10}ˆ{CMSY10 10 i} ×{CMMIB10 10 i} r{CMR10 10}ˆ) where{CMMI10 10 i} m{CMR7 7}0{CMR10 10} ={CMSY10 10 i} −{MSBM10 10}ℏ{CMMI10 10 i}/{CMR10 10}({CMMI10 10 i}g{CMMI7 7 i}L{CMMI10 10 i}µ{CMMI7 7 i}B{CMR10 10})
   p2-l107  [317 338 533 349]  {CMR10 10}with g-factor{CMMI10 10 i} g{CMMI7 7 i}L{CMR10 10} = 1 and Bohr-magneton{CMMI10 10 i} µ{CMMI7 7 i}B{CMR10 10} ={CMMI7 7 i} e{MSBM7 7}ℏ
   p2-l108  [522 340 562 352]  {CMR7 7}2{CMMI7 7 i}m{CMMI5 5 i}e{CMR10 10} . The
   p2-l109  [317 351 486 364]  {CMR10 10}Berry connection is defined as{CMBSY10 10 i} R{CMMI7 7 i}mm{CMSY5 5 i}′
   p2-l110  [469 360 474 366]  {CMMIB7 7 i}q
-  p2-l111  [492 352 557 366]  {CMR10 10}={CMMI10 10 i} i{CMSY10 10 i}⟨{CMMI10 10 i}u{CMMI7 7 i} m{CMMIB7 7 i} q{CMSY10 10 i} |∇{CMMIB7 7 i}q{CMMI10 10 i}u{CMMI7 7 i} m{CMSY5 5 i}′
-  p2-l112  [548 355 562 366]  {CMMIB7 7 i}q{CMSY10 10 i} ⟩
-  p2-l113  [317 365 562 377]  {CMR10 10}with{CMSY10 10 i} |{CMMI10 10 i}u{CMMI7 7 i} m{CMMIB7 7 i} q{CMSY10 10 i} ⟩{CMR10 10} the lattice periodic part of Bloch eigenstate
-  p2-l114  [317 377 545 392]  {CMR10 10}wave function. The position operator is{CMSY10 10 i} ⟨{CMMI10 10 i}u{CMMI7 7 i} m{CMMIB7 7 i} q{CMSY10 10 i} |{CMMIB10 10 i}r{CMR10 10}ˆ{CMSY10 10 i}|{CMMI10 10 i}u{CMMI7 7 i} m{CMSY5 5 i}′
-  p2-l115  [536 380 562 392]  {CMMIB7 7 i}q{CMSY10 10 i} ⟩{CMR10 10} =
-  p2-l116  [317 392 354 405]  {CMMI10 10 i}i{CMMI7 7 i} ∂δ{CMR7 7}({CMMIB7 7 i}q{CMSY7 7 i}−{CMMIB7 7 i}q{CMSY5 5 i} ′{CMR7 7} )
+  p2-l111  [492 352 557 366]  {CMR10 10}={CMMI10 10 i} i{CMSY10 10 i}⟨{CMMI10 10 i}u{CMMI7 7 i}m{CMMIB7 7 i}q{CMSY10 10 i} |∇{CMMIB7 7 i}q{CMMI10 10 i}u{CMMI7 7 i}m{CMSY5 5 i}′
+  p2-l112  [548 355 562 366]  {CMMIB7 7 i}q{CMSY10 10 i}⟩
+  p2-l113  [317 365 562 377]  {CMR10 10}with{CMSY10 10 i} |{CMMI10 10 i}u{CMMI7 7 i}m{CMMIB7 7 i}q{CMSY10 10 i} ⟩{CMR10 10} the lattice periodic part of Bloch eigenstate
+  p2-l114  [317 377 545 392]  {CMR10 10}wave function. The position operator is{CMSY10 10 i} ⟨{CMMI10 10 i}u{CMMI7 7 i}m{CMMIB7 7 i}q{CMSY10 10 i} |{CMMIB10 10 i}r{CMR10 10}ˆ{CMSY10 10 i}|{CMMI10 10 i}u{CMMI7 7 i}m{CMSY5 5 i}′
+  p2-l115  [536 380 562 392]  {CMMIB7 7 i}q{CMSY10 10 i}⟩{CMR10 10} =
+  p2-l116  [317 392 354 405]  {CMMI10 10 i}i{CMMI7 7 i}∂δ{CMR7 7}({CMMIB7 7 i}q{CMSY7 7 i}−{CMMIB7 7 i}q{CMSY5 5 i}′{CMR7 7})
   p2-l117  [333 402 342 408]  {CMMI7 7 i}∂{CMMIB7 7 i}q
   p2-l118  [356 392 415 406]  {CMMI10 10 i}δ{CMMI7 7 i}m,m{CMSY5 5 i}′{CMR10 10} +{CMBSY10 10 i}R{CMMI7 7 i}mm{CMSY5 5 i}′
   p2-l119  [399 401 403 407]  {CMMIB7 7 i}q
-  p2-l120  [416 394 562 406]  {CMMI10 10 i}δ{CMR10 10}({CMMIB10 10 i}q{CMSY10 10 i}−{CMMIB10 10 i}q{CMSY7 7 i} ′{CMR10 10} ) and the velocity operator
-  p2-l121  [317 410 370 424]  {CMR10 10}is{CMSY10 10 i} ⟨{CMMI10 10 i}u{CMMI7 7 i} m{CMMIB7 7 i} q{CMSY10 10 i} |{CMMIB10 10 i}v{CMR10 10}ˆ{CMSY10 10 i}|{CMMI10 10 i}u{CMMI7 7 i} m{CMSY5 5 i}′
-  p2-l122  [361 408 413 424]  {CMMIB7 7 i}q{CMSY10 10 i} ⟩{CMR10 10} ={CMR7 7} 1{MSBM7 7} ℏ{CMMI7 7 i} ∂E{CMMI5 5 i}m{CMMIB5 5 i} q
-  p2-l123  [401 410 501 425]  {CMMI7 7 i}∂q{CMMI10 10 i} δ{CMMI7 7 i}m,m{CMSY5 5 i}′{CMR10 10} +{CMMI7 7 i} i{MSBM7 7} ℏ{CMEX10 10} �{CMMI10 10 i} E{CMMI7 7 i}m{CMMIB7 7 i} q{CMSY10 10 i} −{CMMI10 10 i}E{CMMI7 7 i}m{CMSY5 5 i}′
+  p2-l120  [416 394 562 406]  {CMMI10 10 i}δ{CMR10 10}({CMMIB10 10 i}q{CMSY10 10 i}−{CMMIB10 10 i}q{CMSY7 7 i}′{CMR10 10}) and the velocity operator
+  p2-l121  [317 410 370 424]  {CMR10 10}is{CMSY10 10 i} ⟨{CMMI10 10 i}u{CMMI7 7 i}m{CMMIB7 7 i}q{CMSY10 10 i} |{CMMIB10 10 i}v{CMR10 10}ˆ{CMSY10 10 i}|{CMMI10 10 i}u{CMMI7 7 i}m{CMSY5 5 i}′
+  p2-l122  [361 408 413 424]  {CMMIB7 7 i}q{CMSY10 10 i}⟩{CMR10 10} ={CMR7 7} 1{MSBM7 7}ℏ{CMMI7 7 i} ∂E{CMMI5 5 i}m{CMMIB5 5 i}q
+  p2-l123  [401 410 501 425]  {CMMI7 7 i}∂q{CMMI10 10 i} δ{CMMI7 7 i}m,m{CMSY5 5 i}′{CMR10 10} +{CMMI7 7 i} i{MSBM7 7}ℏ{CMEX10 10}�{CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i}q{CMSY10 10 i} −{CMMI10 10 i}E{CMMI7 7 i}m{CMSY5 5 i}′
   p2-l124  [491 418 496 424]  {CMMIB7 7 i}q
   p2-l125  [507 409 533 422]  {CMBSY10 10 i}R{CMMI7 7 i}mm{CMSY5 5 i}′
   p2-l126  [517 418 521 424]  {CMMIB7 7 i}q
   p2-l127  [534 413 562 422]  {CMR10 10}. Only
   p2-l128  [317 426 562 435]  {CMR10 10}the{CMMI10 10 i} z{CMR10 10}-component of OAM for 2D massive Dirac model
-  p2-l129  [317 436 512 448]  {CMR10 10}survives,{CMMI10 10 i} L{CMMI7 7 i}z{CMR10 10} ={CMSY10 10 i} −{CMR10 10}(1{CMMI10 10 i}/g{CMMI7 7 i}L{CMMI10 10 i}µ{CMMI7 7 i}B{CMR10 10})({CMMI10 10 i}v{CMR7 7} 2{CMMI7 7 i} F{CMR10 10} ∆{CMMI10 10 i}/{CMR10 10}2{CMMI10 10 i}E{CMR7 7}2{CMMI7 7 i} q{CMR10 10} ){CMMI10 10 i}τ{CMR7 7}0{CMR10 10} [59].
+  p2-l129  [317 436 512 448]  {CMR10 10}survives,{CMMI10 10 i} L{CMMI7 7 i}z{CMR10 10} ={CMSY10 10 i} −{CMR10 10}(1{CMMI10 10 i}/g{CMMI7 7 i}L{CMMI10 10 i}µ{CMMI7 7 i}B{CMR10 10})({CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F{CMR10 10}∆{CMMI10 10 i}/{CMR10 10}2{CMMI10 10 i}E{CMR7 7}2{CMMI7 7 i}q{CMR10 10}){CMMI10 10 i}τ{CMR7 7}0{CMR10 10} [59].
   p2-l130  [327 448 561 459]  {CMR10 10}The disorder averaged density matrix{CMSY10 10 i} ⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10} ={CMMI10 10 i} ρ{CMR7 7}0{CMR10 10} +{CMMI10 10 i} ρ{CMMI7 7 i}E
   p2-l131  [317 460 562 470]  {CMR10 10}with{CMMI10 10 i} ρ{CMR7 7}0{CMR10 10} the density matrix in equilibrium and correction
   p2-l132  [317 472 562 482]  {CMR10 10}by external electrical field{CMMI10 10 i} ρ{CMMI7 7 i}E{CMR10 10} ={CMMI10 10 i} n{CMMI7 7 i}E{CMR10 10} +{CMMI10 10 i} S{CMMI7 7 i}E{CMR10 10}. The kinetic
   p2-l133  [317 483 562 492]  {CMR10 10}equation is solved in terms of band-diagonal contribution
   p2-l134  [317 495 562 505]  {CMMI10 10 i}n{CMMI7 7 i}E{CMR10 10} and band off-diagonal contribution{CMMI10 10 i} S{CMMI7 7 i}E{CMR10 10}. The expec-
   p2-l135  [317 506 562 515]  {CMR10 10}tation value of the orbital Hall current is calculated as
-  p2-l136  [317 515 562 527]  {CMMIB10 10 i}j{CMR10 10} = Tr[{CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10} ˆ{CMMIB10 10 i}j{CMR10 10}] and Tr represents the full operator trace,
-  p2-l137  [317 528 562 541]  {CMR10 10}and we focus on ˆ{CMMI10 10 i}j{CMMI7 7 i} z y{CMR10 10} = 1{CMMI10 10 i}/{CMR10 10}2{CMSY10 10 i}{{CMMI10 10 i}L{CMR10 10}ˆ{CMMI7 7 i} z{CMMI10 10 i}, v{CMR10 10}ˆ{CMMI7 7 i}y{CMSY10 10 i}}{CMR10 10}. Transport theory
-  p2-l138  [317 541 562 552]  {CMR10 10}requires{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i} τ /{MSBM10 10}ℏ{CMSY10 10 i} ≫{CMR10 10} 1, where{CMMI10 10 i} τ{CMR10 10} represents a character-
+  p2-l136  [317 515 562 527]  {CMMIB10 10 i}j{CMR10 10} = Tr[{CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10}ˆ{CMMIB10 10 i}j{CMR10 10}] and Tr represents the full operator trace,
+  p2-l137  [317 528 562 541]  {CMR10 10}and we focus on ˆ{CMMI10 10 i}j{CMMI7 7 i}zy{CMR10 10} = 1{CMMI10 10 i}/{CMR10 10}2{CMSY10 10 i}{{CMMI10 10 i}L{CMR10 10}ˆ{CMMI7 7 i}z{CMMI10 10 i}, v{CMR10 10}ˆ{CMMI7 7 i}y{CMSY10 10 i}}{CMR10 10}. Transport theory
+  p2-l138  [317 541 562 552]  {CMR10 10}requires{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i}τ /{MSBM10 10}ℏ{CMSY10 10 i} ≫{CMR10 10} 1, where{CMMI10 10 i} τ{CMR10 10} represents a character-
   p2-l139  [317 554 562 562]  {CMR10 10}istic momentum relaxation time that can be used as a
   p2-l140  [317 565 562 574]  {CMR10 10}measure of the disorder strength. The theory is formu-
-  p2-l141  [317 576 562 586]  {CMR10 10}lated as an expansion in the small parameter{MSBM10 10} ℏ{CMMI10 10 i}/{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}F{CMMI10 10 i} τ{CMR10 10} ).
+  p2-l141  [317 576 562 586]  {CMR10 10}lated as an expansion in the small parameter{MSBM10 10} ℏ{CMMI10 10 i}/{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}F{CMMI10 10 i}τ{CMR10 10} ).
   p2-l142  [317 587 562 597]  {CMR10 10}The first term leads to the Drude conductivity{CMSY10 10 i} ∝{CMMI10 10 i} τ{CMR10 10} , for-
   p2-l143  [317 599 562 609]  {CMR10 10}mally of order ({CMSY10 10 i}−{CMR10 10}1) in the small parameter. The next
   p2-l144  [317 611 562 620]  {CMR10 10}term is of order zero in the disorder strength. Therefore,
-  p2-l145  [317 621 411 634]  {CMR10 10}one finds{CMMI10 10 i} ρ{CMMI7 7 i}E{CMR10 10} ={CMMI10 10 i} n{CMR7 7} ({CMSY7 7 i}−{CMR7 7}1)
+  p2-l145  [317 621 411 634]  {CMR10 10}one finds{CMMI10 10 i} ρ{CMMI7 7 i}E{CMR10 10} ={CMMI10 10 i} n{CMR7 7}({CMSY7 7 i}−{CMR7 7}1)
   p2-l146  [395 629 401 635]  {CMMI7 7 i}E
-  p2-l147  [415 621 442 633]  {CMR10 10}+{CMMI10 10 i} S{CMR7 7} (0)
-  p2-l148  [431 621 472 635]  {CMMI7 7 i}E{CMR10 10} +{CMMI10 10 i} n{CMR7 7} (0)
+  p2-l147  [415 621 442 633]  {CMR10 10}+{CMMI10 10 i} S{CMR7 7}(0)
+  p2-l148  [431 621 472 635]  {CMMI7 7 i}E{CMR10 10} +{CMMI10 10 i} n{CMR7 7}(0)
   p2-l149  [462 624 562 635]  {CMMI7 7 i}E{CMR10 10} up to zero order in
-  p2-l150  [317 635 540 647]  {CMR10 10}the impurity density. The leading diagonal{CMMI10 10 i} n{CMR7 7} ({CMSY7 7 i}−{CMR7 7}1)
+  p2-l150  [317 635 540 647]  {CMR10 10}the impurity density. The leading diagonal{CMMI10 10 i} n{CMR7 7}({CMSY7 7 i}−{CMR7 7}1)
   p2-l151  [523 643 529 650]  {CMMI7 7 i}E
   p2-l152  [545 638 562 647]  {CMR10 10}rep-
   p2-l153  [317 650 562 659]  {CMR10 10}resenting the shift in the Fermi surface induced by the
   p2-l154  [317 661 562 670]  {CMR10 10}electric field is found from the band diagonal scatter-
-  p2-l155  [317 673 389 684]  {CMR10 10}ing integral{CMMI10 10 i} J{CMR7 7} 1st
-  p2-l156  [378 671 415 685]  {CMR7 7}0{CMR10 10} [{CMMI10 10 i}n{CMR7 7} ({CMSY7 7 i}−{CMR7 7}1)
+  p2-l155  [317 673 389 684]  {CMR10 10}ing integral{CMMI10 10 i} J{CMR7 7}1st
+  p2-l156  [378 671 415 685]  {CMR7 7}0{CMR10 10}[{CMMI10 10 i}n{CMR7 7}({CMSY7 7 i}−{CMR7 7}1)
   p2-l157  [398 680 404 686]  {CMMI7 7 i}E
-  p2-l158  [415 671 522 684]  {CMR10 10}]. Next one feeds{CMMI10 10 i} n{CMR7 7} ({CMSY7 7 i}−{CMR7 7}1)
+  p2-l158  [415 671 522 684]  {CMR10 10}]. Next one feeds{CMMI10 10 i} n{CMR7 7}({CMSY7 7 i}−{CMR7 7}1)
   p2-l159  [505 680 511 686]  {CMMI7 7 i}E
   p2-l160  [527 675 562 684]  {CMR10 10}into the
-  p2-l161  [317 688 493 698]  {CMR10 10}band off-diagonal scattering integral{CMMI10 10 i} J{CMR7 7} 1st
-  p2-l162  [482 686 519 700]  {CMR7 7}0{CMR10 10} [{CMMI10 10 i}n{CMR7 7} ({CMSY7 7 i}−{CMR7 7}1)
+  p2-l161  [317 688 493 698]  {CMR10 10}band off-diagonal scattering integral{CMMI10 10 i} J{CMR7 7}1st
+  p2-l162  [482 686 519 700]  {CMR7 7}0{CMR10 10}[{CMMI10 10 i}n{CMR7 7}({CMSY7 7 i}−{CMR7 7}1)
   p2-l163  [502 694 508 700]  {CMMI7 7 i}E
   p2-l164  [519 688 562 698]  {CMR10 10}] to deter-
-  p2-l165  [317 699 562 712]  {CMR10 10}mine the anomalous driving term{CMMI10 10 i} D{CMSY7 7 i}′{CMMI7 7 i} E{CMR10 10}, and ultimately the
-  p2-l166  [317 711 482 724]  {CMR10 10}band off-diagonal density matrix{CMMI10 10 i} S{CMR7 7} (0)
-  p2-l167  [471 714 562 726]  {CMMI7 7 i}E{CMR10 10} . At last, we feed
+  p2-l165  [317 699 562 712]  {CMR10 10}mine the anomalous driving term{CMMI10 10 i} D{CMSY7 7 i}′{CMMI7 7 i}E{CMR10 10}, and ultimately the
+  p2-l166  [317 711 482 724]  {CMR10 10}band off-diagonal density matrix{CMMI10 10 i} S{CMR7 7}(0)
+  p2-l167  [471 714 562 726]  {CMMI7 7 i}E{CMR10 10}. At last, we feed
   == page 3  612 x 792  lines 168  pictures 0  drawings 211
   p3-l1  [557 29 562 38]  {CMR10 10}3
   p3-l2  [109 66 149 73]  {TimesNewRomanPS-BoldMT 5.9 b}Skew scattering
@@ -4484,7 +4484,7 @@
   p3-l12  [66 84 75 92]  {Mathematica-Bold 7.1 b}-{TimesNewRomanPS-BoldMT 7.4 b}2
   p3-l13  [71 60 75 68]  {TimesNewRomanPS-BoldMT 7.4 b}0
   p3-l14  [115 172 134 179]  {TimesNewRomanPS-BoldItalicMT 5.9 b i}E{TimesNewRomanPS-BoldItalicMT 4.2 b i}F{Mathematica-Bold 5.6 b}({TimesNewRomanPS-BoldMT 5.9 b}eV{Mathematica-Bold 5.6 b})
-  p3-l15  [57 100 65 125]  {Mathematica-Bold 5.6 b}σ{TimesNewRomanPS-BoldMT 4.2 b}OH{Mathematica-Bold 5.6 b} ({TimesNewRomanPS-BoldMT 5.9 b} e{Mathematica-Bold 5.6 b} /{TimesNewRomanPS-BoldMT 5.9 b} 2{Mathematica-Bold 5.6 b} π )
+  p3-l15  [57 100 65 125]  {Mathematica-Bold 5.6 b}σ{TimesNewRomanPS-BoldMT 4.2 b}OH{Mathematica-Bold 5.6 b}({TimesNewRomanPS-BoldMT 5.9 b} e{Mathematica-Bold 5.6 b} /{TimesNewRomanPS-BoldMT 5.9 b} 2{Mathematica-Bold 5.6 b}π )
   p3-l16  [120 52 129 60]  {Mathematica-Bold 6.8 b}({TimesNewRomanPS-BoldMT 7.1 b}a{Mathematica-Bold 6.8 b})
   p3-l17  [230 66 270 73]  {TimesNewRomanPS-BoldMT 5.9 b}Skew scattering
   p3-l18  [230 77 256 83]  {TimesNewRomanPS-BoldMT 5.9 b}Side jump
@@ -4501,19 +4501,19 @@
   p3-l29  [187 76 196 84]  {Mathematica-Bold 7.1 b}-{TimesNewRomanPS-BoldMT 7.4 b}1
   p3-l30  [192 60 196 68]  {TimesNewRomanPS-BoldMT 7.4 b}0
   p3-l31  [236 172 254 179]  {TimesNewRomanPS-BoldItalicMT 5.9 b i}E{TimesNewRomanPS-BoldItalicMT 4.2 b i}F{Mathematica-Bold 5.6 b}({TimesNewRomanPS-BoldMT 5.9 b}eV{Mathematica-Bold 5.6 b})
-  p3-l32  [178 95 186 131]  {Mathematica-Bold 5.6 b}σ{TimesNewRomanPS-BoldMT 4.2 b}OH{Mathematica-Bold 5.6 b} ({TimesNewRomanPS-BoldMT 5.9 b}10{Mathematica-Bold 3.8 b} -{TimesNewRomanPS-BoldMT 4.2 b} 3{TimesNewRomanPS-BoldMT 5.9 b} e{Mathematica-Bold 5.6 b} /{TimesNewRomanPS-BoldMT 5.9 b} 2{Mathematica-Bold 5.6 b} π )
+  p3-l32  [178 95 186 131]  {Mathematica-Bold 5.6 b}σ{TimesNewRomanPS-BoldMT 4.2 b}OH{Mathematica-Bold 5.6 b}({TimesNewRomanPS-BoldMT 5.9 b}10{Mathematica-Bold 3.8 b}-{TimesNewRomanPS-BoldMT 4.2 b} 3{TimesNewRomanPS-BoldMT 5.9 b}e{Mathematica-Bold 5.6 b} /{TimesNewRomanPS-BoldMT 5.9 b} 2{Mathematica-Bold 5.6 b} π )
   p3-l33  [241 53 250 60]  {Mathematica-Bold 6.8 b}({TimesNewRomanPS-BoldMT 7.1 b}b{Mathematica-Bold 6.8 b})
   p3-l34  [54 193 91 201]  {CMR9 9}Figure 3.
   p3-l35  [100 193 299 201]  {CMR9 9}The skew scattering and side jump contributions
-  p3-l36  [54 203 299 212]  {CMR9 9}to OH-conductance{CMMI9 9 i} σ{CMR6 6}OH{CMR9 9} vs the Fermi energy{CMMI9 9 i} E{CMMI6 6 i}F{CMR9 9} : (a) for the
+  p3-l36  [54 203 299 212]  {CMR9 9}to OH-conductance{CMMI9 9 i} σ{CMR6 6}OH{CMR9 9} vs the Fermi energy{CMMI9 9 i} E{CMMI6 6 i}F{CMR9 9}: (a) for the
   p3-l37  [54 212 299 223]  {CMR9 9}2H-phase monolayer MoS{CMR6 6}2{CMR9 9} with the parameters{CMMI9 9 i} v{CMMI6 6 i}F{CMR9 9} = 3{CMMI9 9 i}.{CMR9 9}6eV˚{CMMI9 9 i}A
   p3-l38  [54 224 299 233]  {CMR9 9}and ∆ = 0{CMMI9 9 i}.{CMR9 9}883eV; (b) for the tilted 2D massive Dirac model
-  p3-l39  [54 233 250 244]  {CMR9 9}with{CMMI9 9 i} v{CMMI6 6 i}F{CMR9 9} = 1eV˚{CMMI9 9 i}A{CMR9 9} and ∆ = 0{CMMI9 9 i}.{CMR9 9}1eV and{CMMI9 9 i} v{CMMI6 6 i}t{CMR9 9} = 0{CMMI9 9 i}.{CMR9 9}1{CMMI9 9 i}v{CMMI6 6 i}F{CMR9 9} .
-  p3-l40  [54 270 71 282]  {CMMI10 10 i}S{CMR7 7} (0)
-  p3-l41  [60 272 110 284]  {CMMI7 7 i}E{CMR10 10} into{CMMI10 10 i} J{CMR7 7} 1st
-  p3-l42  [99 270 130 284]  {CMR7 7}dia{CMR10 10} [{CMMI10 10 i}S{CMR7 7} (0)
-  p3-l43  [119 270 241 284]  {CMMI7 7 i}E{CMR10 10} ] to get the zero-order{CMMI10 10 i} n{CMR7 7} (0)
-  p3-l44  [231 273 299 284]  {CMMI7 7 i}E{CMR10 10} . This contri-
+  p3-l39  [54 233 250 244]  {CMR9 9}with{CMMI9 9 i} v{CMMI6 6 i}F{CMR9 9} = 1eV˚{CMMI9 9 i}A{CMR9 9} and ∆ = 0{CMMI9 9 i}.{CMR9 9}1eV and{CMMI9 9 i} v{CMMI6 6 i}t{CMR9 9} = 0{CMMI9 9 i}.{CMR9 9}1{CMMI9 9 i}v{CMMI6 6 i}F{CMR9 9}.
+  p3-l40  [54 270 71 282]  {CMMI10 10 i}S{CMR7 7}(0)
+  p3-l41  [60 272 110 284]  {CMMI7 7 i}E{CMR10 10} into{CMMI10 10 i} J{CMR7 7}1st
+  p3-l42  [99 270 130 284]  {CMR7 7}dia{CMR10 10}[{CMMI10 10 i}S{CMR7 7}(0)
+  p3-l43  [119 270 241 284]  {CMMI7 7 i}E{CMR10 10}] to get the zero-order{CMMI10 10 i} n{CMR7 7}(0)
+  p3-l44  [231 273 299 284]  {CMMI7 7 i}E{CMR10 10}. This contri-
   p3-l45  [54 285 299 293]  {CMR10 10}bution is contained in vertex corrections in the diagram-
   p3-l46  [54 295 299 305]  {CMR10 10}matic formalism [53, 58]. These corrections represent
   p3-l47  [54 307 299 317]  {CMR10 10}spin/pseudospin-dependent scattering commonly termed
@@ -4534,46 +4534,46 @@
   p3-l62  [54 479 255 488]  {CMR10 10}formally independent of the disorder strength.
   p3-l63  [64 491 299 500]  {CMR10 10}The intrinsic OHE arises from the intrinsic driving
   p3-l64  [54 500 102 513]  {CMR10 10}term{CMMI10 10 i} D{CMMI7 7 i}mm{CMSY5 5 i}′
-  p3-l65  [86 500 171 515]  {CMMI7 7 i}E{CMMIB7 7 i}q{CMR10 10} ={CMMI7 7 i} e{CMMIB7 7 i}E{MSBM7 7} ℏ{CMSY10 10 i} ·{CMMI10 10 i} i{CMBSY10 10 i}R{CMMI7 7 i}mm{CMSY5 5 i}′
+  p3-l65  [86 500 171 515]  {CMMI7 7 i}E{CMMIB7 7 i}q{CMR10 10} ={CMMI7 7 i} e{CMMIB7 7 i}E{MSBM7 7}ℏ{CMSY10 10 i} ·{CMMI10 10 i} i{CMBSY10 10 i}R{CMMI7 7 i}mm{CMSY5 5 i}′
   p3-l66  [155 508 159 515]  {CMMIB7 7 i}q
-  p3-l67  [172 500 263 515]  {CMR10 10}[{CMMI10 10 i}f{CMR7 7} (0){CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i} q{CMR10 10} ){CMSY10 10 i} −{CMMI10 10 i} f{CMR7 7} (0){CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMSY5 5 i}′
-  p3-l68  [253 503 299 515]  {CMMIB7 7 i}q{CMR10 10} )] with
-  p3-l69  [54 516 299 528]  {CMMI10 10 i}f{CMR7 7} (0){CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i} q{CMR10 10} ) the Fermi distribution function in equilibrium.
+  p3-l67  [172 500 263 515]  {CMR10 10}[{CMMI10 10 i}f{CMR7 7}(0){CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i}q{CMR10 10} ){CMSY10 10 i} −{CMMI10 10 i} f{CMR7 7}(0){CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMSY5 5 i}′
+  p3-l68  [253 503 299 515]  {CMMIB7 7 i}q{CMR10 10})] with
+  p3-l69  [54 516 299 528]  {CMMI10 10 i}f{CMR7 7}(0){CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i}q{CMR10 10} ) the Fermi distribution function in equilibrium.
   p3-l70  [54 529 195 538]  {CMR10 10}The intrinsic OH-conductance is
-  p3-l71  [94 550 110 561]  {CMMI10 10 i}σ{CMR7 7} int
-  p3-l72  [100 545 152 563]  {CMR7 7}OH{CMR10 10} ={CMSY10 10 i} −{CMMI10 10 i} g{CMMI7 7 i}s{CMMI10 10 i}g{CMMI7 7 i}ν
+  p3-l71  [94 550 110 561]  {CMMI10 10 i}σ{CMR7 7}int
+  p3-l72  [100 545 152 563]  {CMR7 7}OH{CMR10 10} ={CMSY10 10 i} −{CMMI10 10 i}g{CMMI7 7 i}s{CMMI10 10 i}g{CMMI7 7 i}ν
   p3-l73  [138 558 149 567]  {CMR10 10}4{CMMI10 10 i}π
-  p3-l74  [156 543 184 556]  {CMMI10 10 i}em{CMMI7 7 i}e{CMMI10 10 i}v{CMR7 7} 2{CMMI7 7 i} F
-  p3-l75  [159 558 182 567]  {CMR10 10}3{MSBM10 10}ℏ{CMR7 7} 2{CMR10 10}∆
+  p3-l74  [156 543 184 556]  {CMMI10 10 i}em{CMMI7 7 i}e{CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F
+  p3-l75  [159 558 182 567]  {CMR10 10}3{MSBM10 10}ℏ{CMR7 7}2{CMR10 10}∆
   p3-l76  [215 543 227 554]  {CMR10 10}∆{CMR7 7}3
-  p3-l77  [187 552 259 570]  {CMR10 10}({CMMI10 10 i}v{CMR7 7} 2{CMMI7 7 i} F{CMMI10 10 i} q{CMR7 7} 2{CMMI7 7 i} F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}){CMR7 7} 3{CMMI7 7 i}/{CMR7 7}2{CMMI10 10 i} .
+  p3-l77  [187 552 259 570]  {CMR10 10}({CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F{CMMI10 10 i}q{CMR7 7}2{CMMI7 7 i}F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}){CMR7 7}3{CMMI7 7 i}/{CMR7 7}2{CMMI10 10 i} .
   p3-l78  [286 551 299 561]  {CMR10 10}(5)
   p3-l79  [54 576 299 585]  {CMR10 10}The side jump is further separated into two contributions:
-  p3-l80  [54 586 299 599]  {CMR10 10}one is from anomalous driving term{CMMI10 10 i} D{CMSY7 7 i}′{CMMI7 7 i} E{CMR10 10} and another is
+  p3-l80  [54 586 299 599]  {CMR10 10}one is from anomalous driving term{CMMI10 10 i} D{CMSY7 7 i}′{CMMI7 7 i}E{CMR10 10} and another is
   p3-l81  [54 598 290 609]  {CMR10 10}from{CMMI10 10 i} J{CMMI7 7 i}E{CMR10 10}({CMSY10 10 i}⟨{CMMI10 10 i}ρ{CMR10 10}ˆ{CMSY10 10 i}⟩{CMR10 10}) [58]. The total side jump contribution is
-  p3-l82  [94 622 108 633]  {CMMI10 10 i}σ{CMR7 7} sd
-  p3-l83  [100 617 152 635]  {CMR7 7}OH{CMR10 10} ={CMSY10 10 i} −{CMMI10 10 i} g{CMMI7 7 i}s{CMMI10 10 i}g{CMMI7 7 i}ν
+  p3-l82  [94 622 108 633]  {CMMI10 10 i}σ{CMR7 7}sd
+  p3-l83  [100 617 152 635]  {CMR7 7}OH{CMR10 10} ={CMSY10 10 i} −{CMMI10 10 i}g{CMMI7 7 i}s{CMMI10 10 i}g{CMMI7 7 i}ν
   p3-l84  [138 631 149 640]  {CMR10 10}4{CMMI10 10 i}π
-  p3-l85  [156 616 184 628]  {CMMI10 10 i}em{CMMI7 7 i}e{CMMI10 10 i}v{CMR7 7} 2{CMMI7 7 i} F
-  p3-l86  [159 630 182 640]  {CMR10 10}3{MSBM10 10}ℏ{CMR7 7} 2{CMR10 10}∆
+  p3-l85  [156 616 184 628]  {CMMI10 10 i}em{CMMI7 7 i}e{CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F
+  p3-l86  [159 630 182 640]  {CMR10 10}3{MSBM10 10}ℏ{CMR7 7}2{CMR10 10}∆
   p3-l87  [210 616 232 626]  {CMR10 10}12∆{CMR7 7}3
-  p3-l88  [187 624 259 642]  {CMR10 10}({CMMI10 10 i}v{CMR7 7} 2{CMMI7 7 i} F{CMMI10 10 i} q{CMR7 7} 2{CMMI7 7 i} F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}){CMR7 7} 3{CMMI7 7 i}/{CMR7 7}2{CMMI10 10 i} .
+  p3-l88  [187 624 259 642]  {CMR10 10}({CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F{CMMI10 10 i}q{CMR7 7}2{CMMI7 7 i}F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}){CMR7 7}3{CMMI7 7 i}/{CMR7 7}2{CMMI10 10 i} .
   p3-l89  [286 623 299 633]  {CMR10 10}(6)
-  p3-l90  [54 650 273 661]  {CMR10 10}The skew scattering contribution stems from{CMSY10 10 i} −{CMMI10 10 i}J{CMR7 7} 1st
-  p3-l91  [262 648 293 663]  {CMR7 7}0{CMR10 10} [{CMMI10 10 i}S{CMR7 7} (0)
-  p3-l92  [282 651 299 663]  {CMMI7 7 i}E{CMR10 10} ],
-  p3-l93  [94 676 108 686]  {CMMI10 10 i}σ{CMR7 7} sk
-  p3-l94  [100 670 152 688]  {CMR7 7}OH{CMR10 10} ={CMSY10 10 i} −{CMMI10 10 i} g{CMMI7 7 i}s{CMMI10 10 i}g{CMMI7 7 i}ν
+  p3-l90  [54 650 273 661]  {CMR10 10}The skew scattering contribution stems from{CMSY10 10 i} −{CMMI10 10 i}J{CMR7 7}1st
+  p3-l91  [262 648 293 663]  {CMR7 7}0{CMR10 10}[{CMMI10 10 i}S{CMR7 7}(0)
+  p3-l92  [282 651 299 663]  {CMMI7 7 i}E{CMR10 10}],
+  p3-l93  [94 676 108 686]  {CMMI10 10 i}σ{CMR7 7}sk
+  p3-l94  [100 670 152 688]  {CMR7 7}OH{CMR10 10} ={CMSY10 10 i} −{CMMI10 10 i}g{CMMI7 7 i}s{CMMI10 10 i}g{CMMI7 7 i}ν
   p3-l95  [138 684 149 693]  {CMR10 10}4{CMMI10 10 i}π
-  p3-l96  [156 669 184 681]  {CMMI10 10 i}em{CMMI7 7 i}e{CMMI10 10 i}v{CMR7 7} 2{CMMI7 7 i} F
-  p3-l97  [159 683 182 693]  {CMR10 10}3{MSBM10 10}ℏ{CMR7 7} 2{CMR10 10}∆
+  p3-l96  [156 669 184 681]  {CMMI10 10 i}em{CMMI7 7 i}e{CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F
+  p3-l97  [159 683 182 693]  {CMR10 10}3{MSBM10 10}ℏ{CMR7 7}2{CMR10 10}∆
   p3-l98  [212 669 229 679]  {CMR10 10}9∆{CMR7 7}3
-  p3-l99  [187 677 259 695]  {CMR10 10}({CMMI10 10 i}v{CMR7 7} 2{CMMI7 7 i} F{CMMI10 10 i} q{CMR7 7} 2{CMMI7 7 i} F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}){CMR7 7} 3{CMMI7 7 i}/{CMR7 7}2{CMMI10 10 i} .
+  p3-l99  [187 677 259 695]  {CMR10 10}({CMMI10 10 i}v{CMR7 7}2{CMMI7 7 i}F{CMMI10 10 i}q{CMR7 7}2{CMMI7 7 i}F{CMR10 10} + ∆{CMR7 7}2{CMR10 10}){CMR7 7}3{CMMI7 7 i}/{CMR7 7}2{CMMI10 10 i} .
   p3-l100  [286 677 299 687]  {CMR10 10}(7)
-  p3-l101  [54 702 191 712]  {CMR10 10}The total extrinsic OHE is{CMMI10 10 i} σ{CMR7 7} ext
-  p3-l102  [180 702 220 714]  {CMR7 7}OH{CMR10 10} ={CMMI10 10 i} σ{CMR7 7} sd
-  p3-l103  [212 702 250 714]  {CMR7 7}OH{CMR10 10} +{CMMI10 10 i} σ{CMR7 7} sk
-  p3-l104  [242 702 294 714]  {CMR7 7}OH{CMR10 10} = 21{CMMI10 10 i}σ{CMR7 7} int
+  p3-l101  [54 702 191 712]  {CMR10 10}The total extrinsic OHE is{CMMI10 10 i} σ{CMR7 7}ext
+  p3-l102  [180 702 220 714]  {CMR7 7}OH{CMR10 10} ={CMMI10 10 i} σ{CMR7 7}sd
+  p3-l103  [212 702 250 714]  {CMR7 7}OH{CMR10 10} +{CMMI10 10 i} σ{CMR7 7}sk
+  p3-l104  [242 702 294 714]  {CMR7 7}OH{CMR10 10} = 21{CMMI10 10 i}σ{CMR7 7}int
   p3-l105  [284 703 299 714]  {CMR7 7}OH{CMR10 10}.
   p3-l106  [54 715 272 724]  {CMR10 10}The individual contributions are plotted in Fig. 3.
   p3-l107  [327 55 562 64]  {CMTI10 10 i}Topological antiferromagnets{CMR10 10}. These are important for
@@ -4588,24 +4588,24 @@
   p3-l116  [317 158 562 167]  {CMR10 10}spin torque, which has applications in data storage and
   p3-l117  [317 169 562 179]  {CMR10 10}nonvolatile logic [4, 66, 67]. Topological antiferromagnets
   p3-l118  [317 181 529 191]  {CMR10 10}are described by a tilted Dirac Hamiltonian [19]:
-  p3-l119  [344 201 535 211]  {CMMI10 10 i}H{CMR7 7}0{CMR10 10}({CMMIB10 10 i}q{CMR10 10}) ={CMMI10 10 i} νv{CMMI7 7 i}t{CMMI10 10 i}q{CMMI7 7 i}x{CMMI10 10 i}τ{CMR7 7}0{CMR10 10} +{CMMI10 10 i} v{CMMI7 7 i}F{CMR10 10} ({CMMI10 10 i}q{CMMI7 7 i}x{CMMI10 10 i}τ{CMMI7 7 i}x{CMSY10 10 i} −{CMMI10 10 i} νq{CMMI7 7 i}y{CMMI10 10 i}τ{CMMI7 7 i}y{CMR10 10}) + ∆{CMMI10 10 i}τ{CMMI7 7 i}z{CMMI10 10 i},
+  p3-l119  [344 201 535 211]  {CMMI10 10 i}H{CMR7 7}0{CMR10 10}({CMMIB10 10 i}q{CMR10 10}) ={CMMI10 10 i} νv{CMMI7 7 i}t{CMMI10 10 i}q{CMMI7 7 i}x{CMMI10 10 i}τ{CMR7 7}0{CMR10 10} +{CMMI10 10 i} v{CMMI7 7 i}F{CMR10 10}({CMMI10 10 i}q{CMMI7 7 i}x{CMMI10 10 i}τ{CMMI7 7 i}x{CMSY10 10 i} −{CMMI10 10 i} νq{CMMI7 7 i}y{CMMI10 10 i}τ{CMMI7 7 i}y{CMR10 10}) + ∆{CMMI10 10 i}τ{CMMI7 7 i}z{CMMI10 10 i},
   p3-l120  [549 201 562 211]  {CMR10 10}(8)
   p3-l121  [317 221 562 231]  {CMR10 10}where{CMMI10 10 i} v{CMMI7 7 i}t{CMR10 10} introduces a tilt along{CMMI10 10 i} q{CMMI7 7 i}x{CMR10 10}-axis. This Hamilto-
-  p3-l122  [317 232 562 242]  {CMR10 10}nian breaks both{CMSY10 10 i} T{CMR10 10} - and{CMSY10 10 i} P{CMR10 10}- symmetry. With{CMMI10 10 i} ν{CMR10 10} = 1,
-  p3-l123  [317 242 562 255]  {CMR10 10}the dispersion is{CMMI10 10 i} E{CMSY7 7 i}±{CMMIB7 7 i} q{CMR10 10} ={CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}q{CMMI7 7 i}x{CMSY10 10 i} ±{CMMI10 10 i} E{CMMI7 7 i}q{CMR10 10}. The tilt will get
+  p3-l122  [317 232 562 242]  {CMR10 10}nian breaks both{CMSY10 10 i} T{CMR10 10}- and{CMSY10 10 i} P{CMR10 10}- symmetry. With{CMMI10 10 i} ν{CMR10 10} = 1,
+  p3-l123  [317 242 562 255]  {CMR10 10}the dispersion is{CMMI10 10 i} E{CMSY7 7 i}±{CMMIB7 7 i}q{CMR10 10} ={CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}q{CMMI7 7 i}x{CMSY10 10 i} ±{CMMI10 10 i} E{CMMI7 7 i}q{CMR10 10}. The tilt will get
   p3-l124  [317 256 562 265]  {CMR10 10}into the energy conservation function in the scattering
   p3-l125  [317 267 562 276]  {CMR10 10}integral and Fermi distribution function, while the tilt
   p3-l126  [317 279 562 288]  {CMR10 10}doesn’t get into the eigenstates. To determine the OHE
   p3-l127  [317 290 562 299]  {CMR10 10}for the tilted 2D massive Dirac system one can expand
   p3-l128  [317 301 562 310]  {CMR10 10}the tilt up to first order in the energy function by assum-
   p3-l129  [317 312 562 323]  {CMR10 10}ing{CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}/v{CMMI7 7 i}F{CMSY10 10 i} ≪{CMR10 10} 1. So in the scattering process, the energy
-  p3-l130  [317 323 562 335]  {CMR10 10}conservation function can be expanded as{CMMI10 10 i} δ{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i} q{CMSY10 10 i} −{CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i} q{CMSY5 5 i}′{CMR10 10} ){CMSY10 10 i} ≈
-  p3-l131  [317 336 507 351]  {CMMI10 10 i}δ{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}q{CMSY10 10 i} −{CMMI10 10 i} E{CMMI7 7 i}q{CMSY5 5 i} ′{CMR10 10} ) +{CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}q{CMEX10 10} �{CMR10 10} cos{CMMI10 10 i} ϕ{CMSY10 10 i} −{CMR10 10} cos{CMMI10 10 i} ϕ{CMSY7 7 i} ′{CMMI7 7 i} ∂δ{CMR7 7}({CMMI7 7 i}E{CMMI5 5 i}q{CMSY7 7 i}−{CMMI7 7 i}E{CMMI5 5 i}q{CMSY5 5 i}′{CMR7 7} )
+  p3-l130  [317 323 562 335]  {CMR10 10}conservation function can be expanded as{CMMI10 10 i} δ{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i}q{CMSY10 10 i} −{CMMI10 10 i}E{CMMI7 7 i}m{CMMIB7 7 i}q{CMSY5 5 i}′{CMR10 10}){CMSY10 10 i} ≈
+  p3-l131  [317 336 507 351]  {CMMI10 10 i}δ{CMR10 10}({CMMI10 10 i}E{CMMI7 7 i}q{CMSY10 10 i} −{CMMI10 10 i} E{CMMI7 7 i}q{CMSY5 5 i}′{CMR10 10} ) +{CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}q{CMEX10 10}�{CMR10 10} cos{CMMI10 10 i} ϕ{CMSY10 10 i} −{CMR10 10} cos{CMMI10 10 i} ϕ{CMSY7 7 i}′{CMMI7 7 i} ∂δ{CMR7 7}({CMMI7 7 i}E{CMMI5 5 i}q{CMSY7 7 i}−{CMMI7 7 i}E{CMMI5 5 i}q{CMSY5 5 i}′{CMR7 7} )
   p3-l132  [478 346 492 353]  {CMMI7 7 i}∂E{CMMI5 5 i}q
   p3-l133  [508 341 562 350]  {CMR10 10}. The Fermi
   p3-l134  [317 354 562 363]  {CMR10 10}distribution function in equilibrium and at the absolute
-  p3-l135  [317 364 562 376]  {CMR10 10}zero of temperature can also be expanded{CMMI10 10 i} f{CMR7 7} (0){CMR10 10}({CMMI10 10 i}E{CMR7 7}+{CMMIB7 7 i} q{CMR10 10} ){CMSY10 10 i} ≈
-  p3-l136  [317 377 531 391]  {CMR10 10}Θ({CMMI10 10 i}E{CMMI7 7 i}F{CMSY10 10 i} −{CMMI10 10 i} E{CMR7 7}+{CMMIB7 7 i} q{CMR10 10} ) = Θ({CMMI10 10 i}E{CMMI7 7 i}F{CMSY10 10 i} −{CMMI10 10 i} E{CMMI7 7 i}q{CMR10 10}) +{CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}q{CMR10 10} cos{CMMI10 10 i} ϕ{CMMI7 7 i} ∂{CMR7 7}Θ({CMMI7 7 i}E{CMMI5 5 i}F{CMSY7 7 i} −{CMMI7 7 i}E{CMMI5 5 i}q{CMR7 7})
+  p3-l135  [317 364 562 376]  {CMR10 10}zero of temperature can also be expanded{CMMI10 10 i} f{CMR7 7}(0){CMR10 10}({CMMI10 10 i}E{CMR7 7}+{CMMIB7 7 i}q{CMR10 10} ){CMSY10 10 i} ≈
+  p3-l136  [317 377 531 391]  {CMR10 10}Θ({CMMI10 10 i}E{CMMI7 7 i}F{CMSY10 10 i} −{CMMI10 10 i} E{CMR7 7}+{CMMIB7 7 i}q{CMR10 10} ) = Θ({CMMI10 10 i}E{CMMI7 7 i}F{CMSY10 10 i} −{CMMI10 10 i} E{CMMI7 7 i}q{CMR10 10}) +{CMMI10 10 i} v{CMMI7 7 i}t{CMMI10 10 i}q{CMR10 10} cos{CMMI10 10 i} ϕ{CMMI7 7 i}∂{CMR7 7}Θ({CMMI7 7 i}E{CMMI5 5 i}F{CMSY7 7 i}−{CMMI7 7 i}E{CMMI5 5 i}q{CMR7 7})
   p3-l137  [502 386 515 393]  {CMMI7 7 i}∂E{CMMI5 5 i}q
   p3-l138  [532 381 562 389]  {CMR10 10}. Then
   p3-l139  [317 394 562 404]  {CMR10 10}the density matrix can be decomposed as{CMMI10 10 i} ρ{CMMI7 7 i}E{CMR10 10} +{CMMI10 10 i}ρ{CMMI7 7 i}E,v{CMMI5 5 i}t{CMR10 10} with
@@ -4655,10 +4655,10 @@
   p4-l14  [54 193 299 202]  {CMR10 10}additional skew scattering term appears in the second
   p4-l15  [54 204 299 213]  {CMR10 10}Born approximation, yielding a contribution to the OH-
   p4-l16  [54 218 118 227]  {CMR10 10}conductance{CMSY10 10 i} ∝
-  p4-l17  [130 214 140 223]  {CMMI7 7 i}U{CMR5 5} 3 1
+  p4-l17  [130 214 140 223]  {CMMI7 7 i}U{CMR5 5}3 1
   p4-l18  [122 223 148 232]  {CMR7 7}2{CMMI7 7 i}πn{CMMI5 5 i}i{CMMI7 7 i}U{CMR5 5}4 0
-  p4-l19  [157 214 187 223]  {CMMI7 7 i}m{CMMI5 5 i}e{CMMI7 7 i}v{CMR5 5} 2{CMMI5 5 i} F{CMR7 7} ∆{CMR5 5}2
-  p4-l20  [151 218 299 232]  {CMR7 7}({CMMI7 7 i}q{CMR5 5} 2{CMMI5 5 i} F{CMMI7 7 i} v{CMR5 5} 2{CMMI5 5 i} F{CMR7 7} +∆{CMR5 5}2{CMR7 7}){CMR10 10} , which dominates as the
+  p4-l19  [157 214 187 223]  {CMMI7 7 i}m{CMMI5 5 i}e{CMMI7 7 i}v{CMR5 5}2{CMMI5 5 i}F{CMR7 7}∆{CMR5 5}2
+  p4-l20  [151 218 299 232]  {CMR7 7}({CMMI7 7 i}q{CMR5 5}2{CMMI5 5 i}F{CMMI7 7 i}v{CMR5 5}2{CMMI5 5 i}F{CMR7 7}+∆{CMR5 5}2{CMR7 7}){CMR10 10}, which dominates as the
   p4-l21  [54 232 299 241]  {CMR10 10}ballistic limit is approached. The large extrinsic OHE in
   p4-l22  [54 244 299 253]  {CMR10 10}graphene and monolayer TMDs systems is due to their
   p4-l23  [54 255 294 265]  {CMR10 10}Dirac dispersion [75] and inversion symmetry breaking.
@@ -4684,7 +4684,7 @@
   p4-l43  [54 501 299 512]  {CMR10 10}fermion system is degenerate, i.e.{CMMI10 10 i} E{CMMI7 7 i}F{CMSY10 10 i} ≫{CMMI10 10 i} k{CMMI7 7 i}B{CMMI10 10 i}T{CMR10 10}. How-
   p4-l44  [54 513 299 522]  {CMR10 10}ever, based on realistic values for{CMMI10 10 i} τ{CMR10 10} , our theory requires
   p4-l45  [54 525 299 534]  {CMR10 10}the Fermi energy to be away from the band edge by at
-  p4-l46  [54 536 299 546]  {CMR10 10}least 50 meV in order to satisfy{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i} τ /{MSBM10 10}ℏ{CMSY10 10 i} ≫{CMR10 10} 1. This is
+  p4-l46  [54 536 299 546]  {CMR10 10}least 50 meV in order to satisfy{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i}τ /{MSBM10 10}ℏ{CMSY10 10 i} ≫{CMR10 10} 1. This is
   p4-l47  [54 548 299 557]  {CMR10 10}twice room temperature: whereas the assumption of de-
   p4-l48  [54 559 299 568]  {CMR10 10}generacy is not perfect, the system is still approximately
   p4-l49  [54 571 299 580]  {CMR10 10}degenerate. Thirdly, we have assumed short-range disor-
@@ -4692,13 +4692,13 @@
   p4-l51  [54 593 299 603]  {CMR10 10}not expect the results to change qualitatively, the RHS of
   p4-l52  [317 55 562 65]  {CMR10 10}Eqs. (6) and (7) will depend on the angular characteris-
   p4-l53  [317 66 562 76]  {CMR10 10}tics of the scattering potential. Finally but most impor-
-  p4-l54  [317 77 562 88]  {CMR10 10}tantly, the theory requires{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i} τ /{MSBM10 10}ℏ{CMSY10 10 i} ≫{CMR10 10} 1, which excludes
+  p4-l54  [317 77 562 88]  {CMR10 10}tantly, the theory requires{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i}τ /{MSBM10 10}ℏ{CMSY10 10 i} ≫{CMR10 10} 1, which excludes
   p4-l55  [317 89 562 98]  {CMR10 10}the low-density regions in the vicinity of the conduction
   p4-l56  [317 101 562 110]  {CMR10 10}and valence band edges. These regions are virtually im-
   p4-l57  [317 112 562 121]  {CMR10 10}possible to capture by most theoretical approaches. This
   p4-l58  [317 124 562 133]  {CMR10 10}is one of the fundamental paradoxes of transport theory:
   p4-l59  [317 135 562 144]  {CMR10 10}disorder is needed on physical grounds, but it needs to
-  p4-l60  [317 146 562 157]  {CMR10 10}satisfy{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i} τ{CMSY10 10 i} ≫{CMR10 10} 1 (alternatively{CMMI10 10 i} q{CMMI7 7 i}F{CMMI10 10 i} l{CMSY10 10 i} ≫{CMR10 10} 1, where{CMMI10 10 i} l{CMR10 10} is the
+  p4-l60  [317 146 562 157]  {CMR10 10}satisfy{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i}τ{CMSY10 10 i} ≫{CMR10 10} 1 (alternatively{CMMI10 10 i} q{CMMI7 7 i}F{CMMI10 10 i}l{CMSY10 10 i} ≫{CMR10 10} 1, where{CMMI10 10 i} l{CMR10 10} is the
   p4-l61  [317 158 562 168]  {CMR10 10}mean free path) for the theory to be applicable. The
   p4-l62  [317 169 562 179]  {CMR10 10}appearance of a term{CMSY10 10 i} ∝{CMMI10 10 i} τ{CMR10 10} (i.e.{CMSY10 10 i} ∝{CMR10 10} 1{CMMI10 10 i}/n{CMMI7 7 i}i{CMR10 10}) is understood
   p4-l63  [317 181 562 190]  {CMR10 10}on physical grounds: it represents the shift in the Fermi
@@ -4717,7 +4717,7 @@
   p4-l76  [317 330 562 339]  {CMR10 10}regime can also be captured in our density matrix lan-
   p4-l77  [317 341 562 351]  {CMR10 10}guage [78], but is unlikely to be relevant to the materials
   p4-l78  [317 353 562 362]  {CMR10 10}studied in the present work, where transport is diffusive.
-  p4-l79  [317 364 562 374]  {CMR10 10}The opposite limit,{CMMI10 10 i} q{CMMI7 7 i}F{CMSY10 10 i} →{CMR10 10} 0, is equivalent to{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i} τ{CMSY10 10 i} ≪{CMR10 10} 1,
+  p4-l79  [317 364 562 374]  {CMR10 10}The opposite limit,{CMMI10 10 i} q{CMMI7 7 i}F{CMSY10 10 i} →{CMR10 10} 0, is equivalent to{CMMI10 10 i} E{CMMI7 7 i}F{CMMI10 10 i}τ{CMSY10 10 i} ≪{CMR10 10} 1,
   p4-l80  [317 376 562 385]  {CMR10 10}which represents the transition to the localised regime.
   p4-l81  [317 387 562 396]  {CMR10 10}The transport theory first needs to be augmented with
   p4-l82  [317 398 562 408]  {CMR10 10}the Cooperon in order to describe weak localisation [79].
@@ -4908,7 +4908,7 @@
   p6-l4  [72 76 299 85]  {CMR9 9}effect. In this paper, if we take the ∆{CMSY9 9 i} →{CMR9 9} 0 at the very
   p6-l5  [72 87 299 95]  {CMR9 9}beginning of graphene Hamiltonian, the OHE disappears
   p6-l6  [72 97 299 106]  {CMR9 9}altogether. But if we take the ∆{CMSY9 9 i} →{CMR9 9} 0 limit for the orbital
-  p6-l7  [72 106 299 117]  {CMR9 9}moment, it yields lim{CMR6 6}∆{CMSY6 6 i}→{CMR6 6}0{CMR9 9}∆{CMMI9 9 i}/{CMR9 9}({CMMI9 9 i}q{CMR6 6} 2{CMMI9 9 i} v{CMR6 6} 2{CMMI6 6 i} F{CMR9 9} + ∆{CMR6 6}2{CMR9 9} ) ={CMMI9 9 i} πδ{CMR9 9}({CMMI9 9 i}q{CMR6 6} 2{CMMI9 9 i} v{CMR6 6} 2{CMMI6 6 i} F{CMR9 9} ).
+  p6-l7  [72 106 299 117]  {CMR9 9}moment, it yields lim{CMR6 6}∆{CMSY6 6 i}→{CMR6 6}0{CMR9 9}∆{CMMI9 9 i}/{CMR9 9}({CMMI9 9 i}q{CMR6 6}2{CMMI9 9 i}v{CMR6 6}2{CMMI6 6 i}F{CMR9 9} + ∆{CMR6 6}2{CMR9 9}) ={CMMI9 9 i} πδ{CMR9 9}({CMMI9 9 i}q{CMR6 6}2{CMMI9 9 i}v{CMR6 6}2{CMMI6 6 i}F{CMR9 9}).
   p6-l8  [72 119 299 127]  {CMR9 9}For the intrinsic case, the Fermi energy lies exactly at the
   p6-l9  [72 129 299 137]  {CMR9 9}Dirac point. The ∆{CMSY9 9 i} →{CMR9 9} 0 limit will make the intrinsic OH-
   p6-l10  [72 139 299 148]  {CMR9 9}conductance diverge after performing the integral over
@@ -5230,15 +5230,15 @@
   p1-l2  [167 153 523 178]  {NewCMSans10-Book 17.2}Python-based standard library for medical physics
   p1-l3  [167 175 252 200]  {NewCMSans10-Book 17.2}applications
   p1-l4  [167 211 231 227]  {NewCMSans10-Bold 11.6 b}Simon Biggs
-  p1-l5  [243 210 348 227]  {NewCMSans08-Book 8}1{NewCMSans10-Bold 11.6 b} , Matthew Jennings
-  p1-l6  [360 210 512 227]  {NewCMSans08-Book 8}2{NewCMSans10-Bold 11.6 b} , Stuart Swerdloff{NewCMSans08-Book 8} 3{NewCMSans10-Bold 11.6 b} , Phillip
+  p1-l5  [243 210 348 227]  {NewCMSans08-Book 8}1{NewCMSans10-Bold 11.6 b}, Matthew Jennings
+  p1-l6  [360 210 512 227]  {NewCMSans08-Book 8}2{NewCMSans10-Bold 11.6 b}, Stuart Swerdloff{NewCMSans08-Book 8} 3{NewCMSans10-Bold 11.6 b}, Phillip
   p1-l7  [167 225 196 241]  {NewCMSans10-Bold 11.6 b}Chlap
   p1-l8  [208 224 285 241]  {NewCMSans08-Book 8}4,5{NewCMSans10-Bold 11.6 b}, Derek Lane
-  p1-l9  [297 224 386 241]  {NewCMSans08-Book 8}6{NewCMSans10-Bold 11.6 b} , Jacob Rembish
-  p1-l10  [398 224 495 241]  {NewCMSans08-Book 8}7{NewCMSans10-Bold 11.6 b} , Jacob McAloney
-  p1-l11  [507 224 542 241]  {NewCMSans08-Book 8}8{NewCMSans10-Bold 11.6 b} , Paul
+  p1-l9  [297 224 386 241]  {NewCMSans08-Book 8}6{NewCMSans10-Bold 11.6 b}, Jacob Rembish
+  p1-l10  [398 224 495 241]  {NewCMSans08-Book 8}7{NewCMSans10-Bold 11.6 b}, Jacob McAloney
+  p1-l11  [507 224 542 241]  {NewCMSans08-Book 8}8{NewCMSans10-Bold 11.6 b}, Paul
   p1-l12  [167 238 191 255]  {NewCMSans10-Bold 11.6 b}King
-  p1-l13  [203 238 279 255]  {NewCMSans08-Book 8}9{NewCMSans10-Bold 11.6 b} , Rafael Ayala
+  p1-l13  [203 238 279 255]  {NewCMSans08-Book 8}9{NewCMSans10-Bold 11.6 b}, Rafael Ayala
   p1-l14  [291 238 362 255]  {NewCMSans08-Book 8}10{NewCMSans10-Bold 11.6 b}, Fada Guan
   p1-l15  [374 238 462 255]  {NewCMSans08-Book 8}11{NewCMSans10-Bold 11.6 b}, Nicola Lambri
   p1-l16  [474 238 527 255]  {NewCMSans08-Book 8}12,13{NewCMSans10-Bold 11.6 b}, Cody

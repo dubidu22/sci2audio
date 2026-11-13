@@ -213,7 +213,7 @@ class LinkStep(TextStep):
     def _block_edits(
         self, index: int, text: str, kind: BlockKind, label: str, words: LinkWords
     ) -> list[Edit]:
-        runs = _runs(find_links(text), text, words)
+        runs = _runs(find_links(text, _after_label(text, kind, label)), text, words)
         if not runs:
             return []
         if _only_links(text, runs, label if kind is BlockKind.FOOTNOTE else ""):
@@ -277,8 +277,20 @@ def _tidied(text: str, edits: list[Edit]) -> list[Edit]:
     ]
 
 
-def find_links(text: str) -> list[_Link]:
-    """The links in a text, in order, never overlapping."""
+def _after_label(text: str, kind: BlockKind, label: str) -> int:
+    """Where a footnote's text starts after the mark that opens it, so that a link set
+    close to the mark ("5https://...") is found as if a space stood there (#36, D-278);
+    0 for any other block."""
+    lead = len(text) - len(text.lstrip())
+    if kind is BlockKind.FOOTNOTE and label and text.startswith(label, lead):
+        return lead + len(label)
+    return 0
+
+
+def find_links(text: str, after: int = 0) -> list[_Link]:
+    """The links in a text, in order, never overlapping; the first `after` characters
+    (a footnote's mark) are read as white space, so they hold no link and don't hide one."""
+    text = " " * after + text[after:]
     links: list[_Link] = []
     for match in _START.finditer(text):
         if links and match.start() < links[-1].end:
