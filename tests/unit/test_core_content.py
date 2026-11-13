@@ -195,6 +195,22 @@ def test_a_page_without_positions_keeps_the_order_of_lines_and_pictures() -> Non
     assert page.pictures[0].ref == "epub/images/map.png"
 
 
+def test_an_outline_item_without_a_page_is_named_as_such() -> None:
+    line = TextLine("l1", (TextRun("a"),))
+    with pytest.raises(ValueError, match="points at item 'l1' but at no page"):
+        Content(PAPER.source, (Page(1, lines=(line,)),), outline=(OutlineEntry("M", 1, item="l1"),))
+
+
+@pytest.mark.timeout(10)
+def test_many_anchors_into_one_long_page_are_checked_quickly() -> None:
+    """One large chapter file with a long anchored table of contents (D-311): each page's
+    ids are collected once, not once per entry (review of PR #140, finding 1)."""
+    lines = tuple(TextLine(f"l{n}", (TextRun("a"),)) for n in range(50_000))
+    outline = tuple(OutlineEntry(f"S{n}", 1, 1, item=f"l{n * 25}") for n in range(2_000))
+    content = Content(PAPER.source, (Page(1, lines=lines),), outline=outline)
+    assert len(content.outline) == 2_000
+
+
 @pytest.mark.parametrize(
     "data",
     [

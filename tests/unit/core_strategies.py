@@ -103,16 +103,14 @@ def rules(draw: st.DrawFn, lefts: list[float], height: float) -> Box:
 @st.composite
 def outlines(draw: st.DrawFn, pages: tuple[Page, ...]) -> tuple[OutlineEntry, ...]:
     """Outline entries in a valid nesting: each at most one level deeper than the one before,
-    pointing at one of the pages or at none, and sometimes at an item on its page."""
+    pointing at one of the pages or at none, and sometimes at an item on its page (a line, a
+    picture or a drawing: `Content` accepts any)."""
     out: list[OutlineEntry] = []
     for _ in range(draw(st.integers(0, 5))):
         level = draw(st.integers(1, out[-1].level + 1 if out else 1))
         page = draw(st.none() | st.integers(1, len(pages))) if pages else None
-        ids = (
-            []
-            if page is None
-            else [i.id for i in (*pages[page - 1].lines, *pages[page - 1].pictures)]
-        )
+        on = pages[page - 1] if page is not None else None
+        ids = [i.id for i in (*on.lines, *on.pictures, *on.drawings)] if on else []
         item = draw(st.sampled_from(["", *ids]))
         out.append(OutlineEntry(draw(words), level, page, item))
     return tuple(out)

@@ -116,7 +116,9 @@ class Picture:
     id: str
     box: Box | None = None
     alt: str = ""  # alternative text, where the source gives one
-    ref: str = ""  # where the file stores the image, e.g. its path inside an EPUB
+    # Where the file stores the image, e.g. its path inside an EPUB: the file's own text as
+    # stored, so never trusted as a path to read or write outside that file.
+    ref: str = ""
 
 
 @dataclass(frozen=True)
@@ -217,6 +219,7 @@ class Content:
 
 def _check_outline(outline: tuple[OutlineEntry, ...], pages: tuple[Page, ...]) -> None:
     level = 0  # the level before the first entry
+    ids: dict[int, set[str]] = {}  # item ids by page number, made once per page asked for
     for entry in outline:
         if entry.level > level + 1:
             raise ValueError(
@@ -228,14 +231,18 @@ def _check_outline(outline: tuple[OutlineEntry, ...], pages: tuple[Page, ...]) -
                 f"outline entry {entry.title!r} points at page {entry.page}, which the content"
                 f" does not have (pages 1 to {len(pages)})"
             )
-        if entry.item and (
-            entry.page is None
-            or entry.item not in {item.id for item in _items(pages[entry.page - 1])}
-        ):
+        if entry.item and entry.page is None:
             raise ValueError(
-                f"outline entry {entry.title!r} points at item {entry.item!r}, which is not on"
-                f" its page ({entry.page})"
+                f"outline entry {entry.title!r} points at item {entry.item!r} but at no page"
             )
+        if entry.item and entry.page is not None:
+            if entry.page not in ids:
+                ids[entry.page] = {item.id for item in _items(pages[entry.page - 1])}
+            if entry.item not in ids[entry.page]:
+                raise ValueError(
+                    f"outline entry {entry.title!r} points at item {entry.item!r}, which is not"
+                    f" on its page ({entry.page})"
+                )
         level = entry.level
 
 
