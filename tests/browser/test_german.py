@@ -17,7 +17,7 @@ from playwright.sync_api import Page, expect
 from test_flow import PDF, gated, slow, until
 from test_keyboard import press_on, tab_to
 
-from conftest import Live, check_axe
+from conftest import Live, check_axe, settled
 from sci2audio.voices import PREVIEW_TEXT, EngineError
 from sci2audio.web.i18n import COOKIE
 from sci2audio.web.jobs import JobKind
@@ -35,13 +35,6 @@ def open_paper(page: Page) -> str:
     expect(page.locator("#summary")).to_be_visible()
     settled(page)
     return page.url.rsplit("/", 1)[1].split("#")[0]
-
-
-def settled(page: Page) -> None:
-    """Wait until the document page no longer follows the analysis. The report can be on
-    disk while the job is still the running one; a page drawn in that moment shows the
-    summary and still reloads itself when the job ends, under a test's key presses."""
-    expect(page.locator("#document[data-events]")).to_have_count(0)
 
 
 def expect_german(page: Page) -> None:

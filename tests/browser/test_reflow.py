@@ -9,9 +9,8 @@ import re
 import pytest
 from playwright.sync_api import Page, expect
 from test_flow import PDF
-from test_german import settled
 
-from conftest import Live
+from conftest import Live, settled
 
 WIDTH = 320
 
