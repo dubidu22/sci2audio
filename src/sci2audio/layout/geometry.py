@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Iterable, Sequence
 from statistics import median
 
-from sci2audio.core import Box, Content, Drawing, Picture, TextLine
+from sci2audio.core import Box, Content, Drawing, Picture, TextLine, TextRun
 
 
 def boxed(item: TextLine | Picture | Drawing) -> Box:
@@ -60,6 +61,44 @@ def body_size(content: Content) -> float:
             for run in line.runs:
                 sizes[run.size] += len(run.text)
     return sizes.most_common(1)[0][0] if sizes else 0.0
+
+
+def letter_size(runs: Iterable[TextRun]) -> float:
+    """The size most of the letters have: a footnote mark or a subscript doesn't change it
+    (0 if there are no letters)."""
+    letters: dict[float, int] = {}
+    for run in runs:
+        letters[run.size] = letters.get(run.size, 0) + len(run.text.strip())
+    return max(letters, key=lambda size: letters[size]) if letters else 0.0
+
+
+def separators(
+    pieces: Sequence[TextLine], size: float, word_space: float, stack_reach: float
+) -> list[str]:
+    """What stands before each piece of one printed line, left to right: a space where the
+    white after the letters so far (a subscript may stand under the end of the piece before
+    it) is at least `word_space` em of `size`, else nothing, as the page prints a mark or a
+    script set close to its neighbour. A piece that starts more than `stack_reach` em back,
+    under earlier letters, is out of its place and keeps a space, so no words run together.
+    A digit that starts back under a digit (a fraction 1/2 set as 1 over 2) keeps a space,
+    so the two never read as one number (review M2 of #128). Pieces without a position, or a
+    line without sizes, keep a space (#36, D-274 to D-277)."""
+    out = [""] * min(len(pieces), 1)
+    reach: float | None = None
+    for k, piece in enumerate(pieces):
+        if k:
+            gap = None if piece.box is None or reach is None else piece.box.x0 - reach
+            near = gap is not None and -stack_reach * size <= gap < word_space * size
+            stacked_digits = (
+                gap is not None
+                and gap < 0
+                and pieces[k - 1].text[-1:].isdigit()
+                and piece.text[:1].isdigit()
+            )
+            out.append("" if near and not stacked_digits else " ")
+        if piece.box is not None:
+            reach = piece.box.x1 if reach is None else max(reach, piece.box.x1)
+    return out
 
 
 def line_size(line: TextLine) -> float:

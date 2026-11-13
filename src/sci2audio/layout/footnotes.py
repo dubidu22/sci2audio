@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Content, Page, Part, TextLine, TextRun
-from sci2audio.layout.geometry import rows
+from sci2audio.layout.geometry import letter_size, rows, separators
 from sci2audio.layout.settings import LayoutSettings
 
 # a footnote mark as printed: a number or a run of note symbols
@@ -152,7 +152,7 @@ def _notes(lines: list[TextLine], settings: LayoutSettings) -> list[Block]:
             notes.append((mark or "", [row]))
         else:
             notes[-1][1].append(row)
-    return [_note(label, found) for label, found in notes]
+    return [_note(label, found, settings) for label, found in notes]
 
 
 def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
@@ -165,13 +165,16 @@ def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
     return text if smaller and _MARK.fullmatch(text) else None
 
 
-def _note(label: str, lines: list[list[TextLine]]) -> Block:
-    """A footnote block: rows joined by a line break, pieces of a row by a space, each
-    piece's text as found (white at its ends included, as in any block)."""
+def _note(label: str, lines: list[list[TextLine]], settings: LayoutSettings) -> Block:
+    """A footnote block: rows joined by a line break, pieces of a row by a space where the
+    page prints one (`separators`), each piece's text as found (white at its ends included,
+    as in any block)."""
     text, parts = "", []
     for n, row in enumerate(lines):
+        size = letter_size(run for piece in row for run in piece.runs)
+        joins = separators(row, size, settings.word_space, settings.stack_reach)
         for k, piece in enumerate(row):
-            text += "\n" if n and not k else " " if k else ""
+            text += "\n" if n and not k else joins[k]
             parts.append(Part(piece.id, len(text)))
             text += piece.text
     return Block(BlockKind.FOOTNOTE, text, tuple(parts), label=label)

@@ -18,6 +18,7 @@ from sci2audio.core import (
     EditKind,
     FurnitureRole,
     Metadata,
+    OutlineEntry,
     Page,
     Part,
     Picture,
@@ -96,19 +97,32 @@ def rules(draw: st.DrawFn, lefts: list[float], height: float) -> Box:
 
 
 @st.composite
+def outlines(draw: st.DrawFn, pages: int) -> tuple[OutlineEntry, ...]:
+    """Outline entries in a valid nesting: each at most one level deeper than the one before,
+    pointing at one of the `pages` pages or at none."""
+    out: list[OutlineEntry] = []
+    for _ in range(draw(st.integers(0, 5))):
+        level = draw(st.integers(1, out[-1].level + 1 if out else 1))
+        page = draw(st.none() | st.integers(1, pages)) if pages else None
+        out.append(OutlineEntry(draw(words), level, page))
+    return tuple(out)
+
+
+@st.composite
 def contents(draw: st.DrawFn) -> Content:
     counter = iter(range(10_000))
 
     def ids() -> str:
         return f"i{next(counter)}"
 
+    count = draw(st.integers(0, 3))
     return Content(
         source=Source(
             draw(names),
             draw(st.sampled_from(SourceFormat)),
             draw(st.text("0123456789abcdef", max_size=8)),
         ),
-        pages=tuple(draw(pages(n, ids)) for n in range(1, draw(st.integers(0, 3)) + 1)),
+        pages=tuple(draw(pages(n, ids)) for n in range(1, count + 1)),
         metadata=draw(
             st.builds(
                 Metadata,
@@ -117,6 +131,7 @@ def contents(draw: st.DrawFn) -> Content:
                 language=st.sampled_from(["", "en", "en-GB"]),
             )
         ),
+        outline=draw(outlines(count)),
     )
 
 
