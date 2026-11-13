@@ -8,7 +8,18 @@ import threading
 from pathlib import Path
 
 import pytest
-from pdf_maker import HEIGHT, Mark, Rect, Text, in_form, make_pdf, outlined_pdf, width
+from pdf_maker import (
+    HEIGHT,
+    Mark,
+    Rect,
+    Text,
+    in_form,
+    make_pdf,
+    outlined_pdf,
+    raw_pdf,
+    stream,
+    width,
+)
 
 from sci2audio.core import Content, Metadata, OutlineEntry, SourceFormat
 from sci2audio.extraction import extract_pdf, read_pdf
@@ -23,9 +34,6 @@ from sci2audio.extraction.pdf import (
 )
 
 pytestmark = pytest.mark.timeout(60)
-
-TESTS = Path(__file__).resolve().parents[1]
-FIXTURES = TESTS / "fixtures"
 
 
 def lines_of(data: bytes) -> list[str]:
@@ -215,8 +223,11 @@ def test_boxes_are_measured_from_the_top_left() -> None:
 
 def test_drawings_inside_a_form_get_page_positions() -> None:
     # The rectangle sits at x 100..300, y 100..200 on its own page; the form halves it and
-    # moves it 10 pt right and 20 pt up (PDF space): 60..160 across, 430..480 down.
-    data = in_form(make_pdf([Rect(100, 100, 300, 200)]), scale=0.5, dx=10, dy=20)
+    # moves it 10 pt right and 20 pt up (PDF space): 60..160 across, 430..480 down. The
+    # caption is there because a PDF without any text is refused (D-393).
+    data = in_form(
+        make_pdf([Rect(100, 100, 300, 200), Text("A caption", 100, 230)]), scale=0.5, dx=10, dy=20
+    )
     (drawing,) = read_pdf(data, "form.pdf").pages[0].drawings
     box = drawing.box
     assert (box.x0, box.y0, box.x1, box.y1) == (60, 430, 160, 480)
@@ -346,8 +357,21 @@ def test_bookmarks_deeper_than_the_limit_are_left_out() -> None:
 
 
 def test_metadata_is_recorded_as_the_file_gives_it() -> None:
-    # PDFium can't write an Info dictionary or /Lang, so this file is stored (fixtures/README.md).
-    assert extract_pdf(FIXTURES / "metadata.pdf").metadata == Metadata(
+    # PDFium can't write an Info dictionary or /Lang, so the file is written object by object.
+    data = raw_pdf(
+        {
+            1: b"<< /Type /Catalog /Pages 2 0 R /Lang (en-GB) >>",
+            2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            3: b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200]"
+            b" /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            4: stream(b"BT /F1 12 Tf 20 150 Td (A made-up paper) Tj ET"),
+            5: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            6: b"<< /Title (A Made-Up Paper) /Author (Lovelace, Ada; Babbage, Charles)"
+            b" /CreationDate (D:20240305120000Z) >>",
+        },
+        trailer=b"/Info 6 0 R",
+    )
+    assert read_pdf(data, "m.pdf").metadata == Metadata(
         title="A Made-Up Paper",
         authors=("Lovelace, Ada; Babbage, Charles",),  # kept whole: any split is a guess
         date="2024-03-05",

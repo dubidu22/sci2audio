@@ -75,6 +75,16 @@ _UNKNOWN = "\ufffd"  # a glyph PDFium can't map to Unicode: recorded, not droppe
 _SUBSET = re.compile(r"^[A-Z]{6}\+")
 _PDF_DATE = re.compile(r"^D:(\d{4})(\d{2})?(\d{2})?")
 OUTLINE_DEPTH = 15  # bookmark levels read; deeper ones are left out (D-267)
+# Limits against hostile files, checked before the per-character work (D-394): a 2 KB file of
+# shared page-tree nodes holds half a million pages, and a few KB of compressed text a million
+# characters on one page, while the corpus's densest page holds under 6,000.
+MAX_PAGES = 10_000
+MAX_PAGE_CHARS = 100_000
+MAX_CHARS = 10_000_000
+EOF_TAIL = 1024  # bytes at the end where a whole file has its %%EOF (PDF 32000-1, 7.5.5)
+# Permission bits of the /P entry (PDF 32000-1, table 22), counted from 1 as the standard does
+_COPY = 1 << 4  # bit 5: copy or extract text
+_ACCESSIBILITY = 1 << 9  # bit 10: extract text for accessibility (revision 3 on)
 
 
 def extract_pdf(path: Path) -> Content:
@@ -95,18 +105,65 @@ def read_pdf(data: bytes, name: str) -> Content:
         try:
             document = pdfium.PdfDocument(data)
         except pdfium.PdfiumError as error:
-            raise ExtractionError(_load_message(name, data, str(error))) from error
+            raise ExtractionError(_load_message(name, data, error)) from error
         try:
-            if len(document) == 0:
-                raise ExtractionError(f"{name}: the PDF has no pages")
-            pages = tuple(_page(document, index) for index in range(len(document)))
+            _check(document, name, data)
+            pages = _pages(document, name)
             metadata = _metadata(document)
             outline = _outline(document, len(pages))
         except pdfium.PdfiumError as error:
             raise ExtractionError(f"{name}: the PDF is damaged ({error})") from error
         finally:
             document.close()
+    if not any(page.lines for page in pages):
+        raise ExtractionError(
+            f"{name}: the PDF holds no text; a scanned PDF needs text recognition,"
+            " which sci2audio can't do yet"
+        )  # D-393
     return Content(source=source, pages=pages, metadata=metadata, outline=outline)
+
+
+def _check(document: pdfium.PdfDocument, name: str, data: bytes) -> None:
+    """Refuse, before reading any page, a file cut short (D-395), one whose owner forbids
+    reading its text out (D-396), and one without pages or with too many (D-394)."""
+    if _cut_short(data) and not raw.FPDF_DocumentHasValidCrossReferenceTable(document.raw):
+        raise ExtractionError(_CUT_SHORT.format(name=name))
+    if _forbids_reading(document):
+        raise ExtractionError(
+            f"{name}: the PDF's owner does not allow its text to be read out;"
+            " ask for a copy without this restriction"
+        )
+    count = len(document)
+    if count == 0:
+        raise ExtractionError(f"{name}: the PDF has no pages")
+    if count > MAX_PAGES:
+        raise _too_large(name, f"more than {MAX_PAGES:,} pages")
+
+
+_CUT_SHORT = "{name}: the PDF is cut short (an unfinished download?); download it again"
+
+
+def _cut_short(data: bytes) -> bool:
+    """True if the file starts like a PDF but has no %%EOF at its end. PDFium rebuilds
+    what it can of such a file, and the pages past the cut are lost without a word."""
+    return b"%PDF-" in data[:EOF_TAIL] and b"%%EOF" not in data[-EOF_TAIL:]
+
+
+def _forbids_reading(document: pdfium.PdfDocument) -> bool:
+    """True if the owner password's permissions forbid both copying the text and
+    extracting it for accessibility. Revision 2 has no accessibility bit: there copying
+    decides both (PDF 32000-1, table 22)."""
+    revision = raw.FPDF_GetSecurityHandlerRevision(document.raw)
+    if revision < 2:  # -1: the file is not encrypted
+        return False
+    permissions = raw.FPDF_GetDocPermissions(document.raw) & 0xFFFFFFFF
+    copy = bool(permissions & _COPY)
+    accessibility = bool(permissions & _ACCESSIBILITY) if revision >= 3 else copy
+    return not copy and not accessibility
+
+
+def _too_large(name: str, detail: str) -> ExtractionError:
+    return ExtractionError(f"{name}: the PDF is too large or damaged ({detail})")
 
 
 COVER_SIZE = 1400  # pixels on the longer side of a PDF's cover (D-313)
@@ -154,11 +211,20 @@ def extract_pdf_cover(path: Path) -> Cover | None:
     return Cover(image, "image/png")
 
 
-def _load_message(name: str, data: bytes, detail: str) -> str:
+def _load_message(name: str, data: bytes, error: pdfium.PdfiumError) -> str:
     # PDFium's error code can be left over from an earlier file (it isn't reset on every
-    # failure), so a password is only blamed when the file really is encrypted.
-    if "password" in detail.lower() and b"/Encrypt" in data:
+    # failure), so a password or a protection is only blamed when the file really is
+    # encrypted.
+    encrypted = b"/Encrypt" in data
+    if encrypted and error.err_code == raw.FPDF_ERR_PASSWORD:
         return f"{name}: the PDF is password-protected; remove the password and try again"
+    if encrypted and error.err_code == raw.FPDF_ERR_SECURITY:  # D-397
+        return (
+            f"{name}: the PDF is protected by DRM or a certificate;"
+            " sci2audio can read only PDFs without it"
+        )
+    if _cut_short(data):  # D-395
+        return _CUT_SHORT.format(name=name)
     return f"{name}: not a PDF, or the file is damaged"
 
 
@@ -221,20 +287,39 @@ def _language(document: pdfium.PdfDocument) -> str:
     return buffer.raw[: size - 2].decode("utf-16-le", errors="replace").strip()
 
 
-def _page(document: pdfium.PdfDocument, index: int) -> Page:
-    page = document[index]
-    try:
-        width, height = page.get_size()
+def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
+    """Every page in order. A page PDFium can't load fails the whole file, named (D-398):
+    reading on would lose its text without a word. PDFium counts each page's characters
+    before any of ours are made, so the limits cost nothing on a real file (D-394)."""
+    pages: list[Page] = []
+    total = 0
+    for index in range(len(document)):
         number = index + 1
-        textpage = page.get_textpage()
         try:
-            lines = _lines(textpage, height, number)
+            page = document[index]
+        except pdfium.PdfiumError as error:
+            raise ExtractionError(
+                f"{name}: the PDF is damaged (page {number} cannot be read)"
+            ) from error
+        try:
+            width, height = page.get_size()
+            textpage = page.get_textpage()
+            try:
+                count = textpage.count_chars()
+                if count > MAX_PAGE_CHARS:
+                    detail = f"page {number} holds more than {MAX_PAGE_CHARS:,} characters"
+                    raise _too_large(name, detail)
+                total += max(count, 0)
+                if total > MAX_CHARS:
+                    raise _too_large(name, f"more than {MAX_CHARS:,} characters")
+                lines = _lines(textpage, height, number)
+            finally:
+                textpage.close()
+            pictures, drawings = _graphics(page, height, number)
         finally:
-            textpage.close()
-        pictures, drawings = _graphics(page, height, number)
-    finally:
-        page.close()
-    return Page(number, lines, pictures, drawings, width=width, height=height)
+            page.close()
+        pages.append(Page(number, lines, pictures, drawings, width=width, height=height))
+    return tuple(pages)
 
 
 @dataclass
