@@ -790,6 +790,20 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     call("POST", f"{api}/jobs/{ids.audio_job}/cancel", 409, headers=same)  # it has ended
     call("POST", f"{api}/voices/preview", 202, data={"text": "A preview."}, headers=same)
     call("DELETE", f"{api}/documents/{ids.paper}/chunks", 204, headers=same)
+    # removing a document (#120): a throwaway one of its own, never the paper or the note the
+    # walk still needs; other bytes than both, since the id is their hash
+    from web_helpers import pdf_bytes
+
+    throwaway = {
+        "name": "throwaway.pdf",
+        "mimeType": "application/pdf",
+        "buffer": pdf_bytes("A throwaway note that is removed again."),
+    }
+    opened = call("POST", f"{api}/documents", 201, multipart={"file": throwaway}, headers=same)
+    gone = opened.json()["id"]
+    _check(gone not in (ids.paper, ids.note), "the throwaway document is one the walk needs")
+    call("DELETE", f"{api}/documents/{gone}", 200, headers=same)
+    call("DELETE", f"{api}/documents/{gone}", 404, headers=same)
     call("GET", "/openapi.json", 200)
     # another site as the way back: the switch goes home instead (D-321)
     back = call("GET", "/language?language=en&back=https://elsewhere.example/", 303,

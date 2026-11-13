@@ -151,6 +151,58 @@ function startPage() {
   }
 }
 
+// ---- removing a document (#120, D-359 to D-362) ------------------------------------------
+
+function removal() {
+  for (const button of document.querySelectorAll("button.remove-now")) {
+    let sending = false;
+    button.addEventListener("click", async () => {
+      // one request per press; the button keeps the focus while it runs (D-361)
+      if (sending) return;
+      sending = true;
+      button.setAttribute("aria-disabled", "true");
+      say(tr("remove.removing"));
+      let removed;
+      try {
+        removed = await send(`/api/v1/documents/${button.dataset.document}`, { method: "DELETE" });
+      } catch (error) {
+        sending = false;
+        button.removeAttribute("aria-disabled");
+        say(explain(error), true);
+        return;
+      }
+      let text = tr("remove.done", { name: removed.name });
+      let stays = "";
+      if (removed.audiobook_folder) stays = tr("remove.stays_folder", { folder: removed.audiobook_folder });
+      else if (button.dataset.audio) stays = tr("remove.stays");
+      const page = document.getElementById("document");
+      if (page) {
+        // the document page: its steps make no sense any more; the result replaces them
+        page.remove();
+        const intro = document.getElementById("document-intro");
+        if (intro) intro.remove();
+        const done = document.getElementById("removed");
+        document.getElementById("removed-title").textContent = text;
+        document.getElementById("removed-text").textContent = stays;
+        done.hidden = false;
+        document.getElementById("removed-title").focus();
+        return;
+      }
+      // the start page: the document leaves the list; the message says what happened
+      const item = button.closest("li");
+      const list = item && item.parentElement;
+      if (item) item.remove();
+      if (list && !list.querySelector("li")) {
+        list.remove();
+        const none = document.getElementById("no-documents");
+        if (none) none.hidden = false;
+      }
+      if (stays) text = `${text} ${stays}`;
+      say(text, true);
+    });
+  }
+}
+
 // ---- the document page -----------------------------------------------------------------
 
 function chosen(name) {
@@ -439,6 +491,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const data = document.getElementById("strings");
   STRINGS = data ? JSON.parse(data.textContent) : {};
   startPage();
+  removal();
   documentPage();
   jobPage();
   voicePage();

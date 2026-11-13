@@ -5,6 +5,7 @@ A two-column page as in `test_layout`: body text in 10 point down to y 506, note
 """
 
 import itertools
+from dataclasses import replace
 
 from hypothesis import given
 from hypothesis import strategies as st
@@ -12,6 +13,7 @@ from test_layout import GUTTER, LEFT, MIDDLE, RIGHT, content, line, short, two_c
 
 from sci2audio.core import BlockKind, Box, Document, Drawing, TextLine, TextRun
 from sci2audio.layout import build_document
+from sci2audio.layout.split import kept
 
 LEFT_END = MIDDLE - GUTTER / 2  # the left column's right edge
 RIGHT_START = MIDDLE + GUTTER / 2
@@ -220,6 +222,57 @@ def test_a_footnote_takes_the_place_of_its_notes_after_their_column_text() -> No
     kinds = [b.kind for b in doc.blocks if b.kind is not BlockKind.FIGURE]
     assert kinds == [BlockKind.PARAGRAPH, BlockKind.FOOTNOTE, BlockKind.PARAGRAPH]
     assert kind_of(doc, right[0].id) is BlockKind.PARAGRAPH
+
+
+def test_an_underbrace_drawn_in_a_note_is_part_of_that_note() -> None:
+    """#58 (D-329, D-332), as in nowak p1: the underbrace of "n times" is drawn in two thin
+    halves inside the box of footnote 1's line "| {z }". Read before footnote 2 is over, it
+    used to join the end of footnote 2; it stands in footnote 1, just after that line."""
+    first = note("1", " Specifically, a derives b in n steps:", RULE_Y + 6)
+    brace = note("", "| {z }", RULE_Y + 16, LEFT + 30, LEFT + 90)
+    times = note("", "n times", RULE_Y + 26, LEFT + 40, LEFT + 80)
+    second = note("2", " The second note.", RULE_Y + 36)
+    halves = [
+        Drawing(f"u{next(_ids)}", Box(LEFT + 42, RULE_Y + 19, LEFT + 58, RULE_Y + 20)),
+        Drawing(f"u{next(_ids)}", Box(LEFT + 62, RULE_Y + 19, LEFT + 78, RULE_Y + 20)),
+    ]
+    doc = build([first, brace, times, second], rule(), *halves)
+    assert footnotes(doc) == [
+        ("1", "1 Specifically, a derives b in n steps:\n| {z }\nn times"),
+        ("2", "2 The second note."),
+    ]
+    one, two = [b for b in doc.blocks if b.kind is BlockKind.FOOTNOTE]
+    end = one.text.index("| {z }") + len("| {z }")
+    after = [(p.item, p.start) for p in one.parts[2:5]]
+    assert after == [(brace.id, end - 6), (halves[0].id, end), (halves[1].id, end)]
+    assert [p.item for p in two.parts] == [second.id]
+
+
+def test_a_mark_in_a_piece_set_close_to_the_next_stands_between_them() -> None:
+    """#58 with #36's joins (D-332, D-335): two pieces of a note's row set close together
+    have no separator between them, so a mark drawn in the first piece starts where the
+    second starts; the note is what keeping all its parts makes of it, and keeping the
+    second piece alone leaves the mark at its start."""
+    first = note("1", " Specifically, a", RULE_Y + 6, LEFT, 150)
+    second = note("", "=> b holds.", RULE_Y + 6, 150.4, LEFT_END)
+    bar = Drawing(f"u{next(_ids)}", Box(100, RULE_Y + 9, 110, RULE_Y + 9.5))
+    doc = build([first, second], rule(), bar)
+    assert footnotes(doc) == [("1", "1 Specifically, a=> b holds.")]
+    block = next(b for b in doc.blocks if b.kind is BlockKind.FOOTNOTE)
+    end = len(first.text)
+    assert [(p.item, p.start) for p in block.parts[1:]] == [
+        (first.id, 0),
+        (bar.id, end),
+        (second.id, end),
+    ]
+    lengths = {first.id: len(first.text), second.id: len(second.text)}
+    assert kept(block, block.parts, lengths) == block
+    plain = replace(block, kind=BlockKind.PARAGRAPH, label="")  # a piece with no mark
+    rest = kept(plain, plain.parts[2:], lengths)
+    assert (rest.text, [(p.item, p.start) for p in rest.parts]) == (
+        second.text,
+        [(bar.id, 0), (second.id, 0)],
+    )
 
 
 @st.composite

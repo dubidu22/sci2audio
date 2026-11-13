@@ -25,17 +25,26 @@ def piece_starts(block: Block, cuts: list[int]) -> list[int]:
 
 def split_at(block: Block, cuts: list[int]) -> list[Block]:
     """The block cut before each of `cuts` (places in its text), each piece keeping the
-    block's kind and the parts whose text starts in it. A cut where no part starts, or at
-    the very start, is left out (`piece_starts`). Each piece's text is the block's text
-    from its start up to the next piece, without the one break or space before it (pieces
-    of a printed line set close together have none, #36), kept as found."""
+    block's kind and the parts whose text starts in it, in their order: a part that starts
+    exactly at a cut but comes before the part the next piece opens with (a graphic standing
+    where the line before ends, with no separator, #58) stays with the piece before. A cut
+    where no part starts, or at the very start, is left out (`piece_starts`). Each piece's
+    text is the block's text from its start up to the next piece, without the one break or
+    space before it (pieces of a printed line set close together have none, #36), kept as
+    found."""
     edges = piece_starts(block, cuts)
+    # where each piece's parts begin: at the last part that starts at its edge, so a graphic
+    # standing where the line before ends, with no separator, stays with that line (#58)
+    firsts = [0] + [
+        max(k for k, part in enumerate(block.parts) if part.start == edge) for edge in edges[1:]
+    ]
     out = []
     for n, begin in enumerate(edges):
         last = n + 1 == len(edges)
         stop = len(block.text) + 1 if last else edges[n + 1]  # where the next piece starts
         end = len(block.text) if last else _before(block.text, stop)
-        parts = tuple(Part(p.item, p.start - begin) for p in block.parts if begin <= p.start < stop)
+        held = block.parts[firsts[n] : None if last else firsts[n + 1]]
+        parts = tuple(Part(p.item, p.start - begin) for p in held)
         out.append(replace(block, text=block.text[begin:end], parts=parts))
     return out
 
