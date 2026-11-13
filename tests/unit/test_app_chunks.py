@@ -74,8 +74,23 @@ def test_cleaning_removes_only_the_chunk_cache(tmp_path: Path) -> None:
     size = cache_size(tmp_path)
     assert size > 0
     assert clean_work_folder(tmp_path) == size
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["audio.json", "document.json"]
+    # the lock file it held stays, like after every job (D-161)
+    names = sorted(p.name for p in tmp_path.iterdir())
+    assert names == ["audio.json", "document.json", "job.lock"]
     assert clean_work_folder(tmp_path) == 0
+    assert clean_work_folder(tmp_path / "none") == 0
+    assert not (tmp_path / "none").exists()  # cleaning a folder that is not there makes none
+
+
+def test_cleaning_while_a_job_holds_the_lock_is_refused_and_removes_nothing(
+    tmp_path: Path,
+) -> None:
+    chunk = write_wav(tmp_path / chunk_file(chunk_key("x", "v", 1.0, "e", "1")))
+    with work_folder_lock(tmp_path), pytest.raises(JobBusyError, match="another sci2audio job"):
+        clean_work_folder(tmp_path)
+    assert chunk.exists()
+    assert clean_work_folder(tmp_path) > 0  # free again: it cleans
+    assert not chunk.exists()
 
 
 @given(
@@ -127,6 +142,11 @@ def test_another_process_holding_the_lock_keeps_the_job_out(tmp_path: Path) -> N
         assert child.stdout.readline().strip() == "locked"
         with pytest.raises(JobBusyError), work_folder_lock(work):
             pass
+        # nor may the cache be cleaned under that job (D-226)
+        chunk = write_wav(work / chunk_file(chunk_key("x", "v", 1.0, "e", "1")))
+        with pytest.raises(JobBusyError):
+            clean_work_folder(work)
+        assert chunk.exists()
         child.kill()  # killed outright: the system frees the lock
         child.wait(timeout=30)
         # Linux and macOS free it at once; Windows "depends upon available system

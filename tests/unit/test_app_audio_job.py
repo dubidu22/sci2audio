@@ -22,6 +22,7 @@ from sci2audio.app import (
     JobSettings,
     OutputExistsError,
     Phase,
+    clean_work_folder,
     run_audio_job,
 )
 from sci2audio.app import audio as audio_module
@@ -312,7 +313,7 @@ def test_one_job_at_a_time_on_a_runner_and_per_working_folder(tmp_path: Path) ->
     started, release = threading.Event(), threading.Event()
 
     def progress(event: AudioProgress) -> None:
-        if event.phase is Phase.SPEAKING:
+        if event.phase is Phase.SPEAKING and event.chunks_done == 1:  # one chunk cached
             started.set()
             release.wait(30)
 
@@ -340,6 +341,12 @@ def test_one_job_at_a_time_on_a_runner_and_per_working_folder(tmp_path: Path) ->
         # another runner (another window) on the same working folder: the folder's lock
         with pytest.raises(JobBusyError, match="another sci2audio job"):
             JobRunner().run_audio(source, settings, tmp_path / "work", voice=FakeVoice().source())
+        # nor may its chunk cache be cleaned under it (D-226)
+        cached = sorted((tmp_path / "work" / "chunks").rglob("*.wav"))
+        assert cached
+        with pytest.raises(JobBusyError, match="another sci2audio job"):
+            clean_work_folder(tmp_path / "work")
+        assert sorted((tmp_path / "work" / "chunks").rglob("*.wav")) == cached
     finally:
         release.set()
         thread.join(60)

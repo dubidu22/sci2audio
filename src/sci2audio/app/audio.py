@@ -22,6 +22,7 @@ MP3 per chapter, the M4B and the read-along file → the job's records.
 
 from __future__ import annotations
 
+import contextlib
 import threading
 import time
 import wave
@@ -264,17 +265,26 @@ def audiobook_files(
 # ---- running -------------------------------------------------------------------------
 
 
+_Identity = tuple[int, int, int, int]  # device, inode, size, modification time (ns)
+
+
 @dataclass(frozen=True)
 class _CancellableFfmpeg(Ffmpeg):
     """Runs the given ffmpeg, stopping the feed when the job is cancelled; output then
-    removes its partial file (D-119)."""
+    removes its partial file (D-119). Remembers the identity of every file ffmpeg finished
+    (device, inode, size and modification time, which the rename into place keeps), so a
+    failed run can tell its own files from anyone else's."""
 
     inner: Ffmpeg | None = None
     cancel: threading.Event | None = None
+    finished: list[_Identity] = field(default_factory=list)
 
     def run(self, args: Sequence[str], feed: Iterable[bytes] = ()) -> str:
         runner = self.inner or Ffmpeg(self.exe)
-        return runner.run(args, self._watched(feed))
+        printed = runner.run(args, self._watched(feed))
+        with contextlib.suppress(OSError):  # the file it wrote is its last argument
+            self.finished.append(_identity(Path(args[-1])))
+        return printed
 
     def _watched(self, feed: Iterable[bytes]) -> Iterator[bytes]:
         for piece in feed:
@@ -406,6 +416,7 @@ def run_audio_job(
             raise JobError("the voice could not speak any of the chosen chapters")
 
         tell(AudioProgress(Phase.ENCODING, chapters=len(chapters)))
+        _remove_old_records(work)
         written = _encode(work, out_folder, chapters, spoken, book, output_settings, run, overwrite)
         skipped = _skipped(result, plan, speech)
         record = _record(result, settings, voice, voice_id, plan, speech, skipped, written, work)
@@ -579,29 +590,81 @@ def _encode(
     spoken: list[Spoken],
     book: BookInfo,
     settings: OutputSettings,
-    ffmpeg: Ffmpeg,
+    ffmpeg: _CancellableFfmpeg,
     overwrite: bool,
 ) -> Written:
+    """`write_audiobook`, all or nothing for the files that are new: if it fails or is
+    cancelled part-way (Ctrl-C included), every audiobook file this run put in place where
+    none was before is removed again, so no half set is left and a rerun without
+    `overwrite` is not refused. Only files ffmpeg wrote in this run are removed, never a
+    file that appeared from elsewhere. With `overwrite`, files this run already replaced
+    cannot be restored: the old versions are gone (output removes the old read-along file
+    first, so it never vouches for a mixed set, D-119)."""
+    _check_rates(work, spoken)
+    targets = audiobook_files(out_folder, book, [c.title for c in chapters], settings)
+    existed = {target for target in targets if target.exists()}
     try:
         return write_audiobook(
             work, out_folder, chapters, spoken, book, settings, ffmpeg=ffmpeg, overwrite=overwrite
         )
-    except JobError:
+    except BaseException as error:
+        _remove_new(targets, existed, ffmpeg.finished)
+        if isinstance(error, Exception):
+            raise _encode_error(error, out_folder) from error
         raise
-    except FileExistsError as error:
-        raise OutputExistsError(f"{error}; choose to replace them") from error
-    except ChunkAudioError as error:
-        raise JobError(f"{error}; run the job again to speak it anew") from error
-    except (FfmpegError, OSError) as error:
+
+
+def _remove_new(targets: list[Path], existed: set[Path], ours: list[_Identity]) -> None:
+    for target in targets:
+        if target in existed:
+            continue
+        with contextlib.suppress(OSError):
+            if _identity(target) in ours:
+                target.unlink()
+
+
+def _identity(path: Path) -> _Identity:
+    stat = path.stat()
+    return (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns)
+
+
+def _encode_error(error: Exception, out_folder: Path) -> Exception:
+    """The JobError a person can act on for an error while writing the audiobook."""
+    if isinstance(error, JobError):
+        return error
+    if isinstance(error, FileExistsError):
+        return OutputExistsError(f"{error}; choose to replace them")
+    if isinstance(error, ChunkAudioError):
+        return JobError(f"{error}; run the job again to speak it anew")
+    if isinstance(error, FfmpegError | OSError):
         if not out_folder.is_dir():
-            raise JobError(
+            return JobError(
                 f"the output folder {out_folder.name} was removed during the run; "
                 "the spoken audio is kept, run the job again"
-            ) from error
+            )
         if isinstance(error, FfmpegError):
-            raise JobError(f"could not write the audiobook: {error}") from error
+            return JobError(f"could not write the audiobook: {error}")
         where = Path(str(error.filename)).name if error.filename else "the audiobook"
-        raise JobError(f"could not write {where}: {error.strerror or error}") from error
+        return JobError(f"could not write {where}: {error.strerror or error}")
+    return error
+
+
+def _check_rates(work: Path, spoken: list[Spoken]) -> None:
+    """All chunks at one sample rate (D-117). They are, unless the cache holds chunks of an
+    engine that changed its rate without changing its version; then cleaning helps, and a
+    plain rerun would only fail the same way."""
+    rates = set()
+    for file in dict.fromkeys(s.chunk.file for s in spoken):
+        try:
+            with wave.open(str(work / file), "rb") as audio:
+                rates.add(audio.getframerate())
+        except (OSError, EOFError, wave.Error):
+            continue  # output names a missing or broken chunk itself
+    if len(rates) > 1:
+        raise JobError(
+            f"the working folder holds audio at different sample rates ({sorted(rates)} Hz); "
+            "remove its chunks (clean the working folder) and run the job again"
+        )
 
 
 def _skipped(
@@ -697,6 +760,18 @@ def _record(
             "readalong": written.readalong.name,
         },
     }
+
+
+def _remove_old_records(work: Path) -> None:
+    """The records vouch for the audiobook: an old one must not outlive a rerun that fails
+    while it replaces the files (as output does with its read-along file, D-119)."""
+    try:
+        (work / RECORD).unlink(missing_ok=True)
+        (work / DOCUMENT).unlink(missing_ok=True)
+    except OSError as error:
+        raise JobError(
+            f"could not replace the job's record in the working folder: {error.strerror or error}"
+        ) from error
 
 
 def _write_records(work: Path, document: Document, record: dict[str, Any]) -> tuple[Path, Path]:
