@@ -27,7 +27,7 @@ from web_helpers import (
 
 from sci2audio.textprep import Category
 from sci2audio.voices import ENGLISH_VOICES
-from sci2audio.web import pages
+from sci2audio.web import pages, player
 from sci2audio.web.jobs import JobKind, JobState
 
 pytestmark = pytest.mark.usefixtures("offline")
@@ -260,8 +260,15 @@ def used_keys() -> set[str]:
     found |= {f"make.{key}" for key in re.findall(r"'(needs_[a-z]+)'", templates)}
     found |= {f"job.state_{s}" for s in JobState}
     found |= {f"job.title_{kind}" for kind in JobKind}
-    script = texts["static/app.js"]
-    found |= set(re.findall(r"""tr\(\s*["`']([a-z_.]+)["`']""", script))
+    for script in (texts["static/app.js"], texts["static/player.js"]):
+        found |= set(re.findall(r"""tr\(\s*["`']([a-z_.]+)["`']""", script))
+    # the player's reasons, named where they are raised (#78)
+    found |= set(
+        re.findall(
+            r"""PlayerError\(\s*["']([a-z_.]+)["']""",
+            Path(player.__file__).read_text(encoding="utf-8"),
+        )
+    )
     found |= {f"make.needs_{key}" for key in ("analysis", "voice", "update", "chapters")}
     found |= {f"category.{category}" for category in Category}
     found |= {f"accent.{voice.language}" for voice in ENGLISH_VOICES}
@@ -311,14 +318,18 @@ def test_no_page_loads_anything_from_outside() -> None:
     assert {"templates/base.html", "static/app.js", "static/app.css"} <= set(texts)
     for name, text in texts.items():
         assert not EXTERNAL.search(text), name
-    script = texts["static/app.js"]
-    for url in re.findall(r"[\"'`](/[^\"'`]*)", script):
-        assert url.startswith(("/api/v1/", "/documents/", "/jobs/")), url
+    for script in (texts["static/app.js"], texts["static/player.js"]):
+        for url in re.findall(r"[\"'`](/[^\"'`]*)", script):
+            assert url.startswith(("/api/v1/", "/documents/", "/jobs/")), url
     templates = "".join(t for n, t in texts.items() if n.startswith("templates"))
-    assert re.findall(r"<script[^>]*>", templates, re.IGNORECASE) == [
-        '<script id="strings" type="application/json">',  # data, not code (D-256)
-        '<script src="/static/app.js" defer>',
-    ]
+    assert sorted(re.findall(r"<script[^>]*>", templates, re.IGNORECASE)) == sorted(
+        [
+            '<script id="strings" type="application/json">',  # data, not code (D-256)
+            '<script src="/static/app.js" defer>',
+            '<script src="/static/player.js" defer>',  # the listen page only (D-302)
+            '<script id="player-data" type="application/json">',  # data, not code
+        ]
+    )
     assert " style=" not in "".join(texts.values())  # the CSP allows no inline styles
     assert re.search(r"<[^>]*\son[a-z]+=", templates) is None  # no inline handlers
 

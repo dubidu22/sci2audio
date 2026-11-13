@@ -18,6 +18,7 @@
 
 {% if job.state == 'done' and job.kind == 'audio' %}
 <h2 id="result" tabindex="-1">{{ t('job.done_title') }}</h2>
+{% if document %}<p><a id="listen-link" href="/documents/{{ document.id }}/listen">{{ t('listen.link') }}</a></p>{% endif %}
 {% if job.progress and job.progress.reused %}<p>{{ t('job.reused', n=job.progress.reused) }}</p>{% endif %}
 <h3>{{ t('job.files') }}</h3>
 <ul class="files">

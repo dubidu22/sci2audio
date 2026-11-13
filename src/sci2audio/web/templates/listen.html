@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ t('listen.title', name=document.name) }} · {{ t('common.app') }}{% endblock %}
+{% block scripts %}{% if view %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}
+{% macro pieces(block) -%}
+{%- for piece in block.pieces -%}
+{%- if piece.element -%}<span class="s" id="{{ piece.element }}" data-chunk="{{ piece.chunk }}">{{ piece.text }}</span>
+{%- else -%}{{ piece.text }}{%- endif -%}
+{%- endfor -%}
+{%- endmacro %}
+{% macro show(block) -%}
+{% if block.page %}<p class="page-mark">{{ t('listen.page', page=block.page) }}</p>{% endif %}
+{% if block.notice %}
+<div class="block notice s" id="{{ block.element }}" data-chunk="{{ block.chunk }}">
+  <p>{{ block.notice }}</p>
+  {% if block.printed %}<details><summary>{{ t('listen.found') }}</summary><p class="printed">{{ block.printed }}</p></details>{% endif %}
+</div>
+{% elif block.heading %}
+<h{{ block.heading }} class="block heading{% if block.element %} s{% endif %}"{% if block.element %} id="{{ block.element }}" data-chunk="{{ block.chunk }}"{% endif %}>{% if not block.read %}<span class="unread-tag">{{ t('listen.not_read') }}</span> {% endif %}{{ pieces(block) }}</h{{ block.heading }}>
+{% else %}
+<p class="block {{ block.kind }}{% if not block.read %} unread{% endif %}{% if block.element %} s{% endif %}"{% if block.element %} id="{{ block.element }}" data-chunk="{{ block.chunk }}"{% endif %}>{% if not block.read %}<span class="unread-tag">{{ t('listen.not_read') }}</span> {% endif %}{{ pieces(block) }}</p>
+{% endif %}
+{%- endmacro %}
+{% block main %}
+<h1 id="listen-title" tabindex="-1">{{ t('listen.title', name=document.name) }}</h1>
+{% if not view %}
+<p class="note" id="listen-problem">{{ problem }}</p>
+<p><a href="/documents/{{ document.id }}#step-make">{{ t('listen.back') }}</a></p>
+{% else %}
+<p>{{ t('listen.intro') }}</p>
+<p class="ai-notice">{{ t('listen.ai_notice', voice=voice) }}</p>
+<script id="player-data" type="application/json">{{ data | safe }}</script>
+<div id="player">
+<section class="player-bar" aria-label="{{ t('listen.player') }}">
+  <p class="buttons">
+    <button type="button" id="play" aria-describedby="now">{{ t('player.play') }}</button>
+    <button type="button" id="previous-sentence">{{ t('listen.previous_sentence') }}</button>
+    <button type="button" id="next-sentence">{{ t('listen.next_sentence') }}</button>
+    <button type="button" id="previous-chapter">{{ t('listen.previous_chapter') }}</button>
+    <button type="button" id="next-chapter">{{ t('listen.next_chapter') }}</button>
+    <button type="button" id="back-to-reading" hidden>{{ t('listen.back_to_reading') }}</button>
+  </p>
+  <p class="player-line">
+    <audio id="audio" controls preload="metadata" aria-label="{{ t('listen.audio') }}"></audio>
+    <span id="now" class="hint">{{ t('player.chapter', n=1, total=view.chapters|length, title=view.chapters[0].title) }}</span>
+  </p>
+  <p><label><input type="checkbox" id="follow" checked> {{ t('listen.follow') }}</label></p>
+</section>
+<p id="message" class="message" role="status" tabindex="-1"></p>
+<nav aria-labelledby="chapters-heading">
+  <h2 id="chapters-heading">{{ t('listen.chapters') }}</h2>
+  <ol class="chapter-list">
+  {% for chapter in view.chapters %}
+    <li><button type="button" class="chapter-button" data-chapter="{{ loop.index0 }}">{{ chapter.title }}</button></li>
+  {% endfor %}
+  </ol>
+  {% if view.left_out %}<p class="hint">{{ t('listen.left_out', titles=view.left_out|join(', ')) }}</p>{% endif %}
+</nav>
+<div id="text" class="read-along" role="region" aria-label="{{ t('listen.text') }}" lang="{{ view.language }}">
+{% for chapter in view.chapters %}
+<section class="chapter" id="chapter-{{ loop.index0 }}">
+{% if chapter.title_block %}
+{{ show(chapter.title_block) }}
+{% else %}
+<h2 class="block heading">{{ chapter.title }}</h2>
+{% endif %}
+{% for block in chapter.blocks %}
+{{ show(block) }}
+{% endfor %}
+</section>
+{% endfor %}
+</div>
+</div>
+<p><a href="/documents/{{ document.id }}">{{ t('listen.back_document') }}</a></p>
+{% endif %}
+{% endblock %}

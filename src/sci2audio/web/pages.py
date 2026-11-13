@@ -35,6 +35,7 @@ from sci2audio.web.config import UPLOAD_LIMIT
 from sci2audio.web.documents import StoredDocument, supported_suffixes
 from sci2audio.web.jobs import JobKind, JobRecord, JobState
 from sci2audio.web.models import PREVIEW_LIMIT
+from sci2audio.web.player import PlayerError, player_for
 from sci2audio.web.state import ServerState, state_of
 from sci2audio.web.tasks import plan_digest
 
@@ -73,7 +74,7 @@ def t(key: str, /, **values: Any) -> str:
     return text.format(**values) if values else text
 
 
-SCRIPT_KEYS = ("js.", "phase.", "make.needs_", "job.state_", "voice.speed_value")
+SCRIPT_KEYS = ("js.", "phase.", "make.needs_", "job.state_", "voice.speed_value", "player.")
 
 
 def script_strings() -> str:
@@ -348,6 +349,47 @@ def job(request: Request, state: State, job_id: str) -> HTMLResponse:
         cache_bytes=0 if document is None else document.speech_cache_bytes,
         skipped=progress.get("skipped", []) if view["state"] == "done" else [],
         folder=view["files"][0]["folder"] if view["files"] else "",
+    )
+
+
+# --- the listen page (#78) ---------------------------------------------------------------
+
+
+def _voice_name(voice_id: str) -> str:
+    return next((v.name for v in ENGLISH_VOICES if v.id == voice_id), voice_id)
+
+
+@router.get("/documents/{document_id}/listen", response_class=HTMLResponse)
+def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
+    """The player with read-along on the original text (D-294 to D-303)."""
+    found = state.store.get(document_id)
+    if found is None:
+        return _not_found(request, state, t("common.not_found_document", id=document_id))
+    saved, _ = load_settings(state.config.config_file)
+    try:
+        view, _located = player_for(
+            found.folder, found.id, saved.output_folder, state.config.output_folder
+        )
+    except PlayerError as error:
+        return _page(
+            request,
+            state,
+            "listen.html",
+            document=found,
+            view=None,
+            problem=t(error.key, **error.values),
+        )
+    url = f"/api/v1/documents/{found.id}/audiobook/"
+    data = json.dumps(view.data(url), ensure_ascii=False).replace("</", "<\\/")
+    return _page(
+        request,
+        state,
+        "listen.html",
+        document=found,
+        view=view,
+        voice=_voice_name(view.voice),
+        data=data,
+        problem=None,
     )
 
 

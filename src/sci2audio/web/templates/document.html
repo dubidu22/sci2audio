@@ -127,6 +127,7 @@
 
 <section aria-labelledby="step-make">
 <h2 id="step-make">{{ t('document.step_make') }}</h2>
+{% if document.has_audio %}<p><a id="listen-link" href="/documents/{{ document.id }}/listen">{{ t('listen.link') }}</a></p>{% endif %}
 <div class="stack">
   <label for="output-folder">{{ t('make.folder') }}</label>
   <p class="hint" id="folder-hint">{{ t('make.folder_hint') }}</p>
