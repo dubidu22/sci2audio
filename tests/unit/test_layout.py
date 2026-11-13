@@ -301,6 +301,49 @@ def test_a_body_size_head_needs_head_pages_but_a_smaller_one_does_not() -> None:
     assert head_roles(small) == ["Tests in Print"] * 2
 
 
+def header_page(number: int, cells: tuple[tuple[str, float, float], ...], head: bool) -> list:
+    """A page with a body-size head at y 40 (if `head`) and a row of table-header cells at
+    y 62, 1.2 em below the head and 1.2 em above the body (review of #149)."""
+    body = column(f"p{number}-", LEFT, RIGHT, 84, 30)
+    header = [line(text, x0, 62, x1) for text, x0, x1 in cells]
+    return [*([line("Tests in Print", LEFT, 40, 300)] if head else []), *header, *body]
+
+
+def test_a_continued_table_header_under_a_real_head_is_not_a_running_head() -> None:
+    """The pooled count is per height: a real head on 6 of 6 pages at y 40 does not lend its
+    pages to a header repeated at y 62 on 2 of them (review of #149, M1)."""
+    cells = (("Model Accuracy F1", LEFT, 300),)
+    pages = [header_page(n, cells if n in (2, 3) else (), head=True) for n in range(1, 7)]
+    doc = build_document(content(*pages))
+    assert head_roles(doc) == ["Tests in Print"] * 6
+    assert texts(doc).count("Model Accuracy F1") == 2
+
+
+def test_a_table_header_in_two_cells_on_two_pages_is_not_a_running_head() -> None:
+    """The pooled count counts pages, not lines: two cells on each of 2 of 6 pages are 4 lines
+    but 2 pages (review of #149, M2)."""
+    cells = (("Model", LEFT, 150), ("Accuracy F1", 300, 450))
+    pages = [header_page(n, cells if n in (2, 3) else (), head=False) for n in range(1, 7)]
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+
+
+def test_a_smaller_head_does_not_lend_its_pages_to_a_body_size_line() -> None:
+    """A small head on 6 of 6 pages and a body-size header on 2 of them, on the same row: the
+    small head is a running head by its own rule; the header is text (review of #149, S1)."""
+    pages = [
+        [
+            line("Preprint", LEFT, 40, 150, size=8),
+            *([line("Model Accuracy F1", 350, 40, 500)] if n in (2, 3) else []),
+            *column(f"p{n}-", LEFT, RIGHT, 100, 30),
+        ]
+        for n in range(1, 7)
+    ]
+    doc = build_document(content(*pages))
+    assert head_roles(doc) == ["Preprint"] * 6
+    assert texts(doc).count("Model Accuracy F1") == 2
+
+
 def test_a_body_size_head_needs_head_share_of_the_pages() -> None:
     """On 4 of 8 pages a body-size head is furniture, on 3 of 8 it is text (D-324)."""
     for count, expected in ((4, 4), (3, 0)):

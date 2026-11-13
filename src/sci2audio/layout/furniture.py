@@ -12,8 +12,10 @@ One set at body size needs stronger evidence (#33, D-322 to D-327): the same tex
 too, and running heads at that height on most pages. So "Algorithm 1" and "Algorithm 2", or
 a table header continued on the next page, stay text. A table header repeated word for word
 with white below it on most pages of a short paper would still be taken; a body-size head on
-fewer than `head_pages` pages is read aloud. A rule under the line is no evidence: tables
-print one under their header too.
+fewer than `head_pages` pages is read aloud, and so is a head that names a section printed on
+one page only. A rule under the line is no evidence: tables print one under their header too.
+Smaller lines keep the shape rule in v1.0, so a continued table header or "Algorithm 1/2"
+set smaller than the body is still taken (D-328, #156).
 """
 
 from __future__ import annotations
@@ -137,8 +139,8 @@ def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
         (band, _exact(line.text), page.page.number, boxed(line).y0, line.id)
         for page in measured
         for line in page.lines
-        if line.id in page.apart  # a smaller line passes the shape rule before this one
-        and line_size(line) <= settings.head_size * size
+        if line.id in page.apart  # a smaller line has its own rule and lends no pages here
+        and settings.small * size <= line_size(line) <= settings.head_size * size
         and (band := _band(boxed(line), page.page, settings))
     ]
     texts: Heads = defaultdict(list)

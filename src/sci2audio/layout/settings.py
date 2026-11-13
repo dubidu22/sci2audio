@@ -21,7 +21,7 @@ class LayoutSettings:
     edge_band: float = 0.1  # top and bottom share of a page that holds heads and page numbers
     footer_band: float = 0.06  # bottom share where venue and licence lines stand
     margin_band: float = 0.12  # left and right share where side stamps stand
-    repeat_pages: int = 2  # a line in the edge band repeated on this many pages is a running head
+    repeat_pages: int = 2  # an edge line on this many pages is a running head (body size: below)
     head_drift: float = 0.5  # em: ... at the same height on each of them, give or take this
     head_size: float = 1.05  # ... and set no larger than this times the body size
     small: float = 0.95  # an edge line set smaller than this times the body size, or ...
