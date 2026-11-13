@@ -7,6 +7,7 @@ from statistics import median
 from sci2audio.core import (
     Block,
     BlockKind,
+    Box,
     Content,
     Document,
     FurnitureRole,
@@ -18,7 +19,7 @@ from sci2audio.layout.captions import find_captions
 from sci2audio.layout.footnotes import find_footnotes
 from sci2audio.layout.formulas import find_formulas
 from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, find_furniture, page_label
-from sci2audio.layout.geometry import body_size, boxed, text_area
+from sci2audio.layout.geometry import body_size, boxed, holds, text_area, union
 from sci2audio.layout.graphics import find_graphics, link_captions
 from sci2audio.layout.headings import find_headings
 from sci2audio.layout.lists import find_lists
@@ -27,6 +28,7 @@ from sci2audio.layout.paragraphs import (
     Held,
     Row,
     Unit,
+    inline_mark,
     make_row,
     paragraphs,
     rows_of,
@@ -167,10 +169,14 @@ class _Layout:
         taken = {id(e) for e in top}
         overlap, settings = self.settings.row_overlap, self.settings
         units: list[Unit] = [Held(_block(e, furniture, settings)) for e in by_rows(top, overlap)]
-        groups = split_cells(rows_of(reading.ordered, edges, self.settings), edges)
-        for group in groups:
+        rows = rows_of(reading.ordered, edges, self.settings, self.size)
+        lines = [union([e.box for e in row]) for row in rows if row[0].line is not None]
+        for group in split_cells(rows, edges):
             if group[0].line is None:
-                units += [Held(_block(e, furniture, settings), page.number) for e in group]
+                units += [
+                    Held(_block(e, furniture, settings), page.number, self._inline(e, lines))
+                    for e in group
+                ]
             else:
                 units.append(make_row(group, edges[id(group[0])], page.number, self.settings))
         rest = by_rows([e for e in edge if id(e) not in taken], overlap)
@@ -184,6 +190,13 @@ class _Layout:
         loose = [g for g in (*page.pictures, *page.drawings) if not g.box]
         units += [Held(Block(BlockKind.FIGURE, "", (Part(g.id),))) for g in loose]
         return units
+
+    def _inline(self, element: Element, lines: list[Box]) -> bool:
+        """True for a loose line or mark drawn inside a printed line (`lines`, their boxes)
+        of its page: the paragraph that line is read in goes on past it (#163, D-439)."""
+        return inline_mark(element, self.size, self.settings) and any(
+            holds(line, element.box) for line in lines
+        )
 
     def _edges(self, reading: Reading) -> dict[int, tuple[float, float]]:
         """The left and right edge of the column each element is read in.
