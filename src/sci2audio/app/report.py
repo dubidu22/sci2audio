@@ -90,7 +90,7 @@ class Report:
 def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
     """The report of a prepared script; `settings` as the job records them."""
     document = result.document
-    pages = _Pages(document)
+    pages = Pages(document)
     edits = tuple(_edit(result, outcome, pages) for outcome in result.run.outcomes)
     counts = []
     for category in Category:
@@ -253,7 +253,7 @@ def script_text(result: ScriptResult) -> str:
     return "\n".join(out) + "\n"
 
 
-class _Pages:
+class Pages:
     """Where blocks and spans are printed."""
 
     def __init__(self, document: Document) -> None:
@@ -273,7 +273,7 @@ class _Pages:
         return None
 
 
-def _edit(result: ScriptResult, outcome: Outcome, pages: _Pages) -> ReportEdit:
+def _edit(result: ScriptResult, outcome: Outcome, pages: Pages) -> ReportEdit:
     edit = outcome.edit
     chapter = result.chapter_of(edit.span.block)
     won_by = None
@@ -301,7 +301,7 @@ def _edit(result: ScriptResult, outcome: Outcome, pages: _Pages) -> ReportEdit:
     )
 
 
-def _where_data(where: Where) -> dict[str, Any]:
+def where_data(where: Where) -> dict[str, Any]:
     return {
         "block": where.span.block,
         "start": where.span.start,
@@ -322,11 +322,11 @@ def _edit_data(edit: ReportEdit) -> dict[str, Any]:
         "original": edit.original,
         "said": edit.said,
         "chapter": edit.chapter,
-        **_where_data(edit.where),
+        **where_data(edit.where),
     }
     if edit.won_by is not None:
         step, kind, where = edit.won_by
-        data["won_by"] = {"step": step, "kind": str(kind), **_where_data(where)}
+        data["won_by"] = {"step": step, "kind": str(kind), **where_data(where)}
     return data
 
 

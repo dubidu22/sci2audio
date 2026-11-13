@@ -14,6 +14,7 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
 - The voice takes only so much text per call (Kokoro: about 510 phoneme tokens). A sentence
   longer than `max_chars` is cut at the last ";" or ":" that fits, else the last comma,
   else a dash, else the last space; a single word longer than that is cut where it must be.
+  Every utterance after the first of a cut sentence is marked `continues` (D-157).
 - Spans: kept text (a piece whose text is the document's original text of its span) maps
   character by character, so a cut inside it is exact. A replacement is read as a whole
   where it fits; its span belongs to the utterance that holds its first spoken character,
@@ -94,12 +95,15 @@ _CLAUSE_MARKS = (";:", ",", "\u2013\u2014")  # in the order a long sentence is c
 class Utterance:
     """What the voice says in one call, and the original span it stands for.
 
-    A pause has no text and an empty span at its position.
+    A pause has no text and an empty span at its position. `continues` is true when the
+    utterance goes on with a sentence that the length limit cut (Q4): the app gives it no
+    pause before it (D-116), while a new sentence gets the sentence pause.
     """
 
     text: str
     span: Span
     pause: bool = False
+    continues: bool = False
 
 
 @dataclass(frozen=True)
@@ -170,9 +174,11 @@ def cut_utterances(
             continue
         run = run_or_pause
         for start, end in _sentences(run, abbreviations):
+            continues = False  # the sentence's first utterance starts it
             for a, b in _fitted(run, start, end, max_chars):
-                if utterance := _utterance(run, a, b):
+                if utterance := _utterance(run, a, b, continues):
                     utterances.append(utterance)
+                    continues = True
     return tuple(utterances)
 
 
@@ -295,11 +301,11 @@ def _outside_replacement(run: _Run, start: int, cut: int, counts: list[int], max
     return cut  # the replacement alone is too long to read in one call
 
 
-def _utterance(run: _Run, start: int, end: int) -> Utterance | None:
+def _utterance(run: _Run, start: int, end: int, continues: bool) -> Utterance | None:
     text = spoken_text([ScriptPiece(run.text[start:end], Span(run.block, 0, 0))])
     if not text:
         return None
     first = start + len(run.text[start:end]) - len(run.text[start:end].lstrip())
     last = start + len(run.text[start:end].rstrip()) - 1
     span = Span(run.block, run.start_of(first), run.end_of(last))
-    return Utterance(text, span)
+    return Utterance(text, span, continues=continues)

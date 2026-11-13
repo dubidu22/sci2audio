@@ -1,0 +1,97 @@
+# serializer version: 1
+# name: test_the_records_snapshot
+  dict({
+    'audio.json': dict({
+      'cache_bytes': 1232,
+      'chapters': list([
+        dict({
+          'chunks': 3,
+          'index': 0,
+          'seconds': 2.923,
+          'selected': True,
+          'title': 'note',
+        }),
+      ]),
+      'characters_per_second': 21.0,
+      'chunks': dict({
+        'reused': 0,
+        'skipped': 0,
+        'spoken': 3,
+        'total': 3,
+      }),
+      'duration': 2.923,
+      'engine': 'fake',
+      'engine_version': 'fake-1',
+      'files': dict({
+        'm4b': 'note.m4b',
+        'mp3': list([
+          'note - 01 note.mp3',
+        ]),
+        'readalong': 'note.readalong.json',
+      }),
+      'format': 'sci2audio-audio',
+      'sci2audio': '<version>',
+      'settings': dict({
+        'chapters': None,
+        'language': '',
+        'speed': 1.0,
+        'switched_off': list([
+          'footnote-texts',
+        ]),
+        'voice': '',
+      }),
+      'skipped': list([
+      ]),
+      'source': dict({
+        'format': 'pdf',
+        'name': 'note.pdf',
+        'sha256': "<the generated PDF's>",
+      }),
+      'speed': 1.0,
+      'version': 1,
+      'voice': 'af_heart',
+    }),
+    'readalong.json': dict({
+      'chapters': list([
+        dict({
+          'end': 2.923,
+          'first_chunk': 0,
+          'mp3': 'note - 01 note.mp3',
+          'start': 0.0,
+          'title': 'note',
+        }),
+      ]),
+      'chunks': list([
+        dict({
+          'block': 0,
+          'chapter': 0,
+          'end': 2.005,
+          'end_char': 13,
+          'start': 2.0,
+          'start_char': 0,
+        }),
+        dict({
+          'block': 1,
+          'chapter': 0,
+          'end': 2.615,
+          'end_char': 22,
+          'start': 2.605,
+          'start_char': 0,
+        }),
+        dict({
+          'block': 1,
+          'chapter': 0,
+          'end': 2.923,
+          'end_char': 43,
+          'start': 2.915,
+          'start_char': 23,
+        }),
+      ]),
+      'duration': 2.923,
+      'format': 'sci2audio-readalong',
+      'm4b': 'note.m4b',
+      'sample_rate': 24000,
+      'version': 1,
+    }),
+  })
+# ---
