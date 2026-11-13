@@ -3,6 +3,7 @@
 """Numbers the voice reads wrong (TP-09, TP-13, #67): unit cases and properties of `NumbersStep`."""
 
 import re
+import time
 import unicodedata
 
 import pytest
@@ -88,6 +89,9 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("50\u202f000 and 12\u00a0345", "50,000 and 12,345"),
         ("1 000 000 reads", "1,000,000 reads"),
         # R1 Roman numerals
+        ("Fig. II and Exp. III", "Fig. 2 and Exp. 3"),  # short keywords (review of #132)
+        ("Sec. IV, Figs. I/II", "Sec. 4, Figs. 1 and 2"),
+        ("Fig.II shows", "Fig.2 shows"),
         ("World War II", "World War 2"),
         ("Phase III trials", "Phase 3 trials"),
         ("a Type I error", "a Type 1 error"),
@@ -128,10 +132,16 @@ def test_numbers_read_as_said(printed: str, said: str) -> None:
         "1 000\u2009000",
         # powers that are units (#68), statistics or footnote marks
         "5 m² and kg/m² and R² and 2019¹",
+        # a run of superscript signs is no power the voice could say
+        "10⁶⁻⁴ and x⁶⁻⁴ and 2⁻³⁺¹ and 2^3⁻⁴",
+        "10⁶^0 and 33/310^2 and 3:10^2 and 2019-03-12^2",  # chained with a caret
+        "aged 3-\n33:3 and 1-\n2/3",  # chains broken by a line end
+        "3:1999-02-01 and 1/2019-03-12",  # a date joined to a number before it
         # Roman numerals elsewhere
         "Henry VIII and Pope John Paul II",
         "the part I think",
         "Type IIX",
+        "the end. II and Vol. II",  # a full stop after a word that is no short keyword
         "",
     ],
 )
@@ -173,10 +183,53 @@ def test_english_only() -> None:
     assert not STEP.handles("de")
 
 
+@pytest.mark.timeout(60)
 def test_a_long_block_is_quick() -> None:
+    """100,000 characters: every look back is bounded (review of PR #132)."""
     text = "In 1234 cases 3–5 (p < .05) at 2.50 and 1/2 of 10⁶. " * 2000  # about 100,000 chars
     document = make_document([(BlockKind.PARAGRAPH, text)])
-    assert len(STEP.find(document, EN)) == 5 * 2000  # the p value is the statistics step's
+    started = time.perf_counter()
+    edits = STEP.find(document, EN)
+    assert time.perf_counter() - started < 3
+    assert len(edits) == 5 * 2000  # the p value is the statistics step's
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Journal 8:64–77, pp. 123–145. " * 3400,
+        "1–" * 50_000,
+        "Phase " + "I/" * 30_000,
+        "2^" * 50_000,
+        "10⁶ 2.50 " * 10_000,
+        "a" + " " * 100_000 + "1234 participants",
+    ],
+    ids=["reference-lines", "dashes", "roman-run", "carets", "powers-and-zeros", "long-space"],
+)
+def test_pathological_blocks_take_linear_time(text: str) -> None:
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    started = time.perf_counter()
+    STEP.find(document, EN)
+    assert time.perf_counter() - started < 3
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("3:\u00ad4 cut", "3 to 4 cut"),
+        ("on 2019-\u00ad\n03-12 and 3\u200b\u20135", "on 12 March 2019 and 3 to 5"),
+        ("p <\u200b.05", "p less than .05"),
+        ("x <\u00af 3 and 3 \u00b4\u2013 5", "x less than 3 and 3 to 5"),  # stray accents
+    ],
+)
+def test_characters_not_read_do_not_hide_a_number(printed: str, said: str) -> None:
+    """A soft hyphen, zero-width space or stray accent, which the Unicode step removes last
+    (D-150), does not keep a rule from its number; else a second run would find it (review of
+    PR #132)."""
+    document = make_document([(BlockKind.PARAGRAPH, printed)])
+    run = run_steps(document, EN, strict=True)
+    assert spoken_text(run.script()) == said
 
 
 # ---- properties ------------------------------------------------------------------------------

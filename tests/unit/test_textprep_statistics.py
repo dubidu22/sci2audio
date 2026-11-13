@@ -3,6 +3,7 @@
 """Statistics read as words (TP-11, #67): unit cases and properties of `StatisticsStep`."""
 
 import re
+import time
 import unicodedata
 
 import pytest
@@ -48,6 +49,8 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("r = −.32", "r equals −.32"),  # the minus sign is the numbers step's
         ("x≥-3", "x greater than or equal to -3"),
         ("w =\nw1", "w equals w1"),
+        ("∆ = 0.883 and ∇ = 0", "∆ equals 0.883 and ∇ equals 0"),  # review of #132
+        ("W = ⟨A, B⟩ and ⟨x⟩ = 1", "W equals ⟨A, B⟩ and ⟨x⟩ equals 1"),
         # S2 degrees of freedom
         ("t(34) = 2.45", "t of 34 equals 2.45"),
         ("F(2, 57) = 4.31", "F of 2 and 57 equals 4.31"),
@@ -71,6 +74,9 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("CI = [1.2, 3.4]", "confidence interval equals 1.2 to 3.4"),
         ("95% CIs overlap", "95% confidence intervals overlap"),
         ("CI: 1.2–3.4", "confidence interval: 1.2–3.4"),  # the range is the numbers step's
+        ("95%CI[1.2,3.4]", "95% confidence interval 1.2 to 3.4"),  # glued (review of #132)
+        ("(95%CI[1.2,3.4])", "(95% confidence interval 1.2 to 3.4)"),
+        ("95% CI [1, 3]of all", "95% confidence interval 1 to 3 of all"),
         # S5 odds ratio
         ("OR = 1.5", "odds ratio equals 1.5"),
         # not test statistics or squared names: only the operator is read
@@ -142,6 +148,27 @@ def test_every_other_block_kind_is_read(kind: BlockKind) -> None:
 def test_english_only() -> None:
     assert STEP.handles("en-GB")
     assert not STEP.handles("de")
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize(
+    "text",
+    [
+        "t(34) = 2.45, p = .021, F(2, 57) = 4.31, p < .001, 95% CI [1.2, 3.4]. " * 1400,
+        "0 ≤ i ≤ k ≤ N and w = w1 · · · wN with G = (N, Σ, S, R, p). " * 1700,
+        "a = " * 25_000,
+        "95% CI [" * 12_000,
+        "<i>" * 30_000,
+        "x" + " " * 100_000 + "= 3",
+    ],
+    ids=["results", "maths", "equals-chain", "ci-chain", "tags", "long-space"],
+)
+def test_long_and_pathological_blocks_take_linear_time(text: str) -> None:
+    """About 100,000 characters each: no look back over the whole block (review of PR #132)."""
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    started = time.perf_counter()
+    STEP.find(document, EN)
+    assert time.perf_counter() - started < 3
 
 
 # ---- properties ------------------------------------------------------------------------------

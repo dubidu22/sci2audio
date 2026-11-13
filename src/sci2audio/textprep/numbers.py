@@ -29,7 +29,14 @@ import calendar
 import re
 
 from sci2audio.core import Document, Edit
-from sci2audio.textprep.notation import SKIPPED_KINDS, Candidate, fold, pick, to_edits
+from sci2audio.textprep.notation import (
+    SKIPPED_KINDS,
+    Candidate,
+    fold,
+    pick,
+    through_unread,
+    to_edits,
+)
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
@@ -80,31 +87,43 @@ _TRAILING_ZERO = re.compile(
 # --- N5, N6 powers ---------------------------------------------------------------------------
 _SUPERSCRIPTS = "⁰¹²³⁴⁵⁶⁷⁸⁹"
 _SUPER_DIGIT = {char: str(n) for n, char in enumerate(_SUPERSCRIPTS)}
-_SUPER = f"[⁺⁻]?[{_SUPERSCRIPTS}]+"
-_POWER_OF_TEN = re.compile(r"(?<![\w.,])(?P<base>10)(?P<exp>" + _SUPER + ")")
+# a power ends where its superscripts end: "10⁶⁻⁴" is no power the voice could say
+_SUPER = f"[⁺⁻]?[{_SUPERSCRIPTS}]+(?![⁺⁻^])"
+_POWER_OF_TEN = re.compile(r"(?<![\w.,^])(?P<base>10)(?P<exp>" + _SUPER + ")")
 _SIGNED_POWER = re.compile(
-    r"(?<![\w.,])(?P<base>\d+(?:\.\d+)?)(?P<exp>[⁺⁻][" + _SUPERSCRIPTS + "]+)"
+    r"(?<![\w.,^])(?P<base>\d+(?:\.\d+)?)(?P<exp>[⁺⁻][" + _SUPERSCRIPTS + "]+)(?![⁺⁻^])"
 )
 _CARET = re.compile(
-    r"(?<![\w.,])(?P<base>\d+(?:\.\d+)?|[^\W\d_])"
+    r"(?<![\w.,])(?P<base>\d+(?:\.\d+)?|[^\W\d_" + _SUPERSCRIPTS + r"])"
     r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)|(?P<bare>[+\u2212-]?\d+)))"
-    r"(?![\w.])"
+    r"(?![\w.⁺⁻])"
 )
-_TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,])")
+_TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,⁺⁻])")
 # not after a number and a space ("5 m²" is a unit, the units step's); a caret exponent before
 # the space is no such number, since the caret rule may turn it into a word ("x^2 x⁶")
 _LETTER_POWER = re.compile(
-    r"(?<![\w/])(?<!(?<!\^)\d )(?<![.,] )(?P<base>[^\W\d_])(?P<exp>" + _SUPER + r")"
+    r"(?<![\w/])(?<!(?<!\^)\d )(?<![.,] )(?P<base>[^\W\d_"
+    + _SUPERSCRIPTS
+    + r"])(?P<exp>"
+    + _SUPER
+    + r")"
     r"(?![\w" + _SUPERSCRIPTS + "])"
 )
 _SQUARED_STATISTICS = frozenset("Rrηωεχ")  # read by the statistics step ("R squared")
 # a unit chain after a number ("2 m s⁻¹", "3 W m⁻²"): the units step reads it (#68, D-178)
-_UNIT_CHAIN = re.compile(r"\d\s*(?:[^\W\d_]{1,3}[" + _SUPERSCRIPTS + r"⁺⁻]*[\s·⋅]+)+\Z")
+# (the number is no caret exponent, and a unit is letters, not superscript digits: "x^2 x⁶x⁶")
+_UNIT_CHAIN = re.compile(
+    r"(?<![\w^.])\d+(?:\.\d+)?\s*(?:[^\W\d_"
+    + _SUPERSCRIPTS
+    + r"]{1,3}["
+    + _SUPERSCRIPTS
+    + r"⁺⁻]*[\s·⋅]+)+\Z"
+)
 
 # --- N7 ratios, N8 fractions -----------------------------------------------------------------
 # a ratio not after a hyphen: "10-23:3" is a hyphenated pair, left as printed
 _RATIO = re.compile(
-    r"(?<![\w.:/,-])(?P<a>" + _UNSIGNED + r"):(?P<b>" + _UNSIGNED + r")(?![\w:/]|[.,]\d)"
+    r"(?<![\w.:/,-])(?<!-\n)(?P<a>" + _UNSIGNED + r"):(?P<b>" + _UNSIGNED + r")(?![\w:/^]|[.,]\d)"
 )
 _TIME_BEFORE = re.compile(
     r"(?i:\b(?:at|from|until|till|by|before|after|around|between|and|to)\s+)\Z"
@@ -113,7 +132,9 @@ _TIME_AFTER = re.compile(r"\s*(?:[ap]\.?m\b\.?|h\b|hrs?\b|hours?\b|o'clock)", re
 # a range after "8:64" makes it a volume and its pages; "to" is how this step reads that range
 _RANGE_AFTER = re.compile(r"\s*(?:[\u2013\u2012\u2014-]|\s+to\s)\s*\d")
 # not before a signed power, colon or hyphen ("3/3⁻⁴", "3/33:3", "3/33-53": no plain denominator)
-_FRACTION = re.compile(r"(?<![\w.,/:\u2212-])(?P<n>\d{1,3})/(?P<d>\d{1,3})(?![\w/:⁺⁻-]|[.,]\d)")
+_FRACTION = re.compile(
+    r"(?<![\w.,/:\u2212-])(?<!-\n)(?P<n>\d{1,3})/(?P<d>\d{1,3})(?![\w/:⁺⁻^-]|[.,]\d)"
+)
 _FRACTION_WORDS = {
     2: ("half", "halves"),
     3: ("third", "thirds"),
@@ -128,8 +149,8 @@ _FRACTION_WORDS = {
 
 # --- N9 ISO dates ----------------------------------------------------------------------------
 _ISO_DATE = re.compile(
-    r"(?<![\w.\u2013-])(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
-    r"(?![\w⁺⁻-]|[.,]\d)"  # not before a power: "2019-03-12⁻⁴" is no date
+    r"(?<![\w.:/\u2013-])(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
+    r"(?![\w⁺⁻^-]|[.,]\d)"  # not before a power: "2019-03-12⁻⁴" is no date
 )
 
 # --- N10 grouped digits ----------------------------------------------------------------------
@@ -145,9 +166,25 @@ _KEYWORDS = frozenset(
     | {"figure"}
 )
 _PLURAL_KEYWORDS = {"studies": "study", "classes": "class", "wars": "war"}
+# keywords printed short with a full stop, as the abbreviations step (#68) reads them in full:
+# "Fig. II" must read "Figure 2" on the first run, not "Figure II" (review of PR #132)
+_ABBREVIATED_KEYWORDS = {
+    "fig": "figure",
+    "figs": "figure",
+    "tab": "table",
+    "tabs": "table",
+    "sec": "section",
+    "secs": "section",
+    "sect": "section",
+    "sects": "section",
+    "ch": "chapter",
+    "chap": "chapter",
+    "exp": "experiment",
+    "app": "appendix",
+}
 _ROMAN = r"[IVX]{1,6}"
 _ROMAN_RUN = re.compile(
-    r"\b(?P<keyword>[A-Za-z]+)\s+(?P<run>"
+    r"\b(?P<keyword>[A-Za-z]+)(?P<dot>\.)?(?(dot)\s*|\s+)(?P<run>"
     + _ROMAN
     + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:and|or|&)\s+)"
     + _ROMAN
@@ -172,7 +209,7 @@ class NumbersStep(TextStep):
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text:
                 continue
-            edits += to_edits(index, find_numbers(block.text), self.id)
+            edits += to_edits(index, through_unread(block.text, find_numbers), self.id)
         return edits
 
 
@@ -200,9 +237,22 @@ def find_numbers(text: str) -> list[Candidate]:
 
 
 # a number joined to the next or the last one by a dash, colon or slash, by a space, or by
-# the "to" this step reads a range or ratio with, or by nothing at all ("10⁶3")
-_JOINED_AFTER = re.compile(r"\s*[\u2013\u2014\u2012:/-]\s*\.?\d|\.?\d|\s\d|\s+to\s+\.?\d")
+# the "to" or "minus" this step reads a range, ratio or figure dash with, or by nothing at
+# all ("10⁶3")
+_JOINED_AFTER = re.compile(r"\s*[\u2013\u2014\u2012:/-]\s*\.?\d|\.?\d|\s\d|\s+(?:to|minus)\s+\.?\d")
 _JOINED_BEFORE = re.compile(r"\d\s*(?:[\u2013\u2014\u2012:/-]|\sto\s)\s*\Z|\d\s\Z")
+# every look back before a match reads at most this many characters, so a long block takes
+# linear time (review of PR #132); what the rules look for before a number is a few words
+WINDOW = 64
+
+
+def _before(text: str, at: int) -> str:
+    """The text just before `at`: at most `WINDOW` characters."""
+    return text[max(0, at - WINDOW) : at]
+
+
+def _joined_before(text: str, at: int) -> bool:
+    return bool(_JOINED_BEFORE.search(text, max(0, at - WINDOW), at))
 
 
 def _unjoined(text: str, candidates: list[Candidate]) -> list[Candidate]:
@@ -216,7 +266,7 @@ def _unjoined(text: str, candidates: list[Candidate]) -> list[Candidate]:
     return [
         c
         for c in candidates
-        if not _JOINED_AFTER.match(text, c.end) and not _JOINED_BEFORE.search(text, 0, c.start)
+        if not _JOINED_AFTER.match(text, c.end) and not _joined_before(text, c.start)
     ]
 
 
@@ -242,10 +292,15 @@ def _roman_numerals(plain: str, text: str) -> list[Candidate]:
     found = []
     for match in _ROMAN_RUN.finditer(plain):
         keyword = match["keyword"]
-        base = keyword.lower()
-        base = _PLURAL_KEYWORDS.get(base, base[:-1] if base.endswith("s") else base)
-        if keyword.lower() not in _KEYWORDS and base not in _KEYWORDS:
-            continue
+        if match["dot"]:
+            if keyword.lower() not in _ABBREVIATED_KEYWORDS:
+                continue  # "the end. II": a sentence end, not a short keyword
+            keyword += "."
+        else:
+            base = keyword.lower()
+            base = _PLURAL_KEYWORDS.get(base, base[:-1] if base.endswith("s") else base)
+            if keyword.lower() not in _KEYWORDS and base not in _KEYWORDS:
+                continue
         offset = match.start("run")
         parts = list(_ROMAN_PART.finditer(match["run"]))
         values = [_roman_value(p["numeral"]) for p in parts if p["numeral"]]
@@ -315,7 +370,7 @@ def _powers(text: str, plain: str) -> list[Candidate]:
     for match in _LETTER_POWER.finditer(plain):
         if match["base"] in _SQUARED_STATISTICS and match["exp"] == "²":
             continue
-        if _UNIT_CHAIN.search(plain, 0, match.start("base")):
+        if _UNIT_CHAIN.search(_before(plain, match.start("base"))):
             continue
         start, end = match.span("exp")
         exponent = "".join(_SUPER_DIGIT.get(c, c) for c in match["exp"])
@@ -323,7 +378,7 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         found.append((Candidate(start, end, words, _power_reason(text, match, words)), None))
     # the base is the number whose reading changes: "3:10²" is left as printed (`_unjoined`);
     # a letter base (None) is read the same whatever stands before it
-    return [c for c, base in found if base is None or not _JOINED_BEFORE.search(text, 0, base)]
+    return [c for c, base in found if base is None or not _joined_before(text, base)]
 
 
 def _letter_power(exponent: str) -> str | None:
@@ -336,8 +391,9 @@ def _power_reason(text: str, match: re.Match[str], words: str) -> str:
 
 
 def _minus_signs(text: str) -> list[Candidate]:
+    # the reason quotes the sign as printed: the minus sign or a figure dash
     return [
-        Candidate(m.start(), m.end(), "minus ", '"\u2212" before a number read as "minus"')
+        Candidate(m.start(), m.end(), "minus ", f'"{m[0].strip()}" before a number read as "minus"')
         for m in _MINUS.finditer(text)
     ]
 
@@ -355,9 +411,13 @@ def _ranges(text: str) -> list[Candidate]:
     return found
 
 
+_LEFT_NUMBER = re.compile(r"[\d.,]*\d\Z")
+_RIGHT_NUMBER = re.compile(r"[\u2212-]?[\d.,]*\d")
+
+
 def _range_reason(text: str, start: int, end: int) -> str:
-    left = re.search(r"[\d.,]*\d\Z", text[:start])
-    right = re.match(r"[\u2212-]?[\d.,]*\d", text[end:])
+    left = _LEFT_NUMBER.search(_before(text, start))
+    right = _RIGHT_NUMBER.match(text, end)
     printed = (left.group() if left else "") + text[start:end] + (right.group() if right else "")
     return f'range "{" ".join(printed.split())}" read with "to"'
 
@@ -369,7 +429,7 @@ def _counts(text: str) -> list[Candidate]:
         value = int(number)
         if value % 100 == 0:
             continue  # "1000", "1200": read right as a year and as a number
-        before = text[: match.start()]
+        before = _before(text, match.start())
         if not _AFTER_OPERATOR.search(before) and not _counted(text, match.end(), before, value):
             continue
         words = f"{number[0]},{number[1:]}"
@@ -432,7 +492,9 @@ def _is_time(text: str, match: re.Match[str]) -> bool:
         return False
     if int(hours) > 24 or int(minutes) > 59:
         return False
-    return bool(_TIME_BEFORE.search(text, 0, match.start()) or _TIME_AFTER.match(text, match.end()))
+    return bool(
+        _TIME_BEFORE.search(_before(text, match.start())) or _TIME_AFTER.match(text, match.end())
+    )
 
 
 def _fractions(text: str) -> list[Candidate]:

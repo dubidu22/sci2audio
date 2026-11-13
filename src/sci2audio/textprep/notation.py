@@ -12,11 +12,13 @@ original characters.
 
 from __future__ import annotations
 
+import bisect
 import unicodedata
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 from sci2audio.core import BlockKind, Edit, EditKind, Span
+from sci2audio.textprep.characters import ACCENTS, INVISIBLE, SOFT_HYPHEN
 
 # blocks the number and statistics steps do not read: furniture is removed whole and tables,
 # formulas and figures get notices (#64), so an edit there could only be set aside
@@ -41,11 +43,27 @@ def pick(candidates: Iterable[Candidate]) -> list[Candidate]:
     Candidates come in rule order (the more specific rule first); a later candidate that
     shares a character with a kept one is dropped.
     """
+    # the kept candidates never overlap, so sorted by start their ends are in order too, and
+    # only the neighbours of a new candidate's place can overlap it (linear on long blocks)
+    starts: list[int] = []
     kept: list[Candidate] = []
     for candidate in candidates:
-        if all(candidate.end <= k.start or candidate.start >= k.end for k in kept):
-            kept.append(candidate)
-    return sorted(kept, key=lambda c: c.start)
+        at = bisect.bisect_right(starts, candidate.start)
+        if at and _overlap(kept[at - 1], candidate):
+            continue
+        following = at
+        while following < len(kept) and kept[following].start < candidate.end:
+            if _overlap(kept[following], candidate):
+                break
+            following += 1
+        else:
+            starts.insert(at, candidate.start)
+            kept.insert(at, candidate)
+    return kept
+
+
+def _overlap(a: Candidate, b: Candidate) -> bool:
+    return not (b.end <= a.start or b.start >= a.end)
 
 
 def to_edits(block: int, candidates: Iterable[Candidate], step: str) -> list[Edit]:
@@ -89,3 +107,46 @@ def padded(text: str, start: int, end: int, words: str) -> str:
     lead = "" if before.isspace() or before in "([{" else " "
     trail = "" if after.isspace() or after in ")]},;:" else " "
     return f"{lead}{words}{trail}"
+
+
+def through_unread(text: str, rules: Callable[[str], list[Candidate]]) -> list[Candidate]:
+    """`rules` run on the text as it is read: without the characters the Unicode step (#65)
+    removes, which runs last (D-150). A soft hyphen or a zero-width space inside "3:\u00ad4",
+    or a stray accent in "x <¯ 3", would otherwise hide a ratio or a sign that a second run,
+    after the clean-up, finds. The candidates' spans are mapped back onto the printed text,
+    taking in any unread characters inside."""
+    kept: list[int] = []
+    at = 0
+    while at < len(text):
+        char = text[at]
+        if char in INVISIBLE:
+            at += 1
+        elif char == SOFT_HYPHEN:
+            at += 2 if text[at + 1 : at + 2] == "\n" else 1
+        else:
+            kept.append(at)
+            at += 1
+    kept = [at for n, at in enumerate(kept) if not _stray_accent(text, kept, n)]
+    if len(kept) == len(text):
+        return rules(text)
+    read = "".join(text[i] for i in kept)
+    kept.append(len(text))
+    return [
+        Candidate(
+            kept[c.start],
+            kept[c.end - 1] + 1 if c.end > c.start else kept[c.start],
+            c.replacement,
+            c.reason,
+        )
+        for c in rules(read)
+    ]
+
+
+def _stray_accent(text: str, kept: list[int], n: int) -> bool:
+    """True for an accent the Unicode step drops: no letter, digit or accent on either side,
+    looking past unread characters (as `characters._accent` does)."""
+    if text[kept[n]] not in ACCENTS:
+        return False
+    before = text[kept[n - 1]] if n else ""
+    after = text[kept[n + 1]] if n + 1 < len(kept) else ""
+    return all(not c.isalnum() and c not in ACCENTS for c in (before, after))

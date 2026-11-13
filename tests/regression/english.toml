@@ -522,6 +522,14 @@ goal = "'Type I' and 'Phase I/II' read with numbers; a king's name and the prono
 blocks = [{ kind = "paragraph", text = "A Type I error in the Phase I/II trial of Henry VIII, the part I think matters." }]
 expected = ["A Type 1 error in the Phase 1 and 2 trial of Henry VIII, the part I think matters."]
 
+[[case]]
+id = "roman-numerals-after-short-keywords"
+audit = 0
+issue = 67
+goal = "A Roman numeral after a keyword printed short ('Fig.', 'Exp.', 'Sec.') is read as a number on the first run, beside the keyword read in full by #68 (TP-13, D-185; review of PR #132)."
+blocks = [{ kind = "paragraph", text = "See Fig. II and Exp. III in Sec. IV, but not the end. II" }]
+expected = ["See Figure 2 and Experiment 3 in Section 4, but not the end. II"]
+
 # Issue #66: citations (TP-03, TP-04) and URLs, DOIs and e-mail addresses (TP-07), D-167 to D-175.
 
 [[case]]
@@ -896,9 +904,9 @@ expected = ["We take the gradient with respect to the weights, such that the los
 id = "abbreviations-labels"
 audit = 0
 issue = 68
-goal = "Label abbreviations read in full before a label, glued ones split: 'eq.(1)', 'Fig.4', 'App.B' (TP-08, D-230)."
+goal = "Label abbreviations read in full before a label, glued ones split: 'eq.(1)', 'Fig.4', 'App.B' (TP-08, D-230); the Roman numeral after 'Sec.' is read by #67 (D-185)."
 blocks = [{ kind = "paragraph", text = "As shown in Eq. (8) and eq.(1), see Figs. 2 and 3, Fig.4, Sec. III, Alg. 1, Lem. 2, Thm. 3 and App.B." }]
-expected = ["As shown in Equation (8) and equation (1), see Figures 2 and 3, Figure 4, Section III, Algorithm 1, Lemma 2, Theorem 3 and Appendix B."]
+expected = ["As shown in Equation (8) and equation (1), see Figures 2 and 3, Figure 4, Section 3, Algorithm 1, Lemma 2, Theorem 3 and Appendix B."]
 
 [[case]]
 id = "abbreviations-label-needs-a-label"

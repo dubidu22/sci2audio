@@ -19,10 +19,19 @@ printed; the numbers themselves stay digits for the voice (D-176).
 
 from __future__ import annotations
 
+import bisect
 import re
 
 from sci2audio.core import Document, Edit
-from sci2audio.textprep.notation import SKIPPED_KINDS, Candidate, fold, padded, pick, to_edits
+from sci2audio.textprep.notation import (
+    SKIPPED_KINDS,
+    Candidate,
+    fold,
+    padded,
+    pick,
+    through_unread,
+    to_edits,
+)
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 OPERATORS = {
@@ -49,9 +58,18 @@ _ARROW = frozenset("<>=-−!:~|")
 # a sign this step reads counts as a word next to another sign, since after the first run it
 # is one ("x = ≤ 3" reads both, so a second run on the script finds nothing more)
 _SIGNS = "".join(sorted({key[0] for key in OPERATORS} | {"\u0338"}))
-_OPERAND = re.compile(r"[\w(\[{|√∞+\-−" + re.escape(_SIGNS) + r"]|\.\d")
-_LEFT_OF_EQUALS = re.compile(r"[\w)\]}%'′|" + re.escape(_SIGNS) + "]")
+# maths symbols that stand for a quantity: increment, nabla, infinity, angle brackets
+# ("∆ = 0.88", "W = ⟨A, ⊕⟩", "⟨x⟩ = 1"; review of PR #132)
+_QUANTITY_SIGNS = "∆∇∞"
+# signs the units step (#68) reads as words ("times", "approximately"), so they are words to
+# this step on a second run too
+_UNIT_SIGNS = "×≈~"
+_OPERAND = re.compile(
+    r"[\w(\[{|√+\-−⟨" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + r"]|\.\d"
+)
+_LEFT_OF_EQUALS = re.compile(r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + re.escape(_SIGNS) + "]")
 _SPACE = re.compile(r"\s*")
+_NUMBER_START = re.compile(r"[−+-]?\.?\d")
 _TAG = re.compile(r"</?[A-Za-z][\w-]*(?:\s[^<>]*)?>")
 _NUMBER = r"\d+(?:\.\d+)?"
 _SIGNED = r"[−-]?(?:\d+(?:,\d{3})*(?:\.\d+)?|\.\d+)"
@@ -85,6 +103,8 @@ _THEN_OPERATOR_OR_DF = re.compile(f"(?:{_OPERATOR_AHEAD}|\\s*\\()")
 # S4: confidence intervals
 _CI = re.compile(r"(?<![\w′'])CI(?P<plural>s)?(?![\w′'])")
 # a closing bracket may stand between: the interval rule removes it ("[1, 3]% CI")
+# a look back reads at most this many characters, so long blocks take linear time
+_WINDOW = 64
 _AFTER_PERCENT = re.compile(r"\d[\])]?\s?%\s*\Z")
 _BEFORE_CI_THING = re.compile(r"\s*[\[(=:]")
 _INTERVAL = re.compile(
@@ -109,7 +129,7 @@ class StatisticsStep(TextStep):
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text:
                 continue
-            edits += to_edits(index, find_statistics(block.text), self.id)
+            edits += to_edits(index, through_unread(block.text, find_statistics), self.id)
         return edits
 
 
@@ -168,11 +188,12 @@ def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
     found = []
     for match in _CI.finditer(plain):
         start, end = match.span()
-        after_percent = bool(_AFTER_PERCENT.search(plain, 0, start))
+        after_percent = bool(_AFTER_PERCENT.search(plain, max(0, start - _WINDOW), start))
         if not after_percent and not _BEFORE_CI_THING.match(plain, end):
             continue
         words = "confidence intervals" if match["plural"] else "confidence interval"
-        found.append(Candidate(start, end, words, f'"{text[start:end]}" read as "{words}"'))
+        reading = padded(text, start, end, words)  # "95%CI[1, 3]": not "95%confidence"
+        found.append(Candidate(start, end, reading, f'"{text[start:end]}" read as "{words}"'))
         interval = _INTERVAL.match(plain, end)
         if interval is None:
             continue
@@ -181,7 +202,12 @@ def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
         found.append(Candidate(*interval.span("open"), "", f"{about}: bracket not read"))
         sep_start, sep_end = interval.span("sep")
         found.append(Candidate(sep_start, sep_end, " to ", f'{about}: "," read as "to"'))
-        found.append(Candidate(*interval.span("close"), "", f"{about}: bracket not read"))
+        close_start, close_end = interval.span("close")
+        # a word glued after the bracket ("[1, 3]of") keeps a space from the number
+        glued = close_end < len(plain) and plain[close_end].isalnum()
+        found.append(
+            Candidate(close_start, close_end, " " if glued else "", f"{about}: bracket not read")
+        )
     return found
 
 
@@ -194,13 +220,15 @@ def _odds_ratios(text: str, plain: str) -> list[Candidate]:
 
 def _operators(text: str, plain: str) -> list[Candidate]:
     found = []
-    tags = [m.span() for m in _TAG.finditer(plain)]
+    tags = [m.span() for m in _TAG.finditer(plain)]  # in text order, never overlapping
+    tag_starts = [a for a, _ in tags]
     taken = 0  # where the last operator's span ended: two signs never share the space between
     read_end = -1  # where the last sign read as words ended: it is a word for the next sign
     for match in _OPERATOR.finditer(plain):
         op = match.group()
         start, end = match.span()
-        if any(a <= start < b for a, b in tags):
+        inside = bisect.bisect_right(tag_starts, start) - 1
+        if inside >= 0 and start < tags[inside][1]:
             continue  # "<i>", "</sup>": markup left in the text, not a comparison
         before = plain[start - 1] if start and start != read_end else ""
         after = plain[end] if end < len(plain) else ""
@@ -208,15 +236,17 @@ def _operators(text: str, plain: str) -> list[Candidate]:
             before in _ARROW or (after and after in "<>=") or _arrow_after(plain, end)
         ):
             continue
-        left = plain[:start].rstrip()
+        left = _left_end(plain, start)
         right_start = _SPACE.match(plain, end).end()  # type: ignore[union-attr]
         if not _OPERAND.match(plain, right_start):
             continue
-        if op == "=" and not (left and _LEFT_OF_EQUALS.match(left[-1])):
+        if op == "=" and not (left and _LEFT_OF_EQUALS.match(plain[left - 1])):
             continue
-        if op in "<>" and not (after.isspace() or after in _SIGNS or _starts_number(plain, end)):
+        if op in "<>" and not (
+            after.isspace() or after in _SIGNS + _UNIT_SIGNS or _starts_number(plain, end)
+        ):
             continue  # "a<b" or "<i>": not a comparison anyone reads aloud
-        span_start, span_end = max(len(left), taken), right_start
+        span_start, span_end = max(left, taken), right_start
         taken, read_end = span_end, end
         words = OPERATORS[op]
         found.append(
@@ -230,6 +260,14 @@ def _operators(text: str, plain: str) -> list[Candidate]:
     return found
 
 
+def _left_end(plain: str, start: int) -> int:
+    """Where the text before `start` ends without its trailing white space (no copy, so the
+    step stays linear on long blocks)."""
+    while start and plain[start - 1].isspace():
+        start -= 1
+    return start
+
+
 def _arrow_after(plain: str, end: int) -> bool:
     """True if a "-" or "−" right after the sign makes an arrow, not a negative number."""
     if end >= len(plain) or plain[end] not in "-−":
@@ -238,4 +276,4 @@ def _arrow_after(plain: str, end: int) -> bool:
 
 
 def _starts_number(plain: str, at: int) -> bool:
-    return bool(re.match(r"[−+-]?\.?\d", plain[at:]))
+    return bool(_NUMBER_START.match(plain, at))
