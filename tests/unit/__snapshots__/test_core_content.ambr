@@ -8,6 +8,12 @@
           'page': 1,
           'title': 'Chapter One',
         }),
+        dict({
+          'item': 'c1-3',
+          'level': 2,
+          'page': 1,
+          'title': 'Part Two',
+        }),
       ]),
       'pages': list([
         dict({
@@ -38,12 +44,31 @@
                 }),
               ]),
             }),
+            dict({
+              'id': 'c1-3',
+              'runs': list([
+                dict({
+                  'tags': list([
+                    'h3',
+                    '#part-2',
+                  ]),
+                  'text': 'Part Two',
+                }),
+              ]),
+            }),
           ]),
           'number': 1,
+          'order': list([
+            'c1-1',
+            'c1-img1',
+            'c1-2',
+            'c1-3',
+          ]),
           'pictures': list([
             dict({
               'alt': 'A map of the island',
               'id': 'c1-img1',
+              'ref': 'epub/images/map.png',
             }),
           ]),
         }),
