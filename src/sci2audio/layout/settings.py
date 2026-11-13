@@ -21,11 +21,15 @@ class LayoutSettings:
     edge_band: float = 0.1  # top and bottom share of a page that holds heads and page numbers
     footer_band: float = 0.06  # bottom share where venue and licence lines stand
     margin_band: float = 0.12  # left and right share where side stamps stand
-    repeat_pages: int = 2  # a line in the edge band repeated on this many pages is a running head
+    repeat_pages: int = 2  # an edge line on this many pages is a running head (body size: below)
     head_drift: float = 0.5  # em: ... at the same height on each of them, give or take this
     head_size: float = 1.05  # ... and set no larger than this times the body size
     small: float = 0.95  # an edge line set smaller than this times the body size, or ...
     apart: float = 1.0  # em: ... with this much white between it and the body, is furniture
+    # A body-size edge line apart from the body is a running head only when its text repeats
+    # word for word (numbers too) and running heads at its height cover most pages (#33).
+    head_pages: int = 3  # ... they stand on at least this many pages ...
+    head_share: float = 0.5  # ... and on at least this share of the document's pages
     graphic_clear: float = 1.0  # em: a page number has no graphic this close (not an axis tick)
     stamp_ratio: float = 3.0  # a side stamp is this many times taller than wide, ...
     stamp_height: float = 0.25  # ... at least this share of the page tall ...
