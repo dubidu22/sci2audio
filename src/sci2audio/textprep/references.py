@@ -1,7 +1,7 @@
 """The reference list is not read (TP-06, D-146).
 
-A section whose title is a usual name of a reference list (D-83: References, Bibliography),
-after a printed number if there is one ("7 References"), is left out one block at a time,
+A section whose title is a usual name of a reference list (`REFERENCE_TITLES`), after a
+printed number if there is one ("7 References"), is left out one block at a time,
 its heading included, at any level of the section tree. The "Reference list" switch keeps
 it. Footnotes inside the section are kept, since their marks stand in the body text (a note
 at the foot of the page where the list starts), and furniture is the furniture step's.
@@ -17,9 +17,16 @@ from collections.abc import Iterator
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Section, Span
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
-# D-83's names of a reference list, English only for v1.0 (layout keeps its own list in its
-# settings; textprep may not import layout)
-REFERENCE_TITLES = ("References", "Bibliography")
+# the usual names of a reference list, English only for v1.0: D-83's two and the rest of
+# D-132's English list, so the step and the app's chapter choice (#70) agree (layout keeps
+# its own list in its settings; textprep may not import layout)
+REFERENCE_TITLES = (
+    "References",
+    "Bibliography",
+    "Reference list",
+    "Works cited",
+    "Literature cited",
+)
 
 # an optional printed number ("7", "8.1", "A", "IV", with or without a full stop), then a
 # usual name in any case ("REFERENCES")

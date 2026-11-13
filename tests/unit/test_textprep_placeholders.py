@@ -158,7 +158,8 @@ def references(title: str, *, level: int = 1, nested: bool = False) -> Document:
 @pytest.mark.parametrize(
     "title",
     ["References", "REFERENCES", "references", "7 References", "8. Bibliography",
-     "8.1 Bibliography", "A References", "IV Bibliography", " References "],
+     "8.1 Bibliography", "A References", "IV Bibliography", " References ", "Works Cited",
+     "Literature cited", "9 Reference List"],
 )  # fmt: skip
 def test_a_reference_section_is_not_read_but_notes_and_what_follows_are(title: str) -> None:
     document = references(title)
@@ -199,7 +200,13 @@ def test_the_switch_keeps_the_reference_list() -> None:
         "References",
         "Doe, J. (2020). A study.",
     ]
-    assert REFERENCE_TITLES == ("References", "Bibliography")
+    assert REFERENCE_TITLES == (
+        "References",
+        "Bibliography",
+        "Reference list",
+        "Works cited",
+        "Literature cited",
+    )
 
 
 # ---- properties ------------------------------------------------------------------------------
