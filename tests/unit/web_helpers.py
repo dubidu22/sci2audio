@@ -3,8 +3,11 @@ directory, clients that authenticate like the browser or a program, a small PDF.
 
 from __future__ import annotations
 
+import socket
+import threading
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -20,11 +23,49 @@ PORT = 8123
 ORIGIN = f"http://127.0.0.1:{PORT}"
 
 
+_CONNECT = socket.socket.connect  # the real one, taken before any test blocks it
+
+
+@contextmanager
+def _socketpair_allowed() -> Iterator[None]:
+    """Let `socket.socketpair` work under `no_network`.
+
+    Windows has no native socketpair: Python emulates it by connecting a socket to a
+    listener it just bound on 127.0.0.1, and every asyncio event loop (TestClient's
+    included) makes one for its self-pipe. Only that connect, to a loopback address, in
+    the thread that is making the pair, goes through; every other connect is still
+    refused and recorded. Elsewhere the native socketpair makes no connect at all.
+    """
+    pairing = threading.local()
+    refused = socket.socket.connect
+    original = socket.socketpair
+
+    def connect(self: socket.socket, address: Any) -> None:
+        if getattr(pairing, "active", False) and address[0] in ("127.0.0.1", "::1"):
+            return _CONNECT(self, address)
+        return refused(self, address)
+
+    def socketpair(*args: Any, **kwargs: Any) -> tuple[socket.socket, socket.socket]:
+        pairing.active = True
+        try:
+            return original(*args, **kwargs)
+        finally:
+            pairing.active = False
+
+    socket.socket.connect = connect  # type: ignore[method-assign]
+    socket.socketpair = socketpair  # type: ignore[assignment]
+    try:
+        yield
+    finally:
+        socket.socket.connect = refused  # type: ignore[method-assign]
+        socket.socketpair = original
+
+
 @pytest.fixture
 def offline() -> Iterator[list[str]]:
     """Every web test runs with the network blocked (only the launcher tests connect, and
     only to 127.0.0.1)."""
-    with no_network() as attempts:
+    with no_network() as attempts, _socketpair_allowed():
         yield attempts
     assert attempts == []
 

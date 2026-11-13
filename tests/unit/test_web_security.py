@@ -4,6 +4,7 @@ no CORS, no docs pages, FastAPI's telemetry off."""
 from __future__ import annotations
 
 import re
+import socket
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,7 @@ from web_helpers import (
     program,
 )
 
+from sci2audio.testing import NetworkUsedError
 from sci2audio.web import api, pages
 from sci2audio.web.security import CSP, LocalOnly
 from sci2audio.web.server import TELEMETRY_OFF
@@ -340,3 +342,20 @@ def test_the_api_documents_every_api_route(server: tuple[FastAPI, Any]) -> None:
     documented = set(program(app, config).get("/openapi.json").json()["paths"])
     assert documented == {route.path for route in api.router.routes}  # type: ignore[attr-defined]
     assert all(path.startswith("/api/v1/") for path in documented)
+
+
+def test_the_web_tests_block_every_connect_but_a_socketpairs_own(
+    offline: list[str],  # noqa: F811 - the fixture
+) -> None:
+    """The `offline` fixture lets Windows' emulated socketpair connect to its own loopback
+    listener (every event loop makes one), and nothing else."""
+    first, second = socket.socketpair()
+    with first, second:
+        first.sendall(b"x")
+        assert second.recv(1) == b"x"
+    assert offline == []
+    for address in [("192.0.2.1", 80), ("127.0.0.1", 9)]:
+        with socket.socket() as sock, pytest.raises(NetworkUsedError):
+            sock.connect(address)
+    assert len(offline) == 2
+    offline.clear()
