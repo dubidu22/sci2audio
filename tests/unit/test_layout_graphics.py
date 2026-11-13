@@ -584,3 +584,27 @@ def test_a_mark_in_a_line_is_no_float_before_a_line_that_opens_like_a_caption() 
     assert [p.item for p in doc.blocks[0].parts] == [lines[0].id, lines[1].id, "bar", on.id] + [
         li.id for li in rest
     ]
+
+
+def test_a_picture_too_tall_for_a_mark_still_ends_the_row() -> None:
+    """Review of #204 (S1): in a line set at 30 pt, a picture 26 pt tall between the two
+    pieces is no loose line or mark (D-438), so the row ends there as today."""
+    lines = running(count=3)
+    first = line("A Big", LEFT, 200, 160, size=30.0)
+    second = line("Title", 200, 200, 300, size=30.0)
+    picture = Picture("pic", Box(150, 202, 180, 228))
+    doc = build([*lines, first, picture, second])
+    titles = [b for b in doc.blocks if first.id in {p.item for p in b.parts}]
+    assert titles[0].text == "A Big\nTitle"
+
+
+def test_a_mark_in_a_pages_last_printed_line_stands_just_after_it() -> None:
+    """Review of #204 (S2): a fraction bar between the two pieces of the page's last
+    printed line is read after the row once the reading ends."""
+    lines = running(count=2)
+    first = line("the share is 1", LEFT, 128, 200)
+    second = line("2 of the whole.", 196, 129, RIGHT)
+    bar = Drawing("bar", Box(185, 132, 193, 132.6))
+    doc = build([*lines, first, second, bar])
+    assert [b.kind for b in doc.blocks] == [BlockKind.PARAGRAPH]
+    assert [p.item for p in doc.blocks[0].parts][-3:] == [first.id, "bar", second.id]
