@@ -26,6 +26,7 @@ from sci2audio.core import (
 )
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.layout.build import columns_per_page
+from sci2audio.layout.split import kept
 
 LEFT, RIGHT, GUTTER = 70.0, 526.0, 16.0
 MIDDLE = (LEFT + RIGHT) / 2
@@ -485,6 +486,9 @@ def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
             assert block.text.lstrip().startswith(block.label)
     pages = [doc.content.items()[b.parts[0].item][0].number for b in doc.blocks]
     assert pages == sorted(pages)
+    # each graphic stands where the text read before it ends (#58, D-332)
+    lengths = {item: len(text) for item, text in lines.items()}
+    assert all(kept(block, block.parts, lengths) == block for block in doc.blocks)
 
 
 @given(
