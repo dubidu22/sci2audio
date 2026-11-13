@@ -1,10 +1,11 @@
 """The server's jobs: one at a time, each in its own thread, with progress for the events.
 
 `JobBoard` keeps the jobs of one server run (D-200): a second start while one runs is
-refused with `BoardBusyError`, whatever its kind (script, audio, voice download). Each
-job has an id `<document id>-<kind>-<n>` (`voices-<n>` for the voice download), a state,
-its latest progress and, when it ends, its error or the files it wrote. What lasts beyond
-the server run is on disk (the job records, the report, the audiobook).
+refused with `BoardBusyError`, whatever its kind (script, audio, voice download, voice
+preview). Each job has an id `<document id>-<kind>-<n>` (`voices-<n>` for the voice
+download, `preview-<n>` for a preview), a state, its latest progress and, when it ends,
+its error or the files it wrote. What lasts beyond the server run is on disk (the job
+records, the report, the audiobook).
 
 The thread that runs a job reports through `JobRecord.report`; the event stream reads
 `JobRecord.version` and the snapshot (D-201). Intermediate progress the stream had no
@@ -29,6 +30,7 @@ class JobKind(StrEnum):
     SCRIPT = "script"
     AUDIO = "audio"
     VOICES = "voices"
+    PREVIEW = "preview"  # a voice preview (D-249)
 
 
 class JobState(StrEnum):

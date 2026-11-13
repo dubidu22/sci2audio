@@ -2,6 +2,13 @@
 # name: test_export_golden_file
   dict({
     'epub': dict({
+      'outline': list([
+        dict({
+          'level': 1,
+          'page': 1,
+          'title': 'Chapter One',
+        }),
+      ]),
       'pages': list([
         dict({
           'lines': list([
@@ -55,6 +62,27 @@
         'language': 'en',
         'title': 'A Small Paper',
       }),
+      'outline': list([
+        dict({
+          'level': 1,
+          'page': 1,
+          'title': 'Introduction',
+        }),
+        dict({
+          'level': 2,
+          'page': 1,
+          'title': 'Motivation ',
+        }),
+        dict({
+          'level': 1,
+          'page': 2,
+          'title': 'Results',
+        }),
+        dict({
+          'level': 1,
+          'title': '',
+        }),
+      ]),
       'pages': list([
         dict({
           'height': 792.0,

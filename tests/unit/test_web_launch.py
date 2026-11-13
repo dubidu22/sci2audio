@@ -10,6 +10,7 @@ import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -22,6 +23,7 @@ from web_helpers import make_config
 
 from sci2audio import cli
 from sci2audio.web import bind, create_app, launch
+from sci2audio.web.jobs import JobKind
 
 SERVER = """
 import sys
@@ -73,6 +75,43 @@ def test_serve_prints_the_link_opens_the_browser_and_cancels_on_the_way_out(
     assert server_config.access_log is False  # it would print the token
     assert server_config.server_header is False
     assert server_config.timeout_graceful_shutdown == launch.SHUTDOWN_WAIT
+
+
+@pytest.mark.parametrize("still_speaking", [False, True])
+def test_stopping_disposes_the_kept_voice_unless_a_preview_still_speaks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, still_speaking: bool
+) -> None:
+    released: list[object] = []
+    gate = threading.Event()
+    jobs: list[Any] = []
+    engine = object()
+
+    def run(server: Any, sockets: Any) -> None:
+        state = server.config.app.state.sci2audio
+        state.kept._engine, state.kept._release = engine, released.append
+        if still_speaking:  # a preview can't be cancelled (D-249)
+            jobs.append(
+                state.board.start(
+                    JobKind.PREVIEW,
+                    None,
+                    None,
+                    lambda job: gate.wait(30) and [],
+                    cancellable=False,
+                )
+            )
+
+    monkeypatch.setattr(launch.uvicorn.Server, "run", run)
+    monkeypatch.setattr(launch, "SHUTDOWN_WAIT", 0.1)
+    sock = bind()
+    try:
+        config = make_config(tmp_path, port=sock.getsockname()[1], token=TOKEN)
+        launch.serve(sock, config, open_browser=False, say=lambda text: None)
+    finally:
+        sock.close()
+        gate.set()
+        for job in jobs:
+            job.join(10)
+    assert released == ([] if still_speaking else [engine])
 
 
 def test_sci2audio_ui_starts_the_server(monkeypatch: pytest.MonkeyPatch) -> None:
