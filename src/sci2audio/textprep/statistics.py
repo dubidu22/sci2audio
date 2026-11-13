@@ -70,7 +70,9 @@ _OPERAND = re.compile(
     r"[\w(\[{|√+\-−⟨" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + r"]|\.\d"
     r"|[" + "".join(ACCENTS) + r"][^\W\d_]"
 )
-_LEFT_OF_EQUALS = re.compile(r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + re.escape(_SIGNS) + "]")
+_LEFT_OF_EQUALS = re.compile(
+    r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + "]"
+)
 _SPACE = re.compile(r"\s*")
 _NUMBER_START = re.compile(r"[−+-]?\.?\d")
 _TAG = re.compile(r"</?[A-Za-z][\w-]*(?:\s[^<>]*)?>")

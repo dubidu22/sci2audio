@@ -12,7 +12,7 @@ from notation_texts import notation_documents
 
 from sci2audio.core import Block, BlockKind, Document, EditKind, Span, apply_edits
 from sci2audio.testing import check_text_step, make_document
-from sci2audio.textprep import StatisticsStep, StepContext, spoken_text
+from sci2audio.textprep import StatisticsStep, StepContext, run_steps, spoken_text
 
 EN = StepContext("en")
 STEP = StatisticsStep()
@@ -129,6 +129,25 @@ def test_each_edit_quotes_the_printed_notation() -> None:
         (Span(0, 29, 30), EditKind.REMOVE, "", f"{about}: bracket not read"),
     ]  # fmt: skip
     assert {e.step for e in edits} == {"statistics"}
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("00\u00d7=0", "00 times equals 0"),  # the units step reads the times sign
+        ("x \u2248 = 1", "x approximately equals 1"),
+        ("00\u00b1\u00b8C", "00 plus or minus \u00c7"),  # the Unicode step joins the accent
+    ],
+)
+def test_signs_and_accents_other_steps_read_are_read_on_the_first_run(
+    printed: str, said: str
+) -> None:
+    """Else a second run on the script reads the operator (review of PR #132, round 2)."""
+    document = make_document([(BlockKind.PARAGRAPH, printed)])
+    run = run_steps(document, EN, strict=True)
+    assert spoken_text(run.script()) == said
+    again = make_document([(BlockKind.PARAGRAPH, "".join(p.text for p in run.script()))])
+    assert spoken_text(run_steps(again, EN, strict=True).script()) == said
 
 
 @pytest.mark.parametrize(
