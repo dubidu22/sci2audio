@@ -223,6 +223,24 @@ def test_a_mark_without_a_note_stays_text() -> None:
     assert texts(read("Text[^none].\n")) == ["Text[^none]."]
 
 
+# markdown-it leaves out some text of the file on purpose (the uncited note and the unclosed
+# comment as GitHub and a browser do); pinned so it is decided, not accidental (review of #169).
+
+
+def test_a_note_nobody_cites_is_not_read() -> None:
+    assert texts(read("Body.\n\n[^1]: A note nobody cites.\n")) == ["Body."]
+
+
+def test_of_two_notes_with_one_label_only_the_last_is_read() -> None:
+    content = read("Body.[^a]\n\n[^a]: First.\n\n[^a]: Second.\n")
+    assert texts(content) == ["Body.1", "Second."]
+
+
+def test_an_unclosed_html_comment_hides_the_rest_of_the_file() -> None:
+    assert outcome("<!-- hello\n\nworld\n") == "notes.md: the file holds no text"
+    assert texts(read("Before.\n\n<!-- hello\n\nworld\n")) == ["Before."]
+
+
 def test_maths_is_tagged_and_keeps_the_tex_as_typed() -> None:
     content = read("Let $a_1 * b^2$ hold.\n\n$$\n\\frac{1}{2} < x\n$$\n\n$$y = 1$$ (eq1)\n")
     first = content.pages[0].lines[0]

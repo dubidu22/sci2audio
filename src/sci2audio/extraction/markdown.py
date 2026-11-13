@@ -16,6 +16,10 @@ headings are lines (D-343).
 
 markdown-it drops the rest of a block nested deeper than its nesting limit without an error,
 so a file that reaches the limit fails instead of losing text (D-351).
+
+Three things in the file are not read, as markdown-it and its footnote plugin have it: a
+note that no mark cites and everything after a ``<!--`` that is never closed (GitHub and a
+browser drop these too), and all but the last of two notes with one label.
 """
 
 from __future__ import annotations
