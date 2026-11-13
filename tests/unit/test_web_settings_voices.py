@@ -183,9 +183,12 @@ def test_the_voice_list_shows_the_whole_download_before_anything_happens(
     assert all(f["licence"] and f["sha256"] and f["size"] > 0 for f in data["plan"]["files"])
     assert data["plan"]["licences"] == list(plan.licences)
     hosts = data["plan"]["hosts"]
-    assert hosts[:2] == ["github.com", "huggingface.co"]
-    assert any("objects.githubusercontent.com" in host for host in hosts)
-    assert any("Hugging Face" in host for host in hosts)
+    assert hosts == [
+        "github.com",
+        "huggingface.co",
+        "objects.githubusercontent.com (GitHub's download server)",
+        "Hugging Face's download servers (its CDN and LFS/Xet storage)",
+    ]
     assert not config.models_dir.exists()
 
 
