@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import re
 
-import pytest
 from playwright.sync_api import Page, expect
 from test_flow import PDF
 
@@ -57,11 +56,14 @@ def press_on(page: Page, wanted: str, key: str = "Enter", **kwargs: bool) -> Non
     page.keyboard.press(key)
 
 
-@pytest.mark.quarantined(
-    issue=166, reason="now and then a 1 px default focus outline on the document page"
-)
 def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     page = signed_in
+    # Playwright catches the file chooser only once it has told the browser to, and it
+    # does that in the background when the first "filechooser" listener comes. With the
+    # listener added by `expect_file_chooser` the Space below can reach the page first: the
+    # browser then opens its own chooser and the test waits in vain. A listener from the
+    # start has it in place long before.
+    page.on("filechooser", lambda chooser: None)
     tab_to(page, "Skip to the content")  # the first stop
     page.keyboard.press("Enter")
     tab_to(page, "file")
@@ -121,9 +123,6 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     expect(page.locator("#message")).to_have_text("The speech cache is empty.")
 
 
-@pytest.mark.quarantined(
-    issue=138, reason="now and then the first Tab stop on the document page is not the skip link"
-)
 def test_tab_goes_round_every_page_without_a_trap(signed_in: Page, live: Live) -> None:
     page = signed_in
     page.set_input_files("#file", files=[PDF])
@@ -131,7 +130,10 @@ def test_tab_goes_round_every_page_without_a_trap(signed_in: Page, live: Live) -
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
     settled(page)
-    for path in (page.url, live.url + "/", live.url + "/voice"):
+    # the document page without its `#step-check`: going to the same address with a
+    # fragment only moves to the anchor, and the Tab order would start there (#138)
+    document = page.url.split("#", 1)[0]
+    for path in (document, live.url + "/", live.url + "/voice"):
         page.goto(path)
         stops = []
         for _ in range(MAX_TABS * 2):
