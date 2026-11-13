@@ -151,9 +151,12 @@ class UnitStep(TextStep):
                     step=self.id,
                     replacement=GREEK_MU,
                 )
+        unit_ends = {end for _, end in units_found}
         for match in _TILDE.finditer(text):
-            before = text[max(0, match.start() - 3) : match.start()].rstrip(" \u00a0")[-1:]
-            if not before.isdigit():
+            # "5~10" stays; after a unit, its power included ("5 m3~5", "Å³~5"), "~" is "about"
+            head = text[max(0, match.start() - 3) : match.start()].rstrip(" \u00a0")
+            after_number = head[-1:].isascii() and head[-1:].isdigit()
+            if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
                 yield self._symbol(index, text, match.start(), words["about"], before_number=True)
         for match in _LETTER_X.finditer(text):
             if _times_x(text, match):

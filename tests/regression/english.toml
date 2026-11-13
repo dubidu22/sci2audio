@@ -650,6 +650,17 @@ goal = "'Reference [12]' and 'References [3, 5]' are read along with the number;
 blocks = [{ kind = "paragraph", text = "As discussed in Reference [12], the EM algorithm [5] converges. References [3, 5] show it, and Algorithm [5] runs." }]
 expected = ["As discussed in reference 12, the EM algorithm converges. References 3 and 5 show it, and Algorithm [5] runs."]
 
+# Issue #91: the utterance cutter and abbreviations glued to a bracket (TP-01, Q4).
+
+[[case]]
+id = "abbreviation-glued-to-a-bracket"
+audit = 0
+issue = 91
+goal = "An abbreviation glued to a bracket or to the word before it is no sentence end: 'curve(Fig. 3)' and 'data(e.g. Table 2)' stay in one utterance (TP-01). The issue's '(2022)[p. 8]' is now removed by the citations step (#66) before the cutter sees it."
+blocks = [{ kind = "paragraph", text = "As the curve(Fig. 3) shows, it rises. The data(e.g. Table 2) agree with it." }]
+expected = ["As the curve(Figure 3) shows, it rises. The data(for example Table 2) agree with it."]
+utterances = ["As the curve(Figure 3) shows, it rises.", "The data(for example Table 2) agree with it."]
+
 # Abbreviations, symbols and units (#68, D-227 to D-243). Texts written for these cases.
 
 [[case]]

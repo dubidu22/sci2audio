@@ -422,6 +422,8 @@ def test_a_unit_edit_names_the_printed_unit_and_its_reading() -> None:
             "about 5 runs, about 10, (about 5), about 0.1, about -3, about .5",
         ),
         ("X ~ N(0, 1), 5~10, 5 ~ 10, ~/data", "X ~ N(0, 1), 5~10, 5 ~ 10, ~/data"),
+        # after a unit and its power, "~" is "about"
+        ("5 \u00c5\u00b3~5, 5 \u00c53~5", "5 cubic angstroms about 5, 5 cubic angstroms about 5"),
         (
             "3 \u00d7 4, d \u00d7 d, 2\u00d7 faster, \u00d710, a\u00d7b",
             "3 times 4, d times d, 2 times faster, times 10, a times b",

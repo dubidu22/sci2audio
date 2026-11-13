@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ job.id }} · sci2audio{% endblock %}
+{% block main %}
+<h1>Job <code>{{ job.id }}</code></h1>
+<div id="job" data-events="/api/v1/jobs/{{ job.id }}/events" data-cancel="/api/v1/jobs/{{ job.id }}/cancel">
+  <p>State: <strong id="job-state">{{ job.state }}</strong></p>
+  <p id="job-progress" role="status" aria-live="polite"></p>
+  <p id="job-error">{% if job.error %}{{ job.error.message }}{% endif %}</p>
+  {% if job.cancellable %}<button type="button" id="job-cancel">Cancel</button>{% endif %}
+  <ul id="job-files">
+    {% for file in job.files %}
+    <li><a href="/api/v1/jobs/{{ job.id }}/files/{{ file.name | urlencode }}">{{ file.name }}</a></li>
+    {% endfor %}
+  </ul>
+  {% if job.document %}<p><a href="/documents/{{ job.document }}">Back to the document</a></p>{% endif %}
+</div>
+{% endblock %}
