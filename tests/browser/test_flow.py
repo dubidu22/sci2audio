@@ -223,6 +223,20 @@ def test_a_busy_server_says_so(signed_in: Page, live: Live) -> None:
     assert document
 
 
+def test_pasted_text_opens_and_is_analysed(signed_in: Page, live: Live) -> None:
+    """Pasted text is kept as `<name>.txt` and read as a plain-text file (#74, D-350)."""
+    page = signed_in
+    pasted = "Pasted words for the test.\n\nA second paragraph."
+    page.get_by_label("Or paste text").fill(pasted)
+    page.get_by_label("Name for the pasted text").fill("My notes")
+    check_axe(page, "start page with pasted text")
+    page.get_by_role("button", name="Open the text").click()
+    page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    expect(page.locator("#summary")).to_be_visible()
+    expect(page.get_by_role("heading", level=1)).to_contain_text("My notes.txt")
+    check_axe(page, "document from pasted text")
+
+
 def test_a_damaged_file_shows_the_apps_message(signed_in: Page, live: Live) -> None:
     page = signed_in
     damaged = {"name": "broken.pdf", "mimeType": "application/pdf", "buffer": b"%PDF-1.4 nothing"}
@@ -244,10 +258,11 @@ def test_a_file_sci2audio_cant_read_is_refused(signed_in: Page, live: Live) -> N
     # the kind's sentence, then the app's own words as details in English (D-291)
     expect(page.locator("#message")).to_have_text(
         "sci2audio can't read this kind of file. "
-        "Details from sci2audio: notes.docx: sci2audio can read .epub, .pdf files only"
+        "Details from sci2audio: notes.docx: "
+        "sci2audio can read .epub, .markdown, .md, .pdf, .txt files only"
     )
     expect(page.locator("#message span[lang=en]")).to_have_text(
-        "notes.docx: sci2audio can read .epub, .pdf files only"
+        "notes.docx: sci2audio can read .epub, .markdown, .md, .pdf, .txt files only"
     )
     expect(page.locator("#message")).to_be_focused()
     check_axe(page, "start page with an error")

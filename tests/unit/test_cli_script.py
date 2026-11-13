@@ -235,3 +235,23 @@ def test_a_small_pdf(cli: Cli, tmp_path: Path) -> None:
     assert result.code == 0, result.err
     script = (source.parent / "note.script.txt").read_text(encoding="utf-8")
     assert "A short note." in script
+
+
+GUESSED = (
+    "sci2audio: warning: old notes.txt is not saved as UTF-8; it was read as Windows-1252, "
+    "a guess. If letters look wrong, save it as UTF-8 and open it again.\n"
+)
+
+
+def test_a_text_file_read_by_a_guessed_encoding_is_named(cli: Cli, tmp_path: Path) -> None:
+    """D-346: the report says so, and so does the command line."""
+    source = tmp_path / "old notes.txt"
+    source.write_bytes("Café notes in an old file.\n".encode("cp1252"))
+    result = cli("script", source, "-o", tmp_path / "out", "-q")
+    assert result.code == 0, result.err
+    assert GUESSED in result.err
+    plain = tmp_path / "notes.txt"
+    plain.write_text("Café notes in UTF-8.\n", encoding="utf-8")
+    result = cli("script", plain, "-o", tmp_path / "out2", "-q")
+    assert result.code == 0, result.err
+    assert "warning" not in result.err

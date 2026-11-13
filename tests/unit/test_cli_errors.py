@@ -62,7 +62,7 @@ def test_an_unsupported_file_type(cli: Cli, tmp_path: Path, command: str) -> Non
     result = cli(command, source, "-o", tmp_path / "out")
     assert result.code == 4
     assert one_line(result.err) == (
-        "sci2audio: paper.docx: sci2audio can read .epub, .pdf files only"
+        "sci2audio: paper.docx: sci2audio can read .epub, .markdown, .md, .pdf, .txt files only"
     )
     assert not (tmp_path / "out").exists()
 

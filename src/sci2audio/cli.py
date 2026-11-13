@@ -42,6 +42,7 @@ from sci2audio.app import (
     OutputExistsError,
     Phase,
     ScriptJob,
+    ScriptResult,
     UnreadableFileError,
     UnsupportedFileError,
     VoiceSource,
@@ -49,6 +50,7 @@ from sci2audio.app import (
     default_config_file,
     default_models_folder,
     default_work_folder,
+    encoding_warning,
     find_chapters,
     kokoro_voice,
     load_settings,
@@ -498,6 +500,12 @@ def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
     return replace(settings, chapters=chapters)
 
 
+def _guessed_encoding(env: CliEnv, result: ScriptResult) -> None:
+    """Say when a text file's encoding was a guess (D-346)."""
+    if warning := encoding_warning(result.document.content.source):
+        env.err.write(f"{PROG}: warning: {warning}\n")
+
+
 def _ignored(env: CliEnv, ignored: Sequence[int], count: int) -> None:
     for index in ignored:
         env.err.write(
@@ -623,6 +631,7 @@ def run_script_command(args: argparse.Namespace, env: CliEnv) -> Exit:
 def _print_script(env: CliEnv, job: ScriptJob) -> None:
     out = env.out
     report = job.report
+    _guessed_encoding(env, job.result)
     _ignored(env, job.result.ignored_chapters, len(report.chapters))
     out.write("Chapters (choose with --chapters):\n")
     for entry in report.chapters:
@@ -748,6 +757,7 @@ def _wait(finished: threading.Event) -> None:
 
 def _print_audio(env: CliEnv, job: AudioJob, script: ScriptJob | None, work: Path) -> None:
     out = env.out
+    _guessed_encoding(env, job.result)
     _ignored(env, job.result.ignored_chapters, len(job.result.chapters))
     total = job.spoken + job.reused
     out.write(

@@ -23,7 +23,6 @@ from web_helpers import (
     upload,
 )
 
-from sci2audio.app import job as app_job
 from sci2audio.extraction import extract_pdf
 from sci2audio.web import documents
 from sci2audio.web.documents import DocumentStore, stored_name
@@ -197,18 +196,9 @@ def test_another_write_error_is_named(
     assert leftovers(config.work_root) == []
 
 
-def test_pasted_text_waits_for_text_files(server: tuple[FastAPI, Any]) -> None:
+def test_pasted_text_is_kept_as_a_text_file(server: tuple[FastAPI, Any]) -> None:
+    """Text files are read (#74), so pasted text is taken as `<name>.txt` (D-350)."""
     app, config = server
-    response = program(app, config).post("/api/v1/documents/text", json={"text": "Hello."})
-    assert response.status_code == 415
-    assert "pasted text.txt" in response.json()["message"]
-
-
-def test_pasted_text_is_kept_as_a_text_file(
-    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    app, config = server
-    monkeypatch.setitem(app_job.EXTRACTORS, ".txt", lambda path: None)  # as #74 will add
     client = program(app, config)
     response = client.post("/api/v1/documents/text", json={"text": "Grüße.\n", "name": "Notes"})
     assert response.status_code == 201
@@ -226,7 +216,6 @@ def test_pasted_text_over_the_limit_is_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     app, config = app_and_config(tmp_path, text_limit=10)
-    monkeypatch.setitem(app_job.EXTRACTORS, ".txt", lambda path: None)
     response = program(app, config).post("/api/v1/documents/text", json={"text": "ü" * 6})
     assert response.status_code == 413  # 12 bytes of UTF-8
 

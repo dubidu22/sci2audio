@@ -308,7 +308,7 @@ def test_a_json_path_that_cannot_be_written_stops_before_any_work(
 
 
 def test_a_paper_the_job_cannot_read_is_refused_before_any_work(tmp_path: Path) -> None:
-    notes = tmp_path / "notes.md"
+    notes = tmp_path / "notes.docx"
     notes.write_text("# Notes", encoding="utf-8")
     said: list[str] = []
     code = speed.main(
@@ -318,7 +318,9 @@ def test_a_paper_the_job_cannot_read_is_refused_before_any_work(tmp_path: Path) 
         say=said.append,
     )
     assert code == 1
-    assert said == ["speed: notes.md: sci2audio can read .epub, .pdf files only"]
+    assert said == [
+        "speed: notes.docx: sci2audio can read .epub, .markdown, .md, .pdf, .txt files only"
+    ]
     assert not (tmp_path / "r.json").exists()
 
 

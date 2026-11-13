@@ -181,7 +181,7 @@ class DocumentStore:
         return self._store(kept, _blocks(data), self.upload_limit, in_use)
 
     def store_text(self, text: str, name: str, *, in_use: str | None = None) -> StoredDocument:
-        """Keep pasted text as `<name>.txt` (UTF-8). Readable once text files are (#74)."""
+        """Keep pasted text as `<name>.txt` (UTF-8), read as a plain-text file (D-350)."""
         stem = clean(name, "pasted text")
         kept = stored_name(f"{stem}.txt")
         data = text.encode("utf-8")
