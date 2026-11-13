@@ -48,7 +48,7 @@
         'references': False,
         'selected': True,
         'title': '2 Related Work',
-        'utterances': 39,
+        'utterances': 37,
       }),
       dict({
         'blocks': list([
@@ -1124,7 +1124,7 @@
   | 1 | acl2023-hardt-ellipsis | 1 | yes | 3 |
   | 2 | Abstract | 1 | yes | 4 |
   | 3 | 1 Introduction | 1 | yes | 24 |
-  | 4 | 2 Related Work | 1 | yes | 39 |
+  | 4 | 2 Related Work | 1 | yes | 37 |
   | 5 | 3 Data | 2 | yes | 14 |
   | 6 | 4 Test | 3 | yes | 10 |
   | 7 | 5 Results | 3 | yes | 18 |
@@ -2230,8 +2230,7 @@
   
   With “feared", the pronoun “they" refers to the city councilmen, while with “advocated", it refers to the demonstrators.
   Humans understand this because of general, commonsense knowledge about what would reasonably explain the refusal of a permit in the two cases.
-  It is difficult to ensure that such examples can only be solved through such sophis- ticated reasoning, and, according to Kocijan et al. (2022)[p.
-  8], “Solving Winograd schemas is not a surrogate for the ability to do commonsense rea- soning".
+  It is difficult to ensure that such examples can only be solved through such sophis- ticated reasoning, and, according to Kocijan et al. (2022)[p. 8], “Solving Winograd schemas is not a surrogate for the ability to do commonsense rea- soning".
   
   A different approach is exemplified by Lin et al. (2019): here, examples are constructed which test specific aspects of linguistic knowledge of a sys- tem, namely, whether BERT embeddings “encode hierarchical information".
   For example, a task is defined to identify the main auxiliary verb in a sentence, even in cases where the main auxiliary is not the first auxiliary verb to appear.
@@ -2242,8 +2241,7 @@
   Quoref (Dasigi et al. (2019); Zhang and Zhao (2022)) is a question-answer dataset designed so that correct answers cannot be given unless a coref- erence relationship is correctly identified; that is, the reasoning involved in question answering is dependent on resolving coreference.
   This is, in a sense, the inverse of the Winograd schema, where resolving coreference is dependent upon reasoning.
   Just as with the Winograd schema, it is difficult to ensure that resolving this dependency is required for system success.
-  (Dasigi et al., 2019)[p.
-  1] note that this is “challenging, because it is hard to avoid lexical cues that shortcut complex reasoning", and based on a random sample, found that coreference resolution was required for 78% of questions.
+  (Dasigi et al., 2019)[p. 1] note that this is “challenging, because it is hard to avoid lexical cues that shortcut complex reasoning", and based on a random sample, found that coreference resolution was required for 78% of questions.
   
   2.3 Ellipsis as a Task
   

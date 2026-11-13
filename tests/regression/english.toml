@@ -319,3 +319,14 @@ blocks = [
 ]
 sections = [{ title = "7 Bibliography", level = 1, start = 0, end = 2 }]
 expected = []
+
+# Issue #91: the utterance cutter and abbreviations glued to a bracket (TP-01, Q4).
+
+[[case]]
+id = "abbreviation-glued-to-a-bracket"
+audit = 0
+issue = 91
+goal = "An abbreviation glued to a bracket before it is no sentence end: '(2022)[p. 8]' stays in one utterance (TP-01)."
+blocks = [{ kind = "paragraph", text = "As shown by Smith (2022)[p. 8], it works. The curve rises [Fig. 3] at night." }]
+expected = ["As shown by Smith (2022)[p. 8], it works. The curve rises [Fig. 3] at night."]
+utterances = ["As shown by Smith (2022)[p. 8], it works.", "The curve rises [Fig. 3] at night."]
