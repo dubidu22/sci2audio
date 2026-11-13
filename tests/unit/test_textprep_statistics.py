@@ -213,3 +213,31 @@ def test_the_step_keeps_every_number_and_drops_only_the_2_of_a_squared_name(
             assert digits(edit.replacement) == ""
         else:
             assert digits(printed) == digits(edit.replacement), edit
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [  # #151: a bracketed pair joined on after an interval is an interval too
+        ("two CIs [1, 3] and [2, 4].", "two confidence intervals 1 to 3 and 2 to 4."),
+        ("CIs [1, 3], [2, 4] and [5, 6].", "confidence intervals 1 to 3, 2 to 4 and 5 to 6."),
+        ("95% CI [1, 3] or [2, 4].", "95% confidence interval 1 to 3 or 2 to 4."),
+        ("the CI: [1, 3].", "the confidence interval: 1 to 3."),
+        # a bracket after other words is not joined on
+        (
+            "95% CI [1, 3] and the [2, 4] range.",
+            "95% confidence interval 1 to 3 and the [2, 4] range.",
+        ),
+    ],
+)
+def test_intervals_joined_on_after_a_ci_are_read(printed: str, said: str) -> None:
+    assert read(printed) == said
+
+
+def test_confidence_intervals_read_the_same_on_a_second_run() -> None:
+    """#151: with the citations step, the joined bracket must not turn into references on a
+    second run of the whole chain."""
+    document = make_document([(BlockKind.PARAGRAPH, "The two CIs [1, 3] and [2, 4] overlap.")])
+    first = spoken_text(run_steps(document, EN, strict=True).script())
+    again = make_document([(BlockKind.PARAGRAPH, first)])
+    assert first == "The two confidence intervals 1 to 3 and 2 to 4 overlap."
+    assert spoken_text(run_steps(again, EN, strict=True).script()) == first

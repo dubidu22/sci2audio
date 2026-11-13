@@ -340,6 +340,62 @@ def test_a_very_long_bracket_is_not_parsed() -> None:
     assert edits(text) == []
 
 
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [  # #110, D-448: after an article the word before a year bracket names a thing
+        ("the Olympics (2016) were held", "the Olympics (2016) were held"),
+        ("A Workshop (2019) was held.", "A Workshop (2019) was held."),
+        ("an Olympiad (2014) took place", "an Olympiad (2014) took place"),
+        # ... unless "et al." or a second author shows a citation
+        ("the Smith et al. (2019) study", "the Smith et al. study"),
+        ("the Smith and Jones (2019) model", "the Smith and Jones model"),
+        # no article: a narrative citation, as before
+        ("As Smith (2019) shows, it holds.", "As Smith shows, it holds."),
+    ],
+)
+def test_a_year_bracket_after_an_article_and_a_word_is_read(text: str, spoken: str) -> None:
+    assert read(text) == spoken
+
+
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [  # #145, D-447: lead words and a narrative citation in a bracket go whole
+        ("( see Smith (2019))", ""),
+        ("It holds. (see Smith (2019))", "It holds."),
+        ("It holds [12]. (See Smith (2019).)", "It holds."),
+        ("It holds. (e.g., Smith et al. (2019).) Then", "It holds. Then"),
+        # a full stop inside a bracket inside a sentence ends that sentence: left alone
+        ("It holds (see Smith et al., 2019.)", "It holds (see Smith et al., 2019.)"),
+        ("It holds (Smith, 2019.) Then", "It holds (Smith, 2019.) Then"),
+        # "n.d." ends in a full stop that is no sentence end
+        ("Cubic (Smith, n.d.).", "Cubic."),
+    ],
+)
+def test_a_bracket_of_lead_words_and_a_narrative_citation_goes_whole(
+    text: str, spoken: str
+) -> None:
+    assert read(text) == spoken
+
+
+@pytest.mark.parametrize(
+    "text",
+    [  # #151, D-450: every form the statistics step reads as a confidence interval
+        "the CI: [1, 3].",
+        "the CI = [1, 3].",
+        "two CIs [1, 3] and [2, 4].",
+        "the CIs [1, 3], [2, 4] and [5, 6] hold.",
+        "the CIs [1, 3], and [2, 4] hold.",
+        "95% CI [1, 3] or [2, 4] here.",
+    ],
+)
+def test_confidence_intervals_in_every_form_are_not_citations(text: str) -> None:
+    assert edits(text) == []
+
+
+def test_a_bracket_joined_on_after_a_citation_is_still_a_citation() -> None:
+    assert read("noise [12] and [13] here.") == "noise and reference 13 here."
+
+
 # ---- properties ------------------------------------------------------------------------------
 
 WORDS = st.sampled_from(
@@ -396,10 +452,17 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
     spoken = " ".join(render(run_steps(document, EN, (STEP,), strict=True)))
     for left in YEAR_OR_NUMBER.finditer(spoken):  # only maths, intervals and dates stay
         before = spoken[: left.start()]
-        assert left.group() in LEFT_ALONE or re.search(r"(?:[=∈]|CI)\s*\Z", before), (text, spoken)
+        # ... and a year after an article and a word: "the Smith (2019)" (D-448, #110)
+        assert (
+            left.group() in LEFT_ALONE
+            or re.search(r"(?:[=∈]|CI)\s*\Z", before)
+            or re.search(r"(?<!\S)the\s+Smith\s*\Z", before)
+        ), (text, spoken)
     # every word outside the citations is still read, in order
-    # a bracket of lead words and citations goes whole: "( see [12])" (D-172)
+    # a bracket of lead words and citations goes whole: "( see [12])" (D-172), and so does
+    # one of lead words and a narrative citation: "( e.g., Smith (2019))" (D-447, #145)
     outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*\[\d[\d,;–\s-]*\]\s*\)", " ", text)
+    outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*Smith\s\(2019\)\s*\)", " ", outside)
     for citation in placed:
         outside = outside.replace(citation, " ")
     outside = YEAR_OR_NUMBER.sub(" ", outside)

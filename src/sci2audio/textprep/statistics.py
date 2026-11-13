@@ -116,6 +116,8 @@ _INTERVAL = re.compile(
     r"\s*(?:[=:]\s*)?(?P<open>[\[(]\s*)(?P<a>" + _SIGNED + r")(?P<sep>\s*[,;]\s*)"
     r"(?P<b>" + _SIGNED + r")(?P<close>\s*[\])])"
 )
+_JOIN = re.compile(r"\s*(?:,\s*)?(?:and|or)(?=[\s\[(])|\s*,")  # "[1, 3] and [2, 4]"
+_MAX_JOINED = 8  # intervals read after one "CIs", so a long list costs linear time
 
 # S5: odds ratio
 _ODDS_RATIO = re.compile(r"(?<![\w′'])OR(?![\w′'])" + _THEN_OPERATOR)
@@ -200,20 +202,29 @@ def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
         reading = padded(text, start, end, words)  # "95%CI[1, 3]": not "95%confidence"
         found.append(Candidate(start, end, reading, f'"{text[start:end]}" read as "{words}"'))
         interval = _INTERVAL.match(plain, end)
-        if interval is None:
-            continue
-        printed = text[interval.start("open") : interval.end("close")]
-        about = f'confidence interval "{printed}" read as "{interval["a"]} to {interval["b"]}"'
-        found.append(Candidate(*interval.span("open"), "", f"{about}: bracket not read"))
-        sep_start, sep_end = interval.span("sep")
-        found.append(Candidate(sep_start, sep_end, " to ", f'{about}: "," read as "to"'))
-        close_start, close_end = interval.span("close")
-        # a word glued after the bracket ("[1, 3]of") keeps a space from the number
-        glued = close_end < len(plain) and plain[close_end].isalnum()
-        found.append(
-            Candidate(close_start, close_end, " " if glued else "", f"{about}: bracket not read")
-        )
+        count = 0
+        while interval is not None and count < _MAX_JOINED:
+            found += _interval(text, plain, interval)
+            # "CIs [1, 3] and [2, 4]": a bracketed pair joined on is an interval too (#151)
+            joined = _JOIN.match(plain, interval.end())
+            interval = _INTERVAL.match(plain, joined.end()) if joined else None
+            count += 1
     return found
+
+
+def _interval(text: str, plain: str, interval: re.Match[str]) -> list[Candidate]:
+    """The bracket of an interval left out and its comma read "to"."""
+    printed = text[interval.start("open") : interval.end("close")]
+    about = f'confidence interval "{printed}" read as "{interval["a"]} to {interval["b"]}"'
+    sep_start, sep_end = interval.span("sep")
+    close_start, close_end = interval.span("close")
+    # a word glued after the bracket ("[1, 3]of") keeps a space from the number
+    glued = close_end < len(plain) and plain[close_end].isalnum()
+    return [
+        Candidate(*interval.span("open"), "", f"{about}: bracket not read"),
+        Candidate(sep_start, sep_end, " to ", f'{about}: "," read as "to"'),
+        Candidate(close_start, close_end, " " if glued else "", f"{about}: bracket not read"),
+    ]
 
 
 def _odds_ratios(text: str, plain: str) -> list[Candidate]:

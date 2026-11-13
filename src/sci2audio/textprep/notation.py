@@ -142,6 +142,24 @@ def through_unread(text: str, rules: Callable[[str], list[Candidate]]) -> list[C
     ]
 
 
+def edits_through_unread(
+    block: int, text: str, rules: Callable[[str], Iterable[Edit]], step: str
+) -> list[Edit]:
+    """`through_unread` for a step whose rules make `replace` edits of one block directly
+    (units, abbreviations; #159): a soft hyphen or zero-width space before "kg" no longer
+    hides the unit until a second run."""
+
+    def candidates(read: str) -> list[Candidate]:
+        found = []
+        for edit in rules(read):
+            if edit.kind is not EditKind.REPLACE or not edit.replacement:
+                raise ValueError(f"only replace edits can be mapped back, got {edit!r}")
+            found.append(Candidate(edit.span.start, edit.span.end, edit.replacement, edit.reason))
+        return found
+
+    return to_edits(block, through_unread(text, candidates), step)
+
+
 def _stray_accent(text: str, kept: list[int], n: int) -> bool:
     """True for an accent the Unicode step drops: no letter, digit or accent on either side,
     looking past unread characters (as `characters._accent` does)."""

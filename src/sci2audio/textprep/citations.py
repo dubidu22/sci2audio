@@ -51,6 +51,7 @@ class CitationWords:
     numbered: frozenset[str]  # words after which square brackets hold a label's number
     particles: frozenset[str]  # lower-case parts of names
     months: frozenset[str]  # never the first word of an author
+    articles: frozenset[str]  # before a name, a year bracket is no citation: "the Olympics (2016)"
 
 
 # fmt: off
@@ -86,7 +87,7 @@ WORDS: dict[str, CitationWords] = {
             "i.e.,",
             "i.e.",
         ),
-        maths=frozenset(["ci", "interval", "intervals", "range", "ranges"]),
+        maths=frozenset(["ci", "cis", "interval", "intervals", "range", "ranges"]),
         numbered=frozenset((
             "eq.", "eqs.", "equation", "equations", "fig.", "figs.", "figure", "figures",
             "tab.", "table", "tables", "sec.", "section", "sections", "step", "steps", "line",
@@ -101,6 +102,7 @@ WORDS: dict[str, CitationWords] = {
             "dec", "january", "february", "march", "april", "june", "july", "august", "september",
             "october", "november", "december",
         )),
+        articles=frozenset(["the", "a", "an"]),
     ),
 }
 # fmt: on
@@ -131,6 +133,8 @@ _GLUED_PAGE = re.compile(r"[\[(]\s*pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?\s*[\])]")
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
+_FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
+_MAX_INTERVALS = 8  # "CIs [1, 3], [2, 4] and [5, 6]": how many joined brackets are followed back
 
 
 def _part_pattern(words: CitationWords) -> re.Pattern[str]:
@@ -140,7 +144,8 @@ def _part_pattern(words: CitationWords) -> re.Pattern[str]:
     return re.compile(
         rf"\A\s*(?:(?:{leads})\s+)*(?P<authors>{_AUTHORS})"
         rf"(?:\s*\(\s*{_YEARS}{_LOCATOR}\s*\)|\s*,?\s+{_YEARS}{_LOCATOR}|\s*,\s*{_YEARS}{_LOCATOR})"
-        rf"(?P<tail>{_LOCATOR})\s*\Z",
+        # a full stop may end the part: "(See Smith (2019).)" (D-447, #145)
+        rf"(?P<tail>{_LOCATOR})\s*\.?\s*\Z",
         re.IGNORECASE,
     )
 
@@ -298,6 +303,8 @@ class _Rules:
             reason = f'year of the citation "{printed}" is not read; the names stay (TP-04)'
             start, end = self._with_space(text, node.open, end)
             return [(start, end, EditKind.REMOVE, "", reason)]
+        if _FULL_STOP_INSIDE.search(inside) and not self._starts_sentence(text, node.open):
+            return None  # "It holds (Smith, 2019.)": its full stop ends the sentence outside
         parts = self._parts(text, node)
         if parts is None:
             return None
@@ -323,16 +330,11 @@ class _Rules:
         glued = text[node.open - 1 : node.open]
         if glued and (glued.isalnum() or glued in ")]"):
             return None
+        if self._not_citations(text, node.open):
+            return None
         window = max(0, node.open - _LOOK_BACK)
         before = text[window : node.open].rstrip()
         previous = before.split()[-1] if before.split() else ""
-        if previous and (
-            previous[-1] in _MATHS_SIGNS
-            or previous.lower() in self.words.maths
-            or _is_label_word(previous.lstrip("(["), self.words.numbered)
-            or previous.endswith("%")
-        ):
-            return None
         printed = _printed(text[node.open : node.close + 1])
         word = re.sub(r"\A\W*\d*", "", previous).lower()  # "8See" -> "see", "(see" -> "see"
         start = node.open
@@ -351,6 +353,33 @@ class _Rules:
             spoken = spoken[0].upper() + spoken[1:]
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
+
+    def _not_citations(self, text: str, position: int, depth: int = 0) -> bool:
+        """True if the square bracket at `position` holds an interval or a label's number, not
+        citations: after a maths sign, a maths word ("CI", "CI:", "CIs", D-450), a label word
+        ("Eq."), a percentage, or after another such bracket and "and", "or" or a comma
+        ("CIs [1, 3] and [2, 4]", #151)."""
+        before = text[max(0, position - _LOOK_BACK) : position].rstrip()
+        previous = before.split()[-1] if before.split() else ""
+        if not previous:
+            return False
+        if (
+            previous[-1] in _MATHS_SIGNS
+            or previous.lower().rstrip(":") in self.words.maths
+            or _is_label_word(previous.lstrip("(["), self.words.numbered)
+            or previous.endswith("%")
+        ):
+            return True
+        joined = re.search(r"\]\s*(?:,|(?:,\s*)?(?:and|or))\Z", before)
+        if not joined or depth >= _MAX_INTERVALS:
+            return False
+        end = max(0, position - _LOOK_BACK) + joined.start()
+        opened = text.rfind("[", max(0, end - _LOOK_BACK), end)
+        return (
+            opened >= 0
+            and _NUMERIC.match(text[opened + 1 : end]) is not None
+            and self._not_citations(text, opened, depth + 1)
+        )
 
     def _spoken(self, inside: str) -> str:
         items = []
@@ -475,6 +504,11 @@ class _Rules:
         pair = re.search(r"(\S+)\s+(?:and|&)\s+\S+\s*\Z", before)
         if pair and _is_name(pair.group(1)):
             return _printed(pair.group())
+        # "the Olympics (2016)": after an article the word names a thing, not an author
+        # (D-448, #110); "et al." or a second author (above) still make it a citation
+        article = re.search(r"(\S+)\s+\Z", before[: found.start()])
+        if article and article.group(1).lower() in self.words.articles:
+            return ""
         return joined
 
     def _previous_word(self, text: str, position: int) -> str:

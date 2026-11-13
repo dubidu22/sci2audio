@@ -264,3 +264,16 @@ def test_a_letterlike_symbol_that_looks_like_its_letter_is_named() -> None:
     assert edits_of("on \N{SCRIPT SMALL L}")[0][3] == (
         'mathematical characters U+2113 SCRIPT SMALL L read as "l"'
     )
+
+
+def test_an_accent_after_a_ligature_reads_the_same_on_a_second_run() -> None:
+    """#160: the acute before "ℓ" is no apostrophe of "'ll", because the "ˇℓ" after it
+    reads "ľ"; so it is composed on the first run, as on the second."""
+    first = read("\ufb00\u00b4\u2113\u02c7\u2113")
+    assert first == "ff\u013a\u013e"
+    assert read(first) == first
+
+
+def test_an_apostrophe_accent_before_a_contraction_stays() -> None:
+    assert read("it\u00b4ll go") == "it\u00b4ll go"
+    assert read("it\u00b4s fine") == "it\u00b4s fine"
