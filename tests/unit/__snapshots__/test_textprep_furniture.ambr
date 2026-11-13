@@ -3,6 +3,8 @@
   dict({
     'footnote-texts: switched-off': 7,
     'footnotes: accepted': 13,
+    'numbers-and-units: accepted': 4,
+    'numbers-and-units: set-aside': 30,
     'page-furniture: accepted': 17,
     'references: accepted': 45,
     'tables-and-figures: accepted': 6,
@@ -12,6 +14,7 @@
   dict({
     'footnote-texts: switched-off': 2,
     'footnotes: accepted': 3,
+    'numbers-and-units: set-aside': 12,
     'page-furniture: accepted': 12,
     'references: accepted': 17,
     'tables-and-figures: accepted': 11,
@@ -22,6 +25,8 @@
     'footnote-texts: switched-off': 12,
     'footnotes: accepted': 24,
     'formulas: accepted': 34,
+    'numbers-and-units: accepted': 49,
+    'numbers-and-units: set-aside': 25,
     'page-furniture: accepted': 14,
     'references: accepted': 33,
     'tables-and-figures: accepted': 5,
@@ -32,6 +37,8 @@
     'footnote-texts: switched-off': 20,
     'footnotes: accepted': 40,
     'formulas: accepted': 9,
+    'numbers-and-units: accepted': 3,
+    'numbers-and-units: set-aside': 83,
     'page-furniture: accepted': 40,
     'references: accepted': 141,
     'tables-and-figures: accepted': 1,
@@ -40,12 +47,15 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-liu-orbital-hall]
   dict({
     'formulas: accepted': 8,
+    'numbers-and-units: accepted': 73,
     'page-furniture: accepted': 6,
     'tables-and-figures: accepted': 3,
   })
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2021-waskom-seaborn]
   dict({
+    'numbers-and-units: accepted': 5,
+    'numbers-and-units: set-aside': 6,
     'page-furniture: accepted': 29,
     'references: accepted': 9,
     'tables-and-figures: accepted': 1,
@@ -53,6 +63,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2022-biggs-pymedphys]
   dict({
+    'numbers-and-units: set-aside': 5,
     'page-furniture: accepted': 28,
     'references: accepted': 31,
   })

@@ -201,7 +201,7 @@
         'applied': 0,
         'label': 'Numbers, symbols, units and statistics',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 12,
         'switched_off': 0,
       }),
       'page-furniture': dict({
@@ -1084,6 +1084,312 @@
         'status': 'accepted',
         'step': 'footnotes',
       }),
+      dict({
+        'block': 76,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 53,
+        'kind': 'replace',
+        'original': '''
+          2023-
+          01-10
+        ''',
+        'page': 5,
+        'printed_page': '43',
+        'reason': '''
+          date "2023-
+          01-10" read as "10 January 2023"
+        ''',
+        'said': '10 January 2023',
+        'spoken': False,
+        'start': 42,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 76,
+          'end': 54,
+          'kind': 'remove',
+          'page': 5,
+          'printed_page': '43',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 78,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 269,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "810–817" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 268,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 78,
+          'end': 326,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 79,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 137,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "463–494" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 136,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 79,
+          'end': 141,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 81,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 114,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "845–853" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 113,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 81,
+          'end': 118,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 82,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 118,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "277–322" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 117,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 82,
+          'end': 122,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 83,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 255,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "1734–1743" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 254,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 83,
+          'end': 260,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 84,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 347,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "139–145" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 346,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 84,
+          'end': 351,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 88,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 175,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "879–906" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 174,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 88,
+          'end': 179,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 89,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 116,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "325–345" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 115,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 89,
+          'end': 120,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 90,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 359,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "587–600" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 358,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 90,
+          'end': 363,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 91,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 222,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "7468–7475" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 221,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 91,
+          'end': 227,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 92,
+        'category': 'numbers-and-units',
+        'chapter': 10,
+        'end': 229,
+        'kind': 'replace',
+        'original': '–',
+        'page': 6,
+        'printed_page': '44',
+        'reason': 'range "1281–1292" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 228,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 92,
+          'end': 234,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '44',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
@@ -1148,7 +1454,7 @@
   | Tables and figures | 11 | 0 | 0 | 0 |
   | Reference list | 0 | 17 | 0 | 0 |
   | Abbreviations | 0 | 0 | 0 | 0 |
-  | Numbers, symbols, units and statistics | 0 | 0 | 0 | 0 |
+  | Numbers, symbols, units and statistics | 0 | 0 | 12 | 0 |
   
   ## Page furniture (12)
   
@@ -1209,6 +1515,22 @@
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Lindsey Vanderlyn, Talita Anthonio, Daniel Ortega, Michael Roth, and Ngoc Thang Vu. 2022. Toward implicit reference in dialog: A survey of methods and data. In Proceedings of the 2nd Conference of the Asia-Pacific Chapter of the Association for Compu- tational Linguistics and the 12th International Joint Conference on Natural Language Processing, pages 587–600.” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Wei-Nan Zhang, Yue Zhang, Yuanxing Liu, Donglin Di, and Ting Liu. 2019. A neural network approach to verb phrase ellipsis resolution. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, pages 7468–7475.” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Zhuosheng Zhang and Hai Zhao. 2022. Tracing origins: Coreference-aware machine reading comprehension. In Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 1281–1292.” → left out. Reason: the reference list is not read. Step: reference-list.
+  
+  ## Numbers, symbols, units and statistics (12)
+  
+  - page 5 (printed 43), chapter 11, set aside: the remove edit of step reference-list (page 5 (printed 43)) won: “2023- 01-10” → read as “10 January 2023”. Reason: date "2023-
+  01-10" read as "10 January 2023". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "810–817" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "463–494" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "845–853" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "277–322" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "1734–1743" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "139–145" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "879–906" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "325–345" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "587–600" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "7468–7475" read with "to". Step: numbers.
+  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “–” → read as “to”. Reason: range "1281–1292" read with "to". Step: numbers.
   
   '''
 # ---
@@ -1351,10 +1673,10 @@
         'switched_off': 0,
       }),
       'numbers-and-units': dict({
-        'applied': 0,
+        'applied': 5,
         'label': 'Numbers, symbols, units and statistics',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 6,
         'switched_off': 0,
       }),
       'page-furniture': dict({
@@ -2043,6 +2365,239 @@
         'status': 'accepted',
         'step': 'table-figure-notices',
       }),
+      dict({
+        'block': 34,
+        'category': 'numbers-and-units',
+        'chapter': 3,
+        'end': 7,
+        'kind': 'replace',
+        'original': ' = ',
+        'page': 2,
+        'printed_page': '2',
+        'reason': '"=" read as "equals"',
+        'said': ' equals ',
+        'spoken': True,
+        'start': 4,
+        'status': 'accepted',
+        'step': 'statistics',
+      }),
+      dict({
+        'block': 35,
+        'category': 'numbers-and-units',
+        'chapter': 3,
+        'end': 4,
+        'kind': 'replace',
+        'original': ' = ',
+        'page': 2,
+        'printed_page': '2',
+        'reason': '"=" read as "equals"',
+        'said': ' equals ',
+        'spoken': True,
+        'start': 1,
+        'status': 'accepted',
+        'step': 'statistics',
+      }),
+      dict({
+        'block': 36,
+        'category': 'numbers-and-units',
+        'chapter': 3,
+        'end': 5,
+        'kind': 'replace',
+        'original': '=',
+        'page': 2,
+        'printed_page': '2',
+        'reason': '"=" read as "equals"',
+        'said': ' equals ',
+        'spoken': True,
+        'start': 4,
+        'status': 'accepted',
+        'step': 'statistics',
+      }),
+      dict({
+        'block': 39,
+        'category': 'numbers-and-units',
+        'chapter': 3,
+        'end': 7,
+        'kind': 'replace',
+        'original': '=',
+        'page': 2,
+        'printed_page': '2',
+        'reason': '"=" read as "equals"',
+        'said': ' equals ',
+        'spoken': True,
+        'start': 6,
+        'status': 'accepted',
+        'step': 'statistics',
+      }),
+      dict({
+        'block': 39,
+        'category': 'numbers-and-units',
+        'chapter': 3,
+        'end': 19,
+        'kind': 'replace',
+        'original': '=',
+        'page': 2,
+        'printed_page': '2',
+        'reason': '"=" read as "equals"',
+        'said': ' equals ',
+        'spoken': True,
+        'start': 18,
+        'status': 'accepted',
+        'step': 'statistics',
+      }),
+      dict({
+        'block': 62,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 144,
+        'kind': 'replace',
+        'original': '–',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'range "170–180" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 143,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 62,
+          'end': 192,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 63,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 341,
+        'kind': 'replace',
+        'original': '–',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'range "357–362" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 340,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 63,
+          'end': 388,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 64,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 106,
+        'kind': 'replace',
+        'original': '–',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'range "90–95" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 105,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 64,
+          'end': 146,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 65,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 174,
+        'kind': 'replace',
+        'original': '–',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'range "51–56" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 173,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 65,
+          'end': 223,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 67,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 179,
+        'kind': 'replace',
+        'original': '''
+          –
+  
+        ''',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'range "2030– 2035" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 177,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 67,
+          'end': 224,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 68,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 84,
+        'kind': 'replace',
+        'original': '–',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'range "1–23" read with "to"',
+        'said': ' to ',
+        'spoken': False,
+        'start': 83,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 68,
+          'end': 125,
+          'kind': 'remove',
+          'page': 4,
+          'printed_page': '4',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
@@ -2102,7 +2657,7 @@
   | Tables and figures | 1 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
   | Abbreviations | 0 | 0 | 0 | 0 |
-  | Numbers, symbols, units and statistics | 0 | 0 | 0 | 0 |
+  | Numbers, symbols, units and statistics | 5 | 0 | 6 | 0 |
   
   ## Page furniture (29)
   
@@ -2151,6 +2706,20 @@
   - page 4, chapter 7, not spoken (chapter not chosen): “Waskom, M. L., & Wagner, A. D. (2017). Distributed representation of context by intrinsic subnetworks in prefrontal cortex. Proceedings of the National Academy of Sciences, 2030– 2035. https://doi.org/10.1073/pnas.1615269114” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 4, chapter 7, not spoken (chapter not chosen): “Wickham, H. (2014). Tidy data. Journal of Statistical Software, Articles, 59(10), 1–23. https://doi.org/10.18637/jss.v059.i10” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 4, chapter 7, not spoken (chapter not chosen): “Wickham, H. (2016). ggplot2: Elegant graphics for data analysis. Springer-Verlag. ISBN: 978-3-319-24277-4” → left out. Reason: the reference list is not read. Step: reference-list.
+  
+  ## Numbers, symbols, units and statistics (11)
+  
+  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
+  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
+  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
+  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
+  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "170–180" read with "to". Step: numbers.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "357–362" read with "to". Step: numbers.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "90–95" read with "to". Step: numbers.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "51–56" read with "to". Step: numbers.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "2030– 2035" read with "to". Step: numbers.
+  - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "1–23" read with "to". Step: numbers.
   
   '''
 # ---
@@ -2627,17 +3196,17 @@
   
   sns.set_theme(context="paper")
   
-  fmri = sns.load_dataset("fmri")
+  fmri equals sns.load_dataset("fmri")
   
-  g = sns.relplot(
+  g equals sns.relplot(
   
-  data=fmri, kind="line",
+  data equals fmri, kind="line",
   
   x="timepoint", y="signal",
   
   hue="event", style="event", col="region",
   
-  height=3.5, aspect=.8,
+  height equals 3.5, aspect equals .8,
   
   )
   

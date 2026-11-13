@@ -10,6 +10,7 @@ Pipeline stage; may import only ``sci2audio.core``.
 
 from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
+from sci2audio.textprep.numbers import NumbersStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
 from sci2audio.textprep.references import (
     REFERENCE_TITLES,
@@ -28,6 +29,7 @@ from sci2audio.textprep.runner import (
     whole_block,
 )
 from sci2audio.textprep.spoken import PAUSE_MARK, spoken_text
+from sci2audio.textprep.statistics import StatisticsStep
 from sci2audio.textprep.steps import (
     ANY_LANGUAGE,
     DEFAULT_SWITCHED_OFF,
@@ -61,9 +63,11 @@ __all__ = [
     "FootnoteTextStep",
     "FormulaNoticeStep",
     "FurnitureStep",
+    "NumbersStep",
     "Outcome",
     "ReferenceListStep",
     "Stage",
+    "StatisticsStep",
     "Status",
     "StepContext",
     "StepError",
