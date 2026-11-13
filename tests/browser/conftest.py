@@ -189,10 +189,15 @@ def axe_problems(page: Page, where: str) -> list[str]:
 
 
 def settled(page: Page) -> None:
-    """Wait until the document page no longer follows the analysis. The report can be on
-    disk while the job is still the running one; a page drawn in that moment shows the
-    summary and still reloads itself when the job ends, under a test's key presses (#138)."""
+    """Wait until the document page no longer follows the analysis and is fully loaded.
+    The report can be on disk while the job is still the running one; a page drawn in that
+    moment shows the summary and still reloads itself when the job ends, under a test's key
+    presses (#138). The reloaded page has no `data-events` as soon as its first bytes are
+    parsed, before app.css applies: a Tab then gets the browser's own 1 px focus ring, so
+    wait for the load event and the page's stylesheet too (#166)."""
     expect(page.locator("#document[data-events]")).to_have_count(0)
+    page.wait_for_load_state("load")
+    expect(page.locator(".skip")).to_have_css("position", "absolute")  # app.css applies
 
 
 def check_axe(page: Page, where: str) -> None:
