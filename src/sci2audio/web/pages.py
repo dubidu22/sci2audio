@@ -20,7 +20,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from sci2audio.app import load_settings
+from sci2audio.app import load_settings, shown_original
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, PAUSE_MARK, Category
 from sci2audio.voices import (
@@ -208,7 +208,7 @@ def _row(edit: Mapping[str, Any], chapters: Mapping[Any, Any], s: Strings) -> Ed
     return EditRow(
         page=_edit_page(edit),
         chapter=str(chapters.get(edit.get("chapter"), "")),
-        printed=str(original or s("check.position")),
+        printed=shown_original(str(original)) if original else s("check.position"),
         said=said,
         reason=str(edit.get("reason", "")),
         status=_status(edit, s),

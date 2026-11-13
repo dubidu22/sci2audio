@@ -53,6 +53,7 @@ from sci2audio.app.report import (
     report_data,
     report_markdown,
     script_text,
+    shown_original,
 )
 from sci2audio.app.runner import JobRunner
 from sci2audio.app.script import ChapterScript, ScriptResult, prepare_script
@@ -105,4 +106,5 @@ __all__ = [
     "save_settings",
     "script_files",
     "script_text",
+    "shown_original",
 ]

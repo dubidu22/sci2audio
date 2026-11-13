@@ -10,6 +10,7 @@ from sci2audio.app import (
     report_data,
     report_markdown,
     script_text,
+    shown_original,
 )
 from sci2audio.app.report import FORMAT, VERSION
 from sci2audio.core import (
@@ -28,7 +29,9 @@ from sci2audio.core import (
     TextLine,
     TextRun,
 )
+from sci2audio.testing import make_document
 from sci2audio.textprep import Category, Stage, StepContext, TextStep
+from sci2audio.textprep.hyphens import LineEndHyphenStep
 
 
 class Fixed(TextStep):
@@ -184,3 +187,27 @@ def test_an_empty_chosen_chapter_says_so() -> None:
     assert script_text(result).endswith("# 2. References\n\n(nothing to read)\n")
     report = build_report(result, {})
     assert report.chapters[1].utterances == 0
+
+
+def test_a_line_break_alone_in_an_edit_shows_as_a_return_sign() -> None:
+    """#118: an edit of a line-end hyphen holds only a line break (hyphen kept, as in
+    "well-known") or a hyphen and a line break (word joined, "welltrained"); its quote shows
+    the break instead of looking empty."""
+    document = make_document(
+        [("paragraph", "a well-known model and a well-\nknown one, well-\ntrained")]
+    )
+    report = build_report(prepare_script(document, JobSettings(), [LineEndHyphenStep()]), {})
+    text = report_markdown(report)
+    assert "applied: “↵” → left out." in text
+    assert "applied: “-↵” → left out." in text
+    assert [edit["original"] for edit in report_data(report)["edits"]] == ["\n", "-\n"]
+
+
+def test_a_line_break_in_running_text_stays_a_space() -> None:
+    assert shown_original("\n") == "↵"
+    assert shown_original("-\n") == "-↵"
+    assert shown_original(" \n ") == "↵"
+    assert shown_original("\u2013\n") == "\u2013↵"  # a range's dash at a line end
+    assert shown_original("(Smith et al.,\n2019)") == "(Smith et al., 2019)"
+    assert shown_original("a  b") == "a b"
+    assert shown_original("") == ""
