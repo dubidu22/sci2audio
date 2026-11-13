@@ -51,6 +51,7 @@ def test_an_opened_file_is_kept_in_its_working_folder(server: tuple[FastAPI, Any
         "size": len(data),
         "has_report": False,
         "has_audio": False,
+        "speech_cache_bytes": 0,
     }
     kept = config.work_root / digest[:16] / "source" / "My Paper (2024).pdf"
     assert kept.read_bytes() == data

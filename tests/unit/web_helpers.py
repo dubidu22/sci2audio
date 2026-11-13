@@ -104,6 +104,20 @@ def pdf_bytes(text: str = "A short note about things.") -> bytes:
     return make_pdf([Text("Introduction", 72, 80, size=14), Text(text, 72, 100, size=11)])
 
 
+def paper_bytes() -> bytes:
+    """Three chapters, one citation and a reference list (deselected by default, Q6)."""
+    return make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text("Things happen (Smith, 2020) and more.", 72, 100, size=11),
+            Text("Methods", 72, 140, size=14),
+            Text("We measured it twice.", 72, 160, size=11),
+            Text("References", 72, 200, size=14),
+            Text("Smith, J. 2020. A book about things.", 72, 220, size=11),
+        ]
+    )
+
+
 def upload(client: TestClient, data: bytes, name: str = "paper.pdf") -> dict[str, Any]:
     response = client.post("/api/v1/documents", files={"file": (name, data, "application/pdf")})
     assert response.status_code == 201, response.text

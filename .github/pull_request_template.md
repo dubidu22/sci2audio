@@ -7,7 +7,8 @@ Feature ID: <!-- e.g. WI-02, from the feature list -->
 
 - [ ] `uv run ruff check && uv run ruff format --check`
 - [ ] `uv run lint-imports && uv run deptry src`
-- [ ] `uv run pytest -m "not slow and not benchmark"`: <!-- e.g. 42 passed -->
+- [ ] `uv run pytest -m "not slow and not benchmark and not browser"`: <!-- e.g. 42 passed -->
+- [ ] Interface changed? `uv run pytest -m browser`: <!-- e.g. 13 passed / not applicable -->
 - [ ] First of its kind? Tests and CI wiring added as required by `.claude/rules/tests.md`: <!-- yes / not applicable -->
 - [ ] Golden files changed? Diff explained: <!-- yes / no change -->
 - [ ] Slow tests or a manual check, if relevant: <!-- what you ran -->
