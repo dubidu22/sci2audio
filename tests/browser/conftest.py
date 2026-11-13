@@ -171,7 +171,11 @@ WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
 
 def axe_problems(page: Page, where: str) -> list[str]:
     """Every WCAG A/AA violation, whatever its impact, and serious or critical
-    best-practice findings (D-257), as readable lines."""
+    best-practice findings (D-257), as readable lines. Waits for the page's load event
+    first: a click doesn't, and without app.css axe finds problems that aren't there."""
+    page.wait_for_load_state("load")
+    position = page.evaluate("() => getComputedStyle(document.querySelector('.skip')).position")
+    assert position == "absolute", f"{where}: the page's stylesheet is not applied"
     found: list[str] = []
     wcag = AXE.run(page, options={"runOnly": {"type": "tag", "values": WCAG}})
     best = AXE.run(page, options={"runOnly": {"type": "tag", "values": ["best-practice"]}})
