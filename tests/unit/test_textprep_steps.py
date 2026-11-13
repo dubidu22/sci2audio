@@ -111,6 +111,8 @@ def test_the_built_in_registry_is_valid() -> None:
         "links",  # URLs before citations, after the block steps and before footnote marks (D-167)
         "citations",
         "footnotes",
+        "units",
+        "abbreviations",
         "unicode-clean-up",  # characters and hyphenation run last (D-150)
         "line-end-hyphens",
     ]
