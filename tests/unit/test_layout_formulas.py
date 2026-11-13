@@ -124,6 +124,29 @@ def test_what_waited_for_a_paragraph_cut_at_a_formula_follows_its_own_page() -> 
     assert doc.blocks[2].parts[0].item == "fig"
 
 
+def test_two_figures_waiting_for_a_cut_paragraph_follow_their_page_in_order() -> None:
+    """Review of #200 (S1): two figures at page 1's foot wait for a paragraph that runs on
+    to page 2; after the formula cut they follow the formula, in their own order, and page
+    2 reads as before, its second formula included (D-434)."""
+    before = [line(f"Running text, line {k}.", LEFT, 100 + 14 * k, RIGHT) for k in range(3)]
+    figures = [Picture("fig1", Box(150, 300, 450, 400)), Picture("fig2", Box(150, 450, 450, 550))]
+    first = [*before, math("p(x) = q(x)", 250, 142, 330), number("(8)", 142), *figures]
+    on = [line(f"where text goes on, line {k}.", LEFT, 100 + 14 * k, RIGHT) for k in range(3)]
+    more = [line(f"and then more text, line {k}.", LEFT, 170 + 14 * k, RIGHT) for k in range(3)]
+    second = [*on, math("r(x) = s(x)", 250, 142, 330), number("(9)", 142), *more]
+    doc = build(first, second)
+    assert [(b.kind, b.text, b.parts[0].item) for b in doc.blocks][1:4] == [
+        (BlockKind.FORMULA, "p(x) = q(x) (8)", first[3].id),
+        (BlockKind.FIGURE, "", "fig1"),
+        (BlockKind.FIGURE, "", "fig2"),
+    ]
+    assert [(b.kind, b.text) for b in doc.blocks][4:] == [
+        (BlockKind.PARAGRAPH, joined(on)),
+        (BlockKind.FORMULA, "r(x) = s(x) (9)"),
+        (BlockKind.PARAGRAPH, joined(more)),
+    ]
+
+
 def test_a_fraction_bar_is_part_of_its_formula() -> None:
     bar = Drawing("bar", Box(250, 165, 290, 165.5))
     rows = [math("a", 266, 154, 274), math("b", 266, 167, 274), math("= c", 295, 160, 315)]
