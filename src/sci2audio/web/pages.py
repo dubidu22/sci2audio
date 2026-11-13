@@ -77,11 +77,17 @@ def t(key: str, /, **values: Any) -> str:
 SCRIPT_KEYS = ("js.", "phase.", "make.needs_", "job.state_", "voice.speed_value", "player.")
 
 
+def data_block(data: Any) -> str:
+    """`data` as JSON for a `<script type="application/json">` block. `<`, `>` and `&`
+    are written as JSON escapes, so no text in it (`</script>`, `<!--<script>`) can
+    change how the browser parses the page; JSON.parse reads the same data back."""
+    text = json.dumps(data, ensure_ascii=False)
+    return text.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+
 def script_strings() -> str:
     """The strings the script uses, as JSON for the page's data block."""
-    keys = {k: v for k, v in STRINGS.items() if k.startswith(SCRIPT_KEYS)}
-    # `</` can't end the data block early: JSON allows `\/`
-    return json.dumps(keys, ensure_ascii=False).replace("</", "<\\/")
+    return data_block({k: v for k, v in STRINGS.items() if k.startswith(SCRIPT_KEYS)})
 
 
 def size_text(n: int) -> str:
@@ -379,7 +385,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             view=None,
             problem=t(error.key, **error.values),
         )
-    data = json.dumps(view.data(found.id), ensure_ascii=False).replace("</", "<\\/")
+    data = data_block(view.data(found.id))
     return _page(
         request,
         state,

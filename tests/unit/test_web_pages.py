@@ -298,9 +298,12 @@ def test_the_script_gets_its_strings_as_data(server: tuple[FastAPI, Any]) -> Non
 
 
 def test_a_string_cannot_end_the_data_block(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setitem(pages.STRINGS, "js.lost", "</script><script>alert(1)</script>")
-    assert "</script>" not in pages.script_strings()
-    assert json.loads(pages.script_strings())["js.lost"].startswith("</script>")
+    odd = "</script><script>alert(1)</script> <!--<script> & -->"
+    monkeypatch.setitem(pages.STRINGS, "js.lost", odd)
+    block = pages.script_strings()
+    assert not set("<>&") & set(block)  # nothing in it can change how the page parses
+    assert json.loads(block)["js.lost"] == odd
+    assert json.loads(pages.data_block({"t": odd})) == {"t": odd}
 
 
 def test_sizes_read_naturally() -> None:

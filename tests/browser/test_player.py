@@ -35,6 +35,20 @@ def make_audiobook(page: Page, live: Live) -> str:
     return document
 
 
+def listen_to(page: Page, live: Live, path: Path, pdf: bytes) -> None:
+    """Open this PDF, make its audiobook and open the player."""
+    live.install_voice()
+    live.voice.samples_per_character = PER_CHARACTER
+    path.write_bytes(pdf)
+    page.set_input_files("#file", files=[path])
+    page.get_by_role("button", name="Open and analyse").click()
+    page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    page.get_by_role("button", name="Make the audiobook").click()
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
+    page.get_by_role("link", name="Listen with the text").click()
+    page.wait_for_url(re.compile(r"/listen$"))
+
+
 def highlighted(page: Page) -> str:
     return str(page.evaluate("() => document.querySelector('[aria-current=true]')?.id ?? ''"))
 
@@ -217,26 +231,16 @@ def test_a_skipped_figure_shows_and_lights_up_its_notice(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
     page = signed_in
-    live.install_voice()
-    live.voice.samples_per_character = PER_CHARACTER
-    figure = tmp_path / "figure.pdf"
-    figure.write_bytes(
-        make_pdf(
-            [
-                Text("Introduction", 72, 80, size=14),
-                Text("Some text before the figure.", 72, 100, size=11),
-                Rect(72, 120, 300, 300),
-                Text("Figure 1: A grey box.", 72, 320, size=10),
-                Text("Text after it.", 72, 350, size=11),
-            ]
-        )
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text("Some text before the figure.", 72, 100, size=11),
+            Rect(72, 120, 300, 300),
+            Text("Figure 1: A grey box.", 72, 320, size=10),
+            Text("Text after it.", 72, 350, size=11),
+        ]
     )
-    page.set_input_files("#file", files=[figure])
-    page.get_by_role("button", name="Open and analyse").click()
-    page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
-    page.get_by_role("button", name="Make the audiobook").click()
-    expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
-    page.get_by_role("link", name="Listen with the text").click()
+    listen_to(page, live, tmp_path / "figure.pdf", pdf)
     notice = page.locator(".notice")
     expect(notice).to_have_text("Figure 1 is skipped.")
     check_axe(page, "player with a notice")
@@ -265,3 +269,72 @@ def test_a_second_jump_while_a_file_loads_wins(signed_in: Page, live: Live) -> N
     time = page.evaluate("() => document.getElementById('audio').currentTime")
     assert time < 6, time  # in chapter 1, not at the later sentence's time
     assert highlighted(page) == early
+
+
+def test_text_from_the_file_cannot_change_how_the_page_parses(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    # `<!--<script>` in a heading would make the browser read the rest of the page as
+    # part of the data block, if `<` were not escaped there (review of PR #144, M1)
+    page = signed_in
+    pdf = make_pdf(
+        [
+            Text("Intro <!--<script>", 72, 80, size=14),
+            Text("A sentence after it.", 72, 100, size=11),
+            Text("Methods", 72, 140, size=14),
+            Text("We measured it twice.", 72, 160, size=11),
+        ]
+    )
+    listen_to(page, live, tmp_path / "odd.pdf", pdf)
+    buttons = page.locator(".chapter-button")
+    expect(buttons).to_have_count(2)
+    expect(buttons.first).to_have_text("Intro <!--<script>")
+    expect(page.locator("#text")).to_contain_text("We measured it twice.")
+    data = page.evaluate("() => JSON.parse(document.getElementById('player-data').textContent)")
+    assert data["chapters"][0]["title"] == "Intro <!--<script>"
+    page.get_by_role("button", name="Next sentence").click()
+    assert highlighted(page) == chunk_id(page, "Intro")
+
+
+# 320x256 is 1280x1024 at 400 % zoom
+SIZES = [(1280, 800), (768, 640), (768, 576), (390, 844), (320, 568), (320, 256)]
+
+
+def test_the_player_bar_never_hides_the_page(signed_in: Page, live: Live) -> None:
+    # review of PR #144, M2: the sticky bar covered the text at small widths and at zoom
+    page = signed_in
+    document = make_audiobook(page, live)
+    for width, height in SIZES:
+        page.set_viewport_size({"width": width, "height": height})
+        page.goto(f"{live.url}/documents/{document}/listen")
+        where = f"{width}x{height}"
+        sideways = page.evaluate(
+            "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
+        )
+        assert sideways <= 0, f"{where}: scrolls sideways by {sideways} px"
+        bar = page.evaluate(
+            """() => {
+                const bar = document.querySelector('.player-bar');
+                return {sticky: getComputedStyle(bar).position === 'sticky',
+                        height: bar.getBoundingClientRect().height};
+            }"""
+        )
+        if bar["sticky"]:
+            assert bar["height"] <= height / 4, f"{where}: a sticky bar of {bar}"
+        # every chapter button reached by keyboard is in view and not under the bar
+        page.locator("#follow").focus()
+        for _ in range(2):
+            page.keyboard.press("Tab")
+            covered = page.evaluate(
+                """() => {
+                    const e = document.activeElement;
+                    const box = e.getBoundingClientRect();
+                    const x = box.left + Math.min(box.width / 2, 10);
+                    const y = box.top + box.height / 2;
+                    const top = document.elementFromPoint(x, y);
+                    if (top === e || e.contains(top)) return '';
+                    return `${e.textContent} under ${top?.className}`;
+                }"""
+            )
+            assert covered == "", f"{where}: {covered}"
+    page.set_viewport_size({"width": 1280, "height": 720})

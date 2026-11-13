@@ -36,6 +36,15 @@ function readAlong() {
   let frame = 0;
   let pending = null; // what to do once the file being loaded is ready
 
+  // while the bar sticks, nothing focused or scrolled to may hide under it (WCAG 2.4.11)
+  function pad() {
+    const sticky = getComputedStyle(bar).position === "sticky";
+    document.documentElement.style.scrollPaddingTop = sticky ? `${bar.offsetHeight + 8}px` : "";
+  }
+  pad();
+  if (window.ResizeObserver) new ResizeObserver(pad).observe(bar);
+  window.addEventListener("resize", pad);
+
   if (data.mode === "m4b" && !audio.canPlayType('audio/mp4; codecs="mp4a.40.2"')) {
     say(tr("player.cannot_play"), true);
   }
@@ -75,7 +84,7 @@ function readAlong() {
 
   function visible(element) {
     const box = element.getBoundingClientRect();
-    const top = bar ? bar.getBoundingClientRect().bottom : 0;
+    const top = getComputedStyle(bar).position === "sticky" ? bar.getBoundingClientRect().bottom : 0;
     return box.top >= top && box.bottom <= window.innerHeight;
   }
 

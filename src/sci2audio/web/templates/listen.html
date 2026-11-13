@@ -42,8 +42,8 @@
   <p class="player-line">
     <audio id="audio" controls preload="metadata" aria-label="{{ t('listen.audio') }}"></audio>
     <span id="now" class="hint">{{ t('player.chapter', n=1, total=view.chapters|length, title=view.chapters[0].title) }}</span>
+    <label><input type="checkbox" id="follow" checked> {{ t('listen.follow') }}</label>
   </p>
-  <p><label><input type="checkbox" id="follow" checked> {{ t('listen.follow') }}</label></p>
 </section>
 <p id="message" class="message" role="status" tabindex="-1"></p>
 <nav aria-labelledby="chapters-heading">
