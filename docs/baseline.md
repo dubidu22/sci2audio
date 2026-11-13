@@ -48,3 +48,15 @@ above 30 s.
 | Machine | Mean time | Date | Notes |
 |---|---|---|---|
 | Linux container, x86_64 (cloud session) | 1.02 s (3 rounds, 1.01 to 1.03 s) | 2026-11-12 | built-in text steps of #63 (page furniture only); each text step that lands adds to it |
+
+## Audio job: a paper to its audiobook with the real voice (#71)
+
+`SCI2AUDIO_TEST_MODELS=<voice folder> uv run pytest tests/integration/test_audio_job.py -m benchmark --benchmark-only -p no:xdist`:
+the 4-page pymedphys paper (default chapters: 41 utterances, 5,800 characters) from file to
+4 MP3s, one M4B and the read-along file with Kokoro `af_heart` at speed 1, network blocked.
+The timed rounds are reruns from the chunk cache, so they measure the job's own overhead
+(reading, layout, text steps, planning, encoding); the whole first run is in the extra info.
+
+| Machine | Whole job (first run) | Speech only | Rerun from the cache (mean of 3) | Audio | Date |
+|---|---|---|---|---|---|
+| Linux cloud container, 4 vCPU (Intel(R) Xeon(R) Processor @ 2.10GHz), torch 2.15.0+cpu | 134.6 s, 43.1 characters per second | 47.6 characters per second (model warm-up not counted) | 6.98 s (6.90 to 7.07 s): 6.4 s of it is ffmpeg encoding 7.5 minutes of speech twice (MP3s and M4B), 0.55 s reading and layout | 449.9 s (about 3.3 × real time) | 2026-11-13 |
