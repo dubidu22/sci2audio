@@ -485,3 +485,143 @@ def test_any_tagged_content_gives_a_document_keeping_every_item_once(found: Cont
 
 def _flat(sections: tuple) -> list:
     return [x for s in sections for x in (s, *_flat(s.children))]
+
+
+# ---- review of PR #192, round 1 -------------------------------------------------------
+
+
+def _note_label(text: str) -> str:
+    doc = build_document(
+        content(
+            [
+                runs(("Cited.", P), ("1", ("p", "a", "epub:noteref", "link:p1-l2"))),
+                line(text, "aside", "epub:footnote", "p"),
+            ]
+        )
+    )
+    return doc.blocks[1].label
+
+
+def test_a_note_takes_its_mark_as_label_only_as_a_word_of_its_own() -> None:
+    """M1: "1984 was a novel." is not note 1 printed "1" and then "984 was a novel."."""
+    assert _note_label("1984 was a novel.") == ""
+    assert _note_label("1a is a variant.") == ""
+    assert _note_label("1.5 litres.") == ""
+    assert _note_label("1. Text.") == "1"
+    assert _note_label("1) Text.") == "1"
+    assert _note_label("1 Text.") == "1"
+
+
+def test_a_formula_number_has_the_shape_pdf_formulas_have() -> None:
+    """M2: a function's bracketed argument at the end is no formula number."""
+    texts = [
+        "f(x) = \\sin(x)",
+        "\\psi(t)",
+        "g(n)",
+        "a = b (2)",
+        "c = d (A.2)",
+        "e = f \\tag{3}",
+        "x (16a)",
+    ]
+    doc = build_document(content([line(text, "div", "role:math") for text in texts]))
+    assert [b.label for b in doc.blocks] == ["", "", "", "2", "A.2", "3", "16a"]
+
+
+def test_the_captions_of_two_neighbouring_figures_stay_apart() -> None:
+    """M3: a figcaption that opens with its own label starts the next figure's caption."""
+    doc = build_document(
+        content(
+            [
+                Img(),
+                line("Figure 2: bee", "figure", "figcaption"),
+                line("Figure 3: cee above", "figure", "figcaption"),
+                Img(),
+                line("one caption", "figure", "figcaption", "p"),
+                line("in two paragraphs", "figure", "figcaption", "p"),
+            ]
+        )
+    )
+    assert [(b.kind.value, b.text, b.label, b.describes) for b in doc.blocks] == [
+        ("figure", "", "", None),
+        ("caption", "Figure 2: bee", "Figure 2", 0),
+        ("caption", "Figure 3: cee above", "Figure 3", 3),
+        ("figure", "", "", None),
+        ("caption", "one caption\nin two paragraphs", "", 3),
+    ]
+
+
+def test_a_heading_of_inline_maths_stays_a_heading() -> None:
+    """S1: maths inside an h1 does not make it a formula; its section stays."""
+    doc = build_document(content([line("E=mc^2", "h1", "span", "role:math"), line("t", "p")]))
+    assert doc.blocks[0].kind is BlockKind.HEADING
+    assert tree(doc) == [("E=mc^2", 1, 0)]
+
+
+def test_the_first_outline_entry_for_a_page_sets_its_base_level() -> None:
+    """S2 (a): two entries for one page; the first one's level counts (D-407)."""
+    outline = (
+        OutlineEntry("Part", 1, 1),
+        OutlineEntry("Chapter", 1, 2),
+        OutlineEntry("Inside", 2, 2, "p2-l2"),
+    )
+    doc = build_document(
+        content(
+            [line("Part", "h1")],
+            [line("Chapter", "h2"), line("Text.", "p")],
+            outline=outline,
+        )
+    )
+    assert tree(doc) == [("Part", 1, 0), ("Chapter", 1, 1)]
+
+
+def test_the_first_of_two_entries_naming_one_block_starts_its_section() -> None:
+    """S2 (b): on a page without headings, a later entry for the same block is ignored."""
+    outline = (OutlineEntry("One", 1, 1), OutlineEntry("Two", 2, 1), OutlineEntry("Three", 1, 2))
+    doc = build_document(content([line("Text.", "p")], [line("More.", "p")], outline=outline))
+    assert tree(doc) == [("One", 1, 0), ("Three", 1, 1)]
+
+
+def test_a_section_title_leaves_out_a_noteref_mark() -> None:
+    """S3: the chapter name is "Intro", the heading's text stays as printed."""
+    doc = build_document(
+        content(
+            [
+                runs(("Intro", ("h2",)), ("1", ("h2", "a", "epub:noteref", "link:p1-l2"))),
+                line("A note.", "aside", "epub:footnote", "p"),
+                runs(("2", ("h2", "sup", "a", "role:doc-noteref", "link:p1-l2"))),
+            ]
+        )
+    )
+    assert doc.blocks[0].text == "Intro1"
+    assert tree(doc) == [("Intro", 1, 0), ("2", 1, 2)]  # a mark alone keeps its text
+
+
+def test_a_hidden_line_after_a_br_is_furniture_of_its_own() -> None:
+    """S4: `<p>a<br/><span hidden>secret</span><br/>b</p>`: the hidden line is not read."""
+    doc = build_document(
+        content(
+            [
+                line("shown", "p"),
+                line("secret", "p", "span", "hidden", "br"),
+                line("shown again", "p", "br"),
+            ]
+        )
+    )
+    assert [(b.kind.value, b.text) for b in doc.blocks] == [
+        ("paragraph", "shown"),
+        ("furniture", "secret"),
+        ("paragraph", "shown again"),
+    ]
+
+
+def test_any_nav_is_furniture() -> None:
+    """N3: landmarks and a page list in the spine are navigation, not text."""
+    doc = build_document(
+        content(
+            [
+                line("Cover", "nav", "epub:landmarks", "ol", "li", "a", "link:p1"),
+                line("1", "nav", "epub:page-list", "ol", "li", "a", "link:p1"),
+            ]
+        )
+    )
+    assert [(b.kind, b.role) for b in doc.blocks] == [(BlockKind.FURNITURE, FurnitureRole.CONTENTS)]

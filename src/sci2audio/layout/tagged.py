@@ -7,24 +7,31 @@ carry their markup as tags, and `Page.order` for where pictures stand (D-306 to 
 D-340 to D-344). Layout reads each page in that order:
 
 - A line tagged ``br`` continues the element of the line just before it; any other line,
-  or a line after a picture, starts a new element. An element's lines are joined by line
+  a line after a picture, or a hidden line after a shown one (or the other way round)
+  starts a new element. An element's lines are joined by line
   breaks, as a PDF paragraph's are. Its kind comes from its first line's **context**: the
   tags all its runs share, so an emphasis or inline maths inside a paragraph does not
   change it.
 - Kinds, the first that applies: a line tagged ``hidden`` or ``aria-hidden`` is furniture
-  without a role, a ``nav`` table of contents is furniture ``contents``, a whole-line page
+  without a role, a ``nav`` (table of contents, landmarks, page list) is furniture
+  ``contents``, a whole-line page
   break marker is ``page-number`` (D-411); a note (``doc-endnote``, ``epub:footnote``, ... or
   an ``li`` inside a notes list) is a FOOTNOTE, one block per note (D-414: it stays where the
   file puts it); table lines are one TABLE per run of them, a ``caption`` inside cut out as
   a CAPTION before it (D-412); SVG text is a FIGURE; then the innermost of ``h1``-``h6``
-  (HEADING), ``figcaption`` (CAPTION), maths (FORMULA) and ``li`` (LIST_ITEM, D-415);
+  (HEADING), ``figcaption`` (CAPTION), maths (FORMULA) and ``li`` (LIST_ITEM, D-415),
+  except that maths inside a heading leaves it a heading;
   everything else, code blocks too (D-410), is a PARAGRAPH. Each picture is a FIGURE of its
   own with text "" (D-413), unless it stands between two lines of one table, note or SVG.
+- A caption's lines in a row are one caption, unless a line opens with a caption label of
+  its own ("Figure 3: ..."), which starts the next figure's caption.
 - A caption describes the placeholder next to it: a ``figcaption`` the one before it, else
   the one after it; a table's caption the one after it, else the one before it.
 - Labels are printed in the text, as core asks: a heading's number as in PDF ("1.1"), a
-  caption's label ("Table 2"), a display formula's number in brackets at its end, a note's
-  mark only where its text starts with the mark its noteref links to (D-406). A list marker
+  caption's label ("Table 2"), a display formula's number as PDF formulas have it ("(2)"
+  after white space at its end) or a TeX ``\\tag{2}``, a note's mark only where its text
+  opens with the mark its noteref links to as a word of its own ("1 Text", "1. Text"; not
+  "1984 ...") (D-406). A list marker
   that HTML numbering adds is not text, so list items carry none.
 - Heading levels are counted per page, an EPUB spine document or a whole Markdown file
   (D-407): the page's highest rank (``h1`` before ``h2``) gets the page's base level and each
@@ -35,11 +42,11 @@ D-340 to D-344). Layout reads each page in that order:
   at the block holding its item, or the page's first block. That block becomes the heading
   when its text is the entry's title (compared as in #24); otherwise the section is titled
   as the entry and starts at the block.
+- A section title leaves out noteref marks ("Intro" for a heading printed "Intro1").
 """
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field, replace
 
 from sci2audio.core import (
@@ -55,7 +62,7 @@ from sci2audio.core import (
     Section,
     TextLine,
 )
-from sci2audio.layout.captions import caption_label
+from sci2audio.layout.captions import caption_label, opens_caption
 from sci2audio.layout.headings import (
     outline_entries,
     printed_number,
@@ -63,6 +70,7 @@ from sci2audio.layout.headings import (
     title,
     title_key,
 )
+from sci2audio.layout.maths import number_at_end, number_tagged
 from sci2audio.layout.settings import LayoutSettings
 
 # tags that are not element names: attribute tokens (D-307) and flags
@@ -77,12 +85,9 @@ _NOTE = frozenset(
 )
 _NOTES = frozenset({"role:doc-endnotes", "epub:endnotes", "epub:footnotes", "epub:rearnotes"})
 _NOTE_REF = frozenset({"role:doc-noteref", "epub:noteref"})
-_TOC = frozenset({"epub:toc", "role:doc-toc"})
 _PAGE_BREAK = frozenset({"epub:pagebreak", "role:doc-pagebreak"})
 _RANKS = {f"h{rank}": rank for rank in range(1, 7)}
 _MATHS = frozenset({"math", "role:math"})
-# a display formula's number in brackets at its end: "(1)", "(2.3)", "(A1)"
-_FORMULA_NUMBER = re.compile(r"\((?P<label>[0-9A-Za-z]{1,6}(?:\.[0-9A-Za-z]{1,4})?)\)\s*\Z")
 
 # kinds whose element may hold a picture: one standing between two of their lines joins them
 _HOLD_PICTURES = frozenset({BlockKind.TABLE, BlockKind.FOOTNOTE, BlockKind.FIGURE})
@@ -130,6 +135,7 @@ class _Unit:
     role: FurnitureRole | None = None
     rank: int = 0  # a heading's rank: 1 for h1
     looks: int = _BEFORE  # a caption: where it looks first for what it describes
+    opens: bool = False  # a caption line that opens with its own label: a new caption
 
 
 def _units(page: Page, items: dict[str, tuple[Page, Item]]) -> list[_Unit]:
@@ -139,7 +145,11 @@ def _units(page: Page, items: dict[str, tuple[Page, Item]]) -> list[_Unit]:
     for item_id in order:
         item = items[item_id][1]
         if isinstance(item, TextLine):
-            if after_line and "br" in item.runs[0].tags:
+            if (
+                after_line
+                and "br" in item.runs[0].tags
+                and _hidden(item) == _hidden(units[-1].items[0])
+            ):
                 units[-1].items.append(item)
             else:
                 units.append(_classified(item, page.number))
@@ -157,7 +167,7 @@ def _merged(units: list[_Unit]) -> list[_Unit]:
     while k < len(units):
         unit = units[k]
         last = out[-1] if out else None
-        if last is not None and last.key is not None and unit.key == last.key:
+        if last is not None and last.key is not None and unit.key == last.key and not unit.opens:
             last.items += unit.items
         elif last is not None and last.key and last.kind in _HOLD_PICTURES and _picture(unit):
             j = k
@@ -186,7 +196,7 @@ def _classified(line: TextLine, page: int) -> _Unit:
     unit = _Unit(BlockKind.PARAGRAPH, page, [line])
     if tags & _HIDDEN:
         unit.kind = BlockKind.FURNITURE
-    elif "nav" in names and tags & _TOC:
+    elif "nav" in names:
         unit.kind, unit.role, unit.key = BlockKind.FURNITURE, FurnitureRole.CONTENTS, ("nav",)
     elif tags & _PAGE_BREAK:
         unit.kind, unit.role = BlockKind.FURNITURE, FurnitureRole.PAGE_NUMBER
@@ -195,18 +205,23 @@ def _classified(line: TextLine, page: int) -> _Unit:
     elif "table" in names:
         if "caption" in names[names.index("table") :]:
             unit.kind, unit.key, unit.looks = BlockKind.CAPTION, ("caption",), _AFTER
+            unit.opens = opens_caption(line)
         else:
             unit.kind, unit.key = BlockKind.TABLE, ("table",)
     elif "svg" in names:
         unit.kind, unit.key = BlockKind.FIGURE, ("svg",)
     else:
+        headed = any(tag in _RANKS for tag in context)
         for tag in reversed(context):
+            if tag in _MATHS and headed:
+                continue  # maths inside a heading: the heading decides
             if tag in _MATHS:
                 unit.kind = BlockKind.FORMULA
             elif tag in _RANKS:
                 unit.kind, unit.rank = BlockKind.HEADING, _RANKS[tag]
             elif tag == "figcaption":
                 unit.kind, unit.key = BlockKind.CAPTION, ("figcaption",)
+                unit.opens = opens_caption(line)
             elif tag == "li":
                 unit.kind = BlockKind.LIST_ITEM
             else:
@@ -230,6 +245,11 @@ def _context(line: TextLine) -> tuple[str, ...]:
 
 def _is_name(tag: str) -> bool:
     return tag not in _FLAGS and not tag.startswith(_TOKENS)
+
+
+def _hidden(item: Item) -> bool:
+    """True for a line whose whole text is hidden."""
+    return isinstance(item, TextLine) and bool(set(_context(item)) & _HIDDEN)
 
 
 def _note_key(context: tuple[str, ...]) -> tuple[str, ...] | None:
@@ -267,9 +287,17 @@ def _block(unit: _Unit, lines: dict[str, TextLine]) -> Block:
     label = ""
     if kind is BlockKind.CAPTION:
         label = caption_label(block, lines) or ""
-    elif kind is BlockKind.FORMULA and (found := _FORMULA_NUMBER.search(text)):
-        label = found["label"]
+    elif kind is BlockKind.FORMULA:
+        label = _formula_number([i for i in unit.items if isinstance(i, TextLine)])
     return Block(kind, text, tuple(parts), role=unit.role, label=label) if label else block
+
+
+def _formula_number(lines: list[TextLine]) -> str:
+    """A display formula's number as PDF formulas have it: "(2)" after white space at the end
+    of its last line, else the last TeX ``\\tag{2}``; "" if it has none."""
+    if lines and (found := number_at_end(lines[-1])):
+        return found
+    return next((n for line in reversed(lines) if (n := number_tagged(line))), "")
 
 
 def _described(blocks: list[Block], units: list[_Unit]) -> list[Block]:
@@ -300,10 +328,19 @@ def _marked(blocks: list[Block], lines: dict[str, TextLine]) -> list[Block]:
     for block in blocks:
         if block.kind is BlockKind.FOOTNOTE:
             mark = next((marks[p.item] for p in block.parts if p.item in marks), "")
-            if mark and "\n" not in mark and block.text.lstrip().startswith(mark):
+            if mark and "\n" not in mark and _opens_with(block.text.lstrip(), mark):
                 block = replace(block, label=mark)
         out.append(block)
     return out
+
+
+def _opens_with(text: str, mark: str) -> bool:
+    """True if the text opens with the mark as a word of its own: followed by its end, white
+    space, or a "." or ")" and then white space ("1 Text", "1. Text"; not "1984 was")."""
+    if not text.startswith(mark):
+        return False
+    rest = text[len(mark) :]
+    return not rest or rest[0].isspace() or (rest[0] in ".)" and rest[1:2].strip() == "")
 
 
 # ---- headings and sections -------------------------------------------------------------
@@ -322,6 +359,7 @@ class _Sections:
         self.blocks = list(blocks)
         self.units = units
         self.content = content
+        self.lines = {line.id: line for page in content.pages for line in page.lines}
         self.entries = [e for e in outline_entries(content) if e.page is not None]
         letters = {
             label
@@ -367,16 +405,26 @@ class _Sections:
     def _labelled(self, k: int) -> str:
         """Give heading `k` its printed number as label; its section title."""
         block = self.blocks[k]
-        name = title(block.text)
+        name = self._title(k)
         label = printed_number(name, self.lettered)[0]
-        if label and label in block.text:
+        if label and label in block.text:  # a mark left out may have stood inside it
             self.blocks[k] = replace(block, label=label)
         return name
+
+    def _title(self, k: int) -> str:
+        """Block `k`'s text as a section title: its lines as one, without noteref marks
+        ("Intro" for "Intro1"); its whole text if that leaves nothing."""
+        lines = [self.lines[p.item] for p in self.blocks[k].parts if p.item in self.lines]
+        text = "\n".join(
+            "".join(run.text for run in line.runs if not _NOTE_REF & set(run.tags))
+            for line in lines
+        )
+        return title(text) or title(self.blocks[k].text)
 
     def _from_entry(self, entry: OutlineEntry, k: int, heads: dict[int, tuple[int, str]]) -> None:
         """The section an outline entry starts at block `k`, on a page without headings."""
         block = self.blocks[k]
-        if block.kind is BlockKind.PARAGRAPH and block.text.strip() and self._names(entry, k):
+        if block.kind is BlockKind.PARAGRAPH and self._names(entry, k):
             self.blocks[k] = replace(block, kind=BlockKind.HEADING)
             heads[k] = (entry.level, self._labelled(k))
         else:
@@ -385,7 +433,7 @@ class _Sections:
     def _names(self, entry: OutlineEntry, k: int) -> bool:
         """True if the block's text is the entry's title (#24: a printed number may be taken
         off the front of either)."""
-        text = title(self.blocks[k].text)
+        text = self._title(k)
         mine = {title_key(text), title_key(printed_number(text, self.lettered)[1])}
         theirs = {
             title_key(entry.title),
