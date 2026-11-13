@@ -2,7 +2,7 @@
 # name: test_golden_file[acl2023-chi-plue]
   '''
   acl2023-chi-plue.pdf  sha256 e3b1ecca85319ff8
-  metadata: title='' authors=[] date='2023-07-08'
+  metadata: title='' authors=[] date='2023-07-08' language=''
   == page 1  595 x 842  lines 93  pictures 0  drawings 1
   p1-l1  [137 797 458 807]  {NimbusRomNo9L-ReguItal 9 i}Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
   p1-l2  [226 808 369 819]  {NimbusRomNo9L-ReguItal 9 i}Volume 2: Short Papers{NimbusRomNo9L-Regu 9}, pages 352–365
@@ -97,6 +97,7 @@
   p1-l91  [306 747 525 761]  {NimbusRomNo9L-Regu 10.9}are selected based on the following principles: (1)
   p1-l92  [306 761 524 774]  {NimbusRomNo9L-Regu 10.9}usefulness: the selected tasks can help practitioners
   p1-l93  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}352
+  p1-d1  [70 761 131 762]  drawing
   == page 2  595 x 842  lines 146  pictures 0  drawings 6
   p2-l1  [98 74 128 86]  {NimbusRomNo9L-Regu 9.9}Dataset
   p2-l2  [154 74 173 86]  {NimbusRomNo9L-Regu 9.9}Task
@@ -244,6 +245,12 @@
   p2-l144  [306 747 525 761]  {NimbusRomNo9L-Regu 10.9}The existing pre-trained language models (PLMs)
   p2-l145  [306 761 526 774]  {NimbusRomNo9L-Regu 10.9}mostly use data from BooksCorpus (Zhu et al.,
   p2-l146  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}353
+  p2-d1  [91 70 504 72]  drawing
+  p2-d2  [92 88 504 89]  drawing
+  p2-d3  [92 117 504 118]  drawing
+  p2-d4  [92 146 504 147]  drawing
+  p2-d5  [92 175 504 176]  drawing
+  p2-d6  [91 192 504 194]  drawing
   == page 3  595 x 842  lines 105  pictures 0  drawings 2
   p3-l1  [71 72 289 85]  {NimbusRomNo9L-Regu 10.9}2015) and English Wikipedia. Language models
   p3-l2  [71 85 289 98]  {NimbusRomNo9L-Regu 10.9}pre-trained on text from those sources might not
@@ -350,6 +357,8 @@
   p3-l103  [319 752 525 764]  {NimbusRomNo9L-Regu 6}2{NimbusRomNo9L-Regu 9}Ravichander et al. (2019) reported 39.8% F1 score for
   p3-l104  [306 763 499 774]  {NimbusRomNo9L-Regu 9}BERT model; however, we are able to achieve 36.3%.
   p3-l105  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}354
+  p3-d1  [70 740 131 741]  drawing
+  p3-d2  [306 750 366 751]  drawing
   == page 4  595 x 842  lines 279  pictures 0  drawings 1836
   p4-l1  [90 80 120 92]  {NimbusRomNo9L-Regu 9.9}Models
   p4-l2  [182 80 212 92]  {NimbusRomNo9L-Regu 9.9}|Model|
@@ -630,6 +639,1842 @@
   p4-l277  [306 741 526 754]  {NimbusRomNo9L-Regu 10.9}2019), legal (Chalkidis et al., 2020), and cybersecu-
   p4-l278  [306 755 524 768]  {NimbusRomNo9L-Regu 10.9}rity (Ranade et al., 2021; Bayer et al., 2022). This
   p4-l279  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}355
+  p4-d1  [83 70 510 72]  drawing
+  p4-d2  [217 86 219 87]  drawing
+  p4-d3  [219 86 221 87]  drawing
+  p4-d4  [221 86 223 87]  drawing
+  p4-d5  [223 86 225 87]  drawing
+  p4-d6  [225 86 227 87]  drawing
+  p4-d7  [227 86 229 87]  drawing
+  p4-d8  [229 86 231 87]  drawing
+  p4-d9  [231 86 233 87]  drawing
+  p4-d10  [233 86 235 87]  drawing
+  p4-d11  [235 86 237 87]  drawing
+  p4-d12  [237 86 239 87]  drawing
+  p4-d13  [239 86 241 87]  drawing
+  p4-d14  [241 86 243 87]  drawing
+  p4-d15  [243 86 245 87]  drawing
+  p4-d16  [245 86 247 87]  drawing
+  p4-d17  [247 86 249 87]  drawing
+  p4-d18  [249 86 251 87]  drawing
+  p4-d19  [251 86 253 87]  drawing
+  p4-d20  [253 86 255 87]  drawing
+  p4-d21  [255 86 257 87]  drawing
+  p4-d22  [257 86 259 87]  drawing
+  p4-d23  [259 86 261 87]  drawing
+  p4-d24  [261 86 263 87]  drawing
+  p4-d25  [263 86 265 87]  drawing
+  p4-d26  [265 86 267 87]  drawing
+  p4-d27  [267 86 269 87]  drawing
+  p4-d28  [269 86 271 87]  drawing
+  p4-d29  [271 86 273 87]  drawing
+  p4-d30  [273 86 275 87]  drawing
+  p4-d31  [275 86 277 87]  drawing
+  p4-d32  [277 86 279 87]  drawing
+  p4-d33  [279 86 281 87]  drawing
+  p4-d34  [281 86 283 87]  drawing
+  p4-d35  [283 86 285 87]  drawing
+  p4-d36  [285 86 287 87]  drawing
+  p4-d37  [287 86 289 87]  drawing
+  p4-d38  [289 86 291 87]  drawing
+  p4-d39  [291 86 293 87]  drawing
+  p4-d40  [293 86 295 87]  drawing
+  p4-d41  [295 86 297 87]  drawing
+  p4-d42  [297 86 299 87]  drawing
+  p4-d43  [299 86 301 87]  drawing
+  p4-d44  [301 86 303 87]  drawing
+  p4-d45  [303 86 305 87]  drawing
+  p4-d46  [305 86 307 87]  drawing
+  p4-d47  [307 86 309 87]  drawing
+  p4-d48  [309 86 311 87]  drawing
+  p4-d49  [312 86 313 87]  drawing
+  p4-d50  [314 86 315 87]  drawing
+  p4-d51  [316 86 317 87]  drawing
+  p4-d52  [318 86 319 87]  drawing
+  p4-d53  [320 86 321 87]  drawing
+  p4-d54  [322 86 323 87]  drawing
+  p4-d55  [324 86 325 87]  drawing
+  p4-d56  [326 86 327 87]  drawing
+  p4-d57  [328 86 329 87]  drawing
+  p4-d58  [330 86 331 87]  drawing
+  p4-d59  [332 86 333 87]  drawing
+  p4-d60  [334 86 335 87]  drawing
+  p4-d61  [336 86 337 87]  drawing
+  p4-d62  [338 86 339 87]  drawing
+  p4-d63  [340 86 341 87]  drawing
+  p4-d64  [342 86 343 87]  drawing
+  p4-d65  [344 86 345 87]  drawing
+  p4-d66  [346 86 347 87]  drawing
+  p4-d67  [348 86 349 87]  drawing
+  p4-d68  [350 86 351 87]  drawing
+  p4-d69  [352 86 353 87]  drawing
+  p4-d70  [354 86 355 87]  drawing
+  p4-d71  [356 86 357 87]  drawing
+  p4-d72  [358 86 359 87]  drawing
+  p4-d73  [360 86 361 87]  drawing
+  p4-d74  [362 86 363 87]  drawing
+  p4-d75  [364 86 365 87]  drawing
+  p4-d76  [366 86 367 87]  drawing
+  p4-d77  [368 86 369 87]  drawing
+  p4-d78  [370 86 371 87]  drawing
+  p4-d79  [372 86 373 87]  drawing
+  p4-d80  [374 86 375 87]  drawing
+  p4-d81  [376 86 377 87]  drawing
+  p4-d82  [378 86 379 87]  drawing
+  p4-d83  [380 86 381 87]  drawing
+  p4-d84  [382 86 383 87]  drawing
+  p4-d85  [384 86 385 87]  drawing
+  p4-d86  [386 86 387 87]  drawing
+  p4-d87  [388 86 389 87]  drawing
+  p4-d88  [390 86 391 87]  drawing
+  p4-d89  [392 86 393 87]  drawing
+  p4-d90  [394 86 395 87]  drawing
+  p4-d91  [396 86 397 87]  drawing
+  p4-d92  [398 86 399 87]  drawing
+  p4-d93  [400 86 401 87]  drawing
+  p4-d94  [402 86 403 87]  drawing
+  p4-d95  [404 86 405 87]  drawing
+  p4-d96  [406 86 407 87]  drawing
+  p4-d97  [408 86 409 87]  drawing
+  p4-d98  [410 86 411 87]  drawing
+  p4-d99  [412 86 413 87]  drawing
+  p4-d100  [414 86 415 87]  drawing
+  p4-d101  [416 86 417 87]  drawing
+  p4-d102  [418 86 419 87]  drawing
+  p4-d103  [420 86 421 87]  drawing
+  p4-d104  [422 86 423 87]  drawing
+  p4-d105  [424 86 425 87]  drawing
+  p4-d106  [426 86 427 87]  drawing
+  p4-d107  [428 86 429 87]  drawing
+  p4-d108  [430 86 431 87]  drawing
+  p4-d109  [432 86 433 87]  drawing
+  p4-d110  [434 86 435 87]  drawing
+  p4-d111  [436 86 437 87]  drawing
+  p4-d112  [438 86 439 87]  drawing
+  p4-d113  [440 86 441 87]  drawing
+  p4-d114  [442 86 443 87]  drawing
+  p4-d115  [444 86 445 87]  drawing
+  p4-d116  [446 86 447 87]  drawing
+  p4-d117  [448 86 449 87]  drawing
+  p4-d118  [450 86 451 87]  drawing
+  p4-d119  [452 86 453 87]  drawing
+  p4-d120  [454 86 455 87]  drawing
+  p4-d121  [456 86 457 87]  drawing
+  p4-d122  [458 86 459 87]  drawing
+  p4-d123  [460 86 461 87]  drawing
+  p4-d124  [462 86 463 87]  drawing
+  p4-d125  [464 86 465 87]  drawing
+  p4-d126  [466 86 467 87]  drawing
+  p4-d127  [468 86 469 87]  drawing
+  p4-d128  [470 86 471 87]  drawing
+  p4-d129  [472 86 473 87]  drawing
+  p4-d130  [474 86 475 87]  drawing
+  p4-d131  [476 86 477 87]  drawing
+  p4-d132  [478 86 479 87]  drawing
+  p4-d133  [480 86 481 87]  drawing
+  p4-d134  [482 86 483 87]  drawing
+  p4-d135  [484 86 485 87]  drawing
+  p4-d136  [486 86 487 87]  drawing
+  p4-d137  [488 86 489 87]  drawing
+  p4-d138  [490 86 491 87]  drawing
+  p4-d139  [492 86 494 87]  drawing
+  p4-d140  [494 86 496 87]  drawing
+  p4-d141  [496 86 498 87]  drawing
+  p4-d142  [498 86 500 87]  drawing
+  p4-d143  [500 86 502 87]  drawing
+  p4-d144  [502 86 504 87]  drawing
+  p4-d145  [504 86 506 87]  drawing
+  p4-d146  [506 86 508 87]  drawing
+  p4-d147  [508 86 509 87]  drawing
+  p4-d148  [83 100 509 101]  drawing
+  p4-d149  [83 115 85 116]  drawing
+  p4-d150  [85 115 87 116]  drawing
+  p4-d151  [87 115 89 116]  drawing
+  p4-d152  [89 115 91 116]  drawing
+  p4-d153  [91 115 93 116]  drawing
+  p4-d154  [93 115 95 116]  drawing
+  p4-d155  [95 115 97 116]  drawing
+  p4-d156  [97 115 99 116]  drawing
+  p4-d157  [99 115 101 116]  drawing
+  p4-d158  [101 115 103 116]  drawing
+  p4-d159  [103 115 105 116]  drawing
+  p4-d160  [105 115 107 116]  drawing
+  p4-d161  [107 115 109 116]  drawing
+  p4-d162  [109 115 111 116]  drawing
+  p4-d163  [111 115 113 116]  drawing
+  p4-d164  [113 115 115 116]  drawing
+  p4-d165  [115 115 117 116]  drawing
+  p4-d166  [117 115 119 116]  drawing
+  p4-d167  [119 115 121 116]  drawing
+  p4-d168  [121 115 123 116]  drawing
+  p4-d169  [123 115 125 116]  drawing
+  p4-d170  [125 115 127 116]  drawing
+  p4-d171  [127 115 129 116]  drawing
+  p4-d172  [129 115 131 116]  drawing
+  p4-d173  [131 115 133 116]  drawing
+  p4-d174  [133 115 135 116]  drawing
+  p4-d175  [135 115 137 116]  drawing
+  p4-d176  [137 115 139 116]  drawing
+  p4-d177  [139 115 141 116]  drawing
+  p4-d178  [141 115 143 116]  drawing
+  p4-d179  [143 115 145 116]  drawing
+  p4-d180  [145 115 147 116]  drawing
+  p4-d181  [147 115 149 116]  drawing
+  p4-d182  [149 115 151 116]  drawing
+  p4-d183  [151 115 153 116]  drawing
+  p4-d184  [153 115 155 116]  drawing
+  p4-d185  [155 115 157 116]  drawing
+  p4-d186  [157 115 159 116]  drawing
+  p4-d187  [159 115 161 116]  drawing
+  p4-d188  [161 115 163 116]  drawing
+  p4-d189  [163 115 165 116]  drawing
+  p4-d190  [165 115 167 116]  drawing
+  p4-d191  [167 115 169 116]  drawing
+  p4-d192  [169 115 170 116]  drawing
+  p4-d193  [171 115 172 116]  drawing
+  p4-d194  [173 115 174 116]  drawing
+  p4-d195  [175 115 176 116]  drawing
+  p4-d196  [177 115 178 116]  drawing
+  p4-d197  [179 115 180 116]  drawing
+  p4-d198  [181 115 182 116]  drawing
+  p4-d199  [183 115 184 116]  drawing
+  p4-d200  [185 115 186 116]  drawing
+  p4-d201  [187 115 188 116]  drawing
+  p4-d202  [189 115 190 116]  drawing
+  p4-d203  [191 115 192 116]  drawing
+  p4-d204  [193 115 194 116]  drawing
+  p4-d205  [195 115 196 116]  drawing
+  p4-d206  [197 115 198 116]  drawing
+  p4-d207  [199 115 200 116]  drawing
+  p4-d208  [201 115 202 116]  drawing
+  p4-d209  [203 115 204 116]  drawing
+  p4-d210  [205 115 206 116]  drawing
+  p4-d211  [207 115 208 116]  drawing
+  p4-d212  [209 115 210 116]  drawing
+  p4-d213  [211 115 212 116]  drawing
+  p4-d214  [213 115 214 116]  drawing
+  p4-d215  [215 115 216 116]  drawing
+  p4-d216  [217 115 218 116]  drawing
+  p4-d217  [219 115 220 116]  drawing
+  p4-d218  [221 115 222 116]  drawing
+  p4-d219  [223 115 224 116]  drawing
+  p4-d220  [225 115 226 116]  drawing
+  p4-d221  [227 115 228 116]  drawing
+  p4-d222  [229 115 230 116]  drawing
+  p4-d223  [231 115 232 116]  drawing
+  p4-d224  [233 115 234 116]  drawing
+  p4-d225  [235 115 236 116]  drawing
+  p4-d226  [237 115 238 116]  drawing
+  p4-d227  [239 115 240 116]  drawing
+  p4-d228  [241 115 242 116]  drawing
+  p4-d229  [243 115 244 116]  drawing
+  p4-d230  [245 115 246 116]  drawing
+  p4-d231  [247 115 248 116]  drawing
+  p4-d232  [249 115 250 116]  drawing
+  p4-d233  [251 115 252 116]  drawing
+  p4-d234  [253 115 254 116]  drawing
+  p4-d235  [255 115 256 116]  drawing
+  p4-d236  [257 115 258 116]  drawing
+  p4-d237  [259 115 260 116]  drawing
+  p4-d238  [261 115 262 116]  drawing
+  p4-d239  [263 115 264 116]  drawing
+  p4-d240  [265 115 266 116]  drawing
+  p4-d241  [267 115 268 116]  drawing
+  p4-d242  [269 115 270 116]  drawing
+  p4-d243  [271 115 272 116]  drawing
+  p4-d244  [273 115 274 116]  drawing
+  p4-d245  [275 115 276 116]  drawing
+  p4-d246  [277 115 278 116]  drawing
+  p4-d247  [279 115 280 116]  drawing
+  p4-d248  [281 115 282 116]  drawing
+  p4-d249  [283 115 284 116]  drawing
+  p4-d250  [285 115 286 116]  drawing
+  p4-d251  [287 115 288 116]  drawing
+  p4-d252  [289 115 290 116]  drawing
+  p4-d253  [291 115 292 116]  drawing
+  p4-d254  [293 115 294 116]  drawing
+  p4-d255  [295 115 296 116]  drawing
+  p4-d256  [297 115 298 116]  drawing
+  p4-d257  [299 115 300 116]  drawing
+  p4-d258  [301 115 302 116]  drawing
+  p4-d259  [303 115 304 116]  drawing
+  p4-d260  [305 115 306 116]  drawing
+  p4-d261  [307 115 308 116]  drawing
+  p4-d262  [309 115 310 116]  drawing
+  p4-d263  [311 115 312 116]  drawing
+  p4-d264  [313 115 314 116]  drawing
+  p4-d265  [315 115 316 116]  drawing
+  p4-d266  [317 115 318 116]  drawing
+  p4-d267  [319 115 320 116]  drawing
+  p4-d268  [321 115 322 116]  drawing
+  p4-d269  [323 115 324 116]  drawing
+  p4-d270  [325 115 326 116]  drawing
+  p4-d271  [327 115 328 116]  drawing
+  p4-d272  [329 115 330 116]  drawing
+  p4-d273  [331 115 332 116]  drawing
+  p4-d274  [333 115 334 116]  drawing
+  p4-d275  [335 115 336 116]  drawing
+  p4-d276  [337 115 338 116]  drawing
+  p4-d277  [339 115 340 116]  drawing
+  p4-d278  [341 115 342 116]  drawing
+  p4-d279  [343 115 344 116]  drawing
+  p4-d280  [345 115 346 116]  drawing
+  p4-d281  [347 115 348 116]  drawing
+  p4-d282  [349 115 350 116]  drawing
+  p4-d283  [350 115 352 116]  drawing
+  p4-d284  [352 115 354 116]  drawing
+  p4-d285  [354 115 356 116]  drawing
+  p4-d286  [356 115 358 116]  drawing
+  p4-d287  [358 115 360 116]  drawing
+  p4-d288  [360 115 362 116]  drawing
+  p4-d289  [362 115 364 116]  drawing
+  p4-d290  [364 115 366 116]  drawing
+  p4-d291  [366 115 368 116]  drawing
+  p4-d292  [368 115 370 116]  drawing
+  p4-d293  [370 115 372 116]  drawing
+  p4-d294  [372 115 374 116]  drawing
+  p4-d295  [374 115 376 116]  drawing
+  p4-d296  [376 115 378 116]  drawing
+  p4-d297  [378 115 380 116]  drawing
+  p4-d298  [380 115 382 116]  drawing
+  p4-d299  [382 115 384 116]  drawing
+  p4-d300  [384 115 386 116]  drawing
+  p4-d301  [386 115 388 116]  drawing
+  p4-d302  [388 115 390 116]  drawing
+  p4-d303  [390 115 392 116]  drawing
+  p4-d304  [392 115 394 116]  drawing
+  p4-d305  [394 115 396 116]  drawing
+  p4-d306  [396 115 398 116]  drawing
+  p4-d307  [398 115 400 116]  drawing
+  p4-d308  [400 115 402 116]  drawing
+  p4-d309  [402 115 404 116]  drawing
+  p4-d310  [404 115 406 116]  drawing
+  p4-d311  [406 115 408 116]  drawing
+  p4-d312  [408 115 410 116]  drawing
+  p4-d313  [410 115 412 116]  drawing
+  p4-d314  [412 115 414 116]  drawing
+  p4-d315  [414 115 416 116]  drawing
+  p4-d316  [416 115 418 116]  drawing
+  p4-d317  [418 115 420 116]  drawing
+  p4-d318  [420 115 422 116]  drawing
+  p4-d319  [422 115 424 116]  drawing
+  p4-d320  [424 115 426 116]  drawing
+  p4-d321  [426 115 428 116]  drawing
+  p4-d322  [428 115 430 116]  drawing
+  p4-d323  [430 115 432 116]  drawing
+  p4-d324  [432 115 434 116]  drawing
+  p4-d325  [434 115 436 116]  drawing
+  p4-d326  [436 115 438 116]  drawing
+  p4-d327  [438 115 440 116]  drawing
+  p4-d328  [440 115 442 116]  drawing
+  p4-d329  [442 115 444 116]  drawing
+  p4-d330  [444 115 446 116]  drawing
+  p4-d331  [446 115 448 116]  drawing
+  p4-d332  [448 115 450 116]  drawing
+  p4-d333  [450 115 452 116]  drawing
+  p4-d334  [452 115 454 116]  drawing
+  p4-d335  [454 115 456 116]  drawing
+  p4-d336  [456 115 458 116]  drawing
+  p4-d337  [458 115 460 116]  drawing
+  p4-d338  [460 115 462 116]  drawing
+  p4-d339  [462 115 464 116]  drawing
+  p4-d340  [464 115 466 116]  drawing
+  p4-d341  [466 115 468 116]  drawing
+  p4-d342  [468 115 470 116]  drawing
+  p4-d343  [470 115 472 116]  drawing
+  p4-d344  [472 115 474 116]  drawing
+  p4-d345  [474 115 476 116]  drawing
+  p4-d346  [476 115 478 116]  drawing
+  p4-d347  [478 115 480 116]  drawing
+  p4-d348  [480 115 482 116]  drawing
+  p4-d349  [482 115 484 116]  drawing
+  p4-d350  [484 115 486 116]  drawing
+  p4-d351  [486 115 488 116]  drawing
+  p4-d352  [488 115 490 116]  drawing
+  p4-d353  [490 115 492 116]  drawing
+  p4-d354  [492 115 494 116]  drawing
+  p4-d355  [494 115 496 116]  drawing
+  p4-d356  [496 115 498 116]  drawing
+  p4-d357  [498 115 500 116]  drawing
+  p4-d358  [500 115 502 116]  drawing
+  p4-d359  [502 115 504 116]  drawing
+  p4-d360  [504 115 506 116]  drawing
+  p4-d361  [506 115 508 116]  drawing
+  p4-d362  [508 115 509 116]  drawing
+  p4-d363  [83 163 85 164]  drawing
+  p4-d364  [85 163 87 164]  drawing
+  p4-d365  [87 163 89 164]  drawing
+  p4-d366  [89 163 91 164]  drawing
+  p4-d367  [91 163 93 164]  drawing
+  p4-d368  [93 163 95 164]  drawing
+  p4-d369  [95 163 97 164]  drawing
+  p4-d370  [97 163 99 164]  drawing
+  p4-d371  [99 163 101 164]  drawing
+  p4-d372  [101 163 103 164]  drawing
+  p4-d373  [103 163 105 164]  drawing
+  p4-d374  [105 163 107 164]  drawing
+  p4-d375  [107 163 109 164]  drawing
+  p4-d376  [109 163 111 164]  drawing
+  p4-d377  [111 163 113 164]  drawing
+  p4-d378  [113 163 115 164]  drawing
+  p4-d379  [115 163 117 164]  drawing
+  p4-d380  [117 163 119 164]  drawing
+  p4-d381  [119 163 121 164]  drawing
+  p4-d382  [121 163 123 164]  drawing
+  p4-d383  [123 163 125 164]  drawing
+  p4-d384  [125 163 127 164]  drawing
+  p4-d385  [127 163 129 164]  drawing
+  p4-d386  [129 163 131 164]  drawing
+  p4-d387  [131 163 133 164]  drawing
+  p4-d388  [133 163 135 164]  drawing
+  p4-d389  [135 163 137 164]  drawing
+  p4-d390  [137 163 139 164]  drawing
+  p4-d391  [139 163 141 164]  drawing
+  p4-d392  [141 163 143 164]  drawing
+  p4-d393  [143 163 145 164]  drawing
+  p4-d394  [145 163 147 164]  drawing
+  p4-d395  [147 163 149 164]  drawing
+  p4-d396  [149 163 151 164]  drawing
+  p4-d397  [151 163 153 164]  drawing
+  p4-d398  [153 163 155 164]  drawing
+  p4-d399  [155 163 157 164]  drawing
+  p4-d400  [157 163 159 164]  drawing
+  p4-d401  [159 163 161 164]  drawing
+  p4-d402  [161 163 163 164]  drawing
+  p4-d403  [163 163 165 164]  drawing
+  p4-d404  [165 163 167 164]  drawing
+  p4-d405  [167 163 169 164]  drawing
+  p4-d406  [169 163 170 164]  drawing
+  p4-d407  [171 163 172 164]  drawing
+  p4-d408  [173 163 174 164]  drawing
+  p4-d409  [175 163 176 164]  drawing
+  p4-d410  [177 163 178 164]  drawing
+  p4-d411  [179 163 180 164]  drawing
+  p4-d412  [181 163 182 164]  drawing
+  p4-d413  [183 163 184 164]  drawing
+  p4-d414  [185 163 186 164]  drawing
+  p4-d415  [187 163 188 164]  drawing
+  p4-d416  [189 163 190 164]  drawing
+  p4-d417  [191 163 192 164]  drawing
+  p4-d418  [193 163 194 164]  drawing
+  p4-d419  [195 163 196 164]  drawing
+  p4-d420  [197 163 198 164]  drawing
+  p4-d421  [199 163 200 164]  drawing
+  p4-d422  [201 163 202 164]  drawing
+  p4-d423  [203 163 204 164]  drawing
+  p4-d424  [205 163 206 164]  drawing
+  p4-d425  [207 163 208 164]  drawing
+  p4-d426  [209 163 210 164]  drawing
+  p4-d427  [211 163 212 164]  drawing
+  p4-d428  [213 163 214 164]  drawing
+  p4-d429  [215 163 216 164]  drawing
+  p4-d430  [217 163 218 164]  drawing
+  p4-d431  [219 163 220 164]  drawing
+  p4-d432  [221 163 222 164]  drawing
+  p4-d433  [223 163 224 164]  drawing
+  p4-d434  [225 163 226 164]  drawing
+  p4-d435  [227 163 228 164]  drawing
+  p4-d436  [229 163 230 164]  drawing
+  p4-d437  [231 163 232 164]  drawing
+  p4-d438  [233 163 234 164]  drawing
+  p4-d439  [235 163 236 164]  drawing
+  p4-d440  [237 163 238 164]  drawing
+  p4-d441  [239 163 240 164]  drawing
+  p4-d442  [241 163 242 164]  drawing
+  p4-d443  [243 163 244 164]  drawing
+  p4-d444  [245 163 246 164]  drawing
+  p4-d445  [247 163 248 164]  drawing
+  p4-d446  [249 163 250 164]  drawing
+  p4-d447  [251 163 252 164]  drawing
+  p4-d448  [253 163 254 164]  drawing
+  p4-d449  [255 163 256 164]  drawing
+  p4-d450  [257 163 258 164]  drawing
+  p4-d451  [259 163 260 164]  drawing
+  p4-d452  [261 163 262 164]  drawing
+  p4-d453  [263 163 264 164]  drawing
+  p4-d454  [265 163 266 164]  drawing
+  p4-d455  [267 163 268 164]  drawing
+  p4-d456  [269 163 270 164]  drawing
+  p4-d457  [271 163 272 164]  drawing
+  p4-d458  [273 163 274 164]  drawing
+  p4-d459  [275 163 276 164]  drawing
+  p4-d460  [277 163 278 164]  drawing
+  p4-d461  [279 163 280 164]  drawing
+  p4-d462  [281 163 282 164]  drawing
+  p4-d463  [283 163 284 164]  drawing
+  p4-d464  [285 163 286 164]  drawing
+  p4-d465  [287 163 288 164]  drawing
+  p4-d466  [289 163 290 164]  drawing
+  p4-d467  [291 163 292 164]  drawing
+  p4-d468  [293 163 294 164]  drawing
+  p4-d469  [295 163 296 164]  drawing
+  p4-d470  [297 163 298 164]  drawing
+  p4-d471  [299 163 300 164]  drawing
+  p4-d472  [301 163 302 164]  drawing
+  p4-d473  [303 163 304 164]  drawing
+  p4-d474  [305 163 306 164]  drawing
+  p4-d475  [307 163 308 164]  drawing
+  p4-d476  [309 163 310 164]  drawing
+  p4-d477  [311 163 312 164]  drawing
+  p4-d478  [313 163 314 164]  drawing
+  p4-d479  [315 163 316 164]  drawing
+  p4-d480  [317 163 318 164]  drawing
+  p4-d481  [319 163 320 164]  drawing
+  p4-d482  [321 163 322 164]  drawing
+  p4-d483  [323 163 324 164]  drawing
+  p4-d484  [325 163 326 164]  drawing
+  p4-d485  [327 163 328 164]  drawing
+  p4-d486  [329 163 330 164]  drawing
+  p4-d487  [331 163 332 164]  drawing
+  p4-d488  [333 163 334 164]  drawing
+  p4-d489  [335 163 336 164]  drawing
+  p4-d490  [337 163 338 164]  drawing
+  p4-d491  [339 163 340 164]  drawing
+  p4-d492  [341 163 342 164]  drawing
+  p4-d493  [343 163 344 164]  drawing
+  p4-d494  [345 163 346 164]  drawing
+  p4-d495  [347 163 348 164]  drawing
+  p4-d496  [349 163 350 164]  drawing
+  p4-d497  [350 163 352 164]  drawing
+  p4-d498  [352 163 354 164]  drawing
+  p4-d499  [354 163 356 164]  drawing
+  p4-d500  [356 163 358 164]  drawing
+  p4-d501  [358 163 360 164]  drawing
+  p4-d502  [360 163 362 164]  drawing
+  p4-d503  [362 163 364 164]  drawing
+  p4-d504  [364 163 366 164]  drawing
+  p4-d505  [366 163 368 164]  drawing
+  p4-d506  [368 163 370 164]  drawing
+  p4-d507  [370 163 372 164]  drawing
+  p4-d508  [372 163 374 164]  drawing
+  p4-d509  [374 163 376 164]  drawing
+  p4-d510  [376 163 378 164]  drawing
+  p4-d511  [378 163 380 164]  drawing
+  p4-d512  [380 163 382 164]  drawing
+  p4-d513  [382 163 384 164]  drawing
+  p4-d514  [384 163 386 164]  drawing
+  p4-d515  [386 163 388 164]  drawing
+  p4-d516  [388 163 390 164]  drawing
+  p4-d517  [390 163 392 164]  drawing
+  p4-d518  [392 163 394 164]  drawing
+  p4-d519  [394 163 396 164]  drawing
+  p4-d520  [396 163 398 164]  drawing
+  p4-d521  [398 163 400 164]  drawing
+  p4-d522  [400 163 402 164]  drawing
+  p4-d523  [402 163 404 164]  drawing
+  p4-d524  [404 163 406 164]  drawing
+  p4-d525  [406 163 408 164]  drawing
+  p4-d526  [408 163 410 164]  drawing
+  p4-d527  [410 163 412 164]  drawing
+  p4-d528  [412 163 414 164]  drawing
+  p4-d529  [414 163 416 164]  drawing
+  p4-d530  [416 163 418 164]  drawing
+  p4-d531  [418 163 420 164]  drawing
+  p4-d532  [420 163 422 164]  drawing
+  p4-d533  [422 163 424 164]  drawing
+  p4-d534  [424 163 426 164]  drawing
+  p4-d535  [426 163 428 164]  drawing
+  p4-d536  [428 163 430 164]  drawing
+  p4-d537  [430 163 432 164]  drawing
+  p4-d538  [432 163 434 164]  drawing
+  p4-d539  [434 163 436 164]  drawing
+  p4-d540  [436 163 438 164]  drawing
+  p4-d541  [438 163 440 164]  drawing
+  p4-d542  [440 163 442 164]  drawing
+  p4-d543  [442 163 444 164]  drawing
+  p4-d544  [444 163 446 164]  drawing
+  p4-d545  [446 163 448 164]  drawing
+  p4-d546  [448 163 450 164]  drawing
+  p4-d547  [450 163 452 164]  drawing
+  p4-d548  [452 163 454 164]  drawing
+  p4-d549  [454 163 456 164]  drawing
+  p4-d550  [456 163 458 164]  drawing
+  p4-d551  [458 163 460 164]  drawing
+  p4-d552  [460 163 462 164]  drawing
+  p4-d553  [462 163 464 164]  drawing
+  p4-d554  [464 163 466 164]  drawing
+  p4-d555  [466 163 468 164]  drawing
+  p4-d556  [468 163 470 164]  drawing
+  p4-d557  [470 163 472 164]  drawing
+  p4-d558  [472 163 474 164]  drawing
+  p4-d559  [474 163 476 164]  drawing
+  p4-d560  [476 163 478 164]  drawing
+  p4-d561  [478 163 480 164]  drawing
+  p4-d562  [480 163 482 164]  drawing
+  p4-d563  [482 163 484 164]  drawing
+  p4-d564  [484 163 486 164]  drawing
+  p4-d565  [486 163 488 164]  drawing
+  p4-d566  [488 163 490 164]  drawing
+  p4-d567  [490 163 492 164]  drawing
+  p4-d568  [492 163 494 164]  drawing
+  p4-d569  [494 163 496 164]  drawing
+  p4-d570  [496 163 498 164]  drawing
+  p4-d571  [498 163 500 164]  drawing
+  p4-d572  [500 163 502 164]  drawing
+  p4-d573  [502 163 504 164]  drawing
+  p4-d574  [504 163 506 164]  drawing
+  p4-d575  [506 163 508 164]  drawing
+  p4-d576  [508 163 509 164]  drawing
+  p4-d577  [83 210 85 211]  drawing
+  p4-d578  [85 210 87 211]  drawing
+  p4-d579  [87 210 89 211]  drawing
+  p4-d580  [89 210 91 211]  drawing
+  p4-d581  [91 210 93 211]  drawing
+  p4-d582  [93 210 95 211]  drawing
+  p4-d583  [95 210 97 211]  drawing
+  p4-d584  [97 210 99 211]  drawing
+  p4-d585  [99 210 101 211]  drawing
+  p4-d586  [101 210 103 211]  drawing
+  p4-d587  [103 210 105 211]  drawing
+  p4-d588  [105 210 107 211]  drawing
+  p4-d589  [107 210 109 211]  drawing
+  p4-d590  [109 210 111 211]  drawing
+  p4-d591  [111 210 113 211]  drawing
+  p4-d592  [113 210 115 211]  drawing
+  p4-d593  [115 210 117 211]  drawing
+  p4-d594  [117 210 119 211]  drawing
+  p4-d595  [119 210 121 211]  drawing
+  p4-d596  [121 210 123 211]  drawing
+  p4-d597  [123 210 125 211]  drawing
+  p4-d598  [125 210 127 211]  drawing
+  p4-d599  [127 210 129 211]  drawing
+  p4-d600  [129 210 131 211]  drawing
+  p4-d601  [131 210 133 211]  drawing
+  p4-d602  [133 210 135 211]  drawing
+  p4-d603  [135 210 137 211]  drawing
+  p4-d604  [137 210 139 211]  drawing
+  p4-d605  [139 210 141 211]  drawing
+  p4-d606  [141 210 143 211]  drawing
+  p4-d607  [143 210 145 211]  drawing
+  p4-d608  [145 210 147 211]  drawing
+  p4-d609  [147 210 149 211]  drawing
+  p4-d610  [149 210 151 211]  drawing
+  p4-d611  [151 210 153 211]  drawing
+  p4-d612  [153 210 155 211]  drawing
+  p4-d613  [155 210 157 211]  drawing
+  p4-d614  [157 210 159 211]  drawing
+  p4-d615  [159 210 161 211]  drawing
+  p4-d616  [161 210 163 211]  drawing
+  p4-d617  [163 210 165 211]  drawing
+  p4-d618  [165 210 167 211]  drawing
+  p4-d619  [167 210 169 211]  drawing
+  p4-d620  [169 210 170 211]  drawing
+  p4-d621  [171 210 172 211]  drawing
+  p4-d622  [173 210 174 211]  drawing
+  p4-d623  [175 210 176 211]  drawing
+  p4-d624  [177 210 178 211]  drawing
+  p4-d625  [179 210 180 211]  drawing
+  p4-d626  [181 210 182 211]  drawing
+  p4-d627  [183 210 184 211]  drawing
+  p4-d628  [185 210 186 211]  drawing
+  p4-d629  [187 210 188 211]  drawing
+  p4-d630  [189 210 190 211]  drawing
+  p4-d631  [191 210 192 211]  drawing
+  p4-d632  [193 210 194 211]  drawing
+  p4-d633  [195 210 196 211]  drawing
+  p4-d634  [197 210 198 211]  drawing
+  p4-d635  [199 210 200 211]  drawing
+  p4-d636  [201 210 202 211]  drawing
+  p4-d637  [203 210 204 211]  drawing
+  p4-d638  [205 210 206 211]  drawing
+  p4-d639  [207 210 208 211]  drawing
+  p4-d640  [209 210 210 211]  drawing
+  p4-d641  [211 210 212 211]  drawing
+  p4-d642  [213 210 214 211]  drawing
+  p4-d643  [215 210 216 211]  drawing
+  p4-d644  [217 210 218 211]  drawing
+  p4-d645  [219 210 220 211]  drawing
+  p4-d646  [221 210 222 211]  drawing
+  p4-d647  [223 210 224 211]  drawing
+  p4-d648  [225 210 226 211]  drawing
+  p4-d649  [227 210 228 211]  drawing
+  p4-d650  [229 210 230 211]  drawing
+  p4-d651  [231 210 232 211]  drawing
+  p4-d652  [233 210 234 211]  drawing
+  p4-d653  [235 210 236 211]  drawing
+  p4-d654  [237 210 238 211]  drawing
+  p4-d655  [239 210 240 211]  drawing
+  p4-d656  [241 210 242 211]  drawing
+  p4-d657  [243 210 244 211]  drawing
+  p4-d658  [245 210 246 211]  drawing
+  p4-d659  [247 210 248 211]  drawing
+  p4-d660  [249 210 250 211]  drawing
+  p4-d661  [251 210 252 211]  drawing
+  p4-d662  [253 210 254 211]  drawing
+  p4-d663  [255 210 256 211]  drawing
+  p4-d664  [257 210 258 211]  drawing
+  p4-d665  [259 210 260 211]  drawing
+  p4-d666  [261 210 262 211]  drawing
+  p4-d667  [263 210 264 211]  drawing
+  p4-d668  [265 210 266 211]  drawing
+  p4-d669  [267 210 268 211]  drawing
+  p4-d670  [269 210 270 211]  drawing
+  p4-d671  [271 210 272 211]  drawing
+  p4-d672  [273 210 274 211]  drawing
+  p4-d673  [275 210 276 211]  drawing
+  p4-d674  [277 210 278 211]  drawing
+  p4-d675  [279 210 280 211]  drawing
+  p4-d676  [281 210 282 211]  drawing
+  p4-d677  [283 210 284 211]  drawing
+  p4-d678  [285 210 286 211]  drawing
+  p4-d679  [287 210 288 211]  drawing
+  p4-d680  [289 210 290 211]  drawing
+  p4-d681  [291 210 292 211]  drawing
+  p4-d682  [293 210 294 211]  drawing
+  p4-d683  [295 210 296 211]  drawing
+  p4-d684  [297 210 298 211]  drawing
+  p4-d685  [299 210 300 211]  drawing
+  p4-d686  [301 210 302 211]  drawing
+  p4-d687  [303 210 304 211]  drawing
+  p4-d688  [305 210 306 211]  drawing
+  p4-d689  [307 210 308 211]  drawing
+  p4-d690  [309 210 310 211]  drawing
+  p4-d691  [311 210 312 211]  drawing
+  p4-d692  [313 210 314 211]  drawing
+  p4-d693  [315 210 316 211]  drawing
+  p4-d694  [317 210 318 211]  drawing
+  p4-d695  [319 210 320 211]  drawing
+  p4-d696  [321 210 322 211]  drawing
+  p4-d697  [323 210 324 211]  drawing
+  p4-d698  [325 210 326 211]  drawing
+  p4-d699  [327 210 328 211]  drawing
+  p4-d700  [329 210 330 211]  drawing
+  p4-d701  [331 210 332 211]  drawing
+  p4-d702  [333 210 334 211]  drawing
+  p4-d703  [335 210 336 211]  drawing
+  p4-d704  [337 210 338 211]  drawing
+  p4-d705  [339 210 340 211]  drawing
+  p4-d706  [341 210 342 211]  drawing
+  p4-d707  [343 210 344 211]  drawing
+  p4-d708  [345 210 346 211]  drawing
+  p4-d709  [347 210 348 211]  drawing
+  p4-d710  [349 210 350 211]  drawing
+  p4-d711  [350 210 352 211]  drawing
+  p4-d712  [352 210 354 211]  drawing
+  p4-d713  [354 210 356 211]  drawing
+  p4-d714  [356 210 358 211]  drawing
+  p4-d715  [358 210 360 211]  drawing
+  p4-d716  [360 210 362 211]  drawing
+  p4-d717  [362 210 364 211]  drawing
+  p4-d718  [364 210 366 211]  drawing
+  p4-d719  [366 210 368 211]  drawing
+  p4-d720  [368 210 370 211]  drawing
+  p4-d721  [370 210 372 211]  drawing
+  p4-d722  [372 210 374 211]  drawing
+  p4-d723  [374 210 376 211]  drawing
+  p4-d724  [376 210 378 211]  drawing
+  p4-d725  [378 210 380 211]  drawing
+  p4-d726  [380 210 382 211]  drawing
+  p4-d727  [382 210 384 211]  drawing
+  p4-d728  [384 210 386 211]  drawing
+  p4-d729  [386 210 388 211]  drawing
+  p4-d730  [388 210 390 211]  drawing
+  p4-d731  [390 210 392 211]  drawing
+  p4-d732  [392 210 394 211]  drawing
+  p4-d733  [394 210 396 211]  drawing
+  p4-d734  [396 210 398 211]  drawing
+  p4-d735  [398 210 400 211]  drawing
+  p4-d736  [400 210 402 211]  drawing
+  p4-d737  [402 210 404 211]  drawing
+  p4-d738  [404 210 406 211]  drawing
+  p4-d739  [406 210 408 211]  drawing
+  p4-d740  [408 210 410 211]  drawing
+  p4-d741  [410 210 412 211]  drawing
+  p4-d742  [412 210 414 211]  drawing
+  p4-d743  [414 210 416 211]  drawing
+  p4-d744  [416 210 418 211]  drawing
+  p4-d745  [418 210 420 211]  drawing
+  p4-d746  [420 210 422 211]  drawing
+  p4-d747  [422 210 424 211]  drawing
+  p4-d748  [424 210 426 211]  drawing
+  p4-d749  [426 210 428 211]  drawing
+  p4-d750  [428 210 430 211]  drawing
+  p4-d751  [430 210 432 211]  drawing
+  p4-d752  [432 210 434 211]  drawing
+  p4-d753  [434 210 436 211]  drawing
+  p4-d754  [436 210 438 211]  drawing
+  p4-d755  [438 210 440 211]  drawing
+  p4-d756  [440 210 442 211]  drawing
+  p4-d757  [442 210 444 211]  drawing
+  p4-d758  [444 210 446 211]  drawing
+  p4-d759  [446 210 448 211]  drawing
+  p4-d760  [448 210 450 211]  drawing
+  p4-d761  [450 210 452 211]  drawing
+  p4-d762  [452 210 454 211]  drawing
+  p4-d763  [454 210 456 211]  drawing
+  p4-d764  [456 210 458 211]  drawing
+  p4-d765  [458 210 460 211]  drawing
+  p4-d766  [460 210 462 211]  drawing
+  p4-d767  [462 210 464 211]  drawing
+  p4-d768  [464 210 466 211]  drawing
+  p4-d769  [466 210 468 211]  drawing
+  p4-d770  [468 210 470 211]  drawing
+  p4-d771  [470 210 472 211]  drawing
+  p4-d772  [472 210 474 211]  drawing
+  p4-d773  [474 210 476 211]  drawing
+  p4-d774  [476 210 478 211]  drawing
+  p4-d775  [478 210 480 211]  drawing
+  p4-d776  [480 210 482 211]  drawing
+  p4-d777  [482 210 484 211]  drawing
+  p4-d778  [484 210 486 211]  drawing
+  p4-d779  [486 210 488 211]  drawing
+  p4-d780  [488 210 490 211]  drawing
+  p4-d781  [490 210 492 211]  drawing
+  p4-d782  [492 210 494 211]  drawing
+  p4-d783  [494 210 496 211]  drawing
+  p4-d784  [496 210 498 211]  drawing
+  p4-d785  [498 210 500 211]  drawing
+  p4-d786  [500 210 502 211]  drawing
+  p4-d787  [502 210 504 211]  drawing
+  p4-d788  [504 210 506 211]  drawing
+  p4-d789  [506 210 508 211]  drawing
+  p4-d790  [508 210 509 211]  drawing
+  p4-d791  [83 223 85 224]  drawing
+  p4-d792  [85 223 87 224]  drawing
+  p4-d793  [87 223 89 224]  drawing
+  p4-d794  [89 223 91 224]  drawing
+  p4-d795  [91 223 93 224]  drawing
+  p4-d796  [93 223 95 224]  drawing
+  p4-d797  [95 223 97 224]  drawing
+  p4-d798  [97 223 99 224]  drawing
+  p4-d799  [99 223 101 224]  drawing
+  p4-d800  [101 223 103 224]  drawing
+  p4-d801  [103 223 105 224]  drawing
+  p4-d802  [105 223 107 224]  drawing
+  p4-d803  [107 223 109 224]  drawing
+  p4-d804  [109 223 111 224]  drawing
+  p4-d805  [111 223 113 224]  drawing
+  p4-d806  [113 223 115 224]  drawing
+  p4-d807  [115 223 117 224]  drawing
+  p4-d808  [117 223 119 224]  drawing
+  p4-d809  [119 223 121 224]  drawing
+  p4-d810  [121 223 123 224]  drawing
+  p4-d811  [123 223 125 224]  drawing
+  p4-d812  [125 223 127 224]  drawing
+  p4-d813  [127 223 129 224]  drawing
+  p4-d814  [129 223 131 224]  drawing
+  p4-d815  [131 223 133 224]  drawing
+  p4-d816  [133 223 135 224]  drawing
+  p4-d817  [135 223 137 224]  drawing
+  p4-d818  [137 223 139 224]  drawing
+  p4-d819  [139 223 141 224]  drawing
+  p4-d820  [141 223 143 224]  drawing
+  p4-d821  [143 223 145 224]  drawing
+  p4-d822  [145 223 147 224]  drawing
+  p4-d823  [147 223 149 224]  drawing
+  p4-d824  [149 223 151 224]  drawing
+  p4-d825  [151 223 153 224]  drawing
+  p4-d826  [153 223 155 224]  drawing
+  p4-d827  [155 223 157 224]  drawing
+  p4-d828  [157 223 159 224]  drawing
+  p4-d829  [159 223 161 224]  drawing
+  p4-d830  [161 223 163 224]  drawing
+  p4-d831  [163 223 165 224]  drawing
+  p4-d832  [165 223 167 224]  drawing
+  p4-d833  [167 223 169 224]  drawing
+  p4-d834  [169 223 170 224]  drawing
+  p4-d835  [171 223 172 224]  drawing
+  p4-d836  [173 223 174 224]  drawing
+  p4-d837  [175 223 176 224]  drawing
+  p4-d838  [177 223 178 224]  drawing
+  p4-d839  [179 223 180 224]  drawing
+  p4-d840  [181 223 182 224]  drawing
+  p4-d841  [183 223 184 224]  drawing
+  p4-d842  [185 223 186 224]  drawing
+  p4-d843  [187 223 188 224]  drawing
+  p4-d844  [189 223 190 224]  drawing
+  p4-d845  [191 223 192 224]  drawing
+  p4-d846  [193 223 194 224]  drawing
+  p4-d847  [195 223 196 224]  drawing
+  p4-d848  [197 223 198 224]  drawing
+  p4-d849  [199 223 200 224]  drawing
+  p4-d850  [201 223 202 224]  drawing
+  p4-d851  [203 223 204 224]  drawing
+  p4-d852  [205 223 206 224]  drawing
+  p4-d853  [207 223 208 224]  drawing
+  p4-d854  [209 223 210 224]  drawing
+  p4-d855  [211 223 212 224]  drawing
+  p4-d856  [213 223 214 224]  drawing
+  p4-d857  [215 223 216 224]  drawing
+  p4-d858  [217 223 218 224]  drawing
+  p4-d859  [219 223 220 224]  drawing
+  p4-d860  [221 223 222 224]  drawing
+  p4-d861  [223 223 224 224]  drawing
+  p4-d862  [225 223 226 224]  drawing
+  p4-d863  [227 223 228 224]  drawing
+  p4-d864  [229 223 230 224]  drawing
+  p4-d865  [231 223 232 224]  drawing
+  p4-d866  [233 223 234 224]  drawing
+  p4-d867  [235 223 236 224]  drawing
+  p4-d868  [237 223 238 224]  drawing
+  p4-d869  [239 223 240 224]  drawing
+  p4-d870  [241 223 242 224]  drawing
+  p4-d871  [243 223 244 224]  drawing
+  p4-d872  [245 223 246 224]  drawing
+  p4-d873  [247 223 248 224]  drawing
+  p4-d874  [249 223 250 224]  drawing
+  p4-d875  [251 223 252 224]  drawing
+  p4-d876  [253 223 254 224]  drawing
+  p4-d877  [255 223 256 224]  drawing
+  p4-d878  [257 223 258 224]  drawing
+  p4-d879  [259 223 260 224]  drawing
+  p4-d880  [261 223 262 224]  drawing
+  p4-d881  [263 223 264 224]  drawing
+  p4-d882  [265 223 266 224]  drawing
+  p4-d883  [267 223 268 224]  drawing
+  p4-d884  [269 223 270 224]  drawing
+  p4-d885  [271 223 272 224]  drawing
+  p4-d886  [273 223 274 224]  drawing
+  p4-d887  [275 223 276 224]  drawing
+  p4-d888  [277 223 278 224]  drawing
+  p4-d889  [279 223 280 224]  drawing
+  p4-d890  [281 223 282 224]  drawing
+  p4-d891  [283 223 284 224]  drawing
+  p4-d892  [285 223 286 224]  drawing
+  p4-d893  [287 223 288 224]  drawing
+  p4-d894  [289 223 290 224]  drawing
+  p4-d895  [291 223 292 224]  drawing
+  p4-d896  [293 223 294 224]  drawing
+  p4-d897  [295 223 296 224]  drawing
+  p4-d898  [297 223 298 224]  drawing
+  p4-d899  [299 223 300 224]  drawing
+  p4-d900  [301 223 302 224]  drawing
+  p4-d901  [303 223 304 224]  drawing
+  p4-d902  [305 223 306 224]  drawing
+  p4-d903  [307 223 308 224]  drawing
+  p4-d904  [309 223 310 224]  drawing
+  p4-d905  [311 223 312 224]  drawing
+  p4-d906  [313 223 314 224]  drawing
+  p4-d907  [315 223 316 224]  drawing
+  p4-d908  [317 223 318 224]  drawing
+  p4-d909  [319 223 320 224]  drawing
+  p4-d910  [321 223 322 224]  drawing
+  p4-d911  [323 223 324 224]  drawing
+  p4-d912  [325 223 326 224]  drawing
+  p4-d913  [327 223 328 224]  drawing
+  p4-d914  [329 223 330 224]  drawing
+  p4-d915  [331 223 332 224]  drawing
+  p4-d916  [333 223 334 224]  drawing
+  p4-d917  [335 223 336 224]  drawing
+  p4-d918  [337 223 338 224]  drawing
+  p4-d919  [339 223 340 224]  drawing
+  p4-d920  [341 223 342 224]  drawing
+  p4-d921  [343 223 344 224]  drawing
+  p4-d922  [345 223 346 224]  drawing
+  p4-d923  [347 223 348 224]  drawing
+  p4-d924  [349 223 350 224]  drawing
+  p4-d925  [350 223 352 224]  drawing
+  p4-d926  [352 223 354 224]  drawing
+  p4-d927  [354 223 356 224]  drawing
+  p4-d928  [356 223 358 224]  drawing
+  p4-d929  [358 223 360 224]  drawing
+  p4-d930  [360 223 362 224]  drawing
+  p4-d931  [362 223 364 224]  drawing
+  p4-d932  [364 223 366 224]  drawing
+  p4-d933  [366 223 368 224]  drawing
+  p4-d934  [368 223 370 224]  drawing
+  p4-d935  [370 223 372 224]  drawing
+  p4-d936  [372 223 374 224]  drawing
+  p4-d937  [374 223 376 224]  drawing
+  p4-d938  [376 223 378 224]  drawing
+  p4-d939  [378 223 380 224]  drawing
+  p4-d940  [380 223 382 224]  drawing
+  p4-d941  [382 223 384 224]  drawing
+  p4-d942  [384 223 386 224]  drawing
+  p4-d943  [386 223 388 224]  drawing
+  p4-d944  [388 223 390 224]  drawing
+  p4-d945  [390 223 392 224]  drawing
+  p4-d946  [392 223 394 224]  drawing
+  p4-d947  [394 223 396 224]  drawing
+  p4-d948  [396 223 398 224]  drawing
+  p4-d949  [398 223 400 224]  drawing
+  p4-d950  [400 223 402 224]  drawing
+  p4-d951  [402 223 404 224]  drawing
+  p4-d952  [404 223 406 224]  drawing
+  p4-d953  [406 223 408 224]  drawing
+  p4-d954  [408 223 410 224]  drawing
+  p4-d955  [410 223 412 224]  drawing
+  p4-d956  [412 223 414 224]  drawing
+  p4-d957  [414 223 416 224]  drawing
+  p4-d958  [416 223 418 224]  drawing
+  p4-d959  [418 223 420 224]  drawing
+  p4-d960  [420 223 422 224]  drawing
+  p4-d961  [422 223 424 224]  drawing
+  p4-d962  [424 223 426 224]  drawing
+  p4-d963  [426 223 428 224]  drawing
+  p4-d964  [428 223 430 224]  drawing
+  p4-d965  [430 223 432 224]  drawing
+  p4-d966  [432 223 434 224]  drawing
+  p4-d967  [434 223 436 224]  drawing
+  p4-d968  [436 223 438 224]  drawing
+  p4-d969  [438 223 440 224]  drawing
+  p4-d970  [440 223 442 224]  drawing
+  p4-d971  [442 223 444 224]  drawing
+  p4-d972  [444 223 446 224]  drawing
+  p4-d973  [446 223 448 224]  drawing
+  p4-d974  [448 223 450 224]  drawing
+  p4-d975  [450 223 452 224]  drawing
+  p4-d976  [452 223 454 224]  drawing
+  p4-d977  [454 223 456 224]  drawing
+  p4-d978  [456 223 458 224]  drawing
+  p4-d979  [458 223 460 224]  drawing
+  p4-d980  [460 223 462 224]  drawing
+  p4-d981  [462 223 464 224]  drawing
+  p4-d982  [464 223 466 224]  drawing
+  p4-d983  [466 223 468 224]  drawing
+  p4-d984  [468 223 470 224]  drawing
+  p4-d985  [470 223 472 224]  drawing
+  p4-d986  [472 223 474 224]  drawing
+  p4-d987  [474 223 476 224]  drawing
+  p4-d988  [476 223 478 224]  drawing
+  p4-d989  [478 223 480 224]  drawing
+  p4-d990  [480 223 482 224]  drawing
+  p4-d991  [482 223 484 224]  drawing
+  p4-d992  [484 223 486 224]  drawing
+  p4-d993  [486 223 488 224]  drawing
+  p4-d994  [488 223 490 224]  drawing
+  p4-d995  [490 223 492 224]  drawing
+  p4-d996  [492 223 494 224]  drawing
+  p4-d997  [494 223 496 224]  drawing
+  p4-d998  [496 223 498 224]  drawing
+  p4-d999  [498 223 500 224]  drawing
+  p4-d1000  [500 223 502 224]  drawing
+  p4-d1001  [502 223 504 224]  drawing
+  p4-d1002  [504 223 506 224]  drawing
+  p4-d1003  [506 223 508 224]  drawing
+  p4-d1004  [508 223 509 224]  drawing
+  p4-d1005  [83 284 510 285]  drawing
+  p4-d1006  [115 338 478 339]  drawing
+  p4-d1007  [249 365 250 366]  drawing
+  p4-d1008  [251 365 252 366]  drawing
+  p4-d1009  [253 365 254 366]  drawing
+  p4-d1010  [255 365 256 366]  drawing
+  p4-d1011  [257 365 258 366]  drawing
+  p4-d1012  [259 365 260 366]  drawing
+  p4-d1013  [261 365 262 366]  drawing
+  p4-d1014  [263 365 264 366]  drawing
+  p4-d1015  [265 365 266 366]  drawing
+  p4-d1016  [267 365 268 366]  drawing
+  p4-d1017  [269 365 270 366]  drawing
+  p4-d1018  [271 365 272 366]  drawing
+  p4-d1019  [273 365 274 366]  drawing
+  p4-d1020  [275 365 276 366]  drawing
+  p4-d1021  [277 365 278 366]  drawing
+  p4-d1022  [279 365 280 366]  drawing
+  p4-d1023  [281 365 282 366]  drawing
+  p4-d1024  [283 365 284 366]  drawing
+  p4-d1025  [285 365 286 366]  drawing
+  p4-d1026  [287 365 288 366]  drawing
+  p4-d1027  [289 365 290 366]  drawing
+  p4-d1028  [291 365 292 366]  drawing
+  p4-d1029  [293 365 294 366]  drawing
+  p4-d1030  [295 365 296 366]  drawing
+  p4-d1031  [297 365 298 366]  drawing
+  p4-d1032  [299 365 300 366]  drawing
+  p4-d1033  [301 365 302 366]  drawing
+  p4-d1034  [303 365 304 366]  drawing
+  p4-d1035  [305 365 306 366]  drawing
+  p4-d1036  [307 365 308 366]  drawing
+  p4-d1037  [309 365 310 366]  drawing
+  p4-d1038  [311 365 312 366]  drawing
+  p4-d1039  [313 365 314 366]  drawing
+  p4-d1040  [315 365 316 366]  drawing
+  p4-d1041  [317 365 318 366]  drawing
+  p4-d1042  [319 365 320 366]  drawing
+  p4-d1043  [321 365 322 366]  drawing
+  p4-d1044  [323 365 324 366]  drawing
+  p4-d1045  [325 365 326 366]  drawing
+  p4-d1046  [327 365 328 366]  drawing
+  p4-d1047  [329 365 330 366]  drawing
+  p4-d1048  [331 365 332 366]  drawing
+  p4-d1049  [333 365 334 366]  drawing
+  p4-d1050  [335 365 336 366]  drawing
+  p4-d1051  [337 365 338 366]  drawing
+  p4-d1052  [339 365 340 366]  drawing
+  p4-d1053  [341 365 342 366]  drawing
+  p4-d1054  [343 365 344 366]  drawing
+  p4-d1055  [345 365 346 366]  drawing
+  p4-d1056  [347 365 348 366]  drawing
+  p4-d1057  [349 365 350 366]  drawing
+  p4-d1058  [351 365 352 366]  drawing
+  p4-d1059  [353 365 354 366]  drawing
+  p4-d1060  [355 365 356 366]  drawing
+  p4-d1061  [357 365 358 366]  drawing
+  p4-d1062  [359 365 360 366]  drawing
+  p4-d1063  [361 365 362 366]  drawing
+  p4-d1064  [363 365 364 366]  drawing
+  p4-d1065  [365 365 367 366]  drawing
+  p4-d1066  [367 365 369 366]  drawing
+  p4-d1067  [369 365 371 366]  drawing
+  p4-d1068  [371 365 373 366]  drawing
+  p4-d1069  [373 365 375 366]  drawing
+  p4-d1070  [375 365 377 366]  drawing
+  p4-d1071  [377 365 379 366]  drawing
+  p4-d1072  [379 365 381 366]  drawing
+  p4-d1073  [381 365 383 366]  drawing
+  p4-d1074  [383 365 385 366]  drawing
+  p4-d1075  [385 365 387 366]  drawing
+  p4-d1076  [387 365 389 366]  drawing
+  p4-d1077  [389 365 391 366]  drawing
+  p4-d1078  [391 365 393 366]  drawing
+  p4-d1079  [393 365 395 366]  drawing
+  p4-d1080  [395 365 397 366]  drawing
+  p4-d1081  [397 365 399 366]  drawing
+  p4-d1082  [399 365 401 366]  drawing
+  p4-d1083  [401 365 403 366]  drawing
+  p4-d1084  [403 365 405 366]  drawing
+  p4-d1085  [405 365 407 366]  drawing
+  p4-d1086  [407 365 409 366]  drawing
+  p4-d1087  [409 365 411 366]  drawing
+  p4-d1088  [411 365 413 366]  drawing
+  p4-d1089  [413 365 415 366]  drawing
+  p4-d1090  [415 365 417 366]  drawing
+  p4-d1091  [417 365 419 366]  drawing
+  p4-d1092  [419 365 421 366]  drawing
+  p4-d1093  [421 365 423 366]  drawing
+  p4-d1094  [423 365 425 366]  drawing
+  p4-d1095  [425 365 427 366]  drawing
+  p4-d1096  [427 365 429 366]  drawing
+  p4-d1097  [429 365 431 366]  drawing
+  p4-d1098  [431 365 433 366]  drawing
+  p4-d1099  [433 365 435 366]  drawing
+  p4-d1100  [435 365 437 366]  drawing
+  p4-d1101  [437 365 439 366]  drawing
+  p4-d1102  [439 365 441 366]  drawing
+  p4-d1103  [441 365 443 366]  drawing
+  p4-d1104  [443 365 445 366]  drawing
+  p4-d1105  [445 365 447 366]  drawing
+  p4-d1106  [447 365 448 366]  drawing
+  p4-d1107  [115 379 478 380]  drawing
+  p4-d1108  [115 394 116 395]  drawing
+  p4-d1109  [117 394 118 395]  drawing
+  p4-d1110  [119 394 120 395]  drawing
+  p4-d1111  [121 394 122 395]  drawing
+  p4-d1112  [123 394 124 395]  drawing
+  p4-d1113  [125 394 126 395]  drawing
+  p4-d1114  [127 394 128 395]  drawing
+  p4-d1115  [129 394 130 395]  drawing
+  p4-d1116  [131 394 132 395]  drawing
+  p4-d1117  [133 394 134 395]  drawing
+  p4-d1118  [135 394 136 395]  drawing
+  p4-d1119  [137 394 138 395]  drawing
+  p4-d1120  [139 394 140 395]  drawing
+  p4-d1121  [141 394 142 395]  drawing
+  p4-d1122  [143 394 144 395]  drawing
+  p4-d1123  [145 394 146 395]  drawing
+  p4-d1124  [147 394 148 395]  drawing
+  p4-d1125  [149 394 150 395]  drawing
+  p4-d1126  [151 394 152 395]  drawing
+  p4-d1127  [153 394 154 395]  drawing
+  p4-d1128  [155 394 156 395]  drawing
+  p4-d1129  [157 394 158 395]  drawing
+  p4-d1130  [159 394 160 395]  drawing
+  p4-d1131  [161 394 162 395]  drawing
+  p4-d1132  [163 394 164 395]  drawing
+  p4-d1133  [165 394 166 395]  drawing
+  p4-d1134  [167 394 168 395]  drawing
+  p4-d1135  [169 394 170 395]  drawing
+  p4-d1136  [171 394 172 395]  drawing
+  p4-d1137  [173 394 174 395]  drawing
+  p4-d1138  [175 394 176 395]  drawing
+  p4-d1139  [177 394 178 395]  drawing
+  p4-d1140  [179 394 180 395]  drawing
+  p4-d1141  [181 394 182 395]  drawing
+  p4-d1142  [183 394 184 395]  drawing
+  p4-d1143  [185 394 186 395]  drawing
+  p4-d1144  [187 394 188 395]  drawing
+  p4-d1145  [189 394 190 395]  drawing
+  p4-d1146  [191 394 192 395]  drawing
+  p4-d1147  [193 394 194 395]  drawing
+  p4-d1148  [195 394 196 395]  drawing
+  p4-d1149  [197 394 198 395]  drawing
+  p4-d1150  [199 394 200 395]  drawing
+  p4-d1151  [201 394 202 395]  drawing
+  p4-d1152  [203 394 204 395]  drawing
+  p4-d1153  [205 394 206 395]  drawing
+  p4-d1154  [207 394 208 395]  drawing
+  p4-d1155  [209 394 210 395]  drawing
+  p4-d1156  [211 394 212 395]  drawing
+  p4-d1157  [213 394 214 395]  drawing
+  p4-d1158  [215 394 216 395]  drawing
+  p4-d1159  [217 394 218 395]  drawing
+  p4-d1160  [219 394 220 395]  drawing
+  p4-d1161  [221 394 222 395]  drawing
+  p4-d1162  [223 394 224 395]  drawing
+  p4-d1163  [225 394 226 395]  drawing
+  p4-d1164  [227 394 228 395]  drawing
+  p4-d1165  [229 394 230 395]  drawing
+  p4-d1166  [231 394 232 395]  drawing
+  p4-d1167  [233 394 234 395]  drawing
+  p4-d1168  [235 394 236 395]  drawing
+  p4-d1169  [237 394 238 395]  drawing
+  p4-d1170  [239 394 240 395]  drawing
+  p4-d1171  [241 394 242 395]  drawing
+  p4-d1172  [243 394 244 395]  drawing
+  p4-d1173  [245 394 246 395]  drawing
+  p4-d1174  [247 394 248 395]  drawing
+  p4-d1175  [249 394 250 395]  drawing
+  p4-d1176  [251 394 252 395]  drawing
+  p4-d1177  [253 394 254 395]  drawing
+  p4-d1178  [255 394 256 395]  drawing
+  p4-d1179  [257 394 258 395]  drawing
+  p4-d1180  [259 394 260 395]  drawing
+  p4-d1181  [261 394 262 395]  drawing
+  p4-d1182  [263 394 264 395]  drawing
+  p4-d1183  [265 394 266 395]  drawing
+  p4-d1184  [267 394 268 395]  drawing
+  p4-d1185  [269 394 270 395]  drawing
+  p4-d1186  [271 394 272 395]  drawing
+  p4-d1187  [273 394 274 395]  drawing
+  p4-d1188  [275 394 276 395]  drawing
+  p4-d1189  [277 394 278 395]  drawing
+  p4-d1190  [279 394 280 395]  drawing
+  p4-d1191  [281 394 282 395]  drawing
+  p4-d1192  [283 394 284 395]  drawing
+  p4-d1193  [285 394 286 395]  drawing
+  p4-d1194  [287 394 288 395]  drawing
+  p4-d1195  [289 394 290 395]  drawing
+  p4-d1196  [291 394 292 395]  drawing
+  p4-d1197  [293 394 294 395]  drawing
+  p4-d1198  [295 394 296 395]  drawing
+  p4-d1199  [297 394 298 395]  drawing
+  p4-d1200  [299 394 300 395]  drawing
+  p4-d1201  [301 394 302 395]  drawing
+  p4-d1202  [303 394 304 395]  drawing
+  p4-d1203  [305 394 306 395]  drawing
+  p4-d1204  [307 394 308 395]  drawing
+  p4-d1205  [309 394 310 395]  drawing
+  p4-d1206  [311 394 312 395]  drawing
+  p4-d1207  [313 394 314 395]  drawing
+  p4-d1208  [315 394 316 395]  drawing
+  p4-d1209  [317 394 318 395]  drawing
+  p4-d1210  [319 394 320 395]  drawing
+  p4-d1211  [321 394 322 395]  drawing
+  p4-d1212  [323 394 324 395]  drawing
+  p4-d1213  [325 394 326 395]  drawing
+  p4-d1214  [327 394 328 395]  drawing
+  p4-d1215  [329 394 330 395]  drawing
+  p4-d1216  [331 394 332 395]  drawing
+  p4-d1217  [333 394 334 395]  drawing
+  p4-d1218  [335 394 336 395]  drawing
+  p4-d1219  [337 394 338 395]  drawing
+  p4-d1220  [339 394 340 395]  drawing
+  p4-d1221  [341 394 342 395]  drawing
+  p4-d1222  [343 394 344 395]  drawing
+  p4-d1223  [345 394 346 395]  drawing
+  p4-d1224  [347 394 348 395]  drawing
+  p4-d1225  [349 394 350 395]  drawing
+  p4-d1226  [351 394 352 395]  drawing
+  p4-d1227  [353 394 354 395]  drawing
+  p4-d1228  [355 394 356 395]  drawing
+  p4-d1229  [357 394 358 395]  drawing
+  p4-d1230  [359 394 360 395]  drawing
+  p4-d1231  [361 394 362 395]  drawing
+  p4-d1232  [363 394 364 395]  drawing
+  p4-d1233  [365 394 366 395]  drawing
+  p4-d1234  [367 394 368 395]  drawing
+  p4-d1235  [369 394 370 395]  drawing
+  p4-d1236  [371 394 372 395]  drawing
+  p4-d1237  [373 394 374 395]  drawing
+  p4-d1238  [375 394 376 395]  drawing
+  p4-d1239  [377 394 378 395]  drawing
+  p4-d1240  [379 394 380 395]  drawing
+  p4-d1241  [381 394 382 395]  drawing
+  p4-d1242  [383 394 384 395]  drawing
+  p4-d1243  [385 394 386 395]  drawing
+  p4-d1244  [387 394 388 395]  drawing
+  p4-d1245  [389 394 390 395]  drawing
+  p4-d1246  [391 394 392 395]  drawing
+  p4-d1247  [393 394 394 395]  drawing
+  p4-d1248  [395 394 396 395]  drawing
+  p4-d1249  [397 394 398 395]  drawing
+  p4-d1250  [399 394 400 395]  drawing
+  p4-d1251  [401 394 402 395]  drawing
+  p4-d1252  [403 394 404 395]  drawing
+  p4-d1253  [405 394 406 395]  drawing
+  p4-d1254  [407 394 408 395]  drawing
+  p4-d1255  [409 394 410 395]  drawing
+  p4-d1256  [411 394 412 395]  drawing
+  p4-d1257  [413 394 414 395]  drawing
+  p4-d1258  [415 394 416 395]  drawing
+  p4-d1259  [417 394 418 395]  drawing
+  p4-d1260  [419 394 420 395]  drawing
+  p4-d1261  [421 394 422 395]  drawing
+  p4-d1262  [423 394 424 395]  drawing
+  p4-d1263  [425 394 426 395]  drawing
+  p4-d1264  [427 394 428 395]  drawing
+  p4-d1265  [429 394 430 395]  drawing
+  p4-d1266  [431 394 432 395]  drawing
+  p4-d1267  [433 394 434 395]  drawing
+  p4-d1268  [435 394 436 395]  drawing
+  p4-d1269  [437 394 438 395]  drawing
+  p4-d1270  [439 394 440 395]  drawing
+  p4-d1271  [441 394 442 395]  drawing
+  p4-d1272  [443 394 444 395]  drawing
+  p4-d1273  [445 394 446 395]  drawing
+  p4-d1274  [447 394 448 395]  drawing
+  p4-d1275  [449 394 450 395]  drawing
+  p4-d1276  [451 394 452 395]  drawing
+  p4-d1277  [453 394 454 395]  drawing
+  p4-d1278  [455 394 456 395]  drawing
+  p4-d1279  [457 394 458 395]  drawing
+  p4-d1280  [459 394 460 395]  drawing
+  p4-d1281  [461 394 462 395]  drawing
+  p4-d1282  [463 394 464 395]  drawing
+  p4-d1283  [465 394 466 395]  drawing
+  p4-d1284  [467 394 468 395]  drawing
+  p4-d1285  [469 394 470 395]  drawing
+  p4-d1286  [471 394 472 395]  drawing
+  p4-d1287  [473 394 474 395]  drawing
+  p4-d1288  [475 394 476 395]  drawing
+  p4-d1289  [477 394 478 395]  drawing
+  p4-d1290  [115 442 116 443]  drawing
+  p4-d1291  [117 442 118 443]  drawing
+  p4-d1292  [119 442 120 443]  drawing
+  p4-d1293  [121 442 122 443]  drawing
+  p4-d1294  [123 442 124 443]  drawing
+  p4-d1295  [125 442 126 443]  drawing
+  p4-d1296  [127 442 128 443]  drawing
+  p4-d1297  [129 442 130 443]  drawing
+  p4-d1298  [131 442 132 443]  drawing
+  p4-d1299  [133 442 134 443]  drawing
+  p4-d1300  [135 442 136 443]  drawing
+  p4-d1301  [137 442 138 443]  drawing
+  p4-d1302  [139 442 140 443]  drawing
+  p4-d1303  [141 442 142 443]  drawing
+  p4-d1304  [143 442 144 443]  drawing
+  p4-d1305  [145 442 146 443]  drawing
+  p4-d1306  [147 442 148 443]  drawing
+  p4-d1307  [149 442 150 443]  drawing
+  p4-d1308  [151 442 152 443]  drawing
+  p4-d1309  [153 442 154 443]  drawing
+  p4-d1310  [155 442 156 443]  drawing
+  p4-d1311  [157 442 158 443]  drawing
+  p4-d1312  [159 442 160 443]  drawing
+  p4-d1313  [161 442 162 443]  drawing
+  p4-d1314  [163 442 164 443]  drawing
+  p4-d1315  [165 442 166 443]  drawing
+  p4-d1316  [167 442 168 443]  drawing
+  p4-d1317  [169 442 170 443]  drawing
+  p4-d1318  [171 442 172 443]  drawing
+  p4-d1319  [173 442 174 443]  drawing
+  p4-d1320  [175 442 176 443]  drawing
+  p4-d1321  [177 442 178 443]  drawing
+  p4-d1322  [179 442 180 443]  drawing
+  p4-d1323  [181 442 182 443]  drawing
+  p4-d1324  [183 442 184 443]  drawing
+  p4-d1325  [185 442 186 443]  drawing
+  p4-d1326  [187 442 188 443]  drawing
+  p4-d1327  [189 442 190 443]  drawing
+  p4-d1328  [191 442 192 443]  drawing
+  p4-d1329  [193 442 194 443]  drawing
+  p4-d1330  [195 442 196 443]  drawing
+  p4-d1331  [197 442 198 443]  drawing
+  p4-d1332  [199 442 200 443]  drawing
+  p4-d1333  [201 442 202 443]  drawing
+  p4-d1334  [203 442 204 443]  drawing
+  p4-d1335  [205 442 206 443]  drawing
+  p4-d1336  [207 442 208 443]  drawing
+  p4-d1337  [209 442 210 443]  drawing
+  p4-d1338  [211 442 212 443]  drawing
+  p4-d1339  [213 442 214 443]  drawing
+  p4-d1340  [215 442 216 443]  drawing
+  p4-d1341  [217 442 218 443]  drawing
+  p4-d1342  [219 442 220 443]  drawing
+  p4-d1343  [221 442 222 443]  drawing
+  p4-d1344  [223 442 224 443]  drawing
+  p4-d1345  [225 442 226 443]  drawing
+  p4-d1346  [227 442 228 443]  drawing
+  p4-d1347  [229 442 230 443]  drawing
+  p4-d1348  [231 442 232 443]  drawing
+  p4-d1349  [233 442 234 443]  drawing
+  p4-d1350  [235 442 236 443]  drawing
+  p4-d1351  [237 442 238 443]  drawing
+  p4-d1352  [239 442 240 443]  drawing
+  p4-d1353  [241 442 242 443]  drawing
+  p4-d1354  [243 442 244 443]  drawing
+  p4-d1355  [245 442 246 443]  drawing
+  p4-d1356  [247 442 248 443]  drawing
+  p4-d1357  [249 442 250 443]  drawing
+  p4-d1358  [251 442 252 443]  drawing
+  p4-d1359  [253 442 254 443]  drawing
+  p4-d1360  [255 442 256 443]  drawing
+  p4-d1361  [257 442 258 443]  drawing
+  p4-d1362  [259 442 260 443]  drawing
+  p4-d1363  [261 442 262 443]  drawing
+  p4-d1364  [263 442 264 443]  drawing
+  p4-d1365  [265 442 266 443]  drawing
+  p4-d1366  [267 442 268 443]  drawing
+  p4-d1367  [269 442 270 443]  drawing
+  p4-d1368  [271 442 272 443]  drawing
+  p4-d1369  [273 442 274 443]  drawing
+  p4-d1370  [275 442 276 443]  drawing
+  p4-d1371  [277 442 278 443]  drawing
+  p4-d1372  [279 442 280 443]  drawing
+  p4-d1373  [281 442 282 443]  drawing
+  p4-d1374  [283 442 284 443]  drawing
+  p4-d1375  [285 442 286 443]  drawing
+  p4-d1376  [287 442 288 443]  drawing
+  p4-d1377  [289 442 290 443]  drawing
+  p4-d1378  [291 442 292 443]  drawing
+  p4-d1379  [293 442 294 443]  drawing
+  p4-d1380  [295 442 296 443]  drawing
+  p4-d1381  [297 442 298 443]  drawing
+  p4-d1382  [299 442 300 443]  drawing
+  p4-d1383  [301 442 302 443]  drawing
+  p4-d1384  [303 442 304 443]  drawing
+  p4-d1385  [305 442 306 443]  drawing
+  p4-d1386  [307 442 308 443]  drawing
+  p4-d1387  [309 442 310 443]  drawing
+  p4-d1388  [311 442 312 443]  drawing
+  p4-d1389  [313 442 314 443]  drawing
+  p4-d1390  [315 442 316 443]  drawing
+  p4-d1391  [317 442 318 443]  drawing
+  p4-d1392  [319 442 320 443]  drawing
+  p4-d1393  [321 442 322 443]  drawing
+  p4-d1394  [323 442 324 443]  drawing
+  p4-d1395  [325 442 326 443]  drawing
+  p4-d1396  [327 442 328 443]  drawing
+  p4-d1397  [329 442 330 443]  drawing
+  p4-d1398  [331 442 332 443]  drawing
+  p4-d1399  [333 442 334 443]  drawing
+  p4-d1400  [335 442 336 443]  drawing
+  p4-d1401  [337 442 338 443]  drawing
+  p4-d1402  [339 442 340 443]  drawing
+  p4-d1403  [341 442 342 443]  drawing
+  p4-d1404  [343 442 344 443]  drawing
+  p4-d1405  [345 442 346 443]  drawing
+  p4-d1406  [347 442 348 443]  drawing
+  p4-d1407  [349 442 350 443]  drawing
+  p4-d1408  [351 442 352 443]  drawing
+  p4-d1409  [353 442 354 443]  drawing
+  p4-d1410  [355 442 356 443]  drawing
+  p4-d1411  [357 442 358 443]  drawing
+  p4-d1412  [359 442 360 443]  drawing
+  p4-d1413  [361 442 362 443]  drawing
+  p4-d1414  [363 442 364 443]  drawing
+  p4-d1415  [365 442 366 443]  drawing
+  p4-d1416  [367 442 368 443]  drawing
+  p4-d1417  [369 442 370 443]  drawing
+  p4-d1418  [371 442 372 443]  drawing
+  p4-d1419  [373 442 374 443]  drawing
+  p4-d1420  [375 442 376 443]  drawing
+  p4-d1421  [377 442 378 443]  drawing
+  p4-d1422  [379 442 380 443]  drawing
+  p4-d1423  [381 442 382 443]  drawing
+  p4-d1424  [383 442 384 443]  drawing
+  p4-d1425  [385 442 386 443]  drawing
+  p4-d1426  [387 442 388 443]  drawing
+  p4-d1427  [389 442 390 443]  drawing
+  p4-d1428  [391 442 392 443]  drawing
+  p4-d1429  [393 442 394 443]  drawing
+  p4-d1430  [395 442 396 443]  drawing
+  p4-d1431  [397 442 398 443]  drawing
+  p4-d1432  [399 442 400 443]  drawing
+  p4-d1433  [401 442 402 443]  drawing
+  p4-d1434  [403 442 404 443]  drawing
+  p4-d1435  [405 442 406 443]  drawing
+  p4-d1436  [407 442 408 443]  drawing
+  p4-d1437  [409 442 410 443]  drawing
+  p4-d1438  [411 442 412 443]  drawing
+  p4-d1439  [413 442 414 443]  drawing
+  p4-d1440  [415 442 416 443]  drawing
+  p4-d1441  [417 442 418 443]  drawing
+  p4-d1442  [419 442 420 443]  drawing
+  p4-d1443  [421 442 422 443]  drawing
+  p4-d1444  [423 442 424 443]  drawing
+  p4-d1445  [425 442 426 443]  drawing
+  p4-d1446  [427 442 428 443]  drawing
+  p4-d1447  [429 442 430 443]  drawing
+  p4-d1448  [431 442 432 443]  drawing
+  p4-d1449  [433 442 434 443]  drawing
+  p4-d1450  [435 442 436 443]  drawing
+  p4-d1451  [437 442 438 443]  drawing
+  p4-d1452  [439 442 440 443]  drawing
+  p4-d1453  [441 442 442 443]  drawing
+  p4-d1454  [443 442 444 443]  drawing
+  p4-d1455  [445 442 446 443]  drawing
+  p4-d1456  [447 442 448 443]  drawing
+  p4-d1457  [449 442 450 443]  drawing
+  p4-d1458  [451 442 452 443]  drawing
+  p4-d1459  [453 442 454 443]  drawing
+  p4-d1460  [455 442 456 443]  drawing
+  p4-d1461  [457 442 458 443]  drawing
+  p4-d1462  [459 442 460 443]  drawing
+  p4-d1463  [461 442 462 443]  drawing
+  p4-d1464  [463 442 464 443]  drawing
+  p4-d1465  [465 442 466 443]  drawing
+  p4-d1466  [467 442 468 443]  drawing
+  p4-d1467  [469 442 470 443]  drawing
+  p4-d1468  [471 442 472 443]  drawing
+  p4-d1469  [473 442 474 443]  drawing
+  p4-d1470  [475 442 476 443]  drawing
+  p4-d1471  [477 442 478 443]  drawing
+  p4-d1472  [115 489 116 490]  drawing
+  p4-d1473  [117 489 118 490]  drawing
+  p4-d1474  [119 489 120 490]  drawing
+  p4-d1475  [121 489 122 490]  drawing
+  p4-d1476  [123 489 124 490]  drawing
+  p4-d1477  [125 489 126 490]  drawing
+  p4-d1478  [127 489 128 490]  drawing
+  p4-d1479  [129 489 130 490]  drawing
+  p4-d1480  [131 489 132 490]  drawing
+  p4-d1481  [133 489 134 490]  drawing
+  p4-d1482  [135 489 136 490]  drawing
+  p4-d1483  [137 489 138 490]  drawing
+  p4-d1484  [139 489 140 490]  drawing
+  p4-d1485  [141 489 142 490]  drawing
+  p4-d1486  [143 489 144 490]  drawing
+  p4-d1487  [145 489 146 490]  drawing
+  p4-d1488  [147 489 148 490]  drawing
+  p4-d1489  [149 489 150 490]  drawing
+  p4-d1490  [151 489 152 490]  drawing
+  p4-d1491  [153 489 154 490]  drawing
+  p4-d1492  [155 489 156 490]  drawing
+  p4-d1493  [157 489 158 490]  drawing
+  p4-d1494  [159 489 160 490]  drawing
+  p4-d1495  [161 489 162 490]  drawing
+  p4-d1496  [163 489 164 490]  drawing
+  p4-d1497  [165 489 166 490]  drawing
+  p4-d1498  [167 489 168 490]  drawing
+  p4-d1499  [169 489 170 490]  drawing
+  p4-d1500  [171 489 172 490]  drawing
+  p4-d1501  [173 489 174 490]  drawing
+  p4-d1502  [175 489 176 490]  drawing
+  p4-d1503  [177 489 178 490]  drawing
+  p4-d1504  [179 489 180 490]  drawing
+  p4-d1505  [181 489 182 490]  drawing
+  p4-d1506  [183 489 184 490]  drawing
+  p4-d1507  [185 489 186 490]  drawing
+  p4-d1508  [187 489 188 490]  drawing
+  p4-d1509  [189 489 190 490]  drawing
+  p4-d1510  [191 489 192 490]  drawing
+  p4-d1511  [193 489 194 490]  drawing
+  p4-d1512  [195 489 196 490]  drawing
+  p4-d1513  [197 489 198 490]  drawing
+  p4-d1514  [199 489 200 490]  drawing
+  p4-d1515  [201 489 202 490]  drawing
+  p4-d1516  [203 489 204 490]  drawing
+  p4-d1517  [205 489 206 490]  drawing
+  p4-d1518  [207 489 208 490]  drawing
+  p4-d1519  [209 489 210 490]  drawing
+  p4-d1520  [211 489 212 490]  drawing
+  p4-d1521  [213 489 214 490]  drawing
+  p4-d1522  [215 489 216 490]  drawing
+  p4-d1523  [217 489 218 490]  drawing
+  p4-d1524  [219 489 220 490]  drawing
+  p4-d1525  [221 489 222 490]  drawing
+  p4-d1526  [223 489 224 490]  drawing
+  p4-d1527  [225 489 226 490]  drawing
+  p4-d1528  [227 489 228 490]  drawing
+  p4-d1529  [229 489 230 490]  drawing
+  p4-d1530  [231 489 232 490]  drawing
+  p4-d1531  [233 489 234 490]  drawing
+  p4-d1532  [235 489 236 490]  drawing
+  p4-d1533  [237 489 238 490]  drawing
+  p4-d1534  [239 489 240 490]  drawing
+  p4-d1535  [241 489 242 490]  drawing
+  p4-d1536  [243 489 244 490]  drawing
+  p4-d1537  [245 489 246 490]  drawing
+  p4-d1538  [247 489 248 490]  drawing
+  p4-d1539  [249 489 250 490]  drawing
+  p4-d1540  [251 489 252 490]  drawing
+  p4-d1541  [253 489 254 490]  drawing
+  p4-d1542  [255 489 256 490]  drawing
+  p4-d1543  [257 489 258 490]  drawing
+  p4-d1544  [259 489 260 490]  drawing
+  p4-d1545  [261 489 262 490]  drawing
+  p4-d1546  [263 489 264 490]  drawing
+  p4-d1547  [265 489 266 490]  drawing
+  p4-d1548  [267 489 268 490]  drawing
+  p4-d1549  [269 489 270 490]  drawing
+  p4-d1550  [271 489 272 490]  drawing
+  p4-d1551  [273 489 274 490]  drawing
+  p4-d1552  [275 489 276 490]  drawing
+  p4-d1553  [277 489 278 490]  drawing
+  p4-d1554  [279 489 280 490]  drawing
+  p4-d1555  [281 489 282 490]  drawing
+  p4-d1556  [283 489 284 490]  drawing
+  p4-d1557  [285 489 286 490]  drawing
+  p4-d1558  [287 489 288 490]  drawing
+  p4-d1559  [289 489 290 490]  drawing
+  p4-d1560  [291 489 292 490]  drawing
+  p4-d1561  [293 489 294 490]  drawing
+  p4-d1562  [295 489 296 490]  drawing
+  p4-d1563  [297 489 298 490]  drawing
+  p4-d1564  [299 489 300 490]  drawing
+  p4-d1565  [301 489 302 490]  drawing
+  p4-d1566  [303 489 304 490]  drawing
+  p4-d1567  [305 489 306 490]  drawing
+  p4-d1568  [307 489 308 490]  drawing
+  p4-d1569  [309 489 310 490]  drawing
+  p4-d1570  [311 489 312 490]  drawing
+  p4-d1571  [313 489 314 490]  drawing
+  p4-d1572  [315 489 316 490]  drawing
+  p4-d1573  [317 489 318 490]  drawing
+  p4-d1574  [319 489 320 490]  drawing
+  p4-d1575  [321 489 322 490]  drawing
+  p4-d1576  [323 489 324 490]  drawing
+  p4-d1577  [325 489 326 490]  drawing
+  p4-d1578  [327 489 328 490]  drawing
+  p4-d1579  [329 489 330 490]  drawing
+  p4-d1580  [331 489 332 490]  drawing
+  p4-d1581  [333 489 334 490]  drawing
+  p4-d1582  [335 489 336 490]  drawing
+  p4-d1583  [337 489 338 490]  drawing
+  p4-d1584  [339 489 340 490]  drawing
+  p4-d1585  [341 489 342 490]  drawing
+  p4-d1586  [343 489 344 490]  drawing
+  p4-d1587  [345 489 346 490]  drawing
+  p4-d1588  [347 489 348 490]  drawing
+  p4-d1589  [349 489 350 490]  drawing
+  p4-d1590  [351 489 352 490]  drawing
+  p4-d1591  [353 489 354 490]  drawing
+  p4-d1592  [355 489 356 490]  drawing
+  p4-d1593  [357 489 358 490]  drawing
+  p4-d1594  [359 489 360 490]  drawing
+  p4-d1595  [361 489 362 490]  drawing
+  p4-d1596  [363 489 364 490]  drawing
+  p4-d1597  [365 489 366 490]  drawing
+  p4-d1598  [367 489 368 490]  drawing
+  p4-d1599  [369 489 370 490]  drawing
+  p4-d1600  [371 489 372 490]  drawing
+  p4-d1601  [373 489 374 490]  drawing
+  p4-d1602  [375 489 376 490]  drawing
+  p4-d1603  [377 489 378 490]  drawing
+  p4-d1604  [379 489 380 490]  drawing
+  p4-d1605  [381 489 382 490]  drawing
+  p4-d1606  [383 489 384 490]  drawing
+  p4-d1607  [385 489 386 490]  drawing
+  p4-d1608  [387 489 388 490]  drawing
+  p4-d1609  [389 489 390 490]  drawing
+  p4-d1610  [391 489 392 490]  drawing
+  p4-d1611  [393 489 394 490]  drawing
+  p4-d1612  [395 489 396 490]  drawing
+  p4-d1613  [397 489 398 490]  drawing
+  p4-d1614  [399 489 400 490]  drawing
+  p4-d1615  [401 489 402 490]  drawing
+  p4-d1616  [403 489 404 490]  drawing
+  p4-d1617  [405 489 406 490]  drawing
+  p4-d1618  [407 489 408 490]  drawing
+  p4-d1619  [409 489 410 490]  drawing
+  p4-d1620  [411 489 412 490]  drawing
+  p4-d1621  [413 489 414 490]  drawing
+  p4-d1622  [415 489 416 490]  drawing
+  p4-d1623  [417 489 418 490]  drawing
+  p4-d1624  [419 489 420 490]  drawing
+  p4-d1625  [421 489 422 490]  drawing
+  p4-d1626  [423 489 424 490]  drawing
+  p4-d1627  [425 489 426 490]  drawing
+  p4-d1628  [427 489 428 490]  drawing
+  p4-d1629  [429 489 430 490]  drawing
+  p4-d1630  [431 489 432 490]  drawing
+  p4-d1631  [433 489 434 490]  drawing
+  p4-d1632  [435 489 436 490]  drawing
+  p4-d1633  [437 489 438 490]  drawing
+  p4-d1634  [439 489 440 490]  drawing
+  p4-d1635  [441 489 442 490]  drawing
+  p4-d1636  [443 489 444 490]  drawing
+  p4-d1637  [445 489 446 490]  drawing
+  p4-d1638  [447 489 448 490]  drawing
+  p4-d1639  [449 489 450 490]  drawing
+  p4-d1640  [451 489 452 490]  drawing
+  p4-d1641  [453 489 454 490]  drawing
+  p4-d1642  [455 489 456 490]  drawing
+  p4-d1643  [457 489 458 490]  drawing
+  p4-d1644  [459 489 460 490]  drawing
+  p4-d1645  [461 489 462 490]  drawing
+  p4-d1646  [463 489 464 490]  drawing
+  p4-d1647  [465 489 466 490]  drawing
+  p4-d1648  [467 489 468 490]  drawing
+  p4-d1649  [469 489 470 490]  drawing
+  p4-d1650  [471 489 472 490]  drawing
+  p4-d1651  [473 489 474 490]  drawing
+  p4-d1652  [475 489 476 490]  drawing
+  p4-d1653  [477 489 478 490]  drawing
+  p4-d1654  [115 501 116 502]  drawing
+  p4-d1655  [117 501 118 502]  drawing
+  p4-d1656  [119 501 120 502]  drawing
+  p4-d1657  [121 501 122 502]  drawing
+  p4-d1658  [123 501 124 502]  drawing
+  p4-d1659  [125 501 126 502]  drawing
+  p4-d1660  [127 501 128 502]  drawing
+  p4-d1661  [129 501 130 502]  drawing
+  p4-d1662  [131 501 132 502]  drawing
+  p4-d1663  [133 501 134 502]  drawing
+  p4-d1664  [135 501 136 502]  drawing
+  p4-d1665  [137 501 138 502]  drawing
+  p4-d1666  [139 501 140 502]  drawing
+  p4-d1667  [141 501 142 502]  drawing
+  p4-d1668  [143 501 144 502]  drawing
+  p4-d1669  [145 501 146 502]  drawing
+  p4-d1670  [147 501 148 502]  drawing
+  p4-d1671  [149 501 150 502]  drawing
+  p4-d1672  [151 501 152 502]  drawing
+  p4-d1673  [153 501 154 502]  drawing
+  p4-d1674  [155 501 156 502]  drawing
+  p4-d1675  [157 501 158 502]  drawing
+  p4-d1676  [159 501 160 502]  drawing
+  p4-d1677  [161 501 162 502]  drawing
+  p4-d1678  [163 501 164 502]  drawing
+  p4-d1679  [165 501 166 502]  drawing
+  p4-d1680  [167 501 168 502]  drawing
+  p4-d1681  [169 501 170 502]  drawing
+  p4-d1682  [171 501 172 502]  drawing
+  p4-d1683  [173 501 174 502]  drawing
+  p4-d1684  [175 501 176 502]  drawing
+  p4-d1685  [177 501 178 502]  drawing
+  p4-d1686  [179 501 180 502]  drawing
+  p4-d1687  [181 501 182 502]  drawing
+  p4-d1688  [183 501 184 502]  drawing
+  p4-d1689  [185 501 186 502]  drawing
+  p4-d1690  [187 501 188 502]  drawing
+  p4-d1691  [189 501 190 502]  drawing
+  p4-d1692  [191 501 192 502]  drawing
+  p4-d1693  [193 501 194 502]  drawing
+  p4-d1694  [195 501 196 502]  drawing
+  p4-d1695  [197 501 198 502]  drawing
+  p4-d1696  [199 501 200 502]  drawing
+  p4-d1697  [201 501 202 502]  drawing
+  p4-d1698  [203 501 204 502]  drawing
+  p4-d1699  [205 501 206 502]  drawing
+  p4-d1700  [207 501 208 502]  drawing
+  p4-d1701  [209 501 210 502]  drawing
+  p4-d1702  [211 501 212 502]  drawing
+  p4-d1703  [213 501 214 502]  drawing
+  p4-d1704  [215 501 216 502]  drawing
+  p4-d1705  [217 501 218 502]  drawing
+  p4-d1706  [219 501 220 502]  drawing
+  p4-d1707  [221 501 222 502]  drawing
+  p4-d1708  [223 501 224 502]  drawing
+  p4-d1709  [225 501 226 502]  drawing
+  p4-d1710  [227 501 228 502]  drawing
+  p4-d1711  [229 501 230 502]  drawing
+  p4-d1712  [231 501 232 502]  drawing
+  p4-d1713  [233 501 234 502]  drawing
+  p4-d1714  [235 501 236 502]  drawing
+  p4-d1715  [237 501 238 502]  drawing
+  p4-d1716  [239 501 240 502]  drawing
+  p4-d1717  [241 501 242 502]  drawing
+  p4-d1718  [243 501 244 502]  drawing
+  p4-d1719  [245 501 246 502]  drawing
+  p4-d1720  [247 501 248 502]  drawing
+  p4-d1721  [249 501 250 502]  drawing
+  p4-d1722  [251 501 252 502]  drawing
+  p4-d1723  [253 501 254 502]  drawing
+  p4-d1724  [255 501 256 502]  drawing
+  p4-d1725  [257 501 258 502]  drawing
+  p4-d1726  [259 501 260 502]  drawing
+  p4-d1727  [261 501 262 502]  drawing
+  p4-d1728  [263 501 264 502]  drawing
+  p4-d1729  [265 501 266 502]  drawing
+  p4-d1730  [267 501 268 502]  drawing
+  p4-d1731  [269 501 270 502]  drawing
+  p4-d1732  [271 501 272 502]  drawing
+  p4-d1733  [273 501 274 502]  drawing
+  p4-d1734  [275 501 276 502]  drawing
+  p4-d1735  [277 501 278 502]  drawing
+  p4-d1736  [279 501 280 502]  drawing
+  p4-d1737  [281 501 282 502]  drawing
+  p4-d1738  [283 501 284 502]  drawing
+  p4-d1739  [285 501 286 502]  drawing
+  p4-d1740  [287 501 288 502]  drawing
+  p4-d1741  [289 501 290 502]  drawing
+  p4-d1742  [291 501 292 502]  drawing
+  p4-d1743  [293 501 294 502]  drawing
+  p4-d1744  [295 501 296 502]  drawing
+  p4-d1745  [297 501 298 502]  drawing
+  p4-d1746  [299 501 300 502]  drawing
+  p4-d1747  [301 501 302 502]  drawing
+  p4-d1748  [303 501 304 502]  drawing
+  p4-d1749  [305 501 306 502]  drawing
+  p4-d1750  [307 501 308 502]  drawing
+  p4-d1751  [309 501 310 502]  drawing
+  p4-d1752  [311 501 312 502]  drawing
+  p4-d1753  [313 501 314 502]  drawing
+  p4-d1754  [315 501 316 502]  drawing
+  p4-d1755  [317 501 318 502]  drawing
+  p4-d1756  [319 501 320 502]  drawing
+  p4-d1757  [321 501 322 502]  drawing
+  p4-d1758  [323 501 324 502]  drawing
+  p4-d1759  [325 501 326 502]  drawing
+  p4-d1760  [327 501 328 502]  drawing
+  p4-d1761  [329 501 330 502]  drawing
+  p4-d1762  [331 501 332 502]  drawing
+  p4-d1763  [333 501 334 502]  drawing
+  p4-d1764  [335 501 336 502]  drawing
+  p4-d1765  [337 501 338 502]  drawing
+  p4-d1766  [339 501 340 502]  drawing
+  p4-d1767  [341 501 342 502]  drawing
+  p4-d1768  [343 501 344 502]  drawing
+  p4-d1769  [345 501 346 502]  drawing
+  p4-d1770  [347 501 348 502]  drawing
+  p4-d1771  [349 501 350 502]  drawing
+  p4-d1772  [351 501 352 502]  drawing
+  p4-d1773  [353 501 354 502]  drawing
+  p4-d1774  [355 501 356 502]  drawing
+  p4-d1775  [357 501 358 502]  drawing
+  p4-d1776  [359 501 360 502]  drawing
+  p4-d1777  [361 501 362 502]  drawing
+  p4-d1778  [363 501 364 502]  drawing
+  p4-d1779  [365 501 366 502]  drawing
+  p4-d1780  [367 501 368 502]  drawing
+  p4-d1781  [369 501 370 502]  drawing
+  p4-d1782  [371 501 372 502]  drawing
+  p4-d1783  [373 501 374 502]  drawing
+  p4-d1784  [375 501 376 502]  drawing
+  p4-d1785  [377 501 378 502]  drawing
+  p4-d1786  [379 501 380 502]  drawing
+  p4-d1787  [381 501 382 502]  drawing
+  p4-d1788  [383 501 384 502]  drawing
+  p4-d1789  [385 501 386 502]  drawing
+  p4-d1790  [387 501 388 502]  drawing
+  p4-d1791  [389 501 390 502]  drawing
+  p4-d1792  [391 501 392 502]  drawing
+  p4-d1793  [393 501 394 502]  drawing
+  p4-d1794  [395 501 396 502]  drawing
+  p4-d1795  [397 501 398 502]  drawing
+  p4-d1796  [399 501 400 502]  drawing
+  p4-d1797  [401 501 402 502]  drawing
+  p4-d1798  [403 501 404 502]  drawing
+  p4-d1799  [405 501 406 502]  drawing
+  p4-d1800  [407 501 408 502]  drawing
+  p4-d1801  [409 501 410 502]  drawing
+  p4-d1802  [411 501 412 502]  drawing
+  p4-d1803  [413 501 414 502]  drawing
+  p4-d1804  [415 501 416 502]  drawing
+  p4-d1805  [417 501 418 502]  drawing
+  p4-d1806  [419 501 420 502]  drawing
+  p4-d1807  [421 501 422 502]  drawing
+  p4-d1808  [423 501 424 502]  drawing
+  p4-d1809  [425 501 426 502]  drawing
+  p4-d1810  [427 501 428 502]  drawing
+  p4-d1811  [429 501 430 502]  drawing
+  p4-d1812  [431 501 432 502]  drawing
+  p4-d1813  [433 501 434 502]  drawing
+  p4-d1814  [435 501 436 502]  drawing
+  p4-d1815  [437 501 438 502]  drawing
+  p4-d1816  [439 501 440 502]  drawing
+  p4-d1817  [441 501 442 502]  drawing
+  p4-d1818  [443 501 444 502]  drawing
+  p4-d1819  [445 501 446 502]  drawing
+  p4-d1820  [447 501 448 502]  drawing
+  p4-d1821  [449 501 450 502]  drawing
+  p4-d1822  [451 501 452 502]  drawing
+  p4-d1823  [453 501 454 502]  drawing
+  p4-d1824  [455 501 456 502]  drawing
+  p4-d1825  [457 501 458 502]  drawing
+  p4-d1826  [459 501 460 502]  drawing
+  p4-d1827  [461 501 462 502]  drawing
+  p4-d1828  [463 501 464 502]  drawing
+  p4-d1829  [465 501 466 502]  drawing
+  p4-d1830  [467 501 468 502]  drawing
+  p4-d1831  [469 501 470 502]  drawing
+  p4-d1832  [471 501 472 502]  drawing
+  p4-d1833  [473 501 474 502]  drawing
+  p4-d1834  [475 501 476 502]  drawing
+  p4-d1835  [477 501 478 502]  drawing
+  p4-d1836  [115 562 478 564]  drawing
   == page 5  595 x 842  lines 102  pictures 0  drawings 1
   p5-l1  [70 72 291 85]  {NimbusRomNo9L-Regu 10.9}work investigates the adaptation of PLMs to facili-
   p5-l2  [71 85 279 98]  {NimbusRomNo9L-Regu 10.9}tate NLP research in the privacy policy domain.
@@ -733,6 +2578,7 @@
   p5-l100  [306 753 524 764]  {NimbusRomNo9L-Regu 9}based on a total of 100 hours of training on Tesla V100 and
   p5-l101  [306 763 444 774]  {NimbusRomNo9L-Regu 9}Amazon Web Services as the provider.
   p5-l102  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}356
+  p5-d1  [306 740 366 741]  drawing
   == page 6  595 x 842  lines 119  pictures 0  drawings 0
   p6-l1  [71 73 289 85]  {NimbusRomNo9L-Regu 10}Markus Bayer, Philipp Kuehn, Ramin Shanehsaz, and
   p6-l2  [82 84 181 96]  {NimbusRomNo9L-Regu 10}Christian Reuter. 2022.
@@ -1085,6 +2931,7 @@
   p9-l99  [319 752 528 764]  {NimbusRomNo9L-Regu 6}4{NimbusRomNo9L-Regu 9}The corpus is publicly available at{Inconsolatazi4-Regular 9} https://github.
   p9-l100  [306 763 462 774]  {Inconsolatazi4-Regular 9}com/citp/privacy-policy-historical{NimbusRomNo9L-Regu 9}.
   p9-l101  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}360
+  p9-d1  [306 750 366 751]  drawing
   == page 10  595 x 842  lines 58  pictures 0  drawings 7
   p10-l1  [77 74 116 87]  {NimbusRomNo9L-Medi 10.3 b}OPP-115
   p10-l2  [131 74 518 87]  {NimbusRomNo9L-Medi 10.3 b}Text:{NimbusRomNo9L-ReguItal 10.3 i} Secure Online Ordering For your security, we only store your credit card information if
@@ -1144,6 +2991,13 @@
   p10-l56  [306 675 524 688]  {NimbusRomNo9L-Regu 10.9}GDPR), we study LEGAL-BERT’s effectiveness
   p10-l57  [306 689 390 702]  {NimbusRomNo9L-Regu 10.9}on the PLUE tasks.
   p10-l58  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}361
+  p10-d1  [70 70 523 72]  drawing
+  p10-d2  [70 166 522 167]  drawing
+  p10-d3  [70 260 522 261]  drawing
+  p10-d4  [70 342 522 343]  drawing
+  p10-d5  [70 450 522 451]  drawing
+  p10-d6  [70 545 522 546]  drawing
+  p10-d7  [70 601 523 603]  drawing
   == page 11  595 x 842  lines 49  pictures 0  drawings 1
   p11-l1  [71 70 242 86]  {NimbusRomNo9L-Medi 12 b}D More Implementation Details
   p11-l2  [71 93 87 108]  {NimbusRomNo9L-Medi 10.9 b}D.1
@@ -1194,6 +3048,7 @@
   p11-l47  [71 692 227 705]  {NimbusRomNo9L-Regu 10.9}to assist future research in this area.
   p11-l48  [84 762 280 773]  {NimbusRomNo9L-Regu 6}5{Inconsolatazi4-Regular 9}https://github.com/huggingface/transformers
   p11-l49  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}362
+  p11-d1  [70 760 131 761]  drawing
   == page 12  595 x 842  lines 81  pictures 0  drawings 6
   p12-l1  [217 268 263 282]  {NimbusRomNo9L-Medi 10.9 b}PP-BERT
   p12-l2  [281 268 351 282]  {NimbusRomNo9L-Medi 10.9 b}PP-SpanBERT
@@ -1276,6 +3131,12 @@
   p12-l79  [446 538 457 551]  {NimbusRomNo9L-Regu 10.9}20
   p12-l80  [107 564 488 576]  {NimbusRomNo9L-Regu 10}Table 6: Hyperparameters for fine-tuning pre-trained language models on different PLUE tasks.
   p12-l81  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}363
+  p12-d1  [94 265 502 267]  drawing
+  p12-d2  [94 284 501 285]  drawing
+  p12-d3  [94 371 502 373]  drawing
+  p12-d4  [118 407 477 408]  drawing
+  p12-d5  [118 440 477 441]  drawing
+  p12-d6  [118 553 477 555]  drawing
   == page 13  595 x 842  lines 44  pictures 0  drawings 2
   p13-l1  [82 71 258 86]  {NimbusRomNo9L-Medi 10.9 b}ACL 2023 Responsible NLP Checklist
   p13-l2  [71 90 79 105]  {NimbusRomNo9L-Medi 10.9 b}A
@@ -1321,6 +3182,8 @@
   p13-l42  [71 744 522 754]  {NimbusRomNo9L-ReguItal 9 i}The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing
   p13-l43  [71 753 110 764]  {NimbusRomNo9L-ReguItal 9 i}assistance.
   p13-l44  [291 781 307 794]  {NimbusRomNo9L-Regu 10.9}364
+  p13-d1  [70 84 525 85]  drawing
+  p13-d2  [70 742 131 743]  drawing
   == page 14  595 x 842  lines 30  pictures 0  drawings 0
   p14-l1  [81 70 524 85]  {Dingbats 12}✓{NimbusRomNo9L-Regu 10.9} C2. Did you discuss the experimental setup, including hyperparameter search and best-found
   p14-l2  [93 85 196 98]  {NimbusRomNo9L-Regu 10.9}hyperparameter values?
@@ -1358,7 +3221,7 @@
 # name: test_golden_file[acl2023-hardt-ellipsis]
   '''
   acl2023-hardt-ellipsis.pdf  sha256 750d6b7b40b51436
-  metadata: title='' authors=[] date='2023-07-08'
+  metadata: title='' authors=[] date='2023-07-08' language=''
   == page 1  595 x 842  lines 89  pictures 0  drawings 0
   p1-l1  [137 797 458 807]  {NimbusRomNo9L-ReguItal 9 i}Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
   p1-l2  [230 808 365 819]  {NimbusRomNo9L-ReguItal 9 i}Volume 2: Short Papers{NimbusRomNo9L-Regu 9}, pages 39–47
@@ -1681,6 +3544,57 @@
   p3-l125  [306 747 524 761]  {NimbusRomNo9L-Regu 10.9}2Sent (Separate Sentence) and 1Sent (Conjoined
   p3-l126  [306 761 525 774]  {NimbusRomNo9L-Regu 10.9}Sentence). Here the accuracy is nearly perfect for
   p3-l127  [293 781 304 794]  {NimbusRomNo9L-Regu 10.9}41
+  p3-d1  [70 70 290 72]  drawing
+  p3-d2  [139 75 139 89]  drawing
+  p3-d3  [71 90 289 91]  drawing
+  p3-d4  [139 94 139 108]  drawing
+  p3-d5  [139 107 139 122]  drawing
+  p3-d6  [71 121 289 122]  drawing
+  p3-d7  [139 121 139 136]  drawing
+  p3-d8  [139 135 139 149]  drawing
+  p3-d9  [71 149 289 149]  drawing
+  p3-d10  [139 149 139 163]  drawing
+  p3-d11  [139 162 139 177]  drawing
+  p3-d12  [71 176 289 177]  drawing
+  p3-d13  [139 176 139 191]  drawing
+  p3-d14  [139 190 139 204]  drawing
+  p3-d15  [71 204 289 204]  drawing
+  p3-d16  [139 204 139 218]  drawing
+  p3-d17  [139 217 139 232]  drawing
+  p3-d18  [71 231 289 232]  drawing
+  p3-d19  [139 231 139 246]  drawing
+  p3-d20  [139 245 139 259]  drawing
+  p3-d21  [139 258 139 273]  drawing
+  p3-d22  [139 272 139 286]  drawing
+  p3-d23  [71 288 289 289]  drawing
+  p3-d24  [139 291 139 305]  drawing
+  p3-d25  [70 307 290 308]  drawing
+  p3-d26  [70 740 131 741]  drawing
+  p3-d27  [306 70 525 72]  drawing
+  p3-d28  [374 75 375 89]  drawing
+  p3-d29  [306 90 524 91]  drawing
+  p3-d30  [374 94 375 108]  drawing
+  p3-d31  [374 107 375 122]  drawing
+  p3-d32  [306 121 524 122]  drawing
+  p3-d33  [374 121 375 136]  drawing
+  p3-d34  [374 135 375 149]  drawing
+  p3-d35  [306 149 524 149]  drawing
+  p3-d36  [374 149 375 163]  drawing
+  p3-d37  [374 162 375 177]  drawing
+  p3-d38  [306 176 524 177]  drawing
+  p3-d39  [374 176 375 191]  drawing
+  p3-d40  [374 190 375 204]  drawing
+  p3-d41  [306 204 524 204]  drawing
+  p3-d42  [374 204 375 218]  drawing
+  p3-d43  [374 217 375 232]  drawing
+  p3-d44  [306 231 524 232]  drawing
+  p3-d45  [374 231 375 246]  drawing
+  p3-d46  [374 245 375 259]  drawing
+  p3-d47  [374 258 375 273]  drawing
+  p3-d48  [374 272 375 286]  drawing
+  p3-d49  [306 288 524 289]  drawing
+  p3-d50  [374 291 375 305]  drawing
+  p3-d51  [306 307 525 308]  drawing
   == page 4  595 x 842  lines 45  pictures 4  drawings 0
   p4-l1  [71 246 289 258]  {NimbusRomNo9L-Regu 10}Figure 1: Model Accuracy – Ellipsis vs. Non-Ellipsis
   p4-l2  [71 258 182 270]  {NimbusRomNo9L-Regu 10}(5000 examples per model.)
@@ -1902,6 +3816,16 @@
   p7-l15  [71 252 289 265]  {NimbusRomNo9L-Regu 10.9}for subjects and verbs in the different structures, as
   p7-l16  [71 266 145 279]  {NimbusRomNo9L-Regu 10.9}shown in table 3.
   p7-l17  [293 781 304 794]  {NimbusRomNo9L-Regu 10.9}45
+  p7-d1  [70 70 325 72]  drawing
+  p7-d2  [122 75 123 89]  drawing
+  p7-d3  [70 90 324 91]  drawing
+  p7-d4  [122 94 123 108]  drawing
+  p7-d5  [122 107 123 122]  drawing
+  p7-d6  [122 121 123 135]  drawing
+  p7-d7  [122 134 123 149]  drawing
+  p7-d8  [122 148 123 162]  drawing
+  p7-d9  [122 162 123 176]  drawing
+  p7-d10  [70 177 325 179]  drawing
   == page 8  595 x 842  lines 44  pictures 0  drawings 2
   p8-l1  [82 71 258 86]  {NimbusRomNo9L-Medi 10.9 b}ACL 2023 Responsible NLP Checklist
   p8-l2  [71 90 79 105]  {NimbusRomNo9L-Medi 10.9 b}A
@@ -1947,6 +3871,8 @@
   p8-l42  [71 743 522 754]  {NimbusRomNo9L-ReguItal 9 i}The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing
   p8-l43  [71 753 110 764]  {NimbusRomNo9L-ReguItal 9 i}assistance.
   p8-l44  [293 781 304 794]  {NimbusRomNo9L-Regu 10.9}46
+  p8-d1  [70 84 525 85]  drawing
+  p8-d2  [70 742 131 743]  drawing
   == page 9  595 x 842  lines 30  pictures 0  drawings 0
   p9-l1  [81 72 524 85]  {Dingbats 12}✗{NimbusRomNo9L-Regu 10.9} C2. Did you discuss the experimental setup, including hyperparameter search and best-found
   p9-l2  [93 85 196 98]  {NimbusRomNo9L-Regu 10.9}hyperparameter values?
@@ -1984,7 +3910,7 @@
 # name: test_golden_file[acl2023-nowak-prefix-probabilities]
   '''
   acl2023-nowak-prefix-probabilities.pdf  sha256 c7136e8a41810336
-  metadata: title='' authors=[] date='2025-05-08'
+  metadata: title='' authors=[] date='2025-05-08' language=''
   == page 1  595 x 842  lines 102  pictures 2  drawings 9
   p1-l1  [137 798 458 806]  {NimbusRomNo9L-ReguItal 9 i}Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
   p1-l2  [230 809 367 818]  {NimbusRomNo9L-ReguItal 9 i}Volume 2: Short Papers,{NimbusRomNo9L-Regu 9} pages 57–67
@@ -2090,6 +4016,15 @@
   p1-l102  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}57
   p1-i1  [269 126 332 136]  picture
   p1-i2  [88 346 100 358]  picture
+  p1-d1  [263 123 335 139]  drawing
+  p1-d2  [262 122 336 123]  drawing
+  p1-d3  [262 122 263 140]  drawing
+  p1-d4  [335 122 336 140]  drawing
+  p1-d5  [262 139 336 140]  drawing
+  p1-d6  [70 688 131 688]  drawing
+  p1-d7  [118 713 127 714]  drawing
+  p1-d8  [135 713 144 714]  drawing
+  p1-d9  [306 659 366 659]  drawing
   == page 2  595 x 842  lines 119  pictures 0  drawings 1
   p2-l1  [71 74 291 84]  {NimbusRomNo9L-Medi 10.9 b}Definition 1.{NimbusRomNo9L-ReguItal 10.9 i} A{NimbusRomNo9L-MediItal 10.9 b i} probabilistic context-free gram-
   p2-l2  [71 87 291 98]  {NimbusRomNo9L-MediItal 10.9 b i}mar{NimbusRomNo9L-ReguItal 10.9 i} (PCFG) is a five-tuple{CMSY10 10.9 i} G{CMR10 10.9} = ({CMSY10 10.9 i}N{CMMI10 10.9 i},{CMR10 10.9} Σ{CMMI10 10.9 i},{CMR10 10.9} S{CMMI10 10.9 i},{CMSY10 10.9 i} R{CMMI10 10.9 i}, p{CMR10 10.9}){NimbusRomNo9L-ReguItal 10.9 i},
@@ -2210,6 +4145,7 @@
   p2-l117  [377 768 400 776]  {CMR8 8}X{CMSY6 6 i}′{CMSY8 8 i}∈N
   p2-l118  [402 751 525 764]  {CMMI10 10.9 i}ξ{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i} |{CMR10 10.9} X){CMSY10 10.9 i} ·{CMMI10 10.9 i} p{CMR10 10.9}(X{CMSY8 8 i}′{CMSY10 10.9 i}−→{CMR10 10.9}Y Z){NimbusRomNo9L-Regu 10.9} (9)
   p2-l119  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}58
+  p2-d1  [70 750 131 751]  drawing
   == page 3  595 x 842  lines 151  pictures 0  drawings 17
   p3-l1  [70 86 153 95]  {NimbusRomNo9L-Medi 10.9 b}Algorithm 1{NimbusRomNo9L-Regu 10.9} CKY
   p3-l2  [77 101 209 113]  {NimbusRomNo9L-Regu 9}1:{NimbusRomNo9L-Medi 10.9 b} def{NimbusRomNo9L-Regu 10.9} CKY({CMMIB10 10.9 i}w{CMR10 10.9} ={CMMI10 10.9 i} w{CMR8 8}1{CMSY10 10.9 i} · · ·{CMMI10 10.9 i} w{CMMI8 8 i}N{NimbusRomNo9L-Regu 10.9}):
@@ -2362,6 +4298,23 @@
   p3-l149  [306 748 526 761]  {NimbusRomNo9L-Regu 10.9}and the{CMMI10 10.9 i} j{NimbusRomNo9L-Regu 8}th{NimbusRomNo9L-Regu 10.9} column corresponds to{CMMI10 10.9 i} p{CMR10 10.9}(X{CMMI8 8 i}i{CMSY10 10.9 i} −→{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} _{CMR10 10.9}){NimbusRomNo9L-Regu 10.9},
   p3-l150  [306 763 525 774]  {NimbusRomNo9L-Regu 10.9}i.e., the probability of deriving{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} on the left corner
   p3-l151  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}59
+  p3-d1  [70 82 289 84]  drawing
+  p3-d2  [70 97 289 98]  drawing
+  p3-d3  [70 382 289 383]  drawing
+  p3-d4  [297 83 525 84]  drawing
+  p3-d5  [297 98 525 98]  drawing
+  p3-d6  [297 382 525 383]  drawing
+  p3-d7  [137 457 152 487]  drawing
+  p3-d8  [108 457 131 500]  drawing
+  p3-d9  [106 497 111 502]  drawing
+  p3-d10  [90 514 120 529]  drawing
+  p3-d11  [250 439 266 469]  drawing
+  p3-d12  [213 472 227 500]  drawing
+  p3-d13  [234 472 249 500]  drawing
+  p3-d14  [235 439 244 456]  drawing
+  p3-d15  [233 453 238 458]  drawing
+  p3-d16  [195 514 225 529]  drawing
+  p3-d17  [236 514 266 529]  drawing
   == page 4  595 x 842  lines 109  pictures 0  drawings 1
   p4-l1  [71 74 268 85]  {NimbusRomNo9L-Regu 10.9}from{CMR10 10.9} X{CMMI8 8 i}i{NimbusRomNo9L-Regu 10.9} in one step (we use _ as a wildcard):
   p4-l2  [88 97 163 110]  {CMMI10 10.9 i}p{CMR10 10.9}(X{CMMI8 8 i}i{CMSY10 10.9 i} −→{CMR10 10.9} X{CMMI8 8 i}j{NimbusRomNo9L-Regu 10.9} _{CMR10 10.9}){NimbusRomNo9L-Regu 6} def
@@ -2472,6 +4425,7 @@
   p4-l107  [306 750 524 760]  {NimbusRomNo9L-Regu 10.9}thus improving the runtime of Alg. 1 for dense
   p4-l108  [306 763 524 773]  {NimbusRomNo9L-Regu 10.9}grammars. Pre-computing{CMMI10 10.9 i} γ{NimbusRomNo9L-Regu 10.9} and{CMMI10 10.9 i} δ{NimbusRomNo9L-Regu 10.9} in lines 10–14
   p4-l109  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}60
+  p4-d1  [70 729 131 730]  drawing
   == page 5  595 x 842  lines 140  pictures 0  drawings 3
   p5-l1  [132 92 211 108]  {CMMI10 10.9 i}π{CMR10 10.9}({CMMI10 10.9 i}i,{CMR10 10.9} X{CMMI10 10.9 i}, k{CMR10 10.9}) ={CMEX10 10.9} X
   p5-l2  [189 110 217 118]  {CMR8 8}Y{CMMI8 8 i},{CMR8 8}Z{CMSY8 8 i}∈N
@@ -2613,6 +4567,9 @@
   p5-l138  [306 750 524 760]  {NimbusRomNo9L-Regu 10.9}of the original formulation, of being slow for large
   p5-l139  [306 764 372 773]  {NimbusRomNo9L-Regu 10.9}grammar sizes.
   p5-l140  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}61
+  p5-d1  [70 332 290 333]  drawing
+  p5-d2  [70 346 290 347]  drawing
+  p5-d3  [70 707 290 708]  drawing
   == page 6  595 x 842  lines 104  pictures 0  drawings 0
   p6-l1  [71 74 130 84]  {NimbusRomNo9L-Medi 12 b}Limitations
   p6-l2  [70 95 289 104]  {NimbusRomNo9L-Regu 10.9}While we have improved the asymptotic running
@@ -2983,6 +4940,12 @@
   p10-l75  [71 755 525 763]  {NimbusRomNo9L-Regu 9}algorithm can also be seen as a generalization of Kleene’s (1956) algorithm for converting finite-state automata to regular
   p10-l76  [71 765 501 773]  {NimbusRomNo9L-Regu 9}expressions and the Gauss–Jordan algorithm for computing matrix inversion (see e.g. Althoen and McLaughlin (1987)).
   p10-l77  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}66
+  p10-d1  [258 437 265 439]  drawing
+  p10-d2  [275 437 282 439]  drawing
+  p10-d3  [70 543 525 545]  drawing
+  p10-d4  [70 558 525 559]  drawing
+  p10-d5  [70 680 525 680]  drawing
+  p10-d6  [70 688 131 688]  drawing
   == page 11  595 x 842  lines 76  pictures 0  drawings 3
   p11-l1  [82 74 525 84]  {NimbusRomNo9L-Regu 10.9}Lastly, since we no longer have normalized rule weights, we need to set the prefix weight of{CMMI10 10.9 i} ε{NimbusRomNo9L-Regu 10.9} under
   p11-l2  [71 87 524 98]  {NimbusRomNo9L-Regu 10.9}any non-terminal{CMR10 10.9} X{CMSY10 10.9 i} ∈ N{NimbusRomNo9L-Regu 10.9} to the treesum under{CMR10 10.9} X{NimbusRomNo9L-Regu 10.9}. With this, we can now generalize our prefix weight
@@ -3060,13 +5023,16 @@
   p11-l74  [71 619 273 631]  {NimbusRomNo9L-Regu 10.9}normalized CFG{CMSY10 10.9 i} G{NimbusRomNo9L-Regu 10.9} in{CMSY10 10.9 i} O{CMR10 10.9}({CMMI10 10.9 i}N{CMR8 8}2{CMSY10 10.9 i}|N|{CMR8 8}3{CMR10 10.9} +{CMMI10 10.9 i} N{CMR8 8}3{CMSY10 10.9 i}|N|{CMR8 8}2{CMR10 10.9}){NimbusRomNo9L-Regu 10.9}.
   p11-l75  [516 621 524 629]  {MSAM10 10.9}■
   p11-l76  [292 783 303 793]  {NimbusRomNo9L-Regu 10.9}67
+  p11-d1  [70 123 525 124]  drawing
+  p11-d2  [70 138 525 138]  drawing
+  p11-d3  [70 513 525 514]  drawing
   
   '''
 # ---
 # name: test_golden_file[arxiv2024-arsiwalla-qualia-meaning]
   '''
   arxiv2024-arsiwalla-qualia-meaning.pdf  sha256 5358bf0352ec8aa9
-  metadata: title='' authors=[] date='2024-05-03'
+  metadata: title='' authors=[] date='2024-05-03' language=''
   outline: level 1  page 2  'Introduction'
   outline: level 1  page 4  'Subjective Meaning in Phenomenology of Experience'
   outline: level 1  page 9  'Do Raw Feels Have Subjective Meaning? '
@@ -3100,6 +5066,7 @@
   p1-l25  [66 730 190 740]  {SFRM0700 7}∗{SFTT1000 10}x.d.arsiwalla@gmail.com
   p1-l26  [296 759 302 770]  {SFRM1200 12}1
   p1-l27  [box varies: font not embedded]  {Times-Roman 20}arXiv:2405.01148v1 [q-bio.NC] 2 May 2024
+  p1-d1  [52 727 250 727]  drawing
   == page 2  595 x 842  lines 39  pictures 0  drawings 0
   p2-l1  [52 72 125 87]  {SFBX1728 17.2 b}Contents
   p2-l2  [52 112 144 123]  {SFBX1200 12 b}1 Introduction
@@ -3185,6 +5152,7 @@
   p3-l42  [52 713 545 722]  {SFRM1000 10}of this view, though not explicitly expressed in terms of consciousness, may be traced back to Alan Turing’s PhD
   p3-l43  [52 725 332 735]  {SFRM1000 10}thesis, where he contrasts between intuition and ingenuity [126].
   p3-l44  [296 759 302 770]  {SFRM1200 12}3
+  p3-d1  [52 685 250 685]  drawing
   == page 4  595 x 842  lines 36  pictures 0  drawings 5
   p4-l1  [52 75 545 87]  {SFRM1200 12}tics [40] equip us with the right conceptual groundwork for formalizing subjective meaning with
   p4-l2  [52 90 253 101]  {SFRM1200 12}regard to the problem of consciousness.
@@ -3222,6 +5190,11 @@
   p4-l34  [52 700 545 711]  {SFRM1200 12}deliberative meaning-making process. For example, meaning associated to perceptual processes
   p4-l35  [66 721 492 732]  {SFRM0700 7}2{SFRM1000 10}It was David Mumford who first pointed out that "Grammar isn’t merely part of language" [96].
   p4-l36  [296 759 302 770]  {SFRM1200 12}4
+  p4-d1  [52 265 553 265]  drawing
+  p4-d2  [52 265 53 331]  drawing
+  p4-d3  [552 265 552 331]  drawing
+  p4-d4  [52 330 553 331]  drawing
+  p4-d5  [52 718 250 719]  drawing
   == page 5  595 x 842  lines 42  pictures 0  drawings 1
   p5-l1  [52 75 545 87]  {SFRM1200 12}involve the interpretation and understanding (often deliberative) of sensory stimuli, such as recog-
   p5-l2  [52 90 545 101]  {SFRM1200 12}nizing various representations of shapes, colors and patterns, or perceiving objects in the external
@@ -3265,6 +5238,7 @@
   p5-l40  [52 715 545 724]  {SFRM1000 10}ization of what symbols may refer to, or formation of social norms and conventions within and between groups of
   p5-l41  [52 726 143 736]  {SFRM1000 10}agents [3, 55, 79, 110].
   p5-l42  [296 759 302 770]  {SFRM1200 12}5
+  p5-d1  [52 698 250 699]  drawing
   == page 6  595 x 842  lines 40  pictures 0  drawings 4
   p6-l1  [52 75 545 87]  {SFTI1200 12 i}of red", for instance), it is to be noted that qualia also refer to aspects of conscious experiences
   p6-l2  [52 89 545 101]  {SFTI1200 12 i}beyond the purely sensory [37, 88, 127]. Examples include; (a) qualia associated to subjective
@@ -3306,6 +5280,10 @@
   p6-l38  [52 715 545 727]  {SFRM1200 12}internal states, belief systems, emotional states and behaviors [89, 91]. This internal model con-
   p6-l39  [52 730 545 741]  {SFRM1200 12}tributes to the recognition of one’s own goals and value systems, and consequently, it influences
   p6-l40  [296 759 302 770]  {SFRM1200 12}6
+  p6-d1  [52 594 553 595]  drawing
+  p6-d2  [52 594 53 661]  drawing
+  p6-d3  [552 594 552 661]  drawing
+  p6-d4  [52 660 553 661]  drawing
   == page 7  595 x 842  lines 51  pictures 0  drawings 62
   p7-l1  [52 75 545 87]  {SFRM1200 12}all external models of the subject (such as those pertaining to the world, or models of other
   p7-l2  [52 89 545 101]  {SFRM1200 12}agents that the subject interacts with). In the more specific context of consciousness studies, the
@@ -3358,6 +5336,68 @@
   p7-l49  [52 706 545 715]  {SFRM1000 10}system explicitly models itself as an embodied being, and maps some of the representational content generated in
   p7-l50  [52 718 526 727]  {SFRM1000 10}this process directly onto conscious experience. In other words, it consciously experiences itself as embodied.
   p7-l51  [296 759 302 770]  {SFRM1200 12}7
+  p7-d1  [162 482 435 483]  drawing
+  p7-d2  [162 482 163 500]  drawing
+  p7-d3  [164 482 165 500]  drawing
+  p7-d4  [191 482 192 500]  drawing
+  p7-d5  [432 482 433 500]  drawing
+  p7-d6  [434 482 435 500]  drawing
+  p7-d7  [162 499 435 500]  drawing
+  p7-d8  [162 499 163 517]  drawing
+  p7-d9  [164 499 165 517]  drawing
+  p7-d10  [191 499 192 517]  drawing
+  p7-d11  [432 499 433 517]  drawing
+  p7-d12  [434 499 435 517]  drawing
+  p7-d13  [162 517 435 517]  drawing
+  p7-d14  [162 517 163 535]  drawing
+  p7-d15  [164 517 165 535]  drawing
+  p7-d16  [191 517 192 535]  drawing
+  p7-d17  [432 517 433 535]  drawing
+  p7-d18  [434 517 435 535]  drawing
+  p7-d19  [162 534 435 535]  drawing
+  p7-d20  [162 534 163 552]  drawing
+  p7-d21  [164 534 165 552]  drawing
+  p7-d22  [191 534 192 552]  drawing
+  p7-d23  [432 534 433 552]  drawing
+  p7-d24  [434 534 435 552]  drawing
+  p7-d25  [162 551 435 552]  drawing
+  p7-d26  [162 552 163 569]  drawing
+  p7-d27  [164 552 165 569]  drawing
+  p7-d28  [191 552 192 569]  drawing
+  p7-d29  [432 552 433 569]  drawing
+  p7-d30  [434 552 435 569]  drawing
+  p7-d31  [162 569 435 570]  drawing
+  p7-d32  [162 569 163 587]  drawing
+  p7-d33  [164 569 165 587]  drawing
+  p7-d34  [191 569 192 587]  drawing
+  p7-d35  [432 569 433 587]  drawing
+  p7-d36  [434 569 435 587]  drawing
+  p7-d37  [162 586 435 587]  drawing
+  p7-d38  [162 586 163 604]  drawing
+  p7-d39  [164 586 165 604]  drawing
+  p7-d40  [191 586 192 604]  drawing
+  p7-d41  [432 586 433 604]  drawing
+  p7-d42  [434 586 435 604]  drawing
+  p7-d43  [162 604 435 604]  drawing
+  p7-d44  [162 604 163 622]  drawing
+  p7-d45  [164 604 165 622]  drawing
+  p7-d46  [191 604 192 622]  drawing
+  p7-d47  [432 604 433 622]  drawing
+  p7-d48  [434 604 435 622]  drawing
+  p7-d49  [162 621 435 622]  drawing
+  p7-d50  [162 621 163 639]  drawing
+  p7-d51  [164 621 165 639]  drawing
+  p7-d52  [191 621 192 639]  drawing
+  p7-d53  [432 621 433 639]  drawing
+  p7-d54  [434 621 435 639]  drawing
+  p7-d55  [162 639 435 639]  drawing
+  p7-d56  [162 639 163 657]  drawing
+  p7-d57  [164 639 165 657]  drawing
+  p7-d58  [191 639 192 657]  drawing
+  p7-d59  [432 639 433 657]  drawing
+  p7-d60  [434 639 435 657]  drawing
+  p7-d61  [162 656 435 657]  drawing
+  p7-d62  [52 689 250 690]  drawing
   == page 8  595 x 842  lines 41  pictures 0  drawings 0
   p8-l1  [66 75 545 86]  {SFRM1200 12}1. Moments of personal revelation, existential realization or sudden transformative life experi-
   p8-l2  [81 90 545 101]  {SFRM1200 12}ences like a spiritual realization, a meditative revelation or an epiphany have been discussed
@@ -3443,6 +5483,7 @@
   p9-l40  [52 716 175 726]  {SFRM1000 10}name a few [75, 81, 109, 114].
   p9-l41  [66 727 361 738]  {SFRM0700 7}6{SFRM1000 10}Some authors also use the term "denotation" for "reference" [135].
   p9-l42  [296 759 302 770]  {SFRM1200 12}9
+  p9-d1  [52 688 250 689]  drawing
   == page 10  595 x 842  lines 41  pictures 0  drawings 5
   p10-l1  [52 75 545 87]  {SFTI1200 12 i}of the expression. Two syntactically distinct expressions, may have identical references (at each
   p10-l2  [52 89 353 101]  {SFTI1200 12 i}corresponding level of their structures), but distinct senses.
@@ -3485,6 +5526,11 @@
   p10-l39  [52 710 250 719]  {SFRM1000 10}metaphysics of abstract and concrete objects.
   p10-l40  [66 721 483 731]  {SFRM0700 7}9{SFRM1000 10}Several philosophers including Husserl and Merleau-Ponty have emphasized this point [68, 88] .
   p10-l41  [293 759 305 770]  {SFRM1200 12}10
+  p10-d1  [52 175 553 176]  drawing
+  p10-d2  [52 175 53 228]  drawing
+  p10-d3  [552 175 552 228]  drawing
+  p10-d4  [52 227 553 228]  drawing
+  p10-d5  [52 646 250 646]  drawing
   == page 11  595 x 842  lines 42  pictures 0  drawings 0
   p11-l1  [52 75 210 86]  {SFRM1200 12}Two remarks are in order here:
   p11-l2  [52 100 545 111]  {SFBX1200 12 b}Remark 3.2.{SFTI1200 12 i} There is of course room to argue that there may be other attributes of mental rep-
@@ -3573,6 +5619,7 @@
   p12-l42  [52 719 545 728]  {SFRM1000 10}semantics and pragmatics. However, for our purposes here, compositional models will suffice for what follows.
   p12-l43  [52 731 327 740]  {SFRM1000 10}Additional contextual contributions can be included thereafter.
   p12-l44  [293 759 305 770]  {SFRM1200 12}12
+  p12-d1  [52 667 250 668]  drawing
   == page 13  595 x 842  lines 37  pictures 0  drawings 8
   p13-l1  [89 76 545 86]  {SFTI1200 12 i}The object determines the sign, and in turn, the sign, via the specific representation of the
   p13-l2  [52 90 463 101]  {SFTI1200 12 i}object, influences and shapes the interpretant. The order of these relations is so:
@@ -3611,6 +5658,14 @@
   p13-l35  [52 707 486 719]  {SFRM1200 12}binary or any higher arity) between mental objects. Here again, the association map
   p13-l36  [247 729 350 741]  {CMSY10 12 i}A{CMMI8 8 i}M{CMR12 12} :{CMMI12 12 i} Obj{CMMI8 8 i}M{CMSY10 12 i} →{CMMI12 12 i} Rel{CMMI8 8 i}M
   p13-l37  [293 759 305 770]  {SFRM1200 12}13
+  p13-d1  [192 351 193 468]  drawing
+  p13-d2  [189 464 196 469]  drawing
+  p13-d3  [211 341 389 342]  drawing
+  p13-d4  [385 338 390 345]  drawing
+  p13-d5  [406 350 407 468]  drawing
+  p13-d6  [403 464 410 469]  drawing
+  p13-d7  [212 477 387 478]  drawing
+  p13-d8  [384 474 389 481]  drawing
   == page 14  595 x 842  lines 46  pictures 0  drawings 1
   p14-l1  [52 75 545 87]  {SFRM1200 12}defines relations contained within{CMMI12 12 i} Rel{CMMI8 8 i}M{SFRM1200 12}. We will refer to the collection{CMSY10 12 i} {{CMMI12 12 i}Obj{CMMI8 8 i}M{CMMI12 12 i},{CMSY10 12 i} A{CMMI8 8 i}M{CMR12 12}({CMMI12 12 i}Obj{CMMI8 8 i}M{CMR12 12}){CMSY10 12 i}}{SFRM1200 12} as
   p14-l2  [52 89 170 101]  {SFRM1200 12}the mental domain{CMSY10 12 i} M{SFRM1200 12}.
@@ -3658,6 +5713,7 @@
   p14-l44  [52 714 169 724]  {SFRM1000 10}(see [107] for an overview).
   p14-l45  [62 725 507 735]  {SFRM0700 7}12{SFRM1000 10}The neuroscientist experimenting upon the agent, is merely inferring what the model may be about.
   p14-l46  [293 759 305 770]  {SFRM1200 12}14
+  p14-d1  [52 698 250 698]  drawing
   == page 15  595 x 842  lines 45  pictures 0  drawings 1
   p15-l1  [52 75 545 86]  {SFRM1200 12}of physics; including laws of dynamical evolution, order effects such as causal ordering, kinemat-
   p15-l2  [52 90 545 101]  {SFRM1200 12}ical constraints such as conservation laws, and geometrical constraints due to the spaces within
@@ -3704,6 +5760,7 @@
   p15-l43  [52 719 545 728]  {SFRM1000 10}observer. Hence, to read-off any kind of meaning, an observer is imperative. A discussion about observer theory
   p15-l44  [52 731 361 741]  {SFRM1000 10}from the perspective of second-order cybernetics can be found in [112].
   p15-l45  [293 759 305 770]  {SFRM1200 12}15
+  p15-d1  [52 679 250 680]  drawing
   == page 16  595 x 842  lines 34  pictures 1  drawings 1
   p16-l1  [52 76 545 86]  {SFTI1200 12 i}a particular application of Peirce’s theory of signs, which otherwise, was intended for broader
   p16-l2  [52 90 215 101]  {SFTI1200 12 i}applications across the sciences.
@@ -3740,6 +5797,7 @@
   p16-l33  [62 730 493 740]  {SFRM0700 7}15{SFRM1000 10}Note that these are not identity morphisms, but non-trivial mappings within the mental domain.
   p16-l34  [293 759 305 770]  {SFRM1200 12}16
   p16-i1  [138 513 459 597]  picture
+  p16-d1  [52 727 250 727]  drawing
   == page 17  595 x 842  lines 38  pictures 0  drawings 1
   p17-l1  [52 75 545 87]  {SFBX1200 12 b}Remark 4.3.{SFTI1200 12 i} The maps, in eqns.(2) and (4) above, demonstrate how meaning involves relations
   p17-l2  [52 90 545 101]  {SFTI1200 12 i}between the physical and mental domains. The mind-matter relation thus plays a central role in
@@ -3779,6 +5837,7 @@
   p17-l36  [62 642 545 653]  {SFRM0700 7}17{SFRM1000 10}We thank Giulio Katis for bringing this point to our attention. A thorough category-theoretic treatment of
   p17-l37  [52 656 466 665]  {SFRM1000 10}this diagram along with admissible higher morphisms will be reported in a forthcoming article.
   p17-l38  [293 759 305 770]  {SFRM1200 12}17
+  p17-d1  [52 615 250 616]  drawing
   == page 18  595 x 842  lines 43  pictures 0  drawings 1
   p18-l1  [52 72 61 87]  {SFBX1728 17.2 b}5
   p18-l2  [80 72 165 87]  {SFBX1728 17.2 b}Discussion
@@ -3823,6 +5882,7 @@
   p18-l41  [52 719 545 727]  {SFRM1000 10}experience, as considered here. Each such case will have its own metaphysical considerations to take into account,
   p18-l42  [52 730 262 739]  {SFRM1000 10}as well as how that may translate to experience.
   p18-l43  [293 759 305 770]  {SFRM1200 12}18
+  p18-d1  [52 702 250 703]  drawing
   == page 19  595 x 842  lines 38  pictures 0  drawings 1
   p19-l1  [52 75 545 86]  {SFRM1200 12}Information Theory itself may be extended to include compositional meaning was already pro-
   p19-l2  [52 89 545 101]  {SFRM1200 12}posed{SFRM0800 8}19{SFRM1200 12} in [2]. However, note that any such synthesis of ideas does not imply that information,
@@ -3862,6 +5922,7 @@
   p19-l36  [62 718 545 728]  {SFRM0700 7}19{SFRM1000 10}Presented at the Models of Consciousness Conference 2019, University of Oxford:{SFTT1000 10} https://podcasts.ox.ac.
   p19-l37  [52 731 521 740]  {SFTT1000 10}uk/xerxes-arsiwalla-computing-meaning-conceptual-structures-integrated-information-theory
   p19-l38  [293 759 305 770]  {SFRM1200 12}19
+  p19-d1  [52 715 250 715]  drawing
   == page 20  595 x 842  lines 40  pictures 0  drawings 0
   p20-l1  [64 75 545 87]  {SFRM1200 12}[3] Arsiwalla, X.D.: A cognitive account of the puzzle of ideography. Behavioral and Brain
   p20-l2  [82 89 206 101]  {SFRM1200 12}Sciences 46, e235 (2023)
@@ -4198,7 +6259,7 @@
 # name: test_golden_file[arxiv2024-liu-orbital-hall]
   '''
   arxiv2024-liu-orbital-hall.pdf  sha256 c7bdd6793e110683
-  metadata: title='' authors=[] date='2024-04-05'
+  metadata: title='' authors=[] date='2024-04-05' language=''
   outline: level 1  page 1  'Dominance of extrinsic scattering mechanisms in the orbital Hall effect: graphene, transition metal dichalcogenides and topological antiferromagnets'
   outline: level 2  page 1  'Abstract'
   outline: level 2  page 4  'References'
@@ -4301,6 +6362,103 @@
   p1-l96  [317 702 562 716]  {CMR10 10}erator ˆ{CMMIB10 10 i}j{CMR10 10} ={CMR7 7} 1 2{CMSY10 10 i}{{CMMIB10 10 i}L{CMR10 10}ˆ{CMMI10 10 i},{CMMIB10 10 i} v{CMR10 10}ˆ{CMSY10 10 i}}{CMR10 10} where{CMMIB10 10 i} L{CMR10 10}ˆ is the OAM operator and
   p1-l97  [317 716 562 725]  {CMMIB10 10 i}v{CMR10 10}ˆ the velocity operator. With the applied electric field
   p1-l98  [box varies: font not embedded]  {Times-Roman 20}arXiv:2308.14878v2 [cond-mat.mes-hall] 4 Apr 2024
+  p1-d1  [356 257 397 351]  drawing
+  p1-d2  [514 257 555 351]  drawing
+  p1-d3  [356 256 398 351]  drawing
+  p1-d4  [513 256 555 351]  drawing
+  p1-d5  [357 231 555 250]  drawing
+  p1-d6  [430 305 440 308]  drawing
+  p1-d7  [430 322 440 324]  drawing
+  p1-d8  [430 338 440 341]  drawing
+  p1-d9  [357 346 554 350]  drawing
+  p1-d10  [357 230 360 350]  drawing
+  p1-d11  [357 230 554 234]  drawing
+  p1-d12  [551 230 554 350]  drawing
+  p1-d13  [358 345 359 349]  drawing
+  p1-d14  [367 346 369 349]  drawing
+  p1-d15  [377 346 379 349]  drawing
+  p1-d16  [387 346 389 349]  drawing
+  p1-d17  [396 346 398 349]  drawing
+  p1-d18  [406 345 408 349]  drawing
+  p1-d19  [416 346 418 349]  drawing
+  p1-d20  [425 346 427 349]  drawing
+  p1-d21  [435 346 437 349]  drawing
+  p1-d22  [445 346 447 349]  drawing
+  p1-d23  [455 345 456 349]  drawing
+  p1-d24  [464 346 466 349]  drawing
+  p1-d25  [474 346 476 349]  drawing
+  p1-d26  [484 346 486 349]  drawing
+  p1-d27  [493 346 495 349]  drawing
+  p1-d28  [503 345 505 349]  drawing
+  p1-d29  [513 346 515 349]  drawing
+  p1-d30  [522 346 524 349]  drawing
+  p1-d31  [532 346 534 349]  drawing
+  p1-d32  [542 346 544 349]  drawing
+  p1-d33  [552 345 553 349]  drawing
+  p1-d34  [358 347 361 349]  drawing
+  p1-d35  [358 342 361 343]  drawing
+  p1-d36  [358 336 361 338]  drawing
+  p1-d37  [358 330 361 332]  drawing
+  p1-d38  [358 324 361 326]  drawing
+  p1-d39  [358 318 361 320]  drawing
+  p1-d40  [358 312 361 314]  drawing
+  p1-d41  [358 307 361 308]  drawing
+  p1-d42  [358 301 361 303]  drawing
+  p1-d43  [358 295 361 297]  drawing
+  p1-d44  [358 289 361 291]  drawing
+  p1-d45  [358 283 361 285]  drawing
+  p1-d46  [358 278 361 279]  drawing
+  p1-d47  [358 272 361 274]  drawing
+  p1-d48  [358 266 361 268]  drawing
+  p1-d49  [358 260 361 262]  drawing
+  p1-d50  [358 254 361 256]  drawing
+  p1-d51  [358 248 361 250]  drawing
+  p1-d52  [358 243 361 244]  drawing
+  p1-d53  [358 237 361 239]  drawing
+  p1-d54  [358 231 361 233]  drawing
+  p1-d55  [358 231 359 235]  drawing
+  p1-d56  [367 231 369 234]  drawing
+  p1-d57  [377 231 379 234]  drawing
+  p1-d58  [387 231 389 234]  drawing
+  p1-d59  [396 231 398 234]  drawing
+  p1-d60  [406 231 408 235]  drawing
+  p1-d61  [416 231 418 234]  drawing
+  p1-d62  [425 231 427 234]  drawing
+  p1-d63  [435 231 437 234]  drawing
+  p1-d64  [445 231 447 234]  drawing
+  p1-d65  [455 231 456 235]  drawing
+  p1-d66  [464 231 466 234]  drawing
+  p1-d67  [474 231 476 234]  drawing
+  p1-d68  [484 231 486 234]  drawing
+  p1-d69  [493 231 495 234]  drawing
+  p1-d70  [503 231 505 235]  drawing
+  p1-d71  [513 231 515 234]  drawing
+  p1-d72  [522 231 524 234]  drawing
+  p1-d73  [532 231 534 234]  drawing
+  p1-d74  [542 231 544 234]  drawing
+  p1-d75  [552 231 553 235]  drawing
+  p1-d76  [550 347 553 349]  drawing
+  p1-d77  [550 342 553 343]  drawing
+  p1-d78  [550 336 553 338]  drawing
+  p1-d79  [550 330 553 332]  drawing
+  p1-d80  [550 324 553 326]  drawing
+  p1-d81  [550 318 553 320]  drawing
+  p1-d82  [550 312 553 314]  drawing
+  p1-d83  [550 307 553 308]  drawing
+  p1-d84  [550 301 553 303]  drawing
+  p1-d85  [550 295 553 297]  drawing
+  p1-d86  [550 289 553 291]  drawing
+  p1-d87  [550 283 553 285]  drawing
+  p1-d88  [550 278 553 279]  drawing
+  p1-d89  [550 272 553 274]  drawing
+  p1-d90  [550 266 553 268]  drawing
+  p1-d91  [550 260 553 262]  drawing
+  p1-d92  [550 254 553 256]  drawing
+  p1-d93  [550 248 553 250]  drawing
+  p1-d94  [550 243 553 244]  drawing
+  p1-d95  [550 237 553 239]  drawing
+  p1-d96  [550 231 553 233]  drawing
+  p1-d97  [369 709 374 710]  drawing
   == page 2  612 x 792  lines 167  pictures 0  drawings 135
   p2-l1  [557 29 562 38]  {CMR10 10}2
   p2-l2  [114 125 141 135]  {Mathematica-Bold 8.8 b}Δ={TimesNewRomanPS-BoldMT 9.3 b}1eV
@@ -4469,6 +6627,141 @@
   p2-l165  [317 699 562 712]  {CMR10 10}mine the anomalous driving term{CMMI10 10 i} D{CMSY7 7 i}′{CMMI7 7 i}E{CMR10 10}, and ultimately the
   p2-l166  [317 711 482 724]  {CMR10 10}band off-diagonal density matrix{CMMI10 10 i} S{CMR7 7}(0)
   p2-l167  [471 714 562 726]  {CMMI7 7 i}E{CMR10 10}. At last, we feed
+  p2-d1  [93 72 190 175]  drawing
+  p2-d2  [93 61 226 175]  drawing
+  p2-d3  [94 58 249 175]  drawing
+  p2-d4  [99 130 109 132]  drawing
+  p2-d5  [99 146 109 149]  drawing
+  p2-d6  [99 162 109 165]  drawing
+  p2-d7  [94 171 287 175]  drawing
+  p2-d8  [94 57 97 175]  drawing
+  p2-d9  [94 57 287 61]  drawing
+  p2-d10  [283 57 287 175]  drawing
+  p2-d11  [95 170 96 174]  drawing
+  p2-d12  [104 171 106 174]  drawing
+  p2-d13  [114 171 115 174]  drawing
+  p2-d14  [123 171 125 174]  drawing
+  p2-d15  [133 171 134 174]  drawing
+  p2-d16  [142 170 144 174]  drawing
+  p2-d17  [152 171 153 174]  drawing
+  p2-d18  [161 171 163 174]  drawing
+  p2-d19  [170 171 172 174]  drawing
+  p2-d20  [180 171 182 174]  drawing
+  p2-d21  [189 170 191 174]  drawing
+  p2-d22  [199 171 201 174]  drawing
+  p2-d23  [208 171 210 174]  drawing
+  p2-d24  [218 171 220 174]  drawing
+  p2-d25  [227 171 229 174]  drawing
+  p2-d26  [237 170 239 174]  drawing
+  p2-d27  [246 171 248 174]  drawing
+  p2-d28  [256 171 258 174]  drawing
+  p2-d29  [265 171 267 174]  drawing
+  p2-d30  [275 171 277 174]  drawing
+  p2-d31  [284 170 286 174]  drawing
+  p2-d32  [95 172 98 174]  drawing
+  p2-d33  [95 168 98 170]  drawing
+  p2-d34  [95 164 98 166]  drawing
+  p2-d35  [95 160 98 162]  drawing
+  p2-d36  [95 157 98 158]  drawing
+  p2-d37  [95 153 98 155]  drawing
+  p2-d38  [95 149 98 151]  drawing
+  p2-d39  [95 145 98 147]  drawing
+  p2-d40  [95 141 98 143]  drawing
+  p2-d41  [95 138 98 139]  drawing
+  p2-d42  [95 134 98 136]  drawing
+  p2-d43  [95 130 98 132]  drawing
+  p2-d44  [95 126 98 128]  drawing
+  p2-d45  [95 122 98 124]  drawing
+  p2-d46  [95 119 98 120]  drawing
+  p2-d47  [95 115 98 117]  drawing
+  p2-d48  [95 111 98 113]  drawing
+  p2-d49  [95 107 98 109]  drawing
+  p2-d50  [95 103 98 105]  drawing
+  p2-d51  [95 100 98 102]  drawing
+  p2-d52  [95 96 98 98]  drawing
+  p2-d53  [95 92 98 94]  drawing
+  p2-d54  [95 88 98 90]  drawing
+  p2-d55  [95 84 98 86]  drawing
+  p2-d56  [95 81 98 83]  drawing
+  p2-d57  [95 77 98 79]  drawing
+  p2-d58  [95 73 98 75]  drawing
+  p2-d59  [95 69 98 71]  drawing
+  p2-d60  [95 65 98 67]  drawing
+  p2-d61  [95 62 98 64]  drawing
+  p2-d62  [95 58 98 60]  drawing
+  p2-d63  [95 58 96 62]  drawing
+  p2-d64  [104 58 106 61]  drawing
+  p2-d65  [114 58 115 61]  drawing
+  p2-d66  [123 58 125 61]  drawing
+  p2-d67  [133 58 134 61]  drawing
+  p2-d68  [142 58 144 62]  drawing
+  p2-d69  [152 58 153 61]  drawing
+  p2-d70  [161 58 163 61]  drawing
+  p2-d71  [170 58 172 61]  drawing
+  p2-d72  [180 58 182 61]  drawing
+  p2-d73  [189 58 191 62]  drawing
+  p2-d74  [199 58 201 61]  drawing
+  p2-d75  [208 58 210 61]  drawing
+  p2-d76  [218 58 220 61]  drawing
+  p2-d77  [227 58 229 61]  drawing
+  p2-d78  [237 58 239 62]  drawing
+  p2-d79  [246 58 248 61]  drawing
+  p2-d80  [256 58 258 61]  drawing
+  p2-d81  [265 58 267 61]  drawing
+  p2-d82  [275 58 277 61]  drawing
+  p2-d83  [284 58 286 62]  drawing
+  p2-d84  [282 172 286 174]  drawing
+  p2-d85  [283 168 286 170]  drawing
+  p2-d86  [283 164 286 166]  drawing
+  p2-d87  [283 160 286 162]  drawing
+  p2-d88  [283 157 286 158]  drawing
+  p2-d89  [282 153 286 155]  drawing
+  p2-d90  [283 149 286 151]  drawing
+  p2-d91  [283 145 286 147]  drawing
+  p2-d92  [283 141 286 143]  drawing
+  p2-d93  [283 138 286 139]  drawing
+  p2-d94  [282 134 286 136]  drawing
+  p2-d95  [283 130 286 132]  drawing
+  p2-d96  [283 126 286 128]  drawing
+  p2-d97  [283 122 286 124]  drawing
+  p2-d98  [283 119 286 120]  drawing
+  p2-d99  [282 115 286 117]  drawing
+  p2-d100  [283 111 286 113]  drawing
+  p2-d101  [283 107 286 109]  drawing
+  p2-d102  [283 103 286 105]  drawing
+  p2-d103  [283 100 286 102]  drawing
+  p2-d104  [282 96 286 98]  drawing
+  p2-d105  [283 92 286 94]  drawing
+  p2-d106  [283 88 286 90]  drawing
+  p2-d107  [283 84 286 86]  drawing
+  p2-d108  [283 81 286 83]  drawing
+  p2-d109  [282 77 286 79]  drawing
+  p2-d110  [283 73 286 75]  drawing
+  p2-d111  [283 69 286 71]  drawing
+  p2-d112  [283 65 286 67]  drawing
+  p2-d113  [283 62 286 64]  drawing
+  p2-d114  [282 58 286 60]  drawing
+  p2-d115  [141 240 145 241]  drawing
+  p2-d116  [140 335 164 336]  drawing
+  p2-d117  [165 335 180 336]  drawing
+  p2-d118  [181 335 250 336]  drawing
+  p2-d119  [116 405 164 406]  drawing
+  p2-d120  [181 423 190 424]  drawing
+  p2-d121  [140 436 149 437]  drawing
+  p2-d122  [209 459 229 460]  drawing
+  p2-d123  [231 459 243 460]  drawing
+  p2-d124  [137 680 148 681]  drawing
+  p2-d125  [162 680 168 681]  drawing
+  p2-d126  [323 144 342 144]  drawing
+  p2-d127  [353 144 359 144]  drawing
+  p2-d128  [459 144 465 144]  drawing
+  p2-d129  [353 311 399 312]  drawing
+  p2-d130  [378 331 390 331]  drawing
+  p2-d131  [522 344 537 344]  drawing
+  p2-d132  [321 400 355 401]  drawing
+  p2-d133  [389 417 394 418]  drawing
+  p2-d134  [396 417 414 418]  drawing
+  p2-d135  [449 417 454 418]  drawing
   == page 3  612 x 792  lines 168  pictures 0  drawings 211
   p3-l1  [557 29 562 38]  {CMR10 10}3
   p3-l2  [109 66 149 73]  {TimesNewRomanPS-BoldMT 5.9 b}Skew scattering
@@ -4638,6 +6931,217 @@
   p3-l166  [317 692 562 701]  {CMR10 10}up during earlier studies of the anomalous and spin-Hall
   p3-l167  [317 703 562 713]  {CMR10 10}effects [50–53]. In the spin Hall effect disorder corrections
   p3-l168  [317 715 562 724]  {CMR10 10}cancel the intrinsic contribution altogether, while in the
+  p3-d1  [75 75 174 161]  drawing
+  p3-d2  [75 79 99 162]  drawing
+  p3-d3  [150 79 174 162]  drawing
+  p3-d4  [100 69 106 71]  drawing
+  p3-d5  [100 79 106 81]  drawing
+  p3-d6  [75 160 174 162]  drawing
+  p3-d7  [75 63 77 162]  drawing
+  p3-d8  [75 63 174 65]  drawing
+  p3-d9  [172 63 174 162]  drawing
+  p3-d10  [76 159 77 161]  drawing
+  p3-d11  [80 160 82 161]  drawing
+  p3-d12  [85 160 86 161]  drawing
+  p3-d13  [90 160 91 161]  drawing
+  p3-d14  [95 160 96 161]  drawing
+  p3-d15  [100 159 101 161]  drawing
+  p3-d16  [105 160 106 161]  drawing
+  p3-d17  [109 160 111 161]  drawing
+  p3-d18  [114 160 115 161]  drawing
+  p3-d19  [119 160 120 161]  drawing
+  p3-d20  [124 159 125 161]  drawing
+  p3-d21  [129 160 130 161]  drawing
+  p3-d22  [134 160 135 161]  drawing
+  p3-d23  [138 160 140 161]  drawing
+  p3-d24  [143 160 144 161]  drawing
+  p3-d25  [148 159 149 161]  drawing
+  p3-d26  [153 160 154 161]  drawing
+  p3-d27  [158 160 159 161]  drawing
+  p3-d28  [163 160 164 161]  drawing
+  p3-d29  [167 160 169 161]  drawing
+  p3-d30  [172 159 173 161]  drawing
+  p3-d31  [76 160 78 161]  drawing
+  p3-d32  [76 154 77 155]  drawing
+  p3-d33  [76 148 77 149]  drawing
+  p3-d34  [76 142 77 143]  drawing
+  p3-d35  [76 136 78 137]  drawing
+  p3-d36  [76 130 77 131]  drawing
+  p3-d37  [76 124 77 125]  drawing
+  p3-d38  [76 118 77 119]  drawing
+  p3-d39  [76 112 78 113]  drawing
+  p3-d40  [76 106 77 107]  drawing
+  p3-d41  [76 100 77 101]  drawing
+  p3-d42  [76 94 77 95]  drawing
+  p3-d43  [76 88 78 89]  drawing
+  p3-d44  [76 82 77 83]  drawing
+  p3-d45  [76 76 77 77]  drawing
+  p3-d46  [76 70 77 71]  drawing
+  p3-d47  [76 64 78 65]  drawing
+  p3-d48  [76 64 77 66]  drawing
+  p3-d49  [80 64 82 66]  drawing
+  p3-d50  [85 64 86 66]  drawing
+  p3-d51  [90 64 91 66]  drawing
+  p3-d52  [95 64 96 66]  drawing
+  p3-d53  [100 64 101 66]  drawing
+  p3-d54  [105 64 106 66]  drawing
+  p3-d55  [109 64 111 66]  drawing
+  p3-d56  [114 64 115 66]  drawing
+  p3-d57  [119 64 120 66]  drawing
+  p3-d58  [124 64 125 66]  drawing
+  p3-d59  [129 64 130 66]  drawing
+  p3-d60  [134 64 135 66]  drawing
+  p3-d61  [138 64 140 66]  drawing
+  p3-d62  [143 64 144 66]  drawing
+  p3-d63  [148 64 149 66]  drawing
+  p3-d64  [153 64 154 66]  drawing
+  p3-d65  [158 64 159 66]  drawing
+  p3-d66  [163 64 164 66]  drawing
+  p3-d67  [167 64 169 66]  drawing
+  p3-d68  [172 64 173 66]  drawing
+  p3-d69  [171 160 173 161]  drawing
+  p3-d70  [172 154 173 155]  drawing
+  p3-d71  [172 148 173 149]  drawing
+  p3-d72  [172 142 173 143]  drawing
+  p3-d73  [171 136 173 137]  drawing
+  p3-d74  [172 130 173 131]  drawing
+  p3-d75  [172 124 173 125]  drawing
+  p3-d76  [172 118 173 119]  drawing
+  p3-d77  [171 112 173 113]  drawing
+  p3-d78  [172 106 173 107]  drawing
+  p3-d79  [172 100 173 101]  drawing
+  p3-d80  [172 94 173 95]  drawing
+  p3-d81  [171 88 173 89]  drawing
+  p3-d82  [172 82 173 83]  drawing
+  p3-d83  [172 76 173 77]  drawing
+  p3-d84  [172 70 173 71]  drawing
+  p3-d85  [171 64 173 65]  drawing
+  p3-d86  [196 79 220 162]  drawing
+  p3-d87  [271 79 295 162]  drawing
+  p3-d88  [196 84 217 162]  drawing
+  p3-d89  [273 84 295 162]  drawing
+  p3-d90  [221 69 227 71]  drawing
+  p3-d91  [221 80 227 81]  drawing
+  p3-d92  [196 160 294 162]  drawing
+  p3-d93  [196 64 198 162]  drawing
+  p3-d94  [196 64 294 66]  drawing
+  p3-d95  [293 64 294 162]  drawing
+  p3-d96  [197 159 198 161]  drawing
+  p3-d97  [201 160 203 161]  drawing
+  p3-d98  [206 160 207 161]  drawing
+  p3-d99  [211 160 212 161]  drawing
+  p3-d100  [216 160 217 161]  drawing
+  p3-d101  [221 159 222 161]  drawing
+  p3-d102  [225 160 227 161]  drawing
+  p3-d103  [230 160 231 161]  drawing
+  p3-d104  [235 160 236 161]  drawing
+  p3-d105  [240 160 241 161]  drawing
+  p3-d106  [245 159 246 161]  drawing
+  p3-d107  [250 160 251 161]  drawing
+  p3-d108  [254 160 256 161]  drawing
+  p3-d109  [259 160 260 161]  drawing
+  p3-d110  [264 160 265 161]  drawing
+  p3-d111  [269 159 270 161]  drawing
+  p3-d112  [274 160 275 161]  drawing
+  p3-d113  [278 160 280 161]  drawing
+  p3-d114  [283 160 284 161]  drawing
+  p3-d115  [288 160 289 161]  drawing
+  p3-d116  [293 159 294 161]  drawing
+  p3-d117  [197 160 199 161]  drawing
+  p3-d118  [197 157 198 158]  drawing
+  p3-d119  [197 154 198 155]  drawing
+  p3-d120  [197 151 198 152]  drawing
+  p3-d121  [197 147 198 149]  drawing
+  p3-d122  [197 144 199 145]  drawing
+  p3-d123  [197 141 198 142]  drawing
+  p3-d124  [197 138 198 139]  drawing
+  p3-d125  [197 135 198 136]  drawing
+  p3-d126  [197 131 198 133]  drawing
+  p3-d127  [197 128 199 129]  drawing
+  p3-d128  [197 125 198 126]  drawing
+  p3-d129  [197 122 198 123]  drawing
+  p3-d130  [197 119 198 120]  drawing
+  p3-d131  [197 115 198 117]  drawing
+  p3-d132  [197 112 199 113]  drawing
+  p3-d133  [197 109 198 110]  drawing
+  p3-d134  [197 106 198 107]  drawing
+  p3-d135  [197 103 198 104]  drawing
+  p3-d136  [197 99 198 100]  drawing
+  p3-d137  [197 96 199 97]  drawing
+  p3-d138  [197 93 198 94]  drawing
+  p3-d139  [197 90 198 91]  drawing
+  p3-d140  [197 86 198 88]  drawing
+  p3-d141  [197 83 198 84]  drawing
+  p3-d142  [197 80 199 81]  drawing
+  p3-d143  [197 77 198 78]  drawing
+  p3-d144  [197 74 198 75]  drawing
+  p3-d145  [197 70 198 72]  drawing
+  p3-d146  [197 67 198 68]  drawing
+  p3-d147  [197 64 199 65]  drawing
+  p3-d148  [197 64 198 66]  drawing
+  p3-d149  [201 64 203 66]  drawing
+  p3-d150  [206 64 207 66]  drawing
+  p3-d151  [211 64 212 66]  drawing
+  p3-d152  [216 64 217 66]  drawing
+  p3-d153  [221 64 222 66]  drawing
+  p3-d154  [225 64 227 66]  drawing
+  p3-d155  [230 64 231 66]  drawing
+  p3-d156  [235 64 236 66]  drawing
+  p3-d157  [240 64 241 66]  drawing
+  p3-d158  [245 64 246 66]  drawing
+  p3-d159  [250 64 251 66]  drawing
+  p3-d160  [254 64 256 66]  drawing
+  p3-d161  [259 64 260 66]  drawing
+  p3-d162  [264 64 265 66]  drawing
+  p3-d163  [269 64 270 66]  drawing
+  p3-d164  [274 64 275 66]  drawing
+  p3-d165  [278 64 280 66]  drawing
+  p3-d166  [283 64 284 66]  drawing
+  p3-d167  [288 64 289 66]  drawing
+  p3-d168  [293 64 294 66]  drawing
+  p3-d169  [292 160 294 161]  drawing
+  p3-d170  [292 157 294 158]  drawing
+  p3-d171  [292 154 294 155]  drawing
+  p3-d172  [292 151 294 152]  drawing
+  p3-d173  [292 147 294 149]  drawing
+  p3-d174  [292 144 294 145]  drawing
+  p3-d175  [292 141 294 142]  drawing
+  p3-d176  [292 138 294 139]  drawing
+  p3-d177  [292 135 294 136]  drawing
+  p3-d178  [292 131 294 133]  drawing
+  p3-d179  [292 128 294 129]  drawing
+  p3-d180  [292 125 294 126]  drawing
+  p3-d181  [292 122 294 123]  drawing
+  p3-d182  [292 119 294 120]  drawing
+  p3-d183  [292 115 294 117]  drawing
+  p3-d184  [292 112 294 113]  drawing
+  p3-d185  [292 109 294 110]  drawing
+  p3-d186  [292 106 294 107]  drawing
+  p3-d187  [292 103 294 104]  drawing
+  p3-d188  [292 99 294 100]  drawing
+  p3-d189  [292 96 294 97]  drawing
+  p3-d190  [292 93 294 94]  drawing
+  p3-d191  [292 90 294 91]  drawing
+  p3-d192  [292 86 294 88]  drawing
+  p3-d193  [292 83 294 84]  drawing
+  p3-d194  [292 80 294 81]  drawing
+  p3-d195  [292 77 294 78]  drawing
+  p3-d196  [292 74 294 75]  drawing
+  p3-d197  [292 70 294 72]  drawing
+  p3-d198  [292 67 294 68]  drawing
+  p3-d199  [292 64 294 65]  drawing
+  p3-d200  [117 508 129 509]  drawing
+  p3-d201  [134 556 154 556]  drawing
+  p3-d202  [155 556 185 556]  drawing
+  p3-d203  [187 556 255 556]  drawing
+  p3-d204  [134 628 154 629]  drawing
+  p3-d205  [155 628 185 629]  drawing
+  p3-d206  [187 628 255 629]  drawing
+  p3-d207  [134 681 154 682]  drawing
+  p3-d208  [155 681 185 682]  drawing
+  p3-d209  [187 681 255 682]  drawing
+  p3-d210  [463 345 507 345]  drawing
+  p3-d211  [486 385 531 385]  drawing
   == page 4  612 x 792  lines 126  pictures 0  drawings 6
   p4-l1  [557 29 562 38]  {CMR10 10}4
   p4-l2  [54 55 299 64]  {CMR10 10}anomalous Hall effect they overwhelm the intrinsic con-
@@ -4765,6 +7269,12 @@
   p4-l124  [412 711 439 719]  {CMR9 9}Nature
   p4-l125  [449 711 514 719]  {CMR9 9}Nanotechnology
   p4-l126  [534 711 562 719]  {CMR9 9}(2023),
+  p4-d1  [121 222 149 223]  drawing
+  p4-d2  [151 222 193 223]  drawing
+  p4-d3  [185 624 431 625]  drawing
+  p4-d4  [216 624 401 625]  drawing
+  p4-d5  [246 623 370 625]  drawing
+  p4-d6  [277 624 339 625]  drawing
   == page 5  612 x 792  lines 135  pictures 0  drawings 0
   p5-l1  [557 29 562 38]  {CMR10 10}5
   p5-l2  [72 55 187 64]  {CMR9 9}10.1038/s41565-023-01470-8.
@@ -4984,7 +7494,7 @@
 # name: test_golden_file[joss2021-waskom-seaborn]
   '''
   joss2021-waskom-seaborn.pdf  sha256 163e1f3a1c502b0c
-  metadata: title='seaborn: statistical data visualization' authors=[] date='2021-04-06'
+  metadata: title='seaborn: statistical data visualization' authors=[] date='2021-04-06' language=''
   outline: level 1  page 1  'Summary'
   outline: level 1  page 1  'Statement of need'
   outline: level 1  page 1  'Example'
@@ -5051,6 +7561,20 @@
   p1-l57  [39 790 60 798]  {LMSans8-Regular 8}03021
   p1-l58  [548 779 553 789]  {LMSans10-Regular 10}1
   p1-i1  [18 12 174 72]  picture
+  p1-d1  [83 232 88 237]  drawing
+  p1-d2  [85 231 89 235]  drawing
+  p1-d3  [86 231 89 234]  drawing
+  p1-d4  [97 245 102 250]  drawing
+  p1-d5  [99 244 103 248]  drawing
+  p1-d6  [100 244 103 247]  drawing
+  p1-d7  [85 258 90 263]  drawing
+  p1-d8  [87 257 91 261]  drawing
+  p1-d9  [88 257 91 260]  drawing
+  p1-d10  [28 283 156 283]  drawing
+  p1-d11  [124 295 129 300]  drawing
+  p1-d12  [126 294 130 298]  drawing
+  p1-d13  [127 294 129 297]  drawing
+  p1-d14  [39 774 553 775]  drawing
   == page 2  595 x 842  lines 53  pictures 1  drawings 37
   p2-l1  [167 101 553 111]  {LMSans10-Regular 10}reproducible bug reports. It illustrates several of the features described in the Overview section,
   p2-l2  [167 113 553 123]  {LMSans10-Regular 10}including the declarative API, semantic mappings, faceting across subplots, aggregation with
@@ -5106,6 +7630,43 @@
   p2-l52  [39 790 60 798]  {LMSans8-Regular 8}03021
   p2-l53  [548 779 553 789]  {LMSans10-Regular 10}2
   p2-i1  [18 12 174 72]  picture
+  p2-d1  [167 294 553 511]  drawing
+  p2-d2  [205 311 352 480]  drawing
+  p2-d3  [211 310 213 481]  drawing
+  p2-d4  [248 310 250 481]  drawing
+  p2-d5  [285 310 286 481]  drawing
+  p2-d6  [322 310 323 481]  drawing
+  p2-d7  [205 461 352 462]  drawing
+  p2-d8  [184 461 188 462]  drawing
+  p2-d9  [205 429 352 430]  drawing
+  p2-d10  [205 396 352 398]  drawing
+  p2-d11  [205 364 352 365]  drawing
+  p2-d12  [205 332 352 333]  drawing
+  p2-d13  [211 317 346 473]  drawing
+  p2-d14  [211 395 346 457]  drawing
+  p2-d15  [211 336 346 464]  drawing
+  p2-d16  [211 406 346 450]  drawing
+  p2-d17  [204 310 206 481]  drawing
+  p2-d18  [204 479 352 481]  drawing
+  p2-d19  [360 311 507 480]  drawing
+  p2-d20  [366 310 368 481]  drawing
+  p2-d21  [403 310 405 481]  drawing
+  p2-d22  [440 310 441 481]  drawing
+  p2-d23  [477 310 478 481]  drawing
+  p2-d24  [360 461 507 462]  drawing
+  p2-d25  [360 429 507 430]  drawing
+  p2-d26  [360 396 507 398]  drawing
+  p2-d27  [360 364 507 365]  drawing
+  p2-d28  [360 332 507 333]  drawing
+  p2-d29  [366 354 501 464]  drawing
+  p2-d30  [366 404 501 453]  drawing
+  p2-d31  [366 373 501 457]  drawing
+  p2-d32  [366 415 501 445]  drawing
+  p2-d33  [359 310 361 481]  drawing
+  p2-d34  [359 479 507 481]  drawing
+  p2-d35  [511 401 528 403]  drawing
+  p2-d36  [511 411 528 413]  drawing
+  p2-d37  [39 774 553 775]  drawing
   == page 3  595 x 842  lines 56  pictures 1  drawings 1
   p3-l1  [167 101 553 111]  {LMSans10-Regular 10}the kind of plot to make. For example, the{LMMono10-Regular 10} displot{LMSans10-Regular 10} function can produce several different
   p3-l2  [167 113 553 123]  {LMSans10-Regular 10}representations of a distribution, including a histogram, kernel density estimate, or empirical
@@ -5164,6 +7725,7 @@
   p3-l55  [39 790 60 798]  {LMSans8-Regular 8}03021
   p3-l56  [548 779 553 789]  {LMSans10-Regular 10}3
   p3-i1  [18 12 174 72]  picture
+  p3-d1  [39 774 553 775]  drawing
   == page 4  595 x 842  lines 48  pictures 1  drawings 1
   p4-l1  [167 101 553 111]  {LMSans10-Regular 10}graphs can be created through the{LMMono10-Regular 10} seaborn{LMSans10-Regular 10} interface, but more advanced applications –
   p4-l2  [167 113 553 123]  {LMSans10-Regular 10}such as defining composite figures with multiple arbitrary plot types – will require importing
@@ -5214,13 +7776,14 @@
   p4-l47  [39 790 60 798]  {LMSans8-Regular 8}03021
   p4-l48  [548 779 553 789]  {LMSans10-Regular 10}4
   p4-i1  [18 12 174 72]  picture
+  p4-d1  [39 774 553 775]  drawing
   
   '''
 # ---
 # name: test_golden_file[joss2022-biggs-pymedphys]
   '''
   joss2022-biggs-pymedphys.pdf  sha256 2b991e5f85af79de
-  metadata: title='PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications' authors=[] date='2022-10-16'
+  metadata: title='PyMedPhys: A community effort to develop an open, Python-based standard library for medical physics applications' authors=[] date='2022-10-16' language=''
   outline: level 1  page 1  'Summary'
   outline: level 1  page 1  'Statement of need'
   outline: level 1  page 2  'Acknowledgements'
@@ -5297,6 +7860,44 @@
   p1-l69  [39 787 307 799]  {NewCMSans10-BookOblique 8 i}of Open Source Software{NewCMSans08-Book 8},{NewCMSans10-BookOblique 8 i} 7{NewCMSans08-Book 8}(78), 4555. https://doi.org/10.21105/joss.04555.
   p1-l70  [548 775 553 790]  {NewCMSans10-Book 10}1
   p1-i1  [18 12 174 72]  picture
+  p1-d1  [233 216 241 224]  drawing
+  p1-d2  [235 217 239 222]  drawing
+  p1-d3  [350 216 358 224]  drawing
+  p1-d4  [353 217 357 222]  drawing
+  p1-d5  [457 216 466 224]  drawing
+  p1-d6  [460 217 464 222]  drawing
+  p1-d7  [198 230 206 238]  drawing
+  p1-d8  [200 231 204 236]  drawing
+  p1-d9  [287 230 295 238]  drawing
+  p1-d10  [290 231 294 236]  drawing
+  p1-d11  [388 230 396 238]  drawing
+  p1-d12  [390 231 395 236]  drawing
+  p1-d13  [497 230 505 238]  drawing
+  p1-d14  [499 231 504 236]  drawing
+  p1-d15  [193 244 201 252]  drawing
+  p1-d16  [195 245 199 249]  drawing
+  p1-d17  [281 244 289 252]  drawing
+  p1-d18  [283 245 287 249]  drawing
+  p1-d19  [364 244 372 252]  drawing
+  p1-d20  [366 245 371 249]  drawing
+  p1-d21  [464 244 472 252]  drawing
+  p1-d22  [466 245 470 249]  drawing
+  p1-d23  [82 415 87 420]  drawing
+  p1-d24  [84 414 88 417]  drawing
+  p1-d25  [85 414 88 417]  drawing
+  p1-d26  [96 428 101 432]  drawing
+  p1-d27  [98 426 102 430]  drawing
+  p1-d28  [98 427 101 430]  drawing
+  p1-d29  [84 440 89 445]  drawing
+  p1-d30  [86 439 90 443]  drawing
+  p1-d31  [87 440 90 443]  drawing
+  p1-d32  [28 465 156 466]  drawing
+  p1-d33  [125 478 130 483]  drawing
+  p1-d34  [127 477 131 480]  drawing
+  p1-d35  [128 477 131 480]  drawing
+  p1-d36  [135 476 141 482]  drawing
+  p1-d37  [137 477 140 481]  drawing
+  p1-d38  [39 774 553 775]  drawing
   == page 2  595 x 842  lines 48  pictures 1  drawings 1
   p2-l1  [167 98 553 112]  {NewCMSans10-Book 10}formats from a variety of radiotherapy systems, and manipulation of standard radiotherapy data
   p2-l2  [167 110 553 124]  {NewCMSans10-Book 10}to perform quality assurance (QA) tasks that are otherwise time-consuming or lack commercial
@@ -5347,6 +7948,7 @@
   p2-l47  [39 787 307 799]  {NewCMSans10-BookOblique 8 i}of Open Source Software{NewCMSans08-Book 8},{NewCMSans10-BookOblique 8 i} 7{NewCMSans08-Book 8}(78), 4555. https://doi.org/10.21105/joss.04555.
   p2-l48  [548 775 553 790]  {NewCMSans10-Book 10}2
   p2-i1  [18 12 174 72]  picture
+  p2-d1  [39 774 553 775]  drawing
   == page 3  595 x 842  lines 51  pictures 1  drawings 1
   p3-l1  [182 98 554 112]  {NewCMSans10-BookOblique 10 i}medical physics experts in radiotherapy 3rd edition{NewCMSans10-Book 10}. https://www.efomp.org/uploads/
   p3-l2  [182 110 471 124]  {NewCMSans10-Book 10}595e3c8a-52d9-440f-b50b-183c3a00cb00/Radiotherapy_cc_2022.pdf
@@ -5400,6 +8002,7 @@
   p3-l50  [39 787 307 799]  {NewCMSans10-BookOblique 8 i}of Open Source Software{NewCMSans08-Book 8},{NewCMSans10-BookOblique 8 i} 7{NewCMSans08-Book 8}(78), 4555. https://doi.org/10.21105/joss.04555.
   p3-l51  [548 775 553 790]  {NewCMSans10-Book 10}3
   p3-i1  [18 12 174 72]  picture
+  p3-d1  [39 774 553 775]  drawing
   == page 4  595 x 842  lines 42  pictures 1  drawings 1
   p4-l1  [181 98 353 112]  {NewCMSans10-Book 10}//doi.org/10.1016/j.meddos.2019.12.007
   p4-l2  [167 116 555 130]  {NewCMSans10-Book 10}Li, J., Lin, T., Chen, L., Price, R. J., & Ma, C. (2010). Uncertainties in IMRT dosimetry.
@@ -5444,6 +8047,7 @@
   p4-l41  [39 787 307 799]  {NewCMSans10-BookOblique 8 i}of Open Source Software{NewCMSans08-Book 8},{NewCMSans10-BookOblique 8 i} 7{NewCMSans08-Book 8}(78), 4555. https://doi.org/10.21105/joss.04555.
   p4-l42  [548 775 553 790]  {NewCMSans10-Book 10}4
   p4-i1  [18 12 174 72]  picture
+  p4-d1  [39 774 553 775]  drawing
   
   '''
 # ---

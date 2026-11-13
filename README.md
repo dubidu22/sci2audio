@@ -6,7 +6,7 @@
 
 ## What it will do
 
-- Read PDF, EPUB, Markdown and plain text.
+- Read PDF, EPUB, Markdown and plain text. A scanned PDF needs a text layer: sci2audio has no text recognition yet.
 - Prepare the text for listening with transparent rules: remove page headers, hyphenation, citations and URLs; read units, statistics and abbreviations properly; skip formulas and tables with a short spoken notice.
 - Speak it with local Kokoro voices (English first, German later).
 - Export MP3 and M4B with chapters, and show a read-along view that highlights the original text.
