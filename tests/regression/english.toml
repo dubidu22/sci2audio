@@ -369,6 +369,60 @@ blocks = [
 ]
 expected = ["It runs in time N3 on dense grammars.", "Footnote 3. Sparse ones are faster."]
 
+# Footnote marks tied to their notes by link tags (#189, D-420 to D-428). The first case is
+# the corpus Markdown sample's text (CC0, written for sci2audio); the second is The Time
+# Machine's one endnote and the sentence that marks it, from the corpus EPUB (public domain,
+# tests/corpus/LICENSES.md), with the tags extraction gives them.
+[[case]]
+id = "linked-marks-markdown"
+audit = 0
+issue = 189
+goal = "A noteref mark whose link reaches a note is left out wherever it stands, each time it is used, and the note is introduced by its first mark (D-421, D-425, D-428)."
+blocks = [
+    { kind = "paragraph", runs = ["Every sentence here is our own.", { text = "1", tags = ["p", "sup", "a", "#fnref1", "role:doc-noteref", "link:b3l0"] }] },
+    { kind = "list_item", runs = ["Do footnotes", { text = "2", tags = ["ol", "li", "sup", "a", "#fnref2", "role:doc-noteref", "link:b4l0"] }, " help or hurt?"] },
+    { kind = "paragraph", runs = ["Listeners kept up.", { text = "2", tags = ["p", "sup", "a", "#fnref2:1", "role:doc-noteref", "link:b4l0"] }] },
+    { kind = "footnote", text = "Nothing in this note is taken from anyone else." },
+    { kind = "footnote", text = "A footnote with bold text, continued on a second line." },
+]
+expected = [
+    "Every sentence here is our own.1",
+    "Do footnotes2 help or hurt?",
+    "Listeners kept up.2",
+    "Footnote. Nothing in this note is taken from anyone else.",
+    "Footnote. A footnote with bold text, continued on a second line.",
+]
+
+[[case]]
+id = "linked-endnote-on-another-page"
+audit = 0
+issue = 189
+goal = "An EPUB endnote on another page than its mark: the mark (no superscript) is left out, the note is introduced by it, and its back-link arrow is not read (D-424, D-428)."
+blocks = [
+    { kind = "paragraph", runs = ["Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.", { text = "1", tags = ["section", "#chapter-8", "p", "a", "#noteref-1", "epub:noteref", "role:doc-noteref", "link:b1l0"] }, " The end I had come in at was quite above ground, and was lit by rare slit-like windows."] },
+    { kind = "footnote", page = 2, runs = ["It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014\uFEFFEd. ", { text = "\u21A9\uFE0E", tags = ["li", "#note-1", "epub:endnote", "p", "a", "epub:backlink", "role:doc-backlink", "link:b0l0"] }] },
+]
+expected = [
+    "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.1 The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
+    "Footnote. It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014Ed. \u21A9\uFE0E",
+]
+utterances = [
+    "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.1 The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
+    "Footnote.",
+    "It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014Ed. \u21A9\uFE0E",
+]
+
+[[case]]
+id = "noteref-to-a-paragraph-is-kept"
+audit = 0
+issue = 189
+goal = "A noteref whose link does not reach a note is read as printed (D-423)."
+blocks = [
+    { kind = "paragraph", runs = ["See the table.", { text = "3", tags = ["sup", "a", "role:doc-noteref", "link:b1l0"] }] },
+    { kind = "paragraph", text = "3 A paragraph, not a note." },
+]
+expected = ["See the table.3", "3 A paragraph, not a note."]
+
 [[case]]
 id = "reference-list"
 audit = 0
