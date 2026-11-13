@@ -8,7 +8,6 @@ from __future__ import annotations
 import errno
 import hashlib
 import os
-import shutil
 import stat
 import sys
 import threading
@@ -35,7 +34,7 @@ from web_helpers import (
 from sci2audio.app import JobRunner, JobSettings
 from sci2audio.app.job import Phase, ScriptJob
 from sci2audio.app.lock import LOCK_NAME, work_folder_lock
-from sci2audio.web import create_app, documents
+from sci2audio.web import api, create_app, documents
 from sci2audio.web.documents import DocumentBusyError, DocumentStore
 from sci2audio.web.jobs import JobBoard, JobKind, JobState
 from sci2audio.web.tasks import classify
@@ -595,8 +594,259 @@ def test_the_privacy_page_names_the_removal(tmp_path: Path) -> None:
     assert "Remove this document" in text
 
 
-def test_shutil_rmtree_takes_the_handler() -> None:
-    """The removal relies on `onexc` (Python 3.12+), the project's minimum."""
-    import inspect
+# --- review round 1 of PR #168 ---------------------------------------------------------
 
-    assert "onexc" in inspect.signature(shutil.rmtree).parameters
+
+def test_a_job_start_that_checked_before_the_removal_never_starts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """M1, the removal's mark first: a job start that passed the document check before the
+    removal began (paused in `load_settings`) answers 404 and leaves nothing behind."""
+    _app, client, config = server(tmp_path)
+    doc = upload(client, note(), "note.pdf")
+    assert wait(client, start(client, doc["id"], "script")["id"])["state"] == "done"
+    folder = config.work_root / doc["id"]
+    in_start = threading.Event()
+    go_start = threading.Event()
+    real_load = api.load_settings
+    armed = [True]
+
+    def load(*args: Any, **kwargs: Any) -> Any:
+        if armed and armed.pop():
+            in_start.set()
+            assert go_start.wait(10)
+        return real_load(*args, **kwargs)
+
+    monkeypatch.setattr(api, "load_settings", load)
+    reached = threading.Event()
+    go_remove = threading.Event()
+    real = documents._remove_entry
+
+    def held(path: Path) -> None:
+        if path.name == "source":
+            reached.set()
+            assert go_remove.wait(20)
+        real(path)
+
+    monkeypatch.setattr(documents, "_remove_entry", held)
+    answers: dict[str, Any] = {}
+    starting = threading.Thread(
+        target=lambda: answers.update(
+            job=client.post("/api/v1/jobs", json={"kind": "script", "document": doc["id"]})
+        )
+    )
+    starting.start()
+    removing = threading.Thread(
+        target=lambda: answers.update(removed=client.delete(f"/api/v1/documents/{doc['id']}"))
+    )
+    try:
+        assert in_start.wait(10)
+        removing.start()
+        assert reached.wait(10)
+        go_start.set()
+        starting.join(10)
+        assert answers["job"].status_code == 404
+        assert answers["job"].json()["error"] == "not-found"
+    finally:
+        go_start.set()
+        go_remove.set()
+        starting.join(10)
+        if removing.is_alive() or removing.ident is not None:
+            removing.join(10)
+    assert answers["removed"].status_code == 200
+    assert not folder.exists()
+    assert client.get("/api/v1/documents").json() == []
+
+
+def test_a_job_that_started_first_makes_the_removal_wait_and_refuse(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """M1, the job start first: while a start holds the document, a removal waits; once
+    the job runs, the removal answers 409 and the folder stays whole."""
+    runner = HeldRunner()
+    app, client, config = server(tmp_path, runner=runner)
+    doc = upload(client, pdf_bytes())
+    folder = config.work_root / doc["id"]
+    board = app.state.sci2audio.board
+    in_board = threading.Event()
+    go_board = threading.Event()
+    real_start = board.start
+
+    def held_start(*args: Any, **kwargs: Any) -> Any:
+        in_board.set()
+        assert go_board.wait(10)
+        return real_start(*args, **kwargs)
+
+    monkeypatch.setattr(board, "start", held_start)
+    answers: dict[str, Any] = {}
+    starting = threading.Thread(
+        target=lambda: answers.update(
+            job=client.post("/api/v1/jobs", json={"kind": "script", "document": doc["id"]})
+        )
+    )
+    removing = threading.Thread(
+        target=lambda: answers.update(removed=client.delete(f"/api/v1/documents/{doc['id']}"))
+    )
+    starting.start()
+    try:
+        assert in_board.wait(10)
+        removing.start()
+        removing.join(0.5)
+        assert removing.is_alive()  # waits for the start to finish
+        go_board.set()
+        starting.join(10)
+        removing.join(10)
+        assert answers["job"].status_code == 202
+        assert answers["removed"].status_code == 409
+        assert answers["removed"].json()["error"] == "busy"
+        assert (folder / "source").is_dir()
+    finally:
+        go_board.set()
+        runner.go.set()
+        starting.join(10)
+        removing.join(10)
+    wait(client, answers["job"].json()["id"])
+    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+
+
+def test_a_folder_that_cant_be_listed_is_made_readable_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """M2: the walk is our own; a folder the system refuses to list is tried once more."""
+    _app, client, config = server(tmp_path)
+    doc = made(client, note())
+    folder = config.work_root / doc["id"]
+    real = os.scandir
+    refused: list[str] = []
+
+    def scandir(path: Any = ".") -> Any:
+        if Path(path).name == "chunks" and not refused:
+            refused.append(str(path))
+            raise PermissionError(errno.EACCES, "Permission denied", str(path))
+        return real(path)
+
+    monkeypatch.setattr(os, "scandir", scandir)
+    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert refused
+    assert not folder.exists()
+
+
+def test_a_folder_that_cant_be_removed_is_named(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _app, client, config = server(tmp_path)
+    doc = made(client, note())
+    folder = config.work_root / doc["id"]
+    real = os.rmdir
+
+    def rmdir(path: Any, *args: Any, **kwargs: Any) -> None:
+        if Path(path).name == "script":
+            raise OSError(errno.EBUSY, "Device or resource busy", str(path))
+        real(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "rmdir", rmdir)
+    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    assert response.status_code == 500
+    assert response.json()["message"] == (
+        f"could not remove {folder / 'script'}: Device or resource busy"
+    )
+    assert client.get(f"/api/v1/documents/{doc['id']}").status_code == 200
+
+
+def test_a_working_folder_outside_the_root_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """M3: before anything goes, the resolved folder must sit directly in the resolved
+    work root (a junction or any other redirection fails this)."""
+    _app, client, config = server(tmp_path)
+    doc = upload(client, pdf_bytes())
+    folder = config.work_root / doc["id"]
+    elsewhere = tmp_path / "elsewhere" / doc["id"]
+    real = Path.resolve
+
+    def resolve(self: Path, strict: bool = False) -> Path:
+        if self == folder:
+            return elsewhere
+        return real(self, strict=strict)
+
+    monkeypatch.setattr(Path, "resolve", resolve)
+    before = snapshot(folder)
+    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    assert response.status_code == 500
+    assert response.json()["error"] == "remove-failed"
+    assert "is not inside the working root" in response.json()["message"]
+    assert snapshot(folder) == before
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="junctions are a Windows thing")
+def test_windows_junctions_are_never_followed(tmp_path: Path) -> None:
+    """M3: a working folder that is a junction is refused; a junction inside one is
+    removed itself, its target kept."""
+    import _winapi
+
+    store = DocumentStore(tmp_path / "work", upload_limit=10**6, text_limit=10**6)
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / "source").mkdir(parents=True)
+    (elsewhere / "source" / "mine.pdf").write_bytes(b"%PDF")
+    store.root.mkdir()
+    _winapi.CreateJunction(str(elsewhere), str(store.root / ("c" * 16)))
+    with pytest.raises(documents.RemoveError, match="link"):
+        store.remove("c" * 16, busy=lambda: None)
+    assert (elsewhere / "source" / "mine.pdf").read_bytes() == b"%PDF"
+
+    import io
+
+    stored = store.store("a.pdf", io.BytesIO(pdf_bytes()))
+    _winapi.CreateJunction(str(elsewhere), str(stored.folder / "script"))
+    assert store.remove(stored.id, busy=lambda: None) is not None
+    assert not stored.folder.exists()
+    assert (elsewhere / "source" / "mine.pdf").read_bytes() == b"%PDF"
+
+
+def test_a_file_written_during_the_removal_is_removed_too(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S1: another program writes into the folder while it is being removed; one more pass
+    takes it, and the answer is 200 only once the folder is gone."""
+    _app, client, config = server(tmp_path)
+    doc = made(client, note())
+    folder = config.work_root / doc["id"]
+    real = documents._remove_entry
+    written: list[Path] = []
+
+    def late(path: Path) -> None:
+        real(path)
+        if path.name == "source" and not written:
+            late_file = folder / "script" / "late.txt"
+            late_file.parent.mkdir(exist_ok=True)
+            late_file.write_text("written by someone else")
+            written.append(late_file)
+
+    monkeypatch.setattr(documents, "_remove_entry", late)
+    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert written
+    assert not folder.exists()
+
+
+def test_a_folder_that_keeps_filling_up_is_not_reported_as_removed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S1: when something keeps writing into the folder, the answer is 500 naming it,
+    never a 200 that leaves files behind."""
+    _app, client, config = server(tmp_path)
+    doc = made(client, note())
+    folder = config.work_root / doc["id"]
+    real = documents._remove_entry
+
+    def keeps_writing(path: Path) -> None:
+        real(path)
+        if path.name == "source":
+            (folder / "late.txt").write_text("again")
+
+    monkeypatch.setattr(documents, "_remove_entry", keeps_writing)
+    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    assert response.status_code == 500
+    assert response.json()["error"] == "remove-failed"
+    assert response.json()["message"] == (
+        f"could not remove {folder / 'late.txt'}: it was written during the removal"
+    )

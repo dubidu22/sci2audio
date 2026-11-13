@@ -426,12 +426,17 @@ def start_job(state: State, body: models.JobIn) -> models.JobOut:
     else:
         work = script_work(state.runner, document, settings)
         kind = JobKind.SCRIPT
-    try:
-        job = state.board.start(
-            kind, document.id, _settings_data(settings), work, cancellable=kind is JobKind.AUDIO
-        )
-    except BoardBusyError as error:
-        raise ApiError(409, "busy", str(error)) from error
+    # the check and the start are one step against a removal (D-356): either the job runs
+    # before the removal looks for one (409 there), or the removal began and this is 404
+    with state.store.unchanged(document.id) as still:
+        if still is None:
+            raise ApiError(404, "not-found", f"no document {document.id}; open the file again")
+        try:
+            job = state.board.start(
+                kind, document.id, _settings_data(settings), work, cancellable=kind is JobKind.AUDIO
+            )
+        except BoardBusyError as error:
+            raise ApiError(409, "busy", str(error)) from error
     return _job_out(job)
 
 

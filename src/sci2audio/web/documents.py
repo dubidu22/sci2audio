@@ -28,12 +28,11 @@ import hashlib
 import os
 import re
 import secrets
-import shutil
 import stat
 import sys
 import threading
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path, PurePath
 from typing import BinaryIO
@@ -271,6 +270,14 @@ class DocumentStore:
                     other.unlink()
         return StoredDocument(document_id, folder, target)
 
+    @contextlib.contextmanager
+    def unchanged(self, document_id: str) -> Iterator[StoredDocument | None]:
+        """The document, held so that no removal begins until the block ends (None while
+        one runs or when there is none): a job started inside the block is either running
+        before a removal looks for one (409), or never starts (D-356)."""
+        with self._changes:
+            yield self.get(document_id)
+
     def remove(self, document_id: str, *, busy: Callable[[], str | None]) -> Removed | None:
         """Remove the document's whole working folder (D-353, D-355); None if there is no
         such document. `busy` names a job of this server that works on it, if any; it is
@@ -286,28 +293,68 @@ class DocumentStore:
             reason = busy()
             if reason is not None:
                 raise DocumentBusyError(reason)
-            folder = document.folder
-            if folder.is_symlink():  # never followed out of the work root
-                raise RemoveError(f"{folder} is a link, not a working folder", folder)
+            folder = self._inside_root(document)
             freed = _tree_size(folder)
-            try:
-                with work_folder_lock(folder):
-                    _remove_folder(folder)
-            except JobBusyError as error:
-                raise DocumentBusyError(str(error)) from error
-            except JobError as error:  # the lock file could not be opened
-                raise RemoveError(str(error), folder / LOCK_NAME) from error
-            # Windows can't remove the lock file while it is open; it is closed now. If
-            # this fails, an empty lock file in an empty folder stays: never listed.
-            with contextlib.suppress(OSError):
-                (folder / LOCK_NAME).unlink(missing_ok=True)
-            with contextlib.suppress(OSError):
-                folder.rmdir()
+            self._remove_locked(folder)
+            if _leftovers(folder):  # written during the removal by another program: once more
+                self._remove_locked(folder)
+            left = _leftovers(folder)
+            if left:
+                raise RemoveError(
+                    f"could not remove {left[0]}: it was written during the removal", left[0]
+                )
             return Removed(document_id, document.name, freed)
         finally:
             with self._changes:
                 self._removing.discard(document_id)
                 self._changes.notify_all()
+
+    def _inside_root(self, document: StoredDocument) -> Path:
+        """The working folder, refused unless it is a real folder directly in the work root:
+        never a link or a Windows junction, which would lead the removal elsewhere."""
+        folder = document.folder
+        if folder.is_symlink() or folder.is_junction():
+            raise RemoveError(f"{folder} is a link, not a working folder", folder)
+        try:
+            resolved = folder.resolve(strict=True)
+            root = self.root.resolve(strict=True)
+        except OSError as error:
+            raise _remove_error(folder, error) from error
+        if resolved.parent != root or resolved.name != document.id:
+            raise RemoveError(f"{folder} is not inside the working root {root}", folder)
+        return folder
+
+    @staticmethod
+    def _remove_locked(folder: Path) -> None:
+        try:
+            with work_folder_lock(folder):
+                _remove_folder(folder)
+        except JobBusyError as error:
+            raise DocumentBusyError(str(error)) from error
+        except JobError as error:  # the lock file could not be opened
+            raise RemoveError(str(error), folder / LOCK_NAME) from error
+        # Windows can't remove the lock file while it is open; it is closed now. If this
+        # fails, an empty lock file in an empty folder stays (allowed by `_leftovers`).
+        with contextlib.suppress(OSError):
+            (folder / LOCK_NAME).unlink(missing_ok=True)
+        with contextlib.suppress(OSError):
+            folder.rmdir()
+
+
+def _leftovers(folder: Path) -> list[Path]:
+    """What is still in the working folder after a removal, the folder itself if it is
+    empty but still there; nothing when it is gone. On Windows an empty lock file another
+    process re-took may stay: it holds nothing and the folder is never listed."""
+    try:
+        entries = sorted(folder.iterdir(), key=lambda path: path.name)
+    except FileNotFoundError:
+        return []
+    except OSError:
+        return [folder]
+    if sys.platform == "win32":
+        entries = [entry for entry in entries if entry.name != LOCK_NAME]
+        return entries
+    return entries or [folder]
 
 
 def _remove_folder(folder: Path) -> None:
@@ -323,69 +370,87 @@ def _remove_folder(folder: Path) -> None:
 
 
 class _Left(Exception):
-    """A path the removal could not remove, carried out of `shutil.rmtree` untouched: not
-    an OSError, so no version of rmtree renames it to the folder it was in."""
+    """A path the removal could not remove, with the reason."""
 
-    def __init__(self, path: str, error: OSError) -> None:
-        super().__init__(path)
+    def __init__(self, path: Path, error: OSError) -> None:
+        super().__init__(str(path))
         self.path = path
         self.error = error
 
 
 def _remove_entry(path: Path) -> None:
-    """Remove a file, a link (never what it points to) or a folder tree. A file already
-    gone counts as removed; a read-only one is made writable and tried once more."""
+    """Remove a file, a link or junction (never what it points to) or a folder tree,
+    walking it ourselves so the first path left is known exactly on every Python (#120,
+    review round 1, M2). A file already gone counts as removed; a read-only one is made
+    writable and tried once more."""
     try:
-        if path.is_dir() and not path.is_symlink():
-            shutil.rmtree(path, onexc=_retry_writable)
-        else:
-            _unlink(path)
+        _remove_tree(path)
     except _Left as left:
-        raise _remove_error(Path(left.path), left.error) from left.error
+        raise _remove_error(left.path, left.error) from left.error
+
+
+def _is_link(path: Path) -> bool:
+    """A symbolic link or a Windows junction: removed itself, never followed."""
+    try:
+        return path.is_symlink() or path.is_junction()
+    except OSError:
+        return False
+
+
+def _remove_tree(path: Path) -> None:
+    if _is_link(path):
+        _remove_one(path, os.unlink)  # on Windows os.unlink removes a junction too
+        return
+    try:
+        is_folder = stat.S_ISDIR(path.lstat().st_mode)
+    except FileNotFoundError:
+        return
     except OSError as error:
-        left_path = Path(error.filename) if error.filename else path
-        raise _remove_error(left_path, error) from error
+        raise _Left(path, error) from error
+    if not is_folder:
+        _remove_one(path, os.unlink)
+        return
+    for entry in _entries(path):
+        _remove_tree(entry)
+    _remove_one(path, os.rmdir)
+
+
+def _entries(folder: Path) -> list[Path]:
+    """The folder's entries; a folder that can't be read is made readable once."""
+    for attempt in (1, 2):
+        try:
+            with os.scandir(folder) as found:
+                return sorted((Path(entry.path) for entry in found), key=lambda p: p.name)
+        except FileNotFoundError:
+            return []
+        except PermissionError as error:
+            if attempt == 2:
+                raise _Left(folder, error) from error
+            _make_writable(folder)
+        except OSError as error:
+            raise _Left(folder, error) from error
+    return []  # not reached
+
+
+def _remove_one(path: Path, function: Callable[[Path], object]) -> None:
+    """`os.unlink` or `os.rmdir` (looked up when called), once more after making the path
+    writable if the system refused it (Windows refuses read-only files and folders)."""
+    for attempt in (1, 2):
+        try:
+            function(path)
+            return
+        except FileNotFoundError:
+            return
+        except PermissionError as error:
+            if attempt == 2:
+                raise _Left(path, error) from error
+            _make_writable(path)
+        except OSError as error:
+            raise _Left(path, error) from error
 
 
 def _remove_error(path: Path, error: OSError) -> RemoveError:
     return RemoveError(f"could not remove {path}: {error.strerror or error}", path)
-
-
-def _unlink(path: Path) -> None:
-    try:
-        path.unlink(missing_ok=True)
-    except PermissionError:
-        _make_writable(path)
-        path.unlink(missing_ok=True)
-
-
-def _retry_writable(function: Callable[..., object], name: str, error: BaseException) -> None:
-    """`shutil.rmtree`'s handler: a file gone already is fine; a read-only file or folder
-    (Windows refuses to remove those) is made writable and tried once more. What still
-    can't be removed leaves as `_Left`, naming itself."""
-    if isinstance(error, _Left):
-        raise error
-    if isinstance(error, FileNotFoundError):
-        return
-    if not isinstance(error, PermissionError):
-        raise _Left(name, error) if isinstance(error, OSError) else error
-    path = Path(name)
-    _make_writable(path)
-    try:
-        if function in (os.unlink, os.rmdir):
-            with contextlib.suppress(FileNotFoundError):
-                function(name)
-        else:  # a folder that could not be opened or listed: once more, now that it can be
-            shutil.rmtree(path, onexc=_gone_is_fine)
-    except OSError as again:
-        raise _Left(name, again) from again
-
-
-def _gone_is_fine(function: Callable[..., object], name: str, error: BaseException) -> None:
-    if isinstance(error, _Left):
-        raise error
-    if not isinstance(error, FileNotFoundError):
-        raise _Left(name, error) if isinstance(error, OSError) else error
 
 
 def _make_writable(path: Path) -> None:
