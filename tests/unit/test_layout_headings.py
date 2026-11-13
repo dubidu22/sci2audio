@@ -1,9 +1,11 @@
-"""Layout on made-up pages: headings and the section tree (Issue #21 step 3).
+"""Layout on made-up pages: headings and the section tree (Issue #21 step 3), and the
+file's outline as a second signal for headings (#24, D-270 to D-272).
 
 One column between x 70 and x 526, body text in 10 point on a 14 point line pitch, as in
 `test_layout_paragraphs`. Headings stand on a line of their own with white above them.
 """
 
+import dataclasses
 import itertools
 
 from core_strategies import contents
@@ -11,7 +13,17 @@ from hypothesis import given
 from hypothesis import strategies as st
 from test_layout import LEFT, RIGHT, content
 
-from sci2audio.core import BlockKind, Box, Content, Document, Section, TextLine, TextRun
+from sci2audio.core import (
+    BlockKind,
+    Box,
+    Content,
+    Document,
+    Metadata,
+    OutlineEntry,
+    Section,
+    TextLine,
+    TextRun,
+)
 from sci2audio.layout import build_document
 from sci2audio.layout.headings import title
 
@@ -50,8 +62,10 @@ class Page:
             self.y += PITCH
         return self
 
-    def build(self) -> Document:
-        return build_document(content(self.lines))
+    def build(self, *outline: OutlineEntry, metadata: Metadata | None = None) -> Document:
+        """The document of this page, with the outline entries given (all on page 1)."""
+        found = content(self.lines, metadata=metadata)
+        return build_document(dataclasses.replace(found, outline=outline))
 
 
 def headings(doc: Document) -> list[tuple[str, str]]:
@@ -280,3 +294,236 @@ def test_any_numbered_paper_gets_its_headings_and_levels(
         stack[:0] = section.children
     found = [(s.title, s.level, doc.blocks[s.start].label) for s in sections]
     assert found == expected
+
+
+# The outline as a second signal (#24): it adds, never removes (D-270); the font rules' level
+# stands (D-271); an entry matches on its own page only (D-272).
+
+
+def plain(page: Page, text: str) -> Page:
+    """A heading set like the body text: not bold, not larger, so the font rules miss it."""
+    return page.heading(text, 10.0, bold=False)
+
+
+def test_the_outline_adds_a_heading_set_like_the_body_text() -> None:
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    plain(page, "Limitations").body()
+    assert headings(page.build()) == [("1 Introduction", "1"), ("2 Method", "2")]
+    doc = page.build(OutlineEntry("Introduction", 1, 1), OutlineEntry("Limitations ", 1, 1))
+    assert headings(doc)[-1] == ("Limitations", "")
+    assert tree(doc.sections) == [("1 Introduction", 1), ("2 Method", 1), ("Limitations", 1)]
+
+
+def test_an_added_heading_with_a_number_takes_its_level_and_label_from_it() -> None:
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    plain(page, "2.1 Fine Print").body()
+    doc = page.build(OutlineEntry("Fine Print", 1, 1))  # the outline's level 1 loses
+    assert headings(doc)[-1] == ("2.1 Fine Print", "2.1")
+    assert tree(doc.sections) == [("1 Introduction", 1), ("2 Method", 1), [("2.1 Fine Print", 2)]]
+
+
+def test_an_entry_may_carry_the_printed_number_itself() -> None:
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    plain(page, "3 Outlook").body()
+    assert headings(page.build(OutlineEntry("3 Outlook", 1, 1)))[-1] == ("3 Outlook", "3")
+
+
+def test_an_added_heading_without_a_number_takes_the_entry_level() -> None:
+    page = Page().heading("Summary", 14.0).body().heading("Statement of need", 14.0).body()
+    plain(page, "A Closer Look").body()
+    doc = page.build(
+        OutlineEntry("Summary", 1, 1),
+        OutlineEntry("Statement of need", 1, 1),
+        OutlineEntry("A Closer Look", 2, 1),
+    )
+    assert headings(doc)[-1] == ("A Closer Look", "")  # "A" is no number here
+    assert tree(doc.sections) == [("Summary", 1), ("Statement of need", 1), [("A Closer Look", 2)]]
+
+
+def test_the_font_rules_level_stands_when_the_outline_disagrees() -> None:
+    page = Page().heading("1 Introduction").body().heading("1.1 Setup", 10.0).body()
+    page.heading("2 Method").body()
+    doc = page.build(OutlineEntry("Introduction", 1, 1), OutlineEntry("Setup", 1, 1))
+    assert tree(doc.sections) == [("1 Introduction", 1), [("1.1 Setup", 2)], ("2 Method", 1)]
+
+
+def test_the_font_rules_level_stands_for_unnumbered_headings_too() -> None:
+    """Review of #146 (M1): without numbers the outline's level would differ (D-271)."""
+    page = Page().heading("Summary", 14.0).body().heading("Details", 12.0).body()
+    page.heading("Statement of need", 14.0).body().heading("More", 12.0).body()
+    alone = page.build()
+    assert tree(alone.sections) == [
+        ("Summary", 1),
+        [("Details", 2)],
+        ("Statement of need", 1),
+        [("More", 2)],
+    ]
+    doc = page.build(OutlineEntry("Summary", 1, 1), OutlineEntry("Details", 1, 1))
+    assert tree(doc.sections) == tree(alone.sections)
+
+
+def test_an_added_numbered_heading_under_the_appendices_title_moves_down_too() -> None:
+    """Review of #146 (S1): the same shift as the font rules give "A.1"."""
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    page.heading("Appendices", 16.0).body().heading("A Proofs").body()
+    page.heading("A.1 First", 10.0).body()
+    plain(page, "A.2 Second").body()
+    page.heading("B More").body().heading("B.1 Third", 10.0).body()
+    alone = page.build()
+    assert ("A.2 Second", "") not in headings(alone)
+    doc = page.build(OutlineEntry("Second", 1, 1))
+    assert tree(doc.sections) == [
+        ("1 Introduction", 1),
+        ("2 Method", 1),
+        ("Appendices", 1),
+        [
+            ("A Proofs", 2),
+            [("A.1 First", 3), ("A.2 Second", 3)],
+            ("B More", 2),
+            [("B.1 Third", 3)],
+        ],
+    ]
+
+
+def test_the_shift_starts_at_the_first_common_title_and_not_before() -> None:
+    """Review of #146, round 2: a second common title does not move the shift's start, and
+    an added numbered heading before the first one is not shifted."""
+    page = Page().heading("1 Introduction").body()
+    plain(page, "1.1 Early").body()
+    page.heading("2 Method").body().heading("2.1 Setup", 10.0).body()
+    page.heading("Appendices", 16.0).body().heading("A Proofs").body()
+    page.heading("A.1 First", 10.0).body()
+    plain(page, "A.2 Second").body()
+    page.heading("Supplement", 16.0).body().heading("B More").body()
+    page.heading("B.1 Third", 10.0).body()
+    doc = page.build(OutlineEntry("Early", 1, 1), OutlineEntry("Second", 1, 1))
+    levels = {s.title: s.level for s in walk(doc.sections)}
+    assert levels["1.1 Early"] == levels["2.1 Setup"] == 2
+    assert levels["A.2 Second"] == levels["A.1 First"] == 3
+
+
+def test_the_first_of_two_entries_naming_one_block_decides_its_level() -> None:
+    """Review of #146 (N1)."""
+    page = Page().heading("Summary", 14.0).body().heading("Statement of need", 14.0).body()
+    plain(page, "A Closer Look").body()
+    first = (OutlineEntry("Summary", 1, 1), OutlineEntry("Statement of need", 1, 1))
+    doc = page.build(
+        *first, OutlineEntry("A Closer Look", 2, 1), OutlineEntry("A Closer Look", 1, 1)
+    )
+    assert tree(doc.sections)[-1] == [("A Closer Look", 2)]
+
+
+def test_a_heading_missing_from_the_outline_stays() -> None:
+    """Outlines are often partial (arsiwalla lists 5 of its 8 headings)."""
+    page = Page().heading("Abstract").body().heading("1 Introduction").body()
+    page.heading("2 Method").body().heading("References").body()
+    doc = page.build(OutlineEntry("Introduction", 1, 1))
+    assert [text for text, _ in headings(doc)] == [
+        "Abstract",
+        "1 Introduction",
+        "2 Method",
+        "References",
+    ]
+
+
+def test_a_title_root_is_not_a_heading_and_its_children_move_up() -> None:
+    """The liu paper: its single top entry is the paper's title, set large on page 1."""
+    page = Page().heading("A Study of Things", 16.0).body()
+    plain(page, "Limitations").body()
+    doc = page.build(OutlineEntry("A Study of Things", 1, 1), OutlineEntry("Limitations", 2, 1))
+    assert headings(doc) == [("Limitations", "")]
+    assert tree(doc.sections) == [("Limitations", 1)]
+
+
+def test_an_entry_naming_the_files_own_title_is_not_a_heading() -> None:
+    page = Page().heading("A Study of Things", 16.0).body()
+    plain(page, "Limitations").body()
+    doc = page.build(
+        OutlineEntry("A Study of Things", 1, 1),
+        OutlineEntry("Limitations", 1, 1),
+        metadata=Metadata(title="A study of  things"),
+    )
+    assert headings(doc) == [("Limitations", "")]
+
+
+def test_an_entry_with_two_matching_blocks_or_none_on_its_page_adds_nothing() -> None:
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    plain(page, "Limitations").body()
+    plain(page, "Limitations").body()
+    plain(page, "Outlook").body()
+    found = [("1 Introduction", "1"), ("2 Method", "2")]
+    assert headings(page.build(OutlineEntry("Limitations", 1, 1))) == found
+    assert headings(page.build(OutlineEntry("Discussion", 1, 1))) == found
+    assert headings(page.build(OutlineEntry("Outlook", 1))) == found  # points at no page
+
+
+def test_an_entry_matches_on_its_own_page_only() -> None:
+    first = Page().heading("1 Introduction").body().heading("2 Method").body()
+    second = plain(Page(), "Limitations").body()
+    doc = content(first.lines, second.lines)
+    on_page_one = dataclasses.replace(doc, outline=(OutlineEntry("Limitations", 1, 1),))
+    on_page_two = dataclasses.replace(doc, outline=(OutlineEntry("Limitations", 1, 2),))
+    assert [b.text for b in build_document(on_page_one).blocks if b.kind is BlockKind.HEADING] == [
+        "1 Introduction",
+        "2 Method",
+    ]
+    assert headings(build_document(on_page_two))[-1] == ("Limitations", "")
+
+
+def test_an_entry_without_letters_adds_nothing() -> None:
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    plain(page, "2024").body()
+    assert headings(page.build(OutlineEntry("2024", 1, 1)))[-1] == ("2 Method", "2")
+
+
+def test_titles_are_compared_after_nfkc_case_and_spaces() -> None:
+    """A ligature on the page ("ﬁ"), full-width letters (only NFKC folds them, review of
+    #146, S2), another case and extra spaces in the bookmark."""
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    plain(page, "Final  Deﬁnitions").body()
+    plain(page, "Closing Words").body()
+    doc = page.build(
+        OutlineEntry(" final definitions ", 1, 1),
+        # "Closing" in full-width letters
+        OutlineEntry("\uff23\uff4c\uff4f\uff53\uff49\uff4e\uff47 Words", 1, 1),
+    )
+    assert headings(doc)[-2:] == [("Final  Deﬁnitions", ""), ("Closing Words", "")]
+
+
+@st.composite
+def outlined(draw: st.DrawFn) -> Content:
+    """Any content, with an outline drawn from its own line texts: random levels in a valid
+    nesting, each pointing at a random page."""
+    found = draw(contents())
+    lines = [line.text for page in found.pages for line in page.lines]
+    if not lines:
+        return found
+    outline: list[OutlineEntry] = []
+    for _ in range(draw(st.integers(0, 6))):
+        level = draw(st.integers(1, outline[-1].level + 1 if outline else 1))
+        page = draw(st.integers(1, len(found.pages)))
+        outline.append(OutlineEntry(draw(st.sampled_from(lines)), level, page))
+    return dataclasses.replace(found, outline=tuple(outline))
+
+
+@given(outlined())
+def test_an_outline_only_adds_headings(found: Content) -> None:
+    """On any content: layout never fails, and every heading found without the outline is
+    a heading with it, with the same label and section level (D-270, D-271)."""
+    without = build_document(dataclasses.replace(found, outline=()))
+    doc = build_document(found)
+    assert {(s.start, s.level) for s in walk(without.sections)} <= {
+        (s.start, s.level) for s in walk(doc.sections)
+    }
+    for index, block in enumerate(without.blocks):
+        if block.kind is BlockKind.HEADING:
+            assert doc.blocks[index].kind is BlockKind.HEADING
+            assert doc.blocks[index].label == block.label
+
+
+def walk(sections: tuple[Section, ...]) -> list[Section]:
+    out: list[Section] = []
+    for section in sections:
+        out.append(section)
+        out.extend(walk(section.children))
+    return out
