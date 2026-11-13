@@ -117,6 +117,21 @@ def outlines(draw: st.DrawFn, pages: tuple[Page, ...]) -> tuple[OutlineEntry, ..
 
 
 @st.composite
+def sources(draw: st.DrawFn) -> Source:
+    kind = draw(st.sampled_from(SourceFormat))
+    encoding = ""  # PDF and EPUB bring their own (D-346)
+    if kind in (SourceFormat.MARKDOWN, SourceFormat.TEXT):
+        encoding = draw(st.sampled_from(["", "utf-8", "utf-16le", "windows-1252"]))
+    return Source(
+        draw(names),
+        kind,
+        draw(st.text("0123456789abcdef", max_size=8)),
+        encoding=encoding,
+        encoding_guessed=bool(encoding) and draw(st.booleans()),
+    )
+
+
+@st.composite
 def contents(draw: st.DrawFn) -> Content:
     counter = iter(range(10_000))
 
@@ -126,11 +141,7 @@ def contents(draw: st.DrawFn) -> Content:
     count = draw(st.integers(0, 3))
     drawn = tuple(draw(pages(n, ids)) for n in range(1, count + 1))
     return Content(
-        source=Source(
-            draw(names),
-            draw(st.sampled_from(SourceFormat)),
-            draw(st.text("0123456789abcdef", max_size=8)),
-        ),
+        source=draw(sources()),
         pages=drawn,
         metadata=draw(
             st.builds(

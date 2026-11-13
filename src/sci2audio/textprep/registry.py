@@ -7,8 +7,8 @@ here so every rule PR places its step deliberately. Planned order for v1.0:
 
 - block: page furniture (#63), reference list, placeholder notices for formulas, tables and
   figures, footnote texts (#64)
-- inline: URLs, DOIs and e-mail addresses, citations (#66), footnote marks (#64), numbers,
-  symbols, units and statistics (#67, #68), abbreviations (#68), and last characters and
+- inline: URLs, DOIs and e-mail addresses, citations (#66), footnote marks (#64), statistics
+  then numbers (#67, D-190), symbols and units, abbreviations (#68), and last characters and
   hyphenation (#65): a one-character fix placed earlier would block the rules after it, so it
   only applies where no other rule rewrote the text (D-150). So the rules before it see the
   printed characters (ligatures, maths letters, TeX accents set apart, "eV˚A") and must
@@ -29,8 +29,10 @@ from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
 from sci2audio.textprep.hyphens import LineEndHyphenStep
 from sci2audio.textprep.links import LinkStep
+from sci2audio.textprep.numbers import NumbersStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
 from sci2audio.textprep.references import ReferenceListStep
+from sci2audio.textprep.statistics import StatisticsStep
 from sci2audio.textprep.steps import Stage, TextStep, step_problems
 from sci2audio.textprep.units import UnitStep
 
@@ -43,6 +45,8 @@ BUILT_IN_STEPS: tuple[TextStep, ...] = (
     LinkStep(),
     CitationStep(),
     FootnoteStep(),
+    StatisticsStep(),
+    NumbersStep(),
     # units then abbreviations (#68), after the numbers and statistics steps (#67, D-190)
     UnitStep(),
     AbbreviationStep(),
