@@ -3,7 +3,7 @@
   dict({
     'abbreviations: accepted': 23,
     'characters: accepted': 97,
-    'characters: set-aside': 62,
+    'characters: set-aside': 63,
     'citations: accepted': 48,
     'footnote-texts: switched-off': 7,
     'footnotes: accepted': 12,
