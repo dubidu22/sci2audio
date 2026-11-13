@@ -14,6 +14,17 @@ prominent style is level 1.
 A heading stands over text no larger than the body text, or over another heading: the
 title, the authors and their affiliations at the top of a paper are not headings.
 
+A heading may also be marked by a rule drawn under it rather than by its style (#48, D-385
+to D-391). In a document that numbers its headings, after the first of them, a block that
+may be a heading, has no number and holds a rule under its last line is a level-1 heading,
+also after a common title over the appendices, whose shift goes on for the numbered headings
+after it ("ACL 2023 Responsible NLP Checklist", set like the subsections, with a rule under
+it across the page). The rule is one of the block's own graphic parts, where the graphics
+step put it (#58, D-90): at most `line_width` em thick, its top between the middle of the
+line and `heading_rule_gap` em below the line, across the whole line and at least
+`heading_rule_reach` em longer than its words at one end, so an underline of the words
+themselves (a link) does not count.
+
 The file's own outline (PDF bookmarks, #24) is a second signal, used after the font rules and
 settled by these rules (D-270 to D-272):
 
@@ -40,7 +51,7 @@ import unicodedata
 from collections import Counter
 from dataclasses import dataclass, replace
 
-from sci2audio.core import Block, BlockKind, Content, OutlineEntry, Section, TextLine
+from sci2audio.core import Block, BlockKind, Box, Content, OutlineEntry, Section, TextLine
 from sci2audio.layout.settings import LayoutSettings
 
 # a printed heading number: "2", "2.1", "A", "A.1", with an optional dot, before the title
@@ -80,7 +91,8 @@ def find_headings(
     texts = [
         _Text(index, block, Style(sizes[style.size], style.bold)) for index, block, style in found
     ]
-    rules = _Headings(texts, body, settings)
+    drawings = {drawing.id: drawing.box for page in content.pages for drawing in page.drawings}
+    rules = _Headings(texts, body, settings, lines, drawings)
     levels = rules.levels()
     levels |= _from_outline(texts, content, levels, rules)
     out = list(blocks)
@@ -135,10 +147,19 @@ def _same_sizes(sizes: list[float], share: float) -> dict[float, float]:
 class _Headings:
     """Decides which text blocks are headings, and their levels."""
 
-    def __init__(self, texts: list[_Text], body: float, settings: LayoutSettings) -> None:
+    def __init__(
+        self,
+        texts: list[_Text],
+        body: float,
+        settings: LayoutSettings,
+        lines: dict[str, TextLine],
+        drawings: dict[str, Box],
+    ) -> None:
         self.texts = texts
         self.body = body
         self.settings = settings
+        self.lines = lines
+        self.drawings = drawings
         self.short = [k for k, text in enumerate(texts) if self._short(text)]
         numbers = {
             k: found["label"]
@@ -188,6 +209,8 @@ class _Headings:
                 found[k], shift = (1, ""), 1
                 if self.shift_from is None:  # the shift starts at the first such title
                     self.shift_from = self.texts[k].index
+            elif label is None and started and self._ruled(k):
+                found[k] = (1, "")  # a part of its own: no shift, which goes on after it
             elif label is None and (style == top or self._named(k)):
                 found[k] = (1 + shift, "")
         return found
@@ -220,6 +243,23 @@ class _Headings:
             and sum(ch.isalpha() for ch in words) >= self.settings.heading_letters
             and (text.style.bold or self._larger(text))
             and not words.endswith((".", ":", ";", ","))
+        )
+
+    def _ruled(self, k: int) -> bool:
+        """True if the block holds a rule drawn under its last line (module docstring)."""
+        block, em, settings = self.texts[k].block, self.body, self.settings
+        boxes = [self.lines[part.item].box for part in block.parts if part.item in self.lines]
+        line = boxes[-1] if boxes else None
+        if line is None:
+            return False
+        rules = (self.drawings[part.item] for part in block.parts if part.item in self.drawings)
+        return any(
+            rule.y1 - rule.y0 <= settings.line_width * em
+            and (line.y0 + line.y1) / 2 <= rule.y0 <= line.y1 + settings.heading_rule_gap * em
+            and rule.x0 <= line.x0 + settings.align * em
+            and rule.x1 >= line.x1 - settings.align * em
+            and max(line.x0 - rule.x0, rule.x1 - line.x1) >= settings.heading_rule_reach * em
+            for rule in rules
         )
 
     def _larger(self, text: _Text) -> bool:

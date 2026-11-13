@@ -27,11 +27,12 @@ CHAPTERS = {
         "2 Policy Language Understanding Evaluation (PLUE) Benchmark", "3 Experiment Results",
         "4 Related Work", "5 Conclusion and Future work", "Limitations", "Ethics Statement",
         "Acknowledgements", "*References", "Supplementary Material: Appendices",
+        "ACL 2023 Responsible NLP Checklist",
     ],
     "acl2023-hardt-ellipsis": [
         "acl2023-hardt-ellipsis", "Abstract", "1 Introduction", "2 Related Work", "3 Data",
         "4 Test", "5 Results", "6 Analysis", "7 Conclusion", "8 Limitations", "*References",
-        "A Appendix",
+        "A Appendix", "ACL 2023 Responsible NLP Checklist",
     ],
     "acl2023-nowak-prefix-probabilities": [
         "acl2023-nowak-prefix-probabilities", "Abstract", "1 Introduction", "2 Preliminaries",

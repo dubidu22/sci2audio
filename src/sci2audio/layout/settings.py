@@ -124,6 +124,10 @@ class LayoutSettings:
     heading_repeats: int = 2  # a document numbers its headings if this many have a number
     #                           (letters count if this many distinct ones do); without
     #                           numbers, a heading style is used this often
+    heading_rule_gap: float = 0.5  # em: a rule under a heading starts at most this far below
+    #                                its last line, ...
+    heading_rule_reach: float = 1.0  # em: ... and reaches this far past its words at one end
+    #                                  (#48, D-385, D-390)
     # whole texts of headings that may stand in any bold or larger style. English only (v1.0):
     # papers in another language need their own list, passed in with that job's settings
     section_names: tuple[str, ...] = (

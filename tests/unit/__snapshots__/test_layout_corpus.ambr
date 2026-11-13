@@ -184,7 +184,7 @@
   178  p12  table  [p12-d4..p12-d6 (47)]  {p12-d4@0 p12-d5@59 p12-d6@329}  Classification Text Answering Question Semantic Parsing NER\nDropout 0.1 0.1 0.1 0.1\nWeight decay 0.0 0.0 0.0 0.0\nOptimizer AdamW AdamW AdamW AdamW\nBatch Size 32 32 32 32\nLearning rate [3e-4, 1e-4, 5e-5, 3e-5, 1e-5, 5e-6, 3e-6]\nLearning Rate Schedule Linear Linear Linear Linear\nWarm-up Ratio 0.05 0.0 0.05 0.05\n# epoch 20 3 20 20
   179  p12  caption (Table 6) -> 178  [p12-l80]  Table 6: Hyperparameters for fine-tuning pre-trained language models on different PLUE tasks.
   180  p12  furniture/page-number  [p12-l81]  363
-  181  p13  paragraph  [p13-l1..p13-d1 (2)]  {p13-d1@34}  ACL 2023 Responsible NLP Checklist
+  181  p13  heading  [p13-l1..p13-d1 (2)]  {p13-d1@34}  ACL 2023 Responsible NLP Checklist
   182  p13  paragraph  [p13-l2..p13-l3 (2)]  A For every submission:
   183  p13  paragraph  [p13-l4]  ✓ A1. Did you describe the limitations of your work?
   184  p13  paragraph  [p13-l5]  In the section "Limitations"
@@ -246,16 +246,17 @@
     1  blocks 53-56  Ethics Statement
     1  blocks 56-58  Acknowledgements
     1  blocks 58-108  References
-    1  blocks 108-229  Supplementary Material: Appendices
+    1  blocks 108-181  Supplementary Material: Appendices
       2  blocks 109-152  A Dataset Details
         3  blocks 110-121  A.1 OPP-115 Privacy Practices
         3  blocks 121-152  A.2 APP-350 Privacy Practices
       2  blocks 152-154  B More Details of Pre-training Corpora
       2  blocks 154-166  C Baseline Models
-      2  blocks 166-229  D More Implementation Details
+      2  blocks 166-181  D More Implementation Details
         3  blocks 167-169  D.1 Domain-specific Continual Pre-training
         3  blocks 169-172  D.2 Task-specific Fine-tuning
-        3  blocks 172-229  D.3 Software Tools
+        3  blocks 172-181  D.3 Software Tools
+    1  blocks 181-229  ACL 2023 Responsible NLP Checklist
   
   '''
 # ---
@@ -382,7 +383,7 @@
   116  p7  heading (A.2)  [p7-l12..p7-l13 (2)]  A.2 Substitutions
   117  p7  paragraph  [p7-l14..p7-l16 (3)]  The examples are produced using the substitutions\nfor subjects and verbs in the different structures, as\nshown in table 3.
   118  p7  furniture/page-number  [p7-l17]  45
-  119  p8  paragraph  [p8-l1..p8-d1 (2)]  {p8-d1@34}  ACL 2023 Responsible NLP Checklist
+  119  p8  heading  [p8-l1..p8-d1 (2)]  {p8-d1@34}  ACL 2023 Responsible NLP Checklist
   120  p8  paragraph  [p8-l2..p8-l3 (2)]  A For every submission:
   121  p8  paragraph  [p8-l4]  ✓ A1. Did you describe the limitations of your work?
   122  p8  paragraph  [p8-l5]  section 8
@@ -445,9 +446,10 @@
     1  blocks 61-73  7 Conclusion
     1  blocks 73-75  8 Limitations
     1  blocks 75-93  References
-    1  blocks 93-167  A Appendix
+    1  blocks 93-119  A Appendix
       2  blocks 94-116  A.1 Sample Instantiations
-      2  blocks 116-167  A.2 Substitutions
+      2  blocks 116-119  A.2 Substitutions
+    1  blocks 119-167  ACL 2023 Responsible NLP Checklist
   
   '''
 # ---
