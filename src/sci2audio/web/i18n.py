@@ -109,6 +109,15 @@ class Strings:
         return json.dumps(keys, ensure_ascii=False).replace("</", "<\\/")
 
 
+_KNOWN = {code: code for code in LANGUAGES}
+
+
+def known_language(text: str | None) -> str | None:
+    """The interface language `text` names, taken from `LANGUAGES` itself, or None: what
+    goes into the cookie is never the request's own text."""
+    return _KNOWN.get(text) if text else None
+
+
 def strings(language: str) -> Strings:
     return Strings(language, load_table(language))
 
@@ -137,8 +146,8 @@ def from_accept_language(header: str | None) -> str | None:
 
 def language_of(request: Request) -> str:
     """The page language: the switch's cookie, else the browser's, else English (D-288)."""
-    chosen = request.cookies.get(COOKIE)
-    if chosen in LANGUAGES:
+    chosen = known_language(request.cookies.get(COOKIE))
+    if chosen is not None:
         return chosen
     return from_accept_language(request.headers.get("accept-language")) or DEFAULT_LANGUAGE
 

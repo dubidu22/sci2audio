@@ -38,6 +38,7 @@ from sci2audio.web.i18n import (
     COOKIE_AGE,
     LANGUAGES,
     Strings,
+    known_language,
     local_path,
     strings_of,
 )
@@ -428,15 +429,16 @@ def choose_language(request: Request, language: str = "", back: str = "") -> Red
     """Remembers the chosen language in its own cookie and goes back to the page the switch
     was on: a path on this server, never another address.
 
-    A GET form, not a POST (D-321): every answer carries `Referrer-Policy: no-referrer` (D-194), so
-    browsers send `Origin: null` with a form POST, which the origin check refuses. The GET
-    is guarded like every page (start cookie, `Sec-Fetch-Site`), sets nothing but the
-    language, and another site can't reach it: its navigation is cross-site and carries no
-    `SameSite=Strict` start cookie.
+    A GET form, not a POST (D-321): every answer carries `Referrer-Policy: no-referrer`
+    (D-194), so browsers send `Origin: null` with a form POST, which the origin check
+    refuses. The GET is guarded like every page (start cookie, `Sec-Fetch-Site`), sets
+    nothing but the language, and another site can't reach it: its navigation is
+    cross-site and carries no `SameSite=Strict` start cookie.
     """
     response = RedirectResponse(local_path(back), 303)
-    if language in LANGUAGES:
+    chosen = known_language(language)  # one of LANGUAGES, never the request's text
+    if chosen is not None:
         response.set_cookie(
-            COOKIE, language, max_age=COOKIE_AGE, path="/", samesite="strict", httponly=True
+            COOKIE, chosen, max_age=COOKIE_AGE, path="/", samesite="strict", httponly=True
         )
     return response

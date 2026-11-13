@@ -283,6 +283,13 @@ def request_with(headers: dict[str, str]) -> Request:
     return Request({"type": "http", "headers": raw})
 
 
+def test_only_a_known_language_reaches_the_cookie() -> None:
+    assert i18n.known_language("de") == "de"
+    assert i18n.known_language("en") == "en"
+    for text in (None, "", "fr", "DE", "de;", "de\r\nSet-Cookie: x=1", "en "):
+        assert i18n.known_language(text) is None
+
+
 def test_the_cookie_wins_and_english_is_the_default() -> None:
     assert language_of(request_with({})) == "en"
     assert language_of(request_with({"Accept-Language": "de"})) == "de"
