@@ -22,17 +22,23 @@ classifiers = [
     "Topic :: Text Processing",
 ]
 dependencies = [
+    "fastapi>=0.162.5,<1",
     "imageio-ffmpeg>=0.8.1,<0.9",
+    "jinja2>=3.1.6,<4",
     "kokoro>=0.9.4,<0.10",
     # Not imported: bounded here because the offline guarantee relies on how misaki 0.9
     # loads its spaCy model (D-121); kokoro alone would accept any later misaki.
     "misaki[en]>=0.9.4,<0.10",
     "numpy>=2.0",
     "platformdirs>=4.14.5,<5",
+    "pydantic>=2.14,<3",
     "pypdfium2>=5.15.2,<6",
+    "python-multipart>=0.0.33,<0.1",
     "requests>=2.32",
     "spacy>=3.8,<4",
+    "starlette>=1.10,<2",
     "torch>=2.6",
+    "uvicorn>=0.54,<1",
 ]
 
 [project.urls]
@@ -46,6 +52,7 @@ sci2audio = "sci2audio.cli:main"
 [dependency-groups]
 dev = [
     "deptry>=0.25",
+    "httpx>=0.28.1,<1",
     "hypothesis>=6.170.15",
     "import-linter>=2.16",
     "mutmut>=3.8.1",
@@ -57,6 +64,7 @@ dev = [
     "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.6",
     "ruff>=0.17",
+    "schemathesis>=4.33.4,<5",
     "syrupy>=6.1.1",
     "zizmor>=1.32.0",
 ]
@@ -117,10 +125,13 @@ known_first_party = ["sci2audio"]
 
 [tool.deptry.per_rule_ignores]
 # misaki is not imported; it is listed to bound its version (see dependencies).
-DEP002 = ["misaki"]
+# jinja2 and python-multipart are loaded by Starlette for templates and uploads (web).
+DEP002 = ["misaki", "jinja2", "python-multipart"]
 
 [tool.importlinter]
 root_package = "sci2audio"
+# needed by the web framework contract below: it names packages outside sci2audio
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Layers: entry points -> app | testing -> pipeline stages -> core (D-46, D-63, Q11)"
@@ -138,3 +149,27 @@ name = "Nothing in the program imports the conformance suite (Q11)"
 type = "forbidden"
 source_modules = ["sci2audio.cli", "sci2audio.web"]
 forbidden_modules = ["sci2audio.testing"]
+
+[[tool.importlinter.contracts]]
+name = "Only the web layer imports the web framework (D-205)"
+type = "forbidden"
+# cli loads sci2audio.web for `sci2audio ui` only, so it is not listed
+source_modules = [
+    "sci2audio.core",
+    "sci2audio.extraction",
+    "sci2audio.layout",
+    "sci2audio.textprep",
+    "sci2audio.voices",
+    "sci2audio.output",
+    "sci2audio.app",
+    "sci2audio.testing",
+]
+forbidden_modules = [
+    "fastapi",
+    "starlette",
+    "uvicorn",
+    "jinja2",
+    "multipart",
+    "python_multipart",
+    "pydantic",
+]
