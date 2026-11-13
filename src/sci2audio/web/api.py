@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, File, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 
-from sci2audio.app import JobSettings, load_settings, save_settings
+from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
 from sci2audio.textprep import Category
 from sci2audio.voices import DEFAULT_VOICE, ENGLISH_VOICES, download_plan, missing_files
@@ -176,6 +176,24 @@ def get_chapters(state: State, document_id: str) -> list[models.ChapterOut]:
     return [models.ChapterOut.model_validate(chapter) for chapter in chapters]
 
 
+@router.delete(
+    "/documents/{document_id}/chunks",
+    status_code=204,
+    responses=_errors(404, 409),
+    summary="Remove the kept speech chunks of a document",
+)
+def clean_chunks(state: State, document_id: str) -> None:
+    """The next audio job of this document speaks everything again (D-158, D-209)."""
+    document = _document(state, document_id)
+    _not_in_use(state, document_id)
+    try:
+        clean_work_folder(document.folder)
+    except JobBusyError as error:  # another process holds the working folder
+        raise ApiError(409, "busy", str(error)) from error
+    except OSError as error:
+        raise ApiError(500, "clean-failed", f"could not remove the chunks: {error}") from error
+
+
 # --- settings --------------------------------------------------------------------------
 
 
@@ -308,7 +326,7 @@ def _job_out(job: JobRecord) -> models.JobOut:
     "/jobs",
     status_code=202,
     response_model=models.JobOut,
-    responses=_errors(404, 409, 501, *BODY),
+    responses=_errors(404, 409, *BODY),
     summary="Start a job",
 )
 def start_job(state: State, body: models.JobIn) -> models.JobOut:

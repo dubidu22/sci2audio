@@ -275,15 +275,6 @@ def test_a_source_removed_before_the_run_fails_with_a_message(
     assert "gone.pdf" in job["error"]["message"]
 
 
-def test_audio_jobs_wait_for_the_audio_job(server: tuple[FastAPI, Any]) -> None:
-    app, config = server
-    client = program(app, config)
-    doc = upload(client, pdf_bytes())
-    response = client.post("/api/v1/jobs", json={"kind": "audio", "document": doc["id"]})
-    assert response.status_code == 501
-    assert response.json()["error"] == "not-available"
-
-
 def test_only_files_the_job_wrote_are_served(server: tuple[FastAPI, Any]) -> None:
     app, config = server
     client = program(app, config)

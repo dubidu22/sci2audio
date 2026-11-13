@@ -8,16 +8,16 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from fastapi import Depends, Request
 
-from sci2audio.app import JobRunner, JobSettings
+from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice
 from sci2audio.web.config import ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.jobs import JobBoard, JobRecord
-from sci2audio.web.tasks import Fetch, classify
+from sci2audio.web.tasks import Fetch, audio_work, classify
 
 Work = Callable[[JobRecord], Sequence[Path]]
 
@@ -37,6 +37,8 @@ class ServerState:
     config: ServerConfig
     runner: JobRunner
     fetch: Fetch | None = None  # the voice download's fetch; tests pass a fake
+    # the voice of audio jobs from the models folder; tests pass a fake (D-166)
+    voice: Callable[[Path], VoiceSource] = kokoro_voice
     store: DocumentStore = field(init=False)
     board: JobBoard = field(init=False)
     stopping: threading.Event = field(default_factory=threading.Event)
@@ -50,10 +52,12 @@ class ServerState:
         self.board = JobBoard(classify)
 
     def audio_work(self, document: StoredDocument, settings: JobSettings, overwrite: bool) -> Work:
-        """The audio job arrives with #71 (D-208)."""
-        raise ApiError(
-            501, "not-available", "making audiobooks arrives with the audio job (Issue #71)"
-        )
+        """An audio job into the person's output folder (D-199): the one in the settings,
+        else the server's default."""
+        if settings.output_folder is None:
+            settings = replace(settings, output_folder=self.config.output_folder)
+        voice = self.voice(self.config.models_dir)
+        return audio_work(self.runner, document, settings, voice, overwrite=overwrite)
 
 
 def _state(request: Request) -> ServerState:

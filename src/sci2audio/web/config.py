@@ -12,7 +12,7 @@ from pathlib import Path
 
 import platformdirs
 
-from sci2audio.app import default_config_file
+from sci2audio.app import default_config_file, default_models_folder
 
 HOST = "127.0.0.1"  # the only address the server ever binds to (D-192)
 UPLOAD_LIMIT = 200 * 1024 * 1024  # bytes per opened file (D-198)
@@ -27,13 +27,8 @@ def new_token() -> str:
 
 def default_work_root() -> Path:
     """The folder that holds one working folder per document (`<sha256[:16]>`), the same
-    folders the audio job uses by default (D-164)."""
+    folders as `app.default_work_folder` (D-164); a test keeps the two equal."""
     return platformdirs.user_cache_path("sci2audio", appauthor=False) / "jobs"
-
-
-def default_models_dir() -> Path:
-    """Where the voice download puts the voice files (D-164)."""
-    return platformdirs.user_data_path("sci2audio", appauthor=False) / "models"
 
 
 def default_output_folder() -> Path:
@@ -96,7 +91,7 @@ def server_config(port: int, *, token: str | None = None) -> ServerConfig:
         token=token or new_token(),
         port=port,
         work_root=default_work_root(),
-        models_dir=default_models_dir(),
+        models_dir=default_models_folder(),
         config_file=default_config_file(),
         output_folder=default_output_folder(),
     )

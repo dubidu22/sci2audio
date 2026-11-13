@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import errno
+from collections.abc import Callable
 from importlib.resources import files
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -14,7 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.routing import Match
 
 from sci2audio import __version__
-from sci2audio.app import JobRunner
+from sci2audio.app import JobRunner, VoiceSource
 from sci2audio.web import api, pages
 from sci2audio.web.config import ServerConfig
 from sci2audio.web.limits import BodyLimit
@@ -57,8 +59,10 @@ def create_app(
     *,
     runner: JobRunner | None = None,
     fetch: Fetch | None = None,
+    voice: Callable[[Path], VoiceSource] | None = None,
 ) -> FastAPI:
-    """The server's app. `fetch` replaces the voice download's network fetch (tests)."""
+    """The server's app. `fetch` replaces the voice download's network fetch and `voice`
+    the Kokoro voice (tests)."""
     app = FastAPI(
         title="sci2audio",
         version=__version__,
@@ -69,6 +73,8 @@ def create_app(
         telemetry=TELEMETRY_OFF,  # type: ignore[arg-type]
     )
     state = ServerState(config, runner or JobRunner(), fetch)
+    if voice is not None:
+        state.voice = voice
     app.state.sci2audio = state
     app.include_router(api.router)
     app.include_router(pages.router)
