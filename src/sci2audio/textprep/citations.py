@@ -4,7 +4,8 @@ them (TP-03, TP-04, K2; D-171 to D-173).
 
 Numeric citations are square brackets of whole numbers, lists and ranges ("[12]",
 "[2–6, 16, 17]"), never glued to a word ("Tr[ρ]") and never after a maths or statistics
-sign or word ("∈ [0, 1]", "CI [1, 3]"). An aside is removed; a citation that is part of the
+sign or word ("∈ [0, 1]", "CI [1, 3]", "CI: [1, 3]"), nor joined on to such a bracket
+("CIs [1, 3] and [2, 4]", D-450). An aside is removed; a citation that is part of the
 sentence ("discussed in [26].", "Refs. [53, 58]", "[12] showed") is read as "reference 26",
 "references 53 and 58"; a bracket holding only lead words and citations ("(see also [48,
 135])") goes whole.
@@ -15,7 +16,11 @@ Author-year citations are brackets whose every ";"-part is a citation: optional 
 mixed bracket only the citation parts go ("(RNNGs; Dyer et al., 2016)" reads "(RNNGs)");
 used as the subject ("(Dasigi et al., 2019) note that") its names stay. A bracket of years
 right after a name is a narrative citation ("Smith (2019) shows"): only the bracket goes, so
-the names stay (TP-04). A page bracket glued to a citation ("(2022)[p. 8]") goes with it.
+the names stay (TP-04); after an article the word names a thing, not an author ("the
+Olympics (2016)", D-448), unless "et al." or a second author shows a citation. A bracket of
+lead words and a narrative citation goes whole ("(see Smith (2019))"), a full stop inside
+it too when the bracket starts a sentence (D-447). A page bracket glued to a citation
+("(2022)[p. 8]") goes with it.
 
 Brackets are worked outermost first: a bracket that goes takes everything inside it along,
 and inside one that stays, its inner brackets are looked at in turn. "et al." stays as

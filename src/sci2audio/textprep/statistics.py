@@ -12,7 +12,8 @@ printed; the numbers themselves stay digits for the voice (D-176).
 - S3: R², η², ηp², ω², ε² read "squared" and χ² "chi-square"; with a plain 2, as PDFs give
   it, only before an operator or a df parenthesis.
 - S4 (D-180): "CI" read "confidence interval" after a percentage or before a bracket, "="
-  or ":"; a bracketed pair of numbers after it read "1.2 to 3.4".
+  or ":"; a bracketed pair of numbers after it read "1.2 to 3.4", and so is each pair joined
+  on by "and", "or" or a comma ("CIs [1, 3] and [2, 4]", D-450).
 - S5 (D-181): "OR" before an operator read "odds ratio"; other statistic letters are left
   to the voice, which spells them.
 """
