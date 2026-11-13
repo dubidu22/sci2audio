@@ -3,7 +3,9 @@
 Extraction reads a file into `Content` and decides nothing about it (D-63): no reading order,
 no headings, nothing left out. Each page keeps its text lines (made of styled runs), pictures
 and drawings with their boxes, in the order the file stores them, which is only a hint. The
-layout stage turns this into a `Document`; every item has an id the document points back to.
+file's own outline (PDF bookmarks, an EPUB's table of contents) is kept as it is stored, as a
+hint for headings (#24). The layout stage turns this into a `Document`; every item has an id
+the document points back to.
 """
 
 from __future__ import annotations
@@ -154,17 +156,42 @@ Item = TextLine | Picture | Drawing
 
 
 @dataclass(frozen=True)
+class OutlineEntry:
+    """One entry of the file's own outline (PDF bookmarks, an EPUB's table of contents):
+    a hint for the layout stage, not a decision (D-263 to D-266).
+
+    The title is kept exactly as the file stores it, also when it is empty or ends in a space;
+    a printed heading number is often left out of it ("Introduction" for "1 Introduction").
+    """
+
+    title: str
+    level: int  # 1 = top; an entry under another is one level deeper
+    page: int | None = None  # the `Page.number` it points at; None if it points at no page
+
+    def __post_init__(self) -> None:
+        if self.level < 1:
+            raise ValueError(f"outline level must be >= 1, got {self.level}")
+
+
+@dataclass(frozen=True)
 class Content:
-    """Everything extraction recorded from one file, page by page."""
+    """Everything extraction recorded from one file, page by page.
+
+    `outline` lists the file's outline entries in the order it stores them; their levels keep
+    the nesting: the first entry is at level 1 and each entry is at most one level deeper than
+    the one before it. Empty when the file has none.
+    """
 
     source: Source
     pages: tuple[Page, ...]
     metadata: Metadata = field(default_factory=Metadata)
+    outline: tuple[OutlineEntry, ...] = ()
 
     def __post_init__(self) -> None:
         numbers = [page.number for page in self.pages]
         if numbers != list(range(1, len(numbers) + 1)):
             raise ValueError(f"pages must be numbered 1, 2, 3, ... in order, got {numbers}")
+        _check_outline(self.outline, len(self.pages))
         counts = Counter(item.id for page in self.pages for item in _items(page))
         doubled = sorted(i for i, n in counts.items() if n > 1)
         if doubled or "" in counts:
@@ -173,6 +200,22 @@ class Content:
     def items(self) -> dict[str, tuple[Page, Item]]:
         """Every item by its id, with the page it stands on."""
         return {item.id: (page, item) for page in self.pages for item in _items(page)}
+
+
+def _check_outline(outline: tuple[OutlineEntry, ...], pages: int) -> None:
+    level = 0  # the level before the first entry
+    for entry in outline:
+        if entry.level > level + 1:
+            raise ValueError(
+                f"outline entry {entry.title!r} is at level {entry.level}, more than one level"
+                f" below the entry before it (level {level})"
+            )
+        if entry.page is not None and not 1 <= entry.page <= pages:
+            raise ValueError(
+                f"outline entry {entry.title!r} points at page {entry.page}, which the content"
+                f" does not have (pages 1 to {pages})"
+            )
+        level = entry.level
 
 
 def _items(page: Page) -> tuple[Item, ...]:
