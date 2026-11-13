@@ -45,6 +45,7 @@ class FakeVoice:
     marker: Path | None = None  # written just before hanging
     fail_to_make: EngineError | None = None
     version: str = "fake-1"
+    samples_per_character: int = SAMPLES_PER_CHARACTER  # more: longer speech (player tests)
     spoken: list[tuple[str, str, float]] = field(default_factory=list)  # text, voice, speed
     made: int = 0
     released: int = 0
@@ -95,7 +96,7 @@ class FakeSession:
             raise InvalidInputError(f"cannot say {text[:20]!r}")
         speed = float(request.parameters.values.get("speed", 1.0))
         self.voice.spoken.append((text, request.voice.key, speed))
-        n = int(len(text) * SAMPLES_PER_CHARACTER / speed)
+        n = int(len(text) * self.voice.samples_per_character / speed)
         samples = (0.3 * np.sin(np.arange(n, dtype=np.float32) / 5.0)).astype("<f4")
         return SynthesizedAudio(
             data=samples.tobytes(),

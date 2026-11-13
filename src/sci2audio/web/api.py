@@ -23,6 +23,7 @@ from sci2audio.voices import DEFAULT_VOICE, ENGLISH_VOICES, download_plan, missi
 from sci2audio.web import models
 from sci2audio.web.documents import StoredDocument, StoreError
 from sci2audio.web.jobs import BoardBusyError, JobKind, JobRecord, JobState
+from sci2audio.web.player import audiobook_file
 from sci2audio.web.state import ApiError, ServerState, state_of
 from sci2audio.web.tasks import plan_digest, script_work, voices_work
 
@@ -196,6 +197,29 @@ def document_file(
     found = next((path for path in document.analysis_files() if path.name == name), None)
     if found is None:
         raise ApiError(404, "not-found", f"{document.name} has no analysis file {name!r}")
+    return _file(found, download)
+
+
+@router.get(
+    "/documents/{document_id}/audiobook/{name}",
+    response_class=FileResponse,
+    responses={**_FILE_ANSWERS, **_errors(404)},
+    summary="A file of the document's latest audiobook: an MP3, the M4B or the read-along",
+)
+def audiobook(
+    state: State, document_id: str, name: str, download: Download = False
+) -> FileResponse:
+    """A file the document's latest audio job wrote, by name as written, for the player
+    (#78, D-295): only names its record lists, only from the recorded, the saved or the
+    default output folder, and only once the read-along file there agrees with the
+    record. Range requests answer 206, so the player can seek."""
+    document = _document(state, document_id)
+    saved, _ = load_settings(state.config.config_file)
+    found = audiobook_file(
+        document.folder, document.id, name, saved.output_folder, state.config.output_folder
+    )
+    if found is None:
+        raise ApiError(404, "not-found", f"{document.name} has no audiobook file {name!r}")
     return _file(found, download)
 
 
