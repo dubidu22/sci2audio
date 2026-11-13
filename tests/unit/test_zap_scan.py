@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import importlib.util
 import re
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -266,3 +267,138 @@ def test_a_message_from_zap_becomes_what_was_seen() -> None:
         "responseBody": '<!doctype html>\n<html lang="de">\n<head>',
     }
     assert zap._seen(message) == zap.Seen("GET", "/documents/x", 404, "de")
+
+
+# --- review round 1 ---------------------------------------------------------------------------
+
+
+def test_refusals_never_count_as_a_route_scanned() -> None:
+    """The 401 pages and the spider's refused POSTs must not stand in for real answers."""
+    routes = [
+        zap.Route("GET", "/", re.compile("/"), True),
+        zap.Route("POST", "/api/v1/documents", re.compile("/api/v1/documents"), False),
+    ]
+    seen = [*EVERYTHING_ELSE, zap.Seen("POST", "/api/v1/documents", 403, None)]
+    assert zap.gaps_in(routes, seen) == [
+        "GET / was never scanned",
+        "POST /api/v1/documents was never scanned",
+    ]
+
+
+def test_expected_errors_still_count_as_scanned() -> None:
+    """The "not found" page and a cancel of a job that has ended are real answers."""
+    routes = [
+        route("/documents/{document_id}", page=True),
+        route("/api/v1/jobs/{job_id}/cancel", method="POST"),
+    ]
+    seen = [
+        zap.Seen("GET", "/documents/0000000000000000", 404, "en"),
+        zap.Seen("GET", "/documents/0000000000000000", 404, "de"),
+        zap.Seen("POST", "/api/v1/jobs/x-audio-2/cancel", 409, None),
+        *EVERYTHING_ELSE,
+    ]
+    assert zap.gaps_in(routes, seen) == []
+
+
+STOPPED: list[str] = []
+
+
+class FailingZap:
+    """A ZAP whose start fails; records in STOPPED whether it was stopped."""
+
+    def __init__(self, image: str, port: int) -> None:
+        self.proxy = "http://127.0.0.1:1"
+
+    def start(self) -> None:
+        raise RuntimeError("ZAP did not start within 180 s")
+
+    def stop(self) -> None:
+        STOPPED.append("stopped")
+
+    def logs(self) -> str:
+        return ""
+
+
+def test_a_zap_that_does_not_start_is_stopped_and_exits_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import contextlib
+    from types import SimpleNamespace
+
+    @contextlib.contextmanager
+    def server(work: Path):
+        yield None, SimpleNamespace(origin="http://127.0.0.1:2", port=2), None
+
+    STOPPED.clear()
+    monkeypatch.setattr(zap, "Zap", FailingZap)
+    monkeypatch.setattr(zap, "local_server", server)
+    monkeypatch.setattr(zap.shutil, "which", lambda name: "/usr/bin/docker")
+    assert zap.main(["--out", str(tmp_path / "out")]) == 2
+    assert STOPPED == ["stopped"]
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        subprocess.CalledProcessError(125, ["docker", "run"]),
+        RuntimeError("the server did not start"),
+        OSError("no space left"),
+        zap.WalkError("GET /voice answered 500"),
+    ],
+)
+def test_could_not_run_exits_2_not_1(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, error: Exception
+) -> None:
+    def broken(*args: object) -> int:
+        raise error
+
+    monkeypatch.setattr(zap, "run", broken)
+    assert zap.main(["--out", str(tmp_path)]) == 2
+
+
+NOTES = """
+[[informational]]
+rule = 10027
+reason = "Plain code comments that name nothing secret."
+decision = "D-367"
+"""
+
+
+def test_informational_alerts_carry_their_explanation(tmp_path: Path) -> None:
+    path = tmp_path / "accepted.toml"
+    path.write_text(GOOD + NOTES, encoding="utf-8")
+    notes = zap.load_notes(path)
+    assert len(zap.load_accepted(path)) == 1
+    verdict = zap.judge(
+        [alert(rule=10027, risk="Informational"), alert(rule=10109, risk="Informational")], ()
+    )
+    text = zap.summary(verdict, image="z", origin="127.0.0.1", messages=1, when="now", notes=notes)
+    assert "| D-367: Plain code comments that name nothing secret. |" in text
+    assert (
+        "| 10109 a rule | GET `/documents/0123456789abcdef?category=x` | not yet explained |"
+        in text
+    )
+    assert verdict.passed  # never fails, explained or not
+
+
+def test_the_notes_in_the_repository_explain_todays_rules() -> None:
+    notes = zap.load_notes(zap.ACCEPTED)
+    assert {10024, 10027, 10029, 10031, 10112} <= set(notes)
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        (NOTES + NOTES, "explained twice"),
+        (NOTES.replace('decision = "D-367"\n', ""), "missing \\['decision'\\]"),
+        (NOTES + 'risk = "Low"\n', "unknown \\['risk'\\]"),
+        (NOTES.replace("Plain code comments that name nothing secret.", "ok"), "why"),
+        (NOTES.replace("rule = 10027", "rule = 0"), "ZAP rule number"),
+        ("informational = 1\n", "array of tables"),
+    ],
+)
+def test_a_bad_note_is_refused(tmp_path: Path, text: str, message: str) -> None:
+    path = tmp_path / "accepted.toml"
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(zap.AcceptedListError, match=message):
+        zap.load_notes(path)

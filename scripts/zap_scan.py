@@ -18,12 +18,15 @@ never attacks. The script
 4. lets ZAP's spider crawl from `/` with the start cookie, in both languages;
 5. waits for the passive scan, then judges the alerts (D-367): High and Medium always
    fail; Low fails unless `scripts/zap/accepted.toml` accepts it with a reason and a
-   decision; Informational is listed only. It also fails when a route of the app was
-   never scanned, or a page was not seen in both languages, so a broken walk can't pass
-   by scanning nothing.
+   decision; Informational is listed only, each with the explanation the same file
+   gives for its rule (`[[informational]]`), or "not yet explained". It also fails when
+   a route of the app was never scanned with a real answer (a 401, 403 or 421 refusal
+   doesn't count), or a page was not seen in both languages, so a broken walk can't
+   pass by scanning nothing.
 
 It writes `zap-summary.md`, `zap-alerts.json` and ZAP's own HTML report to `--out` and
-exits with 0 (passed), 1 (findings or gaps) or 2 (could not run).
+exits with 0 (passed), 1 (findings or gaps) or 2 (could not run: a broken accepted list,
+no Docker, ZAP or the server not starting, or the walk not doing what a person would).
 
 Docker: Linux, or Docker Desktop 4.34 or later on macOS and Windows with host networking
 turned on (D-371). CI runs it in `.github/workflows/zap.yml` (D-364).
@@ -44,6 +47,7 @@ import tempfile
 import threading
 import time
 import tomllib
+import traceback
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -63,9 +67,13 @@ ACCEPTABLE = frozenset({"Low"})  # High and Medium are fixed, never accepted (D-
 LANGUAGES = ("en", "de")
 DECISION = re.compile(r"D-\d+")
 ACCEPTED_KEYS = frozenset({"rule", "risk", "url", "reason", "decision"})
-NO_DOCUMENT = "0" * 16
+NOTE_KEYS = frozenset({"rule", "reason", "decision"})
+# the middleware's own refusals: an answer with one of these never counts as the route
+# scanned (the 401 page and the 421 answer are checked on their own)
+REFUSALS = frozenset({401, 403, 421})
+NO_DOCUMENT = "0" * 16  # a document id that is never opened: the "not found" page
 # a name that points at 127.0.0.1 inside ZAP's container only: DNS rebinding (D-194)
-REBOUND = "rebound.example"  # a document id that is never opened: the "not found" page
+REBOUND = "rebound.example"
 
 
 # --- judging (pure; tests/unit/test_zap_scan.py) ------------------------------------------
@@ -125,44 +133,77 @@ class AcceptedListError(ValueError):
     """`accepted.toml` is not as described at its top."""
 
 
-def load_accepted(path: Path) -> tuple[Accepted, ...]:
+@dataclass(frozen=True)
+class Note:
+    """Why an informational alert of one rule is no problem here (for the summary)."""
+
+    rule: int
+    reason: str
+    decision: str
+
+
+def _tables(path: Path, name: str) -> list[Any]:
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise AcceptedListError(f"{path}: {error}") from error
-    unknown = set(data) - {"accepted"}
+    unknown = set(data) - {"accepted", "informational"}
     if unknown:
         raise AcceptedListError(f"{path}: unknown table(s) {sorted(unknown)}")
-    entries = data.get("accepted", [])
+    entries = data.get(name, [])
     if not isinstance(entries, list):
-        raise AcceptedListError(f"{path}: `accepted` must be an array of tables")
+        raise AcceptedListError(f"{path}: `{name}` must be an array of tables")
+    return entries
+
+
+def _checked(where: str, entry: Any, wanted: frozenset[str]) -> dict[str, Any]:
+    """The entry's keys and the three fields every entry has (rule, reason, decision)."""
+    if not isinstance(entry, dict):
+        raise AcceptedListError(f"{where}: not a table")
+    keys = set(entry)
+    if keys != wanted:
+        missing, extra = wanted - keys, keys - wanted
+        raise AcceptedListError(
+            f"{where}: missing {sorted(missing)}, unknown {sorted(extra)}"
+            if missing and extra
+            else f"{where}: missing {sorted(missing)}"
+            if missing
+            else f"{where}: unknown {sorted(extra)}"
+        )
+    rule, reason, decision = entry["rule"], entry["reason"], entry["decision"]
+    if not isinstance(rule, int) or isinstance(rule, bool) or rule <= 0:
+        raise AcceptedListError(f"{where}: rule must be a ZAP rule number")
+    if not isinstance(reason, str) or len(reason.strip()) < 20:
+        raise AcceptedListError(f"{where}: the reason must say why (20 characters or more)")
+    if not isinstance(decision, str) or not DECISION.fullmatch(decision):
+        raise AcceptedListError(f"{where}: decision must look like D-123")
+    return entry
+
+
+def load_notes(path: Path) -> dict[int, Note]:
+    """The `[[informational]]` entries by rule; one per rule."""
+    notes: dict[int, Note] = {}
+    for number, entry in enumerate(_tables(path, "informational"), 1):
+        where = f"{path}: informational entry {number}"
+        entry = _checked(where, entry, NOTE_KEYS)
+        if entry["rule"] in notes:
+            raise AcceptedListError(f"{where}: rule {entry['rule']} is explained twice")
+        notes[entry["rule"]] = Note(entry["rule"], entry["reason"].strip(), entry["decision"])
+    return notes
+
+
+def load_accepted(path: Path) -> tuple[Accepted, ...]:
+    entries = _tables(path, "accepted")
     found: list[Accepted] = []
     for number, entry in enumerate(entries, 1):
         where = f"{path}: entry {number}"
-        if not isinstance(entry, dict):
-            raise AcceptedListError(f"{where}: not a table")
-        keys = set(entry)
-        if keys != ACCEPTED_KEYS:
-            missing, extra = ACCEPTED_KEYS - keys, keys - ACCEPTED_KEYS
-            raise AcceptedListError(
-                f"{where}: missing {sorted(missing)}, unknown {sorted(extra)}"
-                if missing and extra
-                else f"{where}: missing {sorted(missing)}"
-                if missing
-                else f"{where}: unknown {sorted(extra)}"
-            )
+        entry = _checked(where, entry, ACCEPTED_KEYS)
         rule, risk, url = entry["rule"], entry["risk"], entry["url"]
         reason, decision = entry["reason"], entry["decision"]
-        if not isinstance(rule, int) or isinstance(rule, bool) or rule <= 0:
-            raise AcceptedListError(f"{where}: rule must be a ZAP rule number")
         if risk not in ACCEPTABLE:
             raise AcceptedListError(
                 f"{where}: only Low alerts can be accepted; {risk!r} must be fixed (D-369)"
             )
-        if not isinstance(reason, str) or len(reason.strip()) < 20:
-            raise AcceptedListError(f"{where}: the reason must say why (20 characters or more)")
-        if not isinstance(decision, str) or not DECISION.fullmatch(decision):
-            raise AcceptedListError(f"{where}: decision must look like D-123")
         if not isinstance(url, str) or not url:
             raise AcceptedListError(f"{where}: url must be a regular expression")
         try:
@@ -231,12 +272,20 @@ class Route:
 
 
 def gaps_in(routes: Iterable[Route], seen: Iterable[Seen], extra: Iterable[str] = ()) -> list[str]:
-    """What the scan never saw: a route never requested, a page not answered in one of the
-    languages, and the middleware's own answers (start link, 401 in both languages, 421)."""
+    """What the scan never saw: a route never answered for real (a 401, 403 or 421 refusal
+    doesn't count: the spider's refused POSTs and the 401 pages would otherwise stand in
+    for routes the walk never reached), a page not answered in one of the languages, and
+    the middleware's own answers (start link, 401 in both languages, 421)."""
     seen = list(seen)
     missing: list[str] = []
     for route in routes:
-        hits = [s for s in seen if s.method == route.method and route.pattern.fullmatch(s.path)]
+        hits = [
+            s
+            for s in seen
+            if s.method == route.method
+            and route.pattern.fullmatch(s.path)
+            and s.status not in REFUSALS
+        ]
         if not hits:
             missing.append(f"{route.method} {route.template} was never scanned")
             continue
@@ -287,7 +336,16 @@ def routes_of(app: Any) -> list[Route]:
 # --- the summary ----------------------------------------------------------------------------
 
 
-def summary(verdict: Verdict, *, image: str, origin: str, messages: int, when: str) -> str:
+def summary(
+    verdict: Verdict,
+    *,
+    image: str,
+    origin: str,
+    messages: int,
+    when: str,
+    notes: dict[int, Note] | None = None,
+) -> str:
+    notes = notes or {}
     lines = [
         "# ZAP baseline scan",
         "",
@@ -313,12 +371,17 @@ def summary(verdict: Verdict, *, image: str, origin: str, messages: int, when: s
     if verdict.gaps:
         lines.extend(["## Not scanned", "", *(f"- {gap}" for gap in verdict.gaps), ""])
     table("Accepted (Low)", [(a, f"{e.decision}: {e.reason}") for a, e in verdict.accepted])
-    table("Informational (never fails)", [(a, a.evidence[:80]) for a in verdict.informational])
+    table("Informational (never fails)", [(a, _explained(a, notes)) for a in verdict.informational])
     if verdict.stale:
         lines.extend(["## Accepted entries that matched nothing", ""])
         lines.extend(f"- rule {e.rule} `{e.url.pattern}` ({e.decision})" for e in verdict.stale)
         lines.append("")
     return "\n".join(lines)
+
+
+def _explained(alert: Alert, notes: dict[int, Note]) -> str:
+    note = notes.get(alert.rule)
+    return f"{note.decision}: {note.reason}" if note else "not yet explained"
 
 
 # --- ZAP in Docker ------------------------------------------------------------------------
@@ -744,6 +807,7 @@ def _names(record: dict[str, Any], key: str) -> list[str]:
 
 def run(image: str, out: Path, accepted_file: Path, chromium: str | None) -> int:
     accepted = load_accepted(accepted_file)  # a broken list fails before anything starts
+    notes = load_notes(accepted_file)
     if shutil.which("docker") is None:
         print("zap_scan: Docker is needed (https://docs.docker.com/get-docker/)", file=sys.stderr)
         return 2
@@ -755,8 +819,8 @@ def run(image: str, out: Path, accepted_file: Path, chromium: str | None) -> int
     ):
         origin = config.origin
         print(f"sci2audio is running at {origin}", flush=True)
-        zap.start()
         try:
+            zap.start()  # in here, so a start that fails or times out is stopped too
             walk(config, zap.proxy, chromium)
             # the spider, with the start cookie, once per language (spider requests only)
             for language in LANGUAGES:
@@ -791,7 +855,9 @@ def run(image: str, out: Path, accepted_file: Path, chromium: str | None) -> int
     alerts = [Alert.from_zap(item) for item in raw]
     verdict = judge(alerts, accepted, gaps_in(routes, seen))
     when = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
-    text = summary(verdict, image=image, origin="127.0.0.1", messages=len(seen), when=when)
+    text = summary(
+        verdict, image=image, origin="127.0.0.1", messages=len(seen), when=when, notes=notes
+    )
     (out / "zap-summary.md").write_text(text + "\n", "utf-8")
     (out / "zap-alerts.json").write_text(json.dumps(raw, indent=1) + "\n", "utf-8")
     print(text)
@@ -802,7 +868,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--image", default=IMAGE, help="the ZAP image (default: the pinned one)")
     parser.add_argument("--out", type=Path, default=Path("zap-out"), help="report folder")
-    parser.add_argument("--accepted", type=Path, default=ACCEPTED, help="accepted Low alerts")
+    parser.add_argument(
+        "--accepted",
+        type=Path,
+        default=ACCEPTED,
+        help="accepted Low alerts and notes on informational ones",
+    )
     parser.add_argument(
         "--chromium", default=None, help="a Chromium to use instead of Playwright's own"
     )
@@ -811,6 +882,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run(args.image, args.out, args.accepted, args.chromium)
     except AcceptedListError as error:
         print(f"zap_scan: {error}", file=sys.stderr)
+        return 2
+    except Exception:  # Docker, ZAP, the server or the walk: could not run, not a finding
+        traceback.print_exc()
+        print("zap_scan: the scan could not run (see above)", file=sys.stderr)
         return 2
 
 

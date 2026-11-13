@@ -5,6 +5,8 @@ name: ZAP baseline scan
 # ZAP never attacks. High and Medium alerts fail; Low ones fail unless
 # scripts/zap/accepted.toml accepts them with a reason; a route never scanned fails too.
 # Not part of "CI passed" (path-filtered); a red run is a must-fix in review (D-368).
+# A red nightly run gets an Issue opened by hand (milestone v1.0 until the release); the
+# workflow can't open one itself, as it has read access only.
 on:
   pull_request:
     paths:
