@@ -198,6 +198,7 @@ def test_the_default_steps_are_the_built_in_ones() -> None:
             (BlockKind.PARAGRAPH, "Doe, J. (2020). A study."),
             (BlockKind.PARAGRAPH, "It is released at https://example.org/a."),
             (BlockKind.PARAGRAPH, "Noise (Smith, 2019) matters."),
+            (BlockKind.PARAGRAPH, "An e\N{LATIN SMALL LIGATURE FFI}cient develop-\nment."),
         ],
         tags={1: [(14, 15, "sup")]},
         sections=[Section("References", 1, 5, 7)],
