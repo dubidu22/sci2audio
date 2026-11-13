@@ -80,3 +80,7 @@ jobs:
         env:
           SCI2AUDIO_TEST_MODELS: ${{ runner.temp }}/test-models/voices
         run: uv run pytest -m benchmark --benchmark-only --benchmark-json=benchmark.json
+      # The speed script against the real voice, so it cannot rot (D-287); numbers in the log.
+      - name: Speed script, short run on the CPU (trend only)
+        shell: bash
+        run: uv run python scripts/speed.py --quick --device cpu --models-folder "$RUNNER_TEMP/test-models/voices" --json "$RUNNER_TEMP/speed.json"

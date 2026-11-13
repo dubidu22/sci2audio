@@ -21,6 +21,8 @@ uv run pytest -m "not slow and not benchmark"
 
 Which tests a change needs is described in `.claude/rules/tests.md` (it applies to people too). Before a release, follow `docs/release-checklist.md`.
 
+To see how fast sci2audio speaks on your machine, run `uv run python scripts/speed.py` after `uv run sci2audio voices download` (`--quick` for a short run, `--help` for the options); `docs/baseline.md` holds the numbers measured so far and the performance budget.
+
 Install the pre-commit hooks once with `uv run pre-commit install`; they run ruff and a secret scan before each commit.
 
 ## Rules that matter most
