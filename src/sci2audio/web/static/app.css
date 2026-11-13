@@ -51,6 +51,14 @@ main:focus, h1:focus, h2:focus, .message:focus { outline: none; }
 .skip:focus { position: static; display: inline-block; margin-bottom: 0.5rem; }
 header { display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline; }
 header .home { font-weight: bold; font-size: 1.2rem; }
+/* the language switch (D-288): the chosen language filled, the other outlined */
+.languages { margin-left: auto; }
+.languages fieldset { border: 0; margin: 0; padding: 0; display: flex; gap: 0.5rem; align-items: baseline; }
+.languages legend { float: left; font-weight: normal; padding: 0; }
+.languages button { padding: 0.15rem 0.6rem; }
+.languages button[aria-pressed="false"] { background: var(--bg); color: var(--text); }
+.folders dd { margin: 0 0 0.75rem 1.5rem; overflow-wrap: anywhere; }
+.folders dt { font-weight: bold; }
 .running { margin: 0; padding: 0.25rem 0.5rem; background: var(--note); }
 .stack { display: grid; gap: 0.35rem; margin-bottom: 1rem; }
 .stack > p { margin: 0; }

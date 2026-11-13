@@ -20,6 +20,7 @@
 <ul aria-labelledby="hosts-intro">
   {% for host in hosts %}<li>{{ host }}</li>{% endfor %}
 </ul>
+<p><a href="/privacy">{{ t('setup.privacy') }}</a></p>
 {% if not installed %}
 <form id="voice-download" class="stack" data-plan="{{ digest }}">
   <p><label><input type="checkbox" id="voice-consent" name="consent" required> {{ t('setup.consent') }}</label></p>
