@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ document.name }} · sci2audio{% endblock %}
+{% block main %}
+<h1>{{ document.name }}</h1>
+<p>Document <code>{{ document.id }}</code></p>
+{% if report %}
+<h2>Chapters</h2>
+<ol start="0">
+  {% for chapter in report.chapters %}
+  <li>
+    <label><input type="checkbox" name="chapter" value="{{ chapter.index }}"{% if chapter.selected %} checked{% endif %}>
+    {{ chapter.title }}</label> ({{ chapter.utterances }} sentences{% if chapter.first_page %}, page {{ chapter.first_page }}{% endif %})
+  </li>
+  {% endfor %}
+</ol>
+<h2>Proposed changes</h2>
+<table>
+  <thead><tr><th scope="col">Category</th><th scope="col">Applied</th><th scope="col">Switched off</th></tr></thead>
+  <tbody>
+  {% for id, count in report.counts.items() %}
+  <tr><td>{{ count.label }}</td><td>{{ count.applied }}</td><td>{{ count.switched_off }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Not analysed yet.</p>
+{% endif %}
+<p>
+  <button type="button" class="start-job" data-kind="script" data-document="{{ document.id }}">Analyse</button>
+  <button type="button" class="start-job" data-kind="audio" data-document="{{ document.id }}">Make the audiobook</button>
+</p>
+<p id="message" role="status"></p>
+{% endblock %}

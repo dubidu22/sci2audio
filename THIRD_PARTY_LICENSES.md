@@ -29,6 +29,14 @@ Not allowed: AGPL code, non-commercial or "research only" licences, models or vo
 | All other packages these pull in (thinc, blis, srsly, pydantic, typer, regex, sympy, networkx, jinja2, ...) | MIT, BSD, Apache-2.0, ISC, PSF-2.0 or CNRI-Python | Checked on every PR by the `licences` CI job (`pip-licenses`) |
 | [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) 0.8.1 | BSD-2-Clause (the Python wrapper). The wheel bundles an FFmpeg program; its licence per platform is listed under "Bundled programs" below | Finds the ffmpeg program that output uses to write MP3 and M4B files (Q5, #69) |
 | [platformdirs](https://github.com/tox-dev/platformdirs) 4.14.5 | MIT (no dependencies) | Finds the user's configuration folder on Windows, macOS and Linux for the settings file (app, #70) |
+| [FastAPI](https://github.com/fastapi/fastapi) 0.162.5 | MIT | The local server and its JSON API (web, #76, D-101). Since 0.143 it depends on `opentelemetry-api` and instruments requests itself; sci2audio switches all of that off in code (D-195) |
+| [Starlette](https://github.com/encode/starlette) 1.10.0 (through FastAPI, also imported) | BSD-3-Clause | The server's request handling, static files and templates (web) |
+| [uvicorn](https://github.com/encode/uvicorn) 0.54.0, without the `standard` extra | BSD-3-Clause; pulls in [h11](https://github.com/python-hyper/h11) (MIT) and [click](https://github.com/pallets/click) (BSD-3-Clause) | Serves the app on 127.0.0.1 (web, D-192) |
+| [Jinja2](https://github.com/pallets/jinja) 3.1.6 with [MarkupSafe](https://github.com/pallets/markupsafe) | BSD-3-Clause | The server-rendered pages (web, D-101) |
+| [python-multipart](https://github.com/Kludex/python-multipart) 0.0.33 | Apache-2.0 | Reads opened files sent by the browser (web, D-101) |
+| [pydantic](https://github.com/pydantic/pydantic) 2.14.3 with pydantic-core, annotated-types, typing-inspection | MIT | The API's request and response bodies (web); it was already pulled in by spaCy |
+| [opentelemetry-api](https://github.com/open-telemetry/opentelemetry-python) 1.45.2 (through FastAPI) | Apache-2.0 | Not used: FastAPI's telemetry is switched off (D-195). Without an SDK and exporter, which sci2audio never installs, it records and sends nothing |
+| [annotated-doc](https://github.com/fastapi/annotated-doc) 0.0.6, [anyio](https://github.com/agronholm/anyio) (through FastAPI) | MIT | Documentation markers; the server's async runtime |
 
 ## Bundled programs (come with a run-time dependency)
 
@@ -59,6 +67,8 @@ Fetched only when the user starts the voice download (`sci2audio.voices.download
 
 | Component | Licence | Used for |
 |---|---|---|
+| [Schemathesis](https://github.com/schemathesis/schemathesis) 4.33.4 (dev group) with harfile, hypothesis-graphql, graphql-core, jsonschema-rs, pyrate-limiter (MIT) and Werkzeug (BSD-3-Clause) | MIT | Tests the server against its OpenAPI document (#7) |
+| [httpx](https://github.com/encode/httpx) 0.28.1 with httpcore (dev group) | BSD-3-Clause | FastAPI's `TestClient` (#7) |
 | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) with ctranslate2, onnxruntime, PyAV (dependency group `asr`) | MIT (PyAV: BSD-3-Clause; its bundled FFmpeg includes x264 and x265, so GPL-2.0-or-later) | Nightly speech-recognition round trip (#9) |
 | Whisper `small` for CTranslate2, revision `536b0662742c02347bc0e980a01041f333bce120` | [Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small), MIT | Same; downloaded by the nightly workflow only |
 

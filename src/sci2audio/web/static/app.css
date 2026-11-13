@@ -1,0 +1,6 @@
+body { font-family: system-ui, sans-serif; max-width: 48rem; margin: 0 auto; padding: 1rem; line-height: 1.5; color: #1a1a1a; background: #fff; }
+header a { font-weight: bold; color: inherit; }
+form { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #767676; padding: 0.25rem 0.5rem; text-align: left; }
+footer { margin-top: 2rem; font-size: 0.9rem; }
