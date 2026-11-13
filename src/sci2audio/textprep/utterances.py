@@ -83,6 +83,10 @@ _OPENING = "\"'([{\u201c\u2018"  # ... and that may open the next sentence
 _SENTENCE_END = re.compile(rf"[.?!]+[{re.escape(_CLOSING)}]*(?=\s+(\S))")
 _INITIAL = re.compile(r"\A[A-Z]\.\Z")
 _LAST_WORD = re.compile(r"\S+\Z")
+_DASHES = "\u2013\u2014"  # en and em dash
+# what an abbreviation may be glued to: brackets, quotes, dashes and a slash ("(2022)[p.",
+# "results\u2014e.g.", #91)
+_GLUED_BEFORE = re.compile(f"[{re.escape(_OPENING + _CLOSING + '}' + _DASHES + '/')}]")
 # abbreviations that stand before a number ("No. 5", "p. 12"); before anything else their
 # full stop may end a sentence ("The answer is no. Then ...")
 _BEFORE_NUMBERS = frozenset({"no.", "nos.", "p.", "pp.", "vol."})
@@ -219,13 +223,16 @@ def _sentences(run: _Run, abbreviations: frozenset[str]) -> list[tuple[int, int]
         if not (following.isupper() or following.isdigit() or following in _OPENING):
             continue
         # the word before the gap; any white space (a no-break space too) ends it
-        word = _LAST_WORD.search(text, 0, match.end()).group().lstrip(_OPENING).rstrip(_CLOSING)
+        whole = _LAST_WORD.search(text, 0, match.end()).group().rstrip(_CLOSING)
+        # the abbreviation check looks past what is glued before it ("(2022)[p.", #91);
+        # the initials check does not, or "DON'T." and "[1]A." would read as initials
+        word = _GLUED_BEFORE.split(whole)[-1]
         lowered = word.lower()
         if lowered in abbreviations and not (
             lowered in _BEFORE_NUMBERS and not following.isdigit()
         ):
             continue
-        if _INITIAL.match(word):
+        if _INITIAL.match(whole.lstrip(_OPENING)):
             continue
         cut = match.start(1)
         inside = run.inside_replacement(cut)
