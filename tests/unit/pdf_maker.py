@@ -1,4 +1,6 @@
-"""Make small PDFs for extraction tests with pypdfium2, so each case shows one thing.
+"""Make small PDFs for extraction tests, so each case shows one thing: with pypdfium2, or
+written object by object (`raw_pdf`) where PDFium can't write what the case needs (bookmarks,
+metadata, encryption, damage).
 
 Positions are given like `core.Box`: points from the top left of the page.
 """
