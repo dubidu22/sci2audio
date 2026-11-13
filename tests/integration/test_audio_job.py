@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import time
 from pathlib import Path
 
@@ -32,9 +33,7 @@ def models_dir() -> Path:
 
 def chapter_marks(m4b: Path) -> list[str]:
     """The chapter titles ffmpeg reads back from the M4B."""
-    import subprocess
-
-    done = subprocess.run(  # noqa: S603 (our own argument list)
+    done = subprocess.run(
         [str(find_ffmpeg()), "-hide_banner", "-i", str(m4b), "-f", "ffmetadata", "-"],
         capture_output=True,
         text=True,
@@ -64,7 +63,8 @@ def test_a_paper_becomes_an_audiobook_with_the_real_voice_offline(
     readalong = read_readalong(job.written.readalong)
     assert [c.title for c in readalong.chapters] == chosen
     marks = chapter_marks(job.written.m4b)
-    assert [re.sub(r"\\(.)", r"\1", mark) for mark in marks] == [" ".join(t.split()) for t in chosen]
+    unescaped = [re.sub(r"\\(.)", r"\1", mark) for mark in marks]
+    assert unescaped == [" ".join(title.split()) for title in chosen]
     # about 13 characters per second of speech at speed 1: a sanity range, not a measure
     characters = sum(len(u.text) for u in job.result.utterances if not u.pause)
     assert characters / 30 < readalong.duration < characters / 5

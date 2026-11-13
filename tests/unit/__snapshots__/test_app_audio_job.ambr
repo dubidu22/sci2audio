@@ -36,6 +36,7 @@
         'language': '',
         'speed': 1.0,
         'switched_off': list([
+          'footnote-texts',
         ]),
         'voice': '',
       }),
