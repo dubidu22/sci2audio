@@ -47,6 +47,7 @@ class LinkWords:
     lead: tuple[str, ...]  # words that may stand with a link alone inside brackets
     joins: tuple[str, ...]  # words that join two links into one run
     introducers: tuple[str, ...]  # words before such a word in a bracket: "(found at ...)"
+    pointers: tuple[str, ...]  # a sentence they start only points to the link: "See ... for"
 
 
 WORDS: dict[str, LinkWords] = {
@@ -139,6 +140,7 @@ WORDS: dict[str, LinkWords] = {
             "published",
             "released",
         ),
+        pointers=("see also", "see", "visit", "cf."),
     ),
 }
 
@@ -174,6 +176,7 @@ _ENDS_NOTHING = "/-_~=&?#%"  # a URL cut after one of these goes on in the next 
 _TRAILING = ".,;:!?'\"’”*"  # punctuation at a URL's end belongs to the sentence
 _PAIRS = {")": "(", "]": "[", ">": "<"}
 _SPACE = re.compile(r"\s+")
+_POINTER_WORDS = 6  # the most words after a link that a pointer sentence may have
 _SENTENCE_START = re.compile(r"(?:\A|[.!?][\"'”’)\]]*\s+)\Z")
 _SENTENCE_END = re.compile(r"\A[.!?]?(?:\s|\Z)")
 
@@ -217,7 +220,7 @@ class LinkStep(TextStep):
         for run in runs:
             start, end, repair = _repair(text, run, words, claimed)
             if len(run) > 1:
-                repair = repair.replace(" it ", " them ")
+                repair = re.sub(r" it(?=[ ,])", " them", repair)
             start, end = _with_space(text, start, end, claimed)
             end = _whole_sentence(text, start, end)
             edits.append(
@@ -353,13 +356,31 @@ def _repair(text: str, run: list[_Link], words: LinkWords, claimed: int) -> tupl
         closing = {"(": ")", "[": "]", "<": ">"}[opened.group(1)]
         closed = re.match(rf"\s*{re.escape(closing)}", after)
         if closed:
-            return claimed + opened.start(), end + closed.end(), "; the brackets around it go too"
-    # 2. a label before it
+            stop = end + closed.end()
+            # "shown in [https://...], it" reads "shown, it", not "shown in, it"
+            word = re.search(
+                rf"(?<![\w.-])({befores})\s*\Z",
+                text[claimed : claimed + opened.start()],
+                re.IGNORECASE,
+            )
+            if word and re.match(r"[.,;:!?]|\Z", text[stop:]):
+                return (
+                    claimed + word.start(),
+                    stop,
+                    f'; the brackets around it and "{word.group(1)}" before them go too',
+                )
+            return claimed + opened.start(), stop, "; the brackets around it go too"
+    # 2. a label before it, maybe with a pointer: "Code: https://...", "Code: see https://..."
     labels = "|".join(re.escape(label) for label in sorted(words.labels, key=len, reverse=True))
-    labelled = re.search(rf"(?<![\w-])(?:{labels})\s*\*?\s*:\s*\Z", before, re.IGNORECASE)
+    pointers = "|".join(re.escape(word) for word in sorted(words.pointers, key=len, reverse=True))
+    labelled = re.search(
+        rf"(?<![\w-])(?P<label>(?:{labels})\s*\*?\s*:)\s*(?:(?:{pointers})\s+)?\Z",
+        before,
+        re.IGNORECASE,
+    )
     if labelled:
         label_start = claimed + labelled.start()
-        name = _SPACE.sub(" ", labelled.group().strip())
+        name = _SPACE.sub(" ", labelled.group("label"))
         ending = _SENTENCE_END.match(after)
         if _SENTENCE_START.search(text[:label_start]) and ending:
             stop = end + len(ending.group().rstrip())
@@ -371,6 +392,10 @@ def _repair(text: str, run: list[_Link], words: LinkWords, claimed: int) -> tupl
         return claimed + colon.start(), end, "; the colon before it goes too"
     # 4. a preposition or verb right before it
     word = re.search(rf"(?<![\w.-])({befores})\s+\Z", before, re.IGNORECASE)
+    if word and re.fullmatch(pointers, word.group(1), re.IGNORECASE):
+        pointed = _pointer(text, claimed + word.start(), end, word.group(1))
+        if pointed:
+            return pointed
     if word:
         return (
             claimed + word.start(),
@@ -380,17 +405,55 @@ def _repair(text: str, run: list[_Link], words: LinkWords, claimed: int) -> tupl
     return start, end, ""
 
 
+def _pointer(text: str, start: int, end: int, word: str) -> tuple[int, int, str] | None:
+    """A sentence or bracket that a pointer word starts only points to the link: it goes whole.
+
+    "See https://... for details." and "(see https://... for the code)" are not read at all.
+    Only a short rest qualifies: a longer one may say more than where the link leads.
+    """
+    if _SENTENCE_START.search(text[:start]):
+        ending = re.search(r"[.!?](?=[\"'”’)\]]*(?:\s|\Z))", text[end:])
+        stop = end + ending.end() if ending else len(text)
+        if _short(text[end:stop]):
+            return (
+                start,
+                stop,
+                f'; "{word}" starts a sentence that only points to it, so the sentence goes whole',
+            )
+    opened = re.search(r"([(\[])\s*\Z", text[:start])
+    if opened:
+        closing = {"(": ")", "[": "]"}[opened.group(1)]
+        closed = re.match(rf"[^()\[\]]*?{re.escape(closing)}", text[end:])
+        if closed and _short(text[end : end + closed.end()]):
+            return (
+                opened.start(),
+                end + closed.end(),
+                f'; "{word}" starts a bracket that only points to it, so the bracket goes whole',
+            )
+    return None
+
+
+def _short(rest: str) -> bool:
+    """At most six words and no clause inside: "for details", "for the code and data"."""
+    return len(rest.split()) <= _POINTER_WORDS and not re.search(r"[,;:]", rest)
+
+
 def _with_space(text: str, start: int, end: int, claimed: int) -> tuple[int, int]:
     """Take the white space before the removal along, or after it at the start of a block.
 
-    A comma or semicolon left before a full stop or another comma goes too.
+    A comma or semicolon left before a full stop, another comma or a closing bracket goes
+    too: "(Smith, 2019, https://...)" reads "(Smith, 2019)".
     """
     space_start = start
     while space_start > claimed and text[space_start - 1].isspace():
         space_start -= 1
     if space_start > claimed or (space_start == claimed and claimed > 0):
         start = space_start
-        if start > claimed and text[start - 1] in ",;" and text[end : end + 1] in (".", ",", ";"):
+        if (
+            start > claimed
+            and text[start - 1] in ",;"
+            and text[end : end + 1] in (".", ",", ";", ")", "]")
+        ):
             start -= 1
             while start > claimed and text[start - 1].isspace():
                 start -= 1

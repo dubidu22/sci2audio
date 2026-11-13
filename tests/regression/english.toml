@@ -585,3 +585,27 @@ blocks = [
     { kind = "paragraph", text = "https://github.com/rycolab/" },
 ]
 expected = []
+
+[[case]]
+id = "pointer-sentence"
+audit = 0
+issue = 66
+goal = "A short sentence or bracket that 'see' or 'visit' starts only points to the link and goes whole (D-168)."
+blocks = [{ kind = "paragraph", text = "The model is small. See https://example.org/model for details. It runs on a laptop (see www.example.org for the code)." }]
+expected = ["The model is small. It runs on a laptop."]
+
+[[case]]
+id = "link-in-brackets-after-preposition"
+audit = 0
+issue = 66
+goal = "A bracketed link after a preposition takes the preposition along before a comma (D-168)."
+blocks = [{ kind = "paragraph", text = "As shown in [https://example.org/demo], the tool works offline." }]
+expected = ["As shown, the tool works offline."]
+
+[[case]]
+id = "link-at-the-end-of-a-bracket"
+audit = 0
+issue = 66
+goal = "A link at the end of a bracket takes the comma before it along (D-168)."
+blocks = [{ kind = "paragraph", text = "The corpus (12 languages, https://example.org/corpus) is open." }]
+expected = ["The corpus (12 languages) is open."]

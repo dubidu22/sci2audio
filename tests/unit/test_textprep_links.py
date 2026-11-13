@@ -181,11 +181,14 @@ def test_a_link_broken_at_a_hyphen_is_claimed_whole_so_a_later_hyphen_rule_is_se
         ("The tool (found at https://example.org/tool) works.", "The tool works."),
         ("A link <https://example.org/a>, then more.", "A link, then more."),
         ("(https://example.org) The text.", "The text."),
+        # ... with a preposition before the bracket when a comma or stop follows it
+        ("As shown in [https://example.org], it works.", "As shown, it works."),
         # 2. a label; the whole sentence when the label starts it and the link ends it
         ("Data are public. Contact: j.doe@uni-example.edu.", "Data are public."),
         ("Code: https://github.com/a/b. The data are public.", "The data are public."),
         ("Write to the authors (e-mail: j@x.org) for data.", "Write to the authors for data."),
         ("Jane Doe, E-mail: jd@x.org, wrote it.", "Jane Doe, wrote it."),
+        ("Code: see https://x.org/a. It runs.", "It runs."),
         # 3. another colon
         ("University of Oxford: https://podcasts.ox.ac.\nuk/xerxes", "University of Oxford"),
         # 4. a preposition or verb before it
@@ -196,6 +199,17 @@ def test_a_link_broken_at_a_hyphen_is_claimed_whole_so_a_later_hyphen_rule_is_se
         ),
         ("We used the tool at www.example.org to compute it.", "We used the tool to compute it."),
         ("Both are public, see also 10.5281/zenodo.1234567.", "Both are public."),
+        # a short sentence or bracket a pointer word starts only points to the link
+        ("It works. See https://x.org/a for details. Then more.", "It works. Then more."),
+        ("Visit www.example.org.", ""),
+        ("It works (see https://x.org/a for the code).", "It works."),
+        # ... a longer one may say more, so only the pointer and the link go
+        (
+            "See https://x.org/a for the code, and note that it is slow.",
+            "for the code, and note that it is slow.",
+        ),
+        # a comma left before a closing bracket goes too
+        ("This holds (Smith, 2019, https://x.org/a).", "This holds (Smith, 2019)."),
         # 5. only the link
         ("Copenhagen Business School\ndha.msc@cbs.dk", "Copenhagen Business School"),
         ("https://example.org/a is the page.", "is the page."),
@@ -225,6 +239,14 @@ def test_each_edit_names_the_link_as_printed_and_its_repair() -> None:
         "whole sentence goes (TP-07)"
     )
     assert {edit.step for edit in (first, second)} == {"links"}
+
+
+def test_a_pointer_sentence_names_its_pointer_word() -> None:
+    (edit,) = edits("See https://x.org/a and www.x.org for details.")
+    assert edit.reason == (
+        'URLs "https://x.org/a" and "www.x.org" are not read; "See" starts a sentence that only '
+        "points to them, so the sentence goes whole (TP-07)"
+    )
 
 
 def test_a_brace_group_keeps_its_spaces_in_the_reason() -> None:
