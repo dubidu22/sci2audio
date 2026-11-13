@@ -242,6 +242,77 @@ def test_chapter_headings_and_a_continued_table_header_are_not_running_heads() -
     assert texts(doc, BlockKind.FURNITURE) == []
 
 
+def page_with_head(number: int, head: str | None, y: float = 40, size: float = 10.0) -> list:
+    """A page of body text from y 100, under a head at height `y` (none if `head` is None)."""
+    body = column(f"p{number}-", LEFT, RIGHT, 100, 30)
+    return body if head is None else [line(head, LEFT, y, 300, size=size), *body]
+
+
+def head_roles(doc: Document) -> list[str]:
+    return [b.text for b in doc.blocks if b.role and b.role.value == "running-head"]
+
+
+def test_numbered_algorithms_at_the_top_of_two_pages_are_not_running_heads() -> None:
+    """#33: body size, 1 em of white below, the same shape but not the same text (D-322)."""
+    heads = {3: "Algorithm 1", 5: "Algorithm 2"}
+    doc = build_document(content(*(page_with_head(n, heads.get(n), y=60) for n in range(1, 7))))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert {"Algorithm 1", "Algorithm 2"} <= set(texts(doc))
+
+
+def test_a_table_header_repeated_on_two_pages_without_a_rule_is_not_a_running_head() -> None:
+    """#33: the same text on 2 of 6 pages, 1.2 em of white below: not most of the document."""
+    pages = [page_with_head(n, None) for n in range(1, 7)]
+    for n in (2, 3):
+        rows = column(f"t{n}-", LEFT, 300, 62, 30)
+        pages[n - 1] = [line("Model Accuracy F1", LEFT, 40, 300), *rows]
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert texts(doc).count("Model Accuracy F1") == 2
+
+
+def test_body_size_heads_that_alternate_by_page_are_running_heads() -> None:
+    """Author on even pages, title on odd pages from page 2: one place, 6 of 7 pages (D-322)."""
+    heads = {
+        n: "A. Author and B. Author" if n % 2 == 0 else "A Title of Tests" for n in range(2, 8)
+    }
+    doc = build_document(content(*(page_with_head(n, heads.get(n)) for n in range(1, 8))))
+    assert head_roles(doc) == [heads[n] for n in range(2, 8)]
+
+
+def test_the_same_line_on_every_page_close_to_the_text_or_larger_is_not_a_running_head() -> None:
+    """The same words on 4 of 4 pages, but 4 pt above the body (not apart), or apart but set
+    larger than `head_size` times the body: text, as before #33."""
+    close = [
+        [line("Tests in Print", LEFT, 64, 300), *column(f"p{n}-", LEFT, RIGHT, 78, 30)]
+        for n in range(4)
+    ]
+    large = [page_with_head(n, "Tests in Print", size=12) for n in range(4)]
+    for pages in (close, large):
+        assert texts(build_document(content(*pages)), BlockKind.FURNITURE) == []
+
+
+def test_a_body_size_head_needs_head_pages_but_a_smaller_one_does_not() -> None:
+    """Two pages are too few for a body-size head (D-324); a smaller head keeps the shape rule
+    on `repeat_pages` pages (D-326)."""
+    body = build_document(content(*(page_with_head(n, "Tests in Print") for n in (1, 2))))
+    assert texts(body, BlockKind.FURNITURE) == []
+    small = build_document(content(*(page_with_head(n, "Tests in Print", size=8) for n in (1, 2))))
+    assert head_roles(small) == ["Tests in Print"] * 2
+
+
+def test_a_body_size_head_needs_head_share_of_the_pages() -> None:
+    """On 4 of 8 pages a body-size head is furniture, on 3 of 8 it is text (D-324)."""
+    for count, expected in ((4, 4), (3, 0)):
+        pages = [
+            page_with_head(n, "Tests in Print" if n > 8 - count else None) for n in range(1, 9)
+        ]
+        assert len(head_roles(build_document(content(*pages)))) == expected
+    settings = LayoutSettings(head_share=0.3)  # the share is a setting
+    pages = [page_with_head(n, "Tests in Print" if n > 5 else None) for n in range(1, 9)]
+    assert len(head_roles(build_document(content(*pages), settings))) == 3
+
+
 def test_the_last_line_of_a_full_page_is_not_a_footer() -> None:
     body = column("body-", LEFT, RIGHT, 40, 52)  # the last line stands at y 754 of 800
     doc = build_document(content(body))
@@ -371,6 +442,23 @@ def test_layout_never_fails_and_keeps_every_line(found: Content) -> None:
             assert block.text.lstrip().startswith(block.label)
     pages = [doc.content.items()[b.parts[0].item][0].number for b in doc.blocks]
     assert pages == sorted(pages)
+
+
+@given(
+    st.lists(st.integers(1, 999), min_size=2, max_size=8, unique=True),
+    st.floats(5, 60),
+    st.floats(10, 40),
+)
+def test_a_body_size_edge_line_that_differs_on_every_page_is_never_a_running_head(
+    numbers: list[int], y: float, white: float
+) -> None:
+    """#33: whatever its height and the white below it, a body-size line whose text changes
+    from page to page is text (D-322)."""
+    pages = [
+        [line(f"Algorithm {k}", LEFT, y, 300), *column(f"p{n}-", LEFT, RIGHT, y + 10 + white, 20)]
+        for n, k in enumerate(numbers)
+    ]
+    assert head_roles(build_document(content(*pages))) == []
 
 
 @st.composite
