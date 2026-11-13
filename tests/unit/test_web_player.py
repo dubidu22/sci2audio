@@ -114,7 +114,9 @@ def test_every_chunk_is_one_element_around_exactly_its_text() -> None:
     ]
     assert [c[3] for c in view.chunks] == ["s0", "s1", "s2"]
     assert view.mode == "mp3"
-    assert view.data("/x/")["chapters"][0]["src"] == "/x/Book%20-%2001%20One.mp3"
+    data = view.data("0123456789abcdef")
+    assert data["document"] == "0123456789abcdef"
+    assert data["chapters"][0]["file"] == "Book - 01 One.mp3"
 
 
 def test_an_empty_span_belongs_to_the_sentence_before_it_or_its_block() -> None:

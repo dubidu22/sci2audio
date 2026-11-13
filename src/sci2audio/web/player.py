@@ -30,7 +30,6 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path, PurePath
 from typing import Any
-from urllib.parse import quote
 
 from sci2audio.app import find_chapters
 from sci2audio.app.chapters import Chapter
@@ -300,14 +299,16 @@ class PlayerView:
     chunks: list[tuple[float, float, int, str]]  # start, end, chapter, element id
     mode: str  # "mp3" or "m4b"
 
-    def data(self, url: str) -> dict[str, Any]:
-        """What the script needs, `url` being the file route's prefix."""
+    def data(self, document_id: str) -> dict[str, Any]:
+        """What the script needs. It builds each file's address itself from the document
+        id and the bare file name, so no address from the page is used as it stands."""
         return {
+            "document": document_id,
             "mode": self.mode,
             "chapters": [
                 {
                     "title": c.title,
-                    "src": url + _quote(c.source),
+                    "file": c.source,
                     "offset": c.offset,
                     "start": c.start,
                     "first": c.first_chunk,
@@ -316,10 +317,6 @@ class PlayerView:
             ],
             "chunks": [list(chunk) for chunk in self.chunks],
         }
-
-
-def _quote(name: str) -> str:
-    return quote(name, safe="")
 
 
 def load_document(work: Path) -> Document:

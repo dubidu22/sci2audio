@@ -379,8 +379,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             view=None,
             problem=t(error.key, **error.values),
         )
-    url = f"/api/v1/documents/{found.id}/audiobook/"
-    data = json.dumps(view.data(url), ensure_ascii=False).replace("</", "<\\/")
+    data = json.dumps(view.data(found.id), ensure_ascii=False).replace("</", "<\\/")
     return _page(
         request,
         state,

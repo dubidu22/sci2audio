@@ -105,7 +105,9 @@ def test_a_click_on_a_sentence_plays_from_it(signed_in: Page, live: Live) -> Non
         "() => ({src: document.getElementById('audio').getAttribute('src'),"
         " time: document.getElementById('audio').currentTime})"
     )
-    assert state["src"] == data["chapters"][chapter]["src"]
+    name = data["chapters"][chapter]["file"]
+    expected = page.evaluate("name => encodeURIComponent(name)", name)
+    assert state["src"] == f"/api/v1/documents/{data['document']}/audiobook/{expected}"
     assert start - offset - 0.05 <= state["time"] <= start - offset + 1.5
 
 

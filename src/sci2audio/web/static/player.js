@@ -17,7 +17,10 @@ function readAlong() {
   if (!block || !audio) return;
   const data = JSON.parse(block.textContent);
   const chunks = data.chunks; // [start, end, chapter, element id]
-  const chapters = data.chapters; // {title, src, offset, start, first}
+  const chapters = data.chapters; // {title, file, offset, start, first}
+  // each file's address is made here from the document id and the file's bare name
+  const base = `/api/v1/documents/${encodeURIComponent(data.document)}/audiobook/`;
+  const source = (c) => base + encodeURIComponent(chapters[c].file);
   const text = document.getElementById("text");
   const play = document.getElementById("play");
   const now = document.getElementById("now");
@@ -98,7 +101,8 @@ function readAlong() {
   }
 
   function update() {
-    if (loaded < 0) return;
+    // while a file loads, its time is still 0: the jump's own highlight stands
+    if (loaded < 0 || pending) return;
     highlight(chunkAt(bookTime()));
   }
 
@@ -122,14 +126,15 @@ function readAlong() {
     // a jump made while another file is still loading replaces that jump
     if (pending) audio.removeEventListener("loadedmetadata", pending);
     pending = null;
-    if (audio.getAttribute("src") !== target.src) {
+    const src = source(c);
+    if (audio.getAttribute("src") !== src) {
       loaded = c;
       pending = () => {
         pending = null;
         go();
       };
       audio.addEventListener("loadedmetadata", pending, { once: true });
-      audio.src = target.src;
+      audio.src = src;
     } else {
       loaded = c;
       go();
