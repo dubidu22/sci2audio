@@ -71,19 +71,23 @@ def pages(draw: st.DrawFn, number: int, ids: Callable[[], str]) -> Page:
         for _ in range(draw(st.integers(0, 4)))
     )
     lefts = [line.box.x0 for line in lines if line.box]
+    pictures = tuple(
+        Picture(ids(), draw(st.none() | boxes()), draw(words), draw(st.sampled_from(["", "a.png"])))
+        for _ in range(draw(st.integers(0, 2)))
+    )
+    drawings = tuple(
+        Drawing(ids(), draw(boxes() | rules(lefts, size[1] if size else 2000)))
+        for _ in range(draw(st.integers(0, 2)))
+    )
+    every = [item.id for item in (*lines, *pictures, *drawings)]
     return Page(
         number=number,
         lines=lines,
-        pictures=tuple(
-            Picture(ids(), draw(st.none() | boxes()), draw(words))
-            for _ in range(draw(st.integers(0, 2)))
-        ),
-        drawings=tuple(
-            Drawing(ids(), draw(boxes() | rules(lefts, size[1] if size else 2000)))
-            for _ in range(draw(st.integers(0, 2)))
-        ),
+        pictures=pictures,
+        drawings=drawings,
         width=size[0] if size else None,
         height=size[1] if size else None,
+        order=tuple(draw(st.permutations(every))) if draw(st.booleans()) else (),
     )
 
 
@@ -97,14 +101,18 @@ def rules(draw: st.DrawFn, lefts: list[float], height: float) -> Box:
 
 
 @st.composite
-def outlines(draw: st.DrawFn, pages: int) -> tuple[OutlineEntry, ...]:
+def outlines(draw: st.DrawFn, pages: tuple[Page, ...]) -> tuple[OutlineEntry, ...]:
     """Outline entries in a valid nesting: each at most one level deeper than the one before,
-    pointing at one of the `pages` pages or at none."""
+    pointing at one of the pages or at none, and sometimes at an item on its page (a line, a
+    picture or a drawing: `Content` accepts any)."""
     out: list[OutlineEntry] = []
     for _ in range(draw(st.integers(0, 5))):
         level = draw(st.integers(1, out[-1].level + 1 if out else 1))
-        page = draw(st.none() | st.integers(1, pages)) if pages else None
-        out.append(OutlineEntry(draw(words), level, page))
+        page = draw(st.none() | st.integers(1, len(pages))) if pages else None
+        on = pages[page - 1] if page is not None else None
+        ids = [i.id for i in (*on.lines, *on.pictures, *on.drawings)] if on else []
+        item = draw(st.sampled_from(["", *ids]))
+        out.append(OutlineEntry(draw(words), level, page, item))
     return tuple(out)
 
 
@@ -116,13 +124,14 @@ def contents(draw: st.DrawFn) -> Content:
         return f"i{next(counter)}"
 
     count = draw(st.integers(0, 3))
+    drawn = tuple(draw(pages(n, ids)) for n in range(1, count + 1))
     return Content(
         source=Source(
             draw(names),
             draw(st.sampled_from(SourceFormat)),
             draw(st.text("0123456789abcdef", max_size=8)),
         ),
-        pages=tuple(draw(pages(n, ids)) for n in range(1, count + 1)),
+        pages=drawn,
         metadata=draw(
             st.builds(
                 Metadata,
@@ -131,7 +140,7 @@ def contents(draw: st.DrawFn) -> Content:
                 language=st.sampled_from(["", "en", "en-GB"]),
             )
         ),
-        outline=draw(outlines(count)),
+        outline=draw(outlines(drawn)),
     )
 
 
