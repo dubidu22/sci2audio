@@ -9,11 +9,14 @@ captions are the truth's table, figure and algorithm captions, with their labels
 tables, figures and algorithms are placeholder blocks that their captions name; each display
 formula is a FORMULA block with its printed number, if it has one (PR D2, D-93).
 
-The golden files list every block with its kind, label, the block a caption names, page and
-text (line breaks shown as \\n), then the section tree.
+The golden files list every block with its kind, label, the block a caption names, page, its
+graphics where they stand in its text and its text (line breaks shown as \\n), then the section
+tree. The graphics are written in braces as runs of graphic parts read one after another at one
+place: "p1-d7@119" or "p3-d1..p3-d9 (9)@0" (#58, D-334).
 Accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
 """
 
+import itertools
 import re
 import tomllib
 from functools import cache
@@ -571,6 +574,19 @@ def test_headings_not_yet_found_are_still_in_the_truth() -> None:
         assert text not in [section.title for section in flattened(document(paper).sections)]
 
 
+def test_the_underbrace_in_nowak_footnote_1_stands_in_its_line() -> None:
+    """#58 (D-329, D-332): nowak p1's underbrace of "n times", drawn in two halves inside
+    footnote 1's line "| {z }" (p1-l48), is read just after that line, not after footnote 2."""
+    paper = CORPUS / "papers" / "acl2023-nowak-prefix-probabilities.pdf"
+    doc = document(paper)
+    note = next(b for b in doc.blocks if b.kind is BlockKind.FOOTNOTE and b.label == "1")
+    items = [p.item for p in note.parts]
+    at = items.index("p1-l48")
+    assert items[at + 1 : at + 3] == ["p1-d7", "p1-d8"]
+    end = note.parts[at].start + len("| {z }")
+    assert {p.start for p in note.parts[at + 1 : at + 3]} == {end}
+
+
 def word_for_word(sentence: str) -> re.Pattern[str]:
     """The sentence as a block may hold it: any white space where it has a space, and a
     line break after a hyphen, or after a letter that a hyphen and a line break may follow
@@ -590,9 +606,27 @@ def doc_blocks(paper: Path) -> list[Block]:
     return [b for b in document(paper).blocks if b.kind is not BlockKind.FURNITURE]
 
 
+def graphic_runs(block: Block, lines: set[str]) -> str:
+    """The block's graphic parts as runs read one after another at one place in its text:
+    "p1-d7@119", or "p3-d1..p3-d9 (9)@0" for a longer run ("" if it holds no graphic)."""
+    runs = []
+    for (graphic, start), group in itertools.groupby(
+        block.parts, key=lambda part: (part.item not in lines, part.start)
+    ):
+        if not graphic:
+            continue
+        found = list(group)
+        first, last = found[0].item, found[-1].item
+        runs.append(
+            f"{first}@{start}" if first == last else f"{first}..{last} ({len(found)})@{start}"
+        )
+    return " ".join(runs)
+
+
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
     doc = document(paper)
+    lines = {line.id for page in doc.content.pages for line in page.lines}
     out = [f"{paper.name}  language {doc.language}  blocks {len(doc.blocks)}"]
     out.append("page labels  " + " ".join(label or "-" for label in doc.page_labels))
     for index, block in enumerate(doc.blocks):
@@ -602,7 +636,9 @@ def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
         kind = f"{block.kind.value}/{block.role.value}" if block.role else block.kind.value
         kind += f" ({block.label})" if block.label else ""
         kind += f" -> {block.describes}" if block.describes is not None else ""
-        out.append(f"{index}  p{page_of(doc, block)}  {kind}  [{items}]  {text}")
+        drawn = graphic_runs(block, lines)
+        drawn = f"  {{{drawn}}}" if drawn else ""
+        out.append(f"{index}  p{page_of(doc, block)}  {kind}  [{items}]{drawn}  {text}")
     out.append("sections")
     for section in flattened(doc.sections):
         indent = "  " * section.level

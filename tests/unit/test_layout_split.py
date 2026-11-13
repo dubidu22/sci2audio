@@ -76,6 +76,26 @@ def test_pieces_joined_without_a_space_lose_no_letter() -> None:
     assert kept(b, [b.parts[1], b.parts[3]], lengths).text == "1\nnext"
 
 
+def test_a_graphic_at_a_cut_without_a_separator_stays_with_the_line_it_stands_in() -> None:
+    """#58 (D-335): "ab" and "cd" set close, a graphic standing in "ab" (where its text ends,
+    which is where "cd" starts): cut before "cd", the graphic stays with "ab"."""
+    b = block("abcd ef\ngh", [("l1", 0), ("g", 2), ("l2", 2), ("l3", 5), ("l4", 8)])
+    first, second = split_at(b, [2])
+    assert (first.text, [(p.item, p.start) for p in first.parts]) == ("ab", [("l1", 0), ("g", 2)])
+    assert (second.text, [(p.item, p.start) for p in second.parts]) == (
+        "cd ef\ngh",
+        [("l2", 0), ("l3", 3), ("l4", 6)],
+    )
+
+
+def test_a_graphic_before_a_line_at_the_block_start_stays_first() -> None:
+    """A footnote rule stands before the note's first line, at 0 (#51): no cut moves it."""
+    b = block("one\ntwo", [("r", 0), ("l1", 0), ("l2", 4)])
+    first, second = split_at(b, [4])
+    assert [(p.item, p.start) for p in first.parts] == [("r", 0), ("l1", 0)]
+    assert [(p.item, p.start) for p in second.parts] == [("l2", 0)]
+
+
 def piece(text: str, x0: float, x1: float, y0: float = 100.0, size: float = 10.0) -> TextLine:
     return TextLine(text, (TextRun(text, "Times", size),), Box(x0, y0, x1, y0 + size))
 
