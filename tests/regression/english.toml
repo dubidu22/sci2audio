@@ -386,11 +386,11 @@ blocks = [
     { kind = "footnote", text = "A footnote with bold text, continued on a second line." },
 ]
 expected = [
-    "Every sentence here is our own.1",
-    "Do footnotes2 help or hurt?",
-    "Listeners kept up.2",
-    "Footnote. Nothing in this note is taken from anyone else.",
-    "Footnote. A footnote with bold text, continued on a second line.",
+    "Every sentence here is our own.",
+    "Do footnotes help or hurt?",
+    "Listeners kept up.",
+    "Footnote 1. Nothing in this note is taken from anyone else.",
+    "Footnote 2. A footnote with bold text, continued on a second line.",
 ]
 
 [[case]]
@@ -403,13 +403,14 @@ blocks = [
     { kind = "footnote", page = 2, runs = ["It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014\uFEFFEd. ", { text = "\u21A9\uFE0E", tags = ["li", "#note-1", "epub:endnote", "p", "a", "epub:backlink", "role:doc-backlink", "link:b0l0"] }] },
 ]
 expected = [
-    "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.1 The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
-    "Footnote. It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014Ed. \u21A9\uFE0E",
+    "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all. The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
+    "Footnote 1. It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014Ed.",
 ]
 utterances = [
-    "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.1 The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
-    "Footnote.",
-    "It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014Ed. \u21A9\uFE0E",
+    "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.",
+    "The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
+    "Footnote 1.",
+    "It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014Ed.",
 ]
 
 [[case]]
