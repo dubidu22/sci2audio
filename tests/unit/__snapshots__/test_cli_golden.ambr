@@ -11,7 +11,7 @@
   choose from.
   
   positional arguments:
-    FILE                  the PDF to read
+    FILE                  the file to read
   
   options:
     -h, --help            show this help message and exit
@@ -62,7 +62,7 @@
   interrupted run: sentences already spoken are taken from the speech cache.
   
   positional arguments:
-    FILE                  the PDF to read
+    FILE                  the file to read
   
   options:
     -h, --help            show this help message and exit

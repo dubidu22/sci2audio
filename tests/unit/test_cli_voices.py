@@ -4,6 +4,7 @@ No test touches the network: the download's `fetch` is a fake that serves bytes.
 
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,7 @@ from cli_helpers import Cli
 from syrupy.assertion import SnapshotAssertion
 from test_voices_download import FILES, SERVED, FakeServer, leftovers
 
-from sci2audio.cli import describe_download
+from sci2audio.cli import _ask, describe_download
 from sci2audio.testing import no_network
 from sci2audio.voices import (
     DEFAULT_VOICE,
@@ -78,8 +79,9 @@ def test_yes_on_the_terminal_downloads(tmp_path: Path) -> None:
     assert server.fetched == [f.url for f in FILES]
     assert missing_files(cli.models) == []
     assert leftovers(cli.models) == []
-    assert result.out.startswith(f"The voice download puts these files into {cli.models}:\n")
-    assert result.out.endswith(f"The voice files are installed in {cli.models}.\n")
+    # the plan goes to stderr (round 1 of the review, N3); stdout carries only the result
+    assert result.err.startswith(f"The voice download puts these files into {cli.models}:\n")
+    assert result.out == f"The voice files are installed in {cli.models}.\n"
     assert "Downloading: " in result.err
 
 
@@ -169,6 +171,18 @@ def test_ctrl_c_during_the_download_leaves_no_part_file(tmp_path: Path) -> None:
     assert result.code == 130
     assert result.err.endswith("sci2audio: stopped; run the same command again to continue\n")
     assert leftovers(cli.models) == []
+
+
+def test_the_question_is_asked_on_stderr(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With stdout redirected to a file, the person still sees the question (N3)."""
+    stdin, stdout, stderr = io.StringIO("yes\n"), io.StringIO(), io.StringIO()
+    monkeypatch.setattr("sys.stdin", stdin)
+    monkeypatch.setattr("sys.stdout", stdout)
+    monkeypatch.setattr("sys.stderr", stderr)
+    assert _ask("Download? [y/N] ") == "yes\n"
+    assert (stdout.getvalue(), stderr.getvalue()) == ("", "Download? [y/N] ")
+    with pytest.raises(EOFError):
+        _ask("again? ")
 
 
 def test_the_models_folder_option(tmp_path: Path) -> None:

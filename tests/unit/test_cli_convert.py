@@ -7,12 +7,14 @@ from __future__ import annotations
 import _thread
 import json
 import threading
+import time
 from pathlib import Path
 
 import pytest
 from audio_fakes import FakeVoice
 from cli_helpers import Cli, files_in, small_pdf
 
+from sci2audio import cli as cli_module
 from sci2audio.app.lock import work_folder_lock
 
 LINES = (
@@ -184,6 +186,82 @@ def test_ctrl_c_stops_after_the_current_sentence_and_the_rerun_continues(
     assert result.code == 0, result.err
     assert f"reused {first} from the last run" in result.out
     assert again.voice.texts == [text for text in LINES if text not in cli.voice.texts]
+
+
+def test_a_second_ctrl_c_stops_at_once(tmp_path: Path, source: Path) -> None:
+    """D-219: the first Ctrl-C asks the job to stop after the sentence; a second one does
+    not wait for it (review round 1, S1)."""
+    pressed = threading.Event()
+
+    def press_twice_then_take_long(text: str) -> bool:
+        if not pressed.is_set():
+            pressed.set()
+            _thread.interrupt_main()
+            threading.Event().wait(0.5)
+            _thread.interrupt_main()
+            threading.Event().wait(10)  # a sentence that takes long
+        return False
+
+    cli = Cli(tmp_path, voice=FakeVoice(fail_on=press_twice_then_take_long))
+    started = time.monotonic()
+    result = cli("convert", source, "-o", tmp_path / "b", "-q")
+    assert time.monotonic() - started < 5  # it did not wait for the sentence to end
+    assert result.code == 130
+    assert result.err == (
+        "sci2audio: stopping after the current sentence; finished sentences are kept\n"
+        "sci2audio: stopped; run the same command again to continue\n"
+    )
+    assert not (tmp_path / "b").exists()
+
+
+def test_an_unknown_voice_with_every_chapter_is_refused_before_reading(
+    cli: Cli, source: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """D-222: the voice is checked before the file is read, also with --chapters all
+    (review round 1, S2)."""
+    read: list[Path] = []
+    real = cli_module.read_document
+
+    def reading(path: Path, *args: object) -> object:
+        read.append(path)
+        return real(path, *args)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(cli_module, "read_document", reading)
+    result = cli("convert", source, "--voice", "zz_nobody", "--chapters", "all")
+    assert result.code == 2
+    assert read == []
+    assert cli("convert", source, "-q", "--chapters", "all").code == 0
+    assert read == [source]  # `all` still reads the chapters, after the checks
+
+
+def test_with_script_refuses_an_existing_audiobook_and_writes_no_script(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """All or nothing (review round 1, S3): the audiobook exists, the script doesn't."""
+    out = tmp_path / "b"
+    assert cli("convert", source, "-o", out, "-q").code == 0
+    before = {p.name: p.stat().st_mtime_ns for p in out.iterdir()}
+    result = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert result.code == 7
+    assert "note.m4b" in result.err
+    assert {p.name: p.stat().st_mtime_ns for p in out.iterdir()} == before
+
+
+def test_with_script_refuses_an_existing_script_before_any_speech(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """All or nothing (review round 1, S3): the script exists, the audiobook doesn't."""
+    out = tmp_path / "b"
+    assert cli("script", source, "-o", out, "-q").code == 0
+    before = {p.name: p.stat().st_mtime_ns for p in out.iterdir()}
+    result = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert result.code == 7
+    assert "note.script.txt" in result.err
+    assert {p.name: p.stat().st_mtime_ns for p in out.iterdir()} == before
+    assert cli.voice.spoken == []
+    replaced = cli("convert", source, "-o", out, "-q", "--with-script", "--overwrite")
+    assert replaced.code == 0, replaced.err
+    assert files_in(out) == sorted([*BOOK, "note.report.json", "note.report.md", "note.script.txt"])
 
 
 def test_progress_on_a_terminal(tmp_path: Path, source: Path) -> None:

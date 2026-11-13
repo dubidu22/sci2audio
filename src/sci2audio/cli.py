@@ -52,6 +52,7 @@ from sci2audio.app import (
     find_chapters,
     kokoro_voice,
     load_settings,
+    script_files,
 )
 from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
@@ -142,10 +143,20 @@ class CliEnv:
         return cls(
             out=sys.stdout,
             err=sys.stderr,
-            ask=input,
+            ask=_ask,
             interactive=_is_terminal(sys.stdin),
             live=_is_terminal(sys.stderr),
         )
+
+
+def _ask(question: str) -> str:
+    """Ask on stderr and read the answer from stdin; EOFError at the end of input."""
+    sys.stderr.write(question)
+    sys.stderr.flush()
+    line = sys.stdin.readline()
+    if not line:
+        raise EOFError
+    return line
 
 
 def _never_fail_on_characters(stream: IO[str]) -> None:
@@ -274,7 +285,7 @@ def _categories_help() -> str:
 
 def _add_job_options(parser: _Parser) -> None:
     """The options `script` and `convert` share."""
-    parser.add_argument("file", type=Path, metavar="FILE", help="the PDF to read")
+    parser.add_argument("file", type=Path, metavar="FILE", help="the file to read")
     parser.add_argument(
         "-o",
         "--output",
@@ -392,6 +403,7 @@ class Command:
     description: str
     add_arguments: Callable[[_Parser], None]
     run: Callable[[argparse.Namespace, CliEnv], Exit]
+    epilog: Callable[[], str] | None = None
 
 
 def build_parser(env: CliEnv) -> _Parser:
@@ -408,7 +420,7 @@ def build_parser(env: CliEnv) -> _Parser:
             command.name,
             help=command.help,
             description=command.description,
-            epilog=_categories_help() if command.name in ("script", "convert") else None,
+            epilog=command.epilog() if command.epilog else None,
         )
         command.add_arguments(sub)
         sub.set_defaults(run=command.run)
@@ -437,8 +449,10 @@ def _work_folder(args: argparse.Namespace, env: CliEnv, source: Path) -> Path:
         ) from error
 
 
-def _settings(args: argparse.Namespace, env: CliEnv, source: Path) -> JobSettings:
-    """The settings file's choices (D-213), with this run's options on top."""
+def _settings(args: argparse.Namespace, env: CliEnv) -> JobSettings:
+    """The settings file's choices (D-213), with this run's options on top. `--chapters
+    all` is left empty here: the caller resolves it with `_all_chapters` once every check
+    that needs no reading is done (D-222)."""
     base = JobSettings()
     if not args.ignore_settings:
         base, warnings = load_settings(env.config_file())
@@ -463,13 +477,16 @@ def _settings(args: argparse.Namespace, env: CliEnv, source: Path) -> JobSetting
         settings = replace(base, **changes)  # checks every value again
     except ValueError as error:
         raise CliError(str(error), Exit.USAGE) from error
-    if hasattr(args, "chapters") and args.chapters is None:  # --chapters all
-        settings = _all_chapters(source, settings)
     return settings
 
 
+def _every_chapter_asked(args: argparse.Namespace) -> bool:
+    return hasattr(args, "chapters") and args.chapters is None  # --chapters all
+
+
 def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
-    """`--chapters all`: the chapter count is only known once the file is read."""
+    """`--chapters all`: the chapter count is only known once the file is read. (The job
+    reads it again; Issue #112 lets `JobSettings` say "every chapter" instead.)"""
     document = read_document(source, settings, lambda phase: None)
     chapters = frozenset(chapter.index for chapter in find_chapters(document))
     return replace(settings, chapters=chapters)
@@ -582,7 +599,9 @@ def _duration(seconds: float) -> str:
 
 def run_script_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     source = _source(args.file)
-    settings = _settings(args, env, source)
+    settings = _settings(args, env)
+    if _every_chapter_asked(args):
+        settings = _all_chapters(source, settings)
     work = _work_folder(args, env, source)
     progress = Progress(env, args.quiet)
     try:
@@ -630,22 +649,33 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
             Exit.NO_VOICE,
         )
     voice = env.voice_source(models)
-    settings = _settings(args, env, source)
+    settings = _settings(args, env)
     voice_id = settings.voice or voice.default_voice
     if voice_id not in voice.voices:
         raise CliError(
             f"there is no voice {voice_id!r}; `{PROG} voices` lists the voices", Exit.USAGE
         )
+    if _every_chapter_asked(args):
+        settings = _all_chapters(source, settings)
     work = _work_folder(args, env, source)
     output = OutputSettings(mp3=args.format != "m4b", m4b=args.format != "mp3")
+    if args.with_script and not args.overwrite:
+        # all or nothing: refuse an existing script before any work, as the audio job
+        # refuses an existing audiobook before any speech (D-163); the audio job runs
+        # first, so a refused audiobook leaves no new script behind
+        targets = script_files(source, settings, work).outputs
+        if existing := [path.name for path in targets if path.exists()]:
+            raise OutputExistsError(
+                f"these files exist already: {', '.join(existing)}; choose to replace them"
+            )
     progress = Progress(env, args.quiet)
     script: ScriptJob | None = None
     try:
+        job = _audio_in_thread(env, progress, source, settings, work, voice, output, args.overwrite)
         if args.with_script:
             script = env.runner.run_script(
                 source, settings, work, overwrite=args.overwrite, progress=progress.phase
             )
-        job = _audio_in_thread(env, progress, source, settings, work, voice, output, args.overwrite)
     finally:
         progress.end()
     _print_audio(env, job, script, work)
@@ -804,8 +834,10 @@ def _download(args: argparse.Namespace, env: CliEnv, models: Path) -> Exit:
     if not missing:
         env.out.write(f"The voice files are installed in {models}; nothing to download.\n")
         return Exit.OK
-    env.out.write(describe_download(plan, missing, models))
-    env.out.flush()
+    # the plan and the question go to stderr, beside the progress: with stdout redirected
+    # to a file the person still sees what they are asked to agree to
+    env.err.write(describe_download(plan, missing, models))
+    env.err.flush()
     if not args.yes:
         if not env.interactive:
             raise CliError(
@@ -858,6 +890,7 @@ COMMANDS: tuple[Command, ...] = (
         "every change (FILE.report.json, FILE.report.md). Lists the chapters to choose from.",
         add_script,
         run_script_command,
+        _categories_help,
     ),
     Command(
         "convert",
@@ -866,6 +899,7 @@ COMMANDS: tuple[Command, ...] = (
         "run: sentences already spoken are taken from the speech cache.",
         add_convert,
         run_convert_command,
+        _categories_help,
     ),
     Command(
         "voices",
