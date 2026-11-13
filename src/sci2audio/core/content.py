@@ -27,15 +27,31 @@ class SourceFormat(StrEnum):
 
 @dataclass(frozen=True)
 class Source:
-    """Where the content came from: the file name (never a full path), its format and hash."""
+    """Where the content came from: the file name (never a full path), its format and hash.
+
+    For a text file (Markdown, plain text) `encoding` names how its bytes were read, as the
+    WHATWG Encoding Standard names it ("utf-8", "utf-16le", "windows-1252"); it is empty where
+    the format brings its own (PDF, EPUB). `encoding_guessed` is true when the file declared
+    no encoding and was not valid UTF-8, so the encoding is a guess a person should check
+    (D-345, D-346).
+    """
 
     name: str
     format: SourceFormat
     sha256: str = ""  # hex digest of the file's bytes, to recognise the same file again
+    encoding: str = ""
+    encoding_guessed: bool = False
 
     def __post_init__(self) -> None:
         if not self.name or "/" in self.name or "\\" in self.name:
             raise ValueError(f"source name must be a bare file name, got {self.name!r}")
+        if self.encoding_guessed and not self.encoding:
+            raise ValueError(f"source {self.name!r} has a guessed encoding but names none")
+        if self.encoding and self.format in (SourceFormat.PDF, SourceFormat.EPUB):
+            raise ValueError(
+                f"source {self.name!r} is {self.format.value}, which brings its own encoding,"
+                f" but names {self.encoding!r}"
+            )
 
 
 @dataclass(frozen=True)

@@ -177,7 +177,10 @@ def _accent(text: str, i: int) -> _Run | None:
         if len(composed) == 1:
             return _Run("accent", i, j + 1, composed + rest)
         return None
-    if (not before or before.isspace()) and (not after or after.isspace()):
+    # stray: no letter or digit on either side, so set apart or next to a sign ("¯±0"); a
+    # sign this or another step reads as words gets a space before it, and the accent must
+    # read the same either way (#67)
+    if all(not c.isalnum() and c not in ACCENTS for c in (before, after)):
         return _Run("stray", i, i + 1, "")
     return None
 
