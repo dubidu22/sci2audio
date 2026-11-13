@@ -3,10 +3,14 @@ finds a real problem, and the throttled progress announcements (D-253)."""
 
 from __future__ import annotations
 
+import asyncio
 import re
 import threading
 import time
+from typing import Any
 
+import pytest
+from fastapi.staticfiles import StaticFiles
 from playwright.sync_api import Page, expect
 from test_flow import open_paper
 
@@ -115,3 +119,22 @@ def test_a_job_that_failed(signed_in: Page, live: Live) -> None:
     expect(page.locator("#result")).to_contain_text("The job failed")
     expect(page.get_by_role("button", name="Start again")).to_be_visible()
     check_axe(page, "audiobook failed")
+
+
+def test_the_check_waits_for_the_stylesheet(
+    signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """axe on a page whose app.css hasn't arrived finds problems that aren't there (small
+    inline links next to each other: target-size), so the check waits for the page's load
+    event. The stylesheet comes late here, and the check runs right after the click."""
+    serve = StaticFiles.get_response
+
+    async def late(self: StaticFiles, path: str, scope: Any) -> Any:
+        if path == "app.css":
+            await asyncio.sleep(1.5)
+        return await serve(self, path, scope)
+
+    monkeypatch.setattr(StaticFiles, "get_response", late)
+    page = signed_in
+    page.get_by_role("link", name="Set up the voice").click()
+    check_axe(page, "voice setup page right after the click")
