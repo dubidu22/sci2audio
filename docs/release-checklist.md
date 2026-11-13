@@ -8,6 +8,7 @@ Copy this list into the release Issue and tick each item. Steps marked *(not yet
 - [ ] Last nightly run is green: slow tests, property tests with many examples, benchmarks.
 - [ ] No open Dependabot security alert.
 - [ ] CI, nightly and release ran on a uv-managed Python 3.12.16 or newer (each job's log says `Using CPython 3.12.x`, never an interpreter at a runner path such as `/usr/local/bin` or `hostedtoolcache`) (D-378).
+- [ ] No quarantined tests (D-374): `uv run pytest -m quarantined --collect-only -q` collects none, and the "Quarantined tests" list in the CI job summary says "none". Fix each one and close its issue first.
 - [ ] **OWASP ZAP baseline scan** (#12, D-364 to D-372): the last run of the "ZAP baseline scan" workflow on `main` is green (no High or Medium alert, every Low one accepted with a reason in `scripts/zap/accepted.toml`, every route scanned in English and German). Paste its `zap-summary.md` (the run's summary page) into the release Issue. Start a run by hand (Actions → ZAP baseline scan → Run workflow) if the last one is older than the release candidate.
 - [ ] The ZAP image pinned in `scripts/zap_scan.py` is less than three months old; if not, update the digest in a PR of its own and let the scan run on it (D-370).
 
