@@ -137,7 +137,8 @@ def test_existing_outputs_are_replaced_only_when_asked(tmp_path: Path) -> None:
 def test_progress_reports_each_phase_in_order(tmp_path: Path) -> None:
     phases: list[Phase] = []
     run_script_job(small_pdf(tmp_path), JobSettings(), tmp_path / "w", progress=phases.append)
-    assert phases == list(Phase)
+    # the audio job's phases (loading the voice, speaking, encoding) never come here
+    assert phases == [Phase.READING, Phase.LAYOUT, Phase.TEXT_STEPS, Phase.WRITING, Phase.DONE]
 
 
 def test_the_files_a_job_writes_are_known_before_it_runs(tmp_path: Path) -> None:

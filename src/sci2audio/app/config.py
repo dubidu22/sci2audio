@@ -9,6 +9,7 @@ back to the default, with a warning the caller shows.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,25 @@ def default_config_file() -> Path:
     """
     folder = platformdirs.user_config_path("sci2audio", appauthor=False, roaming=True)
     return folder / CONFIG_NAME
+
+
+def default_models_folder() -> Path:
+    """Where the voice setup puts the voice files (D-164): the user's data folder, not the
+    cache, so a system clean-up never deletes the 355 MB download."""
+    return platformdirs.user_data_path("sci2audio", appauthor=False) / "models"
+
+
+def default_work_folder(source: Path) -> Path:
+    """The working folder of an audio job (D-164): one per source file, named by the first
+    16 hex digits of the file's SHA-256, in the user's cache folder. The same file under
+    another name or in another folder gets the same folder, so its chunks are used again.
+    Raises OSError if the file can't be read."""
+    digest = hashlib.sha256()
+    with source.open("rb") as file:
+        for block in iter(lambda: file.read(1 << 20), b""):
+            digest.update(block)
+    folder = platformdirs.user_cache_path("sci2audio", appauthor=False)
+    return folder / "jobs" / digest.hexdigest()[:16]
 
 
 def settings_to_data(settings: JobSettings) -> dict[str, Any]:
