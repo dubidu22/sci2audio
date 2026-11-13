@@ -180,7 +180,11 @@ def test_a_footnote_mark_or_subscripts_do_not_cut_a_paragraph() -> None:
     rows = [[li] for li in text]
     rows[1], rows[3] = marked, subscripts
     doc = build_document(content([li for row in rows for li in row]))
-    assert paragraphs(doc) == ["\n".join(" ".join(li.text for li in row) for row in rows)]
+    # the mark and the subscripts are set close to their letters: no space before them (#36)
+    printed = [li.text for li in text]
+    printed[1] = "rules of the grammar.1"
+    printed[3] = "where xij is the weight of the edge from ykl"
+    assert paragraphs(doc) == ["\n".join(printed)]
 
 
 def test_a_narrower_block_is_not_cut_at_every_line() -> None:
@@ -283,18 +287,21 @@ def test_the_gap_after_a_subscript_is_measured_from_the_line_s_end() -> None:
     y = 100 + 2 * PITCH
     split = [
         line("ing integral. Next one feeds n", LEFT, y, 300),
-        line("E", 262, y + 3, 270, size=7),
-        line("into the", 316, y, RIGHT),
+        line("E", 284, y + 3, 290, size=7),
+        line("into the", 306, y, RIGHT),
     ]
-    # the row below has a sliver of white halfway between the subscript and "into the"
+    # the row below has a word gap of 1 em (extraction cuts a line there, #27) halfway
+    # between the subscript and "into the", but not halfway between the line's end and it
     below = [
-        line("band off-diagonal", LEFT, y + PITCH, 292.9),
-        line("terms", 293.1, y + PITCH, RIGHT),
+        line("band off-diagonal", LEFT, y + PITCH, 292),
+        line("terms", 302, y + PITCH, RIGHT),
     ]
     rows = [[li] for li in text]
     rows[2:4] = [split, below]
     doc = build_document(content([li for row in rows for li in row]))
-    assert paragraphs(doc) == ["\n".join(" ".join(li.text for li in row) for row in rows)]
+    printed = [li.text for li in text]  # the subscript stands under "n", set close (#36)
+    printed[2:4] = ["ing integral. Next one feeds nE into the", "band off-diagonal terms"]
+    assert paragraphs(doc) == ["\n".join(printed)]
 
 
 def test_two_columns_with_a_narrow_gutter_are_not_joined() -> None:
@@ -474,3 +481,108 @@ def test_the_lines_of_a_caption_s_float_do_not_end_the_paragraph_set_aside() -> 
         "Algorithm 3 Fast prefix",
         "for k in 0 to N: compute the prefix probability\nreturn π",
     ]
+
+
+# Spaces between the pieces of one printed line (#36, D-274 to D-280)
+
+ROW_Y = 100 + 2 * PITCH  # the third line of `_one_row`'s paragraph
+
+
+def at(text: str, x0: float, x1: float, raised: float = 0.0, size: float = 10.0) -> TextLine:
+    """A piece of the third line, `raised` points above its baseline (below if negative)."""
+    return line(text, x0, ROW_Y - raised, x1, size=size)
+
+
+def _one_row(*pieces: TextLine, settings: LayoutSettings | None = None) -> Block:
+    """The paragraph block of 5 full lines whose third line is made of these pieces."""
+    text = lines("a", LEFT, RIGHT, 100, 5)
+    doc = build_document(content([*text[:2], *pieces, *text[3:]]), settings)
+    (block,) = [b for b in doc.blocks if b.kind is BlockKind.PARAGRAPH]
+    return block
+
+
+def _third(block: Block) -> str:
+    return block.text.split("\n")[2]
+
+
+def test_a_mark_set_close_after_a_word_gets_no_space() -> None:
+    """Arsiwalla p3 "qualia1.": the mark stands 0.5 pt after the word, the full stop 0.5 pt
+    after the mark."""
+    pieces = (
+        at("character of qualia", LEFT, 300),
+        at("1", 300.5, 304, raised=3, size=7),
+        at(". Possibly, the explanatory gap", 304.5, RIGHT),
+    )
+    assert _third(_one_row(*pieces)) == "character of qualia1. Possibly, the explanatory gap"
+
+
+def test_a_mark_after_a_printed_word_space_keeps_it() -> None:
+    """Hardt p3 "sets. 1": 5 pt of white, wider than a word space, stand before the mark."""
+    pieces = (
+        at("the size of the resulting sets.", LEFT, RIGHT - 9),
+        at("1", RIGHT - 4, RIGHT, raised=3, size=7),
+    )
+    assert _third(_one_row(*pieces)) == "the size of the resulting sets. 1"
+
+
+def test_a_subscript_right_after_its_letter_gets_no_space() -> None:
+    pieces = (
+        at("where x", LEFT, 120),
+        at("ij", 120.5, 127, raised=-3, size=7),
+        at("is the weight of the edge", 130, RIGHT),
+    )
+    assert _third(_one_row(*pieces)) == "where xij is the weight of the edge"
+
+
+def test_a_subscript_stacked_under_a_superscript_follows_it() -> None:
+    """Liu p2 "J^1st_0": the subscript starts back under the superscript's letters."""
+    pieces = (
+        at("the scattering integral J1st", LEFT, 300),
+        at("0", 290, 294, raised=-3, size=7),
+        at("[n] gives the field", 300.5, RIGHT),
+    )
+    assert _third(_one_row(*pieces)) == "the scattering integral J1st0[n] gives the field"
+
+
+def test_two_words_split_at_a_wide_gap_keep_their_space() -> None:
+    """Extraction cuts a line at a gap of 1 em (#27): that is always a word space."""
+    pieces = (at("a widely spaced", LEFT, 250), at("justified line", 262, RIGHT))
+    assert _third(_one_row(*pieces)) == "a widely spaced justified line"
+
+
+def test_a_piece_far_back_under_earlier_words_keeps_a_space() -> None:
+    """A piece starting more than `stack_reach` em back is out of its place: a space keeps
+    it from running into the word before it (Liu p2 "Physically, me")."""
+    pieces = (at("m*. Physically, the mass", LEFT, RIGHT), at("me", 200, 208, -6, size=7))
+    assert _third(_one_row(*pieces)) == "m*. Physically, the mass me"
+
+
+def test_each_piece_keeps_its_item_and_offset() -> None:
+    pieces = (
+        at("character of qualia", LEFT, 300),
+        at("1", 300.5, 304, raised=3, size=7),
+        at(". Possibly", 304.5, RIGHT),
+    )
+    block = _one_row(*pieces)
+    starts = {part.item: part.start for part in block.parts}
+    for piece in pieces:
+        assert block.text[starts[piece.id] : starts[piece.id] + len(piece.text)] == piece.text
+    assert [p.item for p in block.parts][2:5] == [piece.id for piece in pieces]
+
+
+def test_the_thresholds_are_settings() -> None:
+    """A wider `word_space` takes the 0.5 em before Hardt's mark for no space; a shorter
+    `stack_reach` puts a space before a subscript stacked 1 em back."""
+    hardt = (
+        at("the size of the resulting sets.", LEFT, RIGHT - 9),
+        at("1", RIGHT - 4, RIGHT, raised=3, size=7),
+    )
+    wide = LayoutSettings(word_space=0.6)
+    assert _third(_one_row(*hardt, settings=wide)) == "the size of the resulting sets.1"
+    liu = (
+        at("the integral J1st", LEFT, 300),
+        at("0", 290, 294, raised=-3, size=7),
+        at("[n] gives the field", 300.5, RIGHT),
+    )
+    short = LayoutSettings(stack_reach=0.5)
+    assert _third(_one_row(*liu, settings=short)) == "the integral J1st 0[n] gives the field"

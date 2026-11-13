@@ -100,6 +100,24 @@ def test_a_narrow_justified_note_of_three_lines_is_one_note() -> None:
     ]
 
 
+def test_a_mark_set_close_to_its_note_is_joined_without_a_space() -> None:
+    """#36: Chi p11 "5https://...", Nowak p1 "1Specifically": the mark is a piece of its
+    own, set close to the note's first word; the page prints no space between them."""
+    lines = [
+        TextLine(
+            f"m{next(_ids)}",
+            (TextRun("5", "Times", 6.0),),
+            Box(LEFT, RULE_Y + 5, LEFT + 3, RULE_Y + 11),
+        ),
+        TextLine(
+            f"n{next(_ids)}",
+            (TextRun("Specifically, a note.", "Times", 8.0),),
+            Box(LEFT + 3.2, RULE_Y + 6, LEFT_END, RULE_Y + 14),
+        ),
+    ]
+    assert footnotes(build(lines, rule())) == [("5", "5Specifically, a note.")]
+
+
 def test_a_mark_that_is_a_line_of_its_own_is_read() -> None:
     """Review of #52: the mark is a small line of its own at the left end of its row; its
     size is compared with the row's text, not with itself."""

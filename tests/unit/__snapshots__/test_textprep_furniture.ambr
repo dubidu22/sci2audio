@@ -2,7 +2,7 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-chi-plue]
   dict({
     'characters: accepted': 97,
-    'characters: set-aside': 63,
+    'characters: set-aside': 62,
     'citations: accepted': 48,
     'footnote-texts: switched-off': 7,
     'footnotes: accepted': 12,
@@ -62,7 +62,6 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-liu-orbital-hall]
   dict({
     'characters: accepted': 103,
-    'characters: set-aside': 2,
     'citations: accepted': 128,
     'formulas: accepted': 8,
     'links: accepted': 2,
