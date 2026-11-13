@@ -281,6 +281,19 @@ def test_two_algorithms_in_one_figure_are_one_block_all_three_captions_name() ->
     assert len(of(doc, BlockKind.FIGURE)) == 1
 
 
+def test_a_drawing_on_an_algorithm_caption_line_is_in_one_block() -> None:
+    """#123: a flat caption and a flat drawing at the same height: the drawing stands both
+    below the caption and above it, and the walk below and the box top both took it."""
+    caption = algorithm_caption("Algorithm 0", "0", 0, 0)
+    caption = TextLine(caption.id, caption.runs, Box(0, 0, 1, 0))
+    drawing = Drawing("d", Box(0, 0, 1, 0))
+    doc = build([caption, drawing])
+    holding = [b for b in doc.blocks if "d" in {p.item for p in b.parts}]
+    assert len(holding) == 1
+    assert [p.item for p in holding[0].parts] == ["d"]
+    assert named(doc, "Algorithm 0") is holding[0]
+
+
 # Graphics no caption names
 
 

@@ -10,7 +10,7 @@ import dataclasses
 import itertools
 
 from core_strategies import contents
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 from test_layout import LEFT, RIGHT, content
 
@@ -22,12 +22,17 @@ from sci2audio.core import (
     Drawing,
     Metadata,
     OutlineEntry,
+    Picture,
     Section,
+    Source,
+    SourceFormat,
     TextLine,
     TextRun,
 )
+from sci2audio.core import Page as PdfPage
 from sci2audio.layout import build_document
 from sci2audio.layout.headings import title
+from sci2audio.layout.tagged import positioned
 
 PITCH = 14.0
 _ids = itertools.count()
@@ -236,9 +241,35 @@ def test_title_joins_a_word_split_at_a_line_end() -> None:
 
 
 @given(contents())
+@example(  # an algorithm caption and a drawing, both flat, on one box (#123)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            PdfPage(
+                1,
+                lines=(
+                    TextLine(
+                        "i0", (TextRun("Algorithm 0 ", bold=True), TextRun("0")), Box(0, 0, 1, 0)
+                    ),
+                ),
+                drawings=(Drawing("d", Box(0, 0, 1, 0)),),
+            ),
+        ),
+    )
+)
+@example(  # an outline entry on a page of content without positions that has no heading (#195)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (PdfPage(1, pictures=(Picture("i0", None),)),),
+        Metadata(),
+        outline=(OutlineEntry("A", 1, 1, ""),),
+    )
+)
 def test_sections_start_at_headings_and_carry_their_text(found: Content) -> None:
-    """On any content: each section starts at a heading block whose lines are its title, and
-    each heading starts a section (the Document checks that sections nest)."""
+    """On any content: each heading starts a section and the section's title is its lines.
+    With positions, each section starts at a heading. Without (EPUB, Markdown, text), an
+    outline entry on a page without headings may start a section at a block that is no
+    heading; it is titled as the entry (D-405 to D-418, #195)."""
     doc = build_document(found)
     sections, stack = [], list(doc.sections)
     while stack:
@@ -246,9 +277,20 @@ def test_sections_start_at_headings_and_carry_their_text(found: Content) -> None
         sections.append(section)
         stack[:0] = section.children
     heads = [i for i, b in enumerate(doc.blocks) if b.kind is BlockKind.HEADING]
-    assert [s.start for s in sections] == heads
+    starts = [s.start for s in sections]
+    if positioned(found):
+        assert starts == heads
+    else:
+        assert set(heads) <= set(starts)
+    items = found.items()
+    entries = {(e.page, " ".join(e.title.split())) for e in found.outline}
     for section in sections:
-        assert section.title == title(doc.blocks[section.start].text)
+        block = doc.blocks[section.start]
+        if block.kind is BlockKind.HEADING:
+            assert section.title == title(block.text)
+        else:
+            page = items[block.parts[0].item][0].number if block.parts else None
+            assert (page, section.title) in entries
 
 
 def test_one_numbered_bold_line_does_not_make_a_document_numbered() -> None:
