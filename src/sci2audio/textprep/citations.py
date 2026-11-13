@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.links import SKIPPED_KINDS
+from sci2audio.textprep.statistics import interval_openings
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -139,7 +140,6 @@ _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
 _FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
-_MAX_INTERVALS = 8  # "CIs [1, 3], [2, 4] and [5, 6]": how many joined brackets are followed back
 
 
 def _part_pattern(words: CitationWords) -> re.Pattern[str]:
@@ -229,6 +229,7 @@ class _Rules:
         self.abbreviations = abbreviations
         self.part = _part_pattern(words)
         self.numeric_aside = _numeric_aside_pattern(words)
+        self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
 
     def block(self, text: str) -> list[_Found]:
         found: list[_Found] = []
@@ -359,32 +360,28 @@ class _Rules:
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
 
-    def _not_citations(self, text: str, position: int, depth: int = 0) -> bool:
+    def _not_citations(self, text: str, position: int) -> bool:
         """True if the square bracket at `position` holds an interval or a label's number, not
         citations: after a maths sign, a maths word ("CI", "CI:", "CIs", D-450), a label word
-        ("Eq."), a percentage, or after another such bracket and "and", "or" or a comma
-        ("CIs [1, 3] and [2, 4]", #151)."""
+        ("Eq.") or a percentage, or where the statistics step reads a confidence interval
+        joined on to one ("CIs [1, 3] and [2, 4]", #151): only a pair it reads, so "CI [1, 3]
+        and [12]" still cites reference 12."""
         before = text[max(0, position - _LOOK_BACK) : position].rstrip()
         previous = before.split()[-1] if before.split() else ""
-        if not previous:
-            return False
-        if (
+        if previous and (
             previous[-1] in _MATHS_SIGNS
             or previous.lower().rstrip(":") in self.words.maths
             or _is_label_word(previous.lstrip("(["), self.words.numbered)
             or previous.endswith("%")
         ):
             return True
-        joined = re.search(r"\]\s*(?:,|(?:,\s*)?(?:and|or))\Z", before)
-        if not joined or depth >= _MAX_INTERVALS:
-            return False
-        end = max(0, position - _LOOK_BACK) + joined.start()
-        opened = text.rfind("[", max(0, end - _LOOK_BACK), end)
-        return (
-            opened >= 0
-            and _NUMERIC.match(text[opened + 1 : end]) is not None
-            and self._not_citations(text, opened, depth + 1)
-        )
+        return position in self._intervals(text)
+
+    def _intervals(self, text: str) -> frozenset[int]:
+        """The statistics step's interval brackets in this block, worked out once."""
+        if self._intervals_of[0] != text:
+            self._intervals_of = (text, interval_openings(text))
+        return self._intervals_of[1]
 
     def _spoken(self, inside: str) -> str:
         items = []

@@ -13,7 +13,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from sci2audio.core import Block, BlockKind, Document, EditKind, Span, check_edits
+from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span, check_edits
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import (
     AbbreviationStep,
@@ -25,6 +25,7 @@ from sci2audio.textprep import (
     spoken_text,
     wording_for,
 )
+from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.wordlists import (
     abbreviations,
     parse_abbreviations,
@@ -583,3 +584,17 @@ def test_an_edit_behind_an_unread_character_is_mapped_onto_the_printed_text() ->
         (10, 13, " kilograms"),  # an unread character inside the unit is taken in
     ]
     assert all("\u00ad" not in e.reason and "\u200b" not in e.reason for e in edits)
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [
+        Edit(Span(0, 0, 1), EditKind.REMOVE, "gone", "fake"),
+        Edit(Span(0, 1, 1), EditKind.PAUSE, "a breath", "fake"),
+    ],
+)
+def test_only_replace_edits_are_mapped_back_through_unread_characters(edit: Edit) -> None:
+    """Review F3 of PR #208: a remove or pause edit would come back as a remove of another
+    span, so the adapter refuses it instead (#159)."""
+    with pytest.raises(ValueError, match="only replace edits"):
+        edits_through_unread(0, "5\u00adkg", lambda read: [edit], "fake")

@@ -13,6 +13,7 @@ from notation_texts import notation_documents
 from sci2audio.core import Block, BlockKind, Document, EditKind, Span, apply_edits
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import StatisticsStep, StepContext, run_steps, spoken_text
+from sci2audio.textprep.statistics import MAX_JOINED_INTERVALS, interval_openings
 
 EN = StepContext("en")
 STEP = StatisticsStep()
@@ -241,3 +242,47 @@ def test_confidence_intervals_read_the_same_on_a_second_run() -> None:
     again = make_document([(BlockKind.PARAGRAPH, first)])
     assert first == "The two confidence intervals 1 to 3 and 2 to 4 overlap."
     assert spoken_text(run_steps(again, EN, strict=True).script()) == first
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [  # review F1 of PR #208: a bracket joined on that is no pair is a citation, as on main
+        (
+            "The 95% CI [1, 3] and [12] agree.",
+            "The 95% confidence interval 1 to 3 and reference 12 agree.",
+        ),
+        (
+            "The effect (95% CI [1, 3], [12]) holds.",
+            "The effect (95% confidence interval 1 to 3,) holds.",
+        ),
+        (
+            "Noise CI [1, 3] and [2-6, 16] here.",
+            "Noise confidence interval 1 to 3 and references 2 to 6 and 16 here.",
+        ),
+        ("CI [a, b] and [12] hold.", "confidence interval [a, b] and reference 12 hold."),
+        # review F2: the steps agree on the last interval; the bracket after it cites
+        (
+            "The CIs "
+            + ", ".join(f"[{n}, {n + 1}]" for n in range(1, MAX_JOINED_INTERVALS + 2))
+            + " hold.",
+            "The confidence intervals "
+            + ", ".join(f"{n} to {n + 1}" for n in range(1, MAX_JOINED_INTERVALS + 1))
+            + ", hold.",
+        ),
+    ],
+)
+def test_after_the_intervals_a_citation_reads_the_same_on_both_runs(
+    printed: str, said: str
+) -> None:
+    document = make_document([(BlockKind.PARAGRAPH, printed)])
+    first = spoken_text(run_steps(document, EN, strict=True).script())
+    again = make_document([(BlockKind.PARAGRAPH, first)])
+    assert first == said
+    assert spoken_text(run_steps(again, EN, strict=True).script()) == first
+
+
+def test_the_citations_step_leaves_alone_exactly_the_intervals_read_here() -> None:
+    text = "CIs " + ", ".join(f"[{n}, {n + 1}]" for n in range(12)) + " and [3]."
+    openings = interval_openings(text)
+    assert len(openings) == MAX_JOINED_INTERVALS
+    assert sorted(openings) == [m.start() for m in re.finditer(r"\[", text)][:MAX_JOINED_INTERVALS]

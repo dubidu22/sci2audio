@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import bisect
 import re
+from collections.abc import Iterator
 
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.characters import ACCENTS
@@ -118,7 +119,7 @@ _INTERVAL = re.compile(
     r"(?P<b>" + _SIGNED + r")(?P<close>\s*[\])])"
 )
 _JOIN = re.compile(r"\s*(?:,\s*)?(?:and|or)(?=[\s\[(])|\s*,")  # "[1, 3] and [2, 4]"
-_MAX_JOINED = 8  # intervals read after one "CIs", so a long list costs linear time
+MAX_JOINED_INTERVALS = 8  # intervals read after one "CIs", so a long list costs linear time
 
 # S5: odds ratio
 _ODDS_RATIO = re.compile(r"(?<![\w′'])OR(?![\w′'])" + _THEN_OPERATOR)
@@ -194,23 +195,40 @@ def _squared(text: str, plain: str) -> list[Candidate]:
 
 def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
     found = []
+    for match, intervals in _ci_runs(plain):
+        start, end = match.span()
+        words = "confidence intervals" if match["plural"] else "confidence interval"
+        reading = padded(text, start, end, words)  # "95%CI[1, 3]": not "95%confidence"
+        found.append(Candidate(start, end, reading, f'"{text[start:end]}" read as "{words}"'))
+        for interval in intervals:
+            found += _interval(text, plain, interval)
+    return found
+
+
+def _ci_runs(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]]:
+    """Each "CI" read as words, with the intervals read after it: the bracketed pair right
+    after it, then each pair joined on by "and", "or" or a comma ("CIs [1, 3] and [2, 4]",
+    #151, D-450), at most `MAX_JOINED_INTERVALS` in all."""
     for match in _CI.finditer(plain):
         start, end = match.span()
         after_percent = bool(_AFTER_PERCENT.search(plain, max(0, start - _WINDOW), start))
         if not after_percent and not _BEFORE_CI_THING.match(plain, end):
             continue
-        words = "confidence intervals" if match["plural"] else "confidence interval"
-        reading = padded(text, start, end, words)  # "95%CI[1, 3]": not "95%confidence"
-        found.append(Candidate(start, end, reading, f'"{text[start:end]}" read as "{words}"'))
+        intervals = []
         interval = _INTERVAL.match(plain, end)
-        count = 0
-        while interval is not None and count < _MAX_JOINED:
-            found += _interval(text, plain, interval)
-            # "CIs [1, 3] and [2, 4]": a bracketed pair joined on is an interval too (#151)
+        while interval is not None and len(intervals) < MAX_JOINED_INTERVALS:
+            intervals.append(interval)
             joined = _JOIN.match(plain, interval.end())
             interval = _INTERVAL.match(plain, joined.end()) if joined else None
-            count += 1
-    return found
+        yield match, intervals
+
+
+def interval_openings(text: str) -> frozenset[int]:
+    """Where the brackets open that this step reads as confidence intervals. The citations
+    step leaves exactly these alone, so the two steps agree on every joined pair (#151)."""
+    return frozenset(
+        interval.start("open") for _, intervals in _ci_runs(text) for interval in intervals
+    )
 
 
 def _interval(text: str, plain: str, interval: re.Match[str]) -> list[Candidate]:
