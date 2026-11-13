@@ -128,7 +128,9 @@ def find_graphics(
     actions = _repeated(pages, state)
     for items in pages:
         actions |= _loose(items, state, actions)
-    hosts = {k: line for items in pages for k, line in _hosts(items, state, actions).items()}
+    # where each item is read: the tie rule of `_hosts`, built once for the document
+    read = {p.item: (k, n) for k, block in enumerate(blocks) for n, p in enumerate(block.parts)}
+    hosts = {k: line for items in pages for k, line in _hosts(items, state, actions, read).items()}
     return _assemble(state, actions, hosts)
 
 
@@ -376,11 +378,17 @@ def _loose(items: list[_Item], state: _State, actions: dict[int, str]) -> dict[i
     return found
 
 
-def _hosts(items: list[_Item], state: _State, actions: dict[int, str]) -> dict[int, str]:
-    """The line each joining group of graphics stands in, by the group's block: the text
-    line on the page whose box holds the group's whole box, without slack (D-329, D-330);
-    the smallest such box, on a tie the line read first. A group is judged as one (D-331)."""
-    read = {part.item: (k, n) for k, b in enumerate(state.blocks) for n, part in enumerate(b.parts)}
+def _hosts(
+    items: list[_Item],
+    state: _State,
+    actions: dict[int, str],
+    read: dict[str, tuple[int, int]],
+) -> dict[int, str]:
+    """The line each joining group of graphics on the page stands in, by the group's block:
+    the text line on the page whose box holds the group's whole box, without slack (D-329,
+    D-330); the smallest such box, on a tie the line read first (`read` gives each item's
+    block and place in it). A group is judged as one (D-331). Groups made furniture or
+    figures stay as they are."""
     lines = [i for i in items if i.line is not None]
     found = {}
     for k, group in _groups(items, state).items():

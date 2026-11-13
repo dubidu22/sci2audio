@@ -370,6 +370,39 @@ def test_an_icon_drawn_in_a_line_stands_just_after_that_line() -> None:
     ]
 
 
+def test_a_logo_on_every_page_inside_a_line_box_stays_a_running_head() -> None:
+    """D-91 before D-329 (review of #164, S1): a repeated logo is furniture even where its
+    box lies inside a tall line's box; only groups that join a neighbour stand in a line."""
+    pages = [
+        [
+            Picture(f"logo{n}", Box(480, 103, 520, 143)),
+            line("A tall line of display text.", LEFT, 100, RIGHT, height=46),
+            *running(top=160),
+        ]
+        for n in range(3)
+    ]
+    doc = build(*pages)
+    logos = [b for b in doc.blocks if any(p.item.startswith("logo") for p in b.parts)]
+    assert [(b.kind, b.role, [p.item for p in b.parts]) for b in logos] == [
+        (BlockKind.FURNITURE, FurnitureRole.RUNNING_HEAD, [f"logo{n}"]) for n in range(3)
+    ]
+
+
+def test_a_mark_in_two_lines_of_one_size_stands_in_the_one_read_first() -> None:
+    """D-329 (review of #164, S2): two line boxes of the same size both hold the mark (two
+    lines printed over each other); on a tie the mark stands in the line read first."""
+    lines = running(count=3)
+    first = line("over", 200, 142, 260)
+    second = line("print", 200, 142, 260)
+    after = running(top=160, count=2)
+    bar = Drawing("bar", Box(210, 146, 250, 146.5))
+    doc = build([*lines, first, second, *after, bar])
+    parts = parts_of(doc, "bar")
+    items = [item for item, _ in parts]
+    host = min((first.id, second.id), key=items.index)  # the one read first
+    assert items[items.index("bar") - 1] == host
+
+
 def test_a_mark_only_partly_inside_a_line_joins_the_block_before_it() -> None:
     """D-329, D-330: wholly inside, without slack; a fraction bar 0.4 pt below a line's box
     touches it but stands in no line, so D-90 holds: the end of the block read before it."""
