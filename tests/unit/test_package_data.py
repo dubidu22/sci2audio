@@ -15,7 +15,9 @@ PACKAGE = ROOT / "src" / "sci2audio"
 
 
 def shipped() -> set[str]:
-    return {f.distribution_path for f in WheelBuilder(str(ROOT)).recurse_included_files()}
+    # hatchling gives the path with the system's separator ("\\" on Windows)
+    files = WheelBuilder(str(ROOT)).recurse_included_files()
+    return {f.distribution_path.replace("\\", "/") for f in files}
 
 
 def test_every_package_file_is_in_the_wheel() -> None:
