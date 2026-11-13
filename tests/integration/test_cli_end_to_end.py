@@ -6,8 +6,9 @@ fetched by `prepare_models.py` (SCI2AUDIO_TEST_MODELS). The first run is killed 
 first sentences and run again, which must continue from the speech cache; a third run with
 `--overwrite` must speak nothing. The processes get proxies that point at a closed local
 port, so any HTTP request they tried would fail. An EPUB (#73) is converted too: the corpus
-book cut to three short spine documents (the whole book is about 70 minutes of speech on a
-CPU), and its M4B must carry the book's cover.
+book cut to three short spine documents that still give an outline, two pictures and the
+cover (the whole book is about 70 minutes of speech on a CPU; D-316 note), and its M4B must
+carry the book's cover.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from pathlib import Path
 
 import pytest
 
+from sci2audio.extraction import extract_epub, extract_epub_cover
 from sci2audio.output import find_ffmpeg
 
 CORPUS = Path(__file__).parents[1] / "corpus"
@@ -154,16 +156,28 @@ def short_book(folder: Path) -> Path:
 
 @pytest.mark.slow
 def test_convert_reads_an_epub_and_keeps_its_cover(tmp_path: Path) -> None:
-    out, work = tmp_path / "out", tmp_path / "work"
-    converted = run(convert_args(out, work, source=short_book(tmp_path)))
+    out, work, book = tmp_path / "out", tmp_path / "work", short_book(tmp_path)
+    # the cut book still has an outline, pictures and a cover (D-316 note)
+    content = extract_epub(book)
+    assert [(e.title, e.page) for e in content.outline if e.page] == [
+        ("Titlepage", 1),
+        ("Imprint", 2),
+        ("Epilogue", 3),
+    ]
+    assert [p.ref for page in content.pages for p in page.pictures] == [
+        "epub/images/titlepage.png",
+        "epub/images/logo.png",
+    ]
+    assert extract_epub_cover(book) is not None
+    converted = run(convert_args(out, work, source=book))
     assert converted.returncode == 0, converted.stderr
     assert "Traceback" not in converted.stderr
     spoke, total, reused = spoken_and_reused(converted.stdout)
     assert spoke == total > 0
     assert reused == 0
     (m4b,) = out.glob("*.m4b")
-    with zipfile.ZipFile(TIME_MACHINE) as book:
-        assert (work / "cover.jpg").read_bytes() == book.read("epub/images/cover.jpg")
+    with zipfile.ZipFile(TIME_MACHINE) as whole:
+        assert (work / "cover.jpg").read_bytes() == whole.read("epub/images/cover.jpg")
     probe = subprocess.run(
         [str(find_ffmpeg()), "-hide_banner", "-i", str(m4b)],
         capture_output=True,
