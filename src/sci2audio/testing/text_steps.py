@@ -26,6 +26,7 @@ from sci2audio.core import (
     EditKind,
     FurnitureRole,
     ScriptPiece,
+    Section,
     apply_edits,
     check_edits,
 )
@@ -99,7 +100,7 @@ def _sample_documents() -> tuple[Document, ...]:
             BlockKind.PARAGRAPH,
             "Several studies examined noise (Smith et al., 2019; Jones & Lee, 2020),\n"
             "but findings remain inconsistent [2\u20136, 16, 17]. Exposure may affect develop-\n"
-            "ment and cause diﬃculties, i.e., delays.",
+            "ment and cause diﬃculties, i.e., delays.1",
         ),
         (
             BlockKind.PARAGRAPH,
@@ -123,11 +124,15 @@ def _sample_documents() -> tuple[Document, ...]:
         (BlockKind.PARAGRAPH, "Mehrere Studien (Müller u. a., 2019) zeigen z. B. Effekte."),
         Block(BlockKind.FURNITURE, "Seite 3", role=FurnitureRole.PAGE_NUMBER),
     ]
+    # the footnote mark after "delays." is set as a superscript; "References" heads a section
+    mark = len(paper[1][1]) - 1  # type: ignore[index]
+    tags = {1: [(mark, mark + 1, "sup")]}
+    sections = [Section("References", 1, 9, len(paper))]
     return (
         make_document([], name="empty.txt"),
         make_document(furniture, name="furniture.txt"),
-        make_document([*paper, *furniture], name="paper.txt"),
-        make_document(paper, "en-GB", name="paper-gb.txt"),
+        make_document([*paper, *furniture], name="paper.txt", tags=tags, sections=sections),
+        make_document(paper, "en-GB", name="paper-gb.txt", tags=tags, sections=sections),
         make_document(german, "de", name="german.txt"),
     )
 

@@ -54,3 +54,53 @@ def test_the_diff_shows_before_and_after() -> None:
     shown = diff(["Keep.", "Old line."], ["Keep.", "New line."])
     assert "-Old line." in shown
     assert "+New line." in shown
+
+
+def test_runs_give_superscripts_and_sections_are_read(tmp_path: Path) -> None:
+    good = tmp_path / "good.toml"
+    good.write_text(
+        '[[case]]\nid = "one"\naudit = 0\nissue = 64\ngoal = "g"\n'
+        'blocks = [{ kind = "heading", text = "References" },\n'
+        '          { kind = "paragraph", runs = ["Noise", { sup = "1" }, " here."] }]\n'
+        'sections = [{ title = "References", level = 1, start = 0, end = 2 }]\n'
+        "expected = []\n"
+    )
+    (case,) = load_cases(good)
+    assert case.document.blocks[1].text == "Noise1 here."
+    line = case.document.content.pages[0].lines[1]
+    assert [(run.text, run.tags) for run in line.runs] == [
+        ("Noise", ()),
+        ("1", ("sup",)),
+        (" here.", ()),
+    ]
+    assert [(s.title, s.start, s.end) for s in case.document.sections] == [("References", 0, 2)]
+
+
+@pytest.mark.parametrize(
+    ("block", "problem"),
+    [
+        ('{ kind = "paragraph", text = "a", runs = ["a"] }', "a block gives either text or runs"),
+        ('{ kind = "paragraph" }', "a block gives either text or runs"),
+        ('{ kind = "paragraph", runs = [{ sub = "1" }] }', "a run is a string or"),
+        ('{ kind = "paragraph", runs = [3] }', "a run is a string or"),
+    ],
+)
+def test_a_bad_run_names_the_case(tmp_path: Path, block: str, problem: str) -> None:
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        f'[[case]]\nid = "one"\naudit = 0\nissue = 1\ngoal = "g"\nblocks = [{block}]\n'
+        "expected = []\n"
+    )
+    with pytest.raises(ValueError, match=f"case one: {problem}"):
+        load_cases(bad)
+
+
+def test_a_bad_section_names_the_case(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        '[[case]]\nid = "one"\naudit = 0\nissue = 1\ngoal = "g"\nblocks = []\n'
+        'sections = [{ title = "R", level = 1, start = 0, end = 0, children = [] }]\n'
+        "expected = []\n"
+    )
+    with pytest.raises(ValueError, match="case one: unknown section keys"):
+        load_cases(bad)

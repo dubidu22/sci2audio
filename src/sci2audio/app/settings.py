@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
-from sci2audio.textprep import Category
+from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
 
 MIN_SPEED = 0.5
 MAX_SPEED = 2.0
@@ -24,7 +24,8 @@ class JobSettings:
     """
 
     language: str = ""  # BCP 47 tag ("en", "en-GB"); "" = the file's own, else "en"
-    switched_off: frozenset[Category] = field(default_factory=frozenset)  # UC-02 switches
+    # UC-02 switches; "Footnote texts" starts off (D-142), so notes are read by default
+    switched_off: frozenset[Category] = DEFAULT_SWITCHED_OFF
     chapters: frozenset[int] | None = None
     voice: str = ""  # "" = the default voice (#71)
     speed: float = 1.0  # MIN_SPEED to MAX_SPEED (#71)

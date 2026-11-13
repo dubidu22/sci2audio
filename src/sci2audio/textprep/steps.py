@@ -26,12 +26,14 @@ _LANGUAGE = re.compile(r"\A[a-z]{2,3}\Z")
 class Category(StrEnum):
     """What a step is about, as the report and the per-category switches name it (UC-02).
 
-    The list is fixed; every step belongs to exactly one category.
+    The list is fixed; every step belongs to exactly one category. Every category is on by
+    default except "Footnote texts": switched on, it leaves all footnotes out (Q2, D-142).
     """
 
     PAGE_FURNITURE = "page-furniture"  # TP-01
     CHARACTERS = "characters"  # IN-04, TP-02
-    FOOTNOTES = "footnotes"  # TP-05
+    FOOTNOTES = "footnotes"  # TP-05: marks left out, notes introduced
+    FOOTNOTE_TEXTS = "footnote-texts"  # TP-05: the notes themselves left out; off by default
     CITATIONS = "citations"  # TP-03, TP-04
     LINKS = "links"  # TP-07
     FORMULAS = "formulas"  # FX-01
@@ -45,11 +47,17 @@ class Category(StrEnum):
         """The name a person reads in the report and next to the switch."""
         return _LABELS[self]
 
+    @property
+    def on_by_default(self) -> bool:
+        """True if the category's edits are used unless the user switches it off."""
+        return self is not Category.FOOTNOTE_TEXTS
+
 
 _LABELS = {
     Category.PAGE_FURNITURE: "Page furniture",
     Category.CHARACTERS: "Characters and hyphenation",
     Category.FOOTNOTES: "Footnotes",
+    Category.FOOTNOTE_TEXTS: "Footnote texts",
     Category.CITATIONS: "Citations",
     Category.LINKS: "URLs, DOIs and e-mail addresses",
     Category.FORMULAS: "Formulas",
@@ -58,6 +66,11 @@ _LABELS = {
     Category.ABBREVIATIONS: "Abbreviations",
     Category.NUMBERS_AND_UNITS: "Numbers, symbols, units and statistics",
 }
+
+# the categories a job starts with switched off (#70 takes its default switches from here)
+DEFAULT_SWITCHED_OFF: frozenset[Category] = frozenset(
+    category for category in Category if not category.on_by_default
+)
 
 
 class Stage(StrEnum):

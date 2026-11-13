@@ -18,10 +18,20 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
+from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
+from sci2audio.textprep.references import ReferenceListStep
 from sci2audio.textprep.steps import Stage, TextStep, step_problems
 
-BUILT_IN_STEPS: tuple[TextStep, ...] = (FurnitureStep(),)
+BUILT_IN_STEPS: tuple[TextStep, ...] = (
+    FurnitureStep(),
+    ReferenceListStep(),
+    FormulaNoticeStep(),
+    TableFigureNoticeStep(),
+    FootnoteTextStep(),
+    FootnoteStep(),
+)
 
 
 def check_registry(steps: Sequence[TextStep]) -> None:

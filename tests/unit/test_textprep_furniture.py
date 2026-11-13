@@ -61,7 +61,9 @@ def test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed(
     paper: Path, snapshot: SnapshotAssertion
 ) -> None:
     doc = document(paper)
-    run = run_steps(doc, StepContext(doc.language), strict=True)
+    # the furniture step alone: every other block reads as printed (the other built-in
+    # steps change other blocks, each tested on the corpus in its own test file)
+    run = run_steps(doc, StepContext(doc.language), steps=(FurnitureStep(),), strict=True)
     furniture = {i for i, block in enumerate(doc.blocks) if block.kind is BlockKind.FURNITURE}
     assert {edit.span.block for edit in run.accepted} == {
         i for i in furniture if doc.blocks[i].text
@@ -73,6 +75,9 @@ def test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed(
         read[piece.span.block] = read.get(piece.span.block, "") + piece.text
     for index, block in enumerate(doc.blocks):
         assert read.get(index, "") == ("" if index in furniture else block.text)
-    summary = Counter(f"{o.category}: {o.status}" for o in run.outcomes)
+    # the summary of all built-in steps, so each rule PR shows its effect as a small diff
+    everything = run_steps(doc, StepContext(doc.language), strict=True)
+    assert not everything.problems
+    summary = Counter(f"{o.category}: {o.status}" for o in everything.outcomes)
     assert dict(sorted(summary.items())) == snapshot
     assert summary[f"page-furniture: {Status.ACCEPTED}"] > 0
