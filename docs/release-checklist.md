@@ -14,7 +14,7 @@ Copy this list into the release Issue and tick each item. Steps marked *(not yet
 - [ ] **Screen-reader pass:** one full job (open a file, read the pre-analysis, start, play, use read-along) with VoiceOver on macOS and NVDA on Windows, keyboard only. Note every problem as an Issue. *(not yet possible)*
 - [ ] **OWASP ZAP baseline scan** against the running local server; no high or medium findings. *(not yet possible)*
 - [ ] **Mutation run:** Actions → Mutation testing → Run workflow; look at surviving mutants in `textprep/` and add tests where a survivor would change what users hear.
-- [ ] **Speed:** run the speed script on the MacBook Pro M4; add a dated row to `docs/baseline.md`; compare with the performance budget. *(not yet possible)*
+- [ ] **Speed:** after `uv run sci2audio voices download`, run `uv run python scripts/speed.py` on the MacBook Pro M4 (about 10 minutes: MPS and CPU); paste its rows into `docs/baseline.md`, keep its JSON file with the release notes, and compare with the performance budget there.
 - [ ] **Install from PyPI** on a clean machine or fresh user account and convert one corpus file. *(not yet possible)*
 
 ## Release
