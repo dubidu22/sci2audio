@@ -13,15 +13,32 @@ prominent style is level 1.
 
 A heading stands over text no larger than the body text, or over another heading: the
 title, the authors and their affiliations at the top of a paper are not headings.
+
+The file's own outline (PDF bookmarks, #24) is a second signal, used after the font rules and
+settled by these rules (D-270 to D-272):
+
+1. The font rules go first and are never undone: every heading they find stays, with its
+   level and printed number, whatever the outline says (outlines are often partial).
+2. An outline entry adds a heading the font rules missed when exactly one paragraph block
+   on the entry's page has the entry's title as its whole text: compared after NFKC, case
+   folding and folding white space, with a printed number taken off the front of the block
+   (and of the entry, if it has one). No match, or more than one, and the entry is ignored;
+   so is an entry with no letters.
+3. A single top entry with entries under it names the document, not a heading: it is
+   skipped and the entries under it move up one level. An entry whose text is the file's
+   own title is skipped too.
+4. An added heading's level comes from its printed number when it has one, else from the
+   entry's level after rule 3; when both found a heading, the font rules' level stands.
 """
 
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import Counter
 from dataclasses import dataclass, replace
 
-from sci2audio.core import Block, BlockKind, Content, Section, TextLine
+from sci2audio.core import Block, BlockKind, Content, OutlineEntry, Section, TextLine
 from sci2audio.layout.settings import LayoutSettings
 
 # a printed heading number: "2", "2.1", "A", "A.1", with an optional dot, before the title
@@ -61,7 +78,9 @@ def find_headings(
     texts = [
         _Text(index, block, Style(sizes[style.size], style.bold)) for index, block, style in found
     ]
-    levels = _Headings(texts, body, settings).levels()
+    rules = _Headings(texts, body, settings)
+    levels = rules.levels()
+    levels |= _from_outline(texts, content, levels, rules.lettered)
     out = list(blocks)
     heads = []
     for index, (level, label) in sorted(levels.items()):
@@ -127,7 +146,8 @@ class _Headings:
         # a capital letter is a number only where letters number headings ("A", "A.1",
         # "B"), not in a title that starts with a one-letter word ("A Note on Ethics")
         letters = {label for label in numbers.values() if label[0].isalpha()}
-        if len(letters) < settings.heading_repeats:
+        self.lettered = len(letters) >= settings.heading_repeats
+        if not self.lettered:
             numbers = {k: label for k, label in numbers.items() if not label[0].isalpha()}
         self.numbers = numbers
 
@@ -206,6 +226,62 @@ class _Headings:
         """True if the block's whole text is a usual section name ("Abstract")."""
         name = title(self.texts[k].block.text).casefold()
         return name in {n.casefold() for n in self.settings.section_names}
+
+
+def _from_outline(
+    texts: list[_Text], content: Content, found: dict[int, tuple[int, str]], lettered: bool
+) -> dict[int, tuple[int, str]]:
+    """Headings the outline adds to those the font rules `found`, by block index, with their
+    level and printed number (rules 2 to 4 in the module docstring)."""
+    pages = {item.id: page.number for page in content.pages for item in page.lines}
+    candidates: dict[tuple[int, str], list[tuple[int, str]]] = {}
+    for text in texts:
+        page = next((pages[p.item] for p in text.block.parts if p.item in pages), None)
+        if page is None:
+            continue
+        label, rest = _printed_number(title(text.block.text), lettered)
+        candidates.setdefault((page, _key(rest)), []).append((text.index, label))
+    added: dict[int, tuple[int, str]] = {}
+    for entry in _entries(content):
+        if entry.page is None:
+            continue
+        keys = {_key(entry.title), _key(_printed_number(entry.title.strip(), lettered)[1])}
+        matches = {m for key in keys for m in candidates.get((entry.page, key), [])}
+        if len(matches) != 1:
+            continue
+        ((index, label),) = matches
+        if index not in found and index not in added:
+            added[index] = (_depth(label) if label else entry.level, label)
+    return added
+
+
+def _entries(content: Content) -> list[OutlineEntry]:
+    """The outline entries that may name a heading, with a title root taken off (rule 3)."""
+    entries = list(content.outline)
+    tops = [entry for entry in entries if entry.level == 1]
+    if len(tops) == 1 and len(entries) > 1:
+        entries = [replace(entry, level=entry.level - 1) for entry in entries[1:]]
+    document = _key(content.metadata.title)
+    return [
+        entry
+        for entry in entries
+        if any(ch.isalpha() for ch in entry.title) and _key(entry.title) != document
+    ]
+
+
+def _printed_number(text: str, lettered: bool) -> tuple[str, str]:
+    """The printed number at the front of a heading and the rest; ("", text) if it has none.
+    A capital letter counts only where letters number the headings (`lettered`)."""
+    found = _NUMBER.match(text)
+    if found is None or (found["label"][0].isalpha() and not lettered):
+        return "", text
+    return found["label"], text[found.end() :]
+
+
+def _key(text: str) -> str:
+    """The text as outline titles and printed headings are compared: NFKC, case folded,
+    white space folded."""
+    return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
 
 
 def _depth(label: str) -> int:
