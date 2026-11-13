@@ -47,6 +47,11 @@ class Source:
             raise ValueError(f"source name must be a bare file name, got {self.name!r}")
         if self.encoding_guessed and not self.encoding:
             raise ValueError(f"source {self.name!r} has a guessed encoding but names none")
+        if self.encoding and self.format in (SourceFormat.PDF, SourceFormat.EPUB):
+            raise ValueError(
+                f"source {self.name!r} is {self.format.value}, which brings its own encoding,"
+                f" but names {self.encoding!r}"
+            )
 
 
 @dataclass(frozen=True)

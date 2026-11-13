@@ -118,10 +118,13 @@ def outlines(draw: st.DrawFn, pages: tuple[Page, ...]) -> tuple[OutlineEntry, ..
 
 @st.composite
 def sources(draw: st.DrawFn) -> Source:
-    encoding = draw(st.sampled_from(["", "utf-8", "utf-16le", "windows-1252"]))
+    kind = draw(st.sampled_from(SourceFormat))
+    encoding = ""  # PDF and EPUB bring their own (D-346)
+    if kind in (SourceFormat.MARKDOWN, SourceFormat.TEXT):
+        encoding = draw(st.sampled_from(["", "utf-8", "utf-16le", "windows-1252"]))
     return Source(
         draw(names),
-        draw(st.sampled_from(SourceFormat)),
+        kind,
         draw(st.text("0123456789abcdef", max_size=8)),
         encoding=encoding,
         encoding_guessed=bool(encoding) and draw(st.booleans()),

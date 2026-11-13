@@ -122,6 +122,8 @@ def test_objects_are_frozen() -> None:
         lambda: Source("C:\\paper.pdf", SourceFormat.PDF),
         lambda: Source("", SourceFormat.PDF),
         lambda: Source("notes.txt", SourceFormat.TEXT, encoding_guessed=True),  # guessed what?
+        lambda: Source("paper.pdf", SourceFormat.PDF, encoding="utf-8"),  # brings its own
+        lambda: Source("book.epub", SourceFormat.EPUB, encoding="utf-8"),
         lambda: Box(5, 0, 1, 1),
         lambda: Box(0, 5, 1, 1),
         lambda: Box(float("nan"), 0, 1, 1),
