@@ -45,6 +45,7 @@ from typing import Any
 from sci2audio import __version__
 from sci2audio.app import (
     AudioProgress,
+    JobError,
     JobSettings,
     Phase,
     VoiceSource,
@@ -52,11 +53,13 @@ from sci2audio.app import (
     kokoro_voice,
     run_audio_job,
 )
+from sci2audio.app.job import check_readable
 from sci2audio.testing import no_network
 from sci2audio.voices import (
     DEFAULT_VOICE,
     ENGLISH_VOICES,
     EngineConfig,
+    EngineError,
     create_kokoro_engine,
     missing_files,
     speak_to_wav,
@@ -403,13 +406,15 @@ def budget(jobs: Sequence[dict[str, Any]], app_device: str) -> list[dict[str, An
             }
         )
         rtf = job["realtime_factor_speaking"]
+        own = device == app_device  # D-286 holds the app's own device to it, no other
         lines.append(
             {
                 "device": device,
                 "target": "speech faster than real time on the MacBook Pro M4, app's device",
-                "measured": f"real-time factor {rtf}",
-                "met": None if rtf is None else rtf >= 1,
-                "reference": device == app_device,
+                "measured": f"real-time factor {rtf}"
+                + ("" if own else f" (the app uses {app_device} here)"),
+                "met": None if rtf is None or not own else rtf >= 1,
+                "reference": own,
             }
         )
         worst = job["estimate"].get("largest_abs_error_with_a_minute_left")
@@ -515,7 +520,9 @@ def parse(argv: Sequence[str] | None) -> argparse.Namespace:
         help=f"a corpus paper name or a file (default: {DEFAULT_PAPER})",
     )
     parser.add_argument(
-        "--quick", action="store_true", help=f"the short paper {QUICK_PAPER} and one voice"
+        "--quick",
+        action="store_true",
+        help=f"the short paper {QUICK_PAPER} instead of {DEFAULT_PAPER}",
     )
     parser.add_argument("--skip-job", action="store_true", help="only the voice part")
     parser.add_argument(
@@ -527,14 +534,34 @@ def parse(argv: Sequence[str] | None) -> argparse.Namespace:
 
 
 def resolve_paper(name: str) -> Path:
+    """A corpus paper by name, or a file of a type the job reads (the job's own check, so
+    every format it learns is accepted here too); SpeedError or JobError otherwise."""
     corpus = PAPERS / f"{name}.pdf"
     if corpus.is_file():
         return corpus
     given = Path(name)
     if given.is_file():
+        check_readable(given)
         return given
     names = ", ".join(sorted(p.stem for p in PAPERS.glob("*.pdf")))
     raise SpeedError(f"there is no paper {name!r}; give a file or one of: {names}")
+
+
+def json_target(asked: Path | None) -> Path:
+    """Where the results go, checked before any work: its folder is made if missing and
+    must be writable, and the path must not be a folder."""
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
+    target = asked or Path(f"speed-{stamp}.json")
+    if target.is_dir():
+        raise SpeedError(f"{target} is a folder; give a file name for --json")
+    folder = target.parent
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise SpeedError(f"cannot make the folder {folder}: {error.strerror or error}") from error
+    if not os.access(folder, os.W_OK):
+        raise SpeedError(f"cannot write into {folder}; give another --json path")
+    return target
 
 
 def resolve_devices(asked: Sequence[str] | None, available: Sequence[str]) -> list[str]:
@@ -581,7 +608,7 @@ def measure(
 ) -> dict[str, Any]:
     """Both parts on every device; the result as written to the JSON file."""
     models = args.models_folder or default_models_folder()
-    voices = [DEFAULT_VOICE] if args.quick and not args.all_voices else resolve_voices(args)
+    voices = resolve_voices(args)
     paper = resolve_paper(args.paper or (QUICK_PAPER if args.quick else DEFAULT_PAPER))
     app_device = devices[0]
     result: dict[str, Any] = {
@@ -676,16 +703,22 @@ def main(
             # torch and kokoro warn about their own internals on every load; not ours to fix
             warnings.filterwarnings("ignore", category=UserWarning, module=r"torch\.")
             warnings.filterwarnings("ignore", category=FutureWarning, module=r"torch\.")
+        target = json_target(args.json)
         chosen = resolve_devices(args.device, devices())
         result = measure(args, voice_for=voice_for, devices=chosen, clock=clock, say=say)
-    except SpeedError as error:
+    except (SpeedError, JobError) as error:
         say(f"speed: {error}")
         return 1
-    stamp = result["date"].replace(":", "").replace("-", "")[:15]
-    target = args.json or Path(f"speed-{stamp}.json")
-    target.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    for line in summary(result):
+    except EngineError as error:  # the voice itself failed in the voice part
+        say(f"speed: the voice failed: {error}")
+        return 1
+    for line in summary(result):  # on screen first: a failing write never loses the rows
         say(line)
+    try:
+        target.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    except OSError as error:
+        say(f"\nspeed: could not write {target}: {error.strerror or error}")
+        return 1
     say(f"\nAll numbers: {target}")
     return 0
 

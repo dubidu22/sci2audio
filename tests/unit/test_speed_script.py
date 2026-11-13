@@ -143,10 +143,22 @@ def test_a_missed_budget_says_not_met_and_an_unjudged_one_says_so() -> None:
         encoding_times_realtime=20.0,
         estimate={"largest_abs_error_with_a_minute_left": None},
     )
-    lines = speed.budget([slow], app_device="mps")
+    lines = speed.budget([slow], app_device="cpu")
     assert [line["met"] for line in lines] == [False, False, None, False]
-    assert lines[1]["reference"] is False
     assert "less than a minute" in lines[2]["measured"]
+
+
+def test_speech_speed_is_judged_on_the_apps_own_device_only() -> None:
+    # D-286: "faster than real time" is about the device the app picks by itself
+    slow_cpu = job_numbers(realtime_factor_speaking=0.8)
+    fast_mps = job_numbers(device="mps", realtime_factor_speaking=6.0)
+    lines = speed.budget([fast_mps, slow_cpu], app_device="mps")
+    speech = [line for line in lines if line["target"].startswith("speech")]
+    assert [(line["device"], line["met"], line["reference"]) for line in speech] == [
+        ("mps", True, True),
+        ("cpu", None, False),
+    ]
+    assert speech[1]["measured"] == "real-time factor 0.8 (the app uses mps here)"
 
 
 # ---- the arguments -----------------------------------------------------------------------
@@ -165,6 +177,10 @@ def test_an_unknown_paper_or_voice_names_the_choices() -> None:
     assert speed.resolve_paper("acl2023-hardt-ellipsis").name == "acl2023-hardt-ellipsis.pdf"
     with pytest.raises(speed.SpeedError, match="af_heart"):
         speed.resolve_voices(speed.parse(["--voice", "xx_nobody"]))
+    with pytest.raises(speed.SpeedError, match="af_heart"):
+        speed.resolve_voices(speed.parse(["--quick", "--voice", "xx_nobody"]))
+    assert speed.resolve_voices(speed.parse(["--quick", "--voice", "bm_george"])) == ["bm_george"]
+    assert speed.resolve_voices(speed.parse(["--quick"])) == ["af_heart"]
     assert len(speed.resolve_voices(speed.parse(["--all-voices"]))) == 28
 
 
@@ -251,3 +267,83 @@ def test_a_quick_run_writes_every_number_offline(tmp_path: Path) -> None:
     assert result["markdown"]["job"][1].count(" | ") == 12  # 13 columns
     assert said[-1] == f"\nAll numbers: {out}"
     assert any(line.startswith("Performance budget") for line in said)
+
+
+# ---- review round 1: nothing is lost after a long run, errors are messages -----------------
+
+
+def never_called(models: Path, device: str):  # type: ignore[no-untyped-def]
+    raise AssertionError("no work may start")
+
+
+def test_the_json_folder_is_made_before_any_work(tmp_path: Path) -> None:
+    out = tmp_path / "results" / "m4" / "speed.json"
+    code = speed.main(
+        ["--quick", "--skip-job", "--json", str(out)],
+        voice_for=lambda models, device: FakeVoice().source(),
+        devices=lambda: ["cpu"],
+        clock=clock_of(ticking()),
+        say=lambda line: None,
+    )
+    assert code == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["format"] == "sci2audio-speed"
+
+
+@pytest.mark.parametrize("where", ["a folder", "under a file"])
+def test_a_json_path_that_cannot_be_written_stops_before_any_work(
+    tmp_path: Path, where: str
+) -> None:
+    (tmp_path / "file.txt").write_text("x", encoding="utf-8")
+    out = tmp_path if where == "a folder" else tmp_path / "file.txt" / "speed.json"
+    said: list[str] = []
+    code = speed.main(
+        ["--quick", "--json", str(out)],
+        voice_for=never_called,
+        devices=lambda: ["cpu"],
+        say=said.append,
+    )
+    assert code == 1
+    assert said[0].startswith("speed: ")
+    assert ("is a folder" in said[0]) == (where == "a folder")
+
+
+def test_a_paper_the_job_cannot_read_is_refused_before_any_work(tmp_path: Path) -> None:
+    notes = tmp_path / "notes.md"
+    notes.write_text("# Notes", encoding="utf-8")
+    said: list[str] = []
+    code = speed.main(
+        ["--paper", str(notes), "--json", str(tmp_path / "r.json")],
+        voice_for=never_called,
+        devices=lambda: ["cpu"],
+        say=said.append,
+    )
+    assert code == 1
+    assert said == ["speed: notes.md: sci2audio can read .pdf files only"]
+    assert not (tmp_path / "r.json").exists()
+
+
+def test_a_job_that_fails_ends_with_a_message_not_a_traceback(tmp_path: Path) -> None:
+    sources = iter([FakeVoice().source(), FakeVoice(fail_on=lambda text: True).source()])
+    said: list[str] = []
+    code = speed.main(
+        ["--quick", "--json", str(tmp_path / "r.json")],
+        voice_for=lambda models, device: next(sources),
+        devices=lambda: ["cpu"],
+        clock=clock_of(ticking()),
+        say=said.append,
+    )
+    assert code == 1
+    assert said[-1].startswith("speed: the voice failed on 5 sentences in a row")
+
+
+def test_a_voice_that_fails_in_the_voice_part_ends_with_a_message(tmp_path: Path) -> None:
+    said: list[str] = []
+    code = speed.main(
+        ["--quick", "--json", str(tmp_path / "r.json")],
+        voice_for=lambda models, device: FakeVoice(fail_on=lambda text: True).source(),
+        devices=lambda: ["cpu"],
+        clock=clock_of(ticking()),
+        say=said.append,
+    )
+    assert code == 1
+    assert said[-1].startswith("speed: the voice failed: cannot say")
