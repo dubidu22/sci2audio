@@ -26,9 +26,8 @@ from web_helpers import (
 )
 
 from sci2audio.textprep import Category
-from sci2audio.voices import ENGLISH_VOICES
-from sci2audio.web import pages, player
-from sci2audio.web.jobs import JobKind, JobState
+from sci2audio.web import pages
+from sci2audio.web.i18n import strings
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -75,7 +74,7 @@ def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any
     page = client.get("/").text
     assert "a &amp;amp; b &#39;x&#39;.pdf" in page
     assert f'href="/documents/{doc["id"]}"' in page
-    assert f"({pages.size_text(doc['size'])}, not analysed yet)" in page
+    assert f"({strings('en').size(doc['size'])}, not analysed yet)" in page
 
 
 def test_the_paste_box_appears_once_text_files_are_read(
@@ -156,7 +155,7 @@ def test_every_proposed_change_is_listed_with_its_fate(
     client = client_of(server)
     doc = analysed(client)
     page = client.get(f"/documents/{doc['id']}").text
-    assert "Citations: author-year and numbered citations: 1 changes" in page
+    assert "Citations: author-year and numbered citations: 1 change" in page
     assert "Reference list: left out: 2 changes" in page
     assert "(Smith, 2020)" in page
     assert "<td>applied</td>" in page
@@ -241,7 +240,7 @@ def test_a_running_job_is_named_on_every_page(server: tuple[FastAPI, Any]) -> No
         job.join(10)
 
 
-# --- the string table (D-256) -------------------------------------------------------------
+# --- the string table (D-256): see test_web_languages.py ----------------------------------
 
 
 def resource_texts() -> dict[str, str]:
@@ -250,67 +249,6 @@ def resource_texts() -> dict[str, str]:
         for item in (WEB / folder).iterdir():
             texts[f"{folder}/{item.name}"] = item.read_text(encoding="utf-8")
     return texts
-
-
-def used_keys() -> set[str]:
-    texts = resource_texts()
-    found: set[str] = set()
-    templates = "".join(text for name, text in texts.items() if name.startswith("templates"))
-    found |= set(re.findall(r"""\bt\(\s*'([a-z_.-]+[a-z])'""", templates))
-    found |= {f"make.{key}" for key in re.findall(r"'(needs_[a-z]+)'", templates)}
-    found |= {f"job.state_{s}" for s in JobState}
-    found |= {f"job.title_{kind}" for kind in JobKind}
-    for script in (texts["static/app.js"], texts["static/player.js"]):
-        found |= set(re.findall(r"""tr\(\s*["`']([a-z_.]+)["`']""", script))
-    # the player's reasons, named where they are raised (#78)
-    found |= set(
-        re.findall(
-            r"""PlayerError\(\s*["']([a-z_.]+)["']""",
-            Path(player.__file__).read_text(encoding="utf-8"),
-        )
-    )
-    found |= {f"make.needs_{key}" for key in ("analysis", "voice", "update", "chapters")}
-    found |= {f"category.{category}" for category in Category}
-    found |= {f"accent.{voice.language}" for voice in ENGLISH_VOICES}
-    source = Path(pages.__file__).read_text(encoding="utf-8")
-    found |= set(re.findall(r"""\bt\(\s*["']([a-z_.-]+[a-z])["']""", source))
-    found |= {key for key in pages.STRINGS if key.startswith("phase.")}
-    found |= {"voice.accent_female", "voice.accent_male", "common.language", "common.app"}
-    return found
-
-
-def test_every_string_used_is_in_the_table_and_every_string_is_used() -> None:
-    used = used_keys()
-    table = set(pages.STRINGS)
-    assert used - table == set(), "missing from strings/en.toml"
-    assert table - used == set(), "in strings/en.toml but not used"
-
-
-def test_the_script_gets_its_strings_as_data(server: tuple[FastAPI, Any]) -> None:
-    page = client_of(server).get("/").text
-    block = re.search(r'<script id="strings" type="application/json">(.*?)</script>', page, re.S)
-    assert block is not None
-    strings = json.loads(block[1])
-    assert strings["js.lost"].startswith("sci2audio can't be reached")
-    assert strings["phase.speaking"] == "speaking"
-    assert strings["make.needs_update"].startswith("Update the analysis first")
-    assert "home.title" not in strings  # only what the script uses
-
-
-def test_a_string_cannot_end_the_data_block(monkeypatch: pytest.MonkeyPatch) -> None:
-    odd = "</script><script>alert(1)</script> <!--<script> & -->"
-    monkeypatch.setitem(pages.STRINGS, "js.lost", odd)
-    block = pages.script_strings()
-    assert not set("<>&") & set(block)  # nothing in it can change how the page parses
-    assert json.loads(block)["js.lost"] == odd
-    assert json.loads(pages.data_block({"t": odd})) == {"t": odd}
-
-
-def test_sizes_read_naturally() -> None:
-    assert pages.size_text(512) == "512 bytes"
-    assert pages.size_text(48_000) == "48 KB"
-    assert pages.size_text(355_000_000) == "355 MB"
-    assert pages.size_text(1_250_000) == "1.2 MB"
 
 
 # --- nothing from outside ----------------------------------------------------------------

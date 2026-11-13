@@ -41,7 +41,7 @@
   </p>
   <p class="player-line">
     <audio id="audio" controls preload="metadata" aria-label="{{ t('listen.audio') }}"></audio>
-    <span id="now" class="hint">{{ t('player.chapter', n=1, total=view.chapters|length, title=view.chapters[0].title) }}</span>
+    <span id="now" class="hint">{{ t('player.chapter', n=1, total=view.chapters|length) }} <span lang="{{ view.language }}">{{ view.chapters[0].title }}</span></span>
     <label><input type="checkbox" id="follow" checked> {{ t('listen.follow') }}</label>
   </p>
 </section>
@@ -50,10 +50,10 @@
   <h2 id="chapters-heading">{{ t('listen.chapters') }}</h2>
   <ol class="chapter-list">
   {% for chapter in view.chapters %}
-    <li><button type="button" class="chapter-button" data-chapter="{{ loop.index0 }}">{{ chapter.title }}</button></li>
+    <li><button type="button" class="chapter-button" data-chapter="{{ loop.index0 }}" lang="{{ view.language }}">{{ chapter.title }}</button></li>
   {% endfor %}
   </ol>
-  {% if view.left_out %}<p class="hint">{{ t('listen.left_out', titles=view.left_out|join(', ')) }}</p>{% endif %}
+  {% if view.left_out %}<p class="hint">{{ t('listen.left_out') }} <span lang="{{ view.language }}">{{ view.left_out|join(', ') }}</span></p>{% endif %}
 </nav>
 <div id="text" class="read-along" role="region" aria-label="{{ t('listen.text') }}" lang="{{ view.language }}">
 {% for chapter in view.chapters %}

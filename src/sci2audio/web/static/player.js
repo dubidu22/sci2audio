@@ -79,7 +79,11 @@ function readAlong() {
   // ---- what is shown -------------------------------------------------------------------
 
   function showChapter(c) {
-    now.textContent = tr("player.chapter", { n: c + 1, total: chapters.length, title: chapters[c].title });
+    // the title is the document's own words, in the text's language (D-291)
+    const title = document.createElement("span");
+    title.lang = text.lang;
+    title.textContent = chapters[c].title;
+    now.replaceChildren(tr("player.chapter", { n: c + 1, total: chapters.length }), " ", title);
   }
 
   function visible(element) {
@@ -167,7 +171,7 @@ function readAlong() {
   function toChapter(c, start) {
     const target = Math.min(Math.max(c, 0), chapters.length - 1);
     playFrom(chapters[target].first, start);
-    say(tr("player.chapter", { n: target + 1, total: chapters.length, title: chapters[target].title }));
+    say(`${tr("player.chapter", { n: target + 1, total: chapters.length })} ${chapters[target].title}`);
   }
 
   // ---- controls --------------------------------------------------------------------------

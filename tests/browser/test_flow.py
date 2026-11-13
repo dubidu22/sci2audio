@@ -56,7 +56,7 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     expect(page.locator("#make")).to_have_attribute("aria-disabled", "true")
     expect(page.locator("#make-note")).to_have_text("Set up the voice first.")
     check_axe(page, "document with its report, voice missing")
-    page.get_by_text(re.compile(r"^Citations: author-year .*: 1 changes$")).click()
+    page.get_by_text(re.compile(r"^Citations: author-year .*: 1 change$")).click()
     expect(page.get_by_role("cell", name="(Smith, 2020)", exact=True)).to_be_visible()
     check_axe(page, "document with a list of changes open")
 
@@ -152,7 +152,11 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     # again: the files exist; replacing them is its own button (D-254)
     page.get_by_role("link", name="Back to the document").click()
     page.get_by_role("button", name="Make the audiobook").click()
-    expect(page.locator("#result")).to_contain_text("these files exist already")
+    expect(page.locator("#result")).to_have_text(
+        "The job failed: The audiobook files exist already."
+    )
+    # the app's own words follow as details, in English (D-291)
+    expect(page.locator("#job p span[lang=en]")).to_contain_text("these files exist already")
     check_axe(page, "audiobook files exist")
     page.get_by_role("button", name="Replace these files").click()
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
@@ -237,7 +241,14 @@ def test_a_file_sci2audio_cant_read_is_refused(signed_in: Page, live: Live) -> N
         files=[{"name": "notes.docx", "mimeType": "application/octet-stream", "buffer": b"x"}],
     )
     page.get_by_role("button", name="Open and analyse").click()
-    expect(page.locator("#message")).to_have_text("notes.docx: sci2audio can read .pdf files only")
+    # the kind's sentence, then the app's own words as details in English (D-291)
+    expect(page.locator("#message")).to_have_text(
+        "sci2audio can't read this kind of file. "
+        "Details from sci2audio: notes.docx: sci2audio can read .pdf files only"
+    )
+    expect(page.locator("#message span[lang=en]")).to_have_text(
+        "notes.docx: sci2audio can read .pdf files only"
+    )
     expect(page.locator("#message")).to_be_focused()
     check_axe(page, "start page with an error")
 

@@ -1,5 +1,6 @@
 // The sci2audio interface's one script (#77, D-101): talks to the JSON API of this server
-// only. Its strings come from the page's data block (D-256).
+// only. Its strings come from the page's data block, in the page's language (D-256,
+// D-288 to D-291).
 "use strict";
 
 const ANNOUNCE_EVERY = 30000; // ms between progress announcements, phase changes aside (D-253)
@@ -7,15 +8,48 @@ const LOST_AFTER = 5000; // ms an event stream may stay away before the page say
 
 let STRINGS = {};
 
+// A text with plural forms picks `one` for exactly 1, else `other`, by the value `n`: the
+// rule of English and German (D-290).
 function tr(key, values) {
-  const text = STRINGS[key] ?? key;
+  let text = STRINGS[key];
+  if (text === undefined && values && "n" in values) {
+    text = STRINGS[`${key}.${Number(values.n) === 1 ? "one" : "other"}`];
+  }
+  text = text ?? key;
   return text.replace(/\{(\w+)\}/g, (all, name) => (values && name in values ? values[name] : all));
 }
 
-function say(text, focus) {
+// A decimal number with the page language's decimal sign, no trailing zeros, no grouping.
+function decimal(value) {
+  const text = Number(value).toFixed(2).replace(/\.?0+$/, "");
+  return text.replace(".", STRINGS["common.decimal"] ?? ".");
+}
+
+// An error in the page's language: the table's sentence for its kind, then the app's own
+// words as details in English (D-291); an unknown kind shows those words alone.
+function failureOf(kind, words) {
+  const reason = kind ? STRINGS[`error.${kind}`] : undefined;
+  return reason === undefined ? { text: words || "" } : { text: reason, details: words };
+}
+
+function explain(error) {
+  return error.failure || error.message;
+}
+
+function say(said, focus) {
   const message = document.getElementById("message");
   if (!message) return;
-  message.textContent = text;
+  if (typeof said === "string") {
+    message.textContent = said;
+  } else {
+    message.textContent = said.text;
+    if (said.details) {
+      const details = document.createElement("span");
+      details.lang = "en";
+      details.textContent = said.details;
+      message.append(` ${tr("common.details")} `, details);
+    }
+  }
   if (focus) message.focus();
 }
 
@@ -30,6 +64,7 @@ async function send(url, options) {
   if (!response.ok) {
     const failure = new Error(data.message || response.statusText);
     failure.kind = data.error;
+    failure.failure = failureOf(data.error, data.message || response.statusText);
     throw failure;
   }
   return data;
@@ -92,7 +127,7 @@ async function openAndAnalyse(store) {
     }
     location.assign(`/documents/${doc.id}`);
   } catch (error) {
-    say(error.message, true);
+    say(explain(error), true);
   }
 }
 
@@ -175,7 +210,7 @@ function documentPage() {
       const job = await send("/api/v1/jobs", json("POST", { kind: "script", document: id, settings }));
       follow(`/api/v1/jobs/${job.id}/events`, () => {}, () => reloadAt("step-check"));
     } catch (error) {
-      say(error.message, true);
+      say(explain(error), true);
     }
   }
   const choices = document.getElementById("choices");
@@ -192,7 +227,7 @@ function documentPage() {
   const speed = document.getElementById("speed");
   const speedValue = document.getElementById("speed-value");
   function showSpeed() {
-    const text = tr("voice.speed_value", { value: Number(speed.value).toFixed(2).replace(/0$/, "") });
+    const text = tr("voice.speed_value", { value: decimal(speed.value) });
     speedValue.textContent = text;
     speed.setAttribute("aria-valuetext", text);
   }
@@ -215,7 +250,7 @@ function documentPage() {
         const job = await send("/api/v1/voices/preview", json("POST", body));
         follow(`/api/v1/jobs/${job.id}/events`, () => {}, (ended) => {
           if (ended.state !== "done" || !ended.files.length) {
-            say(ended.error ? ended.error.message : tr(`job.state_${ended.state}`), true);
+            say(ended.error ? failureOf(ended.error.error, ended.error.message) : tr(`job.state_${ended.state}`), true);
             return;
           }
           audio.src = `/api/v1/jobs/${ended.id}/files/${encodeURIComponent(ended.files[0].name)}`;
@@ -224,7 +259,7 @@ function documentPage() {
           audio.focus();
         });
       } catch (error) {
-        say(error.message, true);
+        say(explain(error), true);
       }
     });
   }
@@ -258,7 +293,7 @@ function documentPage() {
       await send("/api/v1/settings", json("PUT", settings)).catch(() => {});  // the job runs either way
       location.assign(`/jobs/${job.id}`);
     } catch (error) {
-      say(error.message, true);
+      say(explain(error), true);
     }
   });
   refresh();
@@ -269,12 +304,12 @@ function documentPage() {
 function describe(progress) {
   const parts = [];
   if (progress.phase) parts.push(STRINGS[`phase.${progress.phase}`] ?? progress.phase);
-  if (progress.chunks_total) parts.push(tr("js.sentences", { done: progress.chunks_done, total: progress.chunks_total }));
+  if (progress.chunks_total) parts.push(tr("js.sentences", { done: progress.chunks_done, n: progress.chunks_total }));
   if (progress.phase === "speaking") {
     if (progress.seconds_left == null) parts.push(tr("js.measuring"));
     else {
       const minutes = Math.max(1, Math.ceil(progress.seconds_left / 60));
-      parts.push(minutes === 1 ? tr("js.minute_left") : tr("js.minutes_left", { n: minutes }));
+      parts.push(tr("js.minutes_left", { n: minutes }));
     }
   }
   if (progress.bytes_total) parts.push(tr("js.percent", { n: Math.floor((100 * progress.bytes_done) / progress.bytes_total) }));
@@ -315,7 +350,7 @@ function jobPage() {
       try {
         await send(box.dataset.cancel, { method: "POST" });
       } catch (error) {
-        say(error.message, true);
+        say(explain(error), true);
       }
     });
   }
@@ -324,7 +359,7 @@ function jobPage() {
       const job = await send("/api/v1/jobs", json("POST", { kind, document: doc, settings, overwrite }));
       location.assign(`/jobs/${job.id}`);
     } catch (error) {
-      say(error.message, true);
+      say(explain(error), true);
     }
   }
   const replace = document.getElementById("job-replace");
@@ -342,7 +377,7 @@ function jobPage() {
         free.remove();
         say(tr("js.freed"), true);
       } catch (error) {
-        say(error.message, true);
+        say(explain(error), true);
       }
     });
   }
@@ -389,7 +424,7 @@ function voicePage() {
       const job = await send("/api/v1/voices/download", json("POST", { consent: true, plan: form.dataset.plan }));
       location.assign(`/jobs/${job.id}`);
     } catch (error) {
-      say(error.message, true);
+      say(explain(error), true);
     }
   });
 }

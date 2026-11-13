@@ -319,7 +319,7 @@ def test_the_listen_page_after_an_audio_job(tmp_path: Path) -> None:
     text = page.text
     assert "Listen: paper.pdf" in text
     assert "read by a synthetic voice (Heart)" in text
-    assert "Not in this audiobook: References." in text
+    assert 'Not in this audiobook: <span lang="en">References</span>' in text
     assert '<script src="/static/player.js" defer></script>' in text
     data = player_data(text)
     assert data["mode"] == "mp3"
