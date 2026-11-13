@@ -125,6 +125,12 @@ def test_corpus_has_papers_and_an_epub() -> None:
     assert epubs, "the corpus needs at least one public-domain EPUB"
 
 
+def test_corpus_has_an_own_markdown_and_text_sample() -> None:
+    """Written for sci2audio (#74, D-348), so no third-party text is needed for them."""
+    assert [path.name for path in sample_files() if path.suffix == ".md"]
+    assert [path.name for path in sample_files() if path.suffix == ".txt"]
+
+
 @pytest.mark.parametrize("path", [p for p in sample_files() if p.suffix == ".pdf"], ids=relative)
 def test_pdf_is_a_real_pdf(path: Path) -> None:
     # A failed download often saves an HTML error page under the .pdf name.

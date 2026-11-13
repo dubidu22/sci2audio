@@ -1,0 +1,3 @@
+# The sample corpus is stored byte for byte on every system: no line-end conversion, so
+# the text samples keep their hashes and golden files on Windows too (#74).
+tests/corpus/** -text

@@ -18,9 +18,10 @@ from functools import cache
 from pathlib import Path
 
 import pytest
+from content_description import describe
 from syrupy.assertion import SnapshotAssertion
 
-from sci2audio.core import Content, Metadata, OutlineEntry, Picture, TextLine
+from sci2audio.core import Content, Metadata, OutlineEntry, Picture
 from sci2audio.extraction import extract_epub, extract_epub_cover
 
 pytestmark = pytest.mark.timeout(60)
@@ -104,36 +105,3 @@ def test_the_cover_is_the_declared_jpeg() -> None:
 
 def test_golden_file(snapshot: SnapshotAssertion) -> None:
     assert describe(content()) == snapshot
-
-
-def describe(content: Content) -> str:
-    """Source, metadata and outline, then each page's items in stored order."""
-    meta = content.metadata
-    out = [f"{content.source.name}  sha256 {content.source.sha256[:16]}"]
-    out.append(
-        f"metadata: title={meta.title!r} authors={list(meta.authors)} date={meta.date!r}"
-        f" identifier={meta.identifier!r} language={meta.language!r}"
-    )
-    out.append("outline:")
-    out.extend(
-        f"  {entry.level} p{entry.page} {entry.item or '-'} {entry.title!r}"
-        for entry in content.outline
-    )
-    for page in content.pages:
-        out.append(f"== page {page.number}  lines {len(page.lines)}  pictures {len(page.pictures)}")
-        items = {item.id: item for item in (*page.lines, *page.pictures)}
-        for item_id in page.order:
-            item = items[item_id]
-            if isinstance(item, TextLine):
-                out.append(f"{item.id}  {_runs(item)}")
-            else:
-                out.append(f"{item.id}  picture ref={item.ref!r} alt={item.alt!r}")
-    return "\n".join(out) + "\n"
-
-
-def _runs(line: TextLine) -> str:
-    parts = []
-    for run in line.runs:
-        style = " ".join(run.tags) + ("; b" if run.bold else "") + ("; i" if run.italic else "")
-        parts.append(f"{{{style}}}{run.text}")
-    return "".join(parts)
