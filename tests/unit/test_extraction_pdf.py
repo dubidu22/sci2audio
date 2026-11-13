@@ -10,11 +10,11 @@ from pathlib import Path
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from pdf_maker import HEIGHT, Rect, Text, in_form, make_pdf
+from pdf_maker import HEIGHT, Mark, Rect, Text, in_form, make_pdf, outlined_pdf
 
-from sci2audio.core import Content, Metadata, SourceFormat
+from sci2audio.core import Content, Metadata, OutlineEntry, SourceFormat
 from sci2audio.extraction import ExtractionError, extract_pdf, read_pdf
-from sci2audio.extraction.pdf import _char_text, _style
+from sci2audio.extraction.pdf import OUTLINE_DEPTH, _char_text, _style
 
 pytestmark = pytest.mark.timeout(60)
 
@@ -122,6 +122,81 @@ def test_threads_reading_at_once_do_not_crash() -> None:
     for thread in threads:
         thread.join()
     assert results == [expected] * 30
+
+
+# The outline: bookmarks as stored, in the file's order, levels from 1 (#24, D-263 to D-268).
+
+
+def test_bookmarks_keep_their_order_nesting_and_pages() -> None:
+    data = outlined_pdf(
+        3,
+        (
+            Mark("1 Introduction", 1, (Mark("1.1 Setup", 1), Mark("1.2 Data ", 2))),
+            Mark("2 Results", 3, (Mark("2.1 Speed", 3, (Mark("Notes", 3),)),)),
+            Mark("Appendix", 3),
+        ),
+    )
+    assert read_pdf(data, "m.pdf").outline == (
+        OutlineEntry("1 Introduction", 1, 1),
+        OutlineEntry("1.1 Setup", 2, 1),
+        OutlineEntry("1.2 Data ", 2, 2),  # the trailing space stays (D-266)
+        OutlineEntry("2 Results", 1, 3),
+        OutlineEntry("2.1 Speed", 2, 3),
+        OutlineEntry("Notes", 3, 3),
+        OutlineEntry("Appendix", 1, 3),
+    )
+
+
+def test_a_bookmark_target_may_be_a_goto_action_or_missing() -> None:
+    data = outlined_pdf(
+        2,
+        (Mark("By action", 2, goto=True), Mark("No target"), Mark("Past the end", 7), Mark("", 1)),
+    )
+    assert read_pdf(data, "m.pdf").outline == (
+        OutlineEntry("By action", 1, 2),
+        OutlineEntry("No target", 1),
+        OutlineEntry("Past the end", 1),  # points at a page the file does not have
+        OutlineEntry("", 1, 1),  # an empty title is kept (D-266)
+    )
+
+
+def test_bookmark_titles_are_decoded_as_stored() -> None:
+    data = outlined_pdf(
+        1,
+        (
+            Mark("Über die Größe ∑ ✓"),  # UTF-16 with a byte-order mark
+            Mark(b"Caf\xe9 \x8eQuoted\x8d"),  # PDFDocEncoding: é, ” and “
+            Mark(b"\xfe\xff\xd8\x00\x00A"),  # UTF-16 with a lone surrogate
+        ),
+    )
+    titles = [entry.title for entry in read_pdf(data, "m.pdf").outline]
+    assert titles == ["Über die Größe ∑ ✓", "Café ”Quoted“", "\ufffdA"]
+
+
+def test_a_file_without_bookmarks_has_an_empty_outline() -> None:
+    assert read_pdf(outlined_pdf(1, ()), "m.pdf").outline == ()
+    assert read_pdf(make_pdf([Text("no outline", 50, 100)]), "m.pdf").outline == ()
+
+
+def test_a_bookmark_loop_ends_and_the_pages_are_still_read() -> None:
+    """A damaged outline gives what could be read and never fails the file (D-268)."""
+    data = outlined_pdf(2, (Mark("a", 1, (Mark("b", 2),)), Mark("c", 2)), circular=True)
+    content = read_pdf(data, "m.pdf")
+    assert content.outline == (
+        OutlineEntry("a", 1, 1),
+        OutlineEntry("b", 2, 2),
+        OutlineEntry("c", 1, 2),
+    )
+    assert [line.text for page in content.pages for line in page.lines] == ["Page 1", "Page 2"]
+
+
+def test_bookmarks_deeper_than_the_limit_are_left_out() -> None:
+    """D-267: a real document stops long before; this bounds a hostile file."""
+    mark = Mark("deepest", 1)
+    for depth in range(OUTLINE_DEPTH, 0, -1):
+        mark = Mark(f"level {depth}", 1, (mark,))
+    levels = [entry.level for entry in read_pdf(outlined_pdf(1, (mark,)), "m.pdf").outline]
+    assert levels == list(range(1, OUTLINE_DEPTH + 1))
 
 
 # Broken files: a clear message naming the file, never a traceback or a hang (#5).
@@ -247,3 +322,18 @@ def test_a_damaged_pdf_gives_content_or_a_clear_error(
             data[position] = value
     result = outcome(bytes(data), "damaged.pdf")
     assert (isinstance(result, Content) and result.pages) or result.startswith("damaged.pdf: ")
+
+
+OUTLINED = outlined_pdf(2, (Mark("1 Intro", 1, (Mark("1.1 Part", 2, goto=True),)), Mark("End")))
+
+
+@settings(deadline=None)
+@given(st.lists(st.tuples(st.integers(0, len(OUTLINED) - 1), st.integers(0, 255)), max_size=20))
+def test_a_damaged_outline_gives_content_or_a_clear_error(changes: list[tuple[int, int]]) -> None:
+    """Bytes changed anywhere, bookmarks included: an outline is read as far as it can be,
+    and every entry still fits the content (D-268)."""
+    data = bytearray(OUTLINED)
+    for position, value in changes:
+        data[position] = value
+    result = outcome(bytes(data), "damaged.pdf")
+    assert isinstance(result, Content) or result.startswith("damaged.pdf: ")
