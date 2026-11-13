@@ -11,6 +11,7 @@ from hypothesis import example, given
 from hypothesis import strategies as st
 
 from sci2audio.core import (
+    Block,
     BlockKind,
     Box,
     Content,
@@ -18,6 +19,7 @@ from sci2audio.core import (
     Drawing,
     Metadata,
     Page,
+    Part,
     Picture,
     Source,
     SourceFormat,
@@ -25,7 +27,7 @@ from sci2audio.core import (
     TextRun,
 )
 from sci2audio.layout import LayoutSettings, build_document
-from sci2audio.layout.build import columns_per_page
+from sci2audio.layout.build import _in_page_order, columns_per_page
 from sci2audio.layout.split import kept
 
 LEFT, RIGHT, GUTTER = 70.0, 526.0, 16.0
@@ -455,6 +457,31 @@ def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
     assert doc.page_labels == ("41", "42", "43")
 
 
+def test_in_page_order_moves_a_block_back_past_every_later_page_block() -> None:
+    """Review of #200 (S1), made-up blocks: no page built today cuts the piece from the
+    next page into more than one block before the waiting blocks, so the pass is tested
+    on its own. A block moves back past every block from a later page, two from one page
+    keep their order, a block without items stays where it is read, and blocks already in
+    page order stay as they are (D-434)."""
+    pages = [
+        Page(n, tuple(line(f"{n}{k}", LEFT, 100 + 14 * k, RIGHT) for k in range(4))) for n in (1, 2)
+    ]
+    found = Content(Source("0", SourceFormat.PDF), tuple(pages), Metadata())
+    one, two = pages[0].lines, pages[1].lines
+
+    def block(item: TextLine | None) -> Block:
+        return Block(
+            BlockKind.PARAGRAPH, item.text if item else "", (Part(item.id),) if item else ()
+        )
+
+    ordered = [block(one[0]), block(one[1]), block(two[0]), block(two[1])]
+    assert _in_page_order(ordered, found) == ordered
+    cut = [block(one[0]), block(two[0]), block(two[1]), block(two[2]), block(one[1]), block(one[2])]
+    assert [b.text for b in _in_page_order(cut, found)] == ["10", "11", "12", "20", "21", "22"]
+    empty = [block(one[0]), block(two[0]), block(None), block(one[1])]
+    assert [b.text for b in _in_page_order(empty, found)] == ["10", "11", "20", ""]
+
+
 # Properties
 
 
@@ -466,6 +493,29 @@ def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
         (
             Page(1, (), (Picture("i0", Box(0, 0, 0, 0)), Picture("i1", Box(3, 0, 14, 21))), ()),
             Page(2, (), (Picture("i2", Box(0, 0, 11, 21)),), ()),
+        ),
+        Metadata(),
+    )
+)
+@example(  # a paragraph runs on to page 2, a line without a position waits for it, and a
+    # formula is cut out of its page-2 piece: blocks stay in page order (#196)
+    Content(
+        Source("0", SourceFormat.PDF),
+        (
+            Page(
+                1,
+                (
+                    TextLine("i0", (TextRun("0", size=0.0),)),
+                    TextLine("i1", (TextRun("0", size=1.0),), Box(0, 0, 0, 0)),
+                ),
+            ),
+            Page(
+                2,
+                (
+                    TextLine("i2", (TextRun("÷", size=1.0),), Box(1, 0, 1, 0)),
+                    TextLine("i3", (TextRun("000", size=1.175494351e-38),)),
+                ),
+            ),
         ),
         Metadata(),
     )
