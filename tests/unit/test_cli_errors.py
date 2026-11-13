@@ -159,3 +159,15 @@ def test_the_real_env_reads_the_terminal() -> None:
     assert env.out is not None
     assert env.err is not None
     assert env.fetch is None
+
+
+def test_clean_while_a_job_works_on_the_file_is_busy(cli: Cli, tmp_path: Path) -> None:
+    from sci2audio.app.lock import work_folder_lock
+
+    source = small_pdf(tmp_path / "in")
+    assert cli("convert", source, "-q").code == 0
+    with work_folder_lock(cli.work(source)):
+        result = cli("clean", source)
+    assert result.code == 8  # D-226: clean_work_folder takes the job's lock
+    assert "another sci2audio job is working on this file" in one_line(result.err)
+    assert any((cli.work(source) / "chunks").rglob("*.wav"))
