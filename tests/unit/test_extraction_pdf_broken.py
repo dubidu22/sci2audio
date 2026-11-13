@@ -7,10 +7,12 @@ damaged files PDFium repairs, which must still be read. Every file is written by
 none is stored except the password-protected one.
 """
 
+from functools import cache
 from pathlib import Path
 
+import pypdfium2 as pdfium
 import pytest
-from broken_pdfs import ALL, COPY, REFUSED, Refused
+from broken_pdfs import ALL, COPY, CUT_SHORT, REFUSED, Refused
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from pdf_maker import (
@@ -25,6 +27,7 @@ from pdf_maker import (
     owner_locked_pdf,
     raw_pdf,
     stream,
+    with_page_added,
 )
 
 from sci2audio.core import Content
@@ -35,7 +38,9 @@ pytestmark = pytest.mark.timeout(60)
 TESTS = Path(__file__).resolve().parents[1]
 FIXTURES = TESTS / "fixtures"
 BROKEN = FIXTURES / "broken"
-PAPER = TESTS / "corpus" / "papers" / "acl2023-hardt-ellipsis.pdf"
+CORPUS = TESTS / "corpus" / "papers"
+PAPERS = sorted(CORPUS.glob("*.pdf"))
+PAPER = CORPUS / "acl2023-hardt-ellipsis.pdf"
 EPUB = TESTS / "corpus" / "epub" / "wells-the-time-machine.epub"
 
 
@@ -75,7 +80,7 @@ def test_refused_files_say_why(case: Refused) -> None:
 def test_the_limits_are_the_decided_ones() -> None:
     """D-394, D-395: the tests below shrink the limits, so their values are pinned here."""
     assert (pdf.MAX_PAGES, pdf.MAX_PAGE_CHARS, pdf.MAX_CHARS) == (10_000, 100_000, 10_000_000)
-    assert pdf.EOF_TAIL == 1024
+    assert pdf.HEADER_ZONE == 1024
 
 
 def test_a_page_over_the_character_limit_is_refused_before_it_is_read(
@@ -106,6 +111,43 @@ def test_too_many_characters_in_all_are_refused_before_more_is_read(
     )
 
 
+def pdfium_chars(data: bytes) -> int:
+    """The characters PDFium counts on the file's first page, the line ends it adds included."""
+    document = pdfium.PdfDocument(data)
+    try:
+        textpage = document[0].get_textpage()
+        return textpage.count_chars()
+    finally:
+        document.close()
+
+
+def test_a_page_exactly_at_the_character_limit_is_read_and_one_more_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review S4 of #188: the limit is pinned at its boundary, so `>=` for `>` fails."""
+    data = dense_pdf(1, 1_000)
+    count = pdfium_chars(data)
+    monkeypatch.setattr(pdf, "MAX_PAGE_CHARS", count)
+    read_pdf(data, "fits.pdf")
+    monkeypatch.setattr(pdf, "MAX_PAGE_CHARS", count - 1)
+    with pytest.raises(
+        ExtractionError, match=rf"\(page 1 holds more than {count - 1:,} characters\)$"
+    ):
+        read_pdf(data, "big.pdf")
+
+
+def test_exactly_the_characters_allowed_in_all_are_read_and_one_more_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    data = dense_pdf(2, 1_000)  # two pages sharing one content stream
+    total = 2 * pdfium_chars(data)
+    monkeypatch.setattr(pdf, "MAX_CHARS", total)
+    read_pdf(data, "fits.pdf")
+    monkeypatch.setattr(pdf, "MAX_CHARS", total - 1)
+    with pytest.raises(ExtractionError, match=rf"\(more than {total - 1:,} characters\)$"):
+        read_pdf(data, "big.pdf")
+
+
 def test_too_many_pages_are_refused_before_any_page_is_read(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -116,6 +158,9 @@ def test_too_many_pages_are_refused_before_any_page_is_read(
     with pytest.raises(ExtractionError, match=r"\(more than 2 pages\)$"):
         read_pdf(make_pdf(*([Text("page", 50, 50)],) * 3), "big.pdf")
     assert pages == []
+
+
+HTML = b"<!DOCTYPE html><html><body>" + b"<p>Not found.</p>" * 300 + b"</body></html>"
 
 
 def text_of(data: bytes) -> list[str]:
@@ -154,6 +199,10 @@ def text_of(data: bytes) -> list[str]:
             id="wrong-startxref",
         ),
         pytest.param(one_page_pdf() + bytes(2048), ["Hello world"], id="junk-after-the-end"),
+        # past PDFium's 4 KB window for startxref, so it rebuilds the table (review M1 of #188)
+        pytest.param(one_page_pdf() + bytes(4096), ["Hello world"], id="4-kb-after-the-end"),
+        pytest.param(one_page_pdf() + bytes(1 << 20), ["Hello world"], id="1-mb-after-the-end"),
+        pytest.param(one_page_pdf() + HTML, ["Hello world"], id="web-page-after-the-end"),
         pytest.param(
             one_page_pdf().replace(b"/Count 1", b"/Count 1000000000"),
             ["Hello world"],
@@ -297,3 +346,75 @@ def test_any_page_tree_gives_content_or_a_clear_error(
             )
     result = outcome(raw_pdf(objects), "tree.pdf")
     assert isinstance(result, Content) or result.startswith("tree.pdf: ")
+
+
+# Cut short or whole: the decision looks at the last %%EOF and what follows it (D-395, as
+# applied after review round 1 of #188, M1 and S1).
+
+TAILS = {
+    "4-kb-zeros": bytes(4096),
+    "10-kb-zeros": bytes(10_000),
+    "1-mb-zeros": bytes(1 << 20),
+    "web-page": HTML,
+}
+
+
+@pytest.mark.parametrize("tail", TAILS.values(), ids=TAILS.keys())
+@pytest.mark.parametrize("paper", PAPERS, ids=[paper.stem for paper in PAPERS])
+def test_a_whole_corpus_paper_with_bytes_after_its_end_is_not_cut_short(
+    paper: Path, tail: bytes
+) -> None:
+    """The decision only, on all seven papers: PDFium opens the file and the checks before
+    any page is read pass. Past 4 KB of trailing bytes PDFium rebuilds the cross-reference
+    table, which the first rule of D-395 took for a cut."""
+    data = paper.read_bytes() + tail
+    document = pdfium.PdfDocument(data)
+    try:
+        pdf._check(document, paper.name, data)
+    finally:
+        document.close()
+
+
+@pytest.mark.parametrize("tail", TAILS.values(), ids=TAILS.keys())
+def test_a_paper_with_bytes_after_its_end_reads_the_same_lines(tail: bytes) -> None:
+    """The whole read, on the smallest paper, so the fast suite stays fast."""
+    paper = CORPUS / "joss2021-waskom-seaborn.pdf"
+    padded = read_pdf(paper.read_bytes() + tail, paper.name)
+    assert padded.pages == smallest_paper_alone().pages
+
+
+@cache
+def smallest_paper_alone() -> Content:
+    paper = CORPUS / "joss2021-waskom-seaborn.pdf"
+    return read_pdf(paper.read_bytes(), paper.name)
+
+
+def test_a_file_cut_inside_an_incremental_update_is_cut_short() -> None:
+    """Review S1 of #188: the earlier revision's %%EOF and startxref are whole, so PDFium
+    would read that revision, a page short, without a word."""
+    original = make_pdf([Text("first page", 50, 50)])
+    updated = with_page_added(original, "second page")
+    assert text_of(updated) == ["first page", "second page"]
+    for cut in (len(original) + 50, len(updated) - 30):
+        with pytest.raises(ExtractionError) as error:
+            read_pdf(updated[:cut], "update.pdf")
+        assert str(error.value) == CUT_SHORT.format(name="update.pdf")
+
+
+def test_a_corpus_paper_cut_inside_an_incremental_update_is_cut_short() -> None:
+    paper = CORPUS / "joss2021-waskom-seaborn.pdf"
+    original = paper.read_bytes()
+    updated = with_page_added(original, "an added page")
+    assert len(read_pdf(updated, paper.name).pages) == 5
+    with pytest.raises(ExtractionError, match="cut short"):
+        read_pdf(updated[: len(original) + 50], paper.name)
+
+
+def test_a_file_without_any_eof_is_cut_short() -> None:
+    """Without a %%EOF PDFium doesn't trust the cross-reference table and rebuilds it, so a
+    whole file whose writer left %%EOF out can't be told from a cut one; both are refused."""
+    whole = one_page_pdf()
+    for data in (whole.replace(b"%%EOF", b""), whole[: whole.index(b"xref")]):
+        with pytest.raises(ExtractionError) as error:
+            read_pdf(data, "cut.pdf")
+        assert str(error.value) == CUT_SHORT.format(name="cut.pdf")

@@ -248,8 +248,10 @@ def owner_locked_pdf(text: str, permissions: int, revision: int = 3) -> bytes:
     """A one-page PDF with `text`, encrypted by the standard security handler with RC4, an
     owner password and an empty user password, so it opens without a password but carries
     `permissions` (the /P bits). Revision 2 uses a 40-bit key, revision 3 a 128-bit key.
-    pikepdf and qpdf always allow accessibility from revision 3 on, so these files are made
-    here (algorithms 2, 3 and 4 or 5 of PDF 32000-1, 7.6.3)."""
+    Written here, after algorithms 2, 3 and 4 or 5 of PDF 32000-1, 7.6.3, so the tests need
+    no pikepdf (MPL-2.0, not a dependency) and cover revision 2 too. pikepdf can write
+    revision 3 with accessibility forbidden; from revision 4 on (AES) qpdf always allows it
+    (review S3 of #188)."""
     length = 5 if revision == 2 else 16
     rounds = 0 if revision == 2 else 50
     file_id = _md5(text.encode())
@@ -404,3 +406,19 @@ def protected_pdf(handler: bytes) -> bytes:
         extra={6: b"<< /Filter " + handler + b" >>"},
         trailer=b"/Encrypt 6 0 R /ID [<0102> <0102>]",
     )
+
+
+def with_page_added(data: bytes, text: str) -> bytes:
+    """`data` with a page holding `text` added by an incremental update: the new objects, a
+    second cross-reference section and a second %%EOF are appended to the file as it was."""
+    document = pdfium.PdfDocument(data)
+    page = document.new_page(WIDTH, HEIGHT)
+    raw.FPDFPage_InsertObject(page.raw, _text(document, Text(text, 50, 50)))
+    raw.FPDFPage_GenerateContent(page.raw)
+    page.close()
+    buffer = io.BytesIO()
+    document.save(buffer, flags=raw.FPDF_INCREMENTAL)
+    document.close()
+    updated = buffer.getvalue()
+    assert updated.startswith(data)
+    return updated

@@ -81,7 +81,8 @@ OUTLINE_DEPTH = 15  # bookmark levels read; deeper ones are left out (D-267)
 MAX_PAGES = 10_000
 MAX_PAGE_CHARS = 100_000
 MAX_CHARS = 10_000_000
-EOF_TAIL = 1024  # bytes at the end where a whole file has its %%EOF (PDF 32000-1, 7.5.5)
+HEADER_ZONE = 1024  # a PDF's %PDF- header stands within its first 1,024 bytes (PDF 32000-1)
+_OBJECT = re.compile(rb"\d+\s+\d+\s+obj\b")  # "12 0 obj": the start of an object
 # Permission bits of the /P entry (PDF 32000-1, table 22), counted from 1 as the standard does
 _COPY = 1 << 4  # bit 5: copy or extract text
 _ACCESSIBILITY = 1 << 9  # bit 10: extract text for accessibility (revision 3 on)
@@ -126,7 +127,7 @@ def read_pdf(data: bytes, name: str) -> Content:
 def _check(document: pdfium.PdfDocument, name: str, data: bytes) -> None:
     """Refuse, before reading any page, a file cut short (D-395), one whose owner forbids
     reading its text out (D-396), and one without pages or with too many (D-394)."""
-    if _cut_short(data) and not raw.FPDF_DocumentHasValidCrossReferenceTable(document.raw):
+    if _cut_short(data):
         raise ExtractionError(_CUT_SHORT.format(name=name))
     if _forbids_reading(document):
         raise ExtractionError(
@@ -144,9 +145,16 @@ _CUT_SHORT = "{name}: the PDF is cut short (an unfinished download?); download i
 
 
 def _cut_short(data: bytes) -> bool:
-    """True if the file starts like a PDF but has no %%EOF at its end. PDFium rebuilds
-    what it can of such a file, and the pages past the cut are lost without a word."""
-    return b"%PDF-" in data[:EOF_TAIL] and b"%%EOF" not in data[-EOF_TAIL:]
+    """True if the file starts like a PDF but its end is missing (D-395, as applied after
+    review round 1 of #188): it has no %%EOF at all, or object data follows its last one,
+    so the cut fell inside a later section (an incremental update, the rest of a linearized
+    file). PDFium reads such a file as far as it can, and the rest is lost without a word.
+    Bytes after a whole file's last %%EOF that hold no object (zeros, a web page) are no
+    cut. One search from the last %%EOF on; nothing walks the objects."""
+    if b"%PDF-" not in data[:HEADER_ZONE]:
+        return False
+    end = data.rfind(b"%%EOF")
+    return end < 0 or _OBJECT.search(data, end) is not None
 
 
 def _forbids_reading(document: pdfium.PdfDocument) -> bool:
