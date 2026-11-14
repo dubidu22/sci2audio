@@ -40,6 +40,7 @@ from sci2audio.core import (
 )
 from sci2audio.extraction.cover import Cover, media_type
 from sci2audio.extraction.errors import ExtractionError
+from sci2audio.extraction.language import stated_language
 from sci2audio.extraction.markup import (
     Anchors,
     PageReader,
@@ -439,7 +440,10 @@ def _metadata(package: _Package) -> Metadata:
     chosen = next(
         (e for e in identifiers if package.unique_id and e.get("id") == package.unique_id), None
     )
-    languages = [t for t in (fold("".join(e.itertext())) for e in dc("language")) if t]
+    # the first that names a language (#237): "und" states none
+    languages = [
+        t for t in (stated_language(fold("".join(e.itertext()))) for e in dc("language")) if t
+    ]
     return Metadata(
         title=titles[0] if titles else "",
         authors=tuple(authors),

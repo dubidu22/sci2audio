@@ -39,6 +39,7 @@ from sci2audio.core import (
 )
 from sci2audio.extraction.cover import Cover, png
 from sci2audio.extraction.errors import ExtractionError
+from sci2audio.extraction.language import stated_language
 
 _PDFIUM = threading.Lock()
 
@@ -299,7 +300,7 @@ def _language(document: pdfium.PdfDocument) -> str:
     raw.FPDFCatalog_GetLanguage(
         document.raw, ctypes.cast(buffer, ctypes.POINTER(ctypes.c_ushort)), size
     )
-    return buffer.raw[: size - 2].decode("utf-16-le", errors="replace").strip()
+    return stated_language(buffer.raw[: size - 2].decode("utf-16-le", errors="replace"))
 
 
 def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
