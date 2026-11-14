@@ -102,6 +102,7 @@ unnumbered_formulas = [
   { page = 15, count = 1 },  # "Obj_P → Obj_M → Rel_M"
   { page = 16, count = 1 },  # the self-maps S_Obj and S_Rel, one line
 ]
+code_blocks = []
 
 [[verbatim]]
 where = "plain"

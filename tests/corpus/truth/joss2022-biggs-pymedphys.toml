@@ -47,6 +47,7 @@ tables = []
 figures = []
 algorithms = []
 unnumbered_formulas = []
+code_blocks = []
 
 # No footnote-mark or inline-maths sentence: the paper has no footnotes and no inline maths
 # (the numbers after the author names are affiliation marks, not sentences).

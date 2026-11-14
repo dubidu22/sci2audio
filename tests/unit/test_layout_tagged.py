@@ -137,20 +137,28 @@ def test_inline_markup_does_not_change_the_kind_but_a_whole_line_does() -> None:
     assert doc.blocks[2].label == "3"
 
 
-def test_code_and_quotes_are_paragraphs_keeping_their_lines() -> None:
+def test_code_is_a_code_block_and_quotes_are_paragraphs_keeping_their_lines() -> None:
+    """A `pre` holding `code` is CODE (D-544); a `pre` alone (a poem, an address) and a
+    quote are paragraphs keeping their lines; inline code leaves its paragraph one."""
     doc = build_document(
         content(
             [
                 line("def f():", "pre", "code"),
                 line("    return 1", "pre", "code", "br"),
                 line("A quote.", "blockquote", "p"),
+                line("Roses are red,", "pre"),
+                line("  violets are blue.", "pre", "br"),
+                runs(("Call ", P), ("f()", ("p", "code")), (" twice.", P)),
             ]
         )
     )
     assert kinds(doc) == [
-        ("paragraph", "def f():\n    return 1"),
+        ("code", "def f():\n    return 1"),
         ("paragraph", "A quote."),
+        ("paragraph", "Roses are red,\n  violets are blue."),
+        ("paragraph", "Call f() twice."),
     ]
+    assert doc.blocks[0].is_placeholder
 
 
 def test_hidden_text_contents_and_page_breaks_are_furniture() -> None:

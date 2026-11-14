@@ -62,11 +62,12 @@ step later leaves it out of the script (TP-05): the truth describes what layout 
 | `algorithms` | list of `{ page, labels }` | Pseudocode blocks ("Algorithm 3") by page, also those inside a figure |
 | `formula_numbers` | list of `{ page, numbers }` | The equation numbers printed next to display formulas, as text without brackets ("12", "16a"), in reading order and grouped by page. A display spanning several lines under one number lists it once; a number printed again (an equation restated in an appendix) is listed again. Empty when the paper numbers no formulas |
 | `unnumbered_formulas` | list of `{ page, count }` | How many display formulas without a number each page has |
+| `code_blocks` | list of `{ page, count }` | How many code listings each page has: lines set wholly in a typewriter font, read as one "A code block is skipped." (#280). A monospace URL, e-mail address or DOI on lines of its own is a link, not code |
 
 | `verbatim` | list of tables, 3 to 7 | Sentences that must come out word for word (see below) |
 | `furniture` | list of tables | Text that must not be read aloud (see below) |
 
-The lists from `footnotes` to `unnumbered_formulas` may be empty. Each names a page at most
+The lists from `footnotes` to `code_blocks` may be empty. Each names a page at most
 once, in page order.
 
 Each `[[verbatim]]` entry:
@@ -105,6 +106,7 @@ have one page, so nothing is tied to pages.
 | `headings` | list of `{ level, text }` | Every heading in reading order, `level` 1 to 6 as the Markdown marks it (`#` to `######`). Empty for plain text, which marks none |
 | `footnotes` | list of `{ mark, text }` | Each note with the mark a reader sees (Markdown numbers notes in the order of first use) and its text |
 | `tables` | integer | Number of tables |
+| `code_blocks` | integer | Number of code blocks (fenced or indented in Markdown) |
 | `figures` | list of strings | Each image's alternative text in reading order; `""` for one without |
 | `formulas` | list of `{ display, text }` | Each formula in reading order: `display` true for one on its own line (`$$`), its TeX as typed |
 | `verbatim` | list of tables, 3 to 7 | `{ where, text }` as for papers, without `page` |

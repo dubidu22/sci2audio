@@ -20,6 +20,8 @@ footnotes = [
 
 tables = 1
 
+code_blocks = 0
+
 figures = ["Ein Balkendiagramm der Minuten pro Gruppe"]
 
 formulas = [

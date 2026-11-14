@@ -195,11 +195,23 @@ def test_the_markdown_lists_are_list_items_without_labels() -> None:
     assert {b.label for b in items} == {""}  # HTML numbering is not text (D-415)
 
 
-def test_a_code_block_is_one_paragraph_keeping_its_lines() -> None:
+def test_the_markdown_code_blocks_are_code_keeping_their_lines() -> None:
+    """Fenced and indented code are CODE placeholders keeping their lines (D-542, D-544)."""
     doc = document(MARKDOWN)
-    code = "def words_per_minute(words, seconds):\n    return 60 * words / seconds"
-    (block,) = [b for b in doc.blocks if b.text == code]
-    assert block.kind is BlockKind.PARAGRAPH  # D-410
+    code = [doc.blocks[k].text for k in of_kind(doc, BlockKind.CODE)]
+    assert len(code) == truth(MARKDOWN)["code_blocks"]
+    assert code == [
+        "def words_per_minute(words, seconds):\n    return 60 * words / seconds",
+        "indented code is code too",
+    ]
+
+
+@pytest.mark.parametrize(
+    "sample", [TEXT, GERMAN_MARKDOWN, GERMAN_TEXT], ids=["text", "german-markdown", "german-text"]
+)
+def test_samples_without_code_have_no_code_block(sample: Path) -> None:
+    assert truth(sample)["code_blocks"] == 0
+    assert of_kind(document(sample), BlockKind.CODE) == []
 
 
 # ---- all three ------------------------------------------------------------------------
