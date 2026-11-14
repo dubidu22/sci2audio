@@ -16,7 +16,7 @@ from pdf_maker import Rect, Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_flow import open_paper
 
-from conftest import Live, check_axe, tab_key
+from conftest import Live, check_axe, settled, tab_key
 
 PER_CHARACTER = 2400  # samples at 24 kHz: 0.1 s per character
 
@@ -36,14 +36,20 @@ def make_audiobook(page: Page, live: Live) -> str:
 
 
 def listen_to(page: Page, live: Live, path: Path, pdf: bytes) -> None:
-    """Open this PDF, make its audiobook and open the player."""
+    """Open this PDF, make its audiobook and open the player. The start waits until the
+    page no longer follows the analysis: a page drawn while the analysis job ends shows
+    the Make button and still reloads itself, which cancels the start's move to the job
+    page (review R3-1 of #289, as `open_paper` does for #138)."""
     live.install_voice()
     live.voice.samples_per_character = PER_CHARACTER
     path.write_bytes(pdf)
     page.set_input_files("#file", files=[path])
     page.get_by_role("button", name="Open and analyse").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    expect(page.locator("#summary")).to_be_visible()
+    settled(page)
     page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
     page.get_by_role("link", name="Listen with the text").click()
     page.wait_for_url(re.compile(r"/listen$"))
