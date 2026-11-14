@@ -172,6 +172,47 @@ def test_a_piece_under_a_fraction_bar_keeps_a_space() -> None:
     assert separators(script, size, space, reach, [Box(30, 104, 40, 104.4)]) == ["", ""]
 
 
+def test_a_numerator_with_a_raised_superscript_keeps_its_space() -> None:
+    """Review R1-1 of #323, liu p2 "∂E^m_q over ∂q": the reach to the bar is measured from
+    the numerator letter nearest it (the subscript q, 0.02 em above), not from its
+    superscript m, here lifted 2 pt more than liu prints it (0.72 em above the bar)."""
+    numerator = TextLine(
+        "p2-l122",
+        (
+            TextRun(" =", "CMR10", 10.0, box=Box(377.6, 413.3, 385.3, 422.2)),
+            TextRun(" ∂E", "CMMI7", 7.0, box=Box(396.1, 409.2, 406.6, 415.5)),
+            TextRun("m", "CMMI5", 5.0, box=Box(407.0, 405.7, 413.1, 410.1)),
+            TextRun("q", "CMMI5", 5.0, box=Box(406.6, 412.7, 410.2, 417.1)),
+        ),
+        Box(377.6, 405.7, 413.1, 422.2),
+    )
+    denominator = TextLine(
+        "p2-l123",
+        (
+            TextRun("∂q", "CMMI7", 7.0, box=Box(400.5, 418.7, 408.9, 425.0)),
+            TextRun(" δ", "CMMI10", 10.0, box=Box(414.8, 413.1, 419.3, 422.2)),
+        ),
+        Box(400.5, 413.1, 419.3, 425.0),
+    )
+    bar = Box(395.7, 417.3, 414.0, 418.1)
+    assert separators([numerator, denominator], 10.0, 0.15, 2.0, [bar]) == ["", " "]
+
+
+def test_an_underlined_piece_keeps_a_subscript_after_it_joined() -> None:
+    """Review R1-3 of #323: an underline under a word does not stand between the word and
+    a subscript tucked back under its last letter (the subscript's middle is above it)."""
+    word = TextLine(
+        "w", (TextRun("word", "Times", 10.0, box=Box(0, 100, 30, 110)),), Box(0, 100, 30, 110)
+    )
+    script = TextLine(
+        "q",
+        (TextRun("q", "Times", 7.0, box=Box(29.5, 104.5, 33, 111.5)),),
+        Box(29.5, 104.5, 33, 111.5),
+    )
+    underline = Box(0, 109.5, 30, 109.9)
+    assert separators([word, script], 10.0, 0.15, 2.0, [underline]) == ["", ""]
+
+
 @given(
     st.lists(
         st.tuples(st.floats(0, 500), st.floats(0, 60), st.floats(-5, 5)), min_size=1, max_size=8

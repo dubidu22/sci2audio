@@ -99,8 +99,8 @@ def separators(
     word_space: float,
     stack_reach: float,
     bars: Sequence[Box] = (),
-    bar: float = 0.15,
-    bar_reach: float = 0.6,
+    bar: float = LayoutSettings.fraction_bar,
+    bar_reach: float = LayoutSettings.fraction_reach,
 ) -> list[str]:
     """What stands before each piece of one printed line, left to right: a space where the
     white after the letters so far (a subscript may stand under the end of the piece before
@@ -112,7 +112,7 @@ def separators(
     line without sizes, keep a space (#36, D-274 to D-277). A piece that starts under one
     of the `bars` drawn below the piece before it is a fraction's denominator under its
     numerator and keeps a space ("eℏ 2me", not "eℏ2me"; #202, D-575): `bar` and `bar_reach`
-    are `LayoutSettings.fraction_bar` and `fraction_reach`."""
+    are `LayoutSettings.fraction_bar` and `fraction_reach`, in em of `size`."""
     out = [""] * min(len(pieces), 1)
     reach: float | None = None
     for k, piece in enumerate(pieces):
@@ -138,11 +138,14 @@ def fraction_bar(
     drawn: Box, upper: TextLine, lower: TextLine, size: float, thickness: float, reach: float
 ) -> bool:
     """True if the drawing is a fraction bar between the end of `upper` and the start of
-    `lower`: at most `thickness` em of `size` thick and three times as wide; the letters of
-    `upper` it stands under (its runs, or the whole piece where runs have no box) all above
-    it and the first letters of `lower` below it, each overlapping it across, their middles
-    on either side of it and their edges within `reach` em (#202, D-575). The same measure
-    keeps PDFium's space inside one extracted line (extraction `FRACTION_BAR`)."""
+    `lower`: at most `thickness` em thick and three times as wide; the letters of `upper` it
+    stands under (its runs, or the whole piece where runs have no box) all have their
+    middles above it, the nearest of them within `reach` em of it (a superscript in the
+    numerator may stand higher, review R1-1 of #323), and the first letters of `lower` have
+    their middle below it and stand within `reach` em; each overlaps it across (#202, D-575).
+    The em is `size`, the printed line's letter size (`separators`), not the size of the
+    fraction's own letters as in extraction, which measures the same way inside one
+    extracted line (`FRACTION_BAR`, `FRACTION_REACH`)."""
     thick = drawn.y1 - drawn.y0
     if thick > thickness * size or drawn.x1 - drawn.x0 < 3 * thick:
         return False
@@ -151,7 +154,8 @@ def fraction_bar(
     if not tops or not bottoms or min(bottoms[0].x1, drawn.x1) <= max(bottoms[0].x0, drawn.x0):
         return False
     bottom = bottoms[0]
-    above = all((b.y0 + b.y1) / 2 < drawn.y0 and drawn.y0 - b.y1 <= reach * size for b in tops)
+    above = all((b.y0 + b.y1) / 2 < drawn.y0 for b in tops)
+    above = above and min(drawn.y0 - b.y1 for b in tops) <= reach * size
     below = drawn.y1 < (bottom.y0 + bottom.y1) / 2 and bottom.y0 - drawn.y1 <= reach * size
     return above and below
 

@@ -57,7 +57,9 @@ STACK = 2.0  # em: a script stacked under another starts at most this far back u
 # under another, but a bar is drawn between them: there the space PDFium adds stays, so the
 # two never read as one word ("1ℏ", #202, D-575). Layout keeps a space between pieces of a
 # line by the same measure (LayoutSettings.fraction_bar, fraction_reach).
-FRACTION_BAR = 0.15  # em of the larger letter: a fraction bar is at most this thick ...
+# TeX keeps a fraction rule's thickness when it sets the fraction smaller: liu's 0.8 pt bar
+# over 5 pt letters is 0.16 em, so the limit leaves room above that (review R1-2 of #323).
+FRACTION_BAR = 0.25  # em of the larger letter: a fraction bar is at most this thick ...
 FRACTION_REACH = 0.6  # em: ... with numerator and denominator at most this far from it
 SAME_LINE = 0.3  # a character overlapping the line by this share of its height continues it
 BOLD_WEIGHT = 600  # a font weight from this value on is bold
