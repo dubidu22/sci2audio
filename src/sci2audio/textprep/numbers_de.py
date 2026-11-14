@@ -38,7 +38,14 @@ from __future__ import annotations
 import calendar
 import re
 
-from sci2audio.textprep.notation import Candidate, fold, pick, unit_follows, unit_starts_at
+from sci2audio.textprep.notation import (
+    FILE_NUMBER_DE,
+    Candidate,
+    fold,
+    pick,
+    unit_follows,
+    unit_starts_at,
+)
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.units import reads_unit_after, reads_x_after
 
@@ -1020,10 +1027,7 @@ def find_numbers_de(text: str) -> list[Candidate]:
 # number (Roman or Arabic), a register of one to five letters and number/year; or after "Az."
 # or "Aktenzeichen" its first token with a digit. No fraction, range or ratio is read there,
 # and a dash before one is no range ("15.12.1983 – 1 BvR 209/83").
-_FILE_SHAPE = (
-    r"(?<![\w/.,])(?:[IVX]{1,6}|\d{1,3}(?:-\d{1,3})?)\s+[A-ZÄÖÜ][A-Za-zäöü]{0,4}"
-    r"\s+\d{1,5}/\d{2}(?:\d{2})?(?![\w/])"
-)
+_FILE_SHAPE = FILE_NUMBER_DE
 _FILE_NUMBER = re.compile(_FILE_SHAPE)
 _FILE_LABEL = re.compile(
     r"\b(?:Az\.|Aktenzeichen)(?:\s+lautet)?\s*:?\s*(?P<token>[^\s;,()]*\d[^\s;,()]*?)"

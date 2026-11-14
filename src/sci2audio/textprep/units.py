@@ -39,7 +39,7 @@ from dataclasses import dataclass
 from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
-from sci2audio.textprep.notation import edits_through_unread
+from sci2audio.textprep.notation import FILE_NUMBER_DE, edits_through_unread
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, units
@@ -137,6 +137,8 @@ class _Table:
     # the comparison signs as the statistics step reads them, which count as signs around
     # "2x" ("gleich 2x" as "=2x"); English keeps only the printed signs, as it did before #130
     said_operators: re.Pattern[str] = re.compile(r"(?!)")
+    # text the step leaves as printed: a German court's file number ("13 W 17/12", #243)
+    kept: re.Pattern[str] = re.compile(r"(?!)")
 
 
 class UnitStep(TextStep):
@@ -165,7 +167,10 @@ class UnitStep(TextStep):
 
     def _edits(self, index: int, text: str, table: _Table) -> Iterator[Edit]:
         units_found: list[tuple[int, int]] = []
+        kept = [found.span() for found in table.kept.finditer(text)]
         for match in table.number.finditer(text):
+            if any(start <= match.start() < end for start, end in kept):
+                continue  # "Az. 13 W 17/12": a court's file number, no "13 Watt" (#243)
             found = _unit_after(text, match, table)
             if found is None:
                 continue
@@ -260,13 +265,15 @@ def _compiled(language: str) -> _Table | None:
     magnitudes = sorted(listed.magnitudes, key=len, reverse=True)
     magnitude = re.compile("|".join(map(re.escape, magnitudes)) or r"(?!)")
     number = _NUMBER_DECIMAL_COMMA if listed.decimal == "," else _NUMBER
+    german = language.split("-", 1)[0].lower() == "de"
     said = re.compile(
         "|".join(map(re.escape, sorted(set(OPERATORS_DE.values()), key=len, reverse=True)))
-        if language.split("-", 1)[0].lower() == "de"
+        if german
         else r"(?!)"
     )
+    kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
     return _Table(
-        listed, by_form, pattern, magnitude, number, _label_list(listed.label_joins), said
+        listed, by_form, pattern, magnitude, number, _label_list(listed.label_joins), said, kept
     )
 
 

@@ -630,3 +630,12 @@ goal = "An interval read at a sentence end has no space before the full stop (re
 language = "de"
 blocks = [{ kind = "paragraph", text = "OR = 2,3, 95 %-KI [1,1; 4,8]. Danach nicht." }]
 expected = ["Odds Ratio gleich 2 Komma 3, 95 Prozent Konfidenzintervall 1 Komma 1 bis 4 Komma 8. Danach nicht."]
+
+[[case]]
+id = "de-units-court-file-number-register"
+audit = 0
+issue = 243
+goal = "The register letter of a court's file number is no unit: 'Az. 13 W 17/12' was '13 Watt 17/12'; a 'W' after a number elsewhere still reads 'Watt'. Needed for #130's second-run property too ('1 N 1/12' read '1 Newton' lost the file number's shape)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 W Leistung." }]
+expected = ["OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 Watt Leistung."]

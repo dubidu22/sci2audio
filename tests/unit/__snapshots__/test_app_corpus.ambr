@@ -4167,7 +4167,7 @@
         'switched_off': 0,
       }),
       'numbers-and-units': dict({
-        'applied': 30,
+        'applied': 28,
         'label': 'Numbers, symbols, units and statistics',
         'not_spoken': 0,
         'set_aside': 7,
@@ -5700,38 +5700,6 @@
           'start': 0,
           'step': 'reference-list',
         }),
-      }),
-      dict({
-        'block': 67,
-        'category': 'numbers-and-units',
-        'chapter': 6,
-        'end': 78,
-        'kind': 'replace',
-        'original': 'W',
-        'page': 8,
-        'printed_page': '',
-        'reason': '"W" read as "Watt"',
-        'said': 'Watt',
-        'spoken': True,
-        'start': 77,
-        'status': 'accepted',
-        'step': 'units',
-      }),
-      dict({
-        'block': 68,
-        'category': 'numbers-and-units',
-        'chapter': 6,
-        'end': 37,
-        'kind': 'replace',
-        'original': 'W',
-        'page': 8,
-        'printed_page': '',
-        'reason': '"W" read as "Watt"',
-        'said': 'Watt',
-        'spoken': True,
-        'start': 36,
-        'status': 'accepted',
-        'step': 'units',
       }),
       dict({
         'block': 6,
@@ -8123,7 +8091,7 @@
   | Tables and figures | 0 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
   | Abbreviations | 95 | 0 | 3 | 0 |
-  | Numbers, symbols, units and statistics | 30 | 0 | 7 | 0 |
+  | Numbers, symbols, units and statistics | 28 | 0 | 7 | 0 |
   
   ## Page furniture (13)
   
@@ -8328,7 +8296,7 @@
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “S.” → read as “Seite”. Reason: abbreviation "S." read as "Seite". Step: abbreviations.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “S.” → read as “Seite”. Reason: abbreviation "S." read as "Seite". Step: abbreviations.
   
-  ## Numbers, symbols, units and statistics (37)
+  ## Numbers, symbols, units and statistics (35)
   
   - page 7, chapter 7, applied: “28.08.2008” → read as “achtundzwanzigsten August 2008”. Reason: date "28.08.2008" read as "achtundzwanzigsten August 2008". Step: numbers.
   - page 7, chapter 7, applied: “25.08.2000” → read as “fünfundzwanzigsten August 2000”. Reason: date "25.08.2000" read as "fünfundzwanzigsten August 2000". Step: numbers.
@@ -8365,8 +8333,6 @@
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “:” → read as “zu”. Reason: ratio "70:10" read as "70 zu 10". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "10–15" read with "bis". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "1151–1160" read with "bis". Step: numbers.
-  - page 8, chapter 7, applied: “W” → read as “Watt”. Reason: "W" read as "Watt". Step: units.
-  - page 8, chapter 7, applied: “W” → read as “Watt”. Reason: "W" read as "Watt". Step: units.
   
   ## Problems
   
@@ -10846,11 +10812,11 @@
   
   19 OLG Hamburg v. neunundzwanzigsten Februar 2012, Az.
   5 U 10/10; OLG Celle v. achten März 2012, Az.
-  13 Watt 17/12; OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
+  13 W 17/12; OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
   2 E 12/07.
   
   20 OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
-  2 Watt 12/07; OLG Frankfurt v. zweiundzwanzigsten März 2005, Az.
+  2 W 12/07; OLG Frankfurt v. zweiundzwanzigsten März 2005, Az.
   11 U 64/04.
   
   Sofern PrivacyScore zur Untersuchung der Webseite nicht eine vom Berechtigten errichtete „besondere Zugangssicherung“ überwindet, bestehen auch in strafrechtlicher Hinsicht keine Bedenken gegen dessen Einsatz.
