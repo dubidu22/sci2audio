@@ -24,7 +24,8 @@
                           with commas)
     --off CATEGORY        switch a text-step category off: its text is read as
                           printed
-    --language TAG        en, en-GB, ... (default: the file's own)
+    --language TAG        en, en-GB, ... (default: the file's own, else guessed
+                          from the text: en or de)
     --overwrite           replace existing output files
     --work-folder FOLDER  the job's working folder (default: in the cache
                           folder)
@@ -75,7 +76,8 @@
                           with commas)
     --off CATEGORY        switch a text-step category off: its text is read as
                           printed
-    --language TAG        en, en-GB, ... (default: the file's own)
+    --language TAG        en, en-GB, ... (default: the file's own, else guessed
+                          from the text: en or de)
     --overwrite           replace existing output files
     --work-folder FOLDER  the job's working folder (default: in the cache
                           folder)

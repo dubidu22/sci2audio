@@ -168,6 +168,39 @@ def _check_ranges(sections: tuple[Section, ...], start: int, end: int, where: st
         position = section.end
 
 
+class LanguageSource(StrEnum):
+    """Where a document's language came from (D-494)."""
+
+    SETTING = "setting"  # the person chose it for the job
+    FILE = "file"  # the file states it
+    TEXT = "text"  # guessed from the text (the file states none, or states the other one, D-496)
+    FALLBACK = "fallback"  # nothing stated and the text did not tell: English
+
+
+# the languages layout can tell apart by their text (D-495)
+GUESSED_LANGUAGES = ("en", "de")
+
+
+@dataclass(frozen=True)
+class LanguageGuess:
+    """What the text says about its language: how many of its words are common German and
+    common English words (articles, pronouns, conjunctions and the like), and the language
+    they point to, or "" when they don't point clearly to one (D-495)."""
+
+    language: str  # "en", "de", or "" when the text does not tell
+    words: int  # words looked at
+    german: int  # common German words among them
+    english: int  # common English words among them
+
+    def __post_init__(self) -> None:
+        if self.language and self.language not in GUESSED_LANGUAGES:
+            raise ValueError(f"a guess is one of {GUESSED_LANGUAGES} or '', not {self.language!r}")
+        if min(self.words, self.german, self.english) < 0:
+            raise ValueError("a language guess cannot count fewer than no words")
+        if self.german + self.english > self.words:
+            raise ValueError(f"{self.german} + {self.english} common words in {self.words} words")
+
+
 @dataclass(frozen=True)
 class Document:
     """The extracted content in reading order: blocks, sections, and the content itself."""
@@ -179,10 +212,15 @@ class Document:
     # the page label each page prints ("39", "xii"; "" where it prints none), page by
     # page; empty when not known
     page_labels: tuple[str, ...] = ()
+    # where `language` came from and what the text said about it (D-494); None when not
+    # recorded (a document built by hand, a job saved before v1.1)
+    language_source: LanguageSource | None = None
+    language_guess: LanguageGuess | None = None  # set whenever the text was looked at
 
     def __post_init__(self) -> None:
         if not self.language:
             raise ValueError("document language must be set, e.g. 'en'")
+        self._check_language()
         used = Counter(part.item for block in self.blocks for part in block.parts)
         known = self.content.items().keys()
         if unknown := sorted(used.keys() - known):
@@ -201,6 +239,18 @@ class Document:
         pages = len(self.content.pages)
         if self.page_labels and len(self.page_labels) != pages:
             raise ValueError(f"{len(self.page_labels)} page labels for {pages} pages")
+
+    def _check_language(self) -> None:
+        primary = self.language.split("-")[0].lower()
+        guess = self.language_guess
+        if self.language_source is LanguageSource.TEXT and (
+            guess is None or guess.language != primary
+        ):
+            raise ValueError(f"language {self.language!r} is not what the text was guessed as")
+        if self.language_source is LanguageSource.FALLBACK and self.language != "en":
+            raise ValueError(
+                f"a document whose text did not tell is read as 'en', not {self.language!r}"
+            )
 
     def page_label(self, number: int) -> str:
         """The label printed on page `number` (counted from 1), or "" if none is known.

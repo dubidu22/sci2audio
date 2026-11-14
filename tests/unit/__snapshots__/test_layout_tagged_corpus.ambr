@@ -1,4 +1,53 @@
 # serializer version: 1
+# name: test_golden_file[sci2audio-beispiel-notiz]
+  '''
+  sci2audio-beispiel-notiz.md  language de  blocks 21
+  page labels  -
+  0  p1  heading  [p1-l1]  Papers hören
+  1  p1  paragraph  [p1-l2]  Diese Notiz wurde für die Tests von sci2audio geschrieben. Sie beschreibt eine erfundene Pilotstudie und keine echten Daten. Jeder Satz hier ist unser eigener.1
+  2  p1  heading (1)  [p1-l3]  1 Einleitung
+  3  p1  paragraph  [p1-l4]  Viele Menschen hören wissenschaftliche Texte, während sie gehen, kochen oder pendeln. Gesprochener Text läuft mit etwa 150 Wörtern pro Minute, daher dauert ein Artikel mit 6.000 Wörtern rund 40 Minuten.
+  4  p1  paragraph  [p1-l5]  Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C. Ein Gedankenstrich – kurz – und Anführungszeichen „wie diese“ gehören zum deutschen Satz.
+  5  p1  heading (1.1)  [p1-l6]  1.1 Fragen
+  6  p1  list_item  [p1-l7]  Wie schnell kann man einer Formel wie E = mc^2 folgen?
+  7  p1  list_item  [p1-l8]  Helfen Fußnoten2 oder stören sie?
+  8  p1  list_item  [p1-l9]  wenn sie an ihrer Stelle gelesen werden
+  9  p1  list_item  [p1-l10]  wenn sie am Ende gelesen werden
+  10  p1  heading (2)  [p1-l11]  2 Methode
+  11  p1  paragraph  [p1-l12]  Wir haben jede Sitzung gemessen und die Minuten für jede Gruppe notiert.
+  12  p1  table  [p1-l13..p1-l21 (9)]  Gruppe\nHörende\nMinuten\nA\n12\n41\nB\n9\n38
+  13  p1  figure  [p1-i1]  {p1-i1@0}  
+  14  p1  paragraph  [p1-l22]  Der Mittelwert ist
+  15  p1  formula  [p1-l23]  \bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
+  16  p1  paragraph  [p1-l24]  und die Quellen stehen auf der Projektseite.
+  17  p1  heading (3)  [p1-l25]  3 Ergebnisse
+  18  p1  paragraph  [p1-l26]  Die Hörenden konnten dem Text folgen, auch wenn er lange Sätze und viele Zahlen enthielt. Für die nächste Studie wollen wir mehr Gruppen untersuchen.2
+  19  p1  footnote  [p1-l27]  Nichts in dieser Notiz ist von anderen übernommen.
+  20  p1  footnote  [p1-l28]  Eine Fußnote mit fettem Text, fortgesetzt auf einer zweiten Zeile.
+  sections
+    1  blocks 0-21  Papers hören
+      2  blocks 2-10  1 Einleitung
+        3  blocks 5-10  1.1 Fragen
+      2  blocks 10-17  2 Methode
+      2  blocks 17-21  3 Ergebnisse
+  
+  '''
+# ---
+# name: test_golden_file[sci2audio-beispiel-text]
+  '''
+  sci2audio-beispiel-text.txt  language de  blocks 7
+  page labels  -
+  0  p1  paragraph  [p1-l1..p1-l2 (2)]  PAPERS HÖREN\nEine Pilotnotiz für die Tests von sci2audio
+  1  p1  paragraph  [p1-l3..p1-l6 (4)]  Diese Notiz beschreibt eine erfundene Pilotstudie und keine echten\nDaten. Jeder Satz darin ist unser eigener, und die Zeilen sind von\nHand bei etwa siebzig Zeichen umbrochen, wie es in Textdateien oft\nder Fall ist.
+  2  p1  paragraph  [p1-l7]  1. Einleitung
+  3  p1  paragraph  [p1-l8..p1-l10 (3)]  Viele Menschen hören wissenschaftliche Texte, während sie gehen,\nkochen oder pendeln. Ein Wort kann über zwei Zeilen getrennt wer-\nden, wie in diesem Beispiel, und wird doch als ganzes Wort gehört.
+  4  p1  paragraph  [p1-l11..p1-l12 (2)]  Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C.\nEin Gedankenstrich – kurz – und Anführungszeichen „wie diese“.
+  5  p1  paragraph  [p1-l13..p1-l14 (2)]  - erster Punkt\n- zweiter Punkt
+  6  p1  paragraph  [p1-l15..p1-l18 (4)]  Rosen sind rot,\ndie Hörerin wartet;\nein Vers im Gedicht\nbleibt, wo er bricht.
+  sections
+  
+  '''
+# ---
 # name: test_golden_file[sci2audio-sample-note]
   '''
   sci2audio-sample-note.md  language en-GB  blocks 29

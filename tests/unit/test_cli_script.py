@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 from cli_helpers import SEABORN, Cli, files_in, small_pdf
 from syrupy.assertion import SnapshotAssertion
+from test_layout_language import ENGLISH, GERMAN
 
 from sci2audio.app import JobSettings, run_script_job
 from sci2audio.cli import chapter_numbers
@@ -253,5 +254,36 @@ def test_a_text_file_read_by_a_guessed_encoding_is_named(cli: Cli, tmp_path: Pat
     plain = tmp_path / "notes.txt"
     plain.write_text("Café notes in UTF-8.\n", encoding="utf-8")
     result = cli("script", plain, "-o", tmp_path / "out2", "-q")
+    assert result.code == 0, result.err
+    assert "UTF-8" not in result.err  # (four words don't tell their language: D-495 warns)
+
+
+def test_the_language_warnings_are_printed_once_and_a_clear_guess_is_not(
+    cli: Cli, tmp_path: Path
+) -> None:
+    """D-498: the command line prints the fallback and the override warning, nothing for a
+    clear guess (that is in the report)."""
+    short = tmp_path / "short.txt"
+    short.write_text("Ein kurzer Satz.\n", encoding="utf-8")
+    result = cli("script", short, "-o", tmp_path / "a", "-q")
+    assert result.code == 0, result.err
+    fallback = "sci2audio could not tell from the text whether it is English or German"
+    assert result.err.count(fallback) == 1
+    assert result.err.count("warning:") == 1
+
+    tagged = tmp_path / "tagged.md"
+    tagged.write_text(f"---\nlang: en\n---\n\n{GERMAN}\n", encoding="utf-8")
+    result = cli("script", tagged, "-o", tmp_path / "b", "-q")
+    assert result.code == 0, result.err
+    override = (
+        "The file says its language is en, but its text is German, so it is read in German. "
+        "To read it as en, set the language to en (on the command line: --language en)."
+    )
+    assert result.err.count(override) == 1
+    assert result.err.count("warning:") == 1
+
+    english = tmp_path / "english.txt"
+    english.write_text(f"{ENGLISH}\n", encoding="utf-8")
+    result = cli("script", english, "-o", tmp_path / "c", "-q")
     assert result.code == 0, result.err
     assert "warning" not in result.err

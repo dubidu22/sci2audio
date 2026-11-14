@@ -26,7 +26,9 @@ CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 EPUB = CORPUS / "epub" / "wells-the-time-machine.epub"
 MARKDOWN = CORPUS / "markdown" / "sci2audio-sample-note.md"
 TEXT = CORPUS / "text" / "sci2audio-sample-plain.txt"
-SAMPLES = [EPUB, MARKDOWN, TEXT]
+GERMAN_MARKDOWN = CORPUS / "markdown" / "sci2audio-beispiel-notiz.md"  # German samples (#219)
+GERMAN_TEXT = CORPUS / "text" / "sci2audio-beispiel-text.txt"
+SAMPLES = [EPUB, MARKDOWN, TEXT, GERMAN_MARKDOWN, GERMAN_TEXT]
 READERS = {".epub": extract_epub, ".md": extract_markdown, ".txt": extract_text}
 # The Standard Ebooks front and back matter around the story's chapters: headed sections of
 # their own, read as ordinary chapters (D-409); the truth lists only the story's chapters.
@@ -203,7 +205,11 @@ def test_a_code_block_is_one_paragraph_keeping_its_lines() -> None:
 # ---- all three ------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("sample", [MARKDOWN, TEXT], ids=["markdown", "text"])
+@pytest.mark.parametrize(
+    "sample",
+    [MARKDOWN, TEXT, GERMAN_MARKDOWN, GERMAN_TEXT],
+    ids=["markdown", "text", "german-markdown", "german-text"],
+)
 def test_verbatim_sentences_are_inside_one_block(sample: Path) -> None:
     blocks = [b.text for b in document(sample).blocks]
     cut = [
@@ -221,3 +227,33 @@ def test_plain_text_is_paragraphs_only() -> None:
     assert doc.sections == ()
     assert {b.kind for b in doc.blocks} == {BlockKind.PARAGRAPH}
     assert len(doc.blocks) == 8  # its eight runs of non-blank lines
+
+
+# ---- the German samples (#219) --------------------------------------------------------
+
+
+def test_the_german_markdown_sections_and_notes_are_its_truth() -> None:
+    doc = document(GERMAN_MARKDOWN)
+    expected = truth(GERMAN_MARKDOWN)
+    headings = [(h["text"], h["level"]) for h in expected["headings"]]
+    assert [(s.title, s.level) for s in flattened(doc.sections)] == headings
+    notes = of_kind(doc, BlockKind.FOOTNOTE)
+    assert [text_without_back_links(doc, k) for k in notes] == [
+        n["text"] for n in expected["footnotes"]
+    ]
+    assert len(of_kind(doc, BlockKind.TABLE)) == expected["tables"]
+    assert len(of_kind(doc, BlockKind.FIGURE)) == len(expected["figures"])
+    formulas = [doc.blocks[k].text for k in of_kind(doc, BlockKind.FORMULA)]
+    assert formulas == [f["text"] for f in expected["formulas"] if f["display"]]
+
+
+def test_the_german_samples_are_read_as_german() -> None:
+    """The Markdown note states "de"; the text file states nothing and is guessed (D-495)."""
+    assert (document(GERMAN_MARKDOWN).language, document(GERMAN_MARKDOWN).language_source) == (
+        "de",
+        "file",
+    )
+    assert (document(GERMAN_TEXT).language, document(GERMAN_TEXT).language_source) == (
+        "de",
+        "text",
+    )

@@ -109,9 +109,10 @@
 {% endif %}
 <div class="stack">
   <label for="voice">{{ t('voice.choose') }}</label>
-  <select id="voice" name="voice" aria-describedby="voice-language voice-licence">
+  <select id="voice" name="voice" aria-describedby="{% if language_note %}text-language {% endif %}voice-language voice-licence">
     {% for option in voices %}<option value="{{ option.id }}" data-language="{{ option.language }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
   </select>
+  {% if language_note %}<p class="hint" id="text-language">{{ language_note }}</p>{% endif %}
   <p class="hint" id="voice-language">{{ t('voice.language_hint') }}</p>
   <p class="hint" id="voice-licence">{{ t('voice.licence') }} <span lang="en">{{ licences }}</span></p>
   <label for="speed">{{ t('voice.speed') }}</label>

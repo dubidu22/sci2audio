@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from test_layout_language import german_pdf
 from web_helpers import (
     ORIGIN,
     app_and_config,
@@ -208,6 +209,44 @@ def test_a_german_text_starts_with_the_german_voice(
     assert re.search(r'<option value="af_heart" data-language="en-US" selected>', english)
     assert "This is how this voice reads your text." in english
     assert "Not every voice is installed yet. Missing: German." in client.get("/").text
+
+
+def test_the_document_page_says_where_the_language_came_from(
+    server: tuple[FastAPI, Any],
+) -> None:
+    """D-499: the text's language and its source, in the page's language."""
+    client = client_of(server)
+    guessed = analysed(client)  # an untagged PDF too short to tell its language (D-495)
+    page = client.get(f"/documents/{guessed['id']}").text
+    assert (
+        "Language of the text: English (the text did not show whether it is English or German)."
+        in page
+    )
+    assert 'aria-describedby="text-language voice-language voice-licence"' in page
+    chosen = analysed(client, {"language": "de"})
+    assert "Language of the text: German (your setting)." in (
+        client.get(f"/documents/{chosen['id']}").text
+    )
+    client.cookies.set("sci2audio-language", "de")
+    assert "Sprache des Textes: Deutsch (Ihre Einstellung)." in (
+        client.get(f"/documents/{chosen['id']}").text
+    )
+    german = upload(client, german_pdf(), "studie.pdf")
+    body = {"kind": "script", "document": german["id"], "settings": {}}
+    job = client.post("/api/v1/jobs", json=body).json()
+    assert wait(client, job["id"])["state"] == "done"
+    assert "Sprache des Textes: Deutsch (aus dem Text erkannt)." in (
+        client.get(f"/documents/{german['id']}").text
+    )
+
+
+def test_a_report_from_before_v1_1_shows_no_language_line(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    assert pages._language_note({"language": "en"}, strings("en")) is None
+    assert pages._language_note(None, strings("en")) is None
+    note = pages._language_note({"language": "fr", "language_source": "file"}, strings("en"))
+    assert note == "Language of the text: fr (as the file states)."
+    assert client.get("/").status_code == 200
 
 
 def test_the_job_pages(server: tuple[FastAPI, Any]) -> None:

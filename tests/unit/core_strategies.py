@@ -17,6 +17,8 @@ from sci2audio.core import (
     Edit,
     EditKind,
     FurnitureRole,
+    LanguageGuess,
+    LanguageSource,
     Metadata,
     OutlineEntry,
     Page,
@@ -190,13 +192,35 @@ def documents(draw: st.DrawFn) -> Document:
         label = label if kind in LABELLED_KINDS else ""
         blocks.append(Block(kind, text, tuple(parts), role=role, label=label))
     labels = st.tuples(*(st.sampled_from(["", "1", "39", "xii"]) for _ in content.pages))
+    language, source, guess = draw(languages())
     return Document(
         content=content,
-        language=draw(st.sampled_from(["en", "en-GB", "de"])),
+        language=language,
         blocks=tuple(blocks),
         sections=draw(sections(0, len(blocks), 1, 2)),
         page_labels=draw(st.just(()) | labels),
+        language_source=source,
+        language_guess=guess,
     )
+
+
+@st.composite
+def guesses(draw: st.DrawFn, language: str) -> LanguageGuess:
+    german, english, other = (draw(st.integers(0, 500)) for _ in range(3))
+    return LanguageGuess(language, german + english + other, german, english)
+
+
+@st.composite
+def languages(draw: st.DrawFn) -> tuple[str, LanguageSource | None, LanguageGuess | None]:
+    """A document's language, where it came from and the guess, as layout may set them."""
+    source = draw(st.none() | st.sampled_from(LanguageSource))
+    if source is LanguageSource.TEXT:
+        language = draw(st.sampled_from(["en", "de"]))
+        return language, source, draw(guesses(language))
+    if source is LanguageSource.FALLBACK:
+        return "en", source, draw(guesses(""))
+    guess = draw(st.none() | guesses(draw(st.sampled_from(["", "en", "de"]))))
+    return draw(st.sampled_from(["en", "en-GB", "de"])), source, guess
 
 
 @st.composite

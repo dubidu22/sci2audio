@@ -31,6 +31,8 @@ pytestmark = pytest.mark.timeout(60)
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 MARKDOWN = CORPUS / "markdown" / "sci2audio-sample-note.md"
 TEXT = CORPUS / "text" / "sci2audio-sample-plain.txt"
+GERMAN_MARKDOWN = CORPUS / "markdown" / "sci2audio-beispiel-notiz.md"  # German samples (#219)
+GERMAN_TEXT = CORPUS / "text" / "sci2audio-beispiel-text.txt"
 
 
 @cache
@@ -153,6 +155,53 @@ def test_text_verbatim_sentences_are_in_the_lines() -> None:
 
 def test_text_golden_file(snapshot: SnapshotAssertion) -> None:
     assert describe(text()) == snapshot
+
+
+# ---- the German samples (#219) -----------------------------------------------------------
+
+
+def test_german_markdown_records_its_truth() -> None:
+    content = extract_markdown(GERMAN_MARKDOWN)
+    expected = truth(GERMAN_MARKDOWN)
+    assert (content.metadata.title, content.metadata.language) == (expected["title"], "de")
+    headings = [
+        {"level": int(tag[1]), "text": line.text}
+        for line in lines(content)
+        for tag in line.runs[0].tags[:1]
+        if tag in {"h1", "h2", "h3", "h4", "h5", "h6"}
+    ]
+    assert headings == expected["headings"]
+    notes = tagged(content, "role:doc-endnote")
+    assert [line.text for line in notes] == [note["text"] for note in expected["footnotes"]]
+    assert [picture.alt for picture in content.pages[0].pictures] == expected["figures"]
+    formulas = [
+        {"display": run.tags[-2] == "div", "text": run.text}
+        for line in lines(content)
+        for run in line.runs
+        if "role:math" in run.tags
+    ]
+    assert formulas == expected["formulas"]
+    text_of_lines = joined(content)
+    for entry in expected["verbatim"]:
+        assert entry["text"] in text_of_lines, entry
+
+
+def test_german_text_records_its_truth() -> None:
+    content = extract_text(GERMAN_TEXT)
+    assert content.metadata == Metadata()  # a text file states no language: it is guessed
+    assert lines(content)[0].text == truth(GERMAN_TEXT)["title"]
+    text_of_lines = joined(content)
+    for entry in truth(GERMAN_TEXT)["verbatim"]:
+        sentence = entry["text"]
+        if entry["where"] == "hyphenation":  # recorded as printed: the hyphen ends the line
+            sentence = sentence.replace("werden", "wer- den")
+        assert sentence in text_of_lines, entry
+
+
+@pytest.mark.parametrize("sample", [GERMAN_MARKDOWN, GERMAN_TEXT], ids=["markdown", "text"])
+def test_german_golden_file(sample: Path, snapshot: SnapshotAssertion) -> None:
+    read = extract_markdown if sample.suffix == ".md" else extract_text
+    assert describe(read(sample)) == snapshot
 
 
 # ---- variants: line ends and encodings (D-345) -------------------------------------------

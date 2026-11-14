@@ -23,7 +23,9 @@ class JobSettings:
     the audio job (#71). Without an `output_folder`, files go next to the source file.
     """
 
-    language: str = ""  # BCP 47 tag ("en", "en-GB"); "" = the file's own, else "en"
+    # BCP 47 tag ("en", "en-GB"); "" = the file's own, else guessed from the text ("en" or
+    # "de", D-495)
+    language: str = ""
     # UC-02 switches; "Footnote texts" starts off (D-142), so notes are read by default
     switched_off: frozenset[Category] = DEFAULT_SWITCHED_OFF
     chapters: frozenset[int] | None = None

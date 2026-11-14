@@ -70,6 +70,7 @@ from sci2audio.layout.headings import (
     title,
     title_key,
 )
+from sci2audio.layout.language import choose_language
 from sci2audio.layout.maths import number_at_end, number_tagged
 from sci2audio.layout.settings import LayoutSettings
 
@@ -112,12 +113,15 @@ def build_tagged(content: Content, settings: LayoutSettings) -> Document:
     blocks = _described(blocks, units)
     blocks = _marked(blocks, lines)
     blocks, sections = _Sections(blocks, units, content, settings).build()
+    language, source, guess = choose_language(content, settings)
     return Document(
         content=content,
-        language=settings.language or content.metadata.language or "en",
+        language=language,
         blocks=tuple(blocks),
         sections=sections,
         page_labels=tuple("" for _ in content.pages),
+        language_source=source,
+        language_guess=guess,
     )
 
 

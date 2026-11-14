@@ -1,4 +1,71 @@
 # serializer version: 1
+# name: test_german_golden_file[markdown]
+  '''
+  sci2audio-beispiel-notiz.md  sha256 ad4be7082a9f3b75
+  encoding: utf-8
+  metadata: title='Papers hören: eine Pilotnotiz' authors=['A. Beispiel', 'B. Muster'] date='2026-11-14' identifier='' language='de'
+  outline:
+  == page 1  lines 28  pictures 1
+  p1-l1  {h1; b}Papers hören
+  p1-l2  {p}Diese Notiz wurde für die Tests von sci2audio geschrieben. Sie beschreibt eine {p em; i}erfundene{p} Pilotstudie und {p strong; b}keine echten Daten{p}. Jeder Satz hier ist unser eigener.{p sup a #fnref1 role:doc-noteref link:p1-l27}1
+  p1-l3  {h2; b}1 Einleitung
+  p1-l4  {p}Viele Menschen hören wissenschaftliche Texte, während sie gehen, kochen oder pendeln. Gesprochener Text läuft mit etwa 150 Wörtern pro Minute, daher dauert ein Artikel mit 6.000 Wörtern rund 40 Minuten.
+  p1-l5  {p}Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C. Ein Gedankenstrich – kurz – und Anführungszeichen „wie diese“ gehören zum deutschen Satz.
+  p1-l6  {h3; b}1.1 Fragen
+  p1-l7  {ol li}Wie schnell kann man einer Formel wie {ol li span role:math}E = mc^2{ol li} folgen?
+  p1-l8  {ol li}Helfen Fußnoten{ol li sup a #fnref2 role:doc-noteref link:p1-l28}2{ol li} oder stören sie?
+  p1-l9  {ol li ul li}wenn sie an ihrer Stelle gelesen werden
+  p1-l10  {ol li ul li}wenn sie am Ende gelesen werden
+  p1-l11  {h2; b}2 Methode
+  p1-l12  {p}Wir haben jede Sitzung gemessen und die Minuten für jede Gruppe notiert.
+  p1-l13  {table thead tr th; b}Gruppe
+  p1-l14  {table thead tr th; b}Hörende
+  p1-l15  {table thead tr th; b}Minuten
+  p1-l16  {table tbody tr td}A
+  p1-l17  {table tbody tr td}12
+  p1-l18  {table tbody tr td}41
+  p1-l19  {table tbody tr td}B
+  p1-l20  {table tbody tr td}9
+  p1-l21  {table tbody tr td}38
+  p1-i1  picture ref='abbildungen/minuten.png' alt='Ein Balkendiagramm der Minuten pro Gruppe'
+  p1-l22  {p}Der Mittelwert ist
+  p1-l23  {div role:math}\bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
+  p1-l24  {p}und die Quellen stehen auf {p a href:https://example.org/sci2audio}der Projektseite{p}.
+  p1-l25  {h2; b}3 Ergebnisse
+  p1-l26  {p}Die Hörenden konnten dem Text folgen, auch wenn er lange Sätze und viele Zahlen enthielt. Für die nächste Studie wollen wir mehr Gruppen untersuchen.{p sup a #fnref2:1 role:doc-noteref link:p1-l28}2
+  p1-l27  {section role:doc-endnotes ol li #fn1 role:doc-endnote p}Nichts in dieser Notiz ist von anderen übernommen.
+  p1-l28  {section role:doc-endnotes ol li #fn2 role:doc-endnote p}Eine Fußnote mit {section role:doc-endnotes ol li #fn2 role:doc-endnote p strong; b}fettem{section role:doc-endnotes ol li #fn2 role:doc-endnote p} Text, fortgesetzt auf einer zweiten Zeile.
+  
+  '''
+# ---
+# name: test_german_golden_file[text]
+  '''
+  sci2audio-beispiel-text.txt  sha256 b14353ee629388fb
+  encoding: utf-8
+  metadata: title='' authors=[] date='' identifier='' language=''
+  outline:
+  == page 1  lines 18  pictures 0
+  p1-l1  {p}PAPERS HÖREN
+  p1-l2  {p br}Eine Pilotnotiz für die Tests von sci2audio
+  p1-l3  {p}Diese Notiz beschreibt eine erfundene Pilotstudie und keine echten
+  p1-l4  {p br}Daten. Jeder Satz darin ist unser eigener, und die Zeilen sind von
+  p1-l5  {p br}Hand bei etwa siebzig Zeichen umbrochen, wie es in Textdateien oft
+  p1-l6  {p br}der Fall ist.
+  p1-l7  {p}1. Einleitung
+  p1-l8  {p}Viele Menschen hören wissenschaftliche Texte, während sie gehen,
+  p1-l9  {p br}kochen oder pendeln. Ein Wort kann über zwei Zeilen getrennt wer-
+  p1-l10  {p br}den, wie in diesem Beispiel, und wird doch als ganzes Wort gehört.
+  p1-l11  {p}Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C.
+  p1-l12  {p br}Ein Gedankenstrich – kurz – und Anführungszeichen „wie diese“.
+  p1-l13  {p}- erster Punkt
+  p1-l14  {p br}- zweiter Punkt
+  p1-l15  {p}Rosen sind rot,
+  p1-l16  {p br}die Hörerin wartet;
+  p1-l17  {p br}ein Vers im Gedicht
+  p1-l18  {p br}bleibt, wo er bricht.
+  
+  '''
+# ---
 # name: test_markdown_golden_file
   '''
   sci2audio-sample-note.md  sha256 a9d0cedfcfd176ff

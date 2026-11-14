@@ -22,6 +22,7 @@ from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, find_furniture, pag
 from sci2audio.layout.geometry import body_size, boxed, holds, text_area, union
 from sci2audio.layout.graphics import find_graphics, link_captions
 from sci2audio.layout.headings import find_headings
+from sci2audio.layout.language import choose_language
 from sci2audio.layout.lists import find_lists
 from sci2audio.layout.order import Element, Reading, by_rows, figures, reading_order
 from sci2audio.layout.paragraphs import (
@@ -70,7 +71,7 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     blocks = _in_page_order(blocks, content)
     blocks, sections = find_headings(blocks, content, layout.size, settings)
     blocks = link_captions(blocks, links)
-    language = settings.language or content.metadata.language or "en"
+    language, source, guess = choose_language(content, settings)
     labels = tuple(layout.label(page) for page in content.pages)
     return Document(
         content=content,
@@ -78,6 +79,8 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
         blocks=tuple(blocks),
         sections=sections,
         page_labels=labels,
+        language_source=source,
+        language_guess=guess,
     )
 
 

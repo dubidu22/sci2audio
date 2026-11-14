@@ -1,0 +1,44 @@
+# Ground truth for markdown/sci2audio-beispiel-notiz.md. Format: README.md ("Own samples").
+# Written for sci2audio (#219); every value can be read off the Markdown source.
+file = "markdown/sci2audio-beispiel-notiz.md"
+drafted_from = ["markdown"]
+title = "Papers hören: eine Pilotnotiz"  # from the front matter, which is not read aloud
+
+headings = [
+  { level = 1, text = "Papers hören" },
+  { level = 2, text = "1 Einleitung" },
+  { level = 3, text = "1.1 Fragen" },
+  { level = 2, text = "2 Methode" },
+  { level = 2, text = "3 Ergebnisse" },
+]
+
+# Numbered in the order of first use; note 2 is referenced twice.
+footnotes = [
+  { mark = "1", text = "Nichts in dieser Notiz ist von anderen übernommen." },
+  { mark = "2", text = "Eine Fußnote mit fettem Text, fortgesetzt auf einer zweiten Zeile." },
+]
+
+tables = 1
+
+figures = ["Ein Balkendiagramm der Minuten pro Gruppe"]
+
+formulas = [
+  { display = false, text = "E = mc^2" },
+  { display = true, text = '\bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i' },
+]
+
+[[verbatim]]
+where = "plain"  # runs over a soft line break in the source
+text = "Gesprochener Text läuft mit etwa 150 Wörtern pro Minute, daher dauert ein Artikel mit 6.000 Wörtern rund 40 Minuten."
+
+[[verbatim]]
+where = "footnote-mark"
+text = "Jeder Satz hier ist unser eigener.1"
+
+[[verbatim]]
+where = "inline-maths"
+text = "Wie schnell kann man einer Formel wie E = mc^2 folgen?"
+
+[[verbatim]]
+where = "plain"
+text = "Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C."

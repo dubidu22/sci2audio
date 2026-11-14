@@ -336,6 +336,22 @@ def _text_language(report: Mapping[str, Any] | None) -> str:
     return language if _TAG.match(language) else "en"
 
 
+def _language_note(report: Mapping[str, Any] | None, s: Strings) -> str | None:
+    """The text's language and where it came from (D-499), or None for a report that
+    doesn't say (made before v1.1)."""
+    language = _text_language(report)
+    primary = primary_language(language)
+    name = s(f"pack.{primary}") if primary in PACKS else language
+    notes = {
+        "setting": lambda: s("voice.text_language_setting", language=name),
+        "file": lambda: s("voice.text_language_file", language=name),
+        "text": lambda: s("voice.text_language_text", language=name),
+        "fallback": lambda: s("voice.text_language_fallback", language=name),
+    }
+    note = notes.get(str((report or {}).get("language_source")))
+    return note() if note else None
+
+
 @router.get("/documents/{document_id}", response_class=HTMLResponse)
 def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     s = strings_of(request)
@@ -390,6 +406,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         document=found,
         report=report,
         text_language=_text_language(report),
+        language_note=_language_note(report, s),
         analysing=analysing,
         analysis_job=current.id if analysing and current is not None else None,
         failed=failed,

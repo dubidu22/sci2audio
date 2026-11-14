@@ -1,0 +1,24 @@
+# Ground truth for text/sci2audio-beispiel-text.txt. Format: README.md ("Own samples").
+# Written for sci2audio (#219); every value can be read off the text file.
+file = "text/sci2audio-beispiel-text.txt"
+drafted_from = ["text"]
+title = "PAPERS HÖREN"
+
+# Plain text marks no headings: "1. Einleitung" is a paragraph of its own.
+headings = []
+footnotes = []
+tables = 0
+figures = []
+formulas = []
+
+[[verbatim]]
+where = "plain"  # wrapped by hand over three lines
+text = "Jeder Satz darin ist unser eigener, und die Zeilen sind von Hand bei etwa siebzig Zeichen umbrochen, wie es in Textdateien oft der Fall ist."
+
+[[verbatim]]
+where = "hyphenation"  # "wer-" ends a line, "den," starts the next
+text = "Ein Wort kann über zwei Zeilen getrennt werden, wie in diesem Beispiel, und wird doch als ganzes Wort gehört."
+
+[[verbatim]]
+where = "plain"
+text = "Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C."

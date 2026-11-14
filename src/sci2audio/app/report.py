@@ -19,7 +19,7 @@ from typing import Any
 from sci2audio import __version__
 from sci2audio.app.chapters import Chapter
 from sci2audio.app.script import ScriptResult
-from sci2audio.core import Document, EditKind, Source, Span
+from sci2audio.core import Document, EditKind, LanguageGuess, LanguageSource, Source, Span
 from sci2audio.textprep import PAUSE_MARK, Category, Outcome, Status
 
 FORMAT = "sci2audio-report"
@@ -86,6 +86,9 @@ class Report:
     problems: tuple[tuple[str, str], ...]  # step id, message
     not_run: tuple[str, ...]
     warnings: tuple[str, ...]
+    # where the language came from and what the text said (D-494); None: not recorded
+    language_source: LanguageSource | None = None
+    language_guess: LanguageGuess | None = None
 
 
 def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
@@ -123,6 +126,8 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
     )
     if guessed := encoding_warning(source):
         warnings = (guessed, *warnings)
+    if language := language_warning(document):
+        warnings = (language, *warnings)
     return Report(
         source_name=source.name,
         source_format=str(source.format),
@@ -135,6 +140,8 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         problems=tuple((p.step, p.message) for p in result.run.problems),
         not_run=result.run.not_run,
         warnings=warnings,
+        language_source=document.language_source,
+        language_guess=document.language_guess,
     )
 
 
@@ -150,6 +157,48 @@ def encoding_warning(source: Source) -> str | None:
 
 
 _ENCODING_NAMES = {"windows-1252": "Windows-1252"}  # as people know it
+LANGUAGE_NAMES = {"en": "English", "de": "German"}  # the languages the text can be guessed as
+
+
+def language_warning(document: Document) -> str | None:
+    """The warning when the text did not tell its language, or when it overruled the
+    language the file states (D-495, D-496), else None."""
+    stated = document.content.metadata.language
+    if document.language_source is LanguageSource.FALLBACK:
+        return (
+            "sci2audio could not tell from the text whether it is English or German, so it "
+            "is read in English. If it is German, set the language to de (on the command "
+            "line: --language de)."
+        )
+    if document.language_source is LanguageSource.TEXT and stated:
+        name = LANGUAGE_NAMES[document.language]
+        return (
+            f"The file says its language is {stated}, but its text is {name}, so it is read "
+            f"in {name}. To read it as {stated}, set the language to {stated} (on the "
+            f"command line: --language {stated})."
+        )
+    return None
+
+
+def language_line(report: Report) -> str:
+    """The report's language line: the language and where it came from (D-494)."""
+    guess = report.language_guess
+    match report.language_source:
+        case LanguageSource.SETTING:
+            return f"Language: {report.language}, chosen in the settings."
+        case LanguageSource.FILE:
+            return f"Language: {report.language}, as the file states."
+        case LanguageSource.TEXT if guess is not None:
+            return (
+                f"Language: {report.language}, guessed from the text ({guess.german:,} German "
+                f"and {guess.english:,} English common words in {guess.words:,})."
+            )
+        case LanguageSource.FALLBACK:
+            return (
+                f"Language: {report.language}; the text does not show whether it is English "
+                "or German, so it is read as English."
+            )
+    return f"Language: {report.language}."
 
 
 def report_data(report: Report) -> dict[str, Any]:
@@ -164,6 +213,15 @@ def report_data(report: Report) -> dict[str, Any]:
             "sha256": report.sha256,
         },
         "language": report.language,
+        "language_source": None if report.language_source is None else str(report.language_source),
+        "language_guess": None
+        if report.language_guess is None
+        else {
+            "language": report.language_guess.language,
+            "words": report.language_guess.words,
+            "german": report.language_guess.german,
+            "english": report.language_guess.english,
+        },
         "settings": report.settings,
         "chapters": [
             {
@@ -199,7 +257,7 @@ def report_markdown(report: Report) -> str:
     out = [
         f"# What sci2audio will read: {_md(report.source_name)}",
         "",
-        f"Language: {report.language}. The text steps looked at the whole document; edits "
+        f"{language_line(report)} The text steps looked at the whole document; edits "
         "in chapters that are not chosen are listed but not spoken.",
         "",
         "## Chapters",
