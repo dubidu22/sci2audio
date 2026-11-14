@@ -365,6 +365,25 @@ def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
     assert read(CITATIONS, once) == once
 
 
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #271: the outer bracket is judged on what it reads once its inner citations go
+        ("Lärm wirkt ((Müller, 2019) Schmidt, 2020). Dann", "Lärm wirkt. Dann"),
+        ("Lärm wirkt (vgl. (Müller, 2019) Schmidt, 2020). Dann", "Lärm wirkt. Dann"),
+        ("Lärm wirkt ((Müller, 2019)). Dann", "Lärm wirkt. Dann"),
+        ("((Müller, 2019) Schmidt, 2020) zeigt das.", "Schmidt zeigt das."),
+        # prose once the inner citation is read: the bracket stays (D-541)
+        ("Es gilt ((Müller, 2019) siehe Tabelle 2).", "Es gilt (Müller siehe Tabelle 2)."),
+    ],
+)  # fmt: skip
+def test_a_nested_citation_reads_the_same_on_a_second_run(printed: str, said: str) -> None:
+    once = read(CITATIONS, printed)
+    assert once == said
+    assert read(CITATIONS, once) == once
+    assert read_all(read_all(printed)) == read_all(printed)
+
+
 def test_an_english_round_bracket_of_numbers_is_still_a_citation() -> None:
     """English has no decimal comma: "[1,2; 3,4]" cites sources 1, 2, 3 and 4."""
     document = make_document([(BlockKind.PARAGRAPH, "It holds ([1,2; 3,4]).")], "en")

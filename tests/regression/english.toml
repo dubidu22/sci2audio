@@ -1305,3 +1305,19 @@ blocks = [
 ]
 expected = ["See for example. Then more.", "Smith et al. Then more."]
 utterances = ["See for example.", "Then more.", "Smith et al. Then more."]
+
+[[case]]
+id = "citations-a-nested-citation-goes-on-the-first-run"
+audit = 0
+issue = 271
+goal = "A citation with a citation inside it goes whole on the first run: the outer bracket was judged on its printed text, so only the inner citation went and the first run read 'Noise matters ( Jones, 2020).', which a second run removed. As the subject its names stay, as for a single citation. A bracket that is prose once its inner citation is read stays (D-541)."
+blocks = [
+    { kind = "paragraph", text = "Noise matters ((Smith, 2019) Jones, 2020). Then more." },
+    { kind = "paragraph", text = "((Smith et al., 2019) Jones and Lee, 2020) found it." },
+    { kind = "paragraph", text = "It holds ((Smith, 2019) see also Table 2) here." },
+]
+expected = [
+    "Noise matters. Then more.",
+    "Jones and Lee found it.",
+    "It holds (Smith see also Table 2) here.",
+]

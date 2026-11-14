@@ -432,10 +432,20 @@ class _Rules:
     def _visit(self, text: str, root: _Bracket, found: list[_Found]) -> None:
         """Decide a bracket, then the inner brackets of what stays; no recursion, so a deep
         nest of brackets cannot overflow the stack."""
+        # every bracket decided once, inner ones first, so an outer bracket can be judged on
+        # what its inner brackets read (#271); a loop, not recursion, for deep nests
+        order, stack = [], [root]
+        while stack:
+            node = stack.pop()
+            order.append(node)
+            stack += node.children
+        decided: dict[int, list[_Found] | None] = {}
+        for node in reversed(order):
+            decided[node.open] = self._decide(text, node, decided)
         pending = [root]
         while pending:
             node = pending.pop()
-            handled = self._decide(text, node)
+            handled = decided[node.open]
             if handled is None:
                 pending += reversed(node.children)
                 continue
@@ -450,7 +460,9 @@ class _Rules:
                 ]
             )
 
-    def _decide(self, text: str, node: _Bracket) -> list[_Found] | None:
+    def _decide(
+        self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
+    ) -> list[_Found] | None:
         inside = text[node.open + 1 : node.close]
         if len(inside) > _MAX_BRACKET:
             return None
@@ -473,19 +485,69 @@ class _Rules:
         if _FULL_STOP_INSIDE.search(inside) and not self._starts_sentence(text, node.open):
             return None  # "It holds (Smith, 2019.)": its full stop ends the sentence outside
         parts = self._parts(text, node)
+        cited = [self._is_citation(text, part) for part in parts or ()]
+        if not cited or not all(cited):
+            whole = self._cited_once_inner_citations_go(text, node, decided)
+            if whole is not None:
+                return whole
         if parts is None:
             return None
-        cited = [self._is_citation(text, part) for part in parts]
         if not any(cited):
             return None
         if all(cited):
             end = self._glued_page(text, node.close + 1)
+            names = [self._part_authors(text, part) for part in parts]
             if self._is_subject(text, node.open, end):
-                return self._subject(text, node, parts, end, "is the subject of the sentence")
+                return self._subject(text, node, names, end, "is the subject of the sentence")
             if self._previous_word(text, node.open) in self.words.nouns:
-                return self._subject(text, node, parts, end, "is part of the sentence")
+                return self._subject(text, node, names, end, "is part of the sentence")
             return [self._removed(text, node.open, end, "citation")]
         return self._mixed(text, node, parts, cited)
+
+    def _cited_once_inner_citations_go(
+        self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
+    ) -> list[_Found] | None:
+        """The bracket as one citation if it is one as a second run sees it, once the
+        citations in its own inner round brackets are read: "((Müller, 2019) Schmidt, 2020)"
+        is "( Schmidt, 2020)" then, and "(vgl. (Müller, 2019) Schmidt, 2020)" is "(vgl.
+        Müller Schmidt, 2020)", so both runs remove it whole; a bracket left empty
+        ("((Müller, 2019))") goes too (#271)."""
+        inner = [child for child in node.children if text[child.open] == "("]
+        if not inner:
+            return None
+        # the bracket and the look-back before it, not the whole block: a block of many such
+        # brackets costs linear time; `shift` turns its positions back into the block's
+        shift = max(0, node.open - _LOOK_BACK)
+        judged = list(text[shift : node.close + 1])
+        for child in inner:
+            handled = decided.get(child.open)
+            if not handled:
+                return None  # an inner bracket that stays as printed: no citation around it
+            for start, end, _kind, replacement, _reason in handled:
+                start, end = max(start, node.open + 1), min(end, node.close)
+                if start > end or len(replacement) > end - start:
+                    return None  # an edit outside the bracket, or a reading longer than it
+                judged[start - shift : end - shift] = replacement.ljust(end - start)
+        read = "".join(judged)
+        local = _Bracket(node.open - shift, node.close - shift)
+        names = None
+        if read[local.open + 1 : local.close].strip():
+            parts = self._parts(read, local)
+            if not parts or not all(self._is_citation(read, part) for part in parts):
+                return None
+            names = [
+                (start + shift, end + shift)
+                for start, end in (self._part_authors(read, part) for part in parts)
+            ]
+        end = self._glued_page(text, node.close + 1)
+        subject = self._is_subject(text, node.open, end)
+        if subject or self._previous_word(text, node.open) in self.words.nouns:
+            if names is None:
+                return None  # "((Smith, 2019)) is cited": nothing left to name, as before
+            # "((Smith, 2019) Jones, 2020) is cited" reads "Jones is cited" on both runs
+            role = "is the subject of the sentence" if subject else "is part of the sentence"
+            return self._subject(text, node, names, end, role)
+        return [self._removed(text, node.open, end, "citation")]
 
     # numeric citations
 
@@ -752,13 +814,12 @@ class _Rules:
         return True
 
     def _subject(
-        self, text: str, node: _Bracket, parts: list[tuple[int, int]], end: int, role: str
+        self, text: str, node: _Bracket, names: list[tuple[int, int]], end: int, role: str
     ) -> list[_Found]:
         """A citation the sentence needs ("(Dasigi et al., 2019) note", "such as (Qin et al.,
-        2022) could"): keep its names, remove the rest (TP-04)."""
+        2022) could"): keep its names (spans of `text`), remove the rest (TP-04)."""
         printed = _printed(text[node.open : end])
         reason = f'citation "{printed}" {role}: only its names are read (TP-04)'
-        names = [self._part_authors(text, part) for part in parts]
         found: list[_Found] = [(node.open, names[0][0], EditKind.REMOVE, "", reason)]
         for number in range(1, len(names)):
             join = self.wording.list_and if number == len(names) - 1 else self.wording.list_comma

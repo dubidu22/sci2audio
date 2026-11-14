@@ -322,13 +322,43 @@ def test_no_removal_leaves_doubled_marks_or_a_wrong_capital(text: str, spoken: s
     assert read(text) == spoken
 
 
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #271: the outer bracket is judged on what it reads once its inner citations go
+        ("Noise matters ((Smith, 2019) Jones, 2020). Then", "Noise matters. Then"),
+        ("Noise matters (see (Smith, 2019) Jones, 2020). Then", "Noise matters. Then"),
+        ("Noise matters ((Smith, 2019)). Then", "Noise matters. Then"),
+        ("Noise matters (((Smith, 2019) Jones, 2020) Brown, 2021). Then", "Noise matters. Then"),
+        # as the subject its names stay, as for one citation
+        ("((Smith, 2019) Jones, 2020) is cited.", "Jones is cited."),
+        ("(((Smith, 2019) Jones, 2020) Brown, 2021) is cited.", "Brown is cited."),
+        ("such as ((Smith, 2019) Jones and Lee, 2020) could", "such as Jones and Lee could"),
+        # prose once the inner citation is read: the bracket stays (D-541)
+        ("It holds ((Smith, 2019) see Table 2) here.", "It holds (Smith see Table 2) here."),
+        ("It holds (see also (Smith, 2019); Jones, 2020).", "It holds (see also)."),
+    ],
+)  # fmt: skip
+def test_a_nested_citation_reads_the_same_on_a_second_run(printed: str, said: str) -> None:
+    once = read(printed)
+    assert once == said
+    assert read(once) == once
+
+
 def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
     text = "(" * 5000 + "Smith, 2019" + ")" * 5000
     document = make_document([(BlockKind.PARAGRAPH, text)])
     check_text_step(STEP, [document], allow_ask=False)
 
 
-@pytest.mark.parametrize("text", ["[1] " * 25_000, "Smith (2019) shows it [3]. " * 4000])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "[1] " * 25_000,
+        "Smith (2019) shows it [3]. " * 4000,
+        "Text ((Smith, 2019) Jones, 2020) here. " * 2600,  # #271: each nest judged on its own
+    ],
+)
 def test_a_long_block_takes_linear_time(text: str) -> None:  # S2: 100,000 characters
     started = time.perf_counter()
     edits(text)
