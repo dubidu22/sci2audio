@@ -1208,6 +1208,54 @@ expected = [
     "Es wurde gefördert vom BMBF.",
 ]
 
+# ---- v1.2 second-run batch: footnote marks and closing quotes (D-577) ----------------------
+
+[[case]]
+id = "de-utterances-a-sentence-ends-in-a-closing-quote"
+audit = 0
+issue = 315
+goal = "German: a full stop, '!' or '?' before a closing quote “ (of „…“), ‘ (of ‚…‘) or » (of Swiss «…») ends a sentence, as '.”' does in English (D-577, D5). A lower-case word after the quote goes on with the sentence."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Er sagte „ja.“ Dann ging er. Sie fragte ‚wann?‘ Dann rief sie «Halt!» Er hielt. Er sagte „gut.“ und ging." },
+]
+expected = ["Er sagte „ja.“ Dann ging er. Sie fragte ‚wann?‘ Dann rief sie «Halt!» Er hielt. Er sagte „gut.“ und ging."]
+utterances = ["Er sagte „ja.“", "Dann ging er.", "Sie fragte ‚wann?‘", "Dann rief sie «Halt!»", "Er hielt.", "Er sagte „gut.“ und ging."]
+
+[[case]]
+id = "de-footnote-mark-after-a-quote-that-ends-the-sentence"
+audit = 0
+issue = 315
+goal = "A note marked after a sentence that ends in a closing quote is read after that sentence, not at the paragraph's end (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Er sagte „ja.“", { sup = "1" }, " Dann ging er. Sie blieb."] },
+    { kind = "footnote", text = "1 So steht es im Brief.", label = "1" },
+]
+expected = ["Er sagte „ja.“", "Fußnote 1. So steht es im Brief.", "Dann ging er. Sie blieb."]
+
+[[case]]
+id = "de-footnote-mark-after-an-abbreviation-or-a-number"
+audit = 0
+issue = 316
+goal = "A footnote mark glued to an abbreviation or to a number's full stop does not hide them from the abbreviation and number rules: they read the text as a second run does, without the mark ('bzw.¹', 'z. B.¹', 'Abschnitt 2.¹') (D-577, D6)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Das gilt bzw.", { sup = "1" }, " das auch. Das ist z. B.", { sup = "2" }, " so. Siehe Abschnitt 2.", { sup = "3" }, " Dann weiter."] },
+    { kind = "footnote", text = "1 Erste Notiz.", label = "1" },
+    { kind = "footnote", text = "2 Zweite Notiz.", label = "2" },
+    { kind = "footnote", text = "3 Dritte Notiz.", label = "3" },
+]
+expected = [
+    "Das gilt beziehungsweise das auch.",
+    "Fußnote 1. Erste Notiz.",
+    "Das ist zum Beispiel so.",
+    "Fußnote 2. Zweite Notiz.",
+    "Siehe Abschnitt 2.",
+    "Fußnote 3. Dritte Notiz.",
+    "Dann weiter.",
+]
+
 # ---- v1.2 second-run batch: numbers (D-577) -----------------------------------------------
 
 [[case]]

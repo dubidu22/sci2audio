@@ -102,6 +102,21 @@ def test_a_block_step_must_cover_whole_blocks() -> None:
     assert any("does not cover its block" in problem for problem in problems)
 
 
+class SwitchedOff(Bad):
+    """A step that breaks the contract only while some category is switched off."""
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return super().find(document, context) if context.switched_off else []
+
+
+def test_the_suite_also_runs_each_step_with_every_category_switched_off() -> None:
+    # a step may read StepContext.switched_off, so it must keep the contract both ways (D-595)
+    problems = text_step_problems(SwitchedOff("outside"))
+    assert problems
+    assert all("every category off" in problem for problem in problems), problems
+    assert any("invalid edits" in problem for problem in problems), problems
+
+
 class Mover(TextStep):
     """A move step that reads each footnote at the end of the block before it (#213)."""
 

@@ -122,6 +122,27 @@ def test_switched_off_edits_are_reported_and_block_nothing() -> None:
     assert run.accepted == tuple(on.edits)
 
 
+class Seeing(Fixed):
+    """A step that notes the context it was given."""
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        self.seen = context
+        return []
+
+
+def test_every_step_learns_which_categories_this_run_switched_off() -> None:
+    # the runner fills StepContext.switched_off from its own argument (D-595); the caller's
+    # context is not changed, and what the caller put in the field is replaced
+    step = Seeing("seeing")
+    given = StepContext("en", switched_off=frozenset({Category.NUMBERS_AND_UNITS}))
+    run_steps(DOC, given, [step], switched_off={Category.FOOTNOTES}, strict=True)
+    assert step.seen == StepContext("en", switched_off=frozenset({Category.FOOTNOTES}))
+    assert given.switched_off == {Category.NUMBERS_AND_UNITS}
+    run_steps(DOC, EN, [step], strict=True)
+    assert step.seen.switched_off == DEFAULT_SWITCHED_OFF
+    assert EN.switched_off == frozenset()
+
+
 def test_ask_edits_are_accepted_and_read_the_original() -> None:
     ask = Edit(Span(0, 0, 7), EditKind.ASK, reason="unsure", step="x", replacement="Some")
     run = run_steps(DOC, EN, [Fixed("asker", [ask])], strict=True)

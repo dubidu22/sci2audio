@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from bisect import bisect_left, insort
 from collections.abc import Collection, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from functools import cached_property
 
@@ -126,6 +126,8 @@ def run_steps(
     run also StepError for a step that fails or breaks the rules.
     """
     check_registry(steps)
+    # each step may know which categories this run will not apply (D-595)
+    context = replace(context, switched_off=frozenset(switched_off))
     accepted = _Accepted()
     outcomes: list[Outcome] = []
     problems: list[StepProblem] = []
