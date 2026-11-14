@@ -307,3 +307,9 @@ def test_intervals_behind_unread_characters_and_math_letters_are_no_citations(
     again = make_document([(BlockKind.PARAGRAPH, first)])
     assert first == "two confidence intervals 1 to 3 and 2 to 4 overlap."
     assert spoken_text(run_steps(again, EN, strict=True).script()) == first
+
+
+def test_a_minus_after_a_sign_is_a_negative_number_not_an_arrow() -> None:
+    """ "<-2" compares with minus two; "<- b" is an arrow (mutation run, #80)."""
+    assert read("x <-2 y") == "x less than -2 y"
+    assert read("x <- y") == "x <- y"
