@@ -1,11 +1,12 @@
 # ruff: noqa: RUF001  (dashes and quotes are meant as papers print them)
 """German links and citations (#101): the links and citations steps' German rows."""
 
-import time
+from collections.abc import Callable
 
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from linear_time import assert_linear
 
 from sci2audio.core import Block, BlockKind, Document, apply_edits
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
@@ -380,14 +381,14 @@ def test_any_text_keeps_the_contract_in_german(text: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "text",
+    ("sized", "size"),
     [
-        "Siehe https://x.org/a (abgerufen am 12.03.2020) und " * 3000,
-        "(vgl. Müller u. a. 2019, S. 12) " * 3000,
-        "Laut " + "Anna " * 20_000 + "Müller (2019)",
-        "(" * 20_000 + "Müller 2019" + ")" * 20_000,
-        "https://x.org/a, (Müller, 2019). https://x.org/b (Müller, 2019) " * 1000,
-        "Das KI unter https://x.org/a [1; 2] und KI Druck " * 2000,
+        (lambda n: "Siehe https://x.org/a (abgerufen am 12.03.2020) und " * n, 3000),
+        (lambda n: "(vgl. Müller u. a. 2019, S. 12) " * n, 3000),
+        (lambda n: "Laut " + "Anna " * n + "Müller (2019)", 20_000),
+        (lambda n: "(" * n + "Müller 2019" + ")" * n, 20_000),
+        (lambda n: "https://x.org/a, (Müller, 2019). https://x.org/b (Müller, 2019) " * n, 1000),
+        (lambda n: "Das KI unter https://x.org/a [1; 2] und KI Druck " * n, 2000),
     ],
     ids=[
         "access-notes",
@@ -398,9 +399,10 @@ def test_any_text_keeps_the_contract_in_german(text: str) -> None:
         "intervals-after-links",
     ],
 )
-def test_long_german_blocks_take_linear_time(text: str) -> None:
-    document = make_document([(BlockKind.PARAGRAPH, text)], "de")
-    started = time.perf_counter()
-    LINKS.find(document, DE)
-    CITATIONS.find(document, DE)
-    assert time.perf_counter() - started < 3
+def test_long_german_blocks_take_linear_time(sized: Callable[[int], str], size: int) -> None:
+    def run(text: str) -> None:
+        document = make_document([(BlockKind.PARAGRAPH, text)], "de")
+        LINKS.find(document, DE)
+        CITATIONS.find(document, DE)
+
+    assert_linear(run, sized, size)  # 8 times the text against a base run (#276)

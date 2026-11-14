@@ -7,11 +7,11 @@ corpus snapshots show them on the papers.
 
 import os
 import random
-import time
 
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from linear_time import assert_linear
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span, check_edits
 from sci2audio.testing import check_text_step, make_document
@@ -600,13 +600,14 @@ def test_random_token_soup_never_gives_overlapping_or_bad_edits() -> None:
 @pytest.mark.timeout(60)
 def test_a_very_long_block_takes_no_more_than_linear_time() -> None:
     """100,000 characters of units and abbreviations: no per-match look-back (#103 lesson)."""
-    text = ("It took 5 mg/kg, e.g. at 37 \u00b0C, ~5 runs, 3 x 4 grids and Fig. 2; " * 1600)[
-        :100_000
-    ]
-    document = make_document([(BlockKind.PARAGRAPH, text)])
-    started = time.perf_counter()
-    edits = UNITS.find(document, EN) + ABBREVIATIONS.find(document, EN)
-    assert time.perf_counter() - started < 3
+    unit = "It took 5 mg/kg, e.g. at 37 \u00b0C, ~5 runs, 3 x 4 grids and Fig. 2; "
+
+    def run(text: str) -> list[Edit]:
+        document = make_document([(BlockKind.PARAGRAPH, text)])
+        return UNITS.find(document, EN) + ABBREVIATIONS.find(document, EN)
+
+    # 8 times the text against a base run (#276)
+    edits = assert_linear(run, lambda n: (unit * 1600)[:n], 100_000)
     assert len(edits) > 9_000
 
 
