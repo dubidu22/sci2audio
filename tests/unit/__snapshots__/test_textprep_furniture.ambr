@@ -53,11 +53,14 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2017-maass-privacyscore]
   dict({
-    'abbreviations: accepted': 95,
-    'abbreviations: set-aside': 3,
+    'abbreviations: accepted': 93,
+    'abbreviations: set-aside': 5,
     'characters: accepted': 38,
     'footnote-texts: switched-off': 30,
-    'footnotes: accepted': 60,
+    'footnotes: accepted': 50,
+    'footnotes: set-aside': 10,
+    'links: accepted': 15,
+    'links: set-aside': 1,
     'numbers-and-units: accepted': 28,
     'numbers-and-units: set-aside': 7,
     'page-furniture: accepted': 13,

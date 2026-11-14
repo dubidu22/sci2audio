@@ -4041,7 +4041,7 @@
         'references': False,
         'selected': True,
         'title': '2 Verwandte Arbeiten',
-        'utterances': 17,
+        'utterances': 12,
       }),
       dict({
         'blocks': list([
@@ -4053,7 +4053,7 @@
         'references': False,
         'selected': True,
         'title': '3 PrivacyScore im Überblick',
-        'utterances': 38,
+        'utterances': 36,
       }),
       dict({
         'blocks': list([
@@ -4065,7 +4065,7 @@
         'references': False,
         'selected': True,
         'title': '4 Sicherheits- und Privatheitstests',
-        'utterances': 23,
+        'utterances': 21,
       }),
       dict({
         'blocks': list([
@@ -4089,7 +4089,7 @@
         'references': False,
         'selected': True,
         'title': '6 Rechtliche Fragestellungen',
-        'utterances': 183,
+        'utterances': 182,
       }),
       dict({
         'blocks': list([
@@ -4118,10 +4118,10 @@
     ]),
     'counts': dict({
       'abbreviations': dict({
-        'applied': 95,
+        'applied': 93,
         'label': 'Abbreviations',
         'not_spoken': 0,
-        'set_aside': 3,
+        'set_aside': 5,
         'switched_off': 0,
       }),
       'characters': dict({
@@ -4146,10 +4146,10 @@
         'switched_off': 30,
       }),
       'footnotes': dict({
-        'applied': 60,
+        'applied': 50,
         'label': 'Footnotes',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 10,
         'switched_off': 0,
       }),
       'formulas': dict({
@@ -4160,10 +4160,10 @@
         'switched_off': 0,
       }),
       'links': dict({
-        'applied': 0,
+        'applied': 15,
         'label': 'URLs, DOIs and e-mail addresses',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 1,
         'switched_off': 0,
       }),
       'numbers-and-units': dict({
@@ -5106,6 +5106,277 @@
         'step': 'footnote-texts',
       }),
       dict({
+        'block': 7,
+        'category': 'links',
+        'chapter': 1,
+        'end': 142,
+        'kind': 'remove',
+        'original': ' mmaass@seemoo.tu-darmstadt.de',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'e-mail address "mmaass@seemoo.tu-darmstadt.de" is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 112,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 8,
+        'category': 'links',
+        'chapter': 1,
+        'end': 155,
+        'kind': 'remove',
+        'original': ' a.laubach@uni-kassel.de',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'e-mail address "a.laubach@uni-kassel.de" is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 131,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 9,
+        'category': 'links',
+        'chapter': 1,
+        'end': 136,
+        'kind': 'remove',
+        'original': '''
+          
+          herrmann@informatik.uni-hamburg.de
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'e-mail address "herrmann@informatik.uni-hamburg.de" is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 101,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 19,
+        'category': 'links',
+        'chapter': 2,
+        'end': 93,
+        'kind': 'remove',
+        'original': '4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 20,
+        'category': 'links',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'remove',
+        'original': '5 https://www.ssllabs.com/ssltest/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://www.ssllabs.com/ssltest/") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 21,
+        'category': 'links',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'remove',
+        'original': '6 https://observatory.mozilla.org/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://observatory.mozilla.org/") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 22,
+        'category': 'links',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'remove',
+        'original': '7 z.B. https://securityheaders.io/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://securityheaders.io/") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 23,
+        'category': 'links',
+        'chapter': 2,
+        'end': 36,
+        'kind': 'remove',
+        'original': '8 https://webbkoll.dataskydd.net/en/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://webbkoll.dataskydd.net/en/") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 31,
+        'category': 'links',
+        'chapter': 3,
+        'end': 64,
+        'kind': 'remove',
+        'original': '9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 32,
+        'category': 'links',
+        'chapter': 3,
+        'end': 41,
+        'kind': 'remove',
+        'original': '10 https://dataskydd.net/kommuner-201704/',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://dataskydd.net/kommuner-201704/") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 40,
+        'category': 'links',
+        'chapter': 3,
+        'end': 116,
+        'kind': 'remove',
+        'original': ' unter https://privacyscore.org/',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'URL "https://privacyscore.org/" is not read; "unter" before it goes too, so the sentence still reads (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 84,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 46,
+        'category': 'links',
+        'chapter': 4,
+        'end': 21,
+        'kind': 'remove',
+        'original': '11 https://testssl.sh',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://testssl.sh") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 47,
+        'category': 'links',
+        'chapter': 4,
+        'end': 94,
+        'kind': 'remove',
+        'original': '12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 50,
+        'category': 'links',
+        'chapter': 5,
+        'end': 119,
+        'kind': 'remove',
+        'original': '''
+          
+          und z. B. https://archive.org/
+        ''',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'URL "https://archive.org/" is not read; "z. B." before it goes too, so the sentence still reads; "und" before it goes too (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 88,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 56,
+        'category': 'links',
+        'chapter': 6,
+        'end': 20,
+        'kind': 'remove',
+        'original': '13 https://piwik.org',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'the text holds nothing but links ("https://piwik.org") and is not read (TP-07)',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'links',
+      }),
+      dict({
+        'block': 106,
+        'category': 'links',
+        'chapter': 8,
+        'end': 175,
+        'kind': 'remove',
+        'original': 'https://arxiv.org/abs/1705.05139, ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'URL "https://arxiv.org/abs/1705.05139" is not read (TP-07)',
+        'said': '',
+        'spoken': False,
+        'start': 141,
+        'status': 'set-aside',
+        'step': 'links',
+        'won_by': dict({
+          'block': 106,
+          'end': 180,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
         'block': 0,
         'category': 'footnotes',
         'chapter': 0,
@@ -5324,10 +5595,19 @@
         'printed_page': '',
         'reason': 'footnote 4 is introduced by its mark',
         'said': 'Fußnote 4.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 19,
+          'end': 93,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 20,
@@ -5340,10 +5620,19 @@
         'printed_page': '',
         'reason': 'footnote 5 is introduced by its mark',
         'said': 'Fußnote 5.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 20,
+          'end': 34,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 21,
@@ -5356,10 +5645,19 @@
         'printed_page': '',
         'reason': 'footnote 6 is introduced by its mark',
         'said': 'Fußnote 6.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 21,
+          'end': 34,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 22,
@@ -5372,10 +5670,19 @@
         'printed_page': '',
         'reason': 'footnote 7 is introduced by its mark',
         'said': 'Fußnote 7.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 22,
+          'end': 34,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 23,
@@ -5388,10 +5695,19 @@
         'printed_page': '',
         'reason': 'footnote 8 is introduced by its mark',
         'said': 'Fußnote 8.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 23,
+          'end': 36,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 27,
@@ -5436,10 +5752,19 @@
         'printed_page': '',
         'reason': 'footnote 9 is introduced by its mark',
         'said': 'Fußnote 9.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 31,
+          'end': 64,
+          'kind': 'remove',
+          'page': 3,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 32,
@@ -5452,10 +5777,19 @@
         'printed_page': '',
         'reason': 'footnote 10 is introduced by its mark',
         'said': 'Fußnote 10.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 32,
+          'end': 41,
+          'kind': 'remove',
+          'page': 3,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 40,
@@ -5516,10 +5850,19 @@
         'printed_page': '',
         'reason': 'footnote 11 is introduced by its mark',
         'said': 'Fußnote 11.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 46,
+          'end': 21,
+          'kind': 'remove',
+          'page': 5,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 47,
@@ -5532,10 +5875,19 @@
         'printed_page': '',
         'reason': 'footnote 12 is introduced by its mark',
         'said': 'Fußnote 12.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 47,
+          'end': 94,
+          'kind': 'remove',
+          'page': 5,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 56,
@@ -5548,10 +5900,19 @@
         'printed_page': '',
         'reason': 'footnote 13 is introduced by its mark',
         'said': 'Fußnote 13.',
-        'spoken': True,
+        'spoken': False,
         'start': 0,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'footnotes',
+        'won_by': dict({
+          'block': 56,
+          'end': 20,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 58,
@@ -6715,10 +7076,19 @@
         'printed_page': '',
         'reason': 'abbreviation "z.B." read as "zum Beispiel"',
         'said': 'zum Beispiel',
-        'spoken': True,
+        'spoken': False,
         'start': 2,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'abbreviations',
+        'won_by': dict({
+          'block': 22,
+          'end': 34,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 26,
@@ -6907,10 +7277,19 @@
         'printed_page': '',
         'reason': 'abbreviation "z. B." read as "zum Beispiel"',
         'said': 'zum Beispiel',
-        'spoken': True,
+        'spoken': False,
         'start': 93,
-        'status': 'accepted',
+        'status': 'set-aside',
         'step': 'abbreviations',
+        'won_by': dict({
+          'block': 50,
+          'end': 119,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '',
+          'start': 88,
+          'step': 'links',
+        }),
       }),
       dict({
         'block': 52,
@@ -9016,8 +9395,6 @@
     }),
     'language_source': 'text',
     'not_run': list([
-      'links',
-      'citations',
     ]),
     'problems': list([
     ]),
@@ -9053,11 +9430,11 @@
   |---|---|---|---|---|
   | 1 | PrivacyScore | 1 | yes | 8 |
   | 2 | 1 Einleitung | 1 | yes | 35 |
-  | 3 | 2 Verwandte Arbeiten | 2 | yes | 17 |
-  | 4 | 3 PrivacyScore im Überblick | 3 | yes | 38 |
-  | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 23 |
+  | 3 | 2 Verwandte Arbeiten | 2 | yes | 12 |
+  | 4 | 3 PrivacyScore im Überblick | 3 | yes | 36 |
+  | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 21 |
   | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
-  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 183 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 182 |
   | 8 | 7 Schlussbemerkungen | 12 | yes | 23 |
   | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
   
@@ -9067,14 +9444,14 @@
   |---|---|---|---|---|
   | Page furniture | 13 | 0 | 0 | 0 |
   | Characters and hyphenation | 38 | 0 | 0 | 0 |
-  | Footnotes | 60 | 0 | 0 | 0 |
+  | Footnotes | 50 | 0 | 10 | 0 |
   | Footnote texts | 0 | 0 | 0 | 30 |
   | Citations | 0 | 0 | 0 | 0 |
-  | URLs, DOIs and e-mail addresses | 0 | 0 | 0 | 0 |
+  | URLs, DOIs and e-mail addresses | 15 | 0 | 1 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 1 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
-  | Abbreviations | 95 | 0 | 3 | 0 |
+  | Abbreviations | 93 | 0 | 5 | 0 |
   | Numbers, symbols, units and statistics | 28 | 0 | 7 | 0 |
   
   ## Page furniture (13)
@@ -9149,21 +9526,21 @@
   - page 2, chapter 3, applied: “6” → left out. Reason: footnote mark 6 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
   - page 2, chapter 3, applied: “7” → left out. Reason: footnote mark 7 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
   - page 2, chapter 3, applied: “8” → left out. Reason: footnote mark 8 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 2, chapter 3, applied: “4” → read as “Fußnote 4.”. Reason: footnote 4 is introduced by its mark. Step: footnotes.
-  - page 2, chapter 3, applied: “5” → read as “Fußnote 5.”. Reason: footnote 5 is introduced by its mark. Step: footnotes.
-  - page 2, chapter 3, applied: “6” → read as “Fußnote 6.”. Reason: footnote 6 is introduced by its mark. Step: footnotes.
-  - page 2, chapter 3, applied: “7” → read as “Fußnote 7.”. Reason: footnote 7 is introduced by its mark. Step: footnotes.
-  - page 2, chapter 3, applied: “8” → read as “Fußnote 8.”. Reason: footnote 8 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “4” → read as “Fußnote 4.”. Reason: footnote 4 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “5” → read as “Fußnote 5.”. Reason: footnote 5 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “6” → read as “Fußnote 6.”. Reason: footnote 6 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “7” → read as “Fußnote 7.”. Reason: footnote 7 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “8” → read as “Fußnote 8.”. Reason: footnote 8 is introduced by its mark. Step: footnotes.
   - page 3, chapter 3, applied: “9” → left out. Reason: footnote mark 9 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
   - page 3, chapter 3, applied: “10” → left out. Reason: footnote mark 10 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 3, chapter 4, applied: “9” → read as “Fußnote 9.”. Reason: footnote 9 is introduced by its mark. Step: footnotes.
-  - page 3, chapter 4, applied: “10” → read as “Fußnote 10.”. Reason: footnote 10 is introduced by its mark. Step: footnotes.
+  - page 3, chapter 4, set aside: the remove edit of step links (page 3) won: “9” → read as “Fußnote 9.”. Reason: footnote 9 is introduced by its mark. Step: footnotes.
+  - page 3, chapter 4, set aside: the remove edit of step links (page 3) won: “10” → read as “Fußnote 10.”. Reason: footnote 10 is introduced by its mark. Step: footnotes.
   - page 5, chapter 4, applied: “11” → left out. Reason: footnote mark 11 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
   - page 5, chapter 5, applied: “12” → left out. Reason: footnote mark 12 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
   - page 6, chapter 5, applied: “13” → left out. Reason: footnote mark 13 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 5, chapter 5, applied: “11” → read as “Fußnote 11.”. Reason: footnote 11 is introduced by its mark. Step: footnotes.
-  - page 5, chapter 5, applied: “12” → read as “Fußnote 12.”. Reason: footnote 12 is introduced by its mark. Step: footnotes.
-  - page 6, chapter 7, applied: “13” → read as “Fußnote 13.”. Reason: footnote 13 is introduced by its mark. Step: footnotes.
+  - page 5, chapter 5, set aside: the remove edit of step links (page 5) won: “11” → read as “Fußnote 11.”. Reason: footnote 11 is introduced by its mark. Step: footnotes.
+  - page 5, chapter 5, set aside: the remove edit of step links (page 5) won: “12” → read as “Fußnote 12.”. Reason: footnote 12 is introduced by its mark. Step: footnotes.
+  - page 6, chapter 7, set aside: the remove edit of step links (page 6) won: “13” → read as “Fußnote 13.”. Reason: footnote 13 is introduced by its mark. Step: footnotes.
   - page 7, chapter 7, applied: “14” → left out. Reason: footnote mark 14 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
   - page 7, chapter 7, applied: “15” → left out. Reason: footnote mark 15 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
   - page 7, chapter 7, applied: “16” → left out. Reason: footnote mark 16 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
@@ -9230,6 +9607,25 @@
   - page 12, chapter 8, switched off: “28 BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012, Az. 5 U 51/11.” → left out. Reason: footnote 28 is left out (all footnotes are left out). Step: footnote-texts.
   - page 12, chapter 8, switched off: “29 BGH v. 23.06.2009, Az. VI ZR196/08.” → left out. Reason: footnote 29 is left out (all footnotes are left out). Step: footnote-texts.
   
+  ## URLs, DOIs and e-mail addresses (16)
+  
+  - page 1, chapter 2, applied: “mmaass@seemoo.tu-darmstadt.de” → left out. Reason: e-mail address "mmaass@seemoo.tu-darmstadt.de" is not read (TP-07). Step: links.
+  - page 1, chapter 2, applied: “a.laubach@uni-kassel.de” → left out. Reason: e-mail address "a.laubach@uni-kassel.de" is not read (TP-07). Step: links.
+  - page 1, chapter 2, applied: “herrmann@informatik.uni-hamburg.de” → left out. Reason: e-mail address "herrmann@informatik.uni-hamburg.de" is not read (TP-07). Step: links.
+  - page 2, chapter 3, applied: “4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: the text holds nothing but links ("https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/") and is not read (TP-07). Step: links.
+  - page 2, chapter 3, applied: “5 https://www.ssllabs.com/ssltest/” → left out. Reason: the text holds nothing but links ("https://www.ssllabs.com/ssltest/") and is not read (TP-07). Step: links.
+  - page 2, chapter 3, applied: “6 https://observatory.mozilla.org/” → left out. Reason: the text holds nothing but links ("https://observatory.mozilla.org/") and is not read (TP-07). Step: links.
+  - page 2, chapter 3, applied: “7 z.B. https://securityheaders.io/” → left out. Reason: the text holds nothing but links ("https://securityheaders.io/") and is not read (TP-07). Step: links.
+  - page 2, chapter 3, applied: “8 https://webbkoll.dataskydd.net/en/” → left out. Reason: the text holds nothing but links ("https://webbkoll.dataskydd.net/en/") and is not read (TP-07). Step: links.
+  - page 3, chapter 4, applied: “9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017” → left out. Reason: the text holds nothing but links ("https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017") and is not read (TP-07). Step: links.
+  - page 3, chapter 4, applied: “10 https://dataskydd.net/kommuner-201704/” → left out. Reason: the text holds nothing but links ("https://dataskydd.net/kommuner-201704/") and is not read (TP-07). Step: links.
+  - page 5, chapter 4, applied: “unter https://privacyscore.org/” → left out. Reason: URL "https://privacyscore.org/" is not read; "unter" before it goes too, so the sentence still reads (TP-07). Step: links.
+  - page 5, chapter 5, applied: “11 https://testssl.sh” → left out. Reason: the text holds nothing but links ("https://testssl.sh") and is not read (TP-07). Step: links.
+  - page 5, chapter 5, applied: “12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: the text holds nothing but links ("https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/") and is not read (TP-07). Step: links.
+  - page 6, chapter 6, applied: “und z. B. https://archive.org/” → left out. Reason: URL "https://archive.org/" is not read; "z. B." before it goes too, so the sentence still reads; "und" before it goes too (TP-07). Step: links.
+  - page 6, chapter 7, applied: “13 https://piwik.org” → left out. Reason: the text holds nothing but links ("https://piwik.org") and is not read (TP-07). Step: links.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “https://arxiv.org/abs/1705.05139,” → left out. Reason: URL "https://arxiv.org/abs/1705.05139" is not read (TP-07). Step: links.
+  
   ## Tables and figures (1)
   
   - page 3, chapter 3, applied: “Besucher Anonyme Ersteller Angemeldete Ersteller aggreg. Statistiken anzeigen neue Benchmarks erstellen private Benchmarks erstellen öfftentl. Benchmarks anzeigen Kopie eines Benchmarks ändern eigene Benchmarks auflisten Ergebnis für Seiten anzeigen Benchmarks mit Token editieren eigene Benchmarks editieren Ranking/Gewichte anpassen Benschmarks mit Token löschen eigene Benchmarks löschen Benchmarks bestehen aus mehreren Scans besteht aus mehreren Tests Name: Deutsche Schulen Zeitstempel: 2017-04-11 Drittanbieter: 98 (adnet.com, …) Seiten: http://schule1.de/, … Attribute: { Land: Bayern, Anz. Zeitstempel: 2017-04-12 Standorte: web: DE (schule1.de), mail: US (mailfilter.net) Schüler: 950, Träger: Staat }, … … Perfect-Forward-Secrecy: ja Ranking-Gewichte: \[2, 0, …, 1\] Zeitstempel: 2017-04-18 Umleitung zu HTTPS : nein \[…\]” → read as “Abbildung 1 wird übersprungen.”. Reason: Abbildung 1 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
@@ -9249,7 +9645,7 @@
   ## Abbreviations (98)
   
   - page 2, chapter 2, applied: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
-  - page 2, chapter 3, applied: “z.B.” → read as “zum Beispiel”. Reason: abbreviation "z.B." read as "zum Beispiel". Step: abbreviations.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “z.B.” → read as “zum Beispiel”. Reason: abbreviation "z.B." read as "zum Beispiel". Step: abbreviations.
   - page 3, chapter 3, applied: “Abb.” → read as “Abbildung”. Reason: abbreviation "Abb." read as "Abbildung". Step: abbreviations.
   - page 3, chapter 4, applied: “Abb.” → read as “Abbildung”. Reason: abbreviation "Abb." read as "Abbildung". Step: abbreviations.
   - page 4, chapter 4, applied: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
@@ -9261,7 +9657,7 @@
   - page 5, chapter 5, applied: “u. a.” → read as “unter anderem”. Reason: abbreviation "u. a." read as "unter anderem". Step: abbreviations.
   - page 6, chapter 5, applied: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
   - page 6, chapter 6, applied: “vgl.” → read as “vergleiche”. Reason: abbreviation "vgl." read as "vergleiche". Step: abbreviations.
-  - page 6, chapter 6, applied: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
+  - page 6, chapter 6, set aside: the remove edit of step links (page 6) won: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
   - page 6, chapter 6, applied: “i. d. R.” → read as “in der Regel”. Reason: abbreviation "i. d. R." read as "in der Regel". Step: abbreviations.
   - page 7, chapter 7, applied: “gem.” → read as “gemäß”. Reason: abbreviation "gem." read as "gemäß". Step: abbreviations.
   - page 7, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
@@ -9384,11 +9780,6 @@
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “:” → read as “zu”. Reason: ratio "70:10" read as "70 zu 10". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "10–15" read with "bis". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "1151–1160" read with "bis". Step: numbers.
-  
-  ## Problems
-  
-  - Step links does not handle this language.
-  - Step citations does not handle this language.
   
   '''
 # ---
@@ -11614,15 +12005,15 @@
   
   Fußnote 1.
   Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr.
-  32, 64293 Darmstadt, Deutschland, mmaass@seemoo.tu-darmstadt.de
+  32, 64293 Darmstadt, Deutschland,
   
   Fußnote 2.
   Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr.
-  1, 34109 Kassel, Deutschland, a.laubach@uni-kassel.de
+  1, 34109 Kassel, Deutschland,
   
   Fußnote 3.
   Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str.
-  30, 22527 Hamburg, Deutschland, herrmann@informatik.uni-hamburg.de
+  30, 22527 Hamburg, Deutschland,
   
   Fußnote.
   Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde [MH17].
@@ -11658,16 +12049,6 @@
   Darüber hinaus existieren Dienste, welche das Vorhandensein der relativ neuen HTTP-Security-Header überprüfen.
   Privatheitseigenschaften von Webseiten betrachtet Webbkoll.
   
-  Fußnote 4. https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/
-  
-  Fußnote 5. https://www.ssllabs.com/ssltest/
-  
-  Fußnote 6. https://observatory.mozilla.org/
-  
-  Fußnote 7. zum Beispiel https://securityheaders.io/
-  
-  Fußnote 8. https://webbkoll.dataskydd.net/en/
-  
   Abbildung 1 wird übersprungen.
   
   Abbildung 1: Anwendungsfälle und Datenstrukturen
@@ -11696,10 +12077,6 @@
   Optional werden die Seiten jedes Benchmarks regelmäßig erneut gescannt.
   Frühere Ergebnisse werden zur Dokumentation der zeitlichen Entwicklung aufbewahrt (Historie).
   
-  Fußnote 9. https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017
-  
-  Fußnote 10. https://dataskydd.net/kommuner-201704/
-  
   Desweiteren ist es möglich, die einzelnen Adressen mit bestimmten Attributen zu klassifizieren.
   Denkbar wäre zum Beispiel eine Unterscheidung zwischen den Webseiten der gesetzlichen und privaten Krankenkassen, die hier gegeneinander verglichen werden sollen.
   
@@ -11725,7 +12102,7 @@
   Um dies zu ermöglichen wird der Programmcode von PrivacyScore im Sommer unter einer freien Lizenz veröffentlicht.
   Dies kommt auch der Weiterentwicklung von PrivacyScore zu Gute, da es Dritten die Möglichkeit gibt, neue Tests beizusteuern.
   
-  Implementation PrivacyScore befindet sich aktuell im Alpha-Stadium, ein Prototyp ist unter https://privacyscore.org/ abrufbar.
+  Implementation PrivacyScore befindet sich aktuell im Alpha-Stadium, ein Prototyp ist abrufbar.
   Für die Tests nutzen wir etablierte Tools wie OpenWPM [EN16] und testssl.sh.
   Weitere Details finden sich in [MH17].
   
@@ -11757,15 +12134,11 @@
   Dazu werden wir Konfigurationshilfen für beliebte Webserver und lokale Analysesysteme wie Piwik auflisten.
   Wo dies nicht möglich ist, liefern wir Nutzerinnen Hinweise zum Selbstdatenschutz, zum Beispiel durch die Installation von Browser-Add-ons, die Werbenetzwerke und Tracker blockieren.
   
-  Fußnote 11. https://testssl.sh
-  
-  Fußnote 12. https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/
-  
   # 6. 5 Ethische Fragestellungen
   
   5 Ethische Fragestellungen
   
-  Der automatische Abruf von Webseiten ist eine weitverbreitete Praxis (vergleiche Suchmaschinen und zum Beispiel https://archive.org/).
+  Der automatische Abruf von Webseiten ist eine weitverbreitete Praxis (vergleiche Suchmaschinen).
   Dennoch ist die Analyse von Seiten mit PrivacyScore aus ethischer Sicht nicht völlig unbedenklich, da sie über ein bloßes Abrufen einer Seite hinausgeht.
   
   Unser Ziel ist es, Seitenbetreiber und Nutzerinnen zu unterstützen, ohne jedoch ein (neues) Werkzeug für Angreifer zu entwickeln.
@@ -11797,8 +12170,6 @@
   weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch (StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG).
   Darüber hinaus ist auch ein deliktischer Abwehranspruch gegen Störungen aus dem Recht am eingerichteten und ausgeübten Gewerbebetrieb i.
   S. v. § 823 Absatz 1 BGB denkbar.
-  
-  Fußnote 13. https://piwik.org
   
   Einige Webseitenbetreiber verbieten in ihren Nutzungsbedingungen das automatisierte Durchsuchen und Auswerten der von ihnen zur Verfügung gestellten Daten.
   Während manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell bejahen oder dies von der Art der Webseitenausgestaltung abhängig machen,

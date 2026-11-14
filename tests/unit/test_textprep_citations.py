@@ -277,9 +277,9 @@ def test_every_other_kind_of_block_is_read_without_its_citations() -> None:
         assert read("Results [3] here.", kind) == "Results here."
 
 
-def test_the_step_is_english_only_and_its_switch_reads_citations_as_printed() -> None:
+def test_the_step_reads_english_and_german_and_its_switch_reads_citations_as_printed() -> None:
     assert (STEP.languages, STEP.category, STEP.stage) == (
-        ("en",),
+        ("en", "de"),  # German since #101
         Category.CITATIONS,
         Stage.INLINE,
     )
@@ -459,9 +459,11 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
             or re.search(r"(?<!\S)the\s+Smith\s*\Z", before)
         ), (text, spoken)
     # every word outside the citations is still read, in order
-    # a bracket of lead words and citations goes whole: "( see [12])" (D-172), and so does
-    # one of lead words and a narrative citation: "( e.g., Smith (2019))" (D-447, #145)
-    outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*\[\d[\d,;–\s-]*\]\s*\)", " ", text)
+    # a bracket of lead words and citations goes whole: "( see [12])", "( [12], see [3])"
+    # (D-172), and so does one of lead words and a narrative citation: "( e.g., Smith
+    # (2019))" (D-447, #145)
+    lead = r"(?:[\s,;]|see|also|e\.g\.,)*"
+    outside = re.sub(rf"\({lead}(?:\[\d[\d,;–\s-]*\]{lead})+\)", " ", text)
     outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*Smith\s\(2019\)\s*\)", " ", outside)
     for citation in placed:
         outside = outside.replace(citation, " ")

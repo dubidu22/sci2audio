@@ -1239,6 +1239,38 @@ blocks = [
 expected = ["The cache holds 0 thousand.", "We gave 5 kilograms and 5 milligrams."]
 
 [[case]]
+id = "citations-after-a-removed-link-sentence"
+audit = 0
+issue = 101
+goal = "A citation that starts a sentence right after a sentence the links step removes is removed too: it takes the space after it, not the one before, which the link's removal already took ('[12]' was read aloud and set aside; found by the German second-run property, #101)."
+blocks = [{ kind = "paragraph", text = "The code is online. https://x.org/a. [12] It holds." }]
+expected = ["The code is online. It holds."]
+
+[[case]]
+id = "links-dangling-join-before-punctuation"
+audit = 0
+issue = 101
+goal = "A join word left with nothing after it goes with the removed link: 'on the page and <link>; see' read 'on the page and; see' (German rule of #101, which English shares; the English Markdown sample's script changes the same way)."
+blocks = [{ kind = "paragraph", text = "The sources are on the project page and https://example.org/data; see also the method." }]
+expected = ["The sources are on the project page; see also the method."]
+
+[[case]]
+id = "links-after-an-abbreviation-keep-the-full-stop"
+audit = 0
+issue = 101
+goal = "The full stop of 'e.g.' or 'i.e.' before a link ends no sentence, so the link's removal keeps the sentence's own full stop: main read 'online, for example Then more.' as one sentence (review of PR #256)."
+blocks = [{ kind = "paragraph", text = "The data are online, e.g. https://x.org. Then more." }]
+expected = ["The data are online, for example. Then more."]
+
+[[case]]
+id = "citations-bracket-after-a-said-sign"
+audit = 0
+issue = 101
+goal = "A bracket right after a comparison sign, printed or already said, is a value, not a citation: 'x = [12]' reads 'x equals [12]', and 'y equals [3]' keeps its bracket too. Before, the citations step removed the bracket after the said word, so 'x = [12]' changed on a second run (found by the German second-run property, #101)."
+blocks = [{ kind = "paragraph", text = "Let x = [12]. We have p < [1]. So y equals [3]." }]
+expected = ["Let x equals [12]. We have p less than [1]. So y equals [3]."]
+
+[[case]]
 id = "symbols-x-chain-after-a-spaced-x"
 audit = 0
 issue = 130
