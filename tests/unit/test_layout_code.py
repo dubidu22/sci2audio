@@ -160,6 +160,27 @@ def test_a_bold_monospace_heading_stays_a_heading(font: str, size: float) -> Non
     assert [s.title for s in doc.sections] == titles
 
 
+def test_bold_keyword_lines_inside_a_listing_are_part_of_it() -> None:
+    """Review R2-1: a listing that sets its "end" lines wholly in bold is one CODE block,
+    not code plus a paragraph "end end" read aloud."""
+    bold_end = (TextRun("end", "LMMono10-Bold", 10.0, bold=True),)
+    rows = [code("for k = 1:3"), code("  if k > 1"), code("    disp(k)"), bold_end, bold_end]
+    lines = [text_line(row, 280 + PITCH * k, end=LEFT + 80) for k, row in enumerate(rows)]
+    doc = build(*lines, text_line(prose("Then the loop ends."), 400))
+    assert kinds(doc)[1:] == [
+        ("code", "for k = 1:3\n  if k > 1\n    disp(k)\nend\nend"),
+        ("paragraph", "Then the loop ends."),
+    ]
+
+
+def test_a_run_of_only_bold_monospace_lines_is_read() -> None:
+    """A wholly bold monospace line that is not a heading on its own is not code either."""
+    bold = (TextRun("seaborn.objects", "LMMono10-Bold", 10.0, bold=True),)
+    doc = build(text_line(bold, 300), text_line(prose("The new interface."), 300 + 2 * PITCH))
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+    assert "seaborn.objects" in [block.text for block in doc.blocks]
+
+
 def test_sections_and_captions_point_at_the_right_blocks_after_a_listing() -> None:
     """Code is found after headings and captions: the section after a listing still starts at
     its heading, and a caption after it still names its figure."""

@@ -7,8 +7,8 @@ step reads a short notice instead, and the player shows the code.
 
 - A line is **monospace** when every run with visible text is in a typewriter font, known
   by its name (`monospace`), and none is larger than the body text (a package name set as
-  a title is not code). A line set wholly in bold is not code: listings are not, headings
-  are.
+  a title is not code). A run made only of lines set wholly in bold is not code (that is a
+  heading's look); a bold keyword line ("end") inside a listing is part of it.
 - Code can only be told from text where the text is not itself typewriter type: when most
   of the document's letters are in a typewriter font (a typed memo, an RFC, a text file
   printed to PDF), nothing is code.
@@ -79,8 +79,9 @@ def find_code(
             groups.append(([number], code))
     kept: list[tuple[list[int], bool]] = []
     for members, code in groups:
-        if code and _links("\n".join(blocks[k].text for k in members)):
-            kept += [([k], False) for k in members]  # only links: read as printed
+        run = [blocks[k] for k in members]
+        if code and (_links("\n".join(b.text for b in run)) or _all_bold(run, lines)):
+            kept += [([k], False) for k in members]  # only links or only bold: as printed
         else:
             kept.append((members, code))
     new_of = {old: new for new, (members, _) in enumerate(kept) for old in members}
@@ -114,10 +115,18 @@ def _code_paragraph(block: Block, lines: dict[str, TextLine], size: float) -> bo
 
 def _monospace_line(line: TextLine, size: float) -> bool:
     shown = [run for run in line.runs if run.text.strip()]
-    return (
-        bool(shown)
-        and all(monospace(run.font) and not (size and run.size > _LARGER * size) for run in shown)
-        and not all(_bold(run) for run in shown)
+    return bool(shown) and all(
+        monospace(run.font) and not (size and run.size > _LARGER * size) for run in shown
+    )
+
+
+def _all_bold(blocks: list[Block], lines: dict[str, TextLine]) -> bool:
+    """True if every line of the blocks is set wholly in bold: a heading's look, not a
+    listing's, which may set a keyword line ("end") in bold among the others."""
+    return all(
+        all(_bold(run) for run in lines[part.item].runs if run.text.strip())
+        for block in blocks
+        for part in block.parts
     )
 
 
