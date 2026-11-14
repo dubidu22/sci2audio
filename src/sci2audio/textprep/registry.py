@@ -13,6 +13,8 @@ here so every rule PR places its step deliberately. Planned order for v1.0:
   only applies where no other rule rewrote the text (D-150). So the rules before it see the
   printed characters (ligatures, maths letters, TeX accents set apart, "eV˚A") and must
   match those forms themselves
+- move (#213): footnote places, which reads each footnote after the sentence holding its
+  mark; moves run last, so they never block a rule about the text
 
 No built-in v1.0 step proposes `ask` edits (the interface has no way to answer them before
 UC-04); the conformance test enforces it. Plugins (`sci2audio.text_steps`) follow in v1.1.
@@ -25,7 +27,7 @@ from collections.abc import Sequence
 from sci2audio.textprep.abbreviations import AbbreviationStep
 from sci2audio.textprep.characters import UnicodeStep
 from sci2audio.textprep.citations import CitationStep
-from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
+from sci2audio.textprep.footnotes import FootnotePlaceStep, FootnoteStep, FootnoteTextStep
 from sci2audio.textprep.furniture import FurnitureStep
 from sci2audio.textprep.hyphens import LineEndHyphenStep
 from sci2audio.textprep.links import LinkStep
@@ -58,6 +60,8 @@ BUILT_IN_STEPS: tuple[TextStep, ...] = (
     # characters and hyphenation stay the last inline steps (D-150)
     UnicodeStep(),
     LineEndHyphenStep(),
+    # moves last: a footnote is read after the sentence with its mark (#213, D-558)
+    FootnotePlaceStep(),
 )
 
 

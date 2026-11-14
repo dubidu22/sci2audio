@@ -1,9 +1,12 @@
-"""Footnotes: marks left out of the running text, notes read where layout placed them (TP-05).
+"""Footnotes: marks left out of the running text, notes read after their mark's sentence (TP-05).
 
-Q2: a note is read where layout placed it (the foot of its column, in reading order),
-introduced by its mark ("Footnote 1.", in a German job "Fußnote 1.", #212), and its mark is
-left out of the running text. A note cannot move next to its mark: an edit never crosses
-blocks (D-61 (1)).
+A note is introduced by its mark ("Footnote 1.", in a German job "Fußnote 1.", #212), and its
+mark is left out of the running text. `FootnotePlaceStep` (#213, D-558) then moves the note's
+block to where the white space after the sentence holding its mark starts, by the utterance
+cutter's sentence rule on the block's text without its marks, or to the block's end if that
+sentence runs on. A note whose mark is not found, whose mark stands only in another note, or
+whose place another rule rewrote, is read where layout placed it (the foot of its column, in
+reading order), as before #213 (Q2).
 
 Two categories (D-142): "Footnotes" (on by default) holds `FootnoteStep`, which removes the
 marks and introduces the notes; "Footnote texts" (off by default) holds `FootnoteTextStep`,
@@ -36,7 +39,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Collection, Iterable, Iterator, Mapping
 
 from sci2audio.core import (
     Block,
@@ -51,6 +54,7 @@ from sci2audio.core import (
     TextRun,
 )
 from sci2audio.textprep.steps import ANY_LANGUAGE, Category, Stage, StepContext, TextStep
+from sci2audio.textprep.utterances import sentence_end
 from sci2audio.textprep.wording import Wording, wording_for
 
 # a run this much smaller than the block's main size is set small (layout's size_change)
@@ -75,6 +79,8 @@ _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF00
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
 _BRACKETED = re.compile(r"\[([^\[\]]+)\]|\(([^()]+)\)")  # "[1]" or "(1)": one pair
+# what a mark's removal says about its note (#213)
+_READ_AFTER = "the note is read after the sentence that holds it"
 
 
 class FootnoteTextStep(TextStep):
@@ -107,6 +113,13 @@ class FootnoteStep(TextStep):
     stage = Stage.INLINE
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return self.marked(document, context)[0]
+
+    def marked(
+        self, document: Document, context: StepContext
+    ) -> tuple[list[Edit], list[tuple[Edit, int]]]:
+        """The step's edits, and each mark it removes with the note block it marks (for the
+        footnote-places step, #213)."""
         wording = wording_for(context.language)
         items = document.content.items()  # once: it is built anew on every call
         notes = {
@@ -118,17 +131,19 @@ class FootnoteStep(TextStep):
         found: set[tuple[int, str]] = set()  # (page, label) of every mark taken
         linked: dict[int, str] = {}  # note block -> its first linked mark
         marks: dict[int, list[Edit]] = {}  # block -> its linked-mark removals
+        pairs: list[tuple[Edit, int]] = []  # each mark removed, with its note
         if notes:
             for index, block in enumerate(document.blocks):
                 if block.kind in LINKED_KINDS:
                     for page, edit, note in self._linked_marks(items, index, block, notes):
                         marks.setdefault(index, []).append(edit)
+                        pairs.append((edit, note))
                         mark = document.text_of(edit.span)
                         linked.setdefault(note, mark)
                         if label := document.blocks[note].label:
                             found.add((page, _same(label)))
         edits = []
-        labels: set[tuple[int, str]] = set()  # (page, label) of every note with a mark
+        labels: dict[tuple[int, str], int] = {}  # (page, label) of a note -> its first block
         for index, block in enumerate(document.blocks):
             if block.kind is BlockKind.FOOTNOTE:
                 backlinks = list(self._backlinks(items, index, block))
@@ -138,13 +153,16 @@ class FootnoteStep(TextStep):
                 if edit := self._introduction(index, block, wording, linked.get(index), removed):
                     edits.append(edit)
                 if block.label and block.parts:
-                    labels.add((items[block.parts[0].item][0].number, _same(block.label)))
+                    key = (items[block.parts[0].item][0].number, _same(block.label))
+                    labels.setdefault(key, index)
         for index in sorted(marks):
             edits += marks[index]
         for index, block in enumerate(document.blocks):
             if block.kind in MARKED_KINDS and labels:
-                edits += self._marks(items, index, block, labels, found)
-        return edits
+                for edit, key in self._marks(items, index, block, labels.keys(), found):
+                    edits.append(edit)
+                    pairs.append((edit, labels[key]))
+        return edits, pairs
 
     def _linked_marks(
         self,
@@ -188,8 +206,7 @@ class FootnoteStep(TextStep):
             Edit(
                 Span(index, start, start + len(mark)),
                 EditKind.REMOVE,
-                reason=f"footnote mark {mark} is not read; the note is read where the file "
-                "places it (Q2, D-414)",
+                reason=f"footnote mark {mark} is not read; {_READ_AFTER}",
                 step=self.id,
             ),
             note,
@@ -289,10 +306,11 @@ class FootnoteStep(TextStep):
         items: Mapping[str, tuple[Page, Item]],
         index: int,
         block: Block,
-        labels: set[tuple[int, str]],
+        labels: Collection[tuple[int, str]],
         found: set[tuple[int, str]],
-    ) -> list[Edit]:
-        """Remove-edits for the footnote marks in one block of running text."""
+    ) -> list[tuple[Edit, tuple[int, str]]]:
+        """Remove-edits for the footnote marks in one block of running text, each with the
+        (page, label) of the note it marks."""
         runs = list(_runs(items, block))
         main = _main_size(run for _, _, run in runs)
         # the runs beside each run on its own line: a rise is measured on the line (#248 M1)
@@ -316,14 +334,65 @@ class FootnoteStep(TextStep):
             ):
                 found.add(key)
                 edits.append(
-                    Edit(
-                        Span(index, start, end),
-                        EditKind.REMOVE,
-                        reason=f"footnote mark {mark} is not read; the note is read at the "
-                        "foot of the column (Q2)",
-                        step=self.id,
+                    (
+                        Edit(
+                            Span(index, start, end),
+                            EditKind.REMOVE,
+                            reason=f"footnote mark {mark} is not read; {_READ_AFTER}",
+                            step=self.id,
+                        ),
+                        key,
                     )
                 )
+        return edits
+
+
+class FootnotePlaceStep(TextStep):
+    """Read each footnote right after the sentence that holds its mark (#213, D-558).
+
+    The marks are the ones `FootnoteStep` leaves out; a note marked more than once (D-421)
+    goes to its first mark. Only marks in running text move a note (`MARKED_KINDS`): a mark
+    inside another note leaves its note where it is printed, so moves never chain. The
+    sentence end comes from the utterance cutter's own rule (`sentence_end`), with the
+    block's marks read as left out; when the sentence runs to the end of the block the note
+    goes after the block. A note whose mark is not found stays where it is printed.
+    """
+
+    id = "footnote-places"
+    languages = ("en", "de")
+    category = Category.FOOTNOTES
+    stage = Stage.MOVE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        _, pairs = FootnoteStep().marked(document, context)
+        removed: dict[int, list[tuple[int, int]]] = {}  # block -> its marks
+        first: dict[int, Span] = {}  # note block -> its first mark in running text
+        for edit, note in pairs:
+            span = edit.span
+            removed.setdefault(span.block, []).append((span.start, span.end))
+            if document.blocks[span.block].kind not in MARKED_KINDS:  # not in a note
+                continue
+            if note not in first or (span.block, span.start) < (
+                first[note].block,
+                first[note].start,
+            ):
+                first[note] = span
+        edits = []
+        for note, mark in sorted(first.items()):
+            block = document.blocks[note]
+            if not block.text:
+                continue
+            text = document.blocks[mark.block].text
+            at = sentence_end(text, mark.end, removed[mark.block], context.language)
+            edits.append(
+                Edit(
+                    Span(note, 0, len(block.text)),
+                    EditKind.MOVE,
+                    reason=f"{_name(block)} is read after the sentence that holds its mark",
+                    step=self.id,
+                    to=Span(mark.block, at, at),
+                )
+            )
         return edits
 
 

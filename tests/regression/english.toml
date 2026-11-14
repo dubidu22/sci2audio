@@ -333,12 +333,12 @@ expected = ["The following example creates a figure.", "A code block is skipped.
 id = "footnote-with-superscript-mark"
 audit = 0
 issue = 64
-goal = "The mark leaves the running text; the note is read where layout placed it, introduced by its mark (TP-05, Q2, D-143, D-144)."
+goal = "The mark leaves the running text; the note is read right after the sentence that holds its mark, introduced by its mark (TP-05, D-143, D-144; #213, D-558)."
 blocks = [
     { kind = "paragraph", runs = ["The effect was small.", { sup = "1" }, " It held in both groups."] },
     { kind = "footnote", text = "1 Measured with the short form.", label = "1" },
 ]
-expected = ["The effect was small. It held in both groups.", "Footnote 1. Measured with the short form."]
+expected = ["The effect was small.", "Footnote 1. Measured with the short form.", "It held in both groups."]
 
 [[case]]
 id = "footnote-with-symbol-mark"
@@ -381,6 +381,70 @@ blocks = [
 ]
 expected = ["It runs in time N3 on dense grammars.", "Footnote 3. Sparse ones are faster."]
 
+# Footnotes read at their mark (#213, D-558, plan Q4/Q5): a note is read right after the
+# sentence that holds its mark, found by the utterance cutter's own sentence rule; when the
+# sentence runs to the end of the block, after the block. Texts written for sci2audio.
+[[case]]
+id = "footnote-mark-mid-sentence"
+audit = 0
+issue = 213
+goal = "A note whose mark stands inside a sentence is read after that sentence, not at the mark and not after the paragraph."
+blocks = [
+    { kind = "paragraph", runs = ["The scale has eight items", { sup = "2" }, " and took ten minutes. Scores were high. They stayed high."] },
+    { kind = "footnote", text = "2 Translated from the German original.", label = "2" },
+]
+expected = ["The scale has eight items and took ten minutes.", "Footnote 2. Translated from the German original.", "Scores were high. They stayed high."]
+
+[[case]]
+id = "footnote-marks-in-one-sentence"
+audit = 0
+issue = 213
+goal = "Two notes marked in one sentence, one mark after its full stop, are both read after it, in the order of their marks."
+blocks = [
+    { kind = "paragraph", runs = ["We checked it with Qualys", { sup = "5" }, " and Mozilla.", { sup = "6" }, " Both agree."] },
+    { kind = "footnote", text = "5 A public scanner.", label = "5" },
+    { kind = "footnote", text = "6 Its observatory.", label = "6" },
+]
+expected = ["We checked it with Qualys and Mozilla.", "Footnote 5. A public scanner.", "Footnote 6. Its observatory.", "Both agree."]
+
+[[case]]
+id = "footnote-sentence-runs-to-the-block-end"
+audit = 0
+issue = 213
+goal = "When the sentence with the mark does not end inside its block (it goes on on the next page), the note is read after the block."
+blocks = [
+    { kind = "paragraph", runs = ["The values grew", { sup = "1" }, " over the years and"] },
+    { kind = "footnote", text = "1 In real terms.", label = "1" },
+    { kind = "paragraph", text = "then fell again." },
+]
+expected = ["The values grew over the years and", "Footnote 1. In real terms.", "then fell again."]
+
+[[case]]
+id = "footnote-mark-after-abbreviations"
+audit = 0
+issue = 213
+goal = "An abbreviation or an initial before the mark does not end the sentence: the note waits for the real end."
+blocks = [
+    { kind = "paragraph", runs = ["As J. Doe et al.", { sup = "3" }, " show in Fig. 2, it holds. We use it."] },
+    { kind = "footnote", text = "3 Personal communication.", label = "3" },
+]
+expected = ["As J. Doe et al. show in Figure 2, it holds.", "Footnote 3. Personal communication.", "We use it."]
+
+[[case]]
+id = "footnote-mark-in-a-list-item-and-a-heading"
+audit = 0
+issue = 213
+goal = "Marks in a list item and in a heading move their notes there too; a note without a mark stays where it is printed."
+blocks = [
+    { kind = "heading", runs = ["2 Methods", { sup = "∗" }] },
+    { kind = "list_item", runs = ["(a) the short form", { sup = "4" }] },
+    { kind = "paragraph", text = "It took ten minutes." },
+    { kind = "footnote", text = "∗Revised in 2024.", label = "∗" },
+    { kind = "footnote", text = "4 Eight items.", label = "4" },
+    { kind = "footnote", text = "The checklist is adopted from an earlier one." },
+]
+expected = ["2 Methods", "Footnote. Revised in 2024.", "(a) the short form", "Footnote 4. Eight items.", "It took ten minutes.", "Footnote. The checklist is adopted from an earlier one."]
+
 # Footnote marks tied to their notes by link tags (#189, D-420 to D-428). The first case is
 # the corpus Markdown sample's text (CC0, written for sci2audio); the second is The Time
 # Machine's one endnote and the sentence that marks it, from the corpus EPUB (public domain,
@@ -389,7 +453,7 @@ expected = ["It runs in time N3 on dense grammars.", "Footnote 3. Sparse ones ar
 id = "linked-marks-markdown"
 audit = 0
 issue = 189
-goal = "A noteref mark whose link reaches a note is left out wherever it stands, each time it is used, and the note is introduced by its first mark (D-421, D-425, D-428)."
+goal = "A noteref mark whose link reaches a note is left out wherever it stands, each time it is used, and the note is introduced by its first mark (D-421, D-425, D-428) and read after the sentence that holds that first mark (#213)."
 blocks = [
     { kind = "paragraph", runs = ["Every sentence here is our own.", { text = "1", tags = ["p", "sup", "a", "#fnref1", "role:doc-noteref", "link:b3l0"] }] },
     { kind = "list_item", runs = ["Do footnotes", { text = "2", tags = ["ol", "li", "sup", "a", "#fnref2", "role:doc-noteref", "link:b4l0"] }, " help or hurt?"] },
@@ -399,30 +463,31 @@ blocks = [
 ]
 expected = [
     "Every sentence here is our own.",
-    "Do footnotes help or hurt?",
-    "Listeners kept up.",
     "Footnote 1. Nothing in this note is taken from anyone else.",
+    "Do footnotes help or hurt?",
     "Footnote 2. A footnote with bold text, continued on a second line.",
+    "Listeners kept up.",
 ]
 
 [[case]]
 id = "linked-endnote-on-another-page"
 audit = 0
 issue = 189
-goal = "An EPUB endnote on another page than its mark: the mark (no superscript) is left out, the note is introduced by it, and its back-link arrow is not read (D-424, D-428)."
+goal = "An EPUB endnote on another page than its mark: the mark (no superscript) is left out, the note is introduced by it and read after the sentence with the mark (#213), and its back-link arrow is not read (D-424, D-428)."
 blocks = [
     { kind = "paragraph", runs = ["Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.", { text = "1", tags = ["section", "#chapter-8", "p", "a", "#noteref-1", "epub:noteref", "role:doc-noteref", "link:b1l0"] }, " The end I had come in at was quite above ground, and was lit by rare slit-like windows."] },
     { kind = "footnote", page = 2, runs = ["It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014\uFEFFEd. ", { text = "\u21A9\uFE0E", tags = ["li", "#note-1", "epub:endnote", "p", "a", "epub:backlink", "role:doc-backlink", "link:b0l0"] }] },
 ]
 expected = [
-    "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all. The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
+    "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.",
     "Footnote 1. It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014Ed.",
+    "The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
 ]
 utterances = [
     "Had it not been for her I do not think I should have noticed that the floor of the gallery sloped at all.",
-    "The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
     "Footnote 1.",
     "It may be, of course, that the floor did not slope, but that the museum was built into the side of a hill. \u2014Ed.",
+    "The end I had come in at was quite above ground, and was lit by rare slit-like windows.",
 ]
 
 [[case]]
