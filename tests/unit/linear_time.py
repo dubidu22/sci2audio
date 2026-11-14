@@ -17,14 +17,16 @@ reference text of the same length through the same step instead.
 from __future__ import annotations
 
 import gc
+import sys
 import time
 from collections.abc import Callable
 
 FACTOR = 8  # the large text is this many times the base text
 LIMIT = 32  # four times linear, half of quadratic
 # seconds: a base run faster than this counts as this long (timer noise); Windows counts CPU
-# time in steps of about 16 ms, so there the floor is four of its steps
-FLOOR = max(0.002, 4 * time.get_clock_info("process_time").resolution)
+# time in steps of the 15.6 ms timer tick (its reported resolution, 100 ns, is not what it
+# counts in), so there the floor is four ticks
+FLOOR = 4 / 64 if sys.platform == "win32" else 0.002
 
 
 def best_seconds[T](run: Callable[[str], T], text: str, runs: int = 3) -> tuple[float, T]:
