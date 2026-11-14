@@ -38,12 +38,14 @@ from sci2audio.core import (
     Source,
     SourceFormat,
 )
-from sci2audio.extraction.cover import Cover, media_type
+from sci2audio.extraction.cover import Cover, media_type, small_enough
 from sci2audio.extraction.errors import ExtractionError
 from sci2audio.extraction.language import stated_language
 from sci2audio.extraction.markup import (
     Anchors,
+    Budget,
     PageReader,
+    TooMuchText,
     clean_path,
     fold,
     resolve,
@@ -91,8 +93,9 @@ def read_epub(data: bytes, name: str) -> Content:
 
 
 def extract_epub_cover(path: Path) -> Cover | None:
-    """The cover the EPUB declares, if it is a JPEG or PNG of at most `MAX_COVER` bytes;
-    None otherwise or if the file can't be read (a missing cover never stops a job)."""
+    """The cover the EPUB declares, if it is a JPEG or PNG of at most `MAX_COVER` bytes
+    whose header gives a size within the pixel limits (`cover.small_enough`, D-579); None
+    otherwise or if the file can't be read (a missing cover never stops a job)."""
     try:
         data = path.read_bytes()
         book = _open(data, path.name)
@@ -109,7 +112,7 @@ def extract_epub_cover(path: Path) -> Cover | None:
     finally:
         book.close()
     kind = media_type(image) if image else None
-    return Cover(image, kind) if image and kind else None
+    return Cover(image, kind) if image and kind and small_enough(image) else None
 
 
 # ---- the zip -------------------------------------------------------------------------
@@ -222,6 +225,7 @@ class _Book:
         if len(package.spine) > MAX_SPINE:
             raise ExtractionError(f"{self.name}: the EPUB is too large or damaged")
         anchors = Anchors()
+        budget = Budget()  # one for the whole book (D-579)
         pages = []
         for number, idref in enumerate(package.spine, 1):
             item = package.manifest.get(idref)
@@ -230,14 +234,20 @@ class _Book:
                     f"{self.name}: the EPUB is damaged: its reading order names {idref!r},"
                     " which it does not list"
                 )
-            pages.append(self._page(number, package.readable(item), anchors))
+            try:
+                pages.append(self._page(number, package.readable(item), anchors, budget))
+            except TooMuchText as error:
+                raise ExtractionError(
+                    f"{self.name}: the EPUB is too large or damaged (more than"
+                    f" {error.limit:,} pieces of text)"
+                ) from None
         return tuple(pages), anchors
 
-    def _page(self, number: int, item: _Item, anchors: Anchors) -> Page:
+    def _page(self, number: int, item: _Item, anchors: Anchors, budget: Budget) -> Page:
         anchors.pages.setdefault(item.path, number)
         data = self.read(item.path)
         if item.media_type in _XHTML_TYPES:
-            reader = PageReader(number, item.path, anchors)
+            reader = PageReader(number, item.path, anchors, budget)
             try:
                 reader.read(_decode(data))
             except (AssertionError, ValueError) as error:  # html.parser gave up

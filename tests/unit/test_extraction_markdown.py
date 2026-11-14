@@ -8,16 +8,20 @@ and the nesting limit that fails rather than loses text (D-351) are pinned here.
 
 from __future__ import annotations
 
-import time
+import re
+import tracemalloc
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from linear_time import assert_linear
 
 from sci2audio.core import Content, Metadata, Picture, SourceFormat, TextLine
 from sci2audio.extraction import ExtractionError, extract_markdown, read_markdown
 from sci2audio.extraction import markdown as markdown_module
+from sci2audio.extraction import markup as markup_module
 
 pytestmark = pytest.mark.timeout(60)
 
@@ -416,32 +420,105 @@ def test_a_file_is_read_from_its_path(tmp_path: Path) -> None:
 
 # ---- speed: CommonMark's pathological inputs (D-351) ----------------------------------------
 
-N = 20_000
-PATHOLOGICAL = {
-    "nested brackets": "[" * N + "a" + "]" * N,
-    "unclosed link openers": "[a](" + "(" * N,
-    "emphasis openers": "*a " * N,
-    "underscores": "_a_ " * N,
-    "mixed delimiters": "a**b" * N + "c*" * N,
-    "backticks": "`a``" * N,
-    "angle brackets": "<" * N,
-    "dollars": "$a " * N,
-    "table columns": "|" + "a|" * N + "\n|" + "-|" * N + "\n",
-    "table rows": "|a|b|\n|-|-|\n" + "|x|y|\n" * N,
-    "note references": "[^a] " * N + "\n\n[^a]: x\n",
-    "link definitions": "".join(f"[{i}]: /u{i}\n" for i in range(N)) + "[1]" * N,
-    "entities": "&#x" * N,
+N = 20_000  # the large input; the base run is an eighth of it
+PATHOLOGICAL: dict[str, Callable[[int], str]] = {
+    "nested brackets": lambda n: "[" * n + "a" + "]" * n,
+    "unclosed link openers": lambda n: "[a](" + "(" * n,
+    "emphasis openers": lambda n: "*a " * n,
+    "underscores": lambda n: "_a_ " * n,
+    "mixed delimiters": lambda n: "a**b" * n + "c*" * n,
+    "backticks": lambda n: "`a``" * n,
+    "angle brackets": lambda n: "<" * n,
+    "dollars": lambda n: "$a " * n,
+    "table columns": lambda n: "|" + "a|" * n + "\n|" + "-|" * n + "\n",
+    "table rows": lambda n: "|a|b|\n|-|-|\n" + "|x|y|\n" * n,
+    "note references": lambda n: "[^a] " * n + "\n\n[^a]: x\n",
+    "link definitions": lambda n: "".join(f"[{i}]: /u{i}\n" for i in range(n)) + "[1]" * n,
+    "entities": lambda n: "&#x" * n,
 }
 
 
-@pytest.mark.parametrize("text", PATHOLOGICAL.values(), ids=PATHOLOGICAL.keys())
-def test_pathological_inputs_are_read_in_linear_time(text: str) -> None:
-    """Measured at most 0.7 s each on Linux and 5.1 s for the table rows on a Windows runner;
-    a case that grew quadratically would take minutes at this size, so the bound is
-    loose enough for any slow machine and still catches that."""
-    start = time.perf_counter()
-    outcome(text)
-    assert time.perf_counter() - start < 30
+@pytest.mark.parametrize("sized", PATHOLOGICAL.values(), ids=PATHOLOGICAL.keys())
+def test_pathological_inputs_are_read_in_linear_time(sized: Callable[[int], str]) -> None:
+    """Eight times the input against a base run, on CPU time (#298): a case that grew
+    quadratically takes about 64 times as long and fails."""
+    assert_linear(outcome, sized, N)
+
+
+# ---- size limits (#174, D-579) ------------------------------------------------------------
+
+
+def refused_before_parsing(text: str, message: str, monkeypatch: pytest.MonkeyPatch) -> int:
+    """Read `text`, which must fail with `message` before markdown-it parses it; the peak
+    of traced memory in bytes."""
+
+    def parse(*_: object) -> None:
+        raise AssertionError("markdown-it ran")
+
+    monkeypatch.setattr(markdown_module.MarkdownIt, "parse", parse)
+    tracemalloc.start()
+    try:
+        with pytest.raises(ExtractionError, match=message):
+            read(text)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    return peak
+
+
+def test_a_file_of_more_lines_than_the_limit_is_refused_before_parsing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    message = (
+        r"^notes\.md: the file is too large; sci2audio reads Markdown files of up to 250,000 lines$"
+    )
+    assert refused_before_parsing("w\n" * 250_001, message, monkeypatch) < 20 * 1024 * 1024
+
+
+def test_a_line_of_more_marks_than_the_limit_is_refused_before_parsing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One line of "*a* " costs markdown-it about 470 times its size, and a limit on lines
+    alone does not see it (D-579)."""
+    message = (
+        r"^notes\.md: the Markdown holds too much markup to read"
+        r" \(more than 500,000 marks such as \* _ ` \[ <\)$"
+    )
+    text = "*a* " * 250_000 + "*"
+    assert refused_before_parsing(text, message, monkeypatch) < 20 * 1024 * 1024
+
+
+@pytest.mark.parametrize("mark", list("*_`[<$!\\&|~"))
+def test_each_kind_of_mark_counts(monkeypatch: pytest.MonkeyPatch, mark: str) -> None:
+    monkeypatch.setattr(markdown_module, "MAX_MARKS", 3)
+    assert "marks" not in str(outcome("x" + mark * 3))
+    assert "more than 3 marks" in str(outcome("x" + mark * 4))
+
+
+def test_marks_are_counted_over_the_whole_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(markdown_module, "MAX_MARKS", 3)
+    assert "more than 3 marks" in str(outcome("*a*\n\n|b|\n"))
+
+
+def test_lines_at_the_limit_still_read(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(markdown_module, "MAX_LINES", 3)
+    assert texts(read("a\n\nb\n")) == ["a", "b"]
+    assert "of up to 3 lines" in str(outcome("a\n\nb\nc"))
+
+
+def test_more_pieces_of_text_than_the_limit_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Lines, pieces of text and pictures share one budget (`markup.MAX_ITEMS`): a file of
+    few lines and marks can still make many of them, e.g. one list item per line."""
+    monkeypatch.setattr(markup_module, "MAX_ITEMS", 6)
+    assert texts(read("- a\n- b\n- c\n")) == ["a", "b", "c"]  # 3 lines of one piece each
+    assert outcome("- a\n- b\n- c\n- d\n") == (
+        "notes.md: the Markdown is too large to read (more than 6 pieces of text)"
+    )
+
+
+def test_the_limits_are_the_decided_ones() -> None:
+    assert (markdown_module.MAX_LINES, markdown_module.MAX_MARKS) == (250_000, 500_000)
+    assert markup_module.MAX_ITEMS == 1_000_000  # D-579
 
 
 # ---- properties --------------------------------------------------------------------------
@@ -473,6 +550,23 @@ def test_any_markdown_gives_content_or_a_clear_error(text: str) -> None:
         assert line.text == line.text.strip(" ")
         assert "  " not in line.text
         assert not set(line.text) & set("\n\r\t\x0c")
+
+
+@given(MARKUP)
+def test_with_low_limits_any_markdown_reads_or_names_a_limit(text: str) -> None:
+    limits = (
+        r"the file is empty|the file holds no text|the Markdown is nested too deeply to read"
+        r"|the file is too large; sci2audio reads Markdown files of up to 4 lines"
+        r"|the Markdown holds too much markup to read \(more than 5 marks"
+        r"|the Markdown is too large to read \(more than 8 pieces of text\)"
+    )
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(markdown_module, "MAX_LINES", 4)
+        patch.setattr(markdown_module, "MAX_MARKS", 5)
+        patch.setattr(markup_module, "MAX_ITEMS", 8)
+        content = outcome(text)
+    if isinstance(content, str):
+        assert re.match(rf"notes\.md: (?:{limits})", content), content
 
 
 @given(st.binary(max_size=500))
