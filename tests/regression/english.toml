@@ -1333,3 +1333,23 @@ expected = [
     "Jones and Lee found it.",
     "It holds (Smith see also Table 2) here.",
 ]
+
+[[case]]
+id = "citations-a-grant-number-in-brackets-is-not-read"
+audit = 0
+issue = 285
+goal = "A bracket that holds only an identifier, such as a grant or award number, is not read: '(0801700)' and '(527794)' were read as long numbers (Colin's listening test, seaborn Acknowledgements). An identifier is a run of five digits or more, alone or in a code of letters and digits, maybe after a funding word. Years, small numbers, grouped or labelled quantities and names with short numbers stay (D-547). The other brackets are read as a second run reads them without the identifier: a year after it, citations beside it in one bracket, and a bracket left with only lead words go (review round 1 of PR #300)."
+blocks = [
+    { kind = "paragraph", text = "The first author was supported by the IGERT program (0801700) and by the Simons Society of Fellows (527794). Many thanks." },
+    { kind = "paragraph", text = "Funded by the NSF (grant no. DMS-1912345) and the NIH (0801700, 527794). Then more." },
+    { kind = "paragraph", text = "The year (2019) had (12,345) cases (n = 12345) in (OPP-115) and (COVID-19), see (3)." },
+    { kind = "paragraph", text = "As shown by Smith (527794) (2019), it grew fast (Smith, 2019; 527794)." },
+    { kind = "paragraph", text = "It was funded (see (527794)) by the NSF." },
+]
+expected = [
+    "The first author was supported by the IGERT program and by the Simons Society of Fellows. Many thanks.",
+    "Funded by the NSF and the NIH. Then more.",
+    "The year (2019) had (12,345) cases (n equals 12345) in (OPP-115) and (COVID-19), see (3).",
+    "As shown by Smith, it grew fast.",
+    "It was funded by the NSF.",
+]

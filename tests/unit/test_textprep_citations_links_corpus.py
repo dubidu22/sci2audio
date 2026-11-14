@@ -177,5 +177,5 @@ def test_the_corpus_has_the_citations_and_links_the_plan_counted() -> None:
             )
             counts["names kept"] += edit.reason.startswith("year of the citation")
     # the German paper (#101) adds 15 links; its citations are alphanumeric keys ("[MH17]"),
-    # which no step reads yet
-    assert counts == {"links": 28, "citations": 328, "read as references": 21, "names kept": 39}
+    # which no step reads yet; Waskom's two grant numbers in brackets go too (#285)
+    assert counts == {"links": 28, "citations": 330, "read as references": 21, "names kept": 39}

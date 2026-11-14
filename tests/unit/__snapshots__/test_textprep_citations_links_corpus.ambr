@@ -592,6 +592,8 @@
     "43 citations accepted: …ats, including numpy[ (Harris et al., 2020)] arrays and simple P… -> ''",
     "45 citations accepted: …ems, such as ggplot2[ (Wickham, 2016)]. While seaborn offe… -> ''",
     "45 citations accepted: …ers/Waskom_PNAS_2017[ (Waskom & Wagner, 2017)].… -> ''",
+    "51 citations accepted: …dation IGERT program[ (0801700)] and by the Simons F… -> ''",
+    "51 citations accepted: …s Society of Fellows[ (527794)]. Many others have h… -> ''",
   ])
 # ---
 # name: test_every_citation_and_link_edit_is_as_recorded[joss2022-biggs-pymedphys]

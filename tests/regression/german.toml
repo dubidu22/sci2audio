@@ -1153,3 +1153,24 @@ expected = [
     "Schmidt und Weber fanden es.",
     "Es gilt (Müller siehe auch Tabelle 2) hier.",
 ]
+
+[[case]]
+id = "de-citations-a-grant-number-in-brackets-is-not-read"
+audit = 0
+issue = 285
+goal = "A bracket that holds only an identifier, such as a grant number or a Förderkennzeichen, is not read, as in English. A thousands number in round brackets reads with spaces ('(12.345)' as '(12 345)', '(Projekt 12.345)' as '(Projekt 12 345)', which the voice reads as one number): read '(12345)', a second run would take it for an identifier (D-547, review round 1 of PR #300). The other brackets are read as a second run reads them without the identifier."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Gefördert vom BMBF (FKZ 01IS18026A) und der DFG (527794). Dann mehr." },
+    { kind = "paragraph", text = "Das Projekt (Förderkennzeichen 01IS18026A) lief lange." },
+    { kind = "paragraph", text = "Das Jahr (2019) hatte (12.345) Fälle (n = 12345) in (OPP-115) und (COVID-19), siehe (3)." },
+    { kind = "paragraph", text = "Wie Müller (527794) (2019) zeigt, wuchs es schnell (Müller, 2019; 527794)." },
+    { kind = "paragraph", text = "Gefördert (Projekt 12.345) wurde es (vgl. (527794)) und stieg (12.345-mal) an." },
+]
+expected = [
+    "Gefördert vom BMBF und der DFG. Dann mehr.",
+    "Das Projekt lief lange.",
+    "Das Jahr (2019) hatte (12 345) Fälle (n gleich 12345) in (OPP-115) und (COVID-19), siehe (3).",
+    "Wie Müller zeigt, wuchs es schnell.",
+    "Gefördert (Projekt 12 345) wurde es und stieg (12 345-mal) an.",
+]

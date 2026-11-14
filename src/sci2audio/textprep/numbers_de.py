@@ -393,6 +393,17 @@ def _labelled(text: str) -> tuple[list[Candidate], list[tuple[int, int]]]:
     return found, kept
 
 
+def _in_round_bracket(text: str, start: int) -> bool:
+    """True if `start` stands inside a round bracket that closes after it, with no other
+    bracket between: "(Projekt 12.345)", "(12.345-mal)", "(12.345; 67.890)"."""
+    window = max(0, start - 200)
+    opening = text.rfind("(", window, start)
+    if opening < 0 or text.rfind(")", window, start) > opening:
+        return False
+    closing = text.find(")", start, start + 200)
+    return closing >= 0 and text.find("(", start, closing) < 0
+
+
 def _thousands(text: str) -> list[Candidate]:
     found = []
     for match in _THOUSANDS.finditer(text):
@@ -419,7 +430,10 @@ def _thousands(text: str) -> list[Candidate]:
             and not _COUNT_LETTER.search(before)
         ):
             continue  # "M = 2.345": a point decimal, read by N-de-1 (or left as printed)
-        words = number.replace(".", "")
+        # in round brackets "(12.345)" reads "(12 345)", as the voice reads "1 234" well: read
+        # "(12345)", "(Projekt 12345)" or "(12345-mal)", the citations step would take it for
+        # an identifier on a second run (#285, review round 1)
+        words = number.replace(".", " " if _in_round_bracket(text, match.start()) else "")
         found.append(Candidate(*match.span(), words, f'"{number}" read as the number "{words}"'))
     return found
 
