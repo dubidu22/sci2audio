@@ -1273,16 +1273,20 @@ expected = [
 id = "de-citations-a-nest-of-any-depth"
 audit = 0
 issue = 306
-goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, so the whole nest goes on the first run (D-588; nightly seeds 555 and 8080 of PR #330)."
+goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, and a year bracket after the names an inner citation keeps is read with them, so the whole nest goes on the first run (D-588, D-599; nightly seeds 555 and 8080 of PR #330; review round 2)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Es gilt ((((Müller, 2019), Weber, 2020), Weber, 2020), Weber, 2020) hier." },
     { kind = "paragraph", text = "Es gilt ((((Müller, 2019) und Weber, 2020) und Weber, 2020) und Weber, 2020) hier." },
     { kind = "paragraph", text = "Es gilt (vgl. (vgl. (vgl. (Müller, 2019), Weber, 2020), Schmidt, 2021), Wolf, 2022) mehr." },
+    { kind = "paragraph", text = "Es gilt (vgl. (vgl. (vgl. (vgl. (Müller, 2019) (2019)) (2019)) (2019)) (2019)) mehr." },
+    { kind = "paragraph", text = "Es gilt (vgl. (vgl. (vgl. (vgl. (Müller, 2019, https://example.org) (2019)) (2019)) (2019)) (2019)) mehr." },
 ]
 expected = [
     "Es gilt hier.",
     "Es gilt hier.",
+    "Es gilt mehr.",
+    "Es gilt mehr.",
     "Es gilt mehr.",
 ]
 

@@ -1483,13 +1483,17 @@ expected = [
 id = "citations-a-nest-of-any-depth"
 audit = 0
 issue = 306
-goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, so each bracket is a citation as a second run sees it, and the whole nest goes on the first run (D-588; nightly seeds 555 and 8080 of PR #330)."
+goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, and a year bracket after the names an inner citation keeps is read with them, so each bracket is a citation as a second run sees it, and the whole nest goes on the first run (D-588, D-599; nightly seeds 555 and 8080 of PR #330; review round 2)."
 blocks = [
     { kind = "paragraph", text = "It holds ((((Smith, 2019), Lee, 2020), Lee, 2020), Lee, 2020) found it." },
     { kind = "paragraph", text = "It holds (((527794, (Smith, 2019)) (Smith, 2019), Lee, 2020), Lee, 2020) found it." },
     { kind = "paragraph", text = "Text (e.g., (e.g., (e.g., (Smith, 2019), Lee, 2020), Kim, 2021), Park, 2022) more." },
     { kind = "paragraph", text = "It holds (((Smith, 2019); Lee, 2020); Kim, 2021) found it." },
     { kind = "paragraph", text = "It holds ((((((((Smith, 2019), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020) found it." },
+    { kind = "paragraph", text = "It holds (see (see (see (see (Smith, 2019) (2019)) (2019)) (2019)) (2019)) more." },
+    { kind = "paragraph", text = "It holds (see (see (see (see (Smith, 2019, https://example.org) (2019)) (2019)) (2019)) (2019)) more." },
+    { kind = "paragraph", text = "It holds (cf. (cf. (cf. (cf. (Smith, 2019) (2019)) (2019)) (2019)) (2019)) more." },
+    { kind = "paragraph", text = "It holds (cf. (cf. (cf. (cf. (Smith, 2019, https://example.org) (2019)) (2019)) (2019)) (2019)) more." },
 ]
 expected = [
     "It holds found it.",
@@ -1497,6 +1501,10 @@ expected = [
     "Text more.",
     "It holds found it.",
     "It holds found it.",
+    "It holds more.",
+    "It holds more.",
+    "It holds more.",
+    "It holds more.",
 ]
 
 [[case]]

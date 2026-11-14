@@ -22,6 +22,7 @@ from sci2audio.textprep import (
     CitationStep,
     Stage,
     StepContext,
+    citations,
     run_steps,
     spoken_text,
 )
@@ -852,6 +853,8 @@ def test_the_generated_sentences_mostly_hold_citations() -> None:
         # (D-588)
         ("en", "It holds ((( (Smith, 2019) ))) here.", "It holds here."),
         ("de", "Es gilt [[( [12] )]] hier.", "Es gilt hier."),
+        # ... but only brackets that pair up (#330 review round 2)
+        ("en", "Text ( [12] ] more.", "Text ( ] more."),
     ],
 )  # fmt: skip
 def test_the_edge_rules_read_the_same_on_a_second_run(
@@ -863,21 +866,90 @@ def test_the_edge_rules_read_the_same_on_a_second_run(
     assert read_all(once, language) == once
 
 
+def _left(text: str, language: str = "en") -> str:
+    """The text with the citations step's edits made."""
+    found = STEP.find(make_document([(BlockKind.PARAGRAPH, text)], language), StepContext(language))
+    pieces, cursor = [], 0
+    for edit in sorted(found, key=lambda edit: edit.span.start):
+        pieces += [text[cursor : edit.span.start], edit.replacement or ""]
+        cursor = edit.span.end
+    return "".join([*pieces, text[cursor:]])
+
+
+def _nest(opening: str, inner: str, closing: str, levels: int) -> str:
+    head = opening[: opening.index("(")]
+    return head + opening[len(head) :] * levels + inner + closing * levels + " found."
+
+
 @pytest.mark.parametrize(
-    "nest",
+    ("language", "opening", "inner", "closing", "levels", "left"),
     [
-        ("It holds (", "(Smith, 2019)", ", Lee, 2020)"),
-        ("Text (e.g., ", "(Smith, 2019)", ", Lee, 2020)"),
-        ("It holds (", "(527794, (Smith, 2019))", ", Lee, 2020)"),
+        ("en", "It holds (", "(Smith, 2019)", ", Lee, 2020)", 3200, "It holds found."),
+        ("en", "Text (e.g., ", "(Smith, 2019)", ", Lee, 2020)", 3200, "Text found."),
+        ("en", "It holds (", "(527794, (Smith, 2019))", ", Lee, 2020)", 3200, "It holds found."),
+        ("en", "It holds (Lee, 2020; ", "(Smith, 2019)", ")", 3200, "It holds found."),
+        # a lead word and a year after the names an inner citation keeps: one look, not one
+        # per level, which took 88 s at 800 levels (#330 review round 2, D-599)
+        ("en", "It holds (see ", "(Smith, 2019)", " (2019))", 800, "It holds found."),
+        (
+            "en", "It holds (cf. ", "(Smith, 2019, https://x.org)", " (2019))", 800,
+            "It holds, https://x.org found.",  # the link is the links step's to remove
+        ),
+        ("de", "Es gilt (vgl. ", "(Müller, 2019)", " (2019))", 800, "Es gilt found."),
+        (
+            "de", "Es gilt (vgl. ", "(Müller, 2019, https://x.org)", " (2019))", 800,
+            "Es gilt, https://x.org found.",
+        ),
     ],
-)
-def test_a_deep_citation_nest_takes_linear_time(nest: tuple[str, str, str]) -> None:
+)  # fmt: skip
+def test_a_deep_citation_nest_takes_linear_time(
+    language: str,
+    opening: str,
+    inner: str,
+    closing: str,
+    levels: int,
+    left: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     # decided inner first in one look, not one look per level (D-588): 400 levels took 19 s
     # with a look per level. 400 levels and more are longer than the bracket cap, where each
     # level costs its own text; below the cap a level's checks read its whole inside, as on
-    # main
-    opening, inner, closing = nest
-    head = opening[: opening.index("(")]
+    # main. The whole nest goes, at every depth
     assert_linear(
-        edits, lambda n: head + opening[len(head) :] * n + inner + closing * n + " found.", 3200
+        lambda text: _left(text, language), lambda n: _nest(opening, inner, closing, n), levels
     )
+    looks = []
+    once = citations._Rules._once
+    monkeypatch.setattr(
+        citations._Rules, "_once", lambda self, *given: looks.append(1) or once(self, *given)
+    )
+    assert _left(_nest(opening, inner, closing, levels), language) == left
+    # the look that decides the nest, one more for an identifier or a link that goes, and one
+    # that changes nothing
+    assert len(looks) <= 3
+
+
+def test_a_bracket_longer_than_the_cap_is_no_citation_once_its_inner_ones_go() -> None:
+    # read inner first, its own text is still longer than any citation: only the inner
+    # citation goes, with the separator before it, on both runs (D-588)
+    text = "It holds (" + "Lee, 2020; " * 400 + "(Smith, 2019)) found."
+    once = _left(text)
+    assert once == text.replace("; (Smith, 2019)", "")
+    assert _left(once) == once
+
+
+def test_the_looks_stop_at_a_budget_and_leave_an_unsettled_nest_as_printed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # a stand-in for a shape that needs one look per level: without the inner-first reading
+    # each look decides one level of a comma nest. All looks together read at most a fixed
+    # multiple of the text, so the time stays linear; a nest still unsettled then stays as
+    # printed, on both runs (D-599)
+    monkeypatch.setattr(
+        citations._Rules, "_cited_once_inner_citations_go", lambda self, text, node, decided: None
+    )
+    nest = ("It holds (", "(Smith, 2019)", ", Lee, 2020)")
+    assert _left(_nest(*nest, 4)) == "It holds found."  # a few levels: inside the budget
+    assert_linear(_left, lambda n: _nest(*nest, n), 800)
+    deep = _nest(*nest, 800)
+    assert _left(deep) == deep

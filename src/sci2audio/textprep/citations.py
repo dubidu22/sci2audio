@@ -60,6 +60,8 @@ from sci2audio.textprep.wording import Wording, wording_for
 # look that changes something decides at least one more level of a nest (D-577, D-588)
 _LOOK_BRACKETS = re.compile(r"[(\[]")
 _MAX_BRACKET = 4000  # characters; a longer bracket is not a citation and is not parsed
+_EDITS_LOOKED_BACK = 16  # inner edits read back before a bracket of years (D-599)
+_LOOK_WORK = 8  # how many times its own length all looks at a block may read (D-599)
 
 
 @dataclass(frozen=True)
@@ -438,11 +440,17 @@ class _Rules:
         and "(see (527794))" is "(see)". So the brackets are decided again on that text, look
         after look, until a look changes nothing, however deep the nest; a later look's edit
         takes along the earlier ones inside it (#285 review round 1; #306, #308, #309, D-577,
-        D-588). The looks are bounded by the text's brackets, which no look adds.
+        D-588). The looks are bounded by the text's brackets, which no look adds, and all
+        looks together read at most a fixed multiple of the text: a nest that needs more stays
+        as printed, so no shape costs quadratic time (D-599).
         """
         links = sorted(links or [])
         found = self._once(text, links, ())
         looks = len(_LOOK_BRACKETS.findall(text))
+        # the work all looks may do: a fixed multiple of the text, so no shape that needs a
+        # look per level costs quadratic time; a nest still unsettled then stays as printed
+        # (#330 review round 2, D-599)
+        budget = _LOOK_WORK * (len(text) + _LOOK_BACK)
         gone = [(a, b) for a, b, _, _, why in found if why.startswith(_IDENTIFIER_REASON)]
         if gone:
             # identifiers first, with every other bracket decided anew on the text without
@@ -466,6 +474,7 @@ class _Rules:
             )
             if rewrite.text is None:
                 break  # a reading overlaps a removal: no look past them
+            budget -= len(rewrite.text)
             back: list[_Found] = []
             for start, end, kind, replacement, reason in self._once(rewrite.text, [], rewrite.at):
                 first, last = rewrite.printed(start, True), rewrite.printed(end, False)
@@ -479,6 +488,8 @@ class _Rules:
             later = _merged(found, back)
             if later == found:
                 break
+            if budget < 0:
+                return _unsettled_as_printed(text, found, later)
             found = later
         return found
 
@@ -825,15 +836,18 @@ class _Rules:
             return None
         edits = sorted(edit for child in inner for edit in decided.get(child.open) or ())
         starts = [start for start, *_ in edits]
+        years = self._years_after_inner_names(text, inner, decided, edits, starts)
         for child in inner:
             at = bisect.bisect_right(starts, child.open) - 1
+            if child.open in years:
+                continue  # read as printed, after the names: "(see Smith (2019))"
             if not decided.get(child.open) and not (at >= 0 and child.close < edits[at][1]):
                 # an inner bracket that stays as printed: no citation around it; one inside a
                 # sibling's edit ("(Smith, 2019)[p. 4]") goes with that sibling
                 return None
         read = _Read.of(text, node, edits)
         if read is None:
-            return None  # "([3] found it)": "reference 3" would shift what follows
+            return None  # an inner edit before the look-back, or the nest is too long
         self._separators_left(text, node, read)
         names = None
         if read.text[read.open + 1 : read.close].strip():
@@ -856,10 +870,52 @@ class _Rules:
             return self._with_inner(self._subject(text, node, names, end, role), edits)
         return [self._removed(text, node.open, end, "citation")]
 
+    def _years_after_inner_names(
+        self,
+        text: str,
+        inner: list[_Bracket],
+        decided: dict[int, list[_Found] | None],
+        edits: list[_Found],
+        starts: list[int],
+    ) -> set[int]:
+        """The inner brackets of years that follow a name once the inner edits before them are
+        made: "(see (Smith, 2019) (2019))" is "(see Smith (2019))" then, which a second run
+        decides as one citation; read so in this look, a nest of them is decided inner first
+        (#330 review round 2, D-599). `edits` are sorted and apart, `starts` theirs; only the
+        look-back before each bracket is read."""
+        years = set()
+        for child in inner:
+            if decided.get(child.open) or not self.years_only.match(
+                text[child.open + 1 : child.close]
+            ):
+                continue
+            last = bisect.bisect_left(starts, child.open)
+            if not last or edits[last - 1][1] > child.open:
+                continue  # no inner edit before it, or one around it
+            # the look-back as a second run reads it, gathered back from the bracket across
+            # the edits before it; a few edits at most, so each bracket costs constant time
+            pieces, right, size = [], child.open, 0
+            for start, end, _kind, replacement, _reason in reversed(
+                edits[max(0, last - _EDITS_LOOKED_BACK) : last]
+            ):
+                kept = text[max(end, right - _LOOK_BACK + size) : right]
+                pieces += [kept, replacement]
+                size += len(kept) + len(replacement)
+                right = start
+                if size >= _LOOK_BACK:
+                    break
+            else:
+                pieces.append(text[max(0, right - _LOOK_BACK + size) : right])
+            read = "".join(reversed(pieces))[-_LOOK_BACK:]
+            if self._names_before(read, len(read)):
+                years.add(child.open)
+        return years
+
     def _separators_left(self, text: str, node: _Bracket, read: _Read) -> None:
         """Blank, in `read`, a separator that an inner removal leaves hanging at the bracket's
-        start, after its lead words, or at its end (D-588)."""
-        removed = [(start, end, at) for start, end, at in read.removals]
+        start, after its lead words, or at its end (D-588): "((Smith, 2019), Lee, 2020)" and
+        "(Lee, 2020; (Smith, 2019))" are "(Lee, 2020)" then."""
+        removed = read.removals
         if not removed:
             return
         last = node.close  # after the last printed character inside
@@ -1303,7 +1359,8 @@ def _without(text: str, gone: Sequence[tuple[int, int]]) -> tuple[str, _Cuts]:
 
 class _Read:
     """A bracket as read once its inner edits are made, with the look-back before it: a
-    removal is one space, a reading is written into its span. Built from the bracket's own
+    removal is one space, a reading is written in (padded to its span if shorter; each piece
+    keeps its own place, so a longer one shifts nothing). Built from the bracket's own
     text, so a nest of any depth costs linear time (D-588)."""
 
     def __init__(self) -> None:
@@ -1320,8 +1377,8 @@ class _Read:
         cursor = max(0, node.open - _LOOK_BACK)
         size = 0
         for start, end, _kind, replacement, _reason in edits:
-            if len(replacement) > end - start or start < cursor:
-                return None  # a reading longer than its span would shift what follows
+            if start < cursor:
+                return None  # an edit that starts before the look-back: not read here
             edited = replacement.ljust(end - start) if replacement else " "
             for origin, piece in ((cursor, text[cursor:start]), (start, edited)):
                 if origin == start and piece is edited and not replacement:
@@ -1397,10 +1454,11 @@ def _shells(text: str, found: list[_Found]) -> list[_Found]:
     """Removals that leave nothing but the brackets around them take those brackets along,
     however many: "((((Müller 2019))))" goes whole in one look, as a second run would remove
     the empty brackets, and a nest deeper than the bracket cap costs no look per cap's depth
-    (D-588). Only brackets and white space; a removal that is not balanced keeps its edges."""
+    (D-588). Only brackets and white space: a removal that keeps names ("(" of "(Smith,
+    2019)" read "Smith") stands next to them, so it never meets an empty bracket."""
     result: list[_Found] = []
     for number, (start, end, kind, replacement, reason) in enumerate(found):
-        if kind is EditKind.REMOVE and _balanced(text[start:end]):
+        if kind is EditKind.REMOVE:
             low = result[-1][1] if result else 0
             high = found[number + 1][0] if number + 1 < len(found) else len(text)
             first, last = start, end
@@ -1419,16 +1477,29 @@ def _shells(text: str, found: list[_Found]) -> list[_Found]:
     return result
 
 
-def _balanced(text: str) -> bool:
-    depth = 0
-    for char in text:
-        if char in "([":
-            depth += 1
-        elif char in ")]":
-            depth -= 1
-            if depth < 0:
-                return False
-    return depth == 0
+def _unsettled_as_printed(text: str, found: list[_Found], later: list[_Found]) -> list[_Found]:
+    """The edits of the last look, but none in an outermost bracket where the two last looks
+    differ: the work budget ran out before it settled, so it stays as printed (D-599)."""
+    roots = brackets(text)
+    opens = [root.open for root in roots]
+    regions = []
+    for start, end, *_ in sorted(set(found) ^ set(later)):
+        low, high = start, max(end, start + 1)
+        first = bisect.bisect_right(opens, start) - 1
+        if first >= 0 and roots[first].close >= start:
+            low = roots[first].open
+        last = bisect.bisect_left(opens, high) - 1
+        if last >= 0 and roots[last].close >= start:
+            high = max(high, roots[last].close + 1)
+        regions.append((low, high))
+    regions = _joined(sorted(regions))
+    lows = [low for low, _ in regions]
+    kept = []
+    for edit in later:
+        at = bisect.bisect_right(lows, max(edit[0], edit[1] - 1)) - 1
+        if at < 0 or regions[at][1] <= edit[0]:
+            kept.append(edit)
+    return kept
 
 
 def _joined(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
