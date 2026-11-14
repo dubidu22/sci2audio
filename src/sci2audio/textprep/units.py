@@ -103,7 +103,9 @@ def _label_list(joins: tuple[str, ...]) -> re.Pattern[str]:
     return re.compile(rf"(?<![\w.])([^\W\d_][\w.]*)\s+{_ONE_LABEL}(?:{join}{_ONE_LABEL})*{join}\Z")
 
 
-_TILDE = re.compile(r"[~\u223c](?=[ \u00a0]{0,2}[+\-\u2212]?\.?\d)")
+# a hyphen at a line end before a digit counts too: the line-end hyphen step keeps it, so a
+# second run sees "~-0" (#304)
+_TILDE = re.compile(r"[~\u223c](?=[ \u00a0]{0,2}(?:[+\u2212]|-\n?)?\.?\d)")
 # a number, then x; the number may follow another "x" of a chain ("5x86x86")
 # and may end in a power the numbers step reads ("10⁶ x1" is "10 hoch 6 x1" after it, #253)
 _LETTER_X = re.compile(

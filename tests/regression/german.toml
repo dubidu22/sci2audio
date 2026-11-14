@@ -1319,3 +1319,70 @@ expected = [
     "Text mehr.",
     "Text mehr.",
 ]
+
+# ---- v1.2 second-run batch: numbers (D-577) -----------------------------------------------
+
+[[case]]
+id = "de-numbers-a-yearless-date-before-a-fraction"
+audit = 0
+issue = 310
+goal = "A date without its year is read before a fraction read in words that starts with 'ein' ('1/2' as 'ein halb'), as a second run reads it before a word (D-577). Before '2/3', read '2 Drittel', or '1/12', read '1 von 12', the date stays as printed on both runs."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Am 3.4. 1/2 Tag." },
+    { kind = "paragraph", text = "Am 3.4. 1/3 Tag." },
+    { kind = "paragraph", text = "Am 3.4. 2/3 Tag." },
+    { kind = "paragraph", text = "Am 3.4. 1/12 Liter." },
+]
+expected = [
+    "Am dritten April ein halb Tag.",
+    "Am dritten April ein Drittel Tag.",
+    "Am 3.4. 2 Drittel Tag.",
+    "Am 3.4. 1 von 12 Liter.",
+]
+
+[[case]]
+id = "de-numbers-a-date-range-with-a-yearless-end"
+audit = 0
+issue = 318
+goal = "A hyphen or en dash between two dotted dates, one or both without a year, is read 'bis' with both dates read, when the first date is read (D-577). A day alone before the dash ('3.–5.4.2019') stays as printed (D-562)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Vom 3.4.-5.4.2019 lief es." },
+    { kind = "paragraph", text = "Vom 3.4.–5.4.2019 lief es." },
+    { kind = "paragraph", text = "Vom 3.4.2019-5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.2019–5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.-5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.–5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.–5.4.2019 lief es." },
+]
+expected = [
+    "Vom dritten April bis fünften April 2019 lief es.",
+    "Vom dritten April bis fünften April 2019 lief es.",
+    "Vom dritten April 2019 bis fünften April lief es.",
+    "Vom dritten April 2019 bis fünften April lief es.",
+    "Vom dritten April bis fünften April lief es.",
+    "Vom dritten April bis fünften April lief es.",
+    "Vom 3.–5.4.2019 lief es.",
+]
+
+[[case]]
+id = "de-numbers-a-range-with-a-yearless-end-before-a-fraction-or-a-date"
+audit = 0
+issue = 318
+goal = "A range from a full date to a date without its year is read when the yearless end stands before what such a date may stand before: a full date, or a fraction read 'ein ...'; before '1/12', read '1 von 12', or a plain number it stays as printed, on both runs. An invalid end ('31.4.') is not read (#332 review round 1)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Vom 3.4.2019-5.4. 1/2 Tag." },
+    { kind = "paragraph", text = "Vom 3.4.2019-5.4. 12.03.2019 an." },
+    { kind = "paragraph", text = "Vom 3.4.2019-5.4. 1/12 Liter." },
+    { kind = "paragraph", text = "Vom 3.4.2019-31.4. 1/3." },
+    { kind = "paragraph", text = "Vom 3.4.2019-5.4. 3 Tage." },
+]
+expected = [
+    "Vom dritten April 2019 bis fünften April ein halb Tag.",
+    "Vom dritten April 2019 bis fünften April zwölfter März 2019 an.",
+    "Vom 3.4.2019-5.4. 1 von 12 Liter.",
+    "Vom dritten April 2019-31.4. ein Drittel.",
+    "Vom 3.4.2019-5.4. 3 Tage.",
+]
