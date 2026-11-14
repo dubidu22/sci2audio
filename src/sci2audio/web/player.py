@@ -346,8 +346,10 @@ def build_view(
     points outside its block (the read-along file belongs to another document).
 
     A block the text steps read elsewhere (a footnote read at its mark, #213) is shown right
-    after the block it is read in, so the page follows the voice. `steps` are the steps the
-    audiobook was made with: the built-in ones (tests pass others)."""
+    after the block it is read in, so the page follows the voice, but only where the
+    read-along shows the voice read it there (`_heard_moves`): an audiobook made before #213
+    read its notes where printed, and shows them there. `steps` are the steps the audiobook
+    was made with: the built-in ones (tests pass others)."""
     for chunk in readalong.chunks:
         try:
             document.check_span(chunk.span)
@@ -360,11 +362,12 @@ def build_view(
     notices = _notices(document, record.switched_off)
     run = _settled(document, record.switched_off, steps)
     joined = _joins(run)
+    moved = _heard_moves(run, readalong)
     moved_into: dict[int, list[int]] = {}  # block -> the blocks read inside it, in order
-    for block, target in sorted(run.moved.items()):
+    for block, target in sorted(moved.items()):
         moved_into.setdefault(target, []).append(block)
     levels = _heading_levels(document)
-    pages = _page_starts(document, run.moved.keys())
+    pages = _page_starts(document, moved.keys())
 
     element_of: list[str] = [""] * len(readalong.chunks)
     views: list[ChapterView] = []
@@ -372,11 +375,12 @@ def build_view(
     for index, times in enumerate(readalong.chapters):
         if not 0 <= times.first_chunk < len(readalong.chunks):
             raise PlayerError("listen.mismatch")
-        chapter = _chapter_of(chapters, readalong.chunks[times.first_chunk].span.block)
+        first = readalong.chunks[times.first_chunk].span.block
+        chapter = _chapter_of(chapters, moved.get(first, first))  # where it is read (R1-1)
         used.add(chapter.index)
         blocks: list[BlockView] = []
         for number in range(chapter.start, chapter.end):
-            if number in run.moved:
+            if number in moved:
                 continue  # shown after the block it is read in
             for shown_here in (number, *moved_into.get(number, ())):
                 block = document.blocks[shown_here]
@@ -424,6 +428,31 @@ def build_view(
         chunks=chunks,
         mode="mp3" if record.mp3s else "m4b",
     )
+
+
+def _heard_moves(run: StepRun, readalong: ReadAlong) -> dict[int, int]:
+    """The moves of `run` (block -> the block it is read in) that the audiobook was read
+    with (review R1-2). A move counts when the read-along reads the moved block right after a
+    piece of its target block, or right before the target's first piece (a move to the
+    target's start). The page is built by today's steps, but the audio may be older: an
+    audiobook made before #213 read each note where it is printed, so its read-along shows
+    no such neighbour and the note is shown where printed, in its printed chapter."""
+    first: dict[int, int] = {}
+    last: dict[int, int] = {}
+    for number, chunk in enumerate(readalong.chunks):
+        first.setdefault(chunk.span.block, number)
+        last[chunk.span.block] = number
+    chunks = readalong.chunks
+    heard: dict[int, int] = {}
+    for block, target in run.moved.items():
+        if block not in first:
+            continue  # nothing of it is read: shown where printed
+        before, after = first[block] - 1, last[block] + 1
+        if (before >= 0 and chunks[before].span.block == target) or (
+            after < len(chunks) and first.get(target) == after
+        ):
+            heard[block] = target
+    return heard
 
 
 def _chapter_of(chapters: Sequence[Chapter], block: int) -> Chapter:
