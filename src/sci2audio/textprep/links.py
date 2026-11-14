@@ -34,6 +34,8 @@ from functools import cache
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
+from sci2audio.textprep.utterances import ABBREVIATIONS
+from sci2audio.textprep.wordlists import abbreviations
 
 # blocks a placeholder notice or the furniture step already covers as a whole (D-128)
 SKIPPED_KINDS = frozenset(
@@ -57,6 +59,9 @@ class LinkWords:
     fillers: tuple[str, ...]  # words a pointer sentence may hold besides its links: "also"
     # words that open an access note going with the link before it: "(abgerufen am 3.5.2017)"
     access: tuple[str, ...] = ()
+    # words whose full stop ends no sentence ("z. B.", "e.g."): filled from the lists below
+    abbreviations: frozenset[str] = frozenset()
+    chained: int = 1  # how many words of `before` in a row go with the link
 
 
 # Common English words that start the rest of a sentence, never a path segment (#109,
@@ -237,7 +242,10 @@ WORDS: dict[str, LinkWords] = {
             "z.b.",
             "etwa",
             "hier",
+            "bzw.",
+            "bzw",
         ),
+        chained=2,
         lead=(
             "siehe auch",
             "siehe",
@@ -265,7 +273,21 @@ WORDS: dict[str, LinkWords] = {
             "webseite:",
             "website:",
         ),
-        joins=(",", ";", "/", "und", "oder", "sowie", "&", ", und", ", oder", ", sowie"),
+        joins=(
+            ",",
+            ";",
+            "/",
+            "und",
+            "oder",
+            "sowie",
+            "bzw.",
+            "bzw",
+            "&",
+            ", und",
+            ", oder",
+            ", sowie",
+            ", bzw.",
+        ),
         introducers=(
             "abrufbar",
             "einsehbar",
@@ -287,6 +309,7 @@ WORDS: dict[str, LinkWords] = {
             "abgerufen am",
             "abgerufen",
             "abruf am",
+            "abruf",
             "abrufdatum",
             "aufgerufen am",
             "aufgerufen",
@@ -306,6 +329,26 @@ WORDS: dict[str, LinkWords] = {
             "zuletzt besucht am",
         ),
     ),
+}
+
+
+def _abbreviation_stops(language: str) -> frozenset[str]:
+    """The dotted words of the language's abbreviation list and of the utterance cutter's,
+    lower case, that end no sentence: a link after "z. B." or "e.g." starts none (#101)."""
+    stops = set(ABBREVIATIONS.get(language, ()))
+    for entry in abbreviations(language) or ():
+        if entry.can_end_sentence:
+            continue
+        for form in entry.printed:
+            stops.update(token.lower() for token in form.split() if token.endswith("."))
+            if " " not in form and form.endswith("."):
+                stops.add(form.lower())
+    return frozenset(stops)
+
+
+WORDS = {
+    language: replace(row, abbreviations=_abbreviation_stops(language))
+    for language, row in WORDS.items()
 }
 
 # top-level domains for a bare "host.tld/path" without "www." or a scheme
@@ -404,7 +447,7 @@ class LinkStep(TextStep):
                 position += 1
             if len(run) > 1:
                 repair = re.sub(r" it(?=[ ,])", " them", repair)
-            at_start = _starts_sentence(text, start, sentence_at)
+            at_start = _starts_sentence(text, start, sentence_at, words.abbreviations)
             stop = _AFTER_START.match(text, end) if at_start else None
             if stop and start > 0:
                 # "Foo. https://x.org/a. Bar" reads "Foo. Bar": the punctuation after it goes
@@ -414,7 +457,7 @@ class LinkStep(TextStep):
                     start, _ = _with_space(text, start, start, claimed)
             else:
                 start, end = _with_space(text, start, end, claimed)
-                end = _whole_sentence(text, start, end, sentence_at)
+                end = _whole_sentence(text, start, end, sentence_at, words.abbreviations)
                 start, join = _dangling_join(text, start, end, claimed, words)
                 repair += join
             noted = any(link.printed_end >= 0 for link in run)
@@ -466,7 +509,9 @@ def _access_pattern(words: LinkWords) -> re.Pattern[str] | None:
     )
     return re.compile(
         rf"\s*[(\[]\s*(?:{listed})(?!\w)[^()\[\]\d]{{0,40}}\d[^()\[\]]{{0,40}}[)\]]"
-        rf"|\s*,\s*(?:{listed})(?!\w)\s*:?\s*{_DATE}",
+        # a note set off by commas takes its closing comma too ("…, abgerufen am 3.5.2017,
+        # zeigt es", review of PR #256)
+        rf"|\s*,\s*(?:{listed})(?!\w)\s*:?\s*{_DATE}(?:,(?=\s+[^\W\d_]))?",
         re.IGNORECASE,
     )
 
@@ -478,7 +523,7 @@ def _dangling_join(
     https://archive.org/)" reads "(vgl. Suchmaschinen)", not "(vgl. Suchmaschinen und)"."""
     if end < len(text) and text[end] not in ".,;:!?)]":
         return start, ""
-    joins = [w for w in words.joins if w.isalpha()]
+    joins = [w for w in words.joins if w.rstrip(".").isalpha()]  # "und", "bzw."
     listed = "|".join(re.escape(w) for w in sorted(joins, key=len, reverse=True))
     window = max(claimed, start - _LOOK_BACK)
     left = re.search(rf"\s+({listed})\s*\Z", text[window:start], re.IGNORECASE)
@@ -686,7 +731,7 @@ def _repair(
         name = _SPACE.sub(" ", labelled.group("label"))
         stop = (
             _only_pointers_after(text, end, words)
-            if _starts_sentence(text, label_start, sentence_at)
+            if _starts_sentence(text, label_start, sentence_at, words.abbreviations)
             else None
         )
         if stop is not None:
@@ -697,9 +742,12 @@ def _repair(
     if colon:
         return claimed + colon.start(), end, "; the colon before it goes too"
     # 4. a preposition or verb right before it
-    word = re.search(rf"(?<![\w.-])({befores})\s+\Z", before, re.IGNORECASE)
-    if word and re.fullmatch(pointers, word.group(1), re.IGNORECASE):
-        pointed = _pointer(text, claimed + word.start(), end, word.group(1), words, sentence_at)
+    # German chains two: "z. B. unter https://...", "siehe z. B. https://..." (#256 review)
+    chain = rf"(?:{befores})(?:\s+(?:{befores})){{0,{words.chained - 1}}}"
+    word = re.search(rf"(?<![\w.-])({chain})\s+\Z", before, re.IGNORECASE)
+    first = re.match(befores, word.group(1), re.IGNORECASE) if word else None
+    if word and first and re.fullmatch(pointers, first.group(), re.IGNORECASE):
+        pointed = _pointer(text, claimed + word.start(), end, first.group(), words, sentence_at)
         if pointed:
             return pointed
     if word:
@@ -719,7 +767,7 @@ def _pointer(
     "See https://... for details." and "(see https://... for the code)" are not read at all.
     Only a short rest qualifies: a longer one may say more than where the link leads.
     """
-    if _starts_sentence(text, start, sentence_at):
+    if _starts_sentence(text, start, sentence_at, words.abbreviations):
         ending = _STOP.search(text, end)
         stop = ending.end() if ending else len(text)
         if _short(text[end:stop], words):
@@ -770,11 +818,15 @@ def only_links_before(text: str, position: int, language: str = "en") -> bool:
     it, not the comma the link's removal already took, #101)."""
     window = max(0, position - _LOOK_BACK)
     before = text[window:position]
-    ends = list(_SENTENCE_END.finditer(before))
+    words = WORDS.get(language, WORDS["en"])
+    ends = [
+        end
+        for end in _SENTENCE_END.finditer(before)
+        if not _ends_abbreviation(before[: end.start() + 1], words.abbreviations)
+    ]
     if window > 0 and not ends:
         return False
     stretch = before[ends[-1].end() :] if ends else before
-    words = WORDS.get(language, WORDS["en"])
     return bool(find_links(stretch, words=words)) and _link_words_only(stretch, words)
 
 
@@ -856,27 +908,40 @@ def _with_space(text: str, start: int, end: int, claimed: int) -> tuple[int, int
     return start, end
 
 
-def _whole_sentence(text: str, start: int, end: int, sentence_at: int = -1) -> int:
+def _whole_sentence(
+    text: str, start: int, end: int, sentence_at: int = -1, stops: frozenset[str] = frozenset()
+) -> int:
     """A removal that starts a sentence takes the punctuation right after it along.
 
     "https://x.org/a. Then" reads "Then", not ". Then"; "https://x.org/a, then" reads "then".
     """
-    if not _starts_sentence(text, start, sentence_at):
+    if not _starts_sentence(text, start, sentence_at, stops):
         return end
     stop = _AFTER_START.match(text, end)
     return stop.end() if stop else end
 
 
-def _starts_sentence(text: str, position: int, sentence_at: int = -1) -> bool:
+def _starts_sentence(
+    text: str, position: int, sentence_at: int = -1, stops: frozenset[str] = frozenset()
+) -> bool:
     """True at the start of the block or after a sentence end; also right after a removal
-    that started a sentence (`sentence_at`, where that removal ended)."""
+    that started a sentence (`sentence_at`, where that removal ended). The full stop of one
+    of `stops` ("z. B.", "e.g.") ends no sentence (review of PR #256)."""
     if 0 <= sentence_at <= position and not text[sentence_at:position].strip():
         return True
     window = max(0, position - _LOOK_BACK)
     before = text[window:position]
     if window == 0 and not before.strip():
         return True
-    return bool(_SENTENCE_START.search(before)) and bool(before.strip())
+    if not (_SENTENCE_START.search(before) and before.strip()):
+        return False
+    return not _ends_abbreviation(before.rstrip(), stops)
+
+
+def _ends_abbreviation(before: str, stops: frozenset[str]) -> bool:
+    """True if `before` ends with one of `stops` ("... z. B.", "(e.g.")."""
+    words = before.rstrip("\"'”’)]").split()
+    return bool(words) and words[-1].lstrip("\"'“‘([").lower() in stops
 
 
 def _printed(text: str, run: list[_Link]) -> str:

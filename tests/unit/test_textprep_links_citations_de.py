@@ -62,6 +62,21 @@ def test_both_steps_have_a_german_row_and_english_stays_as_it_was() -> None:
         # links joined by "und", "oder", "sowie" are one run
         ("Mehr unter https://x.org/a und https://x.org/b.", "Mehr."),
         ("Die Seiten https://a.org sowie https://b.org zeigen es.", "Die Seiten zeigen es."),
+        # an abbreviation's full stop before a link ends no sentence; two words before it go
+        ("Die Daten liegen z. B. unter https://x.org. Dann mehr.", "Die Daten liegen. Dann mehr."),
+        (
+            "Daten finden sich u. a. unter https://x.org. Dann mehr.",
+            "Daten finden sich unter anderem. Dann mehr.",
+        ),
+        ("Das gilt ggf. https://x.org. Dann mehr.", "Das gilt gegebenenfalls. Dann mehr."),
+        ("Siehe z. B. https://x.org. Dann mehr.", "Dann mehr."),
+        # "bzw." joins links and goes before one
+        (
+            "Code liegt bei GitHub bzw. https://x.org. Dann mehr.",
+            "Code liegt bei GitHub. Dann mehr.",
+        ),
+        ("Mehr bei https://a.org bzw. https://b.org.", "Mehr."),
+        ("Die Daten bzw. https://x.org sind neu.", "Die Daten sind neu."),
         # a join word left with nothing after it goes too
         (
             "Das ist Praxis (vgl. Suchmaschinen und z. B. https://archive.org/). Dennoch nicht.",
@@ -87,6 +102,9 @@ def test_german_link_repairs(printed: str, said: str) -> None:
         ("Die Seite https://x.org/r [letzter Zugriff: 1.2.2019] zeigt es.", "Die Seite zeigt es."),
         ("Die Seite https://x.org/r (Stand: Mai 2017) zeigt es.", "Die Seite zeigt es."),
         ("Mehr dazu unter https://x.org/r, Zugriff am 3. Mai 2017.", "Mehr dazu."),
+        ("Die Seite https://x.org/r (Abruf: 3.5.2017) zeigt es.", "Die Seite zeigt es."),
+        # a note set off by commas takes its closing comma too
+        ("Die Seite https://x.org/r, abgerufen am 3.5.2017, zeigt es.", "Die Seite zeigt es."),
         # a bracket that is no access note stays
         ("Die Seite https://x.org/r (2017) zeigt es.", "Die Seite (2017) zeigt es."),
         (

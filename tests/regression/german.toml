@@ -823,22 +823,45 @@ expected = [
 ]
 
 [[case]]
+id = "de-links-after-an-abbreviation"
+audit = 0
+issue = 101
+goal = "The full stop of 'z. B.', 'u. a.', 'ggf.' before a link ends no sentence, so the link's removal keeps the sentence's own full stop; up to two words before the link go with it ('z. B. unter'); 'bzw.' joins two links and goes before one (review of PR #256)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Daten liegen z. B. unter https://x.org. Dann mehr." },
+    { kind = "paragraph", text = "Das gilt ggf. https://x.org. Dann mehr." },
+    { kind = "paragraph", text = "Mehr bei https://a.org bzw. https://b.org. Dann mehr." },
+    { kind = "paragraph", text = "Die Daten bzw. https://x.org sind neu." },
+]
+expected = [
+    "Die Daten liegen. Dann mehr.",
+    "Das gilt gegebenenfalls. Dann mehr.",
+    "Mehr. Dann mehr.",
+    "Die Daten sind neu.",
+]
+
+[[case]]
 id = "de-links-access-note"
 audit = 0
 issue = 101
-goal = "The access note after a link ('abgerufen am', 'letzter Zugriff', 'Stand:') goes with it; a bracket that is no access note stays."
+goal = "The access note after a link ('abgerufen am', 'letzter Zugriff', 'Stand:', 'Abruf:') goes with it, a note set off by commas with its closing comma; a bracket that is no access note stays."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Der Bericht https://x.org/r (abgerufen am 12.03.2020) zeigt es." },
     { kind = "paragraph", text = "Die Seite https://x.org/r [letzter Zugriff: 1.2.2019] zeigt es." },
     { kind = "paragraph", text = "Mehr dazu unter https://x.org/r, Zugriff am 3. Mai 2017." },
     { kind = "paragraph", text = "Die Seite https://x.org/r (Stand der Technik) zeigt es." },
+    { kind = "paragraph", text = "Die Seite https://x.org/r (Abruf: 3.5.2017) zeigt es." },
+    { kind = "paragraph", text = "Die Seite https://x.org/r, abgerufen am 3.5.2017, zeigt es." },
 ]
 expected = [
     "Der Bericht zeigt es.",
     "Die Seite zeigt es.",
     "Mehr dazu.",
     "Die Seite (Stand der Technik) zeigt es.",
+    "Die Seite zeigt es.",
+    "Die Seite zeigt es.",
 ]
 
 [[case]]

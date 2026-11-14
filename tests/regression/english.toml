@@ -1255,6 +1255,14 @@ blocks = [{ kind = "paragraph", text = "The sources are on the project page and 
 expected = ["The sources are on the project page; see also the method."]
 
 [[case]]
+id = "links-after-an-abbreviation-keep-the-full-stop"
+audit = 0
+issue = 101
+goal = "The full stop of 'e.g.' or 'i.e.' before a link ends no sentence, so the link's removal keeps the sentence's own full stop: main read 'online, for example Then more.' as one sentence (review of PR #256)."
+blocks = [{ kind = "paragraph", text = "The data are online, e.g. https://x.org. Then more." }]
+expected = ["The data are online, for example. Then more."]
+
+[[case]]
 id = "citations-bracket-after-a-said-sign"
 audit = 0
 issue = 101
