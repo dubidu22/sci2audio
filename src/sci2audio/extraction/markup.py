@@ -21,6 +21,9 @@ from sci2audio.core import Page, Picture, TextLine, TextRun
 
 MAX_TAGGED = 100  # nested elements that add tags; deeper ones add none
 MAX_TAGS = 200  # tags one element carries, its ancestors' included; more are left out
+# lines, pieces of text and pictures read from one book (#158, #174, D-579): a book at the
+# limit took about 180 MB to read and 560 MB with layout; The Time Machine holds 873
+MAX_ITEMS = 1_000_000
 
 # HTML block elements (and SVG text): each one ends the line before it and starts a new one.
 _BLOCKS = frozenset(
@@ -42,7 +45,8 @@ _VOID = frozenset(
 _SKIPPED = frozenset({"head", "script", "style", "template"})
 _BOLD = frozenset({"b", "strong", "th", "h1", "h2", "h3", "h4", "h5", "h6"})
 _ITALIC = frozenset({"i", "em", "cite", "dfn", "var", "address"})
-_WHITE = re.compile(r"[ \t\n\r\f]+")  # HTML's ASCII white space; a no-break space is text
+_WHITE_CHARS = " \t\n\r\f"  # HTML's ASCII white space; a no-break space is text
+_WHITE = re.compile(f"[{_WHITE_CHARS}]+")
 
 
 def clean_path(path: str) -> str | None:
@@ -105,16 +109,47 @@ class _Element:
 _LINK = "\x00link:"  # a placeholder tag, replaced once every page is read
 
 
+class TooMuchText(Exception):
+    """A book holds more items than its `Budget` allows; the reader turns it into its own
+    `ExtractionError` message."""
+
+    def __init__(self, limit: int) -> None:
+        super().__init__(limit)
+        self.limit = limit
+
+
+class Budget:
+    """The items read from one book, shared by all its pages: lines, pieces of text and
+    pictures, and also each `id` and each link, which are kept for the whole book. A piece
+    of text is counted as the file stores it, before pieces of the same style merge into one
+    run, so one long line is bounded too; white space that is folded away is never kept and
+    counts nothing. The open elements are bounded by the same limit."""
+
+    def __init__(self, limit: int | None = None) -> None:
+        self.limit = MAX_ITEMS if limit is None else limit
+        self.used = 0
+
+    def spend(self) -> None:
+        self.used += 1
+        if self.used > self.limit:
+            raise TooMuchText(self.limit)
+
+
 class PageReader(HTMLParser):
     """One spine document into lines and pictures, in the order the file stores them.
 
     Work per element and per piece of text does not grow with the nesting depth, so a
-    deeply nested hostile file is read in linear time.
+    deeply nested hostile file is read in linear time. Every item read is spent from
+    `budget` (one per book), and equal tag tuples are kept once (#158).
     """
 
-    def __init__(self, number: int, path: str, anchors: Anchors) -> None:
+    def __init__(
+        self, number: int, path: str, anchors: Anchors, budget: Budget | None = None
+    ) -> None:
         super().__init__(convert_charrefs=True)
         self.number, self.path, self.anchors = number, path, anchors
+        self.budget = budget if budget is not None else Budget()
+        self.interned: dict[tuple[str, ...], tuple[str, ...]] = {}  # tags of kept pieces
         self.stack: list[_Element] = []
         self.open: Counter[str] = Counter()  # open elements by name
         self.svgs: list[tuple[list[str], list[int]]] = []  # per open <svg>: title, pictures
@@ -125,6 +160,7 @@ class PageReader(HTMLParser):
         self.waiting: list[Picture] = []  # pictures inside the line being read
         self.pending: list[str] = []  # anchors waiting for the next item
         self.continues = False  # the next line continues an element after a <br>
+        self.in_line = False  # text, white space too, came since the last line ended
 
     def read(self, text: str) -> None:
         self.feed(text)
@@ -199,6 +235,7 @@ class PageReader(HTMLParser):
             if tag != "br":
                 self.continues = False
         if anchor := attrs.get("id"):
+            self.budget.spend()  # kept for the whole book, in `anchors.items`
             self.pending.append(anchor)
         if tag in ("img", "image"):
             self.picture(attrs)
@@ -222,11 +259,15 @@ class PageReader(HTMLParser):
             self.svgs.append(([], []))
 
     def push(self, element: _Element) -> None:
+        if len(self.stack) >= self.budget.limit:  # unclosed elements: one limit for all
+            raise TooMuchText(self.budget.limit)
         self.stack.append(element)
         self.open[element.name] += 1
 
     def closed(self, element: _Element) -> None:
         self.open[element.name] -= 1
+        if not self.open[element.name]:  # names of closed elements are not kept
+            del self.open[element.name]
         if element.name == "svg" and self.svgs and not self.skipping:
             title, indexes = self.svgs.pop()
             alt = fold("".join(title))
@@ -247,6 +288,7 @@ class PageReader(HTMLParser):
             found.append("aria-hidden")
         if tag == "a" and (href := attrs.get("href")) is not None:
             path, fragment = resolve(self.path, href)
+            self.budget.spend()  # kept for the whole book, in `anchors.links`
             self.anchors.links.append((href, path, fragment))
             found.append(f"{_LINK}{len(self.anchors.links) - 1}")
         return tuple(found)
@@ -257,12 +299,13 @@ class PageReader(HTMLParser):
         if source and not source.startswith("data:"):
             path, _ = resolve(self.path, source)
             ref = path if path is not None else source
+        self.budget.spend()
         number = len(self.pictures) + 1
         picture = Picture(f"p{self.number}-i{number}", alt=attrs.get("alt") or "", ref=ref)
         if self.svgs:
             self.svgs[-1][1].append(len(self.pictures))
         self.pictures.append(picture)
-        if self.segments:  # inside a line: placed after that line
+        if self.in_line:  # inside a line: placed after that line
             self.waiting.append(picture)
         else:
             self.place(picture.id)
@@ -270,17 +313,38 @@ class PageReader(HTMLParser):
     def add(self, text: str) -> None:
         if not text:
             return
+        self.in_line = True  # white space too: it decides where a picture goes (#328)
+        if self.folded_away(text):
+            return
+        self.budget.spend()
         top = self.stack[-1] if self.stack else None
-        tags = top.tags if top else ()
+        tags = self.intern(top.tags) if top else ()
         self.segments.append((text, tags, bool(top and top.bold), bool(top and top.italic)))
+
+    def folded_away(self, text: str) -> bool:
+        """White space that `_runs` would drop: outside <pre>, at the start of a line or
+        after a piece that ends in white space."""
+        return (
+            not self.open["pre"]
+            and _WHITE.fullmatch(text) is not None
+            and (not self.segments or self.segments[-1][0][-1] in _WHITE_CHARS)
+        )
+
+    def intern(self, tags: tuple[str, ...]) -> tuple[str, ...]:
+        """One tuple for equal tags: 200,000 children of a parent with 200 tags would
+        otherwise each keep a copy (#158). Only tags of kept pieces are interned, so
+        this holds no more tuples than the budget allows."""
+        return self.interned.setdefault(tags, tags)
 
     def flush(self, continued: bool = False) -> None:
         """End the line being read; `continued` when a <br> or a line feed in <pre> ends it."""
         runs = _runs(self.segments, keep_white=self.open["pre"] > 0)
         self.segments = []
+        self.in_line = False
         if runs:
+            self.budget.spend()
             if self.continues:
-                runs = [replace(run, tags=(*run.tags, "br")) for run in runs]
+                runs = [replace(run, tags=self.intern((*run.tags, "br"))) for run in runs]
             line = TextLine(f"p{self.number}-l{len(self.lines) + 1}", tuple(runs))
             self.lines.append(line)
             self.place(line.id)

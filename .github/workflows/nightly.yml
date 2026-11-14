@@ -10,6 +10,11 @@ on:
 permissions:
   contents: read
 
+# A second run by hand waits for the first instead of running beside it (D-580).
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   # The Python of .python-version (3.12.16 or newer), as uv downloads it; never the runner's
   # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
@@ -28,6 +33,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked --group asr
       - name: Cache the voice and speech-recognition models
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -55,6 +63,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
       - name: Hypothesis with the nightly profile
         env:
@@ -78,7 +89,22 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
+      # The Playwright browser comes from the cache when the playwright version is unchanged;
+      # `install --with-deps` still adds the system packages and skips a cached download.
+      - name: Where the Playwright browsers go, and their version
+        id: playwright
+        shell: bash
+        run: |
+          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
+          echo "version=$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ matrix.browser }}-${{ steps.playwright.outputs.version }}
       - name: Install the browser for Playwright
         env:
           BROWSER: ${{ matrix.browser }}
@@ -105,6 +131,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked --group asr
       - name: Cache the voice and speech-recognition models
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

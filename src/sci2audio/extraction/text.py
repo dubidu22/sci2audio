@@ -10,7 +10,8 @@ shows it (D-306); every other character is kept as stored.
 file without one is read as UTF-8 if it is valid UTF-8, else as Windows-1252 as the WHATWG
 Encoding Standard decodes it, which never fails and loses no byte, and the source then says the
 encoding was guessed (D-346). Empty, binary and too large files raise `ExtractionError` with a
-message a person can act on (D-347).
+message a person can act on (D-347); a file of more printed lines than `MAX_LINES` is too large
+too, counted before the text is split (D-579).
 """
 
 from __future__ import annotations
@@ -26,6 +27,10 @@ from sci2audio.extraction.errors import ExtractionError
 from sci2audio.extraction.markup import fold
 
 MAX_TEXT = 64 * 1024 * 1024  # bytes of a text or Markdown file, as of one EPUB member (D-351)
+# printed lines of a text file, blank ones included (#174, D-579): each costs about 425 bytes
+# read and as much again in layout, so this bounds a file to about 210 MB, three times the
+# hard-wrapped lines of the longest books (Shakespeare's works: about 170,000)
+MAX_LINES = 500_000
 
 # Byte order marks, longest first: a UTF-32 LE mark starts with the UTF-16 LE one. The names
 # are the WHATWG ones where it has them (it has no UTF-32).
@@ -97,6 +102,22 @@ def _decode(data: bytes) -> Decoded:
         return Decoded(text, "windows-1252", guessed=True)
 
 
+def line_count(text: str) -> int:
+    """The printed lines of `text`, blank ones included, counted without splitting it: each
+    line end (CR LF, CR or LF) ends a line, and text after the last line end is one more."""
+    ends = text.count("\n") + text.count("\r") - text.count("\r\n")
+    return ends + (1 if text and not text.endswith(("\n", "\r")) else 0)
+
+
+def check_lines(text: str, name: str, limit: int, kind: str) -> None:
+    """ExtractionError if `text` holds more than `limit` printed lines; `kind` names the
+    files in the message ("text", "Markdown")."""
+    if line_count(text) > limit:
+        raise ExtractionError(
+            f"{name}: the file is too large; sci2audio reads {kind} files of up to {limit:,} lines"
+        )
+
+
 def source_of(data: bytes, name: str, kind: SourceFormat, decoded: Decoded) -> Source:
     """The `Source` of a text or Markdown file read as `decoded`."""
     return Source(
@@ -120,6 +141,7 @@ def extract_text(path: Path) -> Content:
 def read_text(data: bytes, name: str) -> Content:
     """Read plain-text bytes into `Content`; `name` is the bare file name the source keeps."""
     decoded = decode_text(data, name)
+    check_lines(decoded.text, name, MAX_LINES, "text")
     lines: list[TextLine] = []
     in_paragraph = False
     for printed in _LINE_END.split(decoded.text):
