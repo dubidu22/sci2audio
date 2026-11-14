@@ -10,10 +10,12 @@ import threading
 import time
 from typing import Any
 
+import pytest
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page, expect
 from web_helpers import paper_bytes
 
-from conftest import Live, check_axe
+from conftest import Live, check_axe, inside, settled
 from sci2audio.voices import PREVIEW_TEXT
 from sci2audio.web.jobs import JobKind, JobRecord
 
@@ -30,11 +32,14 @@ def until(check: Any, timeout: float = 10.0) -> None:
 
 
 def open_paper(page: Page, live: Live) -> str:
-    """Open the paper from the start page; returns the document id once its report shows."""
+    """Open the paper from the start page; returns the document id once its report shows
+    and the page no longer reloads itself for the analysis (in WebKit on macOS that late
+    reload cancels a test's own page.reload(), #205)."""
     page.set_input_files("#file", files=[PDF])
     page.get_by_role("button", name="Open and analyse").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
+    settled(page)
     return page.url.rsplit("/", 1)[1].split("#")[0]
 
 
@@ -363,3 +368,27 @@ def test_make_starts_nothing_until_the_report_matches_and_has_a_chapter(
     expect(make).not_to_have_attribute("aria-disabled", "true")
     kinds = [job.kind for job in live.state.board.all()]
     assert JobKind.AUDIO not in kinds  # no press of Make started anything
+
+
+def test_the_fence_lets_only_the_server_and_its_own_blobs_through() -> None:
+    """#205: WebKit routes `blob:` URLs of the page's origin; they are no network requests."""
+    origin = "http://127.0.0.1:5000"
+    assert inside(origin + "/documents/1", origin)
+    assert inside("blob:" + origin + "/7c1e2b3a-0d4e-4f5a-9b6c-1d2e3f4a5b6c", origin)
+    for elsewhere in (
+        "http://127.0.0.1:5001/x",  # another port is another server
+        "http://127.0.0.1:50000/x",  # a port that starts the same
+        "blob:http://127.0.0.1:5001/7c1e2b3a",
+        "blob:https://example.org/7c1e2b3a",
+        "https://example.org/" + origin,
+        "data:text/plain,x",
+    ):
+        assert not inside(elsewhere, origin), elsewhere
+
+
+def test_a_request_elsewhere_is_caught_and_refused(signed_in: Page, live: Live) -> None:
+    elsewhere = "http://192.0.2.1/x"  # TEST-NET-1: the fence refuses it before any network
+    with pytest.raises(PlaywrightError):
+        signed_in.goto(elsewhere)
+    assert live.outside == [elsewhere]
+    live.outside.clear()  # seen; the fixture's own check would fail the test otherwise

@@ -16,7 +16,7 @@ from pdf_maker import Rect, Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_flow import open_paper
 
-from conftest import Live, check_axe
+from conftest import Live, check_axe, tab_key
 
 PER_CHARACTER = 2400  # samples at 24 kHz: 0.1 s per character
 
@@ -171,12 +171,12 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
     page.locator("#listen-title").focus()
     order: list[str] = []
     while "follow" not in order and len(order) < 25:
-        page.keyboard.press("Tab")
+        page.keyboard.press(tab_key(page))
         order.append(
             page.evaluate("() => document.activeElement.id || document.activeElement.tagName")
         )
         outline = page.evaluate("() => getComputedStyle(document.activeElement).outlineStyle")
-        assert outline != "none", f"no focus ring on {order[-1]}"
+        assert outline != "none", f"no focus ring on {order[-1]} after {order}"
     assert order[:5] == [
         "play",
         "previous-sentence",
@@ -188,7 +188,8 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
     assert order[5] == "audio", order
     assert order[-1] == "follow", order
     assert "back-to-reading" not in order
-    page.keyboard.press("Tab")  # the status line is focused only by script: on to the chapters
+    # the status line is focused only by script: on to the chapters
+    page.keyboard.press(tab_key(page))
     assert page.evaluate("() => document.activeElement.textContent") == "Introduction"
     sentences = page.evaluate(
         "() => [...document.querySelectorAll('.s')].some(s => s.tabIndex >= 0)"
@@ -328,7 +329,7 @@ def test_the_player_bar_never_hides_the_page(signed_in: Page, live: Live) -> Non
         # every chapter button reached by keyboard is in view and not under the bar
         page.locator("#follow").focus()
         for _ in range(2):
-            page.keyboard.press("Tab")
+            page.keyboard.press(tab_key(page))
             covered = page.evaluate(
                 """() => {
                     const e = document.activeElement;

@@ -9,11 +9,9 @@ import re
 from playwright.sync_api import Page, expect
 from test_flow import PDF
 
-from conftest import Live, settled
+from conftest import Live, settled, tab_key
 
 MAX_TABS = 80
-# WebKit tabs to links only with Alt held, as Safari does unless its setting is on
-TAB = {"webkit": "Alt+Tab"}
 
 
 def focused(page: Page) -> dict[str, str]:
@@ -30,10 +28,6 @@ def focused(page: Page) -> dict[str, str]:
             };
         }"""
     )
-
-
-def tab_key(page: Page) -> str:
-    return TAB.get(page.context.browser.browser_type.name, "Tab")  # type: ignore[union-attr]
 
 
 def tab_to(page: Page, wanted: str, *, back: bool = False) -> None:
@@ -141,7 +135,13 @@ def test_tab_goes_round_every_page_without_a_trap(signed_in: Page, live: Live) -
             now = focused(page)
             if now["tag"] == "body":
                 break
-            stops.append((now["tag"], now["id"], now["text"][:30]))
+            stop = (now["tag"], now["id"], now["text"][:30])
+            if stops and stops[-1] == stop:
+                # Firefox: the press after the page's last stop leaves focus in place (on
+                # its way to the browser's own controls); the next one reaches the body.
+                # A trap that never lets go still fails below, a cycle at the set (#205).
+                continue
+            stops.append(stop)
         else:
             raise AssertionError(f"Tab never left {path}: {stops[-5:]}")
         assert stops[0][2] == "Skip to the content"
