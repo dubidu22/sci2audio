@@ -61,10 +61,10 @@ expected = ["Sie arbeitet in der Wohnungs- und Sozialarbeit, in der Kinder- oder
 id = "de-hyphen-suspended-bis-bzw"
 audit = 0
 issue = 96
-goal = "'bis' and 'bzw.' after a suspended hyphen are conjunctions too."
+goal = "'bis' and 'bzw.' after a suspended hyphen are conjunctions too; 'bzw.' is read in full (#113)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Vom Kinder-\nbis ins Jugendalter, im Wohnungs-\nbzw. Sozialbereich." }]
-expected = ["Vom Kinder- bis ins Jugendalter, im Wohnungs- bzw. Sozialbereich."]
+expected = ["Vom Kinder- bis ins Jugendalter, im Wohnungs- beziehungsweise Sozialbereich."]
 
 [[case]]
 id = "de-hyphen-document-spelling"
@@ -124,7 +124,7 @@ issue = 96
 goal = "'u.', 'o.', 'vs.' and 'resp.' with their full stop, and 'versus', count as conjunctions."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Die Kinder-\nu. Jugendhilfe, der Ein-\no. Ausgang, Lehr-\nvs. Lernprozesse, Lehr-\nversus Lernzeit und Haupt-\nresp. Nebeneffekte." }]
-expected = ["Die Kinder- u. Jugendhilfe, der Ein- o. Ausgang, Lehr- vs. Lernprozesse, Lehr- versus Lernzeit und Haupt- resp. Nebeneffekte."]
+expected = ["Die Kinder- und Jugendhilfe, der Ein- o. Ausgang, Lehr- versus Lernprozesse, Lehr- versus Lernzeit und Haupt- respektive Nebeneffekte."]
 
 # ---- #221 reference list (TP-06) -------------------------------------------------------------
 
@@ -200,3 +200,281 @@ blocks = [
 ]
 sections = [{ title = "2 Literaturüberblick", level = 1, start = 0, end = 2 }]
 expected = ["2 Literaturüberblick", "Frühere Arbeiten werden besprochen."]
+
+# ---- #113 abbreviations (TP-08) --------------------------------------------------------------
+
+[[case]]
+id = "de-abbreviations-anywhere"
+audit = 0
+issue = 113
+goal = "Abbreviations the voice spells are read in full: 'z. B.', 'd. h.', 'bzw.', 'ca.', 'vgl.', 'ggf.', 'i. d. R.'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das gilt z. B. für Kinder, d. h. bis 14 Jahre, bzw. für ca. die Hälfte; vgl. dazu ggf. die Regel, die i. d. R. gilt." }]
+expected = ["Das gilt zum Beispiel für Kinder, das heißt bis 14 Jahre, beziehungsweise für zirka die Hälfte; vergleiche dazu gegebenenfalls die Regel, die in der Regel gilt."]
+
+[[case]]
+id = "de-abbreviations-without-spaces"
+audit = 0
+issue = 113
+goal = "The forms without a space are read too: 'z.B.', 'd.h.', 'u.a.'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es gibt z.B. Hunde, d.h. Tiere, u.a. in Städten." }]
+expected = ["Es gibt zum Beispiel Hunde, das heißt Tiere, unter anderem in Städten."]
+
+[[case]]
+id = "de-abbreviations-sentence-start"
+audit = 0
+issue = 113
+goal = "At the start of a sentence the reading starts with a capital: 'Z. B.' reads 'Zum Beispiel'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Z. B. sinkt der Wert. Vgl. Abschnitt 2." }]
+expected = ["Zum Beispiel sinkt der Wert. Vergleiche Abschnitt 2."]
+
+[[case]]
+id = "de-abbreviations-page-and-see"
+audit = 0
+issue = 113
+goal = "'S.' before a number reads 'Seite', 's.' reads 'siehe': they differ only by case; 's. o.' at the end keeps its full stop."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Tabelle steht auf S. 12, s. auch S. 14 und s. o." }]
+expected = ["Die Tabelle steht auf Seite 12, siehe auch Seite 14 und siehe oben."]
+
+[[case]]
+id = "de-abbreviations-initial-s-left-alone"
+audit = 0
+issue = 113
+goal = "An initial 'S.' before a name is no page: left as printed."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Studie von S. Müller zeigt es." }]
+expected = ["Die Studie von S. Müller zeigt es."]
+
+[[case]]
+id = "de-abbreviations-labels"
+audit = 0
+issue = 113
+goal = "Label abbreviations before a number or label read in full: 'Abb. 3', 'Tab. 2', 'Gl. (4)', 'Kap. 5', 'Nr. 7'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Siehe Abb. 3a, Tab. 2, Gl. (4), Kap. 5, Abschn. 2.1, Anh. B und Nr. 7." }]
+expected = ["Siehe Abbildung 3a, Tabelle 2, Gleichung (4), Kapitel 5, Abschnitt 2.1, Anhang B und Nummer 7."]
+
+[[case]]
+id = "de-abbreviations-titles"
+audit = 0
+issue = 113
+goal = "'Dr.' and 'Prof.' before a name read in full."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Prof. Dr. Schmidt leitet das Projekt." }]
+expected = ["Professor Doktor Schmidt leitet das Projekt."]
+
+[[case]]
+id = "de-abbreviations-end-of-list"
+audit = 0
+issue = 113
+goal = "'usw.' and 'etc.' at the end of a sentence keep its full stop, so the sentence still ends."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es gab Hunde, Katzen usw. Die Studie lief lange, mit Mäusen etc." }]
+expected = ["Es gab Hunde, Katzen und so weiter. Die Studie lief lange, mit Mäusen et zetera."]
+utterances = ["Es gab Hunde, Katzen und so weiter.", "Die Studie lief lange, mit Mäusen et zetera."]
+
+[[case]]
+id = "de-abbreviations-u-a-before-a-year"
+audit = 0
+issue = 113
+goal = "'u. a.' before a year is 'und andere' (after authors), elsewhere 'unter anderem'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Laut Müller u. a. (2019) gilt das u. a. in Berlin." }]
+expected = ["Laut Müller und andere (2019) gilt das unter anderem in Berlin."]
+
+[[case]]
+id = "de-abbreviations-u-a-before-a-year-after-a-lower-case-word"
+audit = 0
+issue = 113
+goal = "'u. a.' before a year reads 'und andere' only after a name: 'gilt u. a. 2019' is 'unter anderem' (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das gilt u. a. 2019 und 2020." }]
+expected = ["Das gilt unter anderem 2019 und 2020."]
+
+[[case]]
+id = "de-abbreviations-capitals-with-umlauts"
+audit = 0
+issue = 113
+goal = "A capital with an umlaut counts as a capital after an abbreviation: a name after 'Dr.', a new sentence after 'usw.' (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Laut Prof. Dr. Özdemir gilt das für Katzen usw. Über die Studie wissen wir mehr." }]
+expected = ["Laut Professor Doktor Özdemir gilt das für Katzen und so weiter. Über die Studie wissen wir mehr."]
+utterances = ["Laut Professor Doktor Özdemir gilt das für Katzen und so weiter.", "Über die Studie wissen wir mehr."]
+
+[[case]]
+id = "de-abbreviations-lower-case-ae-and-ff"
+audit = 0
+issue = 113
+goal = "'o. ä.', 'o.ä.', 'u. ä.', 'u.ä.' with a lower-case 'ä' read too; 'ff.' after a page reads 'folgende' (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Hunde o. ä. sind hier, Katzen o.ä. auch, Pferde u. ä. ebenso, Mäuse u.ä. nicht, siehe S. 12 ff." }]
+expected = ["Hunde oder Ähnliches sind hier, Katzen oder Ähnliches auch, Pferde und Ähnliches ebenso, Mäuse und Ähnliches nicht, siehe Seite 12 folgende."]
+
+[[case]]
+id = "de-abbreviations-et-al-left-alone"
+audit = 0
+issue = 113
+goal = "'et al.' is read right by the voice and left as printed."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Schmidt et al. zeigen es." }]
+expected = ["Schmidt et al. zeigen es."]
+
+# ---- #113 units and symbols (TP-10) ----------------------------------------------------------
+
+[[case]]
+id = "de-units-after-numbers"
+audit = 0
+issue = 113
+goal = "Units after a number read as German words, plural after any number but 1."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Probe wog 5 kg, lief 12 km in 3 h und 20 min bei 37 °C mit 2 ml Wasser." }]
+expected = ["Die Probe wog 5 Kilogramm, lief 12 Kilometer in 3 Stunden und 20 Minuten bei 37 Grad Celsius mit 2 Milliliter Wasser."]
+
+[[case]]
+id = "de-units-decimal-comma-and-thousands"
+audit = 0
+issue = 113
+goal = "Numbers printed German style still take their unit: '2,5 km', '1.500 m', '0,5 s'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Sie lief 2,5 km, dann 1.500 m in 0,5 s." }]
+expected = ["Sie lief 2,5 Kilometer, dann 1.500 Meter in 0,5 Sekunden."]
+
+[[case]]
+id = "de-units-per"
+audit = 0
+issue = 113
+goal = "'/' reads 'pro', the unit after it singular: '50 km/h', '5 mg/kg', '3 mg/Tag'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Er fuhr 50 km/h, die Dosis war 5 mg/kg und 3 mg/Tag." }]
+expected = ["Er fuhr 50 Kilometer pro Stunde, die Dosis war 5 Milligramm pro Kilogramm und 3 Milligramm pro Tag."]
+
+[[case]]
+id = "de-units-square-and-cubic-in-one-word"
+audit = 0
+issue = 113
+goal = "A power of a length is one German word: 'Quadratmeter', 'Kubikzentimeter'; other powers 'hoch 2'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Fläche war 40 m², das Volumen 3 cm³, die Beschleunigung 9,8 m/s²." }]
+expected = ["Die Fläche war 40 Quadratmeter, das Volumen 3 Kubikzentimeter, die Beschleunigung 9,8 Meter pro Sekunde hoch 2."]
+
+[[case]]
+id = "de-units-one-by-gender"
+audit = 0
+issue = 113
+goal = "'1' before a unit reads by gender: 'ein Kilogramm', 'eine Sekunde', 'eine Million'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es wog 1 kg, dauerte 1 s und kostete 1 Mio. Euro." }]
+expected = ["Es wog ein Kilogramm, dauerte eine Sekunde und kostete eine Million Euro."]
+
+[[case]]
+id = "de-units-one-after-prepositions"
+audit = 0
+issue = 113
+goal = "'1' after a dative or accusative preposition: 'nach einer Stunde', 'mit einem Liter', 'für einen Meter'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Nach 1 h mit 1 l Wasser reichte es für 1 m." }]
+expected = ["Nach einer Stunde mit einem Liter Wasser reichte es für einen Meter."]
+
+[[case]]
+id = "de-units-one-with-a-sign-or-decimals"
+audit = 0
+issue = 113
+goal = "A signed '1' or '1,0' stays a number: 'minus 1 Grad', '1,0 Sekunden'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es war −1 °C kalt und dauerte 1,0 s." }]
+expected = ["Es war −1 Grad Celsius kalt und dauerte 1,0 Sekunden."]
+
+[[case]]
+id = "de-units-millions"
+audit = 0
+issue = 113
+goal = "'Mio.', 'Mrd.' and 'Tsd.' after a number read in full; the full stop at the end of a block stays."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das kostete 2,5 Mio. Euro und 3 Mrd. Dollar, also rund 4 Tsd." }]
+expected = ["Das kostete 2,5 Millionen Euro und 3 Milliarden Dollar, also rund 4 Tausend."]
+
+[[case]]
+id = "de-units-hyphenated-compound"
+audit = 0
+issue = 113
+goal = "In a hyphenated compound the unit takes the plural after numbers above 1: '10-Sekunden-Takt'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Ein 10-s-Takt und ein 5-km-Lauf." }]
+expected = ["Ein 10-Sekunden-Takt und ein 5-Kilometer-Lauf."]
+
+[[case]]
+id = "de-units-symbols"
+audit = 0
+issue = 113
+goal = "'×', '≈', '~' and '3x' read 'mal', 'ungefähr', 'etwa'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es war 3x so schnell, 2 × 3 Felder, ≈ 5 Minuten und ~10 Proben." }]
+expected = ["Es war 3 mal so schnell, 2 mal 3 Felder, ungefähr 5 Minuten und etwa 10 Proben."]
+
+[[case]]
+id = "de-units-labels-left-alone"
+audit = 0
+issue = 113
+goal = "After a label word a capital letter is no unit: 'Abbildung 2 A', 'Gruppe 3 C'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Siehe Abbildung 2 A und Gruppe 3 C." }]
+expected = ["Siehe Abbildung 2 A und Gruppe 3 C."]
+
+[[case]]
+id = "de-units-percent-euro-and-per-mille"
+audit = 0
+issue = 113
+goal = "'%' and '€' are listed as units so '1' before them reads 'ein' (review of PR #228); glued '10%' the voice reads right as printed; '‰' reads 'Promille'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es stieg um 10 % und 10% auf 5 €, um 1 % auf 1 € und 5 ‰." }]
+expected = ["Es stieg um 10 Prozent und 10% auf 5 Euro, um ein Prozent auf einen Euro und 5 Promille."]
+
+[[case]]
+id = "de-units-one-after-ueber-auf-ab"
+audit = 0
+issue = 113
+goal = "With a number, 'über' and 'auf' take the accusative ('über eine Million', 'auf einen Meter'), 'ab' the dative (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es kostete über 1 Mio. Euro, stieg auf 1 m und galt ab 1 kg." }]
+expected = ["Es kostete über eine Million Euro, stieg auf einen Meter und galt ab einem Kilogramm."]
+
+[[case]]
+id = "de-units-german-label-joins"
+audit = 0
+issue = 113
+goal = "Labels joined by 'und', 'oder', 'bzw.', 'sowie' or 'bis' stay labels: no unit after them (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Bedingungen 1 bzw. 2 V und die Gruppen 1 und 2 K." }]
+expected = ["Die Bedingungen 1 beziehungsweise 2 V und die Gruppen 1 und 2 K."]
+
+[[case]]
+id = "de-units-one-in-a-compound"
+audit = 0
+issue = 113
+goal = "'1' starting a hyphenated compound reads 'Ein' ('Ein-Kilogramm-Packung'); a decimal stays a number (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Eine 1-kg-Packung und ein 1,5-l-Behälter." }]
+expected = ["Eine Ein-Kilogramm-Packung und ein 1,5-Liter-Behälter."]
+
+[[case]]
+id = "de-units-min-with-a-full-stop"
+audit = 0
+issue = 113
+goal = "'min.' after a number is the unit and does not end the sentence; 'min.' before a number is 'minimal' (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Nach 12 min. Pause waren es max. 5, min. 3." }]
+expected = ["Nach 12 Minuten Pause waren es maximal 5, minimal 3."]
+utterances = ["Nach 12 Minuten Pause waren es maximal 5, minimal 3."]
+
+[[case]]
+id = "de-abbreviations-u-a-before-a-noun"
+audit = 0
+issue = 113
+goal = "'u. a.' before a capitalised noun goes on the sentence: no full stop is kept."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es kamen u. a. Kinder und Eltern." }]
+expected = ["Es kamen unter anderem Kinder und Eltern."]
+utterances = ["Es kamen unter anderem Kinder und Eltern."]
