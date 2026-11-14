@@ -14,6 +14,9 @@ A case file is TOML with one `[[case]]` table per case:
                                   # block read inside another splits its line, #213)
     utterances = ["...", "..."]   # optional: how the cutter cuts the script, where it matters
 
+Every case must also read the same on a second run over the first run's script
+(`read_twice`, D-577): the steps change nothing more.
+
 `expected` pins what the built-in steps produce now. A rule PR changes the cases its rule
 touches first (test-first) and the diff shows the before and after (tests.md).
 
@@ -37,8 +40,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from sci2audio.core import Block, BlockKind, Document, FurnitureRole, ScriptPiece, Section
-from sci2audio.testing.documents import make_document
-from sci2audio.textprep import PAUSE_MARK, StepRun, cut_utterances, spoken_text
+from sci2audio.testing.documents import make_document, rebuilt_from_script
+from sci2audio.textprep import (
+    PAUSE_MARK,
+    StepContext,
+    StepRun,
+    cut_utterances,
+    run_steps,
+    spoken_text,
+)
 
 _CASE_ID = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 _CASE_KEYS = {
@@ -191,6 +201,23 @@ def render(run: StepRun) -> list[str]:
 def said(run: StepRun) -> list[str]:
     """The utterances the cutter makes of the script; pauses show as "[pause]"."""
     return [u.text or PAUSE_MARK for u in cut_utterances(run.document, run.script())]
+
+
+def read_twice(case: Case) -> tuple[list[str], list[str]]:
+    """Each block's text as a first run reads it and as a second run reads the first run's
+    script (`rebuilt_from_script`), in block order; a block read inside another (a moved
+    note, #213) counts where it is printed, so only the words are compared (D-577)."""
+    context = StepContext(case.document.language)
+    first = run_steps(case.document, context, strict=True)
+    second = run_steps(rebuilt_from_script(case.document, first.script()), context, strict=True)
+    return _by_block(first, len(case.document.blocks)), _by_block(second, len(case.document.blocks))
+
+
+def _by_block(run: StepRun, count: int) -> list[str]:
+    pieces: list[list[ScriptPiece]] = [[] for _ in range(count)]
+    for piece in run.script():
+        pieces[piece.span.block].append(piece)
+    return [spoken_text(block, show_pauses=True) for block in pieces]
 
 
 def diff(expected: Sequence[str], got: Sequence[str]) -> str:

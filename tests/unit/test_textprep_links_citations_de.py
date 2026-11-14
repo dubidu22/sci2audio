@@ -341,6 +341,8 @@ def test_a_german_job_with_links_and_citations_reads_the_same_on_a_second_run(
         # a source number read before a full stop is no ordinal
         "unter [12]. Studie https://example.org/daten.",
         "Wie in [3, 12]. Studie zeigt.",
+        # "und" inside a word is no separator: "orgfound", "Grund" (fuzz, D-577)
+        "( https://example.orgfound (527794))(Müller, 2019) (Müller, 2019) [3, 4]",
     ],
 )
 def test_a_second_run_reads_nothing_new(text: str) -> None:
@@ -354,8 +356,11 @@ def test_a_second_run_reads_nothing_new(text: str) -> None:
         # #266 (nightly seed 31337): the first run kept the interval, a second removed it
         ("( (Müller & Schmidt, 2019) [1,2; 3,4])", "( [1,2; 3,4])"),
         ("Die Werte ([1,2; 3,4]; Müller, 2019) sind klein.", "Die Werte ([1,2; 3,4]) sind klein."),
-        # a source among the brackets goes alone; the interval stays (D-534; the ";" is #272)
-        ("Das gilt ([12]; [1,2; 3,4]).", "Das gilt (; [1,2; 3,4])."),
+        # a source among the brackets goes alone, with its ";" (#272, D-577); the interval
+        # stays (D-534)
+        ("Das gilt ([12]; [1,2; 3,4]).", "Das gilt ([1,2; 3,4])."),
+        # "und" inside a word is no separator that goes with the citation (D-577)
+        ("Das gilt (Grund (Müller, 2019)) hier.", "Das gilt (Grund) hier."),
     ],
 )
 def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
@@ -376,8 +381,9 @@ def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
         ("((Müller, 2019) Schmidt, 2020) zeigt das.", "Schmidt zeigt das."),
         # numeric citations inside are read in too (review round 1, M1)
         ("Es gilt ((Müller, 2019) [3] Schmidt, 2020) hier.", "Es gilt hier."),
-        # an empty nest as the subject stays as empty brackets: stable, but #278 (S3)
-        ("((Müller, 2019)) zeigt das.", "() zeigt das."),
+        # an empty nest as the subject goes whole once its citation goes (D-577; read "()
+        # zeigt das." before); keeping the names as the subject is #278's
+        ("((Müller, 2019)) zeigt das.", "zeigt das."),
         # prose once the inner citation is read: the bracket stays (D-541)
         ("Es gilt ((Müller, 2019) siehe Tabelle 2).", "Es gilt (Müller siehe Tabelle 2)."),
     ],

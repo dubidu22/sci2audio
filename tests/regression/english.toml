@@ -1437,6 +1437,142 @@ expected = [
     "the intrinsic driving term Dmm′Eq equals eE ℏ · iRmm′q with f(0) the Fermi function.",
 ]
 
+# ---- v1.2 second-run batch: brackets next to or around a removal (D-577) ---------------------
+
+[[case]]
+id = "citations-a-separator-left-by-a-removal-goes-with-it"
+audit = 0
+issue = 305
+goal = "A ',' ';' or 'and' that a removed identifier or citation would leave at a bracket's edge goes with it; what is left is then read as a second run reads it: a year after a name goes, a citation after a lead word goes whole (D-577)."
+blocks = [
+    { kind = "paragraph", text = "Text ((527794); 2019) more." },
+    { kind = "paragraph", text = "Text (see (527794) and Lee, 2019) more." },
+    { kind = "paragraph", text = "Text (see (see (527794))) more." },
+    { kind = "paragraph", text = "Text (527794, (Smith, 2019)) more." },
+    { kind = "paragraph", text = "The results (results and (Smith, 2019)) hold." },
+]
+expected = [
+    "Text more.",
+    "Text more.",
+    "Text more.",
+    "Text more.",
+    "The results (results) hold.",
+]
+
+[[case]]
+id = "citations-a-separator-left-by-a-removed-citation-goes-with-it"
+audit = 0
+issue = 272
+goal = "A citation removed inside a bracket that stays takes the ';' or ',' next to it along; a bracket left with only that goes whole (#272, #259; the #305 rule, D-577)."
+blocks = [
+    { kind = "paragraph", text = "It holds ( (Smith, 2019) [3]; [4] ) here." },
+    { kind = "paragraph", text = "It holds ( [12]; see Smith (2019))." },
+    { kind = "paragraph", text = "The effect (95% CI [1, 3], [12]) holds." },
+    { kind = "paragraph", text = "The value ([12], n = 5) holds." },
+    { kind = "paragraph", text = "It holds ( [12]. see (see also [48, 135])) here." },
+]
+expected = [
+    "It holds here.",
+    "It holds.",
+    "The effect (95% confidence interval 1 to 3) holds.",
+    "The value (n equals 5) holds.",
+    "It holds here.",
+]
+
+[[case]]
+id = "citations-a-nest-of-any-depth"
+audit = 0
+issue = 306
+goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, and a year bracket after the names an inner citation keeps is read with them, so each bracket is a citation as a second run sees it, and the whole nest goes on the first run (D-588, D-599; nightly seeds 555 and 8080 of PR #330; review round 2)."
+blocks = [
+    { kind = "paragraph", text = "It holds ((((Smith, 2019), Lee, 2020), Lee, 2020), Lee, 2020) found it." },
+    { kind = "paragraph", text = "It holds (((527794, (Smith, 2019)) (Smith, 2019), Lee, 2020), Lee, 2020) found it." },
+    { kind = "paragraph", text = "Text (e.g., (e.g., (e.g., (Smith, 2019), Lee, 2020), Kim, 2021), Park, 2022) more." },
+    { kind = "paragraph", text = "It holds (((Smith, 2019); Lee, 2020); Kim, 2021) found it." },
+    { kind = "paragraph", text = "It holds ((((((((Smith, 2019), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020) found it." },
+    { kind = "paragraph", text = "It holds (see (see (see (see (Smith, 2019) (2019)) (2019)) (2019)) (2019)) more." },
+    { kind = "paragraph", text = "It holds (see (see (see (see (Smith, 2019, https://example.org) (2019)) (2019)) (2019)) (2019)) more." },
+    { kind = "paragraph", text = "It holds (cf. (cf. (cf. (cf. (Smith, 2019) (2019)) (2019)) (2019)) (2019)) more." },
+    { kind = "paragraph", text = "It holds (cf. (cf. (cf. (cf. (Smith, 2019, https://example.org) (2019)) (2019)) (2019)) (2019)) more." },
+]
+expected = [
+    "It holds found it.",
+    "It holds found it.",
+    "Text more.",
+    "It holds found it.",
+    "It holds found it.",
+    "It holds more.",
+    "It holds more.",
+    "It holds more.",
+    "It holds more.",
+]
+
+[[case]]
+id = "citations-a-nest-reads-on-the-first-run-as-on-the-second"
+audit = 0
+issue = 306
+goal = "A nest whose inner citation goes is read on the first run as a second run reads what is left: a lead word and a narrative citation go whole, a rest that is a citation goes, a year bracket after a name goes (D-577; also #291 and #278 row 1)."
+blocks = [
+    { kind = "paragraph", text = "It holds (see (Smith, 2019) (2019)) found it." },
+    { kind = "paragraph", text = "Text (e.g., (Smith, 2019), Lee, 2020) more." },
+    { kind = "paragraph", text = "As shown by Smith ((Smith, 2019) 2020) found it." },
+    { kind = "paragraph", text = "Jones ((Smith, 2019) 2020) found it." },
+    { kind = "paragraph", text = "It holds ((Smith, 2019) Jones, 2020; see Table 2) here." },
+    { kind = "paragraph", text = "Text ((Smith, 2019); Jones, 2020) here." },
+]
+expected = [
+    "It holds found it.",
+    "Text more.",
+    "As shown by Smith found it.",
+    "Jones found it.",
+    "It holds ( see Table 2) here.",
+    "Text here.",
+]
+
+[[case]]
+id = "citations-a-year-bracket-after-a-removed-bracket"
+audit = 0
+issue = 308
+goal = "A bracket next to one that goes is judged as a second run sees it, without the removed one: a year bracket that then stands after a name goes too, however many stand in a row. A removal that would glue a full stop to a number is not made (D-577)."
+blocks = [
+    { kind = "paragraph", text = "As said by Lee (Smith, 2019) (2019) it holds." },
+    { kind = "paragraph", text = "As said by Smith (2019) (2019a) it holds." },
+    { kind = "paragraph", text = "Lee (2019a) (2019) it" },
+    { kind = "paragraph", text = "Text [12] (2019) more." },
+    { kind = "paragraph", text = "Text (Smith, 2019) (2019) more." },
+    { kind = "paragraph", text = "As said by Lee (2019a) (2019b) (2019c) (2019d) it holds." },
+]
+expected = [
+    "As said by Lee it holds.",
+    "As said by Smith it holds.",
+    "Lee it",
+    "Text more.",
+    "Text more.",
+    "As said by Lee it holds.",
+]
+
+[[case]]
+id = "citations-a-bracket-whose-link-goes"
+audit = 0
+issue = 309
+goal = "A bracket is judged without the link the links step removes from it, as a second run sees it: a citation or grant number left alone goes whole (D-577)."
+blocks = [
+    { kind = "paragraph", text = "Text (Smith, 2019, https://example.org) more." },
+    { kind = "paragraph", text = "Text (Smith, 2019 (https://example.org)) more." },
+    { kind = "paragraph", text = "Text (527794, https://example.org) more." },
+    { kind = "paragraph", text = "Text (527794 (https://example.org)) more." },
+    { kind = "paragraph", text = "Text (527794, doi:10.5281/zenodo.592845) more." },
+    { kind = "paragraph", text = "Text (527794, info@example.org) more." },
+]
+expected = [
+    "Text more.",
+    "Text more.",
+    "Text more.",
+    "Text more.",
+    "Text more.",
+    "Text more.",
+]
+
 # ---- v1.2 second-run batch: footnote marks (D-577) -----------------------------------------
 
 [[case]]

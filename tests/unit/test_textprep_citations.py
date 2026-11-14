@@ -22,6 +22,7 @@ from sci2audio.textprep import (
     CitationStep,
     Stage,
     StepContext,
+    citations,
     run_steps,
     spoken_text,
 )
@@ -343,7 +344,9 @@ def test_no_removal_leaves_doubled_marks_or_a_wrong_capital(text: str, spoken: s
         ("such as ((Smith, 2019) Jones and Lee, 2020) could", "such as Jones and Lee could"),
         # prose once the inner citation is read: the bracket stays (D-541)
         ("It holds ((Smith, 2019) see Table 2) here.", "It holds (Smith see Table 2) here."),
-        ("It holds (see also (Smith, 2019); Jones, 2020).", "It holds (see also)."),
+        # a lead word left alone once its citations go: the bracket goes whole, as a second
+        # run would remove "(see also)" (D-577; read "It holds (see also)." before)
+        ("It holds (see also (Smith, 2019); Jones, 2020).", "It holds."),
         # numeric citations inside are read in too (review round 1, M1)
         ("It holds ((Smith, 2019) [3] Jones, 2020) here.", "It holds here."),
         ("It holds ([1] Jones, 2020) here.", "It holds here."),
@@ -402,16 +405,18 @@ _NESTS = st.recursive(
     _LEAVES,
     lambda inner: st.builds(
         "({}{}{})".format,
-        st.sampled_from(["", "see ", "cf. ", "vgl. ", "Brown and "]),
+        st.sampled_from(["", "see ", "cf. ", "vgl. ", "Brown and ", "e.g., "]),
         inner,
-        st.sampled_from(["", " Jones, 2020", " 2020", ", Lee, 2020", "; Lee, 2021", " the"]),
+        st.sampled_from(
+            ["", " Jones, 2020", " 2020", ", Lee, 2020", "; Lee, 2021", " the", " (2019)"]
+        ),
     ),
     max_leaves=4,
 )
 
 
 @given(
-    st.sampled_from(["It holds ", "", "such as ", "wie "]),
+    st.sampled_from(["It holds ", "", "such as ", "wie ", "As shown by Smith "]),
     _NESTS,
     st.sampled_from([" found it.", " is cited.", " here.", ")", " zeigt das."]),
     st.sampled_from(["en", "de"]),
@@ -427,11 +432,50 @@ def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
     assert read_all(once, language) == once, (text, once)
 
 
-def test_an_empty_nest_as_the_subject_is_still_read_as_empty_brackets() -> None:
-    """Today's reading, stable but empty: nothing is left to name (#278 fixes it; S3)."""
-    once = read("((Smith, 2019)) is cited.")
-    assert once == "() is cited."
-    assert read(once) == once
+def test_an_empty_nest_as_the_subject_goes_whole() -> None:
+    """Read "() is cited." before D-577 (S3 of the #279 review): a second look sees "()" and
+    removes it, as the bracket held nothing but a citation. Keeping the names as the subject
+    is #278's."""
+    once = read_all("((Smith, 2019)) is cited.")
+    assert once == "is cited."
+    assert read_all(once) == once
+
+
+_SIBLINGS = st.sampled_from(
+    [
+        "(Smith, 2019)",
+        "(Müller, 2019)",
+        "[12]",
+        "[3, 4]",
+        "(2019)",
+        "(2019a)",
+        "(527794)",
+        "(see (527794))",
+        "(Smith, 2019, https://example.org)",
+        "(527794, https://example.org)",
+        "(results)",
+        "(12,345)",
+    ]
+)
+
+
+@given(
+    st.sampled_from(["", "Text ", "As said by Lee ", "It holds ", "Wie Müller ", "the data "]),
+    st.lists(_SIBLINGS, min_size=1, max_size=4),
+    st.sampled_from(["", " "]),
+    st.sampled_from([" it holds.", " more.", ", it grew.", ". Then more.", ""]),
+    st.sampled_from(["en", "de"]),
+)
+def test_sibling_brackets_read_the_same_on_a_second_run(
+    before: str, siblings: list[str], gap: str, after: str, language: str
+) -> None:
+    """#308 (D-577): a bracket next to one that goes is judged as a second run sees it, with
+    or without a name before them and with or without a space between them."""
+    # a URL glued to the next bracket runs on into it: #326, the links step's
+    assume(bool(gap) or all("https" not in sibling for sibling in siblings[:-1]))
+    text = before + gap.join(siblings) + after
+    once = read_all(text, language)
+    assert read_all(once, language) == once, (text, once)
 
 
 @pytest.mark.parametrize(
@@ -500,8 +544,16 @@ def test_an_identifier_says_why_it_is_not_read() -> None:
         ("de", "( 527794 (Müller, 2019) )", ""),
         ("de", "Text (Projekt 12.345 (Müller, 2019)) mehr.", "Text (Projekt 12 345) mehr."),
         ("en", "Text (527794 (2019)) more.", "Text (527794 (2019)) more."),  # inner stays
-        # a separator at the bracket's edge stays for now, the same on both runs (#305)
-        ("en", "Text ((527794); 2019) more.", "Text (; 2019) more."),
+        # a separator at the bracket's edge goes with the identifier, and "(2019)" after the
+        # name "Text" goes then too (#305, D-577; read "Text (; 2019) more." before)
+        ("en", "Text ((527794); 2019) more.", "Text more."),
+        ("en", "The data ((527794); 2019) more.", "The data (2019) more."),
+        ("en", "Text (see (527794) and Lee, 2019) more.", "Text more."),
+        ("en", "Text (527794, (Smith, 2019)) more.", "Text more."),
+        ("en", "The data (results; (527794)) more.", "The data (results) more."),
+        ("en", "The data ((527794); results) more.", "The data (results) more."),
+        ("en", "Text (see (see (see (527794)))) more.", "Text more."),
+        ("de", "Text (siehe (527794) und Müller, 2019) mehr.", "Text mehr."),
     ],
 )  # fmt: skip
 def test_a_removed_identifier_leaves_the_other_brackets_as_a_second_run_reads_them(
@@ -513,8 +565,10 @@ def test_a_removed_identifier_leaves_the_other_brackets_as_a_second_run_reads_th
 
 
 def test_a_bracket_of_lead_words_says_why_it_goes() -> None:
+    """The reason names the bracket as printed (D-175); it named "(see)" while a second look
+    decided it (before D-577)."""
     reasons = [edit.reason for edit in edits("Text (see (527794)) more.")]
-    assert reasons == ['bracket of lead words "(see)" is not read (TP-03)']
+    assert reasons == ['bracket of lead words "(see (527794))" is not read (TP-03)']
 
 
 _IDENTIFIERS = st.one_of(
@@ -727,7 +781,19 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
     outside = re.sub(rf"\({lead}(?:\[\d[\d,;–\s-]*\]{lead})+\)", " ", text)
     outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*Smith\s\(2019\)\s*\)", " ", outside)
     for citation in placed:
-        outside = outside.replace(citation, " ")
+        outside = outside.replace(citation, "\0")
+    # ... with a separator it leaves hanging at a bracket's edge: "( noise and (see also [48,
+    # 135]))" reads "( noise)" (#305, D-577)
+    outside = re.sub(r"(?:\s*(?:\band\b|&|(?<!e\.g\.)[,;]))?\s*\0\s*(?=\))", " ", outside)
+    outside = re.sub(r"(?<=\()\s*\0\s*(?:(?:\band\b|&|[,;])\s*)?", " ", outside)
+    outside = outside.replace("\0", " ")
+    # ... and a bracket left with only lead words or separators once its inner citations go:
+    # "( see (see also [48, 135]))", "( and (see also [48, 135]))", and the full stop a
+    # numeric citation printed before its lead words: "( [12]. see (see also [48, 135]))"
+    # (D-577, #305, #259)
+    left = r"(?:[\s,;&.]|see|also|e\.g\.,|and)*"
+    while (bare := re.sub(rf"\({left}\)", " ", outside)) != outside:
+        outside = bare
     outside = YEAR_OR_NUMBER.sub(" ", outside)
     words = [w.strip(".,;()") for w in outside.split()]
     said = [w.strip(".,;()") for w in spoken.split()]
@@ -762,3 +828,128 @@ def test_the_generated_sentences_mostly_hold_citations() -> None:
 
     probe()
     assert sum(found) / len(found) > 0.6
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # a read abbreviation's full stop may stand before what follows a removal: "vgl.(527794)
+        # 2019" is "vgl.2019" without it, which a second run reads alike (glue guard, D-577)
+        ("de", "Es gilt vgl.(527794)2019 hier.", "Es gilt vergleiche 2019 hier."),
+        ("en", "See e.g.(527794)2019 here.", "See for example 2019 here."),
+        # a separator at the edge of a closing bracket that does not enclose the removal is
+        # prose: "and" stays before an unmatched ")" (D-577)
+        ("en", "It holds and (see [12])) here.", "It holds and) here."),
+        # ... and so is a separator after a removal inside an opening bracket that is never
+        # closed
+        ("en", "It holds (see (527794), results here.", "It holds (see, results here."),
+        # a numeric bracket after a removed citation is judged where the chain starts: after
+        # "and", as a second run sees it (#308, D-577)
+        ("en", "It holds and (Smith, 2019) [12] more.", "It holds and reference 12 more."),
+        # one bracket, decided again once its link goes: the looks a block gets are as many as
+        # its brackets, and this one needs every one of them (D-588)
+        ("en", "It holds (Smith, 2019, https://example.org) here.", "It holds here."),
+        # brackets left empty around a removal go with it in the same look, however many
+        # (D-588)
+        ("en", "It holds ((( (Smith, 2019) ))) here.", "It holds here."),
+        ("de", "Es gilt [[( [12] )]] hier.", "Es gilt hier."),
+        # ... but only brackets that pair up (#330 review round 2)
+        ("en", "Text ( [12] ] more.", "Text ( ] more."),
+    ],
+)  # fmt: skip
+def test_the_edge_rules_read_the_same_on_a_second_run(
+    language: str, printed: str, said: str
+) -> None:
+    # PR #330 review round 1, R1-4: each row fails without the rule its comment names
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
+
+
+def _left(text: str, language: str = "en") -> str:
+    """The text with the citations step's edits made."""
+    found = STEP.find(make_document([(BlockKind.PARAGRAPH, text)], language), StepContext(language))
+    pieces, cursor = [], 0
+    for edit in sorted(found, key=lambda edit: edit.span.start):
+        pieces += [text[cursor : edit.span.start], edit.replacement or ""]
+        cursor = edit.span.end
+    return "".join([*pieces, text[cursor:]])
+
+
+def _nest(opening: str, inner: str, closing: str, levels: int) -> str:
+    head = opening[: opening.index("(")]
+    return head + opening[len(head) :] * levels + inner + closing * levels + " found."
+
+
+@pytest.mark.parametrize(
+    ("language", "opening", "inner", "closing", "levels", "left"),
+    [
+        ("en", "It holds (", "(Smith, 2019)", ", Lee, 2020)", 3200, "It holds found."),
+        ("en", "Text (e.g., ", "(Smith, 2019)", ", Lee, 2020)", 3200, "Text found."),
+        ("en", "It holds (", "(527794, (Smith, 2019))", ", Lee, 2020)", 3200, "It holds found."),
+        ("en", "It holds (Lee, 2020; ", "(Smith, 2019)", ")", 3200, "It holds found."),
+        # a lead word and a year after the names an inner citation keeps: one look, not one
+        # per level, which took 88 s at 800 levels (#330 review round 2, D-599)
+        ("en", "It holds (see ", "(Smith, 2019)", " (2019))", 800, "It holds found."),
+        (
+            "en", "It holds (cf. ", "(Smith, 2019, https://x.org)", " (2019))", 800,
+            "It holds, https://x.org found.",  # the link is the links step's to remove
+        ),
+        ("de", "Es gilt (vgl. ", "(Müller, 2019)", " (2019))", 800, "Es gilt found."),
+        (
+            "de", "Es gilt (vgl. ", "(Müller, 2019, https://x.org)", " (2019))", 800,
+            "Es gilt, https://x.org found.",
+        ),
+    ],
+)  # fmt: skip
+def test_a_deep_citation_nest_takes_linear_time(
+    language: str,
+    opening: str,
+    inner: str,
+    closing: str,
+    levels: int,
+    left: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # decided inner first in one look, not one look per level (D-588): 400 levels took 19 s
+    # with a look per level. 400 levels and more are longer than the bracket cap, where each
+    # level costs its own text; below the cap a level's checks read its whole inside, as on
+    # main. The whole nest goes, at every depth
+    assert_linear(
+        lambda text: _left(text, language), lambda n: _nest(opening, inner, closing, n), levels
+    )
+    looks = []
+    once = citations._Rules._once
+    monkeypatch.setattr(
+        citations._Rules, "_once", lambda self, *given: looks.append(1) or once(self, *given)
+    )
+    assert _left(_nest(opening, inner, closing, levels), language) == left
+    # the look that decides the nest, one more for an identifier or a link that goes, and one
+    # that changes nothing
+    assert len(looks) <= 3
+
+
+def test_a_bracket_longer_than_the_cap_is_no_citation_once_its_inner_ones_go() -> None:
+    # read inner first, its own text is still longer than any citation: only the inner
+    # citation goes, with the separator before it, on both runs (D-588)
+    text = "It holds (" + "Lee, 2020; " * 400 + "(Smith, 2019)) found."
+    once = _left(text)
+    assert once == text.replace("; (Smith, 2019)", "")
+    assert _left(once) == once
+
+
+def test_the_looks_stop_at_a_budget_and_leave_an_unsettled_nest_as_printed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # a stand-in for a shape that needs one look per level: without the inner-first reading
+    # each look decides one level of a comma nest. All looks together read at most a fixed
+    # multiple of the text, so the time stays linear; a nest still unsettled then stays as
+    # printed, on both runs (D-599)
+    monkeypatch.setattr(
+        citations._Rules, "_cited_once_inner_citations_go", lambda self, text, node, decided: None
+    )
+    nest = ("It holds (", "(Smith, 2019)", ", Lee, 2020)")
+    assert _left(_nest(*nest, 4)) == "It holds found."  # a few levels: inside the budget
+    assert_linear(_left, lambda n: _nest(*nest, n), 800)
+    deep = _nest(*nest, 800)
+    assert _left(deep) == deep
