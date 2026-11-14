@@ -125,6 +125,16 @@ def test_markdown_front_matter_states_a_normalised_tag(lang: str, stated: str) -
     assert content.metadata.language == stated
 
 
+@pytest.mark.parametrize(
+    "front",
+    ["lang: [und, de]", "lang: und\nlanguage: de", "lang:\n  - x-default\n  - de"],
+)
+def test_markdown_states_its_first_language_that_names_one(front: str) -> None:
+    """As in an EPUB, "und" states nothing, so the next value counts."""
+    content = read_markdown(f"---\ntitle: T\n{front}\n---\n\nText.\n".encode(), "n.md")
+    assert content.metadata.language == "de"
+
+
 def test_an_epub_states_its_first_language_that_names_one() -> None:
     """dc:language "und" states nothing, so the next one counts."""
     metadata = (

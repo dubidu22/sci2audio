@@ -192,8 +192,15 @@ def _metadata(front: str) -> Metadata:
         authors=tuple(v for v in values.get("author", []) + values.get("authors", []) if v),
         date=date,
         identifier=first("doi", "identifier", "isbn"),
-        language=stated_language(first("lang", "language")),
+        language=_language(values),
     )
+
+
+def _language(values: dict[str, list[str]]) -> str:
+    """The first value of `lang`, then `language`, that names a language (#237): "und"
+    states none, so the next one counts, as in an EPUB."""
+    stated = (stated_language(v) for key in ("lang", "language") for v in values.get(key, []))
+    return next((tag for tag in stated if tag), "")
 
 
 def _values(front: str) -> dict[str, list[str]]:
