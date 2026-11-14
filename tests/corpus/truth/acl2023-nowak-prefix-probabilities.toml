@@ -77,6 +77,7 @@ algorithms = [
 unnumbered_formulas = [
   { page = 4, count = 1 },  # Eq. (9) shown again without its number
 ]
+code_blocks = []  # the monospace GitHub URL under the authors is a link, not code
 
 [[verbatim]]
 where = "plain"

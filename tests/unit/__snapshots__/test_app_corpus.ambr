@@ -9841,19 +9841,19 @@
       dict({
         'blocks': list([
           9,
-          44,
+          35,
         ]),
         'first_page': 1,
         'index': 3,
         'references': False,
         'selected': True,
         'title': 'Example',
-        'utterances': 17,
+        'utterances': 8,
       }),
       dict({
         'blocks': list([
-          44,
-          59,
+          35,
+          50,
         ]),
         'first_page': 2,
         'index': 4,
@@ -9864,8 +9864,8 @@
       }),
       dict({
         'blocks': list([
-          59,
-          61,
+          50,
+          52,
         ]),
         'first_page': 4,
         'index': 5,
@@ -9876,8 +9876,8 @@
       }),
       dict({
         'blocks': list([
-          61,
-          73,
+          52,
+          64,
         ]),
         'first_page': 4,
         'index': 6,
@@ -9910,7 +9910,7 @@
         'switched_off': 0,
       }),
       'code': dict({
-        'applied': 0,
+        'applied': 1,
         'label': 'Code blocks',
         'not_spoken': 0,
         'set_aside': 0,
@@ -9945,7 +9945,7 @@
         'switched_off': 0,
       }),
       'numbers-and-units': dict({
-        'applied': 5,
+        'applied': 0,
         'label': 'Numbers, symbols, units and statistics',
         'not_spoken': 0,
         'set_aside': 6,
@@ -10295,7 +10295,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 46,
+        'block': 37,
         'category': 'page-furniture',
         'chapter': 4,
         'end': 140,
@@ -10311,7 +10311,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 47,
+        'block': 38,
         'category': 'page-furniture',
         'chapter': 4,
         'end': 1,
@@ -10327,7 +10327,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 48,
+        'block': 39,
         'category': 'page-furniture',
         'chapter': 4,
         'end': 5,
@@ -10343,7 +10343,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 55,
+        'block': 46,
         'category': 'page-furniture',
         'chapter': 4,
         'end': 140,
@@ -10359,7 +10359,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 56,
+        'block': 47,
         'category': 'page-furniture',
         'chapter': 4,
         'end': 1,
@@ -10375,7 +10375,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 57,
+        'block': 48,
         'category': 'page-furniture',
         'chapter': 4,
         'end': 5,
@@ -10391,7 +10391,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 70,
+        'block': 61,
         'category': 'page-furniture',
         'chapter': 6,
         'end': 140,
@@ -10407,7 +10407,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 71,
+        'block': 62,
         'category': 'page-furniture',
         'chapter': 6,
         'end': 1,
@@ -10423,7 +10423,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 72,
+        'block': 63,
         'category': 'page-furniture',
         'chapter': 6,
         'end': 5,
@@ -10439,7 +10439,7 @@
         'step': 'page-furniture',
       }),
       dict({
-        'block': 61,
+        'block': 52,
         'category': 'references',
         'chapter': 6,
         'end': 10,
@@ -10455,7 +10455,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 62,
+        'block': 53,
         'category': 'references',
         'chapter': 6,
         'end': 192,
@@ -10475,7 +10475,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 63,
+        'block': 54,
         'category': 'references',
         'chapter': 6,
         'end': 388,
@@ -10497,7 +10497,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 64,
+        'block': 55,
         'category': 'references',
         'chapter': 6,
         'end': 146,
@@ -10516,7 +10516,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 65,
+        'block': 56,
         'category': 'references',
         'chapter': 6,
         'end': 223,
@@ -10536,7 +10536,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 66,
+        'block': 57,
         'category': 'references',
         'chapter': 6,
         'end': 84,
@@ -10552,7 +10552,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 67,
+        'block': 58,
         'category': 'references',
         'chapter': 6,
         'end': 224,
@@ -10572,7 +10572,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 68,
+        'block': 59,
         'category': 'references',
         'chapter': 6,
         'end': 125,
@@ -10591,7 +10591,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 69,
+        'block': 60,
         'category': 'references',
         'chapter': 6,
         'end': 105,
@@ -10610,7 +10610,7 @@
         'step': 'reference-list',
       }),
       dict({
-        'block': 42,
+        'block': 33,
         'category': 'tables-and-figures',
         'chapter': 3,
         'end': 116,
@@ -10638,7 +10638,34 @@
         'step': 'table-figure-notices',
       }),
       dict({
-        'block': 54,
+        'block': 32,
+        'category': 'code',
+        'chapter': 3,
+        'end': 247,
+        'kind': 'replace',
+        'original': '''
+          import seaborn as sns
+          sns.set_theme(context="paper")
+          fmri = sns.load_dataset("fmri")
+          g = sns.relplot(
+          data=fmri, kind="line",
+          x="timepoint", y="signal",
+          hue="event", style="event", col="region",
+          height=3.5, aspect=.8,
+          )
+          g.savefig("paper_demo.pdf")
+        ''',
+        'page': 2,
+        'printed_page': '2',
+        'reason': 'this code block is not read; a short notice is read instead (D-55)',
+        'said': 'A code block is skipped.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'code-notices',
+      }),
+      dict({
+        'block': 45,
         'category': 'links',
         'chapter': 4,
         'end': 1373,
@@ -10657,7 +10684,7 @@
         'step': 'links',
       }),
       dict({
-        'block': 62,
+        'block': 53,
         'category': 'links',
         'chapter': 6,
         'end': 192,
@@ -10675,7 +10702,7 @@
         'status': 'set-aside',
         'step': 'links',
         'won_by': dict({
-          'block': 62,
+          'block': 53,
           'end': 192,
           'kind': 'remove',
           'page': 4,
@@ -10685,7 +10712,7 @@
         }),
       }),
       dict({
-        'block': 63,
+        'block': 54,
         'category': 'links',
         'chapter': 6,
         'end': 388,
@@ -10703,7 +10730,7 @@
         'status': 'set-aside',
         'step': 'links',
         'won_by': dict({
-          'block': 63,
+          'block': 54,
           'end': 388,
           'kind': 'remove',
           'page': 4,
@@ -10713,7 +10740,7 @@
         }),
       }),
       dict({
-        'block': 64,
+        'block': 55,
         'category': 'links',
         'chapter': 6,
         'end': 146,
@@ -10728,7 +10755,7 @@
         'status': 'set-aside',
         'step': 'links',
         'won_by': dict({
-          'block': 64,
+          'block': 55,
           'end': 146,
           'kind': 'remove',
           'page': 4,
@@ -10738,7 +10765,7 @@
         }),
       }),
       dict({
-        'block': 65,
+        'block': 56,
         'category': 'links',
         'chapter': 6,
         'end': 223,
@@ -10756,7 +10783,7 @@
         'status': 'set-aside',
         'step': 'links',
         'won_by': dict({
-          'block': 65,
+          'block': 56,
           'end': 223,
           'kind': 'remove',
           'page': 4,
@@ -10766,7 +10793,7 @@
         }),
       }),
       dict({
-        'block': 67,
+        'block': 58,
         'category': 'links',
         'chapter': 6,
         'end': 224,
@@ -10781,7 +10808,7 @@
         'status': 'set-aside',
         'step': 'links',
         'won_by': dict({
-          'block': 67,
+          'block': 58,
           'end': 224,
           'kind': 'remove',
           'page': 4,
@@ -10791,7 +10818,7 @@
         }),
       }),
       dict({
-        'block': 68,
+        'block': 59,
         'category': 'links',
         'chapter': 6,
         'end': 125,
@@ -10809,7 +10836,7 @@
         'status': 'set-aside',
         'step': 'links',
         'won_by': dict({
-          'block': 68,
+          'block': 59,
           'end': 125,
           'kind': 'remove',
           'page': 4,
@@ -10851,7 +10878,7 @@
         'step': 'citations',
       }),
       dict({
-        'block': 51,
+        'block': 42,
         'category': 'citations',
         'chapter': 4,
         'end': 672,
@@ -10870,7 +10897,7 @@
         'step': 'citations',
       }),
       dict({
-        'block': 52,
+        'block': 43,
         'category': 'citations',
         'chapter': 4,
         'end': 132,
@@ -10886,7 +10913,7 @@
         'step': 'citations',
       }),
       dict({
-        'block': 52,
+        'block': 43,
         'category': 'citations',
         'chapter': 4,
         'end': 207,
@@ -10902,7 +10929,7 @@
         'step': 'citations',
       }),
       dict({
-        'block': 52,
+        'block': 43,
         'category': 'citations',
         'chapter': 4,
         'end': 1176,
@@ -10918,7 +10945,7 @@
         'step': 'citations',
       }),
       dict({
-        'block': 54,
+        'block': 45,
         'category': 'citations',
         'chapter': 4,
         'end': 735,
@@ -10934,7 +10961,7 @@
         'step': 'citations',
       }),
       dict({
-        'block': 54,
+        'block': 45,
         'category': 'citations',
         'chapter': 4,
         'end': 1397,
@@ -10950,87 +10977,7 @@
         'step': 'citations',
       }),
       dict({
-        'block': 34,
-        'category': 'numbers-and-units',
-        'chapter': 3,
-        'end': 7,
-        'kind': 'replace',
-        'original': ' = ',
-        'page': 2,
-        'printed_page': '2',
-        'reason': '"=" read as "equals"',
-        'said': ' equals ',
-        'spoken': True,
-        'start': 4,
-        'status': 'accepted',
-        'step': 'statistics',
-      }),
-      dict({
-        'block': 35,
-        'category': 'numbers-and-units',
-        'chapter': 3,
-        'end': 4,
-        'kind': 'replace',
-        'original': ' = ',
-        'page': 2,
-        'printed_page': '2',
-        'reason': '"=" read as "equals"',
-        'said': ' equals ',
-        'spoken': True,
-        'start': 1,
-        'status': 'accepted',
-        'step': 'statistics',
-      }),
-      dict({
-        'block': 36,
-        'category': 'numbers-and-units',
-        'chapter': 3,
-        'end': 5,
-        'kind': 'replace',
-        'original': '=',
-        'page': 2,
-        'printed_page': '2',
-        'reason': '"=" read as "equals"',
-        'said': ' equals ',
-        'spoken': True,
-        'start': 4,
-        'status': 'accepted',
-        'step': 'statistics',
-      }),
-      dict({
-        'block': 39,
-        'category': 'numbers-and-units',
-        'chapter': 3,
-        'end': 7,
-        'kind': 'replace',
-        'original': '=',
-        'page': 2,
-        'printed_page': '2',
-        'reason': '"=" read as "equals"',
-        'said': ' equals ',
-        'spoken': True,
-        'start': 6,
-        'status': 'accepted',
-        'step': 'statistics',
-      }),
-      dict({
-        'block': 39,
-        'category': 'numbers-and-units',
-        'chapter': 3,
-        'end': 19,
-        'kind': 'replace',
-        'original': '=',
-        'page': 2,
-        'printed_page': '2',
-        'reason': '"=" read as "equals"',
-        'said': ' equals ',
-        'spoken': True,
-        'start': 18,
-        'status': 'accepted',
-        'step': 'statistics',
-      }),
-      dict({
-        'block': 62,
+        'block': 53,
         'category': 'numbers-and-units',
         'chapter': 6,
         'end': 144,
@@ -11045,7 +10992,7 @@
         'status': 'set-aside',
         'step': 'numbers',
         'won_by': dict({
-          'block': 62,
+          'block': 53,
           'end': 192,
           'kind': 'remove',
           'page': 4,
@@ -11055,7 +11002,7 @@
         }),
       }),
       dict({
-        'block': 63,
+        'block': 54,
         'category': 'numbers-and-units',
         'chapter': 6,
         'end': 341,
@@ -11070,7 +11017,7 @@
         'status': 'set-aside',
         'step': 'numbers',
         'won_by': dict({
-          'block': 63,
+          'block': 54,
           'end': 388,
           'kind': 'remove',
           'page': 4,
@@ -11080,7 +11027,7 @@
         }),
       }),
       dict({
-        'block': 64,
+        'block': 55,
         'category': 'numbers-and-units',
         'chapter': 6,
         'end': 106,
@@ -11095,7 +11042,7 @@
         'status': 'set-aside',
         'step': 'numbers',
         'won_by': dict({
-          'block': 64,
+          'block': 55,
           'end': 146,
           'kind': 'remove',
           'page': 4,
@@ -11105,7 +11052,7 @@
         }),
       }),
       dict({
-        'block': 65,
+        'block': 56,
         'category': 'numbers-and-units',
         'chapter': 6,
         'end': 174,
@@ -11120,7 +11067,7 @@
         'status': 'set-aside',
         'step': 'numbers',
         'won_by': dict({
-          'block': 65,
+          'block': 56,
           'end': 223,
           'kind': 'remove',
           'page': 4,
@@ -11130,7 +11077,7 @@
         }),
       }),
       dict({
-        'block': 67,
+        'block': 58,
         'category': 'numbers-and-units',
         'chapter': 6,
         'end': 179,
@@ -11148,7 +11095,7 @@
         'status': 'set-aside',
         'step': 'numbers',
         'won_by': dict({
-          'block': 67,
+          'block': 58,
           'end': 224,
           'kind': 'remove',
           'page': 4,
@@ -11158,7 +11105,7 @@
         }),
       }),
       dict({
-        'block': 68,
+        'block': 59,
         'category': 'numbers-and-units',
         'chapter': 6,
         'end': 84,
@@ -11173,7 +11120,7 @@
         'status': 'set-aside',
         'step': 'numbers',
         'won_by': dict({
-          'block': 68,
+          'block': 59,
           'end': 125,
           'kind': 'remove',
           'page': 4,
@@ -11183,7 +11130,7 @@
         }),
       }),
       dict({
-        'block': 52,
+        'block': 43,
         'category': 'abbreviations',
         'chapter': 4,
         'end': 767,
@@ -11199,7 +11146,7 @@
         'step': 'abbreviations',
       }),
       dict({
-        'block': 45,
+        'block': 36,
         'category': 'characters',
         'chapter': 4,
         'end': 826,
@@ -11218,7 +11165,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 50,
+        'block': 41,
         'category': 'characters',
         'chapter': 4,
         'end': 177,
@@ -11237,7 +11184,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 52,
+        'block': 43,
         'category': 'characters',
         'chapter': 4,
         'end': 177,
@@ -11256,7 +11203,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 53,
+        'block': 44,
         'category': 'characters',
         'chapter': 4,
         'end': 96,
@@ -11275,7 +11222,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 54,
+        'block': 45,
         'category': 'characters',
         'chapter': 4,
         'end': 347,
@@ -11294,7 +11241,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 54,
+        'block': 45,
         'category': 'characters',
         'chapter': 4,
         'end': 435,
@@ -11313,7 +11260,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 54,
+        'block': 45,
         'category': 'characters',
         'chapter': 4,
         'end': 698,
@@ -11332,7 +11279,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 54,
+        'block': 45,
         'category': 'characters',
         'chapter': 4,
         'end': 868,
@@ -11351,7 +11298,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 54,
+        'block': 45,
         'category': 'characters',
         'chapter': 4,
         'end': 1052,
@@ -11370,7 +11317,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 54,
+        'block': 45,
         'category': 'characters',
         'chapter': 4,
         'end': 1233,
@@ -11389,7 +11336,7 @@
         'step': 'line-end-hyphens',
       }),
       dict({
-        'block': 60,
+        'block': 51,
         'category': 'characters',
         'chapter': 5,
         'end': 262,
@@ -11454,7 +11401,7 @@
   | 1 | seaborn: statistical data visualization | 1 | yes | 3 |
   | 2 | Summary | 1 | yes | 8 |
   | 3 | Statement of need | 1 | yes | 12 |
-  | 4 | Example | 1 | yes | 17 |
+  | 4 | Example | 1 | yes | 8 |
   | 5 | Overview | 2 | yes | 44 |
   | 6 | Acknowledgements | 4 | yes | 3 |
   | 7 | References | 4 | no (reference list) | 0 |
@@ -11471,10 +11418,10 @@
   | URLs, DOIs and e-mail addresses | 1 | 0 | 6 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 1 | 0 | 0 | 0 |
-  | Code blocks | 0 | 0 | 0 | 0 |
+  | Code blocks | 1 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
   | Abbreviations | 1 | 0 | 0 | 0 |
-  | Numbers, symbols, units and statistics | 5 | 0 | 6 | 0 |
+  | Numbers, symbols, units and statistics | 0 | 0 | 6 | 0 |
   
   ## Page furniture (29)
   
@@ -11547,6 +11494,10 @@
   
   - page 2, chapter 4, applied: “region = parietal region = frontal 0.3 0.2 signal event 0.1 stim cue 0.0 0.1 0 5 10 15 0 5 10 15 timepoint timepoint” → read as “Figure 1 is skipped.”. Reason: Figure 1 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
   
+  ## Code blocks (1)
+  
+  - page 2, chapter 4, applied: “import seaborn as sns sns.set\_theme(context="paper") fmri = sns.load\_dataset("fmri") g = sns.relplot( data=fmri, kind="line", x="timepoint", y="signal", hue="event", style="event", col="region", height=3.5, aspect=.8, ) g.savefig("paper\_demo.pdf")” → read as “A code block is skipped.”. Reason: this code block is not read; a short notice is read instead (D-55). Step: code-notices.
+  
   ## Reference list (9)
   
   - page 4, chapter 7, not spoken (chapter not chosen): “References” → left out. Reason: the reference list is not read. Step: reference-list.
@@ -11563,13 +11514,8 @@
   
   - page 3, chapter 5, applied: “e.g.” → read as “for example”. Reason: abbreviation "e.g." read as "for example". Step: abbreviations.
   
-  ## Numbers, symbols, units and statistics (11)
+  ## Numbers, symbols, units and statistics (6)
   
-  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
-  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
-  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
-  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
-  - page 2, chapter 4, applied: “=” → read as “equals”. Reason: "=" read as "equals". Step: statistics.
   - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "170–180" read with "to". Step: numbers.
   - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "357–362" read with "to". Step: numbers.
   - page 4, chapter 7, set aside: the remove edit of step reference-list (page 4) won: “–” → read as “to”. Reason: range "90–95" read with "to". Step: numbers.
@@ -12462,25 +12408,7 @@
   The example makes use of one of the built-in datasets that are provided for documentation and generation of reproducible bug reports.
   It illustrates several of the features described in the Overview section, including the declarative API, semantic mappings, faceting across subplots, aggregation with error bars, and visual theme control.
   
-  import seaborn as sns
-  
-  sns.set_theme(context="paper")
-  
-  fmri equals sns.load_dataset("fmri")
-  
-  g equals sns.relplot(
-  
-  data equals fmri, kind="line",
-  
-  x="timepoint", y="signal",
-  
-  hue="event", style="event", col="region",
-  
-  height equals 3.5, aspect equals .8,
-  
-  )
-  
-  g.savefig("paper_demo.pdf")
+  A code block is skipped.
   
   Figure 1 is skipped.
   

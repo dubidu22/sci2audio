@@ -51,10 +51,13 @@ PAPER_KEYS = COMMON_KEYS | {
     "furniture",
     *PAGE_GROUPS,
     "unnumbered_formulas",
+    "code_blocks",
     "verbatim",
 }
 EPUB_KEYS = COMMON_KEYS | {"chapters", "endnotes"}
-OWN_KEYS = COMMON_KEYS | {"headings", "footnotes", "tables", "figures", "formulas", "verbatim"}
+OWN_KEYS = COMMON_KEYS | {
+    *("headings", "footnotes", "tables", "code_blocks", "figures", "formulas", "verbatim"),
+}
 OWN_PLACES = {"plain", "hyphenation", "footnote-mark", "inline-maths"}  # one page
 
 
@@ -194,14 +197,15 @@ def test_paper_truth_follows_format(path: Path) -> None:
     for number in (n for group in truth["formula_numbers"] for n in group["numbers"]):
         assert not number.startswith("("), f"write equation number {number!r} without brackets"
 
-    unnumbered = truth["unnumbered_formulas"]
-    assert isinstance(unnumbered, list), "unnumbered_formulas must be a list (empty if none)"
-    for group in unnumbered:
-        assert set(group) == {"page", "count"}, f"unnumbered_formulas needs page, count: {group}"
-        check_pages([group["page"]], pages, "unnumbered_formulas")
-        assert is_count(group["count"]), "count must be a whole number"
-        assert group["count"] >= 1, "leave out pages without unnumbered formulas"
-    check_page_order(unnumbered, "unnumbered_formulas")
+    for key in ("unnumbered_formulas", "code_blocks"):  # how many on each page
+        counted = truth[key]
+        assert isinstance(counted, list), f"{key} must be a list (empty if none)"
+        for group in counted:
+            assert set(group) == {"page", "count"}, f"{key} needs page, count: {group}"
+            check_pages([group["page"]], pages, key)
+            assert is_count(group["count"]), "count must be a whole number"
+            assert group["count"] >= 1, f"leave out pages without {key}"
+        check_page_order(counted, key)
 
     verbatim = truth["verbatim"]
     assert MIN_VERBATIM <= len(verbatim) <= MAX_VERBATIM, f"{len(verbatim)} verbatim sentences"
@@ -263,6 +267,7 @@ def test_own_sample_truth_follows_format(path: Path) -> None:
         assert is_text(note["mark"]), f"footnote mark must be non-empty: {note}"
         assert is_text(note["text"]), f"footnote text must be non-empty: {note}"
     assert is_count(truth["tables"]), "tables must be a whole number"
+    assert is_count(truth["code_blocks"]), "code_blocks must be a whole number"
     assert all(isinstance(alt, str) for alt in truth["figures"]), "figures are alt texts"
     for formula in truth["formulas"]:
         assert set(formula) == {"display", "text"}, f"formula needs display and text: {formula}"

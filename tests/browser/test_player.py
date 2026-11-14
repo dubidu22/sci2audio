@@ -254,6 +254,28 @@ def test_a_skipped_figure_shows_and_lights_up_its_notice(
     )
 
 
+def test_a_skipped_code_block_shows_its_notice_and_its_code(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """#280, D-546: the voice reads the notice; the code is shown open below it."""
+    page = signed_in
+    code = ["import seaborn as sns", "g = sns.relplot(data=fmri)", 'g.savefig("demo.pdf")']
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text("The following example makes a figure.", 72, 100, size=11),
+            *(Text(line, 72, 124 + 13 * k, "Courier", 10) for k, line in enumerate(code)),
+            Text("Text after it.", 72, 190, size=11),
+        ]
+    )
+    listen_to(page, live, tmp_path / "code.pdf", pdf)
+    notice = page.locator(".notice")
+    expect(notice.locator("p")).to_have_text("A code block is skipped.")
+    expect(notice.locator("pre.code")).to_have_text("\n".join(code))
+    expect(notice.locator("pre.code")).to_be_visible()
+    check_axe(page, "player with a code block")
+
+
 def test_a_second_jump_while_a_file_loads_wins(signed_in: Page, live: Live) -> None:
     page = signed_in
     make_audiobook(page, live)

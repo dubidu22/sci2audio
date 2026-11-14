@@ -45,6 +45,7 @@ figures = [
 ]
 algorithms = []
 unnumbered_formulas = []
+code_blocks = []
 
 [[verbatim]]
 where = "plain"

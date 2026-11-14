@@ -445,6 +445,13 @@ def test_the_figures_are_the_truth_figures_and_algorithms(paper: Path) -> None:
     }
 
 
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_the_code_blocks_are_the_truth_code_blocks(paper: Path) -> None:
+    """Each code listing is one CODE block on its page; a monospace URL is not one (#280)."""
+    expected = {entry["page"]: entry["count"] for entry in truth(paper)["code_blocks"]}
+    assert placeholders(document(paper), BlockKind.CODE) == expected
+
+
 def test_algorithms_inside_figures_share_the_figure_block() -> None:
     """The captions of an algorithm printed inside a figure name the figure's block."""
     for (stem, page), (figure, algorithms) in ALGORITHMS_IN_FIGURES.items():

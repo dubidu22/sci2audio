@@ -67,8 +67,8 @@
   12  p1  paragraph  [p1-l14]  Listening is not reading.
   13  p1  paragraph  [p1-l15]  A quote inside a quote.
   14  p1  paragraph  [p1-l16]  We timed each session with this function:
-  15  p1  paragraph  [p1-l17..p1-l18 (2)]  def words_per_minute(words, seconds):\n    return 60 * words / seconds
-  16  p1  paragraph  [p1-l19]  indented code is code too
+  15  p1  code  [p1-l17..p1-l18 (2)]  def words_per_minute(words, seconds):\n    return 60 * words / seconds
+  16  p1  code  [p1-l19]  indented code is code too
   17  p1  table  [p1-l20..p1-l28 (9)]  Group\nListeners\nMinutes\nA\n12\n41\nB\n9\n38
   18  p1  figure  [p1-i1]  {p1-i1@0}  
   19  p1  figure  [p1-i2]  {p1-i2@0}  

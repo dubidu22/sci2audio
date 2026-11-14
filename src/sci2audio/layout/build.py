@@ -16,6 +16,7 @@ from sci2audio.core import (
     TextLine,
 )
 from sci2audio.layout.captions import find_captions
+from sci2audio.layout.code import find_code
 from sci2audio.layout.footnotes import find_footnotes
 from sci2audio.layout.formulas import find_formulas
 from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, edges, find_furniture, page_label
@@ -68,7 +69,7 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     named = set(links.named.values())
     blocks = find_formulas(blocks, content, columns, named, layout.size, settings)
     blocks = find_lists(blocks, content)
-    blocks = _in_page_order(blocks, content)
+    blocks = find_code(_in_page_order(blocks, content), content, layout.size)
     blocks, sections = find_headings(blocks, content, layout.size, settings)
     blocks = link_captions(blocks, links)
     language, source, guess = choose_language(content, settings)
