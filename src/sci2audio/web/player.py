@@ -432,25 +432,29 @@ def build_view(
 
 def _heard_moves(run: StepRun, readalong: ReadAlong) -> dict[int, int]:
     """The moves of `run` (block -> the block it is read in) that the audiobook was read
-    with (review R1-2). A move counts when the read-along reads the moved block right after a
-    piece of its target block, or right before the target's first piece (a move to the
+    with (review R1-2, R2-1). The read-along is taken as a row of runs, one per stretch of
+    chunks of one block. A moved block counts when it stands in a stretch of blocks moved to
+    the same target (notes read at one position, in block order) and that stretch comes
+    right after a run of the target, or right before the target's first run (a move to the
     target's start). The page is built by today's steps, but the audio may be older: an
     audiobook made before #213 read each note where it is printed, so its read-along shows
     no such neighbour and the note is shown where printed, in its printed chapter."""
-    first: dict[int, int] = {}
-    last: dict[int, int] = {}
-    for number, chunk in enumerate(readalong.chunks):
-        first.setdefault(chunk.span.block, number)
-        last[chunk.span.block] = number
-    chunks = readalong.chunks
+    row: list[int] = []  # the block of each run of chunks, in reading order
+    first: dict[int, int] = {}  # block -> the index in `row` of its first run
+    for chunk in readalong.chunks:
+        if not row or row[-1] != chunk.span.block:
+            first.setdefault(chunk.span.block, len(row))
+            row.append(chunk.span.block)
     heard: dict[int, int] = {}
     for block, target in run.moved.items():
         if block not in first:
             continue  # nothing of it is read: shown where printed
-        before, after = first[block] - 1, last[block] + 1
-        if (before >= 0 and chunks[before].span.block == target) or (
-            after < len(chunks) and first.get(target) == after
-        ):
+        before = after = first[block]
+        while before >= 0 and run.moved.get(row[before]) == target:
+            before -= 1
+        while after < len(row) and run.moved.get(row[after]) == target:
+            after += 1
+        if (before >= 0 and row[before] == target) or first.get(target, -1) == after:
             heard[block] = target
     return heard
 

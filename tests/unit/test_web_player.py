@@ -334,6 +334,68 @@ def test_a_chapter_that_starts_with_a_moved_block_is_the_chapter_it_is_read_in()
     assert view.left_out == []
 
 
+class _Together(TextStep):
+    """Reads the footnotes `notes` at one position `to`."""
+
+    id = "places"
+    languages = ("*",)
+    category = Category.FOOTNOTES
+    stage = Stage.MOVE
+
+    def __init__(self, notes: Sequence[int], to: Span) -> None:
+        self.notes, self.to = notes, to
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [Edit(Span(n, 0, 9), EditKind.MOVE, "test", self.id, to=self.to) for n in self.notes]
+
+
+def _notes_paper(notes: int) -> Document:
+    """Chapter One: a heading and "It works.1 It holds."; chapter Two: a heading, `notes`
+    footnotes printed together and "More."."""
+    blocks: list = [
+        ("heading", "1 One"),
+        ("paragraph", "It works.1 It holds."),
+        ("heading", "2 Two"),
+    ]
+    blocks += [Block(BlockKind.FOOTNOTE, f"{n} A note.", label=str(n)) for n in range(1, notes + 1)]
+    blocks.append(("paragraph", "More."))
+    return make_document(
+        blocks, sections=[Section("1 One", 1, 0, 2), Section("2 Two", 1, 2, 4 + notes)]
+    )
+
+
+@pytest.mark.parametrize("notes", [2, 3])
+@pytest.mark.parametrize("at", [10, 0], ids=["mid-block", "at-the-start"])
+def test_notes_read_together_at_one_position_all_show_where_they_are_read(
+    notes: int, at: int
+) -> None:
+    """Review R2-1: the voice reads the target, note 1, note 2, ..., the rest of the target;
+    every note of that stretch is shown in the target's chapter, after the target."""
+    document = _notes_paper(notes)
+    moved = list(range(3, 3 + notes))
+    head = [(1, 0, 9)] if at else []
+    tail = [(1, 11, 20)] if at else [(1, 0, 20)]
+    spans = [(0, 0, 5), *head, *[(n, 0, 9) for n in moved], *tail, (2, 0, 5), (3 + notes, 0, 5)]
+    two = len(spans) - 2
+    data = readalong(spans, (("One", 0), ("Two", two)), [0] * two + [1, 1])
+    steps = [*BUILT_IN_STEPS, _Together(moved, Span(1, at, at))]
+    view = build_view(document, record(chunks=len(spans)), data, steps)
+    one, two_view = view.chapters
+    assert [b.index for b in one.blocks] == [1, *moved]
+    assert [b.index for b in two_view.blocks] == [3 + notes]
+
+
+def test_notes_printed_together_and_read_there_stay_where_printed() -> None:
+    """Review R2-1: an old-style read-along reads two notes together where they are printed,
+    under a heading that does not hold their marks: they stay there."""
+    document = _notes_paper(2)
+    spans = [(0, 0, 5), (1, 0, 20), (2, 0, 5), (3, 0, 9), (4, 0, 9), (5, 0, 5)]
+    data = readalong(spans, (("One", 0), ("Two", 2)), [0, 0, 1, 1, 1, 1])
+    steps = [*BUILT_IN_STEPS, _Together([3, 4], Span(1, 10, 10))]
+    view = build_view(document, record(chunks=6), data, steps)
+    assert [[b.index for b in c.blocks] for c in view.chapters] == [[1], [3, 4, 5]]
+
+
 def test_a_block_with_nothing_read_says_so() -> None:
     document = make_document([("paragraph", "Read."), ("paragraph", "Removed by a step.")])
     view = build_view(document, record(chunks=1), readalong([(0, 0, 5)]))
