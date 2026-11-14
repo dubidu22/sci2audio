@@ -347,6 +347,7 @@ _SENTENCE_START = re.compile(r"(?:\A|[.!?][\"'”’)\]]*\s+)\Z")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z|(?=[A-Z\])\"'”’]))")
 _STOP = re.compile(r"[.!?](?=[\"'”’)\]]*(?:\s|\Z))")  # the full stop that ends a sentence
 _LEADING_SPACE = re.compile(r"\s*")
+_SENTENCE_END = re.compile(r"[.!?][\"'”’)\]]*\s+")
 _LOOK_BACK = 300  # characters looked at before a link, so a long block costs linear time
 
 
@@ -483,6 +484,8 @@ def _dangling_join(
     left = re.search(rf"\s+({listed})\s*\Z", text[window:start], re.IGNORECASE)
     if not left or not text[window : window + left.start()].strip():
         return start, ""
+    if text[window : window + left.start()].rstrip()[-1] in ".!?" and end < len(text):
+        return start, ""  # "PLUE. and https://..." would leave "PLUE.." behind
     return window + left.start(), f'; "{left.group(1)}" before it goes too'
 
 
@@ -747,6 +750,37 @@ def _only_pointers_after(text: str, end: int, words: LinkWords) -> int | None:
     if stop - end > _LOOK_BACK:
         return None
     return stop if _link_words_only(text[end:stop], words) else None
+
+
+def only_links_before(text: str, position: int, language: str = "en") -> bool:
+    """True if the sentence before `position` holds links and nothing but the words that
+    lead to or join them, all of which this step removes: what follows then starts the
+    sentence ("https://x.org/a, (Smith, 2020)." -- the citation takes the full stop after
+    it, not the comma the link's removal already took, #101)."""
+    window = max(0, position - _LOOK_BACK)
+    before = text[window:position]
+    ends = list(_SENTENCE_END.finditer(before))
+    if window > 0 and not ends:
+        return False
+    stretch = before[ends[-1].end() :] if ends else before
+    words = WORDS.get(language, WORDS["en"])
+    return bool(find_links(stretch, words=words)) and _link_words_only(stretch, words)
+
+
+def only_links_after(text: str, position: int, language: str = "en") -> bool:
+    """True if the sentence after `position` holds links and nothing but the words that
+    join or point to them: this step removes them with the punctuation before them, so a
+    removal ending at `position` leaves that punctuation alone ("(Smith, 2020),
+    https://x.org/a.", #101)."""
+    words = WORDS.get(language, WORDS["en"])
+    ending = _STOP.search(text, position, position + _LOOK_BACK)
+    rest = text[position : ending.start() if ending else position + _LOOK_BACK]
+    return bool(find_links(rest, words=words)) and _link_words_only(rest, words)
+
+
+def without_links(text: str, language: str = "en") -> str:
+    """The text with each link blanked out (one space in its place)."""
+    return _without_links(text, WORDS.get(language, WORDS["en"]))
 
 
 def _without_links(rest: str, words: LinkWords) -> str:

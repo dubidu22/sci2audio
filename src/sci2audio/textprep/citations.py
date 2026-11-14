@@ -34,8 +34,14 @@ import re
 from dataclasses import dataclass, field
 
 from sci2audio.core import Document, Edit, EditKind, Span
-from sci2audio.textprep.links import SKIPPED_KINDS
-from sci2audio.textprep.statistics import interval_openings
+from sci2audio.textprep.links import (
+    SKIPPED_KINDS,
+    only_links_after,
+    only_links_before,
+    without_links,
+)
+from sci2audio.textprep.statistics import OPERATORS, interval_openings
+from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -357,6 +363,11 @@ class _Rules:
         self.pair_end = re.compile(rf"(\S+)\s+(?:{words.joins})\s+\S+\s*\Z")
         self.not_names = {*words.other_words, *re.sub(r"\\", "", words.joins).split("|")}
         self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
+        # a sign as the statistics step reads it counts as the sign: "x equals [12]" is "x =
+        # [12]" after the first run, so a second run decides the same (#101)
+        said = OPERATORS_DE if language == "de" else OPERATORS
+        phrases = sorted(set(said.values()), key=len, reverse=True)
+        self.said_sign = re.compile(rf"(?<!\w)(?:{'|'.join(map(re.escape, phrases))})\Z")
         self.language = language
 
     def block(self, text: str) -> list[_Found]:
@@ -500,6 +511,8 @@ class _Rules:
         and [12]" still cites reference 12."""
         before = text[max(0, position - _LOOK_BACK) : position].rstrip()
         previous = before.split()[-1] if before.split() else ""
+        if self.said_sign.search(before):
+            return True
         if previous and (
             previous[-1] in _MATHS_SIGNS
             or previous.lower().rstrip(":") in self.words.maths
@@ -651,11 +664,17 @@ class _Rules:
         """For a language that capitalises nouns: True if the words before a capital word
         lead to a name ("wie Müller", "von Anna Müller", a sentence start), not to a noun
         ("die neue Studie", "Die Olympischen Spiele")."""
-        words = before.split()[-3:]
+        before = before[-_LOOK_BACK:]
+        words = without_links(before, self.language).split()[-3:]  # a link is no word here
         while words and _is_name(words[-1]) and words[-1].lower() not in self.words.articles:
             words.pop()  # a first name or another capital word: "Anna Müller"
         if not words:
             return True
+        head = before
+        for _ in range(len(without_links(before, self.language).split()[-3:]) - len(words)):
+            head = re.sub(r"\S+\s*\Z", "", head)
+        if only_links_before(head, len(head), self.language):
+            return True  # "https://x.org Müller (2019)" starts with the name once the link goes
         word = words[-1].lower()
         leads = self.words.name_leads or frozenset()
         if word in self.words.articles:
@@ -754,10 +773,16 @@ class _Rules:
         At the start of a sentence the punctuation after it goes instead: "It holds. (Smith,
         2019). Then" reads "It holds. Then", not "It holds.. Then".
         """
-        if self._starts_sentence(text, start):
+        if self._starts_sentence(text, start) or only_links_before(text, start, self.language):
             punctuation = _AFTER_START.match(text, end)
+            if punctuation and only_links_after(text, end, self.language):
+                return start, end  # the links' removal takes the punctuation before them
             if punctuation:
-                return start, punctuation.end()
+                stop = punctuation.end()
+                if text[stop - 1].isspace() and only_links_after(text, stop, self.language):
+                    # "(Müller, o. J.). https://x.org)": the link takes the space before it
+                    stop = end + len(punctuation.group().rstrip())
+                return start, stop
             # the white space before belongs to the sentence before, which another step may
             # have removed with it ("https://x.org. [1; 3],1", #101): take the space after
             if start > 0:

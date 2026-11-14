@@ -323,6 +323,12 @@ def _operators(
         ):
             continue  # "a<b" or "<i>": not a comparison anyone reads aloud
         span_start, span_end = max(left, taken), right_start
+        if left and left < start and plain[left - 1] in ".!?":
+            # "https://x.org. = https://y.org Die": only the sign is read, so the steps that
+            # remove the sentence before or a link after it don't set its reading aside (#101)
+            span_start = max(start, taken)
+            if right_start > end:
+                span_end = end
         taken, read_end = span_end, end
         words = said[op]
         found.append(
