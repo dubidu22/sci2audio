@@ -6,12 +6,12 @@ exact spans and reasons, and Hypothesis properties on sentences built around lin
 """
 
 import itertools
-import time
 from collections import Counter
 
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from linear_time import assert_linear
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.testing import check_text_step, make_document
@@ -299,10 +299,8 @@ def test_merged_runs_are_one_edit_that_names_both_links() -> None:
 
 
 def test_a_long_block_of_links_takes_linear_time() -> None:  # S2
-    text = "Data at https://x.org/a and more. " * 3000  # 102,000 characters
-    started = time.perf_counter()
-    assert len(edits(text)) == 3000
-    assert time.perf_counter() - started < 5
+    found = assert_linear(edits, lambda n: "Data at https://x.org/a and more. " * n, 3000)
+    assert len(found) == 3000  # 102,000 characters
 
 
 def test_a_pointer_sentence_names_its_pointer_word() -> None:

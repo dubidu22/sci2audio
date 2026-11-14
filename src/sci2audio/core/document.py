@@ -21,7 +21,8 @@ class SpanError(ValueError):
 
 
 class BlockKind(StrEnum):
-    """What a block is. Tables, formulas and figures are placeholders in v1.0 (D-55)."""
+    """What a block is. Tables, formulas, figures (D-55) and code blocks (D-542) are
+    placeholders: a short notice is read instead of their text."""
 
     PARAGRAPH = "paragraph"
     HEADING = "heading"
@@ -32,9 +33,12 @@ class BlockKind(StrEnum):
     TABLE = "table"
     FORMULA = "formula"
     FIGURE = "figure"  # images, charts, diagrams
+    CODE = "code"  # a program listing (D-542)
 
 
-PLACEHOLDER_KINDS = frozenset({BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE})
+PLACEHOLDER_KINDS = frozenset(
+    {BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE, BlockKind.CODE}
+)
 
 # kinds that can carry a printed label (#21): a heading number, footnote mark, caption
 # label, formula number or list marker; a table or figure is named by its caption
@@ -111,7 +115,7 @@ class Block:
 
     @property
     def is_placeholder(self) -> bool:
-        """True for tables, formulas and figures, which are not read out in v1.0."""
+        """True for tables, formulas, figures and code blocks, which are not read out."""
         return self.kind in PLACEHOLDER_KINDS
 
     def part_at(self, offset: int) -> Part | None:

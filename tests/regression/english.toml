@@ -318,6 +318,18 @@ blocks = [{ kind = "formula", text = "x = a + b" }]
 expected = ["A formula is skipped."]
 
 [[case]]
+id = "code-block"
+audit = 0
+issue = 280
+goal = "A code listing is not read: one notice, 'A code block is skipped.'; the text around it reads as printed (D-545)."
+blocks = [
+    { kind = "paragraph", text = "The following example creates a figure." },
+    { kind = "code", text = "import seaborn as sns\ng = sns.relplot(data=fmri, kind=\"line\")\ng.savefig(\"paper_demo.pdf\")" },
+    { kind = "paragraph", text = "Users call these functions directly." },
+]
+expected = ["The following example creates a figure.", "A code block is skipped.", "Users call these functions directly."]
+
+[[case]]
 id = "footnote-with-superscript-mark"
 audit = 0
 issue = 64

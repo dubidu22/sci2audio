@@ -1,4 +1,5 @@
-"""Formulas, tables and figures are not read; a short notice says so (FX-01, FX-02, D-55).
+"""Formulas, tables, figures and code are not read; a short notice says so (FX-01, FX-02,
+D-55, D-545).
 
 Layout keeps each display formula, table and figure as a placeholder block (D-63), with its
 caption as a block of its own that points at it (`describes`) and a formula's printed number
@@ -8,7 +9,9 @@ as its label. Each placeholder's whole text is replaced by one short notice that
 ("Formula 16a"), else without a name ("A figure is skipped."). The caption is not repeated:
 it reads as printed, in its printed place, and already starts with its label.
 
-Formulas and tables-and-figures are separate categories (D-108), so they are two steps.
+Formulas, tables-and-figures (D-108) and code blocks (D-545) are separate categories, so
+they are three steps. A code block is named by nothing yet ("A code block is skipped.");
+the player shows its code (D-546).
 """
 
 from __future__ import annotations
@@ -16,6 +19,8 @@ from __future__ import annotations
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wording import wording_for
+
+_NAMES = {BlockKind.CODE: "code block"}  # how a reason names a kind, if not by its value
 
 
 class _NoticeStep(TextStep):
@@ -39,7 +44,7 @@ class _NoticeStep(TextStep):
             if not names and block.kind is BlockKind.FORMULA and block.label:
                 names = [wording.formula.format(block.label)]
             notice = wording.skipped(names, block.kind)
-            what = names[0] if len(names) == 1 else f"this {block.kind}"
+            what = names[0] if len(names) == 1 else f"this {_NAMES.get(block.kind, block.kind)}"
             edits.append(
                 Edit(
                     Span(index, 0, len(block.text)),
@@ -66,3 +71,11 @@ class TableFigureNoticeStep(_NoticeStep):
     id = "table-figure-notices"
     category = Category.TABLES_AND_FIGURES
     kinds = frozenset({BlockKind.TABLE, BlockKind.FIGURE})
+
+
+class CodeNoticeStep(_NoticeStep):
+    """A code block is read as "A code block is skipped." (#280, D-545)."""
+
+    id = "code-notices"
+    category = Category.CODE
+    kinds = frozenset({BlockKind.CODE})

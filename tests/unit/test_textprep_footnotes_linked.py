@@ -483,7 +483,6 @@ def test_many_marks_and_notes_take_linear_time() -> None:
                 gc.enable()
         return best
 
-    small, large = seconds(sized(2_000)), seconds(sized(20_000))
-    assert large < 2.0
+    small, large = seconds(sized(2_000)), seconds(sized(20_000))  # no limit in seconds (#276)
     # ten times the work: linear is about 10 times the time, quadratic about 100
     assert large < 40 * max(small, 1e-3)

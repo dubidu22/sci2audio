@@ -38,7 +38,14 @@ from sci2audio.output.readalong import ChapterTimes, ChunkTimes, to_json
 from sci2audio.testing.documents import make_document
 from sci2audio.voices import EngineError
 from sci2audio.web import create_app, player, tasks
-from sci2audio.web.player import AudioRecord, PlayerError, bare_name, build_view, shown
+from sci2audio.web.player import (
+    AudioRecord,
+    PlayerError,
+    bare_name,
+    build_view,
+    joined_hyphens,
+    shown,
+)
 
 # ---- the view, from hand-made data ------------------------------------------------------
 
@@ -180,6 +187,22 @@ def test_a_placeholder_shows_the_notice_the_audiobook_reads() -> None:
     assert formula.pieces[0].text == "x = y (3)"
 
 
+def test_a_code_block_shows_its_notice_and_its_code_with_its_line_breaks() -> None:
+    """#280, D-546: the notice is the sentence; the code is shown open, line breaks kept."""
+    code = 'import seaborn as sns\ng = sns.relplot(\ng.savefig("paper_demo.pdf")'
+    document = make_document([("paragraph", "Run this:"), ("code", code)])
+    data = readalong([(0, 0, 9), (1, 0, len(code))])
+    view = build_view(document, record(chunks=2), data)
+    block = view.chapters[0].blocks[1]
+    assert (block.notice, block.code, block.printed) == ("A code block is skipped.", code, "")
+    assert block.element == "b1"
+    assert view.chunks[1][3] == "b1"
+    off = build_view(document, record(chunks=2, switched_off=frozenset({"code"})), data)
+    block = off.chapters[0].blocks[1]
+    assert (block.notice, block.code) == ("", "")
+    assert block.pieces[0].text == " ".join(code.split("\n"))
+
+
 def test_chapters_not_in_the_audiobook_are_named() -> None:
     document = make_document(
         [
@@ -227,6 +250,56 @@ def test_a_span_outside_its_block_is_refused() -> None:
 
 def test_line_breaks_show_as_spaces_and_hyphenated_words_join() -> None:
     assert shown("exam-\nple and\nmore") == "exam-ple and more"
+    assert shown("exam-\nple and\nmore", joined=frozenset({4})) == "example and more"
+    assert (
+        shown("exam-\nple", 0, 5, frozenset({4})) + shown("exam-\nple", 5, None, {4}) == "example"
+    )
+
+
+def test_a_word_the_hyphen_step_joined_shows_joined_and_a_kept_hyphen_as_printed() -> None:
+    """#286: the read-along shows what the line-end-hyphens step decided, as the voice reads
+    it ("contributing"), and keeps a hyphen the step kept ("COVID-19"), also when a
+    sentence's piece ends between the hyphen and the line break."""
+    text = "asking questions, and con-\ntributing code during COVID-\n19."
+    document = make_document([("paragraph", text)])
+    cut = text.index("-") + 1  # one piece ends right after the joined word's hyphen
+    data = readalong([(0, 0, cut), (0, cut, len(text))])
+    view = build_view(document, record(chunks=2), data)
+    pieces = [p.text for p in view.chapters[0].blocks[0].pieces]
+    assert pieces == ["asking questions, and con", "tributing code during COVID-19."]
+    assert joined_hyphens(document, frozenset()) == {0: frozenset({text.index("-")})}
+    # characters and hyphenation switched off: the voice read it as printed, and so it shows
+    off = build_view(document, record(chunks=2, switched_off=frozenset({"characters"})), data)
+    assert "".join(p.text for p in off.chapters[0].blocks[0].pieces) == (
+        "asking questions, and con-tributing code during COVID-19."
+    )
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "See https://www.data-\nbase.org/x for more.",
+        "See www.mypack-\nage.org for more.",
+        "Code at github.com/foo/sea-\nborn today.",
+    ],
+)
+def test_a_hyphen_in_a_link_at_a_line_end_shows_as_printed(text: str) -> None:
+    """Review M1 of #290: the links step wins over the join, so the voice never joined it
+    and the address shows with its printed hyphen."""
+    document = make_document([("paragraph", text)])
+    view = build_view(document, record(chunks=1), readalong([(0, 0, len(text))]))
+    assert view.chapters[0].blocks[0].pieces[0].text == text.replace("-\n", "-")
+    assert joined_hyphens(document, frozenset()) == {}
+
+
+def test_a_join_inside_a_removed_reference_list_is_not_shown_as_joined() -> None:
+    """Review M1 of #290: the reference-list step removes the whole block first, so the
+    line-end-hyphens join there is set aside and the text shows as printed."""
+    document = make_document(
+        [("heading", "References"), ("paragraph", "Doe, J. (2020). A con-\ntributing study.")],
+        sections=(Section("References", 1, 0, 2),),
+    )
+    assert joined_hyphens(document, frozenset()) == {}
 
 
 @st.composite
@@ -256,8 +329,9 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     document, spans = case
     view = build_view(document, record(chunks=len(spans)), readalong(spans))
     shown_blocks = view.chapters[0].blocks
+    joined = joined_hyphens(document, frozenset())
     assert ["".join(p.text for p in b.pieces) for b in shown_blocks] == [
-        shown(b.text) for b in document.blocks
+        shown(b.text, joined=joined.get(n, frozenset())) for n, b in enumerate(document.blocks)
     ]
     ids = {p.element for b in shown_blocks for p in b.pieces if p.element}
     ids |= {b.element for b in shown_blocks if b.element}
@@ -265,7 +339,8 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     for number, (block, start, end) in enumerate(spans):
         if start < end:
             piece = next(p for b in shown_blocks for p in b.pieces if p.element == f"s{number}")
-            assert piece.text == shown(document.blocks[block].text, start, end)
+            text = document.blocks[block].text
+            assert piece.text == shown(text, start, end, joined.get(block, frozenset()))
 
 
 def test_bare_names() -> None:

@@ -141,6 +141,7 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .notice { border-left: 4px solid var(--border); background: var(--note); padding: 0.25rem 0.75rem; margin: 0.75rem 0; }
 .notice p { margin: 0.25rem 0; }
 .notice .printed { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
+.notice .code { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.25rem 0; font-size: 0.9em; }
 .unread { color: var(--muted); }
 .unread-tag { font-weight: bold; font-size: 0.85rem; }
 .block.footnote, .block.caption { font-size: 0.95rem; }

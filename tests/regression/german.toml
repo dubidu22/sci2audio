@@ -745,6 +745,18 @@ blocks = [
 expected = ["Abbildung 3 wird übersprungen.", "Abbildung 3: Verlauf über die Zeit."]
 
 [[case]]
+id = "de-notice-code-block"
+audit = 0
+issue = 280
+goal = "A code listing is replaced by the German notice 'Ein Codeblock wird übersprungen.' (D-545)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Das folgende Beispiel zeichnet eine Abbildung." },
+    { kind = "code", text = "x = berechne(3, 5)\nprint(x)" },
+]
+expected = ["Das folgende Beispiel zeichnet eine Abbildung.", "Ein Codeblock wird übersprungen."]
+
+[[case]]
 id = "de-notice-two-captions-und"
 audit = 0
 issue = 212
