@@ -283,7 +283,8 @@ def _operators(
 ) -> list[Candidate]:
     """The comparison signs read as words. With `word_stop`, a full stop that ends a word
     counts as the left side of "=" ("Jh.=1"): the abbreviations step reads "Jh." in the same
-    run, and a second run sees "Jahrhundert gleich 1" (German, #130)."""
+    run, and a second run sees "Jahrhundert gleich 1" (German, #130). So does the start of
+    the block: a footnote "=1" is introduced as "Fußnote. =1" (#212)."""
     found = []
     tags = [m.span() for m in _TAG.finditer(plain)]  # in text order, never overlapping
     tag_starts = [a for a, _ in tags]
@@ -306,11 +307,15 @@ def _operators(
         if not _OPERAND.match(plain, right_start):
             continue
         if op == "=" and not (
-            left
-            and (
-                _LEFT_OF_EQUALS.match(plain[left - 1])
-                or (word_stop and _WORD_STOP.search(plain, max(0, left - 2), left))
+            (
+                left
+                and (
+                    _LEFT_OF_EQUALS.match(plain[left - 1])
+                    or (word_stop and _WORD_STOP.search(plain, max(0, left - 2), left))
+                )
             )
+            # at the block start too: a second run sees the footnote step's "Fußnote." there
+            or (word_stop and left == 0)
         ):
             continue
         if op in "<>" and not (

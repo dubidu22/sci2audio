@@ -10,7 +10,14 @@ from notation_texts import german_notation_documents
 
 from sci2audio.core import BlockKind, Document, apply_edits
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
-from sci2audio.textprep import NumbersStep, StatisticsStep, StepContext, run_steps, spoken_text
+from sci2audio.textprep import (
+    NumbersStep,
+    StatisticsStep,
+    StepContext,
+    UnitStep,
+    run_steps,
+    spoken_text,
+)
 from sci2audio.textprep.numbers_de import ordinal, year_words
 from sci2audio.textprep.statistics_de import say_decimal
 
@@ -312,7 +319,11 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("seit 1998x mehr", "seit 1998 mal mehr"),
         ("bis 1998x mehr", "bis 1998 mal mehr"),
         ("95 %-KI [1; 1],1–1", "95 Prozent Konfidenzintervall [1; 1],1 bis 1"),
-        ("1–11–1 N 1/12", "1 bis 11–1 N 1/12"),  # seed 303 after round 1: no "Newton"
+        ("1–11–1 N 1/12", "1 bis 11–1 N 1/12"),
+        (
+            "Kapitel I %CI",
+            "Kapitel I %CI",
+        ),  # seed 1717, review round 2  # seed 303 after round 1: no "Newton"
         (
             "Das KI [1,2; 3,4],1–2 war breit.",
             "Das Konfidenzintervall [1 Komma 2; 3 Komma 4],1 bis 2 war breit.",
@@ -343,6 +354,14 @@ def test_long_german_blocks_take_linear_time(text: str) -> None:
     NUMBERS.find(document, DE)
     STATISTICS.find(document, DE)
     assert time.perf_counter() - started < 3
+
+
+def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:
+    # review round 2 of PR #242: one walk over the file-number spans, not one per number
+    document = make_document([(BlockKind.PARAGRAPH, "1 O 1/12 " * 9000)], "de")
+    started = time.perf_counter()
+    UnitStep().find(document, DE)
+    assert time.perf_counter() - started < 1
 
 
 # ---- properties ------------------------------------------------------------------------------

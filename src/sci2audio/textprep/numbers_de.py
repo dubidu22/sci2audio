@@ -197,7 +197,7 @@ def _is_year(text: str, start: int, end: int, years: list[tuple[int, int]]) -> b
 # Rules that look for a letter before a number let an "x" stand there ("1x1:1"), since the
 # units step may read it "mal".
 _STOP = (
-    r"(?:(?<!\.)|(?<=[^\W\d_xX]\.)|(?<=[^\W\d_][xX]\.)"
+    r"(?:(?<!\.)|(?<=[^\W\d_xX]\.)|(?<=[^\W\d_][xX]\.)|(?<=\d[xX]\.)"
     # after a power too: "5 m^2.45:1" is "5 Quadratmeter.45:1" after the units step
     r"|(?<=\^\d\.)|(?<=\^\d\d\.)|(?<=\}\.)|(?<=[⁰¹²³⁴⁵⁶⁷⁸⁹]\.)"
     # and after "×", which the units step reads "mal"
@@ -225,10 +225,13 @@ _SIGN_BEFORE = re.compile(
     )
     + r")\s*[\u2212-]?\Z"
 )
-# not before a ratio or fraction: ".5:1" read "0 Komma 5:1" would be a ratio on a second run
+# not before a ratio or fraction: ".5:1" read "0 Komma 5:1" would be a ratio on a second run;
+# not after "×" or an x after a number, which the units step may read "mal" ("×.45" and
+# "1x.45" are "mal.45", no decimal; "1 x0 Komma 4 5" would be "1 mal 0 ..." next time)
 _POINT_DECIMAL = re.compile(
-    r"(?<![.,/:^])(?<![^\WxX])(?P<whole>\d*)\.(?P<fraction>\d+)"
-    r"(?![^\WxX]|[⁺⁻^]|[.,:/]\d|-\n?\d)"
+    r"(?<![.,/:^×])(?<![^\WxX])(?<!\d[xX])(?<!\d [xX])(?P<whole>\d*)\.(?P<fraction>\d+)"
+    # a letter after it is checked in code: a unit the units step reads ("2.5Å") is fine
+    r"(?![\d_]|[⁺⁻^]|[.,:/]\d|-\n?\d)"
 )
 _X_AFTER = re.compile(r" ?[xX]")
 _LINE_END_HYPHEN = re.compile(r"[-\u2010\u2011]\n\Z")
@@ -252,6 +255,7 @@ _LABEL_RUN = re.compile(
     r"(?:\s*(?:und|oder|bis|[\u2013-])\s*\d+(?:\.\d+)+)*)(?![^\WxX]|[.,]\d)"
 )
 _POINT = re.compile(r"\.")
+_RUN_DASH = re.compile(r"\s*[\u2013-]\s*")  # "Abschnitt 2.5-11.234": "2 Punkt 5 bis 11 ..."
 # a number joined after a label's number by a colon, slash or hyphen (an en dash is a range,
 # read "bis" in the same run), by a digit or by a power
 _LABEL_JOINED_AFTER = re.compile(r"\s*[:/-]\s*[.,]?\d|[.,]?\d|[⁺⁻^⁰¹²³⁴⁵⁶⁷⁸⁹]")
@@ -264,6 +268,8 @@ def _decimals(text: str) -> list[Candidate]:
             continue
         if _GLUED_MINUS.match(text, max(0, match.start() - 2), match.start()):
             continue  # "10−412,5": an exponent or a sum, not "minus 412 Komma 5" on its own
+        if _LEADING_POINT.search(text, max(0, match.start() - 2), match.start()):
+            continue  # "}.452,5": "452 Komma 5" would leave ".452", a decimal on a second run
         ratio = _RATIO_BEFORE.search(text, max(0, match.start() - 16), match.start())
         if ratio is not None and not _ratio_at(text, ratio.start()):
             continue  # "1:2,5:", "11:2,5 N": the ratio is left as printed, so is its number
@@ -308,6 +314,7 @@ def _unit_left_alone(text: str, end: int) -> bool:
     )
 
 
+_LEADING_POINT = re.compile(r"(?:\A|[^\w×]|(?<!\d)[xX])\.\Z")  # a point that would start a decimal
 _RATIO_BEFORE = re.compile(r"(?<![\d,])\d+(?:,\d+)?:\Z")
 _HYPHEN_AFTER = re.compile(r"-\n?\d")
 
@@ -349,6 +356,11 @@ def _labelled(text: str) -> tuple[list[Candidate], list[tuple[int, int]]]:
             kept.append(match.span("run"))
             continue  # "Abschnitt 2.51:1": the new digits would join differently next time
         offset = match.start("run")
+        for dash in _RUN_DASH.finditer(match["run"]):
+            start, end = offset + dash.start(), offset + dash.end()
+            sign, run = dash.group().strip(), match["run"]
+            reason = f'"{sign}" in "{run}" after "{match["label"]}" read as "bis"'
+            found.append(Candidate(start, end, " bis ", reason))
         for point in _POINT.finditer(match["run"]):
             start = offset + point.start()
             found.append(
@@ -562,13 +574,13 @@ _ISO_DATE = re.compile(
     r"(?<![^\WxX])(?<![:/\u2013-])(?<!\d,)"
     + _STOP
     + r"(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
-    r"(?![^\WxX]|[⁺⁻^-]|[.,:/]\d)"
+    r"(?![\d_]|[⁺⁻^-]|[.,:/]\d)"  # a letter after it: `_year_left_alone` decides
 )
 _NUMERIC_DATE = re.compile(
     r"(?<![^\WxX])(?<![,/:\u2013-])"
     + _STOP
     + r"(?P<d>0?[1-9]|[12]\d|3[01])\.(?P<m>0?[1-9]|1[0-2])\."
-    r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![^\WxX]|[⁺⁻^]|[.,:/]\d)|(?![\w.,]|\s*\d))"
+    r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![\d_]|[⁺⁻^]|[.,:/]\d)|(?![\w.,]|\s*\d))"
 )
 
 
@@ -642,6 +654,9 @@ def _date(match: re.Match[str], words: str) -> Candidate:
 
 # the digits of a decimal read in words ("0 Komma 0 5"): no ordinal ends them ("5. Jahr")
 _AFTER_KOMMA = re.compile(r"\bKomma(?: \d)* \Z")
+# ... nor a power read in words ("10-2. Jahr" is "10 hoch minus 2. Jahr" after the first run)
+_DATE_BEFORE = re.compile(r"(?<![\d.])\d{1,2}\.\d{1,2}\.\s*\Z")  # a date without its year
+_AFTER_HOCH = re.compile(r"\bhoch (?:minus |plus )?\Z")
 
 
 def _ordinals(text: str) -> list[Candidate]:
@@ -652,6 +667,10 @@ def _ordinals(text: str) -> list[Candidate]:
             continue
         if _AFTER_KOMMA.search(text, max(0, match.start() - WINDOW), match.start()):
             continue  # "0 Komma 0 5. Jahr": the decimal ".05" read, not an ordinal
+        if _DATE_BEFORE.search(text, max(0, match.start() - 16), match.start()):
+            continue  # "am 3.4. 3. Mai": the date before is left as printed, and so is this
+        if _AFTER_HOCH.search(text, max(0, match.start() - 16), match.start()):
+            continue  # "10 hoch minus 2. Jahr": a power's exponent, not "zweites Jahr"
         previous = _PREVIOUS_WORD.search(_before(text, match.start()))
         if previous is not None and previous["word"] in _MONTH_FORMS:
             continue  # "März 2019. Auflage": a date's year (read from "12.03.2019. Auflage")
@@ -813,7 +832,12 @@ _SIGNED_POWER = re.compile(
     + "]+)(?![⁺⁻^])"
 )
 _CARET = re.compile(
-    r"(?<![\w,])" + _STOP + r"(?P<base>\d+|[^\W\d_" + _SUPERSCRIPTS + r"])"
+    # after an x glued to a number too, which the units step reads "mal": "1x1^1"
+    r"(?:(?<![\w,])|(?<=\d[xX])|(?<=\d [xX]))"
+    + _STOP
+    + r"(?P<base>\d+|[^\W\d_"
+    + _SUPERSCRIPTS
+    + r"])"
     r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)|(?P<bare>[+\u2212-]?\d+)))"
     r"(?![\w.,⁺⁻])"
 )
@@ -943,7 +967,8 @@ _ROMAN_RUN = re.compile(
     # with a full stop after it, it is left as printed ("Ludwig XIV.", "Kapitel XIV. Kapitel":
     # "14. Kapitel" would be an ordinal on a second run)
     # nor a run cut short before such a numeral: "Teil II und III." is left whole
-    + r")*)(?![\w⁺⁻.%]|\s+(?:Quadrat|hoch)\b|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+    # nor before " %": "Kapitel I %CI" ("1 %CI" would read the CI on a second run)
+    + r")*)(?![\w⁺⁻.%]|\s+%|\s+(?:Quadrat|hoch)\b|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
     + _ROMAN
     + ")"
 )
