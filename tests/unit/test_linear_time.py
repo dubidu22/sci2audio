@@ -1,8 +1,10 @@
 """The timing helpers of the textprep tests (#276): they pass a linear run and fail a
 slow one. A fake clock makes the check exact, whatever the machine's load."""
 
+import sys
+
 import pytest
-from linear_time import assert_linear, assert_near
+from linear_time import FLOOR, assert_linear, assert_near
 
 
 class _Clock:
@@ -23,7 +25,7 @@ def clock(monkeypatch: pytest.MonkeyPatch) -> _Clock:
 
 def test_a_linear_run_passes(clock: _Clock) -> None:
     def run(text: str) -> int:
-        clock.now += len(text) * 1e-6
+        clock.now += len(text) * 1e-5  # 0.5 s and 4 s: above the Windows floor too
         return len(text)
 
     assert assert_linear(run, lambda n: "a" * n, 400_000) == 400_000
@@ -48,7 +50,7 @@ def test_a_base_run_below_the_timer_floor_counts_as_the_floor(clock: _Clock) -> 
 
 def test_a_text_near_its_reference_passes(clock: _Clock) -> None:
     def run(text: str) -> int:
-        clock.now += (0.05 if text.startswith("(") else 0.01) * len(text) / 1000
+        clock.now += 0.5 if text.startswith("(") else 0.1  # above the Windows floor too
         return len(text)
 
     assert assert_near(run, "(" * 1000, "a" * 1000, 16) == 1000  # 5 times as long
@@ -56,8 +58,13 @@ def test_a_text_near_its_reference_passes(clock: _Clock) -> None:
 
 def test_a_text_far_slower_than_its_reference_fails(clock: _Clock) -> None:
     def run(text: str) -> int:
-        clock.now += 0.2 if text.startswith("(") else 0.01
+        clock.now += 2.0 if text.startswith("(") else 0.1  # above the Windows floor too
         return len(text)
 
     with pytest.raises(AssertionError, match=r"20\.0 times as long"):
         assert_near(run, "(" * 1000, "a" * 1000, 16)
+
+
+def test_the_floor_is_two_ms_or_four_windows_ticks() -> None:
+    """Windows counts CPU time in 15.6 ms ticks, whatever resolution it reports (#294)."""
+    assert (4 / 64 if sys.platform == "win32" else 0.002) == FLOOR
