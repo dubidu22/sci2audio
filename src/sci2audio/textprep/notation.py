@@ -188,11 +188,20 @@ _NEXT_TOKEN = re.compile(r"\s{1,2}(\S+)")
 def _unit_start(language: str) -> re.Pattern[str]:
     listed = units(language)
     forms = sorted({f for unit in listed.units for f in unit.printed} if listed else (), key=len)
-    words = "|".join(re.escape(f) for f in reversed(forms) if f[-1:].isalpha()) or "(?!)"
-    signs = "|".join(re.escape(f) for f in reversed(forms) if not f[-1:].isalpha()) or "(?!)"
+    # a form that ends in a letter, maybe before its full stop ("m", "Std.", "Mio."), is a word
+    words = "|".join(re.escape(f) for f in reversed(forms) if _ends_in_letter(f)) or "(?!)"
+    signs = "|".join(re.escape(f) for f in reversed(forms) if not _ends_in_letter(f)) or "(?!)"
     # a sign stays a unit before a letter too ("2,5%x", "2,5%zwölfter", #269), unless an
-    # adjective is made of it: "2,5%ige Lösung"
-    return re.compile(rf"(?:{words})(?![^\W\d_])|(?:{signs})(?!ig(?:e[mnrs]?)?\b)")
+    # adjective is made of it ("2,5%ige Lösung") or a compass point follows a degree sign
+    # ("52,5°N", "13,4°NNO": coordinates, read as before)
+    return re.compile(
+        rf"(?:{words})(?![^\W\d_])"
+        rf"|(?:{signs})(?!ig(?:e[mnrs]?)?\b)(?!(?<=°)[NSOWE]{{1,3}}(?![^\W\d_]))"
+    )
+
+
+def _ends_in_letter(form: str) -> bool:
+    return form.rstrip(".")[-1:].isalpha()
 
 
 def unit_follows(text: str, end: int, language: str) -> bool:

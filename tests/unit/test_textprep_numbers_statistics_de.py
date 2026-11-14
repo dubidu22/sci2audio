@@ -376,6 +376,13 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("Es sind 0,05%a.", "Es sind 0,05%a."),
         ("Eine 2,5%ige Lösung.", "Eine 2 Komma 5%ige Lösung."),  # an adjective of it
         ("Ein 2,5‰iger Anteil.", "Ein 2 Komma 5‰iger Anteil."),
+        # PR #273 review: coordinates read as before, glued or spaced (F1) ...
+        ("Bei 52,5°N und 13,4°O.", "Bei 52 Komma 5°N und 13 Komma 4°O."),
+        ("Bei 52,5 °N gemessen.", "Bei 52 Komma 5 °N gemessen."),
+        ("Bei 52,5°NNE.", "Bei 52 Komma 5°NNE."),
+        # ... and a dotted unit keeps the rule of a word (F2), as on main
+        ("Es dauerte 1,5 Min.Pause.", "Es dauerte 1 Komma 5 Min.Pause."),
+        ("Es waren 2,5 Mio.Einwohner.", "Es waren 2,5 Mio.Einwohner."),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:
