@@ -18,6 +18,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- Citations read the same on a second pass (#305, #306, #308, #309, D-577): a bracket next to or around one that is not read, or one whose link is removed, is now judged on the text without them, as a second pass over the script would. "Lee (Smith, 2019) (2019)" reads "Lee", "(Smith, 2019, https://example.org)" is not read, and "(see (Smith, 2019) (2019))" goes whole. A ";", "," or "and" left at a bracket's edge goes with what was removed, so "(; 2019)", "(see and Lee, 2019)" and "(x,)" are no longer heard (#272, #259). A citation glued between a full stop and a number stays as printed, so the two never join into a decimal.
 - A language tag as files often write it is read as the language it names (#237): "en_US" counts as en-US, "eng", "deu" and "ger" as en and de, and "und", "zxx", "mul", "mis" or a value that is no tag (such as "x-default") as no stated language, so the text's language is guessed. Before, "en_US" was taken as a language of its own and kept a German text from being read in German (D-513 to D-515).
 
 ## [1.0.0] - 2026-11-14
