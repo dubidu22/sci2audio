@@ -1035,6 +1035,21 @@ expected = [
 ]
 
 [[case]]
+id = "de-citations-decimal-interval-in-round-brackets"
+audit = 0
+issue = 266
+goal = "A round bracket that holds only German intervals of decimals ('[1,2; 3,4]') stays, as the square bracket does on its own (#101): it was removed whole, so '( (Müller & Schmidt, 2019) [1,2; 3,4])' lost the interval only on a second run of the citations step."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Werte ([1,2; 3,4]) sind klein." },
+    { kind = "paragraph", text = "Die Werte ( (Müller & Schmidt, 2019) [1,2; 3,4]) sind klein." },
+]
+expected = [
+    "Die Werte ([1 Komma 2; 3 Komma 4]) sind klein.",
+    "Die Werte ( [1 Komma 2; 3 Komma 4]) sind klein.",
+]
+
+[[case]]
 id = "de-citations-next-to-a-link"
 audit = 0
 issue = 101
