@@ -324,8 +324,9 @@ def _unit_after(
             reads = _reading(terms, plural, table)
             shown = " ".join(text[start:stop].split())
             gender = first.gender if one and not terms[0].per else ""
-            if hyphen and gender:
-                gender = _COMPOUND  # "1-kg-Packung": "Ein-Kilogramm-Packung"
+            if hyphen and gender and text[stop : stop + 1] == "-":
+                # "1-kg-Packung": "Ein-Kilogramm-Packung"; "1-m" alone starts no compound
+                gender = _COMPOUND
             return start, stop, (" " if glued else "") + reads, shown, gender
     if gap == end and not number["exponent"]:
         magnitude = table.magnitude.match(text, end)

@@ -806,6 +806,7 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("nach 12 min. Pause", "nach 12 Minuten Pause"),
         ("ein 1,5-l-Behälter", "ein 1,5-Liter-Behälter"),
         ("eine 1-kg-Packung", "eine Ein-Kilogramm-Packung"),
+        ("z. B. 1-m", "z. B. ein-Meter"),  # no compound after it (nightly seed 7008)
         ("10 %", "10 Prozent"),
         ("10%", "10%"),  # glued: the voice reads it right
         ("um 1 %", "um ein Prozent"),
