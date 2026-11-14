@@ -104,8 +104,10 @@ def _label_list(joins: tuple[str, ...]) -> re.Pattern[str]:
 
 _TILDE = re.compile(r"[~\u223c](?=[ \u00a0]{0,2}[+\-\u2212]?\.?\d)")
 # a number, then x; the number may follow another "x" of a chain ("5x86x86")
+# and may end in a power the numbers step reads ("10⁶ x1" is "10 hoch 6 x1" after it, #253)
 _LETTER_X = re.compile(
-    r"(?:(?<![\w.,/-])|(?<=\d[xX])|(?<=\d [xX]))(?P<number>\d+(?:[.,]\d+)*)(?P<space> ?)(?P<x>[xX])"
+    r"(?:(?<![\w.,/-])|(?<=\d[xX])|(?<=\d [xX]))"
+    r"(?P<number>\d+(?:[.,]\d+)*(?:[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)(?P<space> ?)(?P<x>[xX])"
 )
 _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a unit: "5K/s"
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms

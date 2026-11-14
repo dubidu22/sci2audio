@@ -640,6 +640,24 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 W Leistung." }]
 expected = ["OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 Watt Leistung."]
 
+[[case]]
+id = "de-numbers-date-range-with-years"
+audit = 0
+issue = 253
+goal = "A full date after a range dash is read as a date, with the ending 'bis' gives it; before, '1.3.2020–11.3.2020' left the second date as printed and a second run read it."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Messung lief vom 1.3.2020–11.3.2020 im Labor." }]
+expected = ["Die Messung lief vom ersten März 2020 bis elften März 2020 im Labor."]
+
+[[case]]
+id = "de-units-x-after-a-power"
+audit = 0
+issue = 253
+goal = "An x between a power and a number reads 'mal' on the first run, as it does after the numbers step's 'hoch 6'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Ein Gitter mit 10⁶ x 3 Zellen." }]
+expected = ["Ein Gitter mit 10 hoch 6 mal 3 Zellen."]
+
 # ---- #212 notices and footnotes in German (D-517 to D-524) ---------------------------------------
 
 [[case]]

@@ -214,6 +214,10 @@ def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
         start, end = match.span()
         words = "confidence intervals" if match["plural"] else "confidence interval"
         reading = padded(text, start, end, words)  # "95%CI[1, 3]": not "95%confidence"
+        if plain[start - 1 : start] in ("<", ">"):
+            # "<CI=": no space after the sign, which would have it read on a second run but
+            # not on the first, where a letter follows it (#253)
+            reading = reading.lstrip()
         found.append(Candidate(start, end, reading, f'"{text[start:end]}" read as "{words}"'))
         for interval in intervals:
             found += _interval(text, plain, interval)

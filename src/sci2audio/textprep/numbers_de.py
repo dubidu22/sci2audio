@@ -154,7 +154,8 @@ _MAYBE_YEAR_WORDS = frozenset(
 # "zwischen 1990 und 1995": a number joined on to a year is a year too
 _DIGIT_BEFORE = re.compile(r"\d\s*\Z")
 # a "bis" a range made: after a number, or after "Uhr" ("13 Uhr–1234")
-_RANGE_BEFORE = re.compile(r"(?:\d|\bUhr)\s*\Z")
+# a power's exponent counts too: "10⁶–1234" reads "10⁶ bis 1234" (#253)
+_RANGE_BEFORE = re.compile(r"(?:\d[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]{0,2}|\bUhr)\s*\Z")
 _JOINED_YEAR = re.compile(r"(?:\s*[\u2013\u2012-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)\Z")
 _JOINED_NEXT = re.compile(
     r"(?:\s*[\u2013\u2012-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)(?:1[1-9]\d\d|\d{1,2}\.\d{3})(?![\d.,])"
@@ -326,7 +327,14 @@ def _hyphen_range_at(text: str, start: int) -> bool:
         return False
     if match["a"].count(".") == 1 and _SIGN_BEFORE.search(_before(text, start)):
         return False  # "= 1.234-1998": a point decimal, left as printed with what joins it
-    return _value(match["a"]) < _value(match["b"])
+    left = _value(match["a"])
+    hundreds = _HUNDRED_BEFORE.search(text, max(0, start - 16), start)
+    if hundreds and match["a"].isdigit() and len(match["a"]) <= 2:
+        left += 100 * int(hundreds[1])  # "12 hundert 34-1234" is the year 1234 read (#253)
+    return left < _value(match["b"])
+
+
+_HUNDRED_BEFORE = re.compile(r"(?<![\d.,])(1[1-9]) hundert \Z")
 
 
 def _ratio_at(text: str, start: int) -> bool:
@@ -577,9 +585,7 @@ _ISO_DATE = re.compile(
     r"(?![\d_]|[⁺⁻^-]|[.,:/]\d)"  # a letter after it: `_year_left_alone` decides
 )
 _NUMERIC_DATE = re.compile(
-    r"(?<![^\WxX])(?<![,/:\u2013-])"
-    + _STOP
-    + r"(?P<d>0?[1-9]|[12]\d|3[01])\.(?P<m>0?[1-9]|1[0-2])\."
+    r"(?<![^\WxX])(?<![,/:-])" + _STOP + r"(?P<d>0?[1-9]|[12]\d|3[01])\.(?P<m>0?[1-9]|1[0-2])\."
     r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![\d_]|[⁺⁻^]|[.,:/]\d)|(?![\w.,]|\s*\d))"
 )
 
@@ -590,9 +596,14 @@ def _year_left_alone(text: str, end: int) -> bool:
     return _unit_left_alone(text, end) or _x_left_alone(text, end)
 
 
+_RANGE_DASH_BEFORE = re.compile(r"\d\s*\u2013\s*\Z")
+
+
 def _ending(text: str, start: int, *, day: bool = False) -> str | None:
     """The ending an ordinal at `start` takes from the word before it, if one decides it."""
     before = _before(text, start)
+    if day and _RANGE_DASH_BEFORE.search(before):
+        return "en"  # "1.3.2020–11.3.2020": the dash is read "bis", as in "bis 11.3.2020"
     previous = _PREVIOUS_WORD.search(before)
     if previous is not None and previous["dot"] and previous["word"] == "v":
         return "en"  # "BGH v. 22.06.2011": "v." is "vom"
@@ -636,6 +647,8 @@ def _dates(text: str) -> list[Candidate]:
         if words and not _year_left_alone(text, match.end()):
             found.append(_date(match, words))
     for match in _NUMERIC_DATE.finditer(text):
+        if not match["y"] and text[match.start() - 1 : match.start()] == "\u2013":
+            continue  # "3.–5.4.": a date without its year after a dash is left as printed
         day, month = int(match["d"]), int(match["m"])
         year = int(match["y"]) if match["y"] else 2000  # 29.2. without a year may be any year
         if day > calendar.monthrange(year, month)[1]:

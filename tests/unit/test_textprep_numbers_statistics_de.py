@@ -328,6 +328,12 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
             "Das KI [1,2; 3,4],1–2 war breit.",
             "Das Konfidenzintervall [1 Komma 2; 3 Komma 4],1 bis 2 war breit.",
         ),
+        # #253: nightly seeds 66, 222 and 11 on main
+        ("10⁶ x1", "10 hoch 6 mal 1"),
+        ("im 1234-1234", "im 12 hundert 34-1234"),
+        ("1–11.3.2020", "1 bis elften März 2020"),
+        ("vom 1.3.2020–11.3.2020", "vom ersten März 2020 bis elften März 2020"),
+        ("110⁶–1234", "110⁶ bis 1234"),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:

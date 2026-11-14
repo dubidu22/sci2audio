@@ -623,6 +623,11 @@ def _both_runs(text: str) -> tuple[str, str]:
         # #160: once "x" reads "times", the number after it is found on the first run too
         ("5 5 mg/kg, e.g. 5 x86K", "5 5 milligrams per kilogram, for example 5 times 86 thousand"),
         ("5 x86K", "5 times 86 thousand"),
+        # #253: a power before the x, which the numbers step reads in the same run
+        ("10⁶ x1", "10 to the power of 6 times 1"),
+        ("a 10⁶ x 3 grid", "a 10 to the power of 6 times 3 grid"),
+        # ... and "<" before a CI read glued, as the statistics step leaves it
+        ("<CI=", "<confidence interval ="),
     ],
 )
 def test_units_and_abbreviations_read_the_same_on_the_first_and_second_run(
