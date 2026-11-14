@@ -329,7 +329,9 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
 
 
 @pytest.mark.parametrize(
-    ("unit", "count"), [("[1] ", 25_000), ("Smith (2019) shows it [3]. ", 4000)]
+    ("unit", "count"),
+    [("[1] ", 25_000), ("Smith (2019) shows it [3]. ", 4000)],
+    ids=["numeric", "author-year"],
 )
 def test_a_long_block_takes_linear_time(unit: str, count: int) -> None:  # S2: 100,000 characters
     # 8 times the text against a base run (#276); it took 17 s for 80,000 characters before

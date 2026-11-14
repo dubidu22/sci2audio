@@ -4,6 +4,10 @@ A limit in seconds fails on a slow or shared machine (the macOS CI runner went 2
 one). Instead, a test times a step on a base text and on eight times that text, each the
 best of three runs with garbage collection off, and holds the ratio below 32: a linear
 step gives about 8, a quadratic one about 64.
+
+Where the step costs the same at both sizes by design (a cap, such as the citations step's
+longest parsed bracket), the ratio says nothing; `assert_near` times the text against a
+reference text of the same length through the same step instead.
 """
 
 from __future__ import annotations
@@ -41,5 +45,17 @@ def assert_linear[T](run: Callable[[str], T], sized: Callable[[int], str], size:
     assert large < LIMIT * max(small, FLOOR), (
         f"{FACTOR} times the text took {large / max(small, FLOOR):.1f} times as long "
         f"({small:.3f} s, {large:.3f} s); linear is about {FACTOR}, the limit {LIMIT}"
+    )
+    return result
+
+
+def assert_near[T](run: Callable[[str], T], text: str, reference: str, limit: float) -> T:
+    """Time `run` on `text` and on `reference`, a text of the same length the step handles
+    plainly; fail if `text` takes more than `limit` times as long. Returns its result."""
+    plain, _ = best_seconds(run, reference)
+    taken, result = best_seconds(run, text)
+    assert taken < limit * max(plain, FLOOR), (
+        f"the text took {taken / max(plain, FLOOR):.1f} times as long as a plain text of its "
+        f"length ({plain:.3f} s, {taken:.3f} s); the limit is {limit}"
     )
     return result
