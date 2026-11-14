@@ -9,6 +9,7 @@ import re
 import threading
 import time
 from dataclasses import replace
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -23,6 +24,9 @@ from sci2audio.web import pages
 from sci2audio.web.jobs import JobKind, JobRecord
 
 PDF = {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": paper_bytes()}
+GERMAN_NOTE = (
+    Path(__file__).resolve().parents[1] / "corpus" / "markdown" / "sci2audio-beispiel-notiz.md"
+)
 
 
 def until(check: Any, timeout: float = 10.0) -> None:
@@ -467,3 +471,52 @@ def test_a_german_book_keeps_the_remembered_english_voice(
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     settings = page.request.get(f"{live.url}/api/v1/settings").json()["settings"]
     assert settings["voice"] == "af_bella"
+
+
+def test_the_language_of_the_text_is_chosen_for_this_document_only(
+    signed_in: Page, live: Live
+) -> None:
+    """#212 (D-521): the check form's language choice runs the analysis again, the notices
+    follow it, the audiobook is made in it, and the next document starts automatic."""
+    page = signed_in
+    live.install_voice()  # English voices only: the German note needs English to be made
+    note = {"name": "notiz.md", "mimeType": "text/markdown", "buffer": GERMAN_NOTE.read_bytes()}
+    page.set_input_files("#file", files=[note])
+    page.get_by_role("button", name="Open and analyse").click()
+    page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    expect(page.locator("#summary")).to_be_visible()
+    settled(page)
+    language = page.get_by_label("Language of the text", exact=True)
+    expect(language).to_have_value("")
+    expect(page.locator("#text-language")).to_have_text(
+        "Language of the text: German (as the file states)."
+    )
+    expect(page.locator("td", has_text="Eine Tabelle wird übersprungen.")).to_have_count(1)
+    make = page.get_by_role("button", name="Make the audiobook")
+    expect(make).to_have_attribute("aria-disabled", "true")  # no German voice here
+
+    language.select_option("en")
+    expect(page.locator("#changed")).to_be_visible()
+    expect(page.locator("#make-note")).to_have_text("Set up the voice first.")
+    update(page)
+    expect(language).to_have_value("en")
+    expect(page.locator("#text-language")).to_have_text(
+        "Language of the text: English (your setting)."
+    )
+    expect(page.locator("td", has_text="A table is skipped.")).to_have_count(1)
+    expect(page.locator("td", has_text="Eine Tabelle wird übersprungen.")).to_have_count(0)
+    check_axe(page, "document page, language chosen")
+
+    expect(make).not_to_have_attribute("aria-disabled", "true")
+    make.click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
+    (audio,) = [job for job in live.state.board.all() if job.kind is JobKind.AUDIO]
+    assert audio.settings is not None
+    assert audio.settings["language"] == "en"
+    saved = page.request.get(f"{live.url}/api/v1/settings").json()["settings"]
+    assert saved["language"] == ""  # not remembered for the next document
+
+    page.goto(f"{live.url}/")
+    open_paper(page, live)
+    expect(page.get_by_label("Language of the text", exact=True)).to_have_value("")

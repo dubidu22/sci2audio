@@ -4029,7 +4029,7 @@
         'references': False,
         'selected': True,
         'title': '1 Einleitung',
-        'utterances': 31,
+        'utterances': 35,
       }),
       dict({
         'blocks': list([
@@ -4041,7 +4041,7 @@
         'references': False,
         'selected': True,
         'title': '2 Verwandte Arbeiten',
-        'utterances': 15,
+        'utterances': 12,
       }),
       dict({
         'blocks': list([
@@ -4053,7 +4053,7 @@
         'references': False,
         'selected': True,
         'title': '3 PrivacyScore im Überblick',
-        'utterances': 35,
+        'utterances': 36,
       }),
       dict({
         'blocks': list([
@@ -4065,7 +4065,7 @@
         'references': False,
         'selected': True,
         'title': '4 Sicherheits- und Privatheitstests',
-        'utterances': 20,
+        'utterances': 21,
       }),
       dict({
         'blocks': list([
@@ -4089,7 +4089,7 @@
         'references': False,
         'selected': True,
         'title': '6 Rechtliche Fragestellungen',
-        'utterances': 165,
+        'utterances': 182,
       }),
       dict({
         'blocks': list([
@@ -4101,7 +4101,7 @@
         'references': False,
         'selected': True,
         'title': '7 Schlussbemerkungen',
-        'utterances': 21,
+        'utterances': 23,
       }),
       dict({
         'blocks': list([
@@ -4146,10 +4146,10 @@
         'switched_off': 30,
       }),
       'footnotes': dict({
-        'applied': 0,
+        'applied': 50,
         'label': 'Footnotes',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 10,
         'switched_off': 0,
       }),
       'formulas': dict({
@@ -4188,7 +4188,7 @@
         'switched_off': 0,
       }),
       'tables-and-figures': dict({
-        'applied': 0,
+        'applied': 1,
         'label': 'Tables and figures',
         'not_spoken': 0,
         'set_aside': 0,
@@ -4571,6 +4571,33 @@
         'start': 0,
         'status': 'accepted',
         'step': 'reference-list',
+      }),
+      dict({
+        'block': 25,
+        'category': 'tables-and-figures',
+        'chapter': 2,
+        'end': 829,
+        'kind': 'replace',
+        'original': '''
+          Besucher Anonyme Ersteller Angemeldete Ersteller
+          aggreg. Statistiken anzeigen neue Benchmarks erstellen private Benchmarks erstellen
+          öfftentl. Benchmarks anzeigen Kopie eines Benchmarks ändern eigene Benchmarks auflisten
+          Ergebnis für Seiten anzeigen Benchmarks mit Token editieren eigene Benchmarks editieren
+          Ranking/Gewichte anpassen Benschmarks mit Token löschen eigene Benchmarks löschen
+          Benchmarks bestehen aus mehreren Scans besteht aus mehreren Tests
+          Name: Deutsche Schulen Zeitstempel: 2017-04-11 Drittanbieter: 98 (adnet.com, …)
+          Seiten: http://schule1.de/, … Attribute: { Land: Bayern, Anz. Zeitstempel: 2017-04-12 Standorte: web: DE (schule1.de), mail: US (mailfilter.net)
+          Schüler: 950, Träger: Staat }, … … Perfect-Forward-Secrecy: ja
+          Ranking-Gewichte: [2, 0, …, 1] Zeitstempel: 2017-04-18 Umleitung zu HTTPS : nein […]
+        ''',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'Abbildung 1 is not read; a short notice is read instead (D-55)',
+        'said': 'Abbildung 1 wird übersprungen.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'table-figure-notices',
       }),
       dict({
         'block': 7,
@@ -5348,6 +5375,1056 @@
           'start': 0,
           'step': 'reference-list',
         }),
+      }),
+      dict({
+        'block': 0,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 115,
+        'kind': 'remove',
+        'original': '*',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote mark * is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 114,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 2,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 10,
+        'kind': 'remove',
+        'original': '1',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote mark 1 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 9,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 2,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 25,
+        'kind': 'remove',
+        'original': '2',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote mark 2 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 24,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 2,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 44,
+        'kind': 'remove',
+        'original': '3',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote mark 3 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 43,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 7,
+        'category': 'footnotes',
+        'chapter': 1,
+        'end': 1,
+        'kind': 'replace',
+        'original': '1',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 1 is introduced by its mark',
+        'said': 'Fußnote 1.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 8,
+        'category': 'footnotes',
+        'chapter': 1,
+        'end': 1,
+        'kind': 'replace',
+        'original': '2',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 2 is introduced by its mark',
+        'said': 'Fußnote 2.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 9,
+        'category': 'footnotes',
+        'chapter': 1,
+        'end': 1,
+        'kind': 'replace',
+        'original': '3',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 3 is introduced by its mark',
+        'said': 'Fußnote 3.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 10,
+        'category': 'footnotes',
+        'chapter': 1,
+        'end': 1,
+        'kind': 'replace',
+        'original': '∗',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote ∗ is introduced by its mark',
+        'said': 'Fußnote.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 13,
+        'category': 'footnotes',
+        'chapter': 1,
+        'end': 413,
+        'kind': 'remove',
+        'original': '4',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote mark 4 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 412,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 18,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 194,
+        'kind': 'remove',
+        'original': '5',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote mark 5 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 193,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 18,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 208,
+        'kind': 'remove',
+        'original': '6',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote mark 6 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 207,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 18,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 322,
+        'kind': 'remove',
+        'original': '7',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote mark 7 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 321,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 18,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 383,
+        'kind': 'remove',
+        'original': '8',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote mark 8 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 382,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 19,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 1,
+        'kind': 'replace',
+        'original': '4',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 4 is introduced by its mark',
+        'said': 'Fußnote 4.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 19,
+          'end': 93,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 20,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 1,
+        'kind': 'replace',
+        'original': '5',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 5 is introduced by its mark',
+        'said': 'Fußnote 5.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 20,
+          'end': 34,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 21,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 1,
+        'kind': 'replace',
+        'original': '6',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 6 is introduced by its mark',
+        'said': 'Fußnote 6.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 21,
+          'end': 34,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 22,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 1,
+        'kind': 'replace',
+        'original': '7',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 7 is introduced by its mark',
+        'said': 'Fußnote 7.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 22,
+          'end': 34,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 23,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 1,
+        'kind': 'replace',
+        'original': '8',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 8 is introduced by its mark',
+        'said': 'Fußnote 8.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 23,
+          'end': 36,
+          'kind': 'remove',
+          'page': 2,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 27,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 199,
+        'kind': 'remove',
+        'original': '9',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'footnote mark 9 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 198,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 27,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 332,
+        'kind': 'remove',
+        'original': '10',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'footnote mark 10 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 330,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 31,
+        'category': 'footnotes',
+        'chapter': 3,
+        'end': 1,
+        'kind': 'replace',
+        'original': '9',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'footnote 9 is introduced by its mark',
+        'said': 'Fußnote 9.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 31,
+          'end': 64,
+          'kind': 'remove',
+          'page': 3,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 32,
+        'category': 'footnotes',
+        'chapter': 3,
+        'end': 2,
+        'kind': 'replace',
+        'original': '10',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'footnote 10 is introduced by its mark',
+        'said': 'Fußnote 10.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 32,
+          'end': 41,
+          'kind': 'remove',
+          'page': 3,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 40,
+        'category': 'footnotes',
+        'chapter': 3,
+        'end': 205,
+        'kind': 'remove',
+        'original': '11',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'footnote mark 11 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 203,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 44,
+        'category': 'footnotes',
+        'chapter': 4,
+        'end': 235,
+        'kind': 'remove',
+        'original': '12',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'footnote mark 12 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 233,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 45,
+        'category': 'footnotes',
+        'chapter': 4,
+        'end': 461,
+        'kind': 'remove',
+        'original': '13',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'footnote mark 13 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 459,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 46,
+        'category': 'footnotes',
+        'chapter': 4,
+        'end': 2,
+        'kind': 'replace',
+        'original': '11',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'footnote 11 is introduced by its mark',
+        'said': 'Fußnote 11.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 46,
+          'end': 21,
+          'kind': 'remove',
+          'page': 5,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 47,
+        'category': 'footnotes',
+        'chapter': 4,
+        'end': 2,
+        'kind': 'replace',
+        'original': '12',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'footnote 12 is introduced by its mark',
+        'said': 'Fußnote 12.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 47,
+          'end': 94,
+          'kind': 'remove',
+          'page': 5,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 56,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '13',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'footnote 13 is introduced by its mark',
+        'said': 'Fußnote 13.',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'footnotes',
+        'won_by': dict({
+          'block': 56,
+          'end': 20,
+          'kind': 'remove',
+          'page': 6,
+          'printed_page': '',
+          'start': 0,
+          'step': 'links',
+        }),
+      }),
+      dict({
+        'block': 58,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 258,
+        'kind': 'remove',
+        'original': '14',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote mark 14 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 256,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 58,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 326,
+        'kind': 'remove',
+        'original': '15',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote mark 15 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 324,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 58,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 731,
+        'kind': 'remove',
+        'original': '16',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote mark 16 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 729,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 58,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 1109,
+        'kind': 'remove',
+        'original': '17',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote mark 17 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 1107,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 58,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 1371,
+        'kind': 'remove',
+        'original': '18',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote mark 18 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 1369,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 59,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '14',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 14 is introduced by its mark',
+        'said': 'Fußnote 14.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 60,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '15',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 15 is introduced by its mark',
+        'said': 'Fußnote 15.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 61,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '16',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 16 is introduced by its mark',
+        'said': 'Fußnote 16.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 62,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '17',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 17 is introduced by its mark',
+        'said': 'Fußnote 17.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 63,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '18',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 18 is introduced by its mark',
+        'said': 'Fußnote 18.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 65,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 1034,
+        'kind': 'remove',
+        'original': '19',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'footnote mark 19 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 1032,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 65,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2475,
+        'kind': 'remove',
+        'original': '20',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'footnote mark 20 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 2473,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 67,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '19',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'footnote 19 is introduced by its mark',
+        'said': 'Fußnote 19.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 68,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '20',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'footnote 20 is introduced by its mark',
+        'said': 'Fußnote 20.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 71,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 345,
+        'kind': 'remove',
+        'original': '21',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote mark 21 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 343,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 73,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 1052,
+        'kind': 'remove',
+        'original': '22',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote mark 22 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 1050,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 73,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 1130,
+        'kind': 'remove',
+        'original': '23',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote mark 23 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 1128,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 74,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '21',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 21 is introduced by its mark',
+        'said': 'Fußnote 21.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 75,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '22',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 22 is introduced by its mark',
+        'said': 'Fußnote 22.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 76,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '23',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 23 is introduced by its mark',
+        'said': 'Fußnote 23.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 78,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 194,
+        'kind': 'remove',
+        'original': '24',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'footnote mark 24 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 192,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 78,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 553,
+        'kind': 'remove',
+        'original': '25',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'footnote mark 25 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 551,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 81,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '24',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'footnote 24 is introduced by its mark',
+        'said': 'Fußnote 24.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 82,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '25',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'footnote 25 is introduced by its mark',
+        'said': 'Fußnote 25.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 84,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 587,
+        'kind': 'remove',
+        'original': '26',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'footnote mark 26 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 585,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 86,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 791,
+        'kind': 'remove',
+        'original': '27',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'footnote mark 27 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 789,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 87,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '26',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'footnote 26 is introduced by its mark',
+        'said': 'Fußnote 26.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 88,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 2,
+        'kind': 'replace',
+        'original': '27',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'footnote 27 is introduced by its mark',
+        'said': 'Fußnote 27.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 90,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 688,
+        'kind': 'remove',
+        'original': '28',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'footnote mark 28 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 686,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 90,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 1287,
+        'kind': 'remove',
+        'original': '29',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'footnote mark 29 is not read; the note is read at the foot of the column (Q2)',
+        'said': '',
+        'spoken': True,
+        'start': 1285,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 95,
+        'category': 'footnotes',
+        'chapter': 7,
+        'end': 2,
+        'kind': 'replace',
+        'original': '28',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'footnote 28 is introduced by its mark',
+        'said': 'Fußnote 28.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
+      }),
+      dict({
+        'block': 96,
+        'category': 'footnotes',
+        'chapter': 7,
+        'end': 2,
+        'kind': 'replace',
+        'original': '29',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'footnote 29 is introduced by its mark',
+        'said': 'Fußnote 29.',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnotes',
       }),
       dict({
         'block': 59,
@@ -8318,9 +9395,6 @@
     }),
     'language_source': 'text',
     'not_run': list([
-      'formula-notices',
-      'table-figure-notices',
-      'footnotes',
     ]),
     'problems': list([
     ]),
@@ -8355,13 +9429,13 @@
   | No. | Chapter | Page | Read | Utterances |
   |---|---|---|---|---|
   | 1 | PrivacyScore | 1 | yes | 8 |
-  | 2 | 1 Einleitung | 1 | yes | 31 |
-  | 3 | 2 Verwandte Arbeiten | 2 | yes | 15 |
-  | 4 | 3 PrivacyScore im Überblick | 3 | yes | 35 |
-  | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 20 |
+  | 2 | 1 Einleitung | 1 | yes | 35 |
+  | 3 | 2 Verwandte Arbeiten | 2 | yes | 12 |
+  | 4 | 3 PrivacyScore im Überblick | 3 | yes | 36 |
+  | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 21 |
   | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
-  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 165 |
-  | 8 | 7 Schlussbemerkungen | 12 | yes | 21 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 182 |
+  | 8 | 7 Schlussbemerkungen | 12 | yes | 23 |
   | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
   
   ## Edits per category
@@ -8370,12 +9444,12 @@
   |---|---|---|---|---|
   | Page furniture | 13 | 0 | 0 | 0 |
   | Characters and hyphenation | 38 | 0 | 0 | 0 |
-  | Footnotes | 0 | 0 | 0 | 0 |
+  | Footnotes | 50 | 0 | 10 | 0 |
   | Footnote texts | 0 | 0 | 0 | 30 |
   | Citations | 0 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 15 | 0 | 1 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
-  | Tables and figures | 0 | 0 | 0 | 0 |
+  | Tables and figures | 1 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
   | Abbreviations | 93 | 0 | 5 | 0 |
   | Numbers, symbols, units and statistics | 28 | 0 | 7 | 0 |
@@ -8437,6 +9511,69 @@
   - page 12, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Interessenabwägung" (the document prints it so). Step: line-end-hyphens.
   - page 12, chapter 8, applied: “-↵” → left out. Reason: word split at a line end joined: "Seitenbetreibers". Step: line-end-hyphens.
   
+  ## Footnotes (60)
+  
+  - page 1, chapter 1, applied: “\*” → left out. Reason: footnote mark \* is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 1, chapter 1, applied: “1” → left out. Reason: footnote mark 1 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 1, chapter 1, applied: “2” → left out. Reason: footnote mark 2 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 1, chapter 1, applied: “3” → left out. Reason: footnote mark 3 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 1, chapter 2, applied: “1” → read as “Fußnote 1.”. Reason: footnote 1 is introduced by its mark. Step: footnotes.
+  - page 1, chapter 2, applied: “2” → read as “Fußnote 2.”. Reason: footnote 2 is introduced by its mark. Step: footnotes.
+  - page 1, chapter 2, applied: “3” → read as “Fußnote 3.”. Reason: footnote 3 is introduced by its mark. Step: footnotes.
+  - page 1, chapter 2, applied: “∗” → read as “Fußnote.”. Reason: footnote ∗ is introduced by its mark. Step: footnotes.
+  - page 2, chapter 2, applied: “4” → left out. Reason: footnote mark 4 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 2, chapter 3, applied: “5” → left out. Reason: footnote mark 5 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 2, chapter 3, applied: “6” → left out. Reason: footnote mark 6 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 2, chapter 3, applied: “7” → left out. Reason: footnote mark 7 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 2, chapter 3, applied: “8” → left out. Reason: footnote mark 8 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “4” → read as “Fußnote 4.”. Reason: footnote 4 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “5” → read as “Fußnote 5.”. Reason: footnote 5 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “6” → read as “Fußnote 6.”. Reason: footnote 6 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “7” → read as “Fußnote 7.”. Reason: footnote 7 is introduced by its mark. Step: footnotes.
+  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “8” → read as “Fußnote 8.”. Reason: footnote 8 is introduced by its mark. Step: footnotes.
+  - page 3, chapter 3, applied: “9” → left out. Reason: footnote mark 9 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 3, chapter 3, applied: “10” → left out. Reason: footnote mark 10 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 3, chapter 4, set aside: the remove edit of step links (page 3) won: “9” → read as “Fußnote 9.”. Reason: footnote 9 is introduced by its mark. Step: footnotes.
+  - page 3, chapter 4, set aside: the remove edit of step links (page 3) won: “10” → read as “Fußnote 10.”. Reason: footnote 10 is introduced by its mark. Step: footnotes.
+  - page 5, chapter 4, applied: “11” → left out. Reason: footnote mark 11 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 5, chapter 5, applied: “12” → left out. Reason: footnote mark 12 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 6, chapter 5, applied: “13” → left out. Reason: footnote mark 13 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 5, chapter 5, set aside: the remove edit of step links (page 5) won: “11” → read as “Fußnote 11.”. Reason: footnote 11 is introduced by its mark. Step: footnotes.
+  - page 5, chapter 5, set aside: the remove edit of step links (page 5) won: “12” → read as “Fußnote 12.”. Reason: footnote 12 is introduced by its mark. Step: footnotes.
+  - page 6, chapter 7, set aside: the remove edit of step links (page 6) won: “13” → read as “Fußnote 13.”. Reason: footnote 13 is introduced by its mark. Step: footnotes.
+  - page 7, chapter 7, applied: “14” → left out. Reason: footnote mark 14 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 7, chapter 7, applied: “15” → left out. Reason: footnote mark 15 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 7, chapter 7, applied: “16” → left out. Reason: footnote mark 16 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 7, chapter 7, applied: “17” → left out. Reason: footnote mark 17 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 7, chapter 7, applied: “18” → left out. Reason: footnote mark 18 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 7, chapter 7, applied: “14” → read as “Fußnote 14.”. Reason: footnote 14 is introduced by its mark. Step: footnotes.
+  - page 7, chapter 7, applied: “15” → read as “Fußnote 15.”. Reason: footnote 15 is introduced by its mark. Step: footnotes.
+  - page 7, chapter 7, applied: “16” → read as “Fußnote 16.”. Reason: footnote 16 is introduced by its mark. Step: footnotes.
+  - page 7, chapter 7, applied: “17” → read as “Fußnote 17.”. Reason: footnote 17 is introduced by its mark. Step: footnotes.
+  - page 7, chapter 7, applied: “18” → read as “Fußnote 18.”. Reason: footnote 18 is introduced by its mark. Step: footnotes.
+  - page 8, chapter 7, applied: “19” → left out. Reason: footnote mark 19 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 8, chapter 7, applied: “20” → left out. Reason: footnote mark 20 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 8, chapter 7, applied: “19” → read as “Fußnote 19.”. Reason: footnote 19 is introduced by its mark. Step: footnotes.
+  - page 8, chapter 7, applied: “20” → read as “Fußnote 20.”. Reason: footnote 20 is introduced by its mark. Step: footnotes.
+  - page 9, chapter 7, applied: “21” → left out. Reason: footnote mark 21 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 9, chapter 7, applied: “22” → left out. Reason: footnote mark 22 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 9, chapter 7, applied: “23” → left out. Reason: footnote mark 23 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 9, chapter 7, applied: “21” → read as “Fußnote 21.”. Reason: footnote 21 is introduced by its mark. Step: footnotes.
+  - page 9, chapter 7, applied: “22” → read as “Fußnote 22.”. Reason: footnote 22 is introduced by its mark. Step: footnotes.
+  - page 9, chapter 7, applied: “23” → read as “Fußnote 23.”. Reason: footnote 23 is introduced by its mark. Step: footnotes.
+  - page 10, chapter 7, applied: “24” → left out. Reason: footnote mark 24 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 10, chapter 7, applied: “25” → left out. Reason: footnote mark 25 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 10, chapter 7, applied: “24” → read as “Fußnote 24.”. Reason: footnote 24 is introduced by its mark. Step: footnotes.
+  - page 10, chapter 7, applied: “25” → read as “Fußnote 25.”. Reason: footnote 25 is introduced by its mark. Step: footnotes.
+  - page 11, chapter 7, applied: “26” → left out. Reason: footnote mark 26 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 11, chapter 7, applied: “27” → left out. Reason: footnote mark 27 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 11, chapter 7, applied: “26” → read as “Fußnote 26.”. Reason: footnote 26 is introduced by its mark. Step: footnotes.
+  - page 11, chapter 7, applied: “27” → read as “Fußnote 27.”. Reason: footnote 27 is introduced by its mark. Step: footnotes.
+  - page 12, chapter 7, applied: “28” → left out. Reason: footnote mark 28 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 12, chapter 7, applied: “29” → left out. Reason: footnote mark 29 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 12, chapter 8, applied: “28” → read as “Fußnote 28.”. Reason: footnote 28 is introduced by its mark. Step: footnotes.
+  - page 12, chapter 8, applied: “29” → read as “Fußnote 29.”. Reason: footnote 29 is introduced by its mark. Step: footnotes.
+  
   ## Footnote texts (30)
   
   - page 1, chapter 2, switched off: “1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr. 32, 64293 Darmstadt, Deutschland, mmaass@seemoo.tu-darmstadt.de” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
@@ -8488,6 +9625,10 @@
   - page 6, chapter 6, applied: “und z. B. https://archive.org/” → left out. Reason: URL "https://archive.org/" is not read; "z. B." before it goes too, so the sentence still reads; "und" before it goes too (TP-07). Step: links.
   - page 6, chapter 7, applied: “13 https://piwik.org” → left out. Reason: the text holds nothing but links ("https://piwik.org") and is not read (TP-07). Step: links.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “https://arxiv.org/abs/1705.05139,” → left out. Reason: URL "https://arxiv.org/abs/1705.05139" is not read (TP-07). Step: links.
+  
+  ## Tables and figures (1)
+  
+  - page 3, chapter 3, applied: “Besucher Anonyme Ersteller Angemeldete Ersteller aggreg. Statistiken anzeigen neue Benchmarks erstellen private Benchmarks erstellen öfftentl. Benchmarks anzeigen Kopie eines Benchmarks ändern eigene Benchmarks auflisten Ergebnis für Seiten anzeigen Benchmarks mit Token editieren eigene Benchmarks editieren Ranking/Gewichte anpassen Benschmarks mit Token löschen eigene Benchmarks löschen Benchmarks bestehen aus mehreren Scans besteht aus mehreren Tests Name: Deutsche Schulen Zeitstempel: 2017-04-11 Drittanbieter: 98 (adnet.com, …) Seiten: http://schule1.de/, … Attribute: { Land: Bayern, Anz. Zeitstempel: 2017-04-12 Standorte: web: DE (schule1.de), mail: US (mailfilter.net) Schüler: 950, Träger: Staat }, … … Perfect-Forward-Secrecy: ja Ranking-Gewichte: \[2, 0, …, 1\] Zeitstempel: 2017-04-18 Umleitung zu HTTPS : nein \[…\]” → read as “Abbildung 1 wird übersprungen.”. Reason: Abbildung 1 is not read; a short notice is read instead (D-55). Step: table-figure-notices.
   
   ## Reference list (9)
   
@@ -8639,12 +9780,6 @@
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “:” → read as “zu”. Reason: ratio "70:10" read as "70 zu 10". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "10–15" read with "bis". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "1151–1160" read with "bis". Step: numbers.
-  
-  ## Problems
-  
-  - Step formula-notices does not handle this language.
-  - Step table-figure-notices does not handle this language.
-  - Step footnotes does not handle this language.
   
   '''
 # ---
@@ -10845,11 +11980,11 @@
   
   # 1. PrivacyScore
   
-  PrivacyScore: Analyse von Webseiten auf Sicherheits- und Privatheitsprobleme – Konzept und rechtliche Zulässigkeit*
+  PrivacyScore: Analyse von Webseiten auf Sicherheits- und Privatheitsprobleme – Konzept und rechtliche Zulässigkeit
   
   Dieses Papier ist eine erweiterte Fassung des Beitrags, der beim Workshop „Recht und Technik“ auf der INFORMATIK 2017 vorgestellt wird.
   
-  Max Maass1, Anne Laubach2, Dominik Herrmann3
+  Max Maass, Anne Laubach, Dominik Herrmann
   
   Abstract: PrivacyScore ist ein öffentliches Web-Portal, mit dem automatisiert überprüft werden kann, ob Webseiten gängige Mechanismen zum Schutz von Sicherheit und Privatheit korrekt implementieren.
   Im Gegensatz zu existierenden Diensten ermöglicht PrivacyScore, mehrere Webseiten in Benchmarks miteinander zu vergleichen, die Ergebnisse differenziert und im Zeitverlauf zu analysieren sowie nutzerdefinierte Kriterien für die Auswertung zu definieren.
@@ -10868,21 +12003,25 @@
   Die Privatheit der Besucherinnen kann allerdings auch durch Entscheidungen des Seitenbetreibers beeinträchtigt werden, etwa durch die Verwendung von Analysediensten oder Werbenetzwerken.
   Seitenbetreiber nutzen hier oft kommerzielle Angebote (etwa Google Analytics) anstatt einer lokalen Lösung, die die Privatheitsinteressen der Besucherinnen besser berücksichtigt (zum Beispiel Piwik).
   
-  1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr.
+  Fußnote 1.
+  Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr.
   32, 64293 Darmstadt, Deutschland,
   
-  2 Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr.
+  Fußnote 2.
+  Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr.
   1, 34109 Kassel, Deutschland,
   
-  3 Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str.
+  Fußnote 3.
+  Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str.
   30, 22527 Hamburg, Deutschland,
   
-  ∗ Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde [MH17].
+  Fußnote.
+  Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde [MH17].
   Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6.
   Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.
   
   Die Entscheidungen der Betreiber sind dabei für Besucherinnen oft intransparent, insbesondere bei komplexeren Diensten wie dem Schutz gegen Denial-of-Service-Angriffe.
-  Für Besucherinnen ist hier teilweise nicht einmal die Verwendung eines solchen Dienstes erkennbar, obwohl er signifikanten Einfluss auf ihre Privatheit haben kann, was zuletzt die Sicherheitslücke bei dem Dienstleister Cloudflare gezeigt hat.4
+  Für Besucherinnen ist hier teilweise nicht einmal die Verwendung eines solchen Dienstes erkennbar, obwohl er signifikanten Einfluss auf ihre Privatheit haben kann, was zuletzt die Sicherheitslücke bei dem Dienstleister Cloudflare gezeigt hat.
   
   Es gibt zwar bereits einige kostenlose Webseiten-Scanner, die die Konfiguration einer Webseite auf gängige Sicherheitslücken untersuchen; Aspekte der Privatheit werden von den existierenden Scannern jedoch weitgehend ignoriert.
   Des Weiteren bieten existierende Scanner keine Möglichkeit, die Ergebnisse mehrerer Webseiten direkt miteinander zu vergleichen.
@@ -10906,20 +12045,17 @@
   2 Verwandte Arbeiten
   
   Mehrere Dienste erlauben eine automatisierte Untersuchung von Webseiten.
-  Die meisten Angebote konzentrieren sich auf die Sicherheit der verschlüsselten Verbindung zu einer Webseite, etwa Qualys5 und Mozilla.6 Darüber hinaus existieren Dienste,
-  welche das Vorhandensein der relativ neuen HTTP-Security-Header überprüfen.7 Privatheitseigenschaften von Webseiten betrachtet Webbkoll.8
+  Die meisten Angebote konzentrieren sich auf die Sicherheit der verschlüsselten Verbindung zu einer Webseite, etwa Qualys und Mozilla.
+  Darüber hinaus existieren Dienste, welche das Vorhandensein der relativ neuen HTTP-Security-Header überprüfen.
+  Privatheitseigenschaften von Webseiten betrachtet Webbkoll.
   
-  Besucher Anonyme Ersteller Angemeldete Ersteller aggreg.
-  Statistiken anzeigen neue Benchmarks erstellen private Benchmarks erstellen öfftentl.
-  Benchmarks anzeigen Kopie eines Benchmarks ändern eigene Benchmarks auflisten Ergebnis für Seiten anzeigen Benchmarks mit Token editieren eigene Benchmarks editieren Ranking/Gewichte anpassen Benschmarks mit Token löschen eigene Benchmarks löschen Benchmarks bestehen aus mehreren Scans besteht aus
-  mehreren Tests Name: Deutsche Schulen Zeitstempel: 2017-04-11 Drittanbieter: 98 (adnet.com, …) Seiten: http://schule1.de/, … Attribute: { Land: Bayern, Anz.
-  Zeitstempel: 2017-04-12 Standorte: web: DE (schule1.de), mail: US (mailfilter.net) Schüler: 950, Träger: Staat }, … … Perfect-Forward-Secrecy: ja Ranking-Gewichte: [2, 0, …, 1] Zeitstempel: 2017-04-18 Umleitung zu HTTPS : nein […]
+  Abbildung 1 wird übersprungen.
   
   Abbildung 1: Anwendungsfälle und Datenstrukturen
   
   Daneben gibt es Vorhaben, die eine festgelegte Liste von Webseiten untersuchen.
-  So untersucht Helme regelmäßig die Verwendung der HTTP-Security-Header auf allen Webseiten der „Alexa Top 1 Million“9 und die schwedische Datenschutzorganisation dataskydd.net sucht auf den Webseiten schwedischer Kommunen nach Privatheitsproblemen.10 Im akademischen Umfeld gab es eine Reihe von
-  Studien, die Aspekte der Sicherheit [Ho16, Ma16] und Privatheit [EN16] auf beliebten Webseiten untersuchen.
+  So untersucht Helme regelmäßig die Verwendung der HTTP-Security-Header auf allen Webseiten der „Alexa Top 1 Million“ und die schwedische Datenschutzorganisation dataskydd.net sucht auf den Webseiten schwedischer Kommunen nach Privatheitsproblemen.
+  Im akademischen Umfeld gab es eine Reihe von Studien, die Aspekte der Sicherheit [Ho16, Ma16] und Privatheit [EN16] auf beliebten Webseiten untersuchen.
   Die Ergebnisse solcher einmalig durchgeführten Studien veralten jedoch recht schnell.
   Insgesamt ist festzustellen, dass es bislang nicht ohne Weiteres möglich ist, aktuelle Benchmarks zu erstellen.
   
@@ -10967,7 +12103,8 @@
   Dies kommt auch der Weiterentwicklung von PrivacyScore zu Gute, da es Dritten die Möglichkeit gibt, neue Tests beizusteuern.
   
   Implementation PrivacyScore befindet sich aktuell im Alpha-Stadium, ein Prototyp ist abrufbar.
-  Für die Tests nutzen wir etablierte Tools wie OpenWPM [EN16] und testssl.sh.11 Weitere Details finden sich in [MH17].
+  Für die Tests nutzen wir etablierte Tools wie OpenWPM [EN16] und testssl.sh.
+  Weitere Details finden sich in [MH17].
   
   # 5. 4 Sicherheits- und Privatheitstests
   
@@ -10986,14 +12123,15 @@
   PrivacyScore wird außerdem eine Reihe von Tracking-Technologien erkennen (insbesondere Cookies, Flash-Cookies, und Browser-Fingerprinting).
   
   Viele Webseiten nutzen Content-Distribution-Networks (CDNs), um die Zuverlässigkeit und Geschwindigkeit ihrer Webseite zu optimieren.
-  Diese Dienste können allerdings ebenfalls eine Gefahr für die Privatheit und Sicherheit darstellen.12 PrivacyScore versucht daher die Verwendung von CDNs zu erkennen.
+  Diese Dienste können allerdings ebenfalls eine Gefahr für die Privatheit und Sicherheit darstellen.
+  PrivacyScore versucht daher die Verwendung von CDNs zu erkennen.
   Eine weitere relevante Information ist der Ort, an dem eine Webseite betrieben wird.
   Interessant ist hier vor allem die Einbindung nicht-europäischer Dienstanbieter, da ein Seitenbetreiber in diesem Fall möglicherweise zusätzliche Pflichten zu erfüllen hat.
   
   Anschaulichkeit und Handlungsempfehlungen Die identifizierten Probleme werden mit den daraus resultierenden Bedrohungen veranschaulicht.
   So ist etwa das Abhören verschlüsselter Kommunikation durch einen WLAN-Betreiber möglich, wenn eine Seite kein HSTS verwendet (SSL-Stripping-Angriff).
   PrivacyScore hilft den Seitenbetreibern aber auch, die Probleme zu beheben.
-  Dazu werden wir Konfigurationshilfen für beliebte Webserver und lokale Analysesysteme wie Piwik13 auflisten.
+  Dazu werden wir Konfigurationshilfen für beliebte Webserver und lokale Analysesysteme wie Piwik auflisten.
   Wo dies nicht möglich ist, liefern wir Nutzerinnen Hinweise zum Selbstdatenschutz, zum Beispiel durch die Installation von Browser-Add-ons, die Werbenetzwerke und Tracker blockieren.
   
   # 6. 5 Ethische Fragestellungen
@@ -11034,31 +12172,37 @@
   S. v. § 823 Absatz 1 BGB denkbar.
   
   Einige Webseitenbetreiber verbieten in ihren Nutzungsbedingungen das automatisierte Durchsuchen und Auswerten der von ihnen zur Verfügung gestellten Daten.
-  Während manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell bejahen14 oder dies von der Art der Webseitenausgestaltung abhängig machen,15 spricht gegen die Übertragung der Befugnis zur Ausübung des Hausrechts von Räumen und Grundstücken auf Webseiten die nicht
-  vergleichbare Interessenlage, da ursprünglich gerade absolute Rechtspositionen wie Besitz und Eigentum Gegenstand des Schutzes sein sollten und der Zweck einer Webseite gerade darin besteht,
-  sie potentiellen Nutzerinnen zu öffnen und von diesen zur Kenntnis genommen zu werden.16 Dem Webseitenbetreiber steht es dennoch frei, die Befugnisse über die von ihm zur Verfügung gestellten Daten im Rahmen vertraglicher Vereinbarungen zu regeln.
-  Rechtlich verbindlich wird die jeweilige Vorgabe in den Nutzungsbedingungen aber nur dann, wenn zuvor eine Registrierung und damit ein Vertragsschluss unter ausdrücklicher Anerkennung der Nutzungsbedingungen erfolgt.17 Ist der Zugang dagegen auch ohne Anmeldung möglich,
-  kommt den jeweiligen Nutzungsbedingungen ebenso wie allen einseitigen Erklärungen über gewollte Nutzungsbeschränkungen keine verbindliche Rechtswirkung für nicht registrierte Besucherinnen der Webseite zu.18 Eine solche technisch-automatisierte Registrierung unter Anerkennung der gestellten
-  Nutzungsbedingungen durch die PrivacyScore-Technik ist nicht vorgesehen.
+  Während manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell bejahen oder dies von der Art der Webseitenausgestaltung abhängig machen,
+  spricht gegen die Übertragung der Befugnis zur Ausübung des Hausrechts von Räumen und Grundstücken auf Webseiten die nicht vergleichbare Interessenlage,
+  da ursprünglich gerade absolute Rechtspositionen wie Besitz und Eigentum Gegenstand des Schutzes sein sollten und der Zweck einer Webseite gerade darin besteht, sie potentiellen Nutzerinnen zu öffnen und von diesen zur Kenntnis genommen zu werden.
+  Dem Webseitenbetreiber steht es dennoch frei, die Befugnisse über die von ihm zur Verfügung gestellten Daten im Rahmen vertraglicher Vereinbarungen zu regeln.
+  Rechtlich verbindlich wird die jeweilige Vorgabe in den Nutzungsbedingungen aber nur dann, wenn zuvor eine Registrierung und damit ein Vertragsschluss unter ausdrücklicher Anerkennung der Nutzungsbedingungen erfolgt.
+  Ist der Zugang dagegen auch ohne Anmeldung möglich, kommt den jeweiligen Nutzungsbedingungen ebenso wie allen einseitigen Erklärungen über gewollte Nutzungsbeschränkungen keine verbindliche Rechtswirkung für nicht registrierte Besucherinnen der Webseite zu.
+  Eine solche technisch-automatisierte Registrierung unter Anerkennung der gestellten Nutzungsbedingungen durch die PrivacyScore-Technik ist nicht vorgesehen.
   
-  14 LG Hamburg v. achtundzwanzigsten August 2008, Az.
+  Fußnote 14.
+  LG Hamburg v. achtundzwanzigsten August 2008, Az.
   315 O 326/08.
   
-  15 OLG Köln v. fünfundzwanzigsten August 2000, Az.
+  Fußnote 15.
+  OLG Köln v. fünfundzwanzigsten August 2000, Az.
   19 U 2/00; LG Ulm v.
   13.01.15, Az.
   2 O 8/15; OLG Hamm v. zehnten Juni 2008, Az.
   4 U 37/08.
   
-  16 OLG Frankfurt v. fünften März 2009, Az.
+  Fußnote 16.
+  OLG Frankfurt v. fünften März 2009, Az.
   6 U 221/09; OLG Hamburg v. vierundzwanzigsten Oktober 2012, Az.
   5 U 38/10.
   
-  17 LG München v. fünfundzwanzigsten Oktober 2006, Az.
+  Fußnote 17.
+  LG München v. fünfundzwanzigsten Oktober 2006, Az.
   30 O 11973/05; OLG Frankfurt v. fünften März 2009, Az.
   6 U 221/09.
   
-  18 OLG Frankfurt v. fünften März 2009, Az.
+  Fußnote 18.
+  OLG Frankfurt v. fünften März 2009, Az.
   6 U 221/09; OLG Hamburg v. vierundzwanzigsten Oktober 2012, Az.
   5 U 38/10.
   
@@ -11073,7 +12217,8 @@
   S. v. § 2 Absatz 2 UrhG erreicht.
   Dies kann nur im Einzelfall beurteilt werden.
   Regelmäßig ist der Quelltext der Webseite jedoch nicht urheberrechtlich geschützt, da die Rechtsprechung die nötige besondere „schöpferische Höhe“ i.
-  S. v. § 2 Absatz 2 UrhG für Webseiten nur in wenigen Ausnahmefällen anerkennt.19 Auch, wenn die Datenbank als geistiger Schöpfungsakt nicht urheberrechtlich geschützt ist, kann für den Hersteller der Datenbank nach § 87b Absatz 1 Satz 1 UrhG ein Leistungsschutzrecht bestehen.
+  S. v. § 2 Absatz 2 UrhG für Webseiten nur in wenigen Ausnahmefällen anerkennt.
+  Auch, wenn die Datenbank als geistiger Schöpfungsakt nicht urheberrechtlich geschützt ist, kann für den Hersteller der Datenbank nach § 87b Absatz 1 Satz 1 UrhG ein Leistungsschutzrecht bestehen.
   Ginge man davon aus, dass die im Quelltext enthaltenen Informationen eine Sammlung von Daten i.
   S. v. § 87a UrhG enthalten, käme es für die Annahme eines Leistungsschutzrechts weiterhin darauf an, ob beim Betreiber eine wesentliche Investition zur Erstellung erforderlich war.
   Allerdings räumt § 87b Absatz 1 Satz 1 UrhG ein Recht auf Untersagung der Nutzung nur ein, soweit die Nutzerin wesentliche Teile der Datenbank durchsucht.
@@ -11082,7 +12227,7 @@
   Quelltexte von Webseiten genießen regelmäßig auch keinen Sonderrechtsschutz als Computerprogramme i.
   S. v. § 2 Absatz 1 Nummer 1, 69a Absatz 1 UrhG.
   Dies würde eine Folge von Befehlen, denen Auswirkungen auf den Programmablauf zukommen, voraussetzen.
-  Den HTML-Befehlen im Quelltext komme dagegen nur eine beschreibende Funktion zu, um die Darstellung der Inhalte im Browser zu ermöglichen.20
+  Den HTML-Befehlen im Quelltext komme dagegen nur eine beschreibende Funktion zu, um die Darstellung der Inhalte im Browser zu ermöglichen.
   
   Die Untersuchung durch PrivacyScore ist auch wettbewerbsrechtlich unbedenklich, solange es infolge seines Einsatzes nicht zu einer tatsächlichen Störung des Betriebsablaufs der Webseite, etwa einer Beeinträchtigung der Verfügbarkeit, kommt.
   Andernfalls könnte unter der Voraussetzung der Mitbewerbereigenschaft i.
@@ -11094,12 +12239,14 @@
   Mit der gleichen Begründung kann auch ein deliktischer Anspruch, gestützt auf eine rechtswidrige Verletzung des Rechts am eingerichteten und ausgeübten Gewerbebetrieb i.
   S. v. § 823 I BGB, mangels eines betriebsbezogenen Eingriffs, der über eine bloße Belästigung hinausgeht, vermieden werden.
   
-  19 OLG Hamburg v. neunundzwanzigsten Februar 2012, Az.
+  Fußnote 19.
+  OLG Hamburg v. neunundzwanzigsten Februar 2012, Az.
   5 U 10/10; OLG Celle v. achten März 2012, Az.
   13 W 17/12; OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
   2 E 12/07.
   
-  20 OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
+  Fußnote 20.
+  OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
   2 W 12/07; OLG Frankfurt v. zweiundzwanzigsten März 2005, Az.
   11 U 64/04.
   
@@ -11108,7 +12255,7 @@
   Mithilfe von PrivacyScore wird nur der Quelltext der Webseite untersucht, der für jedermann öffentlich zugänglich ist ohne dabei eine Zugangssicherung zu überwinden.
   
   Zusammenfassend ist festzustellen, dass soweit kein Sonderrechtsschutz besteht und die Webseite rechtlich und technisch frei zugänglich ist,
-  das heißt die Nutzung der zu untersuchenden Daten nicht von der vorherigen Akzeptanz der Nutzungsbedingungen abhängig gemacht und vom Webseitenbetreiber keine technischen Schutzmaßnahmen installiert wurden,21 das automatisierte Untersuchen der Webseiten durch PrivacyScore zulässig ist.
+  das heißt die Nutzung der zu untersuchenden Daten nicht von der vorherigen Akzeptanz der Nutzungsbedingungen abhängig gemacht und vom Webseitenbetreiber keine technischen Schutzmaßnahmen installiert wurden, das automatisierte Untersuchen der Webseiten durch PrivacyScore zulässig ist.
   
   Rechtliche Bewertung der Untersuchungsergebnisse Die bloße Feststellung des technischen Untersuchungsergebnisses allein ist zur Bewertung der rechtskonformen Gestaltung der Webseite wenig aussagekräftig.
   Zur tatsächlichen Beurteilung der Rechtskonformität ist immer eine weitergehende Betrachtung des Einzelfalls erforderlich.
@@ -11118,23 +12265,26 @@
   Die Rechtmäßigkeit von Analysediensten, wie Google Analytics, auf Webseiten wird seit jeher von den Datenschützern kritisch betrachtet, da sie befürchten, dass mittels dieser Analyse umfangreiche Profile über identifizierbare Nutzerinnen angelegt werden könnten.
   Neben der Zuordnung und Speicherung von Nutzungsdaten (wie die zuletzt besuchte Seite und der verwendete Browser), die zunächst rechtlich unbedenklich sind, ermöglichen zentrale Analysedienste wie Google Analytics die Möglichkeit,
   die Nutzungsaktivitäten über die ebenfalls abgespeicherte IP-Adresse zusammen zu führen und webseitenübergreifend einer bestimmten Nutzerin zuzuordnen.
-  Eine datenschutzkonforme Nutzung von Analysediensten wie Google Analytics ist daher nur zulässig, wenn eine Anonymisierung der IP-Adresse – etwa in Form einer Kürzung – gewährleistet wird, da aufgrund dieser Kürzung nach überwiegender Ansicht der Datenschützer22 der direkte Personenbezug entfalle.
-  Soweit nach der jüngsten Rechtsprechung23 dynamische IP-Adressen personenbezogene Daten darstellen, dürfen sie nur verarbeitet werden, wenn dies entweder gesetzlich gestattet ist oder die Betroffene eingewilligt hat.
+  Eine datenschutzkonforme Nutzung von Analysediensten wie Google Analytics ist daher nur zulässig, wenn eine Anonymisierung der IP-Adresse – etwa in Form einer Kürzung – gewährleistet wird, da aufgrund dieser Kürzung nach überwiegender Ansicht der Datenschützer der direkte Personenbezug entfalle.
+  Soweit nach der jüngsten Rechtsprechung dynamische IP-Adressen personenbezogene Daten darstellen, dürfen sie nur verarbeitet werden, wenn dies entweder gesetzlich gestattet ist oder die Betroffene eingewilligt hat.
   
-  21 BGH v. zweiundzwanzigsten Juni 2011, Az.
+  Fußnote 21.
+  BGH v. zweiundzwanzigsten Juni 2011, Az.
   I ZR 159/10; BGH v. siebzehnten März 2003, Az.
   I ZR 259/00.
   
-  22 Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von Analyseverfahren“.
+  Fußnote 22.
+  Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von Analyseverfahren“.
   
-  23 BGH v. sechzehnten Mai 2017, Az.
+  Fußnote 23.
+  BGH v. sechzehnten Mai 2017, Az.
   VI ZR 135/13; EuGH v. neunzehnten Oktober 2016, Az.
   C-582/14.
   
-  Die gesetzliche Grundlage für den Umgang mit Nutzungsdaten ist derzeit noch das nationale Telemediengesetz (TMG), speziell § 15 Absatz 3 TMG,
-  der auch im Falle einer verkürzten IP anwendbar ist.24 Nach dieser Vorschrift ist die Erstellung von pseudonymisierten Nutzungsprofilen zu festgelegten Zwecken auch ohne die Einwilligung der betroffenen Nutzerin zulässig,
-  soweit der Nutzerin gemäß § 15 Absatz 3 Satz 2 TMG ein Recht zum Widerspruch („Opt-out“) gegen diese Erstellung eingeräumt und sie auf die Möglichkeit des Widerspruchs auch hingewiesen wird.25 Um beurteilen zu können, ob der Webseitenbetreiber seinen Hinweispflichten ausreichend nachgekommen ist,
-  wäre eine Betrachtung des Impressums und der Datenschutzerklärung notwendig.
+  Die gesetzliche Grundlage für den Umgang mit Nutzungsdaten ist derzeit noch das nationale Telemediengesetz (TMG), speziell § 15 Absatz 3 TMG, der auch im Falle einer verkürzten IP anwendbar ist.
+  Nach dieser Vorschrift ist die Erstellung von pseudonymisierten Nutzungsprofilen zu festgelegten Zwecken auch ohne die Einwilligung der betroffenen Nutzerin zulässig,
+  soweit der Nutzerin gemäß § 15 Absatz 3 Satz 2 TMG ein Recht zum Widerspruch („Opt-out“) gegen diese Erstellung eingeräumt und sie auf die Möglichkeit des Widerspruchs auch hingewiesen wird.
+  Um beurteilen zu können, ob der Webseitenbetreiber seinen Hinweispflichten ausreichend nachgekommen ist, wäre eine Betrachtung des Impressums und der Datenschutzerklärung notwendig.
   
   Etwas anderes kann sich möglicherweise zukünftig aufgrund des Entwurfs der Verordnung über Privatsphäre und elektronische Kommunikation (e-Privacy-VO-E) ergeben.
   Nach Artikel 8 Absatz 1 des Verordnungsentwurfs, ist „jede vom betreffenden Endnutzer nicht selbst vorgenommene Nutzung der Verarbeitungs- und Speicherfunktionen“ grundsätzlich verboten, es sei denn,
@@ -11162,16 +12312,19 @@
   Lediglich das wirtschaftlich Zumutbare wird erwartet.
   Dies kann im Einzelfall auch dazu führen, dass ein Verantwortlicher keine Maßnahmen ergreifen muss.
   
-  24 LG Frankfurt v. achtzehnten Februar 2014, Az.
+  Fußnote 24.
+  LG Frankfurt v. achtzehnten Februar 2014, Az.
   3-10 O 86/12.
   
-  25 BGH v. sechzehnten Juli 2008, Az.
+  Fußnote 25.
+  BGH v. sechzehnten Juli 2008, Az.
   VIII ZR 348/06.
   
   Rechtliche Herausforderungen hinsichtlich der Veröffentlichung der Ergebnisse Auf der PrivacyScore-Webseite können sowohl Detail-Ergebnisse für einzelne Webseiten als auch vergleichende Rankings eingesehen werden.
   Bei den Detail-Ergebnissen handelt es sich um Tatsachenbehauptungen, die überprüfbar und damit dem Beweis zugänglich sind.
   Die erstellten Rankings dürften hingegen auf diesen Tatsachen beruhende Werturteile darstellen.
-  Beide sind nach ständiger Rechtsprechung gleichermaßen von der Meinungsfreiheit aus Artikel 5 Absatz 1 GG umfasst, soweit es sich um wahre Tatsachen handelt.26 Die zugehörigen Scan-Rohdaten werden dazu (soweit zulässig) archiviert.
+  Beide sind nach ständiger Rechtsprechung gleichermaßen von der Meinungsfreiheit aus Artikel 5 Absatz 1 GG umfasst, soweit es sich um wahre Tatsachen handelt.
+  Die zugehörigen Scan-Rohdaten werden dazu (soweit zulässig) archiviert.
   
   Da mit der Veröffentlichung nachteiliger Bewertungen auch negative Auswirkungen für den Webseitenbetreiber, wie Imageverluste, verbunden sein können, stellt sich die Frage, unter welchen Voraussetzungen sich Betreiber gegen die Veröffentlichung wehren können.
   
@@ -11182,27 +12335,29 @@
   Für inländische Unternehmen kann sich ein Persönlichkeitsrecht aus Artikel 2 Absatz 1 GG i.
   V. m.
   Artikel 19 Absatz 3 GG und Artikel 12 Absatz 1 GG ergeben.
-  Dies gilt jedoch nur in abgeschwächter Form, da Unternehmen und Unternehmer, die sich bewusst nach außen hin darstellen, kritische Bewertungen eher hinnehmen müssen.27 Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten,
-  ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen i.
+  Dies gilt jedoch nur in abgeschwächter Form, da Unternehmen und Unternehmer, die sich bewusst nach außen hin darstellen, kritische Bewertungen eher hinnehmen müssen.
+  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen i.
   S. v. §§ 185 folgende.
   StGB werden und die konkrete Aussage geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
   
-  26 BVerfG v. neunten Oktober 19 hundert 91, Az.
+  Fußnote 26.
+  BVerfG v. neunten Oktober 19 hundert 91, Az.
   1 BvR 1555/88; BVerfG v. dreizehnten April 19 hundert 94, Az.
   1 BvR 23/94.
   
-  27 BGH v. neunundzwanzigsten Januar 2002, Az.
+  Fußnote 27.
+  BGH v. neunundzwanzigsten Januar 2002, Az.
   VI ZR 20/01.
   
   Eine Beurteilung eines rechtswidrigen Eingriffs unter Abwägung der Interessen ist grundsätzlich nur im Einzelfall möglich.
   Die Veröffentlichung einer kritischen Bewertung der Webseite kann für den Betroffenen zu einer Rufbeeinträchtigung führen und ihn nicht unerheblich belasten.
   Da die untersuchten Webseiten aber öffentlich sind, werden diese regelmäßig der Sozialsphäre des Betroffenen zuzuordnen sein, das heißt beruflichen, politischen oder ähnlichen Tätigkeiten, in denen Menschen im sozialen Austausch stehen.
   Beeinträchtigungen in diesem Bereich unterliegen zumeist einem schwachen Schutz.
-  Im Rahmen der Interessenabwägung bei betroffenen Unternehmern betont die Rechtsprechung28 regelmäßig das Informationsinteresse der Allgemeinheit.
+  Im Rahmen der Interessenabwägung bei betroffenen Unternehmern betont die Rechtsprechung regelmäßig das Informationsinteresse der Allgemeinheit.
   Insbesondere vor dem Hintergrund der freien Wahl, die untersuchten Webseiten je nach Ergebnis zu nutzen oder dies zu vermeiden, ist das Interesse der Öffentlichkeit an den Informationen über privatrechtliche Risiken beim Besuch der Webseiten nicht unerheblich.
   Ein Recht des Betroffenen wird daher regelmäßig nicht das Kommunikationsinteresse überwiegen.
-  Bei Privatpersonen wird im Rahmen der Interessenabwägung häufig zusätzlich auf die Breitenwirkung der Äußerung abgestellt:
-  je größer der Adressatenkreis, desto belastender die Äußerung.29 Eine Risikoreduzierung für den Betroffenen könnte in diesen Fällen dadurch erreicht werden, dass die Ergebnisse nur einem beschränkten Adressatenkreis zur Verfügung zu stellen.
+  Bei Privatpersonen wird im Rahmen der Interessenabwägung häufig zusätzlich auf die Breitenwirkung der Äußerung abgestellt: je größer der Adressatenkreis, desto belastender die Äußerung.
+  Eine Risikoreduzierung für den Betroffenen könnte in diesen Fällen dadurch erreicht werden, dass die Ergebnisse nur einem beschränkten Adressatenkreis zur Verfügung zu stellen.
   
   Aus Artikel 17 Absatz 1 DSGVO könnte dem Betroffenen in diesem Zusammenhang ein Löschungsanspruch zustehen, soweit die gespeicherten Daten personenbezogen sind und deren Speicherung unzulässig ist.
   Eine Datenverarbeitung ist gemäß Artikel 5 Absatz 1 lit. a und Artikel 6 Absatz 1 DSGVO dann rechtmäßig, wenn eine Einwilligung des Betroffenen vorliegt, was regelmäßig nicht der Fall sein wird, oder eine andere Bedingung des Artikel 6 Absatz 1 DSGVO erfüllt ist.
@@ -11224,12 +12379,14 @@
   PrivacyScore erstellt dazu automatisierte Vergleiche der Sicherheits- und Privatheitseigenschaften mehrerer Webseiten und zeigt die Ergebnisse in Form von regelmäßig aktualisierten Ranglisten an.
   Sowohl die zu überprüfenden Webseiten als auch die Bewertungskriterien können dabei von den Nutzerinnen festgelegt werden.
   
-  28 BGH v. dreiundzwanzigsten September 2014, Az.
+  Fußnote 28.
+  BGH v. dreiundzwanzigsten September 2014, Az.
   VI ZR 358/13; BGH v. dreiundzwanzigsten Juni 2009, Az.
   VI ZR 196/08; OLG Hamburg v. achtzehnten Januar 2012, Az.
   5 U 51/11.
   
-  29 BGH v. dreiundzwanzigsten Juni 2009, Az.
+  Fußnote 29.
+  BGH v. dreiundzwanzigsten Juni 2009, Az.
   VI ZR196/08.
   
   Juristisch ist die Verwendung von PrivacyScore in seiner aktuell geplanten Form zulässig, soweit die untersuchte Webseite frei zugänglich ist und kein Sonderrechtsschutz besteht.

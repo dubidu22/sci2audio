@@ -23,11 +23,7 @@ PAPERS = sorted((CORPUS / "papers").glob("*.pdf"))
 GOLDEN = ["acl2023-hardt-ellipsis", "arxiv2017-maass-privacyscore", "joss2021-waskom-seaborn"]
 # Steps that do not speak German yet, with the Issue that teaches them (#235, D-509): on the
 # German paper they are reported as not run. An Issue that lands takes its steps out.
-GERMAN_LATER_STEPS = {
-    "formula-notices": 212,
-    "table-figure-notices": 212,
-    "footnotes": 212,
-}
+GERMAN_LATER_STEPS: dict[str, int] = {}  # #101, #130 and #212 taught every step German
 GERMAN = {"arxiv2017-maass-privacyscore"}
 
 # Chapter titles per paper as laid out today; "*" marks the reference list (not chosen).
