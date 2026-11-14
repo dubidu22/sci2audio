@@ -334,6 +334,17 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("1–11.3.2020", "1 bis elften März 2020"),
         ("vom 1.3.2020–11.3.2020", "vom ersten März 2020 bis elften März 2020"),
         ("110⁶–1234", "110⁶ bis 1234"),
+        ("1 × 10-2 x1–1", "1 mal 10-2 x1 bis 1"),
+        ("im 1500—1234", "im 15 hundert bis 12 hundert 34"),
+        ("um 24:00 n²", "um 24 Uhr n Quadrat"),
+        ("um 13:30 m² Fläche", "um 13:30 m² Fläche"),
+        ("Abschnitt 1.234-2011", "Abschnitt 1.234-2011"),
+        # an ordinal before the abbreviation of its noun, which the abbreviations step reads
+        ("Daten zeigt 12. Kap. (Müller, o. J.).", "Daten zeigt zwölftes Kapitel (Müller, o. J.)."),
+        ("12. Kap. 3", "zwölftes Kapitel 3"),
+        ("Siehe 12. Kap. dazu.", "Siehe zwölftes Kap. dazu."),
+        ("die 12. Aufl. erschien", "die zwölfte Auflage erschien"),
+        ("5x× 3", "5x mal 3"),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:

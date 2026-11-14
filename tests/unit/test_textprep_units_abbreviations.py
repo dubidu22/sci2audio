@@ -628,6 +628,9 @@ def _both_runs(text: str) -> tuple[str, str]:
         ("a 10⁶ x 3 grid", "a 10 to the power of 6 times 3 grid"),
         # ... and "<" before a CI read glued, as the statistics step leaves it
         ("<CI=", "<confidence interval ="),
+        # ... and an x before the times sign, which reads "times" after it as before it
+        ("5x\u00d7 3", "5x times 3"),
+        ("a 5x times", "a 5x times"),
     ],
 )
 def test_units_and_abbreviations_read_the_same_on_the_first_and_second_run(

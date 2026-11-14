@@ -48,6 +48,7 @@ from sci2audio.textprep.notation import (
 )
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.units import reads_unit_after, reads_x_after
+from sci2audio.textprep.wordlists import abbreviations
 
 # every look back before a match reads at most this many characters (linear on long blocks)
 WINDOW = 64
@@ -156,9 +157,10 @@ _DIGIT_BEFORE = re.compile(r"\d\s*\Z")
 # a "bis" a range made: after a number, or after "Uhr" ("13 Uhr–1234")
 # a power's exponent counts too: "10⁶–1234" reads "10⁶ bis 1234" (#253)
 _RANGE_BEFORE = re.compile(r"(?:\d[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]{0,2}|\bUhr)\s*\Z")
-_JOINED_YEAR = re.compile(r"(?:\s*[\u2013\u2012-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)\Z")
+_JOINED_YEAR = re.compile(r"(?:\s*[\u2013\u2012\u2014-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)\Z")
 _JOINED_NEXT = re.compile(
-    r"(?:\s*[\u2013\u2012-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)(?:1[1-9]\d\d|\d{1,2}\.\d{3})(?![\d.,])"
+    r"(?:\s*[\u2013\u2012\u2014-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)"
+    r"(?:1[1-9]\d\d|\d{1,2}\.\d{3})(?![\d.,])"
 )
 
 
@@ -259,6 +261,7 @@ _POINT = re.compile(r"\.")
 _RUN_DASH = re.compile(r"\s*[\u2013-]\s*")  # "Abschnitt 2.5-11.234": "2 Punkt 5 bis 11 ..."
 # a number joined after a label's number by a colon, slash or hyphen (an en dash is a range,
 # read "bis" in the same run), by a digit or by a power
+_JOINED_TAIL = re.compile(r"\s*[:/-]\s*[.,]?\d[\d.,]*")
 _LABEL_JOINED_AFTER = re.compile(r"\s*[:/-]\s*[.,]?\d|[.,]?\d|[⁺⁻^⁰¹²³⁴⁵⁶⁷⁸⁹]")
 
 
@@ -361,7 +364,10 @@ def _labelled(text: str) -> tuple[list[Candidate], list[tuple[int, int]]]:
             or _x_left_alone(text, end)
             or _unit_left_alone(text, end)
         ):
-            kept.append(match.span("run"))
+            # what joins it stays too: "Abschnitt 1.234-2011" is no range "1.234 bis 2011",
+            # which a second run would read "1 Punkt 234 bis 2011" (#253)
+            joined = _JOINED_TAIL.match(text, end)
+            kept.append((match.start("run"), joined.end() if joined else end))
             continue  # "Abschnitt 2.51:1": the new digits would join differently next time
         offset = match.start("run")
         for dash in _RUN_DASH.finditer(match["run"]):
@@ -577,6 +583,22 @@ _NOUN_ENDINGS = {
         "es",
     ),
 }
+
+
+def _abbreviated_nouns() -> dict[str, str]:
+    """The abbreviations of the nouns above, without their full stop ("Kap" -> "Kapitel"):
+    "12. Kap. 3" reads "zwölftes Kapitel 3", since the abbreviations step reads "Kap." and
+    "12. Kapitel" would be an ordinal on a second run."""
+    found = {}
+    for entry in abbreviations("de") or ():
+        if entry.reads in _NOUN_ENDINGS:
+            for printed in entry.printed:
+                if printed.endswith(".") and printed[:-1].isalpha():
+                    found[printed[:-1]] = entry.reads
+    return found
+
+
+_ABBREVIATED_NOUNS = _abbreviated_nouns()
 _ORDINAL = re.compile(r"(?<![^\WxX])(?<![,/:\u2013-])" + _STOP + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_])")
 _ISO_DATE = re.compile(
     r"(?<![^\WxX])(?<![:/\u2013-])(?<!\d,)"
@@ -694,6 +716,8 @@ def _ordinals(text: str) -> list[Candidate]:
         month = noun in _MONTH_FORMS and (noun in MONTHS or following["dot"])
         ending = _ending(text, match.start(), day=month)
         if ending is None and not _after_preposition(text, match.start()):
+            if following["dot"]:
+                noun = _ABBREVIATED_NOUNS.get(noun, noun)
             ending = _NOUN_ENDINGS.get(noun) if noun != "Jh" or following["dot"] else None
         if ending is None:
             continue  # "Es waren 3. Die Studie": no article and no known noun
@@ -855,8 +879,10 @@ _CARET = re.compile(
     r"(?![\w.,⁺⁻])"
 )
 _TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w⁺⁻]|[.,]\d)")
+# not after a number and a space ("5 m²", the units step's), but after a time ("24:00 n²",
+# which reads "24 Uhr n²", #253)
 _LETTER_POWER = re.compile(
-    r"(?<![\w/])(?<!(?<!\^)\d\s)(?<!,\s)(?P<base>[^\W\d_"
+    r"(?<![\w/])(?<!(?<!\^)(?<!:\d)\d\s)(?<!,\s)(?P<base>[^\W\d_"
     + _SUPERSCRIPTS
     + r"])(?P<exp>"
     + _SUPER
@@ -873,6 +899,9 @@ _UNIT_CHAIN = re.compile(
 )
 # a squared name the statistics step reads ("1 η² x⁶" is "1 Eta-Quadrat x⁶"), not a unit
 _STATISTICS_SQUARE = re.compile(r"(?<![^\W\d_])[Rrηωεχ]p?²")
+
+
+_CLOCK_BEFORE = re.compile(r"(?<![\d:])\d{1,2}:\d\d\s+\Z")
 
 
 def _unit_chain(plain: str, base: int) -> bool:
@@ -932,6 +961,10 @@ def _powers(text: str, plain: str) -> list[Candidate]:
             continue
         if _unit_chain(plain, match.start("base")):
             continue  # "2 m s⁻¹": the units step's
+        if _CLOCK_BEFORE.search(plain, max(0, match.start() - 16), match.start()) and (
+            unit_starts_at(plain, match.start("base"), "de")
+        ):
+            continue  # "um 13:30 m²": a unit after a time is left as printed, as the time is
         exponent = "".join(_SUPER_DIGIT.get(c, c) for c in match["exp"])
         words = _letter_power(exponent) or f" hoch {_exponent_words(match['exp'])}"
         found.append((_power(text, match, words), None))
@@ -947,6 +980,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
             and not _DASH_RANGE.match(text, c.end)
         )
         and not _unit_left_alone(text, c.end)
+        # "× 10-2 x1": "hoch minus 2 x1" would read "mal" on a second run ("x^2 x^2" is read)
+        and not (c.replacement[-1:].isdigit() and _x_left_alone(text, c.end))
         and (
             base is None
             or not (_joined_before(text, base) or _GLUED_MINUS.match(text, max(0, base - 2), base))

@@ -658,6 +658,15 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "Ein Gitter mit 10⁶ x 3 Zellen." }]
 expected = ["Ein Gitter mit 10 hoch 6 mal 3 Zellen."]
 
+[[case]]
+id = "de-numbers-ordinal-before-an-abbreviated-noun"
+audit = 0
+issue = 253
+goal = "An ordinal before the abbreviation of a noun the ordinal rule knows is read on the first run: '12. Kap. 3' was '12. Kapitel 3', and a second run read 'zwölftes Kapitel'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das steht im Buch, 12. Kap. 3, und in der 2. Aufl. nicht." }]
+expected = ["Das steht im Buch, zwölftes Kapitel 3, und in der zweiten Auflage nicht."]
+
 # ---- #212 notices and footnotes in German (D-517 to D-524) ---------------------------------------
 
 [[case]]

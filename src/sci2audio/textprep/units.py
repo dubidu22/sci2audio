@@ -585,9 +585,13 @@ def _in_algebra(
 ) -> bool:
     """True for "2x" in a formula: an operator right before the number or after the x
     ("y = 2x + 1", "3x^2", "= 4x."), so the x is the variable, not "times". The word this
-    step reads for "×" counts as that operator, so "×5x" and its reading "times 5x" agree."""
+    step reads for "×" counts as that operator, on either side, so "×5x" and its reading
+    "times 5x" agree, and "5x×" and "5x times" (#253)."""
     head = text[max(0, start - len(times) - 3) : start].rstrip(" ")
     if head.endswith(times) and not head[: -len(times)][-1:].isalnum():
+        return True
+    tail = text[end : end + len(times) + 3].lstrip(" ")
+    if tail.startswith(times) and not tail[len(times) : len(times) + 1].isalnum():
         return True
     if said is not None and _said_around(text, start, end, said):
         return True
