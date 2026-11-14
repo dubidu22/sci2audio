@@ -103,12 +103,77 @@ def test_two_listings_with_prose_between_them_are_two_code_blocks() -> None:
         (("doi:10.21105/joss.03021", 0),),
         (("https://doi.org/10.21105/joss.03021", 0),),
         (("www.example.org/data", 0),),
+        (("alice@uni-x.de", 0), ("bob@uni-y.org", 0)),  # review S1: one address per author
+        (("{alice,bob}@cs.uni-x.edu", 0),),  # ACL's brace form
+        (("{alice, bob}@cs.uni-x.edu", 0),),
     ],
-    ids=["url-over-two-lines", "e-mail", "doi", "doi-url", "www"],
+    ids=[
+        "url-over-two-lines",
+        "e-mail",
+        "doi",
+        "doi-url",
+        "www",
+        "two-e-mails",
+        "braces",
+        "braces-spaced",
+    ],
 )
 def test_a_monospace_link_on_lines_of_its_own_is_read(rows: tuple) -> None:
     doc = build(*listing(*rows, top=300))
     assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+
+
+def test_two_monospace_e_mail_paragraphs_are_read() -> None:
+    """Review S1: two addresses that layout reads as two paragraphs stay two paragraphs."""
+    doc = build(
+        text_line(code("alice@uni-x.de"), 300), text_line(code("bob@uni-y.org"), 300 + 2 * PITCH)
+    )
+    assert kinds(doc)[1:] == [("paragraph", "alice@uni-x.de"), ("paragraph", "bob@uni-y.org")]
+
+
+def test_a_document_set_wholly_in_a_typewriter_font_has_no_code() -> None:
+    """Review M1: a typed memo or an RFC printed in Courier is read as today; code can only
+    be told from text that is not itself typewriter type."""
+    typed = [
+        text_line((TextRun(f"Typed text, line {k}.", "Courier", 10.0),), 100 + PITCH * k, end=RIGHT)
+        for k in range(10)
+    ]
+    listing_too = listing(("x = 1", 0), ("print(x)", 0), top=300)
+    doc = build_document(content([*typed, *listing_too]))
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+
+
+@pytest.mark.parametrize("font", ["Times-Bold", "LMMono10-Bold", "CourierNewPS-BoldMT"])
+@pytest.mark.parametrize("size", [10.0, 10.5])
+def test_a_bold_monospace_heading_stays_a_heading(font: str, size: float) -> None:
+    """Review M2: numbered bold headings at about body size are headings whatever their
+    font, and the sections they open keep their blocks."""
+    titles = ["1 Introduction", "2 The relplot() function", "3 Results"]
+    lines = []
+    for k, title in enumerate(titles):
+        y = 280 + 5 * PITCH * k
+        lines.append(text_line((TextRun(title, font, size, bold=True),), y))
+        lines.append(text_line(prose(f"Text of section {k + 1}."), y + 2 * PITCH))
+    doc = build(*lines)
+    assert [b.text for b in doc.blocks if b.kind is BlockKind.HEADING] == titles
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+    assert [s.title for s in doc.sections] == titles
+
+
+def test_sections_and_captions_point_at_the_right_blocks_after_a_listing() -> None:
+    """Code is found after headings and captions: the section after a listing still starts at
+    its heading, and a caption after it still names its figure."""
+    bold = (TextRun("2 Results", "Times-Bold", 10.0, bold=True),)
+    doc = build(
+        text_line((TextRun("1 Method", "Times-Bold", 10.0, bold=True),), 250),
+        *listing(*SEABORN, top=280),
+        text_line(bold, 400),
+        text_line(prose("Text of the results."), 400 + 2 * PITCH),
+    )
+    for section in doc.sections:
+        assert doc.blocks[section.start].text == section.title
+    (code_block,) = [k for k, b in enumerate(doc.blocks) if b.kind is BlockKind.CODE]
+    assert doc.sections[0].start < code_block < doc.sections[0].end
 
 
 def test_a_paragraph_with_a_monospace_word_is_read() -> None:
@@ -148,6 +213,9 @@ def test_white_space_runs_in_another_font_do_not_stop_a_code_line() -> None:
         "SourceCodePro-Regular",
         "FiraCode-Regular",
         "LucidaSansTypewriter",
+        "LucidaConsole",
+        "TeXGyreCursor-Regular",
+        "CascadiaCode-Regular",
     ],
 )
 def test_typewriter_fonts_are_monospace(font: str) -> None:
@@ -156,7 +224,20 @@ def test_typewriter_fonts_are_monospace(font: str) -> None:
 
 @pytest.mark.parametrize(
     "font",
-    ["Times", "LMSans10-Regular", "SFTI1095", "CMR10", "MonotypeCorsiva", "NimbusRomNo9L", ""],
+    [
+        "Times",
+        "LMSans10-Regular",
+        "SFTI1095",
+        "CMR10",
+        "MonotypeCorsiva",
+        "NimbusRomNo9L",
+        "LucidaSansUnicode",  # review M3: a bare "code" matched these four
+        "ArialUnicodeMS",
+        "EncodeSans-Regular",
+        "Barcode39",
+        "AmericanTypewriter",  # proportional, despite its name
+        "",
+    ],
 )
 def test_other_fonts_are_not_monospace(font: str) -> None:
     assert not monospace(font)

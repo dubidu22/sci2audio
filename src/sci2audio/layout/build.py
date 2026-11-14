@@ -69,9 +69,10 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     named = set(links.named.values())
     blocks = find_formulas(blocks, content, columns, named, layout.size, settings)
     blocks = find_lists(blocks, content)
-    blocks = find_code(_in_page_order(blocks, content), content, layout.size)
+    blocks = _in_page_order(blocks, content)
     blocks, sections = find_headings(blocks, content, layout.size, settings)
     blocks = link_captions(blocks, links)
+    blocks, sections = find_code(blocks, sections, content, layout.size)
     language, source, guess = choose_language(content, settings)
     labels = tuple(layout.label(page) for page in content.pages)
     return Document(

@@ -254,6 +254,14 @@ def test_a_skipped_figure_shows_and_lights_up_its_notice(
     )
 
 
+# a page of running text: code is told from text only where the text is not itself set in
+# a typewriter font (review M1 of #289), so a made-up PDF with a listing needs some
+PROSE_PAGE = [
+    Text(f"Running text on the second page, line {k}, set in a proportional font.", 72, 80 + 14 * k)
+    for k in range(30)
+]
+
+
 def test_a_skipped_code_block_shows_its_notice_and_its_code(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
@@ -266,7 +274,8 @@ def test_a_skipped_code_block_shows_its_notice_and_its_code(
             Text("The following example makes a figure.", 72, 100, size=11),
             *(Text(line, 72, 124 + 13 * k, "Courier", 10) for k, line in enumerate(code)),
             Text("Text after it.", 72, 190, size=11),
-        ]
+        ],
+        PROSE_PAGE,
     )
     listen_to(page, live, tmp_path / "code.pdf", pdf)
     notice = page.locator(".notice")
@@ -274,6 +283,40 @@ def test_a_skipped_code_block_shows_its_notice_and_its_code(
     expect(notice.locator("pre.code")).to_have_text("\n".join(code))
     expect(notice.locator("pre.code")).to_be_visible()
     check_axe(page, "player with a code block")
+
+
+def test_a_listing_taller_than_the_window_keeps_its_spoken_notice_in_view(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """Review F1 of #288: when the reading reaches a code block taller than the window, its
+    top, where the spoken notice stands, comes to rest just under the player bar."""
+    page = signed_in
+    page.set_viewport_size({"width": 1280, "height": 720})
+    page.emulate_media(reduced_motion="reduce")
+    lines = [f"value_{k} = compute({k}, scale=2)" for k in range(44)]
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 60, size=14),
+            Text("The following example sets up the values.", 72, 80, size=11),
+            *(Text(line, 72, 100 + 13 * k, "Courier", 10) for k, line in enumerate(lines)),
+            Text("Text after it.", 72, 100 + 13 * 44 + 20, size=11),
+        ],
+        PROSE_PAGE,
+    )
+    listen_to(page, live, tmp_path / "long-code.pdf", pdf)
+    notice = page.locator(".notice")
+    assert notice.bounding_box()["height"] > 720  # type: ignore[index]
+    page.locator(".s", has_text="The following example").first.click()
+    expect(notice).to_have_attribute("aria-current", "true", timeout=20_000)
+    page.wait_for_timeout(300)  # reduced motion: the scroll is instant; let it land
+    said, bar = page.evaluate(
+        """() => [
+            document.querySelector('.notice p').getBoundingClientRect().toJSON(),
+            document.querySelector('.player-bar').getBoundingClientRect().bottom,
+        ]"""
+    )
+    assert bar <= said["top"], (said, bar)
+    assert said["bottom"] <= 720, said
 
 
 def test_a_second_jump_while_a_file_loads_wins(signed_in: Page, live: Live) -> None:

@@ -89,15 +89,27 @@ function readAlong() {
     now.replaceChildren(tr("player.chapter", { n: c + 1, total: chapters.length }), " ", title);
   }
 
+  function barBottom() {
+    return getComputedStyle(bar).position === "sticky" ? bar.getBoundingClientRect().bottom : 0;
+  }
+
   function visible(element) {
     const box = element.getBoundingClientRect();
-    const top = getComputedStyle(bar).position === "sticky" ? bar.getBoundingClientRect().bottom : 0;
-    return box.top >= top && box.bottom <= window.innerHeight;
+    return box.top >= barBottom() && box.bottom <= window.innerHeight;
   }
 
   function reveal(element) {
     if (!element || !follow.checked || !following || visible(element)) return;
-    element.scrollIntoView({ block: "center", behavior: reduced.matches ? "auto" : "smooth" });
+    const behavior = reduced.matches ? "auto" : "smooth";
+    const box = element.getBoundingClientRect();
+    const top = barBottom();
+    if (box.height > window.innerHeight - top) {
+      // taller than the window under the bar (a long code listing, #280): its start, where
+      // the spoken notice stands, goes just under the bar instead of out of sight above it
+      window.scrollBy({ top: box.top - top - 8, behavior });
+      return;
+    }
+    element.scrollIntoView({ block: "center", behavior });
   }
 
   // the highlight never speaks: no live region follows the reading (D-300)
