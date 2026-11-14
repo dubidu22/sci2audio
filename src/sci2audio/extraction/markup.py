@@ -22,7 +22,7 @@ from sci2audio.core import Page, Picture, TextLine, TextRun
 MAX_TAGGED = 100  # nested elements that add tags; deeper ones add none
 MAX_TAGS = 200  # tags one element carries, its ancestors' included; more are left out
 # lines, pieces of text and pictures read from one book (#158, #174, D-579): a book at the
-# limit took about 180 MB to read and 560 MB with layout; The Time Machine holds 834
+# limit took about 180 MB to read and 560 MB with layout; The Time Machine holds 873
 MAX_ITEMS = 1_000_000
 
 # HTML block elements (and SVG text): each one ends the line before it and starts a new one.
@@ -120,9 +120,10 @@ class TooMuchText(Exception):
 
 class Budget:
     """The items read from one book, shared by all its pages: lines, pieces of text and
-    pictures. A piece of text is counted as the file stores it, before pieces of the same
-    style merge into one run, so one long line is bounded too; white space that is folded
-    away is never kept and counts nothing."""
+    pictures, and also each `id` and each link, which are kept for the whole book. A piece
+    of text is counted as the file stores it, before pieces of the same style merge into one
+    run, so one long line is bounded too; white space that is folded away is never kept and
+    counts nothing. The open elements are bounded by the same limit."""
 
     def __init__(self, limit: int | None = None) -> None:
         self.limit = MAX_ITEMS if limit is None else limit
@@ -159,6 +160,7 @@ class PageReader(HTMLParser):
         self.waiting: list[Picture] = []  # pictures inside the line being read
         self.pending: list[str] = []  # anchors waiting for the next item
         self.continues = False  # the next line continues an element after a <br>
+        self.in_line = False  # text, white space too, came since the last line ended
 
     def read(self, text: str) -> None:
         self.feed(text)
@@ -233,6 +235,7 @@ class PageReader(HTMLParser):
             if tag != "br":
                 self.continues = False
         if anchor := attrs.get("id"):
+            self.budget.spend()  # kept for the whole book, in `anchors.items`
             self.pending.append(anchor)
         if tag in ("img", "image"):
             self.picture(attrs)
@@ -256,11 +259,15 @@ class PageReader(HTMLParser):
             self.svgs.append(([], []))
 
     def push(self, element: _Element) -> None:
+        if len(self.stack) >= self.budget.limit:  # unclosed elements: one limit for all
+            raise TooMuchText(self.budget.limit)
         self.stack.append(element)
         self.open[element.name] += 1
 
     def closed(self, element: _Element) -> None:
         self.open[element.name] -= 1
+        if not self.open[element.name]:  # names of closed elements are not kept
+            del self.open[element.name]
         if element.name == "svg" and self.svgs and not self.skipping:
             title, indexes = self.svgs.pop()
             alt = fold("".join(title))
@@ -281,6 +288,7 @@ class PageReader(HTMLParser):
             found.append("aria-hidden")
         if tag == "a" and (href := attrs.get("href")) is not None:
             path, fragment = resolve(self.path, href)
+            self.budget.spend()  # kept for the whole book, in `anchors.links`
             self.anchors.links.append((href, path, fragment))
             found.append(f"{_LINK}{len(self.anchors.links) - 1}")
         return tuple(found)
@@ -297,13 +305,16 @@ class PageReader(HTMLParser):
         if self.svgs:
             self.svgs[-1][1].append(len(self.pictures))
         self.pictures.append(picture)
-        if self.segments:  # inside a line: placed after that line
+        if self.in_line:  # inside a line: placed after that line
             self.waiting.append(picture)
         else:
             self.place(picture.id)
 
     def add(self, text: str) -> None:
-        if not text or self.folded_away(text):
+        if not text:
+            return
+        self.in_line = True  # white space too: it decides where a picture goes (#328)
+        if self.folded_away(text):
             return
         self.budget.spend()
         top = self.stack[-1] if self.stack else None
@@ -329,6 +340,7 @@ class PageReader(HTMLParser):
         """End the line being read; `continued` when a <br> or a line feed in <pre> ends it."""
         runs = _runs(self.segments, keep_white=self.open["pre"] > 0)
         self.segments = []
+        self.in_line = False
         if runs:
             self.budget.spend()
             if self.continues:
