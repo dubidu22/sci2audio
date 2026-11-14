@@ -116,12 +116,12 @@ def test_english_word_timings_follow_the_slower_letters(engine: KokoroEngine) ->
 # --- speech recognition at each pace (plan section 4) -------------------------------------
 
 # Sentences dense with spelled abbreviations, about one in four words. Measured on 14 Nov
-# 2026 with whisper small, two runs each (WER at normal, slower, slowest): English 0.04,
-# 0.10, 0.12; German 0.00, 0.00, 0.04. Whisper's own slips decide most of it: "LSTM" heard
-# as "LSDM" and "RMSE" as "RMSC" at every pace, "BERT" as "BART" at slower and slowest
-# ("BERT" is a name to whisper), "use CNNs" as "you CNNs" at slowest. The limit is higher
-# than the prose round trip's 0.10 because every abbreviation is a chance to slip; it fails
-# when a pace makes the voice hard to follow, not on one misheard name.
+# 2026 with whisper small, three runs (WER at normal, slower, slowest): English 0.04,
+# 0.06 to 0.10, 0.12; German 0.00, 0.00, 0.02 to 0.04. Whisper's own slips decide most of
+# it: "LSTM" heard as "LSDM" and "RMSE" as "RMSC" at every pace, "BERT" as "BART" at slower
+# and slowest ("BERT" is a name to whisper), "use CNNs" as "you CNNs" at slowest. The limit
+# is higher than the prose round trip's 0.10 because every abbreviation is a chance to
+# slip; it fails when a pace makes the voice hard to follow, not on one misheard name.
 ABBREVIATION_SENTENCES = {
     ("af_heart", "en"): (
         "We fine-tune BERT and an LSTM for NLP tasks on one GPU.",
