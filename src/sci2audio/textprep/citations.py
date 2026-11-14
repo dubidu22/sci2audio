@@ -439,12 +439,20 @@ class _Rules:
         """
         links = sorted(links or [])
         found = self._once(text, links, ())
-        for _ in range(_LOOKS - 1):
+        looks = 1
+        gone = [(a, b) for a, b, _, _, why in found if why.startswith(_IDENTIFIER_REASON)]
+        if gone:
+            # identifiers first, with every other bracket decided anew on the text without
+            # them: "(527794) (Müller, 2019) zeigt" keeps "Müller" as the subject (#285)
+            found = self._identifiers_looked_past(text, found, gone, links)
+            looks += 1
+        while looks < _LOOKS:
+            looks += 1
             removed = _joined(
                 sorted([(a, b) for a, b, kind, *_ in found if kind is EditKind.REMOVE] + links)
             )
             if not removed:
-                return found
+                break
             read, cuts = _without(text, removed)
             back: list[_Found] = []
             for start, end, kind, replacement, reason in self._once(read, [], cuts.at):
@@ -458,6 +466,32 @@ class _Rules:
                 break
             found = later
         return found
+
+    def _identifiers_looked_past(
+        self,
+        text: str,
+        found: list[_Found],
+        gone: list[tuple[int, int]],
+        links: list[tuple[int, int]],
+    ) -> list[_Found]:
+        """The edits once the brackets are decided again on the text without the removed
+        identifiers; an identifier inside an edit of that look goes with it (#285 review
+        round 1)."""
+        read, cuts = _without(text, gone)
+        read_links = [(cuts.read(start), cuts.read(end)) for start, end in links]
+        back = [
+            (cuts.printed(start, True), cuts.printed(end, False), kind, replacement, reason)
+            for start, end, kind, replacement, reason in self._once(read, read_links, cuts.at)
+        ]
+        starts = [start for start, *_ in back]
+        kept = []
+        for item in found:
+            if not item[4].startswith(_IDENTIFIER_REASON):
+                continue
+            at = bisect.bisect_right(starts, item[0]) - 1
+            if at < 0 or back[at][1] < item[1]:
+                kept.append(item)
+        return sorted(kept + back)
 
     def _once(self, text: str, links: list[tuple[int, int]], cuts: Sequence[int]) -> list[_Found]:
         found: list[_Found] = []
@@ -493,9 +527,7 @@ class _Rules:
         firsts: list[int] = []  # where the run of removals of each kept edit starts
         lasts: list[int] = []  # where the kept text before that run ends
         for number, (start, end, kind, replacement, reason) in enumerate(found):
-            if kind is EditKind.REMOVE and (
-                start > 0 and text[start - 1] in _GLUES and end < len(text) and text[end].isdigit()
-            ):
+            if kind is EditKind.REMOVE and self._would_glue(text, start, end):
                 continue
             if (
                 result
@@ -529,6 +561,17 @@ class _Rules:
             firsts.append(first)
             lasts.append(last)
         return result
+
+    def _would_glue(self, text: str, start: int, end: int) -> bool:
+        """True if removing text[start:end] joins a full stop, comma or digit to a digit after
+        it; not the full stop of an abbreviation read in words ("vgl.(527794)2019")."""
+        return (
+            start > 0
+            and text[start - 1] in _GLUES
+            and end < len(text)
+            and text[end].isdigit()
+            and not (text[start - 1] == "." and reads_full_stop(text, start, self.language))
+        )
 
     def _tidied(self, text: str, found: list[_Found]) -> list[_Found]:
         """Removals that would leave two marks side by side take one along (M2 of the #66
