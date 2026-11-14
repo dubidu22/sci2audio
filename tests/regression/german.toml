@@ -1208,6 +1208,122 @@ expected = [
     "Es wurde gefördert vom BMBF.",
 ]
 
+# ---- v1.2 second-run batch: brackets next to or around a removal (D-577) ---------------------
+
+[[case]]
+id = "de-citations-a-separator-left-by-a-removal-goes-with-it"
+audit = 0
+issue = 305
+goal = "A ',' ';' or 'und' that a removed identifier or citation would leave at a bracket's edge goes with it; the rest is read as a second run reads it (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Text ((527794); 2019) mehr." },
+    { kind = "paragraph", text = "Text (siehe (527794) und Müller, 2019) mehr." },
+    { kind = "paragraph", text = "Text (siehe (siehe (527794))) mehr." },
+    { kind = "paragraph", text = "Text (527794, (Müller, 2019)) mehr." },
+]
+expected = [
+    "Text mehr.",
+    "Text mehr.",
+    "Text mehr.",
+    "Text mehr.",
+]
+
+[[case]]
+id = "de-citations-a-separator-left-by-a-removed-citation-goes-with-it"
+audit = 0
+issue = 272
+goal = "A citation removed inside a bracket that stays takes the ';' or ',' next to it along (#272; the #305 rule, D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Das gilt ( (Müller, 2019) [12]; [1,2; 3,4])." },
+    { kind = "paragraph", text = "Das gilt ( (Müller, 2019) [1,2; 3,4]; [12])." },
+    { kind = "paragraph", text = "Das gilt ([12]; [1,2; 3,4])." },
+    { kind = "paragraph", text = "Das gilt ( (Müller, 2019) [1,2; 3,4], [12])." },
+]
+expected = [
+    "Das gilt ( [1 Komma 2; 3 Komma 4]).",
+    "Das gilt ( [1 Komma 2; 3 Komma 4]).",
+    "Das gilt ([1 Komma 2; 3 Komma 4]).",
+    "Das gilt ( [1 Komma 2; 3 Komma 4]).",
+]
+
+[[case]]
+id = "de-citations-a-nest-reads-on-the-first-run-as-on-the-second"
+audit = 0
+issue = 306
+goal = "A nest whose inner citation goes is read on the first run as a second run reads what is left (D-577; also #291 and #278 row 1)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wie Müller ((Müller, 2019) 2020) zeigt." },
+    { kind = "paragraph", text = "Es gilt (vgl. (Müller, 2019) (2019)) fand es." },
+    { kind = "paragraph", text = "Text (z. B. (Müller, 2019), Weber, 2020) mehr." },
+    { kind = "paragraph", text = "Text ((Müller, 2019); Weber, 2020) hier." },
+    { kind = "paragraph", text = "Es gilt ((Müller, 2019) Weber, 2020; siehe Tabelle 2) hier." },
+]
+expected = [
+    "Wie Müller zeigt.",
+    "Es gilt fand es.",
+    "Text mehr.",
+    "Text hier.",
+    "Es gilt ( siehe Tabelle 2) hier.",
+]
+
+[[case]]
+id = "de-citations-a-nest-of-any-depth"
+audit = 0
+issue = 306
+goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, and a year bracket after the names an inner citation keeps is read with them, so the whole nest goes on the first run (D-588, D-599; nightly seeds 555 and 8080 of PR #330; review round 2)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt ((((Müller, 2019), Weber, 2020), Weber, 2020), Weber, 2020) hier." },
+    { kind = "paragraph", text = "Es gilt ((((Müller, 2019) und Weber, 2020) und Weber, 2020) und Weber, 2020) hier." },
+    { kind = "paragraph", text = "Es gilt (vgl. (vgl. (vgl. (Müller, 2019), Weber, 2020), Schmidt, 2021), Wolf, 2022) mehr." },
+    { kind = "paragraph", text = "Es gilt (vgl. (vgl. (vgl. (vgl. (Müller, 2019) (2019)) (2019)) (2019)) (2019)) mehr." },
+    { kind = "paragraph", text = "Es gilt (vgl. (vgl. (vgl. (vgl. (Müller, 2019, https://example.org) (2019)) (2019)) (2019)) (2019)) mehr." },
+]
+expected = [
+    "Es gilt hier.",
+    "Es gilt hier.",
+    "Es gilt mehr.",
+    "Es gilt mehr.",
+    "Es gilt mehr.",
+]
+
+[[case]]
+id = "de-citations-a-year-bracket-after-a-removed-bracket"
+audit = 0
+issue = 308
+goal = "A bracket next to one that goes is judged without it, as a second run sees it; a removal that would glue a full stop to a number is not made (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Text [12] (2019) mehr." },
+    { kind = "paragraph", text = "(Müller, 2019)[12] Text" },
+    { kind = "paragraph", text = "Wie Weber (Müller, 2019) (2019) zeigt." },
+    { kind = "paragraph", text = "Es gab . .(Müller, 2019)12.345 Fälle" },
+]
+expected = [
+    "Text mehr.",
+    "Text",
+    "Wie Weber zeigt.",
+    "Es gab . .(Müller, 2019)12345 Fälle",
+]
+
+[[case]]
+id = "de-citations-a-bracket-whose-link-goes"
+audit = 0
+issue = 309
+goal = "A bracket is judged without the link the links step removes from it, as a second run sees it (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Text (Müller, 2019, https://example.org) mehr." },
+    { kind = "paragraph", text = "Text (527794, https://example.org) mehr." },
+]
+expected = [
+    "Text mehr.",
+    "Text mehr.",
+]
+
 # ---- v1.2 second-run batch: footnote marks and closing quotes (D-577) ----------------------
 
 [[case]]

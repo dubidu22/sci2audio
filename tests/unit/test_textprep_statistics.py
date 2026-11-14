@@ -260,7 +260,8 @@ def test_confidence_intervals_read_the_same_on_a_second_run() -> None:
         ),
         (
             "The effect (95% CI [1, 3], [12]) holds.",
-            "The effect (95% confidence interval 1 to 3,) holds.",
+            # the "," goes with the citation (#272, D-577)
+            "The effect (95% confidence interval 1 to 3) holds.",
         ),
         (
             "Noise CI [1, 3] and [2-6, 16] here.",
