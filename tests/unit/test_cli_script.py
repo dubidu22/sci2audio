@@ -254,4 +254,4 @@ def test_a_text_file_read_by_a_guessed_encoding_is_named(cli: Cli, tmp_path: Pat
     plain.write_text("Café notes in UTF-8.\n", encoding="utf-8")
     result = cli("script", plain, "-o", tmp_path / "out2", "-q")
     assert result.code == 0, result.err
-    assert "warning" not in result.err
+    assert "UTF-8" not in result.err  # (four words don't tell their language: D-495 warns)

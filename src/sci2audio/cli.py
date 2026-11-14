@@ -53,6 +53,7 @@ from sci2audio.app import (
     encoding_warning,
     find_chapters,
     kokoro_voice,
+    language_warning,
     load_settings,
     script_files,
 )
@@ -510,9 +511,14 @@ def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
 
 
 def _guessed_encoding(env: CliEnv, result: ScriptResult) -> None:
-    """Say when a text file's encoding was a guess (D-346)."""
-    if warning := encoding_warning(result.document.content.source):
-        env.err.write(f"{PROG}: warning: {warning}\n")
+    """Say when a text file's encoding was a guess (D-346), and when the text did not tell
+    its language or overruled the file's (D-498; a clear guess is only in the report)."""
+    for warning in (
+        encoding_warning(result.document.content.source),
+        language_warning(result.document),
+    ):
+        if warning:
+            env.err.write(f"{PROG}: warning: {warning}\n")
 
 
 def _ignored(env: CliEnv, ignored: Sequence[int], count: int) -> None:

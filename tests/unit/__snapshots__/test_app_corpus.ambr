@@ -3726,6 +3726,13 @@
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
+    'language_guess': dict({
+      'english': 987,
+      'german': 0,
+      'language': 'en',
+      'words': 3693,
+    }),
+    'language_source': 'text',
     'not_run': list([
     ]),
     'problems': list([
@@ -3754,7 +3761,7 @@
   '''
   # What sci2audio will read: acl2023-hardt-ellipsis.pdf
   
-  Language: en. The text steps looked at the whole document; edits in chapters that are not chosen are listed but not spoken.
+  Language: en, guessed from the text (0 German and 987 English common words in 3,693). The text steps looked at the whole document; edits in chapters that are not chosen are listed but not spoken.
   
   ## Chapters
   
@@ -5601,6 +5608,13 @@
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
+    'language_guess': dict({
+      'english': 515,
+      'german': 2,
+      'language': 'en',
+      'words': 2000,
+    }),
+    'language_source': 'text',
     'not_run': list([
     ]),
     'problems': list([
@@ -5629,7 +5643,7 @@
   '''
   # What sci2audio will read: joss2021-waskom-seaborn.pdf
   
-  Language: en. The text steps looked at the whole document; edits in chapters that are not chosen are listed but not spoken.
+  Language: en, guessed from the text (2 German and 515 English common words in 2,000). The text steps looked at the whole document; edits in chapters that are not chosen are listed but not spoken.
   
   ## Chapters
   

@@ -1,0 +1,84 @@
+# serializer version: 1
+# name: test_the_german_samples_scripts_are_as_recorded[sci2audio-beispiel-notiz]
+  '''
+  sci2audio listening script
+  Source: sci2audio-beispiel-notiz.md
+  Language: de
+  
+  # 1. Papers hören
+  
+  Papers hören
+  
+  Diese Notiz wurde für die Tests von sci2audio geschrieben.
+  Sie beschreibt eine erfundene Pilotstudie und keine echten Daten.
+  Jeder Satz hier ist unser eigener.1
+  
+  1 Einleitung
+  
+  Viele Menschen hören wissenschaftliche Texte, während sie gehen, kochen oder pendeln.
+  Gesprochener Text läuft mit etwa 150 Wörtern pro Minute, daher dauert ein Artikel mit 6.000 Wörtern rund 40 Minuten.
+  
+  Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 Grad Celsius.
+  Ein Gedankenstrich – kurz – und Anführungszeichen „wie diese“ gehören zum deutschen Satz.
+  
+  1.1 Fragen
+  
+  Wie schnell kann man einer Formel wie E = mc^2 folgen?
+  
+  Helfen Fußnoten2 oder stören sie?
+  
+  wenn sie an ihrer Stelle gelesen werden
+  
+  wenn sie am Ende gelesen werden
+  
+  2 Methode
+  
+  Wir haben jede Sitzung gemessen und die Minuten für jede Gruppe notiert.
+  
+  Gruppe Hörende Minuten A 12 41 B 9 38
+  
+  Der Mittelwert ist
+  
+  \bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
+  
+  und die Quellen stehen auf der Projektseite.
+  
+  3 Ergebnisse
+  
+  Die Hörenden konnten dem Text folgen, auch wenn er lange Sätze und viele Zahlen enthielt.
+  Für die nächste Studie wollen wir mehr Gruppen untersuchen.2
+  
+  Nichts in dieser Notiz ist von anderen übernommen.
+  
+  Eine Fußnote mit fettem Text, fortgesetzt auf einer zweiten Zeile.
+  
+  '''
+# ---
+# name: test_the_german_samples_scripts_are_as_recorded[sci2audio-beispiel-text]
+  '''
+  sci2audio listening script
+  Source: sci2audio-beispiel-text.txt
+  Language: de
+  
+  # 1. sci2audio-beispiel-text
+  
+  PAPERS HÖREN Eine Pilotnotiz für die Tests von sci2audio
+  
+  Diese Notiz beschreibt eine erfundene Pilotstudie und keine echten Daten.
+  Jeder Satz darin ist unser eigener, und die Zeilen sind von Hand bei etwa siebzig Zeichen umbrochen, wie es in Textdateien oft der Fall ist.
+  
+  1.
+  Einleitung
+  
+  Viele Menschen hören wissenschaftliche Texte, während sie gehen, kochen oder pendeln.
+  Ein Wort kann über zwei Zeilen getrennt werden, wie in diesem Beispiel, und wird doch als ganzes Wort gehört.
+  
+  Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 Grad Celsius.
+  Ein Gedankenstrich – kurz – und Anführungszeichen „wie diese“.
+  
+  - erster Punkt - zweiter Punkt
+  
+  Rosen sind rot, die Hörerin wartet; ein Vers im Gedicht bleibt, wo er bricht.
+  
+  '''
+# ---

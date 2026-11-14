@@ -13,7 +13,13 @@ class LayoutSettings:
     body font size of the document.
     """
 
-    language: str = ""  # BCP 47 tag for the document; "" = the file's own, else "en"
+    language: str = ""  # BCP 47 tag for the document; "" = the file's own, else a guess
+    # Guessing the language from the text (D-495): German or English when at least this many
+    # common words of the two are found ...
+    language_words: int = 20
+    # ... and one language's outnumber the other's this many to 1. Whole documents fall far
+    # apart: English corpus at most 1.1 % German ones, German papers at least 89.8 % (#219).
+    language_ratio: float = 3.0
     body_size: float = 10.0  # points: the body size to assume when the file has no sizes
     row_overlap: float = 0.5  # boxes on one row overlap by this share of the lower one
 

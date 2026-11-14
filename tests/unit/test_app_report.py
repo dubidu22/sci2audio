@@ -110,8 +110,9 @@ def test_each_edit_shows_the_original_and_what_is_said() -> None:
 def test_the_json_has_a_fixed_shape() -> None:
     data = report_data(build_report(prepared(), {"language": ""}))
     assert list(data) == [
-        "format", "version", "sci2audio", "source", "language", "settings", "chapters",
-        "counts", "edits", "problems", "not_run", "warnings",
+        "format", "version", "sci2audio", "source", "language", "language_source",
+        "language_guess", "settings", "chapters", "counts", "edits", "problems", "not_run",
+        "warnings",
     ]  # fmt: skip
     assert (data["format"], data["version"]) == (FORMAT, VERSION) == ("sci2audio-report", 1)
     assert data["source"] == {"name": "two.pdf", "format": "pdf", "sha256": "ab" * 32}

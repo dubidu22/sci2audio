@@ -22,6 +22,8 @@ from sci2audio.core import (
     Edit,
     EditKind,
     FurnitureRole,
+    LanguageGuess,
+    LanguageSource,
     Metadata,
     OverlappingEditsError,
     Page,
@@ -264,6 +266,19 @@ def test_edit_outside_the_document_is_refused() -> None:
         lambda: Section("A", 1, 0, 4, (Section("B", 2, 0, 2), Section("C", 2, 1, 3))),
         lambda: Section("A", 2, 0, 2, (Section("B", 2, 0, 1),)),
         lambda: replace(PAPER, language=""),
+        # where the language came from must fit it (D-494)
+        lambda: replace(PAPER, language_source=LanguageSource.TEXT),  # no guess
+        lambda: replace(
+            PAPER, language_source=LanguageSource.TEXT, language_guess=LanguageGuess("de", 9, 9, 0)
+        ),  # the text said German, the document is "en"
+        lambda: replace(
+            PAPER, language_source=LanguageSource.TEXT, language_guess=LanguageGuess("", 9, 3, 3)
+        ),
+        lambda: replace(PAPER, language="de", language_source=LanguageSource.FALLBACK),
+        lambda: LanguageGuess("fr", 9, 0, 0),
+        lambda: LanguageGuess("en", -1, 0, 0),
+        lambda: LanguageGuess("en", 9, 0, -1),
+        lambda: LanguageGuess("en", 9, 5, 5),  # more common words than words
         lambda: replace(PAPER, sections=(Section("A", 1, 0, 11),)),
         lambda: replace(PAPER, blocks=PAPER.blocks[:-1]),  # the running head would be lost
         lambda: replace(
@@ -317,3 +332,28 @@ def test_export_golden_file(snapshot: SnapshotAssertion) -> None:
     }
     assert export == snapshot
     assert from_data(Document, export["document"]) == PAPER
+
+
+def test_where_the_language_came_from_is_kept_and_left_out_when_not_recorded() -> None:
+    """D-494: a guessed language keeps its evidence through the export; a document that
+    records nothing exports as before, and an older saved document still loads."""
+    guessed = replace(
+        PAPER,
+        language="de",
+        language_source=LanguageSource.TEXT,
+        language_guess=LanguageGuess("de", 120, 30, 2),
+    )
+    data = to_data(guessed)
+    assert isinstance(data, dict)
+    assert data["language_source"] == "text"
+    assert data["language_guess"] == {"english": 2, "german": 30, "language": "de", "words": 120}
+    assert from_data(Document, data) == guessed
+    plain = to_data(PAPER)
+    assert isinstance(plain, dict)
+    assert "language_source" not in plain
+    assert "language_guess" not in plain
+    assert replace(PAPER, language="en-GB", language_source=LanguageSource.FILE).language == "en-GB"
+    fallback = replace(
+        PAPER, language_source=LanguageSource.FALLBACK, language_guess=LanguageGuess("", 5, 1, 1)
+    )
+    assert fallback.language == "en"

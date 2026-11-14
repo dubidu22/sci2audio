@@ -152,7 +152,8 @@ def test_a_guessed_encoding_is_a_report_warning(tmp_path: Path) -> None:
     """A text file that is not UTF-8 is read as Windows-1252, and the report says so (D-346)."""
     source = tmp_path / "old notes.md"
     source.write_bytes("# Caf\u00e9 notes\n\nSome \u201cquoted\u201d text.\n".encode("cp1252"))
-    job = run_script_job(source, JobSettings(), tmp_path / "w")
+    # the language is set: six words don't tell it, which is a warning of its own (D-495)
+    job = run_script_job(source, JobSettings(language="en"), tmp_path / "w")
     warning = (
         "old notes.md is not saved as UTF-8; it was read as Windows-1252, a guess. "
         "If letters look wrong, save it as UTF-8 and open it again."
