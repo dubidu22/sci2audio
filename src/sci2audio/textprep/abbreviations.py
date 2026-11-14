@@ -135,7 +135,7 @@ def reads_full_stop(text: str, end: int, language: str) -> bool:
     after a citation that follows it, or the sentence would lose its end ("Siehe Kap.
     (Müller, 2019). Dann", #227). Only the text around `end` is looked at."""
     entries = abbreviations(language)
-    if not entries or not text[end - 1 : end] == ".":
+    if not entries or text[end - 1 : end] != ".":
         return False
     pattern, by_form = _compiled(entries)
     any_capital = language.split("-", 1)[0].lower() != "en"
