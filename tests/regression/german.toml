@@ -1207,3 +1207,77 @@ expected = [
     "Gefördert (Projekt 12 345) wurde es und stieg (12 345-mal) an.",
     "Es wurde gefördert vom BMBF.",
 ]
+
+# ---- v1.2 second-run batch: brackets next to or around a removal (D-577) ---------------------
+
+[[case]]
+id = "de-citations-a-separator-left-by-a-removal-goes-with-it"
+audit = 0
+issue = 305
+goal = "A ',' ';' or 'und' that a removed identifier or citation would leave at a bracket's edge goes with it; the rest is read as a second run reads it (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Text ((527794); 2019) mehr." },
+    { kind = "paragraph", text = "Text (siehe (527794) und Müller, 2019) mehr." },
+    { kind = "paragraph", text = "Text (siehe (siehe (527794))) mehr." },
+    { kind = "paragraph", text = "Text (527794, (Müller, 2019)) mehr." },
+]
+expected = [
+    "Text mehr.",
+    "Text mehr.",
+    "Text mehr.",
+    "Text mehr.",
+]
+
+[[case]]
+id = "de-citations-a-nest-reads-on-the-first-run-as-on-the-second"
+audit = 0
+issue = 306
+goal = "A nest whose inner citation goes is read on the first run as a second run reads what is left (D-577; also #291 and #278 row 1)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wie Müller ((Müller, 2019) 2020) zeigt." },
+    { kind = "paragraph", text = "Es gilt (vgl. (Müller, 2019) (2019)) fand es." },
+    { kind = "paragraph", text = "Text (z. B. (Müller, 2019), Weber, 2020) mehr." },
+    { kind = "paragraph", text = "Text ((Müller, 2019); Weber, 2020) hier." },
+]
+expected = [
+    "Wie Müller zeigt.",
+    "Es gilt fand es.",
+    "Text mehr.",
+    "Text hier.",
+]
+
+[[case]]
+id = "de-citations-a-year-bracket-after-a-removed-bracket"
+audit = 0
+issue = 308
+goal = "A bracket next to one that goes is judged without it, as a second run sees it; a removal that would glue a full stop to a number is not made (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Text [12] (2019) mehr." },
+    { kind = "paragraph", text = "(Müller, 2019)[12] Text" },
+    { kind = "paragraph", text = "Wie Weber (Müller, 2019) (2019) zeigt." },
+    { kind = "paragraph", text = "Es gab . .(Müller, 2019)12.345 Fälle" },
+]
+expected = [
+    "Text mehr.",
+    "Text",
+    "Wie Weber zeigt.",
+    "TBD",
+]
+
+[[case]]
+id = "de-citations-a-bracket-whose-link-goes"
+audit = 0
+issue = 309
+goal = "A bracket is judged without the link the links step removes from it, as a second run sees it (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Text (Müller, 2019, https://example.org) mehr." },
+    { kind = "paragraph", text = "Text (527794, https://example.org) mehr." },
+]
+expected = [
+    "Text mehr.",
+    "Text mehr.",
+]

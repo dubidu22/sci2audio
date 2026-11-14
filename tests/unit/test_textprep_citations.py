@@ -343,7 +343,9 @@ def test_no_removal_leaves_doubled_marks_or_a_wrong_capital(text: str, spoken: s
         ("such as ((Smith, 2019) Jones and Lee, 2020) could", "such as Jones and Lee could"),
         # prose once the inner citation is read: the bracket stays (D-541)
         ("It holds ((Smith, 2019) see Table 2) here.", "It holds (Smith see Table 2) here."),
-        ("It holds (see also (Smith, 2019); Jones, 2020).", "It holds (see also)."),
+        # a lead word left alone once its citations go: the bracket goes whole, as a second
+        # run would remove "(see also)" (D-577; read "It holds (see also)." before)
+        ("It holds (see also (Smith, 2019); Jones, 2020).", "It holds."),
         # numeric citations inside are read in too (review round 1, M1)
         ("It holds ((Smith, 2019) [3] Jones, 2020) here.", "It holds here."),
         ("It holds ([1] Jones, 2020) here.", "It holds here."),
@@ -402,16 +404,18 @@ _NESTS = st.recursive(
     _LEAVES,
     lambda inner: st.builds(
         "({}{}{})".format,
-        st.sampled_from(["", "see ", "cf. ", "vgl. ", "Brown and "]),
+        st.sampled_from(["", "see ", "cf. ", "vgl. ", "Brown and ", "e.g., "]),
         inner,
-        st.sampled_from(["", " Jones, 2020", " 2020", ", Lee, 2020", "; Lee, 2021", " the"]),
+        st.sampled_from(
+            ["", " Jones, 2020", " 2020", ", Lee, 2020", "; Lee, 2021", " the", " (2019)"]
+        ),
     ),
     max_leaves=4,
 )
 
 
 @given(
-    st.sampled_from(["It holds ", "", "such as ", "wie "]),
+    st.sampled_from(["It holds ", "", "such as ", "wie ", "As shown by Smith "]),
     _NESTS,
     st.sampled_from([" found it.", " is cited.", " here.", ")", " zeigt das."]),
     st.sampled_from(["en", "de"]),
@@ -427,11 +431,48 @@ def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
     assert read_all(once, language) == once, (text, once)
 
 
-def test_an_empty_nest_as_the_subject_is_still_read_as_empty_brackets() -> None:
-    """Today's reading, stable but empty: nothing is left to name (#278 fixes it; S3)."""
-    once = read("((Smith, 2019)) is cited.")
-    assert once == "() is cited."
-    assert read(once) == once
+def test_an_empty_nest_as_the_subject_goes_whole() -> None:
+    """Read "() is cited." before D-577 (S3 of the #279 review): a second look sees "()" and
+    removes it, as the bracket held nothing but a citation. Keeping the names as the subject
+    is #278's."""
+    once = read_all("((Smith, 2019)) is cited.")
+    assert once == "is cited."
+    assert read_all(once) == once
+
+
+_SIBLINGS = st.sampled_from(
+    [
+        "(Smith, 2019)",
+        "(Müller, 2019)",
+        "[12]",
+        "[3, 4]",
+        "(2019)",
+        "(2019a)",
+        "(527794)",
+        "(see (527794))",
+        "(Smith, 2019, https://example.org)",
+        "(527794, https://example.org)",
+        "(results)",
+        "(12,345)",
+    ]
+)
+
+
+@given(
+    st.sampled_from(["", "Text ", "As said by Lee ", "It holds ", "Wie Müller ", "the data "]),
+    st.lists(_SIBLINGS, min_size=1, max_size=4),
+    st.sampled_from(["", " "]),
+    st.sampled_from([" it holds.", " more.", ", it grew.", ". Then more.", ""]),
+    st.sampled_from(["en", "de"]),
+)
+def test_sibling_brackets_read_the_same_on_a_second_run(
+    before: str, siblings: list[str], gap: str, after: str, language: str
+) -> None:
+    """#308 (D-577): a bracket next to one that goes is judged as a second run sees it, with
+    or without a name before them and with or without a space between them."""
+    text = before + gap.join(siblings) + after
+    once = read_all(text, language)
+    assert read_all(once, language) == once, (text, once)
 
 
 @pytest.mark.parametrize(
