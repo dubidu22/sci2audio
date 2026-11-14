@@ -173,6 +173,14 @@ def _stray_accent(text: str, kept: list[int], n: int) -> bool:
     return all(not c.isalnum() and c not in ACCENTS for c in (before, after))
 
 
+# a German court's file number ("VI ZR 8/14", "1 BvR 209/83", "3-10 O 86/12"): a chamber
+# number (Roman or Arabic), a register of one to five letters and number/year. The number and
+# unit steps leave it as printed: "8/14" is no fraction, the "W" of "13 W 17/12" no watt.
+FILE_NUMBER_DE = (
+    r"(?<![\w/.,])(?:[IVX]{1,6}|\d{1,3}(?:-\d{1,3})?)\s+[A-ZÄÖÜ][A-Za-zäöü]{0,4}"
+    r"\s+\d{1,5}/\d{2}(?:\d{2})?(?![\w/])"
+)
+
 _NEXT_TOKEN = re.compile(r"\s{1,2}(\S+)")
 
 

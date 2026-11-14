@@ -38,7 +38,14 @@ from __future__ import annotations
 import calendar
 import re
 
-from sci2audio.textprep.notation import Candidate, fold, pick, unit_follows, unit_starts_at
+from sci2audio.textprep.notation import (
+    FILE_NUMBER_DE,
+    Candidate,
+    fold,
+    pick,
+    unit_follows,
+    unit_starts_at,
+)
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.units import reads_unit_after, reads_x_after
 
@@ -149,6 +156,9 @@ _DIGIT_BEFORE = re.compile(r"\d\s*\Z")
 # a "bis" a range made: after a number, or after "Uhr" ("13 Uhr–1234")
 _RANGE_BEFORE = re.compile(r"(?:\d|\bUhr)\s*\Z")
 _JOINED_YEAR = re.compile(r"(?:\s*[\u2013\u2012-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)\Z")
+_JOINED_NEXT = re.compile(
+    r"(?:\s*[\u2013\u2012-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)(?:1[1-9]\d\d|\d{1,2}\.\d{3})(?![\d.,])"
+)
 
 
 def _before(text: str, at: int) -> str:
@@ -171,10 +181,15 @@ def _is_year(text: str, start: int, end: int, years: list[tuple[int, int]]) -> b
         return False
     if word == "bis" and _RANGE_BEFORE.search(before, 0, previous.start()):
         return False  # "1 bis 1234": a range ("1–1234" on the first run), not "bis 1998"
+    # "zwischen 1234 und 1567 Probanden": the word after the last number of a joined run
+    # decides for the whole run, as on a second run, where "1234 und" has no year before it
+    while joined_next := _JOINED_NEXT.match(text, end):
+        end = joined_next.end()
     if unit_follows(text, end, "de"):
         return False  # "seit 1998 %": the units step's ("1998 Prozent", a capital after it)
     following = _NEXT_WORD.match(text, end)
-    return following is None or not following["word"][0].isupper()
+    # "seit 1998x" is "seit 1998 mal" after the units step, which a second run reads alike
+    return following is None or not (following["word"][0].isupper() or following["word"] == "mal")
 
 
 # not after a full stop, but for one that ends a word: the abbreviations step reads "Abb.1:1"
@@ -357,7 +372,13 @@ def _thousands(text: str) -> list[Candidate]:
         # a year word before it, not a year joined by a dash: "im 1234–1.234" reads "12 hundert
         # 34 bis 1234", where a second run sees no year before "1234" either
         if 1100 <= value <= 1999 and _is_year(text, *match.span(), []):
-            continue  # "im Jahr 1.998": not read as the year 1998 on a second run either
+            # "von 1.500 auf", "um 1.200": read as "15 hundert", which a second run leaves
+            # alone; read "1500", a second run would see a year there (D-479)
+            words = year_words(value)
+            found.append(
+                Candidate(*match.span(), words, f'"{number}" read as "{words}" after a year word')
+            )
+            continue
         before = _before(text, match.start())
         if (
             number.count(".") == 1
@@ -429,6 +450,8 @@ def _ranges(text: str) -> list[Candidate]:
     found = []
     for match in _DASH_RANGE.finditer(text):
         start, end = match.span("dash")
+        if _FILE_AFTER.match(text, end):
+            continue  # "15.12.1983 – 1 BvR 209/83": the dash leads to a court's file number
         found.append(Candidate(start, end, " bis ", _range_reason(text, start, end)))
     for match in _HYPHEN_RANGE.finditer(text):
         if not _hyphen_range_at(text, match.start()):
@@ -978,7 +1001,7 @@ def find_numbers_de(text: str) -> list[Candidate]:
     plain = fold(text)
     years = _years(text)
     labelled, kept = _labelled(text)
-    kept = sorted(kept + [m.span("number") for m in _FILE_NUMBER.finditer(text)])
+    kept = sorted(kept + _file_numbers(text))
     found = pick(
         [
             *_dates(text),
@@ -1000,10 +1023,30 @@ def find_numbers_de(text: str) -> list[Candidate]:
     return _outside(found, kept)
 
 
-# a court's file number ("Az. 2 O 8/15", "Az. 3-10 O 86/12"): no fraction, range or ratio
-_FILE_NUMBER = re.compile(
-    r"\b(?:Az\.|Aktenzeichen)\s*(?P<number>[^;,()\n]*?)(?=[;,()\n]|\.(?:\s|\Z)|\Z)"
+# a court's file number ("VI ZR 8/14", "1 BvR 209/83", "Az. 3-10 O 86/12"): a chamber
+# number (Roman or Arabic), a register of one to five letters and number/year; or after "Az."
+# or "Aktenzeichen" its first token with a digit. No fraction, range or ratio is read there,
+# and a dash before one is no range ("15.12.1983 – 1 BvR 209/83").
+_FILE_SHAPE = FILE_NUMBER_DE
+_FILE_NUMBER = re.compile(_FILE_SHAPE)
+_FILE_LABEL = re.compile(
+    r"\b(?:Az\.|Aktenzeichen)(?:\s+lautet)?\s*:?\s*(?P<token>[^\s;,()]*\d[^\s;,()]*?)"
+    r"(?=[.:]?(?:[\s;,()]|\Z))"
 )
+_FILE_AFTER = re.compile(r"\s*" + _FILE_SHAPE)
+
+
+def _file_numbers(text: str) -> list[tuple[int, int]]:
+    """The spans of the court file numbers in a text."""
+    shaped = [match.span() for match in _FILE_NUMBER.finditer(text)]
+    starts = {start for start, _ in shaped}
+    # after "Az." a number of another shape is kept by its first token ("Az. 12/2019")
+    labelled = [
+        match.span("token")
+        for match in _FILE_LABEL.finditer(text)
+        if match.start("token") not in starts
+    ]
+    return sorted(shaped + labelled)
 
 
 def _outside(found: list[Candidate], kept: list[tuple[int, int]]) -> list[Candidate]:

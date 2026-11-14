@@ -588,3 +588,54 @@ goal = "A number glued to an abbreviation's full stop is read as after a space, 
 language = "de"
 blocks = [{ kind = "paragraph", text = "Siehe Abb.1:1 und 10⁶–10⁷ Zellen." }]
 expected = ["Siehe Abbildung 1 zu 1 und 10 hoch 6 bis 10 hoch 7 Zellen."]
+
+[[case]]
+id = "de-numbers-court-file-numbers"
+audit = 0
+issue = 130
+goal = "A court's file number stays as printed with or without 'Az.' ('VI ZR 8/14' is no fraction), a dash before one is no range, and 'Aktenzeichen' keeps only the number, so a date after it is read (review of PR #242)."
+language = "de"
+blocks = [
+  { kind = "paragraph", text = "BGH, Urteil vom 13.1.2015 – VI ZR 8/14. BVerfG, Beschluss v. 15.12.1983 – 1 BvR 209/83." },
+  { kind = "paragraph", text = "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am 3.5.2019." },
+]
+expected = [
+  "BGH, Urteil vom dreizehnten Januar 2015 – VI ZR 8/14. BVerfG, Beschluss v. fünfzehnten Dezember 19 hundert 83 – 1 BvR 209/83.",
+  "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am dritten Mai 2019.",
+]
+
+[[case]]
+id = "de-numbers-thousands-after-a-year-word"
+audit = 0
+issue = 130
+goal = "A number with a thousands point after a word that may introduce a year ('von 1.500') is read in hundreds, which the voice says right; left as printed it was 'eins fünfhundert'. Before a unit it is a count: 'um 1.200 Euro' reads '1200' (review of PR #242)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Der Preis stieg von 1.500 auf 2.000 Euro und um 1.200 Euro im Jahr darauf." }]
+expected = ["Der Preis stieg von 15 hundert auf 2000 Euro und um 1200 Euro im Jahr darauf."]
+
+[[case]]
+id = "de-numbers-joined-numbers-before-a-noun"
+audit = 0
+issue = 130
+goal = "The noun after the last number of a joined run decides whether the run is years: 'zwischen 1234 und 1567 Probanden' are counts, 'zwischen 1990 und 1995 gab es' years (review of PR #242)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Zwischen 1234 und 1567 Probanden nahmen teil; zwischen 1990 und 1995 gab es keine." }]
+expected = ["Zwischen 1234 und 1567 Probanden nahmen teil; zwischen 19 hundert 90 und 19 hundert 95 gab es keine."]
+
+[[case]]
+id = "de-statistics-interval-before-a-full-stop"
+audit = 0
+issue = 130
+goal = "An interval read at a sentence end has no space before the full stop (review of PR #242)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "OR = 2,3, 95 %-KI [1,1; 4,8]. Danach nicht." }]
+expected = ["Odds Ratio gleich 2 Komma 3, 95 Prozent Konfidenzintervall 1 Komma 1 bis 4 Komma 8. Danach nicht."]
+
+[[case]]
+id = "de-units-court-file-number-register"
+audit = 0
+issue = 243
+goal = "The register letter of a court's file number is no unit: 'Az. 13 W 17/12' was '13 Watt 17/12'; a 'W' after a number elsewhere still reads 'Watt'. Needed for #130's second-run property too ('1 N 1/12' read '1 Newton' lost the file number's shape)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 W Leistung." }]
+expected = ["OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 Watt Leistung."]

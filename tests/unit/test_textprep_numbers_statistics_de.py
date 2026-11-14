@@ -147,7 +147,6 @@ def test_german_numbers_read_as_said(printed: str, said: str) -> None:
         "1234 Teilnehmer",  # a count: the voice reads it right
         "um 1500 Teilnehmer",  # a noun follows: a count, not a year
         "nach 1500 Versuchen",
-        "im Jahr 1.998",  # not "1998" and then a year on the second run
         "2.5 Mio",  # a point between digits in running text is ambiguous
         "Es waren 3. Die Studie",  # no article and no known noun
         "in 3. Auflage",  # a preposition alone does not tell the case
@@ -309,6 +308,15 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("2,5Å", "2 Komma 5 Ångström"),
         ("1.234Å", "1234 Ångström"),
         ("×.2,5", "mal.2 Komma 5"),
+        # review of PR #242: nightly seeds 303 and 505
+        ("seit 1998x mehr", "seit 1998 mal mehr"),
+        ("bis 1998x mehr", "bis 1998 mal mehr"),
+        ("95 %-KI [1; 1],1–1", "95 Prozent Konfidenzintervall [1; 1],1 bis 1"),
+        ("1–11–1 N 1/12", "1 bis 11–1 N 1/12"),  # seed 303 after round 1: no "Newton"
+        (
+            "Das KI [1,2; 3,4],1–2 war breit.",
+            "Das Konfidenzintervall [1 Komma 2; 3 Komma 4],1 bis 2 war breit.",
+        ),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:
@@ -354,3 +362,44 @@ def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None
     rebuilt = rebuilt_from_script(document, first.script())
     second = run_steps(rebuilt, context, strict=True)
     assert spoken_text(second.script()) == spoken_text(first.script())
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("Urteil vom 13.1.2015 – VI ZR 8/14.", "Urteil vom dreizehnten Januar 2015 – VI ZR 8/14."),
+        ("OLG Köln, 6 U 12/10 und 1 BvR 209/83", "OLG Köln, 6 U 12/10 und 1 BvR 209/83"),
+        ("Az. 3-10 O 86/12 und 3/4 davon", "Az. 3-10 O 86/12 und 3 Viertel davon"),
+        ("Az.: 12/2019 und 1/2 davon", "Az.: 12/2019 und ein halb davon"),
+        (
+            "Das Aktenzeichen lautet 2 O 8/15, am 3.5.2019 entschieden.",
+            "Das Aktenzeichen lautet 2 O 8/15, am dritten Mai 2019 entschieden.",
+        ),
+        (
+            "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am 3.5.2019.",
+            "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am dritten Mai 2019.",
+        ),
+    ],
+)
+def test_a_court_file_number_is_kept_but_nothing_after_it(printed: str, said: str) -> None:
+    """Review of PR #242, items 1 and 2: the number in its usual shape, with or without
+    "Az.", stays as printed; a dash before it is no range; what follows it is read."""
+    assert read_all(printed) == said
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("von 1.500 auf 2.000 Euro", "von 15 hundert auf 2000 Euro"),
+        ("um 1.200 erhöht", "um 12 hundert erhöht"),
+        ("im Jahr 1.998 kam es", "im Jahr 19 hundert 98 kam es"),
+        ("um 1.200 Teilnehmer", "um 1200 Teilnehmer"),
+        ("zwischen 1234 und 1567 Probanden", "zwischen 1234 und 1567 Probanden"),
+        ("zwischen 1990 und 1995 gab es", "zwischen 19 hundert 90 und 19 hundert 95 gab es"),
+        ("von 1990–1995 Probanden", "von 1990 bis 1995 Probanden"),
+    ],
+)
+def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str) -> None:
+    """Review of PR #242, items 3 and 7."""
+    assert read_all(printed) == said
+    assert read_all(said) == said
