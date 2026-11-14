@@ -5,6 +5,7 @@ No test touches the network: the download's `fetch` is a fake that serves bytes.
 from __future__ import annotations
 
 import io
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -16,9 +17,10 @@ from sci2audio.cli import _ask, describe_download
 from sci2audio.testing import no_network
 from sci2audio.voices import (
     DEFAULT_VOICE,
-    ENGLISH_VOICES,
+    VOICES,
     DownloadPlan,
     NetworkError,
+    RemoteFile,
     download_plan,
     missing_files,
 )
@@ -29,8 +31,8 @@ PLAN = DownloadPlan(FILES, sum(f.size for f in FILES), ("MIT",))
 
 @pytest.fixture
 def small_plan(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(download_module, "download_plan", lambda: PLAN)
-    monkeypatch.setattr("sci2audio.cli.download_plan", lambda: PLAN)
+    monkeypatch.setattr(download_module, "download_plan", lambda languages=None: PLAN)
+    monkeypatch.setattr("sci2audio.cli.download_plan", lambda languages=None: PLAN)
 
 
 def downloading(tmp_path: Path, server: FakeServer, **kwargs: object) -> Cli:
@@ -44,14 +46,18 @@ def test_lists_every_voice_without_network(tmp_path: Path) -> None:
         result = cli("voices")
     assert attempts == []
     assert result.code == 0
-    for voice in ENGLISH_VOICES:
+    for voice in VOICES:
         assert voice.id in result.out
         assert voice.name in result.out
     assert f"{DEFAULT_VOICE}  " in result.out
     assert [line for line in result.out.splitlines() if "(default)" in line] == [
         line for line in result.out.splitlines() if line.lstrip().startswith(DEFAULT_VOICE)
     ]
-    assert f"The voice files are not installed in {cli.models}" in result.out
+    assert [line.split()[0] for line in result.out.splitlines() if "(default for" in line] == [
+        "dm_thorsten"
+    ]
+    assert "dm_thorsten  Thorsten   de-DE   male  (default for German)" in result.out
+    assert f"The voice files for English and German are not installed in {cli.models}" in result.out
     assert "sci2audio voices download" in result.out
 
 
@@ -65,7 +71,8 @@ def test_the_real_download_is_described_in_full(snapshot: SnapshotAssertion) -> 
     plan = download_plan()
     text = describe_download(plan, plan.files, Path("models"))
     assert text == snapshot
-    assert "355 MB" in text
+    assert "682 MB" in text
+    assert "3 files, 328 MB, from huggingface.co" in text  # the German pack (#211)
 
 
 @pytest.mark.usefixtures("small_plan")
@@ -192,3 +199,42 @@ def test_the_models_folder_option(tmp_path: Path) -> None:
     assert cli("voices", "download", "--models-folder", tmp_path / "n").code == 0
     assert cli("voices", "--models-folder", tmp_path / "o", "download").code == 0
     assert seen == [tmp_path / "m", tmp_path / "n", tmp_path / "o"]
+
+
+@pytest.fixture
+def two_packs(monkeypatch: pytest.MonkeyPatch) -> tuple[RemoteFile, ...]:
+    """The small plan with its weights file in the German pack (D-468)."""
+    files = (FILES[0], replace(FILES[1], pack="de"), FILES[2])
+    plan = DownloadPlan(files, sum(f.size for f in files), ("MIT",))
+    monkeypatch.setattr(download_module, "download_plan", lambda languages=None: plan)
+    monkeypatch.setattr("sci2audio.cli.download_plan", lambda languages=None: plan)
+    return files
+
+
+def test_download_of_one_language_fetches_only_its_pack(
+    tmp_path: Path, two_packs: tuple[RemoteFile, ...]
+) -> None:
+    server = FakeServer()
+    cli = downloading(tmp_path, server)
+    result = cli("voices", "download", "--language", "de", "--yes")
+    assert result.code == 0, result.err
+    assert server.fetched == [two_packs[1].url]
+    assert "weights.pth" in result.err
+    assert "config.json" not in result.err
+    assert missing_files(cli.models, ["de"]) == []
+    assert missing_files(cli.models, ["en"]) == [two_packs[0], two_packs[2]]
+    again = downloading(tmp_path, FakeServer())("voices", "download", "--language", "de")
+    assert again.out.endswith("nothing to download.\n")
+
+
+def test_an_unknown_download_language_is_a_usage_error(tmp_path: Path) -> None:
+    result = Cli(tmp_path)("voices", "download", "--language", "fr")
+    assert result.code == 2
+    assert "invalid choice: 'fr'" in result.err
+
+
+def test_the_list_names_only_the_missing_language(tmp_path: Path) -> None:
+    german = RemoteFile("https://example.test/de", "de/model.pth", 1, "0" * 64, "MIT", pack="de")
+    result = Cli(tmp_path, missing=lambda models: [german])("voices")
+    assert result.code == 0
+    assert f"The voice files for German are not installed in {tmp_path / 'models'} " in result.out

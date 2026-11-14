@@ -104,12 +104,15 @@
 <h2 id="step-voice">{{ t('document.step_voice') }}</h2>
 {% if not voice_installed %}
 <p class="note">{{ t('voice.missing') }} <a href="/voice">{{ t('voice.setup') }}</a></p>
+{% elif voice_partly %}
+<p class="note">{{ t('voice.missing_languages', languages=voice_partly) }} <a href="/voice">{{ t('voice.setup') }}</a></p>
 {% endif %}
 <div class="stack">
   <label for="voice">{{ t('voice.choose') }}</label>
-  <select id="voice" name="voice" aria-describedby="voice-licence">
-    {% for option in voices %}<option value="{{ option.id }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
+  <select id="voice" name="voice" aria-describedby="voice-language voice-licence">
+    {% for option in voices %}<option value="{{ option.id }}" data-language="{{ option.language }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
   </select>
+  <p class="hint" id="voice-language">{{ t('voice.language_hint') }}</p>
   <p class="hint" id="voice-licence">{{ t('voice.licence') }} <span lang="en">{{ licences }}</span></p>
   <label for="speed">{{ t('voice.speed') }}</label>
   <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
@@ -118,7 +121,7 @@
   <form id="preview" class="stack">
     <label for="preview-text">{{ t('voice.preview_label') }}</label>
     <p class="hint" id="preview-hint">{{ t('voice.preview_hint', limit=preview_limit) }}</p>
-    <textarea id="preview-text" name="text" lang="en" rows="2" maxlength="{{ preview_limit }}" aria-describedby="preview-hint" required>{{ preview_text }}</textarea>
+    <textarea id="preview-text" name="text" lang="{{ preview_text_language }}" rows="2" maxlength="{{ preview_limit }}" aria-describedby="preview-hint" data-samples="{{ preview_texts | tojson | forceescape }}" required>{{ preview_text }}</textarea>
     <p class="buttons"><button type="submit">{{ t('voice.listen') }}</button></p>
     <audio id="preview-audio" controls hidden aria-label="{{ t('voice.preview_player') }}"></audio>
   </form>
@@ -134,7 +137,7 @@
   <p class="hint" id="folder-hint">{{ t('make.folder_hint') }}</p>
   <input id="output-folder" name="output_folder" value="{{ output_folder }}" aria-describedby="folder-hint" spellcheck="false" autocomplete="off">
   <p class="hint">{{ t('voice.remembered') }}</p>
-  {% set blocked = 'needs_analysis' if not report else ('needs_chapters' if not chosen_chapters else ('needs_voice' if not voice_installed else '')) %}
+  {% set blocked = 'needs_analysis' if not report else ('needs_chapters' if not chosen_chapters else ('needs_voice' if not job_voice_installed else '')) %}
   <p class="buttons"><button type="button" id="make" data-blocked="{{ blocked }}"{% if blocked %} aria-disabled="true"{% endif %} aria-describedby="make-note">{{ t('make.start') }}</button></p>
   <p id="make-note" class="note"{% if not blocked %} hidden{% endif %}>{% if blocked %}{{ t('make.' + blocked) }}{% endif %}</p>
 </div>

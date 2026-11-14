@@ -63,7 +63,9 @@ from sci2audio.output import OutputSettings
 from sci2audio.textprep import Category
 from sci2audio.voices import (
     DEFAULT_VOICE,
-    ENGLISH_VOICES,
+    DEFAULT_VOICES,
+    PACKS,
+    VOICES,
     DownloadError,
     DownloadPlan,
     NetworkError,
@@ -378,13 +380,20 @@ def add_voices(parser: _Parser) -> None:
     actions = parser.subcommands(dest="action", metavar="ACTION")
     download = actions.add_parser(
         "download",
-        help="download the voice files (about 355 MB), after showing what and asking",
+        help="download the voice files (about 680 MB), after showing what and asking",
         description="Download the voice files: the Kokoro model with its English voices and "
-        "the spaCy English model. Shows every source, size and licence first, then asks.",
+        "the spaCy English model (about 355 MB), and the German Kokoro model with the voice "
+        "Thorsten (about 330 MB). Shows every source, size and licence first, then asks.",
     )
     _add_models_option(download, default=argparse.SUPPRESS)  # keeps `voices --models-folder`
     download.add_argument(
         "-y", "--yes", action="store_true", help="agree to the download without being asked"
+    )
+    download.add_argument(
+        "--language",
+        choices=PACKS,
+        action="append",
+        help="only the voice files of this language; repeat for more (default: every language)",
     )
 
 
@@ -658,7 +667,9 @@ def _print_script(env: CliEnv, job: ScriptJob) -> None:
 def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     source = _source(args.file)
     models = args.models_folder or env.models_folder()
-    if env.missing_voice_files(models):
+    # a job needs only its own language's voice pack (D-468): stop here when there is
+    # none at all; the job stops before any speech when its language's pack is missing
+    if {f.pack for f in env.missing_voice_files(models)} >= set(PACKS):
         raise CliError(
             f"the voice files are not installed in {models}; run `{PROG} voices download` first",
             Exit.NO_VOICE,
@@ -799,23 +810,35 @@ def run_voices_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     if args.action == "download":
         return _download(args, env, models)
     out = env.out
-    out.write("Voices (Kokoro-82M, English):\n")
+    out.write("Voices (Kokoro-82M, English and German):\n")
     out.write(f"  {'ID':<12} {'NAME':<10} {'ACCENT':<7} GENDER\n")
-    for voice in ENGLISH_VOICES:
+    language_defaults = {v: k for k, v in DEFAULT_VOICES.items() if v != DEFAULT_VOICE}
+    for voice in VOICES:
         default = "  (default)" if voice.id == DEFAULT_VOICE else ""
+        if voice.id in language_defaults:
+            default = f"  (default for {_LANGUAGE_NAMES[language_defaults[voice.id]]})"
         out.write(
             f"  {voice.id:<12} {voice.name:<10} {voice.language:<7} {voice.gender}{default}\n"
         )
+    out.write(
+        "A voice reads only texts in its own language; for a text in another language, "
+        "that language's default voice reads.\n"
+    )
     missing = env.missing_voice_files(models)
     if missing:
         size = sum(f.size for f in missing)
+        packs = [_LANGUAGE_NAMES[p] for p in PACKS if p in {f.pack for f in missing}]
         out.write(
-            f"The voice files are not installed in {models} ({_mb(size)} to download).\n"
+            f"The voice files for {' and '.join(packs)} are not installed in {models} "
+            f"({_mb(size)} to download).\n"
             f"Run `{PROG} voices download` to see what is fetched and to agree to it.\n"
         )
     else:
         out.write(f"The voice files are installed in {models}.\n")
     return Exit.OK
+
+
+_LANGUAGE_NAMES = {"en": "English", "de": "German"}
 
 
 def describe_download(plan: DownloadPlan, missing: Sequence[RemoteFile], models: Path) -> str:
@@ -848,8 +871,9 @@ def describe_download(plan: DownloadPlan, missing: Sequence[RemoteFile], models:
 
 
 def _download(args: argparse.Namespace, env: CliEnv, models: Path) -> Exit:
-    plan = download_plan()
-    missing = env.missing_voice_files(models)
+    languages = tuple(dict.fromkeys(args.language or PACKS))
+    plan = download_plan(languages)
+    missing = [f for f in env.missing_voice_files(models) if f.pack in languages]
     if not missing:
         env.out.write(f"The voice files are installed in {models}; nothing to download.\n")
         return Exit.OK
@@ -874,7 +898,9 @@ def _download(args: argparse.Namespace, env: CliEnv, models: Path) -> Exit:
             return Exit.FAILED
     progress = Progress(env, quiet=False)
     try:
-        download_voice_files(models, progress=progress.download, fetch=env.fetch)
+        download_voice_files(
+            models, progress=progress.download, fetch=env.fetch, languages=languages
+        )
     except (NetworkError, DownloadError) as error:
         progress.end()
         raise CliError(

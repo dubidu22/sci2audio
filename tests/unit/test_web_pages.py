@@ -26,6 +26,7 @@ from web_helpers import (
 )
 
 from sci2audio.textprep import Category
+from sci2audio.voices import download_plan
 from sci2audio.web import pages
 from sci2audio.web.i18n import strings
 
@@ -185,6 +186,30 @@ def test_the_voice_step_once_the_voice_is_installed(
     assert "Kokoro-82M model and voices by hexgrad: Apache License 2.0." in page
 
 
+def test_a_german_text_starts_with_the_german_voice(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#211, D-469: the page starts with the voice the job would use, and its preview
+    sentence is in that voice's language; a missing German pack is named."""
+    german = list(download_plan(["de"]).files)
+    monkeypatch.setattr(pages, "missing_files", lambda folder: german)
+    client = client_of(server)
+    doc = analysed(client, {"language": "de"})
+    page = client.get(f"/documents/{doc['id']}").text
+    assert re.search(r'<option value="dm_thorsten" data-language="de-DE" selected>', page)
+    assert "Thorsten, German, male (default for German)" in page
+    assert 'lang="de"' in page
+    assert "So liest diese Stimme Ihren Text vor." in page
+    assert "The voice for German is not installed yet." in page
+    assert 'data-blocked="needs_voice"' in page  # its job would need the German files
+    assert 'id="preview"' in page  # the English voices can still be heard
+    english = client.get(f"/documents/{analysed(client)['id']}").text
+    assert 'data-blocked=""' in english
+    assert re.search(r'<option value="af_heart" data-language="en-US" selected>', english)
+    assert "This is how this voice reads your text." in english
+    assert "Not every voice is installed yet. Missing: German." in client.get("/").text
+
+
 def test_the_job_pages(server: tuple[FastAPI, Any]) -> None:
     client = client_of(server)
     doc = upload(client, pdf_bytes(), "paper.pdf")
@@ -202,7 +227,13 @@ def test_the_voice_setup_page_shows_the_whole_download(server: tuple[FastAPI, An
     page = client.get("/voice").text
     assert "Set up the voice" in page
     assert "kokoro-v1_0.pth" in page
-    hosts = re.findall(r"<li>([^<]*)</li>", page)
+    assert "model.pth" in page  # the German pack (#211)
+    items = re.findall(r"<li>([^<]*)</li>", page)
+    assert items[:2] == [  # one line per voice pack (D-468)
+        "English voices (Kokoro): not installed yet.",
+        "German voice Thorsten (Kokoro, by Thorsten-Voice): not installed yet.",
+    ]
+    hosts = items[2:]
     assert hosts[:2] == ["github.com", "huggingface.co"]  # with their redirect hosts after
     assert 'id="voice-consent" name="consent" required' in page
     assert re.search(r'data-plan="[0-9a-f]{64}"', page)

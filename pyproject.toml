@@ -28,8 +28,9 @@ dependencies = [
     "kokoro>=0.9.4,<0.10",
     "markdown-it-py>=4.2,<5",
     "mdit-py-plugins>=0.6.1,<0.7",
-    # Not imported: bounded here because the offline guarantee relies on how misaki 0.9
-    # loads its spaCy model (D-121); kokoro alone would accept any later misaki.
+    # Bounded here because the offline guarantee relies on how misaki 0.9 loads its spaCy
+    # model (D-121); kokoro alone would accept any later misaki. The German voice imports
+    # its espeak-ng pronunciation (misaki.espeak, #211).
     "misaki[en]>=0.9.4,<0.10",
     "numpy>=2.0",
     "platformdirs>=4.14.5,<5",
@@ -116,6 +117,8 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PT", "S"]
 # and test strings show them on purpose (code strings in src use escapes).
 "src/sci2audio/textprep/{characters,hyphens}.py" = ["RUF002", "RUF003"]
 "tests/unit/test_textprep_{characters,hyphens}.py" = ["RUF001", "RUF002", "RUF003"]
+# phoneme strings (IPA) are what the German voice tests are about (#211)
+"tests/unit/test_voices_german.py" = ["RUF001"]
 
 [tool.pytest.ini_options]
 minversion = "9.0"
@@ -137,9 +140,8 @@ pytest_add_cli_args = ["-m", "not browser"]  # needs a Playwright browser (D-259
 known_first_party = ["sci2audio"]
 
 [tool.deptry.per_rule_ignores]
-# misaki is not imported; it is listed to bound its version (see dependencies).
 # jinja2 and python-multipart are loaded by Starlette for templates and uploads (web).
-DEP002 = ["misaki", "jinja2", "python-multipart"]
+DEP002 = ["jinja2", "python-multipart"]
 
 [tool.importlinter]
 root_package = "sci2audio"

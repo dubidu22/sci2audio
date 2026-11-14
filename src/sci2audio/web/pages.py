@@ -22,13 +22,17 @@ from fastapi.templating import Jinja2Templates
 
 from sci2audio.app import load_settings, shown_original
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
+from sci2audio.app.voice import primary_language
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, PAUSE_MARK, Category
 from sci2audio.voices import (
     DEFAULT_VOICE,
-    ENGLISH_VOICES,
-    PREVIEW_TEXT,
+    DEFAULT_VOICES,
+    PACKS,
+    VOICES,
     download_plan,
     missing_files,
+    preview_text,
+    voice_pack,
 )
 from sci2audio.web.api import REDIRECTS, plan_hosts
 from sci2audio.web.config import UPLOAD_LIMIT
@@ -129,17 +133,19 @@ def _busy_document(state: ServerState) -> str | None:
 
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request, state: State) -> HTMLResponse:
+    s = strings_of(request)
     suffixes = supported_suffixes()
     documents = state.store.all()
     return _page(
         request,
         state,
-        strings_of(request),
+        s,
         "index.html",
         documents=documents,
         removals={document.id: _removal(document) for document in documents},
         busy_document=_busy_document(state),
         voice_installed=not missing_files(state.config.models_dir),
+        voice_partly=_missing_packs(state, s),
         types=", ".join(suffix.removeprefix(".").upper() for suffix in suffixes),
         accept=",".join(suffixes),
         limit=UPLOAD_LIMIT // (1024 * 1024),
@@ -266,15 +272,62 @@ def _last_script_job(state: ServerState, document_id: str) -> JobRecord | None:
 
 def _voice_options(chosen: str, s: Strings) -> list[dict[str, Any]]:
     default = DEFAULT_VOICE
-    ordered = sorted(ENGLISH_VOICES, key=lambda v: (v.id != default, v.language, v.name))
+    defaults = set(DEFAULT_VOICES.values())
+    ordered = sorted(
+        VOICES, key=lambda v: (v.id != default, v.id not in defaults, v.language, v.name)
+    )
     options = []
     for voice in ordered:
         key = "voice.accent_female" if voice.gender == "female" else "voice.accent_male"
         label = s(key, name=voice.name, accent=s(f"accent.{voice.language}"))
         if voice.id == default:
             label = f"{label} {s('voice.default')}"
-        options.append({"id": voice.id, "label": label, "selected": voice.id == chosen})
+        elif voice.id in defaults:
+            label = f"{label} {s('voice.default_for', language=s(f'pack.{voice_pack(voice.id)}'))}"
+        options.append(
+            {
+                "id": voice.id,
+                "label": label,
+                "selected": voice.id == chosen,
+                "language": voice.language,
+            }
+        )
     return options
+
+
+def _document_voice(saved_voice: str, text_language: str) -> str:
+    """The voice the page starts with: the saved one if it speaks the text's language,
+    else that language's default (the rule the audio job follows, D-469)."""
+    primary = primary_language(text_language)
+    default = DEFAULT_VOICES.get(primary)
+    speaks = {v.id: primary_language(v.language) for v in VOICES}
+    if default is None:
+        return saved_voice or DEFAULT_VOICE
+    return saved_voice if speaks.get(saved_voice) == primary else default
+
+
+def _packs() -> set[str]:
+    """The voice packs the download has files for."""
+    return {f.pack for f in download_plan().files}
+
+
+def _installed(state: ServerState) -> tuple[str, ...]:
+    """The voice packs whose files are all installed (D-468)."""
+    packs = _packs()
+    missing = {f.pack for f in missing_files(state.config.models_dir)}
+    return tuple(language for language in PACKS if language in packs - missing)
+
+
+def _missing_packs(state: ServerState, s: Strings) -> str:
+    """The languages whose voices are not installed, for a note when some others are
+    ("" when every pack or none is installed)."""
+    there = _installed(state)
+    if not there:
+        return ""
+    packs = _packs()
+    return ", ".join(
+        s(f"pack.{language}") for language in PACKS if language in packs and language not in there
+    )
 
 
 def _text_language(report: Mapping[str, Any] | None) -> str:
@@ -310,7 +363,8 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         else None
     )
     plan = download_plan()
-    chosen_voice = saved.voice or DEFAULT_VOICE
+    chosen_voice = _document_voice(saved.voice, _text_language(report))
+    installed = _installed(state)
     analysis_files = found.analysis_files()
     labels = {
         "script": s("document.file_script"),
@@ -348,14 +402,19 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         file_links=file_links,
         voices=_voice_options(chosen_voice, s),
         licences=" ".join(dict.fromkeys(plan.licences)),
-        voice_installed=not missing_files(state.config.models_dir),
+        voice_installed=bool(installed),  # some voice: the preview works
+        # the voice a job on this text uses (D-469) has its files: making can start (D-468)
+        job_voice_installed=voice_pack(chosen_voice) in installed,
+        voice_partly=_missing_packs(state, s),
         speed=saved.speed,
         speed_text=s("voice.speed_value", value=s.number(saved.speed)),
         speed_min=MIN_SPEED,
         speed_max=MAX_SPEED,
         speed_step=SPEED_STEP,
         preview_limit=PREVIEW_LIMIT,
-        preview_text=PREVIEW_TEXT,
+        preview_text=preview_text(_voice_language(chosen_voice)),
+        preview_text_language=primary_language(_voice_language(chosen_voice)),
+        preview_texts={primary: preview_text(primary) for primary in DEFAULT_VOICES},
         output_folder=str(saved.output_folder or state.config.output_folder),
         removal=_removal(found),
         busy=_busy_document(state) == found.id,
@@ -399,7 +458,11 @@ def job(request: Request, state: State, job_id: str) -> HTMLResponse:
 
 
 def _voice_name(voice_id: str) -> str:
-    return next((v.name for v in ENGLISH_VOICES if v.id == voice_id), voice_id)
+    return next((v.name for v in VOICES if v.id == voice_id), voice_id)
+
+
+def _voice_language(voice_id: str) -> str:
+    return next((v.language for v in VOICES if v.id == voice_id), "en")
 
 
 @router.get("/documents/{document_id}/listen", response_class=HTMLResponse)
@@ -445,12 +508,17 @@ def voice(request: Request, state: State) -> HTMLResponse:
     s = strings_of(request)
     plan = download_plan()
     missing = missing_files(state.config.models_dir)
+    there = _installed(state)
     return _page(
         request,
         state,
         s,
         "voice.html",
         installed=not missing,
+        packs=[
+            {"name": s(f"setup.pack_{language}"), "installed": language in there}
+            for language in PACKS
+        ],
         files=[
             {"target": f.target, "size": s.size(f.size), "licence": f.licence} for f in plan.files
         ],

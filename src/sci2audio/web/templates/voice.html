@@ -6,6 +6,9 @@
 {% if installed %}
 <p>{{ t('setup.installed') }}</p>
 {% endif %}
+<ul id="packs" aria-label="{{ t('setup.packs') }}">
+  {% for pack in packs %}<li>{% if pack.installed %}{{ t('setup.pack_installed', name=pack.name) }}{% else %}{{ t('setup.pack_missing', name=pack.name) }}{% endif %}</li>{% endfor %}
+</ul>
 <table>
   <caption>{{ t('setup.files') }}</caption>
   <thead><tr><th scope="col">{{ t('setup.file') }}</th><th scope="col">{{ t('setup.size') }}</th><th scope="col">{{ t('setup.licence') }}</th></tr></thead>

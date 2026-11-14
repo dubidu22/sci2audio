@@ -27,7 +27,7 @@ uv tool install sci2audio --torch-backend cpu  # Linux: 1.3 GB instead of 5.6 GB
 
 On Linux the plain command also works; it installs the PyTorch build with NVIDIA GPU libraries. With pipx, use Python 3.12.16 or newer in the 3.12 series (`pipx install --python python3.12 sci2audio`): the Kokoro packages do not yet declare support for newer Python versions, and older 3.12 releases read some broken HTML and Markdown differently. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
 
-The voice (about 355 MB: the Kokoro model, its English voices and a spaCy English model) is downloaded only when you start it, and its licences are shown first. After that, sci2audio works without a network.
+The voices (about 680 MB: the Kokoro model, its English voices and a spaCy English model, 355 MB; the German voice Thorsten by Thorsten-Voice, 330 MB) are downloaded only when you start it, and their licences are shown first; `sci2audio voices download --language en` or `--language de` fetches one language only. A text is read by a voice of its own language: German texts by Thorsten, English texts by the chosen English voice. After that, sci2audio works without a network.
 
 ## Command line
 

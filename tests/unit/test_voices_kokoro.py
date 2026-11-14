@@ -9,14 +9,22 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from voice_fakes import FakeFactory, FakeResult, isolate_environment, make_fake_engine
+from voice_fakes import (
+    FakeFactory,
+    FakeResult,
+    fake_models_dir,
+    isolate_environment,
+    make_fake_engine,
+)
 
 from sci2audio.testing import check_voice_engine, no_network
 from sci2audio.voices import (
     DEFAULT_VOICE,
     ENGLISH_VOICES,
+    GERMAN_DEFAULT_VOICE,
     PCM_FLOAT32,
     SAMPLE_RATE,
+    VOICES,
     AudioFormat,
     EngineError,
     InvalidInputError,
@@ -26,8 +34,10 @@ from sci2audio.voices import (
     VoiceSelection,
     create_kokoro_engine,
     download_plan,
+    voice_pack,
 )
 from sci2audio.voices import kokoro_engine as kokoro_module
+from sci2audio.voices.download import german_dir
 
 
 def request(text: str, voice: str = DEFAULT_VOICE, **parameters: object) -> SynthesisRequest:
@@ -49,10 +59,56 @@ def test_english_voices_are_28_and_all_downloaded() -> None:
     assert len(ENGLISH_VOICES) == 28
     assert {v.id[:2] for v in ENGLISH_VOICES} == {"af", "am", "bf", "bm"}
     assert DEFAULT_VOICE in {v.id for v in ENGLISH_VOICES}
-    downloaded = {Path(f.target).stem for f in download_plan().files if "/voices/" in f.target}
+    english = download_plan(["en"]).files
+    downloaded = {Path(f.target).stem for f in english if "/voices/" in f.target}
     assert downloaded == {v.id for v in ENGLISH_VOICES}
     gb = {v.id for v in ENGLISH_VOICES if v.language == "en-GB"}
     assert gb == {v.id for v in ENGLISH_VOICES if v.id.startswith("b")}
+
+
+def test_the_german_voice_is_listed_and_spoken_by_the_german_pipeline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#211: Thorsten speaks through pipeline 'd' with the voice file of the German pack."""
+    factory = FakeFactory()
+    engine = make_fake_engine(tmp_path, monkeypatch, factory)
+    assert engine.listVoices() == VOICES
+    thorsten = engine.listVoices()[-1]
+    assert (thorsten.id, thorsten.language) == (GERMAN_DEFAULT_VOICE, "de-DE")
+    assert voice_pack(GERMAN_DEFAULT_VOICE) == "de"
+    assert {voice_pack(v.id) for v in ENGLISH_VOICES} == {"en"}
+    engine.createSession().synthesize(request("Guten Tag.", GERMAN_DEFAULT_VOICE))
+    call = factory.pipelines["d"].calls[-1]
+    assert Path(call["voice"]) == german_dir(tmp_path) / "voices" / "thorsten.pt"
+    assert set(factory.pipelines) == {"a", "d"}  # English preloaded, German on first use
+
+
+def test_an_engine_with_only_the_german_pack_speaks_german(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """D-468: a job needs only its own pack; the English model is not loaded."""
+    isolate_environment(monkeypatch)
+    english = list(download_plan(["en"]).files)
+    monkeypatch.setattr(kokoro_module, "missing_files", lambda models_dir, languages=None: english)
+    factory = FakeFactory()
+    engine = create_kokoro_engine(fake_models_dir(tmp_path), pipeline_factory=factory)
+    assert factory.pipelines == {}  # the configured English pipeline is not preloaded
+    engine.createSession().synthesize(request("Guten Tag.", GERMAN_DEFAULT_VOICE))
+    assert set(factory.pipelines) == {"d"}
+
+
+def test_a_missing_german_pack_is_reported_before_loading(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    german = list(download_plan(["de"]).files)
+
+    def missing(models_dir: Path, languages: tuple[str, ...] | None = None) -> list[object]:
+        return german if languages is None or "de" in languages else []
+
+    monkeypatch.setattr(kokoro_module, "missing_files", missing)
+    make = kokoro_module._kokoro_pipeline_factory(tmp_path, "cpu")
+    with no_network(), pytest.raises(ModelNotFoundError, match="German voice files are not"):
+        make("d")
 
 
 def test_voice_is_passed_as_a_local_file_never_a_name(
@@ -185,8 +241,11 @@ def test_missing_spacy_model_never_triggers_its_download(
 
     monkeypatch.setattr(spacy.util, "is_package", lambda name: False)
     monkeypatch.setattr(spacy.cli, "download", no_download)
+    # the English files are there (size check skipped), only the spaCy model is not; the
+    # model loads when an English voice is first needed (#211), so ask for one
+    monkeypatch.setattr(kokoro_module, "missing_files", lambda models_dir, languages=None: [])
     with no_network(), pytest.raises(ModelNotFoundError, match="en_core_web_sm"):
-        kokoro_module._kokoro_pipeline_factory(tmp_path, "cpu")
+        kokoro_module._kokoro_pipeline_factory(tmp_path, "cpu")("a")
 
 
 def test_creating_the_engine_runs_the_start_up_function(

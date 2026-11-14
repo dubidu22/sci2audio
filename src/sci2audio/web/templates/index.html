@@ -35,6 +35,8 @@
 <h2>{{ t('home.voice') }}</h2>
 {% if voice_installed %}
 <p>{{ t('home.voice_installed') }}</p>
+{% elif voice_partly %}
+<p>{{ t('home.voice_partly', languages=voice_partly) }} <a href="/voice">{{ t('home.voice_setup') }}</a></p>
 {% else %}
 <p>{{ t('home.voice_missing') }} <a href="/voice">{{ t('home.voice_setup') }}</a></p>
 {% endif %}

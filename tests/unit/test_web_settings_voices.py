@@ -23,7 +23,14 @@ from web_helpers import (
 )
 
 from sci2audio.textprep import Category
-from sci2audio.voices import ENGLISH_VOICES, DownloadPlan, NetworkError, RemoteFile, download_plan
+from sci2audio.voices import (
+    ENGLISH_VOICES,
+    VOICES,
+    DownloadPlan,
+    NetworkError,
+    RemoteFile,
+    download_plan,
+)
 from sci2audio.voices import download as download_module
 from sci2audio.web import api, create_app
 from sci2audio.web.tasks import plan_digest
@@ -56,7 +63,13 @@ def test_settings_start_from_the_defaults_with_every_choice(server: tuple[FastAP
     )
     assert [c["id"] for c in data["categories"] if not c["on_by_default"]] == ["footnote-texts"]
     assert data["speed"] == {"min": 0.5, "max": 2.0}
-    assert len(data["voices"]) == len(ENGLISH_VOICES) == 28
+    assert len(data["voices"]) == len(ENGLISH_VOICES) + 1 == 29  # with Thorsten (#211)
+    assert data["voices"][-1] == {
+        "id": "dm_thorsten",
+        "name": "Thorsten",
+        "language": "de-DE",
+        "gender": "male",
+    }
     assert data["default_voice"] == "af_heart"
     assert data["default_output_folder"] == str(config.output_folder)
 
@@ -178,8 +191,9 @@ def test_the_voice_list_shows_the_whole_download_before_anything_happens(
     app, config = server
     data = program(app, config).get("/api/v1/voices").json()
     plan = download_plan()
-    assert [v["id"] for v in data["voices"]] == [v.id for v in ENGLISH_VOICES]
+    assert [v["id"] for v in data["voices"]] == [v.id for v in VOICES]
     assert data["installed"] is False
+    assert data["installed_languages"] == []
     assert data["plan"]["digest"] == plan_digest(plan)
     assert data["plan"]["total_bytes"] == data["plan"]["missing_bytes"] == plan.total_bytes
     assert len(data["plan"]["files"]) == len(plan.files)
@@ -193,6 +207,19 @@ def test_the_voice_list_shows_the_whole_download_before_anything_happens(
         "Hugging Face's download servers (its CDN and LFS/Xet storage)",
     ]
     assert not config.models_dir.exists()
+
+
+def test_the_voice_list_names_the_installed_languages(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """D-468: with only the English pack in place, English is installed, German is not."""
+    app, config = server
+    german = list(download_plan(["de"]).files)
+    monkeypatch.setattr(api, "missing_files", lambda folder: german)
+    data = program(app, config).get("/api/v1/voices").json()
+    assert data["installed"] is False
+    assert data["installed_languages"] == ["en"]
+    assert data["plan"]["missing_bytes"] == sum(f.size for f in german)
 
 
 def test_the_digest_changes_with_any_file_of_the_plan() -> None:

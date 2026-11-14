@@ -16,7 +16,7 @@ from playwright.sync_api import Page, expect
 from web_helpers import paper_bytes
 
 from conftest import Live, check_axe, inside, settled
-from sci2audio.voices import PREVIEW_TEXT
+from sci2audio.voices import PREVIEW_TEXT, PREVIEW_TEXTS
 from sci2audio.web.jobs import JobKind, JobRecord
 
 PDF = {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": paper_bytes()}
@@ -392,3 +392,27 @@ def test_a_request_elsewhere_is_caught_and_refused(signed_in: Page, live: Live) 
         signed_in.goto(elsewhere)
     assert live.outside == [elsewhere]
     live.outside.clear()  # seen; the fixture's own check would fail the test otherwise
+
+
+def test_the_preview_sentence_follows_the_voice_language(signed_in: Page, live: Live) -> None:
+    """#211: choosing the German voice puts the German sample sentence in the preview box
+    (marked lang="de"), unless the person wrote their own text."""
+    page = signed_in
+    live.install_voice()
+    open_paper(page, live)
+    box = page.get_by_label("Sentence to listen to")
+    expect(box).to_have_value(PREVIEW_TEXT)
+    voice = page.get_by_label("Voice", exact=True)
+    expect(voice.locator("option[value=dm_thorsten]")).to_have_text(
+        "Thorsten, German, male (default for German)"
+    )
+    voice.select_option("dm_thorsten")
+    expect(box).to_have_value(PREVIEW_TEXTS["de"])
+    expect(box).to_have_attribute("lang", "de")
+    check_axe(page, "document with the German voice chosen")
+    voice.select_option("bm_george")
+    expect(box).to_have_value(PREVIEW_TEXT)
+    expect(box).to_have_attribute("lang", "en")
+    box.fill("Mein eigener Satz.")
+    voice.select_option("dm_thorsten")
+    expect(box).to_have_value("Mein eigener Satz.")

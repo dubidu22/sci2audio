@@ -26,3 +26,10 @@ Markdown and text files for tests are never stored here either: the made-up and 
 Windows-1252, nesting past the limit, CommonMark's pathological inputs) are built inside the
 tests (#74, D-347, D-348). The two real samples are the own corpus files
 `tests/corpus/markdown/sci2audio-sample-note.md` and `tests/corpus/text/sci2audio-sample-plain.txt`.
+
+## Kokoro's symbol table
+
+`kokoro-vocab.json` is the `vocab` table of Kokoro-82M's `config.json` (revision
+`f3ff3571791e39611d31c381e3a41a3af07b4987`, [hexgrad/Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M),
+Apache-2.0; the German model's `config.json` has the same bytes). The German voice tests
+check espeak-ng's German phonemes against it without the 327 MB model (#211).

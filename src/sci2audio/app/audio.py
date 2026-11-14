@@ -433,21 +433,28 @@ def run_audio_job(
     """
     tell: Callable[[AudioProgress], None] = progress or (lambda event: None)
     output_settings = output_settings or OutputSettings()
-    voice_id = settings.voice or voice.default_voice
-    if voice_id not in voice.voices:
-        raise JobError(f"there is no {voice.engine} voice {voice_id!r}; choose another voice")
+    if settings.voice and settings.voice not in voice.voices:
+        raise JobError(f"there is no {voice.engine} voice {settings.voice!r}; choose another voice")
     check_readable(source)
     out_folder = (settings.output_folder or source.absolute().parent).absolute()
     check_folders((out_folder, work))
     _check_cancel(cancel)
     with work_folder_lock(work):
         document = read_document(source, settings, lambda phase: tell(AudioProgress(phase)))
+        # the voice follows the job's language (D-469); its files must be there (D-468)
+        voice_id = voice.voice_for(settings.voice, document.language)
+        if not voice.installed(voice_id):
+            raise JobError(
+                f"the voice is not set up: the files of voice {voice_id!r} (language "
+                f"{voice.languages.get(voice_id, document.language)}) are not installed; "
+                "run the voice download for that language"
+            )
         tell(AudioProgress(Phase.TEXT_STEPS))
         result = prepare_script(document, settings, steps, max_chars)
         plan = plan_audio(
             result,
             engine=voice.engine,
-            engine_version=voice.version,
+            engine_version=voice.version_of(voice_id),
             voice=voice_id,
             speed=settings.speed,
         )
@@ -777,7 +784,7 @@ def _record(
         "source": {"name": source.name, "format": str(source.format), "sha256": source.sha256},
         "settings": settings_data(settings),
         "engine": voice.engine,
-        "engine_version": voice.version,
+        "engine_version": voice.version_of(voice_id),
         "voice": voice_id,
         "speed": settings.speed,
         "duration": times.duration,

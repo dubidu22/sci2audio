@@ -36,7 +36,7 @@ from web_helpers import (
 
 import sci2audio.web
 from sci2audio.textprep import Category
-from sci2audio.voices import ENGLISH_VOICES, download_plan
+from sci2audio.voices import PACKS, VOICES, download_plan
 from sci2audio.web import i18n, pages, player, server
 from sci2audio.web.api import REDIRECTS, plan_hosts
 from sci2audio.web.config import HOST
@@ -163,7 +163,9 @@ def used_keys() -> set[str]:
     )
     found |= {f"make.needs_{key}" for key in ("analysis", "voice", "update", "chapters")}
     found |= {f"category.{category}" for category in Category}
-    found |= {f"accent.{voice.language}" for voice in ENGLISH_VOICES}
+    found |= {f"accent.{voice.language}" for voice in VOICES}
+    found |= {f"pack.{language}" for language in PACKS}  # pages names packs (D-468)
+    found |= {f"setup.pack_{language}" for language in PACKS}
     found |= {f"error.{kind}" for kind in error_kinds()}
     for path in (Path(pages.__file__), Path(i18n.__file__)):
         source = path.read_text(encoding="utf-8")

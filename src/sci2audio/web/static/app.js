@@ -290,6 +290,17 @@ function documentPage() {
   const preview = document.getElementById("preview");
   if (preview) {
     const audio = document.getElementById("preview-audio");
+    // the sample sentence follows the voice's language, unless the person wrote their own
+    const sample = document.getElementById("preview-text");
+    const samples = JSON.parse(sample.dataset.samples || "{}");
+    voice.addEventListener("change", () => {
+      const chosen = voice.selectedOptions[0];
+      const language = ((chosen && chosen.dataset.language) || "en").split("-")[0];
+      const own = !Object.values(samples).includes(sample.value);
+      if (own || !samples[language]) return;
+      sample.value = samples[language];
+      sample.lang = language;
+    });
     preview.addEventListener("submit", async (event) => {
       event.preventDefault();
       say(tr("js.listening"));

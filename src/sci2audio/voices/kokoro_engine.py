@@ -1,9 +1,10 @@
 # Adapted from Abogen (https://github.com/denizsafak/abogen), files plugins/kokoro/__init__.py
 # and plugins/kokoro/engine.py, revision 1807822f5871d1c92740cb470c5c6e8328b8f851, under the
-# MIT licence below (D-52). Changes for sci2audio: English voices only (D-50); the model,
-# voices and spaCy model are loaded from local files and never downloaded (VA-04); one
-# pipeline per accent sharing one model; speed and input checks; raw float32 output with
-# its sample rate; no plugin manifest, host context or plugin loader (not copied).
+# MIT licence below (D-52). Changes for sci2audio: English voices (D-50) and the German
+# Thorsten voice (#211); the models, voices and spaCy model are loaded from local files and
+# never downloaded (VA-04); one pipeline per accent, the English ones sharing one model;
+# speed and input checks; raw float32 output with its sample rate; no plugin manifest, host
+# context or plugin loader (not copied).
 #
 # MIT License
 #
@@ -27,13 +28,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-"""Kokoro English through the voice contract (VA-01, D-48, D-52).
+"""Kokoro English and German through the voice contract (VA-01, D-48, D-52, #211).
 
 `create_kokoro_engine(models_dir)` builds the engine from the files that
 `download_voice_files` put into `models_dir`. It never goes online: when a file is missing
 it raises `ModelNotFoundError` before misaki could try to download its spaCy model.
-torch and kokoro are imported only inside `create_kokoro_engine`, so importing this module
-stays fast.
+
+The voices come in one pack per language (D-468): the English voices need the English
+pack, the German voice Thorsten (`kokoro_german`) the German pack. The engine needs at
+least one pack; each language's model is loaded the first time one of its voices speaks,
+and a voice whose pack is missing raises `ModelNotFoundError`.
+
+torch and kokoro are imported only when a model is loaded, so importing this module stays
+fast.
 """
 
 from __future__ import annotations
@@ -47,9 +54,14 @@ from typing import Any
 import numpy as np
 
 from sci2audio.voices.download import (
+    ENGLISH,
+    GERMAN,
+    GERMAN_WEIGHTS,
     KOKORO_REPO,
     KOKORO_WEIGHTS,
+    PACKS,
     SPACY_MODEL,
+    german_dir,
     kokoro_dir,
     missing_files,
 )
@@ -77,7 +89,10 @@ SPEED_MAX = 2.0
 
 # Engine-internal language mapping: language tag → kokoro code.
 # ONLY visible inside this module — callers never see kokoro codes.
-_KOKORO_LANG_MAP: dict[str, str] = {"en-US": "a", "en-GB": "b"}
+_KOKORO_LANG_MAP: dict[str, str] = {"en-US": "a", "en-GB": "b", "de-DE": "d", "de": "d"}
+# The voice pack each kokoro code needs (D-468). "d" is sci2audio's own code for German:
+# kokoro 0.9.4 has none, and `kokoro_german` builds that pipeline.
+_PACK_OF_CODE: dict[str, str] = {"a": ENGLISH, "b": ENGLISH, "d": GERMAN}
 _PREFIX_LANGUAGE = {"af": "en-US", "am": "en-US", "bf": "en-GB", "bm": "en-GB"}
 _PREFIX_GENDER = {"f": "female", "m": "male"}
 
@@ -121,7 +136,16 @@ ENGLISH_VOICES: tuple[VoiceInfo, ...] = tuple(
     )
     for voice, name in _VOICE_NAMES.items()
 )
-_VOICES_BY_ID = {voice.id: voice for voice in ENGLISH_VOICES}
+# The German Kokoro voice (#211, D-467): Thorsten-Voice's fine-tune, epoch 5.
+GERMAN_VOICES: tuple[VoiceInfo, ...] = (
+    VoiceInfo(id="dm_thorsten", name="Thorsten", language="de-DE", gender="male"),
+)
+GERMAN_DEFAULT_VOICE = "dm_thorsten"
+VOICES: tuple[VoiceInfo, ...] = ENGLISH_VOICES + GERMAN_VOICES
+# The default voice of each language's primary subtag (D-469).
+DEFAULT_VOICES: dict[str, str] = {"en": DEFAULT_VOICE, "de": GERMAN_DEFAULT_VOICE}
+_VOICES_BY_ID = {voice.id: voice for voice in VOICES}
+_VOICE_FILE_NAMES = {"dm_thorsten": "thorsten.pt"}  # German packs are named after the voice
 
 # Builds the kokoro pipeline for one kokoro language code. Replaceable in tests, so the
 # adapter is tested without torch or a model.
@@ -131,6 +155,14 @@ PipelineFactory = Callable[[str], Any]
 def engine_language(language: str) -> str:
     """Map a language tag to the engine's internal code (en-US when unknown)."""
     return _KOKORO_LANG_MAP.get(language, "a")
+
+
+def voice_pack(voice_id: str) -> str:
+    """The voice pack ("en", "de") a voice needs; ValueError for an unknown voice."""
+    voice = _VOICES_BY_ID.get(voice_id)
+    if voice is None:
+        raise ValueError(f"unknown Kokoro voice {voice_id!r}")
+    return _PACK_OF_CODE[engine_language(voice.language)]
 
 
 def _pick_device(requested: str) -> str:
@@ -145,30 +177,55 @@ def _pick_device(requested: str) -> str:
     return "cpu"
 
 
-def _kokoro_pipeline_factory(models_dir: Path, device: str) -> PipelineFactory:
-    """Load the model once from local files; make one G2P pipeline per accent on demand."""
-    import spacy
-
-    if not spacy.util.is_package(SPACY_MODEL):
-        # misaki would call spacy.cli.download here: a network call nobody started.
+def _check_pack(models_dir: Path, language: str) -> None:
+    missing = missing_files(models_dir, (language,))
+    if missing:
+        name = {ENGLISH: "English", GERMAN: "German"}[language]
         raise ModelNotFoundError(
-            f"the spaCy model {SPACY_MODEL} is not in {models_dir}; run the voice download"
+            f"the {name} voice files are not installed in {models_dir} ({len(missing)} "
+            f"missing, for example {missing[0].target}); run the voice download for {name}"
         )
-    from kokoro import KModel, KPipeline
 
-    folder = kokoro_dir(models_dir)
-    model = (
-        KModel(
-            repo_id=KOKORO_REPO,
-            config=str(folder / "config.json"),
-            model=str(folder / KOKORO_WEIGHTS),
-        )
-        .to(_pick_device(device))
-        .eval()
-    )
+
+def _kokoro_pipeline_factory(models_dir: Path, device: str) -> PipelineFactory:
+    """Load each language's model once from local files, on first use; make one G2P
+    pipeline per accent on demand. The English accents share one model."""
+    english: list[Any] = []  # the English model, once loaded
+
+    def english_model() -> Any:
+        if not english:
+            import spacy
+
+            if not spacy.util.is_package(SPACY_MODEL):
+                # misaki would call spacy.cli.download here: a network call nobody started.
+                raise ModelNotFoundError(
+                    f"the spaCy model {SPACY_MODEL} is not in {models_dir}; run the voice download"
+                )
+            from kokoro import KModel
+
+            folder = kokoro_dir(models_dir)
+            english.append(
+                KModel(
+                    repo_id=KOKORO_REPO,
+                    config=str(folder / "config.json"),
+                    model=str(folder / KOKORO_WEIGHTS),
+                )
+                .to(_pick_device(device))
+                .eval()
+            )
+        return english[0]
 
     def make(lang_code: str) -> Any:
-        return KPipeline(lang_code=lang_code, repo_id=KOKORO_REPO, model=model)
+        _check_pack(models_dir, _PACK_OF_CODE.get(lang_code, ENGLISH))
+        if lang_code == "d":
+            from sci2audio.voices.kokoro_german import german_pipeline
+
+            return german_pipeline(
+                german_dir(models_dir), GERMAN_WEIGHTS, _pick_device(device), KOKORO_REPO
+            )
+        from kokoro import KPipeline
+
+        return KPipeline(lang_code=lang_code, repo_id=KOKORO_REPO, model=english_model())
 
     return make
 
@@ -190,7 +247,8 @@ def create_kokoro_engine(
     """
     config = config or EngineConfig()
     missing = missing_files(models_dir)
-    if missing:
+    installed = {language for language in PACKS if not any(f.pack == language for f in missing)}
+    if not installed:
         raise ModelNotFoundError(
             f"{len(missing)} voice file(s) are missing in {models_dir}, for example "
             f"{missing[0].target}; run the voice download first"
@@ -198,8 +256,13 @@ def create_kokoro_engine(
     prepare_environment(models_dir)
     try:
         factory = pipeline_factory or _kokoro_pipeline_factory(models_dir, config.device)
-        engine = KokoroEngine(factory, kokoro_dir(models_dir) / "voices")
-        engine.pipeline_for(engine_language(config.language))
+        engine = KokoroEngine(
+            factory, kokoro_dir(models_dir) / "voices", german_dir(models_dir) / "voices"
+        )
+        # load the configured language's model now, if its pack is there
+        code = engine_language(config.language)
+        if _PACK_OF_CODE[code] in installed:
+            engine.pipeline_for(code)
         return engine
     except EngineError:
         raise
@@ -238,7 +301,7 @@ class KokoroSession:
             raise InvalidInputError(f"Kokoro returns {PCM_FLOAT32.mime} only")
         voice = _VOICES_BY_ID.get(request.voice.key)
         if voice is None:
-            raise InvalidInputError(f"unknown Kokoro English voice {request.voice.key!r}")
+            raise InvalidInputError(f"unknown Kokoro voice {request.voice.key!r}")
         speed = _speed(request.parameters.values.get("speed", 1.0))
 
         try:
@@ -302,14 +365,21 @@ class KokoroSession:
 class KokoroEngine:
     """Engine implementation for Kokoro.
 
-    Factory for KokoroSession instances. One model, one G2P pipeline per accent.
+    Factory for KokoroSession instances. One model per language, one G2P pipeline per
+    accent.
     """
 
     api_version = API_VERSION
 
-    def __init__(self, pipeline_factory: PipelineFactory, voices_dir: Path) -> None:
+    def __init__(
+        self,
+        pipeline_factory: PipelineFactory,
+        voices_dir: Path,
+        german_voices_dir: Path | None = None,
+    ) -> None:
         self._factory = pipeline_factory
         self._voices_dir = voices_dir
+        self._german_voices_dir = german_voices_dir
         self._pipelines: dict[str, Any] = {}
         self._disposed = False
 
@@ -323,7 +393,10 @@ class KokoroEngine:
 
     def voice_file(self, voice_id: str) -> Path:
         """Local voice pack of a voice; never a name kokoro would download."""
-        path = self._voices_dir / f"{voice_id}.pt"
+        if voice_id in _VOICE_FILE_NAMES and self._german_voices_dir is not None:
+            path = self._german_voices_dir / _VOICE_FILE_NAMES[voice_id]
+        else:
+            path = self._voices_dir / f"{voice_id}.pt"
         if not path.is_file():
             raise ModelNotFoundError(f"voice file {path} is missing; run the voice download")
         return path
@@ -335,10 +408,10 @@ class KokoroEngine:
         return KokoroSession(self)
 
     def listVoices(self) -> tuple[VoiceInfo, ...]:
-        """List the English Kokoro voices."""
+        """List the Kokoro voices: English and German."""
         if self._disposed:
             raise EngineError("Engine disposed")
-        return ENGLISH_VOICES
+        return VOICES
 
     def dispose(self) -> None:
         """Release engine resources. Idempotent."""

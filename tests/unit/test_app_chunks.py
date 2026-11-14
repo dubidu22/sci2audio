@@ -25,7 +25,7 @@ from sci2audio.app import config as config_module
 from sci2audio.app.chunks import cache_size, chunk_file, is_finished, remove_partials
 from sci2audio.app.lock import work_folder_lock
 from sci2audio.core import AudioChunk, Span
-from sci2audio.voices import DEFAULT_VOICE, ENGLISH_VOICES
+from sci2audio.voices import DEFAULT_VOICE, ENGLISH_VOICES, VOICES
 
 
 def write_wav(path: Path, frames: int = 100, channels: int = 1, width: int = 2) -> Path:
@@ -194,7 +194,12 @@ def test_the_kokoro_source_names_its_version_and_loads_nothing(tmp_path: Path) -
     assert source.version.startswith("kokoro-82m@f3ff3571791e;kokoro ")
     assert "misaki " in source.version
     assert source.default_voice == DEFAULT_VOICE
-    assert set(source.voices) == {v.id for v in ENGLISH_VOICES}
+    assert set(source.voices) == {v.id for v in VOICES}
+    # English versions stay as they were before the German voice came (D-471)
+    assert all(source.version_of(v.id) == source.version for v in ENGLISH_VOICES)
+    german = source.version_of("dm_thorsten")
+    assert german.startswith("kokoro-de-thorsten@734e593d320a;kokoro ")
+    assert "espeakng-loader " in german
     check = (
         "import sys\nfrom pathlib import Path\nfrom sci2audio.app import kokoro_voice\n"
         "kokoro_voice(Path('models'))\nprint('torch' in sys.modules, 'kokoro' in sys.modules)"

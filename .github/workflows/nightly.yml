@@ -34,7 +34,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/test-models
           # Bump with the pinned revisions in voices/download.py and prepare_models.py.
-          key: test-models-${{ runner.os }}-kokoro-f3ff357-spacy-3.8.0-whisper-536b066
+          key: test-models-${{ runner.os }}-kokoro-f3ff357-spacy-3.8.0-de-734e593-whisper-536b066
       # The only step with network: sci2audio's own voice download plus the whisper model.
       - name: Fetch the models (skips files already cached)
         shell: bash
@@ -111,7 +111,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/test-models
           # Bump with the pinned revisions in voices/download.py and prepare_models.py.
-          key: test-models-${{ runner.os }}-kokoro-f3ff357-spacy-3.8.0-whisper-536b066
+          key: test-models-${{ runner.os }}-kokoro-f3ff357-spacy-3.8.0-de-734e593-whisper-536b066
       # The only step with network: sci2audio's own voice download plus the whisper model.
       - name: Fetch the models (skips files already cached)
         shell: bash

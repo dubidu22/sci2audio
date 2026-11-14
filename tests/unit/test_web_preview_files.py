@@ -19,7 +19,7 @@ from web_helpers import (
     wait,
 )
 
-from sci2audio.voices import PREVIEW_TEXT, EngineError
+from sci2audio.voices import PREVIEW_TEXT, EngineError, download_plan
 from sci2audio.web import api, create_app, tasks
 
 pytestmark = pytest.mark.usefixtures("offline")
@@ -108,6 +108,23 @@ def test_no_preview_without_the_voice_files(tmp_path: Path) -> None:
     assert response.status_code == 409
     assert response.json()["error"] == "voice-missing"
     assert voice.made == 0
+
+
+def test_a_preview_needs_only_its_own_voice_pack(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """D-468: with the German pack missing, Thorsten cannot preview, English voices can."""
+    german = list(download_plan(["de"]).files)
+    monkeypatch.setattr(api, "missing_files", lambda folder: german)
+    voice = FakeVoice()
+    client, _, _ = server(tmp_path, voice)
+    refused = preview(client, voice="dm_thorsten")
+    assert refused.status_code == 409
+    assert refused.json()["error"] == "voice-missing"
+    assert voice.made == 0
+    response = preview(client, voice="af_heart")
+    assert response.status_code == 202, response.text
+    assert wait(client, response.json()["id"])["state"] == "done"
 
 
 @pytest.mark.usefixtures("installed")

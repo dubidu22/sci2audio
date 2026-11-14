@@ -19,7 +19,14 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
 from sci2audio.textprep import Category
-from sci2audio.voices import DEFAULT_VOICE, ENGLISH_VOICES, download_plan, missing_files
+from sci2audio.voices import (
+    DEFAULT_VOICE,
+    PACKS,
+    VOICES,
+    download_plan,
+    missing_files,
+    voice_pack,
+)
 from sci2audio.web import models
 from sci2audio.web.documents import DocumentBusyError, RemoveError, StoredDocument, StoreError
 from sci2audio.web.jobs import BoardBusyError, JobKind, JobRecord, JobState
@@ -315,7 +322,7 @@ def _folder(text: str | None) -> Path | None:
 
 
 def _voice(voice: str) -> str:
-    if voice and voice not in {info.id for info in ENGLISH_VOICES}:
+    if voice and voice not in {info.id for info in VOICES}:
         raise ApiError(422, "invalid", f"unknown voice {voice!r}")
     return voice
 
@@ -329,8 +336,7 @@ def _job_settings(**fields: Any) -> JobSettings:
 
 def _voice_list() -> list[models.VoiceOut]:
     return [
-        models.VoiceOut(id=v.id, name=v.name, language=v.language, gender=v.gender)
-        for v in ENGLISH_VOICES
+        models.VoiceOut(id=v.id, name=v.name, language=v.language, gender=v.gender) for v in VOICES
     ]
 
 
@@ -592,6 +598,9 @@ def get_voices(state: State) -> models.VoicesOut:
         voices=_voice_list(),
         default_voice=DEFAULT_VOICE,
         installed=not missing,
+        installed_languages=[
+            p for p in PACKS if p in {f.pack for f in plan.files} - {f.pack for f in missing}
+        ],
         plan=models.PlanOut(
             digest=plan_digest(plan),
             total_bytes=plan.total_bytes,
@@ -642,7 +651,8 @@ def preview_voice(state: State, body: models.PreviewIn) -> models.JobOut:
     if not text:
         raise ApiError(422, "invalid", "text: the preview sentence is empty")
     settings = _job_settings(voice=_voice(body.voice), speed=body.speed)
-    if missing_files(state.config.models_dir):
+    pack = voice_pack(settings.voice or DEFAULT_VOICE)
+    if any(f.pack == pack for f in missing_files(state.config.models_dir)):
         raise ApiError(409, "voice-missing", "the voice is not installed yet; download it first")
     work = state.preview_work(text, settings.voice, settings.speed)
     try:

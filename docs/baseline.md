@@ -62,8 +62,11 @@ After #136 (the four rows marked "+ #136"): the estimate meets the budget in eve
 | Windows laptop | CPU | | | |
 | Linux | CPU | | | |
 | Linux cloud container, 4 vCPU (Intel(R) Xeon(R) Processor @ 2.10GHz), 2026-11-12 | CPU, torch 2.15.0+cpu | 66 to 74 (warm; `test_kokoro_speed_on_cpu`: 160 characters, 9.7 s of audio in 2.2 to 2.4 s, about 4 × real time); model load 6 to 13 s | 1.3 GB environment with the CPU torch index (`--torch-backend cpu`); 5.6 GB with the default PyPI torch, which pulls the CUDA libraries (3.0 GB nvidia, 1.0 GB triton) | Kokoro-82M, voice `af_heart`, kokoro 0.9.4; measured in #18. Plus 355 MB of voice files in the model folder |
+| Linux cloud container, 4 vCPU (Intel(R) Xeon(R) Processor @ 2.10GHz), 2026-11-14 | CPU, torch 2.15.0+cpu | 111 to 118 (warm; `test_german_kokoro_speed_on_cpu`: 217 characters in 1.84 to 1.96 s); model load about 2.5 s warm, 62 s on the first cold read from disk | as above | German voice: Kokoro Thorsten (`dm_thorsten`, Thorsten-Voice/Kokoro rev 734e593), kokoro 0.9.4, espeak-ng from espeakng-loader 0.2.4; measured in #211. Plus 328 MB of German voice files |
 
 Speech-recognition round trip (#9), same machine and date: word error rate **0.012** over 249 words (16 sentences of *The Time Machine*, chapter I), whisper `small` int8; the errors are spellings ("traveler", "gray") and one rare word.
+
+German round trip (#211), 2026-11-14, same kind of machine: word error rate **0.012** over 165 words (12 own sentences in spoken form, `test_voice_kokoro_german.py`), whisper `small` int8; the errors are one compound ("Korngrenzen" heard as "Konkrenzen") and "Vakuum". The bake-off behind the choice (D-467) is summarised in the pull request for #211.
 
 ## Output: writing the audiobook (#69)
 
