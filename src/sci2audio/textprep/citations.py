@@ -36,6 +36,7 @@ from dataclasses import dataclass, field
 
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.abbreviations import reads_full_stop
+from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN
 from sci2audio.textprep.links import (
     SKIPPED_KINDS,
     link_removals,
@@ -661,6 +662,9 @@ class _Rules:
             return _printed(before[others.start() :])
         joined = (found.group(1) or "").replace("-\n", "-") + word
         bare = re.sub(r"(?:[’']s?)\Z", "", joined)
+        # as read: a soft hyphen or zero-width space hides no name ("Ft\u00adt (1998)"), as
+        # the Unicode step drops it and a second run sees "Ftt (1998)" (#253)
+        bare = "".join(c for c in bare if c not in INVISIBLE and c != SOFT_HYPHEN)
         if not (_is_name(bare) or re.fullmatch(r"[A-Z]{2,6}", bare)):
             return ""
         if self.language == "de" and bare in READ_WORDS:

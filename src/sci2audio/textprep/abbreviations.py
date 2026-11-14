@@ -26,10 +26,12 @@ whole by other steps and skipped.
 from __future__ import annotations
 
 import re
+from bisect import bisect_left
 from collections.abc import Iterator
 from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
+from sci2audio.textprep.links import find_links, link_removals
 from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Abbreviation, abbreviations
@@ -83,7 +85,14 @@ class AbbreviationStep(TextStep):
             edits += edits_through_unread(
                 index,
                 block.text,
-                lambda read: self._edits(index, read, pattern, by_form, any_capital),  # noqa: B023
+                lambda read, index=index, block=block: self._edits(
+                    index,
+                    read,
+                    pattern,
+                    by_form,
+                    any_capital,
+                    _Removals(read, block.kind, block.label, context.language),
+                ),
                 self.id,
             )
         return edits
@@ -95,6 +104,7 @@ class AbbreviationStep(TextStep):
         pattern: re.Pattern[str],
         by_form: dict[str, tuple[Abbreviation, ...]],
         any_capital: bool = False,
+        removals: _Removals | None = None,
     ) -> Iterator[Edit]:
         for match in pattern.finditer(text):
             printed = match.group()
@@ -103,7 +113,14 @@ class AbbreviationStep(TextStep):
                     entry
                     for entry in by_form[_key(printed)]
                     if _case_fits(printed, entry)
-                    and _place_fits(text, match.end(), entry, any_capital)
+                    and (
+                        _place_fits(text, match.end(), entry, any_capital)
+                        or (
+                            removals is not None
+                            and (after := removals.past(match.end())) is not None
+                            and _place_fits(text, after, entry, any_capital)
+                        )
+                    )
                 ),
                 None,
             )
@@ -148,6 +165,52 @@ def reads_full_stop(text: str, end: int, language: str) -> bool:
 
 
 _AROUND = 96  # more than any form and the look back of `_after_name`
+
+
+class _Removals:
+    """Where the links step removes text in a block, found once and only when asked: an
+    abbreviation before a removed link reads as it does before what follows the link ("Kap.
+    https://x.org/a (ebd.)" is "Kapitel (ebenda)", as a second run, without the link, reads
+    it; #253)."""
+
+    def __init__(self, text: str, kind: BlockKind, label: str, language: str) -> None:
+        self._text = text
+        self._kind = kind
+        self._label = label
+        self._language = language
+        self._spans: list[tuple[int, int]] | None = None
+        self._starts: list[int] = []
+
+    def past(self, end: int) -> int | None:
+        """The end of the removal that starts right after `end`, white space between. The
+        removals are in order and never overlap: the first that starts at or after `end` is
+        the only one to look at, found by bisection (linear on link-dense blocks)."""
+        position = end
+        while position < len(self._text) and self._text[position] in " \t\u00a0":
+            position += 1  # linear: the matches are apart, so no white space is walked twice
+        if self._spans is None:
+            # the links step's pass over the block runs only once a link starts close by,
+            # maybe after an opener it removes with the link ("<https://…>", "(see https://…)")
+            near = position + _LEAD
+            if not _LINK_START.search(self._text, position, near):
+                return None  # cheap: no scheme, "www." or dotted host here
+            window = self._text[position : position + _LINK_WINDOW]
+            if not any(link.start < _LEAD for link in find_links(window)[:1]):
+                return None
+            self._spans = link_removals(self._text, self._kind, self._label, self._language)
+            self._starts = [start for start, _ in self._spans]
+        at = bisect_left(self._starts, end)
+        if at < len(self._spans):
+            start, stop = self._spans[at]
+            if start <= position < stop:
+                return stop
+        return None
+
+
+_LEAD = 48  # an opener and lead words the links step removes before a link, at most
+_LINK_WINDOW = 512  # enough to see that a link starts
+# what a link may start with: a scheme, "www." or a host with a dot ("x.org/a")
+_LINK_START = re.compile(r"(?:https?:|ftp:|mailto:|www\.|doi|[\w-]+(?:\.[\w-]+)+[/:])", re.I)
 
 
 def _skipped(block: Block) -> bool:

@@ -1279,6 +1279,22 @@ blocks = [{ kind = "paragraph", text = "A grid of 11 x1x1 cells." }]
 expected = ["A grid of 11 times 1 times 1 cells."]
 
 [[case]]
+id = "symbols-x-after-a-power"
+audit = 0
+issue = 253
+goal = "An x between a power and a number reads 'times' on the first run: the numbers step reads '10⁶' as '10 to the power of 6' in the same run, and a second run read the x then (found by the German second-run property, #253)."
+blocks = [{ kind = "paragraph", text = "A grid of 10⁶ x 3 cells." }]
+expected = ["A grid of 10 to the power of 6 times 3 cells."]
+
+[[case]]
+id = "symbols-x-before-a-times-sign"
+audit = 0
+issue = 253
+goal = "An x glued before a times sign stays a letter, as one after it does: '5x×' read '5x times', and a second run read '5 times times'."
+blocks = [{ kind = "paragraph", text = "The factor 5x× 3 is wrong." }]
+expected = ["The factor 5x times 3 is wrong."]
+
+[[case]]
 id = "citations-after-a-read-abbreviation-keep-the-sentence-end"
 audit = 0
 issue = 227
