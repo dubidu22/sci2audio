@@ -1134,3 +1134,22 @@ expected = [
     "Die 12. Dann mehr.",
 ]
 utterances = ["Siehe Kapitel.", "Dann mehr.", "Die 12.", "Dann mehr."]
+
+[[case]]
+id = "de-citations-a-nested-citation-goes-on-the-first-run"
+audit = 0
+issue = 271
+goal = "A citation with a citation inside it goes whole on the first run, as in English: only the inner citation went, and the first run read 'Lärm wirkt ( Schmidt, 2020).', which a second run removed; 'vgl.' before the inner citation was read 'vergleiche' and kept the bracket. As the subject its names stay. A bracket that is prose once its inner citation is read stays (D-541)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Lärm wirkt ((Müller, 2019) Schmidt, 2020). Dann mehr." },
+    { kind = "paragraph", text = "Lärm wirkt (vgl. (Müller, 2019) Schmidt, 2020). Dann mehr." },
+    { kind = "paragraph", text = "((Müller u. a., 2019) Schmidt und Weber, 2020) fanden es." },
+    { kind = "paragraph", text = "Es gilt ((Müller, 2019) siehe auch Tabelle 2) hier." },
+]
+expected = [
+    "Lärm wirkt. Dann mehr.",
+    "Lärm wirkt. Dann mehr.",
+    "Schmidt und Weber fanden es.",
+    "Es gilt (Müller siehe auch Tabelle 2) hier.",
+]
