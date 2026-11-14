@@ -18,6 +18,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- Text, Markdown and EPUB files too large to read safely are refused with a clear message before they take gigabytes of memory (#174, #158): a text file of more than 500,000 lines, a Markdown file of more than 250,000 lines or 500,000 marks that can start markup (such as `*`, `_`, `` ` ``, `[`, `<`), and a book of more than 1,000,000 lines and pieces of text. Real books are far below these limits. Children of an element with many tags now share one copy of them, so such a chapter takes a tenth of the memory. An EPUB cover whose header asks for more than 10,000 pixels on a side or 25 megapixels is left out, as a cover over 20 MB already is, because decoding it could cost 2 GB in each run that opens it (#165) (D-579).
 - A language tag as files often write it is read as the language it names (#237): "en_US" counts as en-US, "eng", "deu" and "ger" as en and de, and "und", "zxx", "mul", "mis" or a value that is no tag (such as "x-default") as no stated language, so the text's language is guessed. Before, "en_US" was taken as a language of its own and kept a German text from being read in German (D-513 to D-515).
 
 ## [1.0.0] - 2026-11-14

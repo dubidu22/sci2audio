@@ -9,12 +9,13 @@ byte order mark's, else UTF-8, else Windows-1252 as WHATWG decodes it, marked as
 from __future__ import annotations
 
 import codecs
-import time
+import tracemalloc
 from pathlib import Path
 
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from linear_time import assert_linear
 
 from sci2audio.core import Content, SourceFormat
 from sci2audio.extraction import ExtractionError, extract_text, read_text
@@ -189,12 +190,63 @@ def test_the_limit_is_the_decided_one() -> None:
     assert text_module.MAX_TEXT == 64 * 1024 * 1024
 
 
-def test_a_large_file_is_read_in_reasonable_time() -> None:
-    data = ("A line of an ordinary plain-text file, about sixty chars.\n" * 100_000).encode()
-    start = time.perf_counter()
-    content = read(data)
+def test_a_large_file_is_read_in_linear_time() -> None:
+    """Eight times the lines against a base run, on CPU time (#298)."""
+    line = "A line of an ordinary plain-text file, about sixty chars.\n"
+    content = assert_linear(lambda text: read(text.encode()), lambda n: line * n, 100_000)
     assert len(content.pages[0].lines) == 100_000
-    assert time.perf_counter() - start < 10
+
+
+# ---- the line limit (#174, D-579) ----------------------------------------------------------
+
+LINES_MESSAGE = (
+    r"^notes\.txt: the file is too large; sci2audio reads text files of up to 500,000 lines$"
+)
+
+
+def test_a_file_of_more_lines_than_the_limit_is_refused_before_it_is_split() -> None:
+    """500,001 lines of one letter (1 MB) would hold 500,001 lines in memory; the lines are
+    counted on the decoded text, so the refusal costs little more than the file itself."""
+    data = b"w\n" * 500_001
+    tracemalloc.start()
+    try:
+        with pytest.raises(ExtractionError, match=LINES_MESSAGE):
+            read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 20 * 1024 * 1024
+
+
+@pytest.mark.slow
+def test_a_file_of_exactly_the_limit_still_reads() -> None:
+    assert len(read(b"w\n" * 500_000).pages[0].lines) == 500_000
+
+
+@pytest.mark.parametrize(
+    ("text", "printed"),
+    [
+        ("a\nb\nc", 3),
+        ("a\nb\nc\n", 3),  # a line end after the last line starts no new one
+        ("a\r\nb\r\nc\r\n", 3),  # CR LF is one line end
+        ("a\rb\rc", 3),
+        ("a\n\n\nb", 4),  # blank lines count
+        ("\n\n\na", 4),
+    ],
+)
+def test_every_printed_line_counts_blank_ones_too(
+    monkeypatch: pytest.MonkeyPatch, text: str, printed: int
+) -> None:
+    assert text_module.line_count(text) == printed
+    monkeypatch.setattr(text_module, "MAX_LINES", printed)
+    read(text.encode())
+    monkeypatch.setattr(text_module, "MAX_LINES", printed - 1)
+    with pytest.raises(ExtractionError, match=f"of up to {printed - 1:,} lines$"):
+        read(text.encode())
+
+
+def test_the_line_limit_is_the_decided_one() -> None:
+    assert text_module.MAX_LINES == 500_000  # D-579
 
 
 # ---- properties --------------------------------------------------------------------------
