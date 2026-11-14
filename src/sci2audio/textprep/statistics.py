@@ -26,6 +26,7 @@ from collections.abc import Iterator, Mapping
 
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.characters import ACCENTS
+from sci2audio.textprep.footnotes import found_marks
 from sci2audio.textprep.notation import (
     SKIPPED_KINDS,
     Candidate,
@@ -136,11 +137,13 @@ class StatisticsStep(TextStep):
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         find = find_statistics_in_german if _is_german(context.language) else find_statistics
+        marks = found_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text:
                 continue
-            edits += to_edits(index, through_unread(block.text, find), self.id)
+            unread = marks.get(index, ())
+            edits += to_edits(index, through_unread(block.text, find, unread), self.id)
         return edits
 
 

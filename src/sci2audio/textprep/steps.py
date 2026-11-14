@@ -97,9 +97,15 @@ class StepContext:
 
     The app fills it from the job's settings. Fields added later get defaults, so a step
     written against this version keeps working.
+
+    `switched_off` are the categories whose edits this run will not apply; `run_steps` fills
+    it from its own `switched_off` argument. A step may read it to know what another step
+    will not change: the number and abbreviation steps read past footnote marks only while
+    the "Footnotes" category is on, because only then are the marks taken out (#316, D-595).
     """
 
     language: str  # the job's language, BCP 47 ("en", "en-GB")
+    switched_off: frozenset[Category] = frozenset()  # categories this run will not apply
 
     def __post_init__(self) -> None:
         if not self.language:
