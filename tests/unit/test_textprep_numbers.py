@@ -3,11 +3,12 @@
 """Numbers the voice reads wrong (TP-09, TP-13, #67): unit cases and properties of `NumbersStep`."""
 
 import re
-import time
 import unicodedata
+from collections.abc import Callable
 
 import pytest
 from hypothesis import given
+from linear_time import assert_linear
 from notation_texts import notation_documents
 
 from sci2audio.core import Block, BlockKind, Document, EditKind, Span, apply_edits
@@ -202,32 +203,32 @@ def test_english_and_german() -> None:
 @pytest.mark.timeout(60)
 def test_a_long_block_is_quick() -> None:
     """100,000 characters: every look back is bounded (review of PR #132)."""
-    text = "In 1234 cases 3–5 (p < .05) at 2.50 and 1/2 of 10⁶. " * 2000  # about 100,000 chars
-    document = make_document([(BlockKind.PARAGRAPH, text)])
-    started = time.perf_counter()
-    edits = STEP.find(document, EN)
-    assert time.perf_counter() - started < 3
+    unit = "In 1234 cases 3–5 (p < .05) at 2.50 and 1/2 of 10⁶. "  # 2000 times: 100,000 chars
+    edits = assert_linear(
+        lambda text: STEP.find(make_document([(BlockKind.PARAGRAPH, text)]), EN),
+        lambda n: unit * n,
+        2000,
+    )  # against a base run (#276)
     assert len(edits) == 5 * 2000  # the p value is the statistics step's
 
 
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize(
-    "text",
+    ("sized", "size"),
     [
-        "Journal 8:64–77, pp. 123–145. " * 3400,
-        "1–" * 50_000,
-        "Phase " + "I/" * 30_000,
-        "2^" * 50_000,
-        "10⁶ 2.50 " * 10_000,
-        "a" + " " * 100_000 + "1234 participants",
+        (lambda n: "Journal 8:64–77, pp. 123–145. " * n, 3400),
+        (lambda n: "1–" * n, 50_000),
+        (lambda n: "Phase " + "I/" * n, 30_000),
+        (lambda n: "2^" * n, 50_000),
+        (lambda n: "10⁶ 2.50 " * n, 10_000),
+        (lambda n: "a" + " " * n + "1234 participants", 100_000),
     ],
     ids=["reference-lines", "dashes", "roman-run", "carets", "powers-and-zeros", "long-space"],
 )
-def test_pathological_blocks_take_linear_time(text: str) -> None:
-    document = make_document([(BlockKind.PARAGRAPH, text)])
-    started = time.perf_counter()
-    STEP.find(document, EN)
-    assert time.perf_counter() - started < 3
+def test_pathological_blocks_take_linear_time(sized: Callable[[int], str], size: int) -> None:
+    assert_linear(
+        lambda text: STEP.find(make_document([(BlockKind.PARAGRAPH, text)]), EN), sized, size
+    )
 
 
 @pytest.mark.parametrize(

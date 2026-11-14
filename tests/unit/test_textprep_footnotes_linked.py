@@ -470,20 +470,19 @@ def test_many_marks_and_notes_take_linear_time() -> None:
         return make_document([(BlockKind.PARAGRAPH, text), *notes], tags={0: ranges})
 
     def seconds(document: Document) -> float:
-        """The best of three runs, with garbage collection off while timing, so a busy
-        machine (pytest -n 8) does not make one slow run look like a quadratic one."""
+        """The best of three runs in CPU time, with garbage collection off while timing, so a
+        busy machine (pytest -n 8) does not make one slow run look like a quadratic one."""
         best = float("inf")
         for _ in range(3):
             gc.disable()
             try:
-                start = time.perf_counter()
+                start = time.process_time()
                 FootnoteStep().find(document, EN)
-                best = min(best, time.perf_counter() - start)
+                best = min(best, time.process_time() - start)
             finally:
                 gc.enable()
         return best
 
-    small, large = seconds(sized(2_000)), seconds(sized(20_000))
-    assert large < 2.0
+    small, large = seconds(sized(2_000)), seconds(sized(20_000))  # no limit in seconds (#276)
     # ten times the work: linear is about 10 times the time, quadratic about 100
     assert large < 40 * max(small, 1e-3)

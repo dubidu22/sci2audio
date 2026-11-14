@@ -1,0 +1,69 @@
+"""Timing tests that a busy runner does not decide (#274, #276, D-539, D-540).
+
+A limit in seconds fails on a slow or shared machine (the macOS CI runner went 20% over
+one). Instead, a test times a step on a base text and on eight times that text, each the
+best of three runs with garbage collection off, and holds the ratio below 32: a linear
+step gives about 8, a quadratic one about 64.
+
+The clock is the process's CPU time, not the wall clock: on a loaded machine a short base
+run fits between other processes' turns and a long run does not, so wall-clock ratios grew
+past 32 for linear steps when four cores ran 24 test workers and more (#294).
+
+Where the step costs the same at both sizes by design (a cap, such as the citations step's
+longest parsed bracket), the ratio says nothing; `assert_near` times the text against a
+reference text of the same length through the same step instead.
+"""
+
+from __future__ import annotations
+
+import gc
+import sys
+import time
+from collections.abc import Callable
+
+FACTOR = 8  # the large text is this many times the base text
+LIMIT = 32  # four times linear, half of quadratic
+# seconds: a base run faster than this counts as this long (timer noise); Windows counts CPU
+# time in steps of the 15.6 ms timer tick (its reported resolution, 100 ns, is not what it
+# counts in), so there the floor is four ticks
+FLOOR = 4 / 64 if sys.platform == "win32" else 0.002
+
+
+def best_seconds[T](run: Callable[[str], T], text: str, runs: int = 3) -> tuple[float, T]:
+    """The fastest of `runs` runs of `run(text)`, gc off while timing, and its result."""
+    best = float("inf")
+    result: T
+    for _ in range(runs):
+        gc.collect()
+        gc.disable()
+        try:
+            started = time.process_time()
+            result = run(text)
+            best = min(best, time.process_time() - started)
+        finally:
+            gc.enable()
+    return best, result
+
+
+def assert_linear[T](run: Callable[[str], T], sized: Callable[[int], str], size: int) -> T:
+    """Time `run` on `sized(size // FACTOR)` and on `sized(size)`; fail if the large text
+    takes more than LIMIT times as long. Returns the result of the large run."""
+    small, _ = best_seconds(run, sized(size // FACTOR))
+    large, result = best_seconds(run, sized(size))
+    assert large < LIMIT * max(small, FLOOR), (
+        f"{FACTOR} times the text took {large / max(small, FLOOR):.1f} times as long "
+        f"({small:.3f} s, {large:.3f} s); linear is about {FACTOR}, the limit {LIMIT}"
+    )
+    return result
+
+
+def assert_near[T](run: Callable[[str], T], text: str, reference: str, limit: float) -> T:
+    """Time `run` on `text` and on `reference`, a text of the same length the step handles
+    plainly; fail if `text` takes more than `limit` times as long. Returns its result."""
+    plain, _ = best_seconds(run, reference)
+    taken, result = best_seconds(run, text)
+    assert taken < limit * max(plain, FLOOR), (
+        f"the text took {taken / max(plain, FLOOR):.1f} times as long as a plain text of its "
+        f"length ({plain:.3f} s, {taken:.3f} s); the limit is {limit}"
+    )
+    return result
