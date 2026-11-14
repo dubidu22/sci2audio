@@ -7,8 +7,12 @@
 # a word of this list counts as the start of a sentence there: an ordinal or a unit before any
 # other capital word is read as part of the same sentence.
 #
-# Never put a noun here, nor a word that is also a noun after a number ("Mal", "Teil", "Ende").
-# Each word is one word, matched as printed, with its capital.
+# Never put a noun here, nor a word that is also a noun after a number ("Mal", "Teil", "Ende",
+# "der 3. Laut", "das 2. Ich", "das Sein", "ein Nichts", "das Etwas", "das Ja", "das Nein").
+# The price: "Es waren 3. Laut Müller ..." stays one sentence. A function word that is a noun
+# only in philosophy ("das Wie", "das Hier") stays: it hardly ever follows an ordinal.
+# Each word is one word, matched as printed, with its capital; the first part of a compound
+# ("In-vitro-Versuch") is never a sentence opener.
 
 openers = [
     # articles and their forms
@@ -16,18 +20,18 @@ openers = [
     "Ein", "Eine", "Einem", "Einen", "Einer", "Eines",
     "Kein", "Keine", "Keinem", "Keinen", "Keiner", "Keines",
     # personal, demonstrative, possessive and other pronouns
-    "Ich", "Du", "Er", "Sie", "Es", "Wir", "Ihr", "Man",
+    "Du", "Er", "Sie", "Es", "Wir", "Ihr", "Man",
     "Dies", "Diese", "Diesem", "Diesen", "Dieser", "Dieses",
     "Jene", "Jenem", "Jenen", "Jener", "Jenes",
     "Unser", "Unsere", "Unserem", "Unseren", "Unserer", "Ihre", "Ihrem", "Ihren", "Ihrer",
-    "Sein", "Seine", "Seinem", "Seinen", "Seiner",
+    "Seine", "Seinem", "Seinen", "Seiner",
     "Alle", "Beide", "Viele", "Einige", "Manche", "Mehrere", "Jeder", "Jede", "Jedes",
-    "Solche", "Welche", "Nichts", "Etwas",
+    "Solche", "Welche",
     # prepositions, fused or not
     "Im", "Am", "Zum", "Zur", "Beim", "Vom", "Ins", "Ans", "Aufs",
     "In", "An", "Auf", "Aus", "Bei", "Mit", "Nach", "Seit", "Von", "Zu", "Vor", "Für",
     "Über", "Unter", "Neben", "Zwischen", "Hinter", "Durch", "Gegen", "Ohne", "Um",
-    "Während", "Wegen", "Trotz", "Laut", "Gemäß", "Ab", "Bis", "Außer",
+    "Während", "Wegen", "Trotz", "Gemäß", "Ab", "Bis", "Außer",
     # conjunctions
     "Und", "Aber", "Oder", "Denn", "Doch", "Sondern", "Da", "Weil", "Wenn", "Als", "Ob",
     "Obwohl", "Dass", "Damit", "Falls", "Sobald", "Nachdem", "Bevor",
@@ -45,5 +49,5 @@ openers = [
     "Wie", "Was", "Wer", "Wen", "Wem", "Wessen", "Warum", "Weshalb", "Wieso", "Wo", "Wann",
     "Woher", "Wohin", "Welcher", "Welches",
     # answer and other sentence words
-    "Ja", "Nein", "Nicht",
+    "Nicht",
 ]

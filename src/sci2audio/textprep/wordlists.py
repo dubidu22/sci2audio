@@ -155,8 +155,9 @@ def sentence_openers(language: str) -> frozenset[str]:
     return frozenset() if source is None else parse_sentence_openers(*source)
 
 
-# white space, maybe an opening quote or bracket, then a word
-_NEXT_WORD = re.compile(r"\s+[\"'(\[\u201c\u2018\u201e\u00bb]?([^\W\d_]+)\b")
+# white space, maybe an opening quote or bracket, then a word that is not the first part of
+# a compound ("Der 2. In-vitro-Versuch" is no "In", PR #267 review R1)
+_NEXT_WORD = re.compile(r"\s+[\"'(\[\u201c\u2018\u201e\u00bb]?([^\W\d_]+)\b(?![-\u2010\u2011])")
 
 
 def opens_sentence(text: str, position: int, language: str) -> bool:

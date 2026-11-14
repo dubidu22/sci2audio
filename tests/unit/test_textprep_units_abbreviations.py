@@ -837,6 +837,10 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("3 Std. Fahrt", "3 Stunden Fahrt"),
         ("5 Min. Pause", "5 Minuten Pause"),
         ("2 Std. danach", "2 Stunden danach"),  # lower case: no new sentence
+        # the first part of a compound opens no sentence (PR #267 review R1)
+        ("2 Std. Ein-Euro-Jobs", "2 Stunden Ein-Euro-Jobs"),
+        ("2 Std. In\u2010vitro", "2 Stunden In\u2010vitro"),
+        ("2 Std. »Danach«", "2 Stunden. »Danach«"),  # a German quote opens it (R4)
     ],
 )
 def test_german_units_read(text: str, expected: str) -> None:
@@ -937,6 +941,8 @@ def test_the_sentence_openers_load_and_hold_no_noun() -> None:
     nouns |= {entry.reads for entry in abbreviations("de") or () if entry.reads[:1].isupper()}
     nouns |= set(_NOUN_ENDINGS)
     assert not openers & {word for noun in nouns for word in noun.split()}
+    # nor a word that is also a noun after an ordinal ("der 3. Laut", PR #267 review R3)
+    assert not openers & {"Laut", "Ich", "Sein", "Nichts", "Etwas", "Ja", "Nein", "Mal", "Teil"}
 
 
 @pytest.mark.parametrize(

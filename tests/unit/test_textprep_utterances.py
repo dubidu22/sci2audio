@@ -337,6 +337,22 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         ("Siehe Kap. (Müller, 2019). Dann mehr.", ["Siehe Kapitel.", "Dann mehr."]),
         ("Siehe z. B. (Müller, 2019). Dann mehr.", ["Siehe zum Beispiel.", "Dann mehr."]),
         ("Die 12. (Müller & Schmidt, 2019). Dann mehr.", ["Die 12.", "Dann mehr."]),
+        # PR #267 review: the first part of a compound opens no sentence (R1) ...
+        ("Der 2. In-vitro-Versuch lief gut.", ["Der zweite In-vitro-Versuch lief gut."]),
+        ("Es folgte der 2. Vor-Ort-Termin.", ["Es folgte der zweite Vor-Ort-Termin."]),
+        ("Die 3. Nach-Untersuchung kam.", ["Die dritte Nach-Untersuchung kam."]),
+        ("Die 2. Seit\u2011Ansicht fehlt.", ["Die zweite Seit\u2011Ansicht fehlt."]),
+        (
+            "Es dauerte 2 Std. Ein-Euro-Jobs kamen später.",
+            ["Es dauerte 2 Stunden Ein-Euro-Jobs kamen später."],
+        ),
+        # ... nor a word that is also a noun after an ordinal (R3) ...
+        ("Der 3. Laut des Wortes ist stumm.", ["Der dritte Laut des Wortes ist stumm."]),
+        ("Das 2. Ich ist stark.", ["Das zweite Ich ist stark."]),
+        # ... and a German quote opens a sentence, its closing one may end it (R4)
+        ("Es dauerte 2 Std. »Danach« kam er.", ["Es dauerte 2 Stunden.", "»Danach« kam er."]),
+        ("Es waren 3. »Die Studie« lief.", ["Es waren 3.", "»Die Studie« lief."]),
+        ("»Es war gut.« Danach kam er.", ["»Es war gut.«", "Danach kam er."]),
     ],
 )
 def test_german_sentences_end_where_german_ends_them(text: str, sentences: list[str]) -> None:

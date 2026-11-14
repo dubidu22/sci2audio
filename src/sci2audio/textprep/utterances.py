@@ -109,8 +109,10 @@ def _german_abbreviations() -> frozenset[str]:
 
 ABBREVIATIONS["de"] = _german_abbreviations()
 
-_CLOSING = "\"')]\u201d\u2019"  # quotes and brackets that may follow a full stop
-_OPENING = "\"'([{\u201c\u2018\u201e"  # ... and that may open the next sentence ("„", #227)
+# quotes and brackets that may follow a full stop; "«" closes a German "»" (PR #267 review R4)
+_CLOSING = "\"')]\u201d\u2019\u00ab"
+# ... and that may open the next sentence ("„" and "»", #227)
+_OPENING = "\"'([{\u201c\u2018\u201e\u00bb"
 _SENTENCE_END = re.compile(rf"[.?!]+[{re.escape(_CLOSING)}]*(?=\s+(\S))")
 _INITIAL = re.compile(r"\A[A-Z]\.\Z")
 _LAST_WORD = re.compile(r"\S+\Z")
