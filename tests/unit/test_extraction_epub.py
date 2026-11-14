@@ -390,6 +390,68 @@ def test_many_tokens_on_many_elements_stay_small_and_fast() -> None:
     assert all(len(run.tags) == 200 for run in runs)  # MAX_TAGS, ancestors' included
 
 
+def test_children_of_a_heavily_tagged_parent_share_one_tag_tuple() -> None:
+    """#158: 197 `epub:type` tokens on a <p> with 50,000 <i> children made 50,000 copies of
+    a 200-tag tuple (369 MB at 200,000 children); equal tags are now one tuple."""
+    tokens = " ".join(f"t{n}" for n in range(197))
+    data = make_epub(f'<p epub:type="{tokens}">' + "<i>a</i>" * 50_000 + "</p>")
+    tracemalloc.start()
+    try:
+        content = read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 40 * 1024 * 1024
+    (run,) = content.pages[0].lines[0].runs  # one run, as before
+    assert run.text == "a" * 50_000
+    assert run.tags == ("p", *(f"epub:t{n}" for n in range(197)), "i")
+
+
+# ---- the item limit (#158, #174, D-579) -----------------------------------------------------
+
+ITEMS_MESSAGE = "book.epub: the EPUB is too large or damaged (more than {:,} pieces of text)"
+
+
+def test_lines_pieces_and_pictures_count_across_the_whole_book(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Each line, each piece of text and each picture is one item; white space between
+    elements is none. Chapter 1 holds 4 (two lines of one piece), chapter 2 holds 4 (a
+    line of two pieces and a picture)."""
+    book = make_epub("<p>a</p>\n  <p>b</p>", '<p>c <i>d</i></p><img src="x.png" alt=""/>')
+    monkeypatch.setattr(markup_module, "MAX_ITEMS", 8)
+    assert [texts(page) for page in read(book).pages] == [["a", "b"], ["c d"]]
+    monkeypatch.setattr(markup_module, "MAX_ITEMS", 7)
+    assert outcome(book, "book.epub") == ITEMS_MESSAGE.format(7)
+
+
+def test_white_space_between_inline_elements_is_not_counted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Folded white space is never kept, so it costs nothing and counts nothing."""
+    monkeypatch.setattr(markup_module, "MAX_ITEMS", 6)  # "a", " ", "b", "c" and two lines
+    content = read(make_epub("<p>a" + "<i> </i>" * 1000 + "b</p><p>c</p>"))
+    assert texts(content.pages[0]) == ["a b", "c"]
+
+
+@pytest.mark.slow
+def test_a_book_of_more_items_than_the_limit_fails() -> None:
+    """The reader has to read up to the limit to see it, so this is the slow twin of the
+    test above at the decided limit: 500,001 paragraphs of one letter are 1,000,002 items."""
+    data = make_epub("<p>a</p>" * 250_000, "<p>a</p>" * 250_001)
+    tracemalloc.start()
+    try:
+        assert outcome(data, "book.epub") == ITEMS_MESSAGE.format(1_000_000)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 1024 * 1024 * 1024
+
+
+def test_the_item_limit_is_the_decided_one() -> None:
+    assert markup_module.MAX_ITEMS == 1_000_000  # D-579
+
+
 # ---- outline -------------------------------------------------------------------------------
 
 

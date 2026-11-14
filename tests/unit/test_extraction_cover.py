@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import struct
 import zlib
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -18,14 +19,39 @@ from hypothesis import strategies as st
 from pdf_maker import Text, make_pdf
 
 from sci2audio.extraction import Cover, extract_epub_cover, extract_pdf_cover
+from sci2audio.extraction import cover as cover_module
 from sci2audio.extraction import epub as epub_module
-from sci2audio.extraction.cover import media_type, png
+from sci2audio.extraction.cover import media_type, pixel_size, png
 
 pytestmark = pytest.mark.timeout(60)
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 BROKEN = Path(__file__).resolve().parents[1] / "fixtures" / "broken"
-JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 60
+
+
+def jpeg(width: int, height: int, frame: int = 0xC0, before: bytes = b"") -> bytes:
+    """The header of a JPEG: start, an APP0 segment, `before`, and a frame header (SOF)
+    of type `frame` for 3 components; no image data, which no test here decodes."""
+    app0 = b"\xff\xe0" + struct.pack(">H", 16) + b"JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+    sof = struct.pack(">BBHBHHB", 0xFF, frame, 17, 8, height, width, 3) + b"\x01\x11\x00" * 3
+    return b"\xff\xd8" + app0 + before + sof + b"\xff\xd9"
+
+
+def png_header(width: int, height: int, depth: int = 8, kind: int = 2) -> bytes:
+    """A PNG that is all header: IHDR, an empty IDAT and IEND (no decoder runs on it)."""
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, depth, kind, 0, 0, 0))
+        + _chunk(b"IDAT", zlib.compress(b""))
+        + _chunk(b"IEND", b"")
+    )
+
+
+def _chunk(kind: bytes, data: bytes) -> bytes:
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+
+JPEG = jpeg(1, 1)
 PNG = png(1, 1, b"\x00\x00\x00", 3)
 GIF = b"GIF89a" + b"\x00" * 30
 
@@ -174,6 +200,78 @@ def test_no_usable_declared_cover_gives_none(
 def test_a_cover_over_the_limit_gives_none(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(epub_module, "MAX_COVER", 10)
     assert extract_epub_cover(epub_with(tmp_path, JPEG)) is None
+
+
+# ---- pixel size (#165, D-579) ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("data", "size"),
+    [
+        pytest.param(png_header(2560, 1600), (2560, 1600), id="png"),
+        pytest.param(png_header(16_000, 16_000, 16, 6), (16_000, 16_000), id="png-16-bit-rgba"),
+        pytest.param(PNG, (1, 1), id="png-made-by-png"),
+        pytest.param(jpeg(2560, 1600), (2560, 1600), id="jpeg-baseline"),
+        pytest.param(jpeg(640, 480, 0xC2), (640, 480), id="jpeg-progressive"),
+        pytest.param(jpeg(7, 9, 0xCF), (7, 9), id="jpeg-lossless-arithmetic"),
+        pytest.param(
+            jpeg(30, 20, before=b"\xff\xc4" + struct.pack(">H", 5) + b"abc"),
+            (30, 20),
+            id="jpeg-huffman-table-is-not-a-frame",
+        ),
+        pytest.param(
+            jpeg(30, 20, before=b"\xff\xcc" + struct.pack(">H", 6) + b"abcd"),
+            (30, 20),
+            id="jpeg-arithmetic-table-is-not-a-frame",
+        ),
+        pytest.param(jpeg(30, 20, before=b"\xff\xff\xff"), (30, 20), id="jpeg-fill-bytes"),
+        pytest.param(jpeg(30, 20)[:-8], None, id="jpeg-frame-header-cut-off"),
+        pytest.param(jpeg(30, 0), None, id="jpeg-height-defined-later"),
+        pytest.param(b"\xff\xd8\xff\xda\x00\x02\xff\xd9", None, id="jpeg-scan-before-a-frame"),
+        pytest.param(b"\xff\xd8\xff\xe0\x00\x00" + b"\x00" * 60, None, id="jpeg-bad-length"),
+        pytest.param(png_header(0, 5), None, id="png-zero-width"),
+        pytest.param(png_header(5, 5)[:20], None, id="png-truncated"),
+        pytest.param(GIF, None, id="gif"),
+    ],
+)
+def test_the_pixel_size_comes_from_the_header(data: bytes, size: tuple[int, int] | None) -> None:
+    assert pixel_size(data) == size
+
+
+@given(st.binary(max_size=200))
+def test_any_bytes_give_a_size_or_none(data: bytes) -> None:
+    for start in (b"", b"\xff\xd8", b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR"):
+        size = pixel_size(start + data)
+        assert size is None or (size[0] > 0 and size[1] > 0)
+
+
+@pytest.mark.parametrize("make", [png_header, jpeg, lambda w, h: jpeg(w, h, 0xC2)])
+@pytest.mark.parametrize(
+    ("width", "height", "kept"),
+    [
+        (2560, 1600, True),  # the largest store size
+        (10_000, 2_500, True),  # at both limits
+        (10_001, 100, False),  # a side over 10,000
+        (100, 10_001, False),
+        (6_000, 5_000, False),  # 30 megapixels
+        (5_001, 5_000, False),  # just over 25 megapixels
+    ],
+)
+def test_a_cover_of_too_many_pixels_is_no_cover(
+    tmp_path: Path, make: Callable[[int, int], bytes], width: int, height: int, kept: bool
+) -> None:
+    """A 2 MB PNG can ask ffmpeg for 2 GB per run that opens it (#165)."""
+    image = make(width, height)
+    assert (extract_epub_cover(epub_with(tmp_path, image)) is not None) is kept
+
+
+def test_a_cover_whose_size_cannot_be_read_is_no_cover(tmp_path: Path) -> None:
+    assert extract_epub_cover(epub_with(tmp_path, jpeg(30, 20)[:-8])) is None
+    assert extract_epub_cover(epub_with(tmp_path, b"\xff\xd8\xff\xe0" + b"\x00" * 60)) is None
+
+
+def test_the_pixel_limits_are_the_decided_ones() -> None:
+    assert (cover_module.MAX_COVER_PIXELS, cover_module.MAX_COVER_SIDE) == (25_000_000, 10_000)
 
 
 def test_a_declared_cover_missing_from_the_zip_gives_none(tmp_path: Path) -> None:
