@@ -1,0 +1,170 @@
+# German regression cases (v1.1, D-474 to D-482): input blocks and the script the built-in
+# text steps produce for them, one line per block that is read. Same format and loader as
+# english.toml (sci2audio.testing.regression); every case sets language = "de".
+#
+# Every text here is written for sci2audio (GPL-3.0-or-later); no third-party text.
+# Line-end hyphens are written as layout gives them: a hyphen, then a line break.
+#
+# `expected` is the script TODAY. A rule PR adds or changes the cases of its rule before it
+# changes the rule, and the PR shows the diff. What the German voice's front end (espeak-ng
+# German through misaki, #211) reads wrong without the rules is measured in
+# plans/v11-german-measure-misaki.txt.
+
+# ---- #96 line-end hyphens (TP-02) ------------------------------------------------------------
+
+[[case]]
+id = "de-hyphen-split-words-join"
+audit = 0
+issue = 96
+goal = "A word split by hyphenation is read as one word."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Bun-\ndesregierung hat die Unter-\nsuchung im Früh-\njahr veröffentlicht." }]
+expected = ["Die Bundesregierung hat die Untersuchung im Frühjahr veröffentlicht."]
+
+[[case]]
+id = "de-hyphen-compound-with-capital-kept"
+audit = 0
+issue = 96
+goal = "A hyphen the author wrote before a capitalised noun stays: 'Corona-Pandemie'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Während der Corona-\nPandemie stieg die Nachfrage." }]
+expected = ["Während der Corona-Pandemie stieg die Nachfrage."]
+
+[[case]]
+id = "de-hyphen-acronym-letter-digit-kept"
+audit = 0
+issue = 96
+goal = "After an acronym, a single letter or before a digit the hyphen stays."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die PDF-\ndatei kam per E-\nmail, der Test lief mit COVID-\n19-Daten." }]
+expected = ["Die PDF-datei kam per E-mail, der Test lief mit COVID-19-Daten."]
+
+[[case]]
+id = "de-hyphen-inside-word-kept"
+audit = 0
+issue = 96
+goal = "A hyphen already inside the first part keeps the one at the line end."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Eine Ad-hoc-\nanalyse folgte." }]
+expected = ["Eine Ad-hoc-analyse folgte."]
+
+[[case]]
+id = "de-hyphen-suspended"
+audit = 0
+issue = 96
+goal = "A suspended hyphen before a conjunction stays, with a space: 'Wohnungs- und Sozialarbeit'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Sie arbeitet in der Wohnungs-\nund Sozialarbeit, in der Kinder-\noder Jugendhilfe, in Haus-\nsowie Gartenarbeit und weder Ein-\nnoch Ausgang ist frei." }]
+expected = ["Sie arbeitet in der Wohnungs- und Sozialarbeit, in der Kinder- oder Jugendhilfe, in Haus- sowie Gartenarbeit und weder Ein- noch Ausgang ist frei."]
+
+[[case]]
+id = "de-hyphen-suspended-bis-bzw"
+audit = 0
+issue = 96
+goal = "'bis' and 'bzw.' after a suspended hyphen are conjunctions too."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Vom Kinder-\nbis ins Jugendalter, im Wohnungs-\nbzw. Sozialbereich." }]
+expected = ["Vom Kinder- bis ins Jugendalter, im Wohnungs- bzw. Sozialbereich."]
+
+[[case]]
+id = "de-hyphen-document-spelling"
+audit = 0
+issue = 96
+goal = "The document's own spelling wins: printed 'Datenschutz-Grundverordnung' elsewhere keeps the hyphen; printed 'Ladestation' joins."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Datenschutz-\nGrundverordnung gilt. Die Lade-\nstation lädt." },
+    { kind = "paragraph", text = "Die Datenschutz-Grundverordnung und jede Ladestation." },
+]
+expected = [
+    "Die Datenschutz-Grundverordnung gilt. Die Ladestation lädt.",
+    "Die Datenschutz-Grundverordnung und jede Ladestation.",
+]
+
+[[case]]
+id = "de-hyphen-no-english-second-words"
+audit = 0
+issue = 96
+goal = "German writes such compounds closed: 'kontext-/abhängig' and 'ziel-/orientiert' join; the English second-word list is not used."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das Ergebnis ist kontext-\nabhängig und ziel-\norientiert." }]
+expected = ["Das Ergebnis ist kontextabhängig und zielorientiert."]
+
+[[case]]
+id = "de-hyphen-umlaut-and-sharp-s"
+audit = 0
+issue = 96
+goal = "Umlauts and ß are letters of the word on both sides."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Ergeb-\nnisse der Übersetzungs-\nprüfung und die Grö-\nße der Stichprobe." }]
+expected = ["Die Ergebnisse der Übersetzungsprüfung und die Größe der Stichprobe."]
+
+[[case]]
+id = "de-hyphen-austrian-tag"
+audit = 0
+issue = 96
+goal = "'de-AT' and 'de-CH' use the German rule."
+language = "de-AT"
+blocks = [{ kind = "paragraph", text = "Die Kinder-\nund Jugendhilfe im Bundes-\nland." }]
+expected = ["Die Kinder- und Jugendhilfe im Bundesland."]
+
+# ---- #221 reference list (TP-06) -------------------------------------------------------------
+
+[[case]]
+id = "de-reference-list-literatur"
+audit = 0
+issue = 221
+goal = "A section headed 'Literatur' (or 'Literaturverzeichnis', 'Quellen', ...) is not read."
+language = "de"
+blocks = [
+    { kind = "heading", text = "1 Einleitung" },
+    { kind = "paragraph", text = "Der Text wird gelesen." },
+    { kind = "heading", text = "Literatur" },
+    { kind = "paragraph", text = "Müller, A. (2019). Eine Studie. Zeitschrift 1, 1–9." },
+]
+sections = [
+    { title = "1 Einleitung", level = 1, start = 0, end = 2 },
+    { title = "Literatur", level = 1, start = 2, end = 4 },
+]
+expected = ["1 Einleitung", "Der Text wird gelesen."]
+
+[[case]]
+id = "de-reference-list-numbered-quellen"
+audit = 0
+issue = 221
+goal = "A printed number before the title is taken off: '7 Quellenverzeichnis'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Text wird gelesen." },
+    { kind = "heading", text = "7 Quellenverzeichnis" },
+    { kind = "paragraph", text = "Schmidt, B. (2020). Ein Buch. Berlin." },
+]
+sections = [{ title = "7 Quellenverzeichnis", level = 1, start = 1, end = 3 }]
+expected = ["Der Text wird gelesen."]
+
+[[case]]
+id = "de-reference-list-english-heading"
+audit = 0
+issue = 221
+goal = "A German paper may head its list 'References': English names count in German too."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Text wird gelesen." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "Doe, J. (2020). A study." },
+]
+sections = [{ title = "References", level = 1, start = 1, end = 3 }]
+expected = ["Der Text wird gelesen."]
+
+[[case]]
+id = "de-reference-list-other-sections-read"
+audit = 0
+issue = 221
+goal = "Other sections are read: 'Literaturüberblick' is no reference list."
+language = "de"
+blocks = [
+    { kind = "heading", text = "2 Literaturüberblick" },
+    { kind = "paragraph", text = "Frühere Arbeiten werden besprochen." },
+]
+sections = [{ title = "2 Literaturüberblick", level = 1, start = 0, end = 2 }]
+expected = ["2 Literaturüberblick", "Frühere Arbeiten werden besprochen."]

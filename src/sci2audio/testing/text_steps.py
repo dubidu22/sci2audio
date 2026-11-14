@@ -119,10 +119,18 @@ def _sample_documents() -> tuple[Document, ...]:
         (BlockKind.PARAGRAPH, ""),
         (BlockKind.PARAGRAPH, "  \n\t  "),
     ]
+    # German (v1.1): one paragraph per German rule, written for sci2audio
     german = [
         (BlockKind.HEADING, "Einleitung"),
         (BlockKind.PARAGRAPH, "Mehrere Studien (Müller u. a., 2019) zeigen z. B. Effekte."),
         Block(BlockKind.FURNITURE, "Seite 3", role=FurnitureRole.PAGE_NUMBER),
+        (
+            BlockKind.PARAGRAPH,
+            "Die Bun-\ndesregierung prüft während der Corona-\nPandemie die Kinder-\n"
+            "und Jugendhilfe sowie die PDF-\nDatei.",
+        ),
+        (BlockKind.HEADING, "Literatur"),
+        (BlockKind.PARAGRAPH, "Müller, A. (2019). Eine Studie. Zeitschrift 1, 1\u20139."),
     ]
     # the footnote mark after "delays." is set as a superscript; "References" heads a section
     mark = len(paper[1][1]) - 1  # type: ignore[index]
@@ -133,7 +141,12 @@ def _sample_documents() -> tuple[Document, ...]:
         make_document(furniture, name="furniture.txt"),
         make_document([*paper, *furniture], name="paper.txt", tags=tags, sections=sections),
         make_document(paper, "en-GB", name="paper-gb.txt", tags=tags, sections=sections),
-        make_document(german, "de", name="german.txt"),
+        make_document(
+            german,
+            "de",
+            name="german.txt",
+            sections=[Section("Einleitung", 1, 0, 4), Section("Literatur", 1, 4, len(german))],
+        ),
     )
 
 

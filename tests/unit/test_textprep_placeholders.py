@@ -1,15 +1,19 @@
 """Formulas, tables and figures are read as a short notice (FX-01, FX-02, #64, Q3, D-145),
 and the reference list is not read (TP-06, D-146)."""
 
+from dataclasses import replace
+
 import pytest
 from hypothesis import given
+from hypothesis import strategies as st
 from textprep_documents import rule_documents
 
-from sci2audio.app.chapters import REFERENCE_NAMES
+from sci2audio.app.chapters import REFERENCE_NAMES as APP_REFERENCE_NAMES
 from sci2audio.app.chapters import is_reference_title as app_is_reference_title
 from sci2audio.core import Block, BlockKind, Document, EditKind, Section, Span
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import (
+    GERMAN_REFERENCE_TITLES,
     REFERENCE_TITLES,
     Category,
     FormulaNoticeStep,
@@ -23,6 +27,7 @@ from sci2audio.textprep import (
 )
 
 EN = StepContext("en")
+DE = StepContext("de")
 
 
 def read(document: Document, **switches: object) -> list[str]:
@@ -227,6 +232,34 @@ def test_other_titles_are_not_a_reference_list(title: str) -> None:
     assert ReferenceListStep().find(references(title), EN) == []
 
 
+@pytest.mark.parametrize(
+    "title",
+    ["Literatur", "LITERATUR", "7 Literatur", "Literaturverzeichnis", "Literaturverzeichnis:",
+     "Quellen", "8. Quellenverzeichnis", "Bibliographie", "Bibliografie", "A Literatur",
+     "References", "Bibliography"],
+)  # fmt: skip
+@pytest.mark.parametrize("language", ["de", "de-AT", "de-CH"])
+def test_a_german_reference_section_is_not_read(title: str, language: str) -> None:
+    """#221, D-481: the German names, and the English ones a German paper may print."""
+    edits = ReferenceListStep().find(references(title), StepContext(language))
+    assert [e.span.block for e in edits] == [2, 3]
+
+
+@pytest.mark.parametrize(
+    "title", ["Literaturüberblick", "Weitere Literatur", "Quellenkritik", "Anmerkungen", "Notes"]
+)
+def test_other_german_titles_are_not_a_reference_list(title: str) -> None:
+    assert ReferenceListStep().find(references(title), DE) == []
+
+
+@pytest.mark.parametrize("title", ["Literatur", "Quellen", "Bibliographie"])
+def test_german_names_count_only_in_german_jobs(title: str) -> None:
+    """An English paper's section "Quellen" is no reference list of that job (D-481)."""
+    assert ReferenceListStep().find(references(title), EN) == []
+    assert not is_reference_title(title)
+    assert is_reference_title(title, "de")
+
+
 def test_the_switch_keeps_the_reference_list() -> None:
     document = references("References")
     assert read(document, switched_off={Category.REFERENCES})[2:4] == [
@@ -248,19 +281,26 @@ TITLES = [
     " References ", "Works Cited", "Works  cited", "Reference list", "Literature cited:",
     "100 References", "Further references", "References and notes", "The References",
     "Results", "Notes", "Literature", "", "7", "References 2", "a References",
-    "VI.2 Bibliography",
+    "VI.2 Bibliography", "Literatur", "7 Literaturverzeichnis", "Quellen:", "BIBLIOGRAFIE",
+    "A.1 Bibliographie", "Literaturüberblick", "Weitere Quellen", "Quellenverzeichnis.",
 ]  # fmt: skip
 
 
 def test_the_names_are_the_apps_chapter_names() -> None:
     """One source: the app's English chapter names are the step's own tuple (D-132, D-146)."""
-    assert REFERENCE_NAMES["en"] is REFERENCE_TITLES
+    assert APP_REFERENCE_NAMES["en"] is REFERENCE_TITLES
+    assert APP_REFERENCE_NAMES["de"] is GERMAN_REFERENCE_TITLES
+    assert set(APP_REFERENCE_NAMES) == {"en", "de"}
 
 
 @pytest.mark.parametrize("title", TITLES)
 def test_the_step_and_the_chapter_choice_agree_on_every_title(title: str) -> None:
-    """The same titles, matched the same way (number, case, a closing "." or ":")."""
-    assert is_reference_title(title) == app_is_reference_title(title)
+    """The same titles, matched the same way (number, case, a closing "." or ":"); the
+    chapter choice takes the names of every language, the step those of the job's."""
+    assert app_is_reference_title(title) == any(
+        is_reference_title(title, language) for language in APP_REFERENCE_NAMES
+    )
+    assert is_reference_title(title) == is_reference_title(title, "en")
 
 
 # ---- properties ------------------------------------------------------------------------------
@@ -270,6 +310,21 @@ def test_the_step_and_the_chapter_choice_agree_on_every_title(title: str) -> Non
 def test_the_steps_keep_the_contract_on_any_document(document: Document) -> None:
     for step in (FormulaNoticeStep(), TableFigureNoticeStep(), ReferenceListStep()):
         check_text_step(step, [document], allow_ask=False)
+
+
+@given(rule_documents(), st.sampled_from(GERMAN_REFERENCE_TITLES))
+def test_the_reference_step_keeps_the_contract_on_any_german_document(
+    document: Document, name: str
+) -> None:
+    """The same documents in German, their reference sections headed with a German name."""
+    sections = tuple(
+        replace(section, title=name) if is_reference_title(section.title) else section
+        for section in document.sections
+    )
+    german = replace(document, language="de", sections=sections)
+    check_text_step(ReferenceListStep(), [german], allow_ask=False)
+    expected = ReferenceListStep().find(document, EN)
+    assert ReferenceListStep().find(german, DE) == expected
 
 
 @given(rule_documents())
