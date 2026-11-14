@@ -369,6 +369,29 @@ def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
 @pytest.mark.parametrize(
     ("printed", "said"),
     [
+        # #271: the outer bracket is judged on what it reads once its inner citations go
+        ("Lärm wirkt ((Müller, 2019) Schmidt, 2020). Dann", "Lärm wirkt. Dann"),
+        ("Lärm wirkt (vgl. (Müller, 2019) Schmidt, 2020). Dann", "Lärm wirkt. Dann"),
+        ("Lärm wirkt ((Müller, 2019)). Dann", "Lärm wirkt. Dann"),
+        ("((Müller, 2019) Schmidt, 2020) zeigt das.", "Schmidt zeigt das."),
+        # numeric citations inside are read in too (review round 1, M1)
+        ("Es gilt ((Müller, 2019) [3] Schmidt, 2020) hier.", "Es gilt hier."),
+        # an empty nest as the subject stays as empty brackets: stable, but #278 (S3)
+        ("((Müller, 2019)) zeigt das.", "() zeigt das."),
+        # prose once the inner citation is read: the bracket stays (D-541)
+        ("Es gilt ((Müller, 2019) siehe Tabelle 2).", "Es gilt (Müller siehe Tabelle 2)."),
+    ],
+)  # fmt: skip
+def test_a_nested_citation_reads_the_same_on_a_second_run(printed: str, said: str) -> None:
+    once = read(CITATIONS, printed)
+    assert once == said
+    assert read(CITATIONS, once) == once
+    assert read_all(read_all(printed)) == read_all(printed)
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
         # #285, D-547: an identifier alone in brackets is not read, as in English
         ("vom BMBF (FKZ 01IS18026A) und der DFG (527794). Dann", "vom BMBF und der DFG. Dann"),
         ("Das Projekt (Förderkennzeichen 01IS18026A) lief.", "Das Projekt lief."),

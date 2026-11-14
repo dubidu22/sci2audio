@@ -17,7 +17,14 @@ from linear_time import assert_linear
 from sci2audio.core import Block, BlockKind, Edit, EditKind, Span
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.testing.regression import render
-from sci2audio.textprep import Category, CitationStep, Stage, StepContext, run_steps
+from sci2audio.textprep import (
+    Category,
+    CitationStep,
+    Stage,
+    StepContext,
+    run_steps,
+    spoken_text,
+)
 from sci2audio.textprep.citations import brackets
 
 EN = StepContext("en")
@@ -325,6 +332,111 @@ def test_no_removal_leaves_doubled_marks_or_a_wrong_capital(text: str, spoken: s
 @pytest.mark.parametrize(
     ("printed", "said"),
     [
+        # #271: the outer bracket is judged on what it reads once its inner citations go
+        ("Noise matters ((Smith, 2019) Jones, 2020). Then", "Noise matters. Then"),
+        ("Noise matters (see (Smith, 2019) Jones, 2020). Then", "Noise matters. Then"),
+        ("Noise matters ((Smith, 2019)). Then", "Noise matters. Then"),
+        ("Noise matters (((Smith, 2019) Jones, 2020) Brown, 2021). Then", "Noise matters. Then"),
+        # as the subject its names stay, as for one citation
+        ("((Smith, 2019) Jones, 2020) is cited.", "Jones is cited."),
+        ("(((Smith, 2019) Jones, 2020) Brown, 2021) is cited.", "Brown is cited."),
+        ("such as ((Smith, 2019) Jones and Lee, 2020) could", "such as Jones and Lee could"),
+        # prose once the inner citation is read: the bracket stays (D-541)
+        ("It holds ((Smith, 2019) see Table 2) here.", "It holds (Smith see Table 2) here."),
+        ("It holds (see also (Smith, 2019); Jones, 2020).", "It holds (see also)."),
+        # numeric citations inside are read in too (review round 1, M1)
+        ("It holds ((Smith, 2019) [3] Jones, 2020) here.", "It holds here."),
+        ("It holds ([1] Jones, 2020) here.", "It holds here."),
+        # an inner reading in words goes in as a second run sees it ... (S1)
+        ("It holds (see (Smith, 2019; Lee, 2020), 2020) here.", "It holds here."),
+        # ... unless it is longer than the printed bracket: then this one stays (S1)
+        ("It holds ([3] found it) here.", "It holds (reference 3 found it) here."),
+        # a page glued after the nest goes with it (S2)
+        ("It holds ((Smith, 2019) Jones, 2020)[p. 5] here.", "It holds here."),
+    ],
+)  # fmt: skip
+def test_a_nested_citation_reads_the_same_on_a_second_run(printed: str, said: str) -> None:
+    once = read(printed)
+    assert once == said
+    assert read(once) == once
+
+
+def read_all(text: str, language: str = "en") -> str:
+    """The whole chain of built-in steps."""
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    return spoken_text(run_steps(document, StepContext(language), strict=True).script())
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # a nest as the subject whose inner citation keeps its names (review round 2, M1)
+        ("en", "(see (Smith, 2019) 2020) found it.", "Smith found it."),
+        ("en", "(see (Smith, 2019; Lee, 2020) 2021) found it.", "Smith and Lee found it."),
+        ("en", "(cf. (Smith, 2020) 2020) is cited.", "Smith is cited."),
+        ("en", "(cf. (Smith, 2020) (Lee, 2019) 2020) is cited.", "Smith is cited."),
+        ("en", "(see (Smith, 2020) [1] 2020) is cited.", "Smith is cited."),
+        ("en", "It holds ((cf. (Smith, 2020) [1] 2020) the) here.", "It holds (Smith the) here."),
+        ("en", "(see (Smith, 2019) and Lee, 2020) found it.", "Smith and Lee found it."),
+        ("en", "(Brown and (Smith, 2019) Jones, 2020) found it.", "Brown and Jones found it."),
+        ("de", "(vgl. (Müller, 2019) 2020) zeigt das.", "Müller zeigt das."),
+        ("de", "wie (vgl. (Müller, 2019) 2020) zeigt", "wie Müller zeigt"),
+        ("de", "Es gilt ((vgl. (Weber, 2020) [1] 2020) das) hier.", "Es gilt (Weber das) hier."),
+        # a page glued to an inner citation goes with it (review round 2, M2)
+        ("en", "It holds ((Smith, 2019)[p. 4] Jones, 2020) here.", "It holds here."),
+        ("de", "Es gilt ((Müller, 2019)[S. 4] Schmidt, 2020) hier.", "Es gilt hier."),
+    ],
+)  # fmt: skip
+def test_a_nest_that_keeps_inner_names_reads_the_same_on_a_second_run(
+    language: str, printed: str, said: str
+) -> None:
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
+
+
+_LEAVES = st.sampled_from(
+    ["(Smith, 2019)", "(Smith, 2019; Lee, 2020)", "[3]", "(Smith, 2019)[p. 4]", "(2019)"]
+)
+_NESTS = st.recursive(
+    _LEAVES,
+    lambda inner: st.builds(
+        "({}{}{})".format,
+        st.sampled_from(["", "see ", "cf. ", "vgl. ", "Brown and "]),
+        inner,
+        st.sampled_from(["", " Jones, 2020", " 2020", ", Lee, 2020", "; Lee, 2021", " the"]),
+    ),
+    max_leaves=4,
+)
+
+
+@given(
+    st.sampled_from(["It holds ", "", "such as ", "wie "]),
+    _NESTS,
+    st.sampled_from([" found it.", " is cited.", " here.", ")", " zeigt das."]),
+    st.sampled_from(["en", "de"]),
+)
+def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
+    before: str, nest: str, after: str, language: str
+) -> None:
+    """Review round 2 of #279, M1: a nest's edits crossed its inner bracket's, and settling
+    them left a stray ")"."""
+    text = before + nest + after
+    once = read_all(text, language)
+    assert once.count("(") - once.count(")") == text.count("(") - text.count(")"), (text, once)
+    assert read_all(once, language) == once, (text, once)
+
+
+def test_an_empty_nest_as_the_subject_is_still_read_as_empty_brackets() -> None:
+    """Today's reading, stable but empty: nothing is left to name (#278 fixes it; S3)."""
+    once = read("((Smith, 2019)) is cited.")
+    assert once == "() is cited."
+    assert read(once) == once
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
         # #285, D-547: an identifier alone in brackets is not read
         ("the IGERT program (0801700) and", "the IGERT program and"),
         ("the Simons Society of Fellows (527794). Many", "the Simons Society of Fellows. Many"),
@@ -366,8 +478,12 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
 
 @pytest.mark.parametrize(
     ("unit", "count"),
-    [("[1] ", 25_000), ("Smith (2019) shows it [3]. ", 4000)],
-    ids=["numeric", "author-year"],
+    [
+        ("[1] ", 25_000),
+        ("Smith (2019) shows it [3]. ", 4000),
+        ("Text ((Smith, 2019) Jones, 2020) here. ", 6000),  # #271: each nest judged on its own
+    ],
+    ids=["numeric", "author-year", "nests"],
 )
 def test_a_long_block_takes_linear_time(unit: str, count: int) -> None:  # S2: 100,000 characters
     # 8 times the text against a base run (#276); it took 17 s for 80,000 characters before
