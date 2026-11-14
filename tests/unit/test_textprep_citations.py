@@ -780,7 +780,12 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
     outside = re.sub(rf"\({lead}(?:\[\d[\d,;–\s-]*\]{lead})+\)", " ", text)
     outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*Smith\s\(2019\)\s*\)", " ", outside)
     for citation in placed:
-        outside = outside.replace(citation, " ")
+        outside = outside.replace(citation, "\0")
+    # ... with a separator it leaves hanging at a bracket's edge: "( noise and (see also [48,
+    # 135]))" reads "( noise)" (#305, D-577)
+    outside = re.sub(r"(?:\s*(?:\band\b|&|(?<!e\.g\.)[,;]))?\s*\0\s*(?=\))", " ", outside)
+    outside = re.sub(r"(?<=\()\s*\0\s*(?:(?:\band\b|&|[,;])\s*)?", " ", outside)
+    outside = outside.replace("\0", " ")
     # ... and a bracket left with only lead words or separators once its inner citations go:
     # "( see (see also [48, 135]))", "( and (see also [48, 135]))", and the full stop a
     # numeric citation printed before its lead words: "( [12]. see (see also [48, 135]))"
