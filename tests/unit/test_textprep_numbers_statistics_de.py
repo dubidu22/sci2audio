@@ -565,3 +565,46 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
     """Review of PR #242, items 3 and 7."""
     assert read_all(printed) == said
     assert read_all(said) == said
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #303 (D-562): a dotted date glued to "-" and a digit stays as printed on both runs
+        ("Es lief am 3.4.2019-03-12 gut.", "Es lief am 3.4.2019-03-12 gut."),
+        ("1–1am 3.4.2019-03-12", "1 bis 1am 3.4.2019-03-12"),
+        ("Es lief am 3.4.2019-2020 gut.", "Es lief am 3.4.2019-2020 gut."),
+        ("Es lief am 3.4.2019-03 gut.", "Es lief am 3.4.2019-03 gut."),
+        # apart, both dates are read; spaces round the dash: read as before
+        (
+            "Es lief am 3.4.2019 und am 2019-03-12 gut.",
+            "Es lief am dritten April 2019 und am zwölften März 2019 gut.",
+        ),
+        (
+            "Es lief am 3.4.2019 - 5.4.2019 gut.",
+            "Es lief am dritten April 2019 - fünfter April 2019 gut.",
+        ),
+        # a date without a year before a full date: read, as a second run reads it (seed 2)
+        ("1–1am 3.4. 12.03.2019", "1 bis 1am dritten April zwölfter März 2019"),
+        ("Am 3.4. 2019-03-12 lief es.", "Am dritten April zwölfter März 2019 lief es."),
+        ("Am 3.4. 12.03.2019-05 lief es.", "Am dritten April 12.03.2019-05 lief es."),
+        ("Am 3.4. 12 Fälle.", "Am 3.4. 12 Fälle."),  # before a plain number: as before
+        # review round 1 of PR #311: a hyphen between two full dates is a range
+        (
+            "Laufzeit 1.1.2020-31.12.2020 gut.",
+            "Laufzeit erster Januar 2020 bis einunddreißigsten Dezember 2020 gut.",
+        ),
+        ("Vom 3.4.2019-5.4.2019 an.", "Vom dritten April 2019 bis fünften April 2019 an."),
+        (
+            "Vom 3.4.2019-5.4.2019-7.4.2019 an.",
+            "Vom dritten April 2019 bis fünften April 2019 bis siebten April 2019 an.",
+        ),
+        ("Vom 3.4.2019-5.4.2019-06 an.", "Vom dritten April 2019-5.4.2019-06 an."),
+    ],
+)
+def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(
+    printed: str, said: str
+) -> None:
+    once = read_all(printed)
+    assert once == said
+    assert read_all(once) == once
