@@ -4,7 +4,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
-## [1.0.0] - unreleased
+## [1.0.0] - 2026-11-14
 
 The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or plain text, in English) into a faithful audiobook on your own computer: a listening script with every change marked and explained, MP3 files per chapter and an M4B with chapters, and a read-along player that highlights the original text. Everything runs offline after one voice download you start yourself.
 
