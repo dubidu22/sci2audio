@@ -626,6 +626,7 @@ def _both_runs(text: str) -> tuple[str, str]:
         # #253: a power before the x, which the numbers step reads in the same run
         ("10⁶ x1", "10 to the power of 6 times 1"),
         ("a 10⁶ x 3 grid", "a 10 to the power of 6 times 3 grid"),
+        ("10⁸ x86K", "10 to the power of 8 times 86 thousand"),  # nightly seed 8006
         # ... and "<" before a CI read glued, as the statistics step leaves it
         ("<CI=", "<confidence interval ="),
         # ... and an x before the times sign, which reads "times" after it as before it

@@ -53,7 +53,8 @@ _GAP = " \u00a0\u2009\u202f\u2007\n"  # what may stand between a number and its 
 # not inside a power ("^-1", "^{2}", "^{-1}"), but after the x of "5x86mg" or "5 x86K"
 # (the x reads "times" either way, so a second run finds the same number, #160)
 _NUMBER_START = (
-    r"(?:(?<![\w.,:/^\u2070-\u209f])(?<!\^[-\u2212{])(?<!\^\{[-\u2212])|(?<=\d[xX])|(?<=\d [xX]))"
+    r"(?:(?<![\w.,:/^\u2070-\u209f])(?<!\^[-\u2212{])(?<!\^\{[-\u2212])"
+    r"|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹][xX])|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹] [xX]))"  # after a power's x too (#253)
 )
 _EXPONENT = (
     r"(?P<exponent>[\u207b\u2212]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+"
@@ -106,7 +107,7 @@ _TILDE = re.compile(r"[~\u223c](?=[ \u00a0]{0,2}[+\-\u2212]?\.?\d)")
 # a number, then x; the number may follow another "x" of a chain ("5x86x86")
 # and may end in a power the numbers step reads ("10⁶ x1" is "10 hoch 6 x1" after it, #253)
 _LETTER_X = re.compile(
-    r"(?:(?<![\w.,/-])|(?<=\d[xX])|(?<=\d [xX]))"
+    r"(?:(?<![\w.,/-])|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹][xX])|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹] [xX]))"
     r"(?P<number>\d+(?:[.,]\d+)*(?:[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)(?P<space> ?)(?P<x>[xX])"
 )
 _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a unit: "5K/s"
@@ -206,7 +207,7 @@ class UnitStep(TextStep):
             if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
                 yield self._symbol(index, text, match.start(), words["about"], before_number=True)
         for match in _LETTER_X.finditer(text):
-            if _times_x(text, match, words["times"], table.said_operators):
+            if _times_x(text, match, words["times"], table.said_operators, table.words.decimal):
                 yield self._symbol(index, text, match.start("x"), words["times"])
 
     def _symbol(
@@ -236,6 +237,7 @@ class UnitStep(TextStep):
         )
 
 
+_POINT_NUMBER = re.compile(r" \.\d")
 _HYPHEN_LINE_END = re.compile("[-\u2010\u2011]\n\\Z")
 
 
@@ -551,20 +553,28 @@ def reads_x_after(text: str, end: int, language: str) -> bool:
         return False
     times = table.words.words["times"]
     return any(
-        match.end("number") == end and _times_x(text, match, times, table.said_operators)
+        match.end("number") == end
+        and _times_x(text, match, times, table.said_operators, table.words.decimal)
         for match in _LETTER_X.finditer(text, max(0, end - 64), end + 2)
     )
 
 
 def _times_x(
-    text: str, match: re.Match[str], times: str, said: re.Pattern[str] | None = None
+    text: str,
+    match: re.Match[str],
+    times: str,
+    said: re.Pattern[str] | None = None,
+    decimal: str = ".",
 ) -> bool:
     """True if the letter x stands for "times": between numbers, or glued after one."""
     after = match.end("x")
     rest = text[after : after + 2]
     # a decimal digit, not a superscript: "1x⁶" is "1 x⁶", not "1 times ⁶"
     if match["space"]:
-        return rest[:1].isdecimal() or (rest[:1] == " " and rest[1:2].isdecimal())
+        # where the decimal sign is a comma, ".45" is a number the numbers step reads in
+        # the same run ("0 Komma 4 5"): "2019 x .45" reads "mal" then too (#253)
+        point = decimal == "," and _POINT_NUMBER.match(text, after) is not None
+        return rest[:1].isdecimal() or (rest[:1] == " " and rest[1:2].isdecimal()) or point
     if match["number"] == "0" and rest[:1] in _HEX and rest[:1] != "":
         return False  # "0x1F"
     if rest[:1].isdecimal():
