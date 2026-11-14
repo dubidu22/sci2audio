@@ -15,7 +15,7 @@ from __future__ import annotations
 import bisect
 import re
 import unicodedata
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from functools import cache
 
@@ -112,17 +112,23 @@ def padded(text: str, start: int, end: int, words: str) -> str:
     return f"{lead}{words}{trail}"
 
 
-def through_unread(text: str, rules: Callable[[str], list[Candidate]]) -> list[Candidate]:
+def through_unread(
+    text: str,
+    rules: Callable[[str], list[Candidate]],
+    unread: Sequence[tuple[int, int]] = (),
+) -> list[Candidate]:
     """`rules` run on the text as it is read: without the characters the Unicode step (#65)
     removes, which runs last (D-150). A soft hyphen or a zero-width space inside "3:\u00ad4",
     or a stray accent in "x <¯ 3", would otherwise hide a ratio or a sign that a second run,
-    after the clean-up, finds. The candidates' spans are mapped back onto the printed text,
-    taking in any unread characters inside."""
+    after the clean-up, finds. `unread` are more ranges a step removes, such as the footnote
+    marks the footnotes step found ("bzw.¹", #316, D-577). The candidates' spans are mapped
+    back onto the printed text, taking in any unread characters inside."""
+    skipped = {at for start, end in unread for at in range(start, end)}
     kept: list[int] = []
     at = 0
     while at < len(text):
         char = text[at]
-        if char in INVISIBLE:
+        if at in skipped or char in INVISIBLE:
             at += 1
         elif char == SOFT_HYPHEN:
             at += 2 if text[at + 1 : at + 2] == "\n" else 1
@@ -146,7 +152,11 @@ def through_unread(text: str, rules: Callable[[str], list[Candidate]]) -> list[C
 
 
 def edits_through_unread(
-    block: int, text: str, rules: Callable[[str], Iterable[Edit]], step: str
+    block: int,
+    text: str,
+    rules: Callable[[str], Iterable[Edit]],
+    step: str,
+    unread: Sequence[tuple[int, int]] = (),
 ) -> list[Edit]:
     """`through_unread` for a step whose rules make `replace` edits of one block directly
     (units, abbreviations; #159): a soft hyphen or zero-width space before "kg" no longer
@@ -160,7 +170,7 @@ def edits_through_unread(
             found.append(Candidate(edit.span.start, edit.span.end, edit.replacement, edit.reason))
         return found
 
-    return to_edits(block, through_unread(text, candidates), step)
+    return to_edits(block, through_unread(text, candidates, unread), step)
 
 
 def _stray_accent(text: str, kept: list[int], n: int) -> bool:

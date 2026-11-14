@@ -104,6 +104,18 @@ class FootnoteTextStep(TextStep):
         ]
 
 
+def found_marks(document: Document, context: StepContext) -> dict[int, list[tuple[int, int]]]:
+    """The footnote marks the footnotes step removes, by block: the earlier inline steps read
+    the text without them, as a second run does ("bzw.¹", "z. B.¹", "Abschnitt 2.¹"; #316,
+    D-577). Each step finds them again; no cache is shared between steps (D6)."""
+    if context.language.split("-", 1)[0].lower() not in FootnoteStep.languages:
+        return {}
+    marks: dict[int, list[tuple[int, int]]] = {}
+    for edit, _ in FootnoteStep().marked(document, context)[1]:
+        marks.setdefault(edit.span.block, []).append((edit.span.start, edit.span.end))
+    return marks
+
+
 class FootnoteStep(TextStep):
     """Remove footnote marks from the running text and introduce each note."""
 

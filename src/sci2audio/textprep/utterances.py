@@ -114,6 +114,11 @@ _CLOSING = "\"')]\u201d\u2019\u00ab"
 # ... and that may open the next sentence ("„" and "»", #227)
 _OPENING = "\"'([{\u201c\u2018\u201e\u00bb"
 _SENTENCE_END = re.compile(rf"[.?!]+[{re.escape(_CLOSING)}]*(?=\s+(\S))")
+# German closes its quotes with U+201C (of U+201E ... U+201C), U+2018 (of U+201A ... U+2018) and,
+# in Swiss «…», with U+00BB: after ".", "!" or "?" these end a sentence there too (#315, D-577,
+# German only); in English they open a quote
+_CLOSING_DE = _CLOSING + "\u201c\u2018\u00bb"
+_SENTENCE_END_DE = re.compile(rf"[.?!]+[{re.escape(_CLOSING_DE)}]*(?=\s+(\S))")
 _INITIAL = re.compile(r"\A[A-Z]\.\Z")
 _LAST_WORD = re.compile(r"\S+\Z")
 _DASHES = "\u2013\u2014"  # en and em dash
@@ -303,13 +308,14 @@ def _sentences(
     and the fallback cut still keeps it under the limit."""
     text = run.text
     german = language.split("-", 1)[0].lower() == "de"
+    closing = _CLOSING_DE if german else _CLOSING
     cuts = [0]
-    for match in _SENTENCE_END.finditer(text):
+    for match in (_SENTENCE_END_DE if german else _SENTENCE_END).finditer(text):
         following = match.group(1)[0]
         if not (following.isupper() or following.isdigit() or following in _OPENING):
             continue
         # the word before the gap; any white space (a no-break space too) ends it
-        whole = _LAST_WORD.search(text, 0, match.end()).group().rstrip(_CLOSING)
+        whole = _LAST_WORD.search(text, 0, match.end()).group().rstrip(closing)
         # the abbreviation check looks past what is glued before it ("(2022)[p.", #91);
         # the initials check does not, or "DON'T." and "[1]A." would read as initials
         word = _GLUED_BEFORE.split(whole)[-1]

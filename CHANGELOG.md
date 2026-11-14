@@ -18,6 +18,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- Footnote marks and German closing quotes read the same on a second pass (#315, #316, D-577): in German a sentence that ends in a closing quote ("Er sagte „ja.“ Dann ...") is cut there, so a note marked after it is read after that sentence, not at the end of the paragraph. A footnote mark glued to an abbreviation or a number's full stop no longer hides it from the abbreviation, number, unit and statistics rules: "bzw.¹" reads "beziehungsweise", "z. B.¹" "zum Beispiel", "e.g.¹" "for example", and "Abschnitt 2.¹ Dann" no longer "2 Punkt". English sentences are cut as before.
 - A language tag as files often write it is read as the language it names (#237): "en_US" counts as en-US, "eng", "deu" and "ger" as en and de, and "und", "zxx", "mul", "mis" or a value that is no tag (such as "x-default") as no stated language, so the text's language is guessed. Before, "en_US" was taken as a language of its own and kept a German text from being read in German (D-513 to D-515).
 
 ## [1.0.0] - 2026-11-14

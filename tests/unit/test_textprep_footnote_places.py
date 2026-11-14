@@ -19,6 +19,7 @@ from sci2audio.textprep import (
     StepContext,
     TextStep,
     run_steps,
+    spoken_text,
 )
 from sci2audio.textprep.footnotes import FootnotePlaceStep, FootnoteStep
 from sci2audio.textprep.utterances import sentence_end
@@ -60,6 +61,22 @@ def test_german_ordinals_and_abbreviations_end_no_sentence() -> None:
     text = "Er wurde 3. Sieger im Lauf4 am Sonntag, z. B. hier. Danach ruhte er."
     start = text.index("4")
     assert text[: sentence_end(text, start + 1, [(start, start + 1)], "de")].endswith("hier.")
+
+
+@pytest.mark.parametrize(
+    ("text", "end"),
+    [
+        ("Er sagte „ja.“1 Dann ging er.", "„ja.“1"),
+        ("Er rief \u201aHalt!\u20181 Dann stand er.", "\u201aHalt!\u20181"),
+        ("Sie rief «Halt!»1 Dann stand sie.", "«Halt!»1"),
+        ("Er sagte „gut.“1 und ging. Dann mehr.", "und ging."),
+    ],
+)
+def test_a_german_closing_quote_ends_the_sentence_of_its_mark(text: str, end: str) -> None:
+    # #315 (D-577): the note is read after the quote, not at the paragraph's end
+    start = text.index("1")
+    got = sentence_end(text, start + 1, [(start, start + 1)], "de")
+    assert got == text.index(end) + len(end)
 
 
 def test_a_position_outside_the_text_is_refused() -> None:
@@ -220,3 +237,43 @@ def test_a_note_whose_place_another_rule_rewrote_stays_where_printed() -> None:
     assert move.won_by is not None
     assert move.won_by.step == "holding"
     assert render(run) == ["It grew a lot, then it fell.", "Footnote 1. A note."]
+
+
+# --- a mark glued to an abbreviation or a number (#316, D-577) -----------------------------
+
+
+def _body(document: Document, context: StepContext) -> str:
+    """The spoken text of block 0 after the whole chain."""
+    script = run_steps(document, context, strict=True).script()
+    return spoken_text(piece for piece in script if piece.span.block == 0)
+
+
+@pytest.mark.parametrize(
+    ("language", "text", "said"),
+    [
+        ("de", "Das gilt bzw.1 das auch.", "Das gilt beziehungsweise das auch."),
+        ("de", "Das ist z. B.1 so.", "Das ist zum Beispiel so."),
+        ("de", "Siehe Abschnitt 2.1 Dann weiter.", "Siehe Abschnitt 2. Dann weiter."),
+        ("de", "Es waren ca.1 5 kg.", "Es waren zirka 5 Kilogramm."),
+        ("de", "Es wog 5 kg.1 Dann mehr.", "Es wog 5 Kilogramm. Dann mehr."),
+        ("en", "It holds, e.g.1 in mice.", "It holds, for example in mice."),
+        ("en", "See Section 2.1 Then more.", "See Section 2. Then more."),
+        ("en", "It weighs approx.1 5 kg.", "It weighs approximately 5 kilograms."),
+        ("en", "It weighs 5 kg.1 Then more.", "It weighs 5 kilograms. Then more."),
+    ],
+)
+def test_a_mark_hides_no_abbreviation_or_number_from_the_first_run(
+    language: str, text: str, said: str
+) -> None:
+    # the earlier steps read the text without the mark the footnotes step removes, so the
+    # first run reads what a second run, without the mark, reads (#316, D6)
+    context = StepContext(language)
+    at = next(i for i in range(len(text)) if text[i] == "1" and text[i - 1] == ".")
+    marked = make_document(
+        [(BlockKind.PARAGRAPH, text), Block(BlockKind.FOOTNOTE, "1 A note.", label="1")],
+        language,
+        tags={0: [(at, at + 1, "sup")]},
+    )
+    plain = make_document([(BlockKind.PARAGRAPH, text[:at] + text[at + 1 :])], language)
+    assert _body(marked, context) == said
+    assert _body(plain, context) == said
