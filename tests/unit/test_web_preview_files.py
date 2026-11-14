@@ -103,6 +103,8 @@ def test_a_preview_reads_the_persons_sentence_with_the_default_voice(tmp_path: P
         ({"voice": "zz_nobody"}, "unknown voice"),
         ({"speed": 2.5}, "speed must be between"),
         ({"speed": 0.25}, "speed must be between"),
+        ({"speed": True}, "speed"),  # strict number (D-560)
+        ({"speed": "0.8"}, "speed"),
         ({"loud": True}, "loud"),
     ],
 )

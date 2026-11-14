@@ -171,6 +171,8 @@ def test_job_settings_come_from_the_saved_ones_with_the_jobs_choices_on_top(
         {"output_folder": "relative/folder"},
         {"output_folder": "/books\u0000"},
         {"other": 1},
+        {"speed": True},  # strict number (D-560)
+        {"speed": "0.8"},
     ],
 )
 def test_wrong_job_settings_are_refused(
