@@ -17,7 +17,14 @@ from linear_time import assert_linear
 from sci2audio.core import Block, BlockKind, Edit, EditKind, Span
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.testing.regression import render
-from sci2audio.textprep import Category, CitationStep, Stage, StepContext, run_steps
+from sci2audio.textprep import (
+    Category,
+    CitationStep,
+    Stage,
+    StepContext,
+    run_steps,
+    spoken_text,
+)
 from sci2audio.textprep.citations import brackets
 
 EN = StepContext("en")
@@ -352,6 +359,72 @@ def test_a_nested_citation_reads_the_same_on_a_second_run(printed: str, said: st
     once = read(printed)
     assert once == said
     assert read(once) == once
+
+
+def read_all(text: str, language: str = "en") -> str:
+    """The whole chain of built-in steps."""
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    return spoken_text(run_steps(document, StepContext(language), strict=True).script())
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # a nest as the subject whose inner citation keeps its names (review round 2, M1)
+        ("en", "(see (Smith, 2019) 2020) found it.", "Smith found it."),
+        ("en", "(see (Smith, 2019; Lee, 2020) 2021) found it.", "Smith and Lee found it."),
+        ("en", "(cf. (Smith, 2020) 2020) is cited.", "Smith is cited."),
+        ("en", "(cf. (Smith, 2020) (Lee, 2019) 2020) is cited.", "Smith is cited."),
+        ("en", "(see (Smith, 2020) [1] 2020) is cited.", "Smith is cited."),
+        ("en", "It holds ((cf. (Smith, 2020) [1] 2020) the) here.", "It holds (Smith the) here."),
+        ("en", "(see (Smith, 2019) and Lee, 2020) found it.", "Smith and Lee found it."),
+        ("en", "(Brown and (Smith, 2019) Jones, 2020) found it.", "Brown and Jones found it."),
+        ("de", "(vgl. (Müller, 2019) 2020) zeigt das.", "Müller zeigt das."),
+        ("de", "wie (vgl. (Müller, 2019) 2020) zeigt", "wie Müller zeigt"),
+        ("de", "Es gilt ((vgl. (Weber, 2020) [1] 2020) das) hier.", "Es gilt (Weber das) hier."),
+        # a page glued to an inner citation goes with it (review round 2, M2)
+        ("en", "It holds ((Smith, 2019)[p. 4] Jones, 2020) here.", "It holds here."),
+        ("de", "Es gilt ((Müller, 2019)[S. 4] Schmidt, 2020) hier.", "Es gilt hier."),
+    ],
+)  # fmt: skip
+def test_a_nest_that_keeps_inner_names_reads_the_same_on_a_second_run(
+    language: str, printed: str, said: str
+) -> None:
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
+
+
+_LEAVES = st.sampled_from(
+    ["(Smith, 2019)", "(Smith, 2019; Lee, 2020)", "[3]", "(Smith, 2019)[p. 4]", "(2019)"]
+)
+_NESTS = st.recursive(
+    _LEAVES,
+    lambda inner: st.builds(
+        "({}{}{})".format,
+        st.sampled_from(["", "see ", "cf. ", "vgl. ", "Brown and "]),
+        inner,
+        st.sampled_from(["", " Jones, 2020", " 2020", ", Lee, 2020", "; Lee, 2021", " the"]),
+    ),
+    max_leaves=4,
+)
+
+
+@given(
+    st.sampled_from(["It holds ", "", "such as ", "wie "]),
+    _NESTS,
+    st.sampled_from([" found it.", " is cited.", " here.", ")", " zeigt das."]),
+    st.sampled_from(["en", "de"]),
+)
+def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
+    before: str, nest: str, after: str, language: str
+) -> None:
+    """Review round 2 of #279, M1: a nest's edits crossed its inner bracket's, and settling
+    them left a stray ")"."""
+    text = before + nest + after
+    once = read_all(text, language)
+    assert once.count("(") - once.count(")") == text.count("(") - text.count(")"), (text, once)
+    assert read_all(once, language) == once, (text, once)
 
 
 def test_an_empty_nest_as_the_subject_is_still_read_as_empty_brackets() -> None:

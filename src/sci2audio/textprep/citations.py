@@ -451,12 +451,14 @@ class _Rules:
                 continue
             found += handled
             pending += reversed(
-                [  # inner brackets of kept text are still looked at
+                [  # inner brackets of kept text are still looked at, unless this bracket's
+                    # edits already hold theirs (a nest that keeps an inner citation's names)
                     child
                     for child in node.children
                     if not any(
                         start <= child.open and child.close < end for start, end, *_ in handled
                     )
+                    and not _covered(decided[child.open], handled)
                 ]
             )
 
@@ -519,16 +521,20 @@ class _Rules:
         # brackets costs linear time; `shift` turns its positions back into the block's
         shift = max(0, node.open - _LOOK_BACK)
         judged = list(text[shift : node.close + 1])
+        edits = [edit for child in inner for edit in decided.get(child.open) or ()]
         for child in inner:
-            handled = decided.get(child.open)
-            if not handled:
-                return None  # an inner bracket that stays as printed: no citation around it
-            for start, end, _kind, replacement, _reason in handled:
-                # a child's edit lies inside the child, with the space or mark next to it, so
-                # inside this bracket; a reading longer than its span cannot be written in
-                if len(replacement) > end - start:
-                    return None  # "([3] found it)": "reference 3" would shift what follows
-                judged[start - shift : end - shift] = replacement.ljust(end - start)
+            if not decided.get(child.open) and not any(
+                start <= child.open and child.close < end for start, end, *_ in edits
+            ):
+                # an inner bracket that stays as printed: no citation around it; one inside a
+                # sibling's edit ("(Smith, 2019)[p. 4]") goes with that sibling
+                return None
+        for start, end, _kind, replacement, _reason in edits:
+            # a child's edit lies inside the child, with the space or mark next to it, so
+            # inside this bracket; a reading longer than its span cannot be written in
+            if len(replacement) > end - start:
+                return None  # "([3] found it)": "reference 3" would shift what follows
+            judged[start - shift : end - shift] = replacement.ljust(end - start)
         read = "".join(judged)
         local = _Bracket(node.open - shift, node.close - shift)
         names = None
@@ -547,8 +553,23 @@ class _Rules:
                 return None  # "((Smith, 2019)) is cited": nothing left to name, as before
             # "((Smith, 2019) Jones, 2020) is cited" reads "Jones is cited" on both runs
             role = "is the subject of the sentence" if subject else "is part of the sentence"
-            return self._subject(text, node, names, end, role)
+            return self._with_inner(self._subject(text, node, names, end, role), edits)
         return [self._removed(text, node.open, end, "citation")]
+
+    @staticmethod
+    def _with_inner(outer: list[_Found], inner: list[_Found]) -> list[_Found] | None:
+        """A nest's own edits and those of its inner brackets that stay in its kept names:
+        "(see (Smith, 2019) and Lee, 2020) found it" keeps "Smith" of the inner bracket, so
+        its ", 2019)" goes with the outer edits; an inner edit inside an outer one goes with
+        it. None if two cross, so the nest stays as before (#279 review round 2)."""
+        kept = []
+        for edit in inner:
+            if any(start <= edit[0] and edit[1] <= end for start, end, *_ in outer):
+                continue
+            if any(edit[0] < end and start < edit[1] for start, end, *_ in outer):
+                return None
+            kept.append(edit)
+        return sorted(outer + kept)
 
     # numeric citations
 
@@ -885,6 +906,14 @@ class _Rules:
                 after = _SPACE.match(text, end)
                 return start, after.end() if after else end
         return _with_space(text, start, end)
+
+
+def _covered(edits: list[_Found] | None, handled: list[_Found]) -> bool:
+    """True if every edit is one of `handled` or lies inside one of them."""
+    return bool(edits) and all(
+        edit in handled or any(start <= edit[0] and edit[1] <= end for start, end, *_ in handled)
+        for edit in edits or ()
+    )
 
 
 def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]) -> list[_Found]:
