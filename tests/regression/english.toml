@@ -1293,3 +1293,15 @@ issue = 253
 goal = "An x glued before a times sign stays a letter, as one after it does: '5x×' read '5x times', and a second run read '5 times times'."
 blocks = [{ kind = "paragraph", text = "The factor 5x× 3 is wrong." }]
 expected = ["The factor 5x times 3 is wrong."]
+
+[[case]]
+id = "citations-after-a-read-abbreviation-keep-the-sentence-end"
+audit = 0
+issue = 227
+goal = "A citation after an abbreviation the abbreviations step reads with its full stop ('e.g.' as 'for example') leaves the sentence its own full stop: it read 'See for example Then more.' (found for German, #227). After 'et al.', which stays as printed, the citation still takes it."
+blocks = [
+    { kind = "paragraph", text = "See e.g. (Smith, 2019). Then more." },
+    { kind = "paragraph", text = "Smith et al. (2019). Then more." },
+]
+expected = ["See for example. Then more.", "Smith et al. Then more."]
+utterances = ["See for example.", "Then more.", "Smith et al. Then more."]

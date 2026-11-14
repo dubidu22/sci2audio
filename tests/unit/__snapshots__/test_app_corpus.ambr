@@ -4089,7 +4089,7 @@
         'references': False,
         'selected': True,
         'title': '6 Rechtliche Fragestellungen',
-        'utterances': 182,
+        'utterances': 164,
       }),
       dict({
         'blocks': list([
@@ -9434,7 +9434,7 @@
   | 4 | 3 PrivacyScore im Überblick | 3 | yes | 36 |
   | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 21 |
   | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
-  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 182 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 164 |
   | 8 | 7 Schlussbemerkungen | 12 | yes | 23 |
   | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
   
@@ -12161,15 +12161,13 @@
   
   Zulässigkeit der automatisierten Untersuchung von Webseiten Das Auslesen fremder Webseiten ohne die ausdrückliche Zustimmung des Betreibers ist nicht grundsätzlich unzulässig.
   Zuerst stellt sich allerdings die Frage, wem die zu untersuchenden Daten „gehören“, denn wäre jemand Eigentümer dieser Daten, könnte er diese nutzen und über sie verfügen und andere gemäß § 903 des Bürgerlichen Gesetzbuches (BGB) gerade von dieser Nutzung ausschließen.
-  Die Begründung von Eigentum kann gemäß § 903 BGB nur an Sachen i.
-  S. v. § 90 BGB bestehen.
+  Die Begründung von Eigentum kann gemäß § 903 BGB nur an Sachen i. S. v. § 90 BGB bestehen.
   Da es Daten bereits an der körperlichen Eigenschaft fehlt, kann es weder ein Eigentumsrecht an Daten noch ein aus Eigentum abgeleitetes Recht auf die ausschließliche Nutzung von Daten geben [Ze15].
   Dennoch können Daten unter verschiedenen gesetzlichen Voraussetzungen vor dem Zugriff und der Verwertung durch Dritte geschützt sein.
   Daten unterliegen einer Kommunikationsordnung, welche sich aus Regelungen in diversen Rechtsgebieten zusammensetzt und Umgangsrechte, Verfügungsberechtigungen und -beschränkungen hinsichtlich der Daten gewährt, ohne dabei eine Güterzuweisung vorzunehmen [Ro14, Ro17].
   Relevant werden können, soweit Gegenstand personenbezogene Daten von natürlichen Personen sind, Regelungen aus dem Datenschutzrecht, auch Regelungen aus dem Urheberrecht, sofern es sich um persönliche geistige Schöpfungen handelt,
   weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch (StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG).
-  Darüber hinaus ist auch ein deliktischer Abwehranspruch gegen Störungen aus dem Recht am eingerichteten und ausgeübten Gewerbebetrieb i.
-  S. v. § 823 Absatz 1 BGB denkbar.
+  Darüber hinaus ist auch ein deliktischer Abwehranspruch gegen Störungen aus dem Recht am eingerichteten und ausgeübten Gewerbebetrieb i. S. v. § 823 Absatz 1 BGB denkbar.
   
   Einige Webseitenbetreiber verbieten in ihren Nutzungsbedingungen das automatisierte Durchsuchen und Auswerten der von ihnen zur Verfügung gestellten Daten.
   Während manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell bejahen oder dies von der Art der Webseitenausgestaltung abhängig machen,
@@ -12186,8 +12184,7 @@
   
   Fußnote 15.
   OLG Köln v. fünfundzwanzigsten August 2000, Az.
-  19 U 2/00; LG Ulm v.
-  13.01.15, Az.
+  19 U 2/00; LG Ulm v. 13.01.15, Az.
   2 O 8/15; OLG Hamm v. zehnten Juni 2008, Az.
   4 U 37/08.
   
@@ -12210,34 +12207,24 @@
   Einige Tests profitieren jedoch von einer Analyse des Quelltexts einer Seite.
   Ausnahmsweise könnten ausschließliche Nutzungsrechte am Quelltext dadurch entstehen, dass diesem urheberrechtlicher Schutz zukommen würde.
   In diesem Fall müssten betroffene Webseitenbetreiber die Datenverwendung nicht dulden und hätten entsprechende Unterlassungs- und Schadensersatzansprüche.
-  Dies ist davon abhängig, ob die Webseite als Werk i.
-  S. v. § 2 Absatz 1 UrhG oder als eine geschützte Datenbank i.
-  S. v. § 4 Absatz 2 UrhG qualifiziert werden kann.
-  Hierfür ist notwendig, dass die Gestaltung derWebseite die „geistige Schöpfungshöhe“ i.
-  S. v. § 2 Absatz 2 UrhG erreicht.
+  Dies ist davon abhängig, ob die Webseite als Werk i. S. v. § 2 Absatz 1 UrhG oder als eine geschützte Datenbank i. S. v. § 4 Absatz 2 UrhG qualifiziert werden kann.
+  Hierfür ist notwendig, dass die Gestaltung derWebseite die „geistige Schöpfungshöhe“ i. S. v. § 2 Absatz 2 UrhG erreicht.
   Dies kann nur im Einzelfall beurteilt werden.
-  Regelmäßig ist der Quelltext der Webseite jedoch nicht urheberrechtlich geschützt, da die Rechtsprechung die nötige besondere „schöpferische Höhe“ i.
-  S. v. § 2 Absatz 2 UrhG für Webseiten nur in wenigen Ausnahmefällen anerkennt.
+  Regelmäßig ist der Quelltext der Webseite jedoch nicht urheberrechtlich geschützt, da die Rechtsprechung die nötige besondere „schöpferische Höhe“ i. S. v. § 2 Absatz 2 UrhG für Webseiten nur in wenigen Ausnahmefällen anerkennt.
   Auch, wenn die Datenbank als geistiger Schöpfungsakt nicht urheberrechtlich geschützt ist, kann für den Hersteller der Datenbank nach § 87b Absatz 1 Satz 1 UrhG ein Leistungsschutzrecht bestehen.
-  Ginge man davon aus, dass die im Quelltext enthaltenen Informationen eine Sammlung von Daten i.
-  S. v. § 87a UrhG enthalten, käme es für die Annahme eines Leistungsschutzrechts weiterhin darauf an, ob beim Betreiber eine wesentliche Investition zur Erstellung erforderlich war.
+  Ginge man davon aus, dass die im Quelltext enthaltenen Informationen eine Sammlung von Daten i. S. v. § 87a UrhG enthalten, käme es für die Annahme eines Leistungsschutzrechts weiterhin darauf an, ob beim Betreiber eine wesentliche Investition zur Erstellung erforderlich war.
   Allerdings räumt § 87b Absatz 1 Satz 1 UrhG ein Recht auf Untersagung der Nutzung nur ein, soweit die Nutzerin wesentliche Teile der Datenbank durchsucht.
   Soweit die Webseite, wie bei PrivacyScore, lediglich auf deren technische Umsetzung untersucht wird, stellen diese Informationen keine wesentlichen Teile der Datenbank dar.
   Für eine nach § 87b Absatz 1 Satz 2 UrhG unzulässige Vervielfältigung, die auch für unwesentliche Teile gilt, fehlt es an einer wiederholten und systematischen Handlung, da sich die Nutzung der Daten durch PrivacyScore im Rahmen einer normalen Auswertung hält.
-  Quelltexte von Webseiten genießen regelmäßig auch keinen Sonderrechtsschutz als Computerprogramme i.
-  S. v. § 2 Absatz 1 Nummer 1, 69a Absatz 1 UrhG.
+  Quelltexte von Webseiten genießen regelmäßig auch keinen Sonderrechtsschutz als Computerprogramme i. S. v. § 2 Absatz 1 Nummer 1, 69a Absatz 1 UrhG.
   Dies würde eine Folge von Befehlen, denen Auswirkungen auf den Programmablauf zukommen, voraussetzen.
   Den HTML-Befehlen im Quelltext komme dagegen nur eine beschreibende Funktion zu, um die Darstellung der Inhalte im Browser zu ermöglichen.
   
   Die Untersuchung durch PrivacyScore ist auch wettbewerbsrechtlich unbedenklich, solange es infolge seines Einsatzes nicht zu einer tatsächlichen Störung des Betriebsablaufs der Webseite, etwa einer Beeinträchtigung der Verfügbarkeit, kommt.
-  Andernfalls könnte unter der Voraussetzung der Mitbewerbereigenschaft i.
-  S. v. § 2 Nummer 3 UWG eine unlautere Behinderung i.
-  S. v. § 4 Nummer 4 UWG vorliegen.
+  Andernfalls könnte unter der Voraussetzung der Mitbewerbereigenschaft i. S. v. § 2 Nummer 3 UWG eine unlautere Behinderung i. S. v. § 4 Nummer 4 UWG vorliegen.
   Wie bereits in Abschnitt 5 dargestellt, wird durch ein Rate-Limiting-System vermieden, dass die Untersuchung durch PrivacyScore negative Auswirkungen auf die Verfügbarkeit des Servers durch technische Überlastung für andere Nutzerinnen haben kann.
-  Eine Störung der Funktionsfähigkeit i.
-  S. v. § 4 Nummer 4 UWG soll damit ausgeschlossen werden.
-  Mit der gleichen Begründung kann auch ein deliktischer Anspruch, gestützt auf eine rechtswidrige Verletzung des Rechts am eingerichteten und ausgeübten Gewerbebetrieb i.
-  S. v. § 823 I BGB, mangels eines betriebsbezogenen Eingriffs, der über eine bloße Belästigung hinausgeht, vermieden werden.
+  Eine Störung der Funktionsfähigkeit i. S. v. § 4 Nummer 4 UWG soll damit ausgeschlossen werden.
+  Mit der gleichen Begründung kann auch ein deliktischer Anspruch, gestützt auf eine rechtswidrige Verletzung des Rechts am eingerichteten und ausgeübten Gewerbebetrieb i. S. v. § 823 I BGB, mangels eines betriebsbezogenen Eingriffs, der über eine bloße Belästigung hinausgeht, vermieden werden.
   
   Fußnote 19.
   OLG Hamburg v. neunundzwanzigsten Februar 2012, Az.
@@ -12300,8 +12287,7 @@
   Da die Datenschutz-Grundverord-nung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gemäß § 288 Absatz 2 AEUV mit Geltungsbeginn am fünfundzwanzigsten Mai 2018 unmittelbar in den Mitgliedsstaaten anwendbar sein werden,
   werden sie diese nationalen Regelungen im Rahmen des Anwendungsvorrangs verdrängen.
   Aus Erwägungsgrund 5 des Entwurfs der e-Privacy-VO geht hervor, dass diese gegenüber der DSGVO spezieller sein soll, wenn ihr Anwendungsbereich betroffen ist.
-  Gleichzeitig verweist Erwägungsgrund 37 des Verordnungsentwurfs hinsichtlich der Bewertung der Datensicherheit auf Artikel 32 DSGVO, in dem i.
-  V. m.
+  Gleichzeitig verweist Erwägungsgrund 37 des Verordnungsentwurfs hinsichtlich der Bewertung der Datensicherheit auf Artikel 32 DSGVO, in dem i. V. m.
   Artikel 5 Absatz 1 lit. f DSGVO die Datensicherheit als allgemeiner Grundsatz normiert ist.
   Artikel 32 DSGVO verpflichtet den Verantwortlichen (Artikel 4 Nummer 7 DSGVO) sowie den Auftragsverarbeiter (Artikel 4 Nummer 8 DSGVO) „geeignete technische und organisatorischen Maßnahmen“ zur Herstellung eines „angemessenen Datenschutzniveaus“ zu gewährleisten.
   Neben der Pseudonymisierung nennt der Normgeber in Artikel 32 Absatz 1 lit. a DSGVO auch die Verschlüsselung als eine der bevorzugten Maßnahmen.
@@ -12329,15 +12315,12 @@
   Da mit der Veröffentlichung nachteiliger Bewertungen auch negative Auswirkungen für den Webseitenbetreiber, wie Imageverluste, verbunden sein können, stellt sich die Frage, unter welchen Voraussetzungen sich Betreiber gegen die Veröffentlichung wehren können.
   
   Veröffentlichungen über Tatsachen und Werturteile sind solange zulässig und von den Bewerteten hinzunehmen, wie sie keinen rechtswidrigen Eingriff in das Persönlichkeitsrecht des Betreibers darstellen.
-  Ein solcher ist anzunehmen, wenn im Rahmen einer Abwägung das Schutzinteresse des von der Äußerung Betroffenen auf Schutz seiner Persönlichkeit aus Artikel 1 Absatz 1 GG i.
-  V. m.
+  Ein solcher ist anzunehmen, wenn im Rahmen einer Abwägung das Schutzinteresse des von der Äußerung Betroffenen auf Schutz seiner Persönlichkeit aus Artikel 1 Absatz 1 GG i. V. m.
   Artikel 2 Absatz 1 GG, die schutzwürdigen Belange an der Veröffentlichung aus Artikel 5 Absatz 1 GG überwiegen.
-  Für inländische Unternehmen kann sich ein Persönlichkeitsrecht aus Artikel 2 Absatz 1 GG i.
-  V. m.
+  Für inländische Unternehmen kann sich ein Persönlichkeitsrecht aus Artikel 2 Absatz 1 GG i. V. m.
   Artikel 19 Absatz 3 GG und Artikel 12 Absatz 1 GG ergeben.
   Dies gilt jedoch nur in abgeschwächter Form, da Unternehmen und Unternehmer, die sich bewusst nach außen hin darstellen, kritische Bewertungen eher hinnehmen müssen.
-  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen i.
-  S. v. §§ 185 folgende.
+  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen i. S. v. §§ 185 folgende.
   StGB werden und die konkrete Aussage geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
   
   Fußnote 26.
@@ -12366,8 +12349,7 @@
   Dazu müsste die Verarbeitung der Daten „zur Wahrung der berechtigten Interessen des Verantwortlichen oder eines Dritten erforderlich“ sein, „sofern nicht die Interessen oder Grundrechte der betroffenen Person überwiegen“.
   Im Rahmen der durchzuführenden Interessenabwägung kann aufgrund der eben angeführten Argumente regelmäßig ein Überwiegen des Kommunikationsinteresses gegenüber dem Recht des Betroffenen auf informationelle Selbstbestimmung angenommen und ein Löschungsanspruch verneint werden.
   
-  Sofern sich die negative Bewertung im Rahmen von Artikel 5 Absatz 1 GG bewegt, scheiden auch wettbewerbsrechtliche Ansprüche gemäß § 4 Nummer 1 und 2 i.
-  V. m. § 8 UWG aus.
+  Sofern sich die negative Bewertung im Rahmen von Artikel 5 Absatz 1 GG bewegt, scheiden auch wettbewerbsrechtliche Ansprüche gemäß § 4 Nummer 1 und 2 i. V. m. § 8 UWG aus.
   
   # 8. 7 Schlussbemerkungen
   

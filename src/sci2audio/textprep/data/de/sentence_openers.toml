@@ -1,0 +1,53 @@
+# Words that start a German sentence and are not nouns (#227, #229; D-530).
+# Written for sci2audio, GPL-3.0-or-later; no list is copied.
+#
+# After a number or a unit printed with a full stop ("Er wurde 3.", "Es dauerte 2 Std."), a
+# capital word may be a noun of the same sentence ("3. Sieger", "2 Std. Fahrt") or the start
+# of the next one ("3. Die Studie", "2 Std. Danach"). German capitalises every noun, so only
+# a word of this list counts as the start of a sentence there: an ordinal or a unit before any
+# other capital word is read as part of the same sentence.
+#
+# Never put a noun here, nor a word that is also a noun after a number ("Mal", "Teil", "Ende",
+# "der 3. Laut", "das 2. Ich", "das Sein", "ein Nichts", "das Etwas", "das Ja", "das Nein").
+# The price: "Es waren 3. Laut Müller ..." stays one sentence. A function word that is a noun
+# only in philosophy ("das Wie", "das Hier") stays: it hardly ever follows an ordinal.
+# Each word is one word, matched as printed, with its capital; the first part of a compound
+# ("In-vitro-Versuch") is never a sentence opener.
+
+openers = [
+    # articles and their forms
+    "Der", "Die", "Das", "Dem", "Den", "Des",
+    "Ein", "Eine", "Einem", "Einen", "Einer", "Eines",
+    "Kein", "Keine", "Keinem", "Keinen", "Keiner", "Keines",
+    # personal, demonstrative, possessive and other pronouns
+    "Du", "Er", "Sie", "Es", "Wir", "Ihr", "Man",
+    "Dies", "Diese", "Diesem", "Diesen", "Dieser", "Dieses",
+    "Jene", "Jenem", "Jenen", "Jener", "Jenes",
+    "Unser", "Unsere", "Unserem", "Unseren", "Unserer", "Ihre", "Ihrem", "Ihren", "Ihrer",
+    "Seine", "Seinem", "Seinen", "Seiner",
+    "Alle", "Beide", "Viele", "Einige", "Manche", "Mehrere", "Jeder", "Jede", "Jedes",
+    "Solche", "Welche",
+    # prepositions, fused or not
+    "Im", "Am", "Zum", "Zur", "Beim", "Vom", "Ins", "Ans", "Aufs",
+    "In", "An", "Auf", "Aus", "Bei", "Mit", "Nach", "Seit", "Von", "Zu", "Vor", "Für",
+    "Über", "Unter", "Neben", "Zwischen", "Hinter", "Durch", "Gegen", "Ohne", "Um",
+    "Während", "Wegen", "Trotz", "Gemäß", "Ab", "Bis", "Außer",
+    # conjunctions
+    "Und", "Aber", "Oder", "Denn", "Doch", "Sondern", "Da", "Weil", "Wenn", "Als", "Ob",
+    "Obwohl", "Dass", "Damit", "Falls", "Sobald", "Nachdem", "Bevor",
+    # adverbs that open a sentence
+    "Danach", "Dann", "Davor", "Dabei", "Dadurch", "Dafür", "Dagegen", "Daher", "Darauf",
+    "Daraus", "Darin", "Darum", "Davon", "Dazu", "Deshalb", "Deswegen", "Somit", "Also",
+    "Jedoch", "Allerdings", "Außerdem", "Zudem", "Ferner", "Weiterhin", "Zusätzlich",
+    "Auch", "Hier", "Dort", "Heute", "Jetzt", "Nun", "So", "Trotzdem", "Dennoch",
+    "Insgesamt", "Schließlich", "Zuletzt", "Zunächst", "Zuerst", "Anschließend",
+    "Später", "Bereits", "Schon", "Noch", "Nur", "Erst", "Immer", "Oft", "Meist",
+    "Vielleicht", "Wahrscheinlich", "Tatsächlich", "Natürlich", "Leider", "Ebenso",
+    "Gleichzeitig", "Stattdessen", "Folglich", "Demnach", "Dementsprechend", "Hingegen",
+    "Andererseits", "Einerseits", "Insbesondere",
+    # question words
+    "Wie", "Was", "Wer", "Wen", "Wem", "Wessen", "Warum", "Weshalb", "Wieso", "Wo", "Wann",
+    "Woher", "Wohin", "Welcher", "Welches",
+    # answer and other sentence words
+    "Nicht",
+]

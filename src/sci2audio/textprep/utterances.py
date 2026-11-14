@@ -11,6 +11,14 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
   after an abbreviation of the language ("Fig.", "et al.", "e.g."; "No.", "p." and the like
   only before a number) or a single initial ("J. Smith"; so "set A. Then" stays one
   utterance, which the length limit still caps), and never inside a replacement.
+- German (#227, D-530): the abbreviations are those of the German lists that end no
+  sentence, the units and magnitudes printed with a full stop ("Std.", "Mio.") and the "o."
+  of "o. J.". After a number of one to three digits and a full stop (an ordinal no step read,
+  "Er wurde 3. Sieger"), a sentence ends only before a sentence opener of
+  `data/de/sentence_openers.toml` ("Es waren 3. Die Studie lief."), never before a digit
+  ("Am 3. 4. 2019"). Its limit: German capitalises nouns and the list holds none, so a
+  sentence that starts with a noun after such a number stays in the same utterance ("Es
+  waren 3. Studien zeigen das."): a pause and the pitch move, no text is lost.
 - The voice takes only so much text per call (Kokoro: about 510 phoneme tokens). A sentence
   longer than `max_chars` is cut at the last ";" or ":" that fits, else the last comma,
   else a dash, else the last space; a single word longer than that is cut where it must be.
@@ -32,6 +40,7 @@ from itertools import pairwise
 
 from sci2audio.core import Document, ScriptPiece, Span
 from sci2audio.textprep.spoken import spoken_text
+from sci2audio.textprep.wordlists import abbreviations, opens_sentence, units
 
 DEFAULT_MAX_CHARS = 300  # well under Kokoro's per-call limit; #18 sets the voice's own
 
@@ -78,8 +87,32 @@ ABBREVIATIONS: dict[str, frozenset[str]] = {
     ),
 }
 
-_CLOSING = "\"')]\u201d\u2019"  # quotes and brackets that may follow a full stop
-_OPENING = "\"'([{\u201c\u2018"  # ... and that may open the next sentence
+
+def _german_abbreviations() -> frozenset[str]:
+    """German: the abbreviation list's dotted words that end no sentence ("abb.", "z.",
+    "b.", "o."), and the units and magnitudes printed with a full stop ("std.", "mio."),
+    lower case; built from the lists, so a new entry is covered at once (#227)."""
+    words: set[str] = set()
+    for entry in abbreviations("de") or ():
+        if entry.can_end_sentence:
+            continue
+        for form in entry.printed:
+            words.update(token.lower() for token in form.split() if token.endswith("."))
+            if " " not in form:
+                words.add(form.lower())
+    listed = units("de")
+    for unit in listed.units if listed else ():
+        words.update(form.lower() for form in unit.printed if form.endswith("."))
+    # "o. J." (no year) is left as printed by the abbreviations step, and so is its "o."
+    return frozenset(words | {"o.", "j."})
+
+
+ABBREVIATIONS["de"] = _german_abbreviations()
+
+# quotes and brackets that may follow a full stop; "«" closes a German "»" (PR #267 review R4)
+_CLOSING = "\"')]\u201d\u2019\u00ab"
+# ... and that may open the next sentence ("„" and "»", #227)
+_OPENING = "\"'([{\u201c\u2018\u201e\u00bb"
 _SENTENCE_END = re.compile(rf"[.?!]+[{re.escape(_CLOSING)}]*(?=\s+(\S))")
 _INITIAL = re.compile(r"\A[A-Z]\.\Z")
 _LAST_WORD = re.compile(r"\S+\Z")
@@ -91,6 +124,9 @@ _GLUED_BEFORE = re.compile(f"[{re.escape(_OPENING + _CLOSING + '}' + _DASHES + '
 # full stop may end a sentence ("The answer is no. Then ...")
 _BEFORE_NUMBERS = frozenset({"no.", "nos.", "p.", "pp.", "vol."})
 _CLAUSE_MARKS = (";:", ",", "\u2013\u2014")  # in the order a long sentence is cut at them
+# German: a number of one to three digits with a full stop, an ordinal ("3. Sieger") or a
+# number no step read; a sentence ends after it only before a sentence opener (#227, D-530)
+_SHORT_NUMBER = re.compile(r"\A\d{1,3}\.\Z")
 
 
 @dataclass(frozen=True)
@@ -175,7 +211,7 @@ def cut_utterances(
             utterances.append(Utterance("", run_or_pause.span, pause=True))
             continue
         run = run_or_pause
-        for start, end in _sentences(run, abbreviations):
+        for start, end in _sentences(run, abbreviations, language):
             continues = False  # the sentence's first utterance starts it
             for a, b in _fitted(run, start, end, max_chars):
                 if utterance := _utterance(run, a, b, continues):
@@ -212,11 +248,14 @@ def _runs(document: Document, pieces: Iterable[ScriptPiece]) -> list[_Run | Scri
     return out
 
 
-def _sentences(run: _Run, abbreviations: frozenset[str]) -> list[tuple[int, int]]:
+def _sentences(
+    run: _Run, abbreviations: frozenset[str], language: str = "en"
+) -> list[tuple[int, int]]:
     """Ranges of the run's text, one per sentence; white space stays with the sentence
     before. A sentence end inside a replacement is not a cut: the replacement is read whole,
     and the fallback cut still keeps it under the limit."""
     text = run.text
+    german = language.split("-", 1)[0].lower() == "de"
     cuts = [0]
     for match in _SENTENCE_END.finditer(text):
         following = match.group(1)[0]
@@ -228,12 +267,24 @@ def _sentences(run: _Run, abbreviations: frozenset[str]) -> list[tuple[int, int]
         # the initials check does not, or "DON'T." and "[1]A." would read as initials
         word = _GLUED_BEFORE.split(whole)[-1]
         lowered = word.lower()
-        if lowered in abbreviations and not (
-            lowered in _BEFORE_NUMBERS and not following.isdigit()
+        if (
+            lowered in abbreviations
+            and not (lowered in _BEFORE_NUMBERS and not following.isdigit())
+            # German: a single letter of a spaced form ("i." of "i. S. v.") only on its own,
+            # not glued to a range ("lit. a\u2013d. Ob", the end of a sentence)
+            and not (german and len(lowered) == 2 and lowered != whole.lower())
         ):
             continue
         if _INITIAL.match(whole.lstrip(_OPENING)):
             continue
+        if (
+            german
+            and _SHORT_NUMBER.match(word)
+            and run.piece_at(match.start())[2]  # printed, not a step's words ("Fußnote 1.")
+            and not _after_label(text, match.start() - len(word) + 1, language)
+            and not opens_sentence(text, match.end(), language)
+        ):
+            continue  # "Er wurde 3. Sieger", "Am 3. 4. 2019"; "Es waren 3. Die Studie" is cut
         cut = match.start(1)
         inside = run.inside_replacement(cut)
         if inside and text[inside[0] : cut].strip():  # replacement text before the cut
@@ -241,6 +292,18 @@ def _sentences(run: _Run, abbreviations: frozenset[str]) -> list[tuple[int, int]
         cuts.append(cut)
     cuts.append(len(text))
     return [(a, b) for a, b in pairwise(cuts) if a < b]
+
+
+_WORD_BEFORE = re.compile(r"(\S+)\s+\Z")
+
+
+def _after_label(text: str, start: int, language: str) -> bool:
+    """True if a label word of the unit list stands right before `start` ("Abbildung 1.",
+    "Tabelle 3."): the number is the label's, no ordinal, and its full stop may end the
+    sentence before any capital ("gibt Abbildung 1. PrivacyScore ist ...")."""
+    listed = units(language)
+    before = _WORD_BEFORE.search(text, max(0, start - 32), start)
+    return listed is not None and before is not None and before[1].lower() in listed.labels
 
 
 def _counts(text: str) -> list[int]:

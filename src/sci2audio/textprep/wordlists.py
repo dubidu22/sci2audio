@@ -1,6 +1,7 @@
 """The word lists the abbreviation and unit steps read, kept as data (TP-08, D-229).
 
-One folder per language under `textprep/data/` (`en/abbreviations.toml`, `en/units.toml`),
+One folder per language under `textprep/data/` (`en/abbreviations.toml`, `en/units.toml`;
+German also `de/sentence_openers.toml`, #227),
 written for sci2audio. A list is read once and checked as it is read: a missing field, a
 wrong type or a form listed twice raises `ValueError` naming the file and the entry, so a
 broken list fails the first test that loads it, never a job. A language without a folder
@@ -9,6 +10,7 @@ has no list (`None`).
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field
 from functools import cache
@@ -143,6 +145,39 @@ def units(language: str) -> UnitList | None:
     """The units, magnitude letters and words of the unit step for a language, or None."""
     source = _source(language, "units.toml")
     return None if source is None else parse_units(*source)
+
+
+@cache
+def sentence_openers(language: str) -> frozenset[str]:
+    """The words that start a sentence after a number or a unit printed with a full stop
+    ("3. Die Studie", "2 Std. Danach"), as printed; empty for a language without a list."""
+    source = _source(language, "sentence_openers.toml")
+    return frozenset() if source is None else parse_sentence_openers(*source)
+
+
+# white space, maybe an opening quote or bracket, then a word that is not the first part of
+# a compound ("Der 2. In-vitro-Versuch" is no "In", PR #267 review R1)
+_NEXT_WORD = re.compile(r"\s+[\"'(\[\u201c\u2018\u201e\u00bb]?([^\W\d_]+)\b(?![-\u2010\u2011])")
+
+
+def opens_sentence(text: str, position: int, language: str) -> bool:
+    """True if a word of the language's sentence-opener list follows `position` after white
+    space (and maybe an opening quote or bracket): "2 Std. Danach", "3. „Die"."""
+    openers = sentence_openers(language)
+    found = _NEXT_WORD.match(text, position) if openers else None
+    return found is not None and found.group(1) in openers
+
+
+def parse_sentence_openers(where: str, text: str) -> frozenset[str]:
+    """Read and check a sentence-opener list: one capitalised word each, none twice."""
+    data = _load(where, text)
+    _no_extra(where, data, {"openers"})
+    words = _strings(where, data, "openers")
+    for word in words:
+        if not (word.isalpha() and word[0].isupper()):
+            raise ValueError(f"{where}: {word!r} is not one capitalised word")
+    _once(where, list(words))
+    return frozenset(words)
 
 
 def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:

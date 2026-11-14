@@ -26,10 +26,14 @@ from sci2audio.textprep import (
     wording_for,
 )
 from sci2audio.textprep.notation import edits_through_unread
+from sci2audio.textprep.numbers_de import _NOUN_ENDINGS
 from sci2audio.textprep.wordlists import (
     abbreviations,
+    opens_sentence,
     parse_abbreviations,
+    parse_sentence_openers,
     parse_units,
+    sentence_openers,
     units,
 )
 
@@ -823,6 +827,20 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("für 1 €", "für einen Euro"),
         ("5 GB", "5 GB"),
         ("COVID-19 m", "COVID-19 m"),
+        # #229: a dotted unit keeps its full stop before a sentence opener, and only there
+        ("2 Std. Danach wurde gewertet.", "2 Stunden. Danach wurde gewertet."),
+        ("5 Min. Dann kam er.", "5 Minuten. Dann kam er."),
+        ("2 Mio. Er zahlte.", "2 Millionen. Er zahlte."),
+        ("2 Mio. (Er zahlte.)", "2 Millionen. (Er zahlte.)"),
+        ("3 Mrd. „Die Kosten“", "3 Milliarden. „Die Kosten“"),
+        ("2 Mio. Euro", "2 Millionen Euro"),
+        ("3 Std. Fahrt", "3 Stunden Fahrt"),
+        ("5 Min. Pause", "5 Minuten Pause"),
+        ("2 Std. danach", "2 Stunden danach"),  # lower case: no new sentence
+        # the first part of a compound opens no sentence (PR #267 review R1)
+        ("2 Std. Ein-Euro-Jobs", "2 Stunden Ein-Euro-Jobs"),
+        ("2 Std. In\u2010vitro", "2 Stunden In\u2010vitro"),
+        ("2 Std. »Danach«", "2 Stunden. »Danach«"),  # a German quote opens it (R4)
     ],
 )
 def test_german_units_read(text: str, expected: str) -> None:
@@ -863,7 +881,7 @@ _GERMAN_TOKENS = [
     "\u00b0C", "/", "/(", ")", "\u00b7", "\u00b2", "\u00b3", "\u207b\u00b9", "x", "\u00d7",
     "\u2248", "~", "%", "z. B.", "Z.B.", "u. a.", "(2019)", "S.", "s.", "s. o.", "Abb.", "abb.",
     "Nr.", "usw.", "Dr.", "max.", "min", "min.", "nach", "mit", "für", "Abbildung", "Tag",
-    "Strom", "ein", ".", ",", "ä", "ß", "Über",
+    "Strom", "ein", ".", ",", "ä", "ß", "Über", "Danach", "Er", "Euro", "„",
 ]  # fmt: skip
 _GERMAN_TEXTS = st.lists(st.sampled_from(_GERMAN_TOKENS), min_size=1, max_size=30).map("".join)
 
@@ -900,6 +918,49 @@ def test_german_edits_add_no_digit_and_take_a_number_only_for_one(document: Docu
             assert edit.replacement in ("ein", "eine", "einem", "einer", "einen"), edit
 
 
+@given(german_unit_documents())
+def test_a_dotted_unit_never_takes_the_full_stop_before_a_sentence_opener(
+    document: Document,
+) -> None:
+    """#229: a unit's edit that takes a full stop along never stands before a sentence
+    opener; the full stop is either read with the unit or left right after it."""
+    for edit in UNITS.find(document, DE):
+        text = document.blocks[edit.span.block].text
+        if text[edit.span.end - 1 : edit.span.end] == ".":
+            assert not opens_sentence(text, edit.span.end, "de"), edit
+
+
+def test_the_sentence_openers_load_and_hold_no_noun() -> None:
+    openers = sentence_openers("de-AT")
+    assert {"Der", "Danach", "Er", "Im", "Wie"} <= openers
+    assert sentence_openers("en") == frozenset()
+    listed = units("de")
+    assert listed is not None
+    nouns = {word for unit in listed.units for word in (unit.singular, unit.plural)}
+    nouns |= {word for word in listed.magnitudes.values()}
+    nouns |= {entry.reads for entry in abbreviations("de") or () if entry.reads[:1].isupper()}
+    nouns |= set(_NOUN_ENDINGS)
+    assert not openers & {word for noun in nouns for word in noun.split()}
+    # nor a word that is also a noun after an ordinal ("der 3. Laut", PR #267 review R3)
+    assert not openers & {"Laut", "Ich", "Sein", "Nichts", "Etwas", "Ja", "Nein", "Mal", "Teil"}
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        ('openers = ["Dann", "Dann"]', "listed twice"),
+        ('openers = ["dann"]', "not one capitalised word"),
+        ('openers = ["Vor allem"]', "not one capitalised word"),
+        ('openers = ["Dann"]\nextra = 1', "unknown keys"),
+        ("openers = []", "must be a list"),
+    ],
+)
+def test_a_broken_opener_list_names_the_file(text: str, message: str) -> None:
+    with pytest.raises(ValueError, match=message) as error:
+        parse_sentence_openers("de/sentence_openers.toml", text)
+    assert "de/sentence_openers.toml" in str(error.value)
+
+
 def test_random_german_token_soup_never_gives_overlapping_or_bad_edits() -> None:
     rng = random.Random(113)  # noqa: S311 (a fixed seed for a repeatable fuzz, not secrecy)
     count = 30_000 if os.environ.get("HYPOTHESIS_PROFILE") == "nightly" else 2_000
@@ -920,7 +981,7 @@ def _both_runs_de(text: str) -> tuple[str, str]:
 @pytest.mark.parametrize(
     "printed",
     ["nach 1 h mit 1 kg", "40 m² und 9,8 m/s²", "z. B. S. 12, s. o.", "5 Mio. Euro",
-     "Müller u. a. (2019)", "1 Mio.", "3x so schnell"],
+     "Müller u. a. (2019)", "1 Mio.", "3x so schnell", "2 Std. Danach mehr", "2 Std. Fahrt"],
 )  # fmt: skip
 def test_german_units_and_abbreviations_read_the_same_on_a_second_run(printed: str) -> None:
     first, again = _both_runs_de(printed)

@@ -42,7 +42,7 @@ from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.notation import FILE_NUMBER_DE, edits_through_unread
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
-from sci2audio.textprep.wordlists import Unit, UnitList, units
+from sci2audio.textprep.wordlists import Unit, UnitList, opens_sentence, units
 
 MICRO_SIGN = "\u00b5"
 GREEK_MU = "\u03bc"
@@ -142,6 +142,7 @@ class _Table:
     said_operators: re.Pattern[str] = re.compile(r"(?!)")
     # text the step leaves as printed: a German court's file number ("13 W 17/12", #243)
     kept: re.Pattern[str] = re.compile(r"(?!)")
+    language: str = "en"
 
 
 class UnitStep(TextStep):
@@ -280,7 +281,15 @@ def _compiled(language: str) -> _Table | None:
     )
     kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
     return _Table(
-        listed, by_form, pattern, magnitude, number, _label_list(listed.label_joins), said, kept
+        listed,
+        by_form,
+        pattern,
+        magnitude,
+        number,
+        _label_list(listed.label_joins),
+        said,
+        kept,
+        language.split("-", 1)[0].lower(),
     )
 
 
@@ -321,8 +330,12 @@ def _unit_after(
             )
             one = _exactly_one(text, number)
             plural = not attributive and not one
-            if text[stop - 1] == "." and not text[stop:].strip():
-                stop -= 1  # "nach 2 Std." at the end of a block keeps its full stop
+            if text[stop - 1] == "." and (
+                not text[stop:].strip() or opens_sentence(text, stop, table.language)
+            ):
+                # "nach 2 Std." at the end of a block keeps its full stop, and so does "2 Std.
+                # Danach" before a sentence opener (#229); "2 Std. Fahrt" is one sentence
+                stop -= 1
             reads = _reading(terms, plural, table)
             shown = " ".join(text[start:stop].split())
             gender = first.gender if one and not terms[0].per else ""
