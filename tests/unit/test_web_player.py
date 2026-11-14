@@ -275,6 +275,33 @@ def test_a_word_the_hyphen_step_joined_shows_joined_and_a_kept_hyphen_as_printed
     )
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "See https://www.data-\nbase.org/x for more.",
+        "See www.mypack-\nage.org for more.",
+        "Code at github.com/foo/sea-\nborn today.",
+    ],
+)
+def test_a_hyphen_in_a_link_at_a_line_end_shows_as_printed(text: str) -> None:
+    """Review M1 of #290: the links step wins over the join, so the voice never joined it
+    and the address shows with its printed hyphen."""
+    document = make_document([("paragraph", text)])
+    view = build_view(document, record(chunks=1), readalong([(0, 0, len(text))]))
+    assert view.chapters[0].blocks[0].pieces[0].text == text.replace("-\n", "-")
+    assert joined_hyphens(document, frozenset()) == {}
+
+
+def test_a_join_inside_a_removed_reference_list_is_not_shown_as_joined() -> None:
+    """Review M1 of #290: the reference-list step removes the whole block first, so the
+    line-end-hyphens join there is set aside and the text shows as printed."""
+    document = make_document(
+        [("heading", "References"), ("paragraph", "Doe, J. (2020). A con-\ntributing study.")],
+        sections=(Section("References", 1, 0, 2),),
+    )
+    assert joined_hyphens(document, frozenset()) == {}
+
+
 @st.composite
 def blocks_and_spans(draw: st.DrawFn) -> tuple[Document, list[tuple[int, int, int]]]:
     words = st.text(alphabet="ab -.\n", min_size=1, max_size=30).filter(

@@ -39,12 +39,14 @@ from sci2audio.core import BlockKind, Document, Section, SpanError
 from sci2audio.core.export import from_data
 from sci2audio.output import ReadAlong, ReadAlongError, read_readalong
 from sci2audio.textprep import (
+    BUILT_IN_STEPS,
     Category,
     CodeNoticeStep,
     FormulaNoticeStep,
     LineEndHyphenStep,
     StepContext,
     TableFigureNoticeStep,
+    run_steps,
 )
 
 RECORD = "audiobook.json"  # the web's own record of where the audiobook went (D-295)
@@ -492,16 +494,20 @@ def shown(
 
 
 def joined_hyphens(document: Document, switched_off: frozenset[str]) -> dict[int, frozenset[int]]:
-    """By block, the offsets of the line-end hyphens whose words the line-end-hyphens step
-    joined, as the voice read them; none where characters and hyphenation were off (#286)."""
-    step = LineEndHyphenStep()
-    if str(step.category) in switched_off or not step.handles(document.language):
-        return {}
+    """By block, the offsets of the line-end hyphens whose words the voice read joined: the
+    line-end-hyphens step's joins that the settled run of the built-in steps accepted, with
+    the job's categories (#286). A join set aside because an earlier step won (a link, a
+    citation, the reference list) is not one: that text shows as printed (review M1)."""
+    off = {Category(value) for value in switched_off if value in _CATEGORIES}
+    run = run_steps(document, StepContext(document.language), BUILT_IN_STEPS, off)
     found: dict[int, set[int]] = {}
-    for edit in step.find(document, StepContext(document.language)):
-        if edit.span.end - edit.span.start == 2:  # the hyphen and its line break: joined
-            found.setdefault(edit.span.block, set()).add(edit.span.start)
+    for edit in run.accepted:
+        if edit.step == LineEndHyphenStep.id and edit.span.end - edit.span.start == 2:
+            found.setdefault(edit.span.block, set()).add(edit.span.start)  # hyphen + break
     return {block: frozenset(offsets) for block, offsets in found.items()}
+
+
+_CATEGORIES = frozenset(str(category) for category in Category)
 
 
 def _block_view(
