@@ -2,32 +2,70 @@
 
 **Turn scientific papers and books into faithful audiobooks, offline, with free local voices.**
 
-> **Pre-release: not ready for use yet.** The code is being moved in from an earlier private version, one reviewed step at a time. Follow the [v1.0 milestone](https://github.com/dubidu22/sci2audio/milestones) for progress.
+sci2audio reads a PDF, EPUB, Markdown or plain-text file in English, prepares its text for listening with rules you can check and switch off, speaks it with a local Kokoro voice, and writes an M4B audiobook with chapters, one MP3 per chapter, and a read-along view that highlights the original text as it is read. Everything runs on your own computer.
 
-## What it will do
+## What it does
 
-- Read PDF, EPUB, Markdown and plain text. A scanned PDF needs a text layer: sci2audio has no text recognition yet.
-- Prepare the text for listening with transparent rules: remove page headers, hyphenation, citations and URLs; read units, statistics and abbreviations properly; skip formulas and tables with a short spoken notice.
-- Speak it with local Kokoro voices (English first, German later).
-- Export MP3 and M4B with chapters, and show a read-along view that highlights the original text.
+- **Reads** PDF, EPUB, Markdown and plain text. It finds the reading order of one- and two-column pages, leaves out running heads, page numbers and sidebars, and finds headings, footnotes, captions, tables, figures and formulas. A scanned PDF needs a text layer: sci2audio has no text recognition yet.
+- **Prepares the text** with transparent rules: it joins words hyphenated at a line end, leaves out citations, URLs and DOIs, reads units, statistics, numbers and abbreviations as words where the voice would get them wrong, and replaces formulas, tables and figures with a short spoken notice. Footnotes are read where their mark stands. Every change is listed in a report with its reason, and each kind of change can be switched off.
+- **Speaks** it with a local Kokoro voice: 28 English voices, at the speed you choose. An interrupted run picks up where it stopped.
+- **Writes** an M4B with chapter marks and the cover, one MP3 per chapter, and a read-along file. The audio is labelled as AI-generated in its metadata.
+- **Plays** it in a read-along view that shows the text as printed and highlights the sentence being read. Click any sentence to play from there.
 
 ## Principles
 
-- **Your files stay on your computer.** No account, no upload, no telemetry. The only network access is the download of a voice you choose.
+- **Your files stay on your computer.** No account, no upload, no telemetry. The only network access is the download of the voice, which you start yourself.
 - **Faithful, not rewritten.** Every change to the text is a marked, explainable rule; nothing is summarised.
 - **Free and open source** under the GNU GPL v3 or later.
-- **Accessible:** the interface is built to work with screen readers and the keyboard.
+- **Accessible:** the interface works with the keyboard alone and with screen readers, in English and German.
 
-## Installing (once released)
+## What the rules do
 
-```bash
-uv tool install sci2audio                      # macOS (Apple chips) and Windows
-uv tool install sci2audio --torch-backend cpu  # Linux: 1.3 GB instead of 5.6 GB
+A paragraph written for this README, as printed:
+
+> Participants slept 7.5 h on average (Smith et al., 2020), and reaction times fell by 12 ms per hour of sleep (t(34) = 2.81, p < .01; 95% CI [4.1, 19.9]). Naps, e.g. after lunch, were not counted [3]. The data are available at https://example.org/sleep-data.
+
+What sci2audio reads aloud (`sci2audio script`):
+
+> Participants slept 7.5 hours on average, and reaction times fell by 12 milliseconds per hour of sleep (t of 34 equals 2.81, p less than .01; 95% confidence interval 4.1 to 19.9). Naps, for example after lunch, were not counted. The data are available.
+
+The report next to the script lists all 13 changes, each with the text as printed, what is read instead and why. Three of its lines, without the page, chapter and step:
+
+```text
+“(Smith et al., 2020)” → left out. Reason: citation "(Smith et al., 2020)" is not read (TP-03).
+“at https://example.org/sleep-data” → left out. Reason: URL "https://example.org/sleep-data" is not read; "at" before it goes too, so the sentence still reads (TP-07).
+“ms” → read as “milliseconds”. Reason: "ms" read as "milliseconds".
 ```
 
-On Linux the plain command also works; it installs the PyTorch build with NVIDIA GPU libraries. With pipx, use Python 3.12.16 or newer in the 3.12 series (`pipx install --python python3.12 sci2audio`): the Kokoro packages do not yet declare support for newer Python versions, and older 3.12 releases read some broken HTML and Markdown differently. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
+Numbers such as "7.5" and ".01" stay as printed: the voice reads them well.
 
-The voice (about 355 MB: the Kokoro model, its English voices and a spaCy English model) is downloaded only when you start it, and its licences are shown first. After that, sci2audio works without a network.
+## Installing
+
+sci2audio runs on macOS with Apple chips, Windows and Linux. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
+
+1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) (0.13.8 or newer), a tool that installs Python programs together with the Python they need.
+2. Install sci2audio:
+
+   ```bash
+   uv tool install sci2audio                      # macOS (Apple chips) and Windows
+   uv tool install sci2audio --torch-backend cpu  # Linux: 1.3 GB instead of 5.6 GB
+   ```
+
+   On Linux the plain command also works; it installs the PyTorch build with NVIDIA GPU libraries.
+
+   With pipx instead of uv, use Python 3.12.16 or newer in the 3.12 series (`pipx install --python python3.12 sci2audio`): the Kokoro packages do not yet declare support for newer Python versions, and older 3.12 releases read some broken HTML and Markdown differently.
+
+3. Start it:
+
+   ```bash
+   sci2audio ui
+   ```
+
+   This opens the interface in your browser; it stays on this computer. The first time, it asks to download the voice (the Kokoro model, its English voices and a spaCy English model, about 355 MB). It shows every file with its size and licence first and downloads only after you agree. After that, sci2audio works without a network.
+
+ffmpeg, which writes the MP3 and M4B files, comes with sci2audio (through the `imageio-ffmpeg` package). If that build is missing for your system, sci2audio uses an `ffmpeg` on your PATH.
+
+To update: `uv tool upgrade sci2audio`. To remove: `uv tool uninstall sci2audio`, then delete the folders listed on the privacy page.
 
 ## Command line
 
@@ -56,6 +94,15 @@ Exit codes, for scripts:
 | 8 | another sci2audio job is working on this file |
 | 130 | stopped with Ctrl-C |
 
+## Privacy
+
+sci2audio is a program on your computer, not an online service. Nobody receives your data, neither its makers nor anyone else.
+
+- It sends nothing anywhere: no telemetry, no usage statistics, no crash reports, no update check, no account.
+- It uses the network only for the voice download you start, after showing every file, its size and licence.
+- The interface's server listens only on 127.0.0.1, with a key that is new for each start, and refuses requests from other web pages. The pages load nothing from the internet.
+- Your files, their analysis, the speech cache, the settings and the voice stay in folders on your computer. The interface's privacy page (`/privacy`) names them and says how to remove them.
+
 ## Development
 
 You need a recent [uv](https://docs.astral.sh/uv/) (0.13.8 or newer; older ones do not know Python 3.12.16). `.python-version` pins Python 3.12.16, which uv downloads on the first `uv sync`; CI and the release workflow use the same uv-managed Python, never a runner's own (D-378).
@@ -73,6 +120,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how work is planned and reviewed.
 
 ## Licence
 
-GPL-3.0-or-later, see [LICENSE](LICENSE). Third-party components and their licences are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). Audio made with sci2audio is labelled as AI-generated in its metadata.
+GPL-3.0-or-later, see [LICENSE](LICENSE). Third-party components and their licences are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). Audio made with sci2audio is labelled as AI-generated in its metadata, and the player names the synthetic voice.
 
 Only convert texts you are allowed to use. sci2audio does not remove copy protection.
+
+## Problems and ideas
+
+Please open an [issue](https://github.com/dubidu22/sci2audio/issues). For a text that is read wrongly, include the sentence as printed, what sci2audio read, and, if you can, the report line for it. The changes in each release are in [CHANGELOG.md](CHANGELOG.md).
