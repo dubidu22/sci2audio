@@ -101,7 +101,7 @@ def test_every_paper_runs_with_its_chapters_and_no_problem(stem: str, out: Path)
     assert got == CHAPTERS[stem]
     assert done.report.problems == ()
     if stem in GERMAN:
-        assert set(done.report.not_run) <= set(GERMAN_LATER_STEPS)
+        assert set(done.report.not_run) == set(GERMAN_LATER_STEPS)
     else:
         assert done.report.not_run == ()
     assert all(c.spoken > 0 for c in done.result.chapters if c.selected)
