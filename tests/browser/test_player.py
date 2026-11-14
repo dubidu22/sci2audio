@@ -16,7 +16,7 @@ from pdf_maker import Rect, Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_flow import open_paper
 
-from conftest import Live, check_axe, tab_key
+from conftest import Live, check_axe, settled, tab_key
 
 PER_CHARACTER = 2400  # samples at 24 kHz: 0.1 s per character
 
@@ -36,14 +36,20 @@ def make_audiobook(page: Page, live: Live) -> str:
 
 
 def listen_to(page: Page, live: Live, path: Path, pdf: bytes) -> None:
-    """Open this PDF, make its audiobook and open the player."""
+    """Open this PDF, make its audiobook and open the player. The start waits until the
+    page no longer follows the analysis: a page drawn while the analysis job ends shows
+    the Make button and still reloads itself, which cancels the start's move to the job
+    page (review R3-1 of #289, as `open_paper` does for #138)."""
     live.install_voice()
     live.voice.samples_per_character = PER_CHARACTER
     path.write_bytes(pdf)
     page.set_input_files("#file", files=[path])
     page.get_by_role("button", name="Open and analyse").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    expect(page.locator("#summary")).to_be_visible()
+    settled(page)
     page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
     page.get_by_role("link", name="Listen with the text").click()
     page.wait_for_url(re.compile(r"/listen$"))
@@ -252,6 +258,71 @@ def test_a_skipped_figure_shows_and_lights_up_its_notice(
         f"() => document.getElementById('{chunk_id(page, 'Figure 1: A grey box.')}')"
         ".classList.contains('now')"
     )
+
+
+# a page of running text: code is told from text only where the text is not itself set in
+# a typewriter font (review M1 of #289), so a made-up PDF with a listing needs some
+PROSE_PAGE = [
+    Text(f"Running text on the second page, line {k}, set in a proportional font.", 72, 80 + 14 * k)
+    for k in range(30)
+]
+
+
+def test_a_skipped_code_block_shows_its_notice_and_its_code(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """#280, D-546: the voice reads the notice; the code is shown open below it."""
+    page = signed_in
+    code = ["import seaborn as sns", "g = sns.relplot(data=fmri)", 'g.savefig("demo.pdf")']
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text("The following example makes a figure.", 72, 100, size=11),
+            *(Text(line, 72, 124 + 13 * k, "Courier", 10) for k, line in enumerate(code)),
+            Text("Text after it.", 72, 190, size=11),
+        ],
+        PROSE_PAGE,
+    )
+    listen_to(page, live, tmp_path / "code.pdf", pdf)
+    notice = page.locator(".notice")
+    expect(notice.locator("p")).to_have_text("A code block is skipped.")
+    expect(notice.locator("pre.code")).to_have_text("\n".join(code))
+    expect(notice.locator("pre.code")).to_be_visible()
+    check_axe(page, "player with a code block")
+
+
+def test_a_listing_taller_than_the_window_keeps_its_spoken_notice_in_view(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """Review F1 of #288: when the reading reaches a code block taller than the window, its
+    top, where the spoken notice stands, comes to rest just under the player bar."""
+    page = signed_in
+    page.set_viewport_size({"width": 1280, "height": 720})
+    page.emulate_media(reduced_motion="reduce")
+    lines = [f"value_{k} = compute({k}, scale=2)" for k in range(44)]
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 60, size=14),
+            Text("The following example sets up the values.", 72, 80, size=11),
+            *(Text(line, 72, 100 + 13 * k, "Courier", 10) for k, line in enumerate(lines)),
+            Text("Text after it.", 72, 100 + 13 * 44 + 20, size=11),
+        ],
+        PROSE_PAGE,
+    )
+    listen_to(page, live, tmp_path / "long-code.pdf", pdf)
+    notice = page.locator(".notice")
+    assert notice.bounding_box()["height"] > 720  # type: ignore[index]
+    page.locator(".s", has_text="The following example").first.click()
+    expect(notice).to_have_attribute("aria-current", "true", timeout=20_000)
+    page.wait_for_timeout(300)  # reduced motion: the scroll is instant; let it land
+    said, bar = page.evaluate(
+        """() => [
+            document.querySelector('.notice p').getBoundingClientRect().toJSON(),
+            document.querySelector('.player-bar').getBoundingClientRect().bottom,
+        ]"""
+    )
+    assert bar <= said["top"], (said, bar)
+    assert said["bottom"] <= 720, said
 
 
 def test_a_second_jump_while_a_file_loads_wins(signed_in: Page, live: Live) -> None:

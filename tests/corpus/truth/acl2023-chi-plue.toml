@@ -84,6 +84,7 @@ tables = [
 figures = []
 algorithms = []
 unnumbered_formulas = []
+code_blocks = []
 
 [[verbatim]]
 # Splits "un-derstanding" and "bet-ter" across lines.
