@@ -174,7 +174,8 @@ def language_warning(document: Document) -> str | None:
         name = LANGUAGE_NAMES[document.language]
         return (
             f"The file says its language is {stated}, but its text is {name}, so it is read "
-            f"in {name}. To read it as {stated}, set the language to {stated}."
+            f"in {name}. To read it as {stated}, set the language to {stated} (on the "
+            f"command line: --language {stated})."
         )
     return None
 

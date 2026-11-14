@@ -323,7 +323,9 @@ def _add_job_options(parser: _Parser) -> None:
         help="switch a text-step category off: its text is read as printed",
     )
     parser.add_argument(
-        "--language", metavar="TAG", help="en, en-GB, ... (default: the file's own)"
+        "--language",
+        metavar="TAG",
+        help="en, en-GB, ... (default: the file's own, else guessed from the text: en or de)",
     )
     parser.add_argument("--overwrite", action="store_true", help="replace existing output files")
     parser.add_argument(

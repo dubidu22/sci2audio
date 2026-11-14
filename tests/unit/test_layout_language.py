@@ -141,6 +141,36 @@ def test_the_guess_never_fails_and_fits_its_counts(content: Content) -> None:
 
 
 @given(contents())
+def test_the_guess_does_not_depend_on_the_order_of_lines_or_pages(content: Content) -> None:
+    """It counts words, so the same lines in another order give the same guess."""
+    pages = [
+        dataclasses.replace(page, number=k + 1, lines=tuple(reversed(page.lines)))
+        for k, page in enumerate(reversed(content.pages))
+    ]
+    reordered = dataclasses.replace(content, pages=tuple(pages), outline=())
+    assert guess_language(reordered) == guess_language(content)
+
+
+@pytest.mark.parametrize(
+    ("german", "english", "expected"),
+    [
+        (15, 5, "de"),  # 20 common words, exactly 3 to 1
+        (14, 5, ""),  # 19: too few
+        (15, 6, ""),  # 21, but less than 3 to 1
+        (5, 15, "en"),
+        (6, 15, ""),
+        (20, 0, "de"),
+        (0, 19, ""),
+    ],
+)
+def test_the_boundaries_of_the_guess(german: int, english: int, expected: str) -> None:
+    """D-495 with the default settings: at least 20 common words, one language's at least
+    3 times the other's."""
+    guess = guess_language(content_of(" ".join(["der"] * german + ["the"] * english)))
+    assert (guess.german, guess.english, guess.language) == (german, english, expected)
+
+
+@given(contents())
 def test_layout_always_records_where_the_language_came_from(content: Content) -> None:
     document = build_document(content)
     assert document.language_source is not None
@@ -250,7 +280,7 @@ def test_a_file_tag_overruled_by_its_text_is_a_warning() -> None:
     document = build_document(content_of(GERMAN, "en"))
     assert language_warning(document) == (
         "The file says its language is en, but its text is German, so it is read in German. "
-        "To read it as en, set the language to en."
+        "To read it as en, set the language to en (on the command line: --language en)."
     )
     assert language_warning(build_document(content_of(GERMAN))) is None  # a clear guess
     assert language_warning(build_document(content_of(GERMAN, "de"))) is None
