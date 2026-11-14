@@ -27,8 +27,10 @@ from sci2audio.textprep import (
     spoken_text,
 )
 from sci2audio.textprep.hyphens import SECOND_WORDS, SKIPPED_KINDS, printed_words
+from sci2audio.textprep.hyphens import WORDS as HYPHEN_WORDS
 
 EN = StepContext("en")
+DE = StepContext("de")
 STEP = LineEndHyphenStep()
 TESTS = Path(__file__).resolve().parents[1]
 PAPERS = sorted((TESTS / "corpus" / "papers").glob("*.pdf"))
@@ -226,9 +228,108 @@ def test_other_text_blocks_are_joined(kind: BlockKind) -> None:
     assert len(STEP.find(document, EN)) == 1
 
 
-def test_english_only_for_now() -> None:
+def test_english_and_german() -> None:
     assert STEP.handles("en-GB")
-    assert not STEP.handles("de")
+    assert STEP.handles("de")
+    assert STEP.handles("de-CH")
+    assert not STEP.handles("fr")
+    assert set(HYPHEN_WORDS) == {"en", "de"}
+
+
+# German (#96, D-475): the same rule with the German words of rules 2 and 5.
+
+
+def read_de(*texts: str, language: str = "de") -> list[str]:
+    document = make_document([(BlockKind.PARAGRAPH, text) for text in texts], language)
+    script = apply_edits(document, STEP.find(document, StepContext(language)))
+    return [
+        spoken_text(piece for piece in script if piece.span.block == index)
+        for index in range(len(texts))
+    ]
+
+
+@pytest.mark.parametrize(
+    "word",
+    ["und", "oder", "bis", "sowie", "bzw.", "beziehungsweise", "noch", "respektive", "Und"],
+)
+def test_german_rule_2_a_suspended_hyphen_before_a_conjunction(word: str) -> None:
+    assert read_de(f"Wohnungs-\n{word} Sozialarbeit") == [f"Wohnungs- {word} Sozialarbeit"]
+
+
+@pytest.mark.parametrize("word", ["and", "or", "nor"])
+def test_german_text_does_not_take_the_english_conjunctions(word: str) -> None:
+    assert read_de(f"Wohnungs-\n{word} Sozialarbeit") == [f"Wohnungs{word} Sozialarbeit"]
+
+
+def test_english_text_does_not_take_the_german_conjunctions() -> None:
+    assert read("Wohnungs-\nund Sozialarbeit") == ["Wohnungsund Sozialarbeit"]
+
+
+@pytest.mark.parametrize("word", ["u.", "o.", "vs.", "resp.", "versus", "U."])
+def test_german_rule_2_short_conjunctions_count_with_their_full_stop(word: str) -> None:
+    assert read_de(f"Kinder-\n{word} Jugendhilfe") == [f"Kinder- {word} Jugendhilfe"]
+
+
+def test_german_rule_2_als_counts_only_before_auch() -> None:
+    assert read_de("sowohl Lehr-\nals auch Lernprozesse") == ["sowohl Lehr- als auch Lernprozesse"]
+    assert read_de("sowohl Lehr-\nALS AUCH Lern") == ["sowohl Lehr- ALS AUCH Lern"]
+    assert read_de("des Materi-\nals zählt") == ["des Materials zählt"]  # a bare "als": split
+
+
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [
+        # a short form without its full stop is the rest of a split word
+        ("die Werk-\nstatt", "die Werkstatt"),  # "statt" is no conjunction here
+        ("ab-\nsondern", "absondern"),  # "sondern" is not on the list: it starts a clause
+        ("so-\nwie", "sowie"),  # "wie" is not on the list: "sowie" is one word
+        ("Kinder-\nu Jugend", "Kinderu Jugend"),  # "u" without its full stop is a split word
+        ("Lehr-\nvsx", "Lehrvsx"),  # not "vs."
+        ("Materi-\nals Beispiel", "Materials Beispiel"),  # "als" not before "auch"
+        ("Materi-\nals auchx", "Materials auchx"),  # "auch" must be a whole word
+    ],
+)
+def test_german_rule_2_joins_these(printed: str, spoken: str) -> None:
+    assert read_de(printed) == [spoken]
+
+
+def test_german_rule_2_needs_the_whole_word() -> None:
+    assert read_de("Ver-\nunderung")[0] == "Verunderung"  # not "und"
+    assert read_de("Kinder-\nbis-\nher")[0] == "Kinderbisher"  # split again: no conjunction
+
+
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [
+        ("Corona-\nPandemie", "Corona-Pandemie"),  # a capital after: the author's hyphen
+        ("Sozial-\narbeit", "Sozialarbeit"),  # lower case after: a split word
+        ("PDF-\nDatei", "PDF-Datei"),
+        ("E-\nMail", "E-Mail"),
+        ("Ad-hoc-\nAnalyse", "Ad-hoc-Analyse"),
+        ("COVID-\n19", "COVID-19"),
+        ("Grö-\nße", "Größe"),
+        ("Über-\nsetzung", "Übersetzung"),
+    ],
+)
+def test_german_capital_and_compound_tests(printed: str, spoken: str) -> None:
+    assert read_de(printed) == [spoken]
+
+
+@pytest.mark.parametrize("second", sorted(SECOND_WORDS)[:4])
+def test_german_has_no_second_word_or_self_rule(second: str) -> None:
+    assert read_de(f"kontext-\n{second}") == [f"kontext{second}"]
+    assert read_de("self-\nbezogen") == ["selfbezogen"]
+
+
+def test_german_document_spelling_wins_first() -> None:
+    assert read_de("Die Lade-\nstation.", "Die Lade-Station.") == [
+        "Die Lade-station.",
+        "Die Lade-Station.",
+    ]
+
+
+def test_regional_german_tags_use_the_german_words() -> None:
+    assert read_de("Kinder-\nund Jugend", language="de-AT") == ["Kinder- und Jugend"]
 
 
 # Property tests: words joined mostly by line-end hyphens, so most examples exercise the rule
@@ -244,6 +345,20 @@ texts = st.lists(st.tuples(st.sampled_from(WORDS), st.sampled_from(GAPS)), max_s
 @given(st.lists(texts, min_size=1, max_size=3))
 def test_the_step_keeps_the_contract_on_any_text(blocks: list[str]) -> None:
     document = make_document([(BlockKind.PARAGRAPH, text) for text in blocks])
+    check_text_step(STEP, [document], allow_ask=False)
+
+
+# German words with umlauts, ß and the German conjunctions, so the German paths are reached
+GERMAN_WORDS = ["Bun", "des", "und", "oder", "bzw.", "Über", "ße", "Pandemie", "E", "PDF",
+                "19", "noch", "Kinder", "bis"]  # fmt: skip
+german_texts = st.lists(
+    st.tuples(st.sampled_from(GERMAN_WORDS), st.sampled_from(GAPS)), max_size=8
+).map(lambda pairs: "".join(word + gap for word, gap in pairs))
+
+
+@given(st.lists(german_texts, min_size=1, max_size=3))
+def test_the_step_keeps_the_contract_on_any_german_text(blocks: list[str]) -> None:
+    document = make_document([(BlockKind.PARAGRAPH, text) for text in blocks], "de")
     check_text_step(STEP, [document], allow_ask=False)
 
 

@@ -18,6 +18,8 @@ from sci2audio.textprep.links import LinkStep
 from sci2audio.textprep.numbers import NumbersStep
 from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
 from sci2audio.textprep.references import (
+    GERMAN_REFERENCE_TITLES,
+    REFERENCE_NAMES,
     REFERENCE_TITLES,
     ReferenceListStep,
     is_reference_title,
@@ -60,7 +62,9 @@ __all__ = [
     "BUILT_IN_STEPS",
     "DEFAULT_MAX_CHARS",
     "DEFAULT_SWITCHED_OFF",
+    "GERMAN_REFERENCE_TITLES",
     "PAUSE_MARK",
+    "REFERENCE_NAMES",
     "REFERENCE_TITLES",
     "TEXT_STEP_API",
     "WORDING",

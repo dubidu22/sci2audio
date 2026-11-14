@@ -9,20 +9,24 @@ next line, the first rule that applies decides:
 
 1. Not letters on both sides ("2019-/2020", "COVID-/19", "J.-/P."): keep the hyphen; if no
    letter or digit follows, or white space comes before, no edit.
-2. Suspended hyphen: *after* is "and", "or" or "nor" ("pre-/and post-test"): no edit, the
-   line break is read as a space, as printed.
+2. Suspended hyphen: *after* is a conjunction of the language ("and", "or", "nor"; German
+   "und", "oder", "bis", "sowie", ...: "pre-/and post-test", "Wohnungs-/und Sozialarbeit"): no
+   edit, the line break is read as a space, as printed.
 3. The document's own spelling: the form it prints more often outside line ends, joined
    ("development") or hyphenated ("pre-training"), wins; a tie keeps the hyphen.
 4. A compound by its look: *before* is one letter ("x-/axis"), ends in a capital ("PP-"),
    already holds a hyphen ("state-of-the-/art"), or *after* starts with a capital
    ("non-/English"): keep the hyphen.
 5. *before* is "self", or *after* is a word that mostly ends a compound (`SECOND_WORDS`):
-   keep the hyphen.
+   keep the hyphen. English only: German writes such compounds closed ("kontextabhängig").
 6. Otherwise join.
 
 Joining removes the hyphen and the line break; keeping removes only the line break, so
-"state-of-the-art" is read as one word. English only in v1.0 (D-152); no word list (D-149).
-Runs last among the inline steps (D-150).
+"state-of-the-art" is read as one word. English (D-152) and German (#96, D-475): the words
+of rules 2 and 5 come from the language's row of `WORDS`; the rest is the same rule. Rule 4's
+capital test holds for German too: a line-end split never capitalises the rest of a word, so
+"Corona-/Pandemie" is a hyphen the author wrote and "Sozial-/arbeit" a split word. No word
+list of the language's vocabulary (D-149). Runs last among the inline steps (D-150).
 """
 
 from __future__ import annotations
@@ -30,6 +34,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import Counter
+from dataclasses import dataclass
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.characters import ACCENTS
@@ -44,6 +49,35 @@ SECOND_WORDS = frozenset(
         "aware", "grained", "level", "free", "scale", "wide", "sized", "term", "order",
     }
 )  # fmt: skip
+
+
+@dataclass(frozen=True)
+class HyphenWords:
+    """The words of one language that rules 2 and 5 look for, lower case."""
+
+    suspended: frozenset[str]  # rule 2: conjunctions after a suspended hyphen
+    self_words: frozenset[str] = frozenset()  # rule 5: a first part that keeps its hyphen
+    second_words: frozenset[str] = frozenset()  # rule 5: words that mostly end a compound
+    # rule 2: conjunctions printed short, which count only with their full stop ("u.")
+    abbreviated: frozenset[str] = frozenset()
+    # rule 2: conjunctions that count only before a second word ("als" before "auch"; a bare
+    # "als" is often the rest of a split word: "Materi-/als")
+    paired: tuple[tuple[str, str], ...] = ()
+
+
+WORDS: dict[str, HyphenWords] = {
+    "en": HyphenWords(SUSPENDED, frozenset({SELF}), SECOND_WORDS),
+    # "Kinder-/und Jugendhilfe", "Ein-/oder Ausgang", "Haus-/noch Gartenarbeit" (#96);
+    # "Kinder-/u. Jugendhilfe", "Lehr-/vs. Lernprozesse", "sowohl Lehr-/als auch Lernprozesse"
+    "de": HyphenWords(
+        frozenset(
+            {"und", "oder", "bis", "sowie", "bzw", "beziehungsweise", "noch", "respektive"}
+            | {"versus"}
+        ),
+        abbreviated=frozenset({"u", "o", "vs", "resp"}),
+        paired=(("als", "auch"),),
+    ),
+}
 # a "-" at a line end in a formula is a minus, in a table often an empty cell
 SKIPPED_KINDS = frozenset({BlockKind.FORMULA, BlockKind.TABLE})
 
@@ -65,11 +99,12 @@ class LineEndHyphenStep(TextStep):
     """Join a word split by a hyphen at a line end, or keep a real hyphen (TP-02)."""
 
     id = "line-end-hyphens"
-    languages = ("en",)
+    languages = ("en", "de")
     category = Category.CHARACTERS
     stage = Stage.INLINE
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
+        words = WORDS[context.language.split("-", 1)[0].lower()]
         spelling: Counter[str] | None = None
         edits = []
         for index, block in enumerate(document.blocks):
@@ -78,12 +113,14 @@ class LineEndHyphenStep(TextStep):
             if spelling is None:
                 spelling = printed_words(document)
             for match in _LINE_END.finditer(block.text):
-                edit = self._decide(block.text, match.start(), index, spelling)
+                edit = self._decide(block.text, match.start(), index, spelling, words)
                 if edit is not None:
                     edits.append(edit)
         return edits
 
-    def _decide(self, text: str, hyphen: int, block: int, spelling: Counter[str]) -> Edit | None:
+    def _decide(
+        self, text: str, hyphen: int, block: int, spelling: Counter[str], words: HyphenWords
+    ) -> Edit | None:
         """The edit for the hyphen at `hyphen` (a line break follows it), if any."""
         line_break = hyphen + 1
         previous = text[hyphen - 1 : hyphen]
@@ -109,7 +146,9 @@ class LineEndHyphenStep(TextStep):
         # "and" itself split at the next line end ("and-\nab") is not a conjunction
         split_again = text[after_match.end() : after_match.end() + 1] in tuple(HYPHENS)
         one_word = not re.search(f"[{HYPHENS}]", after)
-        if first_after.lower() in SUSPENDED and one_word and not split_again:
+        if _suspended(first_after.lower(), text, after_match.end(), words) and (
+            one_word and not split_again
+        ):
             return None
         joined_count = spelling[_key(before + after)]
         hyphenated_count = spelling[_key(hyphenated)]
@@ -124,7 +163,7 @@ class LineEndHyphenStep(TextStep):
             or first_after[:1].isupper()
         ):
             return self._keep(block, line_break, hyphenated, "a compound")
-        if last_before.lower() == SELF or first_after.lower() in SECOND_WORDS:
+        if last_before.lower() in words.self_words or first_after.lower() in words.second_words:
             return self._keep(block, line_break, hyphenated, "a compound")
         return self._join(block, hyphen, before + after, "")
 
@@ -144,6 +183,20 @@ class LineEndHyphenStep(TextStep):
             reason=f'word split at a line end joined: "{word}"{because}',
             step=self.id,
         )
+
+
+def _suspended(word: str, text: str, end: int, words: HyphenWords) -> bool:
+    """True if `word`, which ends at `end`, is a conjunction after a suspended hyphen (rule 2):
+    a listed word; a short form with its full stop ("u.", "vs."); or a paired word before its
+    partner ("als auch")."""
+    if word in words.suspended:
+        return True
+    if word in words.abbreviated:
+        return text[end : end + 1] == "."
+    return any(
+        word == first and re.match(rf"\s+{second}\b", text[end:], re.IGNORECASE) is not None
+        for first, second in words.paired
+    )
 
 
 def printed_words(document: Document) -> Counter[str]:
