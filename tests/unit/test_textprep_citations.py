@@ -322,6 +322,42 @@ def test_no_removal_leaves_doubled_marks_or_a_wrong_capital(text: str, spoken: s
     assert read(text) == spoken
 
 
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #285, D-547: an identifier alone in brackets is not read
+        ("the IGERT program (0801700) and", "the IGERT program and"),
+        ("the Simons Society of Fellows (527794). Many", "the Simons Society of Fellows. Many"),
+        ("the NSF (grant no. DMS-1912345) and", "the NSF and"),
+        ("the NIH (0801700, 527794) and", "the NIH and"),
+        ("the NIH (0801700 and 527794) and", "the NIH and"),
+        ("(Award 1912345) Then", "Then"),
+        ("sample (12345) here", "sample here"),  # an ungrouped count goes too (D-547)
+        # years, small numbers, grouped or labelled quantities, short-number names stay
+        ("The year (2019) was", "The year (2019) was"),
+        ("cases (12,345) and (12 345) here", "cases (12,345) and (12 345) here"),
+        ("cases (n = 12345) here", "cases (n = 12345) here"),
+        ("the (OPP-115) and (COVID-19) data", "the (OPP-115) and (COVID-19) data"),
+        ("the (GPT-3) data", "the (GPT-3) data"),
+        ("the (ISO 9001) and (ResNet-50) data", "the (ISO 9001) and (ResNet-50) data"),
+        ("see (3) and (12)", "see (3) and (12)"),
+        ("it (see grant 527794 for details) is", "it (see grant 527794 for details) is"),
+        ("it (12345 participants) is", "it (12345 participants) is"),
+        ("it (5 %) is", "it (5 %) is"),
+    ],
+)  # fmt: skip
+def test_an_identifier_in_brackets_is_not_read(printed: str, said: str) -> None:
+    once = read(printed)
+    assert once == said
+    assert read(once) == once
+
+
+def test_an_identifier_says_why_it_is_not_read() -> None:
+    (edit,) = edits("the program (0801700) and")
+    assert edit.kind is EditKind.REMOVE
+    assert edit.reason.startswith('identifier "(0801700)"')
+
+
 def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
     text = "(" * 5000 + "Smith, 2019" + ")" * 5000
     document = make_document([(BlockKind.PARAGRAPH, text)])

@@ -1317,3 +1317,19 @@ blocks = [
 ]
 expected = ["See for example. Then more.", "Smith et al. Then more."]
 utterances = ["See for example.", "Then more.", "Smith et al. Then more."]
+
+[[case]]
+id = "citations-a-grant-number-in-brackets-is-not-read"
+audit = 0
+issue = 285
+goal = "A bracket that holds only an identifier, such as a grant or award number, is not read: '(0801700)' and '(527794)' were read as long numbers (Colin's listening test, seaborn Acknowledgements). An identifier is a run of five digits or more, alone or in a code of letters and digits, maybe after a funding word. Years, small numbers, grouped or labelled quantities and names with short numbers stay (D-547)."
+blocks = [
+    { kind = "paragraph", text = "The first author was supported by the IGERT program (0801700) and by the Simons Society of Fellows (527794). Many thanks." },
+    { kind = "paragraph", text = "Funded by the NSF (grant no. DMS-1912345) and the NIH (0801700, 527794). Then more." },
+    { kind = "paragraph", text = "The year (2019) had (12,345) cases (n = 12345) in (OPP-115) and (COVID-19), see (3)." },
+]
+expected = [
+    "The first author was supported by the IGERT program and by the Simons Society of Fellows. Many thanks.",
+    "Funded by the NSF and the NIH. Then more.",
+    "The year (2019) had (12,345) cases (n equals 12345) in (OPP-115) and (COVID-19), see (3).",
+]

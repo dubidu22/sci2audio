@@ -77,6 +77,9 @@ class CitationWords:
     page: str  # a page: "p. 8", "pp. 8–10"
     locators: str  # after the year: ", p. 8", ", Chapter 9", ", inter alia"
     abbreviations: frozenset[str] = frozenset()  # a full stop after these ends no sentence
+    # words that may stand before an identifier in brackets: "(grant no. DMS-1912345)" (#285)
+    funding: str = r"(?!)"
+    and_word: str = "and"  # between two identifiers: "(0801700 and 527794)"
     # German writes every noun with a capital: a capital word before a year bracket names an
     # author only after one of these words (or at a sentence start), not after an article or
     # an inflected adjective ("die neue Studie (2019)", "Die Olympischen Spiele (2016)")
@@ -141,6 +144,10 @@ WORDS: dict[str, CitationWords] = {
         locators=(
             r"pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?|chapters?\s+\d+|ch(?:ap)?\.\s*\d+|"
             r"sec(?:tions?|s?\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|inter\s+alia"
+        ),
+        funding=(
+            r"(?:grant\s+agreement|grants?|awards?|contracts?|projects?)(?:\s+(?:nos?\.|numbers?))?"
+            r"|nos?\."
         ),
     ),
     "de": CitationWords(
@@ -213,6 +220,11 @@ WORDS: dict[str, CitationWords] = {
             r"(?:S|pp?)\.\s*\d+(?:\s*[-–—]\s*\d+)?(?:\s*ff?\.)?|Kap(?:itel|\.)\s*\d+|"
             r"Abschn(?:itt|\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|Rn\.\s*\d+(?:\s*[-–—]\s*\d+)?"
         ),
+        funding=(
+            r"(?:Förderkennzeichen|Fördernummer|FKZ|Projekt(?:nummer|nr\.)?|Grant)(?:\s+Nr\.)?"
+            r"|Nr\."
+        ),
+        and_word="und",
         name_leads=frozenset((
             "wie", "siehe", "gegen", "unter", "über", "oder", "aber", "sowie", "haben", "zeigen",
             "zeigten", "fanden", "finden", "schreiben", "beschreiben", "argumentieren", "betonen",
@@ -296,6 +308,18 @@ class _Bracket:
     children: list[_Bracket] = field(default_factory=list)
 
 
+# a code of letters and digits, maybe joined by "-" or "/", with a run of five digits or more:
+# "0801700", "DMS-1912345", "01IS18026A"; not "OPP-115", "COVID-19", "12,345" or "12 345"
+_IDENTIFIER = r"(?=[^\W_]*(?:[-/][^\W_]+)*?\d{5})[^\W_]+(?:[-/][^\W_]+)*"
+
+
+def _identifiers_pattern(words: CitationWords) -> re.Pattern[str]:
+    """A bracket's inside that is only identifiers, each maybe after a funding word (#285)."""
+    one = rf"(?:(?:{words.funding})\s*)?{_IDENTIFIER}(?![^\W_])"
+    join = rf"\s*(?:[,;&]|{words.and_word}\b)\s*"
+    return re.compile(rf"\s*{one}(?:{join}{one})*\s*\Z", re.IGNORECASE)
+
+
 def brackets(text: str) -> list[_Bracket]:
     """The matched round and square brackets of a text as a tree, outermost first."""
     stack: list[tuple[int, str, list[_Bracket]]] = []
@@ -365,6 +389,7 @@ class _Rules:
         self.numeric_aside = _numeric_aside_pattern(words)
         self.years_only = re.compile(rf"\s*{_years(words)}{_locator(words)}\s*\Z", re.IGNORECASE)
         self.page_only = re.compile(rf"\s*(?:{words.page})\s*\Z")
+        self.identifiers = _identifiers_pattern(words)
         self.glued_page = re.compile(rf"[\[(]\s*(?:{words.page})\s*[\])]")
         self.dated = re.compile(rf"\b(?:1[5-9]\d\d|20\d\d)|{words.dated}")
         self.others_end = re.compile(rf"(\S+)\s+(?:{words.others})\s*\Z")
@@ -456,6 +481,13 @@ class _Rules:
             return None
         if text[node.open] == "[":
             return self._numeric(text, node, inside)
+        if self.identifiers.match(inside):
+            # "(0801700)", "(grant no. DMS-1912345)": a grant or award number, no quantity
+            # (#285, D-547); the script and the read-along keep it as printed
+            printed = _printed(text[node.open : node.close + 1])
+            reason = f'identifier "{printed}", such as a grant number, is not read (TP-03)'
+            start, end = self._with_space(text, node.open, node.close + 1)
+            return [(start, end, EditKind.REMOVE, "", reason)]
         if self.numeric_aside.match(inside):
             if any(self._decimal_interval(inner) for inner in _SQUARE.findall(inside)):
                 # "([1,2; 3,4])": an interval stays on its own, so the aside does too and each

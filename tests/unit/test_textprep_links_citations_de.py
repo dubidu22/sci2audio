@@ -366,6 +366,30 @@ def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
     assert read(CITATIONS, once) == once
 
 
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #285, D-547: an identifier alone in brackets is not read, as in English
+        ("vom BMBF (FKZ 01IS18026A) und der DFG (527794). Dann", "vom BMBF und der DFG. Dann"),
+        ("Das Projekt (Förderkennzeichen 01IS18026A) lief.", "Das Projekt lief."),
+        ("die DFG (0801700 und 527794) und", "die DFG und"),
+        # years, small numbers, grouped or labelled quantities, short-number names stay read
+        ("Das Jahr (2019) war", "Das Jahr (2019) war"),
+        ("Fälle (12.345) hier", "Fälle (12 345) hier"),  # spaces: no identifier on run 2
+        ("Fälle (1.234.567; 12.345) hier", "Fälle (1 234 567; 12 345) hier"),
+        ("Werte (12,345) hier", "Werte (12 Komma 3 4 5) hier"),
+        ("Fälle (n = 12345) hier", "Fälle (n gleich 12345) hier"),
+        ("die (OPP-115) und (COVID-19) Daten", "die (OPP-115) und (COVID-19) Daten"),
+        ("siehe (3) und (12)", "siehe (3) und (12)"),
+        ("Es waren 12.345 Fälle", "Es waren 12345 Fälle"),  # outside brackets as before
+    ],
+)  # fmt: skip
+def test_an_identifier_in_brackets_is_not_read_in_german(printed: str, said: str) -> None:
+    once = read_all(printed)
+    assert once == said
+    assert read_all(once) == once
+
+
 def test_an_english_round_bracket_of_numbers_is_still_a_citation() -> None:
     """English has no decimal comma: "[1,2; 3,4]" cites sources 1, 2, 3 and 4."""
     document = make_document([(BlockKind.PARAGRAPH, "It holds ([1,2; 3,4]).")], "en")

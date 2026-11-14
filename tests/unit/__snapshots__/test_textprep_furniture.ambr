@@ -106,7 +106,7 @@
   dict({
     'abbreviations: accepted': 1,
     'characters: accepted': 11,
-    'citations: accepted': 8,
+    'citations: accepted': 10,
     'links: accepted': 1,
     'links: set-aside': 6,
     'numbers-and-units: accepted': 5,

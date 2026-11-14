@@ -393,6 +393,16 @@ def _labelled(text: str) -> tuple[list[Candidate], list[tuple[int, int]]]:
     return found, kept
 
 
+# a round bracket of numbers only: "(12.345)", "(12.345; 67.890)", "(1.234 und 5.678)"
+_NUMBER_BRACKET = re.compile(r"\(\s*\d[\d.]*(?:\s*(?:[,;&]|und\b)\s*\d[\d.]*)*\s*\)")
+
+
+def _in_number_bracket(text: str, start: int) -> bool:
+    opening = text.rfind("(", max(0, start - 200), start)
+    bracket = _NUMBER_BRACKET.match(text, opening) if opening >= 0 else None
+    return bracket is not None and bracket.end() > start
+
+
 def _thousands(text: str) -> list[Candidate]:
     found = []
     for match in _THOUSANDS.finditer(text):
@@ -419,7 +429,9 @@ def _thousands(text: str) -> list[Candidate]:
             and not _COUNT_LETTER.search(before)
         ):
             continue  # "M = 2.345": a point decimal, read by N-de-1 (or left as printed)
-        words = number.replace(".", "")
+        # alone in brackets "(12.345)" reads "(12 345)", as the voice reads "1 234" well: read
+        # "(12345)", the citations step would take it for an identifier on a second run (#285)
+        words = number.replace(".", " " if _in_number_bracket(text, match.start()) else "")
         found.append(Candidate(*match.span(), words, f'"{number}" read as the number "{words}"'))
     return found
 
