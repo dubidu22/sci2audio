@@ -136,6 +136,17 @@ def _sample_documents() -> tuple[Document, ...]:
         Block(BlockKind.CAPTION, "Tab. 1: Ergebnisse je Gruppe.", describes=6, label="Tab. 1"),
         Block(BlockKind.FORMULA, "E = mc2 (1)", label="1"),
         (BlockKind.FIGURE, ""),
+        # links and citations in German (#101)
+        (
+            BlockKind.PARAGRAPH,
+            "Die Daten sind unter https://example.org/daten verfügbar (abgerufen am\n"
+            "12.03.2020). Kontakt: a.muster@uni-beispiel.de. Siehe https://example.org für mehr.",
+        ),
+        (
+            BlockKind.PARAGRAPH,
+            "Wie Müller (2019) zeigt, gilt das (vgl. Schmidt u. a., 2020, S. 12); siehe auch\n"
+            "[3, 5] und das 95 %-KI [1,2; 3,4], nicht aber die neue Studie (2021).",
+        ),
         (BlockKind.HEADING, "Literatur"),
         (BlockKind.PARAGRAPH, "Müller, A. (2019). Eine Studie. Zeitschrift 1, 1\u20139."),
     ]
@@ -155,7 +166,7 @@ def _sample_documents() -> tuple[Document, ...]:
             "de",
             name="german.txt",
             tags=german_tags,
-            sections=[Section("Einleitung", 1, 0, 10), Section("Literatur", 1, 10, len(german))],
+            sections=[Section("Einleitung", 1, 0, 12), Section("Literatur", 1, 12, len(german))],
         ),
     )
 

@@ -35,7 +35,7 @@ from sci2audio.textprep.notation import (
     through_unread,
     to_edits,
 )
-from sci2audio.textprep.statistics_de import OPERATORS_DE, find_statistics_de
+from sci2audio.textprep.statistics_de import OPERATORS_DE, ci_runs_de, find_statistics_de
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 OPERATORS = {
@@ -77,7 +77,6 @@ _LEFT_OF_EQUALS = re.compile(
     r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + "]"
 )
 _SPACE = re.compile(r"\s*")
-_WORD_STOP = re.compile(r"[^\W_]\.\Z")  # "Jh.=1", "am 3.4.=1" (a date read in words)
 _NUMBER_START = re.compile(r"[−+-]?\.?\d")
 _TAG = re.compile(r"</?[A-Za-z][\w-]*(?:\s[^<>]*)?>")
 _NUMBER = r"\d+(?:\.\d+)?"
@@ -238,16 +237,18 @@ def _ci_runs(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]]:
         yield match, intervals
 
 
-def interval_openings(text: str) -> frozenset[int]:
+def interval_openings(text: str, language: str = "en") -> frozenset[int]:
     """Where, in the printed text, the brackets open that this step reads as confidence
     intervals. The citations step leaves exactly these alone, so the two steps agree on
-    every joined pair (#151). Found as the step finds them: in the text as read, without
-    unread characters and with math letters folded ("𝐶𝐼s"), then mapped back."""
+    every joined pair (#151); in German "KI [1,2; 3,4]" too (#101). Found as the step finds
+    them: in the text as read, without unread characters and with math letters folded
+    ("𝐶𝐼s"), then mapped back."""
+    runs = ci_runs_de if _is_german(language) else _ci_runs
 
     def openings(read: str) -> list[Candidate]:
         return [
             Candidate(at, at + 1, "[", "interval")
-            for _, intervals in _ci_runs(fold(read))
+            for _, intervals in runs(fold(read))
             for at in (interval.start("open") for interval in intervals)
         ]
 
@@ -279,10 +280,9 @@ def _odds_ratios(text: str, plain: str) -> list[Candidate]:
 def _operators(
     text: str, plain: str, said: Mapping[str, str] = OPERATORS, *, word_stop: bool = False
 ) -> list[Candidate]:
-    """The comparison signs read as words. With `word_stop`, a full stop that ends a word
-    counts as the left side of "=" ("Jh.=1"): the abbreviations step reads "Jh." in the same
-    run, and a second run sees "Jahrhundert gleich 1" (German, #130). So does the start of
-    the block: a footnote "=1" is introduced as "Fußnote. =1" (#212)."""
+    """The comparison signs read as words. With `word_stop` (German), "=" needs nothing on
+    its left: after "Jh.=1" (#130), a footnote's "=1" (#212) or a removed link or citation
+    (#101) a second run sees a word, a full stop or the block start there."""
     found = []
     tags = [m.span() for m in _TAG.finditer(plain)]  # in text order, never overlapping
     tag_starts = [a for a, _ in tags]
@@ -304,23 +304,24 @@ def _operators(
         right_start = _SPACE.match(plain, end).end()  # type: ignore[union-attr]
         if not _OPERAND.match(plain, right_start):
             continue
-        if op == "=" and not (
-            (
-                left
-                and (
-                    _LEFT_OF_EQUALS.match(plain[left - 1])
-                    or (word_stop and _WORD_STOP.search(plain, max(0, left - 2), left))
-                )
-            )
-            # at the block start too: a second run sees the footnote step's "Fußnote." there
-            or (word_stop and left == 0)
-        ):
+        # German (`word_stop`) reads "=" whatever comes before it: what comes before can be
+        # a link, a citation or a sentence that another step removes, so a second run would
+        # see "=" at the block start or after a full stop (#101); "Jh.=1" is read too (#130)
+        if op == "=" and not word_stop and not (left and _LEFT_OF_EQUALS.match(plain[left - 1])):
             continue
         if op in "<>" and not (
             after.isspace() or after in _SIGNS + _UNIT_SIGNS or _starts_number(plain, end)
         ):
             continue  # "a<b" or "<i>": not a comparison anyone reads aloud
         span_start, span_end = max(left, taken), right_start
+        if word_stop:
+            # the white space next to the sign stays where it is: the step that removes a
+            # link, a citation or a sentence beside it may take that space along, and the
+            # sign's reading must not be set aside for it (#101)
+            if left < start:
+                span_start = max(start, taken)
+            if right_start > end:
+                span_end = end
         taken, read_end = span_end, end
         words = said[op]
         found.append(

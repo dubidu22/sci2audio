@@ -1,4 +1,4 @@
-# ruff: noqa: RUF001, RUF002  (dashes, quotes and symbols are meant as papers print them)
+# ruff: noqa: RUF001, RUF002, RUF003  (dashes, quotes and symbols are meant as papers print them)
 """Citations are not read where they are asides, and read briefly where the sentence needs
 them (TP-03, TP-04, K2; D-171 to D-173).
 
@@ -29,13 +29,21 @@ printed; reading it is #68's. Every reason names the citation as printed (D-175)
 
 from __future__ import annotations
 
+import bisect
 import itertools
 import re
 from dataclasses import dataclass, field
 
 from sci2audio.core import Document, Edit, EditKind, Span
-from sci2audio.textprep.links import SKIPPED_KINDS
-from sci2audio.textprep.statistics import interval_openings
+from sci2audio.textprep.links import (
+    SKIPPED_KINDS,
+    link_removals,
+    only_links_after,
+    only_links_before,
+    without_links,
+)
+from sci2audio.textprep.statistics import OPERATORS, interval_openings
+from sci2audio.textprep.statistics_de import OPERATORS_DE, READ_WORDS
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -58,6 +66,19 @@ class CitationWords:
     particles: frozenset[str]  # lower-case parts of names
     months: frozenset[str]  # never the first word of an author
     articles: frozenset[str]  # before a name, a year bracket is no citation: "the Olympics (2016)"
+    # patterns (regular expressions, matched in any case) for what a citation prints
+    joins: str  # between two authors: "and", "&"
+    others: str  # after the authors: "et al."
+    other_words: frozenset[str]  # the words of `others`, never names: "et", "al."
+    undated: str  # in place of a year: "in press", "n.d.", "forthcoming"
+    dated: str  # what makes a bracket worth parsing besides a year: "in press", "n.d."
+    page: str  # a page: "p. 8", "pp. 8–10"
+    locators: str  # after the year: ", p. 8", ", Chapter 9", ", inter alia"
+    abbreviations: frozenset[str] = frozenset()  # a full stop after these ends no sentence
+    # German writes every noun with a capital: a capital word before a year bracket names an
+    # author only after one of these words (or at a sentence start), not after an article or
+    # an inflected adjective ("die neue Studie (2019)", "Die Olympischen Spiele (2016)")
+    name_leads: frozenset[str] | None = None
 
 
 # fmt: off
@@ -109,6 +130,98 @@ WORDS: dict[str, CitationWords] = {
             "october", "november", "december",
         )),
         articles=frozenset(["the", "a", "an"]),
+        joins=r"and|&",
+        others=r"et\s+al\.",
+        other_words=frozenset(["et", "al."]),
+        undated=r"in\s+press|n\.\s?d\.|forthcoming",
+        dated=r"in\s+press|n\.\s?d\.",
+        page=r"pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?",
+        locators=(
+            r"pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?|chapters?\s+\d+|ch(?:ap)?\.\s*\d+|"
+            r"sec(?:tions?|s?\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|inter\s+alia"
+        ),
+    ),
+    "de": CitationWords(
+        before=frozenset((
+            "in", "bei", "von", "vom", "aus", "nach", "gemäß", "laut", "siehe", "auch", "und",
+            "oder", "mit", "wie", "als", "durch", "auf", "über", "unter", "vgl.", "zu", "zur",
+            "zum", "im", "beim", "seit", "gegenüber", "etwa", "bzw.", "sowie",
+        )),
+        refs=frozenset(["ref.", "refs.", "lit."]),
+        ref_words=frozenset(["Quelle", "Quellen", "Referenz", "Referenzen", "Literatur"]),
+        nouns=frozenset((
+            "in", "bei", "von", "vom", "aus", "nach", "gemäß", "laut", "siehe", "mit", "wie",
+            "als", "durch", "auf", "über", "unter", "vgl.", "zu", "zur", "zum", "im", "beim",
+            "seit", "gegenüber",
+        )),
+        asides=("und so weiter", "usw.", "etc."),
+        lead=(
+            "für einen überblick siehe",
+            "für einen überblick vgl.",
+            "zum beispiel",
+            "siehe auch",
+            "siehe z. b.",
+            "siehe z.b.",
+            "siehe etwa",
+            "aber siehe",
+            "siehe",
+            "vgl. auch",
+            "vgl. z. b.",
+            "vgl. z.b.",
+            "vgl. etwa",
+            "vgl. dazu",
+            "vgl.",
+            "z. b.",
+            "z.b.",
+            "u. a.",
+            "u.a.",
+            "etwa",
+            "s.",
+        ),
+        maths=frozenset((
+            "ki", "kis", "ci", "cis", "intervall", "intervalle", "konfidenzintervall",
+            "konfidenzintervalle", "bereich", "bereiche", "wertebereich", "spanne",
+        )),
+        numbered=frozenset((
+            "gl.", "gleichung", "gleichungen", "abb.", "abbildung", "abbildungen", "tab.",
+            "tabelle", "tabellen", "abschn.", "abschnitt", "abschnitte", "kap.", "kapitel",
+            "schritt", "schritte", "zeile", "zeilen", "algorithmus", "anhang", "satz", "lemma",
+            "fig.", "eq.", "sec.",
+        )),
+        particles=frozenset((
+            "van", "von", "de", "der", "den", "del", "della", "di", "da", "du", "la", "le", "ten",
+            "ter", "dos", "das", "zu", "zur", "vom",
+        )),
+        months=frozenset((
+            "jan", "feb", "mär", "märz", "apr", "mai", "jun", "juni", "jul", "juli", "aug", "sep",
+            "sept", "okt", "nov", "dez", "januar", "jänner", "februar", "april", "august",
+            "september", "oktober", "november", "dezember",
+        )),
+        articles=frozenset((
+            "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer",
+            "eines", "im", "am", "zum", "zur", "vom", "beim", "ins", "ans",
+        )),
+        joins=r"und|u\.|&",
+        others=r"et\s+al\.|u\.\s?a\.",
+        other_words=frozenset(["et", "al.", "u.", "a.", "u.a."]),
+        undated=r"im\s+Druck|in\s+press|o\.\s?J\.|n\.\s?d\.|in\s+Vorbereitung|forthcoming",
+        dated=r"im\s+Druck|in\s+press|o\.\s?J\.|n\.\s?d\.",
+        page=r"(?:S|pp?)\.\s*\d+(?:\s*[-–—]\s*\d+)?(?:\s*ff?\.)?",
+        locators=(
+            r"(?:S|pp?)\.\s*\d+(?:\s*[-–—]\s*\d+)?(?:\s*ff?\.)?|Kap(?:itel|\.)\s*\d+|"
+            r"Abschn(?:itt|\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|Rn\.\s*\d+(?:\s*[-–—]\s*\d+)?"
+        ),
+        name_leads=frozenset((
+            "wie", "siehe", "gegen", "unter", "über", "oder", "aber", "sowie", "haben", "zeigen",
+            "zeigten", "fanden", "finden", "schreiben", "beschreiben", "argumentieren", "betonen",
+            "nennen", "kamen", "kommen", "folgen", "folgend", "nachdem", "seit", "bereits",
+        )),
+        abbreviations=frozenset((
+            "a.", "abb.", "abschn.", "al.", "aufl.", "b.", "bd.", "bspw.", "bzw.", "ca.", "d.",
+            "d.h.", "dr.", "etc.", "evtl.", "f.", "ff.", "ggf.", "gl.", "h.", "hrsg.", "inkl.",
+            "insb.", "j.", "jh.", "kap.", "nr.", "o.", "o.j.", "prof.", "s.", "sog.", "tab.",
+            "u.", "u.a.", "usw.", "vgl.", "vs.", "z.", "z.b.",
+        )),
     ),
 }
 # fmt: on
@@ -119,38 +232,47 @@ _NUMERIC = re.compile(rf"\s*{_ITEM}(?:\s*[,;]\s*{_ITEM})*\s*\Z")
 _ITEMS = re.compile(rf"({_NUMBER})(?:\s*[-–—]\s*({_NUMBER}))?")
 _MATHS_SIGNS = "=∈∉→←↦<>≤≥×±∼≈⊂⊆∪∩"
 _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
-_YEARS = (
-    rf"(?:{_YEAR}|in\s+press|n\.\s?d\.|forthcoming)"
-    rf"(?:\s*,\s*(?:{_YEAR}|in\s+press|n\.\s?d\.|forthcoming))*"
-)
-_LOCATOR = (
-    r"(?:\s*,\s*(?:pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?|chapters?\s+\d+|ch(?:ap)?\.\s*\d+|"
-    r"sec(?:tions?|s?\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|inter\s+alia))*"
-)
-_YEARS_ONLY = re.compile(rf"\s*{_YEARS}{_LOCATOR}\s*\Z", re.IGNORECASE)
-_PAGE_ONLY = re.compile(r"\s*pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?\s*\Z")
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
 _WORD = rf"{_LETTER}+(?:(?:[’'-]|-\n){_LETTER}+)*"
-_NAME_WORD = rf"(?!(?:and|et)\b){_WORD}"
-_GROUP = rf"{_NAME_WORD}(?:[ \t]+{_NAME_WORD}|\s*-\n{_LETTER}+)*(?:\s+et\s+al\.)?"
-_AUTHORS = rf"{_GROUP}(?:\s*,\s*(?:(?:and|&)\s+)?{_GROUP}|\s+(?:and|&)\s+{_GROUP})*"
 _SPACE = re.compile(r"\s+")
-_GLUED_PAGE = re.compile(r"[\[(]\s*pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?\s*[\])]")
+_DECIMAL_COMMA = re.compile(r"\d,\d")
+_UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
+_NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
 _FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
 
 
+def _years(words: CitationWords) -> str:
+    """Years or their stand-ins, joined by commas: "2016a,b", "2019, in press"."""
+    one = rf"(?:{_YEAR}|{words.undated})"
+    return rf"{one}(?:\s*,\s*{one})*"
+
+
+def _locator(words: CitationWords) -> str:
+    return rf"(?:\s*,\s*(?:{words.locators}))*"
+
+
+def _authors(words: CitationWords) -> str:
+    """Names joined by commas and "and", each group maybe with "et al." after it."""
+    words_only = words.joins.replace("|&", "").replace(r"\.", "")  # "and", "und|u"
+    name_word = rf"(?!(?:{words_only}|et)\b){_WORD}"
+    group = rf"{name_word}(?:[ \t]+{name_word}|\s*-\n{_LETTER}+)*(?:\s+(?:{words.others}))?"
+    joins = words.joins
+    return rf"{group}(?:\s*,\s*(?:(?:{joins})\s+)?{group}|\s+(?:{joins})\s+{group})*"
+
+
 def _part_pattern(words: CitationWords) -> re.Pattern[str]:
     leads = "|".join(
         re.escape(lead).replace(r"\ ", r"\s+") for lead in sorted(words.lead, key=len, reverse=True)
     )
+    years, locator = _years(words), _locator(words)
     return re.compile(
-        rf"\A\s*(?:(?:{leads})\s+)*(?P<authors>{_AUTHORS})"
-        rf"(?:\s*\(\s*{_YEARS}{_LOCATOR}\s*\)|\s*,?\s+{_YEARS}{_LOCATOR}|\s*,\s*{_YEARS}{_LOCATOR})"
+        rf"\A\s*(?:(?:{leads})\s+)*(?P<authors>{_authors(words)})"
+        rf"(?:\s*\(\s*{years}{locator}\s*\)|\s*,?\s+{years}{locator}|\s*,\s*{years}{locator})"
         # a full stop may end the part: "(See Smith (2019).)" (D-447, #145)
-        rf"(?P<tail>{_LOCATOR})\s*\.?\s*\Z",
+        rf"(?P<tail>{locator})\s*\.?\s*\Z",
         re.IGNORECASE,
     )
 
@@ -160,7 +282,8 @@ def _numeric_aside_pattern(words: CitationWords) -> re.Pattern[str]:
         re.escape(lead).replace(r"\ ", r"\s+") for lead in sorted(words.lead, key=len, reverse=True)
     )
     bracket = rf"(?:(?:{leads})\s+)*\[{_NUMERIC.pattern[:-2]}\]"
-    return re.compile(rf"\s*{bracket}(?:\s*(?:,|;|and)\s*{bracket})*\s*\Z", re.IGNORECASE)
+    joins = words.joins.replace("|&", "")
+    return re.compile(rf"\s*{bracket}(?:\s*(?:,|;|{joins})\s*{bracket})*\s*\Z", re.IGNORECASE)
 
 
 @dataclass
@@ -195,7 +318,7 @@ class CitationStep(TextStep):
     """Remove citations that are asides; read briefly the ones the sentence needs."""
 
     id = "citations"
-    languages = ("en",)
+    languages = ("en", "de")
     category = Category.CITATIONS
     stage = Stage.INLINE
 
@@ -203,13 +326,17 @@ class CitationStep(TextStep):
         words = WORDS[context.language.split("-", 1)[0].lower()]
         language = context.language.split("-", 1)[0].lower()
         rules = _Rules(
-            words, wording_for(context.language), ABBREVIATIONS.get(language, frozenset())
+            words,
+            wording_for(context.language),
+            ABBREVIATIONS.get(language, words.abbreviations),
+            language,
         )
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text.strip():
                 continue
-            for start, end, kind, replacement, reason in rules.block(block.text):
+            links = link_removals(block.text, block.kind, block.label, language)
+            for start, end, kind, replacement, reason in rules.block(block.text, links):
                 if kind is EditKind.REPLACE:
                     edits.append(Edit(Span(index, start, end), kind, reason, self.id, replacement))
                 else:
@@ -222,21 +349,38 @@ _Found = tuple[int, int, EditKind, str, str]  # start, end, kind, replacement, r
 
 class _Rules:
     def __init__(
-        self, words: CitationWords, wording: Wording, abbreviations: frozenset[str]
+        self,
+        words: CitationWords,
+        wording: Wording,
+        abbreviations: frozenset[str],
+        language: str = "en",
     ) -> None:
         self.words = words
         self.wording = wording
         self.abbreviations = abbreviations
         self.part = _part_pattern(words)
         self.numeric_aside = _numeric_aside_pattern(words)
+        self.years_only = re.compile(rf"\s*{_years(words)}{_locator(words)}\s*\Z", re.IGNORECASE)
+        self.page_only = re.compile(rf"\s*(?:{words.page})\s*\Z")
+        self.glued_page = re.compile(rf"[\[(]\s*(?:{words.page})\s*[\])]")
+        self.dated = re.compile(rf"\b(?:1[5-9]\d\d|20\d\d)|{words.dated}")
+        self.others_end = re.compile(rf"(\S+)\s+(?:{words.others})\s*\Z")
+        self.pair_end = re.compile(rf"(\S+)\s+(?:{words.joins})\s+\S+\s*\Z")
+        self.not_names = {*words.other_words, *re.sub(r"\\", "", words.joins).split("|")}
         self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
+        # a sign as the statistics step reads it counts as the sign: "x equals [12]" is "x =
+        # [12]" after the first run, so a second run decides the same (#101)
+        said = OPERATORS_DE if language == "de" else OPERATORS
+        phrases = sorted(set(said.values()), key=len, reverse=True)
+        self.said_sign = re.compile(rf"(?<!\w)(?:{'|'.join(map(re.escape, phrases))})\Z")
+        self.language = language
 
-    def block(self, text: str) -> list[_Found]:
+    def block(self, text: str, links: list[tuple[int, int]] | None = None) -> list[_Found]:
         found: list[_Found] = []
         for node in brackets(text):
             self._visit(text, node, found)
         found.sort()
-        return self._tidied(text, _settled(text, found))
+        return _clear_of_links(text, self._tidied(text, _settled(text, found)), links or [])
 
     def _tidied(self, text: str, found: list[_Found]) -> list[_Found]:
         """Removals that would leave two marks side by side take one along (M2 of the #66
@@ -303,7 +447,7 @@ class _Rules:
             return self._numeric(text, node, inside)
         if self.numeric_aside.match(inside):
             return [self._removed(text, node.open, node.close + 1, "citation")]
-        if _YEARS_ONLY.match(inside) and (names := self._names_before(text, node.open)):
+        if self.years_only.match(inside) and (names := self._names_before(text, node.open)):
             end = self._glued_page(text, node.close + 1)
             printed = _printed(f"{names} {text[node.open : end]}")
             reason = f'year of the citation "{printed}" is not read; the names stay (TP-04)'
@@ -330,12 +474,18 @@ class _Rules:
 
     def _numeric(self, text: str, node: _Bracket, inside: str) -> list[_Found] | None:
         if not _NUMERIC.match(inside):
-            if _PAGE_ONLY.match(inside) and re.search(r"[\"”’']\s*\Z", _before(text, node.open)):
+            if self.page_only.match(inside) and re.search(
+                r"[\"”’']\s*\Z", _before(text, node.open)
+            ):
                 return [self._removed(text, node.open, node.close + 1, "page reference")]
             return None
         glued = text[node.open - 1 : node.open]
         if glued and (glued.isalnum() or glued in ")]"):
             return None
+        if _NUMBER_GLUED_AFTER.match(text, node.close + 1):
+            return None  # "[1; 3],1": read "3,1" would be a decimal on a second run
+        if self.language == "de" and ";" in inside and _DECIMAL_COMMA.search(inside):
+            return None  # "[1,2; 3,4]": two German decimals, an interval, not sources
         if self._not_citations(text, node.open):
             return None
         window = max(0, node.open - _LOOK_BACK)
@@ -368,9 +518,13 @@ class _Rules:
         and [12]" still cites reference 12."""
         before = text[max(0, position - _LOOK_BACK) : position].rstrip()
         previous = before.split()[-1] if before.split() else ""
+        if self.said_sign.search(before):
+            return True
         if previous and (
             previous[-1] in _MATHS_SIGNS
             or previous.lower().rstrip(":") in self.words.maths
+            # "95 %-KI [1; 3]": the word after a hyphen
+            or previous.lower().rstrip(":").rsplit("-", 1)[-1] in self.words.maths
             or _is_label_word(previous.lstrip("(["), self.words.numbered)
             or previous.endswith("%")
         ):
@@ -380,7 +534,7 @@ class _Rules:
     def _intervals(self, text: str) -> frozenset[int]:
         """The statistics step's interval brackets in this block, worked out once."""
         if self._intervals_of[0] != text:
-            self._intervals_of = (text, interval_openings(text))
+            self._intervals_of = (text, interval_openings(text, self.language))
         return self._intervals_of[1]
 
     def _spoken(self, inside: str) -> str:
@@ -416,9 +570,7 @@ class _Rules:
                 depth -= 1
             elif char == ";" and depth == 0:
                 cuts.append(position)
-        if not re.search(
-            r"\b(?:1[5-9]\d\d|20\d\d)|in\s+press|n\.\s?d\.", text[node.open : node.close]
-        ):
+        if not self.dated.search(text[node.open : node.close]):
             return None
         cuts.append(node.close)
         parts = []
@@ -472,7 +624,7 @@ class _Rules:
             for token in re.split(r"\s+|(?<=,)", authors.replace("-\n", "-"))
             if token.strip(",")
         ]
-        names = [t for t in tokens if t.lower() not in {"and", "&", "et", "al."}]
+        names = [t for t in tokens if t.lower() not in self.not_names]
         if not names or names[0].lower().rstrip(".") in self.words.months:
             return False
         for name in names:
@@ -495,15 +647,17 @@ class _Rules:
         if not found:
             return ""
         word = found.group(2)
-        if word == "al." and re.search(r"(\S+)\s+et\s+al\.\s*\Z", before):
-            author = re.search(r"(\S+)\s+et\s+al\.\s*\Z", before)
-            return _printed(f"{author.group(1)} et al.") if author else ""
+        others = self.others_end.search(before)
+        if others:  # "Smith et al. (2019)"
+            return _printed(before[others.start() :])
         joined = (found.group(1) or "").replace("-\n", "-") + word
         bare = re.sub(r"(?:[’']s?)\Z", "", joined)
         if not (_is_name(bare) or re.fullmatch(r"[A-Z]{2,6}", bare)):
             return ""
+        if self.language == "de" and bare in READ_WORDS:
+            return ""  # "χ² (1998)" reads "Chi-Quadrat (1998)": no author's name
         # "Sag and Hankamer (1984)": the reason names both authors
-        pair = re.search(r"(\S+)\s+(?:and|&)\s+\S+\s*\Z", before)
+        pair = self.pair_end.search(before)
         if pair and _is_name(pair.group(1)):
             return _printed(pair.group())
         # "the Olympics (2016)": after an article the word names a thing, not an author
@@ -511,7 +665,32 @@ class _Rules:
         article = re.search(r"(\S+)\s+\Z", before[: found.start()])
         if article and article.group(1).lower() in self.words.articles:
             return ""
+        if self.words.name_leads is not None and not self._led_to_a_name(before[: found.start()]):
+            return ""
         return joined
+
+    def _led_to_a_name(self, before: str) -> bool:
+        """For a language that capitalises nouns: True if the words before a capital word
+        lead to a name ("wie Müller", "von Anna Müller", a sentence start), not to a noun
+        ("die neue Studie", "Die Olympischen Spiele")."""
+        before = before[-_LOOK_BACK:]
+        words = without_links(before, self.language).split()[-3:]  # a link is no word here
+        while words and _is_name(words[-1]) and words[-1].lower() not in self.words.articles:
+            words.pop()  # a first name or another capital word: "Anna Müller"
+        if not words:
+            return True
+        head = before
+        for _ in range(len(without_links(before, self.language).split()[-3:]) - len(words)):
+            head = re.sub(r"\S+\s*\Z", "", head)
+        if only_links_before(head, len(head), self.language):
+            return True  # "https://x.org Müller (2019)" starts with the name once the link goes
+        word = words[-1].lower()
+        leads = self.words.name_leads or frozenset()
+        if word in self.words.articles:
+            return False
+        if word in leads or not word[-1:].isalpha():
+            return True  # "laut Müller", "(Müller", "Ergebnis: Müller"
+        return not re.search(r"(?:e|en|er|es|em)\Z", word)  # "neue", "seiner", ...
 
     def _previous_word(self, text: str, position: int) -> str:
         """The word before a position, lower case, without brackets or a glued footnote mark."""
@@ -520,7 +699,7 @@ class _Rules:
 
     def _glued_page(self, text: str, end: int) -> int:
         """The end of a page bracket glued to a citation ("(2022)[p. 8]"), or `end`."""
-        page = _GLUED_PAGE.match(text, end)
+        page = self.glued_page.match(text, end)
         return page.end() if page else end
 
     def _is_subject(self, text: str, start: int, end: int) -> bool:
@@ -603,11 +782,47 @@ class _Rules:
         At the start of a sentence the punctuation after it goes instead: "It holds. (Smith,
         2019). Then" reads "It holds. Then", not "It holds.. Then".
         """
-        if self._starts_sentence(text, start):
+        if self._starts_sentence(text, start) or only_links_before(text, start, self.language):
             punctuation = _AFTER_START.match(text, end)
+            if punctuation and only_links_after(text, end, self.language):
+                return start, end  # the links' removal takes the punctuation before them
             if punctuation:
-                return start, punctuation.end()
+                stop = punctuation.end()
+                if text[stop - 1].isspace() and only_links_after(text, stop, self.language):
+                    # "(Müller, o. J.). https://x.org)": the link takes the space before it
+                    stop = end + len(punctuation.group().rstrip())
+                return start, stop
+            # the white space before belongs to the sentence before, which another step may
+            # have removed with it ("https://x.org. [1; 3],1", #101): take the space after
+            if start > 0:
+                after = _SPACE.match(text, end)
+                return start, after.end() if after else end
         return _with_space(text, start, end)
+
+
+def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]) -> list[_Found]:
+    """Removals that leave to the links step the white space and punctuation its removals
+    take: "https://x.org, (Smith, 2020)." or "(Smith, 2020), https://x.org." would otherwise
+    have the citation's removal set aside, and a second run remove it (#101)."""
+    if not links:
+        return found
+    starts = [start for start, _ in links]
+    result = []
+    for start, end, kind, replacement, reason in found:
+        if kind is EditKind.REMOVE:
+            at = bisect.bisect_right(starts, start) - 1
+            if at >= 0 and start < links[at][1] and _UNREAD.fullmatch(text, start, links[at][1]):
+                start = links[at][1]
+            at = bisect.bisect_left(starts, end) - 1
+            if (
+                at >= 0
+                and start <= links[at][0] < end <= links[at][1]
+                and _UNREAD.fullmatch(text, links[at][0], end)
+            ):
+                end = links[at][0]
+        if start < end:
+            result.append((start, end, kind, replacement, reason))
+    return result
 
 
 def _is_name(word: str) -> bool:

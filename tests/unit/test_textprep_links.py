@@ -352,16 +352,16 @@ def test_blocks_a_whole_block_edit_covers_are_skipped(kind: BlockKind) -> None:
     assert STEP.find(document, EN) == []
 
 
-def test_the_step_is_english_only_and_its_switch_reads_links_as_printed() -> None:
-    assert STEP.languages == ("en",)
+def test_the_step_reads_english_and_german_and_its_switch_reads_links_as_printed() -> None:
+    assert STEP.languages == ("en", "de")  # German since #101
     assert STEP.category is Category.LINKS
     assert STEP.stage is Stage.INLINE
     text = "The code is released at https://github.com/a/b."
     document = make_document([(BlockKind.PARAGRAPH, text)])
     off = run_steps(document, EN, (STEP,), switched_off={Category.LINKS}, strict=True)
     assert render(off) == [text]
-    german = make_document([(BlockKind.PARAGRAPH, text)], "de")
-    assert run_steps(german, StepContext("de"), (STEP,), strict=True).not_run == ("links",)
+    french = make_document([(BlockKind.PARAGRAPH, text)], "fr")
+    assert run_steps(french, StepContext("fr"), (STEP,), strict=True).not_run == ("links",)
 
 
 def test_links_run_right_after_the_block_steps_and_before_citations() -> None:

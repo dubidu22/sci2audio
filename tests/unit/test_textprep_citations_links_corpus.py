@@ -38,10 +38,7 @@ STEPS = ("links", "citations")
 # Corpus tests that skip the German paper until the step they check speaks German, with the
 # Issue that teaches it (#235, D-509); that Issue removes the entries.
 GERMAN_PAPERS = {"arxiv2017-maass-privacyscore"}
-GERMAN_LATER: dict[str, int] = {
-    "test_every_citation_and_link_edit_is_as_recorded": 101,
-    "test_no_link_or_numeric_citation_is_read_outside_the_reference_list": 101,
-}
+GERMAN_LATER: dict[str, int] = {}  # #101 taught both steps German
 
 
 def papers(test: str) -> list:
@@ -179,4 +176,6 @@ def test_the_corpus_has_the_citations_and_links_the_plan_counted() -> None:
                 edit.reason.endswith("(TP-04)") and "read as" in edit.reason
             )
             counts["names kept"] += edit.reason.startswith("year of the citation")
-    assert counts == {"links": 13, "citations": 328, "read as references": 21, "names kept": 39}
+    # the German paper (#101) adds 15 links; its citations are alphanumeric keys ("[MH17]"),
+    # which no step reads yet
+    assert counts == {"links": 28, "citations": 328, "read as references": 21, "names kept": 39}
