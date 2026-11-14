@@ -38,6 +38,7 @@ class Category(StrEnum):
     LINKS = "links"  # TP-07
     FORMULAS = "formulas"  # FX-01
     TABLES_AND_FIGURES = "tables-and-figures"  # FX-02, TP-12
+    CODE = "code"  # code blocks (D-545)
     REFERENCES = "references"  # TP-06
     ABBREVIATIONS = "abbreviations"  # TP-08
     NUMBERS_AND_UNITS = "numbers-and-units"  # TP-09, TP-10, TP-11
@@ -62,6 +63,7 @@ _LABELS = {
     Category.LINKS: "URLs, DOIs and e-mail addresses",
     Category.FORMULAS: "Formulas",
     Category.TABLES_AND_FIGURES: "Tables and figures",
+    Category.CODE: "Code blocks",
     Category.REFERENCES: "Reference list",
     Category.ABBREVIATIONS: "Abbreviations",
     Category.NUMBERS_AND_UNITS: "Numbers, symbols, units and statistics",

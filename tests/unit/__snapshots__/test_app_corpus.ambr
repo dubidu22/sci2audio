@@ -181,6 +181,13 @@
         'set_aside': 0,
         'switched_off': 0,
       }),
+      'code': dict({
+        'applied': 0,
+        'label': 'Code blocks',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
       'footnote-texts': dict({
         'applied': 0,
         'label': 'Footnote texts',
@@ -3793,6 +3800,7 @@
   | URLs, DOIs and e-mail addresses | 3 | 0 | 3 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 11 | 0 | 0 | 0 |
+  | Code blocks | 0 | 0 | 0 | 0 |
   | Reference list | 0 | 17 | 0 | 0 |
   | Abbreviations | 10 | 0 | 0 | 0 |
   | Numbers, symbols, units and statistics | 0 | 0 | 12 | 0 |
@@ -4134,6 +4142,13 @@
       'citations': dict({
         'applied': 0,
         'label': 'Citations',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'code': dict({
+        'applied': 0,
+        'label': 'Code blocks',
         'not_spoken': 0,
         'set_aside': 0,
         'switched_off': 0,
@@ -9450,6 +9465,7 @@
   | URLs, DOIs and e-mail addresses | 15 | 0 | 1 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 1 | 0 | 0 | 0 |
+  | Code blocks | 0 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
   | Abbreviations | 93 | 0 | 5 | 0 |
   | Numbers, symbols, units and statistics | 28 | 0 | 7 | 0 |
@@ -9889,6 +9905,13 @@
       'citations': dict({
         'applied': 8,
         'label': 'Citations',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'code': dict({
+        'applied': 0,
+        'label': 'Code blocks',
         'not_spoken': 0,
         'set_aside': 0,
         'switched_off': 0,
@@ -11448,6 +11471,7 @@
   | URLs, DOIs and e-mail addresses | 1 | 0 | 6 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 1 | 0 | 0 | 0 |
+  | Code blocks | 0 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
   | Abbreviations | 1 | 0 | 0 | 0 |
   | Numbers, symbols, units and statistics | 5 | 0 | 6 | 0 |
