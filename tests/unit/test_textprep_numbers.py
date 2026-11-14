@@ -325,6 +325,11 @@ def _read_all(text: str) -> str:
         ("It is 5−1/2 here.", "It is 5−1/2 here."),
         ("It is -1/2 here.", "It is -1/2 here."),
         ("It is a−1/2 here.", "It is a−1/2 here."),
+        # ... after "/" or ":" N1 reads "minus", so the fraction is read too (#332 review, R1-2)
+        ("It is /−1/2 here.", "It is /minus 1 half here."),
+        ("ratio 1:−1/2", "ratio 1:minus 1 half"),
+        ("12:−3/4", "12:minus 3 quarters"),
+        ("x/−1/2", "x/minus 1 half"),
         # #304: "~" before a hyphen at a line end and a digit reads "about" on both runs
         ("0:~-\n0", "0: about -0"),
         ("about ~-\n5 dB", "about about -5 decibels"),

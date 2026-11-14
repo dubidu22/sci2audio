@@ -618,6 +618,17 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
         ("Am 3.4. 1/3 Tag.", "Am dritten April ein Drittel Tag."),
         ("Am 3.4. 1/2.", "Am dritten April ein halb."),
         ("Am 3.4. 2/3 Tag.", "Am 3.4. 2 Drittel Tag."),  # the digit stays: so does the date
+        ("Am 3.4. 1/12 Liter.", "Am 3.4. 1 von 12 Liter."),  # read with digits: date stays
+        # a range whose yearless end stands before what a yearless date may stand before: a
+        # full date, or a fraction read "ein ..." (#332 review round 1, R1-1)
+        ("Vom 3.4.2019-5.4. 1/2 Tag.", "Vom dritten April 2019 bis fünften April ein halb Tag."),
+        (
+            "Vom 3.4.2019-5.4. 12.03.2019 an.",
+            "Vom dritten April 2019 bis fünften April zwölfter März 2019 an.",
+        ),
+        ("Vom 3.4.2019-5.4. 1/12 Liter.", "Vom 3.4.2019-5.4. 1 von 12 Liter."),
+        ("Vom 3.4.2019-31.4. 1/3.", "Vom dritten April 2019-31.4. ein Drittel."),
+        ("Vom 3.4.2019-5.4. 3 Tage.", "Vom 3.4.2019-5.4. 3 Tage."),  # a plain number: as main
         ("Am 3.4. 1/2-mal.", "Am 3.4. 1/2-mal."),  # no fraction read: as before
     ],
 )

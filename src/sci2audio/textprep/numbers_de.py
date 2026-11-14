@@ -670,8 +670,13 @@ _FULL_DATE = (
     r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?:1[5-9]\d\d|20\d\d)"
     r"(?![\d_]|[⁺⁻^]|[.,:/]\d)"
 )
-# a date without its year that ends a range: "3.4.2019-5.4." (#318)
-_YEARLESS_END = r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?![\w.,]|\s*\d)"
+# a date without its year that ends a range: "3.4.2019-5.4." (#318); before what a date
+# without its year may stand before, so both runs decide alike: a full date, or a fraction
+# that `_dates` reads "ein ..." (#332 review round 1)
+_YEARLESS_END = (
+    r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?![\w.,]|\s*(?!" + _DATE_AHEAD + r")\d)"
+)
+_HYPHEN_YEARLESS_END = re.compile("-" + _YEARLESS_END)
 # after a date and a hyphen: the second date of a range ("3.4.2019-5.4.2019", "3.4.-5.4.";
 # after a date without its year, `_dates` reads it only if it read that date, #318)
 _AFTER_DATE_HYPHEN = r"(?<=\d\.1[5-9]\d\d-)|(?<=\d\.20\d\d-)|(?<=\d\.-)"
@@ -753,6 +758,13 @@ def _dates(text: str) -> list[Candidate]:
     last_date = -1  # where the last date read ends
     read_as_ein: set[int] | None = None  # where a fraction read "ein halb" ... starts
     for match in _NUMERIC_DATE.finditer(text):
+        if match["y"] and (end := _HYPHEN_YEARLESS_END.match(text, match.end())):
+            ahead = _FRACTION_AHEAD.match(text, end.end())
+            if ahead:
+                if read_as_ein is None:
+                    read_as_ein = _read_as_ein(text)
+                if ahead.end() not in read_as_ein:
+                    continue  # "3.4.2019-5.4. 1/12": no range, as a second run sees "1 von 12"
         dash = text[match.start() - 1 : match.start()]
         # the second date of a range: read only if the date before the dash is ("3.4.-5.4.",
         # "3.4.–5.4.2019", "3.4.2019–5.4."; #318)
@@ -777,9 +789,7 @@ def _dates(text: str) -> list[Candidate]:
             # "Am 3.4. 1/2 Tag": read when the fraction is read "ein halb", a word that a
             # second run sees after the date (#310); "2/3" keeps its digit, so the date stays
             if read_as_ein is None:
-                read_as_ein = {
-                    c.start for c in _fractions(text) if c.replacement.startswith("ein ")
-                }
+                read_as_ein = _read_as_ein(text)
             if ahead.end() not in read_as_ein:
                 continue
         words = _date_words(text, match.start(), day, month, match["y"])
@@ -796,6 +806,13 @@ def _dates(text: str) -> list[Candidate]:
 
 
 _FRACTION_AHEAD = re.compile(r"\s*(?=1/)")
+
+
+def _read_as_ein(text: str) -> set[int]:
+    """Where the fractions start that are read in words. After a date only "1/x" is looked
+    for, and the fractions read in words that start with "1/" are those read with "ein"
+    ("1/2" as "ein halb", up to "1/10"); "1/12" keeps its digits (#310)."""
+    return {c.start for c in _fractions(text)}
 
 
 def _date(match: re.Match[str], words: str) -> Candidate:
