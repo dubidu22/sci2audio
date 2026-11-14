@@ -2,7 +2,10 @@
 # (minus signs, dashes and Greek letters are what these texts are about)
 """German numbers, dates and statistics (#130): the numbers and statistics steps' German rules."""
 
+import gc
+import re
 import time
+from collections.abc import Iterator
 
 import pytest
 from hypothesis import given
@@ -19,6 +22,7 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
+from sci2audio.textprep.abbreviations import _Removals
 from sci2audio.textprep.numbers_de import ordinal, year_words
 from sci2audio.textprep.statistics_de import say_decimal
 
@@ -412,12 +416,19 @@ def test_long_german_blocks_take_linear_time(text: str) -> None:
 
 
 def _abbreviations_seconds(text: str) -> float:
+    """The best of three runs of the abbreviations step alone, gc off while it runs, so a
+    collection or a busy runner does not decide (#274)."""
     document = make_document([(BlockKind.PARAGRAPH, text)], "de")
     best = float("inf")
     for _ in range(3):
-        started = time.perf_counter()
-        AbbreviationStep().find(document, DE)
-        best = min(best, time.perf_counter() - started)
+        gc.collect()
+        gc.disable()
+        try:
+            started = time.perf_counter()
+            AbbreviationStep().find(document, DE)
+            best = min(best, time.perf_counter() - started)
+        finally:
+            gc.enable()
     return best
 
 
@@ -425,9 +436,9 @@ def _abbreviations_seconds(text: str) -> float:
 @pytest.mark.parametrize(
     ("unit", "count"),
     [
-        ("Siehe Kap. https://x.org/a dazu. ", 2_000),
-        ("Kap. https://x.org/a Kap. x ", 2_000),
-        ("Siehe Kap. dazu. ", 8_000),  # faster per character: more of it, for a fair timing
+        ("Siehe Kap. https://x.org/a dazu. ", 1_000),
+        ("Kap. https://x.org/a Kap. x ", 1_000),
+        ("Siehe Kap. dazu. ", 4_000),  # faster per character: more of it, for a fair timing
     ],
     ids=["link-after-label", "dense", "no-link"],
 )
@@ -435,11 +446,48 @@ def test_the_link_look_ahead_of_the_abbreviations_step_takes_linear_time(
     unit: str, count: int
 ) -> None:
     """Review of PR #263 (F3): the look past a removed link after an abbreviation runs the
-    links step's pass once per block and bisects it; four times the text takes about four
-    times as long, not sixteen (best of three runs, so a busy machine does not decide)."""
+    links step's pass once per block and bisects it. Eight times the text takes about eight
+    times as long; the limit, 32, is four times that and half of quadratic, so a shared
+    runner does not decide (#274: the macOS runner measured 8.7 for four times the text)."""
     small = _abbreviations_seconds(unit * count)
-    large = _abbreviations_seconds(unit * count * 4)
-    assert large < 8 * max(small, 0.05)
+    large = _abbreviations_seconds(unit * count * 8)
+    assert large < 32 * max(small, 0.05)
+
+
+class _CountedSpans(list[tuple[int, int]]):
+    """The removals of a block, counting every one that is looked at."""
+
+    looked_at = 0
+
+    def __iter__(self) -> Iterator[tuple[int, int]]:
+        for span in super().__iter__():
+            self.looked_at += 1
+            yield span
+
+    def __getitem__(self, index):  # type: ignore[no-untyped-def]
+        self.looked_at += 1
+        return super().__getitem__(index)
+
+
+@pytest.mark.parametrize(
+    "unit",
+    ["Siehe Kap. https://x.org/a dazu. ", "Kap. https://x.org/a Kap. x "],
+    ids=["link-after-label", "dense"],
+)
+def test_the_link_look_ahead_looks_at_one_removal_per_abbreviation(unit: str) -> None:
+    """#274: the timing test above cannot tell the quadratic look-ahead of the #263 review
+    from a busy runner on small blocks (its end-to-end ratio was 7 for four times the text,
+    as the links pass dominates). Counted instead: each look past an abbreviation looks at
+    one removal, found by bisection, not at every removal before it."""
+    text = unit * 2_000
+    ends = [match.end() for match in re.finditer(r"Kap\.", text)]
+    removals = _Removals(text, BlockKind.PARAGRAPH, "", "de")
+    assert removals.past(ends[0]) is not None  # the links pass runs here, once
+    counted = _CountedSpans(removals._spans or ())
+    removals._spans = counted
+    for end in ends:
+        removals.past(end)
+    assert counted.looked_at <= len(ends)
 
 
 def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:
