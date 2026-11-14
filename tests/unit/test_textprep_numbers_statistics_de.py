@@ -342,7 +342,9 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         # review of PR #263 (F1, F2): no "bis" for the dash, no date after it, as on main;
         # an em dash between full dates is a range like the en dash
         ("vom 1.–3.4.2020", "vom 1.–3.4.2020"),
-        ("vom 1.3.–11.3.2020", "vom ersten März–11.3.2020"),
+        # ... a range from a date without its year is read with "bis" (#318, D-577; read
+        # "vom ersten März–11.3.2020" before)
+        ("vom 1.3.–11.3.2020", "vom ersten März bis elften März 2020"),
         ("1.3.2020\u201411.3.2020", "erster März 2020 bis elften März 2020"),
         ("110⁶–1234", "110⁶ bis 1234"),
         ("1 × 10-2 x1–1", "1 mal 10-2 x1 bis 1"),
@@ -600,6 +602,34 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
             "Vom dritten April 2019 bis fünften April 2019 bis siebten April 2019 an.",
         ),
         ("Vom 3.4.2019-5.4.2019-06 an.", "Vom dritten April 2019-5.4.2019-06 an."),
+        # #318 (D-577): a range whose end has no year, or neither end
+        ("Vom 3.4.-5.4.2019 an.", "Vom dritten April bis fünften April 2019 an."),
+        ("Vom 3.4.–5.4.2019 an.", "Vom dritten April bis fünften April 2019 an."),
+        ("Vom 3.4.2019-5.4. an.", "Vom dritten April 2019 bis fünften April an."),
+        ("Vom 3.4.2019–5.4. an.", "Vom dritten April 2019 bis fünften April an."),
+        ("Vom 3.4.-5.4. an.", "Vom dritten April bis fünften April an."),
+        ("Vom 3.4.–5.4. an.", "Vom dritten April bis fünften April an."),
+        ("Vom 3.4.-5.4.-7.4. an.", "Vom dritten April bis fünften April bis siebten April an."),
+        # ... read only when the first date is: no word decides its case here
+        ("Abschnitt 3.4.-5.4. an.", "Abschnitt 3 Punkt 4.-5.4. an."),
+        ("Vom 3.–5.4.2019 an.", "Vom 3.–5.4.2019 an."),  # a day alone: as printed (D-562)
+        # #310 (D-577): a date without its year before a fraction read "ein ..."
+        ("Am 3.4. 1/2 Tag.", "Am dritten April ein halb Tag."),
+        ("Am 3.4. 1/3 Tag.", "Am dritten April ein Drittel Tag."),
+        ("Am 3.4. 1/2.", "Am dritten April ein halb."),
+        ("Am 3.4. 2/3 Tag.", "Am 3.4. 2 Drittel Tag."),  # the digit stays: so does the date
+        ("Am 3.4. 1/12 Liter.", "Am 3.4. 1 von 12 Liter."),  # read with digits: date stays
+        # a range whose yearless end stands before what a yearless date may stand before: a
+        # full date, or a fraction read "ein ..." (#332 review round 1, R1-1)
+        ("Vom 3.4.2019-5.4. 1/2 Tag.", "Vom dritten April 2019 bis fünften April ein halb Tag."),
+        (
+            "Vom 3.4.2019-5.4. 12.03.2019 an.",
+            "Vom dritten April 2019 bis fünften April zwölfter März 2019 an.",
+        ),
+        ("Vom 3.4.2019-5.4. 1/12 Liter.", "Vom 3.4.2019-5.4. 1 von 12 Liter."),
+        ("Vom 3.4.2019-31.4. 1/3.", "Vom dritten April 2019-31.4. ein Drittel."),
+        ("Vom 3.4.2019-5.4. 3 Tage.", "Vom 3.4.2019-5.4. 3 Tage."),  # a plain number: as main
+        ("Am 3.4. 1/2-mal.", "Am 3.4. 1/2-mal."),  # no fraction read: as before
     ],
 )
 def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(
