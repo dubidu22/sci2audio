@@ -32,9 +32,10 @@ env:
   # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
   UV_PYTHON_PREFERENCE: only-managed
 
-# A newer push on a PR cancels its older scan; scheduled and manual runs finish (D-580).
+# A newer push on a PR cancels its older scan. A scheduled or manual scan is a group of its
+# own, so none is cancelled or dropped by the next (D-580).
 concurrency:
-  group: zap-${{ github.event.pull_request.number || github.ref }}
+  group: zap-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -49,6 +50,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
       # CI downloads of the test browser and of ZAP's image (pinned by digest in the
       # script, D-370); sci2audio and the walk itself never use the network.

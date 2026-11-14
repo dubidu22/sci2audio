@@ -37,7 +37,7 @@ Keep a later web version possible: no global state (each job gets its settings a
 5. A PR that adds the first code of a kind also adds its tests and CI wiring (table in `.claude/rules/tests.md`, D-58).
 6. PR title `<area>: <outcome> (#N)`; body with `Closes #N`, feature ID (e.g. `WI-02`), test summary, licence note, risk, and out-of-scope follow-ups.
 7. No fixed size limit for PRs. Split a PR only when it splits naturally into parts that can be reviewed and merged on their own.
-8. Every PR is reviewed in a new thread that did not write it. Answer findings by listing exactly what was fixed and why; anything deferred gets an Issue (D-68). PRs run CI on Linux only; the review thread adds the label `ci:full` and merges only after a green run on Linux, macOS and Windows of the reviewed head (D-580).
+8. Every PR is reviewed in a new thread that did not write it. Answer findings by listing exactly what was fixed and why; anything deferred gets an Issue (D-68). PRs run CI on Linux only; the review thread adds the label `ci:full` and merges only after a green run on Linux, macOS and Windows of the reviewed head (D-580): check that `tests (macos-latest)` and `tests (windows-latest)` succeeded on that head; `CI passed` alone can still show the earlier Linux-only run.
 
 ## Critical and `risk:high` (full plan and review process; Colin approves the merge, until v1.0 the coordinator does, D-80)
 

@@ -18,9 +18,10 @@ env:
   # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
   UV_PYTHON_PREFERENCE: only-managed
 
-# A newer push or label on a PR cancels its older run; runs on main and release/* finish.
+# A newer push or label on a PR cancels its older run. Every other run (main, release/*,
+# by hand) is a group of its own, so none is cancelled or held back by the next (D-580).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -34,6 +35,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
       - name: Ruff lint (incl. security rules)
         run: uv run ruff check --output-format=github
@@ -67,6 +69,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       # Only the app's own run-time dependencies are checked, not the dev tools.
       # espeakng-loader states no licence in its package metadata; it was checked by hand
       # (loader MIT, bundled espeak-ng GPL-3.0-or-later) and is listed in THIRD_PARTY_LICENSES.md.
@@ -89,6 +92,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
       - name: Known vulnerabilities in run-time dependencies (pip-audit)
         run: |
@@ -112,6 +116,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
       - name: Fast tests (unit, property-based, golden files)
         run: uv run pytest -m "not slow and not benchmark and not browser" -n auto
@@ -139,6 +144,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
       # A CI download of the test browser; the tests themselves never use the network.
       # The Playwright browser comes from the cache when the playwright version is unchanged;
