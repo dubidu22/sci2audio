@@ -380,6 +380,10 @@ def test_the_steps_declare_their_categories_and_stage() -> None:
             "9.8 m/s\u00b2, 9.8 m/s2, 2 s\u00b2",
             "9.8 metres per second squared, 9.8 metres per second squared, 2 seconds squared",
         ),
+        (
+            "3 m/s\u00b3 and 2 s\u00b3",  # not a length: "cubed" (mutation run, #80)
+            "3 metres per second cubed and 2 seconds cubed",
+        ),
         ("5 s\u207b\u00b9", "5 per second"),
         (
             "5 N m, 2 kW h, 3 kW\u00b7h, 4 N\u22c5m",
