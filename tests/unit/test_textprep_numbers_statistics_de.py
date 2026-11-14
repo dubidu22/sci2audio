@@ -11,6 +11,7 @@ from notation_texts import german_notation_documents
 from sci2audio.core import BlockKind, Document, apply_edits
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
 from sci2audio.textprep import (
+    AbbreviationStep,
     NumbersStep,
     StatisticsStep,
     StepContext,
@@ -333,6 +334,11 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("im 1234-1234", "im 12 hundert 34-1234"),
         ("1–11.3.2020", "1 bis elften März 2020"),
         ("vom 1.3.2020–11.3.2020", "vom ersten März 2020 bis elften März 2020"),
+        # review of PR #263 (F1, F2): no "bis" for the dash, no date after it, as on main;
+        # an em dash between full dates is a range like the en dash
+        ("vom 1.–3.4.2020", "vom 1.–3.4.2020"),
+        ("vom 1.3.–11.3.2020", "vom ersten März–11.3.2020"),
+        ("1.3.2020\u201411.3.2020", "erster März 2020 bis elften März 2020"),
         ("110⁶–1234", "110⁶ bis 1234"),
         ("1 × 10-2 x1–1", "1 mal 10-2 x1 bis 1"),
         ("im 1500—1234", "im 15 hundert bis 12 hundert 34"),
@@ -385,6 +391,31 @@ def test_long_german_blocks_take_linear_time(text: str) -> None:
     NUMBERS.find(document, DE)
     STATISTICS.find(document, DE)
     assert time.perf_counter() - started < 3
+
+
+def _abbreviations_seconds(text: str) -> float:
+    document = make_document([(BlockKind.PARAGRAPH, text)], "de")
+    best = float("inf")
+    for _ in range(2):
+        started = time.perf_counter()
+        AbbreviationStep().find(document, DE)
+        best = min(best, time.perf_counter() - started)
+    return best
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.parametrize(
+    "unit",
+    ["Siehe Kap. https://x.org/a dazu. ", "Kap. https://x.org/a Kap. x ", "Siehe Kap. dazu. "],
+    ids=["link-after-label", "dense", "no-link"],
+)
+def test_the_link_look_ahead_of_the_abbreviations_step_takes_linear_time(unit: str) -> None:
+    """Review of PR #263 (F3): the look past a removed link after an abbreviation runs the
+    links step's pass once per block and bisects it; four times the text takes about four
+    times as long, not sixteen."""
+    small = _abbreviations_seconds(unit * 2_000)
+    large = _abbreviations_seconds(unit * 8_000)
+    assert large < 8 * max(small, 0.01)
 
 
 def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:

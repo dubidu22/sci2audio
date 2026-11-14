@@ -641,7 +641,8 @@ def _year_left_alone(text: str, end: int) -> bool:
     return _unit_left_alone(text, end) or _x_left_alone(text, end)
 
 
-_RANGE_DASH_BEFORE = re.compile(r"\d\s*\u2013\s*\Z")
+_RANGE_DASH_BEFORE = re.compile(r"\d\s*[\u2013\u2014]\s*\Z")
+_DASH_BEFORE = re.compile(r"[\u2013\u2014]\s*\Z")
 
 
 def _ending(text: str, start: int, *, day: bool = False) -> str | None:
@@ -694,6 +695,9 @@ def _dates(text: str) -> list[Candidate]:
     for match in _NUMERIC_DATE.finditer(text):
         if not match["y"] and text[match.start() - 1 : match.start()] == "\u2013":
             continue  # "3.–5.4.": a date without its year after a dash is left as printed
+        before = text[max(0, match.start() - 8) : match.start()]
+        if _DASH_BEFORE.search(before) and not _RANGE_DASH_BEFORE.search(before):
+            continue  # "1.–3.4.2020": no "bis" for the dash, so the date stays too, as on main
         day, month = int(match["d"]), int(match["m"])
         year = int(match["y"]) if match["y"] else 2000  # 29.2. without a year may be any year
         if day > calendar.monthrange(year, month)[1]:

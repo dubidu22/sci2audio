@@ -26,11 +26,12 @@ whole by other steps and skipped.
 from __future__ import annotations
 
 import re
+from bisect import bisect_left
 from collections.abc import Iterator
 from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
-from sci2audio.textprep.links import link_removals
+from sci2audio.textprep.links import find_links, link_removals
 from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Abbreviation, abbreviations
@@ -157,18 +158,37 @@ class _Removals:
         self._label = label
         self._language = language
         self._spans: list[tuple[int, int]] | None = None
+        self._starts: list[int] = []
 
     def past(self, end: int) -> int | None:
-        """The end of the removal that starts right after `end`, white space between."""
+        """The end of the removal that starts right after `end`, white space between. The
+        removals are in order and never overlap: the first that starts at or after `end` is
+        the only one to look at, found by bisection (linear on link-dense blocks)."""
         position = end
-        while position < len(self._text) and self._text[position] in " \t\u00a0":
+        limit = min(len(self._text), end + _GAP)
+        while position < limit and self._text[position] in " \t\u00a0":
             position += 1
         if self._spans is None:
+            # the links step's pass over the block runs only once a link starts here
+            if not _LINK_START.match(self._text, position):
+                return None  # cheap: no scheme, "www." or dotted host here
+            window = self._text[position : position + _LINK_WINDOW]
+            if not any(link.start == 0 for link in find_links(window)[:1]):
+                return None
             self._spans = link_removals(self._text, self._kind, self._label, self._language)
-        for start, stop in self._spans:
-            if end <= start <= position < stop:
+            self._starts = [start for start, _ in self._spans]
+        at = bisect_left(self._starts, end)
+        if at < len(self._spans):
+            start, stop = self._spans[at]
+            if start <= position < stop:
                 return stop
         return None
+
+
+_GAP = 8  # the white space looked past after an abbreviation, at most
+_LINK_WINDOW = 512  # enough to see that a link starts
+# what a link may start with: a scheme, "www." or a host with a dot ("x.org/a")
+_LINK_START = re.compile(r"(?:https?:|ftp:|mailto:|www\.|doi|[\w-]+(?:\.[\w-]+)+[/:])", re.I)
 
 
 def _skipped(block: Block) -> bool:
