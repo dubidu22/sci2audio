@@ -8,11 +8,11 @@ around citations.
 """
 
 import re
-import time
 
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from linear_time import assert_linear
 
 from sci2audio.core import Block, BlockKind, Edit, EditKind, Span
 from sci2audio.testing import check_text_step, make_document
@@ -328,11 +328,14 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
     check_text_step(STEP, [document], allow_ask=False)
 
 
-@pytest.mark.parametrize("text", ["[1] " * 25_000, "Smith (2019) shows it [3]. " * 4000])
-def test_a_long_block_takes_linear_time(text: str) -> None:  # S2: 100,000 characters
-    started = time.perf_counter()
-    edits(text)
-    assert time.perf_counter() - started < 5  # about 0.4 s; it took 17 s for 80,000 before
+@pytest.mark.parametrize(
+    ("unit", "count"),
+    [("[1] ", 25_000), ("Smith (2019) shows it [3]. ", 4000)],
+    ids=["numeric", "author-year"],
+)
+def test_a_long_block_takes_linear_time(unit: str, count: int) -> None:  # S2: 100,000 characters
+    # 8 times the text against a base run (#276); it took 17 s for 80,000 characters before
+    assert_linear(edits, lambda n: unit * n, count)
 
 
 def test_a_very_long_bracket_is_not_parsed() -> None:

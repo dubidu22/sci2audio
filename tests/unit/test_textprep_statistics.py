@@ -3,11 +3,12 @@
 """Statistics read as words (TP-11, #67): unit cases and properties of `StatisticsStep`."""
 
 import re
-import time
 import unicodedata
+from collections.abc import Callable
 
 import pytest
 from hypothesis import given
+from linear_time import assert_linear
 from notation_texts import notation_documents
 
 from sci2audio.core import Block, BlockKind, Document, EditKind, Span, apply_edits
@@ -174,23 +175,27 @@ def test_english_and_german() -> None:
 
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize(
-    "text",
+    ("sized", "size"),
     [
-        "t(34) = 2.45, p = .021, F(2, 57) = 4.31, p < .001, 95% CI [1.2, 3.4]. " * 1400,
-        "0 ≤ i ≤ k ≤ N and w = w1 · · · wN with G = (N, Σ, S, R, p). " * 1700,
-        "a = " * 25_000,
-        "95% CI [" * 12_000,
-        "<i>" * 30_000,
-        "x" + " " * 100_000 + "= 3",
+        (
+            lambda n: "t(34) = 2.45, p = .021, F(2, 57) = 4.31, p < .001, 95% CI [1.2, 3.4]. " * n,
+            1400,
+        ),
+        (lambda n: "0 ≤ i ≤ k ≤ N and w = w1 · · · wN with G = (N, Σ, S, R, p). " * n, 1700),
+        (lambda n: "a = " * n, 25_000),
+        (lambda n: "95% CI [" * n, 12_000),
+        (lambda n: "<i>" * n, 30_000),
+        (lambda n: "x" + " " * n + "= 3", 100_000),
     ],
     ids=["results", "maths", "equals-chain", "ci-chain", "tags", "long-space"],
 )
-def test_long_and_pathological_blocks_take_linear_time(text: str) -> None:
+def test_long_and_pathological_blocks_take_linear_time(
+    sized: Callable[[int], str], size: int
+) -> None:
     """About 100,000 characters each: no look back over the whole block (review of PR #132)."""
-    document = make_document([(BlockKind.PARAGRAPH, text)])
-    started = time.perf_counter()
-    STEP.find(document, EN)
-    assert time.perf_counter() - started < 3
+    assert_linear(
+        lambda text: STEP.find(make_document([(BlockKind.PARAGRAPH, text)]), EN), sized, size
+    )
 
 
 # ---- properties ------------------------------------------------------------------------------

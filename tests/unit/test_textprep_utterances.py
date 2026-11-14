@@ -1,7 +1,6 @@
 """The utterance cutter: sentences, the fallback cut for long ones, spans (#63, D-98, Q4)."""
 
 import re
-import time
 from functools import cache
 from itertools import pairwise
 from pathlib import Path
@@ -10,6 +9,7 @@ import pytest
 from core_strategies import documents, edits_on, overlaps, spans_in
 from hypothesis import given
 from hypothesis import strategies as st
+from linear_time import assert_linear
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, ScriptPiece, Span, apply_edits
 from sci2audio.extraction import extract_pdf
@@ -258,12 +258,10 @@ def test_a_same_length_replacement_is_still_a_replacement() -> None:
 
 @pytest.mark.timeout(60)
 def test_a_long_text_without_a_full_stop_is_cut_in_linear_time() -> None:
-    text = "word " * 60_000  # 300,000 characters: 0.08 s; the quadratic cut would take about 11 s
-    started = time.perf_counter()
-    parts = cut(text)
-    assert time.perf_counter() - started < 5
+    # 300,000 characters: 0.08 s; the quadratic cut would take about 11 s (#276: ratio)
+    parts = assert_linear(cut, lambda n: "word " * n, 60_000)
     assert all(len(part) <= DEFAULT_MAX_CHARS for part in parts)
-    assert " ".join(parts) == text.strip()
+    assert " ".join(parts) == ("word " * 60_000).strip()
 
 
 def test_a_replacement_longer_than_the_limit_gives_later_parts_an_empty_span() -> None:

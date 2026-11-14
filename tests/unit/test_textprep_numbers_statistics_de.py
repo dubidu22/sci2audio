@@ -5,10 +5,11 @@
 import gc
 import re
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 
 import pytest
 from hypothesis import given
+from linear_time import assert_linear
 from notation_texts import german_notation_documents
 
 from sci2audio.core import BlockKind, Document, apply_edits
@@ -396,23 +397,30 @@ def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:
 
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize(
-    "text",
+    ("sized", "size"),
     [
-        "Am 3. Mai 1998 lag r = .45 (t(34) = 2,45; 95 %-KI [1,2; 3,4]) bei 1/2 von 10⁶. " * 1500,
-        "1–" * 50_000,
-        "der " + "3. " * 30_000 + "Mai",
-        "Kapitel " + "I/" * 30_000,
-        "1.234." * 20_000,
-        "a" + " " * 100_000 + "seit 1998",
+        (
+            lambda n: (
+                "Am 3. Mai 1998 lag r = .45 (t(34) = 2,45; 95 %-KI [1,2; 3,4]) bei 1/2 von 10⁶. "
+                * n
+            ),
+            1500,
+        ),
+        (lambda n: "1–" * n, 50_000),
+        (lambda n: "der " + "3. " * n + "Mai", 30_000),
+        (lambda n: "Kapitel " + "I/" * n, 30_000),
+        (lambda n: "1.234." * n, 20_000),
+        (lambda n: "a" + " " * n + "seit 1998", 100_000),
     ],
     ids=["sentences", "dashes", "ordinals", "roman-run", "points", "long-space"],
 )
-def test_long_german_blocks_take_linear_time(text: str) -> None:
-    document = make_document([(BlockKind.PARAGRAPH, text)], "de")
-    started = time.perf_counter()
-    NUMBERS.find(document, DE)
-    STATISTICS.find(document, DE)
-    assert time.perf_counter() - started < 3
+def test_long_german_blocks_take_linear_time(sized: Callable[[int], str], size: int) -> None:
+    def run(text: str) -> None:
+        document = make_document([(BlockKind.PARAGRAPH, text)], "de")
+        NUMBERS.find(document, DE)
+        STATISTICS.find(document, DE)
+
+    assert_linear(run, sized, size)  # 8 times the text against a base run (#276)
 
 
 def _abbreviations_seconds(text: str) -> float:
@@ -492,10 +500,11 @@ def test_the_link_look_ahead_looks_at_one_removal_per_abbreviation(unit: str) ->
 
 def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:
     # review round 2 of PR #242: one walk over the file-number spans, not one per number
-    document = make_document([(BlockKind.PARAGRAPH, "1 O 1/12 " * 9000)], "de")
-    started = time.perf_counter()
-    UnitStep().find(document, DE)
-    assert time.perf_counter() - started < 1
+    assert_linear(
+        lambda text: UnitStep().find(make_document([(BlockKind.PARAGRAPH, text)], "de"), DE),
+        lambda n: "1 O 1/12 " * n,
+        9000,
+    )
 
 
 # ---- properties ------------------------------------------------------------------------------
