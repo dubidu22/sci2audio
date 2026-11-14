@@ -665,6 +665,21 @@ expected = [
 ]
 
 [[case]]
+id = "de-numbers-dotted-date-glued-to-a-dash"
+audit = 0
+issue = 303
+goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the dash is read as before."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut." },
+    { kind = "paragraph", text = "Es lief am 3.4.2019 und am 2019-03-12 gut, am 3.4.2019 - 5.4.2019 auch." },
+]
+expected = [
+    "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut.",
+    "Es lief am dritten April 2019 und am zwölften März 2019 gut, am dritten April 2019 - fünfter April 2019 auch.",
+]
+
+[[case]]
 id = "de-numbers-hyphen-year-range"
 audit = 0
 issue = 253

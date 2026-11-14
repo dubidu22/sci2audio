@@ -565,3 +565,30 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
     """Review of PR #242, items 3 and 7."""
     assert read_all(printed) == said
     assert read_all(said) == said
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #303 (D-562): a dotted date glued to "-" and a digit stays as printed on both runs
+        ("Es lief am 3.4.2019-03-12 gut.", "Es lief am 3.4.2019-03-12 gut."),
+        ("1–1am 3.4.2019-03-12", "1 bis 1am 3.4.2019-03-12"),
+        ("Es lief am 3.4.2019-2020 gut.", "Es lief am 3.4.2019-2020 gut."),
+        ("Es lief am 3.4.2019-03 gut.", "Es lief am 3.4.2019-03 gut."),
+        # apart, both dates are read; spaces round the dash: read as before
+        (
+            "Es lief am 3.4.2019 und am 2019-03-12 gut.",
+            "Es lief am dritten April 2019 und am zwölften März 2019 gut.",
+        ),
+        (
+            "Es lief am 3.4.2019 - 5.4.2019 gut.",
+            "Es lief am dritten April 2019 - fünfter April 2019 gut.",
+        ),
+    ],
+)
+def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(
+    printed: str, said: str
+) -> None:
+    once = read_all(printed)
+    assert once == said
+    assert read_all(once) == once
