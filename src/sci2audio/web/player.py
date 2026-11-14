@@ -25,7 +25,7 @@ from __future__ import annotations
 import contextlib
 import json
 import math
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path, PurePath
@@ -41,6 +41,7 @@ from sci2audio.output import ReadAlong, ReadAlongError, read_readalong
 from sci2audio.textprep import (
     Category,
     FormulaNoticeStep,
+    LineEndHyphenStep,
     StepContext,
     TableFigureNoticeStep,
 )
@@ -342,6 +343,7 @@ def build_view(document: Document, record: AudioRecord, readalong: ReadAlong) ->
     for number, chunk in enumerate(readalong.chunks):
         by_block.setdefault(chunk.span.block, []).append(number)
     notices = _notices(document, record.switched_off)
+    joined = joined_hyphens(document, record.switched_off)
     levels = _heading_levels(document)
     pages = _page_starts(document)
 
@@ -359,7 +361,13 @@ def build_view(document: Document, record: AudioRecord, readalong: ReadAlong) ->
             if block.kind is BlockKind.FURNITURE:
                 continue
             view = _block_view(
-                document, number, by_block.get(number, []), readalong, notices, element_of
+                document,
+                number,
+                by_block.get(number, []),
+                readalong,
+                notices,
+                element_of,
+                joined.get(number, frozenset()),
             )
             view.heading = levels.get(number, 0)
             view.page = pages.get(number, "")
@@ -459,18 +467,37 @@ def _page_starts(document: Document) -> dict[int, str]:
     return starts
 
 
-def shown(text: str, start: int = 0, end: int | None = None) -> str:
+def shown(
+    text: str, start: int = 0, end: int | None = None, joined: Collection[int] = frozenset()
+) -> str:
     """Characters `start` to `end` of a block's text as the page shows them: layout's
-    line breaks are spaces, except after a hyphen, where the word is joined with its
-    printed hyphen kept. Pieces of one text shown one by one join up to the whole."""
+    line breaks are spaces, except after a hyphen, where the word is joined. A hyphen at
+    one of the `joined` offsets (a word the line-end-hyphens step joined) is left out with
+    its line break, as the voice reads the word (#286); any other is kept as printed. Pieces
+    of one text shown one by one join up to the whole."""
     stop = len(text) if end is None else end
     out = []
     for index in range(start, stop):
         char = text[index]
-        if char == "\n":
+        if index in joined or (char == "\n" and index - 1 in joined):
+            char = ""
+        elif char == "\n":
             char = "" if index > 0 and text[index - 1] == "-" else " "
         out.append(char)
     return "".join(out)
+
+
+def joined_hyphens(document: Document, switched_off: frozenset[str]) -> dict[int, frozenset[int]]:
+    """By block, the offsets of the line-end hyphens whose words the line-end-hyphens step
+    joined, as the voice read them; none where characters and hyphenation were off (#286)."""
+    step = LineEndHyphenStep()
+    if str(step.category) in switched_off or not step.handles(document.language):
+        return {}
+    found: dict[int, set[int]] = {}
+    for edit in step.find(document, StepContext(document.language)):
+        if edit.span.end - edit.span.start == 2:  # the hyphen and its line break: joined
+            found.setdefault(edit.span.block, set()).add(edit.span.start)
+    return {block: frozenset(offsets) for block, offsets in found.items()}
 
 
 def _block_view(
@@ -480,6 +507,7 @@ def _block_view(
     readalong: ReadAlong,
     notices: dict[int, str],
     element_of: list[str],
+    joined: frozenset[int] = frozenset(),
 ) -> BlockView:
     block = document.blocks[number]
     view = BlockView(number, str(block.kind))
@@ -506,16 +534,16 @@ def _block_view(
                 element_of[n] = last_element
             continue
         if span.start > position:
-            view.pieces.append(Piece(shown(text, position, span.start)))
+            view.pieces.append(Piece(shown(text, position, span.start, joined)))
         last_element = f"s{n}"
         element_of[n] = last_element
         for early in waiting:
             element_of[early] = last_element
         waiting = []
-        view.pieces.append(Piece(shown(text, span.start, span.end), last_element, n))
+        view.pieces.append(Piece(shown(text, span.start, span.end, joined), last_element, n))
         position = span.end
     if position < len(text):
-        view.pieces.append(Piece(shown(text, position)))
+        view.pieces.append(Piece(shown(text, position, None, joined)))
     for early in waiting:  # the block has no sentence: the block is what they read
         element_of[early] = f"b{number}"
     if not view.read and any(element_of[n] == f"b{number}" for n in chunk_numbers):

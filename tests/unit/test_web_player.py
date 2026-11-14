@@ -38,7 +38,14 @@ from sci2audio.output.readalong import ChapterTimes, ChunkTimes, to_json
 from sci2audio.testing.documents import make_document
 from sci2audio.voices import EngineError
 from sci2audio.web import create_app, player, tasks
-from sci2audio.web.player import AudioRecord, PlayerError, bare_name, build_view, shown
+from sci2audio.web.player import (
+    AudioRecord,
+    PlayerError,
+    bare_name,
+    build_view,
+    joined_hyphens,
+    shown,
+)
 
 # ---- the view, from hand-made data ------------------------------------------------------
 
@@ -227,6 +234,29 @@ def test_a_span_outside_its_block_is_refused() -> None:
 
 def test_line_breaks_show_as_spaces_and_hyphenated_words_join() -> None:
     assert shown("exam-\nple and\nmore") == "exam-ple and more"
+    assert shown("exam-\nple and\nmore", joined=frozenset({4})) == "example and more"
+    assert (
+        shown("exam-\nple", 0, 5, frozenset({4})) + shown("exam-\nple", 5, None, {4}) == "example"
+    )
+
+
+def test_a_word_the_hyphen_step_joined_shows_joined_and_a_kept_hyphen_as_printed() -> None:
+    """#286: the read-along shows what the line-end-hyphens step decided, as the voice reads
+    it ("contributing"), and keeps a hyphen the step kept ("COVID-19"), also when a
+    sentence's piece ends between the hyphen and the line break."""
+    text = "asking questions, and con-\ntributing code during COVID-\n19."
+    document = make_document([("paragraph", text)])
+    cut = text.index("-") + 1  # one piece ends right after the joined word's hyphen
+    data = readalong([(0, 0, cut), (0, cut, len(text))])
+    view = build_view(document, record(chunks=2), data)
+    pieces = [p.text for p in view.chapters[0].blocks[0].pieces]
+    assert pieces == ["asking questions, and con", "tributing code during COVID-19."]
+    assert joined_hyphens(document, frozenset()) == {0: frozenset({text.index("-")})}
+    # characters and hyphenation switched off: the voice read it as printed, and so it shows
+    off = build_view(document, record(chunks=2, switched_off=frozenset({"characters"})), data)
+    assert "".join(p.text for p in off.chapters[0].blocks[0].pieces) == (
+        "asking questions, and con-tributing code during COVID-19."
+    )
 
 
 @st.composite
@@ -256,8 +286,9 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     document, spans = case
     view = build_view(document, record(chunks=len(spans)), readalong(spans))
     shown_blocks = view.chapters[0].blocks
+    joined = joined_hyphens(document, frozenset())
     assert ["".join(p.text for p in b.pieces) for b in shown_blocks] == [
-        shown(b.text) for b in document.blocks
+        shown(b.text, joined=joined.get(n, frozenset())) for n, b in enumerate(document.blocks)
     ]
     ids = {p.element for b in shown_blocks for p in b.pieces if p.element}
     ids |= {b.element for b in shown_blocks if b.element}
@@ -265,7 +296,8 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     for number, (block, start, end) in enumerate(spans):
         if start < end:
             piece = next(p for b in shown_blocks for p in b.pieces if p.element == f"s{number}")
-            assert piece.text == shown(document.blocks[block].text, start, end)
+            text = document.blocks[block].text
+            assert piece.text == shown(text, start, end, joined.get(block, frozenset()))
 
 
 def test_bare_names() -> None:
