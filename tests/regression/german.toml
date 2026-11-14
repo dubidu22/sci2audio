@@ -286,6 +286,34 @@ blocks = [{ kind = "paragraph", text = "Laut Müller u. a. (2019) gilt das u. a.
 expected = ["Laut Müller und andere (2019) gilt das unter anderem in Berlin."]
 
 [[case]]
+id = "de-abbreviations-u-a-before-a-year-after-a-lower-case-word"
+audit = 0
+issue = 113
+goal = "'u. a.' before a year reads 'und andere' only after a name: 'gilt u. a. 2019' is 'unter anderem' (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das gilt u. a. 2019 und 2020." }]
+expected = ["Das gilt unter anderem 2019 und 2020."]
+
+[[case]]
+id = "de-abbreviations-capitals-with-umlauts"
+audit = 0
+issue = 113
+goal = "A capital with an umlaut counts as a capital after an abbreviation: a name after 'Dr.', a new sentence after 'usw.' (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Laut Prof. Dr. Özdemir gilt das für Katzen usw. Über die Studie wissen wir mehr." }]
+expected = ["Laut Professor Doktor Özdemir gilt das für Katzen und so weiter. Über die Studie wissen wir mehr."]
+utterances = ["Laut Professor Doktor Özdemir gilt das für Katzen und so weiter.", "Über die Studie wissen wir mehr."]
+
+[[case]]
+id = "de-abbreviations-lower-case-ae-and-ff"
+audit = 0
+issue = 113
+goal = "'o. ä.', 'o.ä.', 'u. ä.', 'u.ä.' with a lower-case 'ä' read too; 'ff.' after a page reads 'folgende' (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Hunde o. ä. sind hier, Katzen o.ä. auch, Pferde u. ä. ebenso, Mäuse u.ä. nicht, siehe S. 12 ff." }]
+expected = ["Hunde oder Ähnliches sind hier, Katzen oder Ähnliches auch, Pferde und Ähnliches ebenso, Mäuse und Ähnliches nicht, siehe Seite 12 folgende."]
+
+[[case]]
 id = "de-abbreviations-et-al-left-alone"
 audit = 0
 issue = 113
@@ -396,13 +424,50 @@ blocks = [{ kind = "paragraph", text = "Siehe Abbildung 2 A und Gruppe 3 C." }]
 expected = ["Siehe Abbildung 2 A und Gruppe 3 C."]
 
 [[case]]
-id = "de-units-percent-and-euro-left-to-the-voice"
+id = "de-units-percent-euro-and-per-mille"
 audit = 0
 issue = 113
-goal = "'%' and '€' the voice reads right: left as printed."
+goal = "'%' and '€' are listed as units so '1' before them reads 'ein' (review of PR #228); glued '10%' the voice reads right as printed; '‰' reads 'Promille'."
 language = "de"
-blocks = [{ kind = "paragraph", text = "Es stieg um 10 % auf 5 €." }]
-expected = ["Es stieg um 10 % auf 5 €."]
+blocks = [{ kind = "paragraph", text = "Es stieg um 10 % und 10% auf 5 €, um 1 % auf 1 € und 5 ‰." }]
+expected = ["Es stieg um 10 Prozent und 10% auf 5 Euro, um ein Prozent auf einen Euro und 5 Promille."]
+
+[[case]]
+id = "de-units-one-after-ueber-auf-ab"
+audit = 0
+issue = 113
+goal = "With a number, 'über' and 'auf' take the accusative ('über eine Million', 'auf einen Meter'), 'ab' the dative (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es kostete über 1 Mio. Euro, stieg auf 1 m und galt ab 1 kg." }]
+expected = ["Es kostete über eine Million Euro, stieg auf einen Meter und galt ab einem Kilogramm."]
+
+[[case]]
+id = "de-units-german-label-joins"
+audit = 0
+issue = 113
+goal = "Labels joined by 'und', 'oder', 'bzw.', 'sowie' or 'bis' stay labels: no unit after them (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Bedingungen 1 bzw. 2 V und die Gruppen 1 und 2 K." }]
+expected = ["Die Bedingungen 1 beziehungsweise 2 V und die Gruppen 1 und 2 K."]
+
+[[case]]
+id = "de-units-one-in-a-compound"
+audit = 0
+issue = 113
+goal = "'1' starting a hyphenated compound reads 'Ein' ('Ein-Kilogramm-Packung'); a decimal stays a number (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Eine 1-kg-Packung und ein 1,5-l-Behälter." }]
+expected = ["Eine Ein-Kilogramm-Packung und ein 1,5-Liter-Behälter."]
+
+[[case]]
+id = "de-units-min-with-a-full-stop"
+audit = 0
+issue = 113
+goal = "'min.' after a number is the unit and does not end the sentence; 'min.' before a number is 'minimal' (review of PR #228)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Nach 12 min. Pause waren es max. 5, min. 3." }]
+expected = ["Nach 12 Minuten Pause waren es maximal 5, minimal 3."]
+utterances = ["Nach 12 Minuten Pause waren es maximal 5, minimal 3."]
 
 [[case]]
 id = "de-abbreviations-u-a-before-a-noun"
