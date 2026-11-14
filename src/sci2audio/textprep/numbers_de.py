@@ -661,6 +661,8 @@ _ISO_DATE = re.compile(
 _DATE_AHEAD = (
     r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?:1[5-9]\d\d|20\d\d)"
     r"|(?:1[5-9]\d\d|20\d\d)-\n?(?:0[1-9]|1[0-2])-"
+    # ... or a fraction that may be read "ein halb" (`_dates` checks that it is, #310)
+    r"|1/\d{1,2}(?!\d)"
 )
 # a full dotted date, not glued to more digits: what a hyphen range of dates joins (a third
 # date may follow it: "3.4.2019-5.4.2019-7.4.2019")
@@ -668,8 +670,11 @@ _FULL_DATE = (
     r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?:1[5-9]\d\d|20\d\d)"
     r"(?![\d_]|[⁺⁻^]|[.,:/]\d)"
 )
-# after a full date and a hyphen: the second date of a range ("3.4.2019-5.4.2019")
-_AFTER_DATE_HYPHEN = r"(?<=\d\.1[5-9]\d\d-)|(?<=\d\.20\d\d-)"
+# a date without its year that ends a range: "3.4.2019-5.4." (#318)
+_YEARLESS_END = r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?![\w.,]|\s*\d)"
+# after a date and a hyphen: the second date of a range ("3.4.2019-5.4.2019", "3.4.-5.4.";
+# after a date without its year, `_dates` reads it only if it read that date, #318)
+_AFTER_DATE_HYPHEN = r"(?<=\d\.1[5-9]\d\d-)|(?<=\d\.20\d\d-)|(?<=\d\.-)"
 _NUMERIC_DATE = re.compile(
     r"(?<![^\WxX])(?:(?<![,/:-])|"
     + _AFTER_DATE_HYPHEN
@@ -680,6 +685,8 @@ _NUMERIC_DATE = re.compile(
     # full date follows: "3.4.2019-5.4.2019" is a range (#311 review round 1)
     r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![\d_]|[⁺⁻^]|[.,:/]\d|-(?!"
     + _FULL_DATE
+    + r"|"
+    + _YEARLESS_END
     + r")\d)|(?![\w.,]|\s*(?!"
     + _DATE_AHEAD
     + r")\d))"
@@ -692,7 +699,7 @@ def _year_left_alone(text: str, end: int) -> bool:
     return _unit_left_alone(text, end) or _x_left_alone(text, end)
 
 
-_RANGE_DASH_BEFORE = re.compile(r"\d\s*[\u2013\u2014]\s*\Z|\d\.\d{4}-\Z")
+_RANGE_DASH_BEFORE = re.compile(r"\d\s*[\u2013\u2014]\s*\Z|\d\.\d{4}-\Z|\d\.[\u2013-]\Z")
 _DASH_BEFORE = re.compile(r"[\u2013\u2014]\s*\Z")
 
 
@@ -743,27 +750,52 @@ def _dates(text: str) -> list[Candidate]:
         words = _date_words(text, match.start(), day, month, match["y"])
         if words and not _year_left_alone(text, match.end()):
             found.append(_date(match, words))
+    last_date = -1  # where the last date read ends
+    read_as_ein: set[int] | None = None  # where a fraction read "ein halb" ... starts
     for match in _NUMERIC_DATE.finditer(text):
-        if not match["y"] and text[match.start() - 1 : match.start()] == "\u2013":
+        dash = text[match.start() - 1 : match.start()]
+        # the second date of a range: read only if the date before the dash is ("3.4.-5.4.",
+        # "3.4.–5.4.2019", "3.4.2019–5.4."; #318)
+        paired = dash in ("-", "\u2013") and last_date == match.start() - 1
+        after_yearless = (
+            dash in ("-", "\u2013") and text[match.start() - 2 : match.start() - 1] == "."
+        )
+        if after_yearless and not paired:
+            continue  # "3.–5.4.", "Abschnitt 3.4.-5.4.": the dash and the date stay, as on main
+        if not paired and not match["y"] and dash == "\u2013":
             continue  # "3.–5.4.": a date without its year after a dash is left as printed
         before = text[max(0, match.start() - 8) : match.start()]
-        if _DASH_BEFORE.search(before) and not _RANGE_DASH_BEFORE.search(before):
+        if not paired and _DASH_BEFORE.search(before) and not _RANGE_DASH_BEFORE.search(before):
             continue  # "1.–3.4.2020": no "bis" for the dash, so the date stays too, as on main
         day, month = int(match["d"]), int(match["m"])
         year = int(match["y"]) if match["y"] else 2000  # 29.2. without a year may be any year
         if day > calendar.monthrange(year, month)[1]:
             continue
-        if not match["y"] and _ending(text, match.start()) is None:
+        if not match["y"] and not paired and _ending(text, match.start()) is None:
             continue  # "3.4." alone is a list or a version; "am 3.4." is a date
+        if not match["y"] and (ahead := _FRACTION_AHEAD.match(text, match.end())):
+            # "Am 3.4. 1/2 Tag": read when the fraction is read "ein halb", a word that a
+            # second run sees after the date (#310); "2/3" keeps its digit, so the date stays
+            if read_as_ein is None:
+                read_as_ein = {
+                    c.start for c in _fractions(text) if c.replacement.startswith("ein ")
+                }
+            if ahead.end() not in read_as_ein:
+                continue
         words = _date_words(text, match.start(), day, month, match["y"])
         if words and not _year_left_alone(text, match.end()):
             found.append(_date(match, words))
-            if text[match.start() - 1 : match.start()] == "-":
-                # "3.4.2019-5.4.2019": the hyphen between two dates is read "bis", as a dash
-                dash = match.start() - 1
-                reason = _range_reason(text, dash, match.start())
-                found.append(Candidate(dash, match.start(), " bis ", reason))
+            last_date = match.end()
+            if dash == "-" or (paired and after_yearless):
+                # "3.4.2019-5.4.2019", "3.4.–5.4.": the dash between two dates is read "bis";
+                # an en dash after a year is the range rule's ("2019–5", N-de-4)
+                at = match.start() - 1
+                reason = _range_reason(text, at, match.start())
+                found.append(Candidate(at, match.start(), " bis ", reason))
     return found
+
+
+_FRACTION_AHEAD = re.compile(r"\s*(?=1/)")
 
 
 def _date(match: re.Match[str], words: str) -> Candidate:

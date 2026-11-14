@@ -18,6 +18,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- Numbers read the same on a second pass (#304, #310, #318, D-577): a fraction after a minus sign ("−1/2") is read as a fraction on the first pass too, and "~" before a hyphen broken at a line end reads "about". In German, a date without its year before "1/2" or "1/3" is read ("am dritten April ein halb Tag"), and a range of two dotted dates where one or both have no year is read with "bis" when the first date is read: "3.4.-5.4.2019" is "dritten April bis fünften April 2019", "3.4.2019-5.4." is "dritten April 2019 bis fünften April". A day alone before the dash ("3.–5.4.2019") stays as printed.
 - A language tag as files often write it is read as the language it names (#237): "en_US" counts as en-US, "eng", "deu" and "ger" as en and de, and "und", "zxx", "mul", "mis" or a value that is no tag (such as "x-default") as no stated language, so the text's language is guessed. Before, "en_US" was taken as a language of its own and kept a German text from being read in German (D-513 to D-515).
 
 ## [1.0.0] - 2026-11-14

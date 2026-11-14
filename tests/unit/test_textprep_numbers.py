@@ -304,3 +304,33 @@ def test_all_built_in_steps_run_together_without_a_problem(document: Document) -
 )
 def test_the_bounds_of_a_time(printed: str, said: str) -> None:
     assert read(printed) == said
+
+
+def _read_all(text: str) -> str:
+    """The whole chain of built-in steps, as an English job runs it."""
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    return spoken_text(run_steps(document, EN, strict=True).script())
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #304 (D-577): a fraction after a minus sign read "minus" is read on the first run
+        ("It is −1/2 here.", "It is minus 1 half here."),
+        ("It is 5 −1/2 here.", "It is 5 minus 1 half here."),
+        ("3–33–3 −3/3", "3 to 33 to 3 minus 3 out of 3"),
+        ("x = −3/4 of it", "x equals minus 3 quarters of it"),
+        ("It is −17/20 here.", "It is minus 17 out of 20 here."),
+        # a minus glued after a number, or the ASCII hyphen, is not read: nor the fraction
+        ("It is 5−1/2 here.", "It is 5−1/2 here."),
+        ("It is -1/2 here.", "It is -1/2 here."),
+        ("It is a−1/2 here.", "It is a−1/2 here."),
+        # #304: "~" before a hyphen at a line end and a digit reads "about" on both runs
+        ("0:~-\n0", "0: about -0"),
+        ("about ~-\n5 dB", "about about -5 decibels"),
+    ],
+)
+def test_a_second_run_reads_the_same_after_a_sign(printed: str, said: str) -> None:
+    once = _read_all(printed)
+    assert once == said
+    assert _read_all(once) == once

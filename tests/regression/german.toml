@@ -1207,3 +1207,47 @@ expected = [
     "Gefördert (Projekt 12 345) wurde es und stieg (12 345-mal) an.",
     "Es wurde gefördert vom BMBF.",
 ]
+
+# ---- v1.2 second-run batch: numbers (D-577) -----------------------------------------------
+
+[[case]]
+id = "de-numbers-a-yearless-date-before-a-fraction"
+audit = 0
+issue = 310
+goal = "A date without its year is read before a fraction read in words that starts with 'ein' ('1/2' as 'ein halb'), as a second run reads it before a word (D-577). Before '2/3', read '2 Drittel', the date stays as printed on both runs."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Am 3.4. 1/2 Tag." },
+    { kind = "paragraph", text = "Am 3.4. 1/3 Tag." },
+    { kind = "paragraph", text = "Am 3.4. 2/3 Tag." },
+]
+expected = [
+    "Am dritten April ein halb Tag.",
+    "Am dritten April ein Drittel Tag.",
+    "Am 3.4. 2 Drittel Tag.",
+]
+
+[[case]]
+id = "de-numbers-a-date-range-with-a-yearless-end"
+audit = 0
+issue = 318
+goal = "A hyphen or en dash between two dotted dates, one or both without a year, is read 'bis' with both dates read, when the first date is read (D-577). A day alone before the dash ('3.–5.4.2019') stays as printed (D-562)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Vom 3.4.-5.4.2019 lief es." },
+    { kind = "paragraph", text = "Vom 3.4.–5.4.2019 lief es." },
+    { kind = "paragraph", text = "Vom 3.4.2019-5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.2019–5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.-5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.–5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.–5.4.2019 lief es." },
+]
+expected = [
+    "Vom dritten April bis fünften April 2019 lief es.",
+    "Vom dritten April bis fünften April 2019 lief es.",
+    "Vom dritten April 2019 bis fünften April lief es.",
+    "Vom dritten April 2019 bis fünften April lief es.",
+    "Vom dritten April bis fünften April lief es.",
+    "Vom dritten April bis fünften April lief es.",
+    "Vom 3.–5.4.2019 lief es.",
+]
