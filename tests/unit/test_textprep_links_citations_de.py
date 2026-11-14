@@ -275,6 +275,45 @@ def test_a_german_job_with_links_and_citations_reads_the_same_on_a_second_run(
     assert spoken_text(second.script()) == spoken_text(first.script())
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        # a citation next to a link the links step removes with its punctuation
+        "https://example.org/daten, (Müller, o. J.).",
+        "Siehe https://example.org/daten, (Müller, o. J.).",
+        "(Müller, o. J.), https://example.org/daten.",
+        "(Müller, o. J.). https://example.org/daten)",
+        "https://example.org/daten. (Müller, o. J.), https://example.org/daten.",
+        "https://example.org/daten (Müller, 2020). Mehr.",
+        # a name that starts the sentence once the link before it goes
+        "https://example.org/daten Müller (2019).",
+        "Text https://example.org/daten Müller (2019) dazu.",
+        # "=" next to a removed link, e-mail address or citation
+        "https://example.org/daten. = https://example.org/daten Die.",
+        "https://example.org/daten. Die = https://example.org/daten Die.",
+        "https://example.org/daten, = (abgerufen am 12.03.2020).",
+        "https://example.org/daten. = a.muster@uni-beispiel.de Die.",
+        "weiter, = Die https://example.org/daten.",
+        "(Müller & Schmidt, 2019). = Die https://example.org/daten.",
+        "= (Müller & Schmidt, 2019) Die.",
+        "Die =\nhttps://example.org/daten Die.",
+        # a bracket after a sign, printed or said, is a value
+        "Sei x = [12].",
+        "Sei x gleich [12].",
+        # two German decimals in a bracket are an interval, not sources
+        "95 %-KI [1; 1] und [1,2; 3,4] N",
+        # a statistic's reading is no author's name
+        "χ²(1998) ± 1",
+        # "KI" with a link between it and its interval
+        "https://example.org/daten. KI https://example.org/daten [1,2; 3,4].",
+        "KI https://example.org/\nweiter ( https://example.org/daten.",
+    ],
+)
+def test_a_second_run_reads_nothing_new(text: str) -> None:
+    once = read_all(text)
+    assert read_all(once) == once, (text, once)
+
+
 @given(st.text(max_size=200))
 def test_any_text_keeps_the_contract_in_german(text: str) -> None:
     document = make_document([(BlockKind.PARAGRAPH, text)], "de")
@@ -289,8 +328,9 @@ def test_any_text_keeps_the_contract_in_german(text: str) -> None:
         "(vgl. Müller u. a. 2019, S. 12) " * 3000,
         "Laut " + "Anna " * 20_000 + "Müller (2019)",
         "(" * 20_000 + "Müller 2019" + ")" * 20_000,
+        "https://x.org/a, (Müller, 2019). https://x.org/b (Müller, 2019) " * 1000,
     ],
-    ids=["access-notes", "citations", "long-names", "deep-brackets"],
+    ids=["access-notes", "citations", "long-names", "deep-brackets", "links-and-citations"],
 )
 def test_long_german_blocks_take_linear_time(text: str) -> None:
     document = make_document([(BlockKind.PARAGRAPH, text)], "de")

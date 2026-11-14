@@ -459,9 +459,11 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
             or re.search(r"(?<!\S)the\s+Smith\s*\Z", before)
         ), (text, spoken)
     # every word outside the citations is still read, in order
-    # a bracket of lead words and citations goes whole: "( see [12])" (D-172), and so does
-    # one of lead words and a narrative citation: "( e.g., Smith (2019))" (D-447, #145)
-    outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*\[\d[\d,;–\s-]*\]\s*\)", " ", text)
+    # a bracket of lead words and citations goes whole: "( see [12])", "( [12], see [3])"
+    # (D-172), and so does one of lead words and a narrative citation: "( e.g., Smith
+    # (2019))" (D-447, #145)
+    lead = r"(?:[\s,;]|see|also|e\.g\.,)*"
+    outside = re.sub(rf"\({lead}(?:\[\d[\d,;–\s-]*\]{lead})+\)", " ", text)
     outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*Smith\s\(2019\)\s*\)", " ", outside)
     for citation in placed:
         outside = outside.replace(citation, " ")

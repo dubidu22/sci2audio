@@ -752,6 +752,17 @@ def _only_pointers_after(text: str, end: int, words: LinkWords) -> int | None:
     return stop if _link_words_only(text[end:stop], words) else None
 
 
+def link_removals(
+    text: str, kind: BlockKind, label: str = "", language: str = "en"
+) -> list[tuple[int, int]]:
+    """Where this step removes text in a block: its edits' spans, in order."""
+    words = WORDS.get(language, WORDS["en"])
+    return [
+        (edit.span.start, edit.span.end)
+        for edit in LinkStep()._block_edits(0, text, kind, label, words)
+    ]
+
+
 def only_links_before(text: str, position: int, language: str = "en") -> bool:
     """True if the sentence before `position` holds links and nothing but the words that
     lead to or join them, all of which this step removes: what follows then starts the

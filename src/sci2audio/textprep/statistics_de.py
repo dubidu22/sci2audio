@@ -74,6 +74,10 @@ _SQUARED_NAMES = {
     "ε": "Epsilon-Quadrat",
     "χ": "Chi-Quadrat",
 }
+# the capital words of those readings: never an author's name before "(2019)" (#101)
+READ_WORDS = frozenset(
+    word for reading in _SQUARED_NAMES.values() for word in reading.split() if word[0].isupper()
+) - {"R"}
 _SQUARED = re.compile(
     r"(?<![\w′'])(?P<name>[Rrηωεχ])(?P<p1>p)?(?:(?P<sup>²)|(?P<two>2))(?P<p2>p)?(?![\w²])"
 )
@@ -83,7 +87,12 @@ _THEN_OPERATOR_OR_DF = re.compile(f"(?:{_OPERATOR_AHEAD}|\\s*\\()")
 _CI = re.compile(r"(?<![\w′'])(?P<name>KI|CI)(?P<plural>s)?(?![\w′'])")
 _WINDOW = 64
 _AFTER_PERCENT = re.compile(r"[\d⁰¹²³⁴⁵⁶⁷⁸⁹][\])]?\s?%\s*-?\Z")
-_BEFORE_CI_THING = re.compile(r"\s*[\[(=:]")
+# links between "KI" and its interval: the links step removes them, so a second run sees
+# the bracket right after "KI" (#101); a link cut after "/" goes on in the next line
+_LINKS_BETWEEN = re.compile(
+    r"(?:\s*(?:https?://|www\.)\S*(?:(?<=[/_~=&?#%-])\n\S*)*(?=\s))*", re.IGNORECASE
+)
+_BEFORE_CI_THING = re.compile(_LINKS_BETWEEN.pattern + r"\s*[\[(=:]", re.IGNORECASE)
 _SIGNED = r"[−-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)"
 _INTERVAL = re.compile(
     r"\s*(?:[=:]\s*)?(?P<open>[\[(]\s*)(?P<a>" + _SIGNED + r")(?P<sep>" + _PAIR + r")"
@@ -196,7 +205,7 @@ def ci_runs_de(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]
         if not after_percent and not _BEFORE_CI_THING.match(plain, end):
             continue
         intervals = []
-        interval = _INTERVAL.match(plain, end)
+        interval = _INTERVAL.match(plain, _LINKS_BETWEEN.match(plain, end).end())  # type: ignore[union-attr]
         while interval is not None and len(intervals) < MAX_JOINED_INTERVALS:
             if unit_follows(plain, interval.end(), "de") or _JOINED_NUMBER.match(
                 plain, interval.end()

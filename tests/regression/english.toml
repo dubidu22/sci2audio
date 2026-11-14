@@ -1247,6 +1247,14 @@ blocks = [{ kind = "paragraph", text = "The code is online. https://x.org/a. [12
 expected = ["The code is online. It holds."]
 
 [[case]]
+id = "links-dangling-join-before-punctuation"
+audit = 0
+issue = 101
+goal = "A join word left with nothing after it goes with the removed link: 'on the page and <link>; see' read 'on the page and; see' (German rule of #101, which English shares; the English Markdown sample's script changes the same way)."
+blocks = [{ kind = "paragraph", text = "The sources are on the project page and https://example.org/data; see also the method." }]
+expected = ["The sources are on the project page; see also the method."]
+
+[[case]]
 id = "citations-bracket-after-a-said-sign"
 audit = 0
 issue = 101

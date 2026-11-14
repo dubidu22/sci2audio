@@ -29,6 +29,7 @@ printed; reading it is #68's. Every reason names the citation as printed (D-175)
 
 from __future__ import annotations
 
+import bisect
 import itertools
 import re
 from dataclasses import dataclass, field
@@ -36,12 +37,13 @@ from dataclasses import dataclass, field
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.links import (
     SKIPPED_KINDS,
+    link_removals,
     only_links_after,
     only_links_before,
     without_links,
 )
 from sci2audio.textprep.statistics import OPERATORS, interval_openings
-from sci2audio.textprep.statistics_de import OPERATORS_DE
+from sci2audio.textprep.statistics_de import OPERATORS_DE, READ_WORDS
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -233,6 +235,8 @@ _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
 _WORD = rf"{_LETTER}+(?:(?:[’'-]|-\n){_LETTER}+)*"
 _SPACE = re.compile(r"\s+")
+_DECIMAL_COMMA = re.compile(r"\d,\d")
+_UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
 _NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
@@ -331,7 +335,8 @@ class CitationStep(TextStep):
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text.strip():
                 continue
-            for start, end, kind, replacement, reason in rules.block(block.text):
+            links = link_removals(block.text, block.kind, block.label, language)
+            for start, end, kind, replacement, reason in rules.block(block.text, links):
                 if kind is EditKind.REPLACE:
                     edits.append(Edit(Span(index, start, end), kind, reason, self.id, replacement))
                 else:
@@ -370,12 +375,12 @@ class _Rules:
         self.said_sign = re.compile(rf"(?<!\w)(?:{'|'.join(map(re.escape, phrases))})\Z")
         self.language = language
 
-    def block(self, text: str) -> list[_Found]:
+    def block(self, text: str, links: list[tuple[int, int]] | None = None) -> list[_Found]:
         found: list[_Found] = []
         for node in brackets(text):
             self._visit(text, node, found)
         found.sort()
-        return self._tidied(text, _settled(text, found))
+        return _clear_of_links(text, self._tidied(text, _settled(text, found)), links or [])
 
     def _tidied(self, text: str, found: list[_Found]) -> list[_Found]:
         """Removals that would leave two marks side by side take one along (M2 of the #66
@@ -479,6 +484,8 @@ class _Rules:
             return None
         if _NUMBER_GLUED_AFTER.match(text, node.close + 1):
             return None  # "[1; 3],1": read "3,1" would be a decimal on a second run
+        if self.language == "de" and ";" in inside and _DECIMAL_COMMA.search(inside):
+            return None  # "[1,2; 3,4]": two German decimals, an interval, not sources
         if self._not_citations(text, node.open):
             return None
         window = max(0, node.open - _LOOK_BACK)
@@ -647,6 +654,8 @@ class _Rules:
         bare = re.sub(r"(?:[’']s?)\Z", "", joined)
         if not (_is_name(bare) or re.fullmatch(r"[A-Z]{2,6}", bare)):
             return ""
+        if self.language == "de" and bare in READ_WORDS:
+            return ""  # "χ² (1998)" reads "Chi-Quadrat (1998)": no author's name
         # "Sag and Hankamer (1984)": the reason names both authors
         pair = self.pair_end.search(before)
         if pair and _is_name(pair.group(1)):
@@ -789,6 +798,31 @@ class _Rules:
                 after = _SPACE.match(text, end)
                 return start, after.end() if after else end
         return _with_space(text, start, end)
+
+
+def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]) -> list[_Found]:
+    """Removals that leave to the links step the white space and punctuation its removals
+    take: "https://x.org, (Smith, 2020)." or "(Smith, 2020), https://x.org." would otherwise
+    have the citation's removal set aside, and a second run remove it (#101)."""
+    if not links:
+        return found
+    starts = [start for start, _ in links]
+    result = []
+    for start, end, kind, replacement, reason in found:
+        if kind is EditKind.REMOVE:
+            at = bisect.bisect_right(starts, start) - 1
+            if at >= 0 and start < links[at][1] and _UNREAD.fullmatch(text, start, links[at][1]):
+                start = links[at][1]
+            at = bisect.bisect_left(starts, end) - 1
+            if (
+                at >= 0
+                and start <= links[at][0] < end <= links[at][1]
+                and _UNREAD.fullmatch(text, links[at][0], end)
+            ):
+                end = links[at][0]
+        if start < end:
+            result.append((start, end, kind, replacement, reason))
+    return result
 
 
 def _is_name(word: str) -> bool:
