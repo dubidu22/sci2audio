@@ -405,6 +405,15 @@ def test_a_nested_citation_reads_the_same_on_a_second_run(printed: str, said: st
         ("die (OPP-115) und (COVID-19) Daten", "die (OPP-115) und (COVID-19) Daten"),
         ("siehe (3) und (12)", "siehe (3) und (12)"),
         ("Es waren 12.345 Fälle", "Es waren 12345 Fälle"),  # outside brackets as before
+        # review round 1, R1-1: any thousands number in round brackets reads with spaces, so
+        # run 2 sees no identifier after a funding word or before "-mal"
+        ("Gefördert (Projekt 12.345) und mehr.", "Gefördert (Projekt 12 345) und mehr."),
+        ("Gefördert (FKZ 12.345) und mehr.", "Gefördert (FKZ 12 345) und mehr."),
+        ("Es lief (Projektnummer 12.345) gut.", "Es lief (Projektnummer 12 345) gut."),
+        ("Es lief (Grant 12.345) gut.", "Es lief (Grant 12 345) gut."),
+        ("Es stieg (12.345-mal) an.", "Es stieg (12 345-mal) an."),
+        ("Es lief (12.345-fach) gut.", "Es lief (12 345-fach) gut."),
+        ("Es lief 12.345-mal.", "Es lief 12345-mal."),  # outside brackets as before
     ],
 )  # fmt: skip
 def test_an_identifier_in_brackets_is_not_read_in_german(printed: str, said: str) -> None:

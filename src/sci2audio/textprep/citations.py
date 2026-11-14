@@ -22,6 +22,11 @@ lead words and a narrative citation goes whole ("(see Smith (2019))"), a full st
 it too when the bracket starts a sentence (D-447). A page bracket glued to a citation
 ("(2022)[p. 8]") goes with it.
 
+A bracket of identifiers only, such as grant numbers ("(0801700)", "(grant no. DMS-1912345)"),
+goes (#285, D-547). The other brackets are then judged on the text without them, as a second
+run sees it: "Smith (527794) (2019)" reads "Smith"; an identifier beside citations in one
+bracket goes with them, and a bracket left with only lead words ("(see (527794))") goes whole.
+
 Brackets are worked outermost first: a bracket that goes takes everything inside it along,
 and inside one that stays, its inner brackets are looked at in turn. "et al." stays as
 printed; reading it is #68's. Every reason names the citation as printed (D-175).
@@ -32,6 +37,7 @@ from __future__ import annotations
 import bisect
 import itertools
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from sci2audio.core import Document, Edit, EditKind, Span
@@ -249,6 +255,7 @@ _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
 _WORD = rf"{_LETTER}+(?:(?:[’'-]|-\n){_LETTER}+)*"
 _SPACE = re.compile(r"\s+")
+_PUNCTUATION_ONLY = re.compile(r"[\s,;:.]+")  # between and after lead words
 _DECIMAL_COMMA = re.compile(r"\d,\d")
 _SQUARE = re.compile(r"\[([^\[\]]*)\]")  # what a square bracket holds
 _UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
@@ -390,6 +397,10 @@ class _Rules:
         self.years_only = re.compile(rf"\s*{_years(words)}{_locator(words)}\s*\Z", re.IGNORECASE)
         self.page_only = re.compile(rf"\s*(?:{words.page})\s*\Z")
         self.identifiers = _identifiers_pattern(words)
+        self.lead_only = {
+            "",
+            *(" ".join(_PUNCTUATION_ONLY.sub(" ", lead).split()) for lead in words.lead),
+        }
         self.glued_page = re.compile(rf"[\[(]\s*(?:{words.page})\s*[\])]")
         self.dated = re.compile(rf"\b(?:1[5-9]\d\d|20\d\d)|{words.dated}")
         self.others_end = re.compile(rf"(\S+)\s+(?:{words.others})\s*\Z")
@@ -404,11 +415,35 @@ class _Rules:
         self.language = language
 
     def block(self, text: str, links: list[tuple[int, int]] | None = None) -> list[_Found]:
+        found = self._once(text, links or [], ())
+        gone = [item for item in found if item[4].startswith(_IDENTIFIER_REASON)]
+        if not gone:
+            return found
+        # a second run sees the text without the identifiers: "Smith (527794) (2019)" is
+        # "Smith (2019)" then, and "(see (527794))" is "(see)"; the other brackets are decided
+        # on that text now, so both runs read the same (#285 review round 1)
+        read, cuts = _without(text, gone)
+        read_links = [(cuts.read(start), cuts.read(end)) for start, end in links or []]
+        later = self._once(read, read_links, cuts.at)
+        back = [
+            (cuts.printed(start, True), cuts.printed(end, False), kind, replacement, reason)
+            for start, end, kind, replacement, reason in later
+        ]
+        # an identifier inside an edit of the second look goes with that edit
+        starts = [start for start, *_ in back]
+        kept = []
+        for item in gone:
+            at = bisect.bisect_right(starts, item[0]) - 1
+            if at < 0 or back[at][1] < item[1]:
+                kept.append(item)
+        return sorted(kept + back)
+
+    def _once(self, text: str, links: list[tuple[int, int]], cuts: Sequence[int]) -> list[_Found]:
         found: list[_Found] = []
         for node in brackets(text):
-            self._visit(text, node, found)
+            self._visit(text, node, found, cuts)
         found.sort()
-        return _clear_of_links(text, self._tidied(text, _settled(text, found)), links or [])
+        return _clear_of_links(text, self._tidied(text, _settled(text, found)), links)
 
     def _tidied(self, text: str, found: list[_Found]) -> list[_Found]:
         """Removals that would leave two marks side by side take one along (M2 of the #66
@@ -454,7 +489,7 @@ class _Rules:
         words = text[max(kept_end, start - _LOOK_BACK) : start].split()
         return bool(words) and words[-1].lstrip("([").lower() in self.abbreviations
 
-    def _visit(self, text: str, root: _Bracket, found: list[_Found]) -> None:
+    def _visit(self, text: str, root: _Bracket, found: list[_Found], cuts: Sequence[int]) -> None:
         """Decide a bracket, then the inner brackets of what stays; no recursion, so a deep
         nest of brackets cannot overflow the stack."""
         # every bracket decided once, inner ones first, so an outer bracket can be judged on
@@ -466,7 +501,7 @@ class _Rules:
             stack += node.children
         decided: dict[int, list[_Found] | None] = {}
         for node in reversed(order):
-            decided[node.open] = self._decide(text, node, decided)
+            decided[node.open] = self._decide(text, node, decided, cuts)
         pending = [root]
         while pending:
             node = pending.pop()
@@ -488,7 +523,11 @@ class _Rules:
             )
 
     def _decide(
-        self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
+        self,
+        text: str,
+        node: _Bracket,
+        decided: dict[int, list[_Found] | None],
+        cuts: Sequence[int] = (),
     ) -> list[_Found] | None:
         inside = text[node.open + 1 : node.close]
         if len(inside) > _MAX_BRACKET:
@@ -499,9 +538,14 @@ class _Rules:
             # "(0801700)", "(grant no. DMS-1912345)": a grant or award number, no quantity
             # (#285, D-547); the script and the read-along keep it as printed
             printed = _printed(text[node.open : node.close + 1])
-            reason = f'identifier "{printed}", such as a grant number, is not read (TP-03)'
+            reason = (
+                f'{_IDENTIFIER_REASON} "{printed}", such as a grant number, is not read (TP-03)'
+            )
             start, end = self._with_space(text, node.open, node.close + 1)
             return [(start, end, EditKind.REMOVE, "", reason)]
+        if self._only_lead_left(inside) and _cut_inside(cuts, node):
+            # "(see (527794))" without its identifier is "(see)": a pointer to nothing
+            return [self._removed(text, node.open, node.close + 1, "bracket of lead words")]
         if self.numeric_aside.match(inside):
             if any(self._decimal_interval(inner) for inner in _SQUARE.findall(inside)):
                 # "([1,2; 3,4])": an interval stays on its own, so the aside does too and each
@@ -519,7 +563,8 @@ class _Rules:
         if _FULL_STOP_INSIDE.search(inside) and not self._starts_sentence(text, node.open):
             return None  # "It holds (Smith, 2019.)": its full stop ends the sentence outside
         parts = self._parts(text, node)
-        cited = [self._is_citation(text, part) for part in parts or ()]
+        named = [part for part in parts or () if self._is_citation(text, part)]
+        cited = self._cited(text, parts or [], named)
         if not cited or not all(cited):
             whole = self._cited_once_inner_citations_go(text, node, decided)
             if whole is not None:
@@ -530,13 +575,31 @@ class _Rules:
             return None
         if all(cited):
             end = self._glued_page(text, node.close + 1)
-            names = [self._part_authors(text, part) for part in parts]
+            names = [self._part_authors(text, part) for part in named]
             if self._is_subject(text, node.open, end):
                 return self._subject(text, node, names, end, "is the subject of the sentence")
             if self._previous_word(text, node.open) in self.words.nouns:
                 return self._subject(text, node, names, end, "is part of the sentence")
             return [self._removed(text, node.open, end, "citation")]
         return self._mixed(text, node, parts, cited)
+
+    def _cited(
+        self, text: str, parts: list[tuple[int, int]], named: list[tuple[int, int]]
+    ) -> list[bool]:
+        """Which parts go as citations: those `named`, and next to them identifiers ("(Smith,
+        2019; 527794)"), as a second run, seeing "(527794)", would remove those (#285 review
+        round 1)."""
+        cited = set(named)
+        return [
+            part in cited or (bool(cited) and bool(self.identifiers.match(text, *part)))
+            for part in parts
+        ]
+
+    def _only_lead_left(self, inside: str) -> bool:
+        """True if a bracket's inside is only lead words ("see", "e.g.,", "vgl.") and
+        punctuation, or nothing."""
+        words = _PUNCTUATION_ONLY.sub(" ", inside.lower()).split()
+        return " ".join(words) in self.lead_only
 
     def _cited_once_inner_citations_go(
         self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
@@ -572,11 +635,12 @@ class _Rules:
         names = None
         if read[local.open + 1 : local.close].strip():
             parts = self._parts(read, local)
-            if not parts or not all(self._is_citation(read, part) for part in parts):
+            named = [part for part in parts or () if self._is_citation(read, part)]
+            if not parts or not all(self._cited(read, parts, named)):
                 return None
             names = [
                 (start + shift, end + shift)
-                for start, end in (self._part_authors(read, part) for part in parts)
+                for start, end in (self._part_authors(read, part) for part in named)
             ]
         end = self._glued_page(text, node.close + 1)
         subject = self._is_subject(text, node.open, end)
@@ -938,6 +1002,50 @@ class _Rules:
                 after = _SPACE.match(text, end)
                 return start, after.end() if after else end
         return _with_space(text, start, end)
+
+
+_IDENTIFIER_REASON = "identifier"  # how an identifier's removal starts its reason
+
+
+def _cut_inside(cuts: Sequence[int], node: _Bracket) -> bool:
+    """True if a removed identifier stood inside the bracket (`cuts` are sorted)."""
+    at = bisect.bisect_right(cuts, node.open)
+    return at < len(cuts) and cuts[at] <= node.close
+
+
+def _without(text: str, gone: list[_Found]) -> tuple[str, _Cuts]:
+    """The text without the removed spans, and where the removals stood in it."""
+    pieces, at, total, starts, cursor = [], [], [], [], 0
+    for start, end, *_ in gone:
+        pieces.append(text[cursor:start])
+        starts.append(start)
+        at.append(start - (total[-1] if total else 0))
+        total.append((total[-1] if total else 0) + end - start)
+        cursor = end
+    pieces.append(text[cursor:])
+    return "".join(pieces), _Cuts(at, total, starts)
+
+
+@dataclass
+class _Cuts:
+    """Where removals stood in the text without them, and how much was removed up to and
+    including each one."""
+
+    at: list[int]
+    total: list[int]
+    starts: list[int]  # where each removal starts in the printed text
+
+    def printed(self, position: int, start: bool) -> int:
+        """A position in the text without removals as one in the printed text: an edit's
+        start at a removal's place lands after it, its end before it, so no edit holds part
+        of one."""
+        index = (bisect.bisect_right if start else bisect.bisect_left)(self.at, position)
+        return position + (self.total[index - 1] if index else 0)
+
+    def read(self, position: int) -> int:
+        """A printed position outside the removals as one in the text without them."""
+        index = bisect.bisect_right(self.starts, position)
+        return position - (self.total[index - 1] if index else 0)
 
 
 def _covered(edits: list[_Found] | None, handled: list[_Found]) -> bool:

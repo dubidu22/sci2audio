@@ -10,7 +10,7 @@ around citations.
 import re
 
 import pytest
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 from linear_time import assert_linear
 
@@ -470,6 +470,89 @@ def test_an_identifier_says_why_it_is_not_read() -> None:
     assert edit.reason.startswith('identifier "(0801700)"')
 
 
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # #285 review round 1, R1-2: the other brackets are judged as a second run sees them
+        ("en", "As shown by Smith (527794) (2019), it grew.", "As shown by Smith, it grew."),
+        ("de", "Text (527794) (2019) mehr.", "Text mehr."),
+        ("de", "Wie Müller (527794) (2019) zeigt, wuchs es.", "Wie Müller zeigt, wuchs es."),
+        ("en", "Text (Smith, 2019; 527794) more.", "Text more."),
+        ("en", "Text (527794; Smith, 2019) more.", "Text more."),
+        ("de", "Text (Müller, 2019; 527794) mehr.", "Text mehr."),
+        ("en", "(Smith, 2019; 527794) found it.", "Smith found it."),
+        ("en", "It grew (527794; (Smith, 2019) Jones, 2020) fast.", "It grew fast."),
+        # R1-3: a bracket left with only lead words goes whole
+        ("en", "Text (see (527794)) more.", "Text more."),
+        ("en", "Text (cf. (527794)) more.", "Text more."),
+        ("en", "Text (e.g., (527794)) more.", "Text more."),
+        ("de", "Text (siehe (527794)) mehr.", "Text mehr."),
+        ("de", "Text (vgl. (527794)) mehr.", "Text mehr."),
+        ("en", "Text (see) more.", "Text (see) more."),  # no identifier went: as before
+        # a separator at the bracket's edge stays for now, the same on both runs (#305)
+        ("en", "Text ((527794); 2019) more.", "Text (; 2019) more."),
+    ],
+)  # fmt: skip
+def test_a_removed_identifier_leaves_the_other_brackets_as_a_second_run_reads_them(
+    language: str, printed: str, said: str
+) -> None:
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
+
+
+def test_a_bracket_of_lead_words_says_why_it_goes() -> None:
+    reasons = [edit.reason for edit in edits("Text (see (527794)) more.")]
+    assert reasons == ['bracket of lead words "(see)" is not read (TP-03)']
+
+
+_IDENTIFIERS = st.sampled_from(
+    [
+        "(527794)",
+        "(grant no. DMS-1912345)",
+        "(0801700, 527794)",
+        "(FKZ 01IS18026A)",
+        "(Projekt 12.345)",
+        "(12.345-mal)",
+    ]
+)
+
+
+@st.composite
+def _with_identifiers(draw: st.DrawFn) -> tuple[str, str]:
+    """A text of citations, nested and side by side, and the same text with identifier
+    brackets put in next to its brackets and inside them."""
+    base = (
+        draw(st.sampled_from(["As shown by Smith ", "It holds ", "", "such as ", "wie Müller "]))
+        + " ".join(draw(st.lists(_NESTS, min_size=1, max_size=2)))
+        + draw(st.sampled_from([" found it.", ", it grew.", " here.", ")", ". Then"]))
+    )
+    places = [
+        at
+        for at in range(len(base) + 1)
+        if at == 0 or base[at - 1] in " (" or (at < len(base) and base[at] == ")")
+    ]
+    text = base
+    chosen = draw(st.lists(st.sampled_from(places), min_size=1, max_size=2, unique=True))
+    for at in sorted(chosen, reverse=True):
+        found = draw(_IDENTIFIERS)
+        put = f" {found}" if at < len(text) and text[at] == ")" else f"{found} "
+        text = text[:at] + put + text[at:]
+    return base, text
+
+
+@given(_with_identifiers(), st.sampled_from(["en", "de"]))
+def test_identifier_brackets_add_no_second_run_change(case: tuple[str, str], language: str) -> None:
+    """#285 review round 1, R1-1 and R1-2: removing an identifier changed how the brackets
+    next to it or around it were read on a second run. A text that reads the same on a
+    second run without identifiers does so with them."""
+    base, text = case
+    plain = read_all(base, language)
+    assume(read_all(plain, language) == plain)  # nests that break without one are #306's
+    once = read_all(text, language)
+    assert read_all(once, language) == once, (text, once)
+
+
 def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
     text = "(" * 5000 + "Smith, 2019" + ")" * 5000
     document = make_document([(BlockKind.PARAGRAPH, text)])
@@ -482,8 +565,10 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
         ("[1] ", 25_000),
         ("Smith (2019) shows it [3]. ", 4000),
         ("Text ((Smith, 2019) Jones, 2020) here. ", 6000),  # #271: each nest judged on its own
+        # #285 review round 1: the second look at a text without its identifiers
+        ("Smith (527794) (2019) and (see (527794)) here. ", 2000),
     ],
-    ids=["numeric", "author-year", "nests"],
+    ids=["numeric", "author-year", "nests", "identifiers"],
 )
 def test_a_long_block_takes_linear_time(unit: str, count: int) -> None:  # S2: 100,000 characters
     # 8 times the text against a base run (#276); it took 17 s for 80,000 characters before
