@@ -381,6 +381,9 @@ def cut_read(text: str, language: str = "de") -> list[str]:
             ["Er sagte «ja.»", "\u2039Nein.\u203a", "Dann ging er."],
         ),
         ("Er sagte \u203az. B.\u2039 dazu.", ["Er sagte \u203azum Beispiel\u2039 dazu."]),
+        # PR #333 review R2-1: an initial inside them ends no sentence, as in „A.“
+        ("Er sagte \u203aA.\u2039 Dann ging er.", ["Er sagte \u203aA.\u2039 Dann ging er."]),
+        ("Er sagte \u2039A.\u203a Dann ging er.", ["Er sagte \u2039A.\u203a Dann ging er."]),
         ("Er nannte \u203aDr.\u2039 Müller dann.", ["Er nannte \u203aDr.\u2039 Müller dann."]),
     ],
 )
