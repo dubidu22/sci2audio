@@ -60,7 +60,7 @@
         'references': False,
         'selected': True,
         'title': '3 Data',
-        'utterances': 14,
+        'utterances': 16,
       }),
       dict({
         'blocks': list([
@@ -72,7 +72,7 @@
         'references': False,
         'selected': True,
         'title': '4 Test',
-        'utterances': 10,
+        'utterances': 8,
       }),
       dict({
         'blocks': list([
@@ -196,7 +196,7 @@
         'switched_off': 2,
       }),
       'footnotes': dict({
-        'applied': 3,
+        'applied': 4,
         'label': 'Footnotes',
         'not_spoken': 0,
         'set_aside': 0,
@@ -1019,7 +1019,7 @@
       dict({
         'block': 42,
         'category': 'footnote-texts',
-        'chapter': 5,
+        'chapter': 4,
         'end': 99,
         'kind': 'remove',
         'original': '''
@@ -1077,7 +1077,7 @@
       dict({
         'block': 42,
         'category': 'links',
-        'chapter': 5,
+        'chapter': 4,
         'end': 98,
         'kind': 'remove',
         'original': '''
@@ -1497,7 +1497,7 @@
         'original': '1',
         'page': 3,
         'printed_page': '41',
-        'reason': 'footnote mark 1 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 1 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 245,
@@ -1507,7 +1507,7 @@
       dict({
         'block': 42,
         'category': 'footnotes',
-        'chapter': 5,
+        'chapter': 4,
         'end': 1,
         'kind': 'replace',
         'original': '1',
@@ -2799,7 +2799,7 @@
       dict({
         'block': 42,
         'category': 'characters',
-        'chapter': 5,
+        'chapter': 4,
         'end': 45,
         'kind': 'remove',
         'original': '''
@@ -3730,6 +3730,33 @@
         'status': 'accepted',
         'step': 'line-end-hyphens',
       }),
+      dict({
+        'block': 42,
+        'category': 'footnotes',
+        'chapter': 4,
+        'end': 99,
+        'kind': 'move',
+        'original': '''
+          1Datasets and associated programs can be ac-
+          cessed at https://github.com/DanHardtDK/
+          ellipsisGPT3.
+        ''',
+        'page': 3,
+        'printed_page': '41',
+        'reason': 'footnote 1 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 39,
+          'end': 244,
+          'page': 3,
+          'printed_page': '41',
+          'start': 244,
+        }),
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'en',
@@ -3779,8 +3806,8 @@
   | 2 | Abstract | 1 | yes | 4 |
   | 3 | 1 Introduction | 1 | yes | 24 |
   | 4 | 2 Related Work | 1 | yes | 36 |
-  | 5 | 3 Data | 2 | yes | 14 |
-  | 6 | 4 Test | 3 | yes | 10 |
+  | 5 | 3 Data | 2 | yes | 16 |
+  | 6 | 4 Test | 3 | yes | 8 |
   | 7 | 5 Results | 3 | yes | 18 |
   | 8 | 6 Analysis | 4 | yes | 15 |
   | 9 | 7 Conclusion | 4 | yes | 18 |
@@ -3795,7 +3822,7 @@
   |---|---|---|---|---|
   | Page furniture | 11 | 1 | 0 | 0 |
   | Characters and hyphenation | 69 | 0 | 15 | 0 |
-  | Footnotes | 3 | 0 | 0 | 0 |
+  | Footnotes | 4 | 0 | 0 | 0 |
   | Footnote texts | 0 | 0 | 0 | 2 |
   | Citations | 17 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 3 | 0 | 3 | 0 |
@@ -3864,7 +3891,7 @@
   - page 3 (printed 41), chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "produce". Step: line-end-hyphens.
   - page 3 (printed 41), chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "presented". Step: line-end-hyphens.
   - page 3 (printed 41), chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "models" (the document prints it so). Step: line-end-hyphens.
-  - page 3 (printed 41), chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "accessed" (the document prints it so). Step: line-end-hyphens.
+  - page 3 (printed 41), chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "accessed" (the document prints it so). Step: line-end-hyphens.
   - page 3 (printed 41), chapter 7, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "non-ellipsis" (the document prints it so). Step: line-end-hyphens.
   - page 3 (printed 41), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "otherwise" (the document prints it so). Step: line-end-hyphens.
   - page 3 (printed 41), chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "accuracy" (the document prints it so). Step: line-end-hyphens.
@@ -3908,15 +3935,16 @@
   - page 6 (printed 44), chapter 12, applied: “-↵” → left out. Reason: word split at a line end joined: "swimming" (the document prints it so). Step: line-end-hyphens.
   - page 6 (printed 44), chapter 12, applied: “-↵” → left out. Reason: word split at a line end joined: "shopping" (the document prints it so). Step: line-end-hyphens.
   
-  ## Footnotes (3)
+  ## Footnotes (4)
   
-  - page 3 (printed 41), chapter 5, applied: “1” → left out. Reason: footnote mark 1 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 3 (printed 41), chapter 6, applied: “1” → read as “Footnote 1.”. Reason: footnote 1 is introduced by its mark. Step: footnotes.
+  - page 3 (printed 41), chapter 5, applied: “1” → left out. Reason: footnote mark 1 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 3 (printed 41), chapter 5, applied: “1” → read as “Footnote 1.”. Reason: footnote 1 is introduced by its mark. Step: footnotes.
   - page 8 (printed 46), chapter 13, applied: (position) → read as “Footnote.”. Reason: a footnote is introduced. Step: footnotes.
+  - page 3 (printed 41), chapter 5, applied: “1Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.” → read after its mark (page 3 (printed 41)). Reason: footnote 1 is read after the sentence that holds its mark. Step: footnote-places.
   
   ## Footnote texts (2)
   
-  - page 3 (printed 41), chapter 6, switched off: “1Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 3 (printed 41), chapter 5, switched off: “1Datasets and associated programs can be ac- cessed at https://github.com/DanHardtDK/ ellipsisGPT3.” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
   - page 8 (printed 46), chapter 13, switched off: “The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing assistance.” → left out. Reason: a footnote is left out (all footnotes are left out). Step: footnote-texts.
   
   ## Citations (17)
@@ -3942,7 +3970,7 @@
   ## URLs, DOIs and e-mail addresses (6)
   
   - page 1 (printed 39), chapter 1, applied: “dha.msc@cbs.dk” → left out. Reason: e-mail address "dha.msc@cbs.dk" is not read (TP-07). Step: links.
-  - page 3 (printed 41), chapter 6, applied: “at https://github.com/DanHardtDK/ ellipsisGPT3” → left out. Reason: URL "https://github.com/DanHardtDK/ellipsisGPT3" is not read; "at" before it goes too, so the sentence still reads (TP-07). Step: links.
+  - page 3 (printed 41), chapter 5, applied: “at https://github.com/DanHardtDK/ ellipsisGPT3” → left out. Reason: URL "https://github.com/DanHardtDK/ellipsisGPT3" is not read; "at" before it goes too, so the sentence still reads (TP-07). Step: links.
   - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “arXiv:1908.05803” → left out. Reason: arXiv identifier "arXiv:1908.05803" is not read (TP-07). Step: links.
   - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “arXiv:2201.02387” → left out. Reason: arXiv identifier "arXiv:2201.02387" is not read (TP-07). Step: links.
   - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “arXiv:1906.01698” → left out. Reason: arXiv identifier "arXiv:1906.01698" is not read (TP-07). Step: links.
@@ -4026,7 +4054,7 @@
         'references': False,
         'selected': True,
         'title': 'PrivacyScore',
-        'utterances': 8,
+        'utterances': 21,
       }),
       dict({
         'blocks': list([
@@ -4038,7 +4066,7 @@
         'references': False,
         'selected': True,
         'title': '1 Einleitung',
-        'utterances': 35,
+        'utterances': 22,
       }),
       dict({
         'blocks': list([
@@ -4098,7 +4126,7 @@
         'references': False,
         'selected': True,
         'title': '6 Rechtliche Fragestellungen',
-        'utterances': 164,
+        'utterances': 172,
       }),
       dict({
         'blocks': list([
@@ -4110,7 +4138,7 @@
         'references': False,
         'selected': True,
         'title': '7 Schlussbemerkungen',
-        'utterances': 23,
+        'utterances': 15,
       }),
       dict({
         'blocks': list([
@@ -4162,7 +4190,7 @@
         'switched_off': 30,
       }),
       'footnotes': dict({
-        'applied': 50,
+        'applied': 80,
         'label': 'Footnotes',
         'not_spoken': 0,
         'set_aside': 10,
@@ -4618,7 +4646,7 @@
       dict({
         'block': 7,
         'category': 'footnote-texts',
-        'chapter': 1,
+        'chapter': 0,
         'end': 142,
         'kind': 'remove',
         'original': '''
@@ -4637,7 +4665,7 @@
       dict({
         'block': 8,
         'category': 'footnote-texts',
-        'chapter': 1,
+        'chapter': 0,
         'end': 155,
         'kind': 'remove',
         'original': '''
@@ -4656,7 +4684,7 @@
       dict({
         'block': 9,
         'category': 'footnote-texts',
-        'chapter': 1,
+        'chapter': 0,
         'end': 136,
         'kind': 'remove',
         'original': '''
@@ -4675,7 +4703,7 @@
       dict({
         'block': 10,
         'category': 'footnote-texts',
-        'chapter': 1,
+        'chapter': 0,
         'end': 351,
         'kind': 'remove',
         'original': '''
@@ -4696,7 +4724,7 @@
       dict({
         'block': 19,
         'category': 'footnote-texts',
-        'chapter': 2,
+        'chapter': 1,
         'end': 93,
         'kind': 'remove',
         'original': '4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/',
@@ -4776,7 +4804,7 @@
       dict({
         'block': 31,
         'category': 'footnote-texts',
-        'chapter': 3,
+        'chapter': 2,
         'end': 64,
         'kind': 'remove',
         'original': '9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017',
@@ -4792,7 +4820,7 @@
       dict({
         'block': 32,
         'category': 'footnote-texts',
-        'chapter': 3,
+        'chapter': 2,
         'end': 41,
         'kind': 'remove',
         'original': '10 https://dataskydd.net/kommuner-201704/',
@@ -4808,7 +4836,7 @@
       dict({
         'block': 46,
         'category': 'footnote-texts',
-        'chapter': 4,
+        'chapter': 3,
         'end': 21,
         'kind': 'remove',
         'original': '11 https://testssl.sh',
@@ -4840,7 +4868,7 @@
       dict({
         'block': 56,
         'category': 'footnote-texts',
-        'chapter': 6,
+        'chapter': 4,
         'end': 20,
         'kind': 'remove',
         'original': '13 https://piwik.org',
@@ -5089,7 +5117,7 @@
       dict({
         'block': 95,
         'category': 'footnote-texts',
-        'chapter': 7,
+        'chapter': 6,
         'end': 118,
         'kind': 'remove',
         'original': '''
@@ -5108,7 +5136,7 @@
       dict({
         'block': 96,
         'category': 'footnote-texts',
-        'chapter': 7,
+        'chapter': 6,
         'end': 38,
         'kind': 'remove',
         'original': '29 BGH v. 23.06.2009, Az. VI ZR196/08.',
@@ -5124,7 +5152,7 @@
       dict({
         'block': 7,
         'category': 'links',
-        'chapter': 1,
+        'chapter': 0,
         'end': 142,
         'kind': 'remove',
         'original': ' mmaass@seemoo.tu-darmstadt.de',
@@ -5140,7 +5168,7 @@
       dict({
         'block': 8,
         'category': 'links',
-        'chapter': 1,
+        'chapter': 0,
         'end': 155,
         'kind': 'remove',
         'original': ' a.laubach@uni-kassel.de',
@@ -5156,7 +5184,7 @@
       dict({
         'block': 9,
         'category': 'links',
-        'chapter': 1,
+        'chapter': 0,
         'end': 136,
         'kind': 'remove',
         'original': '''
@@ -5175,7 +5203,7 @@
       dict({
         'block': 19,
         'category': 'links',
-        'chapter': 2,
+        'chapter': 1,
         'end': 93,
         'kind': 'remove',
         'original': '4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/',
@@ -5255,7 +5283,7 @@
       dict({
         'block': 31,
         'category': 'links',
-        'chapter': 3,
+        'chapter': 2,
         'end': 64,
         'kind': 'remove',
         'original': '9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017',
@@ -5271,7 +5299,7 @@
       dict({
         'block': 32,
         'category': 'links',
-        'chapter': 3,
+        'chapter': 2,
         'end': 41,
         'kind': 'remove',
         'original': '10 https://dataskydd.net/kommuner-201704/',
@@ -5303,7 +5331,7 @@
       dict({
         'block': 46,
         'category': 'links',
-        'chapter': 4,
+        'chapter': 3,
         'end': 21,
         'kind': 'remove',
         'original': '11 https://testssl.sh',
@@ -5354,7 +5382,7 @@
       dict({
         'block': 56,
         'category': 'links',
-        'chapter': 6,
+        'chapter': 4,
         'end': 20,
         'kind': 'remove',
         'original': '13 https://piwik.org',
@@ -5401,7 +5429,7 @@
         'original': '*',
         'page': 1,
         'printed_page': '',
-        'reason': 'footnote mark * is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark * is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 114,
@@ -5417,7 +5445,7 @@
         'original': '1',
         'page': 1,
         'printed_page': '',
-        'reason': 'footnote mark 1 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 1 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 9,
@@ -5433,7 +5461,7 @@
         'original': '2',
         'page': 1,
         'printed_page': '',
-        'reason': 'footnote mark 2 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 2 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 24,
@@ -5449,7 +5477,7 @@
         'original': '3',
         'page': 1,
         'printed_page': '',
-        'reason': 'footnote mark 3 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 3 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 43,
@@ -5459,7 +5487,7 @@
       dict({
         'block': 7,
         'category': 'footnotes',
-        'chapter': 1,
+        'chapter': 0,
         'end': 1,
         'kind': 'replace',
         'original': '1',
@@ -5475,7 +5503,7 @@
       dict({
         'block': 8,
         'category': 'footnotes',
-        'chapter': 1,
+        'chapter': 0,
         'end': 1,
         'kind': 'replace',
         'original': '2',
@@ -5491,7 +5519,7 @@
       dict({
         'block': 9,
         'category': 'footnotes',
-        'chapter': 1,
+        'chapter': 0,
         'end': 1,
         'kind': 'replace',
         'original': '3',
@@ -5507,7 +5535,7 @@
       dict({
         'block': 10,
         'category': 'footnotes',
-        'chapter': 1,
+        'chapter': 0,
         'end': 1,
         'kind': 'replace',
         'original': '∗',
@@ -5529,7 +5557,7 @@
         'original': '4',
         'page': 2,
         'printed_page': '',
-        'reason': 'footnote mark 4 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 4 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 412,
@@ -5545,7 +5573,7 @@
         'original': '5',
         'page': 2,
         'printed_page': '',
-        'reason': 'footnote mark 5 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 5 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 193,
@@ -5561,7 +5589,7 @@
         'original': '6',
         'page': 2,
         'printed_page': '',
-        'reason': 'footnote mark 6 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 6 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 207,
@@ -5577,7 +5605,7 @@
         'original': '7',
         'page': 2,
         'printed_page': '',
-        'reason': 'footnote mark 7 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 7 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 321,
@@ -5593,7 +5621,7 @@
         'original': '8',
         'page': 2,
         'printed_page': '',
-        'reason': 'footnote mark 8 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 8 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 382,
@@ -5603,7 +5631,7 @@
       dict({
         'block': 19,
         'category': 'footnotes',
-        'chapter': 2,
+        'chapter': 1,
         'end': 1,
         'kind': 'replace',
         'original': '4',
@@ -5734,7 +5762,7 @@
         'original': '9',
         'page': 3,
         'printed_page': '',
-        'reason': 'footnote mark 9 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 9 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 198,
@@ -5750,7 +5778,7 @@
         'original': '10',
         'page': 3,
         'printed_page': '',
-        'reason': 'footnote mark 10 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 10 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 330,
@@ -5760,7 +5788,7 @@
       dict({
         'block': 31,
         'category': 'footnotes',
-        'chapter': 3,
+        'chapter': 2,
         'end': 1,
         'kind': 'replace',
         'original': '9',
@@ -5785,7 +5813,7 @@
       dict({
         'block': 32,
         'category': 'footnotes',
-        'chapter': 3,
+        'chapter': 2,
         'end': 2,
         'kind': 'replace',
         'original': '10',
@@ -5816,7 +5844,7 @@
         'original': '11',
         'page': 5,
         'printed_page': '',
-        'reason': 'footnote mark 11 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 11 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 203,
@@ -5832,7 +5860,7 @@
         'original': '12',
         'page': 5,
         'printed_page': '',
-        'reason': 'footnote mark 12 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 12 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 233,
@@ -5848,7 +5876,7 @@
         'original': '13',
         'page': 6,
         'printed_page': '',
-        'reason': 'footnote mark 13 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 13 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 459,
@@ -5858,7 +5886,7 @@
       dict({
         'block': 46,
         'category': 'footnotes',
-        'chapter': 4,
+        'chapter': 3,
         'end': 2,
         'kind': 'replace',
         'original': '11',
@@ -5908,7 +5936,7 @@
       dict({
         'block': 56,
         'category': 'footnotes',
-        'chapter': 6,
+        'chapter': 4,
         'end': 2,
         'kind': 'replace',
         'original': '13',
@@ -5939,7 +5967,7 @@
         'original': '14',
         'page': 7,
         'printed_page': '',
-        'reason': 'footnote mark 14 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 14 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 256,
@@ -5955,7 +5983,7 @@
         'original': '15',
         'page': 7,
         'printed_page': '',
-        'reason': 'footnote mark 15 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 15 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 324,
@@ -5971,7 +5999,7 @@
         'original': '16',
         'page': 7,
         'printed_page': '',
-        'reason': 'footnote mark 16 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 16 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 729,
@@ -5987,7 +6015,7 @@
         'original': '17',
         'page': 7,
         'printed_page': '',
-        'reason': 'footnote mark 17 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 17 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 1107,
@@ -6003,7 +6031,7 @@
         'original': '18',
         'page': 7,
         'printed_page': '',
-        'reason': 'footnote mark 18 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 18 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 1369,
@@ -6099,7 +6127,7 @@
         'original': '19',
         'page': 8,
         'printed_page': '',
-        'reason': 'footnote mark 19 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 19 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 1032,
@@ -6115,7 +6143,7 @@
         'original': '20',
         'page': 8,
         'printed_page': '',
-        'reason': 'footnote mark 20 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 20 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 2473,
@@ -6163,7 +6191,7 @@
         'original': '21',
         'page': 9,
         'printed_page': '',
-        'reason': 'footnote mark 21 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 21 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 343,
@@ -6179,7 +6207,7 @@
         'original': '22',
         'page': 9,
         'printed_page': '',
-        'reason': 'footnote mark 22 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 22 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 1050,
@@ -6195,7 +6223,7 @@
         'original': '23',
         'page': 9,
         'printed_page': '',
-        'reason': 'footnote mark 23 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 23 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 1128,
@@ -6259,7 +6287,7 @@
         'original': '24',
         'page': 10,
         'printed_page': '',
-        'reason': 'footnote mark 24 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 24 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 192,
@@ -6275,7 +6303,7 @@
         'original': '25',
         'page': 10,
         'printed_page': '',
-        'reason': 'footnote mark 25 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 25 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 551,
@@ -6323,7 +6351,7 @@
         'original': '26',
         'page': 11,
         'printed_page': '',
-        'reason': 'footnote mark 26 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 26 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 585,
@@ -6339,7 +6367,7 @@
         'original': '27',
         'page': 11,
         'printed_page': '',
-        'reason': 'footnote mark 27 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 27 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 789,
@@ -6387,7 +6415,7 @@
         'original': '28',
         'page': 12,
         'printed_page': '',
-        'reason': 'footnote mark 28 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 28 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 686,
@@ -6403,7 +6431,7 @@
         'original': '29',
         'page': 12,
         'printed_page': '',
-        'reason': 'footnote mark 29 is not read; the note is read at the foot of the column (Q2)',
+        'reason': 'footnote mark 29 is not read; the note is read after the sentence that holds it',
         'said': '',
         'spoken': True,
         'start': 1285,
@@ -6413,7 +6441,7 @@
       dict({
         'block': 95,
         'category': 'footnotes',
-        'chapter': 7,
+        'chapter': 6,
         'end': 2,
         'kind': 'replace',
         'original': '28',
@@ -6429,7 +6457,7 @@
       dict({
         'block': 96,
         'category': 'footnotes',
-        'chapter': 7,
+        'chapter': 6,
         'end': 2,
         'kind': 'replace',
         'original': '29',
@@ -6829,7 +6857,7 @@
       dict({
         'block': 95,
         'category': 'numbers-and-units',
-        'chapter': 7,
+        'chapter': 6,
         'end': 20,
         'kind': 'replace',
         'original': '23.09.2014',
@@ -6845,7 +6873,7 @@
       dict({
         'block': 95,
         'category': 'numbers-and-units',
-        'chapter': 7,
+        'chapter': 6,
         'end': 57,
         'kind': 'replace',
         'original': '23.06.2009',
@@ -6861,7 +6889,7 @@
       dict({
         'block': 95,
         'category': 'numbers-and-units',
-        'chapter': 7,
+        'chapter': 6,
         'end': 102,
         'kind': 'replace',
         'original': '18.01.2012',
@@ -6877,7 +6905,7 @@
       dict({
         'block': 96,
         'category': 'numbers-and-units',
-        'chapter': 7,
+        'chapter': 6,
         'end': 20,
         'kind': 'replace',
         'original': '23.06.2009',
@@ -9400,6 +9428,722 @@
         'status': 'accepted',
         'step': 'line-end-hyphens',
       }),
+      dict({
+        'block': 7,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 142,
+        'kind': 'move',
+        'original': '''
+          1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr. 32, 64293 Darmstadt,
+          Deutschland, mmaass@seemoo.tu-darmstadt.de
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 1 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 2,
+          'end': 44,
+          'page': 1,
+          'printed_page': '',
+          'start': 44,
+        }),
+      }),
+      dict({
+        'block': 8,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 155,
+        'kind': 'move',
+        'original': '''
+          2 Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr. 1, 34109
+          Kassel, Deutschland, a.laubach@uni-kassel.de
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 2 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 2,
+          'end': 44,
+          'page': 1,
+          'printed_page': '',
+          'start': 44,
+        }),
+      }),
+      dict({
+        'block': 9,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 136,
+        'kind': 'move',
+        'original': '''
+          3 Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str. 30, 22527 Hamburg, Deutschland,
+          herrmann@informatik.uni-hamburg.de
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 3 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 2,
+          'end': 44,
+          'page': 1,
+          'printed_page': '',
+          'start': 44,
+        }),
+      }),
+      dict({
+        'block': 10,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 351,
+        'kind': 'move',
+        'original': '''
+          ∗ Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy
+          Forum in Wien vorgestellt wurde [MH17]. Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6.
+          Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald
+          dieser verfügbar ist.
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote ∗ is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 0,
+          'end': 115,
+          'page': 1,
+          'printed_page': '',
+          'start': 115,
+        }),
+      }),
+      dict({
+        'block': 19,
+        'category': 'footnotes',
+        'chapter': 1,
+        'end': 93,
+        'kind': 'move',
+        'original': '4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 4 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 13,
+          'end': 413,
+          'page': 2,
+          'printed_page': '',
+          'start': 413,
+        }),
+      }),
+      dict({
+        'block': 20,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'move',
+        'original': '5 https://www.ssllabs.com/ssltest/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 5 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 18,
+          'end': 208,
+          'page': 2,
+          'printed_page': '',
+          'start': 208,
+        }),
+      }),
+      dict({
+        'block': 21,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'move',
+        'original': '6 https://observatory.mozilla.org/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 6 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 18,
+          'end': 208,
+          'page': 2,
+          'printed_page': '',
+          'start': 208,
+        }),
+      }),
+      dict({
+        'block': 22,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'move',
+        'original': '7 z.B. https://securityheaders.io/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 7 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 18,
+          'end': 322,
+          'page': 2,
+          'printed_page': '',
+          'start': 322,
+        }),
+      }),
+      dict({
+        'block': 23,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 36,
+        'kind': 'move',
+        'original': '8 https://webbkoll.dataskydd.net/en/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 8 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 18,
+          'end': 383,
+          'page': 2,
+          'printed_page': '',
+          'start': 383,
+        }),
+      }),
+      dict({
+        'block': 31,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 64,
+        'kind': 'move',
+        'original': '9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'footnote 9 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 27,
+          'end': 332,
+          'page': 3,
+          'printed_page': '',
+          'start': 332,
+        }),
+      }),
+      dict({
+        'block': 32,
+        'category': 'footnotes',
+        'chapter': 2,
+        'end': 41,
+        'kind': 'move',
+        'original': '10 https://dataskydd.net/kommuner-201704/',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'footnote 10 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 27,
+          'end': 332,
+          'page': 3,
+          'printed_page': '',
+          'start': 332,
+        }),
+      }),
+      dict({
+        'block': 46,
+        'category': 'footnotes',
+        'chapter': 3,
+        'end': 21,
+        'kind': 'move',
+        'original': '11 https://testssl.sh',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'footnote 11 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 40,
+          'end': 205,
+          'page': 5,
+          'printed_page': '',
+          'start': 205,
+        }),
+      }),
+      dict({
+        'block': 47,
+        'category': 'footnotes',
+        'chapter': 4,
+        'end': 94,
+        'kind': 'move',
+        'original': '12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'footnote 12 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 44,
+          'end': 235,
+          'page': 5,
+          'printed_page': '',
+          'start': 235,
+        }),
+      }),
+      dict({
+        'block': 56,
+        'category': 'footnotes',
+        'chapter': 4,
+        'end': 20,
+        'kind': 'move',
+        'original': '13 https://piwik.org',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'footnote 13 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 45,
+          'end': 472,
+          'page': 6,
+          'printed_page': '',
+          'start': 472,
+        }),
+      }),
+      dict({
+        'block': 59,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 46,
+        'kind': 'move',
+        'original': '14 LG Hamburg v. 28.08.2008, Az. 315 O 326/08.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 14 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 58,
+          'end': 731,
+          'page': 7,
+          'printed_page': '',
+          'start': 731,
+        }),
+      }),
+      dict({
+        'block': 60,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 114,
+        'kind': 'move',
+        'original': '''
+          15 OLG Köln v. 25.08.2000, Az. 19 U 2/00; LG Ulm v. 13.01.15, Az. 2 O 8/15; OLG Hamm v. 10.06.2008,
+          Az. 4 U 37/08.
+        ''',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 15 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 58,
+          'end': 731,
+          'page': 7,
+          'printed_page': '',
+          'start': 731,
+        }),
+      }),
+      dict({
+        'block': 61,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 89,
+        'kind': 'move',
+        'original': '16 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 16 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 58,
+          'end': 731,
+          'page': 7,
+          'printed_page': '',
+          'start': 731,
+        }),
+      }),
+      dict({
+        'block': 62,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 92,
+        'kind': 'move',
+        'original': '17 LG München v. 25.10.2006, Az. 30 O 11973/05; OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 17 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 58,
+          'end': 1109,
+          'page': 7,
+          'printed_page': '',
+          'start': 1109,
+        }),
+      }),
+      dict({
+        'block': 63,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 89,
+        'kind': 'move',
+        'original': '18 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 18 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 58,
+          'end': 1371,
+          'page': 7,
+          'printed_page': '',
+          'start': 1371,
+        }),
+      }),
+      dict({
+        'block': 67,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 127,
+        'kind': 'move',
+        'original': '''
+          19 OLG Hamburg v. 29.02.2012, Az. 5 U 10/10; OLG Celle v. 08.03.2012, Az. 13 W 17/12; OLG Rostock v.
+          27.06.2007, Az. 2 E 12/07.
+        ''',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'footnote 19 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 65,
+          'end': 1034,
+          'page': 8,
+          'printed_page': '',
+          'start': 1034,
+        }),
+      }),
+      dict({
+        'block': 68,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 89,
+        'kind': 'move',
+        'original': '20 OLG Rostock v. 27.06.2007, Az. 2 W 12/07; OLG Frankfurt v. 22.03.2005, Az. 11 U 64/04.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'footnote 20 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 65,
+          'end': 2475,
+          'page': 8,
+          'printed_page': '',
+          'start': 2475,
+        }),
+      }),
+      dict({
+        'block': 74,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 74,
+        'kind': 'move',
+        'original': '21 BGH v. 22.06.2011, Az. I ZR 159/10; BGH v. 17.03.2003, Az. I ZR 259/00.',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 21 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 71,
+          'end': 423,
+          'page': 9,
+          'printed_page': '',
+          'start': 423,
+        }),
+      }),
+      dict({
+        'block': 75,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 123,
+        'kind': 'move',
+        'original': '''
+          22 Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von
+          Analyseverfahren“.
+        ''',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 22 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 73,
+          'end': 1088,
+          'page': 9,
+          'printed_page': '',
+          'start': 1088,
+        }),
+      }),
+      dict({
+        'block': 76,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 73,
+        'kind': 'move',
+        'original': '23 BGH v. 16.05.2017, Az. VI ZR 135/13; EuGH v. 19.10.2016, Az. C-582/14.',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 23 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 73,
+          'end': 1305,
+          'page': 9,
+          'printed_page': '',
+          'start': 1305,
+        }),
+      }),
+      dict({
+        'block': 81,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 48,
+        'kind': 'move',
+        'original': '24 LG Frankfurt v. 18.02.2014, Az. 3-10 O 86/12.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'footnote 24 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 78,
+          'end': 194,
+          'page': 10,
+          'printed_page': '',
+          'start': 194,
+        }),
+      }),
+      dict({
+        'block': 82,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 41,
+        'kind': 'move',
+        'original': '25 BGH v. 16.07.2008, Az. VIII ZR 348/06.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'footnote 25 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 78,
+          'end': 553,
+          'page': 10,
+          'printed_page': '',
+          'start': 553,
+        }),
+      }),
+      dict({
+        'block': 87,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 82,
+        'kind': 'move',
+        'original': '26 BVerfG v. 09.10.1991, Az. 1 BvR 1555/88; BVerfG v. 13.04.1994, Az. 1 BvR 23/94.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'footnote 26 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 84,
+          'end': 587,
+          'page': 11,
+          'printed_page': '',
+          'start': 587,
+        }),
+      }),
+      dict({
+        'block': 88,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 38,
+        'kind': 'move',
+        'original': '27 BGH v. 29.01.2002, Az. VI ZR 20/01.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'footnote 27 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 86,
+          'end': 791,
+          'page': 11,
+          'printed_page': '',
+          'start': 791,
+        }),
+      }),
+      dict({
+        'block': 95,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 118,
+        'kind': 'move',
+        'original': '''
+          28 BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012,
+          Az. 5 U 51/11.
+        ''',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'footnote 28 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 90,
+          'end': 744,
+          'page': 12,
+          'printed_page': '',
+          'start': 744,
+        }),
+      }),
+      dict({
+        'block': 96,
+        'category': 'footnotes',
+        'chapter': 6,
+        'end': 38,
+        'kind': 'move',
+        'original': '29 BGH v. 23.06.2009, Az. VI ZR196/08.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'footnote 29 is read after the sentence that holds its mark',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'footnote-places',
+        'to': dict({
+          'block': 90,
+          'end': 1287,
+          'page': 12,
+          'printed_page': '',
+          'start': 1287,
+        }),
+      }),
     ]),
     'format': 'sci2audio-report',
     'language': 'de',
@@ -9445,14 +10189,14 @@
   
   | No. | Chapter | Page | Read | Utterances |
   |---|---|---|---|---|
-  | 1 | PrivacyScore | 1 | yes | 8 |
-  | 2 | 1 Einleitung | 1 | yes | 35 |
+  | 1 | PrivacyScore | 1 | yes | 21 |
+  | 2 | 1 Einleitung | 1 | yes | 22 |
   | 3 | 2 Verwandte Arbeiten | 2 | yes | 12 |
   | 4 | 3 PrivacyScore im Überblick | 3 | yes | 36 |
   | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 21 |
   | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
-  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 164 |
-  | 8 | 7 Schlussbemerkungen | 12 | yes | 23 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 172 |
+  | 8 | 7 Schlussbemerkungen | 12 | yes | 15 |
   | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
   
   ## Edits per category
@@ -9461,7 +10205,7 @@
   |---|---|---|---|---|
   | Page furniture | 13 | 0 | 0 | 0 |
   | Characters and hyphenation | 38 | 0 | 0 | 0 |
-  | Footnotes | 50 | 0 | 10 | 0 |
+  | Footnotes | 80 | 0 | 10 | 0 |
   | Footnote texts | 0 | 0 | 0 | 30 |
   | Citations | 0 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 15 | 0 | 1 | 0 |
@@ -9529,85 +10273,115 @@
   - page 12, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Interessenabwägung" (the document prints it so). Step: line-end-hyphens.
   - page 12, chapter 8, applied: “-↵” → left out. Reason: word split at a line end joined: "Seitenbetreibers". Step: line-end-hyphens.
   
-  ## Footnotes (60)
+  ## Footnotes (90)
   
-  - page 1, chapter 1, applied: “\*” → left out. Reason: footnote mark \* is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 1, chapter 1, applied: “1” → left out. Reason: footnote mark 1 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 1, chapter 1, applied: “2” → left out. Reason: footnote mark 2 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 1, chapter 1, applied: “3” → left out. Reason: footnote mark 3 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 1, chapter 2, applied: “1” → read as “Fußnote 1.”. Reason: footnote 1 is introduced by its mark. Step: footnotes.
-  - page 1, chapter 2, applied: “2” → read as “Fußnote 2.”. Reason: footnote 2 is introduced by its mark. Step: footnotes.
-  - page 1, chapter 2, applied: “3” → read as “Fußnote 3.”. Reason: footnote 3 is introduced by its mark. Step: footnotes.
-  - page 1, chapter 2, applied: “∗” → read as “Fußnote.”. Reason: footnote ∗ is introduced by its mark. Step: footnotes.
-  - page 2, chapter 2, applied: “4” → left out. Reason: footnote mark 4 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 2, chapter 3, applied: “5” → left out. Reason: footnote mark 5 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 2, chapter 3, applied: “6” → left out. Reason: footnote mark 6 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 2, chapter 3, applied: “7” → left out. Reason: footnote mark 7 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 2, chapter 3, applied: “8” → left out. Reason: footnote mark 8 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “4” → read as “Fußnote 4.”. Reason: footnote 4 is introduced by its mark. Step: footnotes.
+  - page 1, chapter 1, applied: “\*” → left out. Reason: footnote mark \* is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 1, chapter 1, applied: “1” → left out. Reason: footnote mark 1 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 1, chapter 1, applied: “2” → left out. Reason: footnote mark 2 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 1, chapter 1, applied: “3” → left out. Reason: footnote mark 3 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 1, chapter 1, applied: “1” → read as “Fußnote 1.”. Reason: footnote 1 is introduced by its mark. Step: footnotes.
+  - page 1, chapter 1, applied: “2” → read as “Fußnote 2.”. Reason: footnote 2 is introduced by its mark. Step: footnotes.
+  - page 1, chapter 1, applied: “3” → read as “Fußnote 3.”. Reason: footnote 3 is introduced by its mark. Step: footnotes.
+  - page 1, chapter 1, applied: “∗” → read as “Fußnote.”. Reason: footnote ∗ is introduced by its mark. Step: footnotes.
+  - page 2, chapter 2, applied: “4” → left out. Reason: footnote mark 4 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 2, chapter 3, applied: “5” → left out. Reason: footnote mark 5 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 2, chapter 3, applied: “6” → left out. Reason: footnote mark 6 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 2, chapter 3, applied: “7” → left out. Reason: footnote mark 7 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 2, chapter 3, applied: “8” → left out. Reason: footnote mark 8 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 2, chapter 2, set aside: the remove edit of step links (page 2) won: “4” → read as “Fußnote 4.”. Reason: footnote 4 is introduced by its mark. Step: footnotes.
   - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “5” → read as “Fußnote 5.”. Reason: footnote 5 is introduced by its mark. Step: footnotes.
   - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “6” → read as “Fußnote 6.”. Reason: footnote 6 is introduced by its mark. Step: footnotes.
   - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “7” → read as “Fußnote 7.”. Reason: footnote 7 is introduced by its mark. Step: footnotes.
   - page 2, chapter 3, set aside: the remove edit of step links (page 2) won: “8” → read as “Fußnote 8.”. Reason: footnote 8 is introduced by its mark. Step: footnotes.
-  - page 3, chapter 3, applied: “9” → left out. Reason: footnote mark 9 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 3, chapter 3, applied: “10” → left out. Reason: footnote mark 10 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 3, chapter 4, set aside: the remove edit of step links (page 3) won: “9” → read as “Fußnote 9.”. Reason: footnote 9 is introduced by its mark. Step: footnotes.
-  - page 3, chapter 4, set aside: the remove edit of step links (page 3) won: “10” → read as “Fußnote 10.”. Reason: footnote 10 is introduced by its mark. Step: footnotes.
-  - page 5, chapter 4, applied: “11” → left out. Reason: footnote mark 11 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 5, chapter 5, applied: “12” → left out. Reason: footnote mark 12 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 6, chapter 5, applied: “13” → left out. Reason: footnote mark 13 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 5, chapter 5, set aside: the remove edit of step links (page 5) won: “11” → read as “Fußnote 11.”. Reason: footnote 11 is introduced by its mark. Step: footnotes.
+  - page 3, chapter 3, applied: “9” → left out. Reason: footnote mark 9 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 3, chapter 3, applied: “10” → left out. Reason: footnote mark 10 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 3, chapter 3, set aside: the remove edit of step links (page 3) won: “9” → read as “Fußnote 9.”. Reason: footnote 9 is introduced by its mark. Step: footnotes.
+  - page 3, chapter 3, set aside: the remove edit of step links (page 3) won: “10” → read as “Fußnote 10.”. Reason: footnote 10 is introduced by its mark. Step: footnotes.
+  - page 5, chapter 4, applied: “11” → left out. Reason: footnote mark 11 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 5, chapter 5, applied: “12” → left out. Reason: footnote mark 12 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 6, chapter 5, applied: “13” → left out. Reason: footnote mark 13 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 5, chapter 4, set aside: the remove edit of step links (page 5) won: “11” → read as “Fußnote 11.”. Reason: footnote 11 is introduced by its mark. Step: footnotes.
   - page 5, chapter 5, set aside: the remove edit of step links (page 5) won: “12” → read as “Fußnote 12.”. Reason: footnote 12 is introduced by its mark. Step: footnotes.
-  - page 6, chapter 7, set aside: the remove edit of step links (page 6) won: “13” → read as “Fußnote 13.”. Reason: footnote 13 is introduced by its mark. Step: footnotes.
-  - page 7, chapter 7, applied: “14” → left out. Reason: footnote mark 14 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 7, chapter 7, applied: “15” → left out. Reason: footnote mark 15 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 7, chapter 7, applied: “16” → left out. Reason: footnote mark 16 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 7, chapter 7, applied: “17” → left out. Reason: footnote mark 17 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 7, chapter 7, applied: “18” → left out. Reason: footnote mark 18 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 6, chapter 5, set aside: the remove edit of step links (page 6) won: “13” → read as “Fußnote 13.”. Reason: footnote 13 is introduced by its mark. Step: footnotes.
+  - page 7, chapter 7, applied: “14” → left out. Reason: footnote mark 14 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 7, chapter 7, applied: “15” → left out. Reason: footnote mark 15 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 7, chapter 7, applied: “16” → left out. Reason: footnote mark 16 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 7, chapter 7, applied: “17” → left out. Reason: footnote mark 17 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 7, chapter 7, applied: “18” → left out. Reason: footnote mark 18 is not read; the note is read after the sentence that holds it. Step: footnotes.
   - page 7, chapter 7, applied: “14” → read as “Fußnote 14.”. Reason: footnote 14 is introduced by its mark. Step: footnotes.
   - page 7, chapter 7, applied: “15” → read as “Fußnote 15.”. Reason: footnote 15 is introduced by its mark. Step: footnotes.
   - page 7, chapter 7, applied: “16” → read as “Fußnote 16.”. Reason: footnote 16 is introduced by its mark. Step: footnotes.
   - page 7, chapter 7, applied: “17” → read as “Fußnote 17.”. Reason: footnote 17 is introduced by its mark. Step: footnotes.
   - page 7, chapter 7, applied: “18” → read as “Fußnote 18.”. Reason: footnote 18 is introduced by its mark. Step: footnotes.
-  - page 8, chapter 7, applied: “19” → left out. Reason: footnote mark 19 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 8, chapter 7, applied: “20” → left out. Reason: footnote mark 20 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 8, chapter 7, applied: “19” → left out. Reason: footnote mark 19 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 8, chapter 7, applied: “20” → left out. Reason: footnote mark 20 is not read; the note is read after the sentence that holds it. Step: footnotes.
   - page 8, chapter 7, applied: “19” → read as “Fußnote 19.”. Reason: footnote 19 is introduced by its mark. Step: footnotes.
   - page 8, chapter 7, applied: “20” → read as “Fußnote 20.”. Reason: footnote 20 is introduced by its mark. Step: footnotes.
-  - page 9, chapter 7, applied: “21” → left out. Reason: footnote mark 21 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 9, chapter 7, applied: “22” → left out. Reason: footnote mark 22 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 9, chapter 7, applied: “23” → left out. Reason: footnote mark 23 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 9, chapter 7, applied: “21” → left out. Reason: footnote mark 21 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 9, chapter 7, applied: “22” → left out. Reason: footnote mark 22 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 9, chapter 7, applied: “23” → left out. Reason: footnote mark 23 is not read; the note is read after the sentence that holds it. Step: footnotes.
   - page 9, chapter 7, applied: “21” → read as “Fußnote 21.”. Reason: footnote 21 is introduced by its mark. Step: footnotes.
   - page 9, chapter 7, applied: “22” → read as “Fußnote 22.”. Reason: footnote 22 is introduced by its mark. Step: footnotes.
   - page 9, chapter 7, applied: “23” → read as “Fußnote 23.”. Reason: footnote 23 is introduced by its mark. Step: footnotes.
-  - page 10, chapter 7, applied: “24” → left out. Reason: footnote mark 24 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 10, chapter 7, applied: “25” → left out. Reason: footnote mark 25 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 10, chapter 7, applied: “24” → left out. Reason: footnote mark 24 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 10, chapter 7, applied: “25” → left out. Reason: footnote mark 25 is not read; the note is read after the sentence that holds it. Step: footnotes.
   - page 10, chapter 7, applied: “24” → read as “Fußnote 24.”. Reason: footnote 24 is introduced by its mark. Step: footnotes.
   - page 10, chapter 7, applied: “25” → read as “Fußnote 25.”. Reason: footnote 25 is introduced by its mark. Step: footnotes.
-  - page 11, chapter 7, applied: “26” → left out. Reason: footnote mark 26 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 11, chapter 7, applied: “27” → left out. Reason: footnote mark 27 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
+  - page 11, chapter 7, applied: “26” → left out. Reason: footnote mark 26 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 11, chapter 7, applied: “27” → left out. Reason: footnote mark 27 is not read; the note is read after the sentence that holds it. Step: footnotes.
   - page 11, chapter 7, applied: “26” → read as “Fußnote 26.”. Reason: footnote 26 is introduced by its mark. Step: footnotes.
   - page 11, chapter 7, applied: “27” → read as “Fußnote 27.”. Reason: footnote 27 is introduced by its mark. Step: footnotes.
-  - page 12, chapter 7, applied: “28” → left out. Reason: footnote mark 28 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 12, chapter 7, applied: “29” → left out. Reason: footnote mark 29 is not read; the note is read at the foot of the column (Q2). Step: footnotes.
-  - page 12, chapter 8, applied: “28” → read as “Fußnote 28.”. Reason: footnote 28 is introduced by its mark. Step: footnotes.
-  - page 12, chapter 8, applied: “29” → read as “Fußnote 29.”. Reason: footnote 29 is introduced by its mark. Step: footnotes.
+  - page 12, chapter 7, applied: “28” → left out. Reason: footnote mark 28 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 12, chapter 7, applied: “29” → left out. Reason: footnote mark 29 is not read; the note is read after the sentence that holds it. Step: footnotes.
+  - page 12, chapter 7, applied: “28” → read as “Fußnote 28.”. Reason: footnote 28 is introduced by its mark. Step: footnotes.
+  - page 12, chapter 7, applied: “29” → read as “Fußnote 29.”. Reason: footnote 29 is introduced by its mark. Step: footnotes.
+  - page 1, chapter 1, applied: “1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr. 32, 64293 Darmstadt, Deutschland, mmaass@seemoo.tu-darmstadt.de” → read after its mark (page 1). Reason: footnote 1 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 1, chapter 1, applied: “2 Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr. 1, 34109 Kassel, Deutschland, a.laubach@uni-kassel.de” → read after its mark (page 1). Reason: footnote 2 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 1, chapter 1, applied: “3 Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str. 30, 22527 Hamburg, Deutschland, herrmann@informatik.uni-hamburg.de” → read after its mark (page 1). Reason: footnote 3 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 1, chapter 1, applied: “∗ Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde \[MH17\]. Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6. Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.” → read after its mark (page 1). Reason: footnote ∗ is read after the sentence that holds its mark. Step: footnote-places.
+  - page 2, chapter 2, applied: “4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → read after its mark (page 2). Reason: footnote 4 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 2, chapter 3, applied: “5 https://www.ssllabs.com/ssltest/” → read after its mark (page 2). Reason: footnote 5 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 2, chapter 3, applied: “6 https://observatory.mozilla.org/” → read after its mark (page 2). Reason: footnote 6 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 2, chapter 3, applied: “7 z.B. https://securityheaders.io/” → read after its mark (page 2). Reason: footnote 7 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 2, chapter 3, applied: “8 https://webbkoll.dataskydd.net/en/” → read after its mark (page 2). Reason: footnote 8 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 3, chapter 3, applied: “9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017” → read after its mark (page 3). Reason: footnote 9 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 3, chapter 3, applied: “10 https://dataskydd.net/kommuner-201704/” → read after its mark (page 3). Reason: footnote 10 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 5, chapter 4, applied: “11 https://testssl.sh” → read after its mark (page 5). Reason: footnote 11 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 5, chapter 5, applied: “12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → read after its mark (page 5). Reason: footnote 12 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 6, chapter 5, applied: “13 https://piwik.org” → read after its mark (page 6). Reason: footnote 13 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 7, chapter 7, applied: “14 LG Hamburg v. 28.08.2008, Az. 315 O 326/08.” → read after its mark (page 7). Reason: footnote 14 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 7, chapter 7, applied: “15 OLG Köln v. 25.08.2000, Az. 19 U 2/00; LG Ulm v. 13.01.15, Az. 2 O 8/15; OLG Hamm v. 10.06.2008, Az. 4 U 37/08.” → read after its mark (page 7). Reason: footnote 15 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 7, chapter 7, applied: “16 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.” → read after its mark (page 7). Reason: footnote 16 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 7, chapter 7, applied: “17 LG München v. 25.10.2006, Az. 30 O 11973/05; OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09.” → read after its mark (page 7). Reason: footnote 17 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 7, chapter 7, applied: “18 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.” → read after its mark (page 7). Reason: footnote 18 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 8, chapter 7, applied: “19 OLG Hamburg v. 29.02.2012, Az. 5 U 10/10; OLG Celle v. 08.03.2012, Az. 13 W 17/12; OLG Rostock v. 27.06.2007, Az. 2 E 12/07.” → read after its mark (page 8). Reason: footnote 19 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 8, chapter 7, applied: “20 OLG Rostock v. 27.06.2007, Az. 2 W 12/07; OLG Frankfurt v. 22.03.2005, Az. 11 U 64/04.” → read after its mark (page 8). Reason: footnote 20 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 9, chapter 7, applied: “21 BGH v. 22.06.2011, Az. I ZR 159/10; BGH v. 17.03.2003, Az. I ZR 259/00.” → read after its mark (page 9). Reason: footnote 21 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 9, chapter 7, applied: “22 Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von Analyseverfahren“.” → read after its mark (page 9). Reason: footnote 22 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 9, chapter 7, applied: “23 BGH v. 16.05.2017, Az. VI ZR 135/13; EuGH v. 19.10.2016, Az. C-582/14.” → read after its mark (page 9). Reason: footnote 23 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 10, chapter 7, applied: “24 LG Frankfurt v. 18.02.2014, Az. 3-10 O 86/12.” → read after its mark (page 10). Reason: footnote 24 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 10, chapter 7, applied: “25 BGH v. 16.07.2008, Az. VIII ZR 348/06.” → read after its mark (page 10). Reason: footnote 25 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 11, chapter 7, applied: “26 BVerfG v. 09.10.1991, Az. 1 BvR 1555/88; BVerfG v. 13.04.1994, Az. 1 BvR 23/94.” → read after its mark (page 11). Reason: footnote 26 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 11, chapter 7, applied: “27 BGH v. 29.01.2002, Az. VI ZR 20/01.” → read after its mark (page 11). Reason: footnote 27 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 12, chapter 7, applied: “28 BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012, Az. 5 U 51/11.” → read after its mark (page 12). Reason: footnote 28 is read after the sentence that holds its mark. Step: footnote-places.
+  - page 12, chapter 7, applied: “29 BGH v. 23.06.2009, Az. VI ZR196/08.” → read after its mark (page 12). Reason: footnote 29 is read after the sentence that holds its mark. Step: footnote-places.
   
   ## Footnote texts (30)
   
-  - page 1, chapter 2, switched off: “1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr. 32, 64293 Darmstadt, Deutschland, mmaass@seemoo.tu-darmstadt.de” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 1, chapter 2, switched off: “2 Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr. 1, 34109 Kassel, Deutschland, a.laubach@uni-kassel.de” → left out. Reason: footnote 2 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 1, chapter 2, switched off: “3 Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str. 30, 22527 Hamburg, Deutschland, herrmann@informatik.uni-hamburg.de” → left out. Reason: footnote 3 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 1, chapter 2, switched off: “∗ Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde \[MH17\]. Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6. Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.” → left out. Reason: footnote ∗ is left out (all footnotes are left out). Step: footnote-texts.
-  - page 2, chapter 3, switched off: “4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: footnote 4 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 1, chapter 1, switched off: “1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr. 32, 64293 Darmstadt, Deutschland, mmaass@seemoo.tu-darmstadt.de” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 1, chapter 1, switched off: “2 Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr. 1, 34109 Kassel, Deutschland, a.laubach@uni-kassel.de” → left out. Reason: footnote 2 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 1, chapter 1, switched off: “3 Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str. 30, 22527 Hamburg, Deutschland, herrmann@informatik.uni-hamburg.de” → left out. Reason: footnote 3 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 1, chapter 1, switched off: “∗ Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde \[MH17\]. Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6. Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.” → left out. Reason: footnote ∗ is left out (all footnotes are left out). Step: footnote-texts.
+  - page 2, chapter 2, switched off: “4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: footnote 4 is left out (all footnotes are left out). Step: footnote-texts.
   - page 2, chapter 3, switched off: “5 https://www.ssllabs.com/ssltest/” → left out. Reason: footnote 5 is left out (all footnotes are left out). Step: footnote-texts.
   - page 2, chapter 3, switched off: “6 https://observatory.mozilla.org/” → left out. Reason: footnote 6 is left out (all footnotes are left out). Step: footnote-texts.
   - page 2, chapter 3, switched off: “7 z.B. https://securityheaders.io/” → left out. Reason: footnote 7 is left out (all footnotes are left out). Step: footnote-texts.
   - page 2, chapter 3, switched off: “8 https://webbkoll.dataskydd.net/en/” → left out. Reason: footnote 8 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 3, chapter 4, switched off: “9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017” → left out. Reason: footnote 9 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 3, chapter 4, switched off: “10 https://dataskydd.net/kommuner-201704/” → left out. Reason: footnote 10 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 5, chapter 5, switched off: “11 https://testssl.sh” → left out. Reason: footnote 11 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 3, chapter 3, switched off: “9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017” → left out. Reason: footnote 9 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 3, chapter 3, switched off: “10 https://dataskydd.net/kommuner-201704/” → left out. Reason: footnote 10 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 5, chapter 4, switched off: “11 https://testssl.sh” → left out. Reason: footnote 11 is left out (all footnotes are left out). Step: footnote-texts.
   - page 5, chapter 5, switched off: “12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: footnote 12 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 6, chapter 7, switched off: “13 https://piwik.org” → left out. Reason: footnote 13 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 6, chapter 5, switched off: “13 https://piwik.org” → left out. Reason: footnote 13 is left out (all footnotes are left out). Step: footnote-texts.
   - page 7, chapter 7, switched off: “14 LG Hamburg v. 28.08.2008, Az. 315 O 326/08.” → left out. Reason: footnote 14 is left out (all footnotes are left out). Step: footnote-texts.
   - page 7, chapter 7, switched off: “15 OLG Köln v. 25.08.2000, Az. 19 U 2/00; LG Ulm v. 13.01.15, Az. 2 O 8/15; OLG Hamm v. 10.06.2008, Az. 4 U 37/08.” → left out. Reason: footnote 15 is left out (all footnotes are left out). Step: footnote-texts.
   - page 7, chapter 7, switched off: “16 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.” → left out. Reason: footnote 16 is left out (all footnotes are left out). Step: footnote-texts.
@@ -9622,26 +10396,26 @@
   - page 10, chapter 7, switched off: “25 BGH v. 16.07.2008, Az. VIII ZR 348/06.” → left out. Reason: footnote 25 is left out (all footnotes are left out). Step: footnote-texts.
   - page 11, chapter 7, switched off: “26 BVerfG v. 09.10.1991, Az. 1 BvR 1555/88; BVerfG v. 13.04.1994, Az. 1 BvR 23/94.” → left out. Reason: footnote 26 is left out (all footnotes are left out). Step: footnote-texts.
   - page 11, chapter 7, switched off: “27 BGH v. 29.01.2002, Az. VI ZR 20/01.” → left out. Reason: footnote 27 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 12, chapter 8, switched off: “28 BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012, Az. 5 U 51/11.” → left out. Reason: footnote 28 is left out (all footnotes are left out). Step: footnote-texts.
-  - page 12, chapter 8, switched off: “29 BGH v. 23.06.2009, Az. VI ZR196/08.” → left out. Reason: footnote 29 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 12, chapter 7, switched off: “28 BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012, Az. 5 U 51/11.” → left out. Reason: footnote 28 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 12, chapter 7, switched off: “29 BGH v. 23.06.2009, Az. VI ZR196/08.” → left out. Reason: footnote 29 is left out (all footnotes are left out). Step: footnote-texts.
   
   ## URLs, DOIs and e-mail addresses (16)
   
-  - page 1, chapter 2, applied: “mmaass@seemoo.tu-darmstadt.de” → left out. Reason: e-mail address "mmaass@seemoo.tu-darmstadt.de" is not read (TP-07). Step: links.
-  - page 1, chapter 2, applied: “a.laubach@uni-kassel.de” → left out. Reason: e-mail address "a.laubach@uni-kassel.de" is not read (TP-07). Step: links.
-  - page 1, chapter 2, applied: “herrmann@informatik.uni-hamburg.de” → left out. Reason: e-mail address "herrmann@informatik.uni-hamburg.de" is not read (TP-07). Step: links.
-  - page 2, chapter 3, applied: “4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: the text holds nothing but links ("https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/") and is not read (TP-07). Step: links.
+  - page 1, chapter 1, applied: “mmaass@seemoo.tu-darmstadt.de” → left out. Reason: e-mail address "mmaass@seemoo.tu-darmstadt.de" is not read (TP-07). Step: links.
+  - page 1, chapter 1, applied: “a.laubach@uni-kassel.de” → left out. Reason: e-mail address "a.laubach@uni-kassel.de" is not read (TP-07). Step: links.
+  - page 1, chapter 1, applied: “herrmann@informatik.uni-hamburg.de” → left out. Reason: e-mail address "herrmann@informatik.uni-hamburg.de" is not read (TP-07). Step: links.
+  - page 2, chapter 2, applied: “4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: the text holds nothing but links ("https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/") and is not read (TP-07). Step: links.
   - page 2, chapter 3, applied: “5 https://www.ssllabs.com/ssltest/” → left out. Reason: the text holds nothing but links ("https://www.ssllabs.com/ssltest/") and is not read (TP-07). Step: links.
   - page 2, chapter 3, applied: “6 https://observatory.mozilla.org/” → left out. Reason: the text holds nothing but links ("https://observatory.mozilla.org/") and is not read (TP-07). Step: links.
   - page 2, chapter 3, applied: “7 z.B. https://securityheaders.io/” → left out. Reason: the text holds nothing but links ("https://securityheaders.io/") and is not read (TP-07). Step: links.
   - page 2, chapter 3, applied: “8 https://webbkoll.dataskydd.net/en/” → left out. Reason: the text holds nothing but links ("https://webbkoll.dataskydd.net/en/") and is not read (TP-07). Step: links.
-  - page 3, chapter 4, applied: “9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017” → left out. Reason: the text holds nothing but links ("https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017") and is not read (TP-07). Step: links.
-  - page 3, chapter 4, applied: “10 https://dataskydd.net/kommuner-201704/” → left out. Reason: the text holds nothing but links ("https://dataskydd.net/kommuner-201704/") and is not read (TP-07). Step: links.
+  - page 3, chapter 3, applied: “9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017” → left out. Reason: the text holds nothing but links ("https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017") and is not read (TP-07). Step: links.
+  - page 3, chapter 3, applied: “10 https://dataskydd.net/kommuner-201704/” → left out. Reason: the text holds nothing but links ("https://dataskydd.net/kommuner-201704/") and is not read (TP-07). Step: links.
   - page 5, chapter 4, applied: “unter https://privacyscore.org/” → left out. Reason: URL "https://privacyscore.org/" is not read; "unter" before it goes too, so the sentence still reads (TP-07). Step: links.
-  - page 5, chapter 5, applied: “11 https://testssl.sh” → left out. Reason: the text holds nothing but links ("https://testssl.sh") and is not read (TP-07). Step: links.
+  - page 5, chapter 4, applied: “11 https://testssl.sh” → left out. Reason: the text holds nothing but links ("https://testssl.sh") and is not read (TP-07). Step: links.
   - page 5, chapter 5, applied: “12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: the text holds nothing but links ("https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/") and is not read (TP-07). Step: links.
   - page 6, chapter 6, applied: “und z. B. https://archive.org/” → left out. Reason: URL "https://archive.org/" is not read; "z. B." before it goes too, so the sentence still reads; "und" before it goes too (TP-07). Step: links.
-  - page 6, chapter 7, applied: “13 https://piwik.org” → left out. Reason: the text holds nothing but links ("https://piwik.org") and is not read (TP-07). Step: links.
+  - page 6, chapter 5, applied: “13 https://piwik.org” → left out. Reason: the text holds nothing but links ("https://piwik.org") and is not read (TP-07). Step: links.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “https://arxiv.org/abs/1705.05139,” → left out. Reason: URL "https://arxiv.org/abs/1705.05139" is not read (TP-07). Step: links.
   
   ## Tables and figures (1)
@@ -9787,10 +10561,10 @@
   - page 11, chapter 7, applied: “09.10.1991” → read as “neunten Oktober 19 hundert 91”. Reason: date "09.10.1991" read as "neunten Oktober 19 hundert 91". Step: numbers.
   - page 11, chapter 7, applied: “13.04.1994” → read as “dreizehnten April 19 hundert 94”. Reason: date "13.04.1994" read as "dreizehnten April 19 hundert 94". Step: numbers.
   - page 11, chapter 7, applied: “29.01.2002” → read as “neunundzwanzigsten Januar 2002”. Reason: date "29.01.2002" read as "neunundzwanzigsten Januar 2002". Step: numbers.
-  - page 12, chapter 8, applied: “23.09.2014” → read as “dreiundzwanzigsten September 2014”. Reason: date "23.09.2014" read as "dreiundzwanzigsten September 2014". Step: numbers.
-  - page 12, chapter 8, applied: “23.06.2009” → read as “dreiundzwanzigsten Juni 2009”. Reason: date "23.06.2009" read as "dreiundzwanzigsten Juni 2009". Step: numbers.
-  - page 12, chapter 8, applied: “18.01.2012” → read as “achtzehnten Januar 2012”. Reason: date "18.01.2012" read as "achtzehnten Januar 2012". Step: numbers.
-  - page 12, chapter 8, applied: “23.06.2009” → read as “dreiundzwanzigsten Juni 2009”. Reason: date "23.06.2009" read as "dreiundzwanzigsten Juni 2009". Step: numbers.
+  - page 12, chapter 7, applied: “23.09.2014” → read as “dreiundzwanzigsten September 2014”. Reason: date "23.09.2014" read as "dreiundzwanzigsten September 2014". Step: numbers.
+  - page 12, chapter 7, applied: “23.06.2009” → read as “dreiundzwanzigsten Juni 2009”. Reason: date "23.06.2009" read as "dreiundzwanzigsten Juni 2009". Step: numbers.
+  - page 12, chapter 7, applied: “18.01.2012” → read as “achtzehnten Januar 2012”. Reason: date "18.01.2012" read as "achtzehnten Januar 2012". Step: numbers.
+  - page 12, chapter 7, applied: “23.06.2009” → read as “dreiundzwanzigsten Juni 2009”. Reason: date "23.06.2009" read as "dreiundzwanzigsten Juni 2009". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "507–512" read with "bis". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "10–20" read with "bis". Step: numbers.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “:” → read as “zu”. Reason: ratio "8:181" read as "8 zu 181". Step: numbers.
@@ -11694,6 +12468,9 @@
   We generate large numbers of examples of each structure by performing random substitutions for both the subject and verb.
   The substitution lists are given in the appendix, along with samples of each structure and the size of the resulting sets.
   
+  Footnote 1.
+  Datasets and associated programs can be accessed.
+  
   # 6. 4 Test
   
   4 Test
@@ -11703,9 +12480,6 @@
   Each example is presented to the system, preceded by the text, “Please give a Yes or No answer:".
   We test five GPT-3 models on these structures: Davinci-003, Davinci-002, Curie-001, Babbage-001, and Ada-001.
   According to the GPT-3 documentation, Davinci-003 is the most powerful model and Ada-001, the least.
-  
-  Footnote 1.
-  Datasets and associated programs can be accessed.
   
   Table 2 is skipped.
   
@@ -11989,9 +12763,26 @@
   
   PrivacyScore: Analyse von Webseiten auf Sicherheits- und Privatheitsprobleme – Konzept und rechtliche Zulässigkeit
   
+  Fußnote.
+  Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde [MH17].
+  Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6.
+  Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.
+  
   Dieses Papier ist eine erweiterte Fassung des Beitrags, der beim Workshop „Recht und Technik“ auf der INFORMATIK 2017 vorgestellt wird.
   
   Max Maass, Anne Laubach, Dominik Herrmann
+  
+  Fußnote 1.
+  Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr.
+  32, 64293 Darmstadt, Deutschland,
+  
+  Fußnote 2.
+  Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr.
+  1, 34109 Kassel, Deutschland,
+  
+  Fußnote 3.
+  Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str.
+  30, 22527 Hamburg, Deutschland,
   
   Abstract: PrivacyScore ist ein öffentliches Web-Portal, mit dem automatisiert überprüft werden kann, ob Webseiten gängige Mechanismen zum Schutz von Sicherheit und Privatheit korrekt implementieren.
   Im Gegensatz zu existierenden Diensten ermöglicht PrivacyScore, mehrere Webseiten in Benchmarks miteinander zu vergleichen, die Ergebnisse differenziert und im Zeitverlauf zu analysieren sowie nutzerdefinierte Kriterien für die Auswertung zu definieren.
@@ -12009,23 +12800,6 @@
   Unsichere Webseiten gefährden nicht nur die Infrastruktur der Seitenbetreiber, sondern auch die Sicherheit und Privatheit der Besucherinnen.
   Die Privatheit der Besucherinnen kann allerdings auch durch Entscheidungen des Seitenbetreibers beeinträchtigt werden, etwa durch die Verwendung von Analysediensten oder Werbenetzwerken.
   Seitenbetreiber nutzen hier oft kommerzielle Angebote (etwa Google Analytics) anstatt einer lokalen Lösung, die die Privatheitsinteressen der Besucherinnen besser berücksichtigt (zum Beispiel Piwik).
-  
-  Fußnote 1.
-  Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr.
-  32, 64293 Darmstadt, Deutschland,
-  
-  Fußnote 2.
-  Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr.
-  1, 34109 Kassel, Deutschland,
-  
-  Fußnote 3.
-  Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str.
-  30, 22527 Hamburg, Deutschland,
-  
-  Fußnote.
-  Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde [MH17].
-  Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6.
-  Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.
   
   Die Entscheidungen der Betreiber sind dabei für Besucherinnen oft intransparent, insbesondere bei komplexeren Diensten wie dem Schutz gegen Denial-of-Service-Angriffe.
   Für Besucherinnen ist hier teilweise nicht einmal die Verwendung eines solchen Dienstes erkennbar, obwohl er signifikanten Einfluss auf ihre Privatheit haben kann, was zuletzt die Sicherheitslücke bei dem Dienstleister Cloudflare gezeigt hat.
@@ -12180,10 +12954,6 @@
   Während manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell bejahen oder dies von der Art der Webseitenausgestaltung abhängig machen,
   spricht gegen die Übertragung der Befugnis zur Ausübung des Hausrechts von Räumen und Grundstücken auf Webseiten die nicht vergleichbare Interessenlage,
   da ursprünglich gerade absolute Rechtspositionen wie Besitz und Eigentum Gegenstand des Schutzes sein sollten und der Zweck einer Webseite gerade darin besteht, sie potentiellen Nutzerinnen zu öffnen und von diesen zur Kenntnis genommen zu werden.
-  Dem Webseitenbetreiber steht es dennoch frei, die Befugnisse über die von ihm zur Verfügung gestellten Daten im Rahmen vertraglicher Vereinbarungen zu regeln.
-  Rechtlich verbindlich wird die jeweilige Vorgabe in den Nutzungsbedingungen aber nur dann, wenn zuvor eine Registrierung und damit ein Vertragsschluss unter ausdrücklicher Anerkennung der Nutzungsbedingungen erfolgt.
-  Ist der Zugang dagegen auch ohne Anmeldung möglich, kommt den jeweiligen Nutzungsbedingungen ebenso wie allen einseitigen Erklärungen über gewollte Nutzungsbeschränkungen keine verbindliche Rechtswirkung für nicht registrierte Besucherinnen der Webseite zu.
-  Eine solche technisch-automatisierte Registrierung unter Anerkennung der gestellten Nutzungsbedingungen durch die PrivacyScore-Technik ist nicht vorgesehen.
   
   Fußnote 14.
   LG Hamburg v. achtundzwanzigsten August 2008, Az.
@@ -12200,15 +12970,22 @@
   6 U 221/09; OLG Hamburg v. vierundzwanzigsten Oktober 2012, Az.
   5 U 38/10.
   
+  Dem Webseitenbetreiber steht es dennoch frei, die Befugnisse über die von ihm zur Verfügung gestellten Daten im Rahmen vertraglicher Vereinbarungen zu regeln.
+  Rechtlich verbindlich wird die jeweilige Vorgabe in den Nutzungsbedingungen aber nur dann, wenn zuvor eine Registrierung und damit ein Vertragsschluss unter ausdrücklicher Anerkennung der Nutzungsbedingungen erfolgt.
+  
   Fußnote 17.
   LG München v. fünfundzwanzigsten Oktober 2006, Az.
   30 O 11973/05; OLG Frankfurt v. fünften März 2009, Az.
   6 U 221/09.
   
+  Ist der Zugang dagegen auch ohne Anmeldung möglich, kommt den jeweiligen Nutzungsbedingungen ebenso wie allen einseitigen Erklärungen über gewollte Nutzungsbeschränkungen keine verbindliche Rechtswirkung für nicht registrierte Besucherinnen der Webseite zu.
+  
   Fußnote 18.
   OLG Frankfurt v. fünften März 2009, Az.
   6 U 221/09; OLG Hamburg v. vierundzwanzigsten Oktober 2012, Az.
   5 U 38/10.
+  
+  Eine solche technisch-automatisierte Registrierung unter Anerkennung der gestellten Nutzungsbedingungen durch die PrivacyScore-Technik ist nicht vorgesehen.
   
   Ein Großteil der PrivacyScore-Tests basiert lediglich auf Metadaten, die beim Abruf einer Seite entstehen.
   Einige Tests profitieren jedoch von einer Analyse des Quelltexts einer Seite.
@@ -12218,6 +12995,13 @@
   Hierfür ist notwendig, dass die Gestaltung derWebseite die „geistige Schöpfungshöhe“ i. S. v. § 2 Absatz 2 UrhG erreicht.
   Dies kann nur im Einzelfall beurteilt werden.
   Regelmäßig ist der Quelltext der Webseite jedoch nicht urheberrechtlich geschützt, da die Rechtsprechung die nötige besondere „schöpferische Höhe“ i. S. v. § 2 Absatz 2 UrhG für Webseiten nur in wenigen Ausnahmefällen anerkennt.
+  
+  Fußnote 19.
+  OLG Hamburg v. neunundzwanzigsten Februar 2012, Az.
+  5 U 10/10; OLG Celle v. achten März 2012, Az.
+  13 W 17/12; OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
+  2 E 12/07.
+  
   Auch, wenn die Datenbank als geistiger Schöpfungsakt nicht urheberrechtlich geschützt ist, kann für den Hersteller der Datenbank nach § 87b Absatz 1 Satz 1 UrhG ein Leistungsschutzrecht bestehen.
   Ginge man davon aus, dass die im Quelltext enthaltenen Informationen eine Sammlung von Daten i. S. v. § 87a UrhG enthalten, käme es für die Annahme eines Leistungsschutzrechts weiterhin darauf an, ob beim Betreiber eine wesentliche Investition zur Erstellung erforderlich war.
   Allerdings räumt § 87b Absatz 1 Satz 1 UrhG ein Recht auf Untersagung der Nutzung nur ein, soweit die Nutzerin wesentliche Teile der Datenbank durchsucht.
@@ -12227,22 +13011,16 @@
   Dies würde eine Folge von Befehlen, denen Auswirkungen auf den Programmablauf zukommen, voraussetzen.
   Den HTML-Befehlen im Quelltext komme dagegen nur eine beschreibende Funktion zu, um die Darstellung der Inhalte im Browser zu ermöglichen.
   
+  Fußnote 20.
+  OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
+  2 W 12/07; OLG Frankfurt v. zweiundzwanzigsten März 2005, Az.
+  11 U 64/04.
+  
   Die Untersuchung durch PrivacyScore ist auch wettbewerbsrechtlich unbedenklich, solange es infolge seines Einsatzes nicht zu einer tatsächlichen Störung des Betriebsablaufs der Webseite, etwa einer Beeinträchtigung der Verfügbarkeit, kommt.
   Andernfalls könnte unter der Voraussetzung der Mitbewerbereigenschaft i. S. v. § 2 Nummer 3 UWG eine unlautere Behinderung i. S. v. § 4 Nummer 4 UWG vorliegen.
   Wie bereits in Abschnitt 5 dargestellt, wird durch ein Rate-Limiting-System vermieden, dass die Untersuchung durch PrivacyScore negative Auswirkungen auf die Verfügbarkeit des Servers durch technische Überlastung für andere Nutzerinnen haben kann.
   Eine Störung der Funktionsfähigkeit i. S. v. § 4 Nummer 4 UWG soll damit ausgeschlossen werden.
   Mit der gleichen Begründung kann auch ein deliktischer Anspruch, gestützt auf eine rechtswidrige Verletzung des Rechts am eingerichteten und ausgeübten Gewerbebetrieb i. S. v. § 823 I BGB, mangels eines betriebsbezogenen Eingriffs, der über eine bloße Belästigung hinausgeht, vermieden werden.
-  
-  Fußnote 19.
-  OLG Hamburg v. neunundzwanzigsten Februar 2012, Az.
-  5 U 10/10; OLG Celle v. achten März 2012, Az.
-  13 W 17/12; OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
-  2 E 12/07.
-  
-  Fußnote 20.
-  OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
-  2 W 12/07; OLG Frankfurt v. zweiundzwanzigsten März 2005, Az.
-  11 U 64/04.
   
   Sofern PrivacyScore zur Untersuchung der Webseite nicht eine vom Berechtigten errichtete „besondere Zugangssicherung“ überwindet, bestehen auch in strafrechtlicher Hinsicht keine Bedenken gegen dessen Einsatz.
   In Betracht käme allenfalls der Tatbestand des § 202a StGB, welcher Daten schützt, „die gegen unberechtigten Zugang besonders gesichert sind“, indem die Zugangsverschaffung gerade „unter Überwindung der Zugangssicherung“ unter Strafe gestellt wird.
@@ -12250,6 +13028,11 @@
   
   Zusammenfassend ist festzustellen, dass soweit kein Sonderrechtsschutz besteht und die Webseite rechtlich und technisch frei zugänglich ist,
   das heißt die Nutzung der zu untersuchenden Daten nicht von der vorherigen Akzeptanz der Nutzungsbedingungen abhängig gemacht und vom Webseitenbetreiber keine technischen Schutzmaßnahmen installiert wurden, das automatisierte Untersuchen der Webseiten durch PrivacyScore zulässig ist.
+  
+  Fußnote 21.
+  BGH v. zweiundzwanzigsten Juni 2011, Az.
+  I ZR 159/10; BGH v. siebzehnten März 2003, Az.
+  I ZR 259/00.
   
   Rechtliche Bewertung der Untersuchungsergebnisse Die bloße Feststellung des technischen Untersuchungsergebnisses allein ist zur Bewertung der rechtskonformen Gestaltung der Webseite wenig aussagekräftig.
   Zur tatsächlichen Beurteilung der Rechtskonformität ist immer eine weitergehende Betrachtung des Einzelfalls erforderlich.
@@ -12260,15 +13043,11 @@
   Neben der Zuordnung und Speicherung von Nutzungsdaten (wie die zuletzt besuchte Seite und der verwendete Browser), die zunächst rechtlich unbedenklich sind, ermöglichen zentrale Analysedienste wie Google Analytics die Möglichkeit,
   die Nutzungsaktivitäten über die ebenfalls abgespeicherte IP-Adresse zusammen zu führen und webseitenübergreifend einer bestimmten Nutzerin zuzuordnen.
   Eine datenschutzkonforme Nutzung von Analysediensten wie Google Analytics ist daher nur zulässig, wenn eine Anonymisierung der IP-Adresse – etwa in Form einer Kürzung – gewährleistet wird, da aufgrund dieser Kürzung nach überwiegender Ansicht der Datenschützer der direkte Personenbezug entfalle.
-  Soweit nach der jüngsten Rechtsprechung dynamische IP-Adressen personenbezogene Daten darstellen, dürfen sie nur verarbeitet werden, wenn dies entweder gesetzlich gestattet ist oder die Betroffene eingewilligt hat.
-  
-  Fußnote 21.
-  BGH v. zweiundzwanzigsten Juni 2011, Az.
-  I ZR 159/10; BGH v. siebzehnten März 2003, Az.
-  I ZR 259/00.
   
   Fußnote 22.
   Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von Analyseverfahren“.
+  
+  Soweit nach der jüngsten Rechtsprechung dynamische IP-Adressen personenbezogene Daten darstellen, dürfen sie nur verarbeitet werden, wenn dies entweder gesetzlich gestattet ist oder die Betroffene eingewilligt hat.
   
   Fußnote 23.
   BGH v. sechzehnten Mai 2017, Az.
@@ -12276,8 +13055,18 @@
   C-582/14.
   
   Die gesetzliche Grundlage für den Umgang mit Nutzungsdaten ist derzeit noch das nationale Telemediengesetz (TMG), speziell § 15 Absatz 3 TMG, der auch im Falle einer verkürzten IP anwendbar ist.
+  
+  Fußnote 24.
+  LG Frankfurt v. achtzehnten Februar 2014, Az.
+  3-10 O 86/12.
+  
   Nach dieser Vorschrift ist die Erstellung von pseudonymisierten Nutzungsprofilen zu festgelegten Zwecken auch ohne die Einwilligung der betroffenen Nutzerin zulässig,
   soweit der Nutzerin gemäß § 15 Absatz 3 Satz 2 TMG ein Recht zum Widerspruch („Opt-out“) gegen diese Erstellung eingeräumt und sie auf die Möglichkeit des Widerspruchs auch hingewiesen wird.
+  
+  Fußnote 25.
+  BGH v. sechzehnten Juli 2008, Az.
+  VIII ZR 348/06.
+  
   Um beurteilen zu können, ob der Webseitenbetreiber seinen Hinweispflichten ausreichend nachgekommen ist, wäre eine Betrachtung des Impressums und der Datenschutzerklärung notwendig.
   
   Etwas anderes kann sich möglicherweise zukünftig aufgrund des Entwurfs der Verordnung über Privatsphäre und elektronische Kommunikation (e-Privacy-VO-E) ergeben.
@@ -12305,18 +13094,16 @@
   Lediglich das wirtschaftlich Zumutbare wird erwartet.
   Dies kann im Einzelfall auch dazu führen, dass ein Verantwortlicher keine Maßnahmen ergreifen muss.
   
-  Fußnote 24.
-  LG Frankfurt v. achtzehnten Februar 2014, Az.
-  3-10 O 86/12.
-  
-  Fußnote 25.
-  BGH v. sechzehnten Juli 2008, Az.
-  VIII ZR 348/06.
-  
   Rechtliche Herausforderungen hinsichtlich der Veröffentlichung der Ergebnisse Auf der PrivacyScore-Webseite können sowohl Detail-Ergebnisse für einzelne Webseiten als auch vergleichende Rankings eingesehen werden.
   Bei den Detail-Ergebnissen handelt es sich um Tatsachenbehauptungen, die überprüfbar und damit dem Beweis zugänglich sind.
   Die erstellten Rankings dürften hingegen auf diesen Tatsachen beruhende Werturteile darstellen.
   Beide sind nach ständiger Rechtsprechung gleichermaßen von der Meinungsfreiheit aus Artikel 5 Absatz 1 GG umfasst, soweit es sich um wahre Tatsachen handelt.
+  
+  Fußnote 26.
+  BVerfG v. neunten Oktober 19 hundert 91, Az.
+  1 BvR 1555/88; BVerfG v. dreizehnten April 19 hundert 94, Az.
+  1 BvR 23/94.
+  
   Die zugehörigen Scan-Rohdaten werden dazu (soweit zulässig) archiviert.
   
   Da mit der Veröffentlichung nachteiliger Bewertungen auch negative Auswirkungen für den Webseitenbetreiber, wie Imageverluste, verbunden sein können, stellt sich die Frage, unter welchen Voraussetzungen sich Betreiber gegen die Veröffentlichung wehren können.
@@ -12327,26 +13114,34 @@
   Für inländische Unternehmen kann sich ein Persönlichkeitsrecht aus Artikel 2 Absatz 1 GG i. V. m.
   Artikel 19 Absatz 3 GG und Artikel 12 Absatz 1 GG ergeben.
   Dies gilt jedoch nur in abgeschwächter Form, da Unternehmen und Unternehmer, die sich bewusst nach außen hin darstellen, kritische Bewertungen eher hinnehmen müssen.
-  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen i. S. v. §§ 185 folgende.
-  StGB werden und die konkrete Aussage geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
-  
-  Fußnote 26.
-  BVerfG v. neunten Oktober 19 hundert 91, Az.
-  1 BvR 1555/88; BVerfG v. dreizehnten April 19 hundert 94, Az.
-  1 BvR 23/94.
   
   Fußnote 27.
   BGH v. neunundzwanzigsten Januar 2002, Az.
   VI ZR 20/01.
+  
+  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen i. S. v. §§ 185 folgende.
+  StGB werden und die konkrete Aussage geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
   
   Eine Beurteilung eines rechtswidrigen Eingriffs unter Abwägung der Interessen ist grundsätzlich nur im Einzelfall möglich.
   Die Veröffentlichung einer kritischen Bewertung der Webseite kann für den Betroffenen zu einer Rufbeeinträchtigung führen und ihn nicht unerheblich belasten.
   Da die untersuchten Webseiten aber öffentlich sind, werden diese regelmäßig der Sozialsphäre des Betroffenen zuzuordnen sein, das heißt beruflichen, politischen oder ähnlichen Tätigkeiten, in denen Menschen im sozialen Austausch stehen.
   Beeinträchtigungen in diesem Bereich unterliegen zumeist einem schwachen Schutz.
   Im Rahmen der Interessenabwägung bei betroffenen Unternehmern betont die Rechtsprechung regelmäßig das Informationsinteresse der Allgemeinheit.
+  
+  Fußnote 28.
+  BGH v. dreiundzwanzigsten September 2014, Az.
+  VI ZR 358/13; BGH v. dreiundzwanzigsten Juni 2009, Az.
+  VI ZR 196/08; OLG Hamburg v. achtzehnten Januar 2012, Az.
+  5 U 51/11.
+  
   Insbesondere vor dem Hintergrund der freien Wahl, die untersuchten Webseiten je nach Ergebnis zu nutzen oder dies zu vermeiden, ist das Interesse der Öffentlichkeit an den Informationen über privatrechtliche Risiken beim Besuch der Webseiten nicht unerheblich.
   Ein Recht des Betroffenen wird daher regelmäßig nicht das Kommunikationsinteresse überwiegen.
   Bei Privatpersonen wird im Rahmen der Interessenabwägung häufig zusätzlich auf die Breitenwirkung der Äußerung abgestellt: je größer der Adressatenkreis, desto belastender die Äußerung.
+  
+  Fußnote 29.
+  BGH v. dreiundzwanzigsten Juni 2009, Az.
+  VI ZR196/08.
+  
   Eine Risikoreduzierung für den Betroffenen könnte in diesen Fällen dadurch erreicht werden, dass die Ergebnisse nur einem beschränkten Adressatenkreis zur Verfügung zu stellen.
   
   Aus Artikel 17 Absatz 1 DSGVO könnte dem Betroffenen in diesem Zusammenhang ein Löschungsanspruch zustehen, soweit die gespeicherten Daten personenbezogen sind und deren Speicherung unzulässig ist.
@@ -12367,16 +13162,6 @@
   Das Ziel des PrivacyScore-Projekts besteht darin, Transparenz herzustellen und Öffentlichkeit zu generieren.
   PrivacyScore erstellt dazu automatisierte Vergleiche der Sicherheits- und Privatheitseigenschaften mehrerer Webseiten und zeigt die Ergebnisse in Form von regelmäßig aktualisierten Ranglisten an.
   Sowohl die zu überprüfenden Webseiten als auch die Bewertungskriterien können dabei von den Nutzerinnen festgelegt werden.
-  
-  Fußnote 28.
-  BGH v. dreiundzwanzigsten September 2014, Az.
-  VI ZR 358/13; BGH v. dreiundzwanzigsten Juni 2009, Az.
-  VI ZR 196/08; OLG Hamburg v. achtzehnten Januar 2012, Az.
-  5 U 51/11.
-  
-  Fußnote 29.
-  BGH v. dreiundzwanzigsten Juni 2009, Az.
-  VI ZR196/08.
   
   Juristisch ist die Verwendung von PrivacyScore in seiner aktuell geplanten Form zulässig, soweit die untersuchte Webseite frei zugänglich ist und kein Sonderrechtsschutz besteht.
   Die Veröffentlichung der Ergebnisse ist vom Schutz der Meinungsfreiheit umfasst, sofern diese keine unwahren oder beleidigenden Äußerungen enthalten.

@@ -476,11 +476,14 @@ def test_every_corpus_paper_cuts_into_utterances_under_the_limit(paper: Path) ->
     assert all(0 < len(u.text) <= DEFAULT_MAX_CHARS for u in utterances)
     for utterance in utterances:
         document.check_span(utterance.span)
-    for a, b in pairwise(utterances):
-        assert (a.span.block, a.span.end) <= (b.span.block, b.span.start)
     for index in range(len(document.blocks)):
+        # spans of one block are in order; a footnote read at its mark (#213) stands between
+        # two utterances of another block, so blocks are no longer in order across the script
+        mine = [u for u in utterances if u.span.block == index]
+        for a, b in pairwise(mine):
+            assert a.span.end <= b.span.start
         spoken = spoken_text([p for p in script if p.span.block == index and not p.pause])
-        said = [u.text for u in utterances if u.span.block == index and not u.pause]
+        said = [u.text for u in mine if not u.pause]
         assert " ".join(said) == spoken  # exact, block by block
 
 

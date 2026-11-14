@@ -238,7 +238,10 @@ def anything(draw: st.DrawFn) -> Run:
 
 def check_chapter_choice(run: Run) -> None:
     document, edits, chapters = run
-    steps = [*BUILT_IN_STEPS, *(Fixed(f"s{n}", [e]) for n, e in enumerate(edits))]
+    # the test steps are inline: they go before the move steps, which run last (#213)
+    inline = [step for step in BUILT_IN_STEPS if step.stage is not Stage.MOVE]
+    moves = [step for step in BUILT_IN_STEPS if step.stage is Stage.MOVE]
+    steps = [*inline, *(Fixed(f"s{n}", [e]) for n, e in enumerate(edits)), *moves]
     result = prepare_script(document, JobSettings(chapters=chapters), steps)
     everything = cut_utterances(document, result.run.script())
     chosen = {c.chapter.index for c in result.chapters if c.selected}

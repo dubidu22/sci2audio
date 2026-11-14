@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pdf_maker
 from pdf_maker import Rect, Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_flow import open_paper
@@ -258,6 +259,52 @@ def test_a_skipped_figure_shows_and_lights_up_its_notice(
         f"() => document.getElementById('{chunk_id(page, 'Figure 1: A grey box.')}')"
         ".classList.contains('now')"
     )
+
+
+def test_a_footnote_lights_up_after_the_sentence_with_its_mark(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """#213 (plan Q8): the note is read after the sentence that holds its mark, and the page
+    shows it after that paragraph, so the highlight goes from the sentence to the note and
+    back to the paragraph's next sentence."""
+    page = signed_in
+    words = "It works on every page we tried"
+    after = 72 + pdf_maker.width(words, size=11)
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text(words, 72, 100, size=11),
+            Text("1", after, 96, size=7),
+            Text(". It holds for the rest.", after + pdf_maker.width("1", size=7), 100, size=11),
+            *[
+                Text(
+                    f"Then the text goes on, line {k}, in the body size.", 72, 114 + 14 * k, size=11
+                )
+                for k in range(25)
+            ],
+            Rect(72, 700, 140, 700.5),
+            Text("1", 72, 712, size=6),
+            Text(" A note on the pages we tried.", 72 + pdf_maker.width("1", size=6), 714, size=8),
+        ]
+    )
+    listen_to(page, live, tmp_path / "note.pdf", pdf)
+    sentence = chunk_id(page, words)
+    note = chunk_id(page, "A note on the pages we tried.")
+    rest = chunk_id(page, "It holds for the rest.")
+    # the note shows after the paragraph it is read in
+    order = page.evaluate(
+        "ids => ids.map(id => document.getElementById(id))"
+        ".map((e, i, all) => i === 0 || (all[i - 1].compareDocumentPosition(e) & 4) > 0)",
+        [sentence, rest, note],
+    )
+    assert order == [True, True, True]
+    page.locator(f"#{sentence}").click()
+    for heard in (sentence, note, rest):
+        page.wait_for_function(
+            f"() => document.getElementById('{heard}').classList.contains('now')",
+            timeout=30_000,
+        )
+    check_axe(page, "player with a moved note")
 
 
 # a page of running text: code is told from text only where the text is not itself set in

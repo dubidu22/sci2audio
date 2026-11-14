@@ -22,6 +22,7 @@ from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import (
     BUILT_IN_STEPS,
     LineEndHyphenStep,
+    Stage,
     StepContext,
     UnicodeStep,
     run_steps,
@@ -476,5 +477,8 @@ def test_seven_papers_have_a_hyphenation_truth_sentence() -> None:
 
 
 def test_characters_and_hyphenation_run_last() -> None:
-    """D-150: a one-character fix placed earlier would block the rules after it."""
-    assert [step.id for step in BUILT_IN_STEPS][-2:] == ["unicode-clean-up", "line-end-hyphens"]
+    """D-150: a one-character fix placed earlier would block the rules after it. Only the
+    move steps come after them (#213): moves change no text, so they block no rule."""
+    inline = [step.id for step in BUILT_IN_STEPS if step.stage is not Stage.MOVE]
+    assert inline[-2:] == ["unicode-clean-up", "line-end-hyphens"]
+    assert [step.id for step in BUILT_IN_STEPS][-1] == "footnote-places"
