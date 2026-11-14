@@ -40,6 +40,7 @@ from mdit_py_plugins.front_matter import front_matter_plugin
 
 from sci2audio.core import Content, Metadata, SourceFormat
 from sci2audio.extraction.errors import ExtractionError
+from sci2audio.extraction.language import stated_language
 from sci2audio.extraction.markup import Anchors, PageReader, fold, resolve_links
 from sci2audio.extraction.text import decode_text, source_of
 
@@ -191,7 +192,7 @@ def _metadata(front: str) -> Metadata:
         authors=tuple(v for v in values.get("author", []) + values.get("authors", []) if v),
         date=date,
         identifier=first("doi", "identifier", "isbn"),
-        language=first("lang", "language"),
+        language=stated_language(first("lang", "language")),
     )
 
 
