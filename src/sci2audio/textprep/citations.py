@@ -405,7 +405,7 @@ class _Rules:
             re.escape(lead).replace(r"\ ", r"\s+")
             for lead in sorted(words.lead, key=len, reverse=True)
         )
-        joins = rf"[,;]|&|{words.and_word}\b"
+        joins = rf"[,;]|&|\b{words.and_word}\b"
         # what a removal at a bracket's start may stand after, and what it then leaves hanging
         self.lead_before = re.compile(rf"\(\s*(?:(?:{leads})\s*)*\Z", re.IGNORECASE)
         self.hung_ahead = re.compile(rf"\s*(?:{joins})(?=\s*[^\s)\]])", re.IGNORECASE)
@@ -443,9 +443,9 @@ class _Rules:
         gone = [(a, b) for a, b, _, _, why in found if why.startswith(_IDENTIFIER_REASON)]
         if gone:
             # identifiers first, with every other bracket decided anew on the text without
-            # them: "(527794) (Müller, 2019) zeigt" keeps "Müller" as the subject (#285)
+            # them, as before D-577: "(527794) (Müller, 2019) zeigt" keeps "Müller" as the
+            # subject (#285); this look comes on top of the `_LOOKS`
             found = self._identifiers_looked_past(text, found, gone, links)
-            looks += 1
         while looks < _LOOKS:
             looks += 1
             removed = _joined(
@@ -453,11 +453,23 @@ class _Rules:
             )
             if not removed:
                 break
-            read, cuts = _without(text, removed)
+            # the text as a second run reads it: removals cut, readings written in
+            rewrite = _Rewrite(
+                text,
+                sorted(
+                    [(a, b, "") for a, b in removed]
+                    + [(a, b, r) for a, b, kind, r, _ in found if kind is EditKind.REPLACE]
+                ),
+            )
+            if rewrite.text is None:
+                break  # a reading overlaps a removal: no look past them
             back: list[_Found] = []
-            for start, end, kind, replacement, reason in self._once(read, [], cuts.at):
+            for start, end, kind, replacement, reason in self._once(rewrite.text, [], rewrite.at):
+                first, last = rewrite.printed(start, True), rewrite.printed(end, False)
+                if first is None or last is None or first >= last:
+                    continue  # inside a reading of the look before: that reading stands
                 # a later edit never holds a link's span, which is the links step's own edit
-                pieces = _around(links, cuts.printed(start, True), cuts.printed(end, False))
+                pieces = _around(links, first, last)
                 if kind is EditKind.REPLACE and len(pieces) != 1:
                     continue  # a reading cannot be split; the bracket stays as the look before
                 back += [(a, b, kind, replacement, reason) for a, b in pieces]
@@ -662,7 +674,9 @@ class _Rules:
         if len(inside) > _MAX_BRACKET:
             return None
         if text[node.open] == "[":
-            return self._numeric(text, node, inside)
+            return self._numeric(
+                text, node, inside, _before_removals(text, node.open, found, self._runs)
+            )
         if self._identifiers_only(text, node, decided):
             # "(0801700)", "(grant no. DMS-1912345)": a grant or award number, no quantity
             # (#285, D-547); the script and the read-along keep it as printed
@@ -858,14 +872,20 @@ class _Rules:
 
     # numeric citations
 
-    def _numeric(self, text: str, node: _Bracket, inside: str) -> list[_Found] | None:
+    def _numeric(
+        self, text: str, node: _Bracket, inside: str, at: int | None = None
+    ) -> list[_Found] | None:
+        """A square bracket of numbers; `at` is where it stands once the brackets before it
+        that this look removes are gone ("(Smith, 2019)[12][12] it" is "[12] it" then, which
+        a second run reads as the subject, #308, D-577)."""
+        at = node.open if at is None else at
         if not _NUMERIC.match(inside):
             if self.page_only.match(inside) and re.search(
                 r"[\"”’']\s*\Z", _before(text, node.open)
             ):
                 return [self._removed(text, node.open, node.close + 1, "page reference")]
             return None
-        glued = text[node.open - 1 : node.open]
+        glued = text[at - 1 : at]
         if glued and (glued.isalnum() or glued in ")]"):
             return None
         if _NUMBER_GLUED_AFTER.match(text, node.close + 1):
@@ -886,12 +906,12 @@ class _Rules:
         elif (
             word not in self.words.before
             or any(before.lower().endswith(aside) for aside in self.words.asides)
-        ) and not self._is_subject(text, node.open, node.close + 1):
+        ) and not self._is_subject(text, at, node.close + 1):
             return [self._removed(text, node.open, node.close + 1, "numeric citation")]
         spoken = self._spoken(inside)
         if before.endswith("("):  # "( [53] discusses": no space after the bracket
             start = window + len(before)
-        if self._starts_sentence(text, start):
+        if self._starts_sentence(text, at if start == node.open else start):
             spoken = spoken[0].upper() + spoken[1:]
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
@@ -1253,6 +1273,46 @@ def _without(text: str, gone: Sequence[tuple[int, int]]) -> tuple[str, _Cuts]:
         cursor = end
     pieces.append(text[cursor:])
     return "".join(pieces), _Cuts(at, total, starts)
+
+
+class _Rewrite:
+    """A text with edits made (sorted, apart: start, end, replacement), and how a position in
+    it maps back to the printed text."""
+
+    def __init__(self, printed: str, edits: list[tuple[int, int, str]]) -> None:
+        pieces, cursor, shift = [], 0, 0
+        self.at: list[int] = []  # where each edit's reading starts in the new text
+        self.size: list[int] = []  # how long the reading is
+        self.span: list[tuple[int, int]] = []  # the printed span it replaces
+        self.text: str | None = None
+        for start, end, replacement in edits:
+            if start < cursor:
+                return  # overlapping edits: no text
+            pieces += [printed[cursor:start], replacement]
+            self.at.append(start - shift)
+            self.size.append(len(replacement))
+            self.span.append((start, end))
+            shift += end - start - len(replacement)
+            cursor = end
+        pieces.append(printed[cursor:])
+        self.text = "".join(pieces)
+
+    def printed(self, position: int, start: bool) -> int | None:
+        """A position of the new text in the printed text; None inside a reading. An edit's
+        start next to a removal lands after it, its end before it, so no edit holds part of
+        one; next to a reading, outside it."""
+        low = bisect.bisect_left(self.at, position)
+        high = bisect.bisect_right(self.at, position)
+        if low and self.at[low - 1] + self.size[low - 1] > position:
+            return None  # inside the reading of an earlier edit
+        before = position
+        if low:
+            end = self.span[low - 1][1]
+            before = position + end - (self.at[low - 1] + self.size[low - 1])
+        if not start or high == low:
+            return before
+        last = high - 1  # the edits that start here: removals, then maybe a reading
+        return self.span[last][0] if self.size[last] else self.span[last][1]
 
 
 def _joined(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:

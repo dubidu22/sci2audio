@@ -781,6 +781,11 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
     outside = re.sub(r"\((?:\s|see|also|e\.g\.,)*Smith\s\(2019\)\s*\)", " ", outside)
     for citation in placed:
         outside = outside.replace(citation, " ")
+    # ... and a bracket left with only lead words or separators once its inner citations go:
+    # "( see (see also [48, 135]))", "( and (see also [48, 135]))" (D-577, #305)
+    left = r"(?:[\s,;&]|see|also|e\.g\.,|and)*"
+    while (bare := re.sub(rf"\({left}\)", " ", outside)) != outside:
+        outside = bare
     outside = YEAR_OR_NUMBER.sub(" ", outside)
     words = [w.strip(".,;()") for w in outside.split()]
     said = [w.strip(".,;()") for w in spoken.split()]

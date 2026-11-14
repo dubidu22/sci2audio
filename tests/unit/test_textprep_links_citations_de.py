@@ -341,6 +341,8 @@ def test_a_german_job_with_links_and_citations_reads_the_same_on_a_second_run(
         # a source number read before a full stop is no ordinal
         "unter [12]. Studie https://example.org/daten.",
         "Wie in [3, 12]. Studie zeigt.",
+        # "und" inside a word is no separator: "orgfound", "Grund" (fuzz, D-577)
+        "( https://example.orgfound (527794))(Müller, 2019) (Müller, 2019) [3, 4]",
     ],
 )
 def test_a_second_run_reads_nothing_new(text: str) -> None:
@@ -357,6 +359,8 @@ def test_a_second_run_reads_nothing_new(text: str) -> None:
         # a source among the brackets goes alone, with its ";" (#272, D-577); the interval
         # stays (D-534)
         ("Das gilt ([12]; [1,2; 3,4]).", "Das gilt ([1,2; 3,4])."),
+        # "und" inside a word is no separator that goes with the citation (D-577)
+        ("Das gilt (Grund (Müller, 2019)) hier.", "Das gilt (Grund) hier."),
     ],
 )
 def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
