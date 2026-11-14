@@ -73,8 +73,9 @@ BACKLINK_TAGS = frozenset({"role:doc-backlink", "epub:backlink"})
 LINKED_KINDS = MARKED_KINDS | {BlockKind.FOOTNOTE}
 _LINK = "link:"
 # also the closing quotes: U+2019, U+201D (English), U+201C, U+2018, U+00AB (German) and U+00BB
-# (Swiss guillemets close with it; #212, #248 S2)
-_CLOSING = frozenset(".,;:!?)]}\u2019\u201d\u201c\u2018\u00ab\u00bb\"'")
+# (Swiss guillemets close with it; #212, #248 S2), and the single guillemets U+203A and U+2039
+# that quote inside them (PR #333 review R1-4)
+_CLOSING = frozenset(".,;:!?)]}\u2019\u201d\u201c\u2018\u00ab\u00bb\u203a\u2039\"'")
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
@@ -107,11 +108,13 @@ class FootnoteTextStep(TextStep):
 def found_marks(document: Document, context: StepContext) -> dict[int, list[tuple[int, int]]]:
     """The footnote marks the footnotes step removes, by block: the earlier inline steps read
     the text without them, as a second run does ("bzw.¹", "z. B.¹", "Abschnitt 2.¹"; #316,
-    D-577). Each step finds them again; no cache is shared between steps (D6)."""
-    if context.language.split("-", 1)[0].lower() not in FootnoteStep.languages:
+    D-577). Each step finds them again; no cache is shared between steps (D6). None while
+    the "Footnotes" category is switched off: the marks then stay and are read (D-595)."""
+    step = FootnoteStep()
+    if not step.handles(context.language) or step.category in context.switched_off:
         return {}
     marks: dict[int, list[tuple[int, int]]] = {}
-    for edit, _ in FootnoteStep().marked(document, context)[1]:
+    for edit, _ in step.marked(document, context)[1]:
         marks.setdefault(edit.span.block, []).append((edit.span.start, edit.span.end))
     return marks
 

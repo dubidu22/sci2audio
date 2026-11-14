@@ -116,8 +116,12 @@ _OPENING = "\"'([{\u201c\u2018\u201e\u00bb"
 _SENTENCE_END = re.compile(rf"[.?!]+[{re.escape(_CLOSING)}]*(?=\s+(\S))")
 # German closes its quotes with U+201C (of U+201E ... U+201C), U+2018 (of U+201A ... U+2018) and,
 # in Swiss «…», with U+00BB: after ".", "!" or "?" these end a sentence there too (#315, D-577,
-# German only); in English they open a quote
-_CLOSING_DE = _CLOSING + "\u201c\u2018\u00bb"
+# German only); in English they open a quote. The single guillemets U+203A and U+2039 quote
+# inside »…« and «…»: either may close a quote, and either may open the next sentence
+# (PR #333 review R1-4)
+_SINGLE_GUILLEMETS = "\u203a\u2039"
+_CLOSING_DE = _CLOSING + "\u201c\u2018\u00bb" + _SINGLE_GUILLEMETS
+_OPENING_DE = _OPENING + _SINGLE_GUILLEMETS
 _SENTENCE_END_DE = re.compile(rf"[.?!]+[{re.escape(_CLOSING_DE)}]*(?=\s+(\S))")
 _INITIAL = re.compile(r"\A[A-Z]\.\Z")
 _LAST_WORD = re.compile(r"\S+\Z")
@@ -125,6 +129,7 @@ _DASHES = "\u2013\u2014"  # en and em dash
 # what an abbreviation may be glued to: brackets, quotes, dashes and a slash ("(2022)[p.",
 # "results\u2014e.g.", #91)
 _GLUED_BEFORE = re.compile(f"[{re.escape(_OPENING + _CLOSING + '}' + _DASHES + '/')}]")
+_GLUED_BEFORE_DE = re.compile(f"[{re.escape(_OPENING_DE + _CLOSING_DE + '}' + _DASHES + '/')}]")
 # abbreviations that stand before a number ("No. 5", "p. 12"); before anything else their
 # full stop may end a sentence ("The answer is no. Then ...")
 _BEFORE_NUMBERS = frozenset({"no.", "nos.", "p.", "pp.", "vol."})
@@ -309,16 +314,18 @@ def _sentences(
     text = run.text
     german = language.split("-", 1)[0].lower() == "de"
     closing = _CLOSING_DE if german else _CLOSING
+    opening = _OPENING_DE if german else _OPENING
+    glued = _GLUED_BEFORE_DE if german else _GLUED_BEFORE
     cuts = [0]
     for match in (_SENTENCE_END_DE if german else _SENTENCE_END).finditer(text):
         following = match.group(1)[0]
-        if not (following.isupper() or following.isdigit() or following in _OPENING):
+        if not (following.isupper() or following.isdigit() or following in opening):
             continue
         # the word before the gap; any white space (a no-break space too) ends it
         whole = _LAST_WORD.search(text, 0, match.end()).group().rstrip(closing)
         # the abbreviation check looks past what is glued before it ("(2022)[p.", #91);
         # the initials check does not, or "DON'T." and "[1]A." would read as initials
-        word = _GLUED_BEFORE.split(whole)[-1]
+        word = glued.split(whole)[-1]
         lowered = word.lower()
         if (
             lowered in abbreviations
@@ -328,7 +335,7 @@ def _sentences(
             and not (german and len(lowered) == 2 and lowered != whole.lower())
         ):
             continue
-        if _INITIAL.match(whole.lstrip(_OPENING)):
+        if _INITIAL.match(whole.lstrip(opening)):
             continue
         if (
             german

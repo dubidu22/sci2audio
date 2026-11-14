@@ -364,6 +364,24 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         # ... but not before a lower-case word, nor after an abbreviation inside the quote
         ("Er sagte „gut.“ und ging.", ["Er sagte „gut.“ und ging."]),
         ("Er sagte „z. B.“ dazu.", ["Er sagte „zum Beispiel“ dazu."]),
+        # PR #333 review R1-3: the closing quote is taken off before the abbreviation and
+        # initial checks, so "Dr." and "A." inside it end no sentence
+        ("Er nannte „Dr.“ Müller dann.", ["Er nannte „Dr.“ Müller dann."]),
+        ("Er sagte „A.“ Dann ging er.", ["Er sagte „A.“ Dann ging er."]),
+        # R1-4: the single guillemets quote inside »…« and «…»; they close a sentence, and
+        # open the next one
+        ("Er sagte \u203aja.\u2039 Dann ging er.", ["Er sagte \u203aja.\u2039", "Dann ging er."]),
+        ("Er sagte \u2039ja.\u203a Dann ging er.", ["Er sagte \u2039ja.\u203a", "Dann ging er."]),
+        (
+            "Er sagte »ja.« \u203aNein.\u2039 Dann ging er.",
+            ["Er sagte »ja.«", "\u203aNein.\u2039", "Dann ging er."],
+        ),
+        (
+            "Er sagte «ja.» \u2039Nein.\u203a Dann ging er.",
+            ["Er sagte «ja.»", "\u2039Nein.\u203a", "Dann ging er."],
+        ),
+        ("Er sagte \u203az. B.\u2039 dazu.", ["Er sagte \u203azum Beispiel\u2039 dazu."]),
+        ("Er nannte \u203aDr.\u2039 Müller dann.", ["Er nannte \u203aDr.\u2039 Müller dann."]),
     ],
 )
 def test_german_sentences_end_where_german_ends_them(text: str, sentences: list[str]) -> None:
@@ -377,6 +395,10 @@ def test_german_sentences_end_where_german_ends_them(text: str, sentences: list[
         "He said “yes.“ Then he left.",
         "She asked \u2018when?\u2018 Then she left.",
         "He wrote «stop.» Then he left.",
+        # ... nor the single guillemets (PR #333 review R1-4), after or before the full stop
+        "He wrote \u203astop.\u2039 Then he left.",
+        "He wrote \u2039stop.\u203a Then he left.",
+        "He wrote stop. \u203aThen\u2039 he left.",
     ],
 )
 def test_english_ends_no_sentence_at_a_german_closing_quote(text: str) -> None:
