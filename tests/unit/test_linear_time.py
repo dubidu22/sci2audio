@@ -44,4 +44,3 @@ def test_a_base_run_below_the_timer_floor_counts_as_the_floor(clock: _Clock) -> 
         return len(text)
 
     assert_linear(run, lambda n: "a" * n, 8_000)  # 0.03 s < 32 * 0.002 s
-
