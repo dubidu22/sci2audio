@@ -90,6 +90,17 @@ _LABEL_JOIN = r"(?:\s*(?:,|&|[-\u2013\u2014])\s*|\s+(?:and|or)\s+|,\s*(?:and|or)
 _LABEL_LIST = re.compile(
     rf"(?<![\w.])([^\W\d_][\w.]*)\s+{_ONE_LABEL}(?:{_LABEL_JOIN}{_ONE_LABEL})*{_LABEL_JOIN}\Z"
 )
+
+
+def _label_list(joins: tuple[str, ...]) -> re.Pattern[str]:
+    """`_LABEL_LIST` with the language's own joining words too ("bzw.", "sowie")."""
+    if not joins:
+        return _LABEL_LIST
+    words = "|".join(map(re.escape, sorted(joins, key=len, reverse=True)))
+    join = rf"(?:{_LABEL_JOIN}|\s+(?:{words})\s+|,\s*(?:{words})\s+)"
+    return re.compile(rf"(?<![\w.])([^\W\d_][\w.]*)\s+{_ONE_LABEL}(?:{join}{_ONE_LABEL})*{join}\Z")
+
+
 _TILDE = re.compile(r"[~\u223c](?=[ \u00a0]{0,2}[+\-\u2212]?\.?\d)")
 # a number, then x; the number may follow another "x" of a chain ("5x86x86")
 _LETTER_X = re.compile(
@@ -121,6 +132,7 @@ class _Table:
     pattern: re.Pattern[str]
     magnitude: re.Pattern[str]
     number: re.Pattern[str]  # a number as the language prints it
+    label_list: re.Pattern[str]  # labels in a list, right before a number
 
 
 class UnitStep(TextStep):
@@ -236,7 +248,7 @@ def _compiled(language: str) -> _Table | None:
     magnitudes = sorted(listed.magnitudes, key=len, reverse=True)
     magnitude = re.compile("|".join(map(re.escape, magnitudes)) or r"(?!)")
     number = _NUMBER_DECIMAL_COMMA if listed.decimal == "," else _NUMBER
-    return _Table(listed, by_form, pattern, magnitude, number)
+    return _Table(listed, by_form, pattern, magnitude, number, _label_list(listed.label_joins))
 
 
 def _boundary(text: str, position: int) -> bool:
@@ -278,7 +290,9 @@ def _unit_after(
                 stop -= 1  # "nach 2 Std." at the end of a block keeps its full stop
             reads = _reading(terms, plural, table)
             shown = " ".join(text[start:stop].split())
-            gender = first.gender if one and not hyphen and not terms[0].per else ""
+            gender = first.gender if one and not terms[0].per else ""
+            if hyphen and gender:
+                gender = _COMPOUND  # "1-kg-Packung": "Ein-Kilogramm-Packung"
             return start, stop, (" " if glued else "") + reads, shown, gender
     if gap == end and not number["exponent"]:
         magnitude = table.magnitude.match(text, end)
@@ -292,6 +306,9 @@ def _unit_after(
     return None
 
 
+_COMPOUND = "compound"  # instead of a gender: "1" starts a hyphenated compound
+
+
 def _one(text: str, number: re.Match[str], table: _Table, gender: str) -> str | None:
     """The word read for a "1" before a unit in a language that says it by gender: "ein
     Kilogramm", "eine Sekunde", "nach einer Stunde", "für einen Meter"; None without a sign
@@ -300,6 +317,9 @@ def _one(text: str, number: re.Match[str], table: _Table, gender: str) -> str | 
     sign = text[number.start() - 1 : number.start()]
     if not ones or (sign and sign in _SIGNS):
         return None
+    if gender == _COMPOUND:  # the uninflected word, with a capital as it starts the compound
+        word = ones["nominative"]["n"]
+        return word[:1].upper() + word[1:]
     word = _WORD_BEFORE.search(text, max(0, number.start() - 24), number.start())
     before = word.group(1).lower() if word else ""
     case = "nominative"
@@ -341,7 +361,7 @@ def _single_letter(printed: str, unit: Unit) -> bool:
 def _is_label(text: str, start: int, table: _Table) -> bool:
     """True for a number after a label word, or in a list of labels after one: "Fig. 3B",
     "Figures 2B and 3B", "panels A, 2C or 3B"."""
-    word = _LABEL_LIST.search(text, max(0, start - 64), start)
+    word = table.label_list.search(text, max(0, start - 64), start)
     if word is None:
         word = _WORD_BEFORE.search(text, max(0, start - 24), start)
     return word is not None and word.group(1).lower() in table.words.labels

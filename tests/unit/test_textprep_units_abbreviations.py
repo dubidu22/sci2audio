@@ -179,7 +179,7 @@ def test_a_good_unit_list_parses() -> None:
 def test_articles_may_be_left_out_and_german_keys_parse() -> None:
     words = WORDS.replace('articles = ["a"]\n', "") + (
         'decimal = ","\njoined_powers = true\nhyphen_singular = false\n'
-        'dative = ["Mit"]\naccusative = ["für"]\n'
+        'dative = ["Mit"]\naccusative = ["für"]\nlabel_joins = ["Bzw."]\n'
         "[words.one]\nnominative = { m = 'ein', f = 'eine', n = 'ein' }\n"
     )
     table = parse_units("units.toml", words + GOOD_UNIT + 'gender = "m"\n')
@@ -187,6 +187,7 @@ def test_articles_may_be_left_out_and_german_keys_parse() -> None:
     assert (table.decimal, table.joined_powers, table.hyphen_singular) == (",", True, False)
     assert table.ones == {"nominative": {"m": "ein", "f": "eine", "n": "ein"}}
     assert (table.dative, table.accusative) == ({"mit"}, {"für"})
+    assert table.label_joins == ("bzw.",)
     assert table.units[0].gender == "m"
 
 
@@ -685,6 +686,15 @@ def test_both_steps_handle_german() -> None:
         ("Müller u. a., 2019", "Müller und andere, 2019"),
         ("Müller u.a. 2019", "Müller und andere 2019"),
         ("bzw. so", "beziehungsweise so"),
+        # review of PR #228: capitals with umlauts, "u. a." only after a name, "ff.", "o. ä."
+        ("Dr. Özdemir", "Doktor Özdemir"),
+        ("Hunde usw. Ältere Studien", "Hunde und so weiter. Ältere Studien"),
+        ("Das gilt u. a. 2019", "Das gilt unter anderem 2019"),
+        ("S. 12 ff.", "Seite 12 folgende."),
+        ("S. 12 ff. und mehr", "Seite 12 folgende und mehr"),
+        ("Hunde o. ä. sind", "Hunde oder Ähnliches sind"),
+        ("Hunde u.ä. sind", "Hunde und Ähnliches sind"),
+        ("max. 5, min. 3", "maximal 5, minimal 3"),
         ("Kinder u. Jugend", "Kinder und Jugend"),
         ("U. Müller", "U. Müller"),  # an initial: "u." is found only in lower case
         ("Ein- o. Ausgang", "Ein- o. Ausgang"),  # "oder", "oben" or "ohne": left as printed
@@ -766,7 +776,7 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("0,1 s", "0,1 Sekunden"),
         ("21 s", "21 Sekunden"),
         ("2\u20131 s", "2\u20131 Sekunden"),  # the end of a range
-        ("1-s-Takt", "1-Sekunde-Takt"),  # a compound: no "eine"
+        ("1-s-Takt", "Ein-Sekunde-Takt"),  # a compound: the uninflected "Ein"
         ("10-s-Takt", "10-Sekunden-Takt"),
         ("ein 5 m langer Stab", "ein 5 Meter langer Stab"),
         ("eine 2 s lange Pause", "eine 2 Sekunden lange Pause"),
@@ -774,8 +784,22 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("Gruppe 3 C", "Gruppe 3 C"),
         ("5 m Abstand", "5 Meter Abstand"),
         ("1 A Strom", "ein Ampere Strom"),
-        ("10 %", "10 %"),
-        ("5 €", "5 €"),
+        # review of PR #228: case after "über", "auf", "ab"; German label joins; "min."
+        ("über 1 kg", "über ein Kilogramm"),
+        ("auf 1 m", "auf einen Meter"),
+        ("ab 1 kg", "ab einem Kilogramm"),
+        ("Bedingungen 1 bzw. 2 V", "Bedingungen 1 bzw. 2 V"),
+        ("Gruppen 1 sowie 2 K", "Gruppen 1 sowie 2 K"),
+        ("Gruppen 1 und 2 K", "Gruppen 1 und 2 K"),
+        ("nach 12 min. Pause", "nach 12 Minuten Pause"),
+        ("ein 1,5-l-Behälter", "ein 1,5-Liter-Behälter"),
+        ("eine 1-kg-Packung", "eine Ein-Kilogramm-Packung"),
+        ("10 %", "10 Prozent"),
+        ("10%", "10%"),  # glued: the voice reads it right
+        ("um 1 %", "um ein Prozent"),
+        ("5 ‰", "5 Promille"),
+        ("5 €", "5 Euro"),
+        ("für 1 €", "für einen Euro"),
         ("5 GB", "5 GB"),
         ("COVID-19 m", "COVID-19 m"),
     ],

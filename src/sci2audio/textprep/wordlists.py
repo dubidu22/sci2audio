@@ -61,13 +61,15 @@ class UnitList:
     ones: dict[str, dict[str, str]] = field(default_factory=dict)
     dative: frozenset[str] = frozenset()  # words before "1" that ask for the dative
     accusative: frozenset[str] = frozenset()  # words before "1" that ask for the accusative
+    # words that join labels in a list besides ",", "&", a dash, "and" and "or" ("bzw.")
+    label_joins: tuple[str, ...] = ()
 
 
 _WORDS = ("per", "square", "cubic", "squared", "cubed", "approximately", "about", "times")
 # optional keys of [words] for languages that print and say numbers otherwise (German)
 _LANGUAGE_KEYS = (
     "labels", "articles", "decimal", "joined_powers", "hyphen_singular", "one", "dative",
-    "accusative",
+    "accusative", "label_joins",
 )  # fmt: skip
 
 
@@ -266,6 +268,14 @@ def parse_units(where: str, text: str) -> UnitList:
         ones,
         dative,
         accusative,
+        tuple(
+            w.lower()
+            for w in (
+                _strings(at_words, words_entry, "label_joins")
+                if "label_joins" in words_entry
+                else ()
+            )
+        ),
     )
 
 

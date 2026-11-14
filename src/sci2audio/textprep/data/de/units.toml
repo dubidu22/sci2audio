@@ -7,7 +7,9 @@
 # "1", also in a hyphenated compound ("10-Sekunden-Takt"); and "1" read by the unit's gender
 # ("ein Kilogramm", "eine Sekunde"; "nach einer Stunde", "für einen Meter"). The voice's
 # front end (espeak-ng German) spells every symbol here: "km" as "ka em", "Std." as "es te de"
-# (plans/v11-german-measure-misaki.txt). "%" and "€" it reads right and they are left out.
+# (measured with misaki's espeak-ng German, the front end of the voice of #211; numbers in
+# #113). "%" and "€" it reads right after most numbers, but "1 %" as "eins Prozent", so they
+# are listed too, with their gender.
 #
 # Each entry is as in en/units.toml, plus:
 #   gender   "m", "f" or "n": the word for "1" before the unit (masculine, feminine, neuter)
@@ -40,13 +42,18 @@ labels = [
     "stufe", "stufen", "version", "versuch", "welle", "anhang", "anh.", "band", "bd.", "heft",
     "satz", "lemma", "theorem", "panel", "durchgang", "item", "items", "frage", "fragen",
 ]
-# words right before "1" that ask for the dative ("nach einer Stunde", "in einem Meter") and
-# the accusative ("für einen Meter"); anything else reads the nominative
+# words right before "1" that ask for the dative ("nach einer Stunde", "in einem Meter", "ab
+# einem Kilogramm") and the accusative ("für einen Meter"); with a number "über" and "auf"
+# mean "more than" and a target: "über eine Million", "auf einen Meter" (review of PR #228);
+# anything else reads the nominative
 dative = [
     "aus", "bei", "beim", "binnen", "mit", "nach", "seit", "von", "vom", "zu", "zum", "zur",
-    "in", "im", "an", "am", "auf", "unter", "über", "vor", "hinter", "neben", "zwischen",
+    "in", "im", "an", "am", "unter", "vor", "hinter", "neben", "zwischen", "ab",
 ]
-accusative = ["für", "durch", "gegen", "ohne", "um"]
+accusative = ["für", "durch", "gegen", "ohne", "um", "über", "auf"]
+# words that join labels in a list ("Bedingungen 1 bzw. 2 V": no unit after "2"), besides
+# ",", "&", a dash, "and" and "or"
+label_joins = ["und", "oder", "bzw.", "sowie", "bis"]
 # "1" before a unit, by case and the unit's gender (D-480)
 [words.one]
 nominative = { m = "ein", f = "eine", n = "ein" }
@@ -224,7 +231,7 @@ plural = "Nanosekunden"
 gender = "f"
 
 [[unit]]
-printed = ["min", "Min."]
+printed = ["min", "min.", "Min."]
 singular = "Minute"
 plural = "Minuten"
 gender = "f"
@@ -515,3 +522,23 @@ printed = ["µmol", "μmol"]
 singular = "Mikromol"
 plural = "Mikromol"
 gender = "n"
+
+# signs the voice reads right after most numbers, listed so "1" before them reads "ein"
+# ("ein Prozent", "einen Euro"; review of PR #228); "‰" it does not read at all
+[[unit]]
+printed = ["%"]
+singular = "Prozent"
+plural = "Prozent"
+gender = "n"
+
+[[unit]]
+printed = ["‰"]
+singular = "Promille"
+plural = "Promille"
+gender = "n"
+
+[[unit]]
+printed = ["€"]
+singular = "Euro"
+plural = "Euro"
+gender = "m"

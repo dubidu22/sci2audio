@@ -15,10 +15,12 @@ The reading's first letter follows the printed one ("E.g." reads "For example", 
 "figure 2", "FIG. 3" "Figure 3"); a form glued to what follows gets a space ("eq.(1)" reads
 "equation (1)"). An entry marked `exact_case` is found only as printed and read as listed:
 German "S. 12" is "Seite 12" and "s." is "siehe" (#113). An entry with `before_year` is
-read so before a year, bracketed or not: "Müller u. a. (2019)" is "Müller und andere", any
-other "u. a." "unter anderem". An abbreviation that can end a sentence and stands at the end
-of the block or before a capital letter keeps its full stop as printed, so the sentence still
-ends there (D-234). Furniture and placeholder blocks are claimed whole by other steps and skipped.
+read so before a year, bracketed or not, after a name: "Müller u. a. (2019)" is "Müller und
+andere", any other "u. a." "unter anderem". In a language other than English a capital after
+an abbreviation is any upper-case letter ("Dr. Özdemir"). An abbreviation that can end a
+sentence and stands at the end of the block or before a capital letter keeps its full stop as
+printed, so the sentence still ends there (D-234). Furniture and placeholder blocks are claimed
+whole by other steps and skipped.
 """
 
 from __future__ import annotations
@@ -40,6 +42,18 @@ _WORD = re.compile(r"[^\S\r]{1,2}(?:[A-Z]|\d)")
 _FOLLOWS = {"label": _LABEL, "number": _NUMBER, "word": _WORD}
 # a sentence after the full stop: white space, maybe an opening quote or bracket, a capital
 _NEXT_SENTENCE = re.compile(r"\s+[\"'(\[\u201c\u2018]?[A-Z]")
+# German: a capital is any upper-case letter ("Dr. Özdemir", "usw. Über"; review of PR #228);
+# English keeps [A-Z] as it was
+_UPPER = "".join(c for c in map(chr, range(0x250)) if c.isupper())
+_LOWER = "".join(c for c in map(chr, range(0x250)) if c.islower())
+_FOLLOWS_ANY_CAPITAL = {
+    "label": re.compile(_SPACE + rf"(?:\d|[(\[]\w|[{_UPPER}](?![{_LOWER}]|\.[{_UPPER}{_LOWER}]))"),
+    "number": _NUMBER,
+    "word": re.compile(rf"[^\S\r]{{1,2}}(?:[{_UPPER}]|\d)"),
+}
+_NEXT_SENTENCE_ANY_CAPITAL = re.compile(rf"\s+[\"'(\[\u201c\u2018\u201e]?[{_UPPER}]")
+# the word right before an abbreviation: "before_year" is read only after a name
+_NAME_BEFORE = re.compile(r"([^\W\d_])[^\W\d_]*[.,]?\s+\Z")
 # a year after an abbreviation, maybe in brackets or after a comma: "u. a. (2019)", "u. a., 2019"
 _YEAR_AFTER = re.compile(r"\s*(?:\(\s*|,\s*)?(?:1[5-9]|20)\d\d(?!\d)")
 
@@ -57,6 +71,7 @@ class AbbreviationStep(TextStep):
         if not entries:
             return []
         pattern, by_form = _compiled(entries)
+        any_capital = context.language.split("-", 1)[0].lower() != "en"
         edits = []
         for index, block in enumerate(document.blocks):
             if _skipped(block):
@@ -64,7 +79,7 @@ class AbbreviationStep(TextStep):
             edits += edits_through_unread(
                 index,
                 block.text,
-                lambda read: self._edits(index, read, pattern, by_form),  # noqa: B023
+                lambda read: self._edits(index, read, pattern, by_form, any_capital),  # noqa: B023
                 self.id,
             )
         return edits
@@ -75,6 +90,7 @@ class AbbreviationStep(TextStep):
         text: str,
         pattern: re.Pattern[str],
         by_form: dict[str, tuple[Abbreviation, ...]],
+        any_capital: bool = False,
     ) -> Iterator[Edit]:
         for match in pattern.finditer(text):
             printed = match.group()
@@ -82,7 +98,8 @@ class AbbreviationStep(TextStep):
                 (
                     entry
                     for entry in by_form[_key(printed)]
-                    if _case_fits(printed, entry) and _place_fits(text, match.end(), entry)
+                    if _case_fits(printed, entry)
+                    and _place_fits(text, match.end(), entry, any_capital)
                 ),
                 None,
             )
@@ -90,11 +107,11 @@ class AbbreviationStep(TextStep):
                 continue
             start, end = match.span()
             reads = entry.reads
-            if entry.before_year and _YEAR_AFTER.match(text, end):
+            if entry.before_year and _YEAR_AFTER.match(text, end) and _after_name(text, start):
                 reads = entry.before_year
             if not entry.exact_case:
                 reads = _cased(reads, printed)
-            if entry.can_end_sentence and _ends_sentence(text, end):
+            if entry.can_end_sentence and _ends_sentence(text, end, any_capital):
                 end -= 1  # the full stop stays and still ends the sentence
             elif end < len(text) and (text[end].isalnum() or text[end] in "(["):
                 reads += " "  # glued: "eq.(1)", "Fig.4", "App.B"
@@ -149,15 +166,23 @@ def _case_fits(printed: str, entry: Abbreviation) -> bool:
     )
 
 
-def _place_fits(text: str, end: int, entry: Abbreviation) -> bool:
-    follows = _FOLLOWS.get(entry.before)
+def _place_fits(text: str, end: int, entry: Abbreviation, any_capital: bool = False) -> bool:
+    follows = (_FOLLOWS_ANY_CAPITAL if any_capital else _FOLLOWS).get(entry.before)
     if follows is None:  # "anything": a word of its own, no letter or digit glued after it
         return end == len(text) or not text[end].isalnum()
     return follows.match(text, end) is not None
 
 
-def _ends_sentence(text: str, end: int) -> bool:
-    return not text[end:].strip() or _NEXT_SENTENCE.match(text, end) is not None
+def _ends_sentence(text: str, end: int, any_capital: bool = False) -> bool:
+    following = _NEXT_SENTENCE_ANY_CAPITAL if any_capital else _NEXT_SENTENCE
+    return not text[end:].strip() or following.match(text, end) is not None
+
+
+def _after_name(text: str, start: int) -> bool:
+    """True if the word right before starts with a capital: "Müller u. a. (2019)" names
+    authors, "gilt u. a. 2019" does not (review of PR #228)."""
+    word = _NAME_BEFORE.search(text, max(0, start - 64), start)
+    return word is not None and word.group(1).isupper()
 
 
 def _cased(reads: str, printed: str) -> str:

@@ -3,15 +3,17 @@
 #
 # The voice's front end (espeak-ng German) spells or clips every one of these: "z. B." as
 # "zet be", "d. h." as "de ha", "S. 12" as "es zwölf", "Abb." as "app", "usw." as "usf"
-# (plans/v11-german-measure-misaki.txt). "et al." it reads right and it is left out.
+# (measured with misaki's espeak-ng German, the front end of the voice of #211; readings in
+# #113). "et al." it reads right and it is left out.
 # Abbreviations that occur only in reference lists ("Hrsg.", "Aufl.", "Bd.", "Jg.", "H.")
 # are listed anyway: German footnotes cite in full, and the reference list itself is not read.
 #
 # Each entry is as in en/abbreviations.toml, plus:
 #   exact_case   true: found only as printed and read as listed, never recased. German tells
 #                "S." (Seite) from "s." (siehe) by case, and nouns keep their capital
-#   before_year  read instead when a year follows, bracketed or after a comma: "Müller u. a.
-#                (2019)" is "Müller und andere"
+#   before_year  read instead when a year follows, bracketed or after a comma, and the word
+#                before starts with a capital (a name): "Müller u. a. (2019)" is "Müller und
+#                andere", "gilt u. a. 2019" "unter anderem"
 #
 # "can_end_sentence" keeps the full stop at the end of a block or before a capital; German
 # nouns are capitalised, so only abbreviations that mostly end a list have it.
@@ -53,16 +55,18 @@ before = "anything"
 can_end_sentence = true
 
 [[abbreviation]]
-printed = ["o. Ä.", "o.Ä."]
+printed = ["o. Ä.", "o.Ä.", "o. ä.", "o.ä."]
 reads = "oder Ähnliches"
 before = "anything"
 can_end_sentence = true
+exact_case = true
 
 [[abbreviation]]
-printed = ["u. Ä.", "u.Ä."]
+printed = ["u. Ä.", "u.Ä.", "u. ä.", "u.ä."]
 reads = "und Ähnliches"
 before = "anything"
 can_end_sentence = true
+exact_case = true
 
 [[abbreviation]]
 printed = ["bzw."]
@@ -75,6 +79,14 @@ before = "anything"
 printed = ["u."]
 reads = "und"
 before = "anything"
+exact_case = true
+
+# "S. 12 ff.": the pages after it
+[[abbreviation]]
+printed = ["ff."]
+reads = "folgende"
+before = "anything"
+can_end_sentence = true
 exact_case = true
 
 [[abbreviation]]
