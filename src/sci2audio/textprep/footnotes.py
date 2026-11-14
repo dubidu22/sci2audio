@@ -68,7 +68,9 @@ BACKLINK_TAGS = frozenset({"role:doc-backlink", "epub:backlink"})
 # the kinds of block whose text can hold a linked mark (D-420)
 LINKED_KINDS = MARKED_KINDS | {BlockKind.FOOTNOTE}
 _LINK = "link:"
-_CLOSING = frozenset(".,;:!?)]}\u2019\u201c\u201d\"'")  # also the closing quotes
+# also the closing quotes: U+2019, U+201D (English), U+201C, U+2018, U+00AB (German) and U+00BB
+# (Swiss guillemets close with it; #212, #248 S2)
+_CLOSING = frozenset(".,;:!?)]}\u2019\u201d\u201c\u2018\u00ab\u00bb\"'")
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
@@ -293,8 +295,14 @@ class FootnoteStep(TextStep):
         """Remove-edits for the footnote marks in one block of running text."""
         runs = list(_runs(items, block))
         main = _main_size(run for _, _, run in runs)
+        # the runs beside each run on its own line: a rise is measured on the line (#248 M1)
+        beside = [
+            (line.runs[k - 1] if k else None, line.runs[k + 1] if k + 1 < len(line.runs) else None)
+            for _, _, line in _lines(items, block)
+            for k in range(len(line.runs))
+        ]
         edits = []
-        for number, (page, offset, run) in enumerate(runs):
+        for (page, offset, run), neighbours in zip(runs, beside, strict=True):
             mark = run.text.strip()
             key = (page, _same(mark))
             if not mark or key not in labels or key in found or NOTEREF_TAGS & set(run.tags):
@@ -302,7 +310,7 @@ class FootnoteStep(TextStep):
             start = offset + run.text.index(mark)
             end = start + len(mark)
             if (
-                (_set_small(run, main) or _raised(run, runs, number, main))
+                (_set_small(run, main) or _raised(run, neighbours, main))
                 and _after_word(block.text[:start])
                 and _not_maths(block.text[end:])
             ):
@@ -374,10 +382,10 @@ def _name(block: Block) -> str:
     return f"footnote {block.label}" if block.label else "a footnote"
 
 
-def _runs(
+def _lines(
     items: Mapping[str, tuple[Page, Item]], block: Block
-) -> Iterator[tuple[int, int, TextRun]]:
-    """Each run of the block's lines with its page and where its text starts in the block.
+) -> Iterator[tuple[int, int, TextLine]]:
+    """Each text line of the block with its page and where its text starts in the block.
 
     A line whose text is not where its part says (it never should be) is skipped, so a span
     never points at other text.
@@ -388,9 +396,16 @@ def _runs(
             continue
         if block.text[part.start : part.start + len(item.text)] != item.text:
             continue
-        offset = part.start
-        for run in item.runs:
-            yield page.number, offset, run
+        yield page.number, part.start, item
+
+
+def _runs(
+    items: Mapping[str, tuple[Page, Item]], block: Block
+) -> Iterator[tuple[int, int, TextRun]]:
+    """Each run of the block's lines with its page and where its text starts in the block."""
+    for page, offset, line in _lines(items, block):
+        for run in line.runs:
+            yield page, offset, run
             offset += len(run.text)
 
 
@@ -407,20 +422,21 @@ def _set_small(run: TextRun, main: float) -> bool:
     return "sup" in run.tags or (0 < run.size < (1 - SMALLER) * main)
 
 
-def _raised(run: TextRun, runs: list[tuple[int, int, TextRun]], number: int, main: float) -> bool:
+def _raised(run: TextRun, neighbours: Iterable[TextRun | None], main: float) -> bool:
     """A superior figure set in the text's own size: its box ends RISE em or more above the
-    box of the run before or after it on the same line (#212, D-519)."""
+    box of the run before or after it in the same text line (#212, D-519). The rise is
+    measured only against a neighbour in the text's size, not one set small: a subscript
+    would make the normal run beside it look raised (#248 S1)."""
     if run.box is None or main <= 0:
         return False
-    for other in (number - 1, number + 1):
-        if not 0 <= other < len(runs):
-            continue
-        box = runs[other][2].box
-        if box is None or box.y0 >= run.box.y1 or run.box.y0 >= box.y1:
-            continue  # no box, or not on the same line
-        if run.box.y1 <= box.y1 - RISE * main:
-            return True
-    return False
+    return any(
+        other is not None
+        and other.box is not None
+        and not _set_small(other, main)
+        and other.box.y0 < run.box.y1  # the two still share a band of the line
+        and run.box.y1 <= other.box.y1 - RISE * main
+        for other in neighbours
+    )
 
 
 def _introduced(wording: Wording) -> re.Pattern[str]:

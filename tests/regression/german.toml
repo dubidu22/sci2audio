@@ -591,3 +591,17 @@ blocks = [
     { kind = "footnote", text = "9 Eine öffentliche Liste.", label = "9" },
 ]
 expected = ["Sie prüft die „Top 1 Million“ jeden Monat.", "Fußnote 9. Eine öffentliche Liste."]
+
+[[case]]
+id = "de-footnote-mark-after-guillemets-and-single-quote"
+audit = 0
+issue = 212
+goal = "A mark after the other German closing quotes is left out too: « (»…«), ‘ (‚…‘) and the Swiss » («…») (review of PR #248, S2)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Sie prüft die »Top 1 Million«", { sup = "7" }, ", es ist ‚klein‘", { sup = "8" }, " und «gross»", { sup = "9" }, "."] },
+    { kind = "footnote", text = "7 Eine Liste.", label = "7" },
+    { kind = "footnote", text = "8 Ein Wort.", label = "8" },
+    { kind = "footnote", text = "9 Schweizer Schreibung.", label = "9" },
+]
+expected = ["Sie prüft die »Top 1 Million«, es ist ‚klein‘ und «gross».", "Fußnote 7. Eine Liste.", "Fußnote 8. Ein Wort.", "Fußnote 9. Schweizer Schreibung."]

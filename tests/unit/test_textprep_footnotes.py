@@ -277,21 +277,42 @@ def test_an_english_note_still_reads_footnote_after_the_german_row() -> None:
 # ---- superior figures and the printed asterisk (#212, D-519) ---------------------------------
 
 
-def boxed(*runs: tuple[str, float, float], note_label: str = "4", language: str = "de") -> Document:
-    """A PDF-like paragraph of one line whose runs are (text, top, bottom) in 10 pt, and a note
-    labelled `note_label` on the same page."""
-    x, made = 0.0, []
-    for text, top, bottom in runs:
-        made.append(TextRun(text, size=10.0, box=Box(x, top, x + 5 * len(text), bottom)))
-        x += 5 * len(text)
-    line = TextLine("l0", tuple(made))
-    note_line = TextLine("l1", (TextRun(f"{note_label} Eine Notiz.", size=8.0),))
-    content = Content(Source("boxed.pdf", SourceFormat.PDF), (Page(1, (line, note_line)),))
+BoxedRun = tuple[str, float, float] | tuple[str, float, float, float]
+
+
+def boxed_lines(
+    *lines: tuple[BoxedRun, ...], note_label: str = "4", language: str = "de"
+) -> Document:
+    """A PDF-like paragraph of these lines, each run (text, top, bottom[, size]) in 10 pt
+    unless a size is given, and a note labelled `note_label` on the same page."""
+    made_lines, text = [], ""
+    for number, runs in enumerate(lines):
+        x, made = 0.0, []
+        for text_top_bottom in runs:
+            run_text, top, bottom = text_top_bottom[:3]
+            size = text_top_bottom[3] if len(text_top_bottom) == 4 else 10.0
+            made.append(
+                TextRun(run_text, size=size, box=Box(x, top, x + 5 * len(run_text), bottom))
+            )
+            x += 5 * len(run_text)
+        made_lines.append(TextLine(f"l{number}", tuple(made)))
+    parts, start = [], 0
+    for line in made_lines:
+        parts.append(Part(line.id, start))
+        start += len(line.text) + 1
+    text = "\n".join(line.text for line in made_lines)
+    note_line = TextLine("n", (TextRun(f"{note_label} Eine Notiz.", size=8.0),))
+    content = Content(Source("boxed.pdf", SourceFormat.PDF), (Page(1, (*made_lines, note_line)),))
     blocks = (
-        Block(BlockKind.PARAGRAPH, line.text, (Part("l0"),)),
-        Block(BlockKind.FOOTNOTE, note_line.text, (Part("l1"),), label=note_label),
+        Block(BlockKind.PARAGRAPH, text, tuple(parts)),
+        Block(BlockKind.FOOTNOTE, note_line.text, (Part("n"),), label=note_label),
     )
     return Document(content=content, language=language, blocks=blocks)
+
+
+def boxed(*runs: BoxedRun, note_label: str = "4", language: str = "de") -> Document:
+    """A PDF-like paragraph of one line (see `boxed_lines`)."""
+    return boxed_lines(tuple(runs), note_label=note_label, language=language)
 
 
 @pytest.mark.parametrize("language", ["de", "en"])
@@ -306,7 +327,7 @@ def test_a_mark_raised_in_the_texts_own_size_is_left_out(language: str) -> None:
     [
         (("gezeigt hat.", 100, 110), ("4", 99.5, 109.5), (" Weiter", 100, 110)),  # 0.05 em
         (("gezeigt hat.", 100, 110), ("4", 100, 110), (" Weiter", 100, 110)),  # on the line
-        (("gezeigt hat.", 100, 110), ("4", 85, 95)),  # a line above, not a raised figure
+        (("gezeigt hat.", 100, 110), ("4", 85, 95)),  # above the run beside it, no band shared
         (("in time N", 100, 110), ("4", 97, 107)),  # one-letter variable: maths
     ],
 )
@@ -315,6 +336,32 @@ def test_a_figure_not_raised_on_its_line_or_after_maths_is_kept(
 ) -> None:
     document = boxed(*runs)
     assert read(document)[0] == "".join(text for text, _, _ in runs)
+
+
+@pytest.mark.parametrize("language", ["de", "en"])
+def test_a_label_like_run_at_a_line_end_is_not_raised_by_the_next_lines_run(
+    language: str,
+) -> None:
+    """#248 M1: font boxes of lines one above the other overlap with normal leading; a run
+    ending line 1 is not measured against the first run of line 2 (it would look raised by
+    about 1 em)."""
+    document = boxed_lines(
+        (("Der Wert lag bei", 100, 111), ("4", 100, 111, 10.0)),
+        (("Prozent in beiden Gruppen.", 110, 121),),
+        language=language,
+    )
+    assert read(document)[0] == "Der Wert lag bei4\nProzent in beiden Gruppen.".replace("\n", " ")
+
+
+@pytest.mark.parametrize("language", ["de", "en"])
+def test_a_run_beside_a_subscript_is_not_raised(language: str) -> None:
+    """#248 S1: the rise is measured only against a neighbour in the text's size; a
+    subscript set lower makes the normal run before it look raised."""
+    document = boxed(
+        ("die Werte", 100, 110), ("4", 100, 110), ("i", 104, 112, 7.0), (" danach", 100, 110),
+        language=language,
+    )  # fmt: skip
+    assert read(document)[0] == "die Werte4i danach"
 
 
 def test_a_printed_asterisk_marks_the_note_with_the_asterisk_operator() -> None:
