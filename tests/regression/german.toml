@@ -6,9 +6,9 @@
 # Line-end hyphens are written as layout gives them: a hyphen, then a line break.
 #
 # `expected` is the script TODAY. A rule PR adds or changes the cases of its rule before it
-# changes the rule, and the PR shows the diff. What the German voice's front end (espeak-ng
-# German through misaki, #211) reads wrong without the rules is measured in
-# plans/v11-german-measure-misaki.txt.
+# changes the rule, and the PR shows the diff. Each rule exists because the German voice's
+# front end (espeak-ng German through misaki, #211) reads its input wrong without it; the
+# measurements are in the plan of the German rules (#96, #113, #130, #101).
 
 # ---- #96 line-end hyphens (TP-02) ------------------------------------------------------------
 
@@ -108,6 +108,24 @@ language = "de-AT"
 blocks = [{ kind = "paragraph", text = "Die Kinder-\nund Jugendhilfe im Bundes-\nland." }]
 expected = ["Die Kinder- und Jugendhilfe im Bundesland."]
 
+[[case]]
+id = "de-hyphen-suspended-als-auch"
+audit = 0
+issue = 96
+goal = "'sowohl Lehr- als auch Lernprozesse': 'als' counts before 'auch'; 'Materi-/als' alone is a split word."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Sowohl Lehr-\nals auch Lernprozesse; die Wahl des Materi-\nals zählt." }]
+expected = ["Sowohl Lehr- als auch Lernprozesse; die Wahl des Materials zählt."]
+
+[[case]]
+id = "de-hyphen-suspended-abbreviated-conjunctions"
+audit = 0
+issue = 96
+goal = "'u.', 'o.', 'vs.' and 'resp.' with their full stop, and 'versus', count as conjunctions."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Kinder-\nu. Jugendhilfe, der Ein-\no. Ausgang, Lehr-\nvs. Lernprozesse, Lehr-\nversus Lernzeit und Haupt-\nresp. Nebeneffekte." }]
+expected = ["Die Kinder- u. Jugendhilfe, der Ein- o. Ausgang, Lehr- vs. Lernprozesse, Lehr- versus Lernzeit und Haupt- resp. Nebeneffekte."]
+
 # ---- #221 reference list (TP-06) -------------------------------------------------------------
 
 [[case]]
@@ -140,6 +158,20 @@ blocks = [
     { kind = "paragraph", text = "Schmidt, B. (2020). Ein Buch. Berlin." },
 ]
 sections = [{ title = "7 Quellenverzeichnis", level = 1, start = 1, end = 3 }]
+expected = ["Der Text wird gelesen."]
+
+[[case]]
+id = "de-reference-list-combined-title"
+audit = 0
+issue = 221
+goal = "The combined title of German theses, 'Quellen- und Literaturverzeichnis', is a reference list too."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Text wird gelesen." },
+    { kind = "heading", text = "Quellen- und Literaturverzeichnis" },
+    { kind = "paragraph", text = "Schmidt, B. (2020). Ein Buch. Berlin." },
+]
+sections = [{ title = "Quellen- und Literaturverzeichnis", level = 1, start = 1, end = 3 }]
 expected = ["Der Text wird gelesen."]
 
 [[case]]

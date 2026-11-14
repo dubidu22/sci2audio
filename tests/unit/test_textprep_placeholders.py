@@ -283,6 +283,8 @@ TITLES = [
     "Results", "Notes", "Literature", "", "7", "References 2", "a References",
     "VI.2 Bibliography", "Literatur", "7 Literaturverzeichnis", "Quellen:", "BIBLIOGRAFIE",
     "A.1 Bibliographie", "Literaturüberblick", "Weitere Quellen", "Quellenverzeichnis.",
+    "Literaturliste", "8 Verwendete Literatur", "Zitierte Literatur:",
+    "Quellen- und Literaturverzeichnis", "LITERATUR- UND QUELLENVERZEICHNIS", "Literatur und",
 ]  # fmt: skip
 
 

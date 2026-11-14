@@ -265,6 +265,34 @@ def test_english_text_does_not_take_the_german_conjunctions() -> None:
     assert read("Wohnungs-\nund Sozialarbeit") == ["Wohnungsund Sozialarbeit"]
 
 
+@pytest.mark.parametrize("word", ["u.", "o.", "vs.", "resp.", "versus", "U."])
+def test_german_rule_2_short_conjunctions_count_with_their_full_stop(word: str) -> None:
+    assert read_de(f"Kinder-\n{word} Jugendhilfe") == [f"Kinder- {word} Jugendhilfe"]
+
+
+def test_german_rule_2_als_counts_only_before_auch() -> None:
+    assert read_de("sowohl Lehr-\nals auch Lernprozesse") == ["sowohl Lehr- als auch Lernprozesse"]
+    assert read_de("sowohl Lehr-\nALS AUCH Lern") == ["sowohl Lehr- ALS AUCH Lern"]
+    assert read_de("des Materi-\nals zählt") == ["des Materials zählt"]  # a bare "als": split
+
+
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [
+        # a short form without its full stop is the rest of a split word
+        ("die Werk-\nstatt", "die Werkstatt"),  # "statt" is no conjunction here
+        ("ab-\nsondern", "absondern"),  # "sondern" is not on the list: it starts a clause
+        ("so-\nwie", "sowie"),  # "wie" is not on the list: "sowie" is one word
+        ("Kinder-\nu Jugend", "Kinderu Jugend"),  # "u" without its full stop is a split word
+        ("Lehr-\nvsx", "Lehrvsx"),  # not "vs."
+        ("Materi-\nals Beispiel", "Materials Beispiel"),  # "als" not before "auch"
+        ("Materi-\nals auchx", "Materials auchx"),  # "auch" must be a whole word
+    ],
+)
+def test_german_rule_2_joins_these(printed: str, spoken: str) -> None:
+    assert read_de(printed) == [spoken]
+
+
 def test_german_rule_2_needs_the_whole_word() -> None:
     assert read_de("Ver-\nunderung")[0] == "Verunderung"  # not "und"
     assert read_de("Kinder-\nbis-\nher")[0] == "Kinderbisher"  # split again: no conjunction

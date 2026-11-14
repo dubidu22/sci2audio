@@ -29,8 +29,9 @@ REFERENCE_TITLES = (
     "Works cited",
     "Literature cited",
 )
-# German (#221, D-481): the app's four German chapter names and the two spellings of
-# "Bibliographie"
+# German (#221, D-481): the app's four German chapter names, the two spellings of
+# "Bibliographie", the counterparts of "Works cited" and "Literature cited", and the
+# combined titles of German theses (review round 1 of #222)
 GERMAN_REFERENCE_TITLES = (
     "Literatur",
     "Literaturverzeichnis",
@@ -38,6 +39,11 @@ GERMAN_REFERENCE_TITLES = (
     "Quellenverzeichnis",
     "Bibliographie",
     "Bibliografie",
+    "Literaturliste",
+    "Verwendete Literatur",
+    "Zitierte Literatur",
+    "Quellen- und Literaturverzeichnis",
+    "Literatur- und Quellenverzeichnis",
 )
 # by primary language tag; the app's chapter choice takes its names from here
 REFERENCE_NAMES: dict[str, tuple[str, ...]] = {

@@ -58,13 +58,24 @@ class HyphenWords:
     suspended: frozenset[str]  # rule 2: conjunctions after a suspended hyphen
     self_words: frozenset[str] = frozenset()  # rule 5: a first part that keeps its hyphen
     second_words: frozenset[str] = frozenset()  # rule 5: words that mostly end a compound
+    # rule 2: conjunctions printed short, which count only with their full stop ("u.")
+    abbreviated: frozenset[str] = frozenset()
+    # rule 2: conjunctions that count only before a second word ("als" before "auch"; a bare
+    # "als" is often the rest of a split word: "Materi-/als")
+    paired: tuple[tuple[str, str], ...] = ()
 
 
 WORDS: dict[str, HyphenWords] = {
     "en": HyphenWords(SUSPENDED, frozenset({SELF}), SECOND_WORDS),
-    # "Kinder-/und Jugendhilfe", "Ein-/oder Ausgang", "Haus-/noch Gartenarbeit" (#96)
+    # "Kinder-/und Jugendhilfe", "Ein-/oder Ausgang", "Haus-/noch Gartenarbeit" (#96);
+    # "Kinder-/u. Jugendhilfe", "Lehr-/vs. Lernprozesse", "sowohl Lehr-/als auch Lernprozesse"
     "de": HyphenWords(
-        frozenset({"und", "oder", "bis", "sowie", "bzw", "beziehungsweise", "noch", "respektive"})
+        frozenset(
+            {"und", "oder", "bis", "sowie", "bzw", "beziehungsweise", "noch", "respektive"}
+            | {"versus"}
+        ),
+        abbreviated=frozenset({"u", "o", "vs", "resp"}),
+        paired=(("als", "auch"),),
     ),
 }
 # a "-" at a line end in a formula is a minus, in a table often an empty cell
@@ -135,7 +146,9 @@ class LineEndHyphenStep(TextStep):
         # "and" itself split at the next line end ("and-\nab") is not a conjunction
         split_again = text[after_match.end() : after_match.end() + 1] in tuple(HYPHENS)
         one_word = not re.search(f"[{HYPHENS}]", after)
-        if first_after.lower() in words.suspended and one_word and not split_again:
+        if _suspended(first_after.lower(), text, after_match.end(), words) and (
+            one_word and not split_again
+        ):
             return None
         joined_count = spelling[_key(before + after)]
         hyphenated_count = spelling[_key(hyphenated)]
@@ -170,6 +183,20 @@ class LineEndHyphenStep(TextStep):
             reason=f'word split at a line end joined: "{word}"{because}',
             step=self.id,
         )
+
+
+def _suspended(word: str, text: str, end: int, words: HyphenWords) -> bool:
+    """True if `word`, which ends at `end`, is a conjunction after a suspended hyphen (rule 2):
+    a listed word; a short form with its full stop ("u.", "vs."); or a paired word before its
+    partner ("als auch")."""
+    if word in words.suspended:
+        return True
+    if word in words.abbreviated:
+        return text[end : end + 1] == "."
+    return any(
+        word == first and re.match(rf"\s+{second}\b", text[end:], re.IGNORECASE) is not None
+        for first, second in words.paired
+    )
 
 
 def printed_words(document: Document) -> Counter[str]:
