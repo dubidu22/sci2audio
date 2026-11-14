@@ -1237,3 +1237,11 @@ blocks = [
     { kind = "paragraph", text = "We gave 5­kg and 5 ​mg." },
 ]
 expected = ["The cache holds 0 thousand.", "We gave 5 kilograms and 5 milligrams."]
+
+[[case]]
+id = "symbols-x-chain-after-a-spaced-x"
+audit = 0
+issue = 130
+goal = "A chain of x's after a spaced first x is read whole on the first run: '11 x1x1' was '11 times 1x1', and a second run read the rest (German second-run property, review round 2 of PR #242)."
+blocks = [{ kind = "paragraph", text = "A grid of 11 x1x1 cells." }]
+expected = ["A grid of 11 times 1 times 1 cells."]

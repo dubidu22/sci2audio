@@ -105,7 +105,7 @@ def _label_list(joins: tuple[str, ...]) -> re.Pattern[str]:
 _TILDE = re.compile(r"[~\u223c](?=[ \u00a0]{0,2}[+\-\u2212]?\.?\d)")
 # a number, then x; the number may follow another "x" of a chain ("5x86x86")
 _LETTER_X = re.compile(
-    r"(?:(?<![\w.,/-])|(?<=\d[xX]))(?P<number>\d+(?:[.,]\d+)*)(?P<space> ?)(?P<x>[xX])"
+    r"(?:(?<![\w.,/-])|(?<=\d[xX])|(?<=\d [xX]))(?P<number>\d+(?:[.,]\d+)*)(?P<space> ?)(?P<x>[xX])"
 )
 _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a unit: "5K/s"
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
@@ -167,9 +167,12 @@ class UnitStep(TextStep):
 
     def _edits(self, index: int, text: str, table: _Table) -> Iterator[Edit]:
         units_found: list[tuple[int, int]] = []
-        kept = [found.span() for found in table.kept.finditer(text)]
+        kept = [found.span() for found in table.kept.finditer(text)]  # in order, apart
+        k = 0
         for match in table.number.finditer(text):
-            if any(start <= match.start() < end for start, end in kept):
+            while k < len(kept) and kept[k][1] <= match.start():
+                k += 1  # numbers come in text order: one walk over the spans (linear)
+            if k < len(kept) and kept[k][0] <= match.start():
                 continue  # "Az. 13 W 17/12": a court's file number, no "13 Watt" (#243)
             found = _unit_after(text, match, table)
             if found is None:
