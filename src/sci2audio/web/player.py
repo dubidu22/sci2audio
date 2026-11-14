@@ -45,7 +45,9 @@ from sci2audio.textprep import (
     FormulaNoticeStep,
     LineEndHyphenStep,
     StepContext,
+    StepRun,
     TableFigureNoticeStep,
+    TextStep,
     run_steps,
 )
 
@@ -334,9 +336,18 @@ def load_document(work: Path) -> Document:
         raise PlayerError("listen.broken") from None
 
 
-def build_view(document: Document, record: AudioRecord, readalong: ReadAlong) -> PlayerView:
+def build_view(
+    document: Document,
+    record: AudioRecord,
+    readalong: ReadAlong,
+    steps: Sequence[TextStep] = BUILT_IN_STEPS,
+) -> PlayerView:
     """The page for this audiobook (D-297, D-299). PlayerError("listen.mismatch") if a span
-    points outside its block (the read-along file belongs to another document)."""
+    points outside its block (the read-along file belongs to another document).
+
+    A block the text steps read elsewhere (a footnote read at its mark, #213) is shown right
+    after the block it is read in, so the page follows the voice. `steps` are the steps the
+    audiobook was made with: the built-in ones (tests pass others)."""
     for chunk in readalong.chunks:
         try:
             document.check_span(chunk.span)
@@ -347,9 +358,13 @@ def build_view(document: Document, record: AudioRecord, readalong: ReadAlong) ->
     for number, chunk in enumerate(readalong.chunks):
         by_block.setdefault(chunk.span.block, []).append(number)
     notices = _notices(document, record.switched_off)
-    joined = joined_hyphens(document, record.switched_off)
+    run = _settled(document, record.switched_off, steps)
+    joined = _joins(run)
+    moved_into: dict[int, list[int]] = {}  # block -> the blocks read inside it, in order
+    for block, target in sorted(run.moved.items()):
+        moved_into.setdefault(target, []).append(block)
     levels = _heading_levels(document)
-    pages = _page_starts(document)
+    pages = _page_starts(document, run.moved.keys())
 
     element_of: list[str] = [""] * len(readalong.chunks)
     views: list[ChapterView] = []
@@ -361,21 +376,24 @@ def build_view(document: Document, record: AudioRecord, readalong: ReadAlong) ->
         used.add(chapter.index)
         blocks: list[BlockView] = []
         for number in range(chapter.start, chapter.end):
-            block = document.blocks[number]
-            if block.kind is BlockKind.FURNITURE:
-                continue
-            view = _block_view(
-                document,
-                number,
-                by_block.get(number, []),
-                readalong,
-                notices,
-                element_of,
-                joined.get(number, frozenset()),
-            )
-            view.heading = levels.get(number, 0)
-            view.page = pages.get(number, "")
-            blocks.append(view)
+            if number in run.moved:
+                continue  # shown after the block it is read in
+            for shown_here in (number, *moved_into.get(number, ())):
+                block = document.blocks[shown_here]
+                if block.kind is BlockKind.FURNITURE:
+                    continue
+                view = _block_view(
+                    document,
+                    shown_here,
+                    by_block.get(shown_here, []),
+                    readalong,
+                    notices,
+                    element_of,
+                    joined.get(shown_here, frozenset()),
+                )
+                view.heading = levels.get(shown_here, 0) if shown_here == number else 0
+                view.page = pages.get(shown_here, "")
+                blocks.append(view)
         title_block = None
         if blocks and blocks[0].heading and blocks[0].index == chapter.start:
             title_block = blocks.pop(0)
@@ -457,13 +475,14 @@ def _heading_levels(document: Document) -> dict[int, int]:
     return levels
 
 
-def _page_starts(document: Document) -> dict[int, str]:
-    """The block where each printed page starts (the first block with an item on it)."""
+def _page_starts(document: Document, moved: Collection[int] = ()) -> dict[int, str]:
+    """The block where each printed page starts (the first block with an item on it). A
+    block shown elsewhere (`moved`, #213) starts no page: the next block on it does."""
     pages = Pages(document)
     starts: dict[int, str] = {}
     last: int | None = None
     for number, block in enumerate(document.blocks):
-        if block.kind is BlockKind.FURNITURE or not block.parts:
+        if block.kind is BlockKind.FURNITURE or not block.parts or number in moved:
             continue
         page = pages.items[block.parts[0].item]
         if page != last:
@@ -498,8 +517,18 @@ def joined_hyphens(document: Document, switched_off: frozenset[str]) -> dict[int
     line-end-hyphens step's joins that the settled run of the built-in steps accepted, with
     the job's categories (#286). A join set aside because an earlier step won (a link, a
     citation, the reference list) is not one: that text shows as printed (review M1)."""
+    return _joins(_settled(document, switched_off, BUILT_IN_STEPS))
+
+
+def _settled(
+    document: Document, switched_off: frozenset[str], steps: Sequence[TextStep]
+) -> StepRun:
+    """The settled run of the steps with the job's categories."""
     off = {Category(value) for value in switched_off if value in _CATEGORIES}
-    run = run_steps(document, StepContext(document.language), BUILT_IN_STEPS, off)
+    return run_steps(document, StepContext(document.language), steps, off)
+
+
+def _joins(run: StepRun) -> dict[int, frozenset[int]]:
     found: dict[int, set[int]] = {}
     for edit in run.accepted:
         if edit.step == LineEndHyphenStep.id and edit.span.end - edit.span.start == 2:

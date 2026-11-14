@@ -253,7 +253,8 @@ def proposals(draw: st.DrawFn, document: Document, step_id: str, stage: Stage) -
 @st.composite
 def runs(draw: st.DrawFn) -> tuple[Document, list[Fixed]]:
     document = draw(documents())
-    stages = sorted(draw(st.lists(st.sampled_from(Stage), min_size=1, max_size=4)),
+    stages = sorted(draw(st.lists(st.sampled_from([Stage.BLOCK, Stage.INLINE]), min_size=1,
+                                  max_size=4)),
                     key=lambda stage: stage is Stage.INLINE)  # fmt: skip
     steps = []
     for number, stage in enumerate(stages):

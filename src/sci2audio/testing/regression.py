@@ -10,7 +10,8 @@ A case file is TOML with one `[[case]]` table per case:
     language = "en"               # optional, default "en"
     blocks = [{ kind = "paragraph", text = "..." }]  # optional: role, label, describes
     sections = [{ title = "References", level = 1, start = 2, end = 5 }]  # optional
-    expected = ["..."]            # the script today, one line per block that is read
+    expected = ["..."]            # the script today, one line per block that is read (a
+                                  # block read inside another splits its line, #213)
     utterances = ["...", "..."]   # optional: how the cutter cuts the script, where it matters
 
 `expected` pins what the built-in steps produce now. A rule PR changes the cases its rule
@@ -175,11 +176,15 @@ def _text(given: dict) -> tuple[str, list[tuple[int, int, str | tuple[str, ...]]
 
 
 def render(run: StepRun) -> list[str]:
-    """The script, one line per block that is read; pauses show as "[pause]"."""
-    by_block: list[list[ScriptPiece]] = [[] for _ in run.document.blocks]
+    """The script in reading order, one line per stretch of one block that is read; pauses
+    show as "[pause]". A block read inside another (a footnote moved to its mark, #213)
+    gives its own line and splits the other block's line in two."""
+    stretches: list[list[ScriptPiece]] = []
     for piece in run.script():
-        by_block[piece.span.block].append(piece)
-    lines = [spoken_text(pieces, show_pauses=True) for pieces in by_block]
+        if not stretches or stretches[-1][-1].span.block != piece.span.block:
+            stretches.append([])
+        stretches[-1].append(piece)
+    lines = [spoken_text(pieces, show_pauses=True) for pieces in stretches]
     return [line for line in lines if line]
 
 
