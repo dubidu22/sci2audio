@@ -24,9 +24,9 @@ from sci2audio.textprep import (
     StepRun,
     is_reference_title,
     run_steps,
-    wording_for,
     spoken_text,
     whole_block,
+    wording_for,
 )
 
 pytestmark = pytest.mark.timeout(120)
@@ -36,10 +36,10 @@ PAPERS = sorted((CORPUS / "papers").glob("*.pdf"))
 IDS = [paper.stem for paper in PAPERS]
 
 # Corpus tests that skip the German paper until the step they check speaks German, with the
-# Issue that teaches it (#235, D-509); that Issue removes the entries.
+# Issue that teaches it (#235, D-509); that Issue removes the entries. Empty since #212: the
+# notice and footnote steps speak German.
 GERMAN_PAPERS = {"arxiv2017-maass-privacyscore"}
-GERMAN_LATER: dict[str, int] = {
-}
+GERMAN_LATER: dict[str, int] = {}
 
 
 def papers(test: str) -> list:
@@ -86,24 +86,38 @@ def truth(paper: Path) -> dict:
 )
 def test_no_placeholder_text_is_read_and_each_notice_names_the_truth_item(paper: Path) -> None:
     doc, said = document(paper), spoken(paper)
+    wording = wording_for(doc.language)  # the notices are in the paper's language (#212)
     notices = [said[i] for i, block in enumerate(doc.blocks) if block.is_placeholder]
-    assert all(re.fullmatch(r"[^\n]* (is|are) skipped\.", notice) for notice in notices)
+    unnamed = {notice: kind for kind, notice in wording.unnamed.items()}
+    endings = (wording.skipped_one.format(""), wording.skipped_many.format(""))
     names: Counter[str] = Counter()
+    kinds: Counter[BlockKind] = Counter()
     for notice in notices:
-        listed = notice.removeprefix("A ").rsplit(" ", 2)[0]
-        names.update(re.split(r", | and ", listed))
+        if notice in unnamed:
+            kinds[unnamed[notice]] += 1
+            continue
+        ending = next(e for e in endings if notice.endswith(e))
+        listed = notice.removesuffix(ending)
+        assert "\n" not in listed
+        names.update(
+            re.split(f"{re.escape(wording.list_comma)}|{re.escape(wording.list_and)}", listed)
+        )
     facts = truth(paper)
     expected: Counter[str] = Counter()
     for key in ("tables", "figures", "algorithms"):
-        expected.update(label for entry in facts.get(key, []) for label in entry["labels"] if label)
+        expected.update(
+            wording.label(label)
+            for entry in facts.get(key, [])
+            for label in entry["labels"]
+            if label
+        )
     expected.update(
-        f"Formula {number}"
+        wording.formula.format(number)
         for entry in facts.get("formula_numbers", [])
         for number in entry["numbers"]
     )
     unnumbered = sum(entry["count"] for entry in facts.get("unnumbered_formulas", []))
-    assert names["formula"] == unnumbered
-    del names["formula"], names["table"], names["figure"]
+    assert kinds[BlockKind.FORMULA] == unnumbered
     assert names == expected
 
 
@@ -144,7 +158,9 @@ def test_every_footnote_is_introduced_and_its_mark_left_out(
             if index in only_links:
                 assert said[index] == ""
             else:
-                assert said[index].startswith(wording_for(doc.language).footnote_unnamed[:-1]), said[index][:60]
+                assert said[index].startswith(wording_for(doc.language).footnote_unnamed[:-1]), (
+                    said[index][:60]
+                )
             if block.label:
                 notes[(items[block.parts[0].item][0].number, block.label)] = index
     removed = []

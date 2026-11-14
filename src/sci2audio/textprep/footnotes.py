@@ -1,8 +1,9 @@
 """Footnotes: marks left out of the running text, notes read where layout placed them (TP-05).
 
 Q2: a note is read where layout placed it (the foot of its column, in reading order),
-introduced by its mark ("Footnote 1."), and its mark is left out of the running text. A
-note cannot move next to its mark: an edit never crosses blocks (D-61 (1)).
+introduced by its mark ("Footnote 1.", in a German job "Fußnote 1.", #212), and its mark is
+left out of the running text. A note cannot move next to its mark: an edit never crosses
+blocks (D-61 (1)).
 
 Two categories (D-142): "Footnotes" (on by default) holds `FootnoteStep`, which removes the
 marks and introduces the notes; "Footnote texts" (off by default) holds `FootnoteTextStep`,
@@ -11,11 +12,13 @@ removals run first and claim the notes' blocks, so the introductions are then se
 (D-128); the marks stay out either way.
 
 A mark is found from what extraction recorded (D-143): a run of its own that is tagged as a
-superscript (EPUB, Markdown) or set smaller than the block's main size (PDF), whose text is
-the label of a note on the same page, after a word of at least two letters (digits may
-follow: "Ahmad3" before an asterisk mark) or closing punctuation, and not followed by a
-maths operator. So "N3" and "|N|3" in a formula set in line stay. Each label is taken once
-per page, at its first match in reading order. A note whose mark is not found is still read.
+superscript (EPUB, Markdown), set smaller than the block's main size (PDF) or set in that
+size but raised over the run beside it (a superior figure, #212), whose text is the label of
+a note on the same page (a printed asterisk matches a note marked by the asterisk operator),
+after a word of at least two letters (digits may follow: "Ahmad3" before an asterisk mark) or
+closing punctuation (the German closing quote too), and not followed by a maths operator. So
+"N3" and "|N|3" in a formula set in line stay. Each label is taken once per page, at its
+first match in reading order. A note whose mark is not found is still read.
 
 EPUB and Markdown tie a mark to its note by tags instead (D-428): a run tagged
 `role:doc-noteref` or `epub:noteref` whose `link:` points at an item of a FOOTNOTE block is a
@@ -52,8 +55,8 @@ from sci2audio.textprep.wording import Wording, wording_for
 
 # a run this much smaller than the block's main size is set small (layout's size_change)
 SMALLER = 0.08
-# a run raised this many em above the text next to it is a superior figure (layout's
-# footnote_mark_rise, D-507)
+# a run raised this many em above the text next to it on its line is a superior figure set in
+# the text's own size (layout's footnote_mark_rise, D-507; #212)
 RISE = 0.1
 # the kinds of block whose text can hold a footnote mark
 MARKED_KINDS = frozenset(
@@ -69,7 +72,6 @@ _CLOSING = frozenset(".,;:!?)]}\u2019\u201c\u201d\"'")  # also the closing quote
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
-_INTRODUCED = re.compile(r"Footnote\b")
 _BRACKETED = re.compile(r"\[([^\[\]]+)\]|\(([^()]+)\)")  # "[1]" or "(1)": one pair
 
 
@@ -238,7 +240,7 @@ class FootnoteStep(TextStep):
         and a printed mark that overlaps one is not read as the note's mark."""
         text = block.text
         lead = _lead(text, removed)
-        if lead == len(text) or _INTRODUCED.match(_without(text, removed, lead)):
+        if lead == len(text) or _introduced(wording).match(_without(text, removed, lead)):
             return None
         label = block.label
         end = _printed_end(text, label, lead, removed)
@@ -407,7 +409,7 @@ def _set_small(run: TextRun, main: float) -> bool:
 
 def _raised(run: TextRun, runs: list[tuple[int, int, TextRun]], number: int, main: float) -> bool:
     """A superior figure set in the text's own size: its box ends RISE em or more above the
-    box of a run next to it on the same line (#212, as layout's footnote_mark_rise, D-507)."""
+    box of the run before or after it on the same line (#212, D-519)."""
     if run.box is None or main <= 0:
         return False
     for other in (number - 1, number + 1):
@@ -421,8 +423,14 @@ def _raised(run: TextRun, runs: list[tuple[int, int, TextRun]], number: int, mai
     return False
 
 
+def _introduced(wording: Wording) -> re.Pattern[str]:
+    """A note that already starts with the introduction's word ("Footnote", "Fußnote")."""
+    return re.compile(re.escape(wording.footnote_unnamed.removesuffix(".")) + r"\b")
+
+
 def _same(mark: str) -> str:
-    """A mark as it is compared: an asterisk printed "*" in the text marks the note "∗"."""
+    """A mark as it is compared: an asterisk printed "*" in the text marks the note that
+    layout labels with the asterisk operator (U+2217)."""
     return mark.replace("*", "\u2217")
 
 

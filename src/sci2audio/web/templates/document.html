@@ -30,6 +30,14 @@
 {% endif %}
 
 <form id="choices" class="stack">
+  <div class="stack">
+    <label for="language">{{ t('check.language') }}</label>
+    <p class="hint" id="language-hint">{{ t('check.language_hint') }}</p>
+    <select id="language" name="language" aria-describedby="{% if language_note %}text-language {% endif %}language-hint">
+      {% for option in language_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
+    </select>
+    {% if language_note %}<p class="hint" id="text-language">{{ language_note }}</p>{% endif %}
+  </div>
   <fieldset>
     <legend>{{ t('check.switches') }}</legend>
     <p class="hint">{{ t('check.switches_hint') }}</p>
@@ -112,7 +120,6 @@
   <select id="voice" name="voice" aria-describedby="{% if language_note %}text-language {% endif %}voice-language voice-licence">
     {% for option in voices %}<option value="{{ option.id }}" data-language="{{ option.language }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
   </select>
-  {% if language_note %}<p class="hint" id="text-language">{{ language_note }}</p>{% endif %}
   <p class="hint" id="voice-language">{{ t('voice.language_hint') }}</p>
   <p class="hint" id="voice-licence">{{ t('voice.licence') }} <span lang="en">{{ licences }}</span></p>
   <label for="speed">{{ t('voice.speed') }}</label>

@@ -114,6 +114,10 @@ choose_all = "Choose all"
 choose_none = "Choose none"
 update = "Update the analysis"
 changed = "You changed the choices. Update the analysis to see what they change."
+language = "Language of the text"
+language_hint = "The text rules, the spoken notices (“Table 2 is skipped.”) and the footnote introductions follow this language, and so does the voice. It counts for this document only."
+language_auto = "Automatic: as the file states, else guessed from the text"
+language_other = "{language} (your setting)"
 
 [category]
 page-furniture = "Page furniture: headers, footers and page numbers left out"

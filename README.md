@@ -7,7 +7,7 @@ sci2audio reads a PDF, EPUB, Markdown or plain-text file in English, prepares it
 ## What it does
 
 - **Reads** PDF, EPUB, Markdown and plain text. It finds the reading order of one- and two-column pages, leaves out running heads, page numbers and sidebars, and finds headings, footnotes, captions, tables, figures and formulas. A scanned PDF needs a text layer: sci2audio has no text recognition yet.
-- **Prepares the text** with transparent rules: it joins words hyphenated at a line end, leaves out citations, URLs and DOIs, reads units, statistics, numbers and abbreviations as words where the voice would get them wrong, and replaces formulas, tables and figures with a short spoken notice. Footnotes are read where their mark stands. Every change is listed in a report with its reason, and each kind of change can be switched off.
+- **Prepares the text** with transparent rules: it joins words hyphenated at a line end, leaves out citations, URLs and DOIs, reads units, statistics, numbers and abbreviations as words where the voice would get them wrong, and replaces formulas, tables and figures with a short spoken notice in the text's language (English or German). Footnotes are read where their mark stands. Every change is listed in a report with its reason, and each kind of change can be switched off.
 - **Speaks** it with a local Kokoro voice: 28 English voices and the German voice Thorsten, at the speed you choose. An interrupted run picks up where it stopped.
 - **Writes** an M4B with chapter marks and the cover, one MP3 per chapter, and a read-along file. The audio is labelled as AI-generated in its metadata.
 - **Plays** it in a read-along view that shows the text as printed and highlights the sentence being read. Click any sentence to play from there.
