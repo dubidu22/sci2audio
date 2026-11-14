@@ -121,6 +121,26 @@
     "201 citations accepted: …ing matrix inversion[ (see e.g. Althoen and McLaughlin (1987))].… -> ''",
   ])
 # ---
+# name: test_every_citation_and_link_edit_is_as_recorded[arxiv2017-maass-privacyscore]
+  list([
+    "7 links accepted: …mstadt, Deutschland,[ mmaass@seemoo.tu-darmstadt.de]… -> ''",
+    "8 links accepted: …Kassel, Deutschland,[ a.laubach@uni-kassel.de]… -> ''",
+    "9 links accepted: …amburg, Deutschland,[ herrmann@informatik.uni-hamburg.de]… -> ''",
+    "19 links accepted: …[4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/]… -> ''",
+    "20 links accepted: …[5 https://www.ssllabs.com/ssltest/]… -> ''",
+    "21 links accepted: …[6 https://observatory.mozilla.org/]… -> ''",
+    "22 links accepted: …[7 z.B. https://securityheaders.io/]… -> ''",
+    "23 links accepted: …[8 https://webbkoll.dataskydd.net/en/]… -> ''",
+    "31 links accepted: …[9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017]… -> ''",
+    "32 links accepted: …[10 https://dataskydd.net/kommuner-201704/]… -> ''",
+    "40 links accepted: …um, ein Prototyp ist[ unter https://privacyscore.org/] abrufbar. Für die T… -> ''",
+    "46 links accepted: …[11 https://testssl.sh]… -> ''",
+    "47 links accepted: …[12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/]… -> ''",
+    "50 links accepted: … (vgl. Suchmaschinen[ und z. B. https://archive.org/]). Dennoch ist die A… -> ''",
+    "56 links accepted: …[13 https://piwik.org]… -> ''",
+    "106 links set-aside: …nual Privacy Forum. [https://arxiv.org/abs/1705.05139, ]2017.… -> ''",
+  ])
+# ---
 # name: test_every_citation_and_link_edit_is_as_recorded[arxiv2024-arsiwalla-qualia-meaning]
   list([
     "7 links accepted: …[∗x.d.arsiwalla@gmail.com]… -> ''",

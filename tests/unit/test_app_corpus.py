@@ -27,8 +27,6 @@ GERMAN_LATER_STEPS = {
     "formula-notices": 212,
     "table-figure-notices": 212,
     "footnotes": 212,
-    "links": 101,
-    "citations": 101,
 }
 GERMAN = {"arxiv2017-maass-privacyscore"}
 

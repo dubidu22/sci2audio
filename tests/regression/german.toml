@@ -280,10 +280,10 @@ utterances = ["Es gab Hunde, Katzen und so weiter.", "Die Studie lief lange, mit
 id = "de-abbreviations-u-a-before-a-year"
 audit = 0
 issue = 113
-goal = "'u. a.' before a year is 'und andere' (after authors), elsewhere 'unter anderem'."
+goal = "'u. a.' before a year is 'und andere' (after authors), elsewhere 'unter anderem'. Since #101 the citations step leaves out the year of the narrative citation."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Laut Müller u. a. (2019) gilt das u. a. in Berlin." }]
-expected = ["Laut Müller und andere (2019) gilt das unter anderem in Berlin."]
+expected = ["Laut Müller und andere gilt das unter anderem in Berlin."]
 
 [[case]]
 id = "de-abbreviations-u-a-before-a-year-after-a-lower-case-word"
