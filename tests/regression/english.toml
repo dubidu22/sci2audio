@@ -1237,3 +1237,11 @@ blocks = [
     { kind = "paragraph", text = "We gave 5­kg and 5 ​mg." },
 ]
 expected = ["The cache holds 0 thousand.", "We gave 5 kilograms and 5 milligrams."]
+
+[[case]]
+id = "citations-after-a-removed-link-sentence"
+audit = 0
+issue = 101
+goal = "A citation that starts a sentence right after a sentence the links step removes is removed too: it takes the space after it, not the one before, which the link's removal already took ('[12]' was read aloud and set aside; found by the German second-run property, #101)."
+blocks = [{ kind = "paragraph", text = "The code is online. https://x.org/a. [12] It holds." }]
+expected = ["The code is online. It holds."]

@@ -67,6 +67,10 @@ class CitationWords:
     page: str  # a page: "p. 8", "pp. 8–10"
     locators: str  # after the year: ", p. 8", ", Chapter 9", ", inter alia"
     abbreviations: frozenset[str] = frozenset()  # a full stop after these ends no sentence
+    # German writes every noun with a capital: a capital word before a year bracket names an
+    # author only after one of these words (or at a sentence start), not after an article or
+    # an inflected adjective ("die neue Studie (2019)", "Die Olympischen Spiele (2016)")
+    name_leads: frozenset[str] | None = None
 
 
 # fmt: off
@@ -187,7 +191,7 @@ WORDS: dict[str, CitationWords] = {
         )),
         articles=frozenset((
             "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer",
-            "eines",
+            "eines", "im", "am", "zum", "zur", "vom", "beim", "ins", "ans",
         )),
         joins=r"und|u\.|&",
         others=r"et\s+al\.|u\.\s?a\.",
@@ -199,6 +203,11 @@ WORDS: dict[str, CitationWords] = {
             r"(?:S|pp?)\.\s*\d+(?:\s*[-–—]\s*\d+)?(?:\s*ff?\.)?|Kap(?:itel|\.)\s*\d+|"
             r"Abschn(?:itt|\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|Rn\.\s*\d+(?:\s*[-–—]\s*\d+)?"
         ),
+        name_leads=frozenset((
+            "wie", "siehe", "gegen", "unter", "über", "oder", "aber", "sowie", "haben", "zeigen",
+            "zeigten", "fanden", "finden", "schreiben", "beschreiben", "argumentieren", "betonen",
+            "nennen", "kamen", "kommen", "folgen", "folgend", "nachdem", "seit", "bereits",
+        )),
         abbreviations=frozenset((
             "a.", "abb.", "abschn.", "al.", "aufl.", "b.", "bd.", "bspw.", "bzw.", "ca.", "d.",
             "d.h.", "dr.", "etc.", "evtl.", "f.", "ff.", "ggf.", "gl.", "h.", "hrsg.", "inkl.",
@@ -218,6 +227,7 @@ _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
 _WORD = rf"{_LETTER}+(?:(?:[’'-]|-\n){_LETTER}+)*"
 _SPACE = re.compile(r"\s+")
+_NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
@@ -456,6 +466,8 @@ class _Rules:
         glued = text[node.open - 1 : node.open]
         if glued and (glued.isalnum() or glued in ")]"):
             return None
+        if _NUMBER_GLUED_AFTER.match(text, node.close + 1):
+            return None  # "[1; 3],1": read "3,1" would be a decimal on a second run
         if self._not_citations(text, node.open):
             return None
         window = max(0, node.open - _LOOK_BACK)
@@ -491,6 +503,8 @@ class _Rules:
         if previous and (
             previous[-1] in _MATHS_SIGNS
             or previous.lower().rstrip(":") in self.words.maths
+            # "95 %-KI [1; 3]": the word after a hyphen
+            or previous.lower().rstrip(":").rsplit("-", 1)[-1] in self.words.maths
             or _is_label_word(previous.lstrip("(["), self.words.numbered)
             or previous.endswith("%")
         ):
@@ -629,7 +643,26 @@ class _Rules:
         article = re.search(r"(\S+)\s+\Z", before[: found.start()])
         if article and article.group(1).lower() in self.words.articles:
             return ""
+        if self.words.name_leads is not None and not self._led_to_a_name(before[: found.start()]):
+            return ""
         return joined
+
+    def _led_to_a_name(self, before: str) -> bool:
+        """For a language that capitalises nouns: True if the words before a capital word
+        lead to a name ("wie Müller", "von Anna Müller", a sentence start), not to a noun
+        ("die neue Studie", "Die Olympischen Spiele")."""
+        words = before.split()[-3:]
+        while words and _is_name(words[-1]) and words[-1].lower() not in self.words.articles:
+            words.pop()  # a first name or another capital word: "Anna Müller"
+        if not words:
+            return True
+        word = words[-1].lower()
+        leads = self.words.name_leads or frozenset()
+        if word in self.words.articles:
+            return False
+        if word in leads or not word[-1:].isalpha():
+            return True  # "laut Müller", "(Müller", "Ergebnis: Müller"
+        return not re.search(r"(?:e|en|er|es|em)\Z", word)  # "neue", "seiner", ...
 
     def _previous_word(self, text: str, position: int) -> str:
         """The word before a position, lower case, without brackets or a glued footnote mark."""
@@ -725,6 +758,11 @@ class _Rules:
             punctuation = _AFTER_START.match(text, end)
             if punctuation:
                 return start, punctuation.end()
+            # the white space before belongs to the sentence before, which another step may
+            # have removed with it ("https://x.org. [1; 3],1", #101): take the space after
+            if start > 0:
+                after = _SPACE.match(text, end)
+                return start, after.end() if after else end
         return _with_space(text, start, end)
 
 
