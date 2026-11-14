@@ -20,7 +20,7 @@ from sci2audio.layout.code import find_code
 from sci2audio.layout.footnotes import find_footnotes
 from sci2audio.layout.formulas import find_formulas
 from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, edges, find_furniture, page_label
-from sci2audio.layout.geometry import body_size, boxed, holds, text_area, union
+from sci2audio.layout.geometry import body_size, boxed, holds, page_bars, text_area, union
 from sci2audio.layout.graphics import find_graphics, link_captions
 from sci2audio.layout.headings import find_headings
 from sci2audio.layout.language import choose_language
@@ -176,6 +176,7 @@ class _Layout:
         overlap, settings = self.settings.row_overlap, self.settings
         units: list[Unit] = [Held(_block(e, furniture, settings)) for e in by_rows(top, overlap)]
         rows = rows_of(reading.ordered, edges, self.settings, self.size)
+        bars = page_bars(page, self.settings)
         lines = [union([e.box for e in row]) for row in rows if row[0].line is not None]
         for group in split_cells(rows, edges):
             if group[0].line is None:
@@ -184,7 +185,7 @@ class _Layout:
                     for e in group
                 ]
             else:
-                units.append(make_row(group, edges[id(group[0])], page.number, self.settings))
+                units.append(make_row(group, edges[id(group[0])], page.number, self.settings, bars))
         rest = by_rows([e for e in edge if id(e) not in taken], overlap)
         units += [Held(_block(e, furniture, settings)) for e in rest]
         # items without a position: a line is a paragraph of its own, a graphic a figure

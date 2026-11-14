@@ -83,6 +83,14 @@ class LayoutSettings:
     #                           piece is a space (extraction's SPACE, D-275)
     stack_reach: float = 2.0  # em: a piece starting further back than this under the
     #                           letters before it is out of its place and keeps a space (D-277)
+    fraction_bar: float = 0.25  # em of the line's letter size: a drawing at most this thick
+    #                             between the end of a piece and the next piece starting under
+    #                             it is a fraction bar, and the denominator keeps a space (#202,
+    #                             D-575; extraction's FRACTION_BAR). TeX keeps the rule's
+    #                             thickness in a smaller fraction: 0.8 pt over 5 pt letters is
+    #                             0.16 em (review R1-2 of #323) ...
+    fraction_reach: float = 0.6  # em: ... when both stand this close to the bar (the nearest
+    #                              numerator letter; extraction's FRACTION_REACH)
 
     # Footnotes
     footnote_rule_height: float = 1.5  # points: a footnote rule is at most this thick, ...

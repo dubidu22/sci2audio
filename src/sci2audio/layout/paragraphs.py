@@ -26,7 +26,15 @@ from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
 from sci2audio.layout.captions import opens_caption
-from sci2audio.layout.geometry import holds, letter_size, minor, same_row, separators, union
+from sci2audio.layout.geometry import (
+    Bars,
+    holds,
+    letter_size,
+    minor,
+    same_row,
+    separators,
+    union,
+)
 from sci2audio.layout.order import Element
 from sci2audio.layout.settings import LayoutSettings
 
@@ -42,6 +50,7 @@ class Row:
     page: int
     size: float
     bold: bool
+    bars: tuple[Box, ...] = ()  # drawings meeting the row's box: fraction bars (#202)
 
     @property
     def text(self) -> str:
@@ -189,19 +198,26 @@ def _white(group: list[Element], x: float) -> bool:
 
 
 def make_row(
-    group: list[Element], edges: tuple[float, float], page: int, settings: LayoutSettings
+    group: list[Element],
+    edges: tuple[float, float],
+    page: int,
+    settings: LayoutSettings,
+    bars: Bars | None = None,
 ) -> Row:
-    """The printed line these pieces make, in the column with these edges."""
+    """The printed line these pieces make, in the column with these edges, and those of
+    the page's `bars` that meet its box (a fraction bar between its pieces, #202)."""
     pieces = tuple(e.line for e in group if e.line is not None)
     runs = [run for piece in pieces for run in piece.runs]
+    box = union([e.box for e in group])
     return Row(
         pieces,
-        union([e.box for e in group]),
+        box,
         edges[0],
         edges[1],
         page,
         letter_size(runs) or settings.body_size,
         _bold(runs, settings),
+        bars.meeting(box) if bars is not None else (),
     )
 
 
@@ -510,7 +526,15 @@ def _paragraph(rows: list[Row], settings: LayoutSettings) -> Block:
     where the page prints one (`separators`)."""
     text, parts = "", []
     for n, row in enumerate(rows):
-        joins = separators(row.pieces, row.size, settings.word_space, settings.stack_reach)
+        joins = separators(
+            row.pieces,
+            row.size,
+            settings.word_space,
+            settings.stack_reach,
+            row.bars,
+            settings.fraction_bar,
+            settings.fraction_reach,
+        )
         for k, piece in enumerate(row.pieces):
             text += "\n" if n and not k else joins[k]
             parts.append(Part(piece.id, len(text)))
