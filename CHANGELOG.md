@@ -20,7 +20,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 - A language tag as files often write it is read as the language it names (#237): "en_US" counts as en-US, "eng", "deu" and "ger" as en and de, and "und", "zxx", "mul", "mis" or a value that is no tag (such as "x-default") as no stated language, so the text's language is guessed. Before, "en_US" was taken as a language of its own and kept a German text from being read in German (D-513 to D-515).
 
-## [1.0.0] - unreleased
+## [1.0.0] - 2026-11-14
 
 The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or plain text, in English) into a faithful audiobook on your own computer: a listening script with every change marked and explained, MP3 files per chapter and an M4B with chapters, and a read-along player that highlights the original text. Everything runs offline after one voice download you start yourself.
 
