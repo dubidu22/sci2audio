@@ -7,7 +7,6 @@ name: Release
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:  # TEMPORARY, for the branch run before review; removed again
 
 permissions:
   contents: read
@@ -29,7 +28,6 @@ jobs:
         with:
           enable-cache: false
       - name: The tag names the package's version
-        if: github.event_name == 'push'  # TEMPORARY
         env:
           TAG: ${{ github.ref_name }}
         run: |
@@ -78,7 +76,6 @@ jobs:
   publish:
     name: publish to PyPI
     needs: [build, smoke]
-    if: github.event_name == 'push'  # TEMPORARY
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
