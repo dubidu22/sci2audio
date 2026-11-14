@@ -22,6 +22,6 @@ Copy this list into the release Issue and tick each item.
 
 ## Release
 
-- [ ] `CHANGELOG.md` updated; version bumped in `src/sci2audio/__init__.py`.
+- [ ] `CHANGELOG.md` updated, and the version's heading carries the release date: `## [X.Y.Z] - YYYY-MM-DD` (the release workflow refuses a tag whose version has no dated heading); version bumped in `src/sci2audio/__init__.py`.
 - [ ] Tag `vX.Y.Z` pushed; the release workflow publishes to PyPI.
 - [ ] Learning note for the phase written in `docs/learning/`.

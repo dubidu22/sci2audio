@@ -34,6 +34,13 @@ jobs:
           version=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/sci2audio/__init__.py)
           echo "tag $TAG, package version $version"
           test "$TAG" = "v$version"
+      - name: The changelog dates this version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # CHANGELOG.md has "## [X.Y.Z] - YYYY-MM-DD" for the tag's version, not "unreleased"
+          version="${TAG#v}"
+          grep -Eq "^## \[${version//./\\.}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]]*$" CHANGELOG.md
       - run: uv build
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
