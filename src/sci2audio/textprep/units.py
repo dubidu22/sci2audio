@@ -399,8 +399,8 @@ def _is_label(text: str, start: int, table: _Table) -> bool:
         word = _WORD_BEFORE.search(text, max(0, start - 24), start)
     if word is None:
         return False
-    # what follows a full stop inside the word counts too: "\u00d7.Figure 5" (a times sign) and its reading
-    # "times.Figure 5" both hold the label "Figure" (#253)
+    # what follows a full stop inside the word counts too: a times sign, ".Figure 5", and
+    # its reading "times.Figure 5" both hold the label "Figure" (#253)
     lowered = word.group(1).lower()
     return lowered in table.words.labels or _AFTER_INNER_STOP.sub("", lowered) in table.words.labels
 
