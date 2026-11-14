@@ -906,7 +906,9 @@ _CARET = re.compile(
     + _SUPERSCRIPTS
     + r"])"
     r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)|(?P<bare>[+\u2212-]?\d+)))"
-    r"(?![\w.,⁺⁻])"
+    # but an x and a digit, which the units step may read "mal" ("10^2x1"; `_x_left_alone`
+    # keeps the power as printed where it does not, #253)
+    r"(?!(?![xX]\d)[\w.,⁺⁻])"
 )
 _TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w⁺⁻]|[.,]\d)")
 # not after a number and a space ("5 m²", the units step's), but after a time ("24:00 n²",

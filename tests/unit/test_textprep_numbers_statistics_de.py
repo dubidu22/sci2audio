@@ -356,6 +356,8 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("1-2,5 m", "1 bis 2 Komma 5 Meter"),
         ("um 13:30. Jahr", "um 13 Uhr 30. Jahr"),  # seed 6003
         ("um 13 Uhr 30. Mai", "um 13 Uhr 30. Mai"),
+        ("10^2x1", "10 hoch 2 mal 1"),  # seed 7001
+        ("Ft\u00adt(1998)=1", "Ftt gleich 1"),  # seed 6007: a soft hyphen in a name
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:
