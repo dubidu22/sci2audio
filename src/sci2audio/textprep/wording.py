@@ -85,7 +85,26 @@ ENGLISH = Wording(
     },
 )
 
-WORDING: Mapping[str, Wording] = {"en": ENGLISH}  # by primary language tag
+GERMAN = Wording(
+    skipped_one="{} wird übersprungen.",
+    skipped_many="{} werden übersprungen.",
+    list_comma=", ",
+    list_and=" und ",
+    unnamed={
+        BlockKind.TABLE: "Eine Tabelle wird übersprungen.",
+        BlockKind.FIGURE: "Eine Abbildung wird übersprungen.",
+        BlockKind.FORMULA: "Eine Formel wird übersprungen.",
+    },
+    formula="Formel {}",
+    footnote="Fußnote {}.",
+    footnote_unnamed="Fußnote.",
+    reference="Quelle",
+    references="Quellen",
+    range_to="bis",
+    label_words={"Abb.": "Abbildung", "Tab.": "Tabelle", "Gl.": "Gleichung", "Alg.": "Algorithmus"},
+)
+
+WORDING: Mapping[str, Wording] = {"en": ENGLISH, "de": GERMAN}  # by primary language tag
 
 
 def wording_for(language: str) -> Wording:

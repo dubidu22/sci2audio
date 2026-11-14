@@ -52,6 +52,9 @@ from sci2audio.textprep.wording import Wording, wording_for
 
 # a run this much smaller than the block's main size is set small (layout's size_change)
 SMALLER = 0.08
+# a run raised this many em above the text next to it is a superior figure (layout's
+# footnote_mark_rise, D-507)
+RISE = 0.1
 # the kinds of block whose text can hold a footnote mark
 MARKED_KINDS = frozenset(
     {BlockKind.PARAGRAPH, BlockKind.HEADING, BlockKind.CAPTION, BlockKind.LIST_ITEM}
@@ -62,7 +65,7 @@ BACKLINK_TAGS = frozenset({"role:doc-backlink", "epub:backlink"})
 # the kinds of block whose text can hold a linked mark (D-420)
 LINKED_KINDS = MARKED_KINDS | {BlockKind.FOOTNOTE}
 _LINK = "link:"
-_CLOSING = frozenset(".,;:!?)]}\u2019\u201d\"'")  # also the closing quotes
+_CLOSING = frozenset(".,;:!?)]}\u2019\u201c\u201d\"'")  # also the closing quotes
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
@@ -95,7 +98,7 @@ class FootnoteStep(TextStep):
     """Remove footnote marks from the running text and introduce each note."""
 
     id = "footnotes"
-    languages = ("en",)
+    languages = ("en", "de")
     category = Category.FOOTNOTES
     stage = Stage.INLINE
 
@@ -119,7 +122,7 @@ class FootnoteStep(TextStep):
                         mark = document.text_of(edit.span)
                         linked.setdefault(note, mark)
                         if label := document.blocks[note].label:
-                            found.add((page, label))
+                            found.add((page, _same(label)))
         edits = []
         labels: set[tuple[int, str]] = set()  # (page, label) of every note with a mark
         for index, block in enumerate(document.blocks):
@@ -131,7 +134,7 @@ class FootnoteStep(TextStep):
                 if edit := self._introduction(index, block, wording, linked.get(index), removed):
                     edits.append(edit)
                 if block.label and block.parts:
-                    labels.add((items[block.parts[0].item][0].number, block.label))
+                    labels.add((items[block.parts[0].item][0].number, _same(block.label)))
         for index in sorted(marks):
             edits += marks[index]
         for index, block in enumerate(document.blocks):
@@ -289,15 +292,15 @@ class FootnoteStep(TextStep):
         runs = list(_runs(items, block))
         main = _main_size(run for _, _, run in runs)
         edits = []
-        for page, offset, run in runs:
+        for number, (page, offset, run) in enumerate(runs):
             mark = run.text.strip()
-            key = (page, mark)
+            key = (page, _same(mark))
             if not mark or key not in labels or key in found or NOTEREF_TAGS & set(run.tags):
                 continue  # a noteref is a linked mark or read as printed (D-423, D-428)
             start = offset + run.text.index(mark)
             end = start + len(mark)
             if (
-                _set_small(run, main)
+                (_set_small(run, main) or _raised(run, runs, number, main))
                 and _after_word(block.text[:start])
                 and _not_maths(block.text[end:])
             ):
@@ -400,6 +403,27 @@ def _main_size(runs: Iterable[TextRun]) -> float:
 def _set_small(run: TextRun, main: float) -> bool:
     """A superscript: tagged so by the source, or set smaller than the block's text."""
     return "sup" in run.tags or (0 < run.size < (1 - SMALLER) * main)
+
+
+def _raised(run: TextRun, runs: list[tuple[int, int, TextRun]], number: int, main: float) -> bool:
+    """A superior figure set in the text's own size: its box ends RISE em or more above the
+    box of a run next to it on the same line (#212, as layout's footnote_mark_rise, D-507)."""
+    if run.box is None or main <= 0:
+        return False
+    for other in (number - 1, number + 1):
+        if not 0 <= other < len(runs):
+            continue
+        box = runs[other][2].box
+        if box is None or box.y0 >= run.box.y1 or run.box.y0 >= box.y1:
+            continue  # no box, or not on the same line
+        if run.box.y1 <= box.y1 - RISE * main:
+            return True
+    return False
+
+
+def _same(mark: str) -> str:
+    """A mark as it is compared: an asterisk printed "*" in the text marks the note "∗"."""
+    return mark.replace("*", "\u2217")
 
 
 def _after_word(before: str) -> bool:

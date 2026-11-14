@@ -24,6 +24,7 @@ from sci2audio.textprep import (
     StepRun,
     is_reference_title,
     run_steps,
+    wording_for,
     spoken_text,
     whole_block,
 )
@@ -38,8 +39,6 @@ IDS = [paper.stem for paper in PAPERS]
 # Issue that teaches it (#235, D-509); that Issue removes the entries.
 GERMAN_PAPERS = {"arxiv2017-maass-privacyscore"}
 GERMAN_LATER: dict[str, int] = {
-    "test_no_placeholder_text_is_read_and_each_notice_names_the_truth_item": 212,
-    "test_every_footnote_is_introduced_and_its_mark_left_out": 212,
 }
 
 
@@ -145,7 +144,7 @@ def test_every_footnote_is_introduced_and_its_mark_left_out(
             if index in only_links:
                 assert said[index] == ""
             else:
-                assert said[index].startswith("Footnote"), said[index][:60]
+                assert said[index].startswith(wording_for(doc.language).footnote_unnamed[:-1]), said[index][:60]
             if block.label:
                 notes[(items[block.parts[0].item][0].number, block.label)] = index
     removed = []
