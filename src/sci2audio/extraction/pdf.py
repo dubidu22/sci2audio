@@ -17,7 +17,8 @@ import hashlib
 import math
 import re
 import threading
-from collections.abc import Iterator
+from bisect import bisect_left, bisect_right
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -52,6 +53,12 @@ LINE_GAP = 1.0  # a gap this many em wide ends a line, so columns and table cell
 SPACE = 0.15  # em of the larger letter: the narrowest white that is a space between baselines
 SHIFT = 0.1  # em of the smaller letter: baselines further apart than this are two baselines
 STACK = 2.0  # em: a script stacked under another starts at most this far back under it
+# An inline fraction's numerator and denominator touch along the line like a script stacked
+# under another, but a bar is drawn between them: there the space PDFium adds stays, so the
+# two never read as one word ("1ℏ", #202, D-575). Layout keeps a space between pieces of a
+# line by the same measure (LayoutSettings.fraction_bar, fraction_reach).
+FRACTION_BAR = 0.15  # em of the larger letter: a fraction bar is at most this thick ...
+FRACTION_REACH = 0.6  # em: ... with numerator and denominator at most this far from it
 SAME_LINE = 0.3  # a character overlapping the line by this share of its height continues it
 BOLD_WEIGHT = 600  # a font weight from this value on is bold
 _ITALIC_FLAG = 1 << 6  # PDF font descriptor flag "Italic"
@@ -328,10 +335,10 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
                 total += max(count, 0)
                 if total > MAX_CHARS:
                     raise _too_large(name, f"more than {MAX_CHARS:,} characters")
-                lines = _lines(textpage, height, number)
+                pictures, drawings = _graphics(page, height, number)
+                lines = _lines(textpage, height, number, _Bars.of(drawings))
             finally:
                 textpage.close()
-            pictures, drawings = _graphics(page, height, number)
         finally:
             page.close()
         pages.append(Page(number, lines, pictures, drawings, width=width, height=height))
@@ -364,6 +371,7 @@ class _Line:
     # where the letters of the line before end, when this line starts back under them as a
     # script stacked under another ("0" under "1st" in J with 1st over 0)
     before: float = -math.inf
+    bars: _Bars = field(default_factory=lambda: _Bars())  # the page's possible fraction bars
 
     def accepts(self, char: _Char) -> bool:
         last = self.chars[-1]
@@ -391,12 +399,23 @@ class _Line:
         shifted = abs(char.base - last.base) > SHIFT * small
         if char.u0 - last.u1 <= 0:
             # letters that touch get no space, except a digit under a digit (a fraction 1/2
-            # set as 1 over 2), which would read as one number, "12" (review M2 of #128)
-            return shifted and last.text.isdigit() and char.text.isdigit()
+            # set as 1 over 2), which would read as one number, "12" (review M2 of #128),
+            # and a denominator under its numerator's bar ("1ℏ" for 1 over ℏ, #202)
+            digits = last.text.isdigit() and char.text.isdigit()
+            return shifted and (digits or self._across_bar(last, char))
         if not shifted:
             return True
         reach = max(last.u1, self.before)
         return char.u0 - reach >= SPACE * max(last.style[1], char.style[1], 1.0)
+
+    def _across_bar(self, last: _Char, char: _Char) -> bool:
+        """True if a fraction bar is drawn between the last char and the char under it."""
+        size = max(last.style[1], char.style[1], 1.0)
+        top = (last.box[1] + last.box[3]) / 2
+        bottom = (char.box[1] + char.box[3]) / 2
+        return any(
+            _fraction_bar(bar, last.box, char.box, size) for bar in self.bars.between(top, bottom)
+        )
 
     def stacks(self, char: _Char) -> bool:
         """True if the char starts back under the end of this line's letters and beside
@@ -410,7 +429,55 @@ class _Line:
         return self.chars[0].u0 < char.u0 and 0 < back <= STACK * size and overlap > 0
 
 
-def _lines(textpage: pdfium.PdfTextPage, height: float, number: int) -> tuple[TextLine, ...]:
+@dataclass(frozen=True)
+class _Bars:
+    """A page's drawings that could be fraction bars (wider than thick), as (x0, y0, x1, y1)
+    sorted by their top, so a check looks only at those between two letters' middles: a
+    page of a million drawings costs no more per letter (#185)."""
+
+    boxes: tuple[tuple[float, float, float, float], ...] = ()
+    tops: tuple[float, ...] = ()
+
+    @staticmethod
+    def of(drawings: Iterable[Drawing]) -> _Bars:
+        boxes = sorted(
+            ((d.box.x0, d.box.y0, d.box.x1, d.box.y1) for d in drawings),
+            key=lambda box: box[1],
+        )
+        thin = tuple(b for b in boxes if b[2] - b[0] >= 3 * (b[3] - b[1]))
+        return _Bars(thin, tuple(b[1] for b in thin))
+
+    def between(self, top: float, bottom: float) -> tuple[tuple[float, float, float, float], ...]:
+        """The bars whose top lies strictly between `top` and `bottom`."""
+        return self.boxes[bisect_right(self.tops, top) : bisect_left(self.tops, bottom)]
+
+
+def _fraction_bar(
+    bar: tuple[float, float, float, float],
+    upper: tuple[float, float, float, float],
+    lower: tuple[float, float, float, float],
+    size: float,
+) -> bool:
+    """True if the drawing is a fraction bar with `upper` over it and `lower` under it:
+    at most `FRACTION_BAR` em thick and three times as wide, both boxes overlapping it
+    across, their middles on either side of it and their edges within `FRACTION_REACH` em."""
+    x0, y0, x1, y1 = bar
+    thick = y1 - y0
+    if thick > FRACTION_BAR * size or x1 - x0 < 3 * thick:
+        return False
+    if min(upper[2], x1) <= max(upper[0], x0) or min(lower[2], x1) <= max(lower[0], x0):
+        return False
+    if not (upper[1] + upper[3]) / 2 < y0 < y1 < (lower[1] + lower[3]) / 2:
+        return False
+    return y0 - upper[3] <= FRACTION_REACH * size and lower[1] - y1 <= FRACTION_REACH * size
+
+
+def _lines(
+    textpage: pdfium.PdfTextPage,
+    height: float,
+    number: int,
+    bars: _Bars | None = None,
+) -> tuple[TextLine, ...]:
     lines: list[_Line] = []
     space: str | None = None
     for char in _chars(textpage, height):
@@ -418,7 +485,7 @@ def _lines(textpage: pdfium.PdfTextPage, height: float, number: int) -> tuple[Te
             space = _SPACE if _SPACE in (space, char) else char
             continue
         if not (lines and lines[-1].accepts(char)):
-            line = _Line()
+            line = _Line(bars=bars or _Bars())
             if lines and lines[-1].stacks(char):
                 line.before = max(c.u1 for c in lines[-1].chars)
             lines.append(line)

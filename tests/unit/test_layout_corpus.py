@@ -637,6 +637,30 @@ def graphic_runs(block: Block, lines: set[str]) -> str:
     return " ".join(runs)
 
 
+# Liu's inline fractions in running text (#202): numerator and denominator as each paragraph
+# reads them. The first five were joined before D-575 ("eℏ2me", "1ℏ", "∂Emq∂q", "iℏ", "eEℏ");
+# the last three already read with a space (digits under digits, #128 M2, or white printed).
+LIU_FRACTIONS = (
+    "µB = eℏ 2me . The",
+    "= 1 ℏ ∂Emq ∂q δm,m′",  # noqa: RUF001 (as liu prints it)
+    "+ i ℏ",
+    "Eq = eE ℏ · iRmm′q",  # noqa: RUF001 (as liu prints it)
+    "σextOH = 21 22σtotOH",  # noqa: RUF001 (as liu prints it)
+    "Lˆ = m0 4 (rˆ",  # noqa: RUF001 (as liu prints it)
+    "i∂δ(q−q′) ∂qδm,m′",  # noqa: RUF001 (as liu prints it)
+    "cos ϕ∂Θ(EF−Eq) ∂Eq",  # noqa: RUF001 (as liu prints it)
+)
+
+
+def test_liu_s_inline_fractions_read_their_parts_apart() -> None:
+    paper = CORPUS / "papers" / "arxiv2024-liu-orbital-hall.pdf"
+    paragraphs = [
+        b.text.replace("\n", " ") for b in document(paper).blocks if b.kind is BlockKind.PARAGRAPH
+    ]
+    for printed in LIU_FRACTIONS:
+        assert any(printed in text for text in paragraphs), printed
+
+
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_golden_file(paper: Path, snapshot: SnapshotAssertion) -> None:
     assert golden_text(paper.name, document(paper)) == snapshot

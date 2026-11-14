@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Content, Page, Part, TextLine, TextRun
-from sci2audio.layout.geometry import letter_size, rows, separators
+from sci2audio.layout.geometry import Bars, letter_size, page_bars, rows, separators, union
 from sci2audio.layout.settings import LayoutSettings
 
 # a footnote mark as printed: a number or a run of note symbols
@@ -63,7 +63,7 @@ def find_footnotes(
             if not inside:
                 continue
             lines = [on_page[part.item] for k in inside for part in blocks[k].parts]
-            replaced[inside[0]] = _notes(lines, settings)
+            replaced[inside[0]] = _notes(lines, settings, page_bars(page, settings))
             dropped.update(inside[1:])
     out: list[Block] = []
     for k, block in enumerate(blocks):
@@ -142,9 +142,10 @@ def _size(runs: Iterable[TextRun]) -> float:
     return letters.most_common(1)[0][0] if letters else 0.0
 
 
-def _notes(lines: list[TextLine], settings: LayoutSettings) -> list[Block]:
+def _notes(lines: list[TextLine], settings: LayoutSettings, bars: Bars) -> list[Block]:
     """The lines read again row by row, top to bottom and left to right, and split into
-    notes where a row opens with a mark."""
+    notes where a row opens with a mark; `bars` are the page's drawings (a fraction bar
+    keeps a space between its parts, #202)."""
     notes: list[tuple[str, list[list[TextLine]]]] = []
     for row in rows(lines, settings.row_overlap):
         mark = _mark(row, settings)
@@ -152,7 +153,13 @@ def _notes(lines: list[TextLine], settings: LayoutSettings) -> list[Block]:
             notes.append((mark or "", [row]))
         else:
             notes[-1][1].append(row)
-    return [_note(label, found, settings) for label, found in notes]
+    return [_note(label, found, settings, bars) for label, found in notes]
+
+
+def _bars_of(row: list[TextLine], bars: Bars) -> tuple[Box, ...]:
+    """The page's possible fraction bars that meet the row (#202)."""
+    boxes = [piece.box for piece in row if piece.box]
+    return bars.meeting(union(boxes)) if boxes else ()
 
 
 def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
@@ -174,14 +181,22 @@ def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
     return text if (smaller or raised) and _MARK.fullmatch(text) else None
 
 
-def _note(label: str, lines: list[list[TextLine]], settings: LayoutSettings) -> Block:
+def _note(label: str, lines: list[list[TextLine]], settings: LayoutSettings, bars: Bars) -> Block:
     """A footnote block: rows joined by a line break, pieces of a row by a space where the
     page prints one (`separators`), each piece's text as found (white at its ends included,
     as in any block)."""
     text, parts = "", []
     for n, row in enumerate(lines):
         size = letter_size(run for piece in row for run in piece.runs)
-        joins = separators(row, size, settings.word_space, settings.stack_reach)
+        joins = separators(
+            row,
+            size,
+            settings.word_space,
+            settings.stack_reach,
+            _bars_of(row, bars),
+            settings.fraction_bar,
+            settings.fraction_reach,
+        )
         for k, piece in enumerate(row):
             text += "\n" if n and not k else joins[k]
             parts.append(Part(piece.id, len(text)))

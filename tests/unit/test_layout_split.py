@@ -1,7 +1,7 @@
 """Keeping some of a block's parts (layout `split.kept`): each kept line's text as found,
 graphics holding no text wherever they stand (review of PR #61). Cutting a block and reading
 lines row by row, with pieces of a printed line joined by a space only where the page prints
-one (#36)."""
+one (#36) or a fraction bar stands between them (#202)."""
 
 from hypothesis import given
 from hypothesis import strategies as st
@@ -127,6 +127,69 @@ def test_separators() -> None:
     unplaced = [TextLine("u", (TextRun("u"),)), TextLine("v", (TextRun("v"),))]
     assert separators(unplaced, size, space, reach) == ["", " "]  # EPUB, text: as before
     assert separators([], size, space, reach) == []
+
+
+def _liu_fraction() -> tuple[TextLine, TextLine, Box]:
+    """Liu p2 "µB = eℏ over 2me . The": the numerator ends one piece, the denominator starts
+    the next one 1.2 em back under it, a 0.8 pt fraction bar between them (boxes as
+    extraction gives them)."""
+    numerator = TextLine(
+        "p2-l107",
+        (
+            TextRun("Bohr-magneton µB =", "CMR10", 10.0, box=Box(388.3, 339.7, 518.0, 348.6)),
+            TextRun(" e", "CMMI7", 7.0, box=Box(525.3, 337.8, 529.1, 344.0)),
+            TextRun("ℏ", "CMR7", 7.0, box=Box(529.1, 337.8, 533.5, 342.7)),
+        ),
+        Box(388.3, 337.8, 533.5, 349.4),
+    )
+    denominator = TextLine(
+        "p2-l108",
+        (
+            TextRun("2me", "CMR7", 7.0, box=Box(521.9, 345.2, 536.3, 352.0)),
+            TextRun(" . The", "CMR10", 10.0, box=Box(538.0, 339.7, 562.1, 348.5)),
+        ),
+        Box(521.9, 339.7, 562.1, 352.0),
+    )
+    return numerator, denominator, Box(521.5, 343.7, 537.2, 344.5)
+
+
+def test_a_piece_under_a_fraction_bar_keeps_a_space() -> None:
+    """#202 (D-575): the denominator of an inline fraction starts back under its numerator
+    in the piece before; with the bar drawn between them it keeps a space ("eℏ 2me"), so
+    the voice never reads the two as one word ("eℏ2me")."""
+    size, space, reach = 10.0, 0.15, 2.0
+    numerator, denominator, bar = _liu_fraction()
+    row = [numerator, denominator]
+    assert separators(row, size, space, reach) == ["", ""]  # no bar known: as before
+    assert separators(row, size, space, reach, [bar]) == ["", " "]
+    thick = Box(521.5, 342.0, 537.2, 345.0)  # 3 pt: a frame or a figure's line, no bar
+    aside = Box(400.0, 343.7, 420.0, 344.5)  # under other letters, not the numerator's
+    low = Box(521.5, 360.0, 537.2, 360.8)  # well below both pieces
+    for other in (thick, aside, low):
+        assert separators(row, size, space, reach, [other]) == ["", ""]
+    # a script stacked under a superscript with no bar stays joined (D-277)
+    script = [piece("J1st", 0, 10), piece("0n", 5, 9, 105)]
+    assert separators(script, size, space, reach, [Box(30, 104, 40, 104.4)]) == ["", ""]
+
+
+@given(
+    st.lists(
+        st.tuples(st.floats(0, 500), st.floats(0, 60), st.floats(-5, 5)), min_size=1, max_size=8
+    ),
+    st.lists(
+        st.tuples(st.floats(0, 500), st.floats(90, 120), st.floats(0, 60), st.floats(0, 3)),
+        max_size=4,
+    ),
+    st.floats(0.0, 20.0),
+)
+def test_fraction_bars_only_add_spaces(boxes: list, bars: list, size: float) -> None:
+    """A bar keeps a space where there was none; it never takes one away."""
+    row = [piece(f"p{k}", x, x + w, 100 + dy) for k, (x, w, dy) in enumerate(boxes)]
+    drawn = [Box(x, y, x + w, y + h) for x, y, w, h in bars]
+    without = separators(row, size, 0.15, 2.0)
+    found = separators(row, size, 0.15, 2.0, drawn)
+    assert len(found) == len(without)
+    assert all(b == " " for a, b in zip(without, found, strict=True) if a == " ")
 
 
 @given(

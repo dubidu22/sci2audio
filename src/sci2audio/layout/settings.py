@@ -83,6 +83,10 @@ class LayoutSettings:
     #                           piece is a space (extraction's SPACE, D-275)
     stack_reach: float = 2.0  # em: a piece starting further back than this under the
     #                           letters before it is out of its place and keeps a space (D-277)
+    fraction_bar: float = 0.15  # em: a drawing at most this thick between the end of a piece
+    #                             and the next piece starting under it is a fraction bar: the
+    #                             denominator keeps a space (#202, D-575) ...
+    fraction_reach: float = 0.6  # em: ... when both stand this close to the bar
 
     # Footnotes
     footnote_rule_height: float = 1.5  # points: a footnote rule is at most this thick, ...

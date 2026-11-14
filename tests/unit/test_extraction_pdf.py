@@ -15,6 +15,7 @@ from pdf_maker import (
     Text,
     in_form,
     make_pdf,
+    one_page_pdf,
     outlined_pdf,
     raw_pdf,
     stream,
@@ -175,6 +176,41 @@ def test_digits_of_a_stacked_fraction_keep_their_space(
         ]
     )
     assert lines_of(data) == [printed]
+
+
+def _fraction(numerator: str, denominator: str, back: float, bar: float | None) -> bytes:
+    """ "so B = " in 10 point, then in 7 point the numerator raised 3.5 pt and the
+    denominator 7.5 pt under it, `back` pt further left, both in one text object as TeX
+    writes them; `bar` is the height of the rule drawn between them (None: no rule)."""
+    rule = b"104.5 601.6 10 %.1f re f " % bar if bar is not None else b""
+    content = (
+        b"BT /F1 10 Tf 72 600 Td (so B = ) Tj ET "
+        b"BT /F1 7 Tf 105 603.5 Td (%s) Tj %.1f -7.5 Td (%s) Tj ET "
+        % (numerator.encode(), -back, denominator.encode())
+        + rule
+        + b"BT /F1 10 Tf 118 600 Td (then more) Tj ET"
+    )
+    return one_page_pdf(content)
+
+
+@pytest.mark.parametrize(
+    ("numerator", "denominator", "back", "bar", "printed"),
+    [
+        ("1", "h", 0.2, 0.4, "so B = 1 h then more"),  # Liu p2: 1 over h-bar
+        ("eE", "h", -2.0, 0.4, "so B = eE h then more"),  # Liu p3: eE over h-bar
+        ("1", "h", 0.2, None, "so B = 1h then more"),  # no rule: a script stack, as before
+        ("1", "h", 0.2, 3.0, "so B = 1h then more"),  # a rule 3 pt thick is no fraction bar
+    ],
+)
+def test_a_fraction_over_its_bar_keeps_its_space(
+    numerator: str, denominator: str, back: float, bar: float | None, printed: str
+) -> None:
+    """#202: an inline fraction stored in one line, numerator then denominator, must not
+    read as one word ("1h"). The denominator starts back under the numerator, so their
+    letters touch along the line; the space PDFium adds between them stays when a fraction
+    bar is drawn between the two (D-575), and only then: a superscript over a subscript has
+    no bar and stays joined (D-277)."""
+    assert lines_of(_fraction(numerator, denominator, back, bar)) == [printed]
 
 
 def char(text: str, u0: float, u1: float, base: float = 100.0, size: float = 10.0) -> _Char:
