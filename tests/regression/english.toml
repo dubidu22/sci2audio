@@ -1456,3 +1456,33 @@ expected = [
     "Footnote 2. A second note.",
     "Then more.",
 ]
+
+# ---- v1.2 second-run batch: numbers (D-577) -----------------------------------------------
+
+[[case]]
+id = "numbers-a-fraction-after-a-minus-sign"
+audit = 0
+issue = 304
+goal = "A fraction after a minus sign that is read 'minus' is read as a fraction on the first run, as a second run reads it after 'minus' (D-577). A minus glued after a number, and the ASCII hyphen, stay as printed."
+blocks = [
+    { kind = "paragraph", text = "It is −1/2 here." },
+    { kind = "paragraph", text = "It is 5 −1/2 here." },
+    { kind = "paragraph", text = "3–33–3 −3/3" },
+    { kind = "paragraph", text = "It is 5−1/2 here." },
+    { kind = "paragraph", text = "It is -1/2 here." },
+]
+expected = [
+    "It is minus 1 half here.",
+    "It is 5 minus 1 half here.",
+    "3 to 33 to 3 minus 3 out of 3",
+    "It is 5−1/2 here.",
+    "It is -1/2 here.",
+]
+
+[[case]]
+id = "units-a-tilde-before-a-line-end-hyphen"
+audit = 0
+issue = 304
+goal = "'~' before a sign and a number reads 'about' when a line break follows the hyphen too: the hyphen before a digit stays when the line is joined, so a second run reads it so (D-577)."
+blocks = [{ kind = "paragraph", text = "0:~-\n0" }]
+expected = ["0: about -0"]
