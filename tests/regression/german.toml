@@ -640,6 +640,66 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 W Leistung." }]
 expected = ["OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 Watt Leistung."]
 
+[[case]]
+id = "de-numbers-date-range-with-years"
+audit = 0
+issue = 253
+goal = "A full date after a range dash is read as a date, with the ending 'bis' gives it; before, '1.3.2020–11.3.2020' left the second date as printed and a second run read it."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Messung lief vom 1.3.2020–11.3.2020 im Labor." }]
+expected = ["Die Messung lief vom ersten März 2020 bis elften März 2020 im Labor."]
+
+[[case]]
+id = "de-numbers-date-after-a-dash-without-bis"
+audit = 0
+issue = 253
+goal = "A date after a dash that is not read 'bis' (a dotted day before it) stays as printed, as on main; read, it gave 'vom 1.–dritter April 2020' (review of PR #263, F1). An em dash between full dates reads 'bis' with the ending 'bis' gives (F2)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Messung lief vom 1.–3.4.2020 im Labor." },
+    { kind = "paragraph", text = "Sie lief 1.3.2020—11.3.2020 im Labor." },
+]
+expected = [
+    "Die Messung lief vom 1.–3.4.2020 im Labor.",
+    "Sie lief erster März 2020 bis elften März 2020 im Labor.",
+]
+
+[[case]]
+id = "de-numbers-hyphen-year-range"
+audit = 0
+issue = 253
+goal = "A hyphen range from a year reads its right side as a year too, as an en dash range does: '1500-1998' was '15 hundert bis 1998', and a second run read 'bis 1998' as a year."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Daten reichen von 1500-1998 zurück." }]
+expected = ["Die Daten reichen von 15 hundert bis 19 hundert 98 zurück."]
+
+[[case]]
+id = "de-units-x-after-a-power"
+audit = 0
+issue = 253
+goal = "An x between a power and a number reads 'mal' on the first run, as it does after the numbers step's 'hoch 6'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Ein Gitter mit 10⁶ x 3 Zellen." }]
+expected = ["Ein Gitter mit 10 hoch 6 mal 3 Zellen."]
+
+[[case]]
+id = "de-numbers-ordinal-before-an-abbreviated-noun"
+audit = 0
+issue = 253
+goal = "An ordinal before the abbreviation of a noun the ordinal rule knows is read on the first run: '12. Kap. 3' was '12. Kapitel 3', and a second run read 'zwölftes Kapitel'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das steht im Buch, 12. Kap. 3, und in der 2. Aufl. nicht." }]
+expected = ["Das steht im Buch, zwölftes Kapitel 3, und in der zweiten Auflage nicht."]
+
+[[case]]
+id = "de-abbreviations-before-a-removed-link"
+audit = 0
+issue = 253
+goal = "A label abbreviation before a link the links step removes is read as before what follows the link: 'Kap. https://x.org/a (ebd., S. 3)' kept 'Kap.', and a second run, without the link, read 'Kapitel' (review of PR #256, D1)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Siehe Kap. https://x.org/a (ebd., S. 3)." }]
+expected = ["Siehe Kapitel (ebenda, Seite 3)."]
+
 # ---- #212 notices and footnotes in German (D-517 to D-524) ---------------------------------------
 
 [[case]]

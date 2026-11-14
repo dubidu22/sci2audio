@@ -627,6 +627,22 @@ def _both_runs(text: str) -> tuple[str, str]:
         # #160: once "x" reads "times", the number after it is found on the first run too
         ("5 5 mg/kg, e.g. 5 x86K", "5 5 milligrams per kilogram, for example 5 times 86 thousand"),
         ("5 x86K", "5 times 86 thousand"),
+        # #253: a power before the x, which the numbers step reads in the same run
+        ("10⁶ x1", "10 to the power of 6 times 1"),
+        ("a 10⁶ x 3 grid", "a 10 to the power of 6 times 3 grid"),
+        ("10⁸ x86K", "10 to the power of 8 times 86 thousand"),  # nightly seed 8006
+        # ... and "<" before a CI read glued, as the statistics step leaves it
+        ("<CI=", "<confidence interval ="),
+        # ... and an x before the times sign, which reads "times" after it as before it
+        ("5x\u00d7 3", "5x times 3"),
+        ("a 5x times", "a 5x times"),
+        # ... and an abbreviation before a link the links step removes
+        ("See Fig. https://x.org/a 3.", "See Figure 3."),
+        ("See Fig. <https://x.org/a> 3.", "See Figure 3."),
+        ("See Fig. (see https://x.org/a) 3.", "See Figure 3."),
+        ("See Fig.          https://x.org/a 3.", "See Figure 3."),
+        # ... and a label after a symbol and a full stop (nightly seed 6007)
+        ("\u00d7.Figure 5 mg/kg", "times.Figure 5 mg/kg"),
     ],
 )
 def test_units_and_abbreviations_read_the_same_on_the_first_and_second_run(
@@ -798,6 +814,7 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("nach 12 min. Pause", "nach 12 Minuten Pause"),
         ("ein 1,5-l-Behälter", "ein 1,5-Liter-Behälter"),
         ("eine 1-kg-Packung", "eine Ein-Kilogramm-Packung"),
+        ("z. B. 1-m", "z. B. ein-Meter"),  # no compound after it (nightly seed 7008)
         ("10 %", "10 Prozent"),
         ("10%", "10%"),  # glued: the voice reads it right
         ("um 1 %", "um ein Prozent"),

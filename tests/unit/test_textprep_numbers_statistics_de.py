@@ -11,6 +11,7 @@ from notation_texts import german_notation_documents
 from sci2audio.core import BlockKind, Document, apply_edits
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
 from sci2audio.textprep import (
+    AbbreviationStep,
     NumbersStep,
     StatisticsStep,
     StepContext,
@@ -328,6 +329,46 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
             "Das KI [1,2; 3,4],1–2 war breit.",
             "Das Konfidenzintervall [1 Komma 2; 3 Komma 4],1 bis 2 war breit.",
         ),
+        # #253: nightly seeds 66, 222 and 11 on main
+        ("10⁶ x1", "10 hoch 6 mal 1"),
+        ("im 1234-1234", "im 12 hundert 34-1234"),
+        ("1–11.3.2020", "1 bis elften März 2020"),
+        ("vom 1.3.2020–11.3.2020", "vom ersten März 2020 bis elften März 2020"),
+        # review of PR #263 (F1, F2): no "bis" for the dash, no date after it, as on main;
+        # an em dash between full dates is a range like the en dash
+        ("vom 1.–3.4.2020", "vom 1.–3.4.2020"),
+        ("vom 1.3.–11.3.2020", "vom ersten März–11.3.2020"),
+        ("1.3.2020\u201411.3.2020", "erster März 2020 bis elften März 2020"),
+        ("110⁶–1234", "110⁶ bis 1234"),
+        ("1 × 10-2 x1–1", "1 mal 10-2 x1 bis 1"),
+        ("im 1500—1234", "im 15 hundert bis 12 hundert 34"),
+        ("um 24:00 n²", "um 24 Uhr n Quadrat"),
+        ("um 13:30 m² Fläche", "um 13:30 m² Fläche"),
+        ("Abschnitt 1.234-2011", "Abschnitt 1.234-2011"),
+        # an ordinal before the abbreviation of its noun, which the abbreviations step reads
+        ("Daten zeigt 12. Kap. (S. 3).", "Daten zeigt zwölftes Kapitel (Seite 3)."),
+        ("12. Kap. 3", "zwölftes Kapitel 3"),
+        ("Siehe 12. Kap. dazu.", "Siehe zwölftes Kap. dazu."),
+        ("die 12. Aufl. erschien", "die zwölfte Auflage erschien"),
+        ("5x× 3", "5x mal 3"),
+        # review of PR #256 (D1): an abbreviation before a link the links step removes
+        ("Siehe Kap. https://x.org/a (ebd., S. 3).", "Siehe Kapitel (ebenda, Seite 3)."),
+        # an opener the links step removes with the link, and a long gap (PR #263 review G1)
+        ("Siehe Kap. <https://x.org/a> 3 dazu.", "Siehe Kapitel 3 dazu."),
+        ("Siehe Kap. (siehe https://x.org/a) 3 dazu.", "Siehe Kapitel 3 dazu."),
+        ("Siehe Kap.          https://x.org/a 3 dazu.", "Siehe Kapitel 3 dazu."),
+        ("Kap. www.x.org 3 zeigt", "Kapitel 3 zeigt"),
+        ("10^{-3}.1.234", "10^{-3}.1.234"),  # nightly seed 11 after the fixes above
+        ("1–1im 1500-1998", "1 bis 1im 15 hundert bis 19 hundert 98"),  # seed 222 after them
+        ("im 1234-1998", "im 12 hundert 34 bis 19 hundert 98"),
+        ("im 1500-1998 m", "im 1500 bis 1998 Meter"),
+        ("1-2,5-", "1-2,5-"),  # seed 6005
+        ("1-2,5 m", "1 bis 2 Komma 5 Meter"),
+        ("um 13:30. Jahr", "um 13 Uhr 30. Jahr"),  # seed 6003
+        ("um 13 Uhr 30. Mai", "um 13 Uhr 30. Mai"),
+        ("10^2x1", "10 hoch 2 mal 1"),  # seed 7001
+        ("am 12.03.2019 x .45", "am zwölften März 2019 mal 0 Komma 4 5"),  # seed 8007
+        ("Ft\u00adt(1998)=1", "Ftt gleich 1"),  # seed 6007: a soft hyphen in a name
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:
@@ -354,6 +395,37 @@ def test_long_german_blocks_take_linear_time(text: str) -> None:
     NUMBERS.find(document, DE)
     STATISTICS.find(document, DE)
     assert time.perf_counter() - started < 3
+
+
+def _abbreviations_seconds(text: str) -> float:
+    document = make_document([(BlockKind.PARAGRAPH, text)], "de")
+    best = float("inf")
+    for _ in range(3):
+        started = time.perf_counter()
+        AbbreviationStep().find(document, DE)
+        best = min(best, time.perf_counter() - started)
+    return best
+
+
+@pytest.mark.timeout(180)
+@pytest.mark.parametrize(
+    ("unit", "count"),
+    [
+        ("Siehe Kap. https://x.org/a dazu. ", 2_000),
+        ("Kap. https://x.org/a Kap. x ", 2_000),
+        ("Siehe Kap. dazu. ", 8_000),  # faster per character: more of it, for a fair timing
+    ],
+    ids=["link-after-label", "dense", "no-link"],
+)
+def test_the_link_look_ahead_of_the_abbreviations_step_takes_linear_time(
+    unit: str, count: int
+) -> None:
+    """Review of PR #263 (F3): the look past a removed link after an abbreviation runs the
+    links step's pass once per block and bisects it; four times the text takes about four
+    times as long, not sixteen (best of three runs, so a busy machine does not decide)."""
+    small = _abbreviations_seconds(unit * count)
+    large = _abbreviations_seconds(unit * count * 4)
+    assert large < 8 * max(small, 0.05)
 
 
 def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:
