@@ -192,6 +192,10 @@ def test_german_citations(printed: str, said: str) -> None:
         "Die Werte liegen in [0, 1].",  # an interval after "in" and a maths sign
         "Abb. [3] zeigt es.",  # a label's number
         "Fahl et al. haben gezeigt [Fa14].",  # alphanumeric keys are not read yet
+        # a round bracket of German intervals of decimals stays, as each interval does (#266)
+        "Die Werte ([1,2; 3,4]) sind klein.",
+        "Die Werte ( [1,2; 3,4]) sind klein.",
+        "Die Werte ([1,2; 3,4], [5,6; 7,8]) sind klein.",
     ],
 )
 def test_german_brackets_that_are_no_citation_stay(text: str) -> None:
@@ -320,6 +324,10 @@ def test_a_german_job_with_links_and_citations_reads_the_same_on_a_second_run(
         "Sei x gleich [12].",
         # two German decimals in a bracket are an interval, not sources
         "95 %-KI [1; 1] und [1,2; 3,4] N",
+        # ... also in a round bracket, once a citation before it is gone (#266)
+        "( (Müller & Schmidt, 2019) [1,2; 3,4])",
+        "Die Werte ([1,2; 3,4]; Müller, 2019) sind klein.",
+        "Das gilt ([12]; [1,2; 3,4]).",
         # a statistic's reading is no author's name
         "χ²(1998) ± 1",
         # "KI" with a link between it and its interval
@@ -335,6 +343,31 @@ def test_a_german_job_with_links_and_citations_reads_the_same_on_a_second_run(
 def test_a_second_run_reads_nothing_new(text: str) -> None:
     once = read_all(text)
     assert read_all(once) == once, (text, once)
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #266 (nightly seed 31337): the first run kept the interval, a second removed it
+        ("( (Müller & Schmidt, 2019) [1,2; 3,4])", "( [1,2; 3,4])"),
+        ("Die Werte ([1,2; 3,4]; Müller, 2019) sind klein.", "Die Werte ([1,2; 3,4]) sind klein."),
+        # a source among the brackets: the aside still goes whole, as on main
+        ("Das gilt ([12]; [1,2; 3,4]).", "Das gilt."),
+    ],
+)
+def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
+    printed: str, said: str
+) -> None:
+    once = read(CITATIONS, printed)
+    assert once == said
+    assert read(CITATIONS, once) == once
+
+
+def test_an_english_round_bracket_of_numbers_is_still_a_citation() -> None:
+    """English has no decimal comma: "[1,2; 3,4]" cites sources 1, 2, 3 and 4."""
+    document = make_document([(BlockKind.PARAGRAPH, "It holds ([1,2; 3,4]).")], "en")
+    edits = CITATIONS.find(document, StepContext("en"))
+    assert spoken_text(apply_edits(document, edits)) == "It holds."
 
 
 @given(st.text(max_size=200))
