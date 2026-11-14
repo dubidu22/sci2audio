@@ -23,15 +23,12 @@ from dataclasses import dataclass
 from pathlib import PurePath
 
 from sci2audio.core import Document
-from sci2audio.textprep import REFERENCE_TITLES
+from sci2audio.textprep import REFERENCE_NAMES
 
 # The names a reference-list heading has, compared without case and without a printed
-# number. English for v1.0 (D-50): the reference-list text step's own tuple, so the chapter
-# choice and the step agree (D-146); the German names are an extra for the next language.
-REFERENCE_NAMES: dict[str, tuple[str, ...]] = {
-    "en": REFERENCE_TITLES,
-    "de": ("Literatur", "Literaturverzeichnis", "Quellen", "Quellenverzeichnis"),
-}
+# number: the reference-list text step's own table, English and German (#221), so the
+# chapter choice and the step agree (D-146). Every language's names count here, since the
+# chapter list does not depend on the job's language.
 _ALL_REFERENCE_NAMES = frozenset(
     name.casefold() for names in REFERENCE_NAMES.values() for name in names
 )
