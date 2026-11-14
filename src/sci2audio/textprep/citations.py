@@ -35,6 +35,7 @@ import re
 from dataclasses import dataclass, field
 
 from sci2audio.core import Document, Edit, EditKind, Span
+from sci2audio.textprep.abbreviations import reads_full_stop
 from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN
 from sci2audio.textprep.links import (
     SKIPPED_KINDS,
@@ -330,7 +331,7 @@ class CitationStep(TextStep):
         rules = _Rules(
             words,
             wording_for(context.language),
-            ABBREVIATIONS.get(language, words.abbreviations),
+            ABBREVIATIONS.get(language, frozenset()) | words.abbreviations,
             language,
         )
         edits = []
@@ -407,8 +408,16 @@ class _Rules:
                     if before_last == ".":  # "e.g., [3]." reads "e.g."
                         item[1] = end + 1
                 elif (
-                    (last in ".!?" and after in ".,;:") or (last in ",;" and after in ",;")
-                ) and not (after != "." and self._abbreviation_before(text, kept_end, start)):
+                    ((last in ".!?" and after in ".,;:") or (last in ",;" and after in ",;"))
+                    and not (after != "." and self._abbreviation_before(text, kept_end, start))
+                    # "Kap." is read "Kapitel", its full stop with it: the sentence keeps its
+                    # own ("Siehe Kap. (Müller, 2019). Dann", #227)
+                    and not (
+                        last == "."
+                        and last_at >= 0
+                        and reads_full_stop(text, last_at + 1, self.language)
+                    )
+                ):
                     item[1] = end + 1  # "et al. (2019). Then" reads "et al. Then"
             kept_end = item[1]
             if kind is EditKind.REPLACE:

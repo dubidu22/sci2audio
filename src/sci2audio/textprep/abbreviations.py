@@ -146,6 +146,27 @@ class AbbreviationStep(TextStep):
             )
 
 
+def reads_full_stop(text: str, end: int, language: str) -> bool:
+    """True if this step reads an abbreviation that ends at `end` with its full stop ("Kap."
+    as "Kapitel", "e.g." as "for example"): the citations step then leaves the full stop
+    after a citation that follows it, or the sentence would lose its end ("Siehe Kap.
+    (Müller, 2019). Dann", #227). Only the text around `end` is looked at."""
+    entries = abbreviations(language)
+    if not entries or text[end - 1 : end] != ".":
+        return False
+    pattern, by_form = _compiled(entries)
+    any_capital = language.split("-", 1)[0].lower() != "en"
+    low = max(0, end - _AROUND)
+    window = text[low : end + _AROUND]
+    return any(
+        edit.span.end == end - low
+        for edit in AbbreviationStep()._edits(0, window, pattern, by_form, any_capital)
+    )
+
+
+_AROUND = 96  # more than any form and the look back of `_after_name`
+
+
 class _Removals:
     """Where the links step removes text in a block, found once and only when asked: an
     abbreviation before a removed link reads as it does before what follows the link ("Kap.
