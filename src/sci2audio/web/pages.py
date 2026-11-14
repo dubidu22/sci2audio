@@ -187,6 +187,8 @@ def _said(edit: Mapping[str, Any], s: Strings) -> tuple[str, bool]:
         return s("check.said_pause"), False
     if kind == "ask":
         return s("check.said_ask"), False
+    if kind == "move":  # a footnote read at its mark (#213)
+        return s("check.said_moved", page=_edit_page(edit.get("to") or {}) or "?"), False
     return str(edit.get("said", "")), True
 
 

@@ -32,10 +32,11 @@ from web_helpers import (
     upload,
 )
 
-from sci2audio.core import Block, BlockKind, Document, Page, Section, Span
+from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Page, Section, Span
 from sci2audio.output import ReadAlong
 from sci2audio.output.readalong import ChapterTimes, ChunkTimes, to_json
 from sci2audio.testing.documents import make_document
+from sci2audio.textprep import BUILT_IN_STEPS, Category, Stage, StepContext, TextStep
 from sci2audio.voices import EngineError
 from sci2audio.web import create_app, player, tasks
 from sci2audio.web.player import (
@@ -229,6 +230,170 @@ def test_heading_levels_follow_the_sections() -> None:
     assert chapter.title_block is not None
     assert chapter.title_block.heading == 2
     assert [b.heading for b in chapter.blocks] == [3, 0, 4]
+
+
+class _Mover(TextStep):
+    """Reads block 3 (a footnote) at position 10 of block 1 (#213)."""
+
+    id = "places"
+    languages = ("*",)
+    category = Category.FOOTNOTES
+    stage = Stage.MOVE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        to = Span(1, 10, 10)
+        return [Edit(Span(3, 0, 9), EditKind.MOVE, "read at its mark", self.id, to=to)]
+
+
+def test_a_moved_footnote_shows_after_the_block_it_is_read_in() -> None:
+    """#213 (plan Q8): the note shows where the voice reads it, in the mark's chapter; the
+    page it starts is marked on the next block printed there."""
+    document = make_document(
+        [
+            ("heading", "1 One"),
+            ("paragraph", "It works.1 It holds."),
+            ("heading", "2 Two"),
+            Block(BlockKind.FOOTNOTE, "1 A note.", label="1"),
+            ("paragraph", "More."),
+        ],
+        sections=[Section("1 One", 1, 0, 2), Section("2 Two", 1, 2, 5)],
+    )
+    document = on_pages(document, [1, 1, 1, 2, 2])
+    spans = [(0, 0, 5), (1, 0, 9), (3, 0, 9), (1, 11, 20), (2, 0, 5), (4, 0, 5)]
+    data = readalong(spans, (("One", 0), ("Two", 4)), [0, 0, 0, 0, 1, 1])
+    steps = [*BUILT_IN_STEPS, _Mover()]
+    view = build_view(document, record(chunks=6), data, steps)
+    one, two = view.chapters
+    assert [b.index for b in one.blocks] == [1, 3]
+    assert [b.index for b in two.blocks] == [4]
+    assert [(b.page, b.heading) for b in one.blocks] == [("", 0), ("", 0)]
+    assert two.blocks[0].page == "2"  # the note no longer starts page 2: the next block does
+    assert [c[3] for c in view.chunks] == ["s0", "s1", "s2", "s3", "s4", "s5"]
+    assert texts(view) == ["1 One", "It works.1 It holds.", "1 A note.", "2 Two", "More."]
+    # without the move, the note stays where it is printed
+    plain = build_view(document, record(chunks=6), data)
+    assert [b.index for b in plain.chapters[1].blocks] == [3, 4]
+
+
+def test_an_audiobook_read_with_notes_where_printed_shows_them_there() -> None:
+    """Review R1-2: the page is built by today's steps, the audio may be older. A read-along
+    that reads the note where it is printed (before #213) shows it there, in its printed
+    chapter, although today's steps would move it."""
+    document = make_document(
+        [
+            ("heading", "1 One"),
+            ("paragraph", "It works.1 It holds."),
+            ("heading", "2 Two"),
+            Block(BlockKind.FOOTNOTE, "1 A note.", label="1"),
+            ("paragraph", "More."),
+        ],
+        sections=[Section("1 One", 1, 0, 2), Section("2 Two", 1, 2, 5)],
+    )
+    document = on_pages(document, [1, 1, 1, 2, 2])
+    spans = [(0, 0, 5), (1, 0, 9), (1, 11, 20), (2, 0, 5), (3, 0, 9), (4, 0, 5)]
+    data = readalong(spans, (("One", 0), ("Two", 3)), [0, 0, 0, 1, 1, 1])
+    view = build_view(document, record(chunks=6), data, [*BUILT_IN_STEPS, _Mover()])
+    one, two = view.chapters
+    assert [b.index for b in one.blocks] == [1]
+    assert [b.index for b in two.blocks] == [3, 4]
+    assert two.blocks[0].page == "2"
+    assert [c[3] for c in view.chunks] == ["s0", "s1", "s2", "s3", "s4", "s5"]
+
+
+class _ToTheStart(TextStep):
+    """Reads block 1 (a footnote) at the start of block 2, the next chapter's heading."""
+
+    id = "places"
+    languages = ("*",)
+    category = Category.FOOTNOTES
+    stage = Stage.MOVE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [Edit(Span(1, 0, 9), EditKind.MOVE, "test", self.id, to=Span(2, 0, 0))]
+
+
+def test_a_chapter_that_starts_with_a_moved_block_is_the_chapter_it_is_read_in() -> None:
+    """Review R1-1: the chapter is found from where its first piece is read, not from where
+    that piece is printed."""
+    document = make_document(
+        [
+            ("heading", "1 One"),
+            Block(BlockKind.FOOTNOTE, "1 A note.", label="1"),
+            ("heading", "2 Two"),
+            ("paragraph", "More."),
+        ],
+        sections=[Section("1 One", 1, 0, 2), Section("2 Two", 1, 2, 4)],
+    )
+    spans = [(0, 0, 5), (1, 0, 9), (2, 0, 5), (3, 0, 5)]
+    data = readalong(spans, (("One", 0), ("Two", 1)), [0, 1, 1, 1])
+    view = build_view(document, record(chunks=4), data, [*BUILT_IN_STEPS, _ToTheStart()])
+    one, two = view.chapters
+    assert (one.title_block and one.title_block.index, [b.index for b in one.blocks]) == (0, [])
+    assert two.title_block is not None
+    assert (two.title_block.index, [b.index for b in two.blocks]) == (2, [1, 3])
+    assert view.left_out == []
+
+
+class _Together(TextStep):
+    """Reads the footnotes `notes` at one position `to`."""
+
+    id = "places"
+    languages = ("*",)
+    category = Category.FOOTNOTES
+    stage = Stage.MOVE
+
+    def __init__(self, notes: Sequence[int], to: Span) -> None:
+        self.notes, self.to = notes, to
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [Edit(Span(n, 0, 9), EditKind.MOVE, "test", self.id, to=self.to) for n in self.notes]
+
+
+def _notes_paper(notes: int) -> Document:
+    """Chapter One: a heading and "It works.1 It holds."; chapter Two: a heading, `notes`
+    footnotes printed together and "More."."""
+    blocks: list = [
+        ("heading", "1 One"),
+        ("paragraph", "It works.1 It holds."),
+        ("heading", "2 Two"),
+    ]
+    blocks += [Block(BlockKind.FOOTNOTE, f"{n} A note.", label=str(n)) for n in range(1, notes + 1)]
+    blocks.append(("paragraph", "More."))
+    return make_document(
+        blocks, sections=[Section("1 One", 1, 0, 2), Section("2 Two", 1, 2, 4 + notes)]
+    )
+
+
+@pytest.mark.parametrize("notes", [2, 3])
+@pytest.mark.parametrize("at", [10, 0], ids=["mid-block", "at-the-start"])
+def test_notes_read_together_at_one_position_all_show_where_they_are_read(
+    notes: int, at: int
+) -> None:
+    """Review R2-1: the voice reads the target, note 1, note 2, ..., the rest of the target;
+    every note of that stretch is shown in the target's chapter, after the target."""
+    document = _notes_paper(notes)
+    moved = list(range(3, 3 + notes))
+    head = [(1, 0, 9)] if at else []
+    tail = [(1, 11, 20)] if at else [(1, 0, 20)]
+    spans = [(0, 0, 5), *head, *[(n, 0, 9) for n in moved], *tail, (2, 0, 5), (3 + notes, 0, 5)]
+    two = len(spans) - 2
+    data = readalong(spans, (("One", 0), ("Two", two)), [0] * two + [1, 1])
+    steps = [*BUILT_IN_STEPS, _Together(moved, Span(1, at, at))]
+    view = build_view(document, record(chunks=len(spans)), data, steps)
+    one, two_view = view.chapters
+    assert [b.index for b in one.blocks] == [1, *moved]
+    assert [b.index for b in two_view.blocks] == [3 + notes]
+
+
+def test_notes_printed_together_and_read_there_stay_where_printed() -> None:
+    """Review R2-1: an old-style read-along reads two notes together where they are printed,
+    under a heading that does not hold their marks: they stay there."""
+    document = _notes_paper(2)
+    spans = [(0, 0, 5), (1, 0, 20), (2, 0, 5), (3, 0, 9), (4, 0, 9), (5, 0, 5)]
+    data = readalong(spans, (("One", 0), ("Two", 2)), [0, 0, 1, 1, 1, 1])
+    steps = [*BUILT_IN_STEPS, _Together([3, 4], Span(1, 10, 10))]
+    view = build_view(document, record(chunks=6), data, steps)
+    assert [[b.index for b in c.blocks] for c in view.chapters] == [[1], [3, 4, 5]]
 
 
 def test_a_block_with_nothing_read_says_so() -> None:

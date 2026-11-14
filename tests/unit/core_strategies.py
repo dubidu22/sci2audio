@@ -31,6 +31,7 @@ from sci2audio.core import (
     TextLine,
     TextRun,
 )
+from sci2audio.testing import make_document
 
 names = st.text(st.characters(exclude_characters="/\\"), min_size=1, max_size=12)
 words = st.text(max_size=12)
@@ -277,3 +278,16 @@ def overlaps(a: Span, b: Span) -> bool:
     if a.start == a.end == b.start == b.end:
         return True
     return a.start < b.end and b.start < a.end
+
+
+_TEXTS = st.text(alphabet="ab .1\n", max_size=12)
+
+
+@st.composite
+def small_documents(draw: st.DrawFn) -> Document:
+    """Two to six blocks, the first with text: cheap to draw, so every example has a move
+    (the full `documents()` strategy is too slow to filter for that)."""
+    first = draw(st.text(alphabet="ab .1", min_size=1, max_size=12))
+    rest = draw(st.lists(_TEXTS, min_size=1, max_size=5))
+    kinds = st.sampled_from([BlockKind.PARAGRAPH, BlockKind.FOOTNOTE, BlockKind.HEADING])
+    return make_document([(draw(kinds), text) for text in [first, *rest]])

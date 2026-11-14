@@ -383,6 +383,24 @@ def test_the_check_table_shows_a_line_break_in_an_edit_as_the_report_does() -> N
     assert (position.printed, position.printed_is_text) == (s("check.position"), False)
 
 
+@pytest.mark.parametrize(
+    ("language", "said"),
+    [
+        ("en", "read after the sentence with its mark (page iv)"),
+        ("de", "nach dem Satz mit ihrem Zeichen vorgelesen (Seite iv)"),
+    ],
+)
+def test_the_check_table_says_where_a_moved_footnote_is_read(language: str, said: str) -> None:
+    """#213: a move row names the page of the mark it is read at, as printed, in the
+    interface's language."""
+    s = strings(language)
+    to = {"block": 2, "start": 10, "end": 10, "page": 3, "printed_page": "iv"}
+    edit = {"category": "footnotes", "status": "accepted", "spoken": True, "kind": "move",
+            "original": "1 A note.", "said": "", "to": to}  # fmt: skip
+    row = pages._row(edit, {}, s)
+    assert (row.said, row.said_is_text, row.printed) == (said, False, "1 A note.")
+
+
 GERMAN_NOTE = (
     Path(__file__).resolve().parents[1] / "corpus" / "markdown" / "sci2audio-beispiel-notiz.md"
 )
