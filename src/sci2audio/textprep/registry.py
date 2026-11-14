@@ -64,12 +64,12 @@ BUILT_IN_STEPS: tuple[TextStep, ...] = (
 def check_registry(steps: Sequence[TextStep]) -> None:
     """Raise ValueError unless the steps can run in this order.
 
-    Each step's attributes are valid, the ids are unique and every block step comes before
-    every inline step.
+    Each step's attributes are valid, the ids are unique, every block step comes before
+    every inline step and every move step comes after both (#213).
     """
     problems = []
     seen: set[str] = set()
-    inline_seen = ""
+    last: dict[Stage, str] = {}  # stage -> the first step seen of it
     for step in steps:
         problems += [f"{step!r}: {problem}" for problem in step_problems(step)]
         step_id = getattr(step, "id", "")
@@ -77,12 +77,19 @@ def check_registry(steps: Sequence[TextStep]) -> None:
             problems.append(f"step id {step_id!r} is used twice")
         seen.add(step_id)
         stage = getattr(step, "stage", None)
-        if stage is Stage.INLINE and not inline_seen:
-            inline_seen = step_id
-        elif stage is Stage.BLOCK and inline_seen:
-            problems.append(
-                f"block step {step_id!r} comes after inline step {inline_seen!r}; "
-                "block steps run first"
-            )
+        if not isinstance(stage, Stage):
+            continue
+        for later in _STAGES[_STAGES.index(stage) + 1 :]:
+            if later in last:
+                problems.append(
+                    f"{stage} step {step_id!r} comes after {later} step {last[later]!r}; "
+                    f"{_RUN_ORDER}"
+                )
+                break
+        last.setdefault(stage, step_id)
     if problems:
         raise ValueError("invalid text-step order: " + "; ".join(problems))
+
+
+_STAGES = (Stage.BLOCK, Stage.INLINE, Stage.MOVE)
+_RUN_ORDER = "block steps run first, move steps last"

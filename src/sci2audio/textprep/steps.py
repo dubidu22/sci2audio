@@ -78,13 +78,17 @@ DEFAULT_SWITCHED_OFF: frozenset[Category] = frozenset(
 class Stage(StrEnum):
     """How much of a block a step's edits cover; D-57's "stage" field.
 
-    Block steps run before inline steps (coarse to fine). An accepted block edit claims its
-    block: no later edit in that block is used, not even a mark at its start or end, so a
-    whole-block removal or notice always wins over the rules inside the block (D-105).
+    Block steps run before inline steps (coarse to fine), move steps last. An accepted block
+    edit claims its block: no later edit in that block is used, not even a mark at its start
+    or end, so a whole-block removal or notice always wins over the rules inside the block
+    (D-105). A move step proposes only moves (`EditKind.MOVE`, #213) and only a move step
+    proposes them: running last, a move never blocks a rule about the text; a move that
+    conflicts is set aside and the block is read where it stands.
     """
 
     BLOCK = "block"  # every edit covers a whole block: furniture, reference list, notices
     INLINE = "inline"  # edits inside a block: citations, URLs, numbers, ...
+    MOVE = "move"  # moves of whole blocks to a position in another block: footnotes (#213)
 
 
 @dataclass(frozen=True)

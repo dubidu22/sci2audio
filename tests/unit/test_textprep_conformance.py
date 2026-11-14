@@ -66,6 +66,7 @@ class Bad(TextStep):
                 "changes": Edit(Span(index, 0, 1 + call % 2), EditKind.REMOVE, "r", self.id),
                 "not idempotent": Edit(Span(index, 0, 0), EditKind.REPLACE, "r", self.id, "Note: "),
                 "overlap": Edit(Span(index, 1, 3), EditKind.REMOVE, "r", self.id),
+                "move": Edit(whole, EditKind.MOVE, "r", self.id, to=Span(0, 0, 0)),
             }[how]
             edits.append(edit)
             if how == "overlap":
@@ -85,6 +86,7 @@ class Bad(TextStep):
         ("ask", "proposes an ask edit"),
         ("changes", "different edits the second time"),
         ("not idempotent", "not idempotent"),
+        ("move", "only a move step proposes moves"),
     ],
 )
 def test_the_suite_catches_each_kind_of_bad_step(how: str, problem: str) -> None:
@@ -98,6 +100,37 @@ def test_a_block_step_must_cover_whole_blocks() -> None:
     step.stage = Stage.BLOCK
     problems = text_step_problems(step)
     assert any("does not cover its block" in problem for problem in problems)
+
+
+class Mover(TextStep):
+    """A move step that reads each footnote at the end of the block before it (#213)."""
+
+    id = "mover"
+    languages = ("*",)
+    category = Category.FOOTNOTES
+    stage = Stage.MOVE
+
+    def __init__(self, plain: bool = False) -> None:
+        self.plain = plain
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        edits = []
+        for index, block in enumerate(document.blocks):
+            if block.kind is BlockKind.FOOTNOTE and index and block.text:
+                end = len(document.blocks[index - 1].text)
+                whole = Span(index, 0, len(block.text))
+                if self.plain:
+                    edits.append(Edit(whole, EditKind.REMOVE, "r", self.id))
+                else:
+                    to = Span(index - 1, end, end)
+                    edits.append(Edit(whole, EditKind.MOVE, "read here", self.id, to=to))
+        return edits
+
+
+def test_a_move_step_keeps_the_contract_and_proposes_only_moves() -> None:
+    check_text_step(Mover(), allow_ask=False)
+    problems = text_step_problems(Mover(plain=True))
+    assert any("a move step proposes only moves" in problem for problem in problems)
 
 
 def test_ask_edits_are_allowed_for_plugins() -> None:

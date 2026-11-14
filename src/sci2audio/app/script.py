@@ -3,7 +3,8 @@
 The text steps run on the whole document, whatever chapters are chosen, so the report is
 complete and a chapter choice needs no second analysis. The chapter choice applies when
 the script is cut into utterances: only the chosen chapters' pieces are cut, and the
-report marks the edits in the other chapters as not spoken.
+report marks the edits in the other chapters as not spoken. A block a move reads elsewhere
+belongs to the chapter it is read in (`StepRun.read_at`, #213).
 """
 
 from __future__ import annotations
@@ -84,12 +85,15 @@ def prepare_script(
     scripts = []
     for chapter in chapters:
         if chapter.index in chosen:
-            utterances = cut_utterances(document, _pieces_in(chapter, pieces), max_chars=max_chars)
+            mine = _pieces_in(chapter, pieces, run)
+            utterances = cut_utterances(document, mine, max_chars=max_chars)
             scripts.append(ChapterScript(chapter, True, utterances))
         else:
             scripts.append(ChapterScript(chapter, False))
     return ScriptResult(run, tuple(scripts), ignored)
 
 
-def _pieces_in(chapter: Chapter, pieces: Sequence[ScriptPiece]) -> list[ScriptPiece]:
-    return [piece for piece in pieces if chapter.holds(piece.span.block)]
+def _pieces_in(chapter: Chapter, pieces: Sequence[ScriptPiece], run: StepRun) -> list[ScriptPiece]:
+    """The chapter's pieces in reading order: a block moved elsewhere (a footnote read at its
+    mark, #213) belongs to the chapter it is read in, not the one it is printed in."""
+    return [piece for piece in pieces if chapter.holds(run.read_at(piece.span.block))]
