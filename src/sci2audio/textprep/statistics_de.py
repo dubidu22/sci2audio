@@ -21,9 +21,12 @@ edit covers them; every other number is the numbers step's (numbers_de.py).
 
 from __future__ import annotations
 
+import bisect
 import re
 from collections.abc import Iterator
 
+from sci2audio.core import BlockKind
+from sci2audio.textprep.links import link_removals
 from sci2audio.textprep.notation import Candidate, padded, unit_follows
 
 OPERATORS_DE = {
@@ -87,12 +90,9 @@ _THEN_OPERATOR_OR_DF = re.compile(f"(?:{_OPERATOR_AHEAD}|\\s*\\()")
 _CI = re.compile(r"(?<![\w′'])(?P<name>KI|CI)(?P<plural>s)?(?![\w′'])")
 _WINDOW = 64
 _AFTER_PERCENT = re.compile(r"[\d⁰¹²³⁴⁵⁶⁷⁸⁹][\])]?\s?%\s*-?\Z")
-# links between "KI" and its interval: the links step removes them, so a second run sees
-# the bracket right after "KI" (#101); a link cut after "/" goes on in the next line
-_LINKS_BETWEEN = re.compile(
-    r"(?:\s*(?:https?://|www\.)\S*(?:(?<=[/_~=&?#%-])\n\S*)*(?=\s))*", re.IGNORECASE
-)
-_BEFORE_CI_THING = re.compile(_LINKS_BETWEEN.pattern + r"\s*[\[(=:]", re.IGNORECASE)
+_BEFORE_CI_THING = re.compile(r"\s*[\[(=:]")
+_SPACES = re.compile(r"\s*")
+_LINK_HINT = re.compile(r"https?://|www\.|@|doi|arxiv", re.IGNORECASE)
 _SIGNED = r"[−-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)"
 _INTERVAL = re.compile(
     r"\s*(?:[=:]\s*)?(?P<open>[\[(]\s*)(?P<a>" + _SIGNED + r")(?P<sep>" + _PAIR + r")"
@@ -199,13 +199,24 @@ def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
 def ci_runs_de(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]]:
     """Each "KI" or "CI" read as words, with the intervals read after it (as `_ci_runs` in
     statistics.py, with German number pairs)."""
+    removed: list[tuple[int, int]] | None = None  # the links step's removals, when needed
+    starts: list[int] = []
     for match in _CI.finditer(plain):
         start, end = match.span()
         after_percent = bool(_AFTER_PERCENT.search(plain, max(0, start - _WINDOW), start))
-        if not after_percent and not _BEFORE_CI_THING.match(plain, end):
+        at = end
+        if not _BEFORE_CI_THING.match(plain, end):
+            # "KI unter https://x.org [1; 2]": the links step removes what stands between, so
+            # a second run sees the bracket right after "KI" (#101)
+            if removed is None:
+                found = _LINK_HINT.search(plain) is not None
+                removed = link_removals(plain, BlockKind.PARAGRAPH, "", "de") if found else []
+                starts = [removal_start for removal_start, _ in removed]
+            at = _past_removals(plain, end, removed, starts)
+        if not after_percent and not _BEFORE_CI_THING.match(plain, at):
             continue
         intervals = []
-        interval = _INTERVAL.match(plain, _LINKS_BETWEEN.match(plain, end).end())  # type: ignore[union-attr]
+        interval = _INTERVAL.match(plain, at)
         while interval is not None and len(intervals) < MAX_JOINED_INTERVALS:
             if unit_follows(plain, interval.end(), "de") or _JOINED_NUMBER.match(
                 plain, interval.end()
@@ -215,6 +226,17 @@ def ci_runs_de(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]
             joined = _JOIN.match(plain, interval.end())
             interval = _INTERVAL.match(plain, joined.end()) if joined else None
         yield match, intervals
+
+
+def _past_removals(plain: str, at: int, removed: list[tuple[int, int]], starts: list[int]) -> int:
+    """Where the text after `at` goes on once the removals that start right there (after
+    white space only) are made; `starts` are the removals' starts, in order."""
+    while True:
+        ahead = _SPACES.match(plain, at).end()  # type: ignore[union-attr]
+        index = bisect.bisect_right(starts, ahead) - 1
+        if index < 0 or removed[index][1] <= at:
+            return at
+        at = removed[index][1]
 
 
 def _interval(text: str, interval: re.Match[str]) -> Candidate:

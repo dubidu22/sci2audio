@@ -307,6 +307,11 @@ def test_a_german_job_with_links_and_citations_reads_the_same_on_a_second_run(
         # "KI" with a link between it and its interval
         "https://example.org/daten. KI https://example.org/daten [1,2; 3,4].",
         "KI https://example.org/\nweiter ( https://example.org/daten.",
+        "https://example.org/daten. KI unter https://example.org/daten [1,2; 3,4].",
+        "https://example.org/daten. KI Kontakt: https://example.org/daten [1,2; 3,4].",
+        # a source number read before a full stop is no ordinal
+        "unter [12]. Studie https://example.org/daten.",
+        "Wie in [3, 12]. Studie zeigt.",
     ],
 )
 def test_a_second_run_reads_nothing_new(text: str) -> None:
@@ -329,8 +334,16 @@ def test_any_text_keeps_the_contract_in_german(text: str) -> None:
         "Laut " + "Anna " * 20_000 + "Müller (2019)",
         "(" * 20_000 + "Müller 2019" + ")" * 20_000,
         "https://x.org/a, (Müller, 2019). https://x.org/b (Müller, 2019) " * 1000,
+        "Das KI unter https://x.org/a [1; 2] und KI Druck " * 2000,
     ],
-    ids=["access-notes", "citations", "long-names", "deep-brackets", "links-and-citations"],
+    ids=[
+        "access-notes",
+        "citations",
+        "long-names",
+        "deep-brackets",
+        "links-and-citations",
+        "intervals-after-links",
+    ],
 )
 def test_long_german_blocks_take_linear_time(text: str) -> None:
     document = make_document([(BlockKind.PARAGRAPH, text)], "de")

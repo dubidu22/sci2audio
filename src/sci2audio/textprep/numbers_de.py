@@ -657,6 +657,9 @@ _AFTER_KOMMA = re.compile(r"\bKomma(?: \d)* \Z")
 # ... nor a power read in words ("10-2. Jahr" is "10 hoch minus 2. Jahr" after the first run)
 _DATE_BEFORE = re.compile(r"(?<![\d.])\d{1,2}\.\d{1,2}\.\s*\Z")  # a date without its year
 _AFTER_HOCH = re.compile(r"\bhoch (?:minus |plus )?\Z")
+# ... nor a source number the citations step reads ("unter [12]. Studie" is "unter Quelle 12.
+# Studie" after the first run; the words are the German wording's, #212)
+_AFTER_SOURCE = re.compile(r"\bQuellen? (?:\d+(?:, | und | bis ))*\Z")
 
 
 def _ordinals(text: str) -> list[Candidate]:
@@ -671,6 +674,8 @@ def _ordinals(text: str) -> list[Candidate]:
             continue  # "am 3.4. 3. Mai": the date before is left as printed, and so is this
         if _AFTER_HOCH.search(text, max(0, match.start() - 16), match.start()):
             continue  # "10 hoch minus 2. Jahr": a power's exponent, not "zweites Jahr"
+        if _AFTER_SOURCE.search(text, max(0, match.start() - WINDOW), match.start()):
+            continue  # "Quelle 12. Studie": a source's number ends the sentence
         previous = _PREVIOUS_WORD.search(_before(text, match.start()))
         if previous is not None and previous["word"] in _MONTH_FORMS:
             continue  # "März 2019. Auflage": a date's year (read from "12.03.2019. Auflage")
