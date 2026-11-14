@@ -9,6 +9,10 @@ Thank you for helping. sci2audio is built by one maintainer with the help of AI 
 3. One Issue, one branch, one pull request. Keep it small.
 4. A pull request can only be merged when the check **CI passed** is green and the branch is up to date with `main`.
 
+### What CI runs
+
+On a pull request, CI runs everything on Linux: lint, layers, licences, security, the fast tests and the browser tests. The fast tests run on macOS and Windows too once the PR carries the label **`ci:full`**. Adding the label starts that run. Every push to `main` or a `release/*` branch, and every run by hand, tests all three systems. A newer push to a PR cancels its older run (D-580). Add `ci:full` when a change could behave differently on another system (paths, files, audio, encoding, the command line), and always before a PR is merged: a PR is merged only on a green run on all three systems of the reviewed head: check that `tests (macos-latest)` and `tests (windows-latest)` succeeded on that head; `CI passed` alone can still show the earlier Linux-only run. The summary of the **CI passed** job says which systems ran.
+
 ## Before you open a pull request
 
 ```bash
@@ -43,6 +47,7 @@ Install the pre-commit hooks once with `uv run pre-commit install`; they run ruf
 - Priority: `P0`, `P1`, `P2`
 - Risk: `risk:high`
 - Lane: `lane:<name>` (see `.github/lanes.yml`)
+- CI: `ci:full` runs the fast tests on macOS and Windows as well (see "What CI runs")
 
 ## Licence of contributions
 

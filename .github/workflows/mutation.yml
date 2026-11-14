@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# A second run by hand waits for the first instead of running beside it (D-580).
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   # The Python of .python-version (3.12.16 or newer), as uv downloads it; never the runner's
   # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
@@ -22,6 +27,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
       # mutmut exits 0 when it has run every mutant, whatever their results; a non-zero
       # exit means the run itself broke (for example the first, unmutated test run failed),
