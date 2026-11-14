@@ -26,6 +26,19 @@ PREVIEW_TEXT = (
     "This is how this voice reads your text. "
     "The results in the second table were measured over three years."
 )
+# The preview sentence per language's primary subtag; English for any other language.
+PREVIEW_TEXTS: dict[str, str] = {
+    "en": PREVIEW_TEXT,
+    "de": (
+        "So liest diese Stimme Ihren Text vor. "
+        "Die Ergebnisse der zweiten Tabelle wurden über drei Jahre gemessen."
+    ),
+}
+
+
+def preview_text(language: str) -> str:
+    """The preview sentence for a BCP 47 tag ("de-DE" → German), English by default."""
+    return PREVIEW_TEXTS.get(language.split("-")[0].lower(), PREVIEW_TEXT)
 
 
 def to_pcm16(samples: np.ndarray) -> bytes:
@@ -77,6 +90,9 @@ def speak_to_wav(
     return write_wav(path, samples, result.sample_rate)
 
 
-def preview(session: EngineSession, voice_id: str, path: Path, *, speed: float = 1.0) -> float:
-    """Speak a short fixed sample with one voice and speed, for choosing a voice (VA-05)."""
-    return speak_to_wav(session, PREVIEW_TEXT, voice_id, path, speed=speed)
+def preview(
+    session: EngineSession, voice_id: str, path: Path, *, speed: float = 1.0, language: str = "en"
+) -> float:
+    """Speak a short fixed sample with one voice and speed, for choosing a voice (VA-05);
+    `language` is the voice's language, which picks the sample's language."""
+    return speak_to_wav(session, preview_text(language), voice_id, path, speed=speed)

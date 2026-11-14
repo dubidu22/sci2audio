@@ -4,6 +4,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+
+- German voice (#211, VA-07): Kokoro Thorsten (`dm_thorsten`), the Kokoro model fine-tuned by Thorsten-Voice on the CC0 Thorsten-Voice dataset (Apache-2.0), reads German texts offline; pronunciation by espeak-ng, no text rewritten in the voice (D-467, D-470). The voice download comes in one pack per language (`voices download --language`), a job needs only its own language's pack, and a text is read by the chosen voice if it speaks the text's language, else by that language's default voice (D-468, D-469). The German weights are renamed on load and checked weight by weight, because kokoro 0.9.4 would otherwise skip some of them silently and speak noise.
+
 ## [1.0.0] - unreleased
 
 The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or plain text, in English) into a faithful audiobook on your own computer: a listening script with every change marked and explained, MP3 files per chapter and an M4B with chapters, and a read-along player that highlights the original text. Everything runs offline after one voice download you start yourself.

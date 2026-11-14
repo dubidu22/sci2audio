@@ -13,6 +13,7 @@ import pytest
 
 from sci2audio.voices import ENGLISH_VOICES, KokoroEngine, create_kokoro_engine
 from sci2audio.voices import kokoro_engine as kokoro_module
+from sci2audio.voices.download import german_dir
 
 
 @dataclass
@@ -66,11 +67,15 @@ def isolate_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def fake_models_dir(tmp_path: Path) -> Path:
-    """A models folder with an (empty) voice pack for every English voice."""
+    """A models folder with an (empty) voice pack for every English voice and the German
+    voice Thorsten."""
     voices = kokoro_module.kokoro_dir(tmp_path) / "voices"
     voices.mkdir(parents=True)
     for voice in ENGLISH_VOICES:
         (voices / f"{voice.id}.pt").write_bytes(b"")
+    german = german_dir(tmp_path) / "voices"
+    german.mkdir(parents=True)
+    (german / "thorsten.pt").write_bytes(b"")
     return tmp_path
 
 
@@ -79,7 +84,7 @@ def make_fake_engine(
 ) -> KokoroEngine:
     """The real Kokoro adapter on a fake pipeline (size checks of the big files skipped)."""
     isolate_environment(monkeypatch)
-    monkeypatch.setattr(kokoro_module, "missing_files", lambda models_dir: [])
+    monkeypatch.setattr(kokoro_module, "missing_files", lambda models_dir, languages=None: [])
     return create_kokoro_engine(
         fake_models_dir(tmp_path), pipeline_factory=factory or FakeFactory()
     )

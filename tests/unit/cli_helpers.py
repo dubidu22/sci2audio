@@ -12,7 +12,7 @@ from audio_fakes import FakeVoice
 from pdf_maker import Text, make_pdf
 
 from sci2audio.cli import CliEnv, run
-from sci2audio.voices import RemoteFile
+from sci2audio.voices import PACKS, RemoteFile
 from sci2audio.voices.download import Fetch
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
@@ -66,7 +66,11 @@ class Cli:
                 return self.missing(models)
             if self.voice_installed:
                 return []
-            return [RemoteFile("https://example.test/x", "x", 1, "0" * 64, "MIT")]
+            # nothing installed: a file of every voice pack is missing (D-468)
+            return [
+                RemoteFile(f"https://example.test/{p}", p, 1, "0" * 64, "MIT", pack=p)
+                for p in PACKS
+            ]
 
         return CliEnv(
             out=out,

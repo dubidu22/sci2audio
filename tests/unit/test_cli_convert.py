@@ -16,6 +16,7 @@ from cli_helpers import Cli, files_in, small_pdf
 
 from sci2audio import cli as cli_module
 from sci2audio.app.lock import work_folder_lock
+from sci2audio.voices import RemoteFile
 
 LINES = (
     "The first sentence is here.",
@@ -131,6 +132,15 @@ def test_missing_voice_files_stop_before_the_file_is_read(tmp_path: Path, source
     )
     assert not cli.work(source).exists()
     assert cli.voice.made == 0
+
+
+def test_one_missing_voice_pack_does_not_stop_a_book(tmp_path: Path, source: Path) -> None:
+    """D-468: only a job whose own pack is missing stops (in the job, before any speech)."""
+    german = RemoteFile("https://example.test/de", "de/model.pth", 1, "0" * 64, "MIT", pack="de")
+    cli = Cli(tmp_path, missing=lambda models: [german])
+    result = cli("convert", source, "-q", "-o", tmp_path / "out", "--chapters", "all")
+    assert result.code == 0, result.err
+    assert cli.voice.spoken
 
 
 def test_the_models_folder_option(tmp_path: Path, source: Path) -> None:

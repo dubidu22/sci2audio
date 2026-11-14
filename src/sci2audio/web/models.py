@@ -161,7 +161,10 @@ class PlanOut(BaseModel):
 class VoicesOut(BaseModel):
     voices: list[VoiceOut]
     default_voice: str
-    installed: bool
+    installed: bool = Field(description="every voice pack is installed")
+    installed_languages: list[str] = Field(
+        description='the voice packs ("en", "de") whose files are all installed'
+    )
     plan: PlanOut
 
 

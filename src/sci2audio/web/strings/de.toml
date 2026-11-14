@@ -56,6 +56,7 @@ voice = "Stimme"
 voice_installed = "Die Stimme ist installiert."
 voice_missing = "Die Stimme ist noch nicht installiert. sci2audio braucht sie, um Hörbücher zu erstellen."
 voice_setup = "Stimme einrichten"
+voice_partly = "Noch nicht alle Stimmen sind installiert. Es fehlt: {languages}."
 listen = "{name} mit dem Text anhören"
 
 [document]
@@ -137,11 +138,14 @@ choose = "Stimme"
 accent_female = "{name}, {accent}, weiblich"
 accent_male = "{name}, {accent}, männlich"
 default = "(Standard)"
+default_for = "(Standard für {language})"
+language_hint = "Eine Stimme liest nur Texte in ihrer eigenen Sprache. Spricht die gewählte Stimme die Sprache des Textes nicht, liest die Standardstimme dieser Sprache."
 licence = "Lizenzen der Stimmdateien:"
 missing = "Die Stimme ist noch nicht installiert."
+missing_languages = "Die Stimme für {languages} ist noch nicht installiert."
 setup = "Stimme einrichten"
 preview_label = "Satz zum Anhören"
-preview_hint = "Bis zu {limit} Zeichen. Die Stimme spricht Englisch."
+preview_hint = "Bis zu {limit} Zeichen."
 listen = "Anhören"
 preview_player = "Hörprobe der gewählten Stimme"
 speed = "Tempo"
@@ -151,6 +155,11 @@ remembered = "Wenn Sie ein Hörbuch erstellen, merkt sich sci2audio die Änderun
 [accent]  # eine pro Sprachcode einer Stimme
 en-US = "amerikanisches Englisch"
 en-GB = "britisches Englisch"
+de-DE = "Deutsch"
+
+[pack]  # eine pro Stimmpaket, benannt nach seiner Sprache (D-468)
+en = "Englisch"
+de = "Deutsch"
 
 [make]
 folder = "Ordner für das Hörbuch"
@@ -206,8 +215,13 @@ back = "Zurück zur Startseite"
 
 [setup]
 title = "Stimme einrichten"
-intro = "sci2audio spricht mit der Stimme Kokoro. Ihre Dateien gehören nicht zu sci2audio und werden einmal heruntergeladen, nur wenn Sie das hier starten. Danach braucht sci2audio kein Netz."
+intro = "sci2audio spricht mit Kokoro-Stimmen: englischen Stimmen und der deutschen Stimme Thorsten. Ihre Dateien gehören nicht zu sci2audio und werden einmal heruntergeladen, nur wenn Sie das hier starten. Danach braucht sci2audio kein Netz."
 installed = "Die Stimme ist installiert. Es muss nichts heruntergeladen werden."
+packs = "Stimmen nach Sprache"
+pack_en = "Englische Stimmen (Kokoro)"
+pack_de = "Deutsche Stimme Thorsten (Kokoro, von Thorsten-Voice)"
+pack_installed = "{name}: installiert."
+pack_missing = "{name}: noch nicht installiert."
 files = "Herunterzuladende Dateien"
 file = "Datei"
 size = "Größe"

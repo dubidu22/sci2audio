@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+from dataclasses import replace
 from typing import Any
 
 import pytest
@@ -15,8 +16,10 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page, expect
 from web_helpers import paper_bytes
 
-from conftest import Live, check_axe, inside, settled
-from sci2audio.voices import PREVIEW_TEXT
+from conftest import Live, check_axe, inside, settled, small_plan
+from sci2audio.app import JobSettings, save_settings
+from sci2audio.voices import PREVIEW_TEXT, PREVIEW_TEXTS
+from sci2audio.web import pages
 from sci2audio.web.jobs import JobKind, JobRecord
 
 PDF = {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": paper_bytes()}
@@ -392,3 +395,75 @@ def test_a_request_elsewhere_is_caught_and_refused(signed_in: Page, live: Live) 
         signed_in.goto(elsewhere)
     assert live.outside == [elsewhere]
     live.outside.clear()  # seen; the fixture's own check would fail the test otherwise
+
+
+def test_the_preview_sentence_follows_the_voice_language(signed_in: Page, live: Live) -> None:
+    """#211: choosing the German voice puts the German sample sentence in the preview box
+    (marked lang="de"), unless the person wrote their own text."""
+    page = signed_in
+    live.install_voice()
+    open_paper(page, live)
+    box = page.get_by_label("Sentence to listen to")
+    expect(box).to_have_value(PREVIEW_TEXT)
+    voice = page.get_by_label("Voice", exact=True)
+    expect(voice.locator("option[value=dm_thorsten]")).to_have_text(
+        "Thorsten, German, male (default for German)"
+    )
+    voice.select_option("dm_thorsten")
+    expect(box).to_have_value(PREVIEW_TEXTS["de"])
+    expect(box).to_have_attribute("lang", "de")
+    check_axe(page, "document with the German voice chosen")
+    voice.select_option("bm_george")
+    expect(box).to_have_value(PREVIEW_TEXT)
+    expect(box).to_have_attribute("lang", "en")
+    box.fill("Mein eigener Satz.")
+    voice.select_option("dm_thorsten")
+    expect(box).to_have_value("Mein eigener Satz.")
+
+
+def test_a_german_book_keeps_the_remembered_english_voice(
+    signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#211 review: making a German book with the German voice must not replace the English
+    voice the person chose before; a voice of the same language still replaces it."""
+    page = signed_in
+    plan = small_plan()  # its second file stands for the German pack here
+    files = (plan.files[0], replace(plan.files[1], pack="de"))
+    monkeypatch.setattr(pages, "download_plan", lambda: replace(plan, files=files))
+    live.install_voice()
+    fake = live.voice
+    english = fake.source()
+    live.voice.source = lambda: replace(  # type: ignore[method-assign]
+        english,
+        voices=(*english.voices, "af_bella", "dm_thorsten"),
+        languages={"af_heart": "en-US", "af_bella": "en-US", "bm_george": "en-GB"}
+        | {"dm_thorsten": "de-DE"},
+        defaults={"en": "af_heart", "de": "dm_thorsten"},
+    )
+    folder = str(live.config.output_folder)
+    save_settings(
+        JobSettings(language="de", voice="bm_george", output_folder=folder),  # type: ignore[arg-type]
+        live.config.config_file,
+    )
+    open_paper(page, live)
+    expect(page.get_by_label("Voice", exact=True)).to_have_value("dm_thorsten")
+    page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
+    assert {voice for _, voice, _ in fake.spoken} == {"dm_thorsten"}
+    settings = page.request.get(f"{live.url}/api/v1/settings").json()["settings"]
+    assert settings["voice"] == "bm_george"
+
+    save_settings(
+        JobSettings(language="en", voice="bm_george", output_folder=folder),  # type: ignore[arg-type]
+        live.config.config_file,
+    )
+    page.goto(page.url.split("/jobs/")[0] + "/")
+    open_paper(page, live)
+    voice = page.get_by_label("Voice", exact=True)
+    expect(voice).to_have_value("bm_george")
+    voice.select_option("af_bella")
+    page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    settings = page.request.get(f"{live.url}/api/v1/settings").json()["settings"]
+    assert settings["voice"] == "af_bella"

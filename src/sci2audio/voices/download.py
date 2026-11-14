@@ -1,11 +1,17 @@
 """The one download of the voice files, started only by the user (D-47, VA-03, VA-04).
 
-Everything Kokoro English needs to run offline comes from two places, each pinned by
-revision and sha256: the model and its English voice packs from the official Hugging Face
-repository, and the spaCy English model misaki uses from explosion's GitHub release (it is
-not on PyPI). `download_plan()` lists every file with its size and licence for the consent
-screen; `download_voice_files()` fetches what is missing. The CLI (#72) and the interface
-(#76, #77) call these two and nothing else.
+The files come in one pack per language (D-468), each pinned by revision and sha256:
+
+- "en": the Kokoro model and its English voice packs from the official Hugging Face
+  repository, and the spaCy English model misaki uses from explosion's GitHub release (it
+  is not on PyPI).
+- "de": the German Kokoro model and its voice pack from Thorsten-Voice's Hugging Face
+  repository (#211, D-467).
+
+`download_plan()` lists every file with its size, licence and pack for the consent screen;
+`download_voice_files()` fetches what is missing. Both cover every pack unless given the
+languages to cover. A job needs only the pack of its voice's language. The CLI (#72) and
+the interface (#76, #77) call these two and nothing else.
 
 Hosts: the listed URLs are on huggingface.co and github.com. Both answer with a redirect to
 their download servers (Hugging Face to its CDN and its LFS/Xet storage, GitHub to
@@ -22,6 +28,7 @@ Layout of the models folder (the caller picks the folder; nothing here has a def
 
     kokoro-82m/<revision>/config.json, kokoro-v1_0.pth, voices/<voice>.pt
     spacy/en_core_web_sm-3.8.0/   (put on sys.path; holds the package and its metadata)
+    kokoro-82m-de-thorsten/<revision>/config.json, model.pth, voices/thorsten.pt
 """
 
 from __future__ import annotations
@@ -47,7 +54,17 @@ KOKORO_WEIGHTS = "kokoro-v1_0.pth"
 SPACY_MODEL = "en_core_web_sm"
 SPACY_MODEL_VERSION = "3.8.0"
 
+GERMAN_REPO = "Thorsten-Voice/Kokoro"
+GERMAN_REVISION = "734e593d320a3d876bede7020f773dfd481a0cc7"
+GERMAN_WEIGHTS = "model.pth"  # the model card's default checkpoint, epoch 5
+
+ENGLISH = "en"
+GERMAN = "de"
+PACKS = (ENGLISH, GERMAN)  # the language of each voice pack, in download order
+
 _KOKORO_DIR = PurePosixPath("kokoro-82m") / KOKORO_REVISION
+_GERMAN_DIR = PurePosixPath("kokoro-82m-de-thorsten") / GERMAN_REVISION
+_GERMAN_BASE = f"https://huggingface.co/{GERMAN_REPO}/resolve/{GERMAN_REVISION}"
 _SPACY_DIR = PurePosixPath("spacy") / f"{SPACY_MODEL}-{SPACY_MODEL_VERSION}"
 _HF_BASE = f"https://huggingface.co/{KOKORO_REPO}/resolve/{KOKORO_REVISION}"
 _SPACY_WHEEL = f"{SPACY_MODEL}-{SPACY_MODEL_VERSION}-py3-none-any.whl"
@@ -60,6 +77,11 @@ KOKORO_LICENCE = (
     "Kokoro-82M model and voices by hexgrad: Apache License 2.0. The model card states it "
     "was trained only on permissive or non-copyrighted audio. "
     f"https://huggingface.co/{KOKORO_REPO}"
+)
+GERMAN_LICENCE = (
+    "German Kokoro model and voice Thorsten by Thorsten-Voice (Thorsten Müller): Apache "
+    "License 2.0, fine-tuned from Kokoro-82M on the Thorsten-Voice dataset (CC0). "
+    f"https://huggingface.co/{GERMAN_REPO}"
 )
 SPACY_LICENCE = (
     "spaCy English model en_core_web_sm 3.8.0 by Explosion: MIT License. "
@@ -116,6 +138,7 @@ class RemoteFile:
     sha256: str
     licence: str
     unpack: bool = False
+    pack: str = ENGLISH  # the language whose voices need this file
 
 
 @dataclass(frozen=True)
@@ -168,9 +191,50 @@ def _kokoro_files() -> list[RemoteFile]:
     return files
 
 
-def download_plan() -> DownloadPlan:
-    """Every file the voice download fetches, with sizes and licences, before consent."""
-    files = (
+def _german_files() -> list[RemoteFile]:
+    def german(name: str, size: int, sha256: str) -> RemoteFile:
+        return RemoteFile(
+            url=f"{_GERMAN_BASE}/{name}",
+            target=str(_GERMAN_DIR / name),
+            size=size,
+            sha256=sha256,
+            licence=GERMAN_LICENCE,
+            pack=GERMAN,
+        )
+
+    return [
+        # the same bytes as the English config: Kokoro-82M's architecture, unchanged
+        german(
+            "config.json", 2_351, "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f"
+        ),
+        german(
+            GERMAN_WEIGHTS,
+            327_231_582,
+            "36dde15c4a800cfd1ab540ccb4476dbab604fe03ff7c937d976ebbf3b49e59ce",
+        ),
+        german(
+            "voices/thorsten.pt",
+            523_450,
+            "9d98b775ebce1cfc369e8f9a3ee8ee260cd612dffb477cba85749112362306d7",
+        ),
+    ]
+
+
+def _languages(languages: Iterable[str] | None) -> frozenset[str]:
+    chosen = frozenset(PACKS if languages is None else languages)
+    unknown = chosen - set(PACKS)
+    if unknown:
+        raise ValueError(f"no voice pack for {', '.join(sorted(unknown))}; there are {PACKS}")
+    return chosen
+
+
+def download_plan(languages: Iterable[str] | None = None) -> DownloadPlan:
+    """Every file the voice download fetches, with sizes and licences, before consent.
+
+    `languages` picks the packs ("en", "de"); None means every pack.
+    """
+    chosen = _languages(languages)
+    every = (
         *_kokoro_files(),
         RemoteFile(
             url=_SPACY_URL,
@@ -180,17 +244,24 @@ def download_plan() -> DownloadPlan:
             licence=SPACY_LICENCE,
             unpack=True,
         ),
+        *_german_files(),
     )
+    files = tuple(f for f in every if f.pack in chosen)
     return DownloadPlan(
         files=files,
         total_bytes=sum(f.size for f in files),
-        licences=(KOKORO_LICENCE, SPACY_LICENCE),
+        licences=tuple(dict.fromkeys(f.licence for f in files)),
     )
 
 
 def kokoro_dir(models_dir: Path) -> Path:
     """Folder with the Kokoro config, weights and `voices/`."""
     return models_dir / _KOKORO_DIR
+
+
+def german_dir(models_dir: Path) -> Path:
+    """Folder with the German Kokoro config, weights and `voices/`."""
+    return models_dir / _GERMAN_DIR
 
 
 def spacy_dir(models_dir: Path) -> Path:
@@ -207,9 +278,19 @@ def _in_place(models_dir: Path, file: RemoteFile) -> bool:
     return path.is_file() and path.stat().st_size == file.size
 
 
-def missing_files(models_dir: Path) -> list[RemoteFile]:
-    """Files of the voice download that are not in `models_dir` (size check, no hashing)."""
-    return [f for f in download_plan().files if not _in_place(models_dir, f)]
+def missing_files(models_dir: Path, languages: Iterable[str] | None = None) -> list[RemoteFile]:
+    """Files of the voice download that are not in `models_dir` (size check, no hashing).
+
+    `languages` picks the packs to check; None means every pack.
+    """
+    chosen = _languages(languages)
+    return [f for f in download_plan().files if f.pack in chosen and not _in_place(models_dir, f)]
+
+
+def installed_languages(models_dir: Path) -> tuple[str, ...]:
+    """The packs whose files are all in `models_dir` (size check, no hashing)."""
+    missing = {f.pack for f in missing_files(models_dir)}
+    return tuple(language for language in PACKS if language not in missing)
 
 
 def _sha256(path: Path) -> str:
@@ -303,23 +384,30 @@ def _download_one(
 
 
 def download_voice_files(
-    models_dir: Path, *, progress: Progress | None = None, fetch: Fetch | None = None
+    models_dir: Path,
+    *,
+    progress: Progress | None = None,
+    fetch: Fetch | None = None,
+    languages: Iterable[str] | None = None,
 ) -> None:
     """Fetch every missing voice file into `models_dir`. Only call this on user action.
 
-    Files already in place are checked (sha256 for files, metadata for the unpacked
-    wheel) and skipped; a file in place but wrong is fetched again.
+    `languages` picks the packs ("en", "de"); None means every pack. Files already in
+    place are checked (sha256 for files, metadata for the unpacked wheel) and skipped; a
+    file in place but wrong is fetched again.
 
     Raises:
         NetworkError: The network failed; files finished so far are kept.
         DownloadError: Disk full, wrong checksum, or the folder was removed mid-run.
     """
     fetch = fetch or _fetch_with_requests
+    chosen = _languages(languages)
     plan = download_plan()
     todo = [
         f
         for f in plan.files
-        if not (
+        if f.pack in chosen
+        and not (
             _in_place(models_dir, f) and (f.unpack or _sha256(models_dir / f.target) == f.sha256)
         )
     ]

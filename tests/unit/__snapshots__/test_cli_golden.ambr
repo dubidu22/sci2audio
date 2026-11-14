@@ -118,7 +118,7 @@
   
   positional arguments:
     ACTION
-      download            download the voice files (about 355 MB), after showing
+      download            download the voice files (about 680 MB), after showing
                           what and asking
   
   options:
@@ -132,9 +132,12 @@
 # name: test_command_help_text[command3]
   '''
   usage: sci2audio voices download [-h] [--models-folder FOLDER] [-y]
+                                   [--language {en,de}]
   
   Download the voice files: the Kokoro model with its English voices and the
-  spaCy English model. Shows every source, size and licence first, then asks.
+  spaCy English model (about 355 MB), and the German Kokoro model with the voice
+  Thorsten (about 330 MB). Shows every source, size and licence first, then
+  asks.
   
   options:
     -h, --help            show this help message and exit
@@ -142,6 +145,8 @@
                           where the voice files are (default: in the user's data
                           folder)
     -y, --yes             agree to the download without being asked
+    --language {en,de}    only the voice files of this language; repeat for more
+                          (default: every language)
   
   '''
 # ---

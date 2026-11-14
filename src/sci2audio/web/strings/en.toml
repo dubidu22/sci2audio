@@ -52,6 +52,7 @@ voice = "Voice"
 voice_installed = "The voice is installed."
 voice_missing = "The voice is not installed yet. sci2audio needs it to make audiobooks."
 voice_setup = "Set up the voice"
+voice_partly = "Not every voice is installed yet. Missing: {languages}."
 
 [document]
 title = "{name}"
@@ -132,8 +133,11 @@ choose = "Voice"
 accent_female = "{name}, {accent}, female"
 accent_male = "{name}, {accent}, male"
 default = "(default)"
+default_for = "(default for {language})"
+language_hint = "A voice reads only texts in its own language. If the chosen voice does not speak the language of the text, the default voice of that language reads it."
 licence = "Licences of the voice files:"
 missing = "The voice is not installed yet."
+missing_languages = "The voice for {languages} is not installed yet."
 setup = "Set up the voice"
 preview_label = "Sentence to listen to"
 preview_hint = "Up to {limit} characters."
@@ -146,6 +150,11 @@ remembered = "sci2audio remembers the changes, the voice, the speed and the fold
 [accent]  # one per language code of a voice
 en-US = "American English"
 en-GB = "British English"
+de-DE = "German"
+
+[pack]  # one per voice pack, named by its language (D-468)
+en = "English"
+de = "German"
 
 [make]
 folder = "Folder for the audiobook"
@@ -201,8 +210,13 @@ back = "Back to the start page"
 
 [setup]
 title = "Set up the voice"
-intro = "sci2audio speaks with the Kokoro voice. Its files are not part of sci2audio and are downloaded once, only when you start it here. After that sci2audio needs no network."
+intro = "sci2audio speaks with Kokoro voices: English voices and the German voice Thorsten. Their files are not part of sci2audio and are downloaded once, only when you start it here. After that sci2audio needs no network."
 installed = "The voice is installed. Nothing needs to be downloaded."
+packs = "Voices by language"
+pack_en = "English voices (Kokoro)"
+pack_de = "German voice Thorsten (Kokoro, by Thorsten-Voice)"
+pack_installed = "{name}: installed."
+pack_missing = "{name}: not installed yet."
 files = "Files to download"
 file = "File"
 size = "Size"

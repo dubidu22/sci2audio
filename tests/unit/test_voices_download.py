@@ -13,6 +13,7 @@ import re
 import shutil
 import zipfile
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 
@@ -27,15 +28,18 @@ from sci2audio.voices import (
     RemoteFile,
     download_plan,
     download_voice_files,
+    installed_languages,
     missing_files,
 )
 from sci2audio.voices import download as download_module
 
 REVISION = "f3ff3571791e39611d31c381e3a41a3af07b4987"
+GERMAN_REVISION = "734e593d320a3d876bede7020f773dfd481a0cc7"
 
 
 def test_plan_names_every_file_with_size_checksum_and_licence() -> None:
-    plan = download_plan()
+    plan = download_plan(["en"])
+    assert {f.pack for f in plan.files} == {"en"}
     hf = f"https://huggingface.co/hexgrad/Kokoro-82M/resolve/{REVISION}/"
     spacy = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/"
     assert all(f.url.startswith((hf, spacy)) for f in plan.files)
@@ -50,6 +54,58 @@ def test_plan_names_every_file_with_size_checksum_and_licence() -> None:
     assert 350_000_000 < plan.total_bytes < 360_000_000
     assert any("Apache" in text for text in plan.licences)
     assert any("MIT" in text for text in plan.licences)
+
+
+def test_the_german_pack_is_the_pinned_thorsten_model_with_its_licence() -> None:
+    plan = download_plan(["de"])
+    base = f"https://huggingface.co/Thorsten-Voice/Kokoro/resolve/{GERMAN_REVISION}/"
+    folder = f"kokoro-82m-de-thorsten/{GERMAN_REVISION}/"
+    assert [(f.url, f.target, f.size, f.sha256[:12]) for f in plan.files] == [
+        (base + "config.json", folder + "config.json", 2_351, "5abb01e2403b"),
+        (base + "model.pth", folder + "model.pth", 327_231_582, "36dde15c4a80"),
+        (base + "voices/thorsten.pt", folder + "voices/thorsten.pt", 523_450, "9d98b775ebce"),
+    ]
+    assert all(f.pack == "de" and not f.unpack for f in plan.files)
+    assert len(plan.licences) == 1
+    assert "Apache License 2.0" in plan.licences[0]
+    assert "Thorsten-Voice dataset (CC0)" in plan.licences[0]
+    # the German config is the English one, byte for byte (Kokoro-82M's architecture)
+    english_config = next(f for f in download_plan(["en"]).files if f.target.endswith(".json"))
+    assert plan.files[0].sha256 == english_config.sha256
+
+
+def test_the_whole_plan_is_every_pack_in_order() -> None:
+    plan = download_plan()
+    assert plan == download_plan(["en", "de"])
+    assert [f.pack for f in plan.files] == ["en"] * 31 + ["de"] * 3
+    assert plan.total_bytes == download_plan(["en"]).total_bytes + download_plan(["de"]).total_bytes
+    assert len(plan.licences) == 3
+    targets = [f.target for f in plan.files]
+    assert len(set(targets)) == len(targets)
+
+
+def test_an_unknown_language_has_no_pack(tmp_path: Path) -> None:
+    for call in (
+        lambda: download_plan(["fr"]),
+        lambda: missing_files(tmp_path, ["fr"]),
+        lambda: download_voice_files(tmp_path, languages=["fr"], fetch=FakeServer()),
+    ):
+        with pytest.raises(ValueError, match="no voice pack for fr"):
+            call()
+
+
+def test_missing_files_and_installed_languages_by_pack(tmp_path: Path) -> None:
+    assert installed_languages(tmp_path) == ()
+    assert missing_files(tmp_path, ["de"]) == list(download_plan(["de"]).files)
+    for file in download_plan(["de"]).files:  # right sizes count as in place
+        path = tmp_path / file.target
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as out:
+            out.truncate(file.size)
+    assert missing_files(tmp_path, ["de"]) == []
+    assert installed_languages(tmp_path) == ("de",)
+    assert missing_files(tmp_path) == missing_files(tmp_path, ["en"])
+    assert len(missing_files(tmp_path)) == 31
 
 
 # --- a small fake plan: two files and a wheel -------------------------------------------
@@ -132,6 +188,70 @@ def test_download_puts_every_file_in_place(tmp_path: Path) -> None:
     done = [d for d, _, _ in seen]
     assert done == sorted(done)
     assert done[-1] == seen[-1][1] == sum(len(d) for d in SERVED.values())
+
+
+@pytest.fixture
+def two_packs(monkeypatch: pytest.MonkeyPatch) -> tuple[RemoteFile, ...]:
+    """The small plan with its weights file in the German pack."""
+    files = (FILES[0], replace(FILES[1], pack="de"), FILES[2])
+    plan = DownloadPlan(files, sum(f.size for f in files), ("MIT",))
+    monkeypatch.setattr(download_module, "download_plan", lambda languages=None: plan)
+    return files
+
+
+def test_one_language_downloads_only_its_pack(
+    tmp_path: Path, two_packs: tuple[RemoteFile, ...]
+) -> None:
+    server = FakeServer()
+    seen: list[tuple[int, int, str]] = []
+    with no_network():
+        download_voice_files(
+            tmp_path, fetch=server, languages=["de"], progress=lambda *a: seen.append(a)
+        )
+    assert server.fetched == [two_packs[1].url]
+    assert seen[-1][:2] == (two_packs[1].size, two_packs[1].size)
+    assert missing_files(tmp_path, ["de"]) == []
+    assert [f.target for f in missing_files(tmp_path, ["en"])] == [
+        two_packs[0].target,
+        two_packs[2].target,
+    ]
+    assert installed_languages(tmp_path) == ("de",)
+    download_voice_files(tmp_path, fetch=server)  # the rest, English
+    assert server.fetched == [two_packs[1].url, two_packs[0].url, two_packs[2].url]
+    assert installed_languages(tmp_path) == ("en", "de")
+
+
+def test_an_interrupted_pack_download_resumes(
+    tmp_path: Path, two_packs: tuple[RemoteFile, ...]
+) -> None:
+    server = FakeServer()
+
+    def cut(url: str, start: int) -> None:
+        if start == 3000:
+            raise NetworkError("connection reset")
+
+    server.on_block = cut
+    with pytest.raises(NetworkError):
+        download_voice_files(tmp_path, fetch=server, languages=["de"])
+    assert leftovers(tmp_path) == []
+    assert missing_files(tmp_path, ["de"]) == [two_packs[1]]
+    download_voice_files(tmp_path, fetch=FakeServer(), languages=["de"])
+    assert missing_files(tmp_path, ["de"]) == []
+
+
+def test_a_german_file_with_a_wrong_checksum_keeps_nothing(
+    tmp_path: Path, two_packs: tuple[RemoteFile, ...]
+) -> None:
+    """The German pack is checked like the English one: wrong bytes of the right size are
+    refused and no partial file stays (#211 review)."""
+    weights = two_packs[1]
+    server = FakeServer({**SERVED, weights.url: b"x" * weights.size})
+    with no_network(), pytest.raises(DownloadError, match="checksum"):
+        download_voice_files(tmp_path, fetch=server, languages=["de"])
+    assert server.fetched == [weights.url]
+    assert not (tmp_path / weights.target).exists()
+    assert leftovers(tmp_path) == []
+    assert missing_files(tmp_path, ["de"]) == [weights]
 
 
 @pytest.mark.usefixtures("small_plan")

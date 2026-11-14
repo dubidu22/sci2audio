@@ -8,7 +8,7 @@ sci2audio reads a PDF, EPUB, Markdown or plain-text file in English, prepares it
 
 - **Reads** PDF, EPUB, Markdown and plain text. It finds the reading order of one- and two-column pages, leaves out running heads, page numbers and sidebars, and finds headings, footnotes, captions, tables, figures and formulas. A scanned PDF needs a text layer: sci2audio has no text recognition yet.
 - **Prepares the text** with transparent rules: it joins words hyphenated at a line end, leaves out citations, URLs and DOIs, reads units, statistics, numbers and abbreviations as words where the voice would get them wrong, and replaces formulas, tables and figures with a short spoken notice. Footnotes are read where their mark stands. Every change is listed in a report with its reason, and each kind of change can be switched off.
-- **Speaks** it with a local Kokoro voice: 28 English voices, at the speed you choose. An interrupted run picks up where it stopped.
+- **Speaks** it with a local Kokoro voice: 28 English voices and the German voice Thorsten, at the speed you choose. An interrupted run picks up where it stopped.
 - **Writes** an M4B with chapter marks and the cover, one MP3 per chapter, and a read-along file. The audio is labelled as AI-generated in its metadata.
 - **Plays** it in a read-along view that shows the text as printed and highlights the sentence being read. Click any sentence to play from there.
 
@@ -61,7 +61,7 @@ sci2audio runs on macOS with Apple chips, Windows and Linux. Intel Macs are not 
    sci2audio ui
    ```
 
-   This opens the interface in your browser; it stays on this computer. The first time, it asks to download the voice (the Kokoro model, its English voices and a spaCy English model, about 355 MB). It shows every file with its size and licence first and downloads only after you agree. After that, sci2audio works without a network.
+   This opens the interface in your browser; it stays on this computer. The first time, it asks to download the voices (the Kokoro model, its English voices and a spaCy English model, about 355 MB; the German voice Thorsten by Thorsten-Voice, about 330 MB). It shows every file with its size and licence first and downloads only after you agree; `sci2audio voices download --language en` or `--language de` fetches one language only. A text is read by a voice of its own language: German texts by Thorsten, English texts by the chosen English voice. After that, sci2audio works without a network.
 
 ffmpeg, which writes the MP3 and M4B files, comes with sci2audio (through the `imageio-ffmpeg` package). If that build is missing for your system, sci2audio uses an `ffmpeg` on your PATH.
 
