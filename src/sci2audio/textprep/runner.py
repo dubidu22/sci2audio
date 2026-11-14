@@ -9,6 +9,12 @@ that an accepted block-stage edit covers takes no further edit at all, not even 
 its start or end. `ask`
 edits are accepted like any other; `apply_edits` reads the original for them (D-61 (3)).
 
+Moves (#213) come from move steps, which run last. A move claims no text: it is set aside
+when its block or its target block is claimed by a block-stage edit, when its target lies
+strictly inside an accepted edit or at an accepted insertion or pause, or when its block is
+already moved or would chain (a moved block is no target, a target block does not move).
+`StepRun.read_at` says in which block's place a block is read.
+
 A step that raises or returns invalid edits is dropped, with a problem in the result: the
 run never stops halfway (D-61 (3)). `strict=True` raises instead, for tests.
 """
@@ -16,11 +22,12 @@ run never stops halfway (D-61 (3)). `strict=True` raises instead, for tests.
 from __future__ import annotations
 
 from bisect import bisect_left, insort
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import cached_property
 
-from sci2audio.core import Document, Edit, ScriptPiece, Span, apply_edits, check_edits
+from sci2audio.core import Document, Edit, EditKind, ScriptPiece, Span, apply_edits, check_edits
 from sci2audio.textprep.registry import BUILT_IN_STEPS, check_registry
 from sci2audio.textprep.steps import (
     DEFAULT_SWITCHED_OFF,
@@ -83,6 +90,20 @@ class StepRun:
         """The listening script: the original with the accepted edits applied."""
         return apply_edits(self.document, self.accepted)
 
+    @cached_property
+    def moved(self) -> Mapping[int, int]:
+        """Each block an accepted move reads elsewhere, and the block it is read in."""
+        return {
+            edit.span.block: edit.to.block
+            for edit in self.accepted
+            if edit.kind is EditKind.MOVE and edit.to is not None
+        }
+
+    def read_at(self, block: int) -> int:
+        """The block in whose place block number `block` is read: its move's target block,
+        else itself (#213). Chapters follow it: a footnote is heard where its mark is."""
+        return self.moved.get(block, block)
+
 
 class StepError(RuntimeError):
     """A step failed or returned invalid edits (raised only in strict runs)."""
@@ -140,6 +161,14 @@ def _proposed(step: TextStep, document: Document, context: StepContext) -> list[
         if edit.step != step.id:
             raise StepError(f"an edit names step {edit.step!r}, not {step.id!r}")
     ordered = check_edits(document, edits)  # inside the blocks, no overlap among its own
+    for edit in ordered:
+        if (edit.kind is EditKind.MOVE) != (step.stage is Stage.MOVE):
+            rule = (
+                "a move step proposes only moves"
+                if step.stage is Stage.MOVE
+                else ("only a move step proposes moves")
+            )
+            raise StepError(f"{rule}, got a {edit.kind} edit at {edit.span}")
     if step.stage is Stage.BLOCK:
         for edit in ordered:
             if edit.span != whole_block(document, edit.span.block):
@@ -171,20 +200,27 @@ class _Accepted:
     A block whose whole text an accepted block-stage edit covers is claimed by it: every
     later edit in that block is set aside, including marks at the block's two ends, which
     touch no character and so overlap nothing by the core rule (D-105: whole-block
-    decisions stay intact).
+    decisions stay intact). Accepted moves are kept apart: they claim no text (#213).
     """
 
     def __init__(self) -> None:
         self._blocks: dict[int, list[tuple[int, int, int]]] = {}
         self._edits: list[Edit] = []
         self._claimed: dict[int, Edit] = {}  # block index -> its accepted block-stage edit
+        self._moved: dict[int, Edit] = {}  # moved block -> its accepted move
+        self._targets: dict[int, Edit] = {}  # target block -> an accepted move into it
 
     def overlapping(self, edit: Edit) -> Edit | None:
         """The accepted edit this one overlaps, or the edit that claimed its block, if any."""
+        if edit.kind is EditKind.MOVE:
+            return self._blocking_move(edit)
         if (claim := self._claimed.get(edit.span.block)) is not None:
             return claim
-        spans = self._blocks.get(edit.span.block, [])
-        start, end = edit.span.start, edit.span.end
+        return self._holding(edit.span)
+
+    def _holding(self, span: Span) -> Edit | None:
+        spans = self._blocks.get(span.block, [])
+        start, end = span.start, span.end
         # Accepted spans never overlap, so sorted by start their ends never decrease: only
         # the span just before `start` can reach past it; later ones start at `start` or on.
         low = bisect_left(spans, (start, end))
@@ -194,13 +230,42 @@ class _Accepted:
             a, b, number = spans[position]
             if a > end:
                 break
-            if overlap(Span(edit.span.block, a, b), edit.span):
+            if overlap(Span(span.block, a, b), span):
                 return self._edits[number]
         return None
 
+    def _blocking_move(self, edit: Edit) -> Edit | None:
+        """Why a move cannot be accepted: the edit that claimed its block or its target
+        block, the accepted edit its target lies strictly inside (or the insertion or pause
+        at its target), or the accepted move it would repeat or chain with."""
+        source, to = edit.span.block, _target(edit)
+        for found in (
+            self._claimed.get(source),
+            self._claimed.get(to.block),
+            self._moved.get(source),
+            self._moved.get(to.block),  # moving into a block that is moved
+            self._targets.get(source),  # moving a block that something moves into
+        ):
+            if found is not None:
+                return found
+        # the core overlap rule against an empty span at the target is exactly "strictly
+        # inside, or an empty edit at the same position"
+        return self._holding(to)
+
     def add(self, edit: Edit, stage: Stage) -> None:
+        if edit.kind is EditKind.MOVE:
+            self._moved[edit.span.block] = edit
+            self._targets.setdefault(_target(edit).block, edit)
+            return
         spans = self._blocks.setdefault(edit.span.block, [])
         insort(spans, (edit.span.start, edit.span.end, len(self._edits)))
         self._edits.append(edit)
         if stage is Stage.BLOCK:
             self._claimed[edit.span.block] = edit
+
+
+def _target(edit: Edit) -> Span:
+    """A move's target; `core.Edit` itself makes sure a move has one."""
+    if edit.to is None:
+        raise ValueError(f"a move edit needs a position to move to, got {edit}")
+    return edit.to

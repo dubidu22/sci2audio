@@ -50,10 +50,11 @@ class ReportEdit:
     status: Status
     spoken: bool  # applied in a chosen chapter
     original: str  # the original text of its span, as printed
-    said: str  # what is read instead; "" for a removal, PAUSE_MARK for a pause
+    said: str  # what is read instead; "" for a removal or a move, PAUSE_MARK for a pause
     where: Where
-    chapter: int
+    chapter: int  # where it is heard: a moved block's chapter is its target's (#213)
     won_by: tuple[str, EditKind, Where] | None = None  # set aside: step, kind, place
+    to: Where | None = None  # a move: the position the block is read at (#213)
 
 
 @dataclass(frozen=True)
@@ -350,7 +351,8 @@ class Pages:
 
 def _edit(result: ScriptResult, outcome: Outcome, pages: Pages) -> ReportEdit:
     edit = outcome.edit
-    chapter = result.chapter_of(edit.span.block)
+    # an edit is heard where its block is read: inside a moved block, at the move's target
+    chapter = result.chapter_of(result.run.read_at(edit.span.block))
     won_by = None
     if outcome.won_by is not None:
         won_by = (outcome.won_by.step, outcome.won_by.kind, pages.where(outcome.won_by.span))
@@ -360,6 +362,7 @@ def _edit(result: ScriptResult, outcome: Outcome, pages: Pages) -> ReportEdit:
         EditKind.REPLACE: edit.replacement,
         EditKind.PAUSE: PAUSE_MARK,
         EditKind.ASK: original,
+        EditKind.MOVE: "",
     }[edit.kind]
     return ReportEdit(
         category=outcome.category,
@@ -373,6 +376,7 @@ def _edit(result: ScriptResult, outcome: Outcome, pages: Pages) -> ReportEdit:
         where=pages.where(edit.span),
         chapter=chapter.chapter.index,
         won_by=won_by,
+        to=pages.where(edit.to) if edit.to is not None else None,
     )
 
 
@@ -402,6 +406,8 @@ def _edit_data(edit: ReportEdit) -> dict[str, Any]:
     if edit.won_by is not None:
         step, kind, where = edit.won_by
         data["won_by"] = {"step": step, "kind": str(kind), **where_data(where)}
+    if edit.to is not None:
+        data["to"] = where_data(edit.to)
     return data
 
 
@@ -412,6 +418,7 @@ def _edit_line(edit: ReportEdit) -> str:
         EditKind.REPLACE: f"read as “{_md(_one_line(edit.said))}”",
         EditKind.PAUSE: "a pause",
         EditKind.ASK: "read as printed until you decide",
+        EditKind.MOVE: f"read after its mark ({_page_text(edit.to)})" if edit.to else "",
     }[edit.kind]
     what = f"“{_md(shown_original(edit.original))}”" if edit.original else "(position)"
     if edit.status is Status.SET_ASIDE and edit.won_by is not None:

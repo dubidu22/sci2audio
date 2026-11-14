@@ -4,7 +4,8 @@
 listing everything it breaks: the declared attributes (id, languages, category, stage,
 `api_version`), edit spans inside their blocks, the step's id on every edit (a reason is
 enforced by `core.Edit` itself),
-no overlap among its own edits, whole-block edits for a block step, the same edits for the
+no overlap among its own edits, whole-block edits for a block step, moves from a move step
+and nothing else (#213), the same edits for the
 same input, no network access, and idempotence (run again on the text it produced, nothing
 more changes). Built-in steps also may not propose `ask` edits in v1.0 (`allow_ask=False`).
 
@@ -270,6 +271,11 @@ def _edit_problems(
         ordered = check_edits(document, edits)
     except ValueError as error:  # SpanError and OverlappingEditsError
         return [*problems, f"invalid edits: {error}"]
+    for edit in ordered:
+        if edit.kind is EditKind.MOVE and step.stage is not Stage.MOVE:
+            problems.append(f"only a move step proposes moves, got one at {edit.span}")
+        elif edit.kind is not EditKind.MOVE and step.stage is Stage.MOVE:
+            problems.append(f"a move step proposes only moves, got a {edit.kind} edit")
     if step.stage is Stage.BLOCK:
         for edit in ordered:
             length = len(document.blocks[edit.span.block].text)
