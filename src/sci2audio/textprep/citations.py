@@ -1,4 +1,4 @@
-# ruff: noqa: RUF001, RUF002  (dashes, quotes and symbols are meant as papers print them)
+# ruff: noqa: RUF001, RUF002, RUF003  (dashes, quotes and symbols are meant as papers print them)
 """Citations are not read where they are asides, and read briefly where the sentence needs
 them (TP-03, TP-04, K2; D-171 to D-173).
 
@@ -58,6 +58,15 @@ class CitationWords:
     particles: frozenset[str]  # lower-case parts of names
     months: frozenset[str]  # never the first word of an author
     articles: frozenset[str]  # before a name, a year bracket is no citation: "the Olympics (2016)"
+    # patterns (regular expressions, matched in any case) for what a citation prints
+    joins: str  # between two authors: "and", "&"
+    others: str  # after the authors: "et al."
+    other_words: frozenset[str]  # the words of `others`, never names: "et", "al."
+    undated: str  # in place of a year: "in press", "n.d.", "forthcoming"
+    dated: str  # what makes a bracket worth parsing besides a year: "in press", "n.d."
+    page: str  # a page: "p. 8", "pp. 8–10"
+    locators: str  # after the year: ", p. 8", ", Chapter 9", ", inter alia"
+    abbreviations: frozenset[str] = frozenset()  # a full stop after these ends no sentence
 
 
 # fmt: off
@@ -109,6 +118,93 @@ WORDS: dict[str, CitationWords] = {
             "october", "november", "december",
         )),
         articles=frozenset(["the", "a", "an"]),
+        joins=r"and|&",
+        others=r"et\s+al\.",
+        other_words=frozenset(["et", "al."]),
+        undated=r"in\s+press|n\.\s?d\.|forthcoming",
+        dated=r"in\s+press|n\.\s?d\.",
+        page=r"pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?",
+        locators=(
+            r"pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?|chapters?\s+\d+|ch(?:ap)?\.\s*\d+|"
+            r"sec(?:tions?|s?\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|inter\s+alia"
+        ),
+    ),
+    "de": CitationWords(
+        before=frozenset((
+            "in", "bei", "von", "vom", "aus", "nach", "gemäß", "laut", "siehe", "auch", "und",
+            "oder", "mit", "wie", "als", "durch", "auf", "über", "unter", "vgl.", "zu", "zur",
+            "zum", "im", "beim", "seit", "gegenüber", "etwa", "bzw.", "sowie",
+        )),
+        refs=frozenset(["ref.", "refs.", "lit."]),
+        ref_words=frozenset(["Quelle", "Quellen", "Referenz", "Referenzen", "Literatur"]),
+        nouns=frozenset((
+            "in", "bei", "von", "vom", "aus", "nach", "gemäß", "laut", "siehe", "mit", "wie",
+            "als", "durch", "auf", "über", "unter", "vgl.", "zu", "zur", "zum", "im", "beim",
+            "seit", "gegenüber",
+        )),
+        asides=("und so weiter", "usw.", "etc."),
+        lead=(
+            "für einen überblick siehe",
+            "für einen überblick vgl.",
+            "zum beispiel",
+            "siehe auch",
+            "siehe z. b.",
+            "siehe z.b.",
+            "siehe etwa",
+            "aber siehe",
+            "siehe",
+            "vgl. auch",
+            "vgl. z. b.",
+            "vgl. z.b.",
+            "vgl. etwa",
+            "vgl. dazu",
+            "vgl.",
+            "z. b.",
+            "z.b.",
+            "u. a.",
+            "u.a.",
+            "etwa",
+            "s.",
+        ),
+        maths=frozenset((
+            "ki", "kis", "ci", "cis", "intervall", "intervalle", "konfidenzintervall",
+            "konfidenzintervalle", "bereich", "bereiche", "wertebereich", "spanne",
+        )),
+        numbered=frozenset((
+            "gl.", "gleichung", "gleichungen", "abb.", "abbildung", "abbildungen", "tab.",
+            "tabelle", "tabellen", "abschn.", "abschnitt", "abschnitte", "kap.", "kapitel",
+            "schritt", "schritte", "zeile", "zeilen", "algorithmus", "anhang", "satz", "lemma",
+            "fig.", "eq.", "sec.",
+        )),
+        particles=frozenset((
+            "van", "von", "de", "der", "den", "del", "della", "di", "da", "du", "la", "le", "ten",
+            "ter", "dos", "das", "zu", "zur", "vom",
+        )),
+        months=frozenset((
+            "jan", "feb", "mär", "märz", "apr", "mai", "jun", "juni", "jul", "juli", "aug", "sep",
+            "sept", "okt", "nov", "dez", "januar", "jänner", "februar", "april", "august",
+            "september", "oktober", "november", "dezember",
+        )),
+        articles=frozenset((
+            "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer",
+            "eines",
+        )),
+        joins=r"und|u\.|&",
+        others=r"et\s+al\.|u\.\s?a\.",
+        other_words=frozenset(["et", "al.", "u.", "a.", "u.a."]),
+        undated=r"im\s+Druck|in\s+press|o\.\s?J\.|n\.\s?d\.|in\s+Vorbereitung|forthcoming",
+        dated=r"im\s+Druck|in\s+press|o\.\s?J\.|n\.\s?d\.",
+        page=r"(?:S|pp?)\.\s*\d+(?:\s*[-–—]\s*\d+)?(?:\s*ff?\.)?",
+        locators=(
+            r"(?:S|pp?)\.\s*\d+(?:\s*[-–—]\s*\d+)?(?:\s*ff?\.)?|Kap(?:itel|\.)\s*\d+|"
+            r"Abschn(?:itt|\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|Rn\.\s*\d+(?:\s*[-–—]\s*\d+)?"
+        ),
+        abbreviations=frozenset((
+            "a.", "abb.", "abschn.", "al.", "aufl.", "b.", "bd.", "bspw.", "bzw.", "ca.", "d.",
+            "d.h.", "dr.", "etc.", "evtl.", "f.", "ff.", "ggf.", "gl.", "h.", "hrsg.", "inkl.",
+            "insb.", "j.", "jh.", "kap.", "nr.", "o.", "o.j.", "prof.", "s.", "sog.", "tab.",
+            "u.", "u.a.", "usw.", "vgl.", "vs.", "z.", "z.b.",
+        )),
     ),
 }
 # fmt: on
@@ -119,38 +215,44 @@ _NUMERIC = re.compile(rf"\s*{_ITEM}(?:\s*[,;]\s*{_ITEM})*\s*\Z")
 _ITEMS = re.compile(rf"({_NUMBER})(?:\s*[-–—]\s*({_NUMBER}))?")
 _MATHS_SIGNS = "=∈∉→←↦<>≤≥×±∼≈⊂⊆∪∩"
 _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
-_YEARS = (
-    rf"(?:{_YEAR}|in\s+press|n\.\s?d\.|forthcoming)"
-    rf"(?:\s*,\s*(?:{_YEAR}|in\s+press|n\.\s?d\.|forthcoming))*"
-)
-_LOCATOR = (
-    r"(?:\s*,\s*(?:pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?|chapters?\s+\d+|ch(?:ap)?\.\s*\d+|"
-    r"sec(?:tions?|s?\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|inter\s+alia))*"
-)
-_YEARS_ONLY = re.compile(rf"\s*{_YEARS}{_LOCATOR}\s*\Z", re.IGNORECASE)
-_PAGE_ONLY = re.compile(r"\s*pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?\s*\Z")
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
 _WORD = rf"{_LETTER}+(?:(?:[’'-]|-\n){_LETTER}+)*"
-_NAME_WORD = rf"(?!(?:and|et)\b){_WORD}"
-_GROUP = rf"{_NAME_WORD}(?:[ \t]+{_NAME_WORD}|\s*-\n{_LETTER}+)*(?:\s+et\s+al\.)?"
-_AUTHORS = rf"{_GROUP}(?:\s*,\s*(?:(?:and|&)\s+)?{_GROUP}|\s+(?:and|&)\s+{_GROUP})*"
 _SPACE = re.compile(r"\s+")
-_GLUED_PAGE = re.compile(r"[\[(]\s*pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?\s*[\])]")
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
 _FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
 
 
+def _years(words: CitationWords) -> str:
+    """Years or their stand-ins, joined by commas: "2016a,b", "2019, in press"."""
+    one = rf"(?:{_YEAR}|{words.undated})"
+    return rf"{one}(?:\s*,\s*{one})*"
+
+
+def _locator(words: CitationWords) -> str:
+    return rf"(?:\s*,\s*(?:{words.locators}))*"
+
+
+def _authors(words: CitationWords) -> str:
+    """Names joined by commas and "and", each group maybe with "et al." after it."""
+    words_only = words.joins.replace("|&", "").replace(r"\.", "")  # "and", "und|u"
+    name_word = rf"(?!(?:{words_only}|et)\b){_WORD}"
+    group = rf"{name_word}(?:[ \t]+{name_word}|\s*-\n{_LETTER}+)*(?:\s+(?:{words.others}))?"
+    joins = words.joins
+    return rf"{group}(?:\s*,\s*(?:(?:{joins})\s+)?{group}|\s+(?:{joins})\s+{group})*"
+
+
 def _part_pattern(words: CitationWords) -> re.Pattern[str]:
     leads = "|".join(
         re.escape(lead).replace(r"\ ", r"\s+") for lead in sorted(words.lead, key=len, reverse=True)
     )
+    years, locator = _years(words), _locator(words)
     return re.compile(
-        rf"\A\s*(?:(?:{leads})\s+)*(?P<authors>{_AUTHORS})"
-        rf"(?:\s*\(\s*{_YEARS}{_LOCATOR}\s*\)|\s*,?\s+{_YEARS}{_LOCATOR}|\s*,\s*{_YEARS}{_LOCATOR})"
+        rf"\A\s*(?:(?:{leads})\s+)*(?P<authors>{_authors(words)})"
+        rf"(?:\s*\(\s*{years}{locator}\s*\)|\s*,?\s+{years}{locator}|\s*,\s*{years}{locator})"
         # a full stop may end the part: "(See Smith (2019).)" (D-447, #145)
-        rf"(?P<tail>{_LOCATOR})\s*\.?\s*\Z",
+        rf"(?P<tail>{locator})\s*\.?\s*\Z",
         re.IGNORECASE,
     )
 
@@ -160,7 +262,8 @@ def _numeric_aside_pattern(words: CitationWords) -> re.Pattern[str]:
         re.escape(lead).replace(r"\ ", r"\s+") for lead in sorted(words.lead, key=len, reverse=True)
     )
     bracket = rf"(?:(?:{leads})\s+)*\[{_NUMERIC.pattern[:-2]}\]"
-    return re.compile(rf"\s*{bracket}(?:\s*(?:,|;|and)\s*{bracket})*\s*\Z", re.IGNORECASE)
+    joins = words.joins.replace("|&", "")
+    return re.compile(rf"\s*{bracket}(?:\s*(?:,|;|{joins})\s*{bracket})*\s*\Z", re.IGNORECASE)
 
 
 @dataclass
@@ -195,7 +298,7 @@ class CitationStep(TextStep):
     """Remove citations that are asides; read briefly the ones the sentence needs."""
 
     id = "citations"
-    languages = ("en",)
+    languages = ("en", "de")
     category = Category.CITATIONS
     stage = Stage.INLINE
 
@@ -203,7 +306,10 @@ class CitationStep(TextStep):
         words = WORDS[context.language.split("-", 1)[0].lower()]
         language = context.language.split("-", 1)[0].lower()
         rules = _Rules(
-            words, wording_for(context.language), ABBREVIATIONS.get(language, frozenset())
+            words,
+            wording_for(context.language),
+            ABBREVIATIONS.get(language, words.abbreviations),
+            language,
         )
         edits = []
         for index, block in enumerate(document.blocks):
@@ -222,14 +328,26 @@ _Found = tuple[int, int, EditKind, str, str]  # start, end, kind, replacement, r
 
 class _Rules:
     def __init__(
-        self, words: CitationWords, wording: Wording, abbreviations: frozenset[str]
+        self,
+        words: CitationWords,
+        wording: Wording,
+        abbreviations: frozenset[str],
+        language: str = "en",
     ) -> None:
         self.words = words
         self.wording = wording
         self.abbreviations = abbreviations
         self.part = _part_pattern(words)
         self.numeric_aside = _numeric_aside_pattern(words)
+        self.years_only = re.compile(rf"\s*{_years(words)}{_locator(words)}\s*\Z", re.IGNORECASE)
+        self.page_only = re.compile(rf"\s*(?:{words.page})\s*\Z")
+        self.glued_page = re.compile(rf"[\[(]\s*(?:{words.page})\s*[\])]")
+        self.dated = re.compile(rf"\b(?:1[5-9]\d\d|20\d\d)|{words.dated}")
+        self.others_end = re.compile(rf"(\S+)\s+(?:{words.others})\s*\Z")
+        self.pair_end = re.compile(rf"(\S+)\s+(?:{words.joins})\s+\S+\s*\Z")
+        self.not_names = {*words.other_words, *re.sub(r"\\", "", words.joins).split("|")}
         self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
+        self.language = language
 
     def block(self, text: str) -> list[_Found]:
         found: list[_Found] = []
@@ -303,7 +421,7 @@ class _Rules:
             return self._numeric(text, node, inside)
         if self.numeric_aside.match(inside):
             return [self._removed(text, node.open, node.close + 1, "citation")]
-        if _YEARS_ONLY.match(inside) and (names := self._names_before(text, node.open)):
+        if self.years_only.match(inside) and (names := self._names_before(text, node.open)):
             end = self._glued_page(text, node.close + 1)
             printed = _printed(f"{names} {text[node.open : end]}")
             reason = f'year of the citation "{printed}" is not read; the names stay (TP-04)'
@@ -330,7 +448,9 @@ class _Rules:
 
     def _numeric(self, text: str, node: _Bracket, inside: str) -> list[_Found] | None:
         if not _NUMERIC.match(inside):
-            if _PAGE_ONLY.match(inside) and re.search(r"[\"”’']\s*\Z", _before(text, node.open)):
+            if self.page_only.match(inside) and re.search(
+                r"[\"”’']\s*\Z", _before(text, node.open)
+            ):
                 return [self._removed(text, node.open, node.close + 1, "page reference")]
             return None
         glued = text[node.open - 1 : node.open]
@@ -380,7 +500,7 @@ class _Rules:
     def _intervals(self, text: str) -> frozenset[int]:
         """The statistics step's interval brackets in this block, worked out once."""
         if self._intervals_of[0] != text:
-            self._intervals_of = (text, interval_openings(text))
+            self._intervals_of = (text, interval_openings(text, self.language))
         return self._intervals_of[1]
 
     def _spoken(self, inside: str) -> str:
@@ -416,9 +536,7 @@ class _Rules:
                 depth -= 1
             elif char == ";" and depth == 0:
                 cuts.append(position)
-        if not re.search(
-            r"\b(?:1[5-9]\d\d|20\d\d)|in\s+press|n\.\s?d\.", text[node.open : node.close]
-        ):
+        if not self.dated.search(text[node.open : node.close]):
             return None
         cuts.append(node.close)
         parts = []
@@ -472,7 +590,7 @@ class _Rules:
             for token in re.split(r"\s+|(?<=,)", authors.replace("-\n", "-"))
             if token.strip(",")
         ]
-        names = [t for t in tokens if t.lower() not in {"and", "&", "et", "al."}]
+        names = [t for t in tokens if t.lower() not in self.not_names]
         if not names or names[0].lower().rstrip(".") in self.words.months:
             return False
         for name in names:
@@ -495,15 +613,15 @@ class _Rules:
         if not found:
             return ""
         word = found.group(2)
-        if word == "al." and re.search(r"(\S+)\s+et\s+al\.\s*\Z", before):
-            author = re.search(r"(\S+)\s+et\s+al\.\s*\Z", before)
-            return _printed(f"{author.group(1)} et al.") if author else ""
+        others = self.others_end.search(before)
+        if others:  # "Smith et al. (2019)"
+            return _printed(before[others.start() :])
         joined = (found.group(1) or "").replace("-\n", "-") + word
         bare = re.sub(r"(?:[’']s?)\Z", "", joined)
         if not (_is_name(bare) or re.fullmatch(r"[A-Z]{2,6}", bare)):
             return ""
         # "Sag and Hankamer (1984)": the reason names both authors
-        pair = re.search(r"(\S+)\s+(?:and|&)\s+\S+\s*\Z", before)
+        pair = self.pair_end.search(before)
         if pair and _is_name(pair.group(1)):
             return _printed(pair.group())
         # "the Olympics (2016)": after an article the word names a thing, not an author
@@ -520,7 +638,7 @@ class _Rules:
 
     def _glued_page(self, text: str, end: int) -> int:
         """The end of a page bracket glued to a citation ("(2022)[p. 8]"), or `end`."""
-        page = _GLUED_PAGE.match(text, end)
+        page = self.glued_page.match(text, end)
         return page.end() if page else end
 
     def _is_subject(self, text: str, start: int, end: int) -> bool:

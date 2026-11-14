@@ -277,9 +277,9 @@ def test_every_other_kind_of_block_is_read_without_its_citations() -> None:
         assert read("Results [3] here.", kind) == "Results here."
 
 
-def test_the_step_is_english_only_and_its_switch_reads_citations_as_printed() -> None:
+def test_the_step_reads_english_and_german_and_its_switch_reads_citations_as_printed() -> None:
     assert (STEP.languages, STEP.category, STEP.stage) == (
-        ("en",),
+        ("en", "de"),  # German since #101
         Category.CITATIONS,
         Stage.INLINE,
     )

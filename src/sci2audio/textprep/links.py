@@ -30,6 +30,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass, replace
+from functools import cache
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
@@ -50,7 +51,40 @@ class LinkWords:
     joins: tuple[str, ...]  # words that join two links into one run
     introducers: tuple[str, ...]  # words before such a word in a bracket: "(found at ...)"
     pointers: tuple[str, ...]  # a sentence they start only points to the link: "See ... for"
+    # common words that go on the sentence after a URL cut at a line end, never a path (#109)
+    sentence_words: frozenset[str]
+    purposes: frozenset[str]  # words that start a short purpose after a pointer: "for details"
+    fillers: tuple[str, ...]  # words a pointer sentence may hold besides its links: "also"
+    # words that open an access note going with the link before it: "(abgerufen am 3.5.2017)"
+    access: tuple[str, ...] = ()
 
+
+# Common English words that start the rest of a sentence, never a path segment (#109,
+# D-449): after "https://x.org/" and a line break, "and more text" is the sentence again.
+_SENTENCE_WORDS = frozenset((
+    "a", "about", "after", "all", "also", "an", "and", "are", "as", "at", "be", "because",
+    "been", "before", "being", "both", "but", "by", "can", "could", "did", "do", "does",
+    "each", "either", "for", "from", "had", "has", "have", "he", "her", "here", "his", "how",
+    "however", "i", "if", "in", "into", "is", "it", "its", "may", "might", "more", "most",
+    "much", "must", "my", "neither", "no", "nor", "not", "now", "of", "on", "once", "only",
+    "or", "other", "our", "she", "should", "since", "so", "some", "such", "than", "that",
+    "the", "their", "them", "then", "there", "these", "they", "this", "those", "though",
+    "thus", "to", "too", "under", "unless", "until", "up", "upon", "us", "was", "we", "were",
+    "what", "when", "where", "whether", "which", "while", "who", "whom", "whose", "why",
+    "will", "with", "within", "without", "would", "yet", "you", "your",
+))  # fmt: skip
+
+# ... and the German ones: "https://x.org/" cut at a line end, then "und mehr"
+_SENTENCE_WORDS_DE = frozenset((
+    "aber", "als", "also", "am", "an", "auch", "auf", "aus", "bei", "bis", "da", "dass", "dem",
+    "den", "der", "des", "die", "dies", "diese", "diesem", "diesen", "dieser", "dieses",
+    "doch", "dort", "durch", "ein", "eine", "einem", "einen", "einer", "eines", "er", "es",
+    "für", "hat", "haben", "hier", "im", "in", "ist", "jedoch", "kann", "können", "man", "mit",
+    "nach", "nicht", "noch", "nur", "ob", "oder", "sich", "sie", "sind", "so", "sowie", "um",
+    "und", "unter", "vom", "von", "vor", "war", "waren", "weil", "welche", "wenn", "werden",
+    "wie", "wir", "wird", "wurde", "wurden", "zu", "zudem", "zum", "zur", "über", "abrufbar",
+    "erreichbar", "verfügbar", "zugänglich",
+))  # fmt: skip
 
 WORDS: dict[str, LinkWords] = {
     "en": LinkWords(
@@ -143,6 +177,134 @@ WORDS: dict[str, LinkWords] = {
             "released",
         ),
         pointers=("see also", "see", "visit", "cf."),
+        sentence_words=_SENTENCE_WORDS,
+        purposes=frozenset({"for", "to", "about", "regarding"}),
+        fillers=("also",),
+    ),
+    "de": LinkWords(
+        labels=(
+            "abrufbar unter",
+            "code",
+            "daten",
+            "datensatz",
+            "datensätze",
+            "doi",
+            "e-mail",
+            "e-mail-adresse",
+            "e-mails",
+            "email",
+            "erreichbar unter",
+            "github",
+            "homepage",
+            "internet",
+            "internetseite",
+            "kontakt",
+            "korrespondenz",
+            "korrespondenzadresse",
+            "link",
+            "links",
+            "mail",
+            "online",
+            "online verfügbar",
+            "programmcode",
+            "projektseite",
+            "quellcode",
+            "repositorium",
+            "repository",
+            "software",
+            "url",
+            "urls",
+            "verfügbar unter",
+            "web",
+            "webseite",
+            "website",
+        ),
+        before=(
+            "unter",
+            "auf",
+            "bei",
+            "über",
+            "via",
+            "von",
+            "aus",
+            "an",
+            "in",
+            "siehe",
+            "siehe auch",
+            "vgl.",
+            "s.",
+            "z. b.",
+            "z.b.",
+            "etwa",
+            "hier",
+        ),
+        lead=(
+            "siehe auch",
+            "siehe",
+            "vgl. auch",
+            "vgl.",
+            "s.",
+            "z. b.",
+            "z.b.",
+            "etwa",
+            "unter",
+            "auf",
+            "bei",
+            "via",
+            "verfügbar unter",
+            "abrufbar unter",
+            "erreichbar unter",
+            "online unter",
+            "online:",
+            "url:",
+            "doi:",
+            "code:",
+            "daten:",
+            "e-mail:",
+            "email:",
+            "webseite:",
+            "website:",
+        ),
+        joins=(",", ";", "/", "und", "oder", "sowie", "&", ", und", ", oder", ", sowie"),
+        introducers=(
+            "abrufbar",
+            "einsehbar",
+            "erhältlich",
+            "erreichbar",
+            "frei",
+            "hinterlegt",
+            "online",
+            "öffentlich",
+            "veröffentlicht",
+            "verfügbar",
+            "zugänglich",
+        ),
+        pointers=("siehe auch", "siehe", "vgl. auch", "vgl.", "s."),
+        sentence_words=_SENTENCE_WORDS_DE,
+        purposes=frozenset({"für", "zu", "zum", "zur", "über", "bezüglich", "mit"}),
+        fillers=("auch",),
+        access=(
+            "abgerufen am",
+            "abgerufen",
+            "abruf am",
+            "abrufdatum",
+            "aufgerufen am",
+            "aufgerufen",
+            "besucht am",
+            "letzter abruf am",
+            "letzter abruf",
+            "letzter zugriff am",
+            "letzter zugriff",
+            "stand",
+            "zugegriffen am",
+            "zugriff am",
+            "zugriff",
+            "zuletzt abgerufen am",
+            "zuletzt abgerufen",
+            "zuletzt aufgerufen am",
+            "zuletzt aufgerufen",
+            "zuletzt besucht am",
+        ),
     ),
 }
 
@@ -177,25 +339,10 @@ _KIND_NAMES = {
 }
 _ENDS_NOTHING = "/-_~=&?#%"  # a URL cut after one of these goes on in the next line
 _PATH_LIKE = re.compile(r"[/._\-=?#&%~\d]")  # a next-line word with one of these is address
-# Common English words that start the rest of a sentence, never a path segment (#109,
-# D-449): after "https://x.org/" and a line break, "and more text" is the sentence again.
-_SENTENCE_WORDS = frozenset((
-    "a", "about", "after", "all", "also", "an", "and", "are", "as", "at", "be", "because",
-    "been", "before", "being", "both", "but", "by", "can", "could", "did", "do", "does",
-    "each", "either", "for", "from", "had", "has", "have", "he", "her", "here", "his", "how",
-    "however", "i", "if", "in", "into", "is", "it", "its", "may", "might", "more", "most",
-    "much", "must", "my", "neither", "no", "nor", "not", "now", "of", "on", "once", "only",
-    "or", "other", "our", "she", "should", "since", "so", "some", "such", "than", "that",
-    "the", "their", "them", "then", "there", "these", "they", "this", "those", "though",
-    "thus", "to", "too", "under", "unless", "until", "up", "upon", "us", "was", "we", "were",
-    "what", "when", "where", "whether", "which", "while", "who", "whom", "whose", "why",
-    "will", "with", "within", "without", "would", "yet", "you", "your",
-))  # fmt: skip
 _TRAILING = ".,;:!?'\"’”*"  # punctuation at a URL's end belongs to the sentence
 _PAIRS = {")": "(", "]": "[", ">": "<"}
 _SPACE = re.compile(r"\s+")
 _POINTER_WORDS = 6  # the most words after a link that a pointer sentence may have
-_PURPOSES = frozenset({"for", "to", "about", "regarding"})  # "See ... for details."
 _SENTENCE_START = re.compile(r"(?:\A|[.!?][\"'”’)\]]*\s+)\Z")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z|(?=[A-Z\])\"'”’]))")
 _STOP = re.compile(r"[.!?](?=[\"'”’)\]]*(?:\s|\Z))")  # the full stop that ends a sentence
@@ -208,13 +355,14 @@ class _Link:
     start: int
     end: int
     kind: str
+    printed_end: int = -1  # where the link as printed ends, if an access note follows it
 
 
 class LinkStep(TextStep):
     """Remove URLs, DOIs, arXiv identifiers and e-mail addresses, repairing the sentence."""
 
     id = "links"
-    languages = ("en",)
+    languages = ("en", "de")
     category = Category.LINKS
     stage = Stage.INLINE
 
@@ -230,10 +378,13 @@ class LinkStep(TextStep):
     def _block_edits(
         self, index: int, text: str, kind: BlockKind, label: str, words: LinkWords
     ) -> list[Edit]:
-        runs = _runs(find_links(text, _after_label(text, kind, label)), text, words)
+        links = _with_access_notes(
+            text, find_links(text, _after_label(text, kind, label), words), words
+        )
+        runs = _runs(links, text, words)
         if not runs:
             return []
-        if _only_links(text, runs, label if kind is BlockKind.FOOTNOTE else ""):
+        if _only_links(text, runs, label if kind is BlockKind.FOOTNOTE else "", words):
             printed = "; ".join(_printed(text, run) for run in runs)
             reason = f"the text holds nothing but links ({printed}) and is not read (TP-07)"
             return [Edit(Span(index, 0, len(text)), EditKind.REMOVE, reason, self.id)]
@@ -263,17 +414,76 @@ class LinkStep(TextStep):
             else:
                 start, end = _with_space(text, start, end, claimed)
                 end = _whole_sentence(text, start, end, sentence_at)
+                start, join = _dangling_join(text, start, end, claimed, words)
+                repair += join
+            noted = any(link.printed_end >= 0 for link in run)
+            access = "; the access note after it goes too" if noted else ""
             edits.append(
                 Edit(
                     Span(index, start, end),
                     EditKind.REMOVE,
-                    f"{_named(text, run)} not read{repair} (TP-07)",
+                    f"{_named(text, run)} not read{access}{repair} (TP-07)",
                     self.id,
                 )
             )
             claimed = end
             sentence_at = end if at_start else -1
         return _tidied(text, edits)
+
+
+def _with_access_notes(text: str, links: list[_Link], words: LinkWords) -> list[_Link]:
+    """Each link with the access note right after it taken along: "https://x.org (abgerufen
+    am 12.03.2020)" or "https://x.org, Zugriff am 3. Mai 2017" (German words only)."""
+    pattern = _access_pattern(words)
+    if pattern is None:
+        return links
+    result = []
+    for number, link in enumerate(links):
+        note = pattern.match(text, link.end)
+        following = links[number + 1].start if number + 1 < len(links) else len(text)
+        if note and note.end() <= following:
+            link = replace(link, end=note.end(), printed_end=link.end)
+        result.append(link)
+    return result
+
+
+_DATE = (
+    r"(?:\d{1,2}\.\s?\d{1,2}\.\s?(?:\d{4}|\d{2})(?!\d)|\d{4}-\d{2}-\d{2}(?!\d)"
+    r"|(?:\d{1,2}\.\s*)?[^\W\d_]+\.?\s+\d{4}(?!\d))"
+)
+
+
+@cache
+def _access_pattern(words: LinkWords) -> re.Pattern[str] | None:
+    """An access note after a link: in brackets with a number in it, or after a comma up
+    to its date."""
+    if not words.access:
+        return None
+    listed = "|".join(
+        re.escape(word).replace(r"\ ", r"\s+")
+        for word in sorted(words.access, key=len, reverse=True)
+    )
+    return re.compile(
+        rf"\s*[(\[]\s*(?:{listed})(?!\w)[^()\[\]\d]{{0,40}}\d[^()\[\]]{{0,40}}[)\]]"
+        rf"|\s*,\s*(?:{listed})(?!\w)\s*:?\s*{_DATE}",
+        re.IGNORECASE,
+    )
+
+
+def _dangling_join(
+    text: str, start: int, end: int, claimed: int, words: LinkWords
+) -> tuple[int, str]:
+    """A join word left with nothing after it goes too: "(vgl. Suchmaschinen und z. B.
+    https://archive.org/)" reads "(vgl. Suchmaschinen)", not "(vgl. Suchmaschinen und)"."""
+    if end < len(text) and text[end] not in ".,;:!?)]":
+        return start, ""
+    joins = [w for w in words.joins if w.isalpha()]
+    listed = "|".join(re.escape(w) for w in sorted(joins, key=len, reverse=True))
+    window = max(claimed, start - _LOOK_BACK)
+    left = re.search(rf"\s+({listed})\s*\Z", text[window:start], re.IGNORECASE)
+    if not left or not text[window : window + left.start()].strip():
+        return start, ""
+    return window + left.start(), f'; "{left.group(1)}" before it goes too'
 
 
 def _tidied(text: str, edits: list[Edit]) -> list[Edit]:
@@ -304,9 +514,12 @@ def _after_label(text: str, kind: BlockKind, label: str) -> int:
     return 0
 
 
-def find_links(text: str, after: int = 0) -> list[_Link]:
+def find_links(text: str, after: int = 0, words: LinkWords | None = None) -> list[_Link]:
     """The links in a text, in order, never overlapping; the first `after` characters
-    (a footnote's mark) are read as white space, so they hold no link and don't hide one."""
+    (a footnote's mark) are read as white space, so they hold no link and don't hide one.
+    `words` gives the language's sentence words for a URL cut at a line end (English if
+    none)."""
+    sentence_words = (words or WORDS["en"]).sentence_words
     text = " " * after + text[after:]
     links: list[_Link] = []
     for match in _START.finditer(text):
@@ -318,7 +531,7 @@ def find_links(text: str, after: int = 0) -> list[_Link]:
         elif kind == "arxiv":
             end = _trimmed(text, match.start(), match.end())
         else:
-            end = _trimmed(text, match.start(), _token_end(text, match.end()))
+            end = _trimmed(text, match.start(), _token_end(text, match.end(), sentence_words))
         if end > match.start():
             links.append(_Link(match.start(), end, kind))
     return [link for link in links if _plausible(text, link)]
@@ -336,7 +549,7 @@ def _plausible(text: str, link: _Link) -> bool:
     return True
 
 
-def _token_end(text: str, position: int) -> int:
+def _token_end(text: str, position: int, sentence_words: frozenset[str]) -> int:
     """Where the address starting before `position` ends, line breaks inside it joined."""
     end = position
     while True:
@@ -346,17 +559,17 @@ def _token_end(text: str, position: int) -> int:
         if not gap:
             return end
         rest = re.match(rf"{_URL_CHARS}+", text[end + gap.end() :])
-        if not rest or not _continues(text[max(0, end - 8) : end], rest.group()):
+        if not rest or not _continues(text[max(0, end - 8) : end], rest.group(), sentence_words):
             return end
         end += gap.end() + rest.end()
 
 
-def _continues(before: str, word: str) -> bool:
+def _continues(before: str, word: str, sentence_words: frozenset[str]) -> bool:
     """True if a URL ending at a line break with `before` goes on with `word` (D-170)."""
     last = before[-1:]
     if last in _ENDS_NOTHING:
         # the rest of the address, unless a plain word that goes on the sentence (#109)
-        plain = not _PATH_LIKE.search(word) and word.lower() in _SENTENCE_WORDS
+        plain = not _PATH_LIKE.search(word) and word.lower() in sentence_words
         return bool(re.match(r"[\w/.~%-]", word)) and not plain
     if last == ":":
         return bool(re.search(r"(?:https?|ftp):\Z", before, re.IGNORECASE)) and word.startswith(
@@ -398,8 +611,9 @@ def _runs(links: list[_Link], text: str, words: LinkWords) -> list[list[_Link]]:
     return runs
 
 
-def _only_links(text: str, runs: list[list[_Link]], label: str) -> bool:
-    """True if nothing but links, punctuation and the footnote's label is in the text."""
+def _only_links(text: str, runs: list[list[_Link]], label: str, words: LinkWords) -> bool:
+    """True if nothing but links, punctuation, the words that join or lead to links ("and",
+    "see", "z. B.") and the footnote's label is in the text."""
     rest = []
     cursor = 0
     for run in runs:
@@ -409,9 +623,19 @@ def _only_links(text: str, runs: list[list[_Link]], label: str) -> bool:
     left = "".join(rest).strip()
     if label and left.startswith(label):
         left = left[len(label) :]
-    joins = re.compile(r"\b(?:and|or)\b", re.IGNORECASE)
-    left = joins.sub("", left)
+    left = _link_words(words).sub(" ", left)
     return all(unicodedata.category(char)[0] in "PZ" or char.isspace() for char in left)
+
+
+@cache
+def _link_words(words: LinkWords) -> re.Pattern[str]:
+    """The words that join or lead to links, as whole words in any case."""
+    found = {w for w in (*words.joins, *words.lead, *words.pointers) if any(c.isalpha() for c in w)}
+    listed = "|".join(
+        re.escape(w.strip(" ,")).replace(r"\ ", r"\s*")
+        for w in sorted(found, key=len, reverse=True)
+    )
+    return re.compile(rf"(?<!\w)(?:{listed})(?!\w)", re.IGNORECASE)
 
 
 def _repair(
@@ -525,16 +749,16 @@ def _only_pointers_after(text: str, end: int, words: LinkWords) -> int | None:
     return stop if _link_words_only(text[end:stop], words) else None
 
 
-def _without_links(rest: str) -> str:
-    for link in reversed(find_links(rest)):
+def _without_links(rest: str, words: LinkWords) -> str:
+    for link in reversed(find_links(rest, words=words)):
         rest = rest[: link.start] + " " + rest[link.end :]
     return rest
 
 
 def _link_words_only(rest: str, words: LinkWords) -> bool:
     """True if, links left out, the text holds only words that join or point to links."""
-    allowed = {*words.joins, *words.before, *words.pointers, *words.lead, "also"}
-    return all(word in allowed for word in _words(_without_links(rest)))
+    allowed = {*words.joins, *words.before, *words.pointers, *words.lead, *words.fillers}
+    return all(word in allowed for word in _words(_without_links(rest, words)))
 
 
 def _short(rest: str, words: LinkWords) -> bool:
@@ -542,8 +766,8 @@ def _short(rest: str, words: LinkWords) -> bool:
     www.b.org/y"), or a short purpose and no clause ("for details", "to learn more")."""
     if len(rest) > _LOOK_BACK:
         return False
-    bare = _without_links(rest)
-    allowed = {*words.joins, *words.before, *words.pointers, *words.lead, "also"}
+    bare = _without_links(rest, words)
+    allowed = {*words.joins, *words.before, *words.pointers, *words.lead, *words.fillers}
     left = _words(bare)
     while left and left[0] in allowed:  # "(or www.b.org/x) for details"
         left.pop(0)
@@ -551,7 +775,7 @@ def _short(rest: str, words: LinkWords) -> bool:
         return True
     return (
         len(left) <= _POINTER_WORDS
-        and left[0] in _PURPOSES
+        and left[0] in words.purposes
         and not re.search(r"[,;:]|[.!?]\s", bare)
     )
 
@@ -614,7 +838,7 @@ def _printed(text: str, run: list[_Link]) -> str:
     """The links of a run as printed: line breaks inside an address dropped (D-175)."""
     shown = []
     for link in run:
-        raw = text[link.start : link.end]
+        raw = text[link.start : link.end if link.printed_end < 0 else link.printed_end]
         shown.append(_SPACE.sub(" ", raw).strip() if "mail" in link.kind else _SPACE.sub("", raw))
     return " and ".join(f'"{link}"' for link in shown)
 

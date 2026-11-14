@@ -35,7 +35,7 @@ from sci2audio.textprep.notation import (
     through_unread,
     to_edits,
 )
-from sci2audio.textprep.statistics_de import OPERATORS_DE, find_statistics_de
+from sci2audio.textprep.statistics_de import OPERATORS_DE, ci_runs_de, find_statistics_de
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 OPERATORS = {
@@ -238,16 +238,18 @@ def _ci_runs(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]]:
         yield match, intervals
 
 
-def interval_openings(text: str) -> frozenset[int]:
+def interval_openings(text: str, language: str = "en") -> frozenset[int]:
     """Where, in the printed text, the brackets open that this step reads as confidence
     intervals. The citations step leaves exactly these alone, so the two steps agree on
-    every joined pair (#151). Found as the step finds them: in the text as read, without
-    unread characters and with math letters folded ("𝐶𝐼s"), then mapped back."""
+    every joined pair (#151); in German "KI [1,2; 3,4]" too (#101). Found as the step finds
+    them: in the text as read, without unread characters and with math letters folded
+    ("𝐶𝐼s"), then mapped back."""
+    runs = ci_runs_de if _is_german(language) else _ci_runs
 
     def openings(read: str) -> list[Candidate]:
         return [
             Candidate(at, at + 1, "[", "interval")
-            for _, intervals in _ci_runs(fold(read))
+            for _, intervals in runs(fold(read))
             for at in (interval.start("open") for interval in intervals)
         ]
 
