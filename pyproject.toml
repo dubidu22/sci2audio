@@ -44,7 +44,6 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://sci2audio.com"
 Repository = "https://github.com/dubidu22/sci2audio"
 Issues = "https://github.com/dubidu22/sci2audio/issues"
 
