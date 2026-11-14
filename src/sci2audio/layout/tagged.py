@@ -20,9 +20,11 @@ D-340 to D-344). Layout reads each page in that order:
   file puts it); table lines are one TABLE per run of them, a ``caption`` inside cut out as
   a CAPTION before it (D-412); SVG text is a FIGURE; then the innermost of ``h1``-``h6``
   (HEADING), ``figcaption`` (CAPTION), maths (FORMULA) and ``li`` (LIST_ITEM, D-415),
-  except that maths inside a heading leaves it a heading;
-  everything else, code blocks too (D-410), is a PARAGRAPH. Each picture is a FIGURE of its
-  own with text "" (D-413), unless it stands between two lines of one table, note or SVG.
+  except that maths inside a heading leaves it a heading. A ``pre`` holding ``code`` (every
+  fenced or indented Markdown code block) is CODE, a placeholder (D-542, D-544); a ``pre``
+  alone (a poem, an address) keeps its lines as a PARAGRAPH, and so does everything else.
+  Each picture is a FIGURE of its own with text "" (D-413), unless it stands between two
+  lines of one table, note or SVG.
 - A caption's lines in a row are one caption, unless a line opens with a caption label of
   its own ("Figure 3: ..."), which starts the next figure's caption.
 - A caption describes the placeholder next to it: a ``figcaption`` the one before it, else
@@ -214,6 +216,8 @@ def _classified(line: TextLine, page: int) -> _Unit:
             unit.kind, unit.key = BlockKind.TABLE, ("table",)
     elif "svg" in names:
         unit.kind, unit.key = BlockKind.FIGURE, ("svg",)
+    elif "pre" in names and "code" in names[names.index("pre") :]:
+        unit.kind = BlockKind.CODE  # D-544
     else:
         headed = any(tag in _RANKS for tag in context)
         for tag in reversed(context):

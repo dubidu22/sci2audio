@@ -20,6 +20,9 @@ footnotes = [
 
 tables = 1
 
+# Fenced and indented code blocks.
+code_blocks = 2
+
 # Alternative texts; "" for the image without one.
 figures = ["A bar chart of minutes per group", ""]
 

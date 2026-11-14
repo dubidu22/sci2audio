@@ -577,23 +577,23 @@
 # ---
 # name: test_every_citation_and_link_edit_is_as_recorded[joss2021-waskom-seaborn]
   list([
-    "54 links accepted: …figures can be found[ at https://github.com/WagnerLabPapers/Waskom_PNAS_2017] (Waskom & Wagner, 2… -> ''",
-    "62 links set-aside: …ist, 60(2), 170–180.[ https://doi.org/10.1037/ 0003-066X.60.2.170]… -> ''",
-    "63 links set-aside: … 585(7825), 357–362.[ https: //doi.org/10.1038/s41586-020-2649-2]… -> ''",
-    "64 links set-aside: …eering, 9(3), 90–95.[ https://doi.org/10.1109/MCSE.2007.55]… -> ''",
-    "65 links set-aside: …ference (pp. 51–56).[ https://doi.org/10.25080/Majora-92bf1922-00a]… -> ''",
-    "67 links set-aside: …ciences, 2030– 2035.[ https://doi.org/10.1073/pnas.1615269114]… -> ''",
-    "68 links set-aside: …icles, 59(10), 1–23.[ https://doi.org/10.18637/jss.v059.i10]… -> ''",
+    "45 links accepted: …figures can be found[ at https://github.com/WagnerLabPapers/Waskom_PNAS_2017] (Waskom & Wagner, 2… -> ''",
+    "53 links set-aside: …ist, 60(2), 170–180.[ https://doi.org/10.1037/ 0003-066X.60.2.170]… -> ''",
+    "54 links set-aside: … 585(7825), 357–362.[ https: //doi.org/10.1038/s41586-020-2649-2]… -> ''",
+    "55 links set-aside: …eering, 9(3), 90–95.[ https://doi.org/10.1109/MCSE.2007.55]… -> ''",
+    "56 links set-aside: …ference (pp. 51–56).[ https://doi.org/10.25080/Majora-92bf1922-00a]… -> ''",
+    "58 links set-aside: …ciences, 2030– 2035.[ https://doi.org/10.1073/pnas.1615269114]… -> ''",
+    "59 links set-aside: …icles, 59(10), 1–23.[ https://doi.org/10.18637/jss.v059.i10]… -> ''",
     "7 citations accepted: …r insights to others[ (Tukey, 1977)]. These goals can be… -> ''",
     "7 citations accepted: …stem, the matplotlib[ (Hunter, 2007)] project is very wel… -> ''",
-    "51 citations accepted: …m “inference by eye”[ (Cumming & Finch, 2005)]. Historically, erro… -> ''",
-    "52 citations accepted: …rn provides a pandas[ (McKinney, 2010)] dataframe with vari… -> ''",
-    "52 citations accepted: …long- form or “tidy”[ (Wickham, 2014)] format. With this f… -> ''",
-    "52 citations accepted: …ats, including numpy[ (Harris et al., 2020)] arrays and simple P… -> ''",
-    "54 citations accepted: …ems, such as ggplot2[ (Wickham, 2016)]. While seaborn offe… -> ''",
-    "54 citations accepted: …ers/Waskom_PNAS_2017[ (Waskom & Wagner, 2017)].… -> ''",
-    "60 citations accepted: …dation IGERT program[ (0801700)] and by the Simons F… -> ''",
-    "60 citations accepted: …s Society of Fellows[ (527794)]. Many others have h… -> ''",
+    "42 citations accepted: …m “inference by eye”[ (Cumming & Finch, 2005)]. Historically, erro… -> ''",
+    "43 citations accepted: …rn provides a pandas[ (McKinney, 2010)] dataframe with vari… -> ''",
+    "43 citations accepted: …long- form or “tidy”[ (Wickham, 2014)] format. With this f… -> ''",
+    "43 citations accepted: …ats, including numpy[ (Harris et al., 2020)] arrays and simple P… -> ''",
+    "45 citations accepted: …ems, such as ggplot2[ (Wickham, 2016)]. While seaborn offe… -> ''",
+    "45 citations accepted: …ers/Waskom_PNAS_2017[ (Waskom & Wagner, 2017)].… -> ''",
+    "51 citations accepted: …dation IGERT program[ (0801700)] and by the Simons F… -> ''",
+    "51 citations accepted: …s Society of Fellows[ (527794)]. Many others have h… -> ''",
   ])
 # ---
 # name: test_every_citation_and_link_edit_is_as_recorded[joss2022-biggs-pymedphys]
