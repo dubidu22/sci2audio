@@ -165,15 +165,16 @@ class _Removals:
         removals are in order and never overlap: the first that starts at or after `end` is
         the only one to look at, found by bisection (linear on link-dense blocks)."""
         position = end
-        limit = min(len(self._text), end + _GAP)
-        while position < limit and self._text[position] in " \t\u00a0":
-            position += 1
+        while position < len(self._text) and self._text[position] in " \t\u00a0":
+            position += 1  # linear: the matches are apart, so no white space is walked twice
         if self._spans is None:
-            # the links step's pass over the block runs only once a link starts here
-            if not _LINK_START.match(self._text, position):
+            # the links step's pass over the block runs only once a link starts close by,
+            # maybe after an opener it removes with the link ("<https://…>", "(see https://…)")
+            near = position + _LEAD
+            if not _LINK_START.search(self._text, position, near):
                 return None  # cheap: no scheme, "www." or dotted host here
             window = self._text[position : position + _LINK_WINDOW]
-            if not any(link.start == 0 for link in find_links(window)[:1]):
+            if not any(link.start < _LEAD for link in find_links(window)[:1]):
                 return None
             self._spans = link_removals(self._text, self._kind, self._label, self._language)
             self._starts = [start for start, _ in self._spans]
@@ -185,7 +186,7 @@ class _Removals:
         return None
 
 
-_GAP = 8  # the white space looked past after an abbreviation, at most
+_LEAD = 48  # an opener and lead words the links step removes before a link, at most
 _LINK_WINDOW = 512  # enough to see that a link starts
 # what a link may start with: a scheme, "www." or a host with a dot ("x.org/a")
 _LINK_START = re.compile(r"(?:https?:|ftp:|mailto:|www\.|doi|[\w-]+(?:\.[\w-]+)+[/:])", re.I)

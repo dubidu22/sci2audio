@@ -353,6 +353,10 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("5x× 3", "5x mal 3"),
         # review of PR #256 (D1): an abbreviation before a link the links step removes
         ("Siehe Kap. https://x.org/a (ebd., S. 3).", "Siehe Kapitel (ebenda, Seite 3)."),
+        # an opener the links step removes with the link, and a long gap (PR #263 review G1)
+        ("Siehe Kap. <https://x.org/a> 3 dazu.", "Siehe Kapitel 3 dazu."),
+        ("Siehe Kap. (siehe https://x.org/a) 3 dazu.", "Siehe Kapitel 3 dazu."),
+        ("Siehe Kap.          https://x.org/a 3 dazu.", "Siehe Kapitel 3 dazu."),
         ("Kap. www.x.org 3 zeigt", "Kapitel 3 zeigt"),
         ("10^{-3}.1.234", "10^{-3}.1.234"),  # nightly seed 11 after the fixes above
         ("1–1im 1500-1998", "1 bis 1im 15 hundert bis 19 hundert 98"),  # seed 222 after them

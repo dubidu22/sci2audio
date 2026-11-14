@@ -638,6 +638,9 @@ def _both_runs(text: str) -> tuple[str, str]:
         ("a 5x times", "a 5x times"),
         # ... and an abbreviation before a link the links step removes
         ("See Fig. https://x.org/a 3.", "See Figure 3."),
+        ("See Fig. <https://x.org/a> 3.", "See Figure 3."),
+        ("See Fig. (see https://x.org/a) 3.", "See Figure 3."),
+        ("See Fig.          https://x.org/a 3.", "See Figure 3."),
         # ... and a label after a symbol and a full stop (nightly seed 6007)
         ("\u00d7.Figure 5 mg/kg", "times.Figure 5 mg/kg"),
     ],
