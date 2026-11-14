@@ -299,6 +299,15 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         ("Siehe abb. 3 dazu.", ["Siehe abb. 3 dazu."]),
         ("Es gilt o. J. als Datum.", ["Es gilt o. J. als Datum."]),
         ("Gemessen in Tsd. Euro.", ["Gemessen in Tsd. Euro."]),
+        ("Werk i. S. v. § 2 UrhG.", ["Werk i. S. v. § 2 UrhG."]),
+        (
+            "Ausnahmen von lit. a\u2013d. Ob das gilt.",
+            ["Ausnahmen von lit. a\u2013d.", "Ob das gilt."],
+        ),
+        (
+            "Siehe Abbildung 1. PrivacyScore ist gut.",
+            ["Siehe Abbildung 1.", "PrivacyScore ist gut."],
+        ),
         ("Am 3. 4. 2019 kam es.", ["Am 3. 4. 2019 kam es."]),
         # ... while a sentence opener after the number still starts a sentence
         ("Es waren 3. Die Studie lief.", ["Es waren 3.", "Die Studie lief."]),

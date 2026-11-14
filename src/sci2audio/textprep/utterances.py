@@ -265,13 +265,23 @@ def _sentences(
         # the initials check does not, or "DON'T." and "[1]A." would read as initials
         word = _GLUED_BEFORE.split(whole)[-1]
         lowered = word.lower()
-        if lowered in abbreviations and not (
-            lowered in _BEFORE_NUMBERS and not following.isdigit()
+        if (
+            lowered in abbreviations
+            and not (lowered in _BEFORE_NUMBERS and not following.isdigit())
+            # German: a single letter of a spaced form ("i." of "i. S. v.") only on its own,
+            # not glued to a range ("lit. a\u2013d. Ob", the end of a sentence)
+            and not (german and len(lowered) == 2 and lowered != whole.lower())
         ):
             continue
         if _INITIAL.match(whole.lstrip(_OPENING)):
             continue
-        if german and _SHORT_NUMBER.match(word) and not opens_sentence(text, match.end(), language):
+        if (
+            german
+            and _SHORT_NUMBER.match(word)
+            and run.piece_at(match.start())[2]  # printed, not a step's words ("Fußnote 1.")
+            and not _after_label(text, match.start() - len(word) + 1, language)
+            and not opens_sentence(text, match.end(), language)
+        ):
             continue  # "Er wurde 3. Sieger", "Am 3. 4. 2019"; "Es waren 3. Die Studie" is cut
         cut = match.start(1)
         inside = run.inside_replacement(cut)
@@ -280,6 +290,18 @@ def _sentences(
         cuts.append(cut)
     cuts.append(len(text))
     return [(a, b) for a, b in pairwise(cuts) if a < b]
+
+
+_WORD_BEFORE = re.compile(r"(\S+)\s+\Z")
+
+
+def _after_label(text: str, start: int, language: str) -> bool:
+    """True if a label word of the unit list stands right before `start` ("Abbildung 1.",
+    "Tabelle 3."): the number is the label's, no ordinal, and its full stop may end the
+    sentence before any capital ("gibt Abbildung 1. PrivacyScore ist ...")."""
+    listed = units(language)
+    before = _WORD_BEFORE.search(text, max(0, start - 32), start)
+    return listed is not None and before is not None and before[1].lower() in listed.labels
 
 
 def _counts(text: str) -> list[int]:
