@@ -1,6 +1,7 @@
 """Captions: the text that names a table, figure or algorithm (Issue #21 step 3, D-85).
 
-A caption is a text block that opens with "Figure", "Fig.", "Table" or "Algorithm" and a
+A caption is a text block that opens with "Figure", "Fig.", "Table" or "Algorithm" (or the
+German "Abbildung", "Abb.", "Tabelle", "Tab." or "Algorithmus", #235) and a
 number ("3", "A.2", "S1"), and then either a colon or a full stop ("Table 2: …",
 "Figure 1. …"), or the label set in bold and the rest of its line not ("Algorithm 1 CKY").
 Running text that opens the same way ("Figure 1 gives the accuracy …") is neither and
@@ -18,7 +19,13 @@ from dataclasses import replace
 from sci2audio.core import Block, BlockKind, Content, Part, TextLine
 from sci2audio.layout.split import line_starts, split_at
 
-_NAMES = "Figure|Fig\\.|Table|Algorithm|FIGURE|FIG\\.|TABLE|ALGORITHM"
+# English and German names, for a document in any language (#235, D-506): "Abb. 1" never
+# opens an English caption, and a German paper read as English still has its captions.
+# "Algorithmus" starts with "Algorithm", so it is an algorithm's caption.
+_NAMES = (
+    "Figure|Fig\\.|Table|Algorithm|FIGURE|FIG\\.|TABLE|ALGORITHM"
+    "|Abbildung|Abb\\.|Tabelle|Tab\\.|Algorithmus|ABBILDUNG|ABB\\.|TABELLE|TAB\\.|ALGORITHMUS"
+)
 # the label, then what follows it: a colon or full stop before white, or anything else
 _LABEL = re.compile(rf"(?P<label>(?:{_NAMES})\s(?:[A-Z]\.?)?\d{{1,3}}(?:\.\d{{1,2}})*)(?P<rest>.*)")
 _PUNCT = re.compile(r"[:.](?:\s|$)")

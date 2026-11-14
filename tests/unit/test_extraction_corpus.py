@@ -44,6 +44,15 @@ OUTLINES: dict[str, tuple[OutlineEntry, ...]] = {
     "acl2023-chi-plue": (),
     "acl2023-hardt-ellipsis": (),
     "acl2023-nowak-prefix-probabilities": (),
+    "arxiv2017-maass-privacyscore": (  # the LNI class keeps the printed numbers
+        OutlineEntry("1 Einleitung", 1, 1),
+        OutlineEntry("2 Verwandte Arbeiten", 1, 2),
+        OutlineEntry("3 PrivacyScore im Überblick", 1, 3),
+        OutlineEntry("4 Sicherheits- und Privatheitstests", 1, 5),
+        OutlineEntry("5 Ethische Fragestellungen", 1, 6),
+        OutlineEntry("6 Rechtliche Fragestellungen", 1, 6),
+        OutlineEntry("7 Schlussbemerkungen", 1, 12),
+    ),
     "arxiv2024-arsiwalla-qualia-meaning": (
         OutlineEntry("Introduction", 1, 2),
         OutlineEntry("Subjective Meaning in Phenomenology of Experience", 1, 4),
@@ -156,12 +165,14 @@ def test_the_outline_is_recorded_as_stored(paper: Path) -> None:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_each_outline_entry_names_a_truth_heading(paper: Path) -> None:
-    """Allowing for the printed number the outline leaves out, and white space; the entries
-    that are not headings are named with their reason."""
-    headings = [
-        " ".join(PRINTED_NUMBER.sub("", heading["text"], count=1).split())
+    """Allowing for the printed number, which the outline may leave out (arXiv, JOSS) or keep
+    (the LNI paper, #235), and white space; the entries that are not headings are named with
+    their reason."""
+    headings = {
+        " ".join(text.split())
         for heading in truth(paper)["headings"]
-    ]
+        for text in (heading["text"], PRINTED_NUMBER.sub("", heading["text"], count=1))
+    }
     unmatched = [
         (k, entry.title)
         for k, entry in enumerate(content(paper).outline, 1)

@@ -4004,6 +4004,3726 @@
   
   '''
 # ---
+# name: test_the_report_is_as_recorded[arxiv2017-maass-privacyscore][json]
+  dict({
+    'chapters': list([
+      dict({
+        'blocks': list([
+          0,
+          5,
+        ]),
+        'first_page': 1,
+        'index': 0,
+        'references': False,
+        'selected': True,
+        'title': 'PrivacyScore',
+        'utterances': 8,
+      }),
+      dict({
+        'blocks': list([
+          5,
+          17,
+        ]),
+        'first_page': 1,
+        'index': 1,
+        'references': False,
+        'selected': True,
+        'title': '1 Einleitung',
+        'utterances': 31,
+      }),
+      dict({
+        'blocks': list([
+          17,
+          28,
+        ]),
+        'first_page': 2,
+        'index': 2,
+        'references': False,
+        'selected': True,
+        'title': '2 Verwandte Arbeiten',
+        'utterances': 20,
+      }),
+      dict({
+        'blocks': list([
+          28,
+          41,
+        ]),
+        'first_page': 3,
+        'index': 3,
+        'references': False,
+        'selected': True,
+        'title': '3 PrivacyScore im Überblick',
+        'utterances': 37,
+      }),
+      dict({
+        'blocks': list([
+          41,
+          49,
+        ]),
+        'first_page': 5,
+        'index': 4,
+        'references': False,
+        'selected': True,
+        'title': '4 Sicherheits- und Privatheitstests',
+        'utterances': 22,
+      }),
+      dict({
+        'blocks': list([
+          49,
+          53,
+        ]),
+        'first_page': 6,
+        'index': 5,
+        'references': False,
+        'selected': True,
+        'title': '5 Ethische Fragestellungen',
+        'utterances': 12,
+      }),
+      dict({
+        'blocks': list([
+          53,
+          93,
+        ]),
+        'first_page': 6,
+        'index': 6,
+        'references': False,
+        'selected': True,
+        'title': '6 Rechtliche Fragestellungen',
+        'utterances': 188,
+      }),
+      dict({
+        'blocks': list([
+          93,
+          101,
+        ]),
+        'first_page': 12,
+        'index': 7,
+        'references': False,
+        'selected': True,
+        'title': '7 Schlussbemerkungen',
+        'utterances': 25,
+      }),
+      dict({
+        'blocks': list([
+          101,
+          110,
+        ]),
+        'first_page': 13,
+        'index': 8,
+        'references': True,
+        'selected': False,
+        'title': 'Literaturverzeichnis',
+        'utterances': 0,
+      }),
+    ]),
+    'counts': dict({
+      'abbreviations': dict({
+        'applied': 95,
+        'label': 'Abbreviations',
+        'not_spoken': 0,
+        'set_aside': 3,
+        'switched_off': 0,
+      }),
+      'characters': dict({
+        'applied': 38,
+        'label': 'Characters and hyphenation',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'citations': dict({
+        'applied': 0,
+        'label': 'Citations',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'footnote-texts': dict({
+        'applied': 0,
+        'label': 'Footnote texts',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 30,
+      }),
+      'footnotes': dict({
+        'applied': 0,
+        'label': 'Footnotes',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'formulas': dict({
+        'applied': 0,
+        'label': 'Formulas',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'links': dict({
+        'applied': 0,
+        'label': 'URLs, DOIs and e-mail addresses',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'numbers-and-units': dict({
+        'applied': 2,
+        'label': 'Numbers, symbols, units and statistics',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'page-furniture': dict({
+        'applied': 13,
+        'label': 'Page furniture',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'references': dict({
+        'applied': 0,
+        'label': 'Reference list',
+        'not_spoken': 9,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+      'tables-and-figures': dict({
+        'applied': 0,
+        'label': 'Tables and figures',
+        'not_spoken': 0,
+        'set_aside': 0,
+        'switched_off': 0,
+      }),
+    }),
+    'edits': list([
+      dict({
+        'block': 11,
+        'category': 'page-furniture',
+        'chapter': 1,
+        'end': 38,
+        'kind': 'remove',
+        'original': 'arXiv:1705.08889v2 [cs.CR] 30 Jun 2017',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'page furniture (side stamp) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 12,
+        'category': 'page-furniture',
+        'chapter': 1,
+        'end': 43,
+        'kind': 'remove',
+        'original': '2 Max Maass, Anne Laubach, Dominik Herrmann',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 24,
+        'category': 'page-furniture',
+        'chapter': 2,
+        'end': 14,
+        'kind': 'remove',
+        'original': 'PrivacyScore 3',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 33,
+        'category': 'page-furniture',
+        'chapter': 3,
+        'end': 43,
+        'kind': 'remove',
+        'original': '4 Max Maass, Anne Laubach, Dominik Herrmann',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 39,
+        'category': 'page-furniture',
+        'chapter': 3,
+        'end': 14,
+        'kind': 'remove',
+        'original': 'PrivacyScore 5',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 48,
+        'category': 'page-furniture',
+        'chapter': 4,
+        'end': 43,
+        'kind': 'remove',
+        'original': '6 Max Maass, Anne Laubach, Dominik Herrmann',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 57,
+        'category': 'page-furniture',
+        'chapter': 6,
+        'end': 14,
+        'kind': 'remove',
+        'original': 'PrivacyScore 7',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 64,
+        'category': 'page-furniture',
+        'chapter': 6,
+        'end': 43,
+        'kind': 'remove',
+        'original': '8 Max Maass, Anne Laubach, Dominik Herrmann',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 69,
+        'category': 'page-furniture',
+        'chapter': 6,
+        'end': 14,
+        'kind': 'remove',
+        'original': 'PrivacyScore 9',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 77,
+        'category': 'page-furniture',
+        'chapter': 6,
+        'end': 44,
+        'kind': 'remove',
+        'original': '10 Max Maass, Anne Laubach, Dominik Herrmann',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 83,
+        'category': 'page-furniture',
+        'chapter': 6,
+        'end': 15,
+        'kind': 'remove',
+        'original': 'PrivacyScore 11',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 89,
+        'category': 'page-furniture',
+        'chapter': 6,
+        'end': 44,
+        'kind': 'remove',
+        'original': '12 Max Maass, Anne Laubach, Dominik Herrmann',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 97,
+        'category': 'page-furniture',
+        'chapter': 7,
+        'end': 15,
+        'kind': 'remove',
+        'original': 'PrivacyScore 13',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'page furniture (running head) is not read',
+        'said': '',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'page-furniture',
+      }),
+      dict({
+        'block': 101,
+        'category': 'references',
+        'chapter': 8,
+        'end': 20,
+        'kind': 'remove',
+        'original': 'Literaturverzeichnis',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 102,
+        'category': 'references',
+        'chapter': 8,
+        'end': 117,
+        'kind': 'remove',
+        'original': '''
+          [EN16] Englehardt, S.; Narayanan, A.: Online tracking: A 1-million-site measurement and analysis.
+          In: CCS. ACM, 2016.
+        ''',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 103,
+        'category': 'references',
+        'chapter': 8,
+        'end': 180,
+        'kind': 'remove',
+        'original': '''
+          [Fa14] Fahl, S.; Acar, Y.; Perl, H.; Smith, M.: Why eve and mallory (also) love webmasters: A Study
+          on the Root Causes of SSL Misconfigurations. In: AsiaCCS. ACM, S. 507–512, 2014.
+        ''',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 104,
+        'category': 'references',
+        'chapter': 8,
+        'end': 176,
+        'kind': 'remove',
+        'original': '''
+          [Ho16] Holz, R.; Amann, J.; Mehani, O.; Kâafar, M.A.; Wachs, M.: TLS in the Wild: An Internet-wide
+          Analysis of TLS-based Protocols for Electronic Communication. In: NDSS. 2016.
+        ''',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 105,
+        'category': 'references',
+        'chapter': 8,
+        'end': 164,
+        'kind': 'remove',
+        'original': '''
+          [Ma16] Mayer, W.; Zauner, A.; Schmiedecker, M.; Huber, M.: No Need for Black Chambers: Testing
+          TLS in the E-mail Ecosystem at Large. In: ARES. IEEE, S. 10–20, 2016.
+        ''',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 106,
+        'category': 'references',
+        'chapter': 8,
+        'end': 180,
+        'kind': 'remove',
+        'original': '''
+          [MH17] Maass, M.; Herrmann, D.: PrivacyScore: Improving Privacy and Security via Crowd-Sourced
+          Benchmarks of Websites. Annual Privacy Forum. https://arxiv.org/abs/1705.05139, 2017.
+        ''',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 107,
+        'category': 'references',
+        'chapter': 8,
+        'end': 147,
+        'kind': 'remove',
+        'original': '''
+          [Ro14] Roßnagel, A.: Fahrzeugdaten – wer darf über sie entscheiden? Zuordnungen – Ansprüche –
+          Haftung. Straßenverkehrsrecht (SVR), 8:181–187, 2014.
+        ''',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 108,
+        'category': 'references',
+        'chapter': 8,
+        'end': 163,
+        'kind': 'remove',
+        'original': '''
+          [Ro17] Roßnagel, A.: Rechtsfragen eines Smart Data-Austauschs – Datengetriebene Kooperation in
+          der Industrie. Neue Juristische Wochenschrift (NJW), 70:10–15, 2017.
+        ''',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 109,
+        'category': 'references',
+        'chapter': 8,
+        'end': 122,
+        'kind': 'remove',
+        'original': '''
+          [Ze15] Zech, H.: Industrie 4.0 – Rechtsrahmen für eine Datenwirtschaft im digitalen Binnenmarkt.
+          GRUR, S. 1151–1160, 2015.
+        ''',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'the reference list is not read',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'reference-list',
+      }),
+      dict({
+        'block': 7,
+        'category': 'footnote-texts',
+        'chapter': 1,
+        'end': 142,
+        'kind': 'remove',
+        'original': '''
+          1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr. 32, 64293 Darmstadt,
+          Deutschland, mmaass@seemoo.tu-darmstadt.de
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 1 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 8,
+        'category': 'footnote-texts',
+        'chapter': 1,
+        'end': 155,
+        'kind': 'remove',
+        'original': '''
+          2 Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr. 1, 34109
+          Kassel, Deutschland, a.laubach@uni-kassel.de
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 2 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 9,
+        'category': 'footnote-texts',
+        'chapter': 1,
+        'end': 136,
+        'kind': 'remove',
+        'original': '''
+          3 Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str. 30, 22527 Hamburg, Deutschland,
+          herrmann@informatik.uni-hamburg.de
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote 3 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 10,
+        'category': 'footnote-texts',
+        'chapter': 1,
+        'end': 351,
+        'kind': 'remove',
+        'original': '''
+          ∗ Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy
+          Forum in Wien vorgestellt wurde [MH17]. Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6.
+          Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald
+          dieser verfügbar ist.
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'footnote ∗ is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 19,
+        'category': 'footnote-texts',
+        'chapter': 2,
+        'end': 93,
+        'kind': 'remove',
+        'original': '4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 4 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 20,
+        'category': 'footnote-texts',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'remove',
+        'original': '5 https://www.ssllabs.com/ssltest/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 5 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 21,
+        'category': 'footnote-texts',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'remove',
+        'original': '6 https://observatory.mozilla.org/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 6 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 22,
+        'category': 'footnote-texts',
+        'chapter': 2,
+        'end': 34,
+        'kind': 'remove',
+        'original': '7 z.B. https://securityheaders.io/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 7 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 23,
+        'category': 'footnote-texts',
+        'chapter': 2,
+        'end': 36,
+        'kind': 'remove',
+        'original': '8 https://webbkoll.dataskydd.net/en/',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'footnote 8 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 31,
+        'category': 'footnote-texts',
+        'chapter': 3,
+        'end': 64,
+        'kind': 'remove',
+        'original': '9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'footnote 9 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 32,
+        'category': 'footnote-texts',
+        'chapter': 3,
+        'end': 41,
+        'kind': 'remove',
+        'original': '10 https://dataskydd.net/kommuner-201704/',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'footnote 10 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 46,
+        'category': 'footnote-texts',
+        'chapter': 4,
+        'end': 21,
+        'kind': 'remove',
+        'original': '11 https://testssl.sh',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'footnote 11 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 47,
+        'category': 'footnote-texts',
+        'chapter': 4,
+        'end': 94,
+        'kind': 'remove',
+        'original': '12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'footnote 12 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 56,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 20,
+        'kind': 'remove',
+        'original': '13 https://piwik.org',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'footnote 13 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 59,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 46,
+        'kind': 'remove',
+        'original': '14 LG Hamburg v. 28.08.2008, Az. 315 O 326/08.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 14 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 60,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 114,
+        'kind': 'remove',
+        'original': '''
+          15 OLG Köln v. 25.08.2000, Az. 19 U 2/00; LG Ulm v. 13.01.15, Az. 2 O 8/15; OLG Hamm v. 10.06.2008,
+          Az. 4 U 37/08.
+        ''',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 15 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 61,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 89,
+        'kind': 'remove',
+        'original': '16 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 16 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 62,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 92,
+        'kind': 'remove',
+        'original': '17 LG München v. 25.10.2006, Az. 30 O 11973/05; OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 17 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 63,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 89,
+        'kind': 'remove',
+        'original': '18 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'footnote 18 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 67,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 127,
+        'kind': 'remove',
+        'original': '''
+          19 OLG Hamburg v. 29.02.2012, Az. 5 U 10/10; OLG Celle v. 08.03.2012, Az. 13 W 17/12; OLG Rostock v.
+          27.06.2007, Az. 2 E 12/07.
+        ''',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'footnote 19 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 68,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 89,
+        'kind': 'remove',
+        'original': '20 OLG Rostock v. 27.06.2007, Az. 2 W 12/07; OLG Frankfurt v. 22.03.2005, Az. 11 U 64/04.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'footnote 20 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 74,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 74,
+        'kind': 'remove',
+        'original': '21 BGH v. 22.06.2011, Az. I ZR 159/10; BGH v. 17.03.2003, Az. I ZR 259/00.',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 21 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 75,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 123,
+        'kind': 'remove',
+        'original': '''
+          22 Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von
+          Analyseverfahren“.
+        ''',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 22 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 76,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 73,
+        'kind': 'remove',
+        'original': '23 BGH v. 16.05.2017, Az. VI ZR 135/13; EuGH v. 19.10.2016, Az. C-582/14.',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'footnote 23 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 81,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 48,
+        'kind': 'remove',
+        'original': '24 LG Frankfurt v. 18.02.2014, Az. 3-10 O 86/12.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'footnote 24 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 82,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 41,
+        'kind': 'remove',
+        'original': '25 BGH v. 16.07.2008, Az. VIII ZR 348/06.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'footnote 25 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 87,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 82,
+        'kind': 'remove',
+        'original': '26 BVerfG v. 09.10.1991, Az. 1 BvR 1555/88; BVerfG v. 13.04.1994, Az. 1 BvR 23/94.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'footnote 26 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 88,
+        'category': 'footnote-texts',
+        'chapter': 6,
+        'end': 38,
+        'kind': 'remove',
+        'original': '27 BGH v. 29.01.2002, Az. VI ZR 20/01.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'footnote 27 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 95,
+        'category': 'footnote-texts',
+        'chapter': 7,
+        'end': 118,
+        'kind': 'remove',
+        'original': '''
+          28 BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012,
+          Az. 5 U 51/11.
+        ''',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'footnote 28 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 96,
+        'category': 'footnote-texts',
+        'chapter': 7,
+        'end': 38,
+        'kind': 'remove',
+        'original': '29 BGH v. 23.06.2009, Az. VI ZR196/08.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'footnote 29 is left out (all footnotes are left out)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'switched-off',
+        'step': 'footnote-texts',
+      }),
+      dict({
+        'block': 67,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 78,
+        'kind': 'replace',
+        'original': 'W',
+        'page': 8,
+        'printed_page': '',
+        'reason': '"W" read as "Watt"',
+        'said': 'Watt',
+        'spoken': True,
+        'start': 77,
+        'status': 'accepted',
+        'step': 'units',
+      }),
+      dict({
+        'block': 68,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 37,
+        'kind': 'replace',
+        'original': 'W',
+        'page': 8,
+        'printed_page': '',
+        'reason': '"W" read as "Watt"',
+        'said': 'Watt',
+        'spoken': True,
+        'start': 36,
+        'status': 'accepted',
+        'step': 'units',
+      }),
+      dict({
+        'block': 6,
+        'category': 'abbreviations',
+        'chapter': 1,
+        'end': 723,
+        'kind': 'replace',
+        'original': 'z. B.',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'abbreviation "z. B." read as "zum Beispiel"',
+        'said': 'zum Beispiel',
+        'spoken': True,
+        'start': 718,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 22,
+        'category': 'abbreviations',
+        'chapter': 2,
+        'end': 6,
+        'kind': 'replace',
+        'original': 'z.B.',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'abbreviation "z.B." read as "zum Beispiel"',
+        'said': 'zum Beispiel',
+        'spoken': True,
+        'start': 2,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 26,
+        'category': 'abbreviations',
+        'chapter': 2,
+        'end': 4,
+        'kind': 'replace',
+        'original': 'Abb.',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'abbreviation "Abb." read as "Abbildung"',
+        'said': 'Abbildung',
+        'spoken': True,
+        'start': 0,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 29,
+        'category': 'abbreviations',
+        'chapter': 3,
+        'end': 170,
+        'kind': 'replace',
+        'original': 'Abb.',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'abbreviation "Abb." read as "Abbildung"',
+        'said': 'Abbildung',
+        'spoken': True,
+        'start': 166,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 36,
+        'category': 'abbreviations',
+        'chapter': 3,
+        'end': 350,
+        'kind': 'replace',
+        'original': 'z. B.',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'abbreviation "z. B." read as "zum Beispiel"',
+        'said': 'zum Beispiel',
+        'spoken': True,
+        'start': 345,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 36,
+        'category': 'abbreviations',
+        'chapter': 3,
+        'end': 1228,
+        'kind': 'replace',
+        'original': 'etc.',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'abbreviation "etc." read as "et zetera"',
+        'said': 'et zetera',
+        'spoken': True,
+        'start': 1224,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 38,
+        'category': 'abbreviations',
+        'chapter': 3,
+        'end': 147,
+        'kind': 'replace',
+        'original': 'd. h.',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'abbreviation "d. h." read as "das heißt"',
+        'said': 'das heißt',
+        'spoken': True,
+        'start': 142,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 38,
+        'category': 'abbreviations',
+        'chapter': 3,
+        'end': 335,
+        'kind': 'replace',
+        'original': 'u. U.',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'abbreviation "u. U." read as "unter Umständen"',
+        'said': 'unter Umständen',
+        'spoken': True,
+        'start': 330,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 42,
+        'category': 'abbreviations',
+        'chapter': 4,
+        'end': 350,
+        'kind': 'replace',
+        'original': 'u. a.',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'abbreviation "u. a." read as "unter anderem"',
+        'said': 'unter anderem',
+        'spoken': True,
+        'start': 345,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 42,
+        'category': 'abbreviations',
+        'chapter': 4,
+        'end': 416,
+        'kind': 'replace',
+        'original': 'd. h.',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'abbreviation "d. h." read as "das heißt"',
+        'said': 'das heißt',
+        'spoken': True,
+        'start': 411,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 42,
+        'category': 'abbreviations',
+        'chapter': 4,
+        'end': 614,
+        'kind': 'replace',
+        'original': 'u. a.',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'abbreviation "u. a." read as "unter anderem"',
+        'said': 'unter anderem',
+        'spoken': True,
+        'start': 609,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 45,
+        'category': 'abbreviations',
+        'chapter': 4,
+        'end': 561,
+        'kind': 'replace',
+        'original': 'z. B.',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'abbreviation "z. B." read as "zum Beispiel"',
+        'said': 'zum Beispiel',
+        'spoken': True,
+        'start': 556,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 50,
+        'category': 'abbreviations',
+        'chapter': 5,
+        'end': 74,
+        'kind': 'replace',
+        'original': 'vgl.',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'abbreviation "vgl." read as "vergleiche"',
+        'said': 'vergleiche',
+        'spoken': True,
+        'start': 70,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 50,
+        'category': 'abbreviations',
+        'chapter': 5,
+        'end': 98,
+        'kind': 'replace',
+        'original': 'z. B.',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'abbreviation "z. B." read as "zum Beispiel"',
+        'said': 'zum Beispiel',
+        'spoken': True,
+        'start': 93,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 52,
+        'category': 'abbreviations',
+        'chapter': 5,
+        'end': 326,
+        'kind': 'replace',
+        'original': 'i. d. R.',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'abbreviation "i. d. R." read as "in der Regel"',
+        'said': 'in der Regel',
+        'spoken': True,
+        'start': 318,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 55,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 483,
+        'kind': 'replace',
+        'original': 'gem.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'abbreviation "gem." read as "gemäß"',
+        'said': 'gemäß',
+        'spoken': True,
+        'start': 479,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 55,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1641,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 1637,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 546,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 542,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 606,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 602,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 742,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 738,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 970,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 966,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1179,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 1175,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1533,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 1529,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1856,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 1852,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 2206,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 2202,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 2212,
+        'kind': 'replace',
+        'original': 'Nr.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Nr." read as "Nummer"',
+        'said': 'Nummer',
+        'spoken': True,
+        'start': 2209,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 65,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 2224,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 2220,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 66,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 327,
+        'kind': 'replace',
+        'original': 'Nr.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Nr." read as "Nummer"',
+        'said': 'Nummer',
+        'spoken': True,
+        'start': 324,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 66,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 377,
+        'kind': 'replace',
+        'original': 'Nr.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Nr." read as "Nummer"',
+        'said': 'Nummer',
+        'spoken': True,
+        'start': 374,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 66,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 695,
+        'kind': 'replace',
+        'original': 'Nr.',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'abbreviation "Nr." read as "Nummer"',
+        'said': 'Nummer',
+        'spoken': True,
+        'start': 692,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 71,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 146,
+        'kind': 'replace',
+        'original': 'd. h.',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'abbreviation "d. h." read as "das heißt"',
+        'said': 'das heißt',
+        'spoken': True,
+        'start': 141,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 72,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 418,
+        'kind': 'replace',
+        'original': 'bzw.',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'abbreviation "bzw." read as "beziehungsweise"',
+        'said': 'beziehungsweise',
+        'spoken': True,
+        'start': 414,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 78,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 132,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 128,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 78,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 388,
+        'kind': 'replace',
+        'original': 'gem.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "gem." read as "gemäß"',
+        'said': 'gemäß',
+        'spoken': True,
+        'start': 384,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 78,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 398,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 394,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 171,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 167,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 178,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 174,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 448,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 444,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 492,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 488,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 499,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 495,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 998,
+        'kind': 'replace',
+        'original': 'gem.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "gem." read as "gemäß"',
+        'said': 'gemäß',
+        'spoken': True,
+        'start': 994,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1003,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 999,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1010,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 1006,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1226,
+        'kind': 'replace',
+        'original': 'gem.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "gem." read as "gemäß"',
+        'said': 'gemäß',
+        'spoken': True,
+        'start': 1222,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1231,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 1227,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1238,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 1234,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1274,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 1270,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 79,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1286,
+        'kind': 'replace',
+        'original': 'Nr.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Nr." read as "Nummer"',
+        'said': 'Nummer',
+        'spoken': True,
+        'start': 1283,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 225,
+        'kind': 'replace',
+        'original': 'u. a.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "u. a." read as "unter anderem"',
+        'said': 'unter anderem',
+        'spoken': True,
+        'start': 220,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 322,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 318,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 429,
+        'kind': 'replace',
+        'original': 'gem.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "gem." read as "gemäß"',
+        'said': 'gemäß',
+        'spoken': True,
+        'start': 425,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 440,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 436,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 903,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 899,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 934,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 930,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 941,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 937,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1021,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 1017,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1070,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 1066,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1076,
+        'kind': 'replace',
+        'original': 'Nr.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Nr." read as "Nummer"',
+        'said': 'Nummer',
+        'spoken': True,
+        'start': 1073,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1121,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 1117,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1127,
+        'kind': 'replace',
+        'original': 'Nr.',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'abbreviation "Nr." read as "Nummer"',
+        'said': 'Nummer',
+        'spoken': True,
+        'start': 1124,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1321,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 1317,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1329,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 1325,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1762,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 1758,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 80,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1770,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 1766,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 84,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 521,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 517,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 84,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 528,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 524,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 354,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 350,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 361,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 357,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 380,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 376,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 387,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 383,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 455,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 451,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 462,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 458,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 551,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 547,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 558,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 554,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 577,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 573,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 585,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 581,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 599,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 595,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 607,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 603,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 86,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 1021,
+        'kind': 'replace',
+        'original': 'ff',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'abbreviation "ff." read as "folgende"',
+        'said': 'folgende',
+        'spoken': True,
+        'start': 1019,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 90,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 414,
+        'kind': 'replace',
+        'original': 'd. h.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "d. h." read as "das heißt"',
+        'said': 'das heißt',
+        'spoken': True,
+        'start': 409,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 8,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 4,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 16,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 12,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 226,
+        'kind': 'replace',
+        'original': 'gem.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "gem." read as "gemäß"',
+        'said': 'gemäß',
+        'spoken': True,
+        'start': 222,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 231,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 227,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 238,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 234,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 256,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 252,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 263,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 259,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 414,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 410,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 421,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 417,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 488,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 484,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 91,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 495,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 491,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 92,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 53,
+        'kind': 'replace',
+        'original': 'Art.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Art." read as "Artikel"',
+        'said': 'Artikel',
+        'spoken': True,
+        'start': 49,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 92,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 60,
+        'kind': 'replace',
+        'original': 'Abs.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Abs." read as "Absatz"',
+        'said': 'Absatz',
+        'spoken': True,
+        'start': 56,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 92,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 124,
+        'kind': 'replace',
+        'original': 'gem.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "gem." read as "gemäß"',
+        'said': 'gemäß',
+        'spoken': True,
+        'start': 120,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 92,
+        'category': 'abbreviations',
+        'chapter': 6,
+        'end': 132,
+        'kind': 'replace',
+        'original': 'Nr.',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'abbreviation "Nr." read as "Nummer"',
+        'said': 'Nummer',
+        'spoken': True,
+        'start': 129,
+        'status': 'accepted',
+        'step': 'abbreviations',
+      }),
+      dict({
+        'block': 103,
+        'category': 'abbreviations',
+        'chapter': 8,
+        'end': 165,
+        'kind': 'replace',
+        'original': 'S.',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'abbreviation "S." read as "Seite"',
+        'said': 'Seite',
+        'spoken': False,
+        'start': 163,
+        'status': 'set-aside',
+        'step': 'abbreviations',
+        'won_by': dict({
+          'block': 103,
+          'end': 180,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 105,
+        'category': 'abbreviations',
+        'chapter': 8,
+        'end': 151,
+        'kind': 'replace',
+        'original': 'S.',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'abbreviation "S." read as "Seite"',
+        'said': 'Seite',
+        'spoken': False,
+        'start': 149,
+        'status': 'set-aside',
+        'step': 'abbreviations',
+        'won_by': dict({
+          'block': 105,
+          'end': 164,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 109,
+        'category': 'abbreviations',
+        'chapter': 8,
+        'end': 105,
+        'kind': 'replace',
+        'original': 'S.',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'abbreviation "S." read as "Seite"',
+        'said': 'Seite',
+        'spoken': False,
+        'start': 103,
+        'status': 'set-aside',
+        'step': 'abbreviations',
+        'won_by': dict({
+          'block': 109,
+          'end': 122,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 3,
+        'category': 'characters',
+        'chapter': 0,
+        'end': 190,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "implementieren"',
+        'said': '',
+        'spoken': True,
+        'start': 188,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 3,
+        'category': 'characters',
+        'chapter': 0,
+        'end': 583,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'hyphen at a line end kept, read as one word: "Datenschutz-Aufsichtsbehörden" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 582,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 6,
+        'category': 'characters',
+        'chapter': 1,
+        'end': 439,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Seitenbetreibers"',
+        'said': '',
+        'spoken': True,
+        'start': 437,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 13,
+        'category': 'characters',
+        'chapter': 1,
+        'end': 86,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "insbesondere" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 84,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 15,
+        'category': 'characters',
+        'chapter': 1,
+        'end': 85,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'hyphen at a line end kept, read as one word: "Datenschutz-Aufsichtsbehörden" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 84,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 15,
+        'category': 'characters',
+        'chapter': 1,
+        'end': 523,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Aufsichtsbehörden" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 521,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 16,
+        'category': 'characters',
+        'chapter': 1,
+        'end': 94,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'hyphen at a line end kept, read as one word: "PrivacyScore-Plattform" (a compound)',
+        'said': '',
+        'spoken': True,
+        'start': 93,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 18,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 260,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Vorhandensein"',
+        'said': '',
+        'spoken': True,
+        'start': 258,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 27,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 90,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "untersucht" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 88,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 27,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 343,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "akademischen"',
+        'said': '',
+        'spoken': True,
+        'start': 341,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 34,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 88,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "klassifizieren"',
+        'said': '',
+        'spoken': True,
+        'start': 86,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 36,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 173,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "nutzerdefinierte" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 171,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 36,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 438,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Zusammenhangsanalysen"',
+        'said': '',
+        'spoken': True,
+        'start': 436,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 37,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 82,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 4,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Aufmerksamkeit"',
+        'said': '',
+        'spoken': True,
+        'start': 80,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 42,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 437,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Protokollversionen"',
+        'said': '',
+        'spoken': True,
+        'start': 435,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 43,
+        'category': 'characters',
+        'chapter': 4,
+        'end': 92,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Besucherinnen" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 90,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 54,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 177,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 6,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Rechtsfragen" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 175,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 58,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 251,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "bejahen"',
+        'said': '',
+        'spoken': True,
+        'start': 249,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 58,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 500,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "gerade" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 498,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 58,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 1270,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Nutzungsbeschränkungen"',
+        'said': '',
+        'spoken': True,
+        'start': 1268,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 72,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 82,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "technischen" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 80,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 72,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 347,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Folgenden" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 345,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 73,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 175,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Analysediensten" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 173,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 73,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 359,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "identifizierbare"',
+        'said': '',
+        'spoken': True,
+        'start': 357,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 73,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 1042,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Datenschützer"',
+        'said': '',
+        'spoken': True,
+        'start': 1040,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 78,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 264,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Nutzungsprofilen"',
+        'said': '',
+        'spoken': True,
+        'start': 262,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 80,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 90,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Verschlüsselungspflicht"',
+        'said': '',
+        'spoken': True,
+        'start': 88,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 80,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 362,
+        'kind': 'remove',
+        'original': '''
+          
+  
+        ''',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'hyphen at a line end kept, read as one word: "Datenschutz-Grundverord-nung" (a compound)',
+        'said': '',
+        'spoken': True,
+        'start': 361,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 80,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 870,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Bewertung" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 868,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 80,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 1548,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "erforderlich" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 1546,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 80,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 2061,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "technisch" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 2059,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 86,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 433,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Veröffentlichung" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 431,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 86,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 696,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Unternehmer"',
+        'said': '',
+        'spoken': True,
+        'start': 694,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 90,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 89,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "grundsätzlich" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 87,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 90,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 530,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Beeinträchtigungen"',
+        'said': '',
+        'spoken': True,
+        'start': 528,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 91,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 79,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Löschungsanspruch" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 77,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 91,
+        'category': 'characters',
+        'chapter': 6,
+        'end': 782,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Interessenabwägung" (the document prints it so)',
+        'said': '',
+        'spoken': True,
+        'start': 780,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+      dict({
+        'block': 94,
+        'category': 'characters',
+        'chapter': 7,
+        'end': 172,
+        'kind': 'remove',
+        'original': '''
+          -
+  
+        ''',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'word split at a line end joined: "Seitenbetreibers"',
+        'said': '',
+        'spoken': True,
+        'start': 170,
+        'status': 'accepted',
+        'step': 'line-end-hyphens',
+      }),
+    ]),
+    'format': 'sci2audio-report',
+    'language': 'de',
+    'language_guess': dict({
+      'english': 21,
+      'german': 1587,
+      'language': 'de',
+      'words': 5053,
+    }),
+    'language_source': 'text',
+    'not_run': list([
+      'formula-notices',
+      'table-figure-notices',
+      'links',
+      'citations',
+      'footnotes',
+      'statistics',
+      'numbers',
+    ]),
+    'problems': list([
+    ]),
+    'sci2audio': '<version>',
+    'settings': dict({
+      'chapters': None,
+      'language': '',
+      'speed': 1.0,
+      'switched_off': list([
+        'footnote-texts',
+      ]),
+      'voice': '',
+    }),
+    'source': dict({
+      'format': 'pdf',
+      'name': 'arxiv2017-maass-privacyscore.pdf',
+      'sha256': 'a501d4990ea8800b3433ab61d737a99317d420bed5dc47a5fcb38427c73d4be4',
+    }),
+    'version': 1,
+    'warnings': list([
+    ]),
+  })
+# ---
+# name: test_the_report_is_as_recorded[arxiv2017-maass-privacyscore][markdown]
+  '''
+  # What sci2audio will read: arxiv2017-maass-privacyscore.pdf
+  
+  Language: de, guessed from the text (1,587 German and 21 English common words in 5,053). The text steps looked at the whole document; edits in chapters that are not chosen are listed but not spoken.
+  
+  ## Chapters
+  
+  | No. | Chapter | Page | Read | Utterances |
+  |---|---|---|---|---|
+  | 1 | PrivacyScore | 1 | yes | 8 |
+  | 2 | 1 Einleitung | 1 | yes | 31 |
+  | 3 | 2 Verwandte Arbeiten | 2 | yes | 20 |
+  | 4 | 3 PrivacyScore im Überblick | 3 | yes | 37 |
+  | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 22 |
+  | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 188 |
+  | 8 | 7 Schlussbemerkungen | 12 | yes | 25 |
+  | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
+  
+  ## Edits per category
+  
+  | Category | Applied | Not spoken (chapter not chosen) | Set aside | Switched off |
+  |---|---|---|---|---|
+  | Page furniture | 13 | 0 | 0 | 0 |
+  | Characters and hyphenation | 38 | 0 | 0 | 0 |
+  | Footnotes | 0 | 0 | 0 | 0 |
+  | Footnote texts | 0 | 0 | 0 | 30 |
+  | Citations | 0 | 0 | 0 | 0 |
+  | URLs, DOIs and e-mail addresses | 0 | 0 | 0 | 0 |
+  | Formulas | 0 | 0 | 0 | 0 |
+  | Tables and figures | 0 | 0 | 0 | 0 |
+  | Reference list | 0 | 9 | 0 | 0 |
+  | Abbreviations | 95 | 0 | 3 | 0 |
+  | Numbers, symbols, units and statistics | 2 | 0 | 0 | 0 |
+  
+  ## Page furniture (13)
+  
+  - page 1, chapter 2, applied: “arXiv:1705.08889v2 \[cs.CR\] 30 Jun 2017” → left out. Reason: page furniture (side stamp) is not read. Step: page-furniture.
+  - page 2, chapter 2, applied: “2 Max Maass, Anne Laubach, Dominik Herrmann” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 3, chapter 3, applied: “PrivacyScore 3” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 4, chapter 4, applied: “4 Max Maass, Anne Laubach, Dominik Herrmann” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 5, chapter 4, applied: “PrivacyScore 5” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 6, chapter 5, applied: “6 Max Maass, Anne Laubach, Dominik Herrmann” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 7, chapter 7, applied: “PrivacyScore 7” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 8, chapter 7, applied: “8 Max Maass, Anne Laubach, Dominik Herrmann” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 9, chapter 7, applied: “PrivacyScore 9” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 10, chapter 7, applied: “10 Max Maass, Anne Laubach, Dominik Herrmann” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 11, chapter 7, applied: “PrivacyScore 11” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 12, chapter 7, applied: “12 Max Maass, Anne Laubach, Dominik Herrmann” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  - page 13, chapter 8, applied: “PrivacyScore 13” → left out. Reason: page furniture (running head) is not read. Step: page-furniture.
+  
+  ## Characters and hyphenation (38)
+  
+  - page 1, chapter 1, applied: “-↵” → left out. Reason: word split at a line end joined: "implementieren". Step: line-end-hyphens.
+  - page 1, chapter 1, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Datenschutz-Aufsichtsbehörden" (the document prints it so). Step: line-end-hyphens.
+  - page 1, chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "Seitenbetreibers". Step: line-end-hyphens.
+  - page 2, chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "insbesondere" (the document prints it so). Step: line-end-hyphens.
+  - page 2, chapter 2, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Datenschutz-Aufsichtsbehörden" (the document prints it so). Step: line-end-hyphens.
+  - page 2, chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "Aufsichtsbehörden" (the document prints it so). Step: line-end-hyphens.
+  - page 2, chapter 2, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "PrivacyScore-Plattform" (a compound). Step: line-end-hyphens.
+  - page 2, chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "Vorhandensein". Step: line-end-hyphens.
+  - page 3, chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "untersucht" (the document prints it so). Step: line-end-hyphens.
+  - page 3, chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "akademischen". Step: line-end-hyphens.
+  - page 4, chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "klassifizieren". Step: line-end-hyphens.
+  - page 4, chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "nutzerdefinierte" (the document prints it so). Step: line-end-hyphens.
+  - page 4, chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "Zusammenhangsanalysen". Step: line-end-hyphens.
+  - page 4, chapter 4, applied: “-↵” → left out. Reason: word split at a line end joined: "Aufmerksamkeit". Step: line-end-hyphens.
+  - page 5, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "Protokollversionen". Step: line-end-hyphens.
+  - page 5, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "Besucherinnen" (the document prints it so). Step: line-end-hyphens.
+  - page 6, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Rechtsfragen" (the document prints it so). Step: line-end-hyphens.
+  - page 7, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "bejahen". Step: line-end-hyphens.
+  - page 7, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "gerade" (the document prints it so). Step: line-end-hyphens.
+  - page 7, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Nutzungsbeschränkungen". Step: line-end-hyphens.
+  - page 9, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "technischen" (the document prints it so). Step: line-end-hyphens.
+  - page 9, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Folgenden" (the document prints it so). Step: line-end-hyphens.
+  - page 9, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Analysediensten" (the document prints it so). Step: line-end-hyphens.
+  - page 9, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "identifizierbare". Step: line-end-hyphens.
+  - page 9, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Datenschützer". Step: line-end-hyphens.
+  - page 10, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Nutzungsprofilen". Step: line-end-hyphens.
+  - page 10, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Verschlüsselungspflicht". Step: line-end-hyphens.
+  - page 10, chapter 7, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Datenschutz-Grundverord-nung" (a compound). Step: line-end-hyphens.
+  - page 10, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Bewertung" (the document prints it so). Step: line-end-hyphens.
+  - page 11, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "erforderlich" (the document prints it so). Step: line-end-hyphens.
+  - page 11, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "technisch" (the document prints it so). Step: line-end-hyphens.
+  - page 11, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Veröffentlichung" (the document prints it so). Step: line-end-hyphens.
+  - page 11, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Unternehmer". Step: line-end-hyphens.
+  - page 12, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "grundsätzlich" (the document prints it so). Step: line-end-hyphens.
+  - page 12, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Beeinträchtigungen". Step: line-end-hyphens.
+  - page 12, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Löschungsanspruch" (the document prints it so). Step: line-end-hyphens.
+  - page 12, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Interessenabwägung" (the document prints it so). Step: line-end-hyphens.
+  - page 12, chapter 8, applied: “-↵” → left out. Reason: word split at a line end joined: "Seitenbetreibers". Step: line-end-hyphens.
+  
+  ## Footnote texts (30)
+  
+  - page 1, chapter 2, switched off: “1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr. 32, 64293 Darmstadt, Deutschland, mmaass@seemoo.tu-darmstadt.de” → left out. Reason: footnote 1 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 1, chapter 2, switched off: “2 Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr. 1, 34109 Kassel, Deutschland, a.laubach@uni-kassel.de” → left out. Reason: footnote 2 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 1, chapter 2, switched off: “3 Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str. 30, 22527 Hamburg, Deutschland, herrmann@informatik.uni-hamburg.de” → left out. Reason: footnote 3 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 1, chapter 2, switched off: “∗ Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde \[MH17\]. Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6. Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.” → left out. Reason: footnote ∗ is left out (all footnotes are left out). Step: footnote-texts.
+  - page 2, chapter 3, switched off: “4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: footnote 4 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 2, chapter 3, switched off: “5 https://www.ssllabs.com/ssltest/” → left out. Reason: footnote 5 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 2, chapter 3, switched off: “6 https://observatory.mozilla.org/” → left out. Reason: footnote 6 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 2, chapter 3, switched off: “7 z.B. https://securityheaders.io/” → left out. Reason: footnote 7 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 2, chapter 3, switched off: “8 https://webbkoll.dataskydd.net/en/” → left out. Reason: footnote 8 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 3, chapter 4, switched off: “9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017” → left out. Reason: footnote 9 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 3, chapter 4, switched off: “10 https://dataskydd.net/kommuner-201704/” → left out. Reason: footnote 10 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 5, chapter 5, switched off: “11 https://testssl.sh” → left out. Reason: footnote 11 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 5, chapter 5, switched off: “12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/” → left out. Reason: footnote 12 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 6, chapter 7, switched off: “13 https://piwik.org” → left out. Reason: footnote 13 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 7, chapter 7, switched off: “14 LG Hamburg v. 28.08.2008, Az. 315 O 326/08.” → left out. Reason: footnote 14 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 7, chapter 7, switched off: “15 OLG Köln v. 25.08.2000, Az. 19 U 2/00; LG Ulm v. 13.01.15, Az. 2 O 8/15; OLG Hamm v. 10.06.2008, Az. 4 U 37/08.” → left out. Reason: footnote 15 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 7, chapter 7, switched off: “16 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.” → left out. Reason: footnote 16 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 7, chapter 7, switched off: “17 LG München v. 25.10.2006, Az. 30 O 11973/05; OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09.” → left out. Reason: footnote 17 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 7, chapter 7, switched off: “18 OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.” → left out. Reason: footnote 18 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 8, chapter 7, switched off: “19 OLG Hamburg v. 29.02.2012, Az. 5 U 10/10; OLG Celle v. 08.03.2012, Az. 13 W 17/12; OLG Rostock v. 27.06.2007, Az. 2 E 12/07.” → left out. Reason: footnote 19 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 8, chapter 7, switched off: “20 OLG Rostock v. 27.06.2007, Az. 2 W 12/07; OLG Frankfurt v. 22.03.2005, Az. 11 U 64/04.” → left out. Reason: footnote 20 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 9, chapter 7, switched off: “21 BGH v. 22.06.2011, Az. I ZR 159/10; BGH v. 17.03.2003, Az. I ZR 259/00.” → left out. Reason: footnote 21 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 9, chapter 7, switched off: “22 Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von Analyseverfahren“.” → left out. Reason: footnote 22 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 9, chapter 7, switched off: “23 BGH v. 16.05.2017, Az. VI ZR 135/13; EuGH v. 19.10.2016, Az. C-582/14.” → left out. Reason: footnote 23 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 10, chapter 7, switched off: “24 LG Frankfurt v. 18.02.2014, Az. 3-10 O 86/12.” → left out. Reason: footnote 24 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 10, chapter 7, switched off: “25 BGH v. 16.07.2008, Az. VIII ZR 348/06.” → left out. Reason: footnote 25 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 11, chapter 7, switched off: “26 BVerfG v. 09.10.1991, Az. 1 BvR 1555/88; BVerfG v. 13.04.1994, Az. 1 BvR 23/94.” → left out. Reason: footnote 26 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 11, chapter 7, switched off: “27 BGH v. 29.01.2002, Az. VI ZR 20/01.” → left out. Reason: footnote 27 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 12, chapter 8, switched off: “28 BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012, Az. 5 U 51/11.” → left out. Reason: footnote 28 is left out (all footnotes are left out). Step: footnote-texts.
+  - page 12, chapter 8, switched off: “29 BGH v. 23.06.2009, Az. VI ZR196/08.” → left out. Reason: footnote 29 is left out (all footnotes are left out). Step: footnote-texts.
+  
+  ## Reference list (9)
+  
+  - page 13, chapter 9, not spoken (chapter not chosen): “Literaturverzeichnis” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 13, chapter 9, not spoken (chapter not chosen): “\[EN16\] Englehardt, S.; Narayanan, A.: Online tracking: A 1-million-site measurement and analysis. In: CCS. ACM, 2016.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 13, chapter 9, not spoken (chapter not chosen): “\[Fa14\] Fahl, S.; Acar, Y.; Perl, H.; Smith, M.: Why eve and mallory (also) love webmasters: A Study on the Root Causes of SSL Misconfigurations. In: AsiaCCS. ACM, S. 507–512, 2014.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 13, chapter 9, not spoken (chapter not chosen): “\[Ho16\] Holz, R.; Amann, J.; Mehani, O.; Kâafar, M.A.; Wachs, M.: TLS in the Wild: An Internet-wide Analysis of TLS-based Protocols for Electronic Communication. In: NDSS. 2016.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 13, chapter 9, not spoken (chapter not chosen): “\[Ma16\] Mayer, W.; Zauner, A.; Schmiedecker, M.; Huber, M.: No Need for Black Chambers: Testing TLS in the E-mail Ecosystem at Large. In: ARES. IEEE, S. 10–20, 2016.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 13, chapter 9, not spoken (chapter not chosen): “\[MH17\] Maass, M.; Herrmann, D.: PrivacyScore: Improving Privacy and Security via Crowd-Sourced Benchmarks of Websites. Annual Privacy Forum. https://arxiv.org/abs/1705.05139, 2017.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 13, chapter 9, not spoken (chapter not chosen): “\[Ro14\] Roßnagel, A.: Fahrzeugdaten – wer darf über sie entscheiden? Zuordnungen – Ansprüche – Haftung. Straßenverkehrsrecht (SVR), 8:181–187, 2014.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 13, chapter 9, not spoken (chapter not chosen): “\[Ro17\] Roßnagel, A.: Rechtsfragen eines Smart Data-Austauschs – Datengetriebene Kooperation in der Industrie. Neue Juristische Wochenschrift (NJW), 70:10–15, 2017.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 13, chapter 9, not spoken (chapter not chosen): “\[Ze15\] Zech, H.: Industrie 4.0 – Rechtsrahmen für eine Datenwirtschaft im digitalen Binnenmarkt. GRUR, S. 1151–1160, 2015.” → left out. Reason: the reference list is not read. Step: reference-list.
+  
+  ## Abbreviations (98)
+  
+  - page 2, chapter 2, applied: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
+  - page 2, chapter 3, applied: “z.B.” → read as “zum Beispiel”. Reason: abbreviation "z.B." read as "zum Beispiel". Step: abbreviations.
+  - page 3, chapter 3, applied: “Abb.” → read as “Abbildung”. Reason: abbreviation "Abb." read as "Abbildung". Step: abbreviations.
+  - page 3, chapter 4, applied: “Abb.” → read as “Abbildung”. Reason: abbreviation "Abb." read as "Abbildung". Step: abbreviations.
+  - page 4, chapter 4, applied: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
+  - page 4, chapter 4, applied: “etc.” → read as “et zetera”. Reason: abbreviation "etc." read as "et zetera". Step: abbreviations.
+  - page 4, chapter 4, applied: “d. h.” → read as “das heißt”. Reason: abbreviation "d. h." read as "das heißt". Step: abbreviations.
+  - page 4, chapter 4, applied: “u. U.” → read as “unter Umständen”. Reason: abbreviation "u. U." read as "unter Umständen". Step: abbreviations.
+  - page 5, chapter 5, applied: “u. a.” → read as “unter anderem”. Reason: abbreviation "u. a." read as "unter anderem". Step: abbreviations.
+  - page 5, chapter 5, applied: “d. h.” → read as “das heißt”. Reason: abbreviation "d. h." read as "das heißt". Step: abbreviations.
+  - page 5, chapter 5, applied: “u. a.” → read as “unter anderem”. Reason: abbreviation "u. a." read as "unter anderem". Step: abbreviations.
+  - page 6, chapter 5, applied: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
+  - page 6, chapter 6, applied: “vgl.” → read as “vergleiche”. Reason: abbreviation "vgl." read as "vergleiche". Step: abbreviations.
+  - page 6, chapter 6, applied: “z. B.” → read as “zum Beispiel”. Reason: abbreviation "z. B." read as "zum Beispiel". Step: abbreviations.
+  - page 6, chapter 6, applied: “i. d. R.” → read as “in der Regel”. Reason: abbreviation "i. d. R." read as "in der Regel". Step: abbreviations.
+  - page 7, chapter 7, applied: “gem.” → read as “gemäß”. Reason: abbreviation "gem." read as "gemäß". Step: abbreviations.
+  - page 7, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Nr.” → read as “Nummer”. Reason: abbreviation "Nr." read as "Nummer". Step: abbreviations.
+  - page 8, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 8, chapter 7, applied: “Nr.” → read as “Nummer”. Reason: abbreviation "Nr." read as "Nummer". Step: abbreviations.
+  - page 8, chapter 7, applied: “Nr.” → read as “Nummer”. Reason: abbreviation "Nr." read as "Nummer". Step: abbreviations.
+  - page 8, chapter 7, applied: “Nr.” → read as “Nummer”. Reason: abbreviation "Nr." read as "Nummer". Step: abbreviations.
+  - page 9, chapter 7, applied: “d. h.” → read as “das heißt”. Reason: abbreviation "d. h." read as "das heißt". Step: abbreviations.
+  - page 9, chapter 7, applied: “bzw.” → read as “beziehungsweise”. Reason: abbreviation "bzw." read as "beziehungsweise". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “gem.” → read as “gemäß”. Reason: abbreviation "gem." read as "gemäß". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “gem.” → read as “gemäß”. Reason: abbreviation "gem." read as "gemäß". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “gem.” → read as “gemäß”. Reason: abbreviation "gem." read as "gemäß". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Nr.” → read as “Nummer”. Reason: abbreviation "Nr." read as "Nummer". Step: abbreviations.
+  - page 10, chapter 7, applied: “u. a.” → read as “unter anderem”. Reason: abbreviation "u. a." read as "unter anderem". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “gem.” → read as “gemäß”. Reason: abbreviation "gem." read as "gemäß". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Nr.” → read as “Nummer”. Reason: abbreviation "Nr." read as "Nummer". Step: abbreviations.
+  - page 10, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 10, chapter 7, applied: “Nr.” → read as “Nummer”. Reason: abbreviation "Nr." read as "Nummer". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 11, chapter 7, applied: “ff” → read as “folgende”. Reason: abbreviation "ff." read as "folgende". Step: abbreviations.
+  - page 12, chapter 7, applied: “d. h.” → read as “das heißt”. Reason: abbreviation "d. h." read as "das heißt". Step: abbreviations.
+  - page 12, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 12, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 12, chapter 7, applied: “gem.” → read as “gemäß”. Reason: abbreviation "gem." read as "gemäß". Step: abbreviations.
+  - page 12, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 12, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 12, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 12, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 12, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 12, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 12, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 12, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 12, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
+  - page 12, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
+  - page 12, chapter 7, applied: “gem.” → read as “gemäß”. Reason: abbreviation "gem." read as "gemäß". Step: abbreviations.
+  - page 12, chapter 7, applied: “Nr.” → read as “Nummer”. Reason: abbreviation "Nr." read as "Nummer". Step: abbreviations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “S.” → read as “Seite”. Reason: abbreviation "S." read as "Seite". Step: abbreviations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “S.” → read as “Seite”. Reason: abbreviation "S." read as "Seite". Step: abbreviations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “S.” → read as “Seite”. Reason: abbreviation "S." read as "Seite". Step: abbreviations.
+  
+  ## Numbers, symbols, units and statistics (2)
+  
+  - page 8, chapter 7, applied: “W” → read as “Watt”. Reason: "W" read as "Watt". Step: units.
+  - page 8, chapter 7, applied: “W” → read as “Watt”. Reason: "W" read as "Watt". Step: units.
+  
+  ## Problems
+  
+  - Step formula-notices does not handle this language.
+  - Step table-figure-notices does not handle this language.
+  - Step links does not handle this language.
+  - Step citations does not handle this language.
+  - Step footnotes does not handle this language.
+  - Step statistics does not handle this language.
+  - Step numbers does not handle this language.
+  
+  '''
+# ---
 # name: test_the_report_is_as_recorded[joss2021-waskom-seaborn][json]
   dict({
     'chapters': list([
@@ -6190,6 +9910,463 @@
   Did you report the basic demographic and geographic characteristics of the annotator population that is the source of the data?
   
   No response.
+  
+  '''
+# ---
+# name: test_the_script_is_as_recorded[arxiv2017-maass-privacyscore]
+  '''
+  sci2audio listening script
+  Source: arxiv2017-maass-privacyscore.pdf
+  Language: de
+  
+  # 1. PrivacyScore
+  
+  PrivacyScore: Analyse von Webseiten auf Sicherheits- und Privatheitsprobleme – Konzept und rechtliche Zulässigkeit*
+  
+  Dieses Papier ist eine erweiterte Fassung des Beitrags, der beim Workshop „Recht und Technik“ auf der INFORMATIK 2017 vorgestellt wird.
+  
+  Max Maass1, Anne Laubach2, Dominik Herrmann3
+  
+  Abstract: PrivacyScore ist ein öffentliches Web-Portal, mit dem automatisiert überprüft werden kann, ob Webseiten gängige Mechanismen zum Schutz von Sicherheit und Privatheit korrekt implementieren.
+  Im Gegensatz zu existierenden Diensten ermöglicht PrivacyScore, mehrere Webseiten in Benchmarks miteinander zu vergleichen, die Ergebnisse differenziert und im Zeitverlauf zu analysieren sowie nutzerdefinierte Kriterien für die Auswertung zu definieren.
+  PrivacyScore verbessert dadurch nicht nur die Transparenz für Endanwender, sondern erleichtert auch die Arbeit der Datenschutz-Aufsichtsbehörden.
+  In diesem Beitrag stellen wir das Konzept des Dienstes vor und wir erörtern, unter welchen Umständen das automatische Scannen und öffentliche „Anprangern“ von Schwächen aus rechtlicher Sicht zulässig ist.
+  
+  Keywords: Privatheit; Tracking; Datenschutz; DSGVO; ePrivacy-VO-E
+  
+  # 2. 1 Einleitung
+  
+  1 Einleitung
+  
+  Der sichere Betrieb einer Webseite ist eine Aufgabe, die viel technischen Sachverstand benötigt.
+  Fahl et al. haben gezeigt [Fa14], dass unsicher konfigurierte Webseiten oft eine Folge dieser Komplexität sind.
+  Unsichere Webseiten gefährden nicht nur die Infrastruktur der Seitenbetreiber, sondern auch die Sicherheit und Privatheit der Besucherinnen.
+  Die Privatheit der Besucherinnen kann allerdings auch durch Entscheidungen des Seitenbetreibers beeinträchtigt werden, etwa durch die Verwendung von Analysediensten oder Werbenetzwerken.
+  Seitenbetreiber nutzen hier oft kommerzielle Angebote (etwa Google Analytics) anstatt einer lokalen Lösung, die die Privatheitsinteressen der Besucherinnen besser berücksichtigt (zum Beispiel Piwik).
+  
+  1 Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr.
+  32, 64293 Darmstadt, Deutschland, mmaass@seemoo.tu-darmstadt.de
+  
+  2 Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr.
+  1, 34109 Kassel, Deutschland, a.laubach@uni-kassel.de
+  
+  3 Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str.
+  30, 22527 Hamburg, Deutschland, herrmann@informatik.uni-hamburg.de
+  
+  ∗ Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde [MH17].
+  Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6.
+  Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.
+  
+  Die Entscheidungen der Betreiber sind dabei für Besucherinnen oft intransparent, insbesondere bei komplexeren Diensten wie dem Schutz gegen Denial-of-Service-Angriffe.
+  Für Besucherinnen ist hier teilweise nicht einmal die Verwendung eines solchen Dienstes erkennbar, obwohl er signifikanten Einfluss auf ihre Privatheit haben kann, was zuletzt die Sicherheitslücke bei dem Dienstleister Cloudflare gezeigt hat.4
+  
+  Es gibt zwar bereits einige kostenlose Webseiten-Scanner, die die Konfiguration einer Webseite auf gängige Sicherheitslücken untersuchen; Aspekte der Privatheit werden von den existierenden Scannern jedoch weitgehend ignoriert.
+  Des Weiteren bieten existierende Scanner keine Möglichkeit, die Ergebnisse mehrerer Webseiten direkt miteinander zu vergleichen.
+  
+  Das PrivacyScore-Projekt soll diese Lücke schließen.
+  In Kooperation mit Datenschutz-Aufsichtsbehörden und -Aktivisten entwickeln wir derzeit ein System, das die automatische Analyse und den Vergleich der Sicherheits- und Privatheitseigenschaften von Webseiten ermöglicht (Benchmark).
+  Wir haben drei Zielgruppen:
+  Endnutzerinnen, die sich über die Sicherheit und Privatheit bestimmter Webseiten informieren möchten, Wissenschaftlerinnen, die große Mengen von Webseiten untersuchen wollen, und Aktivistinnen und Aufsichtsbehörden,
+  die die Erfüllung von gesetzlichen Datenschutz-Mindeststandards durch Webseiten sicherstellen wollen.
+  Unsere Ideen und Realisierungsansätze haben wir erstmalig in [MH17] vorgestellt.
+  Im vorliegenden Papier betrachten wir zusätzlich die juristische Zulässigkeit der Erhebung der Daten und der Veröffentlichung von Benchmarks sowie die juristische Verwertbarkeit der Ergebnisse.
+  
+  In Abschnitt 2 stellen wir verwandte Arbeiten vor, bevor wir in Abschnitt 3 die PrivacyScore-Plattform präsentieren.
+  Die durchgeführten Tests werden in Abschnitt 4 beschrieben.
+  In Abschnitt 5 betrachten wir ethische Fragestellungen.
+  Im Anschluss daran erörtern wir in Abschnitt 6 die Zulässigkeit aus juristischer Sicht.
+  Abschnitt 7 enthält Schlussbemerkungen.
+  
+  # 3. 2 Verwandte Arbeiten
+  
+  2 Verwandte Arbeiten
+  
+  Mehrere Dienste erlauben eine automatisierte Untersuchung von Webseiten.
+  Die meisten Angebote konzentrieren sich auf die Sicherheit der verschlüsselten Verbindung zu einer Webseite, etwa Qualys5 und Mozilla.6 Darüber hinaus existieren Dienste,
+  welche das Vorhandensein der relativ neuen HTTP-Security-Header überprüfen.7 Privatheitseigenschaften von Webseiten betrachtet Webbkoll.8
+  
+  4 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/
+  
+  5 https://www.ssllabs.com/ssltest/
+  
+  6 https://observatory.mozilla.org/
+  
+  7 zum Beispiel https://securityheaders.io/
+  
+  8 https://webbkoll.dataskydd.net/en/
+  
+  Besucher Anonyme Ersteller Angemeldete Ersteller aggreg.
+  Statistiken anzeigen neue Benchmarks erstellen private Benchmarks erstellen öfftentl.
+  Benchmarks anzeigen Kopie eines Benchmarks ändern eigene Benchmarks auflisten Ergebnis für Seiten anzeigen Benchmarks mit Token editieren eigene Benchmarks editieren Ranking/Gewichte anpassen Benschmarks mit Token löschen eigene Benchmarks löschen Benchmarks bestehen aus mehreren Scans besteht aus
+  mehreren Tests Name: Deutsche Schulen Zeitstempel: 2017-04-11 Drittanbieter: 98 (adnet.com, …) Seiten: http://schule1.de/, … Attribute: { Land: Bayern, Anz.
+  Zeitstempel: 2017-04-12 Standorte: web: DE (schule1.de), mail: US (mailfilter.net) Schüler: 950, Träger: Staat }, … … Perfect-Forward-Secrecy: ja Ranking-Gewichte: [2, 0, …, 1] Zeitstempel: 2017-04-18 Umleitung zu HTTPS : nein […]
+  
+  Abbildung 1: Anwendungsfälle und Datenstrukturen
+  
+  Daneben gibt es Vorhaben, die eine festgelegte Liste von Webseiten untersuchen.
+  So untersucht Helme regelmäßig die Verwendung der HTTP-Security-Header auf allen Webseiten der „Alexa Top 1 Million“9 und die schwedische Datenschutzorganisation dataskydd.net sucht auf den Webseiten schwedischer Kommunen nach Privatheitsproblemen.10 Im akademischen Umfeld gab es eine Reihe von
+  Studien, die Aspekte der Sicherheit [Ho16, Ma16] und Privatheit [EN16] auf beliebten Webseiten untersuchen.
+  Die Ergebnisse solcher einmalig durchgeführten Studien veralten jedoch recht schnell.
+  Insgesamt ist festzustellen, dass es bislang nicht ohne Weiteres möglich ist, aktuelle Benchmarks zu erstellen.
+  
+  # 4. 3 PrivacyScore im Überblick
+  
+  3 PrivacyScore im Überblick
+  
+  In diesem Abschnitt beschreiben wir die wichtigsten Funktionen des PrivacyScore-Systems.
+  Eine Übersicht über die wichtigsten Anwendungsfälle und Datenstrukturen gibt Abbildung 1.
+  PrivacyScore ist ein Webdienst, der im Auftrag seiner Nutzerinnen andere Webseiten analysiert.
+  Wie bei anderen Diensten können einzelne Seiten analysiert werden.
+  Bei PrivacyScore liegt der Fokus jedoch auf der Erstellung von Benchmarks, in denen miteinander verwandte Webseiten verglichen werden.
+  Ein Benchmark kann etwa die Seiten aller Firmen einer Branche enthalten oder (im Fall einer Datenschutz-Aufsichtsbehörde) die Seiten aller Organisationen, die unter ihre Aufsicht fallen.
+  Hinweise zur Datenbasis lassen sich in einer Freitext-Beschreibung hinterlegen.
+  
+  Nachdem ein Benchmark erstellt wurde, wird er an die Scan-Komponente übergeben, die die Seiten auf mehreren virtuellen Maschinen scannt.
+  Die Ergebnisse werden auf der PrivacyScore-Webseite veröffentlicht.
+  Dort können Webseiten in einem Ranking miteinander verglichen und Detailergebnisse für einzelne Seiten abgerufen werden.
+  Optional werden die Seiten jedes Benchmarks regelmäßig erneut gescannt.
+  Frühere Ergebnisse werden zur Dokumentation der zeitlichen Entwicklung aufbewahrt (Historie).
+  
+  9 https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017
+  
+  10 https://dataskydd.net/kommuner-201704/
+  
+  Desweiteren ist es möglich, die einzelnen Adressen mit bestimmten Attributen zu klassifizieren.
+  Denkbar wäre zum Beispiel eine Unterscheidung zwischen den Webseiten der gesetzlichen und privaten Krankenkassen, die hier gegeneinander verglichen werden sollen.
+  
+  PrivacyScore kann mit oder ohne Anmeldung verwendet werden.
+  Angemeldete Nutzerinnen können ihre Benchmarks in ihrem Account speichern und haben leichteren Zugriff auf administrative Funktionen.
+  Darüber hinaus können sie ihre Benchmarks als privat markieren.
+  
+  Flexibilität durch Nutzerorientierung PrivacyScore bietet zwei Funktionen, um sich an die Bedürfnisse der Nutzerinnen anzupassen: nutzerdefinierte Attribute und nutzerdefinierte Bewertungsschemata.
+  Nutzerdefinierte Attribute erlauben es, die Liste von URLs mit frei definierbaren Attributen zu versehen, um verschiedene Klassen von Webseiten (zum Beispiel gesetzliche und private Krankenkassen) voneinander zu unterscheiden und Zusammenhangsanalysen durchzuführen.
+  Die Attribute werden beim Erstellen des Benchmarks festgelegt, können aber im Nachhinein modifiziert werden.
+  Nutzerdefinierte Bewertungsschemata ermöglichen das Verändern der Bewertungskriterien für die Webseiten.
+  Die Bewertung wird aus den Ergebnissen der verschiedenen Tests berechnet – da Nutzerinnen allerdings unterschiedliche Prioritäten haben können, welche Tests ihnen wichtig erscheinen, ist es wichtig, ihnen die Möglichkeit zu geben, die Gewichtung der Tests zu beeinflussen.
+  Das verwendete Bewertungsschema kann jederzeit modifiziert werden, wobei entweder aus einer Liste vordefinierter Schemata ausgewählt oder ein neues Schema definiert werden kann.
+  Aus der gewichteten Bewertung können verschiedene vereinfachte Darstellungen (Schulnoten, Ampel, et zetera) abgeleitet werden, die eine schnelle Bewertung der Ergebnisse erlauben.
+  Datenschutz-Aufsichtsbehörden können mit dieser Funktion vermutete Fälle von Nicht-Konformität mit rechtlichen Vorgaben für eine weitere Untersuchung markieren.
+  
+  Offene Daten und Vertraulichkeit PrivacyScore erzeugt Transparenz und Aufmerksamkeit, indem es auf Sicherheits- und Privatheitsprobleme hinweist.
+  Um die Verbreitung der Ergebnisse zu erleichtern, werden sie nicht nur für Menschen lesbar aufbereitet, sondern auch über eine Schnittstelle in maschinenlesbarer Form veröffentlicht.
+  
+  Um die Daten von als privat markierten Benchmarks angemessen zu schützen, werden alle Tests von Servern unter unserer Kontrolle durchgeführt, das heißt die URLs der untersuchten Webseiten und die Scan-Ergebnisse werden nicht an andere Dienstanbieter übermittelt.
+  Professionelle Anwender wie Datenschutz-Aufsichtsbehörden haben jedoch unter Umständen noch strengere Anforderungen an Sicherheit und Vertraulichkeit.
+  Diese Anforderungen können umgesetzt werden, indem sie eine eigenständige PrivacyScore-Instanz in ihrer eigenen Infrastruktur betreiben.
+  Um dies zu ermöglichen wird der Programmcode von PrivacyScore im Sommer unter einer freien Lizenz veröffentlicht.
+  Dies kommt auch der Weiterentwicklung von PrivacyScore zu Gute, da es Dritten die Möglichkeit gibt, neue Tests beizusteuern.
+  
+  Implementation PrivacyScore befindet sich aktuell im Alpha-Stadium, ein Prototyp ist unter https://privacyscore.org/ abrufbar.
+  Für die Tests nutzen wir etablierte Tools wie OpenWPM [EN16] und testssl.sh.11 Weitere Details finden sich in [MH17].
+  
+  # 5. 4 Sicherheits- und Privatheitstests
+  
+  4 Sicherheits- und Privatheitstests
+  
+  Im Folgenden stellen wir einen Teil der Tests vor, die in [MH17] beschrieben sind.
+  Unsichere Webseiten setzen ihre Besucherinnen Risiken aus, etwa dem Abhören durch bösartige WLAN-Betreiber.
+  Unsere Sicherheitstests prüfen, ob Seitenbetreiber anerkannte Methoden zur Absicherung ihrer Webseite und des Datenverkehrs verwenden.
+  PrivacyScore prüft unter anderem, ob Transport-Layer-Security (TLS) korrekt eingesetzt wird, das heißt ob geeignete Protokollversionen, kryptographische Verfahren und HTTP-Header wie HTTP Strict Transport Security (HSTS) verwendet werden.
+  Darüber hinaus werden die Mailserver überprüft, indem unter anderem Verfügbarkeit und Güte der Transportverschlüsselung (STARTTLS) abgeklärt wird.
+  Untersucht werden auch die Einträge im Domain-Name-System (DNS), insbesondere die Verwendung von DNSSEC, und die Aktualität der Server-Software, sofern feststellbar.
+  
+  Privatheitstests untersuchen hingegen, ob eine Webseite aktiv die Privatheit ihrer Besucherinnen verletzt oder gefährdet, etwa durch die Verwendung von Analyse- und Werbediensten.
+  PrivacyScore erkennt diese Dienste in einem zweistufigen Verfahren: Zunächst werden auf einer Webseite alle von externen Anbietern eingebetteten Ressourcen gesammelt.
+  Diese werden in einem zweiten Schritt dann mit einer Liste bekannter Werbe- und Analysedienste abgeglichen.
+  PrivacyScore wird außerdem eine Reihe von Tracking-Technologien erkennen (insbesondere Cookies, Flash-Cookies, und Browser-Fingerprinting).
+  
+  Viele Webseiten nutzen Content-Distribution-Networks (CDNs), um die Zuverlässigkeit und Geschwindigkeit ihrer Webseite zu optimieren.
+  Diese Dienste können allerdings ebenfalls eine Gefahr für die Privatheit und Sicherheit darstellen.12 PrivacyScore versucht daher die Verwendung von CDNs zu erkennen.
+  Eine weitere relevante Information ist der Ort, an dem eine Webseite betrieben wird.
+  Interessant ist hier vor allem die Einbindung nicht-europäischer Dienstanbieter, da ein Seitenbetreiber in diesem Fall möglicherweise zusätzliche Pflichten zu erfüllen hat.
+  
+  Anschaulichkeit und Handlungsempfehlungen Die identifizierten Probleme werden mit den daraus resultierenden Bedrohungen veranschaulicht.
+  So ist etwa das Abhören verschlüsselter Kommunikation durch einen WLAN-Betreiber möglich, wenn eine Seite kein HSTS verwendet (SSL-Stripping-Angriff).
+  PrivacyScore hilft den Seitenbetreibern aber auch, die Probleme zu beheben.
+  Dazu werden wir Konfigurationshilfen für beliebte Webserver und lokale Analysesysteme wie Piwik13 auflisten.
+  Wo dies nicht möglich ist, liefern wir Nutzerinnen Hinweise zum Selbstdatenschutz, zum Beispiel durch die Installation von Browser-Add-ons, die Werbenetzwerke und Tracker blockieren.
+  
+  11 https://testssl.sh
+  
+  12 https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/
+  
+  # 6. 5 Ethische Fragestellungen
+  
+  5 Ethische Fragestellungen
+  
+  Der automatische Abruf von Webseiten ist eine weitverbreitete Praxis (vergleiche Suchmaschinen und zum Beispiel https://archive.org/).
+  Dennoch ist die Analyse von Seiten mit PrivacyScore aus ethischer Sicht nicht völlig unbedenklich, da sie über ein bloßes Abrufen einer Seite hinausgeht.
+  
+  Unser Ziel ist es, Seitenbetreiber und Nutzerinnen zu unterstützen, ohne jedoch ein (neues) Werkzeug für Angreifer zu entwickeln.
+  Einige unserer Tests können allerdings Informationen aufzeigen, die auch für Angreifer nützlich sein können.
+  Wie viele andere Sicherheitswerkzeuge auch ist PrivacyScore demnach ein Dual-Use-Werkzeug.
+  Daher sind wir bei der Implementierung von Tests und der Darstellung der Ergebnisse bestrebt, Varianten zu wählen, die einen Missbrauch der Ergebnisse unwahrscheinlich machen.
+  
+  Desweiteren belasten die TLS-Tests die Infrastruktur des Anbieters, da sie eine hohe Anzahl an Verbindungen aufbauen.
+  Wir erachten dies für vertretbar, da das Anbieten einer Webseite die Absicht impliziert, sie zum Abruf zur Verfügung zu stellen.
+  Wir gehen davon aus, dass das öffentliche Interesse an den Ergebnissen in der Regel die (meist vernachlässigbaren) Kosten für den Seitenbetreiber überwiegt.
+  Nichtsdestotrotz müssen wir sicherstellen, dass durch unsere Untersuchungen die Verfügbarkeit einer Seite nicht beeinträchtigt wird.
+  Um zu verhindern, dass PrivacyScore unabsichtlich oder absichtlich zu einem Seitenausfall führt, setzen wir ein Rate-Limiting-System ein: Ein erneuter Scan einer Webseite kann erst nach 30 Minuten erfolgen.
+  
+  # 7. 6 Rechtliche Fragestellungen
+  
+  6 Rechtliche Fragestellungen
+  
+  Automatisiertes Scannen von Webseiten im Internet wirft eine Reihe von Rechtsfragen in verschiedenen Rechtsbereichen auf.
+  In diesem Abschnitt sollen exemplarisch die Rechtsfragen der Zulässigkeit einer Untersuchung, der Bewertung der Untersuchungsergebnisse und ihrer Veröffentlichung untersucht werden.
+  
+  Zulässigkeit der automatisierten Untersuchung von Webseiten Das Auslesen fremder Webseiten ohne die ausdrückliche Zustimmung des Betreibers ist nicht grundsätzlich unzulässig.
+  Zuerst stellt sich allerdings die Frage, wem die zu untersuchenden Daten „gehören“, denn wäre jemand Eigentümer dieser Daten, könnte er diese nutzen und über sie verfügen und andere gemäß § 903 des Bürgerlichen Gesetzbuches (BGB) gerade von dieser Nutzung ausschließen.
+  Die Begründung von Eigentum kann gemäß § 903 BGB nur an Sachen i.
+  S. v. § 90 BGB bestehen.
+  Da es Daten bereits an der körperlichen Eigenschaft fehlt, kann es weder ein Eigentumsrecht an Daten noch ein aus Eigentum abgeleitetes Recht auf die ausschließliche Nutzung von Daten geben [Ze15].
+  Dennoch können Daten unter verschiedenen gesetzlichen Voraussetzungen vor dem Zugriff und der Verwertung durch Dritte geschützt sein.
+  Daten unterliegen einer Kommunikationsordnung, welche sich aus Regelungen in diversen Rechtsgebieten zusammensetzt und Umgangsrechte, Verfügungsberechtigungen und -beschränkungen hinsichtlich der Daten gewährt, ohne dabei eine Güterzuweisung vorzunehmen [Ro14, Ro17].
+  Relevant werden können, soweit Gegenstand personenbezogene Daten von natürlichen Personen sind, Regelungen aus dem Datenschutzrecht, auch Regelungen aus dem Urheberrecht, sofern es sich um persönliche geistige Schöpfungen handelt,
+  weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch (StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG).
+  Darüber hinaus ist auch ein deliktischer Abwehranspruch gegen Störungen aus dem Recht am eingerichteten und ausgeübten Gewerbebetrieb i.
+  S. v. § 823 Absatz 1 BGB denkbar.
+  
+  13 https://piwik.org
+  
+  Einige Webseitenbetreiber verbieten in ihren Nutzungsbedingungen das automatisierte Durchsuchen und Auswerten der von ihnen zur Verfügung gestellten Daten.
+  Während manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell bejahen14 oder dies von der Art der Webseitenausgestaltung abhängig machen,15 spricht gegen die Übertragung der Befugnis zur Ausübung des Hausrechts von Räumen und Grundstücken auf Webseiten die nicht
+  vergleichbare Interessenlage, da ursprünglich gerade absolute Rechtspositionen wie Besitz und Eigentum Gegenstand des Schutzes sein sollten und der Zweck einer Webseite gerade darin besteht,
+  sie potentiellen Nutzerinnen zu öffnen und von diesen zur Kenntnis genommen zu werden.16 Dem Webseitenbetreiber steht es dennoch frei, die Befugnisse über die von ihm zur Verfügung gestellten Daten im Rahmen vertraglicher Vereinbarungen zu regeln.
+  Rechtlich verbindlich wird die jeweilige Vorgabe in den Nutzungsbedingungen aber nur dann, wenn zuvor eine Registrierung und damit ein Vertragsschluss unter ausdrücklicher Anerkennung der Nutzungsbedingungen erfolgt.17 Ist der Zugang dagegen auch ohne Anmeldung möglich,
+  kommt den jeweiligen Nutzungsbedingungen ebenso wie allen einseitigen Erklärungen über gewollte Nutzungsbeschränkungen keine verbindliche Rechtswirkung für nicht registrierte Besucherinnen der Webseite zu.18 Eine solche technisch-automatisierte Registrierung unter Anerkennung der gestellten
+  Nutzungsbedingungen durch die PrivacyScore-Technik ist nicht vorgesehen.
+  
+  14 LG Hamburg v.
+  28.08.2008, Az.
+  315 O 326/08.
+  
+  15 OLG Köln v.
+  25.08.2000, Az.
+  19 U 2/00; LG Ulm v.
+  13.01.15, Az.
+  2 O 8/15; OLG Hamm v.
+  10.06.2008, Az.
+  4 U 37/08.
+  
+  16 OLG Frankfurt v.
+  05.03.2009, Az.
+  6 U 221/09; OLG Hamburg v.
+  24.10.2012, Az.
+  5 U 38/10.
+  
+  17 LG München v.
+  25.10.2006, Az.
+  30 O 11973/05; OLG Frankfurt v.
+  05.03.2009, Az.
+  6 U 221/09.
+  
+  18 OLG Frankfurt v.
+  05.03.2009, Az.
+  6 U 221/09; OLG Hamburg v.
+  24.10.2012, Az.
+  5 U 38/10.
+  
+  Ein Großteil der PrivacyScore-Tests basiert lediglich auf Metadaten, die beim Abruf einer Seite entstehen.
+  Einige Tests profitieren jedoch von einer Analyse des Quelltexts einer Seite.
+  Ausnahmsweise könnten ausschließliche Nutzungsrechte am Quelltext dadurch entstehen, dass diesem urheberrechtlicher Schutz zukommen würde.
+  In diesem Fall müssten betroffene Webseitenbetreiber die Datenverwendung nicht dulden und hätten entsprechende Unterlassungs- und Schadensersatzansprüche.
+  Dies ist davon abhängig, ob die Webseite als Werk i.
+  S. v. § 2 Absatz 1 UrhG oder als eine geschützte Datenbank i.
+  S. v. § 4 Absatz 2 UrhG qualifiziert werden kann.
+  Hierfür ist notwendig, dass die Gestaltung derWebseite die „geistige Schöpfungshöhe“ i.
+  S. v. § 2 Absatz 2 UrhG erreicht.
+  Dies kann nur im Einzelfall beurteilt werden.
+  Regelmäßig ist der Quelltext der Webseite jedoch nicht urheberrechtlich geschützt, da die Rechtsprechung die nötige besondere „schöpferische Höhe“ i.
+  S. v. § 2 Absatz 2 UrhG für Webseiten nur in wenigen Ausnahmefällen anerkennt.19 Auch, wenn die Datenbank als geistiger Schöpfungsakt nicht urheberrechtlich geschützt ist, kann für den Hersteller der Datenbank nach § 87b Absatz 1 Satz 1 UrhG ein Leistungsschutzrecht bestehen.
+  Ginge man davon aus, dass die im Quelltext enthaltenen Informationen eine Sammlung von Daten i.
+  S. v. § 87a UrhG enthalten, käme es für die Annahme eines Leistungsschutzrechts weiterhin darauf an, ob beim Betreiber eine wesentliche Investition zur Erstellung erforderlich war.
+  Allerdings räumt § 87b Absatz 1 Satz 1 UrhG ein Recht auf Untersagung der Nutzung nur ein, soweit die Nutzerin wesentliche Teile der Datenbank durchsucht.
+  Soweit die Webseite, wie bei PrivacyScore, lediglich auf deren technische Umsetzung untersucht wird, stellen diese Informationen keine wesentlichen Teile der Datenbank dar.
+  Für eine nach § 87b Absatz 1 Satz 2 UrhG unzulässige Vervielfältigung, die auch für unwesentliche Teile gilt, fehlt es an einer wiederholten und systematischen Handlung, da sich die Nutzung der Daten durch PrivacyScore im Rahmen einer normalen Auswertung hält.
+  Quelltexte von Webseiten genießen regelmäßig auch keinen Sonderrechtsschutz als Computerprogramme i.
+  S. v. § 2 Absatz 1 Nummer 1, 69a Absatz 1 UrhG.
+  Dies würde eine Folge von Befehlen, denen Auswirkungen auf den Programmablauf zukommen, voraussetzen.
+  Den HTML-Befehlen im Quelltext komme dagegen nur eine beschreibende Funktion zu, um die Darstellung der Inhalte im Browser zu ermöglichen.20
+  
+  Die Untersuchung durch PrivacyScore ist auch wettbewerbsrechtlich unbedenklich, solange es infolge seines Einsatzes nicht zu einer tatsächlichen Störung des Betriebsablaufs der Webseite, etwa einer Beeinträchtigung der Verfügbarkeit, kommt.
+  Andernfalls könnte unter der Voraussetzung der Mitbewerbereigenschaft i.
+  S. v. § 2 Nummer 3 UWG eine unlautere Behinderung i.
+  S. v. § 4 Nummer 4 UWG vorliegen.
+  Wie bereits in Abschnitt 5 dargestellt, wird durch ein Rate-Limiting-System vermieden, dass die Untersuchung durch PrivacyScore negative Auswirkungen auf die Verfügbarkeit des Servers durch technische Überlastung für andere Nutzerinnen haben kann.
+  Eine Störung der Funktionsfähigkeit i.
+  S. v. § 4 Nummer 4 UWG soll damit ausgeschlossen werden.
+  Mit der gleichen Begründung kann auch ein deliktischer Anspruch, gestützt auf eine rechtswidrige Verletzung des Rechts am eingerichteten und ausgeübten Gewerbebetrieb i.
+  S. v. § 823 I BGB, mangels eines betriebsbezogenen Eingriffs, der über eine bloße Belästigung hinausgeht, vermieden werden.
+  
+  19 OLG Hamburg v.
+  29.02.2012, Az.
+  5 U 10/10; OLG Celle v.
+  08.03.2012, Az.
+  13 Watt 17/12; OLG Rostock v.
+  27.06.2007, Az.
+  2 E 12/07.
+  
+  20 OLG Rostock v.
+  27.06.2007, Az.
+  2 Watt 12/07; OLG Frankfurt v.
+  22.03.2005, Az.
+  11 U 64/04.
+  
+  Sofern PrivacyScore zur Untersuchung der Webseite nicht eine vom Berechtigten errichtete „besondere Zugangssicherung“ überwindet, bestehen auch in strafrechtlicher Hinsicht keine Bedenken gegen dessen Einsatz.
+  In Betracht käme allenfalls der Tatbestand des § 202a StGB, welcher Daten schützt, „die gegen unberechtigten Zugang besonders gesichert sind“, indem die Zugangsverschaffung gerade „unter Überwindung der Zugangssicherung“ unter Strafe gestellt wird.
+  Mithilfe von PrivacyScore wird nur der Quelltext der Webseite untersucht, der für jedermann öffentlich zugänglich ist ohne dabei eine Zugangssicherung zu überwinden.
+  
+  Zusammenfassend ist festzustellen, dass soweit kein Sonderrechtsschutz besteht und die Webseite rechtlich und technisch frei zugänglich ist,
+  das heißt die Nutzung der zu untersuchenden Daten nicht von der vorherigen Akzeptanz der Nutzungsbedingungen abhängig gemacht und vom Webseitenbetreiber keine technischen Schutzmaßnahmen installiert wurden,21 das automatisierte Untersuchen der Webseiten durch PrivacyScore zulässig ist.
+  
+  Rechtliche Bewertung der Untersuchungsergebnisse Die bloße Feststellung des technischen Untersuchungsergebnisses allein ist zur Bewertung der rechtskonformen Gestaltung der Webseite wenig aussagekräftig.
+  Zur tatsächlichen Beurteilung der Rechtskonformität ist immer eine weitergehende Betrachtung des Einzelfalls erforderlich.
+  Dies soll im Folgenden am Beispiel von eingebundenen Analysediensten und fehlender beziehungsweise veralteter Verschlüsselungssoftware dargestellt werden.
+  
+  Das Einbinden von Analysediensten ist nicht per se nur nachteilhaft für Nutzerinnen, es besteht aber durchaus die Gefahr des Missbrauchs.
+  Die Rechtmäßigkeit von Analysediensten, wie Google Analytics, auf Webseiten wird seit jeher von den Datenschützern kritisch betrachtet, da sie befürchten, dass mittels dieser Analyse umfangreiche Profile über identifizierbare Nutzerinnen angelegt werden könnten.
+  Neben der Zuordnung und Speicherung von Nutzungsdaten (wie die zuletzt besuchte Seite und der verwendete Browser), die zunächst rechtlich unbedenklich sind, ermöglichen zentrale Analysedienste wie Google Analytics die Möglichkeit,
+  die Nutzungsaktivitäten über die ebenfalls abgespeicherte IP-Adresse zusammen zu führen und webseitenübergreifend einer bestimmten Nutzerin zuzuordnen.
+  Eine datenschutzkonforme Nutzung von Analysediensten wie Google Analytics ist daher nur zulässig, wenn eine Anonymisierung der IP-Adresse – etwa in Form einer Kürzung – gewährleistet wird, da aufgrund dieser Kürzung nach überwiegender Ansicht der Datenschützer22 der direkte Personenbezug entfalle.
+  Soweit nach der jüngsten Rechtsprechung23 dynamische IP-Adressen personenbezogene Daten darstellen, dürfen sie nur verarbeitet werden, wenn dies entweder gesetzlich gestattet ist oder die Betroffene eingewilligt hat.
+  
+  21 BGH v.
+  22.06.2011, Az.
+  I ZR 159/10; BGH v.
+  17.03.2003, Az.
+  I ZR 259/00.
+  
+  22 Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von Analyseverfahren“.
+  
+  23 BGH v.
+  16.05.2017, Az.
+  VI ZR 135/13; EuGH v.
+  19.10.2016, Az.
+  C-582/14.
+  
+  Die gesetzliche Grundlage für den Umgang mit Nutzungsdaten ist derzeit noch das nationale Telemediengesetz (TMG), speziell § 15 Absatz 3 TMG,
+  der auch im Falle einer verkürzten IP anwendbar ist.24 Nach dieser Vorschrift ist die Erstellung von pseudonymisierten Nutzungsprofilen zu festgelegten Zwecken auch ohne die Einwilligung der betroffenen Nutzerin zulässig,
+  soweit der Nutzerin gemäß § 15 Absatz 3 Satz 2 TMG ein Recht zum Widerspruch („Opt-out“) gegen diese Erstellung eingeräumt und sie auf die Möglichkeit des Widerspruchs auch hingewiesen wird.25 Um beurteilen zu können, ob der Webseitenbetreiber seinen Hinweispflichten ausreichend nachgekommen ist,
+  wäre eine Betrachtung des Impressums und der Datenschutzerklärung notwendig.
+  
+  Etwas anderes kann sich möglicherweise zukünftig aufgrund des Entwurfs der Verordnung über Privatsphäre und elektronische Kommunikation (e-Privacy-VO-E) ergeben.
+  Nach Artikel 8 Absatz 1 des Verordnungsentwurfs, ist „jede vom betreffenden Endnutzer nicht selbst vorgenommene Nutzung der Verarbeitungs- und Speicherfunktionen“ grundsätzlich verboten, es sei denn,
+  der Endnutzer hat seine Einwilligung gegeben oder es greifen die übrigen Ausnahmen von Absatz 1 lit. a–d.
+  Ob unter die Ausnahme nach Artikel 8 Absatz 1 lit. d auch externe Analysedienste fallen, hängt von der Auslegung der Einschränkung, „sofern der Betreiber (...) diese Messung durchführt“, ab.
+  Dies könnte problematisch sein, da externe Dienste gerade nicht identisch mit dem Webseitenbetreiber sind, der den vom Endnutzer gewünschten Dienst anbietet.
+  Die Folge wäre, dass zukünftig das Nutzen von Analysediensten generell von der vorherigen Einwilligung („Opt-in“) der betroffenen Nutzerin abhängig wäre.
+  Zudem hätten Nutzerinnen zukünftig gemäß Artikel 9 Absatz 3 des Verordnungsentwurfs ein jederzeitiges Widerrufsrecht bezüglich der einmal erteilten Einwilligung, an das sie halbjährlich erinnern werden müssten.
+  Im Übrigen würden sich die Anforderungen der Einwilligung gemäß Artikel 9 Absatz 1 des Verordnungsentwurfs nach Artikel 7 und 4 Nummer 11 DSGVO richten.
+  
+  Ähnlich stellt es sich bei fehlender Verschlüsselungssoftware dar, da eine generelle Verschlüsselungspflicht für Webseitenbetreiber nicht ausdrücklich normiert ist.
+  Vorschriften zur Datensicherheit finden sich derzeit unter anderem in § 9 Bundesdatenschutz (BDSG) und dessen Anlage sowie im für Telemedien spezielleren § 13 Absatz 7 TMG.
+  Da die Datenschutz-Grundverord-nung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gemäß § 288 Absatz 2 AEUV mit Geltungsbeginn am 25.5.2018 unmittelbar in den Mitgliedsstaaten anwendbar sein werden, werden sie diese nationalen Regelungen im Rahmen des Anwendungsvorrangs verdrängen.
+  Aus Erwägungsgrund 5 des Entwurfs der e-Privacy-VO geht hervor, dass diese gegenüber der DSGVO spezieller sein soll, wenn ihr Anwendungsbereich betroffen ist.
+  Gleichzeitig verweist Erwägungsgrund 37 des Verordnungsentwurfs hinsichtlich der Bewertung der Datensicherheit auf Artikel 32 DSGVO, in dem i.
+  V. m.
+  Artikel 5 Absatz 1 lit. f DSGVO die Datensicherheit als allgemeiner Grundsatz normiert ist.
+  Artikel 32 DSGVO verpflichtet den Verantwortlichen (Artikel 4 Nummer 7 DSGVO) sowie den Auftragsverarbeiter (Artikel 4 Nummer 8 DSGVO) „geeignete technische und organisatorischen Maßnahmen“ zur Herstellung eines „angemessenen Datenschutzniveaus“ zu gewährleisten.
+  Neben der Pseudonymisierung nennt der Normgeber in Artikel 32 Absatz 1 lit. a DSGVO auch die Verschlüsselung als eine der bevorzugten Maßnahmen.
+  Ebenso wie die Pseudonymisierung, ist die Verschlüsselung jedoch nicht in jedem Einzelfall zwingend geboten.
+  Welche Maßnahmen sich als erforderlich und angemessen erweisen, um ein „dem Risiko angemessenes Schutzniveau zu gewährleisten“, muss vielmehr im Rahmen einer Gesamtabwägung an das Einzelfallrisiko angepasst werden.
+  Hierfür ist im Rahmen des Artikel 32 Absatz 1 DSGVO neben der Schwere und Eintrittswahrscheinlichkeit des Risikos für die Rechte und Freiheiten der von der Verarbeitung Betroffenen, das sich insbesondere an der Schutzbedürftigkeit der einzelnen gespeicherten personenbezogenen Daten orientiert,
+  auf der anderen Seite sowohl das technisch Machbare nach dem „Stand der Technik“ als auch die wirtschaftliche Belastung des Verarbeiters, insbesondere die Implementierungskosten, mit einzubeziehen.
+  Lediglich das wirtschaftlich Zumutbare wird erwartet.
+  Dies kann im Einzelfall auch dazu führen, dass ein Verantwortlicher keine Maßnahmen ergreifen muss.
+  
+  24 LG Frankfurt v.
+  18.02.2014, Az.
+  3-10 O 86/12.
+  
+  25 BGH v.
+  16.07.2008, Az.
+  VIII ZR 348/06.
+  
+  Rechtliche Herausforderungen hinsichtlich der Veröffentlichung der Ergebnisse Auf der PrivacyScore-Webseite können sowohl Detail-Ergebnisse für einzelne Webseiten als auch vergleichende Rankings eingesehen werden.
+  Bei den Detail-Ergebnissen handelt es sich um Tatsachenbehauptungen, die überprüfbar und damit dem Beweis zugänglich sind.
+  Die erstellten Rankings dürften hingegen auf diesen Tatsachen beruhende Werturteile darstellen.
+  Beide sind nach ständiger Rechtsprechung gleichermaßen von der Meinungsfreiheit aus Artikel 5 Absatz 1 GG umfasst, soweit es sich um wahre Tatsachen handelt.26 Die zugehörigen Scan-Rohdaten werden dazu (soweit zulässig) archiviert.
+  
+  Da mit der Veröffentlichung nachteiliger Bewertungen auch negative Auswirkungen für den Webseitenbetreiber, wie Imageverluste, verbunden sein können, stellt sich die Frage, unter welchen Voraussetzungen sich Betreiber gegen die Veröffentlichung wehren können.
+  
+  Veröffentlichungen über Tatsachen und Werturteile sind solange zulässig und von den Bewerteten hinzunehmen, wie sie keinen rechtswidrigen Eingriff in das Persönlichkeitsrecht des Betreibers darstellen.
+  Ein solcher ist anzunehmen, wenn im Rahmen einer Abwägung das Schutzinteresse des von der Äußerung Betroffenen auf Schutz seiner Persönlichkeit aus Artikel 1 Absatz 1 GG i.
+  V. m.
+  Artikel 2 Absatz 1 GG, die schutzwürdigen Belange an der Veröffentlichung aus Artikel 5 Absatz 1 GG überwiegen.
+  Für inländische Unternehmen kann sich ein Persönlichkeitsrecht aus Artikel 2 Absatz 1 GG i.
+  V. m.
+  Artikel 19 Absatz 3 GG und Artikel 12 Absatz 1 GG ergeben.
+  Dies gilt jedoch nur in abgeschwächter Form, da Unternehmen und Unternehmer, die sich bewusst nach außen hin darstellen, kritische Bewertungen eher hinnehmen müssen.27 Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten,
+  ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen i.
+  S. v. §§ 185 folgende.
+  StGB werden und die konkrete Aussage geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
+  
+  26 BVerfG v.
+  09.10.1991, Az.
+  1 BvR 1555/88; BVerfG v.
+  13.04.1994, Az.
+  1 BvR 23/94.
+  
+  27 BGH v.
+  29.01.2002, Az.
+  VI ZR 20/01.
+  
+  Eine Beurteilung eines rechtswidrigen Eingriffs unter Abwägung der Interessen ist grundsätzlich nur im Einzelfall möglich.
+  Die Veröffentlichung einer kritischen Bewertung der Webseite kann für den Betroffenen zu einer Rufbeeinträchtigung führen und ihn nicht unerheblich belasten.
+  Da die untersuchten Webseiten aber öffentlich sind, werden diese regelmäßig der Sozialsphäre des Betroffenen zuzuordnen sein, das heißt beruflichen, politischen oder ähnlichen Tätigkeiten, in denen Menschen im sozialen Austausch stehen.
+  Beeinträchtigungen in diesem Bereich unterliegen zumeist einem schwachen Schutz.
+  Im Rahmen der Interessenabwägung bei betroffenen Unternehmern betont die Rechtsprechung28 regelmäßig das Informationsinteresse der Allgemeinheit.
+  Insbesondere vor dem Hintergrund der freien Wahl, die untersuchten Webseiten je nach Ergebnis zu nutzen oder dies zu vermeiden, ist das Interesse der Öffentlichkeit an den Informationen über privatrechtliche Risiken beim Besuch der Webseiten nicht unerheblich.
+  Ein Recht des Betroffenen wird daher regelmäßig nicht das Kommunikationsinteresse überwiegen.
+  Bei Privatpersonen wird im Rahmen der Interessenabwägung häufig zusätzlich auf die Breitenwirkung der Äußerung abgestellt:
+  je größer der Adressatenkreis, desto belastender die Äußerung.29 Eine Risikoreduzierung für den Betroffenen könnte in diesen Fällen dadurch erreicht werden, dass die Ergebnisse nur einem beschränkten Adressatenkreis zur Verfügung zu stellen.
+  
+  Aus Artikel 17 Absatz 1 DSGVO könnte dem Betroffenen in diesem Zusammenhang ein Löschungsanspruch zustehen, soweit die gespeicherten Daten personenbezogen sind und deren Speicherung unzulässig ist.
+  Eine Datenverarbeitung ist gemäß Artikel 5 Absatz 1 lit. a und Artikel 6 Absatz 1 DSGVO dann rechtmäßig, wenn eine Einwilligung des Betroffenen vorliegt, was regelmäßig nicht der Fall sein wird, oder eine andere Bedingung des Artikel 6 Absatz 1 DSGVO erfüllt ist.
+  In Betracht käme als Erlaubnistatbestand Artikel 6 Absatz 1 UAbs.
+  1 lit. f DSGVO.
+  Dazu müsste die Verarbeitung der Daten „zur Wahrung der berechtigten Interessen des Verantwortlichen oder eines Dritten erforderlich“ sein, „sofern nicht die Interessen oder Grundrechte der betroffenen Person überwiegen“.
+  Im Rahmen der durchzuführenden Interessenabwägung kann aufgrund der eben angeführten Argumente regelmäßig ein Überwiegen des Kommunikationsinteresses gegenüber dem Recht des Betroffenen auf informationelle Selbstbestimmung angenommen und ein Löschungsanspruch verneint werden.
+  
+  Sofern sich die negative Bewertung im Rahmen von Artikel 5 Absatz 1 GG bewegt, scheiden auch wettbewerbsrechtliche Ansprüche gemäß § 4 Nummer 1 und 2 i.
+  V. m. § 8 UWG aus.
+  
+  # 8. 7 Schlussbemerkungen
+  
+  7 Schlussbemerkungen
+  
+  Der sichere und datenschutzfreundliche Betrieb einer Webseite ist aufwändig, meist mit zusätzlichen Kosten verbunden oder nicht mit dem Geschäftsmodell eines Seitenbetreibers vereinbar.
+  Daher ist das Sicherheits- und Privatheitsniveau vieler Webseiten derzeit unzureichend.
+  Das Ziel des PrivacyScore-Projekts besteht darin, Transparenz herzustellen und Öffentlichkeit zu generieren.
+  PrivacyScore erstellt dazu automatisierte Vergleiche der Sicherheits- und Privatheitseigenschaften mehrerer Webseiten und zeigt die Ergebnisse in Form von regelmäßig aktualisierten Ranglisten an.
+  Sowohl die zu überprüfenden Webseiten als auch die Bewertungskriterien können dabei von den Nutzerinnen festgelegt werden.
+  
+  28 BGH v.
+  23.09.2014, Az.
+  VI ZR 358/13; BGH v.
+  23.06.2009, Az.
+  VI ZR 196/08; OLG Hamburg v.
+  18.01.2012, Az.
+  5 U 51/11.
+  
+  29 BGH v.
+  23.06.2009, Az.
+  VI ZR196/08.
+  
+  Juristisch ist die Verwendung von PrivacyScore in seiner aktuell geplanten Form zulässig, soweit die untersuchte Webseite frei zugänglich ist und kein Sonderrechtsschutz besteht.
+  Die Veröffentlichung der Ergebnisse ist vom Schutz der Meinungsfreiheit umfasst, sofern diese keine unwahren oder beleidigenden Äußerungen enthalten.
+  Regelmäßig ist auch keine Einwilligung des Betreibers der untersuchten Webseite erforderlich.
+  
+  PrivacyScore ist Open-Source-Software.
+  Das System kann daher auch innerbetrieblich eingesetzt werden und beispielsweise die Arbeit von Datenschutz-Aufsichtsbehörden unterstützen.
+  Die auf der öffentlich angebotenen PrivacyScore-Seite erzeugten Datensätze werden darüber hinaus als Rohdaten für Forschungszwecke zur Verfügung gestellt.
+  
+  Danksagung Teile dieser Arbeit wurden in Forschungsteilbereichen C.1 und C.2 innerhalb des GRK 2050 „Privacy and Trust for Mobile Users“ durch die DFG finanziert.
+  Die Autoren danken Marvin Hebisch, Nico Vitt und Pascal Wichmann für die Implementation des Prototypen, sowie den Teilnehmenden des Workshops PET-CON 2017.1 und Mitgliedern von Digitalcourage e.
+  V. für ihre Ideen.
+  
+  # 9. Literaturverzeichnis (not spoken)
   
   '''
 # ---

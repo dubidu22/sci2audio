@@ -34,6 +34,29 @@ CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 PAPERS = sorted((CORPUS / "papers").glob("*.pdf"))
 IDS = [paper.stem for paper in PAPERS]
 
+# Corpus tests that skip the German paper until the step they check speaks German, with the
+# Issue that teaches it (#235, D-509); that Issue removes the entries.
+GERMAN_PAPERS = {"arxiv2017-maass-privacyscore"}
+GERMAN_LATER: dict[str, int] = {
+    "test_no_placeholder_text_is_read_and_each_notice_names_the_truth_item": 212,
+    "test_every_footnote_is_introduced_and_its_mark_left_out": 212,
+}
+
+
+def papers(test: str) -> list:
+    """The corpus papers for this test, the German paper skipped if the test waits."""
+    issue = GERMAN_LATER.get(test)
+    return [
+        pytest.param(
+            paper,
+            id=paper.stem,
+            marks=pytest.mark.skip(reason=f"waits for #{issue}: the step speaks no German yet")
+            if issue and paper.stem in GERMAN_PAPERS
+            else (),
+        )
+        for paper in PAPERS
+    ]
+
 
 @cache
 def document(paper: Path) -> Document:
@@ -59,7 +82,9 @@ def truth(paper: Path) -> dict:
     return tomllib.loads((CORPUS / "truth" / f"{paper.stem}.toml").read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+@pytest.mark.parametrize(
+    "paper", papers("test_no_placeholder_text_is_read_and_each_notice_names_the_truth_item")
+)
 def test_no_placeholder_text_is_read_and_each_notice_names_the_truth_item(paper: Path) -> None:
     doc, said = document(paper), spoken(paper)
     notices = [said[i] for i, block in enumerate(doc.blocks) if block.is_placeholder]
@@ -102,7 +127,7 @@ def test_no_reference_list_is_read(paper: Path) -> None:
         assert section.end == len(doc.blocks) or any(said[section.end :])
 
 
-@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+@pytest.mark.parametrize("paper", papers("test_every_footnote_is_introduced_and_its_mark_left_out"))
 def test_every_footnote_is_introduced_and_its_mark_left_out(
     paper: Path, snapshot: SnapshotAssertion
 ) -> None:
@@ -136,8 +161,11 @@ def test_every_footnote_is_introduced_and_its_mark_left_out(
 
 
 def test_the_corpus_has_the_footnote_marks_the_plan_counted() -> None:
-    labelled = sum(
-        1 for paper in PAPERS for b in document(paper).blocks
-        if b.kind is BlockKind.FOOTNOTE and b.label
-    )  # fmt: skip
-    assert labelled == 39
+    labelled = {
+        german: sum(
+            1 for paper in PAPERS if (paper.stem in GERMAN_PAPERS) == german
+            for b in document(paper).blocks if b.kind is BlockKind.FOOTNOTE and b.label
+        )
+        for german in (False, True)
+    }  # fmt: skip
+    assert labelled == {False: 39, True: 30}  # the German paper: 29 notes and one star (#235)

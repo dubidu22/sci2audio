@@ -76,6 +76,30 @@ def test_caption_labels_keep_their_printed_form() -> None:
     assert [label for label, _ in captions(doc)] == ["Fig. 3", "Table A.2", "TABLE 4"]
 
 
+def test_german_labels_open_captions_in_any_language() -> None:
+    """#235, D-506: one list of names for every document, so the LNI paper's "Abb. 1:" is
+    a caption whatever language the document is read in."""
+    doc = build(
+        "Abb. 1: Anwendungsfälle und Datenstrukturen",
+        "Abbildung 2. Der Ablauf eines Scans.",
+        "Tabelle 3: Ergebnisse.",
+        "Tab. 4: Mehr Ergebnisse.",
+        "Algorithmus 5: Der Scan.",
+    )
+    assert [label for label, _ in captions(doc)] == [
+        "Abb. 1",
+        "Abbildung 2",
+        "Tabelle 3",
+        "Tab. 4",
+        "Algorithmus 5",
+    ]
+
+
+def test_a_german_label_in_running_text_stays_a_paragraph() -> None:
+    doc = build("Abb. 1 zeigt die Anwendungsfälle.", "Tabelle 2 fasst sie zusammen.")
+    assert captions(doc) == []
+
+
 def test_a_bold_label_without_punctuation_opens_a_caption() -> None:
     doc = build(bold("Algorithm 1", " CKY"), "Text after the caption ends.")
     assert captions(doc) == [("Algorithm 1", "Algorithm 1 CKY")]

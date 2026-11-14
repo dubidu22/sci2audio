@@ -30,16 +30,18 @@ from sci2audio.voices import DEFAULT_VOICES
 pytestmark = pytest.mark.timeout(120)
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
-ENGLISH_CORPUS = sorted(
-    path
-    for folder in ("papers", "epub", "markdown", "text")
-    for path in (CORPUS / folder).iterdir()
-    if path.suffix in EXTRACTORS and "beispiel" not in path.name
-)
 GERMAN_CORPUS = [
     CORPUS / "markdown" / "sci2audio-beispiel-notiz.md",
     CORPUS / "text" / "sci2audio-beispiel-text.txt",
 ]
+# Real German papers: their scripts are golden in test_app_corpus.py (#235).
+GERMAN_PAPERS = [CORPUS / "papers" / "arxiv2017-maass-privacyscore.pdf"]
+ENGLISH_CORPUS = sorted(
+    path
+    for folder in ("papers", "epub", "markdown", "text")
+    for path in (CORPUS / folder).iterdir()
+    if path.suffix in EXTRACTORS and path not in GERMAN_CORPUS + GERMAN_PAPERS
+)
 
 # Own sentences, about 70 words each.
 GERMAN = (
@@ -119,7 +121,9 @@ def test_every_english_corpus_file_without_its_tag_is_guessed_english(path: Path
     assert guess.german * 50 < guess.english
 
 
-@pytest.mark.parametrize("path", GERMAN_CORPUS, ids=[p.name for p in GERMAN_CORPUS])
+@pytest.mark.parametrize(
+    "path", GERMAN_CORPUS + GERMAN_PAPERS, ids=[p.name for p in GERMAN_CORPUS + GERMAN_PAPERS]
+)
 def test_the_german_samples_without_their_tag_are_guessed_german(path: Path) -> None:
     document = build_document(untagged(path))
     assert (document.language, document.language_source) == ("de", LanguageSource.TEXT)

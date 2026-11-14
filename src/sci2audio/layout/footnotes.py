@@ -157,12 +157,21 @@ def _notes(lines: list[TextLine], settings: LayoutSettings) -> list[Block]:
 
 def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
     """The mark a row opens with: its first run, a number or note symbols set smaller
-    than the row's text (the mark may be a line of its own)."""
+    than the row's text (the mark may be a line of its own), or set in the text's size but
+    raised, as superior figures are: its box ends `footnote_mark_rise` em or more above the
+    next run's (#235, D-507; boxes are loose, so the next run's letters don't matter)."""
     first = row[0].runs[0]
     text = first.text.strip()
     size = _size(run for line in row for run in line.runs)
     smaller = first.size < (1 - settings.size_change) * size
-    return text if smaller and _MARK.fullmatch(text) else None
+    after = row[0].runs[1] if len(row[0].runs) > 1 else None
+    raised = bool(
+        first.box
+        and after is not None
+        and after.box
+        and first.box.y1 <= after.box.y1 - settings.footnote_mark_rise * size
+    )
+    return text if (smaller or raised) and _MARK.fullmatch(text) else None
 
 
 def _note(label: str, lines: list[list[TextLine]], settings: LayoutSettings) -> Block:
