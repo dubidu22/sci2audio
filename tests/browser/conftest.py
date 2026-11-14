@@ -195,6 +195,15 @@ def axe_problems(page: Page, where: str) -> list[str]:
     return found
 
 
+# WebKit tabs to buttons and links only with Alt held, as Safari does unless its setting is
+# on; on macOS plain Tab skips them (#205)
+TAB = {"webkit": "Alt+Tab"}
+
+
+def tab_key(page: Page) -> str:
+    return TAB.get(page.context.browser.browser_type.name, "Tab")  # type: ignore[union-attr]
+
+
 def settled(page: Page) -> None:
     """Wait until the document page no longer follows the analysis and is fully loaded.
     The report can be on disk while the job is still the running one; a page drawn in that

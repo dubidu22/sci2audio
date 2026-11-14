@@ -9,11 +9,9 @@ import re
 from playwright.sync_api import Page, expect
 from test_flow import PDF
 
-from conftest import Live, settled
+from conftest import Live, settled, tab_key
 
 MAX_TABS = 80
-# WebKit tabs to links only with Alt held, as Safari does unless its setting is on
-TAB = {"webkit": "Alt+Tab"}
 
 
 def focused(page: Page) -> dict[str, str]:
@@ -30,10 +28,6 @@ def focused(page: Page) -> dict[str, str]:
             };
         }"""
     )
-
-
-def tab_key(page: Page) -> str:
-    return TAB.get(page.context.browser.browser_type.name, "Tab")  # type: ignore[union-attr]
 
 
 def tab_to(page: Page, wanted: str, *, back: bool = False) -> None:
