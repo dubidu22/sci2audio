@@ -508,11 +508,11 @@ class _Rules:
         self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
     ) -> list[_Found] | None:
         """The bracket as one citation if it is one as a second run sees it, once the
-        citations in its own inner round brackets are read: "((Müller, 2019) Schmidt, 2020)"
-        is "( Schmidt, 2020)" then, and "(vgl. (Müller, 2019) Schmidt, 2020)" is "(vgl.
-        Müller Schmidt, 2020)", so both runs remove it whole; a bracket left empty
+        citations in its own inner brackets, round or square, are read: "((Müller, 2019)
+        Schmidt, 2020)" is "( Schmidt, 2020)" then, and "(vgl. (Müller, 2019) Schmidt, 2020)"
+        is "(vgl. Müller Schmidt, 2020)", so both runs remove it whole; a bracket left empty
         ("((Müller, 2019))") goes too (#271)."""
-        inner = [child for child in node.children if text[child.open] == "("]
+        inner = node.children
         if not inner:
             return None
         # the bracket and the look-back before it, not the whole block: a block of many such
@@ -524,9 +524,10 @@ class _Rules:
             if not handled:
                 return None  # an inner bracket that stays as printed: no citation around it
             for start, end, _kind, replacement, _reason in handled:
-                start, end = max(start, node.open + 1), min(end, node.close)
-                if start > end or len(replacement) > end - start:
-                    return None  # an edit outside the bracket, or a reading longer than it
+                # a child's edit lies inside the child, with the space or mark next to it, so
+                # inside this bracket; a reading longer than its span cannot be written in
+                if len(replacement) > end - start:
+                    return None  # "([3] found it)": "reference 3" would shift what follows
                 judged[start - shift : end - shift] = replacement.ljust(end - start)
         read = "".join(judged)
         local = _Bracket(node.open - shift, node.close - shift)

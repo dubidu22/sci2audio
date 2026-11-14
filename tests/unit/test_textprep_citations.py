@@ -337,11 +337,27 @@ def test_no_removal_leaves_doubled_marks_or_a_wrong_capital(text: str, spoken: s
         # prose once the inner citation is read: the bracket stays (D-541)
         ("It holds ((Smith, 2019) see Table 2) here.", "It holds (Smith see Table 2) here."),
         ("It holds (see also (Smith, 2019); Jones, 2020).", "It holds (see also)."),
+        # numeric citations inside are read in too (review round 1, M1)
+        ("It holds ((Smith, 2019) [3] Jones, 2020) here.", "It holds here."),
+        ("It holds ([1] Jones, 2020) here.", "It holds here."),
+        # an inner reading in words goes in as a second run sees it ... (S1)
+        ("It holds (see (Smith, 2019; Lee, 2020), 2020) here.", "It holds here."),
+        # ... unless it is longer than the printed bracket: then this one stays (S1)
+        ("It holds ([3] found it) here.", "It holds (reference 3 found it) here."),
+        # a page glued after the nest goes with it (S2)
+        ("It holds ((Smith, 2019) Jones, 2020)[p. 5] here.", "It holds here."),
     ],
 )  # fmt: skip
 def test_a_nested_citation_reads_the_same_on_a_second_run(printed: str, said: str) -> None:
     once = read(printed)
     assert once == said
+    assert read(once) == once
+
+
+def test_an_empty_nest_as_the_subject_is_still_read_as_empty_brackets() -> None:
+    """Today's reading, stable but empty: nothing is left to name (#278 fixes it; S3)."""
+    once = read("((Smith, 2019)) is cited.")
+    assert once == "() is cited."
     assert read(once) == once
 
 

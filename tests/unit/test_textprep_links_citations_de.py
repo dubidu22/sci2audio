@@ -373,6 +373,10 @@ def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
         ("Lärm wirkt (vgl. (Müller, 2019) Schmidt, 2020). Dann", "Lärm wirkt. Dann"),
         ("Lärm wirkt ((Müller, 2019)). Dann", "Lärm wirkt. Dann"),
         ("((Müller, 2019) Schmidt, 2020) zeigt das.", "Schmidt zeigt das."),
+        # numeric citations inside are read in too (review round 1, M1)
+        ("Es gilt ((Müller, 2019) [3] Schmidt, 2020) hier.", "Es gilt hier."),
+        # an empty nest as the subject stays as empty brackets: stable, but #278 (S3)
+        ("((Müller, 2019)) zeigt das.", "() zeigt das."),
         # prose once the inner citation is read: the bracket stays (D-541)
         ("Es gilt ((Müller, 2019) siehe Tabelle 2).", "Es gilt (Müller siehe Tabelle 2)."),
     ],
