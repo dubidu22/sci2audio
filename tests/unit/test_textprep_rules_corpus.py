@@ -19,6 +19,7 @@ from syrupy.assertion import SnapshotAssertion
 from sci2audio.core import BlockKind, Document, EditKind, Section
 from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
+from sci2audio.testing import rebuilt_from_script
 from sci2audio.textprep import (
     StepContext,
     StepRun,
@@ -184,3 +185,21 @@ def test_the_corpus_has_the_footnote_marks_the_plan_counted() -> None:
         for german in (False, True)
     }  # fmt: skip
     assert labelled == {False: 39, True: 30}  # the German paper: 29 notes and one star (#235)
+
+
+def test_liu_reads_the_same_on_a_second_run() -> None:
+    """#202 (D-575): the script of the paper whose inline fractions now read apart, run
+    through the text steps again, reads the same: no step joins the parts of a fraction or
+    reads them differently the second time (as the runner's property checks on made-up
+    documents)."""
+    paper = CORPUS / "papers" / "arxiv2024-liu-orbital-hall.pdf"
+    doc = document(paper)
+    script = run(paper).script()
+    rebuilt = rebuilt_from_script(doc, script)
+    second = run_steps(rebuilt, StepContext(doc.language), strict=True).script()
+    for index in range(len(doc.blocks)):
+        first_read = [piece for piece in script if piece.span.block == index]
+        second_read = [piece for piece in second if piece.span.block == index]
+        assert spoken_text(second_read, show_pauses=True) == spoken_text(
+            first_read, show_pauses=True
+        ), index

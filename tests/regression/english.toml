@@ -1420,3 +1420,19 @@ expected = [
     "It was funded by the NSF.",
     "It was funded by the NSF.",
 ]
+
+[[case]]
+id = "inline-fraction-parts-are-read-apart"
+audit = 0
+issue = 202
+goal = "An inline fraction in running text reads its numerator and its denominator apart, never as one word: layout and extraction keep a space where a fraction bar stands between the two (liu p2, p3; D-575). 'Over' is not read: that waits for spoken formulas (D-460)."
+blocks = [
+    { kind = "paragraph", text = "with g-factor gL = 1 and Bohr-magneton µB = eℏ 2me . The\nBerry connection is defined as above." },
+    { kind = "paragraph", text = "is ⟨umq |vˆ|um′q⟩ = 1 ℏ ∂Emq ∂q δm,m′ + i ℏ Emq. Only\nthe z-component of OAM survives." },
+    { kind = "paragraph", text = "the intrinsic driving\nterm Dmm′Eq = eE ℏ · iRmm′q with f(0) the Fermi function." },
+]
+expected = [
+    "with g-factor gL equals 1 and Bohr-magneton μB equals eℏ 2me . The Berry connection is defined as above.",
+    "is ⟨umq |vˆ|um′q⟩ equals 1 ℏ ∂Emq ∂q δm,m′ + i ℏ Emq. Only the z-component of OAM survives.",
+    "the intrinsic driving term Dmm′Eq equals eE ℏ · iRmm′q with f(0) the Fermi function.",
+]

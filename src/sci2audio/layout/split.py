@@ -97,6 +97,8 @@ def read_rows(
     `separators`; rows by a line break), each as found, and the graphics among them where
     they are read (by their top)."""
     waiting = sorted(graphics, key=lambda g: g[1].y0)
+    bars = [box for _, box in graphics]  # a fraction bar keeps its parts apart (#202)
+    fraction = (settings.fraction_bar, settings.fraction_reach)
     text, parts = "", []
     for row in rows(lines, settings.row_overlap):
         top = min(li.box.y0 for li in row if li.box)
@@ -104,7 +106,7 @@ def read_rows(
             parts.append(Part(waiting.pop(0)[0], len(text)))
         text += "\n" if text else ""
         size = letter_size(run for line in row for run in line.runs)
-        joins = separators(row, size, settings.word_space, settings.stack_reach)
+        joins = separators(row, size, settings.word_space, settings.stack_reach, bars, *fraction)
         for n, line in enumerate(row):
             text += joins[n]
             parts.append(Part(line.id, len(text)))

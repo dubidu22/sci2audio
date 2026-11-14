@@ -493,10 +493,14 @@ def at(text: str, x0: float, x1: float, raised: float = 0.0, size: float = 10.0)
     return line(text, x0, ROW_Y - raised, x1, size=size)
 
 
-def _one_row(*pieces: TextLine, settings: LayoutSettings | None = None) -> Block:
-    """The paragraph block of 5 full lines whose third line is made of these pieces."""
+def _one_row(
+    *pieces: TextLine, settings: LayoutSettings | None = None, drawings: tuple = ()
+) -> Block:
+    """The paragraph block of 5 full lines whose third line is made of these pieces (and
+    these drawings on the page)."""
     text = lines("a", LEFT, RIGHT, 100, 5)
-    doc = build_document(content([*text[:2], *pieces, *text[3:]]), settings)
+    page = content([*text[:2], *pieces, *text[3:]], drawings=drawings)
+    doc = build_document(page, settings)
     (block,) = [b for b in doc.blocks if b.kind is BlockKind.PARAGRAPH]
     return block
 
@@ -553,6 +557,28 @@ def test_digits_of_a_stacked_fraction_keep_their_space() -> None:
         at("at the edge of the band", 303, RIGHT),
     )
     assert _third(_one_row(*pieces)) == "the Fermi velocity vF = 3 2 at the edge of the band"
+
+
+def test_the_parts_of_an_inline_fraction_keep_a_space() -> None:
+    """#202, Liu p2 "µB = eℏ over 2me": the denominator, stored as a piece of its own,
+    starts back under the numerator's letters at the end of the piece before; the fraction
+    bar between them keeps a space ("eh 2me"), and every piece keeps its text at its
+    offset."""
+    pieces = (
+        at("Bohr-magneton is B = eh", LEFT, 300),
+        at("2me", 292, 304, raised=-5, size=7),
+        at(". The Berry connection is defined", 306, RIGHT),
+    )
+    bar = Drawing("bar", Box(291.5, ROW_Y + 6.0, 300.5, ROW_Y + 6.4))
+    block = _one_row(*pieces, drawings=(bar,))
+    assert _third(block) == "Bohr-magneton is B = eh 2me . The Berry connection is defined"
+    starts = {part.item: part.start for part in block.parts}
+    for piece in pieces:
+        assert block.text[starts[piece.id] : starts[piece.id] + len(piece.text)] == piece.text
+    # without the bar the two pieces stand as a superscript over a subscript: joined
+    assert (
+        _third(_one_row(*pieces)) == "Bohr-magneton is B = eh2me . The Berry connection is defined"
+    )
 
 
 def test_two_words_split_at_a_wide_gap_keep_their_space() -> None:
