@@ -1277,3 +1277,15 @@ issue = 130
 goal = "A chain of x's after a spaced first x is read whole on the first run: '11 x1x1' was '11 times 1x1', and a second run read the rest (German second-run property, review round 2 of PR #242)."
 blocks = [{ kind = "paragraph", text = "A grid of 11 x1x1 cells." }]
 expected = ["A grid of 11 times 1 times 1 cells."]
+
+[[case]]
+id = "citations-after-a-read-abbreviation-keep-the-sentence-end"
+audit = 0
+issue = 227
+goal = "A citation after an abbreviation the abbreviations step reads with its full stop ('e.g.' as 'for example') leaves the sentence its own full stop: it read 'See for example Then more.' (found for German, #227). After 'et al.', which stays as printed, the citation still takes it."
+blocks = [
+    { kind = "paragraph", text = "See e.g. (Smith, 2019). Then more." },
+    { kind = "paragraph", text = "Smith et al. (2019). Then more." },
+]
+expected = ["See for example. Then more.", "Smith et al. Then more."]
+utterances = ["See for example.", "Then more.", "Smith et al. Then more."]

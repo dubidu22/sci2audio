@@ -971,3 +971,62 @@ expected = [
     "Mehr dazu. Dann weiter.",
     "Mehr dazu. Müller zeigt es.",
 ]
+
+# ---- #227, #229 German sentence ends (D-530) --------------------------------------------------
+
+[[case]]
+id = "de-sentence-ends-after-numbers-and-short-words"
+audit = 0
+issue = 227
+goal = "A full stop after a number of one to three digits ends a German sentence only before a sentence opener; one after a dotted unit, magnitude or 'o.' never does. Before, 'Er wurde 3. Sieger.' was cut after '3.', 'Am 3. 4. 2019' in three."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Er wurde 3. Sieger. Es folgt 2. Teilnehmer Gruppe B." },
+    { kind = "paragraph", text = "Am 3. 4. 2019 kam es. Es gilt o. J. als Datum. Gemessen in Tsd. Euro." },
+    { kind = "paragraph", text = "Es waren 3. Die Studie lief." },
+]
+expected = [
+    "Er wurde 3. Sieger. Es folgt 2. Teilnehmer Gruppe B.",
+    "Am 3. 4. 2019 kam es. Es gilt o. J. als Datum. Gemessen in Tsd. Euro.",
+    "Es waren 3. Die Studie lief.",
+]
+utterances = [
+    "Er wurde 3. Sieger.", "Es folgt 2. Teilnehmer Gruppe B.",
+    "Am 3. 4. 2019 kam es.", "Es gilt o. J. als Datum.", "Gemessen in Tsd. Euro.",
+    "Es waren 3.", "Die Studie lief.",
+]
+
+[[case]]
+id = "de-units-keep-the-sentence-end"
+audit = 0
+issue = 229
+goal = "A unit printed with a full stop leaves the full stop to the sentence before a sentence opener: '2 Std. Danach' was read '2 Stunden Danach', one sentence. Before a noun it stays one sentence ('2 Mio. Euro')."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Messung dauerte 2 Std. Danach wurde gewertet." },
+    { kind = "paragraph", text = "Es kostet 2 Mio. Euro und 3 Std. Fahrt." },
+]
+expected = [
+    "Die Messung dauerte 2 Stunden. Danach wurde gewertet.",
+    "Es kostet 2 Millionen Euro und 3 Stunden Fahrt.",
+]
+utterances = [
+    "Die Messung dauerte 2 Stunden.", "Danach wurde gewertet.",
+    "Es kostet 2 Millionen Euro und 3 Stunden Fahrt.",
+]
+
+[[case]]
+id = "de-citations-after-a-read-abbreviation-keep-the-sentence-end"
+audit = 0
+issue = 227
+goal = "A citation after an abbreviation the abbreviations step reads with its full stop leaves the sentence its own full stop: 'Siehe Kap. (Müller, 2019). Dann' was read 'Siehe Kapitel Dann'. An ordinal-looking number before a sentence opener is no ordinal ('Die 12. Dann' read 'Die zwölfte Dann' on a second run)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Siehe Kap. (Müller, 2019). Dann mehr." },
+    { kind = "paragraph", text = "Die 12. (Müller & Schmidt, 2019). Dann mehr." },
+]
+expected = [
+    "Siehe Kapitel. Dann mehr.",
+    "Die 12. Dann mehr.",
+]
+utterances = ["Siehe Kapitel.", "Dann mehr.", "Die 12.", "Dann mehr."]

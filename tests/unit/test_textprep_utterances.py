@@ -278,6 +278,79 @@ def test_a_replacement_longer_than_the_limit_gives_later_parts_an_empty_span() -
     assert all(len(u.text) <= 12 for u in utterances)
 
 
+# ---- German sentence ends (#227, #229; D-530) ----------------------------------------------
+
+
+def cut_read(text: str, language: str = "de") -> list[str]:
+    """The utterances of the script the built-in steps make of `text`."""
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    script = run_steps(document, StepContext(language), strict=True).script()
+    return [u.text for u in cut_utterances(document, script) if not u.pause]
+
+
+@pytest.mark.parametrize(
+    ("text", "sentences"),
+    [
+        # #227: no cut after a number or a short dotted word that does not end the sentence
+        ("Es folgt 2. Teilnehmer Gruppe B.", ["Es folgt 2. Teilnehmer Gruppe B."]),
+        ("Seit 3. Quartal stieg es.", ["Seit 3. Quartal stieg es."]),
+        ("Er wurde 3. Sieger.", ["Er wurde 3. Sieger."]),
+        ("Er war 2. Vorsitzender.", ["Er war 2. Vorsitzender."]),
+        ("Siehe abb. 3 dazu.", ["Siehe abb. 3 dazu."]),
+        ("Es gilt o. J. als Datum.", ["Es gilt o. J. als Datum."]),
+        ("Gemessen in Tsd. Euro.", ["Gemessen in Tsd. Euro."]),
+        ("Am 3. 4. 2019 kam es.", ["Am 3. 4. 2019 kam es."]),
+        # ... while a sentence opener after the number still starts a sentence
+        ("Es waren 3. Die Studie lief.", ["Es waren 3.", "Die Studie lief."]),
+        ("Es waren 3. „Die Studie“ lief.", ["Es waren 3.", "„Die Studie“ lief."]),
+        ("Es waren 2019. Studien folgten.", ["Es waren 2019.", "Studien folgten."]),
+        # the limit (D-530): a noun after a bare number stays in the sentence
+        ("Es waren 3. Studien zeigen das.", ["Es waren 3. Studien zeigen das."]),
+        # already right before #227, kept
+        ("Die 3. Welle kam.", ["Die dritte Welle kam."]),
+        ("S. Müller schrieb.", ["S. Müller schrieb."]),
+        ("Es sind 1. bis 3. genannt.", ["Es sind 1. bis 3. genannt."]),
+        ("Äpfel usw. Dann mehr.", ["Äpfel und so weiter.", "Dann mehr."]),
+        # #229: a dotted unit keeps its full stop before a sentence opener
+        (
+            "Die Messung dauerte 2 Std. Danach wurde gewertet.",
+            ["Die Messung dauerte 2 Stunden.", "Danach wurde gewertet."],
+        ),
+        ("Es dauerte 5 Min. Dann kam er.", ["Es dauerte 5 Minuten.", "Dann kam er."]),
+        ("Es kostet 2 Mio. Er zahlte.", ["Es kostet 2 Millionen.", "Er zahlte."]),
+        ("Es waren 2 Mio. Im Jahr danach mehr.", ["Es waren 2 Millionen.", "Im Jahr danach mehr."]),
+        # ... and reads it as one sentence before a noun
+        (
+            "2 Mio. Euro, 3 Mrd. Dollar, 5 Min. Pause, 3 Std. Fahrt.",
+            ["2 Millionen Euro, 3 Milliarden Dollar, 5 Minuten Pause, 3 Stunden Fahrt."],
+        ),
+        # a citation after a read abbreviation leaves the sentence its full stop
+        ("Siehe Kap. (Müller, 2019). Dann mehr.", ["Siehe Kapitel.", "Dann mehr."]),
+        ("Siehe z. B. (Müller, 2019). Dann mehr.", ["Siehe zum Beispiel.", "Dann mehr."]),
+        ("Die 12. (Müller & Schmidt, 2019). Dann mehr.", ["Die 12.", "Dann mehr."]),
+    ],
+)
+def test_german_sentences_end_where_german_ends_them(text: str, sentences: list[str]) -> None:
+    assert cut_read(text) == sentences
+
+
+def test_a_citation_after_a_read_english_abbreviation_keeps_the_sentence_end() -> None:
+    assert cut_read("See e.g. (Smith, 2019). Then more.", "en") == [
+        "See for example.",
+        "Then more.",
+    ]
+    # unchanged: "et al." stays as printed and the citation takes the full stop after it (M2
+    # of the #66 review); the cutter reads "al." as an abbreviation, as before
+    assert cut_read("Smith et al. (2019). Then more.", "en") == ["Smith et al. Then more."]
+
+
+def test_the_german_abbreviations_come_from_the_word_lists() -> None:
+    german = ABBREVIATIONS["de"]
+    assert {"abb.", "z.", "b.", "o.", "std.", "mio.", "tsd.", "kap."} <= german
+    assert "usw." not in german  # it can end a sentence
+    assert all(word.endswith(".") and word == word.lower() for word in german)
+
+
 # ---- properties -------------------------------------------------------------------------
 
 

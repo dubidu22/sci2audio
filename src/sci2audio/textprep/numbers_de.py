@@ -48,6 +48,7 @@ from sci2audio.textprep.notation import (
 )
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.units import reads_unit_after, reads_x_after
+from sci2audio.textprep.wordlists import opens_sentence
 
 # every look back before a match reads at most this many characters (linear on long blocks)
 WINDOW = 64
@@ -683,6 +684,8 @@ def _ordinals(text: str) -> list[Candidate]:
         if following is None:  # unreachable: the pattern looks for a word after it
             continue
         noun = following["word"]
+        if opens_sentence(text, match.end(), "de"):
+            continue  # "Die 12. Dann mehr": a number ends the sentence (#227, D-530)
         month = noun in _MONTH_FORMS and (noun in MONTHS or following["dot"])
         ending = _ending(text, match.start(), day=month)
         if ending is None and not _after_preposition(text, match.start()):
