@@ -548,6 +548,8 @@ def _times_x(
         return False  # "0x1F"
     if rest[:1].isdecimal():
         return True
+    if len(rest) == 2 and rest[0] in "⁺⁻" and rest[1] in "⁰¹²³⁴⁵⁶⁷⁸⁹":
+        return False  # "3x⁻²" is "3 x⁻²", as "1x⁶" is
     return _boundary(text, after) and not _in_algebra(
         text, match.start("number"), after, times, said
     )

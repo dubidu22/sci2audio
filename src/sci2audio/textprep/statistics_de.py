@@ -92,7 +92,8 @@ _INTERVAL = re.compile(
 _JOIN = re.compile(r"\s*(?:,\s*)?(?:und|oder|bzw\.)(?=[\s\[(])|\s*[,;]")
 MAX_JOINED_INTERVALS = 8
 # and an x the units step may read "mal" ("[1; 2] x3")
-_JOINED_NUMBER = re.compile(r"\s*[\u2013\u2014\u2012:/-]\s*[\u2212-]?[.,]?\d|\s?[xX×]")
+_FULL_STOP = re.compile(r"\.(?:\s|\Z)")  # a full stop that ends a sentence
+_JOINED_NUMBER = re.compile(r"\s*[\u2013\u2014\u2012:/-]\s*[\u2212-]?[.,]?\d|\s?[xX×]|[.,]\d")
 
 # S-de-5
 _ODDS_RATIO = re.compile(r"(?<![\w′'])OR(?![\w′'])" + _THEN_OPERATOR)
@@ -212,6 +213,8 @@ def _interval(text: str, interval: re.Match[str]) -> Candidate:
     start, end = interval.start("open"), interval.end("close")
     words = f"{say_decimal(interval['a'])} bis {say_decimal(interval['b'])}"
     reading = padded(text, start, end, words)
+    if _FULL_STOP.match(text, end):
+        reading = reading.rstrip()  # "[1,1; 4,8]." reads "4 Komma 8.", no space before it
     return Candidate(
         start, end, reading, f'confidence interval "{text[start:end]}" read as "{words}"'
     )
