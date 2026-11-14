@@ -829,13 +829,13 @@ expected = ["Es gilt", "Eine Formel wird übersprungen."]
 id = "de-footnote-with-superscript-mark"
 audit = 0
 issue = 212
-goal = "The mark leaves the running text; the note is introduced as 'Fußnote 1.'."
+goal = "The mark leaves the running text; the note is introduced as 'Fußnote 1.' and read after the sentence with its mark (#213)."
 language = "de"
 blocks = [
     { kind = "paragraph", runs = ["Der Effekt war klein.", { sup = "1" }, " Er hielt in beiden Gruppen."] },
     { kind = "footnote", text = "1 Gemessen mit der Kurzform.", label = "1" },
 ]
-expected = ["Der Effekt war klein. Er hielt in beiden Gruppen.", "Fußnote 1. Gemessen mit der Kurzform."]
+expected = ["Der Effekt war klein.", "Fußnote 1. Gemessen mit der Kurzform.", "Er hielt in beiden Gruppen."]
 
 [[case]]
 id = "de-footnote-with-symbol-mark"
@@ -874,6 +874,18 @@ blocks = [
     { kind = "footnote", text = "9 Schweizer Schreibung.", label = "9" },
 ]
 expected = ["Sie prüft die »Top 1 Million«, es ist ‚klein‘ und «gross».", "Fußnote 7. Eine Liste.", "Fußnote 8. Ein Wort.", "Fußnote 9. Schweizer Schreibung."]
+
+[[case]]
+id = "de-footnote-mark-after-an-ordinal"
+audit = 0
+issue = 213
+goal = "German: an ordinal number with its full stop after the mark ends no sentence (D-530), so the note waits for the real end of the sentence (#213); the English rule would end it after '3.'."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Er wurde im Lauf", { sup = "4" }, " am Sonntag 3. Sieger. Danach ruhte er."] },
+    { kind = "footnote", text = "4 Laut Veranstalter.", label = "4" },
+]
+expected = ["Er wurde im Lauf am Sonntag 3. Sieger.", "Fußnote 4. Laut Veranstalter.", "Danach ruhte er."]
 
 # ---- #101 links and citations (TP-07, TP-03) ------------------------------------------------
 

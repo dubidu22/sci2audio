@@ -191,7 +191,7 @@ def test_the_mark_edit_removes_only_the_mark() -> None:
     assert [(e.span, e.reason) for e in edits] == [
         (
             Span(0, 11, 12),
-            "footnote mark 1 is not read; the note is read at the foot of the column (Q2)",
+            "footnote mark 1 is not read; the note is read after the sentence that holds it",
         )
     ]
 

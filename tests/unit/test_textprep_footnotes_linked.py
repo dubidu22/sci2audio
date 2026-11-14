@@ -249,7 +249,7 @@ def test_a_mark_set_over_two_runs_is_one_edit_and_only_its_letters_go() -> None:
     assert [(e.span, e.reason) for e in edits] == [
         (
             Span(0, 8, 10),
-            "footnote mark 1a is not read; the note is read where the file places it (Q2, D-414)",
+            "footnote mark 1a is not read; the note is read after the sentence that holds it",
         )
     ]
     assert read(document)[1] == "Footnote 1a. A note."
