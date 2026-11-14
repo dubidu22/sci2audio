@@ -351,10 +351,61 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         ("Es dauerte 2 Std. »Danach« kam er.", ["Es dauerte 2 Stunden.", "»Danach« kam er."]),
         ("Es waren 3. »Die Studie« lief.", ["Es waren 3.", "»Die Studie« lief."]),
         ("»Es war gut.« Danach kam er.", ["»Es war gut.«", "Danach kam er."]),
+        # #315 (D-577): the closing quotes of „…“, of the single low quote and of Swiss «…» end a
+        # sentence too
+        ("Er sagte „ja.“ Dann ging er.", ["Er sagte „ja.“", "Dann ging er."]),
+        ("Er rief „Halt!“ Dann stand er.", ["Er rief „Halt!“", "Dann stand er."]),
+        (
+            "Sie fragte \u201awann?\u2018 Dann ging sie.",
+            ["Sie fragte \u201awann?\u2018", "Dann ging sie."],
+        ),
+        ("Sie rief «Halt!» Dann stand sie.", ["Sie rief «Halt!»", "Dann stand sie."]),
+        ("Er sagte „ja.“) Dann ging er.", ["Er sagte „ja.“)", "Dann ging er."]),
+        # ... but not before a lower-case word, nor after an abbreviation inside the quote
+        ("Er sagte „gut.“ und ging.", ["Er sagte „gut.“ und ging."]),
+        ("Er sagte „z. B.“ dazu.", ["Er sagte „zum Beispiel“ dazu."]),
+        # PR #333 review R1-3: the closing quote is taken off before the abbreviation and
+        # initial checks, so "Dr." and "A." inside it end no sentence
+        ("Er nannte „Dr.“ Müller dann.", ["Er nannte „Dr.“ Müller dann."]),
+        ("Er sagte „A.“ Dann ging er.", ["Er sagte „A.“ Dann ging er."]),
+        # R1-4: the single guillemets quote inside »…« and «…»; they close a sentence, and
+        # open the next one
+        ("Er sagte \u203aja.\u2039 Dann ging er.", ["Er sagte \u203aja.\u2039", "Dann ging er."]),
+        ("Er sagte \u2039ja.\u203a Dann ging er.", ["Er sagte \u2039ja.\u203a", "Dann ging er."]),
+        (
+            "Er sagte »ja.« \u203aNein.\u2039 Dann ging er.",
+            ["Er sagte »ja.«", "\u203aNein.\u2039", "Dann ging er."],
+        ),
+        (
+            "Er sagte «ja.» \u2039Nein.\u203a Dann ging er.",
+            ["Er sagte «ja.»", "\u2039Nein.\u203a", "Dann ging er."],
+        ),
+        ("Er sagte \u203az. B.\u2039 dazu.", ["Er sagte \u203azum Beispiel\u2039 dazu."]),
+        # PR #333 review R2-1: an initial inside them ends no sentence, as in „A.“
+        ("Er sagte \u203aA.\u2039 Dann ging er.", ["Er sagte \u203aA.\u2039 Dann ging er."]),
+        ("Er sagte \u2039A.\u203a Dann ging er.", ["Er sagte \u2039A.\u203a Dann ging er."]),
+        ("Er nannte \u203aDr.\u2039 Müller dann.", ["Er nannte \u203aDr.\u2039 Müller dann."]),
     ],
 )
 def test_german_sentences_end_where_german_ends_them(text: str, sentences: list[str]) -> None:
     assert cut_read(text) == sentences
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # in English these quotes open a quote: no cut before them (#315, D5: German only)
+        "He said “yes.“ Then he left.",
+        "She asked \u2018when?\u2018 Then she left.",
+        "He wrote «stop.» Then he left.",
+        # ... nor the single guillemets (PR #333 review R1-4), after or before the full stop
+        "He wrote \u203astop.\u2039 Then he left.",
+        "He wrote \u2039stop.\u203a Then he left.",
+        "He wrote stop. \u203aThen\u2039 he left.",
+    ],
+)
+def test_english_ends_no_sentence_at_a_german_closing_quote(text: str) -> None:
+    assert cut_read(text, "en") == [text]
 
 
 def test_a_citation_after_a_read_english_abbreviation_keeps_the_sentence_end() -> None:

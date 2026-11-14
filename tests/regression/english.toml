@@ -1573,6 +1573,26 @@ expected = [
     "Text more.",
 ]
 
+# ---- v1.2 second-run batch: footnote marks (D-577) -----------------------------------------
+
+[[case]]
+id = "footnote-mark-after-an-abbreviation-or-a-number"
+audit = 0
+issue = 316
+goal = "A footnote mark glued to an abbreviation or to a number's full stop does not hide them from the abbreviation and number rules: they read the text as a second run does, without the mark ('e.g.¹', 'Section 2.¹') (D-577, D6)."
+blocks = [
+    { kind = "paragraph", runs = ["It holds, e.g.", { sup = "1" }, " in mice. See Section 2.", { sup = "2" }, " Then more."] },
+    { kind = "footnote", text = "1 A first note.", label = "1" },
+    { kind = "footnote", text = "2 A second note.", label = "2" },
+]
+expected = [
+    "It holds, for example in mice.",
+    "Footnote 1. A first note.",
+    "See Section 2.",
+    "Footnote 2. A second note.",
+    "Then more.",
+]
+
 # ---- v1.2 second-run batch: numbers (D-577) -----------------------------------------------
 
 [[case]]

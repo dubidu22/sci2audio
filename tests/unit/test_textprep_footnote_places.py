@@ -9,16 +9,18 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
-from sci2audio.testing import make_document
+from sci2audio.testing import make_document, rebuilt_from_script
 from sci2audio.testing.regression import render
 from sci2audio.textprep import (
     BUILT_IN_STEPS,
+    DEFAULT_SWITCHED_OFF,
     Category,
     Stage,
     Status,
     StepContext,
     TextStep,
     run_steps,
+    spoken_text,
 )
 from sci2audio.textprep.footnotes import FootnotePlaceStep, FootnoteStep
 from sci2audio.textprep.utterances import sentence_end
@@ -60,6 +62,22 @@ def test_german_ordinals_and_abbreviations_end_no_sentence() -> None:
     text = "Er wurde 3. Sieger im Lauf4 am Sonntag, z. B. hier. Danach ruhte er."
     start = text.index("4")
     assert text[: sentence_end(text, start + 1, [(start, start + 1)], "de")].endswith("hier.")
+
+
+@pytest.mark.parametrize(
+    ("text", "end"),
+    [
+        ("Er sagte „ja.“1 Dann ging er.", "„ja.“1"),
+        ("Er rief \u201aHalt!\u20181 Dann stand er.", "\u201aHalt!\u20181"),
+        ("Sie rief «Halt!»1 Dann stand sie.", "«Halt!»1"),
+        ("Er sagte „gut.“1 und ging. Dann mehr.", "und ging."),
+    ],
+)
+def test_a_german_closing_quote_ends_the_sentence_of_its_mark(text: str, end: str) -> None:
+    # #315 (D-577): the note is read after the quote, not at the paragraph's end
+    start = text.index("1")
+    got = sentence_end(text, start + 1, [(start, start + 1)], "de")
+    assert got == text.index(end) + len(end)
 
 
 def test_a_position_outside_the_text_is_refused() -> None:
@@ -220,3 +238,103 @@ def test_a_note_whose_place_another_rule_rewrote_stays_where_printed() -> None:
     assert move.won_by is not None
     assert move.won_by.step == "holding"
     assert render(run) == ["It grew a lot, then it fell.", "Footnote 1. A note."]
+
+
+# --- a mark glued to an abbreviation or a number (#316, D-577) -----------------------------
+
+
+def _body(document: Document, context: StepContext) -> str:
+    """The spoken text of block 0 after the whole chain."""
+    script = run_steps(document, context, strict=True).script()
+    return spoken_text(piece for piece in script if piece.span.block == 0)
+
+
+def _marked(language: str, text: str) -> Document:
+    """The text with "¹" set as a superscript mark "1", and the note it marks."""
+    at = text.index("\u00b9")
+    return make_document(
+        [
+            (BlockKind.PARAGRAPH, text.replace("\u00b9", "1")),
+            Block(BlockKind.FOOTNOTE, "1 A note.", label="1"),
+        ],
+        language,
+        tags={0: [(at, at + 1, "sup")]},
+    )
+
+
+@pytest.mark.parametrize(
+    ("language", "text", "said"),
+    [
+        ("de", "Das gilt bzw.¹ das auch.", "Das gilt beziehungsweise das auch."),
+        ("de", "Das ist z. B.¹ so.", "Das ist zum Beispiel so."),
+        ("de", "Siehe Abschnitt 2.¹ Dann weiter.", "Siehe Abschnitt 2. Dann weiter."),
+        ("de", "Es waren ca.¹ 5 kg.", "Es waren zirka 5 Kilogramm."),
+        ("de", "Es wog 5 kg.¹ Dann mehr.", "Es wog 5 Kilogramm. Dann mehr."),
+        ("en", "It holds, e.g.¹ in mice.", "It holds, for example in mice."),
+        ("en", "See Section 2.¹ Then more.", "See Section 2. Then more."),
+        ("en", "It weighs approx.¹ 5 kg.", "It weighs approximately 5 kilograms."),
+        ("en", "It weighs 5 kg.¹ Then more.", "It weighs 5 kilograms. Then more."),
+        # PR #333 review R1-2: a unit and a statistics label with the mark glued after them
+        ("en", "It weighs 5 kg¹ today.", "It weighs 5 kilograms today."),
+        ("de", "Es waren 5 kg¹ heute.", "Es waren 5 Kilogramm heute."),
+        ("de", "Es dauerte 2 Std.¹ Dann kam er.", "Es dauerte 2 Stunden. Dann kam er."),
+        (
+            "en",
+            "It was 95% CI¹ 1.2\u20133.4 here.",
+            "It was 95% confidence interval 1.2 to 3.4 here.",
+        ),
+    ],
+)
+def test_a_mark_hides_no_abbreviation_or_number_from_the_first_run(
+    language: str, text: str, said: str
+) -> None:
+    # the earlier steps read the text without the mark the footnotes step removes, so the
+    # first run reads what a second run, without the mark, reads (#316, D6)
+    context = StepContext(language)
+    marked = _marked(language, text)
+    plain = make_document([(BlockKind.PARAGRAPH, text.replace("\u00b9", ""))], language)
+    assert _body(marked, context) == said
+    assert _body(plain, context) == said
+    rebuilt = rebuilt_from_script(marked, run_steps(marked, context, strict=True).script())
+    assert _body(rebuilt, context) == said
+
+
+@pytest.mark.parametrize(
+    ("text", "said"),
+    [
+        ("Siehe Abschnitt 2.¹ Dann weiter.", "Siehe Abschnitt 2 Punkt 1 Dann weiter."),
+        ("Siehe Tab. 2.¹ Dann mehr.", "Siehe Tabelle 2 Punkt 1 Dann mehr."),
+        (
+            "Er sagte \u201eja\u201c.¹ Dann ging er.",
+            "Er sagte \u201eja\u201c0 Komma 1 Dann ging er.",
+        ),
+        ("Das ist z.¹ B. so.", "Das ist z.1 B. so."),
+    ],
+)
+def test_with_footnotes_switched_off_the_marks_stay_and_are_read_on_both_runs(
+    text: str, said: str
+) -> None:
+    # PR #333 review R1-1 (D-595): the marks stay in the text, so no step reads past them;
+    # both runs read what main read before #316
+    off = DEFAULT_SWITCHED_OFF | {Category.FOOTNOTES}
+    context = StepContext("de")
+    marked = _marked("de", text)
+    first = run_steps(marked, context, switched_off=off, strict=True).script()
+    rebuilt = rebuilt_from_script(marked, first)
+    second = run_steps(rebuilt, context, switched_off=off, strict=True).script()
+    assert spoken_text(piece for piece in first if piece.span.block == 0) == said
+    assert spoken_text(piece for piece in second if piece.span.block == 0) == said
+
+
+@pytest.mark.parametrize(
+    ("text", "said"),
+    [
+        ("Er sagte \u203aja.\u2039¹ Dann ging er.", "Er sagte \u203aja.\u2039 Dann ging er."),
+        ("Er sagte \u2039ja.\u203a¹ Dann ging er.", "Er sagte \u2039ja.\u203a Dann ging er."),
+        ("Er sagte \u00bbja.\u00ab¹ Dann ging er.", "Er sagte \u00bbja.\u00ab Dann ging er."),
+    ],
+)
+def test_a_mark_after_a_single_guillemet_is_a_mark(text: str, said: str) -> None:
+    # PR #333 review R1-4: German quotes inside »…« with U+203A … U+2039, Swiss inside «…» with
+    # U+2039 … U+203A
+    assert _body(_marked("de", text), StepContext("de")) == said

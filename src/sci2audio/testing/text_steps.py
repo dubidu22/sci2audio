@@ -8,6 +8,9 @@ no overlap among its own edits, whole-block edits for a block step, moves from a
 and nothing else (#213), the same edits for the
 same input, no network access, and idempotence (run again on the text it produced, nothing
 more changes). Built-in steps also may not propose `ask` edits in v1.0 (`allow_ask=False`).
+Each run is checked twice: with nothing switched off, and with every category in
+`StepContext.switched_off`, so a step that reads that field keeps the contract either way
+(D-595).
 
 Plain functions on purpose: tests wrap them, and this module never imports pytest.
 """
@@ -32,7 +35,14 @@ from sci2audio.core import (
     check_edits,
 )
 from sci2audio.testing.documents import make_document, rebuilt_from_script
-from sci2audio.textprep import Stage, StepContext, TextStep, spoken_text, step_problems
+from sci2audio.textprep import (
+    Category,
+    Stage,
+    StepContext,
+    TextStep,
+    spoken_text,
+    step_problems,
+)
 
 
 class ConformanceError(AssertionError):
@@ -205,13 +215,17 @@ def text_step_problems(
         languages = sorted({document.language for document in documents})
         return [f"no sample document is in one of its languages {step.languages} ({languages})"]
     for document in handled:
-        where = f"on {document.content.source.name}"
-        problems += [f"{where}: {problem}" for problem in _run_problems(step, document, allow_ask)]
+        for off, said in ((frozenset(), ""), (frozenset(Category), ", every category off")):
+            context = StepContext(document.language, switched_off=off)
+            where = f"on {document.content.source.name}{said}"
+            found = _run_problems(step, document, context, allow_ask)
+            problems += [f"{where}: {problem}" for problem in found]
     return problems
 
 
-def _run_problems(step: TextStep, document: Document, allow_ask: bool) -> list[str]:
-    context = StepContext(document.language)
+def _run_problems(
+    step: TextStep, document: Document, context: StepContext, allow_ask: bool
+) -> list[str]:
     first, problems = _find(step, document, context)
     if first is None:
         return problems
