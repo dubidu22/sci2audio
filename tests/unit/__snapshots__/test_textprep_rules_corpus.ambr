@@ -30,6 +30,40 @@
     ' Roy (1959).[12] The algorit',
   ])
 # ---
+# name: test_every_footnote_is_introduced_and_its_mark_left_out[arxiv2017-maass-privacyscore]
+  list([
+    'Zulässigkeit[*]',
+    'Max Maass[1], Anne Lauba',
+    'Anne Laubach[2], Dominik He',
+    'nik Herrmann[3]',
+    'gezeigt hat.[4]',
+    ' etwa Qualys[5] und Mozilla',
+    'und Mozilla.[6] Darüber hin',
+    ' überprüfen.[7] Privatheits',
+    'et Webbkoll.[8]',
+    'p 1 Million“[9] und die sch',
+    'tsproblemen.[10] Im akade- m',
+    ' testssl.sh.[11] Weitere Det',
+    ' darstellen.[12] PrivacyScor',
+    'me wie Piwik[13] auflisten. ',
+    'll be- jahen[14] oder dies v',
+    'ngig machen,[15] spricht geg',
+    'n zu werden.[16] Dem Webseit',
+    'gen erfolgt.[17] Ist der Zug',
+    'Webseite zu.[18] Eine solche',
+    'n anerkennt.[19] Auch, wenn ',
+    'ermöglichen.[20]',
+    'iert wurden,[21] das automat',
+    'en- schützer[22] der direkte',
+    'chtsprechung[23] dynamische ',
+    'wendbar ist.[24] Nach dieser',
+    'wiesen wird.[25] Um beurteil',
+    'hen handelt.[26] Die zugehör',
+    'hmen müssen.[27] Juristische',
+    'chtsprechung[28] regelmäßig ',
+    'ie Äußerung.[29] Eine Risiko',
+  ])
+# ---
 # name: test_every_footnote_is_introduced_and_its_mark_left_out[arxiv2024-arsiwalla-qualia-meaning]
   list([
     'rsiwalla1,2,[∗]',

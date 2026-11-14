@@ -352,6 +352,17 @@ def _language_note(report: Mapping[str, Any] | None, s: Strings) -> str | None:
     return note() if note else None
 
 
+def _language_options(chosen: str, s: Strings) -> list[dict[str, Any]]:
+    """The choices for the text's language (#212, D-521, D-522): automatic, then each
+    language sci2audio reads; a tag the report was made with that is none of these (from the
+    config file or the command line) is offered too, chosen, so nothing changes unseen."""
+    options = [{"value": "", "label": s("check.language_auto")}]
+    options += [{"value": code, "label": s(f"pack.{code}")} for code in PACKS]
+    if chosen not in {option["value"] for option in options}:
+        options.append({"value": chosen, "label": s("check.language_other", language=chosen)})
+    return [{**option, "selected": option["value"] == chosen} for option in options]
+
+
 @router.get("/documents/{document_id}", response_class=HTMLResponse)
 def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     s = strings_of(request)
@@ -394,9 +405,13 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         }
         for path in analysis_files
     ]
+    # the language the report was made with ("" = automatic); a job made from this page
+    # uses it, and it is not remembered for other documents (#212, D-521)
+    language = str(report_settings.get("language", saved.language) or "")
     shown = {
         "switched_off": sorted(switched_off),
         "chapters": sorted(c["index"] for c in chapters if c.get("selected")),
+        "language": language,
     }
     return _page(
         request,
@@ -407,6 +422,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         report=report,
         text_language=_text_language(report),
         language_note=_language_note(report, s),
+        language_options=_language_options(language, s),
         analysing=analysing,
         analysis_job=current.id if analysing and current is not None else None,
         failed=failed,

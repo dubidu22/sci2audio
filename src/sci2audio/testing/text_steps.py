@@ -129,6 +129,13 @@ def _sample_documents() -> tuple[Document, ...]:
             "Die Bun-\ndesregierung prüft während der Corona-\nPandemie die Kinder-\n"
             "und Jugendhilfe sowie die PDF-\nDatei.",
         ),
+        # notices and footnotes in German (#212): a mark, its note, the placeholders
+        (BlockKind.PARAGRAPH, "Die Werte stehen in der Tabelle.1"),
+        Block(BlockKind.FOOTNOTE, "1 Siehe den Anhang.", label="1"),
+        (BlockKind.TABLE, "Gruppe n Mittel\nA 12 3,4"),
+        Block(BlockKind.CAPTION, "Tab. 1: Ergebnisse je Gruppe.", describes=6, label="Tab. 1"),
+        Block(BlockKind.FORMULA, "E = mc2 (1)", label="1"),
+        (BlockKind.FIGURE, ""),
         (BlockKind.HEADING, "Literatur"),
         (BlockKind.PARAGRAPH, "Müller, A. (2019). Eine Studie. Zeitschrift 1, 1\u20139."),
     ]
@@ -136,6 +143,8 @@ def _sample_documents() -> tuple[Document, ...]:
     mark = len(paper[1][1]) - 1  # type: ignore[index]
     tags = {1: [(mark, mark + 1, "sup")]}
     sections = [Section("References", 1, 9, len(paper))]
+    german_mark = len(german[4][1]) - 1  # type: ignore[index]
+    german_tags = {4: [(german_mark, german_mark + 1, "sup")]}
     return (
         make_document([], name="empty.txt"),
         make_document(furniture, name="furniture.txt"),
@@ -145,7 +154,8 @@ def _sample_documents() -> tuple[Document, ...]:
             german,
             "de",
             name="german.txt",
-            sections=[Section("Einleitung", 1, 0, 4), Section("Literatur", 1, 4, len(german))],
+            tags=german_tags,
+            sections=[Section("Einleitung", 1, 0, 10), Section("Literatur", 1, 10, len(german))],
         ),
     )
 

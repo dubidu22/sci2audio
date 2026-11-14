@@ -639,3 +639,130 @@ goal = "The register letter of a court's file number is no unit: 'Az. 13 W 17/12
 language = "de"
 blocks = [{ kind = "paragraph", text = "OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 W Leistung." }]
 expected = ["OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 Watt Leistung."]
+
+# ---- #212 notices and footnotes in German (D-517 to D-524) ---------------------------------------
+
+[[case]]
+id = "de-notice-table-named-by-its-caption"
+audit = 0
+issue = 212
+goal = "A table is replaced by a German notice named by its caption's label, the short 'Tab.' read in full; the caption reads in its place."
+language = "de"
+blocks = [
+    { kind = "caption", text = "Tab. 2: Mittelwerte je Gruppe.", label = "Tab. 2", describes = 1 },
+    { kind = "table", text = "Gruppe n Mittel\nA 12 3,4\nB 15 2,9" },
+    { kind = "paragraph", text = "Gruppe A lag vorn." },
+]
+expected = ["Tabelle 2: Mittelwerte je Gruppe.", "Tabelle 2 wird übersprungen.", "Gruppe A lag vorn."]
+
+[[case]]
+id = "de-notice-figure-short-label"
+audit = 0
+issue = 212
+goal = "A figure whose caption prints 'Abb. 3' is named 'Abbildung 3' in its notice (D-518)."
+language = "de"
+blocks = [
+    { kind = "figure", text = "0 10 20\nZeit (s)" },
+    { kind = "caption", text = "Abb. 3: Verlauf über die Zeit.", label = "Abb. 3", describes = 0 },
+]
+expected = ["Abbildung 3 wird übersprungen.", "Abbildung 3: Verlauf über die Zeit."]
+
+[[case]]
+id = "de-notice-two-captions-und"
+audit = 0
+issue = 212
+goal = "A placeholder named by two captions names both, joined with 'und', and the verb is plural."
+language = "de"
+blocks = [
+    { kind = "caption", text = "Algorithmus 1 Der erste Durchlauf.", label = "Algorithmus 1", describes = 1 },
+    { kind = "figure", text = "1: für jedes Element\n2: zähle es" },
+    { kind = "caption", text = "Abbildung 1: Beide Durchläufe.", label = "Abbildung 1", describes = 1 },
+]
+expected = ["Algorithmus 1 Der erste Durchlauf.", "Algorithmus 1 und Abbildung 1 werden übersprungen.", "Abbildung 1: Beide Durchläufe."]
+
+[[case]]
+id = "de-notice-figure-without-caption"
+audit = 0
+issue = 212
+goal = "A figure without a caption gets the German unnamed notice."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Aufbau ist unten gezeichnet." },
+    { kind = "figure", text = "" },
+]
+expected = ["Der Aufbau ist unten gezeichnet.", "Eine Abbildung wird übersprungen."]
+
+[[case]]
+id = "de-notice-formula-with-number"
+audit = 0
+issue = 212
+goal = "A display formula is replaced by 'Formel 4 wird übersprungen.', named by its printed number (the issue's example)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Energie ist" },
+    { kind = "formula", text = "E = mc2 (4)", label = "4" },
+    { kind = "paragraph", text = "mit c als Lichtgeschwindigkeit." },
+]
+expected = ["Die Energie ist", "Formel 4 wird übersprungen.", "mit c als Lichtgeschwindigkeit."]
+
+[[case]]
+id = "de-notice-formula-without-number"
+audit = 0
+issue = 212
+goal = "A display formula without a number gets the German unnamed notice."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt" },
+    { kind = "formula", text = "a2 + b2 = c2" },
+]
+expected = ["Es gilt", "Eine Formel wird übersprungen."]
+
+[[case]]
+id = "de-footnote-with-superscript-mark"
+audit = 0
+issue = 212
+goal = "The mark leaves the running text; the note is introduced as 'Fußnote 1.'."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Der Effekt war klein.", { sup = "1" }, " Er hielt in beiden Gruppen."] },
+    { kind = "footnote", text = "1 Gemessen mit der Kurzform.", label = "1" },
+]
+expected = ["Der Effekt war klein. Er hielt in beiden Gruppen.", "Fußnote 1. Gemessen mit der Kurzform."]
+
+[[case]]
+id = "de-footnote-with-symbol-mark"
+audit = 0
+issue = 212
+goal = "A note marked by a symbol is introduced as 'Fußnote.' without the symbol."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Erika Muster", { sup = "∗" }] },
+    { kind = "footnote", text = "∗Die Arbeit entstand am Institut.", label = "∗" },
+]
+expected = ["Erika Muster", "Fußnote. Die Arbeit entstand am Institut."]
+
+[[case]]
+id = "de-footnote-mark-after-closing-quote"
+audit = 0
+issue = 212
+goal = "A mark after the German closing quote “ is left out, as after any closing punctuation (D-519)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Sie prüft die „Top 1 Million“", { sup = "9" }, " jeden Monat."] },
+    { kind = "footnote", text = "9 Eine öffentliche Liste.", label = "9" },
+]
+expected = ["Sie prüft die „Top 1 Million“ jeden Monat.", "Fußnote 9. Eine öffentliche Liste."]
+
+[[case]]
+id = "de-footnote-mark-after-guillemets-and-single-quote"
+audit = 0
+issue = 212
+goal = "A mark after the other German closing quotes is left out too: « (»…«), ‘ (‚…‘) and the Swiss » («…») (review of PR #248, S2)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Sie prüft die »Top 1 Million«", { sup = "7" }, ", es ist ‚klein‘", { sup = "8" }, " und «gross»", { sup = "9" }, "."] },
+    { kind = "footnote", text = "7 Eine Liste.", label = "7" },
+    { kind = "footnote", text = "8 Ein Wort.", label = "8" },
+    { kind = "footnote", text = "9 Schweizer Schreibung.", label = "9" },
+]
+expected = ["Sie prüft die »Top 1 Million«, es ist ‚klein‘ und «gross».", "Fußnote 7. Eine Liste.", "Fußnote 8. Ein Wort.", "Fußnote 9. Schweizer Schreibung."]

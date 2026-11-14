@@ -24,9 +24,6 @@ GOLDEN = ["acl2023-hardt-ellipsis", "arxiv2017-maass-privacyscore", "joss2021-wa
 # Steps that do not speak German yet, with the Issue that teaches them (#235, D-509): on the
 # German paper they are reported as not run. An Issue that lands takes its steps out.
 GERMAN_LATER_STEPS = {
-    "formula-notices": 212,
-    "table-figure-notices": 212,
-    "footnotes": 212,
     "links": 101,
     "citations": 101,
 }

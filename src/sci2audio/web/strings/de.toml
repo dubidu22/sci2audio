@@ -119,6 +119,10 @@ choose_all = "Alle wählen"
 choose_none = "Keine wählen"
 update = "Analyse aktualisieren"
 changed = "Sie haben die Auswahl geändert. Aktualisieren Sie die Analyse, um zu sehen, was sich dadurch ändert."
+language = "Sprache des Textes"
+language_hint = "Die Textregeln, die gesprochenen Hinweise („Tabelle 2 wird übersprungen.“) und die Ankündigungen der Fußnoten folgen dieser Sprache, ebenso die Stimme. Sie gilt nur für dieses Dokument."
+language_auto = "Automatisch: wie in der Datei angegeben, sonst aus dem Text erkannt"
+language_other = "{language} (Ihre Einstellung)"
 
 [category]
 page-furniture = "Seitenrahmen: Kopf- und Fußzeilen und Seitenzahlen weggelassen"

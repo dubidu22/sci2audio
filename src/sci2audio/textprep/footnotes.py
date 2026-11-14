@@ -1,8 +1,9 @@
 """Footnotes: marks left out of the running text, notes read where layout placed them (TP-05).
 
 Q2: a note is read where layout placed it (the foot of its column, in reading order),
-introduced by its mark ("Footnote 1."), and its mark is left out of the running text. A
-note cannot move next to its mark: an edit never crosses blocks (D-61 (1)).
+introduced by its mark ("Footnote 1.", in a German job "Fußnote 1.", #212), and its mark is
+left out of the running text. A note cannot move next to its mark: an edit never crosses
+blocks (D-61 (1)).
 
 Two categories (D-142): "Footnotes" (on by default) holds `FootnoteStep`, which removes the
 marks and introduces the notes; "Footnote texts" (off by default) holds `FootnoteTextStep`,
@@ -11,11 +12,13 @@ removals run first and claim the notes' blocks, so the introductions are then se
 (D-128); the marks stay out either way.
 
 A mark is found from what extraction recorded (D-143): a run of its own that is tagged as a
-superscript (EPUB, Markdown) or set smaller than the block's main size (PDF), whose text is
-the label of a note on the same page, after a word of at least two letters (digits may
-follow: "Ahmad3" before an asterisk mark) or closing punctuation, and not followed by a
-maths operator. So "N3" and "|N|3" in a formula set in line stay. Each label is taken once
-per page, at its first match in reading order. A note whose mark is not found is still read.
+superscript (EPUB, Markdown), set smaller than the block's main size (PDF) or set in that
+size but raised over the run beside it (a superior figure, #212), whose text is the label of
+a note on the same page (a printed asterisk matches a note marked by the asterisk operator),
+after a word of at least two letters (digits may follow: "Ahmad3" before an asterisk mark) or
+closing punctuation (the German closing quote too), and not followed by a maths operator. So
+"N3" and "|N|3" in a formula set in line stay. Each label is taken once per page, at its
+first match in reading order. A note whose mark is not found is still read.
 
 EPUB and Markdown tie a mark to its note by tags instead (D-428): a run tagged
 `role:doc-noteref` or `epub:noteref` whose `link:` points at an item of a FOOTNOTE block is a
@@ -52,6 +55,9 @@ from sci2audio.textprep.wording import Wording, wording_for
 
 # a run this much smaller than the block's main size is set small (layout's size_change)
 SMALLER = 0.08
+# a run raised this many em above the text next to it on its line is a superior figure set in
+# the text's own size (layout's footnote_mark_rise, D-507; #212)
+RISE = 0.1
 # the kinds of block whose text can hold a footnote mark
 MARKED_KINDS = frozenset(
     {BlockKind.PARAGRAPH, BlockKind.HEADING, BlockKind.CAPTION, BlockKind.LIST_ITEM}
@@ -62,11 +68,12 @@ BACKLINK_TAGS = frozenset({"role:doc-backlink", "epub:backlink"})
 # the kinds of block whose text can hold a linked mark (D-420)
 LINKED_KINDS = MARKED_KINDS | {BlockKind.FOOTNOTE}
 _LINK = "link:"
-_CLOSING = frozenset(".,;:!?)]}\u2019\u201d\"'")  # also the closing quotes
+# also the closing quotes: U+2019, U+201D (English), U+201C, U+2018, U+00AB (German) and U+00BB
+# (Swiss guillemets close with it; #212, #248 S2)
+_CLOSING = frozenset(".,;:!?)]}\u2019\u201d\u201c\u2018\u00ab\u00bb\"'")
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
-_INTRODUCED = re.compile(r"Footnote\b")
 _BRACKETED = re.compile(r"\[([^\[\]]+)\]|\(([^()]+)\)")  # "[1]" or "(1)": one pair
 
 
@@ -95,7 +102,7 @@ class FootnoteStep(TextStep):
     """Remove footnote marks from the running text and introduce each note."""
 
     id = "footnotes"
-    languages = ("en",)
+    languages = ("en", "de")
     category = Category.FOOTNOTES
     stage = Stage.INLINE
 
@@ -119,7 +126,7 @@ class FootnoteStep(TextStep):
                         mark = document.text_of(edit.span)
                         linked.setdefault(note, mark)
                         if label := document.blocks[note].label:
-                            found.add((page, label))
+                            found.add((page, _same(label)))
         edits = []
         labels: set[tuple[int, str]] = set()  # (page, label) of every note with a mark
         for index, block in enumerate(document.blocks):
@@ -131,7 +138,7 @@ class FootnoteStep(TextStep):
                 if edit := self._introduction(index, block, wording, linked.get(index), removed):
                     edits.append(edit)
                 if block.label and block.parts:
-                    labels.add((items[block.parts[0].item][0].number, block.label))
+                    labels.add((items[block.parts[0].item][0].number, _same(block.label)))
         for index in sorted(marks):
             edits += marks[index]
         for index, block in enumerate(document.blocks):
@@ -235,7 +242,7 @@ class FootnoteStep(TextStep):
         and a printed mark that overlaps one is not read as the note's mark."""
         text = block.text
         lead = _lead(text, removed)
-        if lead == len(text) or _INTRODUCED.match(_without(text, removed, lead)):
+        if lead == len(text) or _introduced(wording).match(_without(text, removed, lead)):
             return None
         label = block.label
         end = _printed_end(text, label, lead, removed)
@@ -288,16 +295,22 @@ class FootnoteStep(TextStep):
         """Remove-edits for the footnote marks in one block of running text."""
         runs = list(_runs(items, block))
         main = _main_size(run for _, _, run in runs)
+        # the runs beside each run on its own line: a rise is measured on the line (#248 M1)
+        beside = [
+            (line.runs[k - 1] if k else None, line.runs[k + 1] if k + 1 < len(line.runs) else None)
+            for _, _, line in _lines(items, block)
+            for k in range(len(line.runs))
+        ]
         edits = []
-        for page, offset, run in runs:
+        for (page, offset, run), neighbours in zip(runs, beside, strict=True):
             mark = run.text.strip()
-            key = (page, mark)
+            key = (page, _same(mark))
             if not mark or key not in labels or key in found or NOTEREF_TAGS & set(run.tags):
                 continue  # a noteref is a linked mark or read as printed (D-423, D-428)
             start = offset + run.text.index(mark)
             end = start + len(mark)
             if (
-                _set_small(run, main)
+                (_set_small(run, main) or _raised(run, neighbours, main))
                 and _after_word(block.text[:start])
                 and _not_maths(block.text[end:])
             ):
@@ -369,10 +382,10 @@ def _name(block: Block) -> str:
     return f"footnote {block.label}" if block.label else "a footnote"
 
 
-def _runs(
+def _lines(
     items: Mapping[str, tuple[Page, Item]], block: Block
-) -> Iterator[tuple[int, int, TextRun]]:
-    """Each run of the block's lines with its page and where its text starts in the block.
+) -> Iterator[tuple[int, int, TextLine]]:
+    """Each text line of the block with its page and where its text starts in the block.
 
     A line whose text is not where its part says (it never should be) is skipped, so a span
     never points at other text.
@@ -383,9 +396,16 @@ def _runs(
             continue
         if block.text[part.start : part.start + len(item.text)] != item.text:
             continue
-        offset = part.start
-        for run in item.runs:
-            yield page.number, offset, run
+        yield page.number, part.start, item
+
+
+def _runs(
+    items: Mapping[str, tuple[Page, Item]], block: Block
+) -> Iterator[tuple[int, int, TextRun]]:
+    """Each run of the block's lines with its page and where its text starts in the block."""
+    for page, offset, line in _lines(items, block):
+        for run in line.runs:
+            yield page, offset, run
             offset += len(run.text)
 
 
@@ -400,6 +420,34 @@ def _main_size(runs: Iterable[TextRun]) -> float:
 def _set_small(run: TextRun, main: float) -> bool:
     """A superscript: tagged so by the source, or set smaller than the block's text."""
     return "sup" in run.tags or (0 < run.size < (1 - SMALLER) * main)
+
+
+def _raised(run: TextRun, neighbours: Iterable[TextRun | None], main: float) -> bool:
+    """A superior figure set in the text's own size: its box ends RISE em or more above the
+    box of the run before or after it in the same text line (#212, D-519). The rise is
+    measured only against a neighbour in the text's size, not one set small: a subscript
+    would make the normal run beside it look raised (#248 S1)."""
+    if run.box is None or main <= 0:
+        return False
+    return any(
+        other is not None
+        and other.box is not None
+        and not _set_small(other, main)
+        and other.box.y0 < run.box.y1  # the two still share a band of the line
+        and run.box.y1 <= other.box.y1 - RISE * main
+        for other in neighbours
+    )
+
+
+def _introduced(wording: Wording) -> re.Pattern[str]:
+    """A note that already starts with the introduction's word ("Footnote", "Fußnote")."""
+    return re.compile(re.escape(wording.footnote_unnamed.removesuffix(".")) + r"\b")
+
+
+def _same(mark: str) -> str:
+    """A mark as it is compared: an asterisk printed "*" in the text marks the note that
+    layout labels with the asterisk operator (U+2217)."""
+    return mark.replace("*", "\u2217")
 
 
 def _after_word(before: str) -> bool:

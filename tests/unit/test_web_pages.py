@@ -115,7 +115,7 @@ def test_the_document_page_shows_the_report_with_switches_and_chapters(
     assert "Choose all" in page
     assert "Choose none" in page
     shown = json.loads(html.unescape(re.search(r'data-shown="([^"]*)"', page)[1]))
-    assert shown == {"switched_off": ["footnote-texts"], "chapters": [0, 1]}
+    assert shown == {"switched_off": ["footnote-texts"], "chapters": [0, 1], "language": ""}
     # the latest analysis' files, saved rather than shown (D-255)
     assert f"/api/v1/documents/{doc['id']}/files/a%20%26amp%3B%20b%20%27x%27.report.md" in page
     assert "?download=true" in page
@@ -136,7 +136,7 @@ def test_the_controls_start_from_the_report_on_screen(server: tuple[FastAPI, Any
     assert re.search(r'name="chapter" value="0" aria', page)
     assert 'name="chapter" value="1" checked' in page
     shown = json.loads(html.unescape(re.search(r'data-shown="([^"]*)"', page)[1]))
-    assert shown == {"switched_off": ["citations"], "chapters": [1]}
+    assert shown == {"switched_off": ["citations"], "chapters": [1], "language": ""}
 
 
 def test_make_is_blocked_while_the_report_has_no_chapter_chosen(
@@ -368,3 +368,64 @@ def test_the_check_table_shows_a_line_break_in_an_edit_as_the_report_does() -> N
     assert (kept.printed, joined.printed, running.printed) == ("↵", "-↵", "(Smith, 2019)")
     assert kept.printed_is_text
     assert (position.printed, position.printed_is_text) == (s("check.position"), False)
+
+
+GERMAN_NOTE = (
+    Path(__file__).resolve().parents[1] / "corpus" / "markdown" / "sci2audio-beispiel-notiz.md"
+)
+
+
+def analysed_note(client: TestClient, doc: dict[str, Any], settings: dict[str, Any]) -> str:
+    body = {"kind": "script", "document": doc["id"], "settings": settings}
+    job = client.post("/api/v1/jobs", json=body).json()
+    assert wait(client, job["id"])["state"] == "done"
+    return client.get(f"/documents/{doc['id']}").text
+
+
+def shown_of(page: str) -> dict[str, Any]:
+    found = re.search(r'data-shown="([^"]*)"', page)
+    assert found
+    return json.loads(html.unescape(found[1]))
+
+
+def test_the_language_of_the_text_is_chosen_on_the_check_form(
+    server: tuple[FastAPI, Any],
+) -> None:
+    """#212 (D-521, D-522): automatic by default; English, German or the report's own tag;
+    the notices follow it; the page keeps the choice for this document's jobs."""
+    client = client_of(server)
+    doc = upload(client, GERMAN_NOTE.read_bytes(), "notiz.md")
+    page = analysed_note(client, doc, {})
+    assert re.search(r'<select id="language" name="language" aria-describedby="text-language '
+                     r'language-hint">', page)  # fmt: skip
+    assert (
+        '<option value="" selected>Automatic: as the file states, else guessed from the text'
+        in (page)
+    )
+    assert '<option value="en">English</option><option value="de">German</option>' in page
+    assert "Language of the text: German (as the file states)." in page
+    assert "Eine Tabelle wird übersprungen." in page
+    assert "Fußnote 1." in page
+    assert shown_of(page)["language"] == ""
+    page = analysed_note(client, doc, {"language": "en"})
+    assert '<option value="en" selected>English</option>' in page
+    assert "A table is skipped." in page
+    assert "Eine Tabelle wird übersprungen." not in page
+    assert shown_of(page)["language"] == "en"
+    page = analysed_note(client, doc, {"language": "en-GB"})
+    assert '<option value="en-GB" selected>en-GB (your setting)</option>' in page
+    assert shown_of(page)["language"] == "en-GB"
+    client.cookies.set("sci2audio-language", "de")
+    page = client.get(f"/documents/{doc['id']}").text
+    assert '<label for="language">Sprache des Textes</label>' in page
+    assert '<option value="de">Deutsch</option>' in page
+    assert "en-GB (Ihre Einstellung)" in page
+
+
+def test_the_language_choice_is_not_saved_with_the_settings(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    doc = upload(client, GERMAN_NOTE.read_bytes(), "notiz.md")
+    analysed_note(client, doc, {"language": "en"})
+    assert client.get("/api/v1/settings").json()["settings"]["language"] == ""
+    other = analysed(client)  # the next document starts automatic
+    assert shown_of(client.get(f"/documents/{other['id']}").text)["language"] == ""

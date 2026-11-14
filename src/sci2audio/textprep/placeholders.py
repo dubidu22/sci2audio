@@ -22,7 +22,7 @@ class _NoticeStep(TextStep):
     """Replace each placeholder block of the given kinds by its notice."""
 
     kinds: frozenset[BlockKind]
-    languages = ("en",)
+    languages = ("en", "de")
     stage = Stage.BLOCK
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
