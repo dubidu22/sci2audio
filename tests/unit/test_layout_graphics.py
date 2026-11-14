@@ -112,6 +112,19 @@ def test_a_table_between_rules_is_read_row_by_row() -> None:
     assert [b.kind for b in doc.blocks] == [BlockKind.PARAGRAPH, BlockKind.TABLE, BlockKind.CAPTION]
 
 
+def test_a_german_table_caption_names_a_table() -> None:
+    """#235, D-506: "Tabelle" and "Tab." name a TABLE, "Abb." a FIGURE."""
+    for label in ("Tabelle 1", "Tab. 1", "TABELLE 1"):
+        rules = [rule(LEFT, 297, RIGHT), rule(LEFT, 312, RIGHT), rule(LEFT, 340, RIGHT)]
+        caption = line(f"{label}: Ergebnisse der Modelle.", LEFT, 350, 300)
+        doc = build([*running(), *table(300, ROWS), caption, *rules])
+        assert (named(doc, label).kind, named(doc, label).text) == (BlockKind.TABLE, READ)
+    rules = [rule(LEFT, 297, RIGHT), rule(LEFT, 312, RIGHT), rule(LEFT, 340, RIGHT)]
+    caption = line("Abb. 1: Ergebnisse der Modelle.", LEFT, 350, 300)
+    doc = build([*running(), *table(300, ROWS), caption, *rules])
+    assert named(doc, "Abb. 1").kind is BlockKind.FIGURE
+
+
 def test_a_caption_above_its_table_names_the_table_below() -> None:
     caption = line("Table 2. Scores of the models.", LEFT, 290, 300)
     rules = [rule(LEFT, 305, RIGHT), rule(LEFT, 348, RIGHT)]

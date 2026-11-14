@@ -5029,6 +5029,597 @@
   
   '''
 # ---
+# name: test_golden_file[arxiv2017-maass-privacyscore]
+  '''
+  arxiv2017-maass-privacyscore.pdf  sha256 a501d4990ea8800b
+  metadata: title='PrivacyScore' authors=['Max Maass Anne Laubach Dominik Herrmann'] date='2017-07-03' language=''
+  outline: level 1  page 1  '1 Einleitung'
+  outline: level 1  page 2  '2 Verwandte Arbeiten'
+  outline: level 1  page 3  '3 PrivacyScore im Überblick'
+  outline: level 1  page 5  '4 Sicherheits- und Privatheitstests'
+  outline: level 1  page 6  '5 Ethische Fragestellungen'
+  outline: level 1  page 6  '6 Rechtliche Fragestellungen'
+  outline: level 1  page 12  '7 Schlussbemerkungen'
+  == page 1  612 x 792  lines 34  pictures 0  drawings 2
+  p1-l1  [127 164 473 177]  {TeXGyreTermes-Bold 13.9 b}PrivacyScore: Analyse von Webseiten auf Sicherheits- und
+  p1-l2  [127 179 481 194]  {TeXGyreTermes-Bold 13.9 b}Privatheitsprobleme – Konzept und rechtliche Zulässigkeit{TeXGyreTermes-Bold 10.2 b}*
+  p1-l3  [127 220 474 229]  {TeXGyreTermes-Bold 10 b}Dieses Papier ist eine erweiterte Fassung des Beitrags, der beim Workshop „Recht
+  p1-l4  [127 232 381 241]  {TeXGyreTermes-Bold 10 b}und Technik“ auf der INFORMATIK 2017 vorgestellt wird.
+  p1-l5  [127 269 331 280]  {TeXGyreTermes-Regular 10}Max Maass{TeXGyreTermes-Regular 7.3}1{TeXGyreTermes-Regular 10}, Anne Laubach{TeXGyreTermes-Regular 7.3}2{TeXGyreTermes-Regular 10}, Dominik Herrmann{TeXGyreTermes-Regular 7.3}3
+  p1-l6  [127 317 485 325]  {TeXGyreTermes-Bold 9 b}Abstract:{TeXGyreTermes-Regular 9} PrivacyScore ist ein öffentliches Web-Portal, mit dem automatisiert überprüft werden
+  p1-l7  [127 327 486 335]  {TeXGyreTermes-Regular 9}kann, ob Webseiten gängige Mechanismen zum Schutz von Sicherheit und Privatheit korrekt imple-
+  p1-l8  [127 337 485 345]  {TeXGyreTermes-Regular 9}mentieren. Im Gegensatz zu existierenden Diensten ermöglicht PrivacyScore, mehrere Webseiten in
+  p1-l9  [127 347 485 355]  {TeXGyreTermes-Italic 9 i}Benchmarks{TeXGyreTermes-Regular 9} miteinander zu vergleichen, die Ergebnisse differenziert und im Zeitverlauf zu analysieren
+  p1-l10  [127 357 485 365]  {TeXGyreTermes-Regular 9}sowie nutzerdefinierte Kriterien für die Auswertung zu definieren. PrivacyScore verbessert dadurch
+  p1-l11  [127 367 486 375]  {TeXGyreTermes-Regular 9}nicht nur die Transparenz für Endanwender, sondern erleichtert auch die Arbeit der Datenschutz-
+  p1-l12  [127 377 485 385]  {TeXGyreTermes-Regular 9}Aufsichtsbehörden. In diesem Beitrag stellen wir das Konzept des Dienstes vor und wir erörtern, unter
+  p1-l13  [127 387 485 395]  {TeXGyreTermes-Regular 9}welchen Umständen das automatische Scannen und öffentliche „Anprangern“ von Schwächen aus
+  p1-l14  [127 397 230 405]  {TeXGyreTermes-Regular 9}rechtlicher Sicht zulässig ist.
+  p1-l15  [127 417 387 425]  {TeXGyreTermes-Bold 9 b}Keywords:{TeXGyreTermes-Regular 9} Privatheit; Tracking; Datenschutz; DSGVO; ePrivacy-VO-E
+  p1-l16  [127 453 199 463]  {TeXGyreTermes-Bold 12 b}1 Einleitung
+  p1-l17  [127 479 485 488]  {TeXGyreTermes-Regular 10}Der sichere Betrieb einer Webseite ist eine Aufgabe, die viel technischen Sachverstand
+  p1-l18  [127 491 485 500]  {TeXGyreTermes-Regular 10}benötigt. Fahl{TeXGyreTermes-Italic 10 i} et al.{TeXGyreTermes-Regular 10} haben gezeigt [Fa14], dass unsicher konfigurierte Webseiten oft eine
+  p1-l19  [127 503 485 512]  {TeXGyreTermes-Regular 10}Folge dieser Komplexität sind. Unsichere Webseiten gefährden nicht nur die Infrastruktur
+  p1-l20  [127 515 485 524]  {TeXGyreTermes-Regular 10}der Seitenbetreiber, sondern auch die Sicherheit und Privatheit der Besucherinnen. Die
+  p1-l21  [127 527 486 536]  {TeXGyreTermes-Regular 10}Privatheit der Besucherinnen kann allerdings auch durch Entscheidungen des Seitenbe-
+  p1-l22  [127 539 485 548]  {TeXGyreTermes-Regular 10}treibers beeinträchtigt werden, etwa durch die Verwendung von Analysediensten oder
+  p1-l23  [127 551 485 560]  {TeXGyreTermes-Regular 10}Werbenetzwerken. Seitenbetreiber nutzen hier oft kommerzielle Angebote (etwa{TeXGyreTermes-Italic 10 i} Google
+  p1-l24  [127 569 482 577]  {TeXGyreTermes-Regular 6.2}1{TeXGyreTermes-Regular 8} Technische Universität Darmstadt, Secure Mobile Networking Lab, Mornewegstr. 32, 64293 Darmstadt,
+  p1-l25  [132 580 285 587]  {TeXGyreTermes-Regular 8}Deutschland, mmaass@seemoo.tu-darmstadt.de
+  p1-l26  [127 588 481 597]  {TeXGyreTermes-Regular 6.2}2{TeXGyreTermes-Regular 8} Universität Kassel, Projektgruppe verfassungsverträgliche Technikgestaltung (provet), Pfannkuchstr. 1, 34109
+  p1-l27  [132 599 280 606]  {TeXGyreTermes-Regular 8}Kassel, Deutschland, a.laubach@uni-kassel.de
+  p1-l28  [127 607 482 616]  {TeXGyreTermes-Regular 6.2}3{TeXGyreTermes-Regular 8} Universität Hamburg, Sicherheit verteilter Systeme, Vogt-Kölln-Str. 30, 22527 Hamburg, Deutschland,
+  p1-l29  [132 618 256 626]  {TeXGyreTermes-Regular 8}herrmann@informatik.uni-hamburg.de
+  p1-l30  [127 626 485 635]  {TeXGyreTermes-Regular 6.2}∗{TeXGyreTermes-Regular 8} Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy
+  p1-l31  [133 637 486 645]  {TeXGyreTermes-Regular 8}Forum in Wien vorgestellt wurde [MH17]. Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6.
+  p1-l32  [133 647 485 654]  {TeXGyreTermes-Regular 8}Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald
+  p1-l33  [133 656 196 664]  {TeXGyreTermes-Regular 8}dieser verfügbar ist.
+  p1-l34  [box varies: font not embedded]  {Times-Roman 20}arXiv:1705.08889v2 [cs.CR] 30 Jun 2017
+  p1-d1  [127 144 485 145]  drawing
+  p1-d2  [127 565 270 566]  drawing
+  == page 2  612 x 792  lines 39  pictures 0  drawings 2
+  p2-l1  [129 135 312 143]  {TeXGyreTermes-Regular 9}2 Max Maass, Anne Laubach, Dominik Herrmann
+  p2-l2  [127 156 485 165]  {TeXGyreTermes-Italic 10 i}Analytics{TeXGyreTermes-Regular 10}) anstatt einer lokalen Lösung, die die Privatheitsinteressen der Besucherinnen
+  p2-l3  [127 168 266 177]  {TeXGyreTermes-Regular 10}besser berücksichtigt (z. B.{TeXGyreTermes-Italic 10 i} Piwik{TeXGyreTermes-Regular 10}).
+  p2-l4  [127 188 486 197]  {TeXGyreTermes-Regular 10}Die Entscheidungen der Betreiber sind dabei für Besucherinnen oft intransparent, ins-
+  p2-l5  [127 200 486 209]  {TeXGyreTermes-Regular 10}besondere bei komplexeren Diensten wie dem Schutz gegen Denial-of-Service-Angriffe.
+  p2-l6  [127 212 485 221]  {TeXGyreTermes-Regular 10}Für Besucherinnen ist hier teilweise nicht einmal die Verwendung eines solchen Dienstes
+  p2-l7  [127 224 485 233]  {TeXGyreTermes-Regular 10}erkennbar, obwohl er signifikanten Einfluss auf ihre Privatheit haben kann, was zuletzt die
+  p2-l8  [127 236 377 245]  {TeXGyreTermes-Regular 10}Sicherheitslücke bei dem Dienstleister{TeXGyreTermes-Italic 10 i} Cloudflare{TeXGyreTermes-Regular 10} gezeigt hat.{ntxsups-Regular 10}4
+  p2-l9  [127 256 485 265]  {TeXGyreTermes-Regular 10}Es gibt zwar bereits einige kostenlose Webseiten-Scanner, die die Konfiguration einer
+  p2-l10  [127 268 485 277]  {TeXGyreTermes-Regular 10}Webseite auf gängige Sicherheitslücken untersuchen; Aspekte der Privatheit werden von
+  p2-l11  [127 280 485 289]  {TeXGyreTermes-Regular 10}den existierenden Scannern jedoch weitgehend ignoriert. Des Weiteren bieten existierende
+  p2-l12  [127 292 485 301]  {TeXGyreTermes-Regular 10}Scanner keine Möglichkeit, die Ergebnisse mehrerer Webseiten direkt miteinander zu
+  p2-l13  [127 304 175 313]  {TeXGyreTermes-Regular 10}vergleichen.
+  p2-l14  [127 324 486 332]  {TeXGyreTermes-Regular 10}Das PrivacyScore-Projekt soll diese Lücke schließen. In Kooperation mit Datenschutz-
+  p2-l15  [127 335 485 344]  {TeXGyreTermes-Regular 10}Aufsichtsbehörden und -Aktivisten entwickeln wir derzeit ein System, das die automatische
+  p2-l16  [127 347 485 356]  {TeXGyreTermes-Regular 10}Analyse und den Vergleich der Sicherheits- und Privatheitseigenschaften von Webseiten
+  p2-l17  [127 359 485 368]  {TeXGyreTermes-Regular 10}ermöglicht ({TeXGyreTermes-Italic 10 i}Benchmark{TeXGyreTermes-Regular 10}). Wir haben drei Zielgruppen:{TeXGyreTermes-Italic 10 i} Endnutzerinnen{TeXGyreTermes-Regular 10}, die sich über die
+  p2-l18  [127 371 486 380]  {TeXGyreTermes-Regular 10}Sicherheit und Privatheit bestimmter Webseiten informieren möchten,{TeXGyreTermes-Italic 10 i} Wissenschaftlerinnen{TeXGyreTermes-Regular 10},
+  p2-l19  [127 383 486 392]  {TeXGyreTermes-Regular 10}die große Mengen von Webseiten untersuchen wollen, und{TeXGyreTermes-Italic 10 i} Aktivistinnen und Aufsichtsbe-
+  p2-l20  [127 395 485 404]  {TeXGyreTermes-Italic 10 i}hörden{TeXGyreTermes-Regular 10}, die die Erfüllung von gesetzlichen Datenschutz-Mindeststandards durch Webseiten
+  p2-l21  [127 407 485 416]  {TeXGyreTermes-Regular 10}sicherstellen wollen. Unsere Ideen und Realisierungsansätze haben wir erstmalig in [MH17]
+  p2-l22  [127 419 485 428]  {TeXGyreTermes-Regular 10}vorgestellt. Im vorliegenden Papier betrachten wir zusätzlich die juristische Zulässigkeit
+  p2-l23  [127 431 485 440]  {TeXGyreTermes-Regular 10}der Erhebung der Daten und der Veröffentlichung von Benchmarks sowie die juristische
+  p2-l24  [127 443 250 452]  {TeXGyreTermes-Regular 10}Verwertbarkeit der Ergebnisse.
+  p2-l25  [127 463 486 472]  {TeXGyreTermes-Regular 10}In Abschnitt 2 stellen wir verwandte Arbeiten vor, bevor wir in Abschnitt 3 die PrivacyScore-
+  p2-l26  [127 475 485 484]  {TeXGyreTermes-Regular 10}Plattform präsentieren. Die durchgeführten Tests werden in Abschnitt 4 beschrieben. In
+  p2-l27  [127 487 485 496]  {TeXGyreTermes-Regular 10}Abschnitt 5 betrachten wir ethische Fragestellungen. Im Anschluss daran erörtern wir in
+  p2-l28  [127 499 486 508]  {TeXGyreTermes-Regular 10}Abschnitt 6 die Zulässigkeit aus juristischer Sicht. Abschnitt 7 enthält Schlussbemerkungen.
+  p2-l29  [127 535 249 545]  {TeXGyreTermes-Bold 12 b}2 Verwandte Arbeiten
+  p2-l30  [127 560 485 569]  {TeXGyreTermes-Regular 10}Mehrere Dienste erlauben eine automatisierte Untersuchung von Webseiten. Die meisten
+  p2-l31  [127 572 485 581]  {TeXGyreTermes-Regular 10}Angebote konzentrieren sich auf die Sicherheit der verschlüsselten Verbindung zu einer
+  p2-l32  [127 584 486 593]  {TeXGyreTermes-Regular 10}Webseite, etwa{TeXGyreTermes-Italic 10 i} Qualys{ntxsups-Regular 10}5{TeXGyreTermes-Regular 10} und{TeXGyreTermes-Italic 10 i} Mozilla{TeXGyreTermes-Regular 10}.{ntxsups-Regular 10}6{TeXGyreTermes-Regular 10} Darüber hinaus existieren Dienste, welche das Vor-
+  p2-l33  [127 596 485 605]  {TeXGyreTermes-Regular 10}handensein der relativ neuen HTTP-Security-Header überprüfen.{ntxsups-Regular 10}7{TeXGyreTermes-Regular 10} Privatheitseigenschaften
+  p2-l34  [127 608 273 617]  {TeXGyreTermes-Regular 10}von Webseiten betrachtet{TeXGyreTermes-Italic 10 i} Webbkoll{TeXGyreTermes-Regular 10}.{ntxsups-Regular 10}8
+  p2-l35  [127 625 436 632]  {ntxsups-Regular 8}4{TeXGyreTermes-Regular 8} https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/
+  p2-l36  [128 634 234 641]  {ntxsups-Regular 8}5{TeXGyreTermes-Regular 8} https://www.ssllabs.com/ssltest/
+  p2-l37  [127 644 233 651]  {ntxsups-Regular 8}6{TeXGyreTermes-Regular 8} https://observatory.mozilla.org/
+  p2-l38  [128 653 230 660]  {ntxsups-Regular 8}7{TeXGyreTermes-Regular 8} z.B. https://securityheaders.io/
+  p2-l39  [127 663 242 670]  {ntxsups-Regular 8}8{TeXGyreTermes-Regular 8} https://webbkoll.dataskydd.net/en/
+  p2-d1  [127 144 485 145]  drawing
+  p2-d2  [127 620 270 621]  drawing
+  == page 3  612 x 792  lines 58  pictures 0  drawings 14
+  p3-l1  [426 135 483 143]  {TeXGyreTermes-Regular 9}PrivacyScore 3
+  p3-l2  [131 152 162 164]  {Helvetica-Bold 6.9 b}Besucher
+  p3-l3  [131 166 217 177]  {Helvetica 6.9}aggreg. Statistiken anzeigen
+  p3-l4  [131 176 223 187]  {Helvetica 6.9}öfftentl. Benchmarks anzeigen
+  p3-l5  [131 187 219 198]  {Helvetica 6.9}Ergebnis für Seiten anzeigen
+  p3-l6  [131 198 218 209]  {Helvetica 6.9}Ranking/Gewichte anpassen
+  p3-l7  [263 152 324 164]  {Helvetica-Bold 6.9 b}Anonyme Ersteller
+  p3-l8  [263 166 346 177]  {Helvetica 6.9}neue Benchmarks erstellen
+  p3-l9  [263 176 362 187]  {Helvetica 6.9}Kopie eines Benchmarks ändern
+  p3-l10  [263 187 360 198]  {Helvetica 6.9}Benchmarks mit Token editieren
+  p3-l11  [263 198 361 209]  {Helvetica 6.9}Benschmarks mit Token löschen
+  p3-l12  [395 152 467 164]  {Helvetica-Bold 6.9 b}Angemeldete Ersteller
+  p3-l13  [395 166 483 177]  {Helvetica 6.9}private Benchmarks erstellen
+  p3-l14  [395 176 483 187]  {Helvetica 6.9}eigene Benchmarks auflisten
+  p3-l15  [395 187 484 198]  {Helvetica 6.9}eigene Benchmarks editieren
+  p3-l16  [395 198 481 209]  {Helvetica 6.9}eigene Benchmarks löschen
+  p3-l17  [131 233 172 244]  {Helvetica-Bold 6.9 b}Benchmarks
+  p3-l18  [131 247 209 259]  {Helvetica-Bold 6.9 b}Name:{Helvetica 6.9} Deutsche Schulen
+  p3-l19  [131 261 218 273]  {Helvetica-Bold 6.9 b}Seiten:{Helvetica 6.9} http://schule1.de/, …
+  p3-l20  [131 276 226 287]  {Helvetica-Bold 6.9 b}Attribute:{Helvetica 6.9} { Land: Bayern, Anz.
+  p3-l21  [131 287 227 298]  {Helvetica 6.9}Schüler: 950, Träger: Staat }, …
+  p3-l22  [131 300 228 312]  {Helvetica-Bold 6.9 b}Ranking-Gewichte:{Helvetica 6.9} [2, 0, …, 1]
+  p3-l23  [296 286 307 293]  {Helvetica 6.9}…
+  p3-l24  [266 247 343 259]  {Helvetica-Bold 6.9 b}Zeitstempel:{Helvetica 6.9} 2017-04-11
+  p3-l25  [265 267 343 278]  {Helvetica-Bold 6.9 b}Zeitstempel:{Helvetica 6.9} 2017-04-12
+  p3-l26  [265 301 343 312]  {Helvetica-Bold 6.9 b}Zeitstempel:{Helvetica 6.9} 2017-04-18
+  p3-l27  [264 233 285 244]  {Helvetica-Bold 6.9 b}Scans
+  p3-l28  [376 233 394 244]  {Helvetica-Bold 6.9 b}Tests
+  p3-l29  [376 247 478 259]  {Helvetica-Bold 6.9 b}Drittanbieter:{Helvetica 6.9} 98 (adnet.com, …)
+  p3-l30  [376 261 480 273]  {Helvetica-Bold 6.9 b}Standorte:{Helvetica 6.9} web: DE (schule1.de),
+  p3-l31  [408 272 477 283]  {Helvetica 6.9}mail: US (mailfilter.net)
+  p3-l32  [376 286 467 298]  {Helvetica-Bold 6.9 b}Perfect-Forward-Secrecy:{Helvetica 6.9} ja
+  p3-l33  [376 300 479 312]  {Helvetica-Bold 6.9 b}Umleitung zu HTTPS :{Helvetica 6.9} nein […]
+  p3-l34  [188 230 248 239]  {Helvetica-Oblique 5.7 i}bestehen aus mehreren
+  p3-l35  [302 230 358 239]  {Helvetica-Oblique 5.7 i}besteht aus mehreren
+  p3-l36  [222 323 390 331]  {TeXGyreTermes-Regular 9}Abb. 1: Anwendungsfälle und Datenstrukturen
+  p3-l37  [127 354 486 363]  {TeXGyreTermes-Regular 10}Daneben gibt es Vorhaben, die eine festgelegte Liste von Webseiten untersuchen. So unter-
+  p3-l38  [127 366 485 375]  {TeXGyreTermes-Regular 10}sucht Helme regelmäßig die Verwendung der HTTP-Security-Header auf allen Webseiten
+  p3-l39  [127 378 485 387]  {TeXGyreTermes-Regular 10}der „Alexa Top 1 Million“{ntxsups-Regular 10}9{TeXGyreTermes-Regular 10} und die schwedische Datenschutzorganisation{TeXGyreTermes-Italic 10 i} dataskydd.net
+  p3-l40  [127 390 486 399]  {TeXGyreTermes-Regular 10}sucht auf den Webseiten schwedischer Kommunen nach Privatheitsproblemen.{ntxsups-Regular 10}10{TeXGyreTermes-Regular 10} Im akade-
+  p3-l41  [127 402 485 411]  {TeXGyreTermes-Regular 10}mischen Umfeld gab es eine Reihe von Studien, die Aspekte der Sicherheit [Ho16, Ma16]
+  p3-l42  [127 414 485 423]  {TeXGyreTermes-Regular 10}und Privatheit [EN16] auf beliebten Webseiten untersuchen. Die Ergebnisse solcher einmalig
+  p3-l43  [127 426 485 435]  {TeXGyreTermes-Regular 10}durchgeführten Studien veralten jedoch recht schnell. Insgesamt ist festzustellen, dass es
+  p3-l44  [127 438 423 447]  {TeXGyreTermes-Regular 10}bislang nicht ohne Weiteres möglich ist, aktuelle Benchmarks zu erstellen.
+  p3-l45  [127 472 283 485]  {TeXGyreTermes-Bold 12 b}3 PrivacyScore im Überblick
+  p3-l46  [127 500 486 509]  {TeXGyreTermes-Regular 10}In diesem Abschnitt beschreiben wir die wichtigsten Funktionen des PrivacyScore-Systems.
+  p3-l47  [127 511 486 521]  {TeXGyreTermes-Regular 10}Eine Übersicht über die wichtigsten Anwendungsfälle und Datenstrukturen gibt Abb. 1.
+  p3-l48  [127 524 485 533]  {TeXGyreTermes-Regular 10}PrivacyScore ist ein Webdienst, der im Auftrag seiner Nutzerinnen andere Webseiten
+  p3-l49  [127 536 485 545]  {TeXGyreTermes-Regular 10}analysiert. Wie bei anderen Diensten können einzelne Seiten analysiert werden. Bei
+  p3-l50  [127 548 485 557]  {TeXGyreTermes-Regular 10}PrivacyScore liegt der Fokus jedoch auf der Erstellung von{TeXGyreTermes-Italic 10 i} Benchmarks{TeXGyreTermes-Regular 10}, in denen miteinander
+  p3-l51  [127 560 485 569]  {TeXGyreTermes-Regular 10}verwandte Webseiten verglichen werden. Ein Benchmark kann etwa die Seiten aller Firmen
+  p3-l52  [127 572 485 581]  {TeXGyreTermes-Regular 10}einer Branche enthalten oder (im Fall einer Datenschutz-Aufsichtsbehörde) die Seiten aller
+  p3-l53  [127 584 485 593]  {TeXGyreTermes-Regular 10}Organisationen, die unter ihre Aufsicht fallen. Hinweise zur Datenbasis lassen sich in einer
+  p3-l54  [127 596 265 605]  {TeXGyreTermes-Regular 10}Freitext-Beschreibung hinterlegen.
+  p3-l55  [127 616 486 625]  {TeXGyreTermes-Regular 10}Nachdem ein Benchmark erstellt wurde, wird er an die Scan-Komponente übergeben,
+  p3-l56  [127 628 485 637]  {TeXGyreTermes-Regular 10}die die Seiten auf mehreren virtuellen Maschinen scannt. Die Ergebnisse werden auf der
+  p3-l57  [127 647 335 654]  {ntxsups-Regular 8}9{TeXGyreTermes-Regular 8} https://scotthelme.co.uk/alexa-top-1-million-analysis-feb-2017
+  p3-l58  [125 656 264 664]  {ntxsups-Regular 8}10{TeXGyreTermes-Regular 8} https://dataskydd.net/kommuner-201704/
+  p3-d1  [127 144 485 145]  drawing
+  p3-d2  [127 153 485 314]  drawing
+  p3-d3  [128 163 226 164]  drawing
+  p3-d4  [260 163 363 164]  drawing
+  p3-d5  [392 163 485 164]  drawing
+  p3-d6  [128 246 235 313]  drawing
+  p3-d7  [261 246 347 260]  drawing
+  p3-d8  [261 265 347 279]  drawing
+  p3-d9  [261 299 347 313]  drawing
+  p3-d10  [373 246 484 313]  drawing
+  p3-d11  [127 220 485 221]  drawing
+  p3-d12  [177 238 259 239]  drawing
+  p3-d13  [289 238 370 239]  drawing
+  p3-d14  [127 643 270 643]  drawing
+  == page 4  612 x 792  lines 38  pictures 0  drawings 1
+  p4-l1  [129 135 312 143]  {TeXGyreTermes-Regular 9}4 Max Maass, Anne Laubach, Dominik Herrmann
+  p4-l2  [127 156 485 165]  {TeXGyreTermes-Regular 10}PrivacyScore-Webseite veröffentlicht. Dort können Webseiten in einem Ranking miteinander
+  p4-l3  [127 168 485 177]  {TeXGyreTermes-Regular 10}verglichen und Detailergebnisse für einzelne Seiten abgerufen werden. Optional werden
+  p4-l4  [127 180 485 189]  {TeXGyreTermes-Regular 10}die Seiten jedes Benchmarks regelmäßig erneut gescannt. Frühere Ergebnisse werden zur
+  p4-l5  [127 192 390 201]  {TeXGyreTermes-Regular 10}Dokumentation der zeitlichen Entwicklung aufbewahrt ({TeXGyreTermes-Italic 10 i}Historie{TeXGyreTermes-Regular 10}).
+  p4-l6  [127 212 486 221]  {TeXGyreTermes-Regular 10}Desweiteren ist es möglich, die einzelnen Adressen mit bestimmten Attributen zu klassi-
+  p4-l7  [127 224 485 233]  {TeXGyreTermes-Regular 10}fizieren. Denkbar wäre zum Beispiel eine Unterscheidung zwischen den Webseiten der
+  p4-l8  [127 236 486 245]  {TeXGyreTermes-Regular 10}gesetzlichen und privaten Krankenkassen, die hier gegeneinander verglichen werden sollen.
+  p4-l9  [127 256 485 265]  {TeXGyreTermes-Regular 10}PrivacyScore kann mit oder ohne Anmeldung verwendet werden. Angemeldete Nutzerinnen
+  p4-l10  [127 268 485 277]  {TeXGyreTermes-Regular 10}können ihre Benchmarks in ihrem Account speichern und haben leichteren Zugriff auf
+  p4-l11  [127 280 486 289]  {TeXGyreTermes-Regular 10}administrative Funktionen. Darüber hinaus können sie ihre Benchmarks als privat markieren.
+  p4-l12  [127 314 485 323]  {TeXGyreTermes-Bold 10 b}Flexibilität durch Nutzerorientierung{TeXGyreTermes-Regular 10} PrivacyScore bietet zwei Funktionen, um sich
+  p4-l13  [127 326 486 335]  {TeXGyreTermes-Regular 10}an die Bedürfnisse der Nutzerinnen anzupassen: nutzerdefinierte Attribute und nutzerdefi-
+  p4-l14  [127 338 485 347]  {TeXGyreTermes-Regular 10}nierte Bewertungsschemata.{TeXGyreTermes-Italic 10 i} Nutzerdefinierte Attribute{TeXGyreTermes-Regular 10} erlauben es, die Liste von URLs mit
+  p4-l15  [127 350 486 359]  {TeXGyreTermes-Regular 10}frei definierbaren Attributen zu versehen, um verschiedene Klassen von Webseiten (z. B.
+  p4-l16  [127 362 486 371]  {TeXGyreTermes-Regular 10}gesetzliche und private Krankenkassen) voneinander zu unterscheiden und Zusammenhangs-
+  p4-l17  [127 374 486 383]  {TeXGyreTermes-Regular 10}analysen durchzuführen. Die Attribute werden beim Erstellen des Benchmarks festgelegt,
+  p4-l18  [127 386 485 395]  {TeXGyreTermes-Regular 10}können aber im Nachhinein modifiziert werden.{TeXGyreTermes-Italic 10 i} Nutzerdefinierte Bewertungsschemata
+  p4-l19  [127 398 485 407]  {TeXGyreTermes-Regular 10}ermöglichen das Verändern der Bewertungskriterien für die Webseiten. Die Bewertung
+  p4-l20  [127 410 485 419]  {TeXGyreTermes-Regular 10}wird aus den Ergebnissen der verschiedenen Tests berechnet – da Nutzerinnen allerdings
+  p4-l21  [127 422 485 431]  {TeXGyreTermes-Regular 10}unterschiedliche Prioritäten haben können, welche Tests ihnen wichtig erscheinen, ist es
+  p4-l22  [127 434 485 443]  {TeXGyreTermes-Regular 10}wichtig, ihnen die Möglichkeit zu geben, die Gewichtung der Tests zu beeinflussen. Das
+  p4-l23  [127 446 485 455]  {TeXGyreTermes-Regular 10}verwendete Bewertungsschema kann jederzeit modifiziert werden, wobei entweder aus
+  p4-l24  [127 458 485 467]  {TeXGyreTermes-Regular 10}einer Liste vordefinierter Schemata ausgewählt oder ein neues Schema definiert werden
+  p4-l25  [127 470 485 479]  {TeXGyreTermes-Regular 10}kann. Aus der gewichteten Bewertung können verschiedene vereinfachte Darstellungen
+  p4-l26  [127 482 485 491]  {TeXGyreTermes-Regular 10}(Schulnoten, Ampel, etc.) abgeleitet werden, die eine schnelle Bewertung der Ergebnisse
+  p4-l27  [127 493 485 502]  {TeXGyreTermes-Regular 10}erlauben. Datenschutz-Aufsichtsbehörden können mit dieser Funktion vermutete Fälle von
+  p4-l28  [127 505 472 514]  {TeXGyreTermes-Regular 10}Nicht-Konformität mit rechtlichen Vorgaben für eine weitere Untersuchung markieren.
+  p4-l29  [127 540 486 549]  {TeXGyreTermes-Bold 10 b}Offene Daten und Vertraulichkeit{TeXGyreTermes-Regular 10} PrivacyScore erzeugt Transparenz und Aufmerksam-
+  p4-l30  [127 552 485 561]  {TeXGyreTermes-Regular 10}keit, indem es auf Sicherheits- und Privatheitsprobleme hinweist. Um die Verbreitung der
+  p4-l31  [127 564 485 573]  {TeXGyreTermes-Regular 10}Ergebnisse zu erleichtern, werden sie nicht nur für Menschen lesbar aufbereitet, sondern
+  p4-l32  [127 576 406 585]  {TeXGyreTermes-Regular 10}auch über eine Schnittstelle in maschinenlesbarer Form veröffentlicht.
+  p4-l33  [127 596 485 605]  {TeXGyreTermes-Regular 10}Um die Daten von als{TeXGyreTermes-Italic 10 i} privat{TeXGyreTermes-Regular 10} markierten Benchmarks angemessen zu schützen, werden alle
+  p4-l34  [127 608 485 617]  {TeXGyreTermes-Regular 10}Tests von Servern unter unserer Kontrolle durchgeführt, d. h. die URLs der untersuchten
+  p4-l35  [127 620 486 629]  {TeXGyreTermes-Regular 10}Webseiten und die Scan-Ergebnisse werden nicht an andere Dienstanbieter übermittelt.
+  p4-l36  [127 632 485 641]  {TeXGyreTermes-Regular 10}Professionelle Anwender wie Datenschutz-Aufsichtsbehörden haben jedoch u. U. noch
+  p4-l37  [127 644 485 653]  {TeXGyreTermes-Regular 10}strengere Anforderungen an Sicherheit und Vertraulichkeit. Diese Anforderungen können
+  p4-l38  [127 656 485 664]  {TeXGyreTermes-Regular 10}umgesetzt werden, indem sie eine eigenständige PrivacyScore-Instanz in ihrer eigenen
+  p4-d1  [127 144 485 145]  drawing
+  == page 5  612 x 792  lines 36  pictures 0  drawings 2
+  p5-l1  [426 135 483 143]  {TeXGyreTermes-Regular 9}PrivacyScore 5
+  p5-l2  [127 156 485 165]  {TeXGyreTermes-Regular 10}Infrastruktur betreiben. Um dies zu ermöglichen wird der Programmcode von PrivacyScore
+  p5-l3  [127 168 485 177]  {TeXGyreTermes-Regular 10}im Sommer unter einer freien Lizenz veröffentlicht. Dies kommt auch der Weiterentwicklung
+  p5-l4  [127 180 472 189]  {TeXGyreTermes-Regular 10}von PrivacyScore zu Gute, da es Dritten die Möglichkeit gibt, neue Tests beizusteuern.
+  p5-l5  [127 214 485 223]  {TeXGyreTermes-Bold 10 b}Implementation{TeXGyreTermes-Regular 10} PrivacyScore befindet sich aktuell im{TeXGyreTermes-Italic 10 i} Alpha{TeXGyreTermes-Regular 10}-Stadium, ein Prototyp
+  p5-l6  [127 226 485 235]  {TeXGyreTermes-Regular 10}ist unter https://privacyscore.org/ abrufbar. Für die Tests nutzen wir etablierte Tools wie
+  p5-l7  [127 238 427 247]  {TeXGyreTermes-Italic 10 i}OpenWPM{TeXGyreTermes-Regular 10} [EN16] und{TeXGyreTermes-Italic 10 i} testssl.sh{TeXGyreTermes-Regular 10}.{ntxsups-Regular 10}11{TeXGyreTermes-Regular 10} Weitere Details finden sich in [MH17].
+  p5-l8  [127 273 309 284]  {TeXGyreTermes-Bold 12 b}4 Sicherheits- und Privatheitstests
+  p5-l9  [127 298 485 307]  {TeXGyreTermes-Regular 10}Im Folgenden stellen wir einen Teil der Tests vor, die in [MH17] beschrieben sind. Unsichere
+  p5-l10  [127 310 485 319]  {TeXGyreTermes-Regular 10}Webseiten setzen ihre Besucherinnen Risiken aus, etwa dem Abhören durch bösartige
+  p5-l11  [127 322 485 331]  {TeXGyreTermes-Regular 10}WLAN-Betreiber. Unsere{TeXGyreTermes-Bold 10 b} Sicherheitstests{TeXGyreTermes-Regular 10} prüfen, ob Seitenbetreiber anerkannte Methoden
+  p5-l12  [127 334 485 343]  {TeXGyreTermes-Regular 10}zur Absicherung ihrer Webseite und des Datenverkehrs verwenden. PrivacyScore prüft
+  p5-l13  [127 346 486 355]  {TeXGyreTermes-Regular 10}u. a., ob Transport-Layer-Security (TLS) korrekt eingesetzt wird, d. h. ob geeignete Proto-
+  p5-l14  [127 358 485 367]  {TeXGyreTermes-Regular 10}kollversionen, kryptographische Verfahren und HTTP-Header wie HTTP Strict Transport
+  p5-l15  [127 370 486 379]  {TeXGyreTermes-Regular 10}Security (HSTS) verwendet werden. Darüber hinaus werden die Mailserver überprüft,
+  p5-l16  [127 382 485 390]  {TeXGyreTermes-Regular 10}indem u. a. Verfügbarkeit und Güte der Transportverschlüsselung (STARTTLS) abgeklärt
+  p5-l17  [127 393 485 402]  {TeXGyreTermes-Regular 10}wird. Untersucht werden auch die Einträge im Domain-Name-System (DNS), insbesondere
+  p5-l18  [127 405 486 414]  {TeXGyreTermes-Regular 10}die Verwendung von DNSSEC, und die Aktualität der Server-Software, sofern feststellbar.
+  p5-l19  [127 425 486 434]  {TeXGyreTermes-Bold 10 b}Privatheitstests{TeXGyreTermes-Regular 10} untersuchen hingegen, ob eine Webseite aktiv die Privatheit ihrer Besuche-
+  p5-l20  [127 437 486 446]  {TeXGyreTermes-Regular 10}rinnen verletzt oder gefährdet, etwa durch die Verwendung von Analyse- und Werbediensten.
+  p5-l21  [127 449 485 458]  {TeXGyreTermes-Regular 10}PrivacyScore erkennt diese Dienste in einem zweistufigen Verfahren: Zunächst werden auf
+  p5-l22  [127 461 485 470]  {TeXGyreTermes-Regular 10}einer Webseite alle von externen Anbietern eingebetteten Ressourcen gesammelt. Diese
+  p5-l23  [127 473 485 482]  {TeXGyreTermes-Regular 10}werden in einem zweiten Schritt dann mit einer Liste bekannter Werbe- und Analysedienste
+  p5-l24  [127 485 485 494]  {TeXGyreTermes-Regular 10}abgeglichen. PrivacyScore wird außerdem eine Reihe von Tracking-Technologien erkennen
+  p5-l25  [127 497 402 506]  {TeXGyreTermes-Regular 10}(insbesondere Cookies, Flash-Cookies, und Browser-Fingerprinting).
+  p5-l26  [127 517 485 526]  {TeXGyreTermes-Regular 10}Viele Webseiten nutzen Content-Distribution-Networks (CDNs), um die Zuverlässigkeit
+  p5-l27  [127 529 485 538]  {TeXGyreTermes-Regular 10}und Geschwindigkeit ihrer Webseite zu optimieren. Diese Dienste können allerdings
+  p5-l28  [127 541 485 550]  {TeXGyreTermes-Regular 10}ebenfalls eine Gefahr für die Privatheit und Sicherheit darstellen.{ntxsups-Regular 10}12{TeXGyreTermes-Regular 10} PrivacyScore versucht
+  p5-l29  [127 553 485 562]  {TeXGyreTermes-Regular 10}daher die Verwendung von CDNs zu erkennen. Eine weitere relevante Information ist der
+  p5-l30  [127 565 485 574]  {TeXGyreTermes-Italic 10 i}Ort{TeXGyreTermes-Regular 10}, an dem eine Webseite betrieben wird. Interessant ist hier vor allem die Einbindung
+  p5-l31  [127 577 485 586]  {TeXGyreTermes-Regular 10}nicht-europäischer Dienstanbieter, da ein Seitenbetreiber in diesem Fall möglicherweise
+  p5-l32  [127 589 272 598]  {TeXGyreTermes-Regular 10}zusätzliche Pflichten zu erfüllen hat.
+  p5-l33  [127 623 485 632]  {TeXGyreTermes-Bold 10 b}Anschaulichkeit und Handlungsempfehlungen{TeXGyreTermes-Regular 10} Die identifizierten Probleme werden
+  p5-l34  [127 635 485 644]  {TeXGyreTermes-Regular 10}mit den daraus resultierenden Bedrohungen veranschaulicht. So ist etwa das Abhören
+  p5-l35  [125 653 183 660]  {ntxsups-Regular 8}11{TeXGyreTermes-Regular 8} https://testssl.sh
+  p5-l36  [125 663 436 670]  {ntxsups-Regular 8}12{TeXGyreTermes-Regular 8} https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/
+  p5-d1  [127 144 485 145]  drawing
+  p5-d2  [127 649 270 650]  drawing
+  == page 6  612 x 792  lines 35  pictures 0  drawings 2
+  p6-l1  [129 135 312 143]  {TeXGyreTermes-Regular 9}6 Max Maass, Anne Laubach, Dominik Herrmann
+  p6-l2  [127 156 485 165]  {TeXGyreTermes-Regular 10}verschlüsselter Kommunikation durch einen WLAN-Betreiber möglich, wenn eine Seite
+  p6-l3  [127 168 485 177]  {TeXGyreTermes-Regular 10}kein HSTS verwendet ({TeXGyreTermes-Italic 10 i}SSL-Stripping{TeXGyreTermes-Regular 10}-Angriff). PrivacyScore hilft den Seitenbetreibern
+  p6-l4  [127 180 485 189]  {TeXGyreTermes-Regular 10}aber auch, die Probleme zu beheben. Dazu werden wir Konfigurationshilfen für beliebte
+  p6-l5  [127 192 486 201]  {TeXGyreTermes-Regular 10}Webserver und lokale Analysesysteme wie{TeXGyreTermes-Italic 10 i} Piwik{ntxsups-Regular 10}13{TeXGyreTermes-Regular 10} auflisten. Wo dies nicht möglich ist,
+  p6-l6  [127 204 485 213]  {TeXGyreTermes-Regular 10}liefern wir Nutzerinnen Hinweise zum Selbstdatenschutz, z. B. durch die Installation von
+  p6-l7  [127 216 381 225]  {TeXGyreTermes-Regular 10}Browser-Add-ons, die Werbenetzwerke und Tracker blockieren.
+  p6-l8  [127 250 273 261]  {TeXGyreTermes-Bold 12 b}5 Ethische Fragestellungen
+  p6-l9  [127 274 485 283]  {TeXGyreTermes-Regular 10}Der automatische Abruf von Webseiten ist eine weitverbreitete Praxis (vgl. Suchmaschinen
+  p6-l10  [127 286 485 295]  {TeXGyreTermes-Regular 10}und z. B. https://archive.org/). Dennoch ist die Analyse von Seiten mit PrivacyScore aus
+  p6-l11  [127 298 485 307]  {TeXGyreTermes-Regular 10}ethischer Sicht nicht völlig unbedenklich, da sie über ein bloßes Abrufen einer Seite
+  p6-l12  [127 310 173 319]  {TeXGyreTermes-Regular 10}hinausgeht.
+  p6-l13  [127 330 485 339]  {TeXGyreTermes-Regular 10}Unser Ziel ist es, Seitenbetreiber und Nutzerinnen zu unterstützen, ohne jedoch ein
+  p6-l14  [127 342 485 351]  {TeXGyreTermes-Regular 10}(neues) Werkzeug für Angreifer zu entwickeln. Einige unserer Tests können allerdings
+  p6-l15  [127 354 485 363]  {TeXGyreTermes-Regular 10}Informationen aufzeigen, die auch für Angreifer nützlich sein können. Wie viele andere
+  p6-l16  [127 366 485 375]  {TeXGyreTermes-Regular 10}Sicherheitswerkzeuge auch ist PrivacyScore demnach ein Dual-Use-Werkzeug. Daher
+  p6-l17  [127 377 486 386]  {TeXGyreTermes-Regular 10}sind wir bei der Implementierung von Tests und der Darstellung der Ergebnisse bestrebt,
+  p6-l18  [127 389 467 398]  {TeXGyreTermes-Regular 10}Varianten zu wählen, die einen Missbrauch der Ergebnisse unwahrscheinlich machen.
+  p6-l19  [127 409 485 418]  {TeXGyreTermes-Regular 10}Desweiteren belasten die TLS-Tests die Infrastruktur des Anbieters, da sie eine hohe Anzahl
+  p6-l20  [127 421 485 430]  {TeXGyreTermes-Regular 10}an Verbindungen aufbauen. Wir erachten dies für vertretbar, da das Anbieten einer Webseite
+  p6-l21  [127 433 485 442]  {TeXGyreTermes-Regular 10}die Absicht impliziert, sie zum Abruf zur Verfügung zu stellen. Wir gehen davon aus, dass
+  p6-l22  [127 445 485 454]  {TeXGyreTermes-Regular 10}das öffentliche Interesse an den Ergebnissen i. d. R. die (meist vernachlässigbaren) Kosten
+  p6-l23  [127 457 485 466]  {TeXGyreTermes-Regular 10}für den Seitenbetreiber überwiegt. Nichtsdestotrotz müssen wir sicherstellen, dass durch
+  p6-l24  [127 469 485 478]  {TeXGyreTermes-Regular 10}unsere Untersuchungen die Verfügbarkeit einer Seite nicht beeinträchtigt wird. Um zu
+  p6-l25  [127 481 486 490]  {TeXGyreTermes-Regular 10}verhindern, dass PrivacyScore unabsichtlich oder absichtlich zu einem Seitenausfall führt,
+  p6-l26  [127 493 485 502]  {TeXGyreTermes-Regular 10}setzen wir ein Rate-Limiting-System ein: Ein erneuter Scan einer Webseite kann erst nach
+  p6-l27  [127 505 211 514]  {TeXGyreTermes-Regular 10}30 Minuten erfolgen.
+  p6-l28  [127 539 283 550]  {TeXGyreTermes-Bold 12 b}6 Rechtliche Fragestellungen
+  p6-l29  [127 563 485 572]  {TeXGyreTermes-Regular 10}Automatisiertes Scannen von Webseiten im Internet wirft eine Reihe von Rechtsfragen in
+  p6-l30  [127 575 486 584]  {TeXGyreTermes-Regular 10}verschiedenen Rechtsbereichen auf. In diesem Abschnitt sollen exemplarisch die Rechtsfra-
+  p6-l31  [127 587 485 596]  {TeXGyreTermes-Regular 10}gen der Zulässigkeit einer Untersuchung, der Bewertung der Untersuchungsergebnisse und
+  p6-l32  [127 599 294 608]  {TeXGyreTermes-Regular 10}ihrer Veröffentlichung untersucht werden.
+  p6-l33  [127 633 485 642]  {TeXGyreTermes-Bold 10 b}Zulässigkeit der automatisierten Untersuchung von Webseiten{TeXGyreTermes-Regular 10} Das Auslesen fremder
+  p6-l34  [127 645 485 654]  {TeXGyreTermes-Regular 10}Webseiten ohne die ausdrückliche Zustimmung des Betreibers ist nicht grundsätzlich
+  p6-l35  [125 663 185 670]  {ntxsups-Regular 8}13{TeXGyreTermes-Regular 8} https://piwik.org
+  p6-d1  [127 144 485 145]  drawing
+  p6-d2  [127 658 270 659]  drawing
+  == page 7  612 x 792  lines 43  pictures 0  drawings 2
+  p7-l1  [426 135 483 143]  {TeXGyreTermes-Regular 9}PrivacyScore 7
+  p7-l2  [127 156 485 165]  {TeXGyreTermes-Regular 10}unzulässig. Zuerst stellt sich allerdings die Frage, wem die zu untersuchenden Daten
+  p7-l3  [126 168 485 177]  {TeXGyreTermes-Regular 10}„gehören“, denn wäre jemand Eigentümer dieser Daten, könnte er diese nutzen und über
+  p7-l4  [127 180 485 189]  {TeXGyreTermes-Regular 10}sie verfügen und andere gemäß § 903 des Bürgerlichen Gesetzbuches (BGB) gerade von
+  p7-l5  [127 192 485 201]  {TeXGyreTermes-Regular 10}dieser Nutzung ausschließen. Die Begründung von Eigentum kann gem. § 903 BGB nur
+  p7-l6  [127 204 485 213]  {TeXGyreTermes-Regular 10}an Sachen i. S. v. § 90 BGB bestehen. Da es Daten bereits an der körperlichen Eigenschaft
+  p7-l7  [127 216 485 225]  {TeXGyreTermes-Regular 10}fehlt, kann es weder ein Eigentumsrecht an Daten noch ein aus Eigentum abgeleitetes
+  p7-l8  [127 228 485 237]  {TeXGyreTermes-Regular 10}Recht auf die ausschließliche Nutzung von Daten geben [Ze15]. Dennoch können Daten
+  p7-l9  [127 240 485 249]  {TeXGyreTermes-Regular 10}unter verschiedenen gesetzlichen Voraussetzungen vor dem Zugriff und der Verwertung
+  p7-l10  [127 252 485 261]  {TeXGyreTermes-Regular 10}durch Dritte geschützt sein. Daten unterliegen einer Kommunikationsordnung, welche
+  p7-l11  [127 264 486 273]  {TeXGyreTermes-Regular 10}sich aus Regelungen in diversen Rechtsgebieten zusammensetzt und Umgangsrechte,
+  p7-l12  [127 276 485 285]  {TeXGyreTermes-Regular 10}Verfügungsberechtigungen und -beschränkungen hinsichtlich der Daten gewährt, ohne
+  p7-l13  [127 288 485 297]  {TeXGyreTermes-Regular 10}dabei eine Güterzuweisung vorzunehmen [Ro14, Ro17]. Relevant werden können, soweit
+  p7-l14  [127 300 485 309]  {TeXGyreTermes-Regular 10}Gegenstand personenbezogene Daten von natürlichen Personen sind, Regelungen aus dem
+  p7-l15  [127 312 485 321]  {TeXGyreTermes-Regular 10}Datenschutzrecht, auch Regelungen aus dem Urheberrecht, sofern es sich um persönliche
+  p7-l16  [127 324 485 332]  {TeXGyreTermes-Regular 10}geistige Schöpfungen handelt, weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch
+  p7-l17  [127 335 485 344]  {TeXGyreTermes-Regular 10}(StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG). Darüber hinaus ist auch
+  p7-l18  [127 347 485 356]  {TeXGyreTermes-Regular 10}ein deliktischer Abwehranspruch gegen Störungen aus dem Recht am eingerichteten und
+  p7-l19  [127 359 375 368]  {TeXGyreTermes-Regular 10}ausgeübten Gewerbebetrieb i. S. v. § 823 Abs. 1 BGB denkbar.
+  p7-l20  [127 379 485 388]  {TeXGyreTermes-Regular 10}Einige Webseitenbetreiber verbieten in ihren Nutzungsbedingungen das automatisierte
+  p7-l21  [127 391 485 400]  {TeXGyreTermes-Regular 10}Durchsuchen und Auswerten der von ihnen zur Verfügung gestellten Daten. Während
+  p7-l22  [127 403 486 412]  {TeXGyreTermes-Regular 10}manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell be-
+  p7-l23  [127 415 485 424]  {TeXGyreTermes-Regular 10}jahen{ntxsups-Regular 10}14{TeXGyreTermes-Regular 10} oder dies von der Art der Webseitenausgestaltung abhängig machen,{ntxsups-Regular 10}15{TeXGyreTermes-Regular 10} spricht
+  p7-l24  [127 426 485 436]  {TeXGyreTermes-Regular 10}gegen die Übertragung der Befugnis zur Ausübung des Hausrechts von Räumen und
+  p7-l25  [127 439 486 448]  {TeXGyreTermes-Regular 10}Grundstücken auf Webseiten die nicht vergleichbare Interessenlage, da ursprünglich ge-
+  p7-l26  [127 451 485 460]  {TeXGyreTermes-Regular 10}rade absolute Rechtspositionen wie Besitz und Eigentum Gegenstand des Schutzes sein
+  p7-l27  [127 463 485 472]  {TeXGyreTermes-Regular 10}sollten und der Zweck einer Webseite gerade darin besteht, sie potentiellen Nutzerinnen
+  p7-l28  [127 475 485 484]  {TeXGyreTermes-Regular 10}zu öffnen und von diesen zur Kenntnis genommen zu werden.{ntxsups-Regular 10}16{TeXGyreTermes-Regular 10} Dem Webseitenbetreiber
+  p7-l29  [127 487 485 496]  {TeXGyreTermes-Regular 10}steht es dennoch frei, die Befugnisse über die von ihm zur Verfügung gestellten Daten im
+  p7-l30  [127 499 485 508]  {TeXGyreTermes-Regular 10}Rahmen vertraglicher Vereinbarungen zu regeln. Rechtlich verbindlich wird die jeweilige
+  p7-l31  [127 511 485 520]  {TeXGyreTermes-Regular 10}Vorgabe in den Nutzungsbedingungen aber nur dann, wenn zuvor eine Registrierung und
+  p7-l32  [127 523 485 532]  {TeXGyreTermes-Regular 10}damit ein Vertragsschluss unter ausdrücklicher Anerkennung der Nutzungsbedingungen
+  p7-l33  [127 535 485 544]  {TeXGyreTermes-Regular 10}erfolgt.{ntxsups-Regular 10}17{TeXGyreTermes-Regular 10} Ist der Zugang dagegen auch ohne Anmeldung möglich, kommt den jeweiligen
+  p7-l34  [127 547 486 556]  {TeXGyreTermes-Regular 10}Nutzungsbedingungen ebenso wie allen einseitigen Erklärungen über gewollte Nutzungsbe-
+  p7-l35  [127 559 485 568]  {TeXGyreTermes-Regular 10}schränkungen keine verbindliche Rechtswirkung für nicht registrierte Besucherinnen der
+  p7-l36  [127 571 485 580]  {TeXGyreTermes-Regular 10}Webseite zu.{ntxsups-Regular 10}18{TeXGyreTermes-Regular 10} Eine solche technisch-automatisierte Registrierung unter Anerkennung der
+  p7-l37  [127 583 471 592]  {TeXGyreTermes-Regular 10}gestellten Nutzungsbedingungen durch die PrivacyScore-Technik ist nicht vorgesehen.
+  p7-l38  [125 602 283 609]  {ntxsups-Regular 8}14{TeXGyreTermes-Regular 8} LG Hamburg v. 28.08.2008, Az. 315 O 326/08.
+  p7-l39  [125 611 486 618]  {ntxsups-Regular 8}15{TeXGyreTermes-Regular 8} OLG Köln v. 25.08.2000, Az. 19 U 2/00; LG Ulm v. 13.01.15, Az. 2 O 8/15; OLG Hamm v. 10.06.2008,
+  p7-l40  [132 621 179 628]  {TeXGyreTermes-Regular 8}Az. 4 U 37/08.
+  p7-l41  [125 630 427 637]  {ntxsups-Regular 8}16{TeXGyreTermes-Regular 8} OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.
+  p7-l42  [125 639 437 647]  {ntxsups-Regular 8}17{TeXGyreTermes-Regular 8} LG München v. 25.10.2006, Az. 30 O 11973/05; OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09.
+  p7-l43  [125 649 427 656]  {ntxsups-Regular 8}18{TeXGyreTermes-Regular 8} OLG Frankfurt v. 05.03.2009, Az. 6 U 221/09; OLG Hamburg v. 24.10.2012, Az. 5 U 38/10.
+  p7-d1  [127 144 485 145]  drawing
+  p7-d2  [127 597 270 598]  drawing
+  == page 8  612 x 792  lines 43  pictures 0  drawings 2
+  p8-l1  [129 135 312 143]  {TeXGyreTermes-Regular 9}8 Max Maass, Anne Laubach, Dominik Herrmann
+  p8-l2  [127 156 485 165]  {TeXGyreTermes-Regular 10}Ein Großteil der PrivacyScore-Tests basiert lediglich auf Metadaten, die beim Abruf
+  p8-l3  [127 168 485 177]  {TeXGyreTermes-Regular 10}einer Seite entstehen. Einige Tests profitieren jedoch von einer Analyse des Quelltexts
+  p8-l4  [127 180 485 189]  {TeXGyreTermes-Regular 10}einer Seite. Ausnahmsweise könnten ausschließliche Nutzungsrechte am Quelltext dadurch
+  p8-l5  [127 192 485 201]  {TeXGyreTermes-Regular 10}entstehen, dass diesem urheberrechtlicher Schutz zukommen würde. In diesem Fall müssten
+  p8-l6  [127 204 485 213]  {TeXGyreTermes-Regular 10}betroffene Webseitenbetreiber die Datenverwendung nicht dulden und hätten entsprechende
+  p8-l7  [127 216 485 225]  {TeXGyreTermes-Regular 10}Unterlassungs- und Schadensersatzansprüche. Dies ist davon abhängig, ob die Webseite als
+  p8-l8  [127 228 485 237]  {TeXGyreTermes-Regular 10}Werk i. S. v. § 2 Abs. 1 UrhG oder als eine geschützte Datenbank i. S. v. § 4 Abs. 2 UrhG
+  p8-l9  [127 240 485 249]  {TeXGyreTermes-Regular 10}qualifiziert werden kann. Hierfür ist notwendig, dass die Gestaltung derWebseite die „geistige
+  p8-l10  [127 252 485 261]  {TeXGyreTermes-Regular 10}Schöpfungshöhe“ i. S. v. § 2 Abs. 2 UrhG erreicht. Dies kann nur im Einzelfall beurteilt
+  p8-l11  [127 264 486 273]  {TeXGyreTermes-Regular 10}werden. Regelmäßig ist der Quelltext der Webseite jedoch nicht urheberrechtlich geschützt,
+  p8-l12  [127 276 485 285]  {TeXGyreTermes-Regular 10}da die Rechtsprechung die nötige besondere „schöpferische Höhe“ i. S. v. § 2 Abs. 2 UrhG
+  p8-l13  [127 288 485 297]  {TeXGyreTermes-Regular 10}für Webseiten nur in wenigen Ausnahmefällen anerkennt.{ntxsups-Regular 10}19{TeXGyreTermes-Regular 10} Auch, wenn die Datenbank als
+  p8-l14  [127 300 485 309]  {TeXGyreTermes-Regular 10}geistiger Schöpfungsakt nicht urheberrechtlich geschützt ist, kann für den Hersteller der
+  p8-l15  [127 312 485 321]  {TeXGyreTermes-Regular 10}Datenbank nach § 87b Abs. 1 Satz 1 UrhG ein Leistungsschutzrecht bestehen. Ginge man
+  p8-l16  [127 324 486 332]  {TeXGyreTermes-Regular 10}davon aus, dass die im Quelltext enthaltenen Informationen eine Sammlung von Daten i. S. v.
+  p8-l17  [127 335 485 344]  {TeXGyreTermes-Regular 10}§ 87a UrhG enthalten, käme es für die Annahme eines Leistungsschutzrechts weiterhin
+  p8-l18  [127 347 485 356]  {TeXGyreTermes-Regular 10}darauf an, ob beim Betreiber eine wesentliche Investition zur Erstellung erforderlich
+  p8-l19  [127 359 485 368]  {TeXGyreTermes-Regular 10}war. Allerdings räumt § 87b Abs. 1 Satz 1 UrhG ein Recht auf Untersagung der Nutzung
+  p8-l20  [127 371 485 380]  {TeXGyreTermes-Regular 10}nur ein, soweit die Nutzerin wesentliche Teile der Datenbank durchsucht. Soweit die
+  p8-l21  [127 383 486 392]  {TeXGyreTermes-Regular 10}Webseite, wie bei PrivacyScore, lediglich auf deren technische Umsetzung untersucht wird,
+  p8-l22  [127 395 485 404]  {TeXGyreTermes-Regular 10}stellen diese Informationen keine wesentlichen Teile der Datenbank dar. Für eine nach
+  p8-l23  [127 407 485 416]  {TeXGyreTermes-Regular 10}§ 87b Abs. 1 Satz 2 UrhG unzulässige Vervielfältigung, die auch für unwesentliche Teile
+  p8-l24  [127 419 485 428]  {TeXGyreTermes-Regular 10}gilt, fehlt es an einer wiederholten und systematischen Handlung, da sich die Nutzung der
+  p8-l25  [127 431 485 440]  {TeXGyreTermes-Regular 10}Daten durch PrivacyScore im Rahmen einer normalen Auswertung hält. Quelltexte von
+  p8-l26  [127 443 485 452]  {TeXGyreTermes-Regular 10}Webseiten genießen regelmäßig auch keinen Sonderrechtsschutz als Computerprogramme
+  p8-l27  [127 455 485 464]  {TeXGyreTermes-Regular 10}i. S. v. § 2 Abs. 1 Nr. 1, 69a Abs. 1 UrhG. Dies würde eine Folge von Befehlen, denen
+  p8-l28  [127 467 485 476]  {TeXGyreTermes-Regular 10}Auswirkungen auf den Programmablauf zukommen, voraussetzen. Den HTML-Befehlen
+  p8-l29  [127 479 485 488]  {TeXGyreTermes-Regular 10}im Quelltext komme dagegen nur eine beschreibende Funktion zu, um die Darstellung der
+  p8-l30  [127 491 278 500]  {TeXGyreTermes-Regular 10}Inhalte im Browser zu ermöglichen.{ntxsups-Regular 10}20
+  p8-l31  [127 511 485 520]  {TeXGyreTermes-Regular 10}Die Untersuchung durch PrivacyScore ist auch wettbewerbsrechtlich unbedenklich, solange
+  p8-l32  [127 523 485 532]  {TeXGyreTermes-Regular 10}es infolge seines Einsatzes nicht zu einer tatsächlichen Störung des Betriebsablaufs der
+  p8-l33  [127 535 485 544]  {TeXGyreTermes-Regular 10}Webseite, etwa einer Beeinträchtigung der Verfügbarkeit, kommt. Andernfalls könnte
+  p8-l34  [127 547 485 556]  {TeXGyreTermes-Regular 10}unter der Voraussetzung der Mitbewerbereigenschaft i. S. v. § 2 Nr. 3 UWG eine unlautere
+  p8-l35  [127 559 485 568]  {TeXGyreTermes-Regular 10}Behinderung i. S. v. § 4 Nr. 4 UWG vorliegen. Wie bereits in Abschnitt 5 dargestellt, wird
+  p8-l36  [127 571 485 580]  {TeXGyreTermes-Regular 10}durch ein Rate-Limiting-System vermieden, dass die Untersuchung durch PrivacyScore
+  p8-l37  [127 581 485 592]  {TeXGyreTermes-Regular 10}negative Auswirkungen auf die Verfügbarkeit des Servers durch technische Überlastung für
+  p8-l38  [127 594 485 603]  {TeXGyreTermes-Regular 10}andere Nutzerinnen haben kann. Eine Störung der Funktionsfähigkeit i. S. v. § 4 Nr. 4 UWG
+  p8-l39  [127 606 485 615]  {TeXGyreTermes-Regular 10}soll damit ausgeschlossen werden. Mit der gleichen Begründung kann auch ein deliktischer
+  p8-l40  [127 618 485 627]  {TeXGyreTermes-Regular 10}Anspruch, gestützt auf eine rechtswidrige Verletzung des Rechts am eingerichteten und
+  p8-l41  [125 637 486 645]  {ntxsups-Regular 8}19{TeXGyreTermes-Regular 8} OLG Hamburg v. 29.02.2012, Az. 5 U 10/10; OLG Celle v. 08.03.2012, Az. 13 W 17/12; OLG Rostock v.
+  p8-l42  [133 647 218 654]  {TeXGyreTermes-Regular 8}27.06.2007, Az. 2 E 12/07.
+  p8-l43  [125 656 425 664]  {ntxsups-Regular 8}20{TeXGyreTermes-Regular 8} OLG Rostock v. 27.06.2007, Az. 2 W 12/07; OLG Frankfurt v. 22.03.2005, Az. 11 U 64/04.
+  p8-d1  [127 144 485 145]  drawing
+  p8-d2  [127 633 270 634]  drawing
+  == page 9  612 x 792  lines 40  pictures 0  drawings 2
+  p9-l1  [426 135 483 143]  {TeXGyreTermes-Regular 9}PrivacyScore 9
+  p9-l2  [127 156 486 165]  {TeXGyreTermes-Regular 10}ausgeübten Gewerbebetrieb i. S. v. § 823 I BGB, mangels eines betriebsbezogenen Eingriffs,
+  p9-l3  [127 168 380 177]  {TeXGyreTermes-Regular 10}der über eine bloße Belästigung hinausgeht, vermieden werden.
+  p9-l4  [127 188 485 197]  {TeXGyreTermes-Regular 10}Sofern PrivacyScore zur Untersuchung der Webseite nicht eine vom Berechtigten errichtete
+  p9-l5  [126 200 485 209]  {TeXGyreTermes-Regular 10}„besondere Zugangssicherung“ überwindet, bestehen auch in strafrechtlicher Hinsicht keine
+  p9-l6  [127 212 486 221]  {TeXGyreTermes-Regular 10}Bedenken gegen dessen Einsatz. In Betracht käme allenfalls der Tatbestand des § 202a StGB,
+  p9-l7  [127 224 485 233]  {TeXGyreTermes-Regular 10}welcher Daten schützt, „die gegen unberechtigten Zugang besonders gesichert sind“, indem
+  p9-l8  [127 234 485 245]  {TeXGyreTermes-Regular 10}die Zugangsverschaffung gerade „unter Überwindung der Zugangssicherung“ unter Strafe
+  p9-l9  [127 248 485 257]  {TeXGyreTermes-Regular 10}gestellt wird. Mithilfe von PrivacyScore wird nur der Quelltext der Webseite untersucht, der
+  p9-l10  [127 260 486 269]  {TeXGyreTermes-Regular 10}für jedermann öffentlich zugänglich ist ohne dabei eine Zugangssicherung zu überwinden.
+  p9-l11  [127 280 485 289]  {TeXGyreTermes-Regular 10}Zusammenfassend ist festzustellen, dass soweit kein Sonderrechtsschutz besteht und die
+  p9-l12  [127 292 485 301]  {TeXGyreTermes-Regular 10}Webseite rechtlich und technisch frei zugänglich ist, d. h. die Nutzung der zu untersuchenden
+  p9-l13  [127 304 485 313]  {TeXGyreTermes-Regular 10}Daten nicht von der vorherigen Akzeptanz der Nutzungsbedingungen abhängig gemacht
+  p9-l14  [127 316 485 325]  {TeXGyreTermes-Regular 10}und vom Webseitenbetreiber keine technischen Schutzmaßnahmen installiert wurden,{ntxsups-Regular 10}21{TeXGyreTermes-Regular 10} das
+  p9-l15  [127 327 425 336]  {TeXGyreTermes-Regular 10}automatisierte Untersuchen der Webseiten durch PrivacyScore zulässig ist.
+  p9-l16  [127 362 486 371]  {TeXGyreTermes-Bold 10 b}Rechtliche Bewertung der Untersuchungsergebnisse{TeXGyreTermes-Regular 10} Die bloße Feststellung des tech-
+  p9-l17  [127 374 485 383]  {TeXGyreTermes-Regular 10}nischen Untersuchungsergebnisses allein ist zur Bewertung der rechtskonformen Gestaltung
+  p9-l18  [127 386 485 395]  {TeXGyreTermes-Regular 10}der Webseite wenig aussagekräftig. Zur tatsächlichen Beurteilung der Rechtskonformität
+  p9-l19  [127 398 486 407]  {TeXGyreTermes-Regular 10}ist immer eine weitergehende Betrachtung des Einzelfalls erforderlich. Dies soll im Fol-
+  p9-l20  [127 410 485 419]  {TeXGyreTermes-Regular 10}genden am Beispiel von eingebundenen Analysediensten und fehlender bzw. veralteter
+  p9-l21  [127 422 307 431]  {TeXGyreTermes-Regular 10}Verschlüsselungssoftware dargestellt werden.
+  p9-l22  [127 442 485 451]  {TeXGyreTermes-Regular 10}Das Einbinden von Analysediensten ist nicht per se nur nachteilhaft für Nutzerinnen, es
+  p9-l23  [127 454 486 463]  {TeXGyreTermes-Regular 10}besteht aber durchaus die Gefahr des Missbrauchs. Die Rechtmäßigkeit von Analysediens-
+  p9-l24  [127 466 485 475]  {TeXGyreTermes-Regular 10}ten, wie Google Analytics, auf Webseiten wird seit jeher von den Datenschützern kritisch
+  p9-l25  [127 478 486 487]  {TeXGyreTermes-Regular 10}betrachtet, da sie befürchten, dass mittels dieser Analyse umfangreiche Profile über identifi-
+  p9-l26  [127 490 485 498]  {TeXGyreTermes-Regular 10}zierbare Nutzerinnen angelegt werden könnten. Neben der Zuordnung und Speicherung von
+  p9-l27  [127 501 485 510]  {TeXGyreTermes-Regular 10}Nutzungsdaten (wie die zuletzt besuchte Seite und der verwendete Browser), die zunächst
+  p9-l28  [127 513 485 522]  {TeXGyreTermes-Regular 10}rechtlich unbedenklich sind, ermöglichen zentrale Analysedienste wie Google Analytics
+  p9-l29  [127 525 485 534]  {TeXGyreTermes-Regular 10}die Möglichkeit, die Nutzungsaktivitäten über die ebenfalls abgespeicherte IP-Adresse
+  p9-l30  [127 537 486 546]  {TeXGyreTermes-Regular 10}zusammen zu führen und webseitenübergreifend einer bestimmten Nutzerin zuzuordnen.
+  p9-l31  [127 549 485 558]  {TeXGyreTermes-Regular 10}Eine datenschutzkonforme Nutzung von Analysediensten wie Google Analytics ist daher
+  p9-l32  [127 561 486 570]  {TeXGyreTermes-Regular 10}nur zulässig, wenn eine Anonymisierung der IP-Adresse – etwa in Form einer Kürzung –
+  p9-l33  [127 573 486 582]  {TeXGyreTermes-Regular 10}gewährleistet wird, da aufgrund dieser Kürzung nach überwiegender Ansicht der Daten-
+  p9-l34  [127 585 484 594]  {TeXGyreTermes-Regular 10}schützer{ntxsups-Regular 10}22{TeXGyreTermes-Regular 10} der direkte Personenbezug entfalle. Soweit nach der jüngsten Rechtsprechung{ntxsups-Regular 10}23
+  p9-l35  [127 597 485 606]  {TeXGyreTermes-Regular 10}dynamische IP-Adressen personenbezogene Daten darstellen, dürfen sie nur verarbeitet
+  p9-l36  [127 609 475 618]  {TeXGyreTermes-Regular 10}werden, wenn dies entweder gesetzlich gestattet ist oder die Betroffene eingewilligt hat.
+  p9-l37  [125 628 374 635]  {ntxsups-Regular 8}21{TeXGyreTermes-Regular 8} BGH v. 22.06.2011, Az. I ZR 159/10; BGH v. 17.03.2003, Az. I ZR 259/00.
+  p9-l38  [125 638 485 645]  {ntxsups-Regular 8}22{TeXGyreTermes-Regular 8} Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von
+  p9-l39  [132 647 193 654]  {TeXGyreTermes-Regular 8}Analyseverfahren“.
+  p9-l40  [125 657 374 664]  {ntxsups-Regular 8}23{TeXGyreTermes-Regular 8} BGH v. 16.05.2017, Az. VI ZR 135/13; EuGH v. 19.10.2016, Az. C-582/14.
+  p9-d1  [127 144 485 145]  drawing
+  p9-d2  [127 624 270 625]  drawing
+  == page 10  612 x 792  lines 42  pictures 0  drawings 2
+  p10-l1  [129 135 317 143]  {TeXGyreTermes-Regular 9}10 Max Maass, Anne Laubach, Dominik Herrmann
+  p10-l2  [127 156 485 165]  {TeXGyreTermes-Regular 10}Die gesetzliche Grundlage für den Umgang mit Nutzungsdaten ist derzeit noch das nationale
+  p10-l3  [127 168 485 177]  {TeXGyreTermes-Regular 10}Telemediengesetz (TMG), speziell § 15 Abs. 3 TMG, der auch im Falle einer verkürzten
+  p10-l4  [127 180 486 189]  {TeXGyreTermes-Regular 10}IP anwendbar ist.{ntxsups-Regular 10}24{TeXGyreTermes-Regular 10} Nach dieser Vorschrift ist die Erstellung von pseudonymisierten Nut-
+  p10-l5  [127 192 485 201]  {TeXGyreTermes-Regular 10}zungsprofilen zu festgelegten Zwecken auch ohne die Einwilligung der betroffenen Nutzerin
+  p10-l6  [127 204 485 213]  {TeXGyreTermes-Regular 10}zulässig, soweit der Nutzerin gem. § 15 Abs. 3 Satz 2 TMG ein Recht zum Widerspruch
+  p10-l7  [127 216 485 225]  {TeXGyreTermes-Regular 10}(„Opt-out“) gegen diese Erstellung eingeräumt und sie auf die Möglichkeit des Widerspruchs
+  p10-l8  [127 228 485 237]  {TeXGyreTermes-Regular 10}auch hingewiesen wird.{ntxsups-Regular 10}25{TeXGyreTermes-Regular 10} Um beurteilen zu können, ob der Webseitenbetreiber seinen
+  p10-l9  [127 240 485 249]  {TeXGyreTermes-Regular 10}Hinweispflichten ausreichend nachgekommen ist, wäre eine Betrachtung des Impressums
+  p10-l10  [127 252 294 261]  {TeXGyreTermes-Regular 10}und der Datenschutzerklärung notwendig.
+  p10-l11  [127 272 485 281]  {TeXGyreTermes-Regular 10}Etwas anderes kann sich möglicherweise zukünftig aufgrund des Entwurfs der Verordnung
+  p10-l12  [127 284 485 293]  {TeXGyreTermes-Regular 10}über Privatsphäre und elektronische Kommunikation (e-Privacy-VO-E) ergeben. Nach
+  p10-l13  [127 296 485 305]  {TeXGyreTermes-Regular 10}Art. 8 Abs. 1 des Verordnungsentwurfs, ist „jede vom betreffenden Endnutzer nicht selbst
+  p10-l14  [127 308 486 317]  {TeXGyreTermes-Regular 10}vorgenommene Nutzung der Verarbeitungs- und Speicherfunktionen“ grundsätzlich verboten,
+  p10-l15  [127 320 485 328]  {TeXGyreTermes-Regular 10}es sei denn, der Endnutzer hat seine Einwilligung gegeben oder es greifen die übrigen
+  p10-l16  [127 331 485 340]  {TeXGyreTermes-Regular 10}Ausnahmen von Abs. 1 lit. a–d. Ob unter die Ausnahme nach Art. 8 Abs. 1 lit. d auch externe
+  p10-l17  [127 343 485 352]  {TeXGyreTermes-Regular 10}Analysedienste fallen, hängt von der Auslegung der Einschränkung, „sofern der Betreiber (...)
+  p10-l18  [127 355 485 364]  {TeXGyreTermes-Regular 10}diese Messung durchführt“, ab. Dies könnte problematisch sein, da externe Dienste gerade
+  p10-l19  [127 367 485 376]  {TeXGyreTermes-Regular 10}nicht identisch mit dem Webseitenbetreiber sind, der den vom Endnutzer gewünschten
+  p10-l20  [127 379 485 388]  {TeXGyreTermes-Regular 10}Dienst anbietet. Die Folge wäre, dass zukünftig das Nutzen von Analysediensten generell
+  p10-l21  [127 391 485 400]  {TeXGyreTermes-Regular 10}von der vorherigen Einwilligung („Opt-in“) der betroffenen Nutzerin abhängig wäre. Zudem
+  p10-l22  [127 403 485 412]  {TeXGyreTermes-Regular 10}hätten Nutzerinnen zukünftig gem. Art. 9 Abs. 3 des Verordnungsentwurfs ein jederzeitiges
+  p10-l23  [127 415 485 424]  {TeXGyreTermes-Regular 10}Widerrufsrecht bezüglich der einmal erteilten Einwilligung, an das sie halbjährlich erinnern
+  p10-l24  [127 426 485 436]  {TeXGyreTermes-Regular 10}werden müssten. Im Übrigen würden sich die Anforderungen der Einwilligung gem. Art. 9
+  p10-l25  [127 439 423 448]  {TeXGyreTermes-Regular 10}Abs. 1 des Verordnungsentwurfs nach Art. 7 und 4 Nr. 11 DSGVO richten.
+  p10-l26  [127 458 486 468]  {TeXGyreTermes-Regular 10}Ähnlich stellt es sich bei fehlender Verschlüsselungssoftware dar, da eine generelle Ver-
+  p10-l27  [127 471 485 480]  {TeXGyreTermes-Regular 10}schlüsselungspflicht für Webseitenbetreiber nicht ausdrücklich normiert ist. Vorschriften zur
+  p10-l28  [127 483 485 492]  {TeXGyreTermes-Regular 10}Datensicherheit finden sich derzeit u. a. in § 9 Bundesdatenschutz (BDSG) und dessen Anlage
+  p10-l29  [127 495 486 504]  {TeXGyreTermes-Regular 10}sowie im für Telemedien spezielleren § 13 Abs. 7 TMG. Da die Datenschutz-Grundverord-
+  p10-l30  [127 507 485 516]  {TeXGyreTermes-Regular 10}nung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gem. § 288 Abs. 2
+  p10-l31  [127 519 485 528]  {TeXGyreTermes-Regular 10}AEUV mit Geltungsbeginn am 25.5.2018 unmittelbar in den Mitgliedsstaaten anwendbar
+  p10-l32  [127 531 485 540]  {TeXGyreTermes-Regular 10}sein werden, werden sie diese nationalen Regelungen im Rahmen des Anwendungsvorrangs
+  p10-l33  [127 543 485 552]  {TeXGyreTermes-Regular 10}verdrängen. Aus Erwägungsgrund 5 des Entwurfs der e-Privacy-VO geht hervor, dass diese
+  p10-l34  [127 555 486 564]  {TeXGyreTermes-Regular 10}gegenüber der DSGVO spezieller sein soll, wenn ihr Anwendungsbereich betroffen ist.
+  p10-l35  [127 567 486 576]  {TeXGyreTermes-Regular 10}Gleichzeitig verweist Erwägungsgrund 37 des Verordnungsentwurfs hinsichtlich der Bewer-
+  p10-l36  [127 578 485 588]  {TeXGyreTermes-Regular 10}tung der Datensicherheit auf Art. 32 DSGVO, in dem i. V. m. Art. 5 Abs. 1 lit. f DSGVO
+  p10-l37  [127 591 485 599]  {TeXGyreTermes-Regular 10}die Datensicherheit als allgemeiner Grundsatz normiert ist. Art. 32 DSGVO verpflichtet
+  p10-l38  [127 602 485 611]  {TeXGyreTermes-Regular 10}den Verantwortlichen (Art. 4 Nr. 7 DSGVO) sowie den Auftragsverarbeiter (Art. 4 Nr. 8
+  p10-l39  [127 614 485 623]  {TeXGyreTermes-Regular 10}DSGVO) „geeignete technische und organisatorischen Maßnahmen“ zur Herstellung eines
+  p10-l40  [126 626 485 635]  {TeXGyreTermes-Regular 10}„angemessenen Datenschutzniveaus“ zu gewährleisten. Neben der Pseudonymisierung nennt
+  p10-l41  [125 645 282 653]  {ntxsups-Regular 8}24{TeXGyreTermes-Regular 8} LG Frankfurt v. 18.02.2014, Az. 3-10 O 86/12.
+  p10-l42  [125 655 263 662]  {ntxsups-Regular 8}25{TeXGyreTermes-Regular 8} BGH v. 16.07.2008, Az. VIII ZR 348/06.
+  p10-d1  [127 144 485 145]  drawing
+  p10-d2  [127 641 270 642]  drawing
+  == page 11  612 x 792  lines 40  pictures 0  drawings 2
+  p11-l1  [421 135 483 143]  {TeXGyreTermes-Regular 9}PrivacyScore 11
+  p11-l2  [127 156 485 165]  {TeXGyreTermes-Regular 10}der Normgeber in Art. 32 Abs. 1 lit. a DSGVO auch die Verschlüsselung als eine der
+  p11-l3  [127 168 485 177]  {TeXGyreTermes-Regular 10}bevorzugten Maßnahmen. Ebenso wie die Pseudonymisierung, ist die Verschlüsselung
+  p11-l4  [127 180 486 189]  {TeXGyreTermes-Regular 10}jedoch nicht in jedem Einzelfall zwingend geboten. Welche Maßnahmen sich als erfor-
+  p11-l5  [127 192 485 201]  {TeXGyreTermes-Regular 10}derlich und angemessen erweisen, um ein „dem Risiko angemessenes Schutzniveau zu
+  p11-l6  [127 204 485 213]  {TeXGyreTermes-Regular 10}gewährleisten“, muss vielmehr im Rahmen einer Gesamtabwägung an das Einzelfallrisiko
+  p11-l7  [127 216 485 225]  {TeXGyreTermes-Regular 10}angepasst werden. Hierfür ist im Rahmen des Art. 32 Abs. 1 DSGVO neben der Schwere
+  p11-l8  [127 228 485 237]  {TeXGyreTermes-Regular 10}und Eintrittswahrscheinlichkeit des Risikos für die Rechte und Freiheiten der von der
+  p11-l9  [127 240 485 249]  {TeXGyreTermes-Regular 10}Verarbeitung Betroffenen, das sich insbesondere an der Schutzbedürftigkeit der einzelnen
+  p11-l10  [127 252 486 261]  {TeXGyreTermes-Regular 10}gespeicherten personenbezogenen Daten orientiert, auf der anderen Seite sowohl das tech-
+  p11-l11  [127 264 485 273]  {TeXGyreTermes-Regular 10}nisch Machbare nach dem „Stand der Technik“ als auch die wirtschaftliche Belastung des
+  p11-l12  [127 276 485 285]  {TeXGyreTermes-Regular 10}Verarbeiters, insbesondere die Implementierungskosten, mit einzubeziehen. Lediglich das
+  p11-l13  [127 288 485 297]  {TeXGyreTermes-Regular 10}wirtschaftlich Zumutbare wird erwartet. Dies kann im Einzelfall auch dazu führen, dass ein
+  p11-l14  [127 300 334 309]  {TeXGyreTermes-Regular 10}Verantwortlicher keine Maßnahmen ergreifen muss.
+  p11-l15  [127 334 485 343]  {TeXGyreTermes-Bold 10 b}Rechtliche Herausforderungen hinsichtlich der Veröffentlichung der Ergebnisse{TeXGyreTermes-Regular 10} Auf
+  p11-l16  [127 346 485 355]  {TeXGyreTermes-Regular 10}der PrivacyScore-Webseite können sowohl Detail-Ergebnisse für einzelne Webseiten als
+  p11-l17  [127 358 485 367]  {TeXGyreTermes-Regular 10}auch vergleichende Rankings eingesehen werden. Bei den Detail-Ergebnissen handelt es sich
+  p11-l18  [127 370 485 379]  {TeXGyreTermes-Regular 10}um Tatsachenbehauptungen, die überprüfbar und damit dem Beweis zugänglich sind. Die
+  p11-l19  [127 382 486 391]  {TeXGyreTermes-Regular 10}erstellten Rankings dürften hingegen auf diesen Tatsachen beruhende Werturteile darstellen.
+  p11-l20  [127 394 485 403]  {TeXGyreTermes-Regular 10}Beide sind nach ständiger Rechtsprechung gleichermaßen von der Meinungsfreiheit aus
+  p11-l21  [127 406 485 415]  {TeXGyreTermes-Regular 10}Art. 5 Abs. 1 GG umfasst, soweit es sich um wahre Tatsachen handelt.{ntxsups-Regular 10}26{TeXGyreTermes-Regular 10} Die zugehörigen
+  p11-l22  [127 418 353 427]  {TeXGyreTermes-Regular 10}Scan-Rohdaten werden dazu (soweit zulässig) archiviert.
+  p11-l23  [127 438 485 447]  {TeXGyreTermes-Regular 10}Da mit der Veröffentlichung nachteiliger Bewertungen auch negative Auswirkungen für den
+  p11-l24  [127 450 485 459]  {TeXGyreTermes-Regular 10}Webseitenbetreiber, wie Imageverluste, verbunden sein können, stellt sich die Frage, unter
+  p11-l25  [127 462 463 471]  {TeXGyreTermes-Regular 10}welchen Voraussetzungen sich Betreiber gegen die Veröffentlichung wehren können.
+  p11-l26  [127 482 485 491]  {TeXGyreTermes-Regular 10}Veröffentlichungen über Tatsachen und Werturteile sind solange zulässig und von den
+  p11-l27  [127 493 485 502]  {TeXGyreTermes-Regular 10}Bewerteten hinzunehmen, wie sie keinen rechtswidrigen Eingriff in das Persönlichkeitsrecht
+  p11-l28  [127 505 485 514]  {TeXGyreTermes-Regular 10}des Betreibers darstellen. Ein solcher ist anzunehmen, wenn im Rahmen einer Abwägung
+  p11-l29  [127 516 485 526]  {TeXGyreTermes-Regular 10}das Schutzinteresse des von der Äußerung Betroffenen auf Schutz seiner Persönlichkeit
+  p11-l30  [127 529 486 538]  {TeXGyreTermes-Regular 10}aus Art. 1 Abs. 1 GG i. V. m. Art. 2 Abs. 1 GG, die schutzwürdigen Belange an der Ver-
+  p11-l31  [127 541 485 550]  {TeXGyreTermes-Regular 10}öffentlichung aus Art. 5 Abs. 1 GG überwiegen. Für inländische Unternehmen kann sich
+  p11-l32  [127 553 485 562]  {TeXGyreTermes-Regular 10}ein Persönlichkeitsrecht aus Art. 2 Abs. 1 GG i. V. m. Art. 19 Abs. 3 GG und Art. 12 Abs. 1
+  p11-l33  [127 565 486 574]  {TeXGyreTermes-Regular 10}GG ergeben. Dies gilt jedoch nur in abgeschwächter Form, da Unternehmen und Unterneh-
+  p11-l34  [127 577 485 586]  {TeXGyreTermes-Regular 10}mer, die sich bewusst nach außen hin darstellen, kritische Bewertungen eher hinnehmen
+  p11-l35  [127 589 485 598]  {TeXGyreTermes-Regular 10}müssen.{ntxsups-Regular 10}27{TeXGyreTermes-Regular 10} Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von
+  p11-l36  [127 601 485 610]  {TeXGyreTermes-Regular 10}Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern
+  p11-l37  [127 612 485 622]  {TeXGyreTermes-Regular 10}sie Adressat strafbarer Äußerungen i. S. v. §§ 185 ff. StGB werden und die konkrete Aussage
+  p11-l38  [127 625 374 634]  {TeXGyreTermes-Regular 10}geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
+  p11-l39  [125 644 401 651]  {ntxsups-Regular 8}26{TeXGyreTermes-Regular 8} BVerfG v. 09.10.1991, Az. 1 BvR 1555/88; BVerfG v. 13.04.1994, Az. 1 BvR 23/94.
+  p11-l40  [125 654 254 661]  {ntxsups-Regular 8}27{TeXGyreTermes-Regular 8} BGH v. 29.01.2002, Az. VI ZR 20/01.
+  p11-d1  [127 144 485 145]  drawing
+  p11-d2  [127 640 270 641]  drawing
+  == page 12  612 x 792  lines 40  pictures 0  drawings 2
+  p12-l1  [129 135 317 143]  {TeXGyreTermes-Regular 9}12 Max Maass, Anne Laubach, Dominik Herrmann
+  p12-l2  [127 156 486 165]  {TeXGyreTermes-Regular 10}Eine Beurteilung eines rechtswidrigen Eingriffs unter Abwägung der Interessen ist grund-
+  p12-l3  [127 168 485 177]  {TeXGyreTermes-Regular 10}sätzlich nur im Einzelfall möglich. Die Veröffentlichung einer kritischen Bewertung der
+  p12-l4  [127 180 485 189]  {TeXGyreTermes-Regular 10}Webseite kann für den Betroffenen zu einer Rufbeeinträchtigung führen und ihn nicht
+  p12-l5  [127 192 485 201]  {TeXGyreTermes-Regular 10}unerheblich belasten. Da die untersuchten Webseiten aber öffentlich sind, werden diese
+  p12-l6  [127 204 485 213]  {TeXGyreTermes-Regular 10}regelmäßig der Sozialsphäre des Betroffenen zuzuordnen sein, d. h. beruflichen, politischen
+  p12-l7  [127 216 486 225]  {TeXGyreTermes-Regular 10}oder ähnlichen Tätigkeiten, in denen Menschen im sozialen Austausch stehen. Beeinträchti-
+  p12-l8  [127 228 485 237]  {TeXGyreTermes-Regular 10}gungen in diesem Bereich unterliegen zumeist einem schwachen Schutz. Im Rahmen der
+  p12-l9  [127 240 485 249]  {TeXGyreTermes-Regular 10}Interessenabwägung bei betroffenen Unternehmern betont die Rechtsprechung{ntxsups-Regular 10}28{TeXGyreTermes-Regular 10} regelmäßig
+  p12-l10  [127 252 485 261]  {TeXGyreTermes-Regular 10}das Informationsinteresse der Allgemeinheit. Insbesondere vor dem Hintergrund der freien
+  p12-l11  [127 264 485 273]  {TeXGyreTermes-Regular 10}Wahl, die untersuchten Webseiten je nach Ergebnis zu nutzen oder dies zu vermeiden, ist
+  p12-l12  [127 274 485 285]  {TeXGyreTermes-Regular 10}das Interesse der Öffentlichkeit an den Informationen über privatrechtliche Risiken beim
+  p12-l13  [127 288 485 297]  {TeXGyreTermes-Regular 10}Besuch der Webseiten nicht unerheblich. Ein Recht des Betroffenen wird daher regelmäßig
+  p12-l14  [127 300 485 309]  {TeXGyreTermes-Regular 10}nicht das Kommunikationsinteresse überwiegen. Bei Privatpersonen wird im Rahmen der
+  p12-l15  [127 310 485 321]  {TeXGyreTermes-Regular 10}Interessenabwägung häufig zusätzlich auf die Breitenwirkung der Äußerung abgestellt: je
+  p12-l16  [127 322 485 332]  {TeXGyreTermes-Regular 10}größer der Adressatenkreis, desto belastender die Äußerung.{ntxsups-Regular 10}29{TeXGyreTermes-Regular 10} Eine Risikoreduzierung für
+  p12-l17  [127 335 485 344]  {TeXGyreTermes-Regular 10}den Betroffenen könnte in diesen Fällen dadurch erreicht werden, dass die Ergebnisse nur
+  p12-l18  [127 347 375 356]  {TeXGyreTermes-Regular 10}einem beschränkten Adressatenkreis zur Verfügung zu stellen.
+  p12-l19  [127 367 486 376]  {TeXGyreTermes-Regular 10}Aus Art. 17 Abs. 1 DSGVO könnte dem Betroffenen in diesem Zusammenhang ein Lö-
+  p12-l20  [127 379 485 388]  {TeXGyreTermes-Regular 10}schungsanspruch zustehen, soweit die gespeicherten Daten personenbezogen sind und
+  p12-l21  [127 391 485 400]  {TeXGyreTermes-Regular 10}deren Speicherung unzulässig ist. Eine Datenverarbeitung ist gem. Art. 5 Abs. 1 lit. a und
+  p12-l22  [127 403 486 412]  {TeXGyreTermes-Regular 10}Art. 6 Abs. 1 DSGVO dann rechtmäßig, wenn eine Einwilligung des Betroffenen vorliegt,
+  p12-l23  [127 415 485 424]  {TeXGyreTermes-Regular 10}was regelmäßig nicht der Fall sein wird, oder eine andere Bedingung des Art. 6 Abs. 1
+  p12-l24  [127 427 485 436]  {TeXGyreTermes-Regular 10}DSGVO erfüllt ist. In Betracht käme als Erlaubnistatbestand Art. 6 Abs. 1 UAbs. 1 lit. f
+  p12-l25  [127 439 485 448]  {TeXGyreTermes-Regular 10}DSGVO. Dazu müsste die Verarbeitung der Daten „zur Wahrung der berechtigten Interessen
+  p12-l26  [127 451 485 460]  {TeXGyreTermes-Regular 10}des Verantwortlichen oder eines Dritten erforderlich“ sein, „sofern nicht die Interessen oder
+  p12-l27  [127 463 486 472]  {TeXGyreTermes-Regular 10}Grundrechte der betroffenen Person überwiegen“. Im Rahmen der durchzuführenden Interes-
+  p12-l28  [127 473 485 484]  {TeXGyreTermes-Regular 10}senabwägung kann aufgrund der eben angeführten Argumente regelmäßig ein Überwiegen
+  p12-l29  [127 487 485 496]  {TeXGyreTermes-Regular 10}des Kommunikationsinteresses gegenüber dem Recht des Betroffenen auf informationelle
+  p12-l30  [127 499 439 508]  {TeXGyreTermes-Regular 10}Selbstbestimmung angenommen und ein Löschungsanspruch verneint werden.
+  p12-l31  [127 519 485 528]  {TeXGyreTermes-Regular 10}Sofern sich die negative Bewertung im Rahmen von Art. 5 Abs. 1 GG bewegt, scheiden
+  p12-l32  [127 531 453 540]  {TeXGyreTermes-Regular 10}auch wettbewerbsrechtliche Ansprüche gem. § 4 Nr. 1 und 2 i. V. m. § 8 UWG aus.
+  p12-l33  [127 565 253 576]  {TeXGyreTermes-Bold 12 b}7 Schlussbemerkungen
+  p12-l34  [127 590 485 599]  {TeXGyreTermes-Regular 10}Der sichere und datenschutzfreundliche Betrieb einer Webseite ist aufwändig, meist mit
+  p12-l35  [127 602 486 611]  {TeXGyreTermes-Regular 10}zusätzlichen Kosten verbunden oder nicht mit dem Geschäftsmodell eines Seitenbetrei-
+  p12-l36  [127 614 485 623]  {TeXGyreTermes-Regular 10}bers vereinbar. Daher ist das Sicherheits- und Privatheitsniveau vieler Webseiten derzeit
+  p12-l37  [127 626 485 635]  {TeXGyreTermes-Regular 10}unzureichend. Das Ziel des PrivacyScore-Projekts besteht darin, Transparenz herzustellen
+  p12-l38  [125 644 486 651]  {ntxsups-Regular 8}28{TeXGyreTermes-Regular 8} BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012,
+  p12-l39  [132 653 179 660]  {TeXGyreTermes-Regular 8}Az. 5 U 51/11.
+  p12-l40  [125 663 256 670]  {ntxsups-Regular 8}29{TeXGyreTermes-Regular 8} BGH v. 23.06.2009, Az. VI ZR196/08.
+  p12-d1  [127 144 485 145]  drawing
+  p12-d2  [127 639 270 640]  drawing
+  == page 13  612 x 792  lines 40  pictures 0  drawings 1
+  p13-l1  [421 135 483 143]  {TeXGyreTermes-Regular 9}PrivacyScore 13
+  p13-l2  [127 155 485 165]  {TeXGyreTermes-Regular 10}und Öffentlichkeit zu generieren. PrivacyScore erstellt dazu automatisierte Vergleiche der
+  p13-l3  [127 168 485 177]  {TeXGyreTermes-Regular 10}Sicherheits- und Privatheitseigenschaften mehrerer Webseiten und zeigt die Ergebnisse in
+  p13-l4  [127 180 485 189]  {TeXGyreTermes-Regular 10}Form von regelmäßig aktualisierten Ranglisten an. Sowohl die zu überprüfenden Webseiten
+  p13-l5  [127 192 474 201]  {TeXGyreTermes-Regular 10}als auch die Bewertungskriterien können dabei von den Nutzerinnen festgelegt werden.
+  p13-l6  [127 212 486 221]  {TeXGyreTermes-Regular 10}Juristisch ist die Verwendung von PrivacyScore in seiner aktuell geplanten Form zulässig,
+  p13-l7  [127 224 486 233]  {TeXGyreTermes-Regular 10}soweit die untersuchte Webseite frei zugänglich ist und kein Sonderrechtsschutz besteht.
+  p13-l8  [127 236 485 245]  {TeXGyreTermes-Regular 10}Die Veröffentlichung der Ergebnisse ist vom Schutz der Meinungsfreiheit umfasst, sofern
+  p13-l9  [127 246 485 257]  {TeXGyreTermes-Regular 10}diese keine unwahren oder beleidigenden Äußerungen enthalten. Regelmäßig ist auch keine
+  p13-l10  [127 260 397 269]  {TeXGyreTermes-Regular 10}Einwilligung des Betreibers der untersuchten Webseite erforderlich.
+  p13-l11  [127 280 485 289]  {TeXGyreTermes-Regular 10}PrivacyScore ist Open-Source-Software. Das System kann daher auch innerbetrieblich
+  p13-l12  [127 292 485 301]  {TeXGyreTermes-Regular 10}eingesetzt werden und beispielsweise die Arbeit von Datenschutz-Aufsichtsbehörden
+  p13-l13  [127 304 485 313]  {TeXGyreTermes-Regular 10}unterstützen. Die auf der öffentlich angebotenen PrivacyScore-Seite erzeugten Datensätze
+  p13-l14  [127 316 457 325]  {TeXGyreTermes-Regular 10}werden darüber hinaus als Rohdaten für Forschungszwecke zur Verfügung gestellt.
+  p13-l15  [127 350 485 359]  {TeXGyreTermes-Bold 10 b}Danksagung{TeXGyreTermes-Regular 10} Teile dieser Arbeit wurden in Forschungsteilbereichen C.1 und C.2 innerhalb
+  p13-l16  [127 362 485 371]  {TeXGyreTermes-Regular 10}des GRK 2050 „Privacy and Trust for Mobile Users“ durch die DFG finanziert. Die Autoren
+  p13-l17  [127 374 485 383]  {TeXGyreTermes-Regular 10}danken Marvin Hebisch, Nico Vitt und Pascal Wichmann für die Implementation des
+  p13-l18  [127 386 485 395]  {TeXGyreTermes-Regular 10}Prototypen, sowie den Teilnehmenden des Workshops{TeXGyreTermes-Italic 10 i} PET-CON 2017.1{TeXGyreTermes-Regular 10} und Mitgliedern
+  p13-l19  [127 398 282 407]  {TeXGyreTermes-Regular 10}von Digitalcourage e. V. für ihre Ideen.
+  p13-l20  [127 433 232 443]  {TeXGyreTermes-Bold 12 b}Literaturverzeichnis
+  p13-l21  [127 452 486 460]  {TeXGyreTermes-Regular 9}[EN16] Englehardt, S.; Narayanan, A.: Online tracking: A 1-million-site measurement and analysis.
+  p13-l22  [162 462 241 470]  {TeXGyreTermes-Regular 9}In: CCS. ACM, 2016.
+  p13-l23  [127 479 151 487]  {TeXGyreTermes-Regular 9}[Fa14]
+  p13-l24  [162 479 485 487]  {TeXGyreTermes-Regular 9}Fahl, S.; Acar, Y.; Perl, H.; Smith, M.: Why eve and mallory (also) love webmasters: A Study
+  p13-l25  [162 489 472 497]  {TeXGyreTermes-Regular 9}on the Root Causes of SSL Misconfigurations. In: AsiaCCS. ACM, S. 507–512, 2014.
+  p13-l26  [127 506 485 514]  {TeXGyreTermes-Regular 9}[Ho16] Holz, R.; Amann, J.; Mehani, O.; Kâafar, M.A.; Wachs, M.: TLS in the Wild: An Internet-wide
+  p13-l27  [161 516 458 524]  {TeXGyreTermes-Regular 9}Analysis of TLS-based Protocols for Electronic Communication. In: NDSS. 2016.
+  p13-l28  [127 534 485 542]  {TeXGyreTermes-Regular 9}[Ma16] Mayer, W.; Zauner, A.; Schmiedecker, M.; Huber, M.: No Need for Black Chambers: Testing
+  p13-l29  [162 544 425 552]  {TeXGyreTermes-Regular 9}TLS in the E-mail Ecosystem at Large. In: ARES. IEEE, S. 10–20, 2016.
+  p13-l30  [127 561 485 569]  {TeXGyreTermes-Regular 9}[MH17] Maass, M.; Herrmann, D.: PrivacyScore: Improving Privacy and Security via Crowd-Sourced
+  p13-l31  [162 571 484 579]  {TeXGyreTermes-Regular 9}Benchmarks of Websites. Annual Privacy Forum. https://arxiv.org/abs/1705.05139, 2017.
+  p13-l32  [127 588 153 596]  {TeXGyreTermes-Regular 9}[Ro14]
+  p13-l33  [162 588 485 596]  {TeXGyreTermes-Regular 9}Roßnagel, A.: Fahrzeugdaten – wer darf über sie entscheiden? Zuordnungen – Ansprüche –
+  p13-l34  [162 598 365 606]  {TeXGyreTermes-Regular 9}Haftung. Straßenverkehrsrecht (SVR), 8:181–187, 2014.
+  p13-l35  [127 615 153 623]  {TeXGyreTermes-Regular 9}[Ro17]
+  p13-l36  [162 615 485 623]  {TeXGyreTermes-Regular 9}Roßnagel, A.: Rechtsfragen eines Smart Data-Austauschs – Datengetriebene Kooperation in
+  p13-l37  [162 625 416 633]  {TeXGyreTermes-Regular 9}der Industrie. Neue Juristische Wochenschrift (NJW), 70:10–15, 2017.
+  p13-l38  [127 642 152 651]  {TeXGyreTermes-Regular 9}[Ze15]
+  p13-l39  [162 643 486 651]  {TeXGyreTermes-Regular 9}Zech, H.: Industrie 4.0 – Rechtsrahmen für eine Datenwirtschaft im digitalen Binnenmarkt.
+  p13-l40  [162 652 265 661]  {TeXGyreTermes-Regular 9}GRUR, S. 1151–1160, 2015.
+  p13-d1  [127 144 485 145]  drawing
+  
+  '''
+# ---
 # name: test_golden_file[arxiv2024-arsiwalla-qualia-meaning]
   '''
   arxiv2024-arsiwalla-qualia-meaning.pdf  sha256 5358bf0352ec8aa9

@@ -165,6 +165,33 @@ def test_a_number_in_the_text_size_is_not_a_mark() -> None:
     assert footnotes(build(lines, rule())) == [("1", "1 A note that ends a line with\n12 cases.")]
 
 
+def raised_note(number: str, text: str, y: float, rise: float) -> TextLine:
+    """A notes line in 8 point whose mark is set in the text's size but raised by `rise`
+    points, as superior figures are (#235: LNI from page 2 on). Boxes are loose, as
+    extraction gives them: the mark's box is shorter at the bottom."""
+    width = 4.0 * len(number)
+    return TextLine(
+        f"n{next(_ids)}",
+        (
+            TextRun(number, "Times", 8.0, box=Box(LEFT, y, LEFT + width, y + 7.2 - rise)),
+            TextRun(text, "Times", 8.0, box=Box(LEFT + width, y, LEFT_END, y + 7.2)),
+        ),
+        Box(LEFT, y, LEFT_END, y + 7.2),
+    )
+
+
+def test_a_raised_mark_in_the_text_size_starts_a_note() -> None:
+    """D-507: raised by `footnote_mark_rise` (0.1 em) or more, a mark in the text's size
+    starts a note; 0.05 em is not enough, and a number on the baseline never is."""
+    notes = [
+        raised_note("4", " https://example.org/a", RULE_Y + 6, rise=2.8),  # 0.35 em, as LNI
+        raised_note("5", " https://example.org/b", RULE_Y + 16, rise=0.8),  # 0.1 em
+        raised_note("12", " cases on a line of note 5.", RULE_Y + 26, rise=0.4),  # 0.05 em
+        raised_note("13", " cases on the baseline.", RULE_Y + 36, rise=0.0),
+    ]
+    assert [label for label, _ in footnotes(build(notes, rule()))] == ["4", "5"]
+
+
 def test_the_text_below_a_rule_without_a_mark_is_one_note_without_a_label() -> None:
     notes = [note("", "Code at a public site.", RULE_Y + 6), note("", "Data too.", RULE_Y + 16)]
     assert footnotes(build(notes, rule())) == [("", "Code at a public site.\nData too.")]

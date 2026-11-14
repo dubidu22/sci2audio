@@ -28,6 +28,7 @@ from sci2audio.core import (
 )
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.layout.build import _in_page_order, columns_per_page
+from sci2audio.layout.furniture import _is_stamp, edges
 from sci2audio.layout.split import kept
 
 LEFT, RIGHT, GUTTER = 70.0, 526.0, 16.0
@@ -359,6 +360,70 @@ def test_a_body_size_head_needs_head_share_of_the_pages() -> None:
     assert len(head_roles(build_document(content(*pages), settings))) == 3
 
 
+# Running heads in a small type area (#235, D-502 to D-505): the LNI template sets its text
+# 17 % down Letter paper, so its heads stand below the paper's top `edge_band`.
+
+TYPE_TOP = 136.0  # where the type area's first row stands: 0.17 of the page, as in LNI
+
+
+def small_area_page(number: int, head: str | None) -> list:
+    """A page whose printing starts at `TYPE_TOP`: a 9 point head (if any), then body text
+    from 20 points lower, its last paragraph ending on the page."""
+    body = column(f"p{number}-", LEFT, RIGHT, TYPE_TOP + 20, 30)
+    body[-1] = short(body[-1])
+    return body if head is None else [line(head, LEFT, TYPE_TOP, 300, size=9), *body]
+
+
+def lni_heads(pages: int) -> dict[int, str]:
+    """Author with the page number on even pages, title with it on odd pages from page 2."""
+    return {
+        n: f"{n} A. Author and B. Author" if n % 2 == 0 else f"A Title of Tests {n}"
+        for n in range(2, pages + 1)
+    }
+
+
+def test_heads_in_a_small_type_area_are_running_heads() -> None:
+    """Nothing in the paper's top band on any page: the type area's first row counts as the
+    top band (D-502), and a head holding its page number is one running head (D-505)."""
+    heads = lni_heads(5)
+    doc = build_document(content(*(small_area_page(n, heads.get(n)) for n in range(1, 6))))
+    assert head_roles(doc) == [heads[n] for n in range(2, 6)]
+    assert doc.page_labels == ("",) * 5  # no page number of its own: the label stays empty
+    page_2 = texts(doc).index(heads[2])
+    assert texts(doc)[page_2 + 1] == "p2-0"  # the head comes first on its page (D-504)
+
+
+def test_anything_in_the_paper_top_band_keeps_the_heads_of_a_small_type_area_as_text() -> None:
+    """One line, or one picture, in the top `edge_band` of one page: the band stays the
+    paper's (D-502), as for the JOSS papers with their logo."""
+    heads = lni_heads(5)
+    pages = [small_area_page(n, heads.get(n)) for n in range(1, 6)]
+    with_line = [[line("Preprint", LEFT, 40, 150), *pages[0]], *pages[1:]]
+    with_logo = content(*pages, pictures=(Picture("logo", Box(LEFT, 30, 150, 70)),))
+    for doc in (build_document(content(*with_line)), build_document(with_logo)):
+        assert head_roles(doc) == []
+        assert set(heads.values()) <= set(texts(doc, BlockKind.PARAGRAPH))
+
+
+def test_only_the_first_row_of_a_small_type_area_joins_the_top_band() -> None:
+    """A lone number one row below the first is no page number, even on a one-page
+    document; in the first row it is one (D-502: not the whole band moved down)."""
+    first_row = line("Running text set from the first row on.", LEFT, TYPE_TOP, RIGHT)
+    below = [first_row, line("4", 295, TYPE_TOP + 16, 305), *column("p", LEFT, RIGHT, 170, 30)]
+    first = [line("4", 295, TYPE_TOP, 305), *column("p", LEFT, RIGHT, TYPE_TOP + 20, 30)]
+    assert roles(build_document(content(below))) == []
+    assert roles(build_document(content(first))) == ["page-number"]
+
+
+def test_the_bottom_band_stays_the_paper_s_in_a_small_type_area() -> None:
+    """D-503: a small footnote line repeated at the foot of a small type area is text."""
+    pages = [
+        [*small_area_page(n, None), line("Az. 5 U 38/10.", LEFT, 640, 200, size=8)]
+        for n in range(1, 4)
+    ]
+    assert roles(build_document(content(*pages))) == []
+
+
 def test_the_last_line_of_a_full_page_is_not_a_footer() -> None:
     body = column("body-", LEFT, RIGHT, 40, 52)  # the last line stands at y 754 of 800
     doc = build_document(content(body))
@@ -556,6 +621,30 @@ def test_a_body_size_edge_line_that_differs_on_every_page_is_never_a_running_hea
         for n, k in enumerate(numbers)
     ]
     assert head_roles(build_document(content(*pages))) == []
+
+
+@given(contents())
+def test_anything_printed_in_the_paper_top_band_keeps_the_paper_band(found: Content) -> None:
+    """D-502: the first row of a small type area joins the top band only when nothing but a
+    side stamp is printed in the paper's top `edge_band` on any page; else every band is
+    the paper's, as before #235."""
+    settings = LayoutSettings()
+    sized = [page for page in found.pages if page.height and page.width]
+    printed = any(
+        box.y0 <= settings.edge_band * (page.height or 0.0)
+        for page in sized
+        for box in (
+            *(li.box for li in page.lines if li.box and not _is_stamp(li, page, settings)),
+            *(g.box for g in (*page.pictures, *page.drawings) if g.box),
+        )
+    )
+    first_row = edges(found, settings).first_row
+    if printed:
+        assert first_row is None
+    for page in sized:
+        for li in page.lines:  # the paper's band is always in the top band
+            if li.box and li.box.y1 <= settings.edge_band * (page.height or 0.0):
+                assert edges(found, settings).band(li.box, page) == "top"
 
 
 @st.composite

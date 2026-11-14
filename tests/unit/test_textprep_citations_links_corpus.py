@@ -34,6 +34,31 @@ pytestmark = pytest.mark.timeout(120)
 PAPERS = sorted((Path(__file__).resolve().parents[1] / "corpus" / "papers").glob("*.pdf"))
 IDS = [paper.stem for paper in PAPERS]
 STEPS = ("links", "citations")
+
+# Corpus tests that skip the German paper until the step they check speaks German, with the
+# Issue that teaches it (#235, D-509); that Issue removes the entries.
+GERMAN_PAPERS = {"arxiv2017-maass-privacyscore"}
+GERMAN_LATER: dict[str, int] = {
+    "test_every_citation_and_link_edit_is_as_recorded": 101,
+    "test_no_link_or_numeric_citation_is_read_outside_the_reference_list": 101,
+}
+
+
+def papers(test: str) -> list:
+    """The corpus papers for this test, the German paper skipped if the test waits."""
+    issue = GERMAN_LATER.get(test)
+    return [
+        pytest.param(
+            paper,
+            id=paper.stem,
+            marks=pytest.mark.skip(reason=f"waits for #{issue}: the step speaks no German yet")
+            if issue and paper.stem in GERMAN_PAPERS
+            else (),
+        )
+        for paper in PAPERS
+    ]
+
+
 PLACEHOLDERS = {BlockKind.FURNITURE, BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE}
 LEFT = re.compile(
     r"https?:|www\.|\S@\S|\b10\.\d{4,9}/|arxiv:\d|"  # links
@@ -81,7 +106,7 @@ def shown(text: str) -> str:
     return re.sub(r"\s+", " ", text)
 
 
-@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+@pytest.mark.parametrize("paper", papers("test_every_citation_and_link_edit_is_as_recorded"))
 def test_every_citation_and_link_edit_is_as_recorded(
     paper: Path, snapshot: SnapshotAssertion
 ) -> None:
@@ -102,7 +127,9 @@ def test_every_citation_and_link_edit_is_as_recorded(
     assert lines == snapshot
 
 
-@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+@pytest.mark.parametrize(
+    "paper", papers("test_no_link_or_numeric_citation_is_read_outside_the_reference_list")
+)
 def test_no_link_or_numeric_citation_is_read_outside_the_reference_list(paper: Path) -> None:
     doc = document(paper)
     skip = reference_list(doc)

@@ -1,8 +1,9 @@
 """Words hyphenated at a line end (TP-02, #65, D-149, D-150, D-152): the written rule.
 
 Unit cases for each part of the rule, property tests, and the corpus: every line-end hyphen
-of the seven papers against the hand-checked readings in
-tests/regression/line-end-hyphens-en.toml, and the "hyphenation" truth sentences.
+of the corpus papers against the hand-checked readings in
+tests/regression/line-end-hyphens-en.toml (and -de.toml for the German paper, #235), and the
+"hyphenation" truth sentences.
 """
 
 import re
@@ -35,6 +36,13 @@ STEP = LineEndHyphenStep()
 TESTS = Path(__file__).resolve().parents[1]
 PAPERS = sorted((TESTS / "corpus" / "papers").glob("*.pdf"))
 READINGS = tomllib.loads((TESTS / "regression" / "line-end-hyphens-en.toml").read_text("utf-8"))
+# The German papers' hyphens, read by the German rule (#235).
+READINGS_DE = tomllib.loads((TESTS / "regression" / "line-end-hyphens-de.toml").read_text("utf-8"))
+GERMAN_PAPERS = {p["name"] for p in READINGS_DE["paper"]}
+
+
+def readings_of(paper: Path) -> dict:
+    return READINGS_DE if paper.stem in GERMAN_PAPERS else READINGS
 
 
 def edits_of(*texts: str) -> list[tuple[Span, str]]:
@@ -386,7 +394,8 @@ def document(paper: Path) -> Document:
 
 def readings_by_rule(doc: Document) -> list[tuple[str, str, str]]:
     """(word before, word after, reading) for each line-end hyphen the step looks at."""
-    edits = {(e.span.block, e.span.start, e.span.end) for e in STEP.find(doc, EN)}
+    context = StepContext(doc.language)  # the German paper by the German rule (#235)
+    edits = {(e.span.block, e.span.start, e.span.end) for e in STEP.find(doc, context)}
     found = []
     for index, block in enumerate(doc.blocks):
         if block.kind in SKIPPED_KINDS:
@@ -409,10 +418,11 @@ def readings_by_rule(doc: Document) -> list[tuple[str, str, str]]:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=[paper.stem for paper in PAPERS])
 def test_every_corpus_line_end_hyphen_reads_as_checked_by_hand(paper: Path) -> None:
-    (expected,) = [p["hyphens"] for p in READINGS["paper"] if p["name"] == paper.stem]
+    readings = readings_of(paper)
+    (expected,) = [p["hyphens"] for p in readings["paper"] if p["name"] == paper.stem]
     misses = {
         (m["before"], m["after"]): m["rule_gives"]
-        for m in READINGS["miss"]
+        for m in readings["miss"]
         if m["paper"] == paper.stem
     }
     got = readings_by_rule(document(paper))
@@ -423,15 +433,17 @@ def test_every_corpus_line_end_hyphen_reads_as_checked_by_hand(paper: Path) -> N
 
 
 def test_the_readings_file_covers_every_paper_and_the_misses_are_real() -> None:
-    assert sorted(p["name"] for p in READINGS["paper"]) == [paper.stem for paper in PAPERS]
-    total = sum(len(p["hyphens"]) for p in READINGS["paper"])
-    assert total == 495
-    for miss in READINGS["miss"]:
-        (paper,) = [p for p in READINGS["paper"] if p["name"] == miss["paper"]]
-        truths = {r for b, a, r in paper["hyphens"] if (b, a) == (miss["before"], miss["after"])}
-        assert truths, miss
-        assert miss["rule_gives"] not in truths, miss
-    assert len(READINGS["miss"]) <= 7  # the rule may get better, never worse
+    named = sorted(p["name"] for readings in (READINGS, READINGS_DE) for p in readings["paper"])
+    assert named == [paper.stem for paper in PAPERS]
+    for readings, total, most in ((READINGS, 495, 7), (READINGS_DE, 38, 1)):
+        assert sum(len(p["hyphens"]) for p in readings["paper"]) == total
+        for miss in readings["miss"]:
+            (paper,) = [p for p in readings["paper"] if p["name"] == miss["paper"]]
+            pair = (miss["before"], miss["after"])
+            truths = {r for b, a, r in paper["hyphens"] if (b, a) == pair}
+            assert truths, miss
+            assert miss["rule_gives"] not in truths, miss
+        assert len(readings["miss"]) <= most  # the rule may get better, never worse
 
 
 def truth_sentences() -> list[tuple[Path, str]]:
@@ -451,7 +463,7 @@ SENTENCES = truth_sentences()
 )
 def test_the_hyphenation_truth_sentences_read_word_for_word(paper: Path, sentence: str) -> None:
     doc = document(paper)
-    script = run_steps(doc, EN, (UnicodeStep(), STEP), strict=True).script()
+    script = run_steps(doc, StepContext(doc.language), (UnicodeStep(), STEP), strict=True).script()
     blocks = [
         spoken_text(piece for piece in script if piece.span.block == index)
         for index in range(len(doc.blocks))
@@ -459,8 +471,8 @@ def test_the_hyphenation_truth_sentences_read_word_for_word(paper: Path, sentenc
     assert any(sentence in block for block in blocks), sentence
 
 
-def test_six_papers_have_a_hyphenation_truth_sentence() -> None:
-    assert len({paper for paper, _ in SENTENCES}) == 6
+def test_seven_papers_have_a_hyphenation_truth_sentence() -> None:
+    assert len({paper for paper, _ in SENTENCES}) == 7  # the German paper's since #235
 
 
 def test_characters_and_hyphenation_run_last() -> None:

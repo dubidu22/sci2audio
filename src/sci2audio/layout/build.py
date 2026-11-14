@@ -18,7 +18,7 @@ from sci2audio.core import (
 from sci2audio.layout.captions import find_captions
 from sci2audio.layout.footnotes import find_footnotes
 from sci2audio.layout.formulas import find_formulas
-from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, find_furniture, page_label
+from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, edges, find_furniture, page_label
 from sci2audio.layout.geometry import body_size, boxed, holds, text_area, union
 from sci2audio.layout.graphics import find_graphics, link_captions
 from sci2audio.layout.headings import find_headings
@@ -127,7 +127,8 @@ class _Layout:
 
     def __init__(self, content: Content, settings: LayoutSettings) -> None:
         self.settings = settings
-        self.furniture = find_furniture(content, settings)
+        self.bands = edges(content, settings)  # one answer for every furniture rule (D-504)
+        self.furniture = find_furniture(content, settings, self.bands)
         self.size = body_size(content) or settings.body_size
         lines = [
             line
@@ -168,7 +169,7 @@ class _Layout:
         reading, furniture = self.read(page)
         edges = self._edges(reading)
         edge = [Element(line.box, line) for line in page.lines if line.box and line.id in furniture]
-        top = [e for e in edge if e.box.y1 <= self.settings.edge_band * (page.height or 0.0)]
+        top = [e for e in edge if self.bands.band(e.box, page) == "top"]
         taken = {id(e) for e in top}
         overlap, settings = self.settings.row_overlap, self.settings
         units: list[Unit] = [Held(_block(e, furniture, settings)) for e in by_rows(top, overlap)]
