@@ -369,6 +369,13 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("10^2x1", "10 hoch 2 mal 1"),  # seed 7001
         ("am 12.03.2019 x .45", "am zwölften März 2019 mal 0 Komma 4 5"),  # seed 8007
         ("Ft\u00adt(1998)=1", "Ftt gleich 1"),  # seed 6007: a soft hyphen in a name
+        # #269 (seed 13001): a sign unit glued before a letter is still a unit
+        ("R²=.05%12.03.2019", "R Quadrat gleich .05%zwölfter März 2019"),
+        ("Es sind 0,05%12.03.2019", "Es sind 0,05%zwölfter März 2019"),
+        ("r = .05%3. Platz", "r gleich .05%dritter Platz"),
+        ("Es sind 0,05%a.", "Es sind 0,05%a."),
+        ("Eine 2,5%ige Lösung.", "Eine 2 Komma 5%ige Lösung."),  # an adjective of it
+        ("Ein 2,5‰iger Anteil.", "Ein 2 Komma 5‰iger Anteil."),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:

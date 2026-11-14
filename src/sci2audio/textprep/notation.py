@@ -188,8 +188,11 @@ _NEXT_TOKEN = re.compile(r"\s{1,2}(\S+)")
 def _unit_start(language: str) -> re.Pattern[str]:
     listed = units(language)
     forms = sorted({f for unit in listed.units for f in unit.printed} if listed else (), key=len)
-    alternatives = "|".join(map(re.escape, reversed(forms))) or "(?!)"
-    return re.compile(rf"(?:{alternatives})(?![^\W\d_])")
+    words = "|".join(re.escape(f) for f in reversed(forms) if f[-1:].isalpha()) or "(?!)"
+    signs = "|".join(re.escape(f) for f in reversed(forms) if not f[-1:].isalpha()) or "(?!)"
+    # a sign stays a unit before a letter too ("2,5%x", "2,5%zwölfter", #269), unless an
+    # adjective is made of it: "2,5%ige Lösung"
+    return re.compile(rf"(?:{words})(?![^\W\d_])|(?:{signs})(?!ig(?:e[mnrs]?)?\b)")
 
 
 def unit_follows(text: str, end: int, language: str) -> bool:

@@ -692,6 +692,23 @@ blocks = [{ kind = "paragraph", text = "Das steht im Buch, 12. Kap. 3, und in de
 expected = ["Das steht im Buch, zwölftes Kapitel 3, und in der zweiten Auflage nicht."]
 
 [[case]]
+id = "de-numbers-decimal-before-a-glued-percent-sign"
+audit = 0
+issue = 269
+goal = "A decimal before a percent sign stays as printed whatever is glued after the sign, as before a space: 'R²=.05%12.03.2019' kept '.05' while digits followed and read it on a second run, once the date was words. Before '%ige' the decimal is still read."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es galt R²=.05%12.03.2019 als Stand." },
+    { kind = "paragraph", text = "Es galt 0,05%x als Wert." },
+    { kind = "paragraph", text = "Eine 2,5%ige Lösung." },
+]
+expected = [
+    "Es galt R Quadrat gleich .05%zwölfter März 2019 als Stand.",
+    "Es galt 0,05%x als Wert.",
+    "Eine 2 Komma 5%ige Lösung.",
+]
+
+[[case]]
 id = "de-abbreviations-before-a-removed-link"
 audit = 0
 issue = 253
