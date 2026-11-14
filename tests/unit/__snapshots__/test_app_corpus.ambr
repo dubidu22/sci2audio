@@ -9905,7 +9905,7 @@
         'switched_off': 0,
       }),
       'citations': dict({
-        'applied': 8,
+        'applied': 10,
         'label': 'Citations',
         'not_spoken': 0,
         'set_aside': 0,
@@ -10979,6 +10979,38 @@
         'step': 'citations',
       }),
       dict({
+        'block': 51,
+        'category': 'citations',
+        'chapter': 5,
+        'end': 84,
+        'kind': 'remove',
+        'original': ' (0801700)',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'identifier "(0801700)", such as a grant number, is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 74,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 51,
+        'category': 'citations',
+        'chapter': 5,
+        'end': 174,
+        'kind': 'remove',
+        'original': ' (527794)',
+        'page': 4,
+        'printed_page': '4',
+        'reason': 'identifier "(527794)", such as a grant number, is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 165,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
         'block': 53,
         'category': 'numbers-and-units',
         'chapter': 6,
@@ -11417,7 +11449,7 @@
   | Characters and hyphenation | 11 | 0 | 0 | 0 |
   | Footnotes | 0 | 0 | 0 | 0 |
   | Footnote texts | 0 | 0 | 0 | 0 |
-  | Citations | 8 | 0 | 0 | 0 |
+  | Citations | 10 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 1 | 0 | 6 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 1 | 0 | 0 | 0 |
@@ -11472,7 +11504,7 @@
   - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "example" (the document prints it so). Step: line-end-hyphens.
   - page 4, chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "contributing". Step: line-end-hyphens.
   
-  ## Citations (8)
+  ## Citations (10)
   
   - page 1, chapter 3, applied: “(Tukey, 1977)” → left out. Reason: citation "(Tukey, 1977)" is not read (TP-03). Step: citations.
   - page 1, chapter 3, applied: “(Hunter, 2007)” → left out. Reason: citation "(Hunter, 2007)" is not read (TP-03). Step: citations.
@@ -11482,6 +11514,8 @@
   - page 3, chapter 5, applied: “(Harris et al., 2020)” → left out. Reason: citation "(Harris et al., 2020)" is not read (TP-03). Step: citations.
   - page 4, chapter 5, applied: “(Wickham, 2016)” → left out. Reason: citation "(Wickham, 2016)" is not read (TP-03). Step: citations.
   - page 4, chapter 5, applied: “(Waskom & Wagner, 2017)” → left out. Reason: citation "(Waskom & Wagner, 2017)" is not read (TP-03). Step: citations.
+  - page 4, chapter 6, applied: “(0801700)” → left out. Reason: identifier "(0801700)", such as a grant number, is not read (TP-03). Step: citations.
+  - page 4, chapter 6, applied: “(527794)” → left out. Reason: identifier "(527794)", such as a grant number, is not read (TP-03). Step: citations.
   
   ## URLs, DOIs and e-mail addresses (7)
   
@@ -12475,7 +12509,7 @@
   
   Acknowledgements
   
-  M.L.W. has been supported by the National Science Foundation IGERT program (0801700) and by the Simons Foundation as a Junior Fellow in the Simons Society of Fellows (527794).
+  M.L.W. has been supported by the National Science Foundation IGERT program and by the Simons Foundation as a Junior Fellow in the Simons Society of Fellows.
   Many others have helped improve seaborn by asking questions, reporting bugs, and contributing code; thank you to this community.
   
   # 7. References (not spoken)
