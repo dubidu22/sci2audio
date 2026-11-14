@@ -30,6 +30,7 @@ from collections.abc import Iterator
 from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
+from sci2audio.textprep.links import link_removals
 from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Abbreviation, abbreviations
@@ -83,7 +84,14 @@ class AbbreviationStep(TextStep):
             edits += edits_through_unread(
                 index,
                 block.text,
-                lambda read: self._edits(index, read, pattern, by_form, any_capital),  # noqa: B023
+                lambda read, index=index, block=block: self._edits(
+                    index,
+                    read,
+                    pattern,
+                    by_form,
+                    any_capital,
+                    _Removals(read, block.kind, block.label, context.language),
+                ),
                 self.id,
             )
         return edits
@@ -95,6 +103,7 @@ class AbbreviationStep(TextStep):
         pattern: re.Pattern[str],
         by_form: dict[str, tuple[Abbreviation, ...]],
         any_capital: bool = False,
+        removals: _Removals | None = None,
     ) -> Iterator[Edit]:
         for match in pattern.finditer(text):
             printed = match.group()
@@ -103,7 +112,14 @@ class AbbreviationStep(TextStep):
                     entry
                     for entry in by_form[_key(printed)]
                     if _case_fits(printed, entry)
-                    and _place_fits(text, match.end(), entry, any_capital)
+                    and (
+                        _place_fits(text, match.end(), entry, any_capital)
+                        or (
+                            removals is not None
+                            and (after := removals.past(match.end())) is not None
+                            and _place_fits(text, after, entry, any_capital)
+                        )
+                    )
                 ),
                 None,
             )
@@ -127,6 +143,32 @@ class AbbreviationStep(TextStep):
                 step=self.id,
                 replacement=reads,
             )
+
+
+class _Removals:
+    """Where the links step removes text in a block, found once and only when asked: an
+    abbreviation before a removed link reads as it does before what follows the link ("Kap.
+    https://x.org/a (ebd.)" is "Kapitel (ebenda)", as a second run, without the link, reads
+    it; #253)."""
+
+    def __init__(self, text: str, kind: BlockKind, label: str, language: str) -> None:
+        self._text = text
+        self._kind = kind
+        self._label = label
+        self._language = language
+        self._spans: list[tuple[int, int]] | None = None
+
+    def past(self, end: int) -> int | None:
+        """The end of the removal that starts right after `end`, white space between."""
+        position = end
+        while position < len(self._text) and self._text[position] in " \t\u00a0":
+            position += 1
+        if self._spans is None:
+            self._spans = link_removals(self._text, self._kind, self._label, self._language)
+        for start, stop in self._spans:
+            if end <= start <= position < stop:
+                return stop
+        return None
 
 
 def _skipped(block: Block) -> bool:

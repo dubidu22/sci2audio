@@ -340,11 +340,14 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("um 13:30 m² Fläche", "um 13:30 m² Fläche"),
         ("Abschnitt 1.234-2011", "Abschnitt 1.234-2011"),
         # an ordinal before the abbreviation of its noun, which the abbreviations step reads
-        ("Daten zeigt 12. Kap. (Müller, o. J.).", "Daten zeigt zwölftes Kapitel (Müller, o. J.)."),
+        ("Daten zeigt 12. Kap. (S. 3).", "Daten zeigt zwölftes Kapitel (Seite 3)."),
         ("12. Kap. 3", "zwölftes Kapitel 3"),
         ("Siehe 12. Kap. dazu.", "Siehe zwölftes Kap. dazu."),
         ("die 12. Aufl. erschien", "die zwölfte Auflage erschien"),
         ("5x× 3", "5x mal 3"),
+        # review of PR #256 (D1): an abbreviation before a link the links step removes
+        ("Siehe Kap. https://x.org/a (ebd., S. 3).", "Siehe Kapitel (ebenda, Seite 3)."),
+        ("Kap. www.x.org 3 zeigt", "Kapitel 3 zeigt"),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:

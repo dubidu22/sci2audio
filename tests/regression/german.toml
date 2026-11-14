@@ -667,6 +667,15 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "Das steht im Buch, 12. Kap. 3, und in der 2. Aufl. nicht." }]
 expected = ["Das steht im Buch, zwölftes Kapitel 3, und in der zweiten Auflage nicht."]
 
+[[case]]
+id = "de-abbreviations-before-a-removed-link"
+audit = 0
+issue = 253
+goal = "A label abbreviation before a link the links step removes is read as before what follows the link: 'Kap. https://x.org/a (ebd., S. 3)' kept 'Kap.', and a second run, without the link, read 'Kapitel' (review of PR #256, D1)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Siehe Kap. https://x.org/a (ebd., S. 3)." }]
+expected = ["Siehe Kapitel (ebenda, Seite 3)."]
+
 # ---- #212 notices and footnotes in German (D-517 to D-524) ---------------------------------------
 
 [[case]]

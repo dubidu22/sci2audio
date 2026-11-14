@@ -631,6 +631,8 @@ def _both_runs(text: str) -> tuple[str, str]:
         # ... and an x before the times sign, which reads "times" after it as before it
         ("5x\u00d7 3", "5x times 3"),
         ("a 5x times", "a 5x times"),
+        # ... and an abbreviation before a link the links step removes
+        ("See Fig. https://x.org/a 3.", "See Figure 3."),
     ],
 )
 def test_units_and_abbreviations_read_the_same_on_the_first_and_second_run(
