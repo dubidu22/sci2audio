@@ -32,9 +32,10 @@ env:
   # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
   UV_PYTHON_PREFERENCE: only-managed
 
+# A newer push on a PR cancels its older scan; scheduled and manual runs finish (D-580).
 concurrency:
   group: zap-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   zap:
@@ -46,9 +47,23 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
       - run: uv sync --locked
       # CI downloads of the test browser and of ZAP's image (pinned by digest in the
       # script, D-370); sci2audio and the walk itself never use the network.
+      # The Playwright browser comes from the cache when the playwright version is unchanged;
+      # `install --with-deps` still adds the system packages and skips a cached download.
+      - name: Where the Playwright browsers go, and their version
+        id: playwright
+        shell: bash
+        run: |
+          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
+          echo "version=$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: ms-playwright-${{ runner.os }}-chromium-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for Playwright
         run: uv run playwright install --with-deps chromium
       - name: Scan (server, ZAP in Docker, the walk, the spider, the verdict)
