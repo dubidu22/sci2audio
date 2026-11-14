@@ -668,17 +668,19 @@ expected = [
 id = "de-numbers-dotted-date-glued-to-a-dash"
 audit = 0
 issue = 303
-goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the dash is read as before. A date without a year before a full date is read too ('am 3.4. 12.03.2019'), as a second run reads it once the full date is words; before a plain number it stays as printed."
+goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the dash is read as before. A date without a year before a full date is read too ('am 3.4. 12.03.2019'), as a second run reads it once the full date is words; before a plain number it stays as printed. A hyphen between two full dates is a range, read 'bis' as a dash is ('3.4.2019-5.4.2019', review round 1 of PR #311)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut." },
     { kind = "paragraph", text = "Es lief am 3.4.2019 und am 2019-03-12 gut, am 3.4.2019 - 5.4.2019 auch." },
     { kind = "paragraph", text = "Am 3.4. 12.03.2019 lief es, am 3.4. 12 Fälle." },
+    { kind = "paragraph", text = "Die Laufzeit war 1.1.2020-31.12.2020, vom 3.4.2019-5.4.2019 an." },
 ]
 expected = [
     "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut.",
     "Es lief am dritten April 2019 und am zwölften März 2019 gut, am dritten April 2019 - fünfter April 2019 auch.",
     "Am dritten April zwölfter März 2019 lief es, am 3.4. 12 Fälle.",
+    "Die Laufzeit war erster Januar 2020 bis einunddreißigsten Dezember 2020, vom dritten April 2019 bis fünften April 2019 an.",
 ]
 
 [[case]]

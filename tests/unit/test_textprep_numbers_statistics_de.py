@@ -589,6 +589,17 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
         ("Am 3.4. 2019-03-12 lief es.", "Am dritten April zwölfter März 2019 lief es."),
         ("Am 3.4. 12.03.2019-05 lief es.", "Am dritten April 12.03.2019-05 lief es."),
         ("Am 3.4. 12 Fälle.", "Am 3.4. 12 Fälle."),  # before a plain number: as before
+        # review round 1 of PR #311: a hyphen between two full dates is a range
+        (
+            "Laufzeit 1.1.2020-31.12.2020 gut.",
+            "Laufzeit erster Januar 2020 bis einunddreißigsten Dezember 2020 gut.",
+        ),
+        ("Vom 3.4.2019-5.4.2019 an.", "Vom dritten April 2019 bis fünften April 2019 an."),
+        (
+            "Vom 3.4.2019-5.4.2019-7.4.2019 an.",
+            "Vom dritten April 2019 bis fünften April 2019 bis siebten April 2019 an.",
+        ),
+        ("Vom 3.4.2019-5.4.2019-06 an.", "Vom dritten April 2019-5.4.2019-06 an."),
     ],
 )
 def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(

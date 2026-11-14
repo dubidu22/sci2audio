@@ -662,9 +662,25 @@ _DATE_AHEAD = (
     r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?:1[5-9]\d\d|20\d\d)"
     r"|(?:1[5-9]\d\d|20\d\d)-\n?(?:0[1-9]|1[0-2])-"
 )
+# a full dotted date, not glued to more digits: what a hyphen range of dates joins (a third
+# date may follow it: "3.4.2019-5.4.2019-7.4.2019")
+_FULL_DATE = (
+    r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?:1[5-9]\d\d|20\d\d)"
+    r"(?![\d_]|[⁺⁻^]|[.,:/]\d)"
+)
+# after a full date and a hyphen: the second date of a range ("3.4.2019-5.4.2019")
+_AFTER_DATE_HYPHEN = r"(?<=\d\.1[5-9]\d\d-)|(?<=\d\.20\d\d-)"
 _NUMERIC_DATE = re.compile(
-    r"(?<![^\WxX])(?<![,/:-])" + _STOP + r"(?P<d>0?[1-9]|[12]\d|3[01])\.(?P<m>0?[1-9]|1[0-2])\."
-    r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![\d_]|[⁺⁻^]|[.,:/-]\d)|(?![\w.,]|\s*(?!"
+    r"(?<![^\WxX])(?:(?<![,/:-])|"
+    + _AFTER_DATE_HYPHEN
+    + r")"
+    + _STOP
+    + r"(?P<d>0?[1-9]|[12]\d|3[01])\.(?P<m>0?[1-9]|1[0-2])\."
+    # a year glued to "-" and a digit stays as printed ("3.4.2019-03-12", #303), unless a
+    # full date follows: "3.4.2019-5.4.2019" is a range (#311 review round 1)
+    r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![\d_]|[⁺⁻^]|[.,:/]\d|-(?!"
+    + _FULL_DATE
+    + r")\d)|(?![\w.,]|\s*(?!"
     + _DATE_AHEAD
     + r")\d))"
 )
@@ -676,7 +692,7 @@ def _year_left_alone(text: str, end: int) -> bool:
     return _unit_left_alone(text, end) or _x_left_alone(text, end)
 
 
-_RANGE_DASH_BEFORE = re.compile(r"\d\s*[\u2013\u2014]\s*\Z")
+_RANGE_DASH_BEFORE = re.compile(r"\d\s*[\u2013\u2014]\s*\Z|\d\.\d{4}-\Z")
 _DASH_BEFORE = re.compile(r"[\u2013\u2014]\s*\Z")
 
 
@@ -742,6 +758,11 @@ def _dates(text: str) -> list[Candidate]:
         words = _date_words(text, match.start(), day, month, match["y"])
         if words and not _year_left_alone(text, match.end()):
             found.append(_date(match, words))
+            if text[match.start() - 1 : match.start()] == "-":
+                # "3.4.2019-5.4.2019": the hyphen between two dates is read "bis", as a dash
+                dash = match.start() - 1
+                reason = _range_reason(text, dash, match.start())
+                found.append(Candidate(dash, match.start(), " bis ", reason))
     return found
 
 
