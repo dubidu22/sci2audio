@@ -3,6 +3,7 @@ before each, the output chapters, and how a skipped utterance is left out."""
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import replace
 
 from app_helpers import document_with
@@ -158,6 +159,22 @@ def test_the_key_depends_on_text_voice_speed_and_engine_version_only() -> None:
     assert len(others) == 5
     assert len(base) == 64
     assert int(base, 16) >= 0
+
+
+def test_the_letter_speed_changes_the_key_only_off_the_voices_own_pace() -> None:
+    """#295 (D-554): keys at letter speed 1.0 are those from before, so kept chunks stay
+    valid; a slower letter pace speaks the chunk again."""
+    base = chunk_key("Hello NLP.", "af_heart", 1.0, "kokoro", "1")
+    assert chunk_key("Hello NLP.", "af_heart", 1.0, "kokoro", "1", letter_speed=1.0) == base
+    slower = chunk_key("Hello NLP.", "af_heart", 1.0, "kokoro", "1", letter_speed=0.7)
+    slowest = chunk_key("Hello NLP.", "af_heart", 1.0, "kokoro", "1", letter_speed=0.5)
+    assert len({base, slower, slowest}) == 3
+    # the key of v1.0, written out: the same JSON as before the letter speed existed
+    canonical = (
+        '{"engine":"kokoro","engine_version":"1","format":1,"speed":1.0,'
+        '"text":"Hello NLP.","voice":"af_heart"}'
+    )
+    assert base == hashlib.sha256(canonical.encode()).hexdigest()
 
 
 # ---- properties -------------------------------------------------------------------------

@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Any
 
 from sci2audio.voices.errors import InvalidInputError, ModelLoadError
+from sci2audio.voices.letters import german_spans, per_sound, speed_tensor
 
 MAX_PHONEMES = 510  # kokoro's limit per call (its context of 512 minus the two pad tokens)
 
@@ -239,8 +240,12 @@ class GermanPipeline:
 
     def phonemes(self, text: str) -> list[str]:
         """The Kokoro phonemes of `text`, cut into parts kokoro can speak."""
+        return split_phonemes(self.sounds(text))
+
+    def sounds(self, text: str) -> str:
+        """The Kokoro phonemes of `text`, uncut."""
         raw, _ = self.g2p(text)
-        return split_phonemes(to_kokoro_phonemes(raw or "", self.model.vocab))
+        return to_kokoro_phonemes(raw or "", self.model.vocab)
 
     def _pack(self, voice: str) -> Any:
         if voice not in self._packs:
@@ -250,14 +255,27 @@ class GermanPipeline:
         return self._packs[voice]
 
     def __call__(
-        self, text: str, *, voice: str, speed: float, split_pattern: str | None = None
+        self,
+        text: str,
+        *,
+        voice: str,
+        speed: float,
+        split_pattern: str | None = None,
+        letter_speed: float = 1.0,
     ) -> Iterator[GermanSegment]:
+        """Speak `text`; spelled letters at `speed * letter_speed` (#295)."""
         import torch
 
         pack = self._pack(voice)
         for part in self.phonemes(text):
+            rate: Any = speed
+            if letter_speed != 1.0:
+                spans = german_spans(text, part, self.sounds)
+                if spans:
+                    values = per_sound(part, self.model.vocab, spans, speed, letter_speed)
+                    rate = speed_tensor(values, self.model.device)
             with torch.no_grad():
-                output = self.model(part, pack[len(part) - 1], speed, return_output=True)
+                output = self.model(part, pack[len(part) - 1], rate, return_output=True)
             yield GermanSegment(graphemes=text, phonemes=part, audio=output.audio)
 
 

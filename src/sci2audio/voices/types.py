@@ -89,6 +89,13 @@ class ParameterValues:
 
     Attributes:
         values: Mapping of parameter names to their values.
+
+    Parameters every engine takes (all optional):
+        speed: the pace, 1.0 = the voice's own; an engine refuses values it cannot speak.
+        letter_speed: the pace of letters the voice spells out ("NLP", "LSTM") as a factor
+            of `speed`, from LETTER_SPEED_MIN (0.25) to 1.0 (default: as the voice says
+            them). An engine that cannot slow letters ignores it, but still refuses values
+            outside that range (#295, D-554).
     """
 
     values: Mapping[str, Any] = field(default_factory=dict)

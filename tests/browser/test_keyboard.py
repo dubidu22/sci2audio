@@ -106,6 +106,11 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     for _ in range(4):
         page.keyboard.press("ArrowRight")
     expect(page.locator("#speed-value")).to_have_text("1.2 times")
+    # the pace of spelled-out abbreviations: one stop for the group, arrows choose (#295)
+    tab_to(page, "letter-pace-normal")
+    page.keyboard.press("ArrowDown")
+    expect(page.locator("#letter-pace-slower")).to_be_checked()
+    expect(page.locator("#letter-pace-slower")).to_be_focused()
     press_on(page, "Listen")
     expect(page.locator("#preview-audio")).to_be_focused()
     press_on(page, "make")

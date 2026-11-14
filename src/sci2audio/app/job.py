@@ -149,6 +149,7 @@ def settings_data(settings: JobSettings) -> dict[str, Any]:
         "chapters": None if settings.chapters is None else sorted(settings.chapters),
         "voice": settings.voice,
         "speed": settings.speed,
+        "letter_pace": settings.letter_pace,
     }
 
 

@@ -47,7 +47,8 @@ from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -67,6 +68,7 @@ from sci2audio.voices.download import (
 )
 from sci2audio.voices.engine import API_VERSION
 from sci2audio.voices.errors import EngineError, InvalidInputError, ModelNotFoundError
+from sci2audio.voices.letters import english_spans, letter_speed, per_sound, speed_tensor
 from sci2audio.voices.runtime import prepare_environment
 from sci2audio.voices.types import (
     PCM_FLOAT32,
@@ -86,6 +88,7 @@ SAMPLE_RATE = 24000
 DEFAULT_VOICE = "af_heart"
 SPEED_MIN = 0.5
 SPEED_MAX = 2.0
+MAX_SOUNDS = 510  # kokoro speaks at most this many sounds per pass
 
 # Engine-internal language mapping: language tag → kokoro code.
 # ONLY visible inside this module — callers never see kokoro codes.
@@ -280,6 +283,45 @@ def _speed(value: Any) -> float:
     return speed
 
 
+@dataclass
+class _Spoken:
+    """One spoken part, shaped like kokoro's pipeline results."""
+
+    graphemes: str
+    phonemes: str
+    audio: Any
+    tokens: list[Any]
+
+
+def _english_letters_slowed(
+    pipeline: Any, text: str, voice_file: str, speed: float, letters: float
+) -> Iterator[_Spoken]:
+    """kokoro's English `KPipeline.__call__` for one utterance (`split_pattern=None`), with
+    the sounds of spelled letters at `speed * letters` (#295). Each part without spelled
+    letters is spoken exactly as kokoro speaks it."""
+    model = pipeline.model
+    pack = pipeline.load_voice(voice_file).to(model.device)
+    _, tokens = pipeline.g2p(text)
+
+    def spell(word: str) -> str | None:
+        return pipeline.g2p.lexicon.get_NNP(word)[0]
+
+    for graphemes, sounds, part in pipeline.en_tokenize(tokens):
+        if not sounds:
+            continue
+        sounds = sounds[:MAX_SOUNDS]  # as kokoro does (it logs a warning)
+        spans = english_spans(part, spell)
+        rate = (
+            speed_tensor(per_sound(sounds, model.vocab, spans, speed, letters), model.device)
+            if spans
+            else speed
+        )
+        output = model(sounds, pack[len(sounds) - 1], rate, return_output=True)
+        if output.pred_dur is not None:
+            pipeline.join_timestamps(part, output.pred_dur)
+        yield _Spoken(graphemes=graphemes, phonemes=sounds, audio=output.audio, tokens=part)
+
+
 class KokoroSession:
     """EngineSession implementation for Kokoro.
 
@@ -303,17 +345,31 @@ class KokoroSession:
         if voice is None:
             raise InvalidInputError(f"unknown Kokoro voice {request.voice.key!r}")
         speed = _speed(request.parameters.values.get("speed", 1.0))
+        letters = letter_speed(request.parameters.values.get("letter_speed", 1.0))
 
         try:
-            pipeline = self._engine.pipeline_for(engine_language(voice.language))
+            code = engine_language(voice.language)
+            pipeline = self._engine.pipeline_for(code)
             voice_file = str(self._engine.voice_file(voice.id))
             audio_parts: list[np.ndarray] = []
             segments: list[AudioSegment] = []
             # split_pattern=None: the caller sends one utterance; kokoro still cuts text
             # that is too long for one pass at its own punctuation-based limits.
-            for segment in pipeline(
-                request.text, voice=voice_file, speed=speed, split_pattern=None
-            ):
+            if letters == 1.0:  # as before #295, so the audio stays the same
+                results = pipeline(request.text, voice=voice_file, speed=speed, split_pattern=None)
+            elif _PACK_OF_CODE[code] == GERMAN:
+                results = pipeline(
+                    request.text,
+                    voice=voice_file,
+                    speed=speed,
+                    split_pattern=None,
+                    letter_speed=letters,
+                )
+            else:
+                results = _english_letters_slowed(
+                    pipeline, request.text, voice_file, speed, letters
+                )
+            for segment in results:
                 audio = segment.audio
                 if audio is None:
                     continue

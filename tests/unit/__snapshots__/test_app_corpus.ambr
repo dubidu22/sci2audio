@@ -3748,6 +3748,7 @@
     'settings': dict({
       'chapters': None,
       'language': '',
+      'letter_pace': 'normal',
       'speed': 1.0,
       'switched_off': list([
         'footnote-texts',
@@ -9417,6 +9418,7 @@
     'settings': dict({
       'chapters': None,
       'language': '',
+      'letter_pace': 'normal',
       'speed': 1.0,
       'switched_off': list([
         'footnote-texts',
@@ -11372,6 +11374,7 @@
     'settings': dict({
       'chapters': None,
       'language': '',
+      'letter_pace': 'normal',
       'speed': 1.0,
       'switched_off': list([
         'footnote-texts',

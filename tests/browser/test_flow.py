@@ -129,12 +129,16 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     expect(page.locator("#speed-value")).to_have_text("1.25 times")
     expect(speed).to_have_attribute("aria-valuetext", "1.25 times")
     page.get_by_label("Voice", exact=True).select_option("bm_george")
+    abbreviations = page.get_by_role("group", name="Spelled-out abbreviations")
+    expect(abbreviations.get_by_role("radio", name="Normal")).to_be_checked()
+    abbreviations.get_by_role("radio", name="Slower").check()  # #295
     page.get_by_role("button", name="Listen").click()
     player = page.locator("#preview-audio")
     expect(player).to_be_visible()
     expect(player).to_be_focused()
     until(lambda: player.evaluate("audio => audio.readyState") >= 1)  # the WAV loaded
     assert live.voice.spoken[-1] == (PREVIEW_TEXT, "bm_george", 1.25)
+    assert live.voice.letter_speeds[-1] == 0.7
     check_axe(page, "document with the voice installed and a preview")
 
     # make the audiobook (WI-04) and save its files
@@ -156,6 +160,7 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     settings = page.request.get(f"{live.url}/api/v1/settings").json()["settings"]
     assert settings["voice"] == "bm_george"  # remembered for the next document (D-246)
     assert settings["speed"] == 1.25
+    assert settings["letter_pace"] == "slower"
     assert settings["output_folder"] == str(live.config.output_folder)
     spoken = {text for text, _, _ in live.voice.spoken}
     assert "We measured it twice." in spoken

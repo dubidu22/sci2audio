@@ -10,6 +10,9 @@ from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
 from sci2audio.voices import PREVIEW_TEXT
 
 PREVIEW_LIMIT = 300  # characters of a preview sentence: the cutter's utterance limit (Q4)
+# how fast the voice reads letters it spells out ("NLP"): the keys of app's LETTER_PACES (#295)
+LetterPace = Literal["normal", "slower", "slowest"]
+LETTER_PACE_HELP = "how fast the voice reads letters it spells out, as in NLP (#295)"
 
 
 class Strict(BaseModel):
@@ -67,7 +70,8 @@ class SettingsModel(Strict):
         default_factory=lambda: sorted(DEFAULT_SWITCHED_OFF), max_length=64
     )
     voice: str = Field(default="", max_length=64)
-    speed: float = 1.0
+    speed: float = Field(default=1.0, strict=True)  # true is no speed (#295 found it)
+    letter_pace: LetterPace = Field(default="normal", description=LETTER_PACE_HELP)
     output_folder: str | None = Field(default=None, max_length=4096)
 
 
@@ -108,7 +112,8 @@ class JobSettingsIn(Strict):
         default=None, max_length=10_000, description="chapter indices; null = the default"
     )
     voice: str | None = Field(default=None, max_length=64)
-    speed: float | None = None
+    speed: float | None = Field(default=None, strict=True)
+    letter_pace: LetterPace | None = Field(default=None, description=LETTER_PACE_HELP)
     output_folder: str | None = Field(default=None, max_length=4096)
 
 
@@ -177,5 +182,6 @@ class PreviewIn(Strict):
     """A voice preview (VA-05, D-249): one sentence with one voice at one speed."""
 
     voice: str = Field(default="", max_length=64, description='"" = the default voice')
-    speed: float = 1.0
+    speed: float = Field(default=1.0, strict=True)
+    letter_pace: LetterPace = Field(default="normal", description=LETTER_PACE_HELP)
     text: str = Field(default=PREVIEW_TEXT, min_length=1, max_length=PREVIEW_LIMIT)
