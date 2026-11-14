@@ -67,6 +67,7 @@ ENGLISH = Wording(
         BlockKind.TABLE: "A table is skipped.",
         BlockKind.FIGURE: "A figure is skipped.",
         BlockKind.FORMULA: "A formula is skipped.",
+        BlockKind.CODE: "A code block is skipped.",  # D-545
     },
     formula="Formula {}",
     footnote="Footnote {}.",
@@ -96,6 +97,7 @@ GERMAN = Wording(
         BlockKind.TABLE: "Eine Tabelle wird übersprungen.",
         BlockKind.FIGURE: "Eine Abbildung wird übersprungen.",
         BlockKind.FORMULA: "Eine Formel wird übersprungen.",
+        BlockKind.CODE: "Ein Codeblock wird übersprungen.",  # espeak-ng: a long "o"
     },
     formula="Formel {}",
     footnote="Fußnote {}.",

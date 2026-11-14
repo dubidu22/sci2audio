@@ -39,7 +39,7 @@ from sci2audio.textprep.wordlists import abbreviations
 
 # blocks a placeholder notice or the furniture step already covers as a whole (D-128)
 SKIPPED_KINDS = frozenset(
-    {BlockKind.FURNITURE, BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE}
+    {BlockKind.FURNITURE, BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE, BlockKind.CODE}
 )
 
 
