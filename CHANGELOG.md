@@ -41,6 +41,8 @@ The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or pla
 - Abbreviations, symbols and units (#68): read as words only where the voice would read them wrong ("e.g.", "Fig.", "mg/kg", "m²"), measured on the voice itself first (D-227 to D-243).
 - Numbers, dates and statistics (#67): comparison operators, ± and minus signs, ranges, counts, powers of ten, test statistics with their degrees of freedom, R² and χ², confidence intervals and odds ratios read as the voice should; ordinary numbers, years and dates are left to the voice, which reads them well (D-176 to D-190).
 - An abbreviation glued to a bracket no longer ends a sentence (#91).
+- Reading rules sharpened in review (#109, #110, #145, #151, #159, #160): a URL cut at a line end no longer swallows an ordinary word on the next line ("and", "the"); a name with "the", "a" or "an" before it keeps its year in brackets ("the Olympics (2016)"); a bracket that holds only a citation and its lead words goes whole ("(See Smith (2019).)"); confidence intervals joined by "and", "or" or a comma are all read as intervals; units glued to a number or behind characters that are not spoken are read on the first run; an accent set apart from its letter and a size such as "5 x86K" read the same on every run.
+- First German rules, ahead of v1.1 (#96, #221): German line-end hyphens (suspended hyphens before "und", "oder" and the like stay; split words are joined) and German reference-list titles ("Literatur", "Quellen", "Bibliographie" and others) when the job's language is German.
 
 #### Voice
 
@@ -50,7 +52,7 @@ The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or pla
 #### Audiobook
 
 - Output (#69, OU-01, OU-03): one MP3 per chapter and one M4B with chapter marks, cover, title, authors, language and a label that says the voice is AI-generated; the read-along file ties each sentence to its place in the audio. ffmpeg comes with the `imageio-ffmpeg` package, with an ffmpeg on PATH as a fallback.
-- The script job (#70, UC-01, UC-03): a file in, the listening script and a report of every change out, without a voice; chapters are the document's top-level sections, chosen by number.
+- The script job (#70, UC-01, UC-03): a file in, the listening script and a report of every change out, without a voice; chapters are the document's top-level sections, chosen by number. The report numbers chapters from 1, as the interface and the command line do (#104), and shows a line break inside a quoted edit as “↵” (#118).
 - The audio job (#71, WI-02, VA-04): a file in, the audiobook out, entirely offline; an interrupted run resumes from its speech cache. The time left is estimated from a cost per spoken chunk fitted on the run (#136, D-380 to D-383).
 - EPUB files in the app (#73, part 3, IN-02, OU-01): the script and audio jobs, the command line and the web interface read `.epub` files; the audio job writes the file's cover (an EPUB's declared cover, a PDF's first page) to the working folder and puts it into every MP3 and the M4B. A file without a usable cover, or a cover that cannot be written, gives an audiobook without one, never a failed job (D-313).
 - Markdown files, text files and pasted text in the jobs, the command line and the interface (#74).
@@ -74,9 +76,10 @@ The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or pla
 
 #### Development
 
-- Project setup: package layout in layers, CI on Linux, macOS and Windows, licence and layer checks, contributor and agent guidelines.
-- Testing pipeline (D-58): property-based tests (Hypothesis), golden files (syrupy), security checks (Ruff security rules, pip-audit, zizmor), nightly slow tests and benchmarks, manual mutation testing (mutmut), release checklist and listening-test template.
+- Project setup (#1): package layout in layers, CI on Linux, macOS and Windows, licence and layer checks, contributor and agent guidelines.
+- Testing pipeline (#2, D-58): property-based tests (Hypothesis), golden files (syrupy), security checks (Ruff security rules, pip-audit, zizmor), nightly slow tests and benchmarks, manual mutation testing (mutmut), release checklist and listening-test template.
 - Sample corpus and ground truth (#3, #16): seven openly licensed papers and one EPUB with hand-written truth files of what a listener should hear; layout and text steps are measured against them.
+- Development and process (no change for users): core data objects for extracted content and the reading document (#17); corpus truth sentences with footnote marks and inline maths (#39); test strategies that build overlapping spans (#47); axe-core waits for the page's stylesheet (#129); the same-day quarantine of flaky tests (D-374) and the fixes that emptied it (#138, #147, #157, #161, #166); layout properties for sections without positions and tagged base levels (#195, #199); review, merge and plan rules for agents in `CLAUDE.md` (D-68 to D-72, D-80).
 - The release workflow installs the built package on Linux, macOS and Windows and runs it on a corpus PDF before it publishes to PyPI, then installs the release from PyPI on all three (#80).
 
 [Unreleased]: https://github.com/dubidu22/sci2audio/compare/v1.0.0...HEAD
