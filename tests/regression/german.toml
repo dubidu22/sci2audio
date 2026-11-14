@@ -1166,6 +1166,7 @@ blocks = [
     { kind = "paragraph", text = "Das Jahr (2019) hatte (12.345) Fälle (n = 12345) in (OPP-115) und (COVID-19), siehe (3)." },
     { kind = "paragraph", text = "Wie Müller (527794) (2019) zeigt, wuchs es schnell (Müller, 2019; 527794)." },
     { kind = "paragraph", text = "Gefördert (Projekt 12.345) wurde es (vgl. (527794)) und stieg (12.345-mal) an." },
+    { kind = "paragraph", text = "Es wurde gefördert (FKZ 01IS18026A (Müller, 2019)) vom BMBF." },
 ]
 expected = [
     "Gefördert vom BMBF und der DFG. Dann mehr.",
@@ -1173,4 +1174,5 @@ expected = [
     "Das Jahr (2019) hatte (12 345) Fälle (n gleich 12345) in (OPP-115) und (COVID-19), siehe (3).",
     "Wie Müller zeigt, wuchs es schnell.",
     "Gefördert (Projekt 12 345) wurde es und stieg (12 345-mal) an.",
+    "Es wurde gefördert vom BMBF.",
 ]

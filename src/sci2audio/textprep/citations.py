@@ -534,7 +534,11 @@ class _Rules:
             return None
         if text[node.open] == "[":
             return self._numeric(text, node, inside)
-        if self.identifiers.match(inside):
+        if self.identifiers.match(inside) or (
+            # "(527794 (Smith, 2019))" once its inner citation goes is "(527794)", which a
+            # second run removes (#285 review round 2)
+            node.children and self.identifiers.match(self._read_inside(text, node, decided))
+        ):
             # "(0801700)", "(grant no. DMS-1912345)": a grant or award number, no quantity
             # (#285, D-547); the script and the read-along keep it as printed
             printed = _printed(text[node.open : node.close + 1])
@@ -582,6 +586,21 @@ class _Rules:
                 return self._subject(text, node, names, end, "is part of the sentence")
             return [self._removed(text, node.open, end, "citation")]
         return self._mixed(text, node, parts, cited)
+
+    @staticmethod
+    def _read_inside(text: str, node: _Bracket, decided: dict[int, list[_Found] | None]) -> str:
+        """A bracket's inside as read once its inner brackets' edits are made, each reading
+        written into its own span; "" if an inner bracket stays or an edit does not fit."""
+        inside = list(text[node.open + 1 : node.close])
+        for child in node.children:
+            edits = decided.get(child.open)
+            if not edits:
+                return ""
+            for start, end, _kind, replacement, _reason in edits:
+                if start <= node.open or end > node.close or len(replacement) > end - start:
+                    return ""
+                inside[start - node.open - 1 : end - node.open - 1] = replacement.ljust(end - start)
+        return "".join(inside)
 
     def _cited(
         self, text: str, parts: list[tuple[int, int]], named: list[tuple[int, int]]

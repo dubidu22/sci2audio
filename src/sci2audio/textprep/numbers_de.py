@@ -394,14 +394,27 @@ def _labelled(text: str) -> tuple[list[Candidate], list[tuple[int, int]]]:
 
 
 def _in_round_bracket(text: str, start: int) -> bool:
-    """True if `start` stands inside a round bracket that closes after it, with no other
-    bracket between: "(Projekt 12.345)", "(12.345-mal)", "(12.345; 67.890)"."""
-    window = max(0, start - 200)
-    opening = text.rfind("(", window, start)
-    if opening < 0 or text.rfind(")", window, start) > opening:
+    """True if `start` stands inside a round bracket that closes after it, inner brackets
+    skipped: "(Projekt 12.345)", "(12.345-mal)", "(Projekt 12.345 (Müller, 2019))"."""
+    depth = 0
+    for position in range(start - 1, max(-1, start - 201), -1):
+        if text[position] == ")":
+            depth += 1
+        elif text[position] == "(":
+            if not depth:
+                break
+            depth -= 1
+    else:
         return False
-    closing = text.find(")", start, start + 200)
-    return closing >= 0 and text.find("(", start, closing) < 0
+    depth = 0
+    for char in text[start : start + 200]:
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            if not depth:
+                return True
+            depth -= 1
+    return False
 
 
 def _thousands(text: str) -> list[Candidate]:

@@ -489,6 +489,17 @@ def test_an_identifier_says_why_it_is_not_read() -> None:
         ("de", "Text (siehe (527794)) mehr.", "Text mehr."),
         ("de", "Text (vgl. (527794)) mehr.", "Text mehr."),
         ("en", "Text (see) more.", "Text (see) more."),  # no identifier went: as before
+        ("en", "Text ( (527794)) more.", "Text more."),
+        # review round 2, R2-1: a bracket of identifiers once its inner citation goes
+        ("en", "Text (527794 (Smith, 2019)) more.", "Text more."),
+        ("en", "Text (grant 527794 (Smith, 2019)) more.", "Text more."),
+        ("en", "( 527794 (Smith, 2019) )", ""),
+        ("en", "Text (527794 [3]) more.", "Text more."),
+        ("de", "Text (527794 (Müller, 2019)) mehr.", "Text mehr."),
+        ("de", "Text (FKZ 01IS18026A (Müller, 2019)) mehr.", "Text mehr."),
+        ("de", "( 527794 (Müller, 2019) )", ""),
+        ("de", "Text (Projekt 12.345 (Müller, 2019)) mehr.", "Text (Projekt 12 345) mehr."),
+        ("en", "Text (527794 (2019)) more.", "Text (527794 (2019)) more."),  # inner stays
         # a separator at the bracket's edge stays for now, the same on both runs (#305)
         ("en", "Text ((527794); 2019) more.", "Text (; 2019) more."),
     ],
@@ -506,15 +517,25 @@ def test_a_bracket_of_lead_words_says_why_it_goes() -> None:
     assert reasons == ['bracket of lead words "(see)" is not read (TP-03)']
 
 
-_IDENTIFIERS = st.sampled_from(
-    [
-        "(527794)",
-        "(grant no. DMS-1912345)",
-        "(0801700, 527794)",
-        "(FKZ 01IS18026A)",
-        "(Projekt 12.345)",
-        "(12.345-mal)",
-    ]
+_IDENTIFIERS = st.one_of(
+    st.sampled_from(
+        [
+            "(527794)",
+            "(grant no. DMS-1912345)",
+            "(0801700, 527794)",
+            "(FKZ 01IS18026A)",
+            "(Projekt 12.345)",
+            "(12.345-mal)",
+        ]
+    ),
+    # review round 2: citations inside identifier text, "(grant 527794 (Smith, 2019))"
+    st.builds(
+        "({}{}{}{})".format,
+        st.sampled_from(["", " ", "grant no. ", "FKZ "]),
+        st.sampled_from(["527794", "DMS-1912345", "Projekt 12.345"]),
+        st.sampled_from([" (Smith, 2019)", " [3]", " (Müller, 2019)", ", (Smith, 2019)"]),
+        st.sampled_from(["", " "]),
+    ),
 )
 
 
