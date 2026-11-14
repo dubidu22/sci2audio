@@ -656,9 +656,17 @@ _ISO_DATE = re.compile(
     + r"(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
     r"(?![\d_]|[⁺⁻^-]|[.,:/]\d)"  # a letter after it: `_year_left_alone` decides
 )
+# a full date ahead: "am 3.4. 12.03.2019" reads the first date too, as a second run, after
+# "zwölfter März 2019", would (#303)
+_DATE_AHEAD = (
+    r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?:1[5-9]\d\d|20\d\d)"
+    r"|(?:1[5-9]\d\d|20\d\d)-\n?(?:0[1-9]|1[0-2])-"
+)
 _NUMERIC_DATE = re.compile(
     r"(?<![^\WxX])(?<![,/:-])" + _STOP + r"(?P<d>0?[1-9]|[12]\d|3[01])\.(?P<m>0?[1-9]|1[0-2])\."
-    r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![\d_]|[⁺⁻^]|[.,:/]\d)|(?![\w.,]|\s*\d))"
+    r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![\d_]|[⁺⁻^]|[.,:/-]\d)|(?![\w.,]|\s*(?!"
+    + _DATE_AHEAD
+    + r")\d))"
 )
 
 

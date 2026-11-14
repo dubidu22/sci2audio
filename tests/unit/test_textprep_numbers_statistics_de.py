@@ -584,6 +584,11 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
             "Es lief am 3.4.2019 - 5.4.2019 gut.",
             "Es lief am dritten April 2019 - fünfter April 2019 gut.",
         ),
+        # a date without a year before a full date: read, as a second run reads it (seed 2)
+        ("1–1am 3.4. 12.03.2019", "1 bis 1am dritten April zwölfter März 2019"),
+        ("Am 3.4. 2019-03-12 lief es.", "Am dritten April zwölfter März 2019 lief es."),
+        ("Am 3.4. 12.03.2019-05 lief es.", "Am dritten April 12.03.2019-05 lief es."),
+        ("Am 3.4. 12 Fälle.", "Am 3.4. 12 Fälle."),  # before a plain number: as before
     ],
 )
 def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(
