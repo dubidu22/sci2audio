@@ -193,6 +193,9 @@ def test_an_apostrophe_accent_is_judged_as_the_text_will_be_read() -> None:
 def test_unread_characters_between_an_accent_and_its_letter_are_looked_through() -> None:
     assert read(f"Garc\u00b4{SOFT_HYPHEN}\n\u0131a") == "Garc\u00eda"
     assert read("x \u00b4\u200b y") == "x y"
+    # and between the letter before and the accent: a hat inside a word is read (mutation run)
+    assert read(f"a t{SOFT_HYPHEN}\n\u02c6ete here") == "a t\u00eate here"
+    assert read(f"a t\u200b{SOFT_HYPHEN}\n\u02c6ete here") == "a t\u00eate here"
 
 
 def test_every_block_kind_is_cleaned() -> None:

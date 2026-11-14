@@ -283,3 +283,21 @@ def test_the_step_keeps_every_digit_except_where_it_says_why(document: Document)
 def test_all_built_in_steps_run_together_without_a_problem(document: Document) -> None:
     run = run_steps(document, StepContext(document.language), strict=True)
     assert not run.problems
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # a time is left as printed: hours up to 24, two-digit minutes up to 59, and a word
+        # for time after it even when none comes before (mutation run, #80)
+        ("it ended 10:30 pm.", "it ended 10:30 pm."),
+        ("it ended 24:00 h.", "it ended 24:00 h."),
+        ("it ended 10:59 h.", "it ended 10:59 h."),
+        # anything else is a ratio
+        ("it ended 25:00 h.", "it ended 25 to 00 h."),
+        ("it ended 10:60 h.", "it ended 10 to 60 h."),
+        ("it ended 10:5 h.", "it ended 10 to 5 h."),
+    ],
+)
+def test_the_bounds_of_a_time(printed: str, said: str) -> None:
+    assert read(printed) == said
