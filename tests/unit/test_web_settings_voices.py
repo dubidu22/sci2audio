@@ -54,6 +54,7 @@ def test_settings_start_from_the_defaults_with_every_choice(server: tuple[FastAP
         "switched_off": ["footnote-texts"],
         "voice": "",
         "speed": 1.0,
+        "letter_pace": "normal",
         "output_folder": None,
     }
     assert data["warnings"] == []
@@ -83,6 +84,7 @@ def test_settings_are_saved_to_the_settings_file(server: tuple[FastAPI, Any]) ->
         "switched_off": ["links", "citations"],
         "voice": "bm_george",
         "speed": 1.25,
+        "letter_pace": "slower",
         "output_folder": folder,
     }
     response = client.put("/api/v1/settings", json=chosen)
@@ -90,6 +92,7 @@ def test_settings_are_saved_to_the_settings_file(server: tuple[FastAPI, Any]) ->
     assert response.json() == {**chosen, "switched_off": ["citations", "links"]}
     saved = json.loads(config.config_file.read_text(encoding="utf-8"))
     assert saved["voice"] == "bm_george"
+    assert saved["letter_pace"] == "slower"
     assert saved["output_folder"] == folder
     assert client.get("/api/v1/settings").json()["settings"] == response.json()
 
@@ -109,6 +112,9 @@ def test_a_broken_settings_file_is_reported_not_fatal(server: tuple[FastAPI, Any
     [
         {"speed": 3},
         {"speed": "fast"},
+        {"speed": True},  # was read as 1.0; found by Schemathesis in #295
+        {"letter_pace": "fast"},
+        {"letter_pace": 0.7},
         {"switched_off": ["nothing"]},
         {"voice": "xx_nobody"},
         {"language": "English!"},
@@ -161,6 +167,7 @@ SETTINGS = st.fixed_dictionaries(
         "switched_off": st.lists(st.sampled_from([*map(str, Category), "nothing"]), max_size=4),
         "voice": st.sampled_from(["", "af_heart", "bm_lewis", "nobody"]),
         "speed": st.floats(0.0, 3.0) | st.integers(-1, 3),
+        "letter_pace": st.sampled_from(["normal", "slower", "slowest", "fast", ""]),
         "output_folder": st.none()
         | st.sampled_from(["/books", "books", "", "/a\u0000b"])
         | st.text(max_size=8).map(lambda text: "/" + text),

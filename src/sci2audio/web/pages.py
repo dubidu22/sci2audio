@@ -21,7 +21,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from sci2audio.app import load_settings, shown_original
-from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
+from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.app.voice import primary_language
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, PAUSE_MARK, Category
 from sci2audio.voices import (
@@ -444,6 +444,14 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         speed_min=MIN_SPEED,
         speed_max=MAX_SPEED,
         speed_step=SPEED_STEP,
+        letter_paces=[
+            {
+                "id": pace,
+                "label": s(f"voice.letter_pace_{pace}"),
+                "selected": pace == saved.letter_pace,
+            }
+            for pace in LETTER_PACES
+        ],
         preview_limit=PREVIEW_LIMIT,
         preview_text=preview_text(_voice_language(chosen_voice)),
         preview_text_language=primary_language(_voice_language(chosen_voice)),

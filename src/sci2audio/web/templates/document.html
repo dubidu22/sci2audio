@@ -125,6 +125,18 @@
   <label for="speed">{{ t('voice.speed') }}</label>
   <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
   <output id="speed-value" for="speed" aria-hidden="true">{{ speed_text }}</output></p>
+  <fieldset id="letter-pace" aria-describedby="letter-pace-hint">
+    <legend>{{ t('voice.letter_pace') }}</legend>
+    <p class="hint" id="letter-pace-hint">{{ t('voice.letter_pace_hint') }}</p>
+    <ul class="choices">
+    {% for pace in letter_paces %}
+      <li>
+        <input type="radio" id="letter-pace-{{ pace.id }}" name="letter-pace" value="{{ pace.id }}"{% if pace.selected %} checked{% endif %}>
+        <label for="letter-pace-{{ pace.id }}">{{ pace.label }}</label>
+      </li>
+    {% endfor %}
+    </ul>
+  </fieldset>
   {% if voice_installed %}
   <form id="preview" class="stack">
     <label for="preview-text">{{ t('voice.preview_label') }}</label>

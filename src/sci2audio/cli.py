@@ -59,7 +59,7 @@ from sci2audio.app import (
 )
 from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
-from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
+from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.output import OutputSettings
 from sci2audio.textprep import Category
 from sci2audio.voices import (
@@ -366,6 +366,11 @@ def add_convert(parser: _Parser) -> None:
         "--speed", type=speed, metavar="X", help=f"{MIN_SPEED} to {MAX_SPEED} (default: 1.0)"
     )
     parser.add_argument(
+        "--letter-pace",
+        choices=tuple(LETTER_PACES),
+        help="how fast letters the voice spells out, as in NLP, are read (default: normal)",
+    )
+    parser.add_argument(
         "--format",
         choices=("both", "m4b", "mp3"),
         default="both",
@@ -491,7 +496,7 @@ def _settings(args: argparse.Namespace, env: CliEnv) -> JobSettings:
         changes["language"] = args.language
     if hasattr(args, "chapters"):
         changes["chapters"] = args.chapters if args.chapters is not None else frozenset()
-    for name in ("voice", "speed"):
+    for name in ("voice", "speed", "letter_pace"):
         if getattr(args, name, None) is not None:
             changes[name] = getattr(args, name)
     try:

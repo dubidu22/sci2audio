@@ -117,8 +117,8 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PT", "S"]
 # and test strings show them on purpose (code strings in src use escapes).
 "src/sci2audio/textprep/{characters,hyphens}.py" = ["RUF002", "RUF003"]
 "tests/unit/test_textprep_{characters,hyphens}.py" = ["RUF001", "RUF002", "RUF003"]
-# phoneme strings (IPA) are what the German voice tests are about (#211)
-"tests/unit/test_voices_german.py" = ["RUF001"]
+# phoneme strings (IPA) are what the German voice (#211) and letter pace (#295) tests are about
+"tests/unit/test_voices_{german,letters}.py" = ["RUF001"]
 
 [tool.pytest.ini_options]
 minversion = "9.0"

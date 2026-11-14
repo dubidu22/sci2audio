@@ -18,6 +18,15 @@ def test_the_defaults() -> None:
     assert settings.switched_off == DEFAULT_SWITCHED_OFF == {Category.FOOTNOTE_TEXTS}  # D-142
     assert settings.chapters is None
     assert (settings.voice, settings.speed, settings.output_folder) == ("", 1.0, None)
+    assert (settings.letter_pace, settings.letter_speed) == ("normal", 1.0)  # as before #295
+
+
+@pytest.mark.parametrize(
+    ("pace", "letter_speed"), [("normal", 1.0), ("slower", 0.7), ("slowest", 0.5)]
+)
+def test_each_letter_pace_gives_its_letter_speed(pace: str, letter_speed: float) -> None:
+    """#295 (D-554): the paces measured in the issue."""
+    assert JobSettings(letter_pace=pace).letter_speed == letter_speed
 
 
 def test_values_are_normalised() -> None:
@@ -48,6 +57,10 @@ def test_values_are_normalised() -> None:
         ("speed", True),
         ("speed", "1"),
         ("voice", 3),
+        ("letter_pace", "fast"),
+        ("letter_pace", ""),
+        ("letter_pace", 0.7),
+        ("letter_pace", None),
     ],
 )
 def test_bad_values_are_refused(field: str, value: object) -> None:
@@ -69,6 +82,7 @@ def test_the_file_keeps_every_setting_but_the_chosen_chapters(tmp_path: Path) ->
         chapters=frozenset({1}),
         voice="af_heart",
         speed=1.25,
+        letter_pace="slowest",
         output_folder=tmp_path / "Hörbücher",
     )
     file = tmp_path / "config" / "settings.json"
@@ -80,9 +94,11 @@ def test_the_file_keeps_every_setting_but_the_chosen_chapters(tmp_path: Path) ->
         switched_off=frozenset({Category.CITATIONS, Category.LINKS}),
         voice="af_heart",
         speed=1.25,
+        letter_pace="slowest",
         output_folder=tmp_path / "Hörbücher",
     )
     data = json.loads(file.read_text(encoding="utf-8"))
+    assert data["letter_pace"] == "slowest"
     assert data["version"] == 1
     assert "chapters" not in data
     assert data["switched_off"] == ["citations", "links"]
@@ -153,6 +169,7 @@ def test_bad_fields_fall_back_one_by_one(tmp_path: Path) -> None:
         "switched_off": ["citations", "no-such-category"],
         "voice": 7,
         "speed": 9,
+        "letter_pace": "fast",
         "output_folder": "",
         "chapters": [1, 2],
         "colour": "blue",
@@ -160,7 +177,8 @@ def test_bad_fields_fall_back_one_by_one(tmp_path: Path) -> None:
     file.write_text(json.dumps(data), encoding="utf-8")
     settings, warnings = load_settings(file)
     assert settings == JobSettings(language="en-GB")
-    assert len(warnings) == 6
+    assert len(warnings) == 7
+    assert any("'letter_pace'" in w for w in warnings)
     assert any("'colour'" in w for w in warnings)
     assert any("'chapters'" in w for w in warnings)
 
@@ -206,3 +224,10 @@ def test_the_real_config_folder_is_named_for_sci2audio() -> None:
     file = default_config_file()
     assert file.name == "settings.json"
     assert file.parent.name == "sci2audio"
+
+
+def test_a_file_from_before_the_letter_pace_reads_normal(tmp_path: Path) -> None:
+    """Settings saved by v1.0 have no letter_pace (#295)."""
+    file = tmp_path / "settings.json"
+    file.write_text(json.dumps({"version": 1, "speed": 1.5}), encoding="utf-8")
+    assert load_settings(file) == (JobSettings(speed=1.5), [])

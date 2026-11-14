@@ -42,6 +42,20 @@ def preview(client: Any, **body: Any) -> Any:
 
 
 @pytest.mark.usefixtures("installed")
+def test_a_preview_speaks_at_the_chosen_letter_pace(tmp_path: Path) -> None:
+    """#295: the preview lets the listener hear the pace of spelled letters."""
+    voice = FakeVoice()
+    client, _, _ = server(tmp_path, voice)
+    job = preview(client, text="We use NLP.", letter_pace="slowest").json()
+    assert job["settings"]["letter_pace"] == "slowest"
+    assert wait(client, job["id"])["state"] == "done"
+    job = preview(client, text="We use NLP.").json()
+    assert wait(client, job["id"])["state"] == "done"
+    assert voice.letter_speeds == [0.5, None]
+    assert preview(client, letter_pace="fast").status_code == 422
+
+
+@pytest.mark.usefixtures("installed")
 def test_a_preview_speaks_the_sentence_into_a_wav(tmp_path: Path) -> None:
     voice = FakeVoice()
     client, config, _ = server(tmp_path, voice)
@@ -51,7 +65,7 @@ def test_a_preview_speaks_the_sentence_into_a_wav(tmp_path: Path) -> None:
     assert job["id"] == "preview-1"
     assert job["kind"] == "preview"
     assert job["cancellable"] is False
-    assert job["settings"] == {"voice": "bm_george", "speed": 1.25}
+    assert job["settings"] == {"voice": "bm_george", "speed": 1.25, "letter_pace": "normal"}
     ended = wait(client, job["id"])
     assert ended["state"] == "done", ended["error"]
     assert ended["progress"]["phase"] == "done"
@@ -89,6 +103,8 @@ def test_a_preview_reads_the_persons_sentence_with_the_default_voice(tmp_path: P
         ({"voice": "zz_nobody"}, "unknown voice"),
         ({"speed": 2.5}, "speed must be between"),
         ({"speed": 0.25}, "speed must be between"),
+        ({"speed": True}, "speed"),  # strict number (D-560)
+        ({"speed": "0.8"}, "speed"),
         ({"loud": True}, "loud"),
     ],
 )

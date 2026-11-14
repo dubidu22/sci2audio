@@ -2,10 +2,12 @@
 
 Every chunk is the voice's audio of one utterance, cached under a key of what decides the
 sound: the text, the voice, the speed and the engine version (the span is not part of it,
-so the same text twice in a job is spoken once). A chunk is finished when its WAV file is
-complete: the voice writes `<name>.part` and renames it (`voices.write_wav`), so a run
-killed outright leaves at most a `.part` file, which the next run removes. Resuming is
-running the job again on the same working folder: every finished chunk is used again.
+so the same text twice in a job is spoken once), and the pace of spelled letters when it is
+not the voice's own (#295: keys at letter speed 1.0 stay as they were). A chunk is
+finished when its WAV file is complete: the voice writes `<name>.part` and renames it
+(`voices.write_wav`), so a run killed outright leaves at most a `.part` file, which the
+next run removes. Resuming is running the job again on the same working folder: every
+finished chunk is used again.
 """
 
 from __future__ import annotations
@@ -24,9 +26,17 @@ KEY_FORMAT = 1  # bump when anything else starts to change the sound
 _SAMPLE_WIDTH = 2  # 16-bit PCM (D-117)
 
 
-def chunk_key(text: str, voice: str, speed: float, engine: str, engine_version: str) -> str:
+def chunk_key(
+    text: str,
+    voice: str,
+    speed: float,
+    engine: str,
+    engine_version: str,
+    *,
+    letter_speed: float = 1.0,
+) -> str:
     """The cache key of a chunk: SHA-256 (hex) of a canonical JSON of what decides its sound."""
-    data = {
+    data: dict[str, object] = {
         "format": KEY_FORMAT,
         "engine": engine,
         "engine_version": engine_version,
@@ -34,6 +44,8 @@ def chunk_key(text: str, voice: str, speed: float, engine: str, engine_version: 
         "speed": float(speed),
         "text": text,
     }
+    if letter_speed != 1.0:
+        data["letter_speed"] = float(letter_speed)
     canonical = json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 

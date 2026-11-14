@@ -68,7 +68,9 @@ class ServerState:
             on_failure=self.kept.dispose,
         )
 
-    def preview_work(self, text: str, voice_id: str, speed: float) -> Work:
+    def preview_work(
+        self, text: str, voice_id: str, speed: float, letter_speed: float = 1.0
+    ) -> Work:
         """A voice preview into `<work_root>/preview/` (D-249)."""
         return preview_work(
             self.kept.source(),
@@ -76,6 +78,7 @@ class ServerState:
             text=text,
             voice_id=voice_id,
             speed=speed,
+            letter_speed=letter_speed,
             on_failure=self.kept.dispose,
         )
 

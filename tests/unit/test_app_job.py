@@ -87,6 +87,7 @@ def test_the_output_folder_and_settings_are_used(tmp_path: Path) -> None:
         "chapters": [0],
         "voice": "",
         "speed": 1.0,
+        "letter_pace": "normal",
     }
     assert str(tmp_path) not in job.files.record.read_text(encoding="utf-8")
     assert str(tmp_path) not in job.files.report_json.read_text(encoding="utf-8")

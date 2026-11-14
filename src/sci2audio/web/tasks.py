@@ -214,6 +214,7 @@ def preview_work(
     text: str,
     voice_id: str,
     speed: float,
+    letter_speed: float = 1.0,
     on_failure: Callable[[], None] = lambda: None,
 ) -> Callable[[JobRecord], Sequence[Path]]:
     """Speak `text` into `folder/preview.wav` (replacing the last preview, D-249);
@@ -232,7 +233,9 @@ def preview_work(
                 try:
                     job.report({"phase": "speaking"})
                     folder.mkdir(parents=True, exist_ok=True)
-                    seconds = speak_to_wav(session, text, chosen, target, speed=speed)
+                    seconds = speak_to_wav(
+                        session, text, chosen, target, speed=speed, letter_speed=letter_speed
+                    )
                 finally:
                     session.dispose()
             finally:

@@ -10,6 +10,8 @@ Pipeline stage; may import only ``sci2audio.core`` (and no other sci2audio stage
   `download_voice_files()`, `missing_files()`, `installed_languages()`.
 - `prepare_environment()`: the start-up settings (MPS fallback, Hugging Face offline).
 - `speak_to_wav()` and `preview()`: 16-bit mono WAV files for the output stage.
+- `letter_speed` (synthesis parameter, LETTER_SPEED_MIN to LETTER_SPEED_MAX): the pace of
+  letters a voice spells out ("NLP"), as a factor of its speed (#295, `letters`).
 
 Nothing here imports torch or kokoro at import time.
 """
@@ -52,6 +54,7 @@ from sci2audio.voices.kokoro_engine import (
     create_kokoro_engine,
     voice_pack,
 )
+from sci2audio.voices.letters import LETTER_SPEED_MAX, LETTER_SPEED_MIN
 from sci2audio.voices.runtime import prepare_environment
 from sci2audio.voices.types import (
     PCM_FLOAT32,
@@ -84,6 +87,8 @@ __all__ = [
     "GERMAN",
     "GERMAN_DEFAULT_VOICE",
     "GERMAN_VOICES",
+    "LETTER_SPEED_MAX",
+    "LETTER_SPEED_MIN",
     "PACKS",
     "PCM_FLOAT32",
     "PREVIEW_TEXT",

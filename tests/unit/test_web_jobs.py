@@ -133,16 +133,24 @@ def test_job_settings_come_from_the_saved_ones_with_the_jobs_choices_on_top(
 ) -> None:
     app, config = server
     client = program(app, config)
-    saved = {"language": "en-GB", "switched_off": ["citations"], "speed": 1.5, "voice": "bf_emma"}
+    saved = {
+        "language": "en-GB",
+        "switched_off": ["citations"],
+        "speed": 1.5,
+        "voice": "bf_emma",
+        "letter_pace": "slowest",
+    }
     assert client.put("/api/v1/settings", json=saved).status_code == 200
     doc = upload(client, pdf_bytes())
-    job = wait(client, start(client, doc["id"], settings={"chapters": [0], "speed": 0.8})["id"])
+    chosen = {"chapters": [0], "speed": 0.8, "letter_pace": "slower"}
+    job = wait(client, start(client, doc["id"], settings=chosen)["id"])
     assert job["settings"] == {
         "language": "en-GB",
         "switched_off": ["citations"],
         "chapters": [0],
         "voice": "bf_emma",
         "speed": 0.8,
+        "letter_pace": "slower",
         "output_folder": None,
     }
     report = client.get(f"/api/v1/documents/{doc['id']}/report").json()
@@ -163,6 +171,8 @@ def test_job_settings_come_from_the_saved_ones_with_the_jobs_choices_on_top(
         {"output_folder": "relative/folder"},
         {"output_folder": "/books\u0000"},
         {"other": 1},
+        {"speed": True},  # strict number (D-560)
+        {"speed": "0.8"},
     ],
 )
 def test_wrong_job_settings_are_refused(

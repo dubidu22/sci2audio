@@ -57,8 +57,10 @@
   usage: sci2audio convert [-h] [-o FOLDER] [--chapters LIST] [--on CATEGORY]
                            [--off CATEGORY] [--language TAG] [--overwrite]
                            [--work-folder FOLDER] [--ignore-settings] [-q]
-                           [--voice ID] [--speed X] [--format {both,m4b,mp3}]
-                           [--with-script] [--models-folder FOLDER]
+                           [--voice ID] [--speed X]
+                           [--letter-pace {normal,slower,slowest}]
+                           [--format {both,m4b,mp3}] [--with-script]
+                           [--models-folder FOLDER]
                            FILE
   
   Make the audiobook of FILE. Running the same command again continues an
@@ -89,6 +91,9 @@
     -q, --quiet           no progress lines
     --voice ID            a voice from `sci2audio voices` (default: af_heart)
     --speed X             0.5 to 2.0 (default: 1.0)
+    --letter-pace {normal,slower,slowest}
+                          how fast letters the voice spells out, as in NLP, are
+                          read (default: normal)
     --format {both,m4b,mp3}
                           M4B with chapter marks, one MP3 per chapter, or both
                           (default: both)

@@ -19,6 +19,7 @@ import numpy as np
 from sci2audio.testing.text_steps import NetworkUsedError, no_network
 from sci2audio.voices import (
     API_VERSION,
+    LETTER_SPEED_MIN,
     PCM_FLOAT32,
     Engine,
     EngineError,
@@ -32,6 +33,8 @@ from sci2audio.voices import (
 )
 
 SAMPLE_TEXT = "The voice reads this sentence aloud."
+# a sentence with letters a voice may spell, for the `letter_speed` checks (#295)
+SPELLED_TEXT = "The voice reads NLP and LSTM aloud."
 
 
 def _fail(message: str) -> None:
@@ -100,6 +103,31 @@ def check_audio(result: SynthesizedAudio, what: str) -> np.ndarray:
     return samples
 
 
+def _check_letter_speed(session: EngineSession, voice: str) -> None:
+    """`letter_speed` (#295, D-554): optional; 1.0 is the same as leaving it out, a lower
+    value never makes the audio shorter (an engine that cannot slow letters ignores it),
+    and a value outside LETTER_SPEED_MIN to 1.0 is refused."""
+    plain = check_audio(session.synthesize(_request(SPELLED_TEXT, voice)), "no letter_speed")
+    same = check_audio(
+        session.synthesize(_request(SPELLED_TEXT, voice, letter_speed=1.0)), "letter_speed 1.0"
+    )
+    if same.size != plain.size:
+        _fail(f"letter_speed 1.0 gave {same.size} samples, not {plain.size} as without it")
+    slow = check_audio(
+        session.synthesize(_request(SPELLED_TEXT, voice, letter_speed=LETTER_SPEED_MIN)),
+        f"letter_speed {LETTER_SPEED_MIN}",
+    )
+    if slow.size < plain.size:
+        _fail(
+            f"letter_speed {LETTER_SPEED_MIN} gave {slow.size} samples, fewer than "
+            f"without it ({plain.size})"
+        )
+    for value in (0.0, 0.1, 1.5, -1.0, math.nan, math.inf, "slow", True):
+        _expect_invalid(
+            session, _request(SPELLED_TEXT, voice, letter_speed=value), f"letter_speed {value!r}"
+        )
+
+
 def check_voice_engine(
     make_engine: Callable[[], Engine],
     *,
@@ -146,6 +174,8 @@ def check_voice_engine(
         fast = check_audio(session.synthesize(_request(SAMPLE_TEXT, first, speed=2.0)), "speed 2")
         if not fast.size < normal.size:
             _fail(f"speed 2.0 gave {fast.size} samples, not fewer than speed 1.0 ({normal.size})")
+
+        _check_letter_speed(session, first)
 
         _expect_invalid(session, _request("", first), "empty text")
         _expect_invalid(session, _request("   \n", first), "blank text")
