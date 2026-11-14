@@ -26,8 +26,6 @@ GOLDEN = ["acl2023-hardt-ellipsis", "arxiv2017-maass-privacyscore", "joss2021-wa
 GERMAN_LATER_STEPS = {
     "links": 101,
     "citations": 101,
-    "statistics": 130,
-    "numbers": 130,
 }
 GERMAN = {"arxiv2017-maass-privacyscore"}
 

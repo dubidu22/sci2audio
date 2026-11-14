@@ -4089,7 +4089,7 @@
         'references': False,
         'selected': True,
         'title': '6 Rechtliche Fragestellungen',
-        'utterances': 205,
+        'utterances': 183,
       }),
       dict({
         'blocks': list([
@@ -4101,7 +4101,7 @@
         'references': False,
         'selected': True,
         'title': '7 Schlussbemerkungen',
-        'utterances': 27,
+        'utterances': 23,
       }),
       dict({
         'blocks': list([
@@ -4167,10 +4167,10 @@
         'switched_off': 0,
       }),
       'numbers-and-units': dict({
-        'applied': 2,
+        'applied': 28,
         'label': 'Numbers, symbols, units and statistics',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 7,
         'switched_off': 0,
       }),
       'page-furniture': dict({
@@ -6066,36 +6066,627 @@
         'step': 'footnotes',
       }),
       dict({
+        'block': 59,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 27,
+        'kind': 'replace',
+        'original': '28.08.2008',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "28.08.2008" read as "achtundzwanzigsten August 2008"',
+        'said': 'achtundzwanzigsten August 2008',
+        'spoken': True,
+        'start': 17,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 60,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 25,
+        'kind': 'replace',
+        'original': '25.08.2000',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "25.08.2000" read as "fünfundzwanzigsten August 2000"',
+        'said': 'fünfundzwanzigsten August 2000',
+        'spoken': True,
+        'start': 15,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 60,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 98,
+        'kind': 'replace',
+        'original': '10.06.2008',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "10.06.2008" read as "zehnten Juni 2008"',
+        'said': 'zehnten Juni 2008',
+        'spoken': True,
+        'start': 88,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 61,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 30,
+        'kind': 'replace',
+        'original': '05.03.2009',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "05.03.2009" read as "fünften März 2009"',
+        'said': 'fünften März 2009',
+        'spoken': True,
+        'start': 20,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 61,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 73,
+        'kind': 'replace',
+        'original': '24.10.2012',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "24.10.2012" read as "vierundzwanzigsten Oktober 2012"',
+        'said': 'vierundzwanzigsten Oktober 2012',
+        'spoken': True,
+        'start': 63,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 62,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 27,
+        'kind': 'replace',
+        'original': '25.10.2006',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "25.10.2006" read as "fünfundzwanzigsten Oktober 2006"',
+        'said': 'fünfundzwanzigsten Oktober 2006',
+        'spoken': True,
+        'start': 17,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 62,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 75,
+        'kind': 'replace',
+        'original': '05.03.2009',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "05.03.2009" read as "fünften März 2009"',
+        'said': 'fünften März 2009',
+        'spoken': True,
+        'start': 65,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 63,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 30,
+        'kind': 'replace',
+        'original': '05.03.2009',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "05.03.2009" read as "fünften März 2009"',
+        'said': 'fünften März 2009',
+        'spoken': True,
+        'start': 20,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 63,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 73,
+        'kind': 'replace',
+        'original': '24.10.2012',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'date "24.10.2012" read as "vierundzwanzigsten Oktober 2012"',
+        'said': 'vierundzwanzigsten Oktober 2012',
+        'spoken': True,
+        'start': 63,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
         'block': 67,
         'category': 'numbers-and-units',
         'chapter': 6,
-        'end': 78,
+        'end': 28,
         'kind': 'replace',
-        'original': 'W',
+        'original': '29.02.2012',
         'page': 8,
         'printed_page': '',
-        'reason': '"W" read as "Watt"',
-        'said': 'Watt',
+        'reason': 'date "29.02.2012" read as "neunundzwanzigsten Februar 2012"',
+        'said': 'neunundzwanzigsten Februar 2012',
         'spoken': True,
-        'start': 77,
+        'start': 18,
         'status': 'accepted',
-        'step': 'units',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 67,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 68,
+        'kind': 'replace',
+        'original': '08.03.2012',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'date "08.03.2012" read as "achten März 2012"',
+        'said': 'achten März 2012',
+        'spoken': True,
+        'start': 58,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 67,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 111,
+        'kind': 'replace',
+        'original': '27.06.2007',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'date "27.06.2007" read as "siebenundzwanzigsten Juni 2007"',
+        'said': 'siebenundzwanzigsten Juni 2007',
+        'spoken': True,
+        'start': 101,
+        'status': 'accepted',
+        'step': 'numbers',
       }),
       dict({
         'block': 68,
         'category': 'numbers-and-units',
         'chapter': 6,
-        'end': 37,
+        'end': 28,
         'kind': 'replace',
-        'original': 'W',
+        'original': '27.06.2007',
         'page': 8,
         'printed_page': '',
-        'reason': '"W" read as "Watt"',
-        'said': 'Watt',
+        'reason': 'date "27.06.2007" read as "siebenundzwanzigsten Juni 2007"',
+        'said': 'siebenundzwanzigsten Juni 2007',
         'spoken': True,
-        'start': 36,
+        'start': 18,
         'status': 'accepted',
-        'step': 'units',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 68,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 72,
+        'kind': 'replace',
+        'original': '22.03.2005',
+        'page': 8,
+        'printed_page': '',
+        'reason': 'date "22.03.2005" read as "zweiundzwanzigsten März 2005"',
+        'said': 'zweiundzwanzigsten März 2005',
+        'spoken': True,
+        'start': 62,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 74,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 20,
+        'kind': 'replace',
+        'original': '22.06.2011',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'date "22.06.2011" read as "zweiundzwanzigsten Juni 2011"',
+        'said': 'zweiundzwanzigsten Juni 2011',
+        'spoken': True,
+        'start': 10,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 74,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 56,
+        'kind': 'replace',
+        'original': '17.03.2003',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'date "17.03.2003" read as "siebzehnten März 2003"',
+        'said': 'siebzehnten März 2003',
+        'spoken': True,
+        'start': 46,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 76,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 20,
+        'kind': 'replace',
+        'original': '16.05.2017',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'date "16.05.2017" read as "sechzehnten Mai 2017"',
+        'said': 'sechzehnten Mai 2017',
+        'spoken': True,
+        'start': 10,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 76,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 58,
+        'kind': 'replace',
+        'original': '19.10.2016',
+        'page': 9,
+        'printed_page': '',
+        'reason': 'date "19.10.2016" read as "neunzehnten Oktober 2016"',
+        'said': 'neunzehnten Oktober 2016',
+        'spoken': True,
+        'start': 48,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 80,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 479,
+        'kind': 'replace',
+        'original': '25.5.2018',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'date "25.5.2018" read as "fünfundzwanzigsten Mai 2018"',
+        'said': 'fünfundzwanzigsten Mai 2018',
+        'spoken': True,
+        'start': 470,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 81,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 29,
+        'kind': 'replace',
+        'original': '18.02.2014',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'date "18.02.2014" read as "achtzehnten Februar 2014"',
+        'said': 'achtzehnten Februar 2014',
+        'spoken': True,
+        'start': 19,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 82,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 20,
+        'kind': 'replace',
+        'original': '16.07.2008',
+        'page': 10,
+        'printed_page': '',
+        'reason': 'date "16.07.2008" read as "sechzehnten Juli 2008"',
+        'said': 'sechzehnten Juli 2008',
+        'spoken': True,
+        'start': 10,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 87,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 23,
+        'kind': 'replace',
+        'original': '09.10.1991',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'date "09.10.1991" read as "neunten Oktober 19 hundert 91"',
+        'said': 'neunten Oktober 19 hundert 91',
+        'spoken': True,
+        'start': 13,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 87,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 64,
+        'kind': 'replace',
+        'original': '13.04.1994',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'date "13.04.1994" read as "dreizehnten April 19 hundert 94"',
+        'said': 'dreizehnten April 19 hundert 94',
+        'spoken': True,
+        'start': 54,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 88,
+        'category': 'numbers-and-units',
+        'chapter': 6,
+        'end': 20,
+        'kind': 'replace',
+        'original': '29.01.2002',
+        'page': 11,
+        'printed_page': '',
+        'reason': 'date "29.01.2002" read as "neunundzwanzigsten Januar 2002"',
+        'said': 'neunundzwanzigsten Januar 2002',
+        'spoken': True,
+        'start': 10,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 95,
+        'category': 'numbers-and-units',
+        'chapter': 7,
+        'end': 20,
+        'kind': 'replace',
+        'original': '23.09.2014',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'date "23.09.2014" read as "dreiundzwanzigsten September 2014"',
+        'said': 'dreiundzwanzigsten September 2014',
+        'spoken': True,
+        'start': 10,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 95,
+        'category': 'numbers-and-units',
+        'chapter': 7,
+        'end': 57,
+        'kind': 'replace',
+        'original': '23.06.2009',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'date "23.06.2009" read as "dreiundzwanzigsten Juni 2009"',
+        'said': 'dreiundzwanzigsten Juni 2009',
+        'spoken': True,
+        'start': 47,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 95,
+        'category': 'numbers-and-units',
+        'chapter': 7,
+        'end': 102,
+        'kind': 'replace',
+        'original': '18.01.2012',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'date "18.01.2012" read as "achtzehnten Januar 2012"',
+        'said': 'achtzehnten Januar 2012',
+        'spoken': True,
+        'start': 92,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 96,
+        'category': 'numbers-and-units',
+        'chapter': 7,
+        'end': 20,
+        'kind': 'replace',
+        'original': '23.06.2009',
+        'page': 12,
+        'printed_page': '',
+        'reason': 'date "23.06.2009" read as "dreiundzwanzigsten Juni 2009"',
+        'said': 'dreiundzwanzigsten Juni 2009',
+        'spoken': True,
+        'start': 10,
+        'status': 'accepted',
+        'step': 'numbers',
+      }),
+      dict({
+        'block': 103,
+        'category': 'numbers-and-units',
+        'chapter': 8,
+        'end': 170,
+        'kind': 'replace',
+        'original': '–',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'range "507–512" read with "bis"',
+        'said': ' bis ',
+        'spoken': False,
+        'start': 169,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 103,
+          'end': 180,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 105,
+        'category': 'numbers-and-units',
+        'chapter': 8,
+        'end': 155,
+        'kind': 'replace',
+        'original': '–',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'range "10–20" read with "bis"',
+        'said': ' bis ',
+        'spoken': False,
+        'start': 154,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 105,
+          'end': 164,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 107,
+        'category': 'numbers-and-units',
+        'chapter': 8,
+        'end': 133,
+        'kind': 'replace',
+        'original': ':',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'ratio "8:181" read as "8 zu 181"',
+        'said': ' zu ',
+        'spoken': False,
+        'start': 132,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 107,
+          'end': 147,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 107,
+        'category': 'numbers-and-units',
+        'chapter': 8,
+        'end': 137,
+        'kind': 'replace',
+        'original': '–',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'range "181–187" read with "bis"',
+        'said': ' bis ',
+        'spoken': False,
+        'start': 136,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 107,
+          'end': 147,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 108,
+        'category': 'numbers-and-units',
+        'chapter': 8,
+        'end': 151,
+        'kind': 'replace',
+        'original': ':',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'ratio "70:10" read as "70 zu 10"',
+        'said': ' zu ',
+        'spoken': False,
+        'start': 150,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 108,
+          'end': 163,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 108,
+        'category': 'numbers-and-units',
+        'chapter': 8,
+        'end': 154,
+        'kind': 'replace',
+        'original': '–',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'range "10–15" read with "bis"',
+        'said': ' bis ',
+        'spoken': False,
+        'start': 153,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 108,
+          'end': 163,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 109,
+        'category': 'numbers-and-units',
+        'chapter': 8,
+        'end': 111,
+        'kind': 'replace',
+        'original': '–',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'range "1151–1160" read with "bis"',
+        'said': ' bis ',
+        'spoken': False,
+        'start': 110,
+        'status': 'set-aside',
+        'step': 'numbers',
+        'won_by': dict({
+          'block': 109,
+          'end': 122,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
       }),
       dict({
         'block': 6,
@@ -8427,8 +9018,6 @@
     'not_run': list([
       'links',
       'citations',
-      'statistics',
-      'numbers',
     ]),
     'problems': list([
     ]),
@@ -8468,8 +9057,8 @@
   | 4 | 3 PrivacyScore im Überblick | 3 | yes | 38 |
   | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 23 |
   | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
-  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 205 |
-  | 8 | 7 Schlussbemerkungen | 12 | yes | 27 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 183 |
+  | 8 | 7 Schlussbemerkungen | 12 | yes | 23 |
   | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
   
   ## Edits per category
@@ -8486,7 +9075,7 @@
   | Tables and figures | 1 | 0 | 0 | 0 |
   | Reference list | 0 | 9 | 0 | 0 |
   | Abbreviations | 95 | 0 | 3 | 0 |
-  | Numbers, symbols, units and statistics | 2 | 0 | 0 | 0 |
+  | Numbers, symbols, units and statistics | 28 | 0 | 7 | 0 |
   
   ## Page furniture (13)
   
@@ -8758,17 +9347,48 @@
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “S.” → read as “Seite”. Reason: abbreviation "S." read as "Seite". Step: abbreviations.
   - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “S.” → read as “Seite”. Reason: abbreviation "S." read as "Seite". Step: abbreviations.
   
-  ## Numbers, symbols, units and statistics (2)
+  ## Numbers, symbols, units and statistics (35)
   
-  - page 8, chapter 7, applied: “W” → read as “Watt”. Reason: "W" read as "Watt". Step: units.
-  - page 8, chapter 7, applied: “W” → read as “Watt”. Reason: "W" read as "Watt". Step: units.
+  - page 7, chapter 7, applied: “28.08.2008” → read as “achtundzwanzigsten August 2008”. Reason: date "28.08.2008" read as "achtundzwanzigsten August 2008". Step: numbers.
+  - page 7, chapter 7, applied: “25.08.2000” → read as “fünfundzwanzigsten August 2000”. Reason: date "25.08.2000" read as "fünfundzwanzigsten August 2000". Step: numbers.
+  - page 7, chapter 7, applied: “10.06.2008” → read as “zehnten Juni 2008”. Reason: date "10.06.2008" read as "zehnten Juni 2008". Step: numbers.
+  - page 7, chapter 7, applied: “05.03.2009” → read as “fünften März 2009”. Reason: date "05.03.2009" read as "fünften März 2009". Step: numbers.
+  - page 7, chapter 7, applied: “24.10.2012” → read as “vierundzwanzigsten Oktober 2012”. Reason: date "24.10.2012" read as "vierundzwanzigsten Oktober 2012". Step: numbers.
+  - page 7, chapter 7, applied: “25.10.2006” → read as “fünfundzwanzigsten Oktober 2006”. Reason: date "25.10.2006" read as "fünfundzwanzigsten Oktober 2006". Step: numbers.
+  - page 7, chapter 7, applied: “05.03.2009” → read as “fünften März 2009”. Reason: date "05.03.2009" read as "fünften März 2009". Step: numbers.
+  - page 7, chapter 7, applied: “05.03.2009” → read as “fünften März 2009”. Reason: date "05.03.2009" read as "fünften März 2009". Step: numbers.
+  - page 7, chapter 7, applied: “24.10.2012” → read as “vierundzwanzigsten Oktober 2012”. Reason: date "24.10.2012" read as "vierundzwanzigsten Oktober 2012". Step: numbers.
+  - page 8, chapter 7, applied: “29.02.2012” → read as “neunundzwanzigsten Februar 2012”. Reason: date "29.02.2012" read as "neunundzwanzigsten Februar 2012". Step: numbers.
+  - page 8, chapter 7, applied: “08.03.2012” → read as “achten März 2012”. Reason: date "08.03.2012" read as "achten März 2012". Step: numbers.
+  - page 8, chapter 7, applied: “27.06.2007” → read as “siebenundzwanzigsten Juni 2007”. Reason: date "27.06.2007" read as "siebenundzwanzigsten Juni 2007". Step: numbers.
+  - page 8, chapter 7, applied: “27.06.2007” → read as “siebenundzwanzigsten Juni 2007”. Reason: date "27.06.2007" read as "siebenundzwanzigsten Juni 2007". Step: numbers.
+  - page 8, chapter 7, applied: “22.03.2005” → read as “zweiundzwanzigsten März 2005”. Reason: date "22.03.2005" read as "zweiundzwanzigsten März 2005". Step: numbers.
+  - page 9, chapter 7, applied: “22.06.2011” → read as “zweiundzwanzigsten Juni 2011”. Reason: date "22.06.2011" read as "zweiundzwanzigsten Juni 2011". Step: numbers.
+  - page 9, chapter 7, applied: “17.03.2003” → read as “siebzehnten März 2003”. Reason: date "17.03.2003" read as "siebzehnten März 2003". Step: numbers.
+  - page 9, chapter 7, applied: “16.05.2017” → read as “sechzehnten Mai 2017”. Reason: date "16.05.2017" read as "sechzehnten Mai 2017". Step: numbers.
+  - page 9, chapter 7, applied: “19.10.2016” → read as “neunzehnten Oktober 2016”. Reason: date "19.10.2016" read as "neunzehnten Oktober 2016". Step: numbers.
+  - page 10, chapter 7, applied: “25.5.2018” → read as “fünfundzwanzigsten Mai 2018”. Reason: date "25.5.2018" read as "fünfundzwanzigsten Mai 2018". Step: numbers.
+  - page 10, chapter 7, applied: “18.02.2014” → read as “achtzehnten Februar 2014”. Reason: date "18.02.2014" read as "achtzehnten Februar 2014". Step: numbers.
+  - page 10, chapter 7, applied: “16.07.2008” → read as “sechzehnten Juli 2008”. Reason: date "16.07.2008" read as "sechzehnten Juli 2008". Step: numbers.
+  - page 11, chapter 7, applied: “09.10.1991” → read as “neunten Oktober 19 hundert 91”. Reason: date "09.10.1991" read as "neunten Oktober 19 hundert 91". Step: numbers.
+  - page 11, chapter 7, applied: “13.04.1994” → read as “dreizehnten April 19 hundert 94”. Reason: date "13.04.1994" read as "dreizehnten April 19 hundert 94". Step: numbers.
+  - page 11, chapter 7, applied: “29.01.2002” → read as “neunundzwanzigsten Januar 2002”. Reason: date "29.01.2002" read as "neunundzwanzigsten Januar 2002". Step: numbers.
+  - page 12, chapter 8, applied: “23.09.2014” → read as “dreiundzwanzigsten September 2014”. Reason: date "23.09.2014" read as "dreiundzwanzigsten September 2014". Step: numbers.
+  - page 12, chapter 8, applied: “23.06.2009” → read as “dreiundzwanzigsten Juni 2009”. Reason: date "23.06.2009" read as "dreiundzwanzigsten Juni 2009". Step: numbers.
+  - page 12, chapter 8, applied: “18.01.2012” → read as “achtzehnten Januar 2012”. Reason: date "18.01.2012" read as "achtzehnten Januar 2012". Step: numbers.
+  - page 12, chapter 8, applied: “23.06.2009” → read as “dreiundzwanzigsten Juni 2009”. Reason: date "23.06.2009" read as "dreiundzwanzigsten Juni 2009". Step: numbers.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "507–512" read with "bis". Step: numbers.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "10–20" read with "bis". Step: numbers.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “:” → read as “zu”. Reason: ratio "8:181" read as "8 zu 181". Step: numbers.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "181–187" read with "bis". Step: numbers.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “:” → read as “zu”. Reason: ratio "70:10" read as "70 zu 10". Step: numbers.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "10–15" read with "bis". Step: numbers.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “–” → read as “bis”. Reason: range "1151–1160" read with "bis". Step: numbers.
   
   ## Problems
   
   - Step links does not handle this language.
   - Step citations does not handle this language.
-  - Step statistics does not handle this language.
-  - Step numbers does not handle this language.
   
   '''
 # ---
@@ -11190,38 +11810,29 @@
   Eine solche technisch-automatisierte Registrierung unter Anerkennung der gestellten Nutzungsbedingungen durch die PrivacyScore-Technik ist nicht vorgesehen.
   
   Fußnote 14.
-  LG Hamburg v.
-  28.08.2008, Az.
+  LG Hamburg v. achtundzwanzigsten August 2008, Az.
   315 O 326/08.
   
   Fußnote 15.
-  OLG Köln v.
-  25.08.2000, Az.
+  OLG Köln v. fünfundzwanzigsten August 2000, Az.
   19 U 2/00; LG Ulm v.
   13.01.15, Az.
-  2 O 8/15; OLG Hamm v.
-  10.06.2008, Az.
+  2 O 8/15; OLG Hamm v. zehnten Juni 2008, Az.
   4 U 37/08.
   
   Fußnote 16.
-  OLG Frankfurt v.
-  05.03.2009, Az.
-  6 U 221/09; OLG Hamburg v.
-  24.10.2012, Az.
+  OLG Frankfurt v. fünften März 2009, Az.
+  6 U 221/09; OLG Hamburg v. vierundzwanzigsten Oktober 2012, Az.
   5 U 38/10.
   
   Fußnote 17.
-  LG München v.
-  25.10.2006, Az.
-  30 O 11973/05; OLG Frankfurt v.
-  05.03.2009, Az.
+  LG München v. fünfundzwanzigsten Oktober 2006, Az.
+  30 O 11973/05; OLG Frankfurt v. fünften März 2009, Az.
   6 U 221/09.
   
   Fußnote 18.
-  OLG Frankfurt v.
-  05.03.2009, Az.
-  6 U 221/09; OLG Hamburg v.
-  24.10.2012, Az.
+  OLG Frankfurt v. fünften März 2009, Az.
+  6 U 221/09; OLG Hamburg v. vierundzwanzigsten Oktober 2012, Az.
   5 U 38/10.
   
   Ein Großteil der PrivacyScore-Tests basiert lediglich auf Metadaten, die beim Abruf einer Seite entstehen.
@@ -11258,19 +11869,14 @@
   S. v. § 823 I BGB, mangels eines betriebsbezogenen Eingriffs, der über eine bloße Belästigung hinausgeht, vermieden werden.
   
   Fußnote 19.
-  OLG Hamburg v.
-  29.02.2012, Az.
-  5 U 10/10; OLG Celle v.
-  08.03.2012, Az.
-  13 Watt 17/12; OLG Rostock v.
-  27.06.2007, Az.
+  OLG Hamburg v. neunundzwanzigsten Februar 2012, Az.
+  5 U 10/10; OLG Celle v. achten März 2012, Az.
+  13 W 17/12; OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
   2 E 12/07.
   
   Fußnote 20.
-  OLG Rostock v.
-  27.06.2007, Az.
-  2 Watt 12/07; OLG Frankfurt v.
-  22.03.2005, Az.
+  OLG Rostock v. siebenundzwanzigsten Juni 2007, Az.
+  2 W 12/07; OLG Frankfurt v. zweiundzwanzigsten März 2005, Az.
   11 U 64/04.
   
   Sofern PrivacyScore zur Untersuchung der Webseite nicht eine vom Berechtigten errichtete „besondere Zugangssicherung“ überwindet, bestehen auch in strafrechtlicher Hinsicht keine Bedenken gegen dessen Einsatz.
@@ -11292,20 +11898,16 @@
   Soweit nach der jüngsten Rechtsprechung dynamische IP-Adressen personenbezogene Daten darstellen, dürfen sie nur verarbeitet werden, wenn dies entweder gesetzlich gestattet ist oder die Betroffene eingewilligt hat.
   
   Fußnote 21.
-  BGH v.
-  22.06.2011, Az.
-  I ZR 159/10; BGH v.
-  17.03.2003, Az.
+  BGH v. zweiundzwanzigsten Juni 2011, Az.
+  I ZR 159/10; BGH v. siebzehnten März 2003, Az.
   I ZR 259/00.
   
   Fußnote 22.
   Beschluss des Düsseldorfer Kreises vom 26./27.11.2009 über die „datenschutzkonforme Ausgestaltung von Analyseverfahren“.
   
   Fußnote 23.
-  BGH v.
-  16.05.2017, Az.
-  VI ZR 135/13; EuGH v.
-  19.10.2016, Az.
+  BGH v. sechzehnten Mai 2017, Az.
+  VI ZR 135/13; EuGH v. neunzehnten Oktober 2016, Az.
   C-582/14.
   
   Die gesetzliche Grundlage für den Umgang mit Nutzungsdaten ist derzeit noch das nationale Telemediengesetz (TMG), speziell § 15 Absatz 3 TMG, der auch im Falle einer verkürzten IP anwendbar ist.
@@ -11324,7 +11926,8 @@
   
   Ähnlich stellt es sich bei fehlender Verschlüsselungssoftware dar, da eine generelle Verschlüsselungspflicht für Webseitenbetreiber nicht ausdrücklich normiert ist.
   Vorschriften zur Datensicherheit finden sich derzeit unter anderem in § 9 Bundesdatenschutz (BDSG) und dessen Anlage sowie im für Telemedien spezielleren § 13 Absatz 7 TMG.
-  Da die Datenschutz-Grundverord-nung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gemäß § 288 Absatz 2 AEUV mit Geltungsbeginn am 25.5.2018 unmittelbar in den Mitgliedsstaaten anwendbar sein werden, werden sie diese nationalen Regelungen im Rahmen des Anwendungsvorrangs verdrängen.
+  Da die Datenschutz-Grundverord-nung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gemäß § 288 Absatz 2 AEUV mit Geltungsbeginn am fünfundzwanzigsten Mai 2018 unmittelbar in den Mitgliedsstaaten anwendbar sein werden,
+  werden sie diese nationalen Regelungen im Rahmen des Anwendungsvorrangs verdrängen.
   Aus Erwägungsgrund 5 des Entwurfs der e-Privacy-VO geht hervor, dass diese gegenüber der DSGVO spezieller sein soll, wenn ihr Anwendungsbereich betroffen ist.
   Gleichzeitig verweist Erwägungsgrund 37 des Verordnungsentwurfs hinsichtlich der Bewertung der Datensicherheit auf Artikel 32 DSGVO, in dem i.
   V. m.
@@ -11339,13 +11942,11 @@
   Dies kann im Einzelfall auch dazu führen, dass ein Verantwortlicher keine Maßnahmen ergreifen muss.
   
   Fußnote 24.
-  LG Frankfurt v.
-  18.02.2014, Az.
+  LG Frankfurt v. achtzehnten Februar 2014, Az.
   3-10 O 86/12.
   
   Fußnote 25.
-  BGH v.
-  16.07.2008, Az.
+  BGH v. sechzehnten Juli 2008, Az.
   VIII ZR 348/06.
   
   Rechtliche Herausforderungen hinsichtlich der Veröffentlichung der Ergebnisse Auf der PrivacyScore-Webseite können sowohl Detail-Ergebnisse für einzelne Webseiten als auch vergleichende Rankings eingesehen werden.
@@ -11369,15 +11970,12 @@
   StGB werden und die konkrete Aussage geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
   
   Fußnote 26.
-  BVerfG v.
-  09.10.1991, Az.
-  1 BvR 1555/88; BVerfG v.
-  13.04.1994, Az.
+  BVerfG v. neunten Oktober 19 hundert 91, Az.
+  1 BvR 1555/88; BVerfG v. dreizehnten April 19 hundert 94, Az.
   1 BvR 23/94.
   
   Fußnote 27.
-  BGH v.
-  29.01.2002, Az.
+  BGH v. neunundzwanzigsten Januar 2002, Az.
   VI ZR 20/01.
   
   Eine Beurteilung eines rechtswidrigen Eingriffs unter Abwägung der Interessen ist grundsätzlich nur im Einzelfall möglich.
@@ -11411,17 +12009,13 @@
   Sowohl die zu überprüfenden Webseiten als auch die Bewertungskriterien können dabei von den Nutzerinnen festgelegt werden.
   
   Fußnote 28.
-  BGH v.
-  23.09.2014, Az.
-  VI ZR 358/13; BGH v.
-  23.06.2009, Az.
-  VI ZR 196/08; OLG Hamburg v.
-  18.01.2012, Az.
+  BGH v. dreiundzwanzigsten September 2014, Az.
+  VI ZR 358/13; BGH v. dreiundzwanzigsten Juni 2009, Az.
+  VI ZR 196/08; OLG Hamburg v. achtzehnten Januar 2012, Az.
   5 U 51/11.
   
   Fußnote 29.
-  BGH v.
-  23.06.2009, Az.
+  BGH v. dreiundzwanzigsten Juni 2009, Az.
   VI ZR196/08.
   
   Juristisch ist die Verwendung von PrivacyScore in seiner aktuell geplanten Form zulässig, soweit die untersuchte Webseite frei zugänglich ist und kein Sonderrechtsschutz besteht.

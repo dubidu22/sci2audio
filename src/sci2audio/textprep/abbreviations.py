@@ -46,10 +46,14 @@ _NEXT_SENTENCE = re.compile(r"\s+[\"'(\[\u201c\u2018]?[A-Z]")
 # English keeps [A-Z] as it was
 _UPPER = "".join(c for c in map(chr, range(0x250)) if c.isupper())
 _LOWER = "".join(c for c in map(chr, range(0x250)) if c.islower())
+# and a number may start with its decimal point (".45"), which the numbers step reads "0 Komma
+# 4 5" in the same run (#130)
 _FOLLOWS_ANY_CAPITAL = {
-    "label": re.compile(_SPACE + rf"(?:\d|[(\[]\w|[{_UPPER}](?![{_LOWER}]|\.[{_UPPER}{_LOWER}]))"),
-    "number": _NUMBER,
-    "word": re.compile(rf"[^\S\r]{{1,2}}(?:[{_UPPER}]|\d)"),
+    "label": re.compile(
+        _SPACE + rf"(?:\.?\d|[(\[]\w|[{_UPPER}](?![{_LOWER}]|\.[{_UPPER}{_LOWER}]))"
+    ),
+    "number": re.compile(_SPACE + r"\.?\d"),
+    "word": re.compile(rf"[^\S\r]{{1,2}}(?:[{_UPPER}]|\.?\d)"),
 }
 _NEXT_SENTENCE_ANY_CAPITAL = re.compile(rf"\s+[\"'(\[\u201c\u2018\u201e]?[{_UPPER}]")
 # the word right before an abbreviation: "before_year" is read only after a name

@@ -255,7 +255,7 @@ issue = 113
 goal = "Label abbreviations before a number or label read in full: 'Abb. 3', 'Tab. 2', 'Gl. (4)', 'Kap. 5', 'Nr. 7'."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Siehe Abb. 3a, Tab. 2, Gl. (4), Kap. 5, Abschn. 2.1, Anh. B und Nr. 7." }]
-expected = ["Siehe Abbildung 3a, Tabelle 2, Gleichung (4), Kapitel 5, Abschnitt 2.1, Anhang B und Nummer 7."]
+expected = ["Siehe Abbildung 3a, Tabelle 2, Gleichung (4), Kapitel 5, Abschnitt 2 Punkt 1, Anhang B und Nummer 7."]
 
 [[case]]
 id = "de-abbreviations-titles"
@@ -340,7 +340,7 @@ issue = 113
 goal = "Numbers printed German style still take their unit: '2,5 km', '1.500 m', '0,5 s'."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Sie lief 2,5 km, dann 1.500 m in 0,5 s." }]
-expected = ["Sie lief 2,5 Kilometer, dann 1.500 Meter in 0,5 Sekunden."]
+expected = ["Sie lief 2 Komma 5 Kilometer, dann 1500 Meter in 0 Komma 5 Sekunden."]
 
 [[case]]
 id = "de-units-per"
@@ -358,7 +358,7 @@ issue = 113
 goal = "A power of a length is one German word: 'Quadratmeter', 'Kubikzentimeter'; other powers 'hoch 2'."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Die Fläche war 40 m², das Volumen 3 cm³, die Beschleunigung 9,8 m/s²." }]
-expected = ["Die Fläche war 40 Quadratmeter, das Volumen 3 Kubikzentimeter, die Beschleunigung 9,8 Meter pro Sekunde hoch 2."]
+expected = ["Die Fläche war 40 Quadratmeter, das Volumen 3 Kubikzentimeter, die Beschleunigung 9 Komma 8 Meter pro Sekunde hoch 2."]
 
 [[case]]
 id = "de-units-one-by-gender"
@@ -385,7 +385,7 @@ issue = 113
 goal = "A signed '1' or '1,0' stays a number: 'minus 1 Grad', '1,0 Sekunden'."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Es war −1 °C kalt und dauerte 1,0 s." }]
-expected = ["Es war −1 Grad Celsius kalt und dauerte 1,0 Sekunden."]
+expected = ["Es war −1 Grad Celsius kalt und dauerte 1 Komma 0 Sekunden."]
 
 [[case]]
 id = "de-units-millions"
@@ -394,7 +394,7 @@ issue = 113
 goal = "'Mio.', 'Mrd.' and 'Tsd.' after a number read in full; the full stop at the end of a block stays."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Das kostete 2,5 Mio. Euro und 3 Mrd. Dollar, also rund 4 Tsd." }]
-expected = ["Das kostete 2,5 Millionen Euro und 3 Milliarden Dollar, also rund 4 Tausend."]
+expected = ["Das kostete 2 Komma 5 Millionen Euro und 3 Milliarden Dollar, also rund 4 Tausend."]
 
 [[case]]
 id = "de-units-hyphenated-compound"
@@ -457,7 +457,7 @@ issue = 113
 goal = "'1' starting a hyphenated compound reads 'Ein' ('Ein-Kilogramm-Packung'); a decimal stays a number (review of PR #228)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Eine 1-kg-Packung und ein 1,5-l-Behälter." }]
-expected = ["Eine Ein-Kilogramm-Packung und ein 1,5-Liter-Behälter."]
+expected = ["Eine Ein-Kilogramm-Packung und ein 1 Komma 5-Liter-Behälter."]
 
 [[case]]
 id = "de-units-min-with-a-full-stop"
@@ -478,6 +478,167 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "Es kamen u. a. Kinder und Eltern." }]
 expected = ["Es kamen unter anderem Kinder und Eltern."]
 utterances = ["Es kamen unter anderem Kinder und Eltern."]
+
+# ---- #130 numbers, dates and statistics (TP-09, TP-11, TP-13) ---------------------------------
+
+[[case]]
+id = "de-numbers-decimals"
+audit = 0
+issue = 130
+goal = "Decimals read with 'Komma' and the digits after it one by one, a leading point too (N-de-1, D-478)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Werte lagen bei 2,45 und 0,5; r = .45 und p < .05." }]
+expected = ["Die Werte lagen bei 2 Komma 4 5 und 0 Komma 5; r gleich 0 Komma 4 5 und p kleiner als 0 Komma 0 5."]
+
+[[case]]
+id = "de-numbers-thousands-and-years"
+audit = 0
+issue = 130
+goal = "A thousands point is dropped; 1100 to 1999 read as years after a year word, '1990er' too; 2019 stays (N-de-2, N-de-3, D-479)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Wir befragten 1.234 Personen im Jahr 1998, in den 1990er Jahren und im Jahr 2019." }]
+expected = ["Wir befragten 1234 Personen im Jahr 19 hundert 98, in den 19 hundert 90er Jahren und im Jahr 2019."]
+
+[[case]]
+id = "de-numbers-ranges"
+audit = 0
+issue = 130
+goal = "Ranges with a dash or a hyphen read 'bis' (N-de-4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Teilnehmer waren 18–25 Jahre alt; siehe die Seiten 12-15." }]
+expected = ["Die Teilnehmer waren 18 bis 25 Jahre alt; siehe die Seiten 12 bis 15."]
+
+[[case]]
+id = "de-numbers-ordinals-and-dates"
+audit = 0
+issue = 130
+goal = "Ordinals and dates take the ending the word before asks for (N-de-5, N-de-6)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Am 3. Mai 1998, am 12.03.2019 und vom 3. bis 5. Mai lief die 2. Welle der Studie im 20. Jahrhundert." }]
+expected = ["Am dritten Mai 19 hundert 98, am zwölften März 2019 und vom dritten bis fünften Mai lief die zweite Welle der Studie im zwanzigsten Jahrhundert."]
+
+[[case]]
+id = "de-numbers-fractions-ratios-times"
+audit = 0
+issue = 130
+goal = "Fractions read as fraction words or 'von', ratios 'zu', times 'Uhr' (N-de-7, N-de-8)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Etwa 1/2 und 2/3 der Gruppe, 17/20 Punkte und ein Verhältnis von 3:1, um 13:30 Uhr." }]
+expected = ["Etwa ein halb und 2 Drittel der Gruppe, 17 von 20 Punkte und ein Verhältnis von 3 zu 1, um 13 Uhr 30."]
+
+[[case]]
+id = "de-numbers-powers"
+audit = 0
+issue = 130
+goal = "Powers read 'hoch', a letter squared 'Quadrat'; the unit after them is the units step's (N-de-9)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es waren 10⁶ Zellen, die Größe x² und 10⁻⁴ mol." }]
+expected = ["Es waren 10 hoch 6 Zellen, die Größe x Quadrat und 10 hoch minus 4 Mol."]
+
+[[case]]
+id = "de-numbers-roman-and-labels"
+audit = 0
+issue = 130
+goal = "Roman numerals after a keyword read as numbers; a point after a label word reads 'Punkt'; a run before a full stop stays whole (N-de-1, N-de-10)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Siehe Kapitel IV, Teil II und III der Studie, Abschnitt 2.5 und Abb. 3.1; dazu Teil II und III." }]
+expected = ["Siehe Kapitel 4, Teil 2 und 3 der Studie, Abschnitt 2 Punkt 5 und Abbildung 3 Punkt 1; dazu Teil II und III."]
+
+[[case]]
+id = "de-statistics-test-statistics"
+audit = 0
+issue = 130
+goal = "Comparison signs read as words and df brackets 'mit ... Freiheitsgraden' (S-de-1, S-de-2, D-477)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Der Effekt war signifikant, t(34) = 2,45, p < .05, d = 0,42." }]
+expected = ["Der Effekt war signifikant, t mit 34 Freiheitsgraden gleich 2 Komma 4 5, p kleiner als 0 Komma 0 5, d gleich 0 Komma 4 2."]
+
+[[case]]
+id = "de-statistics-f-chi-squared-effect-sizes"
+audit = 0
+issue = 130
+goal = "F with two df, chi squared with one, R² and partial eta squared read as German says them (S-de-2, S-de-3)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es gab F(2, 57) = 4,1; χ²(1) = 3,9; R² = .12 und ηp² = .08." }]
+expected = ["Es gab F mit 2 und 57 Freiheitsgraden gleich 4 Komma 1; Chi-Quadrat mit 1 Freiheitsgrad gleich 3 Komma 9; R Quadrat gleich 0 Komma 1 2 und partielles Eta-Quadrat gleich 0 Komma 0 8."]
+
+[[case]]
+id = "de-statistics-confidence-interval-after-percent"
+audit = 0
+issue = 130
+goal = "'95 %-KI' reads '95 Prozent Konfidenzintervall' (statistics runs before units, review of PR #228) and the interval 'bis' (S-de-4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das 95 %-KI [1,2; 3,4] schloss die Null nicht ein." }]
+expected = ["Das 95 Prozent Konfidenzintervall 1 Komma 2 bis 3 Komma 4 schloss die Null nicht ein."]
+
+[[case]]
+id = "de-statistics-odds-ratio"
+audit = 0
+issue = 130
+goal = "'OR' before a comparison sign reads 'Odds Ratio' (S-de-5)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Chance stieg, OR = 2,5." }]
+expected = ["Die Chance stieg, Odds Ratio gleich 2 Komma 5."]
+
+[[case]]
+id = "de-numbers-glued-after-an-abbreviation"
+audit = 0
+issue = 130
+goal = "A number glued to an abbreviation's full stop is read as after a space, since the abbreviations step reads one in; a power before a dash range reads 'hoch ... bis'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Siehe Abb.1:1 und 10⁶–10⁷ Zellen." }]
+expected = ["Siehe Abbildung 1 zu 1 und 10 hoch 6 bis 10 hoch 7 Zellen."]
+
+[[case]]
+id = "de-numbers-court-file-numbers"
+audit = 0
+issue = 130
+goal = "A court's file number stays as printed with or without 'Az.' ('VI ZR 8/14' is no fraction), a dash before one is no range, and 'Aktenzeichen' keeps only the number, so a date after it is read (review of PR #242)."
+language = "de"
+blocks = [
+  { kind = "paragraph", text = "BGH, Urteil vom 13.1.2015 – VI ZR 8/14. BVerfG, Beschluss v. 15.12.1983 – 1 BvR 209/83." },
+  { kind = "paragraph", text = "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am 3.5.2019." },
+]
+expected = [
+  "BGH, Urteil vom dreizehnten Januar 2015 – VI ZR 8/14. BVerfG, Beschluss v. fünfzehnten Dezember 19 hundert 83 – 1 BvR 209/83.",
+  "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am dritten Mai 2019.",
+]
+
+[[case]]
+id = "de-numbers-thousands-after-a-year-word"
+audit = 0
+issue = 130
+goal = "A number with a thousands point after a word that may introduce a year ('von 1.500') is read in hundreds, which the voice says right; left as printed it was 'eins fünfhundert'. Before a unit it is a count: 'um 1.200 Euro' reads '1200' (review of PR #242)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Der Preis stieg von 1.500 auf 2.000 Euro und um 1.200 Euro im Jahr darauf." }]
+expected = ["Der Preis stieg von 15 hundert auf 2000 Euro und um 1200 Euro im Jahr darauf."]
+
+[[case]]
+id = "de-numbers-joined-numbers-before-a-noun"
+audit = 0
+issue = 130
+goal = "The noun after the last number of a joined run decides whether the run is years: 'zwischen 1234 und 1567 Probanden' are counts, 'zwischen 1990 und 1995 gab es' years (review of PR #242)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Zwischen 1234 und 1567 Probanden nahmen teil; zwischen 1990 und 1995 gab es keine." }]
+expected = ["Zwischen 1234 und 1567 Probanden nahmen teil; zwischen 19 hundert 90 und 19 hundert 95 gab es keine."]
+
+[[case]]
+id = "de-statistics-interval-before-a-full-stop"
+audit = 0
+issue = 130
+goal = "An interval read at a sentence end has no space before the full stop (review of PR #242)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "OR = 2,3, 95 %-KI [1,1; 4,8]. Danach nicht." }]
+expected = ["Odds Ratio gleich 2 Komma 3, 95 Prozent Konfidenzintervall 1 Komma 1 bis 4 Komma 8. Danach nicht."]
+
+[[case]]
+id = "de-units-court-file-number-register"
+audit = 0
+issue = 243
+goal = "The register letter of a court's file number is no unit: 'Az. 13 W 17/12' was '13 Watt 17/12'; a 'W' after a number elsewhere still reads 'Watt'. Needed for #130's second-run property too ('1 N 1/12' read '1 Newton' lost the file number's shape)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 W Leistung." }]
+expected = ["OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 Watt Leistung."]
 
 # ---- #212 notices and footnotes in German (D-517 to D-524) ---------------------------------------
 

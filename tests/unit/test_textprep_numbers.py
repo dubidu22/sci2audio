@@ -192,9 +192,11 @@ def test_blocks_other_steps_claim_whole_are_not_read(kind: BlockKind) -> None:
     assert STEP.find(document, EN) == []
 
 
-def test_english_only() -> None:
+def test_english_and_german() -> None:
+    """German has its own rules since #130 (test_textprep_numbers_statistics_de.py)."""
     assert STEP.handles("en-GB")
-    assert not STEP.handles("de")
+    assert STEP.handles("de")
+    assert not STEP.handles("fr")
 
 
 @pytest.mark.timeout(60)

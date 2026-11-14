@@ -13,12 +13,15 @@ original characters.
 from __future__ import annotations
 
 import bisect
+import re
 import unicodedata
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from functools import cache
 
 from sci2audio.core import BlockKind, Edit, EditKind, Span
 from sci2audio.textprep.characters import ACCENTS, INVISIBLE, SOFT_HYPHEN
+from sci2audio.textprep.wordlists import units
 
 # blocks the number and statistics steps do not read: furniture is removed whole and tables,
 # formulas and figures get notices (#64), so an edit there could only be set aside
@@ -168,3 +171,50 @@ def _stray_accent(text: str, kept: list[int], n: int) -> bool:
     before = text[kept[n - 1]] if n else ""
     after = text[kept[n + 1]] if n + 1 < len(kept) else ""
     return all(not c.isalnum() and c not in ACCENTS for c in (before, after))
+
+
+# a German court's file number ("VI ZR 8/14", "1 BvR 209/83", "3-10 O 86/12"): a chamber
+# number (Roman or Arabic), a register of one to five letters and number/year. The number and
+# unit steps leave it as printed: "8/14" is no fraction, the "W" of "13 W 17/12" no watt.
+FILE_NUMBER_DE = (
+    r"(?<![\w/.,])(?:[IVX]{1,6}|\d{1,3}(?:-\d{1,3})?)\s+[A-ZÄÖÜ][A-Za-zäöü]{0,4}"
+    r"\s+\d{1,5}/\d{2}(?:\d{2})?(?![\w/])"
+)
+
+_NEXT_TOKEN = re.compile(r"\s{1,2}(\S+)")
+
+
+@cache
+def _unit_start(language: str) -> re.Pattern[str]:
+    listed = units(language)
+    forms = sorted({f for unit in listed.units for f in unit.printed} if listed else (), key=len)
+    alternatives = "|".join(map(re.escape, reversed(forms))) or "(?!)"
+    return re.compile(rf"(?:{alternatives})(?![^\W\d_])")
+
+
+def unit_follows(text: str, end: int, language: str) -> bool:
+    """True if a letter is glued at `end`, or a unit of the language's list follows it.
+
+    A rule whose reading ends in a number ("1 bis 2", "zwölfter März 2019") does not apply
+    there: the units step would read that number and the unit on a second run ("2 N").
+    """
+    if end < len(text) and text[end].isalnum():
+        return True
+    if _unit_start(language).match(text, end):
+        return True  # a sign glued on: "[1; 2]%"
+    token = _NEXT_TOKEN.match(text, end)
+    return token is not None and _unit_base(language).match(token.group(1)) is not None
+
+
+def unit_starts_at(text: str, position: int, language: str) -> bool:
+    """True if a unit of the language's list starts at `position`, maybe with a power ("s"
+    in "s⁻¹", "m" in "m²")."""
+    return _unit_base(language).match(text, position) is not None
+
+
+@cache
+def _unit_base(language: str) -> re.Pattern[str]:
+    return re.compile(_unit_start(language).pattern.replace("(?![^\\W\\d_])", _NO_LETTER))
+
+
+_NO_LETTER = "(?![^\\W\\d_\u2070\u00b9\u00b2\u00b3\u2074-\u2079])"

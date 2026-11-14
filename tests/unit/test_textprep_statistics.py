@@ -165,9 +165,11 @@ def test_every_other_block_kind_is_read(kind: BlockKind) -> None:
     assert read("p < .05", kind) == "p less than .05"
 
 
-def test_english_only() -> None:
+def test_english_and_german() -> None:
+    """German has its own rules since #130 (test_textprep_numbers_statistics_de.py)."""
     assert STEP.handles("en-GB")
-    assert not STEP.handles("de")
+    assert STEP.handles("de")
+    assert not STEP.handles("fr")
 
 
 @pytest.mark.timeout(60)
