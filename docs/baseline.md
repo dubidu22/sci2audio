@@ -29,8 +29,8 @@ What sci2audio should manage. `scripts/speed.py` prints each line as met, not me
 
 | Machine | Device | Voice | Characters per second | Real-time factor | Model load | Date | Commit |
 |---|---|---|---|---|---|---|---|
-| MacBook Pro M4 | mps | af_heart | | | | | Colin measures before v1.0 (VA-02) |
-| MacBook Pro M4 | cpu | af_heart | | | | | Colin measures before v1.0 (VA-02) |
+| macOS 26.6.2, Mac16,1, Apple M4, 10 cores, 16 GB | mps, torch 2.15.0 | af_heart | 100.8 | 6.41 | 16.62 s | 2026-11-14 | 87ba1f59d51b |
+| macOS 26.6.2, Mac16,1, Apple M4, 10 cores, 16 GB | cpu, torch 2.15.0 | af_heart | 135.2 | 8.6 | 1.52 s | 2026-11-14 | 87ba1f59d51b |
 | Linux 6.18.44-fc-v445, Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cores, 15.7 GB | cpu, torch 2.15.0+cpu | af_heart | 60.2 | 3.83 | 5.32 s | 2026-11-13 | 79db1fcb7ded |
 | Linux 6.18.44-fc-v445, Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cores, 15.7 GB | cpu, torch 2.15.0+cpu | af_heart | 46.9 | 2.99 | 5.54 s | 2026-11-13 | 79db1fcb7ded |
 | Linux 6.18.44-fc-v445, Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cores, 15.7 GB | cpu, torch 2.15.0+cpu | all 28 English voices (`--all-voices --skip-job`) | 44.3 (af_nicole) to 88.8 (af_jessica), median 65.7; af_heart 65.4 | 3.42 (bf_lily) to 5.17 (af_nova), median 4.44 | 4.94 s | 2026-11-13 | 79db1fcb7ded |
@@ -41,8 +41,8 @@ The three af_heart numbers on the same container (46.9, 60.2, 65.4 characters pe
 
 | Machine | Device | Paper | Whole job | Preparation | Voice load | Speaking | Encoding | Audio | Real-time factor (speaking) | Estimate | Date | Commit |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| MacBook Pro M4 | mps | acl2023-hardt-ellipsis | | | | | | | | | | Colin measures before v1.0 (VA-02) |
-| MacBook Pro M4 | cpu | acl2023-hardt-ellipsis | | | | | | | | | | Colin measures before v1.0 (VA-02) |
+| macOS 26.6.2, Mac16,1, Apple M4, 10 cores, 16 GB | mps, torch 2.15.0 | acl2023-hardt-ellipsis (9 pages, 19,167 characters) | 181.28 s | 1.28 s | 2.0 s | 167.75 s (116.4 characters per second) | 10.3 s | 1550.7 s | 9.24 | first at 6% done: +24%; at 25/50/75 %: +15%/+13%/+15%; median 15%, largest 24% | 2026-11-14 | 87ba1f59d51b |
+| macOS 26.6.2, Mac16,1, Apple M4, 10 cores, 16 GB | cpu, torch 2.15.0 | acl2023-hardt-ellipsis (9 pages, 19,167 characters) | 173.17 s | 0.46 s | 1.2 s | 161.3 s (119.0 characters per second) | 10.2 s | 1550.7 s | 9.61 | first at 6% done: +5%; at 25/50/75 %: +3%/-1%/-3%; median 2%, largest 8% | 2026-11-14 | 87ba1f59d51b |
 | Linux 6.18.44-fc-v445, Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cores, 15.7 GB | cpu, torch 2.15.0+cpu | acl2023-hardt-ellipsis (9 pages, 19,167 characters) | 379.97 s | 0.69 s | 1.5 s | 352.92 s (54.3 characters per second) | 24.9 s | 1548.9 s | 4.39 | first at 4% done: -11%; at 25/50/75 %: -9%/-11%/-9%; median 9%, largest 11% | 2026-11-13 | 79db1fcb7ded |
 | Linux 6.18.44-fc-v445, Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cores, 15.7 GB | cpu, torch 2.15.0+cpu | joss2022-biggs-pymedphys (4 pages, 5,133 characters) | 123.02 s | 0.44 s | 1.6 s | 114.26 s (45.0 characters per second) | 6.7 s | 386.75 s | 3.38 | first at 22% done: +32%; at 25/50/75 %: +28%/+7%/-3%; median 8%, largest 35% | 2026-11-13 | 79db1fcb7ded |
 | Linux 6.18.44-fc-v445, Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cores, 15.7 GB | cpu, torch 2.15.0+cpu | acl2023-hardt-ellipsis (9 pages, 19,167 characters) | 434.74 s | 0.98 s | 1.5 s | 404.44 s (47.4 characters per second) | 27.9 s | 1548.9 s | 3.83 | first at 6% done: -20%; at 25/50/75 %: -14%/-6%/+5%; median 5%, largest 20% | 2026-11-13 | 48c5b7dd722b + #136 |
@@ -58,7 +58,7 @@ After #136 (the four rows marked "+ #136"): the estimate meets the budget in eve
 
 | Machine | Device | Characters per second | Install size | Notes |
 |---|---|---|---|---|
-| MacBook Pro M4 | Apple GPU (MPS) | | | `PYTORCH_ENABLE_MPS_FALLBACK=1`; Colin measures (VA-02) |
+| MacBook Pro M4 (Mac16,1, 10 cores, 16 GB), 2026-11-14 | Apple GPU (MPS) and CPU, torch 2.15.0 | MPS 100.8, CPU 135.2 (the voice alone); 116.4 and 119.0 in the audio job | | `PYTORCH_ENABLE_MPS_FALLBACK=1`; kokoro 0.9.4, voice `af_heart`; speed script rows above. The app picks MPS by itself; on this machine the CPU is as fast or slightly faster, and MPS has a 16.6 s model load against 1.5 s |
 | Windows laptop | CPU | | | |
 | Linux | CPU | | | |
 | Linux cloud container, 4 vCPU (Intel(R) Xeon(R) Processor @ 2.10GHz), 2026-11-12 | CPU, torch 2.15.0+cpu | 66 to 74 (warm; `test_kokoro_speed_on_cpu`: 160 characters, 9.7 s of audio in 2.2 to 2.4 s, about 4 × real time); model load 6 to 13 s | 1.3 GB environment with the CPU torch index (`--torch-backend cpu`); 5.6 GB with the default PyPI torch, which pulls the CUDA libraries (3.0 GB nvidia, 1.0 GB triton) | Kokoro-82M, voice `af_heart`, kokoro 0.9.4; measured in #18. Plus 355 MB of voice files in the model folder |
