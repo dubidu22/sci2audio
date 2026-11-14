@@ -325,7 +325,8 @@ def _add_job_options(parser: _Parser) -> None:
     parser.add_argument(
         "--language",
         metavar="TAG",
-        help="en, en-GB, ... (default: the file's own, else guessed from the text: en or de)",
+        help="the text's language, also of its spoken notices: en, en-GB, de, ... "
+        "(default: the file's own, else guessed from the text: en or de)",
     )
     parser.add_argument("--overwrite", action="store_true", help="replace existing output files")
     parser.add_argument(

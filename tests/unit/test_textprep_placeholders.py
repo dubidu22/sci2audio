@@ -163,9 +163,69 @@ def test_a_capital_short_caption_label_reads_its_notice_in_full() -> None:
     assert read(document)[0] == "Figure 3 is skipped."
 
 
-def test_notices_are_english_only() -> None:
-    german = make_document([(BlockKind.TABLE, "a b")], "de")
-    run = run_steps(german, StepContext("de"), strict=True)
+def test_notices_are_read_in_german_for_a_german_job() -> None:
+    document = make_document(
+        [
+            (BlockKind.TABLE, "a b"),
+            caption("Tab. 2", 0, ": Werte."),
+            Block(BlockKind.FORMULA, "x = 1 (4)", label="4"),
+            (BlockKind.FORMULA, "y = 2"),
+            (BlockKind.FIGURE, ""),
+            (BlockKind.FIGURE, "0 1"),
+            caption("Abbildung 1", 5, " und "),
+            caption("Abb. 2", 5, ": Verlauf."),
+        ],
+        "de",
+    )
+    assert [read(document)[i] for i in (0, 2, 3, 4, 5)] == [
+        "Tabelle 2 wird übersprungen.",
+        "Formel 4 wird übersprungen.",
+        "Eine Formel wird übersprungen.",
+        "Eine Abbildung wird übersprungen.",
+        "Abbildung 1 und Abbildung 2 werden übersprungen.",
+    ]
+    (edit,) = [e for e in FormulaNoticeStep().find(document, DE) if e.span.block == 2]
+    # the reason stays English (D-291) and names the item as the notice does
+    assert edit.reason == "Formel 4 is not read; a short notice is read instead (D-55)"
+
+
+@pytest.mark.parametrize("language", ["de", "de-AT", "DE-ch"])
+def test_every_german_tag_uses_the_german_wording(language: str) -> None:
+    german = wording_for(language)
+    assert german is wording_for("de")
+    assert german.skipped(["Tabelle 1", "Abbildung 2", "Formel 3"], BlockKind.TABLE) == (
+        "Tabelle 1, Abbildung 2 und Formel 3 werden übersprungen."
+    )
+    assert german.skipped([], BlockKind.TABLE) == "Eine Tabelle wird übersprungen."
+    assert german.footnote.format("3") == "Fußnote 3."
+    assert german.footnote_unnamed == "Fußnote."
+    assert (german.reference, german.references, german.range_to) == ("Quelle", "Quellen", "bis")
+
+
+@pytest.mark.parametrize(
+    ("printed", "read_as"),
+    [
+        ("Abb. 3", "Abbildung 3"),
+        ("ABB. 3", "Abbildung 3"),
+        ("Abb.3", "Abbildung 3"),
+        ("Tab. 2", "Tabelle 2"),
+        ("Gl. (4)", "Gleichung (4)"),
+        ("Alg. 1", "Algorithmus 1"),
+        ("Abbildung 1", "Abbildung 1"),
+        ("Fig. 3", "Fig. 3"),  # an English short label is named as printed (D-518)
+    ],
+)
+def test_a_german_short_label_is_read_in_full(printed: str, read_as: str) -> None:
+    assert wording_for("de").label(printed) == read_as
+
+
+def test_the_english_wording_does_not_read_german_short_labels() -> None:
+    assert wording_for("en").label("Abb. 3") == "Abb. 3"
+
+
+def test_notices_are_not_run_for_a_language_without_wording() -> None:
+    french = make_document([(BlockKind.TABLE, "a b")], "fr")
+    run = run_steps(french, StepContext("fr"), strict=True)
     assert {"formula-notices", "table-figure-notices"} <= set(run.not_run)
 
 
@@ -327,6 +387,18 @@ def test_the_reference_step_keeps_the_contract_on_any_german_document(
     check_text_step(ReferenceListStep(), [german], allow_ask=False)
     expected = ReferenceListStep().find(document, EN)
     assert ReferenceListStep().find(german, DE) == expected
+
+
+@given(rule_documents())
+def test_the_notice_steps_keep_the_contract_on_any_german_document(document: Document) -> None:
+    german = replace(document, language="de")
+    for step in (FormulaNoticeStep(), TableFigureNoticeStep()):
+        check_text_step(step, [german], allow_ask=False)
+    spoken = read(german)
+    in_references = {edit.span.block for edit in ReferenceListStep().find(german, DE)}
+    for index, block in enumerate(german.blocks):
+        if block.is_placeholder and index not in in_references:
+            assert spoken[index].endswith(("wird übersprungen.", "werden übersprungen."))
 
 
 @given(rule_documents())

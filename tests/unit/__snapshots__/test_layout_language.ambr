@@ -11,7 +11,7 @@
   
   Diese Notiz wurde für die Tests von sci2audio geschrieben.
   Sie beschreibt eine erfundene Pilotstudie und keine echten Daten.
-  Jeder Satz hier ist unser eigener.1
+  Jeder Satz hier ist unser eigener.
   
   1 Einleitung
   
@@ -25,7 +25,7 @@
   
   Wie schnell kann man einer Formel wie E = mc^2 folgen?
   
-  Helfen Fußnoten2 oder stören sie?
+  Helfen Fußnoten oder stören sie?
   
   wenn sie an ihrer Stelle gelesen werden
   
@@ -35,21 +35,25 @@
   
   Wir haben jede Sitzung gemessen und die Minuten für jede Gruppe notiert.
   
-  Gruppe Hörende Minuten A 12 41 B 9 38
+  Eine Tabelle wird übersprungen.
+  
+  Eine Abbildung wird übersprungen.
   
   Der Mittelwert ist
   
-  \bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
+  Eine Formel wird übersprungen.
   
   und die Quellen stehen auf der Projektseite.
   
   3 Ergebnisse
   
   Die Hörenden konnten dem Text folgen, auch wenn er lange Sätze und viele Zahlen enthielt.
-  Für die nächste Studie wollen wir mehr Gruppen untersuchen.2
+  Für die nächste Studie wollen wir mehr Gruppen untersuchen.
   
+  Fußnote 1.
   Nichts in dieser Notiz ist von anderen übernommen.
   
+  Fußnote 2.
   Eine Fußnote mit fettem Text, fortgesetzt auf einer zweiten Zeile.
   
   '''

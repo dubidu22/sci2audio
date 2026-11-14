@@ -3,8 +3,8 @@
 The steps of #64 add short notices where something is not read ("Table 2 is skipped.") and
 introduce each footnote ("Footnote 1."); the citations step of #66 reads a numeric citation
 the sentence needs as "reference 12" (D-172). Their wording lives here, and only here, so a
-language added later (the German interface, #79) adds one row and changes no step. v1.0
-reads English notices only (D-50, Q10).
+language added later adds one row and changes no step. v1.0 read English notices only (D-50,
+Q10); from v1.1 on a job's notices are in its language, English or German (D-456, #212).
 """
 
 from __future__ import annotations
@@ -85,7 +85,34 @@ ENGLISH = Wording(
     },
 )
 
-WORDING: Mapping[str, Wording] = {"en": ENGLISH}  # by primary language tag
+# German (#212, D-517 to D-520): "Formel 4 wird übersprungen.", "Fußnote 1."; espeak-ng German
+# reads "Fußnote 1." as a count ("eins"), not an ordinal. The reference words are #101's.
+GERMAN = Wording(
+    skipped_one="{} wird übersprungen.",
+    skipped_many="{} werden übersprungen.",
+    list_comma=", ",
+    list_and=" und ",
+    unnamed={
+        BlockKind.TABLE: "Eine Tabelle wird übersprungen.",
+        BlockKind.FIGURE: "Eine Abbildung wird übersprungen.",
+        BlockKind.FORMULA: "Eine Formel wird übersprungen.",
+    },
+    formula="Formel {}",
+    footnote="Fußnote {}.",
+    footnote_unnamed="Fußnote.",
+    reference="Quelle",
+    references="Quellen",
+    range_to="bis",
+    # the readings of the German abbreviation table (#113) for the same short labels
+    label_words={
+        "Abb.": "Abbildung",
+        "Tab.": "Tabelle",
+        "Gl.": "Gleichung",
+        "Alg.": "Algorithmus",
+    },
+)
+
+WORDING: Mapping[str, Wording] = {"en": ENGLISH, "de": GERMAN}  # by primary language tag
 
 
 def wording_for(language: str) -> Wording:

@@ -1,11 +1,27 @@
 """Footnotes (TP-05, #64, Q2, D-142 to D-144): marks left out, notes introduced, and the
 "Footnote texts" switch that leaves every note out."""
 
+from dataclasses import replace
+
 import pytest
 from hypothesis import given
 from textprep_documents import Line, body, note, rule_documents, sized_document
 
-from sci2audio.core import Block, BlockKind, Document, EditKind, Span
+from sci2audio.core import (
+    Block,
+    BlockKind,
+    Box,
+    Content,
+    Document,
+    EditKind,
+    Page,
+    Part,
+    Source,
+    SourceFormat,
+    Span,
+    TextLine,
+    TextRun,
+)
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import (
     Category,
@@ -220,12 +236,137 @@ def test_footnote_texts_removes_each_note_with_text_as_a_whole_block() -> None:
     ]
 
 
-def test_notes_are_introduced_in_english_only_and_left_out_in_any_language() -> None:
-    assert FootnoteStep().languages == ("en",)
-    german = make_document([Block(BlockKind.FOOTNOTE, "1 Eine Notiz.", label="1")], "de")
-    run = run_steps(german, StepContext("de"), switched_off=(), strict=True)
+def test_notes_are_introduced_in_english_and_german_and_left_out_in_any_language() -> None:
+    assert FootnoteStep().languages == ("en", "de")
+    french = make_document([Block(BlockKind.FOOTNOTE, "1 Une note.", label="1")], "fr")
+    run = run_steps(french, StepContext("fr"), switched_off=(), strict=True)
     assert "footnotes" in run.not_run
     assert [edit.step for edit in run.accepted] == ["footnote-texts"]
+
+
+# ---- German (#212) -----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "label", "spoken"),
+    [
+        ("1 Gemessen.", "1", "Fußnote 1. Gemessen."),
+        ("1. Gemessen.", "1", "Fußnote 1. Gemessen."),
+        (f"{STAR}Am Institut.", STAR, "Fußnote. Am Institut."),
+        ("Eine Notiz ohne Zeichen.", "", "Fußnote. Eine Notiz ohne Zeichen."),
+        ("Fußnote 2 steht schon da.", "2", "Fußnote 2 steht schon da."),  # introduced already
+        ("Fußnoten folgen hier.", "", "Fußnote. Fußnoten folgen hier."),
+    ],
+)
+def test_a_german_note_is_introduced_in_german(text: str, label: str, spoken: str) -> None:
+    document = make_document([Block(BlockKind.FOOTNOTE, text, label=label)], "de-AT")
+    assert read(document) == [spoken]
+
+
+def test_a_german_mark_after_a_closing_quote_is_left_out() -> None:
+    document = marked("der „Alexa Top 1 Million“9 und", "9")
+    document = replace(document, language="de")
+    assert read(document)[:2] == ["der „Alexa Top 1 Million“ und", "Fußnote 9. A note."]
+
+
+def test_an_english_note_still_reads_footnote_after_the_german_row() -> None:
+    document = make_document([Block(BlockKind.FOOTNOTE, "Fußnote 1 Text.", label="")])
+    assert read(document) == ["Footnote. Fußnote 1 Text."]  # English checks its own word
+
+
+# ---- superior figures and the printed asterisk (#212, D-519) ---------------------------------
+
+
+BoxedRun = tuple[str, float, float] | tuple[str, float, float, float]
+
+
+def boxed_lines(
+    *lines: tuple[BoxedRun, ...], note_label: str = "4", language: str = "de"
+) -> Document:
+    """A PDF-like paragraph of these lines, each run (text, top, bottom[, size]) in 10 pt
+    unless a size is given, and a note labelled `note_label` on the same page."""
+    made_lines, text = [], ""
+    for number, runs in enumerate(lines):
+        x, made = 0.0, []
+        for text_top_bottom in runs:
+            run_text, top, bottom = text_top_bottom[:3]
+            size = text_top_bottom[3] if len(text_top_bottom) == 4 else 10.0
+            made.append(
+                TextRun(run_text, size=size, box=Box(x, top, x + 5 * len(run_text), bottom))
+            )
+            x += 5 * len(run_text)
+        made_lines.append(TextLine(f"l{number}", tuple(made)))
+    parts, start = [], 0
+    for line in made_lines:
+        parts.append(Part(line.id, start))
+        start += len(line.text) + 1
+    text = "\n".join(line.text for line in made_lines)
+    note_line = TextLine("n", (TextRun(f"{note_label} Eine Notiz.", size=8.0),))
+    content = Content(Source("boxed.pdf", SourceFormat.PDF), (Page(1, (*made_lines, note_line)),))
+    blocks = (
+        Block(BlockKind.PARAGRAPH, text, tuple(parts)),
+        Block(BlockKind.FOOTNOTE, note_line.text, (Part("n"),), label=note_label),
+    )
+    return Document(content=content, language=language, blocks=blocks)
+
+
+def boxed(*runs: BoxedRun, note_label: str = "4", language: str = "de") -> Document:
+    """A PDF-like paragraph of one line (see `boxed_lines`)."""
+    return boxed_lines(tuple(runs), note_label=note_label, language=language)
+
+
+@pytest.mark.parametrize("language", ["de", "en"])
+def test_a_mark_raised_in_the_texts_own_size_is_left_out(language: str) -> None:
+    document = boxed(("gezeigt hat.", 100, 110), ("4", 97, 107), (" Weiter", 100, 110),
+                     language=language)  # fmt: skip
+    assert read(document)[0] == "gezeigt hat. Weiter"
+
+
+@pytest.mark.parametrize(
+    "runs",
+    [
+        (("gezeigt hat.", 100, 110), ("4", 99.5, 109.5), (" Weiter", 100, 110)),  # 0.05 em
+        (("gezeigt hat.", 100, 110), ("4", 100, 110), (" Weiter", 100, 110)),  # on the line
+        (("gezeigt hat.", 100, 110), ("4", 85, 95)),  # above the run beside it, no band shared
+        (("in time N", 100, 110), ("4", 97, 107)),  # one-letter variable: maths
+    ],
+)
+def test_a_figure_not_raised_on_its_line_or_after_maths_is_kept(
+    runs: tuple[tuple[str, float, float], ...],
+) -> None:
+    document = boxed(*runs)
+    assert read(document)[0] == "".join(text for text, _, _ in runs)
+
+
+@pytest.mark.parametrize("language", ["de", "en"])
+def test_a_label_like_run_at_a_line_end_is_not_raised_by_the_next_lines_run(
+    language: str,
+) -> None:
+    """#248 M1: font boxes of lines one above the other overlap with normal leading; a run
+    ending line 1 is not measured against the first run of line 2 (it would look raised by
+    about 1 em)."""
+    document = boxed_lines(
+        (("Der Wert lag bei", 100, 111), ("4", 100, 111, 10.0)),
+        (("Prozent in beiden Gruppen.", 110, 121),),
+        language=language,
+    )
+    assert read(document)[0] == "Der Wert lag bei4\nProzent in beiden Gruppen.".replace("\n", " ")
+
+
+@pytest.mark.parametrize("language", ["de", "en"])
+def test_a_run_beside_a_subscript_is_not_raised(language: str) -> None:
+    """#248 S1: the rise is measured only against a neighbour in the text's size; a
+    subscript set lower makes the normal run before it look raised."""
+    document = boxed(
+        ("die Werte", 100, 110), ("4", 100, 110), ("i", 104, 112, 7.0), (" danach", 100, 110),
+        language=language,
+    )  # fmt: skip
+    assert read(document)[0] == "die Werte4i danach"
+
+
+def test_a_printed_asterisk_marks_the_note_with_the_asterisk_operator() -> None:
+    document = boxed(("Zulässigkeit", 100, 110), ("*", 97, 107), note_label=STAR)
+    assert read(document) == ["Zulässigkeit", "Fußnote. Eine Notiz."]
 
 
 # ---- properties ------------------------------------------------------------------------------
@@ -235,6 +376,23 @@ def test_notes_are_introduced_in_english_only_and_left_out_in_any_language() -> 
 def test_both_steps_keep_the_contract_on_any_document(document: Document) -> None:
     for step in (FootnoteStep(), FootnoteTextStep()):
         check_text_step(step, [document], allow_ask=False)
+
+
+@given(rule_documents())
+def test_the_steps_keep_the_contract_in_german_and_remove_the_same_marks(
+    document: Document,
+) -> None:
+    german = replace(document, language="de")
+    for step in (FootnoteStep(), FootnoteTextStep()):
+        check_text_step(step, [german], allow_ask=False)
+    marks = [e for e in FootnoteStep().find(document, EN) if e.kind is EditKind.REMOVE]
+    assert [
+        e for e in FootnoteStep().find(german, StepContext("de")) if e.kind is EditKind.REMOVE
+    ] == marks
+    spoken = read(german)
+    for index, block in enumerate(german.blocks):
+        if block.kind is BlockKind.FOOTNOTE and block.text.strip():
+            assert spoken[index].startswith("Fußnote")
 
 
 @given(rule_documents())

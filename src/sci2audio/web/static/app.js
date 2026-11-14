@@ -209,10 +209,14 @@ function chosen(name) {
   return Array.from(document.querySelectorAll(`input[name=${name}]`));
 }
 
-function controls() {
+// the choices on the check form, in the order of the page's `shown` block; the text's
+// language is part of them: changing it needs a new analysis (#212)
+function controls(shown) {
+  const language = document.getElementById("language");
   return {
     switched_off: chosen("category").filter((c) => !c.checked).map((c) => c.value).sort(),
     chapters: chosen("chapter").filter((c) => c.checked).map((c) => Number(c.value)).sort((a, b) => a - b),
+    language: language ? language.value : shown.language,
   };
 }
 
@@ -232,7 +236,7 @@ function documentPage() {
 
   function refresh() {
     if (!changed) return;
-    const differs = !same(controls(), shown);
+    const differs = !same(controls(shown), shown);
     changed.hidden = !differs;
     // the controls differ from the report: the update comes first, as no chapter on the
     // report may be the very thing being changed; a missing analysis or voice stays first
@@ -251,6 +255,8 @@ function documentPage() {
   for (const input of [...chosen("category"), ...chosen("chapter")]) {
     input.addEventListener("change", refresh);
   }
+  const languageChoice = document.getElementById("language");
+  if (languageChoice) languageChoice.addEventListener("change", refresh);
   const all = document.getElementById("choose-all");
   const none = document.getElementById("choose-none");
   if (all) all.addEventListener("click", () => { chosen("chapter").forEach((c) => { c.checked = true; }); refresh(); });
@@ -269,7 +275,7 @@ function documentPage() {
   if (choices) {
     choices.addEventListener("submit", (event) => {
       event.preventDefault();
-      analyse(controls());
+      analyse(controls(shown));
     });
   }
   const analyseButton = document.getElementById("analyse");
@@ -348,8 +354,9 @@ function documentPage() {
     say(tr("js.starting"));
     try {
       const saved = await send("/api/v1/settings");
+      // the language the report on screen was made with (#212)
       const settings = {
-        language: saved.settings.language,
+        language: shown.language,
         switched_off: shown.switched_off,
         voice: voice.value,
         speed: Number(speed.value),
@@ -362,7 +369,12 @@ function documentPage() {
       // refused as busy changes nothing; chapters stay with the document. The voice is
       // remembered only in place of a voice of the same language (or none): a German book
       // read by the German voice keeps the English voice chosen before (#211)
-      const remembered = { ...settings, voice: rememberedVoice(saved.settings.voice) };
+      // the text's language belongs to this document and is not remembered (D-521)
+      const remembered = {
+        ...settings,
+        language: saved.settings.language,
+        voice: rememberedVoice(saved.settings.voice),
+      };
       await send("/api/v1/settings", json("PUT", remembered)).catch(() => {});  // the job runs either way
       location.assign(`/jobs/${job.id}`);
     } catch (error) {
