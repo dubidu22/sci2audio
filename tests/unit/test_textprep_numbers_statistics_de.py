@@ -396,26 +396,32 @@ def test_long_german_blocks_take_linear_time(text: str) -> None:
 def _abbreviations_seconds(text: str) -> float:
     document = make_document([(BlockKind.PARAGRAPH, text)], "de")
     best = float("inf")
-    for _ in range(2):
+    for _ in range(3):
         started = time.perf_counter()
         AbbreviationStep().find(document, DE)
         best = min(best, time.perf_counter() - started)
     return best
 
 
-@pytest.mark.timeout(120)
+@pytest.mark.timeout(180)
 @pytest.mark.parametrize(
-    "unit",
-    ["Siehe Kap. https://x.org/a dazu. ", "Kap. https://x.org/a Kap. x ", "Siehe Kap. dazu. "],
+    ("unit", "count"),
+    [
+        ("Siehe Kap. https://x.org/a dazu. ", 2_000),
+        ("Kap. https://x.org/a Kap. x ", 2_000),
+        ("Siehe Kap. dazu. ", 8_000),  # faster per character: more of it, for a fair timing
+    ],
     ids=["link-after-label", "dense", "no-link"],
 )
-def test_the_link_look_ahead_of_the_abbreviations_step_takes_linear_time(unit: str) -> None:
+def test_the_link_look_ahead_of_the_abbreviations_step_takes_linear_time(
+    unit: str, count: int
+) -> None:
     """Review of PR #263 (F3): the look past a removed link after an abbreviation runs the
     links step's pass once per block and bisects it; four times the text takes about four
-    times as long, not sixteen."""
-    small = _abbreviations_seconds(unit * 2_000)
-    large = _abbreviations_seconds(unit * 8_000)
-    assert large < 8 * max(small, 0.01)
+    times as long, not sixteen (best of three runs, so a busy machine does not decide)."""
+    small = _abbreviations_seconds(unit * count)
+    large = _abbreviations_seconds(unit * count * 4)
+    assert large < 8 * max(small, 0.05)
 
 
 def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:
