@@ -107,3 +107,19 @@ The timed rounds are reruns from the chunk cache, so they measure the job's own 
 | Machine | Whole job (first run) | Speech only | Rerun from the cache (mean of 3) | Audio | Date |
 |---|---|---|---|---|---|
 | Linux cloud container, 4 vCPU (Intel(R) Xeon(R) Processor @ 2.10GHz), torch 2.15.0+cpu | 134.6 s, 43.1 characters per second | 47.6 characters per second (model warm-up not counted) | 6.98 s (6.90 to 7.07 s): 6.4 s of it is ffmpeg encoding 7.5 minutes of speech twice (MP3s and M4B), 0.55 s reading and layout | 449.9 s (about 3.3 × real time) | 2026-11-13 |
+
+## Reading a PDF in its own process (#185, #28, D-581)
+
+Since #185 every PDF is read in a child process with a memory and time limit. The table
+compares the 28-page arsiwalla paper read in the program's own process (`read_pdf`) with the
+same read through the child (`extract_pdf`), and the cover alone (`extract_pdf_cover`); mean
+of 5 runs after one warm-up, `time.perf_counter`.
+
+| Machine | In-process read | Read in the child | Cover in the child | Date | Commit |
+|---|---|---|---|---|---|
+| Linux cloud container, x86_64, 4 cores | 1.53 s (1.50 to 1.57 s) | 1.69 s (1.58 to 1.81 s), about 0.15 s to start the child and return the result | 0.26 s | 2026-11-14 | branch of fbc6de897448 |
+
+Limits, measured on the same container: a Flate bomb that unpacks to 1.1 GB is stopped at the
+1 GB limit after 0.9 s; a page of 1,000,000 rectangles is refused after 3.8 s; the densest page
+the limits allow takes about 2 s; a 400-page book reads in 21 s and a 1,000-page book in 66 s,
+well inside the 60 s per step.

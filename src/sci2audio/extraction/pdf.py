@@ -8,6 +8,13 @@ with the origin at the top left of the page.
 PDFium crashes when two threads call it at once, even for different files, so every call goes
 through `_PDFIUM`: the one piece of global state this stage has (KB audit "PDFium thread-safety
 crash", D-65).
+
+A file from a user is read in a child process (`extract_pdf`, `extract_pdf_cover`; #185, #28,
+D-581): PDFium decodes streams and loads pages before our limits can count anything, so the
+child has a memory limit (`MAX_MEMORY`) and a time limit for each step (`STEP_SECONDS`), and
+a crash inside PDFium ends only the child. Each read has its own process, so two reads no
+longer wait for each other's lock; at most `MAX_PDF_READERS` children run at once.
+`read_pdf` reads bytes in this process, without those limits: it is the child's own work.
 """
 
 from __future__ import annotations
@@ -38,6 +45,7 @@ from sci2audio.core import (
     TextLine,
     TextRun,
 )
+from sci2audio.extraction import isolate
 from sci2audio.extraction.cover import Cover, png
 from sci2audio.extraction.errors import ExtractionError
 from sci2audio.extraction.language import stated_language
@@ -91,6 +99,16 @@ OUTLINE_DEPTH = 15  # bookmark levels read; deeper ones are left out (D-267)
 MAX_PAGES = 10_000
 MAX_PAGE_CHARS = 100_000
 MAX_CHARS = 10_000_000
+# Drawings and pictures, counted as they are found (D-581): a 26 KB stream can hold a million
+# rectangles, which a child reads within its memory and this process then has to take back.
+# The corpus's busiest page holds 1,836 (a chart).
+MAX_PAGE_GRAPHICS = 100_000
+MAX_GRAPHICS = 500_000
+# The child process (#185, D-581): a read at MAX_CHARS needs about 200 MB, the corpus under 40.
+MAX_MEMORY = 1024**3  # bytes
+STEP_SECONDS = 60  # opening the file, each page, the outline; the densest page took 2 s
+MAX_PDF_READERS = 2  # children alive at once; each may take MAX_MEMORY
+_READERS = isolate.Readers(MAX_PDF_READERS)
 HEADER_ZONE = 1024  # a PDF's %PDF- header stands within its first 1,024 bytes (PDF 32000-1)
 # "12 0 obj": the start of an object. Anchored at the start of a digit run and possessive, so
 # a long run of digits or white space costs one pass, not one per start (review M2 of #188).
@@ -101,16 +119,75 @@ _ACCESSIBILITY = 1 << 9  # bit 10: extract text for accessibility (revision 3 on
 
 
 def extract_pdf(path: Path) -> Content:
-    """Read the PDF at `path` into `Content`; raise ExtractionError if it can't be read."""
+    """Read the PDF at `path` into `Content` in a child process with the limits above;
+    raise ExtractionError if it can't be read."""
+    result = _isolated(_read_file, str(path))
+    if isinstance(result, isolate.Stopped):
+        raise _stopped(path.name, result)
+    return result
+
+
+def _isolated(target: object, path: str) -> object:
     try:
-        data = path.read_bytes()
+        return isolate.run(
+            target,  # type: ignore[arg-type]
+            (path, {name: globals()[name] for name in _LIMITS}),
+            memory=MAX_MEMORY,
+            step_seconds=STEP_SECONDS,
+            readers=_READERS,
+        )
+    except OSError as error:  # no child could be started (D-581: no reading without one)
+        name = Path(path).name
+        raise ExtractionError(
+            f"{name}: cannot be read: sci2audio could not start its PDF reader ({error})"
+        ) from error
+
+
+# The limits in force in this process hold in the child too (a test lowers them here).
+_LIMITS = (
+    "MAX_PAGES",
+    "MAX_PAGE_CHARS",
+    "MAX_CHARS",
+    "MAX_PAGE_GRAPHICS",
+    "MAX_GRAPHICS",
+    "OUTLINE_DEPTH",
+    "COVER_SIZE",
+)
+
+
+def _read_file(path: str, limits: dict[str, int]) -> Content:
+    """The child's work for `extract_pdf`."""
+    globals().update(limits)
+    file = Path(path)
+    try:
+        data = file.read_bytes()
     except OSError as error:
-        raise ExtractionError(f"{path.name}: cannot be opened ({error.strerror})") from error
-    return read_pdf(data, path.name)
+        raise ExtractionError(f"{file.name}: cannot be opened ({error.strerror})") from error
+    return read_pdf(data, file.name)
+
+
+def _stopped(name: str, stopped: isolate.Stopped) -> ExtractionError:
+    if stopped.reason == "memory":
+        size = (
+            f"{MAX_MEMORY / 1024**3:g} GB"
+            if MAX_MEMORY >= 1024**3
+            else f"{MAX_MEMORY // 1024**2} MB"
+        )
+        return _too_large(name, f"reading it needs more than {size} of memory")
+    if stopped.reason == "time":
+        if stopped.step == "opening":
+            what = "opening it"
+        elif stopped.step == "outline":
+            what = "reading its outline"
+        else:
+            what = f"reading {stopped.step}"
+        return _too_large(name, f"{what} took more than {STEP_SECONDS:g} seconds")
+    return ExtractionError(f"{name}: the PDF is damaged (the PDF reader stopped unexpectedly)")
 
 
 def read_pdf(data: bytes, name: str) -> Content:
-    """Read PDF bytes into `Content`; `name` is the bare file name the source keeps."""
+    """Read PDF bytes into `Content` in this process, without the child's limits;
+    `name` is the bare file name the source keeps."""
     if not data:
         raise ExtractionError(f"{name}: the file is empty")
     source = Source(name, SourceFormat.PDF, sha256=hashlib.sha256(data).hexdigest())
@@ -122,6 +199,7 @@ def read_pdf(data: bytes, name: str) -> Content:
         try:
             _check(document, name, data)
             pages = _pages(document, name)
+            isolate.report("outline")
             metadata = _metadata(document)
             outline = _outline(document, len(pages))
         except pdfium.PdfiumError as error:
@@ -195,8 +273,20 @@ COVER_SIZE = 1400  # pixels on the longer side of a PDF's cover (D-313)
 
 
 def extract_pdf_cover(path: Path) -> Cover | None:
-    """The PDF's first page as a PNG, `COVER_SIZE` pixels on its longer side; None if the
-    file can't be read or rendered (a missing cover never stops a job)."""
+    """The PDF's first page as a PNG, `COVER_SIZE` pixels on its longer side, rendered in a
+    child process with the limits of `extract_pdf`; None if the file can't be read or
+    rendered, or the child is stopped (a missing cover never stops a job)."""
+    try:
+        result = _isolated(_cover_of_file, str(path))
+    except ExtractionError:
+        return None
+    return result if isinstance(result, Cover) else None
+
+
+def _cover_of_file(path_text: str, limits: dict[str, int]) -> Cover | None:
+    """The child's work for `extract_pdf_cover`."""
+    globals().update(limits)
+    path = Path(path_text)
     try:
         data = path.read_bytes()
     except OSError:
@@ -318,8 +408,10 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
     before any of ours are made, so the limits cost nothing on a real file (D-394)."""
     pages: list[Page] = []
     total = 0
+    graphics = 0  # drawings and pictures so far
     for index in range(len(document)):
         number = index + 1
+        isolate.report(f"page {number}")
         try:
             page = document[index]
         except pdfium.PdfiumError as error:
@@ -337,7 +429,8 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
                 total += max(count, 0)
                 if total > MAX_CHARS:
                     raise _too_large(name, f"more than {MAX_CHARS:,} characters")
-                pictures, drawings = _graphics(page, height, number)
+                pictures, drawings = _graphics(page, height, number, name, graphics)
+                graphics += len(pictures) + len(drawings)
                 lines = _lines(textpage, height, number, _Bars.of(drawings))
             finally:
                 textpage.close()
@@ -617,9 +710,11 @@ _IDENTITY: _Matrix = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
 
 
 def _graphics(
-    page: pdfium.PdfPage, height: float, number: int
+    page: pdfium.PdfPage, height: float, number: int, name: str, before: int
 ) -> tuple[tuple[Picture, ...], tuple[Drawing, ...]]:
-    """Pictures and visible vector drawings, also those inside form XObjects."""
+    """Pictures and visible vector drawings, also those inside form XObjects; the file is
+    refused as soon as the page holds more than `MAX_PAGE_GRAPHICS`, or the file with the
+    `before` of earlier pages more than `MAX_GRAPHICS` (D-581)."""
     pictures: list[Picture] = []
     drawings: list[Drawing] = []
     handles = [
@@ -634,6 +729,12 @@ def _graphics(
         box = _bounds(handle, matrix, height)
         if box is None:
             continue
+        found = len(pictures) + len(drawings) + 1
+        if found > MAX_PAGE_GRAPHICS:
+            detail = f"page {number} holds more than {MAX_PAGE_GRAPHICS:,} drawings and pictures"
+            raise _too_large(name, detail)
+        if before + found > MAX_GRAPHICS:
+            raise _too_large(name, f"more than {MAX_GRAPHICS:,} drawings and pictures")
         if kind == raw.FPDF_PAGEOBJ_IMAGE:
             pictures.append(Picture(f"p{number}-i{len(pictures) + 1}", box))
         else:
