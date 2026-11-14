@@ -49,13 +49,24 @@ _MINUS = "-\u2212"
 _DASHES = "-\u2013\u2014\u2012"
 _GAP = " \u00a0\u2009\u202f\u2007\n"  # what may stand between a number and its unit
 # a number as printed: digits with "," groups or a leading point, a decimal part, an exponent
-_NUMBER = re.compile(
-    # not inside a power ("^-1", "^{2}", "^{-1}"), but after the x of "5x86mg" or "5 x86K"
-    # (the x reads "times" either way, so a second run finds the same number, #160)
+# not inside a power ("^-1", "^{2}", "^{-1}"), but after the x of "5x86mg" or "5 x86K"
+# (the x reads "times" either way, so a second run finds the same number, #160)
+_NUMBER_START = (
     r"(?:(?<![\w.,:/^\u2070-\u209f])(?<!\^[-\u2212{])(?<!\^\{[-\u2212])|(?<=\d[xX])|(?<=\d [xX]))"
-    r"(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)"
-    r"(?P<exponent>[\u207b\u2212]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+|\^[-\u2212]?\d+|\^\{[-\u2212]?\d+\})?"
 )
+_EXPONENT = (
+    r"(?P<exponent>[\u207b\u2212]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+"
+    r"|\^[-\u2212]?\d+|\^\{[-\u2212]?\d+\})?"
+)
+_NUMBER = re.compile(
+    _NUMBER_START + r"(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)" + _EXPONENT
+)
+# German (#113): a decimal comma and a thousands point ("2,5 km", "1.500 m"); a decimal point
+# too, as statistics in German texts often print it ("2.5 s")
+_NUMBER_DECIMAL_COMMA = re.compile(
+    _NUMBER_START + r"(?:\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?|[.,]\d+)" + _EXPONENT
+)
+_SIGNS = "+-\u2212\u00b1"  # a sign before "1": "-1 °C" is "minus 1", not "minus ein"
 _POWERS = {
     "\u00b2": 2,
     "\u00b3": 3,
@@ -109,13 +120,14 @@ class _Table:
     by_form: dict[str, Unit]
     pattern: re.Pattern[str]
     magnitude: re.Pattern[str]
+    number: re.Pattern[str]  # a number as the language prints it
 
 
 class UnitStep(TextStep):
     """Read units after numbers, magnitude letters and number symbols as words."""
 
     id = "units"
-    languages = ("en",)
+    languages = ("en", "de")
     category = Category.NUMBERS_AND_UNITS
     stage = Stage.INLINE
 
@@ -137,13 +149,15 @@ class UnitStep(TextStep):
 
     def _edits(self, index: int, text: str, table: _Table) -> Iterator[Edit]:
         units_found: list[tuple[int, int]] = []
-        for match in _NUMBER.finditer(text):
+        for match in table.number.finditer(text):
             found = _unit_after(text, match, table)
             if found is None:
                 continue
-            start, end, reads, shown = found
+            start, end, reads, shown, gender = found
             units_found.append((start, end))
             yield self._edit(index, start, end, reads, shown)
+            if gender and (one := _one(text, match, table, gender)) is not None:
+                yield self._edit(index, match.start(), match.end(), one, match.group())
         words = table.words.words
         for position, char in enumerate(text):
             if char == "\u00d7" and _single(text, position, "\u00d7"):
@@ -221,7 +235,8 @@ def _compiled(language: str) -> _Table | None:
     pattern = re.compile("|".join(map(re.escape, forms)))
     magnitudes = sorted(listed.magnitudes, key=len, reverse=True)
     magnitude = re.compile("|".join(map(re.escape, magnitudes)) or r"(?!)")
-    return _Table(listed, by_form, pattern, magnitude)
+    number = _NUMBER_DECIMAL_COMMA if listed.decimal == "," else _NUMBER
+    return _Table(listed, by_form, pattern, magnitude, number)
 
 
 def _boundary(text: str, position: int) -> bool:
@@ -234,8 +249,9 @@ def _boundary(text: str, position: int) -> bool:
 
 def _unit_after(
     text: str, number: re.Match[str], table: _Table
-) -> tuple[int, int, str, str] | None:
-    """The unit expression right after a number: its span, reading and printed text."""
+) -> tuple[int, int, str, str, str] | None:
+    """The unit expression right after a number: its span, reading and printed text, and
+    the gender of the unit "1" is read with ("" if "1" stays as printed)."""
     end = number.end()
     gap = end
     while gap < len(text) and gap - end < 2 and text[gap] in _GAP:
@@ -253,11 +269,17 @@ def _unit_after(
         if (single and glued) or _word_not_unit(text, terms, stop):
             parsed = None
         else:
-            attributive = hyphen or _after_article(text, number.start(), table)
-            plural = not attributive and not _exactly_one(text, number)
+            attributive = (hyphen and table.words.hyphen_singular) or _after_article(
+                text, number.start(), table
+            )
+            one = _exactly_one(text, number)
+            plural = not attributive and not one
+            if text[stop - 1] == "." and not text[stop:].strip():
+                stop -= 1  # "nach 2 Std." at the end of a block keeps its full stop
             reads = _reading(terms, plural, table)
             shown = " ".join(text[start:stop].split())
-            return start, stop, (" " if glued else "") + reads, shown
+            gender = first.gender if one and not hyphen and not terms[0].per else ""
+            return start, stop, (" " if glued else "") + reads, shown, gender
     if gap == end and not number["exponent"]:
         magnitude = table.magnitude.match(text, end)
         if (
@@ -266,8 +288,26 @@ def _unit_after(
             and not _starts_with_joint(text, magnitude.end())
         ):
             words = table.words.magnitudes[magnitude.group()]
-            return end, magnitude.end(), f" {words}", magnitude.group()
+            return end, magnitude.end(), f" {words}", magnitude.group(), ""
     return None
+
+
+def _one(text: str, number: re.Match[str], table: _Table, gender: str) -> str | None:
+    """The word read for a "1" before a unit in a language that says it by gender: "ein
+    Kilogramm", "eine Sekunde", "nach einer Stunde", "für einen Meter"; None without a sign
+    rule ("−1 °C" stays "minus 1") or a list of such words."""
+    ones = table.words.ones
+    sign = text[number.start() - 1 : number.start()]
+    if not ones or (sign and sign in _SIGNS):
+        return None
+    word = _WORD_BEFORE.search(text, max(0, number.start() - 24), number.start())
+    before = word.group(1).lower() if word else ""
+    case = "nominative"
+    if before in table.words.dative:
+        case = "dative"
+    elif before in table.words.accusative:
+        case = "accusative"
+    return ones.get(case, ones["nominative"])[gender]
 
 
 def _starts_with_joint(text: str, at: int) -> bool:
@@ -407,20 +447,23 @@ def _reading(terms: list[_Term], plural: bool, table: _Table) -> str:
     words = table.words.words
     above = [term for term in terms if not term.per]
     below = [term for term in terms if term.per]
+    joined = table.words.joined_powers
     said = [
-        _said(term, plural and position == len(above) - 1, words)
+        _said(term, plural and position == len(above) - 1, words, joined)
         for position, term in enumerate(above)
     ]
-    said += [f"{words['per']} {_said(term, False, words)}" for term in below]
+    said += [f"{words['per']} {_said(term, False, words, joined)}" for term in below]
     return " ".join(said)
 
 
-def _said(term: _Term, plural: bool, words: dict[str, str]) -> str:
+def _said(term: _Term, plural: bool, words: dict[str, str], joined: bool = False) -> str:
     name = term.unit.plural if plural else term.unit.singular
     if term.power == 1:
         return name
     if term.unit.length:
-        return f"{words['square' if term.power == 2 else 'cubic']} {name}"
+        power = words["square" if term.power == 2 else "cubic"]
+        # German writes it into one word: "Quadrat" + "Meter" is "Quadratmeter"
+        return f"{power}{name[:1].lower()}{name[1:]}" if joined else f"{power} {name}"
     return f"{name} {words['squared' if term.power == 2 else 'cubed']}"
 
 

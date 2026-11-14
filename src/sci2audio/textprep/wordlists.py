@@ -10,12 +10,14 @@ has no list (`None`).
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cache
 from importlib.resources import files
 from typing import Any
 
 BEFORE = ("anything", "number", "label", "word")  # where an abbreviation is read in full
+GENDERS = ("m", "f", "n")  # a unit's grammatical gender, for "ein"/"eine" before it (German)
+CASES = ("nominative", "dative", "accusative")  # the forms of "ein" a list may give
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,8 @@ class Abbreviation:
     reads: str
     before: str  # one of BEFORE
     can_end_sentence: bool = False
+    exact_case: bool = False  # found only as printed, read as listed ("S." Seite, "s." siehe)
+    before_year: str = ""  # read instead before a year: "u. a. (2019)" is "und andere"
 
 
 @dataclass(frozen=True)
@@ -38,6 +42,7 @@ class Unit:
     length: bool = False  # a power 2 or 3 reads "square" / "cubic" before it
     per_only: bool = False  # a word read as a unit only after "per": "day" in "kg⁻¹ day⁻¹"
     not_before_word: bool = False  # also an English word: "1 A note" is not "1 ampere note"
+    gender: str = ""  # "m", "f" or "n" where the language says "1" by gender ("eine Sekunde")
 
 
 @dataclass(frozen=True)
@@ -48,10 +53,22 @@ class UnitList:
     magnitudes: dict[str, str]  # printed letter -> word ("K" -> "thousand")
     words: dict[str, str]  # per, square, cubic, squared, cubed, approximately, about, times
     labels: frozenset[str]  # words before a number that make it a label, lower case
-    articles: frozenset[str]  # "a", "an"
+    articles: frozenset[str]  # "a", "an"; may be empty
+    decimal: str = "."  # the decimal sign numbers are printed with ("," in German)
+    joined_powers: bool = False  # "square"/"cubic" written into the unit: "Quadratmeter"
+    hyphen_singular: bool = True  # "a 5-km race": singular when joined by a hyphen
+    # the words read for "1" before a unit, by case and gender ({"nominative": {"f": "eine"}})
+    ones: dict[str, dict[str, str]] = field(default_factory=dict)
+    dative: frozenset[str] = frozenset()  # words before "1" that ask for the dative
+    accusative: frozenset[str] = frozenset()  # words before "1" that ask for the accusative
 
 
 _WORDS = ("per", "square", "cubic", "squared", "cubed", "approximately", "about", "times")
+# optional keys of [words] for languages that print and say numbers otherwise (German)
+_LANGUAGE_KEYS = (
+    "labels", "articles", "decimal", "joined_powers", "hyphen_singular", "one", "dative",
+    "accusative",
+)  # fmt: skip
 
 
 def _language(language: str) -> str:
@@ -133,19 +150,40 @@ def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:
     result = []
     for number, entry in enumerate(data.get("abbreviation", []), 1):
         at = f"{where}, abbreviation {number}"
-        _no_extra(at, entry, {"printed", "reads", "before", "can_end_sentence"})
+        _no_extra(
+            at,
+            entry,
+            {"printed", "reads", "before", "can_end_sentence", "exact_case", "before_year"},
+        )
         printed = _strings(at, entry, "printed")
         if not all(form.endswith(".") for form in printed):
             raise ValueError(f"{at}: every printed form ends in a full stop, got {printed!r}")
         before = entry.get("before")
         if before not in BEFORE:
             raise ValueError(f"{at}: before must be one of {BEFORE}, got {before!r}")
+        before_year = _text(at, entry, "before_year") if "before_year" in entry else ""
         result.append(
             Abbreviation(
-                printed, _text(at, entry, "reads"), before, _flag(at, entry, "can_end_sentence")
+                printed,
+                _text(at, entry, "reads"),
+                before,
+                _flag(at, entry, "can_end_sentence"),
+                _flag(at, entry, "exact_case"),
+                before_year,
             )
         )
-    _once(where, [form.casefold() for entry in result for form in entry.printed])
+    # a form found in any case may not share its letters with another form; forms found only
+    # as printed ("S." and "s.") may, if they differ as printed
+    _once(
+        where,
+        [form.casefold() for entry in result if not entry.exact_case for form in entry.printed],
+    )
+    _once(where, [form for entry in result if entry.exact_case for form in entry.printed])
+    loose = {form.casefold() for entry in result if not entry.exact_case for form in entry.printed}
+    for entry in result:
+        for form in entry.printed if entry.exact_case else ():
+            if form.casefold() in loose:
+                raise ValueError(f"{where}: {form!r} is also listed in any case")
     return tuple(result)
 
 
@@ -156,10 +194,30 @@ def parse_units(where: str, text: str) -> UnitList:
     words_entry = data.get("words")
     if not isinstance(words_entry, dict):
         raise ValueError(f"{where}: a [words] table is needed")
-    _no_extra(f"{where}, words", words_entry, {*_WORDS, "labels", "articles"})
-    words = {key: _text(f"{where}, words", words_entry, key) for key in _WORDS}
-    labels = frozenset(w.lower() for w in _strings(f"{where}, words", words_entry, "labels"))
-    articles = frozenset(w.lower() for w in _strings(f"{where}, words", words_entry, "articles"))
+    at_words = f"{where}, words"
+    _no_extra(at_words, words_entry, {*_WORDS, *_LANGUAGE_KEYS})
+    words = {key: _text(at_words, words_entry, key) for key in _WORDS}
+    labels = frozenset(w.lower() for w in _strings(at_words, words_entry, "labels"))
+    articles = frozenset(
+        w.lower()
+        for w in (_strings(at_words, words_entry, "articles") if "articles" in words_entry else ())
+    )
+    decimal = words_entry.get("decimal", ".")
+    if decimal not in (".", ","):
+        raise ValueError(f'{at_words}: decimal must be "." or ",", got {decimal!r}')
+    ones = _ones(at_words, words_entry.get("one", {}))
+    dative = frozenset(
+        w.lower()
+        for w in (_strings(at_words, words_entry, "dative") if "dative" in words_entry else ())
+    )
+    accusative = frozenset(
+        w.lower()
+        for w in (
+            _strings(at_words, words_entry, "accusative") if "accusative" in words_entry else ()
+        )
+    )
+    if (dative or accusative) and not ones:
+        raise ValueError(f"{at_words}: dative and accusative words need a [words.one] table")
     magnitudes: dict[str, str] = {}
     for number, entry in enumerate(data.get("magnitude", []), 1):
         at = f"{where}, magnitude {number}"
@@ -173,8 +231,15 @@ def parse_units(where: str, text: str) -> UnitList:
     for number, entry in enumerate(data.get("unit", []), 1):
         at = f"{where}, unit {number}"
         _no_extra(
-            at, entry, {"printed", "singular", "plural", "length", "per_only", "not_before_word"}
+            at,
+            entry,
+            {"printed", "singular", "plural", "length", "per_only", "not_before_word", "gender"},
         )
+        gender = entry.get("gender", "")
+        if gender not in ("", *GENDERS):
+            raise ValueError(f"{at}: gender must be one of {GENDERS}, got {gender!r}")
+        if ones and not gender:
+            raise ValueError(f"{at}: the list reads 1 by gender, so every unit needs a gender")
         result.append(
             Unit(
                 _strings(at, entry, "printed"),
@@ -183,7 +248,38 @@ def parse_units(where: str, text: str) -> UnitList:
                 _flag(at, entry, "length"),
                 _flag(at, entry, "per_only"),
                 _flag(at, entry, "not_before_word"),
+                gender,
             )
         )
     _once(where, [form for unit in result for form in unit.printed])
-    return UnitList(tuple(result), magnitudes, words, labels, articles)
+    return UnitList(
+        tuple(result),
+        magnitudes,
+        words,
+        labels,
+        articles,
+        decimal,
+        _flag(at_words, words_entry, "joined_powers"),
+        _flag(at_words, words_entry, "hyphen_singular")
+        if "hyphen_singular" in words_entry
+        else True,
+        ones,
+        dative,
+        accusative,
+    )
+
+
+def _ones(where: str, table: Any) -> dict[str, dict[str, str]]:
+    """The [words.one] table: for each case, the word for "1" before a unit of each gender."""
+    if not isinstance(table, dict):
+        raise ValueError(f"{where}: one must be a table of cases, got {table!r}")
+    _no_extra(f"{where}, one", table, set(CASES))
+    if table and "nominative" not in table:
+        raise ValueError(f"{where}, one: the nominative is needed")
+    ones = {}
+    for case, forms in table.items():
+        at = f"{where}, one, {case}"
+        if not isinstance(forms, dict) or set(forms) != set(GENDERS):
+            raise ValueError(f"{at}: give exactly the genders {GENDERS}, got {forms!r}")
+        ones[case] = {gender: _text(at, forms, gender) for gender in GENDERS}
+    return ones

@@ -50,7 +50,7 @@ def said(
 # ---- word lists ---------------------------------------------------------------------------
 
 
-def test_both_english_lists_load_and_other_languages_have_none() -> None:
+def test_the_english_and_german_lists_load_and_other_languages_have_none() -> None:
     listed = abbreviations("en-GB")
     assert listed is not None
     assert len(listed) > 30
@@ -59,8 +59,19 @@ def test_both_english_lists_load_and_other_languages_have_none() -> None:
     assert len(table.units) > 80
     assert table.magnitudes == {"K": "thousand", "k": "thousand", "M": "million",
                                 "B": "billion", "bn": "billion"}  # fmt: skip
-    assert abbreviations("de") is None
-    assert units("de") is None
+    assert abbreviations("fr") is None
+    assert units("fr") is None
+    german = units("de-AT")
+    assert german is not None
+    assert len(german.units) > 70
+    assert german.decimal == ","
+    assert german.magnitudes == {}
+    assert all(unit.gender in ("m", "f", "n") for unit in german.units)
+    assert table.decimal == "."
+    assert table.ones == {}
+    listed_de = abbreviations("de")
+    assert listed_de is not None
+    assert len(listed_de) > 60
 
 
 def test_the_label_words_of_the_notices_read_as_the_abbreviation_list() -> None:
@@ -95,6 +106,16 @@ GOOD_ABBREVIATION = (
         (GOOD_ABBREVIATION.replace('"e.g."', '"eg"'), "ends in a full stop"),
         (GOOD_ABBREVIATION.replace('["e.g."]', "[]"), "printed must be a list"),
         (GOOD_ABBREVIATION + "can_end_sentence = 1\n", "true or false"),
+        (GOOD_ABBREVIATION + "exact_case = 1\n", "true or false"),
+        (GOOD_ABBREVIATION + 'before_year = ""\n', "before_year must be words"),
+        (
+            GOOD_ABBREVIATION + "exact_case = true\n" + GOOD_ABBREVIATION + "exact_case = true\n",
+            "'e.g.' is listed twice",
+        ),
+        (
+            GOOD_ABBREVIATION + GOOD_ABBREVIATION.replace("e.g.", "E.G.") + "exact_case = true\n",
+            "'E.G.' is also listed in any case",
+        ),
     ],
 )
 def test_a_broken_abbreviation_list_names_the_file_and_entry(text: str, message: str) -> None:
@@ -121,6 +142,26 @@ GOOD_UNIT = '[[unit]]\nprinted = ["m"]\nsingular = "metre"\nplural = "metres"\n'
         (WORDS + GOOD_UNIT + "length = 2\n", "true or false"),
         (WORDS + '[[magnitude]]\nprinted = ["K"]\nreads = "thousand"\n' * 2, "listed twice"),
         (WORDS + GOOD_UNIT.replace('["m"]', '[" m"]'), "printed must be a list"),
+        (WORDS + 'decimal = ";"\n' + GOOD_UNIT, "decimal must be"),
+        (WORDS + GOOD_UNIT + 'gender = "x"\n', "gender must be one of"),
+        (WORDS + 'dative = ["mit"]\n' + GOOD_UNIT, "need a \\[words.one\\] table"),
+        (
+            WORDS + "[words.one]\ndative = { m = 'a', f = 'b', n = 'c' }\n" + GOOD_UNIT,
+            "the nominative is needed",
+        ),
+        (
+            WORDS + "[words.one]\nnominative = { m = 'a', f = 'b' }\n" + GOOD_UNIT,
+            "give exactly the genders",
+        ),
+        (
+            WORDS + "[words.one]\nnominative = { m = 'a', f = 'b', n = 'c' }\n" + GOOD_UNIT,
+            "every unit needs a gender",
+        ),
+        (
+            WORDS + "[words.one]\ngenitive = { m = 'a', f = 'b', n = 'c' }\n" + GOOD_UNIT,
+            "unknown keys",
+        ),
+        (WORDS + "one = 3\n" + GOOD_UNIT, "one must be a table"),
     ],
 )
 def test_a_broken_unit_list_names_the_file_and_entry(text: str, message: str) -> None:
@@ -132,6 +173,21 @@ def test_a_good_unit_list_parses() -> None:
     table = parse_units("units.toml", WORDS + GOOD_UNIT)
     assert table.units[0].plural == "metres"
     assert table.labels == {"figure"}
+    assert (table.decimal, table.joined_powers, table.hyphen_singular) == (".", False, True)
+
+
+def test_articles_may_be_left_out_and_german_keys_parse() -> None:
+    words = WORDS.replace('articles = ["a"]\n', "") + (
+        'decimal = ","\njoined_powers = true\nhyphen_singular = false\n'
+        'dative = ["Mit"]\naccusative = ["für"]\n'
+        "[words.one]\nnominative = { m = 'ein', f = 'eine', n = 'ein' }\n"
+    )
+    table = parse_units("units.toml", words + GOOD_UNIT + 'gender = "m"\n')
+    assert table.articles == frozenset()
+    assert (table.decimal, table.joined_powers, table.hyphen_singular) == (",", True, False)
+    assert table.ones == {"nominative": {"m": "ein", "f": "eine", "n": "ein"}}
+    assert (table.dative, table.accusative) == ({"mit"}, {"für"})
+    assert table.units[0].gender == "m"
 
 
 # ---- abbreviations ------------------------------------------------------------------------
@@ -267,9 +323,9 @@ def test_the_steps_declare_their_categories_and_stage() -> None:
         "units", Category.NUMBERS_AND_UNITS, Stage.INLINE)  # fmt: skip
     assert (ABBREVIATIONS.id, ABBREVIATIONS.category, ABBREVIATIONS.stage) == (
         "abbreviations", Category.ABBREVIATIONS, Stage.INLINE)  # fmt: skip
-    assert UNITS.languages == ABBREVIATIONS.languages == ("en",)
-    german = make_document([(BlockKind.PARAGRAPH, "z.B. 5 mg, e.g.")], language="de")
-    assert run_steps(german, StepContext("de"), strict=True).outcomes == ()
+    assert UNITS.languages == ABBREVIATIONS.languages == ("en", "de")
+    french = make_document([(BlockKind.PARAGRAPH, "p.ex. 5 mg, e.g.")], language="fr")
+    assert run_steps(french, StepContext("fr"), strict=True).outcomes == ()
 
 
 # ---- units --------------------------------------------------------------------------------
@@ -598,3 +654,229 @@ def test_only_replace_edits_are_mapped_back_through_unread_characters(edit: Edit
     span, so the adapter refuses it instead (#159)."""
     with pytest.raises(ValueError, match="only replace edits"):
         edits_through_unread(0, "5\u00adkg", lambda read: [edit], "fake")
+
+
+# ---- German (#113, D-476, D-480) -----------------------------------------------------------
+
+DE = StepContext("de")
+
+
+def said_de(step: UnitStep | AbbreviationStep, text: str) -> str:
+    document = make_document([(BlockKind.PARAGRAPH, text)], "de")
+    return spoken_text(run_steps(document, DE, steps=(step,), strict=True).script())
+
+
+def test_both_steps_handle_german() -> None:
+    assert UNITS.handles("de")
+    assert ABBREVIATIONS.handles("de-CH")
+    assert not UNITS.handles("fr")
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("z. B. hier", "zum Beispiel hier"),
+        ("z.B. hier", "zum Beispiel hier"),
+        ("Z. B. hier", "Zum Beispiel hier"),
+        ("z.\u202fB. hier", "zum Beispiel hier"),  # a narrow no-break space, as typeset
+        ("d. h. so", "das heißt so"),
+        ("u. a. in Berlin", "unter anderem in Berlin"),
+        ("Müller u. a. (2019)", "Müller und andere (2019)"),
+        ("Müller u. a., 2019", "Müller und andere, 2019"),
+        ("Müller u.a. 2019", "Müller und andere 2019"),
+        ("bzw. so", "beziehungsweise so"),
+        ("Kinder u. Jugend", "Kinder und Jugend"),
+        ("U. Müller", "U. Müller"),  # an initial: "u." is found only in lower case
+        ("Ein- o. Ausgang", "Ein- o. Ausgang"),  # "oder", "oben" or "ohne": left as printed
+        ("Haupt- resp. Nebeneffekte", "Haupt- respektive Nebeneffekte"),
+        ("Lehr- vs. Lernzeit", "Lehr- versus Lernzeit"),
+        ("ca. 5", "zirka 5"),
+        ("vgl. Kap. 3", "vergleiche Kapitel 3"),
+        ("Vgl. Abb. 2a", "Vergleiche Abbildung 2a"),
+        ("auf S. 12", "auf Seite 12"),
+        ("S. Müller", "S. Müller"),  # an initial, not a page
+        ("s. Abb. 3", "siehe Abbildung 3"),
+        ("s. o.", "siehe oben."),
+        ("Tab. (2)", "Tabelle (2)"),
+        ("Gl. 4", "Gleichung 4"),
+        ("Nr. 7", "Nummer 7"),
+        ("Nr. sieben", "Nr. sieben"),  # not before a label
+        ("Dr. Schmidt", "Doktor Schmidt"),
+        ("Prof. Dr. Schmidt", "Professor Doktor Schmidt"),
+        ("max. 5 Tage", "maximal 5 Tage"),
+        ("12 min. lang", "12 min. lang"),  # the unit's, not "minimal"
+        ("im 19. Jh.", "im 19. Jahrhundert."),
+        ("50 v. Chr. entstand", "50 vor Christus entstand"),
+        ("Hunde usw. Dann", "Hunde und so weiter. Dann"),
+        ("Hunde etc.", "Hunde et zetera."),
+        ("abb. 3", "abb. 3"),  # a noun abbreviation keeps its case: found only as printed
+        ("et al. 2019", "et al. 2019"),
+        ("e.g. here", "e.g. here"),  # the English list is not used for German
+    ],
+)
+def test_german_abbreviations_read(text: str, expected: str) -> None:
+    assert said_de(ABBREVIATIONS, text) == expected
+
+
+def test_english_text_does_not_take_the_german_list() -> None:
+    assert said(ABBREVIATIONS, "z. B. and d. h.") == "z. B. and d. h."
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("5 kg", "5 Kilogramm"),
+        ("2,5 km", "2,5 Kilometer"),
+        ("1.500 m", "1.500 Meter"),
+        ("12.345,6 m", "12.345,6 Meter"),
+        (",5 l", ",5 Liter"),
+        ("2.5 s", "2.5 Sekunden"),  # a decimal point, as statistics print it
+        ("3 h", "3 Stunden"),
+        ("2 Std.", "2 Stunden."),  # the full stop at the end of the block stays
+        ("2 Std. Pause", "2 Stunden Pause"),
+        ("20 min", "20 Minuten"),
+        ("5 Mio. Euro", "5 Millionen Euro"),
+        ("37 °C", "37 Grad Celsius"),
+        ("90°", "90 Grad"),
+        ("300 K", "300 Kelvin"),
+        ("40 m²", "40 Quadratmeter"),
+        ("3 cm³", "3 Kubikzentimeter"),
+        ("2 km2", "2 Quadratkilometer"),
+        ("9,8 m/s²", "9,8 Meter pro Sekunde hoch 2"),
+        ("50 km/h", "50 Kilometer pro Stunde"),
+        ("5 mg/kg/Tag", "5 Milligramm pro Kilogramm pro Tag"),
+        ("5 mg kg⁻¹", "5 Milligramm pro Kilogramm"),
+        ("5 Tag", "5 Tag"),  # a word read as a unit only after "pro"
+        ("10 kWh", "10 Kilowattstunden"),
+        ("1 kWh", "eine Kilowattstunde"),
+        ("1 kg", "ein Kilogramm"),
+        ("1 s", "eine Sekunde"),
+        ("1 m", "ein Meter"),
+        ("1 Mio. Euro", "eine Million Euro"),
+        ("nach 1 h", "nach einer Stunde"),
+        ("mit 1 kg", "mit einem Kilogramm"),
+        ("Mit 1 l", "Mit einem Liter"),
+        ("für 1 m", "für einen Meter"),
+        ("für 1 s", "für eine Sekunde"),
+        ("um 1 °C", "um einen Grad Celsius"),
+        ("\u22121 °C", "\u22121 Grad Celsius"),
+        ("-1 °C", "-1 Grad Celsius"),
+        ("±1 m", "±1 Meter"),
+        ("1,0 s", "1,0 Sekunden"),
+        ("0,1 s", "0,1 Sekunden"),
+        ("21 s", "21 Sekunden"),
+        ("2\u20131 s", "2\u20131 Sekunden"),  # the end of a range
+        ("1-s-Takt", "1-Sekunde-Takt"),  # a compound: no "eine"
+        ("10-s-Takt", "10-Sekunden-Takt"),
+        ("ein 5 m langer Stab", "ein 5 Meter langer Stab"),
+        ("eine 2 s lange Pause", "eine 2 Sekunden lange Pause"),
+        ("Abbildung 2 A", "Abbildung 2 A"),
+        ("Gruppe 3 C", "Gruppe 3 C"),
+        ("5 m Abstand", "5 Meter Abstand"),
+        ("1 A Strom", "ein Ampere Strom"),
+        ("10 %", "10 %"),
+        ("5 €", "5 €"),
+        ("5 GB", "5 GB"),
+        ("COVID-19 m", "COVID-19 m"),
+    ],
+)
+def test_german_units_read(text: str, expected: str) -> None:
+    assert said_de(UNITS, text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("3x so schnell", "3 mal so schnell"),
+        ("2 \u00d7 3", "2 mal 3"),
+        ("≈ 5", "ungefähr 5"),
+        ("~10 Proben", "etwa 10 Proben"),
+        ("y = 2x + 1", "y = 2x + 1"),
+    ],
+)
+def test_german_symbols_read(text: str, expected: str) -> None:
+    assert said_de(UNITS, text) == expected
+
+
+def test_a_one_edit_covers_the_number_and_names_it() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "nach 1 h")], "de")
+    edits = UNITS.find(document, DE)
+    assert [(e.span.start, e.span.end, e.replacement, e.reason) for e in edits] == [
+        (5, 6, "einer", '"1" read as "einer"'),
+        (7, 8, "Stunde", '"h" read as "Stunde"'),
+    ]
+
+
+def test_english_numbers_keep_their_own_pattern() -> None:
+    assert said(UNITS, "1,500 m and 2,5 km") == "1,500 metres and 2,5 km"
+    assert said(UNITS, "1 kg") == "1 kilogram"
+
+
+_GERMAN_TOKENS = [
+    "5", "1", "1,0", "0,5", "1.500", "2.5", ",5", "3", "-", "\u2212", "\u2013", " ", " ", " ",
+    "\u00a0", "\n", "m", "mg", "kg", "km", "h", "s", "Std.", "Mio.", "K", "A", "\u00b0",
+    "\u00b0C", "/", "/(", ")", "\u00b7", "\u00b2", "\u00b3", "\u207b\u00b9", "x", "\u00d7",
+    "\u2248", "~", "%", "z. B.", "Z.B.", "u. a.", "(2019)", "S.", "s.", "s. o.", "Abb.", "abb.",
+    "Nr.", "usw.", "Dr.", "max.", "min", "min.", "nach", "mit", "für", "Abbildung", "Tag",
+    "Strom", "ein", ".", ",", "ä", "ß", "Über",
+]  # fmt: skip
+_GERMAN_TEXTS = st.lists(st.sampled_from(_GERMAN_TOKENS), min_size=1, max_size=30).map("".join)
+
+
+@st.composite
+def german_unit_documents(draw: st.DrawFn) -> Document:
+    """German paragraphs that always hold a unit after "1" and an abbreviation, plus random
+    tokens, so every example exercises both German paths."""
+    blocks = []
+    for _ in range(draw(st.integers(1, 3))):
+        text = draw(_GERMAN_TEXTS) + " nach 1 h, 2,5 mg/kg, z. B. " + draw(_GERMAN_TEXTS)
+        kind = draw(st.sampled_from([BlockKind.PARAGRAPH, BlockKind.FOOTNOTE, BlockKind.TABLE]))
+        blocks.append(Block(kind, text))
+    return make_document(blocks, "de")
+
+
+@given(german_unit_documents())
+def test_both_steps_keep_the_contract_on_any_german_document(document: Document) -> None:
+    for step in (UNITS, ABBREVIATIONS):
+        check_text_step(step, [document], allow_ask=False)
+
+
+@given(german_unit_documents())
+def test_german_edits_add_no_digit_and_take_a_number_only_for_one(document: Document) -> None:
+    """Replacements hold no digit except a unit's "hoch 2"; the only number a unit edit
+    takes is a bare "1", read "ein", "eine", "einem", "einer" or "einen"."""
+    for edit in ABBREVIATIONS.find(document, DE) + UNITS.find(document, DE):
+        assert not _digits(edit.replacement.replace("hoch 2", "").replace("hoch 3", "")), edit
+        removed = document.blocks[edit.span.block].text[edit.span.start : edit.span.end]
+        if edit.step == "abbreviations":
+            assert not _digits(removed), edit
+        elif removed[:1] in "0123456789":
+            assert removed == "1", edit
+            assert edit.replacement in ("ein", "eine", "einem", "einer", "einen"), edit
+
+
+def test_random_german_token_soup_never_gives_overlapping_or_bad_edits() -> None:
+    rng = random.Random(113)  # noqa: S311 (a fixed seed for a repeatable fuzz, not secrecy)
+    count = 30_000 if os.environ.get("HYPOTHESIS_PROFILE") == "nightly" else 2_000
+    for _ in range(count):
+        text = "".join(rng.choice(_GERMAN_TOKENS) for _ in range(rng.randint(1, 25)))
+        document = make_document([(BlockKind.PARAGRAPH, text)], "de")
+        for step in (UNITS, ABBREVIATIONS):
+            check_edits(document, step.find(document, DE))
+
+
+def _both_runs_de(text: str) -> tuple[str, str]:
+    document = make_document([(BlockKind.PARAGRAPH, text)], "de")
+    first = spoken_text(run_steps(document, DE, strict=True).script())
+    again = make_document([(BlockKind.PARAGRAPH, first)], "de")
+    return first, spoken_text(run_steps(again, DE, strict=True).script())
+
+
+@pytest.mark.parametrize(
+    "printed",
+    ["nach 1 h mit 1 kg", "40 m² und 9,8 m/s²", "z. B. S. 12, s. o.", "5 Mio. Euro",
+     "Müller u. a. (2019)", "1 Mio.", "3x so schnell"],
+)  # fmt: skip
+def test_german_units_and_abbreviations_read_the_same_on_a_second_run(printed: str) -> None:
+    first, again = _both_runs_de(printed)
+    assert first == again

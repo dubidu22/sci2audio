@@ -1,0 +1,517 @@
+# German units, symbols and words read by the `units` step (TP-10, #113; D-476, D-480).
+# Written for sci2audio, GPL-3.0-or-later; no list is copied.
+#
+# Same rules and format as en/units.toml (D-236 to D-242), with what German needs on top:
+# numbers printed with a decimal comma and a thousands point ("2,5 km", "1.500 m"); "square"
+# and "cubic" written into one word ("Quadratmeter"); the plural after every number but a bare
+# "1", also in a hyphenated compound ("10-Sekunden-Takt"); and "1" read by the unit's gender
+# ("ein Kilogramm", "eine Sekunde"; "nach einer Stunde", "für einen Meter"). The voice's
+# front end (espeak-ng German) spells every symbol here: "km" as "ka em", "Std." as "es te de"
+# (plans/v11-german-measure-misaki.txt). "%" and "€" it reads right and they are left out.
+#
+# Each entry is as in en/units.toml, plus:
+#   gender   "m", "f" or "n": the word for "1" before the unit (masculine, feminine, neuter)
+#
+# Left out on purpose: "kB", "MB", "GB" (the voice says "ge be", as people do, and spells
+# "Gigabyte" wrong); "a" (Jahr) and "t" (Tonne), which are also words or variables; "d" (Tag)
+# is read only after "pro" or with a negative exponent, since "nach 5 Tagen" needs the
+# dative plural.
+
+[words]
+per = "pro"
+square = "Quadrat"
+cubic = "Kubik"
+squared = "hoch 2"
+cubed = "hoch 3"
+approximately = "ungefähr"
+about = "etwa"
+times = "mal"
+decimal = ","
+joined_powers = true
+hyphen_singular = false
+# words before a number that make it a label, so a capital letter after it is not a unit
+# ("Abbildung 2 A", "Tabelle 3 C"); compared in lower case
+labels = [
+    "abbildung", "abb.", "abbildungen", "tabelle", "tab.", "tabellen", "abschnitt", "abschn.",
+    "abschnitte", "kapitel", "kap.", "experiment", "experimente", "studie", "studien", "gruppe",
+    "gruppen", "bedingung", "bedingungen", "phase", "phasen", "typ", "typen", "modell",
+    "modelle", "gleichung", "gl.", "gleichungen", "zeile", "zeilen", "schritt", "schritte",
+    "fall", "teil", "teile", "seite", "s.", "seiten", "nr.", "nummer", "klasse", "klassen",
+    "stufe", "stufen", "version", "versuch", "welle", "anhang", "anh.", "band", "bd.", "heft",
+    "satz", "lemma", "theorem", "panel", "durchgang", "item", "items", "frage", "fragen",
+]
+# words right before "1" that ask for the dative ("nach einer Stunde", "in einem Meter") and
+# the accusative ("für einen Meter"); anything else reads the nominative
+dative = [
+    "aus", "bei", "beim", "binnen", "mit", "nach", "seit", "von", "vom", "zu", "zum", "zur",
+    "in", "im", "an", "am", "auf", "unter", "über", "vor", "hinter", "neben", "zwischen",
+]
+accusative = ["für", "durch", "gegen", "ohne", "um"]
+# "1" before a unit, by case and the unit's gender (D-480)
+[words.one]
+nominative = { m = "ein", f = "eine", n = "ein" }
+dative = { m = "einem", f = "einer", n = "einem" }
+accusative = { m = "einen", f = "eine", n = "ein" }
+
+# millions and the like printed short after a number (as units, so "1 Mio." is "eine Million")
+[[unit]]
+printed = ["Tsd.", "Tsd"]
+singular = "Tausend"
+plural = "Tausend"
+gender = "n"
+
+[[unit]]
+printed = ["Mio.", "Mio"]
+singular = "Million"
+plural = "Millionen"
+gender = "f"
+
+[[unit]]
+printed = ["Mrd.", "Mrd"]
+singular = "Milliarde"
+plural = "Milliarden"
+gender = "f"
+
+# length
+[[unit]]
+printed = ["m"]
+singular = "Meter"
+plural = "Meter"
+length = true
+gender = "m"
+
+[[unit]]
+printed = ["km"]
+singular = "Kilometer"
+plural = "Kilometer"
+length = true
+gender = "m"
+
+[[unit]]
+printed = ["dm"]
+singular = "Dezimeter"
+plural = "Dezimeter"
+length = true
+gender = "m"
+
+[[unit]]
+printed = ["cm"]
+singular = "Zentimeter"
+plural = "Zentimeter"
+length = true
+gender = "m"
+
+[[unit]]
+printed = ["mm"]
+singular = "Millimeter"
+plural = "Millimeter"
+length = true
+gender = "m"
+
+[[unit]]
+printed = ["µm", "μm"]
+singular = "Mikrometer"
+plural = "Mikrometer"
+length = true
+gender = "m"
+
+[[unit]]
+printed = ["nm"]
+singular = "Nanometer"
+plural = "Nanometer"
+length = true
+gender = "m"
+
+[[unit]]
+printed = ["Å", "Å", "˚A"]
+singular = "Ångström"
+plural = "Ångström"
+length = true
+gender = "n"
+
+# area
+[[unit]]
+printed = ["ha"]
+singular = "Hektar"
+plural = "Hektar"
+gender = "m"
+
+# mass
+[[unit]]
+printed = ["g"]
+singular = "Gramm"
+plural = "Gramm"
+gender = "n"
+
+[[unit]]
+printed = ["kg"]
+singular = "Kilogramm"
+plural = "Kilogramm"
+gender = "n"
+
+[[unit]]
+printed = ["mg"]
+singular = "Milligramm"
+plural = "Milligramm"
+gender = "n"
+
+[[unit]]
+printed = ["µg", "μg"]
+singular = "Mikrogramm"
+plural = "Mikrogramm"
+gender = "n"
+
+[[unit]]
+printed = ["ng"]
+singular = "Nanogramm"
+plural = "Nanogramm"
+gender = "n"
+
+# volume
+[[unit]]
+printed = ["L", "l"]
+singular = "Liter"
+plural = "Liter"
+gender = "m"
+
+[[unit]]
+printed = ["mL", "ml"]
+singular = "Milliliter"
+plural = "Milliliter"
+gender = "m"
+
+[[unit]]
+printed = ["µL", "μL", "µl", "μl"]
+singular = "Mikroliter"
+plural = "Mikroliter"
+gender = "m"
+
+[[unit]]
+printed = ["dL", "dl"]
+singular = "Deziliter"
+plural = "Deziliter"
+gender = "m"
+
+[[unit]]
+printed = ["cl"]
+singular = "Zentiliter"
+plural = "Zentiliter"
+gender = "m"
+
+# time
+[[unit]]
+printed = ["s", "Sek.", "sek."]
+singular = "Sekunde"
+plural = "Sekunden"
+gender = "f"
+
+[[unit]]
+printed = ["ms"]
+singular = "Millisekunde"
+plural = "Millisekunden"
+gender = "f"
+
+[[unit]]
+printed = ["µs", "μs"]
+singular = "Mikrosekunde"
+plural = "Mikrosekunden"
+gender = "f"
+
+[[unit]]
+printed = ["ns"]
+singular = "Nanosekunde"
+plural = "Nanosekunden"
+gender = "f"
+
+[[unit]]
+printed = ["min", "Min."]
+singular = "Minute"
+plural = "Minuten"
+gender = "f"
+
+[[unit]]
+printed = ["h", "Std.", "Std"]
+singular = "Stunde"
+plural = "Stunden"
+gender = "f"
+
+[[unit]]
+printed = ["d"]
+singular = "Tag"
+plural = "Tage"
+per_only = true
+gender = "m"
+
+[[unit]]
+printed = ["Tag"]
+singular = "Tag"
+plural = "Tage"
+per_only = true
+gender = "m"
+
+[[unit]]
+printed = ["Woche"]
+singular = "Woche"
+plural = "Wochen"
+per_only = true
+gender = "f"
+
+[[unit]]
+printed = ["Jahr"]
+singular = "Jahr"
+plural = "Jahre"
+per_only = true
+gender = "n"
+
+# frequency
+[[unit]]
+printed = ["Hz"]
+singular = "Hertz"
+plural = "Hertz"
+gender = "n"
+
+[[unit]]
+printed = ["kHz"]
+singular = "Kilohertz"
+plural = "Kilohertz"
+gender = "n"
+
+[[unit]]
+printed = ["MHz"]
+singular = "Megahertz"
+plural = "Megahertz"
+gender = "n"
+
+[[unit]]
+printed = ["GHz"]
+singular = "Gigahertz"
+plural = "Gigahertz"
+gender = "n"
+
+# electricity
+[[unit]]
+printed = ["V"]
+singular = "Volt"
+plural = "Volt"
+gender = "n"
+
+[[unit]]
+printed = ["mV"]
+singular = "Millivolt"
+plural = "Millivolt"
+gender = "n"
+
+[[unit]]
+printed = ["kV"]
+singular = "Kilovolt"
+plural = "Kilovolt"
+gender = "n"
+
+[[unit]]
+printed = ["A"]
+singular = "Ampere"
+plural = "Ampere"
+not_before_word = true
+gender = "n"
+
+[[unit]]
+printed = ["mA"]
+singular = "Milliampere"
+plural = "Milliampere"
+gender = "n"
+
+[[unit]]
+printed = ["W"]
+singular = "Watt"
+plural = "Watt"
+gender = "n"
+
+[[unit]]
+printed = ["mW"]
+singular = "Milliwatt"
+plural = "Milliwatt"
+gender = "n"
+
+[[unit]]
+printed = ["kW"]
+singular = "Kilowatt"
+plural = "Kilowatt"
+gender = "n"
+
+[[unit]]
+printed = ["MW"]
+singular = "Megawatt"
+plural = "Megawatt"
+gender = "n"
+
+[[unit]]
+printed = ["GW"]
+singular = "Gigawatt"
+plural = "Gigawatt"
+gender = "n"
+
+[[unit]]
+printed = ["Ω", "Ω"]
+singular = "Ohm"
+plural = "Ohm"
+gender = "n"
+
+[[unit]]
+printed = ["kΩ", "kΩ"]
+singular = "Kilo-Ohm"  # "Kiloohm" is read "Kilohm"
+plural = "Kilo-Ohm"
+gender = "n"
+
+# energy
+[[unit]]
+printed = ["J"]
+singular = "Joule"
+plural = "Joule"
+gender = "n"
+
+[[unit]]
+printed = ["kJ"]
+singular = "Kilojoule"
+plural = "Kilojoule"
+gender = "n"
+
+[[unit]]
+printed = ["MJ"]
+singular = "Megajoule"
+plural = "Megajoule"
+gender = "n"
+
+[[unit]]
+printed = ["eV"]
+singular = "Elektronenvolt"
+plural = "Elektronenvolt"
+gender = "n"
+
+[[unit]]
+printed = ["keV"]
+singular = "Kiloelektronenvolt"
+plural = "Kiloelektronenvolt"
+gender = "n"
+
+[[unit]]
+printed = ["MeV"]
+singular = "Megaelektronenvolt"
+plural = "Megaelektronenvolt"
+gender = "n"
+
+[[unit]]
+printed = ["cal"]
+singular = "Kalorie"
+plural = "Kalorien"
+gender = "f"
+
+[[unit]]
+printed = ["kcal"]
+singular = "Kilokalorie"
+plural = "Kilokalorien"
+gender = "f"
+
+[[unit]]
+printed = ["Wh"]
+singular = "Wattstunde"
+plural = "Wattstunden"
+gender = "f"
+
+[[unit]]
+printed = ["kWh"]
+singular = "Kilowattstunde"
+plural = "Kilowattstunden"
+gender = "f"
+
+[[unit]]
+printed = ["MWh"]
+singular = "Megawattstunde"
+plural = "Megawattstunden"
+gender = "f"
+
+# force and pressure
+[[unit]]
+printed = ["N"]
+singular = "Newton"
+plural = "Newton"
+gender = "n"
+
+[[unit]]
+printed = ["Pa"]
+singular = "Pascal"
+plural = "Pascal"
+gender = "n"
+
+[[unit]]
+printed = ["hPa"]
+singular = "Hektopascal"
+plural = "Hektopascal"
+gender = "n"
+
+[[unit]]
+printed = ["kPa"]
+singular = "Kilopascal"
+plural = "Kilopascal"
+gender = "n"
+
+[[unit]]
+printed = ["MPa"]
+singular = "Megapascal"
+plural = "Megapascal"
+gender = "n"
+
+[[unit]]
+printed = ["bar"]
+singular = "Bar"
+plural = "Bar"
+gender = "n"
+
+[[unit]]
+printed = ["mbar"]
+singular = "Millibar"
+plural = "Millibar"
+gender = "n"
+
+# temperature and angle (D-240)
+[[unit]]
+printed = ["K"]
+singular = "Kelvin"
+plural = "Kelvin"
+gender = "n"
+
+[[unit]]
+printed = ["°C", "℃", "˚C", "ºC"]
+singular = "Grad Celsius"
+plural = "Grad Celsius"
+gender = "m"
+
+[[unit]]
+printed = ["°F", "℉", "˚F", "ºF"]
+singular = "Grad Fahrenheit"
+plural = "Grad Fahrenheit"
+gender = "m"
+
+[[unit]]
+printed = ["°"]
+singular = "Grad"
+plural = "Grad"
+gender = "m"
+
+# amount of substance
+[[unit]]
+printed = ["mol"]
+singular = "Mol"
+plural = "Mol"
+gender = "n"
+
+[[unit]]
+printed = ["mmol"]
+singular = "Millimol"
+plural = "Millimol"
+gender = "n"
+
+[[unit]]
+printed = ["µmol", "μmol"]
+singular = "Mikromol"
+plural = "Mikromol"
+gender = "n"
