@@ -1,0 +1,419 @@
+# German abbreviations read in full by the `abbreviations` step (TP-08, #113; D-476).
+# Written for sci2audio, GPL-3.0-or-later; no list is copied.
+#
+# The voice's front end (espeak-ng German) spells or clips every one of these: "z. B." as
+# "zet be", "d. h." as "de ha", "S. 12" as "es zwölf", "Abb." as "app", "usw." as "usf"
+# (measured with misaki's espeak-ng German, the front end of the voice of #211; readings in
+# #113). "et al." it reads right and it is left out.
+# Abbreviations that occur only in reference lists ("Hrsg.", "Aufl.", "Bd.", "Jg.", "H.")
+# are listed anyway: German footnotes cite in full, and the reference list itself is not read.
+#
+# Each entry is as in en/abbreviations.toml, plus:
+#   exact_case   true: found only as printed and read as listed, never recased. German tells
+#                "S." (Seite) from "s." (siehe) by case, and nouns keep their capital
+#   before_year  read instead when a year follows, bracketed or after a comma, and the word
+#                before starts with a capital (a name): "Müller u. a. (2019)" is "Müller und
+#                andere", "gilt u. a. 2019" "unter anderem"
+#
+# "can_end_sentence" keeps the full stop at the end of a block or before a capital; German
+# nouns are capitalised, so only abbreviations that mostly end a list have it.
+
+# ---- anywhere --------------------------------------------------------------------------------
+
+[[abbreviation]]
+printed = ["z. B.", "z.B."]
+reads = "zum Beispiel"
+before = "anything"
+
+[[abbreviation]]
+printed = ["d. h.", "d.h."]
+reads = "das heißt"
+before = "anything"
+
+[[abbreviation]]
+printed = ["u. a.", "u.a."]
+reads = "unter anderem"
+before = "anything"
+before_year = "und andere"
+
+[[abbreviation]]
+printed = ["usw."]
+reads = "und so weiter"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["etc."]
+reads = "et zetera"  # "et cetera" is read "et ketera"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["u. v. m.", "u.v.m."]
+reads = "und vieles mehr"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["o. Ä.", "o.Ä.", "o. ä.", "o.ä."]
+reads = "oder Ähnliches"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+
+[[abbreviation]]
+printed = ["u. Ä.", "u.Ä.", "u. ä.", "u.ä."]
+reads = "und Ähnliches"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+
+[[abbreviation]]
+printed = ["bzw."]
+reads = "beziehungsweise"
+before = "anything"
+
+# "Kinder- u. Jugendhilfe"; lower case only, since "U." is mostly an initial. A bare "o." is
+# left as printed: it is "oder", "oben" or "ohne" ("o. J.")
+[[abbreviation]]
+printed = ["u."]
+reads = "und"
+before = "anything"
+exact_case = true
+
+# "S. 12 ff.": the pages after it
+[[abbreviation]]
+printed = ["ff."]
+reads = "folgende"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+
+[[abbreviation]]
+printed = ["resp."]
+reads = "respektive"
+before = "anything"
+
+[[abbreviation]]
+printed = ["ca."]
+reads = "zirka"  # "circa" is read "kirka"; "zirka" is the other spelling
+before = "anything"
+
+[[abbreviation]]
+printed = ["vgl."]
+reads = "vergleiche"
+before = "anything"
+
+[[abbreviation]]
+printed = ["s."]
+reads = "siehe"
+before = "anything"
+exact_case = true
+
+[[abbreviation]]
+printed = ["s. o."]
+reads = "siehe oben"
+before = "anything"
+exact_case = true
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["s. u."]
+reads = "siehe unten"
+before = "anything"
+exact_case = true
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["ggf."]
+reads = "gegebenenfalls"
+before = "anything"
+
+[[abbreviation]]
+printed = ["evtl."]
+reads = "eventuell"
+before = "anything"
+
+[[abbreviation]]
+printed = ["inkl."]
+reads = "inklusive"
+before = "anything"
+
+[[abbreviation]]
+printed = ["exkl."]
+reads = "exklusive"
+before = "anything"
+
+[[abbreviation]]
+printed = ["zzgl."]
+reads = "zuzüglich"
+before = "anything"
+
+[[abbreviation]]
+printed = ["bspw."]
+reads = "beispielsweise"
+before = "anything"
+
+[[abbreviation]]
+printed = ["insb.", "insbes."]
+reads = "insbesondere"
+before = "anything"
+
+[[abbreviation]]
+printed = ["bzgl."]
+reads = "bezüglich"
+before = "anything"
+
+[[abbreviation]]
+printed = ["allg."]
+reads = "allgemein"
+before = "anything"
+
+[[abbreviation]]
+printed = ["sog."]
+reads = "sogenannte"
+before = "anything"
+
+[[abbreviation]]
+printed = ["i. d. R.", "i.d.R."]
+reads = "in der Regel"
+before = "anything"
+
+[[abbreviation]]
+printed = ["u. U.", "u.U."]
+reads = "unter Umständen"
+before = "anything"
+
+[[abbreviation]]
+printed = ["v. a.", "v.a."]
+reads = "vor allem"
+before = "anything"
+
+[[abbreviation]]
+printed = ["z. T.", "z.T."]
+reads = "zum Teil"
+before = "anything"
+
+[[abbreviation]]
+printed = ["z. Zt.", "z.Zt."]
+reads = "zurzeit"
+before = "anything"
+
+[[abbreviation]]
+printed = ["o. g.", "o.g."]
+reads = "oben genannte"
+before = "anything"
+
+[[abbreviation]]
+printed = ["lt."]
+reads = "laut"
+before = "anything"
+
+[[abbreviation]]
+printed = ["gem."]
+reads = "gemäß"
+before = "anything"
+
+[[abbreviation]]
+printed = ["vs."]
+reads = "versus"
+before = "anything"
+
+[[abbreviation]]
+printed = ["ebd."]
+reads = "ebenda"
+before = "anything"
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["a. a. O.", "a.a.O."]
+reads = "am angegebenen Ort"
+before = "anything"
+exact_case = true
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["Hrsg."]
+reads = "Herausgeber"
+before = "anything"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Hg."]
+reads = "Herausgeber"
+before = "anything"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Aufl."]
+reads = "Auflage"
+before = "anything"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Jh.", "Jhd.", "Jhdt."]
+reads = "Jahrhundert"
+before = "anything"
+exact_case = true
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["n. Chr.", "n.Chr."]
+reads = "nach Christus"
+before = "anything"
+exact_case = true
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["v. Chr.", "v.Chr."]
+reads = "vor Christus"
+before = "anything"
+exact_case = true
+can_end_sentence = true
+
+[[abbreviation]]
+printed = ["Anm."]
+reads = "Anmerkung"
+before = "anything"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Diss."]
+reads = "Dissertation"
+before = "anything"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Bsp."]
+reads = "Beispiel"
+before = "anything"
+exact_case = true
+
+# ---- before a number -------------------------------------------------------------------------
+
+[[abbreviation]]
+printed = ["S."]
+reads = "Seite"
+before = "number"
+exact_case = true
+
+[[abbreviation]]
+printed = ["max."]
+reads = "maximal"
+before = "number"
+
+[[abbreviation]]
+printed = ["min."]
+reads = "minimal"
+before = "number"
+
+[[abbreviation]]
+printed = ["rd."]
+reads = "rund"
+before = "number"
+
+# ---- before a label --------------------------------------------------------------------------
+
+[[abbreviation]]
+printed = ["Abb."]
+reads = "Abbildung"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Tab."]
+reads = "Tabelle"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Gl."]
+reads = "Gleichung"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Kap."]
+reads = "Kapitel"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Abschn."]
+reads = "Abschnitt"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Anh."]
+reads = "Anhang"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Abs."]
+reads = "Absatz"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Art."]
+reads = "Artikel"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Nr."]
+reads = "Nummer"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Bd."]
+reads = "Band"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Bde."]
+reads = "Bände"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Jg."]
+reads = "Jahrgang"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Fn."]
+reads = "Fußnote"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Ziff."]
+reads = "Ziffer"
+before = "label"
+exact_case = true
+
+# ---- before a word ---------------------------------------------------------------------------
+
+[[abbreviation]]
+printed = ["Dr."]
+reads = "Doktor"
+before = "word"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Prof."]
+reads = "Professor"
+before = "word"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Univ."]
+reads = "Universität"
+before = "word"
+exact_case = true
