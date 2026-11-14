@@ -286,6 +286,13 @@ function documentPage() {
   speed.addEventListener("input", showSpeed);
   showSpeed();
   const voice = document.getElementById("voice");
+  const languageOf = (option) => ((option && option.dataset.language) || "").split("-")[0];
+  // the voice to remember: the page's, unless the saved one speaks another language
+  const rememberedVoice = (savedVoice) => {
+    const savedOption = [...voice.options].find((option) => option.value === savedVoice);
+    const same = !savedOption || languageOf(savedOption) === languageOf(voice.selectedOptions[0]);
+    return same ? voice.value : savedVoice;
+  };
 
   const preview = document.getElementById("preview");
   if (preview) {
@@ -352,8 +359,11 @@ function documentPage() {
         kind: "audio", document: id, settings: { ...settings, chapters: shown.chapters },
       }));
       // remembered for the next document once the audiobook has started (D-246); a start
-      // refused as busy changes nothing; chapters stay with the document
-      await send("/api/v1/settings", json("PUT", settings)).catch(() => {});  // the job runs either way
+      // refused as busy changes nothing; chapters stay with the document. The voice is
+      // remembered only in place of a voice of the same language (or none): a German book
+      // read by the German voice keeps the English voice chosen before (#211)
+      const remembered = { ...settings, voice: rememberedVoice(saved.settings.voice) };
+      await send("/api/v1/settings", json("PUT", remembered)).catch(() => {});  // the job runs either way
       location.assign(`/jobs/${job.id}`);
     } catch (error) {
       say(explain(error), true);

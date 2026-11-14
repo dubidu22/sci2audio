@@ -239,6 +239,21 @@ def test_an_interrupted_pack_download_resumes(
     assert missing_files(tmp_path, ["de"]) == []
 
 
+def test_a_german_file_with_a_wrong_checksum_keeps_nothing(
+    tmp_path: Path, two_packs: tuple[RemoteFile, ...]
+) -> None:
+    """The German pack is checked like the English one: wrong bytes of the right size are
+    refused and no partial file stays (#211 review)."""
+    weights = two_packs[1]
+    server = FakeServer({**SERVED, weights.url: b"x" * weights.size})
+    with no_network(), pytest.raises(DownloadError, match="checksum"):
+        download_voice_files(tmp_path, fetch=server, languages=["de"])
+    assert server.fetched == [weights.url]
+    assert not (tmp_path / weights.target).exists()
+    assert leftovers(tmp_path) == []
+    assert missing_files(tmp_path, ["de"]) == [weights]
+
+
 @pytest.mark.usefixtures("small_plan")
 def test_second_run_fetches_nothing(tmp_path: Path) -> None:
     download_voice_files(tmp_path, fetch=FakeServer())
