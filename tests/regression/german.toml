@@ -1239,11 +1239,13 @@ blocks = [
     { kind = "paragraph", text = "Das gilt ( (Müller, 2019) [12]; [1,2; 3,4])." },
     { kind = "paragraph", text = "Das gilt ( (Müller, 2019) [1,2; 3,4]; [12])." },
     { kind = "paragraph", text = "Das gilt ([12]; [1,2; 3,4])." },
+    { kind = "paragraph", text = "Das gilt ( (Müller, 2019) [1,2; 3,4], [12])." },
 ]
 expected = [
     "Das gilt ( [1 Komma 2; 3 Komma 4]).",
     "Das gilt ( [1 Komma 2; 3 Komma 4]).",
     "Das gilt ([1 Komma 2; 3 Komma 4]).",
+    "Das gilt ( [1 Komma 2; 3 Komma 4]).",
 ]
 
 [[case]]
@@ -1257,12 +1259,31 @@ blocks = [
     { kind = "paragraph", text = "Es gilt (vgl. (Müller, 2019) (2019)) fand es." },
     { kind = "paragraph", text = "Text (z. B. (Müller, 2019), Weber, 2020) mehr." },
     { kind = "paragraph", text = "Text ((Müller, 2019); Weber, 2020) hier." },
+    { kind = "paragraph", text = "Es gilt ((Müller, 2019) Weber, 2020; siehe Tabelle 2) hier." },
 ]
 expected = [
     "Wie Müller zeigt.",
     "Es gilt fand es.",
     "Text mehr.",
     "Text hier.",
+    "Es gilt ( siehe Tabelle 2) hier.",
+]
+
+[[case]]
+id = "de-citations-a-nest-of-any-depth"
+audit = 0
+issue = 306
+goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, so the whole nest goes on the first run (D-588; nightly seeds 555 and 8080 of PR #330)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt ((((Müller, 2019), Weber, 2020), Weber, 2020), Weber, 2020) hier." },
+    { kind = "paragraph", text = "Es gilt ((((Müller, 2019) und Weber, 2020) und Weber, 2020) und Weber, 2020) hier." },
+    { kind = "paragraph", text = "Es gilt (vgl. (vgl. (vgl. (Müller, 2019), Weber, 2020), Schmidt, 2021), Wolf, 2022) mehr." },
+]
+expected = [
+    "Es gilt hier.",
+    "Es gilt hier.",
+    "Es gilt mehr.",
 ]
 
 [[case]]

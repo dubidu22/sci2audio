@@ -56,7 +56,9 @@ from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
 
-_LOOKS = 3  # at most this many looks at a block's brackets (D-577)
+# looks at a block's brackets beyond the first: one per bracket the text holds, since each
+# look that changes something decides at least one more level of a nest (D-577, D-588)
+_LOOK_BRACKETS = re.compile(r"[(\[]")
 _MAX_BRACKET = 4000  # characters; a longer bracket is not a citation and is not parsed
 
 
@@ -434,20 +436,21 @@ class _Rules:
         A second run sees the text without this step's removals and the links': "Lee (Smith,
         2019) (2019)" is "Lee (2019)" then, "(Smith, 2019, https://x.org)" is "(Smith, 2019)"
         and "(see (527794))" is "(see)". So the brackets are decided again on that text, look
-        after look, until a look adds nothing, at most `_LOOKS` times; a later look's edit
-        takes along the earlier ones inside it (#285 review round 1; #306, #308, #309, D-577).
+        after look, until a look changes nothing, however deep the nest; a later look's edit
+        takes along the earlier ones inside it (#285 review round 1; #306, #308, #309, D-577,
+        D-588). The looks are bounded by the text's brackets, which no look adds.
         """
         links = sorted(links or [])
         found = self._once(text, links, ())
-        looks = 1
+        looks = len(_LOOK_BRACKETS.findall(text))
         gone = [(a, b) for a, b, _, _, why in found if why.startswith(_IDENTIFIER_REASON)]
         if gone:
             # identifiers first, with every other bracket decided anew on the text without
             # them, as before D-577: "(527794) (Müller, 2019) zeigt" keeps "Müller" as the
-            # subject (#285); this look comes on top of the `_LOOKS`
+            # subject (#285); this look comes on top of the others
             found = self._identifiers_looked_past(text, found, gone, links)
-        while looks < _LOOKS:
-            looks += 1
+        while looks > 0:
+            looks -= 1
             removed = _joined(
                 sorted([(a, b) for a, b, kind, *_ in found if kind is EditKind.REMOVE] + links)
             )
@@ -513,7 +516,7 @@ class _Rules:
             self._visit(text, node, found, cuts)
         found.sort()
         settled = _settled(text, self._unhung(text, _settled(text, found), _pairs(roots)))
-        return _clear_of_links(text, self._tidied(text, settled), links)
+        return _clear_of_links(text, _shells(text, self._tidied(text, settled)), links)
 
     def _unhung(self, text: str, found: list[_Found], pairs: dict[int, int]) -> list[_Found]:
         """Removals that would leave a separator hanging at a bracket's edge take it along:
@@ -670,9 +673,11 @@ class _Rules:
         cuts: Sequence[int] = (),
         found: Sequence[_Found] = (),
     ) -> list[_Found] | None:
+        if node.close - node.open - 1 > _MAX_BRACKET:
+            # too long to parse, unless it is short once its inner brackets' edits are made:
+            # a nest of any depth is decided inner first (D-588)
+            return self._cited_once_inner_citations_go(text, node, decided)
         inside = text[node.open + 1 : node.close]
-        if len(inside) > _MAX_BRACKET:
-            return None
         if text[node.open] == "[":
             return self._numeric(
                 text, node, inside, _before_removals(text, node.open, found, self._runs)
@@ -811,39 +816,35 @@ class _Rules:
         citations in its own inner brackets, round or square, are read: "((Müller, 2019)
         Schmidt, 2020)" is "( Schmidt, 2020)" then, and "(vgl. (Müller, 2019) Schmidt, 2020)"
         is "(vgl. Müller Schmidt, 2020)", so both runs remove it whole; a bracket left empty
-        ("((Müller, 2019))") goes too (#271)."""
+        ("((Müller, 2019))") goes too (#271). A separator that an inner removal leaves at the
+        bracket's edge, or after its lead words, goes with it as the #305 rule takes it along:
+        "((Smith, 2019), Lee, 2020)" is "(Lee, 2020)", so a nest of any depth is decided inner
+        first in one look (D-588)."""
         inner = node.children
         if not inner:
             return None
-        # the bracket and the look-back before it, not the whole block: a block of many such
-        # brackets costs linear time; `shift` turns its positions back into the block's
-        shift = max(0, node.open - _LOOK_BACK)
-        judged = list(text[shift : node.close + 1])
-        edits = [edit for child in inner for edit in decided.get(child.open) or ()]
+        edits = sorted(edit for child in inner for edit in decided.get(child.open) or ())
+        starts = [start for start, *_ in edits]
         for child in inner:
-            if not decided.get(child.open) and not any(
-                start <= child.open and child.close < end for start, end, *_ in edits
-            ):
+            at = bisect.bisect_right(starts, child.open) - 1
+            if not decided.get(child.open) and not (at >= 0 and child.close < edits[at][1]):
                 # an inner bracket that stays as printed: no citation around it; one inside a
                 # sibling's edit ("(Smith, 2019)[p. 4]") goes with that sibling
                 return None
-        for start, end, _kind, replacement, _reason in edits:
-            # a child's edit lies inside the child, with the space or mark next to it, so
-            # inside this bracket; a reading longer than its span cannot be written in
-            if len(replacement) > end - start:
-                return None  # "([3] found it)": "reference 3" would shift what follows
-            judged[start - shift : end - shift] = replacement.ljust(end - start)
-        read = "".join(judged)
-        local = _Bracket(node.open - shift, node.close - shift)
+        read = _Read.of(text, node, edits)
+        if read is None:
+            return None  # "([3] found it)": "reference 3" would shift what follows
+        self._separators_left(text, node, read)
         names = None
-        if read[local.open + 1 : local.close].strip():
-            parts = self._parts(read, local)
-            named = [part for part in parts or () if self._is_citation(read, part)]
-            if not parts or not all(self._cited(read, parts, named)):
+        if read.text[read.open + 1 : read.close].strip():
+            local = _Bracket(read.open, read.close)
+            parts = self._parts(read.text, local)
+            named = [part for part in parts or () if self._is_citation(read.text, part)]
+            if not parts or not all(self._cited(read.text, parts, named)):
                 return None
             names = [
-                (start + shift, end + shift)
-                for start, end in (self._part_authors(read, part) for part in named)
+                (read.printed(start), read.printed(end - 1) + 1)
+                for start, end in (self._part_authors(read.text, part) for part in named)
             ]
         end = self._glued_page(text, node.close + 1)
         subject = self._is_subject(text, node.open, end)
@@ -854,6 +855,26 @@ class _Rules:
             role = "is the subject of the sentence" if subject else "is part of the sentence"
             return self._with_inner(self._subject(text, node, names, end, role), edits)
         return [self._removed(text, node.open, end, "citation")]
+
+    def _separators_left(self, text: str, node: _Bracket, read: _Read) -> None:
+        """Blank, in `read`, a separator that an inner removal leaves hanging at the bracket's
+        start, after its lead words, or at its end (D-588)."""
+        removed = [(start, end, at) for start, end, at in read.removals]
+        if not removed:
+            return
+        last = node.close  # after the last printed character inside
+        while last > node.open + 1 and text[last - 1].isspace():
+            last -= 1
+        for start, _end, at in removed:
+            if start <= node.open + 1 or self.lead_before.fullmatch(text, node.open, start):
+                if hung := self.hung_ahead.match(read.text, at + 1, read.close):
+                    read.blank(hung.start(), hung.end())
+                break
+        for start, end, at in removed:
+            if start < last <= end:
+                if hung := self.hung_behind.search(read.text, read.open + 1, at):
+                    read.blank(hung.start(), hung.end())
+                break
 
     @staticmethod
     def _with_inner(outer: list[_Found], inner: list[_Found]) -> list[_Found] | None:
@@ -1184,7 +1205,12 @@ class _Rules:
         return found
 
     def _removed(self, text: str, start: int, end: int, what: str) -> _Found:
-        printed = _printed(text[start:end])
+        if end - start > _MAX_BRACKET + 2:
+            # a nest longer than any bracket the step parses, decided inner first (D-588):
+            # its ends name it, so a deep nest costs linear time
+            printed = f"{_printed(text[start : start + 60])} … {_printed(text[end - 60 : end])}"
+        else:
+            printed = _printed(text[start:end])
         reason = f'{what} "{printed}" is not read (TP-03)'
         start, end = self._with_space(text, start, end)
         return (start, end, EditKind.REMOVE, "", reason)
@@ -1275,6 +1301,55 @@ def _without(text: str, gone: Sequence[tuple[int, int]]) -> tuple[str, _Cuts]:
     return "".join(pieces), _Cuts(at, total, starts)
 
 
+class _Read:
+    """A bracket as read once its inner edits are made, with the look-back before it: a
+    removal is one space, a reading is written into its span. Built from the bracket's own
+    text, so a nest of any depth costs linear time (D-588)."""
+
+    def __init__(self) -> None:
+        self.text = ""
+        self.open = 0  # the opening bracket in `text`
+        self.close = 0  # the closing bracket in `text`
+        self.starts: list[int] = []  # where each piece starts in `text`
+        self.origins: list[int] = []  # ... and in the printed text
+        self.removals: list[tuple[int, int, int]] = []  # printed start, end; place in `text`
+
+    @classmethod
+    def of(cls, text: str, node: _Bracket, edits: list[_Found]) -> _Read | None:
+        read, pieces = cls(), []
+        cursor = max(0, node.open - _LOOK_BACK)
+        size = 0
+        for start, end, _kind, replacement, _reason in edits:
+            if len(replacement) > end - start or start < cursor:
+                return None  # a reading longer than its span would shift what follows
+            edited = replacement.ljust(end - start) if replacement else " "
+            for origin, piece in ((cursor, text[cursor:start]), (start, edited)):
+                if origin == start and piece is edited and not replacement:
+                    read.removals.append((start, end, size))
+                read.starts.append(size)
+                read.origins.append(origin)
+                pieces.append(piece)
+                size += len(piece)
+            cursor = end
+        read.starts.append(size)
+        read.origins.append(cursor)
+        pieces.append(text[cursor : node.close + 1])
+        read.text = "".join(pieces)
+        read.open = node.open - max(0, node.open - _LOOK_BACK)
+        read.close = len(read.text) - 1
+        if read.close - read.open - 1 > _MAX_BRACKET:
+            return None
+        return read
+
+    def printed(self, position: int) -> int:
+        """A position of `text` in the printed text (a removal's space: its start)."""
+        piece = bisect.bisect_right(self.starts, position) - 1
+        return self.origins[piece] + position - self.starts[piece]
+
+    def blank(self, start: int, end: int) -> None:
+        self.text = self.text[:start] + " " * (end - start) + self.text[end:]
+
+
 class _Rewrite:
     """A text with edits made (sorted, apart: start, end, replacement), and how a position in
     it maps back to the printed text."""
@@ -1315,6 +1390,47 @@ class _Rewrite:
         return self.span[last][0] if self.size[last] else self.span[last][1]
 
 
+_OPENS = {"(": ")", "[": "]"}
+
+
+def _shells(text: str, found: list[_Found]) -> list[_Found]:
+    """Removals that leave nothing but the brackets around them take those brackets along,
+    however many: "((((Müller 2019))))" goes whole in one look, as a second run would remove
+    the empty brackets, and a nest deeper than the bracket cap costs no look per cap's depth
+    (D-588). Only brackets and white space; a removal that is not balanced keeps its edges."""
+    result: list[_Found] = []
+    for number, (start, end, kind, replacement, reason) in enumerate(found):
+        if kind is EditKind.REMOVE and _balanced(text[start:end]):
+            low = result[-1][1] if result else 0
+            high = found[number + 1][0] if number + 1 < len(found) else len(text)
+            first, last = start, end
+            while True:
+                left, right = first, last
+                while left > low and text[left - 1].isspace():
+                    left -= 1
+                while right < high and text[right].isspace():
+                    right += 1
+                if left > low and right < high and _OPENS.get(text[left - 1]) == text[right]:
+                    first, last = left - 1, right + 1
+                else:
+                    break
+            start, end = first, last
+        result.append((start, end, kind, replacement, reason))
+    return result
+
+
+def _balanced(text: str) -> bool:
+    depth = 0
+    for char in text:
+        if char in "([":
+            depth += 1
+        elif char in ")]":
+            depth -= 1
+            if depth < 0:
+                return False
+    return depth == 0
+
+
 def _joined(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """Sorted spans with the ones that touch or overlap joined."""
     result: list[tuple[int, int]] = []
@@ -1342,21 +1458,18 @@ def _around(links: list[tuple[int, int]], start: int, end: int) -> list[tuple[in
 
 
 def _merged(earlier: list[_Found], later: list[_Found]) -> list[_Found]:
-    """The edits of two looks: a later edit wins and takes along the earlier ones inside it;
-    a later edit that crosses an earlier one, or lies inside it, is dropped, so the earlier
-    reading stands (both lists sorted, each without overlaps)."""
+    """The edits of two looks: a later edit wins and takes along the earlier ones inside it
+    (both lists sorted, each without overlaps). A later edit never crosses an earlier one nor
+    lies inside it: `_Rewrite.printed` puts its ends outside every removal and drops an edit
+    that ends inside a reading (PR #330 review round 1, R1-4)."""
     ends = [end for _, end, *_ in earlier]
-    kept_later, inside = [], set()
-    for edit in later:
-        at = bisect.bisect_right(ends, edit[0])
-        crossing = []
-        while at < len(earlier) and earlier[at][0] < edit[1]:
-            crossing.append(at)
+    inside = set()
+    for start, end, *_ in later:
+        at = bisect.bisect_right(ends, start)
+        while at < len(earlier) and earlier[at][0] < end:
+            inside.add(at)
             at += 1
-        if all(edit[0] <= earlier[k][0] and earlier[k][1] <= edit[1] for k in crossing):
-            kept_later.append(edit)
-            inside.update(crossing)
-    return sorted([edit for k, edit in enumerate(earlier) if k not in inside] + kept_later)
+    return sorted([edit for k, edit in enumerate(earlier) if k not in inside] + later)
 
 
 @dataclass

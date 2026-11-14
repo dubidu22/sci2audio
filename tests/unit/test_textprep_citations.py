@@ -782,8 +782,10 @@ def test_no_citation_is_left_and_no_word_is_lost(case: tuple[str, list[str]]) ->
     for citation in placed:
         outside = outside.replace(citation, " ")
     # ... and a bracket left with only lead words or separators once its inner citations go:
-    # "( see (see also [48, 135]))", "( and (see also [48, 135]))" (D-577, #305)
-    left = r"(?:[\s,;&]|see|also|e\.g\.,|and)*"
+    # "( see (see also [48, 135]))", "( and (see also [48, 135]))", and the full stop a
+    # numeric citation printed before its lead words: "( [12]. see (see also [48, 135]))"
+    # (D-577, #305, #259)
+    left = r"(?:[\s,;&.]|see|also|e\.g\.,|and)*"
     while (bare := re.sub(rf"\({left}\)", " ", outside)) != outside:
         outside = bare
     outside = YEAR_OR_NUMBER.sub(" ", outside)
@@ -820,3 +822,57 @@ def test_the_generated_sentences_mostly_hold_citations() -> None:
 
     probe()
     assert sum(found) / len(found) > 0.6
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # a read abbreviation's full stop may stand before what follows a removal: "vgl.(527794)
+        # 2019" is "vgl.2019" without it, which a second run reads alike (glue guard, D-577)
+        ("de", "Es gilt vgl.(527794)2019 hier.", "Es gilt vergleiche 2019 hier."),
+        ("en", "See e.g.(527794)2019 here.", "See for example 2019 here."),
+        # a separator at the edge of a closing bracket that does not enclose the removal is
+        # prose: "and" stays before an unmatched ")" (D-577)
+        ("en", "It holds and (see [12])) here.", "It holds and) here."),
+        # ... and so is a separator after a removal inside an opening bracket that is never
+        # closed
+        ("en", "It holds (see (527794), results here.", "It holds (see, results here."),
+        # a numeric bracket after a removed citation is judged where the chain starts: after
+        # "and", as a second run sees it (#308, D-577)
+        ("en", "It holds and (Smith, 2019) [12] more.", "It holds and reference 12 more."),
+        # one bracket, decided again once its link goes: the looks a block gets are as many as
+        # its brackets, and this one needs every one of them (D-588)
+        ("en", "It holds (Smith, 2019, https://example.org) here.", "It holds here."),
+        # brackets left empty around a removal go with it in the same look, however many
+        # (D-588)
+        ("en", "It holds ((( (Smith, 2019) ))) here.", "It holds here."),
+        ("de", "Es gilt [[( [12] )]] hier.", "Es gilt hier."),
+    ],
+)  # fmt: skip
+def test_the_edge_rules_read_the_same_on_a_second_run(
+    language: str, printed: str, said: str
+) -> None:
+    # PR #330 review round 1, R1-4: each row fails without the rule its comment names
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
+
+
+@pytest.mark.parametrize(
+    "nest",
+    [
+        ("It holds (", "(Smith, 2019)", ", Lee, 2020)"),
+        ("Text (e.g., ", "(Smith, 2019)", ", Lee, 2020)"),
+        ("It holds (", "(527794, (Smith, 2019))", ", Lee, 2020)"),
+    ],
+)
+def test_a_deep_citation_nest_takes_linear_time(nest: tuple[str, str, str]) -> None:
+    # decided inner first in one look, not one look per level (D-588): 400 levels took 19 s
+    # with a look per level. 400 levels and more are longer than the bracket cap, where each
+    # level costs its own text; below the cap a level's checks read its whole inside, as on
+    # main
+    opening, inner, closing = nest
+    head = opening[: opening.index("(")]
+    assert_linear(
+        edits, lambda n: head + opening[len(head) :] * n + inner + closing * n + " found.", 3200
+    )

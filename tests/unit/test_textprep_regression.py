@@ -15,11 +15,12 @@ CASES_FILE = Path(__file__).resolve().parents[1] / "regression" / "english.toml"
 CASES = load_cases(CASES_FILE)
 
 # cases that do not read the same on a second run, each with the reason (D-577)
+_REBUILT_LABEL = "#324: the rebuilt notice block loses a label a step rewrote"
 SECOND_RUN_EXCEPTIONS = {
     # `rebuilt_from_script` keeps a label only where the text prints it, so the rebuilt figure
     # notice has none and is read "A figure is skipped": the rebuild, not a step
-    "figure-abbreviated-label": "the rebuilt notice block loses its label",
-    "figure-label-in-capitals": "the rebuilt notice block loses its label",
+    "figure-abbreviated-label": _REBUILT_LABEL,
+    "figure-label-in-capitals": _REBUILT_LABEL,
     "symbols-x-in-a-formula": "#320: '= 4x' reads 'equals 4 times' on a second run",
 }
 

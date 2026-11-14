@@ -1469,12 +1469,34 @@ blocks = [
     { kind = "paragraph", text = "It holds ( [12]; see Smith (2019))." },
     { kind = "paragraph", text = "The effect (95% CI [1, 3], [12]) holds." },
     { kind = "paragraph", text = "The value ([12], n = 5) holds." },
+    { kind = "paragraph", text = "It holds ( [12]. see (see also [48, 135])) here." },
 ]
 expected = [
     "It holds here.",
     "It holds.",
     "The effect (95% confidence interval 1 to 3) holds.",
     "The value (n equals 5) holds.",
+    "It holds here.",
+]
+
+[[case]]
+id = "citations-a-nest-of-any-depth"
+audit = 0
+issue = 306
+goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, so each bracket is a citation as a second run sees it, and the whole nest goes on the first run (D-588; nightly seeds 555 and 8080 of PR #330)."
+blocks = [
+    { kind = "paragraph", text = "It holds ((((Smith, 2019), Lee, 2020), Lee, 2020), Lee, 2020) found it." },
+    { kind = "paragraph", text = "It holds (((527794, (Smith, 2019)) (Smith, 2019), Lee, 2020), Lee, 2020) found it." },
+    { kind = "paragraph", text = "Text (e.g., (e.g., (e.g., (Smith, 2019), Lee, 2020), Kim, 2021), Park, 2022) more." },
+    { kind = "paragraph", text = "It holds (((Smith, 2019); Lee, 2020); Kim, 2021) found it." },
+    { kind = "paragraph", text = "It holds ((((((((Smith, 2019), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020), Lee, 2020) found it." },
+]
+expected = [
+    "It holds found it.",
+    "It holds found it.",
+    "Text more.",
+    "It holds found it.",
+    "It holds found it.",
 ]
 
 [[case]]
