@@ -255,6 +255,7 @@ _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
 _WORD = rf"{_LETTER}+(?:(?:[’'-]|-\n){_LETTER}+)*"
 _SPACE = re.compile(r"\s+")
+_FIVE_DIGITS = re.compile(r"\d{5}")  # every identifier holds a run of five digits (#313)
 _PUNCTUATION_ONLY = re.compile(r"[\s,;:.]+")  # between and after lead words
 _DECIMAL_COMMA = re.compile(r"\d,\d")
 _SQUARE = re.compile(r"\[([^\[\]]*)\]")  # what a square bracket holds
@@ -534,11 +535,7 @@ class _Rules:
             return None
         if text[node.open] == "[":
             return self._numeric(text, node, inside)
-        if self.identifiers.match(inside) or (
-            # "(527794 (Smith, 2019))" once its inner citation goes is "(527794)", which a
-            # second run removes (#285 review round 2)
-            node.children and self.identifiers.match(self._read_inside(text, node, decided))
-        ):
+        if self._identifiers_only(text, node, decided):
             # "(0801700)", "(grant no. DMS-1912345)": a grant or award number, no quantity
             # (#285, D-547); the script and the read-along keep it as printed
             printed = _printed(text[node.open : node.close + 1])
@@ -547,7 +544,7 @@ class _Rules:
             )
             start, end = self._with_space(text, node.open, node.close + 1)
             return [(start, end, EditKind.REMOVE, "", reason)]
-        if self._only_lead_left(inside) and _cut_inside(cuts, node):
+        if _cut_inside(cuts, node) and self._only_lead_left(inside):
             # "(see (527794))" without its identifier is "(see)": a pointer to nothing
             return [self._removed(text, node.open, node.close + 1, "bracket of lead words")]
         if self.numeric_aside.match(inside):
@@ -586,6 +583,24 @@ class _Rules:
                 return self._subject(text, node, names, end, "is part of the sentence")
             return [self._removed(text, node.open, end, "citation")]
         return self._mixed(text, node, parts, cited)
+
+    def _identifiers_only(
+        self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
+    ) -> bool:
+        """True if a bracket holds only identifiers, as read once its inner brackets' edits
+        are made: "(527794 (Smith, 2019))" is "(527794)" then, which a second run removes
+        (#285 review round 2). A bracket with inner brackets is read only if its own text,
+        outside them, has a run of five digits, so a deep nest costs no more than before
+        (#313)."""
+        if not node.children:
+            return bool(self.identifiers.match(text, node.open + 1, node.close))
+        own = text[node.open + 1 : node.children[0].open] + "".join(
+            text[before.close + 1 : after.open]
+            for before, after in itertools.pairwise([*node.children, _Bracket(node.close, 0)])
+        )
+        return bool(_FIVE_DIGITS.search(own)) and bool(
+            self.identifiers.match(self._read_inside(text, node, decided))
+        )
 
     @staticmethod
     def _read_inside(text: str, node: _Bracket, decided: dict[int, list[_Found] | None]) -> str:

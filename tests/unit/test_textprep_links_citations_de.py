@@ -475,3 +475,18 @@ def test_a_deep_german_nest_takes_about_as_long_as_plain_citations() -> None:
 
     deep = "(" * 20_000 + "Müller 2019" + ")" * 20_000
     assert_near(run, deep, ("(Müller 2019) " * 3000)[: len(deep)], 16)
+
+
+def test_a_deep_german_nest_around_an_identifier_takes_about_as_long_as_plain_citations() -> None:
+    """Each bracket of a nest is checked for identifiers as read once its inner brackets
+    go (#285); rebuilt at every depth up to the cap, it made a deep nest twice as costly
+    (#313). Only a bracket whose own text holds five digits is rebuilt now: about 6 times
+    as long as plain citations, as before #285."""
+
+    def run(text: str) -> None:
+        document = make_document([(BlockKind.PARAGRAPH, text)], "de")
+        LINKS.find(document, DE)
+        CITATIONS.find(document, DE)
+
+    deep = "(" * 20_000 + "527794 (Müller 2019)" + ")" * 20_000
+    assert_near(run, deep, ("(Müller 2019) " * 3000)[: len(deep)], 16)
