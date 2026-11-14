@@ -1,0 +1,109 @@
+# Ground truth for papers/arxiv2017-maass-privacyscore.pdf. Format: README.md.
+file = "papers/arxiv2017-maass-privacyscore.pdf"
+# Drafted from the PDF (arXiv 1705.08889v2) and checked against the authors' LaTeX source on
+# arXiv (gi-privacyscore-paper.tex, LNI class): same sections, one figure, the same notes.
+# The only German paper of the corpus (#235): German text in the LNI template, set in a small
+# type area on Letter paper, with no language tag in the file.
+drafted_from = ["pdf", "latex"]
+# The title ends in the mark "*" of the note at the foot of page 1, left out here.
+title = "PrivacyScore: Analyse von Webseiten auf Sicherheits- und Privatheitsprobleme – Konzept und rechtliche Zulässigkeit"
+
+pages = 13
+# One text column on every page. Page 3's figure sets its labels in three columns above the
+# caption; they are the figure's, not text columns (layout counts them, #238).
+columns = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+# The LaTeX \section headings and the bibliography. "Abstract:", "Keywords:" and the
+# \paragraph heads ("Implementation", "Anschaulichkeit und Handlungsempfehlungen",
+# "Zulässigkeit der automatisierten Untersuchung von Webseiten", "Danksagung" and others)
+# are run-in heads at the start of a paragraph, not headings (README.md).
+headings = [
+  { level = 1, text = "1 Einleitung" },
+  { level = 1, text = "2 Verwandte Arbeiten" },
+  { level = 1, text = "3 PrivacyScore im Überblick" },
+  { level = 1, text = "4 Sicherheits- und Privatheitstests" },
+  { level = 1, text = "5 Ethische Fragestellungen" },
+  { level = 1, text = "6 Rechtliche Fragestellungen" },
+  { level = 1, text = "7 Schlussbemerkungen" },
+  { level = 1, text = "Literaturverzeichnis" },
+]
+
+# Must not be read aloud: after layout only in furniture blocks (README.md).
+# The LNI running heads alternate: author names after the page number on even pages, the
+# short title before it on odd pages; the number is part of the head's line. Page 1 has none.
+# The rule under each head and above the title on page 1 is a drawing, not text.
+furniture = [
+  { kind = "side-stamp", pages = [1], text = "arXiv:1705.08889v2 [cs.CR] 30 Jun 2017" },
+  { kind = "running-head", pages = [2], text = "2 Max Maass, Anne Laubach, Dominik Herrmann" },
+  { kind = "running-head", pages = [3], text = "PrivacyScore 3" },
+  { kind = "running-head", pages = [4], text = "4 Max Maass, Anne Laubach, Dominik Herrmann" },
+  { kind = "running-head", pages = [5], text = "PrivacyScore 5" },
+  { kind = "running-head", pages = [6], text = "6 Max Maass, Anne Laubach, Dominik Herrmann" },
+  { kind = "running-head", pages = [7], text = "PrivacyScore 7" },
+  { kind = "running-head", pages = [8], text = "8 Max Maass, Anne Laubach, Dominik Herrmann" },
+  { kind = "running-head", pages = [9], text = "PrivacyScore 9" },
+  { kind = "running-head", pages = [10], text = "10 Max Maass, Anne Laubach, Dominik Herrmann" },
+  { kind = "running-head", pages = [11], text = "PrivacyScore 11" },
+  { kind = "running-head", pages = [12], text = "12 Max Maass, Anne Laubach, Dominik Herrmann" },
+  { kind = "running-head", pages = [13], text = "PrivacyScore 13" },
+]
+
+formula_numbers = []  # no display formulas
+
+# Page 1: the three affiliation notes (marks after the author names) and the "∗" note on
+# the title. From page 2 on the marks are superior figures set in the notes' own size.
+# Page 4 and page 13 have no notes.
+footnotes = [
+  { page = 1, marks = ["1", "2", "3", "∗"] },
+  { page = 2, marks = ["4", "5", "6", "7", "8"] },
+  { page = 3, marks = ["9", "10"] },
+  { page = 5, marks = ["11", "12"] },
+  { page = 6, marks = ["13"] },
+  { page = 7, marks = ["14", "15", "16", "17", "18"] },
+  { page = 8, marks = ["19", "20"] },
+  { page = 9, marks = ["21", "22", "23"] },
+  { page = 10, marks = ["24", "25"] },
+  { page = 11, marks = ["26", "27"] },
+  { page = 12, marks = ["28", "29"] },
+]
+tables = []
+figures = [
+  { page = 3, labels = ["Abb. 1"] },  # a vector diagram: use cases and data structures
+]
+algorithms = []
+unnumbered_formulas = []
+
+# One column throughout, so no column-break sentence; no inline maths in the paper.
+[[verbatim]]
+where = "plain"
+page = 2
+text = "Das PrivacyScore-Projekt soll diese Lücke schließen."
+
+[[verbatim]]
+# "(etwa Google" ends page 1 above the notes; "Analytics)" opens page 2 under its new head.
+where = "page-break"
+page = 1
+text = "Seitenbetreiber nutzen hier oft kommerzielle Angebote (etwa Google Analytics) anstatt einer lokalen Lösung, die die Privatheitsinteressen der Besucherinnen besser berücksichtigt (z. B. Piwik)."
+
+[[verbatim]]
+# "ins-besondere" is split across lines.
+where = "hyphenation"
+page = 2
+text = "Die Entscheidungen der Betreiber sind dabei für Besucherinnen oft intransparent, insbesondere bei komplexeren Diensten wie dem Schutz gegen Denial-of-Service-Angriffe."
+
+[[verbatim]]
+# The mark 7 of the note on securityheaders.io follows the full stop.
+where = "footnote-mark"
+page = 2
+text = "Darüber hinaus existieren Dienste, welche das Vorhandensein der relativ neuen HTTP-Security-Header überprüfen.7"
+
+[[verbatim]]
+where = "plain"
+page = 6
+text = "Wie viele andere Sicherheitswerkzeuge auch ist PrivacyScore demnach ein Dual-Use-Werkzeug."
+
+[[verbatim]]
+# "herzustellen" ends page 12; "und Öffentlichkeit" opens page 13 under its head.
+where = "page-break"
+page = 12
+text = "Das Ziel des PrivacyScore-Projekts besteht darin, Transparenz herzustellen und Öffentlichkeit zu generieren."

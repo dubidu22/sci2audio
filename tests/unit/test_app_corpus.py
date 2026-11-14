@@ -18,7 +18,21 @@ pytestmark = pytest.mark.timeout(120)
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 PAPERS = sorted((CORPUS / "papers").glob("*.pdf"))
-GOLDEN = ["acl2023-hardt-ellipsis", "joss2021-waskom-seaborn"]
+# The German paper's script and report are recorded as main reads it: they change with every
+# German text rule that lands (#130, #101, #212), which records them again (#235, D-510).
+GOLDEN = ["acl2023-hardt-ellipsis", "arxiv2017-maass-privacyscore", "joss2021-waskom-seaborn"]
+# Steps that do not speak German yet, with the Issue that teaches them (#235, D-509): on the
+# German paper they are reported as not run. An Issue that lands takes its steps out.
+GERMAN_LATER_STEPS = {
+    "formula-notices": 212,
+    "table-figure-notices": 212,
+    "footnotes": 212,
+    "links": 101,
+    "citations": 101,
+    "statistics": 130,
+    "numbers": 130,
+}
+GERMAN = {"arxiv2017-maass-privacyscore"}
 
 # Chapter titles per paper as laid out today; "*" marks the reference list (not chosen).
 CHAPTERS = {
@@ -45,6 +59,11 @@ CHAPTERS = {
         "2 Subjective Meaning in Phenomenology of Experience",
         "3 Do Raw Feels Have Subjective Meaning?", "4 The Formal Structure of Meaning",
         "5 Discussion", "Acknowledgments", "*References",
+    ],
+    "arxiv2017-maass-privacyscore": [
+        "PrivacyScore", "1 Einleitung", "2 Verwandte Arbeiten", "3 PrivacyScore im Überblick",
+        "4 Sicherheits- und Privatheitstests", "5 Ethische Fragestellungen",
+        "6 Rechtliche Fragestellungen", "7 Schlussbemerkungen", "*Literaturverzeichnis",
     ],
     "arxiv2024-liu-orbital-hall": ["arxiv2024-liu-orbital-hall"],
     "joss2021-waskom-seaborn": [
@@ -81,7 +100,10 @@ def test_every_paper_runs_with_its_chapters_and_no_problem(stem: str, out: Path)
     got = [("" if c.selected else "*") + c.chapter.title for c in done.result.chapters]
     assert got == CHAPTERS[stem]
     assert done.report.problems == ()
-    assert done.report.not_run == ()
+    if stem in GERMAN:
+        assert set(done.report.not_run) <= set(GERMAN_LATER_STEPS)
+    else:
+        assert done.report.not_run == ()
     assert all(c.spoken > 0 for c in done.result.chapters if c.selected)
 
 

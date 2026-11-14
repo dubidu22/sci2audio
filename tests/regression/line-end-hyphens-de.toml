@@ -1,0 +1,60 @@
+# Every hyphen at a line end in the German corpus papers (tests/corpus/papers), outside formula
+# and table blocks, and how a careful reader reads it (TP-02, #96, #235). The format is that of
+# line-end-hyphens-en.toml: one [[paper]] table per paper, `hyphens` in document order as
+# [word before the line break, word after it, reading], with "join" (the hyphen only splits a
+# word), "keep" (the hyphen belongs to the word) or "none" (no edit).
+#
+# How the readings were set: each was read by hand against the paper's LaTeX source on arXiv,
+# where the authors write a hyphen that belongs to a word as "= ("Datenschutz"=Aufsichtsbehörden,
+# PrivacyScore"=Plattform) and let TeX split every other word. [[miss]] tables list where
+# `line-end-hyphens` reads differently today and why.
+
+[[paper]]
+name = "arxiv2017-maass-privacyscore"
+hyphens = [
+    ["imple-", "mentieren.", "join"],
+    ["Datenschutz-", "Aufsichtsbehörden.", "keep"],
+    ["Seitenbe-", "treibers", "join"],
+    ["ins-", "besondere", "join"],
+    ["Datenschutz-", "Aufsichtsbehörden", "keep"],
+    ["Aufsichtsbe-", "hörden,", "join"],
+    ["PrivacyScore-", "Plattform", "keep"],
+    ["Vor-", "handensein", "join"],
+    ["unter-", "sucht", "join"],
+    ["akade-", "mischen", "join"],
+    ["klassi-", "fizieren.", "join"],
+    ["nutzerdefi-", "nierte", "join"],
+    ["Zusammenhangs-", "analysen", "join"],
+    ["Aufmerksam-", "keit,", "join"],
+    ["Proto-", "kollversionen,", "join"],
+    ["Besuche-", "rinnen", "join"],
+    ["Rechtsfra-", "gen", "join"],
+    ["be-", "jahen14", "join"],
+    ["ge-", "rade", "join"],
+    ["Nutzungsbe-", "schränkungen", "join"],
+    ["tech-", "nischen", "join"],
+    ["Fol-", "genden", "join"],
+    ["Analysediens-", "ten,", "join"],
+    ["identifi-", "zierbare", "join"],
+    ["Daten-", "schützer22", "join"],
+    ["Nut-", "zungsprofilen", "join"],
+    ["Ver-", "schlüsselungspflicht", "join"],
+    ["Datenschutz-Grundverord-", "nung", "join"],
+    ["Bewer-", "tung", "join"],
+    ["erfor-", "derlich", "join"],
+    ["tech-", "nisch", "join"],
+    ["Ver-", "öffentlichung", "join"],
+    ["Unterneh-", "mer,", "join"],
+    ["grund-", "sätzlich", "join"],
+    ["Beeinträchti-", "gungen", "join"],
+    ["Lö-", "schungsanspruch", "join"],
+    ["Interes-", "senabwägung", "join"],
+    ["Seitenbetrei-", "bers", "join"],
+]
+
+[[miss]]
+paper = "arxiv2017-maass-privacyscore"
+before = "Datenschutz-Grundverord-"
+after = "nung"
+rule_gives = "keep"
+why = "a word with a hyphen of its own, split again by TeX: the rule keeps a hyphen after a hyphenated word"

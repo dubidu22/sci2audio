@@ -17,10 +17,11 @@ whole: nowak's Figure 1 holds Algorithms 1 and 2, and its caption
 and theirs all name one FIGURE block (D-89). The line just above an algorithm's caption is
 the top of the algorithm's box.
 
-The float is one block: a TABLE for a "Table" caption, else a FIGURE. Its text is its lines
-read row by row (pieces of a row joined by a space where the page prints one, rows by a line
-break), each listing of a merged float on its own, as found: a table row, or a numbered line
-of pseudocode with its number first (#38). Its graphics stand among its parts where they are read.
+The float is one block: a TABLE for a "Table" (or "Tabelle", "Tab.") caption, else a
+FIGURE. Its text is its lines read row by row (pieces of a row joined by a space where the
+page prints one, rows by a line break), each listing of a merged float on its own, as found:
+a table row, or a numbered line of pseudocode with its number first (#38). Its graphics
+stand among its parts where they are read.
 
 The graphics no caption names:
 - the same box on `repeat_pages` pages (a journal's logo) is FURNITURE, a RUNNING_HEAD
@@ -61,7 +62,7 @@ from sci2audio.layout.split import kept, part_ends, read_rows
 # what a float may take: running text and graphics. Anything else ends its walk
 _TAKE = {BlockKind.PARAGRAPH, BlockKind.FIGURE}
 _ALGORITHM = ("Algorithm", "ALGORITHM")
-_TABLE = ("Table", "TABLE")
+_TABLE = ("Table", "TABLE", "Tabelle", "Tab.", "TABELLE", "TAB.")  # German too (D-506)
 
 
 @dataclass(frozen=True)

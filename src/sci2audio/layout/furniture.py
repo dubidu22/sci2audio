@@ -16,12 +16,19 @@ fewer than `head_pages` pages is read aloud, and so is a head that names a secti
 one page only. A rule under the line is no evidence: tables print one under their header too.
 Smaller lines keep the shape rule in v1.0, so a continued table header or "Algorithm 1/2"
 set smaller than the body is still taken (D-328, #156).
+
+The top band is the top `edge_band` of the paper. A document set in a small type area on
+bigger paper (the LNI template on Letter paper starts 17 % down) prints nothing there; then
+its first row of text, where such templates put their heads, is in the top band too (#235,
+D-502 to D-504). Only that row: a lone number lower down stays text. The bottom band stays
+the paper's, since the foot of a small type area holds footnotes (D-503).
 """
 
 from __future__ import annotations
 
 import re
 from collections import defaultdict
+from dataclasses import dataclass
 from statistics import median
 
 from sci2audio.core import Box, Content, FurnitureRole, Page, TextLine
@@ -55,46 +62,83 @@ def page_label(text: str) -> str:
 Heads = dict[tuple[str, str], list[tuple[int, float]]]  # (band, shape) -> (page, height)
 
 
-def find_furniture(content: Content, settings: LayoutSettings) -> dict[str, FurnitureRole]:
+@dataclass(frozen=True)
+class Edges:
+    """Where a document's top and bottom bands are: one answer for every furniture rule and
+    for where layout puts the top furniture of a page (D-504)."""
+
+    settings: LayoutSettings
+    # Lines starting this high or higher are in the top band too: the first row of a small
+    # type area (D-502). None while something is printed in the paper's top band.
+    first_row: float | None = None
+
+    def band(self, box: Box, page: Page) -> str:
+        """The band a box on this page stands in: "top", "bottom" or "" (neither)."""
+        height = page.height or 0.0
+        if box.y1 <= self.settings.edge_band * height or (
+            self.first_row is not None and box.y0 <= self.first_row
+        ):
+            return "top"
+        if box.y0 >= (1 - self.settings.edge_band) * height:
+            return "bottom"
+        return ""
+
+
+def edges(content: Content, settings: LayoutSettings) -> Edges:
+    """The document's bands. When nothing is printed in the paper's top `edge_band` on any
+    page (no text line but a side stamp, no picture, no drawing), lines starting within
+    `head_drift` of the document's highest line of text are in the top band too (D-502)."""
+    size = body_size(content) or settings.body_size
+    tops: list[float] = []
+    for page in content.pages:
+        if not (page.height and page.width):
+            continue
+        reach = settings.edge_band * page.height
+        lines = [line for line in page.lines if line.box and not _is_stamp(line, page, settings)]
+        graphics = [g.box for g in (*page.pictures, *page.drawings) if g.box]
+        if any(box.y0 <= reach for box in (*(boxed(line) for line in lines), *graphics)):
+            return Edges(settings)
+        tops += [boxed(line).y0 for line in lines]
+    if not tops:
+        return Edges(settings)
+    return Edges(settings, min(tops) + settings.head_drift * size)
+
+
+def find_furniture(
+    content: Content, settings: LayoutSettings, bands: Edges | None = None
+) -> dict[str, FurnitureRole]:
     """The furniture kind of every line that is furniture, by line id."""
+    bands = bands or edges(content, settings)
     size = body_size(content) or settings.body_size
     pages = [page for page in content.pages if page.height and page.width]
-    measured = [_Page(page, size, settings) for page in pages]
-    heads = _running_heads(pages, size, settings)
+    measured = [_Page(page, size, bands) for page in pages]
+    heads = _running_heads(pages, size, bands)
     body_heads = _body_heads(measured, len(pages))
-    counted = _counted(pages, size, settings)
+    counted = _counted(pages, size, bands)
     found: dict[str, FurnitureRole] = {}
     for page in measured:
         found.update(page.furniture(heads, body_heads, counted))
     return found
 
 
-def _counted(pages: list[Page], size: float, settings: LayoutSettings) -> set[str]:
+def _counted(pages: list[Page], size: float, bands: Edges) -> set[str]:
     """Numbers at the outer end of a top or bottom row that go up with the page, as page
     numbers do: one on each of at least `repeat_pages` pages, at the same end of the same
     band, each the page's number plus the same offset (a page number set beside a footer).
     A number set smaller than the body text is a footnote mark, not a page number."""
+    settings = bands.settings
     seen: dict[tuple[str, int, int], list[str]] = defaultdict(list)
     for page in pages:
-        edge = [li for li in page.lines if li.box and _band(li.box, page, settings)]
+        edge = [li for li in page.lines if li.box and bands.band(li.box, page)]
         for row in rows(edge, settings.row_overlap):
             for side, line in ((0, row[0]), (1, row[-1])):
                 text = line.text.strip()
                 if re.fullmatch(r"\d{1,4}", text) and line_size(line) >= settings.small * size:
-                    band = _band(boxed(line), page, settings)
+                    band = bands.band(boxed(line), page)
                     seen[band, side, int(text) - page.number].append(line.id)
     return {
         line_id for ids in seen.values() if len(ids) >= settings.repeat_pages for line_id in ids
     }
-
-
-def _band(box: Box, page: Page, settings: LayoutSettings) -> str:
-    height = page.height or 0.0
-    if box.y1 <= settings.edge_band * height:
-        return "top"
-    if box.y0 >= (1 - settings.edge_band) * height:
-        return "bottom"
-    return ""
 
 
 def _exact(text: str) -> str:
@@ -107,13 +151,13 @@ def _shape(text: str) -> str:
     return re.sub(r"\d+", "#", _exact(text))
 
 
-def _running_heads(pages: list[Page], size: float, settings: LayoutSettings) -> Heads:
+def _running_heads(pages: list[Page], size: float, bands: Edges) -> Heads:
     """Where edge lines no larger than body text stand, by band and shape."""
     seen: Heads = defaultdict(list)
     for page in pages:
         for line in page.lines:
-            band = _band(line.box, page, settings) if line.box else ""
-            if band and line_size(line) <= settings.head_size * size:
+            band = bands.band(line.box, page) if line.box else ""
+            if band and line_size(line) <= bands.settings.head_size * size:
                 seen[band, _shape(line.text)].append((page.number, boxed(line).y0))
     return seen
 
@@ -141,7 +185,7 @@ def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
         for line in page.lines
         if line.id in page.apart  # a smaller line has its own rule and lends no pages here
         and settings.small * size <= line_size(line) <= settings.head_size * size
-        and (band := _band(boxed(line), page.page, settings))
+        and (band := page.bands.band(boxed(line), page.page))
     ]
     texts: Heads = defaultdict(list)
     for band, text, number, y, _ in lines:
@@ -162,12 +206,12 @@ def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
 class _Page:
     """One page's lines, measured once for the furniture rules."""
 
-    def __init__(self, page: Page, size: float, settings: LayoutSettings) -> None:
-        self.page, self.size, self.settings = page, size, settings
+    def __init__(self, page: Page, size: float, bands: Edges) -> None:
+        self.page, self.size, self.bands, self.settings = page, size, bands, bands.settings
         self.lines = [line for line in page.lines if line.box]
-        self.stamps = {line.id for line in self.lines if self._is_stamp(line)}
+        self.stamps = {line.id for line in self.lines if _is_stamp(line, page, self.settings)}
         flat = [line for line in self.lines if line.id not in self.stamps]
-        self.rows = rows(flat, settings.row_overlap)
+        self.rows = rows(flat, self.settings.row_overlap)
         self.alone = {row[0].id for row in self.rows if len(row) == 1}
         self.graphics = [g.box for g in (*page.pictures, *page.drawings) if g.box]
         self.apart = self._apart()
@@ -181,7 +225,7 @@ class _Page:
             if line.id in found:
                 continue
             box, text = boxed(line), line.text.strip()
-            band = _band(box, self.page, settings)
+            band = self.bands.band(box, self.page)
             small = line_size(line) < settings.small * self.size
             loose = small or line.id in self.apart
             places = heads.get((band, _shape(text)), [])
@@ -198,20 +242,6 @@ class _Page:
         found.update(_line_numbers(body, settings))
         found.update(_contents([line for line in body if line.id not in found], settings))
         return found
-
-    def _is_stamp(self, line: TextLine) -> bool:
-        """Turned text in the side margin, as tall as a good part of the page (arXiv)."""
-        box, settings = boxed(line), self.settings
-        width, height = self.page.width or 0.0, self.page.height or 0.0
-        in_margin = (
-            box.x1 < settings.margin_band * width or box.x0 > (1 - settings.margin_band) * width
-        )
-        return (
-            in_margin
-            and box.y1 - box.y0 > settings.stamp_ratio * (box.x1 - box.x0)
-            and box.y1 - box.y0 >= settings.stamp_height * height
-            and len(line.text.strip()) >= settings.stamp_letters
-        )
 
     def _is_page_number(self, line: TextLine) -> bool:
         """Alone on its row, a number, not large, and no graphic beside it (an axis tick)."""
@@ -238,7 +268,7 @@ class _Page:
         The body is the other rows of text and any graphic that holds no text (a plot whose
         tick labels stand in the band is not apart from it).
         """
-        settings, height = self.settings, self.page.height or 0.0
+        settings, page = self.settings, self.page
         boxes = [boxed(line) for line in self.lines]
         parts = [([boxed(li) for li in row], [li.id for li in row]) for row in self.rows]
         parts += [([g], []) for g in self.graphics if not any(_inside(b, g) for b in boxes)]
@@ -246,11 +276,11 @@ class _Page:
         for ordered, inside in (
             (
                 sorted(parts, key=lambda part: min(b.y0 for b in part[0])),
-                lambda b: b.y1 <= settings.edge_band * height,
+                lambda b: self.bands.band(b, page) == "top",
             ),
             (
                 sorted(parts, key=lambda part: -max(b.y1 for b in part[0])),
-                lambda b: b.y0 >= (1 - settings.edge_band) * height,
+                lambda b: self.bands.band(b, page) == "bottom",
             ),
         ):
             for i, (part, _) in enumerate(ordered):
@@ -260,6 +290,19 @@ class _Page:
                 if after is None or _white(part, after) >= settings.apart * self.size:
                     found.update(line for _, ids in ordered[: i + 1] for line in ids)
         return found
+
+
+def _is_stamp(line: TextLine, page: Page, settings: LayoutSettings) -> bool:
+    """Turned text in the side margin, as tall as a good part of the page (arXiv)."""
+    box = boxed(line)
+    width, height = page.width or 0.0, page.height or 0.0
+    in_margin = box.x1 < settings.margin_band * width or box.x0 > (1 - settings.margin_band) * width
+    return (
+        in_margin
+        and box.y1 - box.y0 > settings.stamp_ratio * (box.x1 - box.x0)
+        and box.y1 - box.y0 >= settings.stamp_height * height
+        and len(line.text.strip()) >= settings.stamp_letters
+    )
 
 
 def _inside(box: Box, outer: Box) -> bool:
