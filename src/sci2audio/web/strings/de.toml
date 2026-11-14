@@ -159,7 +159,12 @@ listen = "Anhören"
 preview_player = "Hörprobe der gewählten Stimme"
 speed = "Tempo"
 speed_value = "{value}-fach"
-remembered = "Wenn Sie ein Hörbuch erstellen, merkt sich sci2audio die Änderungen, die Stimme, das Tempo und den Ordner für das nächste Dokument."
+letter_pace = "Buchstabierte Abkürzungen"
+letter_pace_hint = "Wie schnell die Stimme Abkürzungen liest, die sie Buchstabe für Buchstabe spricht, etwa NLP."
+letter_pace_normal = "Normal"
+letter_pace_slower = "Langsamer"
+letter_pace_slowest = "Am langsamsten"
+remembered = "Wenn Sie ein Hörbuch erstellen, merkt sich sci2audio die Änderungen, die Stimme, das Tempo, das Tempo der Abkürzungen und den Ordner für das nächste Dokument."
 
 [accent]  # eine pro Sprachcode einer Stimme
 en-US = "amerikanisches Englisch"

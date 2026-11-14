@@ -125,6 +125,19 @@ def test_the_document_page_shows_the_report_with_switches_and_chapters(
     assert 'id="preview"' not in page
     assert 'type="range" id="speed" name="speed" min="0.5" max="2.0" step="0.05"' in page
     assert str(server[1].output_folder) in page
+    # the pace of spelled-out abbreviations, Normal by default (#295)
+    assert "Spelled-out abbreviations" in page
+    assert 'id="letter-pace-normal" name="letter-pace" value="normal" checked' in page
+    assert re.search(r'id="letter-pace-slower" name="letter-pace" value="slower">', page)
+
+
+def test_the_letter_pace_starts_from_the_saved_one(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    assert client.put("/api/v1/settings", json={"letter_pace": "slowest"}).status_code == 200
+    doc = analysed(client)
+    page = client.get(f"/documents/{doc['id']}").text
+    assert 'value="slowest" checked' in page
+    assert 'value="normal" checked' not in page
 
 
 def test_the_controls_start_from_the_report_on_screen(server: tuple[FastAPI, Any]) -> None:

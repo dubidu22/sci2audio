@@ -98,6 +98,28 @@ def test_voice_and_speed_reach_the_job(cli: Cli, source: Path, tmp_path: Path) -
     assert (record["voice"], record["speed"]) == ("bm_george", 1.5)
 
 
+def test_the_letter_pace_reaches_the_voice(cli: Cli, source: Path, tmp_path: Path) -> None:
+    """#295: --letter-pace slower asks the voice for letter_speed 0.7; without the flag
+    the request is the one from before (no letter_speed)."""
+    result = cli("convert", source, "-o", tmp_path, "-q", "--letter-pace", "slower")
+    assert result.code == 0, result.err
+    assert set(cli.voice.letter_speeds) == {0.7}
+    assert audio_record(cli, source)["settings"]["letter_pace"] == "slower"
+
+
+def test_without_the_flag_the_voice_gets_no_letter_speed(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    assert cli("convert", source, "-o", tmp_path, "-q").code == 0
+    assert set(cli.voice.letter_speeds) == {None}
+
+
+def test_an_unknown_letter_pace_is_a_usage_error(cli: Cli, source: Path) -> None:
+    result = cli("convert", source, "--letter-pace", "fast")
+    assert result.code == 2
+    assert "invalid choice: 'fast'" in result.err
+
+
 def test_the_settings_file_gives_the_voice(cli: Cli, source: Path, tmp_path: Path) -> None:
     cli.config.parent.mkdir(parents=True)
     cli.config.write_text('{"version": 1, "voice": "bm_george", "speed": 0.8}', encoding="utf-8")

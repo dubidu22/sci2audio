@@ -291,6 +291,11 @@ function documentPage() {
   }
   speed.addEventListener("input", showSpeed);
   showSpeed();
+  // how fast the voice reads letters it spells out (#295)
+  const letterPace = () => {
+    const chosen = document.querySelector('input[name="letter-pace"]:checked');
+    return chosen ? chosen.value : "normal";
+  };
   const voice = document.getElementById("voice");
   const languageOf = (option) => ((option && option.dataset.language) || "").split("-")[0];
   // the voice to remember: the page's, unless the saved one speaks another language
@@ -321,6 +326,7 @@ function documentPage() {
         const body = {
           voice: voice.value,
           speed: Number(speed.value),
+          letter_pace: letterPace(),
           text: document.getElementById("preview-text").value,
         };
         const job = await send("/api/v1/voices/preview", json("POST", body));
@@ -360,6 +366,7 @@ function documentPage() {
         switched_off: shown.switched_off,
         voice: voice.value,
         speed: Number(speed.value),
+        letter_pace: letterPace(),
         output_folder: folder,
       };
       const job = await send("/api/v1/jobs", json("POST", {

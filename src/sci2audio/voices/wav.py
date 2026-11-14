@@ -72,17 +72,28 @@ def write_wav(path: Path, samples: np.ndarray, sample_rate: int) -> float:
 
 
 def speak_to_wav(
-    session: EngineSession, text: str, voice_id: str, path: Path, *, speed: float = 1.0
+    session: EngineSession,
+    text: str,
+    voice_id: str,
+    path: Path,
+    *,
+    speed: float = 1.0,
+    letter_speed: float = 1.0,
 ) -> float:
     """Speak `text` with one voice into a WAV file at `path`; return its length in seconds.
 
     The app turns the path and the length into an `AudioChunk` (it knows the span).
+    `letter_speed` slows letters the voice spells out (#295); at 1.0 it is not sent, so the
+    request is the one from before.
     """
+    parameters: dict[str, float] = {"speed": speed}
+    if letter_speed != 1.0:
+        parameters["letter_speed"] = letter_speed
     result = session.synthesize(
         SynthesisRequest(
             text=text,
             voice=VoiceSelection(source="builtin", key=voice_id),
-            parameters=ParameterValues({"speed": speed}),
+            parameters=ParameterValues(parameters),
             format=PCM_FLOAT32,
         )
     )
@@ -91,8 +102,21 @@ def speak_to_wav(
 
 
 def preview(
-    session: EngineSession, voice_id: str, path: Path, *, speed: float = 1.0, language: str = "en"
+    session: EngineSession,
+    voice_id: str,
+    path: Path,
+    *,
+    speed: float = 1.0,
+    language: str = "en",
+    letter_speed: float = 1.0,
 ) -> float:
     """Speak a short fixed sample with one voice and speed, for choosing a voice (VA-05);
     `language` is the voice's language, which picks the sample's language."""
-    return speak_to_wav(session, preview_text(language), voice_id, path, speed=speed)
+    return speak_to_wav(
+        session,
+        preview_text(language),
+        voice_id,
+        path,
+        speed=speed,
+        letter_speed=letter_speed,
+    )

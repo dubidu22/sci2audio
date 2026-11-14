@@ -10,7 +10,7 @@ import json
 import time
 from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, File, Query, UploadFile
@@ -306,6 +306,7 @@ def _settings_model(settings: JobSettings) -> models.SettingsModel:
         switched_off=sorted(settings.switched_off),
         voice=settings.voice,
         speed=settings.speed,
+        letter_pace=cast(models.LetterPace, settings.letter_pace),
         output_folder=None if settings.output_folder is None else str(settings.output_folder),
     )
 
@@ -374,6 +375,7 @@ def put_settings(state: State, body: models.SettingsModel) -> models.SettingsMod
         switched_off=frozenset(body.switched_off),
         voice=_voice(body.voice),
         speed=body.speed,
+        letter_pace=body.letter_pace,
         output_folder=_folder(body.output_folder),
     )
     try:
@@ -398,6 +400,7 @@ def _merged(saved: JobSettings, given: models.JobSettingsIn) -> JobSettings:
         chapters=None if given.chapters is None else frozenset(given.chapters),
         voice=saved.voice if given.voice is None else _voice(given.voice),
         speed=saved.speed if given.speed is None else given.speed,
+        letter_pace=saved.letter_pace if given.letter_pace is None else given.letter_pace,
         output_folder=saved.output_folder
         if given.output_folder is None
         else _folder(given.output_folder),
@@ -411,6 +414,7 @@ def _settings_data(settings: JobSettings) -> dict[str, Any]:
         "chapters": None if settings.chapters is None else sorted(settings.chapters),
         "voice": settings.voice,
         "speed": settings.speed,
+        "letter_pace": settings.letter_pace,
         "output_folder": None if settings.output_folder is None else str(settings.output_folder),
     }
 
@@ -650,16 +654,22 @@ def preview_voice(state: State, body: models.PreviewIn) -> models.JobOut:
     text = " ".join(body.text.split())
     if not text:
         raise ApiError(422, "invalid", "text: the preview sentence is empty")
-    settings = _job_settings(voice=_voice(body.voice), speed=body.speed)
+    settings = _job_settings(
+        voice=_voice(body.voice), speed=body.speed, letter_pace=body.letter_pace
+    )
     pack = voice_pack(settings.voice or DEFAULT_VOICE)
     if any(f.pack == pack for f in missing_files(state.config.models_dir)):
         raise ApiError(409, "voice-missing", "the voice is not installed yet; download it first")
-    work = state.preview_work(text, settings.voice, settings.speed)
+    work = state.preview_work(text, settings.voice, settings.speed, settings.letter_speed)
     try:
         job = state.board.start(
             JobKind.PREVIEW,
             None,
-            {"voice": settings.voice, "speed": settings.speed},
+            {
+                "voice": settings.voice,
+                "speed": settings.speed,
+                "letter_pace": settings.letter_pace,
+            },
             work,
             cancellable=False,
         )

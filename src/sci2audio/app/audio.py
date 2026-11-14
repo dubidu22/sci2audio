@@ -177,7 +177,13 @@ class AudioJob:
 
 
 def plan_audio(
-    result: ScriptResult, *, engine: str, engine_version: str, voice: str, speed: float
+    result: ScriptResult,
+    *,
+    engine: str,
+    engine_version: str,
+    voice: str,
+    speed: float,
+    letter_speed: float = 1.0,
 ) -> AudioPlan:
     """The chunks of the chosen chapters with their pause kinds (D-116, D-157):
     PARAGRAPH for the first chunk of another block (HEADING after a heading), SENTENCE for
@@ -210,7 +216,9 @@ def plan_audio(
                 kind = Pause.SENTENCE
             if pause_edit:
                 kind = Pause.strongest(Pause.PAUSE_EDIT, kind)
-            key = chunk_key(utterance.text, voice, speed, engine, engine_version)
+            key = chunk_key(
+                utterance.text, voice, speed, engine, engine_version, letter_speed=letter_speed
+            )
             chunks.append(PlannedChunk(utterance, chapter.chapter.index, key, kind))
             previous, pause_edit = block, False
         if len(chunks) == before:
@@ -457,6 +465,7 @@ def run_audio_job(
             engine_version=voice.version_of(voice_id),
             voice=voice_id,
             speed=settings.speed,
+            letter_speed=settings.letter_speed,
         )
         if not plan.chunks:
             raise JobError("there is nothing to read in the chosen chapters")
@@ -472,7 +481,17 @@ def run_audio_job(
         book = replace(book, cover=usable_cover(write_cover(source, work), run.exe))
         _check_cancel(cancel)
 
-        speech = _speak(plan, work, voice, voice_id, settings.speed, titles, tell, cancel, clock)
+        speech = _speak(
+            plan,
+            work,
+            voice,
+            voice_id,
+            (settings.speed, settings.letter_speed),
+            titles,
+            tell,
+            cancel,
+            clock,
+        )
         chapters, spoken = assemble(plan, speech.durations, titles)
         if not spoken:
             raise JobError("the voice could not speak any of the chosen chapters")
@@ -522,7 +541,7 @@ def _speak(
     work: Path,
     voice: VoiceSource,
     voice_id: str,
-    speed: float,
+    speeds: tuple[float, float],  # the speed and the letter speed (#295)
     titles: dict[int, str],
     tell: Callable[[AudioProgress], None],
     cancel: threading.Event | None,
@@ -563,7 +582,7 @@ def _speak(
         )
         for index, chunk in enumerate(plan.chunks):
             _check_cancel(cancel)
-            _one(chunk, work, needed, session, voice_id, speed, speech)
+            _one(chunk, work, needed, session, voice_id, speeds, speech)
             speech.chunks_done += 1
             if speech.first_chapter is not None and index == last_of_chapter[speech.first_chapter]:
                 speech.first_chapter_done = True
@@ -596,7 +615,7 @@ def _one(
     needed: dict[str, int],
     session: EngineSession | None,
     voice_id: str,
-    speed: float,
+    speeds: tuple[float, float],
     speech: _Speech,
 ) -> None:
     """Speak one chunk, or take it from the cache or from earlier in this run."""
@@ -616,7 +635,10 @@ def _one(
     started = speech.clock()
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        seconds = speak_to_wav(session, text, voice_id, path, speed=speed)
+        speed, letter_speed = speeds
+        seconds = speak_to_wav(
+            session, text, voice_id, path, speed=speed, letter_speed=letter_speed
+        )
     except ModelNotFoundError as error:
         raise JobError(f"the voice is not set up: {error}") from error
     except EngineError as error:

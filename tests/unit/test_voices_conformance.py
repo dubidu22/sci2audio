@@ -38,7 +38,17 @@ class Session:
         speed = request.parameters.values.get("speed", 1.0)
         if not isinstance(speed, int | float) or not math.isfinite(speed) or not 0.5 <= speed <= 2:
             raise InvalidInputError("bad speed")
+        self.check_letter_speed(request.parameters.values.get("letter_speed", 1.0))
         return np.full(int(len(request.text) * 10 / speed), 0.25, dtype="<f4")
+
+    def check_letter_speed(self, value: object) -> None:
+        """This toy voice cannot slow letters: it only refuses bad values (#295)."""
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int | float)
+            or not 0.25 <= value <= 1.0  # NaN fails this too
+        ):
+            raise InvalidInputError("bad letter_speed")
 
     def synthesize(self, request: SynthesisRequest) -> SynthesizedAudio:
         if self.disposed:
@@ -93,6 +103,23 @@ class SpeedIgnored(Session):
         return np.full(len(request.text) * 10, 0.25, dtype="<f4")
 
 
+class LetterSpeedUnchecked(Session):
+    def check_letter_speed(self, value: object) -> None:
+        pass
+
+
+class LetterSpeedChangesNormal(Session):
+    def samples(self, request: SynthesisRequest) -> np.ndarray:
+        out = super().samples(request)
+        return out[:-1] if "letter_speed" in request.parameters.values else out
+
+
+class LetterSpeedShortens(Session):
+    def samples(self, request: SynthesisRequest) -> np.ndarray:
+        out = super().samples(request)
+        return out[: len(out) // 2] if request.parameters.values.get("letter_speed", 1) < 1 else out
+
+
 class RawErrors(Session):
     def synthesize(self, request: SynthesisRequest) -> SynthesizedAudio:
         if not request.text:
@@ -133,6 +160,9 @@ def test_a_correct_engine_passes() -> None:
         (engine_with(Session, api_version="0.1"), "api_version"),
         (engine_with(NaNSession), "NaN"),
         (engine_with(SpeedIgnored), "speed 2.0"),
+        (engine_with(LetterSpeedUnchecked), "letter_speed 0.0: no error"),
+        (engine_with(LetterSpeedChangesNormal), "letter_speed 1.0 gave"),
+        (engine_with(LetterSpeedShortens), "letter_speed 0.25 gave .* fewer"),
         (engine_with(RawErrors), "not an EngineError"),
         (engine_with(Silent), "silence"),
         (engine_with(WrongDuration), "duration"),

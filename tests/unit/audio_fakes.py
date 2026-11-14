@@ -48,6 +48,8 @@ class FakeVoice:
     samples_per_character: int = SAMPLES_PER_CHARACTER  # more: longer speech (player tests)
     on_speak: Callable[[str], None] = lambda text: None  # e.g. moves a fake clock on
     spoken: list[tuple[str, str, float]] = field(default_factory=list)  # text, voice, speed
+    # the letter_speed of each request, None when it was not sent (#295)
+    letter_speeds: list[float | None] = field(default_factory=list)
     made: int = 0
     released: int = 0
     sessions_disposed: int = 0
@@ -98,6 +100,7 @@ class FakeSession:
         speed = float(request.parameters.values.get("speed", 1.0))
         self.voice.on_speak(text)
         self.voice.spoken.append((text, request.voice.key, speed))
+        self.voice.letter_speeds.append(request.parameters.values.get("letter_speed"))
         n = int(len(text) * self.voice.samples_per_character / speed)
         samples = (0.3 * np.sin(np.arange(n, dtype=np.float32) / 5.0)).astype("<f4")
         return SynthesizedAudio(

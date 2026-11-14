@@ -8,7 +8,7 @@ sci2audio reads a PDF, EPUB, Markdown or plain-text file in English, prepares it
 
 - **Reads** PDF, EPUB, Markdown and plain text. It finds the reading order of one- and two-column pages, leaves out running heads, page numbers and sidebars, and finds headings, footnotes, captions, tables, figures and formulas. A scanned PDF needs a text layer: sci2audio has no text recognition yet.
 - **Prepares the text** with transparent rules: it joins words hyphenated at a line end, leaves out citations, URLs and DOIs, reads units, statistics, numbers and abbreviations as words where the voice would get them wrong, and replaces formulas, tables and figures with a short spoken notice in the text's language (English or German). Footnotes are read where their mark stands. Every change is listed in a report with its reason, and each kind of change can be switched off.
-- **Speaks** it with a local Kokoro voice: 28 English voices and the German voice Thorsten, at the speed you choose. An interrupted run picks up where it stopped.
+- **Speaks** it with a local Kokoro voice: 28 English voices and the German voice Thorsten, at the speed you choose, with abbreviations it spells out (such as NLP) read at their own, slower pace if you like. An interrupted run picks up where it stopped.
 - **Writes** an M4B with chapter marks and the cover, one MP3 per chapter, and a read-along file. The audio is labelled as AI-generated in its metadata.
 - **Plays** it in a read-along view that shows the text as printed and highlights the sentence being read. Click any sentence to play from there.
 
@@ -75,7 +75,7 @@ sci2audio script paper.pdf           # the listening script and a report of ever
 sci2audio convert paper.pdf          # the audiobook: M4B with chapters, MP3s, read-along file
 ```
 
-`script` needs no voice and lists the chapters; choose them with `--chapters 1,3-5` (counted from 1, or `all`; by default every chapter but the reference list). Switch a kind of text handling off with `--off citations` (read as printed) or on with `--on footnote-texts` (leave the notes out); `sci2audio script --help` lists the categories. `convert` takes the same options and `--voice`, `--speed`, `--format both|m4b|mp3` and `--with-script`.
+`script` needs no voice and lists the chapters; choose them with `--chapters 1,3-5` (counted from 1, or `all`; by default every chapter but the reference list). Switch a kind of text handling off with `--off citations` (read as printed) or on with `--on footnote-texts` (leave the notes out); `sci2audio script --help` lists the categories. `convert` takes the same options and `--voice`, `--speed`, `--letter-pace normal|slower|slowest` (how fast spelled-out abbreviations such as NLP are read), `--format both|m4b|mp3` and `--with-script`.
 
 Files go next to the input file, or into the folder given with `-o`; existing files are replaced only with `--overwrite`. If `convert` is stopped (Ctrl-C, a crash, a closed laptop), run the same command again: the sentences already spoken are kept in a speech cache in your cache folder, and `sci2audio clean paper.pdf` removes it. The command line takes its defaults from the settings saved by the interface and never changes them; `--ignore-settings` uses the built-in defaults.
 

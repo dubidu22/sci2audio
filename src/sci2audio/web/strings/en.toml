@@ -154,7 +154,12 @@ listen = "Listen"
 preview_player = "Preview of the chosen voice"
 speed = "Speed"
 speed_value = "{value} times"
-remembered = "sci2audio remembers the changes, the voice, the speed and the folder for the next document when you make an audiobook."
+letter_pace = "Spelled-out abbreviations"
+letter_pace_hint = "How fast the voice reads abbreviations it says letter by letter, such as NLP."
+letter_pace_normal = "Normal"
+letter_pace_slower = "Slower"
+letter_pace_slowest = "Slowest"
+remembered = "sci2audio remembers the changes, the voice, the speed, the pace of abbreviations and the folder for the next document when you make an audiobook."
 
 [accent]  # one per language code of a voice
 en-US = "American English"

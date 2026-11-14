@@ -35,6 +35,7 @@ from web_helpers import (
 )
 
 import sci2audio.web
+from sci2audio.app.settings import LETTER_PACES
 from sci2audio.textprep import Category
 from sci2audio.voices import PACKS, VOICES, download_plan
 from sci2audio.web import i18n, pages, player, server
@@ -71,6 +72,7 @@ SAME_IN_GERMAN = {
     "document.problem",  # a step id and the app's words
     "check.chapter_line",  # only the chapter's title
     "privacy.cookies_title",  # "Cookies"
+    "voice.letter_pace_normal",  # "Normal" (#295)
 }
 
 
@@ -167,6 +169,7 @@ def used_keys() -> set[str]:
     found |= {f"pack.{language}" for language in PACKS}  # pages names packs (D-468)
     found |= {f"setup.pack_{language}" for language in PACKS}
     found |= {f"error.{kind}" for kind in error_kinds()}
+    found |= {f"voice.letter_pace_{pace}" for pace in LETTER_PACES}  # pages names each pace
     for path in (Path(pages.__file__), Path(i18n.__file__)):
         source = path.read_text(encoding="utf-8")
         found |= set(re.findall(r"""\b(?:t|s|self\.t)\(\s*f?["']([a-z_.-]+[a-z])["']""", source))
