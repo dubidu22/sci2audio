@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import re
 from bisect import bisect_right
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from itertools import pairwise
 
@@ -246,6 +246,53 @@ def _runs(document: Document, pieces: Iterable[ScriptPiece]) -> list[_Run | Scri
             current.append(piece)
     flush()
     return out
+
+
+def sentence_end(
+    text: str, position: int, removed: Iterable[tuple[int, int]], language: str
+) -> int:
+    """Where the sentence that holds `position` of a block's printed text ends, by the
+    cutter's own sentence rule (#213): the offset where the white space after it starts, or
+    the end of the text's last word when the sentence runs to the end of the block.
+
+    `removed` are ranges of `text` read as left out (footnote marks), so "end.¹ Next" ends
+    after "end.". A removed range right at the end goes with the sentence, so the end lies
+    after a mark printed after the full stop.
+    """
+    if not 0 <= position <= len(text):
+        raise ValueError(f"position {position} is outside the text ({len(text)} characters)")
+    gaps = sorted((start, end) for start, end in removed if start < end)
+    pieces, cursor = [], 0
+    for start, end in [*gaps, (len(text), len(text))]:
+        if start > cursor:
+            pieces.append(ScriptPiece(text[cursor:start], Span(0, cursor, start)))
+        cursor = max(cursor, end)
+    entries, offset = [], 0
+    for piece in pieces:
+        entries.append((offset, piece))
+        offset += len(piece.text)
+    joined = "".join(piece.text for piece in pieces)
+    if not joined.strip():  # nothing printed but marks: after the last of them
+        end = len(text.rstrip())
+        return _past_removed(max([end, *(b for a, b in gaps if a < end)]), gaps)
+    run = _Run(0, joined, tuple(entries), (True,) * len(pieces))
+    # the position in the joined text: the kept characters before it
+    at = sum(max(0, min(piece.span.end, position) - piece.span.start) for piece in pieces)
+    abbreviations = ABBREVIATIONS.get(language.split("-", 1)[0].lower(), frozenset())
+    sentences = _sentences(run, abbreviations, language)
+    start, end = next(((a, b) for a, b in sentences if a <= at < b), sentences[-1])
+    last = start + len(joined[start:end].rstrip())
+    if last == start:  # only white space: the sentence ends where it starts
+        return _past_removed(run.start_of(start) if start < len(joined) else len(text), gaps)
+    return _past_removed(run.end_of(last - 1), gaps)
+
+
+def _past_removed(position: int, gaps: Sequence[tuple[int, int]]) -> int:
+    """`position`, moved past removed ranges that start right there."""
+    for start, end in gaps:
+        if start == position:
+            position = end
+    return position
 
 
 def _sentences(
