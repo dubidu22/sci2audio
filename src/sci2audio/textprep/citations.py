@@ -448,10 +448,11 @@ class _Rules:
         if text[node.open] == "[":
             return self._numeric(text, node, inside)
         if self.numeric_aside.match(inside):
-            if all(self._decimal_interval(inner) for inner in _SQUARE.findall(inside)):
-                # "([1,2; 3,4])": the inner bracket stays on its own, so the aside does too;
-                # a second run, after "(Müller, 2019) [1,2; 3,4]" lost its citation, decides
-                # the same (#266)
+            if any(self._decimal_interval(inner) for inner in _SQUARE.findall(inside)):
+                # "([1,2; 3,4])": an interval stays on its own, so the aside does too and each
+                # inner bracket is judged alone ("([12]; [1,2; 3,4])" keeps the interval); a
+                # second run, after "(Müller, 2019) [1,2; 3,4]" lost its citation, decides the
+                # same (#266, D-534)
                 return None
             return [self._removed(text, node.open, node.close + 1, "citation")]
         if self.years_only.match(inside) and (names := self._names_before(text, node.open)):

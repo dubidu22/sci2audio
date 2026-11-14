@@ -328,6 +328,8 @@ def test_a_german_job_with_links_and_citations_reads_the_same_on_a_second_run(
         "( (Müller & Schmidt, 2019) [1,2; 3,4])",
         "Die Werte ([1,2; 3,4]; Müller, 2019) sind klein.",
         "Das gilt ([12]; [1,2; 3,4]).",
+        "Das gilt ([1,2; 3,4]; [12]).",
+        "Das gilt ([1,2; 3,4], [12]).",
         # a statistic's reading is no author's name
         "χ²(1998) ± 1",
         # "KI" with a link between it and its interval
@@ -351,8 +353,8 @@ def test_a_second_run_reads_nothing_new(text: str) -> None:
         # #266 (nightly seed 31337): the first run kept the interval, a second removed it
         ("( (Müller & Schmidt, 2019) [1,2; 3,4])", "( [1,2; 3,4])"),
         ("Die Werte ([1,2; 3,4]; Müller, 2019) sind klein.", "Die Werte ([1,2; 3,4]) sind klein."),
-        # a source among the brackets: the aside still goes whole, as on main
-        ("Das gilt ([12]; [1,2; 3,4]).", "Das gilt."),
+        # a source among the brackets goes alone; the interval stays (D-534; the ";" is #272)
+        ("Das gilt ([12]; [1,2; 3,4]).", "Das gilt (; [1,2; 3,4])."),
     ],
 )
 def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
