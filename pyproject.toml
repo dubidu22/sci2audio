@@ -132,6 +132,9 @@ markers = [
 source_paths = ["src/sci2audio/"]
 pytest_add_cli_args_test_selection = ["tests/"]
 pytest_add_cli_args = ["-m", "not browser"]  # needs a Playwright browser (D-259)
+# Files outside src/ and tests/ that tests read from the repository root (mutmut copies
+# only those two into mutants/): the scripts they import and the README they check.
+also_copy = ["scripts/", "README.md"]
 
 [tool.deptry]
 known_first_party = ["sci2audio"]
