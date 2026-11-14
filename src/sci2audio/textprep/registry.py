@@ -30,7 +30,11 @@ from sci2audio.textprep.furniture import FurnitureStep
 from sci2audio.textprep.hyphens import LineEndHyphenStep
 from sci2audio.textprep.links import LinkStep
 from sci2audio.textprep.numbers import NumbersStep
-from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
+from sci2audio.textprep.placeholders import (
+    CodeNoticeStep,
+    FormulaNoticeStep,
+    TableFigureNoticeStep,
+)
 from sci2audio.textprep.references import ReferenceListStep
 from sci2audio.textprep.statistics import StatisticsStep
 from sci2audio.textprep.steps import Stage, TextStep, step_problems
@@ -41,6 +45,7 @@ BUILT_IN_STEPS: tuple[TextStep, ...] = (
     ReferenceListStep(),
     FormulaNoticeStep(),
     TableFigureNoticeStep(),
+    CodeNoticeStep(),
     FootnoteTextStep(),
     LinkStep(),
     CitationStep(),

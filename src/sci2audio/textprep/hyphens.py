@@ -78,8 +78,9 @@ WORDS: dict[str, HyphenWords] = {
         paired=(("als", "auch"),),
     ),
 }
-# a "-" at a line end in a formula is a minus, in a table often an empty cell
-SKIPPED_KINDS = frozenset({BlockKind.FORMULA, BlockKind.TABLE})
+# a "-" at a line end in a formula is a minus, in a table often an empty cell, in code part
+# of the code (D-545)
+SKIPPED_KINDS = frozenset({BlockKind.FORMULA, BlockKind.TABLE, BlockKind.CODE})
 
 # a TeX accent set apart ("Kl\u00a8aui") is part of its word (review S1 of #98)
 _ACCENT_CLASS = re.escape("".join(ACCENTS))

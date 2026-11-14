@@ -16,7 +16,11 @@ from sci2audio.textprep.furniture import FurnitureStep
 from sci2audio.textprep.hyphens import LineEndHyphenStep
 from sci2audio.textprep.links import LinkStep
 from sci2audio.textprep.numbers import NumbersStep
-from sci2audio.textprep.placeholders import FormulaNoticeStep, TableFigureNoticeStep
+from sci2audio.textprep.placeholders import (
+    CodeNoticeStep,
+    FormulaNoticeStep,
+    TableFigureNoticeStep,
+)
 from sci2audio.textprep.references import (
     GERMAN_REFERENCE_TITLES,
     REFERENCE_NAMES,
@@ -71,6 +75,7 @@ __all__ = [
     "AbbreviationStep",
     "Category",
     "CitationStep",
+    "CodeNoticeStep",
     "FootnoteStep",
     "FootnoteTextStep",
     "FormulaNoticeStep",

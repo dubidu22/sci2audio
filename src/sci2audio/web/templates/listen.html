@@ -13,6 +13,7 @@
 <div class="block notice s" id="{{ block.element }}" data-chunk="{{ block.chunk }}">
   <p>{{ block.notice }}</p>
   {% if block.printed %}<details><summary>{{ t('listen.found') }}</summary><p class="printed">{{ block.printed }}</p></details>{% endif %}
+  {% if block.code %}<pre class="code" translate="no"><code>{{ block.code }}</code></pre>{% endif %}
 </div>
 {% elif block.heading %}
 <h{{ block.heading }} class="block heading{% if block.element %} s{% endif %}"{% if block.element %} id="{{ block.element }}" data-chunk="{{ block.chunk }}"{% endif %}>{% if not block.read %}<span class="unread-tag">{{ t('listen.not_read') }}</span> {% endif %}{{ pieces(block) }}</h{{ block.heading }}>

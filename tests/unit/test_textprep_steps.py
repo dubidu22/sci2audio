@@ -43,6 +43,7 @@ def test_the_categories_are_the_fixed_list_with_labels_people_know() -> None:
         "links",
         "formulas",
         "tables-and-figures",
+        "code",  # #280, D-545
         "references",
         "abbreviations",
         "numbers-and-units",
@@ -107,6 +108,7 @@ def test_the_built_in_registry_is_valid() -> None:
         "reference-list",
         "formula-notices",
         "table-figure-notices",
+        "code-notices",
         "footnote-texts",
         "links",  # URLs before citations, after the block steps and before footnote marks (D-167)
         "citations",

@@ -24,9 +24,9 @@ from sci2audio.textprep.characters import ACCENTS, INVISIBLE, SOFT_HYPHEN
 from sci2audio.textprep.wordlists import units
 
 # blocks the number and statistics steps do not read: furniture is removed whole and tables,
-# formulas and figures get notices (#64), so an edit there could only be set aside
+# formulas, figures and code get notices (#64, D-545), so an edit there could only be set aside
 SKIPPED_KINDS = frozenset(
-    {BlockKind.FURNITURE, BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE}
+    {BlockKind.FURNITURE, BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE, BlockKind.CODE}
 )
 
 

@@ -1,5 +1,5 @@
-"""Formulas, tables and figures are read as a short notice (FX-01, FX-02, #64, Q3, D-145),
-and the reference list is not read (TP-06, D-146)."""
+"""Formulas, tables, figures and code blocks are read as a short notice (FX-01, FX-02, #64,
+Q3, D-145, #280, D-545), and the reference list is not read (TP-06, D-146)."""
 
 from dataclasses import replace
 
@@ -16,6 +16,7 @@ from sci2audio.textprep import (
     GERMAN_REFERENCE_TITLES,
     REFERENCE_TITLES,
     Category,
+    CodeNoticeStep,
     FormulaNoticeStep,
     ReferenceListStep,
     StepContext,
@@ -59,6 +60,7 @@ def caption(label: str, describes: int, rest: str = ": What it shows.") -> Block
         ([(BlockKind.TABLE, "a b")], "A table is skipped."),
         ([(BlockKind.FIGURE, "")], "A figure is skipped."),
         ([(BlockKind.FORMULA, "x = y")], "A formula is skipped."),
+        ([(BlockKind.CODE, "import os\nos.getcwd()")], "A code block is skipped."),
         ([Block(BlockKind.FORMULA, "x = y (16a)", label="16a")], "Formula 16a is skipped."),
         (
             [Block(BlockKind.FORMULA, "x (3)", label="3"), caption("Eq. 3", 0)],
@@ -111,6 +113,20 @@ def test_the_notice_is_one_replace_over_the_whole_block_with_a_reason() -> None:
     (formula,) = FormulaNoticeStep().find(document, EN)
     assert formula.span == Span(2, 0, 0)  # an empty placeholder: the notice is inserted
     assert formula.reason == "this formula is not read; a short notice is read instead (D-55)"
+
+
+def test_a_code_block_is_one_notice_in_its_language_and_nothing_inside_it_is_read() -> None:
+    """#280, D-545: no other step edits code; switched off, the code reads as printed."""
+    code = 'x = f(3)  # see https://example.org\nprint("e.g. 5 mg-\nper-kg")'
+    document = make_document([(BlockKind.PARAGRAPH, "Run this:"), (BlockKind.CODE, code)])
+    (edit,) = CodeNoticeStep().find(document, EN)
+    assert (edit.span, edit.kind) == (Span(1, 0, len(code)), EditKind.REPLACE)
+    assert edit.reason == "this code block is not read; a short notice is read instead (D-55)"
+    assert read(document) == ["Run this:", "A code block is skipped."]
+    assert read(replace(document, language="de"))[1] == "Ein Codeblock wird übersprungen."
+    off = read(document, switched_off={Category.CODE})
+    assert off[1] == " ".join(code.split())  # read as printed: no link, unit or hyphen edit
+    check_text_step(CodeNoticeStep(), allow_ask=False)
 
 
 def test_switching_a_category_off_reads_the_placeholder_as_printed() -> None:
@@ -392,7 +408,7 @@ def test_the_reference_step_keeps_the_contract_on_any_german_document(
 @given(rule_documents())
 def test_the_notice_steps_keep_the_contract_on_any_german_document(document: Document) -> None:
     german = replace(document, language="de")
-    for step in (FormulaNoticeStep(), TableFigureNoticeStep()):
+    for step in (FormulaNoticeStep(), TableFigureNoticeStep(), CodeNoticeStep()):
         check_text_step(step, [german], allow_ask=False)
     spoken = read(german)
     in_references = {edit.span.block for edit in ReferenceListStep().find(german, DE)}

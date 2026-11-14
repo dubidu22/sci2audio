@@ -40,6 +40,7 @@ from sci2audio.core.export import from_data
 from sci2audio.output import ReadAlong, ReadAlongError, read_readalong
 from sci2audio.textprep import (
     Category,
+    CodeNoticeStep,
     FormulaNoticeStep,
     StepContext,
     TableFigureNoticeStep,
@@ -270,6 +271,7 @@ class BlockView:
     page: str = ""  # the page that starts here, as printed, else ""
     notice: str = ""  # a placeholder read as its notice: the notice
     printed: str = ""  # a notice box: the text the file holds for it
+    code: str = ""  # a code block's notice box: its code, line breaks kept, shown open (D-546)
     element: str | None = None  # a notice box: its element id
     chunk: int | None = None  # a notice box: its first chunk
 
@@ -410,6 +412,8 @@ def _notices(document: Document, switched_off: frozenset[str]) -> dict[int, str]
         steps.append(FormulaNoticeStep())
     if str(Category.TABLES_AND_FIGURES) not in switched_off:
         steps.append(TableFigureNoticeStep())
+    if str(Category.CODE) not in switched_off:
+        steps.append(CodeNoticeStep())
     context = StepContext(document.language)
     found: dict[int, str] = {}
     for step in steps:
@@ -485,7 +489,10 @@ def _block_view(
     view = BlockView(number, str(block.kind))
     if block.is_placeholder and number in notices and chunk_numbers:
         view.notice = notices[number]
-        view.printed = shown(block.text).strip()
+        if block.kind is BlockKind.CODE:  # the code itself, as printed (D-546)
+            view.code = block.text.strip("\n")
+        else:
+            view.printed = shown(block.text).strip()
         view.element = f"b{number}"
         view.chunk = chunk_numbers[0]
         for n in chunk_numbers:
