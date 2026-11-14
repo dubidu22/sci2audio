@@ -238,6 +238,7 @@ _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
 _WORD = rf"{_LETTER}+(?:(?:[’'-]|-\n){_LETTER}+)*"
 _SPACE = re.compile(r"\s+")
 _DECIMAL_COMMA = re.compile(r"\d,\d")
+_SQUARE = re.compile(r"\[([^\[\]]*)\]")  # what a square bracket holds
 _UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
 _NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
@@ -456,6 +457,12 @@ class _Rules:
         if text[node.open] == "[":
             return self._numeric(text, node, inside)
         if self.numeric_aside.match(inside):
+            if any(self._decimal_interval(inner) for inner in _SQUARE.findall(inside)):
+                # "([1,2; 3,4])": an interval stays on its own, so the aside does too and each
+                # inner bracket is judged alone ("([12]; [1,2; 3,4])" keeps the interval); a
+                # second run, after "(Müller, 2019) [1,2; 3,4]" lost its citation, decides the
+                # same (#266, D-534)
+                return None
             return [self._removed(text, node.open, node.close + 1, "citation")]
         if self.years_only.match(inside) and (names := self._names_before(text, node.open)):
             end = self._glued_page(text, node.close + 1)
@@ -494,7 +501,7 @@ class _Rules:
             return None
         if _NUMBER_GLUED_AFTER.match(text, node.close + 1):
             return None  # "[1; 3],1": read "3,1" would be a decimal on a second run
-        if self.language == "de" and ";" in inside and _DECIMAL_COMMA.search(inside):
+        if self._decimal_interval(inside):
             return None  # "[1,2; 3,4]": two German decimals, an interval, not sources
         if self._not_citations(text, node.open):
             return None
@@ -519,6 +526,11 @@ class _Rules:
             spoken = spoken[0].upper() + spoken[1:]
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
+
+    def _decimal_interval(self, inside: str) -> bool:
+        """True if a square bracket holding `inside` is a German interval of decimals
+        ("1,2; 3,4"), not sources (#101)."""
+        return self.language == "de" and ";" in inside and bool(_DECIMAL_COMMA.search(inside))
 
     def _not_citations(self, text: str, position: int) -> bool:
         """True if the square bracket at `position` holds an interval or a label's number, not
