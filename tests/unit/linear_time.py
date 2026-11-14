@@ -5,6 +5,10 @@ one). Instead, a test times a step on a base text and on eight times that text, 
 best of three runs with garbage collection off, and holds the ratio below 32: a linear
 step gives about 8, a quadratic one about 64.
 
+The clock is the process's CPU time, not the wall clock: on a loaded machine a short base
+run fits between other processes' turns and a long run does not, so wall-clock ratios grew
+past 32 for linear steps when four cores ran 24 test workers and more (#277 review).
+
 Where the step costs the same at both sizes by design (a cap, such as the citations step's
 longest parsed bracket), the ratio says nothing; `assert_near` times the text against a
 reference text of the same length through the same step instead.
@@ -18,7 +22,9 @@ from collections.abc import Callable
 
 FACTOR = 8  # the large text is this many times the base text
 LIMIT = 32  # four times linear, half of quadratic
-FLOOR = 0.002  # seconds: a base run faster than this counts as this long (timer noise)
+# seconds: a base run faster than this counts as this long (timer noise); Windows counts CPU
+# time in steps of about 16 ms, so there the floor is four of its steps
+FLOOR = max(0.002, 4 * time.get_clock_info("process_time").resolution)
 
 
 def best_seconds[T](run: Callable[[str], T], text: str, runs: int = 3) -> tuple[float, T]:
@@ -29,9 +35,9 @@ def best_seconds[T](run: Callable[[str], T], text: str, runs: int = 3) -> tuple[
         gc.collect()
         gc.disable()
         try:
-            started = time.perf_counter()
+            started = time.process_time()
             result = run(text)
-            best = min(best, time.perf_counter() - started)
+            best = min(best, time.process_time() - started)
         finally:
             gc.enable()
     return best, result

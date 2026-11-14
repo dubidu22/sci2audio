@@ -10,14 +10,14 @@ class _Clock:
 
     now = 0.0
 
-    def perf_counter(self) -> float:
+    def process_time(self) -> float:
         return self.now
 
 
 @pytest.fixture
 def clock(monkeypatch: pytest.MonkeyPatch) -> _Clock:
     fake = _Clock()
-    monkeypatch.setattr("linear_time.time.perf_counter", fake.perf_counter)
+    monkeypatch.setattr("linear_time.time.process_time", fake.process_time)
     return fake
 
 
@@ -43,7 +43,7 @@ def test_a_base_run_below_the_timer_floor_counts_as_the_floor(clock: _Clock) -> 
         clock.now += 0.03 if len(text) > 1000 else 0.0
         return len(text)
 
-    assert_linear(run, lambda n: "a" * n, 8_000)  # 0.03 s < 32 * 0.002 s
+    assert_linear(run, lambda n: "a" * n, 8_000)  # 0.03 s < 32 * 0.002 s (or the Windows floor)
 
 
 def test_a_text_near_its_reference_passes(clock: _Clock) -> None:
