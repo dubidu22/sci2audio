@@ -88,3 +88,77 @@ def notation_documents(draw: st.DrawFn) -> Document:
     blocks = [(BlockKind.PARAGRAPH, first)]
     blocks += [(draw(kinds), draw(notation_text())) for _ in range(draw(st.integers(0, 3)))]
     return make_document(blocks, draw(st.sampled_from(["en", "en-GB"])))
+
+
+# ---- German (#130) ---------------------------------------------------------------------------
+
+_GERMAN_NUMBERS = ["1", "3", "5", "12", "20", "34", "1234", "1998", "2019", "1500", "2,5",
+                   "0,05", "1.234", "12.345.678", "2.5", ".45", "1,0", "31", "03"]  # fmt: skip
+_GERMAN_WORDS = ["der", "die", "das", "den", "am", "im", "vom", "zum", "in", "bis", "seit",
+                 "um", "von", "zwischen", "und", "Jahr", "Mai", "März", "Auflage", "Platz",
+                 "Jahrhundert", "Jh.", "Kapitel", "Abschnitt", "Abb.", "Phase", "Uhr", "KI",
+                 "Teilnehmer", "gibt", "Die", "Ende", "WS", "er", "Version"]  # fmt: skip
+_GERMAN_PIECE = (
+    st.sampled_from(_GERMAN_NUMBERS)
+    | st.sampled_from(_SIGNS)
+    | st.sampled_from(_NAMES)
+    | st.sampled_from(_GERMAN_WORDS)
+)
+
+
+@st.composite
+def _german_expression(draw: st.DrawFn) -> str:
+    """One expression a German rule is written for, with its parts drawn."""
+
+    def one(*choices: str) -> str:
+        return draw(st.sampled_from(choices))
+
+    a, b = draw(st.sampled_from(_GERMAN_NUMBERS)), draw(st.sampled_from(_GERMAN_NUMBERS))
+    shapes = [
+        f"{a}{draw(_DASH)}{b}",
+        f"{one('t', 'F', 'r', 'χ²')}({a}{one('', ', ' + b, '; ' + b, ', N = ' + b)})"
+        f"{draw(_OPERATOR)}{b}",
+        f"{one('R²', 'ηp²', 'OR', 'p', 'N')}{draw(_OPERATOR)}{one('.05', '0,05', b)}",
+        f"95 {one('%-KI', '% KI', '%-CI')} [{a}; {b}]{one('', ' und [1,2; 3,4]')}",
+        f"{one('am', 'der', 'in der', 'vom', '', 'Es waren')} {one('3', '12', '1', '20')}. "
+        f"{one('Mai', 'März', 'Auflage', 'Platz', 'Jahrhundert', 'Jh.', 'Die', 'bis')}",
+        f"{one('am ', '', 'bis ')}"
+        f"{one('12.03.2019', '1.3.2020', '31.2.2019', '3.4.', '2019-03-12')}",
+        f"{one('im Jahr', 'seit', 'um', 'Mai', 'zwischen', 'Ende')} "
+        f"{one('1998', '1500', '1.998', '1990er', '2019')}"
+        f"{one('', ' und 1995', ' gibt', ' Teilnehmer', '–2001', '/99')}",
+        f"{a}:{b}{one('', ' Uhr')}",
+        f"{one('um ', 'ab ', '')}{one('13:30', '9.05', '24:00')}{one('', ' Uhr')}",
+        f"{a}/{b}",
+        f"{one('Kapitel', 'Phase', 'Abb.', 'Typ', 'Ludwig')} "
+        f"{one('I', 'IV', 'II und III', 'I–III', 'XIV.')}",
+        f"{one('Abschnitt', 'Abb.', 'Version', 'Tab.')} "
+        f"{one('2.5', '3.1.2', '2.5 und 2.6', '1.234')}",
+        f"{one('10', 'x', 'R', '5 m')}{one('⁶', '⁻⁴', '²', '³', '^2', '^{-3}')}",
+        f"{a} × 10{one('−4', '-2')}",
+        f"{one('', 'r = ', 'p < ', 'M = ', 'N = ')}{one('', '−', '-')}{a}",
+    ]
+    return draw(st.sampled_from(shapes))
+
+
+@st.composite
+def german_notation_text(draw: st.DrawFn) -> str:
+    """German expressions and loose pieces joined by gaps, or now and then any text."""
+    if draw(st.integers(0, 9)) == 0:
+        return draw(st.text(max_size=40))
+    parts = []
+    for _ in range(draw(st.integers(1, 8))):
+        parts.append(draw(_german_expression() | _GERMAN_PIECE))
+        parts.append(draw(st.sampled_from(_GAPS)))
+    return "".join(parts)
+
+
+@st.composite
+def german_notation_documents(draw: st.DrawFn) -> Document:
+    """One to four blocks of German notation text, mostly paragraphs."""
+    kinds = st.sampled_from([BlockKind.PARAGRAPH] * 4 + [*BlockKind])
+    first = draw(_german_expression()) + draw(st.sampled_from(_GAPS))
+    first += draw(german_notation_text())
+    blocks = [(BlockKind.PARAGRAPH, first)]
+    blocks += [(draw(kinds), draw(german_notation_text())) for _ in range(draw(st.integers(0, 3)))]
+    return make_document(blocks, draw(st.sampled_from(["de", "de-AT"])))

@@ -29,8 +29,6 @@ GERMAN_LATER_STEPS = {
     "footnotes": 212,
     "links": 101,
     "citations": 101,
-    "statistics": 130,
-    "numbers": 130,
 }
 GERMAN = {"arxiv2017-maass-privacyscore"}
 

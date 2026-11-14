@@ -40,6 +40,7 @@ from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.notation import edits_through_unread
+from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, units
 
@@ -133,6 +134,9 @@ class _Table:
     magnitude: re.Pattern[str]
     number: re.Pattern[str]  # a number as the language prints it
     label_list: re.Pattern[str]  # labels in a list, right before a number
+    # the comparison signs as the statistics step reads them, which count as signs around
+    # "2x" ("gleich 2x" as "=2x"); English keeps only the printed signs, as it did before #130
+    said_operators: re.Pattern[str] = re.compile(r"(?!)")
 
 
 class UnitStep(TextStep):
@@ -192,7 +196,7 @@ class UnitStep(TextStep):
             if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
                 yield self._symbol(index, text, match.start(), words["about"], before_number=True)
         for match in _LETTER_X.finditer(text):
-            if _times_x(text, match, words["times"]):
+            if _times_x(text, match, words["times"], table.said_operators):
                 yield self._symbol(index, text, match.start("x"), words["times"])
 
     def _symbol(
@@ -205,6 +209,11 @@ class UnitStep(TextStep):
         lead = " " if before and not before.isspace() and before not in _OPENING else ""
         closing = "" if before_number else _CLOSING
         trail = " " if after and not after.isspace() and after not in closing else ""
+        if _HYPHEN_LINE_END.match(text, max(0, position - 2), position):
+            # a symbol after a line-end hyphen ("11-", a break, then the times sign): the line
+            # break goes with it, read as a space, so the line-end hyphen step does not find
+            # "11-\nmal" on a second run and join it
+            return self._edit(index, position - 1, position + 1, f" {word}{trail}", text[position])
         return self._edit(index, position, position + 1, lead + word + trail, text[position])
 
     def _edit(self, index: int, start: int, end: int, reads: str, shown: str) -> Edit:
@@ -215,6 +224,9 @@ class UnitStep(TextStep):
             step=self.id,
             replacement=reads,
         )
+
+
+_HYPHEN_LINE_END = re.compile("[-\u2010\u2011]\n\\Z")
 
 
 def _skipped(block: Block) -> bool:
@@ -248,7 +260,14 @@ def _compiled(language: str) -> _Table | None:
     magnitudes = sorted(listed.magnitudes, key=len, reverse=True)
     magnitude = re.compile("|".join(map(re.escape, magnitudes)) or r"(?!)")
     number = _NUMBER_DECIMAL_COMMA if listed.decimal == "," else _NUMBER
-    return _Table(listed, by_form, pattern, magnitude, number, _label_list(listed.label_joins))
+    said = re.compile(
+        "|".join(map(re.escape, sorted(set(OPERATORS_DE.values()), key=len, reverse=True)))
+        if language.split("-", 1)[0].lower() == "de"
+        else r"(?!)"
+    )
+    return _Table(
+        listed, by_form, pattern, magnitude, number, _label_list(listed.label_joins), said
+    )
 
 
 def _boundary(text: str, position: int) -> bool:
@@ -256,6 +275,8 @@ def _boundary(text: str, position: int) -> bool:
     if position >= len(text):
         return True
     char = text[position]
+    if char == "\u0338":
+        return True  # the slash of "≠" written as two characters: the statistics step's sign
     return not (char.isalnum() or char == "_" or unicodedata.category(char).startswith("M"))
 
 
@@ -487,25 +508,74 @@ def _said(term: _Term, plural: bool, words: dict[str, str], joined: bool = False
     return f"{name} {words['squared' if term.power == 2 else 'cubed']}"
 
 
-def _times_x(text: str, match: re.Match[str], times: str) -> bool:
+def reads_unit_after(text: str, end: int, language: str) -> bool:
+    """True if the step reads a unit after the number that ends at `end` ("2,55 m"; not
+    after a label, "Kapitel 2,55 m"). The numbers step asks before it splits the number's
+    digits into words ("2 Komma 5 5 m"), after which a second run would read the unit."""
+    table = _compiled(language)
+    if table is None:
+        return False
+    return any(
+        match.end() == end and _unit_after(text, match, table) is not None
+        for match in table.number.finditer(text, max(0, end - 64), end)
+    )
+
+
+def reads_x_after(text: str, end: int, language: str) -> bool:
+    """True if the step reads an "x" right after the number that ends at `end` as "times"
+    ("2,5x"). The numbers step asks, so it reads such a number exactly when this step reads
+    the x (#130): a second run, on "2,5 mal", then finds nothing new."""
+    table = _compiled(language)
+    if table is None:
+        return False
+    times = table.words.words["times"]
+    return any(
+        match.end("number") == end and _times_x(text, match, times, table.said_operators)
+        for match in _LETTER_X.finditer(text, max(0, end - 64), end + 2)
+    )
+
+
+def _times_x(
+    text: str, match: re.Match[str], times: str, said: re.Pattern[str] | None = None
+) -> bool:
     """True if the letter x stands for "times": between numbers, or glued after one."""
     after = match.end("x")
     rest = text[after : after + 2]
+    # a decimal digit, not a superscript: "1x⁶" is "1 x⁶", not "1 times ⁶"
     if match["space"]:
-        return rest[:1].isdigit() or (rest[:1] == " " and rest[1:2].isdigit())
+        return rest[:1].isdecimal() or (rest[:1] == " " and rest[1:2].isdecimal())
     if match["number"] == "0" and rest[:1] in _HEX and rest[:1] != "":
         return False  # "0x1F"
-    if rest[:1].isdigit():
+    if rest[:1].isdecimal():
         return True
-    return _boundary(text, after) and not _in_algebra(text, match.start("number"), after, times)
+    return _boundary(text, after) and not _in_algebra(
+        text, match.start("number"), after, times, said
+    )
 
 
-def _in_algebra(text: str, start: int, end: int, times: str) -> bool:
+def _said_around(text: str, start: int, end: int, said: re.Pattern[str]) -> bool:
+    """True if a comparison sign as the statistics step reads it stands right before the
+    number or right after the x ("gleich 2x", "2x kleiner als 3"): a second run then sees
+    "2x" just as the first saw it in "=2x"."""
+    before, after = _said_patterns(said.pattern)
+    return bool(before.search(text, max(0, start - 32), start) or after.match(text, end))
+
+
+@cache
+def _said_patterns(words: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
+    return re.compile(rf"(?<!\w)(?:{words}) *\Z"), re.compile(rf" *(?:{words})(?!\w)")
+
+
+def _in_algebra(
+    text: str, start: int, end: int, times: str, said: re.Pattern[str] | None = None
+) -> bool:
     """True for "2x" in a formula: an operator right before the number or after the x
     ("y = 2x + 1", "3x^2", "= 4x."), so the x is the variable, not "times". The word this
     step reads for "×" counts as that operator, so "×5x" and its reading "times 5x" agree."""
     head = text[max(0, start - len(times) - 3) : start].rstrip(" ")
     if head.endswith(times) and not head[: -len(times)][-1:].isalnum():
+        return True
+    if said is not None and _said_around(text, start, end, said):
         return True
     before = head[-1:]
     after = text[end : end + 3].lstrip(" ")[:1]

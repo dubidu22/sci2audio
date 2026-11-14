@@ -37,6 +37,7 @@ from sci2audio.textprep.notation import (
     through_unread,
     to_edits,
 )
+from sci2audio.textprep.numbers_de import find_numbers_de
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
@@ -200,16 +201,18 @@ class NumbersStep(TextStep):
     """Read the numbers the voice gets wrong; one edit per number or sign."""
 
     id = "numbers"
-    languages = ("en",)
+    languages = ("en", "de")
     category = Category.NUMBERS_AND_UNITS
     stage = Stage.INLINE
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
+        german = context.language.split("-", 1)[0].lower() == "de"
+        find = find_numbers_de if german else find_numbers  # German rules: numbers_de.py
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text:
                 continue
-            edits += to_edits(index, through_unread(block.text, find_numbers), self.id)
+            edits += to_edits(index, through_unread(block.text, find), self.id)
         return edits
 
 

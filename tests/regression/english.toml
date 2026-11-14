@@ -1108,6 +1108,22 @@ blocks = [{ kind = "paragraph", text = "A 3 × 4 grid, d × d matrices, 2× fast
 expected = ["A 3 times 4 grid, d times d matrices, 2 times faster, a 10 times speedup, 3 times 4, 0x1F and x86."]
 
 [[case]]
+id = "symbols-x-before-a-power"
+audit = 0
+issue = 130
+goal = "An x glued to a number with a superscript after it is the variable with its power, not 'times': '2x²' was '2 times ²' (German second-run property, #130)."
+blocks = [{ kind = "paragraph", text = "The 2x² term and 1x⁶ grew 3x faster." }]
+expected = ["The 2x² term and 1x⁶ grew 3 times faster."]
+
+[[case]]
+id = "units-before-a-two-character-not-equal"
+audit = 0
+issue = 130
+goal = "A unit before '≠' written as a slash mark and '=' is read as before any sign: it was left on the first run and read on the second (#130)."
+blocks = [{ kind = "paragraph", text = "The area 5 m²̸=1 here." }]
+expected = ["The area 5 square metres not equal to 1 here."]
+
+[[case]]
 id = "symbols-per-mille-and-percent"
 audit = 0
 issue = 68
