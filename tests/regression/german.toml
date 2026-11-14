@@ -1230,6 +1230,23 @@ expected = [
 ]
 
 [[case]]
+id = "de-citations-a-separator-left-by-a-removed-citation-goes-with-it"
+audit = 0
+issue = 272
+goal = "A citation removed inside a bracket that stays takes the ';' or ',' next to it along (#272; the #305 rule, D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Das gilt ( (Müller, 2019) [12]; [1,2; 3,4])." },
+    { kind = "paragraph", text = "Das gilt ( (Müller, 2019) [1,2; 3,4]; [12])." },
+    { kind = "paragraph", text = "Das gilt ([12]; [1,2; 3,4])." },
+]
+expected = [
+    "Das gilt ( [1 Komma 2; 3 Komma 4]).",
+    "Das gilt ( [1 Komma 2; 3 Komma 4]).",
+    "Das gilt ([1 Komma 2; 3 Komma 4]).",
+]
+
+[[case]]
 id = "de-citations-a-nest-reads-on-the-first-run-as-on-the-second"
 audit = 0
 issue = 306
@@ -1264,7 +1281,7 @@ expected = [
     "Text mehr.",
     "Text",
     "Wie Weber zeigt.",
-    "TBD",
+    "Es gab . .(Müller, 2019)12345 Fälle",
 ]
 
 [[case]]
