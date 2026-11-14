@@ -15,7 +15,9 @@ authors, date, language and identifier fill `Metadata` (D-342). The outline stay
 headings are lines (D-343).
 
 markdown-it drops the rest of a block nested deeper than its nesting limit without an error,
-so a file that reaches the limit fails instead of losing text (D-351).
+so a file that reaches the limit fails instead of losing text (D-351). A file of more lines
+than `MAX_LINES`, or more marks that can start markup than `MAX_MARKS`, fails before it is
+parsed, and the page reader stops at `markup.MAX_ITEMS` pieces of text (D-579).
 
 Three things in the file are not read, as markdown-it and its footnote plugin have it: a
 note that no mark cites and everything after a ``<!--`` that is never closed (GitHub and a
@@ -41,10 +43,23 @@ from mdit_py_plugins.front_matter import front_matter_plugin
 from sci2audio.core import Content, Metadata, SourceFormat
 from sci2audio.extraction.errors import ExtractionError
 from sci2audio.extraction.language import stated_language
-from sci2audio.extraction.markup import Anchors, PageReader, fold, resolve_links
-from sci2audio.extraction.text import decode_text, source_of
+from sci2audio.extraction.markup import (
+    Anchors,
+    Budget,
+    PageReader,
+    TooMuchText,
+    fold,
+    resolve_links,
+)
+from sci2audio.extraction.text import check_lines, decode_text, source_of
 
 MAX_NESTING = 100  # markdown-it's nesting limit (D-351); far below Python's recursion limit
+# Size limits, counted on the decoded text before markdown-it makes its tokens, which cost far
+# more than the file (#174, D-579): a file at the limits took at most about 900 MB to read
+# (250,000 list items of one emphasis each), where the 64 MB byte limit allowed some 30 GB.
+MAX_LINES = 250_000  # printed lines, blank ones included
+MAX_MARKS = 500_000  # characters in _MARKS: one line of "*a* " costs about 470 times its size
+_MARKS = "*_`[<$!\\&|~"
 _DATE = re.compile(r"^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?")
 
 
@@ -60,6 +75,12 @@ def extract_markdown(path: Path) -> Content:
 def read_markdown(data: bytes, name: str) -> Content:
     """Read Markdown bytes into `Content`; `name` is the bare file name the source keeps."""
     decoded = decode_text(data, name)
+    check_lines(decoded.text, name, MAX_LINES, "Markdown")
+    if sum(decoded.text.count(mark) for mark in _MARKS) > MAX_MARKS:
+        raise ExtractionError(
+            f"{name}: the Markdown holds too much markup to read (more than {MAX_MARKS:,}"
+            " marks such as * _ ` [ <)"
+        )
     parser = _parser()
     env: EnvType = {}
     too_deep = ExtractionError(f"{name}: the Markdown is nested too deeply to read")
@@ -72,8 +93,13 @@ def read_markdown(data: bytes, name: str) -> Content:
         raise too_deep from error
     anchors = Anchors()
     anchors.pages[name] = 1
-    reader = PageReader(1, name, anchors)
-    reader.read(html)
+    reader = PageReader(1, name, anchors, Budget())
+    try:
+        reader.read(html)
+    except TooMuchText as error:
+        raise ExtractionError(
+            f"{name}: the Markdown is too large to read (more than {error.limit:,} pieces of text)"
+        ) from None
     (page,) = resolve_links((reader.page(),), anchors)
     if not page.lines and not page.pictures:
         raise ExtractionError(f"{name}: the file holds no text")
