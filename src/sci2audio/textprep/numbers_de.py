@@ -156,7 +156,8 @@ _MAYBE_YEAR_WORDS = frozenset(
 _DIGIT_BEFORE = re.compile(r"\d\s*\Z")
 # a "bis" a range made: after a number, or after "Uhr" ("13 Uhr–1234")
 # a power's exponent counts too: "10⁶–1234" reads "10⁶ bis 1234" (#253)
-_RANGE_BEFORE = re.compile(r"(?:\d[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]{0,2}|\bUhr)\s*\Z")
+# and a year read in hundreds: "1500-1998" reads "15 hundert bis 1998" (#253)
+_RANGE_BEFORE = re.compile(r"(?:\d[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]{0,2}|\bUhr|\d hundert)\s*\Z")
 _JOINED_YEAR = re.compile(r"(?:\s*[\u2013\u2012\u2014-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)\Z")
 _JOINED_NEXT = re.compile(
     r"(?:\s*[\u2013\u2012\u2014-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)"
@@ -274,6 +275,9 @@ def _decimals(text: str) -> list[Candidate]:
             continue  # "10−412,5": an exponent or a sum, not "minus 412 Komma 5" on its own
         if _LEADING_POINT.search(text, max(0, match.start() - 2), match.start()):
             continue  # "}.452,5": "452 Komma 5" would leave ".452", a decimal on a second run
+        left = _HYPHEN_LEFT.search(text, max(0, match.start() - 24), match.start())
+        if left is not None and not _hyphen_range_at(text, left.start()):
+            continue  # "1-2,5-": no range here, but "1-2 Komma 5" would be one next time
         ratio = _RATIO_BEFORE.search(text, max(0, match.start() - 16), match.start())
         if ratio is not None and not _ratio_at(text, ratio.start()):
             continue  # "1:2,5:", "11:2,5 N": the ratio is left as printed, so is its number
@@ -321,6 +325,7 @@ def _unit_left_alone(text: str, end: int) -> bool:
 _LEADING_POINT = re.compile(r"(?:\A|[^\w×]|(?<!\d)[xX])\.\Z")  # a point that would start a decimal
 _RATIO_BEFORE = re.compile(r"(?<![\d,])\d+(?:,\d+)?:\Z")
 _HYPHEN_AFTER = re.compile(r"-\n?\d")
+_HYPHEN_LEFT = re.compile(r"(?<![\d.,])\d[\d.,]*-\n?\Z")  # a number and a hyphen before
 
 
 def _hyphen_range_at(text: str, start: int) -> bool:
@@ -393,6 +398,8 @@ def _thousands(text: str) -> list[Candidate]:
     for match in _THOUSANDS.finditer(text):
         if _x_left_alone(text, match.end()) or _unit_left_alone(text, match.end()):
             continue  # "1.234abc"; "1.234Å" is read, as the units step reads the unit
+        if _LEADING_POINT.search(text, max(0, match.start() - 2), match.start()):
+            continue  # "}.1.234": "1234" would leave ".1234", a decimal on a second run (#253)
         number = match.group()
         value = int(number.replace(".", ""))
         # a year word before it, not a year joined by a dash: "im 1234–1.234" reads "12 hundert
@@ -446,7 +453,22 @@ def _years(text: str) -> list[Candidate]:
         found.append(Candidate(start, end, words, f'year "{match["year"]}" read as "{words}"'))
         spans.append((start, end))
         spans.sort()
+    # the year after a hyphen range's year: "von 1500-1998" reads "15 hundert bis 19 hundert
+    # 98", as with an en dash, not "bis 1998", a year on a second run after "bis" (#253)
+    for start, end in list(spans):
+        right = _HYPHEN_YEAR.match(text, end)
+        if (
+            right is not None
+            and _hyphen_range_at(text, start)
+            and not _x_left_alone(text, right.end())
+        ):
+            words = year_words(int(right["year"]))
+            reason = f'year "{right["year"]}" read as "{words}"'
+            found.append(Candidate(*right.span("year"), words, reason))
     return found
+
+
+_HYPHEN_YEAR = re.compile(r"-\n?(?P<year>1[1-9]\d\d)(?![\d_]|[⁺⁻^]|[.,:/]\d|[^\WxX])")
 
 
 # --- N-de-4 ranges ---------------------------------------------------------------------------
@@ -599,6 +621,7 @@ def _abbreviated_nouns() -> dict[str, str]:
 
 
 _ABBREVIATED_NOUNS = _abbreviated_nouns()
+_AFTER_UHR = re.compile(r"\bUhr\s+\Z")
 _ORDINAL = re.compile(r"(?<![^\WxX])(?<![,/:\u2013-])" + _STOP + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_])")
 _ISO_DATE = re.compile(
     r"(?<![^\WxX])(?<![:/\u2013-])(?<!\d,)"
@@ -707,6 +730,8 @@ def _ordinals(text: str) -> list[Candidate]:
             continue  # "0 Komma 0 5. Jahr": the decimal ".05" read, not an ordinal
         if _DATE_BEFORE.search(text, max(0, match.start() - 16), match.start()):
             continue  # "am 3.4. 3. Mai": the date before is left as printed, and so is this
+        if _AFTER_UHR.search(text, max(0, match.start() - 8), match.start()):
+            continue  # "13 Uhr 30. Jahr", from "13:30. Jahr": the minutes, no ordinal (#253)
         if _AFTER_HOCH.search(text, max(0, match.start() - 16), match.start()):
             continue  # "10 hoch minus 2. Jahr": a power's exponent, not "zweites Jahr"
         if _AFTER_SOURCE.search(text, max(0, match.start() - WINDOW), match.start()):

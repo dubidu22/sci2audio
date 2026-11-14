@@ -650,6 +650,15 @@ blocks = [{ kind = "paragraph", text = "Die Messung lief vom 1.3.2020–11.3.202
 expected = ["Die Messung lief vom ersten März 2020 bis elften März 2020 im Labor."]
 
 [[case]]
+id = "de-numbers-hyphen-year-range"
+audit = 0
+issue = 253
+goal = "A hyphen range from a year reads its right side as a year too, as an en dash range does: '1500-1998' was '15 hundert bis 1998', and a second run read 'bis 1998' as a year."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Daten reichen von 1500-1998 zurück." }]
+expected = ["Die Daten reichen von 15 hundert bis 19 hundert 98 zurück."]
+
+[[case]]
 id = "de-units-x-after-a-power"
 audit = 0
 issue = 253

@@ -348,6 +348,14 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         # review of PR #256 (D1): an abbreviation before a link the links step removes
         ("Siehe Kap. https://x.org/a (ebd., S. 3).", "Siehe Kapitel (ebenda, Seite 3)."),
         ("Kap. www.x.org 3 zeigt", "Kapitel 3 zeigt"),
+        ("10^{-3}.1.234", "10^{-3}.1.234"),  # nightly seed 11 after the fixes above
+        ("1–1im 1500-1998", "1 bis 1im 15 hundert bis 19 hundert 98"),  # seed 222 after them
+        ("im 1234-1998", "im 12 hundert 34 bis 19 hundert 98"),
+        ("im 1500-1998 m", "im 1500 bis 1998 Meter"),
+        ("1-2,5-", "1-2,5-"),  # seed 6005
+        ("1-2,5 m", "1 bis 2 Komma 5 Meter"),
+        ("um 13:30. Jahr", "um 13 Uhr 30. Jahr"),  # seed 6003
+        ("um 13 Uhr 30. Mai", "um 13 Uhr 30. Mai"),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:

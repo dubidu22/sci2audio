@@ -397,7 +397,15 @@ def _is_label(text: str, start: int, table: _Table) -> bool:
     word = table.label_list.search(text, max(0, start - 64), start)
     if word is None:
         word = _WORD_BEFORE.search(text, max(0, start - 24), start)
-    return word is not None and word.group(1).lower() in table.words.labels
+    if word is None:
+        return False
+    # what follows a full stop inside the word counts too: "\u00d7.Figure 5" (a times sign) and its reading
+    # "times.Figure 5" both hold the label "Figure" (#253)
+    lowered = word.group(1).lower()
+    return lowered in table.words.labels or _AFTER_INNER_STOP.sub("", lowered) in table.words.labels
+
+
+_AFTER_INNER_STOP = re.compile(r"\A.*\.(?=[^\W\d_])")
 
 
 def _after_article(text: str, start: int, table: _Table) -> bool:
