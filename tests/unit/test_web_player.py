@@ -180,6 +180,22 @@ def test_a_placeholder_shows_the_notice_the_audiobook_reads() -> None:
     assert formula.pieces[0].text == "x = y (3)"
 
 
+def test_a_code_block_shows_its_notice_and_its_code_with_its_line_breaks() -> None:
+    """#280, D-546: the notice is the sentence; the code is shown open, line breaks kept."""
+    code = 'import seaborn as sns\ng = sns.relplot(\ng.savefig("paper_demo.pdf")'
+    document = make_document([("paragraph", "Run this:"), ("code", code)])
+    data = readalong([(0, 0, 9), (1, 0, len(code))])
+    view = build_view(document, record(chunks=2), data)
+    block = view.chapters[0].blocks[1]
+    assert (block.notice, block.code, block.printed) == ("A code block is skipped.", code, "")
+    assert block.element == "b1"
+    assert view.chunks[1][3] == "b1"
+    off = build_view(document, record(chunks=2, switched_off=frozenset({"code"})), data)
+    block = off.chapters[0].blocks[1]
+    assert (block.notice, block.code) == ("", "")
+    assert block.pieces[0].text == " ".join(code.split("\n"))
+
+
 def test_chapters_not_in_the_audiobook_are_named() -> None:
     document = make_document(
         [

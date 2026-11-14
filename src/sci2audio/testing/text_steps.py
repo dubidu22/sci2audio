@@ -113,6 +113,7 @@ def _sample_documents() -> tuple[Document, ...]:
         Block(BlockKind.CAPTION, "Table 1: Results by group.", describes=4, label="Table 1"),
         Block(BlockKind.FORMULA, "E = mc2 (1)", label="1"),
         (BlockKind.FIGURE, ""),
+        (BlockKind.CODE, 'g = sns.relplot(data=fmri, kind="line")\ng.savefig("demo-\nplot.pdf")'),
         Block(BlockKind.LIST_ITEM, "(a) the first item", label="(a)"),
         Block(BlockKind.HEADING, "References"),
         (BlockKind.PARAGRAPH, "Smith, J. (2019). A study. Journal 1, 1\u20139. doi:10.1/abc"),
@@ -136,6 +137,7 @@ def _sample_documents() -> tuple[Document, ...]:
         Block(BlockKind.CAPTION, "Tab. 1: Ergebnisse je Gruppe.", describes=6, label="Tab. 1"),
         Block(BlockKind.FORMULA, "E = mc2 (1)", label="1"),
         (BlockKind.FIGURE, ""),
+        (BlockKind.CODE, "x = berechne(3, 5)  # z. B. https://example.org"),
         # links and citations in German (#101)
         (
             BlockKind.PARAGRAPH,
@@ -153,7 +155,7 @@ def _sample_documents() -> tuple[Document, ...]:
     # the footnote mark after "delays." is set as a superscript; "References" heads a section
     mark = len(paper[1][1]) - 1  # type: ignore[index]
     tags = {1: [(mark, mark + 1, "sup")]}
-    sections = [Section("References", 1, 9, len(paper))]
+    sections = [Section("References", 1, 10, len(paper))]
     german_mark = len(german[4][1]) - 1  # type: ignore[index]
     german_tags = {4: [(german_mark, german_mark + 1, "sup")]}
     return (
@@ -166,7 +168,7 @@ def _sample_documents() -> tuple[Document, ...]:
             "de",
             name="german.txt",
             tags=german_tags,
-            sections=[Section("Einleitung", 1, 0, 12), Section("Literatur", 1, 12, len(german))],
+            sections=[Section("Einleitung", 1, 0, 13), Section("Literatur", 1, 13, len(german))],
         ),
     )
 
