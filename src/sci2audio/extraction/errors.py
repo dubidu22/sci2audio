@@ -7,6 +7,6 @@ class ExtractionError(Exception):
     """A file that cannot be read, with a message a user can act on."""
 
 
-class ReadCancelled(Exception):  # noqa: N818 (a cancel, not a failure of the file)
+class ReadCancelled(Exception):
     """The read was cancelled before it ended (#344). Not an `ExtractionError`: nothing is
     wrong with the file."""
