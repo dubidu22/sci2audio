@@ -151,6 +151,18 @@ _FRACTION_WORDS = {
     9: ("ninth", "ninths"),
     10: ("tenth", "tenths"),
 }
+# a unit chain after a fraction this step read as words ("3 quarters s⁻¹", "1 half m s⁻¹"): on
+# the first run the printed fraction ("3/4 s⁻¹") is a number before it, so the units step's
+# power is left alone on both runs (#335, D-605)
+_UNIT_CHAIN_AFTER_FRACTION = re.compile(
+    r"(?<![\w^.])\d{1,3} (?:"
+    + "|".join(word for pair in _FRACTION_WORDS.values() for word in pair)
+    + r")\s+(?:[^\W\d_"
+    + _SUPERSCRIPTS
+    + r"]{1,3}["
+    + _SUPERSCRIPTS
+    + r"⁺⁻]*[\s·⋅]+)*\Z"
+)
 
 # --- N9 ISO dates ----------------------------------------------------------------------------
 _ISO_DATE = re.compile(
@@ -380,7 +392,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
     for match in _LETTER_POWER.finditer(plain):
         if match["base"] in _SQUARED_STATISTICS and match["exp"] == "²":
             continue
-        if _UNIT_CHAIN.search(_before(plain, match.start("base"))):
+        before = _before(plain, match.start("base"))
+        if _UNIT_CHAIN.search(before) or _UNIT_CHAIN_AFTER_FRACTION.search(before):
             continue
         start, end = match.span("exp")
         exponent = "".join(_SUPER_DIGIT.get(c, c) for c in match["exp"])
