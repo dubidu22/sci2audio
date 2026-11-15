@@ -8,7 +8,11 @@ sign or word ("∈ [0, 1]", "CI [1, 3]", "CI: [1, 3]"), nor joined on to such a 
 ("CIs [1, 3] and [2, 4]", D-450). An aside is removed; a citation that is part of the
 sentence ("discussed in [26].", "Refs. [53, 58]", "[12] showed") is read as "reference 26",
 "references 53 and 58"; a bracket holding only lead words and citations ("(see also [48,
-135])") goes whole.
+135])") goes whole. Alphanumeric keys ("[MH17]", "[Knu84]", "[GKL+19]"; #254, D-646) are read
+the same way, a needed key as printed ("reference MH17", "Quelle MH17"), but only where the
+document prints each key of the bracket as an entry's label at a line's start ("[MH17]
+Maass, M.: …"), so that names of things shaped like keys ("[Mn12] clusters", "[EU27]") stay
+as printed (review B1 of PR #377); look-alikes ("[PM10]") stay as printed in any case.
 
 Author-year citations are brackets whose every ";"-part is a citation: optional lead words
 ("see", "e.g.,"), authors (names joined by ",", "and", "&", each maybe with "et al."), years
@@ -255,6 +259,15 @@ _NUMBER = r"[1-9]\d{0,3}(?:[a-z](?![\w-]))?"
 _ITEM = rf"{_NUMBER}(?:\s*[-–—]\s*{_NUMBER})?"
 _NUMERIC = re.compile(rf"\s*{_ITEM}(?:\s*[,;]\s*{_ITEM})*\s*\Z")
 _ITEMS = re.compile(rf"({_NUMBER})(?:\s*[-–—]\s*({_NUMBER}))?")
+# alphanumeric keys (alpha style "[Knu84]", "[GKL+19]"; LNI "[MH17]", "[Fa14]"; #254, D-646): a
+# capital, one to three more letters, maybe "+", two digits, maybe a letter. Two letters at
+# least, so "[C60]" and "[CO2]" are never keys; no ranges and no mix with numbers
+_KEY = r"[A-Z][A-Za-z]{1,3}\+?\d{2}[a-z]?(?![\w+])"
+_KEYS = re.compile(rf"\s*{_KEY}(?:\s*[,;]\s*{_KEY})*\s*\Z")
+_KEY_ITEMS = re.compile(_KEY)
+# shaped like keys, but they name a thing (particulate matter, an ion, a product); a bracket
+# holding one stays as printed (D-646)
+KEY_LOOK_ALIKES = frozenset(("PM10", "PM25", "SO42", "Win10", "Win11", "COVID19"))
 _MATHS_SIGNS = "=∈∉→←↦<>≤≥×±∼≈⊂⊆∪∩"
 _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
@@ -311,7 +324,7 @@ def _numeric_aside_pattern(words: CitationWords) -> re.Pattern[str]:
     leads = "|".join(
         re.escape(lead).replace(r"\ ", r"\s+") for lead in sorted(words.lead, key=len, reverse=True)
     )
-    bracket = rf"(?:(?:{leads})\s+)*\[{_NUMERIC.pattern[:-2]}\]"
+    bracket = rf"(?:(?:{leads})\s+)*\[(?:{_NUMERIC.pattern[:-2]}|{_KEYS.pattern[:-2]})\]"
     joins = words.joins.replace("|&", "")
     return re.compile(rf"\s*{bracket}(?:\s*(?:,|;|{joins})\s*{bracket})*\s*\Z", re.IGNORECASE)
 
@@ -372,6 +385,7 @@ class CitationStep(TextStep):
             wording_for(context.language),
             ABBREVIATIONS.get(language, frozenset()) | words.abbreviations,
             language,
+            listed_keys(document),
         )
         edits = []
         for index, block in enumerate(document.blocks):
@@ -396,8 +410,10 @@ class _Rules:
         wording: Wording,
         abbreviations: frozenset[str],
         language: str = "en",
+        keys: frozenset[str] = frozenset(),
     ) -> None:
         self.words = words
+        self.keys = keys  # the keys the document's entries print (#254, review B1 of PR #377)
         self.wording = wording
         self.abbreviations = abbreviations
         self.part = _part_pattern(words)
@@ -709,7 +725,11 @@ class _Rules:
             # "(see (527794))" without its identifier is "(see)": a pointer to nothing
             return [self._removed(text, node.open, node.close + 1, "bracket of lead words")]
         if self.numeric_aside.match(inside):
-            if any(self._decimal_interval(inner) for inner in _SQUARE.findall(inside)):
+            if any(
+                self._decimal_interval(inner)
+                or (_KEYS.match(inner) is not None and _keys(inner, self.keys) is None)
+                for inner in _SQUARE.findall(inside)
+            ):
                 # "([1,2; 3,4])": an interval stays on its own, so the aside does too and each
                 # inner bracket is judged alone ("([12]; [1,2; 3,4])" keeps the interval); a
                 # second run, after "(Müller, 2019) [1,2; 3,4]" lost its citation, decides the
@@ -992,7 +1012,8 @@ class _Rules:
         that this look removes are gone ("(Smith, 2019)[12][12] it" is "[12] it" then, which
         a second run reads as the subject, #308, D-577)."""
         at = node.open if at is None else at
-        if not _NUMERIC.match(inside):
+        keys = _keys(inside, self.keys)
+        if keys is None and not _NUMERIC.match(inside):
             if self.page_only.match(inside) and re.search(
                 r"[\"”’']\s*\Z", _before(text, node.open)
             ):
@@ -1034,7 +1055,8 @@ class _Rules:
             word not in self.words.before
             or any(before.lower().endswith(aside) for aside in self.words.asides)
         ) and not self._is_subject(text, at, node.close + 1):
-            return [self._removed(text, node.open, node.close + 1, "numeric citation")]
+            what = "citation key" if keys else "numeric citation"
+            return [self._removed(text, node.open, node.close + 1, what)]
         spoken = self._spoken(inside)
         if before.endswith("("):  # "( [53] discusses": no space after the bracket
             start = window + len(before)
@@ -1093,9 +1115,12 @@ class _Rules:
         return self._intervals_of[1]
 
     def _spoken(self, inside: str) -> str:
-        items = []
+        """The reading of a needed citation: "references 53 and 58", "Quelle MH17" (a key as
+        printed, D-646)."""
+        keys = _keys(inside, self.keys)
+        items = list(keys or ())
         single = True
-        for match in _ITEMS.finditer(inside):
+        for match in () if keys else _ITEMS.finditer(inside):
             first, last = match.group(1), match.group(2)
             if last:
                 items.append(f"{first} {self.wording.range_to} {last}")
@@ -1677,6 +1702,34 @@ def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]
         if start < end and (at < 0 or links[at][1] <= start):
             result.append((start, end, kind, replacement, reason))
     return result
+
+
+def _keys(inside: str, listed: frozenset[str]) -> list[str] | None:
+    """The alphanumeric keys a square bracket holds ("MH17, Fa14"), or None if it holds
+    anything else, a look-alike ("PM10") or a key no entry of the document prints (#254,
+    D-646; review B1 of PR #377)."""
+    if not _KEYS.match(inside):
+        return None
+    keys = _KEY_ITEMS.findall(inside)
+    if any(key in KEY_LOOK_ALIKES or key not in listed for key in keys):
+        return None
+    return keys
+
+
+# an entry's label at a line's start and its first author: "[MH17] Maass, M.: …", "[Knu84] D.
+# Knuth. …" (#254, review B1 of PR #377); a sentence that starts with a key ("[MH17] zeigen
+# das.") is no entry, or a second run would find its own key listed
+_KEY_ENTRY = re.compile(
+    rf"^\[({_KEY})\][ \t]+(?:[A-Z]\.(?:\s?-?[A-Z]\.)*\s?[A-Z][^\W\d_]|[A-Z][^\W\d_]+,\s[A-Z]\.)",
+    re.MULTILINE,
+)
+
+
+def listed_keys(document: Document) -> frozenset[str]:
+    """The keys the document prints as entry labels at a line's start, in any block."""
+    return frozenset(
+        match.group(1) for block in document.blocks for match in _KEY_ENTRY.finditer(block.text)
+    )
 
 
 def _is_name(word: str) -> bool:

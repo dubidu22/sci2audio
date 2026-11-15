@@ -14,7 +14,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 from linear_time import assert_linear
 
-from sci2audio.core import Block, BlockKind, Edit, EditKind, Span
+from sci2audio.core import Block, BlockKind, Edit, EditKind, Section, Span
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.testing.regression import render
 from sci2audio.textprep import (
@@ -26,7 +26,7 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
-from sci2audio.textprep.citations import brackets
+from sci2audio.textprep.citations import brackets, listed_keys
 
 EN = StepContext("en")
 STEP = CitationStep()
@@ -399,8 +399,9 @@ def test_a_nest_that_keeps_inner_names_reads_the_same_on_a_second_run(
 
 
 _LEAVES = st.sampled_from(
-    ["(Smith, 2019)", "(Smith, 2019; Lee, 2020)", "[3]", "(Smith, 2019)[p. 4]", "(2019)"]
-)
+    ["(Smith, 2019)", "(Smith, 2019; Lee, 2020)", "[3]", "(Smith, 2019)[p. 4]", "(2019)",
+     "[MH17]"]
+)  # fmt: skip
 _NESTS = st.recursive(
     _LEAVES,
     lambda inner: st.builds(
@@ -447,6 +448,9 @@ _SIBLINGS = st.sampled_from(
         "(Müller, 2019)",
         "[12]",
         "[3, 4]",
+        "[MH17]",  # alphanumeric keys (#254, D-646)
+        "[Ho16, Ma16]",
+        "[PM10]",
         "(2019)",
         "(2019a)",
         "(527794)",
@@ -638,10 +642,11 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
         ("[1] ", 25_000),
         ("Smith (2019) shows it [3]. ", 4000),
         ("Text ((Smith, 2019) Jones, 2020) here. ", 6000),  # #271: each nest judged on its own
+        ("As in [MH17], [GKL+19; Knu84] and [PM10] it is. ", 2000),  # #254
         # #285 review round 1: the second look at a text without its identifiers
         ("Smith (527794) (2019) and (see (527794)) here. ", 2000),
     ],
-    ids=["numeric", "author-year", "nests", "identifiers"],
+    ids=["numeric", "author-year", "nests", "keys", "identifiers"],
 )
 def test_a_long_block_takes_linear_time(unit: str, count: int) -> None:  # S2: 100,000 characters
     # 8 times the text against a base run (#276); it took 17 s for 80,000 characters before
@@ -951,3 +956,108 @@ def test_the_looks_stop_at_a_budget_and_leave_an_unsettled_nest_as_printed(
     assert_linear(_left, lambda n: _nest(*nest, n), 800)
     deep = _nest(*nest, 800)
     assert _left(deep) == deep
+
+
+# ---- alphanumeric keys (#254, D-646) ---------------------------------------------------------
+
+KEY_ENTRIES = (
+    "[MH17] M. Maass. A tool. 2017.",
+    "[GKL+19] A. Gray et al. A study. 2019.\n[Knu84] D. Knuth. Programs. 1984.",
+    "[Fa14a] S. Fahl. Causes. 2014.",
+    "[Fa14] S. Fahl. Causes. 2014.",
+    "[Ho16] R. Holz. A survey. 2016.",
+    "[Ma16] W. Mayer. A scan. 2016.",
+    "[Ab12] A. Ab. Sets. 2012.",
+    "[PM10] P. M. Ten. A look-alike listed. 2010.",
+    "[MH19] M. Maass. More. 2019.",
+)
+
+
+def read_with_keys(text: str, language: str = "en", entries: tuple[str, ...] = KEY_ENTRIES) -> str:
+    """The whole chain on a body block followed by a headed list that prints the keys."""
+    blocks = [(BlockKind.PARAGRAPH, text), (BlockKind.HEADING, "References")]
+    blocks += [(BlockKind.PARAGRAPH, entry) for entry in entries]
+    sections = (Section("References", 1, 1, len(blocks)),) if entries else ()
+    document = make_document(blocks, language, sections=sections)
+    script = run_steps(document, StepContext(language), strict=True).script()
+    return spoken_text(piece for piece in script if piece.span.block == 0)
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("It was shown [MH17].", "It was shown."),
+        ("It was shown [GKL+19, Knu84; Fa14a].", "It was shown."),
+        ("As in [MH17], it holds.", "As in reference MH17, it holds."),
+        ("As in [Ho16, Ma16], it holds.", "As in references Ho16 and Ma16, it holds."),
+        ("It holds (see [MH17] and [Fa14]).", "It holds."),
+        # look-alikes and other shapes stay: the written list (even when listed), one letter,
+        # one digit, three digits, a lower-case start, a range, a mix with numbers, glued
+        ("The [PM10] and (see [PM10]) data.", "The [PM10] and (see [PM10]) data."),
+        ("Both [C60], [CO2], [MH170] and [mH17].", "Both [C60], [CO2], [MH170] and [mH17]."),
+        ("It was shown [MH17–MH19].", "It was shown [MH17–MH19]."),
+        ("It was shown [MH17, 12].", "It was shown [MH17, 12]."),
+        ("The value Tr[MH17] is small.", "The value Tr[MH17] is small."),
+        ("The set x ∈ [Ab12] is small.", "The set x ∈ [Ab12] is small."),
+        # a bracket with one key no entry prints stays whole
+        ("It was shown [MH17, Zz99].", "It was shown [MH17, Zz99]."),
+        ("It holds (see [Zz99]).", "It holds (see [Zz99])."),
+    ],
+)
+def test_listed_keys_read_as_numeric_citations_do(printed: str, said: str) -> None:
+    assert read_with_keys(printed) == said
+
+
+@pytest.mark.parametrize(
+    "printed",
+    [
+        "The [Mn12] clusters are magnetic.",
+        "We use [Al13] clusters here.",
+        "The [Fe23] complex binds.",
+        "The [EU27] countries agree.",
+        "The [UK21] study shows it.",
+        "The [SARS19] virus spreads.",
+        "Press [Ctrl12] now.",
+        "Cells [AB12] to [AB20] hold 3.",
+        "Values in [Ab12, Cd34] hold.",
+    ],
+)
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("numbered", [True, False], ids=["numbered-list", "no-list"])
+def test_key_shapes_no_entry_prints_stay(printed: str, language: str, numbered: bool) -> None:
+    """Review B1 of PR #377: a key is a citation only where the document's entries print it."""
+    entries = ("[1] A. Author. A study. 2019.", "[2] B. Author. More. 2020.") if numbered else ()
+    assert read_with_keys(printed, language, entries) == printed
+
+
+@pytest.mark.parametrize(
+    "printed",
+    ["The [Mn12] clusters are magnetic.", "The [EU27] countries agree.", "Press [Ctrl12] now."],
+)
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_key_shapes_an_entry_prints_are_citations(printed: str, language: str) -> None:
+    key = printed.split("[")[1].split("]")[0]
+    assert read_with_keys(printed, language, (f"[{key}] A. Author. A study. 2012.",)) == (
+        printed.replace(f" [{key}]", "")
+    )
+
+
+def test_listed_keys_are_the_entry_labels_at_a_line_start() -> None:
+    document = make_document(
+        [
+            (BlockKind.PARAGRAPH, "Body [MH17] text.\n[NoSpace]x and [EN16]"),
+            (BlockKind.PARAGRAPH, "[EN16] Englehardt, S.\n[Fa14] Fahl, S."),
+            (BlockKind.PARAGRAPH, "[Ho16]"),  # a key alone is no entry
+            (BlockKind.PARAGRAPH, "[MH17] found it."),  # nor a sentence that starts with one
+            (BlockKind.PARAGRAPH, "[Knu84] D. Knuth. Programs.\n[Ab12] A.-B. Ab. Sets."),
+        ]
+    )
+    assert listed_keys(document) == {"EN16", "Fa14", "Knu84", "Ab12"}
+
+
+def test_a_key_removed_names_itself_in_the_reason() -> None:
+    document = make_document(
+        [(BlockKind.PARAGRAPH, "It was shown [MH17]."), (BlockKind.PARAGRAPH, KEY_ENTRIES[0])]
+    )
+    edit = next(e for e in STEP.find(document, EN) if e.span.block == 0)
+    assert edit.reason == 'citation key "[MH17]" is not read (TP-03)'
