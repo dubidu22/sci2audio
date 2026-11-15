@@ -339,3 +339,29 @@ def test_a_second_run_reads_the_same_after_a_sign(printed: str, said: str) -> No
     once = _read_all(printed)
     assert once == said
     assert _read_all(once) == once
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #335 (D-605): a unit power after a fraction read as words is the units step's, as
+        # after the printed fraction on the first run
+        ("It is 1 half s⁻¹ here.", "It is 1 half s⁻¹ here."),
+        ("It is 3 quarters s⁻¹ here.", "It is 3 quarters s⁻¹ here."),
+        ("It is 3 quarters m s⁻¹ here.", "It is 3 quarters m s⁻¹ here."),
+        ("It is 2 thirds W m⁻² here.", "It is 2 thirds W m⁻² here."),
+        # a letter power after a word that is no fraction is read as before
+        ("The quarters s⁻¹ here.", "The quarters s to the power of minus 1 here."),
+        ("It is 3 apples s⁻¹ here.", "It is 3 apples s to the power of minus 1 here."),
+    ],
+)
+def test_a_unit_power_after_a_read_fraction_is_left_to_the_units_step(
+    printed: str, said: str
+) -> None:
+    assert read(printed) == said
+
+
+@pytest.mark.parametrize("printed", ["It is 1/2 s⁻¹ here.", "It is −3/4 m s⁻¹ here."])
+def test_a_unit_power_after_a_fraction_reads_the_same_on_a_second_run(printed: str) -> None:
+    first = _read_all(printed)
+    assert _read_all(first) == first

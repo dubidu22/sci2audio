@@ -21,7 +21,6 @@ SECOND_RUN_EXCEPTIONS = {
     # notice has none and is read "A figure is skipped": the rebuild, not a step
     "figure-abbreviated-label": _REBUILT_LABEL,
     "figure-label-in-capitals": _REBUILT_LABEL,
-    "symbols-x-in-a-formula": "#320: '= 4x' reads 'equals 4 times' on a second run",
 }
 
 

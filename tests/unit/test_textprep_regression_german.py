@@ -22,7 +22,6 @@ SECOND_RUN_EXCEPTIONS = {
     # has none and is read "Eine Abbildung wird übersprungen": the rebuild, not a step
     "de-notice-table-named-by-its-caption": _REBUILT_LABEL,
     "de-notice-figure-short-label": _REBUILT_LABEL,
-    "de-units-german-label-joins": "#321: '1 bzw. 2 V' reads '2 Volt' on a second run",
 }
 
 
