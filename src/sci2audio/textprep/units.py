@@ -118,6 +118,13 @@ _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a 
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
 _HEX = frozenset("0123456789abcdefABCDEF")
 _OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a variable
+# the statistics step's English readings of those signs, which count as the signs around "2x"
+# ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
+# "less than 2x slower" (D-605). Longest first.
+_SAID_OPERATORS_EN = ("less than or equal to", "greater than or equal to", "equals")
+# the numbers step's reading of a fraction it has no word for ("17/20" is "17 out of 20"): the
+# second number is no unit's number, as the printed denominator is not (#335, D-605)
+_OUT_OF = re.compile(r"(?<![\w.,])\d{1,3} out of \Z")
 _OPENING = "([{\u201c\u2018\"'"
 _CLOSING = ".,;:!?)]}\u201d\u2019\"'"
 
@@ -142,7 +149,7 @@ class _Table:
     number: re.Pattern[str]  # a number as the language prints it
     label_list: re.Pattern[str]  # labels in a list, right before a number
     # the comparison signs as the statistics step reads them, which count as signs around
-    # "2x" ("gleich 2x" as "=2x"); English keeps only the printed signs, as it did before #130
+    # "2x" ("gleich 2x" as "=2x"; English "equals 4x" as "= 4x", #320)
     said_operators: re.Pattern[str] = re.compile(r"(?!)")
     # text the step leaves as printed: a German court's file number ("13 W 17/12", #243)
     kept: re.Pattern[str] = re.compile(r"(?!)")
@@ -283,7 +290,7 @@ def _compiled(language: str) -> _Table | None:
     said = re.compile(
         "|".join(map(re.escape, sorted(set(OPERATORS_DE.values()), key=len, reverse=True)))
         if german
-        else r"(?!)"
+        else "|".join(map(re.escape, _SAID_OPERATORS_EN))
     )
     kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
     return _Table(
@@ -322,6 +329,8 @@ def _unit_after(
     start = end + 1 if hyphen else gap
     if _is_label(text, number.start(), table) or _in_name(text, number.start()):
         return None
+    if table.language == "en" and _OUT_OF.search(text, max(0, number.start() - 16), number.start()):
+        return None  # the numbers step's "17 out of 20" for "17/20", whose "20" no unit follows
     parsed = _expression(text, start, table)
     if parsed is not None:
         terms, stop = parsed

@@ -15,9 +15,7 @@ CASES_FILE = Path(__file__).resolve().parents[1] / "regression" / "english.toml"
 CASES = load_cases(CASES_FILE)
 
 # cases that do not read the same on a second run, each with the reason (D-577)
-SECOND_RUN_EXCEPTIONS = {
-    "symbols-x-in-a-formula": "#320: '= 4x' reads 'equals 4 times' on a second run",
-}
+SECOND_RUN_EXCEPTIONS: dict[str, str] = {}
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case.id for case in CASES])

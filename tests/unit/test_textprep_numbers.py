@@ -387,7 +387,45 @@ def test_the_whole_chain_reads_these_the_same_on_a_second_run(printed: str) -> N
     assert _read_all(first) == first
 
 
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #335 (D-605): a unit power after a fraction read as words is the units step's, as
+        # after the printed fraction on the first run
+        ("It is 1 half s⁻¹ here.", "It is 1 half s⁻¹ here."),
+        ("It is 3 quarters s⁻¹ here.", "It is 3 quarters s⁻¹ here."),
+        ("It is 3 quarters m s⁻¹ here.", "It is 3 quarters m s⁻¹ here."),
+        ("It is 2 thirds W m⁻² here.", "It is 2 thirds W m⁻² here."),
+        # a letter power after a word that is no fraction is read as before
+        ("The quarters s⁻¹ here.", "The quarters s to the power of minus 1 here."),
+        ("It is 3 apples s⁻¹ here.", "It is 3 apples s to the power of minus 1 here."),
+    ],
+)
+def test_a_unit_power_after_a_read_fraction_is_left_to_the_units_step(
+    printed: str, said: str
+) -> None:
+    assert read(printed) == said
+
+
+@pytest.mark.parametrize("printed", ["It is 1/2 s⁻¹ here.", "It is −3/4 m s⁻¹ here."])
+def test_a_unit_power_after_a_fraction_reads_the_same_on_a_second_run(printed: str) -> None:
+    first = _read_all(printed)
+    assert _read_all(first) == first
+
+
 def test_the_numbers_step_keeps_its_contract_on_the_issue_shapes() -> None:
     """#210, #340: the conformance check the nightly property runs, on the shapes it found."""
     for text in ("10^250 000 000", "3 × 10−410^2"):
         check_text_step(STEP, [make_document([(BlockKind.PARAGRAPH, text)])], allow_ask=False)
+
+
+def test_a_fraction_word_after_a_longer_number_is_no_fraction_reading() -> None:
+    """Pins the look-behind of `_UNIT_CHAIN_AFTER_FRACTION` (review N1 of PR #359): the step
+    reads no fraction with a decimal or longer numerator, so "2.5 quarters" or "1,003
+    halves" is prose, and a letter power after it is read as before."""
+    assert read("It is 2.5 quarters s⁻¹ here.") == (
+        "It is 2.5 quarters s to the power of minus 1 here."
+    )
+    assert read("It is 1,003 halves s⁻¹ here.") == (
+        "It is 1,003 halves s to the power of minus 1 here."
+    )
