@@ -28,7 +28,7 @@
     <div class="rail-section">
       <h2 class="shelf-head" id="shelf-head">{{ t('nav.reading') }}</h2>
       <ul class="shelf">
-        <li><a href="/jobs/{{ running.id }}" id="shelf-job" data-events="/api/v1/jobs/{{ running.id }}/events"{% if nav == 'job' and current_job == running.id %} aria-current="page"{% endif %}>
+        <li><a href="/jobs/{{ running.id }}" id="shelf-job" data-events="/api/v1/jobs/{{ running.id }}/events" data-job="/api/v1/jobs/{{ running.id }}"{% if nav == 'job' and current_job == running.id %} aria-current="page"{% endif %}>
           <span class="t">{{ running.title }}</span>
           <span class="m" id="shelf-job-state">{{ running.shelf_text }}</span>
           <progress class="meter" id="shelf-job-bar" max="100"{% if running.percent is not none %} value="{{ running.percent }}"{% endif %} aria-hidden="true"></progress>

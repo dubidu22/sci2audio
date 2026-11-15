@@ -5,6 +5,7 @@
 
 const ANNOUNCE_EVERY = 30000; // ms between progress announcements, phase changes aside (D-253)
 const LOST_AFTER = 5000; // ms an event stream may stay away before the page says the server is lost
+const SHELF_EVERY = 2000; // ms between the shelf's questions on a page that holds no stream of the job
 
 let STRINGS = {};
 
@@ -83,16 +84,35 @@ function reloadAt(hash) {
 // stream that breaks off is reopened by the browser on its own and stays CONNECTING while
 // the server is away, so a stream that hasn't reopened LOST_AFTER ms after an error counts
 // as lost: the page says so and stops trying.
-// `quiet` is for a stream the page only shows on the side (the rail's shelf): it stops
-// without a word, since the page's own stream says so when the server is gone.
+// A page holds one stream per job, however many parts of it follow that job (#409 B2): a
+// browser keeps at most six connections to this server, and every open stream holds one
+// for as long as its job runs. A part that follows later gets the latest progress at once.
+// `quiet` is for a part that only shows the job on the side (the rail's shelf): it adds no
+// word when the stream is lost, since the page's own part says so.
+const STREAMS = new Map();
+
 function follow(url, progress, end, quiet) {
+  const part = { progress, end, quiet };
+  const known = STREAMS.get(url);
+  if (known) {
+    known.parts.push(part);
+    if (known.last) progress(known.last);
+    return;
+  }
   const events = new EventSource(url);
+  const stream = { parts: [part], last: null };
+  STREAMS.set(url, stream);
   let ended = false;
   let waiting = null;
+  function told(shown) {
+    stream.last = shown;
+    stream.parts.forEach((each) => each.progress(shown));
+  }
   function lost() {
     clearTimeout(waiting);
     events.close();
-    if (!quiet) say(tr("js.lost"), true);
+    STREAMS.delete(url);
+    if (stream.parts.some((each) => !each.quiet)) say(tr("js.lost"), true);
   }
   events.addEventListener("open", () => {
     clearTimeout(waiting);
@@ -100,20 +120,21 @@ function follow(url, progress, end, quiet) {
   });
   events.addEventListener("snapshot", (event) => {
     const job = JSON.parse(event.data);
-    if (job.progress) progress(job.progress);
+    if (job.progress) told(job.progress);
   });
-  events.addEventListener("progress", (event) => progress(JSON.parse(event.data) || {}));
+  events.addEventListener("progress", (event) => told(JSON.parse(event.data) || {}));
   events.addEventListener("end", (event) => {
     ended = true;
     events.close();
-    end(JSON.parse(event.data));
+    STREAMS.delete(url);
+    const job = JSON.parse(event.data);
+    stream.parts.forEach((each) => each.end(job));
   });
   events.addEventListener("error", () => {
     if (ended) return;
     if (events.readyState === EventSource.CLOSED) lost();
     else if (waiting === null) waiting = setTimeout(lost, LOST_AFTER);
   });
-  return events;
 }
 
 // ---- the start page --------------------------------------------------------------------
@@ -583,7 +604,7 @@ function shelf() {
   if (!item) return;
   const state = document.getElementById("shelf-job-state");
   const bar = document.getElementById("shelf-job-bar");
-  follow(item.dataset.events, (progress) => {
+  function shown(progress) {
     const words = STRINGS[`phase.${progress.phase}`] ?? state.textContent;
     const part = fraction(progress);
     if (part == null) {
@@ -594,10 +615,50 @@ function shelf() {
       bar.value = n;
       state.textContent = tr("shelf.made", { phase: words, n });
     }
-  }, (job) => {
+  }
+  function ended(job) {
     state.textContent = tr(`job.state_${job.state}`);
     if (job.state === "done") bar.value = 100;
-  }, true);
+  }
+  // a page that follows this job already (its job page, its document while analysing)
+  // feeds the shelf from its own stream
+  if (STREAMS.has(item.dataset.events)) {
+    follow(item.dataset.events, shown, ended, true);
+    return;
+  }
+  // every other page holds no stream for the shelf: it asks now and then, never while the
+  // tab is hidden, and stops once the job has ended
+  let timer = null;
+  let asking = false;
+  let over = false;
+  async function ask() {
+    timer = null;
+    if (over || asking || document.hidden) return;
+    asking = true;
+    try {
+      const job = await send(item.dataset.job);
+      if (job.state !== "running") {
+        over = true;
+        ended(job);
+      } else if (job.progress) {
+        shown(job.progress);
+      }
+    } catch (error) {
+      over = true; // the server is gone or forgot the job: the shelf keeps its last words
+    } finally {
+      asking = false;
+    }
+    if (!over && !document.hidden && timer === null) timer = setTimeout(ask, SHELF_EVERY);
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      clearTimeout(timer);
+      timer = null;
+    } else if (timer === null) {
+      ask();
+    }
+  });
+  timer = setTimeout(ask, SHELF_EVERY);
 }
 
 // ---- the Settings page (#388) -----------------------------------------------------------
