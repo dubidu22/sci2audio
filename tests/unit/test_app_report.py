@@ -118,9 +118,9 @@ def test_the_json_has_a_fixed_shape() -> None:
     assert data["source"] == {"name": "two.pdf", "format": "pdf", "sha256": "ab" * 32}
     assert data["chapters"] == [
         {"index": 0, "title": "1 Intro", "blocks": [0, 3], "first_page": 1,
-         "references": False, "selected": True, "utterances": 3},
+         "references": False, "publisher": False, "selected": True, "utterances": 3},
         {"index": 1, "title": "References", "blocks": [3, 5], "first_page": 2,
-         "references": True, "selected": False, "utterances": 0},
+         "references": True, "publisher": False, "selected": False, "utterances": 0},
     ]  # fmt: skip
     assert list(data["counts"]) == [str(c) for c in Category]
     assert data["counts"]["citations"] == {

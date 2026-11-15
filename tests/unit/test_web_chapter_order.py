@@ -60,3 +60,12 @@ def test_an_audio_job_keeps_the_order_given(tmp_path: Path) -> None:
     assert done["settings"]["chapters"] == [1, 0]
     listen = client.get(f"/documents/{doc}/listen").text
     assert listen.index(">Methods</button>") < listen.index(">Introduction</button>")
+
+
+def test_a_report_from_before_the_publisher_flag_still_reads() -> None:
+    """#376: a report JSON written before the flag existed has no `publisher` key."""
+    from sci2audio.web.models import ChapterOut
+
+    old = {"index": 0, "title": "1 Intro", "blocks": [0, 3], "first_page": 1}
+    old |= {"references": False, "selected": True, "utterances": 3}
+    assert ChapterOut.model_validate(old).publisher is False

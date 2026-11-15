@@ -130,6 +130,8 @@ def test_an_epub_becomes_a_script(tmp_path: Path) -> None:
     assert chosen["The Time Machine"]
     assert chosen["Epilogue"]
     assert chosen["Endnotes"]
+    publisher = [c["title"] for c in report["chapters"] if c["publisher"]]  # #376
+    assert publisher == ["Imprint", "Colophon", "Uncopyright"]
     markdown = job.files.report_markdown.read_text(encoding="utf-8")
     assert re.search(r"\| 18 \| Uncopyright \| [^|]* \| no \(publisher's page\) \| 0 \|", markdown)
     assert "The Time Traveller (for so it will be convenient" in script

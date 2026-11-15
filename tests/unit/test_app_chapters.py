@@ -236,7 +236,7 @@ def test_the_book_itself_stays_chosen(tag: str) -> None:
 
 def test_a_publishers_page_can_still_be_chosen() -> None:
     chapters = find_chapters(_tagged_book(("epub:chapter",), ("epub:colophon",)))
-    assert selected(chapters, {0, 1}) == (frozenset({0, 1}), ())
+    assert selected(chapters, {0, 1}) == ((0, 1), ())
 
 
 def test_only_the_heading_lines_tags_count() -> None:

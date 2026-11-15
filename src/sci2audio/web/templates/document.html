@@ -64,7 +64,7 @@
         <input type="checkbox" id="chapter-{{ chapter.index }}" name="chapter" value="{{ chapter.index }}"{% if chapter.selected %} checked{% endif %} aria-describedby="chapter-details-{{ chapter.index }}">
         <label for="chapter-{{ chapter.index }}" lang="{{ text_language }}">{{ t('check.chapter_line', title=chapter.title) }}</label>
         <span class="move" hidden><button type="button" class="move-up" id="move-up-{{ chapter.index }}">{{ t('check.move_up') }}<span class="visually-hidden">: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button> <button type="button" class="move-down" id="move-down-{{ chapter.index }}">{{ t('check.move_down') }}<span class="visually-hidden">: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button></span>
-        <span class="hint" id="chapter-details-{{ chapter.index }}">({% if chapter.first_page %}{{ t('check.chapter_details', page=chapter.first_page, n=chapter.utterances) }}{% else %}{{ t('check.chapter_details_no_page', n=chapter.utterances) }}{% endif %}{% if chapter.references %}; {{ t('check.references') }}{% endif %})</span>
+        <span class="hint" id="chapter-details-{{ chapter.index }}">({% if chapter.first_page %}{{ t('check.chapter_details', page=chapter.first_page, n=chapter.utterances) }}{% else %}{{ t('check.chapter_details_no_page', n=chapter.utterances) }}{% endif %}{% if chapter.references %}; {{ t('check.references') }}{% endif %}{% if chapter.publisher %}; {{ t('check.publisher') }}{% endif %})</span>
       </li>
     {% endfor %}
     </ol>

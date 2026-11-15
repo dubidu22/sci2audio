@@ -244,6 +244,7 @@ def report_data(report: Report) -> dict[str, Any]:
                 "blocks": [entry.chapter.start, entry.chapter.end],
                 "first_page": entry.first_page,
                 "references": entry.chapter.references,
+                "publisher": entry.chapter.publisher,  # #190, #376
                 "selected": entry.selected,
                 "utterances": entry.utterances,
             }

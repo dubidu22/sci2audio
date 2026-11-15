@@ -113,6 +113,7 @@ chapter_details.other = "page {page}, {n} sentences"
 chapter_details_no_page.one = "1 sentence"
 chapter_details_no_page.other = "{n} sentences"
 references = "reference list, not read by default"
+publisher = "publisher's page, not read by default"
 choose_all = "Choose all"
 choose_none = "Choose none"
 move_up = "Move up"  # a chapter in the list (#119); its title follows for screen readers

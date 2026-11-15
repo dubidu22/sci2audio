@@ -118,6 +118,7 @@ chapter_details.other = "Seite {page}, {n} Sätze"
 chapter_details_no_page.one = "1 Satz"
 chapter_details_no_page.other = "{n} Sätze"
 references = "Literaturverzeichnis, standardmäßig nicht vorgelesen"
+publisher = "Verlagsseite, standardmäßig nicht vorgelesen"
 choose_all = "Alle wählen"
 choose_none = "Keine wählen"
 move_up = "Nach oben"  # ein Kapitel der Liste (#119); sein Titel folgt für Screenreader

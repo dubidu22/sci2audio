@@ -24,7 +24,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Changed
 
-- An EPUB's publisher pages are not chosen by default (#190): its imprint, colophon, copyright page, table of contents or index (tagged as such in the file) are left out of the chapters read, as the reference list is; you can choose them again. The title page, preface, chapters, epilogue and endnotes stay chosen. In The Time Machine, Imprint, Colophon and Uncopyright are left out.
+- An EPUB's publisher pages are not chosen by default (#190): its imprint, colophon, copyright page, table of contents or index (tagged as such in the file) are left out of the chapters read, as the reference list is; you can choose them again. The title page, preface, chapters, epilogue and endnotes stay chosen. In The Time Machine, Imprint, Colophon and Uncopyright are left out. The document page's chapter list says why ("publisher's page, not read by default"), and the report JSON marks such a chapter with `"publisher": true` (#376).
 - CI no longer runs when a label is added to a pull request: each label used to start a new run that cancelled the run of the same commit and left a red "CI passed" check on it (#360). The label `ci:full` now starts one run by hand on the PR's branch, on Linux, macOS and Windows, which no later run cancels. "CI passed" still fails whenever a job it needs was cancelled, skipped or failed (D-620).
 
 ### Fixed
