@@ -1852,3 +1852,113 @@ expected = [
     "We have (a + b) less than 2x here.",
     "It is less than 2 times slower, and a less than 2 times gain.",
 ]
+
+# ---- #254 alphanumeric citation keys, #92 a reference list without a heading (D-646) ----
+
+[[case]]
+id = "citations-alphanumeric-keys-as-asides"
+audit = 0
+issue = 254
+goal = "Alphanumeric keys (alpha style: '[GKL+19]', '[Knu84]'; LNI: '[MH17]') that the document's list prints as entry labels are citations like numeric ones: an aside goes (D-646, review B1 of PR #377)."
+blocks = [
+    { kind = "paragraph", text = "This was shown before [GKL+19, Knu84]." },
+    { kind = "paragraph", text = "The method [MH17] works well." },
+    { kind = "paragraph", text = "It holds (see also [Knu84])." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "[GKL+19] A. Gray, B. Kim, C. Lee et al. A study. 2019." },
+    { kind = "paragraph", text = "[Knu84] D. Knuth. Literate programming. 1984." },
+    { kind = "paragraph", text = "[MH17] M. Maass and D. Herrmann. A tool. 2017." },
+    { kind = "paragraph", text = "[Ho16] R. Holz. A survey. 2016.\n[Ma16] W. Mayer. A scan. 2016." },
+]
+sections = [{ title = "References", level = 1, start = 3, end = 8 }]
+expected = [
+    "This was shown before.",
+    "The method works well.",
+    "It holds.",
+]
+
+[[case]]
+id = "citations-alphanumeric-keys-the-sentence-needs"
+audit = 0
+issue = 254
+goal = "A listed key the sentence needs reads with the reference word and the key as printed: 'in [MH17]' reads 'in reference MH17' (D-646)."
+blocks = [
+    { kind = "paragraph", text = "As shown in [MH17], it holds." },
+    { kind = "paragraph", text = "[Knu84] showed that it holds." },
+    { kind = "paragraph", text = "See the proofs in [Ho16, Ma16]." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "[GKL+19] A. Gray, B. Kim, C. Lee et al. A study. 2019." },
+    { kind = "paragraph", text = "[Knu84] D. Knuth. Literate programming. 1984." },
+    { kind = "paragraph", text = "[MH17] M. Maass and D. Herrmann. A tool. 2017." },
+    { kind = "paragraph", text = "[Ho16] R. Holz. A survey. 2016.\n[Ma16] W. Mayer. A scan. 2016." },
+]
+sections = [{ title = "References", level = 1, start = 3, end = 8 }]
+expected = [
+    "As shown in reference MH17, it holds.",
+    "Reference Knu84 showed that it holds.",
+    "See the proofs in references Ho16 and Ma16.",
+]
+
+[[case]]
+id = "citations-key-shapes-without-entries-stay"
+audit = 0
+issue = 254
+goal = "A bracket shaped like a key is no citation unless the document prints each key as an entry label: metal clusters, groups, studies, keys and cells stay as printed, as do look-alikes such as '[PM10]' (review B1 of PR #377)."
+blocks = [
+    { kind = "paragraph", text = "The [Mn12] clusters and [Al13] clusters are magnetic." },
+    { kind = "paragraph", text = "The [EU27] countries and the [UK21] study agree." },
+    { kind = "paragraph", text = "Press [Ctrl12] now; cells [AB12] to [AB20] hold 3." },
+    { kind = "paragraph", text = "Values in [Ab12, Cd34] hold, as shown in [MH17]." },
+    { kind = "paragraph", text = "The level of [PM10] rose, and [CO2] too; both [C60] and [GPT4] were named." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "[1] A. Author. A study. 2019." },
+    { kind = "paragraph", text = "[PM10] B. Author. A list that names it. 2010." },
+]
+sections = [{ title = "References", level = 1, start = 5, end = 8 }]
+expected = [
+    "The [Mn12] clusters and [Al13] clusters are magnetic.",
+    "The [EU27] countries and the [UK21] study agree.",
+    "Press [Ctrl12] now; cells [AB12] to [AB20] hold 3.",
+    "Values in [Ab12, Cd34] hold, as shown in [MH17].",
+    "The level of [PM10] rose, and [CO2] too; both [C60] and [GPT4] were named.",
+]
+
+[[case]]
+id = "references-a-list-without-a-heading-is-not-read"
+audit = 0
+issue = 92
+goal = "A reference list printed without a heading (PRL style: entries '[1] …' to the end of the document) is not read; the body before it is (D-646)."
+blocks = [
+    { kind = "paragraph", text = "Conclusions. The effect is large [1, 2]." },
+    { kind = "paragraph", text = "[1] A. Smith and B. Lee, Phys. Rev. B 1, 2 (2019)." },
+    { kind = "paragraph", text = "[2] C. Jones, Nature 3, 4 (2020).\n[3] D. Brown, Science 5, 6 (2021)." },
+    { kind = "paragraph", text = "(2021)." },
+    { kind = "paragraph", text = "[4] E. Green, Phys. Rev. Lett. 7, 8 (2018)." },
+    { kind = "paragraph", text = "[5] The limit is taken after the integral." },
+    { kind = "paragraph", text = "[6] F. White, J. Phys. 9, 10 (2017)." },
+]
+expected = [
+    "Conclusions. The effect is large.",
+]
+
+[[case]]
+id = "references-numbered-lines-in-the-body-are-read"
+audit = 0
+issue = 92
+goal = "Numbered lines with years that are followed by body text are no reference list and read as before (D-646)."
+blocks = [
+    { kind = "paragraph", text = "[1] Mix the samples (2019)." },
+    { kind = "paragraph", text = "[2] Heat them (2019)." },
+    { kind = "paragraph", text = "[3] Cool them (2019)." },
+    { kind = "paragraph", text = "[4] Weigh them (2019)." },
+    { kind = "paragraph", text = "[5] Store them (2019)." },
+    { kind = "paragraph", text = "Then the samples rest." },
+]
+expected = [
+    "Mix the samples (2019).",
+    "Heat them (2019).",
+    "Cool them (2019).",
+    "Weigh them (2019).",
+    "Store them (2019).",
+    "Then the samples rest.",
+]

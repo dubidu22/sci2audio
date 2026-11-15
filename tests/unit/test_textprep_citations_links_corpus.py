@@ -28,6 +28,7 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
+from sci2audio.textprep.references import unheaded_list
 
 pytestmark = pytest.mark.timeout(120)
 
@@ -96,7 +97,8 @@ def reference_list(doc: Document) -> set[int]:
             walk(section.children)
 
     walk(doc.sections)
-    return blocks
+    # a list printed without a heading (Liu, #92, D-646), as the reference-list step finds it
+    return blocks or set(unheaded_list(doc.blocks))
 
 
 def shown(text: str) -> str:
@@ -158,8 +160,8 @@ def test_narrative_citations_keep_their_names(paper: Path) -> None:
 
 
 def test_the_corpus_has_the_citations_and_links_the_plan_counted() -> None:
-    # accepted edits outside headed reference lists; Liu's list has no heading (#92), so its
-    # numbers and years count too. A subject citation is two or more edits.
+    # accepted edits outside reference lists, Liu's list without a heading included (#92,
+    # D-646). A subject citation is two or more edits.
     counts = {"links": 0, "citations": 0, "read as references": 0, "names kept": 0}
     for paper in PAPERS:
         skip = reference_list(document(paper))
@@ -176,6 +178,6 @@ def test_the_corpus_has_the_citations_and_links_the_plan_counted() -> None:
                 edit.reason.endswith("(TP-04)") and "read as" in edit.reason
             )
             counts["names kept"] += edit.reason.startswith("year of the citation")
-    # the German paper (#101) adds 15 links; its citations are alphanumeric keys ("[MH17]"),
-    # which no step reads yet; Waskom's two grant numbers in brackets go too (#285)
-    assert counts == {"links": 28, "citations": 330, "read as references": 21, "names kept": 39}
+    # the German paper (#101) adds 15 links and 10 alphanumeric keys ("[MH17]", #254), three
+    # of them read ("in Quelle MH17"); Waskom's two grant numbers in brackets go too (#285)
+    assert counts == {"links": 26, "citations": 255, "read as references": 23, "names kept": 38}

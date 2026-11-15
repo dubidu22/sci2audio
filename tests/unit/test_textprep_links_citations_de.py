@@ -192,7 +192,7 @@ def test_german_citations(printed: str, said: str) -> None:
         "Im Bericht (2019) steht es.",
         "Die Werte liegen in [0, 1].",  # an interval after "in" and a maths sign
         "Abb. [3] zeigt es.",  # a label's number
-        "Fahl et al. haben gezeigt [Fa14].",  # alphanumeric keys are not read yet
+        "Der Wert von [PM10] stieg.",  # a look-alike of a key (#254, D-646)
         # a round bracket of German intervals of decimals stays, as each interval does (#266)
         "Die Werte ([1,2; 3,4]) sind klein.",
         "Die Werte ( [1,2; 3,4]) sind klein.",
