@@ -45,11 +45,26 @@ def written(tmp_path: Path, data: bytes, name: str = "file.pdf") -> Path:
     return path
 
 
-def allocate(size: int, hold: float) -> int:
-    """A child's work for the watch tests: write `size` bytes, hold them, give back little."""
-    data = b"x" * size
-    time.sleep(hold)
-    return len(data)
+MB = 1024 * 1024
+
+
+def grow(chunks: int, size: int, pause: float) -> int:
+    """A child's work for the watch test: grow by `size` bytes `chunks` times, slowly enough
+    for the watch to look in between; give back how many were held."""
+    held = [b"x" * size]
+    for _ in range(chunks - 1):
+        time.sleep(pause)
+        held.append(b"x" * size)
+    time.sleep(0.3)
+    return len(held)
+
+
+def allocate_unwatched(size: int) -> int:
+    """A child's work for the hard-limit test: park the watch first, then ask for `size`
+    bytes at once, so only the system's own limit can stop the child."""
+    isolate._WATCH_SECONDS = 3600
+    time.sleep(0.1)  # the watch takes its last look and sleeps
+    return len(b"x" * size)
 
 
 # ---- memory (#185) -------------------------------------------------------------------------
@@ -94,24 +109,22 @@ def test_the_memory_message_names_the_limit(
 
 
 def test_the_watch_stops_a_child_that_grows_past_the_limit() -> None:
+    """Up to 1.25 times the limit in 10 MB steps: still under the hard limit at twice the
+    limit (with the child's own address space), so only the watch can stop it (#345 B1)."""
     stopped = isolate.run(
-        allocate,
-        (300 * 1024 * 1024, 0.3),
-        memory=100 * 1024 * 1024,
-        step_seconds=60,
-        readers=isolate.Readers(1),
+        grow, (50, 10 * MB, 0.01), memory=400 * MB, step_seconds=60, readers=isolate.Readers(1)
     )
     assert stopped == isolate.Stopped("memory", "opening")
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS has no hard memory limit")
-def test_the_hard_limit_stops_an_allocation_faster_than_the_watch() -> None:
-    """Three times the limit at once, given back at once: only the system's own limit (at
-    twice the limit) can stop it before the watch looks."""
+def test_the_hard_limit_stops_an_allocation_the_watch_does_not_see() -> None:
+    """Three times the limit at once with the watch parked: only the system's own limit (the
+    address space on Linux, the job object on Windows, at twice the limit) refuses it."""
     stopped = isolate.run(
-        allocate,
-        (300 * 1024 * 1024, 0.0),
-        memory=100 * 1024 * 1024,
+        allocate_unwatched,
+        (300 * MB,),
+        memory=100 * MB,
         step_seconds=60,
         readers=isolate.Readers(1),
     )
