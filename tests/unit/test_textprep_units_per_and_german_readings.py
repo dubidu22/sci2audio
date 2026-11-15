@@ -10,7 +10,14 @@ from linear_time import assert_linear
 
 from sci2audio.core import BlockKind
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
-from sci2audio.textprep import AbbreviationStep, StepContext, UnitStep, run_steps, spoken_text
+from sci2audio.textprep import (
+    AbbreviationStep,
+    NumbersStep,
+    StepContext,
+    UnitStep,
+    run_steps,
+    spoken_text,
+)
 from sci2audio.textprep.units import reads_unit_after_per
 from sci2audio.textprep.wordlists import abbreviations, parse_abbreviations, units
 
@@ -155,6 +162,77 @@ def test_after_page_is_read_from_the_abbreviation_list() -> None:
     assert entry.after_page
 
 
+# ---- #264 legal forms, review round 1 ------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # B1: the word before an ordinal is what the abbreviation reads, on both runs
+        ("Das gilt i. S. d. 3. Abschnitts.", "Das gilt i. S. d. 3. Abschnitts."),
+        ("Das gilt i.S.d. 3. Abschnitts.", "Das gilt i.S.d. 3. Abschnitts."),
+        (
+            "Das gilt i. S. d. 2019. Kapitel 3 beginnt.",
+            "Das gilt i. S. d. 2019. Kapitel 3 beginnt.",
+        ),
+        ("Das gilt i. S. v. 3. Abschnitt.", "Das gilt im Sinne von 3. Abschnitt."),
+        ("Das gilt i. V. m. 2. Alternative.", "Das gilt in Verbindung mit 2. Alternative."),
+        ("Das gilt i.V.m. 2. Alternative.", "Das gilt in Verbindung mit 2. Alternative."),
+        ("Urteil v. 3. Mai 2019 hier.", "Urteil vom dritten Mai 2019 hier."),
+        ("Das gilt gem. 3. Abschnitt.", "Das gilt gemäß 3. Abschnitt."),  # as "gemäß 3."
+        # S1: "i. S. d." only before a law's paragraph, article or subsection
+        ("Daten i. S. d. § 3 BDSG.", "Daten im Sinne des § 3 BDSG."),
+        ("Daten i.S.d. § 3 BDSG.", "Daten im Sinne des § 3 BDSG."),
+        ("Daten i. S. d. §§ 3 und 4.", "Daten im Sinne des §§ 3 und 4."),
+        ("Daten i. S. d. Art. 4 DSGVO.", "Daten im Sinne des Artikel 4 DSGVO."),
+        ("Daten i. S. d. Abs. 2 hier.", "Daten im Sinne des Absatz 2 hier."),
+        ("Daten i. S. d. DSGVO.", "Daten i. S. d. DSGVO."),
+        ("Daten i.S.d. DSGVO.", "Daten i.S.d. DSGVO."),
+        ("Daten i. S. d. Richtlinie.", "Daten i. S. d. Richtlinie."),
+        # S2: "a. F." and "n. F." inside a law citation end no sentence
+        ("Nach § 28 a. F. BDSG gilt das.", "Nach § 28 alte Fassung BDSG gilt das."),
+        ("Nach Art. 7 a. F. EGBGB gilt das.", "Nach Artikel 7 alte Fassung EGBGB gilt das."),
+        ("Nach § 28 BDSG a. F. Abs. 2 gilt das.", "Nach § 28 BDSG alte Fassung Absatz 2 gilt das."),
+        ("Nach Art. 7 n. F. Satz 2 gilt das.", "Nach Artikel 7 neue Fassung Satz 2 gilt das."),
+        ("Nach Art. 7 n.F. § 3 gilt das.", "Nach Artikel 7 neue Fassung § 3 gilt das."),
+        ("Nach § 28 a. F. Nr. 2 gilt das.", "Nach § 28 alte Fassung Nummer 2 gilt das."),
+        (
+            "Nach § 28 BDSG a. F. Die Norm ist alt.",
+            "Nach § 28 BDSG alte Fassung. Die Norm ist alt.",
+        ),
+        ("Nach § 28 BDSG a. F. Satz und Absatz.", "Nach § 28 BDSG alte Fassung. Satz und Absatz."),
+        (
+            "Nach § 28 BDSG a. F. Dr. Müller sagt das.",
+            "Nach § 28 BDSG alte Fassung. Doktor Müller sagt das.",
+        ),
+        ("Er erhält 10 % p. a. BDSG.", "Er erhält 10 Prozent pro Jahr. BDSG."),  # "p. a." keeps it
+        # N1: "Hs." only after a sentence's number; "S." before one is "Satz"
+        ("Nach § 3 S. 1 Hs. 2 gilt das.", "Nach § 3 Satz 1 Halbsatz 2 gilt das."),
+        ("Nach § 3 Satz 1 Hs. 2 gilt das.", "Nach § 3 Satz 1 Halbsatz 2 gilt das."),
+        ("Die Hs. B und Hs. 12 sind alt.", "Die Hs. B und Hs. 12 sind alt."),
+        ("Siehe S. 12 und Hs. 2 hier.", "Siehe Seite 12 und Hs. 2 hier."),
+    ],
+)
+def test_legal_forms_read_the_same_on_both_runs(printed: str, said: str) -> None:
+    assert read_all(printed, "de") == said
+
+
+def test_the_new_list_fields_are_read() -> None:
+    listed = abbreviations("de")
+    assert listed is not None
+    assert [e.printed for e in listed if e.after_sentence] == [("Hs.",)]
+    assert [e.printed for e in listed if e.inside_citation] == [
+        ("a. F.", "a.F."),
+        ("n. F.", "n.F."),
+    ]
+    assert [e.printed for e in listed if e.before == "law"] == [("i. S. d.", "i.S.d.")]
+    text = '[[abbreviation]]\nprinted = ["x."]\nreads = "x"\nbefore = "law"\n'
+    (entry,) = parse_abbreviations(
+        "test.toml", text + "after_sentence = true\ninside_citation = true\n"
+    )
+    assert (entry.before, entry.after_sentence, entry.inside_citation) == ("law", True, True)
+
+
 # ---- #265 a year that ends a German sentence -----------------------------------------------
 
 
@@ -211,11 +289,29 @@ _BEFORE = st.sampled_from(
 # and their letter powers read differently on a second run today (as on main)
 _PER = {
     "en": st.sampled_from(["per", "", "less than 2x", "f.", "p. a."]),
-    "de": st.sampled_from(["pro", "je", "", "less than 2x", "f.", "p. a."]),
+    "de": st.sampled_from(
+        [
+            "pro",
+            "je",
+            "",
+            "less than 2x",
+            "f.",
+            "p. a.",
+            "i. S. d.",
+            "i. S. v.",
+            "i.V.m.",
+            "a. F.",
+            "n.F.",
+            "gem.",
+            "S. 1",
+            "Hs.",
+        ]
+    ),
 }
 _UNIT = st.sampled_from(
     ["m²", "m³", "s", "kg", "A", "A-Gruppe", "km/h", "m s⁻¹", "s²", "Std.", "Kopf", "kg-Packung",
-     "2x", "Kapitel 3", "1 %-Hürde"]
+     "2x", "Kapitel 3", "1 %-Hürde", "3. Abschnitt", "2019. Kapitel", "§ 3", "BDSG", "Art. 4",
+     "Abs. 2", "Satz 2", "Hs. 2", "Die Norm", "12.03.2015"]
 )  # fmt: skip
 _POWERS = frozenset(("m²", "m³", "m s⁻¹", "s²"))
 _AFTER = st.sampled_from(["", " Fläche", " of area", " und mehr", " Dann mehr", " here", "."])
@@ -261,5 +357,16 @@ def test_units_after_per_take_linear_time(language: str) -> None:
         return step.find(
             make_document([(BlockKind.PARAGRAPH, text)], language), StepContext(language)
         )
+
+    assert_linear(edits, lambda n: unit * n, 2000)
+
+
+def test_ordinals_after_abbreviations_take_linear_time() -> None:
+    # the word before each ordinal is looked up in the text around it only (#264 round 1)
+    unit = "Das gilt i. V. m. 2. Alternative, i. S. d. 3. Abschnitts und gem. 4. Absatz. "
+    step = NumbersStep()
+
+    def edits(text: str) -> object:
+        return step.find(make_document([(BlockKind.PARAGRAPH, text)], "de"), StepContext("de"))
 
     assert_linear(edits, lambda n: unit * n, 2000)

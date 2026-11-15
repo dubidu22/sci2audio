@@ -761,7 +761,10 @@ def test_both_steps_handle_german() -> None:
         ("Absatz 1 S. 2", "Absatz 1 Satz 2"),
         ("Abs. 1a S. 2", "Absatz 1a Satz 2"),
         ("Rn. 12", "Randnummer 12"),
-        ("Hs. 2", "Halbsatz 2"),
+        ("S. 1 Hs. 2", "Satz 1 Halbsatz 2"),
+        ("die Hs. B", "die Hs. B"),  # "Handschrift": only after a sentence's number
+        ("i. S. d. DSGVO", "i. S. d. DSGVO"),  # "der": only before a law's "§", "Art.", "Abs."
+        ("§ 28 a. F. BDSG", "§ 28 alte Fassung BDSG"),  # inside the citation, no sentence end
         ("LG Hamburg v. 12.03.2015", "LG Hamburg vom 12.03.2015"),
         ("OLG Köln v. 5. März 2009", "OLG Köln vom 5. März 2009"),
         ("OLG Köln v. 5.März 2009", "OLG Köln vom 5.März 2009"),

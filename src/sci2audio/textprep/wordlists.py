@@ -17,7 +17,14 @@ from functools import cache
 from importlib.resources import files
 from typing import Any
 
-BEFORE = ("anything", "number", "label", "word", "date")  # where an abbreviation is read in full
+BEFORE = (
+    "anything",
+    "number",
+    "label",
+    "word",
+    "date",
+    "law",
+)  # where an abbreviation is read in full
 GENDERS = ("m", "f", "n")  # a unit's grammatical gender, for "ein"/"eine" before it (German)
 CASES = ("nominative", "dative", "accusative")  # the forms of "ein" a list may give
 
@@ -34,6 +41,8 @@ class Abbreviation:
     before_year: str = ""  # read instead before a year: "u. a. (2019)" is "und andere"
     after_page: bool = False  # read only after a page number: "S. 12 f." (#231, D-646)
     after_paragraph: str = ""  # read instead after "Abs. 1": "Abs. 1 S. 2" is "Satz" (#264)
+    after_sentence: bool = False  # read only after a sentence's number: "S. 1 Hs. 2" (#264)
+    inside_citation: bool = False  # no sentence end before "BDSG", "§", "Abs." (#264)
 
 
 @dataclass(frozen=True)
@@ -204,6 +213,8 @@ def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:
                 "before_year",
                 "after_page",
                 "after_paragraph",
+                "after_sentence",
+                "inside_citation",
             },
         )
         printed = _strings(at, entry, "printed")
@@ -224,6 +235,8 @@ def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:
                 before_year,
                 _flag(at, entry, "after_page"),
                 after_paragraph,
+                _flag(at, entry, "after_sentence"),
+                _flag(at, entry, "inside_citation"),
             )
         )
     # a form found in any case may not share its letters with another form; forms found only

@@ -297,6 +297,34 @@ utterances = [
 ]
 
 [[case]]
+id = "de-abbreviations-legal-forms-inside-a-citation"
+audit = 0
+issue = 264
+goal = "'a. F.' and 'n. F.' end no sentence inside a law citation (before 'BDSG', 'Abs.', 'Satz 2'), but do before a new sentence; 'i. S. d.' is read only before a law's '§', 'Art.' or 'Abs.', where it is 'des' (review round 1 of PR #382)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Nach § 28 a. F. BDSG gilt das. Nach Art. 7 a. F. EGBGB gilt das." },
+    { kind = "paragraph", text = "Nach § 28 BDSG a. F. Abs. 2 gilt das. Nach Art. 7 n. F. Satz 2 gilt das." },
+    { kind = "paragraph", text = "Nach § 28 BDSG a. F. Die Norm ist alt." },
+    { kind = "paragraph", text = "Daten i. S. d. § 3 BDSG und i. S. d. DSGVO." },
+]
+expected = [
+    "Nach § 28 alte Fassung BDSG gilt das. Nach Artikel 7 alte Fassung EGBGB gilt das.",
+    "Nach § 28 BDSG alte Fassung Absatz 2 gilt das. Nach Artikel 7 neue Fassung Satz 2 gilt das.",
+    "Nach § 28 BDSG alte Fassung. Die Norm ist alt.",
+    "Daten im Sinne des § 3 BDSG und i. S. d. DSGVO.",
+]
+utterances = [
+    "Nach § 28 alte Fassung BDSG gilt das.",
+    "Nach Artikel 7 alte Fassung EGBGB gilt das.",
+    "Nach § 28 BDSG alte Fassung Absatz 2 gilt das.",
+    "Nach Artikel 7 neue Fassung Satz 2 gilt das.",
+    "Nach § 28 BDSG alte Fassung.",
+    "Die Norm ist alt.",
+    "Daten im Sinne des § 3 BDSG und i. S. d. DSGVO.",
+]
+
+[[case]]
 id = "de-abbreviations-u-a-before-a-year"
 audit = 0
 issue = 113

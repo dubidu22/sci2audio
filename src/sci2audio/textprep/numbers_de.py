@@ -38,6 +38,7 @@ from __future__ import annotations
 import calendar
 import re
 
+from sci2audio.textprep.abbreviations import read_before
 from sci2audio.textprep.notation import (
     FILE_NUMBER_DE,
     Candidate,
@@ -708,9 +709,18 @@ _RANGE_DASH_BEFORE = re.compile(r"\d\s*[\u2013\u2014]\s*\Z|\d\.\d{4}-\Z|\d\.[\u2
 _DASH_BEFORE = re.compile(r"[\u2013\u2014]\s*\Z")
 
 
+def _before_read(text: str, start: int) -> str:
+    """The text before `start` as a second run sees it: an abbreviation the abbreviations
+    step reads right before is its reading ("i. V. m. 2." is "in Verbindung mit 2.")."""
+    read = read_before(text, start, "de")
+    if read is None:
+        return _before(text, start)
+    return _before(text, read[0]) + read[1] + " "
+
+
 def _ending(text: str, start: int, *, day: bool = False) -> str | None:
     """The ending an ordinal at `start` takes from the word before it, if one decides it."""
-    before = _before(text, start)
+    before = _before_read(text, start)
     if day and _RANGE_DASH_BEFORE.search(before):
         return "en"  # "1.3.2020–11.3.2020": the dash is read "bis", as in "bis 11.3.2020"
     previous = _PREVIOUS_WORD.search(before)
@@ -734,7 +744,7 @@ def _ending(text: str, start: int, *, day: bool = False) -> str | None:
 
 
 def _after_preposition(text: str, start: int) -> bool:
-    previous = _PREVIOUS_WORD.search(_before(text, start))
+    previous = _PREVIOUS_WORD.search(_before_read(text, start))
     return previous is not None and previous["word"].lower() in _PREPOSITIONS
 
 
