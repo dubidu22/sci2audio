@@ -49,7 +49,7 @@ from sci2audio.web.i18n import (
 )
 from sci2audio.web.jobs import JobKind, JobRecord, JobState
 from sci2audio.web.models import PREVIEW_LIMIT
-from sci2audio.web.player import PlayerError, player_for, recorded_folder
+from sci2audio.web.player import PlayerError, Position, player_for, read_position, recorded_folder
 from sci2audio.web.state import ServerState, state_of
 from sci2audio.web.tasks import plan_digest
 
@@ -518,6 +518,25 @@ def _speeds(s: Strings) -> list[tuple[str, str]]:
     return [(f"{v:g}", s("listen.speed_value", value=s.number(v))) for v in PLAYER_SPEEDS]
 
 
+def clock(seconds: float) -> str:
+    """A time as a player shows it: 3:07, or 1:02:03 from an hour on."""
+    whole = int(seconds)
+    hours, rest = divmod(whole, 3600)
+    minutes, secs = divmod(rest, 60)
+    return f"{hours}:{minutes:02d}:{secs:02d}" if hours else f"{minutes}:{secs:02d}"
+
+
+def _resume(view: Any, position: Position) -> dict[str, Any]:
+    """The offer to continue where the person stopped (#153)."""
+    return {
+        "chapter": position.chapter,
+        "number": position.chapter + 1,
+        "title": view.chapters[position.chapter].title,
+        "time": position.time,
+        "clock": clock(position.time),
+    }
+
+
 @router.get("/documents/{document_id}/listen", response_class=HTMLResponse)
 def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     """The player with read-along on the original text (D-294 to D-303)."""
@@ -527,7 +546,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         return _not_found(request, state, s, s("common.not_found_document", id=document_id))
     saved, _ = load_settings(state.config.config_file)
     try:
-        view, _located = player_for(
+        view, located = player_for(
             found.folder, found.id, saved.output_folder, state.config.output_folder
         )
     except PlayerError as error:
@@ -540,6 +559,10 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             view=None,
             problem=s(error.key, **error.values),
         )
+    try:
+        position = read_position(found.folder, found.id, located.stamp, located.readalong)
+    except OSError:  # the read-along file went away since the checks: nothing to offer
+        position = None
     return _page(
         request,
         state,
@@ -549,6 +572,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         view=view,
         voice=_voice_name(view.voice),
         speeds=_speeds(s),
+        resume=None if position is None else _resume(view, position),
         data=data_block(view.data(found.id)),
         problem=None,
     )

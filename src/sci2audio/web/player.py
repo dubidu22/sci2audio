@@ -23,6 +23,7 @@ was read is a notice box (D-299).
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import math
 from collections.abc import Collection, Iterable, Sequence
@@ -57,6 +58,10 @@ RECORD_VERSION = 1
 AUDIO_RECORD = "audio.json"  # the audio job's records (D-165)
 DOCUMENT_RECORD = "document.json"
 TIME_TOLERANCE = 0.0015  # seconds: both files round to 1 ms
+POSITION = "position.json"  # where the person stopped listening (#153)
+POSITION_FORMAT = "sci2audio-web-position"
+POSITION_VERSION = 1
+POSITION_LIMIT = 4096  # bytes: a record is about 150; a larger file is not ours
 
 
 class PlayerError(Exception):
@@ -104,6 +109,107 @@ def recorded_folder(work: Path, document_id: str) -> Path | None:
         return None
     path = Path(folder)
     return path if path.is_absolute() else None
+
+
+# ---- the listening position (#153) -----------------------------------------------------
+#
+# The server picks a new port on every run, so the browser's storage, kept per origin,
+# forgets where a person stopped. The position is kept in the document's working folder
+# instead, next to `audiobook.json`, stamped with the hash of the read-along file it is a
+# time in: a new audiobook (a rerun, from the web or the command line) has a new file, so
+# an old position no longer fits and is dropped. A record that does not fit is ignored,
+# never an error.
+
+
+@dataclass(frozen=True)
+class Position:
+    """Chapter `chapter` of the audiobook (as the read-along file counts them) and `time`
+    in seconds on the book's timeline."""
+
+    chapter: int
+    time: float
+
+
+def audiobook_stamp(readalong: Path) -> str:
+    """The first 16 hex digits of the read-along file's SHA-256. Raises OSError."""
+    stat = readalong.stat()
+    return _stamp(str(readalong), (stat.st_mtime_ns, stat.st_size))
+
+
+@lru_cache(maxsize=8)
+def _stamp(path: str, version: tuple[int, int]) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+
+
+def fits(readalong: ReadAlong, position: Position) -> bool:
+    """True if the position is a time of this audiobook inside the chapter it names."""
+    chapters = readalong.chapters
+    if not 0 <= position.chapter < len(chapters) or not math.isfinite(position.time):
+        return False
+    start = chapters[position.chapter].start
+    later = position.chapter + 1 < len(chapters)
+    end = chapters[position.chapter + 1].start if later else readalong.duration
+    if later:
+        return start <= position.time < end
+    return start <= position.time <= end + TIME_TOLERANCE
+
+
+def write_position(work: Path, document_id: str, stamp: str, position: Position) -> None:
+    """Keep where the person stopped (atomically: a failed write leaves the old record).
+    Raises OSError."""
+    data = {
+        "format": POSITION_FORMAT,
+        "version": POSITION_VERSION,
+        "document": document_id,
+        "audiobook": stamp,
+        "chapter": position.chapter,
+        "time": position.time,
+    }
+    write_texts({work / POSITION: json.dumps(data) + "\n"}, overwrite=True)
+
+
+def remove_position(work: Path) -> None:
+    """Forget the position (a new audiobook was made). Raises OSError."""
+    (work / POSITION).unlink(missing_ok=True)
+
+
+def read_position(
+    work: Path, document_id: str, stamp: str, readalong: ReadAlong
+) -> Position | None:
+    """Where the person stopped in this audiobook, worth offering to continue from; None
+    if there is no such record, it does not fit, or nothing is left to continue: before the
+    first sentence ended or after the last one ended."""
+    path = work / POSITION
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > POSITION_LIMIT:
+            return None
+        data = json.loads(path.read_text(encoding="utf-8"), parse_constant=_no_constant)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    chapter, time = data.get("chapter"), data.get("time")
+    if (
+        data.get("format") != POSITION_FORMAT
+        or data.get("version") != POSITION_VERSION
+        or data.get("document") != document_id
+        or data.get("audiobook") != stamp
+        or not isinstance(chapter, int)
+        or isinstance(chapter, bool)
+        or not isinstance(time, int | float)
+        or isinstance(time, bool)
+    ):
+        return None
+    position = Position(chapter, float(time))
+    if not fits(readalong, position) or not readalong.chunks:
+        return None
+    if not readalong.chunks[0].end <= position.time < readalong.chunks[-1].end:
+        return None
+    return position
+
+
+def _no_constant(name: str) -> None:
+    raise ValueError(f"{name} is not a time")
 
 
 # ---- the audio job's record --------------------------------------------------------------
@@ -207,6 +313,12 @@ def load_readalong(path: Path) -> ReadAlong:
 class Located:
     folder: Path
     readalong: ReadAlong
+    name: str = ""  # the read-along file's name in the folder
+
+    @property
+    def stamp(self) -> str:
+        """The audiobook's stamp for the listening position (#153). Raises OSError."""
+        return audiobook_stamp(self.folder / self.name)
 
 
 def locate(record: AudioRecord, folders: Iterable[Path | None]) -> Located:
@@ -230,7 +342,7 @@ def locate(record: AudioRecord, folders: Iterable[Path | None]) -> Located:
             continue
         if any(in_folder(folder, name) is None for name in record.names):
             continue
-        return Located(folder, data)
+        return Located(folder, data, record.readalong)
     if changed:
         raise PlayerError("listen.changed", folder=str(first or ""))
     raise PlayerError("listen.missing", folder=str(first or ""))

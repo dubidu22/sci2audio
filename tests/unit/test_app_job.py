@@ -126,8 +126,10 @@ def test_an_epub_becomes_a_script(tmp_path: Path) -> None:
     # the publisher's pages are not chosen by default, and the report says why (#190)
     report = json.loads(job.files.report_json.read_text(encoding="utf-8"))
     chosen = {c["title"]: c["selected"] for c in report["chapters"]}
-    assert not chosen["Imprint"] and not chosen["Colophon"] and not chosen["Uncopyright"]
-    assert chosen["The Time Machine"] and chosen["Epilogue"] and chosen["Endnotes"]
+    assert [t for t, on in chosen.items() if not on] == ["Imprint", "Colophon", "Uncopyright"]
+    assert chosen["The Time Machine"]
+    assert chosen["Epilogue"]
+    assert chosen["Endnotes"]
     markdown = job.files.report_markdown.read_text(encoding="utf-8")
     assert re.search(r"\| 18 \| Uncopyright \| [^|]* \| no \(publisher's page\) \| 0 \|", markdown)
     assert "The Time Traveller (for so it will be convenient" in script

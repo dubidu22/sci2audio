@@ -73,7 +73,7 @@ SAME_IN_GERMAN = {
     "check.chapter_line",  # only the chapter's title
     "privacy.cookies_title",  # "Cookies"
     "voice.letter_pace_normal",  # "Normal" (#295)
-    "listen.speed_value",  # "{value}×": the number is written in the page's language (#152)
+    "listen.speed_value",  # the number and the times sign, the number in the page language (#152)
 }
 
 

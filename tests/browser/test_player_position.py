@@ -1,0 +1,108 @@
+"""The listening position across server runs (#153): the player keeps where the person
+stopped; the next run of sci2audio, on another port, offers to continue there or start
+from the beginning, and never plays by itself (D-300)."""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+from playwright.sync_api import Page, expect
+from test_player import chunk_id, highlighted, make_audiobook, paused, watch_status
+
+from conftest import Live, SlowFetch, check_axe, inside, serve, tab_key
+
+
+def test_the_next_run_offers_to_continue_where_the_person_stopped(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    page = signed_in
+    document = make_audiobook(page, live)
+    later = chunk_id(page, "We measured it twice.")
+    page.locator(f"#{later}").click()  # chapter 2
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.wait_for_timeout(1200)
+    page.get_by_role("button", name="Pause").click()
+    page.wait_for_function("() => document.getElementById('audio').paused")
+    stopped = page.evaluate(
+        "() => { const d = JSON.parse(document.getElementById('player-data').textContent);"
+        " return document.getElementById('audio').currentTime + d.chapters[1].offset; }"
+    )
+    page.wait_for_timeout(300)  # the save on pause reaches the server
+
+    with serve(tmp_path, live.voice, SlowFetch()) as second:
+        assert second.url != live.url  # another port: the browser's storage starts empty
+        page.unroute("**/*")
+        page.route(
+            "**/*",
+            lambda route: (
+                route.continue_()
+                if inside(route.request.url, second.url)
+                else (live.outside.append(route.request.url), route.abort())
+            ),
+        )
+        page.goto(second.start_url)
+        page.goto(f"{second.url}/documents/{document}/listen")
+        offer = page.locator("#resume")
+        expect(offer).to_be_visible()
+        expect(offer).to_contain_text("You stopped in chapter 2 at 0:")
+        expect(offer).to_contain_text("Methods")
+        check_axe(page, "player, continue offer")
+        page.emulate_media(color_scheme="dark")
+        check_axe(page, "player, continue offer, dark")
+        page.emulate_media(color_scheme="light")
+        assert paused(page)  # nothing plays by itself (D-300)
+        watch_status(page)
+        # by keyboard: the offer's buttons are reached with Tab
+        page.locator("#listen-title").focus()
+        while page.evaluate("() => document.activeElement.id") != "resume-continue":
+            page.keyboard.press(tab_key(page))
+        page.keyboard.press("Enter")
+        expect(page.locator("#resume")).to_have_count(0)
+        expect(page.get_by_role("button", name="Play")).to_be_focused()
+        assert paused(page)
+        assert highlighted(page) == later
+        page.wait_for_function("() => document.getElementById('audio').currentTime > 0")
+        state = page.evaluate(
+            "() => { const d = JSON.parse(document.getElementById('player-data').textContent);"
+            " const a = document.getElementById('audio');"
+            " return {src: a.getAttribute('src'), time: a.currentTime + d.chapters[1].offset}; }"
+        )
+        assert state["src"].endswith("02%20Methods.mp3"), state
+        assert abs(state["time"] - stopped) < 0.6, (state, stopped)
+        assert page.evaluate("() => window.said") == ["Chapter 2 of 2: Methods"]
+        page.keyboard.press("Space")
+        page.wait_for_function("() => !document.getElementById('audio').paused")
+
+
+def test_start_from_the_beginning(signed_in: Page, live: Live, tmp_path: Path) -> None:
+    page = signed_in
+    document = make_audiobook(page, live)
+    page.locator(f"#{chunk_id(page, 'We measured it twice.')}").click()
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.wait_for_timeout(800)
+    page.get_by_role("button", name="Pause").click()
+    page.wait_for_timeout(300)
+    page.reload()  # the same run: the server kept it too
+    expect(page.locator("#resume")).to_be_visible()
+    page.get_by_role("button", name="Start from the beginning").click()
+    expect(page.locator("#resume")).to_have_count(0)
+    assert paused(page)
+    src = page.evaluate("() => document.getElementById('audio').getAttribute('src')")
+    assert src.endswith("01%20Introduction.mp3"), src
+    assert page.evaluate("() => document.getElementById('audio').currentTime") < 0.5
+    page.get_by_role("button", name="Play").click()
+    page.wait_for_function(
+        f"() => document.getElementById('{chunk_id(page, 'Introduction')}')"
+        ".classList.contains('now')"
+    )
+    del document
+
+
+def test_nothing_is_offered_before_anything_was_heard(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    make_audiobook(page, live)
+    page.reload()  # opening the page and leaving it again saves nothing
+    page.reload()
+    expect(page.locator("#resume")).to_have_count(0)
+    assert re.search("resume", page.content()) is None

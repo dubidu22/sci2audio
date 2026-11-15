@@ -14,10 +14,10 @@ from syrupy.assertion import SnapshotAssertion
 from test_layout_language import ENGLISH, GERMAN
 
 from sci2audio.app import JobSettings, run_script_job
-
-TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
 from sci2audio.cli import chapter_numbers
 from sci2audio.textprep import Category
+
+TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
 
 SCRIPT_FILES = [
     "joss2021-waskom-seaborn.report.json",

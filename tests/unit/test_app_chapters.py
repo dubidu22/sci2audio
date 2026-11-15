@@ -11,18 +11,20 @@ from hypothesis import given
 from sci2audio.app import (
     REFERENCE_NAMES,
     Chapter,
+    JobSettings,
     default_selection,
     document_title,
     find_chapters,
     is_reference_title,
 )
-from sci2audio.app import JobSettings
 from sci2audio.app.chapters import PUBLISHER_TAGS, selected
 from sci2audio.app.job import read_document
 from sci2audio.core import Document, Section
 from sci2audio.testing import make_document
 
-TIME_MACHINE = Path(__file__).resolve().parents[1] / "corpus" / "epub" / "wells-the-time-machine.epub"
+TIME_MACHINE = (
+    Path(__file__).resolve().parents[1] / "corpus" / "epub" / "wells-the-time-machine.epub"
+)
 P = "paragraph"
 H = "heading"
 

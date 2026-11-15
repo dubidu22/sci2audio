@@ -176,6 +176,20 @@ class VoicesOut(BaseModel):
     plan: PlanOut
 
 
+class PositionIn(Strict):
+    """Where the person stopped listening (#153)."""
+
+    chapter: int = Field(
+        ge=0,
+        le=100_000,
+        strict=True,
+        description="the chapter, counted from 0 as the read-along file counts them",
+    )
+    time: float = Field(
+        ge=0, le=10_000_000, allow_inf_nan=False, description="seconds on the book's timeline"
+    )
+
+
 class DownloadIn(Strict):
     consent: StrictBool = Field(description="only `true` starts the download")
     plan: str = Field(max_length=64, description="the digest of the plan the person agreed to")

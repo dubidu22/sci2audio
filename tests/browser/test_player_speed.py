@@ -28,7 +28,8 @@ def test_the_speed_select_sets_the_rate_and_keeps_the_pitch(signed_in: Page, liv
     speed = page.get_by_label("Speed")
     expect(speed).to_have_value("1")
     options = speed.locator("option").all_inner_texts()
-    assert options == ["0.75×", "1×", "1.25×", "1.5×", "1.75×", "2×"]
+    times = "\u00d7"  # the multiplication sign
+    assert options == [f"{n}{times}" for n in ("0.75", "1", "1.25", "1.5", "1.75", "2")]
     speed.select_option("2")
     assert rate(page)["rate"] == 2
     assert rate(page)["pitch"] is True
@@ -47,7 +48,8 @@ def test_the_speed_stays_across_chapters_and_jumps(signed_in: Page, live: Live) 
     page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
     state = rate(page)
     assert state["src"] != first_file
-    assert state["rate"] == 1.5 and state["pitch"] is True
+    assert state["rate"] == 1.5
+    assert state["pitch"] is True
     # a sentence jump and a click on a sentence
     page.get_by_role("button", name="Previous sentence").click()
     assert rate(page)["rate"] == 1.5
@@ -72,8 +74,9 @@ def test_at_2x_the_highlight_stays_with_the_voice(signed_in: Page, live: Live) -
                 return {time: a.currentTime, src: a.getAttribute('src'), id}; }"""
         )
         chapter = next(
-            n for n, c in enumerate(data["chapters"]) if state["src"].endswith(
-                page.evaluate("n => encodeURIComponent(n)", c["file"]))
+            n
+            for n, c in enumerate(data["chapters"])
+            if state["src"].endswith(page.evaluate("n => encodeURIComponent(n)", c["file"]))
         )
         book = state["time"] + data["chapters"][chapter]["offset"]
         at = max((n for n, c in enumerate(chunks) if c[0] <= book + 0.0005), default=-1)
@@ -119,4 +122,5 @@ def test_the_speed_stays_on_the_m4b(signed_in: Page, live: Live) -> None:
     page.get_by_role("button", name="Next sentence").click()
     state = rate(page)
     assert str(state["src"]).endswith(".m4b")
-    assert state["rate"] == 0.75 and state["pitch"] is True
+    assert state["rate"] == 0.75
+    assert state["pitch"] is True
