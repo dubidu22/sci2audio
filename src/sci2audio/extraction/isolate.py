@@ -11,7 +11,9 @@ Memory is watched from inside the child: a thread reads the process's memory eve
 offers a hard limit, it is set at twice the limit, for an allocation that grows faster
 than the watch: the address space on Linux, a job object on Windows; macOS has neither.
 Time is watched from the parent: the child reports each step it starts (`report`), and a
-step that takes longer than allowed ends the child.
+step that takes longer than allowed ends the child. The child's watch also ends it with
+`TIME_EXIT` when no step started for twice that long, so a child whose parent is gone
+(killed, crashed) does not read on.
 
 At most `Readers.limit` children run at once; a further `run` waits for a free slot, so the
 memory limit holds for the program, not only for one child.
@@ -25,6 +27,7 @@ from __future__ import annotations
 import importlib.machinery
 import multiprocessing
 import os
+import pickle
 import sys
 import threading
 import time
@@ -34,10 +37,12 @@ from dataclasses import dataclass
 from multiprocessing.connection import Connection
 from typing import Any
 
-MEMORY_EXIT = 86  # the child's exit code when the watch ended it
+MEMORY_EXIT = 86  # the child's exit code when the watch ended it for memory
+TIME_EXIT = 87  # ... and for a step that took more than twice its time
 _WATCH_SECONDS = 0.02
 
 _report: Callable[[str], None] | None = None  # set in the child
+_step_started = 0.0  # in the child: when the current step started (time.monotonic)
 _MAIN = threading.Lock()  # the main module is swapped while a child starts
 
 
@@ -47,6 +52,10 @@ class Stopped:
 
     reason: str
     step: str = ""
+
+
+class NotStarted(Exception):
+    """No child process could be started (the system refused a process or a pipe)."""
 
 
 class Readers:
@@ -86,21 +95,14 @@ def run(
 ) -> Any:
     """`target(*args)` in a child process: its result, `Stopped`, or the exception it
     raised, raised again here. `target` must be a module-level function; `memory` is in
-    bytes, `step_seconds` the longest any reported step may take."""
+    bytes, `step_seconds` the longest any reported step may take. Raises `NotStarted` when
+    no child could be started.
+
+    The wait for a free slot in `readers` has no time limit and is not part of any step's
+    time: a third read waits until one of two running reads ends."""
     context = multiprocessing.get_context("spawn")
     with readers:
-        receive, send = context.Pipe(duplex=False)
-        child = context.Process(
-            target=_child, args=(send, target, args, memory), daemon=True, name="sci2audio-reader"
-        )
-        with _MAIN:  # the child does not import the main module: see `_without_main`
-            main = sys.modules["__main__"]
-            sys.modules["__main__"] = _without_main()
-            try:
-                child.start()
-            finally:
-                sys.modules["__main__"] = main
-        send.close()
+        child, receive = _start(context, target, args, memory, step_seconds)
         try:
             return _wait(child, receive, step_seconds)
         finally:
@@ -109,6 +111,36 @@ def run(
                 child.kill()
             child.join()
             child.close()
+
+
+def _start(
+    context: Any, target: Callable[..., Any], args: tuple[Any, ...], memory: int, step: float
+) -> tuple[Any, Connection]:
+    """A started child and the end of the pipe its words come through."""
+    try:
+        receive, send = context.Pipe(duplex=False)
+    except OSError as error:
+        raise NotStarted(str(error)) from error
+    try:
+        child = context.Process(
+            target=_child,
+            args=(send, target, args, memory, step),
+            daemon=True,
+            name="sci2audio-reader",
+        )
+        with _MAIN:  # the child does not import the main module: see `_without_main`
+            main = sys.modules["__main__"]
+            sys.modules["__main__"] = _without_main()
+            try:
+                child.start()
+            finally:
+                sys.modules["__main__"] = main
+    except OSError as error:
+        receive.close()
+        raise NotStarted(str(error)) from error
+    finally:
+        send.close()  # the child holds its own copy
+    return child, receive
 
 
 def _without_main() -> types.ModuleType:
@@ -129,7 +161,8 @@ def _wait(child: Any, receive: Connection, step_seconds: float) -> Any:
             kind, value = receive.recv()
         except (EOFError, OSError):  # ended without a word: the watch, a hard limit, a crash
             child.join()
-            return Stopped("memory" if child.exitcode == MEMORY_EXIT else "ended", step)
+            reason = {MEMORY_EXIT: "memory", TIME_EXIT: "time"}.get(child.exitcode, "ended")
+            return Stopped(reason, step)
         if kind == "step":
             step = value
         elif kind == "done":
@@ -142,29 +175,55 @@ def _wait(child: Any, receive: Connection, step_seconds: float) -> Any:
 
 
 def _child(
-    send: Connection, target: Callable[..., Any], args: tuple[Any, ...], memory: int
+    send: Connection,
+    target: Callable[..., Any],
+    args: tuple[Any, ...],
+    memory: int,
+    step_seconds: float,
 ) -> None:
-    global _report
+    global _report, _step_started
     _hard_limit(2 * memory)
-    threading.Thread(target=_watch, args=(memory,), daemon=True, name="memory-watch").start()
-    _report = lambda step: send.send(("step", step))  # noqa: E731 (one call, named above)
+    _step_started = time.monotonic()
+    watch = threading.Thread(
+        target=_watch, args=(memory, 2 * step_seconds), daemon=True, name="memory-watch"
+    )
+    watch.start()
+
+    def started(step: str) -> None:
+        global _step_started
+        _step_started = time.monotonic()
+        send.send(("step", step))
+
+    _report = started
     try:
         result = target(*args)
     except MemoryError:  # a hard limit refused an allocation Python asked for
         os._exit(MEMORY_EXIT)
     except BaseException as error:
-        try:
-            send.send(("raised", error))
-        except Exception:
-            send.send(("raised", RuntimeError(f"{type(error).__name__}: {error}")))
+        send.send(("raised", _sendable(error)))
         return
     send.send(("done", result))
 
 
-def _watch(memory: int) -> None:
+def _sendable(error: BaseException) -> BaseException:
+    """`error`, or a RuntimeError naming it when it would not arrive whole in the parent
+    (an exception that pickles but cannot be rebuilt from its pickle, for example)."""
+    try:
+        pickle.loads(pickle.dumps(error))  # noqa: S301 (our own pickle, made just now)
+    except Exception:
+        return RuntimeError(f"{type(error).__name__}: {error}")
+    return error
+
+
+def _watch(memory: int, step_limit: float) -> None:
+    """End the child above `memory`, or when its step started more than `step_limit`
+    seconds ago: the parent ends it after one step time, so a step this old means the
+    parent is gone."""
     while True:
         if peak_memory() > memory:
             os._exit(MEMORY_EXIT)
+        if time.monotonic() - _step_started > step_limit:
+            os._exit(TIME_EXIT)
         time.sleep(_WATCH_SECONDS)
 
 

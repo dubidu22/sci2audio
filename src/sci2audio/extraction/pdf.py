@@ -136,7 +136,7 @@ def _isolated(target: object, path: str) -> object:
             step_seconds=STEP_SECONDS,
             readers=_READERS,
         )
-    except OSError as error:  # no child could be started (D-581: no reading without one)
+    except isolate.NotStarted as error:  # D-581: no reading without a child
         name = Path(path).name
         raise ExtractionError(
             f"{name}: cannot be read: sci2audio could not start its PDF reader ({error})"

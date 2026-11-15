@@ -145,6 +145,105 @@ def test_an_error_in_the_child_is_raised_here() -> None:
         )
 
 
+class TwoPartError(Exception):
+    """Pickles, but cannot be rebuilt from its pickle (its arguments are not its `args`)."""
+
+    def __init__(self, first: str, second: str) -> None:
+        super().__init__(f"{first}/{second}")
+
+
+def raise_two_part() -> None:
+    raise TwoPartError("a", "b")
+
+
+def test_an_error_that_cannot_cross_to_this_process_arrives_named() -> None:
+    """Without the check in the child it arrived as an unrelated TypeError (#345 S1)."""
+    with pytest.raises(RuntimeError, match=r"^TwoPartError: a/b$"):
+        isolate.run(raise_two_part, (), memory=1024**3, step_seconds=60, readers=isolate.Readers(1))
+
+
+def raise_permission(path: str, limits: dict[str, object]) -> None:
+    raise PermissionError(13, "not allowed", path)
+
+
+def test_an_os_error_in_the_child_is_not_a_failed_start() -> None:
+    """Only a child that could not be started gets the start message (#345 S5)."""
+    with pytest.raises(PermissionError, match="not allowed"):
+        pdf._isolated(raise_permission, "a.pdf")
+
+
+def test_a_child_that_cannot_start_is_named_and_leaves_no_pipe_open(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import multiprocessing.context
+
+    def refuse(self: object) -> None:
+        raise OSError(24, "Too many open files")
+
+    pipes: list[tuple[object, object]] = []
+    context = multiprocessing.get_context("spawn")
+    real_pipe = context.Pipe
+
+    def pipe(duplex: bool = True) -> tuple[object, object]:
+        ends = real_pipe(duplex)
+        pipes.append(ends)
+        return ends
+
+    monkeypatch.setattr(multiprocessing.context.SpawnProcess, "start", refuse)
+    monkeypatch.setattr(context, "Pipe", pipe)
+    with pytest.raises(ExtractionError) as raised:
+        extract_pdf(PAPER)
+    assert str(raised.value) == (
+        "acl2023-hardt-ellipsis.pdf: cannot be read: sci2audio could not start its PDF reader"
+        " ([Errno 24] Too many open files)"
+    )
+    assert [(end.closed, other.closed) for end, other in pipes] == [(True, True)]  # type: ignore[attr-defined]
+    assert pdf._READERS.alive == 0
+
+
+def sleep_with_marks(folder: str, seconds: float) -> None:
+    """A child's work for the orphan test: mark the start, sleep, mark the end."""
+    Path(folder, "started").write_text(str(os.getpid()))
+    time.sleep(seconds)
+    Path(folder, "finished").write_text("")
+
+
+def test_a_child_whose_parent_is_gone_ends_after_twice_its_step_time(tmp_path: Path) -> None:
+    """The parent ends a slow step; when the parent itself was killed, the child's watch ends
+    it after twice the step time, so it does not read on alone (#345 S2, plan Q9)."""
+    script = textwrap.dedent(
+        f"""
+        import os, sys, threading, time
+        sys.path.insert(0, {str(Path(__file__).parent)!r})
+        from pathlib import Path
+        from sci2audio.extraction import isolate
+        from test_extraction_pdf_process import sleep_with_marks
+        folder = {str(tmp_path)!r}
+        threading.Thread(
+            target=isolate.run, args=(sleep_with_marks, (folder, 2.5)),
+            kwargs=dict(memory=1024**3, step_seconds=0.25, readers=isolate.Readers(1)),
+            daemon=True,
+        ).start()
+        while not Path(folder, "started").exists():
+            time.sleep(0.02)
+        os._exit(0)  # gone at once, as if killed: nothing ends the child from here
+        """
+    )
+    subprocess.run([sys.executable, "-c", script], check=True, timeout=60)
+    assert (tmp_path / "started").exists()
+    time.sleep(3)  # the child would have finished after 2.5 s; its watch ends it after 0.5 s
+    assert not (tmp_path / "finished").exists()
+
+
+def test_a_child_ended_by_its_own_watch_for_time_is_named() -> None:
+    """The parent normally ends a slow step first; when the child's watch is first, its exit
+    reads as a step that took too long."""
+    stopped = isolate.run(
+        os._exit, (isolate.TIME_EXIT,), memory=1024**3, step_seconds=60, readers=isolate.Readers(1)
+    )
+    assert stopped == isolate.Stopped("time", "opening")
+
+
 # ---- time and crashes ----------------------------------------------------------------------
 
 
