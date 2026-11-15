@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import cast
 
 from sci2audio.output.model import Spoken
 from sci2audio.output.timeline import Timeline
@@ -74,9 +75,8 @@ def split(text: str) -> list[tuple[str, ...]]:
             break
         count = _longest_fit(words)
         cut = _clause_cut(words, count) or count
-        lines = wrap(words[:cut])
-        assert lines is not None  # the first `count` words fit, so every shorter start does
-        pieces.append(lines)
+        # the first `count` words fit one cue, so every shorter start does: wrap gives lines
+        pieces.append(cast("tuple[str, ...]", wrap(words[:cut])))
         words = words[cut:]
     return pieces
 
