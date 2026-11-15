@@ -354,6 +354,11 @@ def test_a_second_run_reads_the_same_after_a_sign(printed: str, said: str) -> No
         ("It is 10^250 000 here.", "It is 10 to the power of 250,000 here."),
         ("It is x^250 000 000 here.", "It is x to the power of 250,000,000 here."),
         ("It is 10^250 000 here.", "It is 10^250 000 here."),  # one plain-space group
+        ("It is 10^250 000 000 5 here.", "It is 10^250 000 000 5 here."),  # a digit runs on
+        # #210 (review S1 of PR #361): a signed grouped exponent reads its sign too
+        ("It is 10^-250 000 000 here.", "It is 10 to the power of minus 250,000,000 here."),
+        ("It is 10^+250 000 000 here.", "It is 10 to the power of 250,000,000 here."),
+        ("It is 10^\u2212250 000 000 here.", "It is 10 to the power of minus 250,000,000 here."),
         # #340: a power of ten whose minus exponent runs into a caret power stays as printed
         ("It is 3 × 10−410^2 here.", "It is 3 × 10−410^2 here."),
         ("It is 3 × 10−4^2 here.", "It is 3 × 10−4^2 here."),
@@ -370,6 +375,9 @@ def test_minus_signs_and_powers_that_read_the_same_on_a_second_run(printed: str,
         "It is −\n5 here.",
         "It is ~−\n5 here.",
         "It is 10^250 000 000 here.",
+        "It is 10^-250 000 000 here.",
+        "It is 10^+250 000 000 here.",
+        "It is 10^\u2212250 000 000 here.",
         "It is 3 × 10−410^2 here.",
         "It is 2^10 000 000 and 2^20.",
     ],

@@ -1647,16 +1647,22 @@ expected = [
 id = "numbers-powers-with-grouped-or-glued-exponents"
 audit = 0
 issue = 340
-goal = "A caret power whose exponent groups its thousands with spaces reads the whole exponent (#210); one plain-space group is no grouped number and stays as printed, as before; a power of ten whose minus exponent runs into a caret power ('10−410^2') is left as printed, as a second run would read it differently; a plain '× 10−4' reads as before (D-605)."
+goal = "A caret power whose exponent groups its thousands with spaces reads the whole exponent (#210); a signed grouped exponent reads its sign too (review S1 of PR #361); one plain-space group is no grouped number and stays as printed, as before; a power of ten whose minus exponent runs into a caret power ('10−410^2') is left as printed, as a second run would read it differently; a plain '× 10−4' reads as before (D-605)."
 blocks = [
     { kind = "paragraph", text = "It is 10^250 000 000 here." },
     { kind = "paragraph", text = "It is 3 × 10−410^2 here." },
     { kind = "paragraph", text = "It is 3 × 10−4 here." },
     { kind = "paragraph", text = "It is 10^2 000 here." },
+    { kind = "paragraph", text = "It is 10^-250 000 000 here." },
+    { kind = "paragraph", text = "It is 10^+250 000 000 here." },
+    { kind = "paragraph", text = "It is 10^−250 000 000 here." },
 ]
 expected = [
     "It is 10 to the power of 250,000,000 here.",
     "It is 3 times 10−410^2 here.",
     "It is 3 times 10 to the power of minus 4 here.",
     "It is 10^2 000 here.",
+    "It is 10 to the power of minus 250,000,000 here.",
+    "It is 10 to the power of 250,000,000 here.",
+    "It is 10 to the power of minus 250,000,000 here.",
 ]

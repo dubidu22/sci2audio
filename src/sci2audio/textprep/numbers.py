@@ -101,7 +101,9 @@ _CARET = re.compile(
     r"(?<![\w.,])(?P<base>\d+(?:\.\d+)?|[^\W\d_" + _SUPERSCRIPTS + r"])"
     r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)"
     # an exponent whose thousands are grouped as N10 groups them ("10^250 000 000", #210)
-    r"|(?P<grouped>\d{1,3}(?:[ \u00a0\u2009\u202f]\d{3}){2,}|\d{1,3}(?:[\u00a0\u2009\u202f]\d{3})+)"
+    # with a sign as a bare exponent takes it ("10^-250 000 000")
+    r"|(?P<grouped>[+\u2212-]?"
+    r"(?:\d{1,3}(?:[ \u00a0\u2009\u202f]\d{3}){2,}|\d{1,3}(?:[\u00a0\u2009\u202f]\d{3})+))"
     r"(?![ \u00a0\u2009\u202f]?\d)"
     r"|(?P<bare>[+\u2212-]?\d+)))"
     r"(?![\w.⁺⁻])"
@@ -342,7 +344,7 @@ def _roman_numerals(plain: str, text: str) -> list[Candidate]:
 def _grouped_digits(text: str) -> list[Candidate]:
     found = []
     for match in _GROUPED.finditer(text):
-        if text[match.start() - 1 : match.start()] == "^":
+        if re.search(r"\^[+\u2212-]?\Z", text[max(0, match.start() - 2) : match.start()]):
             continue  # a caret power's grouped exponent: the powers rule reads it whole (#210)
         number = match.group()
         groups = re.split(r"[ \u00a0\u2009\u202f]", number)
