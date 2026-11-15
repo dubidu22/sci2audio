@@ -122,9 +122,11 @@ _OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a var
 # ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
 # "less than 2x slower" (D-605). Longest first.
 _SAID_OPERATORS_EN = ("less than or equal to", "greater than or equal to", "equals")
-# ... and a bare "less than" / "greater than" counts after a one-letter variable (not "a", "A",
-# "I") or a closing bracket: "y less than 2x" is the reading of "y < 2x" (#358, D-646)
-_COMPARED_EN = re.compile(r"(?:(?<![\w.])(?![aAI]\b)[A-Za-z]|\)) +(?:less|greater) than *\Z")
+# ... and a bare "less than" / "greater than" counts after a one-letter variable or a closing
+# bracket: "y less than 2x" is the reading of "y < 2x" (#358, D-646). Not after "a", "A", "I"
+# (words) nor a letter the list has as a unit ("2 s less than 2x" is "2 seconds less than"
+# after the first run), filled in by `_compiled`
+_COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:less|greater) than *\Z"
 # the numbers step's reading of a fraction it has no word for ("17/20" is "17 out of 20"): the
 # second number is no unit's number, as the printed denominator is not (#335, D-605)
 _OUT_OF = re.compile(r"(?<![\w.,])\d{1,3} out of \Z")
@@ -328,8 +330,13 @@ def _compiled(language: str) -> _Table | None:
         kept,
         language.split("-", 1)[0].lower(),
         per_word=per_word,
-        compared=re.compile(r"(?!)") if german else _COMPARED_EN,
+        compared=re.compile(r"(?!)") if german else _compared_en(by_form),
     )
+
+
+def _compared_en(by_form: dict[str, Unit]) -> re.Pattern[str]:
+    letters = "".join(sorted(f for f in by_form if len(f) == 1 and f.isascii() and f.isalpha()))
+    return re.compile(_COMPARED_EN.replace("{units}", letters))
 
 
 def _boundary(text: str, position: int) -> bool:
@@ -417,7 +424,12 @@ def _unit_after_per(text: str, start: int, table: _Table) -> tuple[int, int, str
         not text[stop:].strip() or opens_sentence(text, stop, table.language)
     ):
         stop -= 1  # "pro Std." at a sentence end keeps its full stop
-    return start, stop, _reading(terms, False, table), " ".join(text[start:stop].split())
+    return (
+        start,
+        stop,
+        _reading(terms, False, table, after_per=True),
+        " ".join(text[start:stop].split()),
+    )
 
 
 _COMPOUND = "compound"  # instead of a gender: "1" starts a hyphenated compound
@@ -585,25 +597,35 @@ def _capital(text: str, start: int, end: int) -> bool:
     return end - start == 1 and text[start].isascii() and text[start].isupper()
 
 
-def _reading(terms: list[_Term], plural: bool, table: _Table) -> str:
+def _reading(terms: list[_Term], plural: bool, table: _Table, after_per: bool = False) -> str:
+    """The words of a unit expression; `after_per` when it follows a printed "pro" / "je",
+    so its first unit is said as one after "per" ("pro s²" is "pro Quadratsekunde")."""
     words = table.words.words
     above = [term for term in terms if not term.per]
     below = [term for term in terms if term.per]
     joined = table.words.joined_powers
     said = [
-        _said(term, plural and position == len(above) - 1, words, joined)
+        _said(
+            term,
+            plural and position == len(above) - 1,
+            words,
+            joined,
+            per=after_per and position == 0,
+        )
         for position, term in enumerate(above)
     ]
     said += [f"{words['per']} {_said(term, False, words, joined)}" for term in below]
     return " ".join(said)
 
 
-def _said(term: _Term, plural: bool, words: dict[str, str], joined: bool = False) -> str:
+def _said(
+    term: _Term, plural: bool, words: dict[str, str], joined: bool = False, per: bool = False
+) -> str:
     name = term.unit.plural if plural else term.unit.singular
     if term.power == 1:
         return name
     if term.unit.length or (
-        joined and term.per and term.power == 2 and term.unit.square_after_per
+        joined and (term.per or per) and term.power == 2 and term.unit.square_after_per
     ):  # "pro Quadratsekunde" (#250, D-646)
         power = words["square" if term.power == 2 else "cubic"]
         # German writes it into one word: "Quadrat" + "Meter" is "Quadratmeter"
@@ -625,16 +647,20 @@ def reads_unit_after(text: str, end: int, language: str) -> bool:
 
 
 def reads_unit_after_per(text: str, position: int, language: str) -> bool:
-    """True if the step reads the unit that starts at `position` right after "per" / "pro" /
-    "je" ("per m³" as "per cubic metre", #230): the numbers step then leaves its power, or a
-    second run would read "per metre cubed"."""
+    """True if `position` lies in a unit expression the step reads right after "per" / "pro"
+    / "je" ("per m³" as "per cubic metre", "per m² s⁻¹", #230): the numbers step then leaves
+    its powers, or a second run would read "per metre cubed"."""
     table = _compiled(language)
     if table is None:
         return False
-    return any(
-        match.end() == position and _unit_after_per(text, position, table) is not None
-        for match in table.per_word.finditer(text, max(0, position - 4), position)
-    )
+    for match in table.per_word.finditer(text, max(0, position - _PER_LOOK_BACK), position + 1):
+        found = _unit_after_per(text, match.end(), table)
+        if found is not None and found[0] <= position < found[1]:
+            return True
+    return False
+
+
+_PER_LOOK_BACK = 64  # characters; longer than any unit expression the step reads
 
 
 def reads_x_after(text: str, end: int, language: str) -> bool:
@@ -647,9 +673,7 @@ def reads_x_after(text: str, end: int, language: str) -> bool:
     times = table.words.words["times"]
     return any(
         match.end("number") == end
-        and _times_x(
-            text, match, times, table.said_operators, table.words.decimal, table.compared
-        )
+        and _times_x(text, match, times, table.said_operators, table.words.decimal, table.compared)
         for match in _LETTER_X.finditer(text, max(0, end - 64), end + 2)
     )
 

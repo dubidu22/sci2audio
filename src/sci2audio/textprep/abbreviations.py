@@ -42,7 +42,12 @@ _SPACE = r"[^\S\r]{0,2}"
 _LABEL = re.compile(_SPACE + r"(?:\d|[(\[]\w|[A-Z](?![a-z]|\.[A-Za-z]))")
 _NUMBER = re.compile(_SPACE + r"\d")
 _WORD = re.compile(r"[^\S\r]{1,2}(?:[A-Z]|\d)")
-_FOLLOWS = {"label": _LABEL, "number": _NUMBER, "word": _WORD}
+# a date: a day and its full stop, then a month's number or German name ("v. 12.03.2015")
+_DATE = re.compile(
+    _SPACE + r"(?:[1-9]|[012]\d|3[01])\.\s?(?:(?:0?[1-9]|1[0-2])\.|(?:Januar|Februar|März"
+    r"|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\b)"
+)
+_FOLLOWS = {"label": _LABEL, "number": _NUMBER, "word": _WORD, "date": _DATE}
 # a sentence after the full stop: white space, maybe an opening quote or bracket, a capital
 _NEXT_SENTENCE = re.compile(r"\s+[\"'(\[\u201c\u2018]?[A-Z]")
 # German: a capital is any upper-case letter ("Dr. Özdemir", "usw. Über"; review of PR #228);
@@ -57,6 +62,7 @@ _FOLLOWS_ANY_CAPITAL = {
     ),
     "number": re.compile(_SPACE + r"\.?\d"),
     "word": re.compile(rf"[^\S\r]{{1,2}}(?:[{_UPPER}]|\.?\d)"),
+    "date": _DATE,
 }
 # ... maybe after a closing quote: "Er schrieb „usw.“ Dann" ends a sentence at the quote, as
 # the cutter ends it there (#315), so the full stop stays (#342); double and single quotes
@@ -139,6 +145,8 @@ class AbbreviationStep(TextStep):
             reads = entry.reads
             if entry.before_year and _YEAR_AFTER.match(text, end) and _after_name(text, start):
                 reads = entry.before_year
+            if entry.after_paragraph and _after_paragraph(text, start):
+                reads = entry.after_paragraph
             if not entry.exact_case:
                 reads = _cased(reads, printed)
             if entry.can_end_sentence and _ends_sentence(text, end, any_capital):
@@ -279,13 +287,19 @@ def _ends_sentence(text: str, end: int, any_capital: bool = False) -> bool:
 
 
 # a page number, maybe a range, after "S." or "Seite(n)", right before "f." (#231, D-646)
-_PAGE_BEFORE = re.compile(
-    r"(?:(?<![^\W\d_])S\.|\bSeiten?)\s*\d+(?:\s*[-\u2013\u2014]\s*\d+)?\s+\Z"
-)
+_PAGE_BEFORE = re.compile(r"(?:(?<![^\W\d_])S\.|\bSeiten?)\s*\d+(?:\s*[-\u2013\u2014]\s*\d+)?\s+\Z")
 
 
 def _after_page(text: str, start: int) -> bool:
     return _PAGE_BEFORE.search(text, max(0, start - 32), start) is not None
+
+
+# a paragraph's number after "Abs." or "Absatz", right before "S." (#264)
+_PARAGRAPH_BEFORE = re.compile(r"(?:(?<![^\W\d_])Abs\.|\bAbsatz)\s*\d+[a-z]?\s+\Z")
+
+
+def _after_paragraph(text: str, start: int) -> bool:
+    return _PARAGRAPH_BEFORE.search(text, max(0, start - 32), start) is not None
 
 
 def _after_name(text: str, start: int) -> bool:

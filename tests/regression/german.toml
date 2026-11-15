@@ -277,6 +277,26 @@ expected = ["Es gab Hunde, Katzen und so weiter. Die Studie lief lange, mit Mäu
 utterances = ["Es gab Hunde, Katzen und so weiter.", "Die Studie lief lange, mit Mäusen et zetera."]
 
 [[case]]
+id = "de-abbreviations-legal-forms"
+audit = 0
+issue = 264
+goal = "German legal forms are read in full, not spelled: 'i. S. v.', 'i. V. m.', 'v.' before a court decision's date, 'S.' after a paragraph; no utterance ends after 'i. V. m.'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Gemäß Art. 2 Abs. 1 i. V. m. Art. 1 Abs. 1 GG gilt das. Ein Recht an Sachen i. S. v. § 90 BGB besteht." },
+    { kind = "paragraph", text = "So urteilte das LG Hamburg v. 12.03.2015 nach Art. 6 Abs. 1 S. 1 lit. f DSGVO." },
+]
+expected = [
+    "Gemäß Artikel 2 Absatz 1 in Verbindung mit Artikel 1 Absatz 1 GG gilt das. Ein Recht an Sachen im Sinne von § 90 BGB besteht.",
+    "So urteilte das LG Hamburg vom zwölften März 2015 nach Artikel 6 Absatz 1 Satz 1 Buchstabe f DSGVO.",
+]
+utterances = [
+    "Gemäß Artikel 2 Absatz 1 in Verbindung mit Artikel 1 Absatz 1 GG gilt das.",
+    "Ein Recht an Sachen im Sinne von § 90 BGB besteht.",
+    "So urteilte das LG Hamburg vom zwölften März 2015 nach Artikel 6 Absatz 1 Satz 1 Buchstabe f DSGVO.",
+]
+
+[[case]]
 id = "de-abbreviations-u-a-before-a-year"
 audit = 0
 issue = 113
@@ -600,7 +620,7 @@ blocks = [
   { kind = "paragraph", text = "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am 3.5.2019." },
 ]
 expected = [
-  "BGH, Urteil vom dreizehnten Januar 2015 – VI ZR 8/14. BVerfG, Beschluss v. fünfzehnten Dezember 19 hundert 83 – 1 BvR 209/83.",
+  "BGH, Urteil vom dreizehnten Januar 2015 – VI ZR 8/14. BVerfG, Beschluss vom fünfzehnten Dezember 19 hundert 83 – 1 BvR 209/83.",
   "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am dritten Mai 2019.",
 ]
 
@@ -1719,10 +1739,12 @@ language = "de"
 blocks = [
     { kind = "paragraph", text = "Es beschleunigt mit 2 m s⁻²." },
     { kind = "paragraph", text = "Es beschleunigt mit 9,81 m/s²." },
+    { kind = "paragraph", text = "Die Kraft pro s² steigt." },
 ]
 expected = [
     "Es beschleunigt mit 2 Meter pro Quadratsekunde.",
     "Es beschleunigt mit 9 Komma 8 1 Meter pro Quadratsekunde.",
+    "Die Kraft pro Quadratsekunde steigt.",
 ]
 
 [[case]]

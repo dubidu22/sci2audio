@@ -17,7 +17,7 @@ from functools import cache
 from importlib.resources import files
 from typing import Any
 
-BEFORE = ("anything", "number", "label", "word")  # where an abbreviation is read in full
+BEFORE = ("anything", "number", "label", "word", "date")  # where an abbreviation is read in full
 GENDERS = ("m", "f", "n")  # a unit's grammatical gender, for "ein"/"eine" before it (German)
 CASES = ("nominative", "dative", "accusative")  # the forms of "ein" a list may give
 
@@ -33,6 +33,7 @@ class Abbreviation:
     exact_case: bool = False  # found only as printed, read as listed ("S." Seite, "s." siehe)
     before_year: str = ""  # read instead before a year: "u. a. (2019)" is "und andere"
     after_page: bool = False  # read only after a page number: "S. 12 f." (#231, D-646)
+    after_paragraph: str = ""  # read instead after "Abs. 1": "Abs. 1 S. 2" is "Satz" (#264)
 
 
 @dataclass(frozen=True)
@@ -202,6 +203,7 @@ def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:
                 "exact_case",
                 "before_year",
                 "after_page",
+                "after_paragraph",
             },
         )
         printed = _strings(at, entry, "printed")
@@ -211,6 +213,7 @@ def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:
         if before not in BEFORE:
             raise ValueError(f"{at}: before must be one of {BEFORE}, got {before!r}")
         before_year = _text(at, entry, "before_year") if "before_year" in entry else ""
+        after_paragraph = _text(at, entry, "after_paragraph") if "after_paragraph" in entry else ""
         result.append(
             Abbreviation(
                 printed,
@@ -220,6 +223,7 @@ def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:
                 _flag(at, entry, "exact_case"),
                 before_year,
                 _flag(at, entry, "after_page"),
+                after_paragraph,
             )
         )
     # a form found in any case may not share its letters with another form; forms found only

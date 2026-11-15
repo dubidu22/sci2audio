@@ -15,6 +15,8 @@
 #            "label"     only before a label: a digit, "(", or a capital letter or Roman
 #                        numeral standing alone ("Fig. 2a", "Eq. (8)", "App. B", "Sec. III")
 #            "word"      only before a capitalised word or a label ("Suppl. Fig. 3")
+#            "date"      only before a date: a day and its full stop, then a month's number
+#                        or German name ("v. 12.03.2015", "v. 5. März 2015"; #264)
 #   can_end_sentence  true if the abbreviation can end a sentence: there its full stop is
 #            kept as printed, so the sentence still ends (D-234)
 
