@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import multiprocessing
 import sys
 import threading
 from collections.abc import Callable, Sequence
@@ -1053,6 +1054,9 @@ def _fail(env: CliEnv, message: str, code: Exit) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    # A packaged build starts itself again for each PDF reader process (D-581); this hands
+    # such a start to the reader. In a plain Python install it does nothing.
+    multiprocessing.freeze_support()
     return run(argv, CliEnv.real())
 
 

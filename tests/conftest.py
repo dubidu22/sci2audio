@@ -6,8 +6,12 @@ Hypothesis profiles (select with the HYPOTHESIS_PROFILE environment variable):
 - nightly: many more examples to find rare edge cases
 """
 
+import copy
+import hashlib
 import os
 import sys
+from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 from hypothesis import HealthCheck, settings
@@ -75,3 +79,41 @@ def pytest_report_collectionfinish(config: pytest.Config, items: list[pytest.Ite
     if not lines:
         return []
     return [f"{len(lines)} quarantined test(s), all to be fixed before v1.0 (D-374, #80):", *lines]
+
+
+# --- PDF reader processes (D-581) ----------------------------------------------------------
+# Every PDF is read in a child process, about 0.2 s each; the job, web and command-line tests
+# read the same few files hundreds of times. Each distinct file (its bytes, name and the
+# limits in force) is read in a real child once per test worker, and later reads of it get
+# a fresh copy of that result, as from the child. Tests marked `every_pdf_read`
+# (the reader's own tests) or `benchmark` (speed measurements) always start a child.
+
+_PDF_READS: dict[tuple[object, ...], object] = {}
+
+
+@pytest.fixture(autouse=True)
+def _each_pdf_read_once(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    if request.node.get_closest_marker("every_pdf_read") or request.node.get_closest_marker(
+        "benchmark"
+    ):
+        return
+    from sci2audio.extraction import isolate, pdf
+
+    real = pdf._isolated
+
+    def once(target: Callable[..., object], path: str) -> object:
+        try:
+            data = Path(path).read_bytes()
+        except OSError:
+            return real(target, path)
+        limits = tuple(getattr(pdf, name) for name in pdf._LIMITS)
+        key = (target, hashlib.sha256(data).digest(), Path(path).name, limits)
+        key += (pdf.MAX_MEMORY, pdf.STEP_SECONDS)
+        if key not in _PDF_READS:
+            result = real(target, path)  # an error is raised, and not kept
+            if isinstance(result, isolate.Stopped):
+                return result
+            _PDF_READS[key] = result
+        return copy.deepcopy(_PDF_READS[key])
+
+    monkeypatch.setattr(pdf, "_isolated", once)
