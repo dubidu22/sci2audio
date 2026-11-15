@@ -4,6 +4,7 @@ from the beginning, and never plays by itself (D-300)."""
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -11,6 +12,21 @@ from playwright.sync_api import Page, Route, expect
 from test_player import chunk_id, highlighted, make_audiobook, paused, watch_status
 
 from conftest import Live, SlowFetch, check_axe, inside, serve, tab_key
+from sci2audio.web.player import POSITION
+
+
+def wait_until_saved(page: Page, live: Live, document: str, time: float) -> None:
+    """Wait until the working folder holds this position (the save on pause can take longer
+    than a fixed wait on a busy runner: nightly run 43774244578 read the save before it)."""
+    path = live.state.store.get(document).folder / POSITION
+    for _ in range(100):
+        try:
+            if abs(json.loads(path.read_text(encoding="utf-8"))["time"] - time) < 0.05:
+                return
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        page.wait_for_timeout(50)
+    raise AssertionError(f"the position {time} was not saved: {path}")
 
 
 def test_the_next_run_offers_to_continue_where_the_person_stopped(
@@ -28,7 +44,7 @@ def test_the_next_run_offers_to_continue_where_the_person_stopped(
         "() => { const d = JSON.parse(document.getElementById('player-data').textContent);"
         " return document.getElementById('audio').currentTime + d.chapters[1].offset; }"
     )
-    page.wait_for_timeout(300)  # the save on pause reaches the server
+    wait_until_saved(page, live, document, stopped)  # the save on pause reached the server
 
     with serve(tmp_path, live.voice, SlowFetch()) as second:
         assert second.url != live.url  # another port: the browser's storage starts empty
