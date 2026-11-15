@@ -187,12 +187,12 @@ def test_the_corpus_has_the_footnote_marks_the_plan_counted() -> None:
     assert labelled == {False: 39, True: 30}  # the German paper: 29 notes and one star (#235)
 
 
-def test_liu_reads_the_same_on_a_second_run() -> None:
-    """#202 (D-575): the script of the paper whose inline fractions now read apart, run
-    through the text steps again, reads the same: no step joins the parts of a fraction or
-    reads them differently the second time (as the runner's property checks on made-up
-    documents)."""
-    paper = CORPUS / "papers" / "arxiv2024-liu-orbital-hall.pdf"
+@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
+def test_every_paper_reads_the_same_on_a_second_run(paper: Path) -> None:
+    """#202 (D-575), #324: each paper's script, run through the text steps again, reads the
+    same: no step joins the parts of a fraction (liu) or reads anything differently the
+    second time, and a caption label a step spelled out ("Abb. 1", maass) still names its
+    figure (as the runner's property checks on made-up documents)."""
     doc = document(paper)
     script = run(paper).script()
     rebuilt = rebuilt_from_script(doc, script)
