@@ -65,6 +65,7 @@ from sci2audio.textprep.wording import Wording, wording_for
 _LOOK_BRACKETS = re.compile(r"[(\[]")
 _MAX_BRACKET = 4000  # characters; a longer bracket is not a citation and is not parsed
 _EDITS_LOOKED_BACK = 16  # inner edits read back before a bracket of years (D-599)
+_HUNG = 24  # characters read back for a separator a removal leaves hanging (#372)
 _LOOK_WORK = 8  # how many times its own length all looks at a block may read (D-599)
 
 
@@ -95,6 +96,9 @@ class CitationWords:
     # words that may stand before an identifier in brackets: "(grant no. DMS-1912345)" (#285)
     funding: str = r"(?!)"
     and_word: str = "and"  # between two identifiers: "(0801700 and 527794)"
+    # a page after a numeric citation's source, and how it is read: "[12, p. 3]" (#257)
+    page_lead: str = r"pp?\.|pages?"
+    page_words: tuple[str, str] = ("page", "pages")
     # German writes every noun with a capital: a capital word before a year bracket names an
     # author only after one of these words (or at a sentence start), not after an article or
     # an inflected adjective ("die neue Studie (2019)", "Die Olympischen Spiele (2016)")
@@ -240,6 +244,8 @@ WORDS: dict[str, CitationWords] = {
             r"|Nr\."
         ),
         and_word="und",
+        page_lead=r"S\.|Seiten?|pp?\.",
+        page_words=("Seite", "Seiten"),
         name_leads=frozenset((
             "wie", "siehe", "gegen", "unter", "über", "oder", "aber", "sowie", "haben", "zeigen",
             "zeigten", "fanden", "finden", "schreiben", "beschreiben", "argumentieren", "betonen",
@@ -420,6 +426,15 @@ class _Rules:
         self.numeric_aside = _numeric_aside_pattern(words)
         self.years_only = re.compile(rf"\s*{_years(words)}{_locator(words)}\s*\Z", re.IGNORECASE)
         self.page_only = re.compile(rf"\s*(?:{words.page})\s*\Z")
+        # one source and its page: "[12, p. 3]", "[12, S. 3–5]", "[MH17, S. 3]" (#257, D-668)
+        self.paged = re.compile(
+            rf"\s*(?P<source>{_NUMBER}|{_KEY})\s*,\s*(?:{words.page_lead})\s*"
+            r"(?P<first>[1-9]\d{0,4})(?:\s*[-–—]\s*(?P<last>[1-9]\d{0,4}))?\s*\Z"
+        )
+        # a second square bracket joined to one by "and": "between [1] and [3]" (#257)
+        self.pair_after = re.compile(rf"\s+{words.and_word}\s+\[([^\[\]]*)\]")
+        self._paired: set[int] = set()  # the second brackets of pairs, this look only
+        self._numbered: set[int] = set()  # the square brackets decided, this look only
         self.identifiers = _identifiers_pattern(words)
         leads = "|".join(
             re.escape(lead).replace(r"\ ", r"\s+")
@@ -538,6 +553,7 @@ class _Rules:
     def _once(self, text: str, links: list[tuple[int, int]], cuts: Sequence[int]) -> list[_Found]:
         found: list[_Found] = []
         self._runs: dict[int, int] = {}  # for `_before_removals`, this look only
+        self._paired, self._numbered = set(), set()
         self._link_starts = {end: start for start, end in links}  # for `_numeric`
         roots = brackets(text)
         for node in roots:
@@ -722,6 +738,11 @@ class _Rules:
         if (_cut_inside(cuts, node) and self._only_lead_left(inside)) or self._lead_around_gone(
             text, node, decided
         ):
+            # "((Smith, 2019); (Lee, 2018)) is cited" names them all, as the flat form does
+            # (#372, D-668); a list of names is the only reading here that replaces anything
+            nest = self._cited_once_inner_citations_go(text, node, decided) or []
+            if any(kind is EditKind.REPLACE for _, _, kind, *_ in nest):
+                return nest
             # "(see (527794))" without its identifier is "(see)": a pointer to nothing
             return [self._removed(text, node.open, node.close + 1, "bracket of lead words")]
         if self.numeric_aside.match(inside):
@@ -871,7 +892,8 @@ class _Rules:
             return None  # an inner edit before the look-back, or the nest is too long
         self._separators_left(text, node, read)
         names = None
-        if read.text[read.open + 1 : read.close].strip():
+        rest = read.text[read.open + 1 : read.close]
+        if rest.strip() and not (self._year_shell(text, node) and _YEAR_ONLY.fullmatch(rest)):
             local = _Bracket(read.open, read.close)
             parts = self._parts(read.text, local)
             named = [part for part in parts or () if self._is_citation(read.text, part)]
@@ -884,22 +906,21 @@ class _Rules:
         end = self._glued_page(text, node.close + 1)
         subject = self._is_subject(text, node.open, end)
         if subject or self._previous_word(text, node.open) in self.words.nouns:
-            if names is None:
-                return None  # "((Smith, 2019)) is cited": nothing left to name, as before
             # "((Smith, 2019) Jones, 2020) is cited" reads "Jones is cited" on both runs; an
             # inner citation listed with the others keeps its names, as in the flat form:
-            # "((Smith, 2019); Jones, 2020) is cited" reads "Smith and Jones" (#278, D-605)
+            # "((Smith, 2019); Jones, 2020) is cited" reads "Smith and Jones" (#278, D-605),
+            # and so does every inner citation of the list: "((Smith, 2019); (Lee, 2018))
+            # is cited" reads "Smith and Lee" (#372, D-668)
             listed = self._listed_inner_names(text, node, decided)
+            if names is None and not (1 < len(listed) == len(node.children)):
+                return None  # "((Smith, 2019)) is cited": nothing left to name, as before
             if listed:
-                names = sorted([name for _, child_names in listed for name in child_names] + names)
-                taken = [child for child, _ in listed]
-                edits = [
-                    edit
-                    for edit in edits
-                    if not any(
-                        child.open <= edit[0] and edit[1] <= child.close + 1 for child in taken
-                    )
-                ]
+                names = sorted(
+                    [name for _, child_names in listed for name in child_names] + (names or [])
+                )
+                # the listed brackets' own removals give way to the names' edits
+                taken = {edit for child, _ in listed for edit in decided.get(child.open) or ()}
+                edits = [edit for edit in edits if edit not in taken]
             role = "is the subject of the sentence" if subject else "is part of the sentence"
             return self._with_inner(self._subject(text, node, names, end, role), edits)
         return [self._removed(text, node.open, end, "citation")]
@@ -907,24 +928,47 @@ class _Rules:
     def _listed_inner_names(
         self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
     ) -> list[tuple[_Bracket, list[tuple[int, int]]]]:
-        """The inner bracket that opens the bracket, goes whole as a citation and is the
-        first item of its list ("((Smith, 2019); Jones, 2020)"), with its names' spans; none
-        for any other shape, which reads as before."""
-        if not node.children:
-            return []
-        child = node.children[0]
-        handled = decided.get(child.open) or []
-        if len(handled) != 1 or handled[0][2] is not EditKind.REMOVE:
-            return []
-        if text[node.open + 1 : child.open].strip():
-            return []
-        if not re.match(r"\s*[;,]\s*\S", text[child.close + 1 : node.close]):
-            return []
-        parts = self._parts(text, child)
-        named = [part for part in parts or () if self._is_citation(text, part)]
-        if not parts or len(named) != len(parts):
-            return []
-        return [(child, [self._part_authors(text, part) for part in named])]
+        """The inner brackets that are items of the bracket's list and go whole as citations,
+        each with its names' spans: "((Smith, 2019); (Lee, 2018); Jones, 2020)" lists the two
+        first ones, "(Jones, 2020; (Smith, 2019))" the last one (#278, #372). An item is set
+        off by ";" or "," on each side, or by the bracket's edge, and has a separator on one
+        side at least; any other inner bracket ("((Smith, 2019) Jones, 2020)") is not listed
+        and reads as before. In a year shell the year counts as the edge (#375)."""
+        listed = []
+        bounds = [node.open, *(i for child in node.children for i in (child.open, child.close))]
+        bounds.append(node.children[-1].close + 1 if self._year_shell(text, node) else node.close)
+        for number, child in enumerate(node.children):
+            before = text[bounds[2 * number] + 1 : child.open]
+            after = text[child.close + 1 : bounds[2 * number + 3]]
+            ahead = re.match(r"\s*[;,]", after) is not None and (
+                number + 1 < len(node.children) or re.match(r"\s*[;,]\s*\S", after) is not None
+            )
+            behind = re.search(r"\S\s*[;,]\s*$", before) is not None or (
+                number > 0 and re.fullmatch(r"\s*[;,]\s*", before) is not None
+            )
+            if not (ahead or behind):
+                continue
+            if not (ahead or not after.strip()) or not (behind or not before.strip()):
+                continue
+            handled = decided.get(child.open) or []
+            if len(handled) != 1 or handled[0][2] is not EditKind.REMOVE:
+                continue
+            parts = self._parts(text, child)
+            named = [part for part in parts or () if self._is_citation(text, part)]
+            if not parts or len(named) != len(parts):
+                continue
+            listed.append((child, [self._part_authors(text, part) for part in named]))
+        return listed
+
+    @staticmethod
+    def _year_shell(text: str, node: _Bracket) -> bool:
+        """True if the bracket is a year shell around a list of inner brackets: "((Smith,
+        2019); (Lee, 2020) 2021)" is "( 2021)" once they go, so it goes with them; as the
+        subject, it names them all (#375, D-668). One inner bracket in a year shell ("((Smith,
+        2019) 2020)") goes in `_shells` (#339), as before."""
+        if len(node.children) < 2:
+            return False
+        return _SHELL_YEAR.fullmatch(text, node.children[-1].close + 1, node.close + 1) is not None
 
     def _years_after_inner_names(
         self,
@@ -970,20 +1014,44 @@ class _Rules:
     def _separators_left(self, text: str, node: _Bracket, read: _Read) -> None:
         """Blank, in `read`, a separator that an inner removal leaves hanging at the bracket's
         start, after its lead words, or at its end (D-588): "((Smith, 2019), Lee, 2020)" and
-        "(Lee, 2020; (Smith, 2019))" are "(Lee, 2020)" then."""
+        "(Lee, 2020; (Smith, 2019))" are "(Lee, 2020)" then; so does a run of such removals
+        (#372)."""
         removed = read.removals
         if not removed:
             return
         last = node.close  # after the last printed character inside
         while last > node.open + 1 and text[last - 1].isspace():
             last -= 1
-        for start, _end, at in removed:
+        for number, (start, _end, at) in enumerate(removed):
             if start <= node.open + 1 or self.lead_before.fullmatch(text, node.open, start):
+                # a run of removals set off by separators leaves each of them hanging:
+                # "((Smith, 2019); (Lee, 2018); Jones, 2020)" is "(Jones, 2020)" (#372)
+                for _start, _end, next_at in removed[number + 1 :]:
+                    hung = self.hung_ahead.match(read.text, at + 1, read.close)
+                    if not hung or read.text[hung.end() : next_at].strip():
+                        break
+                    read.blank(hung.start(), hung.end())
+                    at = next_at
                 if hung := self.hung_ahead.match(read.text, at + 1, read.close):
                     read.blank(hung.start(), hung.end())
                 break
-        for start, end, at in removed:
+        kept = re.compile(r"\s*").match(read.text, read.open + 1).end()  # the first kept item
+        for _start, _end, at in removed:
+            # one between two items: "(Jones, 2020; (Smith, 2019); Kim, 2017)" is "(Jones,
+            # 2020; Kim, 2017)" then (#372); each look reads only the few characters around
+            behind = self.hung_behind.search(read.text, max(read.open + 1, at - _HUNG), at)
+            ahead = self.hung_ahead.match(read.text, at + 1, read.close)
+            if behind and ahead and kept < behind.start():
+                read.blank(ahead.start(), ahead.end())
+        for number in range(len(removed) - 1, -1, -1):
+            start, end, at = removed[number]
             if start < last <= end:
+                for _start, _end, previous_at in reversed(removed[:number]):
+                    hung = self.hung_behind.search(read.text, max(read.open + 1, at - _HUNG), at)
+                    if not hung or read.text[previous_at + 1 : hung.start()].strip():
+                        break
+                    read.blank(hung.start(), hung.end())
+                    at = previous_at
                 if hung := self.hung_behind.search(read.text, read.open + 1, at):
                     read.blank(hung.start(), hung.end())
                 break
@@ -1013,7 +1081,7 @@ class _Rules:
         a second run reads as the subject, #308, D-577)."""
         at = node.open if at is None else at
         keys = _keys(inside, self.keys)
-        if keys is None and not _NUMERIC.match(inside):
+        if keys is None and not _NUMERIC.match(inside) and self._paged(inside) is None:
             if self.page_only.match(inside) and re.search(
                 r"[\"”’']\s*\Z", _before(text, node.open)
             ):
@@ -1037,6 +1105,9 @@ class _Rules:
             return None  # "[1,2; 3,4]": two German decimals, an interval, not sources
         if self._not_citations(text, node.open):
             return None
+        if node.open in self._paired:
+            return []  # the second bracket of a pair: read with the first
+        self._numbered.add(node.open)
         window = max(0, node.open - _LOOK_BACK)
         # judged on the words before it as a second run sees them, past the removals
         before = text[window : min(edge, node.open)].rstrip()
@@ -1055,6 +1126,9 @@ class _Rules:
             word not in self.words.before
             or any(before.lower().endswith(aside) for aside in self.words.asides)
         ) and not self._is_subject(text, at, node.close + 1):
+            pair = self._pair(text, node, inside)
+            if pair is not None:
+                return [pair]
             what = "citation key" if keys else "numeric citation"
             return [self._removed(text, node.open, node.close + 1, what)]
         spoken = self._spoken(inside)
@@ -1066,6 +1140,46 @@ class _Rules:
         if edge < node.open and not text[start - 1 : start].isspace():
             spoken = " " + spoken  # the removal before took the space: "and (Smith, 2019)[12]"
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
+
+    def _pair(self, text: str, node: _Bracket, inside: str) -> _Found | None:
+        """An aside bracket joined by "and" to a second square bracket that the sentence
+        needs: both are needed, read as one ("between [1] and [3]" is "between references 1
+        and 3", #257, D-668). Only two of a kind (numbers or listed keys), no pages, and only
+        if the second is not decided yet in this look."""
+        after = self.pair_after.match(text, node.close + 1)
+        if after is None or self.words.and_word not in self.words.before:
+            return None
+        other, other_open = after.group(1), after.start(1) - 1
+        if other_open in self._numbered or self._paged(inside) or self._paged(other):
+            return None
+        keys = _keys(inside, self.keys) is not None
+        if keys != (_keys(other, self.keys) is not None):
+            return None
+        if not keys and not (_NUMERIC.match(inside) and _NUMERIC.match(other)):
+            return None
+        if _NUMBER_GLUED_AFTER.match(text, after.end()) or self._decimal_interval(other):
+            return None
+        self._paired.add(other_open)
+        spoken = self._spoken(f"{inside}, {other}")
+        if self._starts_sentence(text, node.open):
+            spoken = spoken[0].upper() + spoken[1:]
+        printed = _printed(text[node.open : after.end()])
+        reason = f'citations "{printed}" are part of the sentence: read as "{spoken}" (TP-04)'
+        return (node.open, after.end(), EditKind.REPLACE, spoken, reason)
+
+    def _paged(self, inside: str) -> tuple[str, str] | None:
+        """One source and its page, as the source and the page's reading: "12, p. 3" is "12"
+        and "page 3", "12, S. 3–5" "12" and "Seiten 3 bis 5" (#257, D-668)."""
+        match = self.paged.match(inside)
+        if match is None:
+            return None
+        source = match["source"]
+        if not _NUMERIC.match(source) and _keys(source, self.keys) is None:
+            return None
+        page, pages = self.words.page_words
+        if match["last"]:
+            return source, f"{pages} {match['first']} {self.wording.range_to} {match['last']}"
+        return source, f"{page} {match['first']}"
 
     def _read_at_ref_word(
         self, text: str, node: _Bracket, inside: str, start: int, end: int
@@ -1116,7 +1230,10 @@ class _Rules:
 
     def _spoken(self, inside: str) -> str:
         """The reading of a needed citation: "references 53 and 58", "Quelle MH17" (a key as
-        printed, D-646)."""
+        printed, D-646); with its page: "reference 12, page 3" (#257, D-668)."""
+        paged = self._paged(inside)
+        if paged is not None:
+            return f"{self._spoken(paged[0])}, {paged[1]}"
         keys = _keys(inside, self.keys)
         items = list(keys or ())
         single = True
@@ -1541,6 +1658,7 @@ class _Rewrite:
 
 _OPENS = {"(": ")", "[": "]"}
 _SHELL_YEAR = re.compile(rf"\s+{_YEAR}\s*[)\]]")
+_YEAR_ONLY = re.compile(rf"\s*{_YEAR}\s*")  # a year shell's inside once its citations go
 
 
 def _shells(text: str, found: list[_Found]) -> list[_Found]:

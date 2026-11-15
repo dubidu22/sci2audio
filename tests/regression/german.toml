@@ -1863,3 +1863,188 @@ expected = [
     "Die Zellen [AB12] bis [AB20], siehe [MH17].",
     "Der Wert von [PM10] stieg, und [CO2] auch.",
 ]
+
+# ---- PR 3 of the second textprep batch: words left without their partner (D-668) ----
+
+[[case]]
+id = "de-citations-a-pair-of-numeric-citations-the-sentence-needs"
+audit = 0
+issue = 257
+goal = "Eine Klammer, die mit 'und' an eine gebrauchte gebunden ist, wird mitgelesen: 'zwischen [1] und [3]' liest 'zwischen Quellen 1 und 3' (D-668)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Zwischen [1] und [3] liegt es." },
+    { kind = "paragraph", text = "Es liegt zwischen [1] und [3]." },
+    { kind = "paragraph", text = "Es gilt [1] oder [3] hier." },
+]
+expected = [
+    "Zwischen Quellen 1 und 3 liegt es.",
+    "Es liegt zwischen Quellen 1 und 3.",
+    "Es gilt oder Quelle 3 hier.",
+]
+
+[[case]]
+id = "de-citations-a-numeric-citation-with-a-page"
+audit = 0
+issue = 257
+goal = "Eine Zahlenquelle mit Seite wird als Quelle und Seite gelesen, wo der Satz sie braucht ('Quelle 12, Seite 3'), und geht als Einschub ganz (D-668)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "In [12, S. 3] steht es." },
+    { kind = "paragraph", text = "Wie in [12, S. 3–5] steht es." },
+    { kind = "paragraph", text = "Das gilt [12, S. 3]." },
+]
+expected = [
+    "In Quelle 12, Seite 3 steht es.",
+    "Wie in Quelle 12, Seiten 3 bis 5 steht es.",
+    "Das gilt.",
+]
+
+[[case]]
+id = "de-links-a-join-word-after-a-removed-link"
+audit = 0
+issue = 257
+goal = "Ein Bindewort direkt nach einem entfernten Link geht mit, wenn der Link als erstes Glied stand ('Wir danken Müller'); es bleibt, wo ein Leitwort mit dem Link ging (D-668)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wir danken https://x.org und Müller (2019)." },
+    { kind = "paragraph", text = "Wir laden es von https://x.org und starten es." },
+]
+expected = [
+    "Wir danken Müller.",
+    "Wir laden es und starten es.",
+]
+
+[[case]]
+id = "de-links-no-two-full-stops-after-an-abbreviation"
+audit = 0
+issue = 258
+goal = "Ein Link, der nach dem Punkt einer Abkürzung den Satz beendet, hinterlässt kein '..'; wird die Abkürzung samt Punkt gelesen, bleibt der Satzpunkt (D-668)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wir zeigen das in Abb. https://x.org. Dann mehr." },
+    { kind = "paragraph", text = "Daten finden sich u. a. unter https://x.org. Dann mehr." },
+]
+expected = [
+    "Wir zeigen das in Abb. Dann mehr.",
+    "Daten finden sich unter anderem. Dann mehr.",
+]
+utterances = ["Wir zeigen das in Abb. Dann mehr.", "Daten finden sich unter anderem.", "Dann mehr."]
+
+[[case]]
+id = "de-citations-a-subject-nest-keeps-every-name"
+audit = 0
+issue = 372
+goal = "Ein Subjekt-Nest mit mehr als seiner ersten Quelle in Klammern behält jeden Namen, wie die flache Form (D-668)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "((Müller, 2019); (Lee, 2018); Schmidt, 2020) wird zitiert." },
+    { kind = "paragraph", text = "(Müller, 2019; Lee, 2018; Schmidt, 2020) wird zitiert." },
+]
+expected = [
+    "Müller, Lee und Schmidt wird zitiert.",
+    "Müller, Lee und Schmidt wird zitiert.",
+]
+
+[[case]]
+id = "de-citations-a-year-shell-around-several-citations"
+audit = 0
+issue = 375
+goal = "Eine Jahresschale um eine Liste innerer Quellen, die gehen, geht mit ihnen: kein '(; 2021)' (D-668)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Daten ((Müller, 2019); (Lee, 2020) 2021) hier." },
+]
+expected = ["Daten hier."]
+
+[[case]]
+id = "de-citations-a-key-label-inside-a-line-is-no-entry"
+audit = 0
+issue = 383
+goal = "Eine Schlüsselklammer mit Initialen mitten im Satz ist kein Eintrag; ohne Liste im Dokument bleibt der Schlüssel wie gedruckt (Review von PR #377, Runde 2)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Das Werkzeug von [Mn12] A. Bee läuft." },
+]
+expected = [
+    "Das Werkzeug von [Mn12] A. Bee läuft.",
+]
+
+[[case]]
+id = "de-references-numbered-body-items-with-an-abbreviation-are-read"
+audit = 0
+issue = 383
+goal = "Nummerierte Punkte am Ende des Dokuments sind keine Literaturliste ohne Überschrift, denn 'USA. Dann' sind keine Initialen (Review von PR #377, Runde 2)."
+language = "de"
+blocks = [
+    { kind = "heading", text = "Ergebnisse" },
+    { kind = "paragraph", text = "[1] Im Jahr 2011 fuhren wir in die USA. Dann lief es." },
+    { kind = "paragraph", text = "[2] Im Jahr 2012 fuhren wir in die USA. Dann lief es." },
+    { kind = "paragraph", text = "[3] Im Jahr 2013 fuhren wir in die USA. Dann lief es." },
+    { kind = "paragraph", text = "[4] Im Jahr 2014 fuhren wir in die USA. Dann lief es." },
+    { kind = "paragraph", text = "[5] Im Jahr 2015 fuhren wir in die USA. Dann lief es." },
+    { kind = "paragraph", text = "[6] Im Jahr 2016 fuhren wir in die USA. Dann lief es." },
+]
+expected = [
+    "Ergebnisse",
+    "Im Jahr 2011 fuhren wir in die USA. Dann lief es.",
+    "Im Jahr 2012 fuhren wir in die USA. Dann lief es.",
+    "Im Jahr 2013 fuhren wir in die USA. Dann lief es.",
+    "Im Jahr 2014 fuhren wir in die USA. Dann lief es.",
+    "Im Jahr 2015 fuhren wir in die USA. Dann lief es.",
+    "Im Jahr 2016 fuhren wir in die USA. Dann lief es.",
+]
+
+[[case]]
+id = "de-references-a-heading-counts-only-right-before-the-list"
+audit = 0
+issue = 383
+goal = "Eine Überschrift, die keine Literaturliste nennt, schützt eine Liste nur direkt davor: nach einer losen Notiz wird die Liste darunter entfernt (Review von PR #377, Runde 2)."
+language = "de"
+blocks = [
+    { kind = "heading", text = "Anmerkungen" },
+    { kind = "paragraph", text = "[3] Eine lose Notiz." },
+    { kind = "paragraph", text = "[1] A. Schmidt und B. Lee, Phys. Rev. B 1, 2 (2019)." },
+    { kind = "paragraph", text = "[2] C. Jones, Nature 3, 4 (2020)." },
+    { kind = "paragraph", text = "[3] D. Braun, Science 5, 6 (2021)." },
+    { kind = "paragraph", text = "[4] E. Grün, Phys. Rev. Lett. 7, 8 (2018)." },
+    { kind = "paragraph", text = "[5] G. Schwarz, Phys. Rev. A 3, 1 (2016)." },
+    { kind = "paragraph", text = "[6] F. Weiß, J. Phys. 9, 10 (2017)." },
+]
+expected = [
+    "Anmerkungen",
+    "Eine lose Notiz.",
+]
+
+[[case]]
+id = "de-abbreviations-legal-forms-cut-where-the-citation-ends"
+audit = 0
+issue = 384
+goal = "Nach 'a. F.' geht die Angabe nur vor einem Großbuchstabenwort ohne Kleinbuchstaben ('CDs' beginnt einen Satz) und vor einer Nummer-Abkürzung ('S. 2') weiter (Review von PR #382, Runde 2)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Nach § 28 a. F. CDs gilt das." },
+    { kind = "paragraph", text = "Nach § 28 a. F. S. 2 gilt das." },
+]
+expected = [
+    "Nach § 28 alte Fassung. CDs gilt das.",
+    "Nach § 28 alte Fassung Seite 2 gilt das.",
+]
+utterances = [
+    "Nach § 28 alte Fassung.",
+    "CDs gilt das.",
+    "Nach § 28 alte Fassung Seite 2 gilt das.",
+]
+
+[[case]]
+id = "de-abbreviations-hs-only-after-a-sentence-number"
+audit = 0
+issue = 384
+goal = "'Hs.' liest 'Halbsatz' nur nach der Nummer eines Satzes ('S. 1', 'Satz 1'), nicht nach 'BGS. 1', wo das 'S.' Teil eines Wortes ist (Review von PR #382, Runde 2)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Nach BGS. 1 Hs. 2 gilt das." },
+]
+expected = [
+    "Nach BGS. 1 Hs. 2 gilt das.",
+]
