@@ -509,6 +509,15 @@ def _voice_language(voice_id: str) -> str:
     return next((v.language for v in VOICES if v.id == voice_id), "en")
 
 
+# the player's own speeds (#152): the playback rate, separate from the voice's speed
+PLAYER_SPEEDS = (0.75, 1.0, 1.25, 1.5, 1.75, 2.0)
+
+
+def _speeds(s: Strings) -> list[tuple[str, str]]:
+    """Each speed's value for the select and its label in the page's language."""
+    return [(f"{v:g}", s("listen.speed_value", value=s.number(v))) for v in PLAYER_SPEEDS]
+
+
 @router.get("/documents/{document_id}/listen", response_class=HTMLResponse)
 def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     """The player with read-along on the original text (D-294 to D-303)."""
@@ -539,6 +548,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         document=found,
         view=view,
         voice=_voice_name(view.voice),
+        speeds=_speeds(s),
         data=data_block(view.data(found.id)),
         problem=None,
     )

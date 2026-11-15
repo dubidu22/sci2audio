@@ -43,6 +43,7 @@
   <p class="player-line">
     <audio id="audio" controls preload="metadata" aria-label="{{ t('listen.audio') }}"></audio>
     <span id="now" class="hint">{{ t('player.chapter', n=1, total=view.chapters|length) }} <span lang="{{ view.language }}">{{ view.chapters[0].title }}</span></span>
+    <label class="speed">{{ t('listen.speed') }} <select id="speed">{% for value, label in speeds %}<option value="{{ value }}"{% if value == '1' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
     <label><input type="checkbox" id="follow" checked> {{ t('listen.follow') }}</label>
   </p>
 </section>

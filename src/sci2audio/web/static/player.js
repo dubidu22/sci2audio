@@ -26,6 +26,7 @@ function readAlong() {
   const now = document.getElementById("now");
   const follow = document.getElementById("follow");
   const back = document.getElementById("back-to-reading");
+  const speed = document.getElementById("speed");
   const bar = document.querySelector(".player-bar");
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -222,6 +223,21 @@ function readAlong() {
     const sentence = event.target.closest(".s[data-chunk]");
     if (sentence) playFrom(Number(sentence.dataset.chunk), true);
   });
+
+  // ---- speed (#152) -------------------------------------------------------------------
+  // a new file resets `playbackRate` to `defaultPlaybackRate`, so both are set: the speed
+  // stays across the chapters' files, jumps and the M4B; the voice keeps its pitch
+  function applySpeed() {
+    const value = Number(speed.value) || 1;
+    audio.preservesPitch = true;
+    if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = true;
+    if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
+    audio.defaultPlaybackRate = value;
+    audio.playbackRate = value;
+  }
+  speed.addEventListener("change", applySpeed);
+  audio.addEventListener("loadedmetadata", applySpeed);
+  applySpeed();
 
   // ---- following the reading (D-301) -----------------------------------------------------
 
