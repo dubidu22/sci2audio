@@ -436,6 +436,8 @@ function jobPage() {
   const doc = box.dataset.document;
   const settings = JSON.parse(box.dataset.settings || "null") || {};
 
+  // the page's buttons are drawn disabled, so a click before this script ran waits instead
+  // of doing nothing; each is enabled once its click is attached (#177)
   const cancel = document.getElementById("job-cancel");
   if (cancel) {
     cancel.addEventListener("click", async () => {
@@ -445,6 +447,7 @@ function jobPage() {
         say(explain(error), true);
       }
     });
+    cancel.disabled = false;
   }
   async function restart(overwrite) {
     try {
@@ -454,14 +457,16 @@ function jobPage() {
       say(explain(error), true);
     }
   }
-  // drawn disabled, so a click before this script ran waits instead of doing nothing (#177)
   const replace = document.getElementById("job-replace");
   if (replace) {
     replace.addEventListener("click", () => restart(true));
     replace.disabled = false;
   }
   const again = document.getElementById("job-again");
-  if (again) again.addEventListener("click", () => restart(false));
+  if (again) {
+    again.addEventListener("click", () => restart(false));
+    again.disabled = false;
+  }
 
   const free = document.getElementById("cache-free");
   if (free) {
@@ -476,6 +481,7 @@ function jobPage() {
         say(explain(error), true);
       }
     });
+    free.disabled = false;
   }
 
   if (box.dataset.state !== "running") {
