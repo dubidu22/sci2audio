@@ -2,6 +2,8 @@
 script still reads the label's words, as the script reads them, also when a step rewrote
 them (#324, D-578)."""
 
+import pytest
+
 from sci2audio.core import Block, BlockKind, ScriptPiece, Span
 from sci2audio.testing import make_document, rebuilt_from_script
 from sci2audio.textprep import StepContext, run_steps, spoken_text
@@ -56,7 +58,7 @@ def test_a_label_whose_words_were_all_removed_goes() -> None:
     assert rebuilt_from_script(document, script).blocks[1].label == ""
 
 
-def test_a_label_next_to_a_pause_only_goes() -> None:
+def test_a_label_covered_only_by_a_pause_goes() -> None:
     document = _figure_and_caption("Fig. 3. Response.", "Fig. 3")
     script = [ScriptPiece("", Span(1, 3, 3), pause=True), ScriptPiece("Response.", Span(1, 8, 17))]
     assert rebuilt_from_script(document, script).blocks[1].label == ""
@@ -97,3 +99,22 @@ def test_a_placeholder_label_is_not_mapped_into_its_notice() -> None:
     assert _read(rebuilt) == _read(document) == ["Formula 0 is skipped."]
     script = [ScriptPiece("A formula is skipped.", Span(0, 0, 1))]
     assert rebuilt_from_script(document, script).blocks[0].label == ""
+
+
+@pytest.mark.parametrize(
+    ("text", "label", "language"),
+    [("† Note.", "†", "en"), ("* Note.", "*", "en"), ("\u2217 Hinweis.", "\u2217", "de")],
+)
+def test_a_footnote_mark_is_not_mapped_into_its_introduction(
+    text: str, label: str, language: str
+) -> None:
+    """The footnotes step replaces a note's mark with its introduction ("Footnote.",
+    "Fußnote."): that is no label, so the rebuilt note has none (review B1 of PR #353)."""
+    document = make_document(
+        [Block(BlockKind.PARAGRAPH, "Text."), Block(BlockKind.FOOTNOTE, text, label=label)],
+        language,
+    )
+    first = run_steps(document, StepContext(language), strict=True)
+    rebuilt = rebuilt_from_script(document, first.script())
+    assert rebuilt.blocks[1].text != text  # the mark was read as an introduction
+    assert rebuilt.blocks[1].label == ""

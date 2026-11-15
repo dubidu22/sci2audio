@@ -17,7 +17,7 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 
 from sci2audio.core import BlockKind, Document, EditKind, Section
-from sci2audio.extraction import extract_pdf
+from sci2audio.extraction import extract_epub, extract_markdown, extract_pdf, extract_text
 from sci2audio.layout import build_document
 from sci2audio.testing import rebuilt_from_script
 from sci2audio.textprep import (
@@ -187,15 +187,33 @@ def test_the_corpus_has_the_footnote_marks_the_plan_counted() -> None:
     assert labelled == {False: 39, True: 30}  # the German paper: 29 notes and one star (#235)
 
 
-@pytest.mark.parametrize("paper", PAPERS, ids=IDS)
-def test_every_paper_reads_the_same_on_a_second_run(paper: Path) -> None:
-    """#202 (D-575), #324: each paper's script, run through the text steps again, reads the
-    same: no step joins the parts of a fraction (liu) or reads anything differently the
-    second time, and a caption label a step spelled out ("Abb. 1", maass) still names its
-    figure (as the runner's property checks on made-up documents)."""
-    doc = document(paper)
-    script = run(paper).script()
+# every corpus document, not only the papers: the EPUB, Markdown and text samples carry labels
+# and footnotes of their own (review N2 of PR #353)
+_EXTRACT = {".pdf": extract_pdf, ".epub": extract_epub, ".md": extract_markdown,
+            ".txt": extract_text}  # fmt: skip
+DOCUMENTS = sorted(
+    path for folder in ("papers", "epub", "markdown", "text")
+    for path in (CORPUS / folder).iterdir() if path.suffix in _EXTRACT
+)  # fmt: skip
+
+
+@pytest.mark.parametrize("path", DOCUMENTS, ids=[path.name for path in DOCUMENTS])
+def test_every_corpus_document_reads_the_same_on_a_second_run(path: Path) -> None:
+    """#202 (D-575), #324: each corpus document's script, run through the text steps again,
+    reads the same: no step joins the parts of a fraction (liu) or reads anything
+    differently the second time, and a caption label a step spelled out ("Abb. 1", maass)
+    still names its figure (as the runner's property checks on made-up documents). Only a
+    caption's label is rebuilt as the script reads it; a footnote's mark is never mapped
+    into its introduction (review B1 of PR #353)."""
+    doc = build_document(_EXTRACT[path.suffix](path))
+    script = run_steps(doc, StepContext(doc.language), strict=True).script()
     rebuilt = rebuilt_from_script(doc, script)
+    changed = [
+        (index, block.kind, block.label, again.label)
+        for index, (block, again) in enumerate(zip(doc.blocks, rebuilt.blocks, strict=True))
+        if again.label and again.label != block.label
+    ]
+    assert all(kind is BlockKind.CAPTION for _, kind, _, _ in changed), changed
     second = run_steps(rebuilt, StepContext(doc.language), strict=True).script()
     for index in range(len(doc.blocks)):
         first_read = [piece for piece in script if piece.span.block == index]
