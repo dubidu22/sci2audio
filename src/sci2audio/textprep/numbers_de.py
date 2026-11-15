@@ -738,8 +738,11 @@ def _after_preposition(text: str, start: int) -> bool:
     return previous is not None and previous["word"].lower() in _PREPOSITIONS
 
 
-def _date_words(text: str, start: int, day: int, month: int, year: str | None) -> str | None:
-    ending = _ending(text, start, day=True)
+def _date_words(
+    text: str, start: int, day: int, month: int, year: str | None, *, paired: bool = False
+) -> str | None:
+    # the second date of a range is read as after "bis": "bis fünften April" (#318, #334)
+    ending = "en" if paired else _ending(text, start, day=True)
     if ending is None:
         return None
     words = f"{ordinal(day, ending)} {MONTHS[month - 1]}"
@@ -767,8 +770,10 @@ def _dates(text: str) -> list[Candidate]:
                     continue  # "3.4.2019-5.4. 1/12": no range, as a second run sees "1 von 12"
         dash = text[match.start() - 1 : match.start()]
         # the second date of a range: read only if the date before the dash is ("3.4.-5.4.",
-        # "3.4.–5.4.2019", "3.4.2019–5.4."; #318)
-        paired = dash in ("-", "\u2013") and last_date == match.start() - 1
+        # "3.4.–5.4.2019", "3.4.2019–5.4."; #318), also across a spaced en dash or hyphen
+        # or an em dash ("3.4.2019 – 5.4.", "3.4.—5.4.", "3.4.2019 - 5.4.2019"; #334)
+        sep = _PAIR_DASH.search(text, max(0, match.start() - 3), match.start())
+        paired = sep is not None and last_date == sep.start()
         after_yearless = (
             dash in ("-", "\u2013") and text[match.start() - 2 : match.start() - 1] == "."
         )
@@ -792,13 +797,17 @@ def _dates(text: str) -> list[Candidate]:
                 read_as_ein = _read_as_ein(text)
             if ahead.end() not in read_as_ein:
                 continue
-        words = _date_words(text, match.start(), day, month, match["y"])
+        words = _date_words(text, match.start(), day, month, match["y"], paired=paired)
         if words and not _year_left_alone(text, match.end()):
             found.append(_date(match, words))
             last_date = match.end()
-            if dash == "-" or (paired and after_yearless):
-                # "3.4.2019-5.4.2019", "3.4.–5.4.": the dash between two dates is read "bis";
-                # an en dash after a year is the range rule's ("2019–5", N-de-4)
+            if paired and sep is not None and not _DASH_RANGE.match(text, sep.start()):
+                # "3.4.2019-5.4.2019", "3.4.–5.4.", "3.4. – 5.4.": the dash between two dates
+                # is read "bis"; an en dash or em dash after a year is the range rule's
+                # ("2019–5", "2019 – 5", N-de-4)
+                reason = _range_reason(text, sep.start(), match.start())
+                found.append(Candidate(sep.start(), match.start(), " bis ", reason))
+            elif dash == "-" and not paired:
                 at = match.start() - 1
                 reason = _range_reason(text, at, match.start())
                 found.append(Candidate(at, match.start(), " bis ", reason))
@@ -806,6 +815,9 @@ def _dates(text: str) -> list[Candidate]:
 
 
 _FRACTION_AHEAD = re.compile(r"\s*(?=1/)")
+# the dash between the two dates of a range: a hyphen or en dash glued to both, an em dash
+# glued or spaced, or an en dash or hyphen with a space on each side (DIN 5008, #334)
+_PAIR_DASH = re.compile(r"(?:[\u2013-]| ?\u2014 ?| [\u2013-] )\Z")
 
 
 def _read_as_ein(text: str) -> set[int]:
@@ -824,6 +836,10 @@ _AFTER_KOMMA = re.compile(r"\bKomma(?: \d)* \Z")
 # ... nor a power read in words ("10-2. Jahr" is "10 hoch minus 2. Jahr" after the first run)
 _DATE_BEFORE = re.compile(r"(?<![\d.])\d{1,2}\.\d{1,2}\.\s*\Z")  # a date without its year
 _AFTER_HOCH = re.compile(r"\bhoch (?:minus |plus )?\Z")
+# ... nor the last part of a dotted number read with "Punkt" ("Kapitel 1.2.3. Tag" is "Kapitel 1
+# Punkt 2 Punkt 3. Tag" after the first run, #349); only that reading has a digit before
+# "Punkt", so "Der Punkt 3. Mai" keeps its ordinal (review S1 of PR #368)
+_AFTER_PUNKT = re.compile(r"\d Punkt \Z")
 # ... nor a source number the citations step reads ("unter [12]. Studie" is "unter Quelle 12.
 # Studie" after the first run; the words are the German wording's, #212)
 _AFTER_SOURCE = re.compile(r"\bQuellen? (?:\d+(?:, | und | bis ))*\Z")
@@ -843,6 +859,8 @@ def _ordinals(text: str) -> list[Candidate]:
             continue  # "13 Uhr 30. Jahr", from "13:30. Jahr": the minutes, no ordinal (#253)
         if _AFTER_HOCH.search(text, max(0, match.start() - 16), match.start()):
             continue  # "10 hoch minus 2. Jahr": a power's exponent, not "zweites Jahr"
+        if _AFTER_PUNKT.search(text, max(0, match.start() - 8), match.start()):
+            continue  # "1 Punkt 2 Punkt 3. Tag": a section number's last part (#349)
         if _AFTER_SOURCE.search(text, max(0, match.start() - WINDOW), match.start()):
             continue  # "Quelle 12. Studie": a source's number ends the sentence
         previous = _PREVIOUS_WORD.search(_before(text, match.start()))
@@ -1218,6 +1236,21 @@ def _roman_numerals(plain: str) -> list[Candidate]:
 
 
 # --- all rules -------------------------------------------------------------------------------
+
+
+def label_numbers_read(label: str, after: str = "") -> str:
+    """A caption label with its numbers read as this step reads them in the caption, so a
+    notice names the figure as its caption is read and a second run, which names it by the
+    caption's reading, reads the same: "Abbildung 3.1" is "Abbildung 3 Punkt 1", "Abbildung
+    1.2-1.4" is "Abbildung 1 Punkt 2 bis 1 Punkt 4", "Abbildung 3,1" is "Abbildung 3 Komma 1",
+    and "Tabelle 2.1a" stays as the caption keeps it (#249, review S2 and S3 of PR #368).
+    `after` is the caption's text after its label: the label is read in that context, as
+    in the caption, so "Abbildung 3/4: Verlauf" keeps "3/4" (review round 2, S2)."""
+    read = label
+    for candidate in reversed(find_numbers_de(label + after)):
+        if candidate.end <= len(label):
+            read = read[: candidate.start] + candidate.replacement + read[candidate.end :]
+    return " ".join(read.split())
 
 
 def find_numbers_de(text: str) -> list[Candidate]:
