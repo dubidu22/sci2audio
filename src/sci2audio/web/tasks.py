@@ -109,9 +109,12 @@ def script_work(
         def progress(phase: Phase) -> None:
             job.report({"phase": str(phase)})
 
+        def pages(page: int, total: int) -> None:  # a PDF's pages as they are read (#343)
+            job.report({"phase": str(Phase.READING), "page": page, "pages": total})
+
         own = replace(settings, output_folder=document.script_folder)
         result = runner.run_script(
-            document.source, own, document.folder, overwrite=True, progress=progress
+            document.source, own, document.folder, overwrite=True, progress=progress, pages=pages
         )
         return result.files.outputs
 

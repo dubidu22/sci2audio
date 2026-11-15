@@ -596,7 +596,14 @@ class Progress:
         if phase in PHASE_TEXT:
             self.show(PHASE_TEXT[phase] + " ...")
 
+    def pages(self, page: int, total: int) -> None:
+        """A PDF's pages as they are read (#343); without a terminal, one line per tenth."""
+        self.show(f"Reading page {page} of {total}", key=f"page {page * 10 // total}")
+
     def audio(self, event: AudioProgress) -> None:
+        if event.phase is Phase.READING and event.pages:
+            self.pages(event.page, event.pages)
+            return
         if event.phase is not Phase.SPEAKING or event.chapter is None:
             self.phase(event.phase)
             return
@@ -650,7 +657,12 @@ def run_script_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     progress = Progress(env, args.quiet)
     try:
         job = env.runner.run_script(
-            source, settings, work, overwrite=args.overwrite, progress=progress.phase
+            source,
+            settings,
+            work,
+            overwrite=args.overwrite,
+            progress=progress.phase,
+            pages=progress.pages,
         )
     finally:
         progress.end()
@@ -721,7 +733,12 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
         job = _audio_in_thread(env, progress, source, settings, work, voice, output, args.overwrite)
         if args.with_script:
             script = env.runner.run_script(
-                source, settings, work, overwrite=args.overwrite, progress=progress.phase
+                source,
+                settings,
+                work,
+                overwrite=args.overwrite,
+                progress=progress.phase,
+                pages=progress.pages,
             )
     finally:
         progress.end()

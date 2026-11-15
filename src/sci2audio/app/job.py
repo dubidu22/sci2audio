@@ -16,6 +16,7 @@ folder, written last: the record the audio job (#71) resumes from.
 from __future__ import annotations
 
 import json
+import threading
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -37,6 +38,7 @@ from sci2audio.core import Content, Document
 from sci2audio.extraction import (
     Cover,
     ExtractionError,
+    ReadCancelled,
     extract_epub,
     extract_epub_cover,
     extract_markdown,
@@ -105,6 +107,9 @@ class JobCancelledError(JobError):
     """The person cancelled the job; what was finished is kept for a rerun."""
 
 
+CANCELLED_WHILE_READING = "the job was cancelled while the file was read"
+
+
 @dataclass(frozen=True)
 class ScriptFiles:
     """Where the script job writes."""
@@ -160,6 +165,7 @@ def run_script_job(
     *,
     overwrite: bool = False,
     progress: Callable[[Phase], None] | None = None,
+    pages: Callable[[int, int], None] | None = None,
     steps: Sequence[TextStep] = BUILT_IN_STEPS,
     max_chars: int = DEFAULT_MAX_CHARS,
 ) -> ScriptJob:
@@ -168,6 +174,7 @@ def run_script_job(
     `work` is the job's own working folder (made if missing). Existing output files are
     replaced only with `overwrite`; that is checked before any work starts. Raises
     JobError (or a subclass) when the job cannot go on; nothing half-written is left.
+    `pages(number, total)` follows the pages of a PDF as they are read (#343).
     """
     report: Callable[[Phase], None] = progress or (lambda phase: None)
     check_readable(source)
@@ -177,7 +184,7 @@ def run_script_job(
         names = ", ".join(path.name for path in existing)
         raise OutputExistsError(f"these files exist already: {names}; choose to replace them")
 
-    document = read_document(source, settings, report)
+    document = read_document(source, settings, report, pages=pages)
 
     report(Phase.TEXT_STEPS)
     result = prepare_script(document, settings, steps, max_chars)
@@ -226,13 +233,30 @@ def check_readable(source: Path) -> None:
         raise UnsupportedFileError(f"{source.name}: sci2audio can read {known} files only")
 
 
-def read_document(source: Path, settings: JobSettings, report: Callable[[Phase], None]) -> Document:
-    """Extraction (picked by file type) and layout; JobError if the file can't be read."""
+def read_document(
+    source: Path,
+    settings: JobSettings,
+    report: Callable[[Phase], None],
+    *,
+    pages: Callable[[int, int], None] | None = None,
+    cancel: threading.Event | None = None,
+) -> Document:
+    """Extraction (picked by file type) and layout; JobError if the file can't be read.
+
+    A PDF calls `pages(number, total)` as its reader starts each page (#343) and ends its
+    reader at once when `cancel` is set, raising JobCancelledError (#344). The other file
+    types read in a fraction of a second and take neither."""
     check_readable(source)
-    extract = EXTRACTORS[source.suffix.lower()]
+    suffix = source.suffix.lower()
+    extract = EXTRACTORS[suffix]
     report(Phase.READING)
     try:
-        content = extract(source)
+        if suffix == ".pdf":
+            content = extract_pdf(source, pages=pages, cancel=cancel)
+        else:
+            content = extract(source)
+    except ReadCancelled as error:  # not a damaged file (#344)
+        raise JobCancelledError(CANCELLED_WHILE_READING) from error
     except ExtractionError as error:
         raise UnreadableFileError(str(error)) from error
     except OSError as error:

@@ -21,21 +21,28 @@ child's watch also ends it with
 At most `Readers.limit` children run at once; a further `run` waits for a free slot, so the
 memory limit holds for the program, not only for one child.
 
+The parent hands each step on to `on_step` as it arrives (page progress, #343), and watches a
+`cancel` event: once it is set, the child is ended at once and its slot is free (#344). The
+parent looks at the event every `_CANCEL_SECONDS`, also while it waits for a free slot.
+
 The child imports only what the step needs: the program's main module is not imported in
 the child (multiprocessing would otherwise run it, and with it every other layer).
 """
 
 from __future__ import annotations
 
+import contextlib
 import importlib.machinery
+import logging
 import multiprocessing
 import os
 import pickle
+import signal
 import sys
 import threading
 import time
 import types
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from multiprocessing.connection import Connection
 from typing import Any
@@ -44,6 +51,8 @@ MEMORY_EXIT = 86  # the child's exit code when the watch ended it for memory
 TIME_EXIT = 87  # ... and for a step that took more than twice its time
 _WATCH_SECONDS = 0.02
 START_SECONDS = 30.0  # the longest a child may take to start, before its first step
+_CANCEL_SECONDS = 0.1  # how often the parent looks at `cancel`
+_log = logging.getLogger(__name__)
 
 _report: Callable[[str], None] | None = None  # set in the child
 _step_started = 0.0  # in the child: when the current step started (time.monotonic)
@@ -52,7 +61,9 @@ _MAIN = threading.Lock()  # the main module is swapped while a child starts
 
 @dataclass(frozen=True)
 class Stopped:
-    """Why the child ended without a result: "memory", "time" (in `step`) or "ended"."""
+    """Why the child ended without a result: "memory", "time" (in `step`), "ended", or
+    "cancelled" (in `step`: "starting" before the child's first word, "" when no child
+    was started)."""
 
     reason: str
     step: str = ""
@@ -72,12 +83,30 @@ class Readers:
         self._free = threading.Condition()
 
     def __enter__(self) -> None:
-        with self._free:
-            self._free.wait_for(lambda: self.alive < self.limit)
-            self.alive += 1
-            self.most = max(self.most, self.alive)
+        self.take(None)
 
     def __exit__(self, *_: object) -> None:
+        self.give()
+
+    def take(self, cancel: threading.Event | None) -> bool:
+        """Take a slot, waiting for a free one; False, with no slot taken, once `cancel` is
+        set."""
+        with self._free:
+            while self.alive >= self.limit:
+                if cancel is None:
+                    self._free.wait()
+                elif cancel.is_set():
+                    return False
+                else:
+                    self._free.wait(_CANCEL_SECONDS)
+            if cancel is not None and cancel.is_set():
+                return False
+            self.alive += 1
+            self.most = max(self.most, self.alive)
+            return True
+
+    def give(self) -> None:
+        """Give back a slot `take` took."""
         with self._free:
             self.alive -= 1
             self._free.notify()
@@ -96,25 +125,35 @@ def run(
     memory: int,
     step_seconds: float,
     readers: Readers,
+    on_step: Callable[[str], None] | None = None,
+    cancel: threading.Event | None = None,
 ) -> Any:
     """`target(*args)` in a child process: its result, `Stopped`, or the exception it
     raised, raised again here. `target` must be a module-level function; `memory` is in
     bytes, `step_seconds` the longest any reported step may take. Raises `NotStarted` when
     no child could be started.
 
+    `on_step(step)` is called here, in the calling thread, for each step the child reports;
+    an error it raises is logged and does not stop the read. Once `cancel` is set, the
+    child is ended and `Stopped("cancelled", step)` given back.
+
     The wait for a free slot in `readers` has no time limit and is not part of any step's
     time: a third read waits until one of two running reads ends."""
     context = multiprocessing.get_context("spawn")
-    with readers:
+    if not readers.take(cancel):
+        return Stopped("cancelled")
+    try:
         child, receive = _start(context, target, args, memory, step_seconds)
         try:
-            return _wait(child, receive, step_seconds)
+            return _wait(child, receive, step_seconds, on_step, cancel)
         finally:
             receive.close()
             if child.is_alive():
                 child.kill()
             child.join()
             child.close()
+    finally:
+        readers.give()
 
 
 def _start(
@@ -132,7 +171,9 @@ def _start(
             daemon=True,
             name="sci2audio-reader",
         )
-        with _MAIN:  # the child does not import the main module: see `_without_main`
+        # the child does not import the main module (see `_without_main`), and it starts
+        # with SIGINT held back (see `_sigint_held`)
+        with _MAIN, _sigint_held():
             main = sys.modules["__main__"]
             sys.modules["__main__"] = _without_main()
             try:
@@ -147,6 +188,24 @@ def _start(
     return child, receive
 
 
+@contextlib.contextmanager
+def _sigint_held() -> Iterator[None]:
+    """Hold back SIGINT in this thread while a child starts (#344, D-628). A terminal's
+    Ctrl-C reaches every process of its group, the reader child too, and a child it hits
+    while starting ends as a reader that could not start; the child inherits the held-back
+    signal, ignores SIGINT first thing and only then lets it through, so the parent's
+    cancel alone ends it. Windows has no signal mask: there the child ignores SIGINT from
+    its first line of our code on."""
+    if not hasattr(signal, "pthread_sigmask"):
+        yield
+        return
+    held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
+    try:
+        yield
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, held)
+
+
 def _without_main() -> types.ModuleType:
     """A stand-in main module that multiprocessing does not import in the child: the real
     one may be the `sci2audio` command, which imports every layer."""
@@ -155,13 +214,25 @@ def _without_main() -> types.ModuleType:
     return module
 
 
-def _wait(child: Any, receive: Connection, step_seconds: float) -> Any:
+def _wait(
+    child: Any,
+    receive: Connection,
+    step_seconds: float,
+    on_step: Callable[[str], None] | None,
+    cancel: threading.Event | None,
+) -> Any:
     step = "starting"  # until the child's first word, "opening"
+    deadline = time.monotonic() + START_SECONDS  # of the current step
     while True:
-        limit = START_SECONDS if step == "starting" else step_seconds
-        if not receive.poll(limit):
+        if cancel is not None and cancel.is_set():
+            child.kill()
+            return Stopped("cancelled", step)
+        left = deadline - time.monotonic()
+        if left <= 0:
             child.kill()
             return Stopped("time", step)
+        if not receive.poll(left if cancel is None else min(left, _CANCEL_SECONDS)):
+            continue
         try:
             kind, value = receive.recv()
         except (EOFError, OSError):  # ended without a word: the watch, a hard limit, a crash
@@ -170,10 +241,22 @@ def _wait(child: Any, receive: Connection, step_seconds: float) -> Any:
             return Stopped(reason, step)
         if kind == "step":
             step = value
+            deadline = time.monotonic() + step_seconds
+            _tell(on_step, step)
         elif kind == "done":
             return value
         else:  # "raised"
             raise value
+
+
+def _tell(on_step: Callable[[str], None] | None, step: str) -> None:
+    """Hand `step` on; progress that cannot be shown must not stop the read."""
+    if on_step is None:
+        return
+    try:
+        on_step(step)
+    except Exception:
+        _log.exception("the progress of step %r could not be handed on", step)
 
 
 # ---- in the child ----------------------------------------------------------------------
@@ -187,6 +270,9 @@ def _child(
     step_seconds: float,
 ) -> None:
     global _report, _step_started
+    signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ctrl-C is the parent's to act on (D-628)
+    if hasattr(signal, "pthread_sigmask"):  # a SIGINT held back since the start is dropped
+        signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
     send.send(("step", "opening"))  # started: the parent's clock for the first step begins
     _hard_limit(2 * memory)
     _step_started = time.monotonic()
