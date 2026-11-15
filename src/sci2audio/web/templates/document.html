@@ -156,6 +156,9 @@
   <label for="output-folder">{{ t('make.folder') }}</label>
   <p class="hint" id="folder-hint">{{ t('make.folder_hint') }}</p>
   <input id="output-folder" name="output_folder" value="{{ output_folder }}" aria-describedby="folder-hint" spellcheck="false" autocomplete="off">
+  <p><input type="checkbox" id="subtitles" name="subtitles"{% if subtitles %} checked{% endif %} aria-describedby="subtitles-hint">
+  <label for="subtitles">{{ t('make.subtitles') }}</label></p>
+  <p class="hint" id="subtitles-hint">{{ t('make.subtitles_hint') }}</p>
   <p class="hint">{{ t('voice.remembered') }}</p>
   {% set blocked = 'needs_analysis' if not report else ('needs_chapters' if not chosen_chapters else ('needs_voice' if not job_voice_installed else '')) %}
   <p class="buttons"><button type="button" id="make" data-blocked="{{ blocked }}"{% if blocked %} aria-disabled="true"{% endif %} aria-describedby="make-note">{{ t('make.start') }}</button></p>

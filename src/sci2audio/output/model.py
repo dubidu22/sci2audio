@@ -36,10 +36,12 @@ class Pause(StrEnum):
 
 @dataclass(frozen=True)
 class Spoken:
-    """One chunk of the voice and the pause before it."""
+    """One chunk of the voice, the pause before it and the text the voice spoke (for the
+    subtitles, #214: notices and replacements as spoken, not as printed)."""
 
     chunk: AudioChunk
     pause: Pause = Pause.SENTENCE
+    text: str = ""
 
 
 @dataclass(frozen=True)
@@ -74,7 +76,10 @@ class BookInfo:
 
 @dataclass(frozen=True)
 class OutputSettings:
-    """Pause lengths in seconds (Q8, D-61 left them open) and which files to write."""
+    """Pause lengths in seconds (Q8, D-61 left them open) and which files to write.
+
+    `subtitles` adds an SRT and a WebVTT file next to each chapter MP3 and next to the M4B
+    (#214, D-606)."""
 
     chapter_pause: float = 2.0  # at the start of every chapter
     heading_pause: float = 1.0  # after a heading
@@ -85,6 +90,7 @@ class OutputSettings:
     m4b: bool = True  # one M4B with chapter marks
     mp3_bitrate: str = "64k"  # mono speech
     aac_bitrate: str = "64k"
+    subtitles: bool = False  # .srt and .vtt next to the audio files
 
     def __post_init__(self) -> None:
         for name in (
@@ -123,3 +129,4 @@ class Written:
     m4b: Path | None
     mp3s: tuple[Path, ...]
     readalong: Path
+    subtitles: tuple[Path, ...] = ()  # per chapter .srt and .vtt, then the book's
