@@ -128,6 +128,7 @@ markers = [
     "benchmark: speed measurement with pytest-benchmark; runs nightly",
     "browser: drives the interface in a real browser (Playwright, tests/browser); own CI job",
     "quarantined(issue, reason, platform=None): flaky test skipped until its issue is fixed (D-374); all must be fixed before v1.0",
+    "every_pdf_read: each PDF read starts its own reader process, none is reused from an earlier test (D-581)",
 ]
 
 [tool.mutmut]
