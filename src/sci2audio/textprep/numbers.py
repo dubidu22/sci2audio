@@ -153,9 +153,10 @@ _FRACTION_WORDS = {
 }
 # a unit chain after a fraction this step read as words ("3 quarters s⁻¹", "1 half m s⁻¹"): on
 # the first run the printed fraction ("3/4 s⁻¹") is a number before it, so the units step's
-# power is left alone on both runs (#335, D-605)
+# power is left alone on both runs (#335, D-605); not after a longer number ("2.5 quarters",
+# "1,003 halves"), whose fraction words are prose (review N1 of PR #359)
 _UNIT_CHAIN_AFTER_FRACTION = re.compile(
-    r"(?<![\w^.])\d{1,3} (?:"
+    r"(?<![\w^.,])\d{1,3} (?:"
     + "|".join(word for pair in _FRACTION_WORDS.values() for word in pair)
     + r")\s+(?:[^\W\d_"
     + _SUPERSCRIPTS
