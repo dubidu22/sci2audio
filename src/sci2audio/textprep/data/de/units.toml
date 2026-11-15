@@ -13,6 +13,8 @@
 #
 # Each entry is as in en/units.toml, plus:
 #   gender   "m", "f" or "n": the word for "1" before the unit (masculine, feminine, neuter)
+#   square_after_per  true if a power 2 after "pro" is one word with "Quadrat", as German says
+#            an acceleration: "m s⁻²" is "Meter pro Quadratsekunde" (#250, D-646)
 #
 # Left out on purpose: "kB", "MB", "GB" (the voice says "ge be", as people do, and spells
 # "Gigabyte" wrong); "a" (Jahr) and "t" (Tonne), which are also words or variables; "d" (Tag)
@@ -213,6 +215,7 @@ printed = ["s", "Sek.", "sek."]
 singular = "Sekunde"
 plural = "Sekunden"
 gender = "f"
+square_after_per = true
 
 [[unit]]
 printed = ["ms"]

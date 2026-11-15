@@ -777,7 +777,7 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("40 m²", "40 Quadratmeter"),
         ("3 cm³", "3 Kubikzentimeter"),
         ("2 km2", "2 Quadratkilometer"),
-        ("9,8 m/s²", "9,8 Meter pro Sekunde hoch 2"),
+        ("9,8 m/s²", "9,8 Meter pro Quadratsekunde"),  # #250, D-646
         ("50 km/h", "50 Kilometer pro Stunde"),
         ("5 mg/kg/Tag", "5 Milligramm pro Kilogramm pro Tag"),
         ("5 mg kg⁻¹", "5 Milligramm pro Kilogramm"),

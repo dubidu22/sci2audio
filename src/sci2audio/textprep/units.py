@@ -122,9 +122,15 @@ _OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a var
 # ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
 # "less than 2x slower" (D-605). Longest first.
 _SAID_OPERATORS_EN = ("less than or equal to", "greater than or equal to", "equals")
+# ... and a bare "less than" / "greater than" counts after a one-letter variable (not "a", "A",
+# "I") or a closing bracket: "y less than 2x" is the reading of "y < 2x" (#358, D-646)
+_COMPARED_EN = re.compile(r"(?:(?<![\w.])(?![aAI]\b)[A-Za-z]|\)) +(?:less|greater) than *\Z")
 # the numbers step's reading of a fraction it has no word for ("17/20" is "17 out of 20"): the
 # second number is no unit's number, as the printed denominator is not (#335, D-605)
 _OUT_OF = re.compile(r"(?<![\w.,])\d{1,3} out of \Z")
+# the words after which a unit is read with no number before it: "per m²", "pro m²", "je kg"
+# (#230, D-646)
+_PER_WORDS = {"en": ("per",), "de": ("pro", "je")}
 _OPENING = "([{\u201c\u2018\"'"
 _CLOSING = ".,;:!?)]}\u201d\u2019\"'"
 
@@ -154,6 +160,10 @@ class _Table:
     # text the step leaves as printed: a German court's file number ("13 W 17/12", #243)
     kept: re.Pattern[str] = re.compile(r"(?!)")
     language: str = "en"
+    # a bare comparison word after a variable, which counts as the sign before "2x" (#358)
+    compared: re.Pattern[str] = re.compile(r"(?!)")
+    # "per", "pro", "je" before a unit with no number (#230, D-646)
+    per_word: re.Pattern[str] = re.compile(r"(?!)")
 
 
 class UnitStep(TextStep):
@@ -213,6 +223,11 @@ class UnitStep(TextStep):
                     step=self.id,
                     replacement=GREEK_MU,
                 )
+        for match in table.per_word.finditer(text):
+            found_per = _unit_after_per(text, match.end(), table)
+            if found_per is not None:
+                start, end, reads, shown = found_per
+                yield self._edit(index, start, end, reads, shown)
         unit_ends = {end for _, end in units_found}
         for match in _TILDE.finditer(text):
             # "5~10" stays; after a unit, its power included ("5 m3~5", "Å³~5"), "~" is "about"
@@ -221,7 +236,14 @@ class UnitStep(TextStep):
             if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
                 yield self._symbol(index, text, match.start(), words["about"], before_number=True)
         for match in _LETTER_X.finditer(text):
-            if _times_x(text, match, words["times"], table.said_operators, table.words.decimal):
+            if _times_x(
+                text,
+                match,
+                words["times"],
+                table.said_operators,
+                table.words.decimal,
+                table.compared,
+            ):
                 yield self._symbol(index, text, match.start("x"), words["times"])
 
     def _symbol(
@@ -293,6 +315,8 @@ def _compiled(language: str) -> _Table | None:
         else "|".join(map(re.escape, _SAID_OPERATORS_EN))
     )
     kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
+    per_words = _PER_WORDS.get(language.split("-", 1)[0].lower(), ())
+    per_word = re.compile(rf"(?<![\w-])(?:{'|'.join(per_words)}) " if per_words else r"(?!)")
     return _Table(
         listed,
         by_form,
@@ -303,6 +327,8 @@ def _compiled(language: str) -> _Table | None:
         said,
         kept,
         language.split("-", 1)[0].lower(),
+        per_word=per_word,
+        compared=re.compile(r"(?!)") if german else _COMPARED_EN,
     )
 
 
@@ -354,9 +380,14 @@ def _unit_after(
             reads = _reading(terms, plural, table)
             shown = " ".join(text[start:stop].split())
             gender = first.gender if one and not terms[0].per else ""
+            compound = text[stop : stop + 1] == "-" and text[stop + 1 : stop + 2].isalpha()
             if hyphen and gender and text[stop : stop + 1] == "-":
                 # "1-kg-Packung": "Ein-Kilogramm-Packung"; "1-m" alone starts no compound
                 gender = _COMPOUND
+            elif gender and compound and start > end and text[end:start] == " ":
+                # "1 %-Hürde" as "1-%-Hürde": "Ein-Prozent-Hürde"; the space becomes the
+                # compound's hyphen, so the edit starts at it (#233, D-646)
+                return end, stop, f"-{reads}", shown, _COMPOUND
             return start, stop, (" " if glued else "") + reads, shown, gender
     if gap == end and not number["exponent"]:
         magnitude = table.magnitude.match(text, end)
@@ -368,6 +399,25 @@ def _unit_after(
             words = table.words.magnitudes[magnitude.group()]
             return end, magnitude.end(), f" {words}", magnitude.group(), ""
     return None
+
+
+def _unit_after_per(text: str, start: int, table: _Table) -> tuple[int, int, str, str] | None:
+    """A unit right after "per" / "pro" / "je" with no number before it, read in the singular:
+    "per m²" is "per square metre", "je kg" "je Kilogramm" (#230, D-646). A single capital
+    letter ("pro A") and a unit that starts a hyphenated word ("pro A-Gruppe") stay."""
+    parsed = _expression(text, start, table)
+    if parsed is None:
+        return None
+    terms, stop = parsed
+    if _capital(text, start, stop) or text[stop : stop + 1] == "-":
+        return None
+    if _word_not_unit(text, terms, stop):
+        return None
+    if text[stop - 1] == "." and (
+        not text[stop:].strip() or opens_sentence(text, stop, table.language)
+    ):
+        stop -= 1  # "pro Std." at a sentence end keeps its full stop
+    return start, stop, _reading(terms, False, table), " ".join(text[start:stop].split())
 
 
 _COMPOUND = "compound"  # instead of a gender: "1" starts a hyphenated compound
@@ -552,7 +602,9 @@ def _said(term: _Term, plural: bool, words: dict[str, str], joined: bool = False
     name = term.unit.plural if plural else term.unit.singular
     if term.power == 1:
         return name
-    if term.unit.length:
+    if term.unit.length or (
+        joined and term.per and term.power == 2 and term.unit.square_after_per
+    ):  # "pro Quadratsekunde" (#250, D-646)
         power = words["square" if term.power == 2 else "cubic"]
         # German writes it into one word: "Quadrat" + "Meter" is "Quadratmeter"
         return f"{power}{name[:1].lower()}{name[1:]}" if joined else f"{power} {name}"
@@ -572,6 +624,19 @@ def reads_unit_after(text: str, end: int, language: str) -> bool:
     )
 
 
+def reads_unit_after_per(text: str, position: int, language: str) -> bool:
+    """True if the step reads the unit that starts at `position` right after "per" / "pro" /
+    "je" ("per m³" as "per cubic metre", #230): the numbers step then leaves its power, or a
+    second run would read "per metre cubed"."""
+    table = _compiled(language)
+    if table is None:
+        return False
+    return any(
+        match.end() == position and _unit_after_per(text, position, table) is not None
+        for match in table.per_word.finditer(text, max(0, position - 4), position)
+    )
+
+
 def reads_x_after(text: str, end: int, language: str) -> bool:
     """True if the step reads an "x" right after the number that ends at `end` as "times"
     ("2,5x"). The numbers step asks, so it reads such a number exactly when this step reads
@@ -582,7 +647,9 @@ def reads_x_after(text: str, end: int, language: str) -> bool:
     times = table.words.words["times"]
     return any(
         match.end("number") == end
-        and _times_x(text, match, times, table.said_operators, table.words.decimal)
+        and _times_x(
+            text, match, times, table.said_operators, table.words.decimal, table.compared
+        )
         for match in _LETTER_X.finditer(text, max(0, end - 64), end + 2)
     )
 
@@ -593,6 +660,7 @@ def _times_x(
     times: str,
     said: re.Pattern[str] | None = None,
     decimal: str = ".",
+    compared: re.Pattern[str] | None = None,
 ) -> bool:
     """True if the letter x stands for "times": between numbers, or glued after one."""
     after = match.end("x")
@@ -610,7 +678,7 @@ def _times_x(
     if len(rest) == 2 and rest[0] in "⁺⁻" and rest[1] in "⁰¹²³⁴⁵⁶⁷⁸⁹":
         return False  # "3x⁻²" is "3 x⁻²", as "1x⁶" is
     return _boundary(text, after) and not _in_algebra(
-        text, match.start("number"), after, times, said
+        text, match.start("number"), after, times, said, compared
     )
 
 
@@ -628,7 +696,12 @@ def _said_patterns(words: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
 
 
 def _in_algebra(
-    text: str, start: int, end: int, times: str, said: re.Pattern[str] | None = None
+    text: str,
+    start: int,
+    end: int,
+    times: str,
+    said: re.Pattern[str] | None = None,
+    compared: re.Pattern[str] | None = None,
 ) -> bool:
     """True for "2x" in a formula: an operator right before the number or after the x
     ("y = 2x + 1", "3x^2", "= 4x."), so the x is the variable, not "times". The word this
@@ -642,6 +715,8 @@ def _in_algebra(
         return True
     if said is not None and _said_around(text, start, end, said):
         return True
+    if compared is not None and compared.search(text, max(0, start - 24), start):
+        return True  # "y less than 2x" (#358, D-646)
     before = head[-1:]
     after = text[end : end + 3].lstrip(" ")[:1]
     return (before != "" and before in _OPERATORS) or (after != "" and after in _OPERATORS + "(")

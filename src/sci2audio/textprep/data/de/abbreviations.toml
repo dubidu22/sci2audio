@@ -11,6 +11,8 @@
 # Each entry is as in en/abbreviations.toml, plus:
 #   exact_case   true: found only as printed and read as listed, never recased. German tells
 #                "S." (Seite) from "s." (siehe) by case, and nouns keep their capital
+#   after_page   true if read only right after a page number after "S." or "Seite(n)", maybe a
+#                range: "S. 12 f." is "Seite 12 folgende"; any other "f." stays (#231, D-646)
 #   before_year  read instead when a year follows, bracketed or after a comma, and the word
 #                before starts with a capital (a name): "Müller u. a. (2019)" is "Müller und
 #                andere", "gilt u. a. 2019" "unter anderem"
@@ -85,6 +87,23 @@ exact_case = true
 [[abbreviation]]
 printed = ["ff."]
 reads = "folgende"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+
+# "S. 12 f.": the page after it; "f." is also "für" ("f. d.") or a variable (#231, D-646)
+[[abbreviation]]
+printed = ["f."]
+reads = "folgende"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+after_page = true
+
+# "10 % p. a.": per annum (#233, D-646)
+[[abbreviation]]
+printed = ["p. a.", "p.a."]
+reads = "pro Jahr"
 before = "anything"
 can_end_sentence = true
 exact_case = true

@@ -32,6 +32,7 @@ class Abbreviation:
     can_end_sentence: bool = False
     exact_case: bool = False  # found only as printed, read as listed ("S." Seite, "s." siehe)
     before_year: str = ""  # read instead before a year: "u. a. (2019)" is "und andere"
+    after_page: bool = False  # read only after a page number: "S. 12 f." (#231, D-646)
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,9 @@ class Unit:
     per_only: bool = False  # a word read as a unit only after "per": "day" in "kg⁻¹ day⁻¹"
     not_before_word: bool = False  # also an English word: "1 A note" is not "1 ampere note"
     gender: str = ""  # "m", "f" or "n" where the language says "1" by gender ("eine Sekunde")
+    # a power 2 after "per" is joined as a square, as a length's is: German "pro Quadratsekunde"
+    # for "s⁻²" (#250, D-646); needs `joined_powers`
+    square_after_per: bool = False
 
 
 @dataclass(frozen=True)
@@ -190,7 +194,15 @@ def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:
         _no_extra(
             at,
             entry,
-            {"printed", "reads", "before", "can_end_sentence", "exact_case", "before_year"},
+            {
+                "printed",
+                "reads",
+                "before",
+                "can_end_sentence",
+                "exact_case",
+                "before_year",
+                "after_page",
+            },
         )
         printed = _strings(at, entry, "printed")
         if not all(form.endswith(".") for form in printed):
@@ -207,6 +219,7 @@ def parse_abbreviations(where: str, text: str) -> tuple[Abbreviation, ...]:
                 _flag(at, entry, "can_end_sentence"),
                 _flag(at, entry, "exact_case"),
                 before_year,
+                _flag(at, entry, "after_page"),
             )
         )
     # a form found in any case may not share its letters with another form; forms found only
@@ -270,7 +283,16 @@ def parse_units(where: str, text: str) -> UnitList:
         _no_extra(
             at,
             entry,
-            {"printed", "singular", "plural", "length", "per_only", "not_before_word", "gender"},
+            {
+                "printed",
+                "singular",
+                "plural",
+                "length",
+                "per_only",
+                "not_before_word",
+                "gender",
+                "square_after_per",
+            },
         )
         gender = entry.get("gender", "")
         if gender not in ("", *GENDERS):
@@ -286,6 +308,7 @@ def parse_units(where: str, text: str) -> UnitList:
                 _flag(at, entry, "per_only"),
                 _flag(at, entry, "not_before_word"),
                 gender,
+                _flag(at, entry, "square_after_per"),
             )
         )
     _once(where, [form for unit in result for form in unit.printed])

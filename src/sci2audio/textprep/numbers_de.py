@@ -47,7 +47,7 @@ from sci2audio.textprep.notation import (
     unit_starts_at,
 )
 from sci2audio.textprep.statistics_de import OPERATORS_DE
-from sci2audio.textprep.units import reads_unit_after, reads_x_after
+from sci2audio.textprep.units import reads_unit_after, reads_unit_after_per, reads_x_after
 from sci2audio.textprep.wordlists import abbreviations, opens_sentence
 
 # every look back before a match reads at most this many characters (linear on long blocks)
@@ -845,6 +845,9 @@ _AFTER_PUNKT = re.compile(r"\d Punkt \Z")
 _AFTER_SOURCE = re.compile(r"\bQuellen? (?:\d+(?:, | und | bis ))*\Z")
 
 
+_YEAR_LIKE = re.compile(r"1[1-9]\d\d|20\d\d")  # 1100 to 2099
+
+
 def _ordinals(text: str) -> list[Candidate]:
     found = []
     for match in _ORDINAL.finditer(text):
@@ -874,7 +877,13 @@ def _ordinals(text: str) -> list[Candidate]:
             continue  # "Die 12. Dann mehr": a number ends the sentence (#227, D-530)
         month = noun in _MONTH_FORMS and (noun in MONTHS or following["dot"])
         ending = _ending(text, match.start(), day=month)
-        if ending is None and not _after_preposition(text, match.start()):
+        if (
+            ending is None
+            and not _after_preposition(text, match.start())
+            and not _YEAR_LIKE.fullmatch(match["n"])
+        ):
+            # a four-digit year before a noun with no word that sets the ending ends its
+            # sentence: "Das war 2019. Kapitel 3" (#265, D-646)
             if following["dot"]:
                 noun = _ABBREVIATED_NOUNS.get(noun, noun)
             ending = _NOUN_ENDINGS.get(noun) if noun != "Jh" or following["dot"] else None
@@ -1123,8 +1132,12 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         exponent = match["braced"] or match["paren"] or match["bare"]
         letter = match["base"].isalpha()
         before = _before(plain, match.start("base"))
-        if letter and (_unit_chain(plain, match.start("base")) or _NUMBER_BEFORE.search(before)):
-            continue  # "5 m^2": the units step's ("5 Quadratmeter")
+        if letter and (
+            _unit_chain(plain, match.start("base"))
+            or _NUMBER_BEFORE.search(before)
+            or reads_unit_after_per(plain, match.start("base"), "de")
+        ):
+            continue  # "5 m^2", "pro m^2": the units step's ("5 Quadratmeter", #230)
         words = (_letter_power(exponent) if letter else None) or (
             f" hoch {_exponent_words(exponent)}"
         )
@@ -1132,8 +1145,10 @@ def _powers(text: str, plain: str) -> list[Candidate]:
     for match in _LETTER_POWER.finditer(plain):
         if match["base"] in _SQUARED_STATISTICS and match["exp"] == "²":
             continue
-        if _unit_chain(plain, match.start("base")):
-            continue  # "2 m s⁻¹": the units step's
+        if _unit_chain(plain, match.start("base")) or reads_unit_after_per(
+            plain, match.start("base"), "de"
+        ):
+            continue  # "2 m s⁻¹", "pro m³": the units step's (#230)
         if _CLOCK_BEFORE.search(plain, max(0, match.start() - 16), match.start()) and (
             unit_starts_at(plain, match.start("base"), "de")
         ):

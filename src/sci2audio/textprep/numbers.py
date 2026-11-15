@@ -40,6 +40,7 @@ from sci2audio.textprep.notation import (
 )
 from sci2audio.textprep.numbers_de import find_numbers_de
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
+from sci2audio.textprep.units import reads_unit_after_per
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
 
@@ -402,6 +403,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
             if grouped
             else match["braced"] or match["paren"] or match["bare"]
         )
+        if match["base"].isalpha() and reads_unit_after_per(plain, match.start("base"), "en"):
+            continue  # "per m^2": the units step's ("per square metre", #230)
         words = _letter_power(exponent) if match["base"].isalpha() else None
         words = words or f" to the power of {_exponent_words(exponent)}"
         base = None if match["base"].isalpha() else match.start("base")
@@ -412,6 +415,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         before = _before(plain, match.start("base"))
         if _UNIT_CHAIN.search(before) or _UNIT_CHAIN_AFTER_FRACTION.search(before):
             continue
+        if reads_unit_after_per(plain, match.start("base"), "en"):
+            continue  # "per m³": the units step's ("per cubic metre", #230)
         start, end = match.span("exp")
         exponent = "".join(_SUPER_DIGIT.get(c, c) for c in match["exp"])
         words = _letter_power(exponent) or f" to the power of {_exponent_words(match['exp'])}"

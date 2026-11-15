@@ -121,6 +121,7 @@ class AbbreviationStep(TextStep):
                     entry
                     for entry in by_form[_key(printed)]
                     if _case_fits(printed, entry)
+                    and (not entry.after_page or _after_page(text, match.start()))
                     and (
                         _place_fits(text, match.end(), entry, any_capital)
                         or (
@@ -275,6 +276,16 @@ def _ends_sentence(text: str, end: int, any_capital: bool = False) -> bool:
     if any_capital and rest in _CLOSING_QUOTES:
         return bool(rest)  # "Er schrieb „usw.“" at the block's end (#342)
     return not rest or following.match(text, end) is not None
+
+
+# a page number, maybe a range, after "S." or "Seite(n)", right before "f." (#231, D-646)
+_PAGE_BEFORE = re.compile(
+    r"(?:(?<![^\W\d_])S\.|\bSeiten?)\s*\d+(?:\s*[-\u2013\u2014]\s*\d+)?\s+\Z"
+)
+
+
+def _after_page(text: str, start: int) -> bool:
+    return _PAGE_BEFORE.search(text, max(0, start - 32), start) is not None
 
 
 def _after_name(text: str, start: int) -> bool:
