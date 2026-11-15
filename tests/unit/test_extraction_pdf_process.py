@@ -313,8 +313,8 @@ def test_a_child_that_does_not_start_in_time_is_named(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     quick = slow_start(tmp_path, monkeypatch)
-    monkeypatch.setattr(isolate, "START_SECONDS", 0.3)
-    stopped = isolate.run(quick, (7,), memory=1024**3, step_seconds=0.1, readers=isolate.Readers(1))
+    monkeypatch.setattr(isolate, "START_SECONDS", 0.3)  # below the step: only it can stop
+    stopped = isolate.run(quick, (7,), memory=1024**3, step_seconds=5, readers=isolate.Readers(1))
     assert stopped == isolate.Stopped("time", "starting")
     assert str(pdf._stopped("a.pdf", stopped)) == (
         "a.pdf: cannot be read: sci2audio could not start its PDF reader"
@@ -480,6 +480,7 @@ def test_the_limits_are_the_decided_ones() -> None:
     assert (pdf.MAX_PAGE_GRAPHICS, pdf.MAX_GRAPHICS) == (100_000, 500_000)
     assert (pdf.MAX_MEMORY, pdf.STEP_SECONDS, pdf.MAX_PDF_READERS) == (1024**3, 60, 2)
     assert pdf._READERS.limit == pdf.MAX_PDF_READERS  # the cap reads use (#345 S4)
+    assert isolate.START_SECONDS == 30  # a reader's start, before its first step (D-616)
 
 
 # ---- reads at once (#28) ---------------------------------------------------------------------

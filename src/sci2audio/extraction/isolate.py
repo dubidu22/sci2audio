@@ -158,7 +158,7 @@ def _without_main() -> types.ModuleType:
 def _wait(child: Any, receive: Connection, step_seconds: float) -> Any:
     step = "starting"  # until the child's first word, "opening"
     while True:
-        limit = max(step_seconds, START_SECONDS) if step == "starting" else step_seconds
+        limit = START_SECONDS if step == "starting" else step_seconds
         if not receive.poll(limit):
             child.kill()
             return Stopped("time", step)
