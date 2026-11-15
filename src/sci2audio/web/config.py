@@ -37,6 +37,24 @@ def default_output_folder() -> Path:
 
 
 @dataclass(frozen=True)
+class OutsideJob:
+    """An audiobook the command line made, opened in the player with `sci2audio listen`
+    (#154): the document's id (the first 16 hex digits of its SHA-256, D-198), its file
+    name, and the two folders the person named as for `convert`: the job's working folder
+    (its records) and the output folder (its audio). Read-only: the server serves these
+    files to the player and nothing else of the folders."""
+
+    document: str
+    name: str
+    work: Path
+    folder: Path
+
+    @property
+    def id(self) -> str:
+        return self.document
+
+
+@dataclass(frozen=True)
 class ServerConfig:
     """One server run.
 
@@ -52,6 +70,7 @@ class ServerConfig:
     output_folder: Path  # default for audiobooks when the settings name none
     upload_limit: int = UPLOAD_LIMIT
     text_limit: int = TEXT_LIMIT
+    outside: tuple[OutsideJob, ...] = ()  # jobs `sci2audio listen` opened (#154)
 
     def __post_init__(self) -> None:
         if len(self.token) < 32:
@@ -85,7 +104,9 @@ class ServerConfig:
         return f"{self.origin}/start?token={self.token}"
 
 
-def server_config(port: int, *, token: str | None = None) -> ServerConfig:
+def server_config(
+    port: int, *, token: str | None = None, outside: tuple[OutsideJob, ...] = ()
+) -> ServerConfig:
     """The configuration of a server run with the default folders."""
     return ServerConfig(
         token=token or new_token(),
@@ -94,4 +115,5 @@ def server_config(port: int, *, token: str | None = None) -> ServerConfig:
         models_dir=default_models_folder(),
         config_file=default_config_file(),
         output_folder=default_output_folder(),
+        outside=outside,
     )

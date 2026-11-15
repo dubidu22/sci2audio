@@ -629,17 +629,19 @@ def _block_view(
 
 
 def player_for(
-    work: Path, document_id: str, saved: Path | None, default: Path
+    work: Path, document_id: str, folders: Sequence[Path | None]
 ) -> tuple[PlayerView, Located]:
-    """Everything the listen page shows, or PlayerError saying why it can't."""
+    """Everything the listen page shows, or PlayerError saying why it can't. `folders` are
+    the only folders the audiobook may be in (`candidate_folders`, or the one folder a
+    command-line job names, #154)."""
     record = read_audio_record(work, document_id)
-    located = locate(record, candidate_folders(work, document_id, saved, default))
+    located = locate(record, folders)
     document = load_document(work)
     return build_view(document, record, located.readalong), located
 
 
 def audiobook_file(
-    work: Path, document_id: str, name: str, saved: Path | None, default: Path
+    work: Path, document_id: str, name: str, folders: Sequence[Path | None]
 ) -> Path | None:
     """The file `name` of the document's audiobook, if it is one of its files and passes
     every check; else None."""
@@ -647,6 +649,31 @@ def audiobook_file(
         record = read_audio_record(work, document_id)
         if name not in record.names:
             return None
-        located = locate(record, candidate_folders(work, document_id, saved, default))
+        located = locate(record, folders)
         return in_folder(located.folder, name)
     return None
+
+
+def check_outside(work: Path, document_id: str, folder: Path) -> Located:
+    """The checks `sci2audio listen` runs before it starts the server (#154): the same as
+    the page's, on the working folder and the output folder the person named, and the
+    document record must be readable. PlayerError saying why not."""
+    try:
+        record = read_audio_record(work, document_id)
+    except PlayerError as error:
+        if error.key == "listen.broken" and _recorded_source(work) not in (None, document_id):
+            raise PlayerError("listen.other_version") from None
+        raise
+    located = locate(record, [folder])
+    load_document(work)
+    return located
+
+
+def _recorded_source(work: Path) -> str | None:
+    """The document id the audio record names, if it names one."""
+    try:
+        data = json.loads((work / AUDIO_RECORD).read_text(encoding="utf-8"))
+        found = data["source"]["sha256"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return found[:16] if isinstance(found, str) else None

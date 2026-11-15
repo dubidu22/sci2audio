@@ -271,11 +271,10 @@ def audiobook(
     (#78, D-295): only names its record lists, only from the recorded, the saved or the
     default output folder, and only once the read-along file there agrees with the
     record. Range requests answer 206, so the player can seek."""
-    document = _document(state, document_id)
-    saved, _ = load_settings(state.config.config_file)
-    found = audiobook_file(
-        document.folder, document.id, name, saved.output_folder, state.config.output_folder
-    )
+    document = state.listening(document_id)
+    if document is None:
+        raise ApiError(404, "not-found", f"no document {document_id}")
+    found = audiobook_file(document.work, document.id, name, document.folders)
     if found is None:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook file {name!r}")
     return _file(found, download)

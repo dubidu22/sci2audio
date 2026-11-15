@@ -1,10 +1,11 @@
-"""The command line (#72, WI-03): `script`, `convert`, `voices` and `clean`.
+"""The command line (#72, WI-03): `script`, `convert`, `voices`, `clean`, `listen` and `ui`.
 
     sci2audio script FILE           the listening script and the report; no voice needed
     sci2audio convert FILE          the audiobook; running it again continues (WI-02)
     sci2audio voices                the voices, and whether their files are installed
     sci2audio voices download       shows what it fetches, then asks first (VA-03)
     sci2audio clean FILE            removes FILE's speech cache
+    sci2audio listen FILE           opens FILE's audiobook in the player (#154)
 
 Every command is one row of `COMMANDS`: a function that adds its arguments and a function
 that runs it (D-211). `main` builds the real `CliEnv`; tests call `run` with their own. The
@@ -21,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import multiprocessing
 import sys
 import threading
@@ -421,6 +423,31 @@ def add_clean(parser: _Parser) -> None:
         type=Path,
         metavar="FOLDER",
         help="the job's working folder (default: in the cache folder)",
+    )
+
+
+def add_listen(parser: _Parser) -> None:
+    parser.add_argument("file", type=Path, metavar="FILE", help="the file `convert` read")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        metavar="FOLDER",
+        help="the folder `convert` wrote the audiobook into (default: as for convert)",
+    )
+    parser.add_argument(
+        "--work-folder",
+        type=Path,
+        metavar="FOLDER",
+        help="the job's working folder (default: in the cache folder)",
+    )
+    parser.add_argument(
+        "--ignore-settings",
+        action="store_true",
+        help="do not take the output folder from the settings file",
+    )
+    parser.add_argument(
+        "--no-browser", action="store_true", help="only print the link; do not open a browser"
     )
 
 
@@ -967,6 +994,59 @@ def run_clean_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     return Exit.OK
 
 
+# ---- listen -----------------------------------------------------------------------------
+
+_LISTEN_ERRORS: dict[str, tuple[str, Exit]] = {
+    "listen.no_audiobook": (
+        "no audiobook of {name} in {work}; run `" + PROG + " convert` first",
+        Exit.NOT_FOUND,
+    ),
+    "listen.other_version": (
+        "the audiobook in {work} was made from another version of {name}; run `"
+        + PROG
+        + " convert` again",
+        Exit.FAILED,
+    ),
+    "listen.broken": ("the record of the audiobook in {work} can't be read", Exit.FAILED),
+    "listen.missing": ("the audiobook files are not in {folder}", Exit.NOT_FOUND),
+    "listen.changed": (
+        "the files in {folder} now belong to another audiobook; run `" + PROG + " convert` again",
+        Exit.FAILED,
+    ),
+}
+
+
+def run_listen_command(args: argparse.Namespace, env: CliEnv) -> Exit:
+    """Open the audiobook `convert` made of FILE in the player (#154). The folders are
+    named as for `convert`: `--work-folder` or the cache folder, `-o` or the settings
+    file's output folder or the file's own folder. Nothing is taken from a path written in
+    a file, and the server serves these two folders read-only (D-295)."""
+    from sci2audio.web.player import PlayerError, check_outside
+
+    source = _source(args.file)
+    work = _work_folder(args, env, source).absolute()
+    folder = args.output
+    if folder is None and not args.ignore_settings:
+        folder = load_settings(env.config_file())[0].output_folder
+    folder = (folder or source.absolute().parent).absolute()
+    try:
+        document = hashlib.sha256(source.read_bytes()).hexdigest()[:16]
+    except OSError as error:
+        raise CliError(
+            f"{source}: cannot be read ({error.strerror or error})", Exit.UNREADABLE
+        ) from error
+    try:
+        check_outside(work, document, folder)
+    except PlayerError as error:
+        message, code = _LISTEN_ERRORS.get(error.key, _LISTEN_ERRORS["listen.broken"])
+        raise CliError(message.format(name=source.name, work=work, folder=folder), code) from None
+    import sci2audio.web  # the web framework only for this command; `run` looked up late
+
+    job = sci2audio.web.OutsideJob(document, source.name, work, folder)
+    env.out.write(f"{source.name}: its audiobook is on the start page of the interface.\n")
+    return Exit(sci2audio.web.run(open_browser=not args.no_browser, outside=(job,)))
+
+
 # ---- ui ---------------------------------------------------------------------------------
 
 
@@ -1010,6 +1090,15 @@ COMMANDS: tuple[Command, ...] = (
         "audiobook and the records stay.",
         add_clean,
         run_clean_command,
+    ),
+    Command(
+        "listen",
+        "open the audiobook `convert` made in the player, with the text",
+        "Open the audiobook `convert` made of FILE in the sci2audio interface (127.0.0.1 "
+        "only): the player shows the text and follows the reading. Name the folders as for "
+        "convert. The interface only plays it; press Ctrl-C to stop it.",
+        add_listen,
+        run_listen_command,
     ),
     Command(
         "ui",

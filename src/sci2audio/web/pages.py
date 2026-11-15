@@ -142,6 +142,7 @@ def index(request: Request, state: State) -> HTMLResponse:
         s,
         "index.html",
         documents=documents,
+        outside=state.config.outside,
         removals={document.id: _removal(document) for document in documents},
         busy_document=_busy_document(state),
         voice_installed=not missing_files(state.config.models_dir),
@@ -532,14 +533,11 @@ def _voice_language(voice_id: str) -> str:
 def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     """The player with read-along on the original text (D-294 to D-303)."""
     s = strings_of(request)
-    found = state.store.get(document_id)
+    found = state.listening(document_id)
     if found is None:
         return _not_found(request, state, s, s("common.not_found_document", id=document_id))
-    saved, _ = load_settings(state.config.config_file)
     try:
-        view, _located = player_for(
-            found.folder, found.id, saved.output_folder, state.config.output_folder
-        )
+        view, _located = player_for(found.work, found.id, found.folders)
     except PlayerError as error:
         return _page(
             request,

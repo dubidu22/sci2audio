@@ -48,6 +48,8 @@ analysed = "analysed"
 not_analysed = "not analysed yet"
 audio_made = "audiobook made"
 listen = "Listen to {name} with the text"
+outside = "Audiobooks from the command line"
+outside_hint = "in {folder}, to listen to only"
 voice = "Voice"
 voice_installed = "The voice is installed."
 voice_missing = "The voice is not installed yet. sci2audio needs it to make audiobooks."
@@ -272,6 +274,7 @@ missing = "The audiobook files are no longer in {folder}. Make the audiobook aga
 changed = "The files in {folder} now belong to another audiobook. Make the audiobook again."
 mismatch = "The read-along file does not fit this document. Make the audiobook again."
 broken = "The record of this audiobook can't be read. Make the audiobook again."
+other_version = "This audiobook was made from another version of the file. Make the audiobook again."
 
 [player]  # the player's script (#78)
 play = "Play"

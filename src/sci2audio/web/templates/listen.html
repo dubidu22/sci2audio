@@ -25,7 +25,7 @@
 <h1 id="listen-title" tabindex="-1">{{ t('listen.title', name=document.name) }}</h1>
 {% if not view %}
 <p class="note" id="listen-problem">{{ problem }}</p>
-<p><a href="/documents/{{ document.id }}#step-make">{{ t('listen.back') }}</a></p>
+{% if document.outside %}<p><a href="/">{{ t('common.back_home') }}</a></p>{% else %}<p><a href="/documents/{{ document.id }}#step-make">{{ t('listen.back') }}</a></p>{% endif %}
 {% else %}
 <p>{{ t('listen.intro') }}</p>
 <p class="ai-notice">{{ t('listen.ai_notice', voice=voice) }}</p>
@@ -71,6 +71,6 @@
 {% endfor %}
 </div>
 </div>
-<p><a href="/documents/{{ document.id }}">{{ t('listen.back_document') }}</a></p>
+{% if document.outside %}<p><a href="/">{{ t('common.back_home') }}</a></p>{% else %}<p><a href="/documents/{{ document.id }}">{{ t('listen.back_document') }}</a></p>{% endif %}
 {% endif %}
 {% endblock %}
