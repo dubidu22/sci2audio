@@ -221,4 +221,6 @@ def local_path(back: str | None) -> str:
         or any(ord(c) < 0x20 or ord(c) == 0x7F for c in back)
     ):
         return "/"
-    return back
+    # Rebuilt on this server's root rather than passed on as given: the same path, in a
+    # shape code scanning knows cannot name another host (CodeQL py/url-redirection).
+    return "/" + back[1:]
