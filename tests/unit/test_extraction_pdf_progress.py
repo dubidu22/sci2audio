@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
+import sys
 import threading
 import time
 from collections.abc import Callable
@@ -115,10 +116,24 @@ def test_a_pdf_read_hands_on_every_page_with_the_page_count() -> None:
 # ---- the time limit holds with a cancel to watch (#344, D-623) -----------------------------
 
 
-def test_with_a_cancel_to_watch_a_step_is_stopped_at_its_own_time_limit(tmp_path: Path) -> None:
+def test_with_a_cancel_to_watch_a_step_is_stopped_at_its_own_time_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The parent looks at the cancel every 0.1 s; the time limit stays one step time from
-    the step's start, neither shorter nor stretched by the slices."""
+    the step's start, neither shorter nor stretched by the slices. Timed from the page
+    step's arrival to the moment the parent decides, before the child is joined (PR #366
+    S1): a slow runner's join does not count."""
     started: dict[str, float] = {}
+    decided: list[float] = []
+    real_wait = isolate._wait
+
+    def timed_wait(*args: Any) -> Any:
+        try:
+            return real_wait(*args)
+        finally:
+            decided.append(time.monotonic())
+
+    monkeypatch.setattr(isolate, "_wait", timed_wait)
     stopped = isolate.run(
         targets.page_then_hang,
         (str(tmp_path), 30),
@@ -128,8 +143,8 @@ def test_with_a_cancel_to_watch_a_step_is_stopped_at_its_own_time_limit(tmp_path
         on_step=lambda step: started.setdefault(step, time.monotonic()),
         cancel=threading.Event(),
     )
-    took = time.monotonic() - started["page 1 of 1"]  # from the page step's start
     assert stopped == isolate.Stopped("time", "page 1 of 1")
+    took = decided[0] - started["page 1 of 1"]  # from the page step's start to the decision
     assert 1.0 <= took < 1.5
 
 
@@ -259,3 +274,51 @@ def test_a_pdf_read_with_its_cancel_set_raises_at_once() -> None:
     cancel.set()
     with pytest.raises(ReadCancelled):
         extract_pdf(PAPER, cancel=cancel)
+
+
+# ---- Ctrl-C on a terminal reaches the child too (#344, PR #366 B1, D-628) -------------------
+
+
+posix_only = pytest.mark.skipif(
+    sys.platform == "win32", reason="a console's Ctrl-C cannot be sent to one child on Windows"
+)
+
+
+@posix_only
+@pytest.mark.parametrize("from_the_start", [True, False], ids=["while-starting", "on-a-page"])
+def test_a_sigint_to_the_child_leaves_the_cancel_to_the_parent(
+    tmp_path: Path, from_the_start: bool
+) -> None:
+    """The child ignores SIGINT: only the parent's cancel ends it, so the read ends as
+    cancelled, never as a reader that could not start or a damaged file. On 766d56a a
+    SIGINT while starting gave Stopped("ended", "starting"), and one on a page raised
+    KeyboardInterrupt here."""
+    readers = isolate.Readers(1)
+    cancel = threading.Event()
+    stop = threading.Event()
+    started = tmp_path / "started"
+    if from_the_start:
+        targets.sigint_children(stop)  # from before the child exists to the cancel
+    thread, outcome = in_thread(
+        lambda: isolate.run(
+            targets.page_then_hang,
+            (str(tmp_path), 30),
+            memory=GiB,
+            step_seconds=60,
+            readers=readers,
+            cancel=cancel,
+        )
+    )
+    try:
+        wait_for(started, thread)
+        if not from_the_start:
+            targets.sigint_children(stop)
+        time.sleep(0.3)  # signals land on the page step too
+        assert thread.is_alive(), outcome  # no SIGINT ended the read
+        cancel.set()
+        thread.join(10)
+    finally:
+        stop.set()
+    assert outcome.get("result") == isolate.Stopped("cancelled", "page 1 of 1"), outcome
+    assert multiprocessing.active_children() == []
+    assert readers.alive == 0

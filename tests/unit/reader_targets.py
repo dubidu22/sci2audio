@@ -1,12 +1,17 @@
 """Work for the PDF reader child in the progress and cancel tests (#343, #344).
 
 The child imports this module by name, so it imports nothing heavy (not pytest, not the test
-modules): a child then starts quickly on every system (#345).
+modules): a child then starts quickly on every system (#345). `sigint_children` runs in the
+test process.
 """
 
 from __future__ import annotations
 
+import contextlib
+import multiprocessing
 import os
+import signal
+import threading
 import time
 from pathlib import Path
 
@@ -35,3 +40,20 @@ def hanging_read(path: str, limits: dict[str, int]) -> str:
     """In place of `pdf._read_file`: a read that hangs on its first page, marked next to
     the file."""
     return page_then_hang(str(Path(path).parent), 30)
+
+
+def sigint_children(stop: threading.Event) -> threading.Thread:
+    """Send a real SIGINT to each reader child every 10 ms until `stop` is set, as a
+    terminal's Ctrl-C reaches every process of its group."""
+
+    def press() -> None:
+        while not stop.is_set():
+            for child in multiprocessing.active_children():
+                if child.pid is not None:
+                    with contextlib.suppress(OSError):  # it just ended
+                        os.kill(child.pid, signal.SIGINT)
+            time.sleep(0.01)
+
+    thread = threading.Thread(target=press, daemon=True)
+    thread.start()
+    return thread

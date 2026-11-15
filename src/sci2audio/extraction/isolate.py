@@ -31,16 +31,18 @@ the child (multiprocessing would otherwise run it, and with it every other layer
 
 from __future__ import annotations
 
+import contextlib
 import importlib.machinery
 import logging
 import multiprocessing
 import os
 import pickle
+import signal
 import sys
 import threading
 import time
 import types
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from multiprocessing.connection import Connection
 from typing import Any
@@ -169,7 +171,9 @@ def _start(
             daemon=True,
             name="sci2audio-reader",
         )
-        with _MAIN:  # the child does not import the main module: see `_without_main`
+        # the child does not import the main module (see `_without_main`), and it starts
+        # with SIGINT held back (see `_sigint_held`)
+        with _MAIN, _sigint_held():
             main = sys.modules["__main__"]
             sys.modules["__main__"] = _without_main()
             try:
@@ -182,6 +186,24 @@ def _start(
     finally:
         send.close()  # the child holds its own copy
     return child, receive
+
+
+@contextlib.contextmanager
+def _sigint_held() -> Iterator[None]:
+    """Hold back SIGINT in this thread while a child starts (#344, D-628). A terminal's
+    Ctrl-C reaches every process of its group, the reader child too, and a child it hits
+    while starting ends as a reader that could not start; the child inherits the held-back
+    signal, ignores SIGINT first thing and only then lets it through, so the parent's
+    cancel alone ends it. Windows has no signal mask: there the child ignores SIGINT from
+    its first line of our code on."""
+    if not hasattr(signal, "pthread_sigmask"):
+        yield
+        return
+    held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
+    try:
+        yield
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, held)
 
 
 def _without_main() -> types.ModuleType:
@@ -248,6 +270,9 @@ def _child(
     step_seconds: float,
 ) -> None:
     global _report, _step_started
+    signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ctrl-C is the parent's to act on (D-628)
+    if hasattr(signal, "pthread_sigmask"):  # a SIGINT held back since the start is dropped
+        signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
     send.send(("step", "opening"))  # started: the parent's clock for the first step begins
     _hard_limit(2 * memory)
     _step_started = time.monotonic()

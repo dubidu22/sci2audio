@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import _thread
 import json
+import sys
 import threading
 import time
 from pathlib import Path
@@ -437,3 +438,41 @@ def test_ctrl_c_while_the_pdf_is_read_stops_the_reader_at_once(
     )
     assert "damaged" not in result.err
     assert not (source.parent / "finished").exists()
+
+
+@pytest.mark.every_pdf_read
+@pytest.mark.skipif(sys.platform == "win32", reason="SIGINT to one child is POSIX only")
+def test_ctrl_c_on_a_terminal_reaches_the_reader_too_and_still_reads_as_cancelled(
+    tmp_path: Path, source: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A terminal's Ctrl-C reaches every process of the group: the reader child gets real
+    SIGINTs from its start on, the program one KeyboardInterrupt (PR #366 B1, D-628)."""
+    import reader_targets
+
+    from sci2audio.extraction import pdf
+
+    monkeypatch.setattr(pdf, "_read_file", reader_targets.hanging_read)
+    started = source.parent / "started"
+    stop = threading.Event()
+
+    def press_ctrl_c_once_reading() -> None:
+        deadline = time.monotonic() + 60
+        while not started.exists() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        time.sleep(0.2)  # the child keeps getting SIGINTs on its page step
+        _thread.interrupt_main()
+
+    reader_targets.sigint_children(stop)
+    threading.Thread(target=press_ctrl_c_once_reading, daemon=True).start()
+    try:
+        result = Cli(tmp_path)("convert", source, "-o", tmp_path / "b", "-q")
+    finally:
+        stop.set()
+    assert started.exists()
+    assert result.code == 130, result.err
+    assert result.err.endswith(
+        "sci2audio: the job was cancelled while the file was read; "
+        "run the same command again to continue\n"
+    )
+    assert "cannot be read" not in result.err
+    assert "damaged" not in result.err
