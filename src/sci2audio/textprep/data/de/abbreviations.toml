@@ -11,6 +11,16 @@
 # Each entry is as in en/abbreviations.toml, plus:
 #   exact_case   true: found only as printed and read as listed, never recased. German tells
 #                "S." (Seite) from "s." (siehe) by case, and nouns keep their capital
+#   after_page   true if read only right after a page number after "S." or "Seite(n)", maybe a
+#                range: "S. 12 f." is "Seite 12 folgende"; any other "f." stays (#231, D-646)
+#   after_paragraph  read instead right after "Abs." or "Absatz" and its number, or before
+#                a number and "Hs.": "Abs. 1 S. 2" is "Absatz 1 Satz 2", "S. 1 Hs. 2" "Satz 1
+#                Halbsatz 2", while "S. 2" is "Seite 2" (#264)
+#   after_sentence  true if read only right after a sentence's number after "S." or "Satz":
+#                "S. 1 Hs. 2" is "Satz 1 Halbsatz 2", "die Hs. B" stays (#264)
+#   inside_citation  true if it mostly stands inside a law citation: its full stop ends no
+#                sentence before a word in capitals ("BDSG"), "§", a label abbreviation
+#                ("Abs.") or "Satz", "Absatz", "Artikel", "Nummer" and a number (#264)
 #   before_year  read instead when a year follows, bracketed or after a comma, and the word
 #                before starts with a capital (a name): "Müller u. a. (2019)" is "Müller und
 #                andere", "gilt u. a. 2019" "unter anderem"
@@ -85,6 +95,23 @@ exact_case = true
 [[abbreviation]]
 printed = ["ff."]
 reads = "folgende"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+
+# "S. 12 f.": the page after it; "f." is also "für" ("f. d.") or a variable (#231, D-646)
+[[abbreviation]]
+printed = ["f."]
+reads = "folgende"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+after_page = true
+
+# "10 % p. a.": per annum (#233, D-646)
+[[abbreviation]]
+printed = ["p. a.", "p.a."]
+reads = "pro Jahr"
 before = "anything"
 can_end_sentence = true
 exact_case = true
@@ -173,6 +200,42 @@ before = "anything"
 printed = ["sog."]
 reads = "sogenannte"
 before = "anything"
+
+# legal forms (#264): read anywhere, as German law and court decisions print them, but
+# "i. S. d." (below, before a law)
+[[abbreviation]]
+printed = ["i. S. v.", "i.S.v."]
+reads = "im Sinne von"
+before = "anything"
+exact_case = true
+
+[[abbreviation]]
+printed = ["i. V. m.", "i.V.m."]
+reads = "in Verbindung mit"
+before = "anything"
+exact_case = true
+
+[[abbreviation]]
+printed = ["a. F.", "a.F."]
+reads = "alte Fassung"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+inside_citation = true
+
+[[abbreviation]]
+printed = ["n. F.", "n.F."]
+reads = "neue Fassung"
+before = "anything"
+can_end_sentence = true
+exact_case = true
+inside_citation = true
+
+[[abbreviation]]
+printed = ["lit."]
+reads = "Buchstabe"  # as the German text of a law writes it: "Absatz 1 Buchstabe f"
+before = "anything"
+exact_case = true
 
 [[abbreviation]]
 printed = ["i. d. R.", "i.d.R."]
@@ -296,6 +359,7 @@ printed = ["S."]
 reads = "Seite"
 before = "number"
 exact_case = true
+after_paragraph = "Satz"
 
 [[abbreviation]]
 printed = ["max."]
@@ -311,6 +375,24 @@ before = "number"
 printed = ["rd."]
 reads = "rund"
 before = "number"
+
+# ---- before a date ---------------------------------------------------------------------------
+
+[[abbreviation]]
+printed = ["v."]
+reads = "vom"  # a court decision's date: "LG Hamburg v. 12.03.2015" (#264)
+before = "date"
+exact_case = true
+
+# ---- before a law ----------------------------------------------------------------------------
+
+[[abbreviation]]
+printed = ["i. S. d.", "i.S.d."]
+# "des" or "der": "des" before "§", "Art." and "Abs." ("des Paragraphen", "des Artikels",
+# "des Absatzes"); "i. S. d. DSGVO" (der) stays as printed (#264 review round 1)
+reads = "im Sinne des"
+before = "law"
+exact_case = true
 
 # ---- before a label --------------------------------------------------------------------------
 
@@ -397,6 +479,19 @@ printed = ["Ziff."]
 reads = "Ziffer"
 before = "label"
 exact_case = true
+
+[[abbreviation]]
+printed = ["Rn."]
+reads = "Randnummer"
+before = "label"
+exact_case = true
+
+[[abbreviation]]
+printed = ["Hs."]
+reads = "Halbsatz"  # only after a sentence's number: elsewhere "Hs." may be "Handschrift"
+before = "label"
+exact_case = true
+after_sentence = true
 
 # ---- before a word ---------------------------------------------------------------------------
 

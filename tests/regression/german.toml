@@ -277,6 +277,54 @@ expected = ["Es gab Hunde, Katzen und so weiter. Die Studie lief lange, mit Mäu
 utterances = ["Es gab Hunde, Katzen und so weiter.", "Die Studie lief lange, mit Mäusen et zetera."]
 
 [[case]]
+id = "de-abbreviations-legal-forms"
+audit = 0
+issue = 264
+goal = "German legal forms are read in full, not spelled: 'i. S. v.', 'i. V. m.', 'v.' before a court decision's date, 'S.' after a paragraph; no utterance ends after 'i. V. m.'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Gemäß Art. 2 Abs. 1 i. V. m. Art. 1 Abs. 1 GG gilt das. Ein Recht an Sachen i. S. v. § 90 BGB besteht." },
+    { kind = "paragraph", text = "So urteilte das LG Hamburg v. 12.03.2015 nach Art. 6 Abs. 1 S. 1 lit. f DSGVO." },
+]
+expected = [
+    "Gemäß Artikel 2 Absatz 1 in Verbindung mit Artikel 1 Absatz 1 GG gilt das. Ein Recht an Sachen im Sinne von § 90 BGB besteht.",
+    "So urteilte das LG Hamburg vom zwölften März 2015 nach Artikel 6 Absatz 1 Satz 1 Buchstabe f DSGVO.",
+]
+utterances = [
+    "Gemäß Artikel 2 Absatz 1 in Verbindung mit Artikel 1 Absatz 1 GG gilt das.",
+    "Ein Recht an Sachen im Sinne von § 90 BGB besteht.",
+    "So urteilte das LG Hamburg vom zwölften März 2015 nach Artikel 6 Absatz 1 Satz 1 Buchstabe f DSGVO.",
+]
+
+[[case]]
+id = "de-abbreviations-legal-forms-inside-a-citation"
+audit = 0
+issue = 264
+goal = "'a. F.' and 'n. F.' end no sentence inside a law citation (before 'BDSG', 'Abs.', 'Satz 2'), but do before a new sentence; 'i. S. d.' is read only before a law's '§', 'Art.' or 'Abs.', where it is 'des' (review round 1 of PR #382)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Nach § 28 a. F. BDSG gilt das. Nach Art. 7 a. F. EGBGB gilt das." },
+    { kind = "paragraph", text = "Nach § 28 BDSG a. F. Abs. 2 gilt das. Nach Art. 7 n. F. Satz 2 gilt das." },
+    { kind = "paragraph", text = "Nach § 28 BDSG a. F. Die Norm ist alt." },
+    { kind = "paragraph", text = "Daten i. S. d. § 3 BDSG und i. S. d. DSGVO." },
+]
+expected = [
+    "Nach § 28 alte Fassung BDSG gilt das. Nach Artikel 7 alte Fassung EGBGB gilt das.",
+    "Nach § 28 BDSG alte Fassung Absatz 2 gilt das. Nach Artikel 7 neue Fassung Satz 2 gilt das.",
+    "Nach § 28 BDSG alte Fassung. Die Norm ist alt.",
+    "Daten im Sinne des § 3 BDSG und i. S. d. DSGVO.",
+]
+utterances = [
+    "Nach § 28 alte Fassung BDSG gilt das.",
+    "Nach Artikel 7 alte Fassung EGBGB gilt das.",
+    "Nach § 28 BDSG alte Fassung Absatz 2 gilt das.",
+    "Nach Artikel 7 neue Fassung Satz 2 gilt das.",
+    "Nach § 28 BDSG alte Fassung.",
+    "Die Norm ist alt.",
+    "Daten im Sinne des § 3 BDSG und i. S. d. DSGVO.",
+]
+
+[[case]]
 id = "de-abbreviations-u-a-before-a-year"
 audit = 0
 issue = 113
@@ -355,10 +403,10 @@ expected = ["Er fuhr 50 Kilometer pro Stunde, die Dosis war 5 Milligramm pro Kil
 id = "de-units-square-and-cubic-in-one-word"
 audit = 0
 issue = 113
-goal = "A power of a length is one German word: 'Quadratmeter', 'Kubikzentimeter'; other powers 'hoch 2'."
+goal = "A power of a length is one German word: 'Quadratmeter', 'Kubikzentimeter'; a squared second after 'pro' too ('Quadratsekunde', #250, D-646)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Die Fläche war 40 m², das Volumen 3 cm³, die Beschleunigung 9,8 m/s²." }]
-expected = ["Die Fläche war 40 Quadratmeter, das Volumen 3 Kubikzentimeter, die Beschleunigung 9 Komma 8 Meter pro Sekunde hoch 2."]
+expected = ["Die Fläche war 40 Quadratmeter, das Volumen 3 Kubikzentimeter, die Beschleunigung 9 Komma 8 Meter pro Quadratsekunde."]
 
 [[case]]
 id = "de-units-one-by-gender"
@@ -600,7 +648,7 @@ blocks = [
   { kind = "paragraph", text = "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am 3.5.2019." },
 ]
 expected = [
-  "BGH, Urteil vom dreizehnten Januar 2015 – VI ZR 8/14. BVerfG, Beschluss v. fünfzehnten Dezember 19 hundert 83 – 1 BvR 209/83.",
+  "BGH, Urteil vom dreizehnten Januar 2015 – VI ZR 8/14. BVerfG, Beschluss vom fünfzehnten Dezember 19 hundert 83 – 1 BvR 209/83.",
   "Das Aktenzeichen lautet 2 O 8/15 und das Urteil fiel am dritten Mai 2019.",
 ]
 
@@ -1649,6 +1697,99 @@ expected = [
     "Er schrieb „und so weiter.“ Dann ging er.",
     "Er schrieb »et zetera.« Dann ging er.",
     "Er schrieb „und so weiter“ und ging.",
+]
+
+# ---- textprep v1.2 second batch, PR 2: German readings (D-646) -------------------------------
+
+[[case]]
+id = "de-units-a-unit-after-pro-without-a-number"
+audit = 0
+issue = 230
+goal = "A listed unit symbol right after 'pro' or 'je' with no number before it reads as the singular unit word: 'pro Quadratmeter'; 'pro A-Gruppe' stays (D-646)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es sind 1,5 kg pro m² Fläche." },
+    { kind = "paragraph", text = "Der Preis liegt bei 3 Euro je kg." },
+    { kind = "paragraph", text = "Es sind 2 m² pro s und 2 Liter pro m³." },
+    { kind = "paragraph", text = "Die Kosten pro A-Gruppe steigen." },
+]
+expected = [
+    "Es sind 1 Komma 5 Kilogramm pro Quadratmeter Fläche.",
+    "Der Preis liegt bei 3 Euro je Kilogramm.",
+    "Es sind 2 Quadratmeter pro Sekunde und 2 Liter pro Kubikmeter.",
+    "Die Kosten pro A-Gruppe steigen.",
+]
+
+[[case]]
+id = "de-abbreviations-f-after-a-page"
+audit = 0
+issue = 231
+goal = "'f.' reads 'folgende' only right after a page number that follows 'S.' or 'Seite(n)'; 'f. d.' and a variable 'f.' stay (D-646)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Siehe S. 12 f. dazu." },
+    { kind = "paragraph", text = "Siehe Seiten 12–14 f. und Seite 3 f." },
+    { kind = "paragraph", text = "Das gilt f. d. Inhalt." },
+    { kind = "paragraph", text = "Wir nehmen die Funktion f. Dann folgt mehr." },
+]
+expected = [
+    "Siehe Seite 12 folgende dazu.",
+    "Siehe Seiten 12 bis 14 folgende und Seite 3 folgende.",
+    "Das gilt f. d. Inhalt.",
+    "Wir nehmen die Funktion f. Dann folgt mehr.",
+]
+
+[[case]]
+id = "de-abbreviations-per-annum-and-one-in-a-spaced-compound"
+audit = 0
+issue = 233
+goal = "'p. a.' reads 'pro Jahr'; a '1' before a unit that starts a hyphenated compound after a space reads 'Ein-Prozent-Hürde', as '1-kg-Packung' does; other numbers stay (D-646)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Er erhält 10 % p. a. als Zins." },
+    { kind = "paragraph", text = "Die Zinsen betragen 10 % p. a." },
+    { kind = "paragraph", text = "Die 1 %-Hürde und die 1 kg-Packung sind teuer." },
+    { kind = "paragraph", text = "Die 5 %-Hürde ist hoch." },
+]
+expected = [
+    "Er erhält 10 Prozent pro Jahr als Zins.",
+    "Die Zinsen betragen 10 Prozent pro Jahr.",
+    "Die Ein-Prozent-Hürde und die Ein-Kilogramm-Packung sind teuer.",
+    "Die 5 Prozent-Hürde ist hoch.",
+]
+
+[[case]]
+id = "de-units-per-square-second"
+audit = 0
+issue = 250
+goal = "A squared second after 'pro' is one word, as German says it: '2 m s⁻²' reads '2 Meter pro Quadratsekunde' (D-646)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es beschleunigt mit 2 m s⁻²." },
+    { kind = "paragraph", text = "Es beschleunigt mit 9,81 m/s²." },
+    { kind = "paragraph", text = "Die Kraft pro s² steigt." },
+]
+expected = [
+    "Es beschleunigt mit 2 Meter pro Quadratsekunde.",
+    "Es beschleunigt mit 9 Komma 8 1 Meter pro Quadratsekunde.",
+    "Die Kraft pro Quadratsekunde steigt.",
+]
+
+[[case]]
+id = "de-numbers-a-year-ending-a-sentence-is-no-ordinal"
+audit = 0
+issue = 265
+goal = "A four-digit year that ends a sentence before a noun the ordinal rule knows stays a year with its full stop; the two-digit case stays an ordinal (D-646)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Das war 2019. Kapitel 3 zeigt mehr." },
+    { kind = "paragraph", text = "Das war 2019. Kap. 3 zeigt mehr." },
+    { kind = "paragraph", text = "Die Stichprobe umfasste 12. Kapitel 3 beschreibt die Methode." },
+]
+expected = [
+    "Das war 2019. Kapitel 3 zeigt mehr.",
+    "Das war 2019. Kapitel 3 zeigt mehr.",
+    "Die Stichprobe umfasste zwölftes Kapitel 3 beschreibt die Methode.",
 ]
 
 # ---- #254 alphanumeric citation keys (D-646) -----------------------------------------------

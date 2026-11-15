@@ -1819,6 +1819,40 @@ expected = [
     "Smith and Jones is cited.",
 ]
 
+# ---- textprep v1.2 second batch, PR 2: units and signs (D-646) -------------------------------
+
+[[case]]
+id = "units-a-unit-after-per-without-a-number"
+audit = 0
+issue = 230
+goal = "A listed unit symbol right after 'per' with no number before it reads as the singular unit word, as after a number; a single capital letter stays (D-646)."
+blocks = [
+    { kind = "paragraph", text = "It is 1.5 kg per m² of area." },
+    { kind = "paragraph", text = "We count the cost per kg and per s." },
+    { kind = "paragraph", text = "The score per A group rose." },
+]
+expected = [
+    "It is 1.5 kilograms per square metre of area.",
+    "We count the cost per kilogram and per second.",
+    "The score per A group rose.",
+]
+
+[[case]]
+id = "symbols-x-after-a-comparison-of-a-variable"
+audit = 0
+issue = 358
+goal = "A glued 'x' after '<' or '>' is the variable on both runs: 'less than' / 'greater than' after a single-letter variable or a closing bracket counts as the sign; prose 'less than 2x slower' keeps 'times' (D-646)."
+blocks = [
+    { kind = "paragraph", text = "We have y < 2x and y > 2x." },
+    { kind = "paragraph", text = "We have (a + b) < 2x here." },
+    { kind = "paragraph", text = "It is less than 2x slower, and a less than 2x gain." },
+]
+expected = [
+    "We have y less than 2x and y greater than 2x.",
+    "We have (a + b) less than 2x here.",
+    "It is less than 2 times slower, and a less than 2 times gain.",
+]
+
 # ---- #254 alphanumeric citation keys, #92 a reference list without a heading (D-646) ----
 
 [[case]]

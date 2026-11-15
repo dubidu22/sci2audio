@@ -747,6 +747,39 @@ def test_both_steps_handle_german() -> None:
         ("abb. 3", "abb. 3"),  # a noun abbreviation keeps its case: found only as printed
         ("et al. 2019", "et al. 2019"),
         ("e.g. here", "e.g. here"),  # the English list is not used for German
+        # legal forms (#264)
+        ("Sachen i. S. v. § 90", "Sachen im Sinne von § 90"),
+        ("Sachen i.S.v. § 90", "Sachen im Sinne von § 90"),
+        ("Daten i. S. d. § 3", "Daten im Sinne des § 3"),
+        ("Abs. 1 i. V. m. Art. 2", "Absatz 1 in Verbindung mit Artikel 2"),
+        ("Abs. 1 i.V.m. Art. 2", "Absatz 1 in Verbindung mit Artikel 2"),
+        ("§ 28 BDSG a. F. galt", "§ 28 BDSG alte Fassung galt"),
+        ("§ 28 BDSG n.F. gilt", "§ 28 BDSG neue Fassung gilt"),
+        ("BDSG a. F. Danach", "BDSG alte Fassung. Danach"),
+        ("Abs. 1 lit. f", "Absatz 1 Buchstabe f"),
+        ("Abs. 1 S. 2", "Absatz 1 Satz 2"),
+        ("Absatz 1 S. 2", "Absatz 1 Satz 2"),
+        ("Abs. 1a S. 2", "Absatz 1a Satz 2"),
+        ("Rn. 12", "Randnummer 12"),
+        ("S. 1 Hs. 2", "Satz 1 Halbsatz 2"),
+        ("die Hs. B", "die Hs. B"),  # "Handschrift": only after a sentence's number
+        ("i. S. d. DSGVO", "i. S. d. DSGVO"),  # "der": only before a law's "§", "Art.", "Abs."
+        ("§ 28 a. F. BDSG", "§ 28 alte Fassung BDSG"),  # inside the citation, no sentence end
+        ("LG Hamburg v. 12.03.2015", "LG Hamburg vom 12.03.2015"),
+        ("OLG Köln v. 5. März 2009", "OLG Köln vom 5. März 2009"),
+        ("OLG Köln v. 5.März 2009", "OLG Köln vom 5.März 2009"),
+        ("Ludwig v. Beethoven", "Ludwig v. Beethoven"),  # "von" before a name: no date
+        ("S. 3 v. 12", "Seite 3 v. 12"),  # "von" before a number: no date
+        ("v. 5. Kapitel", "v. 5. Kapitel"),  # no month after the day
+        ("v. 32.03.2015", "v. 32.03.2015"),  # no day
+        ("v. 12.13.2015", "v. 12.13.2015"),  # no month
+        ("V. 12.03.2015", "V. 12.03.2015"),  # found only as printed
+        ("I. S. v. § 90", "I. S. v. § 90"),
+        ("Lit. f", "Lit. f"),
+        ("S. 12 und Abs. 2", "Seite 12 und Absatz 2"),
+        ("Abs. 2, S. 3", "Absatz 2, Seite 3"),  # not right after the paragraph's number
+        ("Kapitel 1 S. 2", "Kapitel 1 Seite 2"),
+        ("Grabs. 1 S. 2", "Grabs. 1 Seite 2"),  # "Abs." as a word of its own
     ],
 )
 def test_german_abbreviations_read(text: str, expected: str) -> None:
@@ -777,7 +810,7 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("40 m²", "40 Quadratmeter"),
         ("3 cm³", "3 Kubikzentimeter"),
         ("2 km2", "2 Quadratkilometer"),
-        ("9,8 m/s²", "9,8 Meter pro Sekunde hoch 2"),
+        ("9,8 m/s²", "9,8 Meter pro Quadratsekunde"),  # #250, D-646
         ("50 km/h", "50 Kilometer pro Stunde"),
         ("5 mg/kg/Tag", "5 Milligramm pro Kilogramm pro Tag"),
         ("5 mg kg⁻¹", "5 Milligramm pro Kilogramm"),

@@ -297,10 +297,15 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         ("Siehe abb. 3 dazu.", ["Siehe abb. 3 dazu."]),
         ("Es gilt o. J. als Datum.", ["Es gilt o. J. als Datum."]),
         ("Gemessen in Tsd. Euro.", ["Gemessen in Tsd. Euro."]),
-        ("Werk i. S. v. § 2 UrhG.", ["Werk i. S. v. § 2 UrhG."]),
+        # listed since #264, so read in full: still one utterance each
+        ("Werk i. S. v. § 2 UrhG.", ["Werk im Sinne von § 2 UrhG."]),
         (
             "Ausnahmen von lit. a\u2013d. Ob das gilt.",
-            ["Ausnahmen von lit. a\u2013d.", "Ob das gilt."],
+            ["Ausnahmen von Buchstabe a\u2013d.", "Ob das gilt."],
+        ),
+        (
+            "Gemäß Art. 2 Abs. 1 i. V. m. Art. 1 Abs. 1 GG gilt das.",
+            ["Gemäß Artikel 2 Absatz 1 in Verbindung mit Artikel 1 Absatz 1 GG gilt das."],
         ),
         (
             "Siehe Abbildung 1. PrivacyScore ist gut.",
