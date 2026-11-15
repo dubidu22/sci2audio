@@ -10,6 +10,7 @@ import copy
 import hashlib
 import os
 import sys
+import threading
 from collections.abc import Callable
 from pathlib import Path
 
@@ -101,19 +102,32 @@ def _each_pdf_read_once(request: pytest.FixtureRequest, monkeypatch: pytest.Monk
 
     real = pdf._isolated
 
-    def once(target: Callable[..., object], path: str) -> object:
+    def once(
+        target: Callable[..., object],
+        path: str,
+        *,
+        on_step: Callable[[str], None] | None = None,
+        cancel: threading.Event | None = None,
+    ) -> object:
         try:
             data = Path(path).read_bytes()
         except OSError:
-            return real(target, path)
+            return real(target, path, on_step=on_step, cancel=cancel)
+        if cancel is not None and cancel.is_set():  # the real reader's answer to a cancel
+            return real(target, path, on_step=on_step, cancel=cancel)
         limits = tuple(getattr(pdf, name) for name in pdf._LIMITS)
         key = (target, hashlib.sha256(data).digest(), Path(path).name, limits)
         key += (pdf.MAX_MEMORY, pdf.STEP_SECONDS)
         if key not in _PDF_READS:
-            result = real(target, path)  # an error is raised, and not kept
+            steps: list[str] = []
+            # an error is raised, and not kept
+            result = real(target, path, on_step=steps.append, cancel=cancel)
             if isinstance(result, isolate.Stopped):
                 return result
-            _PDF_READS[key] = result
-        return copy.deepcopy(_PDF_READS[key])
+            _PDF_READS[key] = (result, tuple(steps))
+        result, steps = _PDF_READS[key]  # type: ignore[misc]
+        for step in steps:  # the child's steps, as it reported them (#343)
+            isolate._tell(on_step, step)
+        return copy.deepcopy(result)
 
     monkeypatch.setattr(pdf, "_isolated", once)
