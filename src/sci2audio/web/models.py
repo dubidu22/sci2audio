@@ -59,6 +59,11 @@ class ChapterOut(BaseModel):
     blocks: list[int]
     first_page: int | None
     references: bool
+    publisher: bool = Field(
+        default=False,
+        description="a publisher's page (imprint, colophon …), not read by default (#190); "
+        "false in a report written before #376",
+    )
     selected: bool
     utterances: int
 

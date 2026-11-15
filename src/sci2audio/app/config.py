@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -54,12 +55,25 @@ def default_work_folder(source: Path) -> Path:
     16 hex digits of the file's SHA-256, in the user's cache folder. The same file under
     another name or in another folder gets the same folder, so its chunks are used again.
     Raises OSError if the file can't be read."""
+    folder = platformdirs.user_cache_path("sci2audio", appauthor=False)
+    return folder / "jobs" / file_id(source)
+
+
+def file_id(source: Path) -> str:
+    """The first 16 hex digits of the file's SHA-256 (D-198), read in 1 MB blocks. Kept
+    while the file's identity, time and size stay, so `sci2audio listen` and the working
+    folder read a big file once (#154). Raises OSError if the file can't be read."""
+    stat = source.stat()
+    return _file_id(str(source.absolute()), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+
+
+@lru_cache(maxsize=16)
+def _file_id(path: str, version: tuple[int, int, int]) -> str:
     digest = hashlib.sha256()
-    with source.open("rb") as file:
+    with Path(path).open("rb") as file:
         for block in iter(lambda: file.read(1 << 20), b""):
             digest.update(block)
-    folder = platformdirs.user_cache_path("sci2audio", appauthor=False)
-    return folder / "jobs" / digest.hexdigest()[:16]
+    return digest.hexdigest()[:16]
 
 
 def settings_to_data(settings: JobSettings) -> dict[str, Any]:

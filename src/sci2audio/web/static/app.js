@@ -215,13 +215,52 @@ function controls(shown) {
   const language = document.getElementById("language");
   return {
     switched_off: chosen("category").filter((c) => !c.checked).map((c) => c.value).sort(),
-    chapters: chosen("chapter").filter((c) => c.checked).map((c) => Number(c.value)).sort((a, b) => a - b),
+    // in the list's order: the order they are read in (#119)
+    chapters: chosen("chapter").filter((c) => c.checked).map((c) => Number(c.value)),
     language: language ? language.value : shown.language,
   };
 }
 
 function same(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+// Move up and Move down on the chapter list (#119): the list's order is the order the
+// chapters are read in. The buttons are drawn hidden and shown only once their clicks are
+// bound, so no early click is lost (#350). The focus stays on the pressed button, or goes
+// to its sibling when that one becomes disabled at the end of the list.
+function chapterOrder(changed) {
+  const list = document.querySelector("ol.choices");
+  if (!list || !list.querySelector(".move")) return;
+  const items = () => Array.from(list.children);
+  function mark() {
+    const all = items();
+    all.forEach((item, n) => {
+      item.querySelector(".move-up").disabled = n === 0;
+      item.querySelector(".move-down").disabled = n === all.length - 1;
+    });
+  }
+  function move(item, by, button) {
+    const all = items();
+    const at = all.indexOf(item);
+    const to = at + by;
+    if (to < 0 || to >= all.length) return;
+    if (by < 0) list.insertBefore(item, all[to]);
+    else list.insertBefore(item, all[to].nextSibling);
+    mark();
+    const other = item.querySelector(by < 0 ? ".move-down" : ".move-up");
+    (button.disabled ? other : button).focus();
+    say(tr("js.moved", { title: item.dataset.title, n: to + 1, total: all.length }));
+    changed();
+  }
+  for (const item of items()) {
+    const up = item.querySelector(".move-up");
+    const down = item.querySelector(".move-down");
+    up.addEventListener("click", () => move(item, -1, up));
+    down.addEventListener("click", () => move(item, 1, down));
+    item.querySelector(".move").hidden = false;
+  }
+  mark();
 }
 
 function documentPage() {
@@ -259,6 +298,7 @@ function documentPage() {
   if (languageChoice) languageChoice.addEventListener("change", refresh);
   const all = document.getElementById("choose-all");
   const none = document.getElementById("choose-none");
+  chapterOrder(refresh);
   if (all) all.addEventListener("click", () => { chosen("chapter").forEach((c) => { c.checked = true; }); refresh(); });
   if (none) none.addEventListener("click", () => { chosen("chapter").forEach((c) => { c.checked = false; }); refresh(); });
 

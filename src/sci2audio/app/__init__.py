@@ -29,6 +29,7 @@ from sci2audio.app.config import (
     default_config_file,
     default_models_folder,
     default_work_folder,
+    file_id,
     load_settings,
     save_settings,
 )
@@ -94,6 +95,7 @@ __all__ = [
     "default_work_folder",
     "document_title",
     "encoding_warning",
+    "file_id",
     "find_chapters",
     "is_reference_title",
     "kokoro_voice",

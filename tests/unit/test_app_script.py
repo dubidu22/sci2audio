@@ -8,8 +8,16 @@ from core_strategies import documents
 from hypothesis import given
 from hypothesis import strategies as st
 
-from sci2audio.app import JobSettings, build_report, prepare_script, report_data, report_markdown
+from sci2audio.app import (
+    JobSettings,
+    build_report,
+    find_chapters,
+    prepare_script,
+    report_data,
+    report_markdown,
+)
 from sci2audio.app.job import settings_data
+from sci2audio.app.report import script_text
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Section, Span
 from sci2audio.testing import make_document
 from sci2audio.textprep import (
@@ -289,3 +297,65 @@ def test_a_default_job_reads_each_note_and_footnote_texts_leaves_them_out() -> N
     assert "Footnote 1." in read
     everything = JobSettings(switched_off=frozenset())  # Footnote texts turned on
     assert [u.text for u in prepare_script(document, everything).utterances] == ["Body."]
+
+
+# ---- the order of the chapters (#119) -------------------------------------------------------
+
+
+def test_the_chosen_chapters_are_read_in_the_chosen_order() -> None:
+    result = prepare_script(paper(), JobSettings(chapters=(2, 0, 1)), [])
+    assert [(c.chapter.index, c.selected) for c in result.chapters] == [
+        (2, True), (0, True), (1, True), (3, False),
+    ]  # fmt: skip
+    assert result.reordered
+    assert [u.text for u in result.utterances][:2] == ["2 More", "See [2] here."]
+    assert [u.text for u in result.utterances][2] == "A Title"
+
+
+def test_printed_order_keeps_every_chapter_where_it_was() -> None:
+    for chosen in (None, (0, 2), frozenset({2, 0})):
+        result = prepare_script(paper(), JobSettings(chapters=chosen), [])
+        assert [c.chapter.index for c in result.chapters] == [0, 1, 2, 3], chosen
+        assert not result.reordered
+
+
+def test_the_report_and_the_script_say_when_the_order_is_not_printed_order() -> None:
+    result = prepare_script(paper(), JobSettings(chapters=(2, 1)), [])
+    line = "Read in the chosen order, not as printed: 3. 2 More, 2. 1 Intro."
+    assert line in report_markdown(build_report(result, settings_data(result_settings((2, 1)))))
+    assert line in script_text(result)
+    for chosen in (None, (1, 2)):
+        result = prepare_script(paper(), JobSettings(chapters=chosen), [])
+        assert "chosen order" not in report_markdown(build_report(result, {}))
+        assert "chosen order" not in script_text(result)
+
+
+def result_settings(chapters: tuple[int, ...]) -> JobSettings:
+    return JobSettings(chapters=chapters)
+
+
+def test_the_recorded_settings_keep_the_order() -> None:
+    assert settings_data(JobSettings(chapters=(2, 0)))["chapters"] == [2, 0]
+    assert settings_data(JobSettings(chapters=frozenset({2, 0})))["chapters"] == [0, 2]
+    assert settings_data(JobSettings())["chapters"] is None
+
+
+def test_unknown_chapters_in_an_order_are_ignored() -> None:
+    result = prepare_script(paper(), JobSettings(chapters=(9, 2, 0)), [])
+    assert result.ignored_chapters == (9,)
+    assert [c.chapter.index for c in result.chapters if c.selected] == [2, 0]
+
+
+@given(documents(), st.data())
+def test_any_order_reads_the_same_utterances_chapter_by_chapter(
+    document: Document, data: st.DataObject
+) -> None:
+    count = len(find_chapters(document))
+    chosen = data.draw(st.permutations(range(count)).map(tuple))
+    chosen = chosen[: data.draw(st.integers(0, count))]
+    printed = prepare_script(document, JobSettings(chapters=frozenset(chosen)), [])
+    ordered = prepare_script(document, JobSettings(chapters=chosen), [])
+    assert sorted(map(repr, ordered.utterances)) == sorted(map(repr, printed.utterances))
+    by_chapter = {c.chapter.index: c.utterances for c in printed.chapters}
+    assert [c.utterances for c in ordered.chapters if c.selected] == [by_chapter[i] for i in chosen]
+    assert [c.chapter.index for c in ordered.chapters if c.selected] == list(chosen)

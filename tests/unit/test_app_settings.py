@@ -37,7 +37,7 @@ def test_values_are_normalised() -> None:
         output_folder="out",  # type: ignore[arg-type]
     )
     assert settings.switched_off == frozenset({Category.CITATIONS})
-    assert settings.chapters == frozenset({0, 2})
+    assert settings.chapters == (2, 0)  # the person's order, each chapter once (#119)
     assert settings.speed == 2.0
     assert isinstance(settings.speed, float)
     assert settings.output_folder == Path("out")
@@ -247,3 +247,15 @@ def test_a_file_from_before_the_letter_pace_reads_normal(tmp_path: Path) -> None
     file = tmp_path / "settings.json"
     file.write_text(json.dumps({"version": 1, "speed": 1.5}), encoding="utf-8")
     assert load_settings(file) == (JobSettings(speed=1.5), [])
+
+
+def test_the_chapters_keep_the_persons_order() -> None:
+    """#119: `chapters` is the order to read them in; a set (no order of its own) is read
+    in printed order, as before."""
+    assert JobSettings(chapters=(3, 1, 2)).chapters == (3, 1, 2)
+    assert JobSettings(chapters=(3, 1, 3, 1)).chapters == (3, 1)
+    assert JobSettings(chapters=frozenset({3, 1, 2})).chapters == (1, 2, 3)
+    assert JobSettings(chapters={2, 0}).chapters == (0, 2)  # type: ignore[arg-type]
+    assert JobSettings(chapters=()).chapters == ()
+    assert JobSettings(chapters=None).chapters is None
+    assert JobSettings(chapters=(2, 0)) != JobSettings(chapters=(0, 2))
