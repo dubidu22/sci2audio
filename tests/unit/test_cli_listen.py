@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -149,3 +150,31 @@ def test_a_broken_record_is_refused(
 def test_no_such_file(cli: Cli, tmp_path: Path, started: list[dict[str, Any]]) -> None:
     assert cli("listen", tmp_path / "nothing.pdf").code == 3
     assert started == []
+
+
+def test_a_missing_document_record_is_refused(
+    cli: Cli, made: tuple[Path, Path], started: list[dict[str, Any]]
+) -> None:
+    """#378 review N1: the page needs the document the job read; without it, no start."""
+    source, out = made
+    (cli.work(source) / "document.json").unlink()
+    result = cli("listen", source, "-o", out)
+    assert result.code == 1
+    assert "can't be read" in result.err
+    assert started == []
+
+
+def test_the_file_id_is_its_hash_and_follows_a_new_version(tmp_path: Path) -> None:
+    """#378 review N2: the file is read in blocks and once per version; a new version
+    under the same name, time and size gets its own id."""
+    from sci2audio.app import file_id
+
+    path = tmp_path / "a.pdf"
+    path.write_bytes(b"one")
+    assert file_id(path) == hashlib.sha256(b"one").hexdigest()[:16]
+    stat = path.stat()
+    new = tmp_path / "new.pdf"
+    new.write_bytes(b"two")
+    os.utime(new, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    os.replace(new, path)
+    assert file_id(path) == hashlib.sha256(b"two").hexdigest()[:16]

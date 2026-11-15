@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import contextlib
-import hashlib
 import multiprocessing
 import sys
 import threading
@@ -54,6 +53,7 @@ from sci2audio.app import (
     default_models_folder,
     default_work_folder,
     encoding_warning,
+    file_id,
     find_chapters,
     kokoro_voice,
     language_warning,
@@ -1032,7 +1032,7 @@ def run_listen_command(args: argparse.Namespace, env: CliEnv) -> Exit:
         folder = load_settings(env.config_file())[0].output_folder
     folder = (folder or source.absolute().parent).absolute()
     try:
-        document = hashlib.sha256(source.read_bytes()).hexdigest()[:16]
+        document = file_id(source)  # streamed, and read once with the default work folder
     except OSError as error:
         raise CliError(
             f"{source}: cannot be read ({error.strerror or error})", Exit.UNREADABLE

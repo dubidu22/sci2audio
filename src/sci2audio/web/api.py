@@ -283,7 +283,7 @@ def audiobook(
     document = state.listening(document_id)
     if document is None:
         raise ApiError(404, "not-found", f"no document {document_id}")
-    found = audiobook_file(document.work, document.id, name, document.folders)
+    found = audiobook_file(document.work, document.document, name, document.folders)
     if found is None:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook file {name!r}")
     return _file(found, download)
@@ -306,7 +306,7 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
     if document is None:
         raise ApiError(404, "not-found", f"no document {document_id}")
     try:
-        record = read_audio_record(document.work, document.id)
+        record = read_audio_record(document.work, document.document)
         located = locate(record, document.folders)
         stamp = located.stamp
     except (PlayerError, OSError) as error:
@@ -317,7 +317,7 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
     if not fits(located.readalong, position):
         raise ApiError(422, "no-such-time", "the audiobook has no such chapter and time")
     try:
-        write_position(document.work, document.id, stamp, position)
+        write_position(document.work, document.document, stamp, position)
     except OSError as error:
         raise ApiError(
             503, "not-saved", f"the listening position could not be saved: {error.strerror}"

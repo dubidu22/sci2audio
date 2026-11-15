@@ -5,6 +5,7 @@ folder's records and the output folder's audio. No path is taken from a file."""
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import sys
 from pathlib import Path
@@ -13,10 +14,11 @@ from typing import Any
 import pytest
 from cli_helpers import Cli, small_pdf
 from test_web_player import player_data
-from web_helpers import make_config, program
+from web_helpers import make_config, program, upload
 from web_helpers import offline as offline
 
 from sci2audio.web import OutsideJob, create_app
+from sci2audio.web import player as web_player
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -41,25 +43,27 @@ def outside_job(tmp_path: Path) -> tuple[OutsideJob, Any, Any]:
 
 def test_the_listen_page_shows_a_command_line_job(tmp_path: Path) -> None:
     job, client, _config = outside_job(tmp_path)
-    page = client.get(f"/documents/{job.document}/listen")
+    page = client.get(f"/documents/{job.id}/listen")
     assert page.status_code == 200
     assert "Listen: note.pdf" in page.text
     data = player_data(page.text)
-    assert data["document"] == job.document
+    assert data["document"] == job.id == f"cli-{job.document}"
     assert data["chunks"]
     for _start, _end, _chapter, element in data["chunks"]:
         assert f'id="{element}"' in page.text
     # read-only: no links to a document page the web does not have
-    assert f'href="/documents/{job.document}"' not in page.text
-    assert f'href="/documents/{job.document}#step-make"' not in page.text
+    assert f'href="/documents/{job.id}"' not in page.text
+    assert f'href="/documents/{job.id}#step-make"' not in page.text
     home = client.get("/").text
-    assert f'href="/documents/{job.document}/listen"' in home
-    assert client.get(f"/documents/{job.document}").status_code == 404
+    assert f'href="/documents/{job.id}/listen"' in home
+    assert client.get(f"/documents/{job.id}").status_code == 404
+    # the file's own id is not the job's key: the web holds no such document
+    assert client.get(f"/documents/{job.document}/listen").status_code == 404
 
 
 def test_only_the_jobs_own_files_are_served(tmp_path: Path) -> None:
     job, client, _config = outside_job(tmp_path)
-    base = f"/api/v1/documents/{job.document}/audiobook"
+    base = f"/api/v1/documents/{job.id}/audiobook"
     names = [p.name for p in job.folder.iterdir()]
     for name in names:
         answer = client.get(f"{base}/{name}")
@@ -79,7 +83,7 @@ def test_a_link_out_of_the_folder_is_not_served(tmp_path: Path) -> None:
     secret.write_bytes(b"not for the page")
     mp3.unlink()
     os.symlink(secret, mp3)
-    answer = client.get(f"/api/v1/documents/{job.document}/audiobook/{mp3.name}")
+    answer = client.get(f"/api/v1/documents/{job.id}/audiobook/{mp3.name}")
     assert answer.status_code == 404
 
 
@@ -88,8 +92,8 @@ def test_a_renamed_file_is_not_served_and_the_page_says_why(tmp_path: Path) -> N
     mp3 = next(p for p in job.folder.iterdir() if p.suffix == ".mp3")
     mp3.rename(job.folder / "renamed.mp3")
     for name in (mp3.name, "renamed.mp3"):
-        assert client.get(f"/api/v1/documents/{job.document}/audiobook/{name}").status_code == 404
-    page = client.get(f"/documents/{job.document}/listen").text
+        assert client.get(f"/api/v1/documents/{job.id}/audiobook/{name}").status_code == 404
+    page = client.get(f"/documents/{job.id}/listen").text
     assert "The audiobook files are no longer in" in page
     assert "player-data" not in page
 
@@ -102,18 +106,19 @@ def test_only_the_named_folder_is_tried(tmp_path: Path) -> None:
     for path in job.folder.iterdir():
         path.rename(config.output_folder / path.name)
     client = program(create_app(config), config)
-    page = client.get(f"/documents/{job.document}/listen").text
+    page = client.get(f"/documents/{job.id}/listen").text
     assert "player-data" not in page
     name = next(p.name for p in config.output_folder.iterdir())
-    assert client.get(f"/api/v1/documents/{job.document}/audiobook/{name}").status_code == 404
+    assert client.get(f"/api/v1/documents/{job.id}/audiobook/{name}").status_code == 404
 
 
 def test_an_outside_job_cannot_be_changed(tmp_path: Path) -> None:
     job, client, _config = outside_job(tmp_path)
-    assert client.delete(f"/api/v1/documents/{job.document}").status_code == 404
-    assert client.delete(f"/api/v1/documents/{job.document}/chunks").status_code == 404
-    body = {"kind": "audio", "document": job.document}
-    assert client.post("/api/v1/jobs", json=body).status_code == 404
+    for key in (job.id, job.document):
+        assert client.delete(f"/api/v1/documents/{key}").status_code == 404
+        assert client.delete(f"/api/v1/documents/{key}/chunks").status_code == 404
+        body = {"kind": "audio", "document": key}
+        assert client.post("/api/v1/jobs", json=body).status_code == 404
     assert job.work.is_dir()
     assert any(p.suffix == ".mp3" for p in job.folder.iterdir())
 
@@ -122,16 +127,77 @@ def test_an_outside_job_keeps_its_position_in_its_own_working_folder(tmp_path: P
     """#153 for a `listen` job: the position goes to the job's working folder, and the
     next run of `listen` offers to continue there."""
     job, client, config = outside_job(tmp_path)
-    data = player_data(client.get(f"/documents/{job.document}/listen").text)
+    data = player_data(client.get(f"/documents/{job.id}/listen").text)
     start, _end, chapter, _element = data["chunks"][-1]  # past the first sentence
     body = {"chapter": chapter, "time": start + 0.01, "audiobook": data["audiobook"]}
-    answer = client.post(f"/api/v1/documents/{job.document}/position", json=body)
+    answer = client.post(f"/api/v1/documents/{job.id}/position", json=body)
     assert answer.status_code == 204, answer.text
     assert (job.work / "position.json").is_file()
     assert not (config.work_root / job.document).exists()
     again = program(create_app(config), config)
-    assert 'id="resume-continue"' in again.get(f"/documents/{job.document}/listen").text
+    assert 'id="resume-continue"' in again.get(f"/documents/{job.id}/listen").text
     other = {**body, "audiobook": "0" * 16}
-    assert client.post(f"/api/v1/documents/{job.document}/position", json=other).status_code == 409
+    assert client.post(f"/api/v1/documents/{job.id}/position", json=other).status_code == 409
     unknown = "/api/v1/documents/0123456789abcdef/position"
     assert client.post(unknown, json=body).status_code == 404
+
+
+def test_a_file_also_opened_in_the_interface_keeps_the_two_apart(tmp_path: Path) -> None:
+    """#378 review S1: the web document of the same file has the same file id; the start
+    page's command-line link still plays the command line's audiobook, and the web
+    document's own listen page looks only in its own folders."""
+    job, client, _config = outside_job(tmp_path)
+    web = upload(client, (tmp_path / "in" / job.name).read_bytes(), name=job.name)
+    assert web["id"] == job.document
+    home = client.get("/").text
+    assert f'href="/documents/{job.id}/listen"' in home
+    page = client.get(f"/documents/{job.id}/listen").text
+    assert player_data(page)["document"] == job.id
+    name = next(p.name for p in job.folder.iterdir() if p.suffix == ".mp3")
+    assert client.get(f"/api/v1/documents/{job.id}/audiobook/{name}").status_code == 200
+    own = client.get(f"/documents/{job.document}/listen").text
+    assert "player-data" not in own  # the web made no audiobook of it
+    assert "There is no audiobook of this document yet." in own
+    assert client.get(f"/api/v1/documents/{job.document}/audiobook/{name}").status_code == 404
+
+
+def moved_away(job: OutsideJob, tmp_path: Path) -> Path:
+    """The job's files moved out of its named folder, which stays, empty."""
+    real = tmp_path / "real"
+    real.mkdir()
+    for path in job.folder.iterdir():
+        path.rename(real / path.name)
+    return real
+
+
+def nothing_served(client: Any, job: OutsideJob, real: Path) -> None:
+    assert "player-data" not in client.get(f"/documents/{job.id}/listen").text
+    for path in real.iterdir():
+        answer = client.get(f"/api/v1/documents/{job.id}/audiobook/{path.name}")
+        assert answer.status_code == 404, path.name
+
+
+def test_the_web_record_of_a_folder_is_not_tried(tmp_path: Path) -> None:
+    """#378 review S2 (M2): a web record in the job's working folder names where the files
+    are; a command-line job never follows it."""
+    job, client, _config = outside_job(tmp_path)
+    real = moved_away(job, tmp_path)
+    record = {
+        "format": web_player.RECORD_FORMAT,
+        "version": web_player.RECORD_VERSION,
+        "document": job.document,
+        "folder": str(real.absolute()),
+    }
+    (job.work / web_player.RECORD).write_text(json.dumps(record), encoding="utf-8")
+    assert web_player.recorded_folder(job.work, job.document) == real.absolute()
+    nothing_served(client, job, real)
+
+
+def test_the_settings_output_folder_is_not_tried(tmp_path: Path) -> None:
+    """#378 review S2 (M3): the interface's saved output folder holds the files; a
+    command-line job never looks there."""
+    job, client, config = outside_job(tmp_path)
+    real = moved_away(job, tmp_path)
+    config.config_file.parent.mkdir(parents=True, exist_ok=True)
+    config.config_file.write_text(json.dumps({"output_folder": str(real)}), encoding="utf-8")
+    nothing_served(client, job, real)

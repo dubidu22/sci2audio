@@ -565,7 +565,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     if found is None:
         return _not_found(request, state, s, s("common.not_found_document", id=document_id))
     try:
-        view, located = player_for(found.work, found.id, found.folders)
+        view, located = player_for(found.work, found.document, found.folders)
     except PlayerError as error:
         return _page(
             request,
@@ -578,7 +578,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         )
     try:
         stamp = located.stamp
-        position = read_position(found.work, found.id, stamp, located.readalong)
+        position = read_position(found.work, found.document, stamp, located.readalong)
     except OSError:  # the read-along file went away since the checks: nothing to offer
         stamp, position = "", None
     return _page(
