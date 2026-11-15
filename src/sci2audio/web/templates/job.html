@@ -12,7 +12,8 @@
 <progress id="job-bar" max="100" aria-labelledby="progress-heading" aria-describedby="job-progress"></progress>
 <p id="job-progress"></p>
 <p id="job-status" class="visually-hidden" role="status"></p>
-{% if job.cancellable %}<p class="buttons"><button type="button" id="job-cancel">{{ t('job.cancel') }}</button></p>{% endif %}
+{# the job page's buttons are drawn disabled; app.js enables each with its click (#177) #}
+{% if job.cancellable %}<p class="buttons"><button type="button" id="job-cancel" disabled>{{ t('job.cancel') }}</button></p>{% endif %}
 {% endif %}
 <p id="message" class="message" role="status" tabindex="-1"></p>
 
@@ -46,19 +47,19 @@
 <h2 id="result" tabindex="-1">{{ t('job.failed', reason=job.failure.reason) }}</h2>
 {% if job.failure.details %}<p>{{ t('common.details') }} <span lang="en">{{ job.failure.details }}</span></p>{% endif %}
 {% if job.error.error == 'output-exists' and job.kind == 'audio' %}
-<p class="buttons"><button type="button" id="job-replace">{{ t('job.replace') }}</button></p>
+<p class="buttons"><button type="button" id="job-replace" disabled>{{ t('job.replace') }}</button></p>
 {% endif %}
 {% endif %}
 {% if job.state == 'cancelled' %}
 <h2 id="result" tabindex="-1">{{ t('job.cancelled') }}</h2>
 {% endif %}
 {% if job.kind == 'audio' and job.state in ('failed', 'cancelled') and not (job.error and job.error.error == 'output-exists') %}
-<p class="buttons"><button type="button" id="job-again">{{ t('job.again') }}</button></p>
+<p class="buttons"><button type="button" id="job-again" disabled>{{ t('job.again') }}</button></p>
 {% endif %}
 
 {% if job.kind == 'audio' and job.state != 'running' and document %}
 <p id="cache-text">{% if cache_bytes %}{{ t('job.cache', size=size_text(cache_bytes)) }}{% else %}{{ t('job.cache_freed') }}{% endif %}</p>
-{% if cache_bytes %}<p class="buttons"><button type="button" id="cache-free">{{ t('job.cache_free') }}</button></p>{% endif %}
+{% if cache_bytes %}<p class="buttons"><button type="button" id="cache-free" disabled>{{ t('job.cache_free') }}</button></p>{% endif %}
 {% endif %}
 
 {% if document %}<p><a href="/documents/{{ document.id }}">{{ t('job.back') }}</a></p>{% endif %}
