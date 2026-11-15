@@ -63,3 +63,61 @@ def test_links_in_brackets_read_the_same_on_a_second_run(
     once = read_all(printed, language)
     assert once == said
     assert read_all(once, language) == once
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # #338: a numeric bracket glued after a removed citation or link bracket is judged
+        # where the removal stood, after its space, as the spaced form is
+        ("en", "As said by Lee (Smith, 2019)[12] it holds.", "As said by Lee it holds."),
+        ("en", "As said by Lee (Smith, 2019)[12][13] it holds.", "As said by Lee it holds."),
+        ("de", "Wie Weber (Müller, 2019)[12] zeigt.", "Wie Weber zeigt."),
+        ("en", "It holds and (Smith, 2019)[12] more.", "It holds and reference 12 more."),
+        ("en", "It holds and (Smith, 2019) [12] more.", "It holds and reference 12 more."),
+        ("en", "Text (see https://example.org)[12] more.", "Text more."),
+        (
+            "en",
+            "As shown in (see https://example.org)[12] it holds.",
+            "As shown in reference 12 it holds.",
+        ),
+        (
+            "en",
+            "As shown in (see https://example.org) [12] it holds.",
+            "As shown in reference 12 it holds.",
+        ),
+        ("de", "Wie in (siehe https://example.org)[12] gezeigt.", "Wie in Quelle 12 gezeigt."),
+        # glued to the word itself, it stays as before
+        ("en", "As said by Lee(Smith, 2019)[12] it holds.", "As said by Lee[12] it holds."),
+        # #339: year shells around a citation that goes go with it, however deep
+        ("en", "Text ((Smith, 2019) 2020) more.", "Text more."),
+        ("en", "Text (((Smith, 2019) 2020) 2021) more.", "Text more."),
+        ("en", "Text ((((Smith, 2019) 2020) 2021) 2022) more.", "Text more."),
+        ("en", "the method (((Smith, 2019) 2020) 2021) works.", "the method works."),
+        ("en", "((Smith, 2019) 2020) is cited.", "is cited."),
+        ("de", "Text ((Müller, 2019) 2020) mehr.", "Text mehr."),
+        ("de", "Text ((((Müller, 2019) 2020) 2021) 2022) mehr.", "Text mehr."),
+        # a shell with more than a year stays
+        ("en", "Text ((Smith, 2019) the 2020 data) more.", "Text (Smith the 2020 data) more."),
+        # #278: an inner citation that opens the list keeps its names, as in the flat form
+        ("en", "((Smith, 2019); Jones, 2020) is cited.", "Smith and Jones is cited."),
+        ("en", "((Smith, 2019), Jones, 2020) is cited.", "Smith and Jones is cited."),
+        (
+            "en",
+            "((Smith, 2019; Lee, 2018); Jones, 2020) is cited.",
+            "Smith, Lee and Jones is cited.",
+        ),
+        ("de", "((Müller, 2019); Weber, 2020) wird zitiert.", "Müller und Weber wird zitiert."),
+        ("en", "Text ((Smith, 2019); Jones, 2020) here.", "Text here."),
+        # other nest shapes read as before
+        ("en", "((Smith, 2019) Jones, 2020) is cited.", "Jones is cited."),
+        ("en", "(Jones, 2020; (Smith, 2019)) is cited.", "Jones is cited."),
+        ("en", "((Smith, 2019)) is cited.", "is cited."),
+    ],
+)
+def test_citation_nests_read_the_same_on_a_second_run(
+    language: str, printed: str, said: str
+) -> None:
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once

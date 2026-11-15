@@ -1702,3 +1702,49 @@ expected = [
     "It holds here.",
     "It holds (the code) here.",
 ]
+
+# ---- v1.2 follow-ups: citation nests (D-605, D-630) ----------------------------------------
+
+[[case]]
+id = "citations-a-numeric-bracket-glued-after-a-removed-citation"
+audit = 0
+issue = 338
+goal = "A numeric citation glued after a removed citation or link bracket is judged where the removal stood, after its space, as the spaced form is, on both runs (D-605)."
+blocks = [
+    { kind = "paragraph", text = "As said by Lee (Smith, 2019)[12] it holds." },
+    { kind = "paragraph", text = "It holds and (Smith, 2019)[12] more." },
+    { kind = "paragraph", text = "Text (see https://example.org)[12] more." },
+]
+expected = [
+    "As said by Lee it holds.",
+    "It holds and reference 12 more.",
+    "Text more.",
+]
+
+[[case]]
+id = "citations-year-shells-go-with-their-citation"
+audit = 0
+issue = 339
+goal = "Year brackets around a citation that goes go with it, however deep, as a nest 2 deep already did (D-605)."
+blocks = [
+    { kind = "paragraph", text = "Text ((Smith, 2019) 2020) more." },
+    { kind = "paragraph", text = "Text ((((Smith, 2019) 2020) 2021) 2022) more." },
+]
+expected = [
+    "Text more.",
+    "Text more.",
+]
+
+[[case]]
+id = "citations-a-nest-as-the-subject-keeps-its-first-names"
+audit = 0
+issue = 278
+goal = "A bracket that opens with a citation in its own brackets and lists another after ';' keeps both names as the subject, as the flat form does: 'Smith and Jones is cited' (D-605)."
+blocks = [
+    { kind = "paragraph", text = "((Smith, 2019); Jones, 2020) is cited." },
+    { kind = "paragraph", text = "(Smith, 2019; Jones, 2020) is cited." },
+]
+expected = [
+    "Smith and Jones is cited.",
+    "Smith and Jones is cited.",
+]

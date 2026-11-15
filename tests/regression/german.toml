@@ -1515,3 +1515,24 @@ expected = [
     "Es gilt hier.",
     "Es gilt hier.",
 ]
+
+# ---- v1.2 follow-ups: citation nests (D-605, D-630) ----------------------------------------
+
+[[case]]
+id = "de-citations-nests-read-the-same-on-a-second-run"
+audit = 0
+issue = 339
+goal = "A numeric citation glued after a removed citation goes with it (#338), year shells around a citation that goes go with it however deep (#339), and a nest as the subject keeps its first names (#278), on both runs (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wie Weber (Müller, 2019)[12] zeigt." },
+    { kind = "paragraph", text = "Text ((Müller, 2019) 2020) mehr." },
+    { kind = "paragraph", text = "Text ((((Müller, 2019) 2020) 2021) 2022) mehr." },
+    { kind = "paragraph", text = "((Müller, 2019); Weber, 2020) wird zitiert." },
+]
+expected = [
+    "Wie Weber zeigt.",
+    "Text mehr.",
+    "Text mehr.",
+    "Müller und Weber wird zitiert.",
+]
