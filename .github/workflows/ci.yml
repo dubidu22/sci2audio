@@ -3,9 +3,12 @@ name: CI
 # PRs run everything on Linux; macOS and Windows join with the label "ci:full", on every
 # push to main and release/*, and on a run by hand (D-580). Tags need no run here: the
 # release workflow installs and runs the built wheel on all three systems first.
+# Labels start no run here: one would cancel the run of the same commit and leave its
+# "CI passed" red (#360). Adding "ci:full" starts a run by hand on the PR's branch
+# instead (ci-full-label.yml, D-620); a push to a PR with the label tests all three.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened]
   push:
     branches: [main, "release/**"]
   workflow_dispatch:
@@ -18,8 +21,8 @@ env:
   # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
   UV_PYTHON_PREFERENCE: only-managed
 
-# A newer push or label on a PR cancels its older run. Every other run (main, release/*,
-# by hand) is a group of its own, so none is cancelled or held back by the next (D-580).
+# A newer push to a PR cancels its older run, which tested an older commit. Every other run
+# (main, release/*, by hand) is a group of its own, so none is cancelled or held back (D-580).
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
