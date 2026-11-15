@@ -1,6 +1,7 @@
 """Chapters (Q6): level-1 sections, the text before the first heading, the reference list."""
 
 from itertools import pairwise
+from pathlib import Path
 
 import pytest
 from app_helpers import document_with
@@ -15,9 +16,13 @@ from sci2audio.app import (
     find_chapters,
     is_reference_title,
 )
-from sci2audio.app.chapters import selected
+from sci2audio.app import JobSettings
+from sci2audio.app.chapters import PUBLISHER_TAGS, selected
+from sci2audio.app.job import read_document
 from sci2audio.core import Document, Section
+from sci2audio.testing import make_document
 
+TIME_MACHINE = Path(__file__).resolve().parents[1] / "corpus" / "epub" / "wells-the-time-machine.epub"
 P = "paragraph"
 H = "heading"
 
@@ -162,3 +167,91 @@ def test_a_blank_file_name_and_title_give_untitled() -> None:
     document = document_with([(P, "x")], name=" .pdf")
     assert document_title(document) == ".pdf"
     assert document_title(document_with([(P, "x")], name=" ")) == "Untitled"
+
+
+# ---- publishers' pages (#190) -------------------------------------------------------------
+
+
+def _tagged_book(*heading_tags: tuple[str, ...]) -> Document:
+    """A book of one chapter per entry, its heading line tagged with those source tags."""
+    blocks: list[tuple[str, str]] = []
+    sections = []
+    tags: dict[int, list[tuple[int, int, tuple[str, ...]]]] = {}
+    for number, chapter_tags in enumerate(heading_tags):
+        title = f"Part {number}"
+        start = len(blocks)
+        blocks += [(H, title), (P, f"text {number}")]
+        sections.append(Section(title, 1, start, start + 2))
+        tags[start] = [(0, len(title), ("section", *chapter_tags, "h2"))]
+    return make_document(blocks, "en", "book.epub", tags=tags, sections=sections)
+
+
+@pytest.mark.parametrize("tag", sorted(PUBLISHER_TAGS))
+def test_a_publishers_page_is_not_chosen_by_default(tag: str) -> None:
+    document = _tagged_book(("epub:chapter",), (tag,), ("epub:chapter",))
+    chapters = find_chapters(document)
+    assert [c.publisher for c in chapters] == [False, True, False]
+    assert default_selection(chapters) == {0, 2}
+    assert not chapters[1].references
+
+
+@pytest.mark.parametrize(
+    "tag",
+    [
+        "epub:titlepage",
+        "epub:halftitlepage",
+        "epub:dedication",
+        "epub:epigraph",
+        "epub:preface",
+        "epub:foreword",
+        "epub:introduction",
+        "epub:prologue",
+        "epub:chapter",
+        "epub:epilogue",
+        "epub:endnotes",
+        "epub:footnotes",
+        "epub:afterword",
+        "epub:appendix",
+        "role:doc-chapter",
+        "role:doc-epilogue",
+        "role:doc-endnotes",
+        "role:doc-introduction",
+    ],
+)
+def test_the_book_itself_stays_chosen(tag: str) -> None:
+    chapters = find_chapters(_tagged_book((tag,)))
+    assert [c.publisher for c in chapters] == [False]
+    assert default_selection(chapters) == {0}
+
+
+def test_a_publishers_page_can_still_be_chosen() -> None:
+    chapters = find_chapters(_tagged_book(("epub:chapter",), ("epub:colophon",)))
+    assert selected(chapters, {0, 1}) == (frozenset({0, 1}), ())
+
+
+def test_only_the_heading_lines_tags_count() -> None:
+    """A colophon tag inside a chapter's text does not make the chapter a publisher's page."""
+    blocks = [(H, "One"), (P, "made by a press")]
+    tags = {1: [(0, 4, ("section", "epub:colophon", "p"))]}
+    document = make_document(blocks, "en", "book.epub", tags=tags,
+                             sections=[Section("One", 1, 0, 2)])  # fmt: skip
+    assert [c.publisher for c in find_chapters(document)] == [False]
+
+
+def test_the_front_text_and_untagged_files_are_never_publishers_pages() -> None:
+    blocks = [(P, "front"), (H, "Colophon"), (P, "x")]
+    document = document_with(blocks, (Section("Colophon", 1, 1, 3),))
+    chapters = find_chapters(document)
+    assert [c.publisher for c in chapters] == [False, False]  # a title alone says nothing
+    assert default_selection(chapters) == {0, 1}
+
+
+def test_the_time_machine_leaves_out_its_imprint_colophon_and_uncopyright() -> None:
+    document = read_document(TIME_MACHINE, JobSettings(), lambda _phase: None)
+    chapters = find_chapters(document)
+    left_out = [c.title for c in chapters if c.index not in default_selection(chapters)]
+    assert left_out == ["Imprint", "Colophon", "Uncopyright"]
+    kept = [c.title for c in chapters if c.index in default_selection(chapters)]
+    story = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+    assert kept == ["The Time Machine", *story, "Epilogue", "Endnotes"]
+    assert len([*story, "Epilogue"]) == 13

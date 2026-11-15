@@ -679,6 +679,8 @@ def _print_script(env: CliEnv, job: ScriptJob) -> None:
     for entry in report.chapters:
         mark = "x" if entry.selected else " "
         note = "  (reference list)" if entry.chapter.references else ""
+        if entry.chapter.publisher and not note:
+            note = "  (publisher's page)"  # #190
         said = f"{entry.utterances} sentences" if entry.selected else "not read"
         title = _short(entry.chapter.title, 60)
         out.write(f"  {entry.chapter.index + 1:>3}  [{mark}]  {title}  {said}{note}\n")

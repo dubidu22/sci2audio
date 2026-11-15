@@ -9,11 +9,13 @@ import shutil
 from pathlib import Path
 
 import pytest
-from cli_helpers import SEABORN, Cli, files_in, small_pdf
+from cli_helpers import CORPUS, SEABORN, Cli, files_in, small_pdf
 from syrupy.assertion import SnapshotAssertion
 from test_layout_language import ENGLISH, GERMAN
 
 from sci2audio.app import JobSettings, run_script_job
+
+TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
 from sci2audio.cli import chapter_numbers
 from sci2audio.textprep import Category
 
@@ -292,3 +294,13 @@ def test_the_language_warnings_are_printed_once_and_a_clear_guess_is_not(
     result = cli("script", english, "-o", tmp_path / "c", "-q")
     assert result.code == 0, result.err
     assert "warning" not in result.err
+
+
+def test_a_publishers_page_is_listed_as_not_read(cli: Cli, tmp_path: Path) -> None:
+    result = cli("script", TIME_MACHINE, "-o", tmp_path, "-q")
+    assert result.code == 0
+    lines = result.out.split("Edits that change what is heard:")[0].splitlines()
+    colophon = next(line for line in lines if "Colophon" in line)
+    assert re.fullmatch(r"\s+17  \[ \]  Colophon  not read  \(publisher's page\)", colophon)
+    epilogue = next(line for line in lines if "Epilogue" in line)
+    assert "[x]" in epilogue

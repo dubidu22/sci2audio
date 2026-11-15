@@ -2,6 +2,7 @@
 a time, progress, and the errors a person can act on."""
 
 import json
+import re
 import threading
 from pathlib import Path
 
@@ -122,6 +123,15 @@ def test_an_epub_becomes_a_script(tmp_path: Path) -> None:
     assert "Source: wells-the-time-machine.epub\nLanguage: en-GB\n" in script
     assert "The Time Traveller (for so it will be convenient to speak of him)" in script
     assert job.result.document.content.metadata.authors == ("H. G. Wells",)
+    # the publisher's pages are not chosen by default, and the report says why (#190)
+    report = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    chosen = {c["title"]: c["selected"] for c in report["chapters"]}
+    assert not chosen["Imprint"] and not chosen["Colophon"] and not chosen["Uncopyright"]
+    assert chosen["The Time Machine"] and chosen["Epilogue"] and chosen["Endnotes"]
+    markdown = job.files.report_markdown.read_text(encoding="utf-8")
+    assert re.search(r"\| 18 \| Uncopyright \| [^|]* \| no \(publisher's page\) \| 0 \|", markdown)
+    assert "The Time Traveller (for so it will be convenient" in script
+    assert "# 18. Uncopyright (not spoken)" in script
 
 
 @pytest.mark.parametrize(
