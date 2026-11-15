@@ -46,7 +46,9 @@ _UNSIGNED = r"\d+(?:\.\d+)?"
 # --- N1 minus sign ---------------------------------------------------------------------------
 # U+2212 minus, and U+2012 figure dash where no number stands before it (between two numbers
 # it is a range dash, N2); the ASCII hyphen-minus is read right by the voice
-_MINUS = re.compile(r"(?<![\w.,])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space> ?)(?=\.?\d)")
+# its number may stand on the next line ("−" at a line end): a second run sees the joined
+# "− 5" and reads it so (#336, D-605)
+_MINUS = re.compile(r"(?<![\w.,])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space> ?|\n)(?=\.?\d)")
 
 # --- N2 ranges ------------------------------------------------------------------------------
 # an en dash or figure dash, spaces allowed around it, or an em dash without spaces
@@ -97,10 +99,17 @@ _SIGNED_POWER = re.compile(
 )
 _CARET = re.compile(
     r"(?<![\w.,])(?P<base>\d+(?:\.\d+)?|[^\W\d_" + _SUPERSCRIPTS + r"])"
-    r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)|(?P<bare>[+\u2212-]?\d+)))"
+    r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)"
+    # an exponent whose thousands are grouped as N10 groups them ("10^250 000 000", #210)
+    # with a sign as a bare exponent takes it ("10^-250 000 000")
+    r"|(?P<grouped>[+\u2212-]?"
+    r"(?:\d{1,3}(?:[ \u00a0\u2009\u202f]\d{3}){2,}|\d{1,3}(?:[\u00a0\u2009\u202f]\d{3})+))"
+    r"(?![ \u00a0\u2009\u202f]?\d)"
+    r"|(?P<bare>[+\u2212-]?\d+)))"
     r"(?![\w.⁺⁻])"
 )
-_TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,⁺⁻])")
+# not before a caret: "10−410^2" runs into a power, which a second run would read apart (#340)
+_TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,⁺⁻^])")
 # not after a number and a space ("5 m²" is a unit, the units step's); a caret exponent before
 # the space is no such number, since the caret rule may turn it into a word ("x^2 x⁶")
 _LETTER_POWER = re.compile(
@@ -348,6 +357,8 @@ def _roman_numerals(plain: str, text: str) -> list[Candidate]:
 def _grouped_digits(text: str) -> list[Candidate]:
     found = []
     for match in _GROUPED.finditer(text):
+        if re.search(r"\^[+\u2212-]?\Z", text[max(0, match.start() - 2) : match.start()]):
+            continue  # a caret power's grouped exponent: the powers rule reads it whole (#210)
         number = match.group()
         groups = re.split(r"[ \u00a0\u2009\u202f]", number)
         if not _NARROW.search(number) and len(groups) < 3:
@@ -385,7 +396,12 @@ def _powers(text: str, plain: str) -> list[Candidate]:
             )
     for match in _CARET.finditer(plain):
         start, end = match.span("exp")
-        exponent = match["braced"] or match["paren"] or match["bare"]
+        grouped = match["grouped"]
+        exponent = (
+            ",".join(re.split(r"[ \u00a0\u2009\u202f]", grouped))
+            if grouped
+            else match["braced"] or match["paren"] or match["bare"]
+        )
         words = _letter_power(exponent) if match["base"].isalpha() else None
         words = words or f" to the power of {_exponent_words(exponent)}"
         base = None if match["base"].isalpha() else match.start("base")
