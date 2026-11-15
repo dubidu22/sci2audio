@@ -385,6 +385,20 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         ("Er sagte \u203aA.\u2039 Dann ging er.", ["Er sagte \u203aA.\u2039 Dann ging er."]),
         ("Er sagte \u2039A.\u203a Dann ging er.", ["Er sagte \u2039A.\u203a Dann ging er."]),
         ("Er nannte \u203aDr.\u2039 Müller dann.", ["Er nannte \u203aDr.\u2039 Müller dann."]),
+        # #342 (D-605): an abbreviation that ends the sentence inside a closing quote keeps
+        # its full stop, as without the quote
+        ("Er schrieb „usw.“ Dann ging er.", ["Er schrieb „und so weiter.“", "Dann ging er."]),
+        ("Er schrieb »usw.« Dann ging er.", ["Er schrieb »und so weiter.«", "Dann ging er."]),
+        ("Er schrieb „etc.“ Dann ging er.", ["Er schrieb „et zetera.“", "Dann ging er."]),
+        (
+            "Er schrieb \u203ausw.\u2039 Dann ging er.",
+            ["Er schrieb \u203aund so weiter.\u2039", "Dann ging er."],
+        ),
+        ("Er schrieb «usw.» Dann ging er.", ["Er schrieb «und so weiter.»", "Dann ging er."]),
+        ("Er schrieb „usw.“", ["Er schrieb „und so weiter.“"]),
+        # ... but not before a lower-case word, and a title before a name ends nothing
+        ("Er schrieb „usw.“ und ging.", ["Er schrieb „und so weiter“ und ging."]),
+        ("Sie nannte ihn „Dr.“ Müller sagte es.", ["Sie nannte ihn „Dr.“ Müller sagte es."]),
     ],
 )
 def test_german_sentences_end_where_german_ends_them(text: str, sentences: list[str]) -> None:

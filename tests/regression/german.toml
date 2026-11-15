@@ -1536,3 +1536,22 @@ expected = [
     "Text mehr.",
     "Müller und Weber wird zitiert.",
 ]
+
+# ---- v1.2 follow-ups: an abbreviation before a closing quote (D-605, D-630) ----------------
+
+[[case]]
+id = "de-abbreviations-before-a-closing-quote"
+audit = 0
+issue = 342
+goal = "A German abbreviation that ends a sentence inside a closing quote keeps its full stop, as without the quote, so the sentence ends at the quote; before a lower-case word it reads as before (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Er schrieb „usw.“ Dann ging er." },
+    { kind = "paragraph", text = "Er schrieb »etc.« Dann ging er." },
+    { kind = "paragraph", text = "Er schrieb „usw.“ und ging." },
+]
+expected = [
+    "Er schrieb „und so weiter.“ Dann ging er.",
+    "Er schrieb »et zetera.« Dann ging er.",
+    "Er schrieb „und so weiter“ und ging.",
+]
