@@ -1024,9 +1024,11 @@ class _Rules:
         word = re.sub(r"\A\W*\d*", "", previous).lower()  # "8See" -> "see", "(see" -> "see"
         start = node.open
         if previous.lower() in self.words.refs or previous in self.words.ref_words:
-            if edge < node.open:
-                return None  # "Ref. (Smith, 2019) [12]": its reading would cross the removal
             start = window + len(before) - len(previous)
+            if edge < node.open:
+                # "Ref. (see https://x.org) [3, 4]": the reading takes the place of "Ref." and
+                # the bracket goes, so neither edit crosses the removal between them
+                return self._read_at_ref_word(text, node, inside, start, start + len(previous))
             printed = _printed(text[start : node.close + 1])
         elif (
             word not in self.words.before
@@ -1042,6 +1044,21 @@ class _Rules:
         if edge < node.open and not text[start - 1 : start].isspace():
             spoken = " " + spoken  # the removal before took the space: "and (Smith, 2019)[12]"
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
+
+    def _read_at_ref_word(
+        self, text: str, node: _Bracket, inside: str, start: int, end: int
+    ) -> list[_Found]:
+        """A numeric citation after its reference word with a removal between them: the
+        reading in place of the word, the bracket removed."""
+        spoken = self._spoken(inside)
+        if self._starts_sentence(text, start):
+            spoken = spoken[0].upper() + spoken[1:]
+        printed = _printed(text[start:end] + " " + text[node.open : node.close + 1])
+        reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
+        return [
+            (start, end, EditKind.REPLACE, spoken, reason),
+            (node.open, node.close + 1, EditKind.REMOVE, "", reason),
+        ]
 
     def _decimal_interval(self, inside: str) -> bool:
         """True if a square bracket holding `inside` is a German interval of decimals

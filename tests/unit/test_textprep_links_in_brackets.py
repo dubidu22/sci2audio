@@ -87,6 +87,11 @@ def test_links_in_brackets_read_the_same_on_a_second_run(
             "As shown in reference 12 it holds.",
         ),
         ("de", "Wie in (siehe https://example.org)[12] gezeigt.", "Wie in Quelle 12 gezeigt."),
+        # after its reference word with a removal between, it is read in the word's place
+        ("en", "Ref. (see https://example.org) [3, 4] more.", "References 3 and 4 more."),
+        ("en", "It is in Ref. (see https://example.org) [3] here.", "It is in reference 3 here."),
+        ("de", "Ref. https://x.org [3, 4] mehr.", "Quellen 3 und 4 mehr."),
+        ("en", "Ref. (Smith, 2019) [12] shows it.", "Reference 12 shows it."),
         # glued to the word itself, it stays as before
         ("en", "As said by Lee(Smith, 2019)[12] it holds.", "As said by Lee[12] it holds."),
         # #339: year shells around a citation that goes go with it, however deep
