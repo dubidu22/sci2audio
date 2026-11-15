@@ -1664,3 +1664,41 @@ expected = [
     "The term x squared is small.",
     "Out of 20 kilograms, 5 went.",
 ]
+
+# ---- v1.2 follow-ups: links in brackets (D-605, D-630) -------------------------------------
+
+[[case]]
+id = "links-a-link-bracket-glued-to-the-next-bracket"
+audit = 0
+issue = 326
+goal = "A link ends at the bracket it closes when another bracket is glued right after it, so the next bracket is judged on its own, as with a space between them, on both runs (D-605)."
+blocks = [
+    { kind = "paragraph", text = "(Smith, 2019, https://example.org)(Smith, 2019) it holds." },
+    { kind = "paragraph", text = "(see https://example.org)(Smith, 2019) it holds." },
+    { kind = "paragraph", text = "Text (see https://example.org)(Smith, 2019) more." },
+    { kind = "paragraph", text = "Text (see https://en.wikipedia.org/wiki/Foo_(bar))(Smith, 2019) more." },
+]
+expected = [
+    "Smith it holds.",
+    "it holds.",
+    "Text more.",
+    "Text more.",
+]
+
+[[case]]
+id = "links-a-join-word-after-a-link-at-a-bracket-start"
+audit = 0
+issue = 337
+goal = "A join word or separator that a removed link leaves at a bracket's start goes with the link, as after a removed citation (#305); the rest is judged as a second run judges it (D-605)."
+blocks = [
+    { kind = "paragraph", text = "It holds (see https://example.org and Lee, 2019) here." },
+    { kind = "paragraph", text = "It holds (https://example.org, Lee, 2019) here." },
+    { kind = "paragraph", text = "It holds (see https://example.org; Lee, 2019) here." },
+    { kind = "paragraph", text = "It holds (https://example.org or the code) here." },
+]
+expected = [
+    "It holds here.",
+    "It holds here.",
+    "It holds here.",
+    "It holds (the code) here.",
+]

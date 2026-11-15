@@ -384,6 +384,7 @@ _ENDS_NOTHING = "/-_~=&?#%"  # a URL cut after one of these goes on in the next 
 _PATH_LIKE = re.compile(r"[/._\-=?#&%~\d]")  # a next-line word with one of these is address
 _TRAILING = ".,;:!?'\"’”*"  # punctuation at a URL's end belongs to the sentence
 _PAIRS = {")": "(", "]": "[", ">": "<"}
+_OPENERS = {opener: closer for closer, opener in _PAIRS.items()}
 _SPACE = re.compile(r"\s+")
 _POINTER_WORDS = 6  # the most words after a link that a pointer sentence may have
 _SENTENCE_START = re.compile(r"(?:\A|[.!?][\"'”’)\]]*\s+)\Z")
@@ -460,6 +461,8 @@ class LinkStep(TextStep):
                 end = _whole_sentence(text, start, end, sentence_at, words.abbreviations)
                 start, join = _dangling_join(text, start, end, claimed, words)
                 repair += join
+                end, join = _leading_join(text, start, end, words)
+                repair += join
             noted = any(link.printed_end >= 0 for link in run)
             access = "; the access note after it goes too" if noted else ""
             edits.append(
@@ -534,6 +537,22 @@ def _dangling_join(
     return window + left.start(), f'; "{left.group(1)}" before it goes too'
 
 
+def _leading_join(text: str, start: int, end: int, words: LinkWords) -> tuple[int, str]:
+    """A join word or separator that a removal right after a bracket's opening would leave
+    at the bracket's edge goes too, as after a removed citation (#305): "(see
+    https://example.org and Lee, 2019)" leaves "(Lee, 2019)", not "( and Lee, 2019)" (#337)."""
+    if not re.search(r"[(\[]\s*\Z", text[max(0, start - _LOOK_BACK) : start]):
+        return end, ""
+    joins = sorted((w for w in words.joins if w != "/"), key=len, reverse=True)
+    listed = "|".join(
+        re.escape(w) + (r"(?!\w)" if w[-1:].isalpha() or w[-1:] == "." else "") for w in joins
+    )
+    after = re.compile(rf"\s*({listed})\s*(?=[^\s)\]])", re.IGNORECASE).match(text, end)
+    if not after:
+        return end, ""
+    return after.end(), f'; "{after.group(1)}" after it goes too'
+
+
 def _tidied(text: str, edits: list[Edit]) -> list[Edit]:
     """A comma or semicolon that several removals leave before a full stop goes with the
     first of them: "x, https://a.org (see https://b.org)." reads "x."."""
@@ -579,7 +598,8 @@ def find_links(text: str, after: int = 0, words: LinkWords | None = None) -> lis
         elif kind == "arxiv":
             end = _trimmed(text, match.start(), match.end())
         else:
-            end = _trimmed(text, match.start(), _token_end(text, match.end(), sentence_words))
+            end = _token_end(text, match.end(), sentence_words)
+            end = _trimmed(text, match.start(), _closed_before(text, match.start(), end))
         if end > match.start():
             links.append(_Link(match.start(), end, kind))
     return [link for link in links if _plausible(text, link)]
@@ -627,6 +647,40 @@ def _continues(before: str, word: str, sentence_words: frozenset[str]) -> bool:
         return bool(re.match(r"[a-z0-9]", word)) and (
             "/" in word or bool(re.fullmatch(r"\d+[.,;:)\]]*", word))
         )
+    return False
+
+
+def _closed_before(text: str, start: int, end: int) -> int:
+    """`end`, or the first closing bracket that closes a bracket opened before the address
+    when another bracket is glued after it: "(see https://example.org)(Smith, 2019)" ends
+    before ")(" (#326)."""
+    depth = dict.fromkeys(_PAIRS, 0)
+    for position in range(start, end):
+        char = text[position]
+        if char in _OPENERS:
+            depth[_OPENERS[char]] += 1
+        elif char in _PAIRS:
+            if (
+                depth[char] == 0
+                and text[position + 1 : position + 2] in ("(", "[")
+                and _open_before(text, start, _PAIRS[char])
+            ):
+                return position
+            depth[char] = max(0, depth[char] - 1)
+    return end
+
+
+def _open_before(text: str, start: int, opener: str) -> bool:
+    """True if a bracket `opener` before `start` is still open there (within the look-back)."""
+    closer = _OPENERS[opener]
+    depth = 0
+    for char in reversed(text[max(0, start - _LOOK_BACK) : start]):
+        if char == closer:
+            depth += 1
+        elif char == opener:
+            if depth == 0:
+                return True
+            depth -= 1
     return False
 
 

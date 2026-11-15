@@ -1494,3 +1494,24 @@ expected = [
     "Es ist ein Fünftel m R Quadrat hier.",
     "Es ist 2 Drittel s t Quadrat hier.",
 ]
+
+# ---- v1.2 follow-ups: links in brackets (D-605, D-630) -------------------------------------
+
+[[case]]
+id = "de-links-in-brackets-read-the-same-on-a-second-run"
+audit = 0
+issue = 337
+goal = "A link ends at the bracket it closes when another bracket is glued after it (#326), and a join word or separator a removed link leaves at a bracket's start goes with it (#337), on both runs (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "(siehe https://example.org)(Müller, 2019) es gilt." },
+    { kind = "paragraph", text = "Es gilt (siehe https://example.org und Lee, 2019) hier." },
+    { kind = "paragraph", text = "Es gilt (https://example.org, Müller, 2019) hier." },
+    { kind = "paragraph", text = "Es gilt (siehe https://example.org; Lee, 2019) hier." },
+]
+expected = [
+    "es gilt.",
+    "Es gilt hier.",
+    "Es gilt hier.",
+    "Es gilt hier.",
+]
