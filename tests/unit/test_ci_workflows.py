@@ -100,4 +100,8 @@ def test_the_screens_workflow_runs_no_value_into_a_script() -> None:
     job = block(SCREENS, "  screens:")
     for match in re.finditer(r"^        run: \|\n((?:          .*\n|\n)*)", job + "\n", re.M):
         assert "${{" not in match[1]
+    one_line = re.findall(r"^ +(?:- )?run: (?![|>])(.+)$", job, re.M)
+    assert one_line  # `- run: uv sync --locked`: the pattern finds one-line steps
+    for command in one_line:
+        assert "${{" not in command, command
     assert "tests/browser/test_screens.py" in job

@@ -85,6 +85,7 @@ DARK = {
 }
 HIGHLIGHTERS = ("hl-read", "hl-note", "hl-quote", "hl-card", "hl-mark")
 
+ROOT_OPENS = re.compile(r"^:root \{", re.M)
 LIGHT_BLOCK = re.compile(r"^:root \{(.*?)^\}", re.S | re.M)
 SYSTEM_DARK = re.compile(
     r"@media \(prefers-color-scheme: dark\) \{\s*"
@@ -114,7 +115,13 @@ def blocks(css: str) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
 
 
 def check_tokens(css: str) -> None:
+    assert len(ROOT_OPENS.findall(css)) == 1, "one :root block, the light tokens"
     light, system, chosen = blocks(css)
+    rest = css
+    for block in (LIGHT_BLOCK, SYSTEM_DARK, CHOSEN_DARK):
+        rest = block.sub("", rest, count=1)
+    stray = [token for token in LIGHT if re.search(rf"--{token}\s*:", rest)]
+    assert stray == [], f"design tokens set outside their three blocks: {stray}"
     assert system == chosen, "the two dark blocks differ"
     for token, value in LIGHT.items():
         assert light.get(f"--{token}", "").upper() == value, token
@@ -140,6 +147,21 @@ def test_the_check_finds_a_dark_block_that_drifted() -> None:
         check_tokens(drifted)
 
 
+@pytest.mark.parametrize(
+    ("added", "message"),
+    [
+        (":root { --cobalt: #000000; }", "one :root block"),
+        (':root[data-theme="dark"] .rail { --cobalt: #000000; }', "outside their three blocks"),
+        (".rail { --paper: #000000; }", "outside their three blocks"),
+    ],
+)
+def test_the_check_finds_a_token_set_again_after_its_blocks(added: str, message: str) -> None:
+    # the two mutants of PR #409 review S2, and a token set again on a part of the page
+    css = CSS.read_text(encoding="utf-8")
+    with pytest.raises(AssertionError, match=message):
+        check_tokens(css + "\n" + added + "\n")
+
+
 def test_every_number_is_set_in_tabular_figures() -> None:
     css = CSS.read_text(encoding="utf-8")
     body = re.search(r"^body \{(.*?)^\}", css, re.S | re.M)
@@ -160,6 +182,8 @@ WEB_ADDRESS = re.compile(r"(?i)\b(?:https?|ftp|wss?):")
 PROTOCOL_RELATIVE = re.compile(
     r"""(?i)(?:url\(\s*['"]?|(?:src|href|action)\s*=\s*['"]?|@import\s+['"])\s*//"""
 )
+SLASHES = re.compile(r"//")
+QUOTED_SLASHES = re.compile(r"""["'`]\s*//""")
 CSS_URL = re.compile(r"""url\(\s*['"]?([^'")]+)""")
 PAGE_FILES = (".html", ".css", ".js", ".svg", ".json")
 
@@ -176,7 +200,20 @@ def page_files() -> dict[str, str]:
 
 def outside_addresses(name: str, text: str) -> list[str]:
     found = [m[0] for m in WEB_ADDRESS.finditer(text)]
-    found += [m[0] for m in PROTOCOL_RELATIVE.finditer(text)]
+    if name.endswith((".html", ".css", ".svg")):
+        # No page, style sheet or picture needs "//" at all (comments in CSS are /* */), so
+        # every one is reported: an address without its scheme can sit in any attribute or
+        # CSS function (srcset, poster, a refresh <meta>, image-set()), not just src and
+        # url() (PR #409 review B1).
+        found += [
+            f"// on line {text.count(chr(10), 0, m.start()) + 1}" for m in SLASHES.finditer(text)
+        ]
+    else:
+        found += [m[0] for m in PROTOCOL_RELATIVE.finditer(text)]
+    if name.endswith(".js"):
+        # a script's comments start with //, its strings may not: the same rule as the paths
+        # a script asks for in test_web_pages.py::test_no_page_loads_anything_from_outside
+        found += [m[0] for m in QUOTED_SLASHES.finditer(text)]
     if name.endswith(".css"):
         for url in CSS_URL.findall(text):
             if url.startswith("data:"):
@@ -194,18 +231,25 @@ def test_no_page_refers_to_an_address_outside_this_server() -> None:
 
 
 @pytest.mark.parametrize(
-    "line",
+    ("name", "line"),
     [
-        '@import url("https://fonts.googleapis.com/css2?family=Literata");',
-        "src: url(//fonts.gstatic.com/s/literata.woff2);",
-        "src: url(fonts/literata-cyrillic-wght-normal.woff2);",
-        '<link rel="stylesheet" href="http://127.0.0.1:9/x.css">',
-        '<script src="//cdn.example/x.js"></script>',
+        ("static/app.css", '@import url("https://fonts.googleapis.com/css2?family=Literata");'),
+        ("static/app.css", "src: url(//fonts.gstatic.com/s/literata.woff2);"),
+        ("static/app.css", "src: url(fonts/literata-cyrillic-wght-normal.woff2);"),
+        ("templates/base.html", '<link rel="stylesheet" href="http://127.0.0.1:9/x.css">'),
+        ("templates/base.html", '<script src="//cdn.example/x.js"></script>'),
+        # the four the review found passing (PR #409 B1): an IP number, no scheme
+        ("templates/base.html", '<img srcset="//192.168.1.9/x.png 1x" alt="">'),
+        ("static/app.css", '.x { background-image: image-set("//192.168.1.9/x.png" 1x); }'),
+        ("templates/base.html", '<meta http-equiv="refresh" content="0;url=//192.168.1.9/">'),
+        ("templates/_icons.html", '<video poster="//192.168.1.9/p.png"></video>'),
+        ("static/app.js", 'fetch("//192.168.1.9/x");'),
     ],
 )
-def test_the_check_finds_one_added_line(line: str) -> None:
-    css = CSS.read_text(encoding="utf-8")
-    assert outside_addresses("static/app.css", css + "\n" + line) != []
+def test_the_check_finds_one_added_line(name: str, line: str) -> None:
+    files = page_files()
+    assert outside_addresses(name, files[name]) == []
+    assert outside_addresses(name, files[name] + "\n" + line) != []
 
 
 # --- the bundled fonts and their licences (#385, D-670) -------------------------------------
@@ -400,6 +444,12 @@ def test_the_appearance_route_is_guarded_and_its_cookies_grant_nothing(tmp_path:
         "/appearance?theme=dark", headers={"Sec-Fetch-Site": "cross-site"}, follow_redirects=False
     )
     assert cross.status_code == 403
+    elsewhere = client.get(
+        "/appearance?theme=dark", headers={"Origin": "http://evil.example"}, follow_redirects=False
+    )
+    assert elsewhere.status_code == 403  # the same guards as /language (D-288, D-321)
+    assert "set-cookie" not in cross.headers
+    assert "set-cookie" not in elsewhere.headers
 
 
 def test_the_announce_switch_shows_the_cookie(tmp_path: Path) -> None:
