@@ -365,3 +365,15 @@ def test_a_unit_power_after_a_read_fraction_is_left_to_the_units_step(
 def test_a_unit_power_after_a_fraction_reads_the_same_on_a_second_run(printed: str) -> None:
     first = _read_all(printed)
     assert _read_all(first) == first
+
+
+def test_a_fraction_word_after_a_longer_number_is_no_fraction_reading() -> None:
+    """Pins the look-behind of `_UNIT_CHAIN_AFTER_FRACTION` (review N1 of PR #359): the step
+    reads no fraction with a decimal or longer numerator, so "2.5 quarters" or "1,003
+    halves" is prose, and a letter power after it is read as before."""
+    assert read("It is 2.5 quarters s⁻¹ here.") == (
+        "It is 2.5 quarters s to the power of minus 1 here."
+    )
+    assert read("It is 1,003 halves s⁻¹ here.") == (
+        "It is 1,003 halves s to the power of minus 1 here."
+    )

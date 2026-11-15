@@ -1053,3 +1053,10 @@ def test_german_label_joins_count_in_their_read_form(printed: str, read: str) ->
 )
 def test_no_unit_after_a_fraction_read_out_of(printed: str, read: str) -> None:
     assert said(UNITS, printed) == read
+
+
+def test_a_number_with_more_digits_before_out_of_keeps_its_unit() -> None:
+    """Pins the look-behind of `_OUT_OF` (review N1 of PR #359): "1,017 out of" is no
+    reading of a fraction (the numbers step reads none with a 4-digit numerator)."""
+    assert said(UNITS, "It was 1,017 out of 20 kg.") == "It was 1,017 out of 20 kilograms."
+    assert said(UNITS, "It was 2.5 out of 20 kg.") == "It was 2.5 out of 20 kilograms."

@@ -1461,3 +1461,24 @@ expected = [
     "Die Bedingungen 1 respektive 2 V und mehr.",
     "Es liegen 2 Volt an.",
 ]
+
+[[case]]
+id = "de-numbers-a-unit-power-after-a-fraction"
+audit = 0
+issue = 335
+goal = "A fraction before a unit chain that ends in a letter power is left as printed, as one before a letter power is ('1/5 m⁶'), so the power is not read only on a second run after the fraction words; a one-word unit with a power after it, or a word that is no unit symbol before a power, reads the fraction, as before (review S1 of PR #359, D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es ist 2/3 m s⁻² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 m s⁻¹ hier." },
+    { kind = "paragraph", text = "Es ist 3/4 kg m² hier." },
+    { kind = "paragraph", text = "Es ist 1/4 cm² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 und x² hier." },
+]
+expected = [
+    "Es ist 2/3 m s⁻² hier.",
+    "Es ist 3/4 m s⁻¹ hier.",
+    "Es ist 3/4 kg m² hier.",
+    "Es ist ein Viertel cm² hier.",
+    "Es ist 3 Viertel und x Quadrat hier.",
+]
