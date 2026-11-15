@@ -131,13 +131,16 @@ class Position:
 
 
 def audiobook_stamp(readalong: Path) -> str:
-    """The first 16 hex digits of the read-along file's SHA-256. Raises OSError."""
+    """The first 16 hex digits of the read-along file's SHA-256. Raises OSError. Kept
+    while the file's identity, time and size stay: the audio job replaces the file whole
+    (`write_texts`), which gives it a new identity even where two writes get the same
+    time (Windows' clock ticks in milliseconds)."""
     stat = readalong.stat()
-    return _stamp(str(readalong), (stat.st_mtime_ns, stat.st_size))
+    return _stamp(str(readalong), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
 
 
 @lru_cache(maxsize=8)
-def _stamp(path: str, version: tuple[int, int]) -> str:
+def _stamp(path: str, version: tuple[int, int, int]) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
 
 

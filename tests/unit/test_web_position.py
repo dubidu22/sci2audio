@@ -95,7 +95,7 @@ def test_no_record_and_a_folder_in_its_place_are_ignored(tmp_path: Path) -> None
     assert read_position(tmp_path, DOC, STAMP, two_chapters()) is None
     (tmp_path / player.POSITION).mkdir()
     assert read_position(tmp_path, DOC, STAMP, two_chapters()) is None
-    with pytest.raises(OSError, match="directory"):
+    with pytest.raises(OSError, match=r"directory|denied"):  # Windows: "Access is denied"
         write_position(tmp_path, DOC, STAMP, Position(0, 1.0))
 
 
@@ -156,7 +156,14 @@ def test_the_stamp_is_the_read_along_files_hash(tmp_path: Path) -> None:
     first = player.audiobook_stamp(path)
     assert len(first) == 16
     assert set(first) <= set("0123456789abcdef")
-    path.write_bytes(b"two")
+    # a new audiobook replaces the file whole, as `write_texts` does; on Windows both
+    # writes can get the same time and size, so the file's new identity must count
+    stat = path.stat()
+    new = tmp_path / "new.json"
+    new.write_bytes(b"two")
+    os.utime(new, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    os.replace(new, path)
+    assert path.stat().st_mtime_ns == stat.st_mtime_ns
     assert player.audiobook_stamp(path) != first
 
 
