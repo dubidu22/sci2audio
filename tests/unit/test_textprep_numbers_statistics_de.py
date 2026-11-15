@@ -671,3 +671,22 @@ def test_german_ranges_and_dotted_numbers_read_the_same_on_a_second_run(
     first = read_all(printed)
     assert first == said
     assert read_all(first) == first
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # review S1 of PR #359: a fraction before a unit chain ending in a letter power stays
+        ("Es ist 2/3 m s⁻² hier.", "Es ist 2/3 m s⁻² hier."),
+        ("Es ist 1/2 m · s⁻¹ hier.", "Es ist 1/2 m · s⁻¹ hier."),
+        ("Es ist 1/2 W m⁻² K⁻¹ hier.", "Es ist 1/2 W m⁻² K⁻¹ hier."),
+        # a one-word unit, or a word that is no unit symbol, reads the fraction as before
+        ("Es ist 1/4 cm² hier.", "Es ist ein Viertel cm² hier."),
+        ("Es ist 3/4 und x² hier.", "Es ist 3 Viertel und x Quadrat hier."),
+        ("Es ist 3/4 kg hier.", "Es ist 3 Viertel kg hier."),
+    ],
+)
+def test_a_german_fraction_before_a_unit_chain_with_a_power(printed: str, said: str) -> None:
+    first = read_all(printed)
+    assert first == said
+    assert read_all(first) == first

@@ -1503,3 +1503,59 @@ expected = [
     "Abbildung 3 Punkt 1 wird übersprungen.",
     "Abbildung 3 Punkt 1: Verlauf.",
 ]
+
+# ---- v1.2 follow-ups: units (D-605) ---------------------------------------------------------
+
+[[case]]
+id = "de-units-label-joins-read-in-full"
+audit = 0
+issue = 321
+goal = "Labels joined by 'bzw.' or 'resp.', and by their readings 'beziehungsweise' and 'respektive', stay labels: no unit after them, so a second run reads them the same (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Bedingungen 1 bzw. 2 V und mehr." },
+    { kind = "paragraph", text = "Die Bedingungen 1 resp. 2 V und mehr." },
+    { kind = "paragraph", text = "Die Bedingungen 1 beziehungsweise 2 V und mehr." },
+    { kind = "paragraph", text = "Die Bedingungen 1 respektive 2 V und mehr." },
+    { kind = "paragraph", text = "Es liegen 2 V an." },
+]
+expected = [
+    "Die Bedingungen 1 beziehungsweise 2 V und mehr.",
+    "Die Bedingungen 1 respektive 2 V und mehr.",
+    "Die Bedingungen 1 beziehungsweise 2 V und mehr.",
+    "Die Bedingungen 1 respektive 2 V und mehr.",
+    "Es liegen 2 Volt an.",
+]
+
+[[case]]
+id = "de-numbers-a-unit-power-after-a-fraction"
+audit = 0
+issue = 335
+goal = "A fraction before a unit chain that ends in a letter power is left as printed, as one before a letter power is ('1/5 m⁶'), so the power is not read only on a second run after the fraction words; where the first run reads that power ('x²', 'R²', 't²' after 's'), or the unit is one word ('1/4 cm²'), the fraction is read, as before (review S1 and B1 of PR #359, D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es ist 2/3 m s⁻² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 m s⁻¹ hier." },
+    { kind = "paragraph", text = "Es ist 3/4 kg m² hier." },
+    { kind = "paragraph", text = "Es ist 1/4 cm² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 und x² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 kg x² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 m x⁻¹ hier." },
+    { kind = "paragraph", text = "Es ist 3/4 m s x² hier." },
+    { kind = "paragraph", text = "Es ist 1/2 kg R² hier." },
+    { kind = "paragraph", text = "Es ist 1/5 m R² hier." },
+    { kind = "paragraph", text = "Es ist 2/3 s t² hier." },
+]
+expected = [
+    "Es ist 2/3 m s⁻² hier.",
+    "Es ist 3/4 m s⁻¹ hier.",
+    "Es ist 3/4 kg m² hier.",
+    "Es ist ein Viertel cm² hier.",
+    "Es ist 3 Viertel und x Quadrat hier.",
+    "Es ist 3 Viertel kg x Quadrat hier.",
+    "Es ist 3 Viertel m x hoch minus 1 hier.",
+    "Es ist 3 Viertel m s x Quadrat hier.",
+    "Es ist ein halb kg R Quadrat hier.",
+    "Es ist ein Fünftel m R Quadrat hier.",
+    "Es ist 2 Drittel s t Quadrat hier.",
+]

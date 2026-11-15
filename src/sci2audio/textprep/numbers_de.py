@@ -933,16 +933,28 @@ _TIME_BEFORE = re.compile(r"\b(?:um|ab|gegen|von|bis|zwischen|seit|und)\s+\Z", r
 # a letter power after the number: "1/5 m⁶" is left as printed, since "m⁶" after "5 " is
 # (`_LETTER_POWER`), after "Fünftel " it is not
 _LETTER_POWER_AFTER = re.compile(r"\s[^\W\d_][⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]")
+# ... and a letter power that ends a unit chain after it ("2/3 m s⁻²", "3/4 kg m²"), if the
+# powers rule leaves that power to the units step after the printed number (`_unit_chain`):
+# after the fraction's words it would read it (review S1 and B1 of PR #359)
+_CHAIN_POWER_AFTER = re.compile(
+    r"\s(?:[^\W\d_]{1,3}[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]*[\s·⋅]+)+(?P<base>[^\W\d_])[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]"
+)
+
+
+def _power_left_after(text: str, end: int) -> bool:
+    """True if a letter power after the fraction that ends at `end` is left as printed on
+    the first run, where it would be read after the fraction's words on a second run."""
+    if _LETTER_POWER_AFTER.match(text, end):
+        return not _STATISTICS_SQUARE.match(text, end + 1)  # "1/5 R²": the statistics step's
+    chain = _CHAIN_POWER_AFTER.match(text, end)
+    return chain is not None and _unit_chain(text, chain.start("base"))
 
 
 def _fractions(text: str) -> list[Candidate]:
     found = []
     for match in _FRACTION.finditer(text):
-        if _x_left_alone(text, match.end()) or (
-            _LETTER_POWER_AFTER.match(text, match.end())
-            and not _STATISTICS_SQUARE.match(text, match.end() + 1)
-        ):
-            continue  # "1/5 m⁶"; "1/5 R²" is read, the statistics step reads "R²"
+        if _x_left_alone(text, match.end()) or _power_left_after(text, match.end()):
+            continue  # "1/5 m⁶", "2/3 m s⁻²"; "1/5 R²" is read, the statistics step reads "R²"
         n, d = int(match["n"]), int(match["d"])
         if n > d or d == 0:
             continue  # "24/7", "3/2": no reading that is right everywhere
