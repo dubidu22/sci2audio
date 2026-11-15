@@ -83,6 +83,12 @@ def test_no_page_scrolls_sideways_at_320_pixels(signed_in: Page, live: Live, lan
     page.locator("#make").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     expect(page.locator("ul.files a").first).to_be_visible()
+    # the page drawn while the job ran reloads itself when it ends: measure the reloaded page
+    # once app.css applies, as settled() does for the document page (#166); measured before,
+    # the unstyled icons stick out (348 px, seen on PR #409)
+    expect(page.locator('#job[data-state="done"]')).to_have_count(1)
+    page.wait_for_load_state("load")
+    expect(page.locator(".skip")).to_have_css("position", "absolute")
     check_reflow(page, "audiobook done")
     page.goto(f"{live.url}/documents/{document}/listen")
     expect(page.locator("#play")).to_be_visible()
