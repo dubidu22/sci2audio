@@ -2,7 +2,7 @@
 
 import pytest
 
-from sci2audio.core import BlockKind
+from sci2audio.core import BlockKind, ScriptPiece, Span
 from sci2audio.testing import make_document
 from sci2audio.textprep import StepContext, run_steps, spoken_text
 from sci2audio.textprep.links import find_links
@@ -55,6 +55,17 @@ def test_an_address_ends_at_the_bracket_it_closes_before_a_glued_bracket(
         ("de", "Es gilt (siehe https://example.org; Lee, 2019) hier.", "Es gilt hier."),
         # a join word inside the bracket, not at its edge, stays
         ("en", "It holds (the code and https://example.org) here.", "It holds (the code) here."),
+        # a "/" with white space on both sides goes too (#371 review round 2, N2)
+        ("en", "It holds (see https://example.org / Lee, 2019) here.", "It holds here."),
+        ("en", "It holds (https://example.org / the code) here.", "It holds (the code) here."),
+        ("de", "Es gilt (siehe https://example.org / Müller, 2019) hier.", "Es gilt hier."),
+        # a bracket that stays, glued after the link's, keeps the space before (round 1, S1)
+        ("en", "Text (see https://example.org)(more) here.", "Text (more) here."),
+        ("en", "Text, (see https://example.org)(more) here.", "Text, (more) here."),
+        # the address ends at the ")" before the glued bracket, not at an earlier stray one,
+        # and a bracket it opens itself counts (round 2, N1)
+        ("en", "Text (see https://example.org/a)b)(more) here.", "Text (more) here."),
+        ("en", "Lee (see https://x.org/a(b)(Smith, 2019).", "Lee."),
     ],
 )
 def test_links_in_brackets_read_the_same_on_a_second_run(
@@ -114,6 +125,8 @@ def test_links_in_brackets_read_the_same_on_a_second_run(
         ),
         ("de", "((Müller, 2019); Weber, 2020) wird zitiert.", "Müller und Weber wird zitiert."),
         ("en", "Text ((Smith, 2019); Jones, 2020) here.", "Text here."),
+        # only an inner citation that opens the bracket keeps its names (round 2, N1)
+        ("en", "(e.g. (Smith, 2019); Jones, 2020) is cited.", "Jones is cited."),
         # other nest shapes read as before
         ("en", "((Smith, 2019) Jones, 2020) is cited.", "Jones is cited."),
         ("en", "(Jones, 2020; (Smith, 2019)) is cited.", "Jones is cited."),
@@ -126,3 +139,14 @@ def test_citation_nests_read_the_same_on_a_second_run(
     once = read_all(printed, language)
     assert once == said
     assert read_all(once, language) == once
+
+
+@pytest.mark.parametrize(
+    "printed", ["Text (see https://example.org)", "Text [see https://example.org]"]
+)
+def test_a_link_bracket_that_ends_its_block_takes_the_space_before_it(printed: str) -> None:
+    """The script piece itself, which the spoken text would hide: no trailing space, so its
+    span and chunk key stay as before (#371 review round 2, S1)."""
+    document = make_document([(BlockKind.PARAGRAPH, printed)], "en")
+    script = run_steps(document, StepContext("en"), strict=True).script()
+    assert tuple(script) == (ScriptPiece("Text", Span(0, 0, 4)),)

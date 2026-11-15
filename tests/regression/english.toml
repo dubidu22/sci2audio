@@ -1747,12 +1747,14 @@ blocks = [
     { kind = "paragraph", text = "It holds (https://example.org, Lee, 2019) here." },
     { kind = "paragraph", text = "It holds (see https://example.org; Lee, 2019) here." },
     { kind = "paragraph", text = "It holds (https://example.org or the code) here." },
+    { kind = "paragraph", text = "It holds (see https://example.org / Lee, 2019) here." },
 ]
 expected = [
     "It holds here.",
     "It holds here.",
     "It holds here.",
     "It holds (the code) here.",
+    "It holds here.",
 ]
 
 [[case]]

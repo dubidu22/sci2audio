@@ -463,7 +463,11 @@ class LinkStep(TextStep):
                 repair += join
                 end, join = _leading_join(text, start, end, words)
                 repair += join
-                if text[start].isspace() and text[end - 1] in ")]" and text[end : end + 1] in "([":
+                if (
+                    text[start].isspace()
+                    and text[end - 1] in ")]"
+                    and text[end : end + 1] in ("(", "[")
+                ):
                     # "Text (see https://x.org)(more)" reads "Text (more)": the bracket glued
                     # after the link's keeps the space before (#371 review round 1, S1)
                     start += 1
@@ -544,17 +548,22 @@ def _dangling_join(
 def _leading_join(text: str, start: int, end: int, words: LinkWords) -> tuple[int, str]:
     """A join word or separator that a removal right after a bracket's opening would leave
     at the bracket's edge goes too, as after a removed citation (#305): "(see
-    https://example.org and Lee, 2019)" leaves "(Lee, 2019)", not "( and Lee, 2019)" (#337)."""
+    https://example.org and Lee, 2019)" leaves "(Lee, 2019)", not "( and Lee, 2019)" (#337).
+
+    A "/" goes only with white space on both sides ("(see https://example.org / Lee,
+    2019)"): one glued to the address belongs to it (#371 review round 2, N2)."""
     if not re.search(r"[(\[]\s*\Z", text[max(0, start - _LOOK_BACK) : start]):
         return end, ""
     joins = sorted((w for w in words.joins if w != "/"), key=len, reverse=True)
     listed = "|".join(
         re.escape(w) + (r"(?!\w)" if w[-1:].isalpha() or w[-1:] == "." else "") for w in joins
     )
-    after = re.compile(rf"\s*({listed})\s*(?=[^\s)\]])", re.IGNORECASE).match(text, end)
+    after = re.compile(rf"(?:\s*({listed})|\s+(/)(?=\s))\s*(?=[^\s)\]])", re.IGNORECASE).match(
+        text, end
+    )
     if not after:
         return end, ""
-    return after.end(), f'; "{after.group(1)}" after it goes too'
+    return after.end(), f'; "{after.group(1) or after.group(2)}" after it goes too'
 
 
 def _tidied(text: str, edits: list[Edit]) -> list[Edit]:

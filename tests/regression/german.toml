@@ -1599,6 +1599,7 @@ blocks = [
     { kind = "paragraph", text = "Es gilt (siehe https://example.org; Lee, 2019) hier." },
     { kind = "paragraph", text = "Text (siehe https://example.org)(mehr) hier." },
     { kind = "paragraph", text = "Text (siehe https://example.org)(Abb. 3) hier." },
+    { kind = "paragraph", text = "Es gilt (siehe https://example.org / Müller, 2019) hier." },
 ]
 expected = [
     "es gilt.",
@@ -1607,6 +1608,7 @@ expected = [
     "Es gilt hier.",
     "Text (mehr) hier.",
     "Text (Abbildung 3) hier.",
+    "Es gilt hier.",
 ]
 
 # ---- v1.2 follow-ups: citation nests (D-605, D-630) ----------------------------------------
