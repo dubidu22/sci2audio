@@ -11,7 +11,10 @@ Memory is watched from inside the child: a thread reads the process's memory eve
 offers a hard limit, it is set at twice the limit, for an allocation that grows faster
 than the watch: the address space on Linux, a job object on Windows; macOS has neither.
 Time is watched from the parent: the child reports each step it starts (`report`), and a
-step that takes longer than allowed ends the child. The child's watch also ends it with
+step that takes longer than allowed ends the child. Starting the child (a fresh interpreter
+importing its modules, slow on a busy machine) is not a step: the first step, "opening",
+starts when the child says it runs, and the start itself may take `START_SECONDS`. The
+child's watch also ends it with
 `TIME_EXIT` when no step started for twice that long, so a child whose parent is gone
 (killed, crashed) does not read on.
 
@@ -40,6 +43,7 @@ from typing import Any
 MEMORY_EXIT = 86  # the child's exit code when the watch ended it for memory
 TIME_EXIT = 87  # ... and for a step that took more than twice its time
 _WATCH_SECONDS = 0.02
+START_SECONDS = 30.0  # the longest a child may take to start, before its first step
 
 _report: Callable[[str], None] | None = None  # set in the child
 _step_started = 0.0  # in the child: when the current step started (time.monotonic)
@@ -152,9 +156,10 @@ def _without_main() -> types.ModuleType:
 
 
 def _wait(child: Any, receive: Connection, step_seconds: float) -> Any:
-    step = "opening"
+    step = "starting"  # until the child's first word, "opening"
     while True:
-        if not receive.poll(step_seconds):
+        limit = max(step_seconds, START_SECONDS) if step == "starting" else step_seconds
+        if not receive.poll(limit):
             child.kill()
             return Stopped("time", step)
         try:
@@ -182,6 +187,7 @@ def _child(
     step_seconds: float,
 ) -> None:
     global _report, _step_started
+    send.send(("step", "opening"))  # started: the parent's clock for the first step begins
     _hard_limit(2 * memory)
     _step_started = time.monotonic()
     watch = threading.Thread(
