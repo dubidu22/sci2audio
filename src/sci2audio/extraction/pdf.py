@@ -202,6 +202,15 @@ def _read_file(path: str, limits: dict[str, int]) -> Content:
 
 
 def _stopped(name: str, stopped: isolate.Stopped) -> ExtractionError:
+    if stopped.step == "starting":  # not the file's doing: the reader never began to read it
+        why = (
+            f"it did not start within {isolate.START_SECONDS:g} seconds"
+            if stopped.reason == "time"
+            else "it ended while starting"
+        )
+        return ExtractionError(
+            f"{name}: cannot be read: sci2audio could not start its PDF reader ({why})"
+        )
     if stopped.reason == "memory":
         size = (
             f"{MAX_MEMORY / 1024**3:g} GB"

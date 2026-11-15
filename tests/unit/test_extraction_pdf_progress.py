@@ -69,7 +69,7 @@ def test_each_step_reaches_on_step_in_order() -> None:
         on_step=seen.append,
     )
     assert result == 3
-    assert seen == ["page 1 of 3", "page 2 of 3", "page 3 of 3"]
+    assert seen == ["opening", "page 1 of 3", "page 2 of 3", "page 3 of 3"]  # "opening": D-616
 
 
 def test_an_on_step_that_raises_does_not_stop_the_read(caplog: pytest.LogCaptureFixture) -> None:
@@ -89,7 +89,7 @@ def test_an_on_step_that_raises_does_not_stop_the_read(caplog: pytest.LogCapture
             on_step=broken,
         )
     assert result == 2
-    assert calls == ["page 1 of 2", "page 2 of 2"]
+    assert calls == ["opening", "page 1 of 2", "page 2 of 2"]
     logged = [
         (record.getMessage(), str(record.exc_info[1]))
         for record in caplog.records
@@ -118,17 +118,17 @@ def test_a_pdf_read_hands_on_every_page_with_the_page_count() -> None:
 def test_with_a_cancel_to_watch_a_step_is_stopped_at_its_own_time_limit(tmp_path: Path) -> None:
     """The parent looks at the cancel every 0.1 s; the time limit stays one step time from
     the step's start, neither shorter nor stretched by the slices."""
-    started: list[float] = []
+    started: dict[str, float] = {}
     stopped = isolate.run(
         targets.page_then_hang,
         (str(tmp_path), 30),
         memory=GiB,
         step_seconds=1.0,
         readers=isolate.Readers(1),
-        on_step=lambda step: started.append(time.monotonic()),
+        on_step=lambda step: started.setdefault(step, time.monotonic()),
         cancel=threading.Event(),
     )
-    took = time.monotonic() - started[0]
+    took = time.monotonic() - started["page 1 of 1"]  # from the page step's start
     assert stopped == isolate.Stopped("time", "page 1 of 1")
     assert 1.0 <= took < 1.5
 

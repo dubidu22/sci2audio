@@ -16,12 +16,7 @@ CASES_FILE = Path(__file__).resolve().parents[1] / "regression" / "german.toml"
 CASES = load_cases(CASES_FILE)
 
 # cases that do not read the same on a second run, each with the reason (D-577)
-_REBUILT_LABEL = "#324: the rebuilt notice block loses a label a step rewrote"
 SECOND_RUN_EXCEPTIONS = {
-    # `rebuilt_from_script` keeps a label only where the text prints it, so the rebuilt notice
-    # has none and is read "Eine Abbildung wird übersprungen": the rebuild, not a step
-    "de-notice-table-named-by-its-caption": _REBUILT_LABEL,
-    "de-notice-figure-short-label": _REBUILT_LABEL,
     "de-units-german-label-joins": "#321: '1 bzw. 2 V' reads '2 Volt' on a second run",
 }
 

@@ -11,7 +11,10 @@ Memory is watched from inside the child: a thread reads the process's memory eve
 offers a hard limit, it is set at twice the limit, for an allocation that grows faster
 than the watch: the address space on Linux, a job object on Windows; macOS has neither.
 Time is watched from the parent: the child reports each step it starts (`report`), and a
-step that takes longer than allowed ends the child. The child's watch also ends it with
+step that takes longer than allowed ends the child. Starting the child (a fresh interpreter
+importing its modules, slow on a busy machine) is not a step: the first step, "opening",
+starts when the child says it runs, and the start itself may take `START_SECONDS`. The
+child's watch also ends it with
 `TIME_EXIT` when no step started for twice that long, so a child whose parent is gone
 (killed, crashed) does not read on.
 
@@ -45,6 +48,7 @@ from typing import Any
 MEMORY_EXIT = 86  # the child's exit code when the watch ended it for memory
 TIME_EXIT = 87  # ... and for a step that took more than twice its time
 _WATCH_SECONDS = 0.02
+START_SECONDS = 30.0  # the longest a child may take to start, before its first step
 _CANCEL_SECONDS = 0.1  # how often the parent looks at `cancel`
 _log = logging.getLogger(__name__)
 
@@ -56,7 +60,8 @@ _MAIN = threading.Lock()  # the main module is swapped while a child starts
 @dataclass(frozen=True)
 class Stopped:
     """Why the child ended without a result: "memory", "time" (in `step`), "ended", or
-    "cancelled" (in `step`; "" when no child had started yet)."""
+    "cancelled" (in `step`: "starting" before the child's first word, "" when no child
+    was started)."""
 
     reason: str
     step: str = ""
@@ -194,8 +199,8 @@ def _wait(
     on_step: Callable[[str], None] | None,
     cancel: threading.Event | None,
 ) -> Any:
-    step = "opening"
-    deadline = time.monotonic() + step_seconds  # of the current step
+    step = "starting"  # until the child's first word, "opening"
+    deadline = time.monotonic() + START_SECONDS  # of the current step
     while True:
         if cancel is not None and cancel.is_set():
             child.kill()
@@ -243,6 +248,7 @@ def _child(
     step_seconds: float,
 ) -> None:
     global _report, _step_started
+    send.send(("step", "opening"))  # started: the parent's clock for the first step begins
     _hard_limit(2 * memory)
     _step_started = time.monotonic()
     watch = threading.Thread(
