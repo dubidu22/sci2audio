@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 import hashlib
 import io
+import struct
 import zlib
 from dataclasses import dataclass
 
@@ -422,3 +423,28 @@ def with_page_added(data: bytes, text: str) -> bytes:
     updated = buffer.getvalue()
     assert updated.startswith(data)
     return updated
+
+
+def flate_bomb(spaces: int, chunk: int = 1 << 20) -> bytes:
+    """One page whose content stream is `spaces` spaces and then "Hello", Flate-compressed:
+    about 1 KB of file per MB of stream (#185). The stream is built from one flushed block
+    repeated, so a gigabyte takes a fraction of a second to write."""
+    compressor = zlib.compressobj(9)
+    block = compressor.compress(b" " * chunk) + compressor.flush(zlib.Z_FULL_FLUSH)
+    repeat = compressor.compress(b" " * chunk) + compressor.flush(zlib.Z_FULL_FLUSH)
+    tail_text = b"BT /F1 12 Tf 72 720 Td (Hello) Tj ET"
+    tail = compressor.compress(tail_text) + compressor.flush()
+    count = spaces // chunk
+    checksum = 1
+    for _ in range(count):
+        checksum = zlib.adler32(b" " * chunk, checksum)
+    checksum = zlib.adler32(tail_text, checksum)
+    body = block + repeat * (count - 1) + tail[:-4] + struct.pack(">I", checksum)
+    objects = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: _PAGE % (b"[0 0 612 792]", b"<< /Font << /F1 5 0 R >> >>", b""),
+        4: stream(body, b"/Filter /FlateDecode"),
+        5: _HELVETICA,
+    }
+    return raw_pdf(objects)

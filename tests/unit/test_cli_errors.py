@@ -173,3 +173,19 @@ def test_clean_while_a_job_works_on_the_file_is_busy(cli: Cli, tmp_path: Path) -
     assert result.code == 8  # D-226: clean_work_folder takes the job's lock
     assert "another sci2audio job is working on this file" in one_line(result.err)
     assert any((cli.work(source) / "chunks").rglob("*.wav"))
+
+
+def test_the_command_hands_a_packaged_reader_start_to_the_reader(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A packaged build (v1.3) starts itself again for each PDF reader process; without
+    `freeze_support` first, such a start would run the command instead (D-581, #345 N2)."""
+    import multiprocessing
+
+    from sci2audio import cli as cli_module
+
+    calls: list[str] = []
+    monkeypatch.setattr(multiprocessing, "freeze_support", lambda: calls.append("freeze"))
+    monkeypatch.setattr(cli_module, "run", lambda argv, env: calls.append("run") or 0)
+    assert cli_module.main([]) == 0
+    assert calls == ["freeze", "run"]
