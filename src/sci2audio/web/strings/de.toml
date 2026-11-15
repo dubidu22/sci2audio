@@ -109,7 +109,7 @@ status_set_aside = "zurückgestellt: die Änderung des Schritts {step} hatte Vor
 status_switched_off = "ausgeschaltet"
 position = "(Stelle)"
 chapters = "Vorzulesende Kapitel"
-chapters_hint = "Die Kapitel werden in der gedruckten Reihenfolge vorgelesen."
+chapters_hint = "Die Kapitel werden in der Reihenfolge dieser Liste vorgelesen. „Nach oben“ und „Nach unten“ ändern sie."
 chapter_line = "{title}"
 chapter_details.one = "Seite {page}, 1 Satz"
 chapter_details.other = "Seite {page}, {n} Sätze"
@@ -118,6 +118,8 @@ chapter_details_no_page.other = "{n} Sätze"
 references = "Literaturverzeichnis, standardmäßig nicht vorgelesen"
 choose_all = "Alle wählen"
 choose_none = "Keine wählen"
+move_up = "Nach oben"  # ein Kapitel der Liste (#119); sein Titel folgt für Screenreader
+move_down = "Nach unten"
 update = "Analyse aktualisieren"
 changed = "Sie haben die Auswahl geändert. Aktualisieren Sie die Analyse, um zu sehen, was sich dadurch ändert."
 language = "Sprache des Textes"
@@ -284,6 +286,7 @@ cannot_play = "Dieser Browser kann die M4B-Datei des Hörbuchs nicht abspielen. 
 load_failed = "Das Audio ließ sich nicht laden. Läuft sci2audio noch?"
 
 [js]
+moved = "{title} ist jetzt Kapitel {n} von {total}."  # die Kapitelliste (#119)
 opening = "Wird geöffnet …"
 starting = "Wird gestartet …"
 analysing = "Wird analysiert …"

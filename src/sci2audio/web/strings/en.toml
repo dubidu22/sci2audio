@@ -104,7 +104,7 @@ status_set_aside = "set aside: the change of step {step} won"
 status_switched_off = "switched off"
 position = "(position)"
 chapters = "Chapters to read"
-chapters_hint = "Chapters are read in printed order."
+chapters_hint = "Chapters are read in the order of this list. Move up and Move down change it."
 chapter_line = "{title}"
 chapter_details.one = "page {page}, 1 sentence"
 chapter_details.other = "page {page}, {n} sentences"
@@ -113,6 +113,8 @@ chapter_details_no_page.other = "{n} sentences"
 references = "reference list, not read by default"
 choose_all = "Choose all"
 choose_none = "Choose none"
+move_up = "Move up"  # a chapter in the list (#119); its title follows for screen readers
+move_down = "Move down"
 update = "Update the analysis"
 changed = "You changed the choices. Update the analysis to see what they change."
 language = "Language of the text"
@@ -279,6 +281,7 @@ cannot_play = "This browser can't play the audiobook's M4B file. Save it from th
 load_failed = "The audio could not be loaded. Is sci2audio still running?"
 
 [js]
+moved = "{title} is now chapter {n} of {total}."  # the chapter list (#119)
 opening = "Opening…"
 starting = "Starting…"
 analysing = "Analysing…"

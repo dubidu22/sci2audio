@@ -401,7 +401,7 @@ def _merged(saved: JobSettings, given: models.JobSettingsIn) -> JobSettings:
         switched_off=saved.switched_off
         if given.switched_off is None
         else frozenset(given.switched_off),
-        chapters=None if given.chapters is None else frozenset(given.chapters),
+        chapters=None if given.chapters is None else tuple(given.chapters),
         voice=saved.voice if given.voice is None else _voice(given.voice),
         speed=saved.speed if given.speed is None else given.speed,
         letter_pace=saved.letter_pace if given.letter_pace is None else given.letter_pace,
@@ -416,7 +416,7 @@ def _settings_data(settings: JobSettings) -> dict[str, Any]:
     return {
         "language": settings.language,
         "switched_off": sorted(str(c) for c in settings.switched_off),
-        "chapters": None if settings.chapters is None else sorted(settings.chapters),
+        "chapters": None if settings.chapters is None else list(settings.chapters),
         "voice": settings.voice,
         "speed": settings.speed,
         "letter_pace": settings.letter_pace,

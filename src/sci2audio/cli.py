@@ -224,12 +224,13 @@ def _parser_class(env: CliEnv) -> Callable[..., _Parser]:
     return make
 
 
-def chapter_numbers(text: str) -> frozenset[int] | None:
+def chapter_numbers(text: str) -> tuple[int, ...] | None:
     """`--chapters`: "all" (None here, resolved once the chapters are known) or numbers
-    and ranges counted from 1 ("1,3-5"), as `JobSettings.chapters` indices from 0."""
+    and ranges counted from 1 ("1,3-5"), as `JobSettings.chapters` indices from 0, in the
+    order given (#119; a chapter named twice is read where it is first named)."""
     if text.strip().lower() == "all":
         return None
-    numbers: set[int] = set()
+    numbers: dict[int, None] = {}
     for part in text.split(","):
         part = part.strip()
         first, dash, last = part.partition("-")
@@ -246,8 +247,8 @@ def chapter_numbers(text: str) -> frozenset[int] | None:
             )
         if high - low > 10_000:
             raise argparse.ArgumentTypeError(f"{part!r}: that range is too long")
-        numbers.update(range(low - 1, high))
-    return frozenset(numbers)
+        numbers.update(dict.fromkeys(range(low - 1, high)))
+    return tuple(numbers)
 
 
 def categories(text: str) -> frozenset[Category]:
@@ -304,8 +305,8 @@ def _add_job_options(parser: _Parser) -> None:
         type=chapter_numbers,
         metavar="LIST",
         default=argparse.SUPPRESS,
-        help="chapters to read, counted from 1 as `script` lists them: 1,3-5 or all "
-        "(default: every chapter but the reference list)",
+        help="chapters to read, counted from 1 as `script` lists them, in the order "
+        "given: 1,3-5 or 3,1 or all (default: every chapter but the reference list)",
     )
     parser.add_argument(
         "--on",
@@ -502,7 +503,7 @@ def _settings(args: argparse.Namespace, env: CliEnv) -> JobSettings:
     if args.language is not None:
         changes["language"] = args.language
     if hasattr(args, "chapters"):
-        changes["chapters"] = args.chapters if args.chapters is not None else frozenset()
+        changes["chapters"] = args.chapters if args.chapters is not None else ()
     for name in ("voice", "speed", "letter_pace", "subtitles"):
         if getattr(args, name, None) is not None:
             changes[name] = getattr(args, name)
@@ -521,7 +522,7 @@ def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
     """`--chapters all`: the chapter count is only known once the file is read. (The job
     reads it again; Issue #112 lets `JobSettings` say "every chapter" instead.)"""
     document = read_document(source, settings, lambda phase: None)
-    chapters = frozenset(chapter.index for chapter in find_chapters(document))
+    chapters = tuple(chapter.index for chapter in find_chapters(document))
     return replace(settings, chapters=chapters)
 
 

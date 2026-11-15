@@ -493,3 +493,28 @@ def test_a_failed_run_with_subtitles_leaves_nothing_in_the_way_of_a_rerun(
     monkeypatch.setattr(Path, "write_text", original)
     job = run(source, tmp_path, FakeVoice(), settings=JobSettings(subtitles=True))
     assert len(job.written.subtitles) == 4
+
+
+def test_the_audiobook_follows_the_chosen_order(tmp_path: Path) -> None:
+    """#119: the MP3 numbering, the M4B's chapter marks, the read-along file and the
+    record follow the order the person chose."""
+    from test_output_ffmpeg import chapters_of, ffmetadata
+
+    voice = FakeVoice()
+    job = run(PYMEDPHYS, tmp_path, voice, settings=JobSettings(chapters=(2, 0)))
+    titles = {c.chapter.index: c.chapter.title for c in job.result.chapters}
+    readalong = read_readalong(job.written.readalong)
+    assert [c.title for c in readalong.chapters] == [titles[2], titles[0]]
+    first, second = (p.name.split(" - ", 1)[-1] for p in job.written.mp3s)
+    assert first.startswith(f"01 {titles[2][:9]}"), first
+    assert second.startswith(f"02 {titles[0][:9]}"), second
+    assert job.written.m4b is not None
+    assert [title for _start, _end, title in chapters_of(ffmetadata(job.written.m4b))] == [
+        titles[2],
+        titles[0],
+    ]
+    starts = [c.start for c in readalong.chunks]
+    assert starts == sorted(starts)  # one timeline, in the order heard
+    record = json.loads(job.record.read_text(encoding="utf-8"))
+    assert record["settings"]["chapters"] == [2, 0]
+    assert [(c["index"], c["selected"]) for c in record["chapters"]][:2] == [(2, True), (0, True)]

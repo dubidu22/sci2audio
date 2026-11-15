@@ -410,9 +410,10 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     # the language the report was made with ("" = automatic); a job made from this page
     # uses it, and it is not remembered for other documents (#212, D-521)
     language = str(report_settings.get("language", saved.language) or "")
+    ordered, chosen = _chapter_order(chapters, report_settings.get("chapters"))
     shown = {
         "switched_off": sorted(switched_off),
-        "chapters": sorted(c["index"] for c in chapters if c.get("selected")),
+        "chapters": chosen,
         "language": language,
     }
     return _page(
@@ -430,6 +431,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         failed=failed,
         categories=_categories(report, switched_off, s),
         chapters=chapters,
+        ordered_chapters=ordered,
         chosen_chapters=len(shown["chapters"]),
         edit_count=len(edits),
         heard=heard,
@@ -496,6 +498,23 @@ def job(request: Request, state: State, job_id: str) -> HTMLResponse:
         skipped=progress.get("skipped", []) if view["state"] == "done" else [],
         folder=view["files"][0]["folder"] if view["files"] else "",
     )
+
+
+def _chapter_order(
+    chapters: list[dict[str, Any]], recorded: Any
+) -> tuple[list[dict[str, Any]], list[int]]:
+    """The report's chapters in the order the page lists them, and the chosen ones in the
+    order they are read (#119): the order the report was made with when it is not printed
+    order (the chosen ones first, then the others as printed), else printed order."""
+    chosen_set = {c.get("index") for c in chapters if c.get("selected")}
+    printed = sorted(chapters, key=lambda c: c.get("index", 0))
+    order = [n for n in recorded if n in chosen_set] if isinstance(recorded, list) else []
+    order = list(dict.fromkeys(n for n in order if isinstance(n, int)))
+    if order != sorted(order) and set(order) == chosen_set:
+        by_index = {c.get("index"): c for c in printed}
+        rest = [c for c in printed if c.get("index") not in set(order)]
+        return [by_index[n] for n in order] + rest, order
+    return printed, sorted(n for n in chosen_set if isinstance(n, int))
 
 
 # --- the listen page (#78) ---------------------------------------------------------------

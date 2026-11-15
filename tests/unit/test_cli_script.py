@@ -122,10 +122,17 @@ def test_a_chapter_the_document_lacks_is_a_warning_in_its_own_numbers(
 
 @pytest.mark.parametrize(
     ("text", "indices"),
-    [("1", {0}), (" 2 , 4-5 ", {1, 3, 4}), ("3-3", {2}), ("ALL", None)],
+    [
+        ("1", (0,)),
+        (" 2 , 4-5 ", (1, 3, 4)),
+        ("3-3", (2,)),
+        ("ALL", None),
+        ("3,1-2", (2, 0, 1)),  # the order given (#119)
+        ("2,1,2", (1, 0)),  # each chapter once, where first named
+    ],
 )
-def test_chapter_numbers(text: str, indices: set[int] | None) -> None:
-    assert chapter_numbers(text) == (None if indices is None else frozenset(indices))
+def test_chapter_numbers(text: str, indices: tuple[int, ...] | None) -> None:
+    assert chapter_numbers(text) == indices
 
 
 @pytest.mark.parametrize("text", ["0", "3-1", "x", "1,,2", "-2", "1-", "1-99999"])
@@ -292,3 +299,18 @@ def test_the_language_warnings_are_printed_once_and_a_clear_guess_is_not(
     result = cli("script", english, "-o", tmp_path / "c", "-q")
     assert result.code == 0, result.err
     assert "warning" not in result.err
+
+
+def test_chapters_are_read_in_the_order_given(cli: Cli, tmp_path: Path) -> None:
+    """#119: `--chapters 3,1` reads chapter 3 first; the records keep the order, and the
+    report and the script say it is not printed order."""
+    assert cli("script", SEABORN, "-o", tmp_path, "-q", "--chapters", "3,1").code == 0
+    data = report(tmp_path)
+    assert data["settings"]["chapters"] == [2, 0]
+    assert [c["index"] for c in data["chapters"] if c["selected"]] == [2, 0]
+    job = json.loads((cli.work(SEABORN) / "job.json").read_text(encoding="utf-8"))
+    assert job["settings"]["chapters"] == [2, 0]
+    markdown = (tmp_path / "joss2021-waskom-seaborn.report.md").read_text(encoding="utf-8")
+    assert "Read in the chosen order, not as printed: 3. " in markdown
+    script = (tmp_path / "joss2021-waskom-seaborn.script.txt").read_text(encoding="utf-8")
+    assert script.index("# 3. ") < script.index("# 1. ")
