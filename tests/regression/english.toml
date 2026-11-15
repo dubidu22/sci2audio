@@ -1747,6 +1747,22 @@ expected = [
     "It holds (the code) here.",
 ]
 
+[[case]]
+id = "links-a-link-that-takes-a-citation-s-opening-bracket"
+audit = 0
+issue = 326
+goal = "A link printed without a space before a citation takes the citation's opening bracket and first name; the citation is then judged on what the link leaves, as a second run judges it, never removed across the link (D-630)."
+blocks = [
+    { kind = "paragraph", text = "Lee (see https://x.org/a(b)(Smith, 2019) it holds." },
+    { kind = "paragraph", text = "Lee (see https://x.org/a(b)(Smith 2019) it holds." },
+    { kind = "paragraph", text = "Lee (see https://x.org/a(Smith, 2019), it holds." },
+]
+expected = [
+    "Lee it holds.",
+    "Lee it holds.",
+    "Lee, it holds.",
+]
+
 # ---- v1.2 follow-ups: citation nests (D-605, D-630) ----------------------------------------
 
 [[case]]

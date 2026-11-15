@@ -1651,7 +1651,12 @@ def _covered(edits: list[_Found] | None, handled: list[_Found]) -> bool:
 def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]) -> list[_Found]:
     """Removals that leave to the links step the white space and punctuation its removals
     take: "https://x.org, (Smith, 2020)." or "(Smith, 2020), https://x.org." would otherwise
-    have the citation's removal set aside, and a second run remove it (#101)."""
+    have the citation's removal set aside, and a second run remove it (#101).
+
+    An edit that still overlaps a link's span is left out: the links step runs first, so
+    its edit would be set aside anyway, and the next look must see the text as a second run
+    does, with the link gone and the citation still there. "Lee (see https://x.org/a(b)(Smith,
+    2019)": the link takes "(Smith," and the next look reads "Lee (2019)" (D-630)."""
     if not links:
         return found
     starts = [start for start, _ in links]
@@ -1668,7 +1673,8 @@ def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]
                 and _UNREAD.fullmatch(text, links[at][0], end)
             ):
                 end = links[at][0]
-        if start < end:
+        at = bisect.bisect_left(starts, end) - 1
+        if start < end and (at < 0 or links[at][1] <= start):
             result.append((start, end, kind, replacement, reason))
     return result
 
