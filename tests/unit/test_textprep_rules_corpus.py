@@ -29,6 +29,7 @@ from sci2audio.textprep import (
     whole_block,
     wording_for,
 )
+from sci2audio.textprep.references import unheaded_list
 
 pytestmark = pytest.mark.timeout(120)
 
@@ -139,6 +140,24 @@ def test_no_reference_list_is_read(paper: Path) -> None:
                 assert said[index] == "", (index, doc.blocks[index].text[:60])
         # what follows the list (appendices) is read
         assert section.end == len(doc.blocks) or any(said[section.end :])
+
+
+def test_liu_s_list_without_a_heading_is_not_read_and_its_body_is() -> None:
+    """#92, D-646: Liu (PRL, revtex) prints its list without a heading, entries [1] to [81]
+    in blocks 53 to 133, its one note as entry [59]; no other corpus paper uses the rule."""
+    (paper,) = [paper for paper in PAPERS if paper.stem == "arxiv2024-liu-orbital-hall"]
+    doc, said = document(paper), spoken(paper)
+    listed = [i for i in range(53, 134) if doc.blocks[i].kind is not BlockKind.FURNITURE]
+    assert unheaded_list(doc.blocks) == listed
+    assert doc.blocks[53].text.startswith("[1] ")
+    assert "[81] " in doc.blocks[133].text[:6]
+    assert all(said[i] == "" for i in listed)
+    assert said[52].startswith("Acknowledgments.")
+    # every other paper heads its list, so the rule is not used there
+    for other in PAPERS:
+        if other != paper:
+            sections = all_sections(document(other).sections)
+            assert any(is_reference_title(s.title, document(other).language) for s in sections)
 
 
 @pytest.mark.parametrize("paper", papers("test_every_footnote_is_introduced_and_its_mark_left_out"))

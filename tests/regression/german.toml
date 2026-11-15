@@ -1650,3 +1650,52 @@ expected = [
     "Er schrieb »et zetera.« Dann ging er.",
     "Er schrieb „und so weiter“ und ging.",
 ]
+
+# ---- #254 alphanumeric citation keys (D-646) -----------------------------------------------
+
+[[case]]
+id = "de-citations-alphanumeric-keys-as-asides"
+audit = 0
+issue = 254
+goal = "LNI keys ('[Fa14]', '[MH17]') are citations like numeric ones: an aside goes (D-646)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Fahl et al. haben gezeigt [Fa14], dass es geht." },
+    { kind = "paragraph", text = "Studien zur Sicherheit [Ho16, Ma16] und Privatheit [EN16] gibt es." },
+    { kind = "paragraph", text = "Das gilt (vgl. [MH17])." },
+]
+expected = [
+    "Fahl et al. haben gezeigt, dass es geht.",
+    "Studien zur Sicherheit und Privatheit gibt es.",
+    "Das gilt.",
+]
+
+[[case]]
+id = "de-citations-alphanumeric-keys-the-sentence-needs"
+audit = 0
+issue = 254
+goal = "A key the sentence needs reads 'Quelle' and the key as printed: 'in [MH17]' reads 'in Quelle MH17' (D-646)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wir haben dies erstmalig in [MH17] vorgestellt." },
+    { kind = "paragraph", text = "Details finden sich in [Ro14; Ro17]." },
+    { kind = "paragraph", text = "[MH17] zeigen das." },
+]
+expected = [
+    "Wir haben dies erstmalig in Quelle MH17 vorgestellt.",
+    "Details finden sich in Quellen Ro14 und Ro17.",
+    "Quelle MH17 zeigen das.",
+]
+
+[[case]]
+id = "de-citations-key-look-alikes-stay"
+audit = 0
+issue = 254
+goal = "Brackets that look like keys but name a thing stay as printed ('[PM10]', '[CO2]') (D-646)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Wert von [PM10] stieg, und [CO2] auch." },
+]
+expected = [
+    "Der Wert von [PM10] stieg, und [CO2] auch.",
+]

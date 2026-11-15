@@ -4169,10 +4169,10 @@
         'switched_off': 0,
       }),
       'citations': dict({
-        'applied': 0,
+        'applied': 10,
         'label': 'Citations',
         'not_spoken': 0,
-        'set_aside': 0,
+        'set_aside': 8,
         'switched_off': 0,
       }),
       'code': dict({
@@ -5413,6 +5413,366 @@
         'won_by': dict({
           'block': 106,
           'end': 180,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 6,
+        'category': 'citations',
+        'chapter': 1,
+        'end': 129,
+        'kind': 'remove',
+        'original': ' [Fa14]',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'citation key "[Fa14]" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 122,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 10,
+        'category': 'citations',
+        'chapter': 0,
+        'end': 147,
+        'kind': 'remove',
+        'original': ' [MH17]',
+        'page': 1,
+        'printed_page': '',
+        'reason': 'citation key "[MH17]" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 140,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 15,
+        'category': 'citations',
+        'chapter': 1,
+        'end': 700,
+        'kind': 'replace',
+        'original': '[MH17]',
+        'page': 2,
+        'printed_page': '',
+        'reason': 'citation "[MH17]" is part of the sentence: read as "Quelle MH17" (TP-04)',
+        'said': 'Quelle MH17',
+        'spoken': True,
+        'start': 694,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 27,
+        'category': 'citations',
+        'chapter': 2,
+        'end': 428,
+        'kind': 'remove',
+        'original': ' [Ho16, Ma16]',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'citation key "[Ho16, Ma16]" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 415,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 27,
+        'category': 'citations',
+        'chapter': 2,
+        'end': 450,
+        'kind': 'remove',
+        'original': ' [EN16]',
+        'page': 3,
+        'printed_page': '',
+        'reason': 'citation key "[EN16]" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 443,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 40,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 187,
+        'kind': 'remove',
+        'original': ' [EN16]',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'citation key "[EN16]" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 180,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 40,
+        'category': 'citations',
+        'chapter': 3,
+        'end': 243,
+        'kind': 'replace',
+        'original': '[MH17]',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'citation "[MH17]" is part of the sentence: read as "Quelle MH17" (TP-04)',
+        'said': 'Quelle MH17',
+        'spoken': True,
+        'start': 237,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 42,
+        'category': 'citations',
+        'chapter': 4,
+        'end': 64,
+        'kind': 'replace',
+        'original': '[MH17]',
+        'page': 5,
+        'printed_page': '',
+        'reason': 'citation "[MH17]" is part of the sentence: read as "Quelle MH17" (TP-04)',
+        'said': 'Quelle MH17',
+        'spoken': True,
+        'start': 58,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 55,
+        'category': 'citations',
+        'chapter': 6,
+        'end': 732,
+        'kind': 'remove',
+        'original': ' [Ze15]',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'citation key "[Ze15]" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 725,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 55,
+        'category': 'citations',
+        'chapter': 6,
+        'end': 1134,
+        'kind': 'remove',
+        'original': ' [Ro14, Ro17]',
+        'page': 7,
+        'printed_page': '',
+        'reason': 'citation key "[Ro14, Ro17]" is not read (TP-03)',
+        'said': '',
+        'spoken': True,
+        'start': 1121,
+        'status': 'accepted',
+        'step': 'citations',
+      }),
+      dict({
+        'block': 102,
+        'category': 'citations',
+        'chapter': 8,
+        'end': 7,
+        'kind': 'remove',
+        'original': '[EN16] ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'citation key "[EN16]" is not read (TP-03)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'citations',
+        'won_by': dict({
+          'block': 102,
+          'end': 117,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 103,
+        'category': 'citations',
+        'chapter': 8,
+        'end': 7,
+        'kind': 'remove',
+        'original': '[Fa14] ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'citation key "[Fa14]" is not read (TP-03)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'citations',
+        'won_by': dict({
+          'block': 103,
+          'end': 180,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 104,
+        'category': 'citations',
+        'chapter': 8,
+        'end': 7,
+        'kind': 'remove',
+        'original': '[Ho16] ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'citation key "[Ho16]" is not read (TP-03)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'citations',
+        'won_by': dict({
+          'block': 104,
+          'end': 176,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 105,
+        'category': 'citations',
+        'chapter': 8,
+        'end': 7,
+        'kind': 'remove',
+        'original': '[Ma16] ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'citation key "[Ma16]" is not read (TP-03)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'citations',
+        'won_by': dict({
+          'block': 105,
+          'end': 164,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 106,
+        'category': 'citations',
+        'chapter': 8,
+        'end': 7,
+        'kind': 'remove',
+        'original': '[MH17] ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'citation key "[MH17]" is not read (TP-03)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'citations',
+        'won_by': dict({
+          'block': 106,
+          'end': 180,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 107,
+        'category': 'citations',
+        'chapter': 8,
+        'end': 7,
+        'kind': 'remove',
+        'original': '[Ro14] ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'citation key "[Ro14]" is not read (TP-03)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'citations',
+        'won_by': dict({
+          'block': 107,
+          'end': 147,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 108,
+        'category': 'citations',
+        'chapter': 8,
+        'end': 7,
+        'kind': 'remove',
+        'original': '[Ro17] ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'citation key "[Ro17]" is not read (TP-03)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'citations',
+        'won_by': dict({
+          'block': 108,
+          'end': 163,
+          'kind': 'remove',
+          'page': 13,
+          'printed_page': '',
+          'start': 0,
+          'step': 'reference-list',
+        }),
+      }),
+      dict({
+        'block': 109,
+        'category': 'citations',
+        'chapter': 8,
+        'end': 7,
+        'kind': 'remove',
+        'original': '[Ze15] ',
+        'page': 13,
+        'printed_page': '',
+        'reason': 'citation key "[Ze15]" is not read (TP-03)',
+        'said': '',
+        'spoken': False,
+        'start': 0,
+        'status': 'set-aside',
+        'step': 'citations',
+        'won_by': dict({
+          'block': 109,
+          'end': 122,
           'kind': 'remove',
           'page': 13,
           'printed_page': '',
@@ -10207,7 +10567,7 @@
   | Characters and hyphenation | 38 | 0 | 0 | 0 |
   | Footnotes | 80 | 0 | 10 | 0 |
   | Footnote texts | 0 | 0 | 0 | 30 |
-  | Citations | 0 | 0 | 0 | 0 |
+  | Citations | 10 | 0 | 8 | 0 |
   | URLs, DOIs and e-mail addresses | 15 | 0 | 1 | 0 |
   | Formulas | 0 | 0 | 0 | 0 |
   | Tables and figures | 1 | 0 | 0 | 0 |
@@ -10398,6 +10758,27 @@
   - page 11, chapter 7, switched off: “27 BGH v. 29.01.2002, Az. VI ZR 20/01.” → left out. Reason: footnote 27 is left out (all footnotes are left out). Step: footnote-texts.
   - page 12, chapter 7, switched off: “28 BGH v. 23.09.2014, Az. VI ZR 358/13; BGH v. 23.06.2009, Az. VI ZR 196/08; OLG Hamburg v. 18.01.2012, Az. 5 U 51/11.” → left out. Reason: footnote 28 is left out (all footnotes are left out). Step: footnote-texts.
   - page 12, chapter 7, switched off: “29 BGH v. 23.06.2009, Az. VI ZR196/08.” → left out. Reason: footnote 29 is left out (all footnotes are left out). Step: footnote-texts.
+  
+  ## Citations (18)
+  
+  - page 1, chapter 2, applied: “\[Fa14\]” → left out. Reason: citation key "\[Fa14\]" is not read (TP-03). Step: citations.
+  - page 1, chapter 1, applied: “\[MH17\]” → left out. Reason: citation key "\[MH17\]" is not read (TP-03). Step: citations.
+  - page 2, chapter 2, applied: “\[MH17\]” → read as “Quelle MH17”. Reason: citation "\[MH17\]" is part of the sentence: read as "Quelle MH17" (TP-04). Step: citations.
+  - page 3, chapter 3, applied: “\[Ho16, Ma16\]” → left out. Reason: citation key "\[Ho16, Ma16\]" is not read (TP-03). Step: citations.
+  - page 3, chapter 3, applied: “\[EN16\]” → left out. Reason: citation key "\[EN16\]" is not read (TP-03). Step: citations.
+  - page 5, chapter 4, applied: “\[EN16\]” → left out. Reason: citation key "\[EN16\]" is not read (TP-03). Step: citations.
+  - page 5, chapter 4, applied: “\[MH17\]” → read as “Quelle MH17”. Reason: citation "\[MH17\]" is part of the sentence: read as "Quelle MH17" (TP-04). Step: citations.
+  - page 5, chapter 5, applied: “\[MH17\]” → read as “Quelle MH17”. Reason: citation "\[MH17\]" is part of the sentence: read as "Quelle MH17" (TP-04). Step: citations.
+  - page 7, chapter 7, applied: “\[Ze15\]” → left out. Reason: citation key "\[Ze15\]" is not read (TP-03). Step: citations.
+  - page 7, chapter 7, applied: “\[Ro14, Ro17\]” → left out. Reason: citation key "\[Ro14, Ro17\]" is not read (TP-03). Step: citations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “\[EN16\]” → left out. Reason: citation key "\[EN16\]" is not read (TP-03). Step: citations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “\[Fa14\]” → left out. Reason: citation key "\[Fa14\]" is not read (TP-03). Step: citations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “\[Ho16\]” → left out. Reason: citation key "\[Ho16\]" is not read (TP-03). Step: citations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “\[Ma16\]” → left out. Reason: citation key "\[Ma16\]" is not read (TP-03). Step: citations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “\[MH17\]” → left out. Reason: citation key "\[MH17\]" is not read (TP-03). Step: citations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “\[Ro14\]” → left out. Reason: citation key "\[Ro14\]" is not read (TP-03). Step: citations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “\[Ro17\]” → left out. Reason: citation key "\[Ro17\]" is not read (TP-03). Step: citations.
+  - page 13, chapter 9, set aside: the remove edit of step reference-list (page 13) won: “\[Ze15\]” → left out. Reason: citation key "\[Ze15\]" is not read (TP-03). Step: citations.
   
   ## URLs, DOIs and e-mail addresses (16)
   
@@ -12764,7 +13145,7 @@
   PrivacyScore: Analyse von Webseiten auf Sicherheits- und Privatheitsprobleme – Konzept und rechtliche Zulässigkeit
   
   Fußnote.
-  Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde [MH17].
+  Dieser Artikel ist in Teilen eine Übersetzung eines Papiers, das im Juni 2017 auf dem ENISA Annual Privacy Forum in Wien vorgestellt wurde.
   Neu hinzugekommen sind die juristischen Betrachtungen in Abschnitt 6.
   Die offizielle Version dieses Artikels wird auf link.springer.com erscheinen, ein Link wird eingefügt, solbald dieser verfügbar ist.
   
@@ -12796,7 +13177,7 @@
   1 Einleitung
   
   Der sichere Betrieb einer Webseite ist eine Aufgabe, die viel technischen Sachverstand benötigt.
-  Fahl et al. haben gezeigt [Fa14], dass unsicher konfigurierte Webseiten oft eine Folge dieser Komplexität sind.
+  Fahl et al. haben gezeigt, dass unsicher konfigurierte Webseiten oft eine Folge dieser Komplexität sind.
   Unsichere Webseiten gefährden nicht nur die Infrastruktur der Seitenbetreiber, sondern auch die Sicherheit und Privatheit der Besucherinnen.
   Die Privatheit der Besucherinnen kann allerdings auch durch Entscheidungen des Seitenbetreibers beeinträchtigt werden, etwa durch die Verwendung von Analysediensten oder Werbenetzwerken.
   Seitenbetreiber nutzen hier oft kommerzielle Angebote (etwa Google Analytics) anstatt einer lokalen Lösung, die die Privatheitsinteressen der Besucherinnen besser berücksichtigt (zum Beispiel Piwik).
@@ -12812,7 +13193,7 @@
   Wir haben drei Zielgruppen:
   Endnutzerinnen, die sich über die Sicherheit und Privatheit bestimmter Webseiten informieren möchten, Wissenschaftlerinnen, die große Mengen von Webseiten untersuchen wollen, und Aktivistinnen und Aufsichtsbehörden,
   die die Erfüllung von gesetzlichen Datenschutz-Mindeststandards durch Webseiten sicherstellen wollen.
-  Unsere Ideen und Realisierungsansätze haben wir erstmalig in [MH17] vorgestellt.
+  Unsere Ideen und Realisierungsansätze haben wir erstmalig in Quelle MH17 vorgestellt.
   Im vorliegenden Papier betrachten wir zusätzlich die juristische Zulässigkeit der Erhebung der Daten und der Veröffentlichung von Benchmarks sowie die juristische Verwertbarkeit der Ergebnisse.
   
   In Abschnitt 2 stellen wir verwandte Arbeiten vor, bevor wir in Abschnitt 3 die PrivacyScore-Plattform präsentieren.
@@ -12836,7 +13217,7 @@
   
   Daneben gibt es Vorhaben, die eine festgelegte Liste von Webseiten untersuchen.
   So untersucht Helme regelmäßig die Verwendung der HTTP-Security-Header auf allen Webseiten der „Alexa Top 1 Million“ und die schwedische Datenschutzorganisation dataskydd.net sucht auf den Webseiten schwedischer Kommunen nach Privatheitsproblemen.
-  Im akademischen Umfeld gab es eine Reihe von Studien, die Aspekte der Sicherheit [Ho16, Ma16] und Privatheit [EN16] auf beliebten Webseiten untersuchen.
+  Im akademischen Umfeld gab es eine Reihe von Studien, die Aspekte der Sicherheit und Privatheit auf beliebten Webseiten untersuchen.
   Die Ergebnisse solcher einmalig durchgeführten Studien veralten jedoch recht schnell.
   Insgesamt ist festzustellen, dass es bislang nicht ohne Weiteres möglich ist, aktuelle Benchmarks zu erstellen.
   
@@ -12884,14 +13265,14 @@
   Dies kommt auch der Weiterentwicklung von PrivacyScore zu Gute, da es Dritten die Möglichkeit gibt, neue Tests beizusteuern.
   
   Implementation PrivacyScore befindet sich aktuell im Alpha-Stadium, ein Prototyp ist abrufbar.
-  Für die Tests nutzen wir etablierte Tools wie OpenWPM [EN16] und testssl.sh.
-  Weitere Details finden sich in [MH17].
+  Für die Tests nutzen wir etablierte Tools wie OpenWPM und testssl.sh.
+  Weitere Details finden sich in Quelle MH17.
   
   # 5. 4 Sicherheits- und Privatheitstests
   
   4 Sicherheits- und Privatheitstests
   
-  Im Folgenden stellen wir einen Teil der Tests vor, die in [MH17] beschrieben sind.
+  Im Folgenden stellen wir einen Teil der Tests vor, die in Quelle MH17 beschrieben sind.
   Unsichere Webseiten setzen ihre Besucherinnen Risiken aus, etwa dem Abhören durch bösartige WLAN-Betreiber.
   Unsere Sicherheitstests prüfen, ob Seitenbetreiber anerkannte Methoden zur Absicherung ihrer Webseite und des Datenverkehrs verwenden.
   PrivacyScore prüft unter anderem, ob Transport-Layer-Security (TLS) korrekt eingesetzt wird, das heißt ob geeignete Protokollversionen, kryptographische Verfahren und HTTP-Header wie HTTP Strict Transport Security (HSTS) verwendet werden.
@@ -12943,9 +13324,9 @@
   Zulässigkeit der automatisierten Untersuchung von Webseiten Das Auslesen fremder Webseiten ohne die ausdrückliche Zustimmung des Betreibers ist nicht grundsätzlich unzulässig.
   Zuerst stellt sich allerdings die Frage, wem die zu untersuchenden Daten „gehören“, denn wäre jemand Eigentümer dieser Daten, könnte er diese nutzen und über sie verfügen und andere gemäß § 903 des Bürgerlichen Gesetzbuches (BGB) gerade von dieser Nutzung ausschließen.
   Die Begründung von Eigentum kann gemäß § 903 BGB nur an Sachen i. S. v. § 90 BGB bestehen.
-  Da es Daten bereits an der körperlichen Eigenschaft fehlt, kann es weder ein Eigentumsrecht an Daten noch ein aus Eigentum abgeleitetes Recht auf die ausschließliche Nutzung von Daten geben [Ze15].
+  Da es Daten bereits an der körperlichen Eigenschaft fehlt, kann es weder ein Eigentumsrecht an Daten noch ein aus Eigentum abgeleitetes Recht auf die ausschließliche Nutzung von Daten geben.
   Dennoch können Daten unter verschiedenen gesetzlichen Voraussetzungen vor dem Zugriff und der Verwertung durch Dritte geschützt sein.
-  Daten unterliegen einer Kommunikationsordnung, welche sich aus Regelungen in diversen Rechtsgebieten zusammensetzt und Umgangsrechte, Verfügungsberechtigungen und -beschränkungen hinsichtlich der Daten gewährt, ohne dabei eine Güterzuweisung vorzunehmen [Ro14, Ro17].
+  Daten unterliegen einer Kommunikationsordnung, welche sich aus Regelungen in diversen Rechtsgebieten zusammensetzt und Umgangsrechte, Verfügungsberechtigungen und -beschränkungen hinsichtlich der Daten gewährt, ohne dabei eine Güterzuweisung vorzunehmen.
   Relevant werden können, soweit Gegenstand personenbezogene Daten von natürlichen Personen sind, Regelungen aus dem Datenschutzrecht, auch Regelungen aus dem Urheberrecht, sofern es sich um persönliche geistige Schöpfungen handelt,
   weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch (StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG).
   Darüber hinaus ist auch ein deliktischer Abwehranspruch gegen Störungen aus dem Recht am eingerichteten und ausgeübten Gewerbebetrieb i. S. v. § 823 Absatz 1 BGB denkbar.

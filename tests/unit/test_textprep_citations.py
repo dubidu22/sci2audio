@@ -399,8 +399,9 @@ def test_a_nest_that_keeps_inner_names_reads_the_same_on_a_second_run(
 
 
 _LEAVES = st.sampled_from(
-    ["(Smith, 2019)", "(Smith, 2019; Lee, 2020)", "[3]", "(Smith, 2019)[p. 4]", "(2019)"]
-)
+    ["(Smith, 2019)", "(Smith, 2019; Lee, 2020)", "[3]", "(Smith, 2019)[p. 4]", "(2019)",
+     "[MH17]"]
+)  # fmt: skip
 _NESTS = st.recursive(
     _LEAVES,
     lambda inner: st.builds(
@@ -447,6 +448,9 @@ _SIBLINGS = st.sampled_from(
         "(Müller, 2019)",
         "[12]",
         "[3, 4]",
+        "[MH17]",  # alphanumeric keys (#254, D-646)
+        "[Ho16, Ma16]",
+        "[PM10]",
         "(2019)",
         "(2019a)",
         "(527794)",
@@ -638,10 +642,11 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
         ("[1] ", 25_000),
         ("Smith (2019) shows it [3]. ", 4000),
         ("Text ((Smith, 2019) Jones, 2020) here. ", 6000),  # #271: each nest judged on its own
+        ("As in [MH17], [GKL+19; Knu84] and [PM10] it is. ", 2000),  # #254
         # #285 review round 1: the second look at a text without its identifiers
         ("Smith (527794) (2019) and (see (527794)) here. ", 2000),
     ],
-    ids=["numeric", "author-year", "nests", "identifiers"],
+    ids=["numeric", "author-year", "nests", "keys", "identifiers"],
 )
 def test_a_long_block_takes_linear_time(unit: str, count: int) -> None:  # S2: 100,000 characters
     # 8 times the text against a base run (#276); it took 17 s for 80,000 characters before
@@ -951,3 +956,35 @@ def test_the_looks_stop_at_a_budget_and_leave_an_unsettled_nest_as_printed(
     assert_linear(_left, lambda n: _nest(*nest, n), 800)
     deep = _nest(*nest, 800)
     assert _left(deep) == deep
+
+
+# ---- alphanumeric keys (#254, D-646) ---------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("It was shown [MH17].", "It was shown."),
+        ("It was shown [GKL+19, Knu84; Fa14a].", "It was shown."),
+        ("As in [MH17], it holds.", "As in reference MH17, it holds."),
+        ("As in [Ho16, Ma16], it holds.", "As in references Ho16 and Ma16, it holds."),
+        ("It holds (see [MH17] and [Fa14]).", "It holds."),
+        # look-alikes and other shapes stay: the written list, one letter, one digit, three
+        # digits, a lower-case start, a range, a mix with numbers, glued to a word
+        ("The [PM10] and (see [PM10]) data.", "The [PM10] and (see [PM10]) data."),
+        ("Both [C60], [CO2], [MH170] and [mH17].", "Both [C60], [CO2], [MH170] and [mH17]."),
+        ("It was shown [MH17–MH19].", "It was shown [MH17–MH19]."),
+        ("It was shown [MH17, 12].", "It was shown [MH17, 12]."),
+        ("The value Tr[MH17] is small.", "The value Tr[MH17] is small."),
+        ("The set x ∈ [Ab12] is small.", "The set x ∈ [Ab12] is small."),
+    ],
+)
+def test_alphanumeric_keys_read_as_numeric_citations_do(printed: str, said: str) -> None:
+    once = read_all(printed)
+    assert once == said
+    assert read_all(once) == once
+
+
+def test_a_key_removed_names_itself_in_the_reason() -> None:
+    (edit,) = edits("It was shown [MH17].")
+    assert edit.reason == 'citation key "[MH17]" is not read (TP-03)'

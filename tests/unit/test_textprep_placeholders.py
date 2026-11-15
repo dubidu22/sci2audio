@@ -7,6 +7,7 @@ from dataclasses import replace
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from linear_time import assert_linear
 from textprep_documents import rule_documents
 
 from sci2audio.app.chapters import REFERENCE_NAMES as APP_REFERENCE_NAMES
@@ -381,6 +382,97 @@ def test_the_step_and_the_chapter_choice_agree_on_every_title(title: str) -> Non
         is_reference_title(title, language) for language in APP_REFERENCE_NAMES
     )
     assert is_reference_title(title) == is_reference_title(title, "en")
+
+
+# ---- a reference list printed without a heading (#92, D-646) -------------------------------
+
+ENTRIES = [f"[{n}] A. Author and B. Other, Phys. Rev. B {n}, {n + 10} (20{n + 10})." for n in
+           range(1, 7)]  # fmt: skip
+BODY = (BlockKind.PARAGRAPH, "Conclusions. The effect is large.")
+
+
+def unheaded(*blocks: tuple[BlockKind | str, str], sections: tuple[Section, ...] = ()) -> list[int]:
+    document = make_document(blocks, sections=sections)
+    edits = ReferenceListStep().find(document, EN)
+    assert all(e.reason.endswith("(printed without a heading)") for e in edits) or sections
+    return [e.span.block for e in edits]
+
+
+def entries(texts: list[str] = ENTRIES) -> list[tuple[BlockKind, str]]:
+    return [(BlockKind.PARAGRAPH, text) for text in texts]
+
+
+def test_an_unheaded_list_at_the_end_goes_with_its_last_lines_and_notes() -> None:
+    blocks = [
+        BODY,
+        *entries(ENTRIES[:2]),
+        (BlockKind.FURNITURE, "5"),
+        (BlockKind.PARAGRAPH, "Europhysics Letters 135, 37001 (2021)."),  # an entry's last line
+        (BlockKind.PARAGRAPH, ENTRIES[2] + "\n" + ENTRIES[3]),  # two entries in one block
+        (BlockKind.PARAGRAPH, "[5] The limit is taken after the integral."),  # a note
+        (BlockKind.FOOTNOTE, "1 A note."),
+        (BlockKind.PARAGRAPH, ENTRIES[5].replace("[6]", "[7]")),  # a step of 2: [6] merged away
+        (BlockKind.PARAGRAPH, "(2020)."),  # the last entry's last line
+    ]
+    assert unheaded(*blocks) == [1, 2, 4, 5, 6, 8, 9]
+
+
+def test_an_unheaded_list_before_a_heading_goes_and_the_appendix_is_read() -> None:
+    blocks = [BODY, *entries(), (BlockKind.HEADING, "Appendix"), (BlockKind.PARAGRAPH, "More.")]
+    assert unheaded(*blocks) == [1, 2, 3, 4, 5, 6]
+
+
+@pytest.mark.parametrize(
+    "blocks",
+    [
+        [BODY, *entries(), (BlockKind.PARAGRAPH, "Then the samples rest and nothing more.")],
+        [BODY, *entries(ENTRIES[1:])],  # starts at [2]
+        [BODY, *entries(ENTRIES[:4])],  # four entries only
+        [BODY, *entries([text.split(" (")[0] + "." for text in ENTRIES])],  # no years
+        [BODY, *entries(ENTRIES[:3] + [t.replace(f"[{n}]", f"[{n + 3}]") for n, t in
+                                       enumerate(ENTRIES[3:], 4)])],  # a gap: [3], then [7]
+        [BODY, *entries(ENTRIES[:3]), (BlockKind.PARAGRAPH, "x " * 70 + "(2019)."),
+         *entries(ENTRIES[3:])],  # a long block between entries
+        [BODY, *entries([text.replace("] ", "]") for text in ENTRIES])],  # "[1]A." is no entry
+    ],
+    ids=["text-after", "starts-at-2", "four", "no-years", "gap", "long-block", "no-space"],
+)  # fmt: skip
+def test_numbered_lines_that_are_no_reference_list_stay(
+    blocks: list[tuple[BlockKind, str]],
+) -> None:
+    assert unheaded(*blocks) == []
+
+
+def test_a_headed_list_is_found_by_its_heading_alone() -> None:
+    """A document with a reference-list section never uses the unheaded rule, so numbered
+    lines elsewhere in it are read (D-646)."""
+    blocks = [BODY, *entries(), (BlockKind.HEADING, "References"), (BlockKind.PARAGRAPH, "Doe.")]
+    sections = (Section("References", 1, 7, 9),)
+    assert unheaded(*blocks, sections=sections) == [7, 8]
+
+
+def test_the_switch_keeps_an_unheaded_list() -> None:
+    document = make_document([BODY, *entries()])
+    assert read(document, switched_off={Category.REFERENCES})[1].startswith("A. Author")
+    assert read(document)[1:] == [""] * 6
+
+
+def test_an_unheaded_list_reads_the_same_on_a_second_run() -> None:
+    document = make_document([BODY, *entries(), (BlockKind.PARAGRAPH, "(2020).")])
+    script = run_steps(document, EN, strict=True).script()
+    again = rebuilt_from_script(document, script)
+    assert len(again.blocks) == len(document.blocks)
+    assert spoken_text(run_steps(again, EN, strict=True).script()) == spoken_text(script)
+
+
+def test_a_long_unheaded_list_takes_linear_time() -> None:
+    def blocks(n: int) -> Document:
+        return make_document(
+            [BODY, *((BlockKind.PARAGRAPH, f"[{i}] A. Author, J. 1, 2 (2019).") for i in
+                     range(1, n + 1))]
+        )  # fmt: skip
+
+    assert_linear(lambda document: ReferenceListStep().find(document, EN), blocks, 2000)
 
 
 # ---- properties ------------------------------------------------------------------------------
