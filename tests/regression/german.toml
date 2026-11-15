@@ -2063,3 +2063,18 @@ expected = [
     "Nach GAbs. 1 Seite 2 gilt das.",
     "Nach Absatz 1 Satz 2 gilt das.",
 ]
+
+[[case]]
+id = "de-numbers-the-year-range-starts-at-1100"
+audit = 0
+issue = 265
+goal = "Nur eine Zahl von 1100 bis 2099 am Satzende gilt als Jahr; '1050.' vor einem Nomen bleibt eine Ordnungszahl wie vor #265 (ein Mutant mit 1000 als Grenze überlebte die Tests von PR #382)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Das war 1050. Kapitel 3 folgt." },
+    { kind = "paragraph", text = "Das war 1100. Kapitel 3 folgt." },
+]
+expected = [
+    "Das war tausendfünfzigstes Kapitel 3 folgt.",
+    "Das war 1100. Kapitel 3 folgt.",
+]
