@@ -1,6 +1,7 @@
 """Formulas, tables, figures and code blocks are read as a short notice (FX-01, FX-02, #64,
 Q3, D-145, #280, D-545), and the reference list is not read (TP-06, D-146)."""
 
+from collections.abc import Collection
 from dataclasses import replace
 
 import pytest
@@ -13,6 +14,7 @@ from sci2audio.app.chapters import is_reference_title as app_is_reference_title
 from sci2audio.core import Block, BlockKind, Document, EditKind, Section, Span
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
 from sci2audio.textprep import (
+    DEFAULT_SWITCHED_OFF,
     GERMAN_REFERENCE_TITLES,
     REFERENCE_TITLES,
     Category,
@@ -452,21 +454,70 @@ def test_every_placeholder_reads_exactly_a_notice(document: Document) -> None:
     ],
 )
 def test_a_german_notice_names_the_figure_as_its_caption_reads(printed: str, read_as: str) -> None:
+    assert _notice_and_caption(printed, ": Verlauf.") == [
+        f"{read_as} wird übersprungen.",
+        f"{read_as}: Verlauf.",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("printed", "after", "read_as"),
+    [
+        # review round 2, S2 of PR #368: the label is read in its caption's context, where a
+        # fraction before ":" stays as printed
+        ("Tab. 1/2", ": Verlauf der Werte.", "Tabelle 1/2"),
+        ("Abb. 3/4", ": Verlauf der Werte.", "Abbildung 3/4"),
+        ("Abb. 1/5", ": Verlauf der Werte.", "Abbildung 1/5"),
+        ("Abb. 2/3", ": Verlauf der Werte.", "Abbildung 2/3"),
+        ("Abb. 12/13", ": Verlauf der Werte.", "Abbildung 12/13"),
+        # ... and is read where the caption reads it
+        ("Abb. 3/4", " Verlauf der Werte.", "Abbildung 3 Viertel"),
+        ("Abbildung 3/4", ". Verlauf der Werte.", "Abbildung 3 Viertel"),
+    ],
+)
+def test_a_german_notice_reads_its_label_in_the_captions_context(
+    printed: str, after: str, read_as: str
+) -> None:
+    notice, caption = _notice_and_caption(printed, after)
+    assert notice == f"{read_as} wird übersprungen."
+    assert caption.startswith(read_as)
+
+
+@pytest.mark.parametrize(
+    ("printed", "read_as"),
+    [("Abb. 3.1", "Abbildung 3.1"), ("Abbildung 1.2-1.4", "Abbildung 1.2-1.4")],
+)
+def test_with_the_numbers_switched_off_a_german_notice_keeps_its_label_as_printed(
+    printed: str, read_as: str
+) -> None:
+    """Review round 2, S1 of PR #368: the switch holds for the notice as for the caption."""
+    off = {Category.NUMBERS_AND_UNITS, *DEFAULT_SWITCHED_OFF}
+    assert _notice_and_caption(printed, ": Verlauf.", off) == [
+        f"{read_as} wird übersprungen.",
+        f"{read_as}: Verlauf.",
+    ]
+
+
+def _notice_and_caption(
+    printed: str, after: str, switched_off: Collection[Category] = DEFAULT_SWITCHED_OFF
+) -> list[str]:
+    """The notice and the caption of a figure as read, checked to read the same again on a
+    second run."""
     document = make_document(
         [
             Block(BlockKind.FIGURE, "0 1"),
-            Block(BlockKind.CAPTION, f"{printed}: Verlauf.", describes=0, label=printed),
+            Block(BlockKind.CAPTION, printed + after, describes=0, label=printed),
         ],
         "de",
     )
-    first = run_steps(document, DE, strict=True)
+    first = run_steps(document, DE, switched_off=switched_off, strict=True)
     spoken = [spoken_text(p for p in first.script() if p.span.block == index) for index in range(2)]
-    assert spoken == [f"{read_as} wird übersprungen.", f"{read_as}: Verlauf."]
     again = rebuilt_from_script(document, first.script())
-    second = run_steps(again, DE, strict=True)
+    second = run_steps(again, DE, switched_off=switched_off, strict=True)
     assert [
         spoken_text(p for p in second.script() if p.span.block == index) for index in range(2)
     ] == spoken
+    return spoken
 
 
 def test_an_english_dotted_label_is_read_as_printed() -> None:

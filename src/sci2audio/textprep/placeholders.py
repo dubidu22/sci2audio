@@ -16,7 +16,7 @@ the player shows its code (D-546).
 
 from __future__ import annotations
 
-from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
+from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.numbers_de import label_numbers_read
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wording import Wording, wording_for
@@ -24,11 +24,15 @@ from sci2audio.textprep.wording import Wording, wording_for
 _NAMES = {BlockKind.CODE: "code block"}  # how a reason names a kind, if not by its value
 
 
-def _label(wording: Wording, printed: str, german: bool) -> str:
-    """A caption label as the notice names it: its word in full, and in German its numbers
-    read as the German numbers step reads them in the caption (#249)."""
-    label = wording.label(printed)
-    return label_numbers_read(label) if german else label
+def _label(wording: Wording, block: Block, numbers: bool) -> str:
+    """A caption label as the notice names it: its word in full, and with `numbers` (German,
+    the numbers step switched on) its numbers read as the German numbers step reads them in
+    the caption, in the caption's own context (#249)."""
+    label = wording.label(block.label)
+    if not numbers:
+        return label
+    after = block.text[len(block.label) :] if block.text.startswith(block.label) else ""
+    return label_numbers_read(label, after)
 
 
 class _NoticeStep(TextStep):
@@ -40,13 +44,15 @@ class _NoticeStep(TextStep):
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         wording = wording_for(context.language)
-        german = context.language.split("-", 1)[0].lower() == "de"
+        # the label's numbers as the German numbers step reads the caption, unless it is off
+        numbers = (
+            context.language.split("-", 1)[0].lower() == "de"
+            and Category.NUMBERS_AND_UNITS not in context.switched_off
+        )
         captions: dict[int, list[str]] = {}
         for block in document.blocks:
             if block.describes is not None and block.label:
-                captions.setdefault(block.describes, []).append(
-                    _label(wording, block.label, german)
-                )
+                captions.setdefault(block.describes, []).append(_label(wording, block, numbers))
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind not in self.kinds:
