@@ -5,6 +5,7 @@ the highlight in step with the voice at 2x."""
 from __future__ import annotations
 
 import json
+import sys
 
 from playwright.sync_api import Page, expect
 from test_player import chunk_id, highlighted, make_audiobook
@@ -96,6 +97,11 @@ def test_the_speed_by_keyboard(signed_in: Page, live: Live) -> None:
     page.locator("#audio").focus()
     while page.evaluate("() => document.activeElement.id") != "speed":
         page.keyboard.press(tab_key(page))
+    if page.context.browser.browser_type.name == "webkit" and sys.platform == "darwin":  # type: ignore[union-attr]
+        # macOS opens a closed select's native menu with the arrow keys instead of moving
+        # its value, and Playwright cannot drive that menu: here the select is only reached
+        # and focused; the release's VoiceOver pass tries it by keyboard on a Mac (D-678)
+        return
     page.keyboard.press("ArrowDown")  # a closed select changes its value with the arrows
     assert page.evaluate("() => document.getElementById('speed').value") == "1.25"
     assert rate(page)["rate"] == 1.25

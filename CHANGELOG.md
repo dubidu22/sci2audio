@@ -62,6 +62,10 @@ German reading and a better player. German texts are read as German: a German vo
 - Text-step and extraction timing tests compare against a baseline run, the text-step ones on CPU time, so a busy runner does not decide them (#274, #276, #294, #298).
 - The pasted-text browser test waits until the document page has stopped reloading before its accessibility check, and is no longer quarantined (#365).
 
+### Known issues
+
+- A table, figure, formula or code block printed inside the reference list is left out with the list, as it should be. But if the listening script is read a second time, it gets its short notice (#410). This was already in 1.0.0, and the audiobook itself is not affected.
+
 ## [1.0.0] - 2026-11-14
 
 The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or plain text, in English) into a faithful audiobook on your own computer: a listening script with every change marked and explained, MP3 files per chapter and an M4B with chapters, and a read-along player that highlights the original text. Everything runs offline after one voice download you start yourself.
