@@ -53,7 +53,9 @@ dative = [
 accusative = ["für", "durch", "gegen", "ohne", "um", "über", "auf"]
 # words that join labels in a list ("Bedingungen 1 bzw. 2 V": no unit after "2"), besides
 # ",", "&", a dash, "and" and "or"
-label_joins = ["und", "oder", "bzw.", "sowie", "bis"]
+# with the readings the abbreviations step gives the joins, so a second run keeps the labels
+# ("1 beziehungsweise 2 V", #321, D-605)
+label_joins = ["und", "oder", "bzw.", "beziehungsweise", "resp.", "respektive", "sowie", "bis"]
 # "1" before a unit, by case and the unit's gender (D-480)
 [words.one]
 nominative = { m = "ein", f = "eine", n = "ein" }
