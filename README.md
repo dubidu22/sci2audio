@@ -73,11 +73,12 @@ To update: `uv tool upgrade sci2audio`. To remove: `uv tool uninstall sci2audio`
 sci2audio voices download            # once: shows the files, sizes and licences, then asks
 sci2audio script paper.pdf           # the listening script and a report of every change
 sci2audio convert paper.pdf          # the audiobook: M4B with chapters, MP3s, read-along file
+sci2audio listen paper.pdf           # play it in the browser with the text, sentence by sentence
 ```
 
-`script` needs no voice and lists the chapters; choose them with `--chapters 1,3-5` (counted from 1, or `all`; by default every chapter but the reference list). Switch a kind of text handling off with `--off citations` (read as printed) or on with `--on footnote-texts` (leave the notes out); `sci2audio script --help` lists the categories. `convert` takes the same options and `--voice`, `--speed`, `--letter-pace normal|slower|slowest` (how fast spelled-out abbreviations such as NLP are read), `--format both|m4b|mp3` and `--with-script`.
+`script` needs no voice and lists the chapters; choose them with `--chapters 1,3-5` (counted from 1, read in the order given, so `3,1` reads chapter 3 first; or `all`; by default every chapter but the reference list and an EPUB's publisher's pages). Switch a kind of text handling off with `--off citations` (read as printed) or on with `--on footnote-texts` (leave the notes out); `sci2audio script --help` lists the categories. `convert` takes the same options and `--voice`, `--speed`, `--letter-pace normal|slower|slowest` (how fast spelled-out abbreviations such as NLP are read), `--format both|m4b|mp3` and `--with-script`.
 
-Files go next to the input file, or into the folder given with `-o`; existing files are replaced only with `--overwrite`. If `convert` is stopped (Ctrl-C, a crash, a closed laptop), run the same command again: the sentences already spoken are kept in a speech cache in your cache folder, and `sci2audio clean paper.pdf` removes it. The command line takes its defaults from the settings saved by the interface and never changes them; `--ignore-settings` uses the built-in defaults.
+Files go next to the input file, or into the folder given with `-o`; existing files are replaced only with `--overwrite`. If `convert` is stopped (Ctrl-C, a crash, a closed laptop), run the same command again: the sentences already spoken are kept in a speech cache in your cache folder, and `sci2audio clean paper.pdf` removes it. `listen` takes the same `-o` and `--work-folder` as `convert` and only plays what `convert` made there. The command line takes its defaults from the settings saved by the interface and never changes them; `--ignore-settings` uses the built-in defaults.
 
 Exit codes, for scripts:
 

@@ -142,6 +142,7 @@ def index(request: Request, state: State) -> HTMLResponse:
         s,
         "index.html",
         documents=documents,
+        outside=state.config.outside,
         removals={document.id: _removal(document) for document in documents},
         busy_document=_busy_document(state),
         voice_installed=not missing_files(state.config.models_dir),
@@ -410,9 +411,10 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     # the language the report was made with ("" = automatic); a job made from this page
     # uses it, and it is not remembered for other documents (#212, D-521)
     language = str(report_settings.get("language", saved.language) or "")
+    ordered, chosen = _chapter_order(chapters, report_settings.get("chapters"))
     shown = {
         "switched_off": sorted(switched_off),
-        "chapters": sorted(c["index"] for c in chapters if c.get("selected")),
+        "chapters": chosen,
         "language": language,
     }
     return _page(
@@ -430,6 +432,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         failed=failed,
         categories=_categories(report, switched_off, s),
         chapters=chapters,
+        ordered_chapters=ordered,
         chosen_chapters=len(shown["chapters"]),
         edit_count=len(edits),
         heard=heard,
@@ -498,6 +501,23 @@ def job(request: Request, state: State, job_id: str) -> HTMLResponse:
     )
 
 
+def _chapter_order(
+    chapters: list[dict[str, Any]], recorded: Any
+) -> tuple[list[dict[str, Any]], list[int]]:
+    """The report's chapters in the order the page lists them, and the chosen ones in the
+    order they are read (#119): the order the report was made with when it is not printed
+    order (the chosen ones first, then the others as printed), else printed order."""
+    chosen_set = {c.get("index") for c in chapters if c.get("selected")}
+    printed = sorted(chapters, key=lambda c: c.get("index", 0))
+    order = [n for n in recorded if n in chosen_set] if isinstance(recorded, list) else []
+    order = list(dict.fromkeys(n for n in order if isinstance(n, int)))
+    if order != sorted(order) and set(order) == chosen_set:
+        by_index = {c.get("index"): c for c in printed}
+        rest = [c for c in printed if c.get("index") not in set(order)]
+        return [by_index[n] for n in order] + rest, order
+    return printed, sorted(n for n in chosen_set if isinstance(n, int))
+
+
 # --- the listen page (#78) ---------------------------------------------------------------
 
 
@@ -541,14 +561,11 @@ def _resume(view: Any, position: Position) -> dict[str, Any]:
 def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     """The player with read-along on the original text (D-294 to D-303)."""
     s = strings_of(request)
-    found = state.store.get(document_id)
+    found = state.listening(document_id)
     if found is None:
         return _not_found(request, state, s, s("common.not_found_document", id=document_id))
-    saved, _ = load_settings(state.config.config_file)
     try:
-        view, located = player_for(
-            found.folder, found.id, saved.output_folder, state.config.output_folder
-        )
+        view, located = player_for(found.work, found.document, found.folders)
     except PlayerError as error:
         return _page(
             request,
@@ -561,7 +578,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         )
     try:
         stamp = located.stamp
-        position = read_position(found.folder, found.id, stamp, located.readalong)
+        position = read_position(found.work, found.document, stamp, located.readalong)
     except OSError:  # the read-along file went away since the checks: nothing to offer
         stamp, position = "", None
     return _page(

@@ -137,9 +137,17 @@ def test_the_reference_list_is_deselected_by_default_and_appendices_stay() -> No
 
 def test_a_chosen_selection_is_taken_as_given_and_unknown_indices_are_ignored() -> None:
     chapters = find_chapters(document_with([(P, "a")]))
-    assert selected(chapters, None) == (frozenset({0}), ())
-    assert selected(chapters, {0, 3, 7}) == (frozenset({0}), (3, 7))
-    assert selected(chapters, set()) == (frozenset(), ())
+    assert selected(chapters, None) == ((0,), ())
+    assert selected(chapters, (0, 3, 7)) == ((0,), (3, 7))
+    assert selected(chapters, ()) == ((), ())
+
+
+def test_a_chosen_selection_keeps_its_order() -> None:
+    """#119: the chosen chapters come back in the order they are read."""
+    blocks = [(H, "A"), (H, "B"), (H, "C")]
+    sections = (Section("A", 1, 0, 1), Section("B", 1, 1, 2), Section("C", 1, 2, 3))
+    chapters = find_chapters(document_with(blocks, sections))
+    assert selected(chapters, (2, 0, 5, 2)) == ((2, 0), (5,))
 
 
 def test_a_chapter_needs_a_title_and_a_valid_range() -> None:
@@ -228,7 +236,7 @@ def test_the_book_itself_stays_chosen(tag: str) -> None:
 
 def test_a_publishers_page_can_still_be_chosen() -> None:
     chapters = find_chapters(_tagged_book(("epub:chapter",), ("epub:colophon",)))
-    assert selected(chapters, {0, 1}) == (frozenset({0, 1}), ())
+    assert selected(chapters, {0, 1}) == ((0, 1), ())
 
 
 def test_only_the_heading_lines_tags_count() -> None:

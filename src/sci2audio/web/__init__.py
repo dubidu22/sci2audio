@@ -6,8 +6,17 @@ browser. Only this package imports the web framework (D-205); it never imports
 `sci2audio.testing` (D-114).
 """
 
-from sci2audio.web.config import ServerConfig, new_token, server_config
+from sci2audio.web.config import OutsideJob, ServerConfig, new_token, server_config
 from sci2audio.web.launch import bind, run, serve
 from sci2audio.web.server import create_app
 
-__all__ = ["ServerConfig", "bind", "create_app", "new_token", "run", "serve", "server_config"]
+__all__ = [
+    "OutsideJob",
+    "ServerConfig",
+    "bind",
+    "create_app",
+    "new_token",
+    "run",
+    "serve",
+    "server_config",
+]

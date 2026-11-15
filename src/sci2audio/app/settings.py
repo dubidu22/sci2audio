@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+from collections.abc import Set
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,8 +22,9 @@ _LANGUAGE = re.compile(r"\A[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*\Z")
 class JobSettings:
     """What the person chose for one job.
 
-    `chapters` are indices into the job's chapter list (`find_chapters`); None means the
-    default choice: every chapter but the reference list (Q6). `voice` and `speed` are for
+    `chapters` are indices into the job's chapter list (`find_chapters`), in the order they
+    are read (#119; a set given here, which has no order, is read in printed order); None
+    means the default choice: every chapter but the reference list (Q6). `voice` and `speed` are for
     the audio job (#71), `letter_pace` too: how fast the voice says letters it spells out,
     one of LETTER_PACES (#295). `subtitles` adds SRT and WebVTT files to the audiobook
     (#214, D-606). Without an `output_folder`, files go next to the source file.
@@ -33,7 +35,7 @@ class JobSettings:
     language: str = ""
     # UC-02 switches; "Footnote texts" starts off (D-142), so notes are read by default
     switched_off: frozenset[Category] = DEFAULT_SWITCHED_OFF
-    chapters: frozenset[int] | None = None
+    chapters: tuple[int, ...] | None = None
     voice: str = ""  # "" = the default voice (#71)
     speed: float = 1.0  # MIN_SPEED to MAX_SPEED (#71)
     letter_pace: str = "normal"  # a key of LETTER_PACES (#295)
@@ -48,10 +50,12 @@ class JobSettings:
             raise ValueError(f"switched_off must hold categories, got {sorted(switched_off)}")
         object.__setattr__(self, "switched_off", switched_off)
         if self.chapters is not None:
-            chapters = frozenset(self.chapters)
-            if not all(isinstance(n, int) and not isinstance(n, bool) and n >= 0 for n in chapters):
-                raise ValueError(f"chapters must be indices >= 0, got {sorted(chapters, key=str)}")
-            object.__setattr__(self, "chapters", chapters)
+            given = self.chapters
+            if not all(isinstance(n, int) and not isinstance(n, bool) and n >= 0 for n in given):
+                raise ValueError(f"chapters must be indices >= 0, got {sorted(given, key=str)}")
+            # a set has no order: printed order; else the person's order, each chapter once
+            ordered = sorted(given) if isinstance(given, Set) else dict.fromkeys(given)
+            object.__setattr__(self, "chapters", tuple(ordered))
         if not isinstance(self.voice, str):
             raise ValueError(f"voice must be a name, got {self.voice!r}")
         speed = self.speed
