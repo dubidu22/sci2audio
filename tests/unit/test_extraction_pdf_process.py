@@ -201,37 +201,50 @@ def test_a_child_that_cannot_start_is_named_and_leaves_no_pipe_open(
     assert pdf._READERS.alive == 0
 
 
-def sleep_with_marks(folder: str, seconds: float) -> None:
-    """A child's work for the orphan test: mark the start, sleep, mark the end."""
+MARKS = """
+import os, time
+from pathlib import Path
+
+def sleep_with_marks(folder, seconds):
     Path(folder, "started").write_text(str(os.getpid()))
     time.sleep(seconds)
     Path(folder, "finished").write_text("")
+"""
 
 
 def test_a_child_whose_parent_is_gone_ends_after_twice_its_step_time(tmp_path: Path) -> None:
     """The parent ends a slow step; when the parent itself was killed, the child's watch ends
-    it after twice the step time, so it does not read on alone (#345 S2, plan Q9)."""
+    it after twice the step time, so it does not read on alone (#345 S2, plan Q9). The child's
+    work lives in a module of its own that imports nothing heavy, so that the child starts
+    within one step time on every system (Windows CI took longer than 0.25 s to import pytest
+    in the child)."""
+    code = tmp_path / "code"
+    code.mkdir()
+    (code / "marks.py").write_text(MARKS)
     script = textwrap.dedent(
         f"""
         import os, sys, threading, time
-        sys.path.insert(0, {str(Path(__file__).parent)!r})
+        sys.path.insert(0, {str(code)!r})
         from pathlib import Path
         from sci2audio.extraction import isolate
-        from test_extraction_pdf_process import sleep_with_marks
+        from marks import sleep_with_marks
         folder = {str(tmp_path)!r}
-        threading.Thread(
-            target=isolate.run, args=(sleep_with_marks, (folder, 2.5)),
-            kwargs=dict(memory=1024**3, step_seconds=0.25, readers=isolate.Readers(1)),
+        reading = threading.Thread(
+            target=isolate.run, args=(sleep_with_marks, (folder, 3.0)),
+            kwargs=dict(memory=1024**3, step_seconds=0.5, readers=isolate.Readers(1)),
             daemon=True,
-        ).start()
+        )
+        reading.start()
         while not Path(folder, "started").exists():
+            if not reading.is_alive():
+                sys.exit("the child was stopped before its work started")
             time.sleep(0.02)
         os._exit(0)  # gone at once, as if killed: nothing ends the child from here
         """
     )
     subprocess.run([sys.executable, "-c", script], check=True, timeout=60)
     assert (tmp_path / "started").exists()
-    time.sleep(3)  # the child would have finished after 2.5 s; its watch ends it after 0.5 s
+    time.sleep(3.5)  # the child would have finished after 3 s; its watch ends it after 1 s
     assert not (tmp_path / "finished").exists()
 
 
