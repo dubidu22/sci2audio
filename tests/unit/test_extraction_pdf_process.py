@@ -248,6 +248,39 @@ def test_a_child_whose_parent_is_gone_ends_after_twice_its_step_time(tmp_path: P
     assert not (tmp_path / "finished").exists()
 
 
+STEPS = """
+import time
+from sci2audio.extraction import isolate
+
+def steady_steps(count, pause):
+    for number in range(1, count + 1):
+        isolate.report(f"page {number}")
+        time.sleep(pause)
+    return count
+"""
+
+
+def test_each_reported_step_starts_the_childs_own_clock_anew(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Eight steps of 0.2 s at a 0.5 s step limit: 1.6 s in all, past the child's own limit
+    of twice a step, so only a clock that each report restarts lets the read finish; a long
+    book (about 1,800 pages in 120 s) would otherwise be stopped (#345 R2-1). The child's
+    work lives in a small module of its own, so the child starts quickly on every system."""
+    (tmp_path / "steady_steps.py").write_text(STEPS)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    import steady_steps  # type: ignore[import-not-found]
+
+    result = isolate.run(
+        steady_steps.steady_steps,
+        (8, 0.2),
+        memory=1024**3,
+        step_seconds=0.5,
+        readers=isolate.Readers(1),
+    )
+    assert result == 8
+
+
 def test_a_child_ended_by_its_own_watch_for_time_is_named() -> None:
     """The parent normally ends a slow step first; when the child's watch is first, its exit
     reads as a step that took too long."""
