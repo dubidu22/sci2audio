@@ -837,8 +837,9 @@ _AFTER_KOMMA = re.compile(r"\bKomma(?: \d)* \Z")
 _DATE_BEFORE = re.compile(r"(?<![\d.])\d{1,2}\.\d{1,2}\.\s*\Z")  # a date without its year
 _AFTER_HOCH = re.compile(r"\bhoch (?:minus |plus )?\Z")
 # ... nor the last part of a dotted number read with "Punkt" ("Kapitel 1.2.3. Tag" is "Kapitel 1
-# Punkt 2 Punkt 3. Tag" after the first run, #349)
-_AFTER_PUNKT = re.compile(r"\bPunkt \Z")
+# Punkt 2 Punkt 3. Tag" after the first run, #349); only that reading has a digit before
+# "Punkt", so "Der Punkt 3. Mai" keeps its ordinal (review S1 of PR #368)
+_AFTER_PUNKT = re.compile(r"\d Punkt \Z")
 # ... nor a source number the citations step reads ("unter [12]. Studie" is "unter Quelle 12.
 # Studie" after the first run; the words are the German wording's, #212)
 _AFTER_SOURCE = re.compile(r"\bQuellen? (?:\d+(?:, | und | bis ))*\Z")
@@ -1235,6 +1236,18 @@ def _roman_numerals(plain: str) -> list[Candidate]:
 
 
 # --- all rules -------------------------------------------------------------------------------
+
+
+def label_numbers_read(label: str) -> str:
+    """A caption label with its numbers read as this step reads them in the caption, so a
+    notice names the figure as its caption is read and a second run, which names it by the
+    caption's reading, reads the same: "Abbildung 3.1" is "Abbildung 3 Punkt 1", "Abbildung
+    1.2-1.4" is "Abbildung 1 Punkt 2 bis 1 Punkt 4", "Abbildung 3,1" is "Abbildung 3 Komma 1",
+    and "Tabelle 2.1a" stays as the caption keeps it (#249, review S2 and S3 of PR #368)."""
+    read = label
+    for candidate in reversed(find_numbers_de(label)):
+        read = read[: candidate.start] + candidate.replacement + read[candidate.end :]
+    return " ".join(read.split())
 
 
 def find_numbers_de(text: str) -> list[Candidate]:

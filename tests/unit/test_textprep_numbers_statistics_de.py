@@ -661,6 +661,10 @@ def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(
         ("Vom 1.–3.4.2020 lief es.", "Vom 1.–3.4.2020 lief es."),
         # #349: no ordinal after "Punkt", the reading of a dotted number's point
         ("Kapitel 1.2.3. Tag.", "Kapitel 1 Punkt 2 Punkt 3. Tag."),
+        # review S1 of PR #368: after the word "Punkt" an ordinal reads as before
+        ("Der Punkt 3. Mai war gut.", "Der Punkt dritter Mai war gut."),
+        ("Im Punkt 2. Teil steht es.", "Im Punkt zweiter Teil steht es."),
+        ("Die Note war 2. Punkt 3. Platz.", "Die Note war 2. Punkt dritter Platz."),
         ("Kapitel 1 Punkt 2 Punkt 3. Tag.", "Kapitel 1 Punkt 2 Punkt 3. Tag."),
         ("Am 3. Tag kam er.", "Am dritten Tag kam er."),
     ],

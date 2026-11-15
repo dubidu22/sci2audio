@@ -1470,38 +1470,58 @@ expected = [
 id = "de-numbers-no-ordinal-after-punkt"
 audit = 0
 issue = 349
-goal = "The last part of a dotted section number read with 'Punkt' is no ordinal before a noun, on the second run either: 'Kapitel 1.2.3. Tag.' reads '1 Punkt 2 Punkt 3. Tag.' on both runs (D-605)."
+goal = "The last part of a dotted section number read with 'Punkt' is no ordinal before a noun, on the second run either: 'Kapitel 1.2.3. Tag.' reads '1 Punkt 2 Punkt 3. Tag.' on both runs (D-605). After the word 'Punkt' itself an ordinal reads as before (review S1 of PR #368)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Kapitel 1.2.3. Tag." },
     { kind = "paragraph", text = "Abschnitt 2.1.3. Woche" },
     { kind = "paragraph", text = "Kapitel 3.4.5.6. Tag." },
     { kind = "paragraph", text = "Am 3. Tag kam er." },
+    { kind = "paragraph", text = "Der Punkt 3. Mai war gut." },
+    { kind = "paragraph", text = "Die Note war 2. Punkt 3. Platz." },
 ]
 expected = [
     "Kapitel 1 Punkt 2 Punkt 3. Tag.",
     "Abschnitt 2 Punkt 1 Punkt 3. Woche",
     "Kapitel 3 Punkt 4 Punkt 5 Punkt 6. Tag.",
     "Am dritten Tag kam er.",
+    "Der Punkt dritter Mai war gut.",
+    "Die Note war 2. Punkt dritter Platz.",
 ]
 
 [[case]]
 id = "de-notice-dotted-caption-labels"
 audit = 0
 issue = 249
-goal = "A German notice named by a caption label with a dotted number reads the point 'Punkt', as the caption itself does: 'Tabelle 2 Punkt 1 wird übersprungen.' (D-605). English notices are unchanged."
+goal = "A German notice names the figure as its caption reads the label's numbers: a dotted number with 'Punkt' ('Tabelle 2 Punkt 1 wird übersprungen.'), a range with 'bis', a decimal comma with 'Komma', and a label the caption keeps as printed ('2.1a', 'S3.1') as printed, on both runs (D-605, review S2 and S3 of PR #368). English notices are unchanged."
 language = "de"
 blocks = [
     { kind = "caption", text = "Tabelle 2.1: Mittelwerte.", label = "Tabelle 2.1", describes = 1 },
     { kind = "table", text = "a b" },
     { kind = "figure", text = "0 1" },
     { kind = "caption", text = "Abb. 3.1: Verlauf.", label = "Abb. 3.1", describes = 2 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Tabelle 2.1a: Werte.", label = "Tabelle 2.1a", describes = 4 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abb. S3.1: Werte.", label = "Abb. S3.1", describes = 6 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abbildung 1.2-1.4: Werte.", label = "Abbildung 1.2-1.4", describes = 8 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abb. 3,1: Werte.", label = "Abb. 3,1", describes = 10 },
 ]
 expected = [
     "Tabelle 2 Punkt 1: Mittelwerte.",
     "Tabelle 2 Punkt 1 wird übersprungen.",
     "Abbildung 3 Punkt 1 wird übersprungen.",
     "Abbildung 3 Punkt 1: Verlauf.",
+    "Tabelle 2.1a wird übersprungen.",
+    "Tabelle 2.1a: Werte.",
+    "Abbildung S3.1 wird übersprungen.",
+    "Abbildung S3.1: Werte.",
+    "Abbildung 1 Punkt 2 bis 1 Punkt 4 wird übersprungen.",
+    "Abbildung 1 Punkt 2 bis 1 Punkt 4: Werte.",
+    "Abbildung 3 Komma 1 wird übersprungen.",
+    "Abbildung 3 Komma 1: Werte.",
 ]
 
 # ---- v1.2 follow-ups: units (D-605) ---------------------------------------------------------

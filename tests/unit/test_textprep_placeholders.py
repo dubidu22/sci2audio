@@ -11,7 +11,7 @@ from textprep_documents import rule_documents
 from sci2audio.app.chapters import REFERENCE_NAMES as APP_REFERENCE_NAMES
 from sci2audio.app.chapters import is_reference_title as app_is_reference_title
 from sci2audio.core import Block, BlockKind, Document, EditKind, Section, Span
-from sci2audio.testing import check_text_step, make_document
+from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
 from sci2audio.textprep import (
     GERMAN_REFERENCE_TITLES,
     REFERENCE_TITLES,
@@ -430,17 +430,43 @@ def test_every_placeholder_reads_exactly_a_notice(document: Document) -> None:
 @pytest.mark.parametrize(
     ("printed", "read_as"),
     [
-        # #249 (D-615): a point between a label's digits reads "Punkt" in German
+        # #249 (D-615): a label's numbers are read in the notice as the German numbers step
+        # reads them in the caption, so notice and caption name the figure alike
         ("Tabelle 2.1", "Tabelle 2 Punkt 1"),
         ("Abb. 3.1", "Abbildung 3 Punkt 1"),
         ("Abb.3.1.2", "Abbildung 3 Punkt 1 Punkt 2"),
         ("Tab. 2", "Tabelle 2"),
         ("Abb. 3a", "Abbildung 3a"),
         ("Abb. A.1", "Abbildung A.1"),  # no digit before the point
+        # review S2 of PR #368: what the caption keeps as printed, the notice keeps too
+        ("Tabelle 2.1a", "Tabelle 2.1a"),
+        ("Abb. 3.1a", "Abbildung 3.1a"),
+        ("Abb. S3.1", "Abbildung S3.1"),
+        ("FIG. 3.1", "FIG. 3.1"),
+        # review S3: a range and a decimal comma read as in the caption
+        ("Abbildung 1.2-1.4", "Abbildung 1 Punkt 2 bis 1 Punkt 4"),
+        ("Abb. 3.1\u20133.4", "Abbildung 3 Punkt 1 bis 3 Punkt 4"),
+        ("Abb. 3\u20135", "Abbildung 3 bis 5"),
+        ("Abbildung 1.2 und 1.4", "Abbildung 1 Punkt 2 und 1 Punkt 4"),
+        ("Abb. 3,1", "Abbildung 3 Komma 1"),
     ],
 )
-def test_a_german_dotted_label_reads_its_point(printed: str, read_as: str) -> None:
-    assert wording_for("de").label(printed) == read_as
+def test_a_german_notice_names_the_figure_as_its_caption_reads(printed: str, read_as: str) -> None:
+    document = make_document(
+        [
+            Block(BlockKind.FIGURE, "0 1"),
+            Block(BlockKind.CAPTION, f"{printed}: Verlauf.", describes=0, label=printed),
+        ],
+        "de",
+    )
+    first = run_steps(document, DE, strict=True)
+    spoken = [spoken_text(p for p in first.script() if p.span.block == index) for index in range(2)]
+    assert spoken == [f"{read_as} wird übersprungen.", f"{read_as}: Verlauf."]
+    again = rebuilt_from_script(document, first.script())
+    second = run_steps(again, DE, strict=True)
+    assert [
+        spoken_text(p for p in second.script() if p.span.block == index) for index in range(2)
+    ] == spoken
 
 
 def test_an_english_dotted_label_is_read_as_printed() -> None:
