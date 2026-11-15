@@ -7,7 +7,7 @@ apart from the content, per format (D-313).
 
 from sci2audio.extraction.cover import Cover
 from sci2audio.extraction.epub import extract_epub, extract_epub_cover, read_epub
-from sci2audio.extraction.errors import ExtractionError
+from sci2audio.extraction.errors import ExtractionError, ReadCancelled
 from sci2audio.extraction.markdown import extract_markdown, read_markdown
 from sci2audio.extraction.pdf import extract_pdf, extract_pdf_cover, read_pdf
 from sci2audio.extraction.text import extract_text, read_text
@@ -15,6 +15,7 @@ from sci2audio.extraction.text import extract_text, read_text
 __all__ = [
     "Cover",
     "ExtractionError",
+    "ReadCancelled",
     "extract_epub",
     "extract_epub_cover",
     "extract_markdown",

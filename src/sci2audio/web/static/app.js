@@ -397,6 +397,7 @@ function documentPage() {
 function describe(progress) {
   const parts = [];
   if (progress.phase) parts.push(STRINGS[`phase.${progress.phase}`] ?? progress.phase);
+  if (progress.phase === "reading" && progress.pages) parts.push(tr("js.pages", { done: progress.page, n: progress.pages }));
   if (progress.chunks_total) parts.push(tr("js.sentences", { done: progress.chunks_done, n: progress.chunks_total }));
   if (progress.phase === "speaking") {
     if (progress.seconds_left == null) parts.push(tr("js.measuring"));
@@ -410,6 +411,7 @@ function describe(progress) {
 }
 
 function fraction(progress) {
+  if (progress.phase === "reading" && progress.pages) return progress.page / progress.pages;
   if (progress.chunks_total) return progress.chunks_done / progress.chunks_total;
   if (progress.bytes_total) return progress.bytes_done / progress.bytes_total;
   return null;
