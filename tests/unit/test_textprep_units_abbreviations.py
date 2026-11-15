@@ -987,3 +987,76 @@ def _both_runs_de(text: str) -> tuple[str, str]:
 def test_german_units_and_abbreviations_read_the_same_on_a_second_run(printed: str) -> None:
     first, again = _both_runs_de(printed)
     assert first == again
+
+
+# ---- v1.2 follow-ups: readings of signs and joins count as printed (#320, #321, D-605) ----
+
+
+@pytest.mark.parametrize(
+    ("printed", "read"),
+    [
+        # the statistics step's reading of "=" (and of "≤", "≥") is an operator before "2x"
+        ("Let f(x) equals 4x.", "Let f(x) equals 4x."),
+        ("y less than or equal to 2x", "y less than or equal to 2x"),
+        ("y greater than or equal to 2x", "y greater than or equal to 2x"),
+        ("4x equals y", "4x equals y"),
+        # a bare "less than" or "greater than" is prose: "times" as before
+        ("less than 2x slower", "less than 2 times slower"),
+        ("greater than 2x faster", "greater than 2 times faster"),
+        # a word that only ends in "equals" is no operator
+        ("Coequals 4x here.", "Coequals 4 times here."),
+    ],
+)
+def test_an_x_after_a_read_comparison_sign_is_the_variable(printed: str, read: str) -> None:
+    assert said(UNITS, printed) == read
+
+
+def test_the_said_signs_are_the_statistics_steps_readings() -> None:
+    """A drift guard: the words the units step counts are those the statistics step reads."""
+    from sci2audio.textprep.statistics import OPERATORS
+    from sci2audio.textprep.units import _OPERATORS, _SAID_OPERATORS_EN
+
+    for words in _SAID_OPERATORS_EN:
+        signs = [sign for sign, reading in OPERATORS.items() if reading == words]
+        assert any(sign in _OPERATORS for sign in signs), words
+
+
+@pytest.mark.parametrize(
+    ("printed", "read"),
+    [
+        (
+            "Die Bedingungen 1 beziehungsweise 2 V und mehr.",
+            "Die Bedingungen 1 beziehungsweise 2 V und mehr.",
+        ),
+        ("Die Bedingungen 1 resp. 2 V und mehr.", "Die Bedingungen 1 resp. 2 V und mehr."),
+        (
+            "Die Bedingungen 1 respektive 2 V und mehr.",
+            "Die Bedingungen 1 respektive 2 V und mehr.",
+        ),
+        ("Es liegen 2 V an.", "Es liegen 2 Volt an."),
+    ],
+)
+def test_german_label_joins_count_in_their_read_form(printed: str, read: str) -> None:
+    assert said_de(UNITS, printed) == read
+
+
+@pytest.mark.parametrize(
+    ("printed", "read"),
+    [
+        # #335 (D-605): the numbers step reads "17/20" as "17 out of 20"; no unit is read
+        # after it, as after the printed fraction
+        ("It was 17 out of 20 kg here.", "It was 17 out of 20 kg here."),
+        ("It was 17 out of 20 s⁻¹ here.", "It was 17 out of 20 s⁻¹ here."),
+        ("Out of 20 kg, 5 went.", "Out of 20 kilograms, 5 went."),
+        ("It is 20 kg here.", "It is 20 kilograms here."),
+    ],
+)
+def test_no_unit_after_a_fraction_read_out_of(printed: str, read: str) -> None:
+    assert said(UNITS, printed) == read
+
+
+def test_a_number_with_more_digits_before_out_of_keeps_its_unit() -> None:
+    """Pins the look-behind of `_OUT_OF` (review N1 of PR #359): "1,017 out of" is no
+    reading of a fraction (the numbers step reads none with a 4-digit numerator)."""
+    assert said(UNITS, "It was 1,017 out of 20 kg.") == "It was 1,017 out of 20 kilograms."
+    assert said(UNITS, "It was 2.5 out of 20 kg.") == "It was 2.5 out of 20 kilograms."
