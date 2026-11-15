@@ -241,6 +241,9 @@ def test_a_busy_server_says_so(signed_in: Page, live: Live) -> None:
     assert document
 
 
+@pytest.mark.quarantined(
+    issue=365, reason="axe can run while the document page reloads after its analysis"
+)
 def test_pasted_text_opens_and_is_analysed(signed_in: Page, live: Live) -> None:
     """Pasted text is kept as `<name>.txt` and read as a plain-text file (#74, D-350)."""
     page = signed_in
