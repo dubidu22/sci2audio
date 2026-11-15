@@ -61,6 +61,9 @@ def test_values_are_normalised() -> None:
         ("letter_pace", ""),
         ("letter_pace", 0.7),
         ("letter_pace", None),
+        ("subtitles", 1),
+        ("subtitles", "yes"),
+        ("subtitles", None),
     ],
 )
 def test_bad_values_are_refused(field: str, value: object) -> None:
@@ -83,6 +86,7 @@ def test_the_file_keeps_every_setting_but_the_chosen_chapters(tmp_path: Path) ->
         voice="af_heart",
         speed=1.25,
         letter_pace="slowest",
+        subtitles=True,
         output_folder=tmp_path / "Hörbücher",
     )
     file = tmp_path / "config" / "settings.json"
@@ -95,10 +99,12 @@ def test_the_file_keeps_every_setting_but_the_chosen_chapters(tmp_path: Path) ->
         voice="af_heart",
         speed=1.25,
         letter_pace="slowest",
+        subtitles=True,
         output_folder=tmp_path / "Hörbücher",
     )
     data = json.loads(file.read_text(encoding="utf-8"))
     assert data["letter_pace"] == "slowest"
+    assert data["subtitles"] is True
     assert data["version"] == 1
     assert "chapters" not in data
     assert data["switched_off"] == ["citations", "links"]
@@ -106,6 +112,16 @@ def test_the_file_keeps_every_setting_but_the_chosen_chapters(tmp_path: Path) ->
 
 def test_a_missing_file_gives_the_defaults_without_a_warning(tmp_path: Path) -> None:
     assert load_settings(tmp_path / "none.json") == (JobSettings(), [])
+
+
+def test_a_file_from_before_subtitles_reads_them_as_off(tmp_path: Path) -> None:
+    file = tmp_path / "settings.json"
+    file.write_text('{"version": 1, "voice": "af_heart"}', encoding="utf-8")
+    assert load_settings(file) == (JobSettings(voice="af_heart"), [])
+    file.write_text('{"version": 1, "subtitles": "on"}', encoding="utf-8")
+    settings, warnings = load_settings(file)
+    assert settings.subtitles is False
+    assert warnings == ["setting 'subtitles' ignored: expected true or false, got 'on'"]
 
 
 def test_a_file_without_the_switches_starts_from_the_default_ones(tmp_path: Path) -> None:

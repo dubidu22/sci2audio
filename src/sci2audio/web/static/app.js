@@ -367,6 +367,7 @@ function documentPage() {
         voice: voice.value,
         speed: Number(speed.value),
         letter_pace: letterPace(),
+        subtitles: document.getElementById("subtitles").checked,
         output_folder: folder,
       };
       const job = await send("/api/v1/jobs", json("POST", {

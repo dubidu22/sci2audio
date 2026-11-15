@@ -179,6 +179,8 @@ needs_voice = "Set up the voice first."
 needs_update = "Update the analysis first to see what your changes do."
 needs_analysis = "Analyse the document first."
 needs_chapters = "Choose at least one chapter and update the analysis."
+subtitles = "Also write subtitles (SRT and WebVTT)"
+subtitles_hint = "One pair next to each chapter MP3 and one next to the M4B, with the text as the voice speaks it. Players and video tools can show them."
 
 [job]
 title_script = "Analysis of {name}"
