@@ -425,3 +425,71 @@ def test_the_records_snapshot(tmp_path: Path, snapshot) -> None:  # type: ignore
     record["source"]["sha256"] = "<the generated PDF's>"  # may differ between pdfium builds
     readalong = json.loads(job.written.readalong.read_text(encoding="utf-8"))
     assert {"audio.json": record, "readalong.json": readalong} == snapshot
+
+
+def test_subtitles_show_the_text_as_spoken_and_leave_out_what_was_not(tmp_path: Path) -> None:
+    """#214: a replacement is shown as spoken, removed text and a sentence the voice failed
+    on are not shown at all (D-606)."""
+    source = small_pdf(tmp_path, "A short note [1].", "", "Bad line.", "", "Last line.")
+    steps = [
+        Replacing(
+            Edit(Span(0, 8, 12), EditKind.REPLACE, "a test", "x", "notice"),
+            Edit(Span(0, 12, 16), EditKind.REMOVE, "a test", "x"),
+        )
+    ]
+    voice = FakeVoice(fail_on=lambda text: text.startswith("Bad"))
+    job = run(source, tmp_path, voice, steps=steps, settings=JobSettings(subtitles=True))
+    names = [path.name for path in job.written.subtitles]
+    assert names == ["note - 01 note.srt", "note - 01 note.vtt", "note.srt", "note.vtt"]
+    assert json.loads(job.record.read_text())["files"]["subtitles"] == names
+    # the fake voice speaks 10 samples (0.42 ms) a character; the cues sit on the chunks
+    assert (tmp_path / "out" / "note.vtt").read_text(encoding="utf-8") == (
+        "WEBVTT\n\n"
+        "00:00:02.000 --> 00:00:02.006\nA short notice.\n\n"
+        "00:00:02.306 --> 00:00:02.310\nLast line.\n"
+    )
+    assert (tmp_path / "out" / "note.srt").read_text(encoding="utf-8") == (
+        "1\n00:00:02,000 --> 00:00:02,006\nA short notice.\n\n"
+        "2\n00:00:02,306 --> 00:00:02,310\nLast line.\n"
+    )
+    times = read_readalong(job.written.readalong)
+    assert [(c.start, c.end) for c in times.chunks] == [(2.0, 2.006), (2.306, 2.31)]
+
+
+def test_subtitles_are_off_unless_asked_for(tmp_path: Path) -> None:
+    job = run(small_pdf(tmp_path), tmp_path, FakeVoice())
+    assert job.written.subtitles == ()
+    assert json.loads(job.record.read_text())["files"]["subtitles"] == []
+    assert not [name for name in outputs(tmp_path) if name.endswith((".srt", ".vtt"))]
+
+
+def test_existing_subtitles_are_refused_before_the_voice_is_made(tmp_path: Path) -> None:
+    source = small_pdf(tmp_path)
+    (tmp_path / "out").mkdir()
+    (tmp_path / "out" / "note.vtt").write_text("mine", encoding="utf-8")
+    voice = FakeVoice()
+    with pytest.raises(OutputExistsError, match=r"note\.vtt"):
+        run(source, tmp_path, voice, settings=JobSettings(subtitles=True))
+    assert voice.made == 0
+    run(source, tmp_path, voice)  # without subtitles the file is not in the way
+    assert (tmp_path / "out" / "note.vtt").read_text(encoding="utf-8") == "mine"
+
+
+def test_a_failed_run_with_subtitles_leaves_nothing_in_the_way_of_a_rerun(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = small_pdf(tmp_path)
+    original = Path.write_text
+
+    def full(self: Path, text: str, *args, **kwargs) -> int:  # type: ignore[no-untyped-def]
+        if self.name.endswith(".readalong.json.partial"):
+            raise OSError(28, "No space left on device")
+        return original(self, text, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", full)
+    with pytest.raises(JobError):
+        run(source, tmp_path, FakeVoice(), settings=JobSettings(subtitles=True))
+    assert outputs(tmp_path) == []
+    monkeypatch.setattr(Path, "write_text", original)
+    job = run(source, tmp_path, FakeVoice(), settings=JobSettings(subtitles=True))
+    assert len(job.written.subtitles) == 4

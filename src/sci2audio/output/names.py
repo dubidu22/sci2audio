@@ -68,3 +68,15 @@ def chapter_file(book: str, number: int, count: int, title: str) -> str:
     short = cut(book, *_BOOK_IN_CHAPTER) or "audiobook"
     base = f"{short} - {number:0{width}d} {clean(title, 'chapter')}"
     return f"{cut(base, MAX_LENGTH, MAX_BYTES)}.mp3"
+
+
+SUBTITLE_SUFFIXES = (".srt", ".vtt")
+
+
+def subtitle_files(book: str, mp3s: list[str], m4b: bool) -> list[str]:
+    """The subtitle files (#214): an `.srt` and a `.vtt` named like each chapter's MP3, then
+    `<book>.srt` and `<book>.vtt` for the M4B when there is one."""
+    names = [f"{mp3.removesuffix('.mp3')}{suffix}" for mp3 in mp3s for suffix in SUBTITLE_SUFFIXES]
+    if m4b:
+        names += [f"{book}{suffix}" for suffix in SUBTITLE_SUFFIXES]
+    return names

@@ -28,6 +28,7 @@ KEPT = (  # every JobSettings field but the chosen chapters
     "voice",
     "speed",
     "letter_pace",
+    "subtitles",
     "output_folder",
 )
 
@@ -70,6 +71,7 @@ def settings_to_data(settings: JobSettings) -> dict[str, Any]:
         "voice": settings.voice,
         "speed": settings.speed,
         "letter_pace": settings.letter_pace,
+        "subtitles": settings.subtitles,
         "output_folder": None if settings.output_folder is None else str(settings.output_folder),
     }
 
@@ -133,6 +135,8 @@ def _convert(key: str, value: object) -> object:
         if not isinstance(value, str) or not value:
             raise ValueError(f"expected a folder, got {value!r}")
         return Path(value)
+    if key == "subtitles" and not isinstance(value, bool):
+        raise ValueError(f"expected true or false, got {value!r}")
     if key in ("language", "voice", "letter_pace") and not isinstance(value, str):
         raise ValueError(f"expected text, got {value!r}")
     return value

@@ -59,7 +59,8 @@
                            [--work-folder FOLDER] [--ignore-settings] [-q]
                            [--voice ID] [--speed X]
                            [--letter-pace {normal,slower,slowest}]
-                           [--format {both,m4b,mp3}] [--with-script]
+                           [--format {both,m4b,mp3}]
+                           [--subtitles | --no-subtitles] [--with-script]
                            [--models-folder FOLDER]
                            FILE
   
@@ -97,6 +98,10 @@
     --format {both,m4b,mp3}
                           M4B with chapter marks, one MP3 per chapter, or both
                           (default: both)
+    --subtitles, --no-subtitles
+                          also write SRT and WebVTT subtitles: a pair per
+                          chapter MP3 and one for the M4B (default: as saved,
+                          else off)
     --with-script         also write the listening script and the report
     --models-folder FOLDER
                           where the voice files are (default: in the user's data
