@@ -107,18 +107,65 @@ def rebuilt_from_script(document: Document, script: Sequence[ScriptPiece]) -> Do
     """The document as it reads after the edits: same blocks and kinds, the script's text.
 
     Each block's text is its pieces' text joined (line breaks kept); pauses carry no text.
-    A label no longer printed in the text is dropped; the section tree is kept. Used to
-    check that running the steps a second time changes nothing more (idempotence).
+    A label stays while the new text prints it; one a step rewrote becomes what the script
+    reads over its printed words ("Abb. 1" spelled out reads "Abbildung 1", #324); a label
+    whose words were all removed is dropped. The section tree is kept. Used to check that
+    running the steps a second time changes nothing more (idempotence).
     """
-    texts = [""] * len(document.blocks)
+    pieces: list[list[ScriptPiece]] = [[] for _ in document.blocks]
     for piece in script:
-        texts[piece.span.block] += piece.text
+        pieces[piece.span.block].append(piece)
     blocks = []
-    for block, text in zip(document.blocks, texts, strict=True):
-        label = block.label if block.label and block.label in text else ""
+    for block, own in zip(document.blocks, pieces, strict=True):
+        text = "".join(piece.text for piece in own)
         blocks.append(
-            Block(block.kind, text, describes=block.describes, role=block.role, label=label)
+            Block(
+                block.kind,
+                text,
+                describes=block.describes,
+                role=block.role,
+                label=_rebuilt_label(block, own, text),
+            )
         )
     return make_document(
         blocks, document.language, document.content.source.name, sections=document.sections
     )
+
+
+def _rebuilt_label(block: Block, pieces: Sequence[ScriptPiece], text: str) -> str:
+    """The block's label as the rebuilt text prints it, or "" if its words went (#324).
+
+    A label the new text still prints stays. Otherwise, in a block that is read (not a
+    placeholder, whose whole text a notice replaces), the label is mapped through the
+    script: kept characters of its printed span stay, and a replacement lying inside the
+    span stands for its part ("Abb. 1" spelled out becomes "Abbildung 1"). A replacement
+    running past the label's edge cannot be mapped, and the label goes.
+    """
+    if not block.label:
+        return ""
+    if block.label in text:
+        return block.label
+    start = block.text.find(block.label)
+    if block.is_placeholder or start < 0:
+        return ""
+    label = _mapped(block.text, pieces, start, start + len(block.label))
+    if label and label == label.strip() and len(label.splitlines()) == 1 and label in text:
+        return label
+    return ""
+
+
+def _mapped(printed: str, pieces: Sequence[ScriptPiece], start: int, end: int) -> str | None:
+    """What the script reads over characters `start` to `end` of the printed text, or None
+    if a replacement runs past either edge."""
+    read = []
+    for piece in pieces:
+        span = piece.span
+        if piece.pause or span.end <= start or span.start >= end:
+            continue
+        if piece.text == printed[span.start : span.end]:  # kept as printed
+            read.append(printed[max(start, span.start) : min(end, span.end)])
+        elif start <= span.start and span.end <= end:
+            read.append(piece.text)
+        else:
+            return None
+    return "".join(read)
