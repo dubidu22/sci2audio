@@ -46,7 +46,7 @@
 <h2 id="result" tabindex="-1">{{ t('job.failed', reason=job.failure.reason) }}</h2>
 {% if job.failure.details %}<p>{{ t('common.details') }} <span lang="en">{{ job.failure.details }}</span></p>{% endif %}
 {% if job.error.error == 'output-exists' and job.kind == 'audio' %}
-<p class="buttons"><button type="button" id="job-replace">{{ t('job.replace') }}</button></p>
+<p class="buttons"><button type="button" id="job-replace" disabled>{{ t('job.replace') }}</button></p>{# app.js enables it with its click (#177) #}
 {% endif %}
 {% endif %}
 {% if job.state == 'cancelled' %}

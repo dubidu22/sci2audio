@@ -454,8 +454,12 @@ function jobPage() {
       say(explain(error), true);
     }
   }
+  // drawn disabled, so a click before this script ran waits instead of doing nothing (#177)
   const replace = document.getElementById("job-replace");
-  if (replace) replace.addEventListener("click", () => restart(true));
+  if (replace) {
+    replace.addEventListener("click", () => restart(true));
+    replace.disabled = false;
+  }
   const again = document.getElementById("job-again");
   if (again) again.addEventListener("click", () => restart(false));
 

@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 from playwright.sync_api import Error as PlaywrightError
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Route, expect
 from web_helpers import paper_bytes
 
 from conftest import Live, check_axe, inside, settled, small_plan
@@ -525,3 +525,31 @@ def test_the_language_of_the_text_is_chosen_for_this_document_only(
     page.goto(f"{live.url}/")
     open_paper(page, live)
     expect(page.get_by_label("Language of the text", exact=True)).to_have_value("")
+
+
+def test_replace_waits_until_the_page_script_runs(signed_in: Page, live: Live) -> None:
+    """ "Replace these files" is drawn by the server, and app.js (deferred) gives it its
+    click. Until then the button is disabled, so a click that comes too early waits instead
+    of doing nothing; that click was the ZAP walk's flaky step (#177)."""
+    page = signed_in
+    live.install_voice()
+    open_paper(page, live)
+    page.get_by_role("button", name="Make the audiobook").click()
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
+    page.get_by_role("link", name="Back to the document").click()
+    page.get_by_role("button", name="Make the audiobook").click()
+    expect(page.locator("#result")).to_have_text(
+        "The job failed: The audiobook files exist already."
+    )
+
+    held: list[Route] = []
+    page.route(f"{live.url}/static/app.js", lambda route: held.append(route))  # held back
+    page.reload(wait_until="commit")
+    replace_button = page.get_by_role("button", name="Replace these files")
+    expect(replace_button).to_be_disabled()
+    until(lambda: held)
+    held[0].continue_()
+    page.unroute(f"{live.url}/static/app.js")
+    expect(replace_button).to_be_enabled()
+    replace_button.click()
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
