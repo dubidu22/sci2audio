@@ -12,9 +12,11 @@ A reference list printed without a heading (PRL and revtex style, #92, D-646) is
 in a document with no reference-list section: the last run of text blocks that starts with
 the entry "[1] …", counts its entries up ("[N]" at a line start, a step of 1 to 3, since
 layout may merge or split an entry's lines), holds at least five entries, at least half of
-them with a year, and ends at the document's end or at a heading (an appendix after it is
-read). A short block with a year between or after its entries ("(2020).") is an entry's
-last line.
+them with a year and an author ("N. Nagaosa", "Fahl, S.", review N1 of PR #377), and ends at
+the document's end or at a heading (an appendix after it is read). A run right after a
+heading that names no reference list ("Notes", "Anmerkungen") has a heading, so it is read
+(review S2). A short block with a year between two entries ("(2020).") is an entry's last
+line; after the last entry it is not (review S1).
 Furniture, footnotes and placeholders between the entries are skipped; a note printed as an
 entry of the list (revtex "footinbib") goes with the list.
 """
@@ -83,6 +85,11 @@ _KEPT = frozenset({BlockKind.FOOTNOTE, BlockKind.FURNITURE})
 # a list printed without a heading (#92, D-646)
 _ENTRY = re.compile(r"^\[([1-9]\d{0,3})\][ \t]", re.MULTILINE)  # an entry's number, line start
 _ENTRY_YEAR = re.compile(r"(?<!\d)(?:1[5-9]\d\d|20\d\d)(?!\d)")
+# an author as reference lists print one: initials before a surname ("N. Nagaosa", "Y.-G.
+# Choi") or a surname before its initial ("Fahl, S.")
+_ENTRY_AUTHOR = re.compile(
+    r"(?<![^\W\d_])[A-Z]\.(?:\s?-?[A-Z]\.)*\s?[A-Z][^\W\d_]|[A-Z][^\W\d_]+,\s[A-Z]\."
+)
 _MIN_ENTRIES = 5
 _MAX_STEP = 3  # how far one entry's number may jump past the one before it
 _LAST_LINE = 120  # characters; a longer block without an entry number ends the list
@@ -113,7 +120,7 @@ class ReferenceListStep(TextStep):
                 indexes.update(range(section.start, section.end))
         reason = "the reference list is not read"
         if not indexes:
-            indexes.update(unheaded_list(document.blocks))
+            indexes.update(unheaded_list(document.blocks, context.language))
             reason = _UNHEADED_REASON
         for index in sorted(indexes):
             block = document.blocks[index]
@@ -124,29 +131,35 @@ class ReferenceListStep(TextStep):
         return edits
 
 
-def unheaded_list(blocks: tuple[Block, ...]) -> list[int]:
+def unheaded_list(blocks: tuple[Block, ...], language: str = "en") -> list[int]:
     """The indexes of the text blocks of a reference list printed without a heading, or []
     (see the module's text; #92, D-646)."""
     found: list[int] = []
     run = _Run()
+    headed = False  # a heading that names no reference list stands right before
     for index, block in enumerate(blocks):
         if block.kind in _PASSED:
             continue
         if block.kind is BlockKind.HEADING:
             found = run.list() or found
             run = _Run()
+            headed = not is_reference_title(block.text, language)
             continue
         numbers = [int(match.group(1)) for match in _ENTRY.finditer(block.text)]
         if block.text.startswith("[") and numbers and _ENTRY.match(block.text):
             if not run.takes(numbers):
                 run = _Run()
                 if not run.takes(numbers):
+                    headed = False
                     continue
+            if not run.blocks:
+                run.headed = headed
             run.add(index, block.text)
         elif run.blocks and len(block.text.strip()) < _LAST_LINE and _ENTRY_YEAR.search(block.text):
             run.last_lines.append(index)
         else:
             run = _Run()
+        headed = False
     return run.list() or found
 
 
@@ -158,7 +171,8 @@ class _Run:
         self.last_lines: list[int] = []
         self.last = 0
         self.entries = 0
-        self.dated = 0
+        self.cited = 0  # entries with a year and an author
+        self.headed = False
 
     def takes(self, numbers: list[int]) -> bool:
         """True if these entry numbers count on from the run's (the first entry is 1)."""
@@ -175,14 +189,16 @@ class _Run:
         starts = [match.start() for match in _ENTRY.finditer(text)]
         for start, end in zip(starts, [*starts[1:], len(text)], strict=True):
             self.entries += 1
-            self.dated += bool(_ENTRY_YEAR.search(text, start, end))
+            self.cited += bool(
+                _ENTRY_YEAR.search(text, start, end) and _ENTRY_AUTHOR.search(text, start, end)
+            )
         self.last = int(_ENTRY.findall(text)[-1])
 
     def list(self) -> list[int]:
-        """The run's blocks, if it is a reference list."""
-        if self.entries < _MIN_ENTRIES or 2 * self.dated < self.entries:
+        """The run's blocks up to its last entry, if it is a reference list."""
+        if self.headed or self.entries < _MIN_ENTRIES or 2 * self.cited < self.entries:
             return []
-        return [*self.blocks, *self.last_lines]
+        return list(self.blocks)
 
 
 def _sections(sections: tuple[Section, ...]) -> Iterator[Section]:

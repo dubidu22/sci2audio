@@ -1657,13 +1657,21 @@ expected = [
 id = "de-citations-alphanumeric-keys-as-asides"
 audit = 0
 issue = 254
-goal = "LNI keys ('[Fa14]', '[MH17]') are citations like numeric ones: an aside goes (D-646)."
+goal = "LNI keys ('[Fa14]', '[MH17]') that the document's list prints as entry labels are citations like numeric ones: an aside goes (D-646, review B1 of PR #377)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Fahl et al. haben gezeigt [Fa14], dass es geht." },
     { kind = "paragraph", text = "Studien zur Sicherheit [Ho16, Ma16] und Privatheit [EN16] gibt es." },
     { kind = "paragraph", text = "Das gilt (vgl. [MH17])." },
+    { kind = "heading", text = "Literatur" },
+    { kind = "paragraph", text = "[EN16] Englehardt, S.; Narayanan, A.: Online-Tracking. 2016." },
+    { kind = "paragraph", text = "[Fa14] Fahl, S.: Ursachen. 2014." },
+    { kind = "paragraph", text = "[Ho16] Holz, R.: Studie. 2016.\n[Ma16] Mayer, W.: Scan. 2016." },
+    { kind = "paragraph", text = "[MH17] Maass, M.; Herrmann, D.: Werkzeug. 2017." },
+    { kind = "paragraph", text = "[Ro14] Roßnagel, A.: Fahrzeugdaten. 2014." },
+    { kind = "paragraph", text = "[Ro17] Roßnagel, A.: Rechtsfragen. 2017." },
 ]
+sections = [{ title = "Literatur", level = 1, start = 3, end = 10 }]
 expected = [
     "Fahl et al. haben gezeigt, dass es geht.",
     "Studien zur Sicherheit und Privatheit gibt es.",
@@ -1674,13 +1682,21 @@ expected = [
 id = "de-citations-alphanumeric-keys-the-sentence-needs"
 audit = 0
 issue = 254
-goal = "A key the sentence needs reads 'Quelle' and the key as printed: 'in [MH17]' reads 'in Quelle MH17' (D-646)."
+goal = "A listed key the sentence needs reads 'Quelle' and the key as printed: 'in [MH17]' reads 'in Quelle MH17' (D-646)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Wir haben dies erstmalig in [MH17] vorgestellt." },
     { kind = "paragraph", text = "Details finden sich in [Ro14; Ro17]." },
     { kind = "paragraph", text = "[MH17] zeigen das." },
+    { kind = "heading", text = "Literatur" },
+    { kind = "paragraph", text = "[EN16] Englehardt, S.; Narayanan, A.: Online-Tracking. 2016." },
+    { kind = "paragraph", text = "[Fa14] Fahl, S.: Ursachen. 2014." },
+    { kind = "paragraph", text = "[Ho16] Holz, R.: Studie. 2016.\n[Ma16] Mayer, W.: Scan. 2016." },
+    { kind = "paragraph", text = "[MH17] Maass, M.; Herrmann, D.: Werkzeug. 2017." },
+    { kind = "paragraph", text = "[Ro14] Roßnagel, A.: Fahrzeugdaten. 2014." },
+    { kind = "paragraph", text = "[Ro17] Roßnagel, A.: Rechtsfragen. 2017." },
 ]
+sections = [{ title = "Literatur", level = 1, start = 3, end = 10 }]
 expected = [
     "Wir haben dies erstmalig in Quelle MH17 vorgestellt.",
     "Details finden sich in Quellen Ro14 und Ro17.",
@@ -1688,14 +1704,21 @@ expected = [
 ]
 
 [[case]]
-id = "de-citations-key-look-alikes-stay"
+id = "de-citations-key-shapes-without-entries-stay"
 audit = 0
 issue = 254
-goal = "Brackets that look like keys but name a thing stay as printed ('[PM10]', '[CO2]') (D-646)."
+goal = "A bracket shaped like a key is no citation unless the document prints each key as an entry label: '[Mn12]', '[EU27]', '[PM10]' stay as printed (review B1 of PR #377)."
 language = "de"
 blocks = [
+    { kind = "paragraph", text = "Die [Mn12] Cluster und die [EU27] Staaten sind gemeint." },
+    { kind = "paragraph", text = "Die Zellen [AB12] bis [AB20], siehe [MH17]." },
     { kind = "paragraph", text = "Der Wert von [PM10] stieg, und [CO2] auch." },
+    { kind = "heading", text = "Literatur" },
+    { kind = "paragraph", text = "[1] Autor, A.: Studie. 2019." },
 ]
+sections = [{ title = "Literatur", level = 1, start = 3, end = 5 }]
 expected = [
+    "Die [Mn12] Cluster und die [EU27] Staaten sind gemeint.",
+    "Die Zellen [AB12] bis [AB20], siehe [MH17].",
     "Der Wert von [PM10] stieg, und [CO2] auch.",
 ]

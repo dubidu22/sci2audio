@@ -402,7 +402,7 @@ def entries(texts: list[str] = ENTRIES) -> list[tuple[BlockKind, str]]:
     return [(BlockKind.PARAGRAPH, text) for text in texts]
 
 
-def test_an_unheaded_list_at_the_end_goes_with_its_last_lines_and_notes() -> None:
+def test_an_unheaded_list_at_the_end_goes_with_its_inner_last_lines_and_notes() -> None:
     blocks = [
         BODY,
         *entries(ENTRIES[:2]),
@@ -412,9 +412,9 @@ def test_an_unheaded_list_at_the_end_goes_with_its_last_lines_and_notes() -> Non
         (BlockKind.PARAGRAPH, "[5] The limit is taken after the integral."),  # a note
         (BlockKind.FOOTNOTE, "1 A note."),
         (BlockKind.PARAGRAPH, ENTRIES[5].replace("[6]", "[7]")),  # a step of 2: [6] merged away
-        (BlockKind.PARAGRAPH, "(2020)."),  # the last entry's last line
+        (BlockKind.PARAGRAPH, "(2020)."),  # after the last entry: read (review S1 of PR #377)
     ]
-    assert unheaded(*blocks) == [1, 2, 4, 5, 6, 8, 9]
+    assert unheaded(*blocks) == [1, 2, 4, 5, 6, 8]
 
 
 def test_an_unheaded_list_before_a_heading_goes_and_the_appendix_is_read() -> None:
@@ -441,6 +441,45 @@ def test_numbered_lines_that_are_no_reference_list_stay(
     blocks: list[tuple[BlockKind, str]],
 ) -> None:
     assert unheaded(*blocks) == []
+
+
+@pytest.mark.parametrize("title", ["Notes", "Endnotes", "Anmerkungen", "Appendix B"])
+def test_numbered_entries_right_after_another_heading_have_a_heading(title: str) -> None:
+    """Review S2 of PR #377: such a list is printed with a heading, so it is read."""
+    blocks = [BODY, (BlockKind.HEADING, title), (BlockKind.FURNITURE, "5"), *entries()]
+    assert unheaded(*blocks) == []
+
+
+def test_an_unheaded_list_after_a_section_s_text_and_after_a_reference_heading_goes() -> None:
+    results = [(BlockKind.HEADING, "Results"), BODY]
+    assert unheaded(*results, *entries()) == [2, 3, 4, 5, 6, 7]
+    # a heading layout found but no section names: the list is still not read
+    assert unheaded((BlockKind.HEADING, "References"), *entries()) == [1, 2, 3, 4, 5, 6]
+
+
+@pytest.mark.parametrize(
+    "last",
+    ["We thank all in 2020 for help.", "Received 3 May 2020."],
+)
+def test_a_short_dated_sentence_after_the_list_is_read(last: str) -> None:
+    """Review S1 of PR #377: only blocks between two entries are an entry's last lines."""
+    assert unheaded(BODY, *entries(), (BlockKind.PARAGRAPH, last)) == [1, 2, 3, 4, 5, 6]
+
+
+def test_a_numbered_body_list_with_years_but_no_authors_stays() -> None:
+    """Review N1 of PR #377: an entry needs an author besides its year."""
+    steps = [f"[{n}] In 201{n} we ran step {n} of the protocol." for n in range(1, 7)]
+    assert unheaded((BlockKind.HEADING, "Results"), BODY, *entries(steps)) == []
+    assert unheaded(BODY, *entries(steps)) == []
+
+
+@pytest.mark.parametrize(
+    "author",
+    ["N. Nagaosa", "Y.-G. Choi", "J.-i. Inoue", "Fahl, S.", "D. Garc´ıa Ovalle"],  # noqa: RUF001
+)  # fmt: skip
+def test_an_entry_s_author_is_found(author: str) -> None:
+    texts = [f"[{n}] {author}, J. Phys. {n}, 1 (2019)." for n in range(1, 6)]
+    assert unheaded(BODY, *entries(texts)) == [1, 2, 3, 4, 5]
 
 
 def test_a_headed_list_is_found_by_its_heading_alone() -> None:

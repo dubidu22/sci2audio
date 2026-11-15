@@ -9,8 +9,10 @@ sign or word ("∈ [0, 1]", "CI [1, 3]", "CI: [1, 3]"), nor joined on to such a 
 sentence ("discussed in [26].", "Refs. [53, 58]", "[12] showed") is read as "reference 26",
 "references 53 and 58"; a bracket holding only lead words and citations ("(see also [48,
 135])") goes whole. Alphanumeric keys ("[MH17]", "[Knu84]", "[GKL+19]"; #254, D-646) are read
-the same way, a needed key as printed ("reference MH17", "Quelle MH17"); look-alikes that
-name a thing ("[PM10]") stay as printed.
+the same way, a needed key as printed ("reference MH17", "Quelle MH17"), but only where the
+document prints each key of the bracket as an entry's label at a line's start ("[MH17]
+Maass, M.: …"), so that names of things shaped like keys ("[Mn12] clusters", "[EU27]") stay
+as printed (review B1 of PR #377); look-alikes ("[PM10]") stay as printed in any case.
 
 Author-year citations are brackets whose every ";"-part is a citation: optional lead words
 ("see", "e.g.,"), authors (names joined by ",", "and", "&", each maybe with "et al."), years
@@ -383,6 +385,7 @@ class CitationStep(TextStep):
             wording_for(context.language),
             ABBREVIATIONS.get(language, frozenset()) | words.abbreviations,
             language,
+            listed_keys(document),
         )
         edits = []
         for index, block in enumerate(document.blocks):
@@ -407,8 +410,10 @@ class _Rules:
         wording: Wording,
         abbreviations: frozenset[str],
         language: str = "en",
+        keys: frozenset[str] = frozenset(),
     ) -> None:
         self.words = words
+        self.keys = keys  # the keys the document's entries print (#254, review B1 of PR #377)
         self.wording = wording
         self.abbreviations = abbreviations
         self.part = _part_pattern(words)
@@ -721,7 +726,8 @@ class _Rules:
             return [self._removed(text, node.open, node.close + 1, "bracket of lead words")]
         if self.numeric_aside.match(inside):
             if any(
-                self._decimal_interval(inner) or _look_alike(inner)
+                self._decimal_interval(inner)
+                or (_KEYS.match(inner) is not None and _keys(inner, self.keys) is None)
                 for inner in _SQUARE.findall(inside)
             ):
                 # "([1,2; 3,4])": an interval stays on its own, so the aside does too and each
@@ -1006,7 +1012,7 @@ class _Rules:
         that this look removes are gone ("(Smith, 2019)[12][12] it" is "[12] it" then, which
         a second run reads as the subject, #308, D-577)."""
         at = node.open if at is None else at
-        keys = _keys(inside)
+        keys = _keys(inside, self.keys)
         if keys is None and not _NUMERIC.match(inside):
             if self.page_only.match(inside) and re.search(
                 r"[\"”’']\s*\Z", _before(text, node.open)
@@ -1111,7 +1117,7 @@ class _Rules:
     def _spoken(self, inside: str) -> str:
         """The reading of a needed citation: "references 53 and 58", "Quelle MH17" (a key as
         printed, D-646)."""
-        keys = _keys(inside)
+        keys = _keys(inside, self.keys)
         items = list(keys or ())
         single = True
         for match in () if keys else _ITEMS.finditer(inside):
@@ -1698,16 +1704,32 @@ def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]
     return result
 
 
-def _keys(inside: str) -> list[str] | None:
+def _keys(inside: str, listed: frozenset[str]) -> list[str] | None:
     """The alphanumeric keys a square bracket holds ("MH17, Fa14"), or None if it holds
-    anything else or a look-alike ("PM10") (#254, D-646)."""
-    if not _KEYS.match(inside) or _look_alike(inside):
+    anything else, a look-alike ("PM10") or a key no entry of the document prints (#254,
+    D-646; review B1 of PR #377)."""
+    if not _KEYS.match(inside):
         return None
-    return _KEY_ITEMS.findall(inside)
+    keys = _KEY_ITEMS.findall(inside)
+    if any(key in KEY_LOOK_ALIKES or key not in listed for key in keys):
+        return None
+    return keys
 
 
-def _look_alike(inside: str) -> bool:
-    return any(key in KEY_LOOK_ALIKES for key in _KEY_ITEMS.findall(inside))
+# an entry's label at a line's start and its first author: "[MH17] Maass, M.: …", "[Knu84] D.
+# Knuth. …" (#254, review B1 of PR #377); a sentence that starts with a key ("[MH17] zeigen
+# das.") is no entry, or a second run would find its own key listed
+_KEY_ENTRY = re.compile(
+    rf"^\[({_KEY})\][ \t]+(?:[A-Z]\.(?:\s?-?[A-Z]\.)*\s?[A-Z][^\W\d_]|[A-Z][^\W\d_]+,\s[A-Z]\.)",
+    re.MULTILINE,
+)
+
+
+def listed_keys(document: Document) -> frozenset[str]:
+    """The keys the document prints as entry labels at a line's start, in any block."""
+    return frozenset(
+        match.group(1) for block in document.blocks for match in _KEY_ENTRY.finditer(block.text)
+    )
 
 
 def _is_name(word: str) -> bool:

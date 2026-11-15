@@ -1825,12 +1825,18 @@ expected = [
 id = "citations-alphanumeric-keys-as-asides"
 audit = 0
 issue = 254
-goal = "Alphanumeric keys (alpha style: '[GKL+19]', '[Knu84]'; LNI: '[MH17]') are citations like numeric ones: an aside goes (D-646)."
+goal = "Alphanumeric keys (alpha style: '[GKL+19]', '[Knu84]'; LNI: '[MH17]') that the document's list prints as entry labels are citations like numeric ones: an aside goes (D-646, review B1 of PR #377)."
 blocks = [
     { kind = "paragraph", text = "This was shown before [GKL+19, Knu84]." },
     { kind = "paragraph", text = "The method [MH17] works well." },
     { kind = "paragraph", text = "It holds (see also [Knu84])." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "[GKL+19] A. Gray, B. Kim, C. Lee et al. A study. 2019." },
+    { kind = "paragraph", text = "[Knu84] D. Knuth. Literate programming. 1984." },
+    { kind = "paragraph", text = "[MH17] M. Maass and D. Herrmann. A tool. 2017." },
+    { kind = "paragraph", text = "[Ho16] R. Holz. A survey. 2016.\n[Ma16] W. Mayer. A scan. 2016." },
 ]
+sections = [{ title = "References", level = 1, start = 3, end = 8 }]
 expected = [
     "This was shown before.",
     "The method works well.",
@@ -1841,12 +1847,18 @@ expected = [
 id = "citations-alphanumeric-keys-the-sentence-needs"
 audit = 0
 issue = 254
-goal = "A key the sentence needs reads with the reference word and the key as printed: 'in [MH17]' reads 'in reference MH17' (D-646)."
+goal = "A listed key the sentence needs reads with the reference word and the key as printed: 'in [MH17]' reads 'in reference MH17' (D-646)."
 blocks = [
     { kind = "paragraph", text = "As shown in [MH17], it holds." },
     { kind = "paragraph", text = "[Knu84] showed that it holds." },
     { kind = "paragraph", text = "See the proofs in [Ho16, Ma16]." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "[GKL+19] A. Gray, B. Kim, C. Lee et al. A study. 2019." },
+    { kind = "paragraph", text = "[Knu84] D. Knuth. Literate programming. 1984." },
+    { kind = "paragraph", text = "[MH17] M. Maass and D. Herrmann. A tool. 2017." },
+    { kind = "paragraph", text = "[Ho16] R. Holz. A survey. 2016.\n[Ma16] W. Mayer. A scan. 2016." },
 ]
+sections = [{ title = "References", level = 1, start = 3, end = 8 }]
 expected = [
     "As shown in reference MH17, it holds.",
     "Reference Knu84 showed that it holds.",
@@ -1854,17 +1866,27 @@ expected = [
 ]
 
 [[case]]
-id = "citations-key-look-alikes-stay"
+id = "citations-key-shapes-without-entries-stay"
 audit = 0
 issue = 254
-goal = "Brackets that look like keys but name a thing stay as printed: a written list ('[PM10]') and shapes with one letter or one digit ('[C60]', '[CO2]', '[GPT4]') (D-646)."
+goal = "A bracket shaped like a key is no citation unless the document prints each key as an entry label: metal clusters, groups, studies, keys and cells stay as printed, as do look-alikes such as '[PM10]' (review B1 of PR #377)."
 blocks = [
-    { kind = "paragraph", text = "The level of [PM10] rose, and [CO2] too." },
-    { kind = "paragraph", text = "Both [C60] and [GPT4] were named." },
+    { kind = "paragraph", text = "The [Mn12] clusters and [Al13] clusters are magnetic." },
+    { kind = "paragraph", text = "The [EU27] countries and the [UK21] study agree." },
+    { kind = "paragraph", text = "Press [Ctrl12] now; cells [AB12] to [AB20] hold 3." },
+    { kind = "paragraph", text = "Values in [Ab12, Cd34] hold, as shown in [MH17]." },
+    { kind = "paragraph", text = "The level of [PM10] rose, and [CO2] too; both [C60] and [GPT4] were named." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "[1] A. Author. A study. 2019." },
+    { kind = "paragraph", text = "[PM10] B. Author. A list that names it. 2010." },
 ]
+sections = [{ title = "References", level = 1, start = 5, end = 8 }]
 expected = [
-    "The level of [PM10] rose, and [CO2] too.",
-    "Both [C60] and [GPT4] were named.",
+    "The [Mn12] clusters and [Al13] clusters are magnetic.",
+    "The [EU27] countries and the [UK21] study agree.",
+    "Press [Ctrl12] now; cells [AB12] to [AB20] hold 3.",
+    "Values in [Ab12, Cd34] hold, as shown in [MH17].",
+    "The level of [PM10] rose, and [CO2] too; both [C60] and [GPT4] were named.",
 ]
 
 [[case]]
