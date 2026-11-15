@@ -36,7 +36,9 @@ def test_ci_runs_on_no_label() -> None:
 def test_ci_passed_fails_on_any_job_that_did_not_succeed() -> None:
     job = block(CI, "  ci-passed:")
     assert "    name: CI passed" in job  # the ruleset's required check: never renamed
-    assert "    if: always()" in job  # it reports in a cancelled run too, never skipped
+    # the job's own condition, at the job's indent: a step's "if: always()" does not count
+    # (review round 1 of PR #364, S1); it reports in a cancelled run too, never skipped
+    assert re.search(r"^    if: always\(\)$", job, re.M), job
     assert "needs: [lint, licences, security, tests, browser]" in job
     for result in ("failure", "cancelled", "skipped"):
         assert f"contains(needs.*.result, '{result}')" in job
