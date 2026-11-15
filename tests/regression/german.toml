@@ -668,7 +668,7 @@ expected = [
 id = "de-numbers-dotted-date-glued-to-a-dash"
 audit = 0
 issue = 303
-goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the dash is read as before. A date without a year before a full date is read too ('am 3.4. 12.03.2019'), as a second run reads it once the full date is words; before a plain number it stays as printed. A hyphen between two full dates is a range, read 'bis' as a dash is ('3.4.2019-5.4.2019', review round 1 of PR #311)."
+goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the hyphen is read 'bis', the second date in the dative (#334, D-605). A date without a year before a full date is read too ('am 3.4. 12.03.2019'), as a second run reads it once the full date is words; before a plain number it stays as printed. A hyphen between two full dates is a range, read 'bis' as a dash is ('3.4.2019-5.4.2019', review round 1 of PR #311)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut." },
@@ -678,7 +678,7 @@ blocks = [
 ]
 expected = [
     "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut.",
-    "Es lief am dritten April 2019 und am zwölften März 2019 gut, am dritten April 2019 - fünfter April 2019 auch.",
+    "Es lief am dritten April 2019 und am zwölften März 2019 gut, am dritten April 2019 bis fünften April 2019 auch.",
     "Am dritten April zwölfter März 2019 lief es, am 3.4. 12 Fälle.",
     "Die Laufzeit war erster Januar 2020 bis einunddreißigsten Dezember 2020, vom dritten April 2019 bis fünften April 2019 an.",
 ]
@@ -1437,4 +1437,69 @@ expected = [
     "Vom 3.4.2019-5.4. 1 von 12 Liter.",
     "Vom dritten April 2019-31.4. ein Drittel.",
     "Vom 3.4.2019-5.4. 3 Tage.",
+]
+
+# ---- v1.2 follow-ups: German numbers (D-605) ------------------------------------------------
+
+[[case]]
+id = "de-numbers-date-ranges-with-spaced-or-em-dashes"
+audit = 0
+issue = 334
+goal = "A range of two dates with a spaced en dash (DIN 5008), an em dash or a spaced hyphen reads both dates with 'bis', the second in the dative, as the unspaced forms do (#318), on both runs; a day alone before the dash stays as printed (D-562, D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Vom 3.4.2019 – 5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4. – 5.4.2019 lief es." },
+    { kind = "paragraph", text = "Vom 3.4. – 5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.2019—5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.—5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.2019 - 5.4.2019 lief es." },
+    { kind = "paragraph", text = "Vom 3. – 5.4.2019 lief es." },
+]
+expected = [
+    "Vom dritten April 2019 bis fünften April lief es.",
+    "Vom dritten April bis fünften April 2019 lief es.",
+    "Vom dritten April bis fünften April lief es.",
+    "Vom dritten April 2019 bis fünften April lief es.",
+    "Vom dritten April bis fünften April lief es.",
+    "Vom dritten April 2019 bis fünften April 2019 lief es.",
+    "Vom 3. – 5.4.2019 lief es.",
+]
+
+[[case]]
+id = "de-numbers-no-ordinal-after-punkt"
+audit = 0
+issue = 349
+goal = "The last part of a dotted section number read with 'Punkt' is no ordinal before a noun, on the second run either: 'Kapitel 1.2.3. Tag.' reads '1 Punkt 2 Punkt 3. Tag.' on both runs (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel 1.2.3. Tag." },
+    { kind = "paragraph", text = "Abschnitt 2.1.3. Woche" },
+    { kind = "paragraph", text = "Kapitel 3.4.5.6. Tag." },
+    { kind = "paragraph", text = "Am 3. Tag kam er." },
+]
+expected = [
+    "Kapitel 1 Punkt 2 Punkt 3. Tag.",
+    "Abschnitt 2 Punkt 1 Punkt 3. Woche",
+    "Kapitel 3 Punkt 4 Punkt 5 Punkt 6. Tag.",
+    "Am dritten Tag kam er.",
+]
+
+[[case]]
+id = "de-notice-dotted-caption-labels"
+audit = 0
+issue = 249
+goal = "A German notice named by a caption label with a dotted number reads the point 'Punkt', as the caption itself does: 'Tabelle 2 Punkt 1 wird übersprungen.' (D-605). English notices are unchanged."
+language = "de"
+blocks = [
+    { kind = "caption", text = "Tabelle 2.1: Mittelwerte.", label = "Tabelle 2.1", describes = 1 },
+    { kind = "table", text = "a b" },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abb. 3.1: Verlauf.", label = "Abb. 3.1", describes = 2 },
+]
+expected = [
+    "Tabelle 2 Punkt 1: Mittelwerte.",
+    "Tabelle 2 Punkt 1 wird übersprungen.",
+    "Abbildung 3 Punkt 1 wird übersprungen.",
+    "Abbildung 3 Punkt 1: Verlauf.",
 ]

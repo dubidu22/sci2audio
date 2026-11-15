@@ -425,3 +425,31 @@ def test_every_placeholder_reads_exactly_a_notice(document: Document) -> None:
     for index, block in enumerate(document.blocks):
         if block.is_placeholder and index not in in_references:
             assert spoken[index].endswith("skipped."), (block, spoken[index])
+
+
+@pytest.mark.parametrize(
+    ("printed", "read_as"),
+    [
+        # #249 (D-615): a point between a label's digits reads "Punkt" in German
+        ("Tabelle 2.1", "Tabelle 2 Punkt 1"),
+        ("Abb. 3.1", "Abbildung 3 Punkt 1"),
+        ("Abb.3.1.2", "Abbildung 3 Punkt 1 Punkt 2"),
+        ("Tab. 2", "Tabelle 2"),
+        ("Abb. 3a", "Abbildung 3a"),
+        ("Abb. A.1", "Abbildung A.1"),  # no digit before the point
+    ],
+)
+def test_a_german_dotted_label_reads_its_point(printed: str, read_as: str) -> None:
+    assert wording_for("de").label(printed) == read_as
+
+
+def test_an_english_dotted_label_is_read_as_printed() -> None:
+    assert wording_for("en").label("Fig. 3.1") == "Figure 3.1"
+    assert wording_for("en").label("Table 2.1") == "Table 2.1"
+
+
+def test_a_german_formula_label_keeps_its_point() -> None:
+    """D-615: formula labels stay as printed until the rebuild rule of #362 is decided."""
+    document = make_document([Block(BlockKind.FORMULA, "x = y (3.2)", label="3.2")], "de")
+    run = run_steps(document, StepContext("de"), strict=True)
+    assert spoken_text(run.script()) == "Formel 3.2 wird übersprungen."
