@@ -258,6 +258,27 @@ def test_a_page_that_takes_longer_than_a_step_may_is_stopped(
         extract_pdf(path)
 
 
+def test_a_read_reports_each_page_and_then_the_outline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Each report starts a step's time anew; the outline is a step of its own (#345 S3)."""
+    steps: list[str] = []
+    monkeypatch.setattr(isolate, "_report", steps.append)
+    read_pdf(two_pages_of_rectangles(1), "a.pdf")
+    assert steps == ["page 1", "page 2", "outline"]
+
+
+@pytest.mark.parametrize(
+    ("step", "detail"),
+    [
+        ("opening", "opening it took more than 60 seconds"),
+        ("page 7", "reading page 7 took more than 60 seconds"),
+        ("outline", "reading its outline took more than 60 seconds"),
+    ],
+)
+def test_the_time_message_names_the_step(step: str, detail: str) -> None:
+    message = str(pdf._stopped("a.pdf", isolate.Stopped("time", step)))
+    assert message == f"a.pdf: the PDF is too large or damaged ({detail})"
+
+
 def test_a_child_that_ends_without_a_result_is_named() -> None:
     stopped = isolate.run(os.abort, (), memory=1024**3, step_seconds=60, readers=isolate.Readers(1))
     assert stopped == isolate.Stopped("ended", "opening")
@@ -368,6 +389,7 @@ def two_pages_of_rectangles(per_page: int) -> bytes:
 def test_the_limits_are_the_decided_ones() -> None:
     assert (pdf.MAX_PAGE_GRAPHICS, pdf.MAX_GRAPHICS) == (100_000, 500_000)
     assert (pdf.MAX_MEMORY, pdf.STEP_SECONDS, pdf.MAX_PDF_READERS) == (1024**3, 60, 2)
+    assert pdf._READERS.limit == pdf.MAX_PDF_READERS  # the cap reads use (#345 S4)
 
 
 # ---- reads at once (#28) ---------------------------------------------------------------------
