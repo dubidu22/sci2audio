@@ -52,8 +52,8 @@
 <section id="resume" class="resume" aria-labelledby="resume-text">
   <p id="resume-text">{{ t('listen.resume', n=resume.number, time=resume.clock) }} <span lang="{{ view.language }}">{{ resume.title }}</span></p>
   <p class="buttons">
-    <button type="button" id="resume-continue" data-chapter="{{ resume.chapter }}" data-time="{{ resume.time }}">{{ t('listen.resume_continue', time=resume.clock) }}</button>
-    <button type="button" id="resume-start">{{ t('listen.resume_start') }}</button>
+    <button type="button" id="resume-continue" disabled data-chapter="{{ resume.chapter }}" data-time="{{ resume.time }}">{{ t('listen.resume_continue', time=resume.clock) }}</button>
+    <button type="button" id="resume-start" disabled>{{ t('listen.resume_start') }}</button>
   </p>
 </section>
 {% endif %}

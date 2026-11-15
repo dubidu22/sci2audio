@@ -342,6 +342,7 @@ no-token = "Öffnen Sie den Link, den sci2audio beim Start im Terminal angezeigt
 not-cancellable = "Eine Analyse dauert Sekunden und lässt sich nicht abbrechen. Warten Sie, bis sie fertig ist."
 not-found = "Das gibt es in diesem Lauf von sci2audio nicht."
 not-saved = "sci2audio konnte nicht festhalten, wo Sie aufgehört haben."
+other-audiobook = "Das Hörbuch wurde neu erstellt, seit diese Seite geöffnet wurde. Laden Sie die Seite neu."
 output-exists = "Die Hörbuchdateien gibt es schon."
 remove-failed = "sci2audio konnte das Dokument nicht ganz entfernen. Versuchen Sie es noch einmal; die Details nennen, was übrig ist."
 stale-plan = "Der Download hat sich geändert, seit diese Seite angezeigt wurde. Laden Sie die Seite neu."

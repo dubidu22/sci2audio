@@ -560,9 +560,10 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             problem=s(error.key, **error.values),
         )
     try:
-        position = read_position(found.folder, found.id, located.stamp, located.readalong)
+        stamp = located.stamp
+        position = read_position(found.folder, found.id, stamp, located.readalong)
     except OSError:  # the read-along file went away since the checks: nothing to offer
-        position = None
+        stamp, position = "", None
     return _page(
         request,
         state,
@@ -573,7 +574,8 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         voice=_voice_name(view.voice),
         speeds=_speeds(s),
         resume=None if position is None else _resume(view, position),
-        data=data_block(view.data(found.id)),
+        # the stamp goes back with each save of the position (#153, review S1)
+        data=data_block({**view.data(found.id), "audiobook": stamp}),
         problem=None,
     )
 

@@ -294,13 +294,15 @@ def audiobook(
 @router.post(
     "/documents/{document_id}/position",
     status_code=204,
-    responses=_errors(404, 503),
+    responses=_errors(404, 409, 503),
     summary="Keep where the person stopped listening to the document's audiobook",
 )
 def save_position(state: State, document_id: str, given: models.PositionIn) -> None:
     """The player saves the position while it plays, so the next server run can offer to
     continue there (#153). It is kept in the working folder, stamped with the read-along
-    file it is a time in; a position the audiobook does not have is refused (422)."""
+    file it is a time in; a position the audiobook does not have is refused (422), and so
+    is one sent by a page drawn for another audiobook than the one there now (409: the
+    audio job ran again while the page stayed open)."""
     document = _document(state, document_id)
     saved, _ = load_settings(state.config.config_file)
     try:
@@ -314,6 +316,8 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
         stamp = located.stamp
     except (PlayerError, OSError) as error:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook") from error
+    if given.audiobook != stamp:
+        raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")
     position = Position(given.chapter, given.time)
     if not fits(located.readalong, position):
         raise ApiError(422, "no-such-time", "the audiobook has no such chapter and time")

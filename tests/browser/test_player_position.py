@@ -7,7 +7,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Route, expect
 from test_player import chunk_id, highlighted, make_audiobook, paused, watch_status
 
 from conftest import Live, SlowFetch, check_axe, inside, serve, tab_key
@@ -106,3 +106,27 @@ def test_nothing_is_offered_before_anything_was_heard(signed_in: Page, live: Liv
     page.reload()
     expect(page.locator("#resume")).to_have_count(0)
     assert re.search("resume", page.content()) is None
+
+
+def test_the_offer_waits_for_the_script_before_it_can_be_pressed(
+    signed_in: Page, live: Live
+) -> None:
+    """Review N1 of #373 (the #350 lesson): the server draws the offer's buttons, the
+    deferred script wires them, so they start disabled and are enabled once wired."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.locator(f"#{chunk_id(page, 'We measured it twice.')}").click()
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.wait_for_timeout(800)
+    page.get_by_role("button", name="Pause").click()
+    page.wait_for_timeout(300)
+    held: list[Route] = []
+    page.route("**/static/player.js", lambda route: held.append(route))
+    page.reload(wait_until="commit")
+    expect(page.locator("#resume-continue")).to_be_disabled()
+    expect(page.locator("#resume-start")).to_be_disabled()
+    while not held:
+        page.wait_for_timeout(50)
+    held[0].continue_()
+    expect(page.locator("#resume-continue")).to_be_enabled()
+    expect(page.locator("#resume-start")).to_be_enabled()

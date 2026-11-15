@@ -188,6 +188,10 @@ class PositionIn(Strict):
     time: float = Field(
         ge=0, le=10_000_000, allow_inf_nan=False, description="seconds on the book's timeline"
     )
+    audiobook: str = Field(
+        pattern=r"^[0-9a-f]{16}$",
+        description="the stamp of the audiobook the page was drawn for (its read-along file)",
+    )
 
 
 class DownloadIn(Strict):

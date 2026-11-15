@@ -165,6 +165,13 @@ def test_the_stamp_is_the_read_along_files_hash(tmp_path: Path) -> None:
 pytestmark = pytest.mark.usefixtures("offline")
 
 
+def stamp_of(client: Any, doc: str) -> str:
+    """The stamp the listen page was drawn with: the player sends it with each save."""
+    from test_web_player import player_data
+
+    return str(player_data(client.get(f"/documents/{doc}/listen").text)["audiobook"])
+
+
 def chapters_of(page: str) -> list[dict[str, Any]]:
     from test_web_player import player_data
 
@@ -179,7 +186,9 @@ def test_the_position_is_saved_and_offered_on_the_next_run(tmp_path: Path) -> No
     assert 'id="resume"' not in page  # nothing saved yet
     second = chapters_of(page)[1]
     at = second["start"] + 1.0
-    answer = client.post(f"/api/v1/documents/{doc}/position", json={"chapter": 1, "time": at})
+    stamp = stamp_of(client, doc)
+    body = {"chapter": 1, "time": at, "audiobook": stamp}
+    answer = client.post(f"/api/v1/documents/{doc}/position", json=body)
     assert answer.status_code == 204, answer.text
     # a new server run (a new token and a new app), with the same working folder; the
     # browser test runs it on another port
@@ -198,6 +207,7 @@ def test_a_position_the_audiobook_does_not_have_is_refused(tmp_path: Path) -> No
     client, _config = server(tmp_path)
     doc = make(client)["doc"]["id"]
     url = f"/api/v1/documents/{doc}/position"
+    stamp = stamp_of(client, doc)
     for body in (
         {"chapter": 5, "time": 1.0},
         {"chapter": 0, "time": 1e6},
@@ -205,14 +215,16 @@ def test_a_position_the_audiobook_does_not_have_is_refused(tmp_path: Path) -> No
         {"chapter": 0},
         {"chapter": "x", "time": 1},
         {"chapter": 0, "time": 1, "extra": 1},
+        {"chapter": 0, "time": 1, "audiobook": "not-a-stamp"},
     ):
-        assert client.post(url, json=body).status_code == 422, body
+        assert client.post(url, json={"audiobook": stamp, **body}).status_code == 422, body
+    assert client.post(url, json={"chapter": 0, "time": 1}).status_code == 422  # no stamp
     assert not (work_of(_config, doc) / player.POSITION).exists()
 
 
 def test_no_position_without_a_document_or_an_audiobook(tmp_path: Path) -> None:
     client, config = server(tmp_path)
-    body = {"chapter": 0, "time": 1.0}
+    body = {"chapter": 0, "time": 1.0, "audiobook": "0123456789abcdef"}
     assert client.post("/api/v1/documents/0123456789abcdef/position", json=body).status_code == 404
     from web_helpers import paper_bytes, upload
 
@@ -228,7 +240,7 @@ def test_saving_keeps_the_request_checks(tmp_path: Path) -> None:
 
     doc = make(_client)["doc"]["id"]
     url = f"/api/v1/documents/{doc}/position"
-    body = {"chapter": 0, "time": 1.5}
+    body = {"chapter": 0, "time": 1.5, "audiobook": stamp_of(_client, doc)}
     cookie = browser(app, config)
     # the browser's cookie alone is not enough for a write: it needs the own Origin (D-194)
     assert cookie.post(url, json=body).status_code == 403
@@ -245,7 +257,8 @@ def test_disk_full_answers_503_and_keeps_the_old_position(
     client, config = server(tmp_path)
     doc = make(client)["doc"]["id"]
     url = f"/api/v1/documents/{doc}/position"
-    assert client.post(url, json={"chapter": 0, "time": 1.5}).status_code == 204
+    stamp = stamp_of(client, doc)
+    assert client.post(url, json={"chapter": 0, "time": 1.5, "audiobook": stamp}).status_code == 204
     record = work_of(config, doc) / player.POSITION
     before = record.read_bytes()
 
@@ -253,7 +266,7 @@ def test_disk_full_answers_503_and_keeps_the_old_position(
         raise OSError(errno.ENOSPC, "No space left on device")
 
     monkeypatch.setattr(files, "_write_partial", full)
-    answer = client.post(url, json={"chapter": 0, "time": 2.5})
+    answer = client.post(url, json={"chapter": 0, "time": 2.5, "audiobook": stamp})
     assert answer.status_code == 503
     assert answer.json()["error"] == "not-saved"
     assert record.read_bytes() == before
@@ -262,8 +275,10 @@ def test_disk_full_answers_503_and_keeps_the_old_position(
 def test_a_removed_working_folder_is_not_made_again(tmp_path: Path) -> None:
     client, config = server(tmp_path)
     doc = make(client)["doc"]["id"]
+    stamp = stamp_of(client, doc)
     shutil.rmtree(work_of(config, doc))
-    answer = client.post(f"/api/v1/documents/{doc}/position", json={"chapter": 0, "time": 1.5})
+    body = {"chapter": 0, "time": 1.5, "audiobook": stamp}
+    answer = client.post(f"/api/v1/documents/{doc}/position", json=body)
     assert answer.status_code == 404
     assert not work_of(config, doc).exists()
 
@@ -273,11 +288,12 @@ def test_a_new_audiobook_drops_the_saved_position(tmp_path: Path) -> None:
     made = make(client)
     doc = made["doc"]["id"]
     url = f"/api/v1/documents/{doc}/position"
-    assert client.post(url, json={"chapter": 0, "time": 1.5}).status_code == 204
+    old = stamp_of(client, doc)
+    assert client.post(url, json={"chapter": 0, "time": 1.5, "audiobook": old}).status_code == 204
     record = work_of(config, doc) / player.POSITION
     assert record.exists()
-    # the audio job runs again: its success removes the record
-    body = {"kind": "audio", "document": doc, "overwrite": True}
+    # the audio job runs again, at another speed: its success removes the record
+    body = {"kind": "audio", "document": doc, "overwrite": True, "settings": {"speed": 1.5}}
     job = client.post("/api/v1/jobs", json=body)
     assert job.status_code in (201, 202), job.text
     from web_helpers import events
@@ -286,6 +302,16 @@ def test_a_new_audiobook_drops_the_saved_position(tmp_path: Path) -> None:
     assert final["state"] == "done", final
     assert not record.exists()
     assert 'id="resume"' not in client.get(f"/documents/{doc}/listen").text
+    # a listen page drawn for the old audiobook, still open, saves on pause: refused,
+    # so the new audiobook is not offered a place nobody heard in it (review S1)
+    new = stamp_of(client, doc)
+    assert new != old
+    late = client.post(url, json={"chapter": 0, "time": 1.5, "audiobook": old})
+    assert late.status_code == 409
+    assert late.json()["error"] == "other-audiobook"
+    assert not record.exists()
+    assert client.post(url, json={"chapter": 0, "time": 1.5, "audiobook": new}).status_code == 204
+    assert record.exists()
 
 
 def test_a_record_of_another_audiobook_is_not_offered(tmp_path: Path) -> None:
@@ -293,12 +319,8 @@ def test_a_record_of_another_audiobook_is_not_offered(tmp_path: Path) -> None:
     longer matches the read-along file found, so the position is dropped."""
     client, config = server(tmp_path)
     doc = make(client)["doc"]["id"]
-    assert (
-        client.post(
-            f"/api/v1/documents/{doc}/position", json={"chapter": 0, "time": 1.5}
-        ).status_code
-        == 204
-    )
+    body = {"chapter": 0, "time": 1.5, "audiobook": stamp_of(client, doc)}
+    assert client.post(f"/api/v1/documents/{doc}/position", json=body).status_code == 204
     record = work_of(config, doc) / player.POSITION
     stored = json.loads(record.read_text(encoding="utf-8"))
     stored["audiobook"] = "ffffffffffffffff"

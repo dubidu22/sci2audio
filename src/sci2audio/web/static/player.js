@@ -192,7 +192,7 @@ function readAlong() {
   const position = `/api/v1/documents/${encodeURIComponent(data.document)}/position`;
 
   function keep(c = loaded, time = bookTime(), force = true) {
-    if (c < 0) return;
+    if (c < 0 || !data.audiobook) return;
     touched = true;
     if (!force && performance.now() - savedAt < SAVE_EVERY) return;
     savedAt = performance.now();
@@ -201,11 +201,14 @@ function readAlong() {
       credentials: "same-origin",
       keepalive: true, // also when the page is going away
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ chapter: c, time: Math.max(0, time) }),
+      // the audiobook this page shows: a save from a page left open over a new audiobook
+      // is refused (409), never written into the new one
+      body: JSON.stringify({ chapter: c, time: Math.max(0, time), audiobook: data.audiobook }),
     }).catch(() => {});
   }
 
   function keepIfTouched() {
+    if (!data.audiobook) return;
     if (touched && loaded >= 0 && !pending) keep();
   }
 
@@ -361,6 +364,10 @@ function readAlong() {
       seek(0, chapters[0].start, false);
       done(`${tr("player.chapter", { n: 1, total: chapters.length })} ${chapters[0].title}`);
     });
+    // drawn disabled: a click before this script ran would be lost (#350, review N1)
+    for (const id of ["resume-continue", "resume-start"]) {
+      document.getElementById(id).disabled = false;
+    }
   }
 }
 
