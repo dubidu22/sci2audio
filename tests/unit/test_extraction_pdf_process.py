@@ -281,6 +281,50 @@ def test_each_reported_step_starts_the_childs_own_clock_anew(
     assert result == 8
 
 
+SLOW_START = """
+import time
+time.sleep(1.0)  # a busy machine: the child's imports take a second
+
+def quick(value):
+    return value
+"""
+
+
+def slow_start(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[[object], object]:
+    """A target whose module takes a second to import, in the child as here."""
+    (tmp_path / "slow_start.py").write_text(SLOW_START)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    import slow_start  # type: ignore[import-not-found]
+
+    return slow_start.quick  # type: ignore[no-any-return]
+
+
+def test_a_slow_start_is_not_counted_as_a_step(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The first step starts when the child runs: macOS CI took longer than a 0.5 s step to
+    start a child, and the read was stopped at "opening" before it began (D-616)."""
+    quick = slow_start(tmp_path, monkeypatch)
+    result = isolate.run(quick, (7,), memory=1024**3, step_seconds=0.3, readers=isolate.Readers(1))
+    assert result == 7
+
+
+def test_a_child_that_does_not_start_in_time_is_named(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    quick = slow_start(tmp_path, monkeypatch)
+    monkeypatch.setattr(isolate, "START_SECONDS", 0.3)  # below the step: only it can stop
+    stopped = isolate.run(quick, (7,), memory=1024**3, step_seconds=5, readers=isolate.Readers(1))
+    assert stopped == isolate.Stopped("time", "starting")
+    assert str(pdf._stopped("a.pdf", stopped)) == (
+        "a.pdf: cannot be read: sci2audio could not start its PDF reader"
+        " (it did not start within 0.3 seconds)"
+    )
+    assert str(pdf._stopped("a.pdf", isolate.Stopped("ended", "starting"))) == (
+        "a.pdf: cannot be read: sci2audio could not start its PDF reader (it ended while starting)"
+    )
+
+
 def test_a_child_ended_by_its_own_watch_for_time_is_named() -> None:
     """The parent normally ends a slow step first; when the child's watch is first, its exit
     reads as a step that took too long."""
@@ -305,11 +349,12 @@ def test_a_page_that_takes_longer_than_a_step_may_is_stopped(
 
 
 def test_a_read_reports_each_page_and_then_the_outline(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Each report starts a step's time anew; the outline is a step of its own (#345 S3)."""
+    """Each report starts a step's time anew; the outline is a step of its own (#345 S3).
+    A page step names the page count too, for the job's progress (#343)."""
     steps: list[str] = []
     monkeypatch.setattr(isolate, "_report", steps.append)
     read_pdf(two_pages_of_rectangles(1), "a.pdf")
-    assert steps == ["page 1", "page 2", "outline"]
+    assert steps == ["page 1 of 2", "page 2 of 2", "outline"]
 
 
 @pytest.mark.parametrize(
@@ -317,6 +362,7 @@ def test_a_read_reports_each_page_and_then_the_outline(monkeypatch: pytest.Monke
     [
         ("opening", "opening it took more than 60 seconds"),
         ("page 7", "reading page 7 took more than 60 seconds"),
+        ("page 7 of 400", "reading page 7 took more than 60 seconds"),
         ("outline", "reading its outline took more than 60 seconds"),
     ],
 )
@@ -436,6 +482,7 @@ def test_the_limits_are_the_decided_ones() -> None:
     assert (pdf.MAX_PAGE_GRAPHICS, pdf.MAX_GRAPHICS) == (100_000, 500_000)
     assert (pdf.MAX_MEMORY, pdf.STEP_SECONDS, pdf.MAX_PDF_READERS) == (1024**3, 60, 2)
     assert pdf._READERS.limit == pdf.MAX_PDF_READERS  # the cap reads use (#345 S4)
+    assert isolate.START_SECONDS == 30  # a reader's start, before its first step (D-616)
 
 
 # ---- reads at once (#28) ---------------------------------------------------------------------

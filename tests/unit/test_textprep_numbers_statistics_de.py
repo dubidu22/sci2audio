@@ -583,8 +583,8 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
             "Es lief am dritten April 2019 und am zwölften März 2019 gut.",
         ),
         (
-            "Es lief am 3.4.2019 - 5.4.2019 gut.",
-            "Es lief am dritten April 2019 - fünfter April 2019 gut.",
+            "Es lief am 3.4.2019 - 5.4.2019 gut.",  # a spaced hyphen is a range too (#334)
+            "Es lief am dritten April 2019 bis fünften April 2019 gut.",
         ),
         # a date without a year before a full date: read, as a second run reads it (seed 2)
         ("1–1am 3.4. 12.03.2019", "1 bis 1am dritten April zwölfter März 2019"),
@@ -638,3 +638,59 @@ def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(
     once = read_all(printed)
     assert once == said
     assert read_all(once) == once
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #334 (D-605): a range of dates across a spaced en dash, an em dash or a spaced hyphen
+        ("Vom 3.4.2019 – 5.4. lief es.", "Vom dritten April 2019 bis fünften April lief es."),
+        ("Vom 3.4. – 5.4.2019 lief es.", "Vom dritten April bis fünften April 2019 lief es."),
+        ("Vom 3.4. – 5.4. lief es.", "Vom dritten April bis fünften April lief es."),
+        ("Vom 3.4.2019—5.4. lief es.", "Vom dritten April 2019 bis fünften April lief es."),
+        ("Vom 3.4.—5.4. lief es.", "Vom dritten April bis fünften April lief es."),
+        ("Vom 3.4. — 5.4. lief es.", "Vom dritten April bis fünften April lief es."),
+        (
+            "Vom 3.4.2019 - 5.4.2019 lief es.",
+            "Vom dritten April 2019 bis fünften April 2019 lief es.",
+        ),
+        ("Vom 3.4. - 5.4. lief es.", "Vom dritten April bis fünften April lief es."),
+        # a day alone before the dash, or a first date not read, keeps the range as printed
+        ("Vom 3. – 5.4.2019 lief es.", "Vom 3. – 5.4.2019 lief es."),
+        ("Abschnitt 3.4. – 5.4. zeigt es.", "Abschnitt 3 Punkt 4. – 5.4. zeigt es."),
+        ("Vom 1.–3.4.2020 lief es.", "Vom 1.–3.4.2020 lief es."),
+        # #349: no ordinal after "Punkt", the reading of a dotted number's point
+        ("Kapitel 1.2.3. Tag.", "Kapitel 1 Punkt 2 Punkt 3. Tag."),
+        # review S1 of PR #368: after the word "Punkt" an ordinal reads as before
+        ("Der Punkt 3. Mai war gut.", "Der Punkt dritter Mai war gut."),
+        ("Im Punkt 2. Teil steht es.", "Im Punkt zweiter Teil steht es."),
+        ("Die Note war 2. Punkt 3. Platz.", "Die Note war 2. Punkt dritter Platz."),
+        ("Kapitel 1 Punkt 2 Punkt 3. Tag.", "Kapitel 1 Punkt 2 Punkt 3. Tag."),
+        ("Am 3. Tag kam er.", "Am dritten Tag kam er."),
+    ],
+)
+def test_german_ranges_and_dotted_numbers_read_the_same_on_a_second_run(
+    printed: str, said: str
+) -> None:
+    first = read_all(printed)
+    assert first == said
+    assert read_all(first) == first
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # review S1 of PR #359: a fraction before a unit chain ending in a letter power stays
+        ("Es ist 2/3 m s⁻² hier.", "Es ist 2/3 m s⁻² hier."),
+        ("Es ist 1/2 m · s⁻¹ hier.", "Es ist 1/2 m · s⁻¹ hier."),
+        ("Es ist 1/2 W m⁻² K⁻¹ hier.", "Es ist 1/2 W m⁻² K⁻¹ hier."),
+        # a one-word unit, or a word that is no unit symbol, reads the fraction as before
+        ("Es ist 1/4 cm² hier.", "Es ist ein Viertel cm² hier."),
+        ("Es ist 3/4 und x² hier.", "Es ist 3 Viertel und x Quadrat hier."),
+        ("Es ist 3/4 kg hier.", "Es ist 3 Viertel kg hier."),
+    ],
+)
+def test_a_german_fraction_before_a_unit_chain_with_a_power(printed: str, said: str) -> None:
+    first = read_all(printed)
+    assert first == said
+    assert read_all(first) == first

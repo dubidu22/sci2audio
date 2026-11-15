@@ -156,6 +156,8 @@ class AudioProgress:
     characters_total: int = 0
     characters_per_second: float | None = None
     seconds_left: float | None = None
+    page: int = 0  # reading a PDF: the page its reader started, counted from 1 (#343)
+    pages: int = 0  # ... and the PDF's page count; 0 for other files and phases
 
 
 @dataclass(frozen=True)
@@ -452,7 +454,13 @@ def run_audio_job(
     check_folders((out_folder, work))
     _check_cancel(cancel)
     with work_folder_lock(work):
-        document = read_document(source, settings, lambda phase: tell(AudioProgress(phase)))
+        document = read_document(
+            source,
+            settings,
+            lambda phase: tell(AudioProgress(phase)),
+            pages=lambda page, pages: tell(AudioProgress(Phase.READING, page=page, pages=pages)),
+            cancel=cancel,
+        )
         # the voice follows the job's language (D-469); its files must be there (D-468)
         voice_id = voice.voice_for(settings.voice, document.language)
         if not voice.installed(voice_id):

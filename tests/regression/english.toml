@@ -1622,3 +1622,89 @@ issue = 304
 goal = "'~' before a sign and a number reads 'about' when a line break follows the hyphen too: the hyphen before a digit stays when the line is joined, so a second run reads it so (D-577)."
 blocks = [{ kind = "paragraph", text = "0:~-\n0" }]
 expected = ["0: about -0"]
+
+# ---- v1.2 follow-ups: numbers (D-605) -------------------------------------------------------
+
+[[case]]
+id = "numbers-a-minus-sign-at-a-line-end"
+audit = 0
+issue = 336
+goal = "A minus sign at a line end, its number on the next line, reads 'minus' on the first run, as a second run reads the joined line (D-605); '~' before it reads 'about', as #304 does for '~-'."
+blocks = [
+    { kind = "paragraph", text = "It is −\n5 here." },
+    { kind = "paragraph", text = "It is −\n1/2 here." },
+    { kind = "paragraph", text = "It is ~−\n5 here." },
+    { kind = "paragraph", text = "It is −5 here and x −\ny there." },
+]
+expected = [
+    "It is minus 5 here.",
+    "It is minus 1 half here.",
+    "It is about minus 5 here.",
+    "It is minus 5 here and x − y there.",
+]
+
+[[case]]
+id = "numbers-powers-with-grouped-or-glued-exponents"
+audit = 0
+issue = 340
+goal = "A caret power whose exponent groups its thousands with spaces reads the whole exponent (#210); a signed grouped exponent reads its sign too (review S1 of PR #361); one plain-space group is no grouped number and stays as printed, as before; a power of ten whose minus exponent runs into a caret power ('10−410^2') is left as printed, as a second run would read it differently; a plain '× 10−4' reads as before (D-605)."
+blocks = [
+    { kind = "paragraph", text = "It is 10^250 000 000 here." },
+    { kind = "paragraph", text = "It is 3 × 10−410^2 here." },
+    { kind = "paragraph", text = "It is 3 × 10−4 here." },
+    { kind = "paragraph", text = "It is 10^2 000 here." },
+    { kind = "paragraph", text = "It is 10^-250 000 000 here." },
+    { kind = "paragraph", text = "It is 10^+250 000 000 here." },
+    { kind = "paragraph", text = "It is 10^−250 000 000 here." },
+]
+expected = [
+    "It is 10 to the power of 250,000,000 here.",
+    "It is 3 times 10−410^2 here.",
+    "It is 3 times 10 to the power of minus 4 here.",
+    "It is 10^2 000 here.",
+    "It is 10 to the power of minus 250,000,000 here.",
+    "It is 10 to the power of 250,000,000 here.",
+    "It is 10 to the power of minus 250,000,000 here.",
+]
+
+# ---- v1.2 follow-ups: units (D-605) ---------------------------------------------------------
+
+[[case]]
+id = "units-x-after-a-read-equals-sign"
+audit = 0
+issue = 320
+goal = "A glued x after '=' is the variable (D-242), and so it is after 'equals', how the statistics step reads '=', so a second run reads it the same; also after 'less than or equal to' and 'greater than or equal to', but not after a bare 'less than' or 'greater than', which prose uses ('less than 2x slower', D-605)."
+blocks = [
+    { kind = "paragraph", text = "Let f(x) = 4x." },
+    { kind = "paragraph", text = "We set y = 4x here." },
+    { kind = "paragraph", text = "It holds that y ≤ 2x and y ≥ 2x." },
+    { kind = "paragraph", text = "It was less than 2x slower and 3x faster." },
+]
+expected = [
+    "Let f(x) equals 4x.",
+    "We set y equals 4x here.",
+    "It holds that y less than or equal to 2x and y greater than or equal to 2x.",
+    "It was less than 2 times slower and 3 times faster.",
+]
+
+[[case]]
+id = "numbers-a-unit-power-after-a-fraction"
+audit = 0
+issue = 335
+goal = "A unit power after a fraction is left to the units step, as after a number, on the second run too, where the fraction reads as words ('3 quarters s⁻¹'), and a unit after a fraction read 'out of' stays as printed on the second run too, as after the printed '17/20', so both runs read it the same (D-605)."
+blocks = [
+    { kind = "paragraph", text = "It is 1/2 s⁻¹ here." },
+    { kind = "paragraph", text = "It is 3/4 s⁻¹ here." },
+    { kind = "paragraph", text = "It is −3/4 m s⁻¹ here." },
+    { kind = "paragraph", text = "It was 17/20 s⁻¹ and 17/20 kg here." },
+    { kind = "paragraph", text = "The term x² is small." },
+    { kind = "paragraph", text = "Out of 20 kg, 5 went." },
+]
+expected = [
+    "It is 1 half s⁻¹ here.",
+    "It is 3 quarters s⁻¹ here.",
+    "It is minus 3 quarters m s⁻¹ here.",
+    "It was 17 out of 20 s⁻¹ and 17 out of 20 kg here.",
+    "The term x squared is small.",
+    "Out of 20 kilograms, 5 went.",
+]

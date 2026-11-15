@@ -13,7 +13,9 @@ A file from a user is read in a child process (`extract_pdf`, `extract_pdf_cover
 D-581): PDFium decodes streams and loads pages before our limits can count anything, so the
 child has a memory limit (`MAX_MEMORY`) and a time limit for each step (`STEP_SECONDS`), and
 a crash inside PDFium ends only the child. Each read has its own process, so two reads no
-longer wait for each other's lock; at most `MAX_PDF_READERS` children run at once.
+longer wait for each other's lock; at most `MAX_PDF_READERS` children run at once. The child
+reports each page it starts ("page 3 of 400"), which `extract_pdf` hands on as progress
+(#343), and a cancelled read ends the child at once (#344).
 `read_pdf` reads bytes in this process, without those limits: it is the child's own work.
 """
 
@@ -25,7 +27,7 @@ import math
 import re
 import threading
 from bisect import bisect_left, bisect_right
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -47,7 +49,7 @@ from sci2audio.core import (
 )
 from sci2audio.extraction import isolate
 from sci2audio.extraction.cover import Cover, png
-from sci2audio.extraction.errors import ExtractionError
+from sci2audio.extraction.errors import ExtractionError, ReadCancelled
 from sci2audio.extraction.language import stated_language
 
 _PDFIUM = threading.Lock()
@@ -118,16 +120,47 @@ _COPY = 1 << 4  # bit 5: copy or extract text
 _ACCESSIBILITY = 1 << 9  # bit 10: extract text for accessibility (revision 3 on)
 
 
-def extract_pdf(path: Path) -> Content:
+def extract_pdf(
+    path: Path,
+    *,
+    pages: Callable[[int, int], None] | None = None,
+    cancel: threading.Event | None = None,
+) -> Content:
     """Read the PDF at `path` into `Content` in a child process with the limits above;
-    raise ExtractionError if it can't be read."""
-    result = _isolated(_read_file, str(path))
+    raise ExtractionError if it can't be read.
+
+    `pages(number, total)` is called as the child starts each page, counted from 1 (#343).
+    Once `cancel` is set, the child is ended and ReadCancelled raised (#344)."""
+    on_step = None if pages is None else _page_steps(pages)
+    result = _isolated(_read_file, str(path), on_step=on_step, cancel=cancel)
     if isinstance(result, isolate.Stopped):
+        if result.reason == "cancelled":
+            raise ReadCancelled(f"{path.name}: the read was cancelled")
         raise _stopped(path.name, result)
     return result
 
 
-def _isolated(target: object, path: str) -> object:
+_PAGE_STEP = re.compile(r"page (\d+) of (\d+)")
+
+
+def _page_steps(pages: Callable[[int, int], None]) -> Callable[[str], None]:
+    """A step handler that hands each "page N of M" on to `pages`; other steps are not
+    pages."""
+
+    def on_step(step: str) -> None:
+        if found := _PAGE_STEP.fullmatch(step):
+            pages(int(found[1]), int(found[2]))
+
+    return on_step
+
+
+def _isolated(
+    target: object,
+    path: str,
+    *,
+    on_step: Callable[[str], None] | None = None,
+    cancel: threading.Event | None = None,
+) -> object:
     try:
         return isolate.run(
             target,  # type: ignore[arg-type]
@@ -135,6 +168,8 @@ def _isolated(target: object, path: str) -> object:
             memory=MAX_MEMORY,
             step_seconds=STEP_SECONDS,
             readers=_READERS,
+            on_step=on_step,
+            cancel=cancel,
         )
     except isolate.NotStarted as error:  # D-581: no reading without a child
         name = Path(path).name
@@ -167,6 +202,15 @@ def _read_file(path: str, limits: dict[str, int]) -> Content:
 
 
 def _stopped(name: str, stopped: isolate.Stopped) -> ExtractionError:
+    if stopped.step == "starting":  # not the file's doing: the reader never began to read it
+        why = (
+            f"it did not start within {isolate.START_SECONDS:g} seconds"
+            if stopped.reason == "time"
+            else "it ended while starting"
+        )
+        return ExtractionError(
+            f"{name}: cannot be read: sci2audio could not start its PDF reader ({why})"
+        )
     if stopped.reason == "memory":
         size = (
             f"{MAX_MEMORY / 1024**3:g} GB"
@@ -179,8 +223,8 @@ def _stopped(name: str, stopped: isolate.Stopped) -> ExtractionError:
             what = "opening it"
         elif stopped.step == "outline":
             what = "reading its outline"
-        else:
-            what = f"reading {stopped.step}"
+        else:  # "page 7 of 400" reads "reading page 7"
+            what = f"reading {stopped.step.split(' of ')[0]}"
         return _too_large(name, f"{what} took more than {STEP_SECONDS:g} seconds")
     return ExtractionError(f"{name}: the PDF is damaged (the PDF reader stopped unexpectedly)")
 
@@ -409,9 +453,10 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
     pages: list[Page] = []
     total = 0
     graphics = 0  # drawings and pictures so far
-    for index in range(len(document)):
+    page_count = len(document)
+    for index in range(page_count):
         number = index + 1
-        isolate.report(f"page {number}")
+        isolate.report(f"page {number} of {page_count}")
         try:
             page = document[index]
         except pdfium.PdfiumError as error:

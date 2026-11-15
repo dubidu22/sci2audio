@@ -668,7 +668,7 @@ expected = [
 id = "de-numbers-dotted-date-glued-to-a-dash"
 audit = 0
 issue = 303
-goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the dash is read as before. A date without a year before a full date is read too ('am 3.4. 12.03.2019'), as a second run reads it once the full date is words; before a plain number it stays as printed. A hyphen between two full dates is a range, read 'bis' as a dash is ('3.4.2019-5.4.2019', review round 1 of PR #311)."
+goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the hyphen is read 'bis', the second date in the dative (#334, D-605). A date without a year before a full date is read too ('am 3.4. 12.03.2019'), as a second run reads it once the full date is words; before a plain number it stays as printed. A hyphen between two full dates is a range, read 'bis' as a dash is ('3.4.2019-5.4.2019', review round 1 of PR #311)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut." },
@@ -678,7 +678,7 @@ blocks = [
 ]
 expected = [
     "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut.",
-    "Es lief am dritten April 2019 und am zwölften März 2019 gut, am dritten April 2019 - fünfter April 2019 auch.",
+    "Es lief am dritten April 2019 und am zwölften März 2019 gut, am dritten April 2019 bis fünften April 2019 auch.",
     "Am dritten April zwölfter März 2019 lief es, am 3.4. 12 Fälle.",
     "Die Laufzeit war erster Januar 2020 bis einunddreißigsten Dezember 2020, vom dritten April 2019 bis fünften April 2019 an.",
 ]
@@ -1437,4 +1437,149 @@ expected = [
     "Vom 3.4.2019-5.4. 1 von 12 Liter.",
     "Vom dritten April 2019-31.4. ein Drittel.",
     "Vom 3.4.2019-5.4. 3 Tage.",
+]
+
+# ---- v1.2 follow-ups: German numbers (D-605) ------------------------------------------------
+
+[[case]]
+id = "de-numbers-date-ranges-with-spaced-or-em-dashes"
+audit = 0
+issue = 334
+goal = "A range of two dates with a spaced en dash (DIN 5008), an em dash or a spaced hyphen reads both dates with 'bis', the second in the dative, as the unspaced forms do (#318), on both runs; a day alone before the dash stays as printed (D-562, D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Vom 3.4.2019 – 5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4. – 5.4.2019 lief es." },
+    { kind = "paragraph", text = "Vom 3.4. – 5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.2019—5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.—5.4. lief es." },
+    { kind = "paragraph", text = "Vom 3.4.2019 - 5.4.2019 lief es." },
+    { kind = "paragraph", text = "Vom 3. – 5.4.2019 lief es." },
+]
+expected = [
+    "Vom dritten April 2019 bis fünften April lief es.",
+    "Vom dritten April bis fünften April 2019 lief es.",
+    "Vom dritten April bis fünften April lief es.",
+    "Vom dritten April 2019 bis fünften April lief es.",
+    "Vom dritten April bis fünften April lief es.",
+    "Vom dritten April 2019 bis fünften April 2019 lief es.",
+    "Vom 3. – 5.4.2019 lief es.",
+]
+
+[[case]]
+id = "de-numbers-no-ordinal-after-punkt"
+audit = 0
+issue = 349
+goal = "The last part of a dotted section number read with 'Punkt' is no ordinal before a noun, on the second run either: 'Kapitel 1.2.3. Tag.' reads '1 Punkt 2 Punkt 3. Tag.' on both runs (D-605). After the word 'Punkt' itself an ordinal reads as before (review S1 of PR #368)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel 1.2.3. Tag." },
+    { kind = "paragraph", text = "Abschnitt 2.1.3. Woche" },
+    { kind = "paragraph", text = "Kapitel 3.4.5.6. Tag." },
+    { kind = "paragraph", text = "Am 3. Tag kam er." },
+    { kind = "paragraph", text = "Der Punkt 3. Mai war gut." },
+    { kind = "paragraph", text = "Die Note war 2. Punkt 3. Platz." },
+]
+expected = [
+    "Kapitel 1 Punkt 2 Punkt 3. Tag.",
+    "Abschnitt 2 Punkt 1 Punkt 3. Woche",
+    "Kapitel 3 Punkt 4 Punkt 5 Punkt 6. Tag.",
+    "Am dritten Tag kam er.",
+    "Der Punkt dritter Mai war gut.",
+    "Die Note war 2. Punkt dritter Platz.",
+]
+
+[[case]]
+id = "de-notice-dotted-caption-labels"
+audit = 0
+issue = 249
+goal = "A German notice names the figure as its caption reads the label's numbers: a dotted number with 'Punkt' ('Tabelle 2 Punkt 1 wird übersprungen.'), a range with 'bis', a decimal comma with 'Komma', and a label the caption keeps as printed ('2.1a', 'S3.1', '3/4' before ':') as printed, the label read in its caption's context, on both runs (D-605, review S2 and S3 of PR #368 and S2 of its round 2). English notices are unchanged."
+language = "de"
+blocks = [
+    { kind = "caption", text = "Tabelle 2.1: Mittelwerte.", label = "Tabelle 2.1", describes = 1 },
+    { kind = "table", text = "a b" },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abb. 3.1: Verlauf.", label = "Abb. 3.1", describes = 2 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Tabelle 2.1a: Werte.", label = "Tabelle 2.1a", describes = 4 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abb. S3.1: Werte.", label = "Abb. S3.1", describes = 6 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abbildung 1.2-1.4: Werte.", label = "Abbildung 1.2-1.4", describes = 8 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abb. 3,1: Werte.", label = "Abb. 3,1", describes = 10 },
+    { kind = "figure", text = "0 1" },
+    { kind = "caption", text = "Abb. 3/4: Verlauf der Werte.", label = "Abb. 3/4", describes = 12 },
+]
+expected = [
+    "Tabelle 2 Punkt 1: Mittelwerte.",
+    "Tabelle 2 Punkt 1 wird übersprungen.",
+    "Abbildung 3 Punkt 1 wird übersprungen.",
+    "Abbildung 3 Punkt 1: Verlauf.",
+    "Tabelle 2.1a wird übersprungen.",
+    "Tabelle 2.1a: Werte.",
+    "Abbildung S3.1 wird übersprungen.",
+    "Abbildung S3.1: Werte.",
+    "Abbildung 1 Punkt 2 bis 1 Punkt 4 wird übersprungen.",
+    "Abbildung 1 Punkt 2 bis 1 Punkt 4: Werte.",
+    "Abbildung 3 Komma 1 wird übersprungen.",
+    "Abbildung 3 Komma 1: Werte.",
+    "Abbildung 3/4 wird übersprungen.",
+    "Abbildung 3/4: Verlauf der Werte.",
+]
+
+# ---- v1.2 follow-ups: units (D-605) ---------------------------------------------------------
+
+[[case]]
+id = "de-units-label-joins-read-in-full"
+audit = 0
+issue = 321
+goal = "Labels joined by 'bzw.' or 'resp.', and by their readings 'beziehungsweise' and 'respektive', stay labels: no unit after them, so a second run reads them the same (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Bedingungen 1 bzw. 2 V und mehr." },
+    { kind = "paragraph", text = "Die Bedingungen 1 resp. 2 V und mehr." },
+    { kind = "paragraph", text = "Die Bedingungen 1 beziehungsweise 2 V und mehr." },
+    { kind = "paragraph", text = "Die Bedingungen 1 respektive 2 V und mehr." },
+    { kind = "paragraph", text = "Es liegen 2 V an." },
+]
+expected = [
+    "Die Bedingungen 1 beziehungsweise 2 V und mehr.",
+    "Die Bedingungen 1 respektive 2 V und mehr.",
+    "Die Bedingungen 1 beziehungsweise 2 V und mehr.",
+    "Die Bedingungen 1 respektive 2 V und mehr.",
+    "Es liegen 2 Volt an.",
+]
+
+[[case]]
+id = "de-numbers-a-unit-power-after-a-fraction"
+audit = 0
+issue = 335
+goal = "A fraction before a unit chain that ends in a letter power is left as printed, as one before a letter power is ('1/5 m⁶'), so the power is not read only on a second run after the fraction words; where the first run reads that power ('x²', 'R²', 't²' after 's'), or the unit is one word ('1/4 cm²'), the fraction is read, as before (review S1 and B1 of PR #359, D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es ist 2/3 m s⁻² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 m s⁻¹ hier." },
+    { kind = "paragraph", text = "Es ist 3/4 kg m² hier." },
+    { kind = "paragraph", text = "Es ist 1/4 cm² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 und x² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 kg x² hier." },
+    { kind = "paragraph", text = "Es ist 3/4 m x⁻¹ hier." },
+    { kind = "paragraph", text = "Es ist 3/4 m s x² hier." },
+    { kind = "paragraph", text = "Es ist 1/2 kg R² hier." },
+    { kind = "paragraph", text = "Es ist 1/5 m R² hier." },
+    { kind = "paragraph", text = "Es ist 2/3 s t² hier." },
+]
+expected = [
+    "Es ist 2/3 m s⁻² hier.",
+    "Es ist 3/4 m s⁻¹ hier.",
+    "Es ist 3/4 kg m² hier.",
+    "Es ist ein Viertel cm² hier.",
+    "Es ist 3 Viertel und x Quadrat hier.",
+    "Es ist 3 Viertel kg x Quadrat hier.",
+    "Es ist 3 Viertel m x hoch minus 1 hier.",
+    "Es ist 3 Viertel m s x Quadrat hier.",
+    "Es ist ein halb kg R Quadrat hier.",
+    "Es ist ein Fünftel m R Quadrat hier.",
+    "Es ist 2 Drittel s t Quadrat hier.",
 ]

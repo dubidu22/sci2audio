@@ -68,6 +68,10 @@ def test_progress_lines_without_a_terminal(cli: Cli, tmp_path: Path) -> None:
     result = cli("script", SEABORN, "-o", tmp_path)
     assert result.err.splitlines() == [
         "Reading the file ...",
+        "Reading page 1 of 4",  # the PDF's pages as they are read (#343)
+        "Reading page 2 of 4",
+        "Reading page 3 of 4",
+        "Reading page 4 of 4",
         "Finding the reading order ...",
         "Preparing the text ...",
         "Writing the script and the report ...",
@@ -79,7 +83,8 @@ def test_progress_on_a_terminal_is_one_line(tmp_path: Path) -> None:
     assert result.code == 0
     assert result.err.count("\n") == 1
     assert result.err.endswith("\n")
-    assert result.err.count("\r") == 4
+    assert result.err.count("\r") == 8  # four phases and four pages (#343)
+    assert "\rReading page 4 of 4" in result.err
 
 
 def test_files_go_next_to_the_file_by_default(cli: Cli, tmp_path: Path) -> None:
