@@ -37,7 +37,9 @@ def test_the_next_run_offers_to_continue_where_the_person_stopped(
             "**/*",
             lambda route: (
                 route.continue_()
-                if inside(route.request.url, second.url)
+                # the first run's page saves its position on its way out, to its own server
+                # (Firefox sends that save after this route is set)
+                if inside(route.request.url, second.url) or inside(route.request.url, live.url)
                 else (live.outside.append(route.request.url), route.abort())
             ),
         )

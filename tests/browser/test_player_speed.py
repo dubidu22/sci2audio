@@ -27,7 +27,10 @@ def test_the_speed_select_sets_the_rate_and_keeps_the_pitch(signed_in: Page, liv
     make_audiobook(page, live)
     speed = page.get_by_label("Speed")
     expect(speed).to_have_value("1")
-    options = speed.locator("option").all_inner_texts()
+    # read in the page: a Playwright locator on the <option>s crashes Firefox's page
+    options = page.evaluate(
+        "() => [...document.querySelectorAll('#speed option')].map(o => o.text)"
+    )
     times = "\u00d7"  # the multiplication sign
     assert options == [f"{n}{times}" for n in ("0.75", "1", "1.25", "1.5", "1.75", "2")]
     speed.select_option("2")
