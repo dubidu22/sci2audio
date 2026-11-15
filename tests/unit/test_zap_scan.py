@@ -244,6 +244,7 @@ def test_every_route_of_the_app_is_listed(tmp_path: Path) -> None:
     assert routes[("GET", "/documents/{document_id}/listen")] is True
     assert routes[("GET", "/privacy")] is True
     assert routes[("GET", "/language")] is False  # a redirect, not a page
+    assert routes[("GET", "/appearance")] is False
     assert routes[("POST", "/api/v1/documents")] is False
     assert routes[("DELETE", "/api/v1/documents/{document_id}/chunks")] is False
     assert ("GET", "/static/…") in routes
@@ -256,6 +257,7 @@ def test_every_route_of_the_app_is_listed(tmp_path: Path) -> None:
         "/documents/{document_id}/listen",
         "/voice",
         "/privacy",
+        "/settings",
     }
     assert len(routes) >= 25  # every API route too (29 on 13 Nov 2026)
 

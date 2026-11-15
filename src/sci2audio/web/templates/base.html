@@ -1,8 +1,9 @@
-<!doctype html>
-<html lang="{{ t('common.language') }}">
+{% from "_icons.html" import icon, sprite %}<!doctype html>
+<html lang="{{ t('common.language') }}"{% if theme != 'system' %} data-theme="{{ theme }}"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="{{ 'light dark' if theme == 'system' else theme }}">
   <title>{% block title %}{{ t('common.app') }}{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css">
   <script id="strings" type="application/json">{{ script_strings() | safe }}</script>
@@ -10,23 +11,42 @@
   {% block scripts %}{% endblock %}
 </head>
 <body>
-  <a class="skip" href="#main">{{ t('common.skip') }}</a>
-  <header>
-    <a class="home" href="/">{{ t('common.app') }}</a>
-    <form class="languages" method="get" action="/language">
-      <input type="hidden" name="back" value="{{ here }}">
-      <fieldset>
-        <legend>{{ t('common.language_switch') }}</legend>
-        {% for code in languages %}<button type="submit" name="language" value="{{ code }}" lang="{{ code }}" aria-pressed="{{ 'true' if code == strings.language else 'false' }}">{{ t('common.language_' + code) }}</button>{% if not loop.last %} {% endif %}{% endfor %}
-      </fieldset>
-    </form>
+{{ sprite() }}
+<a class="skip" href="#main">{{ t('common.skip') }}</a>
+<div class="app">
+  {#- The rail (#387, DESIGN.md "Navigation"): the shell around every page. #}
+  <nav class="rail" aria-label="{{ t('nav.label') }}">
+    <a class="wordmark" href="/" aria-label="{{ t('nav.wordmark') }}">sci<span class="two">2</span>audio</a>
+    <ul class="nav">
+      <li><a href="/" aria-label="{{ t('nav.library') }}, {{ t('nav.documents', n=library_count) }}"{% if nav == 'library' %} aria-current="page"{% endif %}>{{ icon('library') }}<span>{{ t('nav.library') }}</span><span class="count" aria-hidden="true">{{ library_count }}</span></a></li>
+      <li><a href="/#open-file">{{ icon('open') }}<span>{{ t('nav.open') }}</span></a></li>
+      <li><a href="/voice"{% if nav == 'voices' %} aria-current="page"{% endif %}>{{ icon('voices') }}<span>{{ t('nav.voices') }}</span></a></li>
+    </ul>
+    {#- "Reading and recent" (#387 slot; papers and "Continue listening" follow in #389, D-664) #}
+    {% block shelf %}
     {% if running %}
-    <p class="running">{{ t('common.job_running', what=running.title) }} <a href="/jobs/{{ running.id }}">{{ t('common.job_running_link') }}</a></p>
+    <div class="rail-section">
+      <h2 class="shelf-head" id="shelf-head">{{ t('nav.reading') }}</h2>
+      <ul class="shelf">
+        <li><a href="/jobs/{{ running.id }}" id="shelf-job" data-events="/api/v1/jobs/{{ running.id }}/events"{% if nav == 'job' and current_job == running.id %} aria-current="page"{% endif %}>
+          <span class="t">{{ running.title }}</span>
+          <span class="m" id="shelf-job-state">{{ running.shelf_text }}</span>
+          <progress class="meter" id="shelf-job-bar" max="100"{% if running.percent is not none %} value="{{ running.percent }}"{% endif %} aria-hidden="true"></progress>
+        </a></li>
+      </ul>
+    </div>
     {% endif %}
-  </header>
-  <main id="main" tabindex="-1">
+    {% endblock %}
+    <ul class="rail-foot">
+      <li><a href="/settings"{% if nav == 'settings' %} aria-current="page"{% endif %}>{{ icon('settings') }}<span>{{ t('nav.settings') }}</span></a></li>
+      <li><a href="/privacy"{% if nav == 'privacy' %} aria-current="page"{% endif %}>{{ icon('privacy') }}<span>{{ t('nav.privacy') }}</span></a></li>
+    </ul>
+  </nav>
+  <main id="main" tabindex="-1" class="main">
+    <div class="view">
     {% block main %}{% endblock %}
+    </div>
   </main>
-  <footer><p>{{ t('common.footer') }} <a href="/privacy">{{ t('common.privacy_link') }}</a></p></footer>
+</div>
 </body>
 </html>

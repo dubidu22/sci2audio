@@ -34,3 +34,17 @@ def test_the_word_lists_are_in_the_wheel() -> None:
         "sci2audio/textprep/data/en/abbreviations.toml",
         "sci2audio/textprep/data/en/units.toml",
     } <= shipped()
+
+
+def test_the_fonts_and_their_licences_are_in_the_wheel() -> None:
+    # the interface's bundled fonts ship with their OFL texts (#385, D-670; OFL condition 2)
+    fonts = PACKAGE / "web" / "static" / "fonts"
+    wanted = {f"sci2audio/web/static/fonts/{path.name}" for path in fonts.iterdir()}
+    assert len([name for name in wanted if name.endswith(".woff2")]) == 12
+    assert {
+        "sci2audio/web/static/fonts/OFL-atkinson.txt",
+        "sci2audio/web/static/fonts/OFL-literata.txt",
+        "sci2audio/web/templates/_icons.html",
+        "sci2audio/web/templates/settings.html",
+    } <= wanted | shipped()
+    assert wanted <= shipped()

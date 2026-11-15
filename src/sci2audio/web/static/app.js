@@ -83,14 +83,16 @@ function reloadAt(hash) {
 // stream that breaks off is reopened by the browser on its own and stays CONNECTING while
 // the server is away, so a stream that hasn't reopened LOST_AFTER ms after an error counts
 // as lost: the page says so and stops trying.
-function follow(url, progress, end) {
+// `quiet` is for a stream the page only shows on the side (the rail's shelf): it stops
+// without a word, since the page's own stream says so when the server is gone.
+function follow(url, progress, end, quiet) {
   const events = new EventSource(url);
   let ended = false;
   let waiting = null;
   function lost() {
     clearTimeout(waiting);
     events.close();
-    say(tr("js.lost"), true);
+    if (!quiet) say(tr("js.lost"), true);
   }
   events.addEventListener("open", () => {
     clearTimeout(waiting);
@@ -574,6 +576,75 @@ function voicePage() {
   });
 }
 
+// ---- the rail: the running job on the shelf (#387) ---------------------------------------
+
+function shelf() {
+  const item = document.getElementById("shelf-job");
+  if (!item) return;
+  const state = document.getElementById("shelf-job-state");
+  const bar = document.getElementById("shelf-job-bar");
+  follow(item.dataset.events, (progress) => {
+    const words = STRINGS[`phase.${progress.phase}`] ?? state.textContent;
+    const part = fraction(progress);
+    if (part == null) {
+      bar.removeAttribute("value");
+      state.textContent = words;
+    } else {
+      const n = Math.floor(100 * Math.min(1, part));
+      bar.value = n;
+      state.textContent = tr("shelf.made", { phase: words, n });
+    }
+  }, (job) => {
+    state.textContent = tr(`job.state_${job.state}`);
+    if (job.state === "done") bar.value = 100;
+  }, true);
+}
+
+// ---- the Settings page (#388) -----------------------------------------------------------
+
+function settingsPage() {
+  // the announcement switch saves itself when the script runs; its button is for pages
+  // without the script
+  const announce = document.getElementById("settings-announce");
+  if (announce) {
+    announce.addEventListener("change", () => announce.form.requestSubmit());
+    document.getElementById("announce-save-line").hidden = true;
+  }
+  const form = document.getElementById("defaults");
+  if (!form) return;
+  const folder = document.getElementById("settings-folder");
+  const speed = document.getElementById("settings-speed");
+  const speedValue = document.getElementById("settings-speed-value");
+  const save = document.getElementById("settings-save");
+  function showSpeed() {
+    const text = tr("voice.speed_value", { value: decimal(speed.value) });
+    speedValue.textContent = text;
+    speed.setAttribute("aria-valuetext", text);
+  }
+  speed.addEventListener("input", showSpeed);
+  showSpeed();
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!folder.value.trim()) {
+      folder.focus();
+      return;
+    }
+    say(tr("settings.saving"));
+    try {
+      // the settings as saved now, with only these two changed: switches, voice and letter
+      // pace someone chose elsewhere are kept
+      const saved = (await send(form.dataset.api)).settings;
+      saved.output_folder = folder.value.trim();
+      saved.speed = Number(speed.value);
+      await send(form.dataset.api, json("PUT", saved));
+      say(tr("settings.saved"), true);
+    } catch (error) {
+      say(explain(error), true);
+    }
+  });
+  save.disabled = false;
+}
+
 function focusTarget() {
   if (!location.hash) return;
   const target = document.getElementById(location.hash.slice(1));
@@ -588,5 +659,7 @@ document.addEventListener("DOMContentLoaded", () => {
   documentPage();
   jobPage();
   voicePage();
+  settingsPage();
+  shelf();
   focusTarget();
 });

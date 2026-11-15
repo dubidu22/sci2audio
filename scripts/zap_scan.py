@@ -598,9 +598,9 @@ def walk(config: Any, proxy: str, chromium: str | None) -> None:
             page = context.new_page()
             page.set_default_timeout(60_000)
             ids = _walk_english(page, context, origin, config.start_url, paper, note)
-            # the language switch, a GET form in the header (D-321)
-            page.goto(f"{origin}/privacy")
-            page.locator("form.languages button[value=de]").click()
+            # the language switch, a GET form on the Settings page (D-321, D-673)
+            page.goto(f"{origin}/settings")
+            page.locator("#languages button[value=de]").click()
             expect(page.locator("html")).to_have_attribute("lang", "de")
             for path in _pages(ids):
                 answer = page.goto(origin + path)
@@ -668,6 +668,7 @@ def _pages(ids: Ids) -> list[str]:
         "/",
         "/privacy",
         "/voice",
+        "/settings",
         f"/documents/{ids.paper}",
         f"/documents/{NO_DOCUMENT}",
         f"/jobs/{ids.script_job}",
@@ -686,8 +687,14 @@ def _walk_english(
     page.goto(start_url)
     _check(page.url == origin + "/", page.url)
     expect(page.locator("html")).to_have_attribute("lang", "en")
-    for path in ("/privacy", "/voice", f"/documents/{NO_DOCUMENT}"):
+    for path in ("/privacy", "/voice", "/settings", f"/documents/{NO_DOCUMENT}"):
         page.goto(origin + path)
+    # the Settings page's own GET forms set their cookies and come back (D-671)
+    page.goto(origin + "/settings")
+    page.locator("#appearance button[value=dark]").click()
+    expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+    page.locator("#appearance button[value=system]").click()
+    expect(page.locator("html")).not_to_have_attribute("data-theme", re.compile(".*"))
 
     # open a file and read its analysis
     page.goto(origin + "/")
@@ -809,6 +816,9 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     back = call("GET", "/language?language=en&back=https://elsewhere.example/", 303,
                 max_redirects=0)  # fmt: skip
     _check(back.headers.get("location") == "/", "the language switch left the server")
+    back = call("GET", "/appearance?announce=on&back=//elsewhere.example/", 303,
+                max_redirects=0)  # fmt: skip
+    _check(back.headers.get("location") == "/", "the Settings forms left the server")
 
 
 def _names(record: dict[str, Any], key: str) -> list[str]:

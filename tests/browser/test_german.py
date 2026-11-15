@@ -157,7 +157,8 @@ def test_progress_and_cancel_in_german(signed_in: Page, live: Live) -> None:
     expect(progress).to_contain_text("es wird gesprochen")
     expect(progress).to_contain_text(re.compile(r"\d von \d Sätzen"))
     expect(progress).to_contain_text("das Tempo wird gemessen")
-    expect(page.locator(".running")).to_contain_text("Ein Auftrag läuft: Hörbuch von paper.pdf.")
+    expect(page.locator("#shelf-job")).to_contain_text("Hörbuch von paper.pdf")
+    expect(page.locator("#shelf-job-state")).to_contain_text("es wird gesprochen")
     check_axe(page, "de: audiobook running")
     page.get_by_role("button", name="Abbrechen").click()
     expect(page.locator("#result")).to_have_text("Der Auftrag wurde abgebrochen.")
@@ -200,7 +201,7 @@ def test_errors_in_german_with_the_apps_words(signed_in: Page, live: Live) -> No
     job, gate = gated(live.state, JobKind.VOICES, None)
     try:
         page.reload()
-        expect(page.locator(".running")).to_contain_text("Ein Auftrag läuft: Download der Stimme.")
+        expect(page.locator("#shelf-job")).to_contain_text("Download der Stimme")
         page.get_by_role("checkbox", name="Methods").uncheck()
         page.get_by_role("button", name="Analyse aktualisieren").click()
         expect(message).to_contain_text("Ein anderer Auftrag läuft.")
@@ -243,9 +244,9 @@ def test_pages_that_dont_exist_in_german(signed_in: Page, live: Live) -> None:
         check_axe(page, f"de: not found: {path}")
 
 
-def test_the_privacy_page_in_both_languages_from_the_footer(signed_in: Page, live: Live) -> None:
+def test_the_privacy_page_in_both_languages_from_the_rail(signed_in: Page, live: Live) -> None:
     page = signed_in
-    press_on(page, "Wie sci2audio mit Ihren Daten umgeht")
+    press_on(page, "Datenschutz")
     page.wait_for_url(live.url + "/privacy")
     expect(page.get_by_role("heading", level=1)).to_have_text(
         "Datenschutz: Was auf diesem Computer bleibt"
@@ -253,8 +254,11 @@ def test_the_privacy_page_in_both_languages_from_the_footer(signed_in: Page, liv
     expect(page.get_by_text(str(live.config.work_root), exact=True)).to_be_visible()
     expect(page.get_by_role("listitem").filter(has_text="example.test")).to_be_visible()
     check_axe(page, "de: privacy page")
+    # the switch lives on Settings (D-673); the choice holds on every page
+    page.get_by_role("link", name="Einstellungen").click()
     page.get_by_role("button", name="English").click()
-    page.wait_for_url(live.url + "/privacy")
+    page.wait_for_url(live.url + "/settings")
+    page.get_by_role("link", name="Privacy").click()
     expect(page.locator("html")).to_have_attribute("lang", "en")
     expect(page.get_by_role("heading", level=1)).to_have_text(
         "Privacy: what stays on this computer"
@@ -263,15 +267,20 @@ def test_the_privacy_page_in_both_languages_from_the_footer(signed_in: Page, liv
 
 
 def test_the_language_switch_by_keyboard(signed_in: Page, live: Live) -> None:
+    # the switch moved from every page's header to Settings (D-673, amends D-288)
     page = signed_in
     document = open_paper(page)
+    press_on(page, "Einstellungen")
+    page.wait_for_url(f"{live.url}/settings")
     expect(page.get_by_role("button", name="Deutsch")).to_have_attribute("aria-pressed", "true")
     press_on(page, "English")
-    page.wait_for_url(f"{live.url}/documents/{document}")
+    page.wait_for_url(f"{live.url}/settings")
     expect(page.locator("html")).to_have_attribute("lang", "en")
-    expect(page.get_by_role("heading", level=2, name="1. Check what will be read")).to_be_visible()
+    expect(page.get_by_role("heading", level=1, name="Settings")).to_be_visible()
     expect(page.get_by_role("button", name="English")).to_have_attribute("aria-pressed", "true")
-    check_axe(page, "en: document after the switch")
+    check_axe(page, "en: settings after the switch")
+    page.goto(f"{live.url}/documents/{document}")
+    expect(page.get_by_role("heading", level=2, name="1. Check what will be read")).to_be_visible()
 
     # the choice is the cookie's, so it holds in a new tab despite the German browser
     cookie = next(c for c in page.context.cookies() if c["name"] == COOKIE)
@@ -290,27 +299,34 @@ def test_the_language_switch_by_keyboard(signed_in: Page, live: Live) -> None:
     other.close()
 
     # and back to German, by keyboard again
-    page.goto(f"{live.url}/documents/{document}")
+    page.goto(f"{live.url}/settings")
     tab_to(page, "Deutsch")
     page.keyboard.press("Space")
-    page.wait_for_url(f"{live.url}/documents/{document}")
+    page.wait_for_url(f"{live.url}/settings")
+    expect(page.locator("html")).to_have_attribute("lang", "de")
+    page.goto(f"{live.url}/documents/{document}")
     expect_german(page)
     check_axe(page, "de: document after switching back")
 
 
-def test_the_switch_keeps_the_job_page_running(signed_in: Page, live: Live) -> None:
-    """Switching while a job runs comes back to the same job page, still following it."""
+def test_the_switch_keeps_the_job_running_on_the_shelf(signed_in: Page, live: Live) -> None:
+    """Switching on Settings while a job runs: the shelf still names it, now in English, and
+    its page still follows it."""
     page = signed_in
     gate = threading.Event()
     job = live.state.board.start(
         JobKind.VOICES, None, None, lambda job: gate.wait(30) and [], cancellable=False
     )
     try:
-        page.goto(f"{live.url}/jobs/{job.id}")
-        expect(page.locator("#job-state")).to_have_text("läuft")
+        page.goto(f"{live.url}/settings")
+        expect(page.locator("#shelf-job")).to_contain_text("Download der Stimme")
         page.get_by_role("button", name="English").click()
+        page.wait_for_url(f"{live.url}/settings")
+        expect(page.locator("#shelf-job")).to_contain_text("Voice download")
+        page.locator("#shelf-job").click()
         page.wait_for_url(f"{live.url}/jobs/{job.id}")
         expect(page.locator("#job-state")).to_have_text("running")
+        expect(page.locator("#shelf-job")).to_have_attribute("aria-current", "page")
     finally:
         gate.set()
         job.join(10)

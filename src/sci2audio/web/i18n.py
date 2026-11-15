@@ -28,6 +28,14 @@ DEFAULT_LANGUAGE = "en"
 COOKIE = "sci2audio-language"
 COOKIE_AGE = 365 * 24 * 60 * 60  # one year, in seconds
 
+# The appearance and the sentence announcements chosen on the Settings page (#388, D-671):
+# cookies like the language's, for an interface-only choice that grants nothing. Each holds
+# one of its own values and nothing else; anything else counts as the default.
+THEME_COOKIE = "sci2audio-theme"
+THEMES = ("system", "light", "dark")
+ANNOUNCE_COOKIE = "sci2audio-announce"
+ANNOUNCE = ("off", "on")
+
 PLURAL_FORMS = ("one", "other")  # the CLDR forms English and German share (D-290)
 
 # what the script reads from the page's data block
@@ -44,6 +52,9 @@ SCRIPT_KEYS = (
     "remove.removing",
     "remove.done",
     "remove.stays",  # and remove.stays_folder
+    "shelf.",
+    "settings.saved",
+    "settings.saving",
 )
 
 
@@ -128,6 +139,31 @@ def known_language(text: str | None) -> str | None:
     """The interface language `text` names, taken from `LANGUAGES` itself, or None: what
     goes into the cookie is never the request's own text."""
     return _KNOWN.get(text) if text else None
+
+
+_THEMES = {theme: theme for theme in THEMES}
+_ANNOUNCE = {value: value for value in ANNOUNCE}
+
+
+def known_theme(text: str | None) -> str | None:
+    """The appearance `text` names, taken from `THEMES` itself, or None."""
+    return _THEMES.get(text) if text else None
+
+
+def known_announce(text: str | None) -> str | None:
+    """`on` or `off` from `ANNOUNCE` itself, or None."""
+    return _ANNOUNCE.get(text) if text else None
+
+
+def theme_of(request: Request) -> str:
+    """The appearance of a request's page: the Settings cookie, else as the system."""
+    return known_theme(request.cookies.get(THEME_COOKIE)) or "system"
+
+
+def announce_of(request: Request) -> bool:
+    """Whether the Listen page announces each sentence (#388; read by #392). Off unless
+    the person switched it on."""
+    return known_announce(request.cookies.get(ANNOUNCE_COOKIE)) == "on"
 
 
 def strings(language: str) -> Strings:
