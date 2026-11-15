@@ -30,7 +30,16 @@ from sci2audio.voices import (
 from sci2audio.web import models
 from sci2audio.web.documents import DocumentBusyError, RemoveError, StoredDocument, StoreError
 from sci2audio.web.jobs import BoardBusyError, JobKind, JobRecord, JobState
-from sci2audio.web.player import audiobook_file, recorded_folder
+from sci2audio.web.player import (
+    PlayerError,
+    Position,
+    audiobook_file,
+    fits,
+    locate,
+    read_audio_record,
+    recorded_folder,
+    write_position,
+)
 from sci2audio.web.state import ApiError, ServerState, state_of
 from sci2audio.web.tasks import plan_digest, script_work, voices_work
 
@@ -278,6 +287,41 @@ def audiobook(
     if found is None:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook file {name!r}")
     return _file(found, download)
+
+
+@router.post(
+    "/documents/{document_id}/position",
+    status_code=204,
+    responses=_errors(404, 409, 503),
+    summary="Keep where the person stopped listening to the document's audiobook",
+)
+def save_position(state: State, document_id: str, given: models.PositionIn) -> None:
+    """The player saves the position while it plays, so the next server run can offer to
+    continue there (#153). It is kept in the working folder, stamped with the read-along
+    file it is a time in; a position the audiobook does not have is refused (422), and so
+    is one sent by a page drawn for another audiobook than the one there now (409: the
+    audio job ran again while the page stayed open). An audiobook `sci2audio listen` opened
+    keeps its position in its own working folder too (#154)."""
+    document = state.listening(document_id)
+    if document is None:
+        raise ApiError(404, "not-found", f"no document {document_id}")
+    try:
+        record = read_audio_record(document.work, document.id)
+        located = locate(record, document.folders)
+        stamp = located.stamp
+    except (PlayerError, OSError) as error:
+        raise ApiError(404, "not-found", f"{document.name} has no audiobook") from error
+    if given.audiobook != stamp:
+        raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")
+    position = Position(given.chapter, given.time)
+    if not fits(located.readalong, position):
+        raise ApiError(422, "no-such-time", "the audiobook has no such chapter and time")
+    try:
+        write_position(document.work, document.id, stamp, position)
+    except OSError as error:
+        raise ApiError(
+            503, "not-saved", f"the listening position could not be saved: {error.strerror}"
+        ) from error
 
 
 @router.delete(

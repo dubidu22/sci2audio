@@ -19,6 +19,7 @@ import sys
 import threading
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -110,20 +111,13 @@ class Live:
             target.write_bytes(SERVED[file.url])
 
 
-@pytest.fixture
-def live(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    offline: list[str],  # noqa: F811
-) -> Iterator[Live]:
-    plan = small_plan()
-    for module in (download_module, api, pages):
-        monkeypatch.setattr(module, "download_plan", lambda: plan)
+@contextmanager
+def serve(tmp_path: Path, voice: FakeVoice, fetch: SlowFetch) -> Iterator[Live]:
+    """A server run on a port of its own, on the folders under `tmp_path`: a second call
+    with the same `tmp_path` is the next run of sci2audio on the same computer (#153)."""
     sock = bind()
     port = sock.getsockname()[1]
     config = make_config(tmp_path, port=port)
-    voice = FakeVoice()
-    fetch = SlowFetch()
     app = create_app(config, fetch=fetch, voice=lambda models_dir: voice.source())
     server = uvicorn.Server(uvicorn_config(app))
     thread = threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True)
@@ -142,6 +136,19 @@ def live(
         server.should_exit = True
         thread.join(10)
         sock.close()
+
+
+@pytest.fixture
+def live(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    offline: list[str],  # noqa: F811
+) -> Iterator[Live]:
+    plan = small_plan()
+    for module in (download_module, api, pages):
+        monkeypatch.setattr(module, "download_plan", lambda: plan)
+    with serve(tmp_path, FakeVoice(), SlowFetch()) as running:
+        yield running
 
 
 def inside(url: str, origin: str) -> bool:

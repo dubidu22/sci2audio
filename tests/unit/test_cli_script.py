@@ -9,13 +9,15 @@ import shutil
 from pathlib import Path
 
 import pytest
-from cli_helpers import SEABORN, Cli, files_in, small_pdf
+from cli_helpers import CORPUS, SEABORN, Cli, files_in, small_pdf
 from syrupy.assertion import SnapshotAssertion
 from test_layout_language import ENGLISH, GERMAN
 
 from sci2audio.app import JobSettings, run_script_job
 from sci2audio.cli import chapter_numbers
 from sci2audio.textprep import Category
+
+TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
 
 SCRIPT_FILES = [
     "joss2021-waskom-seaborn.report.json",
@@ -314,3 +316,13 @@ def test_chapters_are_read_in_the_order_given(cli: Cli, tmp_path: Path) -> None:
     assert "Read in the chosen order, not as printed: 3. " in markdown
     script = (tmp_path / "joss2021-waskom-seaborn.script.txt").read_text(encoding="utf-8")
     assert script.index("# 3. ") < script.index("# 1. ")
+
+
+def test_a_publishers_page_is_listed_as_not_read(cli: Cli, tmp_path: Path) -> None:
+    result = cli("script", TIME_MACHINE, "-o", tmp_path, "-q")
+    assert result.code == 0
+    lines = result.out.split("Edits that change what is heard:")[0].splitlines()
+    colophon = next(line for line in lines if "Colophon" in line)
+    assert re.fullmatch(r"\s+17  \[ \]  Colophon  not read  \(publisher's page\)", colophon)
+    epilogue = next(line for line in lines if "Epilogue" in line)
+    assert "[x]" in epilogue

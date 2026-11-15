@@ -284,6 +284,8 @@ def report_markdown(report: Report) -> str:
         read = "yes" if entry.selected else "no"
         if entry.chapter.references:
             read += " (reference list)"
+        elif entry.chapter.publisher:
+            read += " (publisher's page)"  # #190
         page = "" if entry.first_page is None else str(entry.first_page)
         out.append(
             f"| {entry.chapter.index + 1} | {_md(entry.chapter.title)} | {page} | {read} "

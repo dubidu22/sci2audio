@@ -116,3 +116,22 @@ def test_an_outside_job_cannot_be_changed(tmp_path: Path) -> None:
     assert client.post("/api/v1/jobs", json=body).status_code == 404
     assert job.work.is_dir()
     assert any(p.suffix == ".mp3" for p in job.folder.iterdir())
+
+
+def test_an_outside_job_keeps_its_position_in_its_own_working_folder(tmp_path: Path) -> None:
+    """#153 for a `listen` job: the position goes to the job's working folder, and the
+    next run of `listen` offers to continue there."""
+    job, client, config = outside_job(tmp_path)
+    data = player_data(client.get(f"/documents/{job.document}/listen").text)
+    start, _end, chapter, _element = data["chunks"][-1]  # past the first sentence
+    body = {"chapter": chapter, "time": start + 0.01, "audiobook": data["audiobook"]}
+    answer = client.post(f"/api/v1/documents/{job.document}/position", json=body)
+    assert answer.status_code == 204, answer.text
+    assert (job.work / "position.json").is_file()
+    assert not (config.work_root / job.document).exists()
+    again = program(create_app(config), config)
+    assert 'id="resume-continue"' in again.get(f"/documents/{job.document}/listen").text
+    other = {**body, "audiobook": "0" * 16}
+    assert client.post(f"/api/v1/documents/{job.document}/position", json=other).status_code == 409
+    unknown = "/api/v1/documents/0123456789abcdef/position"
+    assert client.post(unknown, json=body).status_code == 404
