@@ -1,0 +1,31 @@
+name: CI on all three systems
+
+# The label "ci:full" asks for the fast tests on macOS and Windows too (D-580). CI itself
+# does not run on labels, so that a label never cancels the run of the same commit (#360):
+# this workflow starts a run of CI by hand on the PR's branch instead (D-620). A run by
+# hand tests Linux, macOS and Windows, is never cancelled by a later one, and reports its
+# checks ("CI passed", "tests (macos-latest)", ...) on the PR's head commit.
+# Any other label, and a PR from a fork (whose token can't start runs), starts nothing.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions: {}
+
+jobs:
+  dispatch:
+    name: start CI on all three systems
+    if: github.event.label.name == 'ci:full' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write  # to start ci.yml by hand; nothing else
+    steps:
+      - name: Start CI by hand on the PR's branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          gh workflow run ci.yml --repo "$REPO" --ref "$BRANCH"
+          echo "Started CI on Linux, macOS and Windows for $BRANCH." >> "$GITHUB_STEP_SUMMARY"
