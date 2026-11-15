@@ -106,7 +106,8 @@ def test_the_bundled_fonts_load(signed_in: Page, live: Live) -> None:
     assert page.evaluate("() => document.fonts.check('700 15px \"Atkinson Hyperlegible\"')")
     assert page.evaluate("() => document.fonts.check('20px Literata')")
     family = page.evaluate("() => getComputedStyle(document.body).fontFamily")
-    assert family.startswith('"Atkinson Hyperlegible"')
+    # Chromium and Firefox write the name in quotes, WebKit without them
+    assert family.split(",")[0].strip().strip("\"'") == "Atkinson Hyperlegible", family
     # every request stayed on this server: the fence in conftest fails the test otherwise
 
 
