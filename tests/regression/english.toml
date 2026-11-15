@@ -1715,18 +1715,26 @@ expected = [
 id = "links-a-link-bracket-glued-to-the-next-bracket"
 audit = 0
 issue = 326
-goal = "A link ends at the bracket it closes when another bracket is glued right after it, so the next bracket is judged on its own, as with a space between them, on both runs (D-605)."
+goal = "A link ends at the bracket it closes when another bracket is glued right after it, so the next bracket is judged on its own, as with a space between them, on both runs; a glued bracket that stays keeps the space before the link (D-605, #371 review round 1 S1)."
 blocks = [
     { kind = "paragraph", text = "(Smith, 2019, https://example.org)(Smith, 2019) it holds." },
     { kind = "paragraph", text = "(see https://example.org)(Smith, 2019) it holds." },
     { kind = "paragraph", text = "Text (see https://example.org)(Smith, 2019) more." },
     { kind = "paragraph", text = "Text (see https://en.wikipedia.org/wiki/Foo_(bar))(Smith, 2019) more." },
+    { kind = "paragraph", text = "Text (see https://example.org)(more) here." },
+    { kind = "paragraph", text = "Text (see https://example.org)(Fig. 3) here." },
+    { kind = "paragraph", text = "Text [see https://example.org][Fig. 3] here." },
+    { kind = "paragraph", text = "Text, (see https://example.org)(more) here." },
 ]
 expected = [
     "Smith it holds.",
     "it holds.",
     "Text more.",
     "Text more.",
+    "Text (more) here.",
+    "Text (Figure 3) here.",
+    "Text [Figure 3] here.",
+    "Text, (more) here.",
 ]
 
 [[case]]

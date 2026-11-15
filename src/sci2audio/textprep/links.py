@@ -463,6 +463,10 @@ class LinkStep(TextStep):
                 repair += join
                 end, join = _leading_join(text, start, end, words)
                 repair += join
+                if text[start].isspace() and text[end - 1] in ")]" and text[end : end + 1] in "([":
+                    # "Text (see https://x.org)(more)" reads "Text (more)": the bracket glued
+                    # after the link's keeps the space before (#371 review round 1, S1)
+                    start += 1
             noted = any(link.printed_end >= 0 for link in run)
             access = "; the access note after it goes too" if noted else ""
             edits.append(
