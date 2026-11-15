@@ -1622,3 +1622,41 @@ issue = 304
 goal = "'~' before a sign and a number reads 'about' when a line break follows the hyphen too: the hyphen before a digit stays when the line is joined, so a second run reads it so (D-577)."
 blocks = [{ kind = "paragraph", text = "0:~-\n0" }]
 expected = ["0: about -0"]
+
+# ---- v1.2 follow-ups: numbers (D-605) -------------------------------------------------------
+
+[[case]]
+id = "numbers-a-minus-sign-at-a-line-end"
+audit = 0
+issue = 336
+goal = "A minus sign at a line end, its number on the next line, reads 'minus' on the first run, as a second run reads the joined line (D-605); '~' before it reads 'about', as #304 does for '~-'."
+blocks = [
+    { kind = "paragraph", text = "It is −\n5 here." },
+    { kind = "paragraph", text = "It is −\n1/2 here." },
+    { kind = "paragraph", text = "It is ~−\n5 here." },
+    { kind = "paragraph", text = "It is −5 here and x −\ny there." },
+]
+expected = [
+    "It is minus 5 here.",
+    "It is minus 1 half here.",
+    "It is about minus 5 here.",
+    "It is minus 5 here and x − y there.",
+]
+
+[[case]]
+id = "numbers-powers-with-grouped-or-glued-exponents"
+audit = 0
+issue = 340
+goal = "A caret power whose exponent groups its thousands with spaces reads the whole exponent (#210); one plain-space group is no grouped number and stays as printed, as before; a power of ten whose minus exponent runs into a caret power ('10−410^2') is left as printed, as a second run would read it differently; a plain '× 10−4' reads as before (D-605)."
+blocks = [
+    { kind = "paragraph", text = "It is 10^250 000 000 here." },
+    { kind = "paragraph", text = "It is 3 × 10−410^2 here." },
+    { kind = "paragraph", text = "It is 3 × 10−4 here." },
+    { kind = "paragraph", text = "It is 10^2 000 here." },
+]
+expected = [
+    "It is 10 to the power of 250,000,000 here.",
+    "It is 3 times 10−410^2 here.",
+    "It is 3 times 10 to the power of minus 4 here.",
+    "It is 10^2 000 here.",
+]

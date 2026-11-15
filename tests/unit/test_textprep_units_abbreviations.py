@@ -987,3 +987,16 @@ def _both_runs_de(text: str) -> tuple[str, str]:
 def test_german_units_and_abbreviations_read_the_same_on_a_second_run(printed: str) -> None:
     first, again = _both_runs_de(printed)
     assert first == again
+
+
+@pytest.mark.parametrize(
+    ("printed", "read"),
+    [
+        # #336 (D-605): "~" before a minus sign at a line end reads "about", as before "-\n"
+        ("It is ~\u2212\n5 here.", "It is about \u2212 5 here."),
+        ("It is \u223c\u2212\n5 here.", "It is about \u2212 5 here."),
+        ("It is ~\u2212\nx here.", "It is ~\u2212 x here."),
+    ],
+)
+def test_a_tilde_before_a_minus_sign_at_a_line_end(printed: str, read: str) -> None:
+    assert said(UNITS, printed) == read

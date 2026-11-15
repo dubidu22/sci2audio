@@ -339,3 +339,47 @@ def test_a_second_run_reads_the_same_after_a_sign(printed: str, said: str) -> No
     once = _read_all(printed)
     assert once == said
     assert _read_all(once) == once
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # #336 (D-605): a minus sign at a line end, its number on the next line
+        ("It is −\n5 here.", "It is minus 5 here."),
+        ("It is (−\n0.5, 1) here.", "It is (minus 0.5, 1) here."),
+        ("It is x −\nb here.", "It is x − b here."),  # no number after it
+        ("It is −\n\n5 here.", "It is − 5 here."),  # two line breaks: left as printed
+        # #210: a caret power whose exponent groups its thousands reads it whole
+        ("It is 10^250 000 000 here.", "It is 10 to the power of 250,000,000 here."),
+        ("It is 10^250 000 here.", "It is 10 to the power of 250,000 here."),
+        ("It is x^250 000 000 here.", "It is x to the power of 250,000,000 here."),
+        ("It is 10^250 000 here.", "It is 10^250 000 here."),  # one plain-space group
+        # #340: a power of ten whose minus exponent runs into a caret power stays as printed
+        ("It is 3 × 10−410^2 here.", "It is 3 × 10−410^2 here."),
+        ("It is 3 × 10−4^2 here.", "It is 3 × 10−4^2 here."),
+        ("It is 3 × 10−4 here.", "It is 3 × 10 to the power of minus 4 here."),
+    ],
+)
+def test_minus_signs_and_powers_that_read_the_same_on_a_second_run(printed: str, said: str) -> None:
+    assert read(printed) == said
+
+
+@pytest.mark.parametrize(
+    "printed",
+    [
+        "It is −\n5 here.",
+        "It is ~−\n5 here.",
+        "It is 10^250 000 000 here.",
+        "It is 3 × 10−410^2 here.",
+        "It is 2^10 000 000 and 2^20.",
+    ],
+)
+def test_the_whole_chain_reads_these_the_same_on_a_second_run(printed: str) -> None:
+    first = _read_all(printed)
+    assert _read_all(first) == first
+
+
+def test_the_numbers_step_keeps_its_contract_on_the_issue_shapes() -> None:
+    """#210, #340: the conformance check the nightly property runs, on the shapes it found."""
+    for text in ("10^250 000 000", "3 × 10−410^2"):
+        check_text_step(STEP, [make_document([(BlockKind.PARAGRAPH, text)])], allow_ask=False)
