@@ -241,9 +241,6 @@ def test_a_busy_server_says_so(signed_in: Page, live: Live) -> None:
     assert document
 
 
-@pytest.mark.quarantined(
-    issue=365, reason="axe can run while the document page reloads after its analysis"
-)
 def test_pasted_text_opens_and_is_analysed(signed_in: Page, live: Live) -> None:
     """Pasted text is kept as `<name>.txt` and read as a plain-text file (#74, D-350)."""
     page = signed_in
@@ -255,6 +252,7 @@ def test_pasted_text_opens_and_is_analysed(signed_in: Page, live: Live) -> None:
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
     expect(page.get_by_role("heading", level=1)).to_contain_text("My notes.txt")
+    settled(page)  # axe must not run while the page reloads after its analysis (#365)
     check_axe(page, "document from pasted text")
 
 
@@ -266,6 +264,7 @@ def test_a_damaged_file_shows_the_apps_message(signed_in: Page, live: Live) -> N
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#analysis-error")).to_contain_text("The analysis failed:")
     expect(page.get_by_role("button", name="Analyse the document")).to_be_visible()
+    settled(page)  # #365
     check_axe(page, "document whose analysis failed")
 
 
