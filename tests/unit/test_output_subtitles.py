@@ -7,6 +7,7 @@ from __future__ import annotations
 import errno
 import itertools
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -88,6 +89,17 @@ def test_two_lines_are_as_even_as_they_can_be() -> None:
     assert all(len(line) <= LINE for line in lines)
 
 
+def test_a_line_holds_42_characters() -> None:
+    assert LINE == 42
+    assert LINES == 2
+    assert wrap(["x" * 42]) == ("x" * 42,)
+    assert wrap(["a" * 20, "b" * 21]) == ("a" * 20 + " " + "b" * 21,)  # 42 with the space
+    assert wrap(["a" * 21, "b" * 21]) == ("a" * 21, "b" * 21)  # 43: two lines
+    eight = " ".join(["abcd"] * 8)  # 39 characters; nine would be 44
+    assert split(" ".join(["abcd"] * 16)) == [(eight, eight)]
+    assert split(" ".join(["abcd"] * 17)) == [(eight, eight), ("abcd",)]  # no third line
+
+
 def test_a_word_longer_than_a_line_has_a_line_of_its_own() -> None:
     url = "https://example.org/" + "x" * 60
     assert split(f"See {url} now.") == [("See", url), ("now.",)]
@@ -100,6 +112,32 @@ def test_a_long_chunk_is_cut_after_a_clause_mark() -> None:
     assert all(len(lines) <= LINES and all(len(x) <= LINE for x in lines) for lines in pieces)
     assert " ".join(pieces[0]).endswith(";"), pieces  # ";" before "," (D-606)
     assert " ".join(" ".join(p) for p in pieces) == TEXTS[3]
+
+
+def test_a_semicolon_wins_over_a_later_comma_in_the_same_cue() -> None:
+    text = (
+        "Alpha beta gamma delta epsilon zeta eta theta; iota kappa lambda, mu nu xi omicron pi "
+        "rho sigma tau upsilon phi chi psi omega"
+    )
+    assert split(text) == [
+        ("Alpha beta gamma delta", "epsilon zeta eta theta;"),
+        ("iota kappa lambda, mu nu xi omicron pi", "rho sigma tau upsilon phi chi psi omega"),
+    ]
+
+
+def test_a_clause_mark_counts_from_a_half_full_cue() -> None:
+    tail = (
+        " iota kappa lambda, mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega "
+        "and more words"
+    )
+    at_42 = "Alpha beta gamma delta epsilon zeta theta;"
+    at_41 = "Alpha beta gamma delta epsilon zeta thet;"
+    assert (len(at_42), len(at_41)) == (42, 41)
+    assert split(at_42 + tail)[0] == (at_42,)  # used: the cue before it is half full
+    assert split(at_41 + tail)[0] == (  # not used: the later comma is
+        "Alpha beta gamma delta epsilon",
+        "zeta thet; iota kappa lambda,",
+    )
 
 
 def test_a_comma_is_used_when_there_is_no_semicolon() -> None:
@@ -138,6 +176,29 @@ def test_each_chunk_has_its_own_cues_on_the_read_along_times() -> None:
     origin = round(data.chapters[1].start * 1000)
     assert [(c.start, c.end) for c in second] == [
         (c.start - origin, c.end - origin) for c in book if c.chunk == 2
+    ]
+
+
+def test_a_chunks_time_is_shared_out_by_characters() -> None:
+    text = (
+        "Alpha beta gamma delta epsilon zeta eta theta; iota kappa lambda, mu nu xi omicron pi "
+        "rho sigma tau upsilon phi chi psi omega"
+    )
+    spoken = spoken_texts(text)
+    timeline = timeline_of([Chapter("A", 0)], spoken, [48_000])  # 2 s after the 2 s pause
+    # the cues hold 46 and 78 characters: 2000 + 2000 * 46 // 124 = 2741
+    assert [(c.start, c.end) for c in cues(timeline, spoken)] == [(2000, 2741), (2741, 4000)]
+    long = " ".join(["word"] * 60)  # 299 characters: 3 cues of 16 words and one of 12
+    spoken = spoken_texts(long)
+    timeline = timeline_of([Chapter("A", 0)], spoken, [72_000])  # 3 s
+    found = cues(timeline, spoken)
+    assert [len(" ".join(c.lines)) for c in found] == [79, 79, 79, 59]  # 296 in all
+    # 2000 + 3000 * 79 // 296, 2000 + 3000 * 158 // 296, 2000 + 3000 * 237 // 296
+    assert [(c.start, c.end) for c in found] == [
+        (2000, 2800),
+        (2800, 3601),
+        (3601, 4402),
+        (4402, 5000),
     ]
 
 
@@ -340,6 +401,8 @@ def test_subtitle_files_match_the_read_along_and_ffmpeg_reads_them(
     times = read_readalong(written.readalong)
     for number, chapter in enumerate([*times.chapters, None]):
         srt, vtt = written.subtitles[2 * number : 2 * number + 2]
+        assert b"\r" not in srt.read_bytes()  # "\n" line ends on every system
+        assert b"\r" not in vtt.read_bytes()
         ours = parse_srt(srt.read_text(encoding="utf-8"))
         assert [(a, b) for a, b, _ in parse_vtt(vtt.read_text(encoding="utf-8"))] == [
             (a, b) for a, b, _ in ours
@@ -419,6 +482,30 @@ def test_disk_full_after_some_subtitles_takes_the_new_ones_back(
     assert [n for n in left if n.endswith((".srt", ".vtt"))] == [SUBS[0]]
     assert (out / SUBS[0]).read_text(encoding="utf-8").startswith("1\n00:00:")  # replaced
     assert "A Study of Tones.m4b" in left  # the app removes new audio files (it knows them)
+
+
+def test_a_subtitle_file_replaced_by_someone_else_during_the_run_is_left_alone(
+    job: Job, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A file this run committed and someone then replaced (another file under the same
+    name, so another inode) is not this run's to take back when the run fails."""
+    out = tmp_path / "out"
+    original = Path.write_text
+
+    def replace_then_full(self: Path, text: str, *args, **kwargs) -> int:  # type: ignore[no-untyped-def]
+        if self.name.endswith(".readalong.json.partial"):
+            theirs = out / "theirs.tmp"
+            original(theirs, "theirs", encoding="utf-8")
+            os.replace(theirs, out / SUBS[-1])  # a new inode under the committed name
+            raise OSError(errno.ENOSPC, "No space left on device")
+        return original(self, text, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", replace_then_full)
+    with pytest.raises(OSError, match="No space left"):
+        write(job, out)
+    left = sorted(p.name for p in out.iterdir() if p.suffix in (".srt", ".vtt"))
+    assert left == [SUBS[-1]]  # the run's own subtitle files are gone, theirs stays
+    assert (out / SUBS[-1]).read_text(encoding="utf-8") == "theirs"
 
 
 def test_the_readalong_file_is_unchanged_by_subtitles(job: Job, tmp_path: Path) -> None:

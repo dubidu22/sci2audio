@@ -74,7 +74,9 @@ def split(text: str) -> list[tuple[str, ...]]:
             break
         count = _longest_fit(words)
         cut = _clause_cut(words, count) or count
-        pieces.append(wrap(words[:cut]) or (" ".join(words[:cut]),))
+        lines = wrap(words[:cut])
+        assert lines is not None  # the first `count` words fit, so every shorter start does
+        pieces.append(lines)
         words = words[cut:]
     return pieces
 
