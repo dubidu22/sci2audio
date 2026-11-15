@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from sci2audio.core import BlockKind
 
 _GLUED = re.compile(r"([^\W\d_]+\.)(\S+)")  # "Fig.3": a short word, then its number
+_LABEL_POINT = re.compile(r"(?<=\d)\.(?=\d)")  # "2.1": the point between a number's parts
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,9 @@ class Wording:
     range_to: str  # "references 2 to 6"
     # label words printed in short, read in full: "Fig. 3" is read "Figure 3"
     label_words: Mapping[str, str] = field(default_factory=dict)
+    # the word a point between a label's digits is read with ("Tabelle 2.1" is read "Tabelle 2
+    # Punkt 1", as the German numbers step reads the caption, #249); "" leaves it as printed
+    label_point: str = ""
 
     def skipped(self, names: Sequence[str], kind: BlockKind) -> str:
         """The notice for a placeholder with these names, or the unnamed one."""
@@ -49,12 +53,16 @@ class Wording:
         """A caption label as it is read: its first word in full if it is printed short.
 
         The word is looked up in any case ("FIG. 3" is read "Figure 3"), and a short word
-        printed against its number is split from it ("Fig.3" is read "Figure 3").
+        printed against its number is split from it ("Fig.3" is read "Figure 3"). In German
+        a point between the number's digits is read "Punkt" ("Abb. 3.1" is read "Abbildung 3
+        Punkt 1", #249).
         """
         words = {short.casefold(): full for short, full in self.label_words.items()}
         word, space, rest = printed.partition(" ")
         if not space and (glued := _GLUED.match(word)) and glued[1].casefold() in words:
             word, space, rest = glued[1], " ", glued[2]
+        if self.label_point:
+            rest = _LABEL_POINT.sub(f" {self.label_point} ", rest)
         return words.get(word.casefold(), word) + space + rest
 
 
@@ -112,6 +120,7 @@ GERMAN = Wording(
         "Gl.": "Gleichung",
         "Alg.": "Algorithmus",
     },
+    label_point="Punkt",
 )
 
 WORDING: Mapping[str, Wording] = {"en": ENGLISH, "de": GERMAN}  # by primary language tag
