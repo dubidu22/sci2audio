@@ -2048,3 +2048,18 @@ blocks = [
 expected = [
     "Nach BGS. 1 Hs. 2 gilt das.",
 ]
+
+[[case]]
+id = "de-abbreviations-s-reads-satz-only-after-the-word-abs"
+audit = 0
+issue = 384
+goal = "'S.' liest 'Satz' nur nach dem Wort 'Abs.' oder 'Absatz' und seiner Nummer, nicht nach einem Wort, das auf 'Abs.' endet ('GAbs. 1 S. 2'); ein Mutant ohne diese Prüfung überlebte die Tests von PR #382."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Nach GAbs. 1 S. 2 gilt das." },
+    { kind = "paragraph", text = "Nach Abs. 1 S. 2 gilt das." },
+]
+expected = [
+    "Nach GAbs. 1 Seite 2 gilt das.",
+    "Nach Absatz 1 Satz 2 gilt das.",
+]
