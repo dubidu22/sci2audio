@@ -90,6 +90,18 @@ class Report:
     # where the language came from and what the text said (D-494); None: not recorded
     language_source: LanguageSource | None = None
     language_guess: LanguageGuess | None = None
+    # the chosen chapters' order when it is not printed order (#119), else ""
+    order_line: str = ""
+
+
+def order_line(result: ScriptResult) -> str:
+    """One line naming the chapters in the order they are read, when the person chose
+    another order than printed (#119); "" otherwise. Numbers count from 1, as printed."""
+    if not result.reordered:
+        return ""
+    chosen = [c.chapter for c in result.chapters if c.selected]
+    names = ", ".join(f"{c.index + 1}. {_one_line(c.title)}" for c in chosen)
+    return f"Read in the chosen order, not as printed: {names}."
 
 
 def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
@@ -136,6 +148,7 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         language=document.language,
         settings=settings,
         chapters=chapters,
+        order_line=order_line(result),
         counts=tuple(counts),
         edits=edits,
         problems=tuple((p.step, p.message) for p in result.run.problems),
@@ -231,6 +244,7 @@ def report_data(report: Report) -> dict[str, Any]:
                 "blocks": [entry.chapter.start, entry.chapter.end],
                 "first_page": entry.first_page,
                 "references": entry.chapter.references,
+                "publisher": entry.chapter.publisher,  # #190, #376
                 "selected": entry.selected,
                 "utterances": entry.utterances,
             }
@@ -261,6 +275,7 @@ def report_markdown(report: Report) -> str:
         f"{language_line(report)} The text steps looked at the whole document; edits "
         "in chapters that are not chosen are listed but not spoken.",
         "",
+        *([_md(report.order_line), ""] if report.order_line else []),
         "## Chapters",
         "",
         "| No. | Chapter | Page | Read | Utterances |",
@@ -313,6 +328,8 @@ def script_text(result: ScriptResult) -> str:
     """
     source = result.document.content.source
     out = [SCRIPT_TITLE, f"Source: {source.name}", f"Language: {result.document.language}"]
+    if line := order_line(result):
+        out.append(line)
     for script in result.chapters:
         number = script.chapter.index + 1
         title = _one_line(script.chapter.title)

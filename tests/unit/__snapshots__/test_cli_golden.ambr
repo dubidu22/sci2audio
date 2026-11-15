@@ -18,8 +18,8 @@
     -o FOLDER, --output FOLDER
                           where the files go (default: next to FILE)
     --chapters LIST       chapters to read, counted from 1 as `script` lists
-                          them: 1,3-5 or all (default: every chapter but the
-                          reference list)
+                          them, in the order given: 1,3-5 or 3,1 or all
+                          (default: every chapter but the reference list)
     --on CATEGORY         switch a text-step category on (repeat, or separate
                           with commas)
     --off CATEGORY        switch a text-step category off: its text is read as
@@ -75,8 +75,8 @@
     -o FOLDER, --output FOLDER
                           where the files go (default: next to FILE)
     --chapters LIST       chapters to read, counted from 1 as `script` lists
-                          them: 1,3-5 or all (default: every chapter but the
-                          reference list)
+                          them, in the order given: 1,3-5 or 3,1 or all
+                          (default: every chapter but the reference list)
     --on CATEGORY         switch a text-step category on (repeat, or separate
                           with commas)
     --off CATEGORY        switch a text-step category off: its text is read as
@@ -196,6 +196,31 @@
   
   '''
 # ---
+# name: test_command_help_text[command6]
+  '''
+  usage: sci2audio listen [-h] [-o FOLDER] [--work-folder FOLDER]
+                          [--ignore-settings] [--no-browser]
+                          FILE
+  
+  Open the audiobook `convert` made of FILE in the sci2audio interface
+  (127.0.0.1 only): the player shows the text and follows the reading. Name the
+  folders as for convert. The interface only plays it; press Ctrl-C to stop it.
+  
+  positional arguments:
+    FILE                  the file `convert` read
+  
+  options:
+    -h, --help            show this help message and exit
+    -o FOLDER, --output FOLDER
+                          the folder `convert` wrote the audiobook into
+                          (default: as for convert)
+    --work-folder FOLDER  the job's working folder (default: in the cache
+                          folder)
+    --ignore-settings     do not take the output folder from the settings file
+    --no-browser          only print the link; do not open a browser
+  
+  '''
+# ---
 # name: test_help_text
   '''
   usage: sci2audio [-h] [--version] COMMAND ...
@@ -209,6 +234,7 @@
                 a read-along file
       voices    list the voices; `voices download` installs their files
       clean     remove the speech cache of FILE
+      listen    open the audiobook `convert` made in the player, with the text
       ui        open the sci2audio interface in your browser (it stays on this
                 computer)
   

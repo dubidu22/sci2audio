@@ -18,7 +18,7 @@ EPUB's top-level navigation entries become level-1 sections in layout (#73, #75)
 from __future__ import annotations
 
 import re
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from pathlib import PurePath
 
@@ -146,14 +146,16 @@ def default_selection(chapters: Collection[Chapter]) -> frozenset[int]:
 
 
 def selected(
-    chapters: Collection[Chapter], chosen: Collection[int] | None
-) -> tuple[frozenset[int], tuple[int, ...]]:
-    """The chosen chapters (the default when `chosen` is None), and the chosen indices the
-    document doesn't have, which are ignored."""
+    chapters: Collection[Chapter], chosen: Sequence[int] | None
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """The chosen chapters in the order they are read (the default, in printed order, when
+    `chosen` is None; #119), and the chosen indices the document doesn't have, which are
+    ignored."""
     if chosen is None:
-        return default_selection(chapters), ()
+        return tuple(sorted(default_selection(chapters))), ()
     known = {chapter.index for chapter in chapters}
-    return frozenset(chosen) & known, tuple(sorted(set(chosen) - known))
+    order = tuple(dict.fromkeys(n for n in chosen if n in known))
+    return order, tuple(sorted(set(chosen) - known))
 
 
 def _clean(text: str) -> str:

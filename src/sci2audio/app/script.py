@@ -46,8 +46,16 @@ class ScriptResult:
     """Everything the script job worked out for one document, before anything is written."""
 
     run: StepRun  # every proposed edit and what became of it; `run.document` is the document
+    # every chapter: in printed order, or, when the person chose another order (#119), the
+    # chosen ones in that order and then the others in printed order
     chapters: tuple[ChapterScript, ...]
     ignored_chapters: tuple[int, ...] = ()  # chosen indices the document doesn't have
+
+    @property
+    def reordered(self) -> bool:
+        """True if the chapters are read in another order than printed (#119)."""
+        indices = [c.chapter.index for c in self.chapters]
+        return indices != sorted(indices)
 
     @property
     def document(self) -> Document:
@@ -82,15 +90,18 @@ def prepare_script(
     chapters = find_chapters(document)
     chosen, ignored = selected(chapters, settings.chapters)
     pieces = run.script()
-    scripts = []
+    scripts = {}
     for chapter in chapters:
         if chapter.index in chosen:
             mine = _pieces_in(chapter, pieces, run)
             utterances = cut_utterances(document, mine, max_chars=max_chars)
-            scripts.append(ChapterScript(chapter, True, utterances))
+            scripts[chapter.index] = ChapterScript(chapter, True, utterances)
         else:
-            scripts.append(ChapterScript(chapter, False))
-    return ScriptResult(run, tuple(scripts), ignored)
+            scripts[chapter.index] = ChapterScript(chapter, False)
+    order = [c.index for c in chapters]
+    if list(chosen) != sorted(chosen):  # another order than printed (#119)
+        order = [*chosen, *(n for n in order if n not in set(chosen))]
+    return ScriptResult(run, tuple(scripts[n] for n in order), ignored)
 
 
 def _pieces_in(chapter: Chapter, pieces: Sequence[ScriptPiece], run: StepRun) -> list[ScriptPiece]:

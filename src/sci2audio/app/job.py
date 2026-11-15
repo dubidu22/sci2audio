@@ -151,7 +151,7 @@ def settings_data(settings: JobSettings) -> dict[str, Any]:
     return {
         "language": settings.language,
         "switched_off": sorted(str(category) for category in settings.switched_off),
-        "chapters": None if settings.chapters is None else sorted(settings.chapters),
+        "chapters": None if settings.chapters is None else list(settings.chapters),
         "voice": settings.voice,
         "speed": settings.speed,
         "letter_pace": settings.letter_pace,

@@ -1,10 +1,11 @@
-"""The command line (#72, WI-03): `script`, `convert`, `voices` and `clean`.
+"""The command line (#72, WI-03): `script`, `convert`, `voices`, `clean`, `listen` and `ui`.
 
     sci2audio script FILE           the listening script and the report; no voice needed
     sci2audio convert FILE          the audiobook; running it again continues (WI-02)
     sci2audio voices                the voices, and whether their files are installed
     sci2audio voices download       shows what it fetches, then asks first (VA-03)
     sci2audio clean FILE            removes FILE's speech cache
+    sci2audio listen FILE           opens FILE's audiobook in the player (#154)
 
 Every command is one row of `COMMANDS`: a function that adds its arguments and a function
 that runs it (D-211). `main` builds the real `CliEnv`; tests call `run` with their own. The
@@ -52,6 +53,7 @@ from sci2audio.app import (
     default_models_folder,
     default_work_folder,
     encoding_warning,
+    file_id,
     find_chapters,
     kokoro_voice,
     language_warning,
@@ -224,12 +226,13 @@ def _parser_class(env: CliEnv) -> Callable[..., _Parser]:
     return make
 
 
-def chapter_numbers(text: str) -> frozenset[int] | None:
+def chapter_numbers(text: str) -> tuple[int, ...] | None:
     """`--chapters`: "all" (None here, resolved once the chapters are known) or numbers
-    and ranges counted from 1 ("1,3-5"), as `JobSettings.chapters` indices from 0."""
+    and ranges counted from 1 ("1,3-5"), as `JobSettings.chapters` indices from 0, in the
+    order given (#119; a chapter named twice is read where it is first named)."""
     if text.strip().lower() == "all":
         return None
-    numbers: set[int] = set()
+    numbers: dict[int, None] = {}
     for part in text.split(","):
         part = part.strip()
         first, dash, last = part.partition("-")
@@ -246,8 +249,8 @@ def chapter_numbers(text: str) -> frozenset[int] | None:
             )
         if high - low > 10_000:
             raise argparse.ArgumentTypeError(f"{part!r}: that range is too long")
-        numbers.update(range(low - 1, high))
-    return frozenset(numbers)
+        numbers.update(dict.fromkeys(range(low - 1, high)))
+    return tuple(numbers)
 
 
 def categories(text: str) -> frozenset[Category]:
@@ -304,8 +307,8 @@ def _add_job_options(parser: _Parser) -> None:
         type=chapter_numbers,
         metavar="LIST",
         default=argparse.SUPPRESS,
-        help="chapters to read, counted from 1 as `script` lists them: 1,3-5 or all "
-        "(default: every chapter but the reference list)",
+        help="chapters to read, counted from 1 as `script` lists them, in the order "
+        "given: 1,3-5 or 3,1 or all (default: every chapter but the reference list)",
     )
     parser.add_argument(
         "--on",
@@ -423,6 +426,31 @@ def add_clean(parser: _Parser) -> None:
     )
 
 
+def add_listen(parser: _Parser) -> None:
+    parser.add_argument("file", type=Path, metavar="FILE", help="the file `convert` read")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        metavar="FOLDER",
+        help="the folder `convert` wrote the audiobook into (default: as for convert)",
+    )
+    parser.add_argument(
+        "--work-folder",
+        type=Path,
+        metavar="FOLDER",
+        help="the job's working folder (default: in the cache folder)",
+    )
+    parser.add_argument(
+        "--ignore-settings",
+        action="store_true",
+        help="do not take the output folder from the settings file",
+    )
+    parser.add_argument(
+        "--no-browser", action="store_true", help="only print the link; do not open a browser"
+    )
+
+
 def add_ui(parser: _Parser) -> None:
     parser.add_argument(
         "--no-browser", action="store_true", help="only print the link; do not open a browser"
@@ -502,7 +530,7 @@ def _settings(args: argparse.Namespace, env: CliEnv) -> JobSettings:
     if args.language is not None:
         changes["language"] = args.language
     if hasattr(args, "chapters"):
-        changes["chapters"] = args.chapters if args.chapters is not None else frozenset()
+        changes["chapters"] = args.chapters if args.chapters is not None else ()
     for name in ("voice", "speed", "letter_pace", "subtitles"):
         if getattr(args, name, None) is not None:
             changes[name] = getattr(args, name)
@@ -521,7 +549,7 @@ def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
     """`--chapters all`: the chapter count is only known once the file is read. (The job
     reads it again; Issue #112 lets `JobSettings` say "every chapter" instead.)"""
     document = read_document(source, settings, lambda phase: None)
-    chapters = frozenset(chapter.index for chapter in find_chapters(document))
+    chapters = tuple(chapter.index for chapter in find_chapters(document))
     return replace(settings, chapters=chapters)
 
 
@@ -968,6 +996,59 @@ def run_clean_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     return Exit.OK
 
 
+# ---- listen -----------------------------------------------------------------------------
+
+_LISTEN_ERRORS: dict[str, tuple[str, Exit]] = {
+    "listen.no_audiobook": (
+        "no audiobook of {name} in {work}; run `" + PROG + " convert` first",
+        Exit.NOT_FOUND,
+    ),
+    "listen.other_version": (
+        "the audiobook in {work} was made from another version of {name}; run `"
+        + PROG
+        + " convert` again",
+        Exit.FAILED,
+    ),
+    "listen.broken": ("the record of the audiobook in {work} can't be read", Exit.FAILED),
+    "listen.missing": ("the audiobook files are not in {folder}", Exit.NOT_FOUND),
+    "listen.changed": (
+        "the files in {folder} now belong to another audiobook; run `" + PROG + " convert` again",
+        Exit.FAILED,
+    ),
+}
+
+
+def run_listen_command(args: argparse.Namespace, env: CliEnv) -> Exit:
+    """Open the audiobook `convert` made of FILE in the player (#154). The folders are
+    named as for `convert`: `--work-folder` or the cache folder, `-o` or the settings
+    file's output folder or the file's own folder. Nothing is taken from a path written in
+    a file, and the server serves these two folders read-only (D-295)."""
+    from sci2audio.web.player import PlayerError, check_outside
+
+    source = _source(args.file)
+    work = _work_folder(args, env, source).absolute()
+    folder = args.output
+    if folder is None and not args.ignore_settings:
+        folder = load_settings(env.config_file())[0].output_folder
+    folder = (folder or source.absolute().parent).absolute()
+    try:
+        document = file_id(source)  # streamed, and read once with the default work folder
+    except OSError as error:
+        raise CliError(
+            f"{source}: cannot be read ({error.strerror or error})", Exit.UNREADABLE
+        ) from error
+    try:
+        check_outside(work, document, folder)
+    except PlayerError as error:
+        message, code = _LISTEN_ERRORS.get(error.key, _LISTEN_ERRORS["listen.broken"])
+        raise CliError(message.format(name=source.name, work=work, folder=folder), code) from None
+    import sci2audio.web  # the web framework only for this command; `run` looked up late
+
+    job = sci2audio.web.OutsideJob(document, source.name, work, folder)
+    env.out.write(f"{source.name}: its audiobook is on the start page of the interface.\n")
+    return Exit(sci2audio.web.run(open_browser=not args.no_browser, outside=(job,)))
+
+
 # ---- ui ---------------------------------------------------------------------------------
 
 
@@ -1011,6 +1092,15 @@ COMMANDS: tuple[Command, ...] = (
         "audiobook and the records stay.",
         add_clean,
         run_clean_command,
+    ),
+    Command(
+        "listen",
+        "open the audiobook `convert` made in the player, with the text",
+        "Open the audiobook `convert` made of FILE in the sci2audio interface (127.0.0.1 "
+        "only): the player shows the text and follows the reading. Name the folders as for "
+        "convert. The interface only plays it; press Ctrl-C to stop it.",
+        add_listen,
+        run_listen_command,
     ),
     Command(
         "ui",

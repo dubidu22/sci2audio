@@ -31,6 +31,16 @@
 </ul>
 {% endif %}
 <p id="no-documents"{% if documents %} hidden{% endif %}>{{ t('home.no_documents') }}</p>
+{% if outside %}
+
+<h2>{{ t('home.outside') }}</h2>
+<ul class="documents" id="outside">
+  {% for job in outside %}
+  <li><a href="/documents/{{ job.id }}/listen">{{ t('home.listen', name=job.name) }}</a>
+    <span class="hint">({{ t('home.outside_hint', folder=job.folder) }})</span></li>
+  {% endfor %}
+</ul>
+{% endif %}
 
 <h2>{{ t('home.voice') }}</h2>
 {% if voice_installed %}

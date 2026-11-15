@@ -15,7 +15,7 @@ from collections.abc import Callable
 import uvicorn
 from starlette.types import ASGIApp
 
-from sci2audio.web.config import HOST, ServerConfig, server_config
+from sci2audio.web.config import HOST, OutsideJob, ServerConfig, server_config
 from sci2audio.web.server import create_app
 
 SHUTDOWN_WAIT = 5  # seconds for a running job and open event streams to end
@@ -113,9 +113,15 @@ def serve(
     say("sci2audio has stopped.")
 
 
-def run(*, open_browser: bool = True, say: Callable[[str], None] = print) -> int:
-    """`sci2audio ui`: bind, configure with the default folders, serve."""
+def run(
+    *,
+    open_browser: bool = True,
+    say: Callable[[str], None] = print,
+    outside: tuple[OutsideJob, ...] = (),
+) -> int:
+    """`sci2audio ui`: bind, configure with the default folders, serve. `sci2audio listen`
+    passes the command-line job it opens in the player (#154)."""
     sock = bind()
     port = sock.getsockname()[1]
-    serve(sock, server_config(port), open_browser=open_browser, say=say)
+    serve(sock, server_config(port, outside=outside), open_browser=open_browser, say=say)
     return 0

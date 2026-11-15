@@ -34,7 +34,6 @@ from sci2audio.web.player import (
     PlayerError,
     Position,
     audiobook_file,
-    candidate_folders,
     fits,
     locate,
     read_audio_record,
@@ -281,11 +280,10 @@ def audiobook(
     (#78, D-295): only names its record lists, only from the recorded, the saved or the
     default output folder, and only once the read-along file there agrees with the
     record. Range requests answer 206, so the player can seek."""
-    document = _document(state, document_id)
-    saved, _ = load_settings(state.config.config_file)
-    found = audiobook_file(
-        document.folder, document.id, name, saved.output_folder, state.config.output_folder
-    )
+    document = state.listening(document_id)
+    if document is None:
+        raise ApiError(404, "not-found", f"no document {document_id}")
+    found = audiobook_file(document.work, document.document, name, document.folders)
     if found is None:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook file {name!r}")
     return _file(found, download)
@@ -302,17 +300,14 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
     continue there (#153). It is kept in the working folder, stamped with the read-along
     file it is a time in; a position the audiobook does not have is refused (422), and so
     is one sent by a page drawn for another audiobook than the one there now (409: the
-    audio job ran again while the page stayed open)."""
-    document = _document(state, document_id)
-    saved, _ = load_settings(state.config.config_file)
+    audio job ran again while the page stayed open). An audiobook `sci2audio listen` opened
+    keeps its position in its own working folder too (#154)."""
+    document = state.listening(document_id)
+    if document is None:
+        raise ApiError(404, "not-found", f"no document {document_id}")
     try:
-        record = read_audio_record(document.folder, document.id)
-        located = locate(
-            record,
-            candidate_folders(
-                document.folder, document.id, saved.output_folder, state.config.output_folder
-            ),
-        )
+        record = read_audio_record(document.work, document.document)
+        located = locate(record, document.folders)
         stamp = located.stamp
     except (PlayerError, OSError) as error:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook") from error
@@ -322,7 +317,7 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
     if not fits(located.readalong, position):
         raise ApiError(422, "no-such-time", "the audiobook has no such chapter and time")
     try:
-        write_position(document.folder, document.id, stamp, position)
+        write_position(document.work, document.document, stamp, position)
     except OSError as error:
         raise ApiError(
             503, "not-saved", f"the listening position could not be saved: {error.strerror}"
@@ -449,7 +444,7 @@ def _merged(saved: JobSettings, given: models.JobSettingsIn) -> JobSettings:
         switched_off=saved.switched_off
         if given.switched_off is None
         else frozenset(given.switched_off),
-        chapters=None if given.chapters is None else frozenset(given.chapters),
+        chapters=None if given.chapters is None else tuple(given.chapters),
         voice=saved.voice if given.voice is None else _voice(given.voice),
         speed=saved.speed if given.speed is None else given.speed,
         letter_pace=saved.letter_pace if given.letter_pace is None else given.letter_pace,
@@ -464,7 +459,7 @@ def _settings_data(settings: JobSettings) -> dict[str, Any]:
     return {
         "language": settings.language,
         "switched_off": sorted(str(c) for c in settings.switched_off),
-        "chapters": None if settings.chapters is None else sorted(settings.chapters),
+        "chapters": None if settings.chapters is None else list(settings.chapters),
         "voice": settings.voice,
         "speed": settings.speed,
         "letter_pace": settings.letter_pace,
