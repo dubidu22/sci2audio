@@ -522,6 +522,7 @@ class _Rules:
     def _once(self, text: str, links: list[tuple[int, int]], cuts: Sequence[int]) -> list[_Found]:
         found: list[_Found] = []
         self._runs: dict[int, int] = {}  # for `_before_removals`, this look only
+        self._link_starts = {end: start for start, end in links}  # for `_numeric`
         roots = brackets(text)
         for node in roots:
             self._visit(text, node, found, cuts)
@@ -865,10 +866,45 @@ class _Rules:
         if subject or self._previous_word(text, node.open) in self.words.nouns:
             if names is None:
                 return None  # "((Smith, 2019)) is cited": nothing left to name, as before
-            # "((Smith, 2019) Jones, 2020) is cited" reads "Jones is cited" on both runs
+            # "((Smith, 2019) Jones, 2020) is cited" reads "Jones is cited" on both runs; an
+            # inner citation listed with the others keeps its names, as in the flat form:
+            # "((Smith, 2019); Jones, 2020) is cited" reads "Smith and Jones" (#278, D-605)
+            listed = self._listed_inner_names(text, node, decided)
+            if listed:
+                names = sorted([name for _, child_names in listed for name in child_names] + names)
+                taken = [child for child, _ in listed]
+                edits = [
+                    edit
+                    for edit in edits
+                    if not any(
+                        child.open <= edit[0] and edit[1] <= child.close + 1 for child in taken
+                    )
+                ]
             role = "is the subject of the sentence" if subject else "is part of the sentence"
             return self._with_inner(self._subject(text, node, names, end, role), edits)
         return [self._removed(text, node.open, end, "citation")]
+
+    def _listed_inner_names(
+        self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
+    ) -> list[tuple[_Bracket, list[tuple[int, int]]]]:
+        """The inner bracket that opens the bracket, goes whole as a citation and is the
+        first item of its list ("((Smith, 2019); Jones, 2020)"), with its names' spans; none
+        for any other shape, which reads as before."""
+        if not node.children:
+            return []
+        child = node.children[0]
+        handled = decided.get(child.open) or []
+        if len(handled) != 1 or handled[0][2] is not EditKind.REMOVE:
+            return []
+        if text[node.open + 1 : child.open].strip():
+            return []
+        if not re.match(r"\s*[;,]\s*\S", text[child.close + 1 : node.close]):
+            return []
+        parts = self._parts(text, child)
+        named = [part for part in parts or () if self._is_citation(text, part)]
+        if not parts or len(named) != len(parts):
+            return []
+        return [(child, [self._part_authors(text, part) for part in named])]
 
     def _years_after_inner_names(
         self,
@@ -962,7 +998,16 @@ class _Rules:
             ):
                 return [self._removed(text, node.open, node.close + 1, "page reference")]
             return None
-        glued = text[at - 1 : at]
+        # after removals that start with a space it stands where they stood, after that
+        # space: "Lee (Smith, 2019)[12]" judges "[12]" as "Lee [12]" (#338, D-605)
+        # ... and so it does after a removed link's bracket: "Text (see https://x.org)[12]"
+        edge = at
+        if at == node.open:
+            kept = len(text[:at].rstrip())
+            edge = self._link_starts.get(kept, self._link_starts.get(at, at))
+        glued = (
+            "" if edge < node.open and text[edge : edge + 1].isspace() else text[edge - 1 : edge]
+        )
         if glued and (glued.isalnum() or glued in ")]"):
             return None
         if _NUMBER_GLUED_AFTER.match(text, node.close + 1):
@@ -972,13 +1017,18 @@ class _Rules:
         if self._not_citations(text, node.open):
             return None
         window = max(0, node.open - _LOOK_BACK)
-        before = text[window : node.open].rstrip()
+        # judged on the words before it as a second run sees them, past the removals
+        before = text[window : min(edge, node.open)].rstrip()
         previous = before.split()[-1] if before.split() else ""
         printed = _printed(text[node.open : node.close + 1])
         word = re.sub(r"\A\W*\d*", "", previous).lower()  # "8See" -> "see", "(see" -> "see"
         start = node.open
         if previous.lower() in self.words.refs or previous in self.words.ref_words:
             start = window + len(before) - len(previous)
+            if edge < node.open:
+                # "Ref. (see https://x.org) [3, 4]": the reading takes the place of "Ref." and
+                # the bracket goes, so neither edit crosses the removal between them
+                return self._read_at_ref_word(text, node, inside, start, start + len(previous))
             printed = _printed(text[start : node.close + 1])
         elif (
             word not in self.words.before
@@ -991,7 +1041,24 @@ class _Rules:
         if self._starts_sentence(text, at if start == node.open else start):
             spoken = spoken[0].upper() + spoken[1:]
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
+        if edge < node.open and not text[start - 1 : start].isspace():
+            spoken = " " + spoken  # the removal before took the space: "and (Smith, 2019)[12]"
         return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
+
+    def _read_at_ref_word(
+        self, text: str, node: _Bracket, inside: str, start: int, end: int
+    ) -> list[_Found]:
+        """A numeric citation after its reference word with a removal between them: the
+        reading in place of the word, the bracket removed."""
+        spoken = self._spoken(inside)
+        if self._starts_sentence(text, start):
+            spoken = spoken[0].upper() + spoken[1:]
+        printed = _printed(text[start:end] + " " + text[node.open : node.close + 1])
+        reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
+        return [
+            (start, end, EditKind.REPLACE, spoken, reason),
+            (node.open, node.close + 1, EditKind.REMOVE, "", reason),
+        ]
 
     def _decimal_interval(self, inside: str) -> bool:
         """True if a square bracket holding `inside` is a German interval of decimals
@@ -1448,6 +1515,7 @@ class _Rewrite:
 
 
 _OPENS = {"(": ")", "[": "]"}
+_SHELL_YEAR = re.compile(rf"\s+{_YEAR}\s*[)\]]")
 
 
 def _shells(text: str, found: list[_Found]) -> list[_Found]:
@@ -1455,7 +1523,8 @@ def _shells(text: str, found: list[_Found]) -> list[_Found]:
     however many: "((((Müller 2019))))" goes whole in one look, as a second run would remove
     the empty brackets, and a nest deeper than the bracket cap costs no look per cap's depth
     (D-588). Only brackets and white space: a removal that keeps names ("(" of "(Smith,
-    2019)" read "Smith") stands next to them, so it never meets an empty bracket."""
+    2019)" read "Smith") stands next to them, so it never meets an empty bracket. A bracket
+    that holds the removal and a year after it is a year shell and goes too (#339)."""
     result: list[_Found] = []
     for number, (start, end, kind, replacement, reason) in enumerate(found):
         if kind is EditKind.REMOVE:
@@ -1470,6 +1539,12 @@ def _shells(text: str, found: list[_Found]) -> list[_Found]:
                     right += 1
                 if left > low and right < high and _OPENS.get(text[left - 1]) == text[right]:
                     first, last = left - 1, right + 1
+                    continue
+                # a year shell: "((Smith, 2019) 2020)" is "( 2020)" once the citation goes,
+                # a bare year in brackets, so it goes with it, however deep (#339, D-605)
+                shell = _SHELL_YEAR.match(text, last, high) if left > low else None
+                if shell and _OPENS.get(text[left - 1]) == text[shell.end() - 1 : shell.end()]:
+                    first, last = left - 1, shell.end()
                 else:
                     break
             start, end = first, last
@@ -1576,7 +1651,12 @@ def _covered(edits: list[_Found] | None, handled: list[_Found]) -> bool:
 def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]) -> list[_Found]:
     """Removals that leave to the links step the white space and punctuation its removals
     take: "https://x.org, (Smith, 2020)." or "(Smith, 2020), https://x.org." would otherwise
-    have the citation's removal set aside, and a second run remove it (#101)."""
+    have the citation's removal set aside, and a second run remove it (#101).
+
+    An edit that still overlaps a link's span is left out: the links step runs first, so
+    its edit would be set aside anyway, and the next look must see the text as a second run
+    does, with the link gone and the citation still there. "Lee (see https://x.org/a(b)(Smith,
+    2019)": the link takes "(Smith," and the next look reads "Lee (2019)" (D-630)."""
     if not links:
         return found
     starts = [start for start, _ in links]
@@ -1593,7 +1673,8 @@ def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]
                 and _UNREAD.fullmatch(text, links[at][0], end)
             ):
                 end = links[at][0]
-        if start < end:
+        at = bisect.bisect_left(starts, end) - 1
+        if start < end and (at < 0 or links[at][1] <= start):
             result.append((start, end, kind, replacement, reason))
     return result
 

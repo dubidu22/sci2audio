@@ -471,8 +471,6 @@ def test_sibling_brackets_read_the_same_on_a_second_run(
 ) -> None:
     """#308 (D-577): a bracket next to one that goes is judged as a second run sees it, with
     or without a name before them and with or without a space between them."""
-    # a URL glued to the next bracket runs on into it: #326, the links step's
-    assume(bool(gap) or all("https" not in sibling for sibling in siblings[:-1]))
     text = before + gap.join(siblings) + after
     once = read_all(text, language)
     assert read_all(once, language) == once, (text, once)

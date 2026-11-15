@@ -1708,3 +1708,113 @@ expected = [
     "The term x squared is small.",
     "Out of 20 kilograms, 5 went.",
 ]
+
+# ---- v1.2 follow-ups: links in brackets (D-605, D-630) -------------------------------------
+
+[[case]]
+id = "links-a-link-bracket-glued-to-the-next-bracket"
+audit = 0
+issue = 326
+goal = "A link ends at the bracket it closes when another bracket is glued right after it, so the next bracket is judged on its own, as with a space between them, on both runs; a glued bracket that stays keeps the space before the link (D-605, #371 review round 1 S1)."
+blocks = [
+    { kind = "paragraph", text = "(Smith, 2019, https://example.org)(Smith, 2019) it holds." },
+    { kind = "paragraph", text = "(see https://example.org)(Smith, 2019) it holds." },
+    { kind = "paragraph", text = "Text (see https://example.org)(Smith, 2019) more." },
+    { kind = "paragraph", text = "Text (see https://en.wikipedia.org/wiki/Foo_(bar))(Smith, 2019) more." },
+    { kind = "paragraph", text = "Text (see https://example.org)(more) here." },
+    { kind = "paragraph", text = "Text (see https://example.org)(Fig. 3) here." },
+    { kind = "paragraph", text = "Text [see https://example.org][Fig. 3] here." },
+    { kind = "paragraph", text = "Text, (see https://example.org)(more) here." },
+]
+expected = [
+    "Smith it holds.",
+    "it holds.",
+    "Text more.",
+    "Text more.",
+    "Text (more) here.",
+    "Text (Figure 3) here.",
+    "Text [Figure 3] here.",
+    "Text, (more) here.",
+]
+
+[[case]]
+id = "links-a-join-word-after-a-link-at-a-bracket-start"
+audit = 0
+issue = 337
+goal = "A join word or separator that a removed link leaves at a bracket's start goes with the link, as after a removed citation (#305); the rest is judged as a second run judges it (D-605)."
+blocks = [
+    { kind = "paragraph", text = "It holds (see https://example.org and Lee, 2019) here." },
+    { kind = "paragraph", text = "It holds (https://example.org, Lee, 2019) here." },
+    { kind = "paragraph", text = "It holds (see https://example.org; Lee, 2019) here." },
+    { kind = "paragraph", text = "It holds (https://example.org or the code) here." },
+    { kind = "paragraph", text = "It holds (see https://example.org / Lee, 2019) here." },
+]
+expected = [
+    "It holds here.",
+    "It holds here.",
+    "It holds here.",
+    "It holds (the code) here.",
+    "It holds here.",
+]
+
+[[case]]
+id = "links-a-link-that-takes-a-citation-s-opening-bracket"
+audit = 0
+issue = 326
+goal = "A link printed without a space before a citation takes the citation's opening bracket and first name; the citation is then judged on what the link leaves, as a second run judges it, never removed across the link (D-630)."
+blocks = [
+    { kind = "paragraph", text = "Lee (see https://x.org/a(b)(Smith, 2019) it holds." },
+    { kind = "paragraph", text = "Lee (see https://x.org/a(b)(Smith 2019) it holds." },
+    { kind = "paragraph", text = "Lee (see https://x.org/a(Smith, 2019), it holds." },
+]
+expected = [
+    "Lee it holds.",
+    "Lee it holds.",
+    "Lee, it holds.",
+]
+
+# ---- v1.2 follow-ups: citation nests (D-605, D-630) ----------------------------------------
+
+[[case]]
+id = "citations-a-numeric-bracket-glued-after-a-removed-citation"
+audit = 0
+issue = 338
+goal = "A numeric citation glued after a removed citation or link bracket is judged where the removal stood, after its space, as the spaced form is, on both runs (D-605)."
+blocks = [
+    { kind = "paragraph", text = "As said by Lee (Smith, 2019)[12] it holds." },
+    { kind = "paragraph", text = "It holds and (Smith, 2019)[12] more." },
+    { kind = "paragraph", text = "Text (see https://example.org)[12] more." },
+]
+expected = [
+    "As said by Lee it holds.",
+    "It holds and reference 12 more.",
+    "Text more.",
+]
+
+[[case]]
+id = "citations-year-shells-go-with-their-citation"
+audit = 0
+issue = 339
+goal = "Year brackets around a citation that goes go with it, however deep, as a nest 2 deep already did (D-605)."
+blocks = [
+    { kind = "paragraph", text = "Text ((Smith, 2019) 2020) more." },
+    { kind = "paragraph", text = "Text ((((Smith, 2019) 2020) 2021) 2022) more." },
+]
+expected = [
+    "Text more.",
+    "Text more.",
+]
+
+[[case]]
+id = "citations-a-nest-as-the-subject-keeps-its-first-names"
+audit = 0
+issue = 278
+goal = "A bracket that opens with a citation in its own brackets and lists another after ';' keeps both names as the subject, as the flat form does: 'Smith and Jones is cited' (D-605)."
+blocks = [
+    { kind = "paragraph", text = "((Smith, 2019); Jones, 2020) is cited." },
+    { kind = "paragraph", text = "(Smith, 2019; Jones, 2020) is cited." },
+]
+expected = [
+    "Smith and Jones is cited.",
+    "Smith and Jones is cited.",
+]

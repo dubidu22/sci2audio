@@ -58,7 +58,12 @@ _FOLLOWS_ANY_CAPITAL = {
     "number": re.compile(_SPACE + r"\.?\d"),
     "word": re.compile(rf"[^\S\r]{{1,2}}(?:[{_UPPER}]|\.?\d)"),
 }
-_NEXT_SENTENCE_ANY_CAPITAL = re.compile(rf"\s+[\"'(\[\u201c\u2018\u201e]?[{_UPPER}]")
+# ... maybe after a closing quote: "Er schrieb „usw.“ Dann" ends a sentence at the quote, as
+# the cutter ends it there (#315), so the full stop stays (#342); double and single quotes
+_CLOSING_QUOTES = ("\u201c", "\u00bb", "\u00ab", "\u203a", "\u2039", "\u2018")
+_NEXT_SENTENCE_ANY_CAPITAL = re.compile(
+    rf"[\u201c\u00bb\u00ab\u203a\u2039\u2018]?\s+[\"'(\[\u201c\u2018\u201e\u00bb\u203a]?[{_UPPER}]"
+)
 # the word right before an abbreviation: "before_year" is read only after a name
 _NAME_BEFORE = re.compile(r"([^\W\d_])[^\W\d_]*[.,]?\s+\Z")
 # a year after an abbreviation, maybe in brackets or after a comma: "u. a. (2019)", "u. a., 2019"
@@ -266,7 +271,10 @@ def _place_fits(text: str, end: int, entry: Abbreviation, any_capital: bool = Fa
 
 def _ends_sentence(text: str, end: int, any_capital: bool = False) -> bool:
     following = _NEXT_SENTENCE_ANY_CAPITAL if any_capital else _NEXT_SENTENCE
-    return not text[end:].strip() or following.match(text, end) is not None
+    rest = text[end:].strip()
+    if any_capital and rest in _CLOSING_QUOTES:
+        return bool(rest)  # "Er schrieb „usw.“" at the block's end (#342)
+    return not rest or following.match(text, end) is not None
 
 
 def _after_name(text: str, start: int) -> bool:

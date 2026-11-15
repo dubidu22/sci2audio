@@ -1583,3 +1583,70 @@ expected = [
     "Es ist ein Fünftel m R Quadrat hier.",
     "Es ist 2 Drittel s t Quadrat hier.",
 ]
+
+# ---- v1.2 follow-ups: links in brackets (D-605, D-630) -------------------------------------
+
+[[case]]
+id = "de-links-in-brackets-read-the-same-on-a-second-run"
+audit = 0
+issue = 337
+goal = "A link ends at the bracket it closes when another bracket is glued after it, and a glued bracket that stays keeps the space before the link (#326, #371 review round 1 S1), and a join word or separator a removed link leaves at a bracket's start goes with it (#337), on both runs (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "(siehe https://example.org)(Müller, 2019) es gilt." },
+    { kind = "paragraph", text = "Es gilt (siehe https://example.org und Lee, 2019) hier." },
+    { kind = "paragraph", text = "Es gilt (https://example.org, Müller, 2019) hier." },
+    { kind = "paragraph", text = "Es gilt (siehe https://example.org; Lee, 2019) hier." },
+    { kind = "paragraph", text = "Text (siehe https://example.org)(mehr) hier." },
+    { kind = "paragraph", text = "Text (siehe https://example.org)(Abb. 3) hier." },
+    { kind = "paragraph", text = "Es gilt (siehe https://example.org / Müller, 2019) hier." },
+]
+expected = [
+    "es gilt.",
+    "Es gilt hier.",
+    "Es gilt hier.",
+    "Es gilt hier.",
+    "Text (mehr) hier.",
+    "Text (Abbildung 3) hier.",
+    "Es gilt hier.",
+]
+
+# ---- v1.2 follow-ups: citation nests (D-605, D-630) ----------------------------------------
+
+[[case]]
+id = "de-citations-nests-read-the-same-on-a-second-run"
+audit = 0
+issue = 339
+goal = "A numeric citation glued after a removed citation goes with it (#338), year shells around a citation that goes go with it however deep (#339), and a nest as the subject keeps its first names (#278), on both runs (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wie Weber (Müller, 2019)[12] zeigt." },
+    { kind = "paragraph", text = "Text ((Müller, 2019) 2020) mehr." },
+    { kind = "paragraph", text = "Text ((((Müller, 2019) 2020) 2021) 2022) mehr." },
+    { kind = "paragraph", text = "((Müller, 2019); Weber, 2020) wird zitiert." },
+]
+expected = [
+    "Wie Weber zeigt.",
+    "Text mehr.",
+    "Text mehr.",
+    "Müller und Weber wird zitiert.",
+]
+
+# ---- v1.2 follow-ups: an abbreviation before a closing quote (D-605, D-630) ----------------
+
+[[case]]
+id = "de-abbreviations-before-a-closing-quote"
+audit = 0
+issue = 342
+goal = "A German abbreviation that ends a sentence inside a closing quote keeps its full stop, as without the quote, so the sentence ends at the quote; before a lower-case word it reads as before (D-605)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Er schrieb „usw.“ Dann ging er." },
+    { kind = "paragraph", text = "Er schrieb »etc.« Dann ging er." },
+    { kind = "paragraph", text = "Er schrieb „usw.“ und ging." },
+]
+expected = [
+    "Er schrieb „und so weiter.“ Dann ging er.",
+    "Er schrieb »et zetera.« Dann ging er.",
+    "Er schrieb „und so weiter“ und ging.",
+]
