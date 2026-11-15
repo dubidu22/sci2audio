@@ -1,4 +1,5 @@
-"""Writing the audiobook: one MP3 per chapter, one M4B with chapter marks, the read-along file.
+"""Writing the audiobook: one MP3 per chapter, one M4B with chapter marks, the read-along file,
+and on request subtitles (#214).
 
 The chunks' samples are streamed into ffmpeg (no temporary WAV), once per chapter for the
 MP3s and once for the whole book for the M4B, with silence for the pauses; the timeline says
@@ -6,8 +7,8 @@ where everything lies, so chapter marks and read-along times are exact to the sa
 
 Every file is written under a temporary name (`.<name>.partial`) in the output folder and
 renamed when complete; on any error the partial file is removed, so no half-written file is
-left (#10). Existing files are only replaced with `overwrite=True`. The read-along file is
-written last: when it exists, every audio file it names is complete.
+left (#10). Existing files are only replaced with `overwrite=True`. The subtitles follow the
+audio; the read-along file is written last: when it exists, every file of the run is complete.
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 
 from sci2audio import __version__
-from sci2audio.output import names, readalong
+from sci2audio.output import names, readalong, subtitles
 from sci2audio.output.ffmpeg import LOCAL_ONLY, Ffmpeg, find_ffmpeg
 from sci2audio.output.model import BookInfo, Chapter, OutputSettings, Spoken, Written
 from sci2audio.output.timeline import ChapterRange, Timeline, check_chapters, plan_timeline
@@ -80,8 +81,16 @@ def write_audiobook(
         if settings.mp3
         else []
     )
+    subtitle_files = (
+        [
+            out_folder / name
+            for name in names.subtitle_files(base, [p.name for p in mp3s], m4b is not None)
+        ]
+        if settings.subtitles
+        else []
+    )
     json_file = out_folder / f"{base}.readalong.json"
-    targets = [*mp3s, *([m4b] if m4b else []), json_file]
+    targets = [*mp3s, *([m4b] if m4b else []), *subtitle_files, json_file]
     if not overwrite and (existing := [t.name for t in targets if t.exists()]):
         raise FileExistsError(f"output files exist already, not replacing them: {existing}")
     for target in targets:  # left behind by a run that was killed outright
@@ -103,12 +112,45 @@ def write_audiobook(
                 _m4b_args(timeline, book, settings, cover, meta, partial),
                 _feed(timeline, audio, 0, len(spoken)),
             )
-    data = readalong.build(
-        timeline, spoken, m4b.name if m4b else None, [p.name for p in mp3s] if mp3s else None
-    )
-    with _atomic(json_file, overwrite) as partial:
-        partial.write_text(readalong.to_json(data), encoding="utf-8")
-    return Written(m4b, tuple(mp3s), json_file)
+    new_subtitles = [target for target in subtitle_files if not target.exists()]
+    committed: list[tuple[Path, int]] = []  # subtitle files of this run, with their inode
+    try:
+        _write_subtitles(timeline, spoken, subtitle_files, len(mp3s), overwrite, committed)
+        data = readalong.build(
+            timeline, spoken, m4b.name if m4b else None, [p.name for p in mp3s] if mp3s else None
+        )
+        with _atomic(json_file, overwrite) as partial:
+            partial.write_text(readalong.to_json(data), encoding="utf-8")
+    except BaseException:
+        # the app removes the audio files that are new (it knows them from ffmpeg); the
+        # subtitle files that are new are output's own to take back, so a rerun is not
+        # refused over them
+        for target, inode in committed:
+            with contextlib.suppress(OSError):
+                if target in new_subtitles and target.stat().st_ino == inode:
+                    target.unlink()
+        raise
+    return Written(m4b, tuple(mp3s), json_file, tuple(subtitle_files))
+
+
+def _write_subtitles(
+    timeline: Timeline,
+    spoken: Sequence[Spoken],
+    targets: Sequence[Path],
+    chapters: int,
+    overwrite: bool,
+    committed: list[tuple[Path, int]],
+) -> None:
+    """The `.srt` and `.vtt` pairs in the order of `names.subtitle_files`: one per chapter
+    for the first `chapters` pairs, the book's last. Each file put in place is added to
+    `committed` with its inode."""
+    for pair, (srt, vtt) in enumerate(zip(targets[::2], targets[1::2], strict=True)):
+        cues = subtitles.cues(timeline, spoken, pair if pair < chapters else None)
+        for target, text in ((srt, subtitles.to_srt(cues)), (vtt, subtitles.to_vtt(cues))):
+            with _atomic(target, overwrite) as partial:
+                partial.write_text(text, encoding="utf-8", newline="\n")
+                inode = partial.stat().st_ino
+            committed.append((target, inode))
 
 
 def _inspect_all(job_folder: Path, spoken: Sequence[Spoken]) -> list[ChunkAudio]:

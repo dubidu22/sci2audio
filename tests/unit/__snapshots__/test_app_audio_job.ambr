@@ -28,6 +28,8 @@
           'note - 01 note.mp3',
         ]),
         'readalong': 'note.readalong.json',
+        'subtitles': list([
+        ]),
       }),
       'format': 'sci2audio-audio',
       'sci2audio': '<version>',

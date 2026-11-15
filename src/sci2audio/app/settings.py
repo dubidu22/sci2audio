@@ -24,7 +24,8 @@ class JobSettings:
     `chapters` are indices into the job's chapter list (`find_chapters`); None means the
     default choice: every chapter but the reference list (Q6). `voice` and `speed` are for
     the audio job (#71), `letter_pace` too: how fast the voice says letters it spells out,
-    one of LETTER_PACES (#295). Without an `output_folder`, files go next to the source file.
+    one of LETTER_PACES (#295). `subtitles` adds SRT and WebVTT files to the audiobook
+    (#214, D-606). Without an `output_folder`, files go next to the source file.
     """
 
     # BCP 47 tag ("en", "en-GB"); "" = the file's own, else guessed from the text ("en" or
@@ -36,6 +37,7 @@ class JobSettings:
     voice: str = ""  # "" = the default voice (#71)
     speed: float = 1.0  # MIN_SPEED to MAX_SPEED (#71)
     letter_pace: str = "normal"  # a key of LETTER_PACES (#295)
+    subtitles: bool = False  # .srt and .vtt next to the audio files (#214)
     output_folder: Path | None = None
 
     def __post_init__(self) -> None:
@@ -65,6 +67,8 @@ class JobSettings:
             raise ValueError(
                 f"letter_pace must be one of {', '.join(LETTER_PACES)}, got {self.letter_pace!r}"
             )
+        if not isinstance(self.subtitles, bool):
+            raise ValueError(f"subtitles must be true or false, got {self.subtitles!r}")
         if self.output_folder is not None:
             object.__setattr__(self, "output_folder", Path(self.output_folder))
 

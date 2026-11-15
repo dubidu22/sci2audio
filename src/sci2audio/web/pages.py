@@ -459,6 +459,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         preview_text_language=primary_language(_voice_language(chosen_voice)),
         preview_texts={primary: preview_text(primary) for primary in DEFAULT_VOICES},
         output_folder=str(saved.output_folder or state.config.output_folder),
+        subtitles=saved.subtitles,
         removal=_removal(found),
         busy=_busy_document(state) == found.id,
     )

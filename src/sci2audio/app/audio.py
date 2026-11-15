@@ -248,7 +248,8 @@ def assemble(
             current = chunk.chapter
             chapters.append(Chapter(titles[chunk.chapter], len(spoken)))
         audio = AudioChunk(chunk.utterance.span, chunk.file, durations[chunk.key])
-        spoken.append(Spoken(audio, Pause.strongest(carried, chunk.pause)))
+        pause = Pause.strongest(carried, chunk.pause)
+        spoken.append(Spoken(audio, pause, chunk.utterance.text))
         carried = Pause.NONE
     return chapters, spoken
 
@@ -313,15 +314,17 @@ def audiobook_files(
 ) -> list[Path]:
     """The files `write_audiobook` writes for these chapters (output's naming rules)."""
     base = names.book_name(book.title)
-    files = []
-    if settings.mp3:
-        count = len(titles)
-        files += [
-            out_folder / names.chapter_file(base, n, count, title)
-            for n, title in enumerate(titles, start=1)
-        ]
+    count = len(titles)
+    mp3s = (
+        [names.chapter_file(base, n, count, title) for n, title in enumerate(titles, start=1)]
+        if settings.mp3
+        else []
+    )
+    files = [out_folder / name for name in mp3s]
     if settings.m4b:
         files.append(out_folder / f"{base}.m4b")
+    if settings.subtitles:
+        files += [out_folder / name for name in names.subtitle_files(base, mp3s, settings.m4b)]
     files.append(out_folder / f"{base}.readalong.json")
     return files
 
@@ -440,7 +443,8 @@ def run_audio_job(
     JobCancelledError when `cancel` is set. Nothing half-written is left.
     """
     tell: Callable[[AudioProgress], None] = progress or (lambda event: None)
-    output_settings = output_settings or OutputSettings()
+    # the person's choice of subtitles is a job setting (D-606); output writes them
+    output_settings = replace(output_settings or OutputSettings(), subtitles=settings.subtitles)
     if settings.voice and settings.voice not in voice.voices:
         raise JobError(f"there is no {voice.engine} voice {settings.voice!r}; choose another voice")
     check_readable(source)
@@ -845,6 +849,7 @@ def _record(
             "m4b": written.m4b.name if written.m4b else None,
             "mp3": [path.name for path in written.mp3s],
             "readalong": written.readalong.name,
+            "subtitles": [path.name for path in written.subtitles],
         },
     }
 

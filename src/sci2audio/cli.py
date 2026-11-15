@@ -377,6 +377,12 @@ def add_convert(parser: _Parser) -> None:
         help="M4B with chapter marks, one MP3 per chapter, or both (default: both)",
     )
     parser.add_argument(
+        "--subtitles",
+        action=argparse.BooleanOptionalAction,
+        help="also write SRT and WebVTT subtitles: a pair per chapter MP3 and one for the M4B "
+        "(default: as saved, else off)",
+    )
+    parser.add_argument(
         "--with-script",
         action="store_true",
         help="also write the listening script and the report",
@@ -496,7 +502,7 @@ def _settings(args: argparse.Namespace, env: CliEnv) -> JobSettings:
         changes["language"] = args.language
     if hasattr(args, "chapters"):
         changes["chapters"] = args.chapters if args.chapters is not None else frozenset()
-    for name in ("voice", "speed", "letter_pace"):
+    for name in ("voice", "speed", "letter_pace", "subtitles"):
         if getattr(args, name, None) is not None:
             changes[name] = getattr(args, name)
     try:
@@ -799,6 +805,7 @@ def _print_audio(env: CliEnv, job: AudioJob, script: ScriptJob | None, work: Pat
     files = [
         *([job.written.m4b] if job.written.m4b else []),
         *job.written.mp3s,
+        *job.written.subtitles,
         job.written.readalong,
     ]
     if script is not None:
