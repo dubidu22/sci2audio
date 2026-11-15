@@ -13,6 +13,7 @@ PREVIEW_LIMIT = 300  # characters of a preview sentence: the cutter's utterance 
 # how fast the voice reads letters it spells out ("NLP"): the keys of app's LETTER_PACES (#295)
 LetterPace = Literal["normal", "slower", "slowest"]
 LETTER_PACE_HELP = "how fast the voice reads letters it spells out, as in NLP (#295)"
+SUBTITLES_HELP = "also write SRT and WebVTT subtitles next to the audio files (#214)"
 
 
 class Strict(BaseModel):
@@ -72,6 +73,7 @@ class SettingsModel(Strict):
     voice: str = Field(default="", max_length=64)
     speed: float = Field(default=1.0, strict=True)  # true is no speed (#295 found it)
     letter_pace: LetterPace = Field(default="normal", description=LETTER_PACE_HELP)
+    subtitles: StrictBool = Field(default=False, description=SUBTITLES_HELP)
     output_folder: str | None = Field(default=None, max_length=4096)
 
 
@@ -114,6 +116,7 @@ class JobSettingsIn(Strict):
     voice: str | None = Field(default=None, max_length=64)
     speed: float | None = Field(default=None, strict=True)
     letter_pace: LetterPace | None = Field(default=None, description=LETTER_PACE_HELP)
+    subtitles: StrictBool | None = Field(default=None, description=SUBTITLES_HELP)
     output_folder: str | None = Field(default=None, max_length=4096)
 
 

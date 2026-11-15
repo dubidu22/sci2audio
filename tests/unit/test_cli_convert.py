@@ -81,6 +81,35 @@ def test_mp3_only(cli: Cli, source: Path, tmp_path: Path) -> None:
     assert files_in(tmp_path / "b") == ["note - 01 note.mp3", "note.readalong.json"]
 
 
+def test_subtitles(cli: Cli, source: Path, tmp_path: Path) -> None:
+    result = cli("convert", source, "-o", tmp_path / "b", "--subtitles")
+    assert result.code == 0, result.err
+    subtitles = ["note - 01 note.srt", "note - 01 note.vtt", "note.srt", "note.vtt"]
+    assert files_in(tmp_path / "b") == sorted([*BOOK, *subtitles])
+    for name in subtitles:
+        assert str(tmp_path / "b" / name) in result.out
+    vtt = (tmp_path / "b" / "note.vtt").read_text(encoding="utf-8")
+    assert vtt.startswith("WEBVTT\n\n00:00:02.000 --> ")
+    assert "The first sentence is here." in vtt
+    assert audio_record(cli, source)["files"]["subtitles"] == subtitles
+
+
+def test_subtitles_follow_the_settings_file_unless_switched_off(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    cli.config.parent.mkdir(parents=True, exist_ok=True)
+    cli.config.write_text('{"version": 1, "subtitles": true}', encoding="utf-8")
+    assert cli("convert", source, "-o", tmp_path / "a", "-q", "--format", "mp3").code == 0
+    assert files_in(tmp_path / "a") == [
+        "note - 01 note.mp3",
+        "note - 01 note.srt",
+        "note - 01 note.vtt",
+        "note.readalong.json",
+    ]
+    assert cli("convert", source, "-o", tmp_path / "b", "-q", "--no-subtitles").code == 0
+    assert files_in(tmp_path / "b") == BOOK
+
+
 def test_with_script(cli: Cli, source: Path, tmp_path: Path) -> None:
     result = cli("convert", source, "-o", tmp_path / "b", "-q", "--with-script")
     assert result.code == 0, result.err

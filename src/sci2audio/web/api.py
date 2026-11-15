@@ -47,6 +47,8 @@ MEDIA_TYPES = {
     ".wav": "audio/wav",
     ".m4b": "audio/mp4",
     ".mp3": "audio/mpeg",
+    ".srt": "application/x-subrip; charset=utf-8",
+    ".vtt": "text/vtt; charset=utf-8",
     ".json": "application/json",
     ".txt": "text/plain; charset=utf-8",
     ".md": "text/markdown; charset=utf-8",
@@ -307,6 +309,7 @@ def _settings_model(settings: JobSettings) -> models.SettingsModel:
         voice=settings.voice,
         speed=settings.speed,
         letter_pace=cast(models.LetterPace, settings.letter_pace),
+        subtitles=settings.subtitles,
         output_folder=None if settings.output_folder is None else str(settings.output_folder),
     )
 
@@ -376,6 +379,7 @@ def put_settings(state: State, body: models.SettingsModel) -> models.SettingsMod
         voice=_voice(body.voice),
         speed=body.speed,
         letter_pace=body.letter_pace,
+        subtitles=body.subtitles,
         output_folder=_folder(body.output_folder),
     )
     try:
@@ -401,6 +405,7 @@ def _merged(saved: JobSettings, given: models.JobSettingsIn) -> JobSettings:
         voice=saved.voice if given.voice is None else _voice(given.voice),
         speed=saved.speed if given.speed is None else given.speed,
         letter_pace=saved.letter_pace if given.letter_pace is None else given.letter_pace,
+        subtitles=saved.subtitles if given.subtitles is None else given.subtitles,
         output_folder=saved.output_folder
         if given.output_folder is None
         else _folder(given.output_folder),
@@ -415,6 +420,7 @@ def _settings_data(settings: JobSettings) -> dict[str, Any]:
         "voice": settings.voice,
         "speed": settings.speed,
         "letter_pace": settings.letter_pace,
+        "subtitles": settings.subtitles,
         "output_folder": None if settings.output_folder is None else str(settings.output_folder),
     }
 

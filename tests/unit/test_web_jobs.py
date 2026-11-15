@@ -139,6 +139,7 @@ def test_job_settings_come_from_the_saved_ones_with_the_jobs_choices_on_top(
         "speed": 1.5,
         "voice": "bf_emma",
         "letter_pace": "slowest",
+        "subtitles": True,
     }
     assert client.put("/api/v1/settings", json=saved).status_code == 200
     doc = upload(client, pdf_bytes())
@@ -151,6 +152,7 @@ def test_job_settings_come_from_the_saved_ones_with_the_jobs_choices_on_top(
         "voice": "bf_emma",
         "speed": 0.8,
         "letter_pace": "slower",
+        "subtitles": True,  # saved, not chosen for the job
         "output_folder": None,
     }
     report = client.get(f"/api/v1/documents/{doc['id']}/report").json()
