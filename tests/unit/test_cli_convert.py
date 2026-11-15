@@ -369,3 +369,71 @@ def test_a_guessed_encoding_is_named_when_converting(cli: Cli, tmp_path: Path) -
     result = cli("convert", source, "-o", tmp_path / "book", "-q")
     assert result.code == 0, result.err
     assert result.err.count("old notes.txt is not saved as UTF-8; it was read as Windows-1252") == 1
+
+
+# ---- a PDF's pages while it is read (#343) and Ctrl-C while it is read (#344) ---------------
+
+
+def test_the_pages_of_the_pdf_are_shown_as_it_is_read(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    result = cli("convert", source, "-o", tmp_path / "b")
+    assert result.code == 0, result.err
+    lines = result.err.splitlines()
+    assert lines[:3] == [
+        "Reading the file ...",
+        "Reading page 1 of 1",
+        "Finding the reading order ...",
+    ]
+
+
+def test_quiet_shows_no_pages(cli: Cli, source: Path, tmp_path: Path) -> None:
+    result = cli("convert", source, "-o", tmp_path / "b", "-q", "--language", "en")
+    assert result.code == 0, result.err
+    assert result.err == ""  # no phase, no page; the language is given, so no warning
+
+
+def test_without_a_terminal_a_long_pdf_shows_one_page_line_per_tenth(tmp_path: Path) -> None:
+    from pdf_maker import Text, make_pdf
+
+    book = tmp_path / "in" / "book.pdf"
+    book.parent.mkdir()
+    book.write_bytes(
+        make_pdf(*([Text(f"Page {n} has words.", 72, 100, size=11)] for n in range(25)))
+    )
+    result = Cli(tmp_path)("script", book, "-o", tmp_path / "out")
+    assert result.code == 0, result.err
+    pages = [line for line in result.err.splitlines() if line.startswith("Reading page")]
+    # a line when the tenth (page * 10 // 25) changes: pages 1, 3, 5, 8, 10, 13, 15, 18, 20, 23, 25
+    assert pages == [f"Reading page {n} of 25" for n in (1, 3, 5, 8, 10, 13, 15, 18, 20, 23, 25)]
+
+
+@pytest.mark.every_pdf_read
+def test_ctrl_c_while_the_pdf_is_read_stops_the_reader_at_once(
+    tmp_path: Path, source: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import reader_targets
+
+    from sci2audio.extraction import pdf
+
+    monkeypatch.setattr(pdf, "_read_file", reader_targets.hanging_read)
+    started = source.parent / "started"
+
+    def press_ctrl_c_once_reading() -> None:
+        deadline = time.monotonic() + 60
+        while not started.exists() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        _thread.interrupt_main()
+
+    threading.Thread(target=press_ctrl_c_once_reading, daemon=True).start()
+    began = time.monotonic()
+    result = Cli(tmp_path)("convert", source, "-o", tmp_path / "b", "-q")
+    assert started.exists()
+    assert time.monotonic() - began < 25  # not the reader's 30 s
+    assert result.code == 130
+    assert result.err.endswith(
+        "sci2audio: the job was cancelled while the file was read; "
+        "run the same command again to continue\n"
+    )
+    assert "damaged" not in result.err
+    assert not (source.parent / "finished").exists()

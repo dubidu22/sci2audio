@@ -47,6 +47,7 @@ class JobRunner:
         *,
         overwrite: bool = False,
         progress: Callable[[Phase], None] | None = None,
+        pages: Callable[[int, int], None] | None = None,
         steps: Sequence[TextStep] = BUILT_IN_STEPS,
         max_chars: int = DEFAULT_MAX_CHARS,
     ) -> ScriptJob:
@@ -58,6 +59,7 @@ class JobRunner:
                 work,
                 overwrite=overwrite,
                 progress=progress,
+                pages=pages,
                 steps=steps,
                 max_chars=max_chars,
             )

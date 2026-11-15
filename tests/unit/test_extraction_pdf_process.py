@@ -305,11 +305,12 @@ def test_a_page_that_takes_longer_than_a_step_may_is_stopped(
 
 
 def test_a_read_reports_each_page_and_then_the_outline(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Each report starts a step's time anew; the outline is a step of its own (#345 S3)."""
+    """Each report starts a step's time anew; the outline is a step of its own (#345 S3).
+    A page step names the page count too, for the job's progress (#343)."""
     steps: list[str] = []
     monkeypatch.setattr(isolate, "_report", steps.append)
     read_pdf(two_pages_of_rectangles(1), "a.pdf")
-    assert steps == ["page 1", "page 2", "outline"]
+    assert steps == ["page 1 of 2", "page 2 of 2", "outline"]
 
 
 @pytest.mark.parametrize(
@@ -317,6 +318,7 @@ def test_a_read_reports_each_page_and_then_the_outline(monkeypatch: pytest.Monke
     [
         ("opening", "opening it took more than 60 seconds"),
         ("page 7", "reading page 7 took more than 60 seconds"),
+        ("page 7 of 400", "reading page 7 took more than 60 seconds"),
         ("outline", "reading its outline took more than 60 seconds"),
     ],
 )

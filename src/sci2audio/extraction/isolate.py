@@ -18,6 +18,10 @@ step that takes longer than allowed ends the child. The child's watch also ends 
 At most `Readers.limit` children run at once; a further `run` waits for a free slot, so the
 memory limit holds for the program, not only for one child.
 
+The parent hands each step on to `on_step` as it arrives (page progress, #343), and watches a
+`cancel` event: once it is set, the child is ended at once and its slot is free (#344). The
+parent looks at the event every `_CANCEL_SECONDS`, also while it waits for a free slot.
+
 The child imports only what the step needs: the program's main module is not imported in
 the child (multiprocessing would otherwise run it, and with it every other layer).
 """
@@ -25,6 +29,7 @@ the child (multiprocessing would otherwise run it, and with it every other layer
 from __future__ import annotations
 
 import importlib.machinery
+import logging
 import multiprocessing
 import os
 import pickle
@@ -40,6 +45,8 @@ from typing import Any
 MEMORY_EXIT = 86  # the child's exit code when the watch ended it for memory
 TIME_EXIT = 87  # ... and for a step that took more than twice its time
 _WATCH_SECONDS = 0.02
+_CANCEL_SECONDS = 0.1  # how often the parent looks at `cancel`
+_log = logging.getLogger(__name__)
 
 _report: Callable[[str], None] | None = None  # set in the child
 _step_started = 0.0  # in the child: when the current step started (time.monotonic)
@@ -48,7 +55,8 @@ _MAIN = threading.Lock()  # the main module is swapped while a child starts
 
 @dataclass(frozen=True)
 class Stopped:
-    """Why the child ended without a result: "memory", "time" (in `step`) or "ended"."""
+    """Why the child ended without a result: "memory", "time" (in `step`), "ended", or
+    "cancelled" (in `step`; "" when no child had started yet)."""
 
     reason: str
     step: str = ""
@@ -68,12 +76,30 @@ class Readers:
         self._free = threading.Condition()
 
     def __enter__(self) -> None:
-        with self._free:
-            self._free.wait_for(lambda: self.alive < self.limit)
-            self.alive += 1
-            self.most = max(self.most, self.alive)
+        self.take(None)
 
     def __exit__(self, *_: object) -> None:
+        self.give()
+
+    def take(self, cancel: threading.Event | None) -> bool:
+        """Take a slot, waiting for a free one; False, with no slot taken, once `cancel` is
+        set."""
+        with self._free:
+            while self.alive >= self.limit:
+                if cancel is None:
+                    self._free.wait()
+                elif cancel.is_set():
+                    return False
+                else:
+                    self._free.wait(_CANCEL_SECONDS)
+            if cancel is not None and cancel.is_set():
+                return False
+            self.alive += 1
+            self.most = max(self.most, self.alive)
+            return True
+
+    def give(self) -> None:
+        """Give back a slot `take` took."""
         with self._free:
             self.alive -= 1
             self._free.notify()
@@ -92,25 +118,35 @@ def run(
     memory: int,
     step_seconds: float,
     readers: Readers,
+    on_step: Callable[[str], None] | None = None,
+    cancel: threading.Event | None = None,
 ) -> Any:
     """`target(*args)` in a child process: its result, `Stopped`, or the exception it
     raised, raised again here. `target` must be a module-level function; `memory` is in
     bytes, `step_seconds` the longest any reported step may take. Raises `NotStarted` when
     no child could be started.
 
+    `on_step(step)` is called here, in the calling thread, for each step the child reports;
+    an error it raises is logged and does not stop the read. Once `cancel` is set, the
+    child is ended and `Stopped("cancelled", step)` given back.
+
     The wait for a free slot in `readers` has no time limit and is not part of any step's
     time: a third read waits until one of two running reads ends."""
     context = multiprocessing.get_context("spawn")
-    with readers:
+    if not readers.take(cancel):
+        return Stopped("cancelled")
+    try:
         child, receive = _start(context, target, args, memory, step_seconds)
         try:
-            return _wait(child, receive, step_seconds)
+            return _wait(child, receive, step_seconds, on_step, cancel)
         finally:
             receive.close()
             if child.is_alive():
                 child.kill()
             child.join()
             child.close()
+    finally:
+        readers.give()
 
 
 def _start(
@@ -151,12 +187,25 @@ def _without_main() -> types.ModuleType:
     return module
 
 
-def _wait(child: Any, receive: Connection, step_seconds: float) -> Any:
+def _wait(
+    child: Any,
+    receive: Connection,
+    step_seconds: float,
+    on_step: Callable[[str], None] | None,
+    cancel: threading.Event | None,
+) -> Any:
     step = "opening"
+    deadline = time.monotonic() + step_seconds  # of the current step
     while True:
-        if not receive.poll(step_seconds):
+        if cancel is not None and cancel.is_set():
+            child.kill()
+            return Stopped("cancelled", step)
+        left = deadline - time.monotonic()
+        if left <= 0:
             child.kill()
             return Stopped("time", step)
+        if not receive.poll(left if cancel is None else min(left, _CANCEL_SECONDS)):
+            continue
         try:
             kind, value = receive.recv()
         except (EOFError, OSError):  # ended without a word: the watch, a hard limit, a crash
@@ -165,10 +214,22 @@ def _wait(child: Any, receive: Connection, step_seconds: float) -> Any:
             return Stopped(reason, step)
         if kind == "step":
             step = value
+            deadline = time.monotonic() + step_seconds
+            _tell(on_step, step)
         elif kind == "done":
             return value
         else:  # "raised"
             raise value
+
+
+def _tell(on_step: Callable[[str], None] | None, step: str) -> None:
+    """Hand `step` on; progress that cannot be shown must not stop the read."""
+    if on_step is None:
+        return
+    try:
+        on_step(step)
+    except Exception:
+        _log.exception("the progress of step %r could not be handed on", step)
 
 
 # ---- in the child ----------------------------------------------------------------------
