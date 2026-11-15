@@ -26,6 +26,7 @@ function readAlong() {
   const now = document.getElementById("now");
   const follow = document.getElementById("follow");
   const back = document.getElementById("back-to-reading");
+  const speed = document.getElementById("speed");
   const bar = document.querySelector(".player-bar");
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -35,6 +36,8 @@ function readAlong() {
   let following = true; // false after the person scrolled away by hand (D-301)
   let frame = 0;
   let pending = null; // what to do once the file being loaded is ready
+  let touched = false; // the person played or moved: from then on the position is kept
+  let savedAt = 0; // when the position was last sent (performance.now())
 
   // the bar is pinned to the top only while it takes at most a quarter of the window, and
   // then nothing focused or scrolled to may hide under it (WCAG 1.4.10, 2.4.11). Pinning
@@ -136,6 +139,7 @@ function readAlong() {
 
   function tick() {
     update();
+    if (!audio.paused && !pending && loaded >= 0) keep(loaded, bookTime(), false);
     frame = audio.paused ? 0 : requestAnimationFrame(tick);
   }
 
@@ -177,6 +181,35 @@ function readAlong() {
     highlight(index);
     seek(c, time, start);
     reveal(marked);
+    keep(c, time);
+  }
+
+  // ---- the listening position (#153) ---------------------------------------------------
+  // kept by the server in the document's working folder, so the next run of sci2audio
+  // (on another port, where the browser's storage starts empty) can offer to continue.
+  // A failed save says nothing: the reading goes on (D-300).
+  const SAVE_EVERY = 5000; // ms while playing
+  const position = `/api/v1/documents/${encodeURIComponent(data.document)}/position`;
+
+  function keep(c = loaded, time = bookTime(), force = true) {
+    if (c < 0 || !data.audiobook) return;
+    touched = true;
+    if (!force && performance.now() - savedAt < SAVE_EVERY) return;
+    savedAt = performance.now();
+    fetch(position, {
+      method: "POST",
+      credentials: "same-origin",
+      keepalive: true, // also when the page is going away
+      headers: { "content-type": "application/json" },
+      // the audiobook this page shows: a save from a page left open over a new audiobook
+      // is refused (409), never written into the new one
+      body: JSON.stringify({ chapter: c, time: Math.max(0, time), audiobook: data.audiobook }),
+    }).catch(() => {});
+  }
+
+  function keepIfTouched() {
+    if (!data.audiobook) return;
+    if (touched && loaded >= 0 && !pending) keep();
   }
 
   function chapterOfCurrent() {
@@ -192,6 +225,7 @@ function readAlong() {
   // ---- controls --------------------------------------------------------------------------
 
   play.addEventListener("click", () => {
+    touched = true;
     if (loaded < 0) seek(0, chapters[0].start, true);
     else if (audio.paused) audio.play().catch(() => {});
     else audio.pause();
@@ -222,6 +256,21 @@ function readAlong() {
     const sentence = event.target.closest(".s[data-chunk]");
     if (sentence) playFrom(Number(sentence.dataset.chunk), true);
   });
+
+  // ---- speed (#152) -------------------------------------------------------------------
+  // a new file resets `playbackRate` to `defaultPlaybackRate`, so both are set: the speed
+  // stays across the chapters' files, jumps and the M4B; the voice keeps its pitch
+  function applySpeed() {
+    const value = Number(speed.value) || 1;
+    audio.preservesPitch = true;
+    if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = true;
+    if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
+    audio.defaultPlaybackRate = value;
+    audio.playbackRate = value;
+  }
+  speed.addEventListener("change", applySpeed);
+  audio.addEventListener("loadedmetadata", applySpeed);
+  applySpeed();
 
   // ---- following the reading (D-301) -----------------------------------------------------
 
@@ -258,6 +307,7 @@ function readAlong() {
   audio.addEventListener("pause", () => {
     play.textContent = tr("player.play");
     update();
+    keepIfTouched();
   });
   audio.addEventListener("seeked", update);
   audio.addEventListener("timeupdate", () => {
@@ -267,7 +317,11 @@ function readAlong() {
     // the next chapter's file follows by itself (D-296); the M4B is one file
     if (data.mode === "mp3" && loaded >= 0 && loaded < chapters.length - 1) {
       seek(loaded + 1, chapters[loaded + 1].start, true);
-    }
+    } else keepIfTouched(); // the end: nothing is offered for it next time
+  });
+  window.addEventListener("pagehide", keepIfTouched);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") keepIfTouched();
   });
   audio.addEventListener("error", () => {
     if (audio.getAttribute("src")) say(tr("player.load_failed"), true);
@@ -284,6 +338,37 @@ function readAlong() {
     });
   }
   seek(0, chapters[0].start, false);
+
+  // the offer to continue: it moves there and never plays by itself (D-300)
+  const resume = document.getElementById("resume");
+  if (resume) {
+    const done = (message) => {
+      resume.remove();
+      play.focus();
+      say(message);
+    };
+    document.getElementById("resume-continue").addEventListener("click", (event) => {
+      const c = Number(event.currentTarget.dataset.chapter);
+      const time = Number(event.currentTarget.dataset.time);
+      if (!(c >= 0 && c < chapters.length) || !Number.isFinite(time)) return;
+      following = true;
+      back.hidden = true;
+      highlight(chunkAt(time));
+      seek(c, time, false);
+      reveal(marked);
+      const title = chapters[c].title;
+      done(`${tr("player.chapter", { n: c + 1, total: chapters.length })} ${title}`);
+    });
+    document.getElementById("resume-start").addEventListener("click", () => {
+      highlight(-1);
+      seek(0, chapters[0].start, false);
+      done(`${tr("player.chapter", { n: 1, total: chapters.length })} ${chapters[0].title}`);
+    });
+    // drawn disabled: a click before this script ran would be lost (#350, review N1)
+    for (const id of ["resume-continue", "resume-start"]) {
+      document.getElementById(id).disabled = false;
+    }
+  }
 }
 
 document.addEventListener("DOMContentLoaded", readAlong);

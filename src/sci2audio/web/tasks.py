@@ -54,7 +54,7 @@ from sci2audio.voices import (
 )
 from sci2audio.web.documents import StoredDocument
 from sci2audio.web.jobs import JobCancelled, JobFailure, JobRecord, JobState
-from sci2audio.web.player import write_record
+from sci2audio.web.player import remove_position, write_record
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +185,10 @@ def audio_work(
             write_record(document.folder, document.id, written.readalong.parent)
         except OSError as error:
             logger.warning("could not note where the audiobook is: %s", error)
+        try:
+            remove_position(document.folder)  # a new audiobook starts at the start (#153)
+        except OSError as error:  # its stamp no longer fits: the page ignores it anyway
+            logger.warning("could not forget the listening position: %s", error)
         return [
             *([written.m4b] if written.m4b else []),
             *written.mp3s,
