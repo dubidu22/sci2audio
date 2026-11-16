@@ -4,7 +4,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
-## [1.1.0] - unreleased
+## [1.1.0] - 2026-11-16
 
 German reading and a better player. German texts are read as German: a German voice (Kokoro Thorsten), German rules for abbreviations, units, numbers, dates, statistics, links, citations and sentence ends, notices in German, and the text's language guessed when the file states none. Footnotes are read right after the sentence that marks them. The audiobook can come with SRT and WebVTT subtitles. The player gets a speed control, remembers where you stopped, and `sci2audio listen` opens a command-line audiobook in it; chapters can be read in any order, and an EPUB's publisher pages are left out by default. PDFs are read in a separate process with memory and time limits, page progress and a quick cancel, and many readings now come out the same when the script is read a second time.
 
