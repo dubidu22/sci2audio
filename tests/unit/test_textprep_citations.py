@@ -8,6 +8,7 @@ around citations.
 """
 
 import re
+from collections.abc import Callable
 
 import pytest
 from hypothesis import assume, given
@@ -711,7 +712,8 @@ def test_confidence_intervals_in_every_form_are_not_citations(text: str) -> None
 
 
 def test_a_bracket_joined_on_after_a_citation_is_still_a_citation() -> None:
-    assert read("noise [12] and [13] here.") == "noise and reference 13 here."
+    # read as a pair since #257 (D-668), no longer "noise and reference 13 here."
+    assert read("noise [12] and [13] here.") == "noise references 12 and 13 here."
 
 
 # ---- properties ------------------------------------------------------------------------------
@@ -956,6 +958,42 @@ def test_the_looks_stop_at_a_budget_and_leave_an_unsettled_nest_as_printed(
     assert_linear(_left, lambda n: _nest(*nest, n), 800)
     deep = _nest(*nest, 800)
     assert _left(deep) == deep
+
+
+def _wide(n: int) -> str:
+    return "(" + "(Smith, 2019); " * n + "Jones, 2020) is cited."
+
+
+def _shell(n: int) -> str:
+    return "Data (" + "(Smith, 2019); " * n + "(Lee, 2020) 2021) here."
+
+
+def _sentences(n: int) -> str:
+    return " ".join(["((Smith, 2019); (Lee, 2018); Jones, 2020) is cited."] * n)
+
+
+@pytest.mark.parametrize(
+    ("sized", "size", "left"),
+    [
+        (_wide, 240, "Smith, " * 239 + "Smith and Jones is cited."),
+        (_shell, 240, "Data here."),
+        (_sentences, 800, " ".join(["Smith, Lee and Jones is cited."] * 800)),
+    ],
+)
+def test_lists_of_inner_citations_take_linear_time(
+    sized: Callable[[int], str], size: int, left: str
+) -> None:
+    # every inner citation of a subject list keeps its names (#372), a year shell around a
+    # list goes whole (#375); 240 items stay below the bracket cap, where a bracket is read
+    assert assert_linear(_left, sized, size) == left
+
+
+def test_a_subject_nest_of_nests_reads_as_before() -> None:
+    # an item that is itself a nest is not listed, so the bracket reads as before #372 (it
+    # loses its names), at any depth, on both runs
+    for levels in (2, 800):
+        text = "(" * levels + "(Smith, 2019)" + "; (Lee, 2018))" * levels + " is cited."
+        assert _left(text) == "is cited."
 
 
 # ---- alphanumeric keys (#254, D-646) ---------------------------------------------------------
