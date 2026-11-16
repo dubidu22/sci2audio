@@ -169,10 +169,32 @@ def _sample_documents() -> tuple[Document, ...]:
     sections = [Section("References", 1, 10, len(paper))]
     german_mark = len(german[4][1]) - 1  # type: ignore[index]
     german_tags = {4: [(german_mark, german_mark + 1, "sup")]}
+    # a title block with affiliation marks (#93), then text with a hidden run and an inline
+    # page-break marker (#193)
+    title = [
+        Block(BlockKind.FURNITURE, "arXiv:2401.00002v1", role=FurnitureRole.SIDE_STAMP),
+        (BlockKind.PARAGRAPH, "Listening to Papers"),
+        (BlockKind.PARAGRAPH, "Jane Roe1,2, Ann Lee2\u2217"),
+        (BlockKind.PARAGRAPH, "1Example University, 2Example Institute"),
+        Block(BlockKind.FOOTNOTE, "\u2217Corresponding author.", label="\u2217"),
+        (BlockKind.HEADING, "Abstract"),
+        (BlockKind.PARAGRAPH, "We read 13 it aloud SECRET today."),
+    ]
+    title_tags: dict[int, list[tuple[int, int, str | tuple[str, ...]]]] = {
+        2: [(8, 11, "sup"), (20, 21, "sup"), (21, 22, "sup")],
+        3: [(0, 1, "sup"), (21, 22, "sup")],
+        6: [(8, 10, ("span", "epub:pagebreak")), (20, 26, ("span", "hidden"))],
+    }
     return (
         make_document([], name="empty.txt"),
         make_document(furniture, name="furniture.txt"),
-        make_document([*paper, *furniture], name="paper.txt", tags=tags, sections=sections),
+        make_document(
+            [*paper, *furniture],
+            name="paper.txt",
+            tags=tags,
+            sections=sections,
+            pictures={7: ["A bar chart of noise by age"]},  # a figure's alt text (#191)
+        ),
         make_document(paper, "en-GB", name="paper-gb.txt", tags=tags, sections=sections),
         make_document(
             german,
@@ -181,11 +203,13 @@ def _sample_documents() -> tuple[Document, ...]:
             tags=german_tags,
             sections=[Section("Einleitung", 1, 0, 13), Section("Literatur", 1, 13, len(german))],
         ),
+        make_document(title, name="title.txt", tags=title_tags),
     )
 
 
 # documents every step is checked on: every block kind and furniture role, empty blocks,
-# scientific notation, English, British English and German
+# scientific notation, English, British English and German, a title block, hidden text and
+# a figure's alt text
 SAMPLE_DOCUMENTS: tuple[Document, ...] = _sample_documents()
 
 

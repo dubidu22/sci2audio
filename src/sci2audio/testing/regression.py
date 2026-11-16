@@ -26,7 +26,9 @@ mark set small gives it: `runs = ["The effect was small.", { sup = "1" }, " It h
 A run may also be `{ text = "1", tags = ["sup", "role:doc-noteref", "link:b3l0"] }`: a run
 of its own with these tags, as core records them (D-426). Line ids are `b<block>l<line>`, so
 `link:b3l0` points at the first line of block 3. A block may give `page = 2` to stand on a
-later page (pages never go back; blocks without `page` stand on page 1).
+later page (pages never go back; blocks without `page` stand on page 1). A block may give
+`pictures = ["A bar chart.", ""]`: the alt texts of its pictures, as an EPUB or Markdown
+image gives them (#191).
 Sections are flat (no children) and must cover blocks in order.
 """
 
@@ -54,7 +56,7 @@ _CASE_ID = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 _CASE_KEYS = {
     "id", "audit", "issue", "goal", "language", "blocks", "sections", "expected", "utterances"
 }  # fmt: skip
-_BLOCK_KEYS = {"kind", "text", "runs", "role", "label", "describes", "page"}
+_BLOCK_KEYS = {"kind", "text", "runs", "role", "label", "describes", "page", "pictures"}
 _SECTION_KEYS = {"title", "level", "start", "end"}
 
 
@@ -96,7 +98,7 @@ def _case(raw: dict) -> Case:
         raise ValueError(f"unknown keys {sorted(unknown)}")
     if not _CASE_ID.match(raw["id"]):
         raise ValueError(f"id must be kebab-case, got {raw['id']!r}")
-    blocks, tags, pages = [], {}, {}
+    blocks, tags, pages, pictures = [], {}, {}, {}
     for number, given in enumerate(raw["blocks"]):
         if unknown := set(given) - _BLOCK_KEYS:
             raise ValueError(f"unknown block keys {sorted(unknown)}")
@@ -108,6 +110,11 @@ def _case(raw: dict) -> Case:
             if isinstance(page, bool) or not isinstance(page, int) or page < 1:
                 raise ValueError(f"page must be a whole number from 1, got {given['page']!r}")
             pages[number] = given["page"]
+        if "pictures" in given:
+            alts = given["pictures"]
+            if not isinstance(alts, list) or not alts or not all(isinstance(a, str) for a in alts):
+                raise ValueError(f"pictures must be a list of alt texts, got {alts!r}")
+            pictures[number] = alts
         role = given.get("role")
         blocks.append(
             Block(
@@ -147,6 +154,7 @@ def _case(raw: dict) -> Case:
             tags=tags,
             sections=sections,
             pages=pages,
+            pictures=pictures,
         ),
         expected=tuple(expected),
         utterances=None if utterances is None else tuple(utterances),

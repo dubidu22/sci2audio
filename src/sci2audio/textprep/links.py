@@ -429,7 +429,7 @@ class LinkStep(TextStep):
         kind: BlockKind,
         label: str,
         words: LinkWords,
-        language: str = "en",
+        language: str,
     ) -> list[Edit]:
         links = _with_access_notes(
             text, find_links(text, _after_label(text, kind, label), words), words
@@ -939,7 +939,7 @@ def link_removals(
     words = WORDS.get(language, WORDS["en"])
     return [
         (edit.span.start, edit.span.end)
-        for edit in LinkStep()._block_edits(0, text, kind, label, words)
+        for edit in LinkStep()._block_edits(0, text, kind, label, words, language)
     ]
 
 

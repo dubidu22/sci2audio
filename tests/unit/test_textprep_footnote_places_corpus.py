@@ -70,7 +70,7 @@ def moves(sample: Path) -> dict[int, Span]:
 
 def cutter_end(sample: Path, mark: Span) -> int:
     """Where the cutter ends the sentence holding the mark, in the run without moves, past
-    the removed marks that start right there."""
+    the removed marks that start right there: footnote marks and affiliation marks (#93)."""
     plain = run(sample, moves=False)
     utterances = cut_utterances(document(sample), plain.script())
     spoken = [u for u in utterances if u.span.block == mark.block and not u.pause]
@@ -85,7 +85,9 @@ def cutter_end(sample: Path, mark: Span) -> int:
     removed = sorted(
         (e.span.start, e.span.end)
         for e in plain.accepted
-        if e.kind is EditKind.REMOVE and e.span.block == mark.block and e.step == "footnotes"
+        if e.kind is EditKind.REMOVE
+        and e.span.block == mark.block
+        and e.step in ("footnotes", "affiliation-marks")
     )
     for start, stop in removed:
         if start == end:

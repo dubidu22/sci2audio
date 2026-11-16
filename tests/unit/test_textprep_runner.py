@@ -211,6 +211,7 @@ def test_the_default_steps_are_the_built_in_ones() -> None:
     every = make_document(
         [
             (BlockKind.FURNITURE, "12"),
+            (BlockKind.PARAGRAPH, "Jane Roe2"),  # an affiliation mark in the title block
             (BlockKind.PARAGRAPH, "Noise matters.1"),
             (BlockKind.PARAGRAPH, "It took 5 mg, e.g. here."),
             Block(BlockKind.FOOTNOTE, "1 A note.", label="1"),
@@ -223,9 +224,10 @@ def test_the_default_steps_are_the_built_in_ones() -> None:
             (BlockKind.PARAGRAPH, "Noise (Smith, 2019) matters."),
             (BlockKind.PARAGRAPH, "An e\N{LATIN SMALL LIGATURE FFI}cient develop-\nment."),
             (BlockKind.PARAGRAPH, "It held (p < .05) in 3\u20135 cases."),
+            (BlockKind.PARAGRAPH, "Shown, not hidden."),
         ],
-        tags={1: [(14, 15, "sup")]},
-        sections=[Section("References", 1, 7, 9)],
+        tags={1: [(8, 9, "sup")], 2: [(14, 15, "sup")], 14: [(5, 16, ("span", "hidden"))]},
+        sections=[Section("References", 1, 8, 10)],
     )
     steps = [o.edit.step for o in run_steps(every, EN, strict=True).outcomes]
     assert list(dict.fromkeys(steps)) == [step.id for step in BUILT_IN_STEPS]
