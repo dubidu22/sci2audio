@@ -225,6 +225,7 @@ def test_the_new_list_fields_are_read() -> None:
     assert listed is not None
     assert [e.printed for e in listed if e.after_sentence] == [("Hs.",)]
     assert [e.printed for e in listed if e.inside_citation] == [
+        ("ff.",),  # "§§ 185 ff. StGB" (D-719)
         ("a. F.", "a.F."),
         ("n. F.", "n.F."),
     ]

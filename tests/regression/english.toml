@@ -1375,13 +1375,13 @@ expected = ["The factor 5x times 3 is wrong."]
 id = "citations-after-a-read-abbreviation-keep-the-sentence-end"
 audit = 0
 issue = 227
-goal = "A citation after an abbreviation the abbreviations step reads with its full stop ('e.g.' as 'for example') leaves the sentence its own full stop: it read 'See for example Then more.' (found for German, #227). After 'et al.', which stays as printed, the citation still takes it."
+goal = "A citation after an abbreviation the abbreviations step reads with its full stop ('e.g.' as 'for example') leaves the sentence its own full stop: it read 'See for example Then more.' (found for German, #227). After 'et al.', which stays as printed, the citation still takes it, and the cutter ends the sentence there, since the printed sentence ended after the citation (D-719)."
 blocks = [
     { kind = "paragraph", text = "See e.g. (Smith, 2019). Then more." },
     { kind = "paragraph", text = "Smith et al. (2019). Then more." },
 ]
 expected = ["See for example. Then more.", "Smith et al. Then more."]
-utterances = ["See for example.", "Then more.", "Smith et al. Then more."]
+utterances = ["See for example.", "Then more.", "Smith et al.", "Then more."]
 
 [[case]]
 id = "citations-a-nested-citation-goes-on-the-first-run"
@@ -2026,16 +2026,13 @@ expected = [
 id = "links-no-two-full-stops-after-an-abbreviation"
 audit = 0
 issue = 258
-goal = "A link that ends a sentence after an abbreviation's full stop leaves no '..': its own full stop goes too, and it is cut as a printed 'Smith et al. Then' is, on both runs (D-668)."
+goal = "A link that ends a sentence after an abbreviation's full stop leaves no '..': its own full stop goes too (D-668); the sentence ends after the removed link, which ended it in print (D-719)."
 blocks = [
     { kind = "paragraph", text = "Smith et al. https://x.org. Then more." },
     { kind = "paragraph", text = "The answer is in Fig. https://x.org. Then." },
 ]
-expected = [
-    "Smith et al. Then more.",
-    "The answer is in Fig. Then.",
-]
-utterances = ["Smith et al. Then more.", "The answer is in Fig. Then."]
+expected = ["Smith et al. Then more.", "The answer is in Fig. Then."]
+utterances = ["Smith et al.", "Then more.", "The answer is in Fig.", "Then."]
 
 [[case]]
 id = "citations-a-subject-nest-keeps-every-name"
@@ -2505,7 +2502,7 @@ issue = 465
 goal = "The year of a narrative citation is removed with the sentence's full stop; the sentence still ends after 'et al.' (D-719)."
 blocks = [{ kind = "paragraph", text = "This was proposed by Smith et al. (2019). We extend it to more data." }]
 expected = ["This was proposed by Smith et al. We extend it to more data."]
-utterances = ["This was proposed by Smith et al. We extend it to more data."]
+utterances = ["This was proposed by Smith et al.", "We extend it to more data."]
 
 [[case]]
 id = "section-number-before-its-title"
@@ -2514,7 +2511,7 @@ issue = 465
 goal = "A section number at a sentence's start ('1. Introduction') is no sentence of its own (D-719)."
 blocks = [{ kind = "paragraph", text = "Plain files often are.\n1. Introduction\nPeople listen to papers." }]
 expected = ["Plain files often are. 1. Introduction People listen to papers."]
-utterances = ["Plain files often are.", "1.", "Introduction People listen to papers."]
+utterances = ["Plain files often are.", "1. Introduction People listen to papers."]
 
 [[case]]
 id = "capital-after-a-maths-symbol"
@@ -2522,8 +2519,16 @@ audit = 0
 issue = 141
 goal = "A single capital after a maths symbol ends the sentence ('x ∈ N. This'); an initial before a name does not ('J. Smith')."
 blocks = [{ kind = "paragraph", text = "Let x ∈ N. This yields a bound. We write A ⊂ B. Then B is larger. The method of J. Smith is used here." }]
-expected = ["Let x ∈ N. This yields a bound. We write A ⊂ B. Then B is larger. The method of J. Smith is used here."]
-utterances = ["Let x ∈ N. This yields a bound.", "We write A ⊂ B. Then B is larger.", "The method of J. Smith is used here."]
+expected = [
+    "Let x ∈ N. This yields a bound. We write A ⊂ B. Then B is larger. The method of J. Smith is used here.",
+]
+utterances = [
+    "Let x ∈ N.",
+    "This yields a bound.",
+    "We write A ⊂ B.",
+    "Then B is larger.",
+    "The method of J. Smith is used here.",
+]
 
 [[case]]
 id = "capital-after-a-label-word"
@@ -2532,4 +2537,4 @@ issue = 465
 goal = "A single capital after a label word is the label's letter, no initial: 'See Appendix C. It' ends the sentence (D-719)."
 blocks = [{ kind = "paragraph", text = "The proofs conclude. See Appendix C. It gives the proofs." }]
 expected = ["The proofs conclude. See Appendix C. It gives the proofs."]
-utterances = ["The proofs conclude.", "See Appendix C. It gives the proofs."]
+utterances = ["The proofs conclude.", "See Appendix C.", "It gives the proofs."]

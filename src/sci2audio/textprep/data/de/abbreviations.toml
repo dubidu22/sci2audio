@@ -91,13 +91,14 @@ reads = "und"
 before = "anything"
 exact_case = true
 
-# "S. 12 ff.": the pages after it
+# "S. 12 ff.": the pages after it; "§§ 185 ff. StGB" goes on with the law's name (D-719)
 [[abbreviation]]
 printed = ["ff."]
 reads = "folgende"
 before = "anything"
 can_end_sentence = true
 exact_case = true
+inside_citation = true
 
 # "S. 12 f.": the page after it; "f." is also "für" ("f. d.") or a variable (#231, D-646)
 [[abbreviation]]

@@ -4146,7 +4146,7 @@
         'references': False,
         'selected': True,
         'title': '6 Rechtliche Fragestellungen',
-        'utterances': 169,
+        'utterances': 140,
       }),
       dict({
         'blocks': list([
@@ -4159,7 +4159,7 @@
         'references': False,
         'selected': True,
         'title': '7 Schlussbemerkungen',
-        'utterances': 15,
+        'utterances': 14,
       }),
       dict({
         'blocks': list([
@@ -9401,9 +9401,9 @@
         'block': 86,
         'category': 'abbreviations',
         'chapter': 6,
-        'end': 1021,
+        'end': 1022,
         'kind': 'replace',
-        'original': 'ff',
+        'original': 'ff.',
         'page': 11,
         'printed_page': '',
         'reason': 'abbreviation "ff." read as "folgende"',
@@ -11393,8 +11393,8 @@
   | 4 | 3 PrivacyScore im Überblick | 3 | yes | 36 |
   | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 21 |
   | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
-  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 169 |
-  | 8 | 7 Schlussbemerkungen | 12 | yes | 15 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 140 |
+  | 8 | 7 Schlussbemerkungen | 12 | yes | 14 |
   | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
   
   ## Edits per category
@@ -11774,7 +11774,7 @@
   - page 11, chapter 7, applied: “Art.” → read as “Artikel”. Reason: abbreviation "Art." read as "Artikel". Step: abbreviations.
   - page 11, chapter 7, applied: “Abs.” → read as “Absatz”. Reason: abbreviation "Abs." read as "Absatz". Step: abbreviations.
   - page 11, chapter 7, applied: “i. S. v.” → read as “im Sinne von”. Reason: abbreviation "i. S. v." read as "im Sinne von". Step: abbreviations.
-  - page 11, chapter 7, applied: “ff” → read as “folgende”. Reason: abbreviation "ff." read as "folgende". Step: abbreviations.
+  - page 11, chapter 7, applied: “ff.” → read as “folgende”. Reason: abbreviation "ff." read as "folgende". Step: abbreviations.
   - page 11, chapter 7, applied: “v.” → read as “vom”. Reason: abbreviation "v." read as "vom". Step: abbreviations.
   - page 11, chapter 7, applied: “v.” → read as “vom”. Reason: abbreviation "v." read as "vom". Step: abbreviations.
   - page 11, chapter 7, applied: “v.” → read as “vom”. Reason: abbreviation "v." read as "vom". Step: abbreviations.
@@ -14253,34 +14253,24 @@
   da ursprünglich gerade absolute Rechtspositionen wie Besitz und Eigentum Gegenstand des Schutzes sein sollten und der Zweck einer Webseite gerade darin besteht, sie potentiellen Nutzerinnen zu öffnen und von diesen zur Kenntnis genommen zu werden.
   
   Fußnote 14.
-  LG Hamburg vom achtundzwanzigsten August 2008, Az.
-  315 O 326/08.
+  LG Hamburg vom achtundzwanzigsten August 2008, Az. 315 O 326/08.
   
   Fußnote 15.
-  OLG Köln vom fünfundzwanzigsten August 2000, Az.
-  19 U 2/00; LG Ulm vom 13.01.15, Az.
-  2 O 8/15; OLG Hamm vom zehnten Juni 2008, Az.
-  4 U 37/08.
+  OLG Köln vom fünfundzwanzigsten August 2000, Az. 19 U 2/00; LG Ulm vom 13.01.15, Az. 2 O 8/15; OLG Hamm vom zehnten Juni 2008, Az. 4 U 37/08.
   
   Fußnote 16.
-  OLG Frankfurt vom fünften März 2009, Az.
-  6 U 221/09; OLG Hamburg vom vierundzwanzigsten Oktober 2012, Az.
-  5 U 38/10.
+  OLG Frankfurt vom fünften März 2009, Az. 6 U 221/09; OLG Hamburg vom vierundzwanzigsten Oktober 2012, Az. 5 U 38/10.
   
   Dem Webseitenbetreiber steht es dennoch frei, die Befugnisse über die von ihm zur Verfügung gestellten Daten im Rahmen vertraglicher Vereinbarungen zu regeln.
   Rechtlich verbindlich wird die jeweilige Vorgabe in den Nutzungsbedingungen aber nur dann, wenn zuvor eine Registrierung und damit ein Vertragsschluss unter ausdrücklicher Anerkennung der Nutzungsbedingungen erfolgt.
   
   Fußnote 17.
-  LG München vom fünfundzwanzigsten Oktober 2006, Az.
-  30 O 11973/05; OLG Frankfurt vom fünften März 2009, Az.
-  6 U 221/09.
+  LG München vom fünfundzwanzigsten Oktober 2006, Az. 30 O 11973/05; OLG Frankfurt vom fünften März 2009, Az. 6 U 221/09.
   
   Ist der Zugang dagegen auch ohne Anmeldung möglich, kommt den jeweiligen Nutzungsbedingungen ebenso wie allen einseitigen Erklärungen über gewollte Nutzungsbeschränkungen keine verbindliche Rechtswirkung für nicht registrierte Besucherinnen der Webseite zu.
   
   Fußnote 18.
-  OLG Frankfurt vom fünften März 2009, Az.
-  6 U 221/09; OLG Hamburg vom vierundzwanzigsten Oktober 2012, Az.
-  5 U 38/10.
+  OLG Frankfurt vom fünften März 2009, Az. 6 U 221/09; OLG Hamburg vom vierundzwanzigsten Oktober 2012, Az. 5 U 38/10.
   
   Eine solche technisch-automatisierte Registrierung unter Anerkennung der gestellten Nutzungsbedingungen durch die PrivacyScore-Technik ist nicht vorgesehen.
   
@@ -14294,10 +14284,7 @@
   Regelmäßig ist der Quelltext der Webseite jedoch nicht urheberrechtlich geschützt, da die Rechtsprechung die nötige besondere „schöpferische Höhe“ im Sinne von § 2 Absatz 2 UrhG für Webseiten nur in wenigen Ausnahmefällen anerkennt.
   
   Fußnote 19.
-  OLG Hamburg vom neunundzwanzigsten Februar 2012, Az.
-  5 U 10/10; OLG Celle vom achten März 2012, Az.
-  13 W 17/12; OLG Rostock vom siebenundzwanzigsten Juni 2007, Az.
-  2 E 12/07.
+  OLG Hamburg vom neunundzwanzigsten Februar 2012, Az. 5 U 10/10; OLG Celle vom achten März 2012, Az. 13 W 17/12; OLG Rostock vom siebenundzwanzigsten Juni 2007, Az. 2 E 12/07.
   
   Auch, wenn die Datenbank als geistiger Schöpfungsakt nicht urheberrechtlich geschützt ist, kann für den Hersteller der Datenbank nach § 87b Absatz 1 Satz 1 UrhG ein Leistungsschutzrecht bestehen.
   Ginge man davon aus, dass die im Quelltext enthaltenen Informationen eine Sammlung von Daten im Sinne von § 87a UrhG enthalten, käme es für die Annahme eines Leistungsschutzrechts weiterhin darauf an, ob beim Betreiber eine wesentliche Investition zur Erstellung erforderlich war.
@@ -14309,9 +14296,7 @@
   Den HTML-Befehlen im Quelltext komme dagegen nur eine beschreibende Funktion zu, um die Darstellung der Inhalte im Browser zu ermöglichen.
   
   Fußnote 20.
-  OLG Rostock vom siebenundzwanzigsten Juni 2007, Az.
-  2 W 12/07; OLG Frankfurt vom zweiundzwanzigsten März 2005, Az.
-  11 U 64/04.
+  OLG Rostock vom siebenundzwanzigsten Juni 2007, Az. 2 W 12/07; OLG Frankfurt vom zweiundzwanzigsten März 2005, Az. 11 U 64/04.
   
   Die Untersuchung durch PrivacyScore ist auch wettbewerbsrechtlich unbedenklich, solange es infolge seines Einsatzes nicht zu einer tatsächlichen Störung des Betriebsablaufs der Webseite, etwa einer Beeinträchtigung der Verfügbarkeit, kommt.
   Andernfalls könnte unter der Voraussetzung der Mitbewerbereigenschaft im Sinne von § 2 Nummer 3 UWG eine unlautere Behinderung im Sinne von § 4 Nummer 4 UWG vorliegen.
@@ -14327,9 +14312,7 @@
   das heißt die Nutzung der zu untersuchenden Daten nicht von der vorherigen Akzeptanz der Nutzungsbedingungen abhängig gemacht und vom Webseitenbetreiber keine technischen Schutzmaßnahmen installiert wurden, das automatisierte Untersuchen der Webseiten durch PrivacyScore zulässig ist.
   
   Fußnote 21.
-  BGH vom zweiundzwanzigsten Juni 2011, Az.
-  I ZR 159/10; BGH vom siebzehnten März 2003, Az.
-  I ZR 259/00.
+  BGH vom zweiundzwanzigsten Juni 2011, Az. I ZR 159/10; BGH vom siebzehnten März 2003, Az. I ZR 259/00.
   
   Rechtliche Bewertung der Untersuchungsergebnisse Die bloße Feststellung des technischen Untersuchungsergebnisses allein ist zur Bewertung der rechtskonformen Gestaltung der Webseite wenig aussagekräftig.
   Zur tatsächlichen Beurteilung der Rechtskonformität ist immer eine weitergehende Betrachtung des Einzelfalls erforderlich.
@@ -14347,22 +14330,18 @@
   Soweit nach der jüngsten Rechtsprechung dynamische IP-Adressen personenbezogene Daten darstellen, dürfen sie nur verarbeitet werden, wenn dies entweder gesetzlich gestattet ist oder die Betroffene eingewilligt hat.
   
   Fußnote 23.
-  BGH vom sechzehnten Mai 2017, Az.
-  VI ZR 135/13; EuGH vom neunzehnten Oktober 2016, Az.
-  C-582/14.
+  BGH vom sechzehnten Mai 2017, Az. VI ZR 135/13; EuGH vom neunzehnten Oktober 2016, Az. C-582/14.
   
   Die gesetzliche Grundlage für den Umgang mit Nutzungsdaten ist derzeit noch das nationale Telemediengesetz (TMG), speziell § 15 Absatz 3 TMG, der auch im Falle einer verkürzten IP anwendbar ist.
   
   Fußnote 24.
-  LG Frankfurt vom achtzehnten Februar 2014, Az.
-  3-10 O 86/12.
+  LG Frankfurt vom achtzehnten Februar 2014, Az. 3-10 O 86/12.
   
   Nach dieser Vorschrift ist die Erstellung von pseudonymisierten Nutzungsprofilen zu festgelegten Zwecken auch ohne die Einwilligung der betroffenen Nutzerin zulässig,
   soweit der Nutzerin gemäß § 15 Absatz 3 Satz 2 TMG ein Recht zum Widerspruch („Opt-out“) gegen diese Erstellung eingeräumt und sie auf die Möglichkeit des Widerspruchs auch hingewiesen wird.
   
   Fußnote 25.
-  BGH vom sechzehnten Juli 2008, Az.
-  VIII ZR 348/06.
+  BGH vom sechzehnten Juli 2008, Az. VIII ZR 348/06.
   
   Um beurteilen zu können, ob der Webseitenbetreiber seinen Hinweispflichten ausreichend nachgekommen ist, wäre eine Betrachtung des Impressums und der Datenschutzerklärung notwendig.
   
@@ -14396,9 +14375,7 @@
   Beide sind nach ständiger Rechtsprechung gleichermaßen von der Meinungsfreiheit aus Artikel 5 Absatz 1 GG umfasst, soweit es sich um wahre Tatsachen handelt.
   
   Fußnote 26.
-  BVerfG vom neunten Oktober 19 hundert 91, Az.
-  1 BvR 1555/88; BVerfG vom dreizehnten April 19 hundert 94, Az.
-  1 BvR 23/94.
+  BVerfG vom neunten Oktober 19 hundert 91, Az. 1 BvR 1555/88; BVerfG vom dreizehnten April 19 hundert 94, Az. 1 BvR 23/94.
   
   Die zugehörigen Scan-Rohdaten werden dazu (soweit zulässig) archiviert.
   
@@ -14410,11 +14387,10 @@
   Dies gilt jedoch nur in abgeschwächter Form, da Unternehmen und Unternehmer, die sich bewusst nach außen hin darstellen, kritische Bewertungen eher hinnehmen müssen.
   
   Fußnote 27.
-  BGH vom neunundzwanzigsten Januar 2002, Az.
-  VI ZR 20/01.
+  BGH vom neunundzwanzigsten Januar 2002, Az. VI ZR 20/01.
   
-  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen im Sinne von §§ 185 folgende.
-  StGB werden und die konkrete Aussage geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
+  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen im Sinne von §§ 185 folgende StGB werden und die konkrete Aussage geeignet ist,
+  die Behörde in ihrer Funktion zu beeinträchtigen.
   
   Eine Beurteilung eines rechtswidrigen Eingriffs unter Abwägung der Interessen ist grundsätzlich nur im Einzelfall möglich.
   Die Veröffentlichung einer kritischen Bewertung der Webseite kann für den Betroffenen zu einer Rufbeeinträchtigung führen und ihn nicht unerheblich belasten.
@@ -14423,25 +14399,20 @@
   Im Rahmen der Interessenabwägung bei betroffenen Unternehmern betont die Rechtsprechung regelmäßig das Informationsinteresse der Allgemeinheit.
   
   Fußnote 28.
-  BGH vom dreiundzwanzigsten September 2014, Az.
-  VI ZR 358/13; BGH vom dreiundzwanzigsten Juni 2009, Az.
-  VI ZR 196/08; OLG Hamburg vom achtzehnten Januar 2012, Az.
-  5 U 51/11.
+  BGH vom dreiundzwanzigsten September 2014, Az. VI ZR 358/13; BGH vom dreiundzwanzigsten Juni 2009, Az. VI ZR 196/08; OLG Hamburg vom achtzehnten Januar 2012, Az. 5 U 51/11.
   
   Insbesondere vor dem Hintergrund der freien Wahl, die untersuchten Webseiten je nach Ergebnis zu nutzen oder dies zu vermeiden, ist das Interesse der Öffentlichkeit an den Informationen über privatrechtliche Risiken beim Besuch der Webseiten nicht unerheblich.
   Ein Recht des Betroffenen wird daher regelmäßig nicht das Kommunikationsinteresse überwiegen.
   Bei Privatpersonen wird im Rahmen der Interessenabwägung häufig zusätzlich auf die Breitenwirkung der Äußerung abgestellt: je größer der Adressatenkreis, desto belastender die Äußerung.
   
   Fußnote 29.
-  BGH vom dreiundzwanzigsten Juni 2009, Az.
-  VI ZR196/08.
+  BGH vom dreiundzwanzigsten Juni 2009, Az. VI ZR196/08.
   
   Eine Risikoreduzierung für den Betroffenen könnte in diesen Fällen dadurch erreicht werden, dass die Ergebnisse nur einem beschränkten Adressatenkreis zur Verfügung zu stellen.
   
   Aus Artikel 17 Absatz 1 DSGVO könnte dem Betroffenen in diesem Zusammenhang ein Löschungsanspruch zustehen, soweit die gespeicherten Daten personenbezogen sind und deren Speicherung unzulässig ist.
   Eine Datenverarbeitung ist gemäß Artikel 5 Absatz 1 Buchstabe a und Artikel 6 Absatz 1 DSGVO dann rechtmäßig, wenn eine Einwilligung des Betroffenen vorliegt, was regelmäßig nicht der Fall sein wird, oder eine andere Bedingung des Artikel 6 Absatz 1 DSGVO erfüllt ist.
-  In Betracht käme als Erlaubnistatbestand Artikel 6 Absatz 1 UAbs.
-  1 Buchstabe f DSGVO.
+  In Betracht käme als Erlaubnistatbestand Artikel 6 Absatz 1 UAbs. 1 Buchstabe f DSGVO.
   Dazu müsste die Verarbeitung der Daten „zur Wahrung der berechtigten Interessen des Verantwortlichen oder eines Dritten erforderlich“ sein, „sofern nicht die Interessen oder Grundrechte der betroffenen Person überwiegen“.
   Im Rahmen der durchzuführenden Interessenabwägung kann aufgrund der eben angeführten Argumente regelmäßig ein Überwiegen des Kommunikationsinteresses gegenüber dem Recht des Betroffenen auf informationelle Selbstbestimmung angenommen und ein Löschungsanspruch verneint werden.
   
@@ -14466,8 +14437,7 @@
   Die auf der öffentlich angebotenen PrivacyScore-Seite erzeugten Datensätze werden darüber hinaus als Rohdaten für Forschungszwecke zur Verfügung gestellt.
   
   Danksagung Teile dieser Arbeit wurden in Forschungsteilbereichen C.1 und C.2 innerhalb des GRK 2050 „Privacy and Trust for Mobile Users“ durch die DFG finanziert.
-  Die Autoren danken Marvin Hebisch, Nico Vitt und Pascal Wichmann für die Implementation des Prototypen, sowie den Teilnehmenden des Workshops PET-CON 2017.1 und Mitgliedern von Digitalcourage e.
-  V. für ihre Ideen.
+  Die Autoren danken Marvin Hebisch, Nico Vitt und Pascal Wichmann für die Implementation des Prototypen, sowie den Teilnehmenden des Workshops PET-CON 2017.1 und Mitgliedern von Digitalcourage e. V. für ihre Ideen.
   
   # 9. Literaturverzeichnis (not spoken)
   

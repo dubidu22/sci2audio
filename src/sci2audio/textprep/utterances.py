@@ -10,12 +10,23 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
   space and then an upper-case letter, a digit or an opening quote or bracket follow, except
   after an abbreviation of the language ("Fig.", "et al.", "e.g."; "No.", "p." and the like
   only before a number) or a single initial ("J. Smith"; so "set A. Then" stays one
-  utterance, which the length limit still caps), and never inside a replacement.
+  utterance, which the length limit still caps), and never inside a replacement. A single
+  capital after a maths symbol ("x \u2208 N. This", #141) or a label word ("see Appendix C.
+  It") is no initial, so its full stop ends the sentence (D-719).
+- A section number alone ("1.", "2.1.") starts the sentence of its title ("1. Introduction");
+  its full stop ends nothing (D-719).
+- When a step removed printed text that ended the sentence, the sentence ends there even after
+  an abbreviation ("Smith et al. (2019). We": the year is not read, its full stop still counts,
+  D-719). On a second run the removed text is gone, so the cut stays only where the rules
+  above make it; the script is the same.
+- The word before a full stop is found by looking back to the last white space, so a long
+  block costs linear time (#268).
 - German (#227, D-530): the abbreviations are those of the German lists that end no
-  sentence, the units and magnitudes printed with a full stop ("Std.", "Mio.") and the "o."
-  of "o. J.". After a number of one to three digits and a full stop (an ordinal no step read,
-  "Er wurde 3. Sieger"), a sentence ends only before a sentence opener of
-  `data/de/sentence_openers.toml` ("Es waren 3. Die Studie lief."), never before a digit
+  sentence, the units and magnitudes printed with a full stop ("Std.", "Mio."), the "o." of
+  "o. J.", and "Az.", "Fa.", "UAbs." and the "e." of "e. V." (#406, D-719). After a number
+  of one to three digits and a full stop (an ordinal no step read, "Er wurde 3. Sieger"), a
+  sentence ends only before a sentence opener of `data/de/sentence_openers.toml` ("Es
+  waren 3. Die Studie lief.") or after a label word ("Abbildung 1."), never before a digit
   ("Am 3. 4. 2019"). Its limit: German capitalises nouns and the list holds none, so a
   sentence that starts with a noun after such a number stays in the same utterance ("Es
   waren 3. Studien zeigen das."): a pause and the pitch move, no text is lost.
@@ -33,6 +44,7 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
 from __future__ import annotations
 
 import re
+import unicodedata
 from bisect import bisect_right
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
@@ -103,8 +115,10 @@ def _german_abbreviations() -> frozenset[str]:
     listed = units("de")
     for unit in listed.units if listed else ():
         words.update(form.lower() for form in unit.printed if form.endswith("."))
-    # "o. J." (no year) is left as printed by the abbreviations step, and so is its "o."
-    return frozenset(words | {"o.", "j."})
+    # "o. J." (no year) is left as printed by the abbreviations step, and so is its "o."; so
+    # are "Az." before a file number (#406), "Fa." before a name, "UAbs." before its number and
+    # the "e." of "e. V." (D-719)
+    return frozenset(words | {"o.", "j.", "az.", "fa.", "uabs.", "e."})
 
 
 ABBREVIATIONS["de"] = _german_abbreviations()
@@ -124,7 +138,6 @@ _CLOSING_DE = _CLOSING + "\u201c\u2018\u00bb" + _SINGLE_GUILLEMETS
 _OPENING_DE = _OPENING + _SINGLE_GUILLEMETS
 _SENTENCE_END_DE = re.compile(rf"[.?!]+[{re.escape(_CLOSING_DE)}]*(?=\s+(\S))")
 _INITIAL = re.compile(r"\A[A-Z]\.\Z")
-_LAST_WORD = re.compile(r"\S+\Z")
 _DASHES = "\u2013\u2014"  # en and em dash
 # what an abbreviation may be glued to: brackets, quotes, dashes and a slash ("(2022)[p.",
 # "results\u2014e.g.", #91)
@@ -137,6 +150,12 @@ _CLAUSE_MARKS = (";:", ",", "\u2013\u2014")  # in the order a long sentence is c
 # German: a number of one to three digits with a full stop, an ordinal ("3. Sieger") or a
 # number no step read; a sentence ends after it only before a sentence opener (#227, D-530)
 _SHORT_NUMBER = re.compile(r"\A\d{1,3}\.\Z")
+# a section number alone ("1.", "2.1."): with nothing before it, it starts the sentence of its
+# title ("1. Introduction"), and its full stop ends nothing (D-719)
+_NUMBER_ONLY = re.compile(r"\A\d{1,3}(?:\.\d{1,3})*\.\Z")
+# a full stop and what may close it at the end of a removed stretch: the printed sentence ended
+# there ("et al. (2019). We": the year goes with the full stop, D-719)
+_ENDED = re.compile(rf"[.?!][{re.escape(_CLOSING_DE)}]*\Z")
 
 
 @dataclass(frozen=True)
@@ -162,6 +181,8 @@ class _Run:
     text: str
     pieces: tuple[tuple[int, ScriptPiece], ...]  # (offset in text, piece)
     kept: tuple[bool, ...]  # per piece: the original text, not a replacement
+    # offsets in the text where a piece starts after removed printed text that ended a sentence
+    ended: frozenset[int] = frozenset()
     offsets: tuple[int, ...] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -242,7 +263,17 @@ def _runs(document: Document, pieces: Iterable[ScriptPiece]) -> list[_Run | Scri
                 offset += len(piece.text)
             text = "".join(piece.text for piece in current)
             kept = tuple(piece.text == document.text_of(piece.span) for piece in current)
-            out.append(_Run(current[0].span.block, text, tuple(entries), kept))
+            ended = frozenset(
+                offset
+                for (_, before), (offset, piece) in pairwise(entries)
+                if before.span.end < piece.span.start
+                and _ENDED.search(
+                    document.text_of(
+                        Span(piece.span.block, before.span.end, piece.span.start)
+                    ).rstrip()
+                )
+            )
+            out.append(_Run(current[0].span.block, text, tuple(entries), kept, ended))
             current.clear()
 
     for piece in pieces:
@@ -321,8 +352,18 @@ def _sentences(
         following = match.group(1)[0]
         if not (following.isupper() or following.isdigit() or following in opening):
             continue
-        # the word before the gap; any white space (a no-break space too) ends it
-        whole = _LAST_WORD.search(text, 0, match.end()).group().rstrip(closing)
+        if match.end() in run.ended:
+            # the printed sentence ended in text a step removed after this full stop
+            cuts.append(match.start(1))
+            continue
+        # the word before the gap; any white space (a no-break space too) ends it. It is
+        # found by looking back from the full stop, so a long block takes linear time (#268)
+        begin = match.end()
+        while begin and not text[begin - 1].isspace():
+            begin -= 1
+        whole = text[begin : match.end()].rstrip(closing)
+        if _NUMBER_ONLY.match(text[cuts[-1] : match.end()].strip()):
+            continue  # "1. Introduction": the section number starts its title's sentence
         # the abbreviation check looks past what is glued before it ("(2022)[p.", #91);
         # the initials check does not, or "DON'T." and "[1]A." would read as initials
         word = glued.split(whole)[-1]
@@ -335,7 +376,7 @@ def _sentences(
             and not (german and len(lowered) == 2 and lowered != whole.lower())
         ):
             continue
-        if _INITIAL.match(whole.lstrip(opening)):
+        if _INITIAL.match(whole.lstrip(opening)) and not _letter_of(text, begin, language):
             continue
         if (
             german
@@ -355,6 +396,16 @@ def _sentences(
 
 
 _WORD_BEFORE = re.compile(r"(\S+)\s+\Z")
+
+
+def _letter_of(text: str, start: int, language: str) -> bool:
+    """True if the single capital at `start` is no initial: a maths symbol stands right before
+    it ("x \u2208 N. This", #141), or a label word ("See Appendix C. It", D-719)."""
+    before = _WORD_BEFORE.search(text, max(0, start - 32), start)
+    if before is None:
+        return False
+    symbol = all(unicodedata.category(char) == "Sm" for char in before[1])
+    return symbol or _after_label(text, start, language)
 
 
 def _after_label(text: str, start: int, language: str) -> bool:

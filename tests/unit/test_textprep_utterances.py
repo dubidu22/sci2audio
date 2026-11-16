@@ -264,6 +264,62 @@ def test_a_long_text_without_a_full_stop_is_cut_in_linear_time() -> None:
     assert " ".join(parts) == ("word " * 60_000).strip()
 
 
+@pytest.mark.timeout(60)
+def test_a_block_of_many_sentences_is_cut_in_linear_time() -> None:
+    # #268: the word before each full stop was searched from the start of the run
+    parts = assert_linear(cut, lambda n: "It was here. Then more. " * n, 16_000)
+    assert len(parts) == 32_000
+    assert parts[:2] == ["It was here.", "Then more."]
+
+
+# ---- sentence-rule fixes of the sentence test set (D-719) -----------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "sentences"),
+    [
+        # a single capital after a maths symbol is a letter, no initial (#141)
+        ("Let x \u2208 N. This holds.", ["Let x \u2208 N.", "This holds."]),
+        ("Take A \u2282 B. Then C.", ["Take A \u2282 B.", "Then C."]),
+        # ... and after a label word of the unit list
+        ("See Appendix C. It lists all.", ["See Appendix C.", "It lists all."]),
+        ("See Table A. It lists all.", ["See Table A.", "It lists all."]),
+        # an initial still holds the sentence together
+        ("We thank J. Smith today.", ["We thank J. Smith today."]),
+        ("Given x and J. Smith today.", ["Given x and J. Smith today."]),
+        # a section number alone starts its title's sentence
+        ("1. Introduction", ["1. Introduction"]),
+        ("2.1. Methods We used it.", ["2.1. Methods We used it."]),
+        ("It ended. 2. Methods follow.", ["It ended.", "2. Methods follow."]),
+        # a number after words still ends its sentence
+        ("Results. 25 cases followed.", ["Results.", "25 cases followed."]),
+        ("The count was 12. Then more.", ["The count was 12.", "Then more."]),
+    ],
+)
+def test_sentence_ends_found_by_the_sentence_test_set(text: str, sentences: list[str]) -> None:
+    assert cut(text) == sentences
+
+
+def test_a_sentence_ends_where_a_removed_stretch_ended_it() -> None:
+    # the year is removed with its full stop; the sentence ended there, after "et al."
+    document = make_document([(BlockKind.PARAGRAPH, "Smith et al. (2019). Then more.")])
+    edit = Edit(Span(0, 12, 20), EditKind.REMOVE, "citation", "r")
+    utterances = cut_utterances(document, apply_edits(document, [edit]))
+    assert [u.text for u in utterances] == ["Smith et al.", "Then more."]
+    # removed text without a full stop at its end ends nothing
+    document = make_document([(BlockKind.PARAGRAPH, "Smith et al. (2019) Then more.")])
+    edit = Edit(Span(0, 12, 19), EditKind.REMOVE, "citation", "r")
+    utterances = cut_utterances(document, apply_edits(document, [edit]))
+    assert [u.text for u in utterances] == ["Smith et al. Then more."]
+
+
+def test_a_removed_stretch_ending_in_a_full_stop_and_a_closing_bracket_ends_it() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "See Fig. (as shown.) Then more.")])
+    edit = Edit(Span(0, 8, 20), EditKind.REMOVE, "aside", "r")
+    utterances = cut_utterances(document, apply_edits(document, [edit]))
+    assert [u.text for u in utterances] == ["See Fig.", "Then more."]
+
+
 def test_a_replacement_longer_than_the_limit_gives_later_parts_an_empty_span() -> None:
     document = make_document([(BlockKind.PARAGRAPH, "a X b")])
     edit = Edit(Span(0, 2, 3), EditKind.REPLACE, "r", "x", replacement="long " * 6)
@@ -432,9 +488,9 @@ def test_a_citation_after_a_read_english_abbreviation_keeps_the_sentence_end() -
         "See for example.",
         "Then more.",
     ]
-    # unchanged: "et al." stays as printed and the citation takes the full stop after it (M2
-    # of the #66 review); the cutter reads "al." as an abbreviation, as before
-    assert cut_read("Smith et al. (2019). Then more.", "en") == ["Smith et al. Then more."]
+    # "et al." stays as printed and the citation takes the full stop after it (M2 of the #66
+    # review); the printed sentence ended after the citation, so the cutter ends it (D-719)
+    assert cut_read("Smith et al. (2019). Then more.", "en") == ["Smith et al.", "Then more."]
 
 
 def test_the_german_abbreviations_come_from_the_word_lists() -> None:
