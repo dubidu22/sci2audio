@@ -15,6 +15,7 @@ import sys
 import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from time import time_ns
 from types import SimpleNamespace
 from typing import Any
 
@@ -284,7 +285,9 @@ def test_heard_offers_to_continue_only_where_the_listen_page_would(tmp_path: Pat
     work, out = tmp_path / "work", tmp_path / "out"
     stamp = audiobook(work, out)  # sentences end at 9, 19, ... 99 s of 100 s
     data = player.load_readalong(out / "Book.readalong.json")
-    for time, resume in ((5.0, False), (9.0, True), (38.0, True), (98.9, True), (99.5, False)):
+    # 99.0 is exactly where the last sentence ends: nothing left to continue (#430)
+    cases = ((5.0, False), (9.0, True), (38.0, True), (98.9, True), (99.0, False), (99.5, False))
+    for time, resume in cases:
         write_position(work, DOC, stamp, Position(0, time))
         assert heard(work, DOC, (out,)) == Heard(100.0, time, resume), time
         offered = player.read_position(work, DOC, stamp, data)
@@ -310,6 +313,25 @@ def test_the_bounds_of_a_fresh_read_along_file_are_read_again(tmp_path: Path) ->
     assert player.audiobook_bounds(path).duration == 200.0
     old = seen - 10 * player.RACY_NS  # long settled: kept
     os.utime(path, ns=(old, old))
+    assert player.audiobook_bounds(path).duration == 200.0
+
+
+def test_a_settled_read_along_file_made_again_gives_its_new_bounds(tmp_path: Path) -> None:
+    """The bounds are kept per version of the file (inode, mtime, size): a settled file
+    rewritten by a new Make, the same size and in place, but with another time, is read
+    again (#430)."""
+    path = tmp_path / "Book.readalong.json"
+    first = readalong_text(100.0)
+    path.write_text(first, encoding="utf-8")
+    old = time_ns() - 10 * player.RACY_NS  # settled: its bounds are kept
+    os.utime(path, ns=(old, old))
+    assert player.audiobook_bounds(path).duration == 100.0
+    second = first.replace('"duration": 100.0', '"duration": 200.0', 1)
+    assert len(second) == len(first)  # same size and the same inode: only the time differs
+    with path.open("r+", encoding="utf-8") as stream:
+        stream.write(second)
+    later = old + player.RACY_NS // 2  # still settled, but another version
+    os.utime(path, ns=(later, later))
     assert player.audiobook_bounds(path).duration == 200.0
 
 
