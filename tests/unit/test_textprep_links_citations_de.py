@@ -496,3 +496,28 @@ def test_a_deep_german_nest_around_an_identifier_takes_about_as_long_as_plain_ci
 
     deep = "(" * 20_000 + "527794 (Müller 2019)" + ")" * 20_000
     assert_near(run, deep, ("(Müller 2019) " * 3000)[: len(deep)], 16)
+
+
+@pytest.mark.parametrize(
+    ("language", "text"),
+    [
+        ("de", "Daten finden sich u. a. https://x.org. Dann mehr."),
+        ("en", "Data are found e.g. at https://x.org. Then more."),
+    ],
+)
+def test_link_removals_reads_the_job_s_language_as_the_link_step_does(
+    language: str, text: str
+) -> None:
+    # #428: link_removals once read every language as English ("u. a." then ends a sentence)
+    from sci2audio.textprep.links import link_removals
+
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    spans = [(e.span.start, e.span.end) for e in LinkStep().find(document, StepContext(language))]
+    assert link_removals(text, BlockKind.PARAGRAPH, "", language) == spans
+
+
+def test_link_removals_of_the_u_a_row() -> None:
+    from sci2audio.textprep.links import link_removals
+
+    text = "Daten finden sich u. a. https://x.org. Dann mehr."
+    assert link_removals(text, BlockKind.PARAGRAPH, "", "de") == [(23, 37)]

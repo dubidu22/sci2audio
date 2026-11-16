@@ -11977,7 +11977,7 @@
         'switched_off': 0,
       }),
       'footnotes': dict({
-        'applied': 0,
+        'applied': 1,
         'label': 'Footnotes',
         'not_spoken': 0,
         'set_aside': 0,
@@ -13062,6 +13062,22 @@
         'step': 'citations',
       }),
       dict({
+        'block': 2,
+        'category': 'footnotes',
+        'chapter': 0,
+        'end': 18,
+        'kind': 'remove',
+        'original': '1',
+        'page': 1,
+        'printed_page': '1',
+        'reason': 'affiliation mark "1" is not read',
+        'said': '',
+        'spoken': True,
+        'start': 17,
+        'status': 'accepted',
+        'step': 'affiliation-marks',
+      }),
+      dict({
         'block': 53,
         'category': 'numbers-and-units',
         'chapter': 6,
@@ -13498,7 +13514,7 @@
   |---|---|---|---|---|
   | Page furniture | 26 | 3 | 0 | 0 |
   | Characters and hyphenation | 11 | 0 | 0 | 0 |
-  | Footnotes | 0 | 0 | 0 | 0 |
+  | Footnotes | 1 | 0 | 0 | 0 |
   | Footnote texts | 0 | 0 | 0 | 0 |
   | Citations | 10 | 0 | 0 | 0 |
   | URLs, DOIs and e-mail addresses | 1 | 0 | 6 | 0 |
@@ -13554,6 +13570,10 @@
   - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "opinionated" (the document prints it so). Step: line-end-hyphens.
   - page 4, chapter 5, applied: “-↵” → left out. Reason: word split at a line end joined: "example" (the document prints it so). Step: line-end-hyphens.
   - page 4, chapter 6, applied: “-↵” → left out. Reason: word split at a line end joined: "contributing". Step: line-end-hyphens.
+  
+  ## Footnotes (1)
+  
+  - page 1, chapter 1, applied: “1” → left out. Reason: affiliation mark "1" is not read. Step: affiliation-marks.
   
   ## Citations (10)
   
@@ -14463,7 +14483,7 @@
   
   seaborn: statistical data visualization
   
-  Michael L. Waskom1
+  Michael L. Waskom
   
   1 Center for Neural Science, New York University
   

@@ -11,8 +11,8 @@ Pipeline stage; may import only ``sci2audio.core``.
 from sci2audio.textprep.abbreviations import AbbreviationStep
 from sci2audio.textprep.characters import UnicodeStep
 from sci2audio.textprep.citations import CitationStep
-from sci2audio.textprep.footnotes import FootnoteStep, FootnoteTextStep
-from sci2audio.textprep.furniture import FurnitureStep
+from sci2audio.textprep.footnotes import AffiliationMarkStep, FootnoteStep, FootnoteTextStep
+from sci2audio.textprep.furniture import FurnitureStep, HiddenRunStep
 from sci2audio.textprep.hyphens import LineEndHyphenStep
 from sci2audio.textprep.links import LinkStep
 from sci2audio.textprep.numbers import NumbersStep
@@ -73,6 +73,7 @@ __all__ = [
     "TEXT_STEP_API",
     "WORDING",
     "AbbreviationStep",
+    "AffiliationMarkStep",
     "Category",
     "CitationStep",
     "CodeNoticeStep",
@@ -80,6 +81,7 @@ __all__ = [
     "FootnoteTextStep",
     "FormulaNoticeStep",
     "FurnitureStep",
+    "HiddenRunStep",
     "LineEndHyphenStep",
     "LinkStep",
     "NumbersStep",

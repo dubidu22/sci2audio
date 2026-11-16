@@ -33,6 +33,7 @@ class Wording:
     reference: str  # "reference 12": a numeric citation the sentence needs (D-172)
     references: str  # "references 3 and 5"
     range_to: str  # "references 2 to 6"
+    shows: str  # "It shows: {}": a figure's alt text after its notice (#191)
     # label words printed in short, read in full: "Fig. 3" is read "Figure 3"
     label_words: Mapping[str, str] = field(default_factory=dict)
 
@@ -75,6 +76,7 @@ ENGLISH = Wording(
     reference="reference",
     references="references",
     range_to="to",
+    shows="It shows: {}",
     label_words={
         "Fig.": "Figure",
         "Figs.": "Figures",
@@ -105,6 +107,7 @@ GERMAN = Wording(
     reference="Quelle",
     references="Quellen",
     range_to="bis",
+    shows="Sie zeigt: {}",
     # the readings of the German abbreviation table (#113) for the same short labels
     label_words={
         "Abb.": "Abbildung",

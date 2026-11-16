@@ -33,6 +33,14 @@ label is "" is introduced by its first linked mark in reading order (D-425), a m
 in brackets by what is inside them: "[1]" gives "Footnote 1." (D-422). A back-link in a note
 (`role:doc-backlink`, `epub:backlink`, the "↩" back to the mark) is removed with the white
 space before it (D-424); a note that holds nothing else gets no introduction.
+
+`AffiliationMarkStep` (#93) removes the marks that tie an author to an affiliation in a
+paper's title block ("Jianfeng Chi¹˒²", "¹Meta AI"), in the same "Footnotes" category. The
+title block is the first page's PARAGRAPH blocks up to the first heading. A mark there is a
+run of digits, commas and note symbols, set small and raised (a `sup` tag, or the size and
+rise the footnote marks use), that is no footnote mark, and that stands after a name or
+before an affiliation (see `_affiliation_shape`). Numbers printed in the text's own size are
+read ("1 Center for Neural Science"): nothing tells them from a number in the text.
 """
 
 from __future__ import annotations
@@ -53,6 +61,7 @@ from sci2audio.core import (
     TextLine,
     TextRun,
 )
+from sci2audio.textprep.furniture import HiddenRunStep, removed_span
 from sci2audio.textprep.steps import ANY_LANGUAGE, Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import sentence_end
 from sci2audio.textprep.wording import Wording, wording_for
@@ -117,6 +126,25 @@ def found_marks(document: Document, context: StepContext) -> dict[int, list[tupl
     for edit, _ in step.marked(document, context)[1]:
         marks.setdefault(edit.span.block, []).append((edit.span.start, edit.span.end))
     return marks
+
+
+def unread_marks(document: Document, context: StepContext) -> dict[int, list[tuple[int, int]]]:
+    """What the inline steps after the footnotes step read the text without, by block, as a
+    second run reads it (D-577): the footnote marks (`found_marks`), and the hidden runs
+    (#193) and affiliation marks (#93) those steps' switches leave out. So "Müller¹˒² m²"
+    reads its unit as "Müller m²" does, and "37 °C" before a hidden run as without it."""
+    marks = found_marks(document, context)
+    removed: dict[int, list[tuple[int, int]]] = {}
+    for index, spans in marks.items():
+        removed.setdefault(index, []).extend(spans)
+    found: list[Edit] = []
+    if HiddenRunStep.category not in context.switched_off:
+        found += HiddenRunStep().find(document, context)
+    if AffiliationMarkStep.category not in context.switched_off:
+        found += AffiliationMarkStep().marks(document, marks)
+    for edit in found:
+        removed.setdefault(edit.span.block, []).append((edit.span.start, edit.span.end))
+    return removed
 
 
 class FootnoteStep(TextStep):
@@ -360,6 +388,148 @@ class FootnoteStep(TextStep):
                     )
                 )
         return edits
+
+
+# an affiliation mark: digits, commas and note symbols only (white space at the ends aside)
+_AFFILIATION_MARK = re.compile(r"\s*[0-9,\u2217*\u2020\u2021\u00a7\u00b6]+\s*")
+# a name before the mark: a capitalised word of two letters or more ("Chi", "Ångström")
+_NAME_END = re.compile(r"[^\W\d_]{2,}\Z")
+# after a name: the block's end, white space, a comma, a semicolon or a note mark
+_AFTER_NAME = re.compile(r"\Z|[\s,;\u2217*\u2020\u2021\u00a7\u00b6]")
+# an affiliation after the mark: a capital, after at most one space ("¹Meta AI", "² Univ")
+_AFFILIATION = re.compile(r" ?([^\W\d_]{2,})")
+# the chemical elements whose symbol has two letters: a raised number before one is its mass
+# number ("⁸⁷Rb", "³He"), not an affiliation's mark (#436 review round 2, B1, D-57); a symbol
+# of one letter ("¹H", "¹⁸F-FDG") is already too short for an affiliation
+# fmt: off
+ELEMENTS = frozenset({
+    "He", "Li", "Be", "Ne", "Na", "Mg", "Al", "Si", "Cl", "Ar", "Ca", "Sc", "Ti",
+    "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr",
+    "Rb", "Sr", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn",
+    "Sb", "Te", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd",
+    "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "Re", "Os", "Ir", "Pt",
+    "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa",
+    "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db",
+    "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og",
+})
+# fmt: on
+
+
+class AffiliationMarkStep(TextStep):
+    """Remove the affiliation marks of a paper's title block (#93)."""
+
+    id = "affiliation-marks"
+    languages = (ANY_LANGUAGE,)
+    category = Category.FOOTNOTES
+    stage = Stage.INLINE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return self.marks(document, found_marks(document, context))
+
+    def marks(
+        self, document: Document, footnote_marks: Mapping[int, Collection[tuple[int, int]]]
+    ) -> list[Edit]:
+        """The removals, given the footnote marks the footnotes step removes."""
+        items = document.content.items()
+        edits = []
+        for index in _title_block(document, items):
+            block = document.blocks[index]
+            # a footnote mark stays with the footnotes step, which introduces its note
+            taken = footnote_marks.get(index, [])
+            line_starts = {offset for _, offset, _ in _lines(items, block)}
+            for start, end in _raised_marks(items, block, taken):
+                if not _affiliation_shape(block.text, start, end, start in line_starts):
+                    continue
+                mark = block.text[start:end].strip()
+                start, end = removed_span(block.text, start, end)
+                edits.append(
+                    Edit(
+                        Span(index, start, end),
+                        EditKind.REMOVE,
+                        reason=f'affiliation mark "{mark}" is not read',
+                        step=self.id,
+                    )
+                )
+        return edits
+
+
+def _title_block(document: Document, items: Mapping[str, tuple[Page, Item]]) -> Iterator[int]:
+    """The PARAGRAPH blocks of the first page, in reading order, up to its first heading. The
+    first page is the page of the first block that has parts."""
+    first = None
+    for index, block in enumerate(document.blocks):
+        if not block.parts:
+            continue
+        page = items[block.parts[0].item][0].number
+        if first is None:
+            first = page
+        if page != first or block.kind is BlockKind.HEADING:
+            return
+        if block.kind is BlockKind.PARAGRAPH:
+            yield index
+
+
+def _raised_marks(
+    items: Mapping[str, tuple[Page, Item]], block: Block, taken: Collection[tuple[int, int]]
+) -> Iterator[tuple[int, int]]:
+    """Where the block holds a run (or runs side by side) of mark characters set small and
+    raised: tagged `sup`, or smaller than the block's main size and RISE em above a run in
+    the main size on its line. A run that overlaps a `taken` span is no such run."""
+    lines = list(_lines(items, block))
+    main = _main_size(run for _, _, line in lines for run in line.runs)
+    open_mark: tuple[int, int] | None = None
+    for _, offset, line in lines:
+        for run in line.runs:
+            end = offset + len(run.text)
+            if (
+                _AFFILIATION_MARK.fullmatch(run.text)
+                and _set_small(run, main)
+                and _superscript(run, line, main)
+                and not any(s < end and offset < e for s, e in taken)
+            ):
+                if open_mark and open_mark[1] == offset:
+                    open_mark = (open_mark[0], end)
+                else:
+                    if open_mark:
+                        yield open_mark
+                    open_mark = (offset, end)
+            offset = end
+    if open_mark:
+        yield open_mark
+
+
+def _superscript(run: TextRun, line: TextLine, main: float) -> bool:
+    """Raised: tagged `sup`, or its box ends RISE em or more above the box of a run in the
+    main size on the same line."""
+    if "sup" in run.tags:
+        return True
+    if run.box is None or main <= 0:
+        return False
+    return any(
+        other.box is not None
+        and not _set_small(other, main)
+        and run.box.y1 <= other.box.y1 - RISE * main
+        for other in line.runs
+    )
+
+
+def _affiliation_shape(text: str, start: int, end: int, line_start: bool) -> bool:
+    """The mark stands after a name ("Chi¹˒² Wasi", "Biggs ¹, Matthew", "Ahmad³*") or before
+    an affiliation: at the block's or a line's start, or after a comma or semicolon, and
+    before a capitalised word of two letters or more ("¹Meta AI", "², University",
+    "²Österreichische Akademie", "¹AI Lab"). So "x²", "N³", "size³ + 1", "small.¹", a
+    "⁵ is first" and the mass numbers of "¹H NMR of ¹³C", "¹⁸F-FDG" and "⁸⁷Rb" stay
+    (D-57)."""
+    before, after = text[:start], text[end:]
+    word = _NAME_END.search(before.rstrip())
+    if word and word[0][0].isupper() and _AFTER_NAME.match(after):
+        return True
+    kept = before.rstrip()
+    at_start = not kept or line_start or kept[-1] in ",;"
+    affiliation = _AFFILIATION.match(after)
+    if not at_start or affiliation is None or affiliation[1] in ELEMENTS:
+        return False
+    return affiliation[1][0].isupper()
 
 
 class FootnotePlaceStep(TextStep):
