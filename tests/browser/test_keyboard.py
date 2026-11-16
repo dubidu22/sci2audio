@@ -99,7 +99,7 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     # home by the header link, the document by its link
     press_on(page, "sci2audio", back=True)
     page.wait_for_url(live.url + "/")
-    press_on(page, "paper.pdf")
+    press_on(page, "paper")  # its title from the analysis, first on the rail's shelf (#389)
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
 
     tab_to(page, "speed")

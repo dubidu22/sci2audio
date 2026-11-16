@@ -21,7 +21,8 @@ from sci2audio.web.jobs import JobKind
 
 def test_the_check_finds_a_real_problem(signed_in: Page, live: Live) -> None:
     page = signed_in
-    page.locator("label[for=file]").evaluate("label => label.remove()")
+    # the file input is named by the opener's heading (#389): take that name away
+    page.locator("#file").evaluate("input => input.removeAttribute('aria-labelledby')")
     found = axe_problems(page, "start page without its label")
     assert any("label" in line for line in found), found
 
@@ -41,8 +42,8 @@ def test_the_start_page_with_documents_and_the_voice(signed_in: Page, live: Live
     live.install_voice()
     open_paper(page, live)
     page.goto(live.url + "/")
-    expect(page.get_by_text("The voice is installed.")).to_be_visible()
-    expect(page.get_by_role("link", name="paper.pdf")).to_be_visible()
+    expect(page.locator("#voice-notice")).to_have_count(0)  # nothing to set up (#389)
+    expect(page.get_by_role("link", name="paper", exact=True)).to_be_visible()  # its title
     check_axe(page, "start page with a document")
     page.goto(live.url + "/voice")
     expect(

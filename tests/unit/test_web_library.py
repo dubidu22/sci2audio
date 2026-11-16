@@ -90,9 +90,9 @@ def test_a_reload_within_a_minute_writes_nothing(tmp_path: Path) -> None:
         '{"format": "sci2audio-web-opened", "version": 1, "opened": 1763284440}',
         '{"format": "sci2audio-web-opened", "version": 1, "opened": "2026-11-16T09:14:00"}',
         '{"format": "sci2audio-web-opened", "version": 1}',
-        '{"format": "sci2audio-web-opened", "version": 1, "opened": "'
-        + "9" * library.RECORD_LIMIT
-        + '"}',
+        # a record that would read well, but is larger than any record of ours
+        '{"format": "sci2audio-web-opened", "version": 1, "opened": "2026-11-16T09:14:00+00:00"}'
+        + " " * library.RECORD_LIMIT,
     ],
 )
 def test_a_broken_opened_record_reads_as_nothing(tmp_path: Path, text: str) -> None:
@@ -485,7 +485,8 @@ def test_a_page_never_fails_on_its_opened_record(
     if fault == "broken":
         path.write_text("{", encoding="utf-8")
     elif fault == "huge":
-        path.write_bytes(b" " * (library.RECORD_LIMIT + 1))
+        record = {"format": "sci2audio-web-opened", "version": 1, "opened": NOW.isoformat()}
+        path.write_text(json.dumps(record) + " " * library.RECORD_LIMIT, encoding="utf-8")
     elif fault == "folder":
         path.mkdir()
     elif fault == "unwritable":
