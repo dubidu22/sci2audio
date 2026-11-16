@@ -335,3 +335,17 @@ def test_marks_outside_the_title_block_are_never_touched(
     else:
         document = tagged((BlockKind.HEADING, "Abstract"), sup(*runs))
     assert AffiliationMarkStep().find(document, EN) == []
+
+
+def test_later_steps_read_the_text_without_hidden_runs_and_affiliation_marks() -> None:
+    from sci2audio.textprep.footnotes import unread_marks
+
+    document = make_document(
+        [(BlockKind.PARAGRAPH, "Jane Roe1 and x"), (BlockKind.PARAGRAPH, "at 37 °C13 here")],
+        tags={0: [(8, 9, "sup")], 1: [(8, 10, ("span", "epub:pagebreak"))]},
+    )
+    assert unread_marks(document, EN) == {0: [(8, 9)], 1: [(8, 10)]}
+    off = StepContext("en", switched_off=frozenset({Category.PAGE_FURNITURE}))
+    assert unread_marks(document, off) == {0: [(8, 9)]}
+    off = StepContext("en", switched_off=frozenset({Category.FOOTNOTES}))
+    assert unread_marks(document, off) == {1: [(8, 10)]}

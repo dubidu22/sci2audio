@@ -2304,3 +2304,26 @@ blocks = [
     { kind = "paragraph", text = "The mean is high." },
 ]
 expected = ["A figure is skipped. It shows: A bar chart of minutes per group.", "A figure is skipped.", "The mean is high."]
+
+# The steps after the footnotes step read the text without hidden runs and affiliation marks,
+# as a second run reads it (D-577, found by the token fuzz of PR 5): a page-break marker
+# printed against a unit or an abbreviation no longer hides it on the first run.
+
+[[case]]
+id = "hidden-page-break-against-a-unit-or-abbreviation"
+audit = 0
+issue = 193
+goal = "A unit or abbreviation with a page-break marker glued to it reads as on a second run, without the marker."
+blocks = [
+    { kind = "paragraph", runs = ["The sample was kept at 37 °C", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " overnight."] },
+    { kind = "paragraph", runs = ["It took 5 mg", { text = "14", tags = ["p", "span", "epub:pagebreak"] }, " of salt, e.g.", { text = "15", tags = ["p", "span", "role:doc-pagebreak"] }, " here."] },
+]
+expected = ["The sample was kept at 37 degrees Celsius overnight.", "It took 5 milligrams of salt, for example here."]
+
+[[case]]
+id = "affiliation-mark-before-a-unit"
+audit = 0
+issue = 93
+goal = "A unit after an affiliation mark reads as on a second run, without the mark."
+blocks = [{ kind = "paragraph", runs = ["Jane Müller", { sup = "1,2" }, " m², x"] }]
+expected = ["Jane Müller m squared, x"]

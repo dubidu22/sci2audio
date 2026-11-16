@@ -61,7 +61,7 @@ from sci2audio.core import (
     TextLine,
     TextRun,
 )
-from sci2audio.textprep.furniture import removed_span
+from sci2audio.textprep.furniture import HiddenRunStep, removed_span
 from sci2audio.textprep.steps import ANY_LANGUAGE, Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import sentence_end
 from sci2audio.textprep.wording import Wording, wording_for
@@ -126,6 +126,25 @@ def found_marks(document: Document, context: StepContext) -> dict[int, list[tupl
     for edit, _ in step.marked(document, context)[1]:
         marks.setdefault(edit.span.block, []).append((edit.span.start, edit.span.end))
     return marks
+
+
+def unread_marks(document: Document, context: StepContext) -> dict[int, list[tuple[int, int]]]:
+    """What the inline steps after the footnotes step read the text without, by block, as a
+    second run reads it (D-577): the footnote marks (`found_marks`), and the hidden runs
+    (#193) and affiliation marks (#93) those steps' switches leave out. So "Müller¹˒² m²"
+    reads its unit as "Müller m²" does, and "37 °C" before a hidden run as without it."""
+    marks = found_marks(document, context)
+    removed: dict[int, list[tuple[int, int]]] = {}
+    for index, spans in marks.items():
+        removed.setdefault(index, []).extend(spans)
+    found: list[Edit] = []
+    if HiddenRunStep.category not in context.switched_off:
+        found += HiddenRunStep().find(document, context)
+    if AffiliationMarkStep.category not in context.switched_off:
+        found += AffiliationMarkStep().marks(document, marks)
+    for edit in found:
+        removed.setdefault(edit.span.block, []).append((edit.span.start, edit.span.end))
+    return removed
 
 
 class FootnoteStep(TextStep):
@@ -390,8 +409,13 @@ class AffiliationMarkStep(TextStep):
     stage = Stage.INLINE
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return self.marks(document, found_marks(document, context))
+
+    def marks(
+        self, document: Document, footnote_marks: Mapping[int, Collection[tuple[int, int]]]
+    ) -> list[Edit]:
+        """The removals, given the footnote marks the footnotes step removes."""
         items = document.content.items()
-        footnote_marks = found_marks(document, context)
         edits = []
         for index in _title_block(document, items):
             block = document.blocks[index]

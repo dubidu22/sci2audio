@@ -2239,3 +2239,12 @@ blocks = [
     { kind = "caption", text = "Abb. 2: Minuten je Gruppe.", label = "Abb. 2", describes = 3 },
 ]
 expected = ["Eine Abbildung wird übersprungen. Sie zeigt: Ein Balkendiagramm der Minuten pro Gruppe.", "Eine Abbildung wird übersprungen.", "Eine Abbildung wird übersprungen. Sie zeigt: Eine Katze; Ein Hund.", "Abbildung 2 wird übersprungen.", "Abbildung 2: Minuten je Gruppe."]
+
+[[case]]
+id = "de-hidden-page-break-against-a-unit"
+audit = 0
+issue = 193
+goal = "A unit with a page-break marker glued to it reads as on a second run, without the marker (D-577)."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Die Probe lag bei 37 °C", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " über Nacht."] }]
+expected = ["Die Probe lag bei 37 Grad Celsius über Nacht."]
