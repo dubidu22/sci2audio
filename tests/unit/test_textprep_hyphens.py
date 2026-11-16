@@ -28,7 +28,13 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
-from sci2audio.textprep.hyphens import SECOND_WORDS, SKIPPED_KINDS, printed_words
+from sci2audio.textprep.hyphens import (
+    ADJECTIVE_ENDINGS,
+    INFLECTIONS,
+    SECOND_WORDS,
+    SKIPPED_KINDS,
+    printed_words,
+)
 from sci2audio.textprep.hyphens import WORDS as HYPHEN_WORDS
 
 EN = StepContext("en")
@@ -341,6 +347,181 @@ def test_regional_german_tags_use_the_german_words() -> None:
     assert read_de("Kinder-\nund Jugend", language="de-AT") == ["Kinder- und Jugend"]
 
 
+# German: a word with a hyphen of its own split again at a line end (#240)
+
+
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [
+        ("Die Datenschutz-Grundverord-\nnung gilt.", "Die Datenschutz-Grundverordnung gilt."),
+        ("Die Datenschutz-Ver-\nordnung gilt.", "Die Datenschutz-Verordnung gilt."),
+        ("Die deutsch-franzö-\nsischen Beziehungen.", "Die deutsch-französischen Beziehungen."),
+        ("Die PDF-Daten-\nbank läuft.", "Die PDF-Datenbank läuft."),
+        ("Ein Online-An-\ngebot.", "Ein Online-Angebot."),  # a capital part is no chain word
+        # the accepted cost (D-685): a real hyphen before a lower-case part joins
+        ("Ein E-Mail-\nbasiertes Verfahren.", "Ein E-Mailbasiertes Verfahren."),
+        ("Eine Ad-hoc-\nanalyse folgte.", "Eine Ad-hocanalyse folgte."),
+    ],
+)
+def test_german_a_hyphenated_word_split_again_is_joined(printed: str, spoken: str) -> None:
+    assert read_de(printed) == [spoken]
+
+
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [
+        ("Eine Ende-zu-\nEnde-Verschlüsselung.", "Eine Ende-zu-Ende-Verschlüsselung."),
+        ("Ein Peer-to-\npeer-Netz.", "Ein Peer-to-peer-Netz."),
+        ("Ein State-of-the-\nart-Verfahren.", "Ein State-of-the-art-Verfahren."),
+        ("Eine Ad-hoc-\nAnalyse folgte.", "Eine Ad-hoc-Analyse folgte."),  # a capital after
+        ("Die PDF-\nDaten-\nbank.", "Die PDF-Datenbank."),  # the first hyphen: capital after
+        ("Die Max-Planck-\nE-\nMail.", "Die Max-Planck-E-Mail."),  # capital, one letter
+        ("Die x-y-\nachse.", "Die x-y-achse."),  # one letter before
+        ("Die ABC-PDF-\ndatei.", "Die ABC-PDF-datei."),  # a capital at the end before
+    ],
+)
+def test_german_a_hyphenated_word_keeps_these(printed: str, spoken: str) -> None:
+    assert read_de(printed) == [spoken]
+
+
+def test_the_german_chain_words_are_the_planned_ones() -> None:
+    assert HYPHEN_WORDS["de"].chain_words == frozenset(
+        {"zu", "an", "in", "um", "auf", "bei", "für", "vor", "von", "aus", "mit", "nach",
+         "über", "und", "oder", "bis", "im", "am", "zum", "zur",
+         "to", "of", "the", "and", "on", "at", "by", "for", "or", "it"}
+    )  # fmt: skip
+
+
+@pytest.mark.parametrize("word", sorted(HYPHEN_WORDS["de"].chain_words))
+def test_german_each_chain_word_keeps_the_hyphen_only_in_lower_case(word: str) -> None:
+    assert read_de(f"Kopf-{word}-\nkopf") == [f"Kopf-{word}-kopf"]
+    capital = word[0].upper() + word[1:]
+    assert read_de(f"Kopf-{capital}-\nkopf") == [f"Kopf-{capital}kopf"]
+
+
+def test_german_a_chain_word_counts_only_after_a_hyphen() -> None:
+    assert read_de("Kopf zu-\nkopf") == ["Kopf zukopf"]
+    assert read_de("Ver-\nbund") == ["Verbund"]
+
+
+def test_english_keeps_every_hyphen_after_a_hyphenated_word() -> None:
+    assert read("the non-differen-\ntiable loss") == ["the non-differen-tiable loss"]
+    assert read("the Datenschutz-Grundverord-\nnung") == ["the Datenschutz-Grundverord-nung"]
+    assert HYPHEN_WORDS["en"].chain_words == frozenset()
+    assert not HYPHEN_WORDS["en"].split_again
+
+
+def test_german_split_again_reason() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "Die Datenschutz-Grundverord-\nnung")], "de")
+    (edit,) = STEP.find(document, DE)
+    assert edit.span == Span(0, 27, 29)
+    assert edit.reason == 'word split at a line end joined: "Datenschutz-Grundverordnung"'
+
+
+# German: hyphenated adjective pairs at a line end (#223)
+
+
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [
+        ("die deutsch-\nfranzösischen Beziehungen", "die deutsch-französischen Beziehungen"),
+        ("die sozial-\nemotionale Entwicklung", "die sozial-emotionale Entwicklung"),
+        (
+            "die technisch-\norganisatorischen Maßnahmen",
+            "die technisch-organisatorischen Maßnahmen",
+        ),
+        (
+            "die physikalisch-\nchemischen Eigenschaften",
+            "die physikalisch-chemischen Eigenschaften",
+        ),
+        ("die materiell-\nrechtlichen Fragen", "die materiell-rechtlichen Fragen"),
+        ("die kognitiv-\nemotionalen Prozesse", "die kognitiv-emotionalen Prozesse"),
+        ("die räumlich-\nzeitlichen Muster", "die räumlich-zeitlichen Muster"),
+        ("die militär-\npolitischen Ziele", "die militär-politischen Ziele"),
+        (
+            "die deutsch-französisch-\npolnischen Gespräche",
+            "die deutsch-französisch-polnischen Gespräche",
+        ),
+        (
+            "die deutsch-\nfranzösisch-polnischen Gespräche",
+            "die deutsch-französisch-polnischen Gespräche",
+        ),
+        (  # the last part before the line end decides, not the first: "politisch"
+            "die Ost-West-politisch-\nmilitärischen Spannungen",
+            "die Ost-West-politisch-militärischen Spannungen",
+        ),
+    ],
+)
+def test_german_an_adjective_pair_keeps_its_hyphen(printed: str, spoken: str) -> None:
+    assert read_de(printed) == [spoken]
+
+
+@pytest.mark.parametrize(
+    ("printed", "spoken"),
+    [
+        ("Die Wirtschaftlich-\nkeit sinkt.", "Die Wirtschaftlichkeit sinkt."),
+        ("Das ist natür-\nlich gut.", "Das ist natürlich gut."),
+        ("die tech-\nnischen Maßnahmen", "die technischen Maßnahmen"),
+        ("die gesell-\nschaftlichen Fragen", "die gesellschaftlichen Fragen"),  # "ell", narrowed
+        ("die mittelal-\nterlichen Städte", "die mittelalterlichen Städte"),  # after: stem 3
+        ("die einzig-\nartigen Funde", "die einzigartigen Funde"),  # after: stem 3
+        ("die al-\nternative Lösung", "die alternative Lösung"),  # before: stem 0
+        ("fertig-\nstellen", "fertigstellen"),  # "ell" narrowed
+        ("die rot-\ngrüne Koalition", "die rotgrüne Koalition"),  # no ending: left out
+        ("Deutsch-\nfranzösische Gespräche", "Deutschfranzösische Gespräche"),  # capital
+        (
+            "die deutsch-\nfranzösisch Gespräche",
+            "die deutschfranzösisch Gespräche",
+        ),  # no inflection
+    ],
+)
+def test_german_these_are_no_adjective_pair(printed: str, spoken: str) -> None:
+    assert read_de(printed) == [spoken]
+
+
+@pytest.mark.parametrize("ending", ADJECTIVE_ENDINGS)
+@pytest.mark.parametrize("inflection", INFLECTIONS)
+def test_german_each_ending_and_inflection_with_its_stem_minimums(
+    ending: str, inflection: str
+) -> None:
+    assert read_de(f"bcd{ending}-\nfghk{ending}{inflection}") == [
+        f"bcd{ending}-fghk{ending}{inflection}"
+    ]
+    assert read_de(f"bc{ending}-\nfghk{ending}{inflection}") == [
+        f"bc{ending}fghk{ending}{inflection}"
+    ]
+    assert read_de(f"bcd{ending}-\nfgh{ending}{inflection}") == [
+        f"bcd{ending}fgh{ending}{inflection}"
+    ]
+
+
+def test_the_endings_and_inflections_are_the_planned_ones() -> None:
+    assert ADJECTIVE_ENDINGS == (
+        "sch", "lich", "ig", "al", "iv", "iell", "uell", "rell", "nell", "mell", "är",
+    )  # fmt: skip
+    assert INFLECTIONS == ("e", "en", "er", "es", "em")
+
+
+def test_german_adjective_pair_reason() -> None:
+    document = make_document([(BlockKind.PARAGRAPH, "die deutsch-\nfranzösischen")], "de")
+    (edit,) = STEP.find(document, DE)
+    assert edit.span == Span(0, 12, 13)
+    assert edit.reason == (
+        'hyphen at a line end kept, read as one word: "deutsch-französischen" (an adjective pair)'
+    )
+
+
+def test_german_the_document_spelling_comes_before_the_adjective_pair() -> None:
+    assert read_de("die deutsch-\nfranzösischen und deutschfranzösischen") == [
+        "die deutschfranzösischen und deutschfranzösischen"
+    ]
+
+
+def test_english_has_no_adjective_pair_rule() -> None:
+    assert read("The deutsch-\nfranzösischen case.") == ["The deutschfranzösischen case."]
+    assert not HYPHEN_WORDS["en"].adjective_pairs
+
+
 # Property tests: words joined mostly by line-end hyphens, so most examples exercise the rule
 # (about 3 in 4 propose an edit; the Unicode tests reach about the same).
 WORDS = ["ab", "cd", "x", "Ab", "and", "self", "based", "pre", "pre-train", "1", ".", "ﬁ",
@@ -359,7 +540,8 @@ def test_the_step_keeps_the_contract_on_any_text(blocks: list[str]) -> None:
 
 # German words with umlauts, ß and the German conjunctions, so the German paths are reached
 GERMAN_WORDS = ["Bun", "des", "und", "oder", "bzw.", "Über", "ße", "Pandemie", "E", "PDF",
-                "19", "noch", "Kinder", "bis"]  # fmt: skip
+                "19", "noch", "Kinder", "bis", "zu", "Grundverord", "nung", "deutsch",
+                "französischen", "sozial", "e"]  # fmt: skip
 german_texts = st.lists(
     st.tuples(st.sampled_from(GERMAN_WORDS), st.sampled_from(GAPS)), max_size=8
 ).map(lambda pairs: "".join(word + gap for word, gap in pairs))
@@ -369,6 +551,36 @@ german_texts = st.lists(
 def test_the_step_keeps_the_contract_on_any_german_text(blocks: list[str]) -> None:
     document = make_document([(BlockKind.PARAGRAPH, text) for text in blocks], "de")
     check_text_step(STEP, [document], allow_ask=False)
+
+
+LOWER = "bcdfghklmnprstvwzäöü"
+lower_stems = st.text(LOWER, min_size=4, max_size=8)
+capital_parts = st.tuples(st.sampled_from("BDFGKLMPRSTVWZ"), st.text(LOWER, min_size=1, max_size=6))
+
+
+@given(capital_parts, capital_parts, lower_stems)
+def test_german_a_hyphenated_word_before_a_lower_case_rest_is_joined(
+    first: tuple[str, str], second: tuple[str, str], rest: str
+) -> None:
+    """#240: the last part is a capital part (no chain word), the rest is lower case."""
+    head, tail = "".join(first), "".join(second)
+    assert read_de(f"Die {head}-{tail}-\n{rest} gilt.") == [f"Die {head}-{tail}{rest} gilt."]
+
+
+@given(
+    st.text(LOWER, min_size=3, max_size=6),
+    st.sampled_from(ADJECTIVE_ENDINGS),
+    lower_stems,
+    st.sampled_from(ADJECTIVE_ENDINGS),
+    st.sampled_from(INFLECTIONS),
+)
+def test_german_an_adjective_pair_keeps_its_hyphen_on_any_stems(
+    stem: str, ending: str, stem_after: str, ending_after: str, inflection: str
+) -> None:
+    """#223: both parts lower case, the stems at least 3 and 4 letters long."""
+    before, after = stem + ending, stem_after + ending_after + inflection
+    assert read_de(f"die {before}-\n{after} Sache") == [f"die {before}-{after} Sache"]
+    assert read(f"the {before}-\n{after} thing") == [f"the {before}{after} thing"]
 
 
 @given(st.lists(texts, min_size=1, max_size=3))
@@ -423,7 +635,7 @@ def test_every_corpus_line_end_hyphen_reads_as_checked_by_hand(paper: Path) -> N
     (expected,) = [p["hyphens"] for p in readings["paper"] if p["name"] == paper.stem]
     misses = {
         (m["before"], m["after"]): m["rule_gives"]
-        for m in readings["miss"]
+        for m in readings.get("miss", [])
         if m["paper"] == paper.stem
     }
     got = readings_by_rule(document(paper))
@@ -436,15 +648,15 @@ def test_every_corpus_line_end_hyphen_reads_as_checked_by_hand(paper: Path) -> N
 def test_the_readings_file_covers_every_paper_and_the_misses_are_real() -> None:
     named = sorted(p["name"] for readings in (READINGS, READINGS_DE) for p in readings["paper"])
     assert named == [paper.stem for paper in PAPERS]
-    for readings, total, most in ((READINGS, 495, 7), (READINGS_DE, 38, 1)):
+    for readings, total, most in ((READINGS, 495, 7), (READINGS_DE, 38, 0)):
         assert sum(len(p["hyphens"]) for p in readings["paper"]) == total
-        for miss in readings["miss"]:
+        for miss in readings.get("miss", []):
             (paper,) = [p for p in readings["paper"] if p["name"] == miss["paper"]]
             pair = (miss["before"], miss["after"])
             truths = {r for b, a, r in paper["hyphens"] if (b, a) == pair}
             assert truths, miss
             assert miss["rule_gives"] not in truths, miss
-        assert len(readings["miss"]) <= most  # the rule may get better, never worse
+        assert len(readings.get("miss", [])) <= most  # the rule may get better, never worse
 
 
 def truth_sentences() -> list[tuple[Path, str]]:

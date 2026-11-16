@@ -7,7 +7,8 @@
 # How the readings were set: each was read by hand against the paper's LaTeX source on arXiv,
 # where the authors write a hyphen that belongs to a word as "= ("Datenschutz"=Aufsichtsbehörden,
 # PrivacyScore"=Plattform) and let TeX split every other word. [[miss]] tables list where
-# `line-end-hyphens` reads differently today and why.
+# `line-end-hyphens` reads differently today and why; there are none since #240 (the one miss was
+# "Datenschutz-Grundverord-" / "nung").
 
 [[paper]]
 name = "arxiv2017-maass-privacyscore"
@@ -51,10 +52,3 @@ hyphens = [
     ["Interes-", "senabwägung", "join"],
     ["Seitenbetrei-", "bers", "join"],
 ]
-
-[[miss]]
-paper = "arxiv2017-maass-privacyscore"
-before = "Datenschutz-Grundverord-"
-after = "nung"
-rule_gives = "keep"
-why = "a word with a hyphen of its own, split again by TeX: the rule keeps a hyphen after a hyphenated word (#240)"

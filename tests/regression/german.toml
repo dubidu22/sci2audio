@@ -43,10 +43,64 @@ expected = ["Die PDF-datei kam per E-mail, der Test lief mit COVID-19-Daten."]
 id = "de-hyphen-inside-word-kept"
 audit = 0
 issue = 96
-goal = "A hyphen already inside the first part keeps the one at the line end."
+goal = "A hyphen already inside the first part keeps the one at the line end before a capital or after a chain word (#96, #240)."
 language = "de"
-blocks = [{ kind = "paragraph", text = "Eine Ad-hoc-\nanalyse folgte." }]
-expected = ["Eine Ad-hoc-analyse folgte."]
+blocks = [{ kind = "paragraph", text = "Eine Ad-hoc-\nAnalyse und ein Peer-to-\npeer-Netz folgten." }]
+expected = ["Eine Ad-hoc-Analyse und ein Peer-to-peer-Netz folgten."]
+
+[[case]]
+id = "de-hyphen-split-again-joined"
+audit = 0
+issue = 240
+goal = "A word with a hyphen of its own, split again at a line end before a lower-case rest, is joined there."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Datenschutz-Grundverord-\nnung und die PDF-Daten-\nbank gelten." }]
+expected = ["Die Datenschutz-Grundverordnung und die PDF-Datenbank gelten."]
+
+[[case]]
+id = "de-hyphen-chain-kept"
+audit = 0
+issue = 240
+goal = "A line-end hyphen after a chain word or before a capital belongs to the word: 'Ende-zu-Ende', 'State-of-the-art'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Eine Ende-zu-\nEnde-Verschlüsselung und ein State-of-the-\nart-Verfahren fehlen." }]
+expected = ["Eine Ende-zu-Ende-Verschlüsselung und ein State-of-the-art-Verfahren fehlen."]
+
+[[case]]
+id = "de-hyphen-adjective-pair-kept"
+audit = 0
+issue = 223
+goal = "A hyphenated adjective pair keeps its hyphen at a line end: 'deutsch-französischen'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die deutsch-\nfranzösischen Beziehungen, die technisch-\norganisatorischen Maßnahmen und die sozial-\nemotionale Entwicklung." }]
+expected = ["Die deutsch-französischen Beziehungen, die technisch-organisatorischen Maßnahmen und die sozial-emotionale Entwicklung."]
+
+[[case]]
+id = "de-hyphen-adjective-ending-split-joined"
+audit = 0
+issue = 223
+goal = "A word split after an adjective-like ending is still joined: 'Wirtschaftlichkeit', 'natürlich', 'gesellschaftlichen'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Wirtschaftlich-\nkeit ist natür-\nlich gut, die tech-\nnischen und gesell-\nschaftlichen Fragen und die einzig-\nartigen Funde." }]
+expected = ["Die Wirtschaftlichkeit ist natürlich gut, die technischen und gesellschaftlichen Fragen und die einzigartigen Funde."]
+
+[[case]]
+id = "de-hyphen-adjective-pair-printed-closed"
+audit = 0
+issue = 223
+goal = "The document's own spelling comes first: a pair it prints closed elsewhere is joined at the line end too."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die deutsch-\nfranzösischen Beziehungen und die deutschfranzösischen Verträge." }]
+expected = ["Die deutschfranzösischen Beziehungen und die deutschfranzösischen Verträge."]
+
+[[case]]
+id = "de-hyphen-adjective-pair-not-covered"
+audit = 0
+issue = 223
+goal = "A pair without an adjective ending stays joined, a known limit: 'rotgrüne'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die rot-\ngrüne Koalition." }]
+expected = ["Die rotgrüne Koalition."]
 
 [[case]]
 id = "de-hyphen-suspended"

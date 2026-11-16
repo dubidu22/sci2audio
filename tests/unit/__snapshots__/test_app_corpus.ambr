@@ -10424,15 +10424,15 @@
         'end': 362,
         'kind': 'remove',
         'original': '''
-          
+          -
   
         ''',
         'page': 10,
         'printed_page': '',
-        'reason': 'hyphen at a line end kept, read as one word: "Datenschutz-Grundverord-nung" (a compound)',
+        'reason': 'word split at a line end joined: "Datenschutz-Grundverordnung"',
         'said': '',
         'spoken': True,
-        'start': 361,
+        'start': 360,
         'status': 'accepted',
         'step': 'line-end-hyphens',
       }),
@@ -11459,7 +11459,7 @@
   - page 9, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Datenschützer". Step: line-end-hyphens.
   - page 10, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Nutzungsprofilen". Step: line-end-hyphens.
   - page 10, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Verschlüsselungspflicht". Step: line-end-hyphens.
-  - page 10, chapter 7, applied: “↵” → left out. Reason: hyphen at a line end kept, read as one word: "Datenschutz-Grundverord-nung" (a compound). Step: line-end-hyphens.
+  - page 10, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Datenschutz-Grundverordnung". Step: line-end-hyphens.
   - page 10, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "Bewertung" (the document prints it so). Step: line-end-hyphens.
   - page 11, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "erforderlich" (the document prints it so). Step: line-end-hyphens.
   - page 11, chapter 7, applied: “-↵” → left out. Reason: word split at a line end joined: "technisch" (the document prints it so). Step: line-end-hyphens.
@@ -14357,7 +14357,7 @@
   
   Ähnlich stellt es sich bei fehlender Verschlüsselungssoftware dar, da eine generelle Verschlüsselungspflicht für Webseitenbetreiber nicht ausdrücklich normiert ist.
   Vorschriften zur Datensicherheit finden sich derzeit unter anderem in § 9 Bundesdatenschutz (BDSG) und dessen Anlage sowie im für Telemedien spezielleren § 13 Absatz 7 TMG.
-  Da die Datenschutz-Grundverord-nung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gemäß § 288 Absatz 2 AEUV mit Geltungsbeginn am fünfundzwanzigsten Mai 2018 unmittelbar in den Mitgliedsstaaten anwendbar sein werden,
+  Da die Datenschutz-Grundverordnung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gemäß § 288 Absatz 2 AEUV mit Geltungsbeginn am fünfundzwanzigsten Mai 2018 unmittelbar in den Mitgliedsstaaten anwendbar sein werden,
   werden sie diese nationalen Regelungen im Rahmen des Anwendungsvorrangs verdrängen.
   Aus Erwägungsgrund 5 des Entwurfs der e-Privacy-VO geht hervor, dass diese gegenüber der DSGVO spezieller sein soll, wenn ihr Anwendungsbereich betroffen ist.
   Gleichzeitig verweist Erwägungsgrund 37 des Verordnungsentwurfs hinsichtlich der Bewertung der Datensicherheit auf Artikel 32 DSGVO, in dem in Verbindung mit Artikel 5 Absatz 1 Buchstabe f DSGVO die Datensicherheit als allgemeiner Grundsatz normiert ist.
