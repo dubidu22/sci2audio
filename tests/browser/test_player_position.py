@@ -49,13 +49,15 @@ def test_the_next_run_offers_to_continue_where_the_person_stopped(
     with serve(tmp_path, live.voice, SlowFetch()) as second:
         assert second.url != live.url  # another port: the browser's storage starts empty
         page.unroute("**/*")
+        exit_save = f"{live.url}/api/v1/documents/{document}/position"
         page.route(
             "**/*",
             lambda route: (
                 route.continue_()
+                if inside(route.request.url, second.url)
                 # the first run's page saves its position on its way out, to its own server
                 # (Firefox sends that save after this route is set)
-                if inside(route.request.url, second.url) or inside(route.request.url, live.url)
+                or (route.request.method == "POST" and route.request.url == exit_save)
                 else (live.outside.append(route.request.url), route.abort())
             ),
         )

@@ -64,7 +64,7 @@ German reading and a better player. German texts are read as German: a German vo
 
 ### Known issues
 
-- A table, figure, formula or code block printed inside the reference list is left out with the list, as it should be. But if the listening script is read a second time, it gets its short notice (#410). This was already in 1.0.0, and the audiobook itself is not affected.
+- For plugin authors: a table, figure, formula or code block printed inside the reference list is left out with the list, as it should be, but a second run over `sci2audio.testing.rebuilt_from_script` gives it its short notice, so the second-run check reports a difference (#410). Tables, figures and formulas did the same in 1.0.0. The audiobook and the listening script are not affected.
 
 ## [1.0.0] - 2026-11-14
 
