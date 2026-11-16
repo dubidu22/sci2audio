@@ -2,8 +2,8 @@
 {% block title %}{{ t('settings.title') }} · {{ t('common.app') }}{% endblock %}
 {% block main %}
 <h1>{{ t('settings.title') }}</h1>
-{#- Settings (#388, prototype/app/screens/settings.png). Appearance, language and the
-    announcements are GET forms that set their own cookie and come back here (D-288, D-321,
+{#- Settings (#388, prototype/app/screens/settings.png). Appearance, language, the
+    announcements and the keyboard shortcuts (#394) are GET forms that set their own cookie and come back here (D-288, D-321,
     D-671): they work without the script. The defaults are the settings file's, saved by the
     script through the API. The capture sound follows with the study layer (#397). #}
 {% if warnings %}<p class="note" id="settings-warning">{{ t('settings.file_warning') }}</p>{% endif %}
@@ -59,6 +59,16 @@
       <label for="settings-announce">{{ t('settings.announce') }}</label>
       <span class="hint" id="settings-announce-hint">{{ t('settings.announce_hint') }}</span>
       <p class="buttons" id="announce-save-line"><button type="submit" class="sm">{{ t('settings.announce_save') }}</button></p>
+    </div>
+  </form>
+  <form method="get" action="/appearance" id="keys-form" class="setting-switch">
+    <input type="hidden" name="back" value="/settings">
+    <input type="hidden" name="keys" value="off">
+    <input type="checkbox" role="switch" class="switch" id="settings-keys" name="keys" value="on" aria-describedby="settings-keys-hint"{% if keys %} checked{% endif %}>
+    <div>
+      <label for="settings-keys">{{ t('settings.keys') }}</label>
+      <span class="hint" id="settings-keys-hint">{{ t('settings.keys_hint') }}</span>
+      <p class="buttons" id="keys-save-line"><button type="submit" class="sm">{{ t('settings.announce_save') }}</button></p>
     </div>
   </form>
 </section>

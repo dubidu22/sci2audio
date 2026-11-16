@@ -1,0 +1,10 @@
+{#- A key as the keyboard shortcuts sheet and Focus listening show it (#394): its sign, and
+    for screen readers its name where the sign alone is not said well. -#}
+{% macro key(name) -%}
+{%- if name == 'space' -%}<kbd>{{ t('keys.space') }}</kbd>
+{%- elif name == 'left' -%}<kbd><span aria-hidden="true">←</span><span class="visually-hidden">{{ t('keys.left') }}</span></kbd>
+{%- elif name == 'right' -%}<kbd><span aria-hidden="true">→</span><span class="visually-hidden">{{ t('keys.right') }}</span></kbd>
+{%- elif name == 'shift' -%}<kbd><span aria-hidden="true">⇧</span><span class="visually-hidden">{{ t('keys.shift') }}</span></kbd>
+{%- else -%}<kbd>{{ name }}</kbd>
+{%- endif -%}
+{%- endmacro %}

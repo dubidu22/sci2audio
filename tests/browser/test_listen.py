@@ -1,7 +1,8 @@
-"""The Listen page of the Working Reader in Chromium (#392, #393): the sweep follows the
-voice and stands still under reduced motion, a sentence is told to screen readers only when
-the person switched that on, the context panel beside the desk and over it, the timeline,
-the buttons drawn disabled until the script wires them, and a book of 1,000 pages.
+"""The Listen page of the Working Reader in Chromium (#392, #393): the sentence being read
+is marked plainly, without motion (D-709, #452), and a heard one keeps its tint; a sentence
+is told to screen readers only when the person switched that on; the context panel beside
+the desk and over it, the timeline, the buttons drawn disabled until the script wires them,
+and a book of 1,000 pages.
 
 The fake voice speaks 0.1 s per character (`test_player.PER_CHARACTER`), so the sentences
 last long enough to be seen.
@@ -25,20 +26,35 @@ from sci2audio.web.player import recorded_folder
 NOW = "#text .s.now"
 
 
-def sweep(page: Page) -> dict[str, Any]:
-    """The sentence being read and its animations."""
+def look(page: Page, selector: str) -> dict[str, Any]:
+    """How an element is drawn: its animations (and the page's), its background and lines."""
     return dict(
         page.evaluate(
-            """() => {
-                const e = document.querySelector('#text .s.now');
-                if (!e) return {id: '', count: 0};
-                const all = e.getAnimations();
-                return {id: e.id, count: all.length, state: all[0]?.playState ?? '',
-                        rate: all[0]?.playbackRate ?? 0, time: all[0]?.currentTime ?? 0,
-                        size: getComputedStyle(e).backgroundSize};
-            }"""
+            """(selector) => {
+                const e = document.querySelector(selector);
+                if (!e) return {id: ''};
+                const style = getComputedStyle(e);
+                return {id: e.id, animations: e.getAnimations().length,
+                        all: document.getAnimations().length,
+                        background: style.backgroundColor, image: style.backgroundImage,
+                        line: style.textDecorationLine};
+            }""",
+            selector,
         )
     )
+
+
+def marked_plainly(page: Page, selector: str) -> dict[str, Any]:
+    """The mark of the sentence being read (D-709): a colour of its own, nothing moving,
+    no underline, no growing gradient."""
+    now = look(page, selector)
+    assert now["id"], now
+    assert now["animations"] == 0, now
+    assert now["all"] == 0, now
+    assert now["line"] == "none", now
+    assert now["image"] == "none", now
+    assert now["background"] not in ("", "rgba(0, 0, 0, 0)", "transparent"), now
+    return now
 
 
 def book_time(page: Page) -> float:
@@ -61,58 +77,54 @@ def stretch_of(page: Page, element: str) -> tuple[float, float]:
     return times[0][0], times[-1][1]
 
 
-def test_the_sweep_follows_the_voice_and_a_heard_sentence_keeps_its_tint(
+def test_the_sentence_being_read_is_marked_plainly_and_a_heard_one_keeps_its_tint(
     signed_in: Page, live: Live
 ) -> None:
+    """D-709 (#452): the sentence being read is marked at once, without motion or underline,
+    while the voice reads, at another speed and paused; a heard one keeps a tint that is
+    clearly not the mark."""
     page = signed_in
     make_audiobook(page, live)
     page.get_by_role("button", name="Play").click()
     page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
-    first = sweep(page)
-    assert first["count"] == 1, first
-    assert first["state"] == "running", first
-    # the next sentence takes the sweep over; the one read keeps the pale tint
+    first = marked_plainly(page, NOW)
+    page.wait_for_timeout(400)  # well into the sentence: still the same plain mark
+    assert marked_plainly(page, NOW) == first
+    # the next sentence takes the mark over; the one read keeps the pale tint
     page.wait_for_function(
         f"() => document.querySelector('{NOW}')?.id !== '{first['id']}'", timeout=20_000
     )
     expect(page.locator(f"#{first['id']}")).to_have_class(re.compile(r"\bdone\b"))
-    assert page.locator(f"#{first['id']}").evaluate("e => e.getAnimations().length") == 0
-    # the speed is the sweep's speed too
+    heard = look(page, f"#{first['id']}")
+    second = marked_plainly(page, NOW)
+    assert heard["background"] != second["background"], (heard, second)
+    assert heard["line"] == "none", heard
+    assert heard["animations"] == 0, heard
     page.get_by_label("Speed").select_option("1.5")
-    page.wait_for_function(
-        "() => document.querySelector('#text .s.now')?.getAnimations()[0]?.playbackRate === 1.5"
-    )
-    # paused, the sweep stands where the voice stands
+    page.wait_for_function("() => document.getElementById('audio').playbackRate === 1.5")
+    marked_plainly(page, NOW)
     page.get_by_role("button", name="Pause").click()
-    page.wait_for_function(
-        "() => document.querySelector('#text .s.now')?.getAnimations()[0]?.playState === 'paused'"
-    )
-    now = sweep(page)
-    start, _end = stretch_of(page, now["id"])
-    expected = (book_time(page) - start) * 1000
-    assert abs(now["time"] - expected) < 250, (now, expected)
+    page.wait_for_function("() => document.getElementById('audio').paused")
+    now = marked_plainly(page, NOW)
     # a jump while paused: no tint for a sentence that was not heard through
     target = chunk_id(page, "We measured it twice.")
     page.locator(f"#{target}").click()
     page.wait_for_function("() => !document.getElementById('audio').paused")
     expect(page.locator(f"#{now['id']}")).not_to_have_class(re.compile(r"\bdone\b"))
-    check_axe(page, "listen, sweeping")
+    check_axe(page, "listen, reading")
 
 
-def test_under_reduced_motion_the_whole_sentence_is_highlighted_at_once(
-    signed_in: Page, live: Live
-) -> None:
+def test_under_reduced_motion_the_mark_is_the_same(signed_in: Page, live: Live) -> None:
     page = signed_in
-    page.emulate_media(reduced_motion="reduce")
     make_audiobook(page, live)
     page.get_by_role("button", name="Play").click()
     page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
-    page.wait_for_timeout(300)
-    now = sweep(page)
-    assert now["count"] == 0, now  # nothing moves
-    assert now["size"] == "100% 100%", now
-    animated = page.evaluate("() => document.getAnimations().map((a) => a.animationName ?? '')")
-    assert animated == [], animated
+    moving = marked_plainly(page, NOW)
+    page.get_by_role("button", name="Pause").click()
+    page.emulate_media(reduced_motion="reduce")
+    still = marked_plainly(page, NOW)
+    assert still["background"] == moving["background"]
+    page.emulate_media(reduced_motion="no-preference")
 
 
 def watch_reading(page: Page) -> None:
@@ -242,6 +254,69 @@ def test_below_1280_px_the_focus_never_goes_under_the_panel(signed_in: Page, liv
     page.set_viewport_size({"width": 1280, "height": 720})
 
 
+def test_below_1280_px_a_click_on_text_inside_the_panel_leaves_it_open(
+    signed_in: Page, live: Live
+) -> None:
+    """#447: a click on text inside the open panel sends the focus nowhere (no related
+    target); the panel stays open, and only a move of the focus outside it closes it."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.set_viewport_size({"width": 1024, "height": 768})
+    panel = page.locator("#context")
+    page.locator("#panel-toggle").click()
+    expect(page.locator("#tab-outline")).to_be_focused()
+    page.locator("#tab-changes").click()
+    expect(page.locator("#tab-changes")).to_be_focused()
+    page.locator("#panel-changes .chg-name").first.click()
+    expect(page.locator("#tab-changes")).not_to_be_focused()
+    expect(panel).to_be_visible()
+    expect(page.locator("#panel-toggle")).to_have_attribute("aria-expanded", "true")
+    page.keyboard.press("Tab")  # from where the press left the focus: out of the panel
+    expect(panel).to_be_hidden()
+    assert uncovered(page)
+    page.locator("#panel-toggle").click()
+    page.locator("#tab-outline").click()
+    page.locator("#panel-outline .chapter-button").last.click()  # the press is not lost
+    expect(panel).to_be_visible()
+    expect(page.locator("#panel-outline .chapter-button").last).to_have_attribute(
+        "aria-current", "true"
+    )
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
+def test_below_1280_px_a_press_that_never_ends_does_not_hold_the_panel_open(
+    signed_in: Page, live: Live
+) -> None:
+    """#451 review S2: a press inside the panel whose release never comes (a drag out of the
+    window, a context menu, another window) ends with the next key, a context menu or the
+    window losing the focus; the next move of the focus outside then closes the panel."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.set_viewport_size({"width": 1024, "height": 768})
+    panel = page.locator("#context")
+    toggle = page.locator("#panel-toggle")
+    pressed = "e => e.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true}))"
+    toggle.click()
+    page.locator("#tab-outline").evaluate(pressed)  # down, and never up
+    page.locator("#follow").focus()
+    page.keyboard.press("Tab")  # the key ends the press: out of the panel
+    expect(panel).to_be_hidden()
+    expect(page.locator("#follow")).not_to_be_focused()
+    assert uncovered(page)
+    for ended in (
+        "() => window.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true}))",
+        "() => window.dispatchEvent(new Event('blur'))",
+    ):
+        toggle.click()
+        expect(panel).to_be_visible()
+        page.locator("#tab-outline").evaluate(pressed)
+        page.evaluate(ended)
+        page.get_by_role("button", name="Play").focus()  # no key: the focus moves by itself
+        expect(panel).to_be_hidden()
+        expect(toggle).to_have_attribute("aria-expanded", "false")
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
 def test_the_timeline_moves_the_reading_by_keyboard(signed_in: Page, live: Live) -> None:
     page = signed_in
     make_audiobook(page, live)
@@ -317,7 +392,10 @@ def test_every_button_waits_for_the_script(signed_in: Page, live: Live) -> None:
     page.reload(wait_until="commit")
     page.wait_for_function("() => document.getElementById('dock') !== null")
     page.wait_for_function("() => document.readyState !== 'loading'")
-    controls = "#dock button:not([hidden]), #dock input, #context button, #panel-toggle"
+    controls = (
+        "#dock button:not([hidden]), #dock input, #context button, #panel-toggle, #focus-on, "
+        "#focus-off"
+    )
     states = page.evaluate(
         f"() => [...document.querySelectorAll('{controls}')].map(e => e.disabled)"
     )

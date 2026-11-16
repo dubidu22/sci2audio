@@ -34,11 +34,16 @@ VARIANTS = {"light": ("en", "light"), "dark": ("en", "dark"), "de": ("de", "ligh
 pytestmark = pytest.mark.skipif(not FOLDER, reason="screenshots only on the ui:screens label")
 
 
-def shoot(page: Page, live: Live, state: str, path: str, out: Path) -> None:
-    """One page state in every size and variant."""
+def shoot(page: Page, live: Live, state: str, path: str, out: Path, key: str = "") -> None:
+    """One page state in every size and variant; `key` is pressed on the page first (Focus
+    listening and the shortcuts sheet have no address of their own, #394)."""
     for variant, (language, scheme) in VARIANTS.items():
         page.goto(f"{live.url}/language?language={language}&back={path}")
         page.emulate_media(color_scheme=scheme)  # type: ignore[arg-type]
+        if key:  # once: the state stays across the sizes
+            page.wait_for_load_state("load")
+            page.evaluate("() => document.activeElement?.blur()")
+            page.keyboard.press(key)
         for width, height in SIZES.items():
             page.set_viewport_size({"width": width, "height": height})
             page.wait_for_load_state("load")
@@ -128,9 +133,11 @@ def test_every_page_as_screenshots(signed_in: Page, live: Live) -> None:
     expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=120_000)
     take("done", page.url.removeprefix(live.url).split("#")[0])
     take("listen", f"/documents/{paper}/listen")
+    shoot(page, live, "focus", f"/documents/{paper}/listen", out, key="f")
+    shoot(page, live, "shortcuts", "/", out, key="?")
 
     shots = sorted(out.glob("*.png"))
-    assert len(shots) == 17 * len(SIZES) * len(VARIANTS)
+    assert len(shots) == 19 * len(SIZES) * len(VARIANTS)
 
 
 class Fail:

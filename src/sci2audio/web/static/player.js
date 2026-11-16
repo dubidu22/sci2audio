@@ -1,6 +1,8 @@
 // The read-along player (#78, OU-02; D-294 to D-303) and the Listen page around it: the
-// sweep, the dock and the context panel (#392, #393). Loaded only by the listen page, after
-// app.js, whose `tr` and `say` it uses (D-302).
+// highlight, the dock and the context panel (#392, #393), Focus listening and the keys
+// (#394).
+// Loaded only by the listen page, after app.js, whose `tr`, `say` and `typing` it uses
+// (D-302).
 //
 // The page holds the text; every sentence the voice reads is an element `.s` with the
 // number of its first chunk. The data block holds, per chunk, [start, end, chapter,
@@ -35,15 +37,6 @@ function readAlong() {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
   const total = clockOf(Number(timeline.max) || 0);
 
-  // each sentence element's stretch of the book's timeline: the sweep runs over all of it,
-  // also where empty spans share the element (one pass, for books of 1,000+ pages, #392)
-  const stretch = new Map();
-  for (const [start, end, , id] of chunks) {
-    const known = stretch.get(id);
-    if (known) known[1] = Math.max(known[1], end);
-    else stretch.set(id, [start, end]);
-  }
-
   let loaded = -1; // the chapter whose file the audio element holds
   let current = -1; // the chunk highlighted
   let marked = null; // its element
@@ -52,6 +45,7 @@ function readAlong() {
   let pending = null; // what to do once the file being loaded is ready
   let touched = false; // the person played or moved: from then on the position is kept
   let savedAt = 0; // when the position was last sent (performance.now())
+  let focusing = false; // Focus listening is shown (#394)
 
   // the dock is pinned to the window's foot only while it takes at most a quarter of the
   // window, and then nothing focused or scrolled to may hide under it (WCAG 1.4.10, 2.4.11):
@@ -109,6 +103,7 @@ function readAlong() {
     title.lang = text.lang;
     title.textContent = chapters[c].title;
     now.replaceChildren(tr("player.chapter", { n: c + 1, total: chapters.length }), " ", title);
+    focusChapter.textContent = chapters[c].title;
     for (const button of chapterButtons) {
       if (Number(button.dataset.chapter) === c) button.setAttribute("aria-current", "true");
       else button.removeAttribute("aria-current");
@@ -138,37 +133,9 @@ function readAlong() {
     element.scrollIntoView({ block: "center", behavior });
   }
 
-  // ---- the sweep (#392, DESIGN.md "Reading sweep") ---------------------------------------
-  // The reading yellow grows over the sentence for as long as the voice reads it: an
-  // animation of its background-size (the Web Animations API; the page allows no style
-  // attribute), held at the audio's time and rate. Under reduced motion nothing moves: the
-  // whole sentence is highlighted at once (the stylesheet's `.now`).
-  let sweep = null;
-
-  function sweepStop() {
-    if (sweep) sweep.cancel();
-    sweep = null;
-  }
-
-  function sweepSync() {
-    if (!marked || reduced.matches || !marked.animate) {
-      sweepStop();
-      return;
-    }
-    const [start, end] = stretch.get(marked.id) || [0, 0];
-    const length = Math.max(end - start, 0.001) * 1000;
-    if (!sweep) {
-      sweep = marked.animate(
-        [{ backgroundSize: "0% 100%" }, { backgroundSize: "100% 100%" }],
-        { duration: length, easing: "linear", fill: "forwards" },
-      );
-    }
-    sweep.currentTime = Math.min(Math.max((bookTime() - start) * 1000, 0), length);
-    sweep.playbackRate = audio.playbackRate || 1;
-    if (audio.paused || pending || loaded < 0) sweep.pause();
-    else sweep.play();
-  }
-  reduced.addEventListener?.("change", sweepSync);
+  // ---- the highlight (#392, #452) -------------------------------------------------------
+  // The sentence being read is marked at once, plainly and without motion (D-709): the
+  // stylesheet's `.now` on the sheet, and the stage's copy of it in Focus listening.
 
   // the sentence being read is told to screen readers only if the person switched that on
   // in Settings (#388); otherwise the highlight never speaks (D-300)
@@ -189,12 +156,11 @@ function readAlong() {
       marked.classList.remove("now");
       marked.removeAttribute("aria-current");
     }
-    sweepStop();
     marked = element;
+    stage();
     if (marked) {
       marked.classList.add("now");
       marked.setAttribute("aria-current", "true");
-      sweepSync();
       announce(marked);
       reveal(marked);
     }
@@ -393,23 +359,119 @@ function readAlong() {
     if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
     audio.defaultPlaybackRate = value;
     audio.playbackRate = value;
-    if (sweep) sweep.playbackRate = value;
   }
   speed.addEventListener("change", applySpeed);
   audio.addEventListener("loadedmetadata", applySpeed);
   applySpeed();
 
+  // ---- Focus listening (#394, DESIGN.md "Focus") ------------------------------------------
+  // A mode of this page with no address of its own: the rail, the sheet and the panel give
+  // way to the stage, which shows the sentence being read between its neighbours, copied
+  // from the sheet's own elements (with their marks); the dock and the voice go on.
+  const focusView = document.getElementById("focus-view");
+  const focusOn = document.getElementById("focus-on");
+  const focusOff = document.getElementById("focus-off");
+  const focusPrevious = document.getElementById("focus-prev");
+  const focusNow = document.getElementById("focus-now");
+  const focusNext = document.getElementById("focus-next");
+  const focusChapter = document.getElementById("focus-chapter");
+  const order = [...new Set(chunks.map((chunk) => chunk[3]))]; // sentences in reading order
+  const place = new Map(order.map((id, at) => [id, at]));
+
+  function copy(id) {
+    const element = id ? document.getElementById(id) : null;
+    if (!element) return [];
+    // a spoken notice: its words, without the icon or the text found in the file
+    const words = element.classList.contains("notice") ? element.querySelector("p > span") : element;
+    return [...(words || element).childNodes].map((node) => node.cloneNode(true));
+  }
+
+  function stage() {
+    if (!focusing) return;
+    const id = marked ? marked.id : order[0];
+    const at = place.get(id) ?? 0;
+    focusPrevious.replaceChildren(...copy(order[at - 1]));
+    focusNow.replaceChildren(...copy(id));
+    focusNext.replaceChildren(...copy(order[at + 1]));
+  }
+
+  function setFocus(on) {
+    if (on === focusing) return;
+    focusing = on;
+    document.documentElement.classList.toggle("focus-listening", on);
+    focusView.hidden = !on;
+    stage();
+    pad();
+    // Focus shows the reading itself, and leaving it comes back to the reading: either way
+    // the page follows the reading again, and Back to the reading has nothing to offer
+    following = true;
+    back.hidden = true;
+    if (on) {
+      focusView.focus(); // a panel open over the page closes, as the focus leaves it (#447)
+      return;
+    }
+    reveal(marked);
+    focusOn.focus();
+  }
+  focusOn.addEventListener("click", () => setFocus(true));
+  focusOff.addEventListener("click", () => setFocus(false));
+
+  // ---- the keys (#394) ------------------------------------------------------------------
+  // Space, the arrows and Shift with them on a focused control do what the control does; no
+  // key acts while the person types, while a dialog is open, or with ⌘, Ctrl or Alt held,
+  // so no browser or system shortcut is taken.
+  const CONTROLS = "button, a[href], input, select, textarea, summary, audio, [role='tab'], [tabindex]:not([tabindex='-1'])";
+
+  function stepSpeed(by) {
+    const to = speed.selectedIndex + by;
+    if (to < 0 || to >= speed.options.length) return;
+    speed.selectedIndex = to;
+    speed.dispatchEvent(new Event("change"));
+    say(tr("player.speed_now", { speed: speed.options[to].text }));
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (document.querySelector("dialog[open]")) return;
+    const key = event.key;
+    // Esc leaves Focus from anywhere in it, a field or the speed list too, and with the keys
+    // switched off (#394 review S1, S3)
+    if (key === "Escape") {
+      if (!focusing) return;
+      event.preventDefault();
+      setFocus(false);
+      return;
+    }
+    if (!shortcutsOn() || typing(event.target)) return;
+    const onControl = event.target instanceof Element && event.target.closest(CONTROLS);
+    const once = !event.repeat; // a held key toggles once (#394 review N1)
+    if (key === " " && !onControl) {
+      if (once) play.click();
+    } else if ((key === "ArrowLeft" || key === "ArrowRight") && !onControl) {
+      const by = key === "ArrowRight" ? 1 : -1;
+      if (event.shiftKey) toChapter(chapterOfCurrent() + by, !audio.paused);
+      else document.getElementById(by > 0 ? "next-sentence" : "previous-sentence").click();
+    } else if (key === "-") stepSpeed(-1);
+    else if (key === "+" || key === "=") stepSpeed(1);
+    else if (key === "f" || key === "F") {
+      if (once) setFocus(!focusing);
+    } else if ((key === "p" || key === "P") && !focusing) {
+      if (once) document.getElementById("panel-toggle").click();
+    } else return;
+    event.preventDefault();
+  });
+
   // ---- following the reading (D-301) -----------------------------------------------------
 
   function scrolledByHand() {
-    if (!following || !follow.checked) return;
+    if (focusing || !following || !follow.checked) return;
     following = false;
     back.hidden = false;
   }
   window.addEventListener("wheel", scrolledByHand, { passive: true });
   window.addEventListener("touchmove", scrolledByHand, { passive: true });
   document.addEventListener("keydown", (event) => {
-    if (!SCROLL_KEYS.has(event.key)) return;
+    if (event.defaultPrevented || !SCROLL_KEYS.has(event.key)) return; // not a key taken above
     if (event.target.closest("button, input, select, textarea, audio, summary, a")) return;
     scrolledByHand();
   });
@@ -439,19 +501,12 @@ function readAlong() {
     showPlaying(true);
     if (!frame) frame = requestAnimationFrame(tick);
   });
-  audio.addEventListener("playing", sweepSync);
-  audio.addEventListener("waiting", sweepSync);
-  audio.addEventListener("ratechange", sweepSync);
   audio.addEventListener("pause", () => {
     showPlaying(false);
     update();
-    sweepSync();
     keepIfTouched();
   });
-  audio.addEventListener("seeked", () => {
-    update();
-    sweepSync();
-  });
+  audio.addEventListener("seeked", update);
   audio.addEventListener("timeupdate", () => {
     if (audio.paused) update();
   });
@@ -488,6 +543,8 @@ function readAlong() {
     timeline,
     document.getElementById("previous-sentence"),
     document.getElementById("next-sentence"),
+    focusOn,
+    focusOff,
     ...chapterButtons,
   ]) {
     control.disabled = false;
@@ -571,12 +628,30 @@ function contextPanel() {
   toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") !== "true"));
   close.addEventListener("click", () => set(false));
   // over the page the panel covers its own button, so the focus leaves it only by the keys
-  // or to elsewhere: it closes, and the focus stays where it went
-  panel.addEventListener("focusout", (event) => {
-    if (wide.matches || !narrowOpen || panel.contains(event.relatedTarget)) return;
+  // or to elsewhere: it closes, and the focus stays where it went. A press inside it is no
+  // leaving, though the focus may go to the page (a press on its text, or in Safari on its
+  // buttons, #447); the next move of the focus outside it closes it then.
+  let pressing = false; // a pointer went down inside the panel and is not up yet
+  panel.addEventListener("pointerdown", () => {
+    pressing = true;
+  });
+  // the press ends with the pointer, and also when it can no longer be one: a key, a
+  // context menu, or the window losing the focus (#394 review S2)
+  function released() {
+    pressing = false;
+  }
+  for (const type of ["pointerup", "pointercancel", "contextmenu", "blur"]) {
+    window.addEventListener(type, released);
+  }
+  window.addEventListener("keydown", released, true);
+  function left(to) {
+    if (wide.matches || !narrowOpen || pressing || panel.contains(to)) return;
     narrowOpen = false;
     show();
-  });
+  }
+  // to nowhere (Tab past its last control reaches the browser's own bar) or to the page
+  panel.addEventListener("focusout", (event) => left(event.relatedTarget));
+  document.addEventListener("focusin", (event) => left(event.target));
   panel.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !wide.matches && narrowOpen) {
       event.preventDefault();

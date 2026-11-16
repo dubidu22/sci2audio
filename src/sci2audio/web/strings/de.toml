@@ -31,6 +31,7 @@ megabytes = "{n} MB"
 kilobytes = "{n} KB"
 bytes.one = "1 Byte"
 bytes.other = "{n} Byte"
+close = "Schließen"
 
 [library]  # die Bibliothek, die Startseite (#389, DESIGN.md „Library“)
 title = "Bibliothek"
@@ -325,6 +326,7 @@ change_on = "An"
 change_off = "Aus"
 change_count.one = "1 Änderung"
 change_count.other = "{n} Änderungen"
+focus = "Fokus-Hören"  # der Modus mit dem Satz allein, groß gesetzt (#394)
 
 [player]  # das Skript des Players (#78)
 play = "Abspielen"
@@ -333,6 +335,7 @@ chapter = "Kapitel {n} von {total}:"  # der Titel folgt, in der Sprache des Text
 cannot_play = "Dieser Browser kann die M4B-Datei des Hörbuchs nicht abspielen. Speichern Sie sie auf der Auftragsseite des Dokuments und spielen Sie sie in einem anderen Programm ab."
 load_failed = "Das Audio ließ sich nicht laden. Läuft sci2audio noch?"
 time_of = "{time} von {total}"  # die Uhr der Wiedergabeleiste und die Zeitleiste (#393)
+speed_now = "Tempo {speed}"  # gesagt, wenn eine Taste das Tempo geändert hat (#394)
 
 [js]
 moved = "{title} ist jetzt Kapitel {n} von {total}."  # die Kapitelliste (#119)
@@ -433,7 +436,7 @@ voice_label = "Stimmordner"
 voice = "Die Stimmdateien, die Sie heruntergeladen haben, mit dem englischen Sprachmodell, das die Stimme braucht."
 remove = "Um ein Dokument zu entfernen, nutzen Sie „Dieses Dokument entfernen“ auf seiner Seite oder in der Bibliothek; sein Hörbuch bleibt. Um alles zu entfernen, was sci2audio behält, beenden Sie es und löschen Sie den Arbeitsordner, die Einstellungsdatei und den Stimmordner. Ihre Hörbücher bleiben, wo sie sind, bis Sie sie löschen."
 cookies_title = "Cookies"
-cookies = "sci2audio setzt höchstens vier Cookies. Sie gehören zur eigenen Adresse dieses Computers, 127.0.0.1, also sendet Ihr Browser sie nie anderswohin: Eines enthält den Schlüssel des aktuellen Starts und gilt nicht mehr, sobald sci2audio beendet ist; die drei anderen werden nur gesetzt, wenn Sie auf der Seite Einstellungen etwas wählen, und behalten diese Wahl für ein Jahr: die Sprache („en“ oder „de“), die Darstellung („system“, „light“ oder „dark“) und ob der gelesene Satz angesagt wird („on“ oder „off“)."
+cookies = "sci2audio setzt höchstens fünf Cookies. Sie gehören zur eigenen Adresse dieses Computers, 127.0.0.1, also sendet Ihr Browser sie nie anderswohin: Eines enthält den Schlüssel des aktuellen Starts und gilt nicht mehr, sobald sci2audio beendet ist; die vier anderen werden nur gesetzt, wenn Sie auf der Seite Einstellungen etwas wählen, und behalten diese Wahl für ein Jahr: die Sprache („en“ oder „de“), die Darstellung („system“, „light“ oder „dark“), ob der gelesene Satz angesagt wird („on“ oder „off“) und ob die Tastenkürzel wirken („on“ oder „off“)."
 limits_title = "Was sci2audio nicht in der Hand hat"
 limits = "Ihr Browser und Ihr Betriebssystem haben eigene Funktionen, etwa Erweiterungen, Synchronisierung oder Rechtschreibprüfung im Netz. sci2audio nutzt sie nicht, kann sie aber auch nicht ausschalten; das geht in deren Einstellungen."
 licence_title = "Freie Software"
@@ -450,6 +453,25 @@ voices = "Stimmen"
 reading = "Gerade und zuletzt"
 settings = "Einstellungen"
 privacy = "Datenschutz"
+shortcuts = "Tastenkürzel"  # öffnet die Liste der Tasten (#394)
+
+[keys]  # die Liste der Tastenkürzel (#394); Screenreader sagen die Tastennamen
+title = "Tastenkürzel"
+listen = "Hören"
+move = "Bewegen"
+play = "Abspielen oder Pause"
+prevnext = "Vorheriger / nächster Satz"
+chap = "Vorheriges / nächstes Kapitel"
+speed = "Langsamer / schneller"
+focus = "Fokus-Hören"
+panel = "Seitenleiste zeigen oder ausblenden"
+help = "Diese Liste"
+esc = "Schließen, abbrechen oder Fokus verlassen"
+note = "? öffnet diese Liste auf jeder Seite. Die anderen Tasten wirken auf der Seite „Anhören“, nicht beim Tippen in ein Feld und nie mit gedrückter ⌘-, Strg- oder Alt-Taste. In den Einstellungen lassen sich diese Tasten ausschalten; Esc wirkt immer."
+space = "Leertaste"
+shift = "Umschalt"
+left = "Pfeil nach links"
+right = "Pfeil nach rechts"
 
 [shelf]  # die Einträge unter „Gerade und zuletzt“ (#387)
 made = "{phase}, {n}\u00A0% fertig"
@@ -476,6 +498,8 @@ listening = "Hören"
 announce = "Gelesenen Satz für Screenreader ansagen"
 announce_hint = "Standardmäßig aus, damit Screenreader beim Hören nicht überflutet werden."
 announce_save = "Speichern"
+keys = "Tastenkürzel"
+keys_hint = "Einzelne Tasten wie Leertaste, F und P wirken beim Hören. Schalten Sie sie aus, wenn sie Ihrem Screenreader oder anderen Tasten in die Quere kommen; Esc und die Liste der Tastenkürzel wirken immer."
 
 [paper]  # der Kopf der Seiten eines Dokuments, Vorbereiten und Anhören (#391)
 tabs = "Vorbereiten oder anhören"
