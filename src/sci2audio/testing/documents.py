@@ -11,6 +11,7 @@ from sci2audio.core import (
     Document,
     Page,
     Part,
+    Picture,
     ScriptPiece,
     Section,
     Source,
@@ -30,6 +31,7 @@ def make_document(
     tags: Mapping[int, Sequence[tuple[int, int, str | tuple[str, ...]]]] | None = None,
     sections: Sequence[Section] = (),
     pages: Mapping[int, int] | None = None,
+    pictures: Mapping[int, Sequence[str]] | None = None,
 ) -> Document:
     """A document of these blocks, one text line per printed line, all on page 1 unless
     `pages` says otherwise.
@@ -43,11 +45,15 @@ def make_document(
     text from 0), so a `link:` tag can point at a block's first line. `sections` is the
     document's section tree. `pages` gives, per block index, the page a block stands on (1
     if not given); pages may not go back, and a page in between with no block is empty
-    (D-426).
+    (D-426). `pictures` gives, per block index, the alt texts of the block's pictures ("" for
+    none): each becomes a `Picture` on the block's page, id `b<block>p<picture>`, with a part
+    at the end of the block's text, after its lines (#191).
     """
     tags = tags or {}
     pages = pages or {}
+    pictures = pictures or {}
     lines: dict[int, list[TextLine]] = {}
+    images: dict[int, list[Picture]] = {}
     made: list[Block] = []
     last_page = 1
     for number, given in enumerate(blocks):
@@ -64,6 +70,10 @@ def make_document(
                 lines.setdefault(page, []).append(TextLine(line_id, _runs(line, start, ranges)))
                 parts.append(Part(line_id, start))
             start += len(line) + 1
+        for picture_number, alt in enumerate(pictures.get(number, ())):
+            picture = Picture(f"b{number}p{picture_number}", alt=alt)
+            images.setdefault(page, []).append(picture)
+            parts.append(Part(picture.id, len(block.text)))
         made.append(
             Block(
                 block.kind,
@@ -76,7 +86,10 @@ def make_document(
         )
     content = Content(
         Source(name, SourceFormat.TEXT),
-        tuple(Page(n, tuple(lines.get(n, ()))) for n in range(1, last_page + 1)),
+        tuple(
+            Page(n, tuple(lines.get(n, ())), tuple(images.get(n, ())))
+            for n in range(1, last_page + 1)
+        ),
     )
     return Document(
         content=content, language=language, blocks=tuple(made), sections=tuple(sections)
@@ -109,14 +122,20 @@ def rebuilt_from_script(document: Document, script: Sequence[ScriptPiece]) -> Do
     Each block's text is its pieces' text joined (line breaks kept); pauses carry no text.
     A label stays while the new text prints it; a caption label a step rewrote becomes what
     the script reads over its printed words ("Abb. 1" spelled out reads "Abbildung 1",
-    #324); any other label is dropped. The section tree is kept. Used to check that
-    running the steps a second time changes nothing more (idempotence).
+    #324); any other label is dropped. The section tree is kept, and so is each block's
+    pictures' alt text, which the script cannot carry (a figure's notice reads it, #191).
+    Used to check that running the steps a second time changes nothing more (idempotence).
     """
     pieces: list[list[ScriptPiece]] = [[] for _ in document.blocks]
     for piece in script:
         pieces[piece.span.block].append(piece)
-    blocks = []
-    for block, own in zip(document.blocks, pieces, strict=True):
+    items = document.content.items()
+    blocks, pictures = [], {}
+    for index, (block, own) in enumerate(zip(document.blocks, pieces, strict=True)):
+        if alts := [
+            item.alt for part in block.parts if isinstance(item := items[part.item][1], Picture)
+        ]:
+            pictures[index] = alts
         text = "".join(piece.text for piece in own)
         blocks.append(
             Block(
@@ -128,7 +147,11 @@ def rebuilt_from_script(document: Document, script: Sequence[ScriptPiece]) -> Do
             )
         )
     return make_document(
-        blocks, document.language, document.content.source.name, sections=document.sections
+        blocks,
+        document.language,
+        document.content.source.name,
+        sections=document.sections,
+        pictures=pictures,
     )
 
 

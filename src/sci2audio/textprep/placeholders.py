@@ -9,6 +9,11 @@ as its label. Each placeholder's whole text is replaced by one short notice that
 ("Formula 16a"), else without a name ("A figure is skipped."). The caption is not repeated:
 it reads as printed, in its printed place, and already starts with its label.
 
+A figure that no caption names but whose pictures carry alternative text (an EPUB or
+Markdown image, #191) is read by it after the notice: "A figure is skipped. It shows: A bar
+chart of minutes per group." Several pictures' texts are joined by "; ". The alt text is
+part of the notice, so later steps do not read it again, as for any notice.
+
 Formulas, tables-and-figures (D-108) and code blocks (D-545) are separate categories, so
 they are three steps. A code block is named by nothing yet ("A code block is skipped.");
 the player shows its code (D-546).
@@ -16,7 +21,9 @@ the player shows its code (D-546).
 
 from __future__ import annotations
 
-from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
+from collections.abc import Mapping
+
+from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Item, Page, Picture, Span
 from sci2audio.textprep.numbers_de import label_numbers_read
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wording import Wording, wording_for
@@ -53,6 +60,7 @@ class _NoticeStep(TextStep):
         for block in document.blocks:
             if block.describes is not None and block.label:
                 captions.setdefault(block.describes, []).append(_label(wording, block, numbers))
+        items = document.content.items()
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind not in self.kinds:
@@ -62,16 +70,32 @@ class _NoticeStep(TextStep):
                 names = [wording.formula.format(block.label)]
             notice = wording.skipped(names, block.kind)
             what = names[0] if len(names) == 1 else f"this {_NAMES.get(block.kind, block.kind)}"
+            shown = ""
+            if not names and block.kind is BlockKind.FIGURE and (alt := _alt_text(items, block)):
+                notice += " " + wording.shows.format(alt)
+                shown = " with its alt text"
             edits.append(
                 Edit(
                     Span(index, 0, len(block.text)),
                     EditKind.REPLACE,
-                    reason=f"{what} is not read; a short notice is read instead (D-55)",
+                    reason=f"{what} is not read; a short notice{shown} is read instead (D-55)",
                     step=self.id,
                     replacement=notice,
                 )
             )
         return edits
+
+
+def _alt_text(items: Mapping[str, tuple[Page, Item]], block: Block) -> str:
+    """The alt texts of the block's pictures, white space folded, joined by "; ", ending in
+    a full stop unless it ends in other sentence punctuation; "" if none has any."""
+    alts = []
+    for part in block.parts:
+        picture = items[part.item][1]
+        if isinstance(picture, Picture) and (alt := " ".join(picture.alt.split())):
+            alts.append(alt)
+    joined = "; ".join(alts)
+    return joined if not joined or joined[-1] in ".!?\u2026" else joined + "."
 
 
 class FormulaNoticeStep(_NoticeStep):

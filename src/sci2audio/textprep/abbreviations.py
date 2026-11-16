@@ -31,7 +31,7 @@ from collections.abc import Iterator
 from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
-from sci2audio.textprep.footnotes import found_marks
+from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.links import find_links, link_removals
 from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
@@ -93,7 +93,7 @@ class AbbreviationStep(TextStep):
             return []
         pattern, by_form = _compiled(entries)
         any_capital = context.language.split("-", 1)[0].lower() != "en"
-        marks = found_marks(document, context)  # read as a second run reads, without them
+        marks = unread_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
             if _skipped(block):

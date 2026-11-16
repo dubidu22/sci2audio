@@ -118,3 +118,45 @@ def test_a_footnote_mark_is_not_mapped_into_its_introduction(
     rebuilt = rebuilt_from_script(document, first.script())
     assert rebuilt.blocks[1].text != text  # the mark was read as an introduction
     assert rebuilt.blocks[1].label == ""
+
+
+# ---- pictures (#191, D-692) ----------------------------------------------------------------
+
+
+def test_make_document_puts_each_picture_on_its_block_s_page_after_its_text() -> None:
+    from sci2audio.core import Picture
+
+    document = make_document(
+        [(BlockKind.PARAGRAPH, "Text."), (BlockKind.FIGURE, "0 10")],
+        pictures={1: ["A chart", ""]},
+        pages={1: 2},
+    )
+    items = document.content.items()
+    figure = document.blocks[1]
+    parts = [(part.item, part.start) for part in figure.parts]
+    assert parts == [("b1l0", 0), ("b1p0", 4), ("b1p1", 4)]
+    assert [items[item][1] for item, _ in parts[1:]] == [
+        Picture("b1p0", alt="A chart"),
+        Picture("b1p1", alt=""),
+    ]
+    assert {items[item][0].number for item, _ in parts} == {2}
+    assert document.content.pages[0].pictures == ()
+
+
+def test_the_rebuilt_document_keeps_each_block_s_alt_texts() -> None:
+    from sci2audio.core import Picture
+
+    document = make_document(
+        [(BlockKind.FIGURE, ""), (BlockKind.PARAGRAPH, "Text."), (BlockKind.FIGURE, "")],
+        pictures={0: ["A cat", "A dog"], 2: [""]},
+    )
+    script = run_steps(document, StepContext("en"), strict=True).script()
+    rebuilt = rebuilt_from_script(document, script)
+    items = rebuilt.content.items()
+
+    def alts(block: int) -> list[str]:
+        found = [items[part.item][1] for part in rebuilt.blocks[block].parts]
+        return [item.alt for item in found if isinstance(item, Picture)]
+
+    assert [alts(0), alts(1), alts(2)] == [["A cat", "A dog"], [], [""]]
+    assert _read(rebuilt) == _read(document)

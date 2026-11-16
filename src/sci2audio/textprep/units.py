@@ -39,7 +39,7 @@ from dataclasses import dataclass
 from functools import cache
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
-from sci2audio.textprep.footnotes import found_marks
+from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import FILE_NUMBER_DE, edits_through_unread
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
@@ -180,7 +180,7 @@ class UnitStep(TextStep):
         table = _compiled(context.language)
         if table is None:
             return []
-        marks = found_marks(document, context)  # read as a second run reads, without them
+        marks = unread_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
             if _skipped(block):
