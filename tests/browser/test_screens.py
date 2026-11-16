@@ -20,7 +20,7 @@ import pytest
 from playwright.sync_api import Page, expect
 from test_flow import gated
 
-from conftest import Live, settled
+from conftest import Hold, Live, settled
 from sci2audio.voices import EngineError
 from sci2audio.web.jobs import JobKind
 
@@ -77,7 +77,7 @@ def test_every_page_as_screenshots(signed_in: Page, live: Live) -> None:
     paper = open_file(page, live, PAPER)
     open_file(page, live, NOTE)
     take("library", "/")
-    take("document", f"/documents/{paper}")
+    take("prepare", f"/documents/{paper}")
     take("voices", "/voice")
 
     job, gate = gated(live.state, JobKind.VOICES, None)  # a running job, on its page and the rail
@@ -92,16 +92,54 @@ def test_every_page_as_screenshots(signed_in: Page, live: Live) -> None:
     page.goto(f"{live.url}/documents/{paper}")
     page.get_by_role("button", name="Make the audiobook").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
-    expect(page.locator("#result")).to_contain_text("The job failed")
-    take("job-failed", page.url.removeprefix(live.url))
+    expect(page.locator("#result")).to_contain_text("before the voice began")
+    take("failed-start", page.url.removeprefix(live.url))
 
+    # the job inline (#391): held in its third chapter, then paused there
     live.voice.fail_to_make = None
+    hold = Hold(after=40)
+    live.voice.fail_on = hold
     page.goto(f"{live.url}/documents/{paper}")
     page.get_by_role("button", name="Make the audiobook").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    expect(page.locator("#job-chapter")).to_contain_text("Speaking chapter", timeout=60_000)
+    hold.reached.wait(60)
+    running = page.url.removeprefix(live.url).split("#")[0]
+    take("making", running)
+    page.goto(live.url + running)
+    with page.expect_response(
+        re.compile(r"/api/v1/jobs/[^/]+/cancel$")
+    ):  # the cancel is in before the gate opens
+        page.get_by_role("button", name="Pause").click()
+    hold.gate.set()
+    expect(page.locator("#result")).to_contain_text("Paused", timeout=60_000)
+    take("paused", running)
+
+    # Resume, failing for good some sentences on: the job stops in a later chapter
+    live.voice.fail_on = Fail(after=25)
+    page.goto(live.url + running)
+    page.get_by_role("button", name="Resume").click()
+    expect(page.locator("#result")).to_contain_text("stopped in chapter", timeout=60_000)
+    failed = page.url.removeprefix(live.url).split("#")[0]
+    take("failed", failed)
+    live.voice.fail_on = lambda text: False
+    page.goto(live.url + failed)
+    page.get_by_role("button", name="Make it again").click()
     expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=120_000)
-    take("job-done", page.url.removeprefix(live.url))
+    take("done", page.url.removeprefix(live.url).split("#")[0])
     take("listen", f"/documents/{paper}/listen")
 
     shots = sorted(out.glob("*.png"))
-    assert len(shots) == 14 * len(SIZES) * len(VARIANTS)
+    assert len(shots) == 17 * len(SIZES) * len(VARIANTS)
+
+
+class Fail:
+    """The fake voice's `fail_on`: speaks `after` sentences, then fails on every one."""
+
+    def __init__(self, after: int) -> None:
+        self.after = after
+        self.calls = 0
+
+    def __call__(self, text: str) -> bool:
+        self.calls += 1
+        return self.calls > self.after

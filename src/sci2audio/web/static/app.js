@@ -202,8 +202,8 @@ function removal() {
       if (page) {
         // the document page: its steps make no sense any more; the result replaces them
         page.remove();
-        const intro = document.getElementById("document-intro");
-        if (intro) intro.remove();
+        // the header keeps the title; its tabs and meta lead to what is gone
+        document.querySelectorAll(".paper-head .tabs, .paper-head .meta").forEach((part) => part.remove());
         const done = document.getElementById("removed");
         document.getElementById("removed-title").textContent = text;
         document.getElementById("removed-text").textContent = stays;
@@ -519,7 +519,6 @@ function jobPage() {
   if (!box) return;
   const kind = box.dataset.kind;
   const doc = box.dataset.document;
-  const settings = JSON.parse(box.dataset.settings || "null") || {};
 
   // the page's buttons are drawn disabled, so a click before this script ran waits instead
   // of doing nothing; each is enabled once its click is attached (#177)
@@ -533,40 +532,6 @@ function jobPage() {
       }
     });
     cancel.disabled = false;
-  }
-  async function restart(overwrite) {
-    try {
-      const job = await send("/api/v1/jobs", json("POST", { kind, document: doc, settings, overwrite }));
-      location.assign(`/jobs/${job.id}`);
-    } catch (error) {
-      say(explain(error), true);
-    }
-  }
-  const replace = document.getElementById("job-replace");
-  if (replace) {
-    replace.addEventListener("click", () => restart(true));
-    replace.disabled = false;
-  }
-  const again = document.getElementById("job-again");
-  if (again) {
-    again.addEventListener("click", () => restart(false));
-    again.disabled = false;
-  }
-
-  const free = document.getElementById("cache-free");
-  if (free) {
-    free.addEventListener("click", async () => {
-      try {
-        await send(`/api/v1/documents/${doc}/chunks`, { method: "DELETE" });
-        const text = document.getElementById("cache-text");
-        text.textContent = tr("js.freed");
-        free.remove();
-        say(tr("js.freed"), true);
-      } catch (error) {
-        say(explain(error), true);
-      }
-    });
-    free.disabled = false;
   }
 
   if (box.dataset.state !== "running") {
@@ -592,6 +557,206 @@ function jobPage() {
     } else {
       reloadAt("result");
     }
+  });
+}
+
+// ---- the audiobook job inline on Prepare (#391) -----------------------------------------
+
+// A size as the server writes it (`Strings.size`): bytes, KB or MB, decimal units.
+function sizeText(n) {
+  if (n >= 1000000) return tr("common.megabytes", { n: decimal((n / 1000000).toFixed(1)) });
+  if (n >= 1000) return tr("common.kilobytes", { n: Math.round(n / 1000) });
+  return tr("common.bytes", { n });
+}
+
+// Where the job stands, from its latest progress (D-695): the chapter being spoken counted
+// from 1, one past the chapters once every one is spoken, 0 before the first chunk. The
+// progress names the last finished chunk; when that one ended its chapter, the next began.
+function chapterNow(progress) {
+  const chapters = progress.chapters || 0;
+  if (progress.phase === "encoding" || progress.phase === "done") return chapters + 1;
+  const number = progress.chapter_number || 0;
+  if (progress.phase !== "speaking" || !number) return 0;
+  if (progress.chapter_done) return number >= chapters ? chapters + 1 : number + 1;
+  return number;
+}
+
+// The running card's words, as pages._running_lines draws them first.
+function cardShown(progress) {
+  const now = chapterNow(progress);
+  const chapters = progress.chapters || 0;
+  let head;
+  if (progress.phase === "speaking" && now && now <= chapters) {
+    head = tr("making.speaking", { n: now, total: chapters });
+  } else {
+    const words = STRINGS[`phase.${progress.phase}`] ?? tr("job.state_running");
+    head = words.charAt(0).toUpperCase() + words.slice(1);
+  }
+  const part = fraction(progress);
+  const left = [];
+  if (part != null) left.push(tr("js.percent", { n: Math.floor(100 * Math.min(1, part)) }));
+  if (progress.phase === "speaking") {
+    if (progress.seconds_left == null) left.push(tr("js.measuring"));
+    else left.push(tr("js.minutes_left", { n: Math.max(1, Math.ceil(progress.seconds_left / 60)) }));
+  }
+  const sentences = progress.chunks_total
+    ? tr("js.sentences", { done: progress.chunks_done || 0, n: progress.chunks_total })
+    : "";
+  // what a screen reader is told: the same words, as one sentence
+  const said = [head, sentences, ...left].filter(Boolean).join(", ");
+  return { head, left: left.join(" · "), said, part, now, chapters, sentences };
+}
+
+// One segment per chapter: done, the one being spoken, or to come (classes only: the CSP
+// forbids style attributes).
+function drawSegments(box, chapters, now) {
+  if (!box) return;
+  while (box.children.length < chapters) {
+    const seg = document.createElement("span");
+    seg.className = "seg";
+    box.append(seg);
+  }
+  Array.from(box.children).forEach((seg, n) => {
+    seg.classList.toggle("done", n + 1 < now);
+    seg.classList.toggle("now", n + 1 === now);
+  });
+}
+
+// Waits until the job is no longer running, asking the server, never trusting the stream
+// alone: Cancel frees the speech cache only once the voice has stopped writing to it.
+async function stopped(url) {
+  for (;;) {
+    const job = await send(url);
+    if (job.state !== "running") return job;
+    await new Promise((done) => setTimeout(done, 250));
+  }
+}
+
+function makingCard() {
+  const card = document.getElementById("making");
+  if (!card) return;
+  const id = card.dataset.job;
+  const doc = card.dataset.document;
+  const settings = JSON.parse(card.dataset.settings || "null") || {};
+  const jobUrl = `/api/v1/jobs/${id}`;
+  function wire(button, click) {
+    if (!button) return;
+    button.addEventListener("click", click);
+    button.disabled = false;
+  }
+
+  // Resume, Make it again and Replace start the audiobook again with the job's settings;
+  // the spoken sentences in the cache are used again (Pause is today's cancel, #391)
+  async function restart(overwrite) {
+    try {
+      const job = await send("/api/v1/jobs", json("POST", { kind: "audio", document: doc, settings, overwrite }));
+      location.assign(`/jobs/${job.id}`);
+    } catch (error) {
+      say(explain(error), true);
+    }
+  }
+  wire(document.getElementById("job-replace"), () => restart(true));
+  wire(document.getElementById("job-again"), () => restart(false));
+
+  const free = document.getElementById("cache-free");
+  wire(free, async () => {
+    try {
+      await send(`/api/v1/documents/${doc}/chunks`, { method: "DELETE" });
+      const text = document.getElementById("cache-text") || document.getElementById("job-kept");
+      if (text) text.textContent = tr("js.freed");
+      free.remove();
+      say(tr("js.freed"), true);
+    } catch (error) {
+      say(explain(error), true);
+    }
+  });
+
+  if (card.dataset.state !== "running") {
+    // a job that ended before its page loaded: its result is what the person came for
+    const result = document.getElementById("result");
+    if (result && location.pathname.startsWith("/jobs/") && !location.hash) result.focus();
+    return;
+  }
+
+  let leaving = false; // Cancel's own steps decide where the page goes next
+  wire(document.getElementById("job-pause"), async () => {
+    say(tr("js.pausing"));
+    try {
+      await send(card.dataset.cancel, { method: "POST" });
+    } catch (error) {
+      say(explain(error), true);
+    }
+  });
+
+  // Cancel = Pause, then, once the job has stopped, free the speech cache (D-694): the
+  // DELETE never goes out while the voice may still write a chunk
+  const cancelBox = document.getElementById("cancel-box");
+  const cancelSize = document.getElementById("cancel-size");
+  if (cancelBox) {
+    cancelBox.addEventListener("toggle", async () => {
+      if (!cancelBox.open || !cancelSize) return;
+      try {
+        const found = await send(`/api/v1/documents/${doc}`);
+        cancelSize.textContent = tr("making.cancel_size", { size: sizeText(found.speech_cache_bytes) });
+      } catch (error) {
+        // the size drawn with the page stays
+      }
+    });
+  }
+  const cancel = document.getElementById("job-cancel");
+  wire(cancel, async () => {
+    if (leaving) return;
+    leaving = true;
+    cancel.setAttribute("aria-disabled", "true");
+    say(tr("js.cancelling"));
+    try {
+      await send(card.dataset.cancel, { method: "POST" });
+    } catch (error) {
+      if (error.kind !== "finished") {
+        leaving = false;
+        cancel.removeAttribute("aria-disabled");
+        say(explain(error), true);
+        return;
+      }
+    }
+    try {
+      await stopped(jobUrl);
+      say(tr("js.deleting"));
+      await send(`/api/v1/documents/${doc}/chunks`, { method: "DELETE" });
+    } catch (error) {
+      say(explain(error), true);
+      leaving = false;
+      cancel.removeAttribute("aria-disabled");
+      return;
+    }
+    reloadAt("making");
+  });
+
+  const bar = document.getElementById("job-bar");
+  const chapter = document.getElementById("job-chapter");
+  const left = document.getElementById("job-left");
+  const count = document.getElementById("job-progress");
+  const announce = announcer(document.getElementById("job-status"));
+  follow(card.dataset.events, (progress) => {
+    const shown = cardShown(progress);
+    chapter.textContent = shown.head;
+    left.textContent = shown.left;
+    count.textContent = shown.sentences;
+    if (shown.part == null) bar.removeAttribute("value");
+    else bar.value = Math.round(100 * Math.min(1, shown.part));
+    let segs = document.getElementById("job-segments");
+    if (!segs && shown.chapters) {
+      segs = document.createElement("span");
+      segs.id = "job-segments";
+      segs.className = "segs";
+      segs.setAttribute("aria-hidden", "true");
+      bar.after(segs);
+    }
+    drawSegments(segs, shown.chapters, shown.now);
+    bar.setAttribute("aria-valuetext", shown.said);
+    announce(progress, shown.said);
+  }, () => {
+    if (!leaving) reloadAt("result");
   });
 }
 
@@ -737,6 +902,7 @@ document.addEventListener("DOMContentLoaded", () => {
   startPage();
   removal();
   documentPage();
+  makingCard();
   jobPage();
   voicePage();
   settingsPage();

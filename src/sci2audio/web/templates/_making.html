@@ -1,0 +1,75 @@
+{#- The audiobook job inline on Prepare (#391, DESIGN.md "Job inline"; screens making.png and
+    failed.png): running, paused, failed or done. `card` comes from pages.making_card. Every
+    button is drawn disabled; app.js enables each once its click is attached (#350, #427).
+    Import it "with context". -#}
+{% from "_icons.html" import icon %}
+{% macro segments(list) -%}
+{% if list %}<span class="segs" id="job-segments" aria-hidden="true">{% for kind in list %}<span class="seg{% if kind %} {{ kind }}{% endif %}"></span>{% endfor %}</span>{% endif %}
+{%- endmacro %}
+{% macro free_button(card) -%}
+{% if card.cache %}<button type="button" id="cache-free" disabled>{{ t('making.free', size=card.cache_text) }}</button>{% endif %}
+{%- endmacro %}
+{% macro making(card, document) %}
+{% set job = card.job %}
+<section class="step making" id="making" aria-labelledby="making-title" tabindex="-1"
+         data-job="{{ job.id }}" data-state="{{ job.state }}" data-document="{{ document.id }}"
+         data-settings="{{ job.settings | tojson | forceescape }}"
+         data-events="/api/v1/jobs/{{ job.id }}/events" data-cancel="/api/v1/jobs/{{ job.id }}/cancel">
+<header><h2 id="making-title">{{ t('making.title') }}</h2></header>
+<div class="body">
+{% if card.state == 'running' %}
+  <p class="job-line"><strong id="job-chapter">{{ card.head }}</strong><span id="job-left">{{ card.left }}</span></p>
+  <progress id="job-bar" max="100"{% if card.percent is not none %} value="{{ card.percent }}"{% endif %} aria-valuetext="{{ card.head }}{% if card.left %}, {{ card.left }}{% endif %}" aria-labelledby="making-title" aria-describedby="job-progress"></progress>
+  {{ segments(card.segments) }}
+  <p id="job-progress" class="job-count">{{ card.sentences }}</p>
+  <p id="job-status" class="visually-hidden" role="status"></p>
+  <p class="job-note">{{ t('making.leave') }}</p>
+  <div class="buttons">
+    <button type="button" id="job-pause" disabled aria-describedby="pause-hint">{{ icon('pausejob', 's') }}<span>{{ t('making.pause') }}</span></button>
+    <details class="confirm" id="cancel-box">
+      <summary class="btn danger" id="job-cancel-open">{{ t('making.cancel') }}</summary>
+      <div class="confirm-box">
+        <p id="cancel-goes">{{ t('making.cancel_goes') }} <span id="cancel-size">{{ t('making.cancel_size', size=card.cache_text) }}</span></p>
+        <p>{{ t('making.cancel_stays') }}</p>
+        <p class="buttons"><button type="button" class="danger" id="job-cancel" disabled>{{ t('making.cancel_now') }}</button></p>
+      </div>
+    </details>
+  </div>
+  <p class="hint" id="pause-hint">{{ t('making.pause_hint') }}</p>
+{% elif card.state == 'done' %}
+  <h3 id="result" tabindex="-1">{{ t('job.done_title') }}</h3>
+  <p class="buttons"><a class="btn primary" id="listen-link" href="/documents/{{ document.id }}/listen">{{ icon('speaker', 's') }}<span>{{ t('listen.link') }}</span></a></p>
+  {% if card.folder %}<p>{{ t('job.folder', folder=card.folder) }}</p>{% endif %}
+  <ul class="files">
+    {% for file in job.files %}
+    <li><a href="/api/v1/jobs/{{ job.id }}/files/{{ file.name | urlencode }}?download=true">{{ t('job.download', name=file.name, size=size_text(file.size)) }}</a></li>
+    {% endfor %}
+  </ul>
+  {% if job.progress and job.progress.reused %}<p>{{ t('job.reused', n=job.progress.reused) }}</p>{% endif %}
+  {% if card.skipped %}
+  <p>{{ t('job.skipped') }}</p>
+  <ul>{% for item in card.skipped %}<li>{{ t('job.skipped_line', chapter=item.chapter + 1, page=item.printed_page or item.page or '?') }} <span lang="en">{{ item.text }}</span></li>{% endfor %}</ul>
+  {% endif %}
+  <p id="cache-text">{% if card.cache %}{{ t('job.cache', size=card.cache_text) }}{% else %}{{ t('job.cache_freed') }}{% endif %}</p>
+  {% if card.cache %}<p class="buttons">{{ free_button(card) }}</p>{% endif %}
+{% elif card.exists %}
+  <div class="callout warn">{{ icon('alert', 'l') }}<div>
+    <h3 id="result" tabindex="-1">{{ job.failure.reason }}</h3>
+    {% if job.failure.details %}<p>{{ t('common.details') }} <span lang="en">{{ job.failure.details }}</span></p>{% endif %}
+  </div></div>
+  <p class="buttons"><button type="button" class="primary" id="job-replace" disabled>{{ t('job.replace') }}</button>{{ free_button(card) }}</p>
+{% else %}
+  <div class="callout{% if card.state == 'failed' %} bad{% endif %}">{{ icon('alert' if card.state == 'failed' else 'pausejob', 'l') }}<div>
+    <h3 id="result" tabindex="-1">{{ card.title }}</h3>
+    {% if card.state == 'failed' %}<p>{{ job.failure.reason }}{% if job.failure.details %} {{ t('common.details') }} <span lang="en">{{ job.failure.details }}</span>{% endif %}</p>{% endif %}
+    {% if card.kept %}<p id="job-kept">{{ card.kept }}</p>{% endif %}
+  </div></div>
+  {{ segments(card.segments) }}
+  <p class="buttons">
+    <button type="button" class="primary" id="job-again" disabled>{% if card.state == 'cancelled' and card.cache %}{{ icon('play', 's') }}<span>{{ t('making.resume') }}</span>{% else %}{{ t('making.again') }}{% endif %}</button>
+    {{ free_button(card) }}
+  </p>
+{% endif %}
+</div>
+</section>
+{% endmacro %}

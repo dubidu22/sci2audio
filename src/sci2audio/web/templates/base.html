@@ -60,7 +60,7 @@
     </ul>
   </nav>
   <main id="main" tabindex="-1" class="main">
-    <div class="view">
+    <div class="view{% block view_class %}{% endblock %}">
     {% block main %}{% endblock %}
     </div>
   </main>

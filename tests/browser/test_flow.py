@@ -18,7 +18,7 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page, Route, expect
 from web_helpers import paper_bytes
 
-from conftest import Live, check_axe, inside, settled, small_plan
+from conftest import Hold, Live, check_axe, inside, settled, small_plan
 from sci2audio.app import JobSettings, save_settings
 from sci2audio.voices import PREVIEW_TEXT, PREVIEW_TEXTS
 from sci2audio.web import pages
@@ -77,15 +77,15 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     check_axe(page, "document with a list of changes open")
 
     # a switch off: its change is listed as switched off (UC-02)
-    page.get_by_role("checkbox", name=re.compile("^Citations")).uncheck()
+    page.get_by_role("switch", name=re.compile("^Citations")).uncheck()
     expect(page.locator("#changed")).to_be_visible()
     update(page)
     expect(page.locator("#counts-citations")).to_contain_text("0 heard")
     expect(page.locator("#counts-citations")).to_contain_text("1 switched off")
-    expect(page.get_by_role("checkbox", name=re.compile("^Citations"))).not_to_be_checked()
+    expect(page.get_by_role("switch", name=re.compile("^Citations"))).not_to_be_checked()
 
     # back on, and its chapter not chosen: listed as not spoken (UC-03, D-100)
-    page.get_by_role("checkbox", name=re.compile("^Citations")).check()
+    page.get_by_role("switch", name=re.compile("^Citations")).check()
     page.get_by_role("checkbox", name="Introduction").uncheck()
     update(page)
     expect(page.locator("#summary")).to_contain_text("3 chapters, 1 of them chosen")
@@ -159,7 +159,7 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
         answer = page.request.get(live.url + link.get_attribute("href"))
         assert answer.status == 200
         assert answer.headers["content-disposition"].startswith("attachment")
-    expect(page.get_by_text(str(live.config.output_folder))).to_be_visible()
+    expect(page.locator("#making").get_by_text(str(live.config.output_folder))).to_be_visible()
     check_axe(page, "audiobook done")
     settings = page.request.get(f"{live.url}/api/v1/settings").json()["settings"]
     assert settings["voice"] == "bm_george"  # remembered for the next document (D-246)
@@ -170,14 +170,16 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     assert "We measured it twice." in spoken
     assert not any("Smith" in text for text in spoken)  # chapter 1 was not chosen
 
+    # the job is shown on Prepare (#391): the header's Listen tab now leads to the player
+    expect(page.get_by_role("link", name="Prepare")).to_have_attribute("aria-current", "page")
+    expect(page.locator("#tab-listen")).to_have_attribute("href", f"/documents/{document}/listen")
+
     # again: the files exist; replacing them is its own button (D-254)
-    page.get_by_role("link", name="Back to the document").click()
+    page.get_by_role("link", name="Prepare").click()
     page.get_by_role("button", name="Make the audiobook").click()
-    expect(page.locator("#result")).to_have_text(
-        "The job failed: The audiobook files exist already."
-    )
+    expect(page.locator("#result")).to_have_text("The audiobook files exist already.")
     # the app's own words follow as details, in English (D-291)
-    expect(page.locator("#job p span[lang=en]")).to_contain_text("these files exist already")
+    expect(page.locator("#making span[lang=en]")).to_contain_text("these files exist already")
     check_axe(page, "audiobook files exist")
     page.get_by_role("button", name="Replace these files").click()
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
@@ -191,32 +193,122 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     assert not folder.exists() or not any(folder.rglob("*.wav"))
 
 
-def slow(seconds: float) -> Any:
-    def wait(text: str) -> bool:
-        time.sleep(seconds)
-        return False  # never fails, just takes its time
-
-    return wait
-
-
-def test_progress_while_speaking_and_cancel(signed_in: Page, live: Live) -> None:
+def test_progress_while_speaking_and_pause(signed_in: Page, live: Live) -> None:
+    """The job inline on Prepare (#391): the chapter being spoken, how far and how long,
+    the sentences; Pause is today's cancel and keeps what is spoken."""
     page = signed_in
     live.install_voice()
-    live.voice.fail_on = slow(1.0)
+    hold = Hold(after=1)  # the second sentence waits, so Pause comes mid-job
+    live.voice.fail_on = hold
     open_paper(page, live)
     page.get_by_role("button", name="Make the audiobook").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
-    expect(page.locator("#job-progress")).to_contain_text("speaking")
-    expect(page.locator("#job-progress")).to_contain_text(re.compile(r"\d of \d sentences"))
-    expect(page.locator("#job-progress")).to_contain_text("measuring the speed")
-    expect(page.locator("#job-bar")).to_have_attribute("aria-valuetext", re.compile("speaking"))
-    # the rail's shelf names the running job and how far it is (#387)
-    expect(page.locator("#shelf-job")).to_contain_text("Audiobook of paper.pdf")
-    expect(page.locator("#shelf-job-state")).to_contain_text("speaking")
-    check_axe(page, "audiobook running")
-    page.get_by_role("button", name="Cancel").click()
-    expect(page.locator("#result")).to_have_text("The job was cancelled.")
-    expect(page.get_by_role("button", name="Start again")).to_be_visible()
+    try:
+        assert hold.reached.wait(30)
+        expect(page.locator("#job-chapter")).to_have_text(re.compile(r"^Speaking chapter \d of 2$"))
+        expect(page.locator("#job-progress")).to_contain_text(re.compile(r"\d of \d sentences"))
+        expect(page.locator("#job-left")).to_contain_text("measuring the speed")
+        bar = page.get_by_role("progressbar", name="Making the audiobook")
+        expect(bar).to_have_attribute("aria-valuetext", re.compile("^Speaking chapter"))
+        expect(page.locator("#job-segments .seg")).to_have_count(2)
+        expect(page.locator("#job-segments .seg.now")).to_have_count(1)
+        # the rail's shelf names the running job and how far it is (#387)
+        expect(page.locator("#shelf-job")).to_contain_text("Audiobook of paper.pdf")
+        expect(page.locator("#shelf-job-state")).to_contain_text("speaking")
+        check_axe(page, "audiobook running")
+        with page.expect_response(
+            re.compile(r"/api/v1/jobs/[^/]+/cancel$")
+        ):  # the cancel is in before the gate opens
+            page.get_by_role("button", name="Pause").click()
+        expect(page.locator("#message")).to_have_text("Pausing…")
+    finally:
+        hold.gate.set()
+    expect(page.locator("#result")).to_have_text(re.compile(r"^Paused in chapter [12]\.$"))
+    expect(page.locator("#job-kept")).to_contain_text(re.compile(r"\d of 4 sentences"))
+    expect(page.get_by_role("button", name="Resume")).to_be_visible()
+    expect(
+        page.get_by_role("button", name=re.compile(r"^Free the speech cache \("))
+    ).to_be_visible()
+    check_axe(page, "audiobook paused")
+
+
+def test_pause_then_resume_speaks_only_what_is_missing(signed_in: Page, live: Live) -> None:
+    """Pause keeps every sentence spoken so far; Resume speaks only the rest (#391)."""
+    page = signed_in
+    live.install_voice()
+    hold = Hold(after=2)
+    live.voice.fail_on = hold
+    open_paper(page, live)
+    page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    try:
+        assert hold.reached.wait(30)
+        with page.expect_response(
+            re.compile(r"/api/v1/jobs/[^/]+/cancel$")
+        ):  # the cancel is in before the gate opens
+            page.get_by_role("button", name="Pause").click()
+        expect(page.locator("#message")).to_have_text("Pausing…")
+    finally:
+        hold.gate.set()
+    expect(page.locator("#result")).to_have_text(re.compile(r"^Paused in chapter [12]\.$"))
+    expect(page.locator("#result")).to_be_focused()
+    before = list(live.voice.texts)
+    assert 2 <= len(before) < 4, before
+    live.voice.fail_on = lambda text: False
+    page.get_by_role("button", name="Resume").click()
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
+    again = live.voice.texts[len(before) :]
+    assert again, "Resume spoke nothing"
+    assert not set(again) & set(before), "Resume spoke a kept sentence again"
+
+
+def test_cancel_deletes_the_speech_cache_only_once_the_voice_stopped(
+    signed_in: Page, live: Live
+) -> None:
+    """Cancel = Pause, then the DELETE of the speech cache, and only after the job stopped
+    (D-694): while the voice still holds a sentence, no DELETE goes out. Without the wait
+    the DELETE would race a chunk still being written."""
+    page = signed_in
+    live.install_voice()
+    hold = Hold(after=1)
+    live.voice.fail_on = hold
+    document = open_paper(page, live)
+    deletes: list[str] = []
+    page.on(
+        "request",
+        lambda request: (
+            deletes.append(request.url)
+            if request.method == "DELETE" and request.url.endswith("/chunks")
+            else None
+        ),
+    )
+    page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    job = page.url.rsplit("/", 1)[1].split("#")[0]
+    try:
+        assert hold.reached.wait(30)
+        page.get_by_text("Cancel", exact=True).click()  # the confirm opens
+        confirm = page.locator("#cancel-box")
+        expect(confirm).to_contain_text("deletes the speech cache")
+        # the confirm names the cache's size, read when it opens: one sentence is spoken
+        expect(page.locator("#cancel-size")).to_have_text(
+            re.compile(r"^Its size now: [1-9][0-9.,]*\s(bytes|KB|MB)\.$")
+        )
+        check_axe(page, "the cancel confirm")
+        page.get_by_role("button", name="Cancel and delete the speech cache").click()
+        expect(page.locator("#message")).to_have_text("Stopping the voice…")
+        # the voice holds its sentence: the job runs on, and no DELETE may go out
+        page.wait_for_timeout(1500)
+        state = page.request.get(f"{live.url}/api/v1/jobs/{job}").json()["state"]
+        assert state == "running"
+        assert deletes == [], "the speech cache was deleted while the job still ran"
+    finally:
+        hold.gate.set()
+    expect(page.locator("#result")).to_have_text("Cancelled. The speech cache is empty.")
+    assert len(deletes) == 1
+    found = page.request.get(f"{live.url}/api/v1/documents/{document}").json()
+    assert found["speech_cache_bytes"] == 0
+    expect(page.get_by_role("button", name="Make it again")).to_be_visible()
     check_axe(page, "audiobook cancelled")
 
 
@@ -246,20 +338,21 @@ def test_a_busy_server_says_so(signed_in: Page, live: Live) -> None:
     assert document
 
 
-@pytest.mark.quarantined(
-    issue=365, reason="axe can run while the document page reloads after its analysis"
-)
 def test_pasted_text_opens_and_is_analysed(signed_in: Page, live: Live) -> None:
     """Pasted text is kept as `<name>.txt` and read as a plain-text file (#74, D-350)."""
     page = signed_in
     pasted = "Pasted words for the test.\n\nA second paragraph."
-    page.get_by_label("Or paste text").fill(pasted)
+    page.get_by_text("Or paste text").click()  # the library's paste box (#389)
+    page.get_by_label("Text to open").fill(pasted)
     page.get_by_label("Name for the pasted text").fill("My notes")
     check_axe(page, "start page with pasted text")
     page.get_by_role("button", name="Open the text").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
-    expect(page.get_by_role("heading", level=1)).to_contain_text("My notes.txt")
+    settled(page)  # axe must not run while the page reloads after its analysis (#365)
+    # the analysis names the text after its name; the file is `My notes.txt`
+    expect(page.get_by_role("heading", level=1)).to_have_text("My notes")
+    expect(page.locator(".side")).to_contain_text("My notes.txt")
     check_axe(page, "document from pasted text")
 
 
@@ -320,7 +413,7 @@ def test_the_job_page_says_when_the_server_is_gone(signed_in: Page, live: Live) 
     job, gate = gated(live.state, JobKind.AUDIO, document)
     try:
         page.goto(f"{live.url}/jobs/{job.id}")
-        expect(page.get_by_role("progressbar", name="Progress")).to_be_visible()
+        expect(page.get_by_role("progressbar", name="Making the audiobook")).to_be_visible()
         lose_the_server(page, live)
         expect(page.locator("#message")).to_have_text(LOST, timeout=15_000)  # LOST_AFTER is 5 s
         expect(page.locator("#message")).to_be_focused()
@@ -358,7 +451,7 @@ def test_make_starts_nothing_until_the_report_matches_and_has_a_chapter(
     expect(make).not_to_have_attribute("aria-disabled", "true")
 
     # a switch changed and not yet analysed: Make says so and starts nothing (D-245)
-    page.get_by_role("checkbox", name=re.compile("^Citations")).uncheck()
+    page.get_by_role("switch", name=re.compile("^Citations")).uncheck()
     expect(make).to_have_attribute("aria-disabled", "true")
     expect(page.locator("#make-note")).to_have_text(
         "Update the analysis first to see what your changes do."
@@ -368,7 +461,7 @@ def test_make_starts_nothing_until_the_report_matches_and_has_a_chapter(
         "Update the analysis first to see what your changes do."
     )
     expect(page.locator("#message")).to_be_focused()
-    page.get_by_role("checkbox", name=re.compile("^Citations")).check()
+    page.get_by_role("switch", name=re.compile("^Citations")).check()
 
     # no chapter chosen: nothing to read, so nothing starts
     page.get_by_role("button", name="Choose none").click()
@@ -545,11 +638,9 @@ def test_replace_waits_until_the_page_script_runs(signed_in: Page, live: Live) -
     open_paper(page, live)
     page.get_by_role("button", name="Make the audiobook").click()
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
-    page.get_by_role("link", name="Back to the document").click()
+    page.get_by_role("link", name="Prepare").click()
     page.get_by_role("button", name="Make the audiobook").click()
-    expect(page.locator("#result")).to_have_text(
-        "The job failed: The audiobook files exist already."
-    )
+    expect(page.locator("#result")).to_have_text("The audiobook files exist already.")
 
     release = reload_holding_back_app_js(page, live)
     replace_button = page.get_by_role("button", name="Replace these files")

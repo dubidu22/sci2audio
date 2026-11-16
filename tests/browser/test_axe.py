@@ -101,10 +101,10 @@ def test_progress_is_announced_at_most_every_30_seconds(signed_in: Page, live: L
         job.report({"phase": "speaking", "chunks_done": 21, "chunks_total": 100})
         expect(page.locator("#job-progress")).to_contain_text("21 of 100 sentences")
         said = page.evaluate("() => window.said")
-        assert said[-1].startswith("speaking, 21 of 100 sentences"), said
+        assert said[-1].startswith("Speaking, 21 of 100 sentences"), said
         assert len(said) <= 2, said
         job.report({"phase": "encoding"})  # a new phase is announced at once
-        expect(page.locator("#job-status")).to_have_text("making the audio files")
+        expect(page.locator("#job-status")).to_have_text("Making the audio files")
     finally:
         gate.set()
         job.join(10)
@@ -117,8 +117,11 @@ def test_a_job_that_failed(signed_in: Page, live: Live) -> None:
     live.voice.fail_to_make = EngineError("the model file is damaged")
     page.get_by_role("button", name="Make the audiobook").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
-    expect(page.locator("#result")).to_contain_text("The job failed")
-    expect(page.get_by_role("button", name="Start again")).to_be_visible()
+    expect(page.locator("#result")).to_have_text(
+        "Making the audiobook stopped before the voice began"
+    )
+    expect(page.locator("#job-kept")).to_have_text("Nothing is spoken yet.")
+    expect(page.get_by_role("button", name="Make it again")).to_be_visible()
     check_axe(page, "audiobook failed")
 
 

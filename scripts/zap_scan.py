@@ -713,10 +713,10 @@ def _walk_english(
     with page.expect_download():
         page.locator("a[download], a[href*='download=']").first.click()
     # a switch off and back on: the update starts a script job
-    page.get_by_role("checkbox", name=re.compile("^Citations")).uncheck()
+    page.get_by_role("switch", name=re.compile("^Citations")).uncheck()
     page.get_by_role("button", name="Update the analysis").click()
     expect(page.locator("#changed")).to_be_hidden()
-    page.get_by_role("checkbox", name=re.compile("^Citations")).check()
+    page.get_by_role("switch", name=re.compile("^Citations")).check()
     page.get_by_role("button", name="Update the analysis").click()
     expect(page.locator("#changed")).to_be_hidden()
 
@@ -741,7 +741,7 @@ def _walk_english(
         context.request.get(origin + str(link.get_attribute("href")))
     page.get_by_role("link", name="Listen with the text").click()
     page.wait_for_url(re.compile(r"/listen$"))
-    page.locator(".s").first.click()
+    page.locator("#text .s").first.click()  # the sentences, not an icon of size s
     page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
 
     # again: the files exist, then replace them; free the speech cache

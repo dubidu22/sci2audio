@@ -230,3 +230,21 @@ def check_axe(page: Page, where: str) -> None:
     problems += axe_problems(page, f"{where} (dark)")
     page.emulate_media(color_scheme="light")
     assert problems == []
+
+
+class Hold:
+    """The fake voice's `fail_on`: lets `after` sentences through, then holds the next one
+    until `gate` opens; never fails."""
+
+    def __init__(self, after: int) -> None:
+        self.after = after
+        self.calls = 0
+        self.reached = threading.Event()
+        self.gate = threading.Event()
+
+    def __call__(self, text: str) -> bool:
+        self.calls += 1
+        if self.calls > self.after:
+            self.reached.set()
+            self.gate.wait(120)
+        return False

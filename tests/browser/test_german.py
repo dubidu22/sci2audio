@@ -14,10 +14,10 @@ from typing import Any
 
 import pytest
 from playwright.sync_api import Page, expect
-from test_flow import PDF, gated, slow, until
+from test_flow import PDF, gated, until
 from test_keyboard import press_on, tab_to
 
-from conftest import Live, check_axe, settled
+from conftest import Hold, Live, check_axe, settled
 from sci2audio.voices import PREVIEW_TEXT, EngineError
 from sci2audio.web.i18n import COOKIE
 from sci2audio.web.jobs import JobKind
@@ -65,7 +65,7 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     check_axe(page, "de: document with a list of changes open")
 
     # a switch off and the analysis updated, in German
-    page.get_by_role("checkbox", name=re.compile("^Zitate")).uncheck()
+    page.get_by_role("switch", name=re.compile("^Zitate")).uncheck()
     expect(page.locator("#changed")).to_be_visible()
     expect(page.locator("#changed")).to_have_text(
         "Sie haben die Auswahl geändert. Aktualisieren Sie die Analyse, um zu sehen, was sich"
@@ -74,7 +74,7 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     page.get_by_role("button", name="Analyse aktualisieren").click()
     expect(page.locator("#changed")).to_be_hidden()
     expect(page.locator("#counts-citations")).to_contain_text("1 ausgeschaltet")
-    page.get_by_role("checkbox", name=re.compile("^Zitate")).check()
+    page.get_by_role("switch", name=re.compile("^Zitate")).check()
     page.get_by_role("button", name="Analyse aktualisieren").click()
     expect(page.locator("#changed")).to_be_hidden()
 
@@ -118,7 +118,9 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
 
     # the player (#78): German controls; chapter titles keep the document's language (D-291)
     page.get_by_role("link", name="Mit dem Text anhören").click()
-    expect(page.get_by_role("heading", level=1)).to_have_text(re.compile(r"^Anhören: "))
+    # the paper header (#391): the title, and the tab of the page shown
+    expect(page.get_by_role("heading", level=1)).to_have_text("paper")
+    expect(page.get_by_role("link", name="Anhören")).to_have_attribute("aria-current", "page")
     expect(page.get_by_role("button", name="Abspielen")).to_be_visible()
     language = page.locator("#text").get_attribute("lang")
     assert language
@@ -132,12 +134,10 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     check_axe(page, "de: listen page after a jump")
 
     # again: the files exist; the kind's sentence in German, the app's words as details
-    page.get_by_role("link", name="Zurück zum Dokument").click()
+    page.get_by_role("link", name="Vorbereiten").click()
     page.get_by_role("button", name="Hörbuch erstellen").click()
-    expect(page.locator("#result")).to_have_text(
-        "Der Auftrag ist fehlgeschlagen: Die Hörbuchdateien gibt es schon."
-    )
-    details = page.locator("#job p", has_text="Details von sci2audio:")
+    expect(page.locator("#result")).to_have_text("Die Hörbuchdateien gibt es schon.")
+    details = page.locator("#making p", has_text="Details von sci2audio:")
     expect(details.locator("span[lang=en]")).to_contain_text("exist already")
     check_axe(page, "de: audiobook files exist")
     page.get_by_role("button", name="Diese Dateien ersetzen").click()
@@ -146,23 +146,35 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     expect(page.locator("#message")).to_have_text("Der Sprachzwischenspeicher ist leer.")
 
 
-def test_progress_and_cancel_in_german(signed_in: Page, live: Live) -> None:
+def test_progress_and_pause_in_german(signed_in: Page, live: Live) -> None:
     page = signed_in
     live.install_voice()
-    live.voice.fail_on = slow(1.0)
+    hold = Hold(after=1)  # the second sentence waits, so Pause comes mid-job
+    live.voice.fail_on = hold
     open_paper(page)
     page.get_by_role("button", name="Hörbuch erstellen").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
-    progress = page.locator("#job-progress")
-    expect(progress).to_contain_text("es wird gesprochen")
-    expect(progress).to_contain_text(re.compile(r"\d von \d Sätzen"))
-    expect(progress).to_contain_text("das Tempo wird gemessen")
-    expect(page.locator("#shelf-job")).to_contain_text("Hörbuch von paper.pdf")
-    expect(page.locator("#shelf-job-state")).to_contain_text("es wird gesprochen")
-    check_axe(page, "de: audiobook running")
-    page.get_by_role("button", name="Abbrechen").click()
-    expect(page.locator("#result")).to_have_text("Der Auftrag wurde abgebrochen.")
-    check_axe(page, "de: audiobook cancelled")
+    try:
+        assert hold.reached.wait(30)
+        expect(page.locator("#making-title")).to_have_text("Das Hörbuch wird erstellt")
+        expect(page.locator("#job-chapter")).to_have_text(
+            re.compile(r"^Kapitel \d von 2 wird gesprochen$")
+        )
+        expect(page.locator("#job-progress")).to_contain_text(re.compile(r"\d von \d Sätzen"))
+        expect(page.locator("#job-left")).to_contain_text("das Tempo wird gemessen")
+        expect(page.locator("#shelf-job")).to_contain_text("Hörbuch von paper.pdf")
+        expect(page.locator("#shelf-job-state")).to_contain_text("es wird gesprochen")
+        check_axe(page, "de: audiobook running")
+        with page.expect_response(
+            re.compile(r"/api/v1/jobs/[^/]+/cancel$")
+        ):  # the cancel is in before the gate opens
+            page.get_by_role("button", name="Pausieren").click()
+        expect(page.locator("#message")).to_have_text("Wird pausiert …")
+    finally:
+        hold.gate.set()
+    expect(page.locator("#result")).to_have_text(re.compile(r"^In Kapitel [12] pausiert\.$"))
+    expect(page.get_by_role("button", name="Fortsetzen")).to_be_visible()
+    check_axe(page, "de: audiobook paused")
 
 
 def test_a_running_download_in_german(signed_in: Page, live: Live) -> None:
@@ -229,8 +241,10 @@ def test_a_failed_job_in_german(signed_in: Page, live: Live) -> None:
     live.voice.fail_to_make = EngineError("the model file is damaged")
     page.get_by_role("button", name="Hörbuch erstellen").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
-    expect(page.locator("#result")).to_contain_text("Der Auftrag ist fehlgeschlagen:")
-    expect(page.get_by_role("button", name="Neu starten")).to_be_visible()
+    expect(page.locator("#result")).to_have_text(
+        "Das Erstellen des Hörbuchs hat angehalten, bevor die Stimme begann"
+    )
+    expect(page.get_by_role("button", name="Neu erstellen")).to_be_visible()
     check_axe(page, "de: audiobook failed")
 
 
@@ -280,7 +294,7 @@ def test_the_language_switch_by_keyboard(signed_in: Page, live: Live) -> None:
     expect(page.get_by_role("button", name="English")).to_have_attribute("aria-pressed", "true")
     check_axe(page, "en: settings after the switch")
     page.goto(f"{live.url}/documents/{document}")
-    expect(page.get_by_role("heading", level=2, name="1. Check what will be read")).to_be_visible()
+    expect(page.get_by_role("heading", level=2, name="Check what will be read")).to_be_visible()
 
     # the choice is the cookie's, so it holds in a new tab despite the German browser
     cookie = next(c for c in page.context.cookies() if c["name"] == COOKIE)
