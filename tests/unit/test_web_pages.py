@@ -369,8 +369,14 @@ def test_each_voice_has_a_card_and_a_missing_pack_shows_what_it_would_download(
     from sci2audio.voices import VOICES, preview_text
 
     _app, config = server
-    install_pack(config, "en")
     client = client_of(server)
+    nothing = client.get("/voice").text  # each missing pack names its own size
+    plan = download_plan()
+    for pack in ("en", "de"):
+        size = strings("en").size(sum(f.size for f in plan.files if f.pack == pack))
+        panel = nothing.split(f'<section class="pack" id="pack-{pack}"')[1].split("</section>")[0]
+        assert panel.count(f"Not installed: {size} to download</p>") == panel.count("<li ")
+    install_pack(config, "en")
     page = client.get("/voice").text
     english = page.split('<section class="pack" id="pack-en"')[1].split("</section>")[0]
     german = page.split('<section class="pack" id="pack-de"')[1].split("</section>")[0]

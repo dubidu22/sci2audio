@@ -535,7 +535,7 @@ def test_every_download_link_saves_without_leaving_the_page() -> None:
     click on it while the page loads stops the load, and app.js never runs."""
     links = [
         (template.name, link)
-        for template in sorted((WEB / "templates").glob("*.html"))
+        for template in sorted((Path(pages.__file__).parent / "templates").glob("*.html"))
         for link in DOWNLOAD_LINK.findall(template.read_text(encoding="utf-8"))
     ]
     assert len(links) >= 4  # the side column's three and the job card's files

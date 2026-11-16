@@ -28,8 +28,15 @@ def test_a_sample_plays_by_keyboard_and_a_second_stops_the_first(
     until(lambda: playing(page))
     assert live.voice.spoken[-1] == (preview_text("en"), "af_heart", 1.0)
     check_axe(page, "voices, a sample playing")
-    george = page.get_by_role("button", name="Play a sample of George")
-    george.click()
+    # a second Play stops the first at once, before its own sample is made
+    page.locator("#voice-sample").evaluate("a => { a.loop = true; }")  # still playing
+    stopped = page.locator("#voice-sample").evaluate(
+        """a => {
+            document.querySelector('[data-voice="bm_george"]').click();
+            return a.paused && !a.getAttribute("src");
+        }"""
+    )
+    assert stopped
     expect(page.get_by_role("button", name="Play a sample of Heart")).to_be_visible()
     expect(page.get_by_role("button", name="Stop the sample of George")).to_be_visible()
     until(lambda: live.voice.spoken[-1][1] == "bm_george")

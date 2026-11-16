@@ -235,8 +235,8 @@ def test_a_file_dropped_on_the_opener_opens_and_is_analysed(signed_in: Page, liv
     cannot read give a message in the status region; leaving ends the `over` state."""
     page = signed_in
     page.goto(live.url + "/")
-    hint = page.locator("#file-hint")
-    expect(hint).to_contain_text("Or drop a file here.")
+    expect(page.locator("#drop-hint")).to_be_visible()
+    expect(page.locator("#drop-hint")).to_have_text("Or drop a file here.")
     opener = page.locator("#open-file")
     data = page.evaluate_handle(
         "() => { const d = new DataTransfer(); d.items.add(new File(['x'], 'a.txt')); return d; }"
