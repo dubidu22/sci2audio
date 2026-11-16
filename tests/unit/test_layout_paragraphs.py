@@ -346,6 +346,64 @@ def test_items_lettered_with_a_full_stop_stay_apart() -> None:
         assert paragraphs(doc) == [*(item.text for item in items), joined(body)]
 
 
+def rows_at(spans: list[tuple[float, float]], top: float = 200.0) -> list[TextLine]:
+    """Four rows of a block at these left and right edges, the third starting a sentence."""
+    texts = ["The first line of the block.", "The second line ends here.",
+             "A third line starts anew", "and goes on to its end."]  # fmt: skip
+    pairs = enumerate(zip(texts, spans, strict=True))
+    return [line(t, x0, top + PITCH * k, x1) for k, (t, (x0, x1)) in pairs]
+
+
+def test_rows_ending_at_two_edges_are_no_flush_right_block() -> None:
+    """Review of #476, round 2: rows that start at three places but end at two edges are no
+    flush-right lines, so the indented third row starts a paragraph."""
+    above = lines("a", LEFT, RIGHT, 100, 3)
+    block = rows_at([(LEFT, 450), (LEFT + 8, 450), (LEFT + 20, 400), (LEFT, 400)])
+    doc = build_document(content(above + block))
+    assert paragraphs(doc) == [joined(above), joined(block[:2]), joined(block[2:])]
+
+
+def test_rows_with_two_middles_are_no_centred_block() -> None:
+    """Review of #476, round 2: rows whose middles stand at two places are not centred, so
+    the indented third row starts a paragraph."""
+    above = lines("a", LEFT, RIGHT, 100, 3)
+    block = rows_at([(LEFT, 450), (LEFT + 10, 440), (LEFT + 30, 380), (LEFT, 410)])
+    assert joined(block[2:]) in paragraphs(build_document(content(above + block)))
+
+
+def test_one_italic_word_leaves_a_centred_row_upright() -> None:
+    """Review of #476, round 2: a row is italic when most of its letters are, so a journal's
+    name in italic does not end a centred block of upright rows."""
+    middle = (LEFT + RIGHT) / 2
+
+    def centred(runs: list[tuple[str, bool]], width: float, k: int) -> TextLine:
+        box = line("x", middle - width / 2, 100 + PITCH * k, middle + width / 2)
+        styled = tuple(TextRun(text, "Times", 10.0, italic=slanted) for text, slanted in runs)
+        return TextLine(box.id, styled, box.box)
+
+    rows = [
+        centred([("Department of Listening and Reading,", False)], 300, 0),
+        centred([("for the ", False), ("Journal", True), (" of Sound, Town", False)], 220, 1),
+        centred([("Example Country 12345", False)], 260, 2),
+    ]
+    body = lines("z", LEFT, RIGHT, 100 + 3 * PITCH + 10, 3)
+    assert paragraphs(build_document(content(rows + body))) == [joined(rows), joined(body)]
+
+
+@given(st.sampled_from(["e.g. the ones on the shelf.", "i.e. the ones on the shelf."]))
+def test_a_short_line_goes_on_with_e_g_and_i_e(start: str) -> None:
+    """Review of #476, round 2: "e.g." and "i.e." are no lettered list marks, so a short
+    line ending inside a sentence goes on with them."""
+    rows = [
+        line(
+            "Running text that fills its column from one edge to the other edge", LEFT, 100, RIGHT
+        ),
+        line("we read the papers aloud", LEFT, 100 + PITCH, LEFT + 150),
+        line(start, LEFT, 100 + 2 * PITCH, LEFT + 300),
+    ]
+    assert paragraphs(build_document(content(rows))) == [joined(rows)]
+
+
 @given(st.sampled_from(["The danger.", "The danger", "the danger"]))
 def test_a_short_line_still_ends_a_paragraph_before_a_new_sentence(first: str) -> None:
     """The short line ends a sentence, or the next line starts upper case or with a digit:
