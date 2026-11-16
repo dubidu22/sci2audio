@@ -144,15 +144,17 @@ def test_no_reference_list_is_read(paper: Path) -> None:
 
 def test_liu_s_list_without_a_heading_is_not_read_and_its_body_is() -> None:
     """#92, D-646: Liu (PRL, revtex) prints its list without a heading, entries [1] to [81]
-    in blocks 53 to 133, its one note as entry [59]; no other corpus paper uses the rule."""
+    in blocks 51 to 131, its one note as entry [59]; no other corpus paper uses the rule.
+    (Blocks 53 to 133 before #454: the centred affiliation's three lines are one block.)"""
     (paper,) = [paper for paper in PAPERS if paper.stem == "arxiv2024-liu-orbital-hall"]
     doc, said = document(paper), spoken(paper)
-    listed = [i for i in range(53, 134) if doc.blocks[i].kind is not BlockKind.FURNITURE]
+    listed = [i for i in range(51, 132) if doc.blocks[i].kind is not BlockKind.FURNITURE]
     assert unheaded_list(doc.blocks) == listed
-    assert doc.blocks[53].text.startswith("[1] ")
-    assert "[81] " in doc.blocks[133].text[:6]
+    assert doc.blocks[51].text.startswith("[1] ")
+    assert "[81] " in doc.blocks[131].text[:6]
+    assert len(doc.blocks) == 132
     assert all(said[i] == "" for i in listed)
-    assert said[52].startswith("Acknowledgments.")
+    assert said[50].startswith("Acknowledgments.")
     # every other paper heads its list, so the rule is not used there
     for other in PAPERS:
         if other != paper:

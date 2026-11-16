@@ -87,12 +87,16 @@ class Page:
         return self
 
     def body(self, count: int = 4, size: float = 10.0) -> "Page":
-        """A paragraph of running text: full lines, the last one ending halfway."""
+        """A paragraph of running text: full lines, the last one ending halfway. It starts
+        and ends a sentence: a row ending inside a sentence goes on with a row that starts in
+        lower case, whatever its shape (#454)."""
         for k in range(count):
             n = next(_ids)
-            right = RIGHT if k < count - 1 else (LEFT + RIGHT) / 2
+            last = k == count - 1
+            right = RIGHT if not last else (LEFT + RIGHT) / 2
             box = Box(LEFT, self.y, right, self.y + size)
-            run = TextRun(f"running text {n} goes on", "Times", size)
+            words = f"{'Running' if k == 0 else 'running'} text {n}"
+            run = TextRun(f"{words} {'ends.' if last else 'goes on'}", "Times", size)
             self.lines.append(TextLine(f"b{n}", (run,), box))
             self.y += PITCH
         return self

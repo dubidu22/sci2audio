@@ -11,11 +11,14 @@ run-in head ("Definition 1.") does not make it bold. A paragraph ends where the 
 is set in another size or weight, where the line before it stops short of its column's
 edge, where the next line is indented as a first line (or, in a list with hanging indents,
 starts further out), or where more white than the usual line spacing stands between the
-two; never inside a word split by a hyphen at a line's end. A paragraph goes on across a
-column or page break when its last line fills the column and the next column starts with a
-line in the same style that is not indented. Figures and furniture met while a paragraph
-is open wait until it closes, and so does text that interrupts it (`Paragraphs`): a
-paragraph is never cut by a footnote or a float.
+two; never inside a word split by a hyphen at a line's end, and never where a line ends
+inside a sentence and the line right under it goes on in lower case (#454). Lines set flush
+right or centred (a motto, a title page's affiliation) start at many places: there a ragged
+left edge is no indent or outdent, and in centred lines a short line ends nothing (#454).
+A paragraph goes on across a column or page break when its last line fills the column and
+the next column starts with a line in the same style that is not indented. Figures and
+furniture met while a paragraph is open wait until it closes, and so does text that
+interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float.
 """
 
 from __future__ import annotations
@@ -430,15 +433,60 @@ class Paragraphs:
 
     def _breaks(self, rows: list[Row], next_row: Row) -> bool:
         """True if a change of weight, a short line, an indent or an outdent ends the
-        paragraph before the next row."""
+        paragraph before the next row. A row that ends inside a sentence, with a row right
+        under it that goes on in lower case, goes on whatever its shape (#454, D-719). In
+        lines set flush right or centred, a ragged left edge is no indent or outdent, and in
+        centred lines a short line is no paragraph's end (#454)."""
         last = rows[-1]
         if last.bold != next_row.bold:
             return True
-        return not self._display(last) and (
-            self._short(last, next_row)
-            or self._indented(rows, next_row)
-            or self._outdented(rows, next_row)
+        if self._display(last) or self._goes_on(rows, next_row):
+            return False
+        shape = self._aligned(last, next_row)
+        return (shape != "centred" and self._short(last, next_row)) or (
+            shape is None and (self._indented(rows, next_row) or self._outdented(rows, next_row))
         )
+
+    def _goes_on(self, rows: list[Row], next_row: Row) -> bool:
+        """True if the next row stands right under the last and goes on with its sentence in
+        lower case (`_inside`), and the paragraph is no caption: under a caption's last line
+        a float's own lines start (an algorithm's "for" or "return")."""
+        last = rows[-1]
+        return (
+            _inside(last, next_row)
+            and self._stacked(last, next_row)
+            and not opens_caption(rows[0].pieces[0])
+        )
+
+    def _aligned(self, last: Row, next_row: Row) -> str | None:
+        """The rows' shape around the break (the two before it and the one after it, standing
+        under each other): "right" if they end at one edge and start at three or more places, and
+        none of them fills its column: lines set flush right, as a motto. "centred" if
+        instead their middles line up. None otherwise: a paragraph's first-line indent or a
+        hanging indent starts its rows at two places only, and justified rows fill their
+        column."""
+        if not self._stacked(last, next_row):
+            return None
+        window = [last, next_row]
+        before, after = self.earlier.get(id(last)), self.later.get(id(next_row))
+        if before is not None and self._stacked(before, last):
+            window.insert(0, before)
+        if after is not None and self._stacked(next_row, after):
+            window.append(after)
+        reach = self.settings.align * max(row.size for row in window)
+        if len(window) < 3 or any(self._runs_on(row) for row in window):
+            return None  # (justified rows fill their column: a list's entries)
+        if len(_places([row.box.x0 for row in window], reach)) < 3:
+            return None
+        if len(_places([row.box.x1 for row in window], reach)) == 1:
+            return "right"
+        middles = [(row.box.x0 + row.box.x1) / 2 for row in window]
+        return "centred" if len(_places(middles, reach)) == 1 else None
+
+    def _stacked(self, upper: Row, lower: Row) -> bool:
+        """True if the lower row stands right under the upper one, with no more white
+        between them than the usual line spacing."""
+        return _below(upper, lower, self.settings) and self._close_by(upper, lower)
 
     def _display(self, row: Row) -> bool:
         """True for a title or heading line: bigger than the body text, or bold. Its lines
@@ -482,6 +530,26 @@ def _split_word(row: Row, next_row: Row) -> bool:
     with in lower case ("mar")."""
     end, start = row.text.rstrip(), next_row.text.lstrip()
     return end[-2:-1].isalpha() and end.endswith("-") and start[:1].islower()
+
+
+def _inside(row: Row, next_row: Row) -> bool:
+    """True if the row ends inside a sentence, in a letter, a comma, a semicolon, an open
+    bracket or a slash (a link broken at a line's end), and the next row goes on with it in
+    lower case: a break there is a line of a motto or a poem, not a new paragraph (#454,
+    D-719). A heading, a caption or a list entry starts upper case, a figure or a mark, so it
+    is not joined this way; nor is a row ending in a digit (a table's cell, a number)."""
+    end = row.text.rstrip()[-1:]
+    return (end.isalpha() or end in ",;(/") and next_row.text.lstrip()[:1].islower()
+
+
+def _places(edges: list[float], reach: float) -> list[float]:
+    """The distinct places among these edges: edges closer than `reach` to the one before
+    them, in order, are one place."""
+    found: list[float] = []
+    for edge in sorted(edges):
+        if not found or edge - found[-1] > reach:
+            found.append(edge)
+    return found
 
 
 def _ends(row: Row) -> bool:
