@@ -162,3 +162,49 @@ def test_continue_listening_opens_the_player_paused_at_the_saved_time(
     )
     assert abs(time - kept["time"]) < 1.0, (time, kept)  # within one sentence
     expect(page.locator("#shelf-continue")).to_have_attribute("aria-current", "page")
+
+
+def test_the_search_filters_as_the_person_types_and_works_without_the_script(
+    signed_in: Page, live: Live
+) -> None:
+    """#416: by keyboard, case and accents aside; the GET form does the same without
+    app.js; the counts stay those of every document."""
+    page = signed_in
+    full_library(live)
+    page.goto(live.url + "/")
+    rows = page.locator("#documents tbody tr")
+    expect(rows).to_have_count(3)
+    search = page.get_by_role("searchbox", name="Search titles, authors and file names")
+    search.focus()
+    page.keyboard.type("NAPS wríter")
+    expect(rows.locator("visible=true")).to_have_count(1)
+    expect(rows.locator("visible=true").locator(".title")).to_contain_text("naps after lunch")
+    expect(page).to_have_url(re.compile(r"\?q=NAPS\+wr%C3%ADter$"))
+    expect(page.locator("#library-count")).to_have_text("3 documents on this computer")
+    check_axe(page, "library, filtered")
+    page.keyboard.type("x")
+    expect(page.locator("#no-match")).to_have_text("No document matches “NAPS wríterx”.")
+    expect(page.locator("#library")).to_be_hidden()
+    check_axe(page, "library, nothing found")
+    for _ in "wríterx":
+        page.keyboard.press("Backspace")
+    page.keyboard.press("Backspace")
+    page.keyboard.press("Enter")  # the form, with the script: filters, stays on the page
+    expect(rows.locator("visible=true")).to_have_count(1)
+    expect(page.locator("#no-match")).to_be_empty()
+    page.keyboard.press("Control+a")
+    page.keyboard.press("Delete")
+    expect(rows.locator("visible=true")).to_have_count(3)
+    expect(page).to_have_url(live.url + "/")
+    # without the script: the server filters for the form's GET
+    page.route(f"{live.url}/static/app.js", lambda route: route.abort())
+    page.goto(live.url + "/")
+    page.get_by_role("searchbox").fill("ready")
+    page.get_by_role("button", name="Search", exact=True).click()
+    expect(page).to_have_url(live.url + "/?q=ready")
+    expect(rows.locator("visible=true")).to_have_count(1)
+    expect(rows.locator("visible=true").locator(".title")).to_have_text("ready.pdf")
+    page.get_by_role("searchbox").fill("zzz")
+    page.get_by_role("searchbox").press("Enter")
+    expect(page.locator("#no-match")).to_have_text("No document matches “zzz”.")
+    page.unroute(f"{live.url}/static/app.js")

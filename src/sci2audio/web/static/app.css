@@ -328,6 +328,13 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .paste[open] summary { margin-bottom: 12px; }
 .paste[open] summary svg:last-child { transform: rotate(180deg); }
 .paste .stack { margin: 0; }
+/* the library's search (#416) */
+.lib-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+.lib-tools .search { position: relative; flex: 0 1 22rem; min-width: 0; display: flex; }
+.lib-tools .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--pencil); pointer-events: none; }
+.lib-tools input[type="search"] { font: inherit; color: var(--ink); background: var(--paper); width: 100%; min-height: 38px; padding: 7px 10px 7px 34px; border: 1px solid var(--rule-strong); border-radius: var(--r); }
+.no-match { margin: 0 0 12px; color: var(--pencil); }
+.no-match:empty { display: none; }
 .papers-region { position: relative; margin: 0 0 16px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper); }
 .papers-region:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 table.papers { width: 100%; margin: 0; border: 0; min-width: 640px; }

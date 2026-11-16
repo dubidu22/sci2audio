@@ -39,8 +39,10 @@ from sci2audio.web.library import (
     about_of,
     heard,
     length_text,
+    matches,
     read_about,
     read_opened,
+    search_text,
     when,
     write_about,
     write_opened,
@@ -866,3 +868,59 @@ def test_a_record_that_cannot_be_read_reads_as_nothing(
     page = client.get("/")
     assert page.status_code == 200
     assert '<a class="title" href="/documents/' + doc + '">paper.pdf</a>' in row_of(page.text, doc)
+
+
+# ---- the search (#416) ---------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("query", "found"),
+    [
+        ("", True),
+        ("SLEEP", True),  # case aside
+        ("reaction schäfer", True),  # every word, anywhere, in any order
+        ("schafer", True),  # accents aside
+        ("Schaefer", False),  # no spelling rules: only accents and case
+        ("strasse", True),  # ß as ss
+        ("STRASSE", True),
+        ("ﬁeld", True),  # a ligature as its letters
+        ("notes.pdf", True),  # the file name
+        ("sleep naps", False),  # every word must be there
+    ],
+)
+def test_the_search_ignores_case_and_accents(query: str, found: bool) -> None:
+    row = search_text("Sleep and reaction time in the field", ("J. Schäfer", "Straße"), "notes.pdf")
+    assert matches(query, row) is found
+
+
+def test_the_search_filters_the_rows_and_keeps_the_counts(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    _app, config = server
+    sleep = upload(client, pdf_bytes(), "sleep.pdf")["id"]
+    other = upload(client, pdf_bytes(), "other.pdf")["id"]
+    write_about(config.work_root / sleep, About("Sleep and naps", ("Ana Müller",), 3))
+    page = client.get("/", params={"q": "  MULLER  "}).text
+    assert 'value="MULLER"' in page  # the query, its spaces tidied
+    assert " hidden" not in row_of(page, sleep).split(">")[0]
+    assert row_of(page, other).split(">")[0].endswith(" hidden")
+    assert 'data-find="sleep and naps ana muller sleep.pdf"' in row_of(page, sleep)
+    assert '<p class="sub" id="library-count">2 documents on this computer</p>' in page
+    assert '<p class="no-match" id="no-match" role="status"></p>' in page
+    rail = rail_of(page)
+    assert re.search(r">\s*2\s*<", rail)  # the rail's count is of every document
+    none = client.get("/", params={"q": "nothing like it"}).text
+    assert "No document matches “nothing like it”." in none
+    assert (
+        'id="library" role="region" aria-labelledby="library-caption" tabindex="0" hidden' in none
+    )
+    german = client.get("/", params={"q": "nichts"}, cookies={"sci2audio-language": "de"}).text
+    assert "Kein Dokument passt zu „nichts“." in german
+    plain = client.get("/").text
+    assert " hidden>" not in row_of(plain, other)[:200]
+    assert 'id="no-match" role="status"></p>' in plain
+
+
+def test_without_documents_there_is_no_search(server: tuple[FastAPI, Any]) -> None:
+    page = client_of(server).get("/", params={"q": "x"}).text
+    assert 'id="search"' not in page
+    assert 'id="no-match"' not in page

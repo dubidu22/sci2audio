@@ -174,6 +174,43 @@ function startPage() {
   }
 }
 
+// ---- the library's search (#416) ---------------------------------------------------------
+
+// The text as the server's `library.folded` compares it: case and accents aside.
+function folded(text) {
+  return text.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replaceAll("ß", "ss");
+}
+
+// Filters the rows in place as the person types; the form itself still works (GET /?q=).
+function librarySearch() {
+  const form = document.getElementById("search");
+  const input = document.getElementById("q");
+  const region = document.getElementById("library");
+  const none = document.getElementById("no-match");
+  if (!form || !input || !region || !none) return;
+  const rows = [...region.querySelectorAll("tbody tr[data-find]")];
+  const filter = () => {
+    const query = input.value.split(/\s+/).filter(Boolean).join(" ");
+    const words = folded(query).split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const row of rows) {
+      row.hidden = !words.every((word) => row.dataset.find.includes(word));
+      if (!row.hidden) shown += 1;
+    }
+    region.hidden = shown === 0;
+    none.textContent = shown === 0 ? tr("library.search_none", { q: query }) : "";
+    const url = new URL(location.href);
+    if (query) url.searchParams.set("q", query);
+    else url.searchParams.delete("q");
+    history.replaceState(history.state, "", url);
+  };
+  input.addEventListener("input", filter);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    filter();
+  });
+}
+
 // ---- removing a document (#120, D-359 to D-362) ------------------------------------------
 
 function removal() {
@@ -914,6 +951,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const data = document.getElementById("strings");
   STRINGS = data ? JSON.parse(data.textContent) : {};
   startPage();
+  librarySearch();
   removal();
   documentPage();
   makingCard();
