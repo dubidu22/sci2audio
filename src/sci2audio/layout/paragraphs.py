@@ -11,10 +11,11 @@ run-in head ("Definition 1.") does not make it bold. A paragraph ends where the 
 is set in another size or weight, where the line before it stops short of its column's
 edge, where the next line is indented as a first line (or, in a list with hanging indents,
 starts further out), or where more white than the usual line spacing stands between the
-two; never inside a word split by a hyphen at a line's end, and never where a line ends
-inside a sentence and the line right under it goes on in lower case (#454). Lines set flush
-right or centred (a motto, a title page's affiliation) start at many places: there a ragged
-left edge is no indent or outdent, and in centred lines a short line ends nothing (#454).
+two; never inside a word split by a hyphen at a line's end, and not at a short line that
+ends inside a sentence when the line right under it goes on in lower case (#454). Lines set
+flush right or centred (a motto, a title page's affiliation) start at many places: there a
+ragged left edge is no indent or outdent, in centred lines a short line ends nothing, and a
+change between italic and upright ends the paragraph (#454).
 A paragraph goes on across a column or page break when its last line fills the column and
 the next column starts with a line in the same style that is not indented. Figures and
 furniture met while a paragraph is open wait until it closes, and so does text that
@@ -24,6 +25,7 @@ interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float.
 from __future__ import annotations
 
 import itertools
+import re
 from dataclasses import dataclass
 from statistics import median
 
@@ -40,6 +42,9 @@ from sci2audio.layout.geometry import (
 )
 from sci2audio.layout.order import Element
 from sci2audio.layout.settings import LayoutSettings
+
+# a list item lettered "i." to "viii." or "a." to "z." (`lists` knows "i)", "(i)", "a)", "(a)")
+_LETTERED_ITEM = re.compile(r"(?:[ivxl]{1,4}|[a-z])[.)]\s")
 
 
 @dataclass(frozen=True)
@@ -433,24 +438,31 @@ class Paragraphs:
 
     def _breaks(self, rows: list[Row], next_row: Row) -> bool:
         """True if a change of weight, a short line, an indent or an outdent ends the
-        paragraph before the next row. A row that ends inside a sentence, with a row right
-        under it that goes on in lower case, goes on whatever its shape (#454, D-719). In
-        lines set flush right or centred, a ragged left edge is no indent or outdent, and in
-        centred lines a short line is no paragraph's end (#454)."""
+        paragraph before the next row. A short row that ends inside a sentence, with a row
+        right under it that goes on in lower case, is no paragraph's end (#454, D-719); an
+        indent or an outdent still is. In lines set flush right or centred, a ragged left
+        edge is no indent or outdent, in centred lines a short line is no paragraph's end,
+        and a change between italic and upright ends the paragraph (#454)."""
         last = rows[-1]
         if last.bold != next_row.bold:
             return True
-        if self._display(last) or self._goes_on(rows, next_row):
+        if self._display(last):
             return False
         shape = self._aligned(last, next_row)
-        return (shape != "centred" and self._short(last, next_row)) or (
+        if shape is not None and _italic(last) != _italic(next_row):
+            return True  # (an italic affiliation, then an upright date under it)
+        short = (
+            shape != "centred" and not self._goes_on(rows, next_row) and self._short(last, next_row)
+        )
+        return short or (
             shape is None and (self._indented(rows, next_row) or self._outdented(rows, next_row))
         )
 
     def _goes_on(self, rows: list[Row], next_row: Row) -> bool:
         """True if the next row stands right under the last and goes on with its sentence in
         lower case (`_inside`), and the paragraph is no caption: under a caption's last line
-        a float's own lines start (an algorithm's "for" or "return")."""
+        a float's own lines start (an algorithm's "for" or "return"). Then a short last row
+        does not end the paragraph."""
         last = rows[-1]
         return (
             _inside(last, next_row)
@@ -537,9 +549,20 @@ def _inside(row: Row, next_row: Row) -> bool:
     bracket or a slash (a link broken at a line's end), and the next row goes on with it in
     lower case: a break there is a line of a motto or a poem, not a new paragraph (#454,
     D-719). A heading, a caption or a list entry starts upper case, a figure or a mark, so it
-    is not joined this way; nor is a row ending in a digit (a table's cell, a number)."""
-    end = row.text.rstrip()[-1:]
-    return (end.isalpha() or end in ",;(/") and next_row.text.lstrip()[:1].islower()
+    is not joined this way; nor is a row ending in a digit (a table's cell, a number), nor
+    a list item lettered "i." or "a." ("e.g." and "i.e." go on)."""
+    end, start = row.text.rstrip()[-1:], next_row.text.lstrip()
+    return (
+        (end.isalpha() or end in ",;(/") and start[:1].islower() and not _LETTERED_ITEM.match(start)
+    )
+
+
+def _italic(row: Row) -> bool:
+    """True if most of the row's letters are set in italic (a leading upright mark, as an
+    affiliation's "1", does not make it upright)."""
+    runs = [run for piece in row.pieces for run in piece.runs]
+    letters = sum(len(run.text) for run in runs)
+    return 2 * sum(len(run.text) for run in runs if run.italic) > letters
 
 
 def _places(edges: list[float], reach: float) -> list[float]:

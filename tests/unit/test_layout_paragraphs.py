@@ -269,10 +269,81 @@ def test_a_line_ending_inside_a_sentence_goes_on_with_a_lower_case_line() -> Non
     poem = [
         line("The road is made by walking,", LEFT, 100, LEFT + 150),
         line("and the walker learns the land", LEFT, 100 + PITCH, LEFT + 170),
-        line("she crosses at https://example.org/", LEFT + 20, 100 + 2 * PITCH, LEFT + 190),
+        line("she crosses at https://example.org/", LEFT, 100 + 2 * PITCH, LEFT + 190),
         line("roads-and-rivers on foot.", LEFT, 100 + 3 * PITCH, LEFT + 130),
     ]
     assert paragraphs(build_document(content(poem))) == [joined(poem)]
+
+
+def italic(text: str, x0: float, y0: float, x1: float) -> TextLine:
+    """A line in italic, but for an upright mark ("1") in front of it, as an affiliation."""
+    line_ = line(text, x0, y0, x1)
+    mark, rest = text[:1], text[1:]
+    runs = (TextRun(mark, "Times", 10.0), TextRun(rest, "Times-Italic", 10.0, italic=True))
+    return TextLine(line_.id, runs, line_.box)
+
+
+def test_an_upright_line_under_centred_italic_lines_starts_a_paragraph() -> None:
+    """Review of #476, S1 (Liu p1): a centred affiliation in italic is one paragraph, the
+    upright date under it another; in centred lines a short line ends nothing, so the change
+    of style does."""
+    middle = (LEFT + RIGHT) / 2
+    centred = [
+        italic("1Department of Acoustics and Listening, Example University,",
+               middle - 190, 100, middle + 190),
+        italic("1Example Town 12345, Example Country", middle - 110, 100 + PITCH, middle + 110),
+        line("(Dated: 1 May 2026)", middle - 50, 100 + 2 * PITCH, middle + 50),
+    ]  # fmt: skip
+    body = lines("a", LEFT, RIGHT, 100 + 3 * PITCH + 10, 3)
+    doc = build_document(content([*centred, *body]))
+    assert paragraphs(doc) == [joined(centred[:2]), centred[2].text, joined(body)]
+
+
+def test_an_indented_paragraph_starting_lower_case_stays_apart() -> None:
+    """Review of #476, S2: a real first-line indent ends the paragraph even after a line
+    without a full stop, when the new paragraph starts in lower case ("pandas")."""
+    first = [
+        line("Running text that fills its column from edge to edge and goes", LEFT, 100, RIGHT),
+        line("on to the details on our website", LEFT, 100 + PITCH, LEFT + 200),
+    ]
+    second = [
+        line("pandas reads the table and fills its column from edge to", LEFT + 15,
+             100 + 2 * PITCH, RIGHT),
+        line("edge, and the paragraph goes on and ends here.", LEFT, 100 + 3 * PITCH, RIGHT),
+        line("And so does the next line.", LEFT, 100 + 4 * PITCH, LEFT + 150),
+    ]  # fmt: skip
+    doc = build_document(content([*first, *second]))
+    assert paragraphs(doc) == [joined(first), joined(second)]
+
+
+def test_an_outdented_entry_starting_lower_case_stays_apart() -> None:
+    """Review of #476, S2: author-year entries with hanging indents; an entry ending in a
+    link without a full stop, then one by "van Dijk": the outdent ends the entry."""
+    entries = [
+        [line("Albers, A. (2021). A study of the listening of papers. Journal of",
+              LEFT, 100, RIGHT),
+         line("Sound, 12, 45-67. https://example.org/listening", LEFT + 15, 100 + PITCH,
+              LEFT + 300)],
+        [line("van Dijk, T. (2022). Reading aloud in the laboratory and in the", LEFT,
+              100 + 2 * PITCH, RIGHT),
+         line("field. Proceedings of Things, 1-9.", LEFT + 15, 100 + 3 * PITCH, LEFT + 250)],
+    ]  # fmt: skip
+    doc = build_document(content([li for entry in entries for li in entry]))
+    assert paragraphs(doc) == [joined(entry) for entry in entries]
+
+
+def test_items_lettered_with_a_full_stop_stay_apart() -> None:
+    """Review of #476, S3: "i." and "a." items (which `lists` does not split) start in lower
+    case after a row without a full stop; each stays its own block."""
+    for marks in (("i.", "ii.", "iii."), ("a.", "b.", "c.")):
+        words = ("we read the paper aloud", "we listen to it", "we compare the two readings")
+        items = [
+            line(f"{mark} {said}", LEFT, 100 + PITCH * k, LEFT + 150 + 30 * (k % 2) - 10 * k)
+            for k, (mark, said) in enumerate(zip(marks, words, strict=True))
+        ]
+        body = lines("x", LEFT, RIGHT, 100 + 3 * PITCH + 10, 3)
+        doc = build_document(content([*items, *body]))
+        assert paragraphs(doc) == [*(item.text for item in items), joined(body)]
 
 
 @given(st.sampled_from(["The danger.", "The danger", "the danger"]))
