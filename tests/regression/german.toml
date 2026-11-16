@@ -2257,3 +2257,48 @@ goal = "A confidence interval with a page-break marker glued to its label reads 
 language = "de"
 blocks = [{ kind = "paragraph", runs = ["Es hielt, 95 %-KI", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " [1,2; 3,4]."] }]
 expected = ["Es hielt, 95 Prozent Konfidenzintervall 1 Komma 2 bis 3 Komma 4."]
+
+[[case]]
+id = "de-hidden-page-break-glued-to-links"
+audit = 0
+issue = 434
+goal = "A page-break marker glued to a DOI or URL does not keep the link in the script (#436 review round 1, B1)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Siehe https://doi.org/10.1000/18", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " und mehr."] },
+    { kind = "paragraph", runs = ["Siehe https://x.org/daten", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " und mehr."] },
+]
+expected = ["und mehr.", "und mehr."]
+
+[[case]]
+id = "de-hidden-page-break-glued-to-a-citation"
+audit = 0
+issue = 434
+goal = "A page-break marker glued to a numbered citation leaves the citation to go, as on a second run (#436 review round 1, B1)."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Wie gezeigt [12]", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " wurde."] }]
+expected = ["Wie gezeigt wurde."]
+
+[[case]]
+id = "de-affiliation-marks-not-isotope-numbers"
+audit = 0
+issue = 93
+goal = "Mass numbers set raised in a title are read as printed; a mark before a two-letter affiliation goes (#436 review round 1, B2, D-57)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = [{ sup = "1" }, "H-NMR-Spektroskopie an ", { sup = "13" }, "C-markierten Zuckern"] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "KI Labor, Beispielstadt"] },
+]
+expected = ["1H-NMR-Spektroskopie an 13C-markierten Zuckern", "KI Labor, Beispielstadt"]
+
+[[case]]
+id = "de-affiliation-marks-before-umlauts"
+audit = 0
+issue = 93
+goal = "A mark before an affiliation that starts with Ä, Ö or Ü goes too (#436 review round 1, S1)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Anna Müller", { sup = "1,2" }, " Ben Kraus", { sup = "3" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Ärztekammer Nordrhein, ", { sup = "2" }, "Überseemuseum Bremen, ", { sup = "3" }, "Österreichische Akademie"] },
+]
+expected = ["Anna Müller Ben Kraus", "Ärztekammer Nordrhein, Überseemuseum Bremen, Österreichische Akademie"]

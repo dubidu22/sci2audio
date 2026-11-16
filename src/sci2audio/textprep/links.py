@@ -33,6 +33,7 @@ from dataclasses import dataclass, replace
 from functools import cache
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
+from sci2audio.textprep.furniture import edits_around, hidden_removals, read_around
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wordlists import abbreviations
@@ -413,13 +414,15 @@ class LinkStep(TextStep):
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         words = WORDS[context.language.split("-", 1)[0].lower()]
+        hidden = hidden_removals(document, context)  # read as a second run reads (#434)
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text.strip():
                 continue
-            edits += self._block_edits(
-                index, block.text, block.kind, block.label, words, context.language
-            )
+            unread = hidden.get(index, [])
+            text, kept = read_around(block.text, unread)
+            found = self._block_edits(index, text, block.kind, block.label, words, context.language)
+            edits += edits_around(found, kept, unread)
         return edits
 
     def _block_edits(

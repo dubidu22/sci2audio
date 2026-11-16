@@ -193,6 +193,11 @@ def test_digits_commas_and_note_symbols_make_a_mark(text: str) -> None:
         ([("1",), " Example AI"], "Example AI"),  # one space before the affiliation
         (["Lab, ", ("2",), " Example"], "Lab, Example"),
         (["Lab,", ("2",), "Example"], "Lab,Example"),  # after a comma
+        (["Lab; ", ("2",), "Example"], "Lab; Example"),  # after a semicolon
+        ([("1",), "AI Lab"], "AI Lab"),  # a word of two letters
+        ([("2",), "\u00d6sterreichische Akademie"], "\u00d6sterreichische Akademie"),  # any capital
+        (["Lab, ", ("3",), "\u00c9cole Normale"], "Lab, \u00c9cole Normale"),
+        (["Lab, ", ("4",), " \u00dcberseemuseum"], "Lab, \u00dcberseemuseum"),
     ],
 )
 def test_marks_after_a_name_or_before_an_affiliation_are_removed(runs: list, spoken: str) -> None:
@@ -210,10 +215,40 @@ def test_marks_after_a_name_or_before_an_affiliation_are_removed(runs: list, spo
         [("5",), "  Two spaces"],  # more than one space before the capital
         ["MeV", ("2",), "x"],  # a letter right after
         ["Roe-", ("1",), " Lee"],  # after a hyphen
+        ["Quantitative ", ("1",), "H NMR"],  # mass numbers: not after a comma
+        ["NMR of ", ("13",), "C-labelled sugars"],
+        ["Spin ", ("3",), "He films"],
+        [("18",), "F-FDG PET"],  # at the start, but a one-letter word follows
+        [("1",), "H-NMR-Spektroskopie"],
+        ["Labs, ", ("238",), "U miners"],
     ],
 )
 def test_maths_and_sentence_marks_are_read(runs: list) -> None:
     assert removed(tagged(sup(*runs))) == []
+
+
+def test_a_mark_at_a_line_start_comes_before_an_affiliation() -> None:
+    """A PDF paragraph joins its lines with a space, so the line's own start counts."""
+    first = TextLine(
+        "l0", (TextRun("Somewhere, Los Angeles", size=10.0, box=Box(0, 100, 110, 110)),)
+    )
+    second = TextLine(
+        "l1",
+        (
+            TextRun("2", size=7.0, box=Box(0, 117, 5, 124)),
+            TextRun("Example Institute", size=10.0, box=Box(5, 120, 90, 130)),
+        ),
+    )
+    text = f"{first.text} {second.text}"
+    block = Block(BlockKind.PARAGRAPH, text, (Part("l0"), Part("l1", len(first.text) + 1)))
+    content = Content(Source("title.pdf", SourceFormat.PDF), (Page(1, (first, second)),))
+    document = Document(content=content, language="en", blocks=(block,))
+    assert removed(document) == ["2"]
+    # the same mark inside one line, after a word that is no name's end, is read
+    one = TextLine("l0", (*first.runs, TextRun(" "), *second.runs))
+    block = Block(BlockKind.PARAGRAPH, one.text, (Part("l0"),))
+    content = Content(Source("title.pdf", SourceFormat.PDF), (Page(1, (one,)),))
+    assert removed(Document(content=content, language="en", blocks=(block,))) == []
 
 
 # ---- footnote marks ---------------------------------------------------------------------

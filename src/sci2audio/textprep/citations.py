@@ -47,6 +47,7 @@ from dataclasses import dataclass, field
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.abbreviations import reads_full_stop
 from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN
+from sci2audio.textprep.furniture import edits_around, hidden_removals, read_around
 from sci2audio.textprep.links import (
     SKIPPED_KINDS,
     link_removals,
@@ -393,16 +394,21 @@ class CitationStep(TextStep):
             language,
             listed_keys(document),
         )
+        hidden = hidden_removals(document, context)  # read as a second run reads (#434)
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text.strip():
                 continue
-            links = link_removals(block.text, block.kind, block.label, language)
-            for start, end, kind, replacement, reason in rules.block(block.text, links):
+            unread = hidden.get(index, [])
+            text, kept = read_around(block.text, unread)
+            links = link_removals(text, block.kind, block.label, language)
+            found = []
+            for start, end, kind, replacement, reason in rules.block(text, links):
                 if kind is EditKind.REPLACE:
-                    edits.append(Edit(Span(index, start, end), kind, reason, self.id, replacement))
+                    found.append(Edit(Span(index, start, end), kind, reason, self.id, replacement))
                 else:
-                    edits.append(Edit(Span(index, start, end), kind, reason, self.id))
+                    found.append(Edit(Span(index, start, end), kind, reason, self.id))
+            edits += edits_around(found, kept, unread)
         return edits
 
 

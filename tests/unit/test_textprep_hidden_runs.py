@@ -17,6 +17,7 @@ from sci2audio.core import (
     BlockKind,
     Content,
     Document,
+    Edit,
     EditKind,
     FurnitureRole,
     Page,
@@ -38,7 +39,7 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
-from sci2audio.textprep.furniture import removed_span
+from sci2audio.textprep.furniture import QUOTED, edits_around, read_around, removed_span
 
 EN = StepContext("en")
 HIDDEN = ("p", "span", "hidden")
@@ -166,6 +167,77 @@ def test_the_step_is_the_first_inline_step_so_a_link_inside_never_wins() -> None
     assert inline[0] == "hidden-runs"
     document = tagged("See ", ("https://example.org/x (Smith, 2019)", HIDDEN), " here.")
     assert read(document) == ["See here."]
+
+
+@pytest.mark.parametrize(
+    ("runs", "spoken"),
+    [
+        (["Visit https://x.org", ("\u2197", ("a", "aria-hidden")), " today."], "today."),
+        (["See https://x.org/a", ("13", PAGE_BREAK), "b now."], "now."),  # inside the link
+        (["As shown [12]", ("13", PAGE_BREAK), " before."], "As shown before."),
+        (
+            ["Shown in [1,", ("13", PAGE_BREAK), " 2] and more."],
+            "Shown in references 1 and 2 and more.",
+        ),
+        (["Read (", ("x", HIDDEN), "https://x.org) now."], "Read now."),
+        (["A", ("13", PAGE_BREAK), " b. See https://x.org now."], "A b. now."),  # before it
+        (["As shown [12] here", ("13", PAGE_BREAK), " before."], "As shown here before."),
+    ],
+)
+def test_links_and_citations_read_the_text_without_hidden_runs(runs: list, spoken: str) -> None:
+    assert read(tagged(*runs)) == [spoken]
+
+
+def test_a_link_with_a_marker_inside_is_removed_in_pieces_beside_the_marker() -> None:
+    document = tagged("See https://x.org/a", ("13", PAGE_BREAK), "b now.")
+    run = run_steps(document, EN, strict=True)
+    pieces = sorted((e.span.start, e.span.end, e.step) for e in run.accepted)
+    assert pieces == [(0, 19, "links"), (19, 21, "hidden-runs"), (21, 23, "links")]
+
+
+def test_a_replacement_split_by_a_marker_is_read_once() -> None:
+    document = tagged("Shown in [1,", ("13", PAGE_BREAK), " 2] and more.")
+    edits = [e for e in run_steps(document, EN, strict=True).accepted if e.step == "citations"]
+    assert [(e.kind, e.replacement) for e in edits] == [
+        (EditKind.REPLACE, "references 1 and 2"),
+        (EditKind.REMOVE, ""),
+    ]
+
+
+def test_an_insertion_is_put_back_where_it_stands_in_the_printed_text() -> None:
+    text, kept = read_around("ab13cd", [(2, 4)])
+    assert (text, kept) == ("abcd", [0, 1, 4, 5, 6])
+    inserts = [Edit(Span(0, at, at), EditKind.REPLACE, "r", "s", "X") for at in (2, 4)]
+    placed = edits_around(inserts, kept, [(2, 4)])
+    assert [(e.span.start, e.span.end, e.replacement) for e in placed] == [(4, 4, "X"), (6, 6, "X")]
+
+
+@pytest.mark.parametrize(
+    ("runs", "spoken"),
+    [
+        (["As shown [12]", ("13", PAGE_BREAK), " before."], "As shown [12]13 before."),
+        (["Read (", ("x", HIDDEN), "https://x.org) now."], "Read (xhttps://x.org) now."),
+    ],
+)
+def test_with_page_furniture_off_links_and_citations_read_the_runs(runs: list, spoken: str) -> None:
+    assert read(tagged(*runs), switched_off=[Category.PAGE_FURNITURE]) == [spoken]
+
+
+def test_a_long_hidden_text_is_quoted_in_part() -> None:
+    hidden = " ".join(["word"] * 30)
+    (edit,) = HiddenRunStep().find(tagged("a ", (hidden, HIDDEN), " b"), EN)
+    quoted = edit.reason.split('"')[1]
+    assert len(quoted) <= QUOTED
+    assert quoted == hidden[: QUOTED - 1].rstrip() + "\u2026"
+    one_more = "w" * (QUOTED + 1)
+    (edit,) = HiddenRunStep().find(tagged("a ", (one_more, HIDDEN), " b"), EN)
+    assert f'"{one_more[: QUOTED - 1]}\u2026"' in edit.reason
+    spaced = "w" * (QUOTED - 2) + " " + "w" * 20  # the cut ends in a space, which goes
+    (edit,) = HiddenRunStep().find(tagged("a ", (spaced, HIDDEN), " b"), EN)
+    assert f'"{"w" * (QUOTED - 2)}\u2026"' in edit.reason
+    short = "w" * QUOTED
+    (edit,) = HiddenRunStep().find(tagged("a ", (short, HIDDEN), " b"), EN)
+    assert f'"{short}"' in edit.reason
 
 
 @pytest.mark.parametrize(

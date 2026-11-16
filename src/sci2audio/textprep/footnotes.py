@@ -397,7 +397,7 @@ _NAME_END = re.compile(r"[^\W\d_]{2,}\Z")
 # after a name: the block's end, white space, a comma, a semicolon or a note mark
 _AFTER_NAME = re.compile(r"\Z|[\s,;\u2217*\u2020\u2021\u00a7\u00b6]")
 # an affiliation after the mark: a capital, after at most one space ("¹Meta AI", "² Univ")
-_AFFILIATION = re.compile(r" ?[A-Z]")
+_AFFILIATION = re.compile(r" ?([^\W\d_]{2,})")
 
 
 class AffiliationMarkStep(TextStep):
@@ -421,8 +421,9 @@ class AffiliationMarkStep(TextStep):
             block = document.blocks[index]
             # a footnote mark stays with the footnotes step, which introduces its note
             taken = footnote_marks.get(index, [])
+            line_starts = {offset for _, offset, _ in _lines(items, block)}
             for start, end in _raised_marks(items, block, taken):
-                if not _affiliation_shape(block.text, start, end):
+                if not _affiliation_shape(block.text, start, end, start in line_starts):
                     continue
                 mark = block.text[start:end].strip()
                 start, end = removed_span(block.text, start, end)
@@ -497,16 +498,20 @@ def _superscript(run: TextRun, line: TextLine, main: float) -> bool:
     )
 
 
-def _affiliation_shape(text: str, start: int, end: int) -> bool:
+def _affiliation_shape(text: str, start: int, end: int, line_start: bool) -> bool:
     """The mark stands after a name ("Chi¹˒² Wasi", "Biggs ¹, Matthew", "Ahmad³*") or before
-    an affiliation ("¹Meta AI", "², University"). So "x²", "N³", "size³ + 1", "small.¹" and
-    a "⁵ is first" stay."""
+    an affiliation: at the block's or a line's start, or after a comma or semicolon, and
+    before a capitalised word of two letters or more ("¹Meta AI", "², University",
+    "²Österreichische Akademie", "¹AI Lab"). So "x²", "N³", "size³ + 1", "small.¹", a
+    "⁵ is first" and the mass numbers of "¹H NMR of ¹³C" and "¹⁸F-FDG" stay (D-57)."""
     before, after = text[:start], text[end:]
     word = _NAME_END.search(before.rstrip())
     if word and word[0][0].isupper() and _AFTER_NAME.match(after):
         return True
-    at_start = not before.strip() or before[-1].isspace() or before[-1] == ","
-    return at_start and _AFFILIATION.match(after) is not None
+    kept = before.rstrip()
+    at_start = not kept or line_start or kept[-1] in ",;"
+    affiliation = _AFFILIATION.match(after)
+    return at_start and affiliation is not None and affiliation[1][0].isupper()
 
 
 class FootnotePlaceStep(TextStep):

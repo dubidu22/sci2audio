@@ -2335,3 +2335,79 @@ issue = 193
 goal = "A confidence interval with a page-break marker glued to its label reads as on a second run, without the marker (D-577)."
 blocks = [{ kind = "paragraph", runs = ["It held, 95% CI", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " [1.2, 3.4]."] }]
 expected = ["It held, 95% confidence interval 1.2 to 3.4."]
+
+# A link or citation that holds or touches a hidden run or page-break marker reads as on a
+# second run, without the marker: the links and citations steps read the text without the
+# hidden runs, as the later steps do (#436 review round 1, B1; #434). Made-up addresses.
+
+[[case]]
+id = "hidden-icon-glued-to-a-link"
+audit = 0
+issue = 434
+goal = "An external-link icon marked aria-hidden right after a URL does not keep the URL in the script."
+blocks = [{ kind = "paragraph", runs = ["Visit https://x.org", { text = "↗", tags = ["a", "span", "aria-hidden"] }, " today."] }]
+expected = ["today."]
+
+[[case]]
+id = "hidden-icon-after-a-link-and-a-space"
+audit = 0
+issue = 434
+goal = "The same icon after a space: the link and the icon go, as before."
+blocks = [{ kind = "paragraph", runs = ["Visit https://x.org ", { text = "↗", tags = ["a", "span", "aria-hidden"] }, " today."] }]
+expected = ["today."]
+
+[[case]]
+id = "page-break-glued-to-a-doi"
+audit = 0
+issue = 434
+goal = "A page-break marker glued to a DOI does not keep the DOI in the script."
+blocks = [{ kind = "paragraph", runs = ["Smith, J. (2019). A paper. https://doi.org/10.1000/18", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " More."] }]
+expected = ["Smith, J. (2019). A paper. More."]
+
+[[case]]
+id = "hidden-text-glued-to-a-link"
+audit = 0
+issue = 434
+goal = "Hidden text glued to a URL does not keep the URL in the script."
+blocks = [{ kind = "paragraph", runs = ["See https://x.org/", { text = "a13", tags = ["p", "span", "hidden"] }, " now."] }]
+expected = ["now."]
+
+[[case]]
+id = "page-break-glued-to-a-citation"
+audit = 0
+issue = 434
+goal = "A page-break marker glued to a numbered citation leaves the citation to go, as on a second run."
+blocks = [
+    { kind = "paragraph", runs = ["As shown [12]", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " before."] },
+    { kind = "paragraph", runs = ["Shown in [1, 2]", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " and more."] },
+    { kind = "paragraph", runs = ["Shown by Smith et al. (2019)", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " and more."] },
+]
+expected = ["As shown before.", "Shown in references 1 and 2 and more.", "Shown by Smith et al. and more."]
+
+# Isotope and mass numbers in a title are read as printed (#436 review round 1, B2, D-57):
+# a mark before an affiliation stands at the block's or a line's start or after a comma or
+# semicolon, and a capitalised word of two letters or more follows. Made-up titles.
+
+[[case]]
+id = "affiliation-marks-not-isotope-numbers"
+audit = 0
+issue = 93
+goal = "Mass numbers set raised in a title are read; a mark before a two-letter affiliation goes."
+blocks = [
+    { kind = "paragraph", runs = ["Quantitative ", { sup = "1" }, "H NMR of ", { sup = "13" }, "C-labelled sugars"] },
+    { kind = "paragraph", runs = [{ sup = "18" }, "F-FDG PET in ", { sup = "238" }, "U miners"] },
+    { kind = "paragraph", runs = ["Spin ", { sup = "3" }, "He and ", { sup = "4" }, "He films"] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "AI Lab, Example City"] },
+]
+expected = ["Quantitative 1H NMR of 13C-labelled sugars", "18F-FDG PET in 238U miners", "Spin 3He and 4He films", "AI Lab, Example City"]
+
+[[case]]
+id = "affiliation-marks-before-a-capital-outside-ascii"
+audit = 0
+issue = 93
+goal = "A mark before an affiliation that starts with a capital outside ASCII goes too (#436 review round 1, S1)."
+blocks = [
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, " Ann Lee", { sup = "2" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "École Normale, ", { sup = "2" }, " Örebro University"] },
+]
+expected = ["Jane Roe Ann Lee", "École Normale, Örebro University"]
