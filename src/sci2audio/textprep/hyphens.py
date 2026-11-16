@@ -16,9 +16,16 @@ next line, the first rule that applies decides:
    ("development") or hyphenated ("pre-training"), wins; a tie keeps the hyphen.
 4. A compound by its look: *before* is one letter ("x-/axis"), ends in a capital ("PP-"),
    already holds a hyphen ("state-of-the-/art"), or *after* starts with a capital
-   ("non-/English"): keep the hyphen.
+   ("non-/English"): keep the hyphen. German (#240): a hyphen already in *before* counts
+   before a lower-case *after* only when *before*'s last part is a chain word ("Ende-zu-",
+   "Peer-to-"); otherwise the word was split again ("Datenschutz-Grundverord-/nung") and the
+   rule goes on with that last part.
 5. *before* is "self", or *after* is a word that mostly ends a compound (`SECOND_WORDS`):
    keep the hyphen. English only: German writes such compounds closed ("kontextabhängig").
+   German only (#223): an adjective pair keeps the hyphen ("deutsch-/französischen"):
+   *before*'s last part is lower case and ends in an adjective ending (`ADJECTIVE_ENDINGS`)
+   after at least 3 letters, and *after* ends in one with an inflection (`INFLECTIONS`) after
+   at least 4 letters. A capital *after* was kept by rule 4 already.
 6. Otherwise join.
 
 Joining removes the hyphen and the line break; keeping removes only the line break, so
@@ -63,6 +70,11 @@ class HyphenWords:
     # rule 2: conjunctions that count only before a second word ("als" before "auch"; a bare
     # "als" is often the rest of a split word: "Materi-/als")
     paired: tuple[tuple[str, str], ...] = ()
+    # rule 4 (#240): a hyphenated *before* counts before a lower-case *after* only when its
+    # last part is one of these, as printed; with `split_again` off it always counts
+    split_again: bool = False
+    chain_words: frozenset[str] = frozenset()
+    adjective_pairs: bool = False  # rule 5 (#223)
 
 
 WORDS: dict[str, HyphenWords] = {
@@ -76,8 +88,24 @@ WORDS: dict[str, HyphenWords] = {
         ),
         abbreviated=frozenset({"u", "o", "vs", "resp"}),
         paired=(("als", "auch"),),
+        split_again=True,
+        # "Ende-zu-/ende", "Schritt-für-/schritt"; English words in German compounds:
+        # "Peer-to-/peer", "State-of-the-/art", "Do-it-/yourself"
+        chain_words=frozenset(
+            {"zu", "an", "in", "um", "auf", "bei", "für", "vor", "von", "aus", "mit", "nach"}
+            | {"über", "und", "oder", "bis", "im", "am", "zum", "zur"}
+            | {"to", "of", "the", "and", "on", "at", "by", "for", "or", "it"}
+        ),
+        adjective_pairs=True,
     ),
 }
+# rule 5, German (#223): the endings of an adjective and the inflections after them. "ell"
+# only after i, u, r, n or m ("materiell", "aktuell", "kulturell", "traditionell", "formell"),
+# so "fertig-/stellen" and "gesell-/schaftlichen" stay joined (measured, plan PR 4)
+ADJECTIVE_ENDINGS = ("sch", "lich", "ig", "al", "iv", "iell", "uell", "rell", "nell", "mell", "är")
+INFLECTIONS = ("e", "en", "er", "es", "em")
+_STEM_BEFORE = 3  # letters before the ending: not "al-/ternative"
+_STEM_AFTER = 4  # letters before ending and inflection: not "mittelal-/terlichen"
 # a "-" at a line end in a formula is a minus, in a table often an empty cell, in code part
 # of the code (D-545)
 SKIPPED_KINDS = frozenset({BlockKind.FORMULA, BlockKind.TABLE, BlockKind.CODE})
@@ -157,15 +185,21 @@ class LineEndHyphenStep(TextStep):
             if hyphenated_count >= joined_count:
                 return self._keep(block, line_break, hyphenated, "the document prints it so")
             return self._join(block, hyphen, before + after, "the document prints it so")
+        last_part = re.split(f"[{HYPHENS}]", before)[-1]  # as printed
+        chained = re.search(f"[{HYPHENS}]", before) is not None
+        if chained and words.split_again:  # a capital after keeps it below anyway
+            chained = last_part in words.chain_words  # else split again (#240)
         if (
             len(last_before) == 1
             or last_before[-1:].isupper()
-            or re.search(f"[{HYPHENS}]", before)
+            or chained
             or first_after[:1].isupper()
         ):
             return self._keep(block, line_break, hyphenated, "a compound")
         if last_before.lower() in words.self_words or first_after.lower() in words.second_words:
             return self._keep(block, line_break, hyphenated, "a compound")
+        if words.adjective_pairs and _adjective_pair(last_part, after):
+            return self._keep(block, line_break, hyphenated, "an adjective pair")
         return self._join(block, hyphen, before + after, "")
 
     def _keep(self, block: int, line_break: int, word: str, why: str) -> Edit:
@@ -197,6 +231,22 @@ def _suspended(word: str, text: str, end: int, words: HyphenWords) -> bool:
     return any(
         word == first and re.match(rf"\s+{second}\b", text[end:], re.IGNORECASE) is not None
         for first, second in words.paired
+    )
+
+
+def _adjective_pair(before: str, after: str) -> bool:
+    """True if `before` (the last part before the hyphen) and `after` read as an adjective pair
+    (rule 5, German, #223): `before` lower case and ending in an adjective ending, `after`
+    ending in one with an inflection, each after enough letters of a stem."""
+    if not before[:1].islower():
+        return False
+    return any(
+        before.endswith(ending) and len(before) - len(ending) >= _STEM_BEFORE
+        for ending in ADJECTIVE_ENDINGS
+    ) and any(
+        after.endswith(ending + inflection) and len(after) - len(ending + inflection) >= _STEM_AFTER
+        for ending in ADJECTIVE_ENDINGS
+        for inflection in INFLECTIONS
     )
 
 

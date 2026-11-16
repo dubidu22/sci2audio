@@ -418,14 +418,26 @@ def test_german_split_again_reason() -> None:
     [
         ("die deutsch-\nfranzösischen Beziehungen", "die deutsch-französischen Beziehungen"),
         ("die sozial-\nemotionale Entwicklung", "die sozial-emotionale Entwicklung"),
-        ("die technisch-\norganisatorischen Maßnahmen", "die technisch-organisatorischen Maßnahmen"),
-        ("die physikalisch-\nchemischen Eigenschaften", "die physikalisch-chemischen Eigenschaften"),
+        (
+            "die technisch-\norganisatorischen Maßnahmen",
+            "die technisch-organisatorischen Maßnahmen",
+        ),
+        (
+            "die physikalisch-\nchemischen Eigenschaften",
+            "die physikalisch-chemischen Eigenschaften",
+        ),
         ("die materiell-\nrechtlichen Fragen", "die materiell-rechtlichen Fragen"),
         ("die kognitiv-\nemotionalen Prozesse", "die kognitiv-emotionalen Prozesse"),
         ("die räumlich-\nzeitlichen Muster", "die räumlich-zeitlichen Muster"),
         ("die militär-\npolitischen Ziele", "die militär-politischen Ziele"),
-        ("die deutsch-französisch-\npolnischen Gespräche", "die deutsch-französisch-polnischen Gespräche"),
-        ("die deutsch-\nfranzösisch-polnischen Gespräche", "die deutsch-französisch-polnischen Gespräche"),
+        (
+            "die deutsch-französisch-\npolnischen Gespräche",
+            "die deutsch-französisch-polnischen Gespräche",
+        ),
+        (
+            "die deutsch-\nfranzösisch-polnischen Gespräche",
+            "die deutsch-französisch-polnischen Gespräche",
+        ),
     ],
 )
 def test_german_an_adjective_pair_keeps_its_hyphen(printed: str, spoken: str) -> None:
@@ -445,7 +457,10 @@ def test_german_an_adjective_pair_keeps_its_hyphen(printed: str, spoken: str) ->
         ("fertig-\nstellen", "fertigstellen"),  # "ell" narrowed
         ("die rot-\ngrüne Koalition", "die rotgrüne Koalition"),  # no ending: left out
         ("Deutsch-\nfranzösische Gespräche", "Deutschfranzösische Gespräche"),  # capital
-        ("die deutsch-\nfranzösisch Gespräche", "die deutschfranzösisch Gespräche"),  # no inflection
+        (
+            "die deutsch-\nfranzösisch Gespräche",
+            "die deutschfranzösisch Gespräche",
+        ),  # no inflection
     ],
 )
 def test_german_these_are_no_adjective_pair(printed: str, spoken: str) -> None:
