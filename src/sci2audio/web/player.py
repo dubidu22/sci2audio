@@ -26,6 +26,7 @@ import contextlib
 import hashlib
 import json
 import math
+import time
 from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -192,7 +193,15 @@ def audiobook_bounds(readalong: Path) -> Bounds:
     (kept as `audiobook_stamp` keeps its stamp) and kept small, so the shelf on every page
     costs no parse. Raises OSError or ReadAlongError."""
     stat = readalong.stat()
+    if time.time_ns() - stat.st_mtime_ns < RACY_NS:  # too fresh to tell apart: read it
+        return Bounds.of(read_readalong(readalong))
     return _bounds(str(readalong), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+
+
+# A file changed less than this long ago is read again on every call: a rewrite in place
+# within the file system's clock tick (about 16 ms on Windows) keeps its time and size, so
+# they cannot tell the two versions apart yet (as git treats "racy" files; #403 B1).
+RACY_NS = 2_000_000_000
 
 
 @lru_cache(maxsize=256)
