@@ -44,7 +44,7 @@ def expect_german(page: Page) -> None:
 def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     page = signed_in
     expect_german(page)
-    expect(page.get_by_role("heading", level=1)).to_have_text("Dokument öffnen")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Bibliothek")
     check_axe(page, "de: start page, nothing opened")
 
     document = open_paper(page)

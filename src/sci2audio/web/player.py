@@ -182,6 +182,19 @@ def read_position(
     """Where the person stopped in this audiobook, worth offering to continue from; None
     if there is no such record, it does not fit, or nothing is left to continue: before the
     first sentence ended or after the last one ended."""
+    position = recorded_position(work, document_id, stamp)
+    if position is None or not fits(readalong, position) or not readalong.chunks:
+        return None
+    if not readalong.chunks[0].end <= position.time < readalong.chunks[-1].end:
+        return None
+    return position
+
+
+def recorded_position(work: Path, document_id: str, stamp: str) -> Position | None:
+    """The position the record keeps for this audiobook (`stamp`) of this document, read
+    without the read-along file: None for no record, a record of something else, or one
+    that is not ours. `read_position` checks it against the audiobook as well; the library
+    and the rail's shelf (#389) take it with only the audiobook's length."""
     path = work / POSITION
     try:
         if path.is_symlink() or not path.is_file() or path.stat().st_size > POSITION_LIMIT:
@@ -201,14 +214,10 @@ def read_position(
         or isinstance(chapter, bool)
         or not isinstance(time, int | float)
         or isinstance(time, bool)
+        or not math.isfinite(time)
     ):
         return None
-    position = Position(chapter, float(time))
-    if not fits(readalong, position) or not readalong.chunks:
-        return None
-    if not readalong.chunks[0].end <= position.time < readalong.chunks[-1].end:
-        return None
-    return position
+    return Position(chapter, float(time))
 
 
 def _no_constant(name: str) -> None:

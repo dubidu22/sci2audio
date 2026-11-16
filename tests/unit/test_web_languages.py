@@ -74,6 +74,7 @@ SAME_IN_GERMAN = {
     "privacy.cookies_title",  # "Cookies"
     "voice.letter_pace_normal",  # "Normal" (#295)
     "listen.speed_value",  # the number and the times sign, the number in the page language (#152)
+    "library.minutes",  # "min" (#389)
 }
 
 
@@ -172,6 +173,8 @@ def used_keys() -> set[str]:
     found |= {f"setup.pack_{language}" for language in PACKS}
     found |= {f"error.{kind}" for kind in error_kinds()}
     found |= {f"voice.letter_pace_{pace}" for pace in LETTER_PACES}  # pages names each pace
+    found |= {f"library.state_{key}" for key in pages.CHIPS}  # a chip's word (#389)
+    found |= {f"library.when_{kind}" for kind in ("today", "yesterday")}  # library.when
     for path in (Path(pages.__file__), Path(i18n.__file__)):
         source = path.read_text(encoding="utf-8")
         found |= set(re.findall(r"""\b(?:t|s|self\.t)\(\s*f?["']([a-z_.-]+[a-z])["']""", source))

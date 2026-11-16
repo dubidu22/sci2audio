@@ -73,6 +73,7 @@ def test_every_page_as_screenshots(signed_in: Page, live: Live) -> None:
     take("not-found", "/jobs/nothing")
 
     live.install_voice()
+    take("library-empty", "/")  # no document, the voice installed: the specimen (#389)
     paper = open_file(page, live, PAPER)
     open_file(page, live, NOTE)
     take("library", "/")
@@ -103,4 +104,4 @@ def test_every_page_as_screenshots(signed_in: Page, live: Live) -> None:
     take("listen", f"/documents/{paper}/listen")
 
     shots = sorted(out.glob("*.png"))
-    assert len(shots) == 13 * len(SIZES) * len(VARIANTS)
+    assert len(shots) == 14 * len(SIZES) * len(VARIANTS)
