@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -59,16 +60,30 @@ def default_work_folder(source: Path) -> Path:
     return folder / "jobs" / file_id(source)
 
 
+# A file changed less than this long ago is hashed again on every call: a rewrite in place
+# within the file system's clock tick (about 16 ms on Windows) keeps its time and size, so
+# they cannot tell the two versions apart yet (as git treats "racy" files).
+RACY_NS = 2_000_000_000
+
+
 def file_id(source: Path) -> str:
     """The first 16 hex digits of the file's SHA-256 (D-198), read in 1 MB blocks. Kept
     while the file's identity, time and size stay, so `sci2audio listen` and the working
-    folder read a big file once (#154). Raises OSError if the file can't be read."""
+    folder read a big file once (#154); a file changed in the last two seconds is read
+    each time. Raises OSError if the file can't be read."""
     stat = source.stat()
-    return _file_id(str(source.absolute()), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+    path = str(source.absolute())
+    if time.time_ns() - stat.st_mtime_ns < RACY_NS:
+        return _hash(path)
+    return _file_id(path, (stat.st_ino, stat.st_mtime_ns, stat.st_size))
 
 
 @lru_cache(maxsize=16)
 def _file_id(path: str, version: tuple[int, int, int]) -> str:
+    return _hash(path)
+
+
+def _hash(path: str) -> str:
     digest = hashlib.sha256()
     with Path(path).open("rb") as file:
         for block in iter(lambda: file.read(1 << 20), b""):
