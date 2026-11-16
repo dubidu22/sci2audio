@@ -1,0 +1,213 @@
+# Sentences of tests/corpus/papers/acl2023-chi-plue.pdf, one per line, as printed.
+# Jianfeng Chi, Wasi Uddin Ahmad, Yuan Tian, Kai-Wei Chang, "PLUE: Language Understanding
+# Evaluation Benchmark for Privacy Policies in English", ACL 2023 short papers,
+# https://aclanthology.org/2023.acl-short.31.pdf, CC BY 4.0
+# (https://aclanthology.org/faq/copyright). Format: README.md.
+# Drafted from the PDF with poppler's pdftotext (columns cropped), split by hand; not from
+# sci2audio's output. Footnotes, the tables' cells, the reference list, the privacy-practice
+# lists of appendix A, the examples of Table 4 and the Responsible NLP Checklist are gaps.
+# A bold run-in head ("Baselines We benchmark ...") is a line of its own; the sentence after
+# it starts with "~ ", since a listener may hear the head as part of it or apart.
+
+@page 1
+PLUE: Language Understanding Evaluation Benchmark for Privacy Policies in English
+---
+Abstract
+Privacy policies provide individuals with information about their rights and how their personal information is handled.
+Natural language understanding (NLU) technologies can support individuals and practitioners to understand better privacy practices described in lengthy and complex documents.
+However, existing efforts that use NLU technologies are limited by processing the language in a way exclusive to a single task focusing on certain privacy practices.
+To this end, we introduce the Privacy Policy Language Understanding Evaluation (PLUE) benchmark, a multi-task benchmark for evaluating the privacy policy language understanding across various tasks.
+We also collect a large corpus of privacy policies to enable privacy policy domain-specific language model pre-training.
+We evaluate several generic pre-trained language models and continue pre-training them on the collected corpus.
+We demonstrate that domain-specific continual pre-training offers performance improvements across all tasks.
+The code and models are released at https://github.com/JFChi/PLUE.
+1 Introduction
+Privacy policies are documents that outline how a company or organization collects, uses, shares, and protects individuals’ personal information.
+Without a clear understanding of privacy policies, individuals may not know how their personal information is being used or who it is being shared with.
+The privacy violation might cause potential harm to them.
+However, privacy policies are lengthy and complex, prohibiting users from reading and understanding them in detail (Commission et al., 2012; Gluck et al., 2016; Marotta-Wurgler, 2015).
+Various natural language understanding (NLU) technologies have recently been developed to understand privacy policies (Wilson et al., 2016a; Harkous et al., 2018; Ravichander et al., 2019; Ahmad et al., 2020; Parvez et al., 2022; Ahmad et al., 2021; Bui et al., 2021).
+These tasks focus on understanding specific privacy practices at different syntax or semantics levels and require significant effort for data annotations (e.g., domain experts).
+It is hard to develop generic pre-trained language models (e.g., BERT (Devlin et al., 2019)) with task-specific fine-tuning using limited annotated data.
+Besides, the unique characteristics of privacy policies, such as reasoning over ambiguity and vagueness, modality, and document structure (Ravichander et al., 2021), make it challenging to directly apply generic pre-trained language models to the privacy policy domain.
+To address these problems and encourage research to develop NLU technologies in the privacy policy domain, we introduce the Privacy Policy Language Understanding Evaluation (PLUE) benchmark, to evaluate the privacy policy language understanding across six tasks, including text classification, question answering, semantic parsing, and named-entity recognition.
+PLUE also includes a pre-training privacy policy corpus that we crawl from the websites to enable privacy policy domain-specific language model pre-training.
+We use this corpus to pre-train BERT (Devlin et al., 2019), RoBERTa (Liu et al., 2019), Electra (Clark et al., 2020), and SpanBERT (Joshi et al., 2020) and finetune them on the downstream tasks.
+We demonstrate that domain-specific continual pre-training offers performance improvements across all tasks.
+We will release the benchmark to assist natural language processing (NLP) researchers and practitioners in future exploration.
+2 Policy Language Understanding Evaluation (PLUE) Benchmark
+PLUE is centered on six English privacy policy language understanding tasks.
+# page 2 opens with Table 1 above the text; the sentence goes on below it
+The datasets and tasks are selected based on the following principles: (1) usefulness: the selected tasks can help practitioners in the domain quickly understand privacy practices without reading the whole privacy policy; (2) task diversity: the selected tasks focus on different semantic levels, e.g., words (phrases), sentences, and paragraphs; (3) task difficulty: the selected tasks should be adequately challenging for more room for improvement; (4) training efficiency: all tasks can be trainable on a single moderate GPU (e.g., GeForce GTX 1080 Ti) for no more than ten hours; (5) accessibility: all datasets are publicly available under licenses that allow usage and redistribution for research purposes.
+2.1 Datasets and Tasks
+PLUE includes six tasks in four categories.
+Table 1 presents an overview of the datasets and tasks within PLUE, and Table 4 in the Appendix gives an example for each task.
+OPP-115
+~ Wilson et al. (2016a) presented 115 Online Privacy Policies (OPP-115).
+The dataset comprises website privacy policies with text segments annotated with one or more privacy practices from ten categories (see Appendix A.1).
+We train a multi-label classifier to predict the privacy practices given a sentence from a policy document.
+APP-350
+~ Zimmeck et al. (2019) presented APP-350, a collection of mobile application privacy policies annotating what types of users’ data mobile applications collect or share.
+Like OPP-115, each text segment in a policy document is annotated with zero or more privacy practices (listed in Appendix A.2).
+In total, there are 30 data-type-related classes in APP-350, and we assign one more class, No_Mention, to those text segments that do not pertain to such practices.
+PrivacyQA
+~ Ravichander et al. (2019) proposed a question-answering dataset, PrivacyQA, comprised of 35 mobile application privacy policies.
+Given a question from a mobile application user and a sentence from a privacy policy, the task is to predict whether the sentence is relevant to the question.
+PrivacyQA includes unanswerable and subjective questions and formulates the QA task as a binary sentence classification task.
+PolicyQA
+~ Ahmad et al. (2020) proposed a reading comprehension (Rajpurkar et al., 2016) style dataset, PolicyQA.
+The dataset is derived from OPP-115 annotations that include a set of fine-grained attributes and evidence text spans that support the annotations.
+Considering the annotated spans as the answer spans, PolicyQA generates diverse questions relating to the corresponding privacy practices and attributes.
+The task is to predict the answer text span given the corresponding text segment and question.
+PolicyIE
+~ Ahmad et al. (2021) proposed a semantic parsing dataset composed of two tasks: intent classification and slot filling.
+Given a sentence in a privacy policy, the task is to predict the sentence’s intent (i.e., privacy practice) and identify the semantic concepts associated with the privacy practice.
+Based on the role of the slots in privacy practices, PolicyIE groups them into type-I and type-II slots.
+In total, there are four intent labels and 14 type-I and four type-II slot labels.
+We individually train a text classifier and sequence taggers to perform intent classification and slot filling, respectively.
+PI-Extract
+~ Bui et al. (2021) presented PI-Extract, a named-entity recognition (NER) dataset.
+It aims to identify what types of user data are (not) collected or shared mentioned in the privacy policies.
+It contains 4 types of named entities: COLLECT, NOT_COLLECT, SHARE and NOT_SHARE.
+Note that the named entities of different types may overlap.
+Thus, we report the results for collection-related and share-related entities, respectively.
+2.2 Pre-training Corpus Collection
+The existing pre-trained language models (PLMs) mostly use data from BooksCorpus (Zhu et al., 2015) and English Wikipedia.
+Language models pre-trained on text from those sources might not perform well on the downstream privacy policy language understanding tasks, as privacy policies are composed of text written by domain experts (e.g., lawyers).
+Gururangan et al. (2020) suggested that adapting to the domain’s unlabeled data (domain-adaptive pre-training) improves the performance of domain-specific tasks.
+Therefore, we collect a large privacy policy corpus for language model pre-training.
+In order to achieve broad coverage across privacy practices written in privacy policies (William, 2020; Ahmad et al., 2021), we collect the privacy policies from two sources: mobile application privacy policies and website privacy policies.
+Appendix B provides more details about how we collect these two types of privacy policies.
+2.3 Models & Training
+Baselines
+~ We benchmark pre-trained language models (PLMs), BERT (Devlin et al., 2019), RoBERTa (Liu et al., 2019), SpanBERT (Joshi et al., 2020), Electra (Clark et al., 2020), and LEGAL-BERT (Chalkidis et al., 2020).
+We present the details of the PLMs in Appendix C.
+Domain-specific Continual Pre-training
+~ In order to adapt PLMs to the privacy policy domain, we continue to train BERT, Electra, SpanBERT, and RoBERTa on the pre-training corpus described in Section 2.2.
+We refer to them as PP-BERT, PP-RoBERTa, PP-SpanBERT, and PP-Electra, respectively.1
+We present details in Appendix D.1.
+Task-specific Fine-tuning
+~ We fine-tune PLMs for each PLUE task.
+We only tune the learning rate for each task, as we found in the preliminary experiments that model performances are highly sensitive to the learning rate.
+We present more details in Appendix D.2.
+3 Experiment Results
+Tables 2 and 3 present the results for all the experiment models for PLUE tasks.
+Rows 2-9 show the results of the base PLMs and their corresponding variants with privacy policy domain-specific continual pre-training.
+Similar to GLUE (Wang et al., 2019), we also provide the average scores of all PLUE tasks in the last column of Table 3.
+We observe that the language models (PP-BERT, PP-SpanBERT, PP-Electra, PP-RoBERTa) adapted to the privacy policy domain outperform the general language models consistently in all the tasks, and PP-RoBERTa performs the best among all base models in terms of the average scores of all PLUE tasks.
+In particular, PP-RoBERTa performs the best for OPP-115, APP-350, PrivacyQA,2 and PI-Extract, among all base models.
+PP-BERT and PP-RoBERTa perform the best for PolicyQA; PP-Electra and PP-RoBERTa achieve the best performance for PolicyIE.
+In contrast, LEGAL-BERT (row 10) performs comparably or shows moderate improvements over BERT, indicating that pre-training on the general legal corpus does not necessarily help privacy policy language understanding.
+It is interesting to see that continual pre-training of the language models using the privacy policy domain data benefits them differently.
+For example, in the text classification tasks (i.e., OPP-115 and APP-350), the performance difference between SpanBERT and PP-SpanBERT are most significant, while models using MLM (BERT and RoBERTa) already shows relatively high performance before continual pre-training and continual pre-training brings moderate gains to BERT and RoBERTa.
+We further investigate the improvement of large variants of PLMs over base variants of PLMs on PLUE tasks.
+Since PP-RoBERTaBASE performs the best among all base models, we also continue pre-train RoBERTaLARGE (PP-RoBERTaLARGE ).
+As shown in the last five rows in Tables 2 and 3, the large pre-trained language models mostly outperform their base counterparts.
+Noticeably, PP-RoBERTaLARGE is the best-performing model in APP-350, PolicyQA, PI-Extract, and sub-tasks in PolicyIE, and it also achieves the highest average scores of all PLUE tasks among all models.
+Lastly, even though domain-specific pre-training and large PLMs help boost the performance for all tasks, the performance of some tasks and datasets (e.g., APP-350, PrivacyQA, slot filling in PolicyIE) remains low, which indicates much potential for further work on NLP for the privacy policy domain.
+4 Related Work
+Privacy Policy Benchmarks
+~ The Usable Privacy Policy Project (Sadeh et al., 2013) is the most significant effort to date, resulting in a large pool of works (Wilson et al., 2016a,b; Sathyendra et al., 2016; Mysore Sathyendra et al., 2017; Bhatia and Breaux, 2015; Bhatia et al., 2016; Hosseini et al., 2016; Zimmeck et al., 2019) to facilitate the automation of privacy policy analysis.
+A wide range of NLP techniques have been explored accordingly (Liu et al., 2014; Ramanath et al., 2014; Wilson et al., 2016a; Harkous et al., 2018; Zimmeck et al., 2019; Shvartzshanider et al., 2018; Harkous et al., 2018; Ravichander et al., 2019; Ahmad et al., 2020; Bui et al., 2021; Ahmad et al., 2021).
+Pre-trained Language Models
+~ In the last few years, NLP research has witnessed a radical change with the advent of PLMs like ELMo (Peters et al., 2018) and BERT (Devlin et al., 2019).
+PLMs achieved state-of-the-art results in many language understanding benchmarks.
+Consequently, PLMs have been developed for a wide range of domains, e.g., scientific (Beltagy et al., 2019), medical (Lee et al., 2020; Rasmy et al., 2021; Alsentzer et al., 2019), legal (Chalkidis et al., 2020), and cybersecurity (Ranade et al., 2021; Bayer et al., 2022).
+This work investigates the adaptation of PLMs to facilitate NLP research in the privacy policy domain.
+5 Conclusion and Future work
+Reliable aggregation of datasets and benchmarking foundation models on them facilitate future research.
+This work presents PLUE, a benchmark for training and evaluating new security and privacy policy models.
+PLUE will help researchers benchmark policy language understanding under a unified setup and facilitate reliable comparison.
+PLUE also presents some challenges in language understanding evaluation for privacy policies.
+For example, the imbalance data issue for privacy practices is a major challenge in the PrivacyQA task (Parvez et al., 2022).
+Data efficiency is also a challenge for continual pre-training as the amount of unlabeled data is also small for this domain.
+Approaches such as (Qin et al., 2022) could be investigated to continually adapt LMs for the emerging data in this domain.
+Limitations
+The pre-training privacy policy corpus and the downstream task datasets are unlikely to contain toxic or biased content.
+Therefore, they should not magnify toxicity or bias in the pre-trained and fine-tuned models, although the models may exhibit such behavior due to their original pre-training.
+The pre-training and benchmark datasets are formed based on privacy policies crawled in the past; as a result, they could be outdated by now.
+This work focuses on the English language only, and the findings may not apply to other languages.
+Ethics Statement
+License
+~ The OPP-115 and APP-350 datasets are made available for research, teaching, and scholarship purposes only, with further parameters in the spirit of a Creative Commons Attribution-NonCommercial License (CC BY-NC).
+The PolicyQA and PI-Extract datasets are derived from OPP-115 datasets.
+The PrivacyQA and PolicyIE datasets are released under an MIT license.
+The pre-training corpus, MAPS Policies Dataset, is released under CC BY-NC.
+We strictly adhere to these licenses and will release the PLUE benchmark resources under CC BY-NC-SA 4.0.
+Carbon Footprint
+~ We only use RoBERTa large models for continual training on the privacy policy domain to reduce the environmental impacts of training large models.
+The PP-BERT, PP-SpanBERT, PP-Electra, and PP-RoBERTa models were trained for 100k steps on Tesla V100 GPUs that took 1-2 days.
+Therefore, the training would emit only 9kg of carbon into the environment.3
+All fine-tuning experiments were very lightweight due to the small size of the datasets, resulting in approximately 12kg of carbon emission.
+Acknowledgements
+We thank the anonymous reviewers for their insightful comments.
+This work was supported in part by National Science Foundation Grant OAC 2002985, OAC 1920462, and CNS 1943100, Google Research Award, CISCO Research Award, and Meta Research Award.
+Any opinions, findings, conclusions, or recommendations expressed herein are those of the authors and do not necessarily reflect those of the US Government or NSF.
+---
+# the table captions, where the layout reads them
+@page 2
+Table 1: Statistics of the PLUE datasets and tasks.
+---
+@page 4
+Table 2: Performance comparison of pre-trained models on text classification, question answering, and named entity recognition tasks.
+We fine-tune all the models three times with different seeds and report average performances.
+Human performances are reported from the respective works.
+---
+Table 3: Performance comparison of pre-trained models on intent classification and slot filling tasks (PolicyIE) and average scores of all PLUE tasks.
+We fine-tune all the models three times with different seeds and report average performances.
+Human performances are reported from the respective works.
+---
+@page 9
+Supplementary Material: Appendices
+A Dataset Details
+---
+B More Details of Pre-training Corpora
+We use MAPS, the mobile application privacy policy corpus presented by Zimmeck et al. (2019).
+MAPS consists of the URLs of 441K mobile application privacy policies, which were collected from April to May 2018 from the Google Play store.
+We remove the duplicated URLs, crawl the privacy policy documents in HTML/PDF format, convert them to raw text format, and filter out the documents with noise (e.g., empty documents resulting from obsolete URLs).
+Finally, we ended up with 64K privacy policy documents.
+For website privacy policies, we use the Princeton-Leuven Longitudinal Corpus of Privacy Policies (Amos et al., 2021).4
+The Princeton-Leuven Longitudinal Corpus of Privacy Policies contains 130K website privacy policies spanning over two decades.
+We use the documents with the latest date and convert them (from markdown format) into text format.
+Combining these two corpora, we obtain our pre-training corpus with 332M words.
+C Baseline Models
+We benchmark a few pre-trained language models as baselines to facilitate future work.
+BERT
+~ Devlin et al. (2019) proposed Transformer (Vaswani et al., 2017) based language model pre-trained on BooksCorpus and English Wikipedia data using masked language modeling (MLM) and next sentence prediction.
+Electra
+~ Clark et al. (2020) pre-trains a generator and a discriminator on the same corpus as BERT, where the generator takes a masked text as input and is trained using the MLM objective.
+The discriminator takes the predictions from the generator and detects which tokens are replaced by the generator.
+After pre-training, the generator is discarded, and the discriminator is used as the language model for the downstream tasks.
+SpanBERT
+~ Joshi et al. (2020) shares the same architecture and pre-training corpus as BERT but differs in the pre-training objectives.
+It extends BERT by masking contiguous spans instead of single tokens and training the span boundary representations to predict the masked spans.
+RoBERTa
+~ Liu et al. (2019) presented a replication study of BERT pre-training where they showed that BERT was significantly undertrained and proposed RoBERTa that tunes key hyperparameters and uses more training data to achieve remarkable performance improvements.
+Note that while BERT, Electra, and SpanBERT use the same vocabulary, RoBERTa uses a different vocabulary resulting in 15M more parameters in the model.
+LEGAL-BERT
+~ Chalkidis et al. (2020) pre-trained BERT using 12 GB of the English text (over 351K documents) from several legal fields (e.g., contracts, legislation, court cases) scraped from publicly available resources.
+Since privacy policies serve as official documents to protect the company and consumers’ privacy rights and might contain contents in response to privacy law (e.g., GDPR), we study LEGAL-BERT’s effectiveness on the PLUE tasks.
+D More Implementation Details
+D.1 Domain-specific Continual Pre-training
+Since BERT, Electra, and SpanBERT share the same model architectures, we use almost the same hyperparameters (e.g., learning rate, train steps, batch size) for them following the original papers.
+We scale down the train steps by the same factor, as the size of our pre-training corpus is roughly 1/10 the size of the pre-training corpus of BERT.
+We adhere to the guidelines outlined in Liu et al. (2019) to train RoBERTa with larger batch size, higher learning rate, and fewer train steps.
+Table 5 presents the training hyperparameters for PLMs.
+D.2 Task-specific Fine-tuning
+We fine-tune the models for each task using the Adam (Kingma and Ba, 2015) optimizer with a batch size of 32.
+We fine-tune the models on the QA tasks for 3 epochs and other tasks for 20 epochs and perform a grid search on the learning rate for each task with validation examples.
+We chose the learning rate for tasks without validation examples based on our findings from the tasks with validation examples.
+Table 6 lists the hyperparameters for all the downstream tasks.
+In OPP-115 and APP-350, we compute the class weights (the class weights are inversely proportional to the occurrences of the classes) and apply them in fine-tuning, as we find out both datasets have the class-imbalance problem and using class weights brings gains to overall performance.
+We also report the human performances for PrivacyQA and PolicyIE from the original works.
+D.3 Software Tools
+To facilitate using PLUE, we release our implementation, which is built with Pytorch (Paszke et al., 2019) and the Huggingface transformers5 package.
+Our implementation includes the continual pre-training of our baselines and the evaluation of any PLMs supported by the Huggingface transformers package on the PLUE benchmark tasks.
+In addition to PLUE datasets, we release the pre-training corpus and all data pre-processing scripts, including the pre-training corpus crawling scripts, to assist future research in this area.
+---
+@page 10
+Table 4: Examples from the tasks in PLUE.
+---
+Table 5: Hyperparameters for pre-training language models.
+---
+Table 6: Hyperparameters for fine-tuning pre-trained language models on different PLUE tasks.

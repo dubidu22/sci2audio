@@ -1,0 +1,35 @@
+# Sentences of tests/corpus/markdown/sci2audio-sample-note.md, one per line, as written.
+# Written for sci2audio (#74), CC0-1.0. Format: README.md.
+# The front matter, the code blocks, the table, the images, the formula and the notes are
+# gaps.
+Listening to Papers
+This note was written for the sci2audio tests.
+It describes a made-up pilot study and no real data.
+Every sentence here is our own.
+1 Introduction
+People listen to papers while they walk, cook or commute.
+Spoken text runs at about 150 words per minute, so a 6,000-word paper takes 40 minutes.
+# a hard line break inside a paragraph, after a full stop
+A hard line break sits just before this line.
+Some readers prefer the café at noon; others read in Zürich at 7 °C.
+A dash – en, and one — em; quotes “like these” and µs for microseconds.
+1.1 Questions
+1. How fast can a listener follow a formula such as $E = mc^2$?
+2. Do footnotes help or hurt?
+# the nested items go on with the question above them
+~ when read in place
+~ when read at the end
+Prices like $5 and $10 stay text.
+2 Method
+Listening is not reading.
+A quote inside a quote.
+We timed each session with this function:
+---
+The mean is
+---
+and the sources are on the project page and https://example.org/data; see also the method and note 1.
+Raw HTML stays: H2O and x2.
+An old claim.
+AT&T © 2026.
+3 Results
+Listeners kept up.
