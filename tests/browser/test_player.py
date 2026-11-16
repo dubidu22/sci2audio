@@ -32,7 +32,8 @@ def make_audiobook(page: Page, live: Live) -> str:
     expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
     page.get_by_role("link", name="Listen with the text").click()
     page.wait_for_url(f"{live.url}/documents/{document}/listen")
-    expect(page.get_by_role("heading", level=1)).to_have_text("Listen: paper.pdf")
+    expect(page.get_by_role("heading", level=1)).to_have_text("paper")  # the title (#391)
+    expect(page.get_by_role("link", name="Listen")).to_have_attribute("aria-current", "page")
     return document
 
 
@@ -184,7 +185,10 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         )
         outline = page.evaluate("() => getComputedStyle(document.activeElement).outlineStyle")
         assert outline != "none", f"no focus ring on {order[-1]} after {order}"
-    assert order[:5] == [
+    # the paper header's tabs first, then the player (#391)
+    assert order[:7] == [
+        "tab-prepare",
+        "tab-listen",
         "play",
         "previous-sentence",
         "next-sentence",
@@ -192,7 +196,7 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         "next-chapter",
     ], order
     # the native player's own controls, then the follow switch; the hidden button is skipped
-    assert order[5] == "audio", order
+    assert order[7] == "audio", order
     assert order[-1] == "follow", order
     assert "back-to-reading" not in order
     # the status line is focused only by script: on to the chapters

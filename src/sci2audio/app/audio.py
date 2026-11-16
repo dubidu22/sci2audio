@@ -149,6 +149,11 @@ class AudioProgress:
     chapter: int | None = None  # the chunk's chapter, index in the job's chapter list
     chapter_title: str = ""
     chapters: int = 0  # chapters with something to say
+    # D-695: the chunk's chapter counted from 1 among those, in the order read, and
+    # whether the chunk was that chapter's last (the next one starts the next chapter);
+    # 0 and False outside the speaking phase's chunks
+    chapter_number: int = 0
+    chapter_done: bool = False
     chunks_done: int = 0
     chunks_total: int = 0
     reused: int = 0  # chunks found finished in the cache
@@ -401,12 +406,16 @@ class _Speech:
             return None
         return self.estimate.seconds_left()
 
-    def progress(self, chunk: PlannedChunk, title: str) -> AudioProgress:
+    def progress(self, chunk: PlannedChunk, title: str, index: int) -> AudioProgress:
+        """The progress after the chunk at `index` in the plan."""
+        order = list(self.last_of_chapter)  # the chapters in the order their chunks come
         return AudioProgress(
             Phase.SPEAKING,
             chapter=chunk.chapter,
             chapter_title=title,
             chapters=self.chapters,
+            chapter_number=order.index(chunk.chapter) + 1,
+            chapter_done=self.last_of_chapter[chunk.chapter] == index,
             chunks_done=self.chunks_done,
             chunks_total=self.chunks_total,
             reused=self.reused,
@@ -598,7 +607,7 @@ def _speak(
             speech.chunks_done += 1
             if speech.first_chapter is not None and index == last_of_chapter[speech.first_chapter]:
                 speech.first_chapter_done = True
-            tell(speech.progress(chunk, titles[chunk.chapter]))
+            tell(speech.progress(chunk, titles[chunk.chapter], index))
     finally:
         if session is not None:
             session.dispose()

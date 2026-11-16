@@ -1,36 +1,66 @@
 {% extends "base.html" %}
 {% from "_remove.html" import remove_box with context %}
-{% block title %}{{ document.name }} · {{ t('common.app') }}{% endblock %}
+{% from "_paper.html" import paper_head with context %}
+{% from "_making.html" import making with context %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ t('paper.prepare') }}: {{ head.title }} · {{ t('common.app') }}{% endblock %}
+{% block view_class %} wide{% endblock %}
 {% block main %}
-<h1 id="document-title" tabindex="-1">{{ t('document.title', name=document.name) }}</h1>
-<p id="document-intro">{{ t('document.intro') }}</p>
-<div id="document" data-id="{{ document.id }}" data-shown="{{ shown }}"
+{#- Prepare (#391, DESIGN.md "Prepare"; screens prepare.png, making.png, failed.png): the paper
+    header, the audiobook job inline, three steps and the side column. -#}
+{{ paper_head(head, 'prepare', 'document-title', text_language) }}
+<div id="document" class="prepare" data-id="{{ document.id }}" data-shown="{{ shown }}"
      {% if analysis_job %}data-events="/api/v1/jobs/{{ analysis_job }}/events"{% endif %}>
+<div class="steps">
 <p id="message" class="message" role="status" tabindex="-1">{% if analysing %}{{ t('document.analysing') }}{% endif %}</p>
+{% if card %}{{ making(card, document) }}{% endif %}
 {% if failed %}
-<p class="error" id="analysis-error">{{ t('document.analysis_failed', reason=failed.reason) }}{% if failed.details %} {{ t('common.details') }} <span lang="en">{{ failed.details }}</span>{% endif %}</p>
+<div class="callout bad">{{ icon('alert', 'l') }}<div><p class="error" id="analysis-error">{{ t('document.analysis_failed', reason=failed.reason) }}{% if failed.details %} {{ t('common.details') }} <span lang="en">{{ failed.details }}</span>{% endif %}</p></div></div>
 {% endif %}
 
-<section aria-labelledby="step-check">
-<h2 id="step-check" tabindex="-1">{{ t('document.step_check') }}</h2>
+<section class="step" aria-labelledby="step-check">
+<header><h2 id="step-check" tabindex="-1"><span class="n">1</span> {{ t('document.step_check') }}</h2></header>
+<div class="body">
 {% if report %}
-<p id="summary">{{ t('document.summary_chapters', n=chapters|length, chosen=chosen_chapters) }} {{ t('document.summary_edits', n=edit_count) }} {{ t('document.summary_heard', n=heard) }}</p>
+<p id="summary" class="summary-line"><strong>{{ t('document.summary_chapters', n=chapters|length, chosen=chosen_chapters) }}</strong> {{ t('document.summary_edits', n=edit_count) }} {{ t('document.summary_heard', n=heard) }}</p>
 {% if report.problems %}
-<div class="note">
+<div class="callout warn">{{ icon('alert', 'l') }}<div>
   <p>{{ t('document.problems') }}</p>
   <ul>{% for problem in report.problems %}<li lang="en">{{ t('document.problem', step=problem.step, message=problem.message) }}</li>{% endfor %}</ul>
-</div>
+</div></div>
 {% endif %}
-{% if report.not_run %}<p class="note">{{ t('document.not_run', steps=report.not_run|join(', ')) }}</p>{% endif %}
+{% if report.not_run %}<div class="callout">{{ icon('info', 'l') }}<div><p>{{ t('document.not_run', steps=report.not_run|join(', ')) }}</p></div></div>{% endif %}
 {% if report.warnings %}
-<div class="note">
+<div class="callout">{{ icon('info', 'l') }}<div>
   <p>{{ t('document.warnings') }}</p>
   <ul>{% for warning in report.warnings %}<li lang="en">{{ warning }}</li>{% endfor %}</ul>
-</div>
+</div></div>
 {% endif %}
 
-<form id="choices" class="stack">
-  <div class="stack">
+{# the buttons app.js wires are drawn disabled; it enables each with its click (#350, #427) #}
+<form id="choices">
+  <fieldset class="field">
+    <legend>{{ t('check.chapters') }}</legend>
+    <p class="hint">{{ t('check.chapters_hint') }}</p>
+    <ol class="chapters choices">
+    {% for chapter in ordered_chapters %}
+      {% set off = chapter.references or chapter.publisher %}
+      <li class="chapter{% if off %} off{% endif %}" data-title="{{ chapter.title }}">
+        <input type="checkbox" id="chapter-{{ chapter.index }}" name="chapter" value="{{ chapter.index }}"{% if chapter.selected %} checked{% endif %} aria-describedby="chapter-details-{{ chapter.index }}">
+        <span class="ct-box"><span class="ord" aria-hidden="true"></span><label for="chapter-{{ chapter.index }}" class="ct" lang="{{ text_language }}">{{ t('check.chapter_line', title=chapter.title) }}</label>
+        {% if chapter.references %}<span class="why">{{ t('check.references') }}</span>{% endif %}{% if chapter.publisher %}<span class="why">{{ t('check.publisher') }}</span>{% endif %}</span>
+        <span class="cm" id="chapter-details-{{ chapter.index }}">{% if chapter.first_page %}{{ t('check.chapter_details', page=chapter.first_page, n=chapter.utterances) }}{% else %}{{ t('check.chapter_details_no_page', n=chapter.utterances) }}{% endif %}{% if chapter.references %}<span class="visually-hidden">; {{ t('check.references') }}</span>{% endif %}{% if chapter.publisher %}<span class="visually-hidden">; {{ t('check.publisher') }}</span>{% endif %}</span>
+        <span class="move"><button type="button" class="move-up icon-btn" id="move-up-{{ chapter.index }}" disabled>{{ icon('up', 's') }}<span class="visually-hidden">{{ t('check.move_up') }}: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button><button type="button" class="move-down icon-btn" id="move-down-{{ chapter.index }}" disabled>{{ icon('down', 's') }}<span class="visually-hidden">{{ t('check.move_down') }}: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button></span>
+      </li>
+    {% endfor %}
+    </ol>
+    <p class="buttons">
+      <button type="button" class="sm" id="choose-all" disabled>{{ t('check.choose_all') }}</button>
+      <button type="button" class="sm" id="choose-none" disabled>{{ t('check.choose_none') }}</button>
+    </p>
+  </fieldset>
+
+  <div class="field">
     <label for="language">{{ t('check.language') }}</label>
     <p class="hint" id="language-hint">{{ t('check.language_hint') }}</p>
     <select id="language" name="language" aria-describedby="{% if language_note %}text-language {% endif %}language-hint">
@@ -38,95 +68,76 @@
     </select>
     {% if language_note %}<p class="hint" id="text-language">{{ language_note }}</p>{% endif %}
   </div>
-  <fieldset>
+
+  <fieldset class="field">
     <legend>{{ t('check.switches') }}</legend>
     <p class="hint">{{ t('check.switches_hint') }}</p>
-    <ul class="choices">
+    <ul class="cats">
     {% for category in categories %}
-      <li>
-        <input type="checkbox" id="category-{{ category.id }}" name="category" value="{{ category.id }}"{% if category.on %} checked{% endif %} aria-describedby="counts-{{ category.id }}">
-        <label for="category-{{ category.id }}">{{ category.label }}</label>
-        <span class="hint" id="counts-{{ category.id }}">{{ t('check.counts', **category.counts) }}</span>
+      <li class="cat{% if not category.on %} off{% endif %}">
+        <div class="cat-row">
+          <input type="checkbox" role="switch" class="switch" id="category-{{ category.id }}" name="category" value="{{ category.id }}"{% if category.on %} checked{% endif %} aria-describedby="counts-{{ category.id }}">
+          <label for="category-{{ category.id }}">{{ category.label }}</label>
+          <span class="hint cn" id="counts-{{ category.id }}">{{ t('check.counts', **category.counts) }}</span>
+        </div>
+        {% if category.total %}
+        <details class="examples">
+          <summary>{{ icon('chev', 's') }}<span>{{ t('check.category_changes', label=category.label, n=category.total) }}</span></summary>
+          {% if category.total > category.rows|length %}<p class="hint">{{ t('check.more', shown=category.rows|length, total=category.total) }}</p>{% endif %}
+          <div class="scroll" role="region" aria-label="{{ t('check.category_changes', label=category.label, n=category.total) }}" tabindex="0">
+          <table class="changes">
+            <thead><tr>
+              <th scope="col">{{ t('check.printed') }}</th><th scope="col">{{ t('check.said') }}</th><th scope="col">{{ t('check.reason') }}</th>
+              <th scope="col">{{ t('check.page') }}</th><th scope="col">{{ t('check.chapter') }}</th><th scope="col">{{ t('check.status') }}</th>
+            </tr></thead>
+            <tbody>
+            {% for row in category.rows %}
+              <tr><td class="text printed"{% if row.printed_is_text %} lang="{{ text_language }}"{% endif %}>{{ row.printed }}</td><td class="text read{% if not row.said_is_text %} gone{% endif %}"{% if row.said_is_text %} lang="{{ text_language }}"{% endif %}>{{ row.said }}</td><td lang="en">{{ row.reason }}</td><td class="where">{{ row.page }}</td><td lang="{{ text_language }}">{{ row.chapter }}</td><td>{{ row.status }}</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        </details>
+        {% endif %}
       </li>
     {% endfor %}
     </ul>
   </fieldset>
-  <fieldset>
-    <legend>{{ t('check.chapters') }}</legend>
-    <p class="hint">{{ t('check.chapters_hint') }}</p>
-    <p class="buttons">
-      <button type="button" id="choose-all">{{ t('check.choose_all') }}</button>
-      <button type="button" id="choose-none">{{ t('check.choose_none') }}</button>
-    </p>
-    <ol class="choices">
-    {% for chapter in ordered_chapters %}
-      <li data-title="{{ chapter.title }}">
-        <input type="checkbox" id="chapter-{{ chapter.index }}" name="chapter" value="{{ chapter.index }}"{% if chapter.selected %} checked{% endif %} aria-describedby="chapter-details-{{ chapter.index }}">
-        <label for="chapter-{{ chapter.index }}" lang="{{ text_language }}">{{ t('check.chapter_line', title=chapter.title) }}</label>
-        <span class="move" hidden><button type="button" class="move-up" id="move-up-{{ chapter.index }}">{{ t('check.move_up') }}<span class="visually-hidden">: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button> <button type="button" class="move-down" id="move-down-{{ chapter.index }}">{{ t('check.move_down') }}<span class="visually-hidden">: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button></span>
-        <span class="hint" id="chapter-details-{{ chapter.index }}">({% if chapter.first_page %}{{ t('check.chapter_details', page=chapter.first_page, n=chapter.utterances) }}{% else %}{{ t('check.chapter_details_no_page', n=chapter.utterances) }}{% endif %}{% if chapter.references %}; {{ t('check.references') }}{% endif %}{% if chapter.publisher %}; {{ t('check.publisher') }}{% endif %})</span>
-      </li>
-    {% endfor %}
-    </ol>
-  </fieldset>
-  <p class="buttons"><button type="submit" id="update">{{ t('check.update') }}</button></p>
-  <p id="changed" class="note" hidden>{{ t('check.changed') }}</p>
-</form>
-
-<h3>{{ t('check.changes') }}</h3>
-<p class="hint">{{ t('check.changes_hint') }}</p>
-{% for category in categories if category.total %}
-<details>
-  <summary>{{ t('check.category_changes', label=category.label, n=category.total) }}</summary>
-  {% if category.total > category.rows|length %}<p class="note">{{ t('check.more', shown=category.rows|length, total=category.total) }}</p>{% endif %}
-  <div class="scroll" role="region" aria-label="{{ t('check.category_changes', label=category.label, n=category.total) }}" tabindex="0">
-  <table>
-    <thead><tr>
-      <th scope="col">{{ t('check.page') }}</th><th scope="col">{{ t('check.chapter') }}</th>
-      <th scope="col">{{ t('check.printed') }}</th><th scope="col">{{ t('check.said') }}</th>
-      <th scope="col">{{ t('check.reason') }}</th><th scope="col">{{ t('check.status') }}</th>
-    </tr></thead>
-    <tbody>
-    {% for row in category.rows %}
-      <tr><td>{{ row.page }}</td><td lang="{{ text_language }}">{{ row.chapter }}</td><td class="text"{% if row.printed_is_text %} lang="{{ text_language }}"{% endif %}>{{ row.printed }}</td><td class="text"{% if row.said_is_text %} lang="{{ text_language }}"{% endif %}>{{ row.said }}</td><td lang="en">{{ row.reason }}</td><td>{{ row.status }}</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+  <div class="update-bar">
+    <p id="changed" class="callout warn" hidden>{{ t('check.changed') }}</p>
+    <p class="buttons"><button type="submit" id="update" disabled>{{ t('check.update') }}</button></p>
   </div>
-</details>
-{% endfor %}
-{% if file_links %}
-<p>{{ t('document.files') }}</p>
-<ul>
-  {% for file in file_links %}
-  <li><a href="/api/v1/documents/{{ document.id }}/files/{{ file.name | urlencode }}?download=true">{{ file.label }}</a> (<code>{{ file.name }}</code>)</li>
-  {% endfor %}
-</ul>
-{% endif %}
+</form>
 {% else %}
-<p>{{ t('document.not_analysed') }}</p>
-{% if not analysing %}<p class="buttons"><button type="button" id="analyse">{{ t('document.analyse') }}</button></p>{% endif %}
+<p class="summary-line">{{ t('document.not_analysed') }}</p>
+{% if not analysing %}<p class="buttons"><button type="button" class="primary" id="analyse" disabled>{{ t('document.analyse') }}</button></p>{% endif %}
 {% endif %}
+</div>
 </section>
 
-<section aria-labelledby="step-voice">
-<h2 id="step-voice">{{ t('document.step_voice') }}</h2>
+<section class="step" aria-labelledby="step-voice">
+<header><h2 id="step-voice"><span class="n">2</span> {{ t('document.step_voice') }}</h2></header>
+<div class="body">
 {% if not voice_installed %}
-<p class="note">{{ t('voice.missing') }} <a href="/voice">{{ t('voice.setup') }}</a></p>
+<div class="callout warn">{{ icon('alert', 'l') }}<div><p>{{ t('voice.missing') }} <a href="/voice">{{ t('voice.setup') }}</a></p></div></div>
 {% elif voice_partly %}
-<p class="note">{{ t('voice.missing_languages', languages=voice_partly) }} <a href="/voice">{{ t('voice.setup') }}</a></p>
+<div class="callout warn">{{ icon('alert', 'l') }}<div><p>{{ t('voice.missing_languages', languages=voice_partly) }} <a href="/voice">{{ t('voice.setup') }}</a></p></div></div>
 {% endif %}
-<div class="stack">
-  <label for="voice">{{ t('voice.choose') }}</label>
-  <select id="voice" name="voice" aria-describedby="{% if language_note %}text-language {% endif %}voice-language voice-licence">
-    {% for option in voices %}<option value="{{ option.id }}" data-language="{{ option.language }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
-  </select>
-  <p class="hint" id="voice-language">{{ t('voice.language_hint') }}</p>
-  <p class="hint" id="voice-licence">{{ t('voice.licence') }} <span lang="en">{{ licences }}</span></p>
-  <label for="speed">{{ t('voice.speed') }}</label>
-  <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
-  <output id="speed-value" for="speed" aria-hidden="true">{{ speed_text }}</output></p>
-  <fieldset id="letter-pace" aria-describedby="letter-pace-hint">
+<div class="grid2">
+  <div class="field">
+    <label for="voice">{{ t('voice.choose') }}</label>
+    <select id="voice" name="voice" aria-describedby="{% if language_note %}text-language {% endif %}voice-language voice-licence">
+      {% for option in voices %}<option value="{{ option.id }}" data-language="{{ option.language }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
+    </select>
+    <p class="hint" id="voice-language">{{ t('voice.language_hint') }}</p>
+    <p class="hint" id="voice-licence">{{ t('voice.licence') }} <span lang="en">{{ licences }}</span></p>
+  </div>
+  <div class="field">
+    <label for="speed">{{ t('voice.speed') }}</label>
+    <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
+    <output id="speed-value" for="speed" aria-hidden="true">{{ speed_text }}</output></p>
+  </div>
+  <fieldset class="field" id="letter-pace" aria-describedby="letter-pace-hint">
     <legend>{{ t('voice.letter_pace') }}</legend>
     <p class="hint" id="letter-pace-hint">{{ t('voice.letter_pace_hint') }}</p>
     <ul class="choices">
@@ -139,38 +150,65 @@
     </ul>
   </fieldset>
   {% if voice_installed %}
-  <form id="preview" class="stack">
+  <form id="preview" class="field">
     <label for="preview-text">{{ t('voice.preview_label') }}</label>
     <p class="hint" id="preview-hint">{{ t('voice.preview_hint', limit=preview_limit) }}</p>
     <textarea id="preview-text" name="text" lang="{{ preview_text_language }}" rows="2" maxlength="{{ preview_limit }}" aria-describedby="preview-hint" data-samples="{{ preview_texts | tojson | forceescape }}" required>{{ preview_text }}</textarea>
-    <p class="buttons"><button type="submit">{{ t('voice.listen') }}</button></p>
+    <p class="buttons"><button type="submit" id="preview-listen" disabled>{{ icon('speaker', 's') }}<span>{{ t('voice.listen') }}</span></button></p>
     <audio id="preview-audio" controls hidden aria-label="{{ t('voice.preview_player') }}"></audio>
   </form>
   {% endif %}
 </div>
+</div>
 </section>
 
-<section aria-labelledby="step-make">
-<h2 id="step-make">{{ t('document.step_make') }}</h2>
-{% if document.has_audio %}<p><a id="listen-link" href="/documents/{{ document.id }}/listen">{{ t('listen.link') }}</a></p>{% endif %}
-<div class="stack">
-  <label for="output-folder">{{ t('make.folder') }}</label>
-  <p class="hint" id="folder-hint">{{ t('make.folder_hint') }}</p>
-  <input id="output-folder" name="output_folder" value="{{ output_folder }}" aria-describedby="folder-hint" spellcheck="false" autocomplete="off">
-  <p><input type="checkbox" id="subtitles" name="subtitles"{% if subtitles %} checked{% endif %} aria-describedby="subtitles-hint">
-  <label for="subtitles">{{ t('make.subtitles') }}</label></p>
-  <p class="hint" id="subtitles-hint">{{ t('make.subtitles_hint') }}</p>
+<section class="step" aria-labelledby="step-make">
+<header><h2 id="step-make"><span class="n">3</span> {{ t('document.step_make') }}</h2></header>
+<div class="body">
+  <div class="field">
+    <label for="output-folder">{{ t('make.folder') }}</label>
+    <p class="hint" id="folder-hint">{{ t('make.folder_hint') }}</p>
+    <input id="output-folder" name="output_folder" value="{{ output_folder }}" aria-describedby="folder-hint" spellcheck="false" autocomplete="off">
+  </div>
+  <div class="setting-switch">
+    <input type="checkbox" id="subtitles" name="subtitles"{% if subtitles %} checked{% endif %} aria-describedby="subtitles-hint">
+    <div><label for="subtitles">{{ t('make.subtitles') }}</label>
+    <p class="hint" id="subtitles-hint">{{ t('make.subtitles_hint') }}</p></div>
+  </div>
   <p class="hint">{{ t('voice.remembered') }}</p>
   {% set blocked = 'needs_analysis' if not report else ('needs_chapters' if not chosen_chapters else ('needs_voice' if not job_voice_installed else '')) %}
-  <p class="buttons"><button type="button" id="make" data-blocked="{{ blocked }}"{% if blocked %} aria-disabled="true"{% endif %} aria-describedby="make-note">{{ t('make.start') }}</button></p>
+  <p class="buttons"><button type="button" class="primary" id="make" disabled data-blocked="{{ blocked }}"{% if blocked %} aria-disabled="true"{% endif %} aria-describedby="make-note">{{ t('make.start') }}</button></p>
   <p id="make-note" class="note"{% if not blocked %} hidden{% endif %}>{% if blocked %}{{ t('make.' + blocked) }}{% endif %}</p>
 </div>
 </section>
 
-<section aria-labelledby="step-remove">
-<h2 id="step-remove">{{ t('remove.heading') }}</h2>
-{{ remove_box(document, removal, busy, false) }}
+<section class="step" aria-labelledby="step-remove">
+<header><h2 id="step-remove">{{ t('remove.heading') }}</h2></header>
+<div class="body">{{ remove_box(document, removal, busy, false) }}</div>
 </section>
+</div>
+
+<aside class="side" aria-label="{{ t('side.label') }}">
+  <section class="card" aria-labelledby="side-document">
+    <h2 id="side-document">{{ t('side.document') }}</h2>
+    <dl>
+      <dt>{{ t('side.file') }}</dt><dd>{{ side.file }}</dd>
+      {% if side.pages %}<dt>{{ t('side.pages') }}</dt><dd>{{ side.pages }}</dd>{% endif %}
+      {% if side.sentences is not none %}<dt>{{ t('side.sentences') }}</dt><dd>{{ side.sentences }}</dd>{% endif %}
+      {% if side.changes is not none %}<dt>{{ t('check.switches') }}</dt><dd>{{ side.changes }}</dd>{% endif %}
+      {% if side.files.md or side.files.json %}<dt>{{ t('side.report') }}</dt><dd>
+        {%- if side.files.md %}<a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.md | urlencode }}?download=true" aria-label="{{ t('document.file_report_md') }}">{{ t('side.read') }}</a>{% endif %}
+        {%- if side.files.md and side.files.json %} · {% endif %}
+        {%- if side.files.json %}<a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.json | urlencode }}?download=true" aria-label="{{ t('document.file_report_json') }}">JSON</a>{% endif -%}
+      </dd>{% endif %}
+      {% if side.files.script %}<dt>{{ t('side.script') }}</dt><dd><a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.script | urlencode }}?download=true" aria-label="{{ t('document.file_script') }}">TXT</a></dd>{% endif %}
+    </dl>
+  </section>
+  <section class="card" aria-labelledby="side-stays">
+    <h2 id="side-stays">{{ t('side.stays_title') }}</h2>
+    <p>{{ t('side.stays') }}</p>
+  </section>
+</aside>
 </div>
 <section id="removed" aria-labelledby="removed-title" hidden>
 <h2 id="removed-title" tabindex="-1"></h2>

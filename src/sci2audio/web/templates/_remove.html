@@ -12,7 +12,7 @@
     {% if busy %}
     <p class="note">{{ t('remove.busy') }}</p>
     {% else %}
-    <p class="buttons"><button type="button" class="danger remove-now" data-document="{{ document.id }}" data-audio="{{ 'yes' if removal.has_audio else '' }}">{{ t('remove.now', name=document.name) }}</button></p>
+    <p class="buttons"><button type="button" class="danger remove-now" data-document="{{ document.id }}" data-audio="{{ 'yes' if removal.has_audio else '' }}" disabled>{{ t('remove.now', name=document.name) }}</button></p>
     {% endif %}
   </div>
 </details>

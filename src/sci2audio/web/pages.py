@@ -1,8 +1,9 @@
 """The browser interface (#77, #79): server-rendered pages over the JSON API.
 
-Jinja2 with autoescape, one small script, no build step (D-101). Five pages (D-244,
-D-293): the start page, one page per document with three steps (check, voice, make), the
-job page with progress and results, the voice setup page and the privacy page. Every
+Jinja2 with autoescape, one small script, no build step (D-101). The pages (D-244, D-293,
+D-663): the library, each document's Prepare page with three steps (check, voice, make)
+and its audiobook job inline (#391), Listen, the job page of the other jobs, the voices,
+Settings and the privacy page. Every
 string comes from the request's language table in `strings/<language>.toml` through `t()`
 (D-256, D-288 to D-290); there is no page-wide language, each request gets its own.
 """
@@ -10,6 +11,7 @@ string comes from the request's language table in `strings/<language>.toml` thro
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -170,6 +172,7 @@ def _page(
     if "library_count" not in context:
         context["library_count"] = len(state.store.all()) + len(state.config.outside)
     query = request.url.query
+    context.setdefault("nav", NAV_ITEMS.get(name))
     context.update(
         t=s,
         strings=s,
@@ -177,7 +180,6 @@ def _page(
         script_strings=s.script_json,
         languages=LANGUAGES,
         here=local_path(request.url.path + (f"?{query}" if query else "")),
-        nav=NAV_ITEMS.get(name),
         theme=theme_of(request),
     )
     return templates.TemplateResponse(request, name, context, status_code=status)
@@ -620,6 +622,225 @@ def _language_options(chosen: str, s: Strings) -> list[dict[str, Any]]:
     return [{**option, "selected": option["value"] == chosen} for option in options]
 
 
+# --- the paper header and the side column, shared by Prepare and Listen (#391) ----------
+
+
+def _language_meta(report: Mapping[str, Any] | None, s: Strings) -> str | None:
+    """The text's language and where it came from, short, for the paper header (D-499)."""
+    primary = primary_language(_text_language(report))
+    name = s(f"pack.{primary}") if primary in PACKS else _text_language(report)
+    notes = {
+        "setting": lambda: s("paper.language_setting", language=name),
+        "file": lambda: s("paper.language_file", language=name),
+        "text": lambda: s("paper.language_text", language=name),
+        "fallback": lambda: s("paper.language_fallback", language=name),
+    }
+    note = notes.get(str((report or {}).get("language_source")))
+    return note() if note else None
+
+
+def paper_head(
+    s: Strings,
+    *,
+    key: str,
+    name: str,
+    about: Any,
+    report: Mapping[str, Any] | None,
+    got: Heard | None,
+    has_audio: bool,
+    prepare: bool,
+) -> dict[str, Any]:
+    """The header of a document's pages (#391, DESIGN.md "Paper header"): its title, a
+    meta line (authors, pages, the text's language, the audiobook's length) and the tabs
+    Prepare and Listen; Listen is a link only when there is an audiobook."""
+    meta = []
+    if about is not None and about.authors:
+        meta.append(", ".join(about.authors))
+    if about is not None and about.pages:
+        meta.append(s("library.pages", n=about.pages))
+    language = _language_meta(report, s)
+    if language:
+        meta.append(language)
+    if got is not None and got.duration > 0:
+        length = length_text(got.duration, s("library.hours"), s("library.minutes"))
+        meta.append(s("paper.audio", length=length))
+    return {
+        "id": key,
+        "title": about.title if about is not None else name,
+        "titled": about is not None,  # the file's own words: in the text's language
+        "meta": meta,
+        "listen": has_audio,
+        "prepare": prepare,  # a command-line audiobook has no Prepare page (#154)
+    }
+
+
+# --- the document page as Prepare, with its audiobook job inline (#391) ------------------
+
+
+def _latest_audio(state: ServerState, document_id: str) -> JobRecord | None:
+    """The newest audio job of this server run for the document, running or ended."""
+    return next(
+        (
+            job
+            for job in state.board.all()
+            if job.kind is JobKind.AUDIO and job.document == document_id
+        ),
+        None,
+    )
+
+
+def _stopped_in(progress: Mapping[str, Any]) -> tuple[str, int]:
+    """Where an audio job stood when it ended (D-695): ("writing", n) once every chapter
+    was spoken, ("chapter", n) in its n-th chapter, ("before", 0) before the first chunk.
+    The last progress names the last finished chunk; when that chunk ended its chapter,
+    the job was in the next one."""
+    phase = progress.get("phase")
+    chapters = int(progress.get("chapters") or 0)
+    if phase in ("encoding", "done"):
+        return "writing", chapters
+    number = int(progress.get("chapter_number") or 0)
+    if phase != "speaking" or not number:
+        return "before", 0
+    if progress.get("chapter_done"):
+        if number >= chapters:
+            return "writing", chapters
+        return "chapter", number + 1
+    return "chapter", number
+
+
+def _phase_words(s: Strings, phase: Any) -> str:
+    words = s.table.get(f"phase.{phase}") if phase else None
+    return (words[:1].upper() + words[1:]) if words else s("job.state_running")
+
+
+def _running_lines(s: Strings, progress: Mapping[str, Any]) -> dict[str, Any]:
+    """The running card's words, drawn as the script draws them (`cardShown` in app.js)."""
+    phase = progress.get("phase")
+    where, number = _stopped_in(progress)  # while writing the files: every chapter is done
+    chapters = int(progress.get("chapters") or 0)
+    if phase == "speaking" and where == "chapter":
+        head = s("making.speaking", n=number, total=chapters)
+    else:
+        head = _phase_words(s, phase)
+    part = progress_fraction(progress)
+    left = []
+    if part is not None:
+        left.append(s("js.percent", n=int(100 * part)))
+    if phase == "speaking":
+        seconds = progress.get("seconds_left")
+        if seconds is None:
+            left.append(s("js.measuring"))
+        else:
+            left.append(s("js.minutes_left", n=max(1, math.ceil(seconds / 60))))
+    total = int(progress.get("chunks_total") or 0)
+    done = int(progress.get("chunks_done") or 0)
+    current = number if where == "chapter" else (chapters + 1 if where == "writing" else 0)
+    return {
+        "head": head,
+        "left": " · ".join(left),
+        "percent": None if part is None else int(100 * part),
+        "sentences": s("js.sentences", done=done, n=total) if total else "",
+        "segments": _segments(chapters, current),
+    }
+
+
+def _segments(chapters: int, current: int) -> list[str]:
+    """One segment per chapter: done before `current`, now at it (counted from 1)."""
+    return [
+        "done" if n < current else ("now" if n == current else "") for n in range(1, chapters + 1)
+    ]
+
+
+# How long Cancel waits for the job to stop before it gives up and deletes nothing (#433 N3)
+STOP_WAIT_MS = 120_000
+
+
+def making_card(
+    state: ServerState, s: Strings, job: JobRecord, document: StoredDocument
+) -> dict[str, Any]:
+    """The audiobook job as the card at the top of Prepare (#391, DESIGN.md "Job inline"):
+    running, paused (Pause is today's cancel; the spoken sentences stay in the cache),
+    failed or done. What it says is kept is read from the job's last progress (D-695) and
+    the speech cache as it is now: a freed cache keeps nothing."""
+    view = _job_view(state, job, s)
+    progress = view.get("progress") or {}
+    cache = document.speech_cache_bytes
+    error = view.get("error") or {}
+    card: dict[str, Any] = {
+        "job": view,
+        "state": view["state"],
+        "cache": cache,
+        "cache_text": s.size(cache),
+        "exists": error.get("error") == "output-exists",
+        "stop_wait": STOP_WAIT_MS,
+        "resume": False,  # the again button reads Resume: a paused job
+    }
+    if view["state"] == "running":
+        card.update(_running_lines(s, progress))
+        return card
+    where, number = _stopped_in(progress)
+    chapters = int(progress.get("chapters") or 0)
+    done = int(progress.get("chunks_done") or 0)
+    total = int(progress.get("chunks_total") or 0)
+    if view["state"] == "cancelled":
+        if not cache and where == "before":
+            # paused before the first sentence: nothing was spoken, nothing was freed
+            card.update(
+                title=s("making.paused"), kept=s("making.kept_none"), segments=[], resume=True
+            )
+        elif not cache:
+            card.update(title=s("making.cancelled"), kept="", segments=[])
+        else:
+            title = s("making.paused_at", n=number) if where == "chapter" else s("making.paused")
+            kept = s("making.kept_sentences", done=done, n=total) if total else ""
+            card.update(title=title, kept=kept, segments=_segments(chapters, number), resume=True)
+    elif view["state"] == "failed" and not card["exists"]:
+        titles = {
+            "chapter": lambda: s("making.failed_in", n=number),
+            "writing": lambda: s("making.failed_writing"),
+            "before": lambda: s("making.failed_before"),
+        }
+        if not cache:
+            kept = s("job.cache_freed") if where != "before" else s("making.kept_none")
+        elif where == "writing":
+            kept = s("making.kept_all")
+        elif where == "chapter" and number > 1:
+            kept = s("making.kept_chapters", n=number - 1)
+        elif where == "chapter":
+            kept = s("making.kept_some")
+        else:
+            kept = s("making.kept_none")
+        card.update(
+            title=titles[where](),
+            kept=kept,
+            segments=_segments(chapters, chapters + 1 if where == "writing" else number),
+        )
+    elif view["state"] == "done":
+        card.update(
+            skipped=progress.get("skipped", []),
+            folder=view["files"][0]["folder"] if view["files"] else "",
+        )
+    return card
+
+
+def _side(
+    s: Strings, document: StoredDocument, about: Any, report: Mapping[str, Any] | None
+) -> dict[str, Any]:
+    """The side column's "This document" (#391): file, pages, sentences, changes and the
+    analysis files."""
+    chapters = (report or {}).get("chapters", [])
+    files = {}
+    for path in document.analysis_files():
+        files["script" if path.name.endswith(".script.txt") else path.suffix[1:]] = path.name
+    return {
+        "file": document.name,
+        "pages": about.pages if about is not None else None,
+        "sentences": sum(int(c.get("utterances") or 0) for c in chapters) if report else None,
+        "changes": len((report or {}).get("edits", [])) if report else None,
+        "files": files,
+    }
+
+
 @router.get("/documents/{document_id}", response_class=HTMLResponse)
 def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     s = strings_of(request)
@@ -627,6 +848,18 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     if found is None:
         return _not_found(request, state, s, s("common.not_found_document", id=document_id))
     write_opened(found.folder, datetime.now(UTC))
+    return _prepare(request, state, s, found, _latest_audio(state, found.id))
+
+
+def _prepare(
+    request: Request,
+    state: State,
+    s: Strings,
+    found: StoredDocument,
+    job: JobRecord | None,
+    **extra: Any,
+) -> HTMLResponse:
+    """The Prepare page of `found`, with `job` (an audio job of it) as its card."""
     saved, _ = load_settings(state.config.config_file)
     report = _report(found)
     # the controls start from what the report on screen was made with (D-245, D-246)
@@ -636,7 +869,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     )
     chapters = (report or {}).get("chapters", [])
     edits = (report or {}).get("edits", [])
-    heard = sum(1 for e in edits if e.get("status") == "accepted" and e.get("spoken"))
+    spoken = sum(1 for e in edits if e.get("status") == "accepted" and e.get("spoken"))
     current = state.board.current
     analysing = (
         current is not None and current.kind is JobKind.SCRIPT and current.document == found.id
@@ -650,19 +883,8 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     plan = download_plan()
     chosen_voice = _document_voice(saved.voice, _text_language(report))
     installed = _installed(state)
-    analysis_files = found.analysis_files()
-    labels = {
-        "script": s("document.file_script"),
-        "json": s("document.file_report_json"),
-        "md": s("document.file_report_md"),
-    }
-    file_links = [
-        {
-            "name": path.name,
-            "label": labels["script" if path.name.endswith(".script.txt") else path.suffix[1:]],
-        }
-        for path in analysis_files
-    ]
+    about = read_about(found.folder)
+    got = heard(found.folder, found.id, _folders(state, found, saved.output_folder))
     # the language the report was made with ("" = automatic); a job made from this page
     # uses it, and it is not remembered for other documents (#212, D-521)
     language = str(report_settings.get("language", saved.language) or "")
@@ -679,6 +901,18 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         "document.html",
         shelf_here=found.id,
         document=found,
+        head=paper_head(
+            s,
+            key=found.id,
+            name=found.name,
+            about=about,
+            report=report,
+            got=got,
+            has_audio=found.has_audio,
+            prepare=True,
+        ),
+        side=_side(s, found, about, report),
+        card=None if job is None else making_card(state, s, job, found),
         report=report,
         text_language=_text_language(report),
         language_note=_language_note(report, s),
@@ -691,9 +925,8 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         ordered_chapters=ordered,
         chosen_chapters=len(shown["chapters"]),
         edit_count=len(edits),
-        heard=heard,
+        heard=spoken,
         shown=json.dumps(shown),
-        file_links=file_links,
         voices=_voice_options(chosen_voice, s),
         licences=" ".join(dict.fromkeys(plan.licences)),
         voice_installed=bool(installed),  # some voice: the preview works
@@ -721,6 +954,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         subtitles=saved.subtitles,
         removal=_removal(found),
         busy=_busy_document(state) == found.id,
+        **extra,
     )
 
 
@@ -741,9 +975,11 @@ def job(request: Request, state: State, job_id: str) -> HTMLResponse:
     found = state.board.get(job_id)
     if found is None:
         return _not_found(request, state, s, s("common.not_found_job", id=job_id))
-    view = _job_view(state, found, s)
     document = None if found.document is None else state.store.get(found.document)
-    progress = view.get("progress") or {}
+    if found.kind is JobKind.AUDIO and document is not None:
+        # the audiobook job is shown where it was started: on Prepare (#391)
+        return _prepare(request, state, s, document, found, nav="job", current_job=found.id)
+    view = _job_view(state, found, s)
     return _page(
         request,
         state,
@@ -752,9 +988,6 @@ def job(request: Request, state: State, job_id: str) -> HTMLResponse:
         job=view,
         current_job=found.id,
         document=document,
-        cache_bytes=0 if document is None else document.speech_cache_bytes,
-        skipped=progress.get("skipped", []) if view["state"] == "done" else [],
-        folder=view["files"][0]["folder"] if view["files"] else "",
     )
 
 
@@ -823,6 +1056,17 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         return _not_found(request, state, s, s("common.not_found_document", id=document_id))
     if not found.outside:  # a command-line job's folders are read-only to the server (#154)
         write_opened(found.work, datetime.now(UTC))
+    stored = None if found.outside else state.store.get(found.id)
+    head = paper_head(
+        s,
+        key=found.id,
+        name=found.name,
+        about=None if found.outside else read_about(found.work),
+        report=None if stored is None else _report(stored),
+        got=heard(found.work, found.document, found.folders),
+        has_audio=True,  # Listen is the page shown: its tab is the current one
+        prepare=not found.outside,
+    )
     try:
         view, located = player_for(found.work, found.document, found.folders)
     except PlayerError as error:
@@ -833,6 +1077,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             "listen.html",
             shelf_here=found.id,
             document=found,
+            head=head,
             view=None,
             problem=s(error.key, **error.values),
         )
@@ -848,6 +1093,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         "listen.html",
         shelf_here=found.id,
         document=found,
+        head=head,
         view=view,
         voice=_voice_name(view.voice),
         speeds=_speeds(s),

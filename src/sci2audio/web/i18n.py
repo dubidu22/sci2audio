@@ -48,6 +48,11 @@ SCRIPT_KEYS = (
     "voice.speed_value",
     "common.decimal",
     "common.details",
+    "common.megabytes",  # sizes, as Strings.size writes them (#391)
+    "common.kilobytes",
+    "common.bytes",
+    "making.speaking",  # the job card's headline (#391)
+    "making.cancel_size",
     "player.",
     "remove.removing",
     "remove.done",

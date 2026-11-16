@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 import hashlib
 import io
+import re
 import struct
 import zlib
 from dataclasses import dataclass
@@ -52,6 +53,29 @@ def make_pdf(*pages: list[Text | Rect]) -> bytes:
     document.save(buffer)
     document.close()
     return buffer.getvalue()
+
+
+_FILE_ID = re.compile(rb"/ID\[<([0-9A-F]+)><([0-9A-F]+)>\]")
+_CREATED = re.compile(rb"/CreationDate\(D:\d{14}[^)]*\)")
+FIXED_DATE = b"/CreationDate(D:20200101000000+00'00')"
+
+
+def steady(data: bytes) -> bytes:
+    """`data` (a PDF from `make_pdf`) with a fixed creation date and its file /ID made from
+    its own content: PDFium stamps the time to the second and writes a random /ID, so the
+    same pages give other bytes, and another SHA-256, on every call (#422). Both keep their
+    length, so no offset moves."""
+    created = _CREATED.search(data)
+    if created is None or len(created.group(0)) != len(FIXED_DATE):
+        raise ValueError("no creation date of the expected length to replace")
+    data = data[: created.start()] + FIXED_DATE + data[created.end() :]
+    found = _FILE_ID.search(data)
+    if found is None:
+        raise ValueError("no file /ID to replace")
+    size = len(found.group(1))
+    rest = data[: found.start()] + data[found.end() :]
+    digest = hashlib.sha256(rest).hexdigest().upper()[:size].encode()
+    return data[: found.start()] + b"/ID[<%s><%s>]" % (digest, digest) + data[found.end() :]
 
 
 def width(text: str, font: str = "Helvetica", size: float = 10.0) -> float:
