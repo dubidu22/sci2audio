@@ -195,6 +195,261 @@ def test_a_narrower_block_is_not_cut_at_every_line() -> None:
     assert paragraphs(doc) == [joined(abstract), joined(body)]
 
 
+# Lines set flush right or centred; a line that ends inside a sentence (#454, D-719)
+
+SMALL, SMALL_PITCH = 8.5, 11.0  # a motto's type
+
+
+def set_right(texts: list[str], widths: list[float], top: float, edge: float = RIGHT) -> list:
+    """Lines in small type that end at one edge and start where their widths say."""
+    return [
+        line(text, edge - width, top + SMALL_PITCH * k, edge, size=SMALL)
+        for k, (text, width) in enumerate(zip(texts, widths, strict=True))
+    ]
+
+
+# the left edges of #454's motto, as widths from its right edge: the third line starts further
+# in than the two lines before it and the one after it, as a paragraph's first line would
+MOTTO_WIDTHS = [172.1, 154.8, 79.0, 129.5, 128.1]
+
+
+def test_a_flush_right_motto_is_one_paragraph_and_its_source_another() -> None:
+    """#454: the motto's ragged left edge is no first-line indent and no outdent; the source
+    under it stands apart by white, and the body text by its size."""
+    above = lines("a", LEFT, RIGHT, 100, 3)
+    motto = set_right(
+        [
+            "\u201cA people must be taught so well that it",
+            "knows its human aim and the danger,",
+            "in which it stands.",
+            "Between the aim and the danger lies the",
+            "way to be found. To see is everything.\u201d",
+        ],
+        MOTTO_WIDTHS,
+        100 + 3 * PITCH + 10,
+    )
+    source = set_right(["(Albers 1971, p. 12)"], [80.0], motto[-1].box.y0 + SMALL_PITCH + 6)
+    below = lines("b", LEFT, RIGHT, source[0].box.y0 + 20, 3)
+    doc = build_document(content([*above, *motto, *source, *below]))
+    assert paragraphs(doc) == [joined(above), joined(motto), source[0].text, joined(below)]
+
+
+def test_flush_right_lines_that_start_upper_case_are_one_paragraph_too() -> None:
+    """The shape alone keeps them together: every line here starts with a capital (German
+    nouns), so the rule for a line ending inside a sentence does not apply."""
+    motto = set_right(
+        ["Eine Gesellschaft muss ihr menschliches", "Ziel kennen und die Gefahr,", "Die sie",
+         "Umgibt, und den Weg dazwischen", "Finden. Bewusstsein ist alles."],
+        MOTTO_WIDTHS,
+        100,
+    )  # fmt: skip
+    body = lines("a", LEFT, RIGHT, 100 + 5 * SMALL_PITCH + 10, 3)
+    assert paragraphs(build_document(content([*motto, *body]))) == [joined(motto), joined(body)]
+
+
+def test_centred_lines_are_one_paragraph() -> None:
+    """Centred lines start and end at three or more places but share their middle: neither
+    a short line nor an indent ends their paragraph."""
+    middle = (LEFT + RIGHT) / 2
+    widths = [300.0, 220.0, 260.0, 140.0]
+    texts = ["Department of Acoustics and Listening,", "Example University, Town",
+             "Example Country 12345", "(Dated: 1 May 2026)"]  # fmt: skip
+    centred = [
+        line(text, middle - width / 2, 100 + PITCH * k, middle + width / 2)
+        for k, (text, width) in enumerate(zip(texts, widths, strict=True))
+    ]
+    body = lines("a", LEFT, RIGHT, 100 + 4 * PITCH + 10, 3)
+    doc = build_document(content([*centred, *body]))
+    assert paragraphs(doc) == [joined(centred), joined(body)]
+
+
+def test_a_line_ending_inside_a_sentence_goes_on_with_a_lower_case_line() -> None:
+    """Short lines set flush left, as a poem's: a line that ends inside a sentence (a comma,
+    a letter, a slash) goes on with the line under it when that starts in lower case."""
+    poem = [
+        line("The road is made by walking,", LEFT, 100, LEFT + 150),
+        line("and the walker learns the land", LEFT, 100 + PITCH, LEFT + 170),
+        line("she crosses at https://example.org/", LEFT, 100 + 2 * PITCH, LEFT + 190),
+        line("roads-and-rivers on foot.", LEFT, 100 + 3 * PITCH, LEFT + 130),
+    ]
+    assert paragraphs(build_document(content(poem))) == [joined(poem)]
+
+
+def italic(text: str, x0: float, y0: float, x1: float) -> TextLine:
+    """A line in italic, but for an upright mark ("1") in front of it, as an affiliation."""
+    line_ = line(text, x0, y0, x1)
+    mark, rest = text[:1], text[1:]
+    runs = (TextRun(mark, "Times", 10.0), TextRun(rest, "Times-Italic", 10.0, italic=True))
+    return TextLine(line_.id, runs, line_.box)
+
+
+def test_an_upright_line_under_centred_italic_lines_starts_a_paragraph() -> None:
+    """Review of #476, S1 (Liu p1): a centred affiliation in italic is one paragraph, the
+    upright date under it another; in centred lines a short line ends nothing, so the change
+    of style does."""
+    middle = (LEFT + RIGHT) / 2
+    centred = [
+        italic("1Department of Acoustics and Listening, Example University,",
+               middle - 190, 100, middle + 190),
+        italic("1Example Town 12345, Example Country", middle - 110, 100 + PITCH, middle + 110),
+        line("(Dated: 1 May 2026)", middle - 50, 100 + 2 * PITCH, middle + 50),
+    ]  # fmt: skip
+    body = lines("a", LEFT, RIGHT, 100 + 3 * PITCH + 10, 3)
+    doc = build_document(content([*centred, *body]))
+    assert paragraphs(doc) == [joined(centred[:2]), centred[2].text, joined(body)]
+
+
+def test_an_indented_paragraph_starting_lower_case_stays_apart() -> None:
+    """Review of #476, S2: a real first-line indent ends the paragraph even after a line
+    without a full stop, when the new paragraph starts in lower case ("pandas")."""
+    first = [
+        line("Running text that fills its column from edge to edge and goes", LEFT, 100, RIGHT),
+        line("on to the details on our website", LEFT, 100 + PITCH, LEFT + 200),
+    ]
+    second = [
+        line("pandas reads the table and fills its column from edge to", LEFT + 15,
+             100 + 2 * PITCH, RIGHT),
+        line("edge, and the paragraph goes on and ends here.", LEFT, 100 + 3 * PITCH, RIGHT),
+        line("And so does the next line.", LEFT, 100 + 4 * PITCH, LEFT + 150),
+    ]  # fmt: skip
+    doc = build_document(content([*first, *second]))
+    assert paragraphs(doc) == [joined(first), joined(second)]
+
+
+def test_an_outdented_entry_starting_lower_case_stays_apart() -> None:
+    """Review of #476, S2: author-year entries with hanging indents; an entry ending in a
+    link without a full stop, then one by "van Dijk": the outdent ends the entry."""
+    entries = [
+        [line("Albers, A. (2021). A study of the listening of papers. Journal of",
+              LEFT, 100, RIGHT),
+         line("Sound, 12, 45-67. https://example.org/listening", LEFT + 15, 100 + PITCH,
+              LEFT + 300)],
+        [line("van Dijk, T. (2022). Reading aloud in the laboratory and in the", LEFT,
+              100 + 2 * PITCH, RIGHT),
+         line("field. Proceedings of Things, 1-9.", LEFT + 15, 100 + 3 * PITCH, LEFT + 250)],
+    ]  # fmt: skip
+    doc = build_document(content([li for entry in entries for li in entry]))
+    assert paragraphs(doc) == [joined(entry) for entry in entries]
+
+
+def test_items_lettered_with_a_full_stop_stay_apart() -> None:
+    """Review of #476, S3: "i." and "a." items (which `lists` does not split) start in lower
+    case after a row without a full stop; each stays its own block."""
+    for marks in (("i.", "ii.", "iii."), ("a.", "b.", "c.")):
+        words = ("we read the paper aloud", "we listen to it", "we compare the two readings")
+        items = [
+            line(f"{mark} {said}", LEFT, 100 + PITCH * k, LEFT + 150 + 30 * (k % 2) - 10 * k)
+            for k, (mark, said) in enumerate(zip(marks, words, strict=True))
+        ]
+        body = lines("x", LEFT, RIGHT, 100 + 3 * PITCH + 10, 3)
+        doc = build_document(content([*items, *body]))
+        assert paragraphs(doc) == [*(item.text for item in items), joined(body)]
+
+
+def rows_at(spans: list[tuple[float, float]], top: float = 200.0) -> list[TextLine]:
+    """Four rows of a block at these left and right edges, the third starting a sentence."""
+    texts = ["The first line of the block.", "The second line ends here.",
+             "A third line starts anew", "and goes on to its end."]  # fmt: skip
+    pairs = enumerate(zip(texts, spans, strict=True))
+    return [line(t, x0, top + PITCH * k, x1) for k, (t, (x0, x1)) in pairs]
+
+
+def test_rows_ending_at_two_edges_are_no_flush_right_block() -> None:
+    """Review of #476, round 2: rows that start at three places but end at two edges are no
+    flush-right lines, so the indented third row starts a paragraph."""
+    above = lines("a", LEFT, RIGHT, 100, 3)
+    block = rows_at([(LEFT, 450), (LEFT + 8, 450), (LEFT + 20, 400), (LEFT, 400)])
+    doc = build_document(content(above + block))
+    assert paragraphs(doc) == [joined(above), joined(block[:2]), joined(block[2:])]
+
+
+def test_rows_with_two_middles_are_no_centred_block() -> None:
+    """Review of #476, round 2: rows whose middles stand at two places are not centred, so
+    the indented third row starts a paragraph."""
+    above = lines("a", LEFT, RIGHT, 100, 3)
+    block = rows_at([(LEFT, 450), (LEFT + 10, 440), (LEFT + 30, 380), (LEFT, 410)])
+    assert joined(block[2:]) in paragraphs(build_document(content(above + block)))
+
+
+def test_one_italic_word_leaves_a_centred_row_upright() -> None:
+    """Review of #476, round 2: a row is italic when most of its letters are, so a journal's
+    name in italic does not end a centred block of upright rows."""
+    middle = (LEFT + RIGHT) / 2
+
+    def centred(runs: list[tuple[str, bool]], width: float, k: int) -> TextLine:
+        box = line("x", middle - width / 2, 100 + PITCH * k, middle + width / 2)
+        styled = tuple(TextRun(text, "Times", 10.0, italic=slanted) for text, slanted in runs)
+        return TextLine(box.id, styled, box.box)
+
+    rows = [
+        centred([("Department of Listening and Reading,", False)], 300, 0),
+        centred([("for the ", False), ("Journal", True), (" of Sound, Town", False)], 220, 1),
+        centred([("Example Country 12345", False)], 260, 2),
+    ]
+    body = lines("z", LEFT, RIGHT, 100 + 3 * PITCH + 10, 3)
+    assert paragraphs(build_document(content(rows + body))) == [joined(rows), joined(body)]
+
+
+@given(st.sampled_from(["e.g. the ones on the shelf.", "i.e. the ones on the shelf."]))
+def test_a_short_line_goes_on_with_e_g_and_i_e(start: str) -> None:
+    """Review of #476, round 2: "e.g." and "i.e." are no lettered list marks, so a short
+    line ending inside a sentence goes on with them."""
+    rows = [
+        line(
+            "Running text that fills its column from one edge to the other edge", LEFT, 100, RIGHT
+        ),
+        line("we read the papers aloud", LEFT, 100 + PITCH, LEFT + 150),
+        line(start, LEFT, 100 + 2 * PITCH, LEFT + 300),
+    ]
+    assert paragraphs(build_document(content(rows))) == [joined(rows)]
+
+
+@given(st.sampled_from(["The danger.", "The danger", "the danger"]))
+def test_a_short_line_still_ends_a_paragraph_before_a_new_sentence(first: str) -> None:
+    """The short line ends a sentence, or the next line starts upper case or with a digit:
+    the short line ends the paragraph, as before."""
+    after = "Then came the aim." if first != "The danger." else "then came the aim."
+    if first == "the danger":
+        after = "2 more steps followed."
+    rows = [
+        line("Running text that fills its column from edge to edge", LEFT, 100, RIGHT),
+        line(first, LEFT, 100 + PITCH, LEFT + 60),
+        line(after, LEFT, 100 + 2 * PITCH, RIGHT),
+        line("and ends here.", LEFT, 100 + 3 * PITCH, LEFT + 80),
+    ]
+    found = paragraphs(build_document(content(rows)))
+    assert found == [joined(rows[:2]), joined(rows[2:])]
+
+
+def test_a_narrower_block_s_indented_first_line_still_starts_a_paragraph() -> None:
+    """An abstract set narrower than its column, justified: its rows share both edges and
+    start at two places only (the first-line indent), so they are no flush-right lines."""
+    first = lines("a", LEFT + 40, RIGHT - 40, 100, 3, last=1.0)
+    second = lines("b", LEFT + 40, RIGHT - 40, 100 + 3 * PITCH, 3, indent=15)
+    body = lines("c", LEFT, RIGHT, 100 + 6 * PITCH + 10, 3)
+    doc = build_document(content([*first, *second, *body]))
+    assert paragraphs(doc) == [joined(first), joined(second), joined(body)]
+
+
+def test_reference_entries_ending_without_a_full_stop_stay_apart() -> None:
+    """A hanging-indent list: an entry ending in a DOI without a full stop is followed by an
+    entry that starts upper case, so it is not joined; and justified entries whose labels
+    start at two places ("[9]", "[10]") are no flush-right lines, as they fill their column."""
+    entries = [
+        [line("[9] A. Albers. A study of the listening of papers. Journal of Sound,",
+              LEFT + 5, 100, RIGHT),
+         line("12(3):45-67, 2021. doi:10.1234/example.5678", LEFT + 15, 100 + PITCH, RIGHT)],
+        [line("[10] B. Brandt and C. Keller. Reading aloud in the laboratory and the",
+              LEFT, 100 + 2 * PITCH, RIGHT),
+         line("field. Proceedings of Things, pages 1-9, 2022.", LEFT + 15, 100 + 3 * PITCH, RIGHT)],
+        [line("[11] D. Dorn. A third entry that fills its column from one edge to the",
+              LEFT, 100 + 4 * PITCH, RIGHT),
+         line("other edge. Press, 2023.", LEFT + 15, 100 + 5 * PITCH, RIGHT)],
+    ]  # fmt: skip
+    doc = build_document(content([li for entry in entries for li in entry]))
+    assert paragraphs(doc) == [joined(entry) for entry in entries]
+
+
 # Across columns and pages
 
 
