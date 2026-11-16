@@ -2353,3 +2353,45 @@ blocks = [
 ]
 sections = [{ title = "Literatur", level = 1, start = 1, end = 7 }]
 expected = ["Die Methode wirkt."]
+
+# ---- sentence boundaries (D-715, plan D-719, PR 3): today's cuts, before the rule changes ----
+
+[[case]]
+id = "de-az-before-a-file-number"
+audit = 0
+issue = 406
+goal = "'Az.' before a court's file number ends no sentence; the sentence goes on with the number."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das Gericht hat im Az. 13 W 17/12 entschieden. Das Urteil (Az. 2 W 12/07) ist bekannt." }]
+expected = ["Das Gericht hat im Az. 13 W 17/12 entschieden. Das Urteil (Az. 2 W 12/07) ist bekannt."]
+utterances = ["Das Gericht hat im Az.", "13 W 17/12 entschieden.", "Das Urteil (Az.", "2 W 12/07) ist bekannt."]
+
+[[case]]
+id = "de-ff-before-a-law-name"
+audit = 0
+issue = 465
+goal = "'ff.' before a law's name ('StGB', 'UrhG') ends no sentence: the citation goes on (D-719)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Siehe §§ 185 ff. StGB dazu. Es gilt § 69a ff. UrhG. Mehr steht auf S. 12 ff. Dort endet es." }]
+expected = ["Siehe §§ 185 folgende. StGB dazu. Es gilt § 69a folgende. UrhG. Mehr steht auf Seite 12 folgende. Dort endet es."]
+utterances = ["Siehe §§ 185 folgende.", "StGB dazu.", "Es gilt § 69a folgende.", "UrhG.", "Mehr steht auf Seite 12 folgende.", "Dort endet es."]
+
+[[case]]
+id = "de-uabs-fa-ev-end-no-sentence"
+audit = 0
+issue = 465
+goal = "'UAbs.', 'Fa.' and 'e. V.' end no sentence before what follows them (D-719)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das regelt Art. 6 Abs. 1 UAbs. 1 lit. f DSGVO. Der Brief ging an die Fa. Schmidt in Köln. Digitalcourage e. V. hat dabei geholfen." }]
+expected = ["Das regelt Artikel 6 Absatz 1 UAbs. 1 Buchstabe f DSGVO. Der Brief ging an die Fa. Schmidt in Köln. Digitalcourage e. V. hat dabei geholfen."]
+utterances = ["Das regelt Artikel 6 Absatz 1 UAbs.", "1 Buchstabe f DSGVO.", "Der Brief ging an die Fa.", "Schmidt in Köln.", "Digitalcourage e.", "V. hat dabei geholfen."]
+
+[[case]]
+id = "de-number-after-a-label-word"
+audit = 0
+issue = 465
+goal = "A number with a full stop after a label word ('Satz 2.') is the label's number, no ordinal: the sentence ends there (D-719)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Es gilt Satz 2. Satz 3 gilt hier nicht. Im 2. Satz steht mehr." }]
+expected = ["Es gilt Satz zweiter Satz 3 gilt hier nicht. Im zweiten Satz steht mehr."]
+utterances = ["Es gilt Satz zweiter Satz 3 gilt hier nicht.", "Im zweiten Satz steht mehr."]

@@ -2495,3 +2495,41 @@ blocks = [
 ]
 sections = [{ title = "References", level = 1, start = 1, end = 7 }]
 expected = ["The method works."]
+
+# ---- sentence boundaries (D-715, plan D-719, PR 3): today's cuts, before the rule changes ----
+
+[[case]]
+id = "sentence-after-a-narrative-citation"
+audit = 0
+issue = 465
+goal = "The year of a narrative citation is removed with the sentence's full stop; the sentence still ends after 'et al.' (D-719)."
+blocks = [{ kind = "paragraph", text = "This was proposed by Smith et al. (2019). We extend it to more data." }]
+expected = ["This was proposed by Smith et al. We extend it to more data."]
+utterances = ["This was proposed by Smith et al. We extend it to more data."]
+
+[[case]]
+id = "section-number-before-its-title"
+audit = 0
+issue = 465
+goal = "A section number at a sentence's start ('1. Introduction') is no sentence of its own (D-719)."
+blocks = [{ kind = "paragraph", text = "Plain files often are.\n1. Introduction\nPeople listen to papers." }]
+expected = ["Plain files often are. 1. Introduction People listen to papers."]
+utterances = ["Plain files often are.", "1.", "Introduction People listen to papers."]
+
+[[case]]
+id = "capital-after-a-maths-symbol"
+audit = 0
+issue = 141
+goal = "A single capital after a maths symbol ends the sentence ('x ∈ N. This'); an initial before a name does not ('J. Smith')."
+blocks = [{ kind = "paragraph", text = "Let x ∈ N. This yields a bound. We write A ⊂ B. Then B is larger. The method of J. Smith is used here." }]
+expected = ["Let x ∈ N. This yields a bound. We write A ⊂ B. Then B is larger. The method of J. Smith is used here."]
+utterances = ["Let x ∈ N. This yields a bound.", "We write A ⊂ B. Then B is larger.", "The method of J. Smith is used here."]
+
+[[case]]
+id = "capital-after-a-label-word"
+audit = 0
+issue = 465
+goal = "A single capital after a label word is the label's letter, no initial: 'See Appendix C. It' ends the sentence (D-719)."
+blocks = [{ kind = "paragraph", text = "The proofs conclude. See Appendix C. It gives the proofs." }]
+expected = ["The proofs conclude. See Appendix C. It gives the proofs."]
+utterances = ["The proofs conclude.", "See Appendix C. It gives the proofs."]
