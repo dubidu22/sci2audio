@@ -59,7 +59,7 @@ kind = "FP"
 at = "S. v. 185 ff. | StGB werden und die"
 class = "abbreviation"
 issue = 465
-why = "'ff.' is no abbreviation of the German list"
+why = "the abbreviations step reads 'ff' as 'folgende' and keeps the full stop as printed, which then ends the sentence"
 
 [[error]]
 file = "arxiv2017-maass-privacyscore"
@@ -189,7 +189,7 @@ kind = "FP"
 at = "DSGVO. Siehe 185 ff. | StGB dazu. Die Akte"
 class = "abbreviation"
 issue = 465
-why = "'ff.' is no abbreviation of the German list"
+why = "the abbreviations step reads 'ff' as 'folgende' and keeps the full stop as printed, which then ends the sentence"
 
 [[error]]
 file = "stress-de"

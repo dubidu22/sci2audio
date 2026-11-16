@@ -117,16 +117,16 @@ def test_the_truth_still_fits_the_file(name: str, stress_folder: Path) -> None:
 
 @pytest.mark.parametrize("language", ["en", "de"])
 def test_natural_sets_stay_above_the_floors(language: str, stress_folder: Path) -> None:
+    """Per file and in all (shown with `-s`): precision, recall, F1, and extra starts split
+    into layout (a block cut inside a sentence) and rule (the cutter)."""
     total = Score()
     for name in NATURAL:
         set_language, score = _score(name, stress_folder)
         if set_language == language:
+            print(f"{name}: {score.summary()}")
             total.add(score)
     floor = KNOWN["floors"][language]
-    print(
-        f"{language}: precision {total.precision:.4f}, recall {total.recall:.4f} "
-        f"({total.hits} found, {total.false_positives} extra, {total.false_negatives} missed)"
-    )
+    print(f"{language} natural sets: {total.summary()}")
     assert total.hits > 0
     assert total.precision >= floor["precision"]
     assert total.recall >= floor["recall"]
@@ -187,6 +187,10 @@ def test_compare_counts_hits_extra_and_missed_starts(tmp_path: Path) -> None:
     ]
     assert score.precision == 0.5
     assert score.recall == 0.5
+    assert score.f1 == 0.5
+    assert score.summary().startswith(
+        "P 0.5000 R 0.5000 F1 0.5000: 1 found, 1 extra (0 layout, 1 rule)"
+    )
 
 
 def test_optional_starts_count_neither_way(tmp_path: Path) -> None:
@@ -201,6 +205,7 @@ def test_an_extra_start_at_a_block_start_is_a_layout_error(tmp_path: Path) -> No
     truth = _truth(tmp_path, "Aa bb cc dd ee ff.\n")
     score = compare(truth, _words("aa bb cc dd ee ff", {0, 3}, blocks=(3,)))
     assert [(e.kind, e.layout) for e in score.errors] == [("FP", True)]
+    assert score.layout_false_positives == 1
 
 
 def test_only_gaps_inside_a_long_enough_match_are_compared(tmp_path: Path) -> None:

@@ -194,6 +194,26 @@ class Score:
         return self.hits / wanted if wanted else 1.0
 
     @property
+    def f1(self) -> float:
+        both = self.precision + self.recall
+        return 2 * self.precision * self.recall / both if both else 0.0
+
+    @property
+    def layout_false_positives(self) -> int:
+        """Extra starts at a block's first word: the layout cut the block there."""
+        return sum(e.kind == "FP" and e.layout for e in self.errors)
+
+    def summary(self) -> str:
+        """One line: precision, recall, F1, counts, extra starts by layout and by rule."""
+        layout = self.layout_false_positives
+        return (
+            f"P {self.precision:.4f} R {self.recall:.4f} F1 {self.f1:.4f}: "
+            f"{self.hits} found, {self.false_positives} extra ({layout} layout, "
+            f"{self.false_positives - layout} rule), {self.false_negatives} missed, "
+            f"coverage {self.coverage:.3f}"
+        )
+
+    @property
     def coverage(self) -> float:
         """The share of the truth's gaps that could be compared."""
         return self.compared / self.truth_gaps if self.truth_gaps else 1.0
