@@ -855,6 +855,7 @@ function makingCard() {
 // ---- the voice setup page --------------------------------------------------------------
 
 function voicePage() {
+  voiceSamples();
   const form = document.getElementById("voice-download");
   if (!form) return;
   form.addEventListener("submit", async (event) => {
@@ -871,6 +872,60 @@ function voicePage() {
       say(explain(error), true);
     }
   });
+}
+
+// The voice cards' samples (#419): the document page's preview job with the sample sentence
+// of the voice's language; one plays at a time, and the player keeps no position (D-664).
+function voiceSamples() {
+  const audio = document.getElementById("voice-sample");
+  const buttons = [...document.querySelectorAll("button.voice-play")];
+  if (!audio || !buttons.length) return;
+  let playing = null; // the button whose sample is loading or playing
+  let asked = 0; // a later click wins over a sample still being made
+  const show = (button, on) => {
+    button.setAttribute("aria-label", on ? button.dataset.stop : button.dataset.play);
+    button.querySelector("span").textContent = on ? button.dataset.stopShort : button.dataset.playShort;
+    button.querySelector("use").setAttribute("href", on ? "#i-pause" : "#i-play");
+  };
+  const stop = () => {
+    asked += 1;
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+    if (playing) show(playing, false);
+    playing = null;
+  };
+  audio.addEventListener("ended", stop);
+  for (const button of buttons) {
+    button.addEventListener("click", async () => {
+      const again = playing === button;
+      stop();
+      if (again) return;
+      playing = button;
+      show(button, true);
+      const mine = asked;
+      say(tr("js.listening"));
+      try {
+        const body = { voice: button.dataset.voice, speed: 1, text: button.dataset.text };
+        const job = await send("/api/v1/voices/preview", json("POST", body));
+        follow(`/api/v1/jobs/${job.id}/events`, () => {}, (ended) => {
+          if (mine !== asked) return; // stopped, or another sample asked for since
+          if (ended.state !== "done" || !ended.files.length) {
+            stop();
+            say(ended.error ? failureOf(ended.error.error, ended.error.message) : tr(`job.state_${ended.state}`), true);
+            return;
+          }
+          audio.src = `/api/v1/jobs/${ended.id}/files/${encodeURIComponent(ended.files[0].name)}`;
+          say("");
+          audio.play().catch(() => stop());
+        });
+      } catch (error) {
+        if (mine === asked) stop();
+        say(explain(error), true);
+      }
+    });
+    button.disabled = false;
+  }
 }
 
 // ---- the rail: the running job on the shelf (#387) ---------------------------------------

@@ -1134,6 +1134,8 @@ def voice(request: Request, state: State) -> HTMLResponse:
                 "language": language,
                 "name": s(f"setup.pack_{language}"),
                 "installed": language in there,
+                "voices": _voice_cards(language, s),
+                "missing": s.size(sum(f.size for f in missing if f.pack == language)),
                 "files": [
                     {"target": f.target, "size": s.size(f.size), "licence": f.licence}
                     for f in plan.files
@@ -1147,6 +1149,35 @@ def voice(request: Request, state: State) -> HTMLResponse:
         hosts=hosts_shown(plan.files, s),
         digest=plan_digest(plan),
     )
+
+
+def _voice_cards(pack: str, s: Strings) -> list[dict[str, Any]]:
+    """The voices of one pack as cards (#419): the default first, then by accent and name;
+    each with the sample sentence of its language, the one the document page previews."""
+    default = DEFAULT_VOICES.get(pack)
+    voices = sorted(
+        (v for v in VOICES if voice_pack(v.id) == pack),
+        key=lambda v: (v.id != default, v.language, v.name),
+    )
+    cards = []
+    for voice in voices:
+        accent = s(f"accent.{voice.language}")
+        if voice.gender == "female":
+            about = s("setup.voice_female", accent=accent)
+        else:
+            about = s("setup.voice_male", accent=accent)
+        about = about[:1].upper() + about[1:]  # German accents begin in lower case
+        language = primary_language(voice.language)
+        cards.append(
+            {
+                "id": voice.id,
+                "name": voice.name,
+                "about": f"{about} {s('voice.default')}" if voice.id == default else about,
+                "text": preview_text(language),
+                "language": language,
+            }
+        )
+    return cards
 
 
 # --- the privacy page (D-293) ----------------------------------------------------------

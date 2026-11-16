@@ -324,25 +324,30 @@ def test_each_voice_file_shows_once_in_its_packs_panel(server: tuple[FastAPI, An
     assert f"Download the voice ({size})</button>" in page
 
 
-def test_the_download_button_names_what_is_still_missing(server: tuple[FastAPI, Any]) -> None:
-    """With the English pack in place, the button names the German pack's size, not the
-    whole download's: the download skips the files already there (#421 N1)."""
+def install_pack(config: Any, pack: str) -> None:
+    """The pack's files in place at their right sizes, nothing written in them."""
     from sci2audio.voices.download import SPACY_MODEL, SPACY_MODEL_VERSION
 
-    _app, config = server
-    plan = download_plan()
-    for file in plan.files:
-        if file.pack != "en":
+    for file in download_plan().files:
+        if file.pack != pack:
             continue
         path = config.models_dir / file.target
         if file.unpack:
             record = path / f"{SPACY_MODEL}-{SPACY_MODEL_VERSION}.dist-info" / "RECORD"
-            record.parent.mkdir(parents=True)
+            record.parent.mkdir(parents=True, exist_ok=True)
             record.write_text("", encoding="utf-8")
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("wb") as stream:
                 stream.truncate(file.size)  # the right size, nothing written
+
+
+def test_the_download_button_names_what_is_still_missing(server: tuple[FastAPI, Any]) -> None:
+    """With the English pack in place, the button names the German pack's size, not the
+    whole download's: the download skips the files already there (#421 N1)."""
+    _app, config = server
+    plan = download_plan()
+    install_pack(config, "en")
     page = client_of(server).get("/voice").text
     s = strings("en")
     german = sum(f.size for f in plan.files if f.pack == "de")
@@ -354,6 +359,46 @@ def test_the_download_button_names_what_is_still_missing(server: tuple[FastAPI, 
     german_panel = page.split('<section class="pack" id="pack-de"')[1].split("</section>")[0]
     assert "Installed" in english
     assert "Not installed" in german_panel
+
+
+def test_each_voice_has_a_card_and_a_missing_pack_shows_what_it_would_download(
+    server: tuple[FastAPI, Any],
+) -> None:
+    """#419: an installed voice's card plays the document page's sample sentence of its
+    language; a voice whose pack is missing shows the pack's size and plays nothing."""
+    from sci2audio.voices import VOICES, preview_text
+
+    _app, config = server
+    install_pack(config, "en")
+    client = client_of(server)
+    page = client.get("/voice").text
+    english = page.split('<section class="pack" id="pack-en"')[1].split("</section>")[0]
+    german = page.split('<section class="pack" id="pack-de"')[1].split("</section>")[0]
+    cards = re.findall(r'<li class="voice-card[^"]*" id="voice-([a-z_]+)">', page)
+    assert sorted(cards) == sorted(v.id for v in VOICES)  # one card each
+    assert cards[0] == "af_heart"  # the default first
+    heart = english.split('id="voice-af_heart"')[1].split("</li>")[0]
+    assert "<h3>Heart</h3>" in heart
+    assert '<p class="about">American English, female (default)</p>' in heart
+    button = re.search(r'<button type="button" class="voice-play"[^>]*>', heart)
+    assert button is not None
+    assert 'data-voice="af_heart"' in button[0]
+    assert f'data-text="{html.escape(preview_text("en"))}"' in button[0]
+    assert 'aria-label="Play a sample of Heart"' in button[0]
+    assert button[0].endswith(" disabled>")  # app.js wires it (#350, #427)
+    assert english.count('class="voice-play"') == len(cards) - 1
+    # the German pack is missing: its card says so with the pack's size, no button
+    thorsten = german.split('id="voice-dm_thorsten"')[1].split("</li>")[0]
+    assert 'class="voice-card missing"' in german
+    assert "voice-play" not in german
+    size = strings("en").size(sum(f.size for f in download_plan().files if f.pack == "de"))
+    assert f"Not installed: {size} to download</p>" in thorsten
+    assert page.count('<audio id="voice-sample" hidden></audio>') == 1
+    client.cookies.set("sci2audio-language", "de")
+    deutsch = client.get("/voice").text
+    assert '<p class="about">Deutsch, männlich (Standard)</p>' in deutsch
+    assert 'aria-label="Hörprobe abspielen: Heart"' in deutsch
+    assert "Nicht installiert: " in deutsch
 
 
 def test_missing_documents_and_jobs_answer_404_pages(server: tuple[FastAPI, Any]) -> None:
