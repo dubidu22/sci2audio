@@ -292,15 +292,34 @@ def test_the_voice_setup_page_shows_the_whole_download(server: tuple[FastAPI, An
     assert "Set up the voice" in page
     assert "kokoro-v1_0.pth" in page
     assert "model.pth" in page  # the German pack (#211)
-    items = re.findall(r"<li>([^<]*)</li>", page)
-    assert items[:2] == [  # one line per voice pack (D-468)
-        "English voices (Kokoro): not installed yet.",
-        "German voice Thorsten (Kokoro, by Thorsten-Voice): not installed yet.",
+    # one panel per voice pack (D-468), named, with its state as icon and word (#390)
+    names = re.findall(r'<h2 id="pack-(en|de)-name">([^<]*)</h2>', page)
+    assert names == [
+        ("en", "English voices (Kokoro)"),
+        ("de", "German voice Thorsten (Kokoro, by Thorsten-Voice)"),
     ]
-    hosts = items[2:]
+    assert page.count('<span class="chip idle"><svg') == 2
+    assert page.count("Not installed</span>") == 2
+    hosts = re.findall(r"<li>([^<]*)</li>", page.split('aria-labelledby="hosts-intro"')[1])
     assert hosts[:2] == ["github.com", "huggingface.co"]  # with their redirect hosts after
     assert 'id="voice-consent" name="consent" required' in page
     assert re.search(r'data-plan="[0-9a-f]{64}"', page)
+
+
+def test_each_voice_file_shows_once_in_its_packs_panel(server: tuple[FastAPI, Any]) -> None:
+    page = client_of(server).get("/voice").text
+    plan = download_plan()
+    for language in ("en", "de"):
+        panel = page.split(f'<section class="pack" id="pack-{language}"')[1].split("</section>")[0]
+        shown = re.findall(r"<tr><td><code>([^<]*)</code></td>", panel)
+        assert shown == [f.target for f in plan.files if f.pack == language], language
+        for file in plan.files:
+            if file.pack == language:
+                assert f'<td lang="en">{html.escape(file.licence)}</td>' in panel
+    every = re.findall(r"<tr><td><code>([^<]*)</code></td>", page)
+    assert sorted(every) == sorted(f.target for f in plan.files)  # each file once
+    size = strings("en").size(plan.total_bytes)
+    assert f"Download the voice ({size})</button>" in page
 
 
 def test_missing_documents_and_jobs_answer_404_pages(server: tuple[FastAPI, Any]) -> None:

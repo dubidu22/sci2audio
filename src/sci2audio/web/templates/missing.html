@@ -1,7 +1,15 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}{{ t('common.not_found_title') }} · {{ t('common.app') }}{% endblock %}
 {% block main %}
-<h1>{{ t('common.not_found_title') }}</h1>
-<p>{{ what }}</p>
-<p><a href="/">{{ t('common.back_home') }}</a></p>
+<header class="view-head">
+  <h1>{{ t('common.not_found_title') }}</h1>
+</header>
+<div class="panel missing">
+  {{ icon('alert', 'l') }}
+  <div>
+    <p>{{ what }}</p>
+    <p><a class="btn" href="/">{{ icon('library', 's') }}{{ t('common.back_home') }}</a></p>
+  </div>
+</div>
 {% endblock %}

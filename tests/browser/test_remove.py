@@ -90,7 +90,7 @@ def test_removing_from_the_document_page(signed_in: Page, live: Live) -> None:
     assert [r["method"] for r in requests] == ["DELETE"]  # one request
     assert not (live.config.work_root / document).exists()
     check_axe(page, "document page after the removal")
-    page.get_by_role("link", name="Back to the start page").click()
+    page.get_by_role("link", name="Back to the library").click()
     expect(page).to_have_url(live.url + "/")
     expect(page.get_by_role("heading", name="Your library is empty")).to_be_visible()
 
