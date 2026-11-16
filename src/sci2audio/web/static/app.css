@@ -120,7 +120,7 @@ code { font-size: .92em; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
 /* the player's own buttons take the focus inside it: ring the whole player */
 audio:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
-main:focus, h1:focus, h2:focus, .message:focus { outline: none; }
+main:focus, h1:focus, h2:focus, h3:focus, .message:focus, .making:focus { outline: none; }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
@@ -397,6 +397,109 @@ details.remove { margin: 8px 0; }
 .remove-box { margin: 8px 0 0; padding: 12px 14px; border: 1px solid var(--rule-strong); border-radius: var(--r); background: var(--paper); display: grid; gap: 6px; max-width: 60ch; }
 .remove-box p { margin: 0; font-size: 14px; }
 .remove-box .buttons { margin-top: 4px; }
+
+/* ---------- a document's pages: the paper header (#391, DESIGN.md "Paper header") ---------- */
+.view.wide { max-width: 1680px; }
+.paper-head { margin: 0 0 24px; }
+.paper-head h1 { font: 600 28px/1.2 var(--read); letter-spacing: -.005em; max-width: 40ch; margin: 0; }
+.view .paper-head .meta { color: var(--pencil); margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 2px 14px; max-width: none; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 18px; border-bottom: 1px solid var(--rule); }
+.tabs a, .tabs .tab-off { display: flex; gap: 8px; align-items: center; min-height: 44px; padding: 10px 14px; margin-bottom: -1px; border-bottom: 3px solid transparent; font-weight: 700; color: var(--ink-2); text-decoration: none; }
+.tabs a:hover { color: var(--ink); }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tabs .tab-off { color: var(--pencil); }
+
+/* ---------- Prepare (#391, DESIGN.md "Prepare"): the steps beside a 340 px side column from
+   1280 px on; below, the side column follows the steps ---------- */
+.prepare { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; }
+.steps { min-width: 0; }
+.step { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); margin: 0 0 20px; }
+.step > header { padding: 18px 22px; border-bottom: 1px solid var(--rule); }
+.step > header h2 { margin: 0; font-size: 19px; }
+.step > header .n { color: var(--pencil); font-size: 15px; margin-right: 8px; }
+.step > .body { padding: 18px 22px; }
+.step > .body > :last-child { margin-bottom: 0; }
+.summary-line { font-size: 16px; line-height: 1.5; margin: 0 0 16px; }
+.step .field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 0 0 22px; border: 0; padding: 0; background: none; min-width: 0; }
+.step .field > p { margin: 0; }
+.step fieldset.field > legend { padding: 0; margin: 0 0 6px; font-size: 14px; }
+.chapters { list-style: none; padding: 0; margin: 4px 0 0; counter-reset: chapter; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.view .chapters li { max-width: none; }
+.chapter { position: relative; counter-increment: chapter; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 12px; margin: 0; border-top: 1px solid var(--rule); }
+.chapter:first-child { border-top: 0; }
+.chapter input[type="checkbox"] { margin: 0; }
+.chapter .ct-box { flex: 1 1 12rem; min-width: 0; }
+.chapter .ord::before { content: counter(chapter) ". "; font-weight: 700; }
+.chapter .ct { font-weight: 700; font-size: 15px; }
+.chapter.off .ct { color: var(--pencil); text-decoration: line-through; text-decoration-color: var(--pencil); }
+.chapter .why { display: block; font-size: 13px; color: var(--pencil); }
+.chapter .cm { font-size: 13.5px; color: var(--pencil); }
+.chapter .move { display: flex; gap: 2px; margin-left: auto; }
+.icon-btn { min-height: 30px; width: 30px; padding: 0; border-color: transparent; background: transparent; }
+.icon-btn:hover { background: var(--desk-2); }
+.cats { list-style: none; padding: 0; margin: 4px 0 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.view .cats li { max-width: none; margin: 0; }
+.cat { border-top: 1px solid var(--rule); padding: 10px 12px; }
+.cat:first-child { border-top: 0; }
+.cat-row { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 2px 14px; align-items: start; }
+.cat-row label { font-size: 15px; }
+.cat-row .cn { grid-column: 2; }
+.cat.off .cat-row label { color: var(--pencil); text-decoration: line-through; text-decoration-color: var(--pencil); }
+.examples { margin: 6px 0 0 50px; min-width: 0; }
+.examples summary { list-style: none; display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--ink-2); }
+.examples summary::-webkit-details-marker { display: none; }
+.examples[open] summary svg { transform: rotate(90deg); }
+.scroll { position: relative; }
+table.changes { width: 100%; font-size: 14px; }
+.changes td.printed, .changes td.read { font-family: var(--read); }
+.changes td.gone { font-family: var(--ui); font-style: italic; color: var(--pencil); }
+.changes .where { color: var(--pencil); white-space: nowrap; }
+.update-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.update-bar .callout { margin: 0; flex: 1 1 20rem; }
+.update-bar .buttons { margin: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 0 24px; }
+.setting-switch input[type="checkbox"] { margin: 3px 0 0; }
+.side { display: grid; gap: 16px; min-width: 0; }
+.side .card { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); padding: 18px; }
+.side h2 { font-size: 15px; margin: 0 0 8px; }
+.side dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; font-size: 14px; margin: 0; }
+.side dt { color: var(--pencil); }
+.side dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.side p { font-size: 14px; color: var(--ink-2); margin: 0; }
+.callout.bad { background: var(--error-wash); border-color: var(--error); }
+.callout.bad > svg { color: var(--error); }
+.callout h3 { margin: 0 0 4px; font-size: 16px; }
+.callout p + p { margin-top: 4px; }
+.callout ul { margin: 6px 0 0; padding-left: 20px; }
+
+/* the audiobook job inline (#391, DESIGN.md "Job inline"): no motion on the bar or the
+   segments, and never a highlighter colour */
+.making .job-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: 14px; margin: 0 0 10px; max-width: none; }
+.making #job-left, .making .job-count { color: var(--pencil); font-size: 14px; }
+.making progress { appearance: none; display: block; width: 100%; height: 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--desk-2); color: var(--ink); overflow: hidden; }
+.making progress::-webkit-progress-bar { background: var(--desk-2); }
+.making progress::-webkit-progress-value { background: var(--ink); }
+.making progress::-moz-progress-bar { background: var(--ink); }
+.segs { display: flex; gap: 3px; margin: 8px 0 12px; }
+.seg { flex: 1; height: 6px; border-radius: 1px; background: var(--rule); }
+.seg.done { background: var(--ink); }
+.seg.now { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.making .job-note { font-size: 14px; color: var(--ink-2); }
+.making .buttons { align-items: flex-start; }
+.confirm { margin: 0; }
+.confirm summary { list-style: none; }
+.confirm summary::-webkit-details-marker { display: none; }
+.confirm[open] summary { background: var(--error-wash); }
+.confirm-box { margin: 8px 0 0; padding: 12px 14px; border: 1px solid var(--error); border-radius: var(--r); background: var(--paper); display: grid; gap: 6px; max-width: 60ch; }
+.confirm-box p { margin: 0; font-size: 14px; }
+.making .files { list-style: none; padding: 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.view .making .files li { margin: 0; padding: 9px 12px; border-top: 1px solid var(--rule); max-width: none; }
+.view .making .files li:first-child { border-top: 0; }
+
+@media (min-width: 1280px) {
+  .prepare { grid-template-columns: minmax(0, 1240px) var(--panel); }
+  .side { position: sticky; top: 24px; }
+}
 
 /* ---------- widths ---------- */
 @media (max-width: 1399px) {

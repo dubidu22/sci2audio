@@ -23,6 +23,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -230,3 +231,28 @@ def check_axe(page: Page, where: str) -> None:
     problems += axe_problems(page, f"{where} (dark)")
     page.emulate_media(color_scheme="light")
     assert problems == []
+
+
+class Hold:
+    """The fake voice's `fail_on`: lets `after` sentences through, then holds the next one
+    until `gate` opens; never fails."""
+
+    def __init__(self, after: int) -> None:
+        self.after = after
+        self.calls = 0
+        self.reached = threading.Event()
+        self.gate = threading.Event()
+
+    def __call__(self, text: str) -> bool:
+        self.calls += 1
+        if self.calls > self.after:
+            self.reached.set()
+            self.gate.wait(120)
+        return False
+
+
+def saving(page: Page, path: str) -> Any:
+    """Wait for the GET that saves a choice and goes back (`/appearance`, `/language`): the
+    page is often on that address already, so `wait_for_url` returns before the cookie is
+    set (#429). Use it as `with saving(page, "/appearance"): ...`."""
+    return page.expect_response(lambda answer: urlsplit(answer.url).path == path)

@@ -206,6 +206,35 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
     assert events_spoken[-1].seconds_left == 0
 
 
+def test_progress_numbers_the_chapter_and_says_when_it_is_done(tmp_path: Path) -> None:
+    """D-695: `chapter_number` is the chapter's place among those spoken, in the order
+    read; `chapter_done` marks a chapter's last chunk, so the next chunk is the next
+    chapter's first. The chosen order (#119) counts, not the document's."""
+    events: list[AudioProgress] = []
+    run(
+        PYMEDPHYS,
+        tmp_path,
+        FakeVoice(),
+        settings=JobSettings(chapters=(2, 0)),
+        progress=events.append,
+    )
+    spoken = [e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0]
+    assert [e.chapter_number for e in spoken] == sorted(e.chapter_number for e in spoken)
+    assert {e.chapter: e.chapter_number for e in spoken} == {2: 1, 0: 2}
+    assert all(e.chapters == 2 for e in spoken)
+    boundary = [n for n, e in enumerate(spoken) if e.chapter_done]
+    assert len(boundary) == 2  # one last chunk per chapter
+    last_of_first = boundary[0]
+    assert spoken[last_of_first].chapter_number == 1
+    assert spoken[last_of_first + 1].chapter_number == 2
+    assert not spoken[last_of_first + 1].chapter_done
+    assert spoken[-1].chapter_done
+    assert boundary[1] == len(spoken) - 1
+    # the phases before the first chunk carry neither
+    before = [e for e in events if e.phase is not Phase.SPEAKING or e.chunks_done == 0]
+    assert all(e.chapter_number == 0 and not e.chapter_done for e in before)
+
+
 class CostClock:
     """A clock the fake voice moves on: each call costs `cost(characters)` seconds, the
     first `slow` calls twice that (a voice warming up)."""

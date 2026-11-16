@@ -86,7 +86,7 @@ def test_no_page_scrolls_sideways_at_320_pixels(signed_in: Page, live: Live, lan
     # the page drawn while the job ran reloads itself when it ends: measure the reloaded page
     # once app.css applies, as settled() does for the document page (#166); measured before,
     # the unstyled icons stick out (348 px, seen on PR #409)
-    expect(page.locator('#job[data-state="done"]')).to_have_count(1)
+    expect(page.locator('#making[data-state="done"]')).to_have_count(1)
     page.wait_for_load_state("load")
     expect(page.locator(".skip")).to_have_css("position", "absolute")
     check_reflow(page, "audiobook done")

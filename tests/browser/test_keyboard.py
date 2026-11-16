@@ -69,11 +69,12 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     expect(page.locator("#summary")).to_be_visible()
     settled(page)
 
-    # a switch, a chapter, then the update; the focus comes back to the step's heading
-    press_on(page, "category-citations", "Space")
-    expect(page.locator("#category-citations")).not_to_be_checked()
+    # a chapter, a switch (in the page's order: the chapters come first, #391), then the
+    # update; the focus comes back to the step's heading
     press_on(page, "chapter-1", "Space")
     expect(page.locator("#chapter-1")).not_to_be_checked()
+    press_on(page, "category-citations", "Space")
+    expect(page.locator("#category-citations")).not_to_be_checked()
     press_on(page, "Update the analysis")
     expect(page.locator("#changed")).to_be_hidden()
     expect(page.locator("#step-check")).to_be_focused()

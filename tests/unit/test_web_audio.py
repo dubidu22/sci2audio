@@ -15,6 +15,7 @@ from web_helpers import (
     events,
     make_config,
     offline,  # noqa: F401 - fixture
+    paper_bytes,
     program,
     upload,
     wait,
@@ -87,6 +88,43 @@ def test_an_audio_job_writes_the_audiobook_to_the_output_folder(tmp_path: Path) 
     assert part.content == (config.output_folder / mp3).read_bytes()[:100]
     readalong = client.get(f"{base}/{names[-1]}").json()
     assert readalong["format"] == "sci2audio-readalong"
+
+
+def test_the_progress_numbers_the_chapter_in_the_job_and_its_stream(tmp_path: Path) -> None:
+    """D-695: the job's progress carries `chapter_number` and `chapter_done`, and the
+    stream sends them; the existing fields keep their meaning."""
+    seen: list[dict[str, Any]] = []
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    app = create_app(config, voice=lambda models_dir: voice.source())
+    client = program(app, config)
+    doc = upload(client, paper_bytes())
+
+    def look(text: str) -> bool:  # before each chunk: the progress after the one before
+        job = app.state.sci2audio.board.current
+        progress = job.snapshot()["progress"] if job is not None else None
+        if progress and progress.get("phase") == "speaking" and progress["chunks_done"]:
+            seen.append(progress)
+        return False
+
+    voice.fail_on = look
+    job = start_audio(client, doc["id"])
+    stream = events(client, job["id"])
+    assert wait(client, job["id"])["state"] == "done"
+    assert [p["chapter_number"] for p in seen] == sorted(p["chapter_number"] for p in seen)
+    assert {p["chapter"]: p["chapter_number"] for p in seen} == {0: 1, 1: 2}
+    boundary = next(n for n, p in enumerate(seen) if p["chapter_done"])
+    assert seen[boundary]["chapter_number"] == 1
+    assert seen[boundary + 1]["chapter_number"] == 2
+    assert not seen[boundary + 1]["chapter_done"]
+    assert all(p["chapters"] == 2 and p["chunks_total"] >= p["chunks_done"] for p in seen)
+    # every progress the job tells carries the new fields; the server's own last word,
+    # {"phase": "done", ...} with the files, is not one of them, and whether the stream
+    # catches it before it ends depends on timing (seen on macOS)
+    sent = [json.loads(data) for name, data in stream if name == "progress"]
+    told = [p for p in sent if p.get("phase") != "done"]
+    assert told
+    assert all("chapter_number" in p and "chapter_done" in p for p in told)
 
 
 def test_an_existing_audiobook_is_kept_unless_the_person_says_replace(tmp_path: Path) -> None:
