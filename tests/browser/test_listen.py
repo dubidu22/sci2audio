@@ -242,6 +242,36 @@ def test_below_1280_px_the_focus_never_goes_under_the_panel(signed_in: Page, liv
     page.set_viewport_size({"width": 1280, "height": 720})
 
 
+def test_below_1280_px_a_click_on_text_inside_the_panel_leaves_it_open(
+    signed_in: Page, live: Live
+) -> None:
+    """#447: a click on text inside the open panel sends the focus nowhere (no related
+    target); the panel stays open, and only a move of the focus outside it closes it."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.set_viewport_size({"width": 1024, "height": 768})
+    panel = page.locator("#context")
+    page.locator("#panel-toggle").click()
+    expect(page.locator("#tab-outline")).to_be_focused()
+    page.locator("#tab-changes").click()
+    expect(page.locator("#tab-changes")).to_be_focused()
+    page.locator("#panel-changes .chg-name").first.click()
+    expect(page.locator("#tab-changes")).not_to_be_focused()
+    expect(panel).to_be_visible()
+    expect(page.locator("#panel-toggle")).to_have_attribute("aria-expanded", "true")
+    page.keyboard.press("Tab")  # from where the press left the focus: out of the panel
+    expect(panel).to_be_hidden()
+    assert uncovered(page)
+    page.locator("#panel-toggle").click()
+    page.locator("#tab-outline").click()
+    page.locator("#panel-outline .chapter-button").last.click()  # the press is not lost
+    expect(panel).to_be_visible()
+    expect(page.locator("#panel-outline .chapter-button").last).to_have_attribute(
+        "aria-current", "true"
+    )
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
 def test_the_timeline_moves_the_reading_by_keyboard(signed_in: Page, live: Live) -> None:
     page = signed_in
     make_audiobook(page, live)

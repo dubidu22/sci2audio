@@ -571,12 +571,26 @@ function contextPanel() {
   toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") !== "true"));
   close.addEventListener("click", () => set(false));
   // over the page the panel covers its own button, so the focus leaves it only by the keys
-  // or to elsewhere: it closes, and the focus stays where it went
-  panel.addEventListener("focusout", (event) => {
-    if (wide.matches || !narrowOpen || panel.contains(event.relatedTarget)) return;
+  // or to elsewhere: it closes, and the focus stays where it went. A press inside it is no
+  // leaving, though the focus may go to the page (a press on its text, or in Safari on its
+  // buttons, #447); the next move of the focus outside it closes it then.
+  let pressing = false; // a pointer went down inside the panel and is not up yet
+  panel.addEventListener("pointerdown", () => {
+    pressing = true;
+  });
+  for (const type of ["pointerup", "pointercancel"]) {
+    window.addEventListener(type, () => {
+      pressing = false;
+    });
+  }
+  function left(to) {
+    if (wide.matches || !narrowOpen || pressing || panel.contains(to)) return;
     narrowOpen = false;
     show();
-  });
+  }
+  // to nowhere (Tab past its last control reaches the browser's own bar) or to the page
+  panel.addEventListener("focusout", (event) => left(event.relatedTarget));
+  document.addEventListener("focusin", (event) => left(event.target));
   panel.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !wide.matches && narrowOpen) {
       event.preventDefault();
