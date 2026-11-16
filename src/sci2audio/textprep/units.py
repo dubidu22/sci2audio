@@ -391,9 +391,9 @@ def _unit_after(
             if hyphen and gender and text[stop : stop + 1] == "-":
                 # "1-kg-Packung": "Ein-Kilogramm-Packung"; "1-m" alone starts no compound
                 gender = _COMPOUND
-            elif gender and compound and start > end and text[end:start] == " ":
-                # "1 %-Hürde" as "1-%-Hürde": "Ein-Prozent-Hürde"; the space becomes the
-                # compound's hyphen, so the edit starts at it (#233, D-646)
+            elif gender and compound and start > end:
+                # "1 %-Hürde" as "1-%-Hürde": "Ein-Prozent-Hürde"; the space (a no-break
+                # space too) becomes the compound's hyphen, so the edit starts at it (#233)
                 return end, stop, f"-{reads}", shown, _COMPOUND
             return start, stop, (" " if glued else "") + reads, shown, gender
     if gap == end and not number["exponent"]:
@@ -416,9 +416,8 @@ def _unit_after_per(text: str, start: int, table: _Table) -> tuple[int, int, str
     if parsed is None:
         return None
     terms, stop = parsed
+    # a single capital ("pro A") is never read here, so neither is "A" as a word ("1 A note")
     if _capital(text, start, stop) or text[stop : stop + 1] == "-":
-        return None
-    if _word_not_unit(text, terms, stop):
         return None
     if text[stop - 1] == "." and (
         not text[stop:].strip() or opens_sentence(text, stop, table.language)
