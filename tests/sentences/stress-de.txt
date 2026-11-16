@@ -1,0 +1,101 @@
+# German stress set: sentences written for sci2audio (D-719), CC0-1.0, no third-party text.
+# Format: README.md. The test makes a plain-text file from it (a blank line ends a paragraph,
+# the sentences of a paragraph are joined by a space) and reads that like any text file.
+# Each paragraph holds shapes that a sentence rule can get wrong; the sentence boundaries
+# here are what a listener should hear. The shapes found in a German humanities paper (#454,
+# #455, #460) are written here as our own sentences; names and works are made up.
+
+Siehe Abb. 3 und Tab. 2 für die Werte.
+Das gilt z. B. für alle Läufe.
+Es gibt u. a. drei Gruppen.
+Das ist bzw. war lange üblich.
+Das kostet ca. 5 Euro im Monat.
+Prof. Dr. Meier leitet die Gruppe.
+
+Er wurde 3. Sieger im Lauf.
+Es waren 3.
+Die Studie lief weiter.
+Am 3. 4. 2019 begann die Messung.
+Das ist der 2. Teil.
+Der 3. Teil folgt im Herbst.
+Die Werte lagen zwischen dem 1. und 3. Quartil.
+Das war im 19. Jh. üblich.
+
+Die Messung dauerte 2 Std.
+Danach wurde gewertet.
+Das kostete 2 Mio. Euro.
+Das kostete 2 Mio.
+Die Firma zahlte sofort.
+Es waren 3.
+Studien zeigen das seit Jahren.
+
+S. Müller und K. Schmidt schrieben den Bericht.
+Die Arbeit von M. Weber gilt bis heute.
+Digitalcourage e. V. hat dabei geholfen.
+Der Brief ging an die Fa. Schmidt in Köln.
+
+Gemäß Art. 6 Abs. 1 lit. f DSGVO ist das zulässig.
+Das folgt aus § 3 i. V. m. § 5 BDSG.
+Das regelt Art. 6 Abs. 1 UAbs. 1 lit. f DSGVO.
+Siehe §§ 185 ff. StGB dazu.
+Die Akte trägt das Az. 13 W 17/12.
+Sie liegt beim Gericht.
+Vgl. dazu Nr. 5 der Liste.
+Es gilt Satz 2.
+Satz 3 gilt hier nicht.
+
+Das steht auf S. 12 des Berichts.
+Das steht auf S. XV der Einleitung.
+Siehe Anm. 3 und Kap. 4 für die Herleitung.
+Die Ergebnisse (vgl. Tab. 3) sind eindeutig.
+
+Er nannte das „schwierig.“
+Niemand widersprach.
+„Wissen allein genügt nicht.“
+So schrieb es Lorenz.
+Sie fragte: „Warum nicht?“
+Wir hatten keine Antwort.
+Er sagte: „Das geht.“
+Dann ging er.
+Sie las »Die Zeit.«
+Danach schlief sie.
+
+„Ein Weg entsteht im Gehen.“ (Lorenz 1974/2004, S. 273)
+Danach beginnt der eigentliche Text.
+Das zeigt eine ältere Studie (Brandt/Keller 1969).
+Sie ist heute vergessen.
+Der Bericht (ZBN 2011, S. 1) fordert mehr Bildung.
+Albers (1781, S. 12) sah das anders.
+Das gilt auch hier (Albers 1987, S. XV).
+Die Debatte geht weiter.
+
+Die Zahl stieg um 3,5 %.
+Danach fiel sie wieder.
+Die Rate betrug 5 %.
+2019 war sie höher.
+Die Konferenz fand 2017 statt.
+2018 folgte die nächste.
+Die Messung lief von 8 bis 9 Uhr.
+Um 10 Uhr begann die nächste.
+
+Was bleibt?
+Die Frage ist offen.
+Das ist gut!
+Weiter so.
+Das Ende ist nah...
+Dann geht es weiter.
+Ein Satz mit Doppelpunkt: Danach kommt die Erklärung.
+
+Der Code liegt unter https://example.org/werkzeug.
+Er läuft unter Linux.
+Schreiben Sie an info@example.org.
+Wir antworten binnen einer Woche.
+Die Datei heißt daten.csv.
+Sie enthält alle Läufe.
+Wir nutzen Python 3.12.
+Ältere Versionen scheitern.
+
+Eine Schule muss so geplant sein, dass sie ihre Aufgabe kennt und die Grenzen, in denen sie arbeitet.
+Zwischen Aufgabe und Grenze liegt der Alltag.
+Planung ist alles.
+Das Programm einer Bildung für die Zukunft, kurz BfZ, ist insofern Gegenstand der Kritik, als es auf ein seit Jahrzehnten wachsendes, zunehmend die Lebensgrundlagen bedrohendes Verhältnis zur Umwelt antwortet: Es kritisiert den Umgang mit Ressourcen, der in den 1970er/1980er Jahren von außen an die Schulen herangetragen wurde, und zielt auf neue Formen des Lernens.

@@ -1,0 +1,110 @@
+# English stress set: sentences written for sci2audio (D-719), CC0-1.0, no third-party text.
+# Format: README.md. The test makes a plain-text file from it (a blank line ends a paragraph,
+# the sentences of a paragraph are joined by a space) and reads that like any text file.
+# Each paragraph holds shapes that a sentence rule can get wrong; the sentence boundaries
+# here are what a listener should hear.
+
+As shown in Fig. 3, the error falls with depth.
+See Figs. 4 and 5 for the remaining runs.
+Eq. 2 gives the loss we use in training.
+We follow Smith et al. and use the same split.
+The effect was small, i.e. below one percent.
+Some tasks, e.g. parsing, need more data.
+
+The models were trained for approx. 5 hours each.
+We tested version 3.5 vs. version 4.0 of the parser.
+The data came from the U.S. Census Bureau.
+Prof. Jones and Dr. Lee ran the second study.
+Mr. Brown answered every question.
+The results are given in Sect. 4 and in Tab. 2.
+
+We report accuracy, recall, etc. for all tasks.
+They used cats, dogs, birds, etc.
+The next test used fish.
+The answer is no.
+Then we stop.
+See No. 5 in the list.
+The quotes are on p. 12 of the report.
+See pp. 12–14 for details.
+
+J. Smith and A. B. Jones wrote the first report.
+The method of R. A. Fisher is still in use.
+Our first set is called A.
+Then set B follows.
+The work of M. Curie changed physics.
+
+The p-value was 0.05.
+The effect held in every group.
+The mean was 3.5 kg.
+It rose later in the year.
+Accuracy rose to 98.2%.
+Recall stayed flat.
+The study ran from 2019 to 2021.
+In 2022 it ended.
+Version 2.0 was released in May.
+Version 3 followed a year later.
+The temperature was 7 °C.
+The wind was calm.
+
+He wrote: “The model fails.”
+Then he left the room.
+“Is this right?” she asked.
+The reviewer asked, “Why not more data?”
+We had none.
+(This holds for all runs.)
+The next run differs.
+The effect is clear (see Table 3).
+It also holds in German.
+The value is large [12].
+Further work is needed.
+They called it “simple.”
+Nobody agreed.
+
+Why does it fail?
+Nobody knows.
+It works!
+The second test confirms it.
+What is the cost?!
+The answer surprised us.
+
+This was shown before (Smith et al., 2020).
+The new data agree.
+This was proposed by Smith et al. (2019).
+We extend it to speech.
+Earlier work (e.g., Lee, 2018; Kim, 2020) used smaller sets.
+The idea goes back to Hume (1748/1999, p. 5).
+It is still debated.
+The appendix (pp. iv–vi) lists every term.
+
+The code is at https://github.com/example/tool.
+It runs on Linux.
+Write to info@example.org.
+We reply within a week.
+The file is named data.csv.
+It holds all runs.
+We use Python 3.12.
+Older versions fail.
+
+The set Σ is finite.
+Its size is n.
+For every x in X, f(x) is positive.
+Hence f is positive.
+We write A ⊂ B.
+Then B is the larger set.
+
+The list goes on...
+The last item is new.
+He paused … and went on.
+The result – as expected – held.
+The next one did not.
+
+We plot with seaborn.
+seaborn is a plotting library for Python.
+The tool pandas reads the table.
+iOS apps were not tested.
+
+Table 4 lists the runs.
+Section 5 discusses them.
+In Sect. 6 we conclude.
+See Appendix C.
+It gives the proofs.
