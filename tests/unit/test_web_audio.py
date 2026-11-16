@@ -118,8 +118,13 @@ def test_the_progress_numbers_the_chapter_in_the_job_and_its_stream(tmp_path: Pa
     assert seen[boundary + 1]["chapter_number"] == 2
     assert not seen[boundary + 1]["chapter_done"]
     assert all(p["chapters"] == 2 and p["chunks_total"] >= p["chunks_done"] for p in seen)
+    # every progress the job tells carries the new fields; the server's own last word,
+    # {"phase": "done", ...} with the files, is not one of them, and whether the stream
+    # catches it before it ends depends on timing (seen on macOS)
     sent = [json.loads(data) for name, data in stream if name == "progress"]
-    assert all("chapter_number" in p and "chapter_done" in p for p in sent)
+    told = [p for p in sent if p.get("phase") != "done"]
+    assert told
+    assert all("chapter_number" in p and "chapter_done" in p for p in told)
 
 
 def test_an_existing_audiobook_is_kept_unless_the_person_says_replace(tmp_path: Path) -> None:
