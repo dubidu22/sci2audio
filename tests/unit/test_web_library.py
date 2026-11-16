@@ -294,6 +294,25 @@ def test_heard_offers_to_continue_only_where_the_listen_page_would(tmp_path: Pat
     assert player.read_position(work, DOC, stamp, data) is None
 
 
+def test_the_bounds_of_a_fresh_read_along_file_are_read_again(tmp_path: Path) -> None:
+    """The bounds are kept per (inode, mtime, size), which a rewrite in place within one
+    clock tick keeps (#403 B1): a file changed in the last two seconds is read each time."""
+    path = tmp_path / "Book.readalong.json"
+    first = readalong_text(100.0)
+    path.write_text(first, encoding="utf-8")
+    seen = os.stat(path).st_mtime_ns
+    assert player.audiobook_bounds(path).duration == 100.0
+    second = first.replace('"duration": 100.0', '"duration": 200.0', 1)
+    assert len(second) == len(first)  # same size: only the time could tell them apart
+    with path.open("r+", encoding="utf-8") as stream:  # in place: the same inode
+        stream.write(second)
+    os.utime(path, ns=(seen, seen))  # and the same time, as within one tick
+    assert player.audiobook_bounds(path).duration == 200.0
+    old = seen - 10 * player.RACY_NS  # long settled: kept
+    os.utime(path, ns=(old, old))
+    assert player.audiobook_bounds(path).duration == 200.0
+
+
 def test_heard_skips_a_relative_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The folders come from records and settings: a relative one would be read against
     wherever the server was started, so it is never tried, even where it would be found."""
