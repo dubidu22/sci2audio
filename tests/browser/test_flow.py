@@ -55,6 +55,9 @@ def update(page: Page) -> None:
     page.get_by_role("button", name="Update the analysis").click()
     expect(page.locator("#changed")).to_be_hidden()  # the page came back with a new report
     expect(page.locator("#step-check")).to_be_focused()
+    # a page drawn while the analysis was still the running job reloads once more when it
+    # ends; its buttons are wired only after that (#411, as for open_paper)
+    settled(page)
 
 
 def test_the_main_flow(signed_in: Page, live: Live) -> None:
