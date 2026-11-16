@@ -419,9 +419,18 @@ def test_the_walk_reads_an_id_without_the_fragment_a_reload_adds(url: str, wante
 
 
 def test_the_walks_uploads_are_the_same_bytes_on_every_call() -> None:
-    """The scan sees the same document hashes on every run (#422): no random file ID."""
+    """The scan sees the same document hashes on every run (#422): no random file ID and no
+    creation time. Two calls in the same second agree even without the fixed date, so the
+    pages are also made one second apart, as across a second boundary."""
     import pypdfium2 as pdfium
+    from pdf_maker import FIXED_DATE, steady
+    from web_helpers import pdf_bytes
 
+    made = pdf_bytes()
+    later = re.sub(rb"D:\d{14}", b"D:20991231235959", made, count=1)
+    assert later != made
+    assert steady(later) == steady(made)
+    assert FIXED_DATE in steady(made)
     first, second = zap.uploads(), zap.uploads()
     assert [f["buffer"] for f in first] == [f["buffer"] for f in second]
     assert first[0]["buffer"] != first[1]["buffer"]
