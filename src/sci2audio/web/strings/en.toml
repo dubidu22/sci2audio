@@ -324,6 +324,7 @@ folder_needed = "Type a full path for the folder."
 pausing = "Pausing…"
 cancelling = "Stopping the voice…"
 deleting = "Deleting the speech cache…"
+not_stopped = "The voice did not stop within two minutes, so nothing was deleted. Try Cancel again, or wait for the job to end."
 
 [phase]
 reading = "reading the file"
@@ -495,3 +496,4 @@ kept_some = "The sentences spoken so far are kept. Making it again speaks only w
 resume = "Resume"
 again = "Make it again"
 free = "Free the speech cache ({size})"
+same_settings = "This uses the settings this run was started with: its voice, speed and chapters. For other settings, change them below and choose “Make the audiobook”."

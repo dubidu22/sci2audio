@@ -312,6 +312,48 @@ def test_cancel_deletes_the_speech_cache_only_once_the_voice_stopped(
     check_axe(page, "audiobook cancelled")
 
 
+def test_cancel_gives_up_on_a_voice_that_does_not_stop(
+    signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A voice stuck in native code may ignore the cancel. Cancel waits a while (two
+    minutes; here 1.5 s), then says the voice did not stop, deletes nothing, and gives its
+    button back (#433 N3)."""
+    page = signed_in
+    monkeypatch.setattr(pages, "STOP_WAIT_MS", 1500)
+    live.install_voice()
+    hold = Hold(after=1)
+    live.voice.fail_on = hold
+    open_paper(page, live)
+    deletes: list[str] = []
+    page.on(
+        "request",
+        lambda request: deletes.append(request.url) if request.method == "DELETE" else None,
+    )
+    page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    job = page.url.rsplit("/", 1)[1].split("#")[0]
+    try:
+        assert hold.reached.wait(30)
+        page.locator("#job-cancel-open").click()
+        cancel = page.get_by_role("button", name="Cancel and delete the speech cache")
+        cancel.click()
+        message = page.locator("#message")
+        expect(message).to_have_text(
+            "The voice did not stop within two minutes, so nothing was deleted. "
+            "Try Cancel again, or wait for the job to end."
+        )
+        expect(message).to_be_focused()
+        assert deletes == []
+        expect(cancel).not_to_have_attribute("aria-disabled", "true")
+        state = page.request.get(f"{live.url}/api/v1/jobs/{job}").json()["state"]
+        assert state == "running"  # the job never left running
+    finally:
+        hold.gate.set()
+    # once the voice lets go, the pause it was asked for lands: nothing was deleted
+    expect(page.locator("#result")).to_have_text(re.compile(r"^Paused"))
+    assert deletes == []
+
+
 def gated(state: Any, kind: JobKind, document: str | None) -> tuple[JobRecord, threading.Event]:
     gate = threading.Event()
     job = state.board.start(
@@ -687,6 +729,55 @@ def test_the_document_pages_buttons_wait_for_the_script(signed_in: Page, live: L
     expect(page.locator("ol.choices button.move-down:enabled")).to_have_count(2)
     expect(page.locator("ol.choices li").first.locator(".move-up")).to_be_disabled()
     expect(page.locator("ol.choices li").last.locator(".move-down")).to_be_disabled()
+
+
+def test_the_cards_buttons_wait_for_the_script(signed_in: Page, live: Live) -> None:
+    """The job card's Pause, Cancel (in its confirm) and Resume are drawn by the server and
+    wired only by app.js: disabled until then, like the page's other buttons (#427)."""
+    page = signed_in
+    live.install_voice()
+    hold = Hold(after=1)
+    live.voice.fail_on = hold
+    open_paper(page, live)
+    page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    try:
+        assert hold.reached.wait(30)
+        release = reload_holding_back_app_js(page, live)
+        pause, cancel = page.locator("#job-pause"), page.locator("#job-cancel")
+        expect(pause).to_be_disabled()
+        page.locator("#job-cancel-open").click()  # the confirm opens without the script
+        expect(cancel).to_be_visible()
+        expect(cancel).to_be_disabled()
+        release()
+        expect(pause).to_be_enabled()
+        expect(cancel).to_be_enabled()
+        with page.expect_response(re.compile(r"/api/v1/jobs/[^/]+/cancel$")):
+            pause.click()
+    finally:
+        hold.gate.set()
+    expect(page.locator("#result")).to_have_text(re.compile(r"^Paused"))
+    release = reload_holding_back_app_js(page, live)
+    resume = page.get_by_role("button", name="Resume")
+    expect(resume).to_be_disabled()
+    release()
+    expect(resume).to_be_enabled()
+
+
+@pytest.mark.parametrize("where", ["document", "library"])
+def test_the_removal_button_waits_for_the_script(signed_in: Page, live: Live, where: str) -> None:
+    """ "Remove … now" is wired only by app.js, on the document page and in a library row
+    (#421): disabled until then (#427)."""
+    page = signed_in
+    document = open_paper(page, live)
+    page.goto(live.url + "/" if where == "library" else f"{live.url}/documents/{document}")
+    release = reload_holding_back_app_js(page, live)
+    page.locator("details.remove summary").first.click()
+    remove = page.locator("button.remove-now").first
+    expect(remove).to_be_visible()
+    expect(remove).to_be_disabled()
+    release()
+    expect(remove).to_be_enabled()
 
 
 def test_analyse_waits_for_the_script(signed_in: Page, live: Live) -> None:

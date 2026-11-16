@@ -329,6 +329,7 @@ folder_needed = "Geben Sie einen vollständigen Pfad für den Ordner ein."
 pausing = "Wird pausiert …"
 cancelling = "Die Stimme wird angehalten …"
 deleting = "Der Sprachzwischenspeicher wird gelöscht …"
+not_stopped = "Die Stimme hat nicht innerhalb von zwei Minuten angehalten, darum wurde nichts gelöscht. Versuchen Sie es erneut mit „Abbrechen“, oder warten Sie, bis der Auftrag endet."
 
 [phase]
 reading = "die Datei wird gelesen"
@@ -500,3 +501,4 @@ kept_some = "Die bisher gesprochenen Sätze bleiben erhalten. Ein neuer Start sp
 resume = "Fortsetzen"
 again = "Neu erstellen"
 free = "Sprachzwischenspeicher leeren ({size})"
+same_settings = "Dabei gelten die Einstellungen, mit denen dieser Durchlauf begann: Stimme, Tempo und Kapitel. Für andere Einstellungen ändern Sie sie unten und wählen Sie „Hörbuch erstellen“."

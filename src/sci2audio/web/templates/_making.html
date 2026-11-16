@@ -14,7 +14,7 @@
 <section class="step making" id="making" aria-labelledby="making-title" tabindex="-1"
          data-job="{{ job.id }}" data-state="{{ job.state }}" data-document="{{ document.id }}"
          data-settings="{{ job.settings | tojson | forceescape }}"
-         data-events="/api/v1/jobs/{{ job.id }}/events" data-cancel="/api/v1/jobs/{{ job.id }}/cancel">
+         data-events="/api/v1/jobs/{{ job.id }}/events" data-cancel="/api/v1/jobs/{{ job.id }}/cancel" data-stop-wait="{{ card.stop_wait }}">
 <header><h2 id="making-title">{{ t('making.title') }}</h2></header>
 <div class="body">
 {% if card.state == 'running' %}
@@ -57,7 +57,8 @@
     <h3 id="result" tabindex="-1">{{ job.failure.reason }}</h3>
     {% if job.failure.details %}<p>{{ t('common.details') }} <span lang="en">{{ job.failure.details }}</span></p>{% endif %}
   </div></div>
-  <p class="buttons"><button type="button" class="primary" id="job-replace" disabled>{{ t('job.replace') }}</button>{{ free_button(card) }}</p>
+  <p class="buttons"><button type="button" class="primary" id="job-replace" disabled aria-describedby="again-hint">{{ t('job.replace') }}</button>{{ free_button(card) }}</p>
+  <p class="hint" id="again-hint">{{ t('making.same_settings') }}</p>
 {% else %}
   <div class="callout{% if card.state == 'failed' %} bad{% endif %}">{{ icon('alert' if card.state == 'failed' else 'pausejob', 'l') }}<div>
     <h3 id="result" tabindex="-1">{{ card.title }}</h3>
@@ -66,9 +67,10 @@
   </div></div>
   {{ segments(card.segments) }}
   <p class="buttons">
-    <button type="button" class="primary" id="job-again" disabled>{% if card.state == 'cancelled' and card.cache %}{{ icon('play', 's') }}<span>{{ t('making.resume') }}</span>{% else %}{{ t('making.again') }}{% endif %}</button>
+    <button type="button" class="primary" id="job-again" disabled aria-describedby="again-hint">{% if card.resume %}{{ icon('play', 's') }}<span>{{ t('making.resume') }}</span>{% else %}{{ t('making.again') }}{% endif %}</button>
     {{ free_button(card) }}
   </p>
+  <p class="hint" id="again-hint">{{ t('making.same_settings') }}</p>
 {% endif %}
 </div>
 </section>

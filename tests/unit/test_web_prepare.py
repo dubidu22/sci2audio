@@ -7,6 +7,7 @@ from __future__ import annotations
 import html
 import re
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ from audio_fakes import FakeVoice
 from fastapi.testclient import TestClient
 from web_helpers import ORIGIN, browser, make_config, offline, paper_bytes, upload, wait  # noqa: F401
 
+from sci2audio.app import JobError, audio
 from sci2audio.voices import EngineError, ModelNotFoundError
 from sci2audio.web import create_app, pages
 from sci2audio.web.i18n import strings
@@ -253,6 +255,90 @@ def test_the_card_of_a_job_that_failed_in_its_first_chapter(tmp_path: Path) -> N
     failed = words(card(client.get(f"/jobs/{job}").text))
     assert "Making the audiobook stopped in chapter 1" in failed
     assert "The sentences spoken so far are kept. Making it again speaks only what is" in failed
+
+
+def test_the_card_of_a_job_paused_before_its_first_sentence(tmp_path: Path) -> None:
+    """Paused while the voice loads: nothing was spoken and nothing freed, so the card says
+    paused, not cancelled, and offers Resume (#433 N1)."""
+    voice = FakeVoice()
+    gate, loading = threading.Event(), threading.Event()
+    make = voice.make
+
+    def held_make() -> Any:
+        loading.set()
+        assert gate.wait(30)
+        return make()
+
+    voice.make = held_make  # type: ignore[method-assign]
+    _app, client = server(tmp_path, voice)
+    doc = upload(client, paper_bytes())
+    job = start(client, doc["id"])
+    assert loading.wait(30)
+    assert client.post(f"/api/v1/jobs/{job}/cancel").status_code == 202
+    gate.set()
+    assert wait(client, job)["state"] == "cancelled"
+    assert client.get(f"/api/v1/documents/{doc['id']}").json()["speech_cache_bytes"] == 0
+    paused = card(client.get(f"/jobs/{job}").text)
+    assert re.search(r'<h3 id="result"[^>]*>Paused\.</h3>', paused), paused
+    assert '<p id="job-kept">Nothing is spoken yet.</p>' in paused
+    assert "Cancelled" not in paused
+    assert "Resume" in paused
+    # Resume restarts with this run's settings, and the card says so (#433 N2)
+    assert "This uses the settings this run was started with" in paused
+
+
+def held_encoding(monkeypatch: pytest.MonkeyPatch, gate: threading.Event | None) -> None:
+    """Writing the files waits for `gate`, or fails at once when there is none."""
+    encode = audio._encode
+
+    def writing(*args: Any, **kwargs: Any) -> Any:
+        if gate is None:
+            raise JobError("could not write the audiobook: the disk is full")
+        assert gate.wait(30)
+        return encode(*args, **kwargs)
+
+    monkeypatch.setattr(audio, "_encode", writing)
+
+
+def test_the_card_of_a_job_that_failed_while_writing_the_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every chapter was spoken: the card says so, and every segment is done (#433 S2)."""
+    held_encoding(monkeypatch, None)
+    _app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())
+    job = start(client, doc["id"])
+    assert wait(client, job)["state"] == "failed"
+    failed = card(client.get(f"/jobs/{job}").text)
+    assert "Making the audiobook stopped while writing the files" in failed
+    assert "Every chapter is spoken and kept. Making it again only writes the files." in failed
+    assert failed.count('class="seg done"') == 2
+    assert 'class="seg"' not in failed
+    assert 'class="seg now"' not in failed
+
+
+def test_the_running_card_while_the_files_are_written(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    gate = threading.Event()
+    held_encoding(monkeypatch, gate)
+    app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())
+    job = start(client, doc["id"])
+    try:
+        board = app.state.sci2audio.board
+        deadline = time.monotonic() + 30
+        while (board.current.snapshot()["progress"] or {}).get("phase") != "encoding":
+            assert time.monotonic() < deadline, "the job never began writing"
+            time.sleep(0.02)
+        running = card(client.get(f"/jobs/{job}").text)
+        assert 'data-state="running"' in running
+        assert running.count('class="seg done"') == 2
+        assert 'class="seg"' not in running
+        assert 'class="seg now"' not in running
+    finally:
+        gate.set()
+    assert wait(client, job)["state"] == "done"
 
 
 def test_the_card_once_done(tmp_path: Path) -> None:

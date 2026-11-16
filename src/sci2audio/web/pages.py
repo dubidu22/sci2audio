@@ -716,7 +716,7 @@ def _phase_words(s: Strings, phase: Any) -> str:
 def _running_lines(s: Strings, progress: Mapping[str, Any]) -> dict[str, Any]:
     """The running card's words, drawn as the script draws them (`cardShown` in app.js)."""
     phase = progress.get("phase")
-    where, number = _stopped_in(progress) if phase == "speaking" else ("before", 0)
+    where, number = _stopped_in(progress)  # while writing the files: every chapter is done
     chapters = int(progress.get("chapters") or 0)
     if phase == "speaking" and where == "chapter":
         head = s("making.speaking", n=number, total=chapters)
@@ -751,6 +751,10 @@ def _segments(chapters: int, current: int) -> list[str]:
     ]
 
 
+# How long Cancel waits for the job to stop before it gives up and deletes nothing (#433 N3)
+STOP_WAIT_MS = 120_000
+
+
 def making_card(
     state: ServerState, s: Strings, job: JobRecord, document: StoredDocument
 ) -> dict[str, Any]:
@@ -768,6 +772,8 @@ def making_card(
         "cache": cache,
         "cache_text": s.size(cache),
         "exists": error.get("error") == "output-exists",
+        "stop_wait": STOP_WAIT_MS,
+        "resume": False,  # the again button reads Resume: a paused job
     }
     if view["state"] == "running":
         card.update(_running_lines(s, progress))
@@ -777,12 +783,17 @@ def making_card(
     done = int(progress.get("chunks_done") or 0)
     total = int(progress.get("chunks_total") or 0)
     if view["state"] == "cancelled":
-        if not cache:
+        if not cache and where == "before":
+            # paused before the first sentence: nothing was spoken, nothing was freed
+            card.update(
+                title=s("making.paused"), kept=s("making.kept_none"), segments=[], resume=True
+            )
+        elif not cache:
             card.update(title=s("making.cancelled"), kept="", segments=[])
         else:
             title = s("making.paused_at", n=number) if where == "chapter" else s("making.paused")
             kept = s("making.kept_sentences", done=done, n=total) if total else ""
-            card.update(title=title, kept=kept, segments=_segments(chapters, number))
+            card.update(title=title, kept=kept, segments=_segments(chapters, number), resume=True)
     elif view["state"] == "failed" and not card["exists"]:
         titles = {
             "chapter": lambda: s("making.failed_in", n=number),

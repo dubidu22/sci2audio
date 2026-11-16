@@ -233,6 +233,7 @@ function removal() {
       if (stays) text = `${text} ${stays}`;
       say(text, true);
     });
+    button.disabled = false; // drawn disabled until this click is attached (#427)
   }
 }
 
@@ -624,10 +625,14 @@ function drawSegments(box, chapters, now) {
 
 // Waits until the job is no longer running, asking the server, never trusting the stream
 // alone: Cancel frees the speech cache only once the voice has stopped writing to it.
-async function stopped(url) {
+// Wait until the job at `url` has left "running"; give up after `limit` ms (a voice stuck
+// in native code may ignore the cancel): then nothing may be deleted (#433 N3)
+async function stopped(url, limit) {
+  const until = Date.now() + limit;
   for (;;) {
     const job = await send(url);
-    if (job.state !== "running") return job;
+    if (job.state !== "running") return true;
+    if (Date.now() >= until) return false;
     await new Promise((done) => setTimeout(done, 250));
   }
 }
@@ -720,7 +725,12 @@ function makingCard() {
       }
     }
     try {
-      await stopped(jobUrl);
+      if (!(await stopped(jobUrl, Number(card.dataset.stopWait)))) {
+        leaving = false;
+        cancel.removeAttribute("aria-disabled");
+        say(tr("js.not_stopped"), true);
+        return;
+      }
       say(tr("js.deleting"));
       await send(`/api/v1/documents/${doc}/chunks`, { method: "DELETE" });
     } catch (error) {
