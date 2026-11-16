@@ -208,3 +208,60 @@ def test_the_search_filters_as_the_person_types_and_works_without_the_script(
     page.get_by_role("searchbox").press("Enter")
     expect(page.locator("#no-match")).to_have_text("No document matches “zzz”.")
     page.unroute(f"{live.url}/static/app.js")
+
+
+def drop_files(page: Page, files: list[tuple[str, bytes]]) -> None:
+    """A synthetic drag of `files` onto the opener: enter, over, then drop."""
+    data = page.evaluate_handle(
+        """(files) => {
+            const data = new DataTransfer();
+            for (const [name, bytes] of files) {
+              data.items.add(new File([new Uint8Array(bytes)], name));
+            }
+            return data;
+        }""",
+        [[name, list(content)] for name, content in files],
+    )
+    opener = page.locator("#open-file")
+    opener.dispatch_event("dragenter", {"dataTransfer": data})
+    opener.dispatch_event("dragover", {"dataTransfer": data})
+    expect(opener).to_have_class(re.compile(r"\bover\b"))
+    opener.dispatch_event("drop", {"dataTransfer": data})
+    expect(opener).not_to_have_class(re.compile(r"\bover\b"))
+
+
+def test_a_file_dropped_on_the_opener_opens_and_is_analysed(signed_in: Page, live: Live) -> None:
+    """#417: one file opens as "Open and analyse" does; two files or a kind sci2audio
+    cannot read give a message in the status region; leaving ends the `over` state."""
+    page = signed_in
+    page.goto(live.url + "/")
+    hint = page.locator("#file-hint")
+    expect(hint).to_contain_text("Or drop a file here.")
+    opener = page.locator("#open-file")
+    data = page.evaluate_handle(
+        "() => { const d = new DataTransfer(); d.items.add(new File(['x'], 'a.txt')); return d; }"
+    )
+    opener.dispatch_event("dragenter", {"dataTransfer": data})
+    expect(opener).to_have_class(re.compile(r"\bover\b"))
+    opener.dispatch_event("dragleave", {"dataTransfer": data})
+    expect(opener).not_to_have_class(re.compile(r"\bover\b"))
+    message = page.locator("#message")
+    drop_files(page, [("a.pdf", pdf_bytes("One.")), ("b.pdf", pdf_bytes("Two."))])
+    expect(message).to_have_text("Drop one file at a time.")
+    expect(message).to_be_focused()
+    drop_files(page, [("program.exe", b"MZ not a document")])
+    expect(message).to_contain_text("sci2audio can't read this kind of file.")
+    assert live.state.store.all() == []
+    drop_files(page, [("dropped.pdf", pdf_bytes("A dropped paper."))])
+    page.wait_for_url(re.compile(r"/documents/[^/]+$"))
+    expect(page.get_by_role("heading", level=1)).to_have_text(re.compile("dropped"))
+    assert [document.name for document in live.state.store.all()] == ["dropped.pdf"]
+
+
+def test_without_the_script_the_hint_does_not_promise_dropping(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    page.route(f"{live.url}/static/app.js", lambda route: route.abort())
+    page.goto(live.url + "/")
+    expect(page.locator("#file-hint")).to_be_visible()
+    expect(page.locator("#drop-hint")).to_be_hidden()
+    page.unroute(f"{live.url}/static/app.js")

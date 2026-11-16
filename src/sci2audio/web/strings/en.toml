@@ -38,6 +38,7 @@ partly_body = "Missing: {languages}."
 notice_cta = "Set up the voice"
 open_title = "Open a document"
 open_hint = "sci2audio reads {types} files, up to {limit}\u00A0MB."
+open_drop = "Or drop a file here."  # shown once the script takes a dropped file (#417)
 open = "Open and analyse"
 paste = "Or paste text"
 paste_text = "Text to open"
@@ -310,6 +311,7 @@ load_failed = "The audio could not be loaded. Is sci2audio still running?"
 [js]
 moved = "{title} is now chapter {n} of {total}."  # the chapter list (#119)
 opening = "Opening…"
+drop_one = "Drop one file at a time."
 starting = "Starting…"
 analysing = "Analysing…"
 lost = "sci2audio can't be reached. Is it still running in its terminal window?"

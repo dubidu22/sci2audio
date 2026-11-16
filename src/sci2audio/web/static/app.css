@@ -314,6 +314,8 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .callout.warn > svg { color: var(--wait); }
 .opener { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); margin: 0 0 32px; }
 .drop { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding: 22px 24px; border-right: 1px solid var(--rule); min-width: 0; }
+.drop.over { background: var(--desk); outline: 2px dashed var(--focus); outline-offset: -6px; }
+.drop.over .slot { border-color: var(--focus); color: var(--focus); }
 .drop .slot { width: 56px; height: 68px; border: 1.5px dashed var(--rule-strong); border-radius: 2px; display: grid; place-items: center; color: var(--pencil); flex: none; }
 .drop-text { flex: 1 1 14rem; display: grid; gap: 6px; min-width: 0; }
 .drop h2 { font-size: 17px; margin: 0; }

@@ -27,7 +27,7 @@
     <span class="slot" aria-hidden="true">{{ icon('open', 'l') }}</span>
     <div class="drop-text">
       <h2 id="open-h">{{ t('library.open_title') }}</h2>
-      <p class="hint" id="file-hint">{{ t('library.open_hint', types=types, limit=limit) }}</p>
+      <p class="hint" id="file-hint">{{ t('library.open_hint', types=types, limit=limit) }} <span id="drop-hint" hidden>{{ t('library.open_drop') }}</span></p>
       <input id="file" name="file" type="file" accept="{{ accept }}" aria-labelledby="open-h" aria-describedby="file-hint" required>
     </div>
     <button type="submit" class="primary">{{ t('library.open') }}</button>

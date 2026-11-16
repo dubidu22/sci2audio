@@ -157,11 +157,15 @@ async function openAndAnalyse(store) {
 function startPage() {
   const fileForm = document.getElementById("open-file");
   if (fileForm) {
-    fileForm.addEventListener("submit", (event) => {
-      event.preventDefault();
+    const open = () => {
       const body = new FormData(fileForm);
       openAndAnalyse(() => send(fileForm.dataset.api, { method: "POST", body }));
+    };
+    fileForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      open();
     });
+    dropOnto(fileForm, open);
   }
   const textForm = document.getElementById("open-text");
   if (textForm) {
@@ -172,6 +176,47 @@ function startPage() {
       openAndAnalyse(() => send(textForm.dataset.api, json("POST", body)));
     });
   }
+}
+
+// A file dropped onto the opener (#417): one file becomes the chosen file and opens as
+// "Open and analyse" does (same request, so the same errors and size limit); the file
+// input stays the keyboard way. The hint names dropping only once this is wired.
+function dropOnto(form, open) {
+  const input = form.querySelector('input[type="file"]');
+  if (!input) return;
+  let depth = 0; // dragenter and dragleave come for every child the file passes over
+  const over = (on) => form.classList.toggle("over", on);
+  const carriesFiles = (event) => [...(event.dataTransfer?.types || [])].includes("Files");
+  form.addEventListener("dragenter", (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    depth += 1;
+    over(true);
+  });
+  form.addEventListener("dragover", (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  });
+  form.addEventListener("dragleave", () => {
+    depth = Math.max(depth - 1, 0);
+    if (!depth) over(false);
+  });
+  form.addEventListener("drop", (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    depth = 0;
+    over(false);
+    const dropped = event.dataTransfer.files;
+    if (dropped.length !== 1) {
+      say(tr("js.drop_one"), true);
+      return;
+    }
+    input.files = dropped;
+    open();
+  });
+  const hint = document.getElementById("drop-hint");
+  if (hint) hint.hidden = false;
 }
 
 // ---- the library's search (#416) ---------------------------------------------------------

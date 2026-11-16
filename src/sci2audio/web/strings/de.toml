@@ -43,6 +43,7 @@ partly_body = "Es fehlt: {languages}."
 notice_cta = "Stimme einrichten"
 open_title = "Dokument öffnen"
 open_hint = "sci2audio liest Dateien vom Typ {types}, bis {limit}\u00A0MB."
+open_drop = "Oder ziehen Sie eine Datei hierher."  # shown once the script takes a dropped file (#417)
 open = "Öffnen und analysieren"
 paste = "Oder Text einfügen"
 paste_text = "Text zum Öffnen"
@@ -315,6 +316,7 @@ load_failed = "Das Audio ließ sich nicht laden. Läuft sci2audio noch?"
 [js]
 moved = "{title} ist jetzt Kapitel {n} von {total}."  # die Kapitelliste (#119)
 opening = "Wird geöffnet …"
+drop_one = "Ziehen Sie immer nur eine Datei hierher."
 starting = "Wird gestartet …"
 analysing = "Wird analysiert …"
 lost = "sci2audio ist nicht erreichbar. Läuft es noch in seinem Terminalfenster?"
