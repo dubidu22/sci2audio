@@ -589,30 +589,24 @@ def _stop_after_abbreviation(
     text: str, start: int, end: int, following: int, words: LinkWords, language: str
 ) -> int | None:
     """Where a removal ends that takes the link's full stop along: the link ends its
-    sentence right after an abbreviation's full stop ("et al.", "Fig.", "Abb."), which the
-    abbreviations step leaves as printed, so the script would show "et al.. Then" (#258).
-    Not where that step reads the abbreviation with its full stop ("u. a." as
-    "unter anderem"): the link's full stop then ends the sentence. Nor where it would read
-    it so before what follows ("Fig. https://x.org. [12]" would read "Figure [12]" on a
-    second run), so both runs read the abbreviation alike; so only before a word, not right
-    before the next link (`following`, where it starts), which a second run no longer sees."""
-    if text[end : end + 1] != "." or not (end + 1 == len(text) or text[end + 1].isspace()):
+    sentence right after a full stop that `_repair` keeps, an abbreviation's ("et al.",
+    "Fig.", "Abb."), so the script would show "et al.. Then" (#258). Not where the
+    abbreviations step reads the abbreviation with its full stop ("u. a." as "unter
+    anderem", "Fig. (https://x.org)." as "Figure"): the link's full stop then ends the
+    sentence. Nor right before the next link (`following`, where it starts): a second run
+    no longer sees that link, so it would read the abbreviation before what follows it."""
+    if text[end : end + 1] != ".":
         return None
     if following < len(text) and not text[end + 1 : following].strip():
         return None
-    kept = text[max(0, start - _LOOK_BACK) : start].rstrip()
-    if not kept.endswith(".") or not _ends_abbreviation(kept, words.abbreviations):
+    low = max(0, start - _LOOK_BACK)
+    kept = text[low:start].rstrip()
+    if not kept.endswith("."):
         return None
     # imported here: the abbreviations step imports this module
     from sci2audio.textprep.abbreviations import reads_full_stop
 
-    low = max(0, start - _LOOK_BACK)
-    kept_end = low + len(kept)
-    if reads_full_stop(text, kept_end, language):
-        return None
-    # the abbreviation as a second run sees it, with what follows the full stop
-    after = text[low:kept_end] + text[end + 1 : end + 1 + _LOOK_BACK]
-    if reads_full_stop(after, kept_end - low, language):
+    if reads_full_stop(text, low + len(kept), language):
         return None
     return end + 1
 
@@ -620,14 +614,15 @@ def _stop_after_abbreviation(
 def _join_after(text: str, start: int, end: int, words: LinkWords) -> tuple[int, str]:
     """A join word right after a link that stood as the first item of a list goes too:
     "We thank https://x.org and Smith" reads "We thank Smith", not "We thank and Smith"
-    (#257, D-668). Only after a word that is no join word, only before a word with a
-    capital (a name; in German also a noun), so "We use https://x.org and then run it"
-    keeps its "and"; and only for a link removed alone: "downloaded it from https://x.org
-    and ran it" keeps "and", as "from" went with the link."""
+    (#257, D-668). Only after a word (a join word too: "Smith and https://x.org and Lee"
+    reads "Smith and Lee"), only before a word with a capital (a name; in German also a
+    noun), so "We use https://x.org and then run it" keeps its "and"; and only for a link
+    removed alone: "downloaded it from https://x.org and ran it" keeps "and", as "from" went
+    with the link."""
     kept = text[max(0, start - _LOOK_BACK) : start].rstrip()
     last = kept.split()[-1] if kept.split() else ""
     joins = [w for w in words.joins if w.isalpha()]  # "and", "or", "und", "oder"
-    if not last[-1:].isalpha() or last.lower() in joins:
+    if not last[-1:].isalpha():
         return end, ""
     listed = "|".join(re.escape(w) for w in sorted(joins, key=len, reverse=True))
     after = re.compile(rf"\s*({listed})(?=\s+[^\W\d_])", re.IGNORECASE).match(text, end)

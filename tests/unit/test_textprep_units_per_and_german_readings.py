@@ -85,6 +85,8 @@ def test_the_numbers_step_leaves_the_power_of_a_unit_after_per() -> None:
         ("Die Kraft pro s² steigt.", "Die Kraft pro Quadratsekunde steigt."),
         ("Die Kraft je s² s⁻¹ steigt.", "Die Kraft je Quadratsekunde pro Sekunde steigt."),
         ("Die Kraft pro s³ steigt.", "Die Kraft pro Sekunde hoch 3 steigt."),
+        # only the first unit after "pro" is read as one after it (mutation run of PR 3)
+        ("Das sind pro m s² mehr.", "Das sind pro Meter Sekunde hoch 2 mehr."),
     ],
 )
 def test_a_squared_second_after_pro_is_one_word(printed: str, said: str) -> None:
@@ -140,6 +142,7 @@ def test_f_reads_folgende_only_after_a_page(printed: str, said: str) -> None:
         ("Die 1 %-Hürde ist hoch.", "Die Ein-Prozent-Hürde ist hoch."),
         ("Die 1 kg-Packung ist teuer.", "Die Ein-Kilogramm-Packung ist teuer."),
         ("Die 1-kg-Packung ist teuer.", "Die Ein-Kilogramm-Packung ist teuer."),
+        ("Die 1\u00a0%-Hürde ist hoch.", "Die Ein-Prozent-Hürde ist hoch."),
         # other numbers, a hyphen with no word after it, an English job
         ("Die 5 %-Hürde ist hoch.", "Die 5 Prozent-Hürde ist hoch."),
         ("Es sind 1 %- und 2 %-Werte.", "Es sind ein Prozent- und 2 Prozent-Werte."),
@@ -273,6 +276,8 @@ def test_a_four_digit_year_before_a_noun_is_no_ordinal(printed: str, said: str) 
         ),
         ("Values less than 2x the mean.", "Values less than 2 times the mean."),
         ("See e.g. less than 2x here.", "See for example less than 2 times here."),
+        # a letter at the end of a word is no variable (mutation run of PR 3)
+        ("Then xy less than 2x slower.", "Then xy less than 2 times slower."),
     ],
 )
 def test_x_after_a_said_comparison_of_a_variable(printed: str, said: str) -> None:

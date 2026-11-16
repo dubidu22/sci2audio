@@ -131,6 +131,11 @@ def test_links_in_brackets_read_the_same_on_a_second_run(
         ("en", "(Jones, 2020; (Smith, 2019)) is cited.", "Jones and Smith is cited."),
         (
             "en",
+            "(Jones, 2020; (Smith, 2019); (Lee, 2018)) is cited.",
+            "Jones, Smith and Lee is cited.",
+        ),
+        (
+            "en",
             "((Smith, 2019); (Lee, 2018); Jones, 2020) is cited.",
             "Smith, Lee and Jones is cited.",
         ),

@@ -912,7 +912,7 @@ class _Rules:
             # and so does every inner citation of the list: "((Smith, 2019); (Lee, 2018))
             # is cited" reads "Smith and Lee" (#372, D-668)
             listed = self._listed_inner_names(text, node, decided)
-            if names is None and not (1 < len(listed) == len(node.children)):
+            if names is None and len(listed) < len(node.children):
                 return None  # "((Smith, 2019)) is cited": nothing left to name, as before
             if listed:
                 names = sorted(
@@ -940,12 +940,8 @@ class _Rules:
         for number, child in enumerate(node.children):
             before = text[bounds[2 * number] + 1 : child.open]
             after = text[child.close + 1 : bounds[2 * number + 3]]
-            ahead = re.match(r"\s*[;,]", after) is not None and (
-                number + 1 < len(node.children) or re.match(r"\s*[;,]\s*\S", after) is not None
-            )
-            behind = re.search(r"\S\s*[;,]\s*$", before) is not None or (
-                number > 0 and re.fullmatch(r"\s*[;,]\s*", before) is not None
-            )
+            ahead = re.match(r"\s*[;,]", after) is not None
+            behind = re.search(r"[;,]\s*$", before) is not None
             if not (ahead or behind):
                 continue
             if not (ahead or not after.strip()) or not (behind or not before.strip()):
@@ -1150,7 +1146,7 @@ class _Rules:
         if after is None or self.words.and_word not in self.words.before:
             return None
         other, other_open = after.group(1), after.start(1) - 1
-        if other_open in self._numbered or self._paged(inside) or self._paged(other):
+        if other_open in self._numbered:
             return None
         keys = _keys(inside, self.keys) is not None
         if keys != (_keys(other, self.keys) is not None):
@@ -1160,9 +1156,7 @@ class _Rules:
         if _NUMBER_GLUED_AFTER.match(text, after.end()) or self._decimal_interval(other):
             return None
         self._paired.add(other_open)
-        spoken = self._spoken(f"{inside}, {other}")
-        if self._starts_sentence(text, node.open):
-            spoken = spoken[0].upper() + spoken[1:]
+        spoken = self._spoken(f"{inside}, {other}")  # an aside starts no sentence
         printed = _printed(text[node.open : after.end()])
         reason = f'citations "{printed}" are part of the sentence: read as "{spoken}" (TP-04)'
         return (node.open, after.end(), EditKind.REPLACE, spoken, reason)

@@ -42,24 +42,41 @@ def read_all(text: str, language: str = "en") -> str:
         ("de", "Zwischen [1] oder [3] liegt es.", "Zwischen oder Quelle 3 liegt es."),
         ("en", "It was shown in [1] and [3].", "It was shown in reference 1 and reference 3."),
         ("en", "[1] and [3] show it.", "Reference 1 and reference 3 show it."),
+        # a partner that is no citation, a number glued on, a German decimal interval
+        ("en", "Between [1] and [x] it lies.", "Between and [x] it lies."),
+        ("en", "Between [1] and [MH17] it lies.", "Between and [MH17] it lies."),
+        ("en", "Between [1] and [0.5, 1.5] it lies.", "Between and [0.5, 1.5] it lies."),
+        ("en", "Between [1] and [3]2 it lies.", "Between and [3]2 it lies."),
+        (
+            "de",
+            "Zwischen [1] und [1,5; 2,5] liegt es.",
+            "Zwischen und [1 Komma 5; 2 Komma 5] liegt es.",
+        ),
     ],
 )
 def test_a_pair_of_citations_reads_as_one(language: str, printed: str, said: str) -> None:
     assert read_all(printed, language) == said
 
 
-def test_a_pair_of_keys_reads_as_one() -> None:
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("Between [MH17] and [Fa14] it lies.", "Between references MH17 and Fa14 it lies."),
+        # a key and a number are no pair
+        ("Between [MH17] and [3] it lies.", "Between and reference 3 it lies."),
+    ],
+)
+def test_a_pair_of_listed_keys_reads_as_one(printed: str, said: str) -> None:
     document = make_document(
         [
-            (BlockKind.PARAGRAPH, "Between [MH17] and [Fa14] it lies."),
+            (BlockKind.PARAGRAPH, printed),
             (BlockKind.HEADING, "References"),
             (BlockKind.PARAGRAPH, "[MH17] M. Maass and D. Herrmann. A tool. 2017."),
             (BlockKind.PARAGRAPH, "[Fa14] S. Fahl. Causes. 2014."),
         ]
     )
     script = run_steps(document, StepContext("en"), strict=True).script()
-    said = spoken_text([piece for piece in script if piece.span.block == 0])
-    assert said == "Between references MH17 and Fa14 it lies."
+    assert spoken_text([piece for piece in script if piece.span.block == 0]) == said
 
 
 @pytest.mark.parametrize(
@@ -90,6 +107,7 @@ def test_a_numeric_citation_with_a_page(language: str, printed: str, said: str) 
     [
         ("en", "We thank https://x.org and Smith (2019).", "We thank Smith."),
         ("en", "We thank https://x.org or Smith.", "We thank Smith."),
+        ("en", "We thank and https://x.org and Smith.", "We thank and Smith."),
         ("de", "Wir danken https://x.org und Müller (2019).", "Wir danken Müller."),
         ("de", "Wir danken https://x.org oder Müller.", "Wir danken Müller."),
         # only after a word and before a capital word, and only for a link that went alone
@@ -130,6 +148,11 @@ def test_a_join_word_after_a_removed_link(language: str, printed: str, said: str
             "Daten finden sich u. a. unter https://x.org. Dann mehr.",
             "Daten finden sich unter anderem. Dann mehr.",
         ),
+        ("en", "Smith et al. https://x.org.) Then more.", "Smith et al.) Then more."),
+        ("en", "Fig. https://x.org. 3 shows it.", "Figure 3 shows it."),
+        # read with its full stop ("Figure"), or right before the next link: as before
+        ("en", "Fig. (https://x.org). Then more.", "Figure. Then more."),
+        ("en", "Fig. https://x.org. https://x.org 3 shows it.", "Fig.. 3 shows it."),
         # no abbreviation: the link's full stop ends the sentence, as before
         ("en", "We use https://x.org. Then more.", "We use. Then more."),
     ],
