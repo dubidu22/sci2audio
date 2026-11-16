@@ -7,7 +7,7 @@ from __future__ import annotations
 from playwright.sync_api import Page, expect
 from test_keyboard import press_on, tab_to
 
-from conftest import Live, check_axe
+from conftest import Live, check_axe, saving
 from sci2audio.app import JobSettings, load_settings, save_settings
 from sci2audio.textprep import Category
 from sci2audio.web.i18n import ANNOUNCE_COOKIE, THEME_COOKIE
@@ -25,7 +25,8 @@ def test_dark_chosen_by_keyboard_holds_on_every_page(signed_in: Page, live: Live
         "aria-pressed", "true"
     )
     check_axe(page, "settings")
-    press_on(page, "Dark", "Space")
+    with saving(page, "/appearance"):
+        press_on(page, "Dark", "Space")
     page.wait_for_url(live.url + "/settings")
     expect(page.locator("html")).to_have_attribute("data-theme", "dark")
     expect(page.get_by_role("button", name="Dark")).to_have_attribute("aria-pressed", "true")
@@ -42,7 +43,8 @@ def test_dark_chosen_by_keyboard_holds_on_every_page(signed_in: Page, live: Live
     assert chosen["sameSite"] == "Strict"
     assert live.url.rsplit(":", 1)[1] not in THEME_COOKIE  # outlasts the server run (D-671)
     page.goto(live.url + "/settings")
-    page.get_by_role("button", name="Light").click()
+    with saving(page, "/appearance"):
+        page.get_by_role("button", name="Light").click()
     page.wait_for_url(live.url + "/settings")
     expect(page.locator("html")).to_have_attribute("data-theme", "light")
     page.emulate_media(color_scheme="dark")
@@ -99,13 +101,16 @@ def test_the_announce_switch_saves_itself(signed_in: Page, live: Live) -> None:
     expect(switch).not_to_be_checked()
     expect(page.locator("#announce-save-line")).to_be_hidden()  # the script saves on change
     tab_to(page, "settings-announce")
-    page.keyboard.press("Space")
+    # the page is on /settings already: wait for the save, not for the address (#429)
+    with saving(page, "/appearance"):
+        page.keyboard.press("Space")
     page.wait_for_url(live.url + "/settings")
     expect(switch).to_be_checked()
     chosen = cookie(page, ANNOUNCE_COOKIE)
     assert chosen is not None
     assert chosen["value"] == "on"
-    switch.click()
+    with saving(page, "/appearance"):
+        switch.click()
     page.wait_for_url(live.url + "/settings")
     expect(switch).not_to_be_checked()
     assert (cookie(page, ANNOUNCE_COOKIE) or {}).get("value") == "off"

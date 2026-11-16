@@ -76,7 +76,7 @@ def test_pasted_text_opens_by_keyboard(signed_in: Page, live: Live) -> None:
     page.keyboard.type("Typed notes")
     press_on(page, "Open the text")
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
-    expect(page.get_by_role("heading", level=1)).to_contain_text("Typed notes.txt")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Typed notes")
 
 
 def test_the_table_scrolls_in_its_own_region_at_320_px(signed_in: Page, live: Live) -> None:

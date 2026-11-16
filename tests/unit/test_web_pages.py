@@ -112,8 +112,10 @@ def test_the_document_page_shows_the_report_with_switches_and_chapters(
     client = client_of(server)
     doc = analysed(client)
     page = client.get(f"/documents/{doc['id']}").text
-    for heading in ("1. Check what will be read", "2. Choose a voice", "3. Make the audiobook"):
-        assert heading in page
+    for n, heading in enumerate(
+        ("Check what will be read", "Choose a voice", "Make the audiobook"), start=1
+    ):
+        assert f'<span class="n">{n}</span> {heading}</h2>' in page
     for category in Category:  # one switch per category (UC-02)
         assert f'id="category-{category}"' in page
     assert re.search(r'id="category-footnote-texts" name="category" value="footnote-texts" ', page)
@@ -185,7 +187,7 @@ def test_every_proposed_change_is_listed_with_its_fate(
     assert "(Smith, 2020)" in page
     assert "<td>applied</td>" in page
     assert "<td>not read: its chapter is not chosen</td>" in page  # the reference list's
-    assert '<td class="text">not read</td>' in page
+    assert '<td class="text read gone">not read</td>' in page
     assert "The page shows the first" not in page
     monkeypatch.setattr(pages, "EDITS_SHOWN", 1)
     page = client.get(f"/documents/{doc['id']}").text

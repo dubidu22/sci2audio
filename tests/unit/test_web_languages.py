@@ -534,11 +534,16 @@ def test_the_documents_words_and_the_apps_words_are_marked(
 ) -> None:
     app, _ = server_
     page = pages_of(client_in(server_, "de"), app)["document"]
-    assert re.search(r'<td lang="en">[^<]+</td><td>angewendet</td>', page)  # a reason
+    # a reason, then page, chapter and status (#391)
+    assert re.search(
+        r'<td lang="en">[^<]+</td><td class="where">[^<]*</td><td lang="en">[^<]*</td>'
+        r"<td>angewendet</td>",
+        page,
+    )
     # as printed, on one line as the report quotes it (#118)
-    assert '<td class="text" lang="en">(Smith, 2020)</td>' in page
-    assert '<td class="text">nicht vorgelesen</td>' in page  # the interface's words
-    assert re.search(r'<label for="chapter-0" lang="en">', page)
+    assert '<td class="text printed" lang="en">(Smith, 2020)</td>' in page
+    assert '<td class="text read gone">nicht vorgelesen</td>' in page  # the interface's words
+    assert re.search(r'<label for="chapter-0" class="ct" lang="en">', page)
     assert 'id="preview-text" name="text" lang="en"' in page or 'id="preview"' not in page
 
 

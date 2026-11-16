@@ -1,0 +1,16 @@
+{#- The header of a document's pages, Prepare and Listen (#391, DESIGN.md "Paper header"): the
+    title, a meta line and the two tabs. `head` comes from pages.paper_head; `tab` is the
+    page shown; `heading` the h1's id, which the pages' scripts and links focus. Import it
+    "with context". -#}
+{% from "_icons.html" import icon %}
+{% macro paper_head(head, tab, heading, language) %}
+<header class="paper-head">
+  <h1 id="{{ heading }}" tabindex="-1"{% if head.titled and language %} lang="{{ language }}"{% endif %}>{{ head.title }}</h1>
+  {% if head.meta %}<p class="meta">{% for part in head.meta %}<span>{{ part }}</span>{% endfor %}</p>{% endif %}
+  <nav class="tabs" aria-label="{{ t('paper.tabs') }}">
+    {% if head.prepare %}<a href="/documents/{{ head.id }}" id="tab-prepare"{% if tab == 'prepare' %} aria-current="page"{% endif %}>{{ icon('text', 's') }}<span>{{ t('paper.prepare') }}</span></a>{% endif %}
+    {% if head.listen or tab == 'listen' %}<a href="/documents/{{ head.id }}/listen" id="tab-listen"{% if tab == 'listen' %} aria-current="page"{% endif %}>{{ icon('speaker', 's') }}<span>{{ t('paper.listen') }}</span></a>
+    {% else %}<span class="tab-off" id="tab-listen">{{ icon('speaker', 's') }}<span>{{ t('paper.listen_none') }}</span></span>{% endif %}
+  </nav>
+</header>
+{% endmacro %}

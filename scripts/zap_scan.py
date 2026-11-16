@@ -554,16 +554,28 @@ def local_server(work: Path) -> Iterator[tuple[Any, Any, Any]]:
         sock.close()
 
 
+def uploads() -> tuple[dict[str, Any], dict[str, Any]]:
+    """The walk's two files, the same bytes on every run: a random file ID would give the
+    documents other hashes each time, and one now and then holds 16 digits that pass the
+    Luhn check, which ZAP's PII rule takes for a card number (#422)."""
+    sys.path[:0] = [str(ROOT / "tests" / "unit")]
+    from pdf_maker import steady
+    from web_helpers import paper_bytes, pdf_bytes
+
+    return (
+        {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": steady(paper_bytes())},
+        {"name": "note.pdf", "mimeType": "application/pdf", "buffer": steady(pdf_bytes())},
+    )
+
+
 def walk(config: Any, proxy: str, chromium: str | None) -> None:
     """The main flow through ZAP, in English and then in German (D-366)."""
     import httpx
     from playwright.sync_api import expect, sync_playwright
-    from web_helpers import paper_bytes, pdf_bytes
 
     origin = config.origin
     expect.set_options(timeout=60_000)
-    paper = {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": paper_bytes()}
-    note = {"name": "note.pdf", "mimeType": "application/pdf", "buffer": pdf_bytes()}
+    paper, note = uploads()
     outside: list[str] = []
 
     def fence(route: Any) -> None:
@@ -710,13 +722,17 @@ def _walk_english(
     paper_id = _last_part(page.url)
     expect(page.locator("#summary")).to_be_visible()
     expect(page.locator("#document[data-events]")).to_have_count(0)
+    # wait until the page has loaded and app.js has wired it: a download started while the
+    # page still loads stops its deferred app.js, and the buttons it enables stay disabled
+    page.wait_for_load_state("load")
+    expect(page.get_by_role("button", name="Update the analysis")).to_be_enabled()
     with page.expect_download():
         page.locator("a[download], a[href*='download=']").first.click()
     # a switch off and back on: the update starts a script job
-    page.get_by_role("checkbox", name=re.compile("^Citations")).uncheck()
+    page.get_by_role("switch", name=re.compile("^Citations")).uncheck()
     page.get_by_role("button", name="Update the analysis").click()
     expect(page.locator("#changed")).to_be_hidden()
-    page.get_by_role("checkbox", name=re.compile("^Citations")).check()
+    page.get_by_role("switch", name=re.compile("^Citations")).check()
     page.get_by_role("button", name="Update the analysis").click()
     expect(page.locator("#changed")).to_be_hidden()
 
@@ -741,7 +757,7 @@ def _walk_english(
         context.request.get(origin + str(link.get_attribute("href")))
     page.get_by_role("link", name="Listen with the text").click()
     page.wait_for_url(re.compile(r"/listen$"))
-    page.locator(".s").first.click()
+    page.locator("#text .s").first.click()  # the sentences, not an icon of size s
     page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
 
     # again: the files exist, then replace them; free the speech cache
