@@ -2132,3 +2132,110 @@ expected = [
     "Das war tausendfünfzigstes Kapitel 3 folgt.",
     "Das war 1100. Kapitel 3 folgt.",
 ]
+
+# ---- #193 hidden runs and inline page-break markers (D-692) ---------------------------------
+
+[[case]]
+id = "de-hidden-run-is-not-read"
+audit = 0
+issue = 193
+goal = "Text hidden in the file is not read; the words around it are."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Sichtbarer ", { text = "GEHEIM", tags = ["p", "span", "hidden"] }, " Text."] }]
+expected = ["Sichtbarer Text."]
+
+[[case]]
+id = "de-hidden-page-break-marker-is-not-read"
+audit = 0
+issue = 193
+goal = "An inline page-break marker is not read; the sentence it stands in is."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Die Zeit nach ", { text = "13", tags = ["p", "span", "#seite-13", "epub:pagebreak", "role:doc-pagebreak"] }, " Mittag war ruhig."] }]
+expected = ["Die Zeit nach Mittag war ruhig."]
+
+[[case]]
+id = "de-hidden-aria-and-role-page-break-are-not-read"
+audit = 0
+issue = 193
+goal = "aria-hidden text and a page break marked by its role alone are not read either."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Ein ", { text = "x", tags = ["p", "span", "aria-hidden"] }, " Tag verging."] },
+    { kind = "paragraph", runs = ["Ein ", { text = "7", tags = ["p", "span", "role:doc-pagebreak"] }, " Tag verging."] },
+]
+expected = ["Ein Tag verging.", "Ein Tag verging."]
+
+[[case]]
+id = "de-hidden-run-before-a-full-stop"
+audit = 0
+issue = 193
+goal = "The space before a hidden run goes with it before closing punctuation: 'Text.', not 'Text .'."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Wir lesen den Text ", { text = "x", tags = ["p", "span", "hidden"] }, ". Dann mehr ", { text = "y", tags = ["p", "span", "hidden"] }] }]
+expected = ["Wir lesen den Text. Dann mehr"]
+
+[[case]]
+id = "de-hidden-run-nested-is-one-removal"
+audit = 0
+issue = 193
+goal = "A run nested inside a hidden element is hidden too, and runs side by side are one removal."
+language = "de"
+blocks = [{ kind = "paragraph", runs = [{ text = "a ", tags = ["p", "span", "hidden"] }, { text = "b", tags = ["p", "span", "hidden", "em"] }, " Weiter so."] }]
+expected = ["Weiter so."]
+
+[[case]]
+id = "de-hidden-run-in-heading-list-item-and-footnote"
+audit = 0
+issue = 193
+goal = "Hidden runs are not read in headings, list items and footnotes either."
+language = "de"
+blocks = [
+    { kind = "heading", runs = ["2 Methoden", { text = " (Entwurf)", tags = ["h2", "span", "hidden"] }] },
+    { kind = "list_item", runs = ["(a) der erste", { text = " 41", tags = ["li", "span", "epub:pagebreak"] }, " Punkt"], label = "(a)" },
+    { kind = "footnote", runs = ["Eine Notiz", { text = " verborgen", tags = ["aside", "span", "aria-hidden"] }, "."] },
+]
+expected = ["2 Methoden", "(a) der erste Punkt", "Fußnote. Eine Notiz."]
+
+[[case]]
+id = "de-hidden-other-tags-are-read"
+audit = 0
+issue = 193
+goal = "A run tagged with a language or another role is read as printed."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Sie sagte ", { text = "bonjour", tags = ["p", "span", "lang:fr"] }, " und ", { text = "ging", tags = ["p", "span", "role:note"] }, "."] }]
+expected = ["Sie sagte bonjour und ging."]
+
+# ---- #93 affiliation marks in the title block (D-692) ---------------------------------------
+
+[[case]]
+id = "de-affiliation-marks-after-names-and-before-affiliations"
+audit = 0
+issue = 93
+goal = "The marks tying authors to affiliations are not read; names and affiliations are."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Eine Studie zum Zuhören" },
+    { kind = "paragraph", runs = ["Anna Muster", { sup = "1,2" }, ", Bernd Beispiel", { sup = "2" }, " und Clara Probe", { sup = "∗" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Universität Musterstadt, ", { sup = "2" }, "Institut für Beispiele, Berlin"] },
+    { kind = "footnote", text = "∗Korrespondenzautorin.", label = "∗" },
+    { kind = "heading", text = "Zusammenfassung" },
+    { kind = "paragraph", runs = ["Wie Müller", { sup = "3" }, " zeigt, gilt das."] },
+]
+expected = ["Eine Studie zum Zuhören", "Anna Muster, Bernd Beispiel und Clara Probe", "Fußnote. Korrespondenzautorin.", "Universität Musterstadt, Institut für Beispiele, Berlin", "Zusammenfassung", "Wie Müller3 zeigt, gilt das."]
+
+# ---- #191 a figure read by its alt text (D-692) ---------------------------------------------
+
+[[case]]
+id = "de-figure-alt-text-is-read-after-its-notice"
+audit = 0
+issue = 191
+goal = "An uncaptioned figure with alt text says what it shows; an empty alt text keeps the plain notice; a caption names the figure."
+language = "de"
+blocks = [
+    { kind = "figure", text = "", pictures = ["Ein Balkendiagramm der\n Minuten pro Gruppe"] },
+    { kind = "figure", text = "", pictures = [""] },
+    { kind = "figure", text = "", pictures = ["Eine Katze", "Ein Hund"] },
+    { kind = "figure", text = "", pictures = ["Ein Diagramm."] },
+    { kind = "caption", text = "Abb. 2: Minuten je Gruppe.", label = "Abb. 2", describes = 3 },
+]
+expected = ["Eine Abbildung wird übersprungen. Sie zeigt: Ein Balkendiagramm der Minuten pro Gruppe.", "Eine Abbildung wird übersprungen.", "Eine Abbildung wird übersprungen. Sie zeigt: Eine Katze; Ein Hund.", "Abbildung 2 wird übersprungen.", "Abbildung 2: Minuten je Gruppe."]

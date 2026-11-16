@@ -2126,3 +2126,181 @@ expected = [
     "Notes",
     "A stray note.",
 ]
+
+# Hidden runs and inline page-break markers (#193, D-692): a run tagged `hidden` or
+# `aria-hidden`, or marked as a page break (`epub:pagebreak`, `role:doc-pagebreak`), is not
+# read, in a block of any kind but furniture and the placeholders. The tags are the run's
+# element stack, as extraction records them (D-306).
+
+[[case]]
+id = "hidden-run-is-not-read"
+audit = 0
+issue = 193
+goal = "Text hidden in the file is not read; the words around it are."
+blocks = [{ kind = "paragraph", runs = ["Visible ", { text = "SECRET", tags = ["p", "span", "hidden"] }, " text."] }]
+expected = ["Visible text."]
+
+[[case]]
+id = "hidden-page-break-marker-is-not-read"
+audit = 0
+issue = 193
+goal = "An inline page-break marker is not read; the sentence it stands in is."
+blocks = [{ kind = "paragraph", runs = ["The time after ", { text = "13", tags = ["p", "span", "#page-13", "epub:pagebreak", "role:doc-pagebreak"] }, " mid-day was quiet."] }]
+expected = ["The time after mid-day was quiet."]
+
+[[case]]
+id = "hidden-aria-and-role-page-break-are-not-read"
+audit = 0
+issue = 193
+goal = "aria-hidden text and a page break marked by its role alone are not read either."
+blocks = [
+    { kind = "paragraph", runs = ["A ", { text = "x", tags = ["p", "span", "aria-hidden"] }, " b went on."] },
+    { kind = "paragraph", runs = ["A ", { text = "7", tags = ["p", "span", "role:doc-pagebreak"] }, " b went on."] },
+]
+expected = ["A b went on.", "A b went on."]
+
+[[case]]
+id = "hidden-run-before-a-full-stop"
+audit = 0
+issue = 193
+goal = "The space before a hidden run goes with it before closing punctuation: 'text.', not 'text .'."
+blocks = [{ kind = "paragraph", runs = ["We read the text ", { text = "x", tags = ["p", "span", "hidden"] }, ". Then more ", { text = "y", tags = ["p", "span", "hidden"] }] }]
+expected = ["We read the text. Then more"]
+
+[[case]]
+id = "hidden-run-nested-is-one-removal"
+audit = 0
+issue = 193
+goal = "A run nested inside a hidden element is hidden too, and runs side by side are one removal."
+blocks = [{ kind = "paragraph", runs = [{ text = "a ", tags = ["p", "span", "hidden"] }, { text = "b", tags = ["p", "span", "hidden", "em"] }, " Carry on."] }]
+expected = ["Carry on."]
+
+[[case]]
+id = "hidden-run-in-heading-list-item-and-footnote"
+audit = 0
+issue = 193
+goal = "Hidden runs are not read in headings, list items and footnotes either."
+blocks = [
+    { kind = "heading", runs = ["2 Methods", { text = " (draft)", tags = ["h2", "span", "hidden"] }] },
+    { kind = "list_item", runs = ["(a) the first", { text = " 41", tags = ["li", "span", "epub:pagebreak"] }, " item"], label = "(a)" },
+    { kind = "footnote", runs = ["A note", { text = " hidden", tags = ["aside", "span", "aria-hidden"] }, "."] },
+]
+expected = ["2 Methods", "(a) the first item", "Footnote. A note."]
+
+[[case]]
+id = "hidden-other-tags-are-read"
+audit = 0
+issue = 193
+goal = "A run tagged with a language or another role is read as printed."
+blocks = [{ kind = "paragraph", runs = ["She said ", { text = "bonjour", tags = ["p", "span", "lang:fr"] }, " and ", { text = "left", tags = ["p", "span", "role:note"] }, "."] }]
+expected = ["She said bonjour and left."]
+
+# Affiliation marks in the title block (#93, D-692): the first page's paragraphs before the
+# first heading. A mark set small and raised (here tagged `sup`) of digits, commas and note
+# symbols, after a name or before an affiliation, is not read. Names and affiliations made
+# up for these cases.
+
+[[case]]
+id = "affiliation-marks-after-names-and-before-affiliations"
+audit = 0
+issue = 93
+goal = "The marks tying authors to affiliations are not read; names and affiliations are."
+blocks = [
+    { kind = "paragraph", text = "A Benchmark of Listening" },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1,2" }, " Wasi Uddin Ahmed", { sup = "3" }, " Yuan Tan", { sup = "3" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Example AI, ", { sup = "2" }, "University of Somewhere, ", { sup = "3" }, "University of Elsewhere, Los Angeles"] },
+    { kind = "heading", text = "Abstract" },
+    { kind = "paragraph", text = "We listen." },
+]
+expected = ["A Benchmark of Listening", "Jane Roe Wasi Uddin Ahmed Yuan Tan", "Example AI, University of Somewhere, University of Elsewhere, Los Angeles", "Abstract", "We listen."]
+
+[[case]]
+id = "affiliation-marks-beside-a-footnote-mark"
+audit = 0
+issue = 93
+goal = "Beside a note's mark the affiliation marks go; the note's mark stays with the footnotes step, which introduces its note."
+blocks = [
+    { kind = "paragraph", runs = ["Xavier D. Arden", { sup = "1,2," }, { sup = "∗" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Example University, Barcelona, Spain"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "Example Institute, Champaign, USA"] },
+    { kind = "footnote", text = "∗Corresponding author.", label = "∗" },
+]
+expected = ["Xavier D. Arden", "Footnote. Corresponding author.", "Example University, Barcelona, Spain", "Example Institute, Champaign, USA"]
+
+[[case]]
+id = "affiliation-mark-at-a-line-start"
+audit = 0
+issue = 93
+goal = "A mark at the start of a line after a name goes with the line break before it: 'Biggs, Matthew'."
+blocks = [{ kind = "paragraph", runs = ["Simon Bigg\n", { sup = "1" }, ", Matthew Jenner", { sup = "2" }, ", and Cody Crew", { sup = "14" }] }]
+expected = ["Simon Bigg, Matthew Jenner, and Cody Crew"]
+
+[[case]]
+id = "affiliation-marks-not-maths-or-sentence-marks"
+audit = 0
+issue = 93
+goal = "In the title block a raised figure after a variable, after a sentence or before a word that is no affiliation is read as printed."
+blocks = [
+    { kind = "paragraph", runs = ["The cost grows as x", { sup = "2" }, " here."] },
+    { kind = "paragraph", runs = ["The effect was small.", { sup = "1" }] },
+    { kind = "paragraph", runs = [{ sup = "5" }, " is first."] },
+]
+expected = ["The cost grows as x2 here.", "The effect was small.1", "5 is first."]
+
+[[case]]
+id = "affiliation-marks-only-before-the-first-heading"
+audit = 0
+issue = 93
+goal = "A raised figure after a name below the first heading is no affiliation mark and is read."
+blocks = [
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }] },
+    { kind = "heading", text = "1 Introduction", label = "1" },
+    { kind = "paragraph", runs = ["As Smith", { sup = "2" }, " showed, it holds."] },
+]
+expected = ["Jane Roe", "1 Introduction", "As Smith2 showed, it holds."]
+
+# A figure that no caption names is read by its alt text (#191, D-692): an EPUB or Markdown
+# image keeps it (`pictures`).
+
+[[case]]
+id = "figure-alt-text-is-read-after-its-notice"
+audit = 0
+issue = 191
+goal = "An uncaptioned figure with alt text says what it shows."
+blocks = [{ kind = "figure", text = "", pictures = ["A bar chart of\n  minutes per group"] }]
+expected = ["A figure is skipped. It shows: A bar chart of minutes per group."]
+
+[[case]]
+id = "figure-alt-text-empty-or-captioned"
+audit = 0
+issue = 191
+goal = "An empty alt text keeps the plain notice; a caption names the figure and its alt text is not read."
+blocks = [
+    { kind = "figure", text = "", pictures = ["  "] },
+    { kind = "figure", text = "", pictures = ["A chart of minutes."] },
+    { kind = "caption", text = "Figure 3: Minutes per group.", label = "Figure 3", describes = 1 },
+]
+expected = ["A figure is skipped.", "Figure 3 is skipped.", "Figure 3: Minutes per group."]
+
+[[case]]
+id = "figure-alt-texts-of-two-pictures"
+audit = 0
+issue = 191
+goal = "Two pictures' alt texts are read in order, joined by a semicolon; a question mark ends the text."
+blocks = [
+    { kind = "figure", text = "", pictures = ["A cat", "A dog."] },
+    { kind = "figure", text = "", pictures = ["Who reads it?"] },
+]
+expected = ["A figure is skipped. It shows: A cat; A dog.", "A figure is skipped. It shows: Who reads it?"]
+
+[[case]]
+id = "figure-alt-text-markdown-sample"
+audit = 0
+issue = 191
+goal = "The two images of the Markdown sample: one with alt text says what it shows, the decoration without alt text gets the plain notice (#191's criterion)."
+blocks = [
+    { kind = "figure", text = "", pictures = ["A bar chart of minutes per group"] },
+    { kind = "figure", text = "", pictures = [""] },
+    { kind = "paragraph", text = "The mean is high." },
+]
+expected = ["A figure is skipped. It shows: A bar chart of minutes per group.", "A figure is skipped.", "The mean is high."]
