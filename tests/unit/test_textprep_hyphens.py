@@ -384,6 +384,14 @@ def test_german_a_hyphenated_word_keeps_these(printed: str, spoken: str) -> None
     assert read_de(printed) == [spoken]
 
 
+def test_the_german_chain_words_are_the_planned_ones() -> None:
+    assert HYPHEN_WORDS["de"].chain_words == frozenset(
+        {"zu", "an", "in", "um", "auf", "bei", "für", "vor", "von", "aus", "mit", "nach",
+         "über", "und", "oder", "bis", "im", "am", "zum", "zur",
+         "to", "of", "the", "and", "on", "at", "by", "for", "or", "it"}
+    )  # fmt: skip
+
+
 @pytest.mark.parametrize("word", sorted(HYPHEN_WORDS["de"].chain_words))
 def test_german_each_chain_word_keeps_the_hyphen_only_in_lower_case(word: str) -> None:
     assert read_de(f"Kopf-{word}-\nkopf") == [f"Kopf-{word}-kopf"]
@@ -437,6 +445,10 @@ def test_german_split_again_reason() -> None:
         (
             "die deutsch-\nfranzösisch-polnischen Gespräche",
             "die deutsch-französisch-polnischen Gespräche",
+        ),
+        (  # the last part before the line end decides, not the first: "politisch"
+            "die Ost-West-politisch-\nmilitärischen Spannungen",
+            "die Ost-West-politisch-militärischen Spannungen",
         ),
     ],
 )
