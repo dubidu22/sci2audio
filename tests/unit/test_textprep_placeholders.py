@@ -12,7 +12,16 @@ from textprep_documents import rule_documents
 
 from sci2audio.app.chapters import REFERENCE_NAMES as APP_REFERENCE_NAMES
 from sci2audio.app.chapters import is_reference_title as app_is_reference_title
-from sci2audio.core import Block, BlockKind, Document, EditKind, ScriptPiece, Section, Span
+from sci2audio.core import (
+    Block,
+    BlockKind,
+    Document,
+    Edit,
+    EditKind,
+    ScriptPiece,
+    Section,
+    Span,
+)
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
 from sci2audio.textprep import (
     DEFAULT_SWITCHED_OFF,
@@ -22,10 +31,13 @@ from sci2audio.textprep import (
     CodeNoticeStep,
     FormulaNoticeStep,
     ReferenceListStep,
+    Stage,
     StepContext,
     TableFigureNoticeStep,
+    TextStep,
     is_reference_title,
     read_over,
+    registry,
     run_steps,
     spoken_text,
     wording_for,
@@ -719,6 +731,77 @@ def test_read_over_maps_a_printed_span_through_the_script(
     printed = "Fig. 3: x" if pieces[0][0].startswith("Fig") else "ab cd"
     script = [ScriptPiece(text, Span(0, a, b)) for text, a, b in pieces]
     assert read_over(printed, script, start, end) == read
+
+
+class _CaptionsReplaced(TextStep):
+    """A block step that replaces every caption: the label is read by the inline steps
+    only, so a block step does not change how a notice names the figure."""
+
+    id = "captions-replaced"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.BLOCK
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [
+            Edit(Span(index, 0, len(block.text)), EditKind.REPLACE, "r", self.id, "X")
+            for index, block in enumerate(document.blocks)
+            if block.kind is BlockKind.CAPTION
+        ]
+
+
+class _LabelsRemoved(TextStep):
+    """An inline step that leaves every caption label out."""
+
+    id = "labels-removed"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.INLINE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [
+            Edit(Span(index, 0, len(block.label)), EditKind.REMOVE, "r", self.id)
+            for index, block in enumerate(document.blocks)
+            if block.kind is BlockKind.CAPTION and block.label
+        ]
+
+
+@pytest.mark.parametrize(
+    ("added", "notice"),
+    [
+        (_CaptionsReplaced(), "Figures 1 to 3 is skipped."),  # read by the inline steps only
+        (_LabelsRemoved(), "Figures 1\u20133 is skipped."),  # left out: kept as printed
+    ],
+)
+def test_a_notice_reads_the_label_with_the_inline_steps_only(
+    monkeypatch: pytest.MonkeyPatch, added: TextStep, notice: str
+) -> None:
+    steps = registry.BUILT_IN_STEPS
+    blocks = [step for step in steps if step.stage is Stage.BLOCK]
+    rest = [step for step in steps if step.stage is not Stage.BLOCK]
+    order = [*blocks, added, *rest] if added.stage is Stage.INLINE else [added, *steps]
+    monkeypatch.setattr(registry, "BUILT_IN_STEPS", tuple(order))
+    document = make_document(
+        [
+            Block(BlockKind.FIGURE, "x"),
+            Block(
+                BlockKind.CAPTION, "Figs. 1\u20133: Values.", label="Figs. 1\u20133", describes=0
+            ),
+        ]
+    )
+    (edit,) = TableFigureNoticeStep().find(document, EN)
+    assert edit.replacement == notice
+
+
+def test_a_notice_folds_the_white_space_of_the_label_it_reads() -> None:
+    document = make_document(
+        [
+            Block(BlockKind.FIGURE, "x"),
+            Block(BlockKind.CAPTION, "Fig.  3: Values.", label="Fig.  3", describes=0),
+        ]
+    )
+    (edit,) = TableFigureNoticeStep().find(document, EN)
+    assert edit.replacement == "Figure 3 is skipped."
 
 
 def test_a_german_formula_label_is_read_in_its_notice() -> None:

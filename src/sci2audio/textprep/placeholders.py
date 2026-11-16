@@ -109,7 +109,7 @@ def _read_in_place(
         start = block.text.find(name)
         own = [piece for piece in script if piece.span.block == position]
         reading = read_over(block.text, own, start, start + len(name)) if start >= 0 else None
-        read.append(" ".join(reading.split()) if reading and reading.strip() else name)
+        read.append(" ".join((reading or "").split()) or name)
     return read
 
 
