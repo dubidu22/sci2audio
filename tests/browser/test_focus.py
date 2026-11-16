@@ -251,6 +251,14 @@ def test_the_keys_stay_out_of_the_way(signed_in: Page, live: Live) -> None:
     expect(toggle).to_have_attribute("aria-expanded", "true")
     assert highlighted(page) == before
     assert paused(page)
+    # Space on a control does what the control does: the switch switches, nothing plays
+    follow = page.locator("#follow")
+    follow.focus()
+    page.keyboard.press(" ")
+    expect(follow).not_to_be_checked()
+    assert paused(page)
+    page.keyboard.press(" ")
+    expect(follow).to_be_checked()
     # Space on a button presses that button once; the arrows on the timeline move it
     play = page.get_by_role("button", name="Play")
     play.focus()
