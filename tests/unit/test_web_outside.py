@@ -123,6 +123,28 @@ def test_an_outside_job_cannot_be_changed(tmp_path: Path) -> None:
     assert any(p.suffix == ".mp3" for p in job.folder.iterdir())
 
 
+def test_opening_an_outside_job_writes_nothing_into_its_folders(tmp_path: Path) -> None:
+    """The library notes when a document was opened (#389), but a command-line job's
+    folders are read-only to the server (#154): its Listen page and the library leave
+    both folders exactly as they were, and keep no opened.json anywhere."""
+    job, client, config = outside_job(tmp_path)
+
+    def snapshot() -> dict[str, tuple[int, int]]:
+        return {
+            p.relative_to(tmp_path).as_posix(): (p.stat().st_size, p.stat().st_mtime_ns)
+            for root in (job.work, job.folder)
+            for p in sorted(root.rglob("*"))
+        }
+
+    before = snapshot()
+    for path in (f"/documents/{job.id}/listen", "/", f"/documents/{job.id}/listen"):
+        assert client.get(path).status_code == 200, path
+    assert snapshot() == before
+    assert not list(tmp_path.rglob("opened.json"))
+    assert not (config.work_root / job.document).exists()
+    assert not (config.work_root / job.id).exists()
+
+
 def test_an_outside_job_keeps_its_position_in_its_own_working_folder(tmp_path: Path) -> None:
     """#153 for a `listen` job: the position goes to the job's working folder, and the
     next run of `listen` offers to continue there."""

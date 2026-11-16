@@ -18,21 +18,38 @@
   <nav class="rail" aria-label="{{ t('nav.label') }}">
     <a class="wordmark" href="/" aria-label="{{ t('nav.wordmark') }}">sci<span class="two">2</span>audio</a>
     <ul class="nav">
-      <li><a href="/" aria-label="{{ t('nav.library') }}, {{ t('nav.documents', n=library_count) }}"{% if nav == 'library' %} aria-current="page"{% endif %}>{{ icon('library') }}<span>{{ t('nav.library') }}</span><span class="count" aria-hidden="true">{{ library_count }}</span></a></li>
+      <li><a href="/" id="nav-library" aria-label="{{ t('nav.library') }}, {{ t('nav.documents', n=library_count) }}"{% if nav == 'library' %} aria-current="page"{% endif %}>{{ icon('library') }}<span>{{ t('nav.library') }}</span><span class="count" aria-hidden="true">{{ library_count }}</span></a></li>
       <li><a href="/#open-file">{{ icon('open') }}<span>{{ t('nav.open') }}</span></a></li>
       <li><a href="/voice"{% if nav == 'voices' %} aria-current="page"{% endif %}>{{ icon('voices') }}<span>{{ t('nav.voices') }}</span></a></li>
     </ul>
-    {#- "Reading and recent" (#387 slot; papers and "Continue listening" follow in #389, D-664) #}
+    {#- "Reading and recent" (#389, D-664): Continue listening, the running job, recent papers #}
     {% block shelf %}
-    {% if running %}
+    {% if shelf.continue or running or shelf.recent %}
     <div class="rail-section">
       <h2 class="shelf-head" id="shelf-head">{{ t('nav.reading') }}</h2>
       <ul class="shelf">
+        {% if shelf.continue %}{% set item = shelf.continue %}
+        <li><a href="{{ item.href }}" id="shelf-continue" class="continue"{% if item.current %} aria-current="page"{% endif %}>
+          <span class="k">{{ icon('play', 's') }}{{ t('shelf.continue_head') }}</span>
+          <span class="t">{{ item.title }}</span>
+          <span class="m">{{ item.text }}</span>
+          <progress class="meter listened" max="100" value="{{ item.percent }}" aria-hidden="true"></progress>
+        </a></li>
+        {% endif %}
+        {% if running %}
         <li><a href="/jobs/{{ running.id }}" id="shelf-job" data-events="/api/v1/jobs/{{ running.id }}/events" data-job="/api/v1/jobs/{{ running.id }}"{% if nav == 'job' and current_job == running.id %} aria-current="page"{% endif %}>
           <span class="t">{{ running.title }}</span>
           <span class="m" id="shelf-job-state">{{ running.shelf_text }}</span>
           <progress class="meter" id="shelf-job-bar" max="100"{% if running.percent is not none %} value="{{ running.percent }}"{% endif %} aria-hidden="true"></progress>
         </a></li>
+        {% endif %}
+        {% for item in shelf.recent %}
+        <li><a href="{{ item.href }}" class="recent"{% if item.current %} aria-current="page"{% endif %}>
+          <span class="t">{{ item.title }}</span>
+          <span class="m">{{ item.text }}</span>
+          {% if item.percent is not none %}<progress class="meter listened" max="100" value="{{ item.percent }}" aria-hidden="true"></progress>{% endif %}
+        </a></li>
+        {% endfor %}
       </ul>
     </div>
     {% endif %}

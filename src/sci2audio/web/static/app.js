@@ -211,12 +211,22 @@ function removal() {
         document.getElementById("removed-title").focus();
         return;
       }
-      // the start page: the document leaves the list; the message says what happened
-      const item = button.closest("li");
-      const list = item && item.parentElement;
-      if (item) item.remove();
-      if (list && !list.querySelector("li")) {
-        list.remove();
+      // the library: the document's row leaves the table and the counts follow; the
+      // message says what happened
+      const row = button.closest("tr");
+      const body = row && row.parentElement;
+      if (row) row.remove();
+      const left = body ? body.querySelectorAll("tr").length : 0;
+      const count = document.getElementById("library-count");
+      if (count) count.textContent = tr("library.sub", { n: left });
+      const rail = document.getElementById("nav-library");
+      if (rail) {
+        rail.setAttribute("aria-label", `${tr("nav.library")}, ${tr("nav.documents", { n: left })}`);
+        const number = rail.querySelector(".count");
+        if (number) number.textContent = String(left);
+      }
+      if (body && !left) {
+        document.getElementById("library").remove();
         const none = document.getElementById("no-documents");
         if (none) none.hidden = false;
       }

@@ -59,7 +59,7 @@ def test_removing_from_the_start_page_by_keyboard(signed_in: Page, live: Live) -
     expect(message).to_have_text("second.pdf was removed.")
     expect(message).to_be_focused()
     expect(page.locator("#documents")).to_have_count(0)
-    expect(page.get_by_text("No document opened yet.")).to_be_visible()
+    expect(page.get_by_role("heading", name="Your library is empty")).to_be_visible()
     check_axe(page, "start page, the last document removed")
 
 
@@ -90,9 +90,9 @@ def test_removing_from_the_document_page(signed_in: Page, live: Live) -> None:
     assert [r["method"] for r in requests] == ["DELETE"]  # one request
     assert not (live.config.work_root / document).exists()
     check_axe(page, "document page after the removal")
-    page.get_by_role("link", name="Back to the start page").click()
+    page.get_by_role("link", name="Back to the library").click()
     expect(page).to_have_url(live.url + "/")
-    expect(page.get_by_text("No document opened yet.")).to_be_visible()
+    expect(page.get_by_role("heading", name="Your library is empty")).to_be_visible()
 
 
 def test_a_failed_removal_says_why_and_keeps_the_button(signed_in: Page, live: Live) -> None:

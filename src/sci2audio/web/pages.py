@@ -13,7 +13,9 @@ import json
 import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from importlib.resources import files
+from pathlib import Path, PurePath
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Request
@@ -27,6 +29,7 @@ from sci2audio.textprep import DEFAULT_SWITCHED_OFF, PAUSE_MARK, Category
 from sci2audio.voices import (
     DEFAULT_VOICE,
     DEFAULT_VOICES,
+    ENGLISH,
     PACKS,
     VOICES,
     download_plan,
@@ -55,8 +58,26 @@ from sci2audio.web.i18n import (
     theme_of,
 )
 from sci2audio.web.jobs import JobKind, JobRecord, JobState
+from sci2audio.web.library import (
+    OPENED,
+    Heard,
+    heard,
+    length_text,
+    position_age,
+    read_about,
+    read_opened,
+    when,
+    write_opened,
+)
 from sci2audio.web.models import PREVIEW_LIMIT
-from sci2audio.web.player import PlayerError, Position, player_for, read_position, recorded_folder
+from sci2audio.web.player import (
+    PlayerError,
+    Position,
+    candidate_folders,
+    player_for,
+    read_position,
+    recorded_folder,
+)
 from sci2audio.web.state import ServerState, state_of
 from sci2audio.web.tasks import plan_digest
 
@@ -145,8 +166,9 @@ def _page(
 ) -> HTMLResponse:
     current = state.board.current
     context.setdefault("running", None if current is None else _shelf_job(state, current, s))
+    context.setdefault("shelf", _shelf(state, s, context.get("shelf_here")))
     if "library_count" not in context:
-        context["library_count"] = len(state.store.all())
+        context["library_count"] = len(state.store.all()) + len(state.config.outside)
     query = request.url.query
     context.update(
         t=s,
@@ -175,6 +197,179 @@ def _removal(document: StoredDocument) -> dict[str, Any]:
     }
 
 
+# --- the library and the rail's shelf (#389, D-664) -------------------------------------
+
+SHELF_RECENT = 3  # recent documents on the shelf after Continue listening and the running job
+CHIPS = {  # a document's state: its chip's look and icon (DESIGN.md "Chips"), never colour alone
+    "making": ("making", "voices"),
+    "analysing": ("making", "text"),
+    "failed": ("failed", "alert"),
+    "ready": ("ready", "check"),
+    "cli": ("ready", "check"),
+    "analysed": ("idle", "text"),
+    "new": ("idle", "open"),
+}
+
+
+def _folders(state: ServerState, document: StoredDocument, saved: Path | None) -> tuple:
+    return tuple(candidate_folders(document.folder, document.id, saved, state.config.output_folder))
+
+
+def _percent(part: float | None) -> int | None:
+    return None if part is None else int(100 * min(1.0, max(0.0, part)))
+
+
+def _state_of(state: ServerState, document: StoredDocument) -> str:
+    current = state.board.current
+    if current is not None and current.document == document.id:
+        return "analysing" if current.kind is JobKind.SCRIPT else "making"
+    latest = next(
+        (
+            job
+            for job in state.board.all()
+            if job.document == document.id and job.kind in (JobKind.SCRIPT, JobKind.AUDIO)
+        ),
+        None,
+    )
+    if latest is not None and latest.state is JobState.FAILED:
+        return "failed"
+    if document.has_audio:
+        return "ready"
+    return "analysed" if document.report_file.is_file() else "new"
+
+
+def _when_text(s: Strings, moment: datetime | None) -> str:
+    if moment is None:
+        return ""
+    kind, value = when(moment, datetime.now(UTC))
+    return value if kind == "date" else s(f"library.when_{kind}", value=value)  # ISO (D-290)
+
+
+def _meta(s: Strings, authors: tuple[str, ...], pages: int | None, got: Heard | None) -> str:
+    parts = []
+    if authors:
+        parts.append(", ".join(authors))
+    if pages:
+        parts.append(s("library.pages", n=pages))
+    if got is not None and got.duration > 0:
+        parts.append(length_text(got.duration, s("library.hours"), s("library.minutes")))
+    return " · ".join(parts)
+
+
+def _library_row(
+    state: ServerState, s: Strings, document: StoredDocument, saved: Path | None
+) -> dict[str, Any]:
+    """One document as a row of the library's table."""
+    about = read_about(document.folder)
+    got = heard(document.folder, document.id, _folders(state, document, saved))
+    key = _state_of(state, document)
+    made = None
+    if key in ("making", "analysing") and state.board.current is not None:
+        made = _percent(progress_fraction(state.board.current.snapshot().get("progress")))
+    return {
+        "id": document.id,
+        "title": about.title if about else document.name,
+        "file": document.name,
+        "meta": _meta(s, about.authors if about else (), about.pages if about else None, got),
+        "kind": document.source.suffix.removeprefix(".").lower(),
+        "href": f"/documents/{document.id}/listen" if got else f"/documents/{document.id}",
+        "state": key,
+        "chip": CHIPS[key],
+        "audio": got is not None,
+        "listened": None if got is None else _percent(got.fraction),
+        "made": made,
+        "opened": _when_text(s, read_opened(document.folder)),
+        "document": document,
+    }
+
+
+def _outside_row(s: Strings, job: Any) -> dict[str, Any]:
+    """An audiobook the command line made (#154) as a row: read-only, no removal."""
+    got = heard(job.work, job.document, (job.folder,))
+    return {
+        "id": job.id,
+        "title": job.name,
+        "file": job.name,
+        "meta": s("library.outside_meta", folder=str(job.folder)),
+        "kind": PurePath(job.name).suffix.removeprefix(".").lower(),
+        "href": f"/documents/{job.id}/listen",
+        "state": "cli",
+        "chip": CHIPS["cli"],
+        "audio": got is not None,
+        "listened": None if got is None else _percent(got.fraction),
+        "made": None,
+        "opened": "",
+        "document": None,
+    }
+
+
+def _shelf(state: ServerState, s: Strings, here: str | None) -> dict[str, Any]:
+    """The rail's "Reading and recent" (#389, D-664): first "Continue listening", where the
+    person last stopped in an audiobook; then (the running job is drawn on its own) up to
+    SHELF_RECENT documents opened most recently. `here` is the document in view."""
+    documents = state.store.all()
+    saved, _ = load_settings(state.config.config_file)
+    places = [(d.folder, d.id, d.id, _folders(state, d, saved.output_folder)) for d in documents]
+    places += [(j.work, j.document, j.id, (j.folder,)) for j in state.config.outside]
+    titles = {d.id: (read_about(d.folder) or None) for d in documents}
+    names = {d.id: d.name for d in documents} | {j.id: j.name for j in state.config.outside}
+
+    def title(key: str) -> str:
+        about = titles.get(key)
+        return about.title if about else names[key]
+
+    keep = None
+    for work, document, key, folders in sorted(places, key=lambda p: -position_age(p[0])):
+        if not position_age(work):
+            break
+        got = heard(work, document, folders)
+        part = None if got is None else got.fraction
+        if got is not None and got.resume and got.time is not None and part is not None:
+            keep = {
+                "id": key,
+                "title": title(key),
+                "href": f"/documents/{key}/listen#continue",
+                "text": s("shelf.continue", time=clock(got.time)),
+                "percent": _percent(part),
+                "current": key == here,
+            }
+            break
+
+    running = state.board.current
+    shown = {keep["id"] if keep else None, running.document if running else None}
+
+    def opened_at(document: StoredDocument) -> float:
+        try:
+            return (document.folder / OPENED).stat().st_mtime
+        except OSError:
+            return 0.0
+
+    recent = []
+    for document in sorted(documents, key=opened_at, reverse=True):
+        if len(recent) == SHELF_RECENT or not opened_at(document):
+            break
+        if document.id in shown:
+            continue
+        key = _state_of(state, document)
+        got = heard(document.folder, document.id, _folders(state, document, saved.output_folder))
+        part = None if got is None else got.fraction
+        if got is not None:
+            text = s("library.listened", n=_percent(part)) if part else s("library.not_started")
+        else:
+            text = s(f"library.state_{key}")
+        recent.append(
+            {
+                "id": document.id,
+                "title": title(document.id),
+                "href": f"/documents/{document.id}/listen" if got else f"/documents/{document.id}",
+                "text": text,
+                "percent": _percent(part) if got is not None else None,
+                "current": document.id == here,
+            }
+        )
+    return {"continue": keep, "recent": recent}
+
+
 def _busy_document(state: ServerState) -> str | None:
     """The document this server's running job works on, if any (D-362)."""
     current = state.board.current
@@ -189,16 +384,21 @@ def index(request: Request, state: State) -> HTMLResponse:
     s = strings_of(request)
     suffixes = supported_suffixes()
     documents = state.store.all()
+    saved, _ = load_settings(state.config.config_file)
+    rows = [_library_row(state, s, document, saved.output_folder) for document in documents]
+    rows += [_outside_row(s, job) for job in state.config.outside]
+    english = sum(f.size for f in download_plan().files if f.pack == ENGLISH)  # first run
     return _page(
         request,
         state,
         s,
         "index.html",
         documents=documents,
-        library_count=len(documents),
-        outside=state.config.outside,
+        rows=rows,
+        library_count=len(rows),
         removals={document.id: _removal(document) for document in documents},
         busy_document=_busy_document(state),
+        voice_size=s.size(english),
         voice_installed=not missing_files(state.config.models_dir),
         voice_partly=_missing_packs(state, s),
         types=", ".join(suffix.removeprefix(".").upper() for suffix in suffixes),
@@ -311,7 +511,7 @@ def _categories(
 def _report(document: StoredDocument) -> dict[str, Any] | None:
     try:
         report = json.loads(document.report_file.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):
         return None
     return report if isinstance(report, dict) else None
 
@@ -426,6 +626,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
     found = state.store.get(document_id)
     if found is None:
         return _not_found(request, state, s, s("common.not_found_document", id=document_id))
+    write_opened(found.folder, datetime.now(UTC))
     saved, _ = load_settings(state.config.config_file)
     report = _report(found)
     # the controls start from what the report on screen was made with (D-245, D-246)
@@ -476,6 +677,7 @@ def document(request: Request, state: State, document_id: str) -> HTMLResponse:
         state,
         s,
         "document.html",
+        shelf_here=found.id,
         document=found,
         report=report,
         text_language=_text_language(report),
@@ -619,6 +821,8 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     found = state.listening(document_id)
     if found is None:
         return _not_found(request, state, s, s("common.not_found_document", id=document_id))
+    if not found.outside:  # a command-line job's folders are read-only to the server (#154)
+        write_opened(found.work, datetime.now(UTC))
     try:
         view, located = player_for(found.work, found.document, found.folders)
     except PlayerError as error:
@@ -627,6 +831,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             state,
             s,
             "listen.html",
+            shelf_here=found.id,
             document=found,
             view=None,
             problem=s(error.key, **error.values),
@@ -641,6 +846,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         state,
         s,
         "listen.html",
+        shelf_here=found.id,
         document=found,
         view=view,
         voice=_voice_name(view.voice),
@@ -667,12 +873,19 @@ def voice(request: Request, state: State) -> HTMLResponse:
         s,
         "voice.html",
         installed=not missing,
+        # one panel per language pack with its own files (#390); one download for all (VA-03)
         packs=[
-            {"name": s(f"setup.pack_{language}"), "installed": language in there}
+            {
+                "language": language,
+                "name": s(f"setup.pack_{language}"),
+                "installed": language in there,
+                "files": [
+                    {"target": f.target, "size": s.size(f.size), "licence": f.licence}
+                    for f in plan.files
+                    if f.pack == language
+                ],
+            }
             for language in PACKS
-        ],
-        files=[
-            {"target": f.target, "size": s.size(f.size), "licence": f.licence} for f in plan.files
         ],
         total=s.size(plan.total_bytes),
         missing=s.size(sum(f.size for f in missing)),

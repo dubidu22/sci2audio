@@ -140,11 +140,12 @@ def test_a_broken_record_is_refused(
     cli: Cli, made: tuple[Path, Path], started: list[dict[str, Any]]
 ) -> None:
     source, out = made
-    (cli.work(source) / "audio.json").write_text("{", encoding="utf-8")
-    result = cli("listen", source, "-o", out)
-    assert result.code != 0
-    assert "can't be read" in result.err
-    assert started == []
+    for broken in ("{", "[" * 500000 + "]" * 500000):  # the second nests too deep for json
+        (cli.work(source) / "audio.json").write_text(broken, encoding="utf-8")
+        result = cli("listen", source, "-o", out)
+        assert result.code != 0
+        assert "can't be read" in result.err
+        assert started == []
 
 
 def test_no_such_file(cli: Cli, tmp_path: Path, started: list[dict[str, Any]]) -> None:

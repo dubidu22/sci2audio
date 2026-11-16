@@ -66,10 +66,15 @@ def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any
     index = client.get("/")
     assert index.status_code == 200
     assert index.headers["content-type"].startswith("text/html")
-    assert "<h1>Open a document</h1>" in index.text
-    assert "No document opened yet." in index.text
-    assert "The voice is not installed yet." in index.text
-    assert 'href="/voice"' in index.text
+    assert "<h1>Library</h1>" in index.text
+    assert "0 documents on this computer" in index.text
+    assert "Your library is empty" in index.text  # the empty panel with its specimen (#389)
+    assert '<span class="cut">(Smith et al., 2020)</span>' in index.text
+    assert "The voice isn\N{RIGHT SINGLE QUOTATION MARK}t installed yet." in index.text
+    size = strings("en").size(download_plan(["en"]).total_bytes)
+    assert f"download a voice once (about {size} for English)" in index.text
+    assert 'href="/voice">Set up the voice</a>' in index.text
+    assert 'id="documents"' not in index.text  # no table while there is nothing to list
     assert 'accept=".epub,.markdown,.md,.pdf,.txt"' in index.text
     assert "sci2audio reads EPUB, MARKDOWN, MD, PDF, TXT files" in index.text
     assert 'id="open-text"' in index.text  # text files are read, so pasted text is (#74)
@@ -77,7 +82,11 @@ def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any
     page = client.get("/").text
     assert "a &amp;amp; b &#39;x&#39;.pdf" in page
     assert f'href="/documents/{doc["id"]}"' in page
-    assert f"({strings('en').size(doc['size'])}, not analysed yet)" in page
+    assert "1 document on this computer" in page
+    row = page.split(f'<tr id="row-{doc["id"]}"')[1].split("</tr>")[0]
+    assert '<span class="chip idle" data-state="new">' in row
+    assert "Not analysed yet" in row
+    assert 'id="no-documents" aria-labelledby="empty-h" hidden' in page
 
 
 def test_the_paste_box_appears_once_text_files_are_read(
@@ -221,7 +230,10 @@ def test_a_german_text_starts_with_the_german_voice(
     assert 'data-blocked=""' in english
     assert re.search(r'<option value="af_heart" data-language="en-US" selected>', english)
     assert "This is how this voice reads your text." in english
-    assert "Not every voice is installed yet. Missing: German." in client.get("/").text
+    assert (
+        "<strong>Not every voice is installed yet.</strong> Missing: German."
+        in client.get("/").text
+    )
 
 
 def test_the_document_page_says_where_the_language_came_from(
@@ -280,15 +292,66 @@ def test_the_voice_setup_page_shows_the_whole_download(server: tuple[FastAPI, An
     assert "Set up the voice" in page
     assert "kokoro-v1_0.pth" in page
     assert "model.pth" in page  # the German pack (#211)
-    items = re.findall(r"<li>([^<]*)</li>", page)
-    assert items[:2] == [  # one line per voice pack (D-468)
-        "English voices (Kokoro): not installed yet.",
-        "German voice Thorsten (Kokoro, by Thorsten-Voice): not installed yet.",
+    # one panel per voice pack (D-468), named, with its state as icon and word (#390)
+    names = re.findall(r'<h2 id="pack-(en|de)-name">([^<]*)</h2>', page)
+    assert names == [
+        ("en", "English voices (Kokoro)"),
+        ("de", "German voice Thorsten (Kokoro, by Thorsten-Voice)"),
     ]
-    hosts = items[2:]
+    assert page.count('<span class="chip idle"><svg') == 2
+    assert page.count("Not installed</span>") == 2
+    hosts = re.findall(r"<li>([^<]*)</li>", page.split('aria-labelledby="hosts-intro"')[1])
     assert hosts[:2] == ["github.com", "huggingface.co"]  # with their redirect hosts after
     assert 'id="voice-consent" name="consent" required' in page
     assert re.search(r'data-plan="[0-9a-f]{64}"', page)
+
+
+def test_each_voice_file_shows_once_in_its_packs_panel(server: tuple[FastAPI, Any]) -> None:
+    page = client_of(server).get("/voice").text
+    plan = download_plan()
+    for language in ("en", "de"):
+        panel = page.split(f'<section class="pack" id="pack-{language}"')[1].split("</section>")[0]
+        shown = re.findall(r"<tr><td><code>([^<]*)</code></td>", panel)
+        assert shown == [f.target for f in plan.files if f.pack == language], language
+        for file in plan.files:
+            if file.pack == language:
+                assert f'<td lang="en">{html.escape(file.licence)}</td>' in panel
+    every = re.findall(r"<tr><td><code>([^<]*)</code></td>", page)
+    assert sorted(every) == sorted(f.target for f in plan.files)  # each file once
+    size = strings("en").size(plan.total_bytes)
+    assert f"Download the voice ({size})</button>" in page
+
+
+def test_the_download_button_names_what_is_still_missing(server: tuple[FastAPI, Any]) -> None:
+    """With the English pack in place, the button names the German pack's size, not the
+    whole download's: the download skips the files already there (#421 N1)."""
+    from sci2audio.voices.download import SPACY_MODEL, SPACY_MODEL_VERSION
+
+    _app, config = server
+    plan = download_plan()
+    for file in plan.files:
+        if file.pack != "en":
+            continue
+        path = config.models_dir / file.target
+        if file.unpack:
+            record = path / f"{SPACY_MODEL}-{SPACY_MODEL_VERSION}.dist-info" / "RECORD"
+            record.parent.mkdir(parents=True)
+            record.write_text("", encoding="utf-8")
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("wb") as stream:
+                stream.truncate(file.size)  # the right size, nothing written
+    page = client_of(server).get("/voice").text
+    s = strings("en")
+    german = sum(f.size for f in plan.files if f.pack == "de")
+    assert 0 < german < plan.total_bytes
+    assert s.size(german) != s.size(plan.total_bytes)
+    assert f"Download the voice ({s.size(german)})</button>" in page
+    assert f"Download the voice ({s.size(plan.total_bytes)})" not in page
+    english = page.split('<section class="pack" id="pack-en"')[1].split("</section>")[0]
+    german_panel = page.split('<section class="pack" id="pack-de"')[1].split("</section>")[0]
+    assert "Installed" in english
+    assert "Not installed" in german_panel
 
 
 def test_missing_documents_and_jobs_answer_404_pages(server: tuple[FastAPI, Any]) -> None:

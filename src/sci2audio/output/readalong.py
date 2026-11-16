@@ -147,7 +147,7 @@ def from_json(text: str) -> ReadAlong:
         )
     except ReadAlongError:
         raise
-    except (ValueError, KeyError, TypeError, AttributeError) as error:
+    except (ValueError, KeyError, TypeError, AttributeError, RecursionError) as error:
         raise ReadAlongError(f"broken read-along file: {error}") from None
 
 

@@ -54,6 +54,7 @@ from sci2audio.voices import (
 )
 from sci2audio.web.documents import StoredDocument
 from sci2audio.web.jobs import JobCancelled, JobFailure, JobRecord, JobState
+from sci2audio.web.library import about_of, write_about
 from sci2audio.web.player import remove_position, write_record
 
 logger = logging.getLogger(__name__)
@@ -116,6 +117,8 @@ def script_work(
         result = runner.run_script(
             document.source, own, document.folder, overwrite=True, progress=progress, pages=pages
         )
+        # what the library lists (#389); writing it never fails the job
+        write_about(document.folder, about_of(result.result.run.document))
         return result.files.outputs
 
     return work

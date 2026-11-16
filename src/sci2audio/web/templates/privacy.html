@@ -1,8 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ t('privacy.title') }} · {{ t('common.app') }}{% endblock %}
 {% block main %}
-<h1>{{ t('privacy.title') }}</h1>
-<p>{{ t('privacy.intro') }}</p>
+{#- a prose page on paper (#390, DESIGN.md "Privacy"); every statement is checked against the
+    code in tests/unit/test_web_languages.py (D-293) -#}
+<header class="view-head">
+  <h1>{{ t('privacy.title') }}</h1>
+</header>
+<article class="panel prose">
+<p class="lead">{{ t('privacy.intro') }}</p>
 
 <h2>{{ t('privacy.local_title') }}</h2>
 <p>{{ t('privacy.local') }}</p>
@@ -44,4 +49,5 @@
 
 <h2>{{ t('privacy.licence_title') }}</h2>
 <p>{{ t('privacy.licence') }}</p>
+</article>
 {% endblock %}

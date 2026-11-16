@@ -53,6 +53,9 @@ SCRIPT_KEYS = (
     "remove.done",
     "remove.stays",  # and remove.stays_folder
     "shelf.",
+    "library.sub",
+    "nav.library",
+    "nav.documents",
     "settings.saved",
     "settings.saving",
 )

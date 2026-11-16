@@ -541,13 +541,13 @@ def test_the_start_page_and_the_document_page_offer_the_removal(tmp_path: Path) 
     page = browser(app, config)
     start = page.get("/").text
     assert '<details class="remove">' in start
-    assert "<summary>Remove note.pdf…</summary>" in start
+    assert "<span>Remove note.pdf…</span></summary>" in start  # a quiet button (#390)
     assert f'data-document="{doc["id"]}"' in start
     assert "Remove note.pdf now" in start
     assert f"Your audiobook stays in {config.output_folder.absolute()}." in start
     document = page.get(f"/documents/{doc['id']}").text
     assert '<h2 id="step-remove">Remove this document</h2>' in document
-    assert "<summary>Remove this document…</summary>" in document
+    assert "<span>Remove this document…</span></summary>" in document
     assert "Remove note.pdf now" in document
     assert '<section id="removed" aria-labelledby="removed-title" hidden>' in document
     german = page.get("/", headers={"Accept-Language": "de"}).text
@@ -570,8 +570,8 @@ def test_while_a_job_works_the_page_says_so_instead_of_the_button(tmp_path: Path
         assert "Remove free.pdf now" in start_page
         document = page.get(f"/documents/{doc['id']}").text
         assert "is working on this document; you can remove it when the job has ended" in document
-        assert 'class="remove-now"' not in document
-        assert 'class="remove-now"' in page.get(f"/documents/{other['id']}").text
+        assert 'class="danger remove-now"' not in document
+        assert 'class="danger remove-now"' in page.get(f"/documents/{other['id']}").text
     finally:
         runner.go.set()
         wait(client, job["id"])
@@ -584,7 +584,7 @@ def test_the_page_never_trusts_the_file_name(tmp_path: Path) -> None:
     assert "<b>" not in text
     shown = escape(doc["name"])
     assert f"Remove {shown} now" in text
-    assert f"<summary>Remove {shown}…</summary>" in text
+    assert f"<span>Remove {shown}…</span></summary>" in text
 
 
 def test_the_privacy_page_names_the_removal(tmp_path: Path) -> None:
