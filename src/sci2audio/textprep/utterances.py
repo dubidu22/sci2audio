@@ -399,12 +399,13 @@ _WORD_BEFORE = re.compile(r"(\S+)\s+\Z")
 
 
 def _letter_of(text: str, start: int, language: str) -> bool:
-    """True if the single capital at `start` is no initial: a maths symbol stands right before
-    it ("x \u2208 N. This", #141), or a label word ("See Appendix C. It", D-719)."""
+    """True if the single capital at `start` is no initial: the word before it ends in a maths
+    symbol ("x \u2208 N. This", "x= N. This", #141), or it is a label word ("See Appendix C.
+    It", D-719)."""
     before = _WORD_BEFORE.search(text, max(0, start - 32), start)
     if before is None:
         return False
-    symbol = all(unicodedata.category(char) == "Sm" for char in before[1])
+    symbol = unicodedata.category(before[1][-1]) == "Sm"  # "x \u2208 N.", "x= N." too
     return symbol or _after_label(text, start, language)
 
 

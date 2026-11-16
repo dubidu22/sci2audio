@@ -64,7 +64,7 @@ kind = "FP"
 at = "came from the U.S. | Census Bureau. Prof. Jones"
 class = "abbreviation"
 issue = 477
-why = "kept on purpose: 'U.S.' ends a sentence as often as it stands before a name"
+why = "kept on purpose: 'U.S.' is no abbreviation of the English list, so its full stop ends the sentence; it ends a sentence as often as it stands before a name"
 
 [[error]]
 file = "stress-en"
@@ -104,7 +104,7 @@ kind = "FP"
 at = "Weg entsteht im Gehen.“ | (Lorenz 1974/2004, S. 273)"
 class = "citation"
 issue = 455
-why = "a source in brackets after a quoted sentence is cut off it (shape of #455)"
+why = "a full stop inside the closing quote, then an opening bracket, ends the sentence, so the source is cut off its quotation (shape of #455)"
 
 [[error]]
 file = "stress-de"
@@ -112,4 +112,4 @@ kind = "FN"
 at = "(Lorenz 1974/2004, S. 273) | Danach beginnt der eigentliche"
 class = "citation"
 issue = 455
-why = "after the source's closing bracket no sentence is cut (shape of #455)"
+why = "the source's closing bracket has no full stop after it, so nothing ends the sentence before 'Danach' (shape of #455)"

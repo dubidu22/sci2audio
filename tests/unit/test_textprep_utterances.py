@@ -281,6 +281,9 @@ def test_a_block_of_many_sentences_is_cut_in_linear_time() -> None:
         # a single capital after a maths symbol is a letter, no initial (#141)
         ("Let x \u2208 N. This holds.", ["Let x \u2208 N.", "This holds."]),
         ("Take A \u2282 B. Then C.", ["Take A \u2282 B.", "Then C."]),
+        # ... also when the symbol is glued to the variable before it (#478 review S1)
+        ("Let x= N. This holds.", ["Let x= N.", "This holds."]),
+        ("Let 2x\u2264 N. This holds.", ["Let 2x\u2264 N.", "This holds."]),
         # ... and after a label word of the unit list
         ("See Appendix C. It lists all.", ["See Appendix C.", "It lists all."]),
         ("See Table A. It lists all.", ["See Table A.", "It lists all."]),
@@ -291,6 +294,8 @@ def test_a_block_of_many_sentences_is_cut_in_linear_time() -> None:
         ("1. Introduction", ["1. Introduction"]),
         ("2.1. Methods We used it.", ["2.1. Methods We used it."]),
         ("It ended. 2. Methods follow.", ["It ended.", "2. Methods follow."]),
+        # ... of one to three digits each: a year alone is a sentence of its own
+        ("It ended. 2019. Then more.", ["It ended.", "2019.", "Then more."]),
         # a number after words still ends its sentence
         ("Results. 25 cases followed.", ["Results.", "25 cases followed."]),
         ("The count was 12. Then more.", ["The count was 12.", "Then more."]),
