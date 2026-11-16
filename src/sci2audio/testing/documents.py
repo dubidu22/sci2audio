@@ -19,6 +19,7 @@ from sci2audio.core import (
     TextLine,
     TextRun,
 )
+from sci2audio.textprep import read_over
 
 BlockLike = Block | tuple[BlockKind | str, str]
 
@@ -121,9 +122,12 @@ def rebuilt_from_script(document: Document, script: Sequence[ScriptPiece]) -> Do
 
     Each block's text is its pieces' text joined (line breaks kept); pauses carry no text.
     A label stays while the new text prints it; a caption label a step rewrote becomes what
-    the script reads over its printed words ("Abb. 1" spelled out reads "Abbildung 1",
-    #324); any other label is dropped. The section tree is kept, and so is each block's
-    pictures' alt text, which the script cannot carry (a figure's notice reads it, #191).
+    the script reads over its printed words (`textprep.read_over`: "Abb. 1" spelled out
+    reads "Abbildung 1", #324); any other label is dropped. A placeholder (formula, table,
+    figure, code) comes back as printed, with its label, not as its notice: a notice is made
+    from the printed placeholder and its captions only, so the second run makes it again,
+    however it reads the label ("Formel 3 Punkt 2", D-707). The section tree is kept, and so
+    is each block's pictures' alt text, which the script cannot carry (#191).
     Used to check that running the steps a second time changes nothing more (idempotence).
     """
     pieces: list[list[ScriptPiece]] = [[] for _ in document.blocks]
@@ -136,6 +140,12 @@ def rebuilt_from_script(document: Document, script: Sequence[ScriptPiece]) -> Do
             item.alt for part in block.parts if isinstance(item := items[part.item][1], Picture)
         ]:
             pictures[index] = alts
+        if block.is_placeholder:
+            # a notice is made from the printed placeholder and its captions only, so the
+            # placeholder comes back as printed and the second run makes the same notice
+            # again, however the notice reads its label (D-707)
+            blocks.append(Block(block.kind, block.text, role=block.role, label=block.label))
+            continue
         text = "".join(piece.text for piece in own)
         blocks.append(
             Block(
@@ -172,28 +182,10 @@ def _rebuilt_label(block: Block, pieces: Sequence[ScriptPiece], text: str) -> st
     start = block.text.find(block.label)
     if block.kind is not BlockKind.CAPTION or start < 0:
         return ""
-    label = _mapped(block.text, pieces, start, start + len(block.label))
+    label = read_over(block.text, pieces, start, start + len(block.label))
     # defensive: `Block` raises on a label that is untrimmed, more than one line or not in
     # the text; such a mapped label is dropped instead (mapped pieces run in script order,
     # so their text is in the new text)
     if label and label == label.strip() and len(label.splitlines()) == 1 and label in text:
         return label
     return ""
-
-
-def _mapped(printed: str, pieces: Sequence[ScriptPiece], start: int, end: int) -> str | None:
-    """What the script reads over characters `start` to `end` of the printed text, or None
-    if a replacement runs past either edge. A pause adds nothing: it has no text and an
-    empty span, so it reads as kept and empty."""
-    read = []
-    for piece in pieces:
-        span = piece.span
-        if span.end <= start or span.start >= end:
-            continue
-        if piece.text == printed[span.start : span.end]:  # kept as printed
-            read.append(printed[max(start, span.start) : min(end, span.end)])
-        elif start <= span.start and span.end <= end:
-            read.append(piece.text)
-        else:
-            return None
-    return "".join(read)

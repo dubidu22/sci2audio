@@ -12,7 +12,7 @@ from textprep_documents import rule_documents
 
 from sci2audio.app.chapters import REFERENCE_NAMES as APP_REFERENCE_NAMES
 from sci2audio.app.chapters import is_reference_title as app_is_reference_title
-from sci2audio.core import Block, BlockKind, Document, EditKind, Section, Span
+from sci2audio.core import Block, BlockKind, Document, EditKind, ScriptPiece, Section, Span
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
 from sci2audio.textprep import (
     DEFAULT_SWITCHED_OFF,
@@ -25,6 +25,7 @@ from sci2audio.textprep import (
     StepContext,
     TableFigureNoticeStep,
     is_reference_title,
+    read_over,
     run_steps,
     spoken_text,
     wording_for,
@@ -141,6 +142,49 @@ def test_switching_a_category_off_reads_the_placeholder_as_printed() -> None:
         "Formula 1 is skipped.",
     ]
     assert read(document, switched_off={Category.FORMULAS}) == ["A table is skipped.", "x (1)"]
+
+
+@pytest.mark.parametrize(
+    ("language", "caption", "label", "off", "notice"),
+    [
+        # the label read as the inline steps read the caption, with the job's switches (D-707)
+        ("en", "Figs. 1\u20133: Values.", "Figs. 1\u20133", (), "Figures 1 to 3 is skipped."),
+        (
+            "en",
+            "Figs. 1\u20133: Values.",
+            "Figs. 1\u20133",
+            (Category.NUMBERS_AND_UNITS,),
+            "Figures 1\u20133 is skipped.",
+        ),
+        (
+            "en",
+            "Figs. 1\u20133: Values.",
+            "Figs. 1\u20133",
+            (Category.ABBREVIATIONS,),
+            "Figures 1 to 3 is skipped.",
+        ),
+        ("de", "Tab. 3x: Werte.", "Tab. 3x", (), "Tabelle 3 mal wird übersprungen."),
+        (
+            "de",
+            "Tab. 3x: Werte.",
+            "Tab. 3x",
+            (Category.NUMBERS_AND_UNITS,),
+            "Tabelle 3x wird übersprungen.",
+        ),
+        ("de", "Abb. 3/4: Verlauf der Werte.", "Abb. 3/4", (), "Abbildung 3/4 wird übersprungen."),
+    ],
+)
+def test_a_notice_reads_the_label_as_the_caption_reads_it(
+    language: str, caption: str, label: str, off: tuple, notice: str
+) -> None:
+    document = make_document(
+        [(BlockKind.FIGURE, "0 1"), Block(BlockKind.CAPTION, caption, describes=0, label=label)],
+        language,
+    )
+    first = read(document, switched_off=set(off))
+    assert first[0] == notice
+    run = run_steps(document, StepContext(language), switched_off=set(off), strict=True)
+    assert read(rebuilt_from_script(document, run.script()), switched_off=set(off)) == first
 
 
 def test_the_wording_lives_in_one_table_and_british_english_uses_it() -> None:
@@ -656,11 +700,37 @@ def test_an_english_dotted_label_is_read_as_printed() -> None:
     assert wording_for("en").label("Table 2.1") == "Table 2.1"
 
 
-def test_a_german_formula_label_keeps_its_point() -> None:
-    """D-615: formula labels stay as printed until the rebuild rule of #362 is decided."""
+@pytest.mark.parametrize(
+    ("pieces", "start", "end", "read"),
+    [
+        ([("Fig. 3: x", 0, 9)], 0, 6, "Fig. 3"),  # kept as printed
+        ([("Figure", 0, 4), (" 3: x", 4, 9)], 0, 6, "Figure 3"),  # a replacement inside
+        ([("Fig. three: x", 0, 9)], 0, 6, None),  # a replacement runs past the end
+        ([("Fig", 0, 3), ("ure 3", 3, 6), (": x", 6, 9)], 4, 6, None),  # past the start
+        ([("X", 0, 2), (" cd", 2, 5)], 2, 5, " cd"),  # a replacement ending at the start
+        ([("ab", 0, 2), ("Y", 2, 5)], 0, 2, "ab"),  # a replacement starting at the end
+        ([("ab", 0, 2), ("", 2, 2), (" cd", 2, 5)], 0, 5, "ab cd"),  # a pause adds nothing
+    ],
+)
+def test_read_over_maps_a_printed_span_through_the_script(
+    pieces: list[tuple[str, int, int]], start: int, end: int, read: str | None
+) -> None:
+    """The one rule the notices and the second-run check map a label by (D-707)."""
+    printed = "Fig. 3: x" if pieces[0][0].startswith("Fig") else "ab cd"
+    script = [ScriptPiece(text, Span(0, a, b)) for text, a, b in pieces]
+    assert read_over(printed, script, start, end) == read
+
+
+def test_a_german_formula_label_is_read_in_its_notice() -> None:
+    """D-615 kept formula labels as printed until the rebuild rule of #362 was decided; with
+    placeholders rebuilt as printed (D-707) the notice reads its name as the German chain
+    reads it there, on both runs."""
     document = make_document([Block(BlockKind.FORMULA, "x = y (3.2)", label="3.2")], "de")
     run = run_steps(document, StepContext("de"), strict=True)
-    assert spoken_text(run.script()) == "Formel 3.2 wird übersprungen."
+    assert spoken_text(run.script()) == "Formel 3 Punkt 2 wird übersprungen."
+    rebuilt = rebuilt_from_script(document, run.script())
+    again = run_steps(rebuilt, StepContext("de"), strict=True)
+    assert spoken_text(again.script()) == "Formel 3 Punkt 2 wird übersprungen."
 
 
 # ---- a figure read by its alt text (#191, D-692) -----------------------------------------

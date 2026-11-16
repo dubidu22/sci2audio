@@ -95,6 +95,29 @@ def test_the_suite_catches_each_kind_of_bad_step(how: str, problem: str) -> None
     assert any(problem in found for found in caught.value.problems), caught.value.problems
 
 
+class InsidePlaceholder(TextStep):
+    """An inline step that edits inside a placeholder block, which only a whole-block edit
+    may do: a second run rebuilds placeholders as printed (D-707), so the suite would never
+    see such an edit on its own output."""
+
+    id = "inside-placeholder"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.INLINE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [
+            Edit(Span(index, 0, 1), EditKind.REMOVE, "r", self.id)
+            for index, block in enumerate(document.blocks)
+            if block.is_placeholder and len(block.text) > 1
+        ]
+
+
+def test_an_edit_inside_a_placeholder_must_cover_the_whole_block() -> None:
+    problems = text_step_problems(InsidePlaceholder())
+    assert any("inside a placeholder" in problem for problem in problems), problems
+
+
 def test_a_block_step_must_cover_whole_blocks() -> None:
     step = Bad("partial block")
     step.stage = Stage.BLOCK

@@ -88,17 +88,38 @@ def test_a_label_partly_removed_keeps_what_is_read() -> None:
     assert (rebuilt.blocks[1].text, rebuilt.blocks[1].label) == ("Figure. Response.", "Figure")
 
 
-def test_a_placeholder_label_is_not_mapped_into_its_notice() -> None:
-    """A notice replaces a placeholder's whole text: its label stays as printed if the
-    notice prints it and is never the notice itself (nightly seed 555 of the runner's
-    idempotence property)."""
+@pytest.mark.parametrize(
+    "kind", [BlockKind.FORMULA, BlockKind.TABLE, BlockKind.FIGURE, BlockKind.CODE]
+)
+def test_a_placeholder_comes_back_as_printed_with_its_label(kind: BlockKind) -> None:
+    """A notice is made from the printed placeholder and its captions only, so the second
+    run rebuilds the placeholder as printed and makes the same notice again (D-707), however
+    the notice reads the label ("Formel 3 Punkt 2", #362)."""
+    label = "3.2" if kind is BlockKind.FORMULA else ""  # only a formula carries its own
+    document = make_document([Block(kind, "a = b (3.2)", label=label)], "de")
+    first = run_steps(document, StepContext("de"), strict=True)
+    rebuilt = rebuilt_from_script(document, first.script())
+    assert (rebuilt.blocks[0].text, rebuilt.blocks[0].label) == ("a = b (3.2)", label)
+    assert _read(rebuilt) == _read(document)
+
+
+def test_a_placeholder_keeps_its_pictures_and_their_alt_text() -> None:
+    document = make_document([Block(BlockKind.FIGURE, "")], pictures={0: ["A bar chart."]})
+    script = [ScriptPiece("A figure is skipped. It shows: A bar chart.", Span(0, 0, 0))]
+    rebuilt = rebuilt_from_script(document, script)
+    assert [part.item for part in rebuilt.blocks[0].parts] == [
+        part.item for part in document.blocks[0].parts
+    ]
+    assert _read(rebuilt) == _read(document) == ["A figure is skipped. It shows: A bar chart."]
+
+
+def test_a_formula_notice_names_its_number_on_the_second_run_too() -> None:
+    """nightly seed 555 of the runner's idempotence property: a formula labelled "0"."""
     document = make_document([Block(BlockKind.FORMULA, "0", label="0")])
     first = run_steps(document, StepContext("en"), strict=True)
     rebuilt = rebuilt_from_script(document, first.script())
-    assert (rebuilt.blocks[0].text, rebuilt.blocks[0].label) == ("Formula 0 is skipped.", "0")
+    assert (rebuilt.blocks[0].text, rebuilt.blocks[0].label) == ("0", "0")
     assert _read(rebuilt) == _read(document) == ["Formula 0 is skipped."]
-    script = [ScriptPiece("A formula is skipped.", Span(0, 0, 1))]
-    assert rebuilt_from_script(document, script).blocks[0].label == ""
 
 
 @pytest.mark.parametrize(

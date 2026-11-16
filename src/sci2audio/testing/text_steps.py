@@ -314,6 +314,16 @@ def _edit_problems(
             problems.append(f"only a move step proposes moves, got one at {edit.span}")
         elif edit.kind is not EditKind.MOVE and step.stage is Stage.MOVE:
             problems.append(f"a move step proposes only moves, got a {edit.kind} edit")
+        block = document.blocks[edit.span.block]
+        if (
+            edit.kind is not EditKind.MOVE
+            and block.is_placeholder
+            and (edit.span.start, edit.span.end) != (0, len(block.text))
+        ):
+            problems.append(
+                f"an edit at {edit.span} is inside a placeholder; "
+                "only an edit of the whole block may change one (D-707)"
+            )
     if step.stage is Stage.BLOCK:
         for edit in ordered:
             length = len(document.blocks[edit.span.block].text)
