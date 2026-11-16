@@ -17,7 +17,10 @@ from typing import Any
 import pytest
 from long_book import CHAPTERS, PAGES, PARAGRAPHS, long_book
 from test_web_player import make, readalong, record, server, work_of
-from web_helpers import offline  # noqa: F401 - fixture
+from web_helpers import (
+    events,
+    offline,  # noqa: F401 - fixture
+)
 
 from sci2audio import __version__
 from sci2audio.core import Document, Edit, EditKind, Section, Span
@@ -322,3 +325,33 @@ def test_the_sentence_is_announced_only_when_switched_on(tmp_path: Path) -> None
         on = page_of(client, doc, announce="on")
         assert '<p id="reading" class="visually-hidden" aria-live="polite"></p>' in on
         assert 'data-announce="on"' in on
+
+
+def test_the_marks_stay_in_the_audiobooks_language_after_a_new_analysis(tmp_path: Path) -> None:
+    """Review S1 of #444: the run behind the marks is rebuilt from `document.json`, which
+    only the audio job writes, beside `audio.json` and from the same document. An analysis
+    in another language afterwards changes neither, so the marks stay those of the audio."""
+    from test_layout_language import german_pdf
+
+    client, config = server(tmp_path)
+    with client:
+        doc = make(client, german_pdf(), "studie.pdf", language="en")["doc"]["id"]
+        work = work_of(config, doc)
+        before = {name: (work / name).read_bytes() for name in ("audio.json", "document.json")}
+        assert json.loads(before["document.json"])["language"] == "en"
+        page = page_of(client, doc)
+        body = {"kind": "script", "document": doc, "settings": {"language": ""}}
+        job = client.post("/api/v1/jobs", json=body).json()
+        final = json.loads(events(client, job["id"])[-1][1])
+        assert final["state"] == "done", final
+        report = client.get(f"/api/v1/documents/{doc}/report").json()
+        assert report["language"].startswith("de")  # the analysis is German now
+        after = {name: (work / name).read_bytes() for name in before}
+        assert after == before
+        # the text, its marks and the Changes panel are those of the English audio
+        again = page_of(client, doc)
+        assert (
+            again.split('id="text"')[1].split("</main>")[0]
+            == page.split('id="text"')[1].split("</main>")[0]
+        )
+        assert 'id="marks-note"' not in again

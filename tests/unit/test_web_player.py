@@ -571,7 +571,8 @@ def test_the_listen_page_after_an_audio_job(tmp_path: Path) -> None:
     # the citation the voice left out is struck in its sentence (#392, D-704b)
     sentence = (
         r'<span class="s" id="s\d+" data-chunk="\d+">'
-        r'Things happen<s class="cut"> \(Smith, 2020\)</s> and more\.'
+        r'Things happen<s class="cut"> \(Smith, 2020\)</s>'
+        r'<span class="visually-hidden"> \(not read\)</span> and more\.'
     )
     assert re.search(sentence + "</span>", text)
     # the other pages link here

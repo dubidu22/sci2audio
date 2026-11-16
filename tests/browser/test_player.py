@@ -82,7 +82,9 @@ def watch_status(page: Page) -> None:
 def test_the_highlight_follows_the_voice_into_the_next_chapter(signed_in: Page, live: Live) -> None:
     page = signed_in
     make_audiobook(page, live)
-    expect(page.locator("#text")).to_contain_text("Things happen (Smith, 2020) and more.")
+    expect(page.locator("#text")).to_contain_text(
+        "Things happen (Smith, 2020) (not read) and more."
+    )  # #444 N2
     expect(page.locator("#text")).not_to_contain_text("A book about things")  # not chosen
     expect(page.get_by_text("Not in this audiobook: References")).to_be_visible()
     expect(page.get_by_text(re.compile("read by a synthetic voice"))).to_be_visible()

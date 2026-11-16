@@ -9,7 +9,7 @@
 {% macro parts(piece) -%}
 {%- if piece.parts -%}
 {%- for part in piece.parts -%}
-{%- if part.mark == 'cut' -%}<s class="cut">{{ part.text }}</s>
+{%- if part.mark == 'cut' -%}<s class="cut">{{ part.text }}</s><span class="visually-hidden"> {{ t('listen.cut_hidden') }}</span>
 {%- elif part.mark == 'said' -%}<span class="said" title="{{ t('listen.said_as', said=part.said) }}">{{ part.text }}</span><span class="visually-hidden"> {{ t('listen.said_as_hidden', said=part.said) }}</span>
 {%- else -%}{{ part.text }}{%- endif -%}
 {%- endfor -%}
@@ -58,7 +58,7 @@
   </div>
   <div class="timeline">
     <svg class="ticks" aria-hidden="true" focusable="false">{% for chapter in outline %}{% if not loop.first %}<line x1="{{ chapter.at }}" x2="{{ chapter.at }}" y1="0" y2="8"></line>{% endif %}{% endfor %}</svg>
-    <input type="range" id="timeline" min="0" max="{{ view.duration }}" step="5" value="0" aria-label="{{ t('listen.timeline') }}" aria-valuetext="{{ t('player.time_of', time='0:00', total=total) }}" disabled>
+    <input type="range" id="timeline" min="0" max="{{ view.duration }}" step="any" value="0" aria-label="{{ t('listen.timeline') }}" aria-valuetext="{{ t('player.time_of', time='0:00', total=total) }}" disabled>
   </div>
   <p class="nowplaying">
     <b{% if head.titled %} lang="{{ view.language }}"{% endif %}>{{ head.title }}</b>

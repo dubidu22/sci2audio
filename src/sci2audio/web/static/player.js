@@ -347,9 +347,10 @@ function readAlong() {
     clock.textContent = tr("player.time_of", { time: clockOf(time), total });
     timeline.style.setProperty("--fill", `${(time / Number(timeline.max)) * 100}%`);
   });
-  timeline.addEventListener("change", () => {
+  function moveTo(to) {
     dragging = false;
-    const time = Math.min(Math.max(Number(timeline.value), 0), Number(timeline.max));
+    const time = Math.min(Math.max(to, 0), Number(timeline.max));
+    timeline.value = String(time);
     const c = chapterAt(time);
     following = true;
     back.hidden = true;
@@ -358,6 +359,19 @@ function readAlong() {
     reveal(marked);
     keep(c, time);
     showTime(time, true);
+  }
+  timeline.addEventListener("change", () => moveTo(Number(timeline.value)));
+  // the keys move 5 s (30 s by page), and Home and End reach both ends: the slider takes
+  // any time, so the voice's own time and the book's end are never rounded to a step
+  timeline.addEventListener("keydown", (event) => {
+    const by = { ArrowRight: 5, ArrowUp: 5, ArrowLeft: -5, ArrowDown: -5, PageUp: 30, PageDown: -30 };
+    let to = null;
+    if (event.key in by) to = Number(timeline.value) + by[event.key];
+    else if (event.key === "Home") to = 0;
+    else if (event.key === "End") to = Number(timeline.max);
+    if (to === null || event.altKey || event.ctrlKey || event.metaKey) return;
+    event.preventDefault();
+    moveTo(to);
   });
 
   // a click (or a screen reader's Enter) on a sentence plays from it (D-298)
@@ -519,7 +533,8 @@ function readAlong() {
 
 // ---- the context panel (#393): Changes and Chapters ----------------------------------------
 // Beside the desk from 1280 px, where its button hides and shows it; below, it opens over
-// the page, takes the focus, and Esc or its button closes it and gives the focus back.
+// the page, takes the focus, and Esc or its button closes it and gives the focus back. The
+// focus never reaches what it covers: when the focus leaves it, it closes (#444 review S2).
 function contextPanel() {
   const listen = document.getElementById("listen");
   const panel = document.getElementById("context");
@@ -555,6 +570,13 @@ function contextPanel() {
 
   toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") !== "true"));
   close.addEventListener("click", () => set(false));
+  // over the page the panel covers its own button, so the focus leaves it only by the keys
+  // or to elsewhere: it closes, and the focus stays where it went
+  panel.addEventListener("focusout", (event) => {
+    if (wide.matches || !narrowOpen || panel.contains(event.relatedTarget)) return;
+    narrowOpen = false;
+    show();
+  });
   panel.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !wide.matches && narrowOpen) {
       event.preventDefault();

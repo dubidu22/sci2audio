@@ -299,6 +299,7 @@ other_version = "Dieses Hörbuch wurde aus einer anderen Fassung der Datei erste
 notice = "Gesprochener Hinweis:"  # eine Tabelle, Abbildung, Formel oder ein Codeblock, den die Stimme mit einem Hinweis überspringt
 said_as = "Gelesen als „{said}“"  # Text, den die Stimme anders gelesen hat, als Tooltip (#392)
 said_as_hidden = "(gelesen als „{said}“)"  # dasselbe für Screenreader
+cut_hidden = "(nicht gelesen)"  # eine Streichung, für Screenreader: <s> wird nicht angesagt
 unmarked = "Erstellt mit sci2audio {version}: Die Änderungen sind hier nicht im Text markiert, weil diese Version von sci2audio sie anders vornehmen kann."  # D-704b
 unmarked_link = "Erstellen Sie das Hörbuch neu, um sie zu sehen."
 timeline = "Position im Hörbuch"

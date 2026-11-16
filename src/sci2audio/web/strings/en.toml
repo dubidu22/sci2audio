@@ -294,6 +294,7 @@ other_version = "This audiobook was made from another version of the file. Make 
 notice = "Spoken notice:"  # a table, figure, formula or code block the voice skips with a notice
 said_as = "Read as “{said}”"  # text the voice read differently, as a tooltip (#392)
 said_as_hidden = "(read as “{said}”)"  # the same, for screen readers
+cut_hidden = "(not read)"  # a cut, for screen readers: <s> is not announced (#444 review N2)
 unmarked = "Made with sci2audio {version}: the changes are not marked on the text here, because this version of sci2audio may make them differently."  # D-704b
 unmarked_link = "Make the audiobook again to see them."
 timeline = "Position in the audiobook"

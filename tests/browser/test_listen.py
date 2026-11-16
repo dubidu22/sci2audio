@@ -200,6 +200,48 @@ def test_the_panel_beside_the_desk_and_over_it(signed_in: Page, live: Live) -> N
     page.set_viewport_size({"width": 1280, "height": 720})
 
 
+def uncovered(page: Page) -> bool:
+    """True when nothing is drawn over the middle of the focused element."""
+    return bool(
+        page.evaluate(
+            """() => {
+                const e = document.activeElement;
+                const r = e.getBoundingClientRect();
+                e.scrollIntoView({ block: "center" });
+                const s = e.getBoundingClientRect();
+                const hit = document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2);
+                return r.width > 0 && !!hit && (hit === e || e.contains(hit));
+            }"""
+        )
+    )
+
+
+def test_below_1280_px_the_focus_never_goes_under_the_panel(signed_in: Page, live: Live) -> None:
+    """#444 review S2 (WCAG 2.4.11): the open panel closes when the focus leaves it, by Tab
+    past its last control or Shift+Tab before its first, and the focus stays where it went."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.set_viewport_size({"width": 1024, "height": 768})
+    panel = page.locator("#context")
+    toggle = page.locator("#panel-toggle")
+    toggle.click()
+    expect(panel).to_be_visible()
+    page.locator("#follow").focus()
+    expect(panel).to_be_visible()
+    page.keyboard.press("Tab")  # past its last control
+    expect(panel).to_be_hidden()
+    expect(page.locator("#follow")).not_to_be_focused()
+    assert uncovered(page)
+    toggle.click()
+    expect(page.locator("#tab-outline")).to_be_focused()
+    page.keyboard.press("Shift+Tab")  # before its first: the toggle it covered
+    expect(panel).to_be_hidden()
+    expect(toggle).to_be_focused()
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    assert uncovered(page)
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
 def test_the_timeline_moves_the_reading_by_keyboard(signed_in: Page, live: Live) -> None:
     page = signed_in
     make_audiobook(page, live)
@@ -218,6 +260,52 @@ def test_the_timeline_moves_the_reading_by_keyboard(signed_in: Page, live: Live)
     expect(timeline).to_have_attribute("aria-valuetext", re.compile(r"^0:10 of 0:\d\d$"))
     expect(page.locator("#clock")).to_have_text(re.compile(r"^0:10 of 0:\d\d$"))
     expect(timeline).to_be_focused()
+
+
+def test_a_jump_ahead_while_playing_leaves_no_tint(signed_in: Page, live: Live) -> None:
+    """#444 review S4 (a): only a sentence the voice read through in order keeps the tint;
+    one left by a jump of two or more sentences while playing does not."""
+    page = signed_in
+    make_audiobook(page, live)
+    left = chunk_id(page, "Things happen")
+    page.locator(f"#{left}").click()
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    expect(page.locator(NOW)).to_have_id(left)
+    target = chunk_id(page, "We measured it twice.")
+    assert target != left
+    page.locator(f"#{target}").click()
+    expect(page.locator(NOW)).to_have_id(target)
+    page.wait_for_function("() => !document.getElementById('audio').paused")  # its chapter's file
+    expect(page.locator(f"#{left}")).not_to_have_class(re.compile(r"\bdone\b"))
+    expect(page.locator("#text .s.done")).to_have_count(0)
+
+
+def test_a_timeline_move_saves_the_position_and_reaches_the_end(
+    signed_in: Page, live: Live
+) -> None:
+    """#444 review S4 (b) and N1: a move on the timeline is saved like every move (#153);
+    End reaches the book's end, which a 5 s step could not."""
+    page = signed_in
+    make_audiobook(page, live)
+    timeline = page.get_by_role("slider", name="Position in the audiobook")
+    timeline.focus()
+    with page.expect_request(
+        lambda request: request.url.endswith("/position") and request.method == "POST"
+    ) as saved:
+        page.keyboard.press("ArrowRight")
+    assert json.loads(saved.value.post_data or "{}")["time"] == 5
+    end = float(timeline.get_attribute("max") or 0)
+    assert end % 5, end  # not a multiple of the old step
+    with page.expect_request(
+        lambda request: request.url.endswith("/position") and request.method == "POST"
+    ) as saved:
+        page.keyboard.press("End")
+    assert json.loads(saved.value.post_data or "{}")["time"] == end
+    assert float(timeline.input_value()) == end
+    total = page.locator("#clock").inner_text().split(" of ")[1]
+    expect(page.locator("#clock")).to_have_text(f"{total} of {total}")
+    page.keyboard.press("Home")
+    page.wait_for_function("() => document.getElementById('timeline').value === '0'")
 
 
 def test_every_button_waits_for_the_script(signed_in: Page, live: Live) -> None:
