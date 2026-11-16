@@ -219,7 +219,7 @@ def _report(state: ServerState, document_id: str) -> dict[str, Any]:
     document = _document(state, document_id)
     try:
         data = json.loads(document.report_file.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, RecursionError) as error:
         raise ApiError(
             404, "no-report", f"{document.name} has no pre-analysis yet; start a script job"
         ) from error

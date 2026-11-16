@@ -66,10 +66,15 @@ def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any
     index = client.get("/")
     assert index.status_code == 200
     assert index.headers["content-type"].startswith("text/html")
-    assert "<h1>Open a document</h1>" in index.text
-    assert "No document opened yet." in index.text
-    assert "The voice is not installed yet." in index.text
-    assert 'href="/voice"' in index.text
+    assert "<h1>Library</h1>" in index.text
+    assert "0 documents on this computer" in index.text
+    assert "Your library is empty" in index.text  # the empty panel with its specimen (#389)
+    assert '<span class="cut">(Smith et al., 2020)</span>' in index.text
+    assert "The voice isn\N{RIGHT SINGLE QUOTATION MARK}t installed yet." in index.text
+    size = strings("en").size(download_plan(["en"]).total_bytes)
+    assert f"download a voice once (about {size} for English)" in index.text
+    assert 'href="/voice">Set up the voice</a>' in index.text
+    assert 'id="documents"' not in index.text  # no table while there is nothing to list
     assert 'accept=".epub,.markdown,.md,.pdf,.txt"' in index.text
     assert "sci2audio reads EPUB, MARKDOWN, MD, PDF, TXT files" in index.text
     assert 'id="open-text"' in index.text  # text files are read, so pasted text is (#74)
@@ -77,7 +82,11 @@ def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any
     page = client.get("/").text
     assert "a &amp;amp; b &#39;x&#39;.pdf" in page
     assert f'href="/documents/{doc["id"]}"' in page
-    assert f"({strings('en').size(doc['size'])}, not analysed yet)" in page
+    assert "1 document on this computer" in page
+    row = page.split(f'<tr id="row-{doc["id"]}"')[1].split("</tr>")[0]
+    assert '<span class="chip idle" data-state="new">' in row
+    assert "Not analysed yet" in row
+    assert 'id="no-documents" aria-labelledby="empty-h" hidden' in page
 
 
 def test_the_paste_box_appears_once_text_files_are_read(
@@ -221,7 +230,10 @@ def test_a_german_text_starts_with_the_german_voice(
     assert 'data-blocked=""' in english
     assert re.search(r'<option value="af_heart" data-language="en-US" selected>', english)
     assert "This is how this voice reads your text." in english
-    assert "Not every voice is installed yet. Missing: German." in client.get("/").text
+    assert (
+        "<strong>Not every voice is installed yet.</strong> Missing: German."
+        in client.get("/").text
+    )
 
 
 def test_the_document_page_says_where_the_language_came_from(

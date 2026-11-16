@@ -368,6 +368,12 @@ function readAlong() {
     for (const id of ["resume-continue", "resume-start"]) {
       document.getElementById(id).disabled = false;
     }
+    // "Continue listening" on the rail's shelf (#389, D-664) comes as #continue: the offer is
+    // taken at once, so the page opens at the saved time, paused as ever (D-300)
+    if (location.hash === "#continue") {
+      history.replaceState(null, "", location.pathname + location.search);
+      document.getElementById("resume-continue").click();
+    }
   }
 }
 

@@ -62,7 +62,7 @@ def update(page: Page) -> None:
 
 def test_the_main_flow(signed_in: Page, live: Live) -> None:
     page = signed_in
-    expect(page.get_by_role("heading", level=1)).to_have_text("Open a document")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Library")
     check_axe(page, "start page, nothing opened")
 
     document = open_paper(page, live)

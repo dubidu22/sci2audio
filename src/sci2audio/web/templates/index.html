@@ -1,53 +1,108 @@
 {% extends "base.html" %}
 {% from "_remove.html" import remove_box with context %}
+{% from "_icons.html" import icon %}
+{#- The library (#389, DESIGN.md "Library"): the opener, then every document in one table. -#}
+{% block title %}{{ t('library.title') }} · {{ t('common.app') }}{% endblock %}
 {% block main %}
-<h1>{{ t('home.title') }}</h1>
-<p>{{ t('home.intro') }}</p>
-<form id="open-file" class="stack" data-api="/api/v1/documents">
-  <label for="file">{{ t('home.file_label') }}</label>
-  <p class="hint" id="file-hint">{{ t('home.file_hint', types=types, limit=limit) }}</p>
-  <input id="file" name="file" type="file" accept="{{ accept }}" aria-describedby="file-hint" required>
-  <p><button type="submit">{{ t('home.open') }}</button></p>
-</form>
-{% if paste %}
-<form id="open-text" class="stack" data-api="/api/v1/documents/text">
-  <label for="text">{{ t('home.text_label') }}</label>
-  <textarea id="text" name="text" rows="6" required></textarea>
-  <label for="text-name">{{ t('home.text_name') }}</label>
-  <input id="text-name" name="name" value="{{ t('home.text_name_default') }}">
-  <p><button type="submit">{{ t('home.open_text') }}</button></p>
-</form>
+<header class="view-head">
+  <h1>{{ t('library.title') }}</h1>
+  <p class="sub" id="library-count">{{ t('library.sub', n=rows|length) }}</p>
+</header>
+{% if not voice_installed %}
+<div class="callout warn" id="voice-notice">
+  {{ icon('alert', 'l') }}
+  <div>
+    {% if voice_partly %}
+    <p><strong>{{ t('library.partly_title') }}</strong> {{ t('library.partly_body', languages=voice_partly) }}</p>
+    {% else %}
+    <p><strong>{{ t('library.notice_title') }}</strong> {{ t('library.notice_body', size=voice_size) }}</p>
+    {% endif %}
+  </div>
+  <a class="btn" href="/voice">{{ t('library.notice_cta') }}</a>
+</div>
 {% endif %}
+
+<section class="opener" aria-labelledby="open-h">
+  <form id="open-file" class="drop" data-api="/api/v1/documents">
+    <span class="slot" aria-hidden="true">{{ icon('open', 'l') }}</span>
+    <div class="drop-text">
+      <h2 id="open-h">{{ t('library.open_title') }}</h2>
+      <p class="hint" id="file-hint">{{ t('library.open_hint', types=types, limit=limit) }}</p>
+      <input id="file" name="file" type="file" accept="{{ accept }}" aria-labelledby="open-h" aria-describedby="file-hint" required>
+    </div>
+    <button type="submit" class="primary">{{ t('library.open') }}</button>
+  </form>
+  {% if paste %}
+  <details class="paste">
+    <summary>{{ icon('text') }}<span>{{ t('library.paste') }}</span>{{ icon('chev', 's') }}</summary>
+    <form id="open-text" class="stack" data-api="/api/v1/documents/text">
+      <label for="text">{{ t('library.paste_text') }}</label>
+      <textarea id="text" name="text" rows="5" required></textarea>
+      <label for="text-name">{{ t('library.paste_name') }}</label>
+      <input id="text-name" name="name" value="{{ t('library.paste_name_default') }}">
+      <p><button type="submit">{{ t('library.paste_open') }}</button></p>
+    </form>
+  </details>
+  {% endif %}
+</section>
 <p id="message" class="message" role="status" tabindex="-1"></p>
 
-<h2>{{ t('home.documents') }}</h2>
-{% if documents %}
-<ul class="documents" id="documents">
-  {% for document in documents %}
-  <li><a href="/documents/{{ document.id }}">{{ document.name }}</a>
-    <span class="hint">({{ size_text(document.size) }}, {{ t('home.analysed') if document.report_file.is_file() else t('home.not_analysed') }}{% if document.has_audio %}, {{ t('home.audio_made') }}{% endif %})</span>{% if document.has_audio %} <a href="/documents/{{ document.id }}/listen">{{ t('home.listen', name=document.name) }}</a>{% endif %}
-    {{ remove_box(document, removals[document.id], document.id == busy_document, true) }}</li>
-  {% endfor %}
-</ul>
+{% if rows %}
+<div class="scroll papers-region" id="library" role="region" aria-labelledby="library-caption" tabindex="0">
+<table class="papers" id="documents">
+  <caption id="library-caption" class="visually-hidden">{{ t('library.caption') }}</caption>
+  <thead>
+    <tr>
+      <td class="thumb-cell"></td>
+      <th scope="col">{{ t('library.col_document') }}</th>
+      <th scope="col">{{ t('library.col_state') }}</th>
+      <th scope="col">{{ t('library.col_listened') }}</th>
+      <th scope="col" class="when">{{ t('library.col_opened') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr id="row-{{ row.id }}" data-document="{{ row.id }}">
+      <td class="thumb-cell"><span class="thumb {{ row.kind }}" aria-hidden="true"><i></i><i></i><i></i><i class="w70"></i><i></i><i class="w85"></i></span></td>
+      <td class="paper">
+        <a class="title" href="{{ row.href }}">{{ row.title }}</a>
+        {% if row.meta %}<span class="meta">{{ row.meta }}</span>{% endif %}
+        {% if row.document %}{{ remove_box(row.document, removals[row.id], row.id == busy_document, true) }}{% endif %}
+      </td>
+      <td><span class="chip {{ row.chip[0] }}" data-state="{{ row.state }}">{{ icon(row.chip[1], 's') }}{{ t('library.state_' ~ row.state) }}</span></td>
+      <td class="progress">
+        {% if row.made is not none %}
+        <progress class="meter made" max="100" value="{{ row.made }}" aria-hidden="true"></progress>
+        <small>{{ t('library.made', n=row.made) }}</small>
+        {% elif row.audio %}
+        <progress class="meter listened" max="100" value="{{ row.listened or 0 }}" aria-hidden="true"></progress>
+        <small>{% if row.listened %}{{ t('library.listened', n=row.listened) }}{% else %}{{ t('library.not_started') }}{% endif %}</small>
+        {% else %}
+        <small><span aria-hidden="true">—</span><span class="visually-hidden">{{ t('library.no_audio') }}</span></small>
+        {% endif %}
+      </td>
+      <td class="when">{{ row.opened }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
 {% endif %}
-<p id="no-documents"{% if documents %} hidden{% endif %}>{{ t('home.no_documents') }}</p>
-{% if outside %}
-
-<h2>{{ t('home.outside') }}</h2>
-<ul class="documents" id="outside">
-  {% for job in outside %}
-  <li><a href="/documents/{{ job.id }}/listen">{{ t('home.listen', name=job.name) }}</a>
-    <span class="hint">({{ t('home.outside_hint', folder=job.folder) }})</span></li>
-  {% endfor %}
-</ul>
-{% endif %}
-
-<h2>{{ t('home.voice') }}</h2>
-{% if voice_installed %}
-<p>{{ t('home.voice_installed') }}</p>
-{% elif voice_partly %}
-<p>{{ t('home.voice_partly', languages=voice_partly) }} <a href="/voice">{{ t('home.voice_setup') }}</a></p>
-{% else %}
-<p>{{ t('home.voice_missing') }} <a href="/voice">{{ t('home.voice_setup') }}</a></p>
-{% endif %}
+<section class="empty" id="no-documents" aria-labelledby="empty-h"{% if rows %} hidden{% endif %}>
+  <div>
+    <h2 id="empty-h">{{ t('library.empty_title') }}</h2>
+    <p>{{ t('library.empty_body') }}</p>
+  </div>
+  {#- the design repository's own made-up sentence, in the interface's language -#}
+  <div class="specimen" lang="{{ t('common.language') }}">
+    <figure>
+      <figcaption>{{ t('library.printed') }}</figcaption>
+      <p>{{ t('library.specimen_a') }} <span class="cut">{{ t('library.specimen_cite') }}</span>{{ t('library.specimen_b') }} <span class="cut">{{ t('library.specimen_stat') }}</span>{{ t('library.specimen_c') }}</p>
+    </figure>
+    <figure>
+      <figcaption>{{ t('library.read') }}</figcaption>
+      <p>{{ t('library.specimen_read') }}</p>
+    </figure>
+  </div>
+</section>
 {% endblock %}
