@@ -341,6 +341,7 @@ table.papers { width: 100%; margin: 0; border: 0; min-width: 640px; }
 .papers .title:hover { text-decoration: underline; }
 .papers .meta { display: block; color: var(--pencil); font-size: 13.5px; margin-top: 3px; }
 .papers .remove { margin: 6px 0 0; font-size: 13.5px; }
+.papers .remove summary { margin-left: -10px; }
 .papers .chip { white-space: nowrap; }
 .papers .progress { min-width: 140px; }
 .papers .progress small { display: block; color: var(--pencil); font-size: 13px; margin-top: 6px; white-space: nowrap; }
@@ -364,6 +365,38 @@ table.papers { width: 100%; margin: 0; border: 0; min-width: 640px; }
 .specimen figcaption { font-size: 13px; font-weight: 700; color: var(--pencil); margin-bottom: 6px; }
 .view .specimen p { font: 400 16px/1.6 var(--read); color: var(--ink); max-width: none; margin: 0; }
 .cut { color: var(--pencil); text-decoration: line-through; text-decoration-color: var(--pencil); font-size: .92em; }
+
+/* ---------- Voices, Privacy, not found and removal (#390) ---------- */
+.callout > svg { flex: none; }
+#voice-installed > svg { color: var(--ink-2); }
+.pack { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); margin: 0 0 18px; }
+.pack > header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--rule); }
+.pack > header h2 { font-size: 17px; margin: 0; }
+.pack > header .chip { margin-left: auto; }
+.pack table { width: 100%; margin: 0; border: 0; font-size: 14px; }
+.pack th { color: var(--pencil); font-size: 12.5px; padding: 8px 20px; }
+.pack td { padding: 8px 20px; border-bottom: 0; border-top: 1px solid var(--rule); }
+.pack .n { text-align: right; white-space: nowrap; }
+.pack .foot { padding: 14px 20px 18px; display: grid; gap: 10px; }
+.pack .foot p { margin: 0; }
+.pack .foot .stack { margin: 6px 0 0; }
+.pack .hosts { margin: 0; padding-left: 20px; font-size: 14px; color: var(--ink-2); }
+.prose { padding: 8px 28px 24px; }
+.prose h2 { font-size: 19px; margin: 28px 0 8px; }
+.view .prose p, .view .prose li, .view .prose dd { max-width: 68ch; color: var(--ink-2); font-size: 15.5px; line-height: 1.6; margin-bottom: 10px; }
+.view .prose .lead { font-size: 18px; color: var(--ink); margin-top: 16px; }
+.prose ul { padding-left: 20px; }
+.prose dt { color: var(--ink); }
+.panel.missing { display: flex; gap: 14px; align-items: flex-start; }
+.panel.missing > svg { color: var(--error); flex: none; }
+.panel.missing p:last-child { margin: 0; }
+details.remove { margin: 8px 0; }
+.remove summary { list-style: none; display: inline-flex; gap: 6px; font-weight: 700; color: var(--ink-2); }
+.remove summary::-webkit-details-marker { display: none; }
+.remove[open] summary { background: var(--desk-2); }
+.remove-box { margin: 8px 0 0; padding: 12px 14px; border: 1px solid var(--rule-strong); border-radius: var(--r); background: var(--paper); display: grid; gap: 6px; max-width: 60ch; }
+.remove-box p { margin: 0; font-size: 14px; }
+.remove-box .buttons { margin-top: 4px; }
 
 /* ---------- widths ---------- */
 @media (max-width: 1399px) {

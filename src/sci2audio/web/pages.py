@@ -873,12 +873,19 @@ def voice(request: Request, state: State) -> HTMLResponse:
         s,
         "voice.html",
         installed=not missing,
+        # one panel per language pack with its own files (#390); one download for all (VA-03)
         packs=[
-            {"name": s(f"setup.pack_{language}"), "installed": language in there}
+            {
+                "language": language,
+                "name": s(f"setup.pack_{language}"),
+                "installed": language in there,
+                "files": [
+                    {"target": f.target, "size": s.size(f.size), "licence": f.licence}
+                    for f in plan.files
+                    if f.pack == language
+                ],
+            }
             for language in PACKS
-        ],
-        files=[
-            {"target": f.target, "size": s.size(f.size), "licence": f.licence} for f in plan.files
         ],
         total=s.size(plan.total_bytes),
         missing=s.size(sum(f.size for f in missing)),
