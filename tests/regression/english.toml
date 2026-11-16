@@ -2411,3 +2411,21 @@ blocks = [
     { kind = "paragraph", runs = [{ sup = "1" }, "École Normale, ", { sup = "2" }, " Örebro University"] },
 ]
 expected = ["Jane Roe Ann Lee", "École Normale, Örebro University"]
+
+# Mass numbers before element symbols in the title block, or in a page-1 abstract with no
+# heading before it, are read as printed (#436 review round 2, B1, D-57): a mark before the
+# symbol of a chemical element is no affiliation mark. Made-up titles.
+
+[[case]]
+id = "affiliation-marks-not-before-element-symbols"
+audit = 0
+issue = 93
+goal = "A raised mass number before a two-letter element symbol at a block's or a line's start or after a comma is read as printed."
+blocks = [
+    { kind = "paragraph", runs = [{ sup = "87" }, "Rb Bose-Einstein condensates in orbit"] },
+    { kind = "paragraph", runs = ["Bose-Einstein condensation of\n", { sup = "87" }, "Rb in microgravity"] },
+    { kind = "paragraph", runs = ["We trap ultracold atoms of\n", { sup = "6" }, "Li and ", { sup = "40" }, "Ca in a lattice and of\n", { sup = "171" }, "Yb, ", { sup = "87" }, "Sr and ", { sup = "133" }, "Cs."] },
+    { kind = "paragraph", runs = [{ sup = "3" }, "He spin filters"] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "UC Berkeley, ", { sup = "2" }, "AI Lab"] },
+]
+expected = ["87Rb Bose-Einstein condensates in orbit", "Bose-Einstein condensation of 87Rb in microgravity", "We trap ultracold atoms of 6Li and 40Ca in a lattice and of 171Yb, 87Sr and 133Cs.", "3He spin filters", "UC Berkeley, AI Lab"]

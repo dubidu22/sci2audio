@@ -398,6 +398,21 @@ _NAME_END = re.compile(r"[^\W\d_]{2,}\Z")
 _AFTER_NAME = re.compile(r"\Z|[\s,;\u2217*\u2020\u2021\u00a7\u00b6]")
 # an affiliation after the mark: a capital, after at most one space ("¹Meta AI", "² Univ")
 _AFFILIATION = re.compile(r" ?([^\W\d_]{2,})")
+# the chemical elements whose symbol has two letters: a raised number before one is its mass
+# number ("⁸⁷Rb", "³He"), not an affiliation's mark (#436 review round 2, B1, D-57); a symbol
+# of one letter ("¹H", "¹⁸F-FDG") is already too short for an affiliation
+# fmt: off
+ELEMENTS = frozenset({
+    "He", "Li", "Be", "Ne", "Na", "Mg", "Al", "Si", "Cl", "Ar", "Ca", "Sc", "Ti",
+    "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr",
+    "Rb", "Sr", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn",
+    "Sb", "Te", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd",
+    "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "Re", "Os", "Ir", "Pt",
+    "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa",
+    "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db",
+    "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og",
+})
+# fmt: on
 
 
 class AffiliationMarkStep(TextStep):
@@ -503,7 +518,8 @@ def _affiliation_shape(text: str, start: int, end: int, line_start: bool) -> boo
     an affiliation: at the block's or a line's start, or after a comma or semicolon, and
     before a capitalised word of two letters or more ("¹Meta AI", "², University",
     "²Österreichische Akademie", "¹AI Lab"). So "x²", "N³", "size³ + 1", "small.¹", a
-    "⁵ is first" and the mass numbers of "¹H NMR of ¹³C" and "¹⁸F-FDG" stay (D-57)."""
+    "⁵ is first" and the mass numbers of "¹H NMR of ¹³C", "¹⁸F-FDG" and "⁸⁷Rb" stay
+    (D-57)."""
     before, after = text[:start], text[end:]
     word = _NAME_END.search(before.rstrip())
     if word and word[0][0].isupper() and _AFTER_NAME.match(after):
@@ -511,7 +527,9 @@ def _affiliation_shape(text: str, start: int, end: int, line_start: bool) -> boo
     kept = before.rstrip()
     at_start = not kept or line_start or kept[-1] in ",;"
     affiliation = _AFFILIATION.match(after)
-    return at_start and affiliation is not None and affiliation[1][0].isupper()
+    if not at_start or affiliation is None or affiliation[1] in ELEMENTS:
+        return False
+    return affiliation[1][0].isupper()
 
 
 class FootnotePlaceStep(TextStep):

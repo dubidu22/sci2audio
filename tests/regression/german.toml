@@ -2302,3 +2302,12 @@ blocks = [
     { kind = "paragraph", runs = [{ sup = "1" }, "Ärztekammer Nordrhein, ", { sup = "2" }, "Überseemuseum Bremen, ", { sup = "3" }, "Österreichische Akademie"] },
 ]
 expected = ["Anna Müller Ben Kraus", "Ärztekammer Nordrhein, Überseemuseum Bremen, Österreichische Akademie"]
+
+[[case]]
+id = "de-affiliation-marks-not-before-element-symbols"
+audit = 0
+issue = 93
+goal = "A raised mass number before an element symbol at a line's start is read as printed (#436 review round 2, B1, D-57)."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Kondensate aus\n", { sup = "87" }, "Rb im Orbit"] }]
+expected = ["Kondensate aus 87Rb im Orbit"]

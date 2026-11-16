@@ -221,6 +221,9 @@ def test_marks_after_a_name_or_before_an_affiliation_are_removed(runs: list, spo
         [("18",), "F-FDG PET"],  # at the start, but a one-letter word follows
         [("1",), "H-NMR-Spektroskopie"],
         ["Labs, ", ("238",), "U miners"],
+        [("87",), "Rb condensates"],  # a two-letter element symbol (review round 2, B1)
+        ["Labs, ", ("3",), "He films"],
+        ["Atoms of\n", ("6",), "Li"],
     ],
 )
 def test_maths_and_sentence_marks_are_read(runs: list) -> None:
