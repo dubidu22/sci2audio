@@ -42,7 +42,7 @@
   {% if card.folder %}<p>{{ t('job.folder', folder=card.folder) }}</p>{% endif %}
   <ul class="files">
     {% for file in job.files %}
-    <li><a href="/api/v1/jobs/{{ job.id }}/files/{{ file.name | urlencode }}?download=true">{{ t('job.download', name=file.name, size=size_text(file.size)) }}</a></li>
+    <li><a href="/api/v1/jobs/{{ job.id }}/files/{{ file.name | urlencode }}?download=true" download>{{ t('job.download', name=file.name, size=size_text(file.size)) }}</a></li>
     {% endfor %}
   </ul>
   {% if job.progress and job.progress.reused %}<p>{{ t('job.reused', n=job.progress.reused) }}</p>{% endif %}

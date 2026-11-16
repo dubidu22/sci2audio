@@ -54,7 +54,7 @@ def test_writes_the_audiobook(cli: Cli, source: Path, tmp_path: Path) -> None:
     for name in BOOK:
         assert str(out / name) in result.out
     assert "sci2audio clean note.pdf" in result.out  # the cache hint (D-210)
-    assert "Speaking chapter 1, note:" in result.err
+    assert "Speaking chapter 1 of 1, note:" in result.err
 
 
 def test_running_again_reuses_every_sentence(cli: Cli, source: Path, tmp_path: Path) -> None:
@@ -340,8 +340,22 @@ def test_with_script_refuses_an_existing_script_before_any_speech(
 def test_progress_on_a_terminal(tmp_path: Path, source: Path) -> None:
     result = Cli(tmp_path, live=True)("convert", source, "-o", tmp_path / "b")
     assert result.code == 0
-    assert "\rSpeaking chapter 1, note: 4 of 4 sentences" in result.err
+    assert "\rSpeaking chapter 1 of 1, note: 4 of 4 sentences" in result.err
     assert result.err.endswith("\n")
+
+
+def test_the_progress_numbers_a_chapter_among_the_chapters_spoken(cli: Cli, tmp_path: Path) -> None:
+    """#432: with chapter 2 left out, chapter 3 is the second chapter spoken, as on the
+    web card (D-695)."""
+    source = tmp_path / "in" / "three.md"
+    source.parent.mkdir()
+    parts = [f"# Part {n}\n\nThe text of part {n} is here. It has two sentences." for n in "ABC"]
+    source.write_text("\n\n".join(parts), encoding="utf-8")
+    result = cli("convert", source, "-o", tmp_path / "b", "--chapters", "1,3")
+    assert result.code == 0, result.err
+    assert "Speaking chapter 1 of 2, Part A:" in result.err
+    assert "Speaking chapter 2 of 2, Part C:" in result.err
+    assert "chapter 3" not in result.err
 
 
 def test_nothing_to_read(cli: Cli, tmp_path: Path) -> None:

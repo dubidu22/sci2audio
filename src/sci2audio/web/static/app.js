@@ -157,11 +157,15 @@ async function openAndAnalyse(store) {
 function startPage() {
   const fileForm = document.getElementById("open-file");
   if (fileForm) {
-    fileForm.addEventListener("submit", (event) => {
-      event.preventDefault();
+    const open = () => {
       const body = new FormData(fileForm);
       openAndAnalyse(() => send(fileForm.dataset.api, { method: "POST", body }));
+    };
+    fileForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      open();
     });
+    dropOnto(fileForm, open);
   }
   const textForm = document.getElementById("open-text");
   if (textForm) {
@@ -172,6 +176,93 @@ function startPage() {
       openAndAnalyse(() => send(textForm.dataset.api, json("POST", body)));
     });
   }
+}
+
+// A file dropped onto the opener (#417): one file becomes the chosen file and opens as
+// "Open and analyse" does (same request, so the same errors and size limit); the file
+// input stays the keyboard way. The hint names dropping only once this is wired.
+function dropOnto(form, open) {
+  const input = form.querySelector('input[type="file"]');
+  if (!input) return;
+  let depth = 0; // dragenter and dragleave come for every child the file passes over
+  const over = (on) => form.classList.toggle("over", on);
+  const carriesFiles = (event) => [...(event.dataTransfer?.types || [])].includes("Files");
+  form.addEventListener("dragenter", (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    depth += 1;
+    over(true);
+  });
+  form.addEventListener("dragover", (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  });
+  form.addEventListener("dragleave", () => {
+    depth = Math.max(depth - 1, 0);
+    if (!depth) over(false);
+  });
+  form.addEventListener("drop", (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    depth = 0;
+    over(false);
+    const dropped = event.dataTransfer.files;
+    if (dropped.length !== 1) {
+      say(tr("js.drop_one"), true);
+      return;
+    }
+    input.files = dropped;
+    open();
+  });
+  // a file dropped beside the opener would open in the tab and leave the app: the page
+  // takes no file anywhere else (#446 review N1)
+  for (const type of ["dragover", "drop"]) {
+    document.addEventListener(type, (event) => {
+      if (!carriesFiles(event) || form.contains(event.target)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "none";
+    });
+  }
+  const hint = document.getElementById("drop-hint");
+  if (hint) hint.hidden = false;
+}
+
+// ---- the library's search (#416) ---------------------------------------------------------
+
+// The text as the server's `library.folded` compares it: case and accents aside.
+function folded(text) {
+  return text.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replaceAll("ß", "ss");
+}
+
+// Filters the rows in place as the person types; the form itself still works (GET /?q=).
+function librarySearch() {
+  const form = document.getElementById("search");
+  const input = document.getElementById("q");
+  const region = document.getElementById("library");
+  const none = document.getElementById("no-match");
+  if (!form || !input || !region || !none) return;
+  const rows = [...region.querySelectorAll("tbody tr[data-find]")];
+  const filter = () => {
+    const query = input.value.split(/\s+/).filter(Boolean).join(" ");
+    const words = folded(query).split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const row of rows) {
+      row.hidden = !words.every((word) => row.dataset.find.includes(word));
+      if (!row.hidden) shown += 1;
+    }
+    region.hidden = shown === 0;
+    none.textContent = shown === 0 ? tr("library.search_none", { q: query }) : "";
+    const url = new URL(location.href);
+    if (query) url.searchParams.set("q", query);
+    else url.searchParams.delete("q");
+    history.replaceState(history.state, "", url);
+  };
+  input.addEventListener("input", filter);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    filter();
+  });
 }
 
 // ---- removing a document (#120, D-359 to D-362) ------------------------------------------
@@ -773,6 +864,7 @@ function makingCard() {
 // ---- the voice setup page --------------------------------------------------------------
 
 function voicePage() {
+  voiceSamples();
   const form = document.getElementById("voice-download");
   if (!form) return;
   form.addEventListener("submit", async (event) => {
@@ -789,6 +881,60 @@ function voicePage() {
       say(explain(error), true);
     }
   });
+}
+
+// The voice cards' samples (#419): the document page's preview job with the sample sentence
+// of the voice's language; one plays at a time, and the player keeps no position (D-664).
+function voiceSamples() {
+  const audio = document.getElementById("voice-sample");
+  const buttons = [...document.querySelectorAll("button.voice-play")];
+  if (!audio || !buttons.length) return;
+  let playing = null; // the button whose sample is loading or playing
+  let asked = 0; // a later click wins over a sample still being made
+  const show = (button, on) => {
+    button.setAttribute("aria-label", on ? button.dataset.stop : button.dataset.play);
+    button.querySelector("span").textContent = on ? button.dataset.stopShort : button.dataset.playShort;
+    button.querySelector("use").setAttribute("href", on ? "#i-pause" : "#i-play");
+  };
+  const stop = () => {
+    asked += 1;
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+    if (playing) show(playing, false);
+    playing = null;
+  };
+  audio.addEventListener("ended", stop);
+  for (const button of buttons) {
+    button.addEventListener("click", async () => {
+      const again = playing === button;
+      stop();
+      if (again) return;
+      playing = button;
+      show(button, true);
+      const mine = asked;
+      say(tr("js.listening"));
+      try {
+        const body = { voice: button.dataset.voice, speed: 1, text: button.dataset.text };
+        const job = await send("/api/v1/voices/preview", json("POST", body));
+        follow(`/api/v1/jobs/${job.id}/events`, () => {}, (ended) => {
+          if (mine !== asked) return; // stopped, or another sample asked for since
+          if (ended.state !== "done" || !ended.files.length) {
+            stop();
+            say(ended.error ? failureOf(ended.error.error, ended.error.message) : tr(`job.state_${ended.state}`), true);
+            return;
+          }
+          audio.src = `/api/v1/jobs/${ended.id}/files/${encodeURIComponent(ended.files[0].name)}`;
+          say("");
+          audio.play().catch(() => stop());
+        });
+      } catch (error) {
+        if (mine === asked) stop();
+        say(explain(error), true);
+      }
+    });
+    button.disabled = false;
+  }
 }
 
 // ---- the rail: the running job on the shelf (#387) ---------------------------------------
@@ -953,6 +1099,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const data = document.getElementById("strings");
   STRINGS = data ? JSON.parse(data.textContent) : {};
   startPage();
+  librarySearch();
   removal();
   documentPage();
   makingCard();
