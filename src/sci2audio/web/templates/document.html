@@ -29,6 +29,7 @@
 </div>
 {% endif %}
 
+{# the buttons app.js wires are drawn disabled; it enables each with its click (#350, #427) #}
 <form id="choices" class="stack">
   <div class="stack">
     <label for="language">{{ t('check.language') }}</label>
@@ -55,21 +56,21 @@
     <legend>{{ t('check.chapters') }}</legend>
     <p class="hint">{{ t('check.chapters_hint') }}</p>
     <p class="buttons">
-      <button type="button" id="choose-all">{{ t('check.choose_all') }}</button>
-      <button type="button" id="choose-none">{{ t('check.choose_none') }}</button>
+      <button type="button" id="choose-all" disabled>{{ t('check.choose_all') }}</button>
+      <button type="button" id="choose-none" disabled>{{ t('check.choose_none') }}</button>
     </p>
     <ol class="choices">
     {% for chapter in ordered_chapters %}
       <li data-title="{{ chapter.title }}">
         <input type="checkbox" id="chapter-{{ chapter.index }}" name="chapter" value="{{ chapter.index }}"{% if chapter.selected %} checked{% endif %} aria-describedby="chapter-details-{{ chapter.index }}">
         <label for="chapter-{{ chapter.index }}" lang="{{ text_language }}">{{ t('check.chapter_line', title=chapter.title) }}</label>
-        <span class="move" hidden><button type="button" class="move-up" id="move-up-{{ chapter.index }}">{{ t('check.move_up') }}<span class="visually-hidden">: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button> <button type="button" class="move-down" id="move-down-{{ chapter.index }}">{{ t('check.move_down') }}<span class="visually-hidden">: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button></span>
+        <span class="move"><button type="button" class="move-up" id="move-up-{{ chapter.index }}" disabled>{{ t('check.move_up') }}<span class="visually-hidden">: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button> <button type="button" class="move-down" id="move-down-{{ chapter.index }}" disabled>{{ t('check.move_down') }}<span class="visually-hidden">: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button></span>
         <span class="hint" id="chapter-details-{{ chapter.index }}">({% if chapter.first_page %}{{ t('check.chapter_details', page=chapter.first_page, n=chapter.utterances) }}{% else %}{{ t('check.chapter_details_no_page', n=chapter.utterances) }}{% endif %}{% if chapter.references %}; {{ t('check.references') }}{% endif %}{% if chapter.publisher %}; {{ t('check.publisher') }}{% endif %})</span>
       </li>
     {% endfor %}
     </ol>
   </fieldset>
-  <p class="buttons"><button type="submit" id="update">{{ t('check.update') }}</button></p>
+  <p class="buttons"><button type="submit" id="update" disabled>{{ t('check.update') }}</button></p>
   <p id="changed" class="note" hidden>{{ t('check.changed') }}</p>
 </form>
 
@@ -105,7 +106,7 @@
 {% endif %}
 {% else %}
 <p>{{ t('document.not_analysed') }}</p>
-{% if not analysing %}<p class="buttons"><button type="button" id="analyse">{{ t('document.analyse') }}</button></p>{% endif %}
+{% if not analysing %}<p class="buttons"><button type="button" id="analyse" disabled>{{ t('document.analyse') }}</button></p>{% endif %}
 {% endif %}
 </section>
 
@@ -143,7 +144,7 @@
     <label for="preview-text">{{ t('voice.preview_label') }}</label>
     <p class="hint" id="preview-hint">{{ t('voice.preview_hint', limit=preview_limit) }}</p>
     <textarea id="preview-text" name="text" lang="{{ preview_text_language }}" rows="2" maxlength="{{ preview_limit }}" aria-describedby="preview-hint" data-samples="{{ preview_texts | tojson | forceescape }}" required>{{ preview_text }}</textarea>
-    <p class="buttons"><button type="submit">{{ t('voice.listen') }}</button></p>
+    <p class="buttons"><button type="submit" id="preview-listen" disabled>{{ t('voice.listen') }}</button></p>
     <audio id="preview-audio" controls hidden aria-label="{{ t('voice.preview_player') }}"></audio>
   </form>
   {% endif %}
@@ -162,7 +163,7 @@
   <p class="hint" id="subtitles-hint">{{ t('make.subtitles_hint') }}</p>
   <p class="hint">{{ t('voice.remembered') }}</p>
   {% set blocked = 'needs_analysis' if not report else ('needs_chapters' if not chosen_chapters else ('needs_voice' if not job_voice_installed else '')) %}
-  <p class="buttons"><button type="button" id="make" data-blocked="{{ blocked }}"{% if blocked %} aria-disabled="true"{% endif %} aria-describedby="make-note">{{ t('make.start') }}</button></p>
+  <p class="buttons"><button type="button" id="make" disabled data-blocked="{{ blocked }}"{% if blocked %} aria-disabled="true"{% endif %} aria-describedby="make-note">{{ t('make.start') }}</button></p>
   <p id="make-note" class="note"{% if not blocked %} hidden{% endif %}>{% if blocked %}{{ t('make.' + blocked) }}{% endif %}</p>
 </div>
 </section>

@@ -259,9 +259,9 @@ function same(a, b) {
 }
 
 // Move up and Move down on the chapter list (#119): the list's order is the order the
-// chapters are read in. The buttons are drawn hidden and shown only once their clicks are
-// bound, so no early click is lost (#350). The focus stays on the pressed button, or goes
-// to its sibling when that one becomes disabled at the end of the list.
+// chapters are read in. The buttons are drawn disabled and enabled only once their clicks
+// are bound, so no early click is lost (#350, #427). The focus stays on the pressed button,
+// or goes to its sibling when that one becomes disabled at the end of the list.
 function chapterOrder(changed) {
   const list = document.querySelector("ol.choices");
   if (!list || !list.querySelector(".move")) return;
@@ -291,7 +291,6 @@ function chapterOrder(changed) {
     const down = item.querySelector(".move-down");
     up.addEventListener("click", () => move(item, -1, up));
     down.addEventListener("click", () => move(item, 1, down));
-    item.querySelector(".move").hidden = false;
   }
   mark();
 }
@@ -332,8 +331,15 @@ function documentPage() {
   const all = document.getElementById("choose-all");
   const none = document.getElementById("choose-none");
   chapterOrder(refresh);
-  if (all) all.addEventListener("click", () => { chosen("chapter").forEach((c) => { c.checked = true; }); refresh(); });
-  if (none) none.addEventListener("click", () => { chosen("chapter").forEach((c) => { c.checked = false; }); refresh(); });
+  // the page's buttons are drawn disabled, so a click before this script ran waits instead
+  // of doing nothing; each is enabled once its click is attached (#350, #427)
+  function wire(button, click) {
+    if (!button) return;
+    button.addEventListener("click", click);
+    button.disabled = false;
+  }
+  wire(all, () => { chosen("chapter").forEach((c) => { c.checked = true; }); refresh(); });
+  wire(none, () => { chosen("chapter").forEach((c) => { c.checked = false; }); refresh(); });
 
   async function analyse(settings) {
     say(tr("js.analysing"), true);
@@ -350,9 +356,10 @@ function documentPage() {
       event.preventDefault();
       analyse(controls(shown));
     });
+    const update = document.getElementById("update");
+    if (update) update.disabled = false;
   }
-  const analyseButton = document.getElementById("analyse");
-  if (analyseButton) analyseButton.addEventListener("click", () => analyse({}));
+  wire(document.getElementById("analyse"), () => analyse({}));
   if (box.dataset.events) follow(box.dataset.events, () => {}, () => reloadAt("step-check"));
 
   const speed = document.getElementById("speed");
@@ -417,9 +424,11 @@ function documentPage() {
         say(explain(error), true);
       }
     });
+    const listen = document.getElementById("preview-listen");
+    if (listen) listen.disabled = false;
   }
 
-  make.addEventListener("click", async () => {
+  wire(make, async () => {
     if (make.dataset.blocked) {
       makeNote.hidden = false;
       say(makeNote.textContent, true);

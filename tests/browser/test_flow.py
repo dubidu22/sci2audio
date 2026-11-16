@@ -570,6 +570,51 @@ def test_replace_waits_until_the_page_script_runs(signed_in: Page, live: Live) -
     expect(page.locator("#message")).to_have_text("The speech cache is empty.")
 
 
+WIRED = ["#make", "#choose-all", "#choose-none", "#update", "#preview-listen"]
+
+
+def test_the_document_pages_buttons_wait_for_the_script(signed_in: Page, live: Live) -> None:
+    """The document page's buttons that only app.js (deferred) wires are drawn disabled, so
+    a click before the script ran waits instead of doing nothing; the German main flow's
+    Make button was clicked in that moment (#427, as #350 for Replace)."""
+    page = signed_in
+    live.install_voice()
+    open_paper(page, live)
+    release = reload_holding_back_app_js(page, live)
+    moves = page.locator("ol.choices button.move-up, ol.choices button.move-down")
+    expect(page.locator("#make")).to_be_attached()
+    for selector in WIRED:
+        expect(page.locator(selector)).to_be_disabled()
+    assert moves.count() == 6
+    for n in range(moves.count()):
+        expect(moves.nth(n)).to_be_disabled()
+    release()
+    for selector in WIRED:
+        expect(page.locator(selector)).to_be_enabled()
+    # every move button but the first's Move up and the last's Move down
+    expect(page.locator("ol.choices button.move-up:enabled")).to_have_count(2)
+    expect(page.locator("ol.choices button.move-down:enabled")).to_have_count(2)
+    expect(page.locator("ol.choices li").first.locator(".move-up")).to_be_disabled()
+    expect(page.locator("ol.choices li").last.locator(".move-down")).to_be_disabled()
+
+
+def test_analyse_waits_for_the_script(signed_in: Page, live: Live) -> None:
+    """A document whose analysis failed shows "Analyse the document", wired by app.js too
+    (#427)."""
+    page = signed_in
+    damaged = {"name": "broken.pdf", "mimeType": "application/pdf", "buffer": b"%PDF-1.4 nothing"}
+    page.set_input_files("#file", files=[damaged])
+    page.get_by_role("button", name="Open and analyse").click()
+    page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    expect(page.locator("#analysis-error")).to_be_visible()
+    settled(page)
+    release = reload_holding_back_app_js(page, live)
+    analyse = page.get_by_role("button", name="Analyse the document")
+    expect(analyse).to_be_disabled()
+    release()
+    expect(analyse).to_be_enabled()
+
+
 def reload_holding_back_app_js(page: Page, live: Live) -> Callable[[], None]:
     """Reload the page with app.js held back; the result lets it through."""
     held: list[Route] = []
