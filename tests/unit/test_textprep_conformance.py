@@ -203,6 +203,67 @@ def test_a_step_failing_on_its_own_output_inside_a_placeholder_is_reported() -> 
     ), problems
 
 
+class LaterPlaceholderChanges(TextStep):
+    """Spells out "ﬁ" in a formula, which changes nothing more on its own output, and
+    doubles the first "e" in a table, which changes it again each time (review S1 of
+    round 2 of #450): every placeholder is compared, not only the first."""
+
+    id = "later-placeholder-changes"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.INLINE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        edits = []
+        for index, block in enumerate(document.blocks):
+            if block.kind is BlockKind.FORMULA and (at := block.text.find("ﬁ")) >= 0:
+                edits.append(Edit(Span(index, at, at + 1), EditKind.REPLACE, "r", self.id, "fi"))
+            if block.kind is BlockKind.TABLE and (at := block.text.find("e")) >= 0:
+                edits.append(Edit(Span(index, at, at + 1), EditKind.REPLACE, "r", self.id, "ee"))
+        return edits
+
+
+def test_every_placeholder_is_checked_on_its_own_output() -> None:
+    document = make_document(
+        [Block(BlockKind.FORMULA, "ﬁ = x (1)", label="1"), (BlockKind.TABLE, "eta 1 2")]
+    )
+    problems = text_step_problems(LaterPlaceholderChanges(), [document])
+    assert any("block 1 changed again" in problem for problem in problems), problems
+    assert not any("block 0 changed again" in problem for problem in problems), problems
+
+
+class ReadsByPrintedFigure(TextStep):
+    """Cleans "dirty" to "clean" inside a figure; in a paragraph reads "Z" as "W" always and
+    "X" as "Y" only while some placeholder prints "clean". A real second run sees the
+    printed figure, so the paragraph reads the same: only placeholders are rebuilt from the
+    step's own output (review S2 of round 2 of #450)."""
+
+    id = "reads-by-printed-figure"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.INLINE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        clean = any(b.is_placeholder and "clean" in b.text for b in document.blocks)
+        edits = []
+        for index, block in enumerate(document.blocks):
+            words = {"dirty": "clean"} if block.kind is BlockKind.FIGURE else {}
+            if block.kind is BlockKind.PARAGRAPH:
+                words = {"Z": "W", **({"X": "Y"} if clean else {})}
+            for word, read in words.items():
+                if (at := block.text.find(word)) >= 0:
+                    span = Span(index, at, at + len(word))
+                    edits.append(Edit(span, EditKind.REPLACE, "r", self.id, read))
+        return edits
+
+
+def test_a_text_block_read_by_a_placeholder_is_not_checked_on_its_own_output() -> None:
+    document = make_document(
+        [(BlockKind.FIGURE, "a dirty plot"), (BlockKind.PARAGRAPH, "X and Z.")]
+    )
+    check_text_step(ReadsByPrintedFigure(), [document])
+
+
 class PluginCleanUp(UnicodeStep):
     """A plugin step that cleans characters as the built-in step does, under its own id:
     the contract is drawn by what a step does, not by which step it is (D-710)."""
