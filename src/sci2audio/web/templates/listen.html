@@ -1,18 +1,31 @@
 {% extends "base.html" %}
 {% from "_paper.html" import paper_head with context %}
+{% from "_icons.html" import icon %}
 {% block title %}{{ t('listen.title', name=document.name) }} · {{ t('common.app') }}{% endblock %}
 {% block scripts %}{% if view %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}
+{#- A piece of a block: a sentence the voice reads (`.s`) or text between sentences. Its parts
+    show what the audiobook's own edits did (#392, D-665 conflict 2, D-704b): text left out is
+    struck in pencil, text read differently is underlined with its reading. -#}
+{% macro parts(piece) -%}
+{%- if piece.parts -%}
+{%- for part in piece.parts -%}
+{%- if part.mark == 'cut' -%}<s class="cut">{{ part.text }}</s>
+{%- elif part.mark == 'said' -%}<span class="said" title="{{ t('listen.said_as', said=part.said) }}">{{ part.text }}</span><span class="visually-hidden"> {{ t('listen.said_as_hidden', said=part.said) }}</span>
+{%- else -%}{{ part.text }}{%- endif -%}
+{%- endfor -%}
+{%- else -%}{{ piece.text }}{%- endif -%}
+{%- endmacro %}
 {% macro pieces(block) -%}
 {%- for piece in block.pieces -%}
-{%- if piece.element -%}<span class="s" id="{{ piece.element }}" data-chunk="{{ piece.chunk }}">{{ piece.text }}</span>
-{%- else -%}{{ piece.text }}{%- endif -%}
+{%- if piece.element -%}<span class="s" id="{{ piece.element }}" data-chunk="{{ piece.chunk }}">{{ parts(piece) }}</span>
+{%- else -%}{{ parts(piece) }}{%- endif -%}
 {%- endfor -%}
 {%- endmacro %}
 {% macro show(block) -%}
-{% if block.page %}<p class="page-mark">{{ t('listen.page', page=block.page) }}</p>{% endif %}
+{% if block.page %}<p class="page-mark"><span>{{ t('listen.page', page=block.page) }}</span></p>{% endif %}
 {% if block.notice %}
 <div class="block notice s" id="{{ block.element }}" data-chunk="{{ block.chunk }}">
-  <p>{{ block.notice }}</p>
+  <p>{{ icon('skip') }}<span><b>{{ t('listen.notice') }}</b> {{ block.notice }}</span></p>
   {% if block.printed %}<details><summary>{{ t('listen.found') }}</summary><p class="printed">{{ block.printed }}</p></details>{% endif %}
   {% if block.code %}<pre class="code" translate="no"><code>{{ block.code }}</code></pre>{% endif %}
 </div>
@@ -22,67 +35,114 @@
 <p class="block {{ block.kind }}{% if not block.read %} unread{% endif %}{% if block.element %} s{% endif %}"{% if block.element %} id="{{ block.element }}" data-chunk="{{ block.chunk }}"{% endif %}>{% if not block.read %}<span class="unread-tag">{{ t('listen.not_read') }}</span> {% endif %}{{ pieces(block) }}</p>
 {% endif %}
 {%- endmacro %}
-{% block view_class %} wide{% endblock %}
+{% block view_class %} wide listen-view{% endblock %}
 {% block main %}
 {{ paper_head(head, 'listen', 'listen-title', '') }}
 {% if not view %}
 <p class="note" id="listen-problem">{{ problem }}</p>
 {% if document.outside %}<p><a href="/">{{ t('common.back_home') }}</a></p>{% else %}<p><a href="/documents/{{ document.id }}#step-make">{{ t('listen.back') }}</a></p>{% endif %}
 {% else %}
-<p>{{ t('listen.intro') }}</p>
-<p class="ai-notice">{{ t('listen.ai_notice', voice=voice) }}</p>
 <script id="player-data" type="application/json">{{ data | safe }}</script>
-<div id="player">
-<section class="player-bar" aria-label="{{ t('listen.player') }}">
-  <p class="buttons">
-    <button type="button" id="play" aria-describedby="now">{{ t('player.play') }}</button>
-    <button type="button" id="previous-sentence">{{ t('listen.previous_sentence') }}</button>
-    <button type="button" id="next-sentence">{{ t('listen.next_sentence') }}</button>
-    <button type="button" id="previous-chapter">{{ t('listen.previous_chapter') }}</button>
-    <button type="button" id="next-chapter">{{ t('listen.next_chapter') }}</button>
-    <button type="button" id="back-to-reading" hidden>{{ t('listen.back_to_reading') }}</button>
+{#- The Listen page (#392, #393; DESIGN.md "Listen"): the desk with the sheet and one context
+    panel beside it, and the dock. Every button player.js wires is drawn disabled, so a press
+    before the script ran is never lost silently (#350, #427). -#}
+<div class="listen" id="listen"{% if announce %} data-announce="on"{% endif %}>
+<div class="desk">
+{#- The dock (DESIGN.md "Player dock", D-664). It comes first, so the keyboard reaches the
+    player before the text; player.js pins it to the window's foot while it fits there. -#}
+<section class="dock" id="dock" aria-label="{{ t('listen.player') }}">
+  <div class="transport">
+    <button type="button" class="icon-btn" id="previous-sentence" aria-label="{{ t('listen.previous_sentence') }}" title="{{ t('listen.previous_sentence') }}" disabled>{{ icon('prev') }}</button>
+    <button type="button" class="play" id="play" aria-label="{{ t('player.play') }}" title="{{ t('player.play') }}" disabled>{{ icon('play', 'l') }}</button>
+    <button type="button" class="icon-btn" id="next-sentence" aria-label="{{ t('listen.next_sentence') }}" title="{{ t('listen.next_sentence') }}" disabled>{{ icon('next') }}</button>
+  </div>
+  <div class="timeline">
+    <svg class="ticks" aria-hidden="true" focusable="false">{% for chapter in outline %}{% if not loop.first %}<line x1="{{ chapter.at }}" x2="{{ chapter.at }}" y1="0" y2="8"></line>{% endif %}{% endfor %}</svg>
+    <input type="range" id="timeline" min="0" max="{{ view.duration }}" step="5" value="0" aria-label="{{ t('listen.timeline') }}" aria-valuetext="{{ t('player.time_of', time='0:00', total=total) }}" disabled>
+  </div>
+  <p class="nowplaying">
+    <b{% if head.titled %} lang="{{ view.language }}"{% endif %}>{{ head.title }}</b>
+    <span id="now">{{ t('player.chapter', n=1, total=view.chapters|length) }} <span lang="{{ view.language }}">{{ view.chapters[0].title }}</span></span>
+    <span id="clock" class="clock">{{ t('player.time_of', time='0:00', total=total) }}</span>
   </p>
-  <p class="player-line">
-    <audio id="audio" controls preload="metadata" aria-label="{{ t('listen.audio') }}"></audio>
-    <span id="now" class="hint">{{ t('player.chapter', n=1, total=view.chapters|length) }} <span lang="{{ view.language }}">{{ view.chapters[0].title }}</span></span>
-    <label class="speed">{{ t('listen.speed') }} <select id="speed">{% for value, label in speeds %}<option value="{{ value }}"{% if value == '1' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label><input type="checkbox" id="follow" checked> {{ t('listen.follow') }}</label>
+  <p class="dock-end">
+    <button type="button" id="back-to-reading" class="sm" hidden>{{ t('listen.back_to_reading') }}</button>
+    <label class="visually-hidden" for="speed">{{ t('listen.speed') }}</label>
+    <select id="speed" class="speed">{% for value, label in speeds %}<option value="{{ value }}"{% if value == '1' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <span class="ai-label">{{ t('listen.ai_label') }}</span>
   </p>
+  <audio id="audio" preload="metadata"></audio>
 </section>
-<p id="message" class="message" role="status" tabindex="-1"></p>
-{% if resume %}
-<section id="resume" class="resume" aria-labelledby="resume-text">
-  <p id="resume-text">{{ t('listen.resume', n=resume.number, time=resume.clock) }} <span lang="{{ view.language }}">{{ resume.title }}</span></p>
-  <p class="buttons">
-    <button type="button" id="resume-continue" disabled data-chapter="{{ resume.chapter }}" data-time="{{ resume.time }}">{{ t('listen.resume_continue', time=resume.clock) }}</button>
-    <button type="button" id="resume-start" disabled>{{ t('listen.resume_start') }}</button>
-  </p>
-</section>
-{% endif %}
-<nav aria-labelledby="chapters-heading">
-  <h2 id="chapters-heading">{{ t('listen.chapters') }}</h2>
-  <ol class="chapter-list">
+<article class="sheet" aria-labelledby="listen-title">
+  <div class="sheet-top">
+    <p class="ai-notice">{{ t('listen.ai_notice', voice=voice) }}</p>
+    <button type="button" class="icon-btn" id="panel-toggle" aria-controls="context" aria-expanded="true" aria-label="{{ t('listen.panel_hide') }}" title="{{ t('listen.panel_hide') }}" data-show="{{ t('listen.panel_show') }}" data-hide="{{ t('listen.panel_hide') }}" disabled>{{ icon('panel') }}</button>
+  </div>
+  {% if not view.marked %}<p class="marks-note" id="marks-note">{{ t('listen.unmarked', version=view.made_with or '?') }}{% if not document.outside %} <a href="/documents/{{ document.id }}">{{ t('listen.unmarked_link') }}</a>{% endif %}</p>{% endif %}
+  {% if resume %}
+  <section id="resume" class="resume" aria-labelledby="resume-text">
+    <p id="resume-text">{{ t('listen.resume', n=resume.number, time=resume.clock) }} <span lang="{{ view.language }}">{{ resume.title }}</span></p>
+    <p class="buttons">
+      <button type="button" class="primary sm" id="resume-continue" disabled data-chapter="{{ resume.chapter }}" data-time="{{ resume.time }}">{{ t('listen.resume_continue', time=resume.clock) }}</button>
+      <button type="button" class="sm" id="resume-start" disabled>{{ t('listen.resume_start') }}</button>
+    </p>
+  </section>
+  {% endif %}
+  <p id="message" class="message" role="status" tabindex="-1"></p>
+  {#- the sentence being read, for screen readers, only if the person switched it on (#388) #}
+  {% if announce %}<p id="reading" class="visually-hidden" aria-live="polite"></p>{% endif %}
+  <div id="text" class="read-along" role="region" aria-label="{{ t('listen.text') }}" lang="{{ view.language }}">
   {% for chapter in view.chapters %}
-    <li><button type="button" class="chapter-button" data-chapter="{{ loop.index0 }}" lang="{{ view.language }}">{{ chapter.title }}</button></li>
+  <section class="sheet-chapter" id="chapter-{{ loop.index0 }}">
+  {% if chapter.title_block %}
+  {{ show(chapter.title_block) }}
+  {% else %}
+  <h2 class="block heading">{{ chapter.title }}</h2>
+  {% endif %}
+  {% for block in chapter.blocks %}
+  {{ show(block) }}
   {% endfor %}
-  </ol>
-  {% if view.left_out %}<p class="hint">{{ t('listen.left_out') }} <span lang="{{ view.language }}">{{ view.left_out|join(', ') }}</span></p>{% endif %}
-</nav>
-<div id="text" class="read-along" role="region" aria-label="{{ t('listen.text') }}" lang="{{ view.language }}">
-{% for chapter in view.chapters %}
-<section class="chapter" id="chapter-{{ loop.index0 }}">
-{% if chapter.title_block %}
-{{ show(chapter.title_block) }}
-{% else %}
-<h2 class="block heading">{{ chapter.title }}</h2>
-{% endif %}
-{% for block in chapter.blocks %}
-{{ show(block) }}
-{% endfor %}
-</section>
-{% endfor %}
+  </section>
+  {% endfor %}
+  </div>
+</article>
 </div>
+{#- One context panel (#393): Changes, read-only, and Chapters. Captures waits for the study
+    layer. From 1280 px it stands beside the desk; below, it opens over it. -#}
+<aside class="context" id="context" aria-label="{{ t('listen.panel') }}">
+  <div class="context-head">
+    <div class="context-tabs" role="tablist" aria-label="{{ t('listen.panel') }}">
+      <button type="button" role="tab" id="tab-changes" aria-controls="panel-changes" aria-selected="false" tabindex="-1" disabled>{{ t('listen.changes') }}</button>
+      <button type="button" role="tab" id="tab-outline" aria-controls="panel-outline" aria-selected="true" disabled>{{ t('listen.chapters') }}</button>
+    </div>
+    <button type="button" class="icon-btn" id="panel-close" aria-label="{{ t('listen.panel_hide') }}" title="{{ t('listen.panel_hide') }}" disabled>{{ icon('x', 's') }}</button>
+  </div>
+  <div class="context-body" role="tabpanel" id="panel-changes" aria-labelledby="tab-changes" hidden>
+    <p class="hint">{{ t('listen.changes_hint') }}{% if not document.outside %} <a href="/documents/{{ document.id }}">{{ t('listen.changes_link') }}</a>{% endif %}</p>
+    <ul class="chg-list">
+    {% for change in changes %}
+      <li class="chg{% if not change.on %} off{% endif %}">
+        <span class="chg-name">{{ change.label }}</span>
+        <span class="chg-state">{% if change.on %}{{ icon('check', 's') }}{{ t('listen.change_on') }}{% else %}{{ icon('x', 's') }}{{ t('listen.change_off') }}{% endif %}</span>
+        {% if change.on and change.count is not none %}<span class="chg-count">{{ t('listen.change_count', n=change.count) }}</span>{% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+  </div>
+  <div class="context-body" role="tabpanel" id="panel-outline" aria-labelledby="tab-outline">
+    <nav aria-labelledby="chapters-heading">
+      <h2 id="chapters-heading" class="visually-hidden">{{ t('listen.chapters') }}</h2>
+      <ol class="outline">
+      {% for chapter in outline %}
+        <li><button type="button" class="chapter-button" data-chapter="{{ loop.index0 }}" lang="{{ view.language }}"{% if loop.first %} aria-current="true"{% endif %} disabled><span class="ot">{{ chapter.title }}</span><span class="oc">{{ chapter.clock }}</span></button></li>
+      {% endfor %}
+      </ol>
+      {% if view.left_out %}<p class="hint">{{ t('listen.left_out') }} <span lang="{{ view.language }}">{{ view.left_out|join(', ') }}</span></p>{% endif %}
+    </nav>
+    <p class="setting-switch follow"><input type="checkbox" role="switch" class="switch" id="follow" checked> <label for="follow">{{ t('listen.follow') }}</label></p>
+  </div>
+</aside>
 </div>
-{% if document.outside %}<p><a href="/">{{ t('common.back_home') }}</a></p>{% else %}<p><a href="/documents/{{ document.id }}">{{ t('listen.back_document') }}</a></p>{% endif %}
+{% if document.outside %}<p><a href="/">{{ t('common.back_home') }}</a></p>{% endif %}
 {% endif %}
 {% endblock %}

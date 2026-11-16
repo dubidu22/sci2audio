@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -59,7 +60,8 @@ def test_an_audio_job_keeps_the_order_given(tmp_path: Path) -> None:
     assert done["state"] == "done", done
     assert done["settings"]["chapters"] == [1, 0]
     listen = client.get(f"/documents/{doc}/listen").text
-    assert listen.index(">Methods</button>") < listen.index(">Introduction</button>")
+    outline = re.findall(r'<span class="ot">([^<]*)</span>', listen)
+    assert outline == ["Methods", "Introduction"]
 
 
 def test_a_report_from_before_the_publisher_flag_still_reads() -> None:

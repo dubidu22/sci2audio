@@ -65,7 +65,7 @@ def test_the_chapters_are_reordered_by_keyboard_and_read_in_that_order(
     expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
     page.get_by_role("link", name="Listen with the text").click()
     page.wait_for_url(f"{live.url}/documents/{document}/listen")
-    expect(page.locator(".chapter-button")).to_have_text(["Methods", "Introduction"])
+    expect(page.locator(".chapter-button .ot")).to_have_text(["Methods", "Introduction"])
     page.get_by_role("button", name="Play").click()
     first = chunk_id(page, "Methods")
     page.wait_for_function(f"() => document.getElementById('{first}').classList.contains('now')")
