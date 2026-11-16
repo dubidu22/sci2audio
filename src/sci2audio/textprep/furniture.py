@@ -107,11 +107,9 @@ class HiddenRunStep(TextStep):
                         else:
                             stretches.append((offset, end, hidden))
                     offset = end
-            taken = 0
+            # the white space a removal takes before it stops at the text of the one before
             for start, end, hidden in stretches:
                 start, end = removed_span(block.text, start, end)
-                start = max(start, taken)  # white space taken never reaches the edit before
-                taken = end
                 shown = " ".join(block.text[start:end].split())
                 edits.append(
                     Edit(

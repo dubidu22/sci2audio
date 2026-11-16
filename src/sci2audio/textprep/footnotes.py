@@ -374,7 +374,7 @@ class FootnoteStep(TextStep):
 # an affiliation mark: digits, commas and note symbols only (white space at the ends aside)
 _AFFILIATION_MARK = re.compile(r"\s*[0-9,\u2217*\u2020\u2021\u00a7\u00b6]+\s*")
 # a name before the mark: a capitalised word of two letters or more ("Chi", "Ångström")
-_NAME_END = re.compile(r"(?<![^\W\d_])[^\W\d_]{2,}\Z")
+_NAME_END = re.compile(r"[^\W\d_]{2,}\Z")
 # after a name: the block's end, white space, a comma, a semicolon or a note mark
 _AFTER_NAME = re.compile(r"\Z|[\s,;\u2217*\u2020\u2021\u00a7\u00b6]")
 # an affiliation after the mark: a capital, after at most one space ("¹Meta AI", "² Univ")
@@ -442,8 +442,7 @@ def _raised_marks(
         for run in line.runs:
             end = offset + len(run.text)
             if (
-                run.text.strip()
-                and _AFFILIATION_MARK.fullmatch(run.text)
+                _AFFILIATION_MARK.fullmatch(run.text)
                 and _set_small(run, main)
                 and _superscript(run, line, main)
                 and not any(s < end and offset < e for s, e in taken)

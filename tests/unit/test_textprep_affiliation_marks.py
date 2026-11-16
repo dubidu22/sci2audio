@@ -151,6 +151,11 @@ def test_the_rise_is_measured_against_a_run_in_the_main_size_on_the_same_line() 
     # with only small runs on its line, a mark is not raised over anything
     alone = pdf((name("Simon Bigg"),), (mark("1"),))
     assert removed(alone) == []
+    # a small run set lower (a subscript) does not make a small run on the line look raised
+    lowered = pdf(
+        (name("Jane Roe"), mark("1", 103.0, 110.0), name(" and"), mark("2", 106.0, 113.0))
+    )
+    assert removed(lowered) == []
 
 
 def test_runs_side_by_side_make_one_mark() -> None:
