@@ -75,7 +75,7 @@ def test_an_audiobook_from_the_command_line_plays_with_its_text(
         page.wait_for_url(f"{origin}/documents/{job.id}/listen")
         expect(page.get_by_role("heading", level=1)).to_have_text("Listen: paper.pdf")
         expect(page.get_by_role("link", name="Back to the document")).to_have_count(0)
-        expect(page.get_by_role("link", name="Back to the start page")).to_have_count(1)
+        expect(page.get_by_role("link", name="Back to the library")).to_have_count(1)
         check_axe(page, "listen page of a command-line job")
         page.locator("#listen-title").focus()
         page.keyboard.press(tab_key(page))
