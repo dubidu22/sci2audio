@@ -244,6 +244,7 @@ def test_every_route_of_the_app_is_listed(tmp_path: Path) -> None:
     assert routes[("GET", "/documents/{document_id}/listen")] is True
     assert routes[("GET", "/privacy")] is True
     assert routes[("GET", "/language")] is False  # a redirect, not a page
+    assert routes[("GET", "/appearance")] is False
     assert routes[("POST", "/api/v1/documents")] is False
     assert routes[("DELETE", "/api/v1/documents/{document_id}/chunks")] is False
     assert ("GET", "/static/…") in routes
@@ -256,6 +257,7 @@ def test_every_route_of_the_app_is_listed(tmp_path: Path) -> None:
         "/documents/{document_id}/listen",
         "/voice",
         "/privacy",
+        "/settings",
     }
     assert len(routes) >= 25  # every API route too (29 on 13 Nov 2026)
 
@@ -402,3 +404,15 @@ def test_a_bad_note_is_refused(tmp_path: Path, text: str, message: str) -> None:
     path.write_text(text, encoding="utf-8")
     with pytest.raises(zap.AcceptedListError, match=message):
         zap.load_notes(path)
+
+
+@pytest.mark.parametrize(
+    ("url", "wanted"),
+    [
+        ("http://127.0.0.1:8000/documents/560cf2c86366c0cd", "560cf2c86366c0cd"),
+        ("http://127.0.0.1:8000/documents/560cf2c86366c0cd#step-check", "560cf2c86366c0cd"),
+        ("http://127.0.0.1:8000/jobs/voices-1?x=1#result", "voices-1"),
+    ],
+)
+def test_the_walk_reads_an_id_without_the_fragment_a_reload_adds(url: str, wanted: str) -> None:
+    assert zap._last_part(url) == wanted

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ t('settings.title') }} · {{ t('common.app') }}{% endblock %}
+{% block main %}
+<h1>{{ t('settings.title') }}</h1>
+{#- Settings (#388, prototype/app/screens/settings.png). Appearance, language and the
+    announcements are GET forms that set their own cookie and come back here (D-288, D-321,
+    D-671): they work without the script. The defaults are the settings file's, saved by the
+    script through the API. The capture sound follows with the study layer (#397). #}
+{% if warnings %}<p class="note" id="settings-warning">{{ t('settings.file_warning') }}</p>{% endif %}
+
+<section class="panel" aria-labelledby="appearance-head">
+  <h2 id="appearance-head">{{ t('settings.appearance') }}</h2>
+  <form method="get" action="/appearance" id="appearance">
+    <input type="hidden" name="back" value="/settings">
+    <div class="seg" role="group" aria-labelledby="appearance-head">
+      <button type="submit" name="theme" value="system" aria-pressed="{{ 'true' if theme == 'system' else 'false' }}">{{ t('settings.theme_system') }}</button>
+      <button type="submit" name="theme" value="light" aria-pressed="{{ 'true' if theme == 'light' else 'false' }}">{{ t('settings.theme_light') }}</button>
+      <button type="submit" name="theme" value="dark" aria-pressed="{{ 'true' if theme == 'dark' else 'false' }}">{{ t('settings.theme_dark') }}</button>
+    </div>
+  </form>
+  <h2 id="language-head">{{ t('settings.language') }}</h2>
+  <form method="get" action="/language" id="languages">
+    <input type="hidden" name="back" value="/settings">
+    <div class="seg" role="group" aria-labelledby="language-head">
+      {% for code in languages %}<button type="submit" name="language" value="{{ code }}" lang="{{ code }}" aria-pressed="{{ 'true' if code == strings.language else 'false' }}">{{ t('common.language_' + code) }}</button>{% endfor %}
+    </div>
+  </form>
+</section>
+
+<section class="panel" aria-labelledby="defaults-head">
+  <h2 id="defaults-head">{{ t('settings.defaults') }}</h2>
+  <p class="hint">{{ t('settings.defaults_intro') }}</p>
+  <form id="defaults" data-api="/api/v1/settings">
+    <div class="field">
+      <label for="settings-folder">{{ t('settings.folder') }}</label>
+      <p class="hint" id="settings-folder-hint">{{ t('settings.folder_hint') }}</p>
+      <input id="settings-folder" name="output_folder" value="{{ output_folder }}" aria-describedby="settings-folder-hint" autocomplete="off" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label for="settings-speed">{{ t('settings.speed') }}</label>
+      <p class="range"><input type="range" id="settings-speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
+      <output id="settings-speed-value" for="settings-speed" aria-hidden="true">{{ speed_text }}</output></p>
+    </div>
+    {# drawn disabled; app.js enables it once its click is wired (#177, #350) #}
+    <p><button type="submit" class="primary" id="settings-save" disabled>{{ t('settings.save') }}</button></p>
+  </form>
+  <p id="message" class="message" role="status" tabindex="-1"></p>
+</section>
+
+<section class="panel" aria-labelledby="listening-head">
+  <h2 id="listening-head">{{ t('settings.listening') }}</h2>
+  {# A checkbox sends nothing when it is off: the hidden "off" comes first and a ticked box
+     after it wins (the last value of a query name counts). #}
+  <form method="get" action="/appearance" id="announce-form" class="setting-switch">
+    <input type="hidden" name="back" value="/settings">
+    <input type="hidden" name="announce" value="off">
+    <input type="checkbox" role="switch" class="switch" id="settings-announce" name="announce" value="on" aria-describedby="settings-announce-hint"{% if announce %} checked{% endif %}>
+    <div>
+      <label for="settings-announce">{{ t('settings.announce') }}</label>
+      <span class="hint" id="settings-announce-hint">{{ t('settings.announce_hint') }}</span>
+      <p class="buttons" id="announce-save-line"><button type="submit" class="sm">{{ t('settings.announce_save') }}</button></p>
+    </div>
+  </form>
+</section>
+{% endblock %}

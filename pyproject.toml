@@ -3,8 +3,13 @@ name = "sci2audio"
 dynamic = ["version"]
 description = "Turn scientific texts into faithful, offline audiobooks with local voices."
 readme = "README.md"
-license = "GPL-3.0-or-later"
-license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]
+license = "GPL-3.0-or-later AND OFL-1.1"  # OFL-1.1: the bundled interface fonts (D-670)
+license-files = [
+  "LICENSE",
+  "THIRD_PARTY_LICENSES.md",
+  "src/sci2audio/web/static/fonts/OFL-atkinson.txt",
+  "src/sci2audio/web/static/fonts/OFL-literata.txt",
+]
 requires-python = ">=3.12"
 authors = [{ name = "Colin Meng" }]
 keywords = ["text-to-speech", "audiobook", "accessibility", "pdf", "epub", "science"]

@@ -598,9 +598,9 @@ def walk(config: Any, proxy: str, chromium: str | None) -> None:
             page = context.new_page()
             page.set_default_timeout(60_000)
             ids = _walk_english(page, context, origin, config.start_url, paper, note)
-            # the language switch, a GET form in the header (D-321)
-            page.goto(f"{origin}/privacy")
-            page.locator("form.languages button[value=de]").click()
+            # the language switch, a GET form on the Settings page (D-321, D-673)
+            page.goto(f"{origin}/settings")
+            page.locator("#languages button[value=de]").click()
             expect(page.locator("html")).to_have_attribute("lang", "de")
             for path in _pages(ids):
                 answer = page.goto(origin + path)
@@ -624,6 +624,12 @@ class WalkError(RuntimeError):
 def _check(condition: object, message: str) -> None:
     if not condition:
         raise WalkError(message)
+
+
+def _last_part(url: str) -> str:
+    """The id at the end of a page address, without the #fragment a finished job's reload
+    adds (the document page reloads at #step-check once its analysis ends)."""
+    return urlsplit(url).path.rsplit("/", 1)[1]
 
 
 EVENTS = re.compile(r"/api/v1/jobs/[^/?]+/events$")
@@ -668,6 +674,7 @@ def _pages(ids: Ids) -> list[str]:
         "/",
         "/privacy",
         "/voice",
+        "/settings",
         f"/documents/{ids.paper}",
         f"/documents/{NO_DOCUMENT}",
         f"/jobs/{ids.script_job}",
@@ -686,15 +693,21 @@ def _walk_english(
     page.goto(start_url)
     _check(page.url == origin + "/", page.url)
     expect(page.locator("html")).to_have_attribute("lang", "en")
-    for path in ("/privacy", "/voice", f"/documents/{NO_DOCUMENT}"):
+    for path in ("/privacy", "/voice", "/settings", f"/documents/{NO_DOCUMENT}"):
         page.goto(origin + path)
+    # the Settings page's own GET forms set their cookies and come back (D-671)
+    page.goto(origin + "/settings")
+    page.locator("#appearance button[value=dark]").click()
+    expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+    page.locator("#appearance button[value=system]").click()
+    expect(page.locator("html")).not_to_have_attribute("data-theme", re.compile(".*"))
 
     # open a file and read its analysis
     page.goto(origin + "/")
     page.set_input_files("#file", files=[paper])
     page.locator("#open-file button[type=submit]").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}$"))
-    paper_id = page.url.rsplit("/", 1)[1]
+    paper_id = _last_part(page.url)
     expect(page.locator("#summary")).to_be_visible()
     expect(page.locator("#document[data-events]")).to_have_count(0)
     with page.expect_download():
@@ -713,7 +726,7 @@ def _walk_english(
     page.get_by_role("checkbox", name=re.compile("I agree")).check()
     page.get_by_role("button", name="Download the voice").click()
     page.wait_for_url(re.compile(r"/jobs/voices-\d+$"))
-    voice_job = page.url.rsplit("/", 1)[1]
+    voice_job = _last_part(page.url)
     expect(page.locator("#result")).to_have_text(re.compile("The voice is installed"))
 
     # a preview, then the audiobook, its files, the player
@@ -722,7 +735,7 @@ def _walk_english(
     expect(page.locator("#preview-audio")).to_be_visible()
     page.get_by_role("button", name="Make the audiobook").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+$"))
-    audio_job = page.url.rsplit("/", 1)[1]
+    audio_job = _last_part(page.url)
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
     for link in page.locator("ul.files a").all():
         context.request.get(origin + str(link.get_attribute("href")))
@@ -744,7 +757,7 @@ def _walk_english(
     page.set_input_files("#file", files=[note])
     page.locator("#open-file button[type=submit]").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}$"))
-    note_id = page.url.rsplit("/", 1)[1]
+    note_id = _last_part(page.url)
     expect(page.locator("#document[data-events]")).to_have_count(0)
 
     jobs = context.request.get(f"{origin}/api/v1/jobs").json()
@@ -809,6 +822,9 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     back = call("GET", "/language?language=en&back=https://elsewhere.example/", 303,
                 max_redirects=0)  # fmt: skip
     _check(back.headers.get("location") == "/", "the language switch left the server")
+    back = call("GET", "/appearance?announce=on&back=//elsewhere.example/", 303,
+                max_redirects=0)  # fmt: skip
+    _check(back.headers.get("location") == "/", "the Settings forms left the server")
 
 
 def _names(record: dict[str, Any], key: str) -> list[str]:

@@ -38,14 +38,21 @@ from sci2audio.web.api import REDIRECTS, plan_hosts
 from sci2audio.web.config import UPLOAD_LIMIT
 from sci2audio.web.documents import StoredDocument, supported_suffixes
 from sci2audio.web.i18n import (
+    ANNOUNCE_COOKIE,
     COOKIE,
     COOKIE_AGE,
     LANGUAGES,
+    THEME_COOKIE,
+    THEMES,
     Strings,
+    announce_of,
     data_block,
+    known_announce,
     known_language,
+    known_theme,
     local_path,
     strings_of,
+    theme_of,
 )
 from sci2audio.web.jobs import JobKind, JobRecord, JobState
 from sci2audio.web.models import PREVIEW_LIMIT
@@ -86,6 +93,48 @@ def failure(s: Strings, error: Mapping[str, Any] | None) -> dict[str, str] | Non
     return {"reason": reason, "details": message}
 
 
+# the rail item each page marks as the current one (#387); other pages mark none
+NAV_ITEMS = {
+    "index.html": "library",
+    "voice.html": "voices",
+    "settings.html": "settings",
+    "privacy.html": "privacy",
+    "job.html": "job",
+}
+
+
+def progress_fraction(progress: Mapping[str, Any] | None) -> float | None:
+    """How far a job is, 0 to 1, or None when it can't tell: the same rule as the job
+    page's script (`fraction` in app.js), so the rail's meter and the page agree."""
+    if not progress:
+        return None
+    pages = progress.get("pages")
+    if progress.get("phase") == "reading" and pages:
+        return min(1.0, (progress.get("page") or 0) / pages)
+    total = progress.get("chunks_total")
+    if total:
+        return min(1.0, (progress.get("chunks_done") or 0) / total)
+    total = progress.get("bytes_total")
+    if total:
+        return min(1.0, (progress.get("bytes_done") or 0) / total)
+    return None
+
+
+def _shelf_job(state: ServerState, job: JobRecord, s: Strings) -> dict[str, Any]:
+    """The running job as the rail's shelf item (#387): its title, a few words on how far
+    it is, and its meter in percent (None while it can't tell)."""
+    view = _job_view(state, job, s)
+    progress = view.get("progress") or {}
+    part = progress_fraction(progress)
+    percent = None if part is None else int(100 * part)
+    phase = progress.get("phase")
+    words = s.table.get(f"phase.{phase}") if phase else None
+    if words is None:
+        words = s(f"job.state_{view['state']}")
+    shelf_text = words if percent is None else s("shelf.made", phase=words, n=percent)
+    return {**view, "percent": percent, "shelf_text": shelf_text}
+
+
 def _page(
     request: Request,
     state: ServerState,
@@ -95,7 +144,9 @@ def _page(
     **context: Any,
 ) -> HTMLResponse:
     current = state.board.current
-    context.setdefault("running", None if current is None else _job_view(state, current, s))
+    context.setdefault("running", None if current is None else _shelf_job(state, current, s))
+    if "library_count" not in context:
+        context["library_count"] = len(state.store.all())
     query = request.url.query
     context.update(
         t=s,
@@ -104,6 +155,8 @@ def _page(
         script_strings=s.script_json,
         languages=LANGUAGES,
         here=local_path(request.url.path + (f"?{query}" if query else "")),
+        nav=NAV_ITEMS.get(name),
+        theme=theme_of(request),
     )
     return templates.TemplateResponse(request, name, context, status_code=status)
 
@@ -142,6 +195,7 @@ def index(request: Request, state: State) -> HTMLResponse:
         s,
         "index.html",
         documents=documents,
+        library_count=len(documents),
         outside=state.config.outside,
         removals={document.id: _removal(document) for document in documents},
         busy_document=_busy_document(state),
@@ -494,6 +548,7 @@ def job(request: Request, state: State, job_id: str) -> HTMLResponse:
         s,
         "job.html",
         job=view,
+        current_job=found.id,
         document=document,
         cache_bytes=0 if document is None else document.speech_cache_bytes,
         skipped=progress.get("skipped", []) if view["state"] == "done" else [],
@@ -671,4 +726,51 @@ def choose_language(request: Request, language: str = "", back: str = "") -> Red
         response.set_cookie(
             COOKIE, chosen, max_age=COOKIE_AGE, path="/", samesite="strict", httponly=True
         )
+    return response
+
+
+# --- Settings (#388) -------------------------------------------------------------------
+
+
+@router.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request, state: State) -> HTMLResponse:
+    """Appearance, language and announcements (cookies, D-671) and the defaults for new
+    audiobooks (the settings file, saved by the script through `PUT /api/v1/settings`).
+    Showing the page never writes anything."""
+    s = strings_of(request)
+    saved, warnings = load_settings(state.config.config_file)
+    return _page(
+        request,
+        state,
+        s,
+        "settings.html",
+        themes=THEMES,
+        announce=announce_of(request),
+        output_folder=str(saved.output_folder or state.config.output_folder),
+        speed=saved.speed,
+        speed_text=s("voice.speed_value", value=s.number(saved.speed)),
+        speed_min=MIN_SPEED,
+        speed_max=MAX_SPEED,
+        speed_step=SPEED_STEP,
+        warnings=warnings,
+    )
+
+
+@router.get("/appearance")
+def choose_appearance(
+    request: Request, theme: str = "", announce: str = "", back: str = ""
+) -> RedirectResponse:
+    """Remembers the appearance (`system`, `light`, `dark`) or the sentence announcements
+    (`on`, `off`) in their own cookies and goes back to the page the form was on, like the
+    language switch (D-288, D-321, D-671): a GET form guarded like every page, setting
+    nothing but these choices, sending the browser only to a path on this server."""
+    response = RedirectResponse(local_path(back), 303)
+    for cookie, chosen in (
+        (THEME_COOKIE, known_theme(theme)),  # one of THEMES, never the request's text
+        (ANNOUNCE_COOKIE, known_announce(announce)),  # one of ANNOUNCE
+    ):
+        if chosen is not None:
+            response.set_cookie(
+                cookie, chosen, max_age=COOKIE_AGE, path="/", samesite="strict", httponly=True
+            )
     return response

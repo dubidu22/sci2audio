@@ -127,7 +127,8 @@ def resource_texts() -> dict[str, str]:
     texts = {}
     for folder in ("templates", "static"):
         for item in (WEB / folder).iterdir():
-            texts[f"{folder}/{item.name}"] = item.read_text(encoding="utf-8")
+            if item.is_file():  # static/fonts/ holds the bundled fonts (#385)
+                texts[f"{folder}/{item.name}"] = item.read_text(encoding="utf-8")
     return texts
 
 
@@ -434,15 +435,22 @@ def test_an_unknown_key_names_itself() -> None:
         strings("de").t("nope", n=2)
 
 
-def test_the_switch_is_on_every_page_and_marks_the_language(
+def test_the_switch_is_on_settings_linked_from_every_page_and_marks_the_language(
     server_: tuple[FastAPI, Any],
 ) -> None:
-    page = client_in(server_, "de").get("/").text
-    assert '<form class="languages" method="get" action="/language">' in page
-    assert '<input type="hidden" name="back" value="/">' in page
+    # D-673 (amends D-288): the switch moved from every page's header to Settings (#388)
+    app, _ = server_
+    client = client_in(server_, "de")
+    for name, page in pages_of(client, app).items():
+        rail = page.split('<nav class="rail"')[1].split("</nav>")[0]
+        assert '<a href="/settings"' in rail, name
+        assert 'action="/language"' not in rail, name
+    page = client.get("/settings").text
+    assert '<form method="get" action="/language" id="languages">' in page
+    assert '<input type="hidden" name="back" value="/settings">' in page
     assert re.search(r'value="en" lang="en" aria-pressed="false">English</button>', page)
     assert re.search(r'value="de" lang="de" aria-pressed="true">Deutsch</button>', page)
-    assert "<legend>Sprache</legend>" in page
+    assert '<h2 id="language-head">Sprache der Oberfläche</h2>' in page
 
 
 # --- every page in German ------------------------------------------------------------------
@@ -483,6 +491,7 @@ def pages_of(client: TestClient, app: FastAPI) -> dict[str, str]:
         "script job": client.get(f"/jobs/{job['id']}").text,
         "voice": client.get("/voice").text,
         "privacy": client.get("/privacy").text,
+        "settings": client.get("/settings").text,
         "not found": client.get("/jobs/nothing").text,
     }
 
@@ -550,10 +559,10 @@ def test_the_privacy_page_is_linked_from_every_page_and_the_voice_consent(
     for language in ("en", "de"):
         client = client_in(server_, language)
         for name, page in pages_of(client, app).items():
-            footer = page.split("<footer>")[1]
-            assert '<a href="/privacy">' in footer, (language, name)
+            rail = page.split('<nav class="rail"')[1].split("</nav>")[0]
+            assert '<a href="/privacy"' in rail, (language, name)
         voice = client.get("/voice").text
-        assert voice.index('href="/privacy"') < voice.index("<footer>")
+        assert voice.index('href="/privacy"') < voice.index('id="voice-consent"')
 
 
 def test_the_privacy_page_lists_the_hosts_and_folders_of_this_server(
@@ -608,9 +617,15 @@ def test_what_the_privacy_page_says_is_what_the_code_does() -> None:
     # 4: 127.0.0.1 only, no access log, nothing from outside (test_web_pages), no docs pages
     assert HOST == "127.0.0.1"
     assert uvicorn_config(FastAPI()).access_log is False
-    # 6: the cookies: the start cookie is the port's, the language cookie holds a language
+    # 6: the cookies: the start cookie is the port's; the Settings page's three cookies hold
+    # a language, an appearance and the announcements, each one of its listed values (D-671)
     assert COOKIE == "sci2audio-language"
     assert set(LANGUAGES) == {"en", "de"}
+    assert (i18n.THEME_COOKIE, i18n.THEMES) == ("sci2audio-theme", ("system", "light", "dark"))
+    assert (i18n.ANNOUNCE_COOKIE, i18n.ANNOUNCE) == ("sci2audio-announce", ("off", "on"))
+    pages_source = Path(pages.__file__).read_text(encoding="utf-8")
+    assert pages_source.count("response.set_cookie(") == 2  # the language's; Settings' two
+    assert "at most four cookies" in EN["privacy.cookies"]
 
 
 def test_launch_opens_only_a_loopback_socket() -> None:

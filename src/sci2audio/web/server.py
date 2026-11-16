@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import errno
+import mimetypes
 from collections.abc import Callable
 from importlib.resources import files
 from pathlib import Path
@@ -79,6 +80,8 @@ def create_app(
     app.include_router(api.router)
     app.include_router(pages.router)
     static = files("sci2audio.web") / "static"
+    # the bundled fonts (#385): not in every system's table of types (Windows, older Pythons)
+    mimetypes.add_type("font/woff2", ".woff2")
     app.mount("/static", StaticFiles(directory=str(static)), name="static")
 
     @app.exception_handler(ApiError)
