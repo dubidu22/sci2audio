@@ -8,7 +8,7 @@ from itertools import count
 
 import pytest
 
-from sci2audio.core import BlockKind, Document, Edit, EditKind, Section, Span
+from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Section, Span
 from sci2audio.testing import (
     SAMPLE_DOCUMENTS,
     ConformanceError,
@@ -115,6 +115,15 @@ class InsidePlaceholder(TextStep):
 
 def test_an_edit_inside_a_placeholder_must_cover_the_whole_block() -> None:
     problems = text_step_problems(InsidePlaceholder())
+    assert any("inside a placeholder" in problem for problem in problems), problems
+
+
+@pytest.mark.parametrize(
+    "kind", [BlockKind.FORMULA, BlockKind.TABLE, BlockKind.FIGURE, BlockKind.CODE]
+)
+def test_an_edit_inside_any_kind_of_placeholder_is_refused(kind: BlockKind) -> None:
+    document = make_document([Block(kind, "a = b + c"), (BlockKind.PARAGRAPH, "Some text.")])
+    problems = text_step_problems(InsidePlaceholder(), [document])
     assert any("inside a placeholder" in problem for problem in problems), problems
 
 
