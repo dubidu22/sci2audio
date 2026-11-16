@@ -234,6 +234,27 @@ def test_the_card_of_a_job_that_failed_in_its_second_chapter(
     assert "Chapter 1 is finished and kept. Making it again speaks only what is missing." in failed
 
 
+def test_the_card_of_a_job_that_failed_in_its_first_chapter(tmp_path: Path) -> None:
+    """In the first chapter no chapter is finished: what is kept is the sentences."""
+    voice = FakeVoice()
+    app, client = server(tmp_path, voice)
+    doc = upload(client, paper_bytes())
+
+    def stop_in_chapter_one(text: str) -> bool:
+        job = app.state.sci2audio.board.current
+        progress = job.snapshot()["progress"] or {}
+        if progress.get("chapter_number") == 1 and not progress.get("chapter_done"):
+            raise ModelNotFoundError("the voice's files went away")
+        return False
+
+    voice.fail_on = stop_in_chapter_one
+    job = start(client, doc["id"])
+    assert wait(client, job)["state"] == "failed"
+    failed = words(card(client.get(f"/jobs/{job}").text))
+    assert "Making the audiobook stopped in chapter 1" in failed
+    assert "The sentences spoken so far are kept. Making it again speaks only what is" in failed
+
+
 def test_the_card_once_done(tmp_path: Path) -> None:
     _app, client = server(tmp_path, FakeVoice())
     doc = upload(client, paper_bytes())
