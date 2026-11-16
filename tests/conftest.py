@@ -34,7 +34,8 @@ settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "dev"))
 # --- quarantine (D-374) ------------------------------------------------------------------
 # A test that failed twice without a code cause is skipped the same day with
 # `@pytest.mark.quarantined(issue=N, reason="...")`, linked to the GitHub issue that tracks
-# its fix. `platform="win32"` (a `sys.platform` value) limits the skip to one system.
+# its fix. `platform="win32"` (a `sys.platform` value) limits the skip to one system, and
+# `browser="webkit"` (a pytest-playwright browser name) to one browser of the browser tests.
 # Every quarantined test must be fixed before the v1.0 release (#80). List them with
 # `uv run pytest -m quarantined --collect-only -q`; run them with `--run-quarantined`.
 
@@ -45,6 +46,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         action="store_true",
         help="run the quarantined tests too (to fix them, D-374)",
     )
+
+
+BROWSERS = ("chromium", "firefox", "webkit")  # pytest-playwright's names
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -59,14 +63,27 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             raise pytest.UsageError(
                 f"{item.nodeid}: quarantined needs issue=<GitHub issue number> and reason=..."
             )
-        if marker.args or set(marker.kwargs) - {"issue", "reason", "platform"}:
+        if marker.args or set(marker.kwargs) - {"issue", "reason", "platform", "browser"}:
             raise pytest.UsageError(
-                f"{item.nodeid}: quarantined takes only issue=, reason= and platform="
+                f"{item.nodeid}: quarantined takes only issue=, reason=, platform= and browser="
             )
         platform = marker.kwargs.get("platform")
+        browser = marker.kwargs.get("browser")
+        if browser is not None and browser not in BROWSERS:  # a typo would quarantine nothing
+            raise pytest.UsageError(
+                f"{item.nodeid}: quarantined browser= is one of {', '.join(BROWSERS)}"
+            )
         if run_them or (platform is not None and sys.platform != platform):
             continue
+        if browser is not None and _browser_of(item) != browser:
+            continue
         item.add_marker(pytest.mark.skip(reason=f"quarantined, see #{issue}: {reason}"))
+
+
+def _browser_of(item: pytest.Item) -> str | None:
+    """The browser a browser test runs in (pytest-playwright's `browser_name`), else None."""
+    callspec = getattr(item, "callspec", None)
+    return callspec.params.get("browser_name") if callspec is not None else None
 
 
 def pytest_report_collectionfinish(config: pytest.Config, items: list[pytest.Item]) -> list[str]:
@@ -76,6 +93,9 @@ def pytest_report_collectionfinish(config: pytest.Config, items: list[pytest.Ite
         marker = item.get_closest_marker("quarantined")
         if marker is not None:
             issue, where = marker.kwargs.get("issue"), marker.kwargs.get("platform")
+            browser = marker.kwargs.get("browser")
+            if browser is not None and _browser_of(item) != browser:
+                continue
             lines.append(f"  #{issue} {item.nodeid}" + (f" (on {where})" if where else ""))
     if not lines:
         return []

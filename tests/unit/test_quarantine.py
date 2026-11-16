@@ -1,5 +1,5 @@
 """The quarantine marker (D-374), checked in a separate pytest process: a flaky test is
-skipped with a link to its issue, only on the system it names, runs again with
+skipped with a link to its issue, only on the system or in the browser it names, runs again with
 --run-quarantined, and a marker without an issue number is refused."""
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ CONFTEST = Path(__file__).parents[1] / "conftest.py"
 MARKERS = """
 [pytest]
 markers =
-    quarantined(issue, reason, platform=None): see D-374
+    quarantined(issue, reason, platform=None, browser=None): see D-374
 """
 
 
@@ -84,6 +84,8 @@ def test_run_quarantined_runs_them(pytester: pytest.Pytester) -> None:
         "quarantined(issue=138)",
         'quarantined(138, reason="positional")',
         'quarantined(issue=138, reason="x", until="v1.1")',
+        'quarantined(issue=411, reason="a misspelt browser", browser="WebKit")',
+        'quarantined(issue=411, reason="no such browser", browser="safari")',
     ],
 )
 def test_a_marker_without_an_issue_number_is_refused(
@@ -93,3 +95,33 @@ def test_a_marker_without_an_issue_number_is_refused(
     result = pytester.runpytest_subprocess()
     assert result.ret == pytest.ExitCode.USAGE_ERROR
     result.stderr.fnmatch_lines(["*quarantined*"])
+
+
+BROWSERS = """
+@pytest.mark.quarantined(issue=411, reason="races the reload", browser="webkit")
+def test_flaky_in_one_browser(browser_name):  # pytest-playwright's fixture: no browser starts
+    assert browser_name != "webkit"
+
+@pytest.mark.quarantined(issue=411, reason="no browser here", browser="webkit")
+def test_not_a_browser_test():
+    pass
+"""
+
+
+IN_THREE = ("--browser", "chromium", "--browser", "firefox", "--browser", "webkit")
+
+
+def test_a_browser_quarantine_skips_that_browser_only(pytester: pytest.Pytester) -> None:
+    made_up(pytester, BROWSERS)
+    result = pytester.runpytest_subprocess("-rs", *IN_THREE)
+    result.assert_outcomes(passed=3, skipped=1)
+    result.stdout.fnmatch_lines(["SKIPPED * quarantined, see #411: races the reload"])
+    listed = pytester.runpytest_subprocess("-m", "quarantined", "--collect-only", "-q", *IN_THREE)
+    listed.stdout.fnmatch_lines(
+        ["1 quarantined test(s)*", "  #411 test_made_up.py::test_flaky_in_one_browser[webkit]"]
+    )
+    again = pytester.runpytest_subprocess("--run-quarantined", *IN_THREE)
+    again.assert_outcomes(passed=3, failed=1)
+    alone = pytester.runpytest_subprocess("-rs", "--browser", "chromium")
+    alone.assert_outcomes(passed=2)  # without WebKit nothing is skipped or listed
+    assert "quarantined" not in alone.stdout.str()
