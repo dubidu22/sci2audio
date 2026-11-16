@@ -154,6 +154,13 @@ def test_and_so_on_makes_an_aside() -> None:
         ("Data (McKinney, 2010) frames.", "Data frames."),
         ("Inversion (see e.g. Althoen and McLaughlin (1987)).", "Inversion."),
         ("Phrase Ellipsis (VPE)(Bos and Spenader, 2011):", "Phrase Ellipsis (VPE):"),
+        # #455 (D-719): a reprint year, authors joined by a slash, a Roman page, an acronym
+        # before a page
+        ("Origin (Smith 1890/1990, p. 5). Next.", "Origin. Next."),
+        ("Origin (Smith/Jones 2001). Next.", "Origin. Next."),
+        ("Origin (Smith 2001, pp. iv–vi). Next.", "Origin. Next."),
+        ("Origin (Smith 2001, p. xii). Next.", "Origin. Next."),
+        ("Origin (WHO 2020, p. 3). Next.", "Origin. Next."),
     ],
 )
 def test_a_bracket_of_citations_is_removed(text: str, spoken: str) -> None:
@@ -225,6 +232,10 @@ def test_a_bracketed_citation_the_sentence_needs_keeps_its_names(text: str, spok
         "his edition (first english edition 1973)",
         "models (e.g., BERT) and (BERT 2019)",
         "values (n = 2019) and (p < 2020)",
+        # #455: a slash between ordinary words or between acronyms, an acronym and a year
+        "repeated (and/or 3 times) and (input/output 2001) and (TCP/IP 2001)",
+        "in force (EU 2016) and (NATO 1949)",
+        "a page (Smith 2001, p. Mill) is no Roman page",
     ],
 )
 def test_dates_events_and_other_brackets_are_not_citations(text: str) -> None:

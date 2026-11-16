@@ -31,8 +31,12 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
   sentence that starts with a noun after such a number stays in the same utterance ("Es
   waren 3. Studien zeigen das."): a pause and the pitch move, no text is lost.
 - The voice takes only so much text per call (Kokoro: about 510 phoneme tokens). A sentence
-  longer than `max_chars` is cut at the last ";" or ":" that fits, else the last comma,
-  else a dash, else the last space; a single word longer than that is cut where it must be.
+  longer than `max_chars` is cut at the best place that fits (#460, D-719): after ";" or ":",
+  else after a comma before a word that opens a clause (`data/<language>/clause_openers.toml`:
+  "…, but", "…, dass"), else after any comma, else after a dash, else at a space. Within the
+  best kind the cut nearest an even share of the rest wins, so parts keep about the same
+  length, and no cut leaves a part under `MIN_PIECE` characters while another cut leaves none.
+  A single word longer than the limit is cut where it must be.
   Every utterance after the first of a cut sentence is marked `continues` (D-157).
 - Spans: kept text (a piece whose text is the document's original text of its span) maps
   character by character, so a cut inside it is exact. A replacement is read as a whole
@@ -52,7 +56,7 @@ from itertools import pairwise
 
 from sci2audio.core import Document, ScriptPiece, Span
 from sci2audio.textprep.spoken import spoken_text
-from sci2audio.textprep.wordlists import abbreviations, opens_sentence, units
+from sci2audio.textprep.wordlists import abbreviations, clause_openers, opens_sentence, units
 
 DEFAULT_MAX_CHARS = 300  # well under Kokoro's per-call limit; #18 sets the voice's own
 
@@ -146,7 +150,6 @@ _GLUED_BEFORE_DE = re.compile(f"[{re.escape(_OPENING_DE + _CLOSING_DE + '}' + _D
 # abbreviations that stand before a number ("No. 5", "p. 12"); before anything else their
 # full stop may end a sentence ("The answer is no. Then ...")
 _BEFORE_NUMBERS = frozenset({"no.", "nos.", "p.", "pp.", "vol."})
-_CLAUSE_MARKS = (";:", ",", "\u2013\u2014")  # in the order a long sentence is cut at them
 # German: a number of one to three digits with a full stop, an ordinal ("3. Sieger") or a
 # number no step read; a sentence ends after it only before a sentence opener (#227, D-530)
 _SHORT_NUMBER = re.compile(r"\A\d{1,3}\.\Z")
@@ -236,6 +239,7 @@ def cut_utterances(
         raise ValueError(f"max_chars must be at least 1, got {max_chars}")
     language = language or document.language
     abbreviations = ABBREVIATIONS.get(language.split("-", 1)[0].lower(), frozenset())
+    openers = clause_openers(language)
     utterances: list[Utterance] = []
     for run_or_pause in _runs(document, pieces):
         if isinstance(run_or_pause, ScriptPiece):
@@ -244,7 +248,7 @@ def cut_utterances(
         run = run_or_pause
         for start, end in _sentences(run, abbreviations, language):
             continues = False  # the sentence's first utterance starts it
-            for a, b in _fitted(run, start, end, max_chars):
+            for a, b in _fitted(run, start, end, max_chars, openers):
                 if utterance := _utterance(run, a, b, continues):
                     utterances.append(utterance)
                     continues = True
@@ -431,9 +435,12 @@ def _counts(text: str) -> list[int]:
     return counts
 
 
-def _fitted(run: _Run, start: int, end: int, max_chars: int) -> list[tuple[int, int]]:
+def _fitted(
+    run: _Run, start: int, end: int, max_chars: int, openers: frozenset[str] = frozenset()
+) -> list[tuple[int, int]]:
     """Cut text[start:end] into ranges whose spoken text has at most max_chars."""
     out = []
+    left = -1  # spoken length of what is left of the sentence, counted once it must be cut
     while True:
         # look only as far as the limit needs, so a long text costs linear time, not
         # quadratic: widen the window until its spoken text is over the limit
@@ -447,24 +454,72 @@ def _fitted(run: _Run, start: int, end: int, max_chars: int) -> list[tuple[int, 
         if counts[-1] <= max_chars:
             out.append((start, end))
             return out
-        cut = start + _cut_point(run.text[start:stop], counts, max_chars)
+        if left < 0:
+            left = _counts(run.text[start:end])[-1]
+        cut = start + _cut_point(run.text[start:stop], counts, max_chars, left, openers)
         cut = _outside_replacement(run, start, cut, counts, max_chars)
         out.append((start, cut))
+        left = max(0, left - counts[min(cut - start, len(counts) - 1)] - 1)
         start = cut
 
 
-def _cut_point(text: str, counts: list[int], max_chars: int) -> int:
-    """Where to cut a text whose spoken length is over max_chars (an index > 0)."""
+# a part of a long sentence this short sounds clipped: no cut leaves one when another cut
+# leaves none (#460, D-719)
+MIN_PIECE = 40
+# white space, maybe an opening quote or bracket, then the next word
+_WORD_AFTER = re.compile(r"\s+[\"'(\[\u201c\u2018\u201e\u201a\u00bb]?([^\W\d_]+)")
+
+
+def _rank(text: str, i: int, openers: frozenset[str]) -> int | None:
+    """How good a cut before text[i] is, best first: 0 after ";" or ":", 1 after a comma
+    before a word that opens a clause ("…, but", "…, dass"), 2 after any other comma, 3
+    after a dash, 4 at white space; None where no cut may fall (inside a word)."""
+    mark = text[i - 1]
+    if mark.isspace():
+        return 4
+    if not (i == len(text) or text[i].isspace()):
+        return None
+    if mark in ";:":
+        return 0
+    if mark == ",":
+        word = _WORD_AFTER.match(text, i)
+        return 1 if word is not None and word[1].lower() in openers else 2
+    return 3 if mark in _DASHES else None
+
+
+def _cut_point(
+    text: str,
+    counts: list[int],
+    max_chars: int,
+    left: int | None = None,
+    openers: frozenset[str] = frozenset(),
+) -> int:
+    """Where to cut a text whose spoken length is over max_chars (an index > 0).
+
+    Every place in the window that fits is ranked (`_rank`); the best rank wins, so a piece
+    may be shorter than the limit to end at a clause boundary (#460). Within a rank the cut
+    nearest an even share of what is left of the sentence (`left`, spoken characters) wins, so
+    parts keep about the same length; a cut that leaves a part under MIN_PIECE characters is
+    taken only when every cut does."""
     # counts never decrease, and the first spoken character always fits (max_chars >= 1)
     last_fit = bisect_right(counts, max_chars) - 1
-    for marks in _CLAUSE_MARKS:
-        for i in range(last_fit, 0, -1):
-            if text[i - 1] in marks and (i == len(text) or text[i].isspace()):
-                return i
-    for i in range(last_fit, 0, -1):
-        if text[i - 1].isspace() and counts[i] > 0:
-            return i
-    return last_fit
+    places = [
+        (rank, i)
+        for i in range(last_fit, 0, -1)
+        if counts[i] > 0 and (rank := _rank(text, i, openers)) is not None
+    ]
+    if not places:
+        return last_fit
+    left = counts[-1] if left is None else max(left, counts[-1])
+    target = left / max(2, -(-left // max_chars))  # an even share over the parts it needs
+    fair = [
+        (rank, i)
+        for rank, i in places
+        if counts[i] >= MIN_PIECE and left - counts[i] - 1 >= MIN_PIECE
+    ]
+    pool = fair or places
+    best = min(rank for rank, _ in pool)
+    return min((i for rank, i in pool if rank == best), key=lambda i: (abs(counts[i] - target), -i))
 
 
 def _outside_replacement(run: _Run, start: int, cut: int, counts: list[int], max_chars: int) -> int:
