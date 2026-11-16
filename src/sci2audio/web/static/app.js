@@ -215,6 +215,15 @@ function dropOnto(form, open) {
     input.files = dropped;
     open();
   });
+  // a file dropped beside the opener would open in the tab and leave the app: the page
+  // takes no file anywhere else (#446 review N1)
+  for (const type of ["dragover", "drop"]) {
+    document.addEventListener(type, (event) => {
+      if (!carriesFiles(event) || form.contains(event.target)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "none";
+    });
+  }
   const hint = document.getElementById("drop-hint");
   if (hint) hint.hidden = false;
 }

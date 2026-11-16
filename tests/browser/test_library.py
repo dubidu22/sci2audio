@@ -258,6 +258,37 @@ def test_a_file_dropped_on_the_opener_opens_and_is_analysed(signed_in: Page, liv
     assert [document.name for document in live.state.store.all()] == ["dropped.pdf"]
 
 
+def test_a_file_dropped_beside_the_opener_stays_out_of_the_tab(signed_in: Page, live: Live) -> None:
+    """#446 review N1: a file dropped elsewhere on the library page would open in the tab
+    and leave the app; the page cancels that drop and opens nothing."""
+    page = signed_in
+    page.goto(live.url + "/")
+    expect(page.locator("#drop-hint")).to_be_visible()
+    cancelled = page.evaluate(
+        """() => {
+            const data = new DataTransfer();
+            data.items.add(new File(["x"], "beside.pdf"));
+            const where = document.querySelector(".rail");
+            const options = { dataTransfer: data, bubbles: true, cancelable: true };
+            const fire = (type) => !where.dispatchEvent(new DragEvent(type, options));
+            return [fire("dragover"), fire("drop")];
+        }"""
+    )
+    assert cancelled == [True, True]  # the browser's own drop (open the file) is cancelled
+    assert page.url == live.url + "/"
+    assert live.state.store.all() == []
+    # a drag that carries no file (text from the page) keeps the browser's own way
+    text = page.evaluate(
+        """() => {
+            const data = new DataTransfer();
+            data.setData("text/plain", "words");
+            return !document.querySelector(".rail").dispatchEvent(
+                new DragEvent("drop", { dataTransfer: data, bubbles: true, cancelable: true }));
+        }"""
+    )
+    assert text is False
+
+
 def test_without_the_script_the_hint_does_not_promise_dropping(signed_in: Page, live: Live) -> None:
     page = signed_in
     page.route(f"{live.url}/static/app.js", lambda route: route.abort())

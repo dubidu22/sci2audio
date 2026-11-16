@@ -6,7 +6,7 @@ from __future__ import annotations
 from playwright.sync_api import Page, expect
 from test_flow import reload_holding_back_app_js, until
 
-from conftest import Live, check_axe
+from conftest import Hold, Live, check_axe
 from sci2audio.voices import preview_text
 
 
@@ -49,6 +49,55 @@ def test_a_sample_plays_by_keyboard_and_a_second_stops_the_first(
     page.get_by_role("button", name="Play a sample of George").click()
     until(lambda: playing(page))
     assert page.locator("#voice-sample").evaluate("a => a.currentTime") < 1
+
+
+def count_ended_jobs(page: Page) -> None:
+    """Count each preview job's end as the page's own handler gets it (`window.ended`)."""
+    page.evaluate(
+        """() => {
+            const original = window.follow;
+            window.ended = 0;
+            window.follow = (url, progress, end, quiet) =>
+                original(url, progress, (job) => { end(job); window.ended += 1; }, quiet);
+        }"""
+    )
+
+
+def test_a_sample_stopped_while_it_is_made_never_plays(signed_in: Page, live: Live) -> None:
+    """#446 review S1a: Stop, pressed while the sample is still being made, wins over the
+    job that ends after it; the sample never plays."""
+    page = signed_in
+    live.install_voice()
+    hold = Hold(after=0)  # the sample's first sentence waits
+    live.voice.fail_on = hold
+    page.goto(live.url + "/voice")
+    count_ended_jobs(page)
+    page.get_by_role("button", name="Play a sample of Heart").click()
+    try:
+        assert hold.reached.wait(30)
+        page.get_by_role("button", name="Stop the sample of Heart").click()
+        expect(page.get_by_role("button", name="Play a sample of Heart")).to_be_visible()
+    finally:
+        hold.gate.set()
+    page.wait_for_function("() => window.ended === 1")
+    assert page.locator("#voice-sample").evaluate("a => a.paused && !a.getAttribute('src')")
+    page.wait_for_timeout(300)  # a play started by the end would show by now
+    assert not playing(page)
+    expect(page.locator(".voice-play[aria-label^='Stop']")).to_have_count(0)
+
+
+def test_a_sample_played_to_its_end_gives_the_button_back(signed_in: Page, live: Live) -> None:
+    """#446 review S1c: when the sample ends, its button offers Play again."""
+    page = signed_in
+    live.install_voice()
+    page.goto(live.url + "/voice")
+    page.get_by_role("button", name="Play a sample of Heart").click()
+    until(lambda: playing(page))
+    page.locator("#voice-sample").evaluate("a => { a.playbackRate = 16; }")  # to its end soon
+    heart = page.get_by_role("button", name="Play a sample of Heart")
+    expect(heart).to_be_visible(timeout=30_000)
+    expect(heart).to_have_text("Play a sample")
+    expect(page.locator(".voice-play[aria-label^='Stop']")).to_have_count(0)
 
 
 def test_the_sample_buttons_wait_for_the_script(signed_in: Page, live: Live) -> None:
