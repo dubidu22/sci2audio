@@ -314,6 +314,32 @@ def test_the_panel_the_dock_and_the_outline(tmp_path: Path) -> None:
                 assert " disabled" in button, button
 
 
+def test_focus_listening_is_drawn_hidden_with_its_buttons_disabled(tmp_path: Path) -> None:
+    """#394: Focus is a mode of the page, drawn hidden; its stage is filled by player.js."""
+    client, _config = server(tmp_path)
+    with client:
+        doc = make(client)["doc"]["id"]
+        page = page_of(client, doc)
+        assert re.search(
+            r'<button type="button" class="sm" id="focus-on" aria-keyshortcuts="F" disabled>',
+            page,
+        )
+        assert 'aria-keyshortcuts="P"' in page.split('id="panel-toggle"')[1].split(">")[0]
+        view = page.split('<section class="focus-view" id="focus-view"')[1].split("</section>")[0]
+        assert view.startswith(' aria-label="Focus listening" tabindex="-1" hidden>')
+        assert re.search(r'id="focus-off" aria-keyshortcuts="Escape" disabled>', view)
+        assert '<span id="focus-chapter" lang="en">Introduction</span>' in view
+        assert '<div class="focus-stage" lang="en">' in view
+        for empty in (
+            'id="focus-prev"></p>',
+            '<span id="focus-now"></span>',
+            'id="focus-next"></p>',
+        ):
+            assert empty in view
+        # the view comes after the sheet, so the sheet's status line stays above it
+        assert page.index('id="message"') < page.index('id="focus-view"')
+
+
 def test_the_sentence_is_announced_only_when_switched_on(tmp_path: Path) -> None:
     client, _config = server(tmp_path)
     with client:
@@ -348,10 +374,9 @@ def test_the_marks_stay_in_the_audiobooks_language_after_a_new_analysis(tmp_path
         assert report["language"].startswith("de")  # the analysis is German now
         after = {name: (work / name).read_bytes() for name in before}
         assert after == before
-        # the text, its marks and the Changes panel are those of the English audio
+        # the text, its marks and the Changes panel are those of the English audio (Focus
+        # listening's top line names the document as the dock does, from today's analysis)
         again = page_of(client, doc)
-        assert (
-            again.split('id="text"')[1].split("</main>")[0]
-            == page.split('id="text"')[1].split("</main>")[0]
-        )
+        for start, end in (('id="text"', "</article>"), ('id="context"', "</main>")):
+            assert again.split(start)[1].split(end)[0] == page.split(start)[1].split(end)[0]
         assert 'id="marks-note"' not in again

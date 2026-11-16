@@ -26,6 +26,7 @@ megabytes = "{n}\u00A0MB"
 kilobytes = "{n}\u00A0KB"
 bytes.one = "1\u00A0byte"
 bytes.other = "{n}\u00A0bytes"
+close = "Close"
 
 [library]  # the library, the start page (#389, DESIGN.md "Library")
 title = "Library"
@@ -309,6 +310,7 @@ change_on = "On"
 change_off = "Off"
 change_count.one = "1 change"
 change_count.other = "{n} changes"
+focus = "Focus listening"  # the mode with the sentence alone, in large type (#394)
 
 [player]  # the player's script (#78)
 play = "Play"
@@ -317,6 +319,7 @@ chapter = "Chapter {n} of {total}:"  # the title follows, in the text's language
 cannot_play = "This browser can't play the audiobook's M4B file. Save it from the document's job page and play it in another program."
 load_failed = "The audio could not be loaded. Is sci2audio still running?"
 time_of = "{time} of {total}"  # the dock's clock and the timeline (#393)
+speed_now = "Speed {speed}"  # said when a key changed the speed (#394)
 
 [js]
 moved = "{title} is now chapter {n} of {total}."  # the chapter list (#119)
@@ -433,6 +436,25 @@ voices = "Voices"
 reading = "Reading and recent"
 settings = "Settings"
 privacy = "Privacy"
+shortcuts = "Keyboard shortcuts"  # opens the list of keys (#394)
+
+[keys]  # the keyboard shortcuts sheet (#394); key names are said by screen readers
+title = "Keyboard shortcuts"
+listen = "Listening"
+move = "Moving around"
+play = "Play or pause"
+prevnext = "Previous / next sentence"
+chap = "Previous / next chapter"
+speed = "Slower / faster"
+focus = "Focus listening"
+panel = "Show or hide the side panel"
+help = "This list"
+esc = "Close, cancel or leave focus"
+note = "? opens this list on every page. The other keys work on the Listen page, not while you type in a field, and never with ⌘, Ctrl or Alt held."
+space = "Space"
+shift = "Shift"
+left = "Left arrow"
+right = "Right arrow"
 
 [shelf]  # the items of "Reading and recent" (#387)
 made = "{phase}, {n}\u00A0% done"

@@ -1,4 +1,4 @@
-{% from "_icons.html" import icon, sprite %}<!doctype html>
+{% from "_icons.html" import icon, sprite %}{% from "_keys.html" import key with context %}<!doctype html>
 <html lang="{{ t('common.language') }}"{% if theme != 'system' %} data-theme="{{ theme }}"{% endif %}>
 <head>
   <meta charset="utf-8">
@@ -57,6 +57,8 @@
     <ul class="rail-foot">
       <li><a href="/settings"{% if nav == 'settings' %} aria-current="page"{% endif %}>{{ icon('settings') }}<span>{{ t('nav.settings') }}</span></a></li>
       <li><a href="/privacy"{% if nav == 'privacy' %} aria-current="page"{% endif %}>{{ icon('privacy') }}<span>{{ t('nav.privacy') }}</span></a></li>
+      {#- drawn disabled: app.js wires it (#350, #427) #}
+      <li><button type="button" id="keys-open" aria-haspopup="dialog" disabled>{{ icon('keyboard') }}<span>{{ t('nav.shortcuts') }}</span><kbd aria-hidden="true">?</kbd></button></li>
     </ul>
   </nav>
   <main id="main" tabindex="-1" class="main">
@@ -65,5 +67,30 @@
     </div>
   </main>
 </div>
+{#- The keyboard shortcuts sheet (#394): ? opens it on every page, as does the rail's item.
+    N, Q, C and M join it with the study layer (#397). -#}
+<dialog id="keys" class="keys-sheet" aria-labelledby="keys-title">
+  <header>
+    <h2 id="keys-title">{{ t('keys.title') }}</h2>
+    <button type="button" class="icon-btn" id="keys-close" aria-label="{{ t('common.close') }}" title="{{ t('common.close') }}" disabled>{{ icon('x') }}</button>
+  </header>
+  <div class="keys">
+    <h3>{{ t('keys.listen') }}</h3>
+    <dl>
+      <div><dt>{{ t('keys.play') }}</dt><dd>{{ key('space') }}</dd></div>
+      <div><dt>{{ t('keys.prevnext') }}</dt><dd>{{ key('left') }} {{ key('right') }}</dd></div>
+      <div><dt>{{ t('keys.chap') }}</dt><dd>{{ key('shift') }}&#8239;{{ key('left') }} {{ key('shift') }}&#8239;{{ key('right') }}</dd></div>
+      <div><dt>{{ t('keys.speed') }}</dt><dd>{{ key('−') }} {{ key('+') }}</dd></div>
+    </dl>
+    <h3>{{ t('keys.move') }}</h3>
+    <dl>
+      <div><dt>{{ t('keys.focus') }}</dt><dd>{{ key('F') }}</dd></div>
+      <div><dt>{{ t('keys.panel') }}</dt><dd>{{ key('P') }}</dd></div>
+      <div><dt>{{ t('keys.help') }}</dt><dd>{{ key('?') }}</dd></div>
+      <div><dt>{{ t('keys.esc') }}</dt><dd>{{ key('Esc') }}</dd></div>
+    </dl>
+    <p class="keys-note">{{ t('keys.note') }}</p>
+  </div>
+</dialog>
 </body>
 </html>

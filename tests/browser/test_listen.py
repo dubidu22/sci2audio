@@ -347,7 +347,10 @@ def test_every_button_waits_for_the_script(signed_in: Page, live: Live) -> None:
     page.reload(wait_until="commit")
     page.wait_for_function("() => document.getElementById('dock') !== null")
     page.wait_for_function("() => document.readyState !== 'loading'")
-    controls = "#dock button:not([hidden]), #dock input, #context button, #panel-toggle"
+    controls = (
+        "#dock button:not([hidden]), #dock input, #context button, #panel-toggle, #focus-on, "
+        "#focus-off"
+    )
     states = page.evaluate(
         f"() => [...document.querySelectorAll('{controls}')].map(e => e.disabled)"
     )

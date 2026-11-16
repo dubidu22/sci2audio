@@ -1,6 +1,7 @@
 // The read-along player (#78, OU-02; D-294 to D-303) and the Listen page around it: the
-// sweep, the dock and the context panel (#392, #393). Loaded only by the listen page, after
-// app.js, whose `tr` and `say` it uses (D-302).
+// sweep, the dock and the context panel (#392, #393), Focus listening and the keys (#394).
+// Loaded only by the listen page, after app.js, whose `tr`, `say` and `typing` it uses
+// (D-302).
 //
 // The page holds the text; every sentence the voice reads is an element `.s` with the
 // number of its first chunk. The data block holds, per chunk, [start, end, chapter,
@@ -52,6 +53,7 @@ function readAlong() {
   let pending = null; // what to do once the file being loaded is ready
   let touched = false; // the person played or moved: from then on the position is kept
   let savedAt = 0; // when the position was last sent (performance.now())
+  let focusing = false; // Focus listening is shown (#394)
 
   // the dock is pinned to the window's foot only while it takes at most a quarter of the
   // window, and then nothing focused or scrolled to may hide under it (WCAG 1.4.10, 2.4.11):
@@ -109,6 +111,7 @@ function readAlong() {
     title.lang = text.lang;
     title.textContent = chapters[c].title;
     now.replaceChildren(tr("player.chapter", { n: c + 1, total: chapters.length }), " ", title);
+    focusChapter.textContent = chapters[c].title;
     for (const button of chapterButtons) {
       if (Number(button.dataset.chapter) === c) button.setAttribute("aria-current", "true");
       else button.removeAttribute("aria-current");
@@ -143,11 +146,14 @@ function readAlong() {
   // animation of its background-size (the Web Animations API; the page allows no style
   // attribute), held at the audio's time and rate. Under reduced motion nothing moves: the
   // whole sentence is highlighted at once (the stylesheet's `.now`).
+  // In Focus listening a second sweep runs over the stage's copy of the sentence (#394).
   let sweep = null;
+  let focusSweep = null;
 
   function sweepStop() {
-    if (sweep) sweep.cancel();
+    for (const one of [sweep, focusSweep]) if (one) one.cancel();
     sweep = null;
+    focusSweep = null;
   }
 
   function sweepSync() {
@@ -157,16 +163,21 @@ function readAlong() {
     }
     const [start, end] = stretch.get(marked.id) || [0, 0];
     const length = Math.max(end - start, 0.001) * 1000;
-    if (!sweep) {
-      sweep = marked.animate(
-        [{ backgroundSize: "0% 100%" }, { backgroundSize: "100% 100%" }],
-        { duration: length, easing: "linear", fill: "forwards" },
-      );
+    const grow = [{ backgroundSize: "0% 100%" }, { backgroundSize: "100% 100%" }];
+    const timing = { duration: length, easing: "linear", fill: "forwards" };
+    if (!sweep) sweep = marked.animate(grow, timing);
+    if (focusing && !focusSweep) focusSweep = focusNow.animate(grow, timing);
+    if (!focusing && focusSweep) {
+      focusSweep.cancel();
+      focusSweep = null;
     }
-    sweep.currentTime = Math.min(Math.max((bookTime() - start) * 1000, 0), length);
-    sweep.playbackRate = audio.playbackRate || 1;
-    if (audio.paused || pending || loaded < 0) sweep.pause();
-    else sweep.play();
+    for (const one of [sweep, focusSweep]) {
+      if (!one) continue;
+      one.currentTime = Math.min(Math.max((bookTime() - start) * 1000, 0), length);
+      one.playbackRate = audio.playbackRate || 1;
+      if (audio.paused || pending || loaded < 0) one.pause();
+      else one.play();
+    }
   }
   reduced.addEventListener?.("change", sweepSync);
 
@@ -191,6 +202,7 @@ function readAlong() {
     }
     sweepStop();
     marked = element;
+    stage();
     if (marked) {
       marked.classList.add("now");
       marked.setAttribute("aria-current", "true");
@@ -393,23 +405,111 @@ function readAlong() {
     if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
     audio.defaultPlaybackRate = value;
     audio.playbackRate = value;
-    if (sweep) sweep.playbackRate = value;
+    for (const one of [sweep, focusSweep]) if (one) one.playbackRate = value;
   }
   speed.addEventListener("change", applySpeed);
   audio.addEventListener("loadedmetadata", applySpeed);
   applySpeed();
 
+  // ---- Focus listening (#394, DESIGN.md "Focus") ------------------------------------------
+  // A mode of this page with no address of its own: the rail, the sheet and the panel give
+  // way to the stage, which shows the sentence being read between its neighbours, copied
+  // from the sheet's own elements (with their marks); the dock and the voice go on.
+  const listen = document.getElementById("listen");
+  const focusView = document.getElementById("focus-view");
+  const focusOn = document.getElementById("focus-on");
+  const focusOff = document.getElementById("focus-off");
+  const focusPrevious = document.getElementById("focus-prev");
+  const focusNow = document.getElementById("focus-now");
+  const focusNext = document.getElementById("focus-next");
+  const focusChapter = document.getElementById("focus-chapter");
+  const order = [...stretch.keys()]; // the sentence elements in reading order
+  const place = new Map(order.map((id, at) => [id, at]));
+
+  function copy(id) {
+    const element = id ? document.getElementById(id) : null;
+    if (!element) return [];
+    // a spoken notice: its words, without the icon or the text found in the file
+    const words = element.classList.contains("notice") ? element.querySelector("p > span") : element;
+    return [...(words || element).childNodes].map((node) => node.cloneNode(true));
+  }
+
+  function stage() {
+    if (!focusing) return;
+    const id = marked ? marked.id : order[0];
+    const at = place.get(id) ?? 0;
+    focusPrevious.replaceChildren(...copy(order[at - 1]));
+    focusNow.replaceChildren(...copy(id));
+    focusNext.replaceChildren(...copy(order[at + 1]));
+  }
+
+  function setFocus(on) {
+    if (on === focusing) return;
+    // the panel over the page closes first, so it covers nothing when Focus ends
+    if (on && listen.classList.contains("panel-open")) document.getElementById("panel-close").click();
+    focusing = on;
+    document.documentElement.classList.toggle("focus-listening", on);
+    focusView.hidden = !on;
+    sweepStop();
+    stage();
+    sweepSync();
+    pad();
+    if (on) {
+      focusView.focus();
+      return;
+    }
+    following = true;
+    back.hidden = true;
+    reveal(marked);
+    focusOn.focus();
+  }
+  focusOn.addEventListener("click", () => setFocus(true));
+  focusOff.addEventListener("click", () => setFocus(false));
+
+  // ---- the keys (#394) ------------------------------------------------------------------
+  // Space, the arrows and Shift with them on a focused control do what the control does; no
+  // key acts while the person types, while a dialog is open, or with ⌘, Ctrl or Alt held,
+  // so no browser or system shortcut is taken.
+  const CONTROLS = "button, a[href], input, select, textarea, summary, audio, [role='tab'], [tabindex]:not([tabindex='-1'])";
+
+  function stepSpeed(by) {
+    const to = speed.selectedIndex + by;
+    if (to < 0 || to >= speed.options.length) return;
+    speed.selectedIndex = to;
+    speed.dispatchEvent(new Event("change"));
+    say(tr("player.speed_now", { speed: speed.options[to].text }));
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (document.querySelector("dialog[open]") || typing(event.target)) return;
+    const onControl = event.target instanceof Element && event.target.closest(CONTROLS);
+    const key = event.key;
+    if (key === "Escape" && focusing) setFocus(false);
+    else if (key === " " && !onControl) play.click();
+    else if ((key === "ArrowLeft" || key === "ArrowRight") && !onControl) {
+      const by = key === "ArrowRight" ? 1 : -1;
+      if (event.shiftKey) toChapter(chapterOfCurrent() + by, !audio.paused);
+      else document.getElementById(by > 0 ? "next-sentence" : "previous-sentence").click();
+    } else if (key === "-") stepSpeed(-1);
+    else if (key === "+" || key === "=") stepSpeed(1);
+    else if (key === "f" || key === "F") setFocus(!focusing);
+    else if ((key === "p" || key === "P") && !focusing) document.getElementById("panel-toggle").click();
+    else return;
+    event.preventDefault();
+  });
+
   // ---- following the reading (D-301) -----------------------------------------------------
 
   function scrolledByHand() {
-    if (!following || !follow.checked) return;
+    if (focusing || !following || !follow.checked) return;
     following = false;
     back.hidden = false;
   }
   window.addEventListener("wheel", scrolledByHand, { passive: true });
   window.addEventListener("touchmove", scrolledByHand, { passive: true });
   document.addEventListener("keydown", (event) => {
-    if (!SCROLL_KEYS.has(event.key)) return;
+    if (event.defaultPrevented || !SCROLL_KEYS.has(event.key)) return; // not a key taken above
     if (event.target.closest("button, input, select, textarea, audio, summary, a")) return;
     scrolledByHand();
   });
@@ -488,6 +588,8 @@ function readAlong() {
     timeline,
     document.getElementById("previous-sentence"),
     document.getElementById("next-sentence"),
+    focusOn,
+    focusOff,
     ...chapterButtons,
   ]) {
     control.disabled = false;

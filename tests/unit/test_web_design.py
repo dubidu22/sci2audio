@@ -336,10 +336,46 @@ def test_the_rail_marks_the_current_page(tmp_path: Path, path: str, current: str
         assert item in rail
     assert 'href="/privacy"' in rail
     assert "/captures" not in rail  # waits for the study layer (#397)
-    assert "Keyboard shortcuts" not in rail  # waits for #394 (D-670)
+    # the shortcuts sheet's item (#394): a button, drawn disabled until app.js wires it
+    assert re.search(r'<button type="button" id="keys-open" aria-haspopup="dialog" disabled>', rail)
+    assert "<span>Keyboard shortcuts</span>" in rail
     marked = re.findall(r'<a href="([^"]+)"[^>]*aria-current="page"', rail)
     assert marked == ([] if current is None else [current])
     assert "Reading and recent" not in rail  # nothing on the shelf without a job
+
+
+@pytest.mark.parametrize("path", ["/", "/voice", "/settings", "/privacy", "/jobs/nothing"])
+def test_every_page_has_the_shortcuts_sheet(tmp_path: Path, path: str) -> None:
+    """#394: a closed dialog, its Close drawn disabled until app.js wires it; the keys of
+    Listen and Focus with their names for screen readers; N, Q, C, M wait for #397."""
+    page = client_of(server(tmp_path)).get(path).text
+    sheet = page.split('<dialog id="keys"')[1].split("</dialog>")[0]
+    assert ' aria-labelledby="keys-title">' in sheet.split("\n")[0]
+    assert " open" not in sheet.split(">")[0]
+    assert '<h2 id="keys-title">Keyboard shortcuts</h2>' in sheet
+    assert re.search(
+        r'<button type="button" class="icon-btn" id="keys-close" [^>]*disabled>', sheet
+    )
+    terms = re.findall(r"<dt>([^<]*)</dt>", sheet)
+    assert terms == [
+        "Play or pause",
+        "Previous / next sentence",
+        "Previous / next chapter",
+        "Slower / faster",
+        "Focus listening",
+        "Show or hide the side panel",
+        "This list",
+        "Close, cancel or leave focus",
+    ]
+    assert "<kbd>Space</kbd>" in sheet
+    left = '<span aria-hidden="true">←</span><span class="visually-hidden">Left arrow</span>'
+    assert left in sheet
+    assert '<span class="visually-hidden">Shift</span>' in sheet
+    for later in ("<kbd>N</kbd>", "<kbd>Q</kbd>", "<kbd>C</kbd>", "<kbd>M</kbd>"):
+        assert later not in sheet
+    german = client_of(server(tmp_path)).get(path, cookies={"sci2audio-language": "de"}).text
+    assert "<kbd>Leertaste</kbd>" in german
+    assert "Pfeil nach links" in german
 
 
 def test_the_library_counts_its_documents_in_words_too(tmp_path: Path) -> None:

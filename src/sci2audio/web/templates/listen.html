@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_paper.html" import paper_head with context %}
 {% from "_icons.html" import icon %}
+{% from "_keys.html" import key with context %}
 {% block title %}{{ t('listen.title', name=document.name) }} · {{ t('common.app') }}{% endblock %}
 {% block scripts %}{% if view %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}
 {#- A piece of a block: a sentence the voice reads (`.s`) or text between sentences. Its parts
@@ -76,7 +77,8 @@
 <article class="sheet" aria-labelledby="listen-title">
   <div class="sheet-top">
     <p class="ai-notice">{{ t('listen.ai_notice', voice=voice) }}</p>
-    <button type="button" class="icon-btn" id="panel-toggle" aria-controls="context" aria-expanded="true" aria-label="{{ t('listen.panel_hide') }}" title="{{ t('listen.panel_hide') }}" data-show="{{ t('listen.panel_show') }}" data-hide="{{ t('listen.panel_hide') }}" disabled>{{ icon('panel') }}</button>
+    <button type="button" class="sm" id="focus-on" aria-keyshortcuts="F" disabled>{{ icon('focus', 's') }}<span>{{ t('listen.focus') }}</span></button>
+    <button type="button" class="icon-btn" id="panel-toggle" aria-controls="context" aria-expanded="true" aria-keyshortcuts="P" aria-label="{{ t('listen.panel_hide') }}" title="{{ t('listen.panel_hide') }}" data-show="{{ t('listen.panel_show') }}" data-hide="{{ t('listen.panel_hide') }}" disabled>{{ icon('panel') }}</button>
   </div>
   {% if not view.marked %}<p class="marks-note" id="marks-note">{{ t('listen.unmarked', version=view.made_with or '?') }}{% if not document.outside %} <a href="/documents/{{ document.id }}">{{ t('listen.unmarked_link') }}</a>{% endif %}</p>{% endif %}
   {% if resume %}
@@ -106,6 +108,21 @@
   {% endfor %}
   </div>
 </article>
+{#- Focus listening (#394, DESIGN.md "Focus"): a mode of this page, with no address of its
+    own. player.js shows it in place of the rail, the sheet and the panel, and fills the
+    stage with the sentence being read and its neighbours, copied from the sheet. -#}
+<section class="focus-view" id="focus-view" aria-label="{{ t('listen.focus') }}" tabindex="-1" hidden>
+  <div class="focus-top">
+    <h2 id="focus-title" class="focus-title"><b{% if head.titled %} lang="{{ view.language }}"{% endif %}>{{ head.title }}</b> · <span id="focus-chapter" lang="{{ view.language }}">{{ view.chapters[0].title }}</span></h2>
+    <button type="button" class="sm" id="focus-off" aria-keyshortcuts="Escape" disabled>{{ icon('x', 's') }}<span>{{ t('common.close') }}</span><kbd aria-hidden="true">Esc</kbd></button>
+  </div>
+  <div class="focus-stage" lang="{{ view.language }}">
+    <p class="prev" id="focus-prev"></p>
+    <p class="cur"><span id="focus-now"></span></p>
+    <p class="next" id="focus-next"></p>
+  </div>
+  <p class="focus-foot"><span>{{ key('space') }} {{ t('keys.play') }}</span><span>{{ key('left') }} {{ key('right') }} {{ t('keys.prevnext') }}</span><span>{{ key('?') }} {{ t('nav.shortcuts') }}</span></p>
+</section>
 </div>
 {#- One context panel (#393): Changes, read-only, and Chapters. Captures waits for the study
     layer. From 1280 px it stands beside the desk; below, it opens over it. -#}

@@ -900,6 +900,45 @@ function settingsPage() {
   save.disabled = false;
 }
 
+// True while the person types: the page's keys leave such a field alone (#394). A select
+// counts too, since letters and arrows choose in it.
+const NOT_TYPED = new Set(["button", "checkbox", "radio", "range", "submit", "reset", "color", "file", "image"]);
+
+function typing(target) {
+  if (!(target instanceof Element)) return false;
+  if (target.closest("textarea, select, [contenteditable]:not([contenteditable='false'])")) return true;
+  return target instanceof HTMLInputElement && !NOT_TYPED.has(target.type);
+}
+
+// The keyboard shortcuts sheet (#394): a modal dialog, opened by ? on every page and by the
+// rail's item; Esc or its button closes it, and the focus goes back where it was.
+function shortcutsSheet() {
+  const sheet = document.getElementById("keys");
+  const open = document.getElementById("keys-open");
+  const close = document.getElementById("keys-close");
+  if (!sheet || !open || !close || typeof sheet.showModal !== "function") return;
+  let opener = null;
+  function show() {
+    if (sheet.open) return;
+    opener = document.activeElement;
+    sheet.showModal();
+  }
+  open.addEventListener("click", show);
+  close.addEventListener("click", () => sheet.close());
+  sheet.addEventListener("close", () => {
+    if (opener && opener !== document.body && opener.isConnected) opener.focus();
+    opener = null;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "?" || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (typing(event.target) || document.querySelector("dialog[open]")) return;
+    event.preventDefault();
+    show();
+  });
+  open.disabled = false; // drawn disabled until here (#350, #427)
+  close.disabled = false;
+}
+
 function focusTarget() {
   if (!location.hash) return;
   const target = document.getElementById(location.hash.slice(1));
@@ -921,5 +960,6 @@ document.addEventListener("DOMContentLoaded", () => {
   voicePage();
   settingsPage();
   shelf();
+  shortcutsSheet();
   focusTarget();
 });
