@@ -17,7 +17,7 @@ from playwright.sync_api import Page, expect
 from test_flow import PDF, gated, until
 from test_keyboard import press_on, tab_to
 
-from conftest import Hold, Live, check_axe, settled
+from conftest import Hold, Live, check_axe, saving, settled
 from sci2audio.voices import PREVIEW_TEXT, EngineError
 from sci2audio.web.i18n import COOKIE
 from sci2audio.web.jobs import JobKind
@@ -270,7 +270,8 @@ def test_the_privacy_page_in_both_languages_from_the_rail(signed_in: Page, live:
     check_axe(page, "de: privacy page")
     # the switch lives on Settings (D-673); the choice holds on every page
     page.get_by_role("link", name="Einstellungen").click()
-    page.get_by_role("button", name="English").click()
+    with saving(page, "/language"):
+        page.get_by_role("button", name="English").click()
     page.wait_for_url(live.url + "/settings")
     page.get_by_role("link", name="Privacy").click()
     expect(page.locator("html")).to_have_attribute("lang", "en")
@@ -287,7 +288,8 @@ def test_the_language_switch_by_keyboard(signed_in: Page, live: Live) -> None:
     press_on(page, "Einstellungen")
     page.wait_for_url(f"{live.url}/settings")
     expect(page.get_by_role("button", name="Deutsch")).to_have_attribute("aria-pressed", "true")
-    press_on(page, "English")
+    with saving(page, "/language"):
+        press_on(page, "English")
     page.wait_for_url(f"{live.url}/settings")
     expect(page.locator("html")).to_have_attribute("lang", "en")
     expect(page.get_by_role("heading", level=1, name="Settings")).to_be_visible()
@@ -315,7 +317,8 @@ def test_the_language_switch_by_keyboard(signed_in: Page, live: Live) -> None:
     # and back to German, by keyboard again
     page.goto(f"{live.url}/settings")
     tab_to(page, "Deutsch")
-    page.keyboard.press("Space")
+    with saving(page, "/language"):
+        page.keyboard.press("Space")
     page.wait_for_url(f"{live.url}/settings")
     expect(page.locator("html")).to_have_attribute("lang", "de")
     page.goto(f"{live.url}/documents/{document}")
@@ -334,7 +337,8 @@ def test_the_switch_keeps_the_job_running_on_the_shelf(signed_in: Page, live: Li
     try:
         page.goto(f"{live.url}/settings")
         expect(page.locator("#shelf-job")).to_contain_text("Download der Stimme")
-        page.get_by_role("button", name="English").click()
+        with saving(page, "/language"):
+            page.get_by_role("button", name="English").click()
         page.wait_for_url(f"{live.url}/settings")
         expect(page.locator("#shelf-job")).to_contain_text("Voice download")
         page.locator("#shelf-job").click()

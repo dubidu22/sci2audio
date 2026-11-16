@@ -23,6 +23,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -248,3 +249,10 @@ class Hold:
             self.reached.set()
             self.gate.wait(120)
         return False
+
+
+def saving(page: Page, path: str) -> Any:
+    """Wait for the GET that saves a choice and goes back (`/appearance`, `/language`): the
+    page is often on that address already, so `wait_for_url` returns before the cookie is
+    set (#429). Use it as `with saving(page, "/appearance"): ...`."""
+    return page.expect_response(lambda answer: urlsplit(answer.url).path == path)
