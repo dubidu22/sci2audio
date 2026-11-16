@@ -73,3 +73,35 @@ def test_a_run_by_hand_tests_all_three_systems_and_is_never_cancelled() -> None:
     concurrency = block(CI, "concurrency:")
     assert "github.event.pull_request.number || github.run_id" in concurrency
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in concurrency
+
+
+SCREENS = (WORKFLOWS / "ui-screens.yml").read_text(encoding="utf-8")
+
+
+def test_only_the_ui_screens_label_of_this_repository_renders_the_pages() -> None:
+    # #386 (D-627): a label-triggered workflow, run once on the PR's head, reading only
+    assert re.search(r"^on:\n  pull_request:\n    types: \[labeled\]\n\n", SCREENS, re.M)
+    assert re.search(r"^permissions: \{\}$", SCREENS, re.M)
+    job = block(SCREENS, "  screens:")
+    condition = re.search(r"^    if: (.+)$", job, re.M)
+    assert condition is not None
+    assert condition[1] == (
+        "github.event.label.name == 'ui:screens' && "
+        "github.event.pull_request.head.repo.full_name == github.repository"
+    )
+    permissions = block(job, "    permissions:").strip().splitlines()
+    assert [line.split("#")[0].strip() for line in permissions] == ["contents: read"]
+    assert "ref: ${{ github.event.pull_request.head.sha }}" in job
+    assert "persist-credentials: false" in job
+    assert "name: screens-${{ github.event.pull_request.head.sha }}" in job
+
+
+def test_the_screens_workflow_runs_no_value_into_a_script() -> None:
+    job = block(SCREENS, "  screens:")
+    for match in re.finditer(r"^        run: \|\n((?:          .*\n|\n)*)", job + "\n", re.M):
+        assert "${{" not in match[1]
+    one_line = re.findall(r"^ +(?:- )?run: (?![|>])(.+)$", job, re.M)
+    assert one_line  # `- run: uv sync --locked`: the pattern finds one-line steps
+    for command in one_line:
+        assert "${{" not in command, command
+    assert "tests/browser/test_screens.py" in job

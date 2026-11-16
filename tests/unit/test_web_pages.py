@@ -58,7 +58,7 @@ def analysed(client: TestClient, settings: dict[str, Any] | None = None) -> dict
 
 
 def main_part(text: str) -> str:
-    return text.split('<main id="main" tabindex="-1">')[1].split("</main>")[0]
+    return re.split(r'<main id="main"[^>]*>', text)[1].split("</main>")[0]
 
 
 def test_the_start_page_lists_documents_and_the_voice(server: tuple[FastAPI, Any]) -> None:
@@ -316,9 +316,18 @@ def test_a_running_job_is_named_on_every_page(server: tuple[FastAPI, Any]) -> No
     state = app.state.sci2audio
     job = state.board.start(JobKind.VOICES, None, None, work, cancellable=False)
     try:
-        page = client.get("/").text
-        assert "A job is running: Voice download." in page
-        assert f'href="/jobs/{job.id}"' in page
+        for path in ("/", "/voice", "/privacy", "/settings"):
+            # the rail's shelf names it, links it and shows how far it is (#387)
+            page = client.get(path).text
+            rail = page.split('<nav class="rail"')[1].split("</nav>")[0]
+            assert "Reading and recent" in rail, path
+            assert f'<a href="/jobs/{job.id}" id="shelf-job"' in rail, path
+            assert '<span class="t">Voice download</span>' in rail, path
+            assert re.search(r'<progress class="meter" id="shelf-job-bar" max="100"', rail)
+        assert (
+            'aria-current="page"'
+            in client.get(f"/jobs/{job.id}").text.split('id="shelf-job"')[1].split(">")[0]
+        )
     finally:
         gate.set()
         job.join(10)
@@ -331,7 +340,8 @@ def resource_texts() -> dict[str, str]:
     texts = {}
     for folder in ("templates", "static", "strings"):
         for item in (WEB / folder).iterdir():
-            texts[f"{folder}/{item.name}"] = item.read_text(encoding="utf-8")
+            if item.is_file():  # static/fonts/ holds the bundled fonts (#385)
+                texts[f"{folder}/{item.name}"] = item.read_text(encoding="utf-8")
     return texts
 
 

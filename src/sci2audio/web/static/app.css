@@ -1,151 +1,320 @@
-/* sci2audio interface (#77). Colours meet WCAG AA in light and dark (D-257). */
+/* sci2audio interface: "The Working Reader" (sci2audio-design b4a7523, DESIGN.md; D-663).
+   Tokens and fonts #385, the rail #387, Settings #388. Colours meet WCAG AA in light and
+   dark (D-257). Nothing here loads from the internet: the fonts are bundled (OFL-1.1,
+   fonts/OFL-*.txt, THIRD_PARTY_LICENSES.md). The CSP forbids inline style attributes,
+   so nothing in the markup sets a style; meters are <progress> elements. */
+
+/* ---------- fonts: Fontsource 5.3.0 subsets, each loaded only when the page uses it ---------- */
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-latin-ext-400-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: italic; font-weight: 400; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-latin-400-italic.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: italic; font-weight: 400; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-latin-ext-400-italic.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-latin-ext-700-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Literata"; font-style: normal; font-weight: 200 900; font-display: swap;
+  src: url(fonts/literata-latin-wght-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Literata"; font-style: normal; font-weight: 200 900; font-display: swap;
+  src: url(fonts/literata-latin-ext-wght-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Literata"; font-style: normal; font-weight: 200 900; font-display: swap;
+  src: url(fonts/literata-greek-wght-normal.woff2) format("woff2");
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF; }
+@font-face { font-family: "Literata"; font-style: italic; font-weight: 200 900; font-display: swap;
+  src: url(fonts/literata-latin-wght-italic.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Literata"; font-style: italic; font-weight: 200 900; font-display: swap;
+  src: url(fonts/literata-latin-ext-wght-italic.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Literata"; font-style: italic; font-weight: 200 900; font-display: swap;
+  src: url(fonts/literata-greek-wght-italic.woff2) format("woff2");
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF; }
+
+/* ---------- tokens (DESIGN.md frontmatter; dark values from prototype/app/app.css) ---------- */
 :root {
-  --bg: #ffffff;
-  --text: #1a1a1a;
-  --muted: #4a4a4a;
-  --link: #0b57d0;
-  --button: #0b57d0;
-  --button-text: #ffffff;
-  --button-off: #5f5f5f;
-  --border: #767676;
-  --note: #fff4ce;
-  --error: #a50e0e;
-  --focus: #0b57d0;
-  --now: #fff0a8;
-  --now-line: #7a5c00;
-  color-scheme: light dark;
+  color-scheme: light;
+  --desk: #EDEFF2; --desk-2: #E3E6EA;
+  --paper: #FFFFFF; --ink: #16181D; --ink-2: #3A3E46; --pencil: #5A5E66;
+  --rule: #D7DADF; --rule-strong: #8C9199;
+  --cobalt: #2340A8; --cobalt-deep: #1A3087; --cobalt-line: #3A56BE; --on-cobalt: #FFFFFF; --on-cobalt-2: #CCD5F4;
+  --hl-read: #FFE94A; --hl-note: #7BE38A; --hl-quote: #6CC4FF; --hl-card: #FF8FC8; --hl-mark: #FFB347;
+  --on-hl: #16181D; --sweep-c: var(--hl-read); --on-sweep: #16181D; --held: color-mix(in srgb, var(--hl-read) 30%, transparent);
+  --error: #B42318; --error-wash: #FDECEA; --wait: #7A4B00; --wait-wash: #FFF3DC;
+  --focus: var(--cobalt); --switch-on: var(--cobalt);
+  --sheet-shadow: 0 1px 2px rgba(22,24,29,.06), 0 8px 24px -12px rgba(22,24,29,.18);
+  --pop-shadow: 0 2px 6px rgba(22,24,29,.10), 0 16px 40px -16px rgba(22,24,29,.30);
+  --ui: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --read: "Literata", Georgia, serif;
+  --r: 4px;
+  --rail: 264px; --panel: 340px; --dock: 88px;
+  --ease: cubic-bezier(.16,1,.3,1);
 }
+/* Dark: chosen by the system unless the person chose light, or chosen in Settings. The two
+   blocks are identical (a test holds them so). */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121212;
-    --text: #ececec;
-    --muted: #bdbdbd;
-    --link: #9cc0ff;
-    --button: #9cc0ff;
-    --button-text: #0b0b0b;
-    --button-off: #9e9e9e;
-    --border: #8f8f8f;
-    --note: #2e2a14;
-    --error: #ff9b91;
-    --focus: #9cc0ff;
-    --now: #3d3500;
-    --now-line: #ffd84d;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --desk: #111317; --desk-2: #181B20;
+    --paper: #1C1F25; --ink: #E9EAED; --ink-2: #C4C7CD; --pencil: #A2A6AE;
+    --rule: #30343C; --rule-strong: #6E737C;
+    --cobalt: #1C2E78; --cobalt-deep: #15235E; --cobalt-line: #2D41A0; --on-cobalt: #FFFFFF; --on-cobalt-2: #C3CCF0;
+    --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
+    --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
+    --sweep-c: color-mix(in srgb, #F2DC3A 36%, transparent); --on-sweep: #FFFFFF; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
+    --focus: var(--hl-quote); --switch-on: var(--hl-quote);
+    --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
   }
 }
-* { box-sizing: border-box; }
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --desk: #111317; --desk-2: #181B20;
+    --paper: #1C1F25; --ink: #E9EAED; --ink-2: #C4C7CD; --pencil: #A2A6AE;
+    --rule: #30343C; --rule-strong: #6E737C;
+    --cobalt: #1C2E78; --cobalt-deep: #15235E; --cobalt-line: #2D41A0; --on-cobalt: #FFFFFF; --on-cobalt-2: #C3CCF0;
+    --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
+    --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
+    --sweep-c: color-mix(in srgb, #F2DC3A 36%, transparent); --on-sweep: #FFFFFF; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
+    --focus: var(--hl-quote); --switch-on: var(--hl-quote);
+    --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+/* a hidden element stays hidden whatever display its class gives it */
+[hidden] { display: none !important; }
+html { background: var(--desk); }
 body {
-  font-family: system-ui, sans-serif;
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 1rem;
-  line-height: 1.5;
-  /* a long path or word breaks rather than widen the page (WCAG 1.4.10); unlike
-     `anywhere` this leaves the tables' smallest widths alone */
+  margin: 0;
+  background: var(--desk);
+  color: var(--ink);
+  font: 400 15px/1.45 var(--ui);
+  /* every number in tabular lining figures (DESIGN.md, the Tabular rule) */
+  font-variant-numeric: tabular-nums lining-nums;
+  /* a long path or word breaks rather than widen the page (WCAG 1.4.10) */
   overflow-wrap: break-word;
-  color: var(--text);
-  background: var(--bg);
 }
-a { color: var(--link); }
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
-textarea:focus-visible, summary:focus-visible, audio:focus-visible, [tabindex]:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
+h1, h2, h3 { text-wrap: balance; }
+p, li, dd, .hint { text-wrap: pretty; }
+h1 { font-size: 30px; line-height: 1.15; font-weight: 700; letter-spacing: -.01em; margin: 0 0 16px; }
+h2 { font-size: 19px; line-height: 1.3; font-weight: 700; margin: 32px 0 12px; }
+h3 { font-size: 16px; line-height: 1.3; font-weight: 700; margin: 24px 0 8px; }
+p { margin: 0 0 12px; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+code { font-size: .92em; }
+::selection { background: var(--hl-read); color: var(--on-hl); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
 /* the player's own buttons take the focus inside it: ring the whole player */
-audio:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+audio:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
 main:focus, h1:focus, h2:focus, .message:focus { outline: none; }
-.skip { position: absolute; left: -10000px; }
-.skip:focus { position: static; display: inline-block; margin-bottom: 0.5rem; }
-header { display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline; }
-header .home { font-weight: bold; font-size: 1.2rem; }
-/* the language switch (D-288): the chosen language filled, the other outlined */
-.languages { margin-left: auto; }
-.languages fieldset { border: 0; margin: 0; padding: 0; display: flex; gap: 0.5rem; align-items: baseline; }
-.languages legend { float: left; font-weight: normal; padding: 0; }
-.languages button { padding: 0.15rem 0.6rem; }
-.languages button[aria-pressed="false"] { background: var(--bg); color: var(--text); }
-.folders dd { margin: 0 0 0.75rem 1.5rem; overflow-wrap: anywhere; }
-.folders dt { font-weight: bold; }
-.running { margin: 0; padding: 0.25rem 0.5rem; background: var(--note); }
-/* one column that may shrink below its content's width, so no control widens the page
-   (WCAG 1.4.10 Reflow at 320 px, D-257) */
-.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.35rem; margin-bottom: 1rem; }
-.stack > p { margin: 0; }
-.hint { color: var(--muted); }
-.note { background: var(--note); padding: 0.5rem 0.75rem; }
-.error { color: var(--error); font-weight: bold; }
-/* an empty status region stays in the accessibility tree, or its first text may go unread */
-.message:empty { margin: 0; }
-fieldset { border: 1px solid var(--border); margin: 0 0 1rem; padding: 0.5rem 1rem; }
-legend { font-weight: bold; padding: 0 0.25rem; }
-.choices { list-style: none; padding-left: 0; }
-ol.choices { list-style: decimal inside; }
-.choices li { margin: 0.35rem 0; }
-.choices .hint { display: block; margin-left: 1.75rem; }
-input[type="checkbox"] { width: 1.15rem; height: 1.15rem; vertical-align: middle; margin-right: 0.4rem; }
-input:not([type]), input[type="file"], select, textarea {
-  font: inherit; color: var(--text); background: var(--bg);
-  border: 1px solid var(--border); padding: 0.3rem 0.4rem; max-width: 100%;
-}
-input#output-folder { width: 100%; }
-input, select, textarea { max-width: 100%; min-width: 0; box-sizing: border-box; }
-code, .hint, dd { overflow-wrap: anywhere; }
-.buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-button {
-  font: inherit; padding: 0.4rem 1rem; border: 2px solid var(--button);
-  background: var(--button); color: var(--button-text); cursor: pointer; border-radius: 4px;
-}
-button[aria-disabled="true"] { background: var(--button-off); border-color: var(--button-off); cursor: not-allowed; }
-.range { display: flex; gap: 1rem; align-items: center; }
-input[type="range"] { width: 16rem; max-width: 70%; accent-color: var(--button); }
-progress { width: 100%; height: 1.25rem; accent-color: var(--button); }
-details { margin: 0.5rem 0; }
-summary { cursor: pointer; font-weight: bold; }
-/* removing a document (#120): a long file name or folder wraps instead of widening the page */
-.remove, #removed, .message { overflow-wrap: anywhere; }
-.remove button { max-width: 100%; text-align: left; }
-.scroll { overflow-x: auto; }
-table { border-collapse: collapse; margin: 0.5rem 0; }
-caption { text-align: left; font-weight: bold; }
-th, td { border: 1px solid var(--border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
-td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }
-/* the player (#78) */
-.player-bar {
-  background: var(--bg); border-bottom: 1px solid var(--border);
-  padding: 0.5rem 0; margin-bottom: 1rem;
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+svg.i.s { width: 16px; height: 16px; }
+svg.i.l { width: 24px; height: 24px; }
+
+/* the skip link: hidden until focused, then a paper tab above everything */
+.skip { position: absolute; left: 8px; top: -100px; z-index: 10; background: var(--paper); color: var(--ink); padding: 8px 12px; border-radius: var(--r); font-weight: 700; }
+.skip:focus { top: 8px; }
+
+/* ---------- shell: the cobalt rail beside the page (#387). The document itself scrolls; the
+   rail stays in view (D-672). ---------- */
+.app { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: 100vh; }
+.rail {
+  position: sticky; top: 0; height: 100vh; align-self: start;
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  background: var(--cobalt); color: var(--on-cobalt);
 }
+.rail :focus-visible { outline-color: var(--hl-read); }
+.wordmark { display: block; padding: 20px 20px 18px; font-weight: 700; font-size: 22px; letter-spacing: -.01em; text-decoration: none; color: var(--on-cobalt); }
+.wordmark .two { display: inline-block; background: var(--hl-read); color: var(--on-hl); padding: 0 3px; margin: 0 1px; border-radius: 1px; }
+.nav { display: grid; gap: 2px; padding: 0 12px; margin: 0; list-style: none; }
+.nav a, .rail-foot a {
+  display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: var(--r);
+  text-decoration: none; color: var(--on-cobalt); font-size: 15px;
+}
+.rail-foot a { padding: 8px 10px; font-size: 14px; }
+.nav a:hover, .rail-foot a:hover { background: var(--cobalt-deep); }
+/* the current page: a paper tab pulled out of the binder */
+.nav a[aria-current="page"], .rail-foot a[aria-current="page"] { background: var(--paper); color: var(--ink); font-weight: 700; }
+.nav .count { margin-left: auto; font-size: 13px; color: var(--on-cobalt-2); }
+.nav a[aria-current="page"] .count { color: var(--pencil); }
+.shelf-head { font-size: 13px; font-weight: 700; color: var(--on-cobalt-2); padding: 22px 22px 8px; margin: 0; letter-spacing: .02em; }
+.shelf { display: grid; gap: 2px; padding: 0 12px; margin: 0; list-style: none; overflow: auto; min-height: 0; }
+.shelf a { display: grid; gap: 6px; padding: 10px; border-radius: var(--r); text-decoration: none; color: var(--on-cobalt); }
+.shelf a:hover { background: var(--cobalt-deep); }
+.shelf a[aria-current="page"] { background: var(--cobalt-deep); box-shadow: inset 0 0 0 1px var(--cobalt-line); }
+.shelf .t { font-weight: 700; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shelf .m { font-size: 13px; color: var(--on-cobalt-2); }
+.rail-foot { margin: auto 0 0; padding: 12px; display: grid; gap: 2px; list-style: none; border-top: 1px solid var(--cobalt-line); }
+
+/* meters: a 4px bar; on the rail white for making, reading yellow for listened (batch B) */
+progress.meter { appearance: none; display: block; width: 100%; height: 4px; border: 0; border-radius: 2px; background: rgba(255,255,255,.22); color: var(--on-cobalt); overflow: hidden; }
+progress.meter::-webkit-progress-bar { background: rgba(255,255,255,.22); }
+progress.meter::-webkit-progress-value { background: var(--on-cobalt); }
+progress.meter::-moz-progress-bar { background: var(--on-cobalt); }
+
+.main { min-width: 0; }
+.view { max-width: 1160px; margin: 0 auto; padding: 32px 40px 64px; }
+.view p, .view li, .view label, .view dd, .view .hint { max-width: 72ch; }
+/* links listed one under another keep 24 px targets apart (WCAG 2.5.8) */
+.view li { margin: 4px 0; }
+
+/* ---------- controls ---------- */
+button, .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 38px; padding: 7px 14px; border-radius: var(--r);
+  border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
+  font: 700 14.5px/1.3 var(--ui); text-decoration: none; cursor: pointer;
+}
+button:hover, .btn:hover { background: var(--desk-2); }
+button.primary, .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+button.primary:hover, .btn.primary:hover { background: var(--ink-2); }
+button.quiet, .btn.quiet { border-color: transparent; background: transparent; }
+button.quiet:hover, .btn.quiet:hover { background: var(--desk-2); }
+button.danger, .btn.danger { color: var(--error); border-color: currentColor; }
+button.sm, .btn.sm { min-height: 32px; padding: 4px 10px; font-size: 13.5px; }
+button[disabled], button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+label { font-weight: 700; font-size: 14px; }
+.choices label, label.check { font-weight: 400; font-size: 15px; }
+.hint { color: var(--pencil); font-size: 13.5px; }
+input:not([type]), input[type="text"], input[type="file"], select, textarea {
+  font: inherit; color: var(--ink); background: var(--paper);
+  min-height: 38px; padding: 7px 10px; border: 1px solid var(--rule-strong); border-radius: var(--r);
+  max-width: 100%;
+}
+textarea { min-height: 96px; resize: vertical; line-height: 1.5; width: 100%; }
+input::placeholder, textarea::placeholder { color: var(--pencil); }
+input#output-folder, input#settings-folder { width: 100%; }
+input, select, textarea { max-width: 100%; min-width: 0; }
+input[type="checkbox"] { width: 18px; height: 18px; vertical-align: middle; margin: 0 8px 0 0; accent-color: var(--cobalt); }
+input[type="range"] { width: 16rem; max-width: 70%; accent-color: var(--ink); }
+/* a switch: a 36 x 20 pill, cobalt when on (quote blue in dark) */
+input.switch { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--rule-strong); position: relative; flex: none; margin: 2px 0 0; cursor: pointer; transition: background .2s var(--ease); }
+input.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); transition: transform .2s var(--ease); }
+input.switch:checked { background: var(--switch-on); }
+input.switch:checked::after { transform: translateX(16px); }
+/* segmented: an outlined group; the pressed segment is ink with paper text */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--rule-strong); border-radius: var(--r); overflow: hidden; background: var(--paper); }
+.seg button { border: 0; border-left: 1px solid var(--rule); border-radius: 0; min-height: 34px; padding: 6px 12px; font-weight: 400; font-size: 14px; background: none; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); font-weight: 700; }
+.seg button:focus-visible { outline-offset: -4px; }
+kbd { font: 700 12px/1 var(--ui); border: 1px solid var(--rule-strong); border-bottom-width: 2px; border-radius: 3px; padding: 2px 5px; color: var(--ink-2); background: var(--paper); }
+.range { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+progress { width: 100%; height: 8px; accent-color: var(--ink); }
+
+/* state chips (Form-Not-Colour rule: icon and word; never a highlighter, never a filled button) */
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px 2px 6px; border: 1px solid var(--rule-strong); border-radius: var(--r); background: transparent; color: var(--ink); font-size: 13px; font-weight: 700; line-height: 1.4; }
+.chip.making { border-color: var(--ink); border-radius: 999px; }
+.chip.warn { border-color: var(--wait); color: var(--wait); border-radius: 999px; }
+.chip.failed { border-color: transparent; background: var(--error-wash); color: var(--error); }
+.chip.idle { border-color: transparent; background: var(--desk-2); color: var(--ink-2); }
+
+/* ---------- the pages of v1 in the new shell (redesigned in batches B to D) ---------- */
+/* one column that may shrink below its content's width (WCAG 1.4.10 Reflow at 320 px, D-257) */
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-bottom: 16px; }
+.stack > p { margin: 0; }
+.note { background: var(--wait-wash); color: var(--ink); border: 1px solid var(--rule); border-radius: var(--r); padding: 10px 14px; }
+.error { color: var(--error); font-weight: 700; }
+/* an empty status region stays in the accessibility tree, or its first text may go unread */
+.message:empty { margin: 0; }
+fieldset { border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper); margin: 0 0 16px; padding: 12px 18px 16px; min-width: 0; }
+legend { font-weight: 700; font-size: 14px; padding: 0 6px; }
+.choices { list-style: none; padding-left: 0; }
+ol.choices { list-style: decimal inside; }
+.choices li { margin: 6px 0; }
+.choices .hint { display: block; margin-left: 26px; }
+.folders dd { margin: 0 0 12px 24px; overflow-wrap: anywhere; }
+.folders dt { font-weight: 700; }
+code, .hint, dd { overflow-wrap: anywhere; }
+details { margin: 8px 0; }
+summary { cursor: pointer; font-weight: 700; }
+/* removing a document (#120): a long file name or folder wraps instead of widening the page */
+.remove, #removed, .message { overflow-wrap: anywhere; }
+.remove button { max-width: 100%; text-align: left; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; margin: 8px 0 16px; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); }
+caption { text-align: left; font-weight: 700; padding: 0 0 6px; }
+th, td { border-bottom: 1px solid var(--rule); padding: 6px 10px; text-align: left; vertical-align: top; }
+th { font-size: 13.5px; font-weight: 700; color: var(--ink-2); }
+td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the player (#78), until batch D brings the dock */
+.player-bar { background: var(--desk); border-bottom: 1px solid var(--rule); padding: 8px 0; margin-bottom: 16px; }
 /* the bar stays in view only where it fits: player.js pins it only while it takes at most
-   a quarter of the window's height. On a narrow or short view (a phone, 400 % zoom, longer
-   German labels) it scrolls away with the page instead (WCAG 1.4.10, 2.4.11), and while it
-   is pinned the page's scroll padding is the bar's real height */
+   a quarter of the window's height (WCAG 1.4.10, 2.4.11) */
 .player-bar.pinned { position: sticky; top: 0; z-index: 1; }
-.player-bar p { margin: 0.25rem 0; }
-.player-line { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.player-bar p { margin: 4px 0; }
+.player-line { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .player-line audio { width: 18rem; max-width: 100%; height: 2.5rem; }
-.ai-notice { color: var(--muted); }
-.chapter-list { padding-left: 1.5rem; }
-.chapter-list li { margin: 0.25rem 0; }
-.chapter-list button { background: transparent; color: var(--link); border-color: transparent; padding: 0.1rem 0.3rem; text-decoration: underline; text-align: left; }
-.read-along { line-height: 1.7; }
+.ai-notice { color: var(--pencil); }
+.chapter-list { padding-left: 24px; }
+.chapter-list li { margin: 4px 0; }
+.chapter-list button { background: transparent; border-color: transparent; min-height: 0; padding: 2px 4px; font-weight: 400; text-decoration: underline; text-align: left; }
+.read-along { font-family: var(--read); font-size: 18px; line-height: 1.7; }
 .read-along .s { cursor: pointer; }
-/* the sentence being read: colour and an underline, not colour alone (D-300) */
+/* the sentence being read: the reading highlighter and an underline, not colour alone (D-300) */
 .read-along .now {
-  background: var(--now); text-decoration: underline 2px var(--now-line);
-  text-underline-offset: 0.2em; box-shadow: 0 0 0 2px var(--now);
+  background: var(--sweep-c); color: var(--on-sweep); text-decoration: underline 2px currentColor;
+  text-underline-offset: .2em; box-shadow: 0 0 0 2px var(--sweep-c);
 }
-.page-mark { color: var(--muted); font-size: 0.85rem; margin: 0.75rem 0 0.25rem; border-top: 1px dashed var(--border); padding-top: 0.25rem; }
-.notice { border-left: 4px solid var(--border); background: var(--note); padding: 0.25rem 0.75rem; margin: 0.75rem 0; }
-.notice p { margin: 0.25rem 0; }
-.notice .printed { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
-.notice .code { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.25rem 0; font-size: 0.9em; }
-.unread { color: var(--muted); }
-.unread-tag { font-weight: bold; font-size: 0.85rem; }
-.block.footnote, .block.caption { font-size: 0.95rem; }
-footer { margin-top: 2rem; font-size: 0.9rem; color: var(--muted); }
+.page-mark { color: var(--pencil); font-family: var(--ui); font-size: 13px; margin: 12px 0 4px; border-top: 1px dashed var(--rule-strong); padding-top: 4px; }
+.notice { border: 1px dashed var(--rule-strong); border-radius: var(--r); background: var(--paper); padding: 4px 12px; margin: 12px 0; font-family: var(--ui); font-size: 15px; }
+.notice p { margin: 4px 0; }
+.notice .printed { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--pencil); }
+.notice .code { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0; font-size: .9em; }
+.unread { color: var(--pencil); }
+.unread-tag { font-family: var(--ui); font-weight: 700; font-size: 13px; }
+.block.footnote, .block.caption { font-size: 16px; }
+
+/* ---------- Settings (#388): paper sections on the desk ---------- */
+.panel { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); padding: 20px 22px; margin: 0 0 24px; max-width: 640px; }
+.panel h2 { margin: 0 0 12px; font-size: 17px; }
+.panel h2 + form, .panel form + h2 { margin-top: 0; }
+.panel form + h2 { margin-top: 20px; }
+.panel .field { display: grid; gap: 6px; margin: 0 0 16px; }
+.panel .field:last-child { margin-bottom: 0; }
+.setting-switch { display: flex; gap: 12px; align-items: flex-start; }
+.setting-switch label { font-size: 15px; }
+.setting-switch .hint { display: block; margin: 2px 0 0; }
+
+/* ---------- widths ---------- */
+@media (max-width: 1399px) {
+  :root { --rail: 232px; }
+}
+/* below 760 px (not in the design) the rail becomes a band above the page, so nothing scrolls
+   sideways at 320 px and 400 % zoom (WCAG 1.4.10, D-257; D-672) */
+@media (max-width: 759px) {
+  .app { display: block; }
+  .rail { position: static; height: auto; overflow: visible; flex-flow: row wrap; align-items: center; padding: 8px; gap: 4px; }
+  .wordmark { padding: 6px 10px; font-size: 20px; }
+  .nav, .rail-foot { display: flex; flex-wrap: wrap; padding: 0; margin: 0; border: 0; }
+  .nav a, .rail-foot a { padding: 6px 8px; font-size: 14px; gap: 6px; }
+  .rail-section { flex-basis: 100%; }
+  .shelf-head { padding: 8px 10px 4px; }
+  .shelf { padding: 0; }
+  .view { padding: 20px 16px 48px; }
+}
+
+/* ---------- reduced motion: nothing animates ---------- */
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
