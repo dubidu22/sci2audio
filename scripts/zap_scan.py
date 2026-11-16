@@ -722,6 +722,10 @@ def _walk_english(
     paper_id = _last_part(page.url)
     expect(page.locator("#summary")).to_be_visible()
     expect(page.locator("#document[data-events]")).to_have_count(0)
+    # wait until the page has loaded and app.js has wired it: a download started while the
+    # page still loads stops its deferred app.js, and the buttons it enables stay disabled
+    page.wait_for_load_state("load")
+    expect(page.get_by_role("button", name="Update the analysis")).to_be_enabled()
     with page.expect_download():
         page.locator("a[download], a[href*='download=']").first.click()
     # a switch off and back on: the update starts a script job
