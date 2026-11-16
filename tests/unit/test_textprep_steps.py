@@ -110,9 +110,11 @@ def test_the_built_in_registry_is_valid() -> None:
         "table-figure-notices",
         "code-notices",
         "footnote-texts",
+        "hidden-runs",  # the first inline step: nothing inside hidden text wins (#193)
         "links",  # URLs before citations, after the block steps and before footnote marks (D-167)
         "citations",
         "footnotes",
+        "affiliation-marks",  # after the footnote marks it leaves to the footnotes step (#93)
         "statistics",
         "numbers",
         "units",

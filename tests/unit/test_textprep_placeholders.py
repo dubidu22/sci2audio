@@ -661,3 +661,66 @@ def test_a_german_formula_label_keeps_its_point() -> None:
     document = make_document([Block(BlockKind.FORMULA, "x = y (3.2)", label="3.2")], "de")
     run = run_steps(document, StepContext("de"), strict=True)
     assert spoken_text(run.script()) == "Formel 3.2 wird übersprungen."
+
+
+# ---- a figure read by its alt text (#191, D-692) -----------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("language", "alts", "notice"),
+    [
+        ("en", ["A bar chart"], "A figure is skipped. It shows: A bar chart."),
+        ("en", ["  A bar\n chart  "], "A figure is skipped. It shows: A bar chart."),
+        ("en", ["A cat", "A dog"], "A figure is skipped. It shows: A cat; A dog."),
+        ("en", ["A cat", "", "A dog."], "A figure is skipped. It shows: A cat; A dog."),
+        ("en", ["Who reads it?"], "A figure is skipped. It shows: Who reads it?"),
+        ("en", ["Wow!"], "A figure is skipped. It shows: Wow!"),
+        ("en", ["And so on…"], "A figure is skipped. It shows: And so on…"),
+        ("en", [""], "A figure is skipped."),
+        ("en", [" \n "], "A figure is skipped."),
+        ("de", ["Ein Diagramm"], "Eine Abbildung wird übersprungen. Sie zeigt: Ein Diagramm."),
+        ("de", [""], "Eine Abbildung wird übersprungen."),
+    ],
+)  # fmt: skip
+def test_an_uncaptioned_figure_says_what_its_alt_text_shows(
+    language: str, alts: list[str], notice: str
+) -> None:
+    document = make_document([(BlockKind.FIGURE, "")], language, pictures={0: alts})
+    (edit,) = TableFigureNoticeStep().find(document, StepContext(language))
+    assert (edit.span, edit.kind, edit.replacement) == (Span(0, 0, 0), EditKind.REPLACE, notice)
+    if notice.endswith(("skipped.", "übersprungen.")):
+        assert edit.reason == "this figure is not read; a short notice is read instead (D-55)"
+    else:
+        assert edit.reason == (
+            "this figure is not read; a short notice with its alt text is read instead (D-55)"
+        )
+
+
+def test_a_captioned_figure_and_a_table_do_not_read_alt_text() -> None:
+    document = make_document(
+        [
+            (BlockKind.FIGURE, "0 10"),
+            Block(BlockKind.CAPTION, "Figure 3: Minutes.", describes=0, label="Figure 3"),
+            (BlockKind.TABLE, "A 1"),
+        ],
+        pictures={0: ["A chart"], 2: ["A grid"]},
+    )
+    assert read(document) == ["Figure 3 is skipped.", "Figure 3: Minutes.", "A table is skipped."]
+
+
+def test_the_alt_text_is_part_of_the_notice_so_later_steps_leave_it() -> None:
+    document = make_document(
+        [(BlockKind.FIGURE, "")], pictures={0: ["Fig. 2 at 37 °C (Smith, 2019)"]}
+    )
+    assert read(document) == ["A figure is skipped. It shows: Fig. 2 at 37 °C (Smith, 2019)."]
+
+
+def test_with_tables_and_figures_switched_off_the_figure_reads_as_printed() -> None:
+    document = make_document([(BlockKind.FIGURE, "0 10")], pictures={0: ["A chart"]})
+    assert read(document, switched_off=[Category.TABLES_AND_FIGURES]) == ["0 10"]
+
+
+def test_the_alt_text_reads_the_same_on_a_second_run() -> None:
+    document = make_document([(BlockKind.FIGURE, "")], pictures={0: ["A chart"]})
+    script = run_steps(document, EN, strict=True).script()
+    assert read(rebuilt_from_script(document, script)) == read(document)

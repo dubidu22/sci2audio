@@ -362,10 +362,10 @@ def test_the_step_reads_english_and_german_and_its_switch_reads_links_as_printed
     assert run_steps(french, StepContext("fr"), (STEP,), strict=True).not_run == ("links",)
 
 
-def test_links_run_right_after_the_block_steps_and_before_citations() -> None:
+def test_links_run_right_after_the_hidden_runs_and_before_citations() -> None:
     ids = [step.id for step in BUILT_IN_STEPS]
     inline = [step.id for step in BUILT_IN_STEPS if step.stage is Stage.INLINE]
-    assert inline[:2] == ["links", "citations"]
+    assert inline[:3] == ["hidden-runs", "links", "citations"]  # hidden runs first (#193)
     assert ids.index("links") < ids.index("citations")
 
 
