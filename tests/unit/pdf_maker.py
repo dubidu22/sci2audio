@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 import hashlib
 import io
+import re
 import struct
 import zlib
 from dataclasses import dataclass
@@ -52,6 +53,22 @@ def make_pdf(*pages: list[Text | Rect]) -> bytes:
     document.save(buffer)
     document.close()
     return buffer.getvalue()
+
+
+_FILE_ID = re.compile(rb"/ID\[<([0-9A-F]+)><([0-9A-F]+)>\]")
+
+
+def steady(data: bytes) -> bytes:
+    """`data` (a PDF from `make_pdf`) with its file /ID made from its own content: PDFium
+    writes a random /ID, so the same pages give other bytes, and another SHA-256, on every
+    call (#422). The new ID has the old one's length, so no offset moves."""
+    found = _FILE_ID.search(data)
+    if found is None:
+        raise ValueError("no file /ID to replace")
+    size = len(found.group(1))
+    rest = data[: found.start()] + data[found.end() :]
+    digest = hashlib.sha256(rest).hexdigest().upper()[:size].encode()
+    return data[: found.start()] + b"/ID[<%s><%s>]" % (digest, digest) + data[found.end() :]
 
 
 def width(text: str, font: str = "Helvetica", size: float = 10.0) -> float:

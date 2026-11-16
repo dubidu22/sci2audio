@@ -554,16 +554,28 @@ def local_server(work: Path) -> Iterator[tuple[Any, Any, Any]]:
         sock.close()
 
 
+def uploads() -> tuple[dict[str, Any], dict[str, Any]]:
+    """The walk's two files, the same bytes on every run: a random file ID would give the
+    documents other hashes each time, and one now and then holds 16 digits that pass the
+    Luhn check, which ZAP's PII rule takes for a card number (#422)."""
+    sys.path[:0] = [str(ROOT / "tests" / "unit")]
+    from pdf_maker import steady
+    from web_helpers import paper_bytes, pdf_bytes
+
+    return (
+        {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": steady(paper_bytes())},
+        {"name": "note.pdf", "mimeType": "application/pdf", "buffer": steady(pdf_bytes())},
+    )
+
+
 def walk(config: Any, proxy: str, chromium: str | None) -> None:
     """The main flow through ZAP, in English and then in German (D-366)."""
     import httpx
     from playwright.sync_api import expect, sync_playwright
-    from web_helpers import paper_bytes, pdf_bytes
 
     origin = config.origin
     expect.set_options(timeout=60_000)
-    paper = {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": paper_bytes()}
-    note = {"name": "note.pdf", "mimeType": "application/pdf", "buffer": pdf_bytes()}
+    paper, note = uploads()
     outside: list[str] = []
 
     def fence(route: Any) -> None:

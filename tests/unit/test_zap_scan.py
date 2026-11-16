@@ -416,3 +416,16 @@ def test_a_bad_note_is_refused(tmp_path: Path, text: str, message: str) -> None:
 )
 def test_the_walk_reads_an_id_without_the_fragment_a_reload_adds(url: str, wanted: str) -> None:
     assert zap._last_part(url) == wanted
+
+
+def test_the_walks_uploads_are_the_same_bytes_on_every_call() -> None:
+    """The scan sees the same document hashes on every run (#422): no random file ID."""
+    import pypdfium2 as pdfium
+
+    first, second = zap.uploads(), zap.uploads()
+    assert [f["buffer"] for f in first] == [f["buffer"] for f in second]
+    assert first[0]["buffer"] != first[1]["buffer"]
+    for upload in first:
+        document = pdfium.PdfDocument(upload["buffer"])  # still a PDF PDFium reads
+        assert len(document) == 1
+        document.close()
