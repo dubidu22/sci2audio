@@ -259,6 +259,12 @@ def test_the_keys_stay_out_of_the_way(signed_in: Page, live: Live) -> None:
     assert paused(page)
     page.keyboard.press(" ")
     expect(follow).to_be_checked()
+    # the arrows on a button are the button's: they move nothing
+    page.get_by_role("button", name="Play").focus()
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("Shift+ArrowRight")
+    assert highlighted(page) == before
+    expect(page.locator("#now")).to_contain_text("Chapter 1 of 2")
     # Space on a button presses that button once; the arrows on the timeline move it
     play = page.get_by_role("button", name="Play")
     play.focus()
@@ -371,4 +377,21 @@ def test_focus_closes_the_panel_over_the_page_first(signed_in: Page, live: Live)
     expect(page.locator("#panel-toggle")).to_have_attribute("aria-expanded", "false")
     expect(page.get_by_role("button", name="Focus listening")).to_be_focused()
     assert uncovered(page)
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
+def test_leaving_focus_brings_the_sentence_into_view(signed_in: Page, live: Live) -> None:
+    """While Focus is shown the page is short and its scroll is gone; leaving it scrolls the
+    sheet back to the sentence being read (Scroll with the reading is on)."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.set_viewport_size({"width": 1280, "height": 420})
+    last = order(page)[-1]
+    page.locator(f"#{last}").click()
+    page.get_by_role("button", name="Pause").click()
+    page.keyboard.press("f")
+    expect(page.locator("#focus-view")).to_be_focused()
+    page.evaluate("() => window.scrollTo(0, 0)")
+    page.keyboard.press("Escape")
+    expect(page.locator(f"#{last}")).to_be_in_viewport()
     page.set_viewport_size({"width": 1280, "height": 720})

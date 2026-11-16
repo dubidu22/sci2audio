@@ -415,7 +415,6 @@ function readAlong() {
   // A mode of this page with no address of its own: the rail, the sheet and the panel give
   // way to the stage, which shows the sentence being read between its neighbours, copied
   // from the sheet's own elements (with their marks); the dock and the voice go on.
-  const listen = document.getElementById("listen");
   const focusView = document.getElementById("focus-view");
   const focusOn = document.getElementById("focus-on");
   const focusOff = document.getElementById("focus-off");
@@ -445,8 +444,6 @@ function readAlong() {
 
   function setFocus(on) {
     if (on === focusing) return;
-    // the panel over the page closes first, so it covers nothing when Focus ends
-    if (on && listen.classList.contains("panel-open")) document.getElementById("panel-close").click();
     focusing = on;
     document.documentElement.classList.toggle("focus-listening", on);
     focusView.hidden = !on;
@@ -455,7 +452,7 @@ function readAlong() {
     sweepSync();
     pad();
     if (on) {
-      focusView.focus();
+      focusView.focus(); // a panel open over the page closes, as the focus leaves it (#447)
       return;
     }
     following = true;
