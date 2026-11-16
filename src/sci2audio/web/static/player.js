@@ -1,5 +1,6 @@
 // The read-along player (#78, OU-02; D-294 to D-303) and the Listen page around it: the
-// sweep, the dock and the context panel (#392, #393), Focus listening and the keys (#394).
+// highlight, the dock and the context panel (#392, #393), Focus listening and the keys
+// (#394).
 // Loaded only by the listen page, after app.js, whose `tr`, `say` and `typing` it uses
 // (D-302).
 //
@@ -35,15 +36,6 @@ function readAlong() {
   const reading = document.getElementById("reading"); // only when announcing is on (#388)
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
   const total = clockOf(Number(timeline.max) || 0);
-
-  // each sentence element's stretch of the book's timeline: the sweep runs over all of it,
-  // also where empty spans share the element (one pass, for books of 1,000+ pages, #392)
-  const stretch = new Map();
-  for (const [start, end, , id] of chunks) {
-    const known = stretch.get(id);
-    if (known) known[1] = Math.max(known[1], end);
-    else stretch.set(id, [start, end]);
-  }
 
   let loaded = -1; // the chapter whose file the audio element holds
   let current = -1; // the chunk highlighted
@@ -141,45 +133,9 @@ function readAlong() {
     element.scrollIntoView({ block: "center", behavior });
   }
 
-  // ---- the sweep (#392, DESIGN.md "Reading sweep") ---------------------------------------
-  // The reading yellow grows over the sentence for as long as the voice reads it: an
-  // animation of its background-size (the Web Animations API; the page allows no style
-  // attribute), held at the audio's time and rate. Under reduced motion nothing moves: the
-  // whole sentence is highlighted at once (the stylesheet's `.now`).
-  // In Focus listening a second sweep runs over the stage's copy of the sentence (#394).
-  let sweep = null;
-  let focusSweep = null;
-
-  function sweepStop() {
-    for (const one of [sweep, focusSweep]) if (one) one.cancel();
-    sweep = null;
-    focusSweep = null;
-  }
-
-  function sweepSync() {
-    if (!marked || reduced.matches || !marked.animate) {
-      sweepStop();
-      return;
-    }
-    const [start, end] = stretch.get(marked.id) || [0, 0];
-    const length = Math.max(end - start, 0.001) * 1000;
-    const grow = [{ backgroundSize: "0% 100%" }, { backgroundSize: "100% 100%" }];
-    const timing = { duration: length, easing: "linear", fill: "forwards" };
-    if (!sweep) sweep = marked.animate(grow, timing);
-    if (focusing && !focusSweep) focusSweep = focusNow.animate(grow, timing);
-    if (!focusing && focusSweep) {
-      focusSweep.cancel();
-      focusSweep = null;
-    }
-    for (const one of [sweep, focusSweep]) {
-      if (!one) continue;
-      one.currentTime = Math.min(Math.max((bookTime() - start) * 1000, 0), length);
-      one.playbackRate = audio.playbackRate || 1;
-      if (audio.paused || pending || loaded < 0) one.pause();
-      else one.play();
-    }
-  }
-  reduced.addEventListener?.("change", sweepSync);
+  // ---- the highlight (#392, #452) -------------------------------------------------------
+  // The sentence being read is marked at once, plainly and without motion (D-709): the
+  // stylesheet's `.now` on the sheet, and the stage's copy of it in Focus listening.
 
   // the sentence being read is told to screen readers only if the person switched that on
   // in Settings (#388); otherwise the highlight never speaks (D-300)
@@ -200,13 +156,11 @@ function readAlong() {
       marked.classList.remove("now");
       marked.removeAttribute("aria-current");
     }
-    sweepStop();
     marked = element;
     stage();
     if (marked) {
       marked.classList.add("now");
       marked.setAttribute("aria-current", "true");
-      sweepSync();
       announce(marked);
       reveal(marked);
     }
@@ -405,7 +359,6 @@ function readAlong() {
     if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
     audio.defaultPlaybackRate = value;
     audio.playbackRate = value;
-    for (const one of [sweep, focusSweep]) if (one) one.playbackRate = value;
   }
   speed.addEventListener("change", applySpeed);
   audio.addEventListener("loadedmetadata", applySpeed);
@@ -422,7 +375,7 @@ function readAlong() {
   const focusNow = document.getElementById("focus-now");
   const focusNext = document.getElementById("focus-next");
   const focusChapter = document.getElementById("focus-chapter");
-  const order = [...stretch.keys()]; // the sentence elements in reading order
+  const order = [...new Set(chunks.map((chunk) => chunk[3]))]; // sentences in reading order
   const place = new Map(order.map((id, at) => [id, at]));
 
   function copy(id) {
@@ -447,16 +400,16 @@ function readAlong() {
     focusing = on;
     document.documentElement.classList.toggle("focus-listening", on);
     focusView.hidden = !on;
-    sweepStop();
     stage();
-    sweepSync();
     pad();
+    // Focus shows the reading itself, and leaving it comes back to the reading: either way
+    // the page follows the reading again, and Back to the reading has nothing to offer
+    following = true;
+    back.hidden = true;
     if (on) {
       focusView.focus(); // a panel open over the page closes, as the focus leaves it (#447)
       return;
     }
-    following = true;
-    back.hidden = true;
     reveal(marked);
     focusOn.focus();
   }
@@ -479,20 +432,32 @@ function readAlong() {
 
   document.addEventListener("keydown", (event) => {
     if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (document.querySelector("dialog[open]") || typing(event.target)) return;
-    const onControl = event.target instanceof Element && event.target.closest(CONTROLS);
+    if (document.querySelector("dialog[open]")) return;
     const key = event.key;
-    if (key === "Escape" && focusing) setFocus(false);
-    else if (key === " " && !onControl) play.click();
-    else if ((key === "ArrowLeft" || key === "ArrowRight") && !onControl) {
+    // Esc leaves Focus from anywhere in it, a field or the speed list too, and with the keys
+    // switched off (#394 review S1, S3)
+    if (key === "Escape") {
+      if (!focusing) return;
+      event.preventDefault();
+      setFocus(false);
+      return;
+    }
+    if (!shortcutsOn() || typing(event.target)) return;
+    const onControl = event.target instanceof Element && event.target.closest(CONTROLS);
+    const once = !event.repeat; // a held key toggles once (#394 review N1)
+    if (key === " " && !onControl) {
+      if (once) play.click();
+    } else if ((key === "ArrowLeft" || key === "ArrowRight") && !onControl) {
       const by = key === "ArrowRight" ? 1 : -1;
       if (event.shiftKey) toChapter(chapterOfCurrent() + by, !audio.paused);
       else document.getElementById(by > 0 ? "next-sentence" : "previous-sentence").click();
     } else if (key === "-") stepSpeed(-1);
     else if (key === "+" || key === "=") stepSpeed(1);
-    else if (key === "f" || key === "F") setFocus(!focusing);
-    else if ((key === "p" || key === "P") && !focusing) document.getElementById("panel-toggle").click();
-    else return;
+    else if (key === "f" || key === "F") {
+      if (once) setFocus(!focusing);
+    } else if ((key === "p" || key === "P") && !focusing) {
+      if (once) document.getElementById("panel-toggle").click();
+    } else return;
     event.preventDefault();
   });
 
@@ -536,19 +501,12 @@ function readAlong() {
     showPlaying(true);
     if (!frame) frame = requestAnimationFrame(tick);
   });
-  audio.addEventListener("playing", sweepSync);
-  audio.addEventListener("waiting", sweepSync);
-  audio.addEventListener("ratechange", sweepSync);
   audio.addEventListener("pause", () => {
     showPlaying(false);
     update();
-    sweepSync();
     keepIfTouched();
   });
-  audio.addEventListener("seeked", () => {
-    update();
-    sweepSync();
-  });
+  audio.addEventListener("seeked", update);
   audio.addEventListener("timeupdate", () => {
     if (audio.paused) update();
   });
@@ -677,11 +635,15 @@ function contextPanel() {
   panel.addEventListener("pointerdown", () => {
     pressing = true;
   });
-  for (const type of ["pointerup", "pointercancel"]) {
-    window.addEventListener(type, () => {
-      pressing = false;
-    });
+  // the press ends with the pointer, and also when it can no longer be one: a key, a
+  // context menu, or the window losing the focus (#394 review S2)
+  function released() {
+    pressing = false;
   }
+  for (const type of ["pointerup", "pointercancel", "contextmenu", "blur"]) {
+    window.addEventListener(type, released);
+  }
+  window.addEventListener("keydown", released, true);
   function left(to) {
     if (wide.matches || !narrowOpen || pressing || panel.contains(to)) return;
     narrowOpen = false;

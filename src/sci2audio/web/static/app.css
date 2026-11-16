@@ -50,7 +50,7 @@
   --rule: #D7DADF; --rule-strong: #8C9199;
   --cobalt: #2340A8; --cobalt-deep: #1A3087; --cobalt-line: #3A56BE; --on-cobalt: #FFFFFF; --on-cobalt-2: #CCD5F4;
   --hl-read: #FFE94A; --hl-note: #7BE38A; --hl-quote: #6CC4FF; --hl-card: #FF8FC8; --hl-mark: #FFB347;
-  --on-hl: #16181D; --sweep-c: var(--hl-read); --on-sweep: #16181D; --held: color-mix(in srgb, var(--hl-read) 30%, transparent);
+  --on-hl: #16181D; --now: #B08400; --on-now: #16181D; --held: color-mix(in srgb, var(--hl-read) 30%, transparent);
   --error: #B42318; --error-wash: #FDECEA; --wait: #7A4B00; --wait-wash: #FFF3DC;
   --focus: var(--cobalt); --switch-on: var(--cobalt);
   --sheet-shadow: 0 1px 2px rgba(22,24,29,.06), 0 8px 24px -12px rgba(22,24,29,.18);
@@ -72,7 +72,7 @@
     --cobalt: #1C2E78; --cobalt-deep: #15235E; --cobalt-line: #2D41A0; --on-cobalt: #FFFFFF; --on-cobalt-2: #C3CCF0;
     --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
     --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
-    --sweep-c: color-mix(in srgb, #F2DC3A 36%, transparent); --on-sweep: #FFFFFF; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
+    --now: #F2DC3A; --on-now: #16181D; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
     --focus: var(--hl-quote); --switch-on: var(--hl-quote);
     --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
     --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
@@ -86,7 +86,7 @@
     --cobalt: #1C2E78; --cobalt-deep: #15235E; --cobalt-line: #2D41A0; --on-cobalt: #FFFFFF; --on-cobalt-2: #C3CCF0;
     --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
     --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
-    --sweep-c: color-mix(in srgb, #F2DC3A 36%, transparent); --on-sweep: #FFFFFF; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
+    --now: #F2DC3A; --on-now: #16181D; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
     --focus: var(--hl-quote); --switch-on: var(--hl-quote);
     --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
     --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
@@ -286,20 +286,16 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .read-along h3.block, .read-along h4.block, .read-along h5.block, .read-along h6.block { font: 600 22px/1.3 var(--read); margin: 30px 0 14px; }
 /* a long book stays fast: the browser lays out only the chapters near the window (#392) */
 .sheet-chapter { content-visibility: auto; contain-intrinsic-size: auto 1200px; }
-/* a sentence: the reading yellow grows over it as it is read (the sweep, player.js animates
-   background-size); the rest of it is held in the pale tint; a sentence heard keeps that tint */
+/* a sentence: the one being read is marked plainly, at once and without motion (D-709, #452):
+   deep amber on light paper, the reading yellow on dark, with dark text on both. The mark keeps
+   at least 3:1 against the paper and against the pale tint of a sentence heard (D-706, D-711);
+   a test measures both. Screen readers learn which one it is from aria-current. */
 .read-along .s {
   cursor: pointer; border-radius: 2px; padding: 2px 0;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
-  background-image: linear-gradient(var(--sweep-c), var(--sweep-c)); background-repeat: no-repeat;
-  background-position: 0 0; background-size: 0% 100%;
 }
 .read-along .s:hover, .read-along .s.done { background-color: var(--held); }
-/* the sentence being read: the highlighter and an underline, never colour alone (D-300) */
-.read-along .s.now {
-  color: var(--on-sweep); background-color: var(--held); background-size: 100% 100%;
-  text-decoration: underline 2px currentColor; text-underline-offset: .2em;
-}
+.read-along .s.now { color: var(--on-now); background-color: var(--now); }
 /* what the audiobook's own edits did (#392, D-665 conflict 2): left out, read differently */
 .cut { color: var(--pencil); text-decoration: line-through; text-decoration-color: var(--pencil); font-size: .92em; }
 .read-along .s.now .cut { color: inherit; }
@@ -383,6 +379,7 @@ select.speed { min-height: 34px; padding: 4px 8px; font-weight: 700; }
 .panel .field { display: grid; gap: 6px; margin: 0 0 16px; }
 .panel .field:last-child { margin-bottom: 0; }
 .setting-switch { display: flex; gap: 12px; align-items: flex-start; }
+.setting-switch + .setting-switch { margin-top: 18px; }
 .setting-switch label { font-size: 15px; }
 .setting-switch .hint { display: block; margin: 2px 0 0; }
 
@@ -639,15 +636,10 @@ html.focus-listening #message:not(:empty) { margin: 16px 48px 0; }
 .view .focus-stage p { margin: 0; text-align: center; }
 .view .focus-stage .prev, .view .focus-stage .next { font: 400 22px/1.55 var(--read); color: var(--pencil); max-width: 60ch; }
 .view .focus-stage .cur { font: 500 clamp(30px, 3.4vw, 48px)/1.35 var(--read); letter-spacing: -.01em; max-width: 28ch; text-wrap: balance; color: var(--ink); }
-/* the sentence being read, as on the sheet: the highlighter grows over it (player.js), the
-   rest held in the pale tint, and an underline, never colour alone (D-300). Without the
-   animation (reduced motion) it is highlighted whole. */
+/* the sentence being read, marked as on the sheet: plainly, without motion (D-709, #452) */
 .focus-stage #focus-now {
-  color: var(--on-sweep); background-color: var(--held); border-radius: 2px; padding: 0 4px;
+  color: var(--on-now); background-color: var(--now); border-radius: 2px; padding: 0 4px;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
-  background-image: linear-gradient(var(--sweep-c), var(--sweep-c)); background-repeat: no-repeat;
-  background-position: 0 0; background-size: 100% 100%;
-  text-decoration: underline 3px currentColor; text-underline-offset: .18em;
 }
 .focus-stage #focus-now:empty { padding: 0; }
 .focus-stage .cur .cut { color: inherit; }

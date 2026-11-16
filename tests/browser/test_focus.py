@@ -5,11 +5,13 @@ in light, dark and German in Focus and on the sheet."""
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
+from pdf_maker import Rect, Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_flow import reload_holding_back_app_js
-from test_listen import uncovered
-from test_player import highlighted, make_audiobook, paused
+from test_listen import marked_plainly, uncovered
+from test_player import chunk_id, highlighted, listen_to, make_audiobook, paused
 
 from conftest import Live, check_axe
 
@@ -106,18 +108,20 @@ def test_f_shows_focus_listening_and_esc_leaves_it(signed_in: Page, live: Live) 
     page.goto(f"{live.url}/language?language=en&back=/documents/{document}/listen")
 
 
-def test_the_voice_goes_on_and_the_stage_follows_it_with_the_sweep(
+def test_the_voice_goes_on_and_the_stage_marks_its_sentence_plainly(
     signed_in: Page, live: Live
 ) -> None:
+    """The stage follows the voice; its sentence carries the sheet's own plain mark, with no
+    motion and no underline (D-709, #452), also under reduced motion."""
     page = signed_in
     make_audiobook(page, live)
     page.get_by_role("button", name="Play").click()
     page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
+    sheet = marked_plainly(page, "#text .s.now")
     page.get_by_role("button", name="Focus listening").click()
     assert not paused(page)  # no page load: the voice goes on
-    page.wait_for_function(
-        "() => document.getElementById('focus-now').getAnimations()[0]?.playState === 'running'"
-    )
+    stage = marked_plainly(page, "#focus-now")
+    assert stage["background"] == sheet["background"], (stage, sheet)
     first = highlighted(page)
     page.wait_for_function(
         f"() => document.querySelector('#text .s.now')?.id !== '{first}'", timeout=20_000
@@ -125,42 +129,14 @@ def test_the_voice_goes_on_and_the_stage_follows_it_with_the_sweep(
     now = highlighted(page)
     assert words(page, "#focus-now") == words(page, f"#{now}")
     assert words(page, "#focus-prev") == words(page, f"#{first}")
-    # both sweeps stand where the voice stands, at its speed
-    page.get_by_label("Speed").select_option("1.5")
-    page.wait_for_function(
-        "() => document.getElementById('focus-now').getAnimations()[0]?.playbackRate === 1.5"
-    )
+    marked_plainly(page, "#focus-now")
     page.get_by_role("button", name="Pause").click()
-    page.wait_for_function(
-        "() => document.getElementById('focus-now').getAnimations()[0]?.playState === 'paused'"
-    )
-    times = page.evaluate(
-        """() => [document.querySelector('#text .s.now').getAnimations()[0].currentTime,
-                  document.getElementById('focus-now').getAnimations()[0].currentTime]"""
-    )
-    assert abs(times[0] - times[1]) < 50, times
-    # leaving ends the stage's sweep and brings the reading back into view
-    page.keyboard.press("Escape")
-    assert page.locator("#focus-now").evaluate("e => e.getAnimations().length") == 0
-    expect(page.locator(f"#{now}")).to_be_in_viewport()
-
-
-def test_under_reduced_motion_focus_highlights_the_whole_sentence(
-    signed_in: Page, live: Live
-) -> None:
-    page = signed_in
     page.emulate_media(reduced_motion="reduce")
-    make_audiobook(page, live)
-    page.get_by_role("button", name="Play").click()
-    page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
-    page.keyboard.press("f")
-    expect(page.locator("#focus-view")).to_be_visible()
-    page.wait_for_timeout(300)
-    assert page.locator("#focus-now").evaluate("e => e.getAnimations().length") == 0
-    assert page.locator("#focus-now").evaluate("e => getComputedStyle(e).backgroundSize") == (
-        "100% 100%"
-    )
-    assert page.evaluate("() => document.getAnimations().length") == 0
+    assert marked_plainly(page, "#focus-now")["background"] == stage["background"]
+    page.emulate_media(reduced_motion="no-preference")
+    # leaving brings the reading back into view
+    page.keyboard.press("Escape")
+    expect(page.locator(f"#{now}")).to_be_in_viewport()
 
 
 def test_every_key_on_the_listen_page(signed_in: Page, live: Live) -> None:
@@ -395,3 +371,181 @@ def test_leaving_focus_brings_the_sentence_into_view(signed_in: Page, live: Live
     page.keyboard.press("Escape")
     expect(page.locator(f"#{last}")).to_be_in_viewport()
     page.set_viewport_size({"width": 1280, "height": 720})
+
+
+# --- round 1 of the review of #451 -------------------------------------------------------
+
+
+def test_esc_leaves_focus_from_the_speed_list(signed_in: Page, live: Live) -> None:
+    """S1: Esc leaves Focus wherever the focus is in it, the speed list included, though the
+    list takes every other key."""
+    page = signed_in
+    make_audiobook(page, live)
+    nobody_focused(page)
+    page.keyboard.press("f")
+    expect(page.locator("#focus-view")).to_be_focused()
+    page.get_by_label("Speed").focus()
+    page.keyboard.press("Escape")
+    expect(page.locator("#focus-view")).to_be_hidden()
+    assert not focusing(page)
+    expect(page.get_by_role("button", name="Focus listening")).to_be_focused()
+
+
+def test_a_held_key_acts_once(signed_in: Page, live: Live) -> None:
+    """N1: a key held down repeats; F, P and Space switch once all the same (? opens the
+    sheet, whose being open stops the repeats). An even count of presses: toggled by each
+    repeat, they would come back to where they began."""
+    page = signed_in
+    make_audiobook(page, live)
+    nobody_focused(page)
+    for _ in range(4):  # held: one press and three repeats
+        page.keyboard.down("f")
+    page.keyboard.up("f")
+    assert focusing(page)
+    page.keyboard.press("Escape")
+    nobody_focused(page)
+    toggle = page.locator("#panel-toggle")
+    for _ in range(4):  # held: one press and three repeats
+        page.keyboard.down("p")
+    page.keyboard.up("p")
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    nobody_focused(page)
+    for _ in range(4):  # held: one press and three repeats
+        page.keyboard.down(" ")
+    page.keyboard.up(" ")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.wait_for_timeout(300)
+    assert not paused(page)
+    assert page.evaluate("() => window.scrollY") == 0  # a held Space scrolls nothing either
+    for _ in range(4):  # held: one press and three repeats
+        page.keyboard.down("?")
+    page.keyboard.up("?")
+    expect(page.locator("#keys")).to_be_visible()
+    page.keyboard.press("Escape")
+    expect(page.locator("#keys")).to_be_hidden()
+
+
+def test_with_the_keys_switched_off_only_esc_and_the_rail_item_are_left(
+    signed_in: Page, live: Live
+) -> None:
+    """S3: switched off in Settings, F, P, ?, minus, plus, Space and the arrows do nothing and
+    no key is offered; Esc still leaves Focus entered by its button, and the rail's item still
+    opens the sheet."""
+    page = signed_in
+    document = make_audiobook(page, live)
+    listen = f"/documents/{document}/listen"
+    page.goto(f"{live.url}/appearance?keys=off&back={listen}")
+    page.wait_for_url(live.url + listen)
+    expect(page.locator("html")).to_have_attribute("data-keys", "off")
+    for offered in ("#focus-on", "#panel-toggle"):
+        expect(page.locator(offered)).not_to_have_attribute("aria-keyshortcuts", re.compile("."))
+    expect(page.locator("#keys-open kbd")).to_have_count(0)
+    expect(page.locator(".focus-foot")).to_have_count(0)
+    toggle = page.locator("#panel-toggle")
+    speed = page.get_by_label("Speed")
+    before = highlighted(page)
+    nobody_focused(page)
+    for key in ("f", "F", "p", "?", "-", "+", "=", " ", "ArrowRight", "Shift+ArrowRight"):
+        page.keyboard.press(key)
+    page.wait_for_timeout(200)
+    assert not focusing(page)
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    expect(page.locator("#keys")).to_be_hidden()
+    expect(speed).to_have_value("1")
+    assert paused(page)
+    assert highlighted(page) == before
+    expect(page.locator("#now")).to_contain_text("Chapter 1 of 2")
+    page.get_by_role("button", name="Focus listening").click()
+    expect(page.locator("#focus-view")).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(page.locator("#focus-view")).to_be_hidden()
+    expect(page.get_by_role("button", name="Focus listening")).to_be_focused()
+    page.get_by_role("button", name="Keyboard shortcuts").click()
+    expect(page.locator("#keys")).to_be_visible()
+    expect(page.locator("#keys")).to_contain_text("Settings can switch these keys off")
+    check_axe(page, "shortcuts sheet, keys off")
+    page.keyboard.press("Escape")
+    expect(page.locator("#keys")).to_be_hidden()
+    page.goto(f"{live.url}/appearance?keys=on&back={listen}")
+    expect(page.locator("html")).not_to_have_attribute("data-keys", "off")
+
+
+def test_the_stage_shows_a_cut_as_the_sheet_does(signed_in: Page, live: Live) -> None:
+    """S4 (a): the sentence with a cut on the stage keeps the cut struck through and tells
+    screen readers it is not read."""
+    page = signed_in
+    make_audiobook(page, live)
+    sentence = chunk_id(page, "Things happen")
+    page.locator(f"#{sentence}").click()
+    page.get_by_role("button", name="Pause").click()
+    assert highlighted(page) == sentence
+    nobody_focused(page)
+    page.keyboard.press("f")
+    cut = page.locator("#focus-now s.cut")
+    expect(cut).to_have_count(1)
+    expect(cut).to_have_text("(Smith, 2020)")
+    expect(page.locator("#focus-now")).to_contain_text("(not read)")
+    assert words(page, "#focus-now") == words(page, f"#{sentence}")
+
+
+def test_the_stage_reads_a_spoken_notice_only(signed_in: Page, live: Live, tmp_path: Path) -> None:
+    """S4 (b): a skipped figure's notice on the stage is its spoken words only, without the
+    icon or the caption found in the file."""
+    page = signed_in
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text("Some text before the figure.", 72, 100, size=11),
+            Rect(72, 120, 300, 300),
+            Text("Figure 1: A grey box.", 72, 320, size=10),
+            Text("Text after it.", 72, 350, size=11),
+        ]
+    )
+    listen_to(page, live, tmp_path / "figure.pdf", pdf)
+    notice = page.locator(".notice")
+    notice.click()
+    page.get_by_role("button", name="Pause").click()
+    expect(notice).to_have_attribute("aria-current", "true")
+    nobody_focused(page)
+    page.keyboard.press("f")
+    expect(page.locator("#focus-now")).to_have_text("Spoken notice: Figure 1 is skipped.")
+    expect(page.locator("#focus-now svg")).to_have_count(0)
+
+
+def test_focus_and_scrolling_by_hand(signed_in: Page, live: Live) -> None:
+    """S4 (c), (d): a wheel in Focus offers no Back to the reading; after scrolling away,
+    Focus and Esc bring the reading back, hide the button and follow the reading again."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.set_viewport_size({"width": 1280, "height": 420})
+    back = page.get_by_role("button", name="Back to the reading")
+    current = highlighted(page) or order(page)[0]
+    page.mouse.move(400, 200)
+    page.mouse.wheel(0, 2000)
+    expect(back).to_be_visible()
+    expect(page.locator(f"#{current}")).not_to_be_in_viewport()
+    nobody_focused(page)
+    page.keyboard.press("f")
+    expect(back).to_be_hidden()
+    page.mouse.move(400, 200)
+    page.mouse.wheel(0, 300)  # (d) in Focus the wheel is no scroll away from the reading
+    page.wait_for_timeout(200)
+    expect(back).to_be_hidden()
+    page.keyboard.press("Escape")
+    expect(page.locator(f"#{current}")).to_be_in_viewport()  # (c)
+    expect(back).to_be_hidden()
+    page.mouse.wheel(0, 300)  # following again: a wheel away offers the way back
+    expect(back).to_be_visible()
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
+def test_plus_at_the_fastest_speed_stays_there(signed_in: Page, live: Live) -> None:
+    """S4 (e)."""
+    page = signed_in
+    make_audiobook(page, live)
+    speed = page.get_by_label("Speed")
+    speed.select_option("2")
+    nobody_focused(page)
+    page.keyboard.press("+")
+    expect(speed).to_have_value("2")
+    assert page.locator("#audio").evaluate("a => a.playbackRate") == 2

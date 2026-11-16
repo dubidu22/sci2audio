@@ -169,6 +169,79 @@ def test_every_number_is_set_in_tabular_figures() -> None:
     assert "font-variant-numeric: tabular-nums lining-nums" in body[1]
 
 
+# --- the mark of the sentence being read (D-709, D-711, #452) ----------------------------
+
+# the stylesheet the server serves, as the imported package holds it
+SERVED_CSS = Path(i18n.__file__).parent / "static" / "app.css"
+HEX = re.compile(r"#([0-9A-Fa-f]{6})")
+MIX = re.compile(r"color-mix\(in srgb, (.+?) (\d+)%, transparent\)")
+
+
+def rgb(value: str, tokens: dict[str, str]) -> tuple[float, ...]:
+    """A token's colour as 0..1 channels; a var() is looked up in the same block."""
+    value = value.strip()
+    if value.startswith("var(--"):
+        return rgb(tokens[value[4:-1]], tokens)
+    found = HEX.fullmatch(value)
+    assert found is not None, value
+    return tuple(int(found[1][i : i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def on_paper(value: str, tokens: dict[str, str]) -> tuple[float, ...]:
+    """A colour as it shows on the paper: a see-through tint is laid over the paper."""
+    paper = rgb(tokens["--paper"], tokens)
+    mix = MIX.fullmatch(value.strip())
+    if mix is None:
+        return rgb(value, tokens)
+    share = int(mix[2]) / 100
+    colour = rgb(mix[1], tokens)
+    return tuple(c * share + p * (1 - share) for c, p in zip(colour, paper, strict=True))
+
+
+def luminance(colour: tuple[float, ...]) -> float:
+    """WCAG 2 relative luminance."""
+    r, g, b = (c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in colour)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(one: tuple[float, ...], two: tuple[float, ...]) -> float:
+    high, low = sorted((luminance(one), luminance(two)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def mark_contrasts(css: str) -> dict[str, dict[str, float]]:
+    light, system, _chosen = blocks(css)
+    found = {}
+    for theme, block in (("light", light), ("dark", system)):
+        tokens = {**light, **block}  # a dark block re-tones; what it leaves keeps the light value
+        now = on_paper(tokens["--now"], tokens)
+        found[theme] = {
+            "paper": contrast(now, rgb(tokens["--paper"], tokens)),
+            "heard": contrast(now, on_paper(tokens["--held"], tokens)),
+            "text": contrast(now, rgb(tokens["--on-now"], tokens)),
+        }
+    return found
+
+
+def test_the_mark_stands_out_from_the_paper_and_from_a_heard_sentence() -> None:
+    """D-711: at least 3:1 against the paper and the heard tint in both themes, and the text
+    on the mark at least 4.5:1."""
+    for theme, measured in mark_contrasts(SERVED_CSS.read_text(encoding="utf-8")).items():
+        assert measured["paper"] >= 3, (theme, measured)
+        assert measured["heard"] >= 3, (theme, measured)
+        assert measured["text"] >= 4.5, (theme, measured)
+
+
+def test_the_contrast_check_finds_the_reading_yellow_on_white() -> None:
+    # the plain mark of round 1: the reading yellow on white paper, 1.2:1
+    css = SERVED_CSS.read_text(encoding="utf-8").replace(
+        "--now: #B08400", "--now: var(--hl-read)", 1
+    )
+    light = mark_contrasts(css)["light"]
+    assert light["paper"] < 1.3
+    assert light["heard"] < 1.2
+
+
 def test_nothing_moves_under_reduced_motion() -> None:
     css = CSS.read_text(encoding="utf-8")
     block = css[css.index("@media (prefers-reduced-motion: reduce)") :]
@@ -373,7 +446,9 @@ def test_every_page_has_the_shortcuts_sheet(tmp_path: Path, path: str) -> None:
     assert '<span class="visually-hidden">Shift</span>' in sheet
     for later in ("<kbd>N</kbd>", "<kbd>Q</kbd>", "<kbd>C</kbd>", "<kbd>M</kbd>"):
         assert later not in sheet
-    german = client_of(server(tmp_path)).get(path, cookies={"sci2audio-language": "de"}).text
+    german_client = client_of(server(tmp_path))
+    german_client.cookies.set("sci2audio-language", "de")
+    german = german_client.get(path).text
     assert "<kbd>Leertaste</kbd>" in german
     assert "Pfeil nach links" in german
 
@@ -438,6 +513,10 @@ def test_settings_marks_the_appearance_and_the_html_carries_a_chosen_one(tmp_pat
         ("announce=off", {i18n.ANNOUNCE_COOKIE: "off"}),
         ("announce=off&announce=on", {i18n.ANNOUNCE_COOKIE: "on"}),  # the box ticked
         ("announce=yes", {}),
+        ("keys=off", {i18n.KEYS_COOKIE: "off"}),
+        ("keys=on", {i18n.KEYS_COOKIE: "on"}),
+        ("keys=off&keys=on", {i18n.KEYS_COOKIE: "on"}),  # the box ticked
+        ("keys=no", {}),
         ("", {}),
     ],
 )
@@ -499,6 +578,30 @@ def test_the_announce_switch_shows_the_cookie(tmp_path: Path) -> None:
     client.cookies.set(i18n.ANNOUNCE_COOKIE, "on")
     page = client.get("/settings").text
     assert re.search(r'id="settings-announce"[^>]* checked>', page)
+
+
+def test_the_keys_switch_is_on_by_default_and_the_html_carries_it_off(tmp_path: Path) -> None:
+    """#394 review S3: the page-wide single keys work unless switched off in Settings; the
+    choice reaches the scripts as data-keys on every page."""
+    client = client_of(server(tmp_path))
+    page = client.get("/settings").text
+    box = re.search(r'<input type="checkbox" role="switch"[^>]*id="settings-keys"[^>]*>', page)
+    assert box is not None
+    assert box[0].endswith(" checked>")
+    assert page.index('name="keys" value="off"') < page.index('id="settings-keys"')
+    assert "data-keys" not in page.split("<html ")[1].split(">")[0]
+    client.cookies.set(i18n.KEYS_COOKIE, "off")
+    for path in ("/settings", "/", "/privacy"):
+        page = client.get(path).text
+        assert '<html lang="en" data-keys="off">' in page, path
+    page = client.get("/settings").text
+    box = re.search(r'<input type="checkbox" role="switch"[^>]*id="settings-keys"[^>]*>', page)
+    assert box is not None
+    assert "checked" not in box[0]
+    client.cookies.set(i18n.KEYS_COOKIE, '"><script>')  # a forged value counts as none: on
+    page = client.get("/settings").text
+    assert '<html lang="en">' in page
+    assert re.search(r'id="settings-keys"[^>]* checked>', page)
 
 
 # --- Settings: the defaults for new audiobooks (#388) --------------------------------------

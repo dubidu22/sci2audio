@@ -35,6 +35,10 @@ THEME_COOKIE = "sci2audio-theme"
 THEMES = ("system", "light", "dark")
 ANNOUNCE_COOKIE = "sci2audio-announce"
 ANNOUNCE = ("off", "on")
+# the page-wide single keys (#394 review S3): on unless switched off; Esc and the rail's
+# Keyboard shortcuts item work either way
+KEYS_COOKIE = "sci2audio-keys"
+KEYS = ("on", "off")
 
 PLURAL_FORMS = ("one", "other")  # the CLDR forms English and German share (D-290)
 
@@ -152,6 +156,7 @@ def known_language(text: str | None) -> str | None:
 
 _THEMES = {theme: theme for theme in THEMES}
 _ANNOUNCE = {value: value for value in ANNOUNCE}
+_KEYS = {value: value for value in KEYS}
 
 
 def known_theme(text: str | None) -> str | None:
@@ -164,6 +169,11 @@ def known_announce(text: str | None) -> str | None:
     return _ANNOUNCE.get(text) if text else None
 
 
+def known_keys(text: str | None) -> str | None:
+    """`on` or `off` from `KEYS` itself, or None."""
+    return _KEYS.get(text) if text else None
+
+
 def theme_of(request: Request) -> str:
     """The appearance of a request's page: the Settings cookie, else as the system."""
     return known_theme(request.cookies.get(THEME_COOKIE)) or "system"
@@ -173,6 +183,12 @@ def announce_of(request: Request) -> bool:
     """Whether the Listen page announces each sentence (#388; read by #392). Off unless
     the person switched it on."""
     return known_announce(request.cookies.get(ANNOUNCE_COOKIE)) == "on"
+
+
+def keys_of(request: Request) -> bool:
+    """Whether the page-wide single keys work (#394 review S3). On unless the person
+    switched them off."""
+    return known_keys(request.cookies.get(KEYS_COOKIE)) != "off"
 
 
 def strings(language: str) -> Strings:

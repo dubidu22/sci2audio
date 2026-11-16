@@ -626,15 +626,17 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     # 4: 127.0.0.1 only, no access log, nothing from outside (test_web_pages), no docs pages
     assert HOST == "127.0.0.1"
     assert uvicorn_config(FastAPI()).access_log is False
-    # 6: the cookies: the start cookie is the port's; the Settings page's three cookies hold
-    # a language, an appearance and the announcements, each one of its listed values (D-671)
+    # 6: the cookies: the start cookie is the port's; the Settings page's four cookies hold
+    # a language, an appearance, the announcements and the keyboard shortcuts (#394), each
+    # one of its listed values (D-671)
     assert COOKIE == "sci2audio-language"
     assert set(LANGUAGES) == {"en", "de"}
     assert (i18n.THEME_COOKIE, i18n.THEMES) == ("sci2audio-theme", ("system", "light", "dark"))
     assert (i18n.ANNOUNCE_COOKIE, i18n.ANNOUNCE) == ("sci2audio-announce", ("off", "on"))
+    assert (i18n.KEYS_COOKIE, i18n.KEYS) == ("sci2audio-keys", ("on", "off"))
     pages_source = Path(pages.__file__).read_text(encoding="utf-8")
-    assert pages_source.count("response.set_cookie(") == 2  # the language's; Settings' two
-    assert "at most four cookies" in EN["privacy.cookies"]
+    assert pages_source.count("response.set_cookie(") == 2  # the language's; Settings' loop
+    assert "at most five cookies" in EN["privacy.cookies"]
     # 7: the working folder's small records for the library and the rail (#389): when each
     # document was last opened, what its file says about itself, where listening stopped;
     # each written into the document's own working folder and nowhere else

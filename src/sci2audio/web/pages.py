@@ -46,13 +46,16 @@ from sci2audio.web.i18n import (
     ANNOUNCE_COOKIE,
     COOKIE,
     COOKIE_AGE,
+    KEYS_COOKIE,
     LANGUAGES,
     THEME_COOKIE,
     THEMES,
     Strings,
     announce_of,
     data_block,
+    keys_of,
     known_announce,
+    known_keys,
     known_language,
     known_theme,
     local_path,
@@ -184,6 +187,7 @@ def _page(
         languages=LANGUAGES,
         here=local_path(request.url.path + (f"?{query}" if query else "")),
         theme=theme_of(request),
+        keys=keys_of(request),  # the page-wide single keys, on unless switched off (#394)
     )
     return templates.TemplateResponse(request, name, context, status_code=status)
 
@@ -1290,16 +1294,18 @@ def settings_page(request: Request, state: State) -> HTMLResponse:
 
 @router.get("/appearance")
 def choose_appearance(
-    request: Request, theme: str = "", announce: str = "", back: str = ""
+    request: Request, theme: str = "", announce: str = "", keys: str = "", back: str = ""
 ) -> RedirectResponse:
-    """Remembers the appearance (`system`, `light`, `dark`) or the sentence announcements
-    (`on`, `off`) in their own cookies and goes back to the page the form was on, like the
-    language switch (D-288, D-321, D-671): a GET form guarded like every page, setting
-    nothing but these choices, sending the browser only to a path on this server."""
+    """Remembers the appearance (`system`, `light`, `dark`), the sentence announcements or
+    the keyboard shortcuts (`on`, `off`) in their own cookies and goes back to the page the
+    form was on, like the language switch (D-288, D-321, D-671): a GET form guarded like
+    every page, setting nothing but these choices, sending the browser only to a path on
+    this server."""
     response = RedirectResponse(local_path(back), 303)
     for cookie, chosen in (
         (THEME_COOKIE, known_theme(theme)),  # one of THEMES, never the request's text
         (ANNOUNCE_COOKIE, known_announce(announce)),  # one of ANNOUNCE
+        (KEYS_COOKIE, known_keys(keys)),  # one of KEYS
     ):
         if chosen is not None:
             response.set_cookie(

@@ -10,7 +10,7 @@ from test_keyboard import press_on, tab_to
 from conftest import Live, check_axe, saving
 from sci2audio.app import JobSettings, load_settings, save_settings
 from sci2audio.textprep import Category
-from sci2audio.web.i18n import ANNOUNCE_COOKIE, THEME_COOKIE
+from sci2audio.web.i18n import ANNOUNCE_COOKIE, KEYS_COOKIE, THEME_COOKIE
 
 
 def cookie(page: Page, name: str) -> dict[str, object] | None:
@@ -116,6 +116,34 @@ def test_the_announce_switch_saves_itself(signed_in: Page, live: Live) -> None:
     assert (cookie(page, ANNOUNCE_COOKIE) or {}).get("value") == "off"
 
 
+def test_the_keys_switch_saves_itself_and_every_page_carries_it(
+    signed_in: Page, live: Live
+) -> None:
+    """#451 review S3: on by default; switched off, every page says so to its scripts."""
+    page = signed_in
+    page.goto(live.url + "/settings")
+    switch = page.get_by_role("switch", name="Keyboard shortcuts")
+    expect(switch).to_be_checked()
+    expect(page.locator("#keys-save-line")).to_be_hidden()
+    with saving(page, "/appearance"):
+        switch.click()
+    page.wait_for_url(live.url + "/settings")
+    expect(switch).not_to_be_checked()
+    assert (cookie(page, KEYS_COOKIE) or {}).get("value") == "off"
+    check_axe(page, "settings, keys off")
+    page.goto(live.url + "/privacy")
+    expect(page.locator("html")).to_have_attribute("data-keys", "off")
+    page.keyboard.press("?")
+    expect(page.locator("#keys")).to_be_hidden()
+    page.goto(live.url + "/settings")
+    with saving(page, "/appearance"):
+        switch.click()
+    page.wait_for_url(live.url + "/settings")
+    expect(switch).to_be_checked()
+    assert (cookie(page, KEYS_COOKIE) or {}).get("value") == "on"
+    expect(page.locator("html")).not_to_have_attribute("data-keys", "off")
+
+
 def test_settings_in_german(signed_in: Page, live: Live) -> None:
     page = signed_in
     page.goto(live.url + "/language?language=de&back=/settings")
@@ -125,5 +153,6 @@ def test_settings_in_german(signed_in: Page, live: Live) -> None:
     expect(page.get_by_role("button", name="Wie das System")).to_be_visible()
     announce = page.get_by_role("switch", name="Gelesenen Satz für Screenreader ansagen")
     expect(announce).to_be_visible()
+    expect(page.get_by_role("switch", name="Tastenkürzel")).to_be_checked()
     expect(page.get_by_role("link", name="Bibliothek, 0 Dokumente", exact=True)).to_be_visible()
     check_axe(page, "de: settings")

@@ -77,8 +77,8 @@
 <article class="sheet" aria-labelledby="listen-title">
   <div class="sheet-top">
     <p class="ai-notice">{{ t('listen.ai_notice', voice=voice) }}</p>
-    <button type="button" class="sm" id="focus-on" aria-keyshortcuts="F" disabled>{{ icon('focus', 's') }}<span>{{ t('listen.focus') }}</span></button>
-    <button type="button" class="icon-btn" id="panel-toggle" aria-controls="context" aria-expanded="true" aria-keyshortcuts="P" aria-label="{{ t('listen.panel_hide') }}" title="{{ t('listen.panel_hide') }}" data-show="{{ t('listen.panel_show') }}" data-hide="{{ t('listen.panel_hide') }}" disabled>{{ icon('panel') }}</button>
+    <button type="button" class="sm" id="focus-on"{% if keys %} aria-keyshortcuts="F"{% endif %} disabled>{{ icon('focus', 's') }}<span>{{ t('listen.focus') }}</span></button>
+    <button type="button" class="icon-btn" id="panel-toggle" aria-controls="context" aria-expanded="true"{% if keys %} aria-keyshortcuts="P"{% endif %} aria-label="{{ t('listen.panel_hide') }}" title="{{ t('listen.panel_hide') }}" data-show="{{ t('listen.panel_show') }}" data-hide="{{ t('listen.panel_hide') }}" disabled>{{ icon('panel') }}</button>
   </div>
   {% if not view.marked %}<p class="marks-note" id="marks-note">{{ t('listen.unmarked', version=view.made_with or '?') }}{% if not document.outside %} <a href="/documents/{{ document.id }}">{{ t('listen.unmarked_link') }}</a>{% endif %}</p>{% endif %}
   {% if resume %}
@@ -121,7 +121,7 @@
     <p class="cur"><span id="focus-now"></span></p>
     <p class="next" id="focus-next"></p>
   </div>
-  <p class="focus-foot"><span>{{ key('space') }} {{ t('keys.play') }}</span><span>{{ key('left') }} {{ key('right') }} {{ t('keys.prevnext') }}</span><span>{{ key('?') }} {{ t('nav.shortcuts') }}</span></p>
+  {% if keys %}<p class="focus-foot"><span>{{ key('space') }} {{ t('keys.play') }}</span><span>{{ key('left') }} {{ key('right') }} {{ t('keys.prevnext') }}</span><span>{{ key('?') }} {{ t('nav.shortcuts') }}</span></p>{% endif %}
 </section>
 </div>
 {#- One context panel (#393): Changes, read-only, and Chapters. Captures waits for the study
