@@ -322,6 +322,38 @@ def test_each_voice_file_shows_once_in_its_packs_panel(server: tuple[FastAPI, An
     assert f"Download the voice ({size})</button>" in page
 
 
+def test_the_download_button_names_what_is_still_missing(server: tuple[FastAPI, Any]) -> None:
+    """With the English pack in place, the button names the German pack's size, not the
+    whole download's: the download skips the files already there (#421 N1)."""
+    from sci2audio.voices.download import SPACY_MODEL, SPACY_MODEL_VERSION
+
+    _app, config = server
+    plan = download_plan()
+    for file in plan.files:
+        if file.pack != "en":
+            continue
+        path = config.models_dir / file.target
+        if file.unpack:
+            record = path / f"{SPACY_MODEL}-{SPACY_MODEL_VERSION}.dist-info" / "RECORD"
+            record.parent.mkdir(parents=True)
+            record.write_text("", encoding="utf-8")
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("wb") as stream:
+                stream.truncate(file.size)  # the right size, nothing written
+    page = client_of(server).get("/voice").text
+    s = strings("en")
+    german = sum(f.size for f in plan.files if f.pack == "de")
+    assert 0 < german < plan.total_bytes
+    assert s.size(german) != s.size(plan.total_bytes)
+    assert f"Download the voice ({s.size(german)})</button>" in page
+    assert f"Download the voice ({s.size(plan.total_bytes)})" not in page
+    english = page.split('<section class="pack" id="pack-en"')[1].split("</section>")[0]
+    german_panel = page.split('<section class="pack" id="pack-de"')[1].split("</section>")[0]
+    assert "Installed" in english
+    assert "Not installed" in german_panel
+
+
 def test_missing_documents_and_jobs_answer_404_pages(server: tuple[FastAPI, Any]) -> None:
     client = client_of(server)
     for path in ("/documents/0123456789abcdef", "/documents/<b>", "/jobs/<b>"):
