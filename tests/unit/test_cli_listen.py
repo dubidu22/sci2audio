@@ -179,3 +179,24 @@ def test_the_file_id_is_its_hash_and_follows_a_new_version(tmp_path: Path) -> No
     os.utime(new, ns=(stat.st_atime_ns, stat.st_mtime_ns))
     os.replace(new, path)
     assert file_id(path) == hashlib.sha256(b"two").hexdigest()[:16]
+
+
+def test_a_file_rewritten_in_place_within_one_tick_gets_a_new_id(tmp_path: Path) -> None:
+    """#438: the id is kept per (inode, mtime, size), which a rewrite in place at the same
+    size within one clock tick keeps (Windows, about 16 ms): a file changed in the last two
+    seconds is hashed again on every call; a settled file is hashed once (#154)."""
+    from sci2audio.app import config, file_id
+
+    path = tmp_path / "a.pdf"
+    path.write_bytes(b"%PDF-1.7 a")
+    seen = path.stat().st_mtime_ns
+    assert file_id(path) == hashlib.sha256(b"%PDF-1.7 a").hexdigest()[:16]
+    with path.open("r+b") as stream:  # in place: the same inode and size
+        stream.write(b"%PDF-1.7 b")
+    os.utime(path, ns=(seen, seen))  # and the same time, as within one tick
+    assert file_id(path) == hashlib.sha256(b"%PDF-1.7 b").hexdigest()[:16]
+    old = seen - 10 * config.RACY_NS  # long settled: hashed once, then kept
+    os.utime(path, ns=(old, old))
+    config._file_id.cache_clear()
+    assert file_id(path) == file_id(path) == hashlib.sha256(b"%PDF-1.7 b").hexdigest()[:16]
+    assert config._file_id.cache_info().misses == 1
