@@ -797,6 +797,40 @@ def test_analyse_waits_for_the_script(signed_in: Page, live: Live) -> None:
     expect(analyse).to_be_enabled()
 
 
+# an image the page asks for once its script has run: until it comes the page has not loaded
+HOLD_LOAD = """document.addEventListener("DOMContentLoaded", () => {
+  const img = document.createElement("img");
+  img.alt = "";
+  img.src = "/static/held-back.png";
+  document.body.append(img);
+});"""
+
+
+def test_a_move_made_while_the_page_loads_stays_where_it_was_made(
+    signed_in: Page, live: Live
+) -> None:
+    """A page opened at a fragment (the step after an analysis, the result after a job) is
+    focused there by app.js. Once that is done the fragment leaves the address: left in it,
+    WebKit focuses and scrolls to it again when the page has loaded, under a key press or a
+    click made in the meantime (D-698)."""
+    page = signed_in
+    document = open_paper(page, live)
+    page.goto(live.url + "/")
+    held: list[Route] = []
+    page.route(f"{live.url}/static/held-back.png", lambda route: held.append(route))
+    page.add_init_script(HOLD_LOAD)
+    page.goto(f"{live.url}/documents/{document}#step-check", wait_until="domcontentloaded")
+    expect(page.locator("#step-check")).to_be_focused()
+    until(lambda: held)
+    assert page.evaluate("() => document.readyState") != "complete"
+    page.locator("#update").focus()  # the person moves on before the page has loaded
+    held[0].fulfill(status=404)
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(500)  # whatever the browser does once the page has loaded
+    expect(page.locator("#update")).to_be_focused()
+    assert page.evaluate("() => location.hash") == ""
+
+
 def reload_holding_back_app_js(page: Page, live: Live) -> Callable[[], None]:
     """Reload the page with app.js held back; the result lets it through."""
     held: list[Route] = []

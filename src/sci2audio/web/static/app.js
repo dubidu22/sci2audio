@@ -903,7 +903,11 @@ function settingsPage() {
 function focusTarget() {
   if (!location.hash) return;
   const target = document.getElementById(location.hash.slice(1));
-  if (target && target.hasAttribute("tabindex")) target.focus();
+  if (!target || !target.hasAttribute("tabindex")) return;
+  target.focus();
+  // the fragment has done its work: left in the address, WebKit scrolls to it and focuses
+  // it once more when the page has loaded, under a key press or click made in the meantime
+  history.replaceState(null, "", location.pathname + location.search);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
