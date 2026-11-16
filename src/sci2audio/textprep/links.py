@@ -417,11 +417,19 @@ class LinkStep(TextStep):
         for index, block in enumerate(document.blocks):
             if block.kind in SKIPPED_KINDS or not block.text.strip():
                 continue
-            edits += self._block_edits(index, block.text, block.kind, block.label, words)
+            edits += self._block_edits(
+                index, block.text, block.kind, block.label, words, context.language
+            )
         return edits
 
     def _block_edits(
-        self, index: int, text: str, kind: BlockKind, label: str, words: LinkWords
+        self,
+        index: int,
+        text: str,
+        kind: BlockKind,
+        label: str,
+        words: LinkWords,
+        language: str = "en",
     ) -> list[Edit]:
         links = _with_access_notes(
             text, find_links(text, _after_label(text, kind, label), words), words
@@ -440,6 +448,7 @@ class LinkStep(TextStep):
         while position < len(runs):
             run = runs[position]
             start, end, repair = _repair(text, run, words, claimed, sentence_at)
+            bare = start == run[0].start  # no lead word or bracket went with it
             position += 1
             # a repair that reaches over later runs takes them into the same edit
             while position < len(runs) and runs[position][0].start < end:
@@ -463,6 +472,16 @@ class LinkStep(TextStep):
                 repair += join
                 end, join = _leading_join(text, start, end, words)
                 repair += join
+                if bare and not join:
+                    end, join = _join_after(text, start, end, words)
+                    repair += join
+                following = runs[position][0].start if position < len(runs) else len(text)
+                stop = _stop_after_abbreviation(text, start, end, following, words, language)
+                if stop:
+                    # "Smith et al. https://x.org. Then" reads "Smith et al. Then", as a
+                    # printed "Smith et al. Then" does on any run (#258)
+                    end = stop
+                    repair += "; its full stop goes too, so no two full stops are read"
                 if (
                     text[start].isspace()
                     and text[end - 1] in ")]"
@@ -564,6 +583,52 @@ def _leading_join(text: str, start: int, end: int, words: LinkWords) -> tuple[in
     if not after:
         return end, ""
     return after.end(), f'; "{after.group(1) or after.group(2)}" after it goes too'
+
+
+def _stop_after_abbreviation(
+    text: str, start: int, end: int, following: int, words: LinkWords, language: str
+) -> int | None:
+    """Where a removal ends that takes the link's full stop along: the link ends its
+    sentence right after a full stop that `_repair` keeps, an abbreviation's ("et al.",
+    "Fig.", "Abb."), so the script would show "et al.. Then" (#258). Not where the
+    abbreviations step reads the abbreviation with its full stop ("u. a." as "unter
+    anderem", "Fig. (https://x.org)." as "Figure"): the link's full stop then ends the
+    sentence. Nor right before the next link (`following`, where it starts): a second run
+    no longer sees that link, so it would read the abbreviation before what follows it."""
+    if text[end : end + 1] != ".":
+        return None
+    if following < len(text) and not text[end + 1 : following].strip():
+        return None
+    low = max(0, start - _LOOK_BACK)
+    kept = text[low:start].rstrip()
+    if not kept.endswith("."):
+        return None
+    # imported here: the abbreviations step imports this module
+    from sci2audio.textprep.abbreviations import reads_full_stop
+
+    if reads_full_stop(text, low + len(kept), language):
+        return None
+    return end + 1
+
+
+def _join_after(text: str, start: int, end: int, words: LinkWords) -> tuple[int, str]:
+    """A join word right after a link that stood as the first item of a list goes too:
+    "We thank https://x.org and Smith" reads "We thank Smith", not "We thank and Smith"
+    (#257, D-668). Only after a word (a join word too: "Smith and https://x.org and Lee"
+    reads "Smith and Lee"), only before a word with a capital (a name; in German also a
+    noun), so "We use https://x.org and then run it" keeps its "and"; and only for a link
+    removed alone: "downloaded it from https://x.org and ran it" keeps "and", as "from" went
+    with the link."""
+    kept = text[max(0, start - _LOOK_BACK) : start].rstrip()
+    last = kept.split()[-1] if kept.split() else ""
+    joins = [w for w in words.joins if w.isalpha()]  # "and", "or", "und", "oder"
+    if not last[-1:].isalpha():
+        return end, ""
+    listed = "|".join(re.escape(w) for w in sorted(joins, key=len, reverse=True))
+    after = re.compile(rf"\s*({listed})(?=\s+[^\W\d_])", re.IGNORECASE).match(text, end)
+    if not after or not text[after.end() : after.end() + 8].lstrip()[:1].isupper():
+        return end, ""
+    return after.end(), f'; "{after.group(1)}" after it goes too'
 
 
 def _tidied(text: str, edits: list[Edit]) -> list[Edit]:

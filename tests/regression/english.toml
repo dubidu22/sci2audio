@@ -1962,3 +1962,167 @@ expected = [
     "Store them (2019).",
     "Then the samples rest.",
 ]
+
+# ---- PR 3 of the second textprep batch: words left without their partner (D-668) ----
+
+[[case]]
+id = "citations-a-pair-of-numeric-citations-the-sentence-needs"
+audit = 0
+issue = 257
+goal = "An aside bracket joined by 'and' to a needed one is needed too: 'between [1] and [3]' reads 'between references 1 and 3', not 'between and reference 3' (D-668)."
+blocks = [
+    { kind = "paragraph", text = "Between [1] and [3] it lies." },
+    { kind = "paragraph", text = "It lies between [1] and [3]." },
+    { kind = "paragraph", text = "Between [MH17] and [Fa14] it lies." },
+    { kind = "paragraph", text = "It was shown in [1] and [3]." },
+    { kind = "paragraph", text = "It holds [1] or [3] here." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "[MH17] M. Maass. A tool. 2017.\n[Fa14] S. Fahl. A study. 2014." },
+]
+sections = [{ title = "References", level = 1, start = 5, end = 7 }]
+expected = [
+    "Between references 1 and 3 it lies.",
+    "It lies between references 1 and 3.",
+    "Between references MH17 and Fa14 it lies.",
+    "It was shown in reference 1 and reference 3.",
+    "It holds or reference 3 here.",
+]
+
+[[case]]
+id = "citations-a-numeric-citation-with-a-page"
+audit = 0
+issue = 257
+goal = "A numeric citation with a page is read as its source and page where the sentence needs it ('reference 12, page 3'), and goes whole as an aside; several sources with pages stay as printed (D-668)."
+blocks = [
+    { kind = "paragraph", text = "In [12, p. 3] it is." },
+    { kind = "paragraph", text = "As shown in [12, pp. 3–5] it is." },
+    { kind = "paragraph", text = "This holds [12, p. 3]." },
+    { kind = "paragraph", text = "This holds [12, p. 3; 14] here." },
+]
+expected = [
+    "In reference 12, page 3 it is.",
+    "As shown in reference 12, pages 3 to 5 it is.",
+    "This holds.",
+    "This holds [12, p. 3; 14] here.",
+]
+
+[[case]]
+id = "links-a-join-word-after-a-removed-link"
+audit = 0
+issue = 257
+goal = "A join word right after a removed link goes with it when the link stood as a list's first item ('We thank Smith'); it stays where a lead word went with the link and it joins clauses (D-668)."
+blocks = [
+    { kind = "paragraph", text = "We thank https://x.org and Smith (2019)." },
+    { kind = "paragraph", text = "We thank https://x.org or Smith for help." },
+    { kind = "paragraph", text = "We downloaded it from https://x.org and ran it." },
+]
+expected = [
+    "We thank Smith.",
+    "We thank Smith for help.",
+    "We downloaded it and ran it.",
+]
+
+[[case]]
+id = "links-no-two-full-stops-after-an-abbreviation"
+audit = 0
+issue = 258
+goal = "A link that ends a sentence after an abbreviation's full stop leaves no '..': its own full stop goes too, and it is cut as a printed 'Smith et al. Then' is, on both runs (D-668)."
+blocks = [
+    { kind = "paragraph", text = "Smith et al. https://x.org. Then more." },
+    { kind = "paragraph", text = "The answer is in Fig. https://x.org. Then." },
+]
+expected = [
+    "Smith et al. Then more.",
+    "The answer is in Fig. Then.",
+]
+utterances = ["Smith et al. Then more.", "The answer is in Fig. Then."]
+
+[[case]]
+id = "citations-a-subject-nest-keeps-every-name"
+audit = 0
+issue = 372
+goal = "A subject nest with more than its first citation in brackets keeps every name, as the flat form does (D-668)."
+blocks = [
+    { kind = "paragraph", text = "((Smith, 2019); (Lee, 2018); Jones, 2020) is cited." },
+    { kind = "paragraph", text = "((Smith, 2019); (Lee, 2018)) is cited." },
+    { kind = "paragraph", text = "(Jones, 2020; (Smith, 2019)) is cited." },
+    { kind = "paragraph", text = "(Smith, 2019; Lee, 2018; Jones, 2020) is cited." },
+]
+expected = [
+    "Smith, Lee and Jones is cited.",
+    "Smith and Lee is cited.",
+    "Jones and Smith is cited.",
+    "Smith, Lee and Jones is cited.",
+]
+
+[[case]]
+id = "citations-a-year-shell-around-several-citations"
+audit = 0
+issue = 375
+goal = "A year shell around a list of inner citations that go, goes with them: no '(; 2021)' stub; as the subject it keeps the names (D-668)."
+blocks = [
+    { kind = "paragraph", text = "Data ((Smith, 2019); (Lee, 2020) 2021) here." },
+    { kind = "paragraph", text = "((Smith, 2019); (Lee, 2020) 2021) is cited." },
+    { kind = "paragraph", text = "Data ((Smith, 2019) 2021) here." },
+]
+expected = [
+    "Data here.",
+    "Smith and Lee is cited.",
+    "Data here.",
+]
+
+[[case]]
+id = "citations-a-key-label-inside-a-line-is-no-entry"
+audit = 0
+issue = 383
+goal = "A key bracket followed by initials inside a sentence is no entry label, so with no list in the document the key stays as printed (review of PR #377 round 2)."
+blocks = [
+    { kind = "paragraph", text = "The tool of [Mn12] A. Bee works." },
+]
+expected = [
+    "The tool of [Mn12] A. Bee works.",
+]
+
+[[case]]
+id = "references-numbered-body-items-with-an-abbreviation-are-read"
+audit = 0
+issue = 383
+goal = "Numbered body items at the document's end are no unheaded reference list because 'USA. Then' is no author's initials (review of PR #377 round 2)."
+blocks = [
+    { kind = "heading", text = "Results" },
+    { kind = "paragraph", text = "[1] In 2011 we went to the USA. Then we ran it." },
+    { kind = "paragraph", text = "[2] In 2012 we went to the USA. Then we ran it." },
+    { kind = "paragraph", text = "[3] In 2013 we went to the USA. Then we ran it." },
+    { kind = "paragraph", text = "[4] In 2014 we went to the USA. Then we ran it." },
+    { kind = "paragraph", text = "[5] In 2015 we went to the USA. Then we ran it." },
+    { kind = "paragraph", text = "[6] In 2016 we went to the USA. Then we ran it." },
+]
+expected = [
+    "Results",
+    "In 2011 we went to the USA. Then we ran it.",
+    "In 2012 we went to the USA. Then we ran it.",
+    "In 2013 we went to the USA. Then we ran it.",
+    "In 2014 we went to the USA. Then we ran it.",
+    "In 2015 we went to the USA. Then we ran it.",
+    "In 2016 we went to the USA. Then we ran it.",
+]
+
+[[case]]
+id = "references-a-heading-counts-only-right-before-the-list"
+audit = 0
+issue = 383
+goal = "A heading that names no reference list keeps an unheaded list from going only right before it: after a stray numbered note the list below is removed (review of PR #377 round 2)."
+blocks = [
+    { kind = "heading", text = "Notes" },
+    { kind = "paragraph", text = "[3] A stray note." },
+    { kind = "paragraph", text = "[1] A. Smith and B. Lee, Phys. Rev. B 1, 2 (2019)." },
+    { kind = "paragraph", text = "[2] C. Jones, Nature 3, 4 (2020)." },
+    { kind = "paragraph", text = "[3] D. Brown, Science 5, 6 (2021)." },
+    { kind = "paragraph", text = "[4] E. Green, Phys. Rev. Lett. 7, 8 (2018)." },
+    { kind = "paragraph", text = "[5] G. Black, Phys. Rev. A 3, 1 (2016)." },
+    { kind = "paragraph", text = "[6] F. White, J. Phys. 9, 10 (2017)." },
+]
+expected = [
+    "Notes",
+    "A stray note.",
+]
