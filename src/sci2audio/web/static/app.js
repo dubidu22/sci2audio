@@ -1004,12 +1004,13 @@ function shelf() {
 // ---- the Settings page (#388) -----------------------------------------------------------
 
 function settingsPage() {
-  // the announcement switch saves itself when the script runs; its button is for pages
-  // without the script
-  const announce = document.getElementById("settings-announce");
-  if (announce) {
-    announce.addEventListener("change", () => announce.form.requestSubmit());
-    document.getElementById("announce-save-line").hidden = true;
+  // the announcement and keyboard switches save themselves when the script runs; their
+  // buttons are for pages without the script
+  for (const name of ["announce", "keys"]) {
+    const box = document.getElementById(`settings-${name}`);
+    if (!box) continue;
+    box.addEventListener("change", () => box.form.requestSubmit());
+    document.getElementById(`${name}-save-line`).hidden = true;
   }
   const form = document.getElementById("defaults");
   if (!form) return;
@@ -1046,6 +1047,52 @@ function settingsPage() {
   save.disabled = false;
 }
 
+// True while the person types: the page's keys leave such a field alone (#394). A select
+// counts too, since letters and arrows choose in it.
+const NOT_TYPED = new Set(["button", "checkbox", "radio", "range", "submit", "reset", "color", "file", "image"]);
+
+// The page-wide single keys, unless switched off in Settings (#394 review S3): then only
+// Esc and the rail's Keyboard shortcuts item are left.
+function shortcutsOn() {
+  return document.documentElement.dataset.keys !== "off";
+}
+
+function typing(target) {
+  if (!(target instanceof Element)) return false;
+  if (target.closest("textarea, select, [contenteditable]:not([contenteditable='false'])")) return true;
+  return target instanceof HTMLInputElement && !NOT_TYPED.has(target.type);
+}
+
+// The keyboard shortcuts sheet (#394): a modal dialog, opened by ? on every page (unless the
+// keys are switched off) and by the rail's item; Esc or its button closes it, and the focus
+// goes back where it was.
+function shortcutsSheet() {
+  const sheet = document.getElementById("keys");
+  const open = document.getElementById("keys-open");
+  const close = document.getElementById("keys-close");
+  if (!sheet || !open || !close || typeof sheet.showModal !== "function") return;
+  let opener = null;
+  function show() {
+    if (sheet.open) return;
+    opener = document.activeElement;
+    sheet.showModal();
+  }
+  open.addEventListener("click", show);
+  close.addEventListener("click", () => sheet.close());
+  sheet.addEventListener("close", () => {
+    if (opener && opener !== document.body && opener.isConnected) opener.focus();
+    opener = null;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "?" || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (!shortcutsOn() || typing(event.target) || document.querySelector("dialog[open]")) return;
+    event.preventDefault();
+    show(); // a held ? opens it once: the open sheet stops the repeats above
+  });
+  open.disabled = false; // drawn disabled until here (#350, #427)
+  close.disabled = false;
+}
+
 function focusTarget() {
   if (!location.hash) return;
   const target = document.getElementById(location.hash.slice(1));
@@ -1068,5 +1115,6 @@ document.addEventListener("DOMContentLoaded", () => {
   voicePage();
   settingsPage();
   shelf();
+  shortcutsSheet();
   focusTarget();
 });

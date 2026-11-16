@@ -50,7 +50,7 @@
   --rule: #D7DADF; --rule-strong: #8C9199;
   --cobalt: #2340A8; --cobalt-deep: #1A3087; --cobalt-line: #3A56BE; --on-cobalt: #FFFFFF; --on-cobalt-2: #CCD5F4;
   --hl-read: #FFE94A; --hl-note: #7BE38A; --hl-quote: #6CC4FF; --hl-card: #FF8FC8; --hl-mark: #FFB347;
-  --on-hl: #16181D; --sweep-c: var(--hl-read); --on-sweep: #16181D; --held: color-mix(in srgb, var(--hl-read) 30%, transparent);
+  --on-hl: #16181D; --now: #B08400; --on-now: #16181D; --held: color-mix(in srgb, var(--hl-read) 30%, transparent);
   --error: #B42318; --error-wash: #FDECEA; --wait: #7A4B00; --wait-wash: #FFF3DC;
   --focus: var(--cobalt); --switch-on: var(--cobalt);
   --sheet-shadow: 0 1px 2px rgba(22,24,29,.06), 0 8px 24px -12px rgba(22,24,29,.18);
@@ -72,7 +72,7 @@
     --cobalt: #1C2E78; --cobalt-deep: #15235E; --cobalt-line: #2D41A0; --on-cobalt: #FFFFFF; --on-cobalt-2: #C3CCF0;
     --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
     --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
-    --sweep-c: color-mix(in srgb, #F2DC3A 36%, transparent); --on-sweep: #FFFFFF; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
+    --now: #F2DC3A; --on-now: #16181D; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
     --focus: var(--hl-quote); --switch-on: var(--hl-quote);
     --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
     --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
@@ -86,7 +86,7 @@
     --cobalt: #1C2E78; --cobalt-deep: #15235E; --cobalt-line: #2D41A0; --on-cobalt: #FFFFFF; --on-cobalt-2: #C3CCF0;
     --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
     --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
-    --sweep-c: color-mix(in srgb, #F2DC3A 36%, transparent); --on-sweep: #FFFFFF; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
+    --now: #F2DC3A; --on-now: #16181D; --held: color-mix(in srgb, #F2DC3A 14%, transparent);
     --focus: var(--hl-quote); --switch-on: var(--hl-quote);
     --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
     --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
@@ -272,7 +272,9 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .sheet-top { display: flex; align-items: center; gap: 12px; margin: 0 0 20px; font-size: 14px; }
 .view .sheet-top p { margin: 0; max-width: none; }
 .ai-notice { color: var(--pencil); font-size: 14px; }
-.sheet-top .icon-btn { margin-left: auto; min-height: 40px; width: 40px; }
+.view .sheet-top .ai-notice { margin-right: auto; }
+.sheet-top #focus-on { flex: none; white-space: nowrap; }
+.sheet-top .icon-btn { min-height: 40px; width: 40px; }
 .view .marks-note { font-size: 13.5px; color: var(--pencil); border-left: 1px solid var(--rule-strong); padding: 2px 0 2px 12px; }
 .resume { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 15px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 12px 0; margin: 0 0 26px; }
 .view .resume p { margin: 0; }
@@ -284,20 +286,16 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .read-along h3.block, .read-along h4.block, .read-along h5.block, .read-along h6.block { font: 600 22px/1.3 var(--read); margin: 30px 0 14px; }
 /* a long book stays fast: the browser lays out only the chapters near the window (#392) */
 .sheet-chapter { content-visibility: auto; contain-intrinsic-size: auto 1200px; }
-/* a sentence: the reading yellow grows over it as it is read (the sweep, player.js animates
-   background-size); the rest of it is held in the pale tint; a sentence heard keeps that tint */
+/* a sentence: the one being read is marked plainly, at once and without motion (D-709, #452):
+   deep amber on light paper, the reading yellow on dark, with dark text on both. The mark keeps
+   at least 3:1 against the paper and against the pale tint of a sentence heard (D-706, D-711);
+   a test measures both. Screen readers learn which one it is from aria-current. */
 .read-along .s {
   cursor: pointer; border-radius: 2px; padding: 2px 0;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
-  background-image: linear-gradient(var(--sweep-c), var(--sweep-c)); background-repeat: no-repeat;
-  background-position: 0 0; background-size: 0% 100%;
 }
 .read-along .s:hover, .read-along .s.done { background-color: var(--held); }
-/* the sentence being read: the highlighter and an underline, never colour alone (D-300) */
-.read-along .s.now {
-  color: var(--on-sweep); background-color: var(--held); background-size: 100% 100%;
-  text-decoration: underline 2px currentColor; text-underline-offset: .2em;
-}
+.read-along .s.now { color: var(--on-now); background-color: var(--now); }
 /* what the audiobook's own edits did (#392, D-665 conflict 2): left out, read differently */
 .cut { color: var(--pencil); text-decoration: line-through; text-decoration-color: var(--pencil); font-size: .92em; }
 .read-along .s.now .cut { color: inherit; }
@@ -381,6 +379,7 @@ select.speed { min-height: 34px; padding: 4px 8px; font-weight: 700; }
 .panel .field { display: grid; gap: 6px; margin: 0 0 16px; }
 .panel .field:last-child { margin-bottom: 0; }
 .setting-switch { display: flex; gap: 12px; align-items: flex-start; }
+.setting-switch + .setting-switch { margin-top: 18px; }
 .setting-switch label { font-size: 15px; }
 .setting-switch .hint { display: block; margin: 2px 0 0; }
 
@@ -613,6 +612,67 @@ table.changes { width: 100%; font-size: 14px; }
     display: flex; position: fixed; right: 0; top: 0; bottom: var(--dock-h, 0px); z-index: 20;
     width: min(var(--panel), 100%); box-shadow: var(--pop-shadow); border-left: 1px solid var(--rule);
   }
+}
+
+/* ---------- Focus listening (#394, DESIGN.md "Focus"): a mode of the Listen page. The rail,
+   the paper's head, the sheet and the panel give way to the stage; the dock stays, across
+   the whole width. The sheet's status line stays, so what the page says is still heard. ---------- */
+html.focus-listening .app { display: block; }
+html.focus-listening .rail, html.focus-listening .skip, html.focus-listening .paper-head,
+html.focus-listening #context { display: none; }
+html.focus-listening .sheet { display: contents; }
+html.focus-listening .sheet > :not(#message, #reading) { display: none; }
+html.focus-listening .view { max-width: none; padding: 0; }
+html.focus-listening .listen { grid-template-columns: minmax(0, 1fr); }
+html.focus-listening .dock { margin: 0; }
+html.focus-listening .dock.pinned { left: 0; }
+html.focus-listening #message:not(:empty) { margin: 16px 48px 0; }
+.focus-view { align-self: stretch; min-height: calc(100vh - var(--dock-h, 0px)); display: grid; grid-template-rows: auto 1fr auto; padding: 24px 48px; }
+.focus-top { display: flex; gap: 12px; align-items: center; color: var(--pencil); font-size: 14px; }
+.focus-title { font: 400 14px/1.4 var(--ui); margin: 0; color: var(--pencil); }
+.focus-title b { color: var(--ink); }
+.focus-top button { margin-left: auto; }
+.focus-stage { display: grid; align-content: center; justify-items: center; gap: 28px; margin: 0 auto; width: min(100%, 1100px); padding: 24px 0; }
+.view .focus-stage p { margin: 0; text-align: center; }
+.view .focus-stage .prev, .view .focus-stage .next { font: 400 22px/1.55 var(--read); color: var(--pencil); max-width: 60ch; }
+.view .focus-stage .cur { font: 500 clamp(30px, 3.4vw, 48px)/1.35 var(--read); letter-spacing: -.01em; max-width: 28ch; text-wrap: balance; color: var(--ink); }
+/* the sentence being read, marked as on the sheet: plainly, without motion (D-709, #452) */
+.focus-stage #focus-now {
+  color: var(--on-now); background-color: var(--now); border-radius: 2px; padding: 0 4px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.focus-stage #focus-now:empty { padding: 0; }
+.focus-stage .cur .cut { color: inherit; }
+.view .focus-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; color: var(--pencil); font-size: 14px; margin: 0; max-width: none; }
+.focus-foot span { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 759px) {
+  .focus-view { padding: 16px; }
+  html.focus-listening #message:not(:empty) { margin: 12px 16px 0; }
+  .view .focus-stage .prev, .view .focus-stage .next { font-size: 18px; }
+}
+
+/* ---------- the keyboard shortcuts sheet (#394) and its item at the rail's foot ---------- */
+.rail-foot button {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 0; padding: 8px 10px; border: 0; border-radius: var(--r);
+  background: transparent; color: var(--on-cobalt); font: 400 14px/1.45 var(--ui); text-align: left; justify-content: flex-start;
+}
+.rail-foot button:hover { background: var(--cobalt-deep); }
+.rail-foot button kbd { margin-left: auto; background: transparent; color: var(--on-cobalt-2); border-color: var(--cobalt-line); }
+dialog.keys-sheet { border: 1px solid var(--rule-strong); border-radius: 6px; background: var(--paper); color: var(--ink); padding: 0; box-shadow: var(--pop-shadow); max-width: 720px; width: calc(100% - 48px); }
+dialog.keys-sheet::backdrop { background: rgba(17, 19, 23, .45); }
+.keys-sheet header { display: flex; align-items: center; padding: 14px 16px 14px 22px; border-bottom: 1px solid var(--rule); }
+.keys-sheet h2 { margin: 0; font-size: 17px; }
+.keys-sheet header button { margin-left: auto; min-height: 36px; width: 36px; }
+.keys { padding: 6px 22px 22px; }
+.keys h3 { font-size: 13px; color: var(--pencil); margin: 14px 0 4px; }
+.keys dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; margin: 0; }
+.keys dl div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: 14.5px; }
+.keys dd { margin: 0; white-space: nowrap; }
+.keys .keys-note { font-size: 13.5px; color: var(--pencil); margin: 16px 0 0; }
+@media (max-width: 759px) {
+  .keys dl { grid-template-columns: minmax(0, 1fr); }
+  dialog.keys-sheet { width: calc(100% - 24px); }
+  .rail-foot button { width: auto; padding: 6px 8px; gap: 6px; }
 }
 
 /* ---------- widths ---------- */

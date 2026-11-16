@@ -191,8 +191,9 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         outline = page.evaluate("() => getComputedStyle(document.activeElement).outlineStyle")
         assert outline != "none", f"no focus ring on {order[-1]} after {order}"
     # the paper header's tabs first (#391), then the dock in the order it shows (#393), the
-    # panel's button, and the panel: its selected tab, the chapters and the follow switch;
-    # the hidden button, the status line and the panel's other tab are skipped
+    # Focus button (#394), the panel's button, and the panel: its selected tab, the
+    # chapters and the follow switch; the hidden button, the status line and the panel's
+    # other tab are skipped
     assert order == [
         "tab-prepare",
         "tab-listen",
@@ -201,6 +202,7 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         "next-sentence",
         "timeline",
         "speed",
+        "focus-on",
         "panel-toggle",
         "tab-outline",
         "panel-close",

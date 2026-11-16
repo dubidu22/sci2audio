@@ -26,6 +26,7 @@ megabytes = "{n}\u00A0MB"
 kilobytes = "{n}\u00A0KB"
 bytes.one = "1\u00A0byte"
 bytes.other = "{n}\u00A0bytes"
+close = "Close"
 
 [library]  # the library, the start page (#389, DESIGN.md "Library")
 title = "Library"
@@ -320,6 +321,7 @@ change_on = "On"
 change_off = "Off"
 change_count.one = "1 change"
 change_count.other = "{n} changes"
+focus = "Focus listening"  # the mode with the sentence alone, in large type (#394)
 
 [player]  # the player's script (#78)
 play = "Play"
@@ -328,6 +330,7 @@ chapter = "Chapter {n} of {total}:"  # the title follows, in the text's language
 cannot_play = "This browser can't play the audiobook's M4B file. Save it from the document's job page and play it in another program."
 load_failed = "The audio could not be loaded. Is sci2audio still running?"
 time_of = "{time} of {total}"  # the dock's clock and the timeline (#393)
+speed_now = "Speed {speed}"  # said when a key changed the speed (#394)
 
 [js]
 moved = "{title} is now chapter {n} of {total}."  # the chapter list (#119)
@@ -428,7 +431,7 @@ voice_label = "Voice folder"
 voice = "The voice files you downloaded, with the English language model the voice needs."
 remove = "To remove one document, use “Remove this document” on its page or in the library; its audiobook stays. To remove everything sci2audio keeps, stop it and delete the working folder, the settings file and the voice folder. Your audiobooks stay where they are until you delete them."
 cookies_title = "Cookies"
-cookies = "sci2audio sets at most four cookies. They belong to this computer’s own address, 127.0.0.1, so your browser never sends them elsewhere: one holds the key of the current start and stops working when sci2audio stops; the other three are set only when you choose on the Settings page and keep that choice for one year: the language (“en” or “de”), the appearance (“system”, “light” or “dark”) and whether the sentence being read is announced (“on” or “off”)."
+cookies = "sci2audio sets at most five cookies. They belong to this computer’s own address, 127.0.0.1, so your browser never sends them elsewhere: one holds the key of the current start and stops working when sci2audio stops; the other four are set only when you choose on the Settings page and keep that choice for one year: the language (“en” or “de”), the appearance (“system”, “light” or “dark”), whether the sentence being read is announced (“on” or “off”) and whether the keyboard shortcuts work (“on” or “off”)."
 limits_title = "What sci2audio can’t control"
 limits = "Your browser and your operating system have features of their own, such as extensions, sync or online spelling checks. sci2audio doesn’t use them, but it can’t switch them off either; their settings can."
 licence_title = "Open source"
@@ -445,6 +448,25 @@ voices = "Voices"
 reading = "Reading and recent"
 settings = "Settings"
 privacy = "Privacy"
+shortcuts = "Keyboard shortcuts"  # opens the list of keys (#394)
+
+[keys]  # the keyboard shortcuts sheet (#394); key names are said by screen readers
+title = "Keyboard shortcuts"
+listen = "Listening"
+move = "Moving around"
+play = "Play or pause"
+prevnext = "Previous / next sentence"
+chap = "Previous / next chapter"
+speed = "Slower / faster"
+focus = "Focus listening"
+panel = "Show or hide the side panel"
+help = "This list"
+esc = "Close, cancel or leave focus"
+note = "? opens this list on every page. The other keys work on the Listen page, not while you type in a field, and never with ⌘, Ctrl or Alt held. Settings can switch these keys off; Esc works either way."
+space = "Space"
+shift = "Shift"
+left = "Left arrow"
+right = "Right arrow"
 
 [shelf]  # the items of "Reading and recent" (#387)
 made = "{phase}, {n}\u00A0% done"
@@ -471,6 +493,8 @@ listening = "Listening"
 announce = "Announce the sentence being read to screen readers"
 announce_hint = "Off by default, so screen readers are not flooded while you listen."
 announce_save = "Save"
+keys = "Keyboard shortcuts"
+keys_hint = "Single keys such as Space, F and P work while you listen. Switch them off if they get in the way of your screen reader or other keys; Esc and the list of shortcuts work either way."
 
 [paper]  # the header of a document's pages, Prepare and Listen (#391)
 tabs = "Prepare or listen"
