@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -62,15 +63,28 @@ def default_work_folder(source: Path) -> Path:
 def file_id(source: Path) -> str:
     """The first 16 hex digits of the file's SHA-256 (D-198), read in 1 MB blocks. Kept
     while the file's identity, time and size stay, so `sci2audio listen` and the working
-    folder read a big file once (#154). Raises OSError if the file can't be read."""
+    folder read a big file once (#154); a file changed less than `RACY_NS` ago is read
+    again on every call (#438). Raises OSError if the file can't be read."""
     stat = source.stat()
+    if time.time_ns() - stat.st_mtime_ns < RACY_NS:  # too fresh to tell apart: read it
+        return _hashed(source)
     return _file_id(str(source.absolute()), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+
+
+# A file changed less than this long ago is hashed again on every call: a rewrite in place
+# within the file system's clock tick (about 16 ms on Windows) keeps its time and size, so
+# they cannot tell the two versions apart yet (as git treats "racy" files; #403 B1, #438).
+RACY_NS = 2_000_000_000
 
 
 @lru_cache(maxsize=16)
 def _file_id(path: str, version: tuple[int, int, int]) -> str:
+    return _hashed(Path(path))
+
+
+def _hashed(path: Path) -> str:
     digest = hashlib.sha256()
-    with Path(path).open("rb") as file:
+    with path.open("rb") as file:
         for block in iter(lambda: file.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()[:16]
