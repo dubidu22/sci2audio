@@ -283,6 +283,13 @@ def test_the_keys_stay_out_of_the_way(signed_in: Page, live: Live) -> None:
     page.keyboard.press("Escape")
     expect(page.locator("#keys")).to_be_hidden()
     assert not focusing(page)
+    # the library's search (#416) takes every letter, ? included
+    page.goto(live.url + "/")
+    search = page.get_by_role("searchbox")
+    search.click()
+    page.keyboard.type("f p?-")
+    expect(search).to_have_value("f p?-")
+    expect(page.locator("#keys")).to_be_hidden()
 
 
 def test_a_text_field_takes_every_letter(signed_in: Page, live: Live) -> None:
