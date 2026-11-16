@@ -324,7 +324,7 @@ def _shelf(state: ServerState, s: Strings, here: str | None) -> dict[str, Any]:
             break
         got = heard(work, document, folders)
         part = None if got is None else got.fraction
-        if part is not None and 0 < part < 1 and got is not None and got.time is not None:
+        if got is not None and got.resume and got.time is not None and part is not None:
             keep = {
                 "id": key,
                 "title": title(key),
@@ -511,7 +511,7 @@ def _categories(
 def _report(document: StoredDocument) -> dict[str, Any] | None:
     try:
         report = json.loads(document.report_file.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):
         return None
     return report if isinstance(report, dict) else None
 

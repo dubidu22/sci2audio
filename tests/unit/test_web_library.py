@@ -6,6 +6,7 @@ a link or cannot be written never fails a page."""
 from __future__ import annotations
 
 import dataclasses
+import html
 import json
 import logging
 import os
@@ -26,7 +27,7 @@ from web_helpers import offline as offline
 from sci2audio.app import files
 from sci2audio.core import SourceFormat
 from sci2audio.testing.documents import make_document
-from sci2audio.web import library, pages
+from sci2audio.web import library, pages, player
 from sci2audio.web.documents import StoredDocument
 from sci2audio.web.jobs import JobKind, JobState
 from sci2audio.web.library import (
@@ -203,6 +204,21 @@ def test_about_of_takes_the_title_the_authors_and_a_pdfs_pages() -> None:
 # ---- how far it was heard ------------------------------------------------------------------
 
 
+def readalong_text(duration: float) -> str:
+    """A read-along file of one chapter and ten sentences, each followed by a pause: the
+    first ends at 9 % of the book, the last at 99 %."""
+    step = duration / 10
+    chunks = [
+        {"chapter": 0, "start": n * step, "end": n * step + 0.9 * step}
+        | {"block": n, "start_char": 0, "end_char": 5}
+        for n in range(10)
+    ]
+    chapter = {"title": "One", "mp3": None, "start": 0.0, "end": duration, "first_chunk": 0}
+    data = {"format": "sci2audio-readalong", "version": 1, "sample_rate": 24000}
+    data |= {"duration": duration, "m4b": "Book.m4b", "chapters": [chapter], "chunks": chunks}
+    return json.dumps(data)
+
+
 def audiobook(work: Path, folder: Path, document: str = DOC, duration: float = 100.0) -> str:
     """An audio record in `work` and its read-along file in `folder`; the file's stamp."""
     work.mkdir(parents=True, exist_ok=True)
@@ -219,7 +235,7 @@ def audiobook(work: Path, folder: Path, document: str = DOC, duration: float = 1
     }
     (work / "audio.json").write_text(json.dumps(record), encoding="utf-8")
     readalong = folder / "Book.readalong.json"
-    readalong.write_text("{}", encoding="utf-8")
+    readalong.write_text(readalong_text(duration), encoding="utf-8")
     return audiobook_stamp(readalong)
 
 
@@ -229,7 +245,7 @@ def test_heard_reads_the_position_against_the_audiobooks_stamp(tmp_path: Path) -
     assert heard(work, DOC, (out,)) == Heard(100.0, None)  # not started
     write_position(work, DOC, stamp, Position(0, 38.0))
     got = heard(work, DOC, (None, tmp_path / "elsewhere", out))
-    assert got == Heard(100.0, 38.0)
+    assert got == Heard(100.0, 38.0, resume=True)
     assert got is not None
     assert got.fraction == pytest.approx(0.38)
 
@@ -244,7 +260,7 @@ def test_heard_ignores_a_position_for_another_audiobook_or_document(tmp_path: Pa
     write_position(work, DOC, stamp, Position(0, 250.0))  # past the end
     assert heard(work, DOC, (out,)) == Heard(100.0, None)
     write_position(work, DOC, stamp, Position(0, 100.5))  # within the second the end rounds
-    assert heard(work, DOC, (out,)) == Heard(100.0, 100.5)
+    assert heard(work, DOC, (out,)) == Heard(100.0, 100.5)  # heard to the end: no resume
     assert Heard(100.0, 100.5).fraction == 1.0
 
 
@@ -257,10 +273,60 @@ def test_heard_without_an_audiobook(tmp_path: Path) -> None:
     assert heard(work, "0000000000000000", (out,)) is None  # the record is another file's
     (out / "Book.readalong.json").unlink()
     assert heard(work, DOC, (out,)) == Heard(100.0, None)  # the files went away
-    assert heard(work, DOC, (Path("relative"),)) == Heard(100.0, None)
     (work / "audio.json").write_text("{broken", encoding="utf-8")
     assert heard(work, DOC, (out,)) is None
     assert Heard(0.0, 0.0).fraction is None
+
+
+def test_heard_offers_to_continue_only_where_the_listen_page_would(tmp_path: Path) -> None:
+    """The shelf's Continue item takes Listen's condition (`read_position`): after the first
+    sentence ended and before the last one ended, in the chapter the position names."""
+    work, out = tmp_path / "work", tmp_path / "out"
+    stamp = audiobook(work, out)  # sentences end at 9, 19, ... 99 s of 100 s
+    data = player.load_readalong(out / "Book.readalong.json")
+    for time, resume in ((5.0, False), (9.0, True), (38.0, True), (98.9, True), (99.5, False)):
+        write_position(work, DOC, stamp, Position(0, time))
+        assert heard(work, DOC, (out,)) == Heard(100.0, time, resume), time
+        offered = player.read_position(work, DOC, stamp, data)
+        assert (offered is not None) is resume, time
+    write_position(work, DOC, stamp, Position(1, 38.0))  # a chapter the book does not have
+    assert heard(work, DOC, (out,)) == Heard(100.0, 38.0, resume=False)
+    assert player.read_position(work, DOC, stamp, data) is None
+
+
+def test_heard_skips_a_relative_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The folders come from records and settings: a relative one would be read against
+    wherever the server was started, so it is never tried, even where it would be found."""
+    work, out = tmp_path / "work", tmp_path / "out"
+    stamp = audiobook(work, out)
+    write_position(work, DOC, stamp, Position(0, 38.0))
+    monkeypatch.chdir(tmp_path)
+    assert (Path("out") / "Book.readalong.json").is_file()  # it is there, seen from here
+    assert heard(work, DOC, (Path("out"),)) == Heard(100.0, None)
+    assert heard(work, DOC, (out,)) == Heard(100.0, 38.0, resume=True)
+
+
+@pytest.mark.parametrize("time", ["NaN", "Infinity", "-Infinity", "1e400", "-1e400"])
+def test_a_position_that_is_not_a_time_is_never_offered(
+    server: tuple[FastAPI, Any], time: str
+) -> None:
+    """Python's json reads NaN and Infinity, and 1e400 as infinity: none is a time."""
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    work = config.work_root / doc
+    stamp = audiobook(work, config.output_folder, doc)
+    record = (
+        f'{{"format": "sci2audio-web-position", "version": 1, "document": "{doc}", '
+        f'"audiobook": "{stamp}", "chapter": 0, "time": {time}}}'
+    )
+    (work / POSITION).write_text(record, encoding="utf-8")
+    page = client.get("/")
+    assert page.status_code == 200
+    assert 'id="shelf-continue"' not in page.text
+    data = player.load_readalong(config.output_folder / "Book.readalong.json")
+    assert player.read_position(work, doc, stamp, data) is None
+    assert heard(work, doc, (config.output_folder,)) == Heard(100.0, None)
 
 
 # ---- words for times -----------------------------------------------------------------------
@@ -671,3 +737,91 @@ def test_continue_listening_skips_an_ended_or_stale_position(server: tuple[FastA
     (work / POSITION).write_text("{", encoding="utf-8")
     assert client.get("/").status_code == 200
     assert 'id="shelf-continue"' not in client.get("/").text
+
+
+def test_continue_listening_needs_something_left_to_continue(server: tuple[FastAPI, Any]) -> None:
+    """Listen offers nothing inside the first sentence or in the pause after the last one,
+    so neither does the shelf (it would open Listen at the start)."""
+    client = client_of(server)
+    _app, config = server
+    one = upload(client, pdf_bytes("One."), "one.pdf")["id"]
+    work = config.work_root / one
+    stamp = audiobook(work, config.output_folder, one, duration=600.0)  # first ends at 54 s
+    for time, shown in ((20.0, False), (54.0, True), (593.0, True), (597.0, False)):
+        write_position(work, one, stamp, Position(0, time))
+        assert ('id="shelf-continue"' in client.get("/").text) is shown, time
+        data = player.load_readalong(config.output_folder / "Book.readalong.json")
+        assert (player.read_position(work, one, stamp, data) is not None) is shown, time
+
+
+# ---- a record nested too deep, or not readable, never fails a page ------------------------
+
+DEEP = {"open": "[" * 16000, "closed": "[" * 500000 + "]" * 500000}  # json gives RecursionError
+
+
+def deep_place(config: Any, doc: str, record: str) -> Path:
+    work = config.work_root / doc
+    return {
+        "opened.json": work / OPENED,
+        "about.json": work / ABOUT,
+        "audio.json": work / "audio.json",
+        "audiobook.json": work / player.RECORD,
+        "readalong": config.output_folder / "Book.readalong.json",
+        "report.json": StoredDocument(doc, work, work / "source" / "paper.pdf").report_file,
+    }[record]
+
+
+@pytest.mark.parametrize("shape", sorted(DEEP))
+@pytest.mark.parametrize(
+    "record",
+    ["opened.json", "about.json", "audio.json", "audiobook.json", "readalong", "report.json"],
+)
+def test_a_record_nested_too_deep_fails_no_page(
+    server: tuple[FastAPI, Any], record: str, shape: str
+) -> None:
+    """The shelf reads every document's records on every page (#420 B1): one deep record
+    must read as nothing, or as broken on its own Listen page, never as a server error."""
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    work = config.work_root / doc
+    stamp = audiobook(work, config.output_folder, doc)
+    write_position(work, doc, stamp, Position(0, 38.0))
+    write_opened(work, NOW)
+    player.write_record(work, doc, config.output_folder)
+    assert (work / "source" / "paper.pdf").is_file()
+    place = deep_place(config, doc, record)
+    place.parent.mkdir(parents=True, exist_ok=True)
+    place.write_text(DEEP[shape], encoding="utf-8")
+    for path in ("/", "/settings", "/privacy", f"/documents/{doc}"):
+        assert client.get(path).status_code == 200, path
+    assert client.get(f"/api/v1/documents/{doc}/report").status_code in (200, 404)
+    listen = client.get(f"/documents/{doc}/listen")
+    assert listen.status_code == 200
+    if record == "audio.json":
+        assert "The record of this audiobook can't be read." in html.unescape(listen.text)
+
+
+def test_a_record_that_cannot_be_read_reads_as_nothing(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A record whose read is refused (its rights, or it went during the read) is no record."""
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    work = config.work_root / doc
+    write_opened(work, NOW)
+    write_about(work, About("A Title", ("A. Writer",)))
+    real = Path.read_text
+
+    def refused(path: Path, *args: Any, **kwargs: Any) -> str:
+        if path.name in (OPENED, ABOUT):
+            raise PermissionError(13, "Permission denied", str(path))
+        return real(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", refused)
+    assert read_opened(work) is None
+    assert read_about(work) is None
+    page = client.get("/")
+    assert page.status_code == 200
+    assert '<a class="title" href="/documents/' + doc + '">paper.pdf</a>' in row_of(page.text, doc)

@@ -25,9 +25,11 @@ from typing import Any
 from sci2audio.app.chapters import document_title
 from sci2audio.app.files import write_texts
 from sci2audio.core import Document
+from sci2audio.output import ReadAlongError
 from sci2audio.web.player import (
     POSITION,
     PlayerError,
+    audiobook_bounds,
     audiobook_stamp,
     in_folder,
     read_audio_record,
@@ -54,7 +56,7 @@ def _read_record(path: Path, form: str) -> dict[str, Any] | None:
         if path.is_symlink() or not path.is_file() or path.stat().st_size > RECORD_LIMIT:
             return None
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):  # 16 KiB of "[" nests too deep for json
         return None
     if (
         not isinstance(data, dict)
@@ -145,11 +147,13 @@ def read_about(work: Path) -> About | None:
 
 @dataclass(frozen=True)
 class Heard:
-    """A document's audiobook as the library shows it: its length, and how far the person
-    listened (None: never started, or the record is for another audiobook)."""
+    """A document's audiobook as the library shows it: its length, how far the person
+    listened (None: never started, or the record is for another audiobook), and whether the
+    Listen page offers to continue from there (`read_position`'s condition)."""
 
     duration: float
     time: float | None
+    resume: bool = False
 
     @property
     def fraction(self) -> float | None:
@@ -166,7 +170,7 @@ def heard(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> Hea
         record = read_audio_record(work, document_id)
     except PlayerError:
         return None
-    stamp = None
+    found = None
     for folder in folders:
         if folder is None or not folder.is_absolute():
             continue
@@ -174,15 +178,17 @@ def heard(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> Hea
         if path is None:
             continue
         try:
-            stamp = audiobook_stamp(path)
-        except OSError:
+            found = audiobook_stamp(path), audiobook_bounds(path)
+        except (OSError, ReadAlongError):
             continue
         break
-    if stamp is None:
+    if found is None:
         return Heard(record.duration, None)
+    stamp, bounds = found
     position = recorded_position(work, document_id, stamp)
-    time = None if position is None or position.time > record.duration + 1 else position.time
-    return Heard(record.duration, time)
+    if position is None or position.time > record.duration + 1:
+        return Heard(record.duration, None)
+    return Heard(record.duration, position.time, bounds.continues(position))
 
 
 def position_age(work: Path) -> float:
