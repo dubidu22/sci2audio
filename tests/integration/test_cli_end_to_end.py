@@ -171,7 +171,9 @@ def test_convert_reads_an_epub_and_keeps_its_cover(tmp_path: Path) -> None:
         "epub/images/logo.png",
     ]
     assert extract_epub_cover(book) is not None
-    converted = run(convert_args(out, work, source=book))
+    # Imprint is a publisher's page, not chosen by default since #190: choose every chapter,
+    # so its logo's notice repeats the title page's
+    converted = run(convert_args(out, work, "--chapters", "all", source=book))
     assert converted.returncode == 0, converted.stderr
     assert "Traceback" not in converted.stderr
     spoke, total, reused = spoken_and_reused(converted.stdout)
