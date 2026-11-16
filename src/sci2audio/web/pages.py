@@ -76,6 +76,7 @@ from sci2audio.web.library import (
 from sci2audio.web.models import PREVIEW_LIMIT
 from sci2audio.web.player import (
     PlayerError,
+    PlayerView,
     Position,
     candidate_folders,
     player_for,
@@ -1110,7 +1111,39 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         # the stamp goes back with each save of the position (#153, review S1)
         data=data_block({**view.data(found.id), "audiobook": stamp}),
         problem=None,
+        announce=announce_of(request),  # each sentence to screen readers, if switched on (#392)
+        changes=_listen_changes(view, s),
+        outline=_outline(view),
+        total=clock(view.duration),
     )
+
+
+def _listen_changes(view: PlayerView, s: Strings) -> list[dict[str, Any]]:
+    """The Listen panel's Changes (#393): each category the audiobook was made with, read-only
+    (D-665 conflict 3); its count only where the marks are drawn (D-704b)."""
+    return [
+        {
+            "id": change.category,
+            "label": s.table.get(f"category.{change.category}", change.category),
+            "on": change.on,
+            "count": change.count,
+        }
+        for change in view.changes
+    ]
+
+
+def _outline(view: PlayerView) -> list[dict[str, Any]]:
+    """The chapters with where each starts, on the book's timeline and as a share of it (the
+    dock's ticks, #393)."""
+    total = view.duration if view.duration > 0 else 1.0
+    return [
+        {
+            "title": chapter.title,
+            "clock": clock(chapter.start),
+            "at": f"{min(max(chapter.start / total, 0.0), 1.0) * 100:.3f}%",
+        }
+        for chapter in view.chapters
+    ]
 
 
 # --- the voice setup page --------------------------------------------------------------

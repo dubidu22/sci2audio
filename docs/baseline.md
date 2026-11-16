@@ -85,6 +85,16 @@ German round trip (#211), 2026-11-14, same kind of machine: word error rate **0.
 | Same, after review round 1 of #86 (kept text checked against the document, no-break spaces, the window for the fallback cut) | 24.8 ms mean (21.9 ms median) | 2026-11-12 | as above |
 | Cut 300,000 characters without a full stop (fallback cut only) | 0.08 s (before the window it was quadratic: 1.24 s for 100,000 characters in the #86 review, so about 11 s extrapolated) | 2026-11-12 | `test_a_long_text_without_a_full_stop_is_cut_in_linear_time`, same container |
 
+## The Listen page of a long book (#392)
+
+`uv run pytest tests/unit/test_web_listen.py -m benchmark --benchmark-only -p no:xdist`:
+`build_view` of a generated 1,000-page book (10 chapters, 3,000 paragraphs, 30,010 sentences,
+`tests/unit/long_book.py`) with the audiobook's marks, built-in steps, none switched off.
+
+| Machine | Mean time | Date | Notes |
+|---|---|---|---|
+| Linux cloud container, x86_64, 4 cores | 3.92 s (3 rounds, 3.77 to 4.08 s) | 2026-11-16 | 3.1 s of it is the text steps' run that rebuilds the edits (`run_steps`, the same run Prepare makes); drawing the marks, chapters and Changes counts take about 0.25 s |
+
 ## Script job: a paper to its listening script and report (#70)
 
 `uv run pytest tests/unit/test_app_corpus.py -m benchmark --benchmark-only`: the 28-page

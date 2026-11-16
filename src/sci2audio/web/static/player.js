@@ -1,5 +1,6 @@
-// The read-along player (#78, OU-02; D-294 to D-303). Loaded only by the listen page,
-// after app.js, whose `tr` and `say` it uses (D-302).
+// The read-along player (#78, OU-02; D-294 to D-303) and the Listen page around it: the
+// sweep, the dock and the context panel (#392, #393). Loaded only by the listen page, after
+// app.js, whose `tr` and `say` it uses (D-302).
 //
 // The page holds the text; every sentence the voice reads is an element `.s` with the
 // number of its first chunk. The data block holds, per chunk, [start, end, chapter,
@@ -27,8 +28,21 @@ function readAlong() {
   const follow = document.getElementById("follow");
   const back = document.getElementById("back-to-reading");
   const speed = document.getElementById("speed");
-  const bar = document.querySelector(".player-bar");
+  const bar = document.getElementById("dock");
+  const timeline = document.getElementById("timeline");
+  const clock = document.getElementById("clock");
+  const reading = document.getElementById("reading"); // only when announcing is on (#388)
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const total = clockOf(Number(timeline.max) || 0);
+
+  // each sentence element's stretch of the book's timeline: the sweep runs over all of it,
+  // also where empty spans share the element (one pass, for books of 1,000+ pages, #392)
+  const stretch = new Map();
+  for (const [start, end, , id] of chunks) {
+    const known = stretch.get(id);
+    if (known) known[1] = Math.max(known[1], end);
+    else stretch.set(id, [start, end]);
+  }
 
   let loaded = -1; // the chapter whose file the audio element holds
   let current = -1; // the chunk highlighted
@@ -39,13 +53,18 @@ function readAlong() {
   let touched = false; // the person played or moved: from then on the position is kept
   let savedAt = 0; // when the position was last sent (performance.now())
 
-  // the bar is pinned to the top only while it takes at most a quarter of the window, and
-  // then nothing focused or scrolled to may hide under it (WCAG 1.4.10, 2.4.11). Pinning
-  // does not change the bar's height, so the observer below does not loop.
+  // the dock is pinned to the window's foot only while it takes at most a quarter of the
+  // window, and then nothing focused or scrolled to may hide under it (WCAG 1.4.10, 2.4.11):
+  // the page gets room below and scroll padding. Pinning does not change the dock's height,
+  // so the observer below does not loop.
   function pad() {
-    const fits = bar.offsetHeight <= window.innerHeight / 4;
+    const root = document.documentElement;
+    const height = bar.offsetHeight;
+    const fits = height <= window.innerHeight / 4;
     bar.classList.toggle("pinned", fits);
-    document.documentElement.style.scrollPaddingTop = fits ? `${bar.offsetHeight + 8}px` : "";
+    root.classList.toggle("dock-pinned", fits);
+    root.style.setProperty("--dock-h", fits ? `${height}px` : "0px");
+    root.style.scrollPaddingBottom = fits ? `${height + 8}px` : "";
   }
   pad();
   if (window.ResizeObserver) new ResizeObserver(pad).observe(bar);
@@ -90,43 +109,93 @@ function readAlong() {
     title.lang = text.lang;
     title.textContent = chapters[c].title;
     now.replaceChildren(tr("player.chapter", { n: c + 1, total: chapters.length }), " ", title);
+    for (const button of chapterButtons) {
+      if (Number(button.dataset.chapter) === c) button.setAttribute("aria-current", "true");
+      else button.removeAttribute("aria-current");
+    }
   }
 
-  function barBottom() {
-    return getComputedStyle(bar).position === "sticky" ? bar.getBoundingClientRect().bottom : 0;
+  // where the window's free height ends: at the pinned dock's top, else at its foot
+  function dockTop() {
+    return bar.classList.contains("pinned") ? bar.getBoundingClientRect().top : window.innerHeight;
   }
 
   function visible(element) {
     const box = element.getBoundingClientRect();
-    return box.top >= barBottom() && box.bottom <= window.innerHeight;
+    return box.top >= 0 && box.bottom <= dockTop();
   }
 
   function reveal(element) {
     if (!element || !follow.checked || !following || visible(element)) return;
     const behavior = reduced.matches ? "auto" : "smooth";
     const box = element.getBoundingClientRect();
-    const top = barBottom();
-    if (box.height > window.innerHeight - top) {
-      // taller than the window under the bar (a long code listing, #280): its start, where
-      // the spoken notice stands, goes just under the bar instead of out of sight above it
-      window.scrollBy({ top: box.top - top - 8, behavior });
+    if (box.height > dockTop()) {
+      // taller than the window above the dock (a long code listing, #280): its start, where
+      // the spoken notice stands, goes to the window's top instead of out of sight above it
+      window.scrollBy({ top: box.top - 8, behavior });
       return;
     }
     element.scrollIntoView({ block: "center", behavior });
   }
 
-  // the highlight never speaks: no live region follows the reading (D-300)
+  // ---- the sweep (#392, DESIGN.md "Reading sweep") ---------------------------------------
+  // The reading yellow grows over the sentence for as long as the voice reads it: an
+  // animation of its background-size (the Web Animations API; the page allows no style
+  // attribute), held at the audio's time and rate. Under reduced motion nothing moves: the
+  // whole sentence is highlighted at once (the stylesheet's `.now`).
+  let sweep = null;
+
+  function sweepStop() {
+    if (sweep) sweep.cancel();
+    sweep = null;
+  }
+
+  function sweepSync() {
+    if (!marked || reduced.matches || !marked.animate) {
+      sweepStop();
+      return;
+    }
+    const [start, end] = stretch.get(marked.id) || [0, 0];
+    const length = Math.max(end - start, 0.001) * 1000;
+    if (!sweep) {
+      sweep = marked.animate(
+        [{ backgroundSize: "0% 100%" }, { backgroundSize: "100% 100%" }],
+        { duration: length, easing: "linear", fill: "forwards" },
+      );
+    }
+    sweep.currentTime = Math.min(Math.max((bookTime() - start) * 1000, 0), length);
+    sweep.playbackRate = audio.playbackRate || 1;
+    if (audio.paused || pending || loaded < 0) sweep.pause();
+    else sweep.play();
+  }
+  reduced.addEventListener?.("change", sweepSync);
+
+  // the sentence being read is told to screen readers only if the person switched that on
+  // in Settings (#388); otherwise the highlight never speaks (D-300)
+  function announce(element) {
+    if (reading && element && !audio.paused) reading.textContent = element.textContent.trim();
+  }
+
   function highlight(index) {
     if (index === current) return;
+    const element = index < 0 ? null : document.getElementById(chunks[index][3]);
+    current = index;
+    if (element === marked) return; // empty spans share their sentence's element
     if (marked) {
+      // a sentence the voice read through keeps the pale tint (#392)
+      if (element && !audio.paused && index > 0 && chunks[index - 1][3] === marked.id) {
+        marked.classList.add("done");
+      }
       marked.classList.remove("now");
       marked.removeAttribute("aria-current");
     }
-    current = index;
-    marked = index < 0 ? null : document.getElementById(chunks[index][3]);
+    sweepStop();
+    marked = element;
     if (marked) {
       marked.classList.add("now");
       marked.setAttribute("aria-current", "true");
+      sweepSync();
+      announce(marked);
       reveal(marked);
     }
   }
@@ -135,6 +204,33 @@ function readAlong() {
     // while a file loads, its time is still 0: the jump's own highlight stands
     if (loaded < 0 || pending) return;
     highlight(chunkAt(bookTime()));
+    showTime(bookTime());
+  }
+
+  // ---- the dock's clock and timeline (#393) ----------------------------------------------
+
+  function clockOf(seconds) {
+    const whole = Math.max(0, Math.floor(seconds));
+    const hours = Math.floor(whole / 3600);
+    const minutes = Math.floor((whole % 3600) / 60);
+    const secs = String(whole % 60).padStart(2, "0");
+    return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${secs}` : `${minutes}:${secs}`;
+  }
+
+  let shownSecond = -1;
+  let dragging = false; // the person holds the timeline: it shows their time, not the voice's
+
+  function showTime(time, force = false) {
+    if (dragging && !force) return;
+    const second = Math.floor(time);
+    const share = Number(timeline.max) > 0 ? (time / Number(timeline.max)) * 100 : 0;
+    timeline.style.setProperty("--fill", `${Math.min(Math.max(share, 0), 100)}%`);
+    if (second === shownSecond && !force) return;
+    shownSecond = second;
+    const said = tr("player.time_of", { time: clockOf(time), total });
+    clock.textContent = said;
+    timeline.value = String(time);
+    timeline.setAttribute("aria-valuetext", said);
   }
 
   function tick() {
@@ -224,6 +320,8 @@ function readAlong() {
 
   // ---- controls --------------------------------------------------------------------------
 
+  const chapterButtons = [...document.querySelectorAll(".chapter-button")];
+
   play.addEventListener("click", () => {
     touched = true;
     if (loaded < 0) seek(0, chapters[0].start, true);
@@ -238,15 +336,43 @@ function readAlong() {
     const target = !audio.paused && into > RESTART_AFTER ? current : current - 1;
     playFrom(Math.max(target, 0), !audio.paused);
   });
-  document.getElementById("next-chapter").addEventListener("click", () => {
-    toChapter(chapterOfCurrent() + 1, !audio.paused);
-  });
-  document.getElementById("previous-chapter").addEventListener("click", () => {
-    toChapter(chapterOfCurrent() - 1, !audio.paused);
-  });
-  for (const button of document.querySelectorAll(".chapter-button")) {
+  for (const button of chapterButtons) {
     button.addEventListener("click", () => toChapter(Number(button.dataset.chapter), true));
   }
+
+  // the timeline: a move by pointer or keys goes to that time, in its chapter (#393)
+  timeline.addEventListener("input", () => {
+    dragging = true;
+    const time = Number(timeline.value);
+    clock.textContent = tr("player.time_of", { time: clockOf(time), total });
+    timeline.style.setProperty("--fill", `${(time / Number(timeline.max)) * 100}%`);
+  });
+  function moveTo(to) {
+    dragging = false;
+    const time = Math.min(Math.max(to, 0), Number(timeline.max));
+    timeline.value = String(time);
+    const c = chapterAt(time);
+    following = true;
+    back.hidden = true;
+    highlight(chunkAt(time));
+    seek(c, time, !audio.paused);
+    reveal(marked);
+    keep(c, time);
+    showTime(time, true);
+  }
+  timeline.addEventListener("change", () => moveTo(Number(timeline.value)));
+  // the keys move 5 s (30 s by page), and Home and End reach both ends: the slider takes
+  // any time, so the voice's own time and the book's end are never rounded to a step
+  timeline.addEventListener("keydown", (event) => {
+    const by = { ArrowRight: 5, ArrowUp: 5, ArrowLeft: -5, ArrowDown: -5, PageUp: 30, PageDown: -30 };
+    let to = null;
+    if (event.key in by) to = Number(timeline.value) + by[event.key];
+    else if (event.key === "Home") to = 0;
+    else if (event.key === "End") to = Number(timeline.max);
+    if (to === null || event.altKey || event.ctrlKey || event.metaKey) return;
+    event.preventDefault();
+    moveTo(to);
+  });
 
   // a click (or a screen reader's Enter) on a sentence plays from it (D-298)
   text.addEventListener("click", (event) => {
@@ -267,6 +393,7 @@ function readAlong() {
     if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
     audio.defaultPlaybackRate = value;
     audio.playbackRate = value;
+    if (sweep) sweep.playbackRate = value;
   }
   speed.addEventListener("change", applySpeed);
   audio.addEventListener("loadedmetadata", applySpeed);
@@ -300,16 +427,31 @@ function readAlong() {
 
   // ---- the audio element -----------------------------------------------------------------
 
+  // the play button says what it does next: its name and its icon (DESIGN.md "Player dock")
+  function showPlaying(playing) {
+    const name = playing ? tr("player.pause") : tr("player.play");
+    play.setAttribute("aria-label", name);
+    play.title = name;
+    play.querySelector("use")?.setAttribute("href", playing ? "#i-pause" : "#i-play");
+  }
+
   audio.addEventListener("play", () => {
-    play.textContent = tr("player.pause");
+    showPlaying(true);
     if (!frame) frame = requestAnimationFrame(tick);
   });
+  audio.addEventListener("playing", sweepSync);
+  audio.addEventListener("waiting", sweepSync);
+  audio.addEventListener("ratechange", sweepSync);
   audio.addEventListener("pause", () => {
-    play.textContent = tr("player.play");
+    showPlaying(false);
     update();
+    sweepSync();
     keepIfTouched();
   });
-  audio.addEventListener("seeked", update);
+  audio.addEventListener("seeked", () => {
+    update();
+    sweepSync();
+  });
   audio.addEventListener("timeupdate", () => {
     if (audio.paused) update();
   });
@@ -338,6 +480,18 @@ function readAlong() {
     });
   }
   seek(0, chapters[0].start, false);
+  contextPanel();
+
+  // drawn disabled: a press before this script ran would be lost (#350, #427)
+  for (const control of [
+    play,
+    timeline,
+    document.getElementById("previous-sentence"),
+    document.getElementById("next-sentence"),
+    ...chapterButtons,
+  ]) {
+    control.disabled = false;
+  }
 
   // the offer to continue: it moves there and never plays by itself (D-300)
   const resume = document.getElementById("resume");
@@ -375,6 +529,92 @@ function readAlong() {
       document.getElementById("resume-continue").click();
     }
   }
+}
+
+// ---- the context panel (#393): Changes and Chapters ----------------------------------------
+// Beside the desk from 1280 px, where its button hides and shows it; below, it opens over
+// the page, takes the focus, and Esc or its button closes it and gives the focus back. The
+// focus never reaches what it covers: when the focus leaves it, it closes (#444 review S2).
+function contextPanel() {
+  const listen = document.getElementById("listen");
+  const panel = document.getElementById("context");
+  const toggle = document.getElementById("panel-toggle");
+  const close = document.getElementById("panel-close");
+  if (!listen || !panel || !toggle || !close) return;
+  const wide = window.matchMedia("(min-width: 1280px)");
+  const tabs = [...panel.querySelectorAll('[role="tab"]')];
+  let wideOpen = true;
+  let narrowOpen = false;
+
+  function show() {
+    listen.classList.toggle("no-panel", !wideOpen);
+    listen.classList.toggle("panel-open", narrowOpen);
+    const open = wide.matches ? wideOpen : narrowOpen;
+    toggle.setAttribute("aria-expanded", String(open));
+    const name = open ? toggle.dataset.hide : toggle.dataset.show;
+    toggle.setAttribute("aria-label", name);
+    toggle.title = name;
+  }
+
+  function selected() {
+    return tabs.find((tab) => tab.getAttribute("aria-selected") === "true") || tabs[0];
+  }
+
+  function set(open) {
+    if (wide.matches) wideOpen = open;
+    else narrowOpen = open;
+    show();
+    if (open && !wide.matches) selected().focus();
+    if (!open) toggle.focus();
+  }
+
+  toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") !== "true"));
+  close.addEventListener("click", () => set(false));
+  // over the page the panel covers its own button, so the focus leaves it only by the keys
+  // or to elsewhere: it closes, and the focus stays where it went
+  panel.addEventListener("focusout", (event) => {
+    if (wide.matches || !narrowOpen || panel.contains(event.relatedTarget)) return;
+    narrowOpen = false;
+    show();
+  });
+  panel.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !wide.matches && narrowOpen) {
+      event.preventDefault();
+      set(false);
+    }
+  });
+  wide.addEventListener?.("change", () => {
+    narrowOpen = false;
+    show();
+  });
+
+  // the tabs: one tab stop; the arrow keys, Home and End move between them (APG tabs)
+  function choose(tab, focus) {
+    for (const other of tabs) {
+      const on = other === tab;
+      other.setAttribute("aria-selected", String(on));
+      other.tabIndex = on ? 0 : -1;
+      document.getElementById(other.getAttribute("aria-controls")).hidden = !on;
+    }
+    if (focus) tab.focus();
+  }
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => choose(tab, false));
+    tab.addEventListener("keydown", (event) => {
+      const at = tabs.indexOf(tab);
+      const to = {
+        ArrowRight: (at + 1) % tabs.length,
+        ArrowLeft: (at - 1 + tabs.length) % tabs.length,
+        Home: 0,
+        End: tabs.length - 1,
+      }[event.key];
+      if (to === undefined) return;
+      event.preventDefault();
+      choose(tabs[to], true);
+    });
+  }
+  show();
+  for (const control of [toggle, close, ...tabs]) control.disabled = false;
 }
 
 document.addEventListener("DOMContentLoaded", readAlong);

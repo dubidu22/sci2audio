@@ -406,6 +406,7 @@ def test_a_damaged_file_shows_the_apps_message(signed_in: Page, live: Live) -> N
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#analysis-error")).to_contain_text("The analysis failed:")
     expect(page.get_by_role("button", name="Analyse the document")).to_be_visible()
+    settled(page)  # #365
     check_axe(page, "document whose analysis failed")
 
 

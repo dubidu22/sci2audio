@@ -277,16 +277,12 @@ download = "Download the voice ({size})"
 
 [listen]
 title = "Listen: {name}"
-intro = "The text as printed, with the sentence being read highlighted. Click a sentence to play from there."
 ai_notice = "This audiobook is read by a synthetic voice ({voice}), made with sci2audio."
 link = "Listen with the text"
 player = "Player"
 previous_sentence = "Previous sentence"
 next_sentence = "Next sentence"
-previous_chapter = "Previous chapter"
-next_chapter = "Next chapter"
 back_to_reading = "Back to the reading"
-audio = "Audio of the chapter"
 follow = "Scroll with the reading"
 speed = "Speed"  # the player's playback speed (#152)
 speed_value = "{value}×"
@@ -300,13 +296,30 @@ page = "Page {page}"
 not_read = "Not read:"
 found = "Text found in the file"
 back = "Back to the document to make the audiobook"
-back_document = "Back to the document"
 no_audiobook = "There is no audiobook of this document yet."
 missing = "The audiobook files are no longer in {folder}. Make the audiobook again."
 changed = "The files in {folder} now belong to another audiobook. Make the audiobook again."
 mismatch = "The read-along file does not fit this document. Make the audiobook again."
 broken = "The record of this audiobook can't be read. Make the audiobook again."
 other_version = "This audiobook was made from another version of the file. Make the audiobook again."
+notice = "Spoken notice:"  # a table, figure, formula or code block the voice skips with a notice
+said_as = "Read as “{said}”"  # text the voice read differently, as a tooltip (#392)
+said_as_hidden = "(read as “{said}”)"  # the same, for screen readers
+cut_hidden = "(not read)"  # a cut, for screen readers: <s> is not announced (#444 review N2)
+unmarked = "Made with sci2audio {version}: the changes are not marked on the text here, because this version of sci2audio may make them differently."  # D-704b
+unmarked_link = "Make the audiobook again to see them."
+timeline = "Position in the audiobook"
+ai_label = "AI voice"
+panel = "Side panel"
+panel_show = "Show the side panel"
+panel_hide = "Hide the side panel"
+changes = "Changes"
+changes_hint = "The changes this audiobook was made with. A change you switch in Prepare takes effect when you make the audiobook again."
+changes_link = "Open Prepare"
+change_on = "On"
+change_off = "Off"
+change_count.one = "1 change"
+change_count.other = "{n} changes"
 
 [player]  # the player's script (#78)
 play = "Play"
@@ -314,6 +327,7 @@ pause = "Pause"
 chapter = "Chapter {n} of {total}:"  # the title follows, in the text's language
 cannot_play = "This browser can't play the audiobook's M4B file. Save it from the document's job page and play it in another program."
 load_failed = "The audio could not be loaded. Is sci2audio still running?"
+time_of = "{time} of {total}"  # the dock's clock and the timeline (#393)
 
 [js]
 moved = "{title} is now chapter {n} of {total}."  # the chapter list (#119)

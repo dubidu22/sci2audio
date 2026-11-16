@@ -127,7 +127,7 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     expect(page.locator(".chapter-button").first).to_have_attribute("lang", language)
     expect(page.locator("#now span")).to_have_attribute("lang", language)
     check_axe(page, "de: listen page")
-    page.get_by_role("button", name="Nächstes Kapitel").click()
+    page.locator(".chapter-button").nth(1).click()
     expect(page.locator("#now")).to_have_text(re.compile(r"^Kapitel 2 von 2: \S"))
     expect(page.locator("#now span")).to_have_attribute("lang", language)
     expect(page.locator("#message")).to_have_text(re.compile(r"^Kapitel 2 von 2: \S"))
