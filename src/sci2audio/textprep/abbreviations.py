@@ -345,8 +345,11 @@ def _after_sentence(text: str, start: int) -> bool:
 # what goes on with a law citation after "a. F." (#264 review round 1): a word in capitals
 # ("BDSG", "GG"), "§", or a label word and its number ("Satz 2"); a listed label
 # abbreviation ("Abs.", "Nr.", "S.") is checked against the list
+# a law's name goes on with the citation: capitals ("BDSG"), or capitals and lower case ending
+# in a capital ("StGB", "UrhG", "BVerfG"), "§", or a part of a law and its number
 _CITATION_GOES_ON = re.compile(
-    rf"\s+(?:[{_UPPER}]{{2,}}(?![{_LOWER}])|§|(?:Satz|Absatz|Artikel|Nummer|Paragraph)\s+\d)"
+    rf"\s+(?:[{_UPPER}]{{2,}}(?![{_LOWER}])|[{_UPPER}](?:[{_LOWER}]*[{_UPPER}])+"
+    rf"(?![{_LOWER}{_UPPER}])|§|(?:Satz|Absatz|Artikel|Nummer|Paragraph)\s+\d)"
 )
 _NEXT_FORM = re.compile(r"\s+(\S+?\.)")
 

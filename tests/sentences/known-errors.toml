@@ -8,26 +8,21 @@
 # Classes: layout-split, layout-join, abbreviation, ordinal, initial, label, citation, quote,
 # lowercase-start, heading-number, other.
 #
+# An entry whose `why` starts "kept on purpose" is a limit the rules keep (#477): the rule that
+# would fix it breaks a more common shape.
+#
 # Floors: precision and recall of the natural sets (corpus papers and own samples, not the
 # stress sets) by language, rounded down to three places. A PR that raises them raises these.
 
 [floors.en]
-precision = 0.996
-recall = 0.990
+precision = 1.000
+recall = 0.993
 
 [floors.de]
-precision = 0.987
+precision = 1.000
 recall = 0.991
 
 # --- natural sets ---
-
-[[error]]
-file = "acl2023-chi-plue"
-kind = "FN"
-at = "Zimmeck et al. (2019). | MAPS consists of the"
-class = "citation"
-issue = 465
-why = "the narrative citation's year is removed with its full stop, so the run ends in 'et al.'"
 
 [[error]]
 file = "sci2audio-sample-plain"
@@ -39,43 +34,11 @@ why = "a title line and its subtitle line are one plain-text paragraph"
 
 [[error]]
 file = "sci2audio-sample-plain"
-kind = "FP"
-at = "files often are. 1. | Introduction People listen to"
-class = "heading-number"
-issue = 465
-why = "'1. Introduction' is cut after '1.'"
-
-[[error]]
-file = "sci2audio-sample-plain"
 kind = "FN"
 at = "for microseconds. first point | second point Roses are"
 class = "layout-join"
 issue = 466
 why = "'- ' list items are lines of one plain-text paragraph"
-
-[[error]]
-file = "arxiv2017-maass-privacyscore"
-kind = "FP"
-at = "S. v. 185 ff. | StGB werden und die"
-class = "abbreviation"
-issue = 465
-why = "the abbreviations step reads 'ff' as 'folgende' and keeps the full stop as printed, which then ends the sentence"
-
-[[error]]
-file = "arxiv2017-maass-privacyscore"
-kind = "FP"
-at = "6 Abs. 1 UAbs. | 1 lit. f DSGVO."
-class = "abbreviation"
-issue = 465
-why = "'UAbs.' is no abbreviation of the German list"
-
-[[error]]
-file = "arxiv2017-maass-privacyscore"
-kind = "FP"
-at = "Mitgliedern von Digitalcourage e. | V. für ihre Ideen."
-class = "abbreviation"
-issue = 465
-why = "'e. V.' is no abbreviation of the German list"
 
 [[error]]
 file = "sci2audio-beispiel-text"
@@ -100,125 +63,53 @@ file = "stress-en"
 kind = "FP"
 at = "came from the U.S. | Census Bureau. Prof. Jones"
 class = "abbreviation"
-issue = 465
-why = "'U.S.' is no abbreviation of the English list"
+issue = 477
+why = "kept on purpose: 'U.S.' is no abbreviation of the English list, so its full stop ends the sentence; it ends a sentence as often as it stands before a name"
 
 [[error]]
 file = "stress-en"
 kind = "FN"
 at = "set is called A. | Then set B follows."
 class = "initial"
-issue = 465
-why = "a single capital before a full stop is read as an initial (documented limit)"
-
-[[error]]
-file = "stress-en"
-kind = "FN"
-at = "Smith et al. (2019). | We extend it to"
-class = "citation"
-issue = 465
-why = "the narrative citation's year is removed with its full stop, so the run ends in 'et al.'"
-
-[[error]]
-file = "stress-en"
-kind = "FN"
-at = "We write A B. | Then B is the"
-class = "initial"
-issue = 141
-why = "a capital after a maths symbol is read as an initial"
+issue = 477
+why = "kept on purpose: a single capital before a full stop is read as an initial (documented limit; after a maths symbol or a label word it is cut)"
 
 [[error]]
 file = "stress-en"
 kind = "FN"
 at = "We plot with seaborn. | seaborn is a plotting"
 class = "lowercase-start"
-issue = 465
-why = "a sentence must start with a capital, a digit or an opening quote or bracket"
+issue = 477
+why = "kept on purpose: a sentence must start with a capital, a digit or an opening quote or bracket"
 
 [[error]]
 file = "stress-en"
 kind = "FN"
 at = "pandas reads the table. | iOS apps were not"
 class = "lowercase-start"
-issue = 465
-why = "a sentence must start with a capital, a digit or an opening quote or bracket"
-
-[[error]]
-file = "stress-en"
-kind = "FN"
-at = "conclude. See Appendix C. | It gives the proofs."
-class = "initial"
-issue = 465
-why = "a single capital after a label word is read as an initial"
+issue = 477
+why = "kept on purpose: a sentence must start with a capital, a digit or an opening quote or bracket"
 
 [[error]]
 file = "stress-de"
 kind = "FN"
 at = "sofort. Es waren 3. | Studien zeigen das seit"
 class = "ordinal"
-issue = 465
-why = "a number before a capital noun is read as an ordinal (documented limit, #227)"
-
-[[error]]
-file = "stress-de"
-kind = "FP"
-at = "bis heute. Digitalcourage e. | V. hat dabei geholfen."
-class = "abbreviation"
-issue = 465
-why = "'e. V.' is no abbreviation of the German list"
-
-[[error]]
-file = "stress-de"
-kind = "FP"
-at = "ging an die Fa. | Schmidt in Köln. Gemäß"
-class = "abbreviation"
-issue = 465
-why = "'Fa.' is no abbreviation of the German list"
-
-[[error]]
-file = "stress-de"
-kind = "FP"
-at = "6 Abs. 1 UAbs. | 1 lit. f DSGVO."
-class = "abbreviation"
-issue = 465
-why = "'UAbs.' is no abbreviation of the German list"
-
-[[error]]
-file = "stress-de"
-kind = "FP"
-at = "DSGVO. Siehe 185 ff. | StGB dazu. Die Akte"
-class = "abbreviation"
-issue = 465
-why = "the abbreviations step reads 'ff' as 'folgende' and keeps the full stop as printed, which then ends the sentence"
-
-[[error]]
-file = "stress-de"
-kind = "FP"
-at = "Akte trägt das Az. | 13 W 17/12. Sie"
-class = "abbreviation"
-issue = 406
-why = "'Az.' before a file number ends the sentence"
-
-[[error]]
-file = "stress-de"
-kind = "FN"
-at = "Es gilt Satz 2. | Satz 3 gilt hier"
-class = "label"
-issue = 465
-why = "'Satz' is no label word, so '2.' is read as an ordinal"
+issue = 477
+why = "kept on purpose: a number before a capital noun is read as an ordinal (documented limit, #227)"
 
 [[error]]
 file = "stress-de"
 kind = "FP"
 at = "Weg entsteht im Gehen.“ | (Lorenz 1974/2004, S. 273)"
 class = "citation"
-issue = 465
-why = "a source in brackets after a quoted sentence is cut off it (shape of #455)"
+issue = 455
+why = "a full stop inside the closing quote, then an opening bracket, ends the sentence, so the source is cut off its quotation (shape of #455)"
 
 [[error]]
 file = "stress-de"
 kind = "FN"
 at = "(Lorenz 1974/2004, S. 273) | Danach beginnt der eigentliche"
 class = "citation"
-issue = 465
-why = "after the source's closing bracket no sentence is cut (shape of #455)"
+issue = 455
+why = "the source's closing bracket has no full stop after it, so nothing ends the sentence before 'Danach' (shape of #455)"

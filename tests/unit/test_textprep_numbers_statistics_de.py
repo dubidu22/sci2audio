@@ -667,6 +667,10 @@ def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(
         ("Die Note war 2. Punkt 3. Platz.", "Die Note war 2. Punkt dritter Platz."),
         ("Kapitel 1 Punkt 2 Punkt 3. Tag.", "Kapitel 1 Punkt 2 Punkt 3. Tag."),
         ("Am 3. Tag kam er.", "Am dritten Tag kam er."),
+        # D-719: a label's number, then the same label again, ends the sentence; also when
+        # the label is an abbreviation read first ("Kap." as "Kapitel", #478 review N2)
+        ("Es gilt Satz 2. Satz 3 hier.", "Es gilt Satz 2. Satz 3 hier."),
+        ("Siehe Kap. 2. Kap. 3 folgt.", "Siehe Kapitel 2. Kapitel 3 folgt."),
     ],
 )
 def test_german_ranges_and_dotted_numbers_read_the_same_on_a_second_run(

@@ -886,6 +886,10 @@ def _ordinals(text: str) -> list[Candidate]:
         if opens_sentence(text, match.end(), "de"):
             continue  # "Die 12. Dann mehr": a number ends the sentence (#227, D-530)
         month = noun in _MONTH_FORMS and (noun in MONTHS or following["dot"])
+        if previous is not None and previous["word"] == noun:
+            # "Es gilt Satz 2. Satz 3", "Kap. 2. Kap. 3": a label's number, then the same
+            # label again, ends the sentence (D-719); "Im Punkt 2. Teil" keeps its ordinal
+            continue
         ending = _ending(text, match.start(), day=month)
         if (
             ending is None
