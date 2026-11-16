@@ -2248,3 +2248,12 @@ goal = "A unit with a page-break marker glued to it reads as on a second run, wi
 language = "de"
 blocks = [{ kind = "paragraph", runs = ["Die Probe lag bei 37 °C", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " über Nacht."] }]
 expected = ["Die Probe lag bei 37 Grad Celsius über Nacht."]
+
+[[case]]
+id = "de-hidden-page-break-against-a-statistic"
+audit = 0
+issue = 193
+goal = "A confidence interval with a page-break marker glued to its label reads as on a second run, without the marker (D-577)."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Es hielt, 95 %-KI", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " [1,2; 3,4]."] }]
+expected = ["Es hielt, 95 Prozent Konfidenzintervall 1 Komma 2 bis 3 Komma 4."]

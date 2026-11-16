@@ -2327,3 +2327,11 @@ issue = 93
 goal = "A unit after an affiliation mark reads as on a second run, without the mark."
 blocks = [{ kind = "paragraph", runs = ["Jane Müller", { sup = "1,2" }, " m², x"] }]
 expected = ["Jane Müller m squared, x"]
+
+[[case]]
+id = "hidden-page-break-against-a-statistic"
+audit = 0
+issue = 193
+goal = "A confidence interval with a page-break marker glued to its label reads as on a second run, without the marker (D-577)."
+blocks = [{ kind = "paragraph", runs = ["It held, 95% CI", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " [1.2, 3.4]."] }]
+expected = ["It held, 95% confidence interval 1.2 to 3.4."]
