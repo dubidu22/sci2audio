@@ -2335,3 +2335,21 @@ blocks = [
     { kind = "formula", text = "c = d (16a)", label = "16a" },
 ]
 expected = ["Formel 3 Punkt 2 wird übersprungen.", "Formel 16a wird übersprungen."]
+
+[[case]]
+id = "de-reference-list-placeholders"
+audit = 0
+issue = 410
+goal = "Eine Tabelle, Abbildung, Formel oder ein Code-Block im Literaturverzeichnis wird bei eingeschaltetem Literaturverzeichnis-Schritt in beiden Läufen nicht gelesen (D-707)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Methode wirkt." },
+    { kind = "heading", text = "Literatur" },
+    { kind = "table", text = "a b" },
+    { kind = "figure", text = "x y" },
+    { kind = "formula", text = "E = mc2 (4)", label = "4" },
+    { kind = "code", text = "print(1)" },
+    { kind = "paragraph", text = "[1] A. Müller, 2019." },
+]
+sections = [{ title = "Literatur", level = 1, start = 1, end = 7 }]
+expected = ["Die Methode wirkt."]

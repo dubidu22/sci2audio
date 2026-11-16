@@ -5,10 +5,13 @@ import subprocess
 import sys
 from contextlib import suppress
 from itertools import count
+from pathlib import Path
 
 import pytest
 
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Section, Span
+from sci2audio.extraction import extract_pdf
+from sci2audio.layout import build_document
 from sci2audio.testing import (
     SAMPLE_DOCUMENTS,
     ConformanceError,
@@ -18,7 +21,15 @@ from sci2audio.testing import (
     no_network,
     text_step_problems,
 )
-from sci2audio.textprep import BUILT_IN_STEPS, Category, Stage, StepContext, TextStep
+from sci2audio.textprep import (
+    BUILT_IN_STEPS,
+    Category,
+    LineEndHyphenStep,
+    Stage,
+    StepContext,
+    TextStep,
+    UnicodeStep,
+)
 
 
 @pytest.mark.parametrize("step", BUILT_IN_STEPS, ids=lambda step: step.id)
@@ -96,9 +107,9 @@ def test_the_suite_catches_each_kind_of_bad_step(how: str, problem: str) -> None
 
 
 class InsidePlaceholder(TextStep):
-    """An inline step that edits inside a placeholder block, which only a whole-block edit
-    may do: a second run rebuilds placeholders as printed (D-707), so the suite would never
-    see such an edit on its own output."""
+    """An inline step that removes one more character inside each placeholder every time it
+    reads it: a second run rebuilds placeholders as printed (D-707), so only the check on
+    its own output inside the placeholder sees it (D-710)."""
 
     id = "inside-placeholder"
     languages = ("en",)
@@ -113,18 +124,123 @@ class InsidePlaceholder(TextStep):
         ]
 
 
-def test_an_edit_inside_a_placeholder_must_cover_the_whole_block() -> None:
+def test_an_edit_inside_a_placeholder_must_be_idempotent_on_its_own_output() -> None:
     problems = text_step_problems(InsidePlaceholder())
-    assert any("inside a placeholder" in problem for problem in problems), problems
+    assert any("inside a placeholder is not idempotent" in p for p in problems), problems
+
+
+def test_built_in_steps_may_clean_the_printed_text_inside_a_placeholder() -> None:
+    """Unicode clean-up and line-end hyphens edit inside a formula, table, code block or
+    figure: the text read when a notice is switched off. Those edits change nothing more on
+    their own output, so every built-in step keeps the contract on such placeholders
+    (review B1 of PR #450, D-710)."""
+    samples = [d for d in SAMPLE_DOCUMENTS if d.content.source.name.startswith(("plac", "plat"))]
+    assert len(samples) == 2
+    inside = set()
+    for document in samples:
+        for step in BUILT_IN_STEPS:
+            if step.handles(document.language):
+                check_text_step(step, [document])
+                for edit in step.find(document, StepContext(document.language)):
+                    block = document.blocks[edit.span.block]
+                    if block.is_placeholder and edit.span.end - edit.span.start < len(block.text):
+                        inside.add((step.id, block.kind))
+    assert {step for step, _ in inside} >= {"unicode-clean-up", "line-end-hyphens"}
+    assert {kind for _, kind in inside} == {
+        BlockKind.FORMULA,
+        BlockKind.TABLE,
+        BlockKind.CODE,
+        BlockKind.FIGURE,
+    }
+
+
+class WholePlaceholder(TextStep):
+    """A block step that reads each placeholder as "Skipped: " and its text, as a notice
+    does: an edit of the whole block is made from the printed block, so it is not checked
+    on its own output (D-710)."""
+
+    id = "whole-placeholder"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.BLOCK
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [
+            Edit(Span(i, 0, len(b.text)), EditKind.REPLACE, "r", self.id, f"Skipped: {b.text}")
+            for i, b in enumerate(document.blocks)
+            if b.is_placeholder and b.text
+        ]
+
+
+def test_a_whole_block_edit_of_a_placeholder_keeps_the_contract() -> None:
+    check_text_step(WholePlaceholder())
+
+
+class FailsOnItsOwnOutput(TextStep):
+    """An inline step that removes a leading "#" inside a placeholder and fails on a
+    placeholder without one, which only its own output inside the placeholder shows."""
+
+    id = "fails-on-own-output"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.INLINE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        edits = []
+        for index, block in enumerate(document.blocks):
+            if block.is_placeholder and block.text:
+                if not block.text.startswith("#"):
+                    raise ValueError("no mark")
+                edits.append(Edit(Span(index, 0, 1), EditKind.REMOVE, "r", self.id))
+        return edits
+
+
+def test_a_step_failing_on_its_own_output_inside_a_placeholder_is_reported() -> None:
+    document = make_document([(BlockKind.FORMULA, "#x=y"), (BlockKind.PARAGRAPH, "Text.")])
+    problems = text_step_problems(FailsOnItsOwnOutput(), [document])
+    assert any(
+        "inside a placeholder, on its own output: find raised ValueError" in p for p in problems
+    ), problems
+
+
+class PluginCleanUp(UnicodeStep):
+    """A plugin step that cleans characters as the built-in step does, under its own id:
+    the contract is drawn by what a step does, not by which step it is (D-710)."""
+
+    id = "plugin-clean-up"
+
+
+PAPERS = Path(__file__).resolve().parents[1] / "corpus" / "papers"
+NOWAK = PAPERS / "acl2023-nowak-prefix-probabilities.pdf"
+
+
+@pytest.mark.parametrize("step", [UnicodeStep(), LineEndHyphenStep(), PluginCleanUp()], ids=str)
+def test_a_step_cleaning_inside_placeholders_keeps_the_contract(step: TextStep) -> None:
+    """On the sample documents and on a corpus paper whose figures hold
+    ligatures and invisible characters (13 such edits by the clean-up step per run, 26 for
+    both switch settings, review B1 of #450)."""
+    paper = build_document(extract_pdf(NOWAK))
+    check_text_step(step, [*SAMPLE_DOCUMENTS, paper])
+
+
+def test_the_corpus_paper_has_edits_inside_its_placeholders() -> None:
+    paper = build_document(extract_pdf(NOWAK))
+    inside = [
+        edit
+        for edit in UnicodeStep().find(paper, StepContext("en"))
+        if (block := paper.blocks[edit.span.block]).is_placeholder
+        and (edit.span.start, edit.span.end) != (0, len(block.text))
+    ]
+    assert len(inside) >= 10  # 13 at the time of writing, all inside figures
 
 
 @pytest.mark.parametrize(
     "kind", [BlockKind.FORMULA, BlockKind.TABLE, BlockKind.FIGURE, BlockKind.CODE]
 )
 def test_an_edit_inside_any_kind_of_placeholder_is_refused(kind: BlockKind) -> None:
-    document = make_document([Block(kind, "a = b + c"), (BlockKind.PARAGRAPH, "Some text.")])
+    document = make_document([Block(kind, "x=y+z"), (BlockKind.PARAGRAPH, "Some text.")])
     problems = text_step_problems(InsidePlaceholder(), [document])
-    assert any("inside a placeholder" in problem for problem in problems), problems
+    assert any("inside a placeholder is not idempotent" in p for p in problems), problems
 
 
 def test_a_block_step_must_cover_whole_blocks() -> None:

@@ -804,6 +804,72 @@ def test_a_notice_folds_the_white_space_of_the_label_it_reads() -> None:
     assert edit.replacement == "Figure 3 is skipped."
 
 
+@pytest.mark.parametrize(
+    ("label", "notice"),
+    [
+        ("3 ff.", "Formel 3 folgende wird übersprungen."),
+        ("2 Mio.", "Formel 2 Millionen wird übersprungen."),
+    ],
+)
+def test_a_formula_label_ending_in_an_abbreviation_is_read_inside_its_notice(
+    label: str, notice: str
+) -> None:
+    """Read on its own, the label's stop would stay at the end of the text ("Formel 3
+    folgende."); read inside the notice it goes, as in the notice that is read (review S1
+    of PR #450)."""
+    document = make_document([Block(BlockKind.FORMULA, f"x = y ({label})", label=label)], "de")
+    run = run_steps(document, StepContext("de"), strict=True)
+    assert spoken_text(run.script()) == notice
+    again = run_steps(rebuilt_from_script(document, run.script()), StepContext("de"), strict=True)
+    assert spoken_text(again.script()) == notice
+
+
+# ---- a placeholder inside the reference list (#410) ------------------------------------
+
+
+def _in_references(language: str, kind: BlockKind) -> Document:
+    title = "References" if language == "en" else "Literatur"
+    return make_document(
+        [(BlockKind.HEADING, title), (kind, "a b"), (BlockKind.PARAGRAPH, "[1] A. Smith, 2019.")],
+        language,
+        sections=[Section(title, 1, 0, 3, ())],
+    )
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize(
+    "kind", [BlockKind.TABLE, BlockKind.FIGURE, BlockKind.FORMULA, BlockKind.CODE]
+)
+@pytest.mark.parametrize("references_on", [True, False])
+def test_a_placeholder_in_the_reference_list_reads_the_same_on_both_runs(
+    language: str, kind: BlockKind, references_on: bool
+) -> None:
+    """With References on, the reference-list step leaves the placeholder out on the first
+    run and, as it is rebuilt as printed (D-707), again on the second; with References off
+    the placeholder gets its notice on both runs (#410)."""
+    document = _in_references(language, kind)
+    off = set(DEFAULT_SWITCHED_OFF) | (set() if references_on else {Category.REFERENCES})
+    first = read(document, switched_off=off)
+    run = run_steps(document, StepContext(language), switched_off=off, strict=True)
+    assert read(rebuilt_from_script(document, run.script()), switched_off=off) == first
+    notice = wording_for(language).skipped([], kind)
+    assert first[1] == ("" if references_on else notice)
+
+
+def test_the_example_of_issue_410_reads_nothing_on_a_second_run() -> None:
+    document = make_document(
+        [
+            (BlockKind.HEADING, "References"),
+            (BlockKind.TABLE, "a b"),
+            (BlockKind.PARAGRAPH, "[1] A. Smith, 2019."),
+        ],
+        sections=[Section("References", 1, 0, 3, ())],
+    )
+    run = run_steps(document, EN, strict=True)
+    again = run_steps(rebuilt_from_script(document, run.script()), EN, strict=True)
+    assert spoken_text(run.script()) == spoken_text(again.script()) == ""
+
+
 def test_a_german_formula_label_is_read_in_its_notice() -> None:
     """D-615 kept formula labels as printed until the rebuild rule of #362 was decided; with
     placeholders rebuilt as printed (D-707) the notice reads its name as the German chain

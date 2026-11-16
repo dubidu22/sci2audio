@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 
 from sci2audio.core import (
     Block,
@@ -117,7 +117,9 @@ def _runs(
     return tuple(runs)
 
 
-def rebuilt_from_script(document: Document, script: Sequence[ScriptPiece]) -> Document:
+def rebuilt_from_script(
+    document: Document, script: Sequence[ScriptPiece], *, own_output: Collection[int] = ()
+) -> Document:
     """The document as it reads after the edits: same blocks and kinds, the script's text.
 
     Each block's text is its pieces' text joined (line breaks kept); pauses carry no text.
@@ -129,6 +131,10 @@ def rebuilt_from_script(document: Document, script: Sequence[ScriptPiece]) -> Do
     however it reads the label ("Formel 3 Punkt 2", D-707). The section tree is kept, and so
     is each block's pictures' alt text, which the script cannot carry (#191).
     Used to check that running the steps a second time changes nothing more (idempotence).
+
+    The placeholders whose indices are in `own_output` come back as the script reads them
+    instead, like any other block: the conformance suite checks on them that a step's edits
+    inside a placeholder change nothing more when it reads its own output (D-710).
     """
     pieces: list[list[ScriptPiece]] = [[] for _ in document.blocks]
     for piece in script:
@@ -140,7 +146,7 @@ def rebuilt_from_script(document: Document, script: Sequence[ScriptPiece]) -> Do
             item.alt for part in block.parts if isinstance(item := items[part.item][1], Picture)
         ]:
             pictures[index] = alts
-        if block.is_placeholder:
+        if block.is_placeholder and index not in own_output:
             # a notice is made from the printed placeholder and its captions only, so the
             # placeholder comes back as printed and the second run makes the same notice
             # again, however the notice reads its label (D-707)

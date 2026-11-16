@@ -2478,3 +2478,20 @@ blocks = [
     { kind = "formula", text = "c = d (16a)", label = "16a" },
 ]
 expected = ["Formula 3.2 is skipped.", "Formula 16a is skipped."]
+
+[[case]]
+id = "reference-list-placeholders"
+audit = 0
+issue = 410
+goal = "A table, figure, formula or code block inside the reference list reads nothing, on both runs, while References is switched on (second-run check: placeholders rebuilt as printed, D-707)."
+blocks = [
+    { kind = "paragraph", text = "The method works." },
+    { kind = "heading", text = "References" },
+    { kind = "table", text = "a b" },
+    { kind = "figure", text = "x y" },
+    { kind = "formula", text = "E = mc2 (4)", label = "4" },
+    { kind = "code", text = "print(1)" },
+    { kind = "paragraph", text = "[1] A. Smith, 2019." },
+]
+sections = [{ title = "References", level = 1, start = 1, end = 7 }]
+expected = ["The method works."]
