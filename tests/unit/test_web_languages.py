@@ -15,6 +15,7 @@ import html
 import json
 import re
 import string
+from datetime import UTC, datetime
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
@@ -38,7 +39,7 @@ import sci2audio.web
 from sci2audio.app.settings import LETTER_PACES
 from sci2audio.textprep import Category
 from sci2audio.voices import PACKS, VOICES, download_plan
-from sci2audio.web import i18n, pages, player, server
+from sci2audio.web import i18n, library, pages, player, server
 from sci2audio.web.api import REDIRECTS, plan_hosts
 from sci2audio.web.config import HOST
 from sci2audio.web.i18n import (
@@ -594,7 +595,7 @@ def test_the_privacy_page_lists_the_hosts_and_folders_of_this_server(
         assert 'href="/voice"' in page
 
 
-def test_what_the_privacy_page_says_is_what_the_code_does() -> None:
+def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> None:
     """Point by point: if one of these fails, the code changed and the page must too."""
     # 1 and 2: the only network code is the voice download (tests/unit/test_*_network*,
     # the `offline` fixture everywhere); the voice runs with Hugging Face offline
@@ -629,6 +630,31 @@ def test_what_the_privacy_page_says_is_what_the_code_does() -> None:
     pages_source = Path(pages.__file__).read_text(encoding="utf-8")
     assert pages_source.count("response.set_cookie(") == 2  # the language's; Settings' two
     assert "at most four cookies" in EN["privacy.cookies"]
+    # 7: the working folder's small records for the library and the rail (#389): when each
+    # document was last opened, what its file says about itself, where listening stopped;
+    # each written into the document's own working folder and nowhere else
+    assert (library.OPENED, library.ABOUT, player.POSITION) == (
+        "opened.json",
+        "about.json",
+        "position.json",
+    )
+    work = tmp_path / "work" / "fedcba9876543210"
+    work.mkdir(parents=True)
+    library.write_opened(work, datetime(2026, 11, 16, tzinfo=UTC))
+    library.write_about(work, library.About("A title", ("A. Writer",), 3))
+    written = {p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*") if p.is_file()}
+    assert written == {f"work/fedcba9876543210/{name}" for name in ("opened.json", "about.json")}
+    sources = {
+        name: (SOURCE / name).read_text(encoding="utf-8") for name in ("pages.py", "tasks.py")
+    }
+    assert sources["pages.py"].count("write_opened(found.folder,") == 1  # the document page
+    assert sources["pages.py"].count("write_opened(found.work,") == 1  # Listen, not outside
+    assert sources["tasks.py"].count("write_about(document.folder,") == 1  # after an analysis
+    assert "".join(sources.values()).count("write_opened(") == 2
+    assert "".join(sources.values()).count("write_about(") == 1
+    for table in (EN, DE):
+        for name in ("opened.json", "about.json", "position.json"):
+            assert f"({name})" in table["privacy.work"], name
 
 
 def test_launch_opens_only_a_loopback_socket() -> None:

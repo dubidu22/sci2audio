@@ -94,7 +94,7 @@ def recorded_folder(work: Path, document_id: str) -> Path | None:
     folder an absolute path; else None."""
     try:
         data = json.loads((work / RECORD).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):  # deep nesting: every page reads it (#389)
         return None
     if not isinstance(data, dict):
         return None
@@ -139,22 +139,65 @@ def audiobook_stamp(readalong: Path) -> str:
     return _stamp(str(readalong), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=256)  # the shelf asks for every audiobook's stamp on every page
 def _stamp(path: str, version: tuple[int, int, int]) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
 
 
+@dataclass(frozen=True)
+class Bounds:
+    """Where a listening position can be in an audiobook: its chapters' starts, its length,
+    and when its first and last sentences end (None: it has none). The few numbers of the
+    read-along file that the Listen page and the rail's shelf (#389) both check against."""
+
+    starts: tuple[float, ...]
+    duration: float
+    spoken: tuple[float, float] | None
+
+    @classmethod
+    def of(cls, readalong: ReadAlong) -> Bounds:
+        chunks = readalong.chunks
+        return cls(
+            tuple(c.start for c in readalong.chapters),
+            readalong.duration,
+            (chunks[0].end, chunks[-1].end) if chunks else None,
+        )
+
+    def fits(self, position: Position) -> bool:
+        """True if the position is a time of this audiobook inside the chapter it names."""
+        starts = self.starts
+        if not 0 <= position.chapter < len(starts) or not math.isfinite(position.time):
+            return False
+        start = starts[position.chapter]
+        if position.chapter + 1 < len(starts):
+            return start <= position.time < starts[position.chapter + 1]
+        return start <= position.time <= self.duration + TIME_TOLERANCE
+
+    def continues(self, position: Position) -> bool:
+        """True if the position fits and something is left to continue: it is after the
+        first sentence ended and before the last one ended."""
+        if self.spoken is None or not self.fits(position):
+            return False
+        first, last = self.spoken
+        return first <= position.time < last
+
+
 def fits(readalong: ReadAlong, position: Position) -> bool:
     """True if the position is a time of this audiobook inside the chapter it names."""
-    chapters = readalong.chapters
-    if not 0 <= position.chapter < len(chapters) or not math.isfinite(position.time):
-        return False
-    start = chapters[position.chapter].start
-    later = position.chapter + 1 < len(chapters)
-    end = chapters[position.chapter + 1].start if later else readalong.duration
-    if later:
-        return start <= position.time < end
-    return start <= position.time <= end + TIME_TOLERANCE
+    return Bounds.of(readalong).fits(position)
+
+
+def audiobook_bounds(readalong: Path) -> Bounds:
+    """The bounds of the read-along file at this path, read once per version of the file
+    (kept as `audiobook_stamp` keeps its stamp) and kept small, so the shelf on every page
+    costs no parse. Raises OSError or ReadAlongError."""
+    stat = readalong.stat()
+    return _bounds(str(readalong), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+
+
+@lru_cache(maxsize=256)
+def _bounds(path: str, version: tuple[int, int, int]) -> Bounds:
+    return Bounds.of(read_readalong(Path(path)))
 
 
 def write_position(work: Path, document_id: str, stamp: str, position: Position) -> None:
@@ -183,9 +226,7 @@ def read_position(
     if there is no such record, it does not fit, or nothing is left to continue: before the
     first sentence ended or after the last one ended."""
     position = recorded_position(work, document_id, stamp)
-    if position is None or not fits(readalong, position) or not readalong.chunks:
-        return None
-    if not readalong.chunks[0].end <= position.time < readalong.chunks[-1].end:
+    if position is None or not Bounds.of(readalong).continues(position):
         return None
     return position
 
@@ -280,7 +321,7 @@ def read_audio_record(work: Path, document_id: str) -> AudioRecord:
         )
     except PlayerError:
         raise
-    except (ValueError, KeyError, TypeError, AttributeError):
+    except (ValueError, KeyError, TypeError, AttributeError, RecursionError):
         raise PlayerError("listen.broken") from None
     if not all(bare_name(n) for n in (*record.mp3s, record.readalong)) or not (
         record.m4b is None or bare_name(record.m4b)
@@ -798,6 +839,6 @@ def _recorded_source(work: Path) -> str | None:
     try:
         data = json.loads((work / AUDIO_RECORD).read_text(encoding="utf-8"))
         found = data["source"]["sha256"]
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, RecursionError):
         return None
     return found[:16] if isinstance(found, str) else None
