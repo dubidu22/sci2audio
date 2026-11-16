@@ -58,6 +58,7 @@ SCRIPT_KEYS = (
     "remove.done",
     "remove.stays",  # and remove.stays_folder
     "shelf.",
+    "library.search_none",  # the search, filtered in place (#416)
     "library.sub",
     "nav.library",
     "nav.documents",

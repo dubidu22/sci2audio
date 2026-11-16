@@ -525,3 +525,19 @@ def test_the_command_line_reads_the_defaults_and_never_writes_them(tmp_path: Pat
     assert cli.config.read_bytes() == before
     cli_source = (ROOT / "src" / "sci2audio" / "cli.py").read_text(encoding="utf-8")
     assert "save_settings" not in cli_source
+
+
+DOWNLOAD_LINK = re.compile(r"<a\b[^>]*\?download=true[^>]*>", re.S)
+
+
+def test_every_download_link_saves_without_leaving_the_page() -> None:
+    """#435: a `?download=true` link without the `download` attribute is a navigation; a
+    click on it while the page loads stops the load, and app.js never runs."""
+    links = [
+        (template.name, link)
+        for template in sorted((Path(pages.__file__).parent / "templates").glob("*.html"))
+        for link in DOWNLOAD_LINK.findall(template.read_text(encoding="utf-8"))
+    ]
+    assert len(links) >= 4  # the side column's three and the job card's files
+    missing = [(name, link) for name, link in links if not re.search(r"\sdownload[\s>]", link)]
+    assert missing == []

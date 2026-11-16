@@ -732,6 +732,26 @@ def test_the_document_pages_buttons_wait_for_the_script(signed_in: Page, live: L
     expect(page.locator("ol.choices li").last.locator(".move-down")).to_be_disabled()
 
 
+def test_a_report_downloaded_while_the_page_loads_leaves_it_wired(
+    signed_in: Page, live: Live
+) -> None:
+    """#435: a download link clicked before app.js ran must not stop the page's load, or
+    the script never runs and its buttons stay disabled. The `download` attribute saves
+    the file without navigating the page."""
+    page = signed_in
+    live.install_voice()
+    open_paper(page, live)
+    release = reload_holding_back_app_js(page, live)
+    report = page.locator('a[href*="?download=true"]').first
+    expect(report).to_be_attached()
+    with page.expect_download() as download:
+        report.click()
+    assert download.value.suggested_filename.endswith(".md")
+    release()
+    for selector in ("#update", "#make"):
+        expect(page.locator(selector)).to_be_enabled()
+
+
 def test_the_cards_buttons_wait_for_the_script(signed_in: Page, live: Live) -> None:
     """The job card's Pause, Cancel (in its confirm) and Resume are drawn by the server and
     wired only by app.js: disabled until then, like the page's other buttons (#427)."""

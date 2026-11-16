@@ -22,6 +22,21 @@
     <span class="chip idle">{{ icon('download', 's') }}{{ t('setup.chip_missing') }}</span>
     {% endif %}
   </header>
+  {#- one card per voice with a sample (#419); a pack not installed shows its cards greyed,
+      with what it would download, and fetches nothing -#}
+  <ul class="voice-cards" aria-labelledby="pack-{{ pack.language }}-name">
+    {% for voice in pack.voices %}
+    <li class="voice-card{% if not pack.installed %} missing{% endif %}" id="voice-{{ voice.id }}">
+      <h3>{{ voice.name }}</h3>
+      <p class="about">{{ voice.about }}</p>
+      {% if pack.installed %}
+      <button type="button" class="voice-play" data-voice="{{ voice.id }}" data-text="{{ voice.text }}" aria-label="{{ t('setup.play', name=voice.name) }}" data-play="{{ t('setup.play', name=voice.name) }}" data-stop="{{ t('setup.stop', name=voice.name) }}" data-play-short="{{ t('setup.play_short') }}" data-stop-short="{{ t('setup.stop_short') }}" disabled>{{ icon('play', 's') }}<span>{{ t('setup.play_short') }}</span></button>
+      {% else %}
+      <p class="not-installed">{{ icon('download', 's') }}{{ t('setup.voice_missing', size=pack.missing) }}</p>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
   {% if pack.files %}
   <div class="scroll">
   <table>
@@ -55,4 +70,5 @@
   </div>
 </section>
 <p id="message" class="message" role="status" tabindex="-1"></p>
+<audio id="voice-sample" hidden></audio>
 {% endblock %}

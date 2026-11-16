@@ -197,11 +197,11 @@
       {% if side.sentences is not none %}<dt>{{ t('side.sentences') }}</dt><dd>{{ side.sentences }}</dd>{% endif %}
       {% if side.changes is not none %}<dt>{{ t('check.switches') }}</dt><dd>{{ side.changes }}</dd>{% endif %}
       {% if side.files.md or side.files.json %}<dt>{{ t('side.report') }}</dt><dd>
-        {%- if side.files.md %}<a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.md | urlencode }}?download=true" aria-label="{{ t('document.file_report_md') }}">{{ t('side.read') }}</a>{% endif %}
+        {%- if side.files.md %}<a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.md | urlencode }}?download=true" download aria-label="{{ t('document.file_report_md') }}">{{ t('side.read') }}</a>{% endif %}
         {%- if side.files.md and side.files.json %} · {% endif %}
-        {%- if side.files.json %}<a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.json | urlencode }}?download=true" aria-label="{{ t('document.file_report_json') }}">JSON</a>{% endif -%}
+        {%- if side.files.json %}<a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.json | urlencode }}?download=true" download aria-label="{{ t('document.file_report_json') }}">JSON</a>{% endif -%}
       </dd>{% endif %}
-      {% if side.files.script %}<dt>{{ t('side.script') }}</dt><dd><a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.script | urlencode }}?download=true" aria-label="{{ t('document.file_script') }}">TXT</a></dd>{% endif %}
+      {% if side.files.script %}<dt>{{ t('side.script') }}</dt><dd><a href="/api/v1/documents/{{ document.id }}/files/{{ side.files.script | urlencode }}?download=true" download aria-label="{{ t('document.file_script') }}">TXT</a></dd>{% endif %}
     </dl>
   </section>
   <section class="card" aria-labelledby="side-stays">
