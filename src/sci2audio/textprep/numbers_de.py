@@ -1263,21 +1263,6 @@ def _roman_numerals(plain: str) -> list[Candidate]:
 # --- all rules -------------------------------------------------------------------------------
 
 
-def label_numbers_read(label: str, after: str = "") -> str:
-    """A caption label with its numbers read as this step reads them in the caption, so a
-    notice names the figure as its caption is read and a second run, which names it by the
-    caption's reading, reads the same: "Abbildung 3.1" is "Abbildung 3 Punkt 1", "Abbildung
-    1.2-1.4" is "Abbildung 1 Punkt 2 bis 1 Punkt 4", "Abbildung 3,1" is "Abbildung 3 Komma 1",
-    and "Tabelle 2.1a" stays as the caption keeps it (#249, review S2 and S3 of PR #368).
-    `after` is the caption's text after its label: the label is read in that context, as
-    in the caption, so "Abbildung 3/4: Verlauf" keeps "3/4" (review round 2, S2)."""
-    read = label
-    for candidate in reversed(find_numbers_de(label + after)):
-        if candidate.end <= len(label):
-            read = read[: candidate.start] + candidate.replacement + read[candidate.end :]
-    return " ".join(read.split())
-
-
 def find_numbers_de(text: str) -> list[Candidate]:
     """The German number edits for one block's text, without overlap, in text order.
 

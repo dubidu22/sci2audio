@@ -2311,3 +2311,45 @@ goal = "A raised mass number before an element symbol at a line's start is read 
 language = "de"
 blocks = [{ kind = "paragraph", runs = ["Kondensate aus\n", { sup = "87" }, "Rb im Orbit"] }]
 expected = ["Kondensate aus 87Rb im Orbit"]
+
+[[case]]
+id = "de-notice-label-read-as-its-caption"
+audit = 0
+issue = 370
+goal = "A German notice reads a multiplier in its caption label as the caption does ('Tabelle 3 mal'), on both runs (D-707)."
+language = "de"
+blocks = [
+    { kind = "table", text = "a b" },
+    { kind = "caption", text = "Tab. 3x: Verlauf der Werte.", label = "Tab. 3x", describes = 0 },
+]
+expected = ["Tabelle 3 mal wird übersprungen.", "Tabelle 3 mal: Verlauf der Werte."]
+
+[[case]]
+id = "de-notice-dotted-formula-number"
+audit = 0
+issue = 362
+goal = "A German formula notice reads a dotted number with 'Punkt', on both runs; a number with a letter stays as printed (#249, D-707)."
+language = "de"
+blocks = [
+    { kind = "formula", text = "a = b (3.2)", label = "3.2" },
+    { kind = "formula", text = "c = d (16a)", label = "16a" },
+]
+expected = ["Formel 3 Punkt 2 wird übersprungen.", "Formel 16a wird übersprungen."]
+
+[[case]]
+id = "de-reference-list-placeholders"
+audit = 0
+issue = 410
+goal = "Eine Tabelle, Abbildung, Formel oder ein Code-Block im Literaturverzeichnis wird bei eingeschaltetem Literaturverzeichnis-Schritt in beiden Läufen nicht gelesen (D-707)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Methode wirkt." },
+    { kind = "heading", text = "Literatur" },
+    { kind = "table", text = "a b" },
+    { kind = "figure", text = "x y" },
+    { kind = "formula", text = "E = mc2 (4)", label = "4" },
+    { kind = "code", text = "print(1)" },
+    { kind = "paragraph", text = "[1] A. Müller, 2019." },
+]
+sections = [{ title = "Literatur", level = 1, start = 1, end = 7 }]
+expected = ["Die Methode wirkt."]

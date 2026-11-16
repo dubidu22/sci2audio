@@ -7,7 +7,9 @@ enforced by `core.Edit` itself),
 no overlap among its own edits, whole-block edits for a block step, moves from a move step
 and nothing else (#213), the same edits for the
 same input, no network access, and idempotence (run again on the text it produced, nothing
-more changes). Built-in steps also may not propose `ask` edits in v1.0 (`allow_ask=False`).
+more changes; a placeholder comes back as printed, so an edit inside one is checked on a
+copy whose placeholder holds the step's own output, D-710). Built-in steps also may not
+propose `ask` edits in v1.0 (`allow_ask=False`).
 Each run is checked twice: with nothing switched off, and with every category in
 `StepContext.switched_off`, so a step that reads that field keeps the contract either way
 (D-595).
@@ -185,6 +187,16 @@ def _sample_documents() -> tuple[Document, ...]:
         3: [(0, 1, "sup"), (21, 22, "sup")],
         6: [(8, 10, ("span", "epub:pagebreak")), (20, 26, ("span", "hidden"))],
     }
+    # placeholders whose printed text a step cleans, read when their notice is switched off:
+    # a soft hyphen and a ligature in a formula, a ligature in a table, a zero-width space in
+    # code, a line-end hyphen in a figure (review B1 of PR #450, D-710)
+    placeholders = [
+        Block(BlockKind.FORMULA, "coe\u00adfﬁcient a = b (2)", label="2"),
+        (BlockKind.TABLE, "eﬃciency n\nA 1 2 3"),
+        (BlockKind.CODE, "x\u200b= 1"),
+        (BlockKind.FIGURE, "pre-\ntraining loss"),
+        (BlockKind.PARAGRAPH, "The loss is shown above."),
+    ]
     return (
         make_document([], name="empty.txt"),
         make_document(furniture, name="furniture.txt"),
@@ -204,12 +216,14 @@ def _sample_documents() -> tuple[Document, ...]:
             sections=[Section("Einleitung", 1, 0, 13), Section("Literatur", 1, 13, len(german))],
         ),
         make_document(title, name="title.txt", tags=title_tags),
+        make_document(placeholders, name="placeholders.txt"),
+        make_document(placeholders, "de", name="platzhalter.txt"),
     )
 
 
 # documents every step is checked on: every block kind and furniture role, empty blocks,
-# scientific notation, English, British English and German, a title block, hidden text and
-# a figure's alt text
+# scientific notation, English, British English and German, a title block, hidden text, a
+# figure's alt text and placeholders whose printed text a step cleans
 SAMPLE_DOCUMENTS: tuple[Document, ...] = _sample_documents()
 
 
@@ -276,7 +290,48 @@ def _run_problems(
                 f"not idempotent: run on its own output, block {index} changed again "
                 f"from {was!r} to {now!r}"
             )
-    return problems
+    return problems + _inside_placeholder_problems(step, document, context, first, before)
+
+
+def _inside_placeholder_problems(
+    step: TextStep,
+    document: Document,
+    context: StepContext,
+    edits: Sequence[Edit],
+    before: Sequence[str],
+) -> list[str]:
+    """Edits inside a placeholder that change it again when the step reads its own output.
+
+    A second run rebuilds a placeholder as printed (D-707), so the idempotence check above
+    never shows a step its own edits inside one. An edit of the whole block (a notice) is
+    made from the printed block alone; an edit inside it, which cleans the text read when a
+    notice is switched off (a soft hyphen, a ligature, a line-end hyphen), must change
+    nothing more on a copy whose placeholder holds the step's own output (D-710).
+    """
+    inside = sorted(
+        {
+            edit.span.block
+            for edit in edits
+            if (block := document.blocks[edit.span.block]).is_placeholder
+            and (edit.span.start, edit.span.end) != (0, len(block.text))
+        }
+    )
+    if not inside:
+        return []
+    own = rebuilt_from_script(document, apply_edits(document, edits), own_output=inside)
+    again, problems = _find(step, own, context)
+    if again is None or problems:
+        return [f"inside a placeholder, on its own output: {problem}" for problem in problems]
+    try:
+        after = _rendered(own, apply_edits(own, again))
+    except ValueError as error:  # SpanError and OverlappingEditsError
+        return [f"inside a placeholder, on its own output: invalid edits: {error}"]
+    return [
+        f"an edit inside a placeholder is not idempotent: run on its own output, block "
+        f"{index} changed again from {before[index]!r} to {after[index]!r} (D-710)"
+        for index in inside
+        if before[index] != after[index]
+    ]
 
 
 def _find(

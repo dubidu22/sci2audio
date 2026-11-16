@@ -12,7 +12,16 @@ from textprep_documents import rule_documents
 
 from sci2audio.app.chapters import REFERENCE_NAMES as APP_REFERENCE_NAMES
 from sci2audio.app.chapters import is_reference_title as app_is_reference_title
-from sci2audio.core import Block, BlockKind, Document, EditKind, Section, Span
+from sci2audio.core import (
+    Block,
+    BlockKind,
+    Document,
+    Edit,
+    EditKind,
+    ScriptPiece,
+    Section,
+    Span,
+)
 from sci2audio.testing import check_text_step, make_document, rebuilt_from_script
 from sci2audio.textprep import (
     DEFAULT_SWITCHED_OFF,
@@ -22,9 +31,13 @@ from sci2audio.textprep import (
     CodeNoticeStep,
     FormulaNoticeStep,
     ReferenceListStep,
+    Stage,
     StepContext,
     TableFigureNoticeStep,
+    TextStep,
     is_reference_title,
+    read_over,
+    registry,
     run_steps,
     spoken_text,
     wording_for,
@@ -141,6 +154,49 @@ def test_switching_a_category_off_reads_the_placeholder_as_printed() -> None:
         "Formula 1 is skipped.",
     ]
     assert read(document, switched_off={Category.FORMULAS}) == ["A table is skipped.", "x (1)"]
+
+
+@pytest.mark.parametrize(
+    ("language", "caption", "label", "off", "notice"),
+    [
+        # the label read as the inline steps read the caption, with the job's switches (D-707)
+        ("en", "Figs. 1\u20133: Values.", "Figs. 1\u20133", (), "Figures 1 to 3 is skipped."),
+        (
+            "en",
+            "Figs. 1\u20133: Values.",
+            "Figs. 1\u20133",
+            (Category.NUMBERS_AND_UNITS,),
+            "Figures 1\u20133 is skipped.",
+        ),
+        (
+            "en",
+            "Figs. 1\u20133: Values.",
+            "Figs. 1\u20133",
+            (Category.ABBREVIATIONS,),
+            "Figures 1 to 3 is skipped.",
+        ),
+        ("de", "Tab. 3x: Werte.", "Tab. 3x", (), "Tabelle 3 mal wird übersprungen."),
+        (
+            "de",
+            "Tab. 3x: Werte.",
+            "Tab. 3x",
+            (Category.NUMBERS_AND_UNITS,),
+            "Tabelle 3x wird übersprungen.",
+        ),
+        ("de", "Abb. 3/4: Verlauf der Werte.", "Abb. 3/4", (), "Abbildung 3/4 wird übersprungen."),
+    ],
+)
+def test_a_notice_reads_the_label_as_the_caption_reads_it(
+    language: str, caption: str, label: str, off: tuple, notice: str
+) -> None:
+    document = make_document(
+        [(BlockKind.FIGURE, "0 1"), Block(BlockKind.CAPTION, caption, describes=0, label=label)],
+        language,
+    )
+    first = read(document, switched_off=set(off))
+    assert first[0] == notice
+    run = run_steps(document, StepContext(language), switched_off=set(off), strict=True)
+    assert read(rebuilt_from_script(document, run.script()), switched_off=set(off)) == first
 
 
 def test_the_wording_lives_in_one_table_and_british_english_uses_it() -> None:
@@ -656,11 +712,174 @@ def test_an_english_dotted_label_is_read_as_printed() -> None:
     assert wording_for("en").label("Table 2.1") == "Table 2.1"
 
 
-def test_a_german_formula_label_keeps_its_point() -> None:
-    """D-615: formula labels stay as printed until the rebuild rule of #362 is decided."""
+@pytest.mark.parametrize(
+    ("pieces", "start", "end", "read"),
+    [
+        ([("Fig. 3: x", 0, 9)], 0, 6, "Fig. 3"),  # kept as printed
+        ([("Figure", 0, 4), (" 3: x", 4, 9)], 0, 6, "Figure 3"),  # a replacement inside
+        ([("Fig. three: x", 0, 9)], 0, 6, None),  # a replacement runs past the end
+        ([("Fig", 0, 3), ("ure 3", 3, 6), (": x", 6, 9)], 4, 6, None),  # past the start
+        ([("X", 0, 2), (" cd", 2, 5)], 2, 5, " cd"),  # a replacement ending at the start
+        ([("ab", 0, 2), ("Y", 2, 5)], 0, 2, "ab"),  # a replacement starting at the end
+        ([("ab", 0, 2), ("", 2, 2), (" cd", 2, 5)], 0, 5, "ab cd"),  # a pause adds nothing
+    ],
+)
+def test_read_over_maps_a_printed_span_through_the_script(
+    pieces: list[tuple[str, int, int]], start: int, end: int, read: str | None
+) -> None:
+    """The one rule the notices and the second-run check map a label by (D-707)."""
+    printed = "Fig. 3: x" if pieces[0][0].startswith("Fig") else "ab cd"
+    script = [ScriptPiece(text, Span(0, a, b)) for text, a, b in pieces]
+    assert read_over(printed, script, start, end) == read
+
+
+class _CaptionsReplaced(TextStep):
+    """A block step that replaces every caption: the label is read by the inline steps
+    only, so a block step does not change how a notice names the figure."""
+
+    id = "captions-replaced"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.BLOCK
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [
+            Edit(Span(index, 0, len(block.text)), EditKind.REPLACE, "r", self.id, "X")
+            for index, block in enumerate(document.blocks)
+            if block.kind is BlockKind.CAPTION
+        ]
+
+
+class _LabelsRemoved(TextStep):
+    """An inline step that leaves every caption label out."""
+
+    id = "labels-removed"
+    languages = ("en",)
+    category = Category.CITATIONS
+    stage = Stage.INLINE
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        return [
+            Edit(Span(index, 0, len(block.label)), EditKind.REMOVE, "r", self.id)
+            for index, block in enumerate(document.blocks)
+            if block.kind is BlockKind.CAPTION and block.label
+        ]
+
+
+@pytest.mark.parametrize(
+    ("added", "notice"),
+    [
+        (_CaptionsReplaced(), "Figures 1 to 3 is skipped."),  # read by the inline steps only
+        (_LabelsRemoved(), "Figures 1\u20133 is skipped."),  # left out: kept as printed
+    ],
+)
+def test_a_notice_reads_the_label_with_the_inline_steps_only(
+    monkeypatch: pytest.MonkeyPatch, added: TextStep, notice: str
+) -> None:
+    steps = registry.BUILT_IN_STEPS
+    blocks = [step for step in steps if step.stage is Stage.BLOCK]
+    rest = [step for step in steps if step.stage is not Stage.BLOCK]
+    order = [*blocks, added, *rest] if added.stage is Stage.INLINE else [added, *steps]
+    monkeypatch.setattr(registry, "BUILT_IN_STEPS", tuple(order))
+    document = make_document(
+        [
+            Block(BlockKind.FIGURE, "x"),
+            Block(
+                BlockKind.CAPTION, "Figs. 1\u20133: Values.", label="Figs. 1\u20133", describes=0
+            ),
+        ]
+    )
+    (edit,) = TableFigureNoticeStep().find(document, EN)
+    assert edit.replacement == notice
+
+
+def test_a_notice_folds_the_white_space_of_the_label_it_reads() -> None:
+    document = make_document(
+        [
+            Block(BlockKind.FIGURE, "x"),
+            Block(BlockKind.CAPTION, "Fig.  3: Values.", label="Fig.  3", describes=0),
+        ]
+    )
+    (edit,) = TableFigureNoticeStep().find(document, EN)
+    assert edit.replacement == "Figure 3 is skipped."
+
+
+@pytest.mark.parametrize(
+    ("label", "notice"),
+    [
+        ("3 ff.", "Formel 3 folgende wird übersprungen."),
+        ("2 Mio.", "Formel 2 Millionen wird übersprungen."),
+    ],
+)
+def test_a_formula_label_ending_in_an_abbreviation_is_read_inside_its_notice(
+    label: str, notice: str
+) -> None:
+    """Read on its own, the label's stop would stay at the end of the text ("Formel 3
+    folgende."); read inside the notice it goes, as in the notice that is read (review S1
+    of PR #450)."""
+    document = make_document([Block(BlockKind.FORMULA, f"x = y ({label})", label=label)], "de")
+    run = run_steps(document, StepContext("de"), strict=True)
+    assert spoken_text(run.script()) == notice
+    again = run_steps(rebuilt_from_script(document, run.script()), StepContext("de"), strict=True)
+    assert spoken_text(again.script()) == notice
+
+
+# ---- a placeholder inside the reference list (#410) ------------------------------------
+
+
+def _in_references(language: str, kind: BlockKind) -> Document:
+    title = "References" if language == "en" else "Literatur"
+    return make_document(
+        [(BlockKind.HEADING, title), (kind, "a b"), (BlockKind.PARAGRAPH, "[1] A. Smith, 2019.")],
+        language,
+        sections=[Section(title, 1, 0, 3, ())],
+    )
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize(
+    "kind", [BlockKind.TABLE, BlockKind.FIGURE, BlockKind.FORMULA, BlockKind.CODE]
+)
+@pytest.mark.parametrize("references_on", [True, False])
+def test_a_placeholder_in_the_reference_list_reads_the_same_on_both_runs(
+    language: str, kind: BlockKind, references_on: bool
+) -> None:
+    """With References on, the reference-list step leaves the placeholder out on the first
+    run and, as it is rebuilt as printed (D-707), again on the second; with References off
+    the placeholder gets its notice on both runs (#410)."""
+    document = _in_references(language, kind)
+    off = set(DEFAULT_SWITCHED_OFF) | (set() if references_on else {Category.REFERENCES})
+    first = read(document, switched_off=off)
+    run = run_steps(document, StepContext(language), switched_off=off, strict=True)
+    assert read(rebuilt_from_script(document, run.script()), switched_off=off) == first
+    notice = wording_for(language).skipped([], kind)
+    assert first[1] == ("" if references_on else notice)
+
+
+def test_the_example_of_issue_410_reads_nothing_on_a_second_run() -> None:
+    document = make_document(
+        [
+            (BlockKind.HEADING, "References"),
+            (BlockKind.TABLE, "a b"),
+            (BlockKind.PARAGRAPH, "[1] A. Smith, 2019."),
+        ],
+        sections=[Section("References", 1, 0, 3, ())],
+    )
+    run = run_steps(document, EN, strict=True)
+    again = run_steps(rebuilt_from_script(document, run.script()), EN, strict=True)
+    assert spoken_text(run.script()) == spoken_text(again.script()) == ""
+
+
+def test_a_german_formula_label_is_read_in_its_notice() -> None:
+    """D-615 kept formula labels as printed until the rebuild rule of #362 was decided; with
+    placeholders rebuilt as printed (D-707) the notice reads its name as the German chain
+    reads it there, on both runs."""
     document = make_document([Block(BlockKind.FORMULA, "x = y (3.2)", label="3.2")], "de")
     run = run_steps(document, StepContext("de"), strict=True)
-    assert spoken_text(run.script()) == "Formel 3.2 wird übersprungen."
+    assert spoken_text(run.script()) == "Formel 3 Punkt 2 wird übersprungen."
+    rebuilt = rebuilt_from_script(document, run.script())
+    again = run_steps(rebuilt, StepContext("de"), strict=True)
+    assert spoken_text(again.script()) == "Formel 3 Punkt 2 wird übersprungen."
 
 
 # ---- a figure read by its alt text (#191, D-692) -----------------------------------------
