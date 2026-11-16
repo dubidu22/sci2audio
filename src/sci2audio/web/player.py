@@ -27,17 +27,19 @@ import hashlib
 import json
 import math
 import time
+import unicodedata
 from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path, PurePath
 from typing import Any
 
+from sci2audio import __version__
 from sci2audio.app import find_chapters
 from sci2audio.app.chapters import Chapter
 from sci2audio.app.files import write_texts
 from sci2audio.app.report import Pages
-from sci2audio.core import BlockKind, Document, Section, SpanError
+from sci2audio.core import BlockKind, Document, EditKind, Section, SpanError
 from sci2audio.core.export import from_data
 from sci2audio.output import ReadAlong, ReadAlongError, read_readalong
 from sci2audio.textprep import (
@@ -46,6 +48,7 @@ from sci2audio.textprep import (
     CodeNoticeStep,
     FormulaNoticeStep,
     LineEndHyphenStep,
+    Status,
     StepContext,
     StepRun,
     TableFigureNoticeStep,
@@ -288,6 +291,7 @@ class AudioRecord:
     m4b: str | None
     mp3s: tuple[str, ...]
     readalong: str
+    made_with: str = ""  # the sci2audio version that made it ("" if the record has none)
 
     @property
     def names(self) -> frozenset[str]:
@@ -327,6 +331,7 @@ def read_audio_record(work: Path, document_id: str) -> AudioRecord:
             m4b=files["m4b"],
             mp3s=tuple(files["mp3"]),
             readalong=files["readalong"],
+            made_with=str(data.get("sci2audio", "")),
         )
     except PlayerError:
         raise
@@ -432,13 +437,26 @@ def candidate_folders(
 
 
 @dataclass(frozen=True)
+class Part:
+    """A stretch of a piece as the voice treated it (#392, D-665 conflict 2): `mark` is ""
+    for text read as printed, "cut" for text the voice left out and "said" for text it read
+    differently, `said` being what it read."""
+
+    text: str
+    mark: str = ""
+    said: str = ""
+
+
+@dataclass(frozen=True)
 class Piece:
     """A stretch of a block's text as shown: `element` is the id of the sentence element
-    it is (a chunk's text), or None for text the voice does not read."""
+    it is (a chunk's text), or None for text the voice does not read. `parts` split it
+    where the audiobook's own edits cut or replaced text; empty when it holds none."""
 
     text: str
     element: str | None = None
     chunk: int | None = None  # the first chunk the element stands for (a click plays it)
+    parts: tuple[Part, ...] = ()
 
 
 @dataclass
@@ -471,6 +489,17 @@ class ChapterView:
     start: float  # where the chapter starts on the book's timeline, in seconds
 
 
+@dataclass(frozen=True)
+class ChangeView:
+    """One category of changes in the Listen panel (#393, D-665 conflict 3): whether it was
+    on when the audiobook was made, and how many of its edits the audiobook holds (None
+    when the marks are not drawn, D-704b)."""
+
+    category: str
+    on: bool
+    count: int | None
+
+
 @dataclass
 class PlayerView:
     language: str
@@ -479,6 +508,10 @@ class PlayerView:
     left_out: list[str]  # chapters not in the audiobook
     chunks: list[tuple[float, float, int, str]]  # start, end, chapter, element id
     mode: str  # "mp3" or "m4b"
+    duration: float = 0.0  # the whole book, in seconds
+    marked: bool = False  # the audiobook's edits are drawn on the text (D-704b)
+    made_with: str = ""  # the sci2audio version that made the audiobook
+    changes: list[ChangeView] = field(default_factory=list)
 
     def data(self, document_id: str) -> dict[str, Any]:
         """What the script needs. It builds each file's address itself from the document
@@ -536,6 +569,10 @@ def build_view(
     notices = _notices(document, record.switched_off)
     run = _settled(document, record.switched_off, steps)
     joined = _joins(run)
+    # the steps that rebuild the run are the ones that made the audio only when the same
+    # version of sci2audio made it: otherwise no mark is drawn (D-704b)
+    marked = bool(record.made_with) and record.made_with == __version__
+    marks = _marks(document, run) if marked else {}
     moved = _heard_moves(run, readalong)
     moved_into: dict[int, list[int]] = {}  # block -> the blocks read inside it, in order
     for block, target in sorted(moved.items()):
@@ -568,6 +605,7 @@ def build_view(
                     notices,
                     element_of,
                     joined.get(shown_here, frozenset()),
+                    marks.get(shown_here, ()),
                 )
                 view.heading = levels.get(shown_here, 0) if shown_here == number else 0
                 view.page = pages.get(shown_here, "")
@@ -594,6 +632,7 @@ def build_view(
         )
     left_out = [c.title for c in chapters if c.index not in used]
     chunks = [(c.start, c.end, c.chapter, element_of[n]) for n, c in enumerate(readalong.chunks)]
+    heard_blocks = {n for c in chapters if c.index in used for n in range(c.start, c.end)}
     return PlayerView(
         language=document.language,
         voice=record.voice,
@@ -601,7 +640,87 @@ def build_view(
         left_out=left_out,
         chunks=chunks,
         mode="mp3" if record.mp3s else "m4b",
+        duration=readalong.duration,
+        marked=marked,
+        made_with=record.made_with,
+        changes=_changes(run, record.switched_off, heard_blocks, marked),
     )
+
+
+def _changes(
+    run: StepRun, switched_off: frozenset[str], heard: Collection[int], marked: bool
+) -> list[ChangeView]:
+    """Per category: on or off when the audiobook was made, and its accepted edits in the
+    chapters the audiobook reads (an edit counts where its block is read, #213)."""
+    counts: dict[str, int] = {}
+    for outcome in run.outcomes:
+        if outcome.status is Status.ACCEPTED and run.read_at(outcome.edit.span.block) in heard:
+            key = str(outcome.category)
+            counts[key] = counts.get(key, 0) + 1
+    return [
+        ChangeView(str(c), str(c) not in switched_off, counts.get(str(c), 0) if marked else None)
+        for c in Category
+    ]
+
+
+_UNMARKED_STEPS = frozenset({LineEndHyphenStep.id})  # joins show as joined words (#286)
+
+
+def _marks(document: Document, run: StepRun) -> dict[int, list[tuple[int, int, str, str]]]:
+    """By block, the stretches the audiobook's edits cut ("cut") or read differently
+    ("said", with what was read), in order: the accepted REMOVE and REPLACE edits of the
+    run the page is built from (#392). Left unmarked: a block cut whole (it says "Not read"),
+    a word the hyphen step joined (it shows joined), and a replacement that reads like the
+    printed text. A placeholder read as its notice draws its notice box, not its text, so
+    its marks are never drawn; one read as printed shows its edits like any text."""
+    found: dict[int, list[tuple[int, int, str, str]]] = {}
+    for edit in run.accepted:
+        span = edit.span
+        if span.start == span.end or edit.step in _UNMARKED_STEPS:
+            continue
+        block = document.blocks[span.block]
+        original = block.text[span.start : span.end]
+        if edit.kind is EditKind.REMOVE:
+            if span.start == 0 and span.end >= len(block.text.rstrip()):
+                continue
+            found.setdefault(span.block, []).append((span.start, span.end, "cut", ""))
+        elif edit.kind is EditKind.REPLACE and _looks(edit.replacement) != _looks(original):
+            said = " ".join(edit.replacement.split())
+            found.setdefault(span.block, []).append((span.start, span.end, "said", said))
+    for stretches in found.values():
+        stretches.sort()
+    return found
+
+
+def _looks(text: str) -> str:
+    """How a text looks to a reader: compatibility forms and spacing aside."""
+    return " ".join(unicodedata.normalize("NFKC", text).split())
+
+
+def _parts(
+    text: str,
+    start: int,
+    end: int,
+    joined: frozenset[int],
+    marks: Sequence[tuple[int, int, str, str]],
+) -> tuple[Part, ...]:
+    """Characters `start` to `end` of a block's text split at the marks they overlap; ()
+    when they overlap none. The parts' texts join up to `shown(text, start, end, joined)`."""
+    parts: list[Part] = []
+    position = start
+    for low, high, mark, said in marks:
+        low, high = max(low, start), min(high, end)
+        if low >= high:
+            continue
+        if low > position:
+            parts.append(Part(shown(text, position, low, joined)))
+        parts.append(Part(shown(text, low, high, joined), mark, said))
+        position = high
+    if not parts:
+        return ()
+    if position < end:
+        parts.append(Part(shown(text, position, end, joined)))
+    return tuple(p for p in parts if p.text)
 
 
 def _heard_moves(run: StepRun, readalong: ReadAlong) -> dict[int, int]:
@@ -754,6 +873,7 @@ def _block_view(
     notices: dict[int, str],
     element_of: list[str],
     joined: frozenset[int] = frozenset(),
+    marks: Sequence[tuple[int, int, str, str]] = (),
 ) -> BlockView:
     block = document.blocks[number]
     view = BlockView(number, str(block.kind))
@@ -783,16 +903,16 @@ def _block_view(
                 element_of[n] = last_element
             continue
         if span.start > position:
-            view.pieces.append(Piece(shown(text, position, span.start, joined)))
+            view.pieces.append(_piece(text, position, span.start, joined, marks))
         last_element = f"s{n}"
         element_of[n] = last_element
         for early in waiting:
             element_of[early] = last_element
         waiting = []
-        view.pieces.append(Piece(shown(text, span.start, span.end, joined), last_element, n))
+        view.pieces.append(_piece(text, span.start, span.end, joined, marks, last_element, n))
         position = span.end
     if position < len(text):
-        view.pieces.append(Piece(shown(text, position, None, joined)))
+        view.pieces.append(_piece(text, position, len(text), joined, marks))
     for early in waiting:  # the block has no sentence: the block is what they read
         element_of[early] = f"b{number}"
     if not view.read and any(element_of[n] == f"b{number}" for n in chunk_numbers):
@@ -800,6 +920,19 @@ def _block_view(
         view.element = f"b{number}"
         view.chunk = chunk_numbers[0]
     return view
+
+
+def _piece(
+    text: str,
+    start: int,
+    end: int,
+    joined: frozenset[int],
+    marks: Sequence[tuple[int, int, str, str]],
+    element: str | None = None,
+    chunk: int | None = None,
+) -> Piece:
+    parts = _parts(text, start, end, joined, marks) if marks else ()
+    return Piece(shown(text, start, end, joined), element, chunk, parts)
 
 
 def player_for(

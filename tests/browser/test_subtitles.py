@@ -12,7 +12,7 @@ from pathlib import Path
 from playwright.sync_api import Page, expect
 from web_helpers import paper_bytes
 
-from conftest import Live, check_axe
+from conftest import Live, check_axe, settled
 
 READ_TRACK = """async (url) => {
   const video = document.createElement("video");
@@ -45,6 +45,7 @@ def test_subtitles_are_chosen_on_the_page_and_chromium_reads_them(
     page.get_by_role("button", name="Open and analyse").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
+    settled(page)  # axe below must not run while the page reloads after its analysis (#365)
 
     box = page.get_by_role("checkbox", name="Also write subtitles (SRT and WebVTT)")
     expect(box).not_to_be_checked()  # off by default (D-606)

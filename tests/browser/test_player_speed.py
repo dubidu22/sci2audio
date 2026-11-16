@@ -43,8 +43,8 @@ def test_the_speed_stays_across_chapters_and_jumps(signed_in: Page, live: Live) 
     make_audiobook(page, live)
     page.get_by_label("Speed").select_option("1.5")
     first_file = rate(page)["src"]
-    # a jump into the next chapter's file
-    page.get_by_role("button", name="Next chapter").click()
+    # a jump into the next chapter's file, from the list of chapters (#393)
+    page.locator(".chapter-button").nth(1).click()
     page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
     state = rate(page)
     assert state["src"] != first_file
@@ -118,7 +118,7 @@ def test_the_speed_stays_on_the_m4b(signed_in: Page, live: Live) -> None:
     player = page.evaluate("() => JSON.parse(document.getElementById('player-data').textContent)")
     assert player["mode"] == "m4b"
     page.get_by_label("Speed").select_option("0.75")
-    page.get_by_role("button", name="Next chapter").click()
+    page.locator(".chapter-button").nth(1).click()
     page.get_by_role("button", name="Next sentence").click()
     state = rate(page)
     assert str(state["src"]).endswith(".m4b")

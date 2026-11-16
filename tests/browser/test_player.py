@@ -82,7 +82,9 @@ def watch_status(page: Page) -> None:
 def test_the_highlight_follows_the_voice_into_the_next_chapter(signed_in: Page, live: Live) -> None:
     page = signed_in
     make_audiobook(page, live)
-    expect(page.locator("#text")).to_contain_text("Things happen (Smith, 2020) and more.")
+    expect(page.locator("#text")).to_contain_text(
+        "Things happen (Smith, 2020) (not read) and more."
+    )  # #444 N2
     expect(page.locator("#text")).not_to_contain_text("A book about things")  # not chosen
     expect(page.get_by_text("Not in this audiobook: References")).to_be_visible()
     expect(page.get_by_text(re.compile("read by a synthetic voice"))).to_be_visible()
@@ -133,27 +135,30 @@ def test_a_click_on_a_sentence_plays_from_it(signed_in: Page, live: Live) -> Non
     assert start - offset - 0.05 <= state["time"] <= start - offset + 1.5
 
 
-def test_the_buttons_move_by_sentence_and_chapter(signed_in: Page, live: Live) -> None:
+def test_the_buttons_move_by_sentence_and_the_chapter_list_by_chapter(
+    signed_in: Page, live: Live
+) -> None:
+    """The dock's previous and next move by sentence (#393, D-704 point 6); the panel's list
+    of chapters moves by chapter, and says which chapter is being read."""
     page = signed_in
     make_audiobook(page, live)
     watch_status(page)
+    chapters = page.get_by_role("navigation", name="Chapters").get_by_role("button")
+    expect(chapters.first).to_have_attribute("aria-current", "true")
     page.get_by_role("button", name="Next sentence").click()
     assert highlighted(page) == chunk_id(page, "Introduction")
     page.get_by_role("button", name="Next sentence").click()
     assert highlighted(page) == chunk_id(page, "Things happen")
     assert paused(page)  # moving while paused does not start the voice
-    page.get_by_role("button", name="Next chapter").click()
+    page.get_by_role("button", name="Previous sentence").click()
+    assert highlighted(page) == chunk_id(page, "Introduction")
+    chapters.filter(has_text="Methods").click()
+    page.wait_for_function("() => !document.getElementById('audio').paused")
     assert highlighted(page) == chunk_id(page, "Methods")
     expect(page.locator("#message")).to_have_text("Chapter 2 of 2: Methods")
     expect(page.locator("#now")).to_have_text("Chapter 2 of 2: Methods")
-    assert paused(page)
-    page.get_by_role("button", name="Previous sentence").click()
-    assert highlighted(page) == chunk_id(page, "Things happen")
-    page.get_by_role("button", name="Previous chapter").click()
-    assert highlighted(page) == chunk_id(page, "Introduction")
-    page.get_by_role("navigation").get_by_role("button", name="Methods").click()
-    page.wait_for_function("() => !document.getElementById('audio').paused")
-    assert highlighted(page) == chunk_id(page, "Methods")
+    expect(chapters.nth(1)).to_have_attribute("aria-current", "true")
+    expect(chapters.first).not_to_have_attribute("aria-current", "true")
     assert page.evaluate("() => window.said")[-1] == "Chapter 2 of 2: Methods"
 
 
@@ -168,7 +173,7 @@ def test_scrolling_away_stops_following_until_asked(signed_in: Page, live: Live)
     back.click()
     expect(back).to_be_hidden()
     expect(page.get_by_role("button", name="Play")).to_be_focused()
-    page.get_by_role("checkbox", name="Scroll with the reading").uncheck()
+    page.get_by_role("switch", name="Scroll with the reading").uncheck()
     page.mouse.wheel(0, 300)
     expect(back).to_be_hidden()  # following is off: nothing to come back to
 
@@ -185,31 +190,32 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         )
         outline = page.evaluate("() => getComputedStyle(document.activeElement).outlineStyle")
         assert outline != "none", f"no focus ring on {order[-1]} after {order}"
-    # the paper header's tabs first, then the player (#391)
-    assert order[:7] == [
+    # the paper header's tabs first (#391), then the dock in the order it shows (#393), the
+    # panel's button, and the panel: its selected tab, the chapters and the follow switch;
+    # the hidden button, the status line and the panel's other tab are skipped
+    assert order == [
         "tab-prepare",
         "tab-listen",
-        "play",
         "previous-sentence",
+        "play",
         "next-sentence",
-        "previous-chapter",
-        "next-chapter",
+        "timeline",
+        "speed",
+        "panel-toggle",
+        "tab-outline",
+        "panel-close",
+        "BUTTON",
+        "BUTTON",
+        "follow",
     ], order
-    # the native player's own controls, then the follow switch; the hidden button is skipped
-    assert order[7] == "audio", order
-    assert order[-1] == "follow", order
-    assert "back-to-reading" not in order
-    # the status line is focused only by script: on to the chapters
-    page.keyboard.press(tab_key(page))
-    assert page.evaluate("() => document.activeElement.textContent") == "Introduction"
     sentences = page.evaluate(
         "() => [...document.querySelectorAll('.s')].some(s => s.tabIndex >= 0)"
     )
     assert not sentences  # thousands of sentences are not tab stops (D-298)
-    page.locator("#next-chapter").focus()
+    page.locator("#next-sentence").focus()
     page.keyboard.press("Enter")
-    assert highlighted(page) == chunk_id(page, "Methods")
-    expect(page.locator("#next-chapter")).to_be_focused()  # the focus stays where it was
+    assert highlighted(page) == chunk_id(page, "Introduction")
+    expect(page.locator("#next-sentence")).to_be_focused()  # the focus stays where it was
     page.locator("#play").focus()
     page.keyboard.press("Space")
     page.wait_for_function("() => !document.getElementById('audio').paused")
@@ -254,7 +260,7 @@ def test_a_skipped_figure_shows_and_lights_up_its_notice(
     )
     listen_to(page, live, tmp_path / "figure.pdf", pdf)
     notice = page.locator(".notice")
-    expect(notice).to_have_text("Figure 1 is skipped.")
+    expect(notice).to_have_text("Spoken notice: Figure 1 is skipped.")
     check_axe(page, "player with a notice")
     notice.click()  # the notice is a sentence like any other
     page.wait_for_function("() => !document.getElementById('audio').paused")
@@ -336,7 +342,7 @@ def test_a_skipped_code_block_shows_its_notice_and_its_code(
     )
     listen_to(page, live, tmp_path / "code.pdf", pdf)
     notice = page.locator(".notice")
-    expect(notice.locator("p")).to_have_text("A code block is skipped.")
+    expect(notice.locator("p")).to_have_text("Spoken notice: A code block is skipped.")
     expect(notice.locator("pre.code")).to_have_text("\n".join(code))
     expect(notice.locator("pre.code")).to_be_visible()
     check_axe(page, "player with a code block")
@@ -346,7 +352,7 @@ def test_a_listing_taller_than_the_window_keeps_its_spoken_notice_in_view(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
     """Review F1 of #288: when the reading reaches a code block taller than the window, its
-    top, where the spoken notice stands, comes to rest just under the player bar."""
+    top, where the spoken notice stands, comes to rest at the window's top, above the dock."""
     page = signed_in
     page.set_viewport_size({"width": 1280, "height": 720})
     page.emulate_media(reduced_motion="reduce")
@@ -366,14 +372,14 @@ def test_a_listing_taller_than_the_window_keeps_its_spoken_notice_in_view(
     page.locator(".s", has_text="The following example").first.click()
     expect(notice).to_have_attribute("aria-current", "true", timeout=20_000)
     page.wait_for_timeout(300)  # reduced motion: the scroll is instant; let it land
-    said, bar = page.evaluate(
+    said, dock = page.evaluate(
         """() => [
             document.querySelector('.notice p').getBoundingClientRect().toJSON(),
-            document.querySelector('.player-bar').getBoundingClientRect().bottom,
+            document.getElementById('dock').getBoundingClientRect().top,
         ]"""
     )
-    assert bar <= said["top"], (said, bar)
-    assert said["bottom"] <= 720, said
+    assert said["top"] >= 0, said
+    assert said["bottom"] <= dock, (said, dock)
 
 
 def test_a_second_jump_while_a_file_loads_wins(signed_in: Page, live: Live) -> None:
@@ -409,7 +415,7 @@ def test_text_from_the_file_cannot_change_how_the_page_parses(
         ]
     )
     listen_to(page, live, tmp_path / "odd.pdf", pdf)
-    buttons = page.locator(".chapter-button")
+    buttons = page.locator(".chapter-button .ot")
     expect(buttons).to_have_count(2)
     expect(buttons.first).to_have_text("Intro <!--<script>")
     expect(page.locator("#text")).to_contain_text("We measured it twice.")
@@ -423,8 +429,9 @@ def test_text_from_the_file_cannot_change_how_the_page_parses(
 SIZES = [(1280, 800), (768, 640), (768, 576), (390, 844), (320, 568), (320, 256)]
 
 
-def test_the_player_bar_never_hides_the_page(signed_in: Page, live: Live) -> None:
-    # review of PR #144, M2: the sticky bar covered the text at small widths and at zoom
+def test_the_dock_never_hides_the_page(signed_in: Page, live: Live) -> None:
+    # review of PR #144, M2: the sticky bar covered the text at small widths and at zoom; the
+    # dock (#393) is pinned to the window's foot by the same rule
     page = signed_in
     document = make_audiobook(page, live)
     for width, height in SIZES:
@@ -437,19 +444,34 @@ def test_the_player_bar_never_hides_the_page(signed_in: Page, live: Live) -> Non
         assert sideways <= 0, f"{where}: scrolls sideways by {sideways} px"
         bar = page.evaluate(
             """() => {
-                const bar = document.querySelector('.player-bar');
-                return {sticky: getComputedStyle(bar).position === 'sticky',
-                        height: bar.getBoundingClientRect().height};
+                const bar = document.getElementById('dock');
+                const box = bar.getBoundingClientRect();
+                return {fixed: getComputedStyle(bar).position === 'fixed',
+                        height: box.height, bottom: box.bottom};
             }"""
         )
         # pinned exactly while it takes at most a quarter of the window
-        assert bar["sticky"] == (bar["height"] <= height / 4), f"{where}: {bar}"
+        assert bar["fixed"] == (bar["height"] <= height / 4), f"{where}: {bar}"
         if (width, height) == (1280, 800):
-            assert bar["sticky"], f"{where}: a wide window keeps the bar in view: {bar}"
-        padding = page.evaluate("() => document.documentElement.style.scrollPaddingTop")
-        assert (padding != "") == bar["sticky"], f"{where}: scroll padding {padding!r}"
-        # every chapter button reached by keyboard is in view and not under the bar
-        page.locator("#follow").focus()
+            assert bar["fixed"], f"{where}: a wide window keeps the dock in view: {bar}"
+            assert bar["bottom"] == height, f"{where}: the dock stands at the foot: {bar}"
+        padding = page.evaluate("() => document.documentElement.style.scrollPaddingBottom")
+        assert (padding != "") == bar["fixed"], f"{where}: scroll padding {padding!r}"
+        # the end of the page can be scrolled out from under the dock
+        page.evaluate("() => window.scrollTo(0, document.documentElement.scrollHeight)")
+        last = page.evaluate(
+            """() => {
+                const all = document.querySelectorAll('#text .block');
+                const box = all[all.length - 1].getBoundingClientRect();
+                return box.bottom <= document.getElementById('dock').getBoundingClientRect().top
+                    || getComputedStyle(document.getElementById('dock')).position !== 'fixed';
+            }"""
+        )
+        assert last, f"{where}: the last paragraph stays under the dock"
+        # every chapter button reached by keyboard is in view and not under the dock
+        if width < 1280:
+            page.get_by_role("button", name="Show the side panel").click()
+        page.locator("#tab-outline").focus()
         for _ in range(2):
             page.keyboard.press(tab_key(page))
             covered = page.evaluate(

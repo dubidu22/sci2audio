@@ -271,16 +271,12 @@ download = "Stimme herunterladen ({size})"
 
 [listen]
 title = "Anhören: {name}"
-intro = "Der Text wie gedruckt; der Satz, der gerade gelesen wird, ist hervorgehoben. Klicken Sie auf einen Satz, um ab dort abzuspielen."
 ai_notice = "Dieses Hörbuch liest eine synthetische Stimme ({voice}), erstellt mit sci2audio."
 link = "Mit dem Text anhören"
 player = "Wiedergabe"
 previous_sentence = "Vorheriger Satz"
 next_sentence = "Nächster Satz"
-previous_chapter = "Vorheriges Kapitel"
-next_chapter = "Nächstes Kapitel"
 back_to_reading = "Zurück zur Lesestelle"
-audio = "Audio des Kapitels"
 follow = "Beim Lesen mitscrollen"
 speed = "Tempo"  # die Abspielgeschwindigkeit des Players (#152)
 speed_value = "{value}×"
@@ -294,13 +290,30 @@ page = "Seite {page}"
 not_read = "Nicht vorgelesen:"
 found = "In der Datei gefundener Text"
 back = "Zurück zum Dokument, um das Hörbuch zu erstellen"
-back_document = "Zurück zum Dokument"
 no_audiobook = "Von diesem Dokument gibt es noch kein Hörbuch."
 missing = "Die Dateien des Hörbuchs sind nicht mehr in {folder}. Erstellen Sie das Hörbuch neu."
 changed = "Die Dateien in {folder} gehören jetzt zu einem anderen Hörbuch. Erstellen Sie das Hörbuch neu."
 mismatch = "Die Mitlesedatei passt nicht zu diesem Dokument. Erstellen Sie das Hörbuch neu."
 broken = "Die Angaben zu diesem Hörbuch lassen sich nicht lesen. Erstellen Sie das Hörbuch neu."
 other_version = "Dieses Hörbuch wurde aus einer anderen Fassung der Datei erstellt. Erstellen Sie das Hörbuch neu."
+notice = "Gesprochener Hinweis:"  # eine Tabelle, Abbildung, Formel oder ein Codeblock, den die Stimme mit einem Hinweis überspringt
+said_as = "Gelesen als „{said}“"  # Text, den die Stimme anders gelesen hat, als Tooltip (#392)
+said_as_hidden = "(gelesen als „{said}“)"  # dasselbe für Screenreader
+cut_hidden = "(nicht gelesen)"  # eine Streichung, für Screenreader: <s> wird nicht angesagt
+unmarked = "Erstellt mit sci2audio {version}: Die Änderungen sind hier nicht im Text markiert, weil diese Version von sci2audio sie anders vornehmen kann."  # D-704b
+unmarked_link = "Erstellen Sie das Hörbuch neu, um sie zu sehen."
+timeline = "Position im Hörbuch"
+ai_label = "KI-Stimme"
+panel = "Seitenleiste"
+panel_show = "Seitenleiste zeigen"
+panel_hide = "Seitenleiste ausblenden"
+changes = "Änderungen"
+changes_hint = "Die Änderungen, mit denen dieses Hörbuch erstellt wurde. Was Sie unter „Vorbereiten“ umschalten, gilt, sobald Sie das Hörbuch neu erstellen."
+changes_link = "Vorbereiten öffnen"
+change_on = "An"
+change_off = "Aus"
+change_count.one = "1 Änderung"
+change_count.other = "{n} Änderungen"
 
 [player]  # das Skript des Players (#78)
 play = "Abspielen"
@@ -308,6 +321,7 @@ pause = "Anhalten"
 chapter = "Kapitel {n} von {total}:"  # der Titel folgt, in der Sprache des Texts
 cannot_play = "Dieser Browser kann die M4B-Datei des Hörbuchs nicht abspielen. Speichern Sie sie auf der Auftragsseite des Dokuments und spielen Sie sie in einem anderen Programm ab."
 load_failed = "Das Audio ließ sich nicht laden. Läuft sci2audio noch?"
+time_of = "{time} von {total}"  # die Uhr der Wiedergabeleiste und die Zeitleiste (#393)
 
 [js]
 moved = "{title} ist jetzt Kapitel {n} von {total}."  # die Kapitelliste (#119)
