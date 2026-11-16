@@ -345,6 +345,11 @@ def test_the_document_page_says_when_the_server_is_gone_while_it_analyses(
         job.join(10)
 
 
+@pytest.mark.quarantined(
+    issue=411,
+    reason="in WebKit a click can race the document page's reload after an analysis",
+    browser="webkit",
+)
 def test_make_starts_nothing_until_the_report_matches_and_has_a_chapter(
     signed_in: Page, live: Live
 ) -> None:
