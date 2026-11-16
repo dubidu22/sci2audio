@@ -84,6 +84,8 @@ def test_run_quarantined_runs_them(pytester: pytest.Pytester) -> None:
         "quarantined(issue=138)",
         'quarantined(138, reason="positional")',
         'quarantined(issue=138, reason="x", until="v1.1")',
+        'quarantined(issue=411, reason="a misspelt browser", browser="WebKit")',
+        'quarantined(issue=411, reason="no such browser", browser="safari")',
     ],
 )
 def test_a_marker_without_an_issue_number_is_refused(

@@ -77,6 +77,7 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     press_on(page, "Update the analysis")
     expect(page.locator("#changed")).to_be_hidden()
     expect(page.locator("#step-check")).to_be_focused()
+    settled(page)  # the page may reload once more when the analysis ends (#411)
     expect(page.locator("#counts-citations")).to_contain_text("1 switched off")
 
     # a list of changes opens with Enter and its table scrolls by keyboard

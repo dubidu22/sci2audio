@@ -48,6 +48,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+BROWSERS = ("chromium", "firefox", "webkit")  # pytest-playwright's names
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     run_them = config.getoption("--run-quarantined")
     for item in items:
@@ -66,6 +69,10 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             )
         platform = marker.kwargs.get("platform")
         browser = marker.kwargs.get("browser")
+        if browser is not None and browser not in BROWSERS:  # a typo would quarantine nothing
+            raise pytest.UsageError(
+                f"{item.nodeid}: quarantined browser= is one of {', '.join(BROWSERS)}"
+            )
         if run_them or (platform is not None and sys.platform != platform):
             continue
         if browser is not None and _browser_of(item) != browser:

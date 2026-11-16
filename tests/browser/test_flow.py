@@ -55,6 +55,9 @@ def update(page: Page) -> None:
     page.get_by_role("button", name="Update the analysis").click()
     expect(page.locator("#changed")).to_be_hidden()  # the page came back with a new report
     expect(page.locator("#step-check")).to_be_focused()
+    # a page drawn while the analysis was still the running job reloads once more when it
+    # ends; its buttons are wired only after that (#411, as for open_paper)
+    settled(page)
 
 
 def test_the_main_flow(signed_in: Page, live: Live) -> None:
@@ -345,11 +348,6 @@ def test_the_document_page_says_when_the_server_is_gone_while_it_analyses(
         job.join(10)
 
 
-@pytest.mark.quarantined(
-    issue=411,
-    reason="in WebKit a click can race the document page's reload after an analysis",
-    browser="webkit",
-)
 def test_make_starts_nothing_until_the_report_matches_and_has_a_chapter(
     signed_in: Page, live: Live
 ) -> None:
