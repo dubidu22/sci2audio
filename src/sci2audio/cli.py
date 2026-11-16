@@ -636,11 +636,14 @@ class Progress:
             self.phase(event.phase)
             return
         left = _minutes(event.seconds_left)
+        # counted among the chapters spoken, in the order read, as the web card counts
+        # them (#432, D-695); the line names the chapter of the sentence just spoken
+        number = event.chapter_number
         text = (
-            f"Speaking chapter {event.chapter + 1}, {_short(event.chapter_title)}: "
+            f"Speaking chapter {number} of {event.chapters}, {_short(event.chapter_title)}: "
             f"{event.chunks_done} of {event.chunks_total} sentences, {left}"
         )
-        self.show(text, key=f"chapter {event.chapter}")
+        self.show(text, key=f"chapter {number}")
 
     def download(self, done: int, total: int, target: str) -> None:
         name = target.rsplit("/", 1)[-1]

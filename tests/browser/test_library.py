@@ -162,3 +162,137 @@ def test_continue_listening_opens_the_player_paused_at_the_saved_time(
     )
     assert abs(time - kept["time"]) < 1.0, (time, kept)  # within one sentence
     expect(page.locator("#shelf-continue")).to_have_attribute("aria-current", "page")
+
+
+def test_the_search_filters_as_the_person_types_and_works_without_the_script(
+    signed_in: Page, live: Live
+) -> None:
+    """#416: by keyboard, case and accents aside; the GET form does the same without
+    app.js; the counts stay those of every document."""
+    page = signed_in
+    full_library(live)
+    page.goto(live.url + "/")
+    rows = page.locator("#documents tbody tr")
+    expect(rows).to_have_count(3)
+    search = page.get_by_role("searchbox", name="Search titles, authors and file names")
+    search.focus()
+    page.keyboard.type("NAPS wríter")
+    expect(rows.locator("visible=true")).to_have_count(1)
+    expect(rows.locator("visible=true").locator(".title")).to_contain_text("naps after lunch")
+    expect(page).to_have_url(re.compile(r"\?q=NAPS\+wr%C3%ADter$"))
+    expect(page.locator("#library-count")).to_have_text("3 documents on this computer")
+    check_axe(page, "library, filtered")
+    page.keyboard.type("x")
+    expect(page.locator("#no-match")).to_have_text("No document matches “NAPS wríterx”.")
+    expect(page.locator("#library")).to_be_hidden()
+    check_axe(page, "library, nothing found")
+    for _ in "wríterx":
+        page.keyboard.press("Backspace")
+    page.keyboard.press("Backspace")
+    page.keyboard.press("Enter")  # the form, with the script: filters, stays on the page
+    expect(rows.locator("visible=true")).to_have_count(1)
+    expect(page.locator("#no-match")).to_be_empty()
+    page.keyboard.press("Control+a")
+    page.keyboard.press("Delete")
+    expect(rows.locator("visible=true")).to_have_count(3)
+    expect(page).to_have_url(live.url + "/")
+    # without the script: the server filters for the form's GET
+    page.route(f"{live.url}/static/app.js", lambda route: route.abort())
+    page.goto(live.url + "/")
+    page.get_by_role("searchbox").fill("ready")
+    page.get_by_role("button", name="Search", exact=True).click()
+    expect(page).to_have_url(live.url + "/?q=ready")
+    expect(rows.locator("visible=true")).to_have_count(1)
+    expect(rows.locator("visible=true").locator(".title")).to_have_text("ready.pdf")
+    page.get_by_role("searchbox").fill("zzz")
+    page.get_by_role("searchbox").press("Enter")
+    expect(page.locator("#no-match")).to_have_text("No document matches “zzz”.")
+    page.unroute(f"{live.url}/static/app.js")
+
+
+def drop_files(page: Page, files: list[tuple[str, bytes]]) -> None:
+    """A synthetic drag of `files` onto the opener: enter, over, then drop."""
+    data = page.evaluate_handle(
+        """(files) => {
+            const data = new DataTransfer();
+            for (const [name, bytes] of files) {
+              data.items.add(new File([new Uint8Array(bytes)], name));
+            }
+            return data;
+        }""",
+        [[name, list(content)] for name, content in files],
+    )
+    opener = page.locator("#open-file")
+    opener.dispatch_event("dragenter", {"dataTransfer": data})
+    opener.dispatch_event("dragover", {"dataTransfer": data})
+    expect(opener).to_have_class(re.compile(r"\bover\b"))
+    opener.dispatch_event("drop", {"dataTransfer": data})
+    expect(opener).not_to_have_class(re.compile(r"\bover\b"))
+
+
+def test_a_file_dropped_on_the_opener_opens_and_is_analysed(signed_in: Page, live: Live) -> None:
+    """#417: one file opens as "Open and analyse" does; two files or a kind sci2audio
+    cannot read give a message in the status region; leaving ends the `over` state."""
+    page = signed_in
+    page.goto(live.url + "/")
+    expect(page.locator("#drop-hint")).to_be_visible()
+    expect(page.locator("#drop-hint")).to_have_text("Or drop a file here.")
+    opener = page.locator("#open-file")
+    data = page.evaluate_handle(
+        "() => { const d = new DataTransfer(); d.items.add(new File(['x'], 'a.txt')); return d; }"
+    )
+    opener.dispatch_event("dragenter", {"dataTransfer": data})
+    expect(opener).to_have_class(re.compile(r"\bover\b"))
+    opener.dispatch_event("dragleave", {"dataTransfer": data})
+    expect(opener).not_to_have_class(re.compile(r"\bover\b"))
+    message = page.locator("#message")
+    drop_files(page, [("a.pdf", pdf_bytes("One.")), ("b.pdf", pdf_bytes("Two."))])
+    expect(message).to_have_text("Drop one file at a time.")
+    expect(message).to_be_focused()
+    drop_files(page, [("program.exe", b"MZ not a document")])
+    expect(message).to_contain_text("sci2audio can't read this kind of file.")
+    assert live.state.store.all() == []
+    drop_files(page, [("dropped.pdf", pdf_bytes("A dropped paper."))])
+    page.wait_for_url(re.compile(r"/documents/[^/]+$"))
+    expect(page.get_by_role("heading", level=1)).to_have_text(re.compile("dropped"))
+    assert [document.name for document in live.state.store.all()] == ["dropped.pdf"]
+
+
+def test_a_file_dropped_beside_the_opener_stays_out_of_the_tab(signed_in: Page, live: Live) -> None:
+    """#446 review N1: a file dropped elsewhere on the library page would open in the tab
+    and leave the app; the page cancels that drop and opens nothing."""
+    page = signed_in
+    page.goto(live.url + "/")
+    expect(page.locator("#drop-hint")).to_be_visible()
+    cancelled = page.evaluate(
+        """() => {
+            const data = new DataTransfer();
+            data.items.add(new File(["x"], "beside.pdf"));
+            const where = document.querySelector(".rail");
+            const options = { dataTransfer: data, bubbles: true, cancelable: true };
+            const fire = (type) => !where.dispatchEvent(new DragEvent(type, options));
+            return [fire("dragover"), fire("drop")];
+        }"""
+    )
+    assert cancelled == [True, True]  # the browser's own drop (open the file) is cancelled
+    assert page.url == live.url + "/"
+    assert live.state.store.all() == []
+    # a drag that carries no file (text from the page) keeps the browser's own way
+    text = page.evaluate(
+        """() => {
+            const data = new DataTransfer();
+            data.setData("text/plain", "words");
+            return !document.querySelector(".rail").dispatchEvent(
+                new DragEvent("drop", { dataTransfer: data, bubbles: true, cancelable: true }));
+        }"""
+    )
+    assert text is False
+
+
+def test_without_the_script_the_hint_does_not_promise_dropping(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    page.route(f"{live.url}/static/app.js", lambda route: route.abort())
+    page.goto(live.url + "/")
+    expect(page.locator("#file-hint")).to_be_visible()
+    expect(page.locator("#drop-hint")).to_be_hidden()
+    page.unroute(f"{live.url}/static/app.js")

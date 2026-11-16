@@ -27,7 +27,7 @@
     <span class="slot" aria-hidden="true">{{ icon('open', 'l') }}</span>
     <div class="drop-text">
       <h2 id="open-h">{{ t('library.open_title') }}</h2>
-      <p class="hint" id="file-hint">{{ t('library.open_hint', types=types, limit=limit) }}</p>
+      <p class="hint" id="file-hint">{{ t('library.open_hint', types=types, limit=limit) }} <span id="drop-hint" hidden>{{ t('library.open_drop') }}</span></p>
       <input id="file" name="file" type="file" accept="{{ accept }}" aria-labelledby="open-h" aria-describedby="file-hint" required>
     </div>
     <button type="submit" class="primary">{{ t('library.open') }}</button>
@@ -48,7 +48,14 @@
 <p id="message" class="message" role="status" tabindex="-1"></p>
 
 {% if rows %}
-<div class="scroll papers-region" id="library" role="region" aria-labelledby="library-caption" tabindex="0">
+{#- the search (#416): a GET form that works without the script; app.js filters in place -#}
+<form class="lib-tools" id="search" role="search" action="/" method="get">
+  <label for="q" class="visually-hidden">{{ t('library.search_label') }}</label>
+  <span class="search">{{ icon('search') }}<input id="q" name="q" type="search" value="{{ query }}" placeholder="{{ t('library.search_label') }}" autocomplete="off"></span>
+  <button type="submit">{{ t('library.search_button') }}</button>
+</form>
+<p class="no-match" id="no-match" role="status">{% if query and not shown %}{{ t('library.search_none', q=query) }}{% endif %}</p>
+<div class="scroll papers-region" id="library" role="region" aria-labelledby="library-caption" tabindex="0"{% if not shown %} hidden{% endif %}>
 <table class="papers" id="documents">
   <caption id="library-caption" class="visually-hidden">{{ t('library.caption') }}</caption>
   <thead>
@@ -62,7 +69,7 @@
   </thead>
   <tbody>
     {% for row in rows %}
-    <tr id="row-{{ row.id }}" data-document="{{ row.id }}">
+    <tr id="row-{{ row.id }}" data-document="{{ row.id }}" data-find="{{ row.find }}"{% if row.id not in shown %} hidden{% endif %}>
       <td class="thumb-cell"><span class="thumb {{ row.kind }}" aria-hidden="true"><i></i><i></i><i></i><i class="w70"></i><i></i><i class="w85"></i></span></td>
       <td class="paper">
         <a class="title" href="{{ row.href }}">{{ row.title }}</a>

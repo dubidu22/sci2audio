@@ -61,6 +61,21 @@ def test_the_listen_page_shows_a_command_line_job(tmp_path: Path) -> None:
     assert client.get(f"/documents/{job.document}/listen").status_code == 404
 
 
+def test_the_librarys_search_finds_a_command_line_job_by_its_name(tmp_path: Path) -> None:
+    """#416 (#446 review S1b): every row is found by its title or file name, also an
+    audiobook the command line made, and hidden by a query that does not match it."""
+    job, client, _config = outside_job(tmp_path)
+
+    def row(query: str) -> str:
+        page = client.get("/", params={"q": query}).text
+        return page.split(f'<tr id="row-{job.id}"')[1].split(">")[0]
+
+    assert 'data-find="note.pdf' in row("NOTE")
+    assert not row("NOTE").endswith(" hidden")
+    assert not row("note.pdf").endswith(" hidden")
+    assert row("nothing like it").endswith(" hidden")
+
+
 def test_only_the_jobs_own_files_are_served(tmp_path: Path) -> None:
     job, client, _config = outside_job(tmp_path)
     base = f"/api/v1/documents/{job.id}/audiobook"

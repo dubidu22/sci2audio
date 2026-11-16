@@ -398,6 +398,8 @@ select.speed { min-height: 34px; padding: 4px 8px; font-weight: 700; }
 .callout.warn > svg { color: var(--wait); }
 .opener { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); margin: 0 0 32px; }
 .drop { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding: 22px 24px; border-right: 1px solid var(--rule); min-width: 0; }
+.drop.over { background: var(--desk); outline: 2px dashed var(--focus); outline-offset: -6px; }
+.drop.over .slot { border-color: var(--focus); color: var(--focus); }
 .drop .slot { width: 56px; height: 68px; border: 1.5px dashed var(--rule-strong); border-radius: 2px; display: grid; place-items: center; color: var(--pencil); flex: none; }
 .drop-text { flex: 1 1 14rem; display: grid; gap: 6px; min-width: 0; }
 .drop h2 { font-size: 17px; margin: 0; }
@@ -412,6 +414,13 @@ select.speed { min-height: 34px; padding: 4px 8px; font-weight: 700; }
 .paste[open] summary { margin-bottom: 12px; }
 .paste[open] summary svg:last-child { transform: rotate(180deg); }
 .paste .stack { margin: 0; }
+/* the library's search (#416) */
+.lib-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+.lib-tools .search { position: relative; flex: 0 1 22rem; min-width: 0; display: flex; }
+.lib-tools .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--pencil); pointer-events: none; }
+.lib-tools input[type="search"] { font: inherit; color: var(--ink); background: var(--paper); width: 100%; min-height: 38px; padding: 7px 10px 7px 34px; border: 1px solid var(--rule-strong); border-radius: var(--r); }
+.no-match { margin: 0 0 12px; color: var(--pencil); }
+.no-match:empty { display: none; }
 .papers-region { position: relative; margin: 0 0 16px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper); }
 .papers-region:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 table.papers { width: 100%; margin: 0; border: 0; min-width: 640px; }
@@ -457,6 +466,15 @@ table.papers { width: 100%; margin: 0; border: 0; min-width: 640px; }
 .pack > header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--rule); }
 .pack > header h2 { font-size: 17px; margin: 0; }
 .pack > header .chip { margin-left: auto; }
+/* the voice cards (#419) */
+.voice-cards { list-style: none; margin: 0; padding: 16px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 12px; }
+.voice-card { border: 1px solid var(--rule); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.voice-card h3 { font-size: 15.5px; margin: 0; }
+.voice-card .about { margin: 0; color: var(--pencil); font-size: 13.5px; }
+.voice-card .voice-play { justify-self: start; }
+.voice-card.missing { background: var(--desk); border-style: dashed; }
+.voice-card.missing h3 { color: var(--pencil); }
+.voice-card .not-installed { margin: 0; display: flex; gap: 6px; align-items: center; font-size: 13.5px; color: var(--pencil); }
 .pack table { width: 100%; margin: 0; border: 0; font-size: 14px; }
 .pack th { color: var(--pencil); font-size: 12.5px; padding: 8px 20px; }
 .pack td { padding: 8px 20px; border-bottom: 0; border-top: 1px solid var(--rule); }

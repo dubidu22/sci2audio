@@ -17,6 +17,8 @@ from __future__ import annotations
 import json
 import logging
 import math
+import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -221,3 +223,26 @@ def when(moment: datetime, now: datetime) -> tuple[str, str]:
     if local.date() == today.date() - timedelta(days=1):
         return "yesterday", clock
     return "date", local.date().isoformat()
+
+
+# ---- the search (#416) ------------------------------------------------------------------
+
+
+def folded(text: str) -> str:
+    """`text` as the library's search compares it: case and accents aside. app.js folds the
+    same way (`folded` there): lower case, compatibility forms split, marks dropped, ß as
+    ss."""
+    split = unicodedata.normalize("NFKD", text.lower())
+    plain = "".join(c for c in split if not unicodedata.category(c).startswith("M"))
+    return plain.replace("ß", "ss")
+
+
+def search_text(title: str, authors: Iterable[str], file: str) -> str:
+    """What a library row is found by: its title, its authors and its file name, folded."""
+    return folded(" ".join([title, *authors, file]))
+
+
+def matches(query: str, found_by: str) -> bool:
+    """True when every word of `query` is in `found_by` (a `search_text`); an empty query
+    matches every row."""
+    return all(word in found_by for word in folded(query).split())

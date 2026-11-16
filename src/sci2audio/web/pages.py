@@ -65,9 +65,11 @@ from sci2audio.web.library import (
     Heard,
     heard,
     length_text,
+    matches,
     position_age,
     read_about,
     read_opened,
+    search_text,
     when,
     write_opened,
 )
@@ -273,6 +275,9 @@ def _library_row(
         "id": document.id,
         "title": about.title if about else document.name,
         "file": document.name,
+        "find": search_text(
+            about.title if about else document.name, about.authors if about else (), document.name
+        ),
         "meta": _meta(s, about.authors if about else (), about.pages if about else None, got),
         "kind": document.source.suffix.removeprefix(".").lower(),
         "href": f"/documents/{document.id}/listen" if got else f"/documents/{document.id}",
@@ -293,6 +298,7 @@ def _outside_row(s: Strings, job: Any) -> dict[str, Any]:
         "id": job.id,
         "title": job.name,
         "file": job.name,
+        "find": search_text(job.name, (), job.name),
         "meta": s("library.outside_meta", folder=str(job.folder)),
         "kind": PurePath(job.name).suffix.removeprefix(".").lower(),
         "href": f"/documents/{job.id}/listen",
@@ -383,8 +389,9 @@ def _busy_document(state: ServerState) -> str | None:
 
 
 @router.get("/", response_class=HTMLResponse)
-def index(request: Request, state: State) -> HTMLResponse:
+def index(request: Request, state: State, q: str = "") -> HTMLResponse:
     s = strings_of(request)
+    query = " ".join(q.split())[:200]  # the search (#416): every word in title, authors or file
     suffixes = supported_suffixes()
     documents = state.store.all()
     saved, _ = load_settings(state.config.config_file)
@@ -398,6 +405,8 @@ def index(request: Request, state: State) -> HTMLResponse:
         "index.html",
         documents=documents,
         rows=rows,
+        query=query,
+        shown={row["id"] for row in rows if matches(query, row["find"])},
         library_count=len(rows),
         removals={document.id: _removal(document) for document in documents},
         busy_document=_busy_document(state),
@@ -1158,6 +1167,8 @@ def voice(request: Request, state: State) -> HTMLResponse:
                 "language": language,
                 "name": s(f"setup.pack_{language}"),
                 "installed": language in there,
+                "voices": _voice_cards(language, s),
+                "missing": s.size(sum(f.size for f in missing if f.pack == language)),
                 "files": [
                     {"target": f.target, "size": s.size(f.size), "licence": f.licence}
                     for f in plan.files
@@ -1171,6 +1182,35 @@ def voice(request: Request, state: State) -> HTMLResponse:
         hosts=hosts_shown(plan.files, s),
         digest=plan_digest(plan),
     )
+
+
+def _voice_cards(pack: str, s: Strings) -> list[dict[str, Any]]:
+    """The voices of one pack as cards (#419): the default first, then by accent and name;
+    each with the sample sentence of its language, the one the document page previews."""
+    default = DEFAULT_VOICES.get(pack)
+    voices = sorted(
+        (v for v in VOICES if voice_pack(v.id) == pack),
+        key=lambda v: (v.id != default, v.language, v.name),
+    )
+    cards = []
+    for voice in voices:
+        accent = s(f"accent.{voice.language}")
+        if voice.gender == "female":
+            about = s("setup.voice_female", accent=accent)
+        else:
+            about = s("setup.voice_male", accent=accent)
+        about = about[:1].upper() + about[1:]  # German accents begin in lower case
+        language = primary_language(voice.language)
+        cards.append(
+            {
+                "id": voice.id,
+                "name": voice.name,
+                "about": f"{about} {s('voice.default')}" if voice.id == default else about,
+                "text": preview_text(language),
+                "language": language,
+            }
+        )
+    return cards
 
 
 # --- the privacy page (D-293) ----------------------------------------------------------
