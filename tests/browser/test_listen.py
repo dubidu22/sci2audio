@@ -261,6 +261,11 @@ def test_the_panel_beside_the_desk_and_over_it(signed_in: Page, live: Live) -> N
     expect(page.locator("#panel-changes")).to_contain_text("Citations")
     expect(page.locator("#panel-changes").get_by_role("link", name="Open Prepare")).to_be_visible()
     page.keyboard.press("End")
+    expect(page.locator("#tab-markers")).to_be_focused()  # the third tab (#474)
+    expect(page.locator("#tab-markers")).to_have_text("Markers (0)")
+    expect(page.locator("#panel-markers")).to_be_visible()
+    expect(page.locator("#markers-empty")).to_be_visible()
+    page.keyboard.press("ArrowLeft")
     expect(page.locator("#tab-outline")).to_be_focused()
     expect(page.locator("#panel-outline")).to_be_visible()
     check_axe(page, "listen, panel beside the desk")
@@ -476,9 +481,13 @@ def test_every_button_waits_for_the_script(signed_in: Page, live: Live) -> None:
     assert all(states), states
     assert held, "player.js was not requested"
     held[0].continue_()
+    # the marker button stays disabled while no sentence is being read (#474)
     page.wait_for_function(
-        f"() => [...document.querySelectorAll('{controls}')].every(e => !e.disabled)"
+        f"() => [...document.querySelectorAll('{controls}')]"
+        ".every(e => !e.disabled || e.id === 'marker')"
     )
+    page.locator("#next-sentence").click()
+    expect(page.locator("#marker")).to_be_enabled()
     page.unroute("**/static/player.js")
 
 

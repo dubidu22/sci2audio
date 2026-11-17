@@ -58,6 +58,7 @@ SCRIPT_KEYS = (
     "making.speaking",  # the job card's headline (#391)
     "making.cancel_size",
     "player.",
+    "marker.",  # the markers on the Listen page (#474)
     "remove.removing",
     "remove.done",
     "remove.stays",  # and remove.stays_folder

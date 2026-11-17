@@ -245,6 +245,38 @@ def test_the_contrast_check_finds_a_bar_in_the_reading_yellow_on_white() -> None
     assert light["bar on paper"] < 1.3
 
 
+def marker_contrasts(css: str) -> dict[str, dict[str, float]]:
+    """#474, D-727: the marker's flag and tick, in both themes."""
+    light, system, _chosen = blocks(css)
+    found = {}
+    for theme, block in (("light", light), ("dark", system)):
+        tokens = {**light, **block}
+        edge = rgb(tokens["--marker-edge"], tokens)
+        body = rgb(tokens["--marker"], tokens)
+        found[theme] = {
+            "edge on paper": contrast(edge, rgb(tokens["--paper"], tokens)),  # sheet, dock
+            "edge on desk": contrast(edge, rgb(tokens["--desk"], tokens)),  # above the dock
+            "icon on body": contrast(rgb(tokens["--on-hl"], tokens), body),
+        }
+    return found
+
+
+def test_the_markers_flag_and_tick_stand_out() -> None:
+    """D-727 for the marker (#474): the flag's and the tick's edge stand out at least 3:1
+    from every background they sit on (the sheet's padding and the dock are paper; the tick
+    stands above the track, half on the desk), and the icon from the flag's body."""
+    for theme, measured in marker_contrasts(SERVED_CSS.read_text(encoding="utf-8")).items():
+        for name, value in measured.items():
+            assert value >= 3, (theme, name, measured)
+
+
+def test_the_contrast_check_finds_a_marker_edge_in_the_mark_orange_on_white() -> None:
+    css = SERVED_CSS.read_text(encoding="utf-8").replace(
+        "--marker-edge: #9A5800", "--marker-edge: var(--hl-mark)", 1
+    )
+    assert marker_contrasts(css)["light"]["edge on paper"] < 2
+
+
 def test_one_mark_for_the_sheet_and_focus() -> None:
     """D-720: the mark's tokens are set only in the three token blocks, and only the sheet's
     mark, Focus's mark and the bar use them."""
@@ -436,7 +468,8 @@ def test_the_rail_marks_the_current_page(tmp_path: Path, path: str, current: str
 @pytest.mark.parametrize("path", ["/", "/voice", "/settings", "/privacy", "/jobs/nothing"])
 def test_every_page_has_the_shortcuts_sheet(tmp_path: Path, path: str) -> None:
     """#394: a closed dialog, its Close drawn disabled until app.js wires it; the keys of
-    Listen and Focus with their names for screen readers; N, Q, C, M wait for #397."""
+    Listen and Focus with their names for screen readers; M sets a marker (#474); N, Q and
+    C wait for #397."""
     page = client_of(server(tmp_path)).get(path).text
     sheet = page.split('<dialog id="keys"')[1].split("</dialog>")[0]
     assert ' aria-labelledby="keys-title">' in sheet.split("\n")[0]
@@ -451,6 +484,7 @@ def test_every_page_has_the_shortcuts_sheet(tmp_path: Path, path: str) -> None:
         "Previous / next sentence",
         "Previous / next chapter",
         "Slower / faster",
+        "Set or remove a marker on the sentence being read",
         "Focus listening",
         "Show or hide the side panel",
         "This list",
@@ -460,7 +494,8 @@ def test_every_page_has_the_shortcuts_sheet(tmp_path: Path, path: str) -> None:
     left = '<span aria-hidden="true">←</span><span class="visually-hidden">Left arrow</span>'
     assert left in sheet
     assert '<span class="visually-hidden">Shift</span>' in sheet
-    for later in ("<kbd>N</kbd>", "<kbd>Q</kbd>", "<kbd>C</kbd>", "<kbd>M</kbd>"):
+    assert "<kbd>M</kbd>" in sheet
+    for later in ("<kbd>N</kbd>", "<kbd>Q</kbd>", "<kbd>C</kbd>"):
         assert later not in sheet
     german_client = client_of(server(tmp_path))
     german_client.cookies.set("sci2audio-language", "de")

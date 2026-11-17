@@ -163,6 +163,7 @@ function readAlong() {
       reveal(marked);
     }
     placeBars();
+    markerState();
   }
 
   function update() {
@@ -404,9 +405,14 @@ function readAlong() {
   const sheetBar = document.getElementById("now-bar");
   const focusBar = document.getElementById("focus-bar");
 
+  // the line boxes an element stands on, as drawn
+  function linesOf(element) {
+    return element ? [...element.getClientRects()].filter((r) => r.width && r.height) : [];
+  }
+
   function placeBar(bar, element, box, left) {
     if (!bar) return;
-    const lines = element ? [...element.getClientRects()].filter((r) => r.width && r.height) : [];
+    const lines = linesOf(element);
     if (!lines.length) {
       bar.hidden = true;
       return;
@@ -430,6 +436,7 @@ function readAlong() {
       // in Focus: 12 px left of the sentence's leftmost line (the stage centres it)
       const now = focusing && focusNow.textContent.trim() ? focusNow : null;
       placeBar(focusBar, now, focusBar?.parentElement, (lines) => Math.min(...lines.map((r) => r.left)));
+      placeFlags();
     });
   }
   if (window.ResizeObserver) {
@@ -437,8 +444,365 @@ function readAlong() {
     watch.observe(text);
     if (focusBar) watch.observe(focusBar.parentElement);
   }
+  // a chapter far from the window is laid out again once it comes near (content-visibility)
+  for (const chapter of text.querySelectorAll(".sheet-chapter")) {
+    chapter.addEventListener("contentvisibilityautostatechange", placeBars);
+  }
   window.addEventListener("resize", placeBars);
   document.fonts?.ready.then(placeBars);
+
+  // ---- markers (#474, D-723, D-728) -----------------------------------------------------
+  // A marker on the sentence being read, set or removed by M or the dock's button, with an
+  // optional note in the panel. The server keeps them in the working folder and places each
+  // in this audiobook; the page draws a flag beside its sentence (no fill: the reading mark
+  // stays the only fill), a tick above the timeline and a row in the panel. A removal never
+  // asks: the toast's Undo puts it back, for 60 s (D-723 ruling 1).
+  const markerButton = document.getElementById("marker");
+  const markerList = document.getElementById("marker-list");
+  const markersTab = document.getElementById("tab-markers");
+  const markersEmpty = document.getElementById("markers-empty");
+  const flags = document.getElementById("marker-flags");
+  const focusFlag = document.getElementById("focus-flag");
+  const markerTicks = document.getElementById("marker-ticks");
+  const toast = document.getElementById("marker-toast");
+  const toastSaid = document.getElementById("marker-said");
+  const undoButton = document.getElementById("marker-undo");
+  const addNoteButton = document.getElementById("marker-add-note");
+  const markersUrl = `/api/v1/documents/${encodeURIComponent(data.document)}/markers`;
+  const markersOff = Boolean(data.markers_file); // a file this version can't read: hands off
+  const MARK_BACK = 1.2; // seconds into a sentence in which M marks the one that just ended
+  const TOAST_FOR = 60000; // ms the toast's Undo stays
+  const NOTE_LIMIT = 4000;
+  let markers = data.markers || []; // {id, text, note, chunk, state}, in the server's order
+  let undo = null; // what the toast's Undo does
+  let noteFor = null; // the marker the toast's "Add note" opens
+  let toastTimer = 0;
+  let editing = null; // the marker whose note box is open
+  let resumeAfterNote = false;
+  let showMarkers = null; // opens the panel on the Markers tab (contextPanel)
+  let markerQueue = Promise.resolve(); // the marker changes M and the button asked for
+
+  const elementOf = (marker) => (marker.chunk === null ? "" : chunks[marker.chunk]?.[3] || "");
+  const markersOn = (id) => (id ? markers.filter((m) => elementOf(m) === id) : []);
+
+  // reading order: found ones by their sentence, then those not read, then those not found
+  function sortMarkers() {
+    const rank = { found: 0, "not-read": 1, "not-found": 2 };
+    markers = markers
+      .map((marker, at) => [marker, at])
+      .sort(([a, i], [b, j]) => rank[a.state] - rank[b.state] || (a.state === "found" ? a.chunk - b.chunk : 0) || i - j)
+      .map(([marker]) => marker);
+  }
+
+  // the sentence M acts on: the one being read, or the one that just ended while the voice
+  // is in the first 1.2 s of the next (#397); the chunk its element starts with
+  function markerTarget() {
+    if (current < 0) return null;
+    let at = current;
+    if (!audio.paused && bookTime() - chunks[current][0] < MARK_BACK) {
+      const id = chunks[current][3];
+      let back = current - 1;
+      while (back >= 0 && (!chunks[back][3] || chunks[back][3] === id)) back--;
+      if (back >= 0) at = back;
+    }
+    const id = chunks[at][3];
+    const element = id ? document.getElementById(id) : null;
+    return element ? { id, chunk: Number(element.dataset.chunk) } : null;
+  }
+
+  async function markerCall(url, method, body) {
+    try {
+      const options = { method };
+      if (body) {
+        options.headers = { "content-type": "application/json" };
+        options.body = JSON.stringify(body);
+      }
+      return await send(url, options);
+    } catch (error) {
+      hideToast();
+      say(explain(error), true);
+      return null;
+    }
+  }
+
+  function tell(said, then = null, noted = null) {
+    clearTimeout(toastTimer);
+    toastSaid.textContent = said;
+    undo = then;
+    noteFor = noted;
+    undoButton.hidden = !then;
+    addNoteButton.hidden = !noted;
+    toast.hidden = false;
+    say(said); // the status line, for screen readers
+    toastTimer = setTimeout(hideToast, TOAST_FOR);
+  }
+
+  function hideToast() {
+    clearTimeout(toastTimer);
+    const inside = toast.contains(document.activeElement);
+    toast.hidden = true;
+    undo = null;
+    noteFor = null;
+    if (inside) play.focus(); // the button pressed goes away: the focus goes to the player
+  }
+
+  undoButton.addEventListener("click", () => {
+    const then = undo;
+    hideToast();
+    then?.();
+  });
+  addNoteButton.addEventListener("click", () => {
+    const id = noteFor;
+    hideToast();
+    if (id) openNote(id);
+  });
+
+  async function setMarker(chunk) {
+    const marker = await markerCall(markersUrl, "POST", { chunk, audiobook: data.audiobook });
+    if (!marker) return;
+    keepMarker(marker);
+    tell(tr("marker.set"), () => removeMarker(marker), marker.id);
+  }
+
+  async function removeMarker(marker) {
+    const gone = await markerCall(`${markersUrl}/${marker.id}`, "DELETE");
+    if (!gone) return;
+    if (editing === gone.id) editing = null;
+    markers = markers.filter((m) => m.id !== gone.id);
+    drawMarkers();
+    tell(gone.note ? tr("marker.removed_note") : tr("marker.removed"), () => restoreMarker(gone.id));
+  }
+
+  async function restoreMarker(id) {
+    const marker = await markerCall(`${markersUrl}/${id}/restore`, "POST");
+    if (!marker) return;
+    keepMarker(marker);
+    tell(tr("marker.restored"));
+  }
+
+  function keepMarker(marker) {
+    const kept = { id: marker.id, text: marker.text, note: marker.note, chunk: marker.chunk, state: marker.state };
+    markers = [...markers.filter((m) => m.id !== kept.id), kept];
+    sortMarkers();
+    drawMarkers();
+  }
+
+  function toggleMarker() {
+    if (markersOff) {
+      say(tr("error.markers-unreadable"), true);
+      return;
+    }
+    const target = markerTarget(); // the sentence when the key was pressed
+    if (!target) return;
+    // one change at a time, in the order pressed: a second press on the same sentence
+    // removes what the first one set
+    markerQueue = markerQueue.then(() => {
+      const there = markersOn(target.id)[0];
+      return there ? removeMarker(there) : setMarker(target.chunk);
+    });
+  }
+  markerButton.addEventListener("click", toggleMarker);
+
+  // the button is pressed while the sentence being read has a marker
+  function markerState() {
+    const id = current >= 0 ? chunks[current][3] : "";
+    markerButton.disabled = markersOff || !id;
+    markerButton.setAttribute("aria-pressed", String(markersOn(id).length > 0));
+  }
+
+  // ---- the flags and the ticks ----
+
+  function placeFlags() {
+    const box = sheet.getBoundingClientRect();
+    const column = text.getBoundingClientRect();
+    const ids = focusing ? [] : [...new Set(markers.map(elementOf).filter(Boolean))];
+    while (flags.children.length > ids.length) flags.lastElementChild.remove();
+    while (flags.children.length < ids.length) {
+      const flag = document.createElement("span");
+      flag.className = "marker-flag";
+      flag.append(focusFlag.querySelector("svg").cloneNode(true));
+      flags.append(flag);
+    }
+    ids.forEach((id, n) => {
+      const flag = flags.children[n];
+      const lines = linesOf(document.getElementById(id));
+      flag.dataset.for = id;
+      flag.hidden = !lines.length;
+      if (!lines.length) return;
+      const width = flag.offsetWidth;
+      const height = flag.offsetHeight;
+      flag.style.top = `${lines[0].top - box.top - sheet.clientTop + (lines[0].height - height) / 2}px`;
+      flag.style.left = `${column.right - box.left - sheet.clientLeft + (box.right - column.right - width) / 2}px`;
+    });
+    // in Focus: right of the stage's sentence, at its first line
+    const staged = focusing && marked && markersOn(marked.id).length ? linesOf(focusNow) : [];
+    focusFlag.hidden = !staged.length;
+    if (staged.length) {
+      const at = focusFlag.parentElement.getBoundingClientRect();
+      const right = Math.max(...staged.map((r) => r.right));
+      focusFlag.style.top = `${staged[0].top - at.top + (staged[0].height - focusFlag.offsetHeight) / 2}px`;
+      focusFlag.style.left = `${right - at.left + 8}px`;
+    }
+  }
+
+  function drawTicks() {
+    const length = Number(timeline.max) || 0;
+    const times = [...new Set(markers.filter((m) => m.chunk !== null).map((m) => chunks[m.chunk][0]))];
+    markerTicks.replaceChildren(
+      ...times.map((time) => {
+        const tick = document.createElementNS(markerTicks.namespaceURI, "rect");
+        tick.setAttribute("x", `${length > 0 ? (time / length) * 100 : 0}%`);
+        tick.setAttribute("y", "0");
+        tick.setAttribute("width", "7");
+        tick.setAttribute("height", "10");
+        return tick;
+      }),
+    );
+  }
+
+  // ---- the panel's list ----
+
+  function made(tag, className, words) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (words !== undefined) element.textContent = words;
+    return element;
+  }
+
+  function action(words, then) {
+    const button = made("button", "sm quiet", words);
+    button.type = "button";
+    button.addEventListener("click", then);
+    return button;
+  }
+
+  function row(marker) {
+    const item = made("li", "marker-row");
+    item.dataset.marker = marker.id;
+    if (marker.state === "found") {
+      const [time, , chapter] = chunks[marker.chunk];
+      item.append(made("p", "mk-at", tr("marker.at", { n: chapter + 1, time: clockOf(time) })));
+    } else {
+      const notice = marker.state === "not-read" ? tr("marker.not_read") : tr("marker.not_found");
+      item.append(made("p", "mk-state", notice));
+    }
+    const quote = made("blockquote", "mk-text", marker.text);
+    quote.lang = text.lang;
+    item.append(quote);
+    if (marker.text.length > 200) {
+      quote.classList.add("clamped");
+      const more = action(tr("marker.show_all"), () => {
+        const open = quote.classList.toggle("clamped") === false;
+        more.textContent = open ? tr("marker.show_less") : tr("marker.show_all");
+        more.setAttribute("aria-expanded", String(open));
+      });
+      more.classList.add("mk-more");
+      more.setAttribute("aria-expanded", "false");
+      item.append(more);
+    }
+    if (marker.note) item.append(made("p", "mk-note", marker.note));
+    if (editing === marker.id) {
+      item.append(noteBox(marker));
+      return item;
+    }
+    const actions = made("p", "mk-actions");
+    if (marker.state === "found") {
+      actions.append(action(tr("marker.go_to"), () => playFrom(marker.chunk, !audio.paused)));
+    }
+    const edit = action(marker.note ? tr("marker.edit_note") : tr("marker.add_note"), () => openNote(marker.id));
+    edit.classList.add("mk-edit-note");
+    actions.append(edit, action(tr("marker.remove"), () => removeMarker(marker)));
+    item.append(actions);
+    return item;
+  }
+
+  function noteBox(marker) {
+    const box = made("div", "mk-edit");
+    const id = `note-${marker.id}`;
+    const label = made("label", "", tr("marker.note"));
+    label.htmlFor = id;
+    const area = made("textarea");
+    area.id = id;
+    area.rows = 4;
+    area.maxLength = NOTE_LIMIT;
+    area.value = marker.note;
+    const left = made("p", "hint mk-left");
+    left.id = `${id}-left`;
+    left.setAttribute("aria-live", "polite");
+    area.setAttribute("aria-describedby", left.id);
+    const count = () => {
+      const rest = NOTE_LIMIT - area.value.length;
+      left.textContent = rest <= 400 ? tr("marker.note_left", { n: rest }) : "";
+    };
+    area.addEventListener("input", count);
+    count();
+    area.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        saveNote(marker.id, area.value);
+      } else if (event.key === "Escape") {
+        event.preventDefault(); // the panel stays open, and Focus is not left
+        event.stopPropagation();
+        closeNote(marker.id);
+      }
+    });
+    const buttons = made("p", "buttons");
+    const save = action(tr("marker.save"), () => saveNote(marker.id, area.value));
+    save.classList.replace("quiet", "primary");
+    buttons.append(save, action(tr("marker.cancel"), () => closeNote(marker.id)));
+    box.append(label, area, left, buttons);
+    return box;
+  }
+
+  function rowOf(id) {
+    return markerList.querySelector(`li[data-marker="${CSS.escape(id)}"]`);
+  }
+
+  // the note box: playback pauses while it is open and goes on after it closes (#397)
+  function openNote(id) {
+    if (!markers.some((m) => m.id === id)) return;
+    if (focusing) setFocus(false);
+    if (editing === null) resumeAfterNote = !audio.paused;
+    audio.pause();
+    editing = id;
+    drawList();
+    showMarkers?.();
+    rowOf(id)?.querySelector("textarea")?.focus();
+  }
+
+  function closeNote(id) {
+    editing = null;
+    drawList();
+    rowOf(id)?.querySelector(".mk-edit-note")?.focus();
+    if (resumeAfterNote) audio.play().catch(() => {});
+    resumeAfterNote = false;
+  }
+
+  async function saveNote(id, value) {
+    const note = value.trim() ? value : "";
+    const marker = await markerCall(`${markersUrl}/${id}`, "PATCH", { note });
+    if (!marker) return;
+    editing = null;
+    keepMarker(marker);
+    say(tr("marker.saved"));
+    closeNote(id);
+  }
+
+  function drawList() {
+    // the focus never falls out of the panel while its rows are drawn again: over the page
+    // that would close it (#444); the caller puts it where it belongs
+    if (markerList.contains(document.activeElement)) markersTab.focus({ preventScroll: true });
+    markerList.replaceChildren(...markers.map(row));
+    markersEmpty.hidden = markers.length > 0;
+    markersTab.textContent = tr("marker.tab_count", { n: markers.length });
+  }
+
+  function drawMarkers() {
+    drawList();
+    drawTicks();
+    markerState();
+    placeBars();
+  }
 
   function setFocus(on) {
     if (on === focusing) return;
@@ -503,6 +867,8 @@ function readAlong() {
       if (once) setFocus(!focusing);
     } else if ((key === "p" || key === "P") && !focusing) {
       if (once) panelByKey?.(); // the focus stays where it is (#461)
+    } else if (key === "m" || key === "M") {
+      if (once) toggleMarker(); // also in Focus (#474)
     } else return;
     event.preventDefault();
   });
@@ -581,7 +947,10 @@ function readAlong() {
     });
   }
   seek(0, chapters[0].start, false);
-  panelByKey = contextPanel();
+  const panel = contextPanel();
+  panelByKey = panel?.byKey;
+  showMarkers = panel?.show;
+  drawMarkers();
 
   // drawn disabled: a press before this script ran would be lost (#350, #427)
   for (const control of [
@@ -595,6 +964,9 @@ function readAlong() {
   ]) {
     control.disabled = false;
   }
+  undoButton.disabled = false;
+  addNoteButton.disabled = false;
+  markerState(); // drawn disabled too: enabled once a sentence is there to mark
 
   // the offer to continue: it moves there and never plays by itself (D-300)
   const resume = document.getElementById("resume");
@@ -634,7 +1006,7 @@ function readAlong() {
   }
 }
 
-// ---- the context panel (#393): Changes and Chapters ----------------------------------------
+// ---- the context panel (#393): Changes, Chapters and Markers (#474) --------------------------
 // Beside the desk from 1280 px, where its button hides and shows it; below, it opens over
 // the page, takes the focus, and Esc or its button closes it and gives the focus back. The
 // focus never reaches what it covers: when the focus leaves it, it closes (#444 review S2).
@@ -751,7 +1123,15 @@ function contextPanel() {
   }
   show();
   for (const control of [toggle, close, ...tabs]) control.disabled = false;
-  return () => set(toggle.getAttribute("aria-expanded") !== "true", true);
+  const markersTab = document.getElementById("tab-markers");
+  return {
+    byKey: () => set(toggle.getAttribute("aria-expanded") !== "true", true),
+    // the Markers tab, the panel open: as P opens it, so the focus comes back where it was
+    show: () => {
+      if (markersTab) choose(markersTab, false);
+      if (toggle.getAttribute("aria-expanded") !== "true") set(true, true);
+    },
+  };
 }
 
 document.addEventListener("DOMContentLoaded", readAlong);

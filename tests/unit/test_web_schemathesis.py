@@ -2,8 +2,9 @@
 server error and every answer matches the schema (status, content type, body).
 
 The app runs in process (ASGI) with the bearer token, so nothing listens on a port. Each
-generated case is sent twice: as generated, and with its document and job ids replaced by
-those of a real document and finished job, so the paths behind the 404s are checked too.
+generated case is sent twice: as generated, and with its document, job and marker ids
+replaced by those of a real document with an audiobook (made with the fake voice), its
+finished job and a marker on it (#474), so the paths behind the 404s are checked too.
 
 One built-in check is left out: `positive_data_acceptance` expects every schema-valid
 request to succeed, but this API refuses schema-valid requests for reasons a schema can't
@@ -19,9 +20,11 @@ from typing import Any
 
 import pytest
 import schemathesis
+from audio_fakes import FakeVoice
 from hypothesis import HealthCheck, settings
 from schemathesis.specs.openapi.checks import positive_data_acceptance
-from web_helpers import ORIGIN, make_config, pdf_bytes, program, upload, wait
+from test_web_player import player_data
+from web_helpers import ORIGIN, make_config, pdf_bytes, program, set_marker, upload, wait
 
 from sci2audio.testing import no_network
 from sci2audio.web import create_app
@@ -34,12 +37,23 @@ EXAMPLES = 300 if os.environ.get("HYPOTHESIS_PROFILE") == "nightly" else 25
 def served(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     folder: Path = tmp_path_factory.mktemp("schemathesis")
     config = make_config(folder)
-    app = create_app(config)
+    voice = FakeVoice()
+    app = create_app(config, voice=lambda models_dir: voice.source())
     client = program(app, config)
     doc = upload(client, pdf_bytes(), "seed.pdf")
     response = client.post("/api/v1/jobs", json={"kind": "script", "document": doc["id"]})
     job = wait(client, response.json()["id"])
-    return {"app": app, "config": config, "document": doc["id"], "job": job["id"]}
+    audio = client.post("/api/v1/jobs", json={"kind": "audio", "document": doc["id"]})
+    assert wait(client, audio.json()["id"])["state"] == "done"
+    data = player_data(client.get(f"/documents/{doc['id']}/listen").text)
+    marker = set_marker(client, doc["id"], 1, data["audiobook"])
+    return {
+        "app": app,
+        "config": config,
+        "document": doc["id"],
+        "job": job["id"],
+        "marker": marker["id"],
+    }
 
 
 @pytest.fixture(scope="module")
@@ -66,7 +80,11 @@ def test_the_api_matches_its_schema(case: Any, served: dict[str, Any]) -> None:
     headers = {"Authorization": f"Bearer {config.token}", "Host": HOST}
     with no_network():
         case.call_and_validate(headers=headers, excluded_checks=[positive_data_acceptance])
-        known = {"document_id": served["document"], "job_id": served["job"]}
+        known = {
+            "document_id": served["document"],
+            "job_id": served["job"],
+            "marker_id": served["marker"],
+        }
         replaced = {
             key: known.get(key, value) for key, value in (case.path_parameters or {}).items()
         }

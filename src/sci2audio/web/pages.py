@@ -27,6 +27,7 @@ from fastapi.templating import Jinja2Templates
 from sci2audio.app import load_settings, shown_original
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.app.voice import primary_language
+from sci2audio.core import Document
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, PAUSE_MARK, Category
 from sci2audio.voices import (
     DEFAULT_VOICE,
@@ -76,6 +77,7 @@ from sci2audio.web.library import (
     when,
     write_opened,
 )
+from sci2audio.web.markers import MARKERS, MarkersBroken, count_markers, place, read_markers
 from sci2audio.web.models import PREVIEW_LIMIT
 from sci2audio.web.player import (
     PlayerError,
@@ -203,6 +205,8 @@ def _removal(document: StoredDocument) -> dict[str, Any]:
         "bytes": document.folder_bytes,
         "folder": None if folder is None else str(folder),
         "has_audio": document.has_audio,
+        # counted from the file as the box is drawn (D-728 ruling 3); None: it can't be read
+        "markers": count_markers(document.folder, document.id),
     }
 
 
@@ -1082,7 +1086,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         prepare=not found.outside,
     )
     try:
-        view, located = player_for(found.work, found.document, found.folders)
+        view, located, made_from = player_for(found.work, found.document, found.folders)
     except PlayerError as error:
         return _page(
             request,
@@ -1100,6 +1104,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         position = read_position(found.work, found.document, stamp, located.readalong)
     except OSError:  # the read-along file went away since the checks: nothing to offer
         stamp, position = "", None
+    marking = _markers_data(found.work, found.document, made_from, located)
     return _page(
         request,
         state,
@@ -1113,13 +1118,41 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         speeds=_speeds(s),
         resume=None if position is None else _resume(view, position),
         # the stamp goes back with each save of the position (#153, review S1)
-        data=data_block({**view.data(found.id), "audiobook": stamp}),
+        data=data_block({**view.data(found.id), "audiobook": stamp, **marking}),
+        markers=marking["markers"],
+        markers_file=marking["markers_file"],
         problem=None,
         announce=announce_of(request),  # each sentence to screen readers, if switched on (#392)
         changes=_listen_changes(view, s),
         outline=_outline(view),
         total=clock(view.duration),
     )
+
+
+def _markers_data(
+    work: Path, document_id: str, made_from: Document, located: Any
+) -> dict[str, Any]:
+    """The document's markers for the page, placed in this audiobook (#474): never one left
+    out (D-728 ruling 1). A file this version can't read is named, and the page then sets no
+    markers on this document."""
+    try:
+        markers = read_markers(work, document_id)
+    except (MarkersBroken, OSError):
+        return {"markers": [], "markers_file": str(work / MARKERS)}
+    spans = [chunk.span for chunk in located.readalong.chunks]
+    return {
+        "markers": [
+            {
+                "id": p.marker.id,
+                "text": p.marker.anchor.text,
+                "note": p.marker.note,
+                "chunk": p.chunk,
+                "state": p.state,
+            }
+            for p in place(markers, made_from, spans)
+        ],
+        "markers_file": "",
+    }
 
 
 def _listen_changes(view: PlayerView, s: Strings) -> list[dict[str, Any]]:

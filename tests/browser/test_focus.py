@@ -252,6 +252,13 @@ def test_every_key_on_the_listen_page(signed_in: Page, live: Live) -> None:
     page.keyboard.press("f")
     expect(page.locator("#focus-view")).to_be_hidden()
     expect(page.locator("#context")).to_be_visible()
+    # M sets a marker on the sentence being read and removes it again (#474)
+    marker = page.locator("#marker")
+    page.keyboard.press("m")
+    expect(marker).to_have_attribute("aria-pressed", "true")
+    page.keyboard.press("M")
+    expect(marker).to_have_attribute("aria-pressed", "false")
+    expect(page.locator("#message")).to_have_text("Marker removed.")
 
 
 def test_the_keys_stay_out_of_the_way(signed_in: Page, live: Live) -> None:
