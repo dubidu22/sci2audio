@@ -640,14 +640,20 @@ def test_after_p_closes_the_panel_space_and_the_arrows_act_on_the_player(
     expect(toggle).to_be_focused()
 
 
-def test_p_over_the_page_gives_the_focus_back_to_the_toggle(signed_in: Page, live: Live) -> None:
-    """#461: below 1280 px the panel opens over the page; P closing it while the focus is in
-    it gives the focus to the toggle, never to nowhere."""
-    page = signed_in
-    make_audiobook(page, live)
+def narrow(page: Page) -> None:
     page.set_viewport_size({"width": 1024, "height": 768})
     # the width's change event comes with a frame; a key before it would race it
     page.evaluate("() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))")
+
+
+def test_p_over_the_page_gives_the_focus_back_where_it_was(signed_in: Page, live: Live) -> None:
+    """#461, #489 review S2: below 1280 px the panel opens over the page and takes the focus;
+    P closing it gives the focus back to the page, not to the toggle, so Space then plays
+    instead of opening the panel again, and the arrows move by sentence."""
+    page = signed_in
+    make_audiobook(page, live)
+    sentences = order(page)
+    narrow(page)
     toggle = page.locator("#panel-toggle")
     nobody_focused(page)
     page.keyboard.press("p")
@@ -655,7 +661,50 @@ def test_p_over_the_page_gives_the_focus_back_to_the_toggle(signed_in: Page, liv
     expect(page.get_by_role("tab", name="Chapters")).to_be_focused()
     page.keyboard.press("p")
     expect(toggle).to_have_attribute("aria-expanded", "false")
-    expect(toggle).to_be_focused()
+    expect(toggle).not_to_be_focused()
+    assert not page.evaluate(
+        "() => document.getElementById('context').contains(document.activeElement)"
+    )
+    page.keyboard.press(" ")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    page.keyboard.press(" ")
+    page.wait_for_function("() => document.getElementById('audio').paused")
+    at = sentences.index(highlighted(page))
+    page.keyboard.press("ArrowRight")
+    expect(page.locator("#text .s.now")).to_have_id(sentences[at + 1])
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
+def test_p_over_the_page_gives_the_focus_back_to_the_control_it_left(
+    signed_in: Page, live: Live
+) -> None:
+    """#489 review S2: a control focused when P opened the panel has the focus again when P
+    closes it; the close button and Esc still give it to the toggle (#444). (The panel
+    covers the toggle here; the wide test above presses it.)"""
+    page = signed_in
+    make_audiobook(page, live)
+    narrow(page)
+    toggle = page.locator("#panel-toggle")
+    control = page.locator("#next-sentence")
+    control.focus()
+    page.keyboard.press("p")
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    page.keyboard.press("p")
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    expect(control).to_be_focused()
+    for close in ("button", "Escape"):
+        control.focus()
+        page.keyboard.press("p")
+        expect(toggle).to_have_attribute("aria-expanded", "true")
+        if close == "button":
+            page.locator("#panel-close").click()
+        else:
+            page.keyboard.press("Escape")
+        expect(toggle).to_have_attribute("aria-expanded", "false")
+        expect(toggle).to_be_focused()
     page.set_viewport_size({"width": 1280, "height": 720})
 
 

@@ -655,7 +655,9 @@ def _changes(
 ) -> list[ChangeView]:
     """Per category: on or off when the audiobook was made, and how many of its accepted
     edits the page shows in the chapters the audiobook reads (an edit counts where its block
-    is read, #213), so the count never names changes the text does not show (#462)."""
+    is read, #213), so the count never names changes the text does not show (#462). Page
+    furniture counts too, though the sheet never shows it: the sheet is the text without
+    it, as it is heard (see `_shown`)."""
     counts: dict[str, int] = {}
     for outcome in run.outcomes:
         if (
@@ -678,10 +680,14 @@ _NOTICE_STEPS = frozenset({FormulaNoticeStep.id, TableFigureNoticeStep.id, CodeN
 def _shown(
     document: Document, edit: Edit, notices: Collection[int], moved: Collection[int]
 ) -> bool:
-    """True if the page shows this accepted edit: a notice box for a placeholder read as its
-    notice (the edits inside its text are not drawn), "Not read" for a block cut whole, a
-    note read at its mark shown where it is read, and every stretch `_marks` draws."""
+    """True if the page shows this accepted edit: the removal of page furniture (the sheet
+    is the text without it, as heard), a notice box for a placeholder read as its notice
+    (the edits inside its text are not drawn), "Not read" for a block cut whole, a note read
+    at its mark shown where it is read, and every stretch `_marks` draws."""
     block = edit.span.block
+    if document.blocks[block].kind is BlockKind.FURNITURE:
+        # never shown: the sheet is the text without it, as heard
+        return edit.kind is EditKind.REMOVE
     if block in notices:
         return edit.step in _NOTICE_STEPS
     if edit.kind is EditKind.MOVE:

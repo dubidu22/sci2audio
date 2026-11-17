@@ -664,15 +664,26 @@ function contextPanel() {
   }
 
   // the button and Esc give the focus to the toggle when the panel closes (#444); P keeps it
-  // where it is, so Space and the arrows go on acting on the player (#461), unless it was
-  // in the panel, which hides it
+  // where it is, so Space and the arrows go on acting on the player (#461). If the focus is
+  // in the panel when P closes it, it goes back where it was when P opened the panel, or to
+  // the page if that was nowhere, never to the toggle, where Space would open the panel
+  // again (#489 review S2); with no such place (the wide panel open from the start) it goes
+  // to the toggle.
+  let before = null; // the element focused when P opened the panel, or null
   function set(open, keep = false) {
-    const inside = panel.contains(document.activeElement);
+    const active = document.activeElement;
+    const inside = panel.contains(active);
+    const back = before;
+    if (!keep || !open) before = null;
+    else if (!inside) before = active;
     if (wide.matches) wideOpen = open;
     else narrowOpen = open;
     show();
     if (open && !wide.matches) selected().focus();
-    if (!open && (!keep || inside)) toggle.focus();
+    if (open || !inside) return;
+    if (!keep || back === null) toggle.focus();
+    else if (back.isConnected && back !== document.body && !panel.contains(back)) back.focus();
+    else active.blur();
   }
 
   toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") !== "true"));

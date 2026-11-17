@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 from long_book import CHAPTERS, PAGES, PARAGRAPHS, long_book
-from test_web_player import make, readalong, record, server, work_of
+from test_web_player import _Mover, make, readalong, record, server, work_of
 from web_helpers import (
     events,
     offline,  # noqa: F401 - fixture
@@ -26,7 +26,7 @@ from sci2audio import __version__
 from sci2audio.core import Document, Edit, EditKind, Section, Span
 from sci2audio.testing.documents import make_document
 from sci2audio.textprep import BUILT_IN_STEPS, Category, Stage, StepContext, TextStep
-from sci2audio.web.player import ChangeView, Part, PlayerView, build_view, shown
+from sci2audio.web.player import ChangeView, Part, PlayerView, _shown, build_view, shown
 
 THIS = __version__
 
@@ -187,6 +187,93 @@ def test_a_joined_word_and_a_placeholders_notice_are_not_marked() -> None:
     counts = {c.category: c.count for c in view.changes}
     assert counts["characters"] == 0
     assert counts["tables-and-figures"] == 1
+
+
+def test_page_furniture_is_never_shown_but_its_removal_is_counted() -> None:
+    """Review #489 S1: the sheet is the text without its furniture, as it is heard, so the
+    furniture step's removal counts although no block of it is drawn."""
+    document = make_document(
+        [("heading", "1 One"), ("furniture", "Journal of Things 12"), ("paragraph", TEXT)]
+    )
+    data = readalong([(0, 0, 5), (2, *FIRST), (2, *SECOND)])
+    view = build_view(document, record(chunks=3, made_with=THIS), data, steps_with())
+    chapter = view.chapters[0]
+    assert chapter.title_block is not None
+    assert [chapter.title_block.index, *(b.index for b in chapter.blocks)] == [0, 2]
+    assert {c.category: c.count for c in view.changes}["page-furniture"] == 1
+
+
+def test_a_notice_box_counts_once_and_the_edits_inside_its_text_do_not() -> None:
+    """Review #489 S3 (M1, M2): a placeholder read as its notice draws the box, not its
+    text. Today's run sets aside every other edit in a placeholder's text (searched: each
+    stage, REMOVE, PAUSE and an insert, at its start, inside and at its end), so the guard
+    is pinned on `_shown` itself with the edit the run would have to accept."""
+    table = "a b\n1 2"
+
+    class _InTable(TextStep):
+        id = "test-in-table"
+        languages = ("*",)
+        category = Category.CITATIONS
+        stage = Stage.INLINE
+
+        def find(self, document: Document, context: StepContext) -> list[Edit]:
+            return [
+                Edit(Span(n, 0, 3), EditKind.REMOVE, "a test edit", self.id)
+                for n, block in enumerate(document.blocks)
+                if block.text == table
+            ]
+
+    document = make_document([("heading", "1 One"), ("table", table)])
+    data = readalong([(0, 0, 5), (1, 0, 7)])
+    view = build_view(document, record(chunks=2, made_with=THIS), data, steps_with(_InTable()))
+    assert view.chapters[0].blocks[0].notice
+    counts = {c.category: c.count for c in view.changes}
+    assert counts["tables-and-figures"] == 1
+    assert counts["citations"] == 0
+    inside = _InTable().find(document, StepContext("en"))[0]
+    assert not _shown(document, inside, {1}, ())
+    notice = Edit(Span(1, 0, 7), EditKind.REPLACE, "a notice", "table-figure-notices", "A table.")
+    assert _shown(document, notice, {1}, ())
+    assert _shown(document, inside, (), ())  # read as printed: the cut is drawn
+
+
+def test_only_the_removal_of_page_furniture_counts() -> None:
+    """Review #489 S1: the furniture rule is its own, not a side effect of the whole-block
+    rule: no other edit in a furniture block is counted, whole or not."""
+    document = make_document([("paragraph", "Text."), ("furniture", "Journal of Things 12")])
+    cut = Edit(Span(1, 0, 7), EditKind.REMOVE, "a part", "test")
+    said = Edit(Span(1, 0, 7), EditKind.REPLACE, "a reading", "test", "Paper")
+    assert _shown(document, cut, (), ())
+    assert not _shown(document, said, (), ())
+
+
+def test_a_moved_note_counts_only_when_the_audiobook_read_it_at_its_mark() -> None:
+    """Review #489 S3 (M3, M4): a footnote move counts when the read-along reads the note
+    at its mark (#213); an audiobook that read it where printed shows it there, unmoved."""
+    document = make_document(
+        [
+            ("heading", "1 One"),
+            ("paragraph", "It works.1 It holds."),
+            ("heading", "2 Two"),
+            ("footnote", "1 A note."),
+            ("paragraph", "More."),
+        ],
+        sections=[Section("1 One", 1, 0, 2), Section("2 Two", 1, 2, 5)],
+    )
+    chapters = (("One", 0), ("Two", 4))
+    at_mark = [(0, 0, 5), (1, 0, 9), (3, 0, 9), (1, 11, 20), (2, 0, 5), (4, 0, 5)]
+    printed = [(0, 0, 5), (1, 0, 9), (1, 11, 20), (2, 0, 5), (3, 0, 9), (4, 0, 5)]
+    counts = {}
+    for name, spans, owners in (
+        ("at mark", at_mark, [0, 0, 0, 0, 1, 1]),
+        ("printed", printed, [0, 0, 0, 1, 1, 1]),
+    ):
+        data = readalong(spans, chapters if name == "at mark" else (("One", 0), ("Two", 3)), owners)
+        view = build_view(
+            document, record(chunks=6, made_with=THIS), data, [*BUILT_IN_STEPS, _Mover()]
+        )
+        counts[name] = {c.category: c.count for c in view.changes}["footnotes"]
+    assert counts == {"at mark": 1, "printed": 0}
 
 
 def test_a_cut_between_sentences_is_struck_where_it_stands() -> None:
