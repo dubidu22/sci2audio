@@ -298,6 +298,15 @@ _CLOSE_AHEAD = re.compile(r"\s*\)")
 _FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
 
 
+_SLASHED = re.compile(r"(\d{4})[a-z]?/(\d{4})")
+
+
+def _no_period(text: str) -> bool:
+    """A slashed year is the year of the edition used only when it is more than a year later:
+    "2019/2020" is a winter term or a season, never a reprint (#481 review)."""
+    return all(int(b) - int(a) > 1 for a, b in _SLASHED.findall(text))
+
+
 def _years(words: CitationWords) -> str:
     """Years or their stand-ins, joined by commas: "2016a,b", "2019, in press"; a year may
     carry the year of the edition used after a slash: "1974/2004" (#455, D-719)."""
@@ -771,8 +780,14 @@ class _Rules:
                 # same (#266, D-534)
                 return None
             return [self._removed(text, node.open, node.close + 1, "citation")]
-        if self.years_only.match(inside) and (
-            names := self._names_before(text, _before_removals(text, node.open, found, self._runs))
+        if (
+            self.years_only.match(inside)
+            and _no_period(inside)
+            and (
+                names := self._names_before(
+                    text, _before_removals(text, node.open, found, self._runs)
+                )
+            )
         ):
             end = self._glued_page(text, node.close + 1)
             printed = _printed(f"{names} {text[node.open : end]}")
@@ -1317,7 +1332,7 @@ class _Rules:
     def _is_citation(self, text: str, part: tuple[int, int]) -> bool:
         piece = text[part[0] : part[1]]
         match = self.part.match(piece)
-        if match is None:
+        if match is None or not _no_period(piece):
             return False
         # an acronym is an author only right before ", 2020" ("(WHO, 2020)", not "BERT (") or
         # with a page after the year ("(WBGU 2011, S. 1)", #455); "(EU 2016)" stays as printed

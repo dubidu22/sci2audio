@@ -236,6 +236,9 @@ def test_a_bracketed_citation_the_sentence_needs_keeps_its_names(text: str, spok
         "repeated (and/or 3 times) and (input/output 2001) and (TCP/IP 2001)",
         "in force (EU 2016) and (NATO 1949)",
         "a page (Smith 2001, p. Mill) is no Roman page",
+        "This held (Smith 2001, p. Dix) too.",
+        # a year range is no reprint (#481 review S2)
+        "It ran (Fall 2019/2020) here.",
     ],
 )
 def test_dates_events_and_other_brackets_are_not_citations(text: str) -> None:

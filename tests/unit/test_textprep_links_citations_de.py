@@ -214,6 +214,13 @@ def test_german_citations(printed: str, said: str) -> None:
         "Das trat (EU 2016) in Kraft.",
         "Das steht im Heft (BLK-Heft 72 1999).",
         "Es lief (eins/zwei 2019) gut.",
+        # a year range is no reprint (#481 review S2); a page that is no Roman numeral, a
+        # fraction before a year (N1)
+        "Das galt (Wintersemester 2019/2020) noch.",
+        "Das galt (Saison 1999/2000) noch.",
+        "Wie Müller (2019/2020) zeigt, gilt es.",
+        "Das zeigt (Müller 2019, S. Dix) klar.",
+        "Der Anteil (1/2 2019) sank.",
     ],
 )
 def test_german_brackets_that_are_no_citation_stay(text: str) -> None:

@@ -36,7 +36,10 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
   "…, but", "…, dass"), else after any comma, else after a dash, else at a space. Within the
   best kind the cut nearest an even share of the rest wins, so parts keep about the same
   length, and no cut leaves a part under `MIN_PIECE` characters while another cut leaves none.
-  A single word longer than the limit is cut where it must be.
+  A place inside an open bracket or quote ranks after every place outside one (#481 review).
+  A single word longer than the limit is cut where it must be. On a second run a cut beside a
+  multi-word reading ("u. a." read "unter anderem", "3,5 %") can fall one word later, since the
+  reading is then plain words; the script text is the same (D-577, #482).
   Every utterance after the first of a cut sentence is marked `continues` (D-157).
 - Spans: kept text (a piece whose text is the document's original text of its span) maps
   character by character, so a cut inside it is exact. A replacement is read as a whole
@@ -240,6 +243,7 @@ def cut_utterances(
     language = language or document.language
     abbreviations = ABBREVIATIONS.get(language.split("-", 1)[0].lower(), frozenset())
     openers = clause_openers(language)
+    pairs = _PAIRS_DE if language.lower().startswith("de") else _PAIRS_EN
     utterances: list[Utterance] = []
     for run_or_pause in _runs(document, pieces):
         if isinstance(run_or_pause, ScriptPiece):
@@ -248,7 +252,7 @@ def cut_utterances(
         run = run_or_pause
         for start, end in _sentences(run, abbreviations, language):
             continues = False  # the sentence's first utterance starts it
-            for a, b in _fitted(run, start, end, max_chars, openers):
+            for a, b in _fitted(run, start, end, max_chars, openers, pairs):
                 if utterance := _utterance(run, a, b, continues):
                     utterances.append(utterance)
                     continues = True
@@ -436,7 +440,12 @@ def _counts(text: str) -> list[int]:
 
 
 def _fitted(
-    run: _Run, start: int, end: int, max_chars: int, openers: frozenset[str] = frozenset()
+    run: _Run,
+    start: int,
+    end: int,
+    max_chars: int,
+    openers: frozenset[str] = frozenset(),
+    pairs: tuple[str, str] = ("", ""),
 ) -> list[tuple[int, int]]:
     """Cut text[start:end] into ranges whose spoken text has at most max_chars."""
     out = []
@@ -456,7 +465,7 @@ def _fitted(
             return out
         if left < 0:
             left = _counts(run.text[start:end])[-1]
-        cut = start + _cut_point(run.text[start:stop], counts, max_chars, left, openers)
+        cut = start + _cut_point(run.text[start:stop], counts, max_chars, left, openers, pairs)
         cut = _outside_replacement(run, start, cut, counts, max_chars)
         out.append((start, cut))
         left = max(0, left - counts[min(cut - start, len(counts) - 1)] - 1)
@@ -487,12 +496,31 @@ def _rank(text: str, i: int, openers: frozenset[str]) -> int | None:
     return 3 if mark in _DASHES else None
 
 
+# what opens and closes a bracket or a quote, by language; never a straight quote or an
+# apostrophe, which cannot tell opening from closing (#481 review S1)
+_PAIRS_EN = ("([{\u201c\u00ab", ")]}\u201d\u00bb")
+_PAIRS_DE = ("([{\u201e\u00bb", ")]}\u201c\u00ab")
+
+
+def _inside(text: str, last: int, pairs: tuple[str, str]) -> list[bool]:
+    """For each place up to `last`, whether it is inside an open bracket or quotation."""
+    out, depth = [False], 0
+    for char in text[:last]:
+        if char in pairs[0]:
+            depth += 1
+        elif char in pairs[1]:
+            depth = max(0, depth - 1)
+        out.append(depth > 0)
+    return out
+
+
 def _cut_point(
     text: str,
     counts: list[int],
     max_chars: int,
     left: int | None = None,
     openers: frozenset[str] = frozenset(),
+    pairs: tuple[str, str] = ("", ""),
 ) -> int:
     """Where to cut a text whose spoken length is over max_chars (an index > 0).
 
@@ -500,11 +528,14 @@ def _cut_point(
     may be shorter than the limit to end at a clause boundary (#460). Within a rank the cut
     nearest an even share of what is left of the sentence (`left`, spoken characters) wins, so
     parts keep about the same length; a cut that leaves a part under MIN_PIECE characters is
-    taken only when every cut does."""
+    taken only when every cut does. A place inside an open bracket or quote (`pairs`) ranks
+    after every place outside one, so "(for example, | producing …)" is cut only when nothing
+    outside fits."""
     # counts never decrease, and the first spoken character always fits (max_chars >= 1)
     last_fit = bisect_right(counts, max_chars) - 1
+    inside = _inside(text, last_fit, pairs)
     places = [
-        (rank, i)
+        (rank + 5 * inside[i], i)
         for i in range(last_fit, 0, -1)
         if counts[i] > 0 and (rank := _rank(text, i, openers)) is not None
     ]

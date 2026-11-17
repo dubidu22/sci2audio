@@ -14533,8 +14533,8 @@
   The most convenient usage pattern provides a pandas dataframe with variables encoded in a long-form or “tidy” format.
   With this format, columns in the dataframe can be explicitly assigned to roles in the plot, such as specifying the x and y positions of a scatterplot along with size and shape semantics.
   Long-form data supports efficient exploration and prototyping because variables can be assigned different roles in the plot without modifying anything about the original dataset.
-  But most seaborn functions can also consume and visualize “wide-form” data, typically producing similar output to how the analogous matplot lib function would interpret a 2D array (for example,
-  producing a boxplot where each box represents a column in the dataframe) while making use of the index and column names to label the graph.
+  But most seaborn functions can also consume and visualize “wide-form” data,
+  typically producing similar output to how the analogous matplot lib function would interpret a 2D array (for example, producing a boxplot where each box represents a column in the dataframe) while making use of the index and column names to label the graph.
   Using the label information in a pandas object can help make plots that are interpretable without further tweaking – reducing the chance of interpretive errors – but seaborn also accepts data from a variety of more basic formats, including numpy arrays and simple Python collection types.
   
   seaborn also offers multiple built-in themes that users can select to modify the visual appearance of their graphs.

@@ -219,6 +219,79 @@ def test_no_cut_leaves_a_part_under_the_minimum_when_another_cut_does_not() -> N
     assert cut("Note: " + "x" * 30, max_chars=20)[0] == "Note:"
 
 
+def test_a_semicolon_that_leaves_a_clipped_last_part_is_not_taken() -> None:
+    # the fair filter checks the part after the cut too (#481 review N3)
+    text = "w " * 80 + "b, " + "c " * 62 + "d; " + "e " * 8 + "f."  # 308 characters
+    parts = cut(text)
+    assert parts[0].endswith("b,")
+    assert all(len(part) >= MIN_PIECE for part in parts)
+
+
+def test_three_parts_share_the_whole_sentence_evenly() -> None:
+    # the even share is taken over what is left of the sentence, not over the window
+    parts = cut(" ".join(["word"] * 140) + ".")  # 700 characters, no clause mark
+    assert len(parts) == 3
+    assert max(map(len, parts)) - min(map(len, parts)) <= 10
+
+
+def _open(part: str, opening: str, closing: str) -> int:
+    depth = 0
+    for char in part:
+        depth += char in opening
+        depth -= char in closing and depth > 0
+    return depth
+
+
+@pytest.mark.parametrize(
+    ("text", "language", "opening", "closing"),
+    [
+        # a comma inside a bracket lies nearest the even share; one outside wins (#481 S1)
+        (
+            "w " * 60 + "(for example, " + "x " * 40 + "y) and " + "z " * 40 + "end, " + "v " * 20,
+            "en",
+            "(",
+            ")",
+        ),
+        # a space right after an opening bracket is inside it
+        ("w " * 70 + "( " + "x " * 70 + ") " + "z " * 30 + "end.", "en", "(", ")"),
+        (
+            "w " * 60 + "\u201cfor example, " + "x " * 40 + "y\u201d, " + "z " * 60,
+            "en",
+            "\u201c",
+            "\u201d",
+        ),
+        (
+            "w " * 60 + "\u201ezum Beispiel, " + "x " * 40 + "y\u201c, " + "z " * 60,
+            "de",
+            "\u201e",
+            "\u201c",
+        ),
+        (
+            "w " * 60 + "\u00bbzum Beispiel, " + "x " * 40 + "y\u00ab, " + "z " * 60,
+            "de",
+            "\u00bb",
+            "\u00ab",
+        ),
+    ],
+)
+def test_a_long_sentence_is_cut_outside_brackets_and_quotes(
+    text: str, language: str, opening: str, closing: str
+) -> None:
+    parts = cut(text, language=language)
+    assert len(parts) > 1
+    assert all(
+        _open(" ".join(parts[: n + 1]), opening, closing) == 0 for n in range(len(parts) - 1)
+    )
+
+
+def test_a_sentence_all_inside_a_bracket_is_still_cut() -> None:
+    text = "(" + "word, " * 80 + "end)."
+    parts = cut(text)
+    assert len(parts) > 1
+    assert all(len(part) <= DEFAULT_MAX_CHARS for part in parts)
+    assert " ".join(parts) == text
+
+
 def test_the_cut_never_falls_past_the_limit_and_takes_the_last_fit_without_a_place() -> None:
     text = "x" * 30
     counts = _counts(text)
