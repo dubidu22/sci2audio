@@ -211,3 +211,36 @@ class PreviewIn(Strict):
     speed: float = Field(default=1.0, strict=True)
     letter_pace: LetterPace = Field(default="normal", description=LETTER_PACE_HELP)
     text: str = Field(default=PREVIEW_TEXT, min_length=1, max_length=PREVIEW_LIMIT)
+
+
+class MarkerIn(Strict):
+    """A marker on the sentence the page was reading (#474): the page names its chunk, never
+    a span or a text."""
+
+    chunk: int = Field(
+        ge=0, le=10_000_000, strict=True, description="the read-along chunk of the sentence"
+    )
+    audiobook: str = Field(
+        pattern=r"^[0-9a-f]{16}$",
+        description="the stamp of the audiobook the page was drawn for (its read-along file)",
+    )
+
+
+class NoteIn(Strict):
+    note: str = Field(
+        max_length=4000,
+        pattern=r"^[^\x00]*$",
+        description='the marker\'s note, plain text ("" for none)',
+    )
+
+
+class MarkerOut(BaseModel):
+    id: str = Field(description="16 hex digits")
+    created: str = Field(description="when it was set, UTC")
+    changed: str = Field(description="when it or its note last changed, UTC")
+    text: str = Field(description="the sentence as printed when it was set")
+    note: str = Field(description='its note ("" for none)')
+    chunk: int | None = Field(description="the chunk it is shown on in this audiobook, or null")
+    state: Literal["found", "not-read", "not-found"] = Field(
+        description="found; in text this audiobook does not read; or not found in it"
+    )

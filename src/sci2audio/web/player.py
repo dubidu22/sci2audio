@@ -978,14 +978,15 @@ def _piece(
 
 def player_for(
     work: Path, document_id: str, folders: Sequence[Path | None]
-) -> tuple[PlayerView, Located]:
-    """Everything the listen page shows, or PlayerError saying why it can't. `folders` are
-    the only folders the audiobook may be in (`candidate_folders`, or the one folder a
-    command-line job names, #154)."""
+) -> tuple[PlayerView, Located, Document]:
+    """Everything the listen page shows, or PlayerError saying why it can't, with the
+    document it was made from (for the markers, #474). `folders` are the only folders the
+    audiobook may be in (`candidate_folders`, or the one folder a command-line job names,
+    #154)."""
     record = read_audio_record(work, document_id)
     located = locate(record, folders)
     document = load_document(work)
-    return build_view(document, record, located.readalong), located
+    return build_view(document, record, located.readalong), located, document
 
 
 def audiobook_file(

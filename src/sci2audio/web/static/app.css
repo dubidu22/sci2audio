@@ -51,6 +51,7 @@
   --cobalt: #2340A8; --cobalt-deep: #1A3087; --cobalt-line: #3A56BE; --on-cobalt: #FFFFFF; --on-cobalt-2: #CCD5F4;
   --hl-read: #FFE94A; --hl-note: #7BE38A; --hl-quote: #6CC4FF; --hl-card: #FF8FC8; --hl-mark: #FFB347;
   --on-hl: #16181D; --now: color-mix(in srgb, var(--hl-read) 30%, var(--paper)); --on-now: var(--ink); --now-bar: #9A7400;
+  --marker: var(--hl-mark); --marker-edge: #9A5800;
   --error: #B42318; --error-wash: #FDECEA; --wait: #7A4B00; --wait-wash: #FFF3DC;
   --focus: var(--cobalt); --switch-on: var(--cobalt);
   --sheet-shadow: 0 1px 2px rgba(22,24,29,.06), 0 8px 24px -12px rgba(22,24,29,.18);
@@ -73,6 +74,7 @@
     --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
     --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
     --now: color-mix(in srgb, var(--hl-read) 18%, var(--paper)); --on-now: var(--ink); --now-bar: var(--hl-read);
+    --marker: var(--hl-mark); --marker-edge: var(--hl-mark);
     --focus: var(--hl-quote); --switch-on: var(--hl-quote);
     --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
     --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
@@ -87,6 +89,7 @@
     --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
     --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
     --now: color-mix(in srgb, var(--hl-read) 18%, var(--paper)); --on-now: var(--ink); --now-bar: var(--hl-read);
+    --marker: var(--hl-mark); --marker-edge: var(--hl-mark);
     --focus: var(--hl-quote); --switch-on: var(--hl-quote);
     --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
     --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
@@ -302,6 +305,15 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .now-bar { position: absolute; z-index: 1; width: 0; border-left: 3px solid var(--now-bar); pointer-events: none; }
 .now-bar[hidden] { display: none; }
 @media (forced-colors: active) { .now-bar { border-left-color: Highlight; } }
+/* a marker (#474, D-723): a flag off the sheet's right edge at its sentence's first line, no
+   fill on the sentence; its edge stands out 3:1 from the paper and the desk (D-727) */
+.marker-flag {
+  position: absolute; z-index: 1; display: grid; place-items: center; width: 24px; height: 18px;
+  background: var(--marker); color: var(--on-hl); border: 1.5px solid var(--marker-edge); border-radius: 2px; pointer-events: none;
+}
+.marker-flag svg { width: 12px; height: 12px; fill: currentColor; stroke: none; }
+.marker-flag[hidden] { display: none; }
+@media (forced-colors: active) { .marker-flag { border-color: CanvasText; } }
 /* what the audiobook's own edits did (#392, D-665 conflict 2): left out, read differently */
 .cut { color: var(--pencil); text-decoration: line-through; text-decoration-color: var(--pencil); font-size: .92em; }
 .read-along .s.now .cut { color: inherit; }
@@ -333,6 +345,10 @@ html.dock-pinned .main { padding-bottom: var(--dock-h, var(--dock)); }
 .timeline { position: absolute; left: 0; right: 0; top: -7px; height: 14px; }
 .timeline .ticks { position: absolute; left: 0; top: 7px; width: 100%; height: 8px; pointer-events: none; overflow: visible; z-index: 1; }
 .timeline .ticks line { stroke: var(--rule-strong); stroke-width: 1; }
+/* the markers' ticks stand above the track, never on it */
+.timeline .marker-ticks { position: absolute; left: 0; top: -12px; width: 100%; height: 10px; pointer-events: none; overflow: visible; z-index: 1; }
+.marker-ticks rect { fill: var(--marker); stroke: var(--marker-edge); stroke-width: 1.5; transform: translateX(-3.5px); }
+@media (forced-colors: active) { .marker-ticks rect { fill: Canvas; stroke: CanvasText; } }
 #timeline { position: absolute; inset: 0; width: 100%; max-width: none; height: 14px; margin: 0; background: transparent; appearance: none; -webkit-appearance: none; cursor: pointer; }
 #timeline::-webkit-slider-runnable-track { height: 3px; background: linear-gradient(to right, var(--ink) var(--fill, 0%), var(--rule) var(--fill, 0%)); }
 #timeline::-moz-range-track { height: 3px; background: var(--rule); }
@@ -349,16 +365,32 @@ button.play svg { fill: currentColor; stroke: none; }
 .nowplaying b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nowplaying #now, .nowplaying .clock { color: var(--pencil); font-size: 13.5px; }
 .view .dock-end { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0; max-width: none; }
+.marker-button svg { fill: currentColor; stroke: none; }
+.marker-button[aria-pressed="true"] { border-color: var(--marker-edge); background: color-mix(in srgb, var(--marker) 30%, var(--paper)); }
+.marker-button kbd { margin-left: 2px; }
+.view .marker-toast { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; max-width: none; font-size: 14px; }
+.marker-toast[hidden] { display: none; }
+.marker-list { list-style: none; margin: 0; padding: 0; }
+.marker-row { border-bottom: 1px solid var(--rule); padding: 12px 0; }
+.marker-row:first-child { padding-top: 4px; }
+.view .marker-row p { margin: 0; max-width: none; }
+.view .marker-row .mk-at, .view .marker-row .mk-state { color: var(--pencil); font-size: 13px; margin: 0 0 4px; }
+.mk-text { font: italic 400 15px/1.5 var(--read); margin: 0; overflow-wrap: anywhere; }
+.mk-text.clamped { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.view .marker-row .mk-note { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; font-size: 14.5px; }
+.view .marker-row .mk-actions { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 8px 0 0; }
+.mk-edit { display: grid; gap: 6px; margin: 8px 0 0; }
+.mk-edit textarea { width: 100%; max-width: none; }
 select.speed { min-height: 34px; padding: 4px 8px; font-weight: 700; }
 .ai-label { font-size: 12.5px; color: var(--pencil); border: 1px solid var(--rule); border-radius: var(--r); padding: 2px 6px; white-space: nowrap; }
 
 /* the context panel: Changes and Chapters (Captures waits for the study layer) */
 .context { display: none; flex-direction: column; min-width: 0; background: var(--desk); }
 .context-head { display: flex; align-items: center; border-bottom: 1px solid var(--rule); padding: 0 8px; }
-.context-tabs { display: flex; align-items: stretch; }
-.context-tabs [role="tab"] { border: 0; border-radius: 0; background: none; min-height: 44px; padding: 12px 10px 9px; margin-bottom: -1px; font-weight: 700; font-size: 14px; color: var(--ink-2); border-bottom: 3px solid transparent; }
+.context-tabs { display: flex; flex-wrap: wrap; align-items: stretch; flex: 1 1 auto; min-width: 0; }
+.context-tabs [role="tab"] { border: 0; border-radius: 0; background: none; min-height: 44px; padding: 12px 8px 9px; margin-bottom: -1px; font-weight: 700; font-size: 14px; color: var(--ink-2); border-bottom: 3px solid transparent; }
 .context-tabs [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
-.context-head #panel-close { margin-left: auto; }
+.context-head #panel-close { margin-left: auto; flex: none; }
 .context-body { padding: 16px 18px; overflow: auto; }
 .view .context-body .hint { font-size: 13.5px; color: var(--pencil); }
 .outline { list-style: none; padding: 0; margin: 0; }
@@ -706,6 +738,8 @@ dialog.keys-sheet::backdrop { background: rgba(17, 19, 23, .45); }
   .shelf { padding: 0; }
   .view { padding: 20px 16px 48px; }
   .sheet { padding: 20px 16px 32px; font-size: 18px; }
+  .sheet .marker-flag { width: 12px; }
+  .sheet .marker-flag svg { width: 8px; height: 8px; }
   .dock { padding: 16px 12px 10px; gap: 8px 12px; }
   .dock.pinned { left: 0; }
 }

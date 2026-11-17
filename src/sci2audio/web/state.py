@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -17,6 +18,7 @@ from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, loa
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.jobs import JobBoard, JobRecord
+from sci2audio.web.markers import MarkerBook
 from sci2audio.web.player import candidate_folders
 from sci2audio.web.tasks import PREVIEW_FOLDER, Fetch, KeptVoice, audio_work, classify, preview_work
 
@@ -59,6 +61,8 @@ class ServerState:
     board: JobBoard = field(init=False)
     kept: KeptVoice = field(init=False)  # one engine for previews and audio jobs (D-250)
     stopping: threading.Event = field(default_factory=threading.Event)
+    clock: Callable[[], float] = time.monotonic  # the markers' undo store; tests pass a fake
+    markers: MarkerBook = field(init=False)  # every write of a markers file (#474)
 
     def __post_init__(self) -> None:
         self.store = DocumentStore(
@@ -69,6 +73,7 @@ class ServerState:
         self.store.clear_stale_uploads()  # left behind by a server that was killed
         self.board = JobBoard(classify)
         self.kept = KeptVoice(lambda: self.voice(self.config.models_dir))
+        self.markers = MarkerBook(self.clock)
 
     def audio_work(self, document: StoredDocument, settings: JobSettings, overwrite: bool) -> Work:
         """An audio job into the person's output folder (D-199): the one in the settings,

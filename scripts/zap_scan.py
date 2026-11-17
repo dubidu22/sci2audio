@@ -759,6 +759,20 @@ def _walk_english(
     page.wait_for_url(re.compile(r"/listen$"))
     page.locator("#text .s").first.click()  # the sentences, not an icon of size s
     page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
+    # a marker with a note, removed and put back (#474), paused so it stays on one sentence
+    page.evaluate("() => document.getElementById('audio').pause()")
+    page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
+    said = page.locator("#marker-said")
+    page.locator("#marker").click()
+    expect(said).to_have_text("Marker set.")
+    page.locator("#marker-add-note").click()
+    page.get_by_role("textbox", name="Note").fill("A note for the scan.")
+    page.keyboard.press("Control+Enter")
+    expect(page.locator("#marker-list .mk-note")).to_have_text("A note for the scan.")
+    page.locator("#marker").click()
+    expect(said).to_have_text("Marker and note removed.")
+    page.locator("#marker-undo").click()
+    expect(said).to_have_text("Marker put back.")
 
     # again: the files exist, then replace them; free the speech cache
     page.goto(f"{origin}/documents/{paper_id}")

@@ -8,16 +8,19 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any, cast
 from urllib.parse import urlsplit
 
-from fastapi import APIRouter, File, Query, UploadFile
+from fastapi import APIRouter, File, Query, Response, UploadFile
+from fastapi import Path as Path_
 from fastapi.responses import FileResponse, StreamingResponse
 
 from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
+from sci2audio.core import Document, Span, SpanError
 from sci2audio.textprep import Category
 from sci2audio.voices import (
     DEFAULT_VOICE,
@@ -30,17 +33,31 @@ from sci2audio.voices import (
 from sci2audio.web import models
 from sci2audio.web.documents import DocumentBusyError, RemoveError, StoredDocument, StoreError
 from sci2audio.web.jobs import BoardBusyError, JobKind, JobRecord, JobState
+from sci2audio.web.markers import (
+    MarkedAgain,
+    Marker,
+    MarkerError,
+    MarkerLimit,
+    MarkerMissing,
+    MarkersBroken,
+    NoteRefused,
+    Placed,
+    UndoExpired,
+    anchor_of,
+    place,
+)
 from sci2audio.web.player import (
     PlayerError,
     Position,
     audiobook_file,
     fits,
+    load_document,
     locate,
     read_audio_record,
     recorded_folder,
     write_position,
 )
-from sci2audio.web.state import ApiError, ServerState, state_of
+from sci2audio.web.state import ApiError, Listening, ServerState, state_of
 from sci2audio.web.tasks import plan_digest, script_work, voices_work
 
 router = APIRouter(prefix="/api/v1")
@@ -322,6 +339,183 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
         raise ApiError(
             503, "not-saved", f"the listening position could not be saved: {error.strerror}"
         ) from error
+
+
+# ---- markers (#474, D-723, D-728) ------------------------------------------------------------
+# On the sentence the page reads: the page names the chunk and the audiobook it was drawn
+# for, the server takes the sentence from the read-along and the document. Every change goes
+# through the one locked read-modify-write of `MarkerBook.change` (D-728 ruling 2).
+
+_MARKER_STATUS = {
+    MarkersBroken: 409,
+    MarkedAgain: 409,
+    MarkerMissing: 404,
+    UndoExpired: 410,
+    MarkerLimit: 422,
+    NoteRefused: 422,
+    MarkerError: 503,  # a file it would not read back: nothing is written
+}
+
+
+@dataclass(frozen=True)
+class _Book:
+    """A document's audiobook as the markers see it."""
+
+    listening: Listening
+    document: Document
+    spans: list[Span]
+    stamp: str
+
+    def placed(self, marker: Marker) -> Placed:
+        """Where this audiobook shows the marker (it does not depend on the others)."""
+        return place([marker], self.document, self.spans)[0]
+
+    def on_sentence(self, chunk: int | None, markers: list[Marker]) -> Marker | None:
+        """The marker shown on chunk `chunk`, if one is."""
+        if chunk is None:
+            return None
+        return next(
+            (p.marker for p in place(markers, self.document, self.spans) if p.chunk == chunk), None
+        )
+
+
+def _book(state: ServerState, document_id: str) -> _Book:
+    listening = state.listening(document_id)
+    if listening is None:
+        raise ApiError(404, "not-found", f"no document {document_id}")
+    try:
+        record = read_audio_record(listening.work, listening.document)
+        located = locate(record, listening.folders)
+        document = load_document(listening.work)
+        stamp = located.stamp
+    except (PlayerError, OSError) as error:
+        raise ApiError(404, "not-found", f"{listening.name} has no audiobook") from error
+    spans = [chunk.span for chunk in located.readalong.chunks]
+    return _Book(listening, document, spans, stamp)
+
+
+def _marker_out(book: _Book, marker: Marker) -> models.MarkerOut:
+    placed = book.placed(marker)
+    return models.MarkerOut(
+        id=marker.id,
+        created=marker.created,
+        changed=marker.changed,
+        text=marker.anchor.text,
+        note=marker.note,
+        chunk=placed.chunk,
+        state=placed.state,
+    )
+
+
+def _marking[T](change: Callable[[], T]) -> T:
+    """Run a change of the markers file, with its refusals as answers."""
+    try:
+        return change()
+    except MarkerError as error:
+        status = next(s for kind, s in _MARKER_STATUS.items() if isinstance(error, kind))
+        raise ApiError(status, error.kind, str(error)) from error
+    except OSError as error:
+        raise ApiError(
+            503, "markers-not-saved", f"the markers could not be saved: {error.strerror}"
+        ) from error
+
+
+_MARKER_ERRORS = _errors(404, 409, 503)
+_MARKER_ID = Annotated[str, Path_(pattern=r"^[0-9a-f]{16}$", description="the marker's id")]
+
+
+@router.post(
+    "/documents/{document_id}/markers",
+    status_code=201,
+    responses={
+        200: {"model": models.MarkerOut, "description": "the sentence's marker"},
+        **_MARKER_ERRORS,
+    },
+    summary="Set a marker on a sentence of the document's audiobook",
+)
+def set_marker(
+    state: State, document_id: str, given: models.MarkerIn, response: Response
+) -> models.MarkerOut:
+    """A marker on the sentence the page reads: chunk `chunk` of the audiobook the page was
+    drawn for (409 if it was made again since). A sentence that has a marker answers it
+    (200); the page toggles."""
+    book = _book(state, document_id)
+    if given.audiobook != book.stamp:
+        raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")
+    span = book.spans[given.chunk] if given.chunk < len(book.spans) else None
+    try:
+        if span is None or span.start >= span.end:
+            raise SpanError("no sentence")
+        book.document.check_span(span)
+    except SpanError:
+        raise ApiError(422, "no-such-sentence", "the audiobook has no such sentence") from None
+    listening = book.listening
+    marker, new = _marking(
+        lambda: state.markers.set(
+            listening.work,
+            listening.document,
+            anchor_of(book.document, span),
+            lambda markers: book.on_sentence(given.chunk, markers),
+        )
+    )
+    if not new:
+        response.status_code = 200
+    return _marker_out(book, marker)
+
+
+@router.patch(
+    "/documents/{document_id}/markers/{marker_id}",
+    responses=_MARKER_ERRORS,
+    summary="Change a marker's note",
+)
+def note_marker(
+    state: State, document_id: str, marker_id: _MARKER_ID, given: models.NoteIn
+) -> models.MarkerOut:
+    """The note is plain text, at most 4000 characters; "" leaves the marker without one."""
+    book = _book(state, document_id)
+    listening = book.listening
+    marker = _marking(
+        lambda: state.markers.note(listening.work, listening.document, marker_id, given.note)
+    )
+    return _marker_out(book, marker)
+
+
+@router.delete(
+    "/documents/{document_id}/markers/{marker_id}",
+    responses=_MARKER_ERRORS,
+    summary="Remove a marker and its note",
+)
+def remove_marker(state: State, document_id: str, marker_id: _MARKER_ID) -> models.MarkerOut:
+    """It leaves the file at once; this server keeps it for 10 minutes (the last 20 of the
+    document) so the page's Undo can put it back (D-723 ruling 1)."""
+    book = _book(state, document_id)
+    listening = book.listening
+    marker = _marking(lambda: state.markers.remove(listening.work, listening.document, marker_id))
+    return _marker_out(book, marker)
+
+
+@router.post(
+    "/documents/{document_id}/markers/{marker_id}/restore",
+    status_code=201,
+    responses=_errors(404, 409, 410, 503),
+    summary="Put back a marker removed in the last 10 minutes (Undo)",
+)
+def restore_marker(state: State, document_id: str, marker_id: _MARKER_ID) -> models.MarkerOut:
+    """The marker comes back unchanged, from what this server kept: 410 once it no longer
+    holds it (10 minutes, a restart, 20 later removals), 409 if its sentence has a marker
+    again."""
+    book = _book(state, document_id)
+    listening = book.listening
+
+    def clash(marker: Marker, markers: list[Marker]) -> bool:
+        if any(other.anchor == marker.anchor for other in markers):
+            return True
+        return book.on_sentence(book.placed(marker).chunk, markers) is not None
+
+    marker = _marking(
+        lambda: state.markers.restore(listening.work, listening.document, marker_id, clash)
+    )
+    return _marker_out(book, marker)
 
 
 @router.delete(
