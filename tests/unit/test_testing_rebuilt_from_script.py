@@ -181,3 +181,28 @@ def test_the_rebuilt_document_keeps_each_block_s_alt_texts() -> None:
 
     assert [alts(0), alts(1), alts(2)] == [["A cat", "A dog"], [], [""]]
     assert _read(rebuilt) == _read(document)
+
+
+def _tagged_runs(document, index: int) -> list[tuple[str, tuple[str, ...]]]:
+    items = document.content.items()
+    return [
+        (run.text, run.tags)
+        for part in document.blocks[index].parts
+        for run in items[part.item][1].runs
+        if run.tags
+    ]
+
+
+def test_a_placeholder_back_as_printed_keeps_its_tagged_runs_and_one_read_does_not() -> None:
+    """#463: a placeholder rebuilt as printed keeps its hidden and page-break runs, so a
+    second run sees them again; one in `own_output` comes back as read, without tags."""
+    hidden, page_break = ("span", "hidden"), ("span", "epub:pagebreak")
+    document = make_document(
+        [(BlockKind.TABLE, "a 13 b SECRET c"), (BlockKind.CODE, "x 13 y")],
+        tags={0: [(2, 4, page_break), (7, 13, hidden)], 1: [(2, 4, page_break)]},
+    )
+    script = run_steps(document, StepContext("en"), strict=True).script()
+    rebuilt = rebuilt_from_script(document, script, own_output=[1])
+    assert rebuilt.blocks[0].text == "a 13 b SECRET c"
+    assert _tagged_runs(rebuilt, 0) == [("13", page_break), ("SECRET", hidden)]
+    assert _tagged_runs(rebuilt, 1) == []

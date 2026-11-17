@@ -954,16 +954,22 @@ def test_the_alt_text_is_read_as_a_paragraph_is(
 @pytest.mark.parametrize(
     ("language", "alt", "notice"),
     [
+        ("en", "https://x.org", "A figure is skipped."),
         ("en", "See https://x.org", "A figure is skipped."),
         ("en", "(Smith, 2019)", "A figure is skipped."),
+        ("en", "[3], [4]", "A figure is skipped."),
         ("de", "vgl. https://x.org", "Eine Abbildung wird übersprungen."),
+        ("de", "(Müller 2019, S. 4)", "Eine Abbildung wird übersprungen."),
+        ("de", "https://x.org \u2013 (WBGU 2011, S. 1)", "Eine Abbildung wird übersprungen."),
     ],
 )
 def test_an_alt_text_read_as_nothing_adds_nothing_to_the_notice(
     language: str, alt: str, notice: str
 ) -> None:
     """A link or citation alone reads as nothing in a paragraph, so the notice says nothing
-    about what the figure shows rather than reading the link (#464)."""
+    about what the figure shows rather than reading the link (#464). Nothing means no letter
+    or digit is left: what is left of "[3], [4]" is ", " and of the German one " \u2013 ",
+    which must not give "It shows: ." (review N1 of PR #484)."""
     document = make_document([(BlockKind.FIGURE, "")], language, pictures={0: [alt]})
     (edit,) = TableFigureNoticeStep().find(document, StepContext(language))
     assert edit.replacement == notice

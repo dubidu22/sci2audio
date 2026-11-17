@@ -160,12 +160,25 @@ def test_a_placeholder_whose_notice_is_off_loses_its_hidden_runs(
     assert read(document, switched_off=[NOTICES[kind]]) == ["a b c"]
 
 
-def test_a_placeholder_in_a_language_without_notices_loses_its_hidden_runs() -> None:
-    """The notice steps read English and German only: in a French job a table is read as
-    printed, so its hidden runs go (#463)."""
-    document = make_document([(BlockKind.TABLE, "a SECRET b")], "fr", tags={0: [(2, 8, HIDDEN)]})
-    (edit,) = HiddenRunStep().find(document, StepContext("fr"))
-    assert edit.span == Span(0, 2, 8)
+@pytest.mark.parametrize("kind", list(NOTICES))
+@pytest.mark.parametrize("on", [True, False])
+def test_a_placeholder_in_a_language_without_notices_loses_its_hidden_runs(
+    kind: BlockKind, on: bool
+) -> None:
+    """The notice steps read English and German only: in a French job every placeholder is
+    read as printed, its category on or off, so its hidden runs go (#463)."""
+    document = make_document(
+        [Block(kind, "a 13 b SECRET c")],
+        "fr",
+        tags={0: [(2, 4, PAGE_BREAK), (7, 13, HIDDEN)]},
+    )
+    switched = [] if on else [NOTICES[kind]]
+    context = StepContext("fr", switched_off=frozenset(switched))
+    assert [edit.span for edit in HiddenRunStep().find(document, context)] == [
+        Span(0, 2, 4),
+        Span(0, 7, 13),
+    ]
+    assert read(document, switched_off=switched) == ["a b c"]
 
 
 def test_a_hidden_run_of_white_space_only_gets_no_edit() -> None:

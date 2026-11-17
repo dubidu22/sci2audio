@@ -303,11 +303,8 @@ def _run_problems(
         return [*problems, *(f"on its own output: {problem}" for problem in more)]
     before = _rendered(document, script)
     after = _rendered(rebuilt, apply_edits(rebuilt, second))
-    # a placeholder the step edits inside came back as printed, without the run tags a
-    # step may read (a hidden run, #463): the check below reads it on its own output
-    inside = _edited_inside(document, first)
     for index, (was, now) in enumerate(zip(before, after, strict=True)):
-        if was != now and index not in inside:
+        if was != now:
             problems.append(
                 f"not idempotent: run on its own output, block {index} changed again "
                 f"from {was!r} to {now!r}"
@@ -334,11 +331,13 @@ def _inside_placeholder_problems(
 ) -> list[str]:
     """Edits inside a placeholder that change it again when the step reads its own output.
 
-    A second run rebuilds a placeholder as printed (D-707), so the idempotence check above
-    never shows a step its own edits inside one. An edit of the whole block (a notice) is
-    made from the printed block alone; an edit inside it, which cleans the text read when a
-    notice is switched off (a soft hyphen, a ligature, a line-end hyphen), must change
-    nothing more on a copy whose placeholder holds the step's own output (D-710).
+    A second run rebuilds a placeholder as printed, with its run tags (D-707, #463), so the
+    idempotence check above shows a step the printed placeholder again, never its own edits
+    inside one. An edit of the whole block (a notice) is made from the printed block alone;
+    an edit inside it, which cleans the text read when a notice is switched off (a soft
+    hyphen, a ligature, a line-end hyphen, a hidden run), must change nothing more on a
+    copy whose placeholder holds the step's own output (D-710). The check above still sees
+    every placeholder, so an edit inside one that hangs on another block is caught there.
     """
     inside = sorted(_edited_inside(document, edits))
     if not inside:
