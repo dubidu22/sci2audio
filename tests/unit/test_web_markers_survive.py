@@ -26,6 +26,7 @@ from web_helpers import (
 
 from sci2audio.web import create_app
 from sci2audio.web.markers import MARKERS, UNDO_SECONDS
+from sci2audio.web.player import audiobook_stamp
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -119,6 +120,33 @@ def test_a_page_of_another_audiobook_and_a_chunk_that_is_no_sentence_are_refused
     assert (beyond.status_code, beyond.json()["error"]) == (422, "no-such-sentence")
     for body in ({"chunk": 1}, {"chunk": -1, "audiobook": data["audiobook"]}, {"chunk": "1"}):
         assert client.post(url, json=body).status_code == 422
+    assert (marked["work"] / MARKERS).read_bytes() == marked["bytes"]
+
+
+@pytest.mark.parametrize(
+    ("case", "end"),
+    [
+        ("an empty span", lambda span: span["start_char"]),
+        ("past the block's end", lambda _: 10_000),
+    ],
+    ids=["empty", "outside"],
+)
+def test_a_chunk_whose_span_is_empty_or_outside_the_document_is_no_sentence(
+    marked: dict[str, Any], case: str, end: Any
+) -> None:
+    """Round 1 S2: the route refuses it itself (422), never through the file's read-back
+    guard (503), and the file is unchanged."""
+    client, doc, config = marked["client"], marked["doc"], marked["config"]
+    [path] = config.output_folder.glob("*.readalong.json")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    chunk = sentences(marked["data"])[0]  # a sentence without a marker
+    assert chunk not in marked["chunks"]
+    span = data["chunks"][chunk]
+    span["end_char"] = end(span)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    url = f"/api/v1/documents/{doc}/markers"
+    answer = client.post(url, json={"chunk": chunk, "audiobook": audiobook_stamp(path)})
+    assert (answer.status_code, answer.json()["error"]) == (422, "no-such-sentence"), case
     assert (marked["work"] / MARKERS).read_bytes() == marked["bytes"]
 
 

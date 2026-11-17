@@ -179,6 +179,15 @@ BROKEN: dict[str, bytes] = {
     "a long note": json.dumps(
         {**_valid(), "markers": [{**_valid()["markers"][0], "note": "x" * (NOTE_LIMIT + 1)}]}
     ).encode(),
+    # more markers than a document holds, each one valid, the file well under 2 MB (round 1 N2)
+    "more than 2000 markers": json.dumps(
+        {
+            **_valid(),
+            "markers": [
+                {**_valid()["markers"][0], "id": f"{n:016x}"} for n in range(MAX_MARKERS + 1)
+            ],
+        }
+    ).encode(),
     # a file that reads well but is past the limit: refused for its size alone
     "too large": json.dumps(_valid()).encode() + b" " * module.FILE_LIMIT,
 }
@@ -314,6 +323,9 @@ def test_undo_ends_after_ten_minutes_a_restart_or_twenty_later_removals(work: Pa
     clock = FakeClock()
     book = MarkerBook(clock)
     one, _ = book.set(work, DOC, first(), by_anchor(first()))
+    book.remove(work, DOC, one.id)
+    clock.advance(UNDO_SECONDS)  # exactly ten minutes: still kept, only "more than" ends it
+    assert book.restore(work, DOC, one.id, no_clash) == one
     book.remove(work, DOC, one.id)
     clock.advance(UNDO_SECONDS + 0.001)
     with pytest.raises(UndoExpired):
@@ -607,6 +619,89 @@ def test_a_sentence_the_layout_now_spreads_over_two_blocks_is_found() -> None:
     placed = one(document, first(), spans)
     assert placed.state == "found"
     assert spans[placed.chunk].block == 2  # the larger share
+
+
+def test_the_same_sentence_three_times_in_one_block_takes_the_one_nearest_its_old_place() -> None:
+    """Step 2 (round 1 S1a): text put before all three, so step 1 fails; the marker was on
+    the middle one and stays there."""
+    old = f"{SECOND} {SECOND} {SECOND}"
+    middle = len(SECOND) + 1
+    anchor = Anchor(0, middle, middle + len(SECOND), SECOND)
+    assert old[anchor.start : anchor.end] == SECOND
+    added = "Added. "
+    document = make_document([("paragraph", added + old)])
+    start = len(added) + middle
+    assert module._Finder(document).find(anchor) == (0, start, start + len(SECOND))
+
+
+def split_far(gap: int) -> Document:
+    """FIRST spread over two blocks, the first of them `gap` blocks after the anchor's."""
+    fillers = [("paragraph", f"Filler {n}.") for n in range(gap)]
+    return make_document(
+        [
+            ("heading", "1 Results"),
+            *fillers,
+            ("paragraph", "It fell by twelve"),
+            ("paragraph", "points on early shifts."),
+        ]
+    )
+
+
+def test_a_split_sentence_is_looked_for_twenty_blocks_either_side_and_no_further() -> None:
+    """Step 3's window (round 1 S1b)."""
+    near = split_far(15)
+    assert near.blocks[16].text == "It fell by twelve"
+    assert module._Finder(near).find(first()) == (17, 0, len("points on early shifts."))
+    assert one(near, first()).state == "found"
+    far = split_far(25)
+    assert far.blocks[26].text == "It fell by twelve"
+    assert module._Finder(far).find(first()) is None
+    assert one(far, first()).state == "not-found"
+
+
+def test_a_split_sentence_goes_to_the_block_with_the_larger_share_the_earlier_on_a_tie() -> None:
+    """Step 3 (round 1 S1c): the larger share wins in either direction."""
+    earlier = make_document(
+        [
+            ("heading", "1 Results"),
+            ("paragraph", "It fell by twelve points on"),
+            ("paragraph", "early shifts."),
+        ]
+    )
+    assert module._Finder(earlier).find(first()) == (1, 0, len("It fell by twelve points on"))
+    even = make_document([("paragraph", "abcd"), ("paragraph", "efgh")])
+    assert module._Finder(even).find(Anchor(0, 0, 9, "abcd efgh")) == (0, 0, 4)
+
+
+def test_a_place_two_chunks_overlap_alike_is_shown_on_the_first() -> None:
+    """Step 5 (round 1 S1d): 20 characters each, the first chunk wins."""
+    document = paper()
+    pieces = [Span(1, 0, 20), Span(1, 21, len(FIRST))]
+    assert [min(p.end, len(FIRST)) - p.start for p in pieces] == [20, 20]
+    assert one(document, first(), pieces).chunk == 0
+
+
+@pytest.mark.parametrize(
+    "printed",
+    [
+        "It fell by twelve   points on early\n  shifts.",  # runs of spaces and a line break
+        "It  fell by twelve points on early shifts.",
+    ],
+)
+def test_runs_of_white_space_read_as_one_space(printed: str) -> None:
+    """Round 1 S1e: the stored anchor has single spaces."""
+    document = make_document([("heading", "1 Results"), ("paragraph", f"{printed} {SECOND}")])
+    assert module._Finder(document).find(first()) == (1, 0, len(printed))
+    assert one(document, first()).state == "found"
+
+
+def test_soft_hyphens_are_read_through_both_ways() -> None:
+    """Round 1 S1f: a soft hyphen now in the block, or one stored in the anchor."""
+    printed = "It fell by twel\u00adve points on early shifts."
+    now = make_document([("heading", "1 Results"), ("paragraph", f"{printed} {SECOND}")])
+    assert module._Finder(now).find(first()) == (1, 0, len(printed))
+    stored = Anchor(1, 5, 5 + len(printed), printed)  # an old place, so step 1 fails
+    assert module._Finder(paper()).find(stored) == (1, 0, len(FIRST))
 
 
 def test_a_sentence_gone_is_listed_as_not_found_with_its_note_and_never_dropped(
