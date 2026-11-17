@@ -55,6 +55,7 @@ from sci2audio.web.player import (
     locate,
     read_audio_record,
     recorded_folder,
+    sentence_starts,
     write_position,
 )
 from sci2audio.web.state import ApiError, Listening, ServerState, state_of
@@ -365,17 +366,29 @@ class _Book:
     document: Document
     spans: list[Span]
     stamp: str
+    firsts: list[int]  # each chunk's sentence, by its first piece (#480)
 
     def placed(self, marker: Marker) -> Placed:
         """Where this audiobook shows the marker (it does not depend on the others)."""
         return place([marker], self.document, self.spans)[0]
 
+    def sentence(self, chunk: int) -> Span:
+        """The whole sentence chunk `chunk` is a piece of: from its first piece's start to its
+        last piece's end (#480). A sentence that was not cut is its one chunk's span."""
+        first = self.firsts[chunk]
+        group = [n for n in range(first, len(self.spans)) if self.firsts[n] == first]
+        return Span(self.spans[first].block, self.spans[first].start, self.spans[group[-1]].end)
+
     def on_sentence(self, chunk: int | None, markers: list[Marker]) -> Marker | None:
-        """The marker shown on chunk `chunk`, if one is."""
+        """The marker shown on the sentence chunk `chunk` is a piece of, if one is: on any of
+        its pieces (#480)."""
         if chunk is None:
             return None
+        first = self.firsts[chunk]
+        placed = place(markers, self.document, self.spans)
         return next(
-            (p.marker for p in place(markers, self.document, self.spans) if p.chunk == chunk), None
+            (p.marker for p in placed if p.chunk is not None and self.firsts[p.chunk] == first),
+            None,
         )
 
 
@@ -391,7 +404,7 @@ def _book(state: ServerState, document_id: str) -> _Book:
     except (PlayerError, OSError) as error:
         raise ApiError(404, "not-found", f"{listening.name} has no audiobook") from error
     spans = [chunk.span for chunk in located.readalong.chunks]
-    return _Book(listening, document, spans, stamp)
+    return _Book(listening, document, spans, stamp, sentence_starts(located.readalong))
 
 
 def _marker_out(book: _Book, marker: Marker) -> models.MarkerOut:
@@ -442,10 +455,11 @@ def set_marker(
     book = _book(state, document_id)
     if given.audiobook != book.stamp:
         raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")
-    span = book.spans[given.chunk] if given.chunk < len(book.spans) else None
+    piece = book.spans[given.chunk] if given.chunk < len(book.spans) else None
     try:
-        if span is None or span.start >= span.end:
+        if piece is None or piece.start >= piece.end:
             raise SpanError("no sentence")
+        span = book.sentence(given.chunk)
         book.document.check_span(span)
     except SpanError:
         raise ApiError(422, "no-such-sentence", "the audiobook has no such sentence") from None

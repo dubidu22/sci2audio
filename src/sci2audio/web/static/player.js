@@ -20,6 +20,9 @@ function readAlong() {
   if (!block || !audio) return;
   const data = JSON.parse(block.textContent);
   const chunks = data.chunks; // [start, end, chapter, element id]
+  // each chunk's sentence, by its first chunk: the pieces of a sentence cut for the voice
+  // are one sentence (#480); every other chunk is its own
+  const firstOf = chunks.map((_, n) => data.sentences?.[n] ?? n);
   const chapters = data.chapters; // {title, file, offset, start, first}
   // each file's address is made here from the document id and the file's bare name
   const base = `/api/v1/documents/${encodeURIComponent(data.document)}/audiobook/`;
@@ -294,13 +297,17 @@ function readAlong() {
     else if (audio.paused) audio.play().catch(() => {});
     else audio.pause();
   });
+  // next and previous step by sentence, never into the middle of a cut one (#480)
   document.getElementById("next-sentence").addEventListener("click", () => {
-    playFrom(Math.min(current + 1, chunks.length - 1), !audio.paused);
+    let next = current + 1;
+    while (next < chunks.length && firstOf[next] !== next) next++;
+    playFrom(next < chunks.length ? next : firstOf[chunks.length - 1], !audio.paused);
   });
   document.getElementById("previous-sentence").addEventListener("click", () => {
-    const into = current >= 0 ? bookTime() - chunks[current][0] : 0;
-    const target = !audio.paused && into > RESTART_AFTER ? current : current - 1;
-    playFrom(Math.max(target, 0), !audio.paused);
+    const start = current >= 0 ? firstOf[current] : -1;
+    const into = start >= 0 ? bookTime() - chunks[start][0] : 0;
+    const target = !audio.paused && into > RESTART_AFTER ? start : start - 1;
+    playFrom(target >= 0 ? firstOf[target] : 0, !audio.paused);
   });
   for (const button of chapterButtons) {
     button.addEventListener("click", () => toChapter(Number(button.dataset.chapter), true));
@@ -495,11 +502,12 @@ function readAlong() {
   }
 
   // the sentence M acts on: the one being read, or the one that just ended while the voice
-  // is in the first 1.2 s of the next (#397); the chunk its element starts with
+  // is in the first 1.2 s of the next (#397), counted from the start of the next one's first
+  // piece (#480); the chunk its element starts with
   function markerTarget() {
     if (current < 0) return null;
     let at = current;
-    if (!audio.paused && bookTime() - chunks[current][0] < MARK_BACK) {
+    if (!audio.paused && bookTime() - chunks[firstOf[current]][0] < MARK_BACK) {
       const id = chunks[current][3];
       let back = current - 1;
       while (back >= 0 && (!chunks[back][3] || chunks[back][3] === id)) back--;
@@ -647,7 +655,7 @@ function readAlong() {
 
   function drawTicks() {
     const length = Number(timeline.max) || 0;
-    const times = [...new Set(markers.filter((m) => m.chunk !== null).map((m) => chunks[m.chunk][0]))];
+    const times = [...new Set(markers.filter((m) => m.chunk !== null).map((m) => chunks[firstOf[m.chunk]][0]))];
     markerTicks.replaceChildren(
       ...times.map((time) => {
         const tick = document.createElementNS(markerTicks.namespaceURI, "rect");
@@ -680,7 +688,7 @@ function readAlong() {
     const item = made("li", "marker-row");
     item.dataset.marker = marker.id;
     if (marker.state === "found") {
-      const [time, , chapter] = chunks[marker.chunk];
+      const [time, , chapter] = chunks[firstOf[marker.chunk]]; // the sentence's start (#480)
       item.append(made("p", "mk-at", tr("marker.at", { n: chapter + 1, time: clockOf(time) })));
     } else {
       const notice = marker.state === "not-read" ? tr("marker.not_read") : tr("marker.not_found");
@@ -707,7 +715,7 @@ function readAlong() {
     }
     const actions = made("p", "mk-actions");
     if (marker.state === "found") {
-      actions.append(action(tr("marker.go_to"), () => playFrom(marker.chunk, !audio.paused)));
+      actions.append(action(tr("marker.go_to"), () => playFrom(firstOf[marker.chunk], !audio.paused)));
     }
     const edit = action(marker.note ? tr("marker.edit_note") : tr("marker.add_note"), () => openNote(marker.id));
     edit.classList.add("mk-edit-note");
