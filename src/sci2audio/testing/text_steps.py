@@ -188,15 +188,23 @@ def _sample_documents() -> tuple[Document, ...]:
         6: [(8, 10, ("span", "epub:pagebreak")), (20, 26, ("span", "hidden"))],
     }
     # placeholders whose printed text a step cleans, read when their notice is switched off:
-    # a soft hyphen and a ligature in a formula, a ligature in a table, a zero-width space in
-    # code, a line-end hyphen in a figure (review B1 of PR #450, D-710)
+    # a soft hyphen and a ligature in a formula, a ligature and a page-break marker in a
+    # table, a zero-width space and a hidden run in code (#463), a line-end hyphen in a
+    # figure (review B1 of PR #450, D-710); then a figure whose alt text holds a number, a
+    # unit, a citation and a link, read as a paragraph is (#464)
     placeholders = [
         Block(BlockKind.FORMULA, "coe\u00adfﬁcient a = b (2)", label="2"),
-        (BlockKind.TABLE, "eﬃciency n\nA 1 2 3"),
-        (BlockKind.CODE, "x\u200b= 1"),
+        (BlockKind.TABLE, "eﬃciency n 14\nA 1 2 3"),
+        (BlockKind.CODE, "x\u200b= 1 SECRET"),
         (BlockKind.FIGURE, "pre-\ntraining loss"),
         (BlockKind.PARAGRAPH, "The loss is shown above."),
+        (BlockKind.FIGURE, ""),
     ]
+    placeholder_tags: dict[int, list[tuple[int, int, str | tuple[str, ...]]]] = {
+        1: [(11, 13, ("span", "epub:pagebreak"))],
+        2: [(6, 12, ("span", "hidden"))],
+    }
+    placeholder_alt = {5: ["Share of 3.5 % at 12 m\u00b2 (Smith, 2019), see https://x.org"]}
     return (
         make_document([], name="empty.txt"),
         make_document(furniture, name="furniture.txt"),
@@ -216,8 +224,19 @@ def _sample_documents() -> tuple[Document, ...]:
             sections=[Section("Einleitung", 1, 0, 13), Section("Literatur", 1, 13, len(german))],
         ),
         make_document(title, name="title.txt", tags=title_tags),
-        make_document(placeholders, name="placeholders.txt"),
-        make_document(placeholders, "de", name="platzhalter.txt"),
+        make_document(
+            placeholders,
+            name="placeholders.txt",
+            tags=placeholder_tags,
+            pictures=placeholder_alt,
+        ),
+        make_document(
+            placeholders,
+            "de",
+            name="platzhalter.txt",
+            tags=placeholder_tags,
+            pictures=placeholder_alt,
+        ),
     )
 
 
@@ -293,6 +312,16 @@ def _run_problems(
     return problems + _inside_placeholder_problems(step, document, context, first, before)
 
 
+def _edited_inside(document: Document, edits: Sequence[Edit]) -> set[int]:
+    """The placeholders the edits change inside, not as a whole block (a notice)."""
+    return {
+        edit.span.block
+        for edit in edits
+        if (block := document.blocks[edit.span.block]).is_placeholder
+        and (edit.span.start, edit.span.end) != (0, len(block.text))
+    }
+
+
 def _inside_placeholder_problems(
     step: TextStep,
     document: Document,
@@ -302,20 +331,15 @@ def _inside_placeholder_problems(
 ) -> list[str]:
     """Edits inside a placeholder that change it again when the step reads its own output.
 
-    A second run rebuilds a placeholder as printed (D-707), so the idempotence check above
-    never shows a step its own edits inside one. An edit of the whole block (a notice) is
-    made from the printed block alone; an edit inside it, which cleans the text read when a
-    notice is switched off (a soft hyphen, a ligature, a line-end hyphen), must change
-    nothing more on a copy whose placeholder holds the step's own output (D-710).
+    A second run rebuilds a placeholder as printed, with its run tags (D-707, #463), so the
+    idempotence check above shows a step the printed placeholder again, never its own edits
+    inside one. An edit of the whole block (a notice) is made from the printed block alone;
+    an edit inside it, which cleans the text read when a notice is switched off (a soft
+    hyphen, a ligature, a line-end hyphen, a hidden run), must change nothing more on a
+    copy whose placeholder holds the step's own output (D-710). The check above still sees
+    every placeholder, so an edit inside one that hangs on another block is caught there.
     """
-    inside = sorted(
-        {
-            edit.span.block
-            for edit in edits
-            if (block := document.blocks[edit.span.block]).is_placeholder
-            and (edit.span.start, edit.span.end) != (0, len(block.text))
-        }
-    )
+    inside = sorted(_edited_inside(document, edits))
     if not inside:
         return []
     own = rebuilt_from_script(document, apply_edits(document, edits), own_output=inside)

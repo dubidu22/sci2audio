@@ -9,8 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from sci2audio.testing.regression import Case, diff, load_cases, read_twice, render, said
-from sci2audio.textprep import StepContext, run_steps
+from sci2audio.testing.regression import Case, diff, load_cases, read_twice, render, run_case, said
 
 CASES_FILE = Path(__file__).resolve().parents[1] / "regression" / "german.toml"
 CASES = load_cases(CASES_FILE)
@@ -21,7 +20,7 @@ SECOND_RUN_EXCEPTIONS: dict[str, str] = {}
 
 @pytest.mark.parametrize("case", CASES, ids=[case.id for case in CASES])
 def test_the_script_is_the_expected_one(case: Case) -> None:
-    run = run_steps(case.document, StepContext(case.document.language), strict=True)
+    run = run_case(case)
     got = render(run)
     assert list(case.expected) == got, f"script of {case.id} changed:\n{diff(case.expected, got)}"
     if case.utterances is not None:

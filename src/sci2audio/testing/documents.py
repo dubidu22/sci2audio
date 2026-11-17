@@ -9,6 +9,7 @@ from sci2audio.core import (
     BlockKind,
     Content,
     Document,
+    Item,
     Page,
     Part,
     Picture,
@@ -128,19 +129,22 @@ def rebuilt_from_script(
     reads "Abbildung 1", #324); any other label is dropped. A placeholder (formula, table,
     figure, code) comes back as printed, with its label, not as its notice: a notice is made
     from the printed placeholder and its captions only, so the second run makes it again,
-    however it reads the label ("Formel 3 Punkt 2", D-707). The section tree is kept, and so
-    is each block's pictures' alt text, which the script cannot carry (#191).
+    however it reads the label ("Formel 3 Punkt 2", D-707); its text is unchanged, so its
+    runs keep their tags, and a hidden run or page-break marker in it is seen again (#463).
+    The section tree is kept, and so is each block's pictures' alt text, which the script
+    cannot carry (#191).
     Used to check that running the steps a second time changes nothing more (idempotence).
 
     The placeholders whose indices are in `own_output` come back as the script reads them
-    instead, like any other block: the conformance suite checks on them that a step's edits
-    inside a placeholder change nothing more when it reads its own output (D-710).
+    instead, like any other block, without run tags: the conformance suite checks on them
+    that a step's edits inside a placeholder change nothing more when it reads its own
+    output (D-710).
     """
     pieces: list[list[ScriptPiece]] = [[] for _ in document.blocks]
     for piece in script:
         pieces[piece.span.block].append(piece)
     items = document.content.items()
-    blocks, pictures = [], {}
+    blocks, pictures, tags = [], {}, {}
     for index, (block, own) in enumerate(zip(document.blocks, pieces, strict=True)):
         if alts := [
             item.alt for part in block.parts if isinstance(item := items[part.item][1], Picture)
@@ -151,6 +155,8 @@ def rebuilt_from_script(
             # placeholder comes back as printed and the second run makes the same notice
             # again, however the notice reads its label (D-707)
             blocks.append(Block(block.kind, block.text, role=block.role, label=block.label))
+            if kept := _run_tags(block, items):
+                tags[index] = kept  # the printed text is unchanged, so its run tags still fit
             continue
         text = "".join(piece.text for piece in own)
         blocks.append(
@@ -168,7 +174,33 @@ def rebuilt_from_script(
         document.content.source.name,
         sections=document.sections,
         pictures=pictures,
+        tags=tags,
     )
+
+
+def _run_tags(
+    block: Block, items: Mapping[str, tuple[Page, Item]]
+) -> list[tuple[int, int, str | tuple[str, ...]]]:
+    """The block's tagged runs as (start, end, tags) in its text, so a placeholder rebuilt
+    as printed keeps its hidden runs and page-break markers (#463)."""
+    found: list[tuple[int, int, str | tuple[str, ...]]] = []
+    for part in block.parts:
+        line = items[part.item][1]
+        if not isinstance(line, TextLine):
+            continue
+        if block.text[part.start : part.start + len(line.text)] != line.text:
+            continue  # never point at other text
+        offset = part.start
+        for run in line.runs:
+            if run.tags:
+                # a tagged range may not cross a line break or go back over one before it
+                start = offset
+                for piece in run.text.split("\n"):
+                    if piece and (not found or start >= found[-1][1]):
+                        found.append((start, start + len(piece), tuple(run.tags)))
+                    start += len(piece) + 1
+            offset += len(run.text)
+    return found
 
 
 def _rebuilt_label(block: Block, pieces: Sequence[ScriptPiece], text: str) -> str:

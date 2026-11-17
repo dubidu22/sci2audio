@@ -10,6 +10,7 @@ A case file is TOML with one `[[case]]` table per case:
     language = "en"               # optional, default "en"
     blocks = [{ kind = "paragraph", text = "..." }]  # optional: role, label, describes
     sections = [{ title = "References", level = 1, start = 2, end = 5 }]  # optional
+    switched_off = ["tables-and-figures"]  # optional: categories off besides the defaults
     expected = ["..."]            # the script today, one line per block that is read (a
                                   # block read inside another splits its line, #213)
     utterances = ["...", "..."]   # optional: how the cutter cuts the script, where it matters
@@ -44,17 +45,21 @@ from pathlib import Path
 from sci2audio.core import Block, BlockKind, Document, FurnitureRole, ScriptPiece, Section
 from sci2audio.testing.documents import make_document, rebuilt_from_script
 from sci2audio.textprep import (
+    DEFAULT_SWITCHED_OFF,
     PAUSE_MARK,
+    Category,
     StepContext,
     StepRun,
     cut_utterances,
+    notice_read,
     run_steps,
     spoken_text,
 )
 
 _CASE_ID = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 _CASE_KEYS = {
-    "id", "audit", "issue", "goal", "language", "blocks", "sections", "expected", "utterances"
+    "id", "audit", "issue", "goal", "language", "blocks", "sections", "expected", "utterances",
+    "switched_off",
 }  # fmt: skip
 _BLOCK_KEYS = {"kind", "text", "runs", "role", "label", "describes", "page", "pictures"}
 _SECTION_KEYS = {"title", "level", "start", "end"}
@@ -71,6 +76,8 @@ class Case:
     document: Document
     expected: tuple[str, ...]
     utterances: tuple[str, ...] | None = None  # None: not checked for this case
+    # the categories the case runs without: the defaults and those the case names (#463)
+    switched_off: frozenset[Category] = DEFAULT_SWITCHED_OFF
 
 
 def load_cases(path: Path) -> list[Case]:
@@ -142,6 +149,9 @@ def _case(raw: dict) -> Case:
         raise TypeError("utterances must be a list of strings")
     if not isinstance(raw["goal"], str) or not raw["goal"].strip():
         raise ValueError("goal must say what the owning issue's rule must reach")
+    off = raw.get("switched_off", [])
+    if not isinstance(off, list) or not all(isinstance(name, str) for name in off):
+        raise TypeError("switched_off must be a list of category names")
     return Case(
         id=raw["id"],
         audit=int(raw["audit"]),
@@ -158,6 +168,7 @@ def _case(raw: dict) -> Case:
         ),
         expected=tuple(expected),
         utterances=None if utterances is None else tuple(utterances),
+        switched_off=DEFAULT_SWITCHED_OFF | {Category(name) for name in off},
     )
 
 
@@ -211,13 +222,30 @@ def said(run: StepRun) -> list[str]:
     return [u.text or PAUSE_MARK for u in cut_utterances(run.document, run.script())]
 
 
+def run_case(case: Case) -> StepRun:
+    """The built-in steps on the case's document, strict, with the case's switches."""
+    context = StepContext(case.document.language)
+    return run_steps(case.document, context, switched_off=case.switched_off, strict=True)
+
+
 def read_twice(case: Case) -> tuple[list[str], list[str]]:
     """Each block's text as a first run reads it and as a second run reads the first run's
     script (`rebuilt_from_script`), in block order; a block read inside another (a moved
     note, #213) counts where it is printed, so only the words are compared (D-577)."""
-    context = StepContext(case.document.language)
-    first = run_steps(case.document, context, strict=True)
-    second = run_steps(rebuilt_from_script(case.document, first.script()), context, strict=True)
+    context = StepContext(case.document.language, switched_off=case.switched_off)
+    first = run_case(case)
+    # a placeholder whose notice is off is read as printed, so it comes back as read (#463)
+    read = [
+        index
+        for index, block in enumerate(case.document.blocks)
+        if block.is_placeholder and not notice_read(block, context)
+    ]
+    second = run_steps(
+        rebuilt_from_script(case.document, first.script(), own_output=read),
+        context,
+        switched_off=case.switched_off,
+        strict=True,
+    )
     return _by_block(first, len(case.document.blocks)), _by_block(second, len(case.document.blocks))
 
 

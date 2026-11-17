@@ -24,6 +24,7 @@ from sci2audio.testing import (
 from sci2audio.textprep import (
     BUILT_IN_STEPS,
     Category,
+    HiddenRunStep,
     LineEndHyphenStep,
     Stage,
     StepContext,
@@ -152,6 +153,44 @@ def test_built_in_steps_may_clean_the_printed_text_inside_a_placeholder() -> Non
         BlockKind.CODE,
         BlockKind.FIGURE,
     }
+
+
+class Neighbour(InsidePlaceholder):
+    """An inline step that removes "loss" from each text block and, while a text block
+    says "loss", the first character of each placeholder: its edit inside a placeholder
+    hangs on another block it also changes, so only the second-run check over every
+    block sees that it is not idempotent (review S1 of PR #484)."""
+
+    id = "neighbour"
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        said = any("loss" in b.text for b in document.blocks if not b.is_placeholder)
+        edits = []
+        for index, block in enumerate(document.blocks):
+            if not block.is_placeholder and (at := block.text.find("loss")) >= 0:
+                edits.append(Edit(Span(index, at, at + 4), EditKind.REMOVE, "r", self.id))
+            elif said and block.is_placeholder and len(block.text) > 2:
+                edits.append(Edit(Span(index, 0, 1), EditKind.REMOVE, "r", self.id))
+        return edits
+
+
+def test_an_edit_inside_a_placeholder_that_hangs_on_another_block_is_caught() -> None:
+    problems = text_step_problems(Neighbour())
+    assert any(
+        "placeholders.txt: not idempotent: run on its own output, block 0" in p for p in problems
+    ), problems
+
+
+def test_the_samples_hold_hidden_runs_inside_placeholders_read_as_printed() -> None:
+    """With the notices switched off, `hidden-runs` edits inside the sample table and code
+    block, so the check on its own output covers it (#463, D-710)."""
+    samples = [d for d in SAMPLE_DOCUMENTS if d.content.source.name.startswith(("plac", "plat"))]
+    off = frozenset({Category.FORMULAS, Category.TABLES_AND_FIGURES, Category.CODE})
+    for document in samples:
+        edits = HiddenRunStep().find(document, StepContext(document.language, switched_off=off))
+        kinds = {document.blocks[edit.span.block].kind for edit in edits}
+        assert kinds == {BlockKind.TABLE, BlockKind.CODE}
+        assert HiddenRunStep().find(document, StepContext(document.language)) == []
 
 
 class WholePlaceholder(TextStep):
