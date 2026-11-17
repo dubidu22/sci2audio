@@ -19,7 +19,7 @@ from long_book import long_book
 from playwright.sync_api import Page, Route, expect
 from test_player import chunk_id, highlighted, make_audiobook, paused
 
-from conftest import Live, check_axe
+from conftest import Live, check_axe, tab_key
 from sci2audio.core.export import to_data
 from sci2audio.output.readalong import to_json
 from sci2audio.web.player import recorded_folder
@@ -287,6 +287,13 @@ def test_the_panel_beside_the_desk_and_over_it(signed_in: Page, live: Live) -> N
     page.locator("#panel-close").click()
     expect(panel).to_be_hidden()
     expect(toggle).to_be_focused()
+    # where a click gives a button no focus, as in Safari, the Close button still gives the
+    # focus to the toggle (#498): here the press leaves the focus nowhere first
+    toggle.click()
+    page.evaluate("() => document.activeElement.blur()")
+    page.locator("#panel-close").dispatch_event("click")
+    expect(panel).to_be_hidden()
+    expect(toggle).to_be_focused()
     page.set_viewport_size({"width": 1280, "height": 720})
 
 
@@ -349,7 +356,14 @@ def test_below_1280_px_a_click_on_text_inside_the_panel_leaves_it_open(
     expect(page.locator("#tab-changes")).not_to_be_focused()
     expect(panel).to_be_visible()
     expect(page.locator("#panel-toggle")).to_have_attribute("aria-expanded", "true")
-    page.keyboard.press("Tab")  # from where the press left the focus: out of the panel
+    page.keyboard.press(tab_key(page))  # from where the press left the focus: out of the panel
+    if page.context.browser.browser_type.name == "webkit":  # type: ignore[union-attr]
+        # WebKit starts Tab from the pressed text, the panel's last item, not from <main>,
+        # which the press focused: the focus leaves the page for the browser's own bar and
+        # nothing is covered. The next Tab comes back into the page and closes it (#502)
+        expect(panel).to_be_visible()
+        assert page.evaluate("() => document.activeElement === document.body")
+        page.keyboard.press(tab_key(page))
     expect(panel).to_be_hidden()
     assert uncovered(page)
     page.locator("#panel-toggle").click()
