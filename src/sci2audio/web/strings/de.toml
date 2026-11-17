@@ -588,4 +588,7 @@ kept_some = "Die bisher gesprochenen Sätze bleiben erhalten. Ein neuer Start sp
 resume = "Fortsetzen"
 again = "Neu erstellen"
 free = "Sprachzwischenspeicher leeren ({size})"
+free_goes = "Das löscht jeden Satz, der für dieses Dokument gesprochen wurde ({size}). Ein neuer Start spricht danach alles neu."
+free_now = "Sprachzwischenspeicher löschen"
+kept_replace = "Die bisher gesprochenen Sätze bleiben erhalten. Ersetzen spricht nur, was fehlt."
 same_settings = "Dabei gelten die Einstellungen, mit denen dieser Durchlauf begann: Stimme, Tempo und Kapitel. Für andere Einstellungen ändern Sie sie unten und wählen Sie „Hörbuch erstellen“."

@@ -119,7 +119,8 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
     expect(page.locator("#result")).to_be_focused()
-    press_on(page, "Free the speech cache")
+    press_on(page, "Free the speech cache")  # opens its confirm (D-733)
+    press_on(page, "Delete the speech cache")
     expect(page.locator("#message")).to_be_focused()
     expect(page.locator("#message")).to_have_text("The speech cache is empty.")
 

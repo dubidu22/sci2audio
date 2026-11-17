@@ -149,6 +149,9 @@ class JobOut(BaseModel):
     finished: str | None
     cancellable: bool
     settings: dict[str, Any] | None
+    overwrite: bool = Field(
+        description="the job was started with `overwrite`; resuming it sends the same (D-733)"
+    )
     progress: dict[str, Any] | None
     error: ErrorOut | None
     files: list[FileOut]

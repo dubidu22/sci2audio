@@ -6,14 +6,21 @@
 {% macro segments(list) -%}
 {% if list %}<span class="segs" id="job-segments" aria-hidden="true">{% for kind in list %}<span class="seg{% if kind %} {{ kind }}{% endif %}"></span>{% endfor %}</span>{% endif %}
 {%- endmacro %}
+{#- Freeing the cache deletes every spoken sentence, so it asks first, as Cancel does (D-733) -#}
 {% macro free_button(card) -%}
-{% if card.cache %}<button type="button" id="cache-free" disabled>{{ t('making.free', size=card.cache_text) }}</button>{% endif %}
+{% if card.cache %}<details class="confirm" id="free-box">
+      <summary class="btn" id="cache-free-open">{{ t('making.free', size=card.cache_text) }}</summary>
+      <div class="confirm-box">
+        <p id="free-goes">{{ t('making.free_goes', size=card.cache_text) }}</p>
+        <p class="buttons"><button type="button" class="danger" id="cache-free" disabled>{{ t('making.free_now') }}</button></p>
+      </div>
+    </details>{% endif %}
 {%- endmacro %}
 {% macro making(card, document) %}
 {% set job = card.job %}
 <section class="step making" id="making" aria-labelledby="making-title" tabindex="-1"
          data-job="{{ job.id }}" data-state="{{ job.state }}" data-document="{{ document.id }}"
-         data-settings="{{ job.settings | tojson | forceescape }}"
+         data-settings="{{ job.settings | tojson | forceescape }}" data-overwrite="{{ 'true' if job.overwrite else 'false' }}"
          data-events="/api/v1/jobs/{{ job.id }}/events" data-cancel="/api/v1/jobs/{{ job.id }}/cancel" data-stop-wait="{{ card.stop_wait }}">
 <header><h2 id="making-title">{{ t('making.title') }}</h2></header>
 <div class="body">
@@ -51,13 +58,15 @@
   <ul>{% for item in card.skipped %}<li>{{ t('job.skipped_line', chapter=item.chapter + 1, page=item.printed_page or item.page or '?') }} <span lang="en">{{ item.text }}</span></li>{% endfor %}</ul>
   {% endif %}
   <p id="cache-text">{% if card.cache %}{{ t('job.cache', size=card.cache_text) }}{% else %}{{ t('job.cache_freed') }}{% endif %}</p>
-  {% if card.cache %}<p class="buttons">{{ free_button(card) }}</p>{% endif %}
+  {% if card.cache %}<div class="buttons">{{ free_button(card) }}</div>{% endif %}
 {% elif card.exists %}
   <div class="callout warn">{{ icon('alert', 'l') }}<div>
     <h3 id="result" tabindex="-1">{{ job.failure.reason }}</h3>
     {% if job.failure.details %}<p>{{ t('common.details') }} <span lang="en">{{ job.failure.details }}</span></p>{% endif %}
+    {#- replacing reuses the spoken sentences; freeing the cache is never needed for it (D-733) #}
+    {% if card.cache %}<p id="job-kept">{{ t('making.kept_replace') }}</p>{% endif %}
   </div></div>
-  <p class="buttons"><button type="button" class="primary" id="job-replace" disabled aria-describedby="again-hint">{{ t('job.replace') }}</button>{{ free_button(card) }}</p>
+  <p class="buttons"><button type="button" class="primary" id="job-replace" disabled aria-describedby="again-hint">{{ t('job.replace') }}</button></p>
   <p class="hint" id="again-hint">{{ t('making.same_settings') }}</p>
 {% else %}
   <div class="callout{% if card.state == 'failed' %} bad{% endif %}">{{ icon('alert' if card.state == 'failed' else 'pausejob', 'l') }}<div>
@@ -66,10 +75,10 @@
     {% if card.kept %}<p id="job-kept">{{ card.kept }}</p>{% endif %}
   </div></div>
   {{ segments(card.segments) }}
-  <p class="buttons">
+  <div class="buttons">
     <button type="button" class="primary" id="job-again" disabled aria-describedby="again-hint">{% if card.resume %}{{ icon('play', 's') }}<span>{{ t('making.resume') }}</span>{% else %}{{ t('making.again') }}{% endif %}</button>
     {{ free_button(card) }}
-  </p>
+  </div>
   <p class="hint" id="again-hint">{{ t('making.same_settings') }}</p>
 {% endif %}
 </div>
