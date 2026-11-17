@@ -75,6 +75,7 @@
   <audio id="audio" preload="metadata"></audio>
 </section>
 <article class="sheet" aria-labelledby="listen-title">
+  <span class="now-bar" id="now-bar" aria-hidden="true" hidden></span>
   <div class="sheet-top">
     <p class="ai-notice">{{ t('listen.ai_notice', voice=voice) }}</p>
     <button type="button" class="sm" id="focus-on"{% if keys %} aria-keyshortcuts="F"{% endif %} disabled>{{ icon('focus', 's') }}<span>{{ t('listen.focus') }}</span></button>
@@ -118,7 +119,7 @@
   </div>
   <div class="focus-stage" lang="{{ view.language }}">
     <p class="prev" id="focus-prev"></p>
-    <p class="cur"><span id="focus-now"></span></p>
+    <p class="cur"><span class="now-bar" id="focus-bar" aria-hidden="true" hidden></span><span id="focus-now"></span></p>
     <p class="next" id="focus-next"></p>
   </div>
   {% if keys %}<p class="focus-foot"><span>{{ key('space') }} {{ t('keys.play') }}</span><span>{{ key('left') }} {{ key('right') }} {{ t('keys.prevnext') }}</span><span>{{ key('?') }} {{ t('nav.shortcuts') }}</span></p>{% endif %}
@@ -154,7 +155,6 @@
         <li><button type="button" class="chapter-button" data-chapter="{{ loop.index0 }}" lang="{{ view.language }}"{% if loop.first %} aria-current="true"{% endif %} disabled><span class="ot">{{ chapter.title }}</span><span class="oc">{{ chapter.clock }}</span></button></li>
       {% endfor %}
       </ol>
-      {% if view.left_out %}<p class="hint">{{ t('listen.left_out') }} <span lang="{{ view.language }}">{{ view.left_out|join(', ') }}</span></p>{% endif %}
     </nav>
     <p class="setting-switch follow"><input type="checkbox" role="switch" class="switch" id="follow" checked> <label for="follow">{{ t('listen.follow') }}</label></p>
   </div>

@@ -204,7 +204,7 @@ def test_a_code_block_shows_its_notice_and_its_code_with_its_line_breaks() -> No
     assert block.pieces[0].text == " ".join(code.split("\n"))
 
 
-def test_chapters_not_in_the_audiobook_are_named() -> None:
+def test_chapters_not_in_the_audiobook_are_not_shown() -> None:
     document = make_document(
         [
             ("heading", "Intro"),
@@ -215,8 +215,8 @@ def test_chapters_not_in_the_audiobook_are_named() -> None:
         sections=(Section("Intro", 1, 0, 2), Section("References", 1, 2, 4)),
     )
     view = build_view(document, record(chunks=2), readalong([(0, 0, 5), (1, 0, 5)]))
-    assert [c.title for c in view.chapters] == ["One"]
-    assert view.left_out == ["References"]
+    assert [c.title for c in view.chapters] == ["One"]  # and nothing names the others (#472)
+    assert not hasattr(view, "left_out")
 
 
 def test_heading_levels_follow_the_sections() -> None:
@@ -331,7 +331,6 @@ def test_a_chapter_that_starts_with_a_moved_block_is_the_chapter_it_is_read_in()
     assert (one.title_block and one.title_block.index, [b.index for b in one.blocks]) == (0, [])
     assert two.title_block is not None
     assert (two.title_block.index, [b.index for b in two.blocks]) == (2, [1, 3])
-    assert view.left_out == []
 
 
 class _Together(TextStep):
@@ -559,7 +558,7 @@ def test_the_listen_page_after_an_audio_job(tmp_path: Path) -> None:
     text = page.text
     assert "Listen: paper.pdf" in text
     assert "read by a synthetic voice (Heart)" in text
-    assert 'Not in this audiobook: <span lang="en">References</span>' in text
+    assert "Not in this audiobook" not in text  # the chapters left out go unnamed (#472)
     assert '<script src="/static/player.js" defer></script>' in text
     data = player_data(text)
     assert data["mode"] == "mp3"

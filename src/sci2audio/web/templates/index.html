@@ -51,7 +51,7 @@
 {#- the search (#416): a GET form that works without the script; app.js filters in place -#}
 <form class="lib-tools" id="search" role="search" action="/" method="get">
   <label for="q" class="visually-hidden">{{ t('library.search_label') }}</label>
-  <span class="search">{{ icon('search') }}<input id="q" name="q" type="search" value="{{ query }}" placeholder="{{ t('library.search_label') }}" autocomplete="off"></span>
+  <span class="search">{{ icon('search') }}<input id="q" name="q" type="search" maxlength="200" value="{{ query }}" placeholder="{{ t('library.search_label') }}" autocomplete="off"></span>
   <button type="submit">{{ t('library.search_button') }}</button>
 </form>
 <p class="no-match" id="no-match" role="status">{% if query and not shown %}{{ t('library.search_none', q=query) }}{% endif %}</p>

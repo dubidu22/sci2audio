@@ -39,7 +39,7 @@ from sci2audio.app import find_chapters
 from sci2audio.app.chapters import Chapter
 from sci2audio.app.files import write_texts
 from sci2audio.app.report import Pages
-from sci2audio.core import BlockKind, Document, EditKind, Section, SpanError
+from sci2audio.core import BlockKind, Document, Edit, EditKind, Section, SpanError
 from sci2audio.core.export import from_data
 from sci2audio.output import ReadAlong, ReadAlongError, read_readalong
 from sci2audio.textprep import (
@@ -505,7 +505,6 @@ class PlayerView:
     language: str
     voice: str
     chapters: list[ChapterView]
-    left_out: list[str]  # chapters not in the audiobook
     chunks: list[tuple[float, float, int, str]]  # start, end, chapter, element id
     mode: str  # "mp3" or "m4b"
     duration: float = 0.0  # the whole book, in seconds
@@ -630,31 +629,42 @@ def build_view(
                 times.start,
             )
         )
-    left_out = [c.title for c in chapters if c.index not in used]
     chunks = [(c.start, c.end, c.chapter, element_of[n]) for n, c in enumerate(readalong.chunks)]
     heard_blocks = {n for c in chapters if c.index in used for n in range(c.start, c.end)}
     return PlayerView(
         language=document.language,
         voice=record.voice,
         chapters=views,
-        left_out=left_out,
         chunks=chunks,
         mode="mp3" if record.mp3s else "m4b",
         duration=readalong.duration,
         marked=marked,
         made_with=record.made_with,
-        changes=_changes(run, record.switched_off, heard_blocks, marked),
+        changes=_changes(document, run, record.switched_off, heard_blocks, marked, notices, moved),
     )
 
 
 def _changes(
-    run: StepRun, switched_off: frozenset[str], heard: Collection[int], marked: bool
+    document: Document,
+    run: StepRun,
+    switched_off: frozenset[str],
+    heard: Collection[int],
+    marked: bool,
+    notices: Collection[int],
+    moved: Collection[int],
 ) -> list[ChangeView]:
-    """Per category: on or off when the audiobook was made, and its accepted edits in the
-    chapters the audiobook reads (an edit counts where its block is read, #213)."""
+    """Per category: on or off when the audiobook was made, and how many of its accepted
+    edits the page shows in the chapters the audiobook reads (an edit counts where its block
+    is read, #213), so the count never names changes the text does not show (#462). Page
+    furniture counts too, though the sheet never shows it: the sheet is the text without
+    it, as it is heard (see `_shown`)."""
     counts: dict[str, int] = {}
     for outcome in run.outcomes:
-        if outcome.status is Status.ACCEPTED and run.read_at(outcome.edit.span.block) in heard:
+        if (
+            outcome.status is Status.ACCEPTED
+            and run.read_at(outcome.edit.span.block) in heard
+            and _shown(document, outcome.edit, notices, moved)
+        ):
             key = str(outcome.category)
             counts[key] = counts.get(key, 0) + 1
     return [
@@ -664,6 +674,46 @@ def _changes(
 
 
 _UNMARKED_STEPS = frozenset({LineEndHyphenStep.id})  # joins show as joined words (#286)
+_NOTICE_STEPS = frozenset({FormulaNoticeStep.id, TableFigureNoticeStep.id, CodeNoticeStep.id})
+
+
+def _shown(
+    document: Document, edit: Edit, notices: Collection[int], moved: Collection[int]
+) -> bool:
+    """True if the page shows this accepted edit: the removal of page furniture (the sheet
+    is the text without it, as heard), a notice box for a placeholder read as its notice
+    (the edits inside its text are not drawn), "Not read" for a block cut whole, a note read
+    at its mark shown where it is read, and every stretch `_marks` draws."""
+    block = edit.span.block
+    if document.blocks[block].kind is BlockKind.FURNITURE:
+        # never shown: the sheet is the text without it, as heard
+        return edit.kind is EditKind.REMOVE
+    if block in notices:
+        return edit.step in _NOTICE_STEPS
+    if edit.kind is EditKind.MOVE:
+        return block in moved
+    if edit.kind is EditKind.REMOVE and _whole(document, edit):
+        return True
+    return _mark(document, edit) is not None
+
+
+def _whole(document: Document, edit: Edit) -> bool:
+    """True if a REMOVE cuts its whole block (the page says "Not read" instead)."""
+    span = edit.span
+    return span.start == 0 and span.end >= len(document.blocks[span.block].text.rstrip())
+
+
+def _mark(document: Document, edit: Edit) -> tuple[int, int, str, str] | None:
+    """The stretch an accepted edit draws on the text, or None (see `_marks`)."""
+    span = edit.span
+    if span.start == span.end or edit.step in _UNMARKED_STEPS:
+        return None
+    original = document.blocks[span.block].text[span.start : span.end]
+    if edit.kind is EditKind.REMOVE:
+        return None if _whole(document, edit) else (span.start, span.end, "cut", "")
+    if edit.kind is EditKind.REPLACE and _looks(edit.replacement) != _looks(original):
+        return (span.start, span.end, "said", " ".join(edit.replacement.split()))
+    return None
 
 
 def _marks(document: Document, run: StepRun) -> dict[int, list[tuple[int, int, str, str]]]:
@@ -675,18 +725,9 @@ def _marks(document: Document, run: StepRun) -> dict[int, list[tuple[int, int, s
     its marks are never drawn; one read as printed shows its edits like any text."""
     found: dict[int, list[tuple[int, int, str, str]]] = {}
     for edit in run.accepted:
-        span = edit.span
-        if span.start == span.end or edit.step in _UNMARKED_STEPS:
-            continue
-        block = document.blocks[span.block]
-        original = block.text[span.start : span.end]
-        if edit.kind is EditKind.REMOVE:
-            if span.start == 0 and span.end >= len(block.text.rstrip()):
-                continue
-            found.setdefault(span.block, []).append((span.start, span.end, "cut", ""))
-        elif edit.kind is EditKind.REPLACE and _looks(edit.replacement) != _looks(original):
-            said = " ".join(edit.replacement.split())
-            found.setdefault(span.block, []).append((span.start, span.end, "said", said))
+        mark = _mark(document, edit)
+        if mark is not None:
+            found.setdefault(edit.span.block, []).append(mark)
     for stretches in found.values():
         stretches.sort()
     return found

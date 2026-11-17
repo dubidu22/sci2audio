@@ -46,6 +46,7 @@ function readAlong() {
   let touched = false; // the person played or moved: from then on the position is kept
   let savedAt = 0; // when the position was last sent (performance.now())
   let focusing = false; // Focus listening is shown (#394)
+  let panelByKey = null; // P: shows or hides the panel, leaving the focus where it is (#461)
 
   // the dock is pinned to the window's foot only while it takes at most a quarter of the
   // window, and then nothing focused or scrolled to may hide under it (WCAG 1.4.10, 2.4.11):
@@ -149,10 +150,7 @@ function readAlong() {
     current = index;
     if (element === marked) return; // empty spans share their sentence's element
     if (marked) {
-      // a sentence the voice read through keeps the pale tint (#392)
-      if (element && !audio.paused && index > 0 && chunks[index - 1][3] === marked.id) {
-        marked.classList.add("done");
-      }
+      // a sentence heard keeps no mark (D-720)
       marked.classList.remove("now");
       marked.removeAttribute("aria-current");
     }
@@ -164,6 +162,7 @@ function readAlong() {
       announce(marked);
       reveal(marked);
     }
+    placeBars();
   }
 
   function update() {
@@ -393,7 +392,53 @@ function readAlong() {
     focusPrevious.replaceChildren(...copy(order[at - 1]));
     focusNow.replaceChildren(...copy(id));
     focusNext.replaceChildren(...copy(order[at + 1]));
+    placeBars();
   }
+
+  // ---- the bar beside the sentence being read (D-724) ------------------------------------
+  // The fill alone is too pale to be told apart by colour (below 3:1), so a bar in the margin
+  // marks the lines the sentence stands on: on the sheet in its left padding, in Focus left of
+  // the sentence. It is placed from the sentence's own line boxes, again whenever the mark
+  // moves or the text reflows (width, fonts), and hidden while nothing shown is marked.
+  const sheet = document.querySelector(".sheet");
+  const sheetBar = document.getElementById("now-bar");
+  const focusBar = document.getElementById("focus-bar");
+
+  function placeBar(bar, element, box, left) {
+    if (!bar) return;
+    const lines = element ? [...element.getClientRects()].filter((r) => r.width && r.height) : [];
+    if (!lines.length) {
+      bar.hidden = true;
+      return;
+    }
+    const top = Math.min(...lines.map((r) => r.top));
+    const bottom = Math.max(...lines.map((r) => r.bottom));
+    const at = box.getBoundingClientRect();
+    bar.style.top = `${top - at.top - box.clientTop}px`;
+    bar.style.height = `${bottom - top}px`;
+    bar.style.left = `${left(lines) - at.left - box.clientLeft - 12}px`;
+    bar.hidden = false;
+  }
+
+  let barFrame = 0;
+  function placeBars() {
+    if (barFrame) return;
+    barFrame = requestAnimationFrame(() => {
+      barFrame = 0;
+      // on the sheet: 12 px left of the text column, whatever the sentence's first line does
+      placeBar(sheetBar, focusing ? null : marked, sheet, () => text.getBoundingClientRect().left);
+      // in Focus: 12 px left of the sentence's leftmost line (the stage centres it)
+      const now = focusing && focusNow.textContent.trim() ? focusNow : null;
+      placeBar(focusBar, now, focusBar?.parentElement, (lines) => Math.min(...lines.map((r) => r.left)));
+    });
+  }
+  if (window.ResizeObserver) {
+    const watch = new ResizeObserver(placeBars);
+    watch.observe(text);
+    if (focusBar) watch.observe(focusBar.parentElement);
+  }
+  window.addEventListener("resize", placeBars);
+  document.fonts?.ready.then(placeBars);
 
   function setFocus(on) {
     if (on === focusing) return;
@@ -401,6 +446,7 @@ function readAlong() {
     document.documentElement.classList.toggle("focus-listening", on);
     focusView.hidden = !on;
     stage();
+    placeBars(); // leaving Focus: back on the sheet
     pad();
     // Focus shows the reading itself, and leaving it comes back to the reading: either way
     // the page follows the reading again, and Back to the reading has nothing to offer
@@ -456,7 +502,7 @@ function readAlong() {
     else if (key === "f" || key === "F") {
       if (once) setFocus(!focusing);
     } else if ((key === "p" || key === "P") && !focusing) {
-      if (once) document.getElementById("panel-toggle").click();
+      if (once) panelByKey?.(); // the focus stays where it is (#461)
     } else return;
     event.preventDefault();
   });
@@ -535,7 +581,7 @@ function readAlong() {
     });
   }
   seek(0, chapters[0].start, false);
-  contextPanel();
+  panelByKey = contextPanel();
 
   // drawn disabled: a press before this script ran would be lost (#350, #427)
   for (const control of [
@@ -617,12 +663,27 @@ function contextPanel() {
     return tabs.find((tab) => tab.getAttribute("aria-selected") === "true") || tabs[0];
   }
 
-  function set(open) {
+  // the button and Esc give the focus to the toggle when the panel closes (#444); P keeps it
+  // where it is, so Space and the arrows go on acting on the player (#461). If the focus is
+  // in the panel when P closes it, it goes back where it was when P opened the panel, or to
+  // the page if that was nowhere, never to the toggle, where Space would open the panel
+  // again (#489 review S2); with no such place (the wide panel open from the start) it goes
+  // to the toggle.
+  let before = null; // the element focused when P opened the panel, or null
+  function set(open, keep = false) {
+    const active = document.activeElement;
+    const inside = panel.contains(active);
+    const back = before;
+    if (!keep || !open) before = null;
+    else if (!inside) before = active;
     if (wide.matches) wideOpen = open;
     else narrowOpen = open;
     show();
     if (open && !wide.matches) selected().focus();
-    if (!open) toggle.focus();
+    if (open || !inside) return;
+    if (!keep || back === null) toggle.focus();
+    else if (back.isConnected && back !== document.body && !panel.contains(back)) back.focus();
+    else active.blur();
   }
 
   toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") !== "true"));
@@ -690,6 +751,7 @@ function contextPanel() {
   }
   show();
   for (const control of [toggle, close, ...tabs]) control.disabled = false;
+  return () => set(toggle.getAttribute("aria-expanded") !== "true", true);
 }
 
 document.addEventListener("DOMContentLoaded", readAlong);

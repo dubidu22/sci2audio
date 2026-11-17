@@ -1270,8 +1270,9 @@ def choose_language(request: Request, language: str = "", back: str = "") -> Red
 
 @router.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, state: State) -> HTMLResponse:
-    """Appearance, language and announcements (cookies, D-671) and the defaults for new
-    audiobooks (the settings file, saved by the script through `PUT /api/v1/settings`).
+    """Appearance, language, announcements and the keyboard shortcuts switch (cookies,
+    D-671) and the defaults for new audiobooks (the settings file, saved by the script
+    through `PUT /api/v1/settings`).
     Showing the page never writes anything."""
     s = strings_of(request)
     saved, warnings = load_settings(state.config.config_file)

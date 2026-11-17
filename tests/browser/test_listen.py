@@ -1,5 +1,6 @@
 """The Listen page of the Working Reader in Chromium (#392, #393): the sentence being read
-is marked plainly, without motion (D-709, #452), and a heard one keeps its tint; a sentence
+is marked plainly, without motion (D-709, #452), with a pale fill and a bar beside it
+(D-724), and a heard one keeps no tint (D-720); a sentence
 is told to screen readers only when the person switched that on; the context panel beside
 the desk and over it, the timeline, the buttons drawn disabled until the script wires them,
 and a book of 1,000 pages.
@@ -77,41 +78,113 @@ def stretch_of(page: Page, element: str) -> tuple[float, float]:
     return times[0][0], times[-1][1]
 
 
-def test_the_sentence_being_read_is_marked_plainly_and_a_heard_one_keeps_its_tint(
+def bar_beside(page: Page, bar: str, element: str) -> dict[str, float]:
+    """The bar (D-724) against the element's lines: where its top and bottom are off from the
+    lines' (in px), and its left edge against the text column and the box it is in."""
+    found: dict[str, float] = page.evaluate(
+        """([bar, element]) => {
+            const b = document.querySelector(bar);
+            const e = document.querySelector(element);
+            if (!b || !e || b.hidden) return {shown: 0};
+            const box = b.getBoundingClientRect();
+            const lines = [...e.getClientRects()].filter((r) => r.width && r.height);
+            const style = getComputedStyle(b);
+            return {
+                shown: 1,
+                top: box.top - Math.min(...lines.map((r) => r.top)),
+                bottom: box.bottom - Math.max(...lines.map((r) => r.bottom)),
+                left: box.left,
+                lines: Math.min(...lines.map((r) => r.left)),
+                width: parseFloat(style.borderLeftWidth),
+                colour: style.borderLeftColor,
+                animations: b.getAnimations().length,
+                transition: parseFloat(style.transitionDuration) || 0,
+                outer: b.offsetParent.getBoundingClientRect().left,
+            };
+        }""",
+        [bar, element],
+    )
+    return found
+
+
+def assert_beside(page: Page, bar: str, element: str) -> dict[str, float]:
+    """The bar is shown, spans exactly the element's lines and stands left of them: on the
+    sheet inside it, in its left padding; in Focus inside the window."""
+    page.wait_for_timeout(50)  # placed in the next frame
+    at = bar_beside(page, bar, element)
+    assert at["shown"], at
+    assert abs(at["top"]) <= 1, at
+    assert abs(at["bottom"]) <= 1, at
+    assert at["left"] < at["lines"], at
+    assert at["left"] >= (at["outer"] if bar == "#now-bar" else 0), at
+    assert at["width"] == 3, at
+    assert at["animations"] == 0, at
+    assert at["transition"] == 0, at
+    return at
+
+
+def test_the_sentence_being_read_is_marked_plainly_and_a_heard_one_has_no_tint(
     signed_in: Page, live: Live
 ) -> None:
-    """D-709 (#452): the sentence being read is marked at once, without motion or underline,
-    while the voice reads, at another speed and paused; a heard one keeps a tint that is
-    clearly not the mark."""
+    """D-709 (#452), D-720, D-724: the sentence being read is marked at once, without motion
+    or underline, with a pale fill and a bar beside its lines, while the voice reads, at
+    another speed and paused; a heard one has no tint left, nor one under the pointer."""
     page = signed_in
     make_audiobook(page, live)
+    expect(page.locator("#now-bar")).to_be_hidden()  # nothing read yet
     page.get_by_role("button", name="Play").click()
     page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
     first = marked_plainly(page, NOW)
+    assert_beside(page, "#now-bar", NOW)
     page.wait_for_timeout(400)  # well into the sentence: still the same plain mark
     assert marked_plainly(page, NOW) == first
-    # the next sentence takes the mark over; the one read keeps the pale tint
+    # the next sentence takes the mark and the bar over; the one read keeps nothing
     page.wait_for_function(
         f"() => document.querySelector('{NOW}')?.id !== '{first['id']}'", timeout=20_000
     )
-    expect(page.locator(f"#{first['id']}")).to_have_class(re.compile(r"\bdone\b"))
     heard = look(page, f"#{first['id']}")
-    second = marked_plainly(page, NOW)
-    assert heard["background"] != second["background"], (heard, second)
+    assert heard["background"] in ("rgba(0, 0, 0, 0)", "transparent"), heard
+    expect(page.locator(f"#{first['id']}")).not_to_have_class(re.compile(r"\bdone\b"))
     assert heard["line"] == "none", heard
-    assert heard["animations"] == 0, heard
+    marked_plainly(page, NOW)
+    assert_beside(page, "#now-bar", NOW)
     page.get_by_label("Speed").select_option("1.5")
     page.wait_for_function("() => document.getElementById('audio').playbackRate === 1.5")
     marked_plainly(page, NOW)
     page.get_by_role("button", name="Pause").click()
     page.wait_for_function("() => document.getElementById('audio').paused")
-    now = marked_plainly(page, NOW)
-    # a jump while paused: no tint for a sentence that was not heard through
+    marked_plainly(page, NOW)
+    assert_beside(page, "#now-bar", NOW)
+    # under the pointer: no tint either
+    page.locator(f"#{first['id']}").hover()
+    assert look(page, f"#{first['id']}")["background"] in ("rgba(0, 0, 0, 0)", "transparent")
+    check_axe(page, "listen, reading")
+    page.emulate_media(color_scheme="dark")
+    marked_plainly(page, NOW)
+    assert_beside(page, "#now-bar", NOW)
+    check_axe(page, "listen, reading, dark")
+    page.emulate_media(color_scheme="light")
+
+
+def test_the_bar_follows_the_sentence_when_the_text_reflows(signed_in: Page, live: Live) -> None:
+    """D-724: the bar is placed again when the window's width changes the sentence's lines,
+    stays inside the sheet on a phone, and stays visible in forced colours."""
+    page = signed_in
+    make_audiobook(page, live)
     target = chunk_id(page, "We measured it twice.")
     page.locator(f"#{target}").click()
-    page.wait_for_function("() => !document.getElementById('audio').paused")
-    expect(page.locator(f"#{now['id']}")).not_to_have_class(re.compile(r"\bdone\b"))
-    check_axe(page, "listen, reading")
+    page.get_by_role("button", name="Pause").click()
+    page.wait_for_function("() => document.getElementById('audio').paused")
+    wide = assert_beside(page, "#now-bar", NOW)
+    page.set_viewport_size({"width": 700, "height": 720})
+    page.wait_for_timeout(200)
+    narrow = assert_beside(page, "#now-bar", NOW)
+    assert narrow["left"] != wide["left"], (wide, narrow)
+    page.set_viewport_size({"width": 1280, "height": 720})
+    page.emulate_media(forced_colors="active")
+    bar = assert_beside(page, "#now-bar", NOW)
+    assert bar["colour"] not in ("rgba(0, 0, 0, 0)", "transparent"), bar
+    page.emulate_media(forced_colors="none")
 
 
 def test_under_reduced_motion_the_mark_is_the_same(signed_in: Page, live: Live) -> None:

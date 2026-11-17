@@ -174,7 +174,7 @@ def test_every_number_is_set_in_tabular_figures() -> None:
 # the stylesheet the server serves, as the imported package holds it
 SERVED_CSS = Path(i18n.__file__).parent / "static" / "app.css"
 HEX = re.compile(r"#([0-9A-Fa-f]{6})")
-MIX = re.compile(r"color-mix\(in srgb, (.+?) (\d+)%, transparent\)")
+MIX = re.compile(r"color-mix\(in srgb, (.+?) (\d+)%, (?:transparent|var\(--paper\))\)")
 
 
 def rgb(value: str, tokens: dict[str, str]) -> tuple[float, ...]:
@@ -214,32 +214,48 @@ def mark_contrasts(css: str) -> dict[str, dict[str, float]]:
     found = {}
     for theme, block in (("light", light), ("dark", system)):
         tokens = {**light, **block}  # a dark block re-tones; what it leaves keeps the light value
-        now = on_paper(tokens["--now"], tokens)
+        fill = on_paper(tokens["--now"], tokens)
+        bar = rgb(tokens["--now-bar"], tokens)
         found[theme] = {
-            "paper": contrast(now, rgb(tokens["--paper"], tokens)),
-            "heard": contrast(now, on_paper(tokens["--held"], tokens)),
-            "text": contrast(now, rgb(tokens["--on-now"], tokens)),
+            "bar on paper": contrast(bar, rgb(tokens["--paper"], tokens)),
+            "bar on desk": contrast(bar, rgb(tokens["--desk"], tokens)),  # Focus stands on it
+            "bar on fill": contrast(bar, fill),
+            "text": contrast(fill, rgb(tokens["--on-now"], tokens)),
         }
     return found
 
 
-def test_the_mark_stands_out_from_the_paper_and_from_a_heard_sentence() -> None:
-    """D-711: at least 3:1 against the paper and the heard tint in both themes, and the text
-    on the mark at least 4.5:1."""
+def test_the_bar_stands_out_and_the_text_on_the_mark_reads_well() -> None:
+    """D-724 (amends D-711 for the mark): the fill may be pale; the bar beside it stands out
+    at least 3:1 from the paper, the desk Focus stands on and the fill, in both themes, and
+    the text on the fill keeps at least 4.5:1."""
     for theme, measured in mark_contrasts(SERVED_CSS.read_text(encoding="utf-8")).items():
-        assert measured["paper"] >= 3, (theme, measured)
-        assert measured["heard"] >= 3, (theme, measured)
+        assert measured["bar on paper"] >= 3, (theme, measured)
+        assert measured["bar on desk"] >= 3, (theme, measured)
+        assert measured["bar on fill"] >= 3, (theme, measured)
         assert measured["text"] >= 4.5, (theme, measured)
 
 
-def test_the_contrast_check_finds_the_reading_yellow_on_white() -> None:
-    # the plain mark of round 1: the reading yellow on white paper, 1.2:1
+def test_the_contrast_check_finds_a_bar_in_the_reading_yellow_on_white() -> None:
+    # a bar in the reading yellow on white paper: 1.2:1
     css = SERVED_CSS.read_text(encoding="utf-8").replace(
-        "--now: #B08400", "--now: var(--hl-read)", 1
+        "--now-bar: #9A7400", "--now-bar: var(--hl-read)", 1
     )
     light = mark_contrasts(css)["light"]
-    assert light["paper"] < 1.3
-    assert light["heard"] < 1.2
+    assert light["bar on paper"] < 1.3
+
+
+def test_one_mark_for_the_sheet_and_focus() -> None:
+    """D-720: the mark's tokens are set only in the three token blocks, and only the sheet's
+    mark, Focus's mark and the bar use them."""
+    css = re.sub(r"/\*.*?\*/", "", SERVED_CSS.read_text(encoding="utf-8"), flags=re.S)
+    users = {
+        rule.split("{")[0].strip()
+        for rule in re.findall(r"[^{}]+\{[^{}]*var\(--(?:now|on-now|now-bar)\)[^{}]*\}", css)
+    }
+    assert users == {".read-along .s.now", ".focus-stage #focus-now", ".now-bar"}, users
+    assert ".s.done" not in css
+    assert "--held" not in css
 
 
 def test_nothing_moves_under_reduced_motion() -> None:

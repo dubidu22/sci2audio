@@ -244,7 +244,8 @@ function librarySearch() {
   if (!form || !input || !region || !none) return;
   const rows = [...region.querySelectorAll("tbody tr[data-find]")];
   const filter = () => {
-    const query = input.value.split(/\s+/).filter(Boolean).join(" ");
+    // folded and cut as the server cuts it (#462), so the script and the page agree
+    const query = input.value.split(/\s+/).filter(Boolean).join(" ").slice(0, 200);
     const words = folded(query).split(/\s+/).filter(Boolean);
     let shown = 0;
     for (const row of rows) {
