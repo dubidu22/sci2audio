@@ -366,6 +366,28 @@ def test_a_sentence_the_voice_fails_on_is_left_out_and_listed(tmp_path: Path) ->
     assert len(read_readalong(job.written.readalong).chunks) == 2
 
 
+def test_the_pieces_of_a_cut_sentence_are_joined_by_the_clause_pause(tmp_path: Path) -> None:
+    """#480: the voice's own silence at a cut is trimmed and the clause pause put in its
+    place; between whole sentences the silence stays."""
+    source = small_pdf(tmp_path, "One sentence first. A long sentence, cut at its comma here.")
+    voice = FakeVoice(edge_silence=12_000)  # half a second on each side, as Kokoro
+    job = run(source, tmp_path, voice, max_chars=30)
+    assert voice.texts == ["One sentence first.", "A long sentence,", "cut at its comma here."]
+    chunks = read_readalong(job.written.readalong).chunks
+    assert [c.joins for c in chunks] == [False, False, True]
+    settings = OutputSettings()
+    # the pause between the chunks: the clause pause at the cut, the sentence pause before it
+    assert chunks[2].start - chunks[1].end == pytest.approx(settings.clause_pause, abs=0.002)
+    assert chunks[1].start - chunks[0].end == pytest.approx(settings.sentence_pause, abs=0.002)
+    # each piece keeps 30 ms (up to one 10 ms step more) of its 0.5 s quiet at the cut, so
+    # what is heard there is the clause pause and about 60 ms, not a second of silence
+    lengths = [c.end - c.start for c in chunks]
+    rate, quiet, keep = 24_000, 0.5, 0.03
+    assert lengths[0] == pytest.approx(2 * quiet + 190 / rate, abs=0.001)  # untrimmed
+    assert lengths[1] == pytest.approx(quiet + 160 / rate + keep, abs=0.011)
+    assert lengths[2] == pytest.approx(keep + 220 / rate + quiet, abs=0.011)
+
+
 def test_five_failures_in_a_row_stop_the_job(tmp_path: Path) -> None:
     lines = [f"Line {n}." for n in range(7)]
     source = small_pdf(tmp_path, *[x for line in lines for x in (line, "")])

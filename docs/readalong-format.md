@@ -26,7 +26,9 @@ order.
      "start": 0.0, "end": 2.45, "first_chunk": 0}
   ],
   "chunks": [
-    {"chapter": 0, "start": 2.0, "end": 2.1, "block": 0, "start_char": 0, "end_char": 5}
+    {"chapter": 0, "start": 2.0, "end": 2.1, "block": 0, "start_char": 0, "end_char": 5},
+    {"chapter": 0, "start": 2.35, "end": 2.45, "block": 0, "start_char": 6, "end_char": 11,
+     "joins": true}
   ]
 }
 ```
@@ -49,6 +51,7 @@ order.
 | `chunks[].chapter` | Index into `chapters`. |
 | `chunks[].start`, `end` | When the chunk's speech starts and ends on the book's timeline, in seconds. The pause before a chunk belongs to no chunk. |
 | `chunks[].block`, `start_char`, `end_char` | The original text the chunk reads: block index in the document, and the character offsets `[start_char, end_char)` in that block's text (a core `Span`). |
+| `chunks[].joins` | Optional, added by #480 (after v1.1). `true` when the chunk goes on with the sentence of the chunk before it: the voice can speak only so much text at once, so a long sentence is cut at a clause, and each piece after the first is its own chunk. Left out when `false`; a file without it (made by an earlier sci2audio) means no chunk joins. A player can show the joined chunks as one sentence. |
 
 ## Times
 
@@ -56,6 +59,15 @@ order.
 - They count on the M4B's timeline. Inside a chapter's MP3, the time of a chunk is `chunk.start - chapter.start`.
 - They assume the player decodes without a gap at the start: the AAC edit list in the M4B and the LAME header in each MP3 are honoured. ffmpeg, browsers and most players do this. A player that ignores them is about 45 ms late.
 
+## Joined chunks
+
+Where a long sentence was cut, the pause before the next piece is the short clause pause
+(0.25 s), and the voice's own silence at the end of the first piece and at the start of the
+next is left out, so the pieces sound like one sentence. The chunk times are those of the
+speech that is kept, so they stay exact.
+
 ## Changes
 
 A change that adds a field a reader may ignore keeps version 1. A change that removes a field or changes its meaning gets version 2, and this file is updated in the same pull request.
+
+- #480 (after v1.1): optional `chunks[].joins`. Still version 1: a reader of version 1 ignores keys it does not know, and a new reader takes a file without the key as before.

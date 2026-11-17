@@ -75,13 +75,13 @@ def test_pause_kinds_follow_blocks_headings_and_sentences() -> None:
     assert made.silent == ()
 
 
-def test_a_clause_cut_gets_no_pause_and_a_pause_edit_at_least_the_edit_pause() -> None:
+def test_a_clause_cut_gets_the_clause_pause_and_a_pause_edit_at_least_the_edit_pause() -> None:
     document = document_with([(P, "aaa bbb, ccc ddd. Eee fff."), (P, "Ggg hhh.")])
     pause = Edit(Span(0, 17, 17), EditKind.PAUSE, "a test", "x")
     _, made = plan(document, [Fixed([pause])], max_chars=12)
     assert [(c.utterance.text, c.pause) for c in made.chunks] == [
         ("aaa bbb,", Pause.PARAGRAPH),
-        ("ccc ddd.", Pause.NONE),
+        ("ccc ddd.", Pause.CLAUSE),  # #480: a short pause, no longer none
         ("Eee fff.", Pause.PAUSE_EDIT),  # a pause edit before a sentence: the edit's pause
         ("Ggg hhh.", Pause.PARAGRAPH),
     ]
@@ -126,6 +126,83 @@ def test_assemble_leaves_out_skipped_chunks_and_carries_their_pause() -> None:
     ]
     durations.clear()
     assert assemble(made, durations, titles) == ([], [])
+
+
+CUT = "Xxx yyy. Aaa bbb, ccc ddd, eee fff. Ggg hhh."  # cut at both commas with max_chars=12
+
+
+def test_every_piece_after_the_first_of_a_cut_sentence_continues_it() -> None:
+    _, made = plan(document_with([(P, CUT)]), max_chars=12)
+    assert [(c.utterance.text, c.pause) for c in made.chunks] == [
+        ("Xxx yyy.", Pause.PARAGRAPH),
+        ("Aaa bbb,", Pause.SENTENCE),
+        ("ccc ddd,", Pause.CLAUSE),
+        ("eee fff.", Pause.CLAUSE),
+        ("Ggg hhh.", Pause.SENTENCE),
+    ]
+    _, spoken = assemble(made, {c.key: 1.0 for c in made.chunks}, {0: "A Title"})
+    assert [(s.text, s.pause, s.continues) for s in spoken] == [
+        ("Xxx yyy.", Pause.PARAGRAPH, False),
+        ("Aaa bbb,", Pause.SENTENCE, False),
+        ("ccc ddd,", Pause.CLAUSE, True),
+        ("eee fff.", Pause.CLAUSE, True),
+        ("Ggg hhh.", Pause.SENTENCE, False),
+    ]
+
+
+def test_a_pause_edit_inside_a_cut_sentence_wins_over_the_clause_pause() -> None:
+    pause = Edit(Span(0, 26, 26), EditKind.PAUSE, "a test", "x")  # after "ccc ddd,"
+    _, made = plan(document_with([(P, CUT)]), [Fixed([pause])], max_chars=12)
+    assert [(c.utterance.text, c.pause) for c in made.chunks][2:4] == [
+        ("ccc ddd,", Pause.CLAUSE),
+        ("eee fff.", Pause.PAUSE_EDIT),
+    ]
+    _, spoken = assemble(made, {c.key: 1.0 for c in made.chunks}, {0: "A Title"})
+    # textprep starts a new run after a pause, so the piece after it continues nothing: the
+    # edit's pause is heard in full and no edge silence is trimmed there
+    assert [s.continues for s in spoken] == [False, False, True, False, False]
+
+
+def test_a_skipped_piece_passes_the_join_on_and_a_skipped_sentence_start_breaks_it() -> None:
+    _, made = plan(document_with([(P, CUT)]), max_chars=12)
+    titles = {0: "A Title"}
+    durations = {c.key: 1.0 for c in made.chunks}
+    del durations[made.chunks[2].key]  # "ccc ddd,": the middle piece
+    _, spoken = assemble(made, durations, titles)
+    assert [(s.text, s.pause, s.continues) for s in spoken] == [
+        ("Xxx yyy.", Pause.PARAGRAPH, False),
+        ("Aaa bbb,", Pause.SENTENCE, False),
+        ("eee fff.", Pause.CLAUSE, True),  # joins "Aaa bbb," across the skipped piece
+        ("Ggg hhh.", Pause.SENTENCE, False),
+    ]
+    durations = {c.key: 1.0 for c in made.chunks}
+    del durations[made.chunks[1].key]  # "Aaa bbb,": the sentence start
+    _, spoken = assemble(made, durations, titles)
+    assert [(s.text, s.pause, s.continues) for s in spoken] == [
+        ("Xxx yyy.", Pause.PARAGRAPH, False),
+        ("ccc ddd,", Pause.SENTENCE, False),  # the sentence pause, and no join to "Xxx yyy."
+        ("eee fff.", Pause.CLAUSE, True),
+        ("Ggg hhh.", Pause.SENTENCE, False),
+    ]
+
+
+def test_a_chapters_first_chunk_continues_nothing() -> None:
+    blocks = [(P, "A Title"), (H, "1 Intro"), (P, CUT)]
+    document = document_with(blocks, (Section("1 Intro", 1, 1, 3),), title="A Title")
+    _, made = plan(document, max_chars=12)
+    titles = {0: "A Title", 1: "1 Intro"}
+    durations = {c.key: 1.0 for c in made.chunks}
+    for chunk in made.chunks:
+        if chunk.utterance.text in {"1 Intro", "Xxx yyy.", "Aaa bbb,"}:
+            del durations[chunk.key]  # chapter 1 now starts with "ccc ddd,"
+    chapters, spoken = assemble(made, durations, titles)
+    assert [(c.title, c.first) for c in chapters] == [("A Title", 0), ("1 Intro", 1)]
+    assert [(s.text, s.continues) for s in spoken] == [
+        ("A Title", False),
+        ("ccc ddd,", False),
+        ("eee fff.", True),
+        ("Ggg hhh.", False),
+    ]
 
 
 def test_book_info_and_the_audiobook_files_follow_outputs_naming(tmp_path) -> None:  # type: ignore[no-untyped-def]

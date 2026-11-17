@@ -6,6 +6,8 @@ timeline; inside a chapter's MP3 a time is `start - chapter.start`. Each chunk p
 original text it reads with its span: block index and character offsets into the block's
 text, so the player (#78) highlights the document's own words. A newer version that changes
 the meaning of a field gets a new version number; readers refuse versions they don't know.
+A field a reader may ignore keeps version 1: `joins` (#480) marks a chunk that goes on with
+the sentence of the chunk before it, and is left out when false.
 """
 
 from __future__ import annotations
@@ -43,6 +45,7 @@ class ChunkTimes:
     start: float
     end: float
     span: Span
+    joins: bool = False  # goes on with the sentence of the chunk before it (#480)
 
 
 @dataclass(frozen=True)
@@ -70,7 +73,9 @@ def build(
         for c in timeline.chapters
     )
     chunks = tuple(
-        ChunkTimes(p.chapter, _seconds(p.start, rate), _seconds(p.end, rate), s.chunk.span)
+        ChunkTimes(
+            p.chapter, _seconds(p.start, rate), _seconds(p.end, rate), s.chunk.span, s.continues
+        )
         for p, s in zip(timeline.chunks, spoken, strict=True)
     )
     return ReadAlong(rate, _seconds(timeline.total, rate), m4b, chapters, chunks)
@@ -94,20 +99,31 @@ def to_json(data: ReadAlong) -> str:
             }
             for c in data.chapters
         ],
-        "chunks": [
-            {
-                "chapter": c.chapter,
-                "start": c.start,
-                "end": c.end,
-                "block": c.span.block,
-                "start_char": c.span.start,
-                "end_char": c.span.end,
-            }
-            for c in data.chunks
-        ],
+        "chunks": [_chunk_json(c) for c in data.chunks],
     }
     # compact: a long book has tens of thousands of chunks
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")) + "\n"
+
+
+def _chunk_json(chunk: ChunkTimes) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "chapter": chunk.chapter,
+        "start": chunk.start,
+        "end": chunk.end,
+        "block": chunk.span.block,
+        "start_char": chunk.span.start,
+        "end_char": chunk.span.end,
+    }
+    if chunk.joins:  # left out when false: files without it read as before (#480)
+        out["joins"] = True
+    return out
+
+
+def _joins(chunk: dict[str, Any]) -> bool:
+    value = chunk.get("joins", False)
+    if not isinstance(value, bool):
+        raise ValueError(f"'joins' must be true or false, got {value!r}")
+    return value
 
 
 def from_json(text: str) -> ReadAlong:
@@ -141,6 +157,7 @@ def from_json(text: str) -> ReadAlong:
                     float(c["start"]),
                     float(c["end"]),
                     Span(int(c["block"]), int(c["start_char"]), int(c["end_char"])),
+                    _joins(c),
                 )
                 for c in data["chunks"]
             ),

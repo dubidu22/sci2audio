@@ -15,13 +15,19 @@ class Pause(StrEnum):
     """The silence placed before a chunk; `OutputSettings` says how long each one is (VA-06).
 
     The app picks one per chunk: HEADING after a heading, PARAGRAPH for the first chunk of a
-    new block, PAUSE_EDIT after a `pause` edit, SENTENCE between sentences of one block, NONE
-    where a long sentence was cut at a clause mark (Q4). When two reasons meet,
+    new block, PAUSE_EDIT after a `pause` edit, SENTENCE between sentences of one block,
+    CLAUSE where a long sentence was cut at a clause mark (Q4, #480). When two reasons meet,
     `Pause.strongest` picks the later kind in this list. The first chunk of a chapter always
     gets the chapter pause instead, whatever kind it carries.
+
+    At a CLAUSE pause output also trims the voice's own silence at the end of the chunk before
+    and at the start of the chunk itself (`wav.edge_trim`), so the pieces of a cut sentence
+    sound joined: the gap is about the clause pause, like a comma inside a sentence spoken
+    whole. NONE (no pause, no trim) is what plans made before #480 used for a cut.
     """
 
     NONE = "none"
+    CLAUSE = "clause"
     SENTENCE = "sentence"
     PAUSE_EDIT = "pause_edit"
     PARAGRAPH = "paragraph"
@@ -37,11 +43,15 @@ class Pause(StrEnum):
 @dataclass(frozen=True)
 class Spoken:
     """One chunk of the voice, the pause before it and the text the voice spoke (for the
-    subtitles, #214: notices and replacements as spoken, not as printed)."""
+    subtitles, #214: notices and replacements as spoken, not as printed).
+
+    `continues` is true when the chunk goes on with the sentence of the chunk before it (the
+    length limit cut the sentence, #480); the read-along file marks it as `joins`."""
 
     chunk: AudioChunk
     pause: Pause = Pause.SENTENCE
     text: str = ""
+    continues: bool = False
 
 
 @dataclass(frozen=True)
@@ -85,6 +95,9 @@ class OutputSettings:
     heading_pause: float = 1.0  # after a heading
     paragraph_pause: float = 0.6  # between blocks
     pause_edit: float = 0.5  # for a `pause` edit of a text step
+    # where a long sentence was cut (#480): a comma pause measured with the voices, between
+    # Kokoro's German (0.10 to 0.20 s) and English (0.23 to 0.49 s) ones
+    clause_pause: float = 0.25
     sentence_pause: float = 0.3  # between sentences of one block
     mp3: bool = True  # one MP3 per chapter
     m4b: bool = True  # one M4B with chapter marks
@@ -98,6 +111,7 @@ class OutputSettings:
             "heading_pause",
             "paragraph_pause",
             "pause_edit",
+            "clause_pause",
             "sentence_pause",
         ):
             value = float(getattr(self, name))
@@ -115,6 +129,7 @@ class OutputSettings:
         """How long a pause of this kind lasts (the chapter pause is `chapter_pause`)."""
         return {
             Pause.NONE: 0.0,
+            Pause.CLAUSE: self.clause_pause,
             Pause.SENTENCE: self.sentence_pause,
             Pause.PAUSE_EDIT: self.pause_edit,
             Pause.PARAGRAPH: self.paragraph_pause,

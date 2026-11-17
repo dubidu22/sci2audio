@@ -3,7 +3,9 @@ and on request subtitles (#214).
 
 The chunks' samples are streamed into ffmpeg (no temporary WAV), once per chapter for the
 MP3s and once for the whole book for the M4B, with silence for the pauses; the timeline says
-where everything lies, so chapter marks and read-along times are exact to the sample.
+where everything lies, so chapter marks and read-along times are exact to the sample. At a
+clause join (#480) the voice's own edge silence is left out of both chunks first, and the
+timeline places the kept samples.
 
 Every file is written under a temporary name (`.<name>.partial`) in the output folder and
 renamed when complete; on any error the partial file is removed, so no half-written file is
@@ -23,9 +25,16 @@ from pathlib import Path
 from sci2audio import __version__
 from sci2audio.output import names, readalong, subtitles
 from sci2audio.output.ffmpeg import LOCAL_ONLY, Ffmpeg, find_ffmpeg
-from sci2audio.output.model import BookInfo, Chapter, OutputSettings, Spoken, Written
+from sci2audio.output.model import BookInfo, Chapter, OutputSettings, Pause, Spoken, Written
 from sci2audio.output.timeline import ChapterRange, Timeline, check_chapters, plan_timeline
-from sci2audio.output.wav import ChunkAudio, ChunkAudioError, frames_of, inspect, silence
+from sci2audio.output.wav import (
+    ChunkAudio,
+    ChunkAudioError,
+    frames_of,
+    inspect,
+    silence,
+    trimmed,
+)
 
 AI_LABEL = f"AI-generated audio: text-to-speech made with sci2audio {__version__}."
 GENRE = "Audiobook"
@@ -63,9 +72,9 @@ def write_audiobook(
     """
     settings = settings or OutputSettings()
     check_chapters(chapters, len(spoken))
-    audio = _inspect_all(job_folder, spoken)
+    audio = _trim_joins(_inspect_all(job_folder, spoken), chapters, spoken)
     cover = _check_cover(book.cover)
-    timeline = plan_timeline(chapters, spoken, [a.frames for a in audio], audio[0].rate, settings)
+    timeline = plan_timeline(chapters, spoken, [a.kept for a in audio], audio[0].rate, settings)
 
     run = ffmpeg or Ffmpeg(find_ffmpeg())  # before anything on disk changes
 
@@ -159,6 +168,21 @@ def _inspect_all(job_folder: Path, spoken: Sequence[Spoken]) -> list[ChunkAudio]
     if len(rates) > 1:
         raise ChunkAudioError(f"audio chunks must share one sample rate, found {rates} Hz")
     return audio
+
+
+def _trim_joins(
+    audio: list[ChunkAudio], chapters: Sequence[Chapter], spoken: Sequence[Spoken]
+) -> list[ChunkAudio]:
+    """Trim the voice's edge silence on both sides of every clause join (#480): the end of
+    the chunk before a `Pause.CLAUSE` chunk and the start of that chunk. A chapter's first
+    chunk gets the chapter pause, so it joins nothing."""
+    firsts = {chapter.first for chapter in chapters}
+    joins = [i > 0 and i not in firsts and s.pause is Pause.CLAUSE for i, s in enumerate(spoken)]
+    ends = [*joins[1:], False]
+    return [
+        trimmed(chunk, start=start, end=end)
+        for chunk, start, end in zip(audio, joins, ends, strict=True)
+    ]
 
 
 def _check_cover(cover: Path | None) -> Path | None:

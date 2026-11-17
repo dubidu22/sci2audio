@@ -46,6 +46,7 @@ class FakeVoice:
     fail_to_make: EngineError | None = None
     version: str = "fake-1"
     samples_per_character: int = SAMPLES_PER_CHARACTER  # more: longer speech (player tests)
+    edge_silence: int = 0  # samples of silence before and after the speech, as Kokoro (#480)
     on_speak: Callable[[str], None] = lambda text: None  # e.g. moves a fake clock on
     spoken: list[tuple[str, str, float]] = field(default_factory=list)  # text, voice, speed
     # the letter_speed of each request, None when it was not sent (#295)
@@ -103,6 +104,10 @@ class FakeSession:
         self.voice.letter_speeds.append(request.parameters.values.get("letter_speed"))
         n = int(len(text) * self.voice.samples_per_character / speed)
         samples = (0.3 * np.sin(np.arange(n, dtype=np.float32) / 5.0)).astype("<f4")
+        if self.voice.edge_silence:
+            quiet = np.zeros(self.voice.edge_silence, dtype="<f4")
+            samples = np.concatenate([quiet, samples, quiet])
+            n = len(samples)
         return SynthesizedAudio(
             data=samples.tobytes(),
             format=PCM_FLOAT32,
