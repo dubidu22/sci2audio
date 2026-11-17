@@ -962,10 +962,17 @@ def test_a_move_made_while_the_page_loads_stays_where_it_was_made(
 
 
 def reload_holding_back_app_js(page: Page, live: Live) -> Callable[[], None]:
-    """Reload the page with app.js held back; the result lets it through."""
+    """Reload the page with app.js held back; the result lets it through.
+
+    Returns once the new document is parsed (#509). `wait_until="domcontentloaded"` cannot
+    be used: app.js is `defer`, and DOMContentLoaded waits for deferred scripts. The
+    document's readyState turns "interactive" when parsing ends, before deferred scripts
+    run. The flag set on the old page tells the reloaded one from it."""
     held: list[Route] = []
+    page.evaluate("() => { window.beforeReload = true; }")
     page.route(f"{live.url}/static/app.js", lambda route: held.append(route))
     page.reload(wait_until="commit")
+    page.wait_for_function("() => !window.beforeReload && document.readyState !== 'loading'")
 
     def release() -> None:
         until(lambda: held)
