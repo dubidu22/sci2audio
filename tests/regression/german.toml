@@ -2506,3 +2506,30 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "„Bewusstsein ist alles.“" }, { kind = "paragraph", text = "(Heydorn 1974/2004, S. 273)" }, { kind = "paragraph", text = "Danach geht es weiter." }]
 expected = ["„Bewusstsein ist alles.“", "Danach geht es weiter."]
 utterances = ["„Bewusstsein ist alles.“", "Danach geht es weiter."]
+
+[[case]]
+id = "de-hidden-runs-in-a-table-read-when-its-notice-is-off"
+audit = 0
+issue = 463
+goal = "Ist 'Tabellen und Abbildungen' aus, wird eine Tabelle ohne versteckten Text und Seitenmarken gelesen wie ein Absatz (D-719 PR 5)."
+language = "de"
+switched_off = ["tables-and-figures"]
+blocks = [
+    { kind = "table", runs = ["Gruppe ", { text = "13", tags = ["td", "span", "epub:pagebreak"] }, " Mittel ", { text = "GEHEIM", tags = ["td", "span", "hidden"] }, " 4,2"] },
+]
+expected = ["Gruppe 13 Mittel GEHEIM 4,2"]
+
+[[case]]
+id = "de-figure-alt-text-is-read-as-a-paragraph-is"
+audit = 0
+issue = 464
+goal = "Der Alternativtext einer Abbildung wird in ihrem Hinweis gelesen wie derselbe Text als Absatz: ohne Link und Quelle, Einheiten und Zahlen gelesen (D-719 PR 5)."
+language = "de"
+blocks = [
+    { kind = "figure", text = "", pictures = ["Anteil 3,5 % bei 12 m² (Müller, 2019), vgl. https://x.org"] },
+    { kind = "paragraph", text = "Anteil 3,5 % bei 12 m² (Müller, 2019), vgl. https://x.org." },
+]
+expected = [
+    "Eine Abbildung wird übersprungen. Sie zeigt: Anteil 3,5 % bei 12 m² (Müller, 2019), vgl. https://x.org.",
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter.",
+]
