@@ -1,7 +1,7 @@
 """The word lists the abbreviation and unit steps read, kept as data (TP-08, D-229).
 
 One folder per language under `textprep/data/` (`en/abbreviations.toml`, `en/units.toml`;
-German also `de/sentence_openers.toml`, #227),
+German also `de/sentence_openers.toml`, #227; `clause_openers.toml`, #460),
 written for sci2audio. A list is read once and checked as it is read: a missing field, a
 wrong type or a form listed twice raises `ValueError` naming the file and the entry, so a
 broken list fails the first test that loads it, never a job. A language without a folder
@@ -169,6 +169,14 @@ def sentence_openers(language: str) -> frozenset[str]:
     return frozenset() if source is None else parse_sentence_openers(*source)
 
 
+@cache
+def clause_openers(language: str) -> frozenset[str]:
+    """The words that open a new clause after a comma ("…, but", "…, dass"), lower case; a
+    long sentence is cut best before one of them (#460). Empty for a language without a list."""
+    source = _source(language, "clause_openers.toml")
+    return frozenset() if source is None else parse_clause_openers(*source)
+
+
 # white space, maybe an opening quote or bracket, then a word that is not the first part of
 # a compound ("Der 2. In-vitro-Versuch" is no "In", PR #267 review R1)
 _NEXT_WORD = re.compile(r"\s+[\"'(\[\u201c\u2018\u201e\u00bb]?([^\W\d_]+)\b(?![-\u2010\u2011])")
@@ -190,6 +198,18 @@ def parse_sentence_openers(where: str, text: str) -> frozenset[str]:
     for word in words:
         if not (word.isalpha() and word[0].isupper()):
             raise ValueError(f"{where}: {word!r} is not one capitalised word")
+    _once(where, list(words))
+    return frozenset(words)
+
+
+def parse_clause_openers(where: str, text: str) -> frozenset[str]:
+    """Read and check a clause-opener list: one lower-case word each, none twice."""
+    data = _load(where, text)
+    _no_extra(where, data, {"openers"})
+    words = _strings(where, data, "openers")
+    for word in words:
+        if not (word.isalpha() and word.islower()):
+            raise ValueError(f"{where}: {word!r} is not one lower-case word")
     _once(where, list(words))
     return frozenset(words)
 

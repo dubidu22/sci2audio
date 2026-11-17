@@ -177,6 +177,16 @@ def test_a_url_cut_at_a_line_end_leaves_a_german_sentence_word() -> None:
         ("Nach [3, 5] gilt das.", "Nach Quellen 3 und 5 gilt das."),
         ("[12] zeigt das.", "Quelle 12 zeigt das."),
         ("Laut Quelle [4] gilt das.", "Laut Quelle 4 gilt das."),
+        # #455 (D-719): a reprint year, authors joined by a slash, a Roman page, a capital
+        # author before a page
+        ("Das gilt (Heydorn 1974/2004, S. 273).", "Das gilt."),
+        ("Das gilt (Heydorn 1968/2004).", "Das gilt."),
+        ("Das gilt (Heydorn/Koneffke 1969).", "Das gilt."),
+        ("Das gilt (Müller/Schmidt/Weber 2019, S. 3).", "Das gilt."),
+        ("Das gilt (Hauff 1987, S. XV).", "Das gilt."),
+        ("Das gilt (Hauff 1987, S. iv–vi).", "Das gilt."),
+        ("Das gilt (WBGU 2011, S. 1).", "Das gilt."),
+        ("Wie Heydorn (1968/2004) zeigt, gilt es.", "Wie Heydorn zeigt, gilt es."),
     ],
 )
 def test_german_citations(printed: str, said: str) -> None:
@@ -197,6 +207,20 @@ def test_german_citations(printed: str, said: str) -> None:
         "Die Werte ([1,2; 3,4]) sind klein.",
         "Die Werte ( [1,2; 3,4]) sind klein.",
         "Die Werte ([1,2; 3,4], [5,6; 7,8]) sind klein.",
+        # #455: a slash between ordinary words, an acronym before a year without a page, a
+        # series title with its issue number, a reprint shape without a capital name
+        "Man kann es (und/oder 3 Mal) wiederholen.",
+        "Das Protokoll (TCP/IP 2001) gilt.",
+        "Das trat (EU 2016) in Kraft.",
+        "Das steht im Heft (BLK-Heft 72 1999).",
+        "Es lief (eins/zwei 2019) gut.",
+        # a year range is no reprint (#481 review S2); a page that is no Roman numeral, a
+        # fraction before a year (N1)
+        "Das galt (Wintersemester 2019/2020) noch.",
+        "Das galt (Saison 1999/2000) noch.",
+        "Wie Müller (2019/2020) zeigt, gilt es.",
+        "Das zeigt (Müller 2019, S. Dix) klar.",
+        "Der Anteil (1/2 2019) sank.",
     ],
 )
 def test_german_brackets_that_are_no_citation_stay(text: str) -> None:

@@ -2538,3 +2538,82 @@ goal = "A single capital after a label word is the label's letter, no initial: '
 blocks = [{ kind = "paragraph", text = "The proofs conclude. See Appendix C. It gives the proofs." }]
 expected = ["The proofs conclude. See Appendix C. It gives the proofs."]
 utterances = ["The proofs conclude.", "See Appendix C.", "It gives the proofs."]
+
+[[case]]
+id = "long-sentence-colon-beyond-the-limit"
+audit = 0
+issue = 460
+goal = "A sentence over the limit is cut before a clause (', which') and at its colon beyond the first 300 characters, not at the last comma that fits ('slow, steady, | patient voice') (D-719 PR 4)."
+blocks = [{ kind = "paragraph", text = "The listening script that the program builds for a long paper is read in parts, which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them: each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase." }]
+expected = [
+    "The listening script that the program builds for a long paper is read in parts, which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them: each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase.",
+]
+utterances = [
+    "The listening script that the program builds for a long paper is read in parts,",
+    "which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them:",
+    "each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase.",
+]
+
+[[case]]
+id = "long-sentence-comma-before-a-conjunction"
+audit = 0
+issue = 460
+goal = "A comma before a conjunction ('but') wins over a comma inside a phrase ('cheap, small,') when a long sentence is cut (D-719 PR 4)."
+blocks = [{ kind = "paragraph", text = "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room." }]
+expected = [
+    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
+]
+utterances = [
+    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners,",
+    "but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
+]
+
+[[case]]
+id = "long-sentence-without-a-clause-mark"
+audit = 0
+issue = 460
+goal = "A long sentence with no clause mark is cut at a space, into parts of about the same length (D-719 PR 4)."
+blocks = [{ kind = "paragraph", text = "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it." }]
+expected = [
+    "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
+]
+utterances = [
+    "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls",
+    "between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
+]
+
+[[case]]
+id = "citation-with-a-reprint-year"
+audit = 0
+issue = 455
+goal = "An author-year citation with two years joined by a slash is removed like a single-year one (D-719 PR 4)."
+blocks = [{ kind = "paragraph", text = "This holds in general (Smith 1890/1990, p. 5). Then more." }]
+expected = ["This holds in general. Then more."]
+utterances = ["This holds in general.", "Then more."]
+
+[[case]]
+id = "citation-with-a-roman-page"
+audit = 0
+issue = 455
+goal = "A page range in Roman numerals is a citation's locator (D-719 PR 4)."
+blocks = [{ kind = "paragraph", text = "This holds in general (Smith 2001, pp. iv–vi). Then more." }]
+expected = ["This holds in general. Then more."]
+utterances = ["This holds in general.", "Then more."]
+
+[[case]]
+id = "citation-with-slash-authors"
+audit = 0
+issue = 455
+goal = "Two authors joined by a slash make a citation (D-719 PR 4)."
+blocks = [{ kind = "paragraph", text = "This was shown before (Smith/Jones 2001). Then more." }]
+expected = ["This was shown before. Then more."]
+utterances = ["This was shown before.", "Then more."]
+
+[[case]]
+id = "slash-words-in-brackets-are-no-citation"
+audit = 0
+issue = 455
+goal = "A slash between ordinary words in brackets is no citation, even with a year (D-719 PR 4)."
+blocks = [{ kind = "paragraph", text = "We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)." }]
+expected = ["We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)."]
+utterances = ["We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)."]

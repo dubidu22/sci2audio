@@ -1,0 +1,20 @@
+# Wörter, die nach einem Komma einen neuen Teilsatz öffnen (#460, D-719 PR 4).
+# Written for sci2audio, GPL-3.0-or-later; no list is copied.
+#
+# A sentence longer than the voice takes in one call is cut into parts. After a colon or a
+# semicolon, the best place is a comma followed by one of these words: there a listener hears
+# a new clause start ("…, dass es", "…, der als"), not a noun phrase broken in two ("ein
+# einsetzendes, | zunehmend … gefährdendes Verhältnis"). After a comma, "der", "die" and "das"
+# are almost always relative pronouns. Each word is one word, lower case, matched in any case.
+
+openers = [
+    # nebenordnende Konjunktionen
+    "und", "oder", "aber", "denn", "doch", "sondern", "sowie",
+    # unterordnende Konjunktionen
+    "dass", "daß", "weil", "wenn", "ob", "als", "da", "wie", "obwohl", "obgleich", "während",
+    "damit", "sodass", "bevor", "nachdem", "falls", "indem", "seit", "seitdem", "sobald",
+    "solange", "bis", "wo", "wobei", "womit", "wodurch", "worin",
+    # Relativpronomen
+    "der", "die", "das", "dem", "den", "deren", "dessen", "denen",
+    "welcher", "welche", "welches", "welchem", "welchen",
+]

@@ -4081,7 +4081,7 @@
         'references': False,
         'selected': True,
         'title': '1 Einleitung',
-        'utterances': 22,
+        'utterances': 21,
       }),
       dict({
         'blocks': list([
@@ -4146,7 +4146,7 @@
         'references': False,
         'selected': True,
         'title': '6 Rechtliche Fragestellungen',
-        'utterances': 140,
+        'utterances': 141,
       }),
       dict({
         'blocks': list([
@@ -11388,12 +11388,12 @@
   | No. | Chapter | Page | Read | Utterances |
   |---|---|---|---|---|
   | 1 | PrivacyScore | 1 | yes | 21 |
-  | 2 | 1 Einleitung | 1 | yes | 22 |
+  | 2 | 1 Einleitung | 1 | yes | 21 |
   | 3 | 2 Verwandte Arbeiten | 2 | yes | 12 |
   | 4 | 3 PrivacyScore im Überblick | 3 | yes | 36 |
   | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 21 |
   | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
-  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 140 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 141 |
   | 8 | 7 Schlussbemerkungen | 12 | yes | 14 |
   | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
   
@@ -14106,9 +14106,8 @@
   
   Das PrivacyScore-Projekt soll diese Lücke schließen.
   In Kooperation mit Datenschutz-Aufsichtsbehörden und -Aktivisten entwickeln wir derzeit ein System, das die automatische Analyse und den Vergleich der Sicherheits- und Privatheitseigenschaften von Webseiten ermöglicht (Benchmark).
-  Wir haben drei Zielgruppen:
-  Endnutzerinnen, die sich über die Sicherheit und Privatheit bestimmter Webseiten informieren möchten, Wissenschaftlerinnen, die große Mengen von Webseiten untersuchen wollen, und Aktivistinnen und Aufsichtsbehörden,
-  die die Erfüllung von gesetzlichen Datenschutz-Mindeststandards durch Webseiten sicherstellen wollen.
+  Wir haben drei Zielgruppen: Endnutzerinnen, die sich über die Sicherheit und Privatheit bestimmter Webseiten informieren möchten, Wissenschaftlerinnen,
+  die große Mengen von Webseiten untersuchen wollen, und Aktivistinnen und Aufsichtsbehörden, die die Erfüllung von gesetzlichen Datenschutz-Mindeststandards durch Webseiten sicherstellen wollen.
   Unsere Ideen und Realisierungsansätze haben wir erstmalig in Quelle MH17 vorgestellt.
   Im vorliegenden Papier betrachten wir zusätzlich die juristische Zulässigkeit der Erhebung der Daten und der Veröffentlichung von Benchmarks sowie die juristische Verwertbarkeit der Ergebnisse.
   
@@ -14243,8 +14242,8 @@
   Da es Daten bereits an der körperlichen Eigenschaft fehlt, kann es weder ein Eigentumsrecht an Daten noch ein aus Eigentum abgeleitetes Recht auf die ausschließliche Nutzung von Daten geben.
   Dennoch können Daten unter verschiedenen gesetzlichen Voraussetzungen vor dem Zugriff und der Verwertung durch Dritte geschützt sein.
   Daten unterliegen einer Kommunikationsordnung, welche sich aus Regelungen in diversen Rechtsgebieten zusammensetzt und Umgangsrechte, Verfügungsberechtigungen und -beschränkungen hinsichtlich der Daten gewährt, ohne dabei eine Güterzuweisung vorzunehmen.
-  Relevant werden können, soweit Gegenstand personenbezogene Daten von natürlichen Personen sind, Regelungen aus dem Datenschutzrecht, auch Regelungen aus dem Urheberrecht, sofern es sich um persönliche geistige Schöpfungen handelt,
-  weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch (StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG).
+  Relevant werden können, soweit Gegenstand personenbezogene Daten von natürlichen Personen sind, Regelungen aus dem Datenschutzrecht, auch Regelungen aus dem Urheberrecht,
+  sofern es sich um persönliche geistige Schöpfungen handelt, weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch (StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG).
   Darüber hinaus ist auch ein deliktischer Abwehranspruch gegen Störungen aus dem Recht am eingerichteten und ausgeübten Gewerbebetrieb im Sinne von § 823 Absatz 1 BGB denkbar.
   
   Einige Webseitenbetreiber verbieten in ihren Nutzungsbedingungen das automatisierte Durchsuchen und Auswerten der von ihnen zur Verfügung gestellten Daten.
@@ -14364,7 +14363,8 @@
   Neben der Pseudonymisierung nennt der Normgeber in Artikel 32 Absatz 1 Buchstabe a DSGVO auch die Verschlüsselung als eine der bevorzugten Maßnahmen.
   Ebenso wie die Pseudonymisierung, ist die Verschlüsselung jedoch nicht in jedem Einzelfall zwingend geboten.
   Welche Maßnahmen sich als erforderlich und angemessen erweisen, um ein „dem Risiko angemessenes Schutzniveau zu gewährleisten“, muss vielmehr im Rahmen einer Gesamtabwägung an das Einzelfallrisiko angepasst werden.
-  Hierfür ist im Rahmen des Artikel 32 Absatz 1 DSGVO neben der Schwere und Eintrittswahrscheinlichkeit des Risikos für die Rechte und Freiheiten der von der Verarbeitung Betroffenen, das sich insbesondere an der Schutzbedürftigkeit der einzelnen gespeicherten personenbezogenen Daten orientiert,
+  Hierfür ist im Rahmen des Artikel 32 Absatz 1 DSGVO neben der Schwere und Eintrittswahrscheinlichkeit des Risikos für die Rechte und Freiheiten der von der Verarbeitung Betroffenen,
+  das sich insbesondere an der Schutzbedürftigkeit der einzelnen gespeicherten personenbezogenen Daten orientiert,
   auf der anderen Seite sowohl das technisch Machbare nach dem „Stand der Technik“ als auch die wirtschaftliche Belastung des Verarbeiters, insbesondere die Implementierungskosten, mit einzubeziehen.
   Lediglich das wirtschaftlich Zumutbare wird erwartet.
   Dies kann im Einzelfall auch dazu führen, dass ein Verantwortlicher keine Maßnahmen ergreifen muss.
@@ -14533,8 +14533,8 @@
   The most convenient usage pattern provides a pandas dataframe with variables encoded in a long-form or “tidy” format.
   With this format, columns in the dataframe can be explicitly assigned to roles in the plot, such as specifying the x and y positions of a scatterplot along with size and shape semantics.
   Long-form data supports efficient exploration and prototyping because variables can be assigned different roles in the plot without modifying anything about the original dataset.
-  But most seaborn functions can also consume and visualize “wide-form” data, typically producing similar output to how the analogous matplot lib function would interpret a 2D array (for example,
-  producing a boxplot where each box represents a column in the dataframe) while making use of the index and column names to label the graph.
+  But most seaborn functions can also consume and visualize “wide-form” data,
+  typically producing similar output to how the analogous matplot lib function would interpret a 2D array (for example, producing a boxplot where each box represents a column in the dataframe) while making use of the index and column names to label the graph.
   Using the label information in a pandas object can help make plots that are interpretable without further tweaking – reducing the chance of interpretive errors – but seaborn also accepts data from a variety of more basic formats, including numpy arrays and simple Python collection types.
   
   seaborn also offers multiple built-in themes that users can select to modify the visual appearance of their graphs.
@@ -14547,8 +14547,8 @@
   
   seaborn does not aim to completely encapsulate or replace matplotlib.
   Many useful graphs can be created through the seaborn interface, but more advanced applications – such as defining composite figures with multiple arbitrary plot types – will require importing and using matplotlib as well.
-  Even when calling only seaborn functions, deeper customization of the plot appearance is achieved by specifying parameters that are passedthrough to the underlying matplotlib functions, and tweaks to the default axis limits, ticks,
-  and labels are made by calling methods on the matplotlib object that axes-level seaborn functions return.
+  Even when calling only seaborn functions, deeper customization of the plot appearance is achieved by specifying parameters that are passedthrough to the underlying matplotlib functions,
+  and tweaks to the default axis limits, ticks, and labels are made by calling methods on the matplotlib object that axes-level seaborn functions return.
   This approach is distinct from other statistical graphing systems, such as ggplot2.
   While seaborn offers some similar features and, in some cases, uses similar terminology to ggplot2, it does not implement the formal Grammar of Graphics and cannot be used to produce arbitrary visualizations.
   Rather, its aim is to facilitate rapid exploration and prototyping through named functions and opinionated defaults while allowing the user to leverage the considerable flexibility of matplotlib to create more domain-specific graphics and to polish figures for publication.

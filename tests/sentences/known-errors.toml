@@ -97,19 +97,3 @@ at = "sofort. Es waren 3. | Studien zeigen das seit"
 class = "ordinal"
 issue = 477
 why = "kept on purpose: a number before a capital noun is read as an ordinal (documented limit, #227)"
-
-[[error]]
-file = "stress-de"
-kind = "FP"
-at = "Weg entsteht im Gehen.“ | (Lorenz 1974/2004, S. 273)"
-class = "citation"
-issue = 455
-why = "a full stop inside the closing quote, then an opening bracket, ends the sentence, so the source is cut off its quotation (shape of #455)"
-
-[[error]]
-file = "stress-de"
-kind = "FN"
-at = "(Lorenz 1974/2004, S. 273) | Danach beginnt der eigentliche"
-class = "citation"
-issue = 455
-why = "the source's closing bracket has no full stop after it, so nothing ends the sentence before 'Danach' (shape of #455)"

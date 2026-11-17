@@ -106,6 +106,10 @@ class CitationWords:
     name_leads: frozenset[str] | None = None
 
 
+# a page: digits, or Roman numerals of the front matter ("S. XV", "pp. iv–vi", #455); no "d" or
+# "m", so a name after "S." ("S. Mill") is never a page. A citation's pattern ignores case
+_PAGE = r"(?:\d+|(?=[ivxlc])c{0,3}(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3})(?![^\W\d_]))"
+
 # fmt: off
 WORDS: dict[str, CitationWords] = {
     "en": CitationWords(
@@ -162,7 +166,7 @@ WORDS: dict[str, CitationWords] = {
         dated=r"in\s+press|n\.\s?d\.",
         page=r"pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?",
         locators=(
-            r"pp?\.\s*\d+(?:\s*[-–—]\s*\d+)?|chapters?\s+\d+|ch(?:ap)?\.\s*\d+|"
+            rf"pp?\.\s*{_PAGE}(?:\s*[-–—]\s*{_PAGE})?|chapters?\s+\d+|ch(?:ap)?\.\s*\d+|"
             r"sec(?:tions?|s?\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|inter\s+alia"
         ),
         funding=(
@@ -237,7 +241,7 @@ WORDS: dict[str, CitationWords] = {
         dated=r"im\s+Druck|in\s+press|o\.\s?J\.|n\.\s?d\.",
         page=r"(?:S|pp?)\.\s*\d+(?:\s*[-–—]\s*\d+)?(?:\s*ff?\.)?",
         locators=(
-            r"(?:S|pp?)\.\s*\d+(?:\s*[-–—]\s*\d+)?(?:\s*ff?\.)?|Kap(?:itel|\.)\s*\d+|"
+            rf"(?:S|pp?)\.\s*{_PAGE}(?:\s*[-–—]\s*{_PAGE})?(?:\s*ff?\.)?|Kap(?:itel|\.)\s*\d+|"
             r"Abschn(?:itt|\.)\s*\d+(?:\.\d+)*|§+\s*\d+(?:\.\d+)*|Rn\.\s*\d+(?:\s*[-–—]\s*\d+)?"
         ),
         funding=(
@@ -294,9 +298,19 @@ _CLOSE_AHEAD = re.compile(r"\s*\)")
 _FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
 
 
+_SLASHED = re.compile(r"(\d{4})[a-z]?/(\d{4})")
+
+
+def _no_period(text: str) -> bool:
+    """A slashed year is the year of the edition used only when it is more than a year later:
+    "2019/2020" is a winter term or a season, never a reprint (#481 review)."""
+    return all(int(b) - int(a) > 1 for a, b in _SLASHED.findall(text))
+
+
 def _years(words: CitationWords) -> str:
-    """Years or their stand-ins, joined by commas: "2016a,b", "2019, in press"."""
-    one = rf"(?:{_YEAR}|{words.undated})"
+    """Years or their stand-ins, joined by commas: "2016a,b", "2019, in press"; a year may
+    carry the year of the edition used after a slash: "1974/2004" (#455, D-719)."""
+    one = rf"(?:{_YEAR}(?:/{_YEAR})?|{words.undated})"
     return rf"{one}(?:\s*,\s*{one})*"
 
 
@@ -305,12 +319,13 @@ def _locator(words: CitationWords) -> str:
 
 
 def _authors(words: CitationWords) -> str:
-    """Names joined by commas and "and", each group maybe with "et al." after it."""
+    """Names joined by commas, "and" or a slash ("Heydorn/Koneffke", #455), each group maybe
+    with "et al." after it."""
     words_only = words.joins.replace("|&", "").replace(r"\.", "")  # "and", "und|u"
     name_word = rf"(?!(?:{words_only}|et)\b){_WORD}"
     group = rf"{name_word}(?:[ \t]+{name_word}|\s*-\n{_LETTER}+)*(?:\s+(?:{words.others}))?"
     joins = words.joins
-    return rf"{group}(?:\s*,\s*(?:(?:{joins})\s+)?{group}|\s+(?:{joins})\s+{group})*"
+    return rf"{group}(?:\s*,\s*(?:(?:{joins})\s+)?{group}|\s+(?:{joins})\s+{group}|/{group})*"
 
 
 def _part_pattern(words: CitationWords) -> re.Pattern[str]:
@@ -432,6 +447,8 @@ class _Rules:
         self.numeric_aside = _numeric_aside_pattern(words)
         self.years_only = re.compile(rf"\s*{_years(words)}{_locator(words)}\s*\Z", re.IGNORECASE)
         self.page_only = re.compile(rf"\s*(?:{words.page})\s*\Z")
+        # a page after a citation's year: ", S. 1", ", p. 5" (#455)
+        self.page_after = re.compile(rf"\d\s*,\s*(?:{words.page_lead})\s*\S")
         # one source and its page: "[12, p. 3]", "[12, S. 3–5]", "[MH17, S. 3]" (#257, D-668)
         self.paged = re.compile(
             rf"\s*(?P<source>{_NUMBER}|{_KEY})\s*,\s*(?:{words.page_lead})\s*"
@@ -763,8 +780,14 @@ class _Rules:
                 # same (#266, D-534)
                 return None
             return [self._removed(text, node.open, node.close + 1, "citation")]
-        if self.years_only.match(inside) and (
-            names := self._names_before(text, _before_removals(text, node.open, found, self._runs))
+        if (
+            self.years_only.match(inside)
+            and _no_period(inside)
+            and (
+                names := self._names_before(
+                    text, _before_removals(text, node.open, found, self._runs)
+                )
+            )
         ):
             end = self._glued_page(text, node.close + 1)
             printed = _printed(f"{names} {text[node.open : end]}")
@@ -1309,16 +1332,18 @@ class _Rules:
     def _is_citation(self, text: str, part: tuple[int, int]) -> bool:
         piece = text[part[0] : part[1]]
         match = self.part.match(piece)
-        if match is None:
+        if match is None or not _no_period(piece):
             return False
-        # an acronym is an author only right before ", 2020" ("(WHO, 2020)", not "BERT (")
-        acronym = piece[match.end("authors") :].lstrip().startswith(",")
+        # an acronym is an author only right before ", 2020" ("(WHO, 2020)", not "BERT (") or
+        # with a page after the year ("(WBGU 2011, S. 1)", #455); "(EU 2016)" stays as printed
+        after = piece[match.end("authors") :]
+        acronym = after.lstrip().startswith(",") or self.page_after.search(after) is not None
         return self._names_ok(match.group("authors"), acronym)
 
     def _names_ok(self, authors: str, acronym: bool) -> bool:
         tokens = [
             token.rstrip(",")
-            for token in re.split(r"\s+|(?<=,)", authors.replace("-\n", "-"))
+            for token in re.split(r"\s+|(?<=,)|/", authors.replace("-\n", "-"))
             if token.strip(",")
         ]
         names = [t for t in tokens if t.lower() not in self.not_names]

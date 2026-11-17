@@ -1,0 +1,17 @@
+# Words that open a new clause after a comma (#460, D-719 PR 4).
+# Written for sci2audio, GPL-3.0-or-later; no list is copied.
+#
+# A sentence longer than the voice takes in one call is cut into parts. After a colon or a
+# semicolon, the best place is a comma followed by one of these words: there a listener hears
+# a new clause start, not a phrase broken in two ("…, but this time" rather than "a cheap, |
+# small loudspeaker"). Each word is one word, lower case, matched in any case.
+
+openers = [
+    # joining conjunctions
+    "and", "but", "or", "nor", "yet", "so",
+    # subordinating conjunctions
+    "because", "although", "though", "while", "whereas", "where", "when", "whenever",
+    "since", "unless", "until", "if", "as", "after", "before", "once",
+    # relative pronouns
+    "which", "who", "whom", "whose", "that",
+]

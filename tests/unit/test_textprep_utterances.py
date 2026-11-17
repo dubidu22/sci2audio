@@ -1,6 +1,7 @@
 """The utterance cutter: sentences, the fallback cut for long ones, spans (#63, D-98, Q4)."""
 
 import re
+from bisect import bisect_right
 from functools import cache
 from itertools import pairwise
 from pathlib import Path
@@ -24,7 +25,8 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
-from sci2audio.textprep.utterances import _BEFORE_NUMBERS
+from sci2audio.textprep.utterances import _BEFORE_NUMBERS, MIN_PIECE, _counts, _cut_point, _rank
+from sci2audio.textprep.wordlists import clause_openers, parse_clause_openers
 
 
 def cut(text: str, max_chars: int = DEFAULT_MAX_CHARS, language: str = "en") -> list[str]:
@@ -165,6 +167,228 @@ def test_then_at_a_comma_then_at_a_dash_then_at_a_space() -> None:
     assert cut("aaa bbb ccc ddd", max_chars=8) == ["aaa bbb", "ccc ddd"]
 
 
+# ---- the best cut of a long sentence (#460, D-719 PR 4) -----------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "at", "rank"),
+    [
+        ("one; two", 4, 0),
+        ("one: two", 4, 0),
+        ("one, but two", 4, 1),
+        ("one, \u201cwhich two", 4, 1),  # an opening quote before the word
+        ("one, But two", 4, 1),  # any case
+        ("one, small two", 4, 2),
+        ("one \u2013 two", 5, 3),
+        ("one two", 4, 4),
+        ("one,two", 4, None),  # no white space after the mark: "1,5", "a,b"
+        ("one-two", 4, None),
+    ],
+)
+def test_cut_places_are_ranked(text: str, at: int, rank: int | None) -> None:
+    assert _rank(text, at, clause_openers("en")) == rank
+
+
+def test_a_comma_before_a_clause_opener_wins_over_a_later_comma() -> None:
+    text = "a" * 50 + ", which " + "b" * 50 + ", small " + "c" * 50 + " end."
+    parts = cut(text, max_chars=150)
+    assert parts[0] == "a" * 50 + ","
+    # no clause opener: the comma nearest an even share wins
+    assert cut(text.replace("which", "wide"), max_chars=150)[0].endswith("wide " + "b" * 50 + ",")
+
+
+def test_a_colon_wins_even_when_it_makes_a_short_part() -> None:
+    text = "a " * 30 + "b: " + "c, " * 40 + "d."
+    assert cut(text, max_chars=150)[0] == ("a " * 30 + "b:")
+
+
+def test_parts_keep_about_the_same_length() -> None:
+    text = " ".join(["word"] * 70) + "."  # 350 characters, no clause mark
+    parts = cut(text)
+    assert len(parts) == 2
+    assert abs(len(parts[0]) - len(parts[1])) <= 10
+
+
+def test_no_cut_leaves_a_part_under_the_minimum_when_another_cut_does_not() -> None:
+    # the colon would leave "Note:" alone; a comma later leaves both parts long enough
+    text = "Note: " + "a " * 100 + "b, " + "c " * 100 + "d."
+    parts = cut(text)
+    assert all(len(part) >= MIN_PIECE for part in parts)
+    assert parts[0].endswith("b,")
+    # with no other place the short part is taken
+    assert cut("Note: " + "x" * 30, max_chars=20)[0] == "Note:"
+
+
+def test_a_semicolon_that_leaves_a_clipped_last_part_is_not_taken() -> None:
+    # the fair filter checks the part after the cut too (#481 review N3)
+    text = "w " * 80 + "b, " + "c " * 62 + "d; " + "e " * 8 + "f."  # 308 characters
+    parts = cut(text)
+    assert parts[0].endswith("b,")
+    assert all(len(part) >= MIN_PIECE for part in parts)
+
+
+def test_three_parts_share_the_whole_sentence_evenly() -> None:
+    # the even share is taken over what is left of the sentence, not over the window
+    parts = cut(" ".join(["word"] * 140) + ".")  # 700 characters, no clause mark
+    assert len(parts) == 3
+    assert max(map(len, parts)) - min(map(len, parts)) <= 10
+
+
+def _open(part: str, opening: str, closing: str) -> int:
+    depth = 0
+    for char in part:
+        depth += char in opening
+        depth -= char in closing and depth > 0
+    return depth
+
+
+@pytest.mark.parametrize(
+    ("text", "language", "opening", "closing"),
+    [
+        # a comma inside a bracket lies nearest the even share; one outside wins (#481 S1)
+        (
+            "w " * 60 + "(for example, " + "x " * 40 + "y) and " + "z " * 40 + "end, " + "v " * 20,
+            "en",
+            "(",
+            ")",
+        ),
+        # a space right after an opening bracket is inside it
+        ("w " * 70 + "( " + "x " * 70 + ") " + "z " * 30 + "end.", "en", "(", ")"),
+        (
+            "w " * 60 + "\u201cfor example, " + "x " * 40 + "y\u201d, " + "z " * 60,
+            "en",
+            "\u201c",
+            "\u201d",
+        ),
+        (
+            "w " * 60 + "\u201ezum Beispiel, " + "x " * 40 + "y\u201c, " + "z " * 60,
+            "de",
+            "\u201e",
+            "\u201c",
+        ),
+        (
+            "w " * 60 + "\u00bbzum Beispiel, " + "x " * 40 + "y\u00ab, " + "z " * 60,
+            "de",
+            "\u00bb",
+            "\u00ab",
+        ),
+    ],
+)
+def test_a_long_sentence_is_cut_outside_brackets_and_quotes(
+    text: str, language: str, opening: str, closing: str
+) -> None:
+    parts = cut(text, language=language)
+    assert len(parts) > 1
+    assert all(
+        _open(" ".join(parts[: n + 1]), opening, closing) == 0 for n in range(len(parts) - 1)
+    )
+
+
+_HEARD_EN = "the listeners heard every part of the recording in the quiet room and "
+_HEARD_DE = "die Hörer hörten jeden Teil der Aufnahme im stillen Raum und "
+
+
+@pytest.mark.parametrize(
+    ("text", "language"),
+    [
+        (
+            "We test a) the speed and b) the care with which "
+            + _HEARD_EN * 2
+            + "(as we saw in the first study, which "
+            + _HEARD_EN
+            + "of the long run) "
+            + _HEARD_EN
+            + "it ended.",
+            "en",
+        ),
+        (
+            "Wir prüfen a) das Tempo und b) die Sorgfalt, mit der "
+            + _HEARD_DE * 2
+            + "(wie die erste Studie, die "
+            + _HEARD_DE
+            + "zeigte) "
+            + _HEARD_DE * 2
+            + "und es endete.",
+            "de",
+        ),
+    ],
+)
+def test_a_closing_mark_of_an_inline_list_opens_no_bracket_for_cutting(
+    text: str, language: str
+) -> None:
+    # the ")" of "a)" closes nothing: the depth stays at zero, so the later "(" still counts
+    # as open and no part ends inside it (#481 review round 2)
+    for part in cut(text, language=language):
+        assert "(" not in part or part.rfind("(") < part.rfind(")")
+
+
+def test_a_sentence_all_inside_a_bracket_is_still_cut() -> None:
+    text = "(" + "word, " * 80 + "end)."
+    parts = cut(text)
+    assert len(parts) > 1
+    assert all(len(part) <= DEFAULT_MAX_CHARS for part in parts)
+    assert " ".join(parts) == text
+
+
+def test_the_cut_never_falls_past_the_limit_and_takes_the_last_fit_without_a_place() -> None:
+    text = "x" * 30
+    counts = _counts(text)
+    assert _cut_point(text, counts, 10) == 10
+
+
+@given(
+    st.lists(
+        st.sampled_from(["word", "and", "which", "dass", "x" * 12, ",", ";", ":", "\u2013", "."]),
+        min_size=1,
+        max_size=120,
+    ),
+    st.integers(MIN_PIECE, 200),
+)
+def test_a_colon_cut_that_leaves_fair_parts_is_always_taken(
+    tokens: list[str], max_chars: int
+) -> None:
+    text = " ".join(tokens).replace(" ,", ",").replace(" ;", ";").replace(" :", ":")
+    counts = _counts(text)
+    if counts[-1] <= max_chars:
+        return
+    cut_at = _cut_point(text, counts, max_chars, None, clause_openers("en"))
+    assert 0 < cut_at <= len(text)
+    assert counts[cut_at] <= max_chars or cut_at == bisect_right(counts, max_chars) - 1
+    fair_colon = [
+        i
+        for i in range(1, len(text) + 1)
+        if counts[i] <= max_chars
+        and _rank(text, i, frozenset()) == 0
+        and counts[i] >= MIN_PIECE
+        and counts[-1] - counts[i] - 1 >= MIN_PIECE
+    ]
+    if fair_colon:
+        assert text[cut_at - 1] in ";:"
+
+
+def test_the_clause_openers_load_lower_case() -> None:
+    assert {"and", "but", "which", "because"} <= clause_openers("en-GB")
+    assert {"und", "dass", "weil", "die", "welche"} <= clause_openers("de")
+    assert clause_openers("fr") == frozenset()
+    for language in ("en", "de"):
+        assert all(word.islower() and word.isalpha() for word in clause_openers(language))
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        ('openers = ["und", "und"]', "listed twice"),
+        ('openers = ["Und"]', "not one lower-case word"),
+        ('openers = ["so dass"]', "not one lower-case word"),
+        ('openers = ["und"]\nextra = 1', "unknown keys"),
+    ],
+)
+def test_a_broken_clause_opener_list_names_the_file(text: str, message: str) -> None:
+    with pytest.raises(ValueError, match=message) as error:
+        parse_clause_openers("de/clause_openers.toml", text)
+    assert "de/clause_openers.toml" in str(error.value)
+
+
 def test_a_word_longer_than_the_limit_is_cut_where_it_must_be() -> None:
     assert cut("x" * 25, max_chars=10) == ["x" * 10, "x" * 10, "x" * 5]
 
@@ -221,11 +445,12 @@ def test_a_cut_does_not_split_a_replacement_that_fits() -> None:
     document = make_document([(BlockKind.PARAGRAPH, "aa bb x cc dd")])
     edit = Edit(Span(0, 6, 7), EditKind.REPLACE, "r", "x", replacement="one two")
     utterances = cut_utterances(document, apply_edits(document, [edit]), max_chars=12)
-    # the last space that fits lies inside "one two": the cut moves to before it
+    # the space nearest an even share lies inside "one two": the cut moves to before it; the
+    # rest is then cut into even parts (#460)
     assert utterances == (
         Utterance("aa bb", Span(0, 0, 5)),
-        Utterance("one two cc", Span(0, 6, 10), continues=True),
-        Utterance("dd", Span(0, 11, 13), continues=True),
+        Utterance("one two", Span(0, 6, 7), continues=True),
+        Utterance("cc dd", Span(0, 8, 13), continues=True),
     )
 
 

@@ -2415,3 +2415,94 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "Es gilt Satz 2. Satz 3 gilt hier nicht. Im 2. Satz steht mehr." }]
 expected = ["Es gilt Satz 2. Satz 3 gilt hier nicht. Im zweiten Satz steht mehr."]
 utterances = ["Es gilt Satz 2.", "Satz 3 gilt hier nicht.", "Im zweiten Satz steht mehr."]
+
+[[case]]
+id = "de-long-sentence-colon-beyond-the-limit"
+audit = 0
+issue = 460
+goal = "Ein langer Satz wird am Doppelpunkt geteilt, auch wenn er hinter den ersten 300 Zeichen steht, und vorne vor 'dass', nicht innerhalb einer Nominalgruppe (D-719 PR 4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne, dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet: Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr." }]
+expected = [
+    "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne, dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet: Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr.",
+]
+utterances = [
+    "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne,",
+    "dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet:",
+    "Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr.",
+]
+
+[[case]]
+id = "de-long-sentence-comma-before-a-conjunction"
+audit = 0
+issue = 460
+goal = "Ein langer Satz wird am Komma vor einer Konjunktion oder einem Relativpronomen geteilt, möglichst in gleich lange Teile (D-719 PR 4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will." }]
+expected = [
+    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
+]
+utterances = [
+    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern,",
+    "und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
+]
+
+[[case]]
+id = "de-citation-with-a-reprint-year"
+audit = 0
+issue = 455
+goal = "Eine Quelle mit Erst- und Ausgabejahr ('1974/2004') wird entfernt wie eine mit einem Jahr (D-719 PR 4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Bildung ist Kritik (Heydorn 1974/2004, S. 273). Danach geht es weiter." }]
+expected = ["Bildung ist Kritik. Danach geht es weiter."]
+utterances = ["Bildung ist Kritik.", "Danach geht es weiter."]
+
+[[case]]
+id = "de-citation-with-slash-authors"
+audit = 0
+issue = 455
+goal = "Zwei Autoren mit Schrägstrich ('Heydorn/Koneffke') sind eine Quelle (D-719 PR 4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das zeigt die ältere Debatte (Heydorn/Koneffke 1969). Danach geht es weiter." }]
+expected = ["Das zeigt die ältere Debatte. Danach geht es weiter."]
+utterances = ["Das zeigt die ältere Debatte.", "Danach geht es weiter."]
+
+[[case]]
+id = "de-citation-with-a-roman-page"
+audit = 0
+issue = 455
+goal = "Eine Seite in römischen Ziffern ('S. XV') ist die Stelle einer Quelle (D-719 PR 4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das gilt weiterhin (Hauff 1987, S. XV). Danach geht es weiter." }]
+expected = ["Das gilt weiterhin. Danach geht es weiter."]
+utterances = ["Das gilt weiterhin.", "Danach geht es weiter."]
+
+[[case]]
+id = "de-citation-with-a-capital-author-and-a-page"
+audit = 0
+issue = 455
+goal = "Ein Autor in Großbuchstaben ist eine Quelle vor ', 2011' oder vor einer Seite ('WBGU 2011, S. 1'); ohne beides bleibt die Klammer stehen, wie '(EU 2016)' (D-719 PR 4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das fordert der Beirat (WBGU 2011, S. 1). Ohne Seite bleibt es (WBGU 2011) stehen." }]
+expected = ["Das fordert der Beirat. Ohne Seite bleibt es (WBGU 2011) stehen."]
+utterances = ["Das fordert der Beirat.", "Ohne Seite bleibt es (WBGU 2011) stehen."]
+
+[[case]]
+id = "de-slash-words-and-series-title-are-no-citation"
+audit = 0
+issue = 455
+goal = "Ein Schrägstrich zwischen gewöhnlichen Wörtern macht keine Quelle; eine Reihe mit Heftnummer vor dem Jahr ('BLK-Heft 72 1999') bleibt gelesen, außerhalb von #455 (D-719 PR 4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Man kann es (und/oder 3 Mal) wiederholen. Das steht im Heft (BLK-Heft 72 1999)." }]
+expected = ["Man kann es (und/oder 3 Mal) wiederholen. Das steht im Heft (BLK-Heft 72 1999)."]
+utterances = ["Man kann es (und/oder 3 Mal) wiederholen.", "Das steht im Heft (BLK-Heft 72 1999)."]
+
+[[case]]
+id = "de-citation-block-with-a-reprint-year"
+audit = 0
+issue = 455
+goal = "Eine Quelle mit Erst- und Ausgabejahr als eigener Block unter einem Zitat wird entfernt wie eine mit einem Jahr (D-719 PR 4)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "„Bewusstsein ist alles.“" }, { kind = "paragraph", text = "(Heydorn 1974/2004, S. 273)" }, { kind = "paragraph", text = "Danach geht es weiter." }]
+expected = ["„Bewusstsein ist alles.“", "Danach geht es weiter."]
+utterances = ["„Bewusstsein ist alles.“", "Danach geht es weiter."]
