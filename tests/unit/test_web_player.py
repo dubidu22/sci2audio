@@ -45,6 +45,7 @@ from sci2audio.web.player import (
     bare_name,
     build_view,
     joined_hyphens,
+    sentence_starts,
     shown,
 )
 
@@ -69,11 +70,14 @@ def readalong(
     spans: Sequence[tuple[int, int, int]],
     chapters: Sequence[tuple[str, int]] = (("One", 0),),
     chapter_of: Sequence[int] | None = None,
+    joins: Sequence[int] = (),
 ) -> ReadAlong:
-    """Chunks one second apart; `chapters` as (title, first chunk)."""
+    """Chunks one second apart; `chapters` as (title, first chunk); the chunks numbered in
+    `joins` go on with the sentence of the chunk before them (#480)."""
     owners = list(chapter_of) if chapter_of is not None else [0] * len(spans)
     chunks = tuple(
-        ChunkTimes(owners[n], float(n), n + 0.5, Span(*span)) for n, span in enumerate(spans)
+        ChunkTimes(owners[n], float(n), n + 0.5, Span(*span), n in joins)
+        for n, span in enumerate(spans)
     )
     times = tuple(
         ChapterTimes(title, f"Book - {n + 1:02d} {title}.mp3", float(first), 99.0, first)
@@ -125,6 +129,72 @@ def test_every_chunk_is_one_element_around_exactly_its_text() -> None:
     data = view.data("0123456789abcdef")
     assert data["document"] == "0123456789abcdef"
     assert data["chapters"][0]["file"] == "Book - 01 One.mp3"
+
+
+CUT = "Before it. A long sentence, cut at its comma, and once more here. After it."
+
+
+def test_the_pieces_of_a_cut_sentence_are_one_element() -> None:
+    """#480 (D-730): the pieces of one cut sentence are one element on the page, with the
+    text between them; each piece stays its own chunk with its own times."""
+    document = make_document([("paragraph", CUT)])
+    spans = [(0, 0, 10), (0, 11, 27), (0, 28, 45), (0, 46, 65), (0, 66, 75)]
+    view = build_view(document, record(chunks=5), readalong(spans, joins=(2, 3)))
+    pieces = view.chapters[0].blocks[0].pieces
+    assert [(p.text, p.element, p.chunk) for p in pieces] == [
+        ("Before it.", "s0", 0),
+        (" ", None, None),
+        ("A long sentence, cut at its comma, and once more here.", "s1", 1),
+        (" ", None, None),
+        ("After it.", "s4", 4),
+    ]
+    assert [c[3] for c in view.chunks] == ["s0", "s1", "s1", "s1", "s4"]
+    assert [c[:2] for c in view.chunks] == [(float(n), n + 0.5) for n in range(5)]
+    # the player steps by sentence: each chunk's sentence, by its first piece
+    assert view.data("d")["sentences"] == [0, 1, 1, 1, 4]
+    assert [list(c) for c in view.chunks] == view.data("d")["chunks"]
+    # an audiobook made before #480 has no joins: one element per piece, as before
+    old = build_view(document, record(chunks=5), readalong(spans))
+    assert [c[3] for c in old.chunks] == ["s0", "s1", "s2", "s3", "s4"]
+    assert old.data("d")["sentences"] == [0, 1, 2, 3, 4]
+    assert [p.text for p in old.chapters[0].blocks[0].pieces if p.element] == [
+        "Before it.",
+        "A long sentence,",
+        "cut at its comma,",
+        "and once more here.",
+        "After it.",
+    ]
+
+
+def test_a_join_never_crosses_a_block_or_follows_an_empty_span() -> None:
+    """A `joins` the page can't follow (a hand-made or broken file) starts a sentence."""
+    document = make_document([("paragraph", "One, two."), ("paragraph", "Three, four.")])
+    # chunk 2 says it joins chunk 1, which lies in the block before
+    data = readalong([(0, 0, 4), (0, 5, 9), (1, 0, 6), (1, 7, 12)], joins=(1, 2, 3))
+    view = build_view(document, record(chunks=4), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s0", "s2", "s2"]
+    # chunk 2 joins chunk 1, whose span is empty (a pause or a notice read at a point)
+    document = make_document([("paragraph", "One two, three four.")])
+    data = readalong([(0, 0, 8), (0, 8, 8), (0, 9, 20)], joins=(2,))
+    view = build_view(document, record(chunks=3), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s0", "s2"]
+    assert view.sentences == [0, 1, 2]
+
+
+def test_a_join_follows_only_the_chunk_the_page_draws_just_before_it() -> None:
+    """A hand-made file whose chunk order is not the text's: chunk 2 says it joins chunk 1,
+    but chunk 0's words stand between them. The page, the markers and the player group the
+    chunks by one rule (`sentence_starts`), so none of them joins these."""
+    document = make_document([("paragraph", "One, two, three.")])
+    data = readalong([(0, 5, 9), (0, 0, 4), (0, 10, 16)], joins=(2,))
+    view = build_view(document, record(chunks=3), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s1", "s2"]
+    assert sentence_starts(data) == view.sentences == [0, 1, 2]
+    # in text order, the same join is followed
+    data = readalong([(0, 0, 4), (0, 5, 9), (0, 10, 16)], joins=(2,))
+    view = build_view(document, record(chunks=3), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s1", "s1"]
+    assert sentence_starts(data) == view.sentences == [0, 1, 1]
 
 
 def test_an_empty_span_belongs_to_the_sentence_before_it_or_its_block() -> None:
@@ -486,12 +556,13 @@ def blocks_and_spans(draw: st.DrawFn) -> tuple[Document, list[tuple[int, int, in
     return make_document([("paragraph", t) for t in texts]), spans
 
 
-@given(blocks_and_spans())
+@given(blocks_and_spans(), st.data())
 def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
-    case: tuple[Document, list[tuple[int, int, int]]],
+    case: tuple[Document, list[tuple[int, int, int]]], data: st.DataObject
 ) -> None:
     document, spans = case
-    view = build_view(document, record(chunks=len(spans)), readalong(spans))
+    joins = data.draw(st.sets(st.integers(0, len(spans) - 1)))  # #480: any joins at all
+    view = build_view(document, record(chunks=len(spans)), readalong(spans, joins=joins))
     shown_blocks = view.chapters[0].blocks
     joined = joined_hyphens(document, frozenset())
     assert ["".join(p.text for p in b.pieces) for b in shown_blocks] == [
@@ -500,11 +571,35 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     ids = {p.element for b in shown_blocks for p in b.pieces if p.element}
     ids |= {b.element for b in shown_blocks if b.element}
     assert all(chunk[3] in ids for chunk in view.chunks)
+    # the model of #480: a chunk with text that joins the chunk before it, in the same block
+    # and with text too, is that chunk's sentence; every other chunk with text is its own
+    wanted: list[str] = []
     for number, (block, start, end) in enumerate(spans):
-        if start < end:
-            piece = next(p for b in shown_blocks for p in b.pieces if p.element == f"s{number}")
-            text = document.blocks[block].text
-            assert piece.text == shown(text, start, end, joined.get(block, frozenset()))
+        before = spans[number - 1] if number else None
+        follows = (
+            number in joins
+            and start < end
+            and before is not None
+            and before[0] == block
+            and before[1] < before[2]
+        )
+        wanted.append(wanted[-1] if follows else f"s{number}")
+    elements = [chunk[3] for chunk in view.chunks]
+    for number, (block, start, end) in enumerate(spans):
+        if start >= end:
+            continue
+        assert elements[number] == wanted[number]
+        if wanted[number] != f"s{number}":
+            continue
+        # a sentence's element runs from its first piece to the end of its last
+        last = number
+        while last + 1 < len(spans) and wanted[last + 1] == wanted[number]:
+            last += 1
+        piece = next(p for b in shown_blocks for p in b.pieces if p.element == f"s{number}")
+        text = document.blocks[block].text
+        assert piece.text == shown(text, start, spans[last][2], joined.get(block, frozenset()))
+    # the player's and the markers' sentences are the page's
+    assert view.sentences == [int(w.removeprefix("s")) for w in wanted]
 
 
 def test_bare_names() -> None:
