@@ -284,6 +284,44 @@ def test_a_long_sentence_is_cut_outside_brackets_and_quotes(
     )
 
 
+_HEARD_EN = "the listeners heard every part of the recording in the quiet room and "
+_HEARD_DE = "die Hörer hörten jeden Teil der Aufnahme im stillen Raum und "
+
+
+@pytest.mark.parametrize(
+    ("text", "language"),
+    [
+        (
+            "We test a) the speed and b) the care with which "
+            + _HEARD_EN * 2
+            + "(as we saw in the first study, which "
+            + _HEARD_EN
+            + "of the long run) "
+            + _HEARD_EN
+            + "it ended.",
+            "en",
+        ),
+        (
+            "Wir prüfen a) das Tempo und b) die Sorgfalt, mit der "
+            + _HEARD_DE * 2
+            + "(wie die erste Studie, die "
+            + _HEARD_DE
+            + "zeigte) "
+            + _HEARD_DE * 2
+            + "und es endete.",
+            "de",
+        ),
+    ],
+)
+def test_a_closing_mark_of_an_inline_list_opens_no_bracket_for_cutting(
+    text: str, language: str
+) -> None:
+    # the ")" of "a)" closes nothing: the depth stays at zero, so the later "(" still counts
+    # as open and no part ends inside it (#481 review round 2)
+    for part in cut(text, language=language):
+        assert "(" not in part or part.rfind("(") < part.rfind(")")
+
+
 def test_a_sentence_all_inside_a_bracket_is_still_cut() -> None:
     text = "(" + "word, " * 80 + "end)."
     parts = cut(text)
