@@ -212,6 +212,13 @@ def tab_key(page: Page) -> str:
     return TAB.get(page.context.browser.browser_type.name, "Tab")  # type: ignore[union-attr]
 
 
+def click_focuses(page: Page) -> bool:
+    """False in WebKit on macOS, which follows Safari's rule that a click gives a button no
+    focus (#498): there a test checks a focus that a click would give only by the keys."""
+    name = page.context.browser.browser_type.name  # type: ignore[union-attr]
+    return not (name == "webkit" and sys.platform == "darwin")
+
+
 def settled(page: Page) -> None:
     """Wait until the document page no longer follows the analysis and is fully loaded.
     The report can be on disk while the job is still the running one; a page drawn in that

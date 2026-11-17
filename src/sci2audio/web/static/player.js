@@ -1067,7 +1067,12 @@ function contextPanel() {
   }
 
   toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") !== "true"));
-  close.addEventListener("click", () => set(false));
+  // the Close button gives the focus to the toggle (#444), also where a click gives a button
+  // no focus, as in Safari, so the focus was never inside the panel (#498)
+  close.addEventListener("click", () => {
+    set(false);
+    toggle.focus();
+  });
   // over the page the panel covers its own button, so the focus leaves it only by the keys
   // or to elsewhere: it closes, and the focus stays where it went. A press inside it is no
   // leaving, though the focus may go to the page (a press on its text, or in Safari on its

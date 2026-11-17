@@ -12,7 +12,7 @@ from playwright.sync_api import Page, expect
 from test_focus import colours, nobody_focused, order
 from test_player import make_audiobook, paused
 
-from conftest import Live, check_axe
+from conftest import Live, check_axe, tab_key
 
 
 def marker_flag(page: Page, element: str) -> dict[str, Any]:
@@ -301,10 +301,11 @@ def test_add_note_over_the_page_and_the_panels_keyboard_order(signed_in: Page, l
     expect(page.locator("#context")).to_be_visible()
     edit = rows(page).first.get_by_role("button", name="Add note")
     expect(edit).to_be_focused()
-    page.keyboard.press("Shift+Tab")
+    # WebKit, like Safari, leaves buttons out of plain Tab: tab_key() moves to every item (#496)
+    page.keyboard.press(f"Shift+{tab_key(page)}")
     expect(rows(page).first.get_by_role("button", name="Go to")).to_be_focused()
-    page.keyboard.press("Tab")
-    page.keyboard.press("Tab")
+    page.keyboard.press(tab_key(page))
+    page.keyboard.press(tab_key(page))
     expect(rows(page).first.get_by_role("button", name="Remove")).to_be_focused()
     page.keyboard.press("Escape")
     expect(page.locator("#context")).to_be_hidden()

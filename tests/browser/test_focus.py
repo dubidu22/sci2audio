@@ -14,7 +14,7 @@ from test_flow import reload_holding_back_app_js
 from test_listen import assert_beside, look, marked_plainly, uncovered
 from test_player import chunk_id, highlighted, listen_to, make_audiobook, paused
 
-from conftest import Live, check_axe
+from conftest import Live, check_axe, click_focuses
 
 FOCUSING = re.compile(r"\bfocus-listening\b")
 
@@ -371,7 +371,8 @@ def test_the_shortcuts_sheet_opens_on_every_page_and_gives_the_focus_back(
     expect(opener).to_be_focused()
     opener.click()
     page.keyboard.press("Escape")
-    expect(opener).to_be_focused()
+    if click_focuses(page):  # in Safari the click left the focus where it was (#498)
+        expect(opener).to_be_focused()
     # German, dark included
     page.goto(f"{live.url}/language?language=de&back=/settings")
     page.get_by_role("button", name="Tastenkürzel").click()
@@ -641,10 +642,11 @@ def test_after_p_closes_the_panel_space_and_the_arrows_act_on_the_player(
     toggle.click()
     expect(toggle).to_have_attribute("aria-expanded", "true")
     toggle.click()
-    expect(toggle).to_be_focused()
+    if click_focuses(page):  # in Safari the click gives the toggle no focus (#498)
+        expect(toggle).to_be_focused()
     toggle.click()
     page.locator("#panel-close").click()
-    expect(toggle).to_be_focused()
+    expect(toggle).to_be_focused()  # the Close button gives it, in every browser (#498)
 
 
 def narrow(page: Page) -> None:
