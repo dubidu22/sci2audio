@@ -8,6 +8,7 @@ import hashlib
 import io
 import os
 import time
+import unicodedata
 from collections.abc import Iterator
 from pathlib import Path, PurePath
 from typing import Any
@@ -104,6 +105,7 @@ def test_a_document_in_use_keeps_its_old_file(tmp_path: Path) -> None:
         ("..pdf", "document.pdf"),
         ("<b>bold</b>.pdf", "b.pdf"),  # the last part after a slash
         ("<script>alert(1).pdf", "script alert(1).pdf"),
+        ("a\U000e57eeb.pdf", "a b.pdf"),  # unassigned: APFS refuses it (#491)
     ],
 )
 def test_stored_names(sent: str, kept: str) -> None:
@@ -258,6 +260,7 @@ def test_any_name_is_kept_inside_its_folder(name: str) -> None:
     assert "/" not in kept
     assert "\\" not in kept
     assert "\x00" not in kept
+    assert all(unicodedata.category(c) != "Cn" for c in kept)  # macOS refuses them (#491)
     assert PurePath(kept).name == kept
     assert kept not in (".pdf", "..pdf")
     assert len(kept.encode()) <= 255

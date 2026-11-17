@@ -17,7 +17,9 @@ MAX_BYTES = 200  # UTF-8 bytes of one name part: 200 + the 24-byte suffix stays 
 NAME_LIMIT = 255  # bytes of a whole file name, the smallest limit of the usual file systems
 _BOOK_IN_CHAPTER = (80, 100)  # characters, bytes of the book's name inside a chapter's name
 _FORBIDDEN = re.compile(r'[<>:"/\\|?*\x00-\x1f\x7f]')
-_UNPRINTABLE = frozenset({"Cc", "Cf", "Cs", "Zl", "Zp"})  # controls, format, surrogates
+# controls, format, surrogates, line and paragraph separators, and code points Unicode has
+# not assigned yet, which APFS refuses in a name (#491)
+_UNPRINTABLE = frozenset({"Cc", "Cf", "Cs", "Cn", "Zl", "Zp"})
 _SPACES = re.compile(r"\s+")
 _RESERVED = {
     "CON",
