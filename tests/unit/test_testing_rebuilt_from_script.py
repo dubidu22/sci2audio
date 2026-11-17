@@ -2,10 +2,26 @@
 script still reads the label's words, as the script reads them, also when a step rewrote
 them (#324, D-578)."""
 
+from collections.abc import Sequence
+
 import pytest
 
-from sci2audio.core import Block, BlockKind, ScriptPiece, Span
+from sci2audio.core import (
+    Block,
+    BlockKind,
+    Content,
+    Document,
+    Page,
+    Part,
+    ScriptPiece,
+    Source,
+    SourceFormat,
+    Span,
+    TextLine,
+    TextRun,
+)
 from sci2audio.testing import make_document, rebuilt_from_script
+from sci2audio.testing.documents import _run_tags
 from sci2audio.textprep import StepContext, run_steps, spoken_text
 
 
@@ -206,3 +222,58 @@ def test_a_placeholder_back_as_printed_keeps_its_tagged_runs_and_one_read_does_n
     assert rebuilt.blocks[0].text == "a 13 b SECRET c"
     assert _tagged_runs(rebuilt, 0) == [("13", page_break), ("SECRET", hidden)]
     assert _tagged_runs(rebuilt, 1) == []
+
+
+def _placeholders(*blocks: tuple[str, Sequence[tuple[TextLine, int]]]) -> Document:
+    """Tables of this text, each made of these lines at these starts in its text."""
+    lines = [line for _, parts in blocks for line, _ in parts]
+    content = Content(Source("t.epub", SourceFormat.EPUB), (Page(1, tuple(lines)),))
+    made = tuple(
+        Block(BlockKind.TABLE, text, tuple(Part(line.id, start) for line, start in parts))
+        for text, parts in blocks
+    )
+    return Document(content=content, language="en", blocks=made)
+
+
+def _rebuilt(document: Document) -> Document:
+    script = run_steps(document, StepContext("en"), strict=True).script()
+    return rebuilt_from_script(document, script)
+
+
+def test_a_tagged_run_across_a_line_break_keeps_its_tag_on_each_line() -> None:
+    """A tagged range may not cross a line break, so a run holding one is cut there; a run
+    of a part that goes back over a range before it is left out (round 2 S1 of #484, the
+    shape the nightly seeds found: overlapping parts and a run "0\n" tagged "h1")."""
+    h1, h2 = ("h1",), ("h2",)
+    document = _placeholders(
+        ("ab\ncd", [(TextLine("l0", (TextRun("ab\ncd", tags=h1),)), 0)]),
+        (
+            "0\n00\n",
+            [
+                (TextLine("l1", (TextRun("0\n"), TextRun("00", tags=h2))), 0),
+                (TextLine("l2", (TextRun("0\n", tags=h1),)), 0),
+            ],
+        ),
+    )
+    rebuilt = _rebuilt(document)
+    assert [block.text for block in rebuilt.blocks] == ["ab\ncd", "0\n00\n"]
+    assert _tagged_runs(rebuilt, 0) == [("ab", h1), ("cd", h1)]
+    assert _tagged_runs(rebuilt, 1) == [("00", h2)]
+
+
+def test_a_tagged_run_ending_in_a_line_break_gives_no_empty_range() -> None:
+    """Cut at its line break, "a\n" leaves an empty piece after it, which gets no range.
+    `make_document` would pass over an empty range at a line's edge, so the helper's own
+    ranges are checked too (review round 2 of #484)."""
+    lines = [TextLine("l0", (TextRun("a\n", tags=("hidden",)),)), TextLine("l1", (TextRun("b"),))]
+    document = _placeholders(("a\nb", [(lines[0], 0), (lines[1], 2)]))
+    assert _run_tags(document.blocks[0], document.content.items()) == [(0, 1, ("hidden",))]
+    assert _tagged_runs(_rebuilt(document), 0) == [("a", ("hidden",))]
+
+
+def test_a_line_not_where_its_part_says_gives_no_tag() -> None:
+    """The "never point at other text" guard, as in `HiddenRunStep`."""
+    line = TextLine("l0", (TextRun("Other", tags=("hidden",)),))
+    rebuilt = _rebuilt(_placeholders(("Shown", [(line, 0)])))
+    assert rebuilt.blocks[0].text == "Shown"
+    assert _tagged_runs(rebuilt, 0) == []

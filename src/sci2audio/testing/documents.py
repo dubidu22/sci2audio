@@ -192,8 +192,13 @@ def _run_tags(
             continue  # never point at other text
         offset = part.start
         for run in line.runs:
-            if run.tags and run.text:
-                found.append((offset, offset + len(run.text), tuple(run.tags)))
+            if run.tags:
+                # a tagged range may not cross a line break or go back over one before it
+                start = offset
+                for piece in run.text.split("\n"):
+                    if piece and (not found or start >= found[-1][1]):
+                        found.append((start, start + len(piece), tuple(run.tags)))
+                    start += len(piece) + 1
             offset += len(run.text)
     return found
 
