@@ -2,7 +2,7 @@
 
 **Turn scientific papers and books into faithful audiobooks, offline, with free local voices.**
 
-sci2audio reads a PDF, EPUB, Markdown or plain-text file in English, prepares its text for listening with rules you can check and switch off, speaks it with a local Kokoro voice, and writes an M4B audiobook with chapters, one MP3 per chapter, and a read-along view that highlights the original text as it is read. Everything runs on your own computer.
+sci2audio reads a PDF, EPUB, Markdown or plain-text file in English or German, prepares its text for listening with rules you can check and switch off, speaks it with a local Kokoro voice, and writes an M4B audiobook with chapters, one MP3 per chapter, and a read-along view that highlights the original text as it is read. Everything runs on your own computer.
 
 ## What it does
 

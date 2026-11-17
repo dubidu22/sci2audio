@@ -171,13 +171,25 @@ def test_convert_reads_an_epub_and_keeps_its_cover(tmp_path: Path) -> None:
         "epub/images/logo.png",
     ]
     assert extract_epub_cover(book) is not None
-    converted = run(convert_args(out, work, source=book))
+    # Imprint is a publisher's page, not chosen by default since #190: choose every chapter,
+    # so its logo is read too
+    converted = run(convert_args(out, work, "--chapters", "all", source=book))
     assert converted.returncode == 0, converted.stderr
     assert "Traceback" not in converted.stderr
+    assert sorted(p.name for p in out.glob("*.mp3")) == [
+        "The Time Machine - 01 The Time Machine.mp3",
+        "The Time Machine - 02 Imprint.mp3",
+        "The Time Machine - 03 Epilogue.mp3",
+    ]
     spoke, total, reused = spoken_and_reused(converted.stdout)
-    assert spoke + reused == total
+    # since #436 the logo's notice reads its alt text ("A figure is skipped. It shows: The
+    # Standard Ebooks logo."), so it no longer repeats the title page's notice and every
+    # sentence of the cut book is new; a sentence said twice in one run is spoken once by
+    # test_app_audio_job.py::test_the_same_text_twice_is_spoken_once (D-155), and a rerun
+    # reuses the cache with this voice in
+    # test_convert_is_killed_resumes_and_reruns_from_the_cache above
+    assert (spoke, reused) == (total, 0)
     assert spoke > 0
-    assert reused == 1  # "A figure is skipped." twice: spoken once, then reused (D-155)
     (m4b,) = out.glob("*.m4b")
     with zipfile.ZipFile(TIME_MACHINE) as whole:
         assert (work / "cover.jpg").read_bytes() == whole.read("epub/images/cover.jpg")
