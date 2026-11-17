@@ -32,7 +32,7 @@ dependencies = [
     "jinja2>=3.1.6,<4",
     "kokoro>=0.9.4,<0.10",
     "markdown-it-py>=4.2,<5",
-    "mdit-py-plugins>=0.6.1,<0.7",
+    "mdit-py-plugins>=0.6.1,<0.8",
     # Bounded here because the offline guarantee relies on how misaki 0.9 loads its spaCy
     # model (D-121); kokoro alone would accept any later misaki. The German voice imports
     # its espeak-ng pronunciation (misaki.espeak, #211).
