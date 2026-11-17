@@ -119,6 +119,27 @@ def test_a_cut_and_a_reading_show_inside_their_sentence_which_keeps_its_span() -
     assert sentence(view, "s2").parts == ()  # nothing changed in it: plain text
 
 
+def test_a_mark_across_the_cut_of_a_cut_sentence_is_drawn_in_the_joined_sentence() -> None:
+    """#480 (plans/480-c2-tests.md item 5): the voice's cut falls inside the citation, so the
+    cut mark lies across the join; the joined sentence draws it whole, and its parts still
+    join up to the sentence's text."""
+    middle = TEXT.index("2021")
+    data = readalong([(0, 0, 9), (1, 0, middle), (1, middle, FIRST[1]), (1, *SECOND)], joins=(2,))
+    view = build_view(
+        paper(), record(chunks=4, made_with=THIS), data, steps_with(*citation_and_unit())
+    )
+    assert [c[3] for c in view.chunks] == ["s0", "s1", "s1", "s3"]
+    first = sentence(view, "s1")
+    assert first.text == shown(TEXT, *FIRST)
+    assert "".join(part.text for part in first.parts) == first.text
+    assert first.parts == (
+        Part("It fell by 12 "),
+        Part("ms", "said", "milliseconds"),
+        Part(" (Okafor, 2021)", "cut"),
+        Part(" on early shifts."),
+    )
+
+
 def test_a_category_switched_off_for_the_audiobook_is_not_marked() -> None:
     # the job's own settings (audio.json) decide, never today's switches (D-665)
     view = listen(*citation_and_unit(), switched_off=frozenset({"citations"}))

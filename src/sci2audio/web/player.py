@@ -507,6 +507,7 @@ class PlayerView:
     chapters: list[ChapterView]
     chunks: list[tuple[float, float, int, str]]  # start, end, chapter, element id
     mode: str  # "mp3" or "m4b"
+    sentences: list[int] = field(default_factory=list)  # each chunk's sentence (#480)
     duration: float = 0.0  # the whole book, in seconds
     marked: bool = False  # the audiobook's edits are drawn on the text (D-704b)
     made_with: str = ""  # the sci2audio version that made the audiobook
@@ -529,6 +530,8 @@ class PlayerView:
                 for c in self.chapters
             ],
             "chunks": [list(chunk) for chunk in self.chunks],
+            # each chunk's sentence, by its first piece: next, previous and M step by it (#480)
+            "sentences": self.sentences or list(range(len(self.chunks))),
         }
 
 
@@ -580,6 +583,7 @@ def build_view(
     pages = _page_starts(document, moved.keys())
 
     element_of: list[str] = [""] * len(readalong.chunks)
+    firsts = sentence_starts(readalong)
     views: list[ChapterView] = []
     used: set[int] = set()
     for index, times in enumerate(readalong.chapters):
@@ -605,6 +609,7 @@ def build_view(
                     element_of,
                     joined.get(shown_here, frozenset()),
                     marks.get(shown_here, ()),
+                    firsts,
                 )
                 view.heading = levels.get(shown_here, 0) if shown_here == number else 0
                 view.page = pages.get(shown_here, "")
@@ -637,6 +642,7 @@ def build_view(
         chapters=views,
         chunks=chunks,
         mode="mp3" if record.mp3s else "m4b",
+        sentences=firsts,
         duration=readalong.duration,
         marked=marked,
         made_with=record.made_with,
@@ -915,6 +921,7 @@ def _block_view(
     element_of: list[str],
     joined: frozenset[int] = frozenset(),
     marks: Sequence[tuple[int, int, str, str]] = (),
+    firsts: Sequence[int] = (),
 ) -> BlockView:
     block = document.blocks[number]
     view = BlockView(number, str(block.kind))
@@ -932,6 +939,7 @@ def _block_view(
     text = block.text
     position = 0
     last_element: str | None = None
+    sentence = (0, 0, 0)  # the last sentence: its first chunk, its start, its piece's index
     waiting: list[int] = []  # empty spans before the block's first sentence
     for n in sorted(chunk_numbers, key=lambda n: (readalong.chunks[n].span.start, n)):
         span = readalong.chunks[n].span
@@ -943,6 +951,15 @@ def _block_view(
             else:
                 element_of[n] = last_element
             continue
+        if n < len(firsts) and firsts[n] != n and last_element is not None:
+            # a piece of a cut sentence (#480): the sentence's element runs on to its end,
+            # with the text between the pieces
+            first, start, index = sentence
+            del view.pieces[index:]
+            element_of[n] = last_element
+            view.pieces.append(_piece(text, start, span.end, joined, marks, last_element, first))
+            position = span.end
+            continue
         if span.start > position:
             view.pieces.append(_piece(text, position, span.start, joined, marks))
         last_element = f"s{n}"
@@ -950,6 +967,7 @@ def _block_view(
         for early in waiting:
             element_of[early] = last_element
         waiting = []
+        sentence = (n, span.start, len(view.pieces))
         view.pieces.append(_piece(text, span.start, span.end, joined, marks, last_element, n))
         position = span.end
     if position < len(text):
@@ -961,6 +979,34 @@ def _block_view(
         view.element = f"b{number}"
         view.chunk = chunk_numbers[0]
     return view
+
+
+def sentence_starts(readalong: ReadAlong) -> list[int]:
+    """For each chunk, the first chunk of the sentence it is a piece of (#480): itself, unless
+    the read-along says it `joins` the chunk before it and the page can show the two as one,
+    which is when both read text of the same block, the chunk before is the one the page
+    draws just before it there, and neither is skipped as empty or overlapping (as
+    `_block_view` skips them). Any other `joins` is ignored, so a hand-made or broken file
+    can't make the page, the markers and the player group the chunks differently."""
+    chunks = readalong.chunks
+    kept_before: dict[int, int | None] = {}  # a drawn chunk -> the drawn chunk before it
+    by_block: dict[int, list[int]] = {}
+    for n, chunk in enumerate(chunks):
+        by_block.setdefault(chunk.span.block, []).append(n)
+    for numbers in by_block.values():
+        position = 0
+        last: int | None = None
+        for n in sorted(numbers, key=lambda n: (chunks[n].span.start, n)):
+            span = chunks[n].span
+            if span.start == span.end or span.start < position:
+                continue
+            kept_before[n] = last
+            last, position = n, span.end
+    starts: list[int] = []
+    for n, chunk in enumerate(chunks):
+        follows = chunk.joins and n > 0 and n in kept_before and kept_before[n] == n - 1
+        starts.append(starts[n - 1] if follows else n)
+    return starts
 
 
 def _piece(
