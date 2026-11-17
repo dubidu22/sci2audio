@@ -70,6 +70,9 @@ def allocate_unwatched(size: int) -> int:
 # ---- memory (#185) -------------------------------------------------------------------------
 
 
+@pytest.mark.quarantined(
+    issue=485, reason="child exits 1 on Windows without a code cause", platform="win32"
+)
 def test_a_flate_bomb_is_stopped_at_the_memory_limit_and_this_process_stays_small(
     tmp_path: Path,
 ) -> None:
