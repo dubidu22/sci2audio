@@ -77,12 +77,16 @@ class JobRecord:
         document: str | None,
         settings: dict[str, Any] | None,
         cancellable: bool,
+        overwrite: bool = False,
     ) -> None:
         self.id = job_id
         self.kind = kind
         self.document = document
         self.settings = settings
         self.cancellable = cancellable
+        # an audio job started with "replace" (D-163): Resume carries the choice on, so a
+        # paused replace run is not stopped by the audiobook it already may replace (D-733)
+        self.overwrite = overwrite
         self.started = _now()
         self.cancel = threading.Event()
         self._lock = threading.Lock()
@@ -131,6 +135,7 @@ class JobRecord:
                 "finished": self._finished,
                 "cancellable": self.cancellable and self._state is JobState.RUNNING,
                 "settings": self.settings,
+                "overwrite": self.overwrite,
                 "progress": self._progress,
                 "error": None
                 if self._failure is None
@@ -199,6 +204,7 @@ class JobBoard:
         work: Work,
         *,
         cancellable: bool,
+        overwrite: bool = False,
     ) -> JobRecord:
         """Start `work` in a new thread as a job; BoardBusyError if one is running."""
         with self._lock:
@@ -209,7 +215,7 @@ class JobBoard:
             self._counter += 1
             n = self._counter
             job_id = f"{kind}-{n}" if document is None else f"{document}-{kind}-{n}"
-            job = JobRecord(job_id, kind, document, settings, cancellable)
+            job = JobRecord(job_id, kind, document, settings, cancellable, overwrite)
             self._jobs[job_id] = job
             self._current = job
             thread = threading.Thread(

@@ -184,9 +184,12 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     page.get_by_role("button", name="Replace these files").click()
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
 
-    # free the speech cache (D-158)
+    # free the speech cache (D-158), after its confirm names what goes (D-733)
     expect(page.locator("#cache-text")).to_contain_text("sci2audio keeps the spoken sentences")
-    page.get_by_role("button", name="Free the speech cache").click()
+    page.locator("#cache-free-open").click()
+    expect(page.locator("#free-goes")).to_contain_text("deletes every sentence spoken")
+    check_axe(page, "the free confirm")
+    page.get_by_role("button", name="Delete the speech cache").click()
     expect(page.locator("#message")).to_have_text("The speech cache is empty.")
     expect(page.locator("#message")).to_be_focused()
     folder = live.config.work_root / document / "chunks"
@@ -226,9 +229,7 @@ def test_progress_while_speaking_and_pause(signed_in: Page, live: Live) -> None:
     expect(page.locator("#result")).to_have_text(re.compile(r"^Paused in chapter [12]\.$"))
     expect(page.locator("#job-kept")).to_contain_text(re.compile(r"\d of 4 sentences"))
     expect(page.get_by_role("button", name="Resume")).to_be_visible()
-    expect(
-        page.get_by_role("button", name=re.compile(r"^Free the speech cache \("))
-    ).to_be_visible()
+    expect(page.locator("#cache-free-open")).to_have_text(re.compile(r"^Free the speech cache \("))
     check_axe(page, "audiobook paused")
 
 
@@ -260,6 +261,113 @@ def test_pause_then_resume_speaks_only_what_is_missing(signed_in: Page, live: Li
     again = live.voice.texts[len(before) :]
     assert again, "Resume spoke nothing"
     assert not set(again) & set(before), "Resume spoke a kept sentence again"
+
+
+def test_resume_of_a_paused_replace_never_asks_to_replace_again(
+    signed_in: Page, live: Live
+) -> None:
+    """A run that replaces an earlier audiobook, paused and resumed, goes on with the
+    sentences it spoke and never stops at the files it was already allowed to replace
+    (D-733). Before, Resume sent no "replace" and showed the existing-files card."""
+    page = signed_in
+    live.install_voice()
+    document = open_paper(page, live)
+    page.get_by_role("button", name="Make the audiobook").click()
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
+    # a new speech (as after an update of the voice): nothing is kept to reuse
+    deleted = page.request.delete(
+        f"{live.url}/api/v1/documents/{document}/chunks", headers={"Origin": live.url}
+    )
+    assert deleted.status == 204
+
+    page.get_by_role("link", name="Prepare").click()
+    page.get_by_role("button", name="Make the audiobook").click()
+    expect(page.locator("#result")).to_have_text("The audiobook files exist already.")
+    # replacing never needs the cache freed; with nothing spoken, nothing is said kept
+    expect(page.locator("#cache-free-open")).to_have_count(0)
+    expect(page.locator("#job-kept")).to_have_count(0)
+
+    hold = Hold(after=2)
+    live.voice.fail_on = hold
+    first = len(live.voice.texts)  # what the finished build spoke
+    page.get_by_role("button", name="Replace these files").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    try:
+        assert hold.reached.wait(30)
+        with page.expect_response(re.compile(r"/api/v1/jobs/[^/]+/cancel$")):
+            page.get_by_role("button", name="Pause").click()
+    finally:
+        hold.gate.set()
+    expect(page.locator("#result")).to_have_text(re.compile(r"^Paused in chapter [12]\.$"))
+    before = list(live.voice.texts[first:])
+    assert 2 <= len(before) < 4, before
+    live.voice.fail_on = lambda text: False
+    with page.expect_request(re.compile(r"/api/v1/jobs$")) as started:
+        page.get_by_role("button", name="Resume").click()
+    assert started.value.post_data_json["overwrite"] is True
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
+    again = live.voice.texts[first + len(before) :]
+    assert again, "Resume spoke nothing"
+    assert not set(again) & set(before), "Resume spoke a kept sentence again"
+
+
+def test_a_paused_first_build_resumes_without_replace(signed_in: Page, live: Live) -> None:
+    """Resume of a run that replaced nothing still does not say "replace": a file that
+    appeared meanwhile is refused as before (D-163, D-733)."""
+    page = signed_in
+    live.install_voice()
+    hold = Hold(after=1)
+    live.voice.fail_on = hold
+    open_paper(page, live)
+    page.get_by_role("button", name="Make the audiobook").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    try:
+        assert hold.reached.wait(30)
+        with page.expect_response(re.compile(r"/api/v1/jobs/[^/]+/cancel$")):
+            page.get_by_role("button", name="Pause").click()
+    finally:
+        hold.gate.set()
+    expect(page.locator("#result")).to_have_text(re.compile(r"^Paused in chapter [12]\.$"))
+    live.voice.fail_on = lambda text: False
+    with page.expect_request(re.compile(r"/api/v1/jobs$")) as started:
+        page.get_by_role("button", name="Resume").click()
+    assert started.value.post_data_json["overwrite"] is False
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
+
+
+def test_freeing_the_speech_cache_asks_first(signed_in: Page, live: Live) -> None:
+    """The cache button opens a confirm that names what is lost; only its own button sends
+    the DELETE (D-733). Without the confirm one click deleted every spoken sentence."""
+    page = signed_in
+    live.install_voice()
+    document = open_paper(page, live)
+    deletes: list[str] = []
+    page.on(
+        "request",
+        lambda request: (
+            deletes.append(request.url)
+            if request.method == "DELETE" and request.url.endswith("/chunks")
+            else None
+        ),
+    )
+    page.get_by_role("button", name="Make the audiobook").click()
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready")
+    size = page.request.get(f"{live.url}/api/v1/documents/{document}").json()
+    assert size["speech_cache_bytes"] > 0
+    page.locator("#cache-free-open").click()
+    expect(page.locator("#free-goes")).to_contain_text(
+        "This deletes every sentence spoken for this document ("
+    )
+    expect(page.get_by_role("button", name="Delete the speech cache")).to_be_enabled()
+    page.wait_for_timeout(500)
+    assert deletes == [], "opening the confirm deleted the speech cache"
+    found = page.request.get(f"{live.url}/api/v1/documents/{document}").json()
+    assert found["speech_cache_bytes"] == size["speech_cache_bytes"]
+    check_axe(page, "the free confirm open")
+    page.get_by_role("button", name="Delete the speech cache").click()
+    expect(page.locator("#message")).to_have_text("The speech cache is empty.")
+    assert len(deletes) == 1
+    expect(page.locator("#free-box")).to_have_count(0)
 
 
 def test_cancel_deletes_the_speech_cache_only_once_the_voice_stopped(
@@ -696,7 +804,8 @@ def test_replace_waits_until_the_page_script_runs(signed_in: Page, live: Live) -
     # the finished job's other buttons wait the same way; the ZAP walk clicks "Free the
     # speech cache" right after this page loads (#177 review R1-1)
     release = reload_holding_back_app_js(page, live)
-    free = page.get_by_role("button", name="Free the speech cache")
+    page.locator("#cache-free-open").click()  # the confirm opens without the script
+    free = page.get_by_role("button", name="Delete the speech cache")
     expect(free).to_be_disabled()
     release()
     expect(free).to_be_enabled()

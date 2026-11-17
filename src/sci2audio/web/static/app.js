@@ -743,7 +743,9 @@ function makingCard() {
   }
 
   // Resume, Make it again and Replace start the audiobook again with the job's settings;
-  // the spoken sentences in the cache are used again (Pause is today's cancel, #391)
+  // the spoken sentences in the cache are used again (Pause is today's cancel, #391).
+  // Resume keeps the paused job's own "replace" choice: a paused replace run would
+  // otherwise stop at the audiobook it was already allowed to replace (D-733)
   async function restart(overwrite) {
     try {
       const job = await send("/api/v1/jobs", json("POST", { kind: "audio", document: doc, settings, overwrite }));
@@ -753,15 +755,16 @@ function makingCard() {
     }
   }
   wire(document.getElementById("job-replace"), () => restart(true));
-  wire(document.getElementById("job-again"), () => restart(false));
+  wire(document.getElementById("job-again"), () => restart(card.dataset.overwrite === "true"));
 
+  // the DELETE goes out only from inside the confirm box, which names what is lost (D-733)
   const free = document.getElementById("cache-free");
   wire(free, async () => {
     try {
       await send(`/api/v1/documents/${doc}/chunks`, { method: "DELETE" });
       const text = document.getElementById("cache-text") || document.getElementById("job-kept");
       if (text) text.textContent = tr("js.freed");
-      free.remove();
+      (document.getElementById("free-box") || free).remove();
       say(tr("js.freed"), true);
     } catch (error) {
       say(explain(error), true);

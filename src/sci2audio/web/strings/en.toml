@@ -583,4 +583,7 @@ kept_some = "The sentences spoken so far are kept. Making it again speaks only w
 resume = "Resume"
 again = "Make it again"
 free = "Free the speech cache ({size})"
+free_goes = "This deletes every sentence spoken for this document ({size}). Making the audiobook again then speaks everything anew."
+free_now = "Delete the speech cache"
+kept_replace = "The sentences spoken so far are kept. Replacing speaks only what is missing."
 same_settings = "This uses the settings this run was started with: its voice, speed and chapters. For other settings, change them below and choose “Make the audiobook”."

@@ -226,3 +226,137 @@ def test_the_servers_work_folders_are_the_audio_jobs_own(tmp_path: Path) -> None
     source = tmp_path / "x.pdf"
     source.write_bytes(note())
     assert default_work_folder(source).parent == default_work_root()
+
+
+def six_sentences() -> bytes:
+    lines = [
+        f"Sentence number {word} is here."
+        for word in ("one", "two", "three", "four", "five", "six")
+    ]
+    return make_pdf([Text(line, 72, 100 + 14 * n, size=11) for n, line in enumerate(lines)])
+
+
+def resumed_as_the_card_sends(client: Any, paused: dict[str, Any]) -> dict[str, Any]:
+    """Resume posts the paused job's settings and its own `overwrite` (app.js, D-733)."""
+    return start_audio(
+        client, paused["document"], settings=paused["settings"], overwrite=paused["overwrite"]
+    )
+
+
+def test_a_paused_replace_resumes_without_asking_again(tmp_path: Path) -> None:
+    """Colin, 17 Nov: a run replacing a finished audiobook, paused and resumed, stopped at
+    "these files exist already". The paused job keeps its "replace" so Resume goes on and
+    speaks only the sentences it had not spoken (D-733)."""
+    gate, reached, hold = threading.Event(), threading.Event(), {"on": False}
+
+    def held(text: str) -> bool:
+        if hold["on"] and "three" in text:
+            reached.set()
+            assert gate.wait(10)
+        return False
+
+    voice = FakeVoice(fail_on=held)
+    client, config = server(tmp_path, voice)
+    doc = upload(client, six_sentences())
+    assert wait(client, start_audio(client, doc["id"])["id"])["state"] == "done"
+    assert client.delete(f"/api/v1/documents/{doc['id']}/chunks").status_code == 204
+    finished = {p.name: p.stat().st_mtime_ns for p in config.output_folder.iterdir()}
+
+    hold["on"] = True
+    job = start_audio(client, doc["id"], overwrite=True)
+    assert job["overwrite"] is True
+    assert reached.wait(30)
+    assert client.post(f"/api/v1/jobs/{job['id']}/cancel").status_code == 202
+    gate.set()
+    paused = wait(client, job["id"])
+    assert paused["state"] == "cancelled"
+    assert paused["overwrite"] is True
+    done_before = paused["progress"]["chunks_done"]
+    assert 0 < done_before < paused["progress"]["chunks_total"]
+    # paused mid-speech, the earlier audiobook is untouched: nothing half-written
+    assert {p.name: p.stat().st_mtime_ns for p in config.output_folder.iterdir()} == finished
+
+    hold["on"] = False
+    spoken = len(voice.spoken)
+    resumed = wait(client, resumed_as_the_card_sends(client, paused)["id"])
+    assert resumed["state"] == "done", resumed["error"]
+    assert resumed["progress"]["reused"] == done_before
+    assert resumed["progress"]["spoken"] == paused["progress"]["chunks_total"] - done_before
+    assert len(voice.spoken) - spoken == resumed["progress"]["spoken"]
+
+
+def test_a_replace_paused_while_writing_resumes_without_asking_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Paused while the files are written: output has already taken away the old read-along
+    (D-119), so the old set is incomplete; Resume writes the whole new set (D-733)."""
+    from sci2audio.app import audio
+
+    encode = audio._encode
+    writing, gate = threading.Event(), threading.Event()
+
+    def held(*args: Any, **kwargs: Any) -> Any:
+        writing.set()
+        assert gate.wait(30)
+        return encode(*args, **kwargs)
+
+    voice = FakeVoice()
+    client, config = server(tmp_path, voice)
+    doc = upload(client, six_sentences())
+    assert wait(client, start_audio(client, doc["id"])["id"])["state"] == "done"
+    names = sorted(p.name for p in config.output_folder.iterdir())
+
+    monkeypatch.setattr(audio, "_encode", held)
+    job = start_audio(client, doc["id"], overwrite=True)
+    assert writing.wait(30)
+    assert client.post(f"/api/v1/jobs/{job['id']}/cancel").status_code == 202
+    gate.set()
+    paused = wait(client, job["id"])
+    assert paused["state"] == "cancelled"
+    assert sorted(p.name for p in config.output_folder.iterdir()) != names  # a partial set
+
+    monkeypatch.setattr(audio, "_encode", encode)
+    resumed = wait(client, resumed_as_the_card_sends(client, paused)["id"])
+    assert resumed["state"] == "done", resumed["error"]
+    assert resumed["progress"]["spoken"] == 0  # every sentence came from the cache
+    assert sorted(p.name for p in config.output_folder.iterdir()) == names
+
+
+def test_a_paused_first_build_still_refuses_a_file_that_appeared(tmp_path: Path) -> None:
+    """Resume of a run that replaced nothing does not say "replace": an audiobook that
+    appeared meanwhile is refused as before (D-163)."""
+    gate, reached = threading.Event(), threading.Event()
+
+    def held(text: str) -> bool:
+        if "three" in text:
+            reached.set()
+            assert gate.wait(10)
+        return False
+
+    voice = FakeVoice(fail_on=held)
+    client, config = server(tmp_path, voice)
+    doc = upload(client, six_sentences())
+    job = start_audio(client, doc["id"])
+    assert job["overwrite"] is False
+    assert reached.wait(30)
+    client.post(f"/api/v1/jobs/{job['id']}/cancel")
+    gate.set()
+    paused = wait(client, job["id"])
+    assert paused["state"] == "cancelled"
+    assert paused["overwrite"] is False
+    config.output_folder.mkdir(parents=True, exist_ok=True)
+    (config.output_folder / "paper.m4b").write_bytes(b"someone else's")
+    voice.fail_on = lambda text: False
+    refused = wait(client, resumed_as_the_card_sends(client, paused)["id"])
+    assert refused["state"] == "failed"
+    assert refused["error"]["error"] == "output-exists"
+    assert (config.output_folder / "paper.m4b").read_bytes() == b"someone else's"
+
+
+def test_script_jobs_never_say_overwrite(tmp_path: Path) -> None:
+    client, _ = server(tmp_path, FakeVoice())
+    doc = upload(client, note())
+    job = client.post(
+        "/api/v1/jobs", json={"kind": "script", "document": doc["id"], "overwrite": True}
+    ).json()
+    assert job["overwrite"] is False
