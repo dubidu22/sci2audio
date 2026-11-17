@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import Any, Literal
 
 from long_book import long_book
 from playwright.sync_api import Page, Route, expect
@@ -56,6 +56,19 @@ def marked_plainly(page: Page, selector: str) -> dict[str, Any]:
     assert now["image"] == "none", now
     assert now["background"] not in ("", "rgba(0, 0, 0, 0)", "transparent"), now
     return now
+
+
+def change_theme(page: Page, scheme: Literal["light", "dark"]) -> None:
+    """Switch the colour scheme and let the transitions it starts end (#500). Firefox and
+    WebKit on macOS run the switches' 0.2 s colour transition on a theme change, which
+    `document.getAnimations()` counts; Chromium does not start it. Only CSS transitions are
+    awaited, so a keyframe animation still fails `marked_plainly`'s `all == 0` (D-709)."""
+    page.emulate_media(color_scheme=scheme)
+    page.evaluate(
+        """() => new Promise((done) => requestAnimationFrame(() => done(Promise.allSettled(
+            document.getAnimations().filter((a) => a instanceof CSSTransition)
+                .map((a) => a.finished)))))"""
+    )
 
 
 def book_time(page: Page) -> float:
@@ -159,7 +172,7 @@ def test_the_sentence_being_read_is_marked_plainly_and_a_heard_one_has_no_tint(
     page.locator(f"#{first['id']}").hover()
     assert look(page, f"#{first['id']}")["background"] in ("rgba(0, 0, 0, 0)", "transparent")
     check_axe(page, "listen, reading")
-    page.emulate_media(color_scheme="dark")
+    change_theme(page, "dark")
     marked_plainly(page, NOW)
     assert_beside(page, "#now-bar", NOW)
     check_axe(page, "listen, reading, dark")

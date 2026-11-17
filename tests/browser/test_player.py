@@ -459,7 +459,8 @@ def test_the_dock_never_hides_the_page(signed_in: Page, live: Live) -> None:
         assert bar["fixed"] == (bar["height"] <= height / 4), f"{where}: {bar}"
         if (width, height) == (1280, 800):
             assert bar["fixed"], f"{where}: a wide window keeps the dock in view: {bar}"
-            assert bar["bottom"] == height, f"{where}: the dock stands at the foot: {bar}"
+            # Firefox lays out in sub-pixels: 799.99998 is the foot of an 800 px window (#501)
+            assert abs(bar["bottom"] - height) < 0.5, f"{where}: the dock stands at the foot: {bar}"
         padding = page.evaluate("() => document.documentElement.style.scrollPaddingBottom")
         assert (padding != "") == bar["fixed"], f"{where}: scroll padding {padding!r}"
         # the end of the page can be scrolled out from under the dock
