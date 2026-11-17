@@ -190,7 +190,15 @@ def test_a_join_follows_only_the_chunk_the_page_draws_just_before_it() -> None:
     view = build_view(document, record(chunks=3), data)
     assert [c[3] for c in view.chunks] == ["s0", "s1", "s2"]
     assert sentence_starts(data) == view.sentences == [0, 1, 2]
+    # chunk 1 overlaps chunk 0, so the page skips it (it shares chunk 0's element) and draws
+    # chunk 2 right after chunk 0: chunk 2's join to chunk 1 can't be shown, and is ignored
+    document = make_document([("paragraph", "One two three, four five six.")])
+    data = readalong([(0, 0, 13), (0, 4, 9), (0, 14, 29)], joins=(2,))
+    view = build_view(document, record(chunks=3), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s0", "s2"]
+    assert sentence_starts(data) == view.sentences == [0, 1, 2]
     # in text order, the same join is followed
+    document = make_document([("paragraph", "One, two, three.")])
     data = readalong([(0, 0, 4), (0, 5, 9), (0, 10, 16)], joins=(2,))
     view = build_view(document, record(chunks=3), data)
     assert [c[3] for c in view.chunks] == ["s0", "s1", "s1"]
@@ -507,6 +515,18 @@ def test_a_word_the_hyphen_step_joined_shows_joined_and_a_kept_hyphen_as_printed
     assert "".join(p.text for p in off.chapters[0].blocks[0].pieces) == (
         "asking questions, and con-tributing code during COVID-19."
     )
+
+
+def test_a_word_joined_at_the_cut_of_a_cut_sentence_shows_joined() -> None:
+    """#480 (plans/480-c2-tests.md item 5): the voice's cut falls right after a line-end
+    hyphen the hyphen step joined; the joined sentence shows the word joined."""
+    text = "asking questions, and con-\ntributing code during COVID-\n19."
+    document = make_document([("paragraph", text)])
+    cut = text.index("-") + 1
+    data = readalong([(0, 0, cut), (0, cut, len(text))], joins=(1,))
+    view = build_view(document, record(chunks=2), data)
+    pieces = [(p.text, p.element) for p in view.chapters[0].blocks[0].pieces]
+    assert pieces == [("asking questions, and contributing code during COVID-19.", "s0")]
 
 
 @pytest.mark.parametrize(
