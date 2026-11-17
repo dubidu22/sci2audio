@@ -276,11 +276,17 @@ def test_the_keys_stay_out_of_the_way(signed_in: Page, live: Live) -> None:
     expect(toggle).to_have_attribute("aria-expanded", "true")
     expect(speed).to_have_value("1")
     expect(page.locator("#keys")).not_to_have_attribute("open", "")
-    # held Cmd, Ctrl or Alt: the browser's or the system's own
+    # held Cmd, Ctrl or Alt: the browser's or the system's own. No chord with the left arrow:
+    # it goes back in the history with Cmd or Ctrl in WebKit on macOS and with Alt on Linux
+    # and Windows (#499). With no page ahead the right arrow's chords do nothing, and the
+    # page's arrow keys check the modifiers the same way for both arrows
     nobody_focused(page)
     before = highlighted(page)
-    for key in ("Control+f", "Meta+f", "Alt+f", "Control+p", "Alt+ArrowRight", "Meta+ArrowLeft"):
+    listen = page.url
+    chords = ("Control+f", "Meta+f", "Alt+f", "Control+p")
+    for key in (*chords, "Alt+ArrowRight", "Meta+ArrowRight", "Control+ArrowRight"):
         page.keyboard.press(key)
+        expect(page, f"{key} left the Listen page").to_have_url(listen)
     assert not focusing(page)
     expect(toggle).to_have_attribute("aria-expanded", "true")
     assert highlighted(page) == before
