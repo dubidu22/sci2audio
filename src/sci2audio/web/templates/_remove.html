@@ -9,6 +9,8 @@
     <p>{{ t('remove.goes', size=size_text(removal.bytes)) }}</p>
     {% if removal.folder %}<p>{{ t('remove.stays_folder', folder=removal.folder) }}</p>{% elif removal.has_audio %}<p>{{ t('remove.stays') }}</p>{% endif %}
     <p>{{ t('remove.original') }}</p>
+    {#- counted from the markers file as the box is drawn (#474, D-728 ruling 3) #}
+    {% if removal.markers is none %}<p class="remove-markers">{{ t('remove.markers_unread') }}</p>{% elif removal.markers %}<p class="remove-markers">{{ t('remove.markers', n=removal.markers) }}</p>{% endif %}
     {% if busy %}
     <p class="note">{{ t('remove.busy') }}</p>
     {% else %}

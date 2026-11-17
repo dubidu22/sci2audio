@@ -155,3 +155,38 @@ def events(client: TestClient, job_id: str) -> list[tuple[str, str]]:
 def app_and_config(tmp_path: Path, **changes: Any) -> tuple[FastAPI, ServerConfig]:
     config = make_config(tmp_path, **changes)
     return create_app(config), config
+
+
+class FakeClock:
+    """A clock for the markers' undo store (#474): seconds that move only when told."""
+
+    def __init__(self, start: float = 1000.0) -> None:
+        self.now = start
+
+    def __call__(self) -> float:
+        return self.now
+
+    def advance(self, seconds: float) -> None:
+        self.now += seconds
+
+
+@pytest.fixture
+def fake_clock() -> FakeClock:
+    return FakeClock()
+
+
+def markers_of(work: Path) -> dict[str, Any]:
+    """A document's markers file as written (#474), for field and byte checks."""
+    import json
+
+    data: dict[str, Any] = json.loads((work / "markers.json").read_text(encoding="utf-8"))
+    return data
+
+
+def set_marker(client: TestClient, doc: str, chunk: int, stamp: str, status: int = 201) -> Any:
+    """Set a marker on chunk `chunk` of the page drawn for audiobook `stamp` (#474)."""
+    response = client.post(
+        f"/api/v1/documents/{doc}/markers", json={"chunk": chunk, "audiobook": stamp}
+    )
+    assert response.status_code == status, response.text
+    return response.json()

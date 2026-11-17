@@ -21,6 +21,7 @@ from sci2audio.app import JobRunner, VoiceSource
 from sci2audio.web import api, pages
 from sci2audio.web.config import ServerConfig
 from sci2audio.web.limits import BodyLimit
+from sci2audio.web.markers import MarkerBook
 from sci2audio.web.security import LocalOnly
 from sci2audio.web.state import ApiError, ServerState
 from sci2audio.web.tasks import Fetch
@@ -61,9 +62,10 @@ def create_app(
     runner: JobRunner | None = None,
     fetch: Fetch | None = None,
     voice: Callable[[Path], VoiceSource] | None = None,
+    clock: Callable[[], float] | None = None,
 ) -> FastAPI:
-    """The server's app. `fetch` replaces the voice download's network fetch and `voice`
-    the Kokoro voice (tests)."""
+    """The server's app. `fetch` replaces the voice download's network fetch, `voice` the
+    Kokoro voice and `clock` the markers' undo clock (tests)."""
     app = FastAPI(
         title="sci2audio",
         version=__version__,
@@ -74,6 +76,9 @@ def create_app(
         telemetry=TELEMETRY_OFF,  # type: ignore[arg-type]
     )
     state = ServerState(config, runner or JobRunner(), fetch)
+    if clock is not None:
+        state.clock = clock
+        state.markers = MarkerBook(clock)
     if voice is not None:
         state.voice = voice
     app.state.sci2audio = state
