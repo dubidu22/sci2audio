@@ -9,6 +9,7 @@ import io
 import json
 import re
 import sys
+from urllib.parse import urlencode
 
 from playwright.sync_api import Page, expect
 from test_keyboard import press_on
@@ -208,6 +209,28 @@ def test_the_search_filters_as_the_person_types_and_works_without_the_script(
     page.get_by_role("searchbox").press("Enter")
     expect(page.locator("#no-match")).to_have_text("No document matches “zzz”.")
     page.unroute(f"{live.url}/static/app.js")
+
+
+def test_a_long_search_is_cut_as_the_server_cuts_it(signed_in: Page, live: Live) -> None:
+    """#462 F5: the server reads the first 200 characters of a search; the script does the
+    same, so a longer one finds the same rows with or without it."""
+    page = signed_in
+    full_library(live)
+    long = "naps " * 40 + "zzzz" * 12  # 248 characters; the words past 200 match nothing
+    rows = page.locator("#documents tbody tr")
+    page.goto(live.url + "/?" + urlencode({"q": long}))
+    expect(rows.locator("visible=true")).to_have_count(1)  # the server's filter
+    page.goto(live.url + "/")
+    search = page.get_by_role("searchbox", name="Search titles, authors and file names")
+    expect(search).to_have_attribute("maxlength", "200")
+    # pasted past the limit by a script (maxlength holds back only typing)
+    search.evaluate(
+        "(input, value) => { input.value = value; input.dispatchEvent(new Event('input')); }",
+        long,
+    )
+    expect(rows.locator("visible=true")).to_have_count(1)
+    expect(rows.locator("visible=true").locator(".title")).to_contain_text("naps after lunch")
+    expect(page.locator("#no-match")).to_be_empty()
 
 
 def drop_files(page: Page, files: list[tuple[str, bytes]]) -> None:

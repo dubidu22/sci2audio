@@ -5,12 +5,13 @@ in light, dark and German in Focus and on the sheet."""
 from __future__ import annotations
 
 import re
+import textwrap
 from pathlib import Path
 
 from pdf_maker import Rect, Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_flow import reload_holding_back_app_js
-from test_listen import marked_plainly, uncovered
+from test_listen import assert_beside, look, marked_plainly, uncovered
 from test_player import chunk_id, highlighted, listen_to, make_audiobook, paused
 
 from conftest import Live, check_axe
@@ -122,6 +123,7 @@ def test_the_voice_goes_on_and_the_stage_marks_its_sentence_plainly(
     assert not paused(page)  # no page load: the voice goes on
     stage = marked_plainly(page, "#focus-now")
     assert stage["background"] == sheet["background"], (stage, sheet)
+    one_mark(page)
     first = highlighted(page)
     page.wait_for_function(
         f"() => document.querySelector('#text .s.now')?.id !== '{first}'", timeout=20_000
@@ -137,6 +139,55 @@ def test_the_voice_goes_on_and_the_stage_marks_its_sentence_plainly(
     # leaving brings the reading back into view
     page.keyboard.press("Escape")
     expect(page.locator(f"#{now}")).to_be_in_viewport()
+
+
+def colours(page: Page, selector: str) -> tuple[str, str, str]:
+    return tuple(  # type: ignore[return-value]
+        page.evaluate(
+            """(s) => { const st = getComputedStyle(document.querySelector(s));
+                       return [st.backgroundColor, st.color, st.borderLeftColor]; }""",
+            selector,
+        )
+    )
+
+
+def one_mark(page: Page) -> None:
+    """D-720, D-724: in Focus the sentence carries the sheet's own fill, text colour and bar,
+    in light and in dark; the bar spans the stage's sentence."""
+    for scheme in ("light", "dark"):
+        page.emulate_media(color_scheme=scheme)
+        stage = colours(page, "#focus-now")
+        bar = colours(page, "#focus-bar")
+        assert_beside(page, "#focus-bar", "#focus-now")
+        page.keyboard.press("Escape")
+        assert colours(page, "#text .s.now")[:2] == stage[:2], (scheme, stage)
+        assert colours(page, "#now-bar")[2] == bar[2], (scheme, bar)
+        assert_beside(page, "#now-bar", "#text .s.now")
+        page.get_by_role("button", name="Focus listening").click()
+    page.emulate_media(color_scheme="light")
+
+
+def font_size(page: Page, selector: str) -> float:
+    return float(
+        page.evaluate(
+            "(s) => parseFloat(getComputedStyle(document.querySelector(s)).fontSize)", selector
+        )
+    )
+
+
+def test_focus_type_is_only_a_little_larger_than_the_sheet(signed_in: Page, live: Live) -> None:
+    """D-720 (#471): the sentence in Focus at most 1.25 times the sheet's size, wide and on a
+    phone, and its neighbours no larger than the sheet."""
+    page = signed_in
+    make_audiobook(page, live)
+    for width in (1440, 700):
+        page.set_viewport_size({"width": width, "height": 900})
+        sheet = font_size(page, ".sheet")
+        page.get_by_role("button", name="Focus listening").click()
+        assert sheet < font_size(page, ".focus-stage .cur") <= 1.25 * sheet, width
+        assert font_size(page, ".focus-stage .prev") <= sheet, width
+        page.keyboard.press("Escape")
+    page.set_viewport_size({"width": 1280, "height": 720})
 
 
 def test_every_key_on_the_listen_page(signed_in: Page, live: Live) -> None:
@@ -549,3 +600,106 @@ def test_plus_at_the_fastest_speed_stays_there(signed_in: Page, live: Live) -> N
     page.keyboard.press("+")
     expect(speed).to_have_value("2")
     assert page.locator("#audio").evaluate("a => a.playbackRate") == 2
+
+
+def test_after_p_closes_the_panel_space_and_the_arrows_act_on_the_player(
+    signed_in: Page, live: Live
+) -> None:
+    """#461: P leaves the focus where it was, so Space plays and the arrows move by sentence
+    after it, as before it; the panel's own buttons still give the focus to the toggle."""
+    page = signed_in
+    make_audiobook(page, live)
+    sentences = order(page)
+    toggle = page.locator("#panel-toggle")
+    nobody_focused(page)
+    page.keyboard.press("p")
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    expect(toggle).not_to_be_focused()
+    page.keyboard.press(" ")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    page.keyboard.press(" ")
+    page.wait_for_function("() => document.getElementById('audio').paused")
+    nobody_focused(page)
+    page.keyboard.press("p")
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    page.keyboard.press("p")
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    at = sentences.index(highlighted(page))
+    page.keyboard.press("ArrowRight")
+    expect(page.locator("#text .s.now")).to_have_id(sentences[at + 1])
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    # the toggle itself still keeps the focus on it (#444)
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    toggle.click()
+    expect(toggle).to_be_focused()
+    toggle.click()
+    page.locator("#panel-close").click()
+    expect(toggle).to_be_focused()
+
+
+def test_p_over_the_page_gives_the_focus_back_to_the_toggle(signed_in: Page, live: Live) -> None:
+    """#461: below 1280 px the panel opens over the page; P closing it while the focus is in
+    it gives the focus to the toggle, never to nowhere."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.set_viewport_size({"width": 1024, "height": 768})
+    # the width's change event comes with a frame; a key before it would race it
+    page.evaluate("() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))")
+    toggle = page.locator("#panel-toggle")
+    nobody_focused(page)
+    page.keyboard.press("p")
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    expect(page.get_by_role("tab", name="Chapters")).to_be_focused()
+    page.keyboard.press("p")
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    expect(toggle).to_be_focused()
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
+LONG = (
+    "The long-term study of how schools teach sustainable development shows that teachers "
+    "who regularly take part in further training and who share what they learn with their "
+    "colleagues bring the new material into their own lessons far more often, with more "
+    "confidence, and over many more years than those who do not."
+)
+
+
+def test_a_long_sentence_fits_the_stage_without_scrolling(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """Colin's case (#471): a long sentence in Focus at 1512 x 900 fits the window, in light
+    and dark and with the German interface, and the stage's bar spans it."""
+    page = signed_in
+    lines = textwrap.wrap(LONG, 80)
+    pdf = make_pdf(
+        [Text("Introduction", 72, 80, size=14)]
+        + [Text(line, 72, 100 + 14 * n, size=11) for n, line in enumerate(lines)]
+        + [Text("A short one after it.", 72, 120 + 14 * len(lines), size=11)]
+    )
+    listen_to(page, live, tmp_path / "long.pdf", pdf)
+    document = page.url.split("/documents/")[1].split("/")[0]
+    page.set_viewport_size({"width": 1512, "height": 900})
+    sentence = chunk_id(page, "long-term study")
+    page.locator(f"#{sentence}").click()
+    page.get_by_role("button", name="Pause").click()
+    page.goto(f"{live.url}/language?language=de&back=/documents/{document}/listen")
+    page.locator(f"#{sentence}").click()
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.locator("#play").click()
+    page.wait_for_function("() => document.getElementById('audio').paused")
+    page.get_by_role("button", name="Fokus-Hören").click()
+    for scheme in ("light", "dark"):
+        page.emulate_media(color_scheme=scheme)
+        assert words(page, "#focus-now") == words(page, f"#{sentence}")
+        assert page.evaluate(
+            "() => document.scrollingElement.scrollHeight <= window.innerHeight"
+        ), scheme
+        assert_beside(page, "#focus-bar", "#focus-now")
+        assert look(page, "#focus-now")["background"] not in ("rgba(0, 0, 0, 0)", "")
+        check_axe(page, f"de: focus listening, a long sentence, {scheme}")
+    page.emulate_media(color_scheme="light")
+    page.goto(f"{live.url}/language?language=en&back=/documents/{document}/listen")
+    page.set_viewport_size({"width": 1280, "height": 720})

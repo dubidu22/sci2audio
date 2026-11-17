@@ -165,6 +165,10 @@ def test_a_reading_that_looks_like_the_print_and_a_whole_block_are_not_marked() 
     blocks = view.chapters[0].blocks
     assert all(piece.parts == () for block in blocks for piece in block.pieces)
     assert not blocks[1].read  # the whole block says "Not read" instead
+    # the panel counts what the page shows: the cut block, not the look-alike (#462)
+    counts = {c.category: c.count for c in view.changes}
+    assert counts["characters"] == 0
+    assert counts["references"] == 1
 
 
 def test_a_joined_word_and_a_placeholders_notice_are_not_marked() -> None:
@@ -179,6 +183,10 @@ def test_a_joined_word_and_a_placeholders_notice_are_not_marked() -> None:
     assert paragraph.pieces[0].text == "A result was seen."  # joined, as the voice read it
     assert table.notice
     assert all(piece.parts == () for block in (paragraph, table) for piece in block.pieces)
+    # the panel counts what the page shows: the notice box, not the join (#462)
+    counts = {c.category: c.count for c in view.changes}
+    assert counts["characters"] == 0
+    assert counts["tables-and-figures"] == 1
 
 
 def test_a_cut_between_sentences_is_struck_where_it_stands() -> None:
@@ -214,7 +222,7 @@ def test_an_edit_in_a_chapter_left_out_is_not_counted() -> None:
         data,
         steps_with(_Edits(Category.CITATIONS, (*CITATION, EditKind.REMOVE, ""))),
     )
-    assert view.left_out == ["Left out"]
+    assert len(view.chapters) == 1  # the chapter left out is not shown (#472)
     assert {c.category: c.count for c in view.changes}["citations"] == 1  # not 2
     assert view.duration == data.duration
 

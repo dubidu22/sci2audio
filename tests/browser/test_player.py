@@ -86,7 +86,10 @@ def test_the_highlight_follows_the_voice_into_the_next_chapter(signed_in: Page, 
         "Things happen (Smith, 2020) (not read) and more."
     )  # #444 N2
     expect(page.locator("#text")).not_to_contain_text("A book about things")  # not chosen
-    expect(page.get_by_text("Not in this audiobook: References")).to_be_visible()
+    # the Chapters panel lists the chosen chapters only, and names no other (#472)
+    expect(page.locator(".outline .ot")).to_have_text(["Introduction", "Methods"])
+    expect(page.locator("#panel-outline")).not_to_contain_text("Not in this audiobook")
+    expect(page.locator("#panel-outline")).not_to_contain_text("References")
     expect(page.get_by_text(re.compile("read by a synthetic voice"))).to_be_visible()
     expect(page.locator(".page-mark").first).to_have_text("Page 1")
     check_axe(page, "player, ready")
