@@ -927,11 +927,50 @@ def test_a_captioned_figure_and_a_table_do_not_read_alt_text() -> None:
     assert read(document) == ["Figure 3 is skipped.", "Figure 3: Minutes.", "A table is skipped."]
 
 
-def test_the_alt_text_is_part_of_the_notice_so_later_steps_leave_it() -> None:
-    document = make_document(
-        [(BlockKind.FIGURE, "")], pictures={0: ["Fig. 2 at 37 °C (Smith, 2019)"]}
+@pytest.mark.parametrize(
+    ("language", "alt", "off", "notice"),
+    [
+        ("en", "Fig. 2 at 37 °C (Smith, 2019)", (),
+         "A figure is skipped. It shows: Figure 2 at 37 degrees Celsius."),
+        ("en", "Fig. 2 at 37 °C (Smith, 2019)", (Category.CITATIONS,),
+         "A figure is skipped. It shows: Figure 2 at 37 degrees Celsius (Smith, 2019)."),
+        ("en", "Data at https://x.org", (), "A figure is skipped. It shows: Data."),
+        ("de", "Abb. 2 bei 37 °C (Müller, 2019)", (),
+         "Eine Abbildung wird übersprungen. Sie zeigt: Abbildung 2 bei 37 Grad Celsius."),
+    ],
+)  # fmt: skip
+def test_the_alt_text_is_read_as_a_paragraph_is(
+    language: str, alt: str, off: tuple[Category, ...], notice: str
+) -> None:
+    """#464: the alt text is free text, so the inline steps read it as they read a paragraph,
+    with the job's language and switches; a notice's name is read the same way (D-707)."""
+    document = make_document([(BlockKind.FIGURE, "")], language, pictures={0: [alt]})
+    assert read(document, switched_off=off) == [notice]
+    first = run_steps(document, StepContext(language), switched_off=off, strict=True)
+    again = rebuilt_from_script(document, first.script())
+    assert read(again, switched_off=off) == [notice]
+
+
+@pytest.mark.parametrize(
+    ("language", "alt", "notice"),
+    [
+        ("en", "See https://x.org", "A figure is skipped."),
+        ("en", "(Smith, 2019)", "A figure is skipped."),
+        ("de", "vgl. https://x.org", "Eine Abbildung wird übersprungen."),
+    ],
+)
+def test_an_alt_text_read_as_nothing_adds_nothing_to_the_notice(
+    language: str, alt: str, notice: str
+) -> None:
+    """A link or citation alone reads as nothing in a paragraph, so the notice says nothing
+    about what the figure shows rather than reading the link (#464)."""
+    document = make_document([(BlockKind.FIGURE, "")], language, pictures={0: [alt]})
+    (edit,) = TableFigureNoticeStep().find(document, StepContext(language))
+    assert edit.replacement == notice
+    assert edit.reason == (
+        "this figure is not read; a short notice is read instead, as its alt text holds "
+        "nothing read aloud (a link or citation alone) (D-55)"
     )
-    assert read(document) == ["A figure is skipped. It shows: Fig. 2 at 37 °C (Smith, 2019)."]
 
 
 def test_with_tables_and_figures_switched_off_the_figure_reads_as_printed() -> None:

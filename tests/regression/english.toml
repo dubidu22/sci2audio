@@ -2628,7 +2628,7 @@ blocks = [
     { kind = "table", runs = ["Group ", { text = "13", tags = ["td", "span", "epub:pagebreak"] }, " Mean ", { text = "SECRET", tags = ["td", "span", "hidden"] }, " 4.2"] },
     { kind = "paragraph", runs = ["Text ", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " here too."] },
 ]
-expected = ["Group 13 Mean SECRET 4.2", "Text here too."]
+expected = ["Group Mean 4.2", "Text here too."]
 
 [[case]]
 id = "hidden-runs-in-a-table-with-its-notice-on"
@@ -2650,7 +2650,7 @@ blocks = [
     { kind = "formula", runs = ["x = y ", { text = "7", tags = ["p", "span", "role:doc-pagebreak"] }, " + z"] },
     { kind = "code", runs = ["print(x) ", { text = "hidden", tags = ["pre", "span", "aria-hidden"] }] },
 ]
-expected = ["x = y 7 + z", "print(x) hidden"]
+expected = ["x = y + z", "print(x)"]
 
 [[case]]
 id = "figure-alt-text-is-read-as-a-paragraph-is"
@@ -2662,6 +2662,6 @@ blocks = [
     { kind = "paragraph", text = "Share of 3.5 % at 12 m² (Smith, 2019), see https://x.org, e.g. p < .05." },
 ]
 expected = [
-    "A figure is skipped. It shows: Share of 3.5 % at 12 m² (Smith, 2019), see https://x.org, e.g. p < .05.",
+    "A figure is skipped. It shows: Share of 3.5 % at 12 square metres, for example p less than .05.",
     "Share of 3.5 % at 12 square metres, for example p less than .05.",
 ]

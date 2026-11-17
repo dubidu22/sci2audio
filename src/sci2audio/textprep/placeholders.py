@@ -64,14 +64,19 @@ def read_over(printed: str, script: Sequence[ScriptPiece], start: int, end: int)
 
 
 def _read_in_place(
-    document: Document, context: StepContext, wanted: Sequence[tuple[Block, str]]
+    document: Document,
+    context: StepContext,
+    wanted: Sequence[tuple[Block, str]],
+    *,
+    printed_if_left_out: bool = True,
 ) -> list[str]:
     """Each (block, name) with the name as the built-in inline steps read it in that block,
     with the job's language and switches: a caption's label in its caption, as a second run
     names the figure by the caption's reading (#374, #370), or a formula's name in its own
     notice ("Formel 3 Punkt 2", #362). The blocks are read on their own, in a small document
     of them (a caption with the placeholder it describes). A name a replacement runs past,
-    or one the steps leave out, keeps its printed form (D-707)."""
+    or one the steps leave out, keeps its printed form (D-707); with `printed_if_left_out`
+    False, one the steps leave out reads "" (a figure's alt text that is only a link, #464)."""
     if not wanted:
         return []
     # imported here: the registry and the runner import this module
@@ -109,7 +114,12 @@ def _read_in_place(
         start = block.text.find(name)
         own = [piece for piece in script if piece.span.block == position]
         reading = read_over(block.text, own, start, start + len(name)) if start >= 0 else None
-        read.append(" ".join((reading or "").split()) or name)
+        if reading is None:
+            read.append(name)
+        elif not printed_if_left_out and not any(char.isalnum() for char in reading):
+            read.append("")
+        else:
+            read.append(" ".join(reading.split()) or name)
     return read
 
 
@@ -156,6 +166,28 @@ class _NoticeStep(TextStep):
             )
         )
         items = document.content.items()
+        # an unnamed figure's alt text, read as the inline steps read a paragraph (#464)
+        alts = [
+            (index, alt)
+            for index, block in enumerate(document.blocks)
+            if index in ours
+            and block.kind is BlockKind.FIGURE
+            and index not in captions
+            and index not in named
+            and (alt := _alt_text(items, block))
+        ]
+        shows = dict(
+            zip(
+                (index for index, _ in alts),
+                _read_in_place(
+                    document,
+                    context,
+                    [(Block(BlockKind.PARAGRAPH, alt), alt) for _, alt in alts],
+                    printed_if_left_out=False,
+                ),
+                strict=True,
+            )
+        )
         edits = []
         for index, block in enumerate(document.blocks):
             if block.kind not in self.kinds:
@@ -163,15 +195,18 @@ class _NoticeStep(TextStep):
             names = captions.get(index, []) or ([named[index]] if index in named else [])
             notice = wording.skipped(names, block.kind)
             what = names[0] if len(names) == 1 else f"this {_NAMES.get(block.kind, block.kind)}"
-            shown = ""
-            if not names and block.kind is BlockKind.FIGURE and (alt := _alt_text(items, block)):
-                notice += " " + wording.shows.format(alt)
+            shown = why = ""
+            if not names and shows.get(index):
+                notice += " " + wording.shows.format(shows[index])
                 shown = " with its alt text"
+            elif not names and index in shows:
+                # read as a paragraph, the alt text is all left out (a link or citation alone)
+                why = ", as its alt text holds nothing read aloud (a link or citation alone)"
             edits.append(
                 Edit(
                     Span(index, 0, len(block.text)),
                     EditKind.REPLACE,
-                    reason=f"{what} is not read; a short notice{shown} is read instead (D-55)",
+                    reason=f"{what} is not read; a short notice{shown} is read instead{why} (D-55)",
                     step=self.id,
                     replacement=notice,
                 )
@@ -213,3 +248,19 @@ class CodeNoticeStep(_NoticeStep):
     id = "code-notices"
     category = Category.CODE
     kinds = frozenset({BlockKind.CODE})
+
+
+# the notice steps, to ask which placeholder a run replaces by its notice
+_NOTICE_STEPS = (FormulaNoticeStep(), TableFigureNoticeStep(), CodeNoticeStep())
+
+
+def notice_read(block: Block, context: StepContext) -> bool:
+    """True if a notice is read in place of the block: a notice step for its kind handles the
+    job's language and its category is on. Otherwise a placeholder's printed text is read, and
+    the steps that clean text clean it like any block's (#463)."""
+    return any(
+        block.kind in step.kinds
+        and step.category not in context.switched_off
+        and step.handles(context.language)
+        for step in _NOTICE_STEPS
+    )

@@ -51,6 +51,7 @@ from sci2audio.textprep import (
     StepContext,
     StepRun,
     cut_utterances,
+    notice_read,
     run_steps,
     spoken_text,
 )
@@ -231,10 +232,16 @@ def read_twice(case: Case) -> tuple[list[str], list[str]]:
     """Each block's text as a first run reads it and as a second run reads the first run's
     script (`rebuilt_from_script`), in block order; a block read inside another (a moved
     note, #213) counts where it is printed, so only the words are compared (D-577)."""
-    context = StepContext(case.document.language)
+    context = StepContext(case.document.language, switched_off=case.switched_off)
     first = run_case(case)
+    # a placeholder whose notice is off is read as printed, so it comes back as read (#463)
+    read = [
+        index
+        for index, block in enumerate(case.document.blocks)
+        if block.is_placeholder and not notice_read(block, context)
+    ]
     second = run_steps(
-        rebuilt_from_script(case.document, first.script()),
+        rebuilt_from_script(case.document, first.script(), own_output=read),
         context,
         switched_off=case.switched_off,
         strict=True,

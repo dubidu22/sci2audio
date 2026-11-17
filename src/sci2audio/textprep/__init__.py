@@ -20,6 +20,7 @@ from sci2audio.textprep.placeholders import (
     CodeNoticeStep,
     FormulaNoticeStep,
     TableFigureNoticeStep,
+    notice_read,
     read_over,
 )
 from sci2audio.textprep.references import (
@@ -104,6 +105,7 @@ __all__ = [
     "check_registry",
     "cut_utterances",
     "is_reference_title",
+    "notice_read",
     "overlap",
     "read_over",
     "run_steps",

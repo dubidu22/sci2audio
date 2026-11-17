@@ -24,6 +24,7 @@ from sci2audio.testing import (
 from sci2audio.textprep import (
     BUILT_IN_STEPS,
     Category,
+    HiddenRunStep,
     LineEndHyphenStep,
     Stage,
     StepContext,
@@ -152,6 +153,18 @@ def test_built_in_steps_may_clean_the_printed_text_inside_a_placeholder() -> Non
         BlockKind.CODE,
         BlockKind.FIGURE,
     }
+
+
+def test_the_samples_hold_hidden_runs_inside_placeholders_read_as_printed() -> None:
+    """With the notices switched off, `hidden-runs` edits inside the sample table and code
+    block, so the check on its own output covers it (#463, D-710)."""
+    samples = [d for d in SAMPLE_DOCUMENTS if d.content.source.name.startswith(("plac", "plat"))]
+    off = frozenset({Category.FORMULAS, Category.TABLES_AND_FIGURES, Category.CODE})
+    for document in samples:
+        edits = HiddenRunStep().find(document, StepContext(document.language, switched_off=off))
+        kinds = {document.blocks[edit.span.block].kind for edit in edits}
+        assert kinds == {BlockKind.TABLE, BlockKind.CODE}
+        assert HiddenRunStep().find(document, StepContext(document.language)) == []
 
 
 class WholePlaceholder(TextStep):

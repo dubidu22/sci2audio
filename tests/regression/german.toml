@@ -2517,7 +2517,7 @@ switched_off = ["tables-and-figures"]
 blocks = [
     { kind = "table", runs = ["Gruppe ", { text = "13", tags = ["td", "span", "epub:pagebreak"] }, " Mittel ", { text = "GEHEIM", tags = ["td", "span", "hidden"] }, " 4,2"] },
 ]
-expected = ["Gruppe 13 Mittel GEHEIM 4,2"]
+expected = ["Gruppe Mittel 4,2"]
 
 [[case]]
 id = "de-figure-alt-text-is-read-as-a-paragraph-is"
@@ -2530,6 +2530,6 @@ blocks = [
     { kind = "paragraph", text = "Anteil 3,5 % bei 12 m² (Müller, 2019), vgl. https://x.org." },
 ]
 expected = [
-    "Eine Abbildung wird übersprungen. Sie zeigt: Anteil 3,5 % bei 12 m² (Müller, 2019), vgl. https://x.org.",
+    "Eine Abbildung wird übersprungen. Sie zeigt: Anteil 3 Komma 5 Prozent bei 12 Quadratmeter.",
     "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter.",
 ]

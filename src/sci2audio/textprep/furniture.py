@@ -21,6 +21,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import replace
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, FurnitureRole, Span, TextLine
+from sci2audio.textprep.placeholders import notice_read
 from sci2audio.textprep.steps import ANY_LANGUAGE, Category, Stage, StepContext, TextStep
 
 _ROLE_NAMES = {
@@ -94,8 +95,8 @@ class HiddenRunStep(TextStep):
         items = document.content.items()
         edits = []
         for index, block in enumerate(document.blocks):
-            # furniture goes whole; a placeholder is replaced by its notice
-            if block.kind is BlockKind.FURNITURE or block.is_placeholder:
+            # furniture goes whole; a placeholder goes whole while its notice is read (#463)
+            if block.kind is BlockKind.FURNITURE or notice_read(block, context):
                 continue
             stretches: list[tuple[int, int, bool]] = []  # runs side by side make one
             for part in block.parts:

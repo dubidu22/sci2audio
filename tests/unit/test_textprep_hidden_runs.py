@@ -2,8 +2,9 @@
 
 A run tagged `hidden` or `aria-hidden`, or marked as a page break (`epub:pagebreak`,
 `role:doc-pagebreak`), is removed by the inline step `hidden-runs` in the "Page furniture"
-category, in a block of any kind but furniture and the placeholders. The tags are the run's
-element stack (D-306), so a run inside a hidden element counts too.
+category, in a block of any kind but furniture and a placeholder whose notice is read; a
+placeholder whose notice is switched off is read as printed, so its runs go too (#463). The
+tags are the run's element stack (D-306), so a run inside a hidden element counts too.
 """
 
 from collections.abc import Sequence
@@ -121,7 +122,7 @@ def test_hidden_runs_go_in_every_kind_of_text_block(kind: BlockKind) -> None:
     assert edit.span == Span(0, 6, 12)
 
 
-def test_furniture_and_placeholders_get_no_edit_of_this_step() -> None:
+def test_furniture_and_placeholders_read_by_their_notice_get_no_edit_of_this_step() -> None:
     furniture = make_document(
         [Block(BlockKind.FURNITURE, "Journal 12", role=FurnitureRole.RUNNING_HEAD)],
         tags={0: [(8, 10, HIDDEN)]},
@@ -129,6 +130,42 @@ def test_furniture_and_placeholders_get_no_edit_of_this_step() -> None:
     assert HiddenRunStep().find(furniture, EN) == []
     for kind in (BlockKind.TABLE, BlockKind.FIGURE, BlockKind.FORMULA, BlockKind.CODE):
         assert HiddenRunStep().find(tagged("a ", ("b", HIDDEN), kind=kind), EN) == []
+
+
+NOTICES = {
+    BlockKind.TABLE: Category.TABLES_AND_FIGURES,
+    BlockKind.FIGURE: Category.TABLES_AND_FIGURES,
+    BlockKind.FORMULA: Category.FORMULAS,
+    BlockKind.CODE: Category.CODE,
+}
+
+
+@pytest.mark.parametrize("kind", list(NOTICES))
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_a_placeholder_whose_notice_is_off_loses_its_hidden_runs(
+    kind: BlockKind, language: str
+) -> None:
+    """#463: with its notice switched off a placeholder is read as printed, so its hidden
+    runs and page-break markers go as in any block; another category off changes nothing."""
+    document = make_document(
+        [Block(kind, "a 13 b SECRET c")],
+        language,
+        tags={0: [(2, 4, PAGE_BREAK), (7, 13, HIDDEN)]},
+    )
+    off = StepContext(language, switched_off=frozenset({NOTICES[kind]}))
+    edits = HiddenRunStep().find(document, off)
+    assert [edit.span for edit in edits] == [Span(0, 2, 4), Span(0, 7, 13)]
+    others = frozenset(set(NOTICES.values()) - {NOTICES[kind]})
+    assert HiddenRunStep().find(document, StepContext(language, switched_off=others)) == []
+    assert read(document, switched_off=[NOTICES[kind]]) == ["a b c"]
+
+
+def test_a_placeholder_in_a_language_without_notices_loses_its_hidden_runs() -> None:
+    """The notice steps read English and German only: in a French job a table is read as
+    printed, so its hidden runs go (#463)."""
+    document = make_document([(BlockKind.TABLE, "a SECRET b")], "fr", tags={0: [(2, 8, HIDDEN)]})
+    (edit,) = HiddenRunStep().find(document, StepContext("fr"))
+    assert edit.span == Span(0, 2, 8)
 
 
 def test_a_hidden_run_of_white_space_only_gets_no_edit() -> None:
