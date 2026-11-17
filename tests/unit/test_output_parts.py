@@ -142,6 +142,7 @@ def books(draw: st.DrawFn) -> tuple[list[Chapter], list[Spoken], list[int], int,
         heading_pause=draw(lengths),
         paragraph_pause=draw(lengths),
         pause_edit=draw(lengths),
+        clause_pause=draw(lengths),
         sentence_pause=draw(lengths),
     )
     return chapters, pieces, frames, rate, settings
@@ -330,15 +331,17 @@ def test_readalong_round_trip_property(
             max_size=len(pieces),
         )
     )
+    joins = data.draw(st.lists(st.booleans(), min_size=len(pieces), max_size=len(pieces)))
     pieces = [
-        Spoken(AudioChunk(Span(b, min(x, y), max(x, y)), p.chunk.file, 0.1), p.pause)
-        for p, (b, x, y) in zip(pieces, spans, strict=True)
+        Spoken(AudioChunk(Span(b, min(x, y), max(x, y)), p.chunk.file, 0.1), p.pause, "", j)
+        for p, (b, x, y), j in zip(pieces, spans, joins, strict=True)
     ]
     mp3s = [f"{n:02d} {c.title}.mp3" for n, c in enumerate(chapters)] if with_mp3s else None
     t = plan_timeline(chapters, pieces, frames, rate, settings)
     built = readalong.build(t, pieces, m4b, mp3s)
     assert readalong.from_json(readalong.to_json(built)) == built
     assert [c.span for c in built.chunks] == [p.chunk.span for p in pieces]
+    assert [c.joins for c in built.chunks] == joins  # #480
     assert [c.mp3 for c in built.chapters] == (mp3s or [None] * len(chapters))
 
 

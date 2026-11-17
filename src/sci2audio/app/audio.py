@@ -194,8 +194,8 @@ def plan_audio(
 ) -> AudioPlan:
     """The chunks of the chosen chapters with their pause kinds (D-116, D-157):
     PARAGRAPH for the first chunk of another block (HEADING after a heading), SENTENCE for
-    the next sentence of one block, NONE where the length limit cut a sentence, and at
-    least PAUSE_EDIT after a `pause` edit. A chapter's first chunk gets the chapter pause
+    the next sentence of one block, CLAUSE where the length limit cut a sentence (#480), and
+    at least PAUSE_EDIT after a `pause` edit. A chapter's first chunk gets the chapter pause
     from output, whatever its kind."""
     blocks = result.document.blocks
     chunks: list[PlannedChunk] = []
@@ -218,7 +218,7 @@ def plan_audio(
                     else Pause.PARAGRAPH
                 )
             elif utterance.continues:
-                kind = Pause.NONE
+                kind = Pause.CLAUSE
             else:
                 kind = Pause.SENTENCE
             if pause_edit:
@@ -240,14 +240,20 @@ def assemble(
 ) -> tuple[list[Chapter], list[Spoken]]:
     """Output's chapters and spoken chunks from the plan, leaving out every chunk without
     audio (a skipped utterance); its pause carries over to the next chunk, so a skipped
-    paragraph start still gives the paragraph pause."""
+    paragraph start still gives the paragraph pause.
+
+    A chunk `continues` the chunk before it when it and every skipped chunk between them go
+    on with a cut sentence (#480): a skipped sentence start breaks the join. A chapter's
+    first chunk continues nothing."""
     chapters: list[Chapter] = []
     spoken: list[Spoken] = []
     carried = Pause.NONE
+    linked = False  # every chunk since the last one spoken went on with its sentence
     current: int | None = None
     for chunk in plan.chunks:
         if chunk.chapter != current:
-            current, carried = None, Pause.NONE
+            current, carried, linked = None, Pause.NONE, False
+        linked = linked and chunk.utterance.continues
         if chunk.key not in durations:
             carried = Pause.strongest(carried, chunk.pause)
             continue
@@ -256,8 +262,8 @@ def assemble(
             chapters.append(Chapter(titles[chunk.chapter], len(spoken)))
         audio = AudioChunk(chunk.utterance.span, chunk.file, durations[chunk.key])
         pause = Pause.strongest(carried, chunk.pause)
-        spoken.append(Spoken(audio, pause, chunk.utterance.text))
-        carried = Pause.NONE
+        spoken.append(Spoken(audio, pause, chunk.utterance.text, linked))
+        carried, linked = Pause.NONE, True
     return chapters, spoken
 
 
