@@ -711,7 +711,12 @@ def start_job(state: State, body: models.JobIn) -> models.JobOut:
             raise ApiError(404, "not-found", f"no document {document.id}; open the file again")
         try:
             job = state.board.start(
-                kind, document.id, _settings_data(settings), work, cancellable=kind is JobKind.AUDIO
+                kind,
+                document.id,
+                _settings_data(settings),
+                work,
+                cancellable=kind is JobKind.AUDIO,
+                overwrite=kind is JobKind.AUDIO and body.overwrite,
             )
         except BoardBusyError as error:
             raise ApiError(409, "busy", str(error)) from error

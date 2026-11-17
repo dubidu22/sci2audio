@@ -142,7 +142,9 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     check_axe(page, "de: audiobook files exist")
     page.get_by_role("button", name="Diese Dateien ersetzen").click()
     expect(page.locator("#result")).to_have_text("Ihr Hörbuch ist fertig")
-    page.get_by_role("button", name="Sprachzwischenspeicher leeren").click()
+    page.locator("#cache-free-open").click()
+    expect(page.locator("#free-goes")).to_contain_text("löscht jeden Satz")
+    page.get_by_role("button", name="Sprachzwischenspeicher löschen").click()
     expect(page.locator("#message")).to_have_text("Der Sprachzwischenspeicher ist leer.")
 
 

@@ -779,7 +779,8 @@ def _walk_english(
     page.get_by_role("button", name="Make the audiobook").click()
     page.get_by_role("button", name="Replace these files").click()
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
-    page.get_by_role("button", name="Free the speech cache").click()
+    page.locator("#cache-free-open").click()  # the confirm first (D-733)
+    page.get_by_role("button", name="Delete the speech cache").click()
     expect(page.locator("#message")).to_have_text("The speech cache is empty.")
 
     # a second file, never made into an audiobook: the player has nothing to play

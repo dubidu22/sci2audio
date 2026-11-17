@@ -367,3 +367,95 @@ def test_other_jobs_keep_their_own_page(tmp_path: Path) -> None:
     finally:
         gate.set()
         job.join(10)
+
+
+# --- Resume keeps "replace"; the existing-files card; freeing asks first (D-733) -------------
+
+
+def test_the_paused_card_carries_the_jobs_own_replace(tmp_path: Path) -> None:
+    held = Held(after=1)
+    voice = FakeVoice()
+    _app, client = server(tmp_path, voice)
+    doc = upload(client, paper_bytes())
+    assert wait(client, start(client, doc["id"]))["state"] == "done"
+    assert client.delete(f"/api/v1/documents/{doc['id']}/chunks").status_code == 204
+    voice.fail_on = held
+    response = client.post(
+        "/api/v1/jobs", json={"kind": "audio", "document": doc["id"], "overwrite": True}
+    )
+    job = response.json()["id"]
+    assert held.reached.wait(30)
+    client.post(f"/api/v1/jobs/{job}/cancel")
+    held.gate.set()
+    assert wait(client, job)["state"] == "cancelled"
+    paused = card(client.get(f"/jobs/{job}").text)
+    assert 'data-overwrite="true"' in paused
+    assert "Resume" in paused
+
+
+def test_a_first_builds_card_does_not_say_replace(tmp_path: Path) -> None:
+    _app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())
+    job = start(client, doc["id"])
+    assert wait(client, job)["state"] == "done"
+    assert 'data-overwrite="false"' in card(client.get(f"/jobs/{job}").text)
+
+
+def test_the_existing_files_card_says_the_spoken_sentences_are_kept(tmp_path: Path) -> None:
+    """Replacing reuses the speech cache: the card says so and offers no cache button, the
+    one button that would lose the spoken sentences."""
+    _app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())
+    assert wait(client, start(client, doc["id"]))["state"] == "done"
+    assert client.get(f"/api/v1/documents/{doc['id']}").json()["speech_cache_bytes"] > 0
+    job = start(client, doc["id"])
+    assert wait(client, job)["error"]["error"] == "output-exists"
+    exists = card(client.get(f"/jobs/{job}").text)
+    assert "The audiobook files exist already." in exists
+    assert (
+        '<p id="job-kept">The sentences spoken so far are kept. '
+        "Replacing speaks only what is missing.</p>" in exists
+    )
+    assert 'id="job-replace"' in exists
+    assert "cache-free" not in exists
+    assert "Free the speech cache" not in exists
+
+
+def test_the_existing_files_card_with_an_empty_cache_says_nothing_is_kept(
+    tmp_path: Path,
+) -> None:
+    _app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())
+    assert wait(client, start(client, doc["id"]))["state"] == "done"
+    assert client.delete(f"/api/v1/documents/{doc['id']}/chunks").status_code == 204
+    job = start(client, doc["id"])
+    assert wait(client, job)["error"]["error"] == "output-exists"
+    exists = card(client.get(f"/jobs/{job}").text)
+    assert "The audiobook files exist already." in exists
+    assert "job-kept" not in exists
+    assert "are kept" not in exists
+    assert "cache-free" not in exists
+
+
+def test_the_cache_button_is_inside_a_confirm(tmp_path: Path) -> None:
+    """The DELETE button sits only inside the confirm box that names what goes; the box's
+    opener deletes nothing (app.js wires only #cache-free)."""
+    _app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())
+    job = start(client, doc["id"])
+    assert wait(client, job)["state"] == "done"
+    done = card(client.get(f"/jobs/{job}").text)
+    box = re.search(r'<details class="confirm" id="free-box">.*?</details>', done, re.S)
+    assert box, done
+    inside = box.group(0)
+    assert re.search(r'<summary class="btn" id="cache-free-open">Free the speech cache \(', inside)
+    assert "This deletes every sentence spoken for this document (" in inside
+    assert re.search(r'<button[^>]*class="danger" id="cache-free" disabled>Delete the', inside)
+    assert done.count('id="cache-free"') == 1
+
+
+def test_the_german_strings_of_the_confirm_and_the_kept_line() -> None:
+    de = strings("de")
+    assert de("making.free_now") == "Sprachzwischenspeicher löschen"
+    assert de("making.kept_replace").startswith("Die bisher gesprochenen Sätze bleiben erhalten.")
+    assert "{size}" not in de("making.free_goes", size="2 MB")
