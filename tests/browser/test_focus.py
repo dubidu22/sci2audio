@@ -285,7 +285,7 @@ def test_the_keys_stay_out_of_the_way(signed_in: Page, live: Live) -> None:
     chords = ("Control+f", "Meta+f", "Alt+f", "Control+p", "Alt+ArrowRight", "Meta+ArrowRight")
     for key in (*chords, "Control+ArrowLeft"):
         page.keyboard.press(key)
-        expect(page).to_have_url(listen)
+        expect(page, f"{key} left the Listen page").to_have_url(listen)
     assert not focusing(page)
     expect(toggle).to_have_attribute("aria-expanded", "true")
     assert highlighted(page) == before
