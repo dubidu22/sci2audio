@@ -325,13 +325,14 @@ def test_below_1280_px_the_focus_never_goes_under_the_panel(signed_in: Page, liv
     expect(panel).to_be_visible()
     page.locator("#follow").focus()
     expect(panel).to_be_visible()
-    page.keyboard.press("Tab")  # past its last control
+    # WebKit, like Safari, leaves buttons out of plain Tab: tab_key() moves to every item (#497)
+    page.keyboard.press(tab_key(page))  # past its last control
     expect(panel).to_be_hidden()
     expect(page.locator("#follow")).not_to_be_focused()
     assert uncovered(page)
     toggle.click()
     expect(page.locator("#tab-outline")).to_be_focused()
-    page.keyboard.press("Shift+Tab")  # before its first: the toggle it covered
+    page.keyboard.press(f"Shift+{tab_key(page)}")  # before its first: the toggle it covered
     expect(panel).to_be_hidden()
     expect(toggle).to_be_focused()
     expect(toggle).to_have_attribute("aria-expanded", "false")
