@@ -12,7 +12,7 @@ PDF, EPUB, Markdown or text in; a faithful listening script and MP3/M4B with cha
 - **The web interface binds to 127.0.0.1 only.**
 - **Licence gate:** every new dependency, copied file, model, voice or sample text names its licence in the PR body and in `THIRD_PARTY_LICENSES.md` (or `tests/corpus/LICENSES.md`). AGPL, SSPL, non-commercial and unclear licences are refused. Third-party texts never enter the repo.
 - **Faithful text:** text steps propose marked edits (remove, replace, pause, ask) with a reason; nothing rewrites text silently and nothing summarises (D-57).
-- **Implementation threads never merge, never push to `main`, never force-push.** The coordinator merges a PR only after it passed review in a separate thread, by telling the review thread to merge it. while the autonomy grant in `rules/project-state.yaml` holds this covers critical PRs too (D-80, D-702a).
+- **Implementation threads never merge, never push to `main`, never force-push.** The coordinator merges a PR only after it passed review in a separate thread, by telling the review thread to merge it. While the autonomy grant in `rules/project-state.yaml` holds, this covers critical PRs too (D-80, D-702a).
 
 ## Architecture (D-46): one program in layers
 
@@ -32,7 +32,7 @@ Keep a later web version possible: no global state (each job gets its settings a
 
 The full rules are the project instructions in the claude.ai project and the decision log in `dubidu22/sci2audio-design` (`docs/kb/00-index/decision-log.md`); this is a short summary. The machine-readable summary of the active rules is `rules/project-rules.yaml` in the claude.ai project files, with the current state in `rules/project-state.yaml`.
 
-1. **Autonomy and reporting.** While the autonomy grant in `rules/project-state.yaml` holds the coordinator reviews and merges all PRs, critical ones included, and decides everything except roadmap and product scope (D-80, D-462, D-702a). Colin is told only when he asks about progress or when a decision is critical; a critical merge gets one line (D-626, D-702g).
+1. **Autonomy and reporting.** While the autonomy grant in `rules/project-state.yaml` holds, the coordinator reviews and merges all PRs, critical ones included, and decides everything except roadmap and product scope (D-80, D-462, D-702a). Colin is told only when he asks about progress or when a decision is critical; a critical merge gets one line (D-626, D-702g).
 2. **Lanes.** PRs are batched by lane (extraction/voices, layout, textprep, app/release): one PR per lane covers several related Issues. Only one implementation thread and its review thread are active at a time (D-705); a lane thread lives for one batch (D-626). A PR changes files of its own lane only (`.github/lanes.yml`). An Issue without acceptance criteria is not started; ask the coordinator for them first (PLAN-04).
 3. **Plan first.** Post a plan (modules or types, design choices, tests, rough size) before any code or tests. Non-critical work whose plan is clearly better than the alternatives starts at once; critical work, or a plan with a real open choice, waits for the coordinator's approval (D-72, D-80).
 4. **Tests first:** a failing test for a bug; a characterisation test before moving or splitting code; a regression case before any text rule change. A PR that adds the first code of a kind also adds its tests and CI wiring (table in `.claude/rules/tests.md`, D-58).
@@ -43,7 +43,7 @@ The full rules are the project instructions in the claude.ai project and the dec
 9. **Flaky tests.** A test that fails twice without a code cause is quarantined the same day with a linked Issue and fixed before the next release (D-374, D-702f); a test with a known code cause is fixed, not quarantined; after the same-day quarantine, run the test alone 40 or more times and record the result in its Issue; if that finds a code cause, fix the test and lift the quarantine (D-682, D-739).
 10. **KB.** One KB thread writes and merges one decision-log PR per day, without review (D-373, D-626); implementation threads do not open KB PRs. Other KB changes (process, contract and architecture documents) are critical and reviewed like code (D-703c).
 
-## Critical and `risk:high` (full plan and review process; while the autonomy grant in `rules/project-state.yaml` holds the coordinator approves the plan and the merge, D-80, D-702a)
+## Critical and `risk:high` (full plan and review process; while the autonomy grant in `rules/project-state.yaml` holds, the coordinator approves the plan and the merge, D-80, D-702a)
 
 A PR is **critical** if it changes a layer contract (the `lint-imports` layers, the voice plugin contract, the text-step interface), the core dataclasses (`sci2audio.core`), the KB's process, contract or architecture documents (`sci2audio-design/docs/kb`; the daily decision-log PR is exempt, D-703c) or a golden file (corpus truth files, snapshots, English regression cases), whatever its label says (D-69). Label it `risk:high`.
 
