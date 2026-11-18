@@ -40,6 +40,7 @@ from sci2audio.textprep import (
 EN = StepContext("en")
 STEP = "affiliation-marks"
 STAR = "\u2217"  # the asterisk operator, as papers print a note mark
+AUTHORS = [Block(BlockKind.PARAGRAPH, "Ann Lee1"), [(7, 8, "sup")]]  # an author line (#448)
 
 # a run of a PDF line: text, top, bottom and size; the main size is 10 pt
 PdfRun = tuple[str, float, float, float]
@@ -201,7 +202,49 @@ def test_digits_commas_and_note_symbols_make_a_mark(text: str) -> None:
     ],
 )
 def test_marks_after_a_name_or_before_an_affiliation_are_removed(runs: list, spoken: str) -> None:
-    assert read(tagged(sup(*runs))) == [spoken]
+    """After an author line: a mark before an affiliation counts only after one (#448)."""
+    assert read(tagged(AUTHORS, sup(*runs))) == ["Ann Lee", spoken]
+
+
+@pytest.mark.parametrize(
+    "runs",
+    [
+        [("1",), "Example AI, ", ("2",), "University"],
+        [("1",), " Example AI"],
+        ["Lab, ", ("2",), " Example"],
+        [("1",), "AI Lab"],
+        [("13",), "CO and C", ("18",), "O observations"],  # a title's mass numbers (#448)
+        ["Mapping ", ("12",), "CO, ", ("13",), "CO and ", ("15",), "NH3"],
+    ],
+)
+def test_before_the_author_line_a_mark_before_an_affiliation_is_read(runs: list) -> None:
+    assert removed(tagged(sup(*runs), AUTHORS)) == ["1"]
+
+
+def test_a_mark_after_a_name_earlier_in_the_same_block_starts_the_affiliations() -> None:
+    document = tagged(sup(("13",), "CO maps by Ann Lee", ("1",), ", ", ("1",), "AI Lab"))
+    assert read(document) == ["13CO maps by Ann Lee, AI Lab"]
+
+
+def test_a_footnote_mark_after_a_name_starts_the_affiliations_too() -> None:
+    """A corresponding author's note mark is the footnotes step's, yet shows the author line."""
+    document = tagged(sup("Ann Lee", (STAR,)), sup(("1",), "AI Lab"), sup(f"{STAR} Corresponding"))
+    found = AffiliationMarkStep().marks(document, {0: [(7, 8)]})
+    assert [document.blocks[e.span.block].text[e.span.start : e.span.end] for e in found] == ["1"]
+    assert AffiliationMarkStep().marks(document, {}) != []  # the star after a name is a mark
+    assert AffiliationMarkStep().marks(tagged(sup(("1",), "AI Lab")), {}) == []
+    # a footnote mark after no name (a title's note) shows no author line
+    title = tagged(sup("Cold gas in clouds", (STAR,)), sup(("1",), "AI Lab"))
+    assert AffiliationMarkStep().marks(title, {0: [(18, 19)]}) == []
+
+
+def test_a_footnote_mark_after_a_name_starts_the_affiliations_of_its_own_block() -> None:
+    document = tagged(sup("Ann Lee", (STAR,), ", ", ("1",), "AI Lab"))
+    found = AffiliationMarkStep().marks(document, {0: [(7, 8)]})
+    assert [document.blocks[0].text[e.span.start : e.span.end] for e in found] == ["1"]
+    # a footnote mark after the affiliation's mark comes too late for it
+    document = tagged(sup(("1",), "AI Lab, Ann Lee", (STAR,)))
+    assert AffiliationMarkStep().marks(document, {0: [(16, 17)]}) == []
 
 
 @pytest.mark.parametrize(
@@ -227,13 +270,19 @@ def test_marks_after_a_name_or_before_an_affiliation_are_removed(runs: list, spo
     ],
 )
 def test_maths_and_sentence_marks_are_read(runs: list) -> None:
-    assert removed(tagged(sup(*runs))) == []
+    """Even after the author line."""
+    assert removed(tagged(AUTHORS, sup(*runs))) == ["1"]
 
 
 def test_a_mark_at_a_line_start_comes_before_an_affiliation() -> None:
     """A PDF paragraph joins its lines with a space, so the line's own start counts."""
     first = TextLine(
-        "l0", (TextRun("Somewhere, Los Angeles", size=10.0, box=Box(0, 100, 110, 110)),)
+        "l0",
+        (
+            TextRun("Ann Lee", size=10.0, box=Box(0, 100, 35, 110)),  # the author line (#448)
+            TextRun("1", size=7.0, box=Box(35, 97, 40, 104)),
+            TextRun(", Somewhere, Los Angeles", size=10.0, box=Box(40, 100, 160, 110)),
+        ),
     )
     second = TextLine(
         "l1",
@@ -246,12 +295,12 @@ def test_a_mark_at_a_line_start_comes_before_an_affiliation() -> None:
     block = Block(BlockKind.PARAGRAPH, text, (Part("l0"), Part("l1", len(first.text) + 1)))
     content = Content(Source("title.pdf", SourceFormat.PDF), (Page(1, (first, second)),))
     document = Document(content=content, language="en", blocks=(block,))
-    assert removed(document) == ["2"]
+    assert removed(document) == ["1", "2"]
     # the same mark inside one line, after a word that is no name's end, is read
     one = TextLine("l0", (*first.runs, TextRun(" "), *second.runs))
     block = Block(BlockKind.PARAGRAPH, one.text, (Part("l0"),))
     content = Content(Source("title.pdf", SourceFormat.PDF), (Page(1, (one,)),))
-    assert removed(Document(content=content, language="en", blocks=(block,))) == []
+    assert removed(Document(content=content, language="en", blocks=(block,))) == ["1"]
 
 
 # ---- footnote marks ---------------------------------------------------------------------
