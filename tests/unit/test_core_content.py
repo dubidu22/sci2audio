@@ -99,6 +99,17 @@ TEXT = Content(
 )
 
 
+def test_a_page_built_from_some_of_its_lines_may_keep_its_glyph_number_count() -> None:
+    """#574: only extraction's pages hold `unmapped <= characters` (checked in its tests); a
+    later stage that keeps some of a page's lines keeps the page's count, so core checks
+    only that the count is not negative."""
+    lines = (TextLine("l1", (TextRun("'DV %XFK"),)), TextLine("l2", (TextRun("ab c"),)))
+    page = Page(1, lines=lines, unmapped=7)
+    kept = dataclasses.replace(page, lines=lines[1:])
+    assert (kept.characters, kept.unmapped) == (3, 7)
+    assert Page(1, unmapped=4).unmapped == 4
+
+
 def test_line_text_joins_its_runs() -> None:
     assert PAPER.pages[0].lines[1].text == "We study sound"
 
@@ -135,7 +146,6 @@ def test_objects_are_frozen() -> None:
         lambda: Page(1, width=612),
         lambda: Page(1, width=0, height=792),
         lambda: Page(1, unmapped=-1),
-        lambda: Page(1, lines=(TextLine("l1", (TextRun("ab c"),)),), unmapped=4),  # 3 letters
         lambda: Content(PAPER.source, (Page(2),)),
         lambda: Content(PAPER.source, (Page(1), Page(1))),
         lambda: Content(

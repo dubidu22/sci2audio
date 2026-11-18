@@ -159,6 +159,9 @@ class Page:
     is those numbers read as characters ("'DV %XFK" for "Das Buch"). Counted in PDFs only,
     for an embedded TrueType or OpenType font that has no ToUnicode map, no cmap and no post
     table; 0 everywhere else. Its share of `characters` says how much of the page is so.
+    It is the count for the page as extracted, which never exceeds `characters`; a page a
+    later stage builds from some of the lines (a text step's small document of the lines it
+    reads) may keep the count, so it is not checked against `characters` here (#574).
     """
 
     number: int  # 1 = first page
@@ -173,11 +176,8 @@ class Page:
     def __post_init__(self) -> None:
         if self.number < 1:
             raise ValueError(f"page number must be >= 1, got {self.number}")
-        if self.unmapped and not 0 < self.unmapped <= self.characters:
-            raise ValueError(
-                f"page {self.number} has {self.characters} characters, so {self.unmapped}"
-                " of them cannot come from a font with no Unicode source"
-            )
+        if self.unmapped < 0:
+            raise ValueError(f"page {self.number} unmapped must be >= 0, got {self.unmapped}")
         if (self.width is None) != (self.height is None):
             raise ValueError(f"page {self.number} needs both width and height, or neither")
         for name in ("width", "height"):

@@ -11,12 +11,13 @@ from __future__ import annotations
 
 import dataclasses
 import struct
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 from core_strategies import contents
 from hypothesis import given
-from pdf_maker import cropped, glyph_number_pdf, one_page_pdf
+from pdf_maker import cropped, glyph_number_pdf, one_page_pdf, turned
 
 from sci2audio.core import Content, Page, Source, SourceFormat, TextLine, TextRun
 from sci2audio.extraction import (
@@ -79,6 +80,26 @@ def test_only_the_glyph_numbers_of_a_page_are_counted() -> None:
     (page,) = read(glyph_number_pdf(GERMAN[:1], plain=("Hello world",))).pages
     assert [line.text for line in page.lines][1] == "Hello world"
     assert page.unmapped == page.characters - len("Helloworld")
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        lambda: glyph_number_pdf(GERMAN),
+        lambda: glyph_number_pdf(ENGLISH, order="far"),
+        lambda: glyph_number_pdf(GERMAN[:2], plain=("Hello world", "Table 2: What it shows.")),
+        lambda: cropped(glyph_number_pdf(GERMAN[:2]), (0, 0, 612, 710)),
+        lambda: turned(glyph_number_pdf(GERMAN[:2], plain=("Hello world",)), 90),
+    ],
+    ids=["de", "en-far", "mixed", "cropped", "turned"],
+)
+def test_no_page_extraction_makes_counts_more_glyph_numbers_than_it_holds(
+    data: Callable[[], bytes],
+) -> None:
+    """The bound core no longer checks (#574): on every page extraction makes, the count is
+    at most the characters of the page's lines, and a page with glyph numbers counts some."""
+    for page in read(data()).pages:
+        assert 0 < page.unmapped <= page.characters, (page.number, page.unmapped)
 
 
 @pytest.mark.parametrize(
