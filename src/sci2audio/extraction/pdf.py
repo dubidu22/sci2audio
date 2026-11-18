@@ -465,6 +465,7 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
             ) from error
         try:
             width, height = page.get_size()
+            frame = _Frame.of(page)
             textpage = page.get_textpage()
             try:
                 count = textpage.count_chars()
@@ -474,15 +475,58 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
                 total += max(count, 0)
                 if total > MAX_CHARS:
                     raise _too_large(name, f"more than {MAX_CHARS:,} characters")
-                pictures, drawings = _graphics(page, height, number, name, graphics)
+                pictures, drawings = _graphics(page, frame, number, name, graphics)
                 graphics += len(pictures) + len(drawings)
-                lines = _lines(textpage, height, number, _Bars.of(drawings))
+                lines = _lines(textpage, frame, number, _Bars.of(drawings))
             finally:
                 textpage.close()
         finally:
             page.close()
         pages.append(Page(number, lines, pictures, drawings, width=width, height=height))
     return tuple(pages)
+
+
+@dataclass(frozen=True)
+class _Frame:
+    """The page as printed: its crop box, where PDFium shows and measures the page, and our
+    positions are taken from its top left corner (#458). A crop box need not start at the
+    file's origin: a page cut from a larger sheet (a journal page set on A4, one page of a
+    spread) keeps the sheet's coordinates, and positions taken from the sheet's corner are
+    all shifted. What the sheet prints outside the crop box is cut off, so not read; text
+    outside the sheet itself is kept, as it always was."""
+
+    left: float
+    top: float
+    width: float
+    height: float
+    sheet: tuple[float, float, float, float] | None = None  # x0, y0, x1, y1 in page points
+
+    @classmethod
+    def of(cls, page: pdfium.PdfPage) -> _Frame:
+        left, bottom, right, top = page.get_bbox()
+        frame = cls(left, top, right - left, top - bottom)
+        media = [ctypes.c_float() for _ in range(4)]
+        if not raw.FPDFPage_GetMediaBox(page.raw, *(ctypes.byref(v) for v in media)):
+            return frame  # no media box of its own: nothing to cut away
+        x0, y0 = frame.point(media[0].value, media[3].value)
+        x1, y1 = frame.point(media[2].value, media[1].value)
+        sheet = (min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
+        if not all(map(math.isfinite, sheet)) or sheet == (0.0, 0.0, frame.width, frame.height):
+            return frame
+        return cls(left, top, frame.width, frame.height, sheet)
+
+    def point(self, x: float, y: float) -> tuple[float, float]:
+        """A point of the file (y upwards) in page points from the top left (y downwards)."""
+        return x - self.left, self.top - y
+
+    def shows(self, x0: float, y0: float, x1: float, y1: float) -> bool:
+        """False for a box the crop box cuts off: wholly outside it, on the sheet."""
+        if x1 >= 0 and y1 >= 0 and x0 <= self.width and y0 <= self.height:
+            return True
+        if self.sheet is None:
+            return True
+        x, y = (x0 + x1) / 2, (y0 + y1) / 2
+        return not (self.sheet[0] <= x <= self.sheet[2] and self.sheet[1] <= y <= self.sheet[3])
 
 
 @dataclass
@@ -614,13 +658,13 @@ def _fraction_bar(
 
 def _lines(
     textpage: pdfium.PdfTextPage,
-    height: float,
+    frame: _Frame,
     number: int,
     bars: _Bars | None = None,
 ) -> tuple[TextLine, ...]:
     lines: list[_Line] = []
     space: str | None = None
-    for char in _chars(textpage, height):
+    for char in _chars(textpage, frame):
         if isinstance(char, str):
             space = _SPACE if _SPACE in (space, char) else char
             continue
@@ -634,7 +678,7 @@ def _lines(
     return tuple(_text_line(line, f"p{number}-l{i}") for i, line in enumerate(lines, 1))
 
 
-def _chars(textpage: pdfium.PdfTextPage, height: float) -> Iterator[_Char | str]:
+def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]:
     """Each character in stored order; `_SPACE` for a space or a line end between words
     that the file holds, `_GENERATED` for one PDFium added itself."""
     handle = textpage.raw
@@ -652,12 +696,13 @@ def _chars(textpage: pdfium.PdfTextPage, height: float) -> Iterator[_Char | str]
             continue
         if not raw.FPDFText_GetLooseCharBox(handle, i, rect):
             continue
-        left, right, bottom, top = rect.left, rect.right, rect.bottom, rect.top
-        coords = (left, height - top, right, height - bottom)
+        coords = (*frame.point(rect.left, rect.top), *frame.point(rect.right, rect.bottom))
         if not all(math.isfinite(c) for c in coords):
             continue
         x0, y0 = min(coords[0], coords[2]), min(coords[1], coords[3])
         x1, y1 = max(coords[0], coords[2]), max(coords[1], coords[3])
+        if not frame.shows(x0, y0, x1, y1):
+            continue  # outside the crop box: not printed
         flags.value = 0
         needed = raw.FPDFText_GetFontInfo(handle, i, name, len(name), ctypes.byref(flags))
         if needed > len(name):
@@ -673,7 +718,7 @@ def _chars(textpage: pdfium.PdfTextPage, height: float) -> Iterator[_Char | str]
         u0, v0, u1, v1 = _in_text_direction((x0, y0, x1, y1), angle)
         base = math.nan
         if raw.FPDFText_GetCharOrigin(handle, i, ctypes.byref(origin_x), ctypes.byref(origin_y)):
-            origin = (origin_x.value, height - origin_y.value)
+            origin = frame.point(origin_x.value, origin_y.value)
             base = _in_text_direction((*origin, *origin), angle)[1]
         style = (font, size, bold, italic)
         yield _Char(text, style, (x0, y0, x1, y1), angle, u0, u1, v0, v1, base)
@@ -755,7 +800,7 @@ _IDENTITY: _Matrix = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
 
 
 def _graphics(
-    page: pdfium.PdfPage, height: float, number: int, name: str, before: int
+    page: pdfium.PdfPage, frame: _Frame, number: int, name: str, before: int
 ) -> tuple[tuple[Picture, ...], tuple[Drawing, ...]]:
     """Pictures and visible vector drawings, also those inside form XObjects; the file is
     refused as soon as the page holds more than `MAX_PAGE_GRAPHICS`, or the file with the
@@ -771,8 +816,8 @@ def _graphics(
             continue
         if kind == raw.FPDF_PAGEOBJ_PATH and not _visible(handle):
             continue
-        box = _bounds(handle, matrix, height)
-        if box is None:
+        box = _bounds(handle, matrix, frame)
+        if box is None or not frame.shows(box.x0, box.y0, box.x1, box.y1):
             continue
         found = len(pictures) + len(drawings) + 1
         if found > MAX_PAGE_GRAPHICS:
@@ -820,7 +865,7 @@ def _visible(path: object) -> bool:
     return fill.value != 0 or bool(stroke.value)
 
 
-def _bounds(handle: object, matrix: _Matrix, height: float) -> Box | None:
+def _bounds(handle: object, matrix: _Matrix, frame: _Frame) -> Box | None:
     left, bottom, right, top = (ctypes.c_float() for _ in range(4))
     if not raw.FPDFPageObj_GetBounds(
         handle, ctypes.byref(left), ctypes.byref(bottom), ctypes.byref(right), ctypes.byref(top)
@@ -832,8 +877,9 @@ def _bounds(handle: object, matrix: _Matrix, height: float) -> Box | None:
         for x in (left.value, right.value)
         for y in (bottom.value, top.value)
     ]
-    xs = [x for x, _ in corners]
-    ys = [height - y for _, y in corners]
+    points = [frame.point(x, y) for x, y in corners]
+    xs = [x for x, _ in points]
+    ys = [y for _, y in points]
     if not all(math.isfinite(v) for v in xs + ys):
         return None
     return Box(min(xs), min(ys), max(xs), max(ys))
