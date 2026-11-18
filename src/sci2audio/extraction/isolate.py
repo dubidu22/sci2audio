@@ -231,9 +231,10 @@ def _wait(
         if left <= 0:
             child.kill()
             return Stopped("time", step)
-        if not receive.poll(left if cancel is None else min(left, _CANCEL_SECONDS)):
-            continue
         try:
+            # On Windows, looking at an empty pipe whose child has ended raises (#485)
+            if not receive.poll(left if cancel is None else min(left, _CANCEL_SECONDS)):
+                continue
             kind, value = receive.recv()
         except (EOFError, OSError):  # ended without a word: the watch, a hard limit, a crash
             child.join()

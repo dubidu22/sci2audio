@@ -12,6 +12,7 @@ import pytest
 from audio_fakes import FakeVoice
 from pdf_maker import Text, make_pdf
 from web_helpers import (
+    book_folder,
     events,
     make_config,
     offline,  # noqa: F401 - fixture
@@ -73,8 +74,12 @@ def test_an_audio_job_writes_the_audiobook_to_the_output_folder(tmp_path: Path) 
     assert names[0].endswith(".m4b")
     assert names[-1].endswith(".readalong.json")
     assert any(name.endswith(".mp3") for name in names)
-    assert all(f["folder"] == str(config.output_folder) for f in final["files"])
-    assert sorted(p.name for p in config.output_folder.iterdir()) == sorted(names)
+    assert all(
+        f["folder"] == str(book_folder(config.output_folder, "note.pdf")) for f in final["files"]
+    )
+    assert sorted(
+        p.name for p in book_folder(config.output_folder, "note.pdf").iterdir()
+    ) == sorted(names)
     assert client.get(f"/api/v1/documents/{doc['id']}").json()["has_audio"] is True
 
     base = f"/api/v1/jobs/{job['id']}/files"
@@ -85,7 +90,7 @@ def test_an_audio_job_writes_the_audiobook_to_the_output_folder(tmp_path: Path) 
     part = client.get(f"{base}/{mp3}", headers={"Range": "bytes=0-99"})
     assert part.status_code == 206
     assert part.headers["content-type"] == "audio/mpeg"
-    assert part.content == (config.output_folder / mp3).read_bytes()[:100]
+    assert part.content == (book_folder(config.output_folder, "note.pdf") / mp3).read_bytes()[:100]
     readalong = client.get(f"{base}/{names[-1]}").json()
     assert readalong["format"] == "sci2audio-readalong"
 
@@ -132,12 +137,18 @@ def test_an_existing_audiobook_is_kept_unless_the_person_says_replace(tmp_path: 
     client, config = server(tmp_path, voice)
     doc = upload(client, note(), "note.pdf")
     assert wait(client, start_audio(client, doc["id"])["id"])["state"] == "done"
-    before = {p.name: p.stat().st_mtime_ns for p in config.output_folder.iterdir()}
+    before = {
+        p.name: p.stat().st_mtime_ns
+        for p in book_folder(config.output_folder, "note.pdf").iterdir()
+    }
     refused = wait(client, start_audio(client, doc["id"])["id"])
     assert refused["state"] == "failed"
     assert refused["error"]["error"] == "output-exists"
     assert any(name in refused["error"]["message"] for name in before)
-    assert {p.name: p.stat().st_mtime_ns for p in config.output_folder.iterdir()} == before
+    assert {
+        p.name: p.stat().st_mtime_ns
+        for p in book_folder(config.output_folder, "note.pdf").iterdir()
+    } == before
     made = voice.made
     again = wait(client, start_audio(client, doc["id"], overwrite=True)["id"])
     assert again["state"] == "done"
@@ -158,7 +169,7 @@ def test_the_settings_choose_the_output_folder_and_voice(tmp_path: Path) -> None
         )["id"],
     )
     assert job["state"] == "done", job["error"]
-    assert {f["folder"] for f in job["files"]} == {str(books)}
+    assert {f["folder"] for f in job["files"]} == {str(book_folder(books))}
     assert not config.output_folder.exists()
     assert {spoken_voice for _, spoken_voice, _ in voice.spoken} == {"bm_george"}
 
@@ -201,7 +212,7 @@ def test_cancelling_while_speaking_keeps_the_chunks(tmp_path: Path) -> None:
     assert done["state"] == "cancelled"
     assert done["cancellable"] is False
     assert done["files"] == []
-    assert not config.output_folder.exists() or list(config.output_folder.iterdir()) == []
+    assert not any(p.is_file() for p in config.output_folder.rglob("*"))  # no audio file
     assert list((config.work_root / doc["id"] / "chunks").rglob("*.wav"))
     rest = wait(client, start_audio(client, doc["id"])["id"])
     assert rest["state"] == "done"
@@ -260,7 +271,7 @@ def test_a_paused_replace_resumes_without_asking_again(tmp_path: Path) -> None:
     doc = upload(client, six_sentences())
     assert wait(client, start_audio(client, doc["id"])["id"])["state"] == "done"
     assert client.delete(f"/api/v1/documents/{doc['id']}/chunks").status_code == 204
-    finished = {p.name: p.stat().st_mtime_ns for p in config.output_folder.iterdir()}
+    finished = {p.name: p.stat().st_mtime_ns for p in book_folder(config.output_folder).iterdir()}
 
     hold["on"] = True
     job = start_audio(client, doc["id"], overwrite=True)
@@ -274,7 +285,9 @@ def test_a_paused_replace_resumes_without_asking_again(tmp_path: Path) -> None:
     done_before = paused["progress"]["chunks_done"]
     assert 0 < done_before < paused["progress"]["chunks_total"]
     # paused mid-speech, the earlier audiobook is untouched: nothing half-written
-    assert {p.name: p.stat().st_mtime_ns for p in config.output_folder.iterdir()} == finished
+    assert {
+        p.name: p.stat().st_mtime_ns for p in book_folder(config.output_folder).iterdir()
+    } == finished
 
     hold["on"] = False
     spoken = len(voice.spoken)
@@ -304,7 +317,7 @@ def test_a_replace_paused_while_writing_resumes_without_asking_again(
     client, config = server(tmp_path, voice)
     doc = upload(client, six_sentences())
     assert wait(client, start_audio(client, doc["id"])["id"])["state"] == "done"
-    names = sorted(p.name for p in config.output_folder.iterdir())
+    names = sorted(p.name for p in book_folder(config.output_folder).iterdir())
 
     monkeypatch.setattr(audio, "_encode", held)
     job = start_audio(client, doc["id"], overwrite=True)
@@ -313,13 +326,15 @@ def test_a_replace_paused_while_writing_resumes_without_asking_again(
     gate.set()
     paused = wait(client, job["id"])
     assert paused["state"] == "cancelled"
-    assert sorted(p.name for p in config.output_folder.iterdir()) != names  # a partial set
+    assert (
+        sorted(p.name for p in book_folder(config.output_folder).iterdir()) != names
+    )  # a partial set
 
     monkeypatch.setattr(audio, "_encode", encode)
     resumed = wait(client, resumed_as_the_card_sends(client, paused)["id"])
     assert resumed["state"] == "done", resumed["error"]
     assert resumed["progress"]["spoken"] == 0  # every sentence came from the cache
-    assert sorted(p.name for p in config.output_folder.iterdir()) == names
+    assert sorted(p.name for p in book_folder(config.output_folder).iterdir()) == names
 
 
 def test_a_paused_first_build_still_refuses_a_file_that_appeared(tmp_path: Path) -> None:
@@ -344,13 +359,13 @@ def test_a_paused_first_build_still_refuses_a_file_that_appeared(tmp_path: Path)
     paused = wait(client, job["id"])
     assert paused["state"] == "cancelled"
     assert paused["overwrite"] is False
-    config.output_folder.mkdir(parents=True, exist_ok=True)
-    (config.output_folder / "paper.m4b").write_bytes(b"someone else's")
+    book_folder(config.output_folder).mkdir(parents=True, exist_ok=True)
+    (book_folder(config.output_folder) / "paper.m4b").write_bytes(b"someone else's")
     voice.fail_on = lambda text: False
     refused = wait(client, resumed_as_the_card_sends(client, paused)["id"])
     assert refused["state"] == "failed"
     assert refused["error"]["error"] == "output-exists"
-    assert (config.output_folder / "paper.m4b").read_bytes() == b"someone else's"
+    assert (book_folder(config.output_folder) / "paper.m4b").read_bytes() == b"someone else's"
 
 
 def test_script_jobs_never_say_overwrite(tmp_path: Path) -> None:

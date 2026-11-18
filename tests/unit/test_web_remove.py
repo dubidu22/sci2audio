@@ -22,6 +22,7 @@ from markupsafe import escape
 from pdf_maker import Text, make_pdf
 from web_helpers import (
     ORIGIN,
+    book_folder,
     browser,
     make_config,
     offline,  # noqa: F401 - fixture
@@ -137,7 +138,7 @@ def test_removing_takes_the_whole_working_folder_and_nothing_else(tmp_path: Path
         "id": doc["id"],
         "name": "note.pdf",
         "freed_bytes": size,
-        "audiobook_folder": str(config.output_folder.absolute()),
+        "audiobook_folder": str(book_folder(config.output_folder, "note.pdf").absolute()),
     }
     assert not folder.exists()
     assert snapshot(config.output_folder) == kept["output"]
@@ -544,7 +545,10 @@ def test_the_start_page_and_the_document_page_offer_the_removal(tmp_path: Path) 
     assert "<span>Remove note.pdf…</span></summary>" in start  # a quiet button (#390)
     assert f'data-document="{doc["id"]}"' in start
     assert "Remove note.pdf now" in start
-    assert f"Your audiobook stays in {config.output_folder.absolute()}." in start
+    assert (
+        f"Your audiobook stays in {book_folder(config.output_folder, 'note.pdf').absolute()}."
+        in start
+    )
     document = page.get(f"/documents/{doc['id']}").text
     assert '<h2 id="step-remove">Remove this document</h2>' in document
     assert "<span>Remove this document…</span></summary>" in document

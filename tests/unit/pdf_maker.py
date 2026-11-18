@@ -133,6 +133,60 @@ def cropped(
     return buffer.getvalue()
 
 
+def turned(data: bytes, turn: int) -> bytes:
+    """`data` with every page stored unturned and shown through /Rotate `turn` (90, 180 or
+    270, clockwise): each page is placed as a form XObject on a page of the unturned size,
+    turned back the other way, so the page as shown is the page of `data` (#537)."""
+    source = pdfium.PdfDocument(data)
+    document = pdfium.PdfDocument.new()
+    for index in range(len(source)):
+        width, height = source[index].get_size()
+        # x' = a x + c y + e, y' = b x + d y + f: the shown page's point on the unturned page
+        a, b, c, d, e, f = {
+            90: (0, 1, -1, 0, height, 0),
+            180: (-1, 0, 0, -1, width, height),
+            270: (0, -1, 1, 0, 0, width),
+        }[turn]
+        form = raw.FPDF_NewFormObjectFromXObject(
+            raw.FPDF_NewXObjectFromPage(document.raw, source.raw, index)
+        )
+        raw.FPDFPageObj_Transform(form, a, b, c, d, e, f)
+        page = document.new_page(*((height, width) if turn in (90, 270) else (width, height)))
+        raw.FPDFPage_InsertObject(page.raw, form)
+        raw.FPDFPage_GenerateContent(page.raw)
+        page.set_rotation(turn)
+        page.close()
+    buffer = io.BytesIO()
+    document.save(buffer)
+    document.close()
+    source.close()
+    return buffer.getvalue()
+
+
+def spread(texts: list[Text], *, inherited: bool = True) -> bytes:
+    """Two pages cut from one sheet of twice the page width (1200 x 800): one content
+    stream draws `texts` (Helvetica, positions on the sheet from its top left) and each
+    page's /CropBox covers one half. With `inherited` the /MediaBox stands only on the
+    /Pages node, as in the seaborn corpus paper, so the pages inherit it (#543); else each
+    page states its own."""
+    content = b"".join(
+        b"BT /F1 %g Tf %g %g Td (%s) Tj ET\n" % (t.size, t.x, HEIGHT - t.y, t.text.encode())
+        for t in texts
+    )
+    media = b" /MediaBox [0 0 %g %g]" % (2 * WIDTH, HEIGHT)
+    page = b"<< /Type /Page /Parent 2 0 R /CropBox [%g 0 %g %g] /Contents 4 0 R%s >>"
+    objects = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        2: b"<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2"
+        b" /Resources << /Font << /F1 5 0 R >> >>%s >>" % (media if inherited else b""),
+        3: page % (0, WIDTH, HEIGHT, b"" if inherited else media),
+        4: stream(content),
+        5: _HELVETICA,
+        6: page % (WIDTH, 2 * WIDTH, HEIGHT, b"" if inherited else media),
+    }
+    return raw_pdf(objects)
+
+
 def in_form(data: bytes, scale: float, dx: float, dy: float) -> bytes:
     """The first page of `data` placed, scaled and moved, as a form XObject on a new page.
 
