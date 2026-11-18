@@ -135,6 +135,65 @@ def test_the_hard_limit_stops_an_allocation_the_watch_does_not_see() -> None:
     assert stopped == isolate.Stopped("memory", "opening")
 
 
+def raise_native_out_of_memory() -> None:
+    """A child's work: fail as a PDFium allocation fails on Windows when the job object's
+    hard limit refuses it (#485)."""
+    code = isolate._WINDOWS_OUT_OF_MEMORY
+    error = OSError(None, "exception code 0xe0000008", None, code)
+    if sys.platform != "win32":
+        error.winerror = code  # only Windows fills it in from the arguments
+    raise error
+
+
+def test_a_native_allocation_refused_on_windows_is_the_memory_limit() -> None:
+    """The size message was lost and the error was raised as itself (#485)."""
+    stopped = isolate.run(
+        raise_native_out_of_memory, (), memory=1024**3, step_seconds=60, readers=isolate.Readers(1)
+    )
+    assert stopped == isolate.Stopped("memory", "opening")
+
+
+def os_error(winerror: int | None) -> OSError:
+    error = OSError(5, "denied")
+    error.winerror = winerror
+    return error
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (os_error(0xE0000008 - (1 << 32)), True),
+        (os_error(5), False),  # access denied
+        (os_error(None), False),
+        (OSError(12, "Cannot allocate memory"), False),  # the errno is Python's own concern
+        (RuntimeError("0xe0000008"), False),
+    ],
+)
+def test_only_the_windows_out_of_memory_code_counts(error: BaseException, expected: bool) -> None:
+    assert isolate._out_of_memory(error) is expected
+
+
+def read_unwatched(path: str, limits: dict[str, int]) -> object:
+    """A child's work for the Windows hard-limit test: park the watch, then read the file,
+    so only the job object's limit can stop PDFium."""
+    isolate._WATCH_SECONDS = 3600
+    time.sleep(0.1)  # the watch takes its last look and sleeps
+    return pdf._read_file(path, limits)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="the job object is Windows' own limit")
+def test_the_job_limit_stopping_pdfium_is_the_memory_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """What the flate-bomb test met under load on Windows (#485): the job object refused
+    PDFium's memory before the watch looked, and PDFium's allocator raised 0xE0000008."""
+    monkeypatch.setattr(pdf, "MAX_MEMORY", 300 * MB)
+    path = written(tmp_path, flate_bomb(1100 << 20))
+    stopped = pdf._isolated(read_unwatched, str(path))
+    assert isinstance(stopped, isolate.Stopped)
+    assert stopped.reason == "memory"
+
+
 def report_and_end(step: str) -> None:
     """A child's work for the closed-pipe test: report a step, then end at once as the
     memory watch ends a child."""
