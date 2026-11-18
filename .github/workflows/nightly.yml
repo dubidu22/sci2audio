@@ -91,12 +91,14 @@ jobs:
           cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
           cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
-      # Only the tests Hypothesis drives (its pytest plugin marks them "hypothesis"); the
-      # others take the same inputs on every PR, so many examples add nothing (D-759).
+      # Only the tests that take more inputs at night: the ones Hypothesis drives (its pytest
+      # plugin marks them "hypothesis") and the fixed-seed fuzz tests marked "deep". The others
+      # take the same inputs on every PR (D-759); test_ci_workflows.py checks that every test
+      # reading HYPOTHESIS_PROFILE is selected here.
       - name: Hypothesis with the nightly profile
         env:
           HYPOTHESIS_PROFILE: nightly
-        run: uv run pytest -m "hypothesis and not slow and not benchmark and not browser" -n auto
+        run: uv run pytest -m "(hypothesis or deep) and not slow and not benchmark and not browser" -n auto
 
   browsers:
     name: browser (${{ matrix.browser }}, ${{ matrix.os }}, ${{ matrix.shard }}/2)
