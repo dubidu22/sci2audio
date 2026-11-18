@@ -43,6 +43,7 @@ class LayoutSettings:
     edge_share: float = 0.05  # share of lines left out on each side to find the text's edges
     line_numbers: int = 5  # this many bare numbers beside the text are line numbers
     contents_reach: float = 2.0  # em: a contents entry's page number ends this close to the edge
+    contents_rows: int = 4  # rows an entry with its page number at the left edge may run on (#529)
 
     # Columns and reading order
     text_share: float = 0.1  # share of lines left out on each side to find the text area
