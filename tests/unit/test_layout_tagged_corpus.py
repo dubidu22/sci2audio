@@ -232,13 +232,33 @@ def test_verbatim_sentences_are_inside_one_block(sample: Path) -> None:
     assert cut == []
 
 
-def test_plain_text_is_paragraphs_only() -> None:
-    """A text file marks no structure (D-416): its truth has no headings."""
+def test_plain_text_is_paragraphs_and_list_items() -> None:
+    """A text file marks no headings (D-416): its truth has none. Its title line is a
+    paragraph apart from the subtitle, and its "- " lines are list items (#466)."""
     doc = document(TEXT)
     assert truth(TEXT)["headings"] == []
     assert doc.sections == ()
-    assert {b.kind for b in doc.blocks} == {BlockKind.PARAGRAPH}
-    assert len(doc.blocks) == 8  # its eight runs of non-blank lines
+    assert {b.kind for b in doc.blocks} == {BlockKind.PARAGRAPH, BlockKind.LIST_ITEM}
+    assert len(doc.blocks) == 10  # eight runs of non-blank lines, two of them cut (#466)
+
+
+@pytest.mark.parametrize(
+    ("sample", "title", "points"),
+    [
+        (TEXT, "LISTENING TO PAPERS", ["- first point", "- second point"]),
+        (GERMAN_TEXT, "PAPERS HÖREN", ["- erster Punkt", "- zweiter Punkt"]),
+    ],
+)
+def test_the_text_samples_title_and_points_are_blocks_of_their_own(
+    sample: Path, title: str, points: list[str]
+) -> None:
+    """#466: the title line is not joined to the subtitle, each point is a list item, the
+    marker kept as printed; "1. Introduction" alone stays a paragraph."""
+    doc = document(sample)
+    assert (doc.blocks[0].kind, doc.blocks[0].text) == (BlockKind.PARAGRAPH, title)
+    items = [b.text for b in doc.blocks if b.kind is BlockKind.LIST_ITEM]
+    assert items == points
+    assert all(b.kind is BlockKind.PARAGRAPH for b in doc.blocks if b.text.startswith("1. "))
 
 
 # ---- the German samples (#219) --------------------------------------------------------
