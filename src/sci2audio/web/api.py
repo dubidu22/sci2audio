@@ -58,6 +58,8 @@ from sci2audio.web.player import (
     sentence_starts,
     write_position,
 )
+from sci2audio.web.project import read_project
+from sci2audio.web.removal import KEPT_LIMIT, AudiobookRemoved, Kept, carry_out, plan
 from sci2audio.web.state import ApiError, Listening, ServerState, state_of
 from sci2audio.web.tasks import plan_digest, script_work, voices_work
 
@@ -197,17 +199,40 @@ def list_documents(state: State) -> list[models.DocumentOut]:
     "/documents/{document_id}",
     response_model=models.RemovedOut,
     responses=_errors(404, 409, 500),
-    summary="Remove a document and its whole working folder",
+    summary="Remove a document, its working folder and, unless kept, its audiobook files",
 )
-def remove_document(state: State, document_id: str) -> models.RemovedOut:
-    """Removes the copy of the file, its analysis, the speech cache and the records; never
-    anything in an output folder, so the audiobook stays (#120, D-353 to D-358). Refused
-    with 409 while a job works on the document; 500 names what could not be removed, and
-    the document then stays listed for another try."""
+def remove_document(
+    state: State,
+    document_id: str,
+    keep_audiobook: Annotated[
+        bool,
+        Query(description="true keeps the audiobook files; required, so every removal says"),
+    ],
+) -> models.RemovedOut:
+    """Removes the copy of the file, its analysis, the speech cache and the records, and,
+    unless `keep_audiobook`, the audiobook files sci2audio wrote into the project's own
+    folders and which are unchanged since (#470, D-751); never anything else. Refused with
+    409 while a job works on the document; 500 names what could not be removed, and the
+    document then stays listed for another try."""
     document = _document(state, document_id)
     folder = recorded_folder(document.folder, document.id)
+
+    def audiobook(found: StoredDocument) -> AudiobookRemoved:
+        project = read_project(found.folder, found.id)
+        if keep_audiobook:
+            folders = [] if project is None else project.folders()
+            return AudiobookRemoved(kept=tuple(Kept(f, "kept-by-choice") for f in folders))
+        others = [
+            other
+            for d in state.store.all()
+            if d.id != found.id and (other := read_project(d.folder, d.id)) is not None
+        ]
+        return carry_out(plan(project, state.protected_folders(), others))
+
     try:
-        removed = state.store.remove(document_id, busy=lambda: _job_on(state, document_id))
+        removed = state.store.remove(
+            document_id, busy=lambda: _job_on(state, document_id), audiobook=audiobook
+        )
     except DocumentBusyError as error:
         raise ApiError(409, "busy", str(error)) from error
     except RemoveError as error:
@@ -215,11 +240,16 @@ def remove_document(state: State, document_id: str) -> models.RemovedOut:
     if removed is None:  # removed meanwhile by another request
         raise ApiError(404, "not-found", f"no document {document_id}; open the file again")
     state.board.forget(document_id)
+    done = removed.audiobook or AudiobookRemoved()
     return models.RemovedOut(
         id=removed.id,
         name=removed.name,
         freed_bytes=removed.freed_bytes,
         audiobook_folder=None if folder is None else str(folder),
+        deleted_files=done.files,
+        deleted_bytes=done.bytes,
+        kept=[models.KeptOut(path=str(k.path), reason=k.reason) for k in done.kept[:KEPT_LIMIT]],
+        kept_more=max(0, len(done.kept) - KEPT_LIMIT),
     )
 
 

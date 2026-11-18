@@ -1,5 +1,6 @@
-{#- Removing a document (#120, D-359 to D-362): a disclosure that says what goes and what
-    stays; the press of its one button is the confirmation. The same markup serves the
+{#- Removing a document (#120, D-359 to D-362, #470, D-751): a disclosure that says what
+    goes and what stays; the press of its one button is the confirmation, and it is the
+    only button in the box, after everything that stays (D-733). The same markup serves the
     library's rows and the document page (#390). Import it "with context". -#}
 {% from "_icons.html" import icon %}
 {% macro remove_box(document, removal, busy, named) %}
@@ -7,14 +8,18 @@
   <summary class="btn quiet sm">{{ icon('x', 's') }}<span>{% if named %}{{ t('remove.summary_named', name=document.name) }}{% else %}{{ t('remove.summary') }}{% endif %}</span></summary>
   <div class="remove-box">
     <p>{{ t('remove.goes', size=size_text(removal.bytes)) }}</p>
-    {% if removal.folder %}<p>{{ t('remove.stays_folder', folder=removal.folder) }}</p>{% elif removal.has_audio %}<p>{{ t('remove.stays') }}</p>{% endif %}
-    <p>{{ t('remove.original') }}</p>
     {#- counted from the markers file as the box is drawn (#474, D-728 ruling 3) #}
     {% if removal.markers is none %}<p class="remove-markers">{{ t('remove.markers_unread') }}</p>{% elif removal.markers %}<p class="remove-markers">{{ t('remove.markers', n=removal.markers) }}</p>{% endif %}
+    {#- the project's own audiobook folders (#470, D-751): what goes unless kept #}
+    {% for audiobook in removal.audiobooks %}<p class="remove-audiobook">{{ t('remove.audiobook', n=audiobook.files, folder=audiobook.folder, size=size_text(audiobook.bytes)) }}</p>{% endfor %}
+    {% if removal.audiobooks %}<p class="remove-keep-line"><label><input type="checkbox" class="remove-keep" id="remove-keep-{{ document.id }}"{% if removal.keep %} checked{% endif %}> {{ t('remove.keep') }}</label></p>{% endif %}
+    <p>{{ t('remove.original') }}</p>
+    {% if removal.audiobooks %}<p>{{ t('remove.others_stay') }}</p>{% endif %}
+    {% if removal.folder %}<p>{{ t('remove.stays_earlier', folder=removal.folder) }}</p>{% elif removal.has_audio and not removal.audiobooks %}<p>{{ t('remove.stays') }}</p>{% endif %}
     {% if busy %}
     <p class="note">{{ t('remove.busy') }}</p>
     {% else %}
-    <p class="buttons"><button type="button" class="danger remove-now" data-document="{{ document.id }}" data-audio="{{ 'yes' if removal.has_audio else '' }}" disabled>{{ t('remove.now', name=document.name) }}</button></p>
+    <p class="buttons"><button type="button" class="danger remove-now" data-document="{{ document.id }}" data-audio="{{ 'yes' if removal.has_audio else '' }}" data-earlier="{{ removal.folder or '' }}" disabled>{{ t('remove.now', name=document.name) }}</button></p>
     {% endif %}
   </div>
 </details>

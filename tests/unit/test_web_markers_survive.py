@@ -306,7 +306,7 @@ def test_the_removal_box_counts_the_markers_as_it_is_drawn_and_removal_takes_the
     (work / MARKERS).unlink()
     assert "remove-markers" not in page.get("/").text
     (work / MARKERS).write_bytes(marked["bytes"])
-    assert client.delete(f"/api/v1/documents/{doc}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc}?keep_audiobook=false").status_code == 200
     assert not work.exists()
 
 

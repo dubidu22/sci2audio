@@ -130,7 +130,7 @@ def test_only_the_named_folder_is_tried(tmp_path: Path) -> None:
 def test_an_outside_job_cannot_be_changed(tmp_path: Path) -> None:
     job, client, _config = outside_job(tmp_path)
     for key in (job.id, job.document):
-        assert client.delete(f"/api/v1/documents/{key}").status_code == 404
+        assert client.delete(f"/api/v1/documents/{key}?keep_audiobook=false").status_code == 404
         assert client.delete(f"/api/v1/documents/{key}/chunks").status_code == 404
         body = {"kind": "audio", "document": key}
         assert client.post("/api/v1/jobs", json=body).status_code == 404

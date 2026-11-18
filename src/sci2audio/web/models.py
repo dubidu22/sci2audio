@@ -36,16 +36,30 @@ class DocumentOut(BaseModel):
     )
 
 
+class KeptOut(BaseModel):
+    """A file or folder the removal left, and why (#470, D-751)."""
+
+    path: str
+    reason: str = Field(
+        description="changed, not-recorded, link, outside, shared, unreadable or kept-by-choice"
+    )
+
+
 class RemovedOut(BaseModel):
-    """What removing a document took away, and where its audiobook stays (D-358)."""
+    """What removing a document took away and what stayed (D-358, D-751)."""
 
     id: str
     name: str = Field(description="the file name as opened")
     freed_bytes: int = Field(description="bytes of the working folder that were removed")
     audiobook_folder: str | None = Field(
-        description="the folder of the document's latest audiobook, which stays; null when "
-        "none was recorded"
+        description="the folder of the document's latest audiobook; null when none was recorded"
     )
+    deleted_files: int = Field(default=0, description="audiobook files deleted")
+    deleted_bytes: int = Field(default=0, description="bytes of the audiobook files deleted")
+    kept: list[KeptOut] = Field(
+        default_factory=list, description="what stayed in the audiobook folders, and why"
+    )
+    kept_more: int = Field(default=0, description="further paths that stayed, not listed")
 
 
 class TextIn(Strict):

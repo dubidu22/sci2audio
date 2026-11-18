@@ -1,13 +1,14 @@
-"""Removing a document in the browser (#120, D-359 to D-362): by keyboard alone, with
+"""Removing a document in the browser (#120, D-359 to D-362, #470): by keyboard alone, with
 axe-core on every new page state, in English and German, and without a sideways scroll at
 320 pixels. The request goes out as the page's own `fetch`, so the origin check (D-194)
-lets it through."""
+lets it through, and carries the "keep" tick (D-751, S14)."""
 
 from __future__ import annotations
 
 import io
 import json
 import re
+from pathlib import Path
 
 import pytest
 from playwright.sync_api import Page, Route, expect
@@ -17,15 +18,32 @@ from web_helpers import pdf_bytes
 
 from conftest import Live, check_axe
 from sci2audio.web.player import write_record
+from sci2audio.web.project import audiobook_folder, record_files
+
+EARLIER = "sci2audio made it before each document had its own folder."
 
 
 def opened(live: Live, name: str, text: str, *, audiobook: bool = False) -> str:
-    """A document put in place as the server keeps it; with the records of an audiobook."""
+    """A document put in place as the server keeps it; with the records of an audiobook
+    made before #469, flat in the output folder."""
     document = live.state.store.store(name, io.BytesIO(pdf_bytes(text)))
     if audiobook:
         (document.folder / "audio.json").write_text("{}", encoding="utf-8")
         write_record(document.folder, document.id, live.config.output_folder)
     return document.id
+
+
+def with_book(live: Live, name: str, text: str) -> tuple[str, Path]:
+    """A document whose audiobook sits in its project's own folder, recorded (#469)."""
+    document = live.state.store.store(name, io.BytesIO(pdf_bytes(text)))
+    folder = audiobook_folder(document.folder, document.id, name, live.config.output_folder)
+    written = [folder / "01 Introduction.mp3", folder / "book.readalong.json"]
+    for path in written:
+        path.write_bytes(b"ID3 " + path.name.encode())
+    (document.folder / "audio.json").write_text("{}", encoding="utf-8")
+    write_record(document.folder, document.id, folder)
+    record_files(document.folder, document.id, folder, written)
+    return document.id, folder
 
 
 def test_removing_from_the_start_page_by_keyboard(signed_in: Page, live: Live) -> None:
@@ -38,14 +56,15 @@ def test_removing_from_the_start_page_by_keyboard(signed_in: Page, live: Live) -
     press_on(page, "Remove first.pdf…")
     button = page.get_by_role("button", name="Remove first.pdf now")
     expect(button).to_be_visible()
-    stays = f"Your audiobook stays in {live.config.output_folder}."
+    stays = f"Your earlier audiobook in {live.config.output_folder} stays: {EARLIER}"
     expect(page.get_by_text(stays)).to_be_visible()
     check_axe(page, "start page, disclosure open")
     press_on(page, "Remove first.pdf now")
 
     message = page.locator("#message")
     expect(message).to_have_text(
-        f"first.pdf was removed. Your audiobook stays in {live.config.output_folder}."
+        f"first.pdf was removed. Your earlier audiobook in {live.config.output_folder} stays: "
+        + EARLIER
     )
     expect(message).to_be_focused()
     expect(page.get_by_role("link", name="first.pdf")).to_have_count(0)
@@ -83,8 +102,8 @@ def test_removing_from_the_document_page(signed_in: Page, live: Live) -> None:
 
     title = page.get_by_role("heading", name="paper.pdf was removed.")
     expect(title).to_be_focused()
-    stays = f"Your audiobook stays in {live.config.output_folder}."
-    expect(page.get_by_text(stays)).to_be_visible()
+    stays = f"Your earlier audiobook in {live.config.output_folder} stays: {EARLIER}"
+    expect(page.locator("#removed-text")).to_have_text(stays)
     expect(page.locator("#step-check")).to_have_count(0)
     expect(page.locator("#make")).to_have_count(0)
     assert [r["method"] for r in requests] == ["DELETE"]  # one request
@@ -113,7 +132,7 @@ def test_a_failed_removal_says_why_and_keeps_the_button(signed_in: Page, live: L
             ),
         )
 
-    page.route(re.compile(r".*/api/v1/documents/[0-9a-f]{16}$"), refuse)
+    page.route(re.compile(r".*/api/v1/documents/[0-9a-f]{16}(\?.*)?$"), refuse)
     page.get_by_text("stuck.pdf entfernen …").click()
     button = page.get_by_role("button", name="stuck.pdf jetzt entfernen")
     button.click()
@@ -142,3 +161,88 @@ def test_the_removal_reflows_at_320_pixels(signed_in: Page, live: Live, language
     page.locator("button.remove-now").click()
     expect(page.locator("#removed-title")).to_be_focused()
     check_reflow(page, f"document page, removed ({language})")
+
+
+# ---- the project's own audiobook files (#470, D-751, D-754, S14) ---------------------------
+
+
+def deletes(page: Page) -> list[str]:
+    found: list[str] = []
+    page.on("request", lambda r: found.append(r.url) if r.method == "DELETE" else None)
+    return found
+
+
+def test_the_audiobook_files_go_by_default(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    document, folder = with_book(live, "paper.pdf", "A paper.")
+    page.goto(f"{live.url}/documents/{document}")
+    page.get_by_text("Remove this document…").click()
+    box = page.locator("details.remove .remove-box")
+    expect(box.get_by_text(f"The 2 audiobook files in {folder} go too:")).to_be_visible()
+    keep = page.get_by_role("checkbox", name="Keep the audiobook files")
+    expect(keep).not_to_be_checked()
+    expect(box.get_by_role("button")).to_have_count(1)  # no safe button beside it (D-733)
+    check_axe(page, "document page, removal with audiobook files open")
+    urls = deletes(page)
+    page.get_by_role("button", name="Remove paper.pdf now").click()
+    expect(page.locator("#removed-title")).to_be_focused()
+    expect(page.locator("#removed-text")).to_have_text("Its 2 audiobook files were deleted.")
+    assert [u.split("?", 1)[1] for u in urls] == ["keep_audiobook=false"]
+    assert not folder.exists()
+
+
+def test_the_keep_tick_goes_with_the_request_and_outlives_a_failure(
+    signed_in: Page, live: Live
+) -> None:
+    page = signed_in
+    document, folder = with_book(live, "kept.pdf", "A kept paper.")
+    (folder / "my notes.txt").write_text("mine", encoding="utf-8")
+    page.goto(f"{live.url}/language?language=de&back=/")
+    expect(page.locator("html")).to_have_attribute("lang", "de")
+    failing = [True]
+
+    def first_fails(route: Route) -> None:
+        if route.request.method == "DELETE" and failing and failing.pop():
+            route.fulfill(
+                status=500,
+                content_type="application/json",
+                body=json.dumps({"error": "remove-failed", "message": "could not delete x"}),
+            )
+            return
+        route.continue_()
+
+    page.route(re.compile(r".*/api/v1/documents/[0-9a-f]{16}(\?.*)?$"), first_fails)
+    urls = deletes(page)
+    page.get_by_text("kept.pdf entfernen …").click()
+    keep = page.get_by_role("checkbox", name="Hörbuchdateien behalten")
+    press_on(page, f"remove-keep-{document}", key="Space")
+    expect(keep).to_be_checked()
+    button = page.get_by_role("button", name="kept.pdf jetzt entfernen")
+    button.click()
+    message = page.locator("#message")
+    expect(message).to_contain_text("sci2audio konnte das Dokument nicht ganz entfernen.")
+    expect(keep).to_be_checked()  # the box keeps its state for the next try
+    button.click()
+    expect(message).to_have_text(f"kept.pdf wurde entfernt. Ihr Hörbuch bleibt in {folder}.")
+    assert [u.split("?", 1)[1] for u in urls] == ["keep_audiobook=true"] * 2
+    assert sorted(p.name for p in folder.iterdir()) == [
+        "01 Introduction.mp3",
+        "book.readalong.json",
+        "my notes.txt",
+    ]
+
+
+def test_files_that_stay_are_counted_after_the_removal(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    _document, folder = with_book(live, "mixed.pdf", "A mixed paper.")
+    (folder / "my notes.txt").write_text("mine", encoding="utf-8")
+    (folder / "01 Introduction.mp3").write_bytes(b"ID3 changed by the person")
+    page.goto(live.url + "/")
+    page.get_by_text("Remove mixed.pdf…").click()
+    page.get_by_role("button", name="Remove mixed.pdf now").click()
+    expect(page.locator("#message")).to_have_text(
+        "mixed.pdf was removed. Its audiobook file was deleted. 2 files stayed in the "
+        "audiobook folder: sci2audio did not write them, or they changed since."
+    )
+    assert sorted(p.name for p in folder.iterdir()) == ["01 Introduction.mp3", "my notes.txt"]
+    check_axe(page, "start page after a removal that kept files")
