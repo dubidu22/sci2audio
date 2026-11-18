@@ -945,3 +945,19 @@ def test_a_front_matter_entry_on_a_page_with_a_heading_starts_no_publisher_secti
     assert publisher_sections(doc) == [("Cover", 1, 3)]
     doc = journal_issue(OutlineEntry("Covers of the issue", 1, 2))
     assert publisher_sections(doc) == []
+
+
+def test_front_matter_with_no_entry_after_it_ends_at_the_next_heading() -> None:
+    doc = journal_issue(OutlineEntry("Cover", 1, 2))
+    assert [(s.title, s.publisher) for s in doc.sections] == [
+        ("Cover", True),
+        ("Introduction", False),
+        ("Method", False),
+    ]
+    assert doc.blocks[doc.sections[0].end].text == "Introduction"
+
+
+def test_two_front_matter_entries_for_one_page_make_one_publisher_section() -> None:
+    """The first entry names it; the second starts nothing inside it."""
+    doc = journal_issue(OutlineEntry("Cover", 1, 2), OutlineEntry("Titelei", 1, 2), *FRONT[1:])
+    assert publisher_sections(doc) == [("Cover", 1, 2), ("Impressum", 3, 3)]
