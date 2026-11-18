@@ -74,9 +74,13 @@ jobs:
       # exit means the run itself broke (for example the first, unmutated test run failed),
       # and the job must say so instead of listing every mutant as "not checked". It stops
       # after 5 hours so that the results so far are still reported.
+      # The CI profile: derandomized, no deadline, slow-input health check off. mutmut's
+      # trampolines slow the code down, so the dev profile can fail the unmutated run on a
+      # health check and turn a deadline into a false kill (review of #551).
       - name: Mutation run
         env:
           SLICE: ${{ matrix.slice }}
+          HYPOTHESIS_PROFILE: ci
         run: timeout 300m uv run --no-sync python .github/scripts/mutation.py run
       - name: Results (job summary)
         if: always()

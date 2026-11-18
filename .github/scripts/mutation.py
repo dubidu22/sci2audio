@@ -27,6 +27,10 @@ from pathlib import Path
 GLOB = re.compile(r"sci2audio(\.[\w*?\[\]ǁ]+)+")
 PYPROJECT = Path("pyproject.toml")
 SELECTION = re.compile(r"^pytest_add_cli_args_test_selection = .*$", re.M)
+# mutmut 3.8.1 results that mean a test noticed the mutant; every other result
+# (survived, no tests, not checked, suspicious, skipped, segfault, ...) is listed.
+KILLED = {"killed", "timeout", "caught by type check"}
+LISTED = 300  # names listed per result
 
 
 def env(name: str, default: str = "") -> str:
@@ -85,6 +89,8 @@ def run() -> None:
 
 
 def report() -> None:
+    """Counts the results of this runner's mutants and lists every one not killed; red
+    when any was not checked, or when no test asked for covers any of them."""
     listing = subprocess.run(
         [sys.executable, "-m", "mutmut", "results", "--all", "true"],
         check=False,
@@ -98,7 +104,10 @@ def report() -> None:
         if name and any(fnmatch.fnmatchcase(name, glob) for glob in mine()):
             rows.append((name, status))
     counts = Counter(status for _, status in rows)
-    survivors = [name for name, status in rows if status == "survived"]
+    not_killed: dict[str, list[str]] = {}
+    for name, status in rows:
+        if status not in KILLED:
+            not_killed.setdefault(status, []).append(name)
     lines = [
         f"## Mutation run, runner {env('SLICE')}: {' '.join(mine())}",
         "",
@@ -106,18 +115,29 @@ def report() -> None:
         "|---|---|",
         *(f"| {status} | {n} |" for status, n in sorted(counts.items())),
         "",
-        f"Survived: {len(survivors)} (`mutmut show NAME` in a local run prints the change)",
-        "",
-        *(f"- `{name}`" for name in survivors[:300]),
+        f"Not killed: {sum(map(len, not_killed.values()))} "
+        "(`mutmut show NAME` in a local run prints the change)",
     ]
+    for status, names in sorted(not_killed.items()):
+        cut = f", the first {LISTED} listed" if len(names) > LISTED else ""
+        lines += ["", f"{status} ({len(names)}{cut}):", ""]
+        lines += [f"- `{name}`" for name in names[:LISTED]]
+    problems = []
+    if counts["not checked"]:
+        problems.append(f"{counts['not checked']} mutants not checked (the run did not finish)")
+    if rows and counts["no tests"] == len(rows):
+        problems.append("no test asked for covers any of these mutants: check the test paths")
+    if not rows:
+        problems.append("no mutant matched the globs asked for")
+    lines += ["", *(f"**Red:** {problem}" for problem in problems)]
     text = "\n".join(lines) + "\n"
     print(text)
     target = os.environ.get("GITHUB_STEP_SUMMARY")
     if target:
         with Path(target).open("a", encoding="utf-8") as out:
             out.write(text)
-    if not rows:
-        sys.exit("no mutant matched the globs asked for")
+    if problems:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
