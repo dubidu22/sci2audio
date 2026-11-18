@@ -100,6 +100,8 @@ class LayoutSettings:
     footnote_rule_share: float = 0.5  # ... and at most this share of the column
     footnote_mark_rise: float = 0.1  # em: a mark in the notes' own size starts a note when
     #                                  raised this far above the text after it (#235)
+    footnote_mark_gap: float = 1.0  # em: ... or, on the text's baseline, this far before
+    #                                 the note's text, and printed in the text above (#457)
 
     # Tables, figures and algorithms (placeholders)
     caption_reach: float = 2.0  # em: a table or figure stands this close to its caption, ...
