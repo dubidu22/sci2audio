@@ -7,8 +7,9 @@ audio. The app's records keep no folders (they are machine-specific), so the web
 task writes its own small record, `audiobook.json`, with the output folder (D-295).
 
 Nothing in these files is trusted as a path (D-295, D-192 to D-209): the record must name
-this document and an absolute folder; the folder is only ever one of three (the recorded
-one, the saved output folder, the server's default); file names must be bare names listed
+this document and an absolute folder; the folder is only ever the recorded one, one of the
+project's own audiobook folders (`project.json`, D-749), the saved output folder or the
+server's default (earlier audiobooks sit flat there); file names must be bare names listed
 in `audio.json`; a file is opened only as `<folder>/<name>` and must be a regular file in
 that very folder; and the read-along file must agree with `audio.json` (duration and
 chunk count) before any of its files is served or shown. The page also checks that every
@@ -55,6 +56,7 @@ from sci2audio.textprep import (
     TextStep,
     run_steps,
 )
+from sci2audio.web.project import read_project
 
 RECORD = "audiobook.json"  # the web's own record of where the audiobook went (D-295)
 RECORD_FORMAT = "sci2audio-web-audiobook"
@@ -429,8 +431,12 @@ def _agrees(record: AudioRecord, data: ReadAlong) -> bool:
 def candidate_folders(
     work: Path, document_id: str, saved: Path | None, default: Path
 ) -> list[Path | None]:
-    """Where the audiobook may be, in order (D-295): recorded, saved, default."""
-    return [recorded_folder(work, document_id), saved, default]
+    """Where the audiobook may be, in order (D-295, D-749): the recorded one, the project's
+    own audiobook folders (newest first), then the saved and the default output folder,
+    which hold the audiobooks made before #469."""
+    project = read_project(work, document_id)
+    own = [] if project is None else list(reversed(project.folders()))
+    return [recorded_folder(work, document_id), *own, saved, default]
 
 
 # ---- the page's view -------------------------------------------------------------------

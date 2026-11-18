@@ -295,9 +295,10 @@ def audiobook(
     state: State, document_id: str, name: str, download: Download = False
 ) -> FileResponse:
     """A file the document's latest audio job wrote, by name as written, for the player
-    (#78, D-295): only names its record lists, only from the recorded, the saved or the
-    default output folder, and only once the read-along file there agrees with the
-    record. Range requests answer 206, so the player can seek."""
+    (#78, D-295): only names its record lists, only from the recorded folder, the project's
+    own audiobook folders (D-749), the saved or the default output folder, and only once
+    the read-along file there agrees with the record. Range requests answer 206, so the
+    player can seek."""
     document = state.listening(document_id)
     if document is None:
         raise ApiError(404, "not-found", f"no document {document_id}")
