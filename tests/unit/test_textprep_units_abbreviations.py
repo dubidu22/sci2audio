@@ -714,6 +714,8 @@ def _whole(read: str) -> list[Candidate]:
         ("aXYb", [(1, 3), (2, 3)], [(0, 1, "R"), (3, 4, "")]),
         ("aXYb", [(1, 2), (2, 3)], [(0, 1, "R"), (3, 4, "")]),
         ("aXYb", [(1, 2), (1, 1), (2, 3)], [(0, 1, "R"), (3, 4, "")]),
+        ("ab", [(1, 1)], [(0, 2, "R")]),  # an empty range cuts nothing
+        ("aXbc", [(1, 2), (3, 3)], [(0, 1, "R"), (2, 4, "")]),
         # a range at the start or the end lies outside the candidate, which is not cut
         ("Xab", [(0, 1)], [(1, 3, "R")]),
         ("abX", [(2, 3)], [(0, 2, "R")]),
@@ -730,6 +732,12 @@ def test_a_candidate_over_an_unread_range_is_cut_around_it(
     assert {c.reason for c in found} == {"why"}
 
 
+def test_an_empty_candidate_is_kept_where_it_stands() -> None:
+    """A candidate that inserts (start == end) is mapped back, never dropped."""
+    found = through_unread("aXb", lambda read: [Candidate(1, 1, "R", "why")], [(1, 2)])
+    assert [(c.start, c.end, c.replacement) for c in found] == [(2, 2, "R")]
+
+
 def test_a_magnitude_after_a_raised_mass_number_is_no_thousand() -> None:
     """#449: a run of one to three digits set small and raised before "K" (here sized and
     placed as in a PDF, no tag) is a mass number; the digits become superscript digits and
@@ -741,7 +749,13 @@ def test_a_magnitude_after_a_raised_mass_number_is_no_thousand() -> None:
         ("40", 10.0, 100.0),  # the text's size: plain
         ("K, ", 10.0, 100.0),
         ("40", 7.0, 103.0),  # small but on the line: no mass number
-        ("K and ", 10.0, 100.0),
+        ("K, ", 10.0, 100.0),
+        ("40", 10.0, 97.0),  # raised but in the text's size: no mass number
+        ("K, ", 10.0, 100.0),
+        ("238", 7.0, 97.0),  # three digits: a mass number
+        ("K, ", 10.0, 100.0),
+        ("40", 7.0, 97.0),  # raised before a glued unit: the unit is read as before
+        ("kg and ", 10.0, 100.0),
         ("1234", 7.0, 97.0),  # four digits: no mass number
         ("K.", 10.0, 100.0),
     ]
@@ -754,7 +768,9 @@ def test_a_magnitude_after_a_raised_mass_number_is_no_thousand() -> None:
     block = Block(BlockKind.PARAGRAPH, text, (Part("l0", 0),))
     document = Document(Content(Source("a.pdf", SourceFormat.PDF), (page,)), "en", (block,))
     run = run_steps(document, EN, steps=(UNITS,), strict=True)
-    assert spoken_text(run.script()) == ("We use ⁴⁰K, 40 thousand, 40 thousand and 1234 thousand.")
+    assert spoken_text(run.script()) == (
+        "We use ⁴⁰K, 40 thousand, 40 thousand, 40 thousand, ²³⁸K, 40 kilograms and 1234 thousand."
+    )
     (raised,) = [e for e in run.accepted if e.span.start == 7]
     assert (raised.span.end, raised.kind) == (9, EditKind.REPLACE)
     assert raised.reason == 'raised "40" before "K" kept as printed, not "thousand"'

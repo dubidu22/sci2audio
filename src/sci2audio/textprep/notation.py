@@ -150,8 +150,10 @@ def _around(candidate: Candidate, unread: Sequence[tuple[int, int]]) -> list[Can
     keeps the replacement, the others are removed with the same reason. "e.[13]g." reads "for
     example" on the first run as on the second, which no longer sees the marker (#445)."""
     pieces, at = [], candidate.start
-    for skip_start, skip_end in _merged(unread):
-        if at <= skip_start and skip_end <= candidate.end:
+    # overlapping or touching ranges need no joining: a range that starts before `at` is
+    # passed over, and one that starts at `at` adds no empty piece
+    for skip_start, skip_end in sorted(unread):
+        if at <= skip_start < skip_end <= candidate.end:
             if skip_start > at:
                 pieces.append((at, skip_start))
             at = skip_end
@@ -161,17 +163,6 @@ def _around(candidate: Candidate, unread: Sequence[tuple[int, int]]) -> list[Can
         Candidate(s, e, candidate.replacement if n == 0 else "", candidate.reason)
         for n, (s, e) in enumerate(pieces)
     ]
-
-
-def _merged(spans: Sequence[tuple[int, int]]) -> list[tuple[int, int]]:
-    """The non-empty spans in order, overlapping or touching ones joined."""
-    merged: list[tuple[int, int]] = []
-    for start, end in sorted(span for span in spans if span[1] > span[0]):
-        if merged and start <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
-        else:
-            merged.append((start, end))
-    return merged
 
 
 def edits_through_unread(

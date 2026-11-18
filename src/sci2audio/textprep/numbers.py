@@ -113,9 +113,10 @@ _CARET = re.compile(
 _TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,⁺⁻^])")
 # not after a number and a space or line break ("5 m²", "5\nm²" are units, the units step's,
 # #445); a caret exponent before the space is no such number, since the caret rule may turn it
-# into a word ("x^2 x⁶")
+# into a word ("x^2 x⁶"). After "." or "," only a space counts: "e.g.\nm²" is read as on
+# main, since its second run is #564's.
 _LETTER_POWER = re.compile(
-    r"(?<![\w/])(?<!(?<!\^)\d\s)(?<![.,]\s)(?P<base>[^\W\d_"
+    r"(?<![\w/])(?<!(?<!\^)\d\s)(?<![.,] )(?P<base>[^\W\d_"
     + _SUPERSCRIPTS
     + r"])(?P<exp>"
     + _SUPER
