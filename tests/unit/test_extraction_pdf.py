@@ -19,11 +19,13 @@ from pdf_maker import (
     one_page_pdf,
     outlined_pdf,
     raw_pdf,
+    spread,
     stream,
+    turned,
     width,
 )
 
-from sci2audio.core import Content, Metadata, OutlineEntry, SourceFormat
+from sci2audio.core import Content, Metadata, OutlineEntry, Page, SourceFormat
 from sci2audio.extraction import extract_pdf, read_pdf
 from sci2audio.extraction.pdf import (
     _GENERATED,
@@ -319,6 +321,86 @@ def test_a_page_with_its_own_crop_box_at_the_origin_reads_as_before() -> None:
     before = read_pdf(sheet, "m.pdf")
     after = read_pdf(cropped(sheet, (0, 0, 600, 800), media=(0, 0, 600, 800)), "m.pdf")
     assert after.pages == before.pages
+
+
+def test_a_crop_box_cuts_off_the_sheet_also_when_the_media_box_is_inherited() -> None:
+    """#543: a spread cut into two pages by their crop boxes, with the one media box on the
+    /Pages node: each page reads only its half. Text outside the sheet itself is kept."""
+    texts = [
+        Text("The left page", 72, 80),
+        Text("The right page", 672, 80),
+        Text("Past the sheet", 1250, 80),
+    ]
+    for inherited in (True, False):
+        content = read_pdf(spread(texts, inherited=inherited), "spread.pdf")
+        assert [[line.text for line in page.lines] for page in content.pages] == [
+            ["The left page", "Past the sheet"],
+            ["The right page", "Past the sheet"],
+        ], inherited
+        right = content.pages[1].lines[0].box
+        assert right is not None
+        assert 71.5 < right.x0 < 72.5  # from the right page's own corner
+
+
+def _boxes(page: Page) -> list[tuple[float, ...]]:
+    boxes = []
+    for line in page.lines:
+        for box in (line.box, *(run.box for run in line.runs)):
+            assert box is not None
+            boxes.append((box.x0, box.y0, box.x1, box.y1))
+    boxes += [(d.box.x0, d.box.y0, d.box.x1, d.box.y1) for d in page.drawings]
+    return boxes
+
+
+@pytest.mark.parametrize("turn", [90, 180, 270])
+def test_a_turned_page_is_read_as_shown(turn: int) -> None:
+    """#537: a page stored unturned and shown through /Rotate reads like the same page set
+    upright: same size, same lines in the same order, positions inside the page as shown,
+    and text that reads left to right when shown at angle 0, so its letters join into lines
+    (a side stamp turned on the shown page stays turned)."""
+    items: list[Text | Rect] = [
+        Text("First row of the page", 72, 80),
+        Text("Second row of the page", 72, 100),
+        Rect(72, 110, 300, 111),
+        Text("A side stamp", 560, 600, turned=True),
+    ]
+    upright = read_pdf(make_pdf(items), "upright.pdf").pages[0]
+    page = read_pdf(turned(make_pdf(items), turn), "turned.pdf").pages[0]
+    assert page.width is not None
+    assert page.height is not None
+    assert (page.width, page.height) == (upright.width, upright.height)
+    assert [line.text for line in page.lines] == [line.text for line in upright.lines]
+    assert [len(line.runs) for line in page.lines] == [len(line.runs) for line in upright.lines]
+    got, want = _boxes(page), _boxes(upright)
+    assert len(got) == len(want)
+    for box, expected in zip(got, want, strict=True):
+        assert box == pytest.approx(expected, abs=0.01)
+        assert 0 <= box[0] <= box[2] <= page.width
+        assert 0 <= box[1] <= box[3] <= page.height
+
+
+def test_a_landscape_table_turned_into_a_portrait_paper_reads_its_rows_in_order() -> None:
+    """#537 end to end: a landscape page (800 x 600 as shown) stored on portrait paper with
+    /Rotate 90, holding a table: layout reads it exactly as the same page set upright, its
+    rows from top to bottom."""
+    from sci2audio.core import to_data
+    from sci2audio.layout import build_document
+
+    rows = [("Sample", "Width", "Depth")] + [
+        (f"Probe {n}", f"{n}.5 mm", f"{n}0 m") for n in range(1, 9)
+    ]
+    content = b"".join(
+        b"BT /F1 11 Tf %d %d Td (%s) Tj ET\n" % (x, 520 - 20 * k, cell.encode())
+        for k, row in enumerate(rows)
+        for x, cell in zip((80, 330, 580), row, strict=True)
+    )
+    landscape = one_page_pdf(content, media_box=b"[0 0 800 600]")
+    shown = build_document(read_pdf(landscape, "table.pdf"))
+    document = build_document(read_pdf(turned(landscape, 90), "table.pdf"))
+    assert to_data(document.blocks) == to_data(shown.blocks)
+    text = "\n".join(block.text for block in document.blocks)
+    places = [text.index(f"Probe {n}") for n in range(1, 9)]
+    assert places == sorted(places)
 
 
 def test_drawings_inside_a_form_get_page_positions() -> None:
