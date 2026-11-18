@@ -24,6 +24,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pdf_maker import Text, make_pdf
 from web_helpers import (
+    book_folder,
     events,
     make_config,
     offline,  # noqa: F401 - fixture
@@ -48,6 +49,7 @@ from sci2audio.web.player import (
     sentence_starts,
     shown,
 )
+from sci2audio.web.project import PROJECT
 
 # ---- the view, from hand-made data ------------------------------------------------------
 
@@ -704,7 +706,7 @@ def test_the_audiobook_route_serves_only_its_own_files(tmp_path: Path) -> None:
     for name in names:
         answer = client.get(f"{base}/{name}")
         assert answer.status_code == 200, name
-        assert answer.content == (config.output_folder / name).read_bytes()
+        assert answer.content == (book_folder(config.output_folder) / name).read_bytes()
     mp3 = next(n for n in names if n.endswith(".mp3"))
     assert client.get(f"{base}/{mp3}").headers["content-type"] == "audio/mpeg"
     part = client.get(f"{base}/{mp3}", headers={"Range": "bytes=0-9"})
@@ -712,13 +714,13 @@ def test_the_audiobook_route_serves_only_its_own_files(tmp_path: Path) -> None:
     assert len(part.content) == 10
     saved = client.get(f"{base}/{mp3}?download=true")
     assert saved.headers["content-disposition"].startswith("attachment")
-    (config.output_folder / "other.mp3").write_bytes(b"x")
+    (book_folder(config.output_folder) / "other.mp3").write_bytes(b"x")
     for wrong in ("other.mp3", "..%2Fsettings.json", "%2E%2E", "audio.json", "document.json"):
         assert client.get(f"{base}/{wrong}").status_code == 404, wrong
     assert client.get(f"/api/v1/documents/0123456789abcdef/audiobook/{mp3}").status_code == 404
     other = make(client, make_pdf([Text("Another one.", 72, 100)]), "other.pdf")
     assert client.get(f"/api/v1/documents/{other['doc']['id']}/audiobook/{mp3}").status_code == 404
-    (config.output_folder / mp3).unlink()
+    (book_folder(config.output_folder) / mp3).unlink()
     assert client.get(f"{base}/{mp3}").status_code == 404
 
 
@@ -733,10 +735,11 @@ def test_the_record_finds_a_folder_the_saved_settings_dont_name(tmp_path: Path) 
         "format": "sci2audio-web-audiobook",
         "version": 1,
         "document": doc,
-        "folder": str(elsewhere.absolute()),
+        "folder": str(book_folder(elsewhere.absolute())),
     }
     assert client.get(f"/documents/{doc}/listen").text.count('class="s"') > 0
-    record_file.unlink()  # without it, the saved and the default folder hold nothing
+    record_file.unlink()
+    (work_of(config, doc) / PROJECT).unlink()  # without both, saved and default hold nothing
     page = client.get(f"/documents/{doc}/listen").text
     assert "The audiobook files are no longer in" in page
     assert "player-data" not in page
@@ -760,7 +763,20 @@ def test_a_record_that_is_not_ours_is_ignored(tmp_path: Path, change: dict[str, 
     record_file = work_of(config, doc) / player.RECORD
     stored = json.loads(record_file.read_text(encoding="utf-8"))
     record_file.write_text(json.dumps({**stored, **change}), encoding="utf-8")
+    (work_of(config, doc) / PROJECT).unlink()  # the project's own folders would find it
     assert "The audiobook files are no longer in" in client.get(f"/documents/{doc}/listen").text
+
+
+def test_the_project_record_finds_the_audiobook_without_the_player_s_record(
+    tmp_path: Path,
+) -> None:
+    """D-749: the project's own audiobook folders are looked in after the recorded one."""
+    client, config = server(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    made = make(client, output_folder=str(elsewhere))
+    doc = made["doc"]["id"]
+    (work_of(config, doc) / player.RECORD).unlink()
+    assert client.get(f"/documents/{doc}/listen").text.count('class="s"') > 0
 
 
 def test_files_of_another_audiobook_under_the_same_names_are_refused(tmp_path: Path) -> None:
@@ -769,7 +785,7 @@ def test_files_of_another_audiobook_under_the_same_names_are_refused(tmp_path: P
     doc = made["doc"]["id"]
     names = {f["name"] for f in made["job"]["files"]}
     readalong_name = next(n for n in names if n.endswith(".readalong.json"))
-    path = config.output_folder / readalong_name
+    path = book_folder(config.output_folder) / readalong_name
     data = json.loads(path.read_text(encoding="utf-8"))
     data["duration"] += 5
     path.write_text(json.dumps(data), encoding="utf-8")
@@ -784,7 +800,7 @@ def test_a_read_along_that_does_not_fit_the_document_is_refused(tmp_path: Path) 
     made = make(client)
     doc = made["doc"]["id"]
     name = next(f["name"] for f in made["job"]["files"] if f["name"].endswith(".readalong.json"))
-    path = config.output_folder / name
+    path = book_folder(config.output_folder) / name
     data = json.loads(path.read_text(encoding="utf-8"))
     data["chunks"][0]["end_char"] = 10_000
     path.write_text(json.dumps(data), encoding="utf-8")
@@ -826,8 +842,8 @@ def test_a_link_out_of_the_folder_is_not_followed(tmp_path: Path) -> None:
     mp3 = next(f["name"] for f in made["job"]["files"] if f["name"].endswith(".mp3"))
     secret = tmp_path / "secret.mp3"
     secret.write_bytes(b"not yours")
-    (config.output_folder / mp3).unlink()
-    os.symlink(secret, config.output_folder / mp3)
+    (book_folder(config.output_folder) / mp3).unlink()
+    os.symlink(secret, book_folder(config.output_folder) / mp3)
     assert client.get(f"/api/v1/documents/{doc}/audiobook/{mp3}").status_code == 404
     assert "no longer in" in client.get(f"/documents/{doc}/listen").text
 

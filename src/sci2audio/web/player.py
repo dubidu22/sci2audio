@@ -55,6 +55,7 @@ from sci2audio.textprep import (
     TextStep,
     run_steps,
 )
+from sci2audio.web.project import read_project
 
 RECORD = "audiobook.json"  # the web's own record of where the audiobook went (D-295)
 RECORD_FORMAT = "sci2audio-web-audiobook"
@@ -429,8 +430,12 @@ def _agrees(record: AudioRecord, data: ReadAlong) -> bool:
 def candidate_folders(
     work: Path, document_id: str, saved: Path | None, default: Path
 ) -> list[Path | None]:
-    """Where the audiobook may be, in order (D-295): recorded, saved, default."""
-    return [recorded_folder(work, document_id), saved, default]
+    """Where the audiobook may be, in order (D-295, D-749): the recorded one, the project's
+    own audiobook folders (newest first), then the saved and the default output folder,
+    which hold the audiobooks made before #469."""
+    project = read_project(work, document_id)
+    own = [] if project is None else list(reversed(project.folders()))
+    return [recorded_folder(work, document_id), *own, saved, default]
 
 
 # ---- the page's view -------------------------------------------------------------------
