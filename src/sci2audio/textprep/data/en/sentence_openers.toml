@@ -9,24 +9,26 @@
 # Never put a name or a noun here, nor a one-letter word: "A" and "I" are initials as often
 # ("A. A. Milne", "J. I. Smith"). The price: "in the U.S. Researchers found" stays one
 # sentence. Each word is one word, matched as printed, with its capital.
+# Left out because each is also a surname that follows an initial ("Y. He", "X. An", "J. So",
+# "S. Even"): "He", "Her", "An", "So", "To", "On", "Or", "Still", "Even" (PR #547 review B1).
 
 openers = [
     # articles and determiners
-    "The", "An", "This", "That", "These", "Those", "Each", "Every", "Some", "Most", "Many",
+    "The", "This", "That", "These", "Those", "Each", "Every", "Some", "Most", "Many",
     "Both", "Such", "Several", "Few", "Other", "Another", "Any",
     # pronouns
-    "It", "We", "They", "He", "She", "You", "Its", "Our", "Their", "His", "Her", "Your",
+    "It", "We", "They", "She", "You", "Its", "Our", "Their", "His", "Your",
     # prepositions
-    "In", "On", "At", "For", "With", "From", "By", "After", "Before", "During", "Since",
-    "Under", "Over", "Among", "Between", "Without", "Despite", "Unlike", "Like", "To",
+    "In", "At", "For", "With", "From", "By", "After", "Before", "During", "Since",
+    "Under", "Over", "Among", "Between", "Without", "Despite", "Unlike", "Like",
     # conjunctions
-    "And", "But", "Or", "So", "Yet", "If", "When", "While", "Although", "Though", "Because",
+    "And", "But", "Yet", "If", "When", "While", "Although", "Though", "Because",
     "As", "Once", "Unless", "Whether",
     # adverbs that open a sentence
     "Then", "However", "Thus", "Therefore", "Hence", "Moreover", "Furthermore", "Also",
     "Here", "There", "Now", "Today", "First", "Finally", "Instead", "Indeed",
-    "Still", "Similarly", "Likewise", "Overall", "Nevertheless", "Nonetheless", "Meanwhile",
-    "Consequently", "Accordingly", "Otherwise", "Afterwards", "Later", "Only", "Even",
+    "Similarly", "Likewise", "Overall", "Nevertheless", "Nonetheless", "Meanwhile",
+    "Consequently", "Accordingly", "Otherwise", "Afterwards", "Later", "Only",
     # question words
     "What", "Why", "How", "Where", "Which", "Who",
 ]

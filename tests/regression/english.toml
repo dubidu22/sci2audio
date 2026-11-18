@@ -2759,3 +2759,12 @@ goal = "A letter that names a thing ('vitamin A.') before a sentence opener ends
 blocks = [{ kind = "paragraph", text = "We measured vitamin A. The levels were low." }]
 expected = ["We measured vitamin A. The levels were low."]
 utterances = ["We measured vitamin A.", "The levels were low."]
+
+[[case]]
+id = "an-initial-before-a-surname-that-is-also-a-function-word-ends-no-sentence"
+audit = 0
+issue = 477
+goal = "An initial before a surname that is also an English function word ('Y. He', 'X. An', 'K. He') ends no sentence: such words are kept out of the sentence-opener list (#477, D-744, PR #547 review B1)."
+blocks = [{ kind = "paragraph", text = "We thank Y. He and X. An for comments on the draft. As shown by K. He and colleagues, residual networks train well." }]
+expected = ["We thank Y. He and X. An for comments on the draft. As shown by K. He and colleagues, residual networks train well."]
+utterances = ["We thank Y. He and X. An for comments on the draft.", "As shown by K. He and colleagues, residual networks train well."]

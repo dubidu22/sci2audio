@@ -990,6 +990,8 @@ def test_the_english_sentence_openers_load_and_hold_no_unit_name_or_one_letter()
     nouns |= {entry.reads for entry in abbreviations("en") or () if entry.reads[:1].isupper()}
     assert not openers & {word.capitalize() for noun in nouns for word in noun.split()}
     assert not openers & {"Census", "Bureau", "Researchers", "Army", "Tolkien", "Smith"}
+    # nor a word that is also a surname after an initial ("Y. He", "X. An", PR #547 review B1)
+    assert not openers & {"He", "Her", "An", "So", "To", "On", "Or", "Still", "Even"}
 
 
 @pytest.mark.parametrize(
