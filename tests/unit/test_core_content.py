@@ -99,6 +99,17 @@ TEXT = Content(
 )
 
 
+def test_a_page_built_from_some_of_its_lines_may_keep_its_glyph_number_count() -> None:
+    """#574: only extraction's pages hold `unmapped <= characters` (checked in its tests); a
+    later stage that keeps some of a page's lines keeps the page's count, so core checks
+    only that the count is not negative."""
+    lines = (TextLine("l1", (TextRun("'DV %XFK"),)), TextLine("l2", (TextRun("ab c"),)))
+    page = Page(1, lines=lines, unmapped=7)
+    kept = dataclasses.replace(page, lines=lines[1:])
+    assert (kept.characters, kept.unmapped) == (3, 7)
+    assert Page(1, unmapped=4).unmapped == 4
+
+
 def test_line_text_joins_its_runs() -> None:
     assert PAPER.pages[0].lines[1].text == "We study sound"
 
@@ -134,6 +145,7 @@ def test_objects_are_frozen() -> None:
         lambda: Page(0),
         lambda: Page(1, width=612),
         lambda: Page(1, width=0, height=792),
+        lambda: Page(1, unmapped=-1),
         lambda: Content(PAPER.source, (Page(2),)),
         lambda: Content(PAPER.source, (Page(1), Page(1))),
         lambda: Content(
@@ -280,3 +292,26 @@ def test_every_item_is_found_by_its_id(content: Content) -> None:
     for item_id, (page, item) in found.items():
         assert item.id == item_id
         assert item in (*page.lines, *page.pictures, *page.drawings)
+
+
+def test_a_page_counts_its_characters_without_white_space() -> None:
+    page = Page(
+        1,
+        lines=(
+            TextLine("l1", (TextRun("Das "), TextRun("Buch"))),
+            TextLine("l2", (TextRun("\t x"),)),
+        ),
+    )
+    assert page.characters == 8
+
+
+def test_glyph_numbers_are_counted_on_a_page_and_left_out_of_the_export_at_zero() -> None:
+    """#442: `unmapped` is additive with an empty default, so every export (and golden file)
+    made before it reads the same, and a saved job from before it still loads."""
+    line = TextLine("p1-l1", (TextRun("'DV %XFK"),))
+    page = Page(1, lines=(line,), unmapped=7)
+    assert page.unmapped == page.characters == 7
+    assert to_data(page)["unmapped"] == 7
+    assert from_data(Page, to_data(page)) == page
+    assert "unmapped" not in to_data(Page(1, lines=(line,)))
+    assert from_data(Page, {"number": 1}) == Page(1)

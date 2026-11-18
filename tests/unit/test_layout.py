@@ -389,7 +389,7 @@ def test_heads_in_a_small_type_area_are_running_heads() -> None:
     heads = lni_heads(5)
     doc = build_document(content(*(small_area_page(n, heads.get(n)) for n in range(1, 6))))
     assert head_roles(doc) == [heads[n] for n in range(2, 6)]
-    assert doc.page_labels == ("",) * 5  # no page number of its own: the label stays empty
+    assert doc.page_labels == ("", "2", "3", "4", "5")  # printed in the heads (#535)
     page_2 = texts(doc).index(heads[2])
     assert texts(doc)[page_2 + 1] == "p2-0"  # the head comes first on its page (D-504)
 

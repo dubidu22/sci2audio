@@ -3,7 +3,7 @@
 Characters become styled runs, runs become lines, and lines, pictures and drawings keep their
 boxes and the order the file stores them in. The bookmarks become the outline, as stored (#24).
 Reading order, headings and page furniture are the layout stage's work. Coordinates are points
-with the origin at the top left of the page.
+with the origin at the top left of the page as shown: its crop box, turned by its /Rotate.
 
 PDFium crashes when two threads call it at once, even for different files, so every call goes
 through `_PDFIUM`: the one piece of global state this stage has (KB audit "PDFium thread-safety
@@ -477,12 +477,14 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
                     raise _too_large(name, f"more than {MAX_CHARS:,} characters")
                 pictures, drawings = _graphics(page, frame, number, name, graphics)
                 graphics += len(pictures) + len(drawings)
-                lines = _lines(textpage, frame, number, _Bars.of(drawings))
+                lines, unmapped = _lines(textpage, frame, number, _Bars.of(drawings))
             finally:
                 textpage.close()
         finally:
             page.close()
-        pages.append(Page(number, lines, pictures, drawings, width=width, height=height))
+        pages.append(
+            Page(number, lines, pictures, drawings, width=width, height=height, unmapped=unmapped)
+        )
     return tuple(pages)
 
 
@@ -493,31 +495,50 @@ class _Frame:
     file's origin: a page cut from a larger sheet (a journal page set on A4, one page of a
     spread) keeps the sheet's coordinates, and positions taken from the sheet's corner are
     all shifted. What the sheet prints outside the crop box is cut off, so not read; text
-    outside the sheet itself is kept, as it always was."""
+    outside the sheet itself is kept, as it always was. The sheet is the media box, also
+    where the page takes it from the page tree (#543).
+
+    A page with /Rotate is shown turned clockwise by that much, and PDFium measures it as
+    shown, while the file places everything on the unturned page: every point is turned
+    the same way, so positions are those of the page as shown (#537)."""
 
     left: float
     top: float
-    width: float
+    width: float  # as shown: crop box height and width swapped on a page turned 90 or 270
     height: float
     sheet: tuple[float, float, float, float] | None = None  # x0, y0, x1, y1 in page points
+    turn: int = 0  # the page's /Rotate in degrees, clockwise: 0, 90, 180 or 270
 
     @classmethod
     def of(cls, page: pdfium.PdfPage) -> _Frame:
         left, bottom, right, top = page.get_bbox()
-        frame = cls(left, top, right - left, top - bottom)
-        media = [ctypes.c_float() for _ in range(4)]
-        if not raw.FPDFPage_GetMediaBox(page.raw, *(ctypes.byref(v) for v in media)):
-            return frame  # no media box of its own: nothing to cut away
-        x0, y0 = frame.point(media[0].value, media[3].value)
-        x1, y1 = frame.point(media[2].value, media[1].value)
+        turn = page.get_rotation() % 360
+        wide, high = right - left, top - bottom
+        frame = cls(left, top, *((high, wide) if turn in (90, 270) else (wide, high)), turn=turn)
+        media = _media_box(page, (left, bottom, right, top))
+        x0, y0 = frame.point(media[0], media[3])
+        x1, y1 = frame.point(media[2], media[1])
         sheet = (min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
         if not all(map(math.isfinite, sheet)) or sheet == (0.0, 0.0, frame.width, frame.height):
             return frame
-        return cls(left, top, frame.width, frame.height, sheet)
+        return cls(frame.left, frame.top, frame.width, frame.height, sheet, turn)
 
     def point(self, x: float, y: float) -> tuple[float, float]:
-        """A point of the file (y upwards) in page points from the top left (y downwards)."""
-        return x - self.left, self.top - y
+        """A point of the file (y upwards) in page points from the top left (y downwards),
+        on the page as shown."""
+        u, v = x - self.left, self.top - y  # on the unturned page
+        if self.turn == 90:
+            return self.width - v, u
+        if self.turn == 180:
+            return self.width - u, self.height - v
+        if self.turn == 270:
+            return v, self.height - u
+        return u, v
+
+    def angle(self, angle: float) -> float:
+        """A character's angle on the unturned page as the page shows it, in [0, 2π)."""
+        turned = math.fmod(angle + math.radians(self.turn), math.tau)
+        return 0.0 if math.tau - turned < 1e-6 else turned
 
     def shows(self, x0: float, y0: float, x1: float, y1: float) -> bool:
         """False for a box the crop box cuts off: wholly outside it, on the sheet."""
@@ -527,6 +548,25 @@ class _Frame:
             return True
         x, y = (x0 + x1) / 2, (y0 + y1) / 2
         return not (self.sheet[0] <= x <= self.sheet[2] and self.sheet[1] <= y <= self.sheet[3])
+
+
+_UNBOUNDED = 1e9  # points: a crop box wider than any media box
+
+
+def _media_box(
+    page: pdfium.PdfPage, crop: tuple[float, float, float, float]
+) -> tuple[float, float, float, float]:
+    """The page's media box as PDFium uses it: its own, else the one it inherits from the
+    page tree, else PDFium's default (US Letter). `FPDFPage_GetMediaBox` reads only the
+    page's own entry (crbug.com/pdfium/1786), but the bounding box PDFium gives is the crop
+    box cut to the inherited media box: with the crop box opened wide for one call, it is
+    the media box. The crop box is set back to `crop` (the crop box as PDFium used it) before
+    any text is read; the file is never saved."""
+    raw.FPDFPage_SetCropBox(page.raw, -_UNBOUNDED, -_UNBOUNDED, _UNBOUNDED, _UNBOUNDED)
+    try:
+        return page.get_bbox()
+    finally:
+        raw.FPDFPage_SetCropBox(page.raw, *crop)
 
 
 @dataclass
@@ -540,6 +580,7 @@ class _Char:
     v0: float  # extent across the line
     v1: float
     base: float = math.nan  # where the baseline stands across the line (nan if unknown)
+    unmapped: bool = False  # from a font with no Unicode source (#442)
 
 
 # what stands between two characters: a space the file holds, or one PDFium added itself
@@ -559,7 +600,8 @@ class _Line:
 
     def accepts(self, char: _Char) -> bool:
         last = self.chars[-1]
-        if abs(char.angle - last.angle) > 0.01:
+        turn = abs(char.angle - last.angle)  # around the circle: 0.003 and 6.280 are close
+        if min(turn, math.tau - turn) > 0.01:
             return False
         size = max(last.style[1], char.style[1], 1.0)
         if char.u0 < last.u0 - 0.5 * size or char.u0 - last.u1 > LINE_GAP * size:
@@ -661,9 +703,12 @@ def _lines(
     frame: _Frame,
     number: int,
     bars: _Bars | None = None,
-) -> tuple[TextLine, ...]:
+) -> tuple[tuple[TextLine, ...], int]:
+    """The page's lines, and how many of their characters come from a font with no Unicode
+    source (#442)."""
     lines: list[_Line] = []
     space: str | None = None
+    unmapped = 0
     for char in _chars(textpage, frame):
         if isinstance(char, str):
             space = _SPACE if _SPACE in (space, char) else char
@@ -674,8 +719,9 @@ def _lines(
                 line.before = max(c.u1 for c in lines[-1].chars)
             lines.append(line)
         lines[-1].add(char, space)
+        unmapped += char.unmapped
         space = None
-    return tuple(_text_line(line, f"p{number}-l{i}") for i, line in enumerate(lines, 1))
+    return tuple(_text_line(line, f"p{number}-l{i}") for i, line in enumerate(lines, 1)), unmapped
 
 
 def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]:
@@ -687,6 +733,7 @@ def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]
     rect = raw.FS_RECTF()
     matrix = raw.FS_MATRIX()
     origin_x, origin_y = ctypes.c_double(), ctypes.c_double()
+    sourceless = _SourcelessFonts()
     for i in range(textpage.count_chars()):
         hyphen = raw.FPDFText_IsHyphen(handle, i) == 1
         text = _char_text(raw.FPDFText_GetUnicode(handle, i), hyphen)
@@ -714,14 +761,82 @@ def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]
         size = round(size, 1) if math.isfinite(size) and size > 0 else 0.0
         bold, italic = _style(font, raw.FPDFText_GetFontWeight(handle, i), flags.value)
         angle = raw.FPDFText_GetCharAngle(handle, i)
-        angle = angle if math.isfinite(angle) and angle >= 0 else 0.0
+        angle = frame.angle(angle if math.isfinite(angle) and angle >= 0 else 0.0)
         u0, v0, u1, v1 = _in_text_direction((x0, y0, x1, y1), angle)
         base = math.nan
         if raw.FPDFText_GetCharOrigin(handle, i, ctypes.byref(origin_x), ctypes.byref(origin_y)):
             origin = frame.point(origin_x.value, origin_y.value)
             base = _in_text_direction((*origin, *origin), angle)[1]
         style = (font, size, bold, italic)
-        yield _Char(text, style, (x0, y0, x1, y1), angle, u0, u1, v0, v1, base)
+        unmapped = bool(needed) and sourceless.has(handle, i, name.value)
+        yield _Char(text, style, (x0, y0, x1, y1), angle, u0, u1, v0, v1, base, unmapped)
+
+
+_SFNT = (b"\x00\x01\x00\x00", b"true", b"OTTO")  # TrueType and OpenType font programs
+_UNICODE_TABLES = {b"cmap", b"post"}  # a program's own ways to name its glyphs
+
+
+class _SourcelessFonts:
+    """Which characters of a page come from a font with no Unicode source (#442): the
+    font's embedded program is TrueType or OpenType without a cmap or a post table, and
+    PDFium found no Unicode for the character (its map error: no ToUnicode map, and no
+    encoding or glyph name it knows). Nothing in the file then says which letter a glyph
+    is, and PDFium gives the glyph number as the character.
+
+    The map error is asked first, for every character; a font is looked at (its program
+    copied and its table directory read) only for a character PDFium could not map, and
+    then once per page. Fonts are told apart by the name PDFium gives (a subset's name
+    carries its own tag).
+
+    Simple fonts with glyph names PDFium does not know (TeX's math fonts, matplotlib's Type 3
+    fonts) are not counted: in the corpus they set symbols and correct text (D-762). Text
+    that reads as nonsense from any font is what `extraction.legibility` finds."""
+
+    def __init__(self) -> None:
+        self._fonts: dict[bytes, bool] = {}  # by font name, for this page only
+
+    def has(self, textpage: object, index: int, name: bytes) -> bool:
+        """True if the character at `index`, whose font PDFium names `name`, comes from a
+        font with no Unicode source."""
+        if raw.FPDFText_HasUnicodeMapError(textpage, index) != 1:
+            return False
+        sourceless = self._fonts.get(name)
+        if sourceless is None:
+            sourceless = self._fonts[name] = _sourceless(textpage, index)
+        return sourceless
+
+
+def _sourceless(textpage: object, index: int) -> bool:
+    """True if the font of the character at `index` is embedded as a TrueType or OpenType
+    program without a cmap or a post table."""
+    text = raw.FPDFText_GetTextObject(textpage, index)
+    font = raw.FPDFTextObj_GetFont(text) if text else None
+    if not font or raw.FPDFFont_GetIsEmbedded(font) != 1:
+        return False
+    return _names_no_glyph(_program(font))
+
+
+def _program(font: object) -> bytes:
+    """The font's program as PDFium decoded it; empty if it gives none."""
+    size = ctypes.c_size_t()
+    if not raw.FPDFFont_GetFontData(font, None, 0, ctypes.byref(size)) or not size.value:
+        return b""
+    buffer = (ctypes.c_ubyte * size.value)()
+    if not raw.FPDFFont_GetFontData(font, buffer, size.value, ctypes.byref(size)):
+        return b""
+    return bytes(buffer)
+
+
+def _names_no_glyph(program: bytes) -> bool:
+    """True for a TrueType or OpenType program whose table directory holds neither a cmap
+    nor a post table. Anything else, a damaged directory too, counts as naming its glyphs."""
+    if program[:4] not in _SFNT:
+        return False
+    count = int.from_bytes(program[4:6], "big")
+    end = 12 + 16 * count
+    if count == 0 or len(program) < end:
+        return False
+    return not {program[i : i + 4] for i in range(12, end, 16)} & _UNICODE_TABLES
 
 
 def _char_text(code: int, hyphen: bool) -> str | None:

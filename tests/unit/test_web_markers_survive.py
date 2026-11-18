@@ -14,6 +14,7 @@ from cli_helpers import Cli, small_pdf
 from test_web_player import make, player_data, work_of
 from web_helpers import (
     FakeClock,
+    book_folder,
     browser,
     events,
     make_config,
@@ -137,7 +138,7 @@ def test_a_chunk_whose_span_is_empty_or_outside_the_document_is_no_sentence(
     """Round 1 S2: the route refuses it itself (422), never through the file's read-back
     guard (503), and the file is unchanged."""
     client, doc, config = marked["client"], marked["doc"], marked["config"]
-    [path] = config.output_folder.glob("*.readalong.json")
+    [path] = book_folder(config.output_folder).glob("*.readalong.json")
     data = json.loads(path.read_text(encoding="utf-8"))
     chunk = sentences(marked["data"])[0]  # a sentence without a marker
     assert chunk not in marked["chunks"]

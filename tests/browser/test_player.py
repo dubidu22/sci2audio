@@ -245,9 +245,8 @@ def test_the_page_says_when_there_is_nothing_to_play(signed_in: Page, live: Live
 def test_the_page_says_when_the_files_are_gone(signed_in: Page, live: Live) -> None:
     page = signed_in
     document = make_audiobook(page, live)
-    for file in live.config.output_folder.iterdir():
-        if file.suffix == ".mp3":
-            file.unlink()
+    for file in live.config.output_folder.rglob("*.mp3"):  # in the project's folder (D-749)
+        file.unlink()
     page.goto(f"{live.url}/documents/{document}/listen")
     expect(page.locator("#listen-problem")).to_contain_text("The audiobook files are no longer in")
     check_axe(page, "player, files missing")
