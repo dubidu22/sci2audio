@@ -1,27 +1,66 @@
 name: Mutation testing
 
-# Run by hand (Actions -> Mutation testing -> Run workflow), e.g. monthly or
-# before a release. Shows which code changes the tests fail to notice.
+# Run by hand (Actions -> Mutation testing -> Run workflow), e.g. on a critical PR's final
+# round or before a release. Shows which code changes the tests fail to notice.
+# The whole project has about 43,000 mutants, about a day on one runner, and a hosted job
+# ends after 6 hours (#246), so a run names the mutants (mutmut name globs, down to single
+# functions) and the tests that cover them (D-759). The globs are dealt out over up to four
+# runners; each runner's job summary counts the results and lists the survivors.
 on:
   workflow_dispatch:
+    inputs:
+      mutants:
+        description: Mutant name globs, e.g. sci2audio.textprep.links.x_name* or sci2audio.textprep.links*
+        type: string
+        required: true
+      tests:
+        description: Test paths under tests/ that cover them (the first, unmutated run uses them too)
+        type: string
+        default: tests/
+      runners:
+        description: Runners (1 to 4), each taking every n-th glob
+        type: number
+        default: 1
 
 permissions:
   contents: read
 
-# A second run by hand waits for the first instead of running beside it (D-580).
+# A second run of the same request waits for the first instead of running beside it
+# (D-580); a different request runs beside it.
 concurrency:
-  group: mutation-${{ github.ref }}
+  group: mutation-${{ github.ref }}-${{ inputs.mutants }}-${{ inputs.tests }}
   cancel-in-progress: false
 
 env:
   # The Python of .python-version (3.12.16 or newer), as uv downloads it; never the runner's
   # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
   UV_PYTHON_PREFERENCE: only-managed
+  MUTANTS: ${{ inputs.mutants }}
+  TESTS: ${{ inputs.tests }}
+  RUNNERS: ${{ inputs.runners }}
 
 jobs:
-  mutmut:
-    name: mutmut
+  plan:
+    name: which runners
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: matrix
+        run: python3 .github/scripts/mutation.py matrix
+
+  mutmut:
+    name: mutmut, runner ${{ matrix.slice }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -33,8 +72,21 @@ jobs:
       - run: uv sync --locked
       # mutmut exits 0 when it has run every mutant, whatever their results; a non-zero
       # exit means the run itself broke (for example the first, unmutated test run failed),
-      # and the job must say so instead of listing every mutant as "not checked".
+      # and the job must say so instead of listing every mutant as "not checked". It stops
+      # after 5 hours so that the results so far are still reported.
       - name: Mutation run
-        run: uv run mutmut run
-      - name: Results
-        run: uv run mutmut results
+        env:
+          SLICE: ${{ matrix.slice }}
+        run: timeout 300m uv run --no-sync python .github/scripts/mutation.py run
+      - name: Results (job summary)
+        if: always()
+        env:
+          SLICE: ${{ matrix.slice }}
+        run: uv run --no-sync python .github/scripts/mutation.py report
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-results-${{ matrix.slice }}
+          path: mutation-results.txt
+          if-no-files-found: ignore
+          retention-days: 14
