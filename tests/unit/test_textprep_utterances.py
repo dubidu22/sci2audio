@@ -351,8 +351,10 @@ def test_a_closing_mark_of_an_inline_list_opens_no_bracket_for_cutting(
     text: str, language: str
 ) -> None:
     # the ")" of "a)" closes nothing: the depth stays at zero, so the later "(" still counts
-    # as open and no part ends inside it (#481 review round 2)
-    for part in cut(text, language=language):
+    # as open and no part ends inside it (#481 review round 2); sized for a 300 limit (#494)
+    parts = cut(text, language=language, max_chars=SIZED_FOR)
+    assert len(parts) > 1
+    for part in parts:
         assert "(" not in part or part.rfind("(") < part.rfind(")")
 
 

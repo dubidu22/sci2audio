@@ -2432,6 +2432,22 @@ utterances = [
 ]
 
 [[case]]
+id = "de-long-sentence-colon-past-the-first-window"
+audit = 0
+issue = 494
+goal = "Ein Satz, dessen Doppelpunkt hinter dem ersten Fenster liegt, wird zuerst am Komma vor 'dass' in diesem Fenster geteilt, nicht an einem späteren Aufzählungskomma, und dann am Doppelpunkt; kein Teil endet in einer Nominalgruppe (D-719 PR 4, bei der Grenze von 400 Zeichen, #494)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Lehrkräfte der beteiligten Schulen haben in den Gesprächen am Ende des zweiten Schuljahres mehrfach betont, dass die Kinder nach einer kurzen Zeit der Eingewöhnung mit sichtlicher Freude, mit wachsender Ausdauer und mit erstaunlich viel Geduld in den Pausen, am Nachmittag und sogar an den langen Wochenenden im Winter in den neuen Büchern der Reihe über die vielen Tiere aus Wald, Wiese und Fluss gelesen und sich gegenseitig immer wieder von den schönsten Stellen erzählt hätten: Viele von ihnen wollten am Ende des Jahres gar nicht mehr aufhören, und einige baten sogar um weitere Bände derselben Reihe." }]
+expected = [
+    "Die Lehrkräfte der beteiligten Schulen haben in den Gesprächen am Ende des zweiten Schuljahres mehrfach betont, dass die Kinder nach einer kurzen Zeit der Eingewöhnung mit sichtlicher Freude, mit wachsender Ausdauer und mit erstaunlich viel Geduld in den Pausen, am Nachmittag und sogar an den langen Wochenenden im Winter in den neuen Büchern der Reihe über die vielen Tiere aus Wald, Wiese und Fluss gelesen und sich gegenseitig immer wieder von den schönsten Stellen erzählt hätten: Viele von ihnen wollten am Ende des Jahres gar nicht mehr aufhören, und einige baten sogar um weitere Bände derselben Reihe.",
+]
+utterances = [
+    "Die Lehrkräfte der beteiligten Schulen haben in den Gesprächen am Ende des zweiten Schuljahres mehrfach betont,",
+    "dass die Kinder nach einer kurzen Zeit der Eingewöhnung mit sichtlicher Freude, mit wachsender Ausdauer und mit erstaunlich viel Geduld in den Pausen, am Nachmittag und sogar an den langen Wochenenden im Winter in den neuen Büchern der Reihe über die vielen Tiere aus Wald, Wiese und Fluss gelesen und sich gegenseitig immer wieder von den schönsten Stellen erzählt hätten:",
+    "Viele von ihnen wollten am Ende des Jahres gar nicht mehr aufhören, und einige baten sogar um weitere Bände derselben Reihe.",
+]
+
+[[case]]
 id = "de-long-sentence-comma-before-a-conjunction"
 audit = 0
 issue = 460
@@ -2444,7 +2460,6 @@ expected = [
 utterances = [
     "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
 ]
-
 
 [[case]]
 id = "de-long-sentence-comma-before-a-conjunction-over-the-limit"
@@ -2460,6 +2475,7 @@ utterances = [
     "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben im Alltag und im Beruf zu ändern,",
     "und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen über ihre Zukunft selbst treffen und auch gemeinsam tragen will.",
 ]
+
 [[case]]
 id = "de-citation-with-a-reprint-year"
 audit = 0

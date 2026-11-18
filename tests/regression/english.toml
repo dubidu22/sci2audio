@@ -2554,6 +2554,21 @@ utterances = [
 ]
 
 [[case]]
+id = "long-sentence-colon-past-the-first-window"
+audit = 0
+issue = 494
+goal = "A sentence whose colon lies past the first window is cut first at the clause comma before 'which' inside that window, not at a later list comma ('slow, steady'), and then at its colon; no part is cut inside a phrase (D-719 PR 4, kept at the 400-character limit, #494)."
+blocks = [{ kind = "paragraph", text = "The listening script that the program builds for a long paper on the history of the regional schools is read aloud in parts, which means that the place of every single pause matters a great deal to a listener who has to keep many nested clauses, remarks in brackets, long lists of conditions and the names of several places and people in mind at the same time while the slow, steady and patient voice goes on reading all of them one after another without a break: each part is short enough for the voice and ends where a careful reader would naturally take a breath, and no part is ever cut inside a phrase." }]
+expected = [
+    "The listening script that the program builds for a long paper on the history of the regional schools is read aloud in parts, which means that the place of every single pause matters a great deal to a listener who has to keep many nested clauses, remarks in brackets, long lists of conditions and the names of several places and people in mind at the same time while the slow, steady and patient voice goes on reading all of them one after another without a break: each part is short enough for the voice and ends where a careful reader would naturally take a breath, and no part is ever cut inside a phrase.",
+]
+utterances = [
+    "The listening script that the program builds for a long paper on the history of the regional schools is read aloud in parts,",
+    "which means that the place of every single pause matters a great deal to a listener who has to keep many nested clauses, remarks in brackets, long lists of conditions and the names of several places and people in mind at the same time while the slow, steady and patient voice goes on reading all of them one after another without a break:",
+    "each part is short enough for the voice and ends where a careful reader would naturally take a breath, and no part is ever cut inside a phrase.",
+]
+
+[[case]]
 id = "long-sentence-comma-before-a-conjunction"
 audit = 0
 issue = 460
@@ -2565,7 +2580,6 @@ expected = [
 utterances = [
     "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
 ]
-
 
 [[case]]
 id = "long-sentence-comma-before-a-conjunction-over-the-limit"
@@ -2580,6 +2594,7 @@ utterances = [
     "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months and with the help of two new assistants who had not taken part before, used the same procedure as the first one and the same group of listeners,",
     "but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room at the back of the old building.",
 ]
+
 [[case]]
 id = "long-sentence-without-a-clause-mark"
 audit = 0
@@ -2592,7 +2607,6 @@ expected = [
 utterances = [
     "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
 ]
-
 
 [[case]]
 id = "long-sentence-without-a-clause-mark-over-the-limit"
@@ -2607,6 +2621,7 @@ utterances = [
     "The voice reads this very long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts",
     "of the sentence at about the same length because a very short last part would sound odd to the person who listens to it while sitting at home or on the train or walking through the park in the evening.",
 ]
+
 [[case]]
 id = "citation-with-a-reprint-year"
 audit = 0
