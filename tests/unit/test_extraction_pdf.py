@@ -4,6 +4,7 @@ Extraction records what the PDF holds and decides nothing; each test shows one t
 record faithfully. Broken and hostile PDFs are in `test_extraction_pdf_broken.py` (#5).
 """
 
+import math
 import threading
 from pathlib import Path
 
@@ -377,6 +378,30 @@ def test_a_turned_page_is_read_as_shown(turn: int) -> None:
         assert box == pytest.approx(expected, abs=0.01)
         assert 0 <= box[0] <= box[2] <= page.width
         assert 0 <= box[1] <= box[3] <= page.height
+
+
+@pytest.mark.parametrize("turn", [0, 90, 270])
+def test_slightly_skewed_words_on_either_side_of_level_read_as_one_line(turn: int) -> None:
+    """Words skewed by +0.2, -0.2 and +0.2 degrees (a scan's text layer) stand at angles
+    either side of 0 and 2π: they are one line, upright and on a turned page, where text
+    that reads left to right sits at 0 (review M1 of #559)."""
+
+    def word(x: float, deg: float, text: bytes) -> bytes:
+        cos, sin = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+        return b"BT /F1 12 Tf %.6f %.6f %.6f %.6f %g 700 Tm (%s) Tj ET\n" % (
+            cos,
+            sin,
+            -sin,
+            cos,
+            x,
+            text,
+        )
+
+    data = one_page_pdf(
+        word(72, 0.2, b"Alpha") + word(110, -0.2, b"Beta") + word(140, 0.2, b"Gamma")
+    )
+    page = read_pdf(turned(data, turn) if turn else data, "skewed.pdf").pages[0]
+    assert [line.text for line in page.lines] == ["Alpha Beta Gamma"]
 
 
 def test_a_landscape_table_turned_into_a_portrait_paper_reads_its_rows_in_order() -> None:

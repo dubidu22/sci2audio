@@ -597,7 +597,8 @@ class _Line:
 
     def accepts(self, char: _Char) -> bool:
         last = self.chars[-1]
-        if abs(char.angle - last.angle) > 0.01:
+        turn = abs(char.angle - last.angle)  # around the circle: 0.003 and 6.280 are close
+        if min(turn, math.tau - turn) > 0.01:
             return False
         size = max(last.style[1], char.style[1], 1.0)
         if char.u0 < last.u0 - 0.5 * size or char.u0 - last.u1 > LINE_GAP * size:
