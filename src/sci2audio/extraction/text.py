@@ -6,6 +6,16 @@ paragraph is tagged ``p``, each following one ``p``, ``br``: the shape an EPUB `
 ``<br>`` elements gives, so layout joins them the same way. White space is folded as a browser
 shows it (D-306); every other character is kept as stored.
 
+Inside a paragraph, two kinds of line start an element of their own (#466). A line that opens
+a list item is tagged ``ul, li`` or ``ol, li``, as Markdown's are, its wrapped lines ``br``
+after that, the marker kept in its text: a bullet ("- ", "* ", "• ") always, a number ("1. ",
+"1) ") only in a run of two or more that count up by one, so "1. Introduction" alone or a
+German date opening a paragraph ("3. Oktober 1990") stays text. Markdown would make a lone
+"1." line an item; plain text differs on purpose, for those German dates and ordinals. And
+the line after a title line is tagged ``p``: a short line in capitals, or a short line without
+closing punctuation before a line that starts with a capital (`_title`). Hard-wrapped prose
+keeps its lines together: none of its lines but the last is short.
+
 `decode_text` is shared with the Markdown reader: a byte order mark decides the encoding; a
 file without one is read as UTF-8 if it is valid UTF-8, else as Windows-1252 as the WHATWG
 Encoding Standard decodes it, which never fails and loses no byte, and the source then says the
@@ -57,6 +67,14 @@ _BINARY = (
     b"\x1f\x8b",  # gzip
 )
 _LINE_END = re.compile(r"\r\n|\r|\n")
+# Structure inside a paragraph (#466): list markers, and where a title line ends
+_BULLET = re.compile(r"[-*\u2022]\s+\S")
+_NUMBERED = re.compile(r"(\d{1,3})([.)])\s+\S")
+TITLE_SHARE = 0.6  # a title line is at most this share of its paragraph's longest line
+_ENDS = ".!?:;,\u2026-\u2010\u2011\u2013\u2014/"  # a line ending in one of these runs on
+_CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
+# looked through at a line's start
+_OPENERS = "\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{"
 
 
 @dataclass(frozen=True)
@@ -143,16 +161,75 @@ def read_text(data: bytes, name: str) -> Content:
     decoded = decode_text(data, name)
     check_lines(decoded.text, name, MAX_LINES, "text")
     lines: list[TextLine] = []
-    in_paragraph = False
-    for printed in _LINE_END.split(decoded.text):
+    paragraph: list[str] = []
+    for printed in [*_LINE_END.split(decoded.text), ""]:
         text = fold(printed)
-        if not text:  # a blank line ends the paragraph
-            in_paragraph = False
+        if text:
+            paragraph.append(text)
             continue
-        tags = ("p", "br") if in_paragraph else ("p",)
-        lines.append(TextLine(f"p1-l{len(lines) + 1}", (TextRun(text, tags=tags),)))
-        in_paragraph = True
+        for text, tags in zip(paragraph, paragraph_tags(paragraph), strict=True):
+            lines.append(TextLine(f"p1-l{len(lines) + 1}", (TextRun(text, tags=tags),)))
+        paragraph = []
     if not lines:
         raise ExtractionError(f"{name}: the file holds no text")
     page = Page(1, lines=tuple(lines), order=tuple(line.id for line in lines))
     return Content(source=source_of(data, name, SourceFormat.TEXT, decoded), pages=(page,))
+
+
+def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
+    """The tags of each line of a plain-text paragraph (#466): ``p`` for its first line and
+    for a line after a title line (`_title`), ``ul, li`` or ``ol, li`` for a line that opens a
+    list item (`_items`), and the tags of the line before plus ``br`` for any other line."""
+    items = _items(paragraph)
+    longest = max(len(text) for text in paragraph) if paragraph else 0
+    out: list[tuple[str, ...]] = []
+    element: tuple[str, ...] = ("p",)  # the element the next wrapped line continues
+    for k, text in enumerate(paragraph):
+        if k in items:
+            element = items[k]
+            out.append(element)
+        elif k and not _title(paragraph[k - 1], text, longest):
+            out.append((*element, "br"))
+        else:
+            element = ("p",)
+            out.append(element)
+    return out
+
+
+def _items(paragraph: list[str]) -> dict[int, tuple[str, ...]]:
+    """The lines of the paragraph that open a list item, by index, with their tags. Any line
+    opening with a bullet ("- ", "* ", "• ") does; a numbered line ("1. ", "1) ") does in a
+    run of two or more numbered lines of one style whose numbers go up by one, so a lone
+    "1. Introduction" or a German date ("3. Oktober 1990 ...") stays text."""
+    found: dict[int, tuple[str, ...]] = {}
+    run: list[tuple[int, int, str]] = []  # (index, number, "." or ")")
+    for k, text in enumerate(paragraph):
+        if _BULLET.match(text):
+            found[k] = ("ul", "li")
+        elif numbered := _NUMBERED.match(text):
+            number, style = int(numbered[1]), numbered[2]
+            if not (run and number == run[-1][1] + 1 and style == run[-1][2]):
+                found.update(_run(run))
+                run = []
+            run.append((k, number, style))
+    found.update(_run(run))
+    return found
+
+
+def _run(run: list[tuple[int, int, str]]) -> dict[int, tuple[str, ...]]:
+    return {k: ("ol", "li") for k, _, _ in run} if len(run) >= 2 else {}
+
+
+def _title(line: str, after: str, longest: int) -> bool:
+    """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
+    least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
+    has no lower-case letter ("LISTENING TO PAPERS") or ends without punctuation, hyphen or
+    dash before a line starting with a capital ("A pilot note" / "Written for ...")."""
+    letters = [c for c in line if c.isalpha()]
+    if len(letters) < 2 or len(line) > TITLE_SHARE * longest:
+        return False
+    if not any(c.islower() for c in letters) and any(c.isupper() for c in letters):
+        return True
+    if line.rstrip(_CLOSERS)[-1:] in _ENDS:
+        return False
+    return after.lstrip(_OPENERS)[:1].isupper()

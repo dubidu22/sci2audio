@@ -1,7 +1,8 @@
 """Plain-text extraction and the decoding shared with Markdown (#74, the text part of #5).
 
 A text file becomes one page; each printed line that is not blank is a text line, the first
-of a paragraph tagged ``p`` and each following one ``p``, ``br`` (D-344). The encoding is the
+of a paragraph tagged ``p`` and each following one ``p``, ``br`` (D-344), unless it starts a
+list item or follows a title line (#466). The encoding is the
 byte order mark's, else UTF-8, else Windows-1252 as WHATWG decodes it, marked as guessed
 (D-345, D-346). Empty, binary and too large files fail with a clear message (D-347).
 """
@@ -282,17 +283,158 @@ paragraphs = st.lists(
 )
 
 
+STARTS = {("p",), ("ul", "li"), ("ol", "li")}  # the tags of a line that starts an element
+
+
 @given(paragraphs, st.sampled_from(["utf-8", "utf-8-sig", "utf-16", "utf-32"]))
 def test_paragraphs_come_back_line_for_line_in_every_declared_encoding(
     written: list[list[str]], codec: str
 ) -> None:
+    """Every printed line comes back once, in order, folded; a paragraph's first line starts
+    an element, and every other line starts one or continues the one before (#466)."""
     data = "\n\n".join("\n".join(paragraph) for paragraph in written).encode(codec)
     expected = [
-        (" ".join(line.split(" ")).strip(" "), ("p",) if index == 0 else ("p", "br"))
+        " ".join(t for t in " ".join(line.split(" ")).strip(" ").split(" ") if t)
         for paragraph in written
-        for index, line in enumerate(paragraph)
+        for line in paragraph
     ]
-    expected = [(" ".join(t for t in text.split(" ") if t), tags) for text, tags in expected]
     content = read(data)
-    assert lines(content) == expected
+    assert [text for text, _ in lines(content)] == expected
+    firsts = {sum(map(len, written[:k])) for k in range(len(written))}
+    for k, (_, tags) in enumerate(lines(content)):
+        assert tags in STARTS if k in firsts else (tags in STARTS or tags[-1] == "br")
     assert not content.source.encoding_guessed
+
+
+prose = st.lists(
+    st.text("abcdefghijklmnopqrstuvwxyzäöüß ,;", min_size=1, max_size=40).filter(str.strip),
+    min_size=1,
+    max_size=4,
+)
+
+
+@given(st.lists(prose, min_size=1, max_size=5))
+def test_prose_lines_of_a_paragraph_are_joined(written: list[list[str]]) -> None:
+    """Lines with no list marker and no title line before them keep D-344's tags: ``p``
+    for a paragraph's first line, ``p, br`` for each following one."""
+    data = "\n\n".join("\n".join(paragraph) for paragraph in written).encode()
+    tags = [tags for _, tags in lines(read(data))]
+    expected = [
+        ("p",) if index == 0 else ("p", "br")
+        for paragraph in written
+        for index, _ in enumerate(paragraph)
+    ]
+    assert tags == expected
+
+
+# ---- structure inside a paragraph (#466) -------------------------------------------------
+
+
+def tags_of(text: str) -> list[tuple[str, ...]]:
+    return [tags for _, tags in lines(read(text.encode()))]
+
+
+@pytest.mark.parametrize("marker", ["- ", "* ", "\u2022 "])
+def test_a_bulleted_line_starts_a_list_item(marker: str) -> None:
+    text = f"Our points:\n{marker}first point\n{marker}second point\n"
+    assert lines(read(text.encode())) == [
+        ("Our points:", ("p",)),
+        (f"{marker}first point", ("ul", "li")),
+        (f"{marker}second point", ("ul", "li")),
+    ]
+
+
+@pytest.mark.parametrize("style", [".", ")"])
+def test_numbered_lines_that_count_up_start_list_items(style: str) -> None:
+    text = f"1{style} First point\n2{style} Second point\n3{style} Third point\n"
+    assert tags_of(text) == [("ol", "li")] * 3
+
+
+def test_a_wrapped_list_item_continues_on_its_next_line() -> None:
+    text = "- a first point that is long\n  and wraps onto a second line\n- second point\n"
+    assert tags_of(text) == [("ul", "li"), ("ul", "li", "br"), ("ul", "li")]
+
+
+def test_a_lone_numbered_line_or_a_german_date_stays_text() -> None:
+    """A number starts a list item only in a run of two that count up: "1. Introduction"
+    alone and a paragraph opening with a date ("3. Oktober 1990") are text."""
+    assert tags_of("1. Introduction\n") == [("p",)]
+    text = "3. Oktober 1990 war ein Feiertag, und die Menschen gingen auf\ndie Straße.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+def test_only_the_run_of_numbers_that_count_up_are_items() -> None:
+    """ "1." "2." are items; "4." after them does not follow, and stays a wrapped line."""
+    text = "1. First point of a list\n2. Second point of a list\n4. not the third one\n"
+    assert tags_of(text) == [("ol", "li"), ("ol", "li"), ("ol", "li", "br")]
+
+
+def test_a_dash_or_number_inside_a_line_is_no_marker() -> None:
+    text = "The result - as expected - was 2. the second\nline goes on here as wrapped prose.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+@pytest.mark.parametrize(
+    ("title", "after"),
+    [
+        ("LISTENING TO PAPERS", "A pilot note written for the sci2audio tests"),
+        ("PAPERS HÖREN", "Eine Pilotnotiz für die Tests von sci2audio"),
+        ("A Short Title", "This line starts with a capital and runs on for long."),
+        ("„Ein Titel“", "»Dieser Satz« beginnt mit einem Großbuchstaben und läuft weiter."),
+    ],
+)
+def test_the_line_after_a_title_line_starts_a_paragraph(title: str, after: str) -> None:
+    assert tags_of(f"{title}\n{after}\n") == [("p",), ("p",)]
+
+
+def test_hard_wrapped_prose_stays_one_paragraph() -> None:
+    """A capital at the start of a line is no cut when the line before is not short (German
+    nouns), nor when a short line ends in punctuation, a hyphen or a dash."""
+    text = (
+        "Diese Notiz beschreibt eine erfundene Pilotstudie und keine echten\n"
+        "Daten. Jeder Satz darin ist unser eigener, und die Zeilen sind von\n"
+        "Hand umbrochen.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+    for end in (",", ";", "-", "\u2013", ":"):
+        text = f"Short line{end}\nThis line starts with a capital and runs on for long.\n"
+        assert tags_of(text) == [("p",), ("p", "br")], end
+
+
+def test_a_short_line_before_a_lower_case_line_stays_joined() -> None:
+    text = "a line in a poem\nkeeps where it breaks, and this line is long.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+def test_a_poem_with_capitalised_lines_of_even_length_stays_one_paragraph() -> None:
+    text = "Roses are red\nViolets are blue\nSugar is sweet\nAnd so are you.\n"
+    assert tags_of(text) == [("p",), *[("p", "br")] * 3]
+
+
+def test_a_wrapped_text_in_capitals_stays_one_paragraph() -> None:
+    """A licence in capitals, wrapped by hand: no line but the last is short."""
+    text = (
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+        "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY\n"
+        "AND FITNESS FOR A PARTICULAR PURPOSE.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_a_title_line_needs_two_letters() -> None:
+    """A short number or sign is no title: "2026" before a capital stays joined."""
+    assert tags_of("0\nA line of prose that runs on for a while here.\n") == [("p",), ("p", "br")]
+
+
+def test_a_short_line_in_capitals_is_a_title_line_whatever_it_ends_with() -> None:
+    """A line in capitals cuts even where a mixed-case line would run on (its colon)."""
+    assert tags_of("ABSTRACT:\nthe text of the abstract runs on for a long line.\n") == [
+        ("p",),
+        ("p",),
+    ]
+
+
+def test_numbers_of_two_styles_make_no_run() -> None:
+    """ "1." then "2)" count up but differ in style: no list, the lines stay joined."""
+    text = "1. First point of a list\n2) second point of a list\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
