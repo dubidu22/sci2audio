@@ -17,12 +17,14 @@ from test_player import highlighted, listen_to, paused
 
 from conftest import Live, check_axe
 
+# over the 400-character cut limit (#494): cut once, its later piece the longest
 LONG = (
-    "The results of the second survey, which was carried out two years after the first one "
-    "in the same schools and with the same questionnaire and the same people asking the "
-    "questions, show that the share of teachers who use the new material in every lesson "
-    "has almost doubled since the start of the programme, while the share of those who "
-    "never use it has fallen by half in the same time and in every kind of school."
+    "In the second survey the share of teachers who use the new material in every lesson has "
+    "almost doubled since the start of the programme, while the share of those who never use "
+    "it has fallen by half in the same time, in the same schools, with the same questionnaire "
+    "and with the same people asking the questions, in every kind of school, from the small "
+    "village schools with one class for all ages to the large city schools with several "
+    "classes in each year."
 )
 TEXT = f"A short sentence first.\n\nAnother short one.\n\n{LONG}\n\nA short sentence last.\n"
 
