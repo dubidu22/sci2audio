@@ -90,3 +90,74 @@ def work_folder_lock(work: Path) -> Iterator[None]:
                 _unlock(file)
     finally:
         file.close()
+
+
+class FolderLock:
+    """The working folder's lock as `work_folder_lock` holds it, but one that can be let go
+    before the block ends and taken again: the move to the project folders (D-748) holds
+    it for the whole move and lets it go only right before a rename Windows refuses while
+    a file in the folder is open. `acquire` raises JobBusyError or JobError as
+    `work_folder_lock` does; `release` is safe to call more than once."""
+
+    def __init__(self, work: Path) -> None:
+        self.work = work
+        self._file: IO[bytes] | None = None
+
+    @property
+    def held(self) -> bool:
+        return self._file is not None
+
+    def acquire(self) -> None:
+        if self._file is not None:
+            return
+        try:
+            file = (self.work / LOCK_NAME).open("a+b")
+        except OSError as error:
+            raise JobError(
+                f"could not use the working folder {self.work.name}: {error.strerror or error}"
+            ) from error
+        if not _lock_soon(file):
+            file.close()
+            raise JobBusyError(
+                "another sci2audio job is working on this file's working folder; "
+                "wait until it has finished"
+            )
+        self._file = file
+
+    def release(self) -> None:
+        file, self._file = self._file, None
+        if file is None:
+            return
+        with contextlib.suppress(OSError):
+            _unlock(file)
+        file.close()
+
+    def __enter__(self) -> FolderLock:
+        self.acquire()
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.release()
+
+
+@contextlib.contextmanager
+def file_lock(path: Path, *, wait: float) -> Iterator[bool]:
+    """Hold the operating-system lock on the file `path` (made if missing), trying for up to
+    `wait` seconds; yields False, holding nothing, when another process kept it that long.
+    Used by the move to the project folders (D-748), so two processes never move at once."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    file = path.open("a+b")
+    try:
+        deadline = time.monotonic() + wait
+        held = _try_lock(file)
+        while not held and time.monotonic() < deadline:
+            time.sleep(0.1)
+            held = _try_lock(file)
+        try:
+            yield held
+        finally:
+            if held:
+                with contextlib.suppress(OSError):
+                    _unlock(file)
+    finally:
+        file.close()
