@@ -740,7 +740,7 @@ def test_a_magnitude_after_a_raised_mass_number_is_no_thousand() -> None:
         ("K, ", 10.0, 100.0),
         ("40", 10.0, 100.0),  # the text's size: plain
         ("K, ", 10.0, 100.0),
-        ("40", 7.0, 100.0),  # small but on the line: a subscript
+        ("40", 7.0, 103.0),  # small but on the line: no mass number
         ("K and ", 10.0, 100.0),
         ("1234", 7.0, 97.0),  # four digits: no mass number
         ("K.", 10.0, 100.0),

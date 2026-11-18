@@ -19,14 +19,20 @@ expression, magnitude letter or symbol, with the words of `data/<language>/units
 - **Degrees:** "°" after a number reads "degree(s)", "°C" "degree(s) Celsius", a spaced "K"
   "kelvin".
 - **Magnitudes:** a glued "K"/"k", "M", "B"/"bn" reads "thousand", "million", "billion"
-  ("441K apps").
+  ("441K apps"); so does plain "40K", which nothing tells from "a 40K run". After a mass
+  number set small and raised ("⁴⁰K" as a `sup` run, `footnotes.raised_numbers`) the letter is
+  an element symbol: the raised digits are written as superscript digits, which is how they
+  are printed and which no step reads as a number, so the letter stays as printed on both
+  runs (#449). The voice reads "⁴⁰K" as it reads "40K".
 - **Symbols:** "≈" reads "approximately" and "×" "times" (D-242: explicit, though espeak-ng
   says the same); "~" and "∼" read "about" right before a number; a letter "x" reads "times"
   between two numbers or glued after one ("10x speedup"); the micro sign "µ" that is not a
   unit prefix becomes the Greek "μ", which the voice reads "mu". "%" is left to the voice.
 
 Edits cover the unit or symbol only, never the number, so they never overlap the number
-steps (#67). Furniture and placeholder blocks are claimed whole by other steps and skipped.
+steps (#67); the one exception is a raised mass number of one to three digits, which no
+number rule reads (#449). Furniture and placeholder blocks are claimed whole by other steps
+and skipped.
 """
 # ruff: noqa: RUF002 (the docstrings name the symbols this step reads)
 
@@ -34,12 +40,12 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Iterator
+from collections.abc import Collection, Iterator
 from dataclasses import dataclass
 from functools import cache
 
 from sci2audio.core import Document, Edit, EditKind, Span
-from sci2audio.textprep.footnotes import unread_marks
+from sci2audio.textprep.footnotes import raised_numbers, unread_marks
 from sci2audio.textprep.notation import FILE_NUMBER_DE, edits_through_unread
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.statistics_de import OPERATORS_DE
@@ -48,6 +54,7 @@ from sci2audio.textprep.wordlists import Unit, UnitList, opens_sentence, units
 
 MICRO_SIGN = "\u00b5"
 GREEK_MU = "\u03bc"
+_SUPERSCRIPT = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
 _MINUS = "-\u2212"
 _DASHES = "-\u2013\u2014\u2012"
 _GAP = " \u00a0\u2009\u202f\u2007\n"  # what may stand between a number and its unit
@@ -182,18 +189,47 @@ class UnitStep(TextStep):
         if table is None:
             return []
         marks = unread_marks(document, context)  # read as a second run reads, without them
+        raised = raised_numbers(document) if table.words.magnitudes else {}
         edits = []
         for index, block in enumerate(document.blocks):
             if not read_as_prose(block, context):
                 continue
-            edits += edits_through_unread(
+            found = edits_through_unread(
                 index,
                 block.text,
                 lambda read: _without_overlaps(self._edits(index, read, table)),  # noqa: B023
                 self.id,
                 marks.get(index, ()),
             )
+            edits += self._mass_numbers(block.text, found, raised.get(index, ()), table)
         return edits
+
+    def _mass_numbers(
+        self, text: str, edits: list[Edit], raised: Collection[tuple[int, int]], table: _Table
+    ) -> list[Edit]:
+        """A magnitude letter after a raised mass number is no "thousand": "⁴⁰K" is
+        potassium-40 (#449). Its magnitude edit becomes a `replace` of the raised digits with
+        superscript digits, so the letter stays as printed and a second run, which sees no
+        run tags, reads "⁴⁰K" the same."""
+        ends = {end: start for start, end in raised}
+        kept = []
+        for edit in edits:
+            start = ends.get(edit.span.start)
+            letter = text[edit.span.start : edit.span.end]
+            if start is None or table.magnitude.fullmatch(letter) is None:
+                kept.append(edit)
+                continue
+            digits = text[start : edit.span.start]
+            kept.append(
+                Edit(
+                    Span(edit.span.block, start, edit.span.start),
+                    EditKind.REPLACE,
+                    reason=f'raised "{digits}" before "{letter}" kept as printed, not "thousand"',
+                    step=self.id,
+                    replacement=digits.translate(_SUPERSCRIPT),
+                )
+            )
+        return kept
 
     def _edits(self, index: int, text: str, table: _Table) -> Iterator[Edit]:
         units_found: list[tuple[int, int]] = []

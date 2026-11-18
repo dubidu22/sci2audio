@@ -98,8 +98,9 @@ def test_each_reason_names_what_is_removed() -> None:
     edits = HiddenRunStep().find(document, EN)
     hidden = 'hidden text "SECRET word" is not read (hidden in the file)'
     assert [(e.span, e.kind, e.reason) for e in edits] == [
-        (Span(0, 2, 14), EditKind.REMOVE, hidden),
-        (Span(0, 17, 19), EditKind.REMOVE, 'page-break marker "13" is not read'),
+        # white space on both sides: the space before goes too (#445)
+        (Span(0, 1, 14), EditKind.REMOVE, hidden),
+        (Span(0, 16, 19), EditKind.REMOVE, 'page-break marker "13" is not read'),
     ]
 
 
@@ -109,7 +110,7 @@ def test_each_reason_names_what_is_removed() -> None:
 def test_hidden_runs_side_by_side_are_one_removal_and_hidden_wins_the_reason(runs: list) -> None:
     document = tagged("a ", *runs, " b")
     (edit,) = HiddenRunStep().find(document, EN)
-    assert edit.span == Span(0, 2, 5)
+    assert edit.span == Span(0, 1, 5)  # with the space before it (#445)
     assert edit.reason.startswith("hidden text")
 
 
@@ -119,7 +120,7 @@ def test_hidden_runs_side_by_side_are_one_removal_and_hidden_wins_the_reason(run
 def test_hidden_runs_go_in_every_kind_of_text_block(kind: BlockKind) -> None:
     document = tagged("Shown", (" hidden", HIDDEN), " too", kind=kind)
     (edit,) = HiddenRunStep().find(document, EN)
-    assert edit.span == Span(0, 6, 12)
+    assert edit.span == Span(0, 5, 12)  # the run's own space, as a space follows (#445)
 
 
 def test_furniture_and_placeholders_read_by_their_notice_get_no_edit_of_this_step() -> None:
@@ -154,7 +155,7 @@ def test_a_placeholder_whose_notice_is_off_loses_its_hidden_runs(
     )
     off = StepContext(language, switched_off=frozenset({NOTICES[kind]}))
     edits = HiddenRunStep().find(document, off)
-    assert [edit.span for edit in edits] == [Span(0, 2, 4), Span(0, 7, 13)]
+    assert [edit.span for edit in edits] == [Span(0, 1, 4), Span(0, 6, 13)]  # #445
     others = frozenset(set(NOTICES.values()) - {NOTICES[kind]})
     assert HiddenRunStep().find(document, StepContext(language, switched_off=others)) == []
     assert read(document, switched_off=[NOTICES[kind]]) == ["a b c"]
@@ -175,8 +176,8 @@ def test_a_placeholder_in_a_language_without_notices_loses_its_hidden_runs(
     switched = [] if on else [NOTICES[kind]]
     context = StepContext("fr", switched_off=frozenset(switched))
     assert [edit.span for edit in HiddenRunStep().find(document, context)] == [
-        Span(0, 2, 4),
-        Span(0, 7, 13),
+        Span(0, 1, 4),  # with the space before each run (#445)
+        Span(0, 6, 13),
     ]
     assert read(document, switched_off=switched) == ["a b c"]
 
