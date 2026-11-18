@@ -382,3 +382,85 @@ def test_any_rules_and_lines_at_the_foot_keep_every_line_in_one_block(
                 assert block.text[part.start : part.start + len(text)] == text
         if block.kind is BlockKind.FOOTNOTE:
             assert block.text.lstrip().startswith(block.label)
+
+
+# Note numbers in the notes' own size (#457)
+
+
+def body_with_marks(*marks: str) -> list[TextLine]:
+    """Two columns of body text whose first left lines end with these marks, set in 6 point
+    after 10 point text, as superior figures."""
+    left, right = two_columns(f"b{next(_ids)}", 100, 30)
+    for k, found in enumerate(marks):
+        box = left[k].box
+        assert box is not None
+        runs = (
+            TextRun("Running text with a note", "Times", 10.0, box=Box(LEFT, box.y0, 230, box.y1)),
+            TextRun(found, "Times", 6.0, box=Box(230, box.y0, 234, box.y0 + 6)),
+        )
+        left[k] = TextLine(left[k].id, runs, box)
+    return [*left, *right]
+
+
+def hanging(number: str, text: str, y: float) -> list[TextLine]:
+    """A note whose number is set in the notes' size on their baseline, as a line of its own,
+    with the text 1.6 em to its right at the notes' hanging indent (#457)."""
+    return [
+        TextLine(f"h{next(_ids)}", (TextRun(number, "Times", 8.0),), Box(LEFT, y, LEFT + 4, y + 8)),
+        TextLine(
+            f"h{next(_ids)}", (TextRun(text, "Times", 8.0),), Box(LEFT + 17, y, LEFT_END, y + 8)
+        ),
+    ]
+
+
+def continued(text: str, y: float) -> TextLine:
+    return TextLine(
+        f"h{next(_ids)}", (TextRun(text, "Times", 8.0),), Box(LEFT + 17, y, LEFT_END, y + 8)
+    )
+
+
+def test_a_number_in_the_notes_size_hanging_before_its_text_starts_a_note() -> None:
+    """#457: the body prints marks 1 and 2 smaller; each note's number is in the notes' own
+    size, on their baseline, 1.6 em before the text."""
+    notes = [
+        *hanging("1", "The first note,", RULE_Y + 6),
+        continued("going on at the indent.", RULE_Y + 15),
+        *hanging("2", "The second note.", RULE_Y + 24),
+    ]
+    doc = build_document(content([*body_with_marks("1", "2"), *notes], drawings=(rule(),)))
+    assert footnotes(doc) == [
+        ("1", "1 The first note,\ngoing on at the indent."),
+        ("2", "2 The second note."),
+    ]
+
+
+def test_a_number_in_the_notes_size_is_no_label_unless_the_text_prints_that_mark() -> None:
+    """A note opening with a year, or a hanging number the body text above never prints as
+    a mark, is not cut: the notes stay one note without a label, as before #457."""
+    year = [
+        *hanging("1", "The first note.", RULE_Y + 6),
+        *hanging("1999", "appeared.", RULE_Y + 15),
+    ]
+    doc = build_document(content([*body_with_marks("1"), *year], drawings=(rule(),)))
+    assert footnotes(doc) == [("1", "1 The first note.\n1999 appeared.")]
+    doc = build_document(
+        content([*body_with_marks(), *hanging("1", "A note.", RULE_Y + 6)], drawings=(rule(),))
+    )
+    assert footnotes(doc) == [("", "1 A note.")]
+
+
+def test_a_number_in_the_notes_size_close_to_its_text_is_no_label() -> None:
+    """Less than `footnote_mark_gap` em between the number and the text: a number in the
+    note's sentence, set as a piece of its own by a wide word gap."""
+    lines = [
+        TextLine(
+            "n-a", (TextRun("1", "Times", 8.0),), Box(LEFT, RULE_Y + 6, LEFT + 4, RULE_Y + 14)
+        ),
+        TextLine(
+            "n-b",
+            (TextRun("case only.", "Times", 8.0),),
+            Box(LEFT + 10, RULE_Y + 6, 200, RULE_Y + 14),
+        ),
+    ]
+    doc = build_document(content([*body_with_marks("1"), *lines], drawings=(rule(),)))
+    assert footnotes(doc) == [("", "1 case only.")]

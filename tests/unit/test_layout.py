@@ -681,3 +681,106 @@ def test_any_clean_column_page_reads_column_by_column(page: tuple[Content, list[
     doc = build_document(found)
     assert texts(doc) == expected
     assert columns_per_page(found) == [count]
+
+
+# Running heads of a small journal page and its footnotes (#458, #456)
+
+
+def journal_page(number: int, notes: bool = False) -> tuple[list[TextLine], list[Drawing]]:
+    """A page of a journal printed small (600 x 800 here): a head with the page number in
+    its line ("Tests in Print ∙ 61" on odd pages, "62 ∙ Journal of Tests ∙ 55/17" on even
+    ones) standing 0.5 pt past the top band, a rule drawn just under it, 1.2 em of white,
+    then body text; with `notes`, a footnote rule and notes in 8 point down to the paper's
+    foot, in the bottom band (#458: Kehren after the crop box fix)."""
+    printed = number + 54
+    text = f"Tests in Print ∙ {printed}" if number % 2 else f"{printed} ∙ Journal of Tests ∙ 55/17"
+    head = line(text, LEFT, 70.5, 300)  # y1 80.5: the band ends at 80
+    rule = Drawing(f"rule-{number}", Box(LEFT, 80.0, RIGHT, 80.6))
+    body = [  # down to y 733
+        line(f"Running text of page {number}, row {k}, set in ten point.", LEFT, 93 + 14 * k, RIGHT)
+        for k in range(46)
+    ]
+    drawings = [rule]
+    if notes:
+        body = body[:40]  # down to y 649
+        body[-1] = short(body[-1])
+        drawings.append(Drawing(f"note-rule-{number}", Box(LEFT, 680, LEFT + 150, 680.5)))
+        body += [
+            line("1", LEFT, 686, LEFT + 4, size=8),
+            *(
+                line(f"Note one, row {k}, in small letters.", LEFT + 17, 686 + 9 * k, RIGHT, size=8)
+                for k in range(4)
+            ),
+            line("3", LEFT, 722, LEFT + 4, size=8),  # in the bottom band, from y 720
+            line("Note three, in the bottom band,", LEFT + 17, 722, RIGHT, size=8),
+            line("down to the paper's foot.", LEFT + 17, 731, 300, size=8),
+        ]
+    return [head, *body], drawings
+
+
+def journal(count: int, notes: bool = False) -> Content:
+    pages = [journal_page(n, notes) for n in range(1, count + 1)]
+    return Content(
+        Source("test.pdf", SourceFormat.PDF),
+        tuple(
+            Page(n, tuple(lines), drawings=tuple(drawings), width=600, height=800)
+            for n, (lines, drawings) in enumerate(pages, start=1)
+        ),
+    )
+
+
+def test_body_size_heads_with_the_page_number_in_their_line_are_running_heads() -> None:
+    """#458: the number goes up with the page, so no two heads repeat word for word; the
+    text with the number taken as its offset from the page number does (54 on each page)."""
+    doc = build_document(journal(6))
+    assert head_roles(doc) == [li.text for n in range(1, 7) for li in journal_page(n)[0][:1]]
+
+
+def test_a_number_at_the_end_of_a_head_that_does_not_follow_the_page_is_kept() -> None:
+    """D-323 still holds: "Algorithm 3" and "Algorithm 4" on pages 3 and 5 differ by two,
+    not by the pages' distance, and stay text."""
+    heads = {3: "Algorithm 3", 5: "Algorithm 4"}
+    doc = build_document(content(*(page_with_head(n, heads.get(n), y=60) for n in range(1, 7))))
+    assert texts(doc, BlockKind.FURNITURE) == []
+
+
+def test_footnotes_in_the_bottom_band_are_neither_footers_nor_running_heads() -> None:
+    """#458: notes in 8 point run down into the bottom band; smaller letters alone don't
+    make them furniture, and note numbers at the same height on two pages are no head."""
+    doc = build_document(journal(4, notes=True))
+    assert roles(doc) == ["running-head"] * 4
+    notes = "\n".join(b.text for b in doc.blocks if b.kind is BlockKind.FOOTNOTE)
+    assert notes.count("down to the paper's foot.") == 4
+    assert notes.count("Note one, row 0") == 4
+
+
+def test_a_page_number_in_body_size_below_the_notes_is_still_a_page_number() -> None:
+    """Under the notes' column with less than `apart` em of white, as on ACL pages (chi p3):
+    body-size letters end the notes."""
+    pages = []
+    for n in range(1, 4):
+        lines, drawings = journal_page(n, notes=True)
+        pages.append(([*lines[1:], line(str(n), LEFT, 745, LEFT + 6)], drawings[1:]))
+    doc = build_document(
+        Content(
+            Source("test.pdf", SourceFormat.PDF),
+            tuple(
+                Page(n, tuple(lines), drawings=tuple(drawings), width=600, height=800)
+                for n, (lines, drawings) in enumerate(pages, start=1)
+            ),
+        )
+    )
+    assert roles(doc) == ["page-number"] * 3
+    assert doc.page_labels == ("1", "2", "3")
+
+
+def test_a_german_printed_table_of_contents_is_furniture() -> None:
+    """#456: "Inhalt" and "Inhaltsverzeichnis" head a table of contents like "Contents"."""
+    for name in ("Inhalt", "Inhaltsverzeichnis"):
+        title = line(name, LEFT, 100, 160, size=14)
+        entries = []
+        for k, (entry, page) in enumerate([("1 Einleitung", "3"), ("2 Methoden", "7")]):
+            entries += [line(entry, LEFT, 130 + 14 * k, 200), line(page, 510, 130 + 14 * k, RIGHT)]
+        after = column("text-", LEFT, RIGHT, 200, 6)
+        doc = build_document(content([title, *entries, *after]))
+        assert roles(doc) == ["contents"] * 5

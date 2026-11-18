@@ -22,6 +22,14 @@ bigger paper (the LNI template on Letter paper starts 17 % down) prints nothing 
 its first row of text, where such templates put their heads, is in the top band too (#235,
 D-502 to D-504). Only that row: a lone number lower down stays text. The bottom band stays
 the paper's, since the foot of a small type area holds footnotes (D-503).
+
+A small journal page (#458) sets its heads a little past the band, draws a rule under them
+and prints the page number in the head's line ("Journal of Tests ∙ 61"). So for body-size
+heads a line's middle in the band will do, a rule just under the edge lines goes with them
+(the white past it is what sets them apart), and a number at either end of the line that is
+the page number plus the same offset on each page counts as the same text. Its footnotes
+reach down into the bottom band: lines under a footnote rule, set smaller and following it
+without white, are never furniture.
 """
 
 from __future__ import annotations
@@ -49,7 +57,7 @@ _PAGE_NUMBER = re.compile(
     r"(?:\s*(?:of|/)\s*\d{1,4})?$",
     re.IGNORECASE,
 )
-_CONTENTS_TITLE = {"contents", "tableofcontents"}
+_CONTENTS_TITLE = {"contents", "tableofcontents", "inhalt", "inhaltsverzeichnis"}  # German: #456
 _LEADER = re.compile(r"(?:\.\s?){4,}\s*\d{1,4}$|(?:…\s?){2,}\s*\d{1,4}$")
 
 
@@ -72,14 +80,17 @@ class Edges:
     # type area (D-502). None while something is printed in the paper's top band.
     first_row: float | None = None
 
-    def band(self, box: Box, page: Page) -> str:
-        """The band a box on this page stands in: "top", "bottom" or "" (neither)."""
+    def band(self, box: Box, page: Page, *, wide: bool = False) -> str:
+        """The band a box on this page stands in: "top", "bottom" or "" (neither). The box
+        stands wholly in the band; with `wide`, its middle will do (a body-size running head
+        reaching just past the band, #458)."""
         height = page.height or 0.0
-        if box.y1 <= self.settings.edge_band * height or (
+        top, bottom = (((box.y0 + box.y1) / 2,) * 2) if wide else (box.y1, box.y0)
+        if top <= self.settings.edge_band * height or (
             self.first_row is not None and box.y0 <= self.first_row
         ):
             return "top"
-        if box.y0 >= (1 - self.settings.edge_band) * height:
+        if bottom >= (1 - self.settings.edge_band) * height:
             return "bottom"
         return ""
 
@@ -146,6 +157,21 @@ def _exact(text: str) -> str:
     return re.sub(r"\s+", "", text.casefold())
 
 
+_END_NUMBER = re.compile(r"^(\d{1,4})(?=\D)|(?<=\D)(\d{1,4})$")
+
+
+def _texts(text: str, page: int) -> list[str]:
+    """The line's exact text, and the same with a number at its start or end that is the
+    page's number plus some offset (the page number printed in the running head,
+    "Journal Name ∙ 61"), as that offset: one head on every page then (#458)."""
+    exact = _exact(text)
+    found = [exact]
+    for number in _END_NUMBER.finditer(exact):
+        start, end = number.span()
+        found.append(f"{exact[:start]}#{int(number.group()) - page}#{exact[end:]}")
+    return found
+
+
 def _shape(text: str) -> str:
     """The line with numbers and spacing evened out, to recognise a running head."""
     return re.sub(r"\d+", "#", _exact(text))
@@ -180,12 +206,13 @@ def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
     settings, size = measured[0].settings, measured[0].size
     drift = settings.head_drift * size
     lines = [  # (band, exact text, page, height, line id)
-        (band, _exact(line.text), page.page.number, boxed(line).y0, line.id)
+        (band, text, page.page.number, boxed(line).y0, line.id)
         for page in measured
         for line in page.lines
         if line.id in page.apart  # a smaller line has its own rule and lends no pages here
         and settings.small * size <= line_size(line) <= settings.head_size * size
-        and (band := page.bands.band(boxed(line), page.page))
+        and (band := page.bands.band(boxed(line), page.page, wide=True))
+        for text in _texts(line.text, page.page.number)
     ]
     texts: Heads = defaultdict(list)
     for band, text, number, y, _ in lines:
@@ -215,6 +242,7 @@ class _Page:
         self.alone = {row[0].id for row in self.rows if len(row) == 1}
         self.graphics = [g.box for g in (*page.pictures, *page.drawings) if g.box]
         self.apart = self._apart()
+        self.notes = self._notes()
 
     def furniture(
         self, heads: Heads, body_heads: set[str], counted: set[str]
@@ -222,7 +250,7 @@ class _Page:
         found = dict.fromkeys(self.stamps, SIDE_STAMP)
         settings, height = self.settings, self.page.height or 0.0
         for line in self.lines:
-            if line.id in found:
+            if line.id in found or line.id in self.notes:
                 continue
             box, text = boxed(line), line.text.strip()
             band = self.bands.band(box, self.page)
@@ -262,6 +290,43 @@ class _Page:
             and not near
         )
 
+    def _notes(self) -> set[str]:
+        """The lines of the page's footnotes: the rows under a footnote rule (thin, in the
+        lower half, between `footnote_rule_width` em and `footnote_rule_share` of the text's
+        width) that follow it and each other with less than `apart` em of white. Smaller
+        letters alone don't make them furniture at the foot of the page (#458); a page
+        number set apart below them still is."""
+        settings, page, size = self.settings, self.page, self.size
+        _, right = text_area(self.lines, settings.edge_share)
+        found: set[str] = set()
+        for rule in page.drawings:
+            box = rule.box
+            if (
+                box is None
+                or box.y1 - box.y0 > settings.footnote_rule_height
+                or box.y0 < settings.footnote_band * (page.height or 0.0)
+                or not settings.footnote_rule_width * size
+                <= box.x1 - box.x0
+                <= settings.footnote_rule_share * (right - box.x0)
+            ):
+                continue
+            reach = settings.footnote_reach * size
+            column = [
+                li
+                for li in self.lines
+                if boxed(li).y0 >= box.y1
+                and abs(boxed(li).x0 - box.x0) <= reach
+                and line_size(li) < settings.small * size  # notes are set smaller
+            ]
+            above = [box]
+            for row in rows(column, settings.row_overlap):
+                boxes = [boxed(li) for li in row]
+                if _white(above, boxes) >= settings.apart * size:
+                    break
+                found.update(li.id for li in row)
+                above = boxes
+        return found
+
     def _apart(self) -> set[str]:
         """Lines in the top or bottom band with white of `apart` em between them and the body.
 
@@ -273,23 +338,33 @@ class _Page:
         parts = [([boxed(li) for li in row], [li.id for li in row]) for row in self.rows]
         parts += [([g], []) for g in self.graphics if not any(_inside(b, g) for b in boxes)]
         found: set[str] = set()
-        for ordered, inside in (
-            (
-                sorted(parts, key=lambda part: min(b.y0 for b in part[0])),
-                lambda b: self.bands.band(b, page) == "top",
-            ),
-            (
-                sorted(parts, key=lambda part: -max(b.y1 for b in part[0])),
-                lambda b: self.bands.band(b, page) == "bottom",
-            ),
+        for ordered, band in (
+            (sorted(parts, key=lambda part: min(b.y0 for b in part[0])), "top"),
+            (sorted(parts, key=lambda part: -max(b.y1 for b in part[0])), "bottom"),
         ):
-            for i, (part, _) in enumerate(ordered):
-                if not all(inside(box) for box in part):
+            for i, (part, ids) in enumerate(ordered):
+                # a line's middle will do (`Edges.band`), a graphic stands wholly in the band
+                inside = (self.bands.band(box, page, wide=bool(ids)) == band for box in part)
+                if not all(inside) and not (
+                    i and not ids and self._rule_under(part, ordered[i - 1][0])
+                ):
                     break
                 after = ordered[i + 1][0] if i + 1 < len(ordered) else None
                 if after is None or _white(part, after) >= settings.apart * self.size:
                     found.update(line for _, ids in ordered[: i + 1] for line in ids)
         return found
+
+    def _rule_under(self, part: list[Box], before: list[Box]) -> bool:
+        """True for a rule (a drawing at most `line_width` em thick) less than `apart` em
+        from the edge lines before it: it goes with them, and the white past it is the
+        white between them and the body (a running head ruled off from the text, #458)."""
+        (box,) = part if len(part) == 1 else (None,)
+        settings = self.settings
+        return (
+            box is not None
+            and box.y1 - box.y0 <= settings.line_width * self.size
+            and _white(before, part) < settings.apart * self.size
+        )
 
 
 def _is_stamp(line: TextLine, page: Page, settings: LayoutSettings) -> bool:
