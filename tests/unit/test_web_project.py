@@ -51,6 +51,8 @@ ID = "00000000000000a0"
     [
         ("Smith 2024 attention.pdf", "Smith 2024 attention"),
         ("a:b|c?.epub", "a b c"),  # characters Windows forbids
+        ("C:paper.pdf", "C paper"),  # never read as a drive, on any system
+        ("dir\\paper.pdf", "dir paper"),  # nor a backslash as a folder
         ("CON.pdf", "_CON"),  # a name Windows reserves
         ("notes. .txt", "notes"),  # no trailing dots or spaces
         ("͸odd\ud800.md", "odd"),  # an unassigned and a surrogate code point (#491, #493)

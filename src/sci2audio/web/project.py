@@ -32,7 +32,7 @@ import hashlib
 import json
 import os
 from dataclasses import dataclass, replace
-from pathlib import Path, PurePath
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from sci2audio.app.files import write_texts
@@ -80,7 +80,7 @@ def folder_name(document_name: str) -> str:
     """The project folder's name from the opened file's name: without its suffix, cleaned
     for every file system (forbidden, unassigned and surrogate code points, Windows names,
     #491, #493) and cut to NAME_CHARS characters and NAME_BYTES bytes."""
-    stem = PurePath(document_name).stem
+    stem = PurePosixPath(document_name).stem  # the same on every system: "a:" is no drive
     return clean(cut(clean(stem, "audiobook"), NAME_CHARS, NAME_BYTES), "audiobook")
 
 
