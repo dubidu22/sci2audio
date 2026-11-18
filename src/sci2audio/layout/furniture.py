@@ -122,7 +122,12 @@ def find_furniture(
     bands = bands or edges(content, settings)
     size = body_size(content) or settings.body_size
     pages = [page for page in content.pages if page.height and page.width]
-    measured = [_Page(page, size, bands) for page in pages]
+    repeats: dict[str, list[tuple[int, float]]] = defaultdict(list)  # exact text -> places
+    for page in pages:
+        for line in page.lines:
+            if line.box:
+                repeats[_exact(line.text)].append((page.number, line.box.y0))
+    measured = [_Page(page, size, bands, repeats) for page in pages]
     heads = _running_heads(pages, size, bands)
     body_heads = _body_heads(measured, len(pages))
     counted = _counted(pages, size, bands)
@@ -233,7 +238,13 @@ def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
 class _Page:
     """One page's lines, measured once for the furniture rules."""
 
-    def __init__(self, page: Page, size: float, bands: Edges) -> None:
+    def __init__(
+        self,
+        page: Page,
+        size: float,
+        bands: Edges,
+        repeats: dict[str, list[tuple[int, float]]] | None = None,
+    ) -> None:
         self.page, self.size, self.bands, self.settings = page, size, bands, bands.settings
         self.lines = [line for line in page.lines if line.box]
         self.stamps = {line.id for line in self.lines if _is_stamp(line, page, self.settings)}
@@ -242,6 +253,7 @@ class _Page:
         self.alone = {row[0].id for row in self.rows if len(row) == 1}
         self.graphics = [g.box for g in (*page.pictures, *page.drawings) if g.box]
         self.apart = self._apart()
+        self.repeats = repeats or {}  # where each line's exact text stands in the document
         self.notes = self._notes()
 
     def furniture(
@@ -294,8 +306,11 @@ class _Page:
         """The lines of the page's footnotes: the rows under a footnote rule (thin, in the
         lower half, between `footnote_rule_width` em and `footnote_rule_share` of the text's
         width) that follow it and each other with less than `apart` em of white. Smaller
-        letters alone don't make them furniture at the foot of the page (#458); a page
-        number set apart below them still is."""
+        letters alone don't make them furniture at the foot of the page (#458). Rows at the
+        foot of that stack that are lines alone on their row, a page number by its shape or
+        repeated word for word at their height on `repeat_pages` pages (a footer, D-323),
+        are left to the furniture rules, however close under the notes (review of #530, F1,
+        F2). A note's mark is never alone on its row: its text stands beside it."""
         settings, page, size = self.settings, self.page, self.size
         _, right = text_area(self.lines, settings.edge_share)
         found: set[str] = set()
@@ -318,14 +333,28 @@ class _Page:
                 and abs(boxed(li).x0 - box.x0) <= reach
                 and line_size(li) < settings.small * size  # notes are set smaller
             ]
-            above = [box]
+            above, stack = [box], []
             for row in rows(column, settings.row_overlap):
                 boxes = [boxed(li) for li in row]
                 if _white(above, boxes) >= settings.apart * size:
                     break
-                found.update(li.id for li in row)
+                stack.append(row)
                 above = boxes
+            while stack and self._own(stack[-1]):  # furniture at the foot, under the notes
+                stack.pop()
+            found.update(li.id for row in stack for li in row)
         return found
+
+    def _own(self, row: list[TextLine]) -> bool:
+        """True for a row under the notes that is furniture of its own: one line, alone on
+        its page row, a page number by its shape or repeated word for word at its height."""
+        if len(row) != 1 or row[0].id not in self.alone:
+            return False
+        line, drift = row[0], self.settings.head_drift * self.size
+        places = self.repeats.get(_exact(line.text), [])
+        return bool(_PAGE_NUMBER.match(line.text.strip())) or (
+            _repeated(places, boxed(line).y0, drift) >= self.settings.repeat_pages
+        )
 
     def _apart(self) -> set[str]:
         """Lines in the top or bottom band with white of `apart` em between them and the body.

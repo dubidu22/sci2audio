@@ -243,7 +243,8 @@ class _Headings:
     def _numeral_one(self, found: dict[int, tuple[int, str]]) -> dict[int, tuple[int, str]]:
         """A block that is only the Roman numeral "I", set like a heading that is only a Roman
         numeral ("II", "III"), at that heading's level (#459). It has one letter, too few for
-        `_short`, which keeps a bold table number or a list label out."""
+        `_short`, which keeps a bold table number or a list label out. Found headings are
+        all bold or larger than the body, so the style match is all the check it needs."""
         levels = {
             self.texts[k].style: level
             for k, (level, _) in found.items()
@@ -255,7 +256,6 @@ class _Headings:
             if k not in found
             and text.style in levels
             and text.block.text.strip().rstrip(".") == "I"
-            and (text.style.bold or self._larger(text))
         }
 
     def _short(self, text: _Text) -> bool:

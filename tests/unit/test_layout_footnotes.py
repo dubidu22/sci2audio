@@ -464,3 +464,28 @@ def test_a_number_in_the_notes_size_close_to_its_text_is_no_label() -> None:
     ]
     doc = build_document(content([*body_with_marks("1"), *lines], drawings=(rule(),)))
     assert footnotes(doc) == [("", "1 case only.")]
+
+
+def test_a_mark_at_the_start_of_a_longer_line_is_no_hanging_label() -> None:
+    """Review of #530, T2: the number must be a line of its own. Here "1" opens a line that
+    goes on ("1 *case was seen*", a run of its own first), with a piece far to its right;
+    the body prints mark 1,
+    but the line is the first note's text going on, not a second note."""
+    lines = [
+        *hanging("1", "The first note,", RULE_Y + 6),
+        TextLine(
+            f"h{next(_ids)}",
+            (
+                TextRun("1", "Times", 8.0),
+                TextRun(" case was seen", "Times-Italic", 8.0, italic=True),
+            ),
+            Box(LEFT, RULE_Y + 15, 150, RULE_Y + 23),
+        ),
+        TextLine(
+            f"h{next(_ids)}",
+            (TextRun("twice.", "Times", 8.0),),
+            Box(170, RULE_Y + 15, 200, RULE_Y + 23),
+        ),
+    ]
+    doc = build_document(content([*body_with_marks("1"), *lines], drawings=(rule(),)))
+    assert [label for label, _ in footnotes(doc)] == ["1"]

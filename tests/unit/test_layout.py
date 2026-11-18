@@ -5,6 +5,7 @@ x 70 and x 526 unless a test says otherwise.
 """
 
 import itertools
+from collections.abc import Callable
 
 from core_strategies import contents
 from hypothesis import example, given
@@ -708,12 +709,12 @@ def journal_page(number: int, notes: bool = False) -> tuple[list[TextLine], list
         body += [
             line("1", LEFT, 686, LEFT + 4, size=8),
             *(
-                line(f"Note one, row {k}, in small letters.", LEFT + 17, 686 + 9 * k, RIGHT, size=8)
+                line(f"Note one of page {number}, row {k}.", LEFT + 17, 686 + 9 * k, RIGHT, size=8)
                 for k in range(4)
             ),
             line("3", LEFT, 722, LEFT + 4, size=8),  # in the bottom band, from y 720
             line("Note three, in the bottom band,", LEFT + 17, 722, RIGHT, size=8),
-            line("down to the paper's foot.", LEFT + 17, 731, 300, size=8),
+            line(f"down to the foot of page {number}.", LEFT + 17, 731, 300, size=8),
         ]
     return [head, *body], drawings
 
@@ -750,8 +751,8 @@ def test_footnotes_in_the_bottom_band_are_neither_footers_nor_running_heads() ->
     doc = build_document(journal(4, notes=True))
     assert roles(doc) == ["running-head"] * 4
     notes = "\n".join(b.text for b in doc.blocks if b.kind is BlockKind.FOOTNOTE)
-    assert notes.count("down to the paper's foot.") == 4
-    assert notes.count("Note one, row 0") == 4
+    assert all(f"down to the foot of page {n}." in notes for n in range(1, 5))
+    assert all(f"Note one of page {n}, row 0." in notes for n in range(1, 5))
 
 
 def test_a_page_number_in_body_size_below_the_notes_is_still_a_page_number() -> None:
@@ -784,3 +785,65 @@ def test_a_german_printed_table_of_contents_is_furniture() -> None:
         after = column("text-", LEFT, RIGHT, 200, 6)
         doc = build_document(content([title, *entries, *after]))
         assert roles(doc) == ["contents"] * 5
+
+
+def noted_pages(extra: Callable[[int], list[TextLine]]) -> Content:
+    """Four journal pages with notes down to y 739 and no head; `extra` adds lines to each."""
+    pages = []
+    for n in range(1, 5):
+        lines, drawings = journal_page(n, notes=True)
+        pages.append(
+            Page(n, (*lines[1:], *extra(n)), drawings=tuple(drawings[1:]), width=600, height=800)
+        )
+    return Content(Source("test.pdf", SourceFormat.PDF), tuple(pages))
+
+
+def note_texts(doc: Document) -> list[str]:
+    return [b.text for b in doc.blocks if b.kind is BlockKind.FOOTNOTE]
+
+
+def test_a_small_footer_set_tight_under_the_notes_stays_furniture() -> None:
+    """Review of #530, F1: 8 pt of white under the notes, less than `apart`; repeated word
+    for word at its height, the footer ends the notes and is a running head, as on main."""
+    footer = "Journal of Tests, volume 55"
+    doc = build_document(noted_pages(lambda n: [line(footer, LEFT, 747, 250, size=7)]))
+    assert head_roles(doc) == [footer] * 4
+    assert len(note_texts(doc)) == 4
+    assert all(footer not in text for text in note_texts(doc))
+
+
+def test_a_small_page_number_set_tight_under_the_notes_stays_a_page_number() -> None:
+    """Review of #530, F2: a number alone on its row ends the notes; a note's mark is never
+    alone (its text stands beside it)."""
+    doc = build_document(noted_pages(lambda n: [line(str(n + 54), LEFT, 747, LEFT + 8, size=8)]))
+    assert doc.page_labels == ("55", "56", "57", "58")
+    assert all(not text.rstrip().endswith(("55", "56", "57", "58")) for text in note_texts(doc))
+
+
+def test_a_small_line_tight_under_the_notes_away_from_their_rule_is_not_a_note() -> None:
+    """Review of #530, T1: a one-off small footer at the right of the foot is no note line,
+    however close under them: it stays a footer, as on main."""
+    received = "Received 3 May 2017"
+    foot = [  # one more note row down to y 748, the footer 4 pt under it, in the footer band
+        line("and the note goes on.", LEFT + 17, 740, 300, size=8),
+        line(received, 400, 752, RIGHT, size=7),
+    ]
+    doc = build_document(noted_pages(lambda n: foot if n == 1 else []))
+    assert texts(doc, BlockKind.FURNITURE) == [received]
+    assert all(received not in text for text in note_texts(doc))
+
+
+def test_a_short_rule_in_the_upper_half_shields_no_lines_from_the_furniture_rules() -> None:
+    """Review of #530, T3: only a rule in the lower half is a footnote rule. A small head
+    with a short rule over it keeps the shape rule for smaller heads (D-326)."""
+    pages = []
+    for n in range(1, 4):
+        body = [
+            line(f"Running text of page {n}, row {k}.", LEFT, 100 + 14 * k, RIGHT)
+            for k in range(40)
+        ]
+        head = line(f"Journal of Tests {n}", LEFT, 34, 250, size=8)
+        rule = Drawing(f"top-rule-{n}", Box(LEFT, 30, LEFT + 100, 30.4))
+        pages.append(Page(n, (head, *body), drawings=(rule,), width=600, height=800))
+    doc = build_document(Content(Source("test.pdf", SourceFormat.PDF), tuple(pages)))
+    assert head_roles(doc) == [f"Journal of Tests {n}" for n in range(1, 4)]
