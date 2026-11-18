@@ -64,6 +64,7 @@ SCRIPT_KEYS = (
     "remove.stays",  # and remove.stays_folder, remove.stays_earlier
     "remove.deleted",  # what the removal did with the audiobook files (#470)
     "remove.kept_some",
+    "remove.kept_folder",
     "shelf.",
     "library.search_none",  # the search, filtered in place (#416)
     "library.sub",

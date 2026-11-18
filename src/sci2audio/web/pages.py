@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import stat
 from collections.abc import Iterable, Mapping
@@ -90,7 +91,7 @@ from sci2audio.web.player import (
     recorded_folder,
     sentence_starts,
 )
-from sci2audio.web.project import read_project
+from sci2audio.web.project import PROJECT, read_project
 from sci2audio.web.state import ServerState, state_of
 from sci2audio.web.tasks import plan_digest
 
@@ -211,9 +212,14 @@ def _removal(document: StoredDocument) -> dict[str, Any]:
     folders' audiobook files counted as the box is drawn (sizes only; the hashes are
     checked when the button is pressed), and an audiobook made before #469 elsewhere."""
     project = read_project(document.folder, document.id)
+    record = document.folder / PROJECT
+    # a record that exists but can't be read: nothing is deleted, and the box says why (R4)
+    unread = project is None and os.path.lexists(record)
     own = [] if project is None else project.folders()
     audiobooks = []
     for audiobook in [] if project is None else project.audiobooks:
+        if _linked(audiobook.folder):  # never followed, so nothing in it goes (D-751)
+            continue
         sizes = [_file_size(audiobook.folder / f.name) for f in audiobook.files]
         found = [size for size in sizes if size is not None]
         if found:
@@ -226,11 +232,20 @@ def _removal(document: StoredDocument) -> dict[str, Any]:
         "audiobooks": audiobooks,
         "keep": KEEP_AUDIOBOOK_DEFAULT,
         # an audiobook made before #469, outside any project folder: it always stays
-        "folder": None if folder is None or folder in own else str(folder),
+        "folder": None if folder is None or folder in own or unread else str(folder),
+        "record_unread": str(record) if unread else None,
         "has_audio": document.has_audio,
         # counted from the file as the box is drawn (D-728 ruling 3); None: it can't be read
         "markers": count_markers(document.folder, document.id),
     }
+
+
+def _linked(path: Path) -> bool:
+    """A symbolic link or a Windows junction."""
+    try:
+        return path.is_symlink() or path.is_junction()
+    except OSError:
+        return False
 
 
 def _file_size(path: Path) -> int | None:

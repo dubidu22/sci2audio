@@ -293,13 +293,24 @@ function removal() {
       let text = tr("remove.done", { name: removed.name });
       // what happened to the audiobook files (#470, D-751)
       const parts = [];
+      // whole folders (path == folder) come first and are not counted as files
       const chosen = removed.kept.filter((kept) => kept.reason === "kept-by-choice");
-      const others = removed.kept.length - chosen.length + removed.kept_more;
+      const folders = removed.kept.filter(
+        (kept) => kept.path === kept.folder && kept.reason !== "kept-by-choice",
+      );
+      const files = removed.kept.filter((kept) => kept.path !== kept.folder);
+      const stayed = files.length + removed.kept_more;
       if (removed.deleted_files) parts.push(tr("remove.deleted", { n: removed.deleted_files }));
       if (chosen.length) {
         parts.push(tr("remove.stays_folder", { folder: chosen[chosen.length - 1].path }));
       }
-      if (others) parts.push(tr("remove.kept_some", { n: others }));
+      if (stayed) {
+        const where = (files[0] ?? removed.kept[removed.kept.length - 1]).folder;
+        parts.push(tr("remove.kept_some", { n: stayed, folder: where }));
+      }
+      if (folders.length) {
+        parts.push(tr("remove.kept_folder", { n: folders.length, folder: folders[0].path }));
+      }
       if (button.dataset.earlier) {
         parts.push(tr("remove.stays_earlier", { folder: button.dataset.earlier }));
       } else if (!parts.length && button.dataset.audio) parts.push(tr("remove.stays"));

@@ -142,7 +142,7 @@ def test_removing_with_keep_takes_the_whole_working_folder_and_nothing_else(tmp_
         "audiobook_folder": book,
         "deleted_files": 0,
         "deleted_bytes": 0,
-        "kept": [{"path": book, "reason": "kept-by-choice"}],
+        "kept": [{"path": book, "reason": "kept-by-choice", "folder": book}],
         "kept_more": 0,
     }
     assert not folder.exists()

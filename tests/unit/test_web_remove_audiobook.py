@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import errno
 import hashlib
+import json
 import os
 import stat
 from pathlib import Path
@@ -30,7 +31,7 @@ from web_helpers import (
 )
 
 from sci2audio.app.lock import work_folder_lock
-from sci2audio.web import api, create_app, removal
+from sci2audio.web import api, create_app, i18n, removal
 from sci2audio.web.player import write_record
 from sci2audio.web.project import (
     PROJECT,
@@ -92,6 +93,13 @@ def record(work: Path, document: str, folder: Path, *files: AudiobookFile) -> No
 
 def kept(response: Any) -> dict[str, str]:
     return {Path(k["path"]).name: k["reason"] for k in response.json()["kept"]}
+
+
+def first_file(one: dict[str, Any]) -> Path:
+    """The record's first audiobook file: the first one the removal tries."""
+    project = read_project(one["work"], one["doc"])
+    assert project is not None
+    return project.audiobooks[0].folder / project.audiobooks[0].files[0].name
 
 
 @pytest.fixture
@@ -252,6 +260,33 @@ def test_at_most_fifty_kept_paths_are_named_and_the_rest_counted(one: dict[str, 
     assert len(files_of(one["book"])) == removal.KEPT_LIMIT + 7
 
 
+def test_a_whole_folder_that_stayed_is_listed_before_the_limit_cuts_files(
+    one: dict[str, Any], tmp_path: Path
+) -> None:
+    """Whole folders come first, so the count of files that stayed stays exact (#569
+    round 1, R3)."""
+    for n in range(removal.KEPT_LIMIT + 7):
+        (one["book"] / f"mine {n:03}.txt").write_text("mine")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    linked = one["config"].output_folder / "note (2)"
+    try:
+        linked.symlink_to(elsewhere, target_is_directory=True)
+    except OSError:
+        pytest.skip("this system makes no symbolic links for this user")
+    project = read_project(one["work"], one["doc"])
+    assert project is not None
+    write_project(
+        one["work"],
+        Project(one["doc"], project.name, (*project.audiobooks, AudiobookFolder(linked, ()))),
+    )
+    body = remove(one["client"], one["doc"]).json()
+    assert body["kept"][0] == {"path": str(linked), "reason": "link", "folder": str(linked)}
+    assert all(k["path"] != k["folder"] for k in body["kept"][1:])
+    assert len(body["kept"]) == removal.KEPT_LIMIT
+    assert body["kept_more"] == 8  # 57 files, 49 of them named
+
+
 # ---- folders that are never deleted in (R3) -----------------------------------------------
 
 
@@ -320,7 +355,7 @@ def test_s4_a_drive_or_file_system_root_is_never_a_project_folder(
     planned = removal.plan(project, [guard], [])
     assert planned.delete == ()
     assert planned.folders == ()
-    assert planned.kept == (removal.Kept(root, "outside"),)
+    assert planned.kept == (removal.Kept(root, "outside", root),)
 
 
 @pytest.mark.parametrize(
@@ -446,6 +481,58 @@ def test_s9_a_file_that_can_t_be_deleted_is_named_and_a_second_press_finishes(
     assert not one["work"].exists()
 
 
+@pytest.mark.skipif(os.name != "nt", reason="only Windows refuses to delete an open file")
+def test_s9_a_file_held_open_on_windows_is_named_and_a_second_press_finishes(
+    one: dict[str, Any],
+) -> None:
+    """A real fault, not a patched one (#569 round 1, R2a): every audiobook file is held
+    open, so the first one of the record can't go and nothing of the project goes."""
+    book, files = one["book"], one["files"]
+    held = [(book / name).open("rb") for name in sorted(files)]
+    try:
+        response = remove(one["client"], one["doc"])
+        assert response.status_code == 500, response.text
+        assert response.json()["error"] == "remove-failed"
+        assert response.json()["message"].startswith(f"could not delete {first_file(one)}: ")
+        assert files_of(book) == files
+        assert (one["work"] / "source").is_dir()  # the project is still listed
+        assert one["client"].get(f"/api/v1/documents/{one['doc']}").status_code == 200
+    finally:
+        for file in held:
+            file.close()
+    again = remove(one["client"], one["doc"])
+    assert again.status_code == 200, again.text
+    assert again.json()["deleted_files"] == len(files)
+    assert not book.exists()
+    assert not one["work"].exists()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows has no folder write bit")
+@pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root writes anyway")
+def test_s9_a_read_only_folder_is_named_and_a_second_press_finishes(
+    one: dict[str, Any],
+) -> None:
+    """A real fault, not a patched one (#569 round 1, R2b): the audiobook folder is made
+    read-only, so its first recorded file can't be deleted."""
+    book, files = one["book"], one["files"]
+    book.chmod(0o555)
+    try:
+        response = remove(one["client"], one["doc"])
+        assert response.status_code == 500, response.text
+        assert response.json()["error"] == "remove-failed"
+        assert response.json()["message"].startswith(f"could not delete {first_file(one)}: ")
+        assert files_of(book) == files
+        assert (one["work"] / "source").is_dir()
+        assert one["client"].get(f"/api/v1/documents/{one['doc']}").status_code == 200
+    finally:
+        book.chmod(0o755)
+    again = remove(one["client"], one["doc"])
+    assert again.status_code == 200, again.text
+    assert again.json()["deleted_files"] == len(files)
+    assert not book.exists()
+    assert not one["work"].exists()
+
+
 def test_s9_a_read_only_audiobook_file_is_made_writable_once(
     one: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -490,6 +577,36 @@ def test_s10_a_folder_swapped_for_a_link_after_the_check_is_not_followed(
     assert response.json()["deleted_files"] == 0
     assert set(kept(response).values()) == {"changed"}
     assert files_of(elsewhere) == one["files"]
+
+
+def test_s10_a_folder_swapped_after_the_check_keeps_the_person_s_clutter(
+    one: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The folder is checked again before its entries are listed (#569 round 1, R1): a
+    link to a folder of the person's that holds only a `.DS_Store` deletes nothing."""
+    mine, moved = tmp_path / "mine", tmp_path / "moved"
+    mine.mkdir()
+    (mine / ".DS_Store").write_bytes(b"the person's own")
+    real_plan = removal.plan
+
+    def swapped(*args: Any, **kwargs: Any) -> removal.AudiobookPlan:
+        planned = real_plan(*args, **kwargs)
+        one["book"].rename(moved)
+        one["book"].symlink_to(mine, target_is_directory=True)
+        return planned
+
+    try:
+        (tmp_path / "probe").symlink_to(tmp_path)
+    except OSError:
+        pytest.skip("this system makes no symbolic links for this user")
+    monkeypatch.setattr(api, "plan", swapped)
+    response = remove(one["client"], one["doc"])
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted_files"] == 0
+    assert kept(response) == {one["book"].name: "changed"}
+    assert response.json()["kept"][0]["folder"] == str(one["book"])
+    assert files_of(mine) == {".DS_Store": b"the person's own"}
+    assert files_of(moved) == one["files"]
 
 
 def test_s10_a_file_swapped_for_a_link_after_the_check_is_not_followed(
@@ -612,6 +729,50 @@ def test_the_box_names_what_goes_and_the_keep_box_in_german(one: dict[str, Any])
     keep = f'<input type="checkbox" class="remove-keep" id="remove-keep-{one["doc"]}">'
     assert keep in english  # deleted by default
     assert english.count('<button type="button" class="danger remove-now"') == 1
+
+
+def test_a_record_that_can_t_be_read_says_so_and_nothing_is_deleted(one: dict[str, Any]) -> None:
+    """Not the line about an audiobook made before #469, which would be untrue (#569
+    round 1, R4): the box says the record can't be read and names it."""
+    record_path = one["work"] / PROJECT
+    record_path.write_text("{not json", encoding="utf-8")
+    page = browser(one["app"], one["config"])
+    english = page.get(f"/documents/{one['doc']}").text
+    assert (
+        f"Your audiobook files stay: sci2audio can’t read its record of them, “{record_path}”."  # noqa: RUF001
+        in english
+    )
+    assert "<p>Your earlier audiobook" not in english
+    assert 'class="remove-keep"' not in english
+    assert 'data-earlier=""' in english
+    german = page.get(f"/documents/{one['doc']}", headers={"Accept-Language": "de"}).text
+    assert (
+        f"Ihre Hörbuchdateien bleiben: sci2audio kann seine Aufzeichnung darüber nicht lesen, "
+        f"„{record_path}“." in german
+    )
+    response = remove(one["client"], one["doc"])
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted_files"] == 0
+    assert files_of(one["book"]) == one["files"]
+
+
+def test_the_message_after_the_press_in_german_names_the_folder() -> None:
+    """The script's strings (#569 round 1, R3): files counted with their folder, whole
+    folders in a sentence of their own."""
+    de = i18n.strings("de")
+    script = json.loads(de.script_json())
+    assert {"remove.kept_some.one", "remove.kept_folder.other"} <= set(script)
+    assert de.t("remove.kept_some", n=2, folder="/b/paper") == (
+        "2 Dateien sind in /b/paper geblieben: sci2audio hat sie nicht geschrieben, "
+        "oder sie haben sich seitdem geändert."
+    )
+    assert de.t("remove.kept_folder", n=1, folder="/b/paper") == (
+        "Der Ordner /b/paper bleibt, wie er ist: sci2audio konnte nicht sicher sein, "
+        "dass es noch der Hörbuchordner ist, den es erstellt hat."
+    )
+    assert de.t("remove.kept_folder", n=3, folder="/b/paper").startswith(
+        "3 Hörbuchordner bleiben, wie sie sind, darunter /b/paper: "
+    )
 
 
 def test_the_box_counts_only_files_still_there(one: dict[str, Any]) -> None:

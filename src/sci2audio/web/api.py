@@ -221,7 +221,7 @@ def remove_document(
         project = read_project(found.folder, found.id)
         if keep_audiobook:
             folders = [] if project is None else project.folders()
-            return AudiobookRemoved(kept=tuple(Kept(f, "kept-by-choice") for f in folders))
+            return AudiobookRemoved(kept=tuple(Kept(f, "kept-by-choice", f) for f in folders))
         others = [
             other
             for d in state.store.all()
@@ -241,6 +241,8 @@ def remove_document(
         raise ApiError(404, "not-found", f"no document {document_id}; open the file again")
     state.board.forget(document_id)
     done = removed.audiobook or AudiobookRemoved()
+    # whole folders first, so the limit cuts files, which the answer counts (R3)
+    stayed = sorted(done.kept, key=lambda k: not k.whole)
     return models.RemovedOut(
         id=removed.id,
         name=removed.name,
@@ -248,8 +250,11 @@ def remove_document(
         audiobook_folder=None if folder is None else str(folder),
         deleted_files=done.files,
         deleted_bytes=done.bytes,
-        kept=[models.KeptOut(path=str(k.path), reason=k.reason) for k in done.kept[:KEPT_LIMIT]],
-        kept_more=max(0, len(done.kept) - KEPT_LIMIT),
+        kept=[
+            models.KeptOut(path=str(k.path), reason=k.reason, folder=str(k.folder))
+            for k in stayed[:KEPT_LIMIT]
+        ],
+        kept_more=max(0, len(stayed) - KEPT_LIMIT),
     )
 
 

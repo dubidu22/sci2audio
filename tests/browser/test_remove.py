@@ -5,9 +5,11 @@ lets it through, and carries the "keep" tick (D-751, S14)."""
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -18,7 +20,14 @@ from web_helpers import pdf_bytes
 
 from conftest import Live, check_axe
 from sci2audio.web.player import write_record
-from sci2audio.web.project import audiobook_folder, record_files
+from sci2audio.web.project import (
+    AudiobookFile,
+    AudiobookFolder,
+    audiobook_folder,
+    read_project,
+    record_files,
+    write_project,
+)
 
 EARLIER = "sci2audio made it before each document had its own folder."
 
@@ -234,15 +243,33 @@ def test_the_keep_tick_goes_with_the_request_and_outlives_a_failure(
 
 def test_files_that_stay_are_counted_after_the_removal(signed_in: Page, live: Live) -> None:
     page = signed_in
-    _document, folder = with_book(live, "mixed.pdf", "A mixed paper.")
+    document, folder = with_book(live, "mixed.pdf", "A mixed paper.")
     (folder / "my notes.txt").write_text("mine", encoding="utf-8")
     (folder / "01 Introduction.mp3").write_bytes(b"ID3 changed by the person")
+    # a second recorded folder that is now a link: it stays whole and is not counted as a file
+    elsewhere = live.config.output_folder.parent / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "book.mp3").write_bytes(b"ID3 elsewhere")
+    linked = live.config.output_folder / "mixed (2)"
+    linked.symlink_to(elsewhere, target_is_directory=True)
+    work = live.config.work_root / document
+    project = read_project(work, document)
+    assert project is not None
+    entry = AudiobookFile("book.mp3", 13, hashlib.sha256(b"ID3 elsewhere").hexdigest())
+    write_project(
+        work, replace(project, audiobooks=(*project.audiobooks, AudiobookFolder(linked, (entry,))))
+    )
     page.goto(live.url + "/")
     page.get_by_text("Remove mixed.pdf…").click()
+    expect(page.get_by_text(f"in {folder} go too")).to_be_visible()
+    expect(page.get_by_text(f"in {linked} goes too")).to_have_count(0)  # a link: nothing goes
     page.get_by_role("button", name="Remove mixed.pdf now").click()
     expect(page.locator("#message")).to_have_text(
-        "mixed.pdf was removed. Its audiobook file was deleted. 2 files stayed in the "
-        "audiobook folder: sci2audio did not write them, or they changed since."
-    )
+        f"mixed.pdf was removed. Its audiobook file was deleted. 2 files stayed in {folder}: "
+        "sci2audio did not write them, or they changed since. "
+        f"The folder {linked} was left as it is: "
+        "sci2audio could not be sure it is still the audiobook folder it made."
+    )  # the folder is named, and only files are counted (#569 round 1, R3)
+    assert (elsewhere / "book.mp3").read_bytes() == b"ID3 elsewhere"
     assert sorted(p.name for p in folder.iterdir()) == ["01 Introduction.mp3", "my notes.txt"]
     check_axe(page, "start page after a removal that kept files")

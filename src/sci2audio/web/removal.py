@@ -49,8 +49,16 @@ class AudiobookRemoveError(Exception):
 
 @dataclass(frozen=True)
 class Kept:
+    """A path that stayed and why; `folder` is the project folder it is in, or the path
+    itself when a whole folder stayed (#569 round 1, R3)."""
+
     path: Path
     reason: str
+    folder: Path
+
+    @property
+    def whole(self) -> bool:
+        return self.path == self.folder
 
 
 @dataclass(frozen=True)
@@ -61,11 +69,19 @@ class Planned:
 
 
 @dataclass(frozen=True)
+class PlannedFolder:
+    """A project folder to remove once empty, with its real path when it was checked."""
+
+    path: Path
+    real: Path
+
+
+@dataclass(frozen=True)
 class AudiobookPlan:
     """What removing the project's audiobook files will do."""
 
     delete: tuple[Planned, ...] = ()
-    folders: tuple[Path, ...] = ()  # project folders to remove once empty
+    folders: tuple[PlannedFolder, ...] = ()
     kept: tuple[Kept, ...] = ()
 
 
@@ -90,7 +106,7 @@ def plan(
         for f in audiobook.files
     } - {None}
     delete: list[Planned] = []
-    folders: list[Path] = []
+    folders: list[PlannedFolder] = []
     kept: list[Kept] = []
     for audiobook in project.audiobooks:
         folder = audiobook.folder
@@ -98,13 +114,13 @@ def plan(
         if reason == "absent":
             continue
         if reason is not None:
-            kept.append(Kept(folder, reason))
+            kept.append(Kept(folder, reason, folder))
             continue
         real = folder.resolve(strict=True)
         listed = set()
         for file in audiobook.files:
             if not bare_name(file.name):
-                kept.append(Kept(folder / str(file.name), "outside"))
+                kept.append(Kept(folder / str(file.name), "outside", folder))
                 continue
             listed.add(file.name)
             path = folder / file.name
@@ -114,18 +130,19 @@ def plan(
             if why is None:
                 delete.append(Planned(path, file, real))
             else:
-                kept.append(Kept(path, why))
+                kept.append(Kept(path, why, folder))
         for entry in _entries(folder):
             if entry.name not in listed and not _clutter(entry):
-                kept.append(Kept(entry, "not-recorded"))
-        folders.append(folder)
+                kept.append(Kept(entry, "not-recorded", folder))
+        folders.append(PlannedFolder(folder, real))
     return AudiobookPlan(tuple(delete), tuple(folders), tuple(kept))
 
 
 def carry_out(planned: AudiobookPlan) -> AudiobookRemoved:
     """Delete the planned files, then each project folder left empty (but for clutter).
-    Each file is looked at once more just before it goes: still a regular file, still in
-    the same real folder. AudiobookRemoveError names the first file that could not go."""
+    Each file, and each folder before its entries are listed, is looked at once more just
+    before it goes: still a regular file or folder, no link, at the same real place
+    (#569 round 1, R1). AudiobookRemoveError names the first file that could not go."""
     files = size = 0
     kept = list(planned.kept)
     for item in planned.delete:
@@ -136,13 +153,19 @@ def carry_out(planned: AudiobookPlan) -> AudiobookRemoved:
         except OSError as error:
             raise AudiobookRemoveError(_message(item.path, error), item.path) from error
         if not stat.S_ISREG(mode) or _real_or_none(item.path.parent) != item.folder_real:
-            kept.append(Kept(item.path, "changed"))
+            kept.append(Kept(item.path, "changed", item.path.parent))
             continue
         _unlink(item.path)
         files += 1
         size += item.file.bytes
     for folder in planned.folders:
-        _remove_if_empty(folder)
+        why = _folder_moved(folder)
+        if why == "absent":
+            continue
+        if why is not None:
+            kept.append(Kept(folder.path, why, folder.path))
+            continue
+        _remove_if_empty(folder.path)
     return AudiobookRemoved(files, size, tuple(kept))
 
 
@@ -168,6 +191,22 @@ def _folder_refused(folder: Path, guarded: set[Path]) -> str | None:
         return "unreadable"
     if any(real == guard or real in guard.parents for guard in guarded):
         return "outside"  # it is, or holds, a folder sci2audio never deletes in
+    return None
+
+
+def _folder_moved(folder: PlannedFolder) -> str | None:
+    """`changed` when the folder is no longer the one that was checked: a link or junction
+    now, not a folder, or at another real place."""
+    try:
+        mode = folder.path.lstat().st_mode
+    except FileNotFoundError:
+        return "absent"
+    except OSError:
+        return "unreadable"
+    if stat.S_ISLNK(mode) or _is_junction(folder.path) or not stat.S_ISDIR(mode):
+        return "changed"
+    if _real_or_none(folder.path) != folder.real:
+        return "changed"
     return None
 
 

@@ -15,7 +15,7 @@
     {% if removal.audiobooks %}<p class="remove-keep-line"><label><input type="checkbox" class="remove-keep" id="remove-keep-{{ document.id }}"{% if removal.keep %} checked{% endif %}> {{ t('remove.keep') }}</label></p>{% endif %}
     <p>{{ t('remove.original') }}</p>
     {% if removal.audiobooks %}<p>{{ t('remove.others_stay') }}</p>{% endif %}
-    {% if removal.folder %}<p>{{ t('remove.stays_earlier', folder=removal.folder) }}</p>{% elif removal.has_audio and not removal.audiobooks %}<p>{{ t('remove.stays') }}</p>{% endif %}
+    {% if removal.record_unread %}<p class="remove-unread">{{ t('remove.record_unread', path=removal.record_unread) }}</p>{% elif removal.folder %}<p>{{ t('remove.stays_earlier', folder=removal.folder) }}</p>{% elif removal.has_audio and not removal.audiobooks %}<p>{{ t('remove.stays') }}</p>{% endif %}
     {% if busy %}
     <p class="note">{{ t('remove.busy') }}</p>
     {% else %}

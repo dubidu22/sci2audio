@@ -43,6 +43,9 @@ class KeptOut(BaseModel):
     reason: str = Field(
         description="changed, not-recorded, link, outside, shared, unreadable or kept-by-choice"
     )
+    folder: str = Field(
+        description="the audiobook folder it is in; equal to path when a whole folder stayed"
+    )
 
 
 class RemovedOut(BaseModel):
@@ -57,7 +60,8 @@ class RemovedOut(BaseModel):
     deleted_files: int = Field(default=0, description="audiobook files deleted")
     deleted_bytes: int = Field(default=0, description="bytes of the audiobook files deleted")
     kept: list[KeptOut] = Field(
-        default_factory=list, description="what stayed in the audiobook folders, and why"
+        default_factory=list,
+        description="what stayed in the audiobook folders, and why; whole folders first",
     )
     kept_more: int = Field(default=0, description="further paths that stayed, not listed")
 
