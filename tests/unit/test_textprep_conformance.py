@@ -323,6 +323,35 @@ def test_a_step_cleaning_inside_placeholders_keeps_the_contract(step: TextStep) 
     check_text_step(step, [*SAMPLE_DOCUMENTS, paper])
 
 
+# the inline steps that read a table or figure as a paragraph when its notice is off (#487)
+READ_AS_PROSE_STEPS = ("links", "citations", "statistics", "numbers", "units", "abbreviations")
+
+
+def test_the_steps_reading_notice_off_tables_and_figures_keep_the_contract_on_the_corpus() -> None:
+    """Every corpus paper, also with every category off (so "Tables and figures" too): the
+    edits inside tables and figures change nothing more on their own output (D-710), and
+    nothing else breaks (#487, D-726). The check is not empty: with the notice off these
+    steps edit inside tables and figures (79 edits in 5 papers when written); with it on,
+    never. One test, so the papers are read once."""
+    papers = [build_document(extract_pdf(path)) for path in sorted(PAPERS.glob("*.pdf"))]
+    steps = [step for step in BUILT_IN_STEPS if step.id in READ_AS_PROSE_STEPS]
+    assert len(steps) == len(READ_AS_PROSE_STEPS)
+    for step in steps:
+        check_text_step(step, papers)
+    inside = {}
+    for switched_off in (frozenset({Category.TABLES_AND_FIGURES}), frozenset()):
+        inside[switched_off] = [
+            edit
+            for paper in papers
+            for step in steps
+            if step.handles(paper.language)
+            for edit in step.find(paper, StepContext(paper.language, switched_off=switched_off))
+            if paper.blocks[edit.span.block].kind in (BlockKind.TABLE, BlockKind.FIGURE)
+        ]
+    assert len(inside[frozenset({Category.TABLES_AND_FIGURES})]) >= 50
+    assert inside[frozenset()] == []
+
+
 def test_the_corpus_paper_has_edits_inside_its_placeholders() -> None:
     paper = build_document(extract_pdf(NOWAK))
     inside = [
