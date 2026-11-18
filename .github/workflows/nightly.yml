@@ -69,15 +69,14 @@ jobs:
       - name: Fetch the models (skips files already cached)
         shell: bash
         run: uv run python tests/integration/prepare_models.py "$RUNNER_TEMP/test-models/voices" "$RUNNER_TEMP/test-models/whisper"
-      # Two workers, a test file each at a time (D-759): the voice and speech-recognition
-      # models are loaded once per file, and two copies fit in a hosted runner's memory.
+      # One at a time: the voice already uses every core, so two workers took as long (D-759).
       - name: Slow tests (the network is blocked inside the tests)
         shell: bash
         env:
           HYPOTHESIS_PROFILE: nightly
           SCI2AUDIO_TEST_MODELS: ${{ runner.temp }}/test-models/voices
           SCI2AUDIO_TEST_WHISPER: ${{ runner.temp }}/test-models/whisper
-        run: uv run pytest -m slow -rA -n 2 --dist loadfile
+        run: uv run pytest -m slow -rA
 
   property-deep:
     name: property-based tests, many examples
