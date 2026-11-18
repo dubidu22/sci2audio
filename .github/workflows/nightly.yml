@@ -2,18 +2,39 @@ name: Nightly
 
 # Slow tests (voices, models, the whole corpus, speech-recognition round-trip)
 # and benchmarks. Not required for merging; a red nightly run is a P1 Issue.
+# A run by hand can leave parts out (D-759), so a branch check that needs only the
+# browsers holds no runners for the slow tests; the scheduled run always runs every part.
 on:
   schedule:
     - cron: "17 2 * * *"  # 02:17 UTC every day
   workflow_dispatch:
+    inputs:
+      browsers:
+        description: Browser tests (Chromium, Firefox, WebKit on Linux and macOS)
+        type: boolean
+        default: true
+      slow:
+        description: Slow tests on Linux, macOS and Windows
+        type: boolean
+        default: true
+      property:
+        description: Property-based tests with many examples
+        type: boolean
+        default: true
+      benchmarks:
+        description: Benchmarks and the speed script
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
-# A second run by hand waits for the first instead of running beside it (D-580).
+# A second run by hand on main waits for the first instead of running beside it (D-580).
+# On any other branch a newer run by hand cancels the older one, which checked an older
+# commit or asked for other parts (D-759); the scheduled run is never cancelled.
 concurrency:
   group: nightly-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main' }}
 
 env:
   # The Python of .python-version (3.12.16 or newer), as uv downloads it; never the runner's
@@ -23,6 +44,7 @@ env:
 jobs:
   slow-tests:
     name: slow tests (${{ matrix.os }})
+    if: github.event_name != 'workflow_dispatch' || inputs.slow
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -47,6 +69,7 @@ jobs:
       - name: Fetch the models (skips files already cached)
         shell: bash
         run: uv run python tests/integration/prepare_models.py "$RUNNER_TEMP/test-models/voices" "$RUNNER_TEMP/test-models/whisper"
+      # One at a time: the voice already uses every core, so two workers took as long (D-759).
       - name: Slow tests (the network is blocked inside the tests)
         shell: bash
         env:
@@ -57,6 +80,7 @@ jobs:
 
   property-deep:
     name: property-based tests, many examples
+    if: github.event_name != 'workflow_dispatch' || inputs.property
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -67,23 +91,30 @@ jobs:
           cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
           cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
       - run: uv sync --locked
+      # Only the tests that take more inputs at night: the ones Hypothesis drives (its pytest
+      # plugin marks them "hypothesis") and the fixed-seed fuzz tests marked "deep". The others
+      # take the same inputs on every PR (D-759); test_ci_workflows.py checks that every test
+      # reading HYPOTHESIS_PROFILE is selected here.
       - name: Hypothesis with the nightly profile
         env:
           HYPOTHESIS_PROFILE: nightly
-        run: uv run pytest -m "not slow and not benchmark and not browser"
+        run: uv run pytest -m "(hypothesis or deep) and not slow and not benchmark and not browser" -n auto
 
   browsers:
-    name: browser (${{ matrix.browser }}, ${{ matrix.os }})
+    name: browser (${{ matrix.browser }}, ${{ matrix.os }}, ${{ matrix.shard }}/2)
+    if: github.event_name != 'workflow_dispatch' || inputs.browsers
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # #8: all three engines; WebKit on macOS too, the engine of the app window (D-47)
+        # #8: all three engines; WebKit on macOS too, the engine of the app window (D-47).
+        # Each in two shards on two runners, half the tests each, one at a time (D-759).
+        os: [ubuntu-latest]
+        browser: [chromium, firefox, webkit]
+        shard: [1, 2]
         include:
-          - { os: ubuntu-latest, browser: chromium }
-          - { os: ubuntu-latest, browser: firefox }
-          - { os: ubuntu-latest, browser: webkit }
-          - { os: macos-latest, browser: webkit }
+          - { os: macos-latest, browser: webkit, shard: 1 }
+          - { os: macos-latest, browser: webkit, shard: 2 }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -117,14 +148,22 @@ jobs:
         run: |
           sudo apt-get install --yes --no-install-recommends pulseaudio
           pulseaudio --start --exit-idle-time=-1
+      - name: The tests of this shard
+        shell: bash
+        env:
+          BROWSER: ${{ matrix.browser }}
+          SHARD: ${{ matrix.shard }}
+        run: uv run --no-sync python .github/scripts/browser_shard.py "$BROWSER" "$SHARD" 2 "$RUNNER_TEMP/shard.txt"
       - name: Browser tests (main flow, keyboard, axe-core)
+        shell: bash
         env:
           BROWSER: ${{ matrix.browser }}
           HYPOTHESIS_PROFILE: nightly
-        run: uv run pytest -m browser --browser "$BROWSER" -rA
+        run: uv run pytest -m browser --browser "$BROWSER" -rA "@$RUNNER_TEMP/shard.txt"
 
   benchmarks:
     name: benchmarks
+    if: github.event_name != 'workflow_dispatch' || inputs.benchmarks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

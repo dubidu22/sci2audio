@@ -585,6 +585,7 @@ def test_no_step_adds_or_moves_a_digit(document: Document) -> None:
             assert removed[:1] not in "0123456789", edit  # never the number itself
 
 
+@pytest.mark.deep
 def test_random_token_soup_never_gives_overlapping_or_bad_edits() -> None:
     """A fixed-seed fuzz through `core.check_edits` (the check that found #103's overlaps);
     30,000 texts in the nightly run."""
@@ -1010,6 +1011,7 @@ def test_a_broken_opener_list_names_the_file(text: str, message: str) -> None:
     assert "de/sentence_openers.toml" in str(error.value)
 
 
+@pytest.mark.deep
 def test_random_german_token_soup_never_gives_overlapping_or_bad_edits() -> None:
     rng = random.Random(113)  # noqa: S311 (a fixed seed for a repeatable fuzz, not secrecy)
     count = 30_000 if os.environ.get("HYPOTHESIS_PROFILE") == "nightly" else 2_000

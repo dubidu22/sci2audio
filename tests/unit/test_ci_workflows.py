@@ -5,12 +5,17 @@ ever leaves the required check green or skipped."""
 
 from __future__ import annotations
 
+import ast
 import re
+import subprocess
+import sys
 from pathlib import Path
 
-WORKFLOWS = Path(__file__).resolve().parents[2] / ".github" / "workflows"
+ROOT = Path(__file__).resolve().parents[2]
+WORKFLOWS = ROOT / ".github" / "workflows"
 CI = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
 LABEL = (WORKFLOWS / "ci-full-label.yml").read_text(encoding="utf-8")
+NIGHTLY = (WORKFLOWS / "nightly.yml").read_text(encoding="utf-8")
 
 
 def block(text: str, header: str) -> str:
@@ -105,3 +110,70 @@ def test_the_screens_workflow_runs_no_value_into_a_script() -> None:
     for command in one_line:
         assert "${{" not in command, command
     assert "tests/browser/test_screens.py" in job
+
+
+def reads_profile(tree: ast.AST) -> bool:
+    """Whether `tree` reads the environment variable HYPOTHESIS_PROFILE (os.environ.get,
+    os.getenv or os.environ[...]), not merely names it."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and ast.unparse(node.func) in ("os.environ.get", "os.getenv"):
+            key = node.args[0] if node.args else None
+        elif isinstance(node, ast.Subscript) and ast.unparse(node.value) == "os.environ":
+            key = node.slice
+        else:
+            continue
+        if isinstance(key, ast.Constant) and key.value == "HYPOTHESIS_PROFILE":
+            return True
+    return False
+
+
+def profile_readers() -> set[tuple[str, str]]:
+    """(file, test function) of every test that reads HYPOTHESIS_PROFILE, directly or through
+    a module-level name assigned from it (in its body or its decorators)."""
+    readers = set()
+    for path in sorted((ROOT / "tests").rglob("test_*.py")):
+        source = path.read_text(encoding="utf-8")
+        if "HYPOTHESIS_PROFILE" not in source:
+            continue
+        tree = ast.parse(source)
+        derived = set()
+        for node in tree.body:
+            assigned = isinstance(node, ast.Assign | ast.AnnAssign) and node.value is not None
+            if assigned and reads_profile(node.value):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                derived |= {t.id for t in targets if isinstance(t, ast.Name)}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith(
+                "test_"
+            ):
+                names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+                if reads_profile(node) or names & derived:
+                    readers.add((path.relative_to(ROOT).as_posix(), node.name))
+    return readers
+
+
+def test_every_test_that_reads_the_nightly_profile_runs_in_the_nightly_property_job() -> None:
+    """The nightly property job runs only the tests its -m expression selects (D-759), so a
+    test that takes more inputs at night must be one of them (a Hypothesis test, or marked
+    `deep`), or nothing runs it at its nightly size."""
+    job = block(NIGHTLY, "  property-deep:")
+    expression = re.search(r'uv run pytest -m "([^"]+)"', job)
+    assert expression, job
+    assert "HYPOTHESIS_PROFILE: nightly" in job
+    readers = profile_readers()
+    assert len(readers) >= 3, readers  # the two token-soup fuzzes and the Schemathesis test
+    files = sorted({file for file, _ in readers})
+    command = [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"]
+    listing = subprocess.run(
+        [*command, "-m", expression.group(1), *files],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout
+    selected = {
+        (line.split("::")[0], line.split("::")[-1].split("[")[0])
+        for line in listing.splitlines()
+        if "::" in line
+    }
+    assert readers <= selected, sorted(readers - selected)
