@@ -293,9 +293,23 @@ def _child(
     except MemoryError:  # a hard limit refused an allocation Python asked for
         os._exit(MEMORY_EXIT)
     except BaseException as error:
+        if _out_of_memory(error):  # ... or one PDFium asked for, on Windows
+            os._exit(MEMORY_EXIT)
         send.send(("raised", _sendable(error)))
         return
     send.send(("done", result))
+
+
+# PDFium's allocator (PartitionAlloc) ends an allocation it cannot have with this Windows
+# exception (Chromium's kOomExceptionCode), and ctypes hands it on as an OSError with this
+# winerror (0xE0000008 as a signed number). Under load the job object's hard limit refuses
+# PDFium's memory before the watch looks, and the size message was lost (#485).
+_WINDOWS_OUT_OF_MEMORY = 0xE0000008 - (1 << 32)
+
+
+def _out_of_memory(error: BaseException) -> bool:
+    """True for the OSError a native allocation that ran out of memory raises on Windows."""
+    return isinstance(error, OSError) and getattr(error, "winerror", None) == _WINDOWS_OUT_OF_MEMORY
 
 
 def _sendable(error: BaseException) -> BaseException:
