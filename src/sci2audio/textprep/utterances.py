@@ -129,8 +129,9 @@ def _german_abbreviations() -> frozenset[str]:
         words.update(form.lower() for form in unit.printed if form.endswith("."))
     # "o. J." (no year) is left as printed by the abbreviations step, and so is its "o."; so
     # are "Az." before a file number (#406), "Fa." before a name, "UAbs." before its number and
-    # the "e." of "e. V." (D-719)
-    return frozenset(words | {"o.", "j.", "az.", "fa.", "uabs.", "e."})
+    # the "e." of "e. V." (D-719); "et al." ends no sentence, as in English, unless the
+    # citation removed after it ended one ("et al. (2019). Die", #488)
+    return frozenset(words | {"o.", "j.", "az.", "fa.", "uabs.", "e.", "al."})
 
 
 ABBREVIATIONS["de"] = _german_abbreviations()
