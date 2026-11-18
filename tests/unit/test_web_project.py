@@ -24,8 +24,9 @@ from web_helpers import (
     wait,
 )
 
-from sci2audio.web import create_app
+from sci2audio.web import create_app, project
 from sci2audio.web.config import server_config
+from sci2audio.web.player import write_record
 from sci2audio.web.project import (
     NAME_BYTES,
     NAME_CHARS,
@@ -345,3 +346,83 @@ def test_a_whole_web_job_writes_only_into_its_project_folders(
     assert (config.work_root / doc / "position.json").is_file()
     assert (config.work_root / doc / "markers.json").is_file()
     assert not (home / "cache").exists()
+
+
+# ---- review round 1 of PR #552 ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize("name", ["../escape", "ABSOLUTE", "a/b", "a\\b", ".", "..", "", "x" * 61])
+def test_r1_a_record_whose_name_is_no_folder_name_reads_as_none_and_makes_nothing(
+    tmp_path: Path, name: str
+) -> None:
+    """The record's name is used as a folder name: one `folder_name` would not make reads
+    as no record, so the job fails naming the record and nothing is made anywhere."""
+    if name == "ABSOLUTE":
+        name = str(tmp_path / "absolute")
+    work, out = tmp_path / "work", tmp_path / "out"
+    work.mkdir()
+    (work / PROJECT).write_text(json.dumps({**good_record(out / "paper"), "name": name}))
+    assert read_project(work, ID) is None
+    before = sorted(tmp_path.rglob("*"))
+    with pytest.raises(ProjectError, match="can't be read"):
+        audiobook_folder(work, ID, "paper.pdf", out)
+    assert sorted(tmp_path.rglob("*")) == before
+
+
+@pytest.mark.parametrize("name", ["../escape", "a/b", "..", ""])
+def test_r1_a_folder_is_only_ever_made_directly_in_the_output_folder(
+    tmp_path: Path, name: str
+) -> None:
+    out = tmp_path / "out"
+    out.mkdir()
+    with pytest.raises(ProjectError, match="is not a folder name"):
+        project._make_folder(out, name)
+    assert sorted(tmp_path.rglob("*")) == [out]
+
+
+def test_r2_a_folder_made_again_is_recorded_once(tmp_path: Path) -> None:
+    work, out = tmp_path / "work", tmp_path / "out"
+    work.mkdir()
+    folder = audiobook_folder(work, ID, "paper.pdf", out)
+    (folder / "a.mp3").write_bytes(b"one")
+    record_files(work, ID, folder, [folder / "a.mp3"])
+    (folder / "a.mp3").unlink()
+    folder.rmdir()  # the person deleted it
+    assert audiobook_folder(work, ID, "paper.pdf", out) == folder
+    found = read_project(work, ID)
+    assert found is not None
+    assert found.folders() == [folder]
+    assert found.audiobooks[0].files == ()
+
+
+def test_r3_a_version_before_the_record_still_finds_the_audiobook(tmp_path: Path) -> None:
+    """Plan A7, the old reader: what a version before #469 reads, `audiobook.json` alone."""
+    client, config = server(tmp_path)
+    doc = make(client)["doc"]["id"]
+    (work_of(config, doc) / PROJECT).unlink()
+    page = client.get(f"/documents/{doc}/listen").text
+    assert page.count('class="s"') > 0
+
+
+def test_r3_an_audiobook_made_before_its_own_folder_plays_and_stays(tmp_path: Path) -> None:
+    """Plan A7, the old file: audiobook files flat in the output folder and no
+    `project.json` still play; the next audiobook goes into the project's own folder and
+    every flat file keeps its bytes."""
+    client, config = server(tmp_path)
+    doc = make(client)["doc"]["id"]
+    work, out = work_of(config, doc), config.output_folder.absolute()
+    book = book_folder(out)
+    for path in list(book.iterdir()):
+        path.rename(out / path.name)
+    book.rmdir()
+    (work / PROJECT).unlink()
+    write_record(work, doc, out)
+    flat = {p.name: p.read_bytes() for p in out.iterdir() if p.is_file()}
+    assert flat
+    assert client.get(f"/documents/{doc}/listen").text.count('class="s"') > 0
+    job = client.post("/api/v1/jobs", json={"kind": "audio", "document": doc})
+    assert job.status_code == 202, job.text
+    assert wait(client, job.json()["id"])["state"] == "done"
+    assert sorted(p.name for p in book.iterdir()) == sorted(flat)
+    assert {p.name: p.read_bytes() for p in out.iterdir() if p.is_file()} == flat
+    assert client.get(f"/documents/{doc}/listen").text.count('class="s"') > 0

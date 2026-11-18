@@ -7,8 +7,9 @@ audio. The app's records keep no folders (they are machine-specific), so the web
 task writes its own small record, `audiobook.json`, with the output folder (D-295).
 
 Nothing in these files is trusted as a path (D-295, D-192 to D-209): the record must name
-this document and an absolute folder; the folder is only ever one of three (the recorded
-one, the saved output folder, the server's default); file names must be bare names listed
+this document and an absolute folder; the folder is only ever the recorded one, one of the
+project's own audiobook folders (`project.json`, D-749), the saved output folder or the
+server's default (earlier audiobooks sit flat there); file names must be bare names listed
 in `audio.json`; a file is opened only as `<folder>/<name>` and must be a regular file in
 that very folder; and the read-along file must agree with `audio.json` (duration and
 chunk count) before any of its files is served or shown. The page also checks that every
