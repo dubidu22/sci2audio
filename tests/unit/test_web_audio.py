@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 from audio_fakes import FakeVoice
-from pdf_maker import Text, make_pdf
+from pdf_maker import Text, glyph_number_pdf, make_pdf
 from web_helpers import (
     book_folder,
     events,
@@ -375,3 +375,22 @@ def test_script_jobs_never_say_overwrite(tmp_path: Path) -> None:
         "/api/v1/jobs", json={"kind": "script", "document": doc["id"], "overwrite": True}
     ).json()
     assert job["overwrite"] is False
+
+
+def test_an_audio_job_on_a_pdf_of_glyph_numbers_fails_as_unreadable_text(tmp_path: Path) -> None:
+    """#442 part B: a job started anyway (the page blocks it) ends with its own error kind,
+    which the page translates; the app's words name the page. No audiobook folder file."""
+    voice = FakeVoice()
+    client, config = server(tmp_path, voice)
+    lines = [
+        "Das Buch wurde in einer Zeit geschrieben, in der die Arbeit in den Quartieren",
+        "neu gedacht werden musste. Die Menschen, die dort leben, kennen ihre Nachbarn,",
+    ]
+    doc = upload(client, glyph_number_pdf(lines), "glyphs.pdf")
+    failed = wait(client, start_audio(client, doc["id"])["id"])
+    assert failed["state"] == "failed"
+    assert failed["error"]["error"] == "unreadable-text"
+    assert "the text of page 1 cannot be read" in failed["error"]["message"]
+    assert voice.made == 0
+    folder = book_folder(config.output_folder, "glyphs.pdf")
+    assert not folder.exists() or not list(folder.iterdir())

@@ -94,6 +94,11 @@ class UnreadableFileError(JobError):
     """A file of a type the job reads that can't be opened or is damaged (D-223)."""
 
 
+class UnreadableTextError(UnreadableFileError):
+    """A PDF whose text can't be read: most of it is its fonts' glyph numbers (#442). The
+    audio job stops before the voice; the message names the pages."""
+
+
 class OutputExistsError(JobError):
     """An output file exists and `overwrite` was not given."""
 

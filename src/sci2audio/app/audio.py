@@ -53,6 +53,7 @@ from sci2audio.app.job import (
     JobError,
     OutputExistsError,
     Phase,
+    UnreadableTextError,
     check_folders,
     check_readable,
     json_text,
@@ -60,6 +61,7 @@ from sci2audio.app.job import (
     settings_data,
 )
 from sci2audio.app.lock import work_folder_lock
+from sci2audio.app.readability import stop_message, unreadable
 from sci2audio.app.report import Pages
 from sci2audio.app.script import ScriptResult, prepare_script
 from sci2audio.app.settings import JobSettings
@@ -476,6 +478,10 @@ def run_audio_job(
             pages=lambda page, pages: tell(AudioProgress(Phase.READING, page=page, pages=pages)),
             cancel=cancel,
         )
+        # a PDF that is mostly glyph numbers is not voiced: nothing is spoken or written (#442)
+        found = unreadable(document.content)
+        if found is not None and found.stops:
+            raise UnreadableTextError(stop_message(source.name, found))
         # the voice follows the job's language (D-469); its files must be there (D-468)
         voice_id = voice.voice_for(settings.voice, document.language)
         if not voice.installed(voice_id):

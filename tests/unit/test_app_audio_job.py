@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 from audio_fakes import FakeVoice, chunk_count
-from pdf_maker import Text, make_pdf
+from pdf_maker import Text, glyph_number_pdf, joined_pdf, make_pdf
 
 from sci2audio.app import (
     AudioProgress,
@@ -22,6 +22,8 @@ from sci2audio.app import (
     JobSettings,
     OutputExistsError,
     Phase,
+    UnreadableFileError,
+    UnreadableTextError,
     clean_work_folder,
     run_audio_job,
 )
@@ -583,3 +585,61 @@ def test_the_audiobook_follows_the_chosen_order(tmp_path: Path) -> None:
     record = json.loads(job.record.read_text(encoding="utf-8"))
     assert record["settings"]["chapters"] == [2, 0]
     assert [(c["index"], c["selected"]) for c in record["chapters"]][:2] == [(2, True), (0, True)]
+
+
+# ---- a PDF whose text can't be read (#442 part B, AC-442.3) -----------------------------------
+
+GLYPH_LINES = [
+    "Das Buch wurde in einer Zeit geschrieben, in der die Arbeit in den Quartieren",
+    "neu gedacht werden musste. Die Menschen, die dort leben, kennen ihre Nachbarn,",
+]
+
+
+def test_a_pdf_of_glyph_numbers_stops_before_the_voice_and_writes_nothing(
+    tmp_path: Path,
+) -> None:
+    """The #442 file's kind: every page is glyph numbers, so no voice is made, nothing is
+    spoken, and neither the output folder nor the working folder gets a file."""
+    source = tmp_path / "gemeinwesenarbeit.pdf"
+    source.write_bytes(joined_pdf(*[glyph_number_pdf(GLYPH_LINES)] * 3))
+    voice = FakeVoice()
+    seen: list[AudioProgress] = []
+    with pytest.raises(UnreadableTextError) as raised:
+        run(source, tmp_path, voice, progress=seen.append)
+    assert isinstance(raised.value, UnreadableFileError)  # the command line's exit 5
+    assert str(raised.value) == (
+        "gemeinwesenarbeit.pdf: the text of pages 1\u20133 cannot be read: the PDF's fonts "
+        "give glyph numbers or wrong letters there, so the voice would read nonsense; no "
+        "audiobook is made from it"
+    )
+    assert voice.made == 0
+    assert voice.texts == []
+    assert Phase.TEXT_STEPS not in {event.phase for event in seen}  # stopped right after reading
+    assert outputs(tmp_path) == []
+    work = tmp_path / "work"
+    left = sorted(p.name for p in work.rglob("*") if p.is_file()) if work.exists() else []
+    assert all(name.endswith(".lock") for name in left), left
+
+
+def test_the_stop_comes_before_a_missing_voice(tmp_path: Path) -> None:
+    """The person learns first that the file can't be read: setting up the voice would not
+    help."""
+    source = tmp_path / "glyphs.pdf"
+    source.write_bytes(glyph_number_pdf(GLYPH_LINES))
+    missing = replace(FakeVoice().source(), installed=lambda voice: False)
+    settings = JobSettings(output_folder=tmp_path / "out")
+    with pytest.raises(UnreadableTextError):
+        run_audio_job(source, settings, tmp_path / "work", voice=missing)
+
+
+def test_a_glyph_number_page_among_longer_plain_pages_is_voiced(tmp_path: Path) -> None:
+    """Less than half of the characters: the audiobook is made, and the report (the script
+    job's) names the page."""
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    source = tmp_path / "mixed.pdf"
+    source.write_bytes(joined_pdf(plain, glyph_number_pdf(GLYPH_LINES), plain))
+    job = run(source, tmp_path, FakeVoice())
+    assert job.spoken > 0
+    assert job.written.readalong.is_file()

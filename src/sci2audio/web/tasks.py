@@ -40,6 +40,7 @@ from sci2audio.app import (
     JobSettings,
     OutputExistsError,
     Phase,
+    UnreadableTextError,
     VoiceSource,
 )
 from sci2audio.app import UnsupportedFileError as AppUnsupportedFileError
@@ -307,6 +308,7 @@ _KINDS: tuple[tuple[str, type[BaseException] | tuple[type[BaseException], ...]],
     ("busy", JobBusyError),
     ("output-exists", OutputExistsError),
     ("unsupported-file", AppUnsupportedFileError),
+    ("unreadable-text", UnreadableTextError),  # #442
     ("network", NetworkError),
     ("download-failed", DownloadError),
     ("voice-failed", EngineError),  # a preview the voice could not speak
