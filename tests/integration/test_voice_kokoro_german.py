@@ -16,9 +16,17 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from test_voice_kokoro import at_16_khz, edit_distance, models_dir, wav_params
+from test_voice_kokoro import (
+    assert_spoken_whole,
+    at_16_khz,
+    edit_distance,
+    models_dir,
+    synthesize,
+    wav_params,
+)
 
 from sci2audio.testing import check_voice_engine, no_network
+from sci2audio.textprep import DEFAULT_MAX_CHARS
 from sci2audio.voices import (
     GERMAN_DEFAULT_VOICE,
     GERMAN_VOICES,
@@ -158,6 +166,51 @@ def test_a_text_longer_than_one_model_call_is_spoken_whole(
     expected = words(text)
     wer = edit_distance(expected, words(got)) / len(expected)
     assert wer < WER_LIMIT, f"WER {wer:.2f}: heard {got!r}"
+
+
+# one sentence per call up to the cut limit (#494); own sentences, as the German steps hand
+# them over (digits stay digits; espeak-ng reads them)
+LIMIT_PROSE = (
+    "Die Lehrkräfte, die an der zweiten Runde der Studie teilnahmen, wurden gebeten, über jede "
+    "Stunde mit dem neuen Material ein kurzes Tagebuch zu führen, festzuhalten, was gut gelang "
+    "und was nicht, und es am Ende jedes Monats zurückzuschicken, damit das Team sehen konnte, "
+    "wie sich der Einsatz des Materials im Lauf des Schuljahres veränderte und wo mehr Hilfe "
+    "nötig war, als die Anleitung geben konnte."
+)
+LIMIT_NUMBERS = (
+    "Zwischen 2019 und 2023 behandelten die 14 Kliniken 1284 Personen im Alter von 18 bis 65 "
+    "Jahren, von denen 312 zweimal täglich 25 Tropfen und 297 zweimal täglich 50 Tropfen "
+    "bekamen, während 675 nur Wasser erhielten; nach 24 Wochen sank der Wert um 73 Punkte in "
+    "der ersten, um 91 Punkte in der zweiten und um 24 Punkte in der dritten Gruppe, in allen "
+    "14 Kliniken und bei 1187 von 1284 Personen."
+)
+
+
+@pytest.mark.slow
+def test_a_sentence_at_the_cut_limit_is_one_model_call(engine: KokoroEngine) -> None:
+    """#494: a German sentence of DEFAULT_MAX_CHARS characters (about 1.14 tokens each) is
+    spoken in one pass of the model."""
+    assert len(LIMIT_PROSE) == DEFAULT_MAX_CHARS
+    with no_network():
+        result = synthesize(engine, LIMIT_PROSE, GERMAN_DEFAULT_VOICE)
+    assert len(result.segments) == 1
+    assert result.duration.seconds > 15
+
+
+@pytest.mark.slow
+def test_a_dense_sentence_over_the_model_limit_is_spoken_whole(
+    engine: KokoroEngine, tmp_path: Path
+) -> None:
+    """#494 (D-743 A1): over 510 phonemes inside one sentence, the German pipeline cuts at
+    a comma or a space, and every number and word is still heard."""
+    model = recogniser()
+    assert len(LIMIT_NUMBERS) <= DEFAULT_MAX_CHARS
+    path = tmp_path / "dense.wav"
+    with no_network():
+        assert len(synthesize(engine, LIMIT_NUMBERS, GERMAN_DEFAULT_VOICE).segments) > 1
+        speak_to_wav(engine.createSession(), LIMIT_NUMBERS, GERMAN_DEFAULT_VOICE, path)
+        got = heard(model, path)
+    assert_spoken_whole(LIMIT_NUMBERS, got, r"[a-zäöüß0-9]+", WER_LIMIT)
 
 
 BENCHMARK_TEXT = SENTENCES[0] + " " + SENTENCES[9]
