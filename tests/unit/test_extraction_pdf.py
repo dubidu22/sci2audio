@@ -13,6 +13,7 @@ from pdf_maker import (
     Mark,
     Rect,
     Text,
+    cropped,
     in_form,
     make_pdf,
     one_page_pdf,
@@ -277,6 +278,49 @@ def test_boxes_are_measured_from_the_top_left() -> None:
     assert (rule.box.x0, rule.box.y0, rule.box.x1, rule.box.y1) == (50, 300, 250, 301)
 
 
+def test_positions_are_taken_from_the_corner_of_an_offset_crop_box() -> None:
+    """#458: a page cut from a larger sheet (crop box 100..500 across, 100..700 up, on a
+    600 x 800 sheet) is 400 x 600 and every item on it lies inside it, measured from the
+    crop box's top left corner, not the sheet's."""
+    sheet = make_pdf([Text("A running head", 120, 120), Rect(120, 130, 380, 131)])
+    page = read_pdf(cropped(sheet, (100, 100, 500, 700)), "cut.pdf").pages[0]
+    assert (page.width, page.height) == (400, 600)
+    (line,) = page.lines
+    (rule,) = page.drawings
+    assert line.box is not None
+    assert rule.box is not None
+    for box in (line.box, *(run.box for run in line.runs if run.box), rule.box):
+        assert 0 <= box.x0 < box.x1 <= page.width
+        assert 0 <= box.y0 <= box.y1 <= page.height
+    assert 19.5 < line.box.x0 < 20.5  # x 120 on the sheet, the crop box starts at 100
+    assert 5 < line.box.y0 < line.box.y1 < 25  # baseline 120 down the sheet, 20 down the page
+    assert (rule.box.x0, rule.box.y0, rule.box.x1, rule.box.y1) == (20, 30, 280, 31)
+
+
+def test_what_the_crop_box_cuts_off_the_sheet_is_not_read() -> None:
+    """One page of a spread: the other page's text and drawings lie on the sheet but outside
+    the crop box, so they are not printed (#458). Text outside the sheet itself is kept,
+    as before."""
+    sheet = make_pdf(
+        [
+            Text("The page kept", 340, 100),
+            Text("The page cut off", 40, 100),
+            Rect(40, 110, 200, 111),
+            Text("Past the sheet", 620, 100),
+        ]
+    )
+    page = read_pdf(cropped(sheet, (300, 0, 600, 800)), "spread.pdf").pages[0]
+    assert [line.text for line in page.lines] == ["The page kept", "Past the sheet"]
+    assert page.drawings == ()
+
+
+def test_a_page_with_its_own_crop_box_at_the_origin_reads_as_before() -> None:
+    sheet = make_pdf([Text("near the top", 50, 40), Rect(50, 300, 250, 301)])
+    before = read_pdf(sheet, "m.pdf")
+    after = read_pdf(cropped(sheet, (0, 0, 600, 800), media=(0, 0, 600, 800)), "m.pdf")
+    assert after.pages == before.pages
+
+
 def test_drawings_inside_a_form_get_page_positions() -> None:
     # The rectangle sits at x 100..300, y 100..200 on its own page; the form halves it and
     # moves it 10 pt right and 20 pt up (PDF space): 60..160 across, 430..480 down. The
@@ -481,3 +525,44 @@ def test_character_codes(code: int, hyphen: bool, text: str | None) -> None:
 )
 def test_bold_and_italic(font: str, weight: int, flags: int, bold: bool, italic: bool) -> None:
     assert _style(font, weight, flags) == (bold, italic)
+
+
+def test_a_journal_cut_from_bigger_sheets_reads_on_across_its_heads_and_notes() -> None:
+    """#458 end to end: pages cut from the top of bigger sheets (crop box 90..510 across,
+    300..800 up: 420 x 500), each with a ruled running head that prints the page number
+    in its line, and a note under a short rule in the page's lower half. Measured from the
+    sheet's corner the note rule would stand at the top of the page and be no footnote
+    rule; from the crop box's corner the note is a footnote, the heads are page furniture
+    and the sentence across the page break is one paragraph."""
+    from sci2audio.core import BlockKind
+    from sci2audio.layout import build_document
+
+    full = "words set in the running text of this page fill the line"
+    pages = []
+    for n in range(1, 5):
+        printed = n + 60
+        head = f"Tests in Print \u00b7 {printed}" if n % 2 else f"{printed} \u00b7 Journal of Tests"
+        rows = [full] * 18  # the last row is full and ends inside a sentence
+        if n > 1:
+            rows[0] = "across the page break and ends here. " + full
+        x = 90 + 40
+        items: list[Text | Rect] = [Text(head, x, 40), Rect(x, 43, x + 320, 43.6)]
+        items += [Text(row, x, 70 + 12 * k) for k, row in enumerate(rows)]
+        items += [Rect(x, 300, x + 100, 300.4), Text(str(n), x, 312, size=6)]
+        items += [Text(f"A note on page {n} in small letters.", x + 5, 312, size=8)]
+        pages.append(items)
+    data = cropped(make_pdf(*pages), (90, 300, 510, 800))
+    document = build_document(read_pdf(data, "journal.pdf"))
+    heads = [b.text for b in document.blocks if b.kind is BlockKind.FURNITURE]
+    assert heads == [
+        "Tests in Print \u00b7 61",
+        "62 \u00b7 Journal of Tests",
+        "Tests in Print \u00b7 63",
+        "64 \u00b7 Journal of Tests",
+    ]
+    notes = [(b.label, b.text) for b in document.blocks if b.kind is BlockKind.FOOTNOTE]
+    assert [label for label, _ in notes] == ["1", "2", "3", "4"]
+    assert any(
+        f"{full}\nacross the page break" in b.text and b.kind is BlockKind.PARAGRAPH
+        for b in document.blocks
+    )

@@ -30,10 +30,11 @@ from bisect import bisect_left
 from collections.abc import Iterator
 from functools import cache
 
-from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
+from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.links import find_links, link_removals
 from sci2audio.textprep.notation import edits_through_unread
+from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Abbreviation, abbreviations
 
@@ -96,7 +97,7 @@ class AbbreviationStep(TextStep):
         marks = unread_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
-            if _skipped(block):
+            if not read_as_prose(block, context):
                 continue
             edits += edits_through_unread(
                 index,
@@ -256,10 +257,6 @@ _LEAD = 48  # an opener and lead words the links step removes before a link, at 
 _LINK_WINDOW = 512  # enough to see that a link starts
 # what a link may start with: a scheme, "www." or a host with a dot ("x.org/a")
 _LINK_START = re.compile(r"(?:https?:|ftp:|mailto:|www\.|doi|[\w-]+(?:\.[\w-]+)+[/:])", re.I)
-
-
-def _skipped(block: Block) -> bool:
-    return block.kind is BlockKind.FURNITURE or block.is_placeholder
 
 
 def _key(printed: str) -> str:

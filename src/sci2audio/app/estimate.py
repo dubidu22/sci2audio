@@ -22,7 +22,7 @@ when the cost is exactly per character.
 
 The measured chunks are kept as running sums, so adding one is constant time; the chunks
 still to speak are counted by length, so the time left costs one step per different
-length (at most the voice's longest utterance, 300 characters by default).
+length (at most the voice's longest utterance, `DEFAULT_MAX_CHARS` of textprep by default).
 """
 
 from __future__ import annotations

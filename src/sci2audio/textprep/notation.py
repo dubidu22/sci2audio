@@ -19,15 +19,9 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from functools import cache
 
-from sci2audio.core import BlockKind, Edit, EditKind, Span
+from sci2audio.core import Edit, EditKind, Span
 from sci2audio.textprep.characters import ACCENTS, INVISIBLE, SOFT_HYPHEN
 from sci2audio.textprep.wordlists import units
-
-# blocks the number and statistics steps do not read: furniture is removed whole and tables,
-# formulas, figures and code get notices (#64, D-545), so an edit there could only be set aside
-SKIPPED_KINDS = frozenset(
-    {BlockKind.FURNITURE, BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE, BlockKind.CODE}
-)
 
 
 @dataclass(frozen=True)
