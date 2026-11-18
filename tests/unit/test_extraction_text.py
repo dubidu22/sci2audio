@@ -10,6 +10,7 @@ byte order mark's, else UTF-8, else Windows-1252 as WHATWG decodes it, marked as
 from __future__ import annotations
 
 import codecs
+import textwrap
 import tracemalloc
 from pathlib import Path
 
@@ -438,3 +439,78 @@ def test_numbers_of_two_styles_make_no_run() -> None:
     """ "1." then "2)" count up but differ in style: no list, the lines stay joined."""
     text = "1. First point of a list\n2) second point of a list\n"
     assert tags_of(text) == [("p",), ("p", "br")]
+
+
+# ---- review of #561, round 1: spaced dashes (M1), one long token (M2), the property (S1) ----
+
+
+def test_a_spaced_dash_wrapped_to_a_line_s_start_stays_in_its_sentence() -> None:
+    """M1: " - " as a dash, put at a line's start by the wrap, opens no list item."""
+    text = (
+        "Teilnehmer hörten die Texte - meist unterwegs\n"
+        "- und beantworteten danach Fragen zum Inhalt\n"
+        "der Texte.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_a_list_after_a_colon_or_another_item_opens_items() -> None:
+    """A marker line opens an item first in a paragraph, after an item (or its wrapped
+    line), or after a line ending in a colon; after other prose it stays a wrapped line."""
+    assert tags_of("We found two things:\n- one\n- two\n") == [
+        ("p",),
+        ("ul", "li"),
+        ("ul", "li"),
+    ]
+    assert tags_of("We found two things that\n- matter here and\n- elsewhere too.\n") == [
+        ("p",),
+        ("p", "br"),
+        ("p", "br"),
+    ]
+
+
+def test_a_numbered_run_after_prose_without_a_colon_stays_in_its_sentence() -> None:
+    """The anchor holds for numbered runs too: dates wrapped to two line starts in a row."""
+    text = "Die Termine der Studie lagen am\n3. Oktober und am\n4. November, beide im Herbst.\n"
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+    assert tags_of("Die Termine:\n3. Oktober\n4. November\n") == [
+        ("p",),
+        ("ol", "li"),
+        ("ol", "li"),
+    ]
+
+
+URL = "https://example.org/archiv/daten/2026/pilotstudie/hoeren/rohdaten/version-3/index.html"
+
+
+def test_one_long_token_does_not_make_the_filled_lines_short() -> None:
+    """M2: a URL on a line of its own does not count as the paragraph's width, so a German
+    noun at the start of a filled line cuts nothing."""
+    prose = (
+        "Die Studie wurde von der Deutschen Forschungsgemeinschaft gefördert und lief an"
+        f" drei Standorten; die Daten liegen unter {URL} Die Auswertung der Daten folgt im"
+        " nächsten Abschnitt, den Ergebnissen der Teilnehmer."
+    )
+    text = textwrap.fill(prose, 50, break_long_words=False) + "\n"
+    assert URL + "\n" in text  # the URL stands on a line of its own
+    assert tags_of(text) == [("p",), *[("p", "br")] * (text.count("\n") - 1)]
+
+
+words = st.from_regex(r"[A-ZÄÖÜ][a-zäöüß]{1,11}|[a-zäöüß]{1,12}|-", fullmatch=True)
+
+
+@given(
+    st.lists(words, min_size=8, max_size=80),
+    st.integers(40, 80),
+    st.sampled_from([None, URL]),
+    st.data(),
+)
+def test_hard_wrapped_prose_with_capitals_dashes_and_a_long_token_is_one_paragraph(
+    found: list[str], width: int, token: str | None, data: st.DataObject
+) -> None:
+    """S1: words with capitals, spaced dashes and at most one long token, hard-wrapped,
+    come back as one element: ``p``, then ``p, br``."""
+    if token:
+        found.insert(data.draw(st.integers(1, len(found))), token)
+    text = textwrap.fill("Am " + " ".join(found) + ".", width, break_long_words=False)
+    assert tags_of(text + "\n") == [("p",), *[("p", "br")] * text.count("\n")]

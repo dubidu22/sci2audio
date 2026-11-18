@@ -8,13 +8,16 @@ shows it (D-306); every other character is kept as stored.
 
 Inside a paragraph, two kinds of line start an element of their own (#466). A line that opens
 a list item is tagged ``ul, li`` or ``ol, li``, as Markdown's are, its wrapped lines ``br``
-after that, the marker kept in its text: a bullet ("- ", "* ", "• ") always, a number ("1. ",
-"1) ") only in a run of two or more that count up by one, so "1. Introduction" alone or a
-German date opening a paragraph ("3. Oktober 1990") stays text. Markdown would make a lone
-"1." line an item; plain text differs on purpose, for those German dates and ordinals. And
-the line after a title line is tagged ``p``: a short line in capitals, or a short line without
-closing punctuation before a line that starts with a capital (`_title`). Hard-wrapped prose
-keeps its lines together: none of its lines but the last is short.
+after that, the marker kept in its text. It opens with a bullet ("- ", "* ", "• ") or is one
+of a run of two or more numbered lines ("1. ", "1) ") that count up by one, and it stands
+where the shape says list: first in the paragraph, after an item, or after a line ending in
+a colon. So a spaced dash wrapped to a line's start stays in its sentence, and "1.
+Introduction" alone or a German date opening a paragraph ("3. Oktober 1990") stays text.
+Markdown would make a lone "1." line an item; plain text differs on purpose, for those
+German dates and ordinals. And the line after a title line is tagged ``p``: a short line in
+capitals, or a short line without closing punctuation before a line that starts with a
+capital (`_title`). Hard-wrapped prose keeps its lines together: none of its lines but the
+last is short, measured against its longest line that holds a space.
 
 `decode_text` is shared with the Markdown reader: a byte order mark decides the encoding; a
 file without one is read as UTF-8 if it is valid UTF-8, else as Windows-1252 as the WHATWG
@@ -179,13 +182,23 @@ def read_text(data: bytes, name: str) -> Content:
 def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
     """The tags of each line of a plain-text paragraph (#466): ``p`` for its first line and
     for a line after a title line (`_title`), ``ul, li`` or ``ol, li`` for a line that opens a
-    list item (`_items`), and the tags of the line before plus ``br`` for any other line."""
+    list item, and the tags of the line before plus ``br`` for any other line.
+
+    A line with a list marker (`_items`) opens an item only where the shape says list: as
+    the paragraph's first line, right after a line that opens or continues an item, or after
+    a line ending in a colon. A spaced dash that a hard wrap put at a line's start ("Texte
+    - meist unterwegs - und") stays inside its sentence (review of #561, M1).
+
+    Lines are short against the paragraph's longest line that holds a space: a lone long
+    token (a URL, a DOI) on a line of its own does not make the filled lines short (M2)."""
     items = _items(paragraph)
-    longest = max(len(text) for text in paragraph) if paragraph else 0
+    widths = [len(text) for text in paragraph if " " in text]
+    longest = max(widths) if widths else max(map(len, paragraph), default=0)
     out: list[tuple[str, ...]] = []
     element: tuple[str, ...] = ("p",)  # the element the next wrapped line continues
     for k, text in enumerate(paragraph):
-        if k in items:
+        anchored = k == 0 or element[0] != "p" or paragraph[k - 1].rstrip().endswith(":")
+        if k in items and anchored:
             element = items[k]
             out.append(element)
         elif k and not _title(paragraph[k - 1], text, longest):
@@ -197,8 +210,8 @@ def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
 
 
 def _items(paragraph: list[str]) -> dict[int, tuple[str, ...]]:
-    """The lines of the paragraph that open a list item, by index, with their tags. Any line
-    opening with a bullet ("- ", "* ", "• ") does; a numbered line ("1. ", "1) ") does in a
+    """The lines of the paragraph that may open a list item, by index, with their tags. Any
+    line opening with a bullet ("- ", "* ", "• ") may; a numbered line ("1. ", "1) ") may in a
     run of two or more numbered lines of one style whose numbers go up by one, so a lone
     "1. Introduction" or a German date ("3. Oktober 1990 ...") stays text."""
     found: dict[int, tuple[str, ...]] = {}
