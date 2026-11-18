@@ -31,6 +31,7 @@ from sci2audio.core import (
     check_edits,
 )
 from sci2audio.testing import check_text_step, make_document
+from sci2audio.testing.regression import Case, read_twice
 from sci2audio.textprep import (
     AbbreviationStep,
     Category,
@@ -782,6 +783,20 @@ def test_a_raised_mass_number_keeps_every_magnitude_letter(letter: str) -> None:
         [(BlockKind.PARAGRAPH, f"We use 40{letter} now")], tags={0: [(7, 9, "sup")]}
     )
     assert spoken_text(run_steps(document, EN, steps=(UNITS,)).script()) == f"We use ⁴⁰{letter} now"
+
+
+@pytest.mark.parametrize(
+    ("text", "raised"), [("At T = 104K the gas is hot.", (9, 10)), ("The x40K value.", (5, 7))]
+)
+def test_a_raised_run_glued_after_a_letter_or_digit_is_no_mass_number(
+    text: str, raised: tuple[int, int]
+) -> None:
+    """An exponent ("10⁴K") is no mass number: no superscript edit, the same on both runs."""
+    document = make_document([(BlockKind.PARAGRAPH, text)], tags={0: [(*raised, "sup")]})
+    found = UnitStep().find(document, EN)
+    assert not [e for e in found if e.reason.startswith('raised "')]
+    first, second = read_twice(Case("glued", 0, 576, "an exponent", document, ()))
+    assert first == second
 
 
 def test_a_raised_number_before_a_unit_keeps_the_unit() -> None:
