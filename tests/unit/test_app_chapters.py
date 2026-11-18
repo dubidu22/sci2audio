@@ -265,3 +265,41 @@ def test_the_time_machine_leaves_out_its_imprint_colophon_and_uncopyright() -> N
     story = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
     assert kept == ["The Time Machine", *story, "Epilogue", "Endnotes"]
     assert len([*story, "Epilogue"]) == 13
+
+
+def test_front_matter_is_deselected_by_default_and_can_still_be_chosen() -> None:
+    """#456 (D-755): a publisher section from a PDF's outline is a chapter of its own, not
+    read by default; the reader may still choose it. The article's title page after it,
+    before the first heading, is a chapter titled like the document."""
+    blocks = [
+        (P, "Repository cover sheet"),
+        (P, "Journal cover"),
+        (P, "Imprint"),
+        (P, "An Article"),
+        (P, "A. Author"),
+        (H, "Introduction"),
+        (P, "text"),
+    ]
+    sections = (
+        Section("Cover", 1, 0, 2, publisher=True),
+        Section("Impressum", 1, 2, 3, publisher=True),
+        Section("Introduction", 1, 5, 7),
+    )
+    chapters = find_chapters(document_with(blocks, sections, title="An Article"))
+    assert [(c.title, c.start, c.end, c.publisher) for c in chapters] == [
+        ("Cover", 0, 2, True),
+        ("Impressum", 2, 3, True),
+        ("An Article", 3, 5, False),
+        ("Introduction", 5, 7, False),
+    ]
+    assert default_selection(chapters) == {2, 3}
+    assert selected(chapters, (0, 3)) == ((0, 3), ())
+
+
+def test_front_matter_right_before_a_section_leaves_no_title_chapter() -> None:
+    blocks = [(P, "Imprint"), (H, "Introduction"), (P, "text")]
+    sections = (Section("Impressum", 1, 0, 1, publisher=True), Section("Introduction", 1, 1, 3))
+    assert [c.title for c in find_chapters(document_with(blocks, sections))] == [
+        "Impressum",
+        "Introduction",
+    ]

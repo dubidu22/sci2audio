@@ -3,7 +3,7 @@
 Characters become styled runs, runs become lines, and lines, pictures and drawings keep their
 boxes and the order the file stores them in. The bookmarks become the outline, as stored (#24).
 Reading order, headings and page furniture are the layout stage's work. Coordinates are points
-with the origin at the top left of the page.
+with the origin at the top left of the page as shown: its crop box, turned by its /Rotate.
 
 PDFium crashes when two threads call it at once, even for different files, so every call goes
 through `_PDFIUM`: the one piece of global state this stage has (KB audit "PDFium thread-safety
@@ -493,31 +493,50 @@ class _Frame:
     file's origin: a page cut from a larger sheet (a journal page set on A4, one page of a
     spread) keeps the sheet's coordinates, and positions taken from the sheet's corner are
     all shifted. What the sheet prints outside the crop box is cut off, so not read; text
-    outside the sheet itself is kept, as it always was."""
+    outside the sheet itself is kept, as it always was. The sheet is the media box, also
+    where the page takes it from the page tree (#543).
+
+    A page with /Rotate is shown turned clockwise by that much, and PDFium measures it as
+    shown, while the file places everything on the unturned page: every point is turned
+    the same way, so positions are those of the page as shown (#537)."""
 
     left: float
     top: float
-    width: float
+    width: float  # as shown: crop box height and width swapped on a page turned 90 or 270
     height: float
     sheet: tuple[float, float, float, float] | None = None  # x0, y0, x1, y1 in page points
+    turn: int = 0  # the page's /Rotate in degrees, clockwise: 0, 90, 180 or 270
 
     @classmethod
     def of(cls, page: pdfium.PdfPage) -> _Frame:
         left, bottom, right, top = page.get_bbox()
-        frame = cls(left, top, right - left, top - bottom)
-        media = [ctypes.c_float() for _ in range(4)]
-        if not raw.FPDFPage_GetMediaBox(page.raw, *(ctypes.byref(v) for v in media)):
-            return frame  # no media box of its own: nothing to cut away
-        x0, y0 = frame.point(media[0].value, media[3].value)
-        x1, y1 = frame.point(media[2].value, media[1].value)
+        turn = page.get_rotation() % 360
+        wide, high = right - left, top - bottom
+        frame = cls(left, top, *((high, wide) if turn in (90, 270) else (wide, high)), turn=turn)
+        media = _media_box(page, (left, bottom, right, top))
+        x0, y0 = frame.point(media[0], media[3])
+        x1, y1 = frame.point(media[2], media[1])
         sheet = (min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
         if not all(map(math.isfinite, sheet)) or sheet == (0.0, 0.0, frame.width, frame.height):
             return frame
-        return cls(left, top, frame.width, frame.height, sheet)
+        return cls(frame.left, frame.top, frame.width, frame.height, sheet, turn)
 
     def point(self, x: float, y: float) -> tuple[float, float]:
-        """A point of the file (y upwards) in page points from the top left (y downwards)."""
-        return x - self.left, self.top - y
+        """A point of the file (y upwards) in page points from the top left (y downwards),
+        on the page as shown."""
+        u, v = x - self.left, self.top - y  # on the unturned page
+        if self.turn == 90:
+            return self.width - v, u
+        if self.turn == 180:
+            return self.width - u, self.height - v
+        if self.turn == 270:
+            return v, self.height - u
+        return u, v
+
+    def angle(self, angle: float) -> float:
+        """A character's angle on the unturned page as the page shows it, in [0, 2π)."""
+        turned = math.fmod(angle + math.radians(self.turn), math.tau)
+        return 0.0 if math.tau - turned < 1e-6 else turned
 
     def shows(self, x0: float, y0: float, x1: float, y1: float) -> bool:
         """False for a box the crop box cuts off: wholly outside it, on the sheet."""
@@ -527,6 +546,25 @@ class _Frame:
             return True
         x, y = (x0 + x1) / 2, (y0 + y1) / 2
         return not (self.sheet[0] <= x <= self.sheet[2] and self.sheet[1] <= y <= self.sheet[3])
+
+
+_UNBOUNDED = 1e9  # points: a crop box wider than any media box
+
+
+def _media_box(
+    page: pdfium.PdfPage, crop: tuple[float, float, float, float]
+) -> tuple[float, float, float, float]:
+    """The page's media box as PDFium uses it: its own, else the one it inherits from the
+    page tree, else PDFium's default (US Letter). `FPDFPage_GetMediaBox` reads only the
+    page's own entry (crbug.com/pdfium/1786), but the bounding box PDFium gives is the crop
+    box cut to the inherited media box: with the crop box opened wide for one call, it is
+    the media box. The crop box is set back to `crop` (the crop box as PDFium used it) before
+    any text is read; the file is never saved."""
+    raw.FPDFPage_SetCropBox(page.raw, -_UNBOUNDED, -_UNBOUNDED, _UNBOUNDED, _UNBOUNDED)
+    try:
+        return page.get_bbox()
+    finally:
+        raw.FPDFPage_SetCropBox(page.raw, *crop)
 
 
 @dataclass
@@ -559,7 +597,8 @@ class _Line:
 
     def accepts(self, char: _Char) -> bool:
         last = self.chars[-1]
-        if abs(char.angle - last.angle) > 0.01:
+        turn = abs(char.angle - last.angle)  # around the circle: 0.003 and 6.280 are close
+        if min(turn, math.tau - turn) > 0.01:
             return False
         size = max(last.style[1], char.style[1], 1.0)
         if char.u0 < last.u0 - 0.5 * size or char.u0 - last.u1 > LINE_GAP * size:
@@ -714,7 +753,7 @@ def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]
         size = round(size, 1) if math.isfinite(size) and size > 0 else 0.0
         bold, italic = _style(font, raw.FPDFText_GetFontWeight(handle, i), flags.value)
         angle = raw.FPDFText_GetCharAngle(handle, i)
-        angle = angle if math.isfinite(angle) and angle >= 0 else 0.0
+        angle = frame.angle(angle if math.isfinite(angle) and angle >= 0 else 0.0)
         u0, v0, u1, v1 = _in_text_direction((x0, y0, x1, y1), angle)
         base = math.nan
         if raw.FPDFText_GetCharOrigin(handle, i, ctypes.byref(origin_x), ctypes.byref(origin_y)):

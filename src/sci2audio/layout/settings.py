@@ -146,6 +146,20 @@ class LayoutSettings:
     #                                its last line, ...
     heading_rule_reach: float = 1.0  # em: ... and reaches this far past its words at one end
     #                                  (#48, D-385, D-390)
+    # outline titles that name the publisher's front matter, English and German (#456): such
+    # an entry starts a section of its own even where no printed heading matches it
+    front_matter_names: tuple[str, ...] = (
+        "Cover",
+        "Front Cover",
+        "Imprint",
+        "Copyright",
+        "Contents",
+        "Table of Contents",
+        "Titelei",
+        "Impressum",
+        "Inhalt",
+        "Inhaltsverzeichnis",
+    )
     # whole texts of headings that may stand in any bold or larger style. English only (v1.0):
     # papers in another language need their own list, passed in with that job's settings
     section_names: tuple[str, ...] = (

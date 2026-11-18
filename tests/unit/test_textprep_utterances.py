@@ -884,3 +884,22 @@ def test_benchmark_cutting_the_largest_paper(benchmark) -> None:
     largest = max(PAPERS, key=lambda paper: paper.stat().st_size)
     document, script = paper_script(largest)
     benchmark(cut_utterances, document, script)
+
+
+@pytest.mark.parametrize(
+    ("text", "language", "parts"),
+    [
+        ("The first set is called A. Then set B follows.", "en", 2),
+        ("The first set is called A. “Then set B follows.”", "en", 2),
+        ("Most data came from the U.S. The rest came from Canada.", "en", 2),
+        ("The data came from the U.S. Census Bureau in 2019.", "en", 1),
+        ("See A. A. Milne for this.", "en", 1),
+        # the English rule of #477 is English only: German keeps its initial rule
+        ("Die erste Gruppe heißt A. Dann folgt B.", "de", 1),
+    ],
+)
+def test_an_english_initial_ends_a_sentence_only_before_a_sentence_opener(
+    text: str, language: str, parts: int
+) -> None:
+    # #477, D-744: "A." and "U.S." end a sentence before "Then" or "The", not before a name
+    assert len(cut(text, language=language)) == parts

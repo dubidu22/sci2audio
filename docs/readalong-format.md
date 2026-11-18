@@ -51,7 +51,7 @@ order.
 | `chunks[].chapter` | Index into `chapters`. |
 | `chunks[].start`, `end` | When the chunk's speech starts and ends on the book's timeline, in seconds. The pause before a chunk belongs to no chunk. |
 | `chunks[].block`, `start_char`, `end_char` | The original text the chunk reads: block index in the document, and the character offsets `[start_char, end_char)` in that block's text (a core `Span`). |
-| `chunks[].joins` | Optional, added by #480 (after v1.1). `true` when the chunk goes on with the sentence of the chunk before it: the voice can speak only so much text at once, so a long sentence is cut at a clause, and each piece after the first is its own chunk. Left out when `false`; a file without it (made by an earlier sci2audio) means no chunk joins. A player can show the joined chunks as one sentence. |
+| `chunks[].joins` | Optional, added by #480 (after v1.1). `true` when the chunk goes on with the sentence of the chunk before it: the voice can speak only so much text at once, so a long sentence is cut at a clause, and each piece after the first is its own chunk. Left out when `false`; a file without it (made by an earlier sci2audio) means no chunk joins. A player can show the joined chunks as one sentence. It is never set on a chapter's first chunk and only joins a chunk to the one before it in the same block; a reader treats any other `joins` as false. |
 
 ## Times
 

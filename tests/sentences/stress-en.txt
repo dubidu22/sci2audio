@@ -108,3 +108,11 @@ Section 5 discusses them.
 In Sect. 6 we conclude.
 See Appendix C.
 It gives the proofs.
+
+Most data came from the U.S.
+The rest came from Canada.
+Most of the work was done in the U.S.
+Researchers in Canada did the rest.
+The novels of J.R.R. Tolkien were read.
+We measured vitamin A.
+The levels were low.
