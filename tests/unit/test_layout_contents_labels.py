@@ -135,6 +135,72 @@ def test_numbers_away_from_the_left_edge_or_the_entries_indent_are_no_entries() 
     assert texts(doc, BlockKind.FURNITURE) == ["Contents", "4", *ENTRIES[0][1]]
 
 
+def test_two_entries_on_one_page_are_both_entries() -> None:
+    """Page numbers may repeat (two short pieces on one page): they never go down, but they
+    may stay (review of #558, S1a)."""
+    entries = [("4", ["A. Writer", "A short piece"]), ("4", ["B. Writer", "Another one"])]
+    entries += [("9", ["C. Writer", "The next piece"])]
+    doc = build_document(content(contents_page("Contents", entries, [])))
+    rows = sum(len(rows) + 1 for _, rows in entries)
+    assert roles(doc) == ["contents"] * (1 + rows)
+
+
+def test_a_lone_number_after_the_title_is_no_entry() -> None:
+    """A row holding only a number has no entry text beside it: it and what follows stay
+    text (review of #558, S1b)."""
+    lone = line("3", NUMBERS, 130, NUMBERS + 5)
+    rows = [line("A. Writer", INDENT, 141, 330), line("A title of our own", INDENT, 152, 330)]
+    body = column("text-", LEFT, RIGHT, 300, 6)
+    doc = build_document(content([line("Contents", LEFT, 100, 140, size=14), lone, *rows, *body]))
+    assert roles(doc) == []
+
+
+def test_jittered_numbers_and_indents_as_printed_are_still_entries() -> None:
+    """The German page as measured: page numbers right-aligned ("9" starts 5 points right of
+    "17"), entry texts starting between 87.4 and 89.1, a run-on row at 89.1 (review of #558,
+    S1c). Every row is contents."""
+    x = LEFT - 53.9  # the page's numbers start at 53.9 there, here at LEFT
+    printed = [  # (page, its x, the entry's rows with their x)
+        ("4", 58.9, [("IN MEMORIAM", 87.9), ("A. Writer, a name", 87.9)]),
+        ("9", 58.9, [("B. Writer", 87.7), ("A first title", 87.9), ("run on", 89.1)]),
+        ("17", 53.9, [("C. Writer", 87.4), ("A second title", 87.9)]),
+        ("30", 53.9, [("D. Writer", 87.9), ("A third title", 88.6)]),
+    ]
+    lines, top = [line("Contents", LEFT, 100, 140, size=14)], 130.0
+    for page, at, rows in printed:
+        lines.append(line(page, at + x, top, at + x + 5 * len(page)))
+        lines += [line(text, left + x, top + 11 * k, 330) for k, (text, left) in enumerate(rows)]
+        top += 11 * len(rows) + 11
+    body = column("text-", LEFT, RIGHT, 400, 6)
+    doc = build_document(content([*lines, *body]))
+    assert roles(doc) == ["contents"] * len(lines)
+    assert texts(doc, BlockKind.PARAGRAPH) == [li.text for li in body]
+
+
+def test_entries_whose_indent_drifts_away_from_the_first_end_the_contents() -> None:
+    """Each entry's text is compared with the first entry's indent, not the one before: an
+    indent creeping 8 points per entry ends the contents at the entry that stands more than
+    `contents_reach` (20 points here) from the first (review of #558, S1c)."""
+    lines, top = [line("Contents", LEFT, 100, 140, size=14)], 130.0
+    for k, page in enumerate(["3", "5", "7", "9"]):
+        lines += [
+            line(page, NUMBERS, top, NUMBERS + 5),
+            line(f"Writer {k}", INDENT + 8 * k, top, 330),
+        ]
+        top += 22
+    body = column("text-", LEFT, RIGHT, 300, 6)
+    doc = build_document(content([*lines, *body]))
+    assert texts(doc, BlockKind.FURNITURE) == [
+        "Contents",
+        "3",
+        "Writer 0",
+        "5",
+        "Writer 1",
+        "7",
+        "Writer 2",
+    ]
+
+
 # ---- a page number printed in the running head line (#535) ----------------------------
 
 
