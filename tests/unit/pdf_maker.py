@@ -111,6 +111,27 @@ def _rect(item: Rect) -> object:
     return obj
 
 
+def cropped(
+    data: bytes,
+    crop: tuple[float, float, float, float],
+    media: tuple[float, float, float, float] | None = None,
+) -> bytes:
+    """`data` with every page's /CropBox (and /MediaBox, if given) set, in PDF space: left,
+    bottom, right, top, y upwards. A journal page cut from a larger sheet looks like this
+    (#458)."""
+    document = pdfium.PdfDocument(data)
+    for index in range(len(document)):
+        page = document[index]
+        if media is not None:
+            page.set_mediabox(*media)
+        page.set_cropbox(*crop)
+        page.close()
+    buffer = io.BytesIO()
+    document.save(buffer)
+    document.close()
+    return buffer.getvalue()
+
+
 def in_form(data: bytes, scale: float, dx: float, dy: float) -> bytes:
     """The first page of `data` placed, scaled and moved, as a form XObject on a new page.
 
