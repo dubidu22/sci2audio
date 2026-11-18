@@ -1,0 +1,146 @@
+name: Isolation runs
+
+# Runs named browser tests many times, spread over several runners (D-759, TST-08), so a
+# flaky test's 40 runs need no edited copy of nightly.yml on a scratch branch. Started by
+# hand on the branch to check (Actions -> Isolation runs -> Run workflow, or gh workflow
+# run isolate.yml). "stop" ends every runner at the first red run (a gating check);
+# "full" runs them all, for the pass counts TST-08 puts into the issue. The job summary
+# holds the counts per browser and test; traces of red runs are uploaded.
+# A run is red when pytest fails, errors, skips or misses a named test; quarantined tests
+# run (--run-quarantined). Inputs reach the scripts only through the environment.
+on:
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: Test node ids under tests/browser/, separated by spaces or new lines
+        type: string
+        required: true
+      browsers:
+        description: Browsers on Linux (chromium firefox webkit)
+        type: string
+        default: chromium firefox webkit
+      webkit_macos:
+        description: WebKit on macOS too
+        type: boolean
+        default: false
+      runs:
+        description: Runs per browser
+        type: number
+        default: 40
+      mode:
+        description: stop at the first red run, or run them all for the pass counts
+        type: choice
+        options: [stop, full]
+        default: stop
+
+permissions:
+  contents: read
+
+# A newer run on the same branch cancels the older one.
+concurrency:
+  group: isolate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_PYTHON_PREFERENCE: only-managed  # the Python of .python-version, as in CI (D-378)
+  RUNNERS: 4  # runners per browser, each running every fourth run
+
+jobs:
+  plan:
+    name: which runners
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: matrix
+        env:
+          TESTS: ${{ inputs.tests }}
+          BROWSERS: ${{ inputs.browsers }}
+          WEBKIT_MACOS: ${{ inputs.webkit_macos }}
+          RUNS: ${{ inputs.runs }}
+        run: python3 .github/scripts/isolate.py matrix
+
+  runs:
+    name: ${{ matrix.browser }}, ${{ matrix.os }}, runner ${{ matrix.slice }}
+    needs: plan
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      # in "stop" mode the first red runner cancels the others
+      fail-fast: ${{ inputs.mode == 'stop' }}
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-python: true
+          cache-suffix: py-${{ hashFiles('.python-version') }}
+      - run: uv sync --locked
+      - name: Where the Playwright browsers go, and their version
+        id: playwright
+        shell: bash
+        run: |
+          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
+          echo "version=$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
+      # Read-only use of the nightly's browser cache key; this workflow publishes nothing.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # zizmor: ignore[cache-poisoning] v6.1.0
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ matrix.browser }}-${{ steps.playwright.outputs.version }}
+      - name: Install the browser for Playwright
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: uv run playwright install --with-deps "$BROWSER"
+      # Firefox needs a sound server on a runner without a sound card (#205), as nightly.
+      - name: A silent sound server for Firefox
+        if: matrix.browser == 'firefox'
+        run: |
+          sudo apt-get install --yes --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+      - name: This runner's share of the runs
+        shell: bash
+        env:
+          TESTS: ${{ inputs.tests }}
+          RUNS: ${{ inputs.runs }}
+          MODE: ${{ inputs.mode }}
+          BROWSER: ${{ matrix.browser }}
+          SLICE: ${{ matrix.slice }}
+          HYPOTHESIS_PROFILE: ci
+        run: OUT="$RUNNER_TEMP/isolate" uv run --no-sync python .github/scripts/isolate.py run
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: isolate-${{ matrix.browser }}-${{ matrix.os }}-${{ matrix.slice }}
+          path: ${{ runner.temp }}/isolate/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  summary:
+    name: pass counts
+    needs: runs
+    if: always() && needs.runs.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: ${{ runner.temp }}/all
+          pattern: isolate-*
+      - name: Pass counts per browser and test (job summary)
+        run: python3 .github/scripts/isolate.py summary "$RUNNER_TEMP/all"
+      - name: Red if any runner was red or did not finish
+        if: needs.runs.result != 'success'
+        env:
+          RESULT: ${{ needs.runs.result }}
+        run: |
+          echo "The runs ended: $RESULT"
+          exit 1
