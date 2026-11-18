@@ -10,6 +10,10 @@
 - A chapter whose title, without its printed number, is a reference-list name
   (`REFERENCE_NAMES`) is the reference list: deselected by default (TP-06). Appendices stay
   selected.
+- A chapter of the publisher's pages is deselected by default too: an EPUB section tagged as
+  imprint, colophon, contents and the like (#190), or a PDF's front matter the outline names
+  (`Section.publisher`, #456). The blocks after such front matter and before the next
+  section (an article's own title page) are a chapter titled like the document.
 
 Titles are kept as printed ("2 Related Work"), white space runs read as one space.
 EPUB's top-level navigation entries become level-1 sections in layout (#73, #75).
@@ -73,7 +77,7 @@ class Chapter:
     start: int
     end: int
     references: bool = False  # the reference list: deselected by default
-    publisher: bool = False  # a publisher's page (#190): deselected by default
+    publisher: bool = False  # a publisher's page (#190, #456): deselected by default
 
     def __post_init__(self) -> None:
         if not self.title.strip():
@@ -97,14 +101,22 @@ def document_title(document: Document) -> str:
 def find_chapters(document: Document) -> tuple[Chapter, ...]:
     """The document's chapters in order; together they hold every block exactly once."""
     count = len(document.blocks)
-    starts = [(section.start, section.title) for section in document.sections]
+    sections = document.sections
+    starts = [(section.start, section.title) for section in sections]
     heads: list[tuple[int, str, bool, bool]] = []  # start, title, reference list, publisher
     if not starts or starts[0][0] > 0:
         heads.append((0, document_title(document), False, False))
     tagged = _publisher_starts(document, {start for start, _ in starts})
     for number, (start, title) in enumerate(starts, start=1):
         cleaned = _clean(title) or f"Section {number}"
-        heads.append((start, cleaned, is_reference_title(cleaned), start in tagged))
+        section = sections[number - 1]
+        publisher = start in tagged or section.publisher
+        heads.append((start, cleaned, is_reference_title(cleaned), publisher))
+        # the blocks after a publisher's front matter and before the next section (the
+        # article's own title page, #456) are a chapter named like the document
+        following = sections[number].start if number < len(sections) else count
+        if section.publisher and section.end < following:
+            heads.append((section.end, document_title(document), False, False))
     chapters = []
     for index, (start, title, references, publisher) in enumerate(heads):
         end = heads[index + 1][0] if index + 1 < len(heads) else count
