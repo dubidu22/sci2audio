@@ -34,14 +34,10 @@ from functools import cache
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.furniture import edits_around, hidden_removals, read_around
+from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wordlists import abbreviations
-
-# blocks a placeholder notice or the furniture step already covers as a whole (D-128)
-SKIPPED_KINDS = frozenset(
-    {BlockKind.FURNITURE, BlockKind.TABLE, BlockKind.FORMULA, BlockKind.FIGURE, BlockKind.CODE}
-)
 
 
 @dataclass(frozen=True)
@@ -417,7 +413,9 @@ class LinkStep(TextStep):
         hidden = hidden_removals(document, context)  # read as a second run reads (#434)
         edits = []
         for index, block in enumerate(document.blocks):
-            if block.kind in SKIPPED_KINDS or not block.text.strip():
+            # furniture goes whole and a placeholder's notice covers it (D-128), unless a
+            # table or figure is read as a paragraph with its notice off (#487)
+            if not read_as_prose(block, context) or not block.text.strip():
                 continue
             unread = hidden.get(index, [])
             text, kept = read_around(block.text, unread)

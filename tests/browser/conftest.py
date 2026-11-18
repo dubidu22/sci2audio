@@ -219,6 +219,24 @@ def click_focuses(page: Page) -> bool:
     return not (name == "webkit" and sys.platform == "darwin")
 
 
+def at_rest(page: Page) -> None:
+    """Wait until a page that was just drawn stops moving: app.css applies and the web fonts
+    its text uses are in. A page still moves while they arrive, and in WebKit and Firefox a
+    click in that moment did nothing: no summary opened, no link followed (nightly-green
+    PR 3 traces, #509). Works before the load event too, so also while app.js is held back:
+    `document.fonts.ready` would not do, WebKit settles it only after the load event."""
+    expect(page.locator(".skip")).to_have_css("position", "absolute")  # app.css applies
+    # a layout starts the fonts the page shows
+    page.wait_for_function(
+        """() => {
+            document.body.getBoundingClientRect();
+            const faces = [...document.fonts];
+            return faces.some((f) => f.status === "loaded")
+                && faces.every((f) => f.status !== "loading");
+        }"""
+    )
+
+
 def settled(page: Page) -> None:
     """Wait until the document page no longer follows the analysis and is fully loaded.
     The report can be on disk while the job is still the running one; a page drawn in that
