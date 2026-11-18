@@ -10,7 +10,9 @@ The move never loses or replaces a file and can be cut off at any point (D-748):
 
 - A folder that is a link or a Windows junction, or that a job holds (its `job.lock`,
   D-161), is left where it is; until it is moved, it is used where it is
-  (`project_folder`), so no document is ever missing.
+  (`project_folder`), so no document is ever missing. The move holds the folder's lock
+  from start to end, so no job can write there meanwhile; Windows refuses to rename a
+  folder holding an open file, so there it lets the lock go right before that one rename.
 - The new folder does not exist yet: one rename of the whole folder, atomic, so before it
   the project is old and after it new. A rename across file systems (`EXDEV`) copies the
   folder to `projects/.moving-<id>/`, checks every copy's size and SHA-256 against its
@@ -21,7 +23,9 @@ The move never loses or replaces a file and can be cut off at any point (D-748):
   to `from-earlier-version/` in the new folder, never over a file. A file is only ever put
   in place by a hard link, which refuses a name that exists; where hard links are not
   possible, it is copied to `.<name>.moving-part`, checked, and renamed only if the name
-  is still free.
+  is still free. A place is used, or compared, only through real folders: never through
+  a link or a junction inside the project folder. A copy across file systems that a
+  cut-off move left in `.moving-<id>` is thrown away first.
 - Links inside an old folder are never followed or moved; they and anything that could
   not be moved stay in the old folder and are reported.
 
@@ -37,6 +41,7 @@ import logging
 import os
 import re
 import stat
+import sys
 import time
 from dataclasses import dataclass
 from enum import StrEnum
@@ -45,7 +50,7 @@ from typing import BinaryIO
 
 from sci2audio.app.config import default_legacy_root, default_projects_root, file_id
 from sci2audio.app.job import JobBusyError, JobError
-from sci2audio.app.lock import LOCK_NAME, file_lock, work_folder_lock
+from sci2audio.app.lock import LOCK_NAME, FolderLock, file_lock
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +62,7 @@ PART = ".moving-part"  # `.<name>.moving-part`: a file being copied in, renamed 
 INCOMING = ".incoming"  # the server's upload folder (web.documents)
 STALE_UPLOAD = 3600  # seconds; as web.documents.STALE_UPLOAD
 LOCK_WAIT = 10.0  # seconds to wait for another process's move
+MAX_EARLIER = 1000  # `<name> (2)` to `<name> (1000)` in `from-earlier-version/`
 _BLOCK = 1 << 20
 
 
@@ -82,7 +88,7 @@ def project_folder(root: Path, legacy: Path | None, project: str) -> Path:
     """The project's data folder: the new one, unless only an old folder not moved yet
     exists (a link there is never taken as a folder)."""
     new = root / project
-    if legacy is not None and not _lexists(new) and _real_folder(legacy / project):
+    if legacy is not None and not _lexists(new) and real_folder(legacy / project):
         return legacy / project
     return new
 
@@ -116,18 +122,24 @@ def migrate_one(legacy: Path, root: Path, project: str, *, wait: float = LOCK_WA
 
 def migrate_all(legacy: Path, root: Path, *, wait: float = LOCK_WAIT) -> list[Outcome]:
     """Move every old working folder; then remove stale uploads of the old upload folder
-    and the old root, each only if it is empty then. Never raises OSError."""
-    if not _real_folder(legacy):
+    and the old root, each only if it is empty then. Says in the log (the server's
+    terminal) how many it moves, and when the old root is a link. Never raises OSError."""
+    if not real_folder(legacy):
+        if _lexists(legacy):
+            logger.warning("the old working folders in %s are not moved: it is a link", legacy)
         return []
     try:
         with file_lock(root / MIGRATE_LOCK, wait=wait) as held:
             if not held:
                 return []  # another process moves them; they are used where they are
-            outcomes = [
-                _migrate(legacy, root, entry.name)
-                for entry in _scan(legacy)
-                if PROJECT_ID.match(entry.name)
-            ]
+            found = [entry.name for entry in _scan(legacy) if PROJECT_ID.match(entry.name)]
+            if found:
+                logger.warning(
+                    "Moving 1 project to its new folder…"
+                    if len(found) == 1
+                    else f"Moving {len(found)} projects to their new folders…"
+                )
+            outcomes = [_migrate(legacy, root, project) for project in found]
             _clear_incoming(legacy / INCOMING)
             with contextlib.suppress(OSError):
                 legacy.rmdir()  # only when empty
@@ -144,59 +156,71 @@ def _migrate(legacy: Path, root: Path, project: str) -> Outcome:
     old = legacy / project
     if not _lexists(old):
         return Outcome(project, Moved.ABSENT)
-    if not _real_folder(old):
+    if not real_folder(old):
         return Outcome(project, Moved.SKIPPED, "a link or not a folder", (old,))
+    lock = FolderLock(old)  # held for the whole move: no job writes there meanwhile (D-161)
     try:
-        with work_folder_lock(old):
-            pass  # only asked: is a job working in it? (D-161)
+        with lock:
+            outcome = _move_locked(old, root, project, lock)
     except JobBusyError:
         return Outcome(project, Moved.SKIPPED, "a job is working on it")
     except JobError as error:
         return Outcome(project, Moved.SKIPPED, str(error))
-    target = root / project
-    try:
-        if not _lexists(target):
-            return _move(old, target, root, project)
-        if not _real_folder(target):
-            return Outcome(project, Moved.SKIPPED, f"{target} is not a folder", (old,))
-        left: list[Path] = []
-        _merge_folder(old, target, Path(), left)
-        _prune(old)
-        return Outcome(project, Moved.MERGED, left=tuple(left))
     except OSError as error:
         return Outcome(project, Moved.SKIPPED, _why(error))
+    if outcome.moved in (Moved.COPIED, Moved.MERGED):
+        with contextlib.suppress(OSError):
+            _prune(old)  # with the lock let go, so its file can go too
+    return outcome
 
 
-def _move(old: Path, target: Path, root: Path, project: str) -> Outcome:
-    root.mkdir(parents=True, exist_ok=True)
-    try:
-        _rename(old, target)
-        return Outcome(project, Moved.MOVED)
-    except OSError as error:
-        if error.errno != errno.EXDEV:
-            raise
+def _move_locked(old: Path, root: Path, project: str, lock: FolderLock) -> Outcome:
+    target = root / project
     staging = root / f"{MOVING}{project}"
+    if not _lexists(target):
+        root.mkdir(parents=True, exist_ok=True)
+        try:
+            if sys.platform == "win32":
+                lock.release()  # Windows refuses to rename a folder holding an open file
+            _rename(old, target)  # Linux and macOS: still locked, the lock file goes along
+            return Outcome(project, Moved.MOVED)
+        except OSError as error:
+            if error.errno != errno.EXDEV:
+                raise
+        lock.acquire()  # JobBusyError if a job took it in between
+        return _copy_over(old, target, staging, project)
+    if not real_folder(target):
+        return Outcome(project, Moved.SKIPPED, f"{target} is not a folder", (old,))
+    _discard(staging)  # a copy whose commit failed when the project folder appeared
+    left: list[Path] = []
+    _merge_folder(old, target, Path(), left)
+    return Outcome(project, Moved.MERGED, left=tuple(left))
+
+
+def _copy_over(old: Path, target: Path, staging: Path, project: str) -> Outcome:
+    """Across file systems: copy, check, commit by one rename, then remove the originals."""
     _discard(staging)  # a copy a cut-off move left: only ever made here
     left: list[Path] = []
     try:
-        _copy_folder(old, staging, left)
+        _copy_folder(old, staging, left, top=True)
     except OSError:
         with contextlib.suppress(OSError):
             _discard(staging)
         raise
     _rename(staging, target)  # the commit: until here the old folder is untouched
     _remove_copied(old, target, Path())
-    _prune(old)
     return Outcome(project, Moved.COPIED, left=tuple(left))
 
 
 # ---- copying across file systems --------------------------------------------------------
 
 
-def _copy_folder(source: Path, target: Path, left: list[Path]) -> None:
+def _copy_folder(source: Path, target: Path, left: list[Path], *, top: bool = False) -> None:
     target.mkdir()
     for entry in _scan(source):
         path = Path(entry.path)
+        if top and entry.name == LOCK_NAME:
+            continue  # held by this move (Windows refuses to read it); it holds nothing
         kind = _kind(path)
         if kind == "folder":
             _copy_folder(path, target / entry.name, left)
@@ -246,28 +270,62 @@ def _merge_folder(old: Path, target: Path, relative: Path, left: list[Path]) -> 
             continue  # the old lock: it holds nothing and goes with its folder
         else:
             try:
-                _merge_file(path, target / relative / entry.name, target / EARLIER / relative)
+                _merge_file(path, target, relative)
             except OSError as error:
                 logger.warning("could not move %s: %s", path, _why(error))
                 left.append(path)
 
 
-def _merge_file(path: Path, new: Path, earlier: Path) -> None:
-    """Put the old file `path` at `new`; if a different file is there, into `earlier`
-    under its own name, then `<stem> (2)<suffix>` and so on. The same file is removed."""
-    candidates = [new, earlier / path.name]
-    number = 2
-    while True:
-        if not candidates:
-            candidates.append(earlier / f"{Path(path.name).stem} ({number}){path.suffix}")
-            number += 1
-        place = candidates.pop(0)
-        if not _lexists(place):
+def _merge_file(path: Path, top: Path, relative: Path) -> None:
+    """Put the old file `path` at `relative` in the project folder `top`; if a different
+    file is there, or the place is reached through a link, into `from-earlier-version/`
+    under its own name, then `<stem> (2)<suffix>` and so on up to MAX_EARLIER. The same
+    file is removed. OSError (the file stays) when a place can't be looked at, a folder on
+    the way is a link or a file, or every number is taken."""
+    new = top / relative / path.name
+    if _through_folders(top, new):
+        if _free(new):
+            _place(path, new)
+            return
+        if _same(path, new):
+            _unlink(path)
+            return
+    earlier = top / EARLIER / relative
+    if not _through_folders(top, earlier / path.name):
+        raise OSError(errno.ENOTDIR, f"{earlier} is not a folder")
+    stem, suffix = Path(path.name).stem, Path(path.name).suffix
+    for number in range(1, MAX_EARLIER + 1):
+        place = earlier / (path.name if number == 1 else f"{stem} ({number}){suffix}")
+        if _free(place):
             _place(path, place)
             return
         if _same(path, place):
             _unlink(path)
             return
+    raise OSError(errno.EEXIST, f"{earlier} holds {MAX_EARLIER} files named {path.name}")
+
+
+def _free(place: Path) -> bool:
+    """True if nothing is at `place`; OSError if it can't be looked at (never free)."""
+    try:
+        place.lstat()
+    except FileNotFoundError:
+        return True
+    return False
+
+
+def _through_folders(top: Path, place: Path) -> bool:
+    """Every folder from `top` down to `place`'s folder that exists is a real folder: no
+    link, junction or file on the way (the missing ones are made by `_make_folders`)."""
+    current = top
+    for part in place.parent.relative_to(top).parts:
+        current = current / part
+        kind = _kind(current)
+        if kind is None:
+            return True
+        if kind != "folder":
+            return False
+    return True
 
 
 def _place(path: Path, target: Path) -> None:
@@ -298,7 +356,7 @@ def _make_folders(folder: Path) -> None:
     while not _lexists(current):
         missing.append(current)
         current = current.parent
-    if not _real_folder(current):
+    if not real_folder(current):
         raise OSError(errno.ENOTDIR, f"{current} is not a folder")
     for part in reversed(missing):
         part.mkdir()
@@ -338,7 +396,7 @@ def _discard(path: Path) -> None:
 def _clear_incoming(incoming: Path) -> None:
     """Uploads a killed server left in the old upload folder (`.part`, not written to for
     an hour), then the folder if it is empty."""
-    if not _real_folder(incoming):
+    if not real_folder(incoming):
         return
     now = time.time()
     for entry in _scan(incoming):
@@ -410,7 +468,8 @@ def _is_junction(path: Path) -> bool:
         return False
 
 
-def _real_folder(path: Path) -> bool:
+def real_folder(path: Path) -> bool:
+    """A folder itself: not a link, not a junction, not a file, and there."""
     try:
         return _kind(path) == "folder"
     except OSError:
