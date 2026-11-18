@@ -14,6 +14,7 @@ from hypothesis import example, given
 from hypothesis import strategies as st
 from test_layout import LEFT, RIGHT, content
 
+from sci2audio.app import default_selection, find_chapters
 from sci2audio.core import (
     BlockKind,
     Box,
@@ -961,3 +962,72 @@ def test_two_front_matter_entries_for_one_page_make_one_publisher_section() -> N
     """The first entry names it; the second starts nothing inside it."""
     doc = journal_issue(OutlineEntry("Cover", 1, 2), OutlineEntry("Titelei", 1, 2), *FRONT[1:])
     assert publisher_sections(doc) == [("Cover", 1, 2), ("Impressum", 3, 3)]
+
+
+def test_front_matter_entries_are_taken_in_page_order() -> None:
+    """The first front matter by page starts at block 0, whatever the outline's order."""
+    doc = journal_issue(
+        OutlineEntry("Impressum", 1, 3), OutlineEntry("Cover", 1, 2), OutlineEntry("Article", 1, 4)
+    )
+    assert publisher_sections(doc) == [("Cover", 1, 2), ("Impressum", 3, 3)]
+
+
+def test_front_matter_with_nothing_after_it_ends_with_its_page() -> None:
+    """No heading and no later entry: the cover ends with its own page, so the body text
+    after it stays a chapter read by default, not the publisher's."""
+    sheet = [set_line("Cite this paper as follows", 80), set_line("Terms of use", 100)]
+    cover = [set_line("Journal of Tests", 80), set_line("Issue 55", 100)]
+    found = content(sheet, cover, Page().body().body().lines)
+    doc = build_document(dataclasses.replace(found, outline=(OutlineEntry("Cover", 1, 2),)))
+    assert publisher_sections(doc) == [("Cover", 1, 2)]
+    chapters = find_chapters(doc)
+    assert [c.publisher for c in chapters] == [True, False]
+    assert default_selection(chapters) == {1}
+    assert "Running text" in doc.blocks[chapters[1].start].text
+
+
+def test_front_matter_that_would_be_the_whole_document_is_none() -> None:
+    sheet = [set_line("Cite this paper as follows", 80), set_line("Terms of use", 100)]
+    found = content(sheet, [set_line("Issue 55", 80), *Page().body().lines])
+    doc = build_document(dataclasses.replace(found, outline=(OutlineEntry("Cover", 1, 2),)))
+    assert publisher_sections(doc) == []
+
+
+def test_headings_under_front_matter_follow_it_at_the_top() -> None:
+    """Deeper headings after the imprint, which the section tree first puts under it, stay
+    sections (and chapters) of their own."""
+    imprint = [set_line("Editors: A. Editor", 80), set_line("Copyright 2017", 100)]
+    article = Page().heading("1.1 Background").body().heading("1.2 Aims").body()
+    article.heading("2 Results", 14.0).body().heading("2.1 More").body()
+    found = content(imprint, article.lines)
+    doc = build_document(dataclasses.replace(found, outline=(OutlineEntry("Impressum", 1, 1),)))
+    assert tree(doc.sections) == [
+        ("Impressum", 1),
+        ("1.1 Background", 2),
+        ("1.2 Aims", 2),
+        ("2 Results", 1),
+        [("2.1 More", 2)],
+    ]
+    assert [c.title for c in find_chapters(doc)] == [
+        "Impressum",
+        "1.1 Background",
+        "1.2 Aims",
+        "2 Results",
+    ]
+
+
+def test_front_matter_after_a_heading_starts_at_its_own_page() -> None:
+    """With a heading before it, the contents page does not reach back to block 0."""
+    title_page = Page().heading("A Study of Tests", 14.0).body()
+    contents_page = [set_line("Einleitung 3", 80), set_line("Methode 4", 100)]
+    article = Page().heading("Einleitung", 14.0).body().heading("Methode", 14.0).body()
+    found = content(title_page.lines, contents_page, article.lines)
+    outline = (OutlineEntry("A Study of Tests", 1, 1), OutlineEntry("Inhalt", 1, 2))
+    doc = build_document(dataclasses.replace(found, outline=outline))
+    assert [(s.title, s.publisher) for s in doc.sections] == [
+        ("A Study of Tests", False),
+        ("Inhalt", True),
+        ("Einleitung", False),
+        ("Methode", False),
+    ]
+    assert publisher_sections(doc) == [("Inhalt", 2, 2)]

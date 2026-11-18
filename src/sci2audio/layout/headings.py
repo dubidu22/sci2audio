@@ -48,9 +48,10 @@ settled by these rules (D-270 to D-272):
    level-1 section marked as the publisher's (#456, D-755): a publisher section from the
    outline starts at its page's first block. It ends at the next heading or at the first
    block of the next page any outline entry points to, so the article's own title page
-   after it stays out of it; the first such section, with no heading before it, starts at
-   block 0, so a repository's cover sheet before it joins it. Front matter is found only
-   through the outline, never by the pages' looks.
+   after it stays out of it; with neither after it, it ends with its own page. Entries
+   are taken in page order; the first such section, with no heading before it, starts at
+   block 0, so a repository's cover sheet before it joins it. Front matter never holds the
+   whole document, and is found only through the outline, never by the pages' looks.
 """
 
 from __future__ import annotations
@@ -127,9 +128,11 @@ def front_matter(
     block, its end and the entry's title. An entry whose title is one of
     `front_matter_names` starts at the first block of its page, when no heading stands on
     that page; it ends at the next heading or at the first block of the next page an
-    outline entry points to, whichever comes first. The first of them, with no heading
-    before it, starts at block 0: a repository's cover sheet before it joins it. Nothing
-    is found by the pages' looks, so a file without an outline has no front matter."""
+    outline entry points to, whichever comes first, or with neither at the end of its own
+    page. Entries are taken in page order; the first of them, with no heading before it,
+    starts at block 0: a repository's cover sheet before it joins it. One that would hold
+    the whole document is left out. Nothing is found by the pages' looks, so a file
+    without an outline has no front matter."""
     names = {title_key(name) for name in settings.front_matter_names}
     pages = {item.id: page.number for page in content.pages for item in page.lines}
     page_of = [next((pages[p.item] for p in b.parts if p.item in pages), None) for b in blocks]
@@ -144,14 +147,19 @@ def front_matter(
         if entry.page is not None and entry.page in first
     ]
     found: dict[int, tuple[int, str]] = {}
-    for start, text in starts:
+    for start, text in sorted(starts, key=lambda entry: entry[0]):  # by page (stable)
         if title_key(text).rstrip(".: ") not in names or page_of[start] in headed:
             continue
-        later = (other for other, _ in starts if other > start)  # any entry, by page
-        end = min([*(h for h in heads if h > start), *later, len(blocks)])
+        later = [other for other, _ in starts if other > start]  # any entry, by page
+        bounds = [*(h for h in heads if h > start), *later]
+        # nothing bounds it: its own page only, never the rest of the document
+        after = (k for k in range(start, len(blocks)) if page_of[k] not in (None, page_of[start]))
+        end = min(bounds) if bounds else next(after, len(blocks))
         if not found and not any(h < start for h in heads):
             start = 0
-        if end > start and not any(s <= start < e for s, (e, _) in found.items()):
+        if (start, end) == (0, len(blocks)):
+            continue  # the whole document is no front matter
+        if not any(s <= start < e for s, (e, _) in found.items()):
             found[start] = (end, text.strip())
     return found
 
