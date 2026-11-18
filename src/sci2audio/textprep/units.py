@@ -38,9 +38,10 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import cache
 
-from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span
+from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import FILE_NUMBER_DE, edits_through_unread
+from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, opens_sentence, units
@@ -183,7 +184,7 @@ class UnitStep(TextStep):
         marks = unread_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
-            if _skipped(block):
+            if not read_as_prose(block, context):
                 continue
             edits += edits_through_unread(
                 index,
@@ -277,10 +278,6 @@ class UnitStep(TextStep):
 
 _POINT_NUMBER = re.compile(r" \.\d")
 _HYPHEN_LINE_END = re.compile("[-\u2010\u2011]\n\\Z")
-
-
-def _skipped(block: Block) -> bool:
-    return block.kind is BlockKind.FURNITURE or block.is_placeholder
 
 
 def _single(text: str, position: int, char: str) -> bool:

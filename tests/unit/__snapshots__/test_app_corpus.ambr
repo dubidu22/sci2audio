@@ -4081,7 +4081,7 @@
         'references': False,
         'selected': True,
         'title': '1 Einleitung',
-        'utterances': 21,
+        'utterances': 20,
       }),
       dict({
         'blocks': list([
@@ -4146,7 +4146,7 @@
         'references': False,
         'selected': True,
         'title': '6 Rechtliche Fragestellungen',
-        'utterances': 141,
+        'utterances': 133,
       }),
       dict({
         'blocks': list([
@@ -11388,12 +11388,12 @@
   | No. | Chapter | Page | Read | Utterances |
   |---|---|---|---|---|
   | 1 | PrivacyScore | 1 | yes | 21 |
-  | 2 | 1 Einleitung | 1 | yes | 21 |
+  | 2 | 1 Einleitung | 1 | yes | 20 |
   | 3 | 2 Verwandte Arbeiten | 2 | yes | 12 |
   | 4 | 3 PrivacyScore im Überblick | 3 | yes | 36 |
   | 5 | 4 Sicherheits- und Privatheitstests | 5 | yes | 21 |
   | 6 | 5 Ethische Fragestellungen | 6 | yes | 12 |
-  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 141 |
+  | 7 | 6 Rechtliche Fragestellungen | 6 | yes | 133 |
   | 8 | 7 Schlussbemerkungen | 12 | yes | 14 |
   | 9 | Literaturverzeichnis | 13 | no (reference list) | 0 |
   
@@ -11885,7 +11885,7 @@
         'references': False,
         'selected': True,
         'title': 'Statement of need',
-        'utterances': 12,
+        'utterances': 11,
       }),
       dict({
         'blocks': list([
@@ -11911,7 +11911,7 @@
         'references': False,
         'selected': True,
         'title': 'Overview',
-        'utterances': 44,
+        'utterances': 42,
       }),
       dict({
         'blocks': list([
@@ -13502,9 +13502,9 @@
   |---|---|---|---|---|
   | 1 | seaborn: statistical data visualization | 1 | yes | 3 |
   | 2 | Summary | 1 | yes | 8 |
-  | 3 | Statement of need | 1 | yes | 12 |
+  | 3 | Statement of need | 1 | yes | 11 |
   | 4 | Example | 1 | yes | 8 |
-  | 5 | Overview | 2 | yes | 44 |
+  | 5 | Overview | 2 | yes | 42 |
   | 6 | Acknowledgements | 4 | yes | 3 |
   | 7 | References | 4 | no (reference list) | 0 |
   
@@ -14106,8 +14106,7 @@
   
   Das PrivacyScore-Projekt soll diese Lücke schließen.
   In Kooperation mit Datenschutz-Aufsichtsbehörden und -Aktivisten entwickeln wir derzeit ein System, das die automatische Analyse und den Vergleich der Sicherheits- und Privatheitseigenschaften von Webseiten ermöglicht (Benchmark).
-  Wir haben drei Zielgruppen: Endnutzerinnen, die sich über die Sicherheit und Privatheit bestimmter Webseiten informieren möchten, Wissenschaftlerinnen,
-  die große Mengen von Webseiten untersuchen wollen, und Aktivistinnen und Aufsichtsbehörden, die die Erfüllung von gesetzlichen Datenschutz-Mindeststandards durch Webseiten sicherstellen wollen.
+  Wir haben drei Zielgruppen: Endnutzerinnen, die sich über die Sicherheit und Privatheit bestimmter Webseiten informieren möchten, Wissenschaftlerinnen, die große Mengen von Webseiten untersuchen wollen, und Aktivistinnen und Aufsichtsbehörden, die die Erfüllung von gesetzlichen Datenschutz-Mindeststandards durch Webseiten sicherstellen wollen.
   Unsere Ideen und Realisierungsansätze haben wir erstmalig in Quelle MH17 vorgestellt.
   Im vorliegenden Papier betrachten wir zusätzlich die juristische Zulässigkeit der Erhebung der Daten und der Veröffentlichung von Benchmarks sowie die juristische Verwertbarkeit der Ergebnisse.
   
@@ -14242,13 +14241,11 @@
   Da es Daten bereits an der körperlichen Eigenschaft fehlt, kann es weder ein Eigentumsrecht an Daten noch ein aus Eigentum abgeleitetes Recht auf die ausschließliche Nutzung von Daten geben.
   Dennoch können Daten unter verschiedenen gesetzlichen Voraussetzungen vor dem Zugriff und der Verwertung durch Dritte geschützt sein.
   Daten unterliegen einer Kommunikationsordnung, welche sich aus Regelungen in diversen Rechtsgebieten zusammensetzt und Umgangsrechte, Verfügungsberechtigungen und -beschränkungen hinsichtlich der Daten gewährt, ohne dabei eine Güterzuweisung vorzunehmen.
-  Relevant werden können, soweit Gegenstand personenbezogene Daten von natürlichen Personen sind, Regelungen aus dem Datenschutzrecht, auch Regelungen aus dem Urheberrecht,
-  sofern es sich um persönliche geistige Schöpfungen handelt, weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch (StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG).
+  Relevant werden können, soweit Gegenstand personenbezogene Daten von natürlichen Personen sind, Regelungen aus dem Datenschutzrecht, auch Regelungen aus dem Urheberrecht, sofern es sich um persönliche geistige Schöpfungen handelt, weiterhin auch einzelne Regelungen aus dem Strafgesetzbuch (StGB) oder dem Gesetz gegen den unlauteren Wettbewerb (UWG).
   Darüber hinaus ist auch ein deliktischer Abwehranspruch gegen Störungen aus dem Recht am eingerichteten und ausgeübten Gewerbebetrieb im Sinne von § 823 Absatz 1 BGB denkbar.
   
   Einige Webseitenbetreiber verbieten in ihren Nutzungsbedingungen das automatisierte Durchsuchen und Auswerten der von ihnen zur Verfügung gestellten Daten.
-  Während manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell bejahen oder dies von der Art der Webseitenausgestaltung abhängig machen,
-  spricht gegen die Übertragung der Befugnis zur Ausübung des Hausrechts von Räumen und Grundstücken auf Webseiten die nicht vergleichbare Interessenlage,
+  Während manche deutsche Gerichte ein hierzu berechtigendes „virtuelles Hausrecht“ generell bejahen oder dies von der Art der Webseitenausgestaltung abhängig machen, spricht gegen die Übertragung der Befugnis zur Ausübung des Hausrechts von Räumen und Grundstücken auf Webseiten die nicht vergleichbare Interessenlage,
   da ursprünglich gerade absolute Rechtspositionen wie Besitz und Eigentum Gegenstand des Schutzes sein sollten und der Zweck einer Webseite gerade darin besteht, sie potentiellen Nutzerinnen zu öffnen und von diesen zur Kenntnis genommen zu werden.
   
   Fußnote 14.
@@ -14319,8 +14316,7 @@
   
   Das Einbinden von Analysediensten ist nicht per se nur nachteilhaft für Nutzerinnen, es besteht aber durchaus die Gefahr des Missbrauchs.
   Die Rechtmäßigkeit von Analysediensten, wie Google Analytics, auf Webseiten wird seit jeher von den Datenschützern kritisch betrachtet, da sie befürchten, dass mittels dieser Analyse umfangreiche Profile über identifizierbare Nutzerinnen angelegt werden könnten.
-  Neben der Zuordnung und Speicherung von Nutzungsdaten (wie die zuletzt besuchte Seite und der verwendete Browser), die zunächst rechtlich unbedenklich sind, ermöglichen zentrale Analysedienste wie Google Analytics die Möglichkeit,
-  die Nutzungsaktivitäten über die ebenfalls abgespeicherte IP-Adresse zusammen zu führen und webseitenübergreifend einer bestimmten Nutzerin zuzuordnen.
+  Neben der Zuordnung und Speicherung von Nutzungsdaten (wie die zuletzt besuchte Seite und der verwendete Browser), die zunächst rechtlich unbedenklich sind, ermöglichen zentrale Analysedienste wie Google Analytics die Möglichkeit, die Nutzungsaktivitäten über die ebenfalls abgespeicherte IP-Adresse zusammen zu führen und webseitenübergreifend einer bestimmten Nutzerin zuzuordnen.
   Eine datenschutzkonforme Nutzung von Analysediensten wie Google Analytics ist daher nur zulässig, wenn eine Anonymisierung der IP-Adresse – etwa in Form einer Kürzung – gewährleistet wird, da aufgrund dieser Kürzung nach überwiegender Ansicht der Datenschützer der direkte Personenbezug entfalle.
   
   Fußnote 22.
@@ -14336,8 +14332,7 @@
   Fußnote 24.
   LG Frankfurt vom achtzehnten Februar 2014, Az. 3-10 O 86/12.
   
-  Nach dieser Vorschrift ist die Erstellung von pseudonymisierten Nutzungsprofilen zu festgelegten Zwecken auch ohne die Einwilligung der betroffenen Nutzerin zulässig,
-  soweit der Nutzerin gemäß § 15 Absatz 3 Satz 2 TMG ein Recht zum Widerspruch („Opt-out“) gegen diese Erstellung eingeräumt und sie auf die Möglichkeit des Widerspruchs auch hingewiesen wird.
+  Nach dieser Vorschrift ist die Erstellung von pseudonymisierten Nutzungsprofilen zu festgelegten Zwecken auch ohne die Einwilligung der betroffenen Nutzerin zulässig, soweit der Nutzerin gemäß § 15 Absatz 3 Satz 2 TMG ein Recht zum Widerspruch („Opt-out“) gegen diese Erstellung eingeräumt und sie auf die Möglichkeit des Widerspruchs auch hingewiesen wird.
   
   Fußnote 25.
   BGH vom sechzehnten Juli 2008, Az. VIII ZR 348/06.
@@ -14345,8 +14340,7 @@
   Um beurteilen zu können, ob der Webseitenbetreiber seinen Hinweispflichten ausreichend nachgekommen ist, wäre eine Betrachtung des Impressums und der Datenschutzerklärung notwendig.
   
   Etwas anderes kann sich möglicherweise zukünftig aufgrund des Entwurfs der Verordnung über Privatsphäre und elektronische Kommunikation (e-Privacy-VO-E) ergeben.
-  Nach Artikel 8 Absatz 1 des Verordnungsentwurfs, ist „jede vom betreffenden Endnutzer nicht selbst vorgenommene Nutzung der Verarbeitungs- und Speicherfunktionen“ grundsätzlich verboten, es sei denn,
-  der Endnutzer hat seine Einwilligung gegeben oder es greifen die übrigen Ausnahmen von Absatz 1 Buchstabe a–d.
+  Nach Artikel 8 Absatz 1 des Verordnungsentwurfs, ist „jede vom betreffenden Endnutzer nicht selbst vorgenommene Nutzung der Verarbeitungs- und Speicherfunktionen“ grundsätzlich verboten, es sei denn, der Endnutzer hat seine Einwilligung gegeben oder es greifen die übrigen Ausnahmen von Absatz 1 Buchstabe a–d.
   Ob unter die Ausnahme nach Artikel 8 Absatz 1 Buchstabe d auch externe Analysedienste fallen, hängt von der Auslegung der Einschränkung, „sofern der Betreiber (...) diese Messung durchführt“, ab.
   Dies könnte problematisch sein, da externe Dienste gerade nicht identisch mit dem Webseitenbetreiber sind, der den vom Endnutzer gewünschten Dienst anbietet.
   Die Folge wäre, dass zukünftig das Nutzen von Analysediensten generell von der vorherigen Einwilligung („Opt-in“) der betroffenen Nutzerin abhängig wäre.
@@ -14355,8 +14349,7 @@
   
   Ähnlich stellt es sich bei fehlender Verschlüsselungssoftware dar, da eine generelle Verschlüsselungspflicht für Webseitenbetreiber nicht ausdrücklich normiert ist.
   Vorschriften zur Datensicherheit finden sich derzeit unter anderem in § 9 Bundesdatenschutz (BDSG) und dessen Anlage sowie im für Telemedien spezielleren § 13 Absatz 7 TMG.
-  Da die Datenschutz-Grundverordnung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gemäß § 288 Absatz 2 AEUV mit Geltungsbeginn am fünfundzwanzigsten Mai 2018 unmittelbar in den Mitgliedsstaaten anwendbar sein werden,
-  werden sie diese nationalen Regelungen im Rahmen des Anwendungsvorrangs verdrängen.
+  Da die Datenschutz-Grundverordnung (DSGVO) und die e-Privacy-VO als europäische Verordnungen gemäß § 288 Absatz 2 AEUV mit Geltungsbeginn am fünfundzwanzigsten Mai 2018 unmittelbar in den Mitgliedsstaaten anwendbar sein werden, werden sie diese nationalen Regelungen im Rahmen des Anwendungsvorrangs verdrängen.
   Aus Erwägungsgrund 5 des Entwurfs der e-Privacy-VO geht hervor, dass diese gegenüber der DSGVO spezieller sein soll, wenn ihr Anwendungsbereich betroffen ist.
   Gleichzeitig verweist Erwägungsgrund 37 des Verordnungsentwurfs hinsichtlich der Bewertung der Datensicherheit auf Artikel 32 DSGVO, in dem in Verbindung mit Artikel 5 Absatz 1 Buchstabe f DSGVO die Datensicherheit als allgemeiner Grundsatz normiert ist.
   Artikel 32 DSGVO verpflichtet den Verantwortlichen (Artikel 4 Nummer 7 DSGVO) sowie den Auftragsverarbeiter (Artikel 4 Nummer 8 DSGVO) „geeignete technische und organisatorischen Maßnahmen“ zur Herstellung eines „angemessenen Datenschutzniveaus“ zu gewährleisten.
@@ -14364,8 +14357,7 @@
   Ebenso wie die Pseudonymisierung, ist die Verschlüsselung jedoch nicht in jedem Einzelfall zwingend geboten.
   Welche Maßnahmen sich als erforderlich und angemessen erweisen, um ein „dem Risiko angemessenes Schutzniveau zu gewährleisten“, muss vielmehr im Rahmen einer Gesamtabwägung an das Einzelfallrisiko angepasst werden.
   Hierfür ist im Rahmen des Artikel 32 Absatz 1 DSGVO neben der Schwere und Eintrittswahrscheinlichkeit des Risikos für die Rechte und Freiheiten der von der Verarbeitung Betroffenen,
-  das sich insbesondere an der Schutzbedürftigkeit der einzelnen gespeicherten personenbezogenen Daten orientiert,
-  auf der anderen Seite sowohl das technisch Machbare nach dem „Stand der Technik“ als auch die wirtschaftliche Belastung des Verarbeiters, insbesondere die Implementierungskosten, mit einzubeziehen.
+  das sich insbesondere an der Schutzbedürftigkeit der einzelnen gespeicherten personenbezogenen Daten orientiert, auf der anderen Seite sowohl das technisch Machbare nach dem „Stand der Technik“ als auch die wirtschaftliche Belastung des Verarbeiters, insbesondere die Implementierungskosten, mit einzubeziehen.
   Lediglich das wirtschaftlich Zumutbare wird erwartet.
   Dies kann im Einzelfall auch dazu führen, dass ein Verantwortlicher keine Maßnahmen ergreifen muss.
   
@@ -14389,8 +14381,7 @@
   Fußnote 27.
   BGH vom neunundzwanzigsten Januar 2002, Az. VI ZR 20/01.
   
-  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen im Sinne von §§ 185 folgende StGB werden und die konkrete Aussage geeignet ist,
-  die Behörde in ihrer Funktion zu beeinträchtigen.
+  Juristische Personen des öffentlichen Rechts sind grundsätzlich nicht Träger von Persönlichkeitsrechten, ein zivilrechtlicher Schutz steht ihnen daher nur mittelbar zu, sofern sie Adressat strafbarer Äußerungen im Sinne von §§ 185 folgende StGB werden und die konkrete Aussage geeignet ist, die Behörde in ihrer Funktion zu beeinträchtigen.
   
   Eine Beurteilung eines rechtswidrigen Eingriffs unter Abwägung der Interessen ist grundsätzlich nur im Einzelfall möglich.
   Die Veröffentlichung einer kritischen Bewertung der Webseite kann für den Betroffenen zu einer Rufbeeinträchtigung führen und ihn nicht unerheblich belasten.
@@ -14480,8 +14471,7 @@
   It is highly flexible, offering fine-grained control over the placement and visual appearance of objects in a plot.
   It can be used interactively through GUI applications, and it can output graphics to a wide range of static formats.
   Yet its relatively low-level API can make some common tasks cumbersome to perform.
-  For example, creating a scatter plot where the marker size represents a numeric variable and the marker shape represents a categorical variable requires one to transform the size values to graphical units and to loop over the categorical levels,
-  separately invoking a plotting function for each marker type.
+  For example, creating a scatter plot where the marker size represents a numeric variable and the marker shape represents a categorical variable requires one to transform the size values to graphical units and to loop over the categorical levels, separately invoking a plotting function for each marker type.
   
   The seaborn library offers an interface to matplotlib that permits rapid data exploration and prototyping of visualizations while retaining much of the flexibility and stability that are necessary to produce publication-quality graphics.
   It is domain-general and can be used to visualize a wide range of datasets that are well-represented within a tabular format.
@@ -14533,8 +14523,7 @@
   The most convenient usage pattern provides a pandas dataframe with variables encoded in a long-form or “tidy” format.
   With this format, columns in the dataframe can be explicitly assigned to roles in the plot, such as specifying the x and y positions of a scatterplot along with size and shape semantics.
   Long-form data supports efficient exploration and prototyping because variables can be assigned different roles in the plot without modifying anything about the original dataset.
-  But most seaborn functions can also consume and visualize “wide-form” data,
-  typically producing similar output to how the analogous matplot lib function would interpret a 2D array (for example, producing a boxplot where each box represents a column in the dataframe) while making use of the index and column names to label the graph.
+  But most seaborn functions can also consume and visualize “wide-form” data, typically producing similar output to how the analogous matplot lib function would interpret a 2D array (for example, producing a boxplot where each box represents a column in the dataframe) while making use of the index and column names to label the graph.
   Using the label information in a pandas object can help make plots that are interpretable without further tweaking – reducing the chance of interpretive errors – but seaborn also accepts data from a variety of more basic formats, including numpy arrays and simple Python collection types.
   
   seaborn also offers multiple built-in themes that users can select to modify the visual appearance of their graphs.
@@ -14547,8 +14536,7 @@
   
   seaborn does not aim to completely encapsulate or replace matplotlib.
   Many useful graphs can be created through the seaborn interface, but more advanced applications – such as defining composite figures with multiple arbitrary plot types – will require importing and using matplotlib as well.
-  Even when calling only seaborn functions, deeper customization of the plot appearance is achieved by specifying parameters that are passedthrough to the underlying matplotlib functions,
-  and tweaks to the default axis limits, ticks, and labels are made by calling methods on the matplotlib object that axes-level seaborn functions return.
+  Even when calling only seaborn functions, deeper customization of the plot appearance is achieved by specifying parameters that are passedthrough to the underlying matplotlib functions, and tweaks to the default axis limits, ticks, and labels are made by calling methods on the matplotlib object that axes-level seaborn functions return.
   This approach is distinct from other statistical graphing systems, such as ggplot2.
   While seaborn offers some similar features and, in some cases, uses similar terminology to ggplot2, it does not implement the formal Grammar of Graphics and cannot be used to produce arbitrary visualizations.
   Rather, its aim is to facilitate rapid exploration and prototyping through named functions and opinionated defaults while allowing the user to leverage the considerable flexibility of matplotlib to create more domain-specific graphics and to polish figures for publication.

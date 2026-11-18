@@ -254,6 +254,24 @@ class CodeNoticeStep(_NoticeStep):
 _NOTICE_STEPS = (FormulaNoticeStep(), TableFigureNoticeStep(), CodeNoticeStep())
 
 
+# a placeholder whose notice is off is read: a table or figure as a paragraph is, a formula
+# or code block as printed (#487, D-726)
+_READ_AS_PROSE_WHEN_OFF = frozenset({BlockKind.TABLE, BlockKind.FIGURE})
+
+
+def read_as_prose(block: Block, context: StepContext) -> bool:
+    """True if the inline steps read the block's words as a paragraph's: any block but
+    furniture (removed whole) and placeholders, and a table or figure whose notice is off,
+    whose printed text is then read like the same text in a paragraph (#487, D-726). A
+    formula or code block whose notice is off stays as printed; the steps that clean every
+    block's text (characters, hidden runs) do not ask this."""
+    if block.kind is BlockKind.FURNITURE:
+        return False
+    if not block.is_placeholder:
+        return True
+    return block.kind in _READ_AS_PROSE_WHEN_OFF and not notice_read(block, context)
+
+
 def notice_read(block: Block, context: StepContext) -> bool:
     """True if a notice is read in place of the block: a notice step for its kind handles the
     job's language and its category is on. Otherwise a placeholder's printed text is read, and

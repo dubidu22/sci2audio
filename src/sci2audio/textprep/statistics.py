@@ -28,7 +28,6 @@ from sci2audio.core import Document, Edit
 from sci2audio.textprep.characters import ACCENTS
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import (
-    SKIPPED_KINDS,
     Candidate,
     fold,
     padded,
@@ -36,6 +35,7 @@ from sci2audio.textprep.notation import (
     through_unread,
     to_edits,
 )
+from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.statistics_de import OPERATORS_DE, ci_runs_de, find_statistics_de
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
@@ -140,7 +140,7 @@ class StatisticsStep(TextStep):
         marks = unread_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
-            if block.kind in SKIPPED_KINDS or not block.text:
+            if not read_as_prose(block, context) or not block.text:
                 continue
             unread = marks.get(index, ())
             edits += to_edits(index, through_unread(block.text, find, unread), self.id)
