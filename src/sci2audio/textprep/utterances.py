@@ -61,7 +61,12 @@ from sci2audio.core import Document, ScriptPiece, Span
 from sci2audio.textprep.spoken import spoken_text
 from sci2audio.textprep.wordlists import abbreviations, clause_openers, opens_sentence, units
 
-DEFAULT_MAX_CHARS = 300  # well under Kokoro's per-call limit; #18 sets the voice's own
+# Kokoro speaks about 510 phoneme tokens per call. Measured on prose (#480, #494): English 0.97
+# tokens per character, German 1.07 to 1.16, so 400 characters are about 464 tokens at the
+# worst; a sentence spoken whole keeps the voice's own pause and pitch at its commas. Denser
+# text (digits the voice reads out, symbols) can pass 510; the voice then splits it itself at
+# punctuation, else at a space, and speaks all of it (slow tests of #494)
+DEFAULT_MAX_CHARS = 400
 
 # words that end in a full stop without ending a sentence, lower case, by language
 ABBREVIATIONS: dict[str, frozenset[str]] = {
