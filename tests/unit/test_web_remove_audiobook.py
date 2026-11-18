@@ -129,6 +129,29 @@ def test_the_recorded_files_and_their_folder_go_by_default(one: dict[str, Any]) 
     assert not one["work"].exists()
 
 
+def test_a_recorded_file_already_gone_is_skipped_and_the_rest_goes(one: dict[str, Any]) -> None:
+    """A stale record entry (#552 round 1, N1) is not an error: it is simply not there."""
+    gone = sorted(one["files"])[0]
+    (one["book"] / gone).unlink()
+    response = remove(one["client"], one["doc"])
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted_files"] == len(one["files"]) - 1
+    assert response.json()["kept"] == []
+    assert not one["book"].exists()
+
+
+def test_an_empty_project_folder_left_by_a_failed_first_run_goes(one: dict[str, Any]) -> None:
+    """A folder recorded with no files yet (#552 round 1, N3) is removed with `rmdir`."""
+    for name in one["files"]:
+        (one["book"] / name).unlink()
+    record(one["work"], one["doc"], one["book"])
+    response = remove(one["client"], one["doc"])
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted_files"] == 0
+    assert response.json()["kept"] == []
+    assert not one["book"].exists()
+
+
 def test_s8_keep_deletes_no_audiobook_file(one: dict[str, Any]) -> None:
     response = remove(one["client"], one["doc"], "true")
     assert response.status_code == 200
