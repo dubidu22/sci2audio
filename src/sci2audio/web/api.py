@@ -445,7 +445,8 @@ def _marker_out(book: _Book, marker: Marker) -> models.MarkerOut:
         changed=marker.changed,
         text=marker.anchor.text,
         note=marker.note,
-        chunk=placed.chunk,
+        # the sentence by its first piece, as the page and the player name it (#520)
+        chunk=None if placed.chunk is None else book.firsts[placed.chunk],
         state=placed.state,
     )
 

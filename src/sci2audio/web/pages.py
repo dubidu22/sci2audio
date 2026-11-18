@@ -88,6 +88,7 @@ from sci2audio.web.player import (
     player_for,
     read_position,
     recorded_folder,
+    sentence_starts,
 )
 from sci2audio.web.project import read_project
 from sci2audio.web.state import ServerState, state_of
@@ -1171,13 +1172,14 @@ def _markers_data(
     except (MarkersBroken, OSError):
         return {"markers": [], "markers_file": str(work / MARKERS)}
     spans = [chunk.span for chunk in located.readalong.chunks]
+    firsts = sentence_starts(located.readalong)  # a sentence by its first piece (#520)
     return {
         "markers": [
             {
                 "id": p.marker.id,
                 "text": p.marker.anchor.text,
                 "note": p.marker.note,
-                "chunk": p.chunk,
+                "chunk": None if p.chunk is None else firsts[p.chunk],
                 "state": p.state,
             }
             for p in place(markers, made_from, spans)

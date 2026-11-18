@@ -540,7 +540,7 @@ announce_hint = "Off by default, so screen readers are not flooded while you lis
 announce_save = "Save"
 keys_save = "Save"
 keys = "Keyboard shortcuts"
-keys_hint = "Single keys such as Space, F and P work while you listen. Switch them off if they get in the way of your screen reader or other keys; Esc and the list of shortcuts work either way."
+keys_hint = "Single keys such as Space, F, P and M work while you listen. Switch them off if they get in the way of your screen reader or other keys; Esc and the list of shortcuts work either way."
 
 [paper]  # the header of a document's pages, Prepare and Listen (#391)
 tabs = "Prepare or listen"

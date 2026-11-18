@@ -205,8 +205,11 @@ def test_a_good_record_reads_back(tmp_path: Path) -> None:
 
 
 def test_a_linked_or_huge_record_reads_as_none(tmp_path: Path) -> None:
-    (tmp_path / PROJECT).write_text(" " * (300 * 1024))
+    huge = json.dumps(good_record(tmp_path)) + " " * (300 * 1024)  # valid, but too large
+    (tmp_path / PROJECT).write_text(huge)
     assert read_project(tmp_path, ID) is None
+    (tmp_path / PROJECT).write_text(huge.rstrip())
+    assert read_project(tmp_path, ID) is not None  # the same record, small enough
     if can_link(tmp_path):
         real = tmp_path / "real.json"
         real.write_text(json.dumps(good_record(tmp_path)))

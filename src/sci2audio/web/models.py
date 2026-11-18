@@ -257,7 +257,9 @@ class MarkerOut(BaseModel):
     changed: str = Field(description="when it or its note last changed, UTC")
     text: str = Field(description="the sentence as printed when it was set")
     note: str = Field(description='its note ("" for none)')
-    chunk: int | None = Field(description="the chunk it is shown on in this audiobook, or null")
+    chunk: int | None = Field(
+        description="the first chunk of its sentence in this audiobook, or null"
+    )
     state: Literal["found", "not-read", "not-found"] = Field(
         description="found; in text this audiobook does not read; or not found in it"
     )

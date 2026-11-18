@@ -545,7 +545,7 @@ announce_hint = "Standardmäßig aus, damit Screenreader beim Hören nicht über
 announce_save = "Speichern"
 keys_save = "Speichern"
 keys = "Tastenkürzel"
-keys_hint = "Einzelne Tasten wie Leertaste, F und P wirken beim Hören. Schalten Sie sie aus, wenn sie Ihrem Screenreader oder anderen Tasten in die Quere kommen; Esc und die Liste der Tastenkürzel wirken immer."
+keys_hint = "Einzelne Tasten wie Leertaste, F, P und M wirken beim Hören. Schalten Sie sie aus, wenn sie Ihrem Screenreader oder anderen Tasten in die Quere kommen; Esc und die Liste der Tastenkürzel wirken immer."
 
 [paper]  # der Kopf der Seiten eines Dokuments, Vorbereiten und Anhören (#391)
 tabs = "Vorbereiten oder anhören"
