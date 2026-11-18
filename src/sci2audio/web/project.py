@@ -81,7 +81,11 @@ def folder_name(document_name: str) -> str:
     for every file system (forbidden, unassigned and surrogate code points, Windows names,
     #491, #493) and cut to NAME_CHARS characters and NAME_BYTES bytes."""
     stem = PurePosixPath(document_name).stem  # the same on every system: "a:" is no drive
-    return clean(cut(clean(stem, "audiobook"), NAME_CHARS, NAME_BYTES), "audiobook")
+    return _cleaned(stem)
+
+
+def _cleaned(name: str) -> str:
+    return clean(cut(clean(name, "audiobook"), NAME_CHARS, NAME_BYTES), "audiobook")
 
 
 def _numbered(name: str, number: int) -> str:
@@ -118,6 +122,7 @@ def _project(data: Any, document_id: str) -> Project:
         or data["version"] != PROJECT_VERSION
         or data.get("document") != document_id
         or not isinstance(data.get("name"), str)
+        or _cleaned(data["name"]) != data["name"]  # a folder name as `folder_name` makes
         or not isinstance(data.get("audiobooks"), list)
     ):
         raise ValueError("not a project record of this document")
@@ -193,8 +198,9 @@ def audiobook_folder(work: Path, document_id: str, document_name: str, output: P
     try:
         output.mkdir(parents=True, exist_ok=True)
         folder = _make_folder(output, project.name)
-        made = (*project.audiobooks, AudiobookFolder(folder))
-        write_project(work, replace(project, audiobooks=made))
+        # a folder made again at a recorded path replaces that entry, never adds a second
+        kept = tuple(a for a in project.audiobooks if a.folder != folder)
+        write_project(work, replace(project, audiobooks=(*kept, AudiobookFolder(folder))))
     except OSError as error:
         raise ProjectError(
             f"could not make the audiobook folder in {output}: {error.strerror or error}"
@@ -205,6 +211,9 @@ def audiobook_folder(work: Path, document_id: str, document_name: str, output: P
 def _make_folder(output: Path, name: str) -> Path:
     for number in range(1, MAX_TRIES + 1):
         folder = output / _numbered(name, number)
+        if folder.parent != output or folder.name in ("", ".", ".."):
+            # never anywhere but directly in the output folder (the record is checked too)
+            raise ProjectError(f"the project name {name!r} is not a folder name")
         try:
             folder.mkdir()  # the OS decides "exists", in its own case and normalisation rules
         except FileExistsError:
