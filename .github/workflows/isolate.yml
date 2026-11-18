@@ -3,9 +3,10 @@ name: Isolation runs
 # Runs named browser tests many times, spread over several runners (D-759, TST-08), so a
 # flaky test's 40 runs need no edited copy of nightly.yml on a scratch branch. Started by
 # hand on the branch to check (Actions -> Isolation runs -> Run workflow, or gh workflow
-# run isolate.yml). "stop" ends every runner at the first red run (a gating check);
-# "full" runs them all, for the pass counts TST-08 puts into the issue. The job summary
-# holds the counts per browser and test; traces of red runs are uploaded.
+# run isolate.yml), two runners per browser unless asked for up to four. "stop" ends
+# every runner at the first red run (a gating check); "full" runs them all, for the pass
+# counts TST-08 puts into the issue. The job summary holds the counts per browser and
+# test; traces of red runs are uploaded.
 # A run is red when pytest fails, errors, skips or misses a named test; quarantined tests
 # run (--run-quarantined). Inputs reach the scripts only through the environment.
 on:
@@ -27,6 +28,10 @@ on:
         description: Runs per browser
         type: number
         default: 40
+      runners:
+        description: Runners per browser (1 to 4; each takes one of the account's 20 job slots)
+        type: number
+        default: 2
       mode:
         description: stop at the first red run, or run them all for the pass counts
         type: choice
@@ -43,7 +48,9 @@ concurrency:
 
 env:
   UV_PYTHON_PREFERENCE: only-managed  # the Python of .python-version, as in CI (D-378)
-  RUNNERS: 4  # runners per browser, each running every fourth run
+  # Runners per browser, each running every RUNNERS-th run. Two by default: the account
+  # runs at most 20 jobs at once (5 on macOS), shared with every lane's CI.
+  RUNNERS: ${{ inputs.runners }}
 
 jobs:
   plan:

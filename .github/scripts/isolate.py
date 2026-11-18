@@ -49,8 +49,8 @@ def matrix() -> None:
         sys.exit(f"browsers must be some of {', '.join(BROWSERS)}; got {names}")
     runners = int(env("RUNNERS"))
     runs = int(env("RUNS"))
-    if not 1 <= runners <= runs <= 400:
-        sys.exit(f"need 1 <= runners ({runners}) <= runs ({runs}) <= 400")
+    if not 1 <= runners <= 4 or not runners <= runs <= 400:
+        sys.exit(f"need 1 <= runners ({runners}) <= 4 and runners <= runs ({runs}) <= 400")
     tests()  # refuse bad ids before any runner starts
     cells = [
         {"os": "ubuntu-latest", "browser": name, "slice": k}
