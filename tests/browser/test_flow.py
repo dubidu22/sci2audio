@@ -18,7 +18,7 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page, Route, expect
 from web_helpers import paper_bytes
 
-from conftest import Hold, Live, check_axe, inside, settled, small_plan
+from conftest import Hold, Live, at_rest, check_axe, inside, settled, small_plan
 from sci2audio.app import JobSettings, save_settings
 from sci2audio.voices import PREVIEW_TEXT, PREVIEW_TEXTS
 from sci2audio.web import pages
@@ -176,6 +176,7 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
 
     # again: the files exist; replacing them is its own button (D-254)
     page.get_by_role("link", name="Prepare").click()
+    at_rest(page)  # a click while the Prepare page's fonts still arrived did nothing (WebKit)
     page.get_by_role("button", name="Make the audiobook").click()
     expect(page.locator("#result")).to_have_text("The audiobook files exist already.")
     # the app's own words follow as details, in English (D-291)
@@ -281,6 +282,7 @@ def test_resume_of_a_paused_replace_never_asks_to_replace_again(
     assert deleted.status == 204
 
     page.get_by_role("link", name="Prepare").click()
+    at_rest(page)  # a click while the Prepare page's fonts still arrived did nothing (WebKit)
     page.get_by_role("button", name="Make the audiobook").click()
     expect(page.locator("#result")).to_have_text("The audiobook files exist already.")
     # replacing never needs the cache freed; with nothing spoken, nothing is said kept
@@ -790,6 +792,7 @@ def test_replace_waits_until_the_page_script_runs(signed_in: Page, live: Live) -
     page.get_by_role("button", name="Make the audiobook").click()
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
     page.get_by_role("link", name="Prepare").click()
+    at_rest(page)  # a click while the Prepare page's fonts still arrived did nothing (WebKit)
     page.get_by_role("button", name="Make the audiobook").click()
     expect(page.locator("#result")).to_have_text("The audiobook files exist already.")
 
@@ -962,10 +965,20 @@ def test_a_move_made_while_the_page_loads_stays_where_it_was_made(
 
 
 def reload_holding_back_app_js(page: Page, live: Live) -> Callable[[], None]:
-    """Reload the page with app.js held back; the result lets it through."""
+    """Reload the page with app.js held back; the result lets it through.
+
+    Returns once the new document is parsed and at rest (#509). `wait_until=
+    "domcontentloaded"` cannot be used: app.js is `defer`, and DOMContentLoaded waits for
+    deferred scripts. The document's readyState turns "interactive" when parsing ends,
+    before deferred scripts run. The flag set on the old page tells the reloaded one from
+    it. Then `at_rest`: in WebKit a click on the parsed page while app.css and the fonts
+    still arrived opened nothing (11 of 40 isolation runs)."""
     held: list[Route] = []
+    page.evaluate("() => { window.beforeReload = true; }")
     page.route(f"{live.url}/static/app.js", lambda route: held.append(route))
     page.reload(wait_until="commit")
+    page.wait_for_function("() => !window.beforeReload && document.readyState !== 'loading'")
+    at_rest(page)
 
     def release() -> None:
         until(lambda: held)
