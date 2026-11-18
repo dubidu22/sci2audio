@@ -295,8 +295,14 @@ def test_a_long_hidden_text_is_quoted_in_part() -> None:
 @pytest.mark.parametrize(
     ("text", "start", "end", "span"),
     [
-        ("a xy b", 2, 4, (2, 4)),  # inside: the spaces around it stay
-        ("a  xy  b", 1, 7, (3, 5)),  # the run's own white space is not part of the edit
+        # white space on both sides: the white space before goes too, so the text reads as
+        # it does without the run, "a b", which is what a second run reads (#445)
+        ("a xy b", 2, 4, (1, 4)),
+        ("a  xy  b", 1, 7, (1, 5)),  # the run's own white space is left out of it first
+        ("a\nxy b", 2, 4, (1, 4)),  # a line break before: the space after is left
+        ("a xy\nb", 2, 4, (1, 4)),  # a line break after: the line break is left
+        ("axy b", 1, 3, (1, 3)),  # glued on the left: nothing more
+        ("a xyb", 2, 4, (2, 4)),  # glued on the right: nothing more
         ("a xy.", 2, 4, (1, 4)),  # before a full stop the space before goes too
         ("a xy", 2, 4, (1, 4)),  # at the block's end too
         ("a \n xy)", 4, 6, (1, 6)),  # a line break is white space
