@@ -222,7 +222,8 @@ def test_m_early_in_a_later_piece_marks_the_cut_sentence_and_its_tick_is_at_its_
     (marker,) = page.evaluate(
         "() => JSON.parse(document.getElementById('player-data').textContent).markers"
     )
-    assert marker["chunk"] != first  # shown on a later piece: the tick must not follow it
+    # the page names the sentence by its first piece, though a later one overlaps most (#520)
+    assert marker["chunk"] == first
     expect(page.locator("#marker-ticks rect")).to_have_count(1)
     # the tick stands at the sentence's start, where the list's Go to and a click go
     x = page.locator("#marker-ticks rect").get_attribute("x")
