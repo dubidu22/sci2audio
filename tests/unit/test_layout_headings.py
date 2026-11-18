@@ -835,3 +835,80 @@ def test_a_bold_line_over_a_wide_rule_inside_a_table_stays_in_the_table() -> Non
     assert header.id in [p.item for p in table.parts]
     assert "t2" in [p.item for p in table.parts]
     assert ("Structure Example", "") not in headings(doc)
+
+
+# The publisher's front matter named by the outline (#456, D-755)
+
+
+def journal_issue(*outline: OutlineEntry) -> Document:
+    """Four pages: a repository's cover sheet, the journal's cover, its imprint, then the
+    article: its title and author in body style, a heading set larger, running text."""
+    sheet = [set_line("Cite this paper as follows", 80), set_line("Terms of use", 100)]
+    cover = [set_line("Journal of Tests", 80, 14.0), set_line("Issue 55", 100)]
+    imprint = [set_line("Editors: A. Editor", 80), set_line("Copyright 2017", 100)]
+    article = Page()
+    plain(article, "An Article About Tests")
+    plain(article, "Ann Author")
+    article.heading("Introduction", 14.0).body().heading("Method", 14.0).body()
+    found = content(sheet, cover, imprint, article.lines)
+    return build_document(dataclasses.replace(found, outline=outline))
+
+
+FRONT = (
+    OutlineEntry("Cover", 1, 2),
+    OutlineEntry("Impressum", 1, 3),
+    OutlineEntry("Bildung und Tests", 1, 4),  # the article's entry: no printed match
+)
+
+
+def publisher_sections(doc: Document) -> list[tuple[str, int, int]]:
+    pages = {item: page.number for item, (page, _) in doc.content.items().items()}
+    return [
+        (
+            s.title,
+            pages[doc.blocks[s.start].parts[0].item],
+            pages[doc.blocks[s.end - 1].parts[0].item],
+        )
+        for s in doc.sections
+        if s.publisher
+    ]
+
+
+def test_outline_entries_naming_front_matter_start_publisher_sections() -> None:
+    """Each starts at its page's first block and ends before the page the next entry points
+    to; the first starts at block 0, so the cover sheet before it joins it. The article's
+    title and author stay out of them, and its headings are found as before."""
+    doc = journal_issue(*FRONT)
+    assert publisher_sections(doc) == [("Cover", 1, 2), ("Impressum", 3, 3)]
+    assert [(s.title, s.publisher) for s in doc.sections] == [
+        ("Cover", True),
+        ("Impressum", True),
+        ("Introduction", False),
+        ("Method", False),
+    ]
+    outside = [b.text for b in doc.blocks[doc.sections[1].end : doc.sections[2].start]]
+    assert outside == ["An Article About Tests", "Ann Author"]
+    assert headings(doc) == [("Introduction", ""), ("Method", "")]
+
+
+def test_german_and_english_front_matter_names_are_known() -> None:
+    for name in ("Inhaltsverzeichnis", "Titelei", "Imprint", "Table of Contents", "COPYRIGHT."):
+        doc = journal_issue(OutlineEntry(name, 1, 3), OutlineEntry("Article", 1, 4))
+        assert publisher_sections(doc) == [(name, 1, 3)]  # the title as stored
+
+
+def test_without_an_outline_nothing_is_front_matter() -> None:
+    """D-755: the cover sheet and imprint are found only through the outline, never by the
+    pages' looks."""
+    doc = journal_issue()
+    assert [s.publisher for s in doc.sections] == [False, False]
+    assert [s.title for s in doc.sections] == ["Introduction", "Method"]
+
+
+def test_a_front_matter_entry_on_a_page_with_a_heading_starts_no_publisher_section() -> None:
+    """The printed heading stands; an entry pointing at a page without blocks, or another
+    title, adds nothing."""
+    doc = journal_issue(OutlineEntry("Contents", 1, 4), OutlineEntry("Cover", 1, 2))
+    assert publisher_sections(doc) == [("Cover", 1, 3)]
+    doc = journal_issue(OutlineEntry("Covers of the issue", 1, 2))
+    assert publisher_sections(doc) == []

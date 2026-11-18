@@ -43,6 +43,14 @@ settled by these rules (D-270 to D-272):
    deeper after a common title over the appendices as for the font rules, else from the
    entry's level after rule 3; when both found a heading, the font rules' level stands.
    When two entries name the same block, the first one decides its level.
+5. An entry that names the publisher's front matter ("Cover", "Impressum",
+   "Inhaltsverzeichnis": `front_matter_names`) on a page without a heading starts a
+   level-1 section marked as the publisher's (#456, D-755): a publisher section from the
+   outline starts at its page's first block. It ends at the next heading or at the first
+   block of the next page any outline entry points to, so the article's own title page
+   after it stays out of it; the first such section, with no heading before it, starts at
+   block 0, so a repository's cover sheet before it joins it. Front matter is found only
+   through the outline, never by the pages' looks.
 """
 
 from __future__ import annotations
@@ -102,7 +110,59 @@ def find_headings(
     for index, (level, label) in sorted(levels.items()):
         out[index] = replace(blocks[index], kind=BlockKind.HEADING, label=label)
         heads.append((index, level, title(blocks[index].text)))
-    return out, section_tree(heads, len(blocks))
+    front = front_matter(blocks, content, sorted(levels), settings)
+    heads += [(start, 1, name) for start, (_, name) in front.items()]
+    tree = section_tree(sorted(heads), len(blocks))
+    return out, _publisher(tree, {start: end for start, (end, _) in front.items()})
+
+
+def front_matter(
+    blocks: list[Block], content: Content, heads: list[int], settings: LayoutSettings
+) -> dict[int, tuple[int, str]]:
+    """The publisher's front matter the outline names (#456, module docstring): by start
+    block, its end and the entry's title. An entry whose title is one of
+    `front_matter_names` starts at the first block of its page, when no heading stands on
+    that page; it ends at the next heading or at the first block of the next page an
+    outline entry points to, whichever comes first. The first of them, with no heading
+    before it, starts at block 0: a repository's cover sheet before it joins it. Nothing
+    is found by the pages' looks, so a file without an outline has no front matter."""
+    names = {title_key(name) for name in settings.front_matter_names}
+    pages = {item.id: page.number for page in content.pages for item in page.lines}
+    page_of = [next((pages[p.item] for p in b.parts if p.item in pages), None) for b in blocks]
+    first: dict[int, int] = {}  # page number -> its first block
+    for index, number in enumerate(page_of):
+        if number is not None:
+            first.setdefault(number, index)
+    headed = {page_of[k] for k in heads}
+    starts = [  # each outline entry that points at a page with blocks: its first block
+        (first[entry.page], entry.title)
+        for entry in content.outline
+        if entry.page is not None and entry.page in first
+    ]
+    found: dict[int, tuple[int, str]] = {}
+    for start, text in starts:
+        if title_key(text).rstrip(".: ") not in names or page_of[start] in headed:
+            continue
+        later = (other for other, _ in starts if other > start)  # any entry, by page
+        end = min([*(h for h in heads if h > start), *later, len(blocks)])
+        if not found and not any(h < start for h in heads):
+            start = 0
+        if end > start and not any(s <= start < e for s, (e, _) in found.items()):
+            found[start] = (end, text.strip())
+    return found
+
+
+def _publisher(tree: tuple[Section, ...], front: dict[int, int]) -> tuple[Section, ...]:
+    """The tree with each front-matter section cut to its end and marked as the
+    publisher's; the deeper headings it took in follow it at the top level."""
+    out: list[Section] = []
+    for section in tree:
+        if section.start in front:
+            out.append(replace(section, end=front[section.start], children=(), publisher=True))
+            out += section.children
+        else:
+            out.append(section)
+    return tuple(out)
 
 
 def title(text: str) -> str:

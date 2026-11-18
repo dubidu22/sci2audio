@@ -335,8 +335,17 @@ def test_the_sections_are_the_truth_headings(paper: Path) -> None:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_each_section_starts_at_its_heading_with_its_printed_number(paper: Path) -> None:
+    """Exception (#456, D-755): a publisher section from the outline starts at its page's
+    first block; it has no heading. The corpus papers have none."""
     doc = document(paper)
-    sections = flattened(doc.sections)
+    pages = {item: page.number for item, (page, _) in doc.content.items().items()}
+    firsts: dict[int, int] = {}
+    for index, block in enumerate(doc.blocks):
+        if block.parts:
+            firsts.setdefault(pages[block.parts[0].item], index)
+    publisher = [s.start for s in flattened(doc.sections) if s.publisher]
+    assert set(publisher) <= set(firsts.values()) | {0}
+    sections = [s for s in flattened(doc.sections) if not s.publisher]
     headings = [i for i, block in enumerate(doc.blocks) if block.kind is BlockKind.HEADING]
     assert [section.start for section in sections] == headings
     expected = [
