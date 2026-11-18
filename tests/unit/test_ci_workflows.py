@@ -6,10 +6,13 @@ ever leaves the required check green or skipped."""
 from __future__ import annotations
 
 import ast
+import importlib.util
 import re
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
@@ -47,6 +50,92 @@ def test_ci_passed_fails_on_any_job_that_did_not_succeed() -> None:
     assert "needs: [lint, licences, security, tests, browser]" in job
     for result in ("failure", "cancelled", "skipped"):
         assert f"contains(needs.*.result, '{result}')" in job
+
+
+def load_ci_passed():
+    path = ROOT / ".github" / "scripts" / "ci_passed.py"
+    spec = importlib.util.spec_from_file_location("sci2audio_ci_passed", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def job(name: str, status: str = "completed", conclusion: str | None = "success") -> dict:
+    return {"name": name, "status": status, "conclusion": conclusion}
+
+
+def test_ci_passed_reads_every_job_of_its_run_back() -> None:
+    """#548: needs.tests.result read success while the macOS leg was cancelled, so the
+    required check also reads every job of its run, each matrix leg on its own."""
+    steps = block(CI, "  ci-passed:")
+    permissions = block(steps, "    permissions:").strip().splitlines()
+    assert [line.split("#")[0].strip() for line in permissions] == [
+        "contents: read",
+        "actions: read",
+    ]
+    assert "run: python3 .github/scripts/ci_passed.py" in steps
+    assert "GH_TOKEN: ${{ github.token }}" in steps
+    assert "RUN_ID: ${{ github.run_id }}" in steps
+
+
+def run_ci_passed(monkeypatch: pytest.MonkeyPatch, *answers: list[dict]) -> list[float]:
+    module = load_ci_passed()
+    monkeypatch.setenv("REPO", "owner/repo")
+    monkeypatch.setenv("RUN_ID", "7")
+    calls = iter(answers)
+    waits: list[float] = []
+    module.main(get=lambda repo, run_id: next(calls), wait=waits.append)
+    return waits
+
+
+def test_ci_passed_passes_when_every_job_succeeded(monkeypatch: pytest.MonkeyPatch) -> None:
+    jobs = [
+        job("lint and layers"),
+        job("tests (ubuntu-latest)"),
+        job("CI passed", "in_progress", None),
+    ]
+    assert run_ci_passed(monkeypatch, jobs) == []
+
+
+@pytest.mark.parametrize(
+    "leg",
+    [
+        job("tests (macos-latest)", conclusion="cancelled"),  # no runner in time (#548)
+        job("browser (Linux, Chromium, 2/2)", conclusion="failure"),
+        job("tests (windows-latest)", conclusion="skipped"),
+        job("tests (macos-latest)", "queued", None),
+    ],
+)
+def test_ci_passed_fails_on_one_leg_that_did_not_succeed(
+    monkeypatch: pytest.MonkeyPatch, leg: dict
+) -> None:
+    jobs = [job("tests (ubuntu-latest)"), leg, job("CI passed", "in_progress", None)]
+    with pytest.raises(SystemExit, match=re.escape(str(leg["name"]))):
+        run_ci_passed(monkeypatch, *[jobs] * 3)
+
+
+def test_ci_passed_waits_for_a_job_that_is_still_ending(monkeypatch: pytest.MonkeyPatch) -> None:
+    ending = [job("tests (ubuntu-latest)", "in_progress", None)]
+    done = [job("tests (ubuntu-latest)")]
+    assert run_ci_passed(monkeypatch, ending, done) == [10]
+
+
+def test_ci_passed_fails_when_it_finds_no_other_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    with pytest.raises(SystemExit, match="no job of run 7"):
+        run_ci_passed(monkeypatch, [job("CI passed", "in_progress", None)])
+
+
+def test_the_pr_browser_tests_run_in_two_shards_that_all_must_pass() -> None:
+    """D-759 item 3: same job id, so "CI passed" needs every shard; the shard script
+    decides the tests, so a new browser test file needs no workflow change."""
+    browser = block(CI, "  browser:")
+    assert "    name: browser (Linux, Chromium, ${{ matrix.shard }}/2)" in browser
+    assert "fail-fast: false" in browser
+    assert "shard: [1, 2]" in browser
+    assert 'browser_shard.py chromium "$SHARD" 2 "$RUNNER_TEMP/shard.txt"' in browser
+    assert '"@$RUNNER_TEMP/shard.txt"' in browser
 
 
 def test_only_the_ci_full_label_of_this_repository_starts_a_run() -> None:

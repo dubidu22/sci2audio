@@ -137,9 +137,15 @@ jobs:
 
   # The interface in a real browser (#77, #8, D-259): main flow, keyboard-only path and
   # axe-core. Chromium on Linux on every PR; Firefox and WebKit run nightly.
+  # Two shards on two runners, half the tests each, so the browser tests no longer set the
+  # run's length (D-759, CI speed plan item 3): every shard must pass for "CI passed".
   browser:
-    name: browser (Linux, Chromium)
+    name: browser (Linux, Chromium, ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -166,8 +172,14 @@ jobs:
           key: ms-playwright-${{ runner.os }}-chromium-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for Playwright
         run: uv run playwright install --with-deps chromium
+      # Every second collected test from this shard's number on, so a new test file needs no
+      # change here and the slow tests of one file are spread over both shards.
+      - name: The tests of this shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: uv run --no-sync python .github/scripts/browser_shard.py chromium "$SHARD" 2 "$RUNNER_TEMP/shard.txt"
       - name: Browser tests (main flow, keyboard, axe-core)
-        run: uv run pytest -m browser --browser chromium -rA
+        run: uv run pytest -m browser --browser chromium -rA "@$RUNNER_TEMP/shard.txt"
         env:
           HYPOTHESIS_PROFILE: ci
 
@@ -177,6 +189,9 @@ jobs:
     if: always()
     needs: [lint, licences, security, tests, browser]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read  # to read the result of every job of this run (#548)
     steps:
       - name: Fail if any required job did not succeed
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
@@ -185,6 +200,19 @@ jobs:
         run: |
           echo "At least one job did not succeed: $RESULTS"
           exit 1
+      # needs.<job>.result of a matrix job can read success while one of its legs was
+      # cancelled, e.g. a macOS leg that never got a runner (#548). So every job of this run,
+      # each matrix leg on its own, is read back and must have succeeded.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Fail if any job of this run did not succeed (every matrix leg)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: python3 .github/scripts/ci_passed.py
       - run: echo "All checks passed."
       - name: Which systems ran the tests
         if: always()
