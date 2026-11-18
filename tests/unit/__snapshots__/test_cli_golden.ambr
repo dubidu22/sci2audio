@@ -28,8 +28,8 @@
                           en-GB, de, ... (default: the file's own, else guessed
                           from the text: en or de)
     --overwrite           replace existing output files
-    --work-folder FOLDER  the job's working folder (default: in the cache
-                          folder)
+    --work-folder FOLDER  the job's working folder (default: the project folder
+                          in the data folder)
     --ignore-settings     use the built-in defaults, not the settings saved by
                           the interface
     -q, --quiet           no progress lines
@@ -85,8 +85,8 @@
                           en-GB, de, ... (default: the file's own, else guessed
                           from the text: en or de)
     --overwrite           replace existing output files
-    --work-folder FOLDER  the job's working folder (default: in the cache
-                          folder)
+    --work-folder FOLDER  the job's working folder (default: the project folder
+                          in the data folder)
     --ignore-settings     use the built-in defaults, not the settings saved by
                           the interface
     -q, --quiet           no progress lines
@@ -178,8 +178,8 @@
   
   options:
     -h, --help            show this help message and exit
-    --work-folder FOLDER  the job's working folder (default: in the cache
-                          folder)
+    --work-folder FOLDER  the job's working folder (default: the project folder
+                          in the data folder)
   
   '''
 # ---
@@ -214,8 +214,8 @@
     -o FOLDER, --output FOLDER
                           the folder `convert` wrote the audiobook into
                           (default: as for convert)
-    --work-folder FOLDER  the job's working folder (default: in the cache
-                          folder)
+    --work-folder FOLDER  the job's working folder (default: the project folder
+                          in the data folder)
     --ignore-settings     do not take the output folder from the settings file
     --no-browser          only print the link; do not open a browser
   

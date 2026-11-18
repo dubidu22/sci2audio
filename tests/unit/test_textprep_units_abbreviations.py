@@ -967,7 +967,6 @@ def test_a_dotted_unit_never_takes_the_full_stop_before_a_sentence_opener(
 def test_the_sentence_openers_load_and_hold_no_noun() -> None:
     openers = sentence_openers("de-AT")
     assert {"Der", "Danach", "Er", "Im", "Wie"} <= openers
-    assert sentence_openers("en") == frozenset()
     listed = units("de")
     assert listed is not None
     nouns = {word for unit in listed.units for word in (unit.singular, unit.plural)}
@@ -977,6 +976,22 @@ def test_the_sentence_openers_load_and_hold_no_noun() -> None:
     assert not openers & {word for noun in nouns for word in noun.split()}
     # nor a word that is also a noun after an ordinal ("der 3. Laut", PR #267 review R3)
     assert not openers & {"Laut", "Ich", "Sein", "Nichts", "Etwas", "Ja", "Nein", "Mal", "Teil"}
+
+
+def test_the_english_sentence_openers_load_and_hold_no_unit_name_or_one_letter() -> None:
+    # after "A." or "U.S." only these start a sentence (#477, D-744): no name, no noun, and no
+    # one-letter word, which is an initial as often ("A. A. Milne", "J. I. Smith")
+    openers = sentence_openers("en-GB")
+    assert {"The", "Then", "However", "We", "In"} <= openers
+    assert all(len(word) > 1 for word in openers)
+    listed = units("en")
+    assert listed is not None
+    nouns = {word for unit in listed.units for word in (unit.singular, unit.plural)}
+    nouns |= {entry.reads for entry in abbreviations("en") or () if entry.reads[:1].isupper()}
+    assert not openers & {word.capitalize() for noun in nouns for word in noun.split()}
+    assert not openers & {"Census", "Bureau", "Researchers", "Army", "Tolkien", "Smith"}
+    # nor a word that is also a surname after an initial ("Y. He", "X. An", PR #547 review B1)
+    assert not openers & {"He", "Her", "An", "So", "To", "On", "Or", "Still", "Even"}
 
 
 @pytest.mark.parametrize(

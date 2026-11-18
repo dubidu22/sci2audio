@@ -35,6 +35,8 @@ def test_the_word_lists_are_in_the_wheel() -> None:
     assert {
         "sci2audio/textprep/data/en/abbreviations.toml",
         "sci2audio/textprep/data/en/units.toml",
+        "sci2audio/textprep/data/en/sentence_openers.toml",  # #477, D-744 A4
+        "sci2audio/textprep/data/de/sentence_openers.toml",
     } <= shipped()
 
 
