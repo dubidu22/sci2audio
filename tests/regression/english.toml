@@ -2634,17 +2634,32 @@ expected = ["Group Mean 4.2", "Text here too."]
 id = "a-table-and-a-figure-read-as-a-paragraph-when-their-notice-is-off"
 audit = 0
 issue = 487
-goal = "With 'Tables and figures' switched off, a table's and a figure's printed text is read as the same text in a paragraph is: citation removed, units, abbreviations and statistics read (D-726)."
+goal = "With 'Tables and figures' switched off, a table's and a figure's printed text is read as the same text in a paragraph is: citation and link removed, units, abbreviations and statistics read (D-726)."
 switched_off = ["tables-and-figures"]
 blocks = [
-    { kind = "table", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019)" },
-    { kind = "figure", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019)" },
-    { kind = "paragraph", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019)" },
+    { kind = "table", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019), data at https://example.org/data." },
+    { kind = "figure", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019), data at https://example.org/data." },
+    { kind = "paragraph", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019), data at https://example.org/data." },
 ]
 expected = [
-    "Share 3.5 % at 12 square metres for example p less than .05",
-    "Share 3.5 % at 12 square metres for example p less than .05",
-    "Share 3.5 % at 12 square metres for example p less than .05",
+    "Share 3.5 % at 12 square metres for example p less than .05, data.",
+    "Share 3.5 % at 12 square metres for example p less than .05, data.",
+    "Share 3.5 % at 12 square metres for example p less than .05, data.",
+]
+
+[[case]]
+id = "furniture-stays-as-printed-when-page-furniture-is-off"
+audit = 0
+issue = 487
+goal = "With 'Page furniture' switched off, a furniture block is read as printed: no unit, abbreviation, citation or link in it is read or removed, while the paragraph beside it is read as usual (D-128, #487)."
+switched_off = ["page-furniture"]
+blocks = [
+    { kind = "paragraph", text = "The share rose to 3.5 % in the second year." },
+    { kind = "furniture", role = "running-head", text = "Journal of Tests 12 m² e.g. (Smith, 2019) https://example.org/journal" },
+]
+expected = [
+    "The share rose to 3.5 % in the second year.",
+    "Journal of Tests 12 m² e.g. (Smith, 2019) https://example.org/journal",
 ]
 
 [[case]]

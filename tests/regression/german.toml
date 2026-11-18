@@ -2523,18 +2523,18 @@ expected = ["Gruppe Mittel 4 Komma 2"]
 id = "de-a-table-and-a-figure-read-as-a-paragraph-when-their-notice-is-off"
 audit = 0
 issue = 487
-goal = "Ist 'Tabellen und Abbildungen' aus, wird der gedruckte Text einer Tabelle und einer Abbildung gelesen wie derselbe Text in einem Absatz: Quelle entfernt, Zahlen und Einheiten gelesen (D-726)."
+goal = "Ist 'Tabellen und Abbildungen' aus, wird der gedruckte Text einer Tabelle und einer Abbildung gelesen wie derselbe Text in einem Absatz: Quelle und Link entfernt, Zahlen und Einheiten gelesen (D-726)."
 language = "de"
 switched_off = ["tables-and-figures"]
 blocks = [
-    { kind = "table", text = "Anteil 3,5 % bei 12 m² (Müller, 2019)" },
-    { kind = "figure", text = "Anteil 3,5 % bei 12 m² (Müller, 2019)" },
-    { kind = "paragraph", text = "Anteil 3,5 % bei 12 m² (Müller, 2019)" },
+    { kind = "table", text = "Anteil 3,5 % bei 12 m² (Müller, 2019), Daten unter https://example.org/daten." },
+    { kind = "figure", text = "Anteil 3,5 % bei 12 m² (Müller, 2019), Daten unter https://example.org/daten." },
+    { kind = "paragraph", text = "Anteil 3,5 % bei 12 m² (Müller, 2019), Daten unter https://example.org/daten." },
 ]
 expected = [
-    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter",
-    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter",
-    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter",
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter, Daten.",
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter, Daten.",
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter, Daten.",
 ]
 
 [[case]]
