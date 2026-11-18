@@ -18,7 +18,7 @@ from pathlib import Path
 from fastapi import Depends, Request
 
 from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, load_settings
-from sci2audio.app.projects import Moved, migrate_all
+from sci2audio.app.projects import Moved, migrate_all, real_folder
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.jobs import JobBoard, JobRecord
@@ -60,7 +60,7 @@ def move_old_folders(legacy: Path, root: Path) -> None:
     folders (D-748): the voice preview folder by one rename when the new one is free, then
     every document's folder. A folder that stays is used where it is and named in the log."""
     old_preview, preview = legacy / PREVIEW_FOLDER, root / PREVIEW_FOLDER
-    if old_preview.is_dir() and not old_preview.is_symlink() and not os.path.lexists(preview):
+    if real_folder(old_preview) and not os.path.lexists(preview):  # no link, no junction
         with contextlib.suppress(OSError):
             root.mkdir(parents=True, exist_ok=True)
             os.rename(old_preview, preview)
