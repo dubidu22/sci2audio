@@ -272,9 +272,7 @@ def test_the_estimate_fits_a_cost_per_call_per_character_and_per_square(
     clock = CostClock(cost, slow=4)
     voice = FakeVoice(on_speak=clock.speak)
     events: list[AudioProgress] = []
-    # the 300-character limit this test was written for (#494 raised the default): every
-    # chunk still to speak is then within the measured lengths, so the fitted curve alone
-    # gives the time left; the progress test above covers the default limit (D-384)
+    # the 300-character limit this test was written for (#494 raised the default)
     run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=clock, max_chars=300)
     lengths = [len(text) for text in voice.texts]
     estimates = [
@@ -284,7 +282,15 @@ def test_the_estimate_fits_a_cost_per_call_per_character_and_per_square(
     plain_rate_off = 0.0
     for event in estimates:
         real = sum(cost(n) for n in lengths[event.chunks_done :])
-        assert event.seconds_left == pytest.approx(real, rel=1e-6)
+        # D-384: a chunk longer than every measured one costs the longest one's time per
+        # character, so the fitted curve is never stretched past what it saw; which chunks
+        # come later than the longest measured one depends on where the text is cut (#477)
+        longest = max(lengths[audio_module.WARM_UP_CALLS : event.chunks_done])
+        fitted = sum(
+            cost(n) if n <= longest else n * cost(longest) / longest
+            for n in lengths[event.chunks_done :]
+        )
+        assert event.seconds_left == pytest.approx(fitted, rel=1e-6)
         assert event.characters_per_second is not None
         plain = (event.characters_total - event.characters_done) / event.characters_per_second
         plain_rate_off = max(plain_rate_off, abs(plain - real) / real)

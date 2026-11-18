@@ -99,3 +99,8 @@ Eine Schule muss so geplant sein, dass sie ihre Aufgabe kennt und die Grenzen, i
 Zwischen Aufgabe und Grenze liegt der Alltag.
 Planung ist alles.
 Das Programm einer Bildung für die Zukunft, kurz BfZ, ist insofern Gegenstand der Kritik, als es auf ein seit Jahrzehnten wachsendes, zunehmend die Lebensgrundlagen bedrohendes Verhältnis zur Umwelt antwortet: Es kritisiert den Umgang mit Ressourcen, der in den 1970er/1980er Jahren von außen an die Schulen herangetragen wurde, und zielt auf neue Formen des Lernens.
+
+Wie Müller et al. (2019) Bildung verstehen, ist bekannt.
+Laut Müller et al. Kapitel 2 gilt das.
+Das zeigen Müller et al. (2019).
+Die Studie ist neu.

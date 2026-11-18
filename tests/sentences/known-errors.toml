@@ -60,19 +60,11 @@ why = "'- ' list items are lines of one plain-text paragraph"
 
 [[error]]
 file = "stress-en"
-kind = "FP"
-at = "came from the U.S. | Census Bureau. Prof. Jones"
+kind = "FN"
+at = "done in the U.S. | Researchers in Canada did"
 class = "abbreviation"
 issue = 477
-why = "kept on purpose: 'U.S.' is no abbreviation of the English list, so its full stop ends the sentence; it ends a sentence as often as it stands before a name"
-
-[[error]]
-file = "stress-en"
-kind = "FN"
-at = "set is called A. | Then set B follows."
-class = "initial"
-issue = 477
-why = "kept on purpose: a single capital before a full stop is read as an initial (documented limit; after a maths symbol or a label word it is cut)"
+why = "kept on purpose (D-744): a dotted capital abbreviation ends a sentence only before a word of data/en/sentence_openers.toml, which holds no nouns, so a sentence that starts with a noun after 'U.S.' stays in the same utterance; the price of not cutting 'U.S. Census Bureau'"
 
 [[error]]
 file = "stress-en"
@@ -80,7 +72,7 @@ kind = "FN"
 at = "We plot with seaborn. | seaborn is a plotting"
 class = "lowercase-start"
 issue = 477
-why = "kept on purpose: a sentence must start with a capital, a digit or an opening quote or bracket"
+why = "kept on purpose (D-744): a sentence must start with a capital, a digit or an opening quote or bracket; allowing a lower-case start would cut after every abbreviation the lists lack ('approx. five')"
 
 [[error]]
 file = "stress-en"
@@ -88,7 +80,7 @@ kind = "FN"
 at = "pandas reads the table. | iOS apps were not"
 class = "lowercase-start"
 issue = 477
-why = "kept on purpose: a sentence must start with a capital, a digit or an opening quote or bracket"
+why = "kept on purpose (D-744): a sentence must start with a capital, a digit or an opening quote or bracket; allowing a lower-case start would cut after every abbreviation the lists lack ('approx. five')"
 
 [[error]]
 file = "stress-de"
@@ -96,4 +88,4 @@ kind = "FN"
 at = "sofort. Es waren 3. | Studien zeigen das seit"
 class = "ordinal"
 issue = 477
-why = "kept on purpose: a number before a capital noun is read as an ordinal (documented limit, #227)"
+why = "kept on purpose (D-744): a number before a capital noun is read as an ordinal, since German capitalises nouns and the opener list holds none (documented limit, #227, D-530)"
