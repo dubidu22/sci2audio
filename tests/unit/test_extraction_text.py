@@ -514,3 +514,24 @@ def test_hard_wrapped_prose_with_capitals_dashes_and_a_long_token_is_one_paragra
         found.insert(data.draw(st.integers(1, len(found))), token)
     text = textwrap.fill("Am " + " ".join(found) + ".", width, break_long_words=False)
     assert tags_of(text + "\n") == [("p",), *[("p", "br")] * text.count("\n")]
+
+
+# ---- review of #561, round 2: closers looked through, the two-letter minimum ----------
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["She said “yes,”", "Er sagte: »Ja,«", "(see the note above,)"],
+)
+def test_punctuation_before_closing_quotes_or_brackets_keeps_the_lines_joined(line: str) -> None:
+    """A short line ending in a comma inside closing quotes or a bracket runs on: the
+    closers are looked through (review of #561, round 2, S1a)."""
+    text = f"{line}\nThen the second line runs on for quite a long while here.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+def test_a_two_letter_line_can_be_a_title_line() -> None:
+    """Two letters are enough: "EU" alone before a capital starts a new paragraph after it
+    (review of #561, round 2, S1b); "0" has none and stays joined."""
+    text = "EU\nThe second line runs on for quite a long while here, as prose does.\n"
+    assert tags_of(text) == [("p",), ("p",)]
