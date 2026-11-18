@@ -109,7 +109,7 @@ def made(client: TestClient, data: bytes, name: str = "note.pdf") -> dict[str, A
 # --- what goes and what stays (D-353, D-358) ---------------------------------------------
 
 
-def test_removing_takes_the_whole_working_folder_and_nothing_else(tmp_path: Path) -> None:
+def test_removing_with_keep_takes_the_whole_working_folder_and_nothing_else(tmp_path: Path) -> None:
     _app, client, config = server(tmp_path)
     doc = made(client, note(), "note.pdf")
     other = made(client, note("Another note."), "other.pdf")
@@ -131,14 +131,19 @@ def test_removing_takes_the_whole_working_folder_and_nothing_else(tmp_path: Path
     assert kept["output"]  # the audiobooks
     size = tree_size(folder)
 
-    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    response = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=true")
 
     assert response.status_code == 200, response.text
+    book = str(book_folder(config.output_folder, "note.pdf").absolute())
     assert response.json() == {
         "id": doc["id"],
         "name": "note.pdf",
         "freed_bytes": size,
-        "audiobook_folder": str(book_folder(config.output_folder, "note.pdf").absolute()),
+        "audiobook_folder": book,
+        "deleted_files": 0,
+        "deleted_bytes": 0,
+        "kept": [{"path": book, "reason": "kept-by-choice", "folder": book}],
+        "kept_more": 0,
     }
     assert not folder.exists()
     assert snapshot(config.output_folder) == kept["output"]
@@ -147,7 +152,7 @@ def test_removing_takes_the_whole_working_folder_and_nothing_else(tmp_path: Path
     assert config.config_file.read_bytes() == kept["settings"]
     assert client.get(f"/api/v1/documents/{doc['id']}").status_code == 404
     assert [d["id"] for d in client.get("/api/v1/documents").json()] == [other["id"]]
-    again = client.delete(f"/api/v1/documents/{doc['id']}")
+    again = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert again.status_code == 404
     assert again.json()["error"] == "not-found"
 
@@ -155,7 +160,7 @@ def test_removing_takes_the_whole_working_folder_and_nothing_else(tmp_path: Path
 def test_a_document_without_an_audiobook_names_no_folder(tmp_path: Path) -> None:
     _app, client, config = server(tmp_path)
     doc = upload(client, pdf_bytes())
-    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    response = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert response.status_code == 200
     assert response.json()["audiobook_folder"] is None
     assert response.json()["freed_bytes"] == len(pdf_bytes())
@@ -170,7 +175,7 @@ def test_unknown_and_malformed_ids_are_not_found(tmp_path: Path, document_id: st
     _app, client, config = server(tmp_path)
     doc = upload(client, pdf_bytes())
     before = snapshot(config.work_root)
-    response = client.delete(f"/api/v1/documents/{document_id}")
+    response = client.delete(f"/api/v1/documents/{document_id}?keep_audiobook=false")
     assert response.status_code == 404
     assert response.json()["error"] == "not-found"
     assert snapshot(config.work_root) == before
@@ -190,7 +195,7 @@ def test_a_link_inside_the_folder_is_removed_not_followed(tmp_path: Path) -> Non
         (folder / "script" / "link-to-file").symlink_to(outside / "keep.txt")
     except OSError:
         pytest.skip("this system makes no symbolic links for this user")
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
     assert not folder.exists()
     assert (outside / "keep.txt").read_text() == "mine"
 
@@ -214,16 +219,16 @@ def test_refused_while_an_audio_job_works_on_the_document(tmp_path: Path) -> Non
     job = start(client, doc["id"], "audio")
     assert reached.wait(30)
     before = snapshot(config.work_root / doc["id"])
-    busy = client.delete(f"/api/v1/documents/{doc['id']}")
+    busy = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert busy.status_code == 409
     assert busy.json()["error"] == "busy"
     assert job["id"] in busy.json()["message"]
     assert snapshot(config.work_root / doc["id"]) == before
     # a job on another document doesn't block
-    assert client.delete(f"/api/v1/documents/{other['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{other['id']}?keep_audiobook=false").status_code == 200
     gate.set()
     assert wait(client, job["id"])["state"] == "done"
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
 
 
 def test_refused_while_a_script_job_works_on_the_document(tmp_path: Path) -> None:
@@ -232,14 +237,14 @@ def test_refused_while_a_script_job_works_on_the_document(tmp_path: Path) -> Non
     doc = upload(client, pdf_bytes())
     job = start(client, doc["id"], "script")
     assert runner.started.wait(10)
-    busy = client.delete(f"/api/v1/documents/{doc['id']}")
+    busy = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert busy.status_code == 409
     assert busy.json()["error"] == "busy"
     assert (config.work_root / doc["id"] / "source").is_dir()
     assert client.get(f"/api/v1/documents/{doc['id']}").status_code == 200  # listed again
     runner.go.set()
     assert wait(client, job["id"])["state"] == "done"
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
 
 
 def test_refused_while_another_process_holds_the_working_folder(tmp_path: Path) -> None:
@@ -248,12 +253,12 @@ def test_refused_while_another_process_holds_the_working_folder(tmp_path: Path) 
     folder = config.work_root / doc["id"]
     with work_folder_lock(folder):  # what a command-line audio job holds (D-161)
         before = snapshot(folder)
-        busy = client.delete(f"/api/v1/documents/{doc['id']}")
+        busy = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
         assert snapshot(folder) == before
     assert busy.status_code == 409
     assert busy.json()["error"] == "busy"
     assert client.get(f"/api/v1/documents/{doc['id']}").status_code == 200
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
 
 
 def test_a_preview_or_the_voice_download_does_not_block(tmp_path: Path) -> None:
@@ -268,7 +273,9 @@ def test_a_preview_or_the_voice_download_does_not_block(tmp_path: Path) -> None:
 
     job = board.start(JobKind.PREVIEW, None, None, held, cancellable=False)
     try:
-        assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+        assert (
+            client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
+        )
     finally:
         gate.set()
         job.join(10)
@@ -290,20 +297,24 @@ def test_a_browser_removes_only_with_its_own_origin(tmp_path: Path) -> None:
     folder = config.work_root / doc["id"]
     before = snapshot(folder)
     for headers in ({}, {"Origin": "null"}, {"Origin": "http://127.0.0.1:9999"}):
-        refused = client.delete(f"/api/v1/documents/{doc['id']}", headers=headers)
+        refused = client.delete(
+            f"/api/v1/documents/{doc['id']}?keep_audiobook=false", headers=headers
+        )
         assert refused.status_code == 403, headers
         assert snapshot(folder) == before
     cross = client.delete(
-        f"/api/v1/documents/{doc['id']}",
+        f"/api/v1/documents/{doc['id']}?keep_audiobook=false",
         headers={"Origin": ORIGIN, "Sec-Fetch-Site": "cross-site"},
     )
     assert cross.status_code == 403
     nobody = TestClient(app, base_url=ORIGIN).delete(
-        f"/api/v1/documents/{doc['id']}", headers={"Origin": ORIGIN}
+        f"/api/v1/documents/{doc['id']}?keep_audiobook=false", headers={"Origin": ORIGIN}
     )
     assert nobody.status_code == 401
     assert snapshot(folder) == before
-    removed = client.delete(f"/api/v1/documents/{doc['id']}", headers={"Origin": ORIGIN})
+    removed = client.delete(
+        f"/api/v1/documents/{doc['id']}?keep_audiobook=false", headers={"Origin": ORIGIN}
+    )
     assert removed.status_code == 200
     assert not folder.exists()
 
@@ -319,7 +330,7 @@ def test_the_removed_documents_finished_jobs_are_forgotten(tmp_path: Path) -> No
     wait(client, other_job["id"])
     jobs = [j["id"] for j in client.get("/api/v1/jobs").json() if j["document"] == doc["id"]]
     assert len(jobs) == 2
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
     for job_id in jobs:
         assert client.get(f"/api/v1/jobs/{job_id}").status_code == 404
     assert [j["id"] for j in client.get("/api/v1/jobs").json()] == [other_job["id"]]
@@ -385,7 +396,7 @@ def test_a_file_removed_during_the_removal_is_fine(
             (folder / "job.json").unlink()
 
     _patched_unlink(monkeypatch, steal)
-    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    response = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert response.status_code == 200, response.text
     assert stolen
     assert not folder.exists()
@@ -404,7 +415,7 @@ def test_a_file_that_cant_be_removed_keeps_the_document_listed(
             raise PermissionError(errno.EACCES, "Permission denied", name)
 
     _patched_unlink(monkeypatch, refuse)
-    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    response = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert response.status_code == 500
     assert response.json()["error"] == "remove-failed"
     assert stuck.name in response.json()["message"]
@@ -414,7 +425,7 @@ def test_a_file_that_cant_be_removed_keeps_the_document_listed(
     assert listed.status_code == 200
     assert (folder / "source" / "note.pdf").is_file()
     monkeypatch.undo()
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
     assert not folder.exists()
 
 
@@ -441,7 +452,7 @@ def test_a_read_only_file_and_folder_are_removed(
             raise PermissionError(errno.EACCES, "Access is denied", name)
 
     _patched_unlink(monkeypatch, windows_like)
-    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    response = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert response.status_code == 200, response.text
     assert set(refused) == {report.name, record.name}
     assert not folder.exists()
@@ -470,7 +481,9 @@ def test_during_a_removal_the_document_is_gone_and_opening_it_again_waits(
     monkeypatch.setattr(documents, "_remove_entry", held)
     answers: dict[str, Any] = {}
     removing = threading.Thread(
-        target=lambda: answers.update(removed=client.delete(f"/api/v1/documents/{doc['id']}"))
+        target=lambda: answers.update(
+            removed=client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
+        )
     )
     removing.start()
     try:
@@ -479,7 +492,9 @@ def test_during_a_removal_the_document_is_gone_and_opening_it_again_waits(
         assert doc["id"] not in [d["id"] for d in client.get("/api/v1/documents").json()]
         job = client.post("/api/v1/jobs", json={"kind": "script", "document": doc["id"]})
         assert job.status_code == 404
-        assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 404
+        assert (
+            client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 404
+        )
         opening = threading.Thread(
             target=lambda: answers.update(opened=upload(client, data, "again.pdf"))
         )
@@ -545,10 +560,13 @@ def test_the_start_page_and_the_document_page_offer_the_removal(tmp_path: Path) 
     assert "<span>Remove note.pdf…</span></summary>" in start  # a quiet button (#390)
     assert f'data-document="{doc["id"]}"' in start
     assert "Remove note.pdf now" in start
-    assert (
-        f"Your audiobook stays in {book_folder(config.output_folder, 'note.pdf').absolute()}."
-        in start
-    )
+    book = book_folder(config.output_folder, "note.pdf").absolute()
+    files = sorted(path for path in book.iterdir() if path.is_file())
+    assert len(files) >= 2
+    goes = f"The {len(files)} audiobook files in {book} go too: "
+    assert goes in start  # deleted by default, with a box to keep them (#470, D-754)
+    assert f'class="remove-keep" id="remove-keep-{doc["id"]}"> Keep the audiobook files' in start
+    assert "<p>Your earlier audiobook" not in start  # no audiobook outside its folder
     document = page.get(f"/documents/{doc['id']}").text
     assert '<h2 id="step-remove">Remove this document</h2>' in document
     assert "<span>Remove this document…</span></summary>" in document
@@ -556,7 +574,8 @@ def test_the_start_page_and_the_document_page_offer_the_removal(tmp_path: Path) 
     assert '<section id="removed" aria-labelledby="removed-title" hidden>' in document
     german = page.get("/", headers={"Accept-Language": "de"}).text
     assert "note.pdf jetzt entfernen" in german
-    assert "Ihr Hörbuch bleibt in" in german
+    assert "Hörbuchdateien behalten" in german
+    assert f"Die {len(files)} Hörbuchdateien in {book} werden ebenfalls gelöscht" in german
 
 
 def test_while_a_job_works_the_page_says_so_instead_of_the_button(tmp_path: Path) -> None:
@@ -641,7 +660,9 @@ def test_a_job_start_that_checked_before_the_removal_never_starts(
     )
     starting.start()
     removing = threading.Thread(
-        target=lambda: answers.update(removed=client.delete(f"/api/v1/documents/{doc['id']}"))
+        target=lambda: answers.update(
+            removed=client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
+        )
     )
     try:
         assert in_start.wait(10)
@@ -689,7 +710,9 @@ def test_a_job_that_started_first_makes_the_removal_wait_and_refuse(
         )
     )
     removing = threading.Thread(
-        target=lambda: answers.update(removed=client.delete(f"/api/v1/documents/{doc['id']}"))
+        target=lambda: answers.update(
+            removed=client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
+        )
     )
     starting.start()
     try:
@@ -710,7 +733,7 @@ def test_a_job_that_started_first_makes_the_removal_wait_and_refuse(
         starting.join(10)
         removing.join(10)
     wait(client, answers["job"].json()["id"])
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
 
 
 def test_a_folder_that_cant_be_listed_is_made_readable_once(
@@ -730,7 +753,7 @@ def test_a_folder_that_cant_be_listed_is_made_readable_once(
         return real(path)
 
     monkeypatch.setattr(os, "scandir", scandir)
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
     assert refused
     assert not folder.exists()
 
@@ -749,7 +772,7 @@ def test_a_folder_that_cant_be_removed_is_named(
         real(path, *args, **kwargs)
 
     monkeypatch.setattr(os, "rmdir", rmdir)
-    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    response = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert response.status_code == 500
     assert response.json()["message"] == (
         f"could not remove {folder / 'script'}: Device or resource busy"
@@ -775,7 +798,7 @@ def test_a_working_folder_outside_the_root_is_refused(
 
     monkeypatch.setattr(Path, "resolve", resolve)
     before = snapshot(folder)
-    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    response = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert response.status_code == 500
     assert response.json()["error"] == "remove-failed"
     assert "is not inside the working root" in response.json()["message"]
@@ -827,7 +850,7 @@ def test_a_file_written_during_the_removal_is_removed_too(
             written.append(late_file)
 
     monkeypatch.setattr(documents, "_remove_entry", late)
-    assert client.delete(f"/api/v1/documents/{doc['id']}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false").status_code == 200
     assert written
     assert not folder.exists()
 
@@ -848,7 +871,7 @@ def test_a_folder_that_keeps_filling_up_is_not_reported_as_removed(
             (folder / "late.txt").write_text("again")
 
     monkeypatch.setattr(documents, "_remove_entry", keeps_writing)
-    response = client.delete(f"/api/v1/documents/{doc['id']}")
+    response = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert response.status_code == 500
     assert response.json()["error"] == "remove-failed"
     assert response.json()["message"] == (

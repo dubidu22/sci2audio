@@ -846,8 +846,8 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     opened = call("POST", f"{api}/documents", 201, multipart={"file": throwaway}, headers=same)
     gone = opened.json()["id"]
     _check(gone not in (ids.paper, ids.note), "the throwaway document is one the walk needs")
-    call("DELETE", f"{api}/documents/{gone}", 200, headers=same)
-    call("DELETE", f"{api}/documents/{gone}", 404, headers=same)
+    call("DELETE", f"{api}/documents/{gone}?keep_audiobook=false", 200, headers=same)
+    call("DELETE", f"{api}/documents/{gone}?keep_audiobook=false", 404, headers=same)
     call("GET", "/openapi.json", 200)
     # another site as the way back: the switch goes home instead (D-321)
     back = call("GET", "/language?language=en&back=https://elsewhere.example/", 303,

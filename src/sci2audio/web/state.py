@@ -15,6 +15,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+import platformdirs
 from fastapi import Depends, Request
 
 from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, load_settings
@@ -112,6 +113,24 @@ class ServerState:
             overwrite=overwrite,
             on_failure=self.kept.dispose,
         )
+
+    def protected_folders(self) -> list[Path]:
+        """Folders a removal never deletes in or above (#470, D-751, R3): home, Documents,
+        the output folders, and sci2audio's own folders."""
+        saved, _ = load_settings(self.config.config_file)
+        found = [
+            Path.home(),
+            platformdirs.user_documents_path(),
+            self.config.output_folder,
+            self.config.work_root,
+            self.config.config_file.parent,
+            self.config.models_dir,
+        ]
+        if saved.output_folder is not None:
+            found.append(saved.output_folder)
+        if self.config.legacy_root is not None:
+            found.append(self.config.legacy_root)
+        return found
 
     def preview_work(
         self, text: str, voice_id: str, speed: float, letter_speed: float = 1.0
