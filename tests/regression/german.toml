@@ -2511,13 +2511,31 @@ utterances = ["„Bewusstsein ist alles.“", "Danach geht es weiter."]
 id = "de-hidden-runs-in-a-table-read-when-its-notice-is-off"
 audit = 0
 issue = 463
-goal = "Ist 'Tabellen und Abbildungen' aus, wird eine Tabelle ohne versteckten Text und Seitenmarken gelesen wie ein Absatz (D-719 PR 5)."
+goal = "Ist 'Tabellen und Abbildungen' aus, wird eine Tabelle gelesen wie ein Absatz: ohne versteckten Text und Seitenmarken, Zahlen wie im Absatz ('4 Komma 2') (D-719 PR 5, #487, D-726)."
 language = "de"
 switched_off = ["tables-and-figures"]
 blocks = [
     { kind = "table", runs = ["Gruppe ", { text = "13", tags = ["td", "span", "epub:pagebreak"] }, " Mittel ", { text = "GEHEIM", tags = ["td", "span", "hidden"] }, " 4,2"] },
 ]
-expected = ["Gruppe Mittel 4,2"]
+expected = ["Gruppe Mittel 4 Komma 2"]
+
+[[case]]
+id = "de-a-table-and-a-figure-read-as-a-paragraph-when-their-notice-is-off"
+audit = 0
+issue = 487
+goal = "Ist 'Tabellen und Abbildungen' aus, wird der gedruckte Text einer Tabelle und einer Abbildung gelesen wie derselbe Text in einem Absatz: Quelle entfernt, Zahlen und Einheiten gelesen (D-726)."
+language = "de"
+switched_off = ["tables-and-figures"]
+blocks = [
+    { kind = "table", text = "Anteil 3,5 % bei 12 m² (Müller, 2019)" },
+    { kind = "figure", text = "Anteil 3,5 % bei 12 m² (Müller, 2019)" },
+    { kind = "paragraph", text = "Anteil 3,5 % bei 12 m² (Müller, 2019)" },
+]
+expected = [
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter",
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter",
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter",
+]
 
 [[case]]
 id = "de-figure-alt-text-is-read-as-a-paragraph-is"

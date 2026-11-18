@@ -2622,13 +2622,42 @@ utterances = ["We repeat it (and/or 3 times) here, as in 2001 (input/output 2001
 id = "hidden-runs-in-a-table-read-when-its-notice-is-off"
 audit = 0
 issue = 463
-goal = "With 'Tables and figures' switched off a table is read as printed, without its hidden runs and page-break markers, as a paragraph is (D-719 PR 5)."
+goal = "With 'Tables and figures' switched off a table is read as a paragraph is: without its hidden runs and page-break markers, its numbers, units and abbreviations read (D-719 PR 5, #487, D-726)."
 switched_off = ["tables-and-figures"]
 blocks = [
     { kind = "table", runs = ["Group ", { text = "13", tags = ["td", "span", "epub:pagebreak"] }, " Mean ", { text = "SECRET", tags = ["td", "span", "hidden"] }, " 4.2"] },
     { kind = "paragraph", runs = ["Text ", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " here too."] },
 ]
 expected = ["Group Mean 4.2", "Text here too."]
+
+[[case]]
+id = "a-table-and-a-figure-read-as-a-paragraph-when-their-notice-is-off"
+audit = 0
+issue = 487
+goal = "With 'Tables and figures' switched off, a table's and a figure's printed text is read as the same text in a paragraph is: citation removed, units, abbreviations and statistics read (D-726)."
+switched_off = ["tables-and-figures"]
+blocks = [
+    { kind = "table", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019)" },
+    { kind = "figure", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019)" },
+    { kind = "paragraph", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019)" },
+]
+expected = [
+    "Share 3.5 % at 12 square metres for example p less than .05",
+    "Share 3.5 % at 12 square metres for example p less than .05",
+    "Share 3.5 % at 12 square metres for example p less than .05",
+]
+
+[[case]]
+id = "formula-and-code-stay-as-printed-when-their-notices-are-off"
+audit = 0
+issue = 487
+goal = "With 'Formulas' and 'Code' switched off, a formula and a code block are read as printed: no unit, abbreviation, statistic, citation or link is read or removed in them (D-726)."
+switched_off = ["formulas", "code"]
+blocks = [
+    { kind = "formula", text = "a = 3.5 m² e.g. b < .05 (Smith, 2019)" },
+    { kind = "code", text = "x = 12  # m² e.g. https://example.org" },
+]
+expected = ["a = 3.5 m² e.g. b < .05 (Smith, 2019)", "x = 12 # m² e.g. https://example.org"]
 
 [[case]]
 id = "hidden-runs-in-a-table-with-its-notice-on"
