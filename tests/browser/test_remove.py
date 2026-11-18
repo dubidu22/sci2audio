@@ -28,6 +28,7 @@ from sci2audio.web.project import (
     record_files,
     write_project,
 )
+from sci2audio.web.removal import KEPT_LIMIT
 
 EARLIER = "sci2audio made it before each document had its own folder."
 
@@ -241,6 +242,25 @@ def test_the_keep_tick_goes_with_the_request_and_outlives_a_failure(
         "book.readalong.json",
         "my notes.txt",
     ]
+
+
+def test_more_files_stay_than_the_answer_names_and_all_are_counted(
+    signed_in: Page, live: Live
+) -> None:
+    """The message counts the files the answer only counts (`kept_more`, #569 round 2)."""
+    page = signed_in
+    _document, folder = with_book(live, "many.pdf", "A paper with many notes.")
+    mine = KEPT_LIMIT + 3
+    for n in range(mine):
+        (folder / f"mine {n:03}.txt").write_text("mine", encoding="utf-8")
+    page.goto(live.url + "/")
+    page.get_by_text("Remove many.pdf…").click()
+    page.get_by_role("button", name="Remove many.pdf now").click()
+    expect(page.locator("#message")).to_have_text(
+        f"many.pdf was removed. Its 2 audiobook files were deleted. {mine} files stayed in "
+        f"{folder}: sci2audio did not write them, or they changed since."
+    )
+    assert len(list(folder.iterdir())) == mine
 
 
 def test_files_that_stay_are_counted_after_the_removal(signed_in: Page, live: Live) -> None:

@@ -374,9 +374,9 @@ def test_s5_a_file_entry_that_is_not_a_bare_name_is_refused(one: dict[str, Any],
     response = remove(one["client"], one["doc"])
     assert response.status_code == 200
     assert response.json()["deleted_files"] == 0
-    assert [k["reason"] for k in response.json()["kept"] if k["reason"] != "not-recorded"] == [
-        "outside"
-    ]
+    refused = [k for k in response.json()["kept"] if k["reason"] != "not-recorded"]
+    assert [k["reason"] for k in refused] == ["outside"]
+    assert refused[0]["folder"] == str(one["book"])  # its project folder, not its own path
     assert outside.read_bytes() == b"ID3 elsewhere"
     assert (sub / "book.mp3").read_bytes() == b"ID3 elsewhere"
 
@@ -629,7 +629,46 @@ def test_s10_a_file_swapped_for_a_link_after_the_check_is_not_followed(
     monkeypatch.setattr(api, "plan", swapped)
     response = remove(one["client"], one["doc"])
     assert kept(response) == {name: "changed"}
+    assert response.json()["kept"][0]["folder"] == str(one["book"])
     assert target.read_bytes() == one["files"][name]
+
+
+def test_s10_a_folder_above_swapped_after_the_check_is_seen_by_its_real_path(
+    one: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The output folder is swapped for a link to a folder of the person's that holds a
+    folder of the same name (#569 round 2, R1): the project folder lstats as a plain
+    folder, so only its real path shows the change, and nothing of the person's goes."""
+    output, book = one["config"].output_folder, one["book"]
+    moved, mine = tmp_path / "moved output", tmp_path / "mine"
+    theirs = mine / book.name
+    theirs.mkdir(parents=True)
+    (theirs / ".DS_Store").write_bytes(b"the person's own")
+    for name, data in one["files"].items():
+        (theirs / name).write_bytes(data)  # same names, same bytes: only the place differs
+    real_plan = removal.plan
+
+    def swapped(*args: Any, **kwargs: Any) -> removal.AudiobookPlan:
+        planned = real_plan(*args, **kwargs)
+        output.rename(moved)
+        output.symlink_to(mine, target_is_directory=True)
+        return planned
+
+    try:
+        (tmp_path / "probe").symlink_to(tmp_path)
+    except OSError:
+        pytest.skip("this system makes no symbolic links for this user")
+    monkeypatch.setattr(api, "plan", swapped)
+    response = remove(one["client"], one["doc"])
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted_files"] == 0
+    assert files_of(theirs) == {".DS_Store": b"the person's own", **one["files"]}
+    assert files_of(moved / book.name) == one["files"]
+    stayed = {k["path"]: (k["reason"], k["folder"]) for k in response.json()["kept"]}
+    assert stayed == {
+        str(book): ("changed", str(book)),
+        **{str(book / name): ("changed", str(book)) for name in one["files"]},
+    }
 
 
 # ---- the folder goes by rmdir only (S11) -----------------------------------------------------
