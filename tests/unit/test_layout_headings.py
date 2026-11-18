@@ -993,6 +993,17 @@ def test_front_matter_that_would_be_the_whole_document_is_none() -> None:
     assert publisher_sections(doc) == []
 
 
+def test_front_matter_in_several_sections_that_would_be_the_whole_document_is_none() -> None:
+    """Review round 2 (F3): two pages, each named front matter, leave nothing to read by
+    default; the file is then read as without front matter."""
+    for second in ("Cover", "Impressum"):
+        found = content(Page().body().lines, Page().body().lines)
+        outline = (OutlineEntry("Cover", 1, 1), OutlineEntry(second, 1, 2))
+        doc = build_document(dataclasses.replace(found, outline=outline))
+        assert publisher_sections(doc) == []
+        assert default_selection(find_chapters(doc))
+
+
 def test_headings_under_front_matter_follow_it_at_the_top() -> None:
     """Deeper headings after the imprint, which the section tree first puts under it, stay
     sections (and chapters) of their own."""

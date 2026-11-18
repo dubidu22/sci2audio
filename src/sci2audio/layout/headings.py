@@ -130,8 +130,8 @@ def front_matter(
     that page; it ends at the next heading or at the first block of the next page an
     outline entry points to, whichever comes first, or with neither at the end of its own
     page. Entries are taken in page order; the first of them, with no heading before it,
-    starts at block 0: a repository's cover sheet before it joins it. One that would hold
-    the whole document is left out. Nothing is found by the pages' looks, so a file
+    starts at block 0: a repository's cover sheet before it joins it. When they would hold
+    the whole document together, there is none. Nothing is found by the pages' looks, so a file
     without an outline has no front matter."""
     names = {title_key(name) for name in settings.front_matter_names}
     pages = {item.id: page.number for page in content.pages for item in page.lines}
@@ -157,10 +157,10 @@ def front_matter(
         end = min(bounds) if bounds else next(after, len(blocks))
         if not found and not any(h < start for h in heads):
             start = 0
-        if (start, end) == (0, len(blocks)):
-            continue  # the whole document is no front matter
         if not any(s <= start < e for s, (e, _) in found.items()):
             found[start] = (end, text.strip())
+    if sum(end - start for start, (end, _) in found.items()) == len(blocks):
+        return {}  # front matter never holds the whole document, in one section or many
     return found
 
 
