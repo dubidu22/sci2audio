@@ -99,6 +99,28 @@ def spoken_text_of(text: str) -> str:
     return " ".join(text.split())
 
 
+@pytest.mark.parametrize(
+    ("blocks", "notice"),
+    [
+        ([(BlockKind.TABLE, "a b\nc d"), caption("Table 2", 1)], "Table 2 is skipped."),
+        ([caption("Figure 1", 2), (BlockKind.FIGURE, "")], "Figure 1 is skipped."),
+        ([Block(BlockKind.FORMULA, "x = y (16a)", label="16a")], "Formula 16a is skipped."),
+    ],
+    ids=["table", "figure", "formula"],
+)
+def test_a_page_with_glyph_numbers_still_reads_its_notices(blocks: list, notice: str) -> None:
+    """#574: the notice step reads a caption's label or a formula's name in a small document
+    of the page's used lines only, and that page keeps the count of characters from fonts
+    with no Unicode source, which is then more than its lines hold. The step must not fail."""
+    glyph_numbers = (BlockKind.PARAGRAPH, "'DV %XFK ZXUGH LQ HLQHU =HLW JHVFKULHEHQ")
+    document = make_document([glyph_numbers, *blocks])
+    page, *rest = document.content.pages
+    pages = (replace(page, unmapped=page.characters), *rest)
+    document = replace(document, content=replace(document.content, pages=pages))
+    index = next(i for i, b in enumerate(document.blocks) if b.is_placeholder)
+    assert read(document)[index] == notice  # strict: a failing step raises
+
+
 def test_several_captions_are_all_named_in_document_order() -> None:
     document = make_document(
         [

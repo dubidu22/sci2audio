@@ -26,6 +26,13 @@ the page's lines, white space not counted). The field is additive with an empty 
 exports and golden files leave it out at 0, so files made before it read the same, and every
 corpus page has 0.
 
+The count belongs to the page as extracted: on every page extraction makes, `unmapped` is at
+most `characters` (extraction's tests check it). `core.Page` itself refuses only a negative
+count, because a page a later stage builds from some of the lines may keep the count of the
+whole page: the notice steps read a caption's label in a small document of the lines it
+uses, and on a page with glyph-number text those lines hold fewer characters (#574). Measure
+the share on the pages extraction returns, as `legibility` does.
+
 **Narrowed on purpose (D-762).** The issue's criterion AC-442.1 also named "a simple font
 with unknown glyph names". Those are not counted: TeX's math fonts (MSAM10, CMEX) and
 matplotlib's Type 3 fonts are exactly such fonts, and in the corpus they set symbols and
