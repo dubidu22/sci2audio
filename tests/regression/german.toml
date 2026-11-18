@@ -2420,15 +2420,14 @@ utterances = ["Es gilt Satz 2.", "Satz 3 gilt hier nicht.", "Im zweiten Satz ste
 id = "de-long-sentence-colon-beyond-the-limit"
 audit = 0
 issue = 460
-goal = "Ein langer Satz wird am Doppelpunkt geteilt, auch wenn er hinter den ersten 300 Zeichen steht, und vorne vor 'dass', nicht innerhalb einer Nominalgruppe (D-719 PR 4)."
+goal = "Ein langer Satz wird am Doppelpunkt geteilt, nicht innerhalb einer Nominalgruppe; der erste Teil bleibt ganz, solange er passt (D-719 PR 4; zwei Teile, seit die Grenze 400 Zeichen ist, #494)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne, dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet: Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr." }]
 expected = [
     "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne, dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet: Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr.",
 ]
 utterances = [
-    "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne,",
-    "dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet:",
+    "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne, dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet:",
     "Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr.",
 ]
 
@@ -2436,17 +2435,31 @@ utterances = [
 id = "de-long-sentence-comma-before-a-conjunction"
 audit = 0
 issue = 460
-goal = "Ein langer Satz wird am Komma vor einer Konjunktion oder einem Relativpronomen geteilt, möglichst in gleich lange Teile (D-719 PR 4)."
+goal = "Ein Satz von 300 bis 400 Zeichen ist eine Äußerung: kein Schnitt am Komma vor 'und' (#494; die Schnittregel prüft de-long-sentence-comma-before-a-conjunction-over-the-limit)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will." }]
 expected = [
     "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
 ]
 utterances = [
-    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern,",
-    "und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
+    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
 ]
 
+
+[[case]]
+id = "de-long-sentence-comma-before-a-conjunction-over-the-limit"
+audit = 0
+issue = 494
+goal = "Ein Satz über der Grenze wird am Komma vor einer Konjunktion oder einem Relativpronomen geteilt, möglichst in gleich lange Teile (D-719 PR 4, auch über der Grenze von 400 Zeichen aus #494)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben im Alltag und im Beruf zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen über ihre Zukunft selbst treffen und auch gemeinsam tragen will." }]
+expected = [
+    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben im Alltag und im Beruf zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen über ihre Zukunft selbst treffen und auch gemeinsam tragen will.",
+]
+utterances = [
+    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben im Alltag und im Beruf zu ändern,",
+    "und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen über ihre Zukunft selbst treffen und auch gemeinsam tragen will.",
+]
 [[case]]
 id = "de-citation-with-a-reprint-year"
 audit = 0

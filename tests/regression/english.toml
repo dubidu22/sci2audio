@@ -2543,14 +2543,13 @@ utterances = ["The proofs conclude.", "See Appendix C.", "It gives the proofs."]
 id = "long-sentence-colon-beyond-the-limit"
 audit = 0
 issue = 460
-goal = "A sentence over the limit is cut before a clause (', which') and at its colon beyond the first 300 characters, not at the last comma that fits ('slow, steady, | patient voice') (D-719 PR 4)."
+goal = "A sentence over the limit is cut at its colon, not at the last comma that fits ('slow, steady, | patient voice'); the first part is kept whole while it fits (D-719 PR 4; two parts since the limit is 400 characters, #494)."
 blocks = [{ kind = "paragraph", text = "The listening script that the program builds for a long paper is read in parts, which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them: each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase." }]
 expected = [
     "The listening script that the program builds for a long paper is read in parts, which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them: each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase.",
 ]
 utterances = [
-    "The listening script that the program builds for a long paper is read in parts,",
-    "which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them:",
+    "The listening script that the program builds for a long paper is read in parts, which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them:",
     "each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase.",
 ]
 
@@ -2558,30 +2557,56 @@ utterances = [
 id = "long-sentence-comma-before-a-conjunction"
 audit = 0
 issue = 460
-goal = "A comma before a conjunction ('but') wins over a comma inside a phrase ('cheap, small,') when a long sentence is cut (D-719 PR 4)."
+goal = "A sentence of 300 to 400 characters is one utterance: no cut at its comma before 'but' (#494; the cut rule is kept by long-sentence-comma-before-a-conjunction-over-the-limit)."
 blocks = [{ kind = "paragraph", text = "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room." }]
 expected = [
     "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
 ]
 utterances = [
-    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners,",
-    "but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
+    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
 ]
 
+
+[[case]]
+id = "long-sentence-comma-before-a-conjunction-over-the-limit"
+audit = 0
+issue = 494
+goal = "A comma before a conjunction ('but') wins over a comma inside a phrase ('cheap, small,') when a sentence over the limit is cut (D-719 PR 4, kept past the 400-character limit of #494)."
+blocks = [{ kind = "paragraph", text = "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months and with the help of two new assistants who had not taken part before, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room at the back of the old building." }]
+expected = [
+    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months and with the help of two new assistants who had not taken part before, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room at the back of the old building.",
+]
+utterances = [
+    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months and with the help of two new assistants who had not taken part before, used the same procedure as the first one and the same group of listeners,",
+    "but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room at the back of the old building.",
+]
 [[case]]
 id = "long-sentence-without-a-clause-mark"
 audit = 0
 issue = 460
-goal = "A long sentence with no clause mark is cut at a space, into parts of about the same length (D-719 PR 4)."
+goal = "A sentence of 300 to 400 characters with no clause mark is one utterance (#494; the cut at a space is kept by long-sentence-without-a-clause-mark-over-the-limit)."
 blocks = [{ kind = "paragraph", text = "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it." }]
 expected = [
     "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
 ]
 utterances = [
-    "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls",
-    "between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
+    "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
 ]
 
+
+[[case]]
+id = "long-sentence-without-a-clause-mark-over-the-limit"
+audit = 0
+issue = 494
+goal = "A sentence over the limit with no clause mark is cut at a space, into parts of about the same length (D-719 PR 4, kept past the 400-character limit of #494)."
+blocks = [{ kind = "paragraph", text = "The voice reads this very long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it while sitting at home or on the train or walking through the park in the evening." }]
+expected = [
+    "The voice reads this very long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it while sitting at home or on the train or walking through the park in the evening.",
+]
+utterances = [
+    "The voice reads this very long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts",
+    "of the sentence at about the same length because a very short last part would sound odd to the person who listens to it while sitting at home or on the train or walking through the park in the evening.",
+]
 [[case]]
 id = "citation-with-a-reprint-year"
 audit = 0
