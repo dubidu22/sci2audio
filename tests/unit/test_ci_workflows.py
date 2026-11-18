@@ -47,7 +47,7 @@ def test_ci_passed_fails_on_any_job_that_did_not_succeed() -> None:
     # the job's own condition, at the job's indent: a step's "if: always()" does not count
     # (review round 1 of PR #364, S1); it reports in a cancelled run too, never skipped
     assert re.search(r"^    if: always\(\)$", job, re.M), job
-    assert "needs: [lint, licences, security, tests, browser]" in job
+    assert "needs: [lint, licences, security, tests, browser, web-paths]" in job
     for result in ("failure", "cancelled", "skipped"):
         assert f"contains(needs.*.result, '{result}')" in job
 
@@ -136,6 +136,49 @@ def test_the_pr_browser_tests_run_in_two_shards_that_all_must_pass() -> None:
     assert "shard: [1, 2]" in browser
     assert 'browser_shard.py chromium "$SHARD" 2 "$RUNNER_TEMP/shard.txt"' in browser
     assert '"@$RUNNER_TEMP/shard.txt"' in browser
+
+
+@pytest.mark.parametrize(
+    "leg",
+    [
+        job("browser (Linux, webkit, 1/2, reported only)", conclusion="failure"),
+        job("browser (Linux, firefox, 2/2, reported only)", "in_progress", None),
+        job("browser (Linux, ${{ matrix.browser }}, reported only)", conclusion="skipped"),
+    ],
+)
+def test_ci_passed_does_not_wait_for_a_reported_only_job(
+    monkeypatch: pytest.MonkeyPatch, leg: dict
+) -> None:
+    jobs = [job("tests (ubuntu-latest)"), leg, job("CI passed", "in_progress", None)]
+    assert run_ci_passed(monkeypatch, jobs) == []
+
+
+WEB = [
+    "src/sci2audio/web/static/app.js",
+    "src/sci2audio/app/window.py",
+    "tests/browser/test_flow.py",
+]
+NOT_WEB = ["src/sci2audio/textprep/links.py", "tests/unit/test_web_design.py", "docs/web.md"]
+
+
+def test_firefox_and_webkit_run_on_a_pr_that_changes_a_web_path_reported_only() -> None:
+    """D-759 item 4: Firefox and WebKit on Linux run in PR CI when the PR changes the web
+    interface, the app window or the browser tests; reported only until #437 closes."""
+    paths = block(CI, "  web-paths:")
+    assert "pull-requests: read" in paths
+    pattern = re.search(r"grep -E '([^']+)' files\.txt", paths)
+    assert pattern, paths
+    assert all(re.search(pattern[1], path) for path in WEB)
+    assert not any(re.search(pattern[1], path) for path in NOT_WEB)
+    assert ".previous_filename // empty" in paths  # a file moved out of a web path counts
+    reported = block(CI, "  browser-reported:")
+    name = re.search(r"^    name: (.+)$", reported, re.M)
+    assert name, reported
+    assert load_ci_passed().REPORTED in name[1]  # so "CI passed" does not wait for it
+    assert "if: needs.web-paths.outputs.web == 'true'" in reported
+    assert "browser: [firefox, webkit]" in reported
+    assert "fail-fast: false" in reported
+    assert "browser-reported" not in block(CI, "  ci-passed:")
 
 
 def test_only_the_ci_full_label_of_this_repository_starts_a_run() -> None:

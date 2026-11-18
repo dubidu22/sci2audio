@@ -5,7 +5,8 @@
 `needs.<job>.result` of a matrix job can read success while one of its legs was cancelled,
 for example a macOS leg that never got a runner. So this reads every job of the run back
 through the REST API (GH_TOKEN, REPO and RUN_ID from the environment; the latest attempt of
-each job) and fails unless each one but "CI passed" itself ended `success`. It runs on the
+each job) and fails unless each one but "CI passed" itself and the jobs named "reported only"
+(Firefox and WebKit on web PRs until #437 closes, D-759) ended `success`. It runs on the
 runner's own Python, with only the standard library and the gh CLI.
 """
 
@@ -19,6 +20,7 @@ import time
 from collections.abc import Callable
 
 SELF = "CI passed"
+REPORTED = "reported only"  # in the name of a job "CI passed" does not wait for
 TRIES = 3  # a job that just ended can still read in_progress for a moment
 WAIT = 10  # seconds between tries
 
@@ -42,7 +44,7 @@ def fetch(repo: str, run_id: str) -> list[Job]:
 
 
 def others(jobs: list[Job]) -> list[Job]:
-    return [job for job in jobs if job["name"] != SELF]
+    return [job for job in jobs if job["name"] != SELF and REPORTED not in str(job["name"])]
 
 
 def not_succeeded(jobs: list[Job]) -> list[str]:

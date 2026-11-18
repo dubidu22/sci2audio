@@ -2,7 +2,8 @@
 127.0.0.1 in this process, driven by Playwright through pytest-playwright.
 
 - Every test here carries the `browser` marker: CI runs them in their own job (Chromium on
-  every PR; Chromium, Firefox and WebKit nightly), not in the three-system matrix.
+  every PR; Firefox and WebKit on Linux too when a PR changes a web path, reported only until
+  #437 closes; all three nightly, WebKit on macOS too), not in the three-system matrix.
 - The server gets the fake voice, a fake voice download and a small download plan, so no
   test needs the 355 MB of voice files or the network; ffmpeg is real (a few seconds).
 - The page may only talk to this server: every other request is aborted and fails the
