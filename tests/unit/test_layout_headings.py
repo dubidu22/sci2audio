@@ -835,3 +835,36 @@ def test_a_bold_line_over_a_wide_rule_inside_a_table_stays_in_the_table() -> Non
     assert header.id in [p.item for p in table.parts]
     assert "t2" in [p.item for p in table.parts]
     assert ("Structure Example", "") not in headings(doc)
+
+
+# Roman numerals alone (#459)
+
+
+def roman_paper(first: str = "I", size: float = 12.0, bold: bool = False) -> Page:
+    """Sections numbered by centred Roman numerals alone, set larger than the body and not
+    bold, as in the German journal of #459."""
+    page = Page().body()
+    for numeral in (first, "II", "III"):
+        page.heading(numeral, size, bold).body()
+    return page
+
+
+def test_a_heading_that_is_only_the_numeral_i_is_found_like_ii_and_iii() -> None:
+    """#459: "I" has one letter, too few for a heading on its own (`heading_letters`)."""
+    doc = roman_paper().build()
+    assert headings(doc) == [("I", ""), ("II", ""), ("III", "")]
+    assert [s.title for s in doc.sections] == ["I", "II", "III"]
+
+
+def test_a_lone_i_is_a_heading_only_in_the_style_of_the_roman_headings() -> None:
+    """A pronoun on a line of its own is set like the text; an "I" in another heading style,
+    or with no Roman heading in the document, stays text."""
+    body_style = Page().body().heading("I", 10.0, False).body()
+    body_style.heading("II", 12.0, False).body().heading("III", 12.0, False).body()
+    assert headings(body_style.build()) == [("II", ""), ("III", "")]
+    bold_other = Page().body().heading("I", 12.0, True).body()
+    bold_other.heading("II", 14.0).body().heading("III", 14.0).body()
+    assert headings(bold_other.build()) == [("II", ""), ("III", "")]
+    named = Page().body().heading("I", 14.0).body().heading("Methods", 14.0).body()
+    named.heading("Results", 14.0).body()
+    assert headings(named.build()) == [("Methods", ""), ("Results", "")]
