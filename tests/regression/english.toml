@@ -2705,3 +2705,57 @@ expected = [
     "A figure is skipped. It shows: Share of 3.5 % at 12 square metres, for example p less than .05.",
     "Share of 3.5 % at 12 square metres, for example p less than .05.",
 ]
+
+[[case]]
+id = "an-initial-before-a-sentence-opener-ends-the-sentence"
+audit = 0
+issue = 477
+goal = "A single capital initial before a sentence opener ('called A. Then') ends the sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "The first set is called A. Then set B follows." }]
+expected = ["The first set is called A. Then set B follows."]
+utterances = ["The first set is called A.", "Then set B follows."]
+
+[[case]]
+id = "an-initial-before-a-name-ends-no-sentence"
+audit = 0
+issue = 477
+goal = "A single capital initial before a name ('J. Smith') ends no sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "The method of J. Smith was used." }]
+expected = ["The method of J. Smith was used."]
+utterances = ["The method of J. Smith was used."]
+
+[[case]]
+id = "a-dotted-capital-abbreviation-before-a-sentence-opener-ends-the-sentence"
+audit = 0
+issue = 477
+goal = "A dotted capital abbreviation before a sentence opener ('the U.S. The rest') ends the sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "Most data came from the U.S. The rest came from Canada." }]
+expected = ["Most data came from the U.S. The rest came from Canada."]
+utterances = ["Most data came from the U.S.", "The rest came from Canada."]
+
+[[case]]
+id = "a-dotted-capital-abbreviation-before-a-name-ends-no-sentence"
+audit = 0
+issue = 477
+goal = "A dotted capital abbreviation before a name ('U.S. Census Bureau') ends no sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "The data came from the U.S. Census Bureau in 2019." }]
+expected = ["The data came from the U.S. Census Bureau in 2019."]
+utterances = ["The data came from the U.S. Census Bureau in 2019."]
+
+[[case]]
+id = "dotted-initials-before-a-name-end-no-sentence"
+audit = 0
+issue = 477
+goal = "Dotted initials of a name ('J.R.R. Tolkien') end no sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "The novels of J.R.R. Tolkien were read." }]
+expected = ["The novels of J.R.R. Tolkien were read."]
+utterances = ["The novels of J.R.R. Tolkien were read."]
+
+[[case]]
+id = "a-letter-name-before-a-sentence-opener-ends-the-sentence"
+audit = 0
+issue = 477
+goal = "A letter that names a thing ('vitamin A.') before a sentence opener ends the sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "We measured vitamin A. The levels were low." }]
+expected = ["We measured vitamin A. The levels were low."]
+utterances = ["We measured vitamin A.", "The levels were low."]

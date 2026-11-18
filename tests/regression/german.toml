@@ -2510,7 +2510,7 @@ utterances = ["Das gilt weiterhin.", "Danach geht es weiter."]
 id = "de-citation-with-a-capital-author-and-a-page"
 audit = 0
 issue = 455
-goal = "Ein Autor in Großbuchstaben ist eine Quelle vor ', 2011' oder vor einer Seite ('WBGU 2011, S. 1'); ohne beides bleibt die Klammer stehen, wie '(EU 2016)' (D-719 PR 4)."
+goal = "Ein Autor in Großbuchstaben ist eine Quelle vor ', 2011' oder vor einer Seite ('WBGU 2011, S. 1'); ohne beides bleibt die Klammer stehen, wie '(EU 2016)', und so wird '(WBGU 2011)' vorgelesen: eine bewusste Grenze (D-719 PR 4; #477, D-744)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Das fordert der Beirat (WBGU 2011, S. 1). Ohne Seite bleibt es (WBGU 2011) stehen." }]
 expected = ["Das fordert der Beirat. Ohne Seite bleibt es (WBGU 2011) stehen."]
