@@ -2562,3 +2562,33 @@ expected = [
     "Eine Abbildung wird übersprungen. Sie zeigt: Anteil 3 Komma 5 Prozent bei 12 Quadratmeter.",
     "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter.",
 ]
+
+[[case]]
+id = "de-et-al-before-a-year-in-brackets-ends-no-sentence"
+audit = 0
+issue = 488
+goal = "'et al.' vor einer Jahreszahl in Klammern und einem großgeschriebenen Wort beendet keinen Satz: der Satz bleibt eine Äußerung, wie im Englischen."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Wie Müller et al. (2019) Bildung verstehen, ist bekannt." }]
+expected = ["Wie Müller et al. Bildung verstehen, ist bekannt."]
+utterances = ["Wie Müller et al. Bildung verstehen, ist bekannt."]
+
+[[case]]
+id = "de-et-al-before-a-capital-word-ends-no-sentence"
+audit = 0
+issue = 488
+goal = "'et al.' vor einem großgeschriebenen Wort ohne Jahreszahl beendet keinen Satz: eine Äußerung."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Laut Müller et al. Kapitel 2 gilt das." }]
+expected = ["Laut Müller et al. Kapitel 2 gilt das."]
+utterances = ["Laut Müller et al. Kapitel 2 gilt das."]
+
+[[case]]
+id = "de-et-al-whose-citation-ended-the-sentence-still-ends-it"
+audit = 0
+issue = 488
+goal = "Endet der Satz mit der entfernten Jahreszahl nach 'et al.' ('et al. (2019). Die'), wird dort weiter geteilt: der entfernte Text beendete den Satz (D-719)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das zeigen Müller et al. (2019). Die Studie ist neu." }]
+expected = ["Das zeigen Müller et al. Die Studie ist neu."]
+utterances = ["Das zeigen Müller et al.", "Die Studie ist neu."]
