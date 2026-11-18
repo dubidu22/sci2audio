@@ -222,7 +222,9 @@ def test_the_keep_tick_goes_with_the_request_and_outlives_a_failure(
 
     page.route(re.compile(r".*/api/v1/documents/[0-9a-f]{16}(\?.*)?$"), first_fails)
     urls = deletes(page)
-    page.get_by_text("kept.pdf entfernen …").click()
+    # by the keys alone: after a click on the summary WebKit tabs on from the summary
+    # without a focus ring, which `tab_to` rightly refuses
+    press_on(page, "kept.pdf entfernen …")
     keep = page.get_by_role("checkbox", name="Hörbuchdateien behalten")
     press_on(page, f"remove-keep-{document}", key="Space")
     expect(keep).to_be_checked()
