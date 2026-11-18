@@ -5,10 +5,12 @@ it is, so no document is ever missing."""
 from __future__ import annotations
 
 import hashlib
+import io
+import os
 from pathlib import Path
 
 import pytest
-from project_helpers import V1_3, old_folder, tree_digest
+from project_helpers import V1_3, can_link, old_folder, tree_digest
 from web_helpers import (
     app_and_config,
     offline,  # noqa: F401 - fixture
@@ -126,3 +128,39 @@ def test_the_server_s_folders_are_the_project_and_the_old_root(
     config = server_config(8080)
     assert config.work_root == default_work_root() == tmp_path / "d" / "projects"
     assert config.legacy_root == tmp_path / "c" / "jobs"
+
+
+def test_a_linked_old_preview_folder_is_not_moved(tmp_path: Path) -> None:
+    """Review round 1 of #532, R10: a link (or a junction) in place of the old preview
+    folder stays; nothing is moved through it."""
+    if not can_link(tmp_path):
+        pytest.skip("this user can't make links")
+    legacy, elsewhere = tmp_path / "legacy", tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "voice.wav").write_bytes(b"RIFF")
+    legacy.mkdir()
+    os.symlink(elsewhere, legacy / PREVIEW_FOLDER, target_is_directory=True)
+    _, config = app_and_config(tmp_path, legacy_root=legacy)
+    assert not os.path.lexists(config.work_root / PREVIEW_FOLDER)
+    assert (legacy / PREVIEW_FOLDER).is_symlink()
+    assert [p.name for p in elsewhere.iterdir()] == ["voice.wav"]
+
+
+def test_an_old_folder_that_is_a_link_is_never_listed_or_used(tmp_path: Path) -> None:
+    """Review round 1 of #532, R5a: `<old root>/<id>` as a link to a folder holding
+    `source/` is not listed, not opened through the link, and a new upload of the same
+    bytes goes into the project root."""
+    if not can_link(tmp_path):
+        pytest.skip("this user can't make links")
+    legacy, root = tmp_path / "legacy", tmp_path / "projects"
+    data = pdf_bytes()
+    project, folder = old_document(tmp_path / "elsewhere", data)
+    before = tree_digest(folder)
+    legacy.mkdir()
+    os.symlink(folder, legacy / project, target_is_directory=True)
+    store = DocumentStore(root, legacy_root=legacy, **LIMITS)
+    assert store.all() == []
+    assert store.get(project) is None
+    stored = store.store("paper.pdf", io.BytesIO(data))
+    assert stored.folder == root / project
+    assert tree_digest(folder) == before

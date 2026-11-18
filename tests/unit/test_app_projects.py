@@ -5,21 +5,20 @@ from __future__ import annotations
 
 import contextlib
 import errno
+import logging
 import os
 import sys
-import tempfile
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
-from hypothesis import HealthCheck, given, settings
-from hypothesis import strategies as st
 from project_helpers import V1_1, V1_3, can_link, old_folder, old_library, tree_digest
 
 from sci2audio.app import config as config_module
 from sci2audio.app import projects
+from sci2audio.app.job import JobBusyError
 from sci2audio.app.lock import file_lock, work_folder_lock
 from sci2audio.app.projects import (
     EARLIER,
@@ -377,34 +376,46 @@ def every_file_is_somewhere(original: dict[str, tuple[int, str]], legacy: Path, 
         assert digest in (old.get(name), new.get(name), new.get(f"{EARLIER}/{name}")), name
 
 
-@settings(
-    max_examples=60,
-    deadline=None,
-    suppress_health_check=[HealthCheck.function_scoped_fixture],
-)
-@given(
-    case=st.sampled_from(["fast", "across", "merge", "merge-across"]),
-    count=st.integers(min_value=0, max_value=60),
-)
-def test_a_move_cut_off_anywhere_loses_nothing_and_finishes_next_time(
-    monkeypatch: pytest.MonkeyPatch, case: str, count: int
-) -> None:
-    with tempfile.TemporaryDirectory() as folder, monkeypatch.context() as patch:
-        legacy, root = Path(folder) / "jobs", Path(folder) / "projects"
+CASES = ["fast", "across", "merge", "merge-across"]
+
+
+def cut_run(folder: Path, case: str, count: int | None) -> int:
+    """One move in `folder`, cut off after `count` file operations (None: not cut), then
+    the next start; checks that nothing is lost and the move is finished. Returns how many
+    file operations the cut run made."""
+    legacy, root = folder / "jobs", folder / "projects"
+    with pytest.MonkeyPatch.context() as patch:
         setup_case(case, legacy, root, patch)
-        original = tree_digest(legacy / ID)
+        original, own = tree_digest(legacy / ID), tree_digest(root / ID)
         with patch.context() as cut:
-            cut_after(cut, count)
+            done = cut_after(cut, 10**6 if count is None else count)
             with contextlib.suppress(Cut):
                 migrate_all(legacy, root)
         every_file_is_somewhere(original, legacy, root)
         # the document is still found: the old or the new folder has its copy of the file
-        assert any((folder / ID / "source" / "paper.pdf").is_file() for folder in (legacy, root))
+        assert any((f / ID / "source" / "paper.pdf").is_file() for f in (legacy, root))
         migrate_all(legacy, root)  # the next start
         assert not (legacy / ID).exists()
         assert not (root / f"{projects.MOVING}{ID}").exists()
         every_file_is_somewhere(original, legacy, root)
         assert not list((root / ID).rglob(f"*{projects.PART}"))
+        after = tree_digest(root / ID)
+        assert {name: after.get(name) for name in own} == own  # the new folder's own files
+        if case in ("fast", "across"):
+            assert after == original  # nothing went to from-earlier-version
+        return done[0]
+
+
+@pytest.mark.parametrize("case", CASES)
+def test_a_move_cut_off_at_every_point_loses_nothing_and_finishes_next_time(
+    tmp_path: Path, case: str
+) -> None:
+    """MT2, exhaustive: an uncut run counts the file operations; then the move is cut off
+    after each number of them, from none to all, inside M8 across file systems too."""
+    total = cut_run(tmp_path / "uncut", case, None)
+    assert total > 0
+    for count in range(total + 1):
+        cut_run(tmp_path / str(count), case, count)
 
 
 # ---- the default folders ------------------------------------------------------------------
@@ -485,3 +496,295 @@ def test_a_junction_in_place_of_an_old_folder_is_never_followed(
     assert outcome.moved is Moved.SKIPPED
     assert tree_digest(elsewhere) == before
     assert not (root / ID).exists()
+
+
+# ---- review round 1 of PR #532 -------------------------------------------------------------
+
+
+@pytest.mark.timeout(30)
+def test_r1_a_file_named_like_the_earlier_folder_ends_the_merge(legacy: Path, root: Path) -> None:
+    """The numbering never loops: a place that is in the way ends the attempt, the old
+    file stays where it is and is named, and the server starts."""
+    old_folder(legacy, ID, {"position.json": b"old"})
+    new = root / ID
+    new.mkdir(parents=True)
+    (new / "position.json").write_bytes(b"new")
+    (new / EARLIER).write_bytes(b"a file, not a folder")
+    before = tree_digest(new)
+    outcome = migrate_one(legacy, root, ID)
+    assert outcome.moved is Moved.MERGED
+    assert outcome.left == (legacy / ID / "position.json",)
+    assert (legacy / ID / "position.json").read_bytes() == b"old" + ID.encode()
+    assert tree_digest(new) == before
+    assert len(migrate_all(legacy, root)) == 1  # and again: it returns
+
+
+@pytest.mark.timeout(30)
+def test_r1_a_place_that_can_t_be_looked_at_ends_the_merge(
+    legacy: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_folder(legacy, ID, {"position.json": b"old"})
+    new = root / ID
+    (new / EARLIER).mkdir(parents=True)
+    (new / "position.json").write_bytes(b"new")
+    real = Path.lstat
+    asked: list[str] = []
+
+    def refused(self: Path) -> os.stat_result:
+        if EARLIER in self.parts and self.name != EARLIER:
+            asked.append(self.name)
+            raise PermissionError(errno.EACCES, "Permission denied", str(self))
+        return real(self)
+
+    monkeypatch.setattr(Path, "lstat", refused)
+    outcome = migrate_one(legacy, root, ID)
+    monkeypatch.undo()
+    assert asked == ["position.json"]  # the first place that can't be looked at ends it
+    assert outcome.left == (legacy / ID / "position.json",)
+    assert (legacy / ID / "position.json").read_bytes() == b"old" + ID.encode()
+    assert list((new / EARLIER).iterdir()) == []
+
+
+@pytest.mark.timeout(30)
+def test_r1_the_numbering_stops(legacy: Path, root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    old_folder(legacy, ID, {"position.json": b"old"})
+    new = root / ID
+    (new / EARLIER).mkdir(parents=True)
+    (new / "position.json").write_bytes(b"new")
+    for name in ("position.json", "position (2).json", "position (3).json"):
+        (new / EARLIER / name).write_bytes(name.encode())
+    monkeypatch.setattr(projects, "MAX_EARLIER", 3)
+    outcome = migrate_one(legacy, root, ID)
+    assert outcome.left == (legacy / ID / "position.json",)
+    assert len(list((new / EARLIER).iterdir())) == 3
+
+
+def job_tries(folder: Path, tried: list[str]) -> None:
+    """What a job of an older version does: take the folder's lock and write its record."""
+    try:
+        with work_folder_lock(folder):
+            (folder / "audio.json").write_bytes(b"the newest record")
+            tried.append("took it")
+    except JobBusyError:
+        tried.append("busy")
+
+
+def test_r2_no_job_takes_the_folder_while_it_is_copied(
+    legacy: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_folder(legacy, ID)
+    across_file_systems(legacy, monkeypatch)
+    tried: list[str] = []
+    copy = projects._copy_checked
+
+    def copying(source: Path, target: Path) -> None:
+        if source.name == "position.json" and not tried:  # after audio.json was copied
+            job_tries(legacy / ID, tried)
+        copy(source, target)
+
+    monkeypatch.setattr(projects, "_copy_checked", copying)
+    assert migrate_one(legacy, root, ID).moved is Moved.COPIED
+    assert tried == ["busy"]
+    migrate_all(legacy, root)  # the next start
+    assert not (root / ID / EARLIER).exists()
+
+
+def test_r2_no_job_takes_the_folder_while_it_is_merged(
+    legacy: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_folder(legacy, ID)
+    (root / ID).mkdir(parents=True)
+    tried: list[str] = []
+    place = projects._place
+
+    def placing(path: Path, target: Path) -> None:
+        if not tried:
+            job_tries(legacy / ID, tried)
+        place(path, target)
+
+    monkeypatch.setattr(projects, "_place", placing)
+    assert migrate_one(legacy, root, ID).moved is Moved.MERGED
+    assert tried == ["busy"]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows lets the lock go for the rename")
+def test_r2_no_job_takes_the_folder_while_it_is_renamed(
+    legacy: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_folder(legacy, ID)
+    tried: list[str] = []
+    rename = projects._rename
+
+    def renaming(source: Path, target: Path) -> None:
+        job_tries(source, tried)
+        rename(source, target)
+
+    monkeypatch.setattr(projects, "_rename", renaming)
+    assert migrate_one(legacy, root, ID).moved is Moved.MOVED
+    assert tried == ["busy"]
+
+
+def test_r3_same_size_and_time_but_other_bytes_is_another_file(legacy: Path, root: Path) -> None:
+    old = old_folder(legacy, ID, {"position.json": b"old"}) / "position.json"
+    data = old.read_bytes()
+    other = bytes(byte ^ 1 for byte in data)
+    new = root / ID / "position.json"
+    new.parent.mkdir(parents=True)
+    new.write_bytes(other)
+    info = old.stat()
+    os.utime(new, ns=(info.st_atime_ns, info.st_mtime_ns))
+    assert migrate_one(legacy, root, ID).moved is Moved.MERGED
+    assert new.read_bytes() == other
+    assert (root / ID / EARLIER / "position.json").read_bytes() == data
+
+
+def test_r4_an_old_file_changed_after_its_copy_is_not_removed(
+    legacy: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old = old_folder(legacy, ID) / "position.json"
+    original = old.read_bytes()
+    changed = bytes(byte ^ 1 for byte in original)  # the same size
+    across_file_systems(legacy, monkeypatch)
+    copy = projects._copy_checked
+
+    def writer(source: Path, target: Path) -> None:
+        copy(source, target)
+        if source == old:  # a writer that ignores the lock
+            old.write_bytes(changed)
+
+    monkeypatch.setattr(projects, "_copy_checked", writer)
+    assert migrate_one(legacy, root, ID).moved is Moved.COPIED
+    assert old.read_bytes() == changed
+    monkeypatch.setattr(projects, "_copy_checked", copy)
+    migrate_all(legacy, root)  # the next start
+    assert (root / ID / "position.json").read_bytes() == original
+    assert (root / ID / EARLIER / "position.json").read_bytes() == changed
+    assert not (legacy / ID).exists()
+
+
+def test_r5_the_merge_never_works_through_a_link_in_the_project_folder(
+    legacy: Path, root: Path, tmp_path: Path
+) -> None:
+    if not can_link(tmp_path):
+        pytest.skip("this user can't make links")
+    old = old_folder(legacy, ID)
+    original = tree_digest(old)
+    chunks = sorted(name for name in original if name.startswith("chunks/"))
+    assert chunks
+    outside = tmp_path / "outside"
+    first = outside / chunks[0].removeprefix("chunks/")
+    first.parent.mkdir(parents=True)
+    first.write_bytes((old / chunks[0]).read_bytes())  # the same file, through the link
+    new = root / ID
+    new.mkdir(parents=True)
+    os.symlink(outside, new / "chunks", target_is_directory=True)
+    before = tree_digest(outside)
+    migrate_one(legacy, root, ID)
+    assert tree_digest(outside) == before
+    old_now, new_now = tree_digest(old), tree_digest(new)
+    for name in chunks:
+        assert original[name] in (old_now.get(name), new_now.get(f"{EARLIER}/{name}")), name
+
+
+def test_r5_folders_are_never_made_through_a_link(tmp_path: Path) -> None:
+    if not can_link(tmp_path):
+        pytest.skip("this user can't make links")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    os.symlink(outside, tmp_path / "link", target_is_directory=True)
+    with pytest.raises(OSError, match="is not a folder"):
+        projects._make_folders(tmp_path / "link" / "a" / "b")
+    assert list(outside.iterdir()) == []
+
+
+def test_r5_across_file_systems_links_are_never_copied(
+    legacy: Path, root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    if not can_link(tmp_path):
+        pytest.skip("this user can't make links")
+    outside_file, outside_folder = tmp_path / "outside.txt", tmp_path / "outside"
+    outside_file.write_text("the person's")
+    outside_folder.mkdir()
+    (outside_folder / "keep.txt").write_text("the person's too")
+    old = old_folder(legacy, ID)
+    os.symlink(outside_file, old / "odd-file")
+    os.symlink(outside_folder, old / "chunks" / "odd-folder", target_is_directory=True)
+    across_file_systems(legacy, monkeypatch)
+    outcome = migrate_one(legacy, root, ID)
+    assert outcome.moved is Moved.COPIED
+    assert set(outcome.left) == {old / "odd-file", old / "chunks" / "odd-folder"}
+    assert not os.path.lexists(root / ID / "odd-file")
+    assert not os.path.lexists(root / ID / "chunks" / "odd-folder")
+    assert (old / "odd-file").is_symlink()
+    assert outside_file.read_text() == "the person's"
+    assert [p.name for p in outside_folder.iterdir()] == ["keep.txt"]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows refuses to rename it then")
+def test_r7_a_file_held_open_keeps_the_folder_where_it_is(legacy: Path, root: Path) -> None:
+    old = old_folder(legacy, ID)
+    before = tree_digest(old)
+    with (old / "position.json").open("rb"):
+        outcome = migrate_one(legacy, root, ID)
+        assert outcome.moved is Moved.SKIPPED
+        assert tree_digest(old) == before
+        assert project_folder(root, legacy, ID) == old
+    assert migrate_one(legacy, root, ID).moved is Moved.MOVED
+    assert tree_digest(root / ID) == before
+
+
+def test_r8_the_terminal_says_how_many_projects_move(
+    legacy: Path, root: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    old_library(legacy, 2)
+    with caplog.at_level(logging.WARNING, logger="sci2audio.app.projects"):
+        migrate_all(legacy, root)
+    assert caplog.messages == ["Moving 2 projects to their new folders…"]
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger="sci2audio.app.projects"):
+        assert migrate_all(legacy, root) == []  # nothing left: no line
+    assert caplog.messages == []
+    old_folder(legacy, ID)
+    with caplog.at_level(logging.WARNING, logger="sci2audio.app.projects"):
+        migrate_all(legacy, root)
+    assert caplog.messages == ["Moving 1 project to its new folder…"]
+
+
+def test_r8_the_terminal_says_when_the_old_root_is_a_link(
+    tmp_path: Path, root: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    if not can_link(tmp_path):
+        pytest.skip("this user can't make links")
+    elsewhere = tmp_path / "elsewhere"
+    old_folder(elsewhere, ID)
+    legacy = tmp_path / "jobs"
+    os.symlink(elsewhere, legacy, target_is_directory=True)
+    with caplog.at_level(logging.WARNING, logger="sci2audio.app.projects"):
+        assert migrate_all(legacy, root) == []
+    assert caplog.messages == [f"the old working folders in {legacy} are not moved: it is a link"]
+    assert (elsewhere / ID / "source").is_dir()
+
+
+def test_r11_a_copy_whose_commit_failed_is_thrown_away_next_time(
+    legacy: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_folder(legacy, ID)
+    original = tree_digest(legacy / ID)
+    across_file_systems(legacy, monkeypatch)
+    rename = projects._rename
+    staging = root / f"{projects.MOVING}{ID}"
+
+    def appears(source: Path, target: Path) -> None:
+        if source == staging:  # the project folder appeared during the copy
+            target.mkdir()
+            raise FileExistsError(errno.EEXIST, "File exists", str(target))
+        rename(source, target)
+
+    monkeypatch.setattr(projects, "_rename", appears)
+    assert migrate_one(legacy, root, ID).moved is Moved.SKIPPED
+    assert staging.is_dir()
+    monkeypatch.setattr(projects, "_rename", rename)
+    assert migrate_one(legacy, root, ID).moved is Moved.MERGED
+    assert not os.path.lexists(staging)
+    assert tree_digest(root / ID) == original
+    assert not (legacy / ID).exists()
