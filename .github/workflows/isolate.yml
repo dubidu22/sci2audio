@@ -41,9 +41,10 @@ on:
 permissions:
   contents: read
 
-# A newer run on the same branch cancels the older one.
+# A newer run of the same request on the same branch cancels the older one; a different
+# request (other tests, browsers, runs or mode) runs beside it.
 concurrency:
-  group: isolate-${{ github.ref }}
+  group: isolate-${{ github.ref }}-${{ inputs.tests }}-${{ inputs.browsers }}-${{ inputs.webkit_macos }}-${{ inputs.runs }}-${{ inputs.mode }}
   cancel-in-progress: true
 
 env:
@@ -118,6 +119,7 @@ jobs:
           MODE: ${{ inputs.mode }}
           BROWSER: ${{ matrix.browser }}
           SLICE: ${{ matrix.slice }}
+          RUNNER_LABEL: ${{ matrix.os }}
           HYPOTHESIS_PROFILE: ci
         run: OUT="$RUNNER_TEMP/isolate" uv run --no-sync python .github/scripts/isolate.py run
       - if: always()
@@ -142,10 +144,17 @@ jobs:
         with:
           path: ${{ runner.temp }}/all
           pattern: isolate-*
+      # Red by itself when a runner did not report, was cut short, found a red run, or (in
+      # "full" mode) ran fewer runs than asked.
       - name: Pass counts per browser and test (job summary)
+        env:
+          BROWSERS: ${{ inputs.browsers }}
+          WEBKIT_MACOS: ${{ inputs.webkit_macos }}
+          RUNS: ${{ inputs.runs }}
+          MODE: ${{ inputs.mode }}
         run: python3 .github/scripts/isolate.py summary "$RUNNER_TEMP/all"
-      - name: Red if any runner was red or did not finish
-        if: needs.runs.result != 'success'
+      - name: Red if the runners' job did not succeed (a second check)
+        if: always() && needs.runs.result != 'success'
         env:
           RESULT: ${{ needs.runs.result }}
         run: |
