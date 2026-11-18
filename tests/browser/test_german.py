@@ -287,7 +287,9 @@ def test_the_language_switch_by_keyboard(signed_in: Page, live: Live) -> None:
     # the switch moved from every page's header to Settings (D-673, amends D-288)
     page = signed_in
     document = open_paper(page)
-    press_on(page, "Einstellungen")
+    # up to the header with Shift+Tab: Firefox without a browser frame does not wrap a
+    # forward Tab from the page's end to its top, it comes back in mid-page (#518)
+    press_on(page, "Einstellungen", back=True)
     page.wait_for_url(f"{live.url}/settings")
     expect(page.get_by_role("button", name="Deutsch")).to_have_attribute("aria-pressed", "true")
     with saving(page, "/language"):

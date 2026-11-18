@@ -2420,31 +2420,60 @@ utterances = ["Es gilt Satz 2.", "Satz 3 gilt hier nicht.", "Im zweiten Satz ste
 id = "de-long-sentence-colon-beyond-the-limit"
 audit = 0
 issue = 460
-goal = "Ein langer Satz wird am Doppelpunkt geteilt, auch wenn er hinter den ersten 300 Zeichen steht, und vorne vor 'dass', nicht innerhalb einer Nominalgruppe (D-719 PR 4)."
+goal = "Ein langer Satz wird am Doppelpunkt geteilt, nicht innerhalb einer Nominalgruppe; der erste Teil bleibt ganz, solange er passt (D-719 PR 4; zwei Teile, seit die Grenze 400 Zeichen ist, #494)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne, dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet: Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr." }]
 expected = [
     "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne, dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet: Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr.",
 ]
 utterances = [
-    "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne,",
-    "dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet:",
+    "Das Programm einer Bildung für nachhaltige Entwicklung ist als pädagogisches Vorhaben insofern zugleich Gegenstand der Kritik in dem Sinne, dass es auf ein mit dem Beginn der modernen Industrie einsetzendes, zunehmend das Leben vieler Menschen bedrohendes Verhältnis der Gesellschaft zu ihrer natürlichen Umwelt antwortet:",
     "Es kritisiert den alltäglichen Umgang mit Natur, der in den letzten Jahrzehnten von außen an die Schule herangetragen wurde, und drängt auf neue Wege des Umgangs mit ihr.",
+]
+
+[[case]]
+id = "de-long-sentence-colon-past-the-first-window"
+audit = 0
+issue = 494
+goal = "Ein Satz, dessen Doppelpunkt hinter dem ersten Fenster liegt, wird zuerst am Komma vor 'dass' in diesem Fenster geteilt, nicht an einem späteren Aufzählungskomma, und dann am Doppelpunkt; kein Teil endet in einer Nominalgruppe (D-719 PR 4, bei der Grenze von 400 Zeichen, #494)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Lehrkräfte der beteiligten Schulen haben in den Gesprächen am Ende des zweiten Schuljahres mehrfach betont, dass die Kinder nach einer kurzen Zeit der Eingewöhnung mit sichtlicher Freude, mit wachsender Ausdauer und mit erstaunlich viel Geduld in den Pausen, am Nachmittag und sogar an den langen Wochenenden im Winter in den neuen Büchern der Reihe über die vielen Tiere aus Wald, Wiese und Fluss gelesen und sich gegenseitig immer wieder von den schönsten Stellen erzählt hätten: Viele von ihnen wollten am Ende des Jahres gar nicht mehr aufhören, und einige baten sogar um weitere Bände derselben Reihe." }]
+expected = [
+    "Die Lehrkräfte der beteiligten Schulen haben in den Gesprächen am Ende des zweiten Schuljahres mehrfach betont, dass die Kinder nach einer kurzen Zeit der Eingewöhnung mit sichtlicher Freude, mit wachsender Ausdauer und mit erstaunlich viel Geduld in den Pausen, am Nachmittag und sogar an den langen Wochenenden im Winter in den neuen Büchern der Reihe über die vielen Tiere aus Wald, Wiese und Fluss gelesen und sich gegenseitig immer wieder von den schönsten Stellen erzählt hätten: Viele von ihnen wollten am Ende des Jahres gar nicht mehr aufhören, und einige baten sogar um weitere Bände derselben Reihe.",
+]
+utterances = [
+    "Die Lehrkräfte der beteiligten Schulen haben in den Gesprächen am Ende des zweiten Schuljahres mehrfach betont,",
+    "dass die Kinder nach einer kurzen Zeit der Eingewöhnung mit sichtlicher Freude, mit wachsender Ausdauer und mit erstaunlich viel Geduld in den Pausen, am Nachmittag und sogar an den langen Wochenenden im Winter in den neuen Büchern der Reihe über die vielen Tiere aus Wald, Wiese und Fluss gelesen und sich gegenseitig immer wieder von den schönsten Stellen erzählt hätten:",
+    "Viele von ihnen wollten am Ende des Jahres gar nicht mehr aufhören, und einige baten sogar um weitere Bände derselben Reihe.",
 ]
 
 [[case]]
 id = "de-long-sentence-comma-before-a-conjunction"
 audit = 0
 issue = 460
-goal = "Ein langer Satz wird am Komma vor einer Konjunktion oder einem Relativpronomen geteilt, möglichst in gleich lange Teile (D-719 PR 4)."
+goal = "Ein Satz von 300 bis 400 Zeichen ist eine Äußerung: kein Schnitt am Komma vor 'und' (#494; die Schnittregel prüft de-long-sentence-comma-before-a-conjunction-over-the-limit)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will." }]
 expected = [
     "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
 ]
 utterances = [
-    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern,",
-    "und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
+    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen selbst treffen und auch tragen will.",
+]
+
+[[case]]
+id = "de-long-sentence-comma-before-a-conjunction-over-the-limit"
+audit = 0
+issue = 494
+goal = "Ein Satz über der Grenze wird am Komma vor einer Konjunktion oder einem Relativpronomen geteilt, möglichst in gleich lange Teile (D-719 PR 4, auch über der Grenze von 400 Zeichen aus #494)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben im Alltag und im Beruf zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen über ihre Zukunft selbst treffen und auch gemeinsam tragen will." }]
+expected = [
+    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben im Alltag und im Beruf zu ändern, und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen über ihre Zukunft selbst treffen und auch gemeinsam tragen will.",
+]
+utterances = [
+    "Die Frage richtet sich zugleich auf die politischen und wirtschaftlichen Bedingungen einer Gesellschaft, die ihre eigenen Grundlagen nicht zerstören will, auf die Bereitschaft der Einzelnen, ihr gewohntes Leben im Alltag und im Beruf zu ändern,",
+    "und auf den Bildungsgrad, den eine Gesellschaft hierfür besitzen muss, wenn sie die nötigen Entscheidungen über ihre Zukunft selbst treffen und auch gemeinsam tragen will.",
 ]
 
 [[case]]
@@ -2481,7 +2510,7 @@ utterances = ["Das gilt weiterhin.", "Danach geht es weiter."]
 id = "de-citation-with-a-capital-author-and-a-page"
 audit = 0
 issue = 455
-goal = "Ein Autor in Großbuchstaben ist eine Quelle vor ', 2011' oder vor einer Seite ('WBGU 2011, S. 1'); ohne beides bleibt die Klammer stehen, wie '(EU 2016)' (D-719 PR 4)."
+goal = "Ein Autor in Großbuchstaben ist eine Quelle vor ', 2011' oder vor einer Seite ('WBGU 2011, S. 1'); ohne beides bleibt die Klammer stehen, wie '(EU 2016)', und so wird '(WBGU 2011)' vorgelesen: eine bewusste Grenze (D-719 PR 4; #477, D-744)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Das fordert der Beirat (WBGU 2011, S. 1). Ohne Seite bleibt es (WBGU 2011) stehen." }]
 expected = ["Das fordert der Beirat. Ohne Seite bleibt es (WBGU 2011) stehen."]
@@ -2511,13 +2540,31 @@ utterances = ["„Bewusstsein ist alles.“", "Danach geht es weiter."]
 id = "de-hidden-runs-in-a-table-read-when-its-notice-is-off"
 audit = 0
 issue = 463
-goal = "Ist 'Tabellen und Abbildungen' aus, wird eine Tabelle ohne versteckten Text und Seitenmarken gelesen wie ein Absatz (D-719 PR 5)."
+goal = "Ist 'Tabellen und Abbildungen' aus, wird eine Tabelle gelesen wie ein Absatz: ohne versteckten Text und Seitenmarken, Zahlen wie im Absatz ('4 Komma 2') (D-719 PR 5, #487, D-726)."
 language = "de"
 switched_off = ["tables-and-figures"]
 blocks = [
     { kind = "table", runs = ["Gruppe ", { text = "13", tags = ["td", "span", "epub:pagebreak"] }, " Mittel ", { text = "GEHEIM", tags = ["td", "span", "hidden"] }, " 4,2"] },
 ]
-expected = ["Gruppe Mittel 4,2"]
+expected = ["Gruppe Mittel 4 Komma 2"]
+
+[[case]]
+id = "de-a-table-and-a-figure-read-as-a-paragraph-when-their-notice-is-off"
+audit = 0
+issue = 487
+goal = "Ist 'Tabellen und Abbildungen' aus, wird der gedruckte Text einer Tabelle und einer Abbildung gelesen wie derselbe Text in einem Absatz: Quelle und Link entfernt, Zahlen und Einheiten gelesen (D-726)."
+language = "de"
+switched_off = ["tables-and-figures"]
+blocks = [
+    { kind = "table", text = "Anteil 3,5 % bei 12 m² (Müller, 2019), Daten unter https://example.org/daten." },
+    { kind = "figure", text = "Anteil 3,5 % bei 12 m² (Müller, 2019), Daten unter https://example.org/daten." },
+    { kind = "paragraph", text = "Anteil 3,5 % bei 12 m² (Müller, 2019), Daten unter https://example.org/daten." },
+]
+expected = [
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter, Daten.",
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter, Daten.",
+    "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter, Daten.",
+]
 
 [[case]]
 id = "de-figure-alt-text-is-read-as-a-paragraph-is"
@@ -2533,3 +2580,33 @@ expected = [
     "Eine Abbildung wird übersprungen. Sie zeigt: Anteil 3 Komma 5 Prozent bei 12 Quadratmeter.",
     "Anteil 3 Komma 5 Prozent bei 12 Quadratmeter.",
 ]
+
+[[case]]
+id = "de-et-al-before-a-year-in-brackets-ends-no-sentence"
+audit = 0
+issue = 488
+goal = "'et al.' vor einer Jahreszahl in Klammern und einem großgeschriebenen Wort beendet keinen Satz: der Satz bleibt eine Äußerung, wie im Englischen."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Wie Müller et al. (2019) Bildung verstehen, ist bekannt." }]
+expected = ["Wie Müller et al. Bildung verstehen, ist bekannt."]
+utterances = ["Wie Müller et al. Bildung verstehen, ist bekannt."]
+
+[[case]]
+id = "de-et-al-before-a-capital-word-ends-no-sentence"
+audit = 0
+issue = 488
+goal = "'et al.' vor einem großgeschriebenen Wort ohne Jahreszahl beendet keinen Satz: eine Äußerung."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Laut Müller et al. Kapitel 2 gilt das." }]
+expected = ["Laut Müller et al. Kapitel 2 gilt das."]
+utterances = ["Laut Müller et al. Kapitel 2 gilt das."]
+
+[[case]]
+id = "de-et-al-whose-citation-ended-the-sentence-still-ends-it"
+audit = 0
+issue = 488
+goal = "Endet der Satz mit der entfernten Jahreszahl nach 'et al.' ('et al. (2019). Die'), wird dort weiter geteilt: der entfernte Text beendete den Satz (D-719)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das zeigen Müller et al. (2019). Die Studie ist neu." }]
+expected = ["Das zeigen Müller et al. Die Studie ist neu."]
+utterances = ["Das zeigen Müller et al.", "Die Studie ist neu."]

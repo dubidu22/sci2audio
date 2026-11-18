@@ -1,0 +1,34 @@
+# Words that start an English sentence and are not names (#477, D-744).
+# Written for sci2audio, GPL-3.0-or-later; no list is copied.
+#
+# After a single capital initial ("set A.") or a dotted capital abbreviation ("U.S.", "U.K."),
+# the next capital word may be a name of the same sentence ("J. Smith", "U.S. Census Bureau")
+# or the start of the next one ("called A. Then", "the U.S. The data"). Only a word of this
+# list counts as the start of a sentence there. "Second" is left out: it is also a unit.
+#
+# Never put a name or a noun here, nor a one-letter word: "A" and "I" are initials as often
+# ("A. A. Milne", "J. I. Smith"). The price: "in the U.S. Researchers found" stays one
+# sentence. Each word is one word, matched as printed, with its capital.
+# Left out because each is also a surname that follows an initial ("Y. He", "X. An", "J. So",
+# "S. Even"): "He", "Her", "An", "So", "To", "On", "Or", "Still", "Even" (PR #547 review B1).
+
+openers = [
+    # articles and determiners
+    "The", "This", "That", "These", "Those", "Each", "Every", "Some", "Most", "Many",
+    "Both", "Such", "Several", "Few", "Other", "Another", "Any",
+    # pronouns
+    "It", "We", "They", "She", "You", "Its", "Our", "Their", "His", "Your",
+    # prepositions
+    "In", "At", "For", "With", "From", "By", "After", "Before", "During", "Since",
+    "Under", "Over", "Among", "Between", "Without", "Despite", "Unlike", "Like",
+    # conjunctions
+    "And", "But", "Yet", "If", "When", "While", "Although", "Though", "Because",
+    "As", "Once", "Unless", "Whether",
+    # adverbs that open a sentence
+    "Then", "However", "Thus", "Therefore", "Hence", "Moreover", "Furthermore", "Also",
+    "Here", "There", "Now", "Today", "First", "Finally", "Instead", "Indeed",
+    "Similarly", "Likewise", "Overall", "Nevertheless", "Nonetheless", "Meanwhile",
+    "Consequently", "Accordingly", "Otherwise", "Afterwards", "Later", "Only",
+    # question words
+    "What", "Why", "How", "Where", "Which", "Who",
+]

@@ -168,7 +168,8 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
     tmp_path: Path,
 ) -> None:
     events: list[AudioProgress] = []
-    job = run(PYMEDPHYS, tmp_path, FakeVoice(), progress=events.append, clock=Clock())
+    voice = FakeVoice()
+    job = run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=Clock())
     phases = list(dict.fromkeys(e.phase for e in events))
     assert phases == [
         Phase.READING,
@@ -199,8 +200,12 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
         ready = event.chunks_done >= len(first_chapter) and measured_so_far >= 1000  # D-382
         assert (event.seconds_left is not None) == ready, event
         if event.seconds_left is not None:  # every call costs 1 s whatever its length, and
-            shown += 1  # the cost model finds that: one second per chunk left (D-380)
-            left = event.chunks_total - event.chunks_done
+            shown += 1  # the cost model finds that: one second per chunk left (D-380), except
+            # that a chunk longer than any measured one costs that one's second per character
+            # (D-384): at the default limit (#494) such chunks are still to come here
+            spoken = [len(text) for text in voice.texts]
+            longest = max(spoken[warm_up : event.chunks_done])
+            left = sum(1.0 if n <= longest else n / longest for n in spoken[event.chunks_done :])
             assert event.seconds_left == pytest.approx(left)
     assert shown > 0
     assert events_spoken[-1].seconds_left == 0
@@ -267,7 +272,8 @@ def test_the_estimate_fits_a_cost_per_call_per_character_and_per_square(
     clock = CostClock(cost, slow=4)
     voice = FakeVoice(on_speak=clock.speak)
     events: list[AudioProgress] = []
-    run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=clock)
+    # the 300-character limit this test was written for (#494 raised the default)
+    run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=clock, max_chars=300)
     lengths = [len(text) for text in voice.texts]
     estimates = [
         e for e in events if e.phase is Phase.SPEAKING and e.chunks_done and e.seconds_left
@@ -276,7 +282,15 @@ def test_the_estimate_fits_a_cost_per_call_per_character_and_per_square(
     plain_rate_off = 0.0
     for event in estimates:
         real = sum(cost(n) for n in lengths[event.chunks_done :])
-        assert event.seconds_left == pytest.approx(real, rel=1e-6)
+        # D-384: a chunk longer than every measured one costs the longest one's time per
+        # character, so the fitted curve is never stretched past what it saw; which chunks
+        # come later than the longest measured one depends on where the text is cut (#477)
+        longest = max(lengths[audio_module.WARM_UP_CALLS : event.chunks_done])
+        fitted = sum(
+            cost(n) if n <= longest else n * cost(longest) / longest
+            for n in lengths[event.chunks_done :]
+        )
+        assert event.seconds_left == pytest.approx(fitted, rel=1e-6)
         assert event.characters_per_second is not None
         plain = (event.characters_total - event.characters_done) / event.characters_per_second
         plain_rate_off = max(plain_rate_off, abs(plain - real) / real)

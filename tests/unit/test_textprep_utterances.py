@@ -202,9 +202,43 @@ def test_a_colon_wins_even_when_it_makes_a_short_part() -> None:
     assert cut(text, max_chars=150)[0] == ("a " * 30 + "b:")
 
 
+# the cut-rule tests below were sized for a 300-character limit (#460, #481); they test where
+# a sentence is cut, not the default limit, so they keep that size (#494 raised it to 400)
+SIZED_FOR = 300
+
+
+def _sentence(length: int) -> str:
+    """A sentence of `length` characters without a clause mark."""
+    body = ("word " * 100)[: length - 1]
+    if body.endswith(" "):
+        body = body[:-1] + "s"
+    return body + "."
+
+
+def test_a_sentence_up_to_the_default_limit_is_one_utterance() -> None:
+    """#494: 400 characters, about 464 of the voice's 510 phoneme tokens at the worst
+    measured German rate; one more character and the sentence is cut."""
+    assert DEFAULT_MAX_CHARS == 400
+    for length in (301, 399, 400):
+        text = _sentence(length)
+        assert len(text) == length
+        assert cut(text) == [text]
+    text = _sentence(401)
+    parts = cut(text)
+    assert len(parts) == 2
+    assert " ".join(parts) == text
+
+
+def test_the_second_piece_of_a_sentence_over_the_default_limit_continues_it() -> None:
+    text = _sentence(401)
+    document = make_document([(BlockKind.PARAGRAPH, text)], "en")
+    utterances = cut_utterances(document, apply_edits(document, []))
+    assert [u.continues for u in utterances] == [False, True]
+
+
 def test_parts_keep_about_the_same_length() -> None:
     text = " ".join(["word"] * 70) + "."  # 350 characters, no clause mark
-    parts = cut(text)
+    parts = cut(text, max_chars=SIZED_FOR)
     assert len(parts) == 2
     assert abs(len(parts[0]) - len(parts[1])) <= 10
 
@@ -222,14 +256,14 @@ def test_no_cut_leaves_a_part_under_the_minimum_when_another_cut_does_not() -> N
 def test_a_semicolon_that_leaves_a_clipped_last_part_is_not_taken() -> None:
     # the fair filter checks the part after the cut too (#481 review N3)
     text = "w " * 80 + "b, " + "c " * 62 + "d; " + "e " * 8 + "f."  # 308 characters
-    parts = cut(text)
+    parts = cut(text, max_chars=SIZED_FOR)
     assert parts[0].endswith("b,")
     assert all(len(part) >= MIN_PIECE for part in parts)
 
 
 def test_three_parts_share_the_whole_sentence_evenly() -> None:
     # the even share is taken over what is left of the sentence, not over the window
-    parts = cut(" ".join(["word"] * 140) + ".")  # 700 characters, no clause mark
+    parts = cut(" ".join(["word"] * 140) + ".", max_chars=SIZED_FOR)  # 700, no clause mark
     assert len(parts) == 3
     assert max(map(len, parts)) - min(map(len, parts)) <= 10
 
@@ -277,7 +311,7 @@ def _open(part: str, opening: str, closing: str) -> int:
 def test_a_long_sentence_is_cut_outside_brackets_and_quotes(
     text: str, language: str, opening: str, closing: str
 ) -> None:
-    parts = cut(text, language=language)
+    parts = cut(text, max_chars=SIZED_FOR, language=language)
     assert len(parts) > 1
     assert all(
         _open(" ".join(parts[: n + 1]), opening, closing) == 0 for n in range(len(parts) - 1)
@@ -317,8 +351,10 @@ def test_a_closing_mark_of_an_inline_list_opens_no_bracket_for_cutting(
     text: str, language: str
 ) -> None:
     # the ")" of "a)" closes nothing: the depth stays at zero, so the later "(" still counts
-    # as open and no part ends inside it (#481 review round 2)
-    for part in cut(text, language=language):
+    # as open and no part ends inside it (#481 review round 2); sized for a 300 limit (#494)
+    parts = cut(text, language=language, max_chars=SIZED_FOR)
+    assert len(parts) > 1
+    for part in parts:
         assert "(" not in part or part.rfind("(") < part.rfind(")")
 
 
@@ -848,3 +884,22 @@ def test_benchmark_cutting_the_largest_paper(benchmark) -> None:
     largest = max(PAPERS, key=lambda paper: paper.stat().st_size)
     document, script = paper_script(largest)
     benchmark(cut_utterances, document, script)
+
+
+@pytest.mark.parametrize(
+    ("text", "language", "parts"),
+    [
+        ("The first set is called A. Then set B follows.", "en", 2),
+        ("The first set is called A. “Then set B follows.”", "en", 2),
+        ("Most data came from the U.S. The rest came from Canada.", "en", 2),
+        ("The data came from the U.S. Census Bureau in 2019.", "en", 1),
+        ("See A. A. Milne for this.", "en", 1),
+        # the English rule of #477 is English only: German keeps its initial rule
+        ("Die erste Gruppe heißt A. Dann folgt B.", "de", 1),
+    ],
+)
+def test_an_english_initial_ends_a_sentence_only_before_a_sentence_opener(
+    text: str, language: str, parts: int
+) -> None:
+    # #477, D-744: "A." and "U.S." end a sentence before "Then" or "The", not before a name
+    assert len(cut(text, language=language)) == parts
