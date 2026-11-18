@@ -169,8 +169,18 @@ def stored_name(name: str) -> str:
 class DocumentStore:
     """The documents under one work root."""
 
-    def __init__(self, work_root: Path, *, upload_limit: int, text_limit: int) -> None:
+    def __init__(
+        self,
+        work_root: Path,
+        *,
+        upload_limit: int,
+        text_limit: int,
+        legacy_root: Path | None = None,
+    ) -> None:
         self.root = work_root
+        # the working folders before #469: a document whose folder could not be moved yet
+        # is listed and used there (D-748), so none is ever missing
+        self.legacy_root = legacy_root
         self.upload_limit = upload_limit
         self.text_limit = text_limit
         # the ids being removed: gone for `get`, and a new copy of one waits (D-356)
@@ -193,7 +203,7 @@ class DocumentStore:
     def get(self, document_id: str) -> StoredDocument | None:
         if not ID.match(document_id) or document_id in self._removing:
             return None
-        folder = self.root / document_id
+        folder = self._folder(document_id)
         source = _newest(folder / SOURCE)
         if source is None:
             return None
@@ -201,14 +211,26 @@ class DocumentStore:
 
     def all(self) -> list[StoredDocument]:
         """Every document with a source file, most recently opened first."""
-        if not self.root.is_dir():
-            return []
-        found = [
-            document
-            for folder in self.root.iterdir()
-            if ID.match(folder.name) and (document := self.get(folder.name)) is not None
-        ]
+        ids: set[str] = set()
+        for root in self._roots():
+            with contextlib.suppress(OSError):
+                ids.update(folder.name for folder in root.iterdir() if ID.match(folder.name))
+        found = [document for name in ids if (document := self.get(name)) is not None]
         return sorted(found, key=lambda d: _mtime(d.source), reverse=True)
+
+    def _roots(self) -> list[Path]:
+        return [self.root] if self.legacy_root is None else [self.root, self.legacy_root]
+
+    def _folder(self, document_id: str) -> Path:
+        """The document's folder: the project folder, unless only a folder from before #469
+        holds its source (one not moved yet, D-748)."""
+        folder = self.root / document_id
+        if self.legacy_root is None or _newest(folder / SOURCE) is not None:
+            return folder
+        old = self.legacy_root / document_id
+        if not _is_link(old) and _newest(old / SOURCE) is not None:
+            return old
+        return folder
 
     def store(self, name: str, data: BinaryIO, *, in_use: str | None = None) -> StoredDocument:
         """Copy an opened file in (see the module docstring). The type is checked before
@@ -257,7 +279,7 @@ class DocumentStore:
                 part.unlink(missing_ok=True)
 
     def _place(self, part: Path, name: str, document_id: str, in_use: str | None) -> StoredDocument:
-        folder = self.root / document_id
+        folder = self._folder(document_id)  # an old folder not moved yet keeps its records
         source_folder = folder / SOURCE
         source_folder.mkdir(parents=True, exist_ok=True)
         target = source_folder / name
@@ -310,18 +332,22 @@ class DocumentStore:
                 self._changes.notify_all()
 
     def _inside_root(self, document: StoredDocument) -> Path:
-        """The working folder, refused unless it is a real folder directly in the work root:
-        never a link or a Windows junction, which would lead the removal elsewhere."""
+        """The working folder, refused unless it is a real folder directly in the work root
+        (or, not moved yet, in the old one): never a link or a Windows junction, which
+        would lead the removal elsewhere."""
         folder = document.folder
         if folder.is_symlink() or folder.is_junction():
             raise RemoveError(f"{folder} is a link, not a working folder", folder)
+        root = self.root if folder.parent == self.root else self.legacy_root
+        if root is None or folder.parent != root:
+            raise RemoveError(f"{folder} is not inside the working root {self.root}", folder)
         try:
             resolved = folder.resolve(strict=True)
-            root = self.root.resolve(strict=True)
+            real_root = root.resolve(strict=True)
         except OSError as error:
             raise _remove_error(folder, error) from error
-        if resolved.parent != root or resolved.name != document.id:
-            raise RemoveError(f"{folder} is not inside the working root {root}", folder)
+        if resolved.parent != real_root or resolved.name != document.id:
+            raise RemoveError(f"{folder} is not inside the working root {real_root}", folder)
         return folder
 
     @staticmethod

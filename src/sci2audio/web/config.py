@@ -13,6 +13,7 @@ from pathlib import Path
 import platformdirs
 
 from sci2audio.app import default_config_file, default_models_folder
+from sci2audio.app.config import default_legacy_root, default_projects_root
 
 HOST = "127.0.0.1"  # the only address the server ever binds to (D-192)
 UPLOAD_LIMIT = 200 * 1024 * 1024  # bytes per opened file (D-198)
@@ -26,9 +27,9 @@ def new_token() -> str:
 
 
 def default_work_root() -> Path:
-    """The folder that holds one working folder per document (`<sha256[:16]>`), the same
-    folders as `app.default_work_folder` (D-164); a test keeps the two equal."""
-    return platformdirs.user_cache_path("sci2audio", appauthor=False) / "jobs"
+    """The folder that holds one project data folder per document (`<sha256[:16]>`, D-747),
+    the same folders as `app.default_work_folder` (D-164); a test keeps the two equal."""
+    return default_projects_root()
 
 
 def default_output_folder() -> Path:
@@ -77,6 +78,9 @@ class ServerConfig:
     upload_limit: int = UPLOAD_LIMIT
     text_limit: int = TEXT_LIMIT
     outside: tuple[OutsideJob, ...] = ()  # jobs `sci2audio listen` opened (#154)
+    # the working folders before #469 (D-748): moved into `work_root` at start, and used
+    # where they are until they could be moved; None: there are none (the tests' default)
+    legacy_root: Path | None = None
 
     def __post_init__(self) -> None:
         if len(self.token) < 32:
@@ -122,4 +126,5 @@ def server_config(
         config_file=default_config_file(),
         output_folder=default_output_folder(),
         outside=outside,
+        legacy_root=default_legacy_root(),
     )

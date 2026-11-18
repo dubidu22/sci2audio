@@ -51,7 +51,6 @@ from sci2audio.app import (
     clean_work_folder,
     default_config_file,
     default_models_folder,
-    default_work_folder,
     encoding_warning,
     file_id,
     find_chapters,
@@ -62,6 +61,7 @@ from sci2audio.app import (
 )
 from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
+from sci2audio.app.projects import project_work_folder
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.output import OutputSettings
 from sci2audio.textprep import Category
@@ -139,7 +139,7 @@ class CliEnv:
     runner: JobRunner = field(default_factory=JobRunner)
     config_file: Callable[[], Path] = default_config_file
     models_folder: Callable[[], Path] = default_models_folder
-    work_folder: Callable[[Path], Path] = default_work_folder
+    work_folder: Callable[[Path], Path] = project_work_folder  # moves an old folder (D-748)
     voice_source: Callable[[Path], VoiceSource] = kokoro_voice
     missing_voice_files: Callable[[Path], list[RemoteFile]] = missing_files
     fetch: Fetch | None = None  # the download's fetch; None = the real one
@@ -337,7 +337,7 @@ def _add_job_options(parser: _Parser) -> None:
         "--work-folder",
         type=Path,
         metavar="FOLDER",
-        help="the job's working folder (default: in the cache folder)",
+        help="the job's working folder (default: the project folder in the data folder)",
     )
     parser.add_argument(
         "--ignore-settings",
@@ -422,7 +422,7 @@ def add_clean(parser: _Parser) -> None:
         "--work-folder",
         type=Path,
         metavar="FOLDER",
-        help="the job's working folder (default: in the cache folder)",
+        help="the job's working folder (default: the project folder in the data folder)",
     )
 
 
@@ -439,7 +439,7 @@ def add_listen(parser: _Parser) -> None:
         "--work-folder",
         type=Path,
         metavar="FOLDER",
-        help="the job's working folder (default: in the cache folder)",
+        help="the job's working folder (default: the project folder in the data folder)",
     )
     parser.add_argument(
         "--ignore-settings",
@@ -1023,7 +1023,7 @@ _LISTEN_ERRORS: dict[str, tuple[str, Exit]] = {
 
 def run_listen_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     """Open the audiobook `convert` made of FILE in the player (#154). The folders are
-    named as for `convert`: `--work-folder` or the cache folder, `-o` or the settings
+    named as for `convert`: `--work-folder` or the project folder, `-o` or the settings
     file's output folder or the file's own folder. Nothing is taken from a path written in
     a file, and the server serves these two folders read-only (D-295)."""
     from sci2audio.web.player import PlayerError, check_outside
