@@ -153,6 +153,12 @@ class Page:
     (EPUB, Markdown), `order` lists the ids of all of them, lines and pictures alike, in the
     order the file stores them, so a picture's place between two lines is kept (D-309); it is
     empty where the boxes place the items (PDF).
+
+    `unmapped` counts the characters of `lines` that come from a font with no Unicode source
+    (#442): the file gives no letter for them, only the font's glyph numbers, so their text
+    is those numbers read as characters ("'DV %XFK" for "Das Buch"). Counted in PDFs only,
+    for an embedded TrueType or OpenType font that has no ToUnicode map, no cmap and no post
+    table; 0 everywhere else. Its share of `characters` says how much of the page is so.
     """
 
     number: int  # 1 = first page
@@ -162,10 +168,16 @@ class Page:
     width: float | None = None  # points; None where pages have no fixed size
     height: float | None = None
     order: tuple[str, ...] = ()
+    unmapped: int = 0
 
     def __post_init__(self) -> None:
         if self.number < 1:
             raise ValueError(f"page number must be >= 1, got {self.number}")
+        if self.unmapped and not 0 < self.unmapped <= self.characters:
+            raise ValueError(
+                f"page {self.number} has {self.characters} characters, so {self.unmapped}"
+                " of them cannot come from a font with no Unicode source"
+            )
         if (self.width is None) != (self.height is None):
             raise ValueError(f"page {self.number} needs both width and height, or neither")
         for name in ("width", "height"):
@@ -178,6 +190,11 @@ class Page:
             raise ValueError(
                 f"page {self.number} order must list each of its item ids once, got {self.order}"
             )
+
+    @property
+    def characters(self) -> int:
+        """How many characters the page's lines hold, white space not counted."""
+        return sum(sum(not c.isspace() for c in line.text) for line in self.lines)
 
 
 Item = TextLine | Picture | Drawing
