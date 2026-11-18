@@ -90,3 +90,26 @@ def work_folder_lock(work: Path) -> Iterator[None]:
                 _unlock(file)
     finally:
         file.close()
+
+
+@contextlib.contextmanager
+def file_lock(path: Path, *, wait: float) -> Iterator[bool]:
+    """Hold the operating-system lock on the file `path` (made if missing), trying for up to
+    `wait` seconds; yields False, holding nothing, when another process kept it that long.
+    Used by the move to the project folders (D-748), so two processes never move at once."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    file = path.open("a+b")
+    try:
+        deadline = time.monotonic() + wait
+        held = _try_lock(file)
+        while not held and time.monotonic() < deadline:
+            time.sleep(0.1)
+            held = _try_lock(file)
+        try:
+            yield held
+        finally:
+            if held:
+                with contextlib.suppress(OSError):
+                    _unlock(file)
+    finally:
+        file.close()

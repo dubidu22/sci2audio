@@ -179,7 +179,7 @@ def test_the_default_folders_come_from_platformdirs(
     source = tmp_path / "paper.pdf"
     source.write_bytes(b"%PDF-1.7 a")
     work = default_work_folder(source)
-    assert work.parent == tmp_path / "cache" / "jobs"
+    assert work.parent == tmp_path / "data" / "projects"  # out of the cache (D-747)
     assert len(work.name) == 16
     copy = tmp_path / "moved.pdf"
     copy.write_bytes(source.read_bytes())

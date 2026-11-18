@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+import contextlib
+import logging
+import os
 import threading
 import time
 from collections.abc import Callable, Sequence
@@ -15,6 +18,7 @@ from pathlib import Path
 from fastapi import Depends, Request
 
 from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, load_settings
+from sci2audio.app.projects import Moved, migrate_all
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.jobs import JobBoard, JobRecord
@@ -23,6 +27,7 @@ from sci2audio.web.player import candidate_folders
 from sci2audio.web.tasks import PREVIEW_FOLDER, Fetch, KeptVoice, audio_work, classify, preview_work
 
 Work = Callable[[JobRecord], Sequence[Path]]
+logger = logging.getLogger(__name__)
 
 
 class ApiError(Exception):
@@ -50,6 +55,22 @@ class Listening:
     outside: bool
 
 
+def move_old_folders(legacy: Path, root: Path) -> None:
+    """Before anything is served, move the working folders of before #469 into the project
+    folders (D-748): the voice preview folder by one rename when the new one is free, then
+    every document's folder. A folder that stays is used where it is and named in the log."""
+    old_preview, preview = legacy / PREVIEW_FOLDER, root / PREVIEW_FOLDER
+    if old_preview.is_dir() and not old_preview.is_symlink() and not os.path.lexists(preview):
+        with contextlib.suppress(OSError):
+            root.mkdir(parents=True, exist_ok=True)
+            os.rename(old_preview, preview)
+    for outcome in migrate_all(legacy, root):
+        if outcome.moved is Moved.SKIPPED:
+            logger.warning("the old working folder %s stays: %s", outcome.id, outcome.reason)
+        for path in outcome.left:
+            logger.warning("left in the old working folder: %s", path)
+
+
 @dataclass
 class ServerState:
     config: ServerConfig
@@ -65,10 +86,13 @@ class ServerState:
     markers: MarkerBook = field(init=False)  # every write of a markers file (#474)
 
     def __post_init__(self) -> None:
+        if self.config.legacy_root is not None:
+            move_old_folders(self.config.legacy_root, self.config.work_root)
         self.store = DocumentStore(
             self.config.work_root,
             upload_limit=self.config.upload_limit,
             text_limit=self.config.text_limit,
+            legacy_root=self.config.legacy_root,
         )
         self.store.clear_stale_uploads()  # left behind by a server that was killed
         self.board = JobBoard(classify)
