@@ -477,12 +477,14 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
                     raise _too_large(name, f"more than {MAX_CHARS:,} characters")
                 pictures, drawings = _graphics(page, frame, number, name, graphics)
                 graphics += len(pictures) + len(drawings)
-                lines = _lines(textpage, frame, number, _Bars.of(drawings))
+                lines, unmapped = _lines(textpage, frame, number, _Bars.of(drawings))
             finally:
                 textpage.close()
         finally:
             page.close()
-        pages.append(Page(number, lines, pictures, drawings, width=width, height=height))
+        pages.append(
+            Page(number, lines, pictures, drawings, width=width, height=height, unmapped=unmapped)
+        )
     return tuple(pages)
 
 
@@ -540,6 +542,7 @@ class _Char:
     v0: float  # extent across the line
     v1: float
     base: float = math.nan  # where the baseline stands across the line (nan if unknown)
+    unmapped: bool = False  # from a font with no Unicode source (#442)
 
 
 # what stands between two characters: a space the file holds, or one PDFium added itself
@@ -661,9 +664,12 @@ def _lines(
     frame: _Frame,
     number: int,
     bars: _Bars | None = None,
-) -> tuple[TextLine, ...]:
+) -> tuple[tuple[TextLine, ...], int]:
+    """The page's lines, and how many of their characters come from a font with no Unicode
+    source (#442)."""
     lines: list[_Line] = []
     space: str | None = None
+    unmapped = 0
     for char in _chars(textpage, frame):
         if isinstance(char, str):
             space = _SPACE if _SPACE in (space, char) else char
@@ -674,8 +680,9 @@ def _lines(
                 line.before = max(c.u1 for c in lines[-1].chars)
             lines.append(line)
         lines[-1].add(char, space)
+        unmapped += char.unmapped
         space = None
-    return tuple(_text_line(line, f"p{number}-l{i}") for i, line in enumerate(lines, 1))
+    return tuple(_text_line(line, f"p{number}-l{i}") for i, line in enumerate(lines, 1)), unmapped
 
 
 def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]:
@@ -687,6 +694,7 @@ def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]
     rect = raw.FS_RECTF()
     matrix = raw.FS_MATRIX()
     origin_x, origin_y = ctypes.c_double(), ctypes.c_double()
+    sourceless = _SourcelessFonts()
     for i in range(textpage.count_chars()):
         hyphen = raw.FPDFText_IsHyphen(handle, i) == 1
         text = _char_text(raw.FPDFText_GetUnicode(handle, i), hyphen)
@@ -721,7 +729,72 @@ def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]
             origin = frame.point(origin_x.value, origin_y.value)
             base = _in_text_direction((*origin, *origin), angle)[1]
         style = (font, size, bold, italic)
-        yield _Char(text, style, (x0, y0, x1, y1), angle, u0, u1, v0, v1, base)
+        unmapped = bool(needed) and sourceless.has(handle, i, name.value)
+        yield _Char(text, style, (x0, y0, x1, y1), angle, u0, u1, v0, v1, base, unmapped)
+
+
+_SFNT = (b"\x00\x01\x00\x00", b"true", b"OTTO")  # TrueType and OpenType font programs
+_UNICODE_TABLES = {b"cmap", b"post"}  # a program's own ways to name its glyphs
+
+
+class _SourcelessFonts:
+    """Which characters of a page come from a font with no Unicode source (#442): the
+    font's embedded program is TrueType or OpenType without a cmap or a post table, and
+    PDFium found no Unicode for the character (its map error: no ToUnicode map, and no
+    encoding or glyph name it knows). Nothing in the file then says which letter a glyph
+    is, and PDFium gives the glyph number as the character.
+
+    Fonts are told apart by the name PDFium gives (a subset's name carries its own tag) and
+    each is looked at once per page, so a page of fonts with a source costs one lookup per
+    character; the map error is asked only for a font without one.
+
+    Simple fonts with glyph names PDFium does not know (TeX's math fonts, matplotlib's Type 3
+    fonts) are not counted: in the corpus they set symbols and correct text (D-762). Text
+    that reads as nonsense from any font is what `extraction.legibility` finds."""
+
+    def __init__(self) -> None:
+        self._fonts: dict[bytes, bool] = {}  # by font name, for this page only
+
+    def has(self, textpage: object, index: int, name: bytes) -> bool:
+        """True if the character at `index`, whose font PDFium names `name`, comes from a
+        font with no Unicode source."""
+        sourceless = self._fonts.get(name)
+        if sourceless is None:
+            sourceless = self._fonts[name] = _sourceless(textpage, index)
+        return sourceless and raw.FPDFText_HasUnicodeMapError(textpage, index) == 1
+
+
+def _sourceless(textpage: object, index: int) -> bool:
+    """True if the font of the character at `index` is embedded as a TrueType or OpenType
+    program without a cmap or a post table."""
+    text = raw.FPDFText_GetTextObject(textpage, index)
+    font = raw.FPDFTextObj_GetFont(text) if text else None
+    if not font or raw.FPDFFont_GetIsEmbedded(font) != 1:
+        return False
+    return _names_no_glyph(_program(font))
+
+
+def _program(font: object) -> bytes:
+    """The font's program as PDFium decoded it; empty if it gives none."""
+    size = ctypes.c_size_t()
+    if not raw.FPDFFont_GetFontData(font, None, 0, ctypes.byref(size)) or not size.value:
+        return b""
+    buffer = (ctypes.c_ubyte * size.value)()
+    if not raw.FPDFFont_GetFontData(font, buffer, size.value, ctypes.byref(size)):
+        return b""
+    return bytes(buffer)
+
+
+def _names_no_glyph(program: bytes) -> bool:
+    """True for a TrueType or OpenType program whose table directory holds neither a cmap
+    nor a post table. Anything else, a damaged directory too, counts as naming its glyphs."""
+    if program[:4] not in _SFNT:
+        return False
+    count = int.from_bytes(program[4:6], "big")
+    end = 12 + 16 * count
+    if count == 0 or len(program) < end:
+        return False
+    return not {program[i : i + 4] for i in range(12, end, 16)} & _UNICODE_TABLES
 
 
 def _char_text(code: int, hyphen: bool) -> str | None:
