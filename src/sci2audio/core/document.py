@@ -147,7 +147,10 @@ class Span:
 class Section:
     """A heading and the blocks under it: blocks `start` up to (not including) `end`.
 
-    Children lie inside their parent, in order and without overlap.
+    Children lie inside their parent, in order and without overlap. `publisher` marks
+    front matter about the edition (a cover, an imprint, the issue's contents) that the file's
+    outline names but no printed heading starts: such a section starts at its page's first
+    block and holds no heading (#456).
     """
 
     title: str
@@ -155,6 +158,7 @@ class Section:
     start: int
     end: int
     children: tuple[Section, ...] = ()
+    publisher: bool = False  # the publisher's front matter, found through the outline (#456)
 
     def __post_init__(self) -> None:
         if self.level < 1 or not 0 <= self.start <= self.end:
