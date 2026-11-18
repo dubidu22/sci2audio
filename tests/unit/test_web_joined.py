@@ -89,11 +89,30 @@ def test_a_marker_set_on_one_piece_before_480_is_the_sentences_marker(
     old_span = _spans(book)[second]
     old, _ = MarkerBook().set(work, doc, anchor_of(document, old_span), lambda markers: None)
     shown = player_data(client.get(f"/documents/{doc}/listen").text)["markers"]
-    assert [(m["id"], m["chunk"], m["state"]) for m in shown] == [(old.id, second, "found")]
+    # placed on the second piece, named by the sentence's first piece (#520)
+    assert [(m["id"], m["chunk"], m["state"]) for m in shown] == [(old.id, first, "found")]
     assert book["elements"][second] == book["elements"][first]
     again = set_marker(client, doc, first, stamp, status=200)
     assert again["id"] == old.id
     assert len(markers_of(work)["markers"]) == 1
+
+
+def test_the_api_and_the_page_name_a_marked_cut_sentence_by_its_first_piece(
+    book: dict[str, Any],
+) -> None:
+    """#520 (web batch audit S1): a whole-sentence marker overlaps a later, longer piece most,
+    yet the POST answer and the page's marker data name the sentence by its first piece, as
+    `data-chunk`, the player's sentences and `MarkerIn.chunk` do."""
+    client, doc, stamp = book["client"], book["doc"], book["data"]["audiobook"]
+    first = book["pieces"][0]
+    spans = _spans(book)
+    longest = max(book["pieces"], key=lambda n: (spans[n].end - spans[n].start, -n))
+    assert longest != first, "the first piece is the longest: this test proves nothing"
+    for piece in (first, longest):  # set by any piece: the answer names the first
+        marker = set_marker(client, doc, piece, stamp, status=201 if piece == first else 200)
+        assert marker["chunk"] == first
+    shown = player_data(client.get(f"/documents/{doc}/listen").text)["markers"]
+    assert [(m["id"], m["chunk"], m["state"]) for m in shown] == [(marker["id"], first, "found")]
 
 
 def _spans(book: dict[str, Any]) -> list[Any]:

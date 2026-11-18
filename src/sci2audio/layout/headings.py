@@ -68,6 +68,10 @@ from sci2audio.layout.settings import LayoutSettings
 _NUMBER = re.compile(r"(?P<label>(?:\d{1,2}|[A-Z])(?:\.\d{1,2})*)\.?\s+(?=\w)")
 
 
+# a heading that is only a Roman numeral: "II", "IV.", "XII"
+_NUMERAL = re.compile(r"(?=[IVXL])(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})\.?")
+
+
 @dataclass(frozen=True, order=True)
 class Style:
     """How a block's letters are set: the size most of them have, and if they are bold.
@@ -243,6 +247,7 @@ class _Headings:
         """Each heading's block index, with its level and printed number ("" if none)."""
         numbered = len(self.numbers) >= self.settings.heading_repeats
         found = self._numbered() if numbered else self._unnumbered()
+        found |= self._numeral_one(found)
         # from the end: a heading stands over body text or another heading
         kept: dict[int, tuple[int, str]] = {}
         for k in sorted(found, reverse=True):
@@ -293,6 +298,24 @@ class _Headings:
             k: (level.get(self.texts[k].style, 1), self.numbers.get(k, ""))
             for k in self.short
             if self.texts[k].style in level or self._named(k)
+        }
+
+    def _numeral_one(self, found: dict[int, tuple[int, str]]) -> dict[int, tuple[int, str]]:
+        """A block that is only the Roman numeral "I", set like a heading that is only a Roman
+        numeral ("II", "III"), at that heading's level (#459). It has one letter, too few for
+        `_short`, which keeps a bold table number or a list label out. Found headings are
+        all bold or larger than the body, so the style match is all the check it needs."""
+        levels = {
+            self.texts[k].style: level
+            for k, (level, _) in found.items()
+            if _NUMERAL.fullmatch(self.texts[k].block.text.strip())
+        }
+        return {
+            k: (levels[text.style], "")
+            for k, text in enumerate(self.texts)
+            if k not in found
+            and text.style in levels
+            and text.block.text.strip().rstrip(".") == "I"
         }
 
     def _short(self, text: _Text) -> bool:
