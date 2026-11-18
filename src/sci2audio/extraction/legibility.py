@@ -9,8 +9,8 @@ docs/unreadable-pdf-text.md, with the corpus margins they were set from (D-762).
 
 - Glyph numbers: the share of the page's characters that come from fonts with no Unicode
   source.
-- Letter pairs: the share of letter pairs inside words that English and German words never
-  hold (`RARE_PAIRS`). A TrueType font in the usual glyph order without a Unicode source
+- Letter pairs: the share of letter pairs inside words that English and German words
+  hardly ever hold (`RARE_PAIRS`). A TrueType font in the usual glyph order without a source
   reads "Das Buch" as "'DV %XFK": plain ASCII, so no script check sees it, but "n" becomes
   "q", and "q" before anything but "u" is rare in both languages.
 - Foreign letters: the share of letters outside the scripts English and German text and

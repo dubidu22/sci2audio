@@ -744,9 +744,10 @@ class _SourcelessFonts:
     encoding or glyph name it knows). Nothing in the file then says which letter a glyph
     is, and PDFium gives the glyph number as the character.
 
-    Fonts are told apart by the name PDFium gives (a subset's name carries its own tag) and
-    each is looked at once per page, so a page of fonts with a source costs one lookup per
-    character; the map error is asked only for a font without one.
+    The map error is asked first, for every character; a font is looked at (its program
+    copied and its table directory read) only for a character PDFium could not map, and
+    then once per page. Fonts are told apart by the name PDFium gives (a subset's name
+    carries its own tag).
 
     Simple fonts with glyph names PDFium does not know (TeX's math fonts, matplotlib's Type 3
     fonts) are not counted: in the corpus they set symbols and correct text (D-762). Text
@@ -758,10 +759,12 @@ class _SourcelessFonts:
     def has(self, textpage: object, index: int, name: bytes) -> bool:
         """True if the character at `index`, whose font PDFium names `name`, comes from a
         font with no Unicode source."""
+        if raw.FPDFText_HasUnicodeMapError(textpage, index) != 1:
+            return False
         sourceless = self._fonts.get(name)
         if sourceless is None:
             sourceless = self._fonts[name] = _sourceless(textpage, index)
-        return sourceless and raw.FPDFText_HasUnicodeMapError(textpage, index) == 1
+        return sourceless
 
 
 def _sourceless(textpage: object, index: int) -> bool:

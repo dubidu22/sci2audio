@@ -49,8 +49,9 @@ Markdown, text). A page is `unreadable` when any of these holds:
 | foreign letters, with at least `MIN_LETTERS` = 50 letters | `FOREIGN_SHARE` = 20 % | 1.5 % | |
 
 - **Rare letter pairs:** letter pairs inside words (case-folded, a to z) that English and
-  German words never hold: `RARE_PAIRS`, 72 pairs whose first letter is j, q, v, w or x or
-  whose second letter is q or x, so no German compound forms them where its words meet. The
+  German words hardly ever hold ("savvy" and "XXL" do; the 5 % limit leaves room for them):
+  `RARE_PAIRS`, 72 pairs whose first letter is j, q, v, w or x or whose second letter is q
+  or x, so no German compound forms them where its words meet. The
   usual TrueType glyph order turns "n" into "q", so text read through it is full of them,
   while it stays plain ASCII that no script check sees. The corpus margins come from a
   leave-one-out count over the corpus (8 papers, the EPUB, the Markdown and text samples)

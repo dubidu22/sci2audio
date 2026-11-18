@@ -10,6 +10,7 @@ Buch" becomes "'DV %XFK". Extraction counts such characters per page (`Page.unma
 from __future__ import annotations
 
 import dataclasses
+import struct
 from pathlib import Path
 
 import pytest
@@ -17,12 +18,14 @@ from core_strategies import contents
 from hypothesis import given
 from pdf_maker import cropped, glyph_number_pdf, one_page_pdf
 
-from sci2audio.core import Content, Page, TextLine
+from sci2audio.core import Content, Page, Source, SourceFormat, TextLine, TextRun
 from sci2audio.extraction import (
+    PageLegibility,
     extract_epub,
     extract_markdown,
     extract_text,
     legibility,
+    pdf,
     read_pdf,
 )
 from sci2audio.extraction.legibility import (
@@ -118,6 +121,64 @@ def test_a_simple_font_with_glyph_names_pdfium_does_not_know_is_not_counted() ->
     assert page.unmapped == 0
 
 
+def test_a_page_whose_characters_pdfium_maps_never_looks_at_a_font_program(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The map error is asked first: a font's program (megabytes for some fonts) is copied
+    only for a character PDFium could not map (review M1 of #562)."""
+
+    def refuse(textpage: object, index: int) -> bool:
+        raise AssertionError("a font was looked at for a character PDFium mapped")
+
+    monkeypatch.setattr(pdf, "_sourceless", refuse)
+    data = glyph_number_pdf(GERMAN[:1], to_unicode=True, plain=("Hello world",))
+    (page,) = read(data).pages
+    assert [line.text for line in page.lines] == [GERMAN[0], "Hello world"]
+    assert page.unmapped == 0
+
+
+def directory(version: bytes, tags: list[bytes]) -> bytes:
+    """The start of a font program: its version tag and a table directory naming `tags`."""
+    entries = b"".join(struct.pack(">4sIII", tag, 0, 0, 0) for tag in tags)
+    return version + struct.pack(">HHHH", len(tags), 0, 0, 0) + entries
+
+
+TRUETYPE = b"\x00\x01\x00\x00"
+
+
+@pytest.mark.parametrize(
+    ("program", "names_no_glyph"),
+    [
+        (directory(TRUETYPE, [b"glyf", b"head"]), True),
+        (directory(TRUETYPE, [b"glyf", b"head", b"cmap"]), False),
+        (directory(TRUETYPE, [b"glyf", b"head", b"post"]), False),
+        (directory(b"true", [b"glyf", b"head"]), True),
+        (directory(b"OTTO", [b"CFF ", b"head"]), True),
+        (directory(b"ttcf", [b"glyf"]), False),  # a collection: not read
+        (directory(TRUETYPE, []), False),  # no tables
+        (TRUETYPE + struct.pack(">HHHH", 3, 0, 0, 0) + bytes(8), False),  # cut short
+        (b"%!PS-AdobeFont-1.0: CMMI10", False),  # Type 1
+        (b"", False),
+    ],
+    ids=[
+        "truetype",
+        "cmap",
+        "post",
+        "true",
+        "otto",
+        "collection",
+        "no-tables",
+        "cut-short",
+        "type1",
+        "empty",
+    ],
+)
+def test_only_a_truetype_or_opentype_program_without_cmap_or_post_names_no_glyph(
+    program: bytes, names_no_glyph: bool
+) -> None:
+    assert pdf._names_no_glyph(program) is names_no_glyph
+
+
 # ---- the text check (AC-442.2) ---------------------------------------------------------------
 
 
@@ -162,6 +223,61 @@ def test_the_limits_are_the_decided_ones() -> None:
     assert (MIN_LETTERS, FOREIGN_SHARE) == (50, 0.2)
     assert len(RARE_PAIRS) == 72
     assert all(len(pair) == 2 and pair.isascii() and pair.islower() for pair in RARE_PAIRS)
+
+
+def measured(
+    characters: int = 0,
+    unmapped: int = 0,
+    pairs: int = 0,
+    rare: int = 0,
+    letters: int = 0,
+    foreign: int = 0,
+) -> PageLegibility:
+    return PageLegibility(1, characters, unmapped, pairs, rare, letters, foreign)
+
+
+@pytest.mark.parametrize(
+    ("page", "unreadable"),
+    [
+        (measured(characters=100, unmapped=50), False),  # half: not more than half
+        (measured(characters=100, unmapped=51), True),
+        (measured(pairs=99, rare=99), False),  # too few pairs to judge
+        (measured(pairs=100, rare=5), True),
+        (measured(pairs=100, rare=4), False),
+        (measured(letters=49, foreign=49), False),  # too few letters to judge
+        (measured(letters=50, foreign=10), True),
+        (measured(letters=50, foreign=9), False),
+        (measured(), False),  # an empty page
+    ],
+    ids=[
+        "unmapped-half",
+        "unmapped-more",
+        "pairs-99",
+        "pairs-5-of-100",
+        "pairs-4-of-100",
+        "letters-49",
+        "letters-10-of-50",
+        "letters-9-of-50",
+        "empty",
+    ],
+)
+def test_the_limits_hold_at_their_boundaries(page: PageLegibility, unreadable: bool) -> None:
+    assert page.unreadable is unreadable
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["".join(chr(0xE000 + n) for n in range(60)), "\ufffd" * 60],
+    ids=["private-use", "replacement"],
+)
+def test_private_use_and_replacement_characters_are_foreign_letters(text: str) -> None:
+    """A glyph PDFium could not map at all (U+FFFD) and a private-use character are counted
+    as letters and as foreign ones (#187's measure)."""
+    page = Page(1, lines=(TextLine("p1-l1", (TextRun(text),)),))
+    content = Content(Source("broken.pdf", SourceFormat.PDF), (page,))
+    (found,) = legibility(content)
+    assert found.letters == found.foreign == 60
+    assert found.unreadable
 
 
 # ---- the corpus (AC-442.4) -------------------------------------------------------------------
