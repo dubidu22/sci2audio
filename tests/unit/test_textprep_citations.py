@@ -971,6 +971,29 @@ def test_a_deep_citation_nest_takes_linear_time(
     assert len(looks) <= 3
 
 
+@pytest.mark.parametrize(
+    ("language", "opening", "inner"),
+    [("en", "It holds (see ", "(Smith, 2019)"), ("de", "Es gilt (vgl. ", "(Müller, 2019)")],
+)
+def test_a_deep_nest_of_lead_words_and_years_reads_each_level_once_in_linear_time(
+    language: str, opening: str, inner: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The work, not the clock: a level's item check parses no inner bracket that holds
+    brackets of its own, so the parts read stay within the bracket cap's (#415 made this
+    quadratic: 3,213 characters read per character of text at 3,200 levels; a busy Windows
+    runner showed it where the timing test above did not)."""
+    read = []
+    parts = citations._Rules._parts
+    monkeypatch.setattr(
+        citations._Rules,
+        "_parts",
+        lambda self, text, node: read.append(node.close - node.open) or parts(self, text, node),
+    )
+    text = _nest(opening, inner, " (2019))", 1600)
+    _left(text, language)
+    assert sum(read) < 100 * len(text)
+
+
 def test_a_bracket_longer_than_the_cap_is_no_citation_once_its_inner_ones_go() -> None:
     # read inner first, its own text is still longer than any citation: only the inner
     # citation goes, with the separator before it, on both runs (D-588)

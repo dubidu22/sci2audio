@@ -1018,7 +1018,9 @@ class _Rules:
             behind = self.item_before.search(before) is not None or self._only_lead_left(before)
             if not (ahead and behind):
                 continue
-            if not decided.get(child.open):
+            # an item holds no bracket: parsing one that does reads the nest below it, at
+            # every level of a deep nest (quadratic, Windows CI on #621)
+            if child.children or not decided.get(child.open):
                 continue
             parts = self._parts(text, child)
             named = [part for part in parts or () if self._is_citation(text, part)]
