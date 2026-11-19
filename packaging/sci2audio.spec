@@ -64,17 +64,23 @@ TORCH_NEEDED = "torch/bin/torch_shm_manager"
 TORCH_LIB = "torch/lib/"
 
 
+def library_home(dest):
+    """A folder a package loads its own libraries from: torch/lib, and the `<name>.libs`
+    and `.dylibs` folders of wheels repaired by auditwheel, delvewheel or delocate."""
+    parts = Path(dest).parts
+    if Path(dest).as_posix().startswith(TORCH_LIB):
+        return True
+    return len(parts) > 1 and any(p.endswith(".libs") or p == ".dylibs" for p in parts[:-1])
+
+
 def one_copy(toc, everything):
-    """Each library once (#635 F2). The binary analysis also files torch's libraries at
-    the top of the folder, as real copies of torch/lib (about 475 MB on Linux); they are
-    found in torch/lib (RUNPATH $ORIGIN on Linux, @loader_path on macOS, the DLL directory
-    torch adds on Windows), so the top-level copies go. torch/bin goes too, except
-    torch_shm_manager."""
-    nested = {
-        os.path.realpath(source)
-        for dest, source, kind in everything
-        if Path(dest).as_posix().startswith(TORCH_LIB)
-    }
+    """Each library once (#635 F2). The binary analysis also files the libraries of
+    torch/lib and of numpy.libs (and other wheels' library folders) at the top of the
+    folder, as real copies (about 475 MB of torch on Linux, 20 MB of OpenBLAS on Windows);
+    each package finds them in its own folder (RUNPATH $ORIGIN on Linux, @loader_path on
+    macOS, the DLL directory torch and delvewheel's patch add on Windows), so the
+    top-level copies go. torch/bin goes too, except torch_shm_manager."""
+    nested = {os.path.realpath(source) for dest, source, kind in everything if library_home(dest)}
     kept = []
     for dest, source, kind in toc:
         name = Path(dest).as_posix()
