@@ -388,7 +388,7 @@ def spec_function(name: str) -> object:
             and all(isinstance(t, ast.Name) and t.id.startswith("TORCH_") for t in node.targets)
         )
     ]
-    space: dict[str, object] = {"os": os, "Path": Path}
+    space: dict[str, object] = {"os": os, "Path": Path, "sys": sys}
     exec(compile(ast.Module(body=keep, type_ignores=[]), "sci2audio.spec", "exec"), space)  # noqa: S102
     return space[name]
 
@@ -435,8 +435,10 @@ def test_the_spec_keeps_one_copy_of_torchs_libraries_and_leaves_torch_bin_out(
     ]
     one_copy = spec_function("one_copy")
     everything = binaries + datas
-    assert one_copy(binaries, everything) == [binaries[1], binaries[3]]  # type: ignore[operator]
-    assert one_copy(datas, everything) == [datas[0], datas[1], datas[3]]  # type: ignore[operator]
+    assert one_copy(binaries, everything, top_level=True) == [binaries[1], binaries[3]]  # type: ignore[operator]
+    # macOS: every binary's @rpath is the top of the folder; only torch/bin goes
+    assert one_copy(binaries, everything, top_level=False) == binaries[:4]  # type: ignore[operator]
+    assert one_copy(datas, everything, top_level=True) == [datas[0], datas[1], datas[3]]  # type: ignore[operator]
     spec = (PACKAGING / "sci2audio.spec").read_text(encoding="utf-8")
     assert "found.binaries = one_copy(without_imageio_ffmpeg(found.binaries), everything)" in spec
     assert "found.datas = one_copy(without_imageio_ffmpeg(found.datas), everything)" in spec
