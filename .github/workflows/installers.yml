@@ -1,0 +1,353 @@
+name: Installers
+
+# The installers for testers (#215, #13, D-797, D-798): a .dmg for Apple Silicon Macs, a
+# per-user setup.exe for Windows and an AppImage for Linux, each built on its own system,
+# installed there as a person installs it and tested: the command line on a corpus PDF, a
+# short English and German audiobook, offline (Linux), the app's window (macOS, Windows,
+# with Playwright attached to WebView2), the browser with Quit (Linux) and the uninstaller
+# (Windows). The release workflow calls it, so a release ships what was tested here. On a
+# PR it runs only with the label "ci:installers" (when added, and on each push while it is
+# on); it is a workflow of its own, so it never cancels a CI run (#360), and no job of it is
+# a required check.
+#
+# FFmpeg is built here from pinned sources: audio only, LGPL (packaging/ffmpeg, D-798), and
+# the fast tests run against that build before anything is frozen with it.
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release:
+        description: "a release build: nothing is taken from a cache"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  # The Python of .python-version, as uv downloads it (D-378); PyInstaller freezes it.
+  UV_PYTHON_PREFERENCE: only-managed
+
+concurrency:
+  group: installers-${{ github.ref }}-${{ inputs.release && github.run_id || 'build' }}
+  cancel-in-progress: false
+
+
+jobs:
+  ffmpeg:
+    name: ffmpeg (${{ matrix.os }})
+    # on a PR only with the label "ci:installers" (another label added starts nothing), never from a fork
+    if: >-
+      github.event_name != 'pull_request' || (contains(github.event.pull_request.labels.*.name, 'ci:installers')
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && (github.event.action != 'labeled' || github.event.label.name == 'ci:installers'))
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: A build of the same sources (not for a release)
+        id: cached
+        if: ${{ !inputs.release }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # zizmor: ignore[cache-poisoning] never read by a release build v6.1.0
+        with:
+          path: ffmpeg-out
+          key: ffmpeg-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/ffmpeg/build.sh', 'packaging/ffmpeg/sources.env') }}
+      - name: Download the pinned sources
+        if: steps.cached.outputs.cache-hit != 'true'
+        run: |
+          source packaging/ffmpeg/sources.env
+          mkdir -p downloads
+          curl -fsSL --retry 4 -o "downloads/ffmpeg-$FFMPEG_VERSION.tar.xz" "$FFMPEG_URL"
+          curl -fsSL --retry 4 -o "downloads/lame-$LAME_VERSION.tar.gz" "$LAME_URL"
+      - name: Build (Linux, macOS)
+        if: steps.cached.outputs.cache-hit != 'true' && runner.os != 'Windows'
+        run: bash packaging/ffmpeg/build.sh downloads ffmpeg-out
+      - name: The MinGW compiler (Windows)
+        if: steps.cached.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
+        with:
+          msystem: MINGW64
+          update: false
+          install: make diffutils tar xz mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib
+      - name: Build (Windows)
+        if: steps.cached.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        shell: msys2 {0}
+        run: bash packaging/ffmpeg/build.sh downloads ffmpeg-out
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - run: uv sync --locked
+      - name: The fast tests with this ffmpeg
+        run: |
+          exe=ffmpeg; if [ "$RUNNER_OS" = Windows ]; then exe=ffmpeg.exe; fi
+          export IMAGEIO_FFMPEG_EXE="$GITHUB_WORKSPACE/ffmpeg-out/$exe"
+          "$IMAGEIO_FFMPEG_EXE" -hide_banner -version | head -n 1
+          uv run pytest -m "not slow and not benchmark and not browser" -n auto -q
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ffmpeg-${{ runner.os }}
+          path: ffmpeg-out/
+          retention-days: 7
+
+  sources:
+    name: source archive
+    # on a PR only with the label "ci:installers" (another label added starts nothing), never from a fork
+    if: >-
+      github.event_name != 'pull_request' || (contains(github.event.pull_request.labels.*.name, 'ci:installers')
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && (github.event.action != 'labeled' || github.event.label.name == 'ci:installers'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: FFmpeg, LAME and espeak-ng, checked against their pins
+        run: |
+          version=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/sci2audio/__init__.py)
+          bash packaging/ffmpeg/sources_archive.sh "$version" "$RUNNER_TEMP/downloads" sources-out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sources
+          path: sources-out/
+          retention-days: 7
+
+  build:
+    name: build (${{ matrix.os }})
+    needs: ffmpeg
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ffmpeg-${{ runner.os }}
+          path: ffmpeg-out/
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - name: The run-time environment with the window and PyInstaller
+        run: uv sync --locked --no-dev --extra window --group installer
+      - name: The installer tools, checked against their pins
+        id: tools
+        run: |
+          source packaging/tools.env
+          tools="$RUNNER_TEMP/tools"
+          if [ "$RUNNER_OS" = Windows ]; then tools="$(cygpath -m "$RUNNER_TEMP")/tools"; fi
+          mkdir -p "$tools"
+          get() {  # url sha256 file
+            curl -fsSL --retry 4 -o "$tools/$3" "$1"
+            echo "$2  $tools/$3" | sha256sum -c - 2>/dev/null || echo "$2  $tools/$3" | shasum -a 256 -c -
+          }
+          case "$RUNNER_OS" in
+            Linux)
+              sudo apt-get install -y --no-install-recommends desktop-file-utils  # appimagetool checks the .desktop file
+              get "$APPIMAGETOOL_URL" "$APPIMAGETOOL_SHA256" appimagetool
+              get "$APPIMAGE_RUNTIME_URL" "$APPIMAGE_RUNTIME_SHA256" runtime
+              chmod +x "$tools/appimagetool"
+              echo "args=--appimagetool $tools/appimagetool --runtime $tools/runtime" >> "$GITHUB_OUTPUT"
+              ;;
+            Windows)
+              get "$INNO_SETUP_URL" "$INNO_SETUP_SHA256" innosetup.exe
+              "$tools/innosetup.exe" //VERYSILENT //SUPPRESSMSGBOXES //NORESTART //SP- //CURRENTUSER "//DIR=$(cygpath -w "$tools/inno")"
+              for _ in $(seq 60); do [ -f "$tools/inno/ISCC.exe" ] && break; sleep 2; done
+              echo "args=--iscc $tools/inno/ISCC.exe" >> "$GITHUB_OUTPUT"
+              ;;
+            *) echo "args=" >> "$GITHUB_OUTPUT" ;;
+          esac
+      - name: Freeze and make the installer
+        env:
+          TOOLS: ${{ steps.tools.outputs.args }}
+        run: |
+          # shellcheck disable=SC2086 # TOOLS is a list of arguments
+          uv run --no-sync --with pip-licenses python scripts/build_installer.py \
+            --ffmpeg ffmpeg-out --out installers --work "$RUNNER_TEMP/work" $TOOLS
+          ls -l installers
+          {
+            echo "### Installer ($RUNNER_OS)"
+            echo
+            echo '```'
+            ls -l installers
+            cat installers/*.sha256
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installer-${{ runner.os }}
+          path: installers/
+          retention-days: 7
+          compression-level: 0  # already compressed
+
+  smoke:
+    name: installed (${{ matrix.os }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false  # for the corpus PDF and the smoke script only
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: installer-${{ runner.os }}
+          path: installers/
+      - name: Folders outside the checkout
+        run: |
+          base=$(cd "$RUNNER_TEMP" && pwd)
+          if [ "$RUNNER_OS" = Windows ]; then base=$(cygpath -m "$RUNNER_TEMP"); fi
+          echo "WORK=$base/smoke" >> "$GITHUB_ENV"
+          echo "MODELS=$base/models" >> "$GITHUB_ENV"
+      - name: Install it as a person does
+        id: installed
+        run: |
+          version=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/sci2audio/__init__.py)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          case "$RUNNER_OS" in
+            macOS)
+              mount="$RUNNER_TEMP/dmg"
+              hdiutil attach -nobrowse -readonly -mountpoint "$mount" installers/*.dmg
+              mkdir -p "$HOME/Applications"
+              ditto "$mount/sci2audio.app" "$HOME/Applications/sci2audio.app"
+              hdiutil detach "$mount"
+              codesign --verify --deep --strict "$HOME/Applications/sci2audio.app"
+              bin="$HOME/Applications/sci2audio.app/Contents/MacOS"
+              echo "cli=$bin/sci2audio" >> "$GITHUB_OUTPUT"
+              echo "app=$bin/sci2audio-app" >> "$GITHUB_OUTPUT"
+              ;;
+            Windows)
+              setup=$(ls installers/*-setup.exe)
+              "$setup" //VERYSILENT //SUPPRESSMSGBOXES //NORESTART //CURRENTUSER
+              folder="$(cygpath -m "$LOCALAPPDATA")/Programs/sci2audio"
+              for _ in $(seq 60); do [ -f "$folder/sci2audio-app.exe" ] && break; sleep 2; done
+              echo "folder=$folder" >> "$GITHUB_OUTPUT"
+              echo "cli=$folder/sci2audio.exe" >> "$GITHUB_OUTPUT"
+              echo "app=$folder/sci2audio-app.exe" >> "$GITHUB_OUTPUT"
+              ;;
+            Linux)
+              image=$(ls "$PWD"/installers/*.AppImage)
+              chmod +x "$image"
+              if ! command -v fusermount3 > /dev/null && ! command -v fusermount > /dev/null; then
+                echo "No FUSE on this runner: the AppImage extracts itself for each run."
+                echo "APPIMAGE_EXTRACT_AND_RUN=1" >> "$GITHUB_ENV"
+              fi
+              echo "cli=$image" >> "$GITHUB_OUTPUT"
+              echo "app=$image" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+      - name: The voice files (cached between runs; never part of an installer)
+        id: voices
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # zizmor: ignore[cache-poisoning] test input only, never shipped v6.1.0
+        with:
+          path: ${{ env.MODELS }}
+          key: voices-${{ runner.os }}-${{ hashFiles('src/sci2audio/voices/download.py') }}
+      - name: Download them with the installed program
+        if: steps.voices.outputs.cache-hit != 'true'
+        env:
+          CLI: ${{ steps.installed.outputs.cli }}
+        run: '"$CLI" voices download --yes --models-folder "$MODELS"'
+      - name: The command line, a script and an English and a German audiobook
+        env:
+          CLI: ${{ steps.installed.outputs.cli }}
+          VERSION: ${{ steps.installed.outputs.version }}
+        run: uv run --no-project python scripts/installer_smoke.py cli "$CLI" "$VERSION" --models "$MODELS" --work "$WORK/online"
+      - name: Again with no network (Linux, a network namespace)
+        if: runner.os == 'Linux'
+        env:
+          CLI: ${{ steps.installed.outputs.cli }}
+          VERSION: ${{ steps.installed.outputs.version }}
+        run: |
+          # ubuntu-24.04 allows user namespaces to confined programs only
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          cd "$RUNNER_TEMP"
+          "$CLI" --appimage-extract > /dev/null  # FUSE needs no mount inside the namespace
+          python=$(uv python find)
+          cd "$GITHUB_WORKSPACE"
+          unshare --net --map-root-user -- "$python" scripts/installer_smoke.py cli \
+            "$RUNNER_TEMP/squashfs-root/AppRun" "$VERSION" --models "$MODELS" --work "$WORK/offline" --offline
+      - name: Again with every proxy pointing at a closed port (macOS, Windows)
+        if: runner.os != 'Linux'
+        env:
+          CLI: ${{ steps.installed.outputs.cli }}
+          VERSION: ${{ steps.installed.outputs.version }}
+        run: |
+          python=$(uv python find)
+          HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9 \
+            "$python" scripts/installer_smoke.py cli "$CLI" "$VERSION" --models "$MODELS" --work "$WORK/proxy"
+      - name: The app's window opens the interface (macOS, Windows)
+        if: runner.os != 'Linux'
+        env:
+          APP: ${{ steps.installed.outputs.app }}
+        run: uv run --no-project python scripts/installer_smoke.py window "$APP" "$WORK/window.json"
+      - name: The app in the browser, stopped by Quit (Linux)
+        if: runner.os == 'Linux'
+        env:
+          APP: ${{ steps.installed.outputs.app }}
+        run: uv run --no-project python scripts/installer_smoke.py browser "$APP" "$WORK/browser.json"
+      - name: Playwright in the app's WebView2 window (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          APP: ${{ steps.installed.outputs.app }}
+        run: |
+          uv sync --locked
+          # the debugging port is the workflow's, never the app's (#13 AC-2)
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--remote-debugging-port=9222"
+          $app = Start-Process -FilePath $env:APP -PassThru
+          try {
+            $up = $false
+            foreach ($i in 1..90) {
+              try { Invoke-RestMethod http://127.0.0.1:9222/json/version | Out-Null; $up = $true; break } catch { Start-Sleep 2 }
+            }
+            if (-not $up) { throw "the window's debugging port never answered" }
+            $env:SCI2AUDIO_APP_CDP = "http://127.0.0.1:9222"
+            Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+            uv run pytest tests/browser/test_installed_window.py -p no:randomly -v
+            if ($LASTEXITCODE -ne 0) { throw "Playwright in the window failed" }
+          } finally {
+            Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+            Get-Process sci2audio-app -ErrorAction SilentlyContinue | Stop-Process -Force
+          }
+      - name: The uninstaller keeps the person's files (Windows)
+        if: runner.os == 'Windows'
+        env:
+          FOLDER: ${{ steps.installed.outputs.folder }}
+        run: |
+          "$FOLDER/unins000.exe" //VERYSILENT //SUPPRESSMSGBOXES //NORESTART
+          for _ in $(seq 60); do [ -d "$FOLDER" ] || break; sleep 2; done
+          test ! -e "$FOLDER"
+          ls "$MODELS" | head
+          test -n "$(ls -A "$MODELS")"
+          test -s "$WORK/online/audio-en/en.m4b"
+          log="$(cygpath -m "$LOCALAPPDATA")/sci2audio/Logs/app.log"
+          test -s "$log"
+          echo "Uninstalled: the program folder is gone, the voice files, audiobooks and log stay."

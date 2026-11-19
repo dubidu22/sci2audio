@@ -61,6 +61,23 @@ FFmpeg arrives inside the `imageio-ffmpeg` wheel from PyPI, one build per platfo
 
 Both licences can be combined with sci2audio's GPL-3.0-or-later. If no bundled binary is present, sci2audio uses an `ffmpeg` found on PATH (the user's own install, under its own licence).
 
+The installers (next section) never carry these binaries: they leave imageio-ffmpeg's program out and bring an audio-only FFmpeg of their own (D-798).
+
+## The installers (#215, #13, D-797, D-798)
+
+The macOS, Windows and Linux installers bundle sci2audio with the run-time dependencies above (the `window` extra included) and the parts below. Each installer carries a `licenses/` folder: sci2audio's `LICENSE`, this file, the licence texts of every Python package (`python-packages.txt`, made by `pip-licenses`; the build stops on a refused licence, as the `licences` CI job does), Python's licence, FFmpeg's and LAME's licences and build configuration, and `SOURCE.txt`, which names where the complete source is: the sdist and `sci2audio-<version>-sources.tar` on the release page (FFmpeg, LAME and espeak-ng source archives pinned by SHA-256, with the build script).
+
+| Component | Licence | Why |
+|---|---|---|
+| [FFmpeg](https://ffmpeg.org) 9.0.2, built from the pinned source archive by `packaging/ffmpeg/build.sh` without `--enable-gpl` or `--enable-nonfree`: audio and the few formats sci2audio and its tests use (PCM, MP3, AAC in M4B, ffmetadata, JPEG/PNG covers, SRT/WebVTT read back), files and pipes only, no network protocol | LGPL-2.1-or-later | Writes the MP3 and M4B files (output); the installers point `IMAGEIO_FFMPEG_EXE` at it |
+| [LAME](https://lame.sourceforge.io) 3.100, linked into that FFmpeg | LGPL-2.0-or-later | The MP3 encoder |
+| zlib (linked into FFmpeg for PNG covers; on Windows statically, with the MinGW-w64 GCC runtime and winpthreads) | Zlib; GCC runtime: GPL-3.0-or-later WITH GCC-exception-3.1; winpthreads: MIT and BSD-3-Clause | Built in, nothing to install |
+| [CPython](https://www.python.org) 3.12 (python-build-standalone, as uv installs it), frozen with the program | PSF-2.0 (with the licences of its bundled libraries, in Python's LICENSE.txt) | Runs sci2audio |
+| [PyInstaller](https://pyinstaller.org) 6.22.3 and pyinstaller-hooks-contrib 2026.10 (dependency group `installer`; with altgraph, macholib, pefile, pywin32-ctypes as its own dependencies, build time only) | GPL-2.0-or-later with the PyInstaller bootloader exception (hooks-contrib: GPL-2.0-or-later or Apache-2.0); altgraph, macholib MIT; pefile MIT; pywin32-ctypes BSD-3-Clause | Freezes Python and sci2audio into one folder. Its bootloader starts the programs; the exception allows any licence for the bundled program, and sci2audio is GPL anyway |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) 6.7.4 (Windows; download pinned by the SHA-256 in the publisher's signed `.issig` file) | Inno Setup License (permissive, zlib-style; commercial use and redistribution allowed with the copyright notice kept) | Makes `setup.exe`; its installer and uninstaller stub becomes part of that file |
+| [appimagetool](https://github.com/AppImage/appimagetool) 1.9.0 and the [type-2 runtime](https://github.com/AppImage/type2-runtime) `20251108` (Linux; both pinned by SHA-256) | MIT (the static runtime links libfuse 3 and squashfuse: LGPL-2.1 and BSD-2-Clause) | Makes the AppImage; the runtime is the AppImage's first part and mounts it |
+| The app icon (`packaging/icons`, drawn by `make_icons.py` in this repository) | GPL-3.0-or-later, as sci2audio | The app's icon |
+
 ## Bundled fonts (shipped in the wheel, served only by the local server)
 
 The interface's two typefaces (design "The Working Reader", D-663; #385, D-670). Both are under the **SIL Open Font License 1.1** (`OFL-1.1`); neither notice names a Reserved Font Name. The files are used unmodified, exactly as the named npm release ships them, and the licence text of each family ships beside them in `src/sci2audio/web/static/fonts/` (`OFL-atkinson.txt`: © 2020 Braille Institute of America, Inc.; `OFL-literata.txt`: © 2017 The Literata Project Authors). Each subset is loaded only when a page uses its characters (`unicode-range`). A test checks every file below against its SHA-256 and that the wheel carries each font and both licences.

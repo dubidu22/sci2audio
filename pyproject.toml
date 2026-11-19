@@ -89,6 +89,11 @@ dev = [
     "syrupy>=6.1.1",
     "zizmor>=1.32.0",
 ]
+# Builds the installers (#215, D-797); only the installers workflow installs it.
+installer = [
+    "pyinstaller>=6.22.3,<7",
+    "pyinstaller-hooks-contrib>=2026.10",
+]
 # Nightly speech-recognition round trip only (#9); the fast CI jobs do not install it.
 asr = [
     "faster-whisper>=1.2",
@@ -127,6 +132,8 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PT", "S"]
 [tool.ruff.lint.per-file-ignores]
 # assert is how pytest checks; subprocess in tests runs our own CLI.
 "tests/**" = ["S101", "S603"]
+# the installer build and smoke scripts run the build tools and the installed program (#215)
+"scripts/{build_installer,installer_smoke}.py" = ["S603"]
 # These modules and their tests are about look-alike characters: their docstrings, comments
 # and test strings show them on purpose (code strings in src use escapes).
 "src/sci2audio/textprep/{characters,hyphens}.py" = ["RUF002", "RUF003"]

@@ -1,8 +1,11 @@
 name: Release
 
 # A tag vX.Y.Z builds the package, installs the built wheel on Linux, macOS and Windows and
-# runs it on a corpus PDF, and only then publishes to PyPI; after that it makes the GitHub
-# release from the changelog and installs the release from PyPI on all three systems
+# runs it on a corpus PDF, builds and tests the installers on all three systems
+# (installers.yml: installed, speaking, offline, the window, #215, #13, D-797), and only
+# then publishes to PyPI; after that it makes the GitHub release from the changelog, with
+# the wheel, the sdist, the installers, their source archive, SHA256SUMS.txt and build
+# provenance attestations, and installs the release from PyPI on all three systems
 # (#80, D-484 to D-487).
 on:
   push:
@@ -80,9 +83,18 @@ jobs:
         shell: bash
         run: bash scripts/release_smoke.sh "$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/sci2audio/__init__.py)"
 
+  # The installers, built from this tag and tested as installed (#215, #13); no cache is
+  # read, so a release ships what this run built from pinned sources (D-798).
+  installers:
+    name: installers
+    needs: build
+    uses: ./.github/workflows/installers.yml # zizmor: ignore[self-repository] the same commit, as everywhere here
+    with:
+      release: true
+
   publish:
     name: publish to PyPI
-    needs: [build, smoke]
+    needs: [build, smoke, installers]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -94,13 +106,17 @@ jobs:
           path: dist/
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
 
-  # The GitHub release: the tag's section of CHANGELOG.md, with the sdist and wheel (D-486).
+  # The GitHub release: the tag's section of CHANGELOG.md, with the sdist and wheel (D-486),
+  # the three installers and the source archive of the programs inside them (#215, D-798),
+  # SHA256SUMS.txt and a build provenance attestation of every file (`gh attestation verify`).
   github-release:
     name: GitHub release
-    needs: publish
+    needs: [publish, installers]
     runs-on: ubuntu-latest
     permissions:
       contents: write  # this job only: it creates the release
+      id-token: write  # the attestations' signing identity
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -109,6 +125,30 @@ jobs:
         with:
           name: dist
           path: dist/
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: installer-*
+          path: dist/
+          merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sources
+          path: dist/
+      - name: SHA256SUMS.txt, and the installers are all there
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          rm -f dist/*.sha256
+          for file in "sci2audio-$version-macos-arm64.dmg" "sci2audio-$version-windows-x64-setup.exe" \
+                      "sci2audio-$version-linux-x86_64.AppImage" "sci2audio-$version-sources.tar"; do
+            test -s "dist/$file"
+          done
+          (cd dist && sha256sum -- * > SHA256SUMS.txt)
+          cat dist/SHA256SUMS.txt
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
