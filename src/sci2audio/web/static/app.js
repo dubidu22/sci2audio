@@ -1127,6 +1127,44 @@ function shortcutsSheet() {
   close.disabled = false;
 }
 
+// ---- quitting the app without a window (#215, D-797) ---------------------------------------
+
+function quitPage() {
+  const button = document.getElementById("quit-now");
+  if (!button) return;
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    try {
+      await send(button.dataset.api, { method: "POST" });
+    } catch (error) {
+      button.disabled = false;
+      say(error.failure || error.message, true);
+      return;
+    }
+    document.getElementById("quit-ask").hidden = true;
+    const done = document.getElementById("quit-done");
+    done.hidden = false;
+    done.focus();
+  });
+  button.disabled = false; // drawn disabled until here (#350, #427)
+}
+
+// The app without a window (launched as "browser", #215): the server stops by itself after
+// 15 minutes without a request while no job runs. Reading sends none, so a page that is in
+// sight asks for the job list once a minute; a hidden or closed tab lets it stop (#631 F3).
+const KEEP_ALIVE_EVERY = 60_000;
+
+function keepAlive() {
+  const url = document.body.dataset.keepAlive;
+  if (!url) return;
+  window.setInterval(() => {
+    if (document.visibilityState !== "visible") return;
+    const done = document.getElementById("quit-done");
+    if (done && !done.hidden) return; // Quit was pressed
+    fetch(url, { cache: "no-store" }).catch(() => {}); // gone: nothing left to keep
+  }, KEEP_ALIVE_EVERY);
+}
+
 function focusTarget() {
   if (!location.hash) return;
   const target = document.getElementById(location.hash.slice(1));
@@ -1150,5 +1188,7 @@ document.addEventListener("DOMContentLoaded", () => {
   settingsPage();
   shelf();
   shortcutsSheet();
+  quitPage();
+  keepAlive();
   focusTarget();
 });
