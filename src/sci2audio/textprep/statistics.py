@@ -104,6 +104,13 @@ _SQUARED_NAMES = {
     "ε": "epsilon squared",
     "χ": "chi-square",
 }
+_PARTIAL = "partial "  # before "eta squared" only
+_CI_WORDS = ("confidence interval", "confidence intervals")
+_ODDS_RATIO_WORDS = "odds ratio"
+# the readings of S3 to S5, which the sentence cutter keeps whole (#482)
+SYMBOL_READINGS = frozenset(
+    {*_SQUARED_NAMES.values(), _PARTIAL + _SQUARED_NAMES["η"], *_CI_WORDS, _ODDS_RATIO_WORDS}
+)
 _SQUARED = re.compile(
     r"(?<![\w′'])(?P<name>[Rrηωεχ])(?P<p1>p)?(?:(?P<sup>²)|(?P<two>2))(?P<p2>p)?(?![\w²])"
 )
@@ -204,7 +211,7 @@ def _squared(text: str, plain: str) -> list[Candidate]:
         partial = bool(match["p1"] or match["p2"])
         if partial and match["name"] != "η":
             continue
-        words = ("partial " if partial else "") + _SQUARED_NAMES[match["name"]]
+        words = (_PARTIAL if partial else "") + _SQUARED_NAMES[match["name"]]
         start, end = match.span()
         found.append(Candidate(start, end, words, f'"{text[start:end]}" read as "{words}"'))
     return found
@@ -214,7 +221,7 @@ def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
     found = []
     for match, intervals in _ci_runs(plain):
         start, end = match.span()
-        words = "confidence intervals" if match["plural"] else "confidence interval"
+        words = _CI_WORDS[1] if match["plural"] else _CI_WORDS[0]
         reading = padded(text, start, end, words)  # "95%CI[1, 3]": not "95%confidence"
         if plain[start - 1 : start] in ("<", ">"):
             # "<CI=": no space after the sign, which would have it read on a second run but
@@ -279,7 +286,7 @@ def _interval(text: str, plain: str, interval: re.Match[str]) -> list[Candidate]
 
 def _odds_ratios(text: str, plain: str) -> list[Candidate]:
     return [
-        Candidate(m.start(), m.end(), "odds ratio", '"OR" read as "odds ratio"')
+        Candidate(m.start(), m.end(), _ODDS_RATIO_WORDS, f'"OR" read as "{_ODDS_RATIO_WORDS}"')
         for m in _ODDS_RATIO.finditer(plain)
     ]
 

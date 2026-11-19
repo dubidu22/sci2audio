@@ -2721,3 +2721,40 @@ goal = "Ein Pfeil aus zwei Zeichen ('←−', '−→') wird als ein Pfeil geles
 language = "de"
 blocks = [{ kind = "paragraph", text = "Dann gilt β(0, S, 0) ←− 0, P′ ←− (I − P)−1 und S −→ ε." }]
 expected = ["Dann gilt β(0, S, 0) ← 0, P′ ← (I − P)−1 und S → ε."]
+
+# ---- B6 sentence cutter (#479, #482) ---------------------------------------------------------
+
+[[case]]
+id = "de-label-again-ends-the-sentence"
+audit = 0
+issue = 479
+goal = "Eine Zahl zwischen zweimal demselben Wort ('Absatz 2. Absatz 3', 'Artikel 3. Artikel 4') ist die Nummer dieses Worts, keine Ordnungszahl: ihr Punkt beendet den Satz, wie bei 'Satz 2. Satz 3'. Ohne Punkt ('Absatz 2 Satz 3') bleibt der Satz ganz."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt Abs. 2. Abs. 3 gilt hier auch." },
+    { kind = "paragraph", text = "Es gilt Art. 3. Art. 4 gilt auch. Es gilt Abs. 2 Satz 3 hier." },
+]
+expected = [
+    "Es gilt Absatz 2. Absatz 3 gilt hier auch.",
+    "Es gilt Artikel 3. Artikel 4 gilt auch. Es gilt Absatz 2 Satz 3 hier.",
+]
+utterances = [
+    "Es gilt Absatz 2.",
+    "Absatz 3 gilt hier auch.",
+    "Es gilt Artikel 3.",
+    "Artikel 4 gilt auch.",
+    "Es gilt Absatz 2 Satz 3 hier.",
+]
+
+[[case]]
+id = "de-long-sentence-not-cut-inside-a-reading"
+audit = 0
+issue = 482
+goal = "Ein Satz über der Grenze ohne Komma wird an einem Leerzeichen geteilt, aber nicht zwischen den Wörtern einer Lesung ('3 Komma 5 Prozent', 'unter anderem'): beim ersten und beim zweiten Lauf an derselben Stelle."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Hörerinnen und Hörer der langen Aufnahme bewerteten in der zweiten Runde der Studie sehr ruhig und genau jede einzelne Stelle und die Pausen u. a. nach jedem Absatz und den Anteil von 3,5 % der Sätze sehr ruhig und genau jede einzelne Stelle als zu lang für ein ruhiges Hören am Abend in einem stillen Raum ohne jede Ablenkung durch Musik oder Gespräche im Hintergrund der Wohnung." }]
+expected = ["Die Hörerinnen und Hörer der langen Aufnahme bewerteten in der zweiten Runde der Studie sehr ruhig und genau jede einzelne Stelle und die Pausen unter anderem nach jedem Absatz und den Anteil von 3 Komma 5 Prozent der Sätze sehr ruhig und genau jede einzelne Stelle als zu lang für ein ruhiges Hören am Abend in einem stillen Raum ohne jede Ablenkung durch Musik oder Gespräche im Hintergrund der Wohnung."]
+utterances = [
+    "Die Hörerinnen und Hörer der langen Aufnahme bewerteten in der zweiten Runde der Studie sehr ruhig und genau jede einzelne Stelle und die Pausen unter anderem nach jedem Absatz und den Anteil von 3 Komma 5 Prozent",
+    "der Sätze sehr ruhig und genau jede einzelne Stelle als zu lang für ein ruhiges Hören am Abend in einem stillen Raum ohne jede Ablenkung durch Musik oder Gespräche im Hintergrund der Wohnung.",
+]

@@ -2932,3 +2932,17 @@ issue = 527
 goal = "An arrow printed as two glyphs ('←−', '−→') is read as one arrow ('left arrow', 'right arrow'), never 'minus'. A raised '−1' glued to a closing bracket is left as printed, since without the raise it may be 'f(x) minus 1'; the voice still says 'minus one' there (#589)."
 blocks = [{ kind = "paragraph", text = "Then β(0, S, 0) ←− 0 and P′ ←− (I − P)−1 and S −→ ε hold." }]
 expected = ["Then β(0, S, 0) ← 0 and P′ ← (I − P)−1 and S → ε hold."]
+
+# ---- B6 sentence cutter (#482) ---------------------------------------------------------------
+
+[[case]]
+id = "long-sentence-not-cut-inside-a-reading"
+audit = 0
+issue = 482
+goal = "A sentence over the limit with no comma is cut at a space, but not between the words of a reading ('less than or equal to', 'for example'): at the same place on a first and on a second run."
+blocks = [{ kind = "paragraph", text = "The listeners of the long recording rated in the second round of the study very calmly and carefully every single part of all the pauses e.g. after each paragraph and the share x ≤ 5 of the sentences very calmly and carefully every single part as too long for calm listening in the evening in a quiet room without any distraction by music or talk in the background of the flat." }]
+expected = ["The listeners of the long recording rated in the second round of the study very calmly and carefully every single part of all the pauses for example after each paragraph and the share x less than or equal to 5 of the sentences very calmly and carefully every single part as too long for calm listening in the evening in a quiet room without any distraction by music or talk in the background of the flat."]
+utterances = [
+    "The listeners of the long recording rated in the second round of the study very calmly and carefully every single part of all the pauses for example after each paragraph and the share x less than or equal to 5 of",
+    "the sentences very calmly and carefully every single part as too long for calm listening in the evening in a quiet room without any distraction by music or talk in the background of the flat.",
+]

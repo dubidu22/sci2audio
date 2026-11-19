@@ -944,6 +944,9 @@ _FRACTION_WORDS = {
     9: "Neuntel",
     10: "Zehntel",
 }
+# "ein halb", "ein Drittel": the readings of a fraction of one, which the sentence cutter keeps
+# whole (#482)
+FRACTIONS_OF_ONE = frozenset(f"ein {word}" for word in _FRACTION_WORDS.values())
 # a number joined to the next one by a dash, colon or slash, by a space, by nothing at all
 # ("10⁶3"), or by a word this step reads a dash, colon or slash with
 _JOINED_AFTER = re.compile(
