@@ -141,14 +141,21 @@ def audiobook_stamp(readalong: Path) -> str:
     """The first 16 hex digits of the read-along file's SHA-256. Raises OSError. Kept
     while the file's identity, time and size stay: the audio job replaces the file whole
     (`write_texts`), which gives it a new identity even where two writes get the same
-    time (Windows' clock ticks in milliseconds)."""
-    stat = readalong.stat()
-    return _stamp(str(readalong), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+    time (Windows' clock ticks in milliseconds); a file changed in the last two seconds
+    is read each time (`file_version`)."""
+    version = file_version(readalong)
+    if version is None:  # too fresh to tell apart: read it
+        return _hash16(readalong)
+    return _stamp(str(readalong), version)
 
 
 @lru_cache(maxsize=256)  # the shelf asks for every audiobook's stamp on every page
 def _stamp(path: str, version: tuple[int, int, int]) -> str:
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+    return _hash16(Path(path))
+
+
+def _hash16(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
 @dataclass(frozen=True)
@@ -198,16 +205,27 @@ def audiobook_bounds(readalong: Path) -> Bounds:
     """The bounds of the read-along file at this path, read once per version of the file
     (kept as `audiobook_stamp` keeps its stamp) and kept small, so the shelf on every page
     costs no parse. Raises OSError or ReadAlongError."""
-    stat = readalong.stat()
-    if time.time_ns() - stat.st_mtime_ns < RACY_NS:  # too fresh to tell apart: read it
+    version = file_version(readalong)
+    if version is None:  # too fresh to tell apart: read it
         return Bounds.of(read_readalong(readalong))
-    return _bounds(str(readalong), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+    return _bounds(str(readalong), version)
 
 
 # A file changed less than this long ago is read again on every call: a rewrite in place
 # within the file system's clock tick (about 16 ms on Windows) keeps its time and size, so
 # they cannot tell the two versions apart yet (as git treats "racy" files; #403 B1).
 RACY_NS = 2_000_000_000
+
+
+def file_version(path: Path) -> tuple[int, int, int] | None:
+    """What the caches of this module key a file's contents on: its identity, time and
+    size. The audio job replaces a file whole (`write_texts`), so a new file gets a new
+    identity even where two writes get the same time and size (#407). None for a file
+    changed in the last RACY_NS, which the caller reads afresh. Raises OSError."""
+    stat = path.stat()
+    if time.time_ns() - stat.st_mtime_ns < RACY_NS:
+        return None
+    return (stat.st_ino, stat.st_mtime_ns, stat.st_size)
 
 
 @lru_cache(maxsize=256)
@@ -368,15 +386,17 @@ def in_folder(folder: Path, name: str) -> Path | None:
 
 
 @lru_cache(maxsize=8)
-def _readalong(path: str, stamp: tuple[int, int]) -> ReadAlong:
+def _readalong(path: str, version: tuple[int, int, int]) -> ReadAlong:
     return read_readalong(Path(path))
 
 
 def load_readalong(path: Path) -> ReadAlong:
-    """The read-along file, read once per version of it on disk (the audio route asks on
-    every range request). Raises ReadAlongError or OSError."""
-    stat = path.stat()
-    return _readalong(str(path), (stat.st_mtime_ns, stat.st_size))
+    """The read-along file, read once per version of it on disk (`file_version`; the audio
+    route asks on every range request). Raises ReadAlongError or OSError."""
+    version = file_version(path)
+    if version is None:  # too fresh to tell apart: read it
+        return read_readalong(path)
+    return _readalong(str(path), version)
 
 
 @dataclass(frozen=True)
