@@ -251,7 +251,7 @@ jobs:
               ;;
             Windows)
               setup=$(ls installers/*-setup.exe)
-              "$setup" //VERYSILENT //SUPPRESSMSGBOXES //NORESTART //CURRENTUSER
+              "$setup" //VERYSILENT //SUPPRESSMSGBOXES //NORESTART
               folder="$(cygpath -m "$LOCALAPPDATA")/Programs/sci2audio"
               for _ in $(seq 60); do [ -f "$folder/sci2audio-app.exe" ] && break; sleep 2; done
               echo "folder=$folder" >> "$GITHUB_OUTPUT"

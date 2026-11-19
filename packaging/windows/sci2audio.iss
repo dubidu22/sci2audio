@@ -1,9 +1,11 @@
 ; The Windows installer of sci2audio (#215, D-797), built by scripts/build_installer.py:
 ;   ISCC /DAppVersion=1.4.0 /DSourceDir=<PyInstaller folder> /DRepoDir=<checkout>
 ;        /DOutputDir=<folder> /DOutputName=<file name without .exe> sci2audio.iss
-; For one person, no administrator rights: the program goes to
-; %LOCALAPPDATA%\Programs\sci2audio. Uninstalling removes that folder only; the
-; audiobooks, the voice files, the settings and the library stay where they are.
+; For one person, no administrator rights: the program always goes to
+; %LOCALAPPDATA%\Programs\sci2audio (no folder page: a folder chosen by hand could be
+; Documents\sci2audio, where the audiobooks live). Uninstalling removes the files it
+; installed and then the empty folder; the audiobooks, the voice files, the settings and
+; the library stay where they are.
 
 #ifndef AppVersion
   #error AppVersion is not set
@@ -19,10 +21,10 @@ AppPublisher=sci2audio contributors
 AppPublisherURL=https://github.com/dubidu22/sci2audio
 AppSupportURL=https://github.com/dubidu22/sci2audio/issues
 DefaultDirName={autopf}\sci2audio
+DisableDirPage=yes
 DefaultGroupName=sci2audio
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.17763
@@ -55,8 +57,3 @@ Name: "{autodesktop}\sci2audio"; Filename: "{app}\sci2audio-app.exe"; Tasks: des
 
 [Run]
 Filename: "{app}\sci2audio-app.exe"; Description: "{cm:LaunchProgram,sci2audio}"; Flags: nowait postinstall skipifsilent
-
-[UninstallDelete]
-; the program folder only (a log or cache PyInstaller might leave there); never the
-; user's files, which live in Documents\sci2audio and the user's AppData folders
-Type: filesandordirs; Name: "{app}"

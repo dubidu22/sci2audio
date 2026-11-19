@@ -57,6 +57,33 @@ def without_imageio_ffmpeg(toc):
 
 
 DROPPED = "imageio_ffmpeg/binaries"
+# torch's test programs and protobuf compiler: never run by sci2audio (53 MB, #635 F2);
+# only torch_shm_manager stays, which torch looks for at import on Linux and macOS
+TORCH_BIN = "torch/bin/"
+TORCH_NEEDED = "torch/bin/torch_shm_manager"
+TORCH_LIB = "torch/lib/"
+
+
+def one_copy(toc, everything):
+    """Each library once (#635 F2). The binary analysis also files torch's libraries at
+    the top of the folder, as real copies of torch/lib (about 475 MB on Linux); they are
+    found in torch/lib (RUNPATH $ORIGIN on Linux, @loader_path on macOS, the DLL directory
+    torch adds on Windows), so the top-level copies go. torch/bin goes too, except
+    torch_shm_manager."""
+    nested = {
+        os.path.realpath(source)
+        for dest, source, kind in everything
+        if Path(dest).as_posix().startswith(TORCH_LIB)
+    }
+    kept = []
+    for dest, source, kind in toc:
+        name = Path(dest).as_posix()
+        if name.startswith(TORCH_BIN) and name != TORCH_NEEDED:
+            continue
+        if len(Path(dest).parts) == 1 and os.path.realpath(source) in nested:
+            continue
+        kept.append((dest, source, kind))
+    return kept
 
 
 def analysis(script):
@@ -69,8 +96,9 @@ def analysis(script):
         excludes=EXCLUDES,
         noarchive=False,
     )
-    found.binaries = without_imageio_ffmpeg(found.binaries)
-    found.datas = without_imageio_ffmpeg(found.datas)
+    everything = list(found.binaries) + list(found.datas)
+    found.binaries = one_copy(without_imageio_ffmpeg(found.binaries), everything)
+    found.datas = one_copy(without_imageio_ffmpeg(found.datas), everything)
     return found
 
 

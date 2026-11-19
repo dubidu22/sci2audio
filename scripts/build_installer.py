@@ -28,6 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "packaging" / "sci2audio.spec"
 REPOSITORY = "https://github.com/dubidu22/sci2audio"
+DUPLICATE_SIZE = 1_000_000  # two files this large with the same bytes fail the build (#635 F2)
 
 # the same refusals as CI's licences job (.github/workflows/ci.yml); espeakng-loader and
 # clr-loader (Windows) state no licence in their metadata and were checked by hand: their
@@ -83,8 +84,10 @@ def source_note(version: str, ffmpeg_licenses: Path) -> str:
         "",
         f"- sci2audio-{version}.tar.gz: sci2audio itself;",
         f"- sci2audio-{version}-sources.tar: FFmpeg and LAME (the audio-only ffmpeg program,",
-        "  LGPL-2.1-or-later), espeak-ng (GPL-3.0-or-later, inside espeakng-loader) and the",
-        "  script that builds ffmpeg from them (packaging/ffmpeg/build.sh).",
+        "  LGPL-2.1-or-later), espeak-ng (GPL-3.0-or-later, inside espeakng-loader), the",
+        "  script that builds ffmpeg from them (packaging/ffmpeg/build.sh), and the Linux",
+        "  AppImage's type-2 runtime (MIT) with the libfuse 3 (LGPL-2.1) and squashfuse",
+        "  (BSD-2-Clause) it links statically.",
         "",
         "The Python packages are the versions named in the project's uv.lock at that tag,",
         "each available from the Python Package Index (pypi.org) with its source.",
@@ -105,7 +108,15 @@ def python_licence(base: Path = Path(sys.base_prefix)) -> Path:
     raise SystemExit(f"build_installer: Python's LICENSE.txt is not in {base}")
 
 
-def licences(dest: Path, ffmpeg: Path, version: str) -> None:
+def vendored_licences(system: str) -> list[str]:
+    """Licence texts from packaging/licenses/ for parts whose packages ship none (#635 F4)."""
+    names = ["espeakng-loader-LICENSE"]
+    if system == "windows":
+        names += ["clr-loader-LICENSE", "winpthreads-COPYING"]
+    return names
+
+
+def licences(dest: Path, ffmpeg: Path, version: str, system: str) -> None:
     """The bundle's `licenses/` folder; stops on a refused licence."""
     if dest.exists():
         shutil.rmtree(dest)
@@ -115,6 +126,8 @@ def licences(dest: Path, ffmpeg: Path, version: str) -> None:
     shutil.copy2(python_licence(), dest / "Python-LICENSE.txt")
     for item in sorted((ffmpeg / "licenses").iterdir()):
         shutil.copy2(item, dest / item.name)
+    for name in vendored_licences(system):
+        shutil.copy2(ROOT / "packaging" / "licenses" / name, dest / name)
     (dest / "SOURCE.txt").write_text(source_note(version, ffmpeg / "licenses"), encoding="utf-8")
     subprocess.run(
         [
@@ -138,19 +151,65 @@ def check_bundle(folder: Path, system: str) -> list[str]:
     binaries = internal / "imageio_ffmpeg" / "binaries"
     if binaries.is_dir() and any(p.name.startswith("ffmpeg") for p in binaries.iterdir()):
         problems.append("imageio-ffmpeg's own ffmpeg is in the bundle (D-798)")
-    for name in ("LICENSE", "THIRD_PARTY_LICENSES.md", "SOURCE.txt", "python-packages.txt"):
+    for name in (
+        "LICENSE", "THIRD_PARTY_LICENSES.md", "SOURCE.txt", "python-packages.txt",
+        *vendored_licences(system),
+    ):  # fmt: skip
         if not (internal / "licenses" / name).is_file():
             problems.append(f"licenses/{name} is missing")
     suffix = ".exe" if system == "windows" else ""
     for program in ("sci2audio", "sci2audio-app"):
         if not (folder / f"{program}{suffix}").is_file():
             problems.append(f"{program}{suffix} is missing")
+    problems += torch_problems(internal / "torch", system)
+    problems += [
+        f"{' and '.join(names)} are the same file of {size // 1_000_000} MB (#635 F2)"
+        for size, names in duplicates(folder)
+    ]
     return problems
+
+
+def torch_problems(torch: Path, system: str) -> list[str]:
+    """torch/bin holds only torch_shm_manager, which torch looks for at import on Linux
+    and macOS; the rest are torch's own test programs (#635 F2)."""
+    if not torch.is_dir():
+        return []
+    problems = []
+    tools = torch / "bin"
+    extra = (
+        sorted(p.name for p in tools.iterdir() if p.name != "torch_shm_manager")
+        if tools.is_dir()
+        else []
+    )
+    if extra:
+        problems.append(f"torch/bin holds torch's test programs: {', '.join(extra)} (#635 F2)")
+    if system != "windows" and not (tools / "torch_shm_manager").is_file():
+        problems.append("torch/bin/torch_shm_manager is missing: torch needs it at import")
+    return problems
+
+
+def duplicates(folder: Path, least: int = DUPLICATE_SIZE) -> list[tuple[int, list[str]]]:
+    """Files of `least` bytes or more that hold the same bytes, as paths in `folder`."""
+    by_size: dict[int, list[Path]] = {}
+    for path in folder.rglob("*"):
+        if path.is_file() and not path.is_symlink():
+            size = path.stat().st_size
+            if size >= least:
+                by_size.setdefault(size, []).append(path)
+    found = []
+    for size, paths in sorted(by_size.items()):
+        if len(paths) < 2:
+            continue
+        by_hash: dict[str, list[str]] = {}
+        for path in paths:
+            by_hash.setdefault(sha256(path), []).append(path.relative_to(folder).as_posix())
+        found += [(size, sorted(names)) for names in by_hash.values() if len(names) > 1]
+    return found
 
 
 def freeze(work: Path, ffmpeg: Path, version: str, system: str) -> Path:
     """PyInstaller: returns the frozen folder (on macOS the folder inside the .app)."""
-    licences(work / "licenses", ffmpeg, version)
+    licences(work / "licenses", ffmpeg, version, system)
     env = {
         **os.environ,
         "SCI2AUDIO_VERSION": version,
