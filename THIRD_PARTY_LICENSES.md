@@ -40,6 +40,11 @@ Not allowed: AGPL code, non-commercial or "research only" licences, models or vo
 | [pydantic](https://github.com/pydantic/pydantic) 2.14.3 with pydantic-core, annotated-types, typing-inspection | MIT | The API's request and response bodies (web); it was already pulled in by spaCy |
 | [opentelemetry-api](https://github.com/open-telemetry/opentelemetry-python) 1.45.2 (through FastAPI) | Apache-2.0 | Not used: FastAPI's telemetry is switched off (D-195). Without an SDK and exporter, which sci2audio never installs, it records and sends nothing |
 | [annotated-doc](https://github.com/fastapi/annotated-doc) 0.0.6, [anyio](https://github.com/agronholm/anyio) (through FastAPI) | MIT | Documentation markers; the server's async runtime |
+| [pywebview](https://github.com/r0x0r/pywebview) 6.2.1, optional extra `window` | BSD-3-Clause (repository LICENSE; PyPI metadata "BSD 3-Clause License") | The app's own window (#215, D-797): the system's web engine, WKWebView on macOS and WebView2 on Windows. Only `sci2audio-app` loads it; the PyPI install leaves it out unless asked for |
+| [bottle](https://github.com/bottlepy/bottle) 0.13.4, [proxy-tools](https://github.com/jtushman/proxy_tools) 0.1.0, typing-extensions (through pywebview) | MIT; typing-extensions PSF-2.0 | Imported by pywebview; its own web server (bottle) is never started, since the window opens sci2audio's server |
+| [pythonnet](https://github.com/pythonnet/pythonnet) 3.2.1 and [clr-loader](https://github.com/pythonnet/clr-loader) 0.3.1 with [cffi](https://github.com/python-cffi/cffi) 2.1.1 and [pycparser](https://github.com/eliben/pycparser) 3.12 (through pywebview, Windows only) | pythonnet MIT; clr-loader MIT (repository LICENSE; **its package metadata states no licence**); cffi MIT-0 (as its metadata says); pycparser BSD-3-Clause | Lets pywebview drive WebView2 through .NET on Windows |
+| [PyObjC](https://github.com/ronaldoussoren/pyobjc) 13.0: pyobjc-core and the Cocoa, Quartz, Security, UniformTypeIdentifiers and WebKit frameworks (through pywebview, macOS only) | MIT | Lets pywebview drive WKWebView on macOS |
+| [QtPy](https://github.com/spyder-ide/qtpy) 2.4.3 (in the lock for OpenBSD only; never installed on Linux, macOS or Windows) | MIT | pywebview's Qt layer, unused |
 
 ## Bundled programs (come with a run-time dependency)
 

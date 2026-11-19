@@ -303,6 +303,11 @@ def test_a_long_block_of_links_takes_linear_time() -> None:  # S2
     assert len(found) == 3000  # 102,000 characters
 
 
+def test_a_long_block_of_join_words_before_links_takes_linear_time() -> None:  # #402
+    found = assert_linear(edits, lambda n: "We thank Smith and https://x.org here. " * n, 3000)
+    assert len(found) == 3000
+
+
 def test_a_pointer_sentence_names_its_pointer_word() -> None:
     (edit,) = edits("See https://x.org/a and www.x.org for details.")
     assert edit.reason == (

@@ -11,7 +11,7 @@ import re
 from collections.abc import Callable
 
 import pytest
-from hypothesis import assume, given
+from hypothesis import assume, example, given
 from hypothesis import strategies as st
 from linear_time import assert_linear
 
@@ -394,7 +394,9 @@ def read_all(text: str, language: str = "en") -> str:
         ("en", "(see (Smith, 2019) 2020) found it.", "Smith found it."),
         ("en", "(see (Smith, 2019; Lee, 2020) 2021) found it.", "Smith and Lee found it."),
         ("en", "(cf. (Smith, 2020) 2020) is cited.", "Smith is cited."),
-        ("en", "(cf. (Smith, 2020) (Lee, 2019) 2020) is cited.", "Smith is cited."),
+        # two inner citations side by side are both items: both names stay, as in the flat
+        # form (#415, D-791; read "Smith is cited." before)
+        ("en", "(cf. (Smith, 2020) (Lee, 2019) 2020) is cited.", "Smith and Lee is cited."),
         ("en", "(see (Smith, 2020) [1] 2020) is cited.", "Smith is cited."),
         ("en", "It holds ((cf. (Smith, 2020) [1] 2020) the) here.", "It holds (Smith the) here."),
         ("en", "(see (Smith, 2019) and Lee, 2020) found it.", "Smith and Lee found it."),
@@ -439,6 +441,8 @@ _NESTS = st.recursive(
     st.sampled_from([" found it.", " is cited.", " here.", ")", " zeigt das."]),
     st.sampled_from(["en", "de"]),
 )
+# found with --hypothesis-seed=5 on the #621 head efae3c7 (review round 1, M1)
+@example("", "(see (Smith, 2019; Lee, 2020), Lee, 2020)", " found it.", "en")
 def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
     before: str, nest: str, after: str, language: str
 ) -> None:
@@ -450,12 +454,12 @@ def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
     assert read_all(once, language) == once, (text, once)
 
 
-def test_an_empty_nest_as_the_subject_goes_whole() -> None:
-    """Read "() is cited." before D-577 (S3 of the #279 review): a second look sees "()" and
-    removes it, as the bracket held nothing but a citation. Keeping the names as the subject
-    is #278's."""
+def test_a_nest_of_one_citation_as_the_subject_keeps_its_names() -> None:
+    """Read "() is cited." before D-577 (S3 of the #279 review), then "is cited." (D-605); a
+    bracket around one citation as the subject names it, as the flat form does (#415,
+    D-791)."""
     once = read_all("((Smith, 2019)) is cited.")
-    assert once == "is cited."
+    assert once == "Smith is cited."
     assert read_all(once) == once
 
 
@@ -476,6 +480,8 @@ _SIBLINGS = st.sampled_from(
         "(527794, https://example.org)",
         "(results)",
         "(12,345)",
+        "[1], [2] and [3]",  # B9 (#414, #415)
+        "((Smith, 2019) (Lee, 2018))",
     ]
 )
 
@@ -662,8 +668,25 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
         ("As in [MH17], [GKL+19; Knu84] and [PM10] it is. ", 2000),  # #254
         # #285 review round 1: the second look at a text without its identifiers
         ("Smith (527794) (2019) and (see (527794)) here. ", 2000),
+        # B9 (#414, #415): lists of brackets, one long list, "or" lists, subject nests
+        ("It holds [1], [2] and [3] here. ", 4000),
+        ("[1], ", 20_000),
+        ("It holds [1], [2] or [3] here. ", 4000),
+        ("((Smith, 2019) (Lee, 2018)) is cited. ", 3000),
+        ("(see (Smith, 2019); and (Lee, 2018)) is cited. ", 2500),
     ],
-    ids=["numeric", "author-year", "nests", "keys", "identifiers"],
+    ids=[
+        "numeric",
+        "author-year",
+        "nests",
+        "keys",
+        "identifiers",
+        "lists",
+        "one-list",
+        "or-lists",
+        "nests-side-by-side",
+        "nests-after-lead",
+    ],
 )
 def test_a_long_block_takes_linear_time(unit: str, count: int) -> None:  # S2: 100,000 characters
     # 8 times the text against a base run (#276); it took 17 s for 80,000 characters before
@@ -950,6 +973,29 @@ def test_a_deep_citation_nest_takes_linear_time(
     assert len(looks) <= 3
 
 
+@pytest.mark.parametrize(
+    ("language", "opening", "inner"),
+    [("en", "It holds (see ", "(Smith, 2019)"), ("de", "Es gilt (vgl. ", "(Müller, 2019)")],
+)
+def test_a_deep_nest_of_lead_words_and_years_reads_each_level_once_in_linear_time(
+    language: str, opening: str, inner: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The work, not the clock: a level's item check parses no inner bracket that holds
+    brackets of its own, so the parts read stay within the bracket cap's (#415 made this
+    quadratic: 3,213 characters read per character of text at 3,200 levels; a busy Windows
+    runner showed it where the timing test above did not)."""
+    read = []
+    parts = citations._Rules._parts
+    monkeypatch.setattr(
+        citations._Rules,
+        "_parts",
+        lambda self, text, node: read.append(node.close - node.open) or parts(self, text, node),
+    )
+    text = _nest(opening, inner, " (2019))", 1600)
+    _left(text, language)
+    assert sum(read) < 100 * len(text)
+
+
 def test_a_bracket_longer_than_the_cap_is_no_citation_once_its_inner_ones_go() -> None:
     # read inner first, its own text is still longer than any citation: only the inner
     # citation goes, with the separator before it, on both runs (D-588)
@@ -984,6 +1030,10 @@ def _shell(n: int) -> str:
     return "Data (" + "(Smith, 2019); " * n + "(Lee, 2020) 2021) here."
 
 
+def _side_by_side(n: int) -> str:
+    return "(" + "(Smith, 2019) " * n + "(Lee, 2020)) is cited."
+
+
 def _sentences(n: int) -> str:
     return " ".join(["((Smith, 2019); (Lee, 2018); Jones, 2020) is cited."] * n)
 
@@ -993,6 +1043,7 @@ def _sentences(n: int) -> str:
     [
         (_wide, 240, "Smith, " * 239 + "Smith and Jones is cited."),
         (_shell, 240, "Data here."),
+        (_side_by_side, 240, "Smith, " * 239 + "Smith and Lee is cited."),  # #415
         (_sentences, 800, " ".join(["Smith, Lee and Jones is cited."] * 800)),
     ],
 )

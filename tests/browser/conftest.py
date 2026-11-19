@@ -114,12 +114,13 @@ class Live:
 
 
 @contextmanager
-def serve(tmp_path: Path, voice: FakeVoice, fetch: SlowFetch) -> Iterator[Live]:
+def serve(tmp_path: Path, voice: FakeVoice, fetch: SlowFetch, **changes: Any) -> Iterator[Live]:
     """A server run on a port of its own, on the folders under `tmp_path`: a second call
-    with the same `tmp_path` is the next run of sci2audio on the same computer (#153)."""
+    with the same `tmp_path` is the next run of sci2audio on the same computer (#153).
+    `changes` go into its configuration (the app without a window: `launched_as`, #215)."""
     sock = bind()
     port = sock.getsockname()[1]
-    config = make_config(tmp_path, port=port)
+    config = make_config(tmp_path, port=port, **changes)
     app = create_app(config, fetch=fetch, voice=lambda models_dir: voice.source())
     server = uvicorn.Server(uvicorn_config(app))
     thread = threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True)

@@ -39,7 +39,7 @@ import sci2audio.web
 from sci2audio.app.settings import LETTER_PACES
 from sci2audio.textprep import Category
 from sci2audio.voices import PACKS, VOICES, download_plan
-from sci2audio.web import i18n, library, pages, player, server
+from sci2audio.web import i18n, library, pages, player, server, window
 from sci2audio.web.api import REDIRECTS, plan_hosts
 from sci2audio.web.config import HOST
 from sci2audio.web.i18n import (
@@ -176,7 +176,7 @@ def used_keys() -> set[str]:
     found |= {f"voice.letter_pace_{pace}" for pace in LETTER_PACES}  # pages names each pace
     found |= {f"library.state_{key}" for key in pages.CHIPS}  # a chip's word (#389)
     found |= {f"library.when_{kind}" for kind in ("today", "yesterday")}  # library.when
-    for path in (Path(pages.__file__), Path(i18n.__file__)):
+    for path in (Path(pages.__file__), Path(i18n.__file__), Path(window.__file__)):
         source = path.read_text(encoding="utf-8")
         found |= set(re.findall(r"""\b(?:t|s|self\.t)\(\s*f?["']([a-z_.-]+[a-z])["']""", source))
     found |= {key for key in EN if key.startswith("phase.")}

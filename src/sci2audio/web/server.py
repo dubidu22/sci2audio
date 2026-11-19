@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import errno
 import mimetypes
+import time
 from collections.abc import Callable
 from importlib.resources import files
 from pathlib import Path
@@ -15,6 +16,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.routing import Match
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from sci2audio import __version__
 from sci2audio.app import JobRunner, VoiceSource
@@ -119,6 +121,21 @@ def create_app(
             )
         raise error
 
+    app.add_middleware(Seen, state=state)  # innermost: only requests that passed the checks
     app.add_middleware(BodyLimit, upload_limit=config.upload_limit, text_limit=config.text_limit)
     app.add_middleware(LocalOnly, config=config)  # added last = outermost
     return app
+
+
+class Seen:
+    """Notes when the server last answered a request that passed the security checks, for
+    the app without a window, which stops when nothing has asked for a while (#215)."""
+
+    def __init__(self, app: ASGIApp, state: ServerState) -> None:
+        self.app = app
+        self.state = state
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http":
+            self.state.seen = time.monotonic()
+        await self.app(scope, receive, send)

@@ -53,8 +53,18 @@ dependencies = [
 Repository = "https://github.com/dubidu22/sci2audio"
 Issues = "https://github.com/dubidu22/sci2audio/issues"
 
+[project.optional-dependencies]
+# The app's own window (#215, D-797): WKWebView on macOS, WebView2 on Windows. The
+# installers include it; without it `sci2audio-app` opens the browser instead.
+window = [
+    "pywebview>=6.2.1,<7",
+]
+
 [project.scripts]
 sci2audio = "sci2audio.cli:main"
+
+[project.gui-scripts]
+sci2audio-app = "sci2audio.web.window:main"
 
 [dependency-groups]
 dev = [
@@ -150,6 +160,9 @@ also_copy = ["scripts/", "README.md", ".github/", "THIRD_PARTY_LICENSES.md"]
 [tool.deptry]
 known_first_party = ["sci2audio"]
 
+[tool.deptry.package_module_name_map]
+pywebview = "webview"
+
 [tool.deptry.per_rule_ignores]
 # jinja2 and python-multipart are loaded by Starlette for templates and uploads (web).
 DEP002 = ["jinja2", "python-multipart"]
@@ -198,4 +211,5 @@ forbidden_modules = [
     "multipart",
     "python_multipart",
     "pydantic",
+    "webview",  # the app's window (#215)
 ]
