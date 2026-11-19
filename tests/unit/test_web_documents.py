@@ -291,3 +291,95 @@ def test_a_new_server_removes_uploads_a_killed_one_left_behind(tmp_path: Path) -
         DocumentStore(tmp_path / "nothing", upload_limit=1, text_limit=1).clear_stale_uploads()
         == []
     )
+
+
+NEWER = "\U0001fae8"  # Unicode 15.0: newer than an older Mac's table (#493)
+
+
+def refuse_newer_targets(monkeypatch: pytest.MonkeyPatch, refused: str = NEWER) -> list[str]:
+    """`os.replace` as an APFS whose Unicode table is older than Python's: a target name
+    holding `refused` fails with EILSEQ. Returns the target names it was asked for."""
+    asked: list[str] = []
+    real = os.replace
+
+    def fake(source: Any, target: Any) -> None:
+        name = PurePath(os.fspath(target)).name
+        asked.append(name)
+        if refused in name:
+            raise OSError(errno.EILSEQ, os.strerror(errno.EILSEQ), os.fspath(target))
+        real(source, target)
+
+    monkeypatch.setattr(documents.os, "replace", fake)
+    return asked
+
+
+@pytest.mark.parametrize(
+    ("sent", "kept", "tries"),
+    [
+        (f"{NEWER} My Paper.pdf", "My Paper.pdf", 2),
+        (f"{NEWER}.pdf", "document.pdf", 2),  # nothing old is left: the fallback
+    ],
+    ids=["retried", "fallback"],
+)
+def test_a_name_the_file_system_refuses_is_kept_under_the_retried_name(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch, sent: str, kept: str, tries: int
+) -> None:
+    """#493: never a 500 "store-failed"; the copy is kept, and the document is listed and
+    analysed under the name that was kept."""
+    app, config = server
+    asked = refuse_newer_targets(monkeypatch)
+    data = pdf_bytes()
+    response = program(app, config).post(
+        "/api/v1/documents", files={"file": (sent, data, "application/pdf")}
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["name"] == kept
+    assert asked == [stored_name(sent), kept][:tries]
+    source = config.work_root / response.json()["id"] / "source"
+    assert [p.name for p in source.iterdir()] == [kept]
+    assert (source / kept).read_bytes() == data
+    assert leftovers(config.work_root) == []
+
+
+def test_a_retried_name_the_file_system_still_refuses_tries_the_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The old characters refused too (a stricter file system): `document` with the suffix."""
+    store = DocumentStore(tmp_path, upload_limit=10_000, text_limit=10_000)
+    asked = refuse_newer_targets(monkeypatch, refused="Paper")
+    kept = store.store("Paper ü.pdf", io.BytesIO(b"%PDF-1.4 x"))
+    assert asked == ["Paper ü.pdf", "document.pdf"]  # the old text is the same name
+    assert kept.source.name == "document.pdf"
+
+
+def test_the_last_refusal_is_a_store_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    store = DocumentStore(tmp_path, upload_limit=10_000, text_limit=10_000)
+    refuse_newer_targets(monkeypatch, refused=".pdf")
+    with pytest.raises(documents.StoreError, match="could not keep"):
+        store.store("Paper.pdf", io.BytesIO(b"%PDF-1.4 x"))
+    assert leftovers(tmp_path) == []
+
+
+def test_another_error_while_placing_a_newer_name_is_tried_once(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only EILSEQ is retried: a full disk while the copy is put in place under a name with
+    a newer character is tried exactly once and answers the disk-full error, with nothing
+    left behind (review of #583, R2)."""
+    app, config = server
+    asked: list[str] = []
+
+    def full(source: Any, target: Any) -> None:
+        asked.append(PurePath(os.fspath(target)).name)
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(documents.os, "replace", full)
+    sent = f"{NEWER} My Paper.pdf"
+    response = program(app, config).post(
+        "/api/v1/documents", files={"file": (sent, pdf_bytes(), "application/pdf")}
+    )
+    assert response.status_code == 507
+    assert response.json()["error"] == "disk-full"
+    assert asked == [stored_name(sent)]
+    assert leftovers(config.work_root) == []
+    assert list(config.work_root.glob("*/source/*")) == []

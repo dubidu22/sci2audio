@@ -47,7 +47,7 @@ from sci2audio.extraction import (
     extract_text,
 )
 from sci2audio.layout import LayoutSettings, build_document
-from sci2audio.output.names import clean
+from sci2audio.output.names import clean, refused, retried
 from sci2audio.textprep import BUILT_IN_STEPS, DEFAULT_MAX_CHARS, TextStep
 
 RECORD = "job.json"
@@ -139,9 +139,14 @@ class ScriptJob:
 
 
 def script_files(source: Path, settings: JobSettings, work: Path) -> ScriptFiles:
-    """The files a script job of `source` writes."""
+    """The files a script job of `source` writes. A name the output folder's file system
+    refuses is made again from its old characters (#493); in a folder that does not exist
+    yet no name is tried, and `_write` names the files again once it made the folder."""
     folder = settings.output_folder or source.absolute().parent
-    name = clean(PurePath(source.name).stem, "document")
+    stem = PurePath(source.name).stem
+    name = clean(stem, "document")
+    if refused(folder, f"{name}.script.txt"):
+        name = retried(stem, "document")
     return ScriptFiles(
         script=folder / f"{name}.script.txt",
         report_json=folder / f"{name}.report.json",
@@ -196,28 +201,33 @@ def run_script_job(
     job_report = build_report(result, settings_data(settings))
 
     report(Phase.WRITING)
-    _write(files, result, job_report, settings, overwrite)
+    files = _write(source, files, result, job_report, settings, overwrite)
     report(Phase.DONE)
     return ScriptJob(result, job_report, files)
 
 
 def _write(
+    source: Path,
     files: ScriptFiles,
     result: ScriptResult,
     job_report: Report,
     settings: JobSettings,
     overwrite: bool,
-) -> None:
-    texts = {
-        files.script: script_text(result),
-        files.report_json: json_text(report_data(job_report)),
-        files.report_markdown: report_markdown(job_report),
-    }
+) -> ScriptFiles:
+    """Write the three files and the record; returns the files as written."""
+    made = not files.script.parent.is_dir()
     for folder in (files.script.parent, files.record.parent):
         try:
             folder.mkdir(parents=True, exist_ok=True)
         except OSError as error:
             raise _folder_error(folder, error) from error
+    if made:  # a new folder: its names can be tried only now (#493)
+        files = script_files(source, settings, files.record.parent)
+    texts = {
+        files.script: script_text(result),
+        files.report_json: json_text(report_data(job_report)),
+        files.report_markdown: report_markdown(job_report),
+    }
     try:
         write_texts(texts, overwrite=overwrite)
         record = _record(files, result, settings)
@@ -229,6 +239,7 @@ def _write(
     except OSError as error:
         where = PurePath(str(error.filename)).name if error.filename else "the output"
         raise JobError(f"could not write {where}: {error.strerror or error}") from error
+    return files
 
 
 def check_readable(source: Path) -> None:
