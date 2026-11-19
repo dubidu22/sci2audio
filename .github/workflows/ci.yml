@@ -1,313 +1,51 @@
 name: CI
 
-# PRs run everything on Linux; macOS and Windows join with the label "ci:full", on every
-# push to main and release/*, and on a run by hand (D-580). Tags need no run here: the
-# release workflow installs and runs the built wheel on all three systems first.
-# Labels start no run here: one would cancel the run of the same commit and leave its
-# "CI passed" red (#360). Adding "ci:full" starts a run by hand on the PR's branch
-# instead (ci-full-label.yml, D-620); a push to a PR with the label tests all three.
+# Scratch branch only (#525, TST-08): the fixed keep-alive test alone 40 times on Windows,
+# then the whole fast suite 4 times with -n auto (the load it failed under). Any red run
+# fails the job; the summary holds the real counts.
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-  push:
-    branches: [main, "release/**"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
-  # The Python of .python-version (3.12.16 or newer), as uv downloads it; never the runner's
-  # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
   UV_PYTHON_PREFERENCE: only-managed
 
-# A newer push to a PR cancels its older run, which tested an older commit. Every other run
-# (main, release/*, by hand) is a group of its own, so none is cancelled or held back (D-580).
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
-  lint:
-    name: lint and layers
-    runs-on: ubuntu-latest
+  isolate:
+    name: isolate 525 (windows-latest)
+    runs-on: windows-latest
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
-          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
+          enable-cache: false
       - run: uv sync --locked
-      - name: Ruff lint (incl. security rules)
-        run: uv run ruff check --output-format=github
-      - name: Ruff format
-        run: uv run ruff format --check
-      - name: Layer rules (import-linter)
-        run: uv run lint-imports
-      - name: Dependencies (deptry)
-        run: uv run deptry src
-      # D-374: flaky tests are skipped with a linked issue; all must be fixed before v1.0.
-      - name: Quarantined tests (listed in the job summary)
-        run: |
-          uv run pytest -m quarantined --collect-only -q -p no:cacheprovider | tee quarantined.txt
-          {
-            echo "## Quarantined tests (D-374)"
-            echo
-            echo "Each is skipped until its issue is fixed; all must be fixed before v1.0 (#80)."
-            echo
-            echo '```'
-            grep -E '^ +#[0-9]+ ' quarantined.txt || echo "none"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  licences:
-    name: licences
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
-          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
-      # Only the app's own run-time dependencies are checked, not the dev tools.
-      # espeakng-loader states no licence in its package metadata; it was checked by hand
-      # (loader MIT, bundled espeak-ng GPL-3.0-or-later) and is listed in THIRD_PARTY_LICENSES.md.
-      - run: uv sync --locked --no-dev
-      - name: Refuse AGPL, non-commercial and unknown licences
-        run: >
-          uv run --no-sync --with pip-licenses pip-licenses
-          --ignore-packages sci2audio pip-licenses prettytable wcwidth espeakng-loader
-          --partial-match
-          --fail-on="Affero;AGPL;SSPL;Non-Commercial;NonCommercial;UNKNOWN"
-          --format=markdown
-
-  security:
-    name: security
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
-          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
-      - run: uv sync --locked
-      - name: Known vulnerabilities in run-time dependencies (pip-audit)
-        run: |
-          uv export --locked --no-dev --no-emit-project --format requirements.txt -o runtime-requirements.txt
-          uv run pip-audit --requirement runtime-requirements.txt --disable-pip --no-deps --progress-spinner off
-      - name: Workflow security (zizmor)
-        run: uv run zizmor --offline .github/workflows
-
-  tests:
-    name: tests (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # all three systems except on a PR without the label "ci:full" (D-580)
-        os: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full')) && '["ubuntu-latest", "macos-latest", "windows-latest"]' || '["ubuntu-latest"]') }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
-          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
-      - run: uv sync --locked
-      - name: Fast tests (unit, property-based, golden files)
-        run: uv run pytest -m "not slow and not benchmark and not browser" -n auto
+      - name: The test alone, 40 runs
+        shell: bash
         env:
           HYPOTHESIS_PROFILE: ci
-      # PE-02 (D-224): the installed command on one corpus PDF, as a person runs it.
-      - name: Smoke test (sci2audio script on a corpus PDF)
-        shell: bash
         run: |
-          uv run sci2audio script tests/corpus/papers/joss2021-waskom-seaborn.pdf \
-            -o "$RUNNER_TEMP/smoke" --work-folder "$RUNNER_TEMP/smoke-work" --ignore-settings
-          for suffix in script.txt report.json report.md; do
-            test -s "$RUNNER_TEMP/smoke/joss2021-waskom-seaborn.$suffix"
+          test=tests/unit/test_web_jobs.py::test_events_keep_the_stream_alive_and_end_when_the_server_stops
+          pass=0; fail=0
+          for i in $(seq 40); do
+            if uv run pytest "$test" -q; then pass=$((pass+1)); else fail=$((fail+1)); fi
           done
-
-  # The interface in a real browser (#77, #8, D-259): main flow, keyboard-only path and
-  # axe-core. Chromium on Linux on every PR; Firefox and WebKit on a PR that changes a web
-  # path (browser-reported) and in the nightly.
-  # Two shards on two runners, half the tests each, so the browser tests no longer set the
-  # run's length (D-759, CI speed plan item 3): every shard must pass for "CI passed".
-  browser:
-    name: browser (Linux, Chromium, ${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
-          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
-      - run: uv sync --locked
-      # A CI download of the test browser; the tests themselves never use the network.
-      # The Playwright browser comes from the cache when the playwright version is unchanged;
-      # `install --with-deps` still adds the system packages and skips a cached download.
-      - name: Where the Playwright browsers go, and their version
-        id: playwright
-        shell: bash
-        run: |
-          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
-          echo "version=$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
-      # CI publishes nothing, so the release/* push trigger is no publishing path; the cached
-      # browser only runs the tests of this job (the release workflow uses no cache).
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # zizmor: ignore[cache-poisoning] v6.1.0
-        with:
-          path: ${{ runner.temp }}/ms-playwright
-          key: ms-playwright-${{ runner.os }}-chromium-${{ steps.playwright.outputs.version }}
-      - name: Install Chromium for Playwright
-        run: uv run playwright install --with-deps chromium
-      # Every second collected test from this shard's number on, so a new test file needs no
-      # change here and the slow tests of one file are spread over both shards.
-      - name: The tests of this shard
-        env:
-          SHARD: ${{ matrix.shard }}
-        run: uv run --no-sync python .github/scripts/browser_shard.py chromium "$SHARD" 2 "$RUNNER_TEMP/shard.txt"
-      - name: Browser tests (main flow, keyboard, axe-core)
-        run: uv run pytest -m browser --browser chromium -rA "@$RUNNER_TEMP/shard.txt"
-        env:
-          HYPOTHESIS_PROFILE: ci
-
-  # Does this PR change the web interface or its browser tests (D-759, plan item 4)? Then
-  # Firefox and WebKit on Linux run too. Not a PR (main, release/*, by hand): they run nightly.
-  web-paths:
-    name: web paths
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read  # the PR's list of changed files
-    outputs:
-      web: ${{ steps.files.outputs.web }}
-    steps:
-      - name: Does this PR change the web interface or its browser tests
-        id: files
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-        run: |
-          if [ -z "$PR" ]; then
-            echo "web=false" >> "$GITHUB_OUTPUT"
-            echo "Not a PR: Firefox and WebKit run in the nightly."
-            exit 0
-          fi
-          gh api --paginate "repos/$REPO/pulls/$PR/files?per_page=100" \
-            --jq '.[] | .filename, (.previous_filename // empty)' > files.txt
-          if grep -E '^(src/sci2audio/(web|app)/|tests/browser/)' files.txt; then
-            echo "web=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "web=false" >> "$GITHUB_OUTPUT"
-            echo "No web path changed: Firefox and WebKit run in the nightly."
-          fi
-
-  # Firefox and WebKit on Linux for a PR that changes a web path (D-759, plan item 4). Reported
-  # only until #437 closes: "CI passed" does not need them and its check of every job skips a
-  # name with "reported only" in it. The nightly still runs all engines, WebKit on macOS too.
-  browser-reported:
-    name: browser (Linux, ${{ matrix.browser }}, ${{ matrix.shard }}/2, reported only)
-    needs: web-paths
-    if: needs.web-paths.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 40  # `playwright install --with-deps` can wait long on apt
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [firefox, webkit]
-        shard: [1, 2]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
-          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
-      - run: uv sync --locked
-      - name: Where the Playwright browsers go, and their version
-        id: playwright
-        shell: bash
-        run: |
-          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
-          echo "version=$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # zizmor: ignore[cache-poisoning] v6.1.0
-        with:
-          path: ${{ runner.temp }}/ms-playwright
-          key: ms-playwright-${{ runner.os }}-${{ matrix.browser }}-${{ steps.playwright.outputs.version }}
-      - name: Install the browser for Playwright
-        env:
-          BROWSER: ${{ matrix.browser }}
-        run: uv run playwright install --with-deps "$BROWSER"
-      # A runner has no sound card: Firefox then fails every <audio>, so the player tests
-      # need a sound server that plays into its null sink (#205).
-      - name: A silent sound server for Firefox
-        if: matrix.browser == 'firefox'
-        run: |
-          sudo apt-get install --yes --no-install-recommends pulseaudio
-          pulseaudio --start --exit-idle-time=-1
-      - name: The tests of this shard
-        env:
-          BROWSER: ${{ matrix.browser }}
-          SHARD: ${{ matrix.shard }}
-        run: uv run --no-sync python .github/scripts/browser_shard.py "$BROWSER" "$SHARD" 2 "$RUNNER_TEMP/shard.txt"
-      - name: Browser tests (main flow, keyboard, axe-core)
-        env:
-          BROWSER: ${{ matrix.browser }}
-          HYPOTHESIS_PROFILE: ci
-        run: uv run pytest -m browser --browser "$BROWSER" -rA "@$RUNNER_TEMP/shard.txt"
-
-  # The only check required by the ruleset on main. Its name must not change.
-  ci-passed:
-    name: CI passed
-    if: always()
-    needs: [lint, licences, security, tests, browser, web-paths]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read  # to read the result of every job of this run (#548)
-    steps:
-      - name: Fail if any required job did not succeed
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
-        env:
-          RESULTS: ${{ toJSON(needs) }}
-        run: |
-          echo "At least one job did not succeed: $RESULTS"
-          exit 1
-      # needs.<job>.result of a matrix job can read success while one of its legs was
-      # cancelled, e.g. a macOS leg that never got a runner (#548). So every job of this run,
-      # each matrix leg on its own, is read back and must have succeeded.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          sparse-checkout: .github/scripts
-      - name: Fail if any job of this run did not succeed (every matrix leg)
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-        run: python3 .github/scripts/ci_passed.py
-      - run: echo "All checks passed."
-      - name: Which systems ran the tests
+          echo "alone: $pass PASSED, $fail FAILED" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$fail" -eq 0
+      - name: The whole fast suite with -n auto, 4 runs
         if: always()
+        shell: bash
         env:
-          FULL: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full') }}
+          HYPOTHESIS_PROFILE: ci
         run: |
-          if [ "$FULL" = true ]; then
-            echo "Tests ran on Linux, macOS and Windows." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Tests ran on Linux only: add the label ci:full for macOS and Windows (D-580)." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          pass=0; fail=0
+          for i in $(seq 4); do
+            if uv run pytest -m "not slow and not benchmark and not browser" -n auto -q; then pass=$((pass+1)); else fail=$((fail+1)); fi
+          done
+          echo "full suite -n auto: $pass PASSED, $fail FAILED" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$fail" -eq 0
