@@ -40,13 +40,14 @@ from sci2audio.core import (
 )
 from sci2audio.extraction.cover import Cover, media_type, small_enough
 from sci2audio.extraction.errors import ExtractionError
-from sci2audio.extraction.htmlparser import HTMLParser
 from sci2audio.extraction.language import stated_language
 from sci2audio.extraction.markup import (
     Anchors,
     Budget,
     PageReader,
+    TagLimitedParser,
     TooMuchText,
+    check_line,
     clean_path,
     fold,
     resolve,
@@ -275,7 +276,7 @@ class _Book:
             reader = PageReader(number, item.path, anchors, budget)
             try:
                 reader.read(_decode(data))
-            except (AssertionError, ValueError) as error:  # html.parser gave up
+            except (AssertionError, ValueError) as error:  # the HTML parser gave up
                 raise ExtractionError(
                     f"{self.name}: the EPUB is damaged: {item.path} cannot be read"
                 ) from error
@@ -499,11 +500,13 @@ class _Entry:
     fragment: str = ""
 
 
-class _NavReader(HTMLParser):
+class _NavReader(TagLimitedParser):
     """The entries of the navigation document's `nav epub:type="toc"`, in order (D-311).
 
-    Every tag, comment and declaration counts towards `markup.MAX_MARKUP`, as in the
-    chapters (#329): past it the reader stops and the book has no outline."""
+    Its markup counts towards `markup.MAX_MARKUP` on its own (#329): every start tag and
+    every end tag (unlike in a chapter, matched ones too, so a self-closed tag counts twice),
+    comment and declaration. A label is bounded by `markup.MAX_LINE` and a tag by
+    `markup.MAX_TAG`. Past any of them the reader stops and the book has no outline."""
 
     def __init__(self, path: str) -> None:
         super().__init__(convert_charrefs=True)
@@ -512,6 +515,7 @@ class _NavReader(HTMLParser):
         self.nav = 0  # depth inside the toc nav (0: outside)
         self.lists = 0  # <ol>/<ul> depth inside it
         self.label: list[str] | None = None  # text of the label being read
+        self.label_length = 0  # its characters (#329 review F2)
         self.label_tag = ""
         self.labelled: list[bool] = []  # per open <li>: label read already
         self.done = False
@@ -560,7 +564,7 @@ class _NavReader(HTMLParser):
         elif (
             tag in ("a", "span") and self.labelled and not self.labelled[-1] and self.label is None
         ):
-            self.label, self.label_tag = [], tag
+            self.label, self.label_tag, self.label_length = [], tag, 0
             if tag == "a" and (href := values.get("href")):
                 path, fragment = resolve(self.path, href)
                 self.found[-1].path, self.found[-1].fragment = path, fragment
@@ -589,6 +593,8 @@ class _NavReader(HTMLParser):
 
     def handle_data(self, data: str) -> None:
         if self.label is not None:
+            self.label_length += len(data)
+            check_line(self.label_length)
             self.label.append(data)
 
 

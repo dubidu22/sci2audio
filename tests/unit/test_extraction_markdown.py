@@ -638,10 +638,19 @@ def test_the_line_and_markup_limits_of_the_page_reader_apply(
     )
 
 
+def test_the_tag_limit_applies_to_html_in_markdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(markup_module, "MAX_TAG", 100)
+    assert texts(read("<p" + " a" * 48 + ">x</p>\n")) == ["x"]  # 100 characters
+    assert outcome("<p" + " a" * 49 + ">x</p>\n") == (
+        "notes.md: the Markdown holds a tag longer than 100 characters"
+    )
+
+
 def test_the_limits_are_the_decided_ones() -> None:
     assert (markdown_module.MAX_LINES, markdown_module.MAX_MARKS) == (250_000, 500_000)
     assert markup_module.MAX_ITEMS == 1_000_000  # D-579
     assert markdown_module.MAX_BLOCK == 4_000_000  # D-777
+    assert markup_module.MAX_TAG == 1_000_000  # D-783
 
 
 # ---- properties --------------------------------------------------------------------------
@@ -685,6 +694,7 @@ def test_with_low_limits_any_markdown_reads_or_names_a_limit(text: str) -> None:
         r"|the Markdown holds a paragraph or block longer than 12 characters"
         r"|the Markdown holds too much markup to read \(more than 9 tags"
         r"|the Markdown holds a paragraph longer than 6 characters"
+        r"|the Markdown holds a tag longer than 8 characters"
     )
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(markdown_module, "MAX_LINES", 4)
@@ -693,6 +703,7 @@ def test_with_low_limits_any_markdown_reads_or_names_a_limit(text: str) -> None:
         patch.setattr(markup_module, "MAX_ITEMS", 8)
         patch.setattr(markup_module, "MAX_MARKUP", 9)
         patch.setattr(markup_module, "MAX_LINE", 6)
+        patch.setattr(markup_module, "MAX_TAG", 8)
         content = outcome(text)
     if isinstance(content, str):
         assert re.match(rf"notes\.md: (?:{limits})", content), content
