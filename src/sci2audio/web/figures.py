@@ -217,7 +217,10 @@ class Figures:
             return None
         shown = found[0]
         if shown.region is None:
-            picture = extract_epub_picture(source, shown.ref)
+            # the reader holds the whole book in memory: one read a document at a time, so
+            # a page of lazy images does not hold it six times over (#582 review F1)
+            with self._lock(document_id):
+                picture = extract_epub_picture(source, shown.ref)
             return None if picture is None else Image(picture.data, picture.media_type)
         name = cache_name(document_id, shown.region)
         cached = read_cached(folder, name)
@@ -246,7 +249,7 @@ def _following(catalog: Catalog, document_id: str, asked: Shown, folder: Path) -
         for shown in catalog.images(index):
             if shown.region is None or (index == asked.block and shown.n <= asked.n):
                 continue
-            if read_cached(folder, cache_name(document_id, shown.region)) is None:
+            if not is_kept(folder, cache_name(document_id, shown.region)):
                 found.append(shown.region)
             if len(found) >= BATCH - 1:
                 return found
@@ -271,6 +274,20 @@ def _real_folder(path: Path) -> bool:
         return stat.S_ISDIR(path.lstat().st_mode)
     except OSError:
         return False
+
+
+def is_kept(folder: Path, name: str) -> bool:
+    """Whether a crop looks kept, without reading it: a regular file (never a link) of at
+    most `FILE_LIMIT` bytes in a real `figures/` folder. `read_cached` still checks it
+    before it is served, so a bad file is rendered again when it is asked for."""
+    figures = folder / CACHE_FOLDER
+    if not _real_folder(figures):
+        return False
+    try:
+        info = (figures / name).lstat()
+    except OSError:
+        return False
+    return stat.S_ISREG(info.st_mode) and info.st_size <= FILE_LIMIT
 
 
 def read_cached(folder: Path, name: str) -> bytes | None:

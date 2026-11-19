@@ -10,6 +10,7 @@ import os
 import re
 import struct
 import threading
+import time
 from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
@@ -37,6 +38,7 @@ from sci2audio.web.figures import (
     Figures,
     cache_name,
     images,
+    is_kept,
     prune,
     read_cached,
     write_cached,
@@ -597,3 +599,128 @@ def test_a_command_line_job_shows_no_figure(tmp_path: Path) -> None:
     assert page.status_code == 200
     assert 'class="block notice s"' in page.text
     assert '<img class="figure"' not in page.text
+
+
+# ---- round 1 of the review (#582) --------------------------------------------------------
+
+
+def test_one_document_reads_its_book_once_at_a_time(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review F1: the EPUB reader holds the whole book in memory, so six lazy images asked
+    at once read it one after the other, and every answer is still the picture."""
+    document = build_document(read_epub(figure_epub(), "book.epub"))
+    source = tmp_path / "book.epub"
+    source.write_bytes(figure_epub())
+    doc = document.content.source.sha256[:16]
+    blocks = kinds(document)[BlockKind.FIGURE]
+    real = figures.extract_epub_picture
+    running = [0]
+    most = [0]
+    guard = threading.Lock()
+
+    def counted(path: Path, ref: str) -> Any:
+        with guard:
+            running[0] += 1
+            most[0] = max(most[0], running[0])
+        try:
+            time.sleep(0.05)
+            return real(path, ref)
+        finally:
+            with guard:
+                running[0] -= 1
+
+    monkeypatch.setattr(figures, "extract_epub_picture", counted)
+    shown = Figures()
+    results: list[Any] = []
+
+    def ask(block: int) -> None:
+        results.append(
+            shown.image(doc, document, block, 0, source, tmp_path, lambda: nullcontext(None))
+        )
+
+    threads = [threading.Thread(target=ask, args=(blocks[n % 2],)) for n in range(6)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(30)
+    assert most[0] == 1
+    assert len(results) == 6
+    assert all(result is not None and result.data == PNG for result in results)
+
+
+def _figure_pages() -> list[list[Text | Rect]]:
+    return [
+        [Text(f"Page {n} holds another chart.", 72, 80, size=11), Rect(100, 100 + 40 * n, 400, 350)]
+        for n in range(1, 4)
+    ]
+
+
+def test_a_miss_does_not_read_the_kept_crops_after_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review F3: the crops after the asked one are looked at (`is_kept`), never read."""
+    data = figure_pdf(*_figure_pages())
+    document = pdf_document(data)
+    source = tmp_path / "paper.pdf"
+    source.write_bytes(data)
+    folder = tmp_path / "project"
+    folder.mkdir()
+    doc = document.content.source.sha256[:16]
+    catalog = Catalog(document)
+    first, *later = [
+        shown for n in kinds(document)[BlockKind.FIGURE] for shown in catalog.images(n)
+    ]
+    assert len(later) == 3
+    for shown in later:
+        assert shown.region is not None
+        assert write_cached(folder, cache_name(doc, shown.region), PNG)
+    read: list[str] = []
+    real_read = figures.read_cached
+
+    def counted(where: Path, name: str) -> bytes | None:
+        read.append(name)
+        return real_read(where, name)
+
+    rendered: list[int] = []
+    real_render = figures.extract_pdf_regions
+
+    def render(path: Path, regions: list[Region]) -> list[bytes | None]:
+        rendered.append(len(regions))
+        return real_render(path, regions)
+
+    monkeypatch.setattr(figures, "read_cached", counted)
+    monkeypatch.setattr(figures, "extract_pdf_regions", render)
+
+    class Here:
+        folder = tmp_path / "project"
+
+    found = Figures().image(
+        doc, document, first.block, 0, source, folder, lambda: nullcontext(Here())
+    )
+    assert found is not None
+    assert first.region is not None
+    assert set(read) == {cache_name(doc, first.region)}  # only the asked one is read
+    assert rendered == [1]  # the kept ones are not rendered again
+
+
+def test_is_kept_looks_without_reading(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    folder = tmp_path / CACHE_FOLDER
+    folder.mkdir()
+    (folder / "a.png").write_bytes(PNG)
+    outside = tmp_path / "outside.png"
+    outside.write_bytes(PNG)
+    (folder / "link.png").symlink_to(outside)
+    (folder / "dir.png").mkdir()
+    (folder / "big.png").write_bytes(PNG + b"x" * 20)
+    monkeypatch.setattr(figures, "FILE_LIMIT", len(PNG) + 10)
+    opened: list[object] = []
+    real_open = figures.os.open
+    monkeypatch.setattr(figures.os, "open", lambda *a, **k: opened.append(a) or real_open(*a, **k))
+    assert is_kept(tmp_path, "a.png")
+    assert not is_kept(tmp_path, "link.png")
+    assert not is_kept(tmp_path, "dir.png")
+    assert not is_kept(tmp_path, "big.png")
+    assert not is_kept(tmp_path, "missing.png")
+    assert not is_kept(tmp_path / "nowhere", "a.png")
+    assert opened == []

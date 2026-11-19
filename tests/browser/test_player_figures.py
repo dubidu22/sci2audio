@@ -28,6 +28,21 @@ def figure_pdf() -> bytes:
     )
 
 
+def late_figure_pdf() -> bytes:
+    """Six pages of text, then the figure on page 7: far below the first screen."""
+    words = "Sentence {n} of page {p} says a little more about things."
+    text = [
+        [Text(words.format(n=n, p=p), 72, 80 + 30 * n, size=11) for n in range(1, 20)]
+        for p in range(1, 7)
+    ]
+    figure = [
+        Text("The last page shows a chart.", 72, 80, size=11),
+        Rect(100, 150, 400, 350),
+        Text("Figure 1: A late chart.", 100, 370, size=9),
+    ]
+    return make_pdf(*text, figure)
+
+
 def open_figure(page: Page, live: Live, tmp_path: Path) -> None:
     listen_to(page, live, tmp_path / "chart.pdf", figure_pdf())
     at_rest(page)
@@ -119,3 +134,31 @@ def test_the_page_with_a_figure_passes_axe_in_light_dark_and_german(
     expect(page.locator(FIGURE)).to_have_attribute("alt", "Figure 1: A chart of things.")
     check_axe(page, "listen with a figure, German")
     page.set_extra_http_headers({})
+
+
+def test_a_figure_below_the_first_screen_loads_when_scrolled_to(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """Review F2 of #582: a lazy image that has not started is not hidden as failed at
+    start (it would then never load), and it loads once scrolled to."""
+    page = signed_in
+    listen_to(page, live, tmp_path / "late.pdf", late_figure_pdf())
+    at_rest(page)
+    figure = page.locator(FIGURE)
+    expect(figure).to_have_count(1)
+    below = page.evaluate(
+        "(s) => document.querySelector(s).getBoundingClientRect().top > window.innerHeight",
+        FIGURE,
+    )
+    assert below
+    state = page.evaluate(
+        "(s) => { const i = document.querySelector(s); return [i.hidden, i.naturalWidth]; }",
+        FIGURE,
+    )
+    assert state == [False, 0]
+    figure.scroll_into_view_if_needed()
+    page.wait_for_function(
+        "(s) => { const i = document.querySelector(s); return i.complete && i.naturalWidth > 0; }",
+        arg=FIGURE,
+    )
+    expect(figure).to_be_visible()
