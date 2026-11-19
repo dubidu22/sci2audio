@@ -1,4 +1,4 @@
-# ruff: noqa: RUF002
+# ruff: noqa: RUF002, RUF003
 # (minus signs, dashes, primes and math letters are what these rules are about)
 """Shared helpers for the number and statistics steps (#67): candidate edits and folding.
 
@@ -57,6 +57,24 @@ def pick(candidates: Iterable[Candidate]) -> list[Candidate]:
             starts.insert(at, candidate.start)
             kept.insert(at, candidate)
     return kept
+
+
+# an arrow printed as two glyphs: PDF text gives a long arrow ("\\longleftarrow",
+# "\\longrightarrow") as an arrow and a minus sign, "←−", "−→", "←−→", also glued to its
+# variables ("X−→α"). The voices read "left minus" and "minus right"; one arrow is "left
+# arrow", "right arrow" ("Linkspfeil", "Rechtspfeil"), never "minus" (#527)
+_TWO_GLYPH_ARROW = re.compile("←\u2212→|←\u2212|\u2212→")
+_ONE_ARROW = {"←\u2212→": "↔", "←\u2212": "←", "\u2212→": "→"}
+
+
+def arrows(text: str) -> list[Candidate]:
+    """Arrows printed as an arrow and a minus sign, read as one arrow (#527)."""
+    found = []
+    for match in _TWO_GLYPH_ARROW.finditer(text):
+        one = _ONE_ARROW[match[0]]
+        reason = f'arrow printed as two glyphs "{match[0]}" read as one arrow "{one}"'
+        found.append(Candidate(*match.span(), one, reason))
+    return found
 
 
 def _overlap(a: Candidate, b: Candidate) -> bool:

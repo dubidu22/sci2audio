@@ -187,6 +187,20 @@ def test_a_url_cut_at_a_line_end_leaves_a_german_sentence_word() -> None:
         ("Das gilt (Hauff 1987, S. iv–vi).", "Das gilt."),
         ("Das gilt (WBGU 2011, S. 1).", "Das gilt."),
         ("Wie Heydorn (1968/2004) zeigt, gilt es.", "Wie Heydorn zeigt, gilt es."),
+        # #483: a surname that is also a noun still cites, and so does a season's word as
+        # soon as anything else shows a citation: a comma, a second author, "et al.", a lead
+        # word, a page, a letter after the year or another citation in the bracket
+        ("Das gilt (Koch 2019).", "Das gilt."),
+        ("Das gilt (Wagner 2020).", "Das gilt."),
+        ("Das gilt (Sommer, 2019).", "Das gilt."),
+        ("Das gilt (Sommer und Koch 2019).", "Das gilt."),
+        ("Das gilt (Sommer et al. 2019).", "Das gilt."),
+        ("Das gilt (Winter u. a. 2019).", "Das gilt."),
+        ("Das gilt (vgl. Sommer 2019).", "Das gilt."),
+        ("Das gilt (Herbst 2019, S. 3).", "Das gilt."),
+        ("Das gilt (Sommer 2019a).", "Das gilt."),
+        ("Das gilt (Sommer 2019; Koch 2020).", "Das gilt."),
+        ("Das gilt (Koch 2020; Sommer 2019).", "Das gilt."),
     ],
 )
 def test_german_citations(printed: str, said: str) -> None:
@@ -221,6 +235,18 @@ def test_german_citations(printed: str, said: str) -> None:
         "Wie Müller (2019/2020) zeigt, gilt es.",
         "Das zeigt (Müller 2019, S. Dix) klar.",
         "Der Anteil (1/2 2019) sank.",
+        # #483: a season, a term or a noun that dates something, alone with a year
+        "Die Daten (Sommer 2019) zeigen es.",
+        "Die Kurse (Wintersemester 2019) zeigen es.",
+        "Die Kurse (Sommersemester 2020) und (WS 2019) zeigen es.",
+        "Die Daten (Herbst 2020) und (Frühjahr 2021) zeigen es.",
+        "Die Daten (Winter 2018) zeigen es.",
+        "Der Bericht (Ausgabe 2018) zeigt es.",
+        "Der Bericht (Stand 2020) zeigt es.",
+        "Der Kurs (SoSe 2020) zeigt es.",
+        "Die Erhebung (Welle 2017) zeigt es.",
+        "Die Zahlen (Mai 2019) zeigen es.",  # a month, as before
+        "Gemessen wurde im (Sommer 2019) und danach.",
     ],
 )
 def test_german_brackets_that_are_no_citation_stay(text: str) -> None:

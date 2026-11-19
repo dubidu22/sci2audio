@@ -42,6 +42,7 @@ from sci2audio.textprep.abbreviations import read_before
 from sci2audio.textprep.notation import (
     FILE_NUMBER_DE,
     Candidate,
+    arrows,
     fold,
     pick,
     unit_follows,
@@ -143,7 +144,7 @@ def year_words(year: int) -> str:
 _PREVIOUS_WORD = re.compile(r"(?P<word>[^\W\d_]+)(?P<dot>\.)?\s+\Z")
 _NEXT_WORD = re.compile(r"\s+(?P<word>[^\W\d_]+)(?P<dot>\.)?")
 # words before a number that make it a year whatever follows (D-479)
-_YEAR_WORDS = frozenset(
+YEAR_WORDS = frozenset(
     {"jahr", "jahre", "jahres", "jahren", "jahrs", "frühjahr", "frühling", "sommer", "herbst"}
     | {"winter", "wintersemester", "sommersemester", "ws", "ss", "wise", "sose"}
     | {month.lower() for month in _MONTH_FORMS}
@@ -180,7 +181,7 @@ def _is_year(text: str, start: int, end: int, years: list[tuple[int, int]]) -> b
     if previous is None:
         return False
     word = previous["word"].lower()
-    if word in _YEAR_WORDS:
+    if word in YEAR_WORDS:
         return True
     if word not in _MAYBE_YEAR_WORDS or previous["dot"]:
         return False
@@ -649,7 +650,10 @@ def _abbreviated_nouns() -> dict[str, str]:
 
 
 _ABBREVIATED_NOUNS = _abbreviated_nouns()
-_AFTER_UHR = re.compile(r"\bUhr\s+\Z")
+# "13 Uhr 30. Jahr" is a second run of "13:30. Jahr": the number after "Uhr" is the minutes.
+# Not after a clock time's own "Uhr" ("13:30 Uhr 3. Mai"): there "3." is a day, read as a
+# second run reads it after "13 Uhr 30" (#557)
+_AFTER_UHR = re.compile(r"(?<!\d[:.]\d\d )(?<!\d[:.]\d\d\n)\bUhr\s+\Z")
 _ORDINAL = re.compile(r"(?<![^\WxX])(?<![,/:\u2013-])" + _STOP + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_])")
 _ISO_DATE = re.compile(
     r"(?<![^\WxX])(?<![:/\u2013-])(?<!\d,)"
@@ -856,6 +860,9 @@ _AFTER_SOURCE = re.compile(r"\bQuellen? (?:\d+(?:, | und | bis ))*\Z")
 
 
 _YEAR_LIKE = re.compile(r"1[1-9]\d\d|20\d\d")  # 1100 to 2099
+# ... nor the rest of a year read in hundreds ("im Jahr 1998. Jahr" reads "19 hundert 98. Jahr";
+# a second run must not read "98." as "achtundneunzigstes", #536)
+_AFTER_HUNDRED = re.compile(r"(?<![\d.,])1[1-9] hundert \Z")
 
 
 def _ordinals(text: str) -> list[Candidate]:
@@ -868,8 +875,10 @@ def _ordinals(text: str) -> list[Candidate]:
             continue  # "0 Komma 0 5. Jahr": the decimal ".05" read, not an ordinal
         if _DATE_BEFORE.search(text, max(0, match.start() - 16), match.start()):
             continue  # "am 3.4. 3. Mai": the date before is left as printed, and so is this
-        if _AFTER_UHR.search(text, max(0, match.start() - 8), match.start()):
+        if _AFTER_UHR.search(text, max(0, match.start() - 16), match.start()):
             continue  # "13 Uhr 30. Jahr", from "13:30. Jahr": the minutes, no ordinal (#253)
+        if _AFTER_HUNDRED.search(text, max(0, match.start() - 16), match.start()):
+            continue  # "19 hundert 98. Jahr", from "1998. Jahr": a year's rest, no ordinal (#536)
         if _AFTER_HOCH.search(text, max(0, match.start() - 16), match.start()):
             continue  # "10 hoch minus 2. Jahr": a power's exponent, not "zweites Jahr"
         if _AFTER_PUNKT.search(text, max(0, match.start() - 8), match.start()):
@@ -1279,6 +1288,7 @@ def find_numbers_de(text: str) -> list[Candidate]:
     kept = sorted(kept + _file_numbers(text))
     found = pick(
         [
+            *arrows(text),
             *_dates(text),
             *_ordinals(text),
             *_roman_numerals(plain),

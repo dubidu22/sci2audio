@@ -54,6 +54,7 @@ from sci2audio.textprep.links import (
     only_links_before,
     without_links,
 )
+from sci2audio.textprep.numbers_de import YEAR_WORDS
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.statistics import OPERATORS, interval_openings
 from sci2audio.textprep.statistics_de import OPERATORS_DE, READ_WORDS
@@ -104,6 +105,11 @@ class CitationWords:
     # author only after one of these words (or at a sentence start), not after an article or
     # an inflected adjective ("die neue Studie (2019)", "Die Olympischen Spiele (2016)")
     name_leads: frozenset[str] | None = None
+    # a season, a term or a noun that stands before a year ("Sommer", "Wintersemester",
+    # "Ausgabe"): alone with a plain year, as a bracket's only part, it dates something and
+    # is no author ("(Sommer 2019)" stays; "(Sommer, 2019)", "(Sommer et al. 2019)", "(vgl.
+    # Sommer 2019)" and "(Sommer 2019; Koch 2020)" still cite, #483)
+    periods: frozenset[str] = frozenset()
 
 
 # a page: digits, or Roman numerals of the front matter ("S. XV", "pp. iv–vi", #455); no "d" or
@@ -256,6 +262,12 @@ WORDS: dict[str, CitationWords] = {
             "zeigten", "fanden", "finden", "schreiben", "beschreiben", "argumentieren", "betonen",
             "nennen", "kamen", "kommen", "folgen", "folgend", "nachdem", "seit", "bereits",
         )),
+        periods=YEAR_WORDS | frozenset((
+            "ausgabe", "auflage", "stand", "fassung", "version", "jahrgang", "semester", "quartal",
+            "saison", "spielzeit", "welle", "erhebung", "erhebungswelle", "zensus", "mikrozensus",
+            "haushaltsjahr", "geschäftsjahr", "berichtsjahr", "kalenderjahr", "schuljahr",
+            "studienjahr",
+        )),
         abbreviations=frozenset((
             "a.", "abb.", "abschn.", "al.", "aufl.", "b.", "bd.", "bspw.", "bzw.", "ca.", "d.",
             "d.h.", "dr.", "etc.", "evtl.", "f.", "ff.", "ggf.", "gl.", "h.", "hrsg.", "inkl.",
@@ -295,6 +307,7 @@ _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
 _GLUES = ".,0123456789"  # what a removal must not join to a digit after it (#308)
 _CLOSE_AHEAD = re.compile(r"\s*\)")
+_PLAIN_YEAR = re.compile(r"\s+(?:1[5-9]\d\d|20\d\d)\s*")  # a year alone, no comma or letter
 _FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
 
 
@@ -1337,8 +1350,23 @@ class _Rules:
         # an acronym is an author only right before ", 2020" ("(WHO, 2020)", not "BERT (") or
         # with a page after the year ("(WBGU 2011, S. 1)", #455); "(EU 2016)" stays as printed
         after = piece[match.end("authors") :]
+        if self._dated_period(text, part, piece, match):
+            return False
         acronym = after.lstrip().startswith(",") or self.page_after.search(after) is not None
         return self._names_ok(match.group("authors"), acronym)
+
+    def _dated_period(
+        self, text: str, part: tuple[int, int], piece: str, match: re.Match[str]
+    ) -> bool:
+        """True for a bracket that is only a season, term or the like and a year: "(Sommer
+        2019)", "(Wintersemester 2019)", "(Ausgabe 2018)" (#483)."""
+        return (
+            match["authors"].lower() in self.words.periods
+            and not piece[: match.start("authors")].strip()
+            and _PLAIN_YEAR.fullmatch(piece, match.end("authors")) is not None
+            and text[part[0] - 1 : part[0]] == "("
+            and text[part[1] : part[1] + 1] == ")"
+        )
 
     def _names_ok(self, authors: str, acronym: bool) -> bool:
         tokens = [
