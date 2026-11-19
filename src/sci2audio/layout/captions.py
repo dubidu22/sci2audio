@@ -1,14 +1,19 @@
-"""Captions: the text that names a table, figure or algorithm (Issue #21 step 3, D-85).
+"""Captions: the text that names a table, figure, algorithm or code listing (Issue #21
+step 3, D-85; #281).
 
-A caption is a text block that opens with "Figure", "Fig.", "Table" or "Algorithm" (or the
-German "Abbildung", "Abb.", "Tabelle", "Tab." or "Algorithmus", #235) and a
+A caption is a text block that opens with "Figure", "Fig.", "Table", "Algorithm" or
+"Listing" (or the German "Abbildung", "Abb.", "Tabelle", "Tab.", "Algorithmus", "Listing" or
+"Quelltext", #235, #281) and a
 number ("3", "A.2", "S1"), and then either a colon or a full stop ("Table 2: …",
 "Figure 1. …"), or the label set in bold and the rest of its line not ("Algorithm 1 CKY").
 Running text that opens the same way ("Figure 1 gives the accuracy …") is neither and
 stays a paragraph. The caption's label is "Table 2", "Figure 1" or "Algorithm 3", as
 printed. An algorithm's caption ends where its numbered lines ("1: …") start; those stay
-a paragraph for now (the pseudocode is #38). A table's or figure's caption is never cut.
-Which block a caption names (`describes`) is set with the placeholders in PR D (D-86).
+a paragraph for now (the pseudocode is #38). A listing's caption ends where its first line
+set wholly in a typewriter font starts: that line is the listing's (#281); a caption whose
+own first line is so set is not cut. A table's or
+figure's caption is never cut. Which block a caption names (`describes`) is set with the
+placeholders in PR D (D-86); a listing's caption names its CODE block (`code`).
 """
 
 from __future__ import annotations
@@ -17,14 +22,17 @@ import re
 from dataclasses import replace
 
 from sci2audio.core import Block, BlockKind, Content, Part, TextLine
+from sci2audio.layout.code import LISTING, monospace_line
 from sci2audio.layout.split import line_starts, split_at
 
 # English and German names, for a document in any language (#235, D-506): "Abb. 1" never
 # opens an English caption, and a German paper read as English still has its captions.
-# "Algorithmus" starts with "Algorithm", so it is an algorithm's caption.
+# "Algorithmus" starts with "Algorithm", so it is an algorithm's caption. German names a
+# listing "Listing" too.
 _NAMES = (
-    "Figure|Fig\\.|Table|Algorithm|FIGURE|FIG\\.|TABLE|ALGORITHM"
-    "|Abbildung|Abb\\.|Tabelle|Tab\\.|Algorithmus|ABBILDUNG|ABB\\.|TABELLE|TAB\\.|ALGORITHMUS"
+    "Figure|Fig\\.|Table|Algorithm|Listing|FIGURE|FIG\\.|TABLE|ALGORITHM|LISTING"
+    "|Abbildung|Abb\\.|Tabelle|Tab\\.|Algorithmus|Quelltext"
+    "|ABBILDUNG|ABB\\.|TABELLE|TAB\\.|ALGORITHMUS|QUELLTEXT"
 )
 # the label, then what follows it: a colon or full stop before white, or anything else
 _LABEL = re.compile(rf"(?P<label>(?:{_NAMES})\s(?:[A-Z]\.?)?\d{{1,3}}(?:\.\d{{1,2}})*)(?P<rest>.*)")
@@ -36,7 +44,7 @@ _ALGORITHM = ("Algorithm", "ALGORITHM")
 
 def find_captions(blocks: list[Block], content: Content) -> list[Block]:
     """The blocks with each caption marked (kind CAPTION, its label), an algorithm's
-    numbered lines cut off into a paragraph of their own."""
+    numbered lines or a listing's code lines cut off into a paragraph of their own."""
     lines = {line.id: line for page in content.pages for line in page.lines}
     out: list[Block] = []
     for block in blocks:
@@ -44,8 +52,14 @@ def find_captions(blocks: list[Block], content: Content) -> list[Block]:
         if label is None:
             out.append(block)
             continue
-        starts = line_starts(block)[1:] if label.startswith(_ALGORITHM) else []
-        cuts = [k for k in starts if _CODE_LINE.match(block.text, k)]
+        if label.startswith(LISTING):  # the listing's first line, set in a typewriter font
+            # a caption whose first line is so set is never cut: its first cut is at 0
+            cuts = [
+                p.start for p in block.parts if p.item in lines and monospace_line(lines[p.item])
+            ]
+        else:
+            starts = line_starts(block)[1:] if label.startswith(_ALGORITHM) else []
+            cuts = [k for k in starts if _CODE_LINE.match(block.text, k)]
         caption, *code = split_at(block, cuts[:1])
         out += [replace(caption, kind=BlockKind.CAPTION, label=label), *code]
     return out

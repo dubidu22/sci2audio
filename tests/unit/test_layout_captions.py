@@ -100,6 +100,23 @@ def test_a_german_label_in_running_text_stays_a_paragraph() -> None:
     assert captions(doc) == []
 
 
+def test_listing_labels_open_captions_in_english_and_german() -> None:
+    """#281: a code listing's caption ("Listing 3: ...", German "Listing" or "Quelltext")."""
+    doc = build(
+        "Listing 3: Drawing a line plot.", "LISTING 2. In capitals.", "Quelltext 1: Ein Plot."
+    )
+    assert captions(doc) == [
+        ("Listing 3", "Listing 3: Drawing a line plot."),
+        ("LISTING 2", "LISTING 2. In capitals."),
+        ("Quelltext 1", "Quelltext 1: Ein Plot."),
+    ]
+
+
+def test_a_listing_named_in_running_text_stays_a_paragraph() -> None:
+    doc = build("Listing 1 shows the loop.", "Quelltext 2 zeigt die Schleife.")
+    assert captions(doc) == []
+
+
 def test_a_bold_label_without_punctuation_opens_a_caption() -> None:
     doc = build(bold("Algorithm 1", " CKY"), "Text after the caption ends.")
     assert captions(doc) == [("Algorithm 1", "Algorithm 1 CKY")]
