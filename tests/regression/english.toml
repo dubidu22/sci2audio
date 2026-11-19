@@ -2924,3 +2924,11 @@ goal = "An initial before a surname that is also an English function word ('Y. H
 blocks = [{ kind = "paragraph", text = "We thank Y. He and X. An for comments on the draft. As shown by K. He and colleagues, residual networks train well." }]
 expected = ["We thank Y. He and X. An for comments on the draft. As shown by K. He and colleagues, residual networks train well."]
 utterances = ["We thank Y. He and X. An for comments on the draft.", "As shown by K. He and colleagues, residual networks train well."]
+
+[[case]]
+id = "an-arrow-printed-as-two-glyphs-and-a-raised-minus-one"
+audit = 0
+issue = 527
+goal = "An arrow printed as two glyphs ('←−', '−→') is read as one arrow ('left arrow', 'right arrow'), never 'minus'. A raised '−1' glued to a closing bracket is left as printed, since without the raise it may be 'f(x) minus 1'; the voice still says 'minus one' there (#589)."
+blocks = [{ kind = "paragraph", text = "Then β(0, S, 0) ←− 0 and P′ ←− (I − P)−1 and S −→ ε hold." }]
+expected = ["Then β(0, S, 0) ← 0 and P′ ← (I − P)−1 and S → ε hold."]
