@@ -382,15 +382,30 @@ def spec_function(name: str) -> object:
     keep = [
         node
         for node in tree.body
-        if (isinstance(node, ast.FunctionDef) and node.name == name)
+        if (isinstance(node, ast.FunctionDef) and node.name in (name, "library_home"))
         or (
             isinstance(node, ast.Assign)
             and all(isinstance(t, ast.Name) and t.id.startswith("TORCH_") for t in node.targets)
         )
     ]
-    space: dict[str, object] = {"os": os, "Path": Path}
+    space: dict[str, object] = {"os": os, "Path": Path, "sys": sys}
     exec(compile(ast.Module(body=keep, type_ignores=[]), "sci2audio.spec", "exec"), space)  # noqa: S102
     return space[name]
+
+
+@pytest.mark.parametrize(
+    ("dest", "home"),
+    [
+        ("torch/lib/libc10.so", True),
+        ("numpy.libs/libscipy_openblas64_.dll", True),  # auditwheel, delvewheel
+        ("sklearn/.dylibs/libomp.dylib", True),  # delocate
+        ("libc10.so", False),
+        ("torch/_C.so", False),
+        ("numpy/core/_multiarray_umath.so", False),
+    ],
+)
+def test_the_spec_knows_where_packages_keep_their_libraries(dest: str, home: bool) -> None:
+    assert spec_function("library_home")(str(Path(dest))) is home  # type: ignore[operator]
 
 
 def test_the_spec_keeps_one_copy_of_torchs_libraries_and_leaves_torch_bin_out(
@@ -402,9 +417,14 @@ def test_the_spec_keeps_one_copy_of_torchs_libraries_and_leaves_torch_bin_out(
         (lib / name).write_bytes(b"x")
     other = tmp_path / "libssl.so"
     other.write_bytes(b"x")
+    blas = tmp_path / "numpy.libs" / "libscipy_openblas64_-ed4f.dll"
+    blas.parent.mkdir()
+    blas.write_bytes(b"x")
     binaries = [
         ("libc10.so", str(lib / "libc10.so"), "BINARY"),  # the analysis's copy at the top
-        ("libssl.so", str(other), "BINARY"),  # not torch's: stays
+        ("libssl.so", str(other), "BINARY"),  # in no package's library folder: stays
+        (blas.name, str(blas), "BINARY"),  # numpy.libs's copy at the top (Windows)
+        (str(Path("numpy.libs") / blas.name), str(blas), "BINARY"),
         (str(Path("torch/bin/protoc")), str(tmp_path / "protoc"), "BINARY"),
     ]
     datas = [
@@ -415,8 +435,10 @@ def test_the_spec_keeps_one_copy_of_torchs_libraries_and_leaves_torch_bin_out(
     ]
     one_copy = spec_function("one_copy")
     everything = binaries + datas
-    assert one_copy(binaries, everything) == [("libssl.so", str(other), "BINARY")]  # type: ignore[operator]
-    assert one_copy(datas, everything) == [datas[0], datas[1], datas[3]]  # type: ignore[operator]
+    assert one_copy(binaries, everything, top_level=True) == [binaries[1], binaries[3]]  # type: ignore[operator]
+    # macOS: every binary's @rpath is the top of the folder; only torch/bin goes
+    assert one_copy(binaries, everything, top_level=False) == binaries[:4]  # type: ignore[operator]
+    assert one_copy(datas, everything, top_level=True) == [datas[0], datas[1], datas[3]]  # type: ignore[operator]
     spec = (PACKAGING / "sci2audio.spec").read_text(encoding="utf-8")
     assert "found.binaries = one_copy(without_imageio_ffmpeg(found.binaries), everything)" in spec
     assert "found.datas = one_copy(without_imageio_ffmpeg(found.datas), everything)" in spec
