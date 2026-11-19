@@ -36,6 +36,7 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
+from sci2audio.textprep.footnotes import _after_name
 
 EN = StepContext("en")
 STEP = "affiliation-marks"
@@ -302,6 +303,20 @@ def test_a_mark_at_a_line_start_comes_before_an_affiliation() -> None:
     block = Block(BlockKind.PARAGRAPH, one.text, (Part("l0"),))
     content = Content(Source("title.pdf", SourceFormat.PDF), (Page(1, (one,)),))
     assert removed(Document(content=content, language="en", blocks=(block,))) == ["1"]
+
+
+@pytest.mark.parametrize(
+    ("text", "start", "end", "after"),
+    [
+        ("Jane Roe,1 Ann", 9, 10, True),  # REVTeX: the comma set before the mark (#585 review)
+        ("Mapping 12CO,13CO and", 13, 15, False),  # a mass number glued after a comma
+        ("Mapping 12CO, 13CO", 14, 16, False),
+    ],
+)
+def test_a_comma_glued_before_the_mark_belongs_to_the_name(
+    text: str, start: int, end: int, after: bool
+) -> None:
+    assert _after_name(text, start, end) is after
 
 
 # ---- footnote marks ---------------------------------------------------------------------

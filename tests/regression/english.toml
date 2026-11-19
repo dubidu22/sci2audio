@@ -2526,6 +2526,19 @@ blocks = [
 ]
 expected = ["Cold 13CO in the Taurus cloud", "Jane Roe and Ann Lee Example Observatory, Space Lab"]
 
+[[case]]
+id = "affiliation-marks-after-a-comma-in-the-author-line"
+audit = 0
+issue = 448
+goal = "An author line with its marks after a comma (REVTeX: 'Roe,¹˒² Ann Lee,¹') opens the affiliations; every author and affiliation mark goes (#585 review round 1)."
+blocks = [
+    { kind = "paragraph", text = "Cold atoms in orbit" },
+    { kind = "paragraph", runs = ["Jane Roe,", { sup = "1,2" }, " Ann Lee,", { sup = "1" }, " and Bo Kim", { sup = "2" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Department of Physics, Example University"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "AI Lab, Example City"] },
+]
+expected = ["Cold atoms in orbit", "Jane Roe, Ann Lee, and Bo Kim", "Department of Physics, Example University", "AI Lab, Example City"]
+
 # Figure and table notices name the figure by its caption label as the caption reads it, on
 # both runs (#374, D-707): a range, a fraction, a power or a multiplier in the label is read
 # as in the caption. A formula notice keeps its printed number (#362: English unchanged).

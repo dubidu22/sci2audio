@@ -2365,6 +2365,20 @@ blocks = [
 expected = ["13CO-Beobachtungen der Taurus-Wolke", "Jana Rot", "Beispiel-Sternwarte, Beispielstadt"]
 
 [[case]]
+id = "de-affiliation-marks-after-a-comma-in-the-author-line"
+audit = 0
+issue = 448
+goal = "A German author line with its marks after a comma opens the affiliations; every author and affiliation mark goes (#585 review round 1)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kalte Atome" },
+    { kind = "paragraph", runs = ["Jana Rot,", { sup = "1" }, " Anna Lee,", { sup = "2" }, " und Bo Kim", { sup = "1" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Institut für Physik"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "KI Labor"] },
+]
+expected = ["Kalte Atome", "Jana Rot, Anna Lee, und Bo Kim", "Institut für Physik", "KI Labor"]
+
+[[case]]
 id = "de-notice-label-read-as-its-caption"
 audit = 0
 issue = 370
