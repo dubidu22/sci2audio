@@ -589,6 +589,11 @@ function documentPage() {
       say(explain(error), true);
     }
   });
+  // a page drawn while the analysis still runs (or is just ending, its report already
+  // there) reloads itself when it ends, which would cancel a start halfway: the remembered
+  // choices and the move to the job page (#299). Make waits for the reloaded page; the
+  // status already says the analysis is running.
+  if (box.dataset.events) make.disabled = true;
   refresh();
 }
 

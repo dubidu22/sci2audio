@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import dataclasses
 import errno
+import hashlib
 import itertools
 import json
 import os
 import re
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -893,14 +895,67 @@ def test_text_from_the_file_is_escaped(tmp_path: Path) -> None:
     assert "&lt;script&gt;alert(1)" in page
 
 
+def settle(path: Path, ns: int | None = None) -> int:
+    """Give the file a time long enough ago that the caches keep it (`RACY_NS`)."""
+    ns = time.time_ns() - 10 * player.RACY_NS if ns is None else ns
+    os.utime(path, ns=(ns, ns))
+    return ns
+
+
 def test_the_readalong_file_is_read_once_per_version(tmp_path: Path) -> None:
     path = tmp_path / "Book.readalong.json"
     path.write_text(to_json(readalong([(0, 0, 1)])), encoding="utf-8")
+    settle(path)
     first = player.load_readalong(path)
     assert player.load_readalong(path) is first
     path.write_text(to_json(readalong([(0, 0, 1), (0, 1, 2)])), encoding="utf-8")
     os.utime(path, ns=(1, 1))
     assert len(player.load_readalong(path).chunks) == 2
+
+
+def same_size_texts() -> tuple[bytes, bytes]:
+    """Two read-along files of the same size in bytes (written as bytes, so Windows adds
+    no carriage returns)."""
+    first = to_json(readalong([(0, 0, 1)])).encode()
+    second = to_json(readalong([(0, 0, 2)])).encode()
+    assert first != second
+    assert len(first) == len(second)
+    return first, second
+
+
+def test_a_readalong_file_made_again_with_the_same_size_and_time_is_read_again(
+    tmp_path: Path,
+) -> None:
+    """#407: the audio job replaces the file whole; where the clock gives the new file the
+    old one's time (Windows) and it has the same size, its new identity tells them apart."""
+    path = tmp_path / "Book.readalong.json"
+    first, second = same_size_texts()
+    path.write_bytes(first)
+    seen = settle(path)
+    assert player.load_readalong(path).chunks[0].span == Span(0, 0, 1)
+    new = tmp_path / "Book.readalong.json.new"
+    new.write_bytes(second)
+    os.replace(new, path)  # as write_texts does: a new file in the old one's place
+    settle(path, seen)
+    assert os.stat(path).st_size == len(first)
+    assert player.load_readalong(path).chunks[0].span == Span(0, 0, 2)
+
+
+def test_a_fresh_readalong_file_rewritten_in_place_is_read_again(tmp_path: Path) -> None:
+    """A rewrite in place keeps the identity, and within one clock tick the time and size
+    too: a file changed in the last two seconds is read each time (#407, as #403 B1)."""
+    path = tmp_path / "Book.readalong.json"
+    first, second = same_size_texts()
+    path.write_bytes(first)
+    seen = os.stat(path).st_mtime_ns
+    assert player.load_readalong(path).chunks[0].span == Span(0, 0, 1)
+    assert player.audiobook_stamp(path) == hashlib.sha256(first).hexdigest()[:16]
+    with path.open("r+b") as stream:  # in place: the same inode
+        stream.write(second)
+    os.utime(path, ns=(seen, seen))
+    assert player.load_readalong(path).chunks[0].span == Span(0, 0, 2)
+    # the stamp asked for before the rewrite is not kept for the new bytes (#601 R1-1)
+    assert player.audiobook_stamp(path) == hashlib.sha256(second).hexdigest()[:16]
 
 
 def test_a_broken_document_record_is_named(tmp_path: Path) -> None:
