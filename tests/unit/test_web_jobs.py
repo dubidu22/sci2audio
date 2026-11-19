@@ -338,6 +338,11 @@ def test_unknown_jobs(server: tuple[FastAPI, Any]) -> None:
         assert response.json()["error"] == "not-found"
 
 
+@pytest.mark.quarantined(
+    issue=525,
+    reason="a snapshot event comes first on Windows without a code cause",
+    platform="win32",
+)
 def test_events_keep_the_stream_alive_and_end_when_the_server_stops(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -18,6 +18,7 @@ from pdf_maker import Text, make_pdf
 
 from sci2audio.testing import no_network
 from sci2audio.web import ServerConfig, create_app, new_token
+from sci2audio.web.project import folder_name
 
 PORT = 8123
 ORIGIN = f"http://127.0.0.1:{PORT}"
@@ -190,3 +191,9 @@ def set_marker(client: TestClient, doc: str, chunk: int, stamp: str, status: int
     )
     assert response.status_code == status, response.text
     return response.json()
+
+
+def book_folder(output: Path, name: str = "paper.pdf") -> Path:
+    """Where the audiobook of a document opened as `name` goes in `output`: its project's
+    own folder (D-749)."""
+    return output / folder_name(name)

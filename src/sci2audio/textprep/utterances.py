@@ -9,10 +9,14 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
 - A sentence ends after ".", "?" or "!" (closing quotes or brackets may follow) when white
   space and then an upper-case letter, a digit or an opening quote or bracket follow, except
   after an abbreviation of the language ("Fig.", "et al.", "e.g."; "No.", "p." and the like
-  only before a number) or a single initial ("J. Smith"; so "set A. Then" stays one
-  utterance, which the length limit still caps), and never inside a replacement. A single
-  capital after a maths symbol ("x \u2208 N. This", #141) or a label word ("see Appendix C.
-  It") is no initial, so its full stop ends the sentence (D-719).
+  only before a number) or a single initial ("J. Smith"), and never inside a replacement. A
+  single capital after a maths symbol ("x \u2208 N. This", #141) or a label word ("see
+  Appendix C. It") is no initial, so its full stop ends the sentence (D-719).
+- English (#477, D-744): an initial, and a dotted capital abbreviation of two or more letters
+  ("U.S.", "J.R.R."), end a sentence only before a sentence opener of
+  `data/en/sentence_openers.toml` ("set A. Then", "the U.S. The data"), not before a name
+  ("J. Smith", "U.S. Census Bureau"). Its limit: "in the U.S. Researchers found" stays one
+  utterance (a pause and the pitch move, no text is lost).
 - A section number alone ("1.", "2.1.") starts the sentence of its title ("1. Introduction");
   its full stop ends nothing (D-719).
 - When a step removed printed text that ended the sentence, the sentence ends there even after
@@ -61,7 +65,12 @@ from sci2audio.core import Document, ScriptPiece, Span
 from sci2audio.textprep.spoken import spoken_text
 from sci2audio.textprep.wordlists import abbreviations, clause_openers, opens_sentence, units
 
-DEFAULT_MAX_CHARS = 300  # well under Kokoro's per-call limit; #18 sets the voice's own
+# Kokoro speaks about 510 phoneme tokens per call. Measured on prose (#480, #494): English 0.97
+# tokens per character, German 1.07 to 1.16, so 400 characters are about 464 tokens at the
+# worst; a sentence spoken whole keeps the voice's own pause and pitch at its commas. Denser
+# text (digits the voice reads out, symbols) can pass 510; the voice then splits it itself at
+# punctuation, else at a space, and speaks all of it (slow tests of #494)
+DEFAULT_MAX_CHARS = 400
 
 # words that end in a full stop without ending a sentence, lower case, by language
 ABBREVIATIONS: dict[str, frozenset[str]] = {
@@ -124,8 +133,9 @@ def _german_abbreviations() -> frozenset[str]:
         words.update(form.lower() for form in unit.printed if form.endswith("."))
     # "o. J." (no year) is left as printed by the abbreviations step, and so is its "o."; so
     # are "Az." before a file number (#406), "Fa." before a name, "UAbs." before its number and
-    # the "e." of "e. V." (D-719)
-    return frozenset(words | {"o.", "j.", "az.", "fa.", "uabs.", "e."})
+    # the "e." of "e. V." (D-719); "et al." ends no sentence, as in English, unless the
+    # citation removed after it ended one ("et al. (2019). Die", #488)
+    return frozenset(words | {"o.", "j.", "az.", "fa.", "uabs.", "e.", "al."})
 
 
 ABBREVIATIONS["de"] = _german_abbreviations()
@@ -145,6 +155,10 @@ _CLOSING_DE = _CLOSING + "\u201c\u2018\u00bb" + _SINGLE_GUILLEMETS
 _OPENING_DE = _OPENING + _SINGLE_GUILLEMETS
 _SENTENCE_END_DE = re.compile(rf"[.?!]+[{re.escape(_CLOSING_DE)}]*(?=\s+(\S))")
 _INITIAL = re.compile(r"\A[A-Z]\.\Z")
+# English: a dotted capital abbreviation of two or more letters ("U.S.", "U.K.", "J.R.R."); like
+# a single initial, it ends a sentence only before a sentence opener ("the U.S. The data", but
+# "U.S. Census Bureau", "J.R.R. Tolkien"; #477, D-744)
+_DOTTED_CAPITALS = re.compile(r"\A(?:[A-Z]\.){2,}\Z")
 _DASHES = "\u2013\u2014"  # en and em dash
 # what an abbreviation may be glued to: brackets, quotes, dashes and a slash ("(2022)[p.",
 # "results\u2014e.g.", #91)
@@ -352,6 +366,7 @@ def _sentences(
     and the fallback cut still keeps it under the limit."""
     text = run.text
     german = language.split("-", 1)[0].lower() == "de"
+    english = language.split("-", 1)[0].lower() == "en"
     closing = _CLOSING_DE if german else _CLOSING
     opening = _OPENING_DE if german else _OPENING
     glued = _GLUED_BEFORE_DE if german else _GLUED_BEFORE
@@ -384,8 +399,20 @@ def _sentences(
             and not (german and len(lowered) == 2 and lowered != whole.lower())
         ):
             continue
-        if _INITIAL.match(whole.lstrip(opening)) and not _letter_of(text, begin, language):
+        if (
+            _INITIAL.match(whole.lstrip(opening))
+            and not _letter_of(text, begin, language)
+            # English: an initial before a sentence opener ends its sentence ("set A. Then";
+            # "J. Smith" does not, #477, D-744)
+            and not (english and opens_sentence(text, match.end(), language))
+        ):
             continue
+        if (
+            english
+            and _DOTTED_CAPITALS.match(word)
+            and not opens_sentence(text, match.end(), language)
+        ):
+            continue  # "U.S. Census Bureau"; "the U.S. The data" is cut (#477, D-744)
         if (
             german
             and _SHORT_NUMBER.match(word)

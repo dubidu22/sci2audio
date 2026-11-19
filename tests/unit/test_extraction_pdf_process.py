@@ -18,6 +18,7 @@ import textwrap
 import threading
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -70,9 +71,6 @@ def allocate_unwatched(size: int) -> int:
 # ---- memory (#185) -------------------------------------------------------------------------
 
 
-@pytest.mark.quarantined(
-    issue=485, reason="child exits 1 on Windows without a code cause", platform="win32"
-)
 def test_a_flate_bomb_is_stopped_at_the_memory_limit_and_this_process_stays_small(
     tmp_path: Path,
 ) -> None:
@@ -92,7 +90,10 @@ def test_a_flate_bomb_is_stopped_at_the_memory_limit_and_this_process_stays_smal
         """
     )
     done = subprocess.run(
-        [sys.executable, "-c", script], capture_output=True, text=True, check=True, timeout=110
+        [sys.executable, "-c", script], capture_output=True, text=True, timeout=110
+    )
+    assert done.returncode == 0, (  # #485: say why the reading process failed
+        f"exit status {done.returncode}\nstdout:\n{done.stdout}\nstderr:\n{done.stderr}"
     )
     message, grown = done.stdout.strip().splitlines()
     assert message == (
@@ -132,6 +133,121 @@ def test_the_hard_limit_stops_an_allocation_the_watch_does_not_see() -> None:
         readers=isolate.Readers(1),
     )
     assert stopped == isolate.Stopped("memory", "opening")
+
+
+def raise_native_out_of_memory() -> None:
+    """A child's work: fail as a PDFium allocation fails on Windows when the job object's
+    hard limit refuses it (#485)."""
+    code = isolate._WINDOWS_OUT_OF_MEMORY
+    error = OSError(None, "exception code 0xe0000008", None, code)
+    if sys.platform != "win32":
+        error.winerror = code  # only Windows fills it in from the arguments
+    raise error
+
+
+def test_a_native_allocation_refused_on_windows_is_the_memory_limit() -> None:
+    """The size message was lost and the error was raised as itself (#485)."""
+    stopped = isolate.run(
+        raise_native_out_of_memory, (), memory=1024**3, step_seconds=60, readers=isolate.Readers(1)
+    )
+    assert stopped == isolate.Stopped("memory", "opening")
+
+
+def os_error(winerror: int | None) -> OSError:
+    error = OSError(5, "denied")
+    error.winerror = winerror
+    return error
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (os_error(0xE0000008 - (1 << 32)), True),
+        (os_error(5), False),  # access denied
+        (os_error(None), False),
+        (OSError(12, "Cannot allocate memory"), False),  # the errno is Python's own concern
+        (RuntimeError("0xe0000008"), False),
+    ],
+)
+def test_only_the_windows_out_of_memory_code_counts(error: BaseException, expected: bool) -> None:
+    assert isolate._out_of_memory(error) is expected
+
+
+def read_unwatched(path: str, limits: dict[str, int]) -> object:
+    """A child's work for the Windows hard-limit test: park the watch, then read the file,
+    so only the job object's limit can stop PDFium."""
+    isolate._WATCH_SECONDS = 3600
+    time.sleep(0.1)  # the watch takes its last look and sleeps
+    return pdf._read_file(path, limits)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="the job object is Windows' own limit")
+def test_the_job_limit_stopping_pdfium_is_the_memory_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """What the flate-bomb test met under load on Windows (#485): the job object refused
+    PDFium's memory before the watch looked, and PDFium's allocator raised 0xE0000008."""
+    monkeypatch.setattr(pdf, "MAX_MEMORY", 300 * MB)
+    path = written(tmp_path, flate_bomb(1100 << 20))
+    stopped = pdf._isolated(read_unwatched, str(path))
+    assert isinstance(stopped, isolate.Stopped)
+    assert stopped.reason == "memory"
+
+
+def report_and_end(step: str) -> None:
+    """A child's work for the closed-pipe test: report a step, then end at once as the
+    memory watch ends a child."""
+    isolate.report(step)
+    os._exit(isolate.MEMORY_EXIT)
+
+
+def test_a_child_that_ended_while_this_process_was_busy_is_named() -> None:
+    """The parent is still handing on the child's last step when the child ends, so it next
+    looks at a pipe that is empty and closed. On Windows that look raised BrokenPipeError,
+    which left `extract_pdf` as an unexplained error (#485: the flate-bomb test failed
+    under load there)."""
+    stopped = isolate.run(
+        report_and_end,
+        ("page 1 of 1",),
+        memory=1024**3,
+        step_seconds=60,
+        readers=isolate.Readers(1),
+        on_step=lambda step: time.sleep(0.5),
+    )
+    assert stopped == isolate.Stopped("memory", "page 1 of 1")
+
+
+class ClosedPipe:
+    """The parent's end of a pipe whose child has ended, as Windows reports it: looking
+    for words raises (PeekNamedPipe, WinError 109)."""
+
+    def poll(self, timeout: float | None = None) -> bool:
+        raise BrokenPipeError(32, "The pipe has been ended")
+
+    def recv(self) -> object:
+        raise AssertionError("nothing to receive")
+
+
+@dataclass
+class EndedChild:
+    exitcode: int
+
+    def join(self) -> None:
+        pass
+
+    def kill(self) -> None:
+        raise AssertionError("the child has already ended")
+
+
+@pytest.mark.parametrize(
+    ("exitcode", "reason"),
+    [(isolate.MEMORY_EXIT, "memory"), (isolate.TIME_EXIT, "time"), (1, "ended")],
+)
+def test_a_closed_pipe_is_read_as_the_child_having_ended(exitcode: int, reason: str) -> None:
+    """On every system: an error from looking at the pipe means the child has ended, and
+    its exit status says why (#485)."""
+    stopped = isolate._wait(EndedChild(exitcode), ClosedPipe(), 60, None, None)  # type: ignore[arg-type]
+    assert stopped == isolate.Stopped(reason, "starting")
 
 
 def test_a_child_within_the_limit_gives_its_result() -> None:

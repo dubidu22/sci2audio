@@ -9,7 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
 from sci2audio.voices import PREVIEW_TEXT
 
-PREVIEW_LIMIT = 300  # characters of a preview sentence: the cutter's utterance limit (Q4)
+# characters of a voice preview text: a short sample, a limit of its own (not the cutter's, #534)
+PREVIEW_LIMIT = 300
 # how fast the voice reads letters it spells out ("NLP"): the keys of app's LETTER_PACES (#295)
 LetterPace = Literal["normal", "slower", "slowest"]
 LETTER_PACE_HELP = "how fast the voice reads letters it spells out, as in NLP (#295)"
@@ -36,16 +37,34 @@ class DocumentOut(BaseModel):
     )
 
 
+class KeptOut(BaseModel):
+    """A file or folder the removal left, and why (#470, D-751)."""
+
+    path: str
+    reason: str = Field(
+        description="changed, not-recorded, link, outside, shared, unreadable or kept-by-choice"
+    )
+    folder: str = Field(
+        description="the audiobook folder it is in; equal to path when a whole folder stayed"
+    )
+
+
 class RemovedOut(BaseModel):
-    """What removing a document took away, and where its audiobook stays (D-358)."""
+    """What removing a document took away and what stayed (D-358, D-751)."""
 
     id: str
     name: str = Field(description="the file name as opened")
     freed_bytes: int = Field(description="bytes of the working folder that were removed")
     audiobook_folder: str | None = Field(
-        description="the folder of the document's latest audiobook, which stays; null when "
-        "none was recorded"
+        description="the folder of the document's latest audiobook; null when none was recorded"
     )
+    deleted_files: int = Field(default=0, description="audiobook files deleted")
+    deleted_bytes: int = Field(default=0, description="bytes of the audiobook files deleted")
+    kept: list[KeptOut] = Field(
+        default_factory=list,
+        description="what stayed in the audiobook folders, and why; whole folders first",
+    )
+    kept_more: int = Field(default=0, description="further paths that stayed, not listed")
 
 
 class TextIn(Strict):
@@ -243,7 +262,9 @@ class MarkerOut(BaseModel):
     changed: str = Field(description="when it or its note last changed, UTC")
     text: str = Field(description="the sentence as printed when it was set")
     note: str = Field(description='its note ("" for none)')
-    chunk: int | None = Field(description="the chunk it is shown on in this audiobook, or null")
+    chunk: int | None = Field(
+        description="the first chunk of its sentence in this audiobook, or null"
+    )
     state: Literal["found", "not-read", "not-found"] = Field(
         description="found; in text this audiobook does not read; or not found in it"
     )

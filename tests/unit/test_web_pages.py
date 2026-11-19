@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pdf_maker import Text, glyph_number_pdf, joined_pdf, make_pdf
 from test_layout_language import german_pdf
 from web_helpers import (
     ORIGIN,
@@ -174,6 +175,70 @@ def test_make_is_blocked_while_the_report_has_no_chapter_chosen(
     assert "Choose at least one chapter and update the analysis." in page
     doc = analysed(client, {"chapters": [1]})
     assert 'data-blocked=""' in client.get(f"/documents/{doc['id']}").text
+
+
+GLYPH_LINES = [
+    "Das Buch wurde in einer Zeit geschrieben, in der die Arbeit in den Quartieren",
+    "neu gedacht werden musste. Die Menschen, die dort leben, kennen ihre Nachbarn,",
+]
+
+
+def analysed_file(client: TestClient, data: bytes, name: str) -> dict[str, Any]:
+    doc = upload(client, data, name)
+    body = {"kind": "script", "document": doc["id"], "settings": {}}
+    job = client.post("/api/v1/jobs", json=body).json()
+    assert wait(client, job["id"])["state"] == "done"
+    return doc
+
+
+def test_a_pdf_of_glyph_numbers_says_so_and_blocks_make(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#442 part B: step 1 names the pages in the page's language, and "Make the audiobook"
+    is blocked with its reason, whatever else is ready (D-291)."""
+    monkeypatch.setattr(pages, "missing_files", lambda folder: [])
+    client = client_of(server)
+    doc = analysed_file(client, joined_pdf(*[glyph_number_pdf(GLYPH_LINES)] * 3), "glyphs.pdf")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    callout = re.search(r'<div class="callout bad" id="unreadable">.*?</div></div>', page, re.S)
+    assert callout is not None
+    assert (
+        "The text of 3 pages can&#39;t be read (1\u20133): the PDF&#39;s fonts give glyph numbers "
+        "or wrong letters instead of the text. That is most of the document, so sci2audio "
+        "makes no audiobook from it."
+    ) in callout[0]
+    assert 'data-blocked="needs_text"' in page
+    assert "The text of this PDF can&#39;t be read, so no audiobook is made from it." in page
+    client.cookies.set("sci2audio-language", "de")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    assert "Der Text von 3 Seiten lässt sich nicht lesen (1\u20133)" in page
+    assert "Der Text dieser PDF lässt sich nicht lesen, deshalb wird kein Hörbuch" in page
+
+
+def test_a_glyph_number_page_among_plain_pages_is_a_warning_only(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(pages, "missing_files", lambda folder: [])
+    client = client_of(server)
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    data = joined_pdf(plain, glyph_number_pdf(GLYPH_LINES), plain)
+    doc = analysed_file(client, data, "mixed.pdf")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    assert '<div class="callout warn" id="unreadable">' in page
+    assert "The text of page 2 can&#39;t be read" in page
+    assert "Leave the chapters on that page out." in page
+    assert 'data-blocked="needs_text"' not in page
+    client.cookies.set("sci2audio-language", "de")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    assert "Der Text von Seite 2 lässt sich nicht lesen" in page
+
+
+def test_a_readable_document_shows_no_unreadable_callout(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    doc = analysed(client)
+    assert 'id="unreadable"' not in client.get(f"/documents/{doc['id']}").text
 
 
 def test_every_proposed_change_is_listed_with_its_fate(

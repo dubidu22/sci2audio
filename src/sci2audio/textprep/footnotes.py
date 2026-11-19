@@ -39,7 +39,10 @@ paper's title block ("Jianfeng Chi¹˒²", "¹Meta AI"), in the same "Footnotes"
 title block is the first page's PARAGRAPH blocks up to the first heading. A mark there is a
 run of digits, commas and note symbols, set small and raised (a `sup` tag, or the size and
 rise the footnote marks use), that is no footnote mark, and that stands after a name or
-before an affiliation (see `_affiliation_shape`). Numbers printed in the text's own size are
+before an affiliation (`_after_name`, `_before_affiliation`). A mark before an affiliation
+counts only after the author line: once a mark after a name (or a footnote mark after a
+name) has been seen in the title block, so a title's "¹³CO and C¹⁸O" keeps its mass
+numbers (#448). Numbers printed in the text's own size are
 read ("1 Center for Neural Science"): nothing tells them from a number in the text.
 """
 
@@ -88,6 +91,7 @@ _CLOSING = frozenset(".,;:!?)]}\u2019\u201d\u201c\u2018\u00ab\u00bb\u203a\u2039\
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
+_MASS_NUMBER = re.compile(r"[0-9]{1,3}")  # an isotope's mass number has at most three digits
 _BRACKETED = re.compile(r"\[([^\[\]]+)\]|\(([^()]+)\)")  # "[1]" or "(1)": one pair
 # what a mark's removal says about its note (#213)
 _READ_AFTER = "the note is read after the sentence that holds it"
@@ -432,13 +436,24 @@ class AffiliationMarkStep(TextStep):
         """The removals, given the footnote marks the footnotes step removes."""
         items = document.content.items()
         edits = []
+        authors = False  # affiliations follow the authors (#448)
         for index in _title_block(document, items):
             block = document.blocks[index]
             # a footnote mark stays with the footnotes step, which introduces its note
             taken = footnote_marks.get(index, [])
             line_starts = {offset for _, offset, _ in _lines(items, block)}
+            # a footnote mark after a name (a corresponding author's) shows the author line too
+            noted = sorted(
+                (start, end) for start, end in taken if _after_name(block.text, start, end)
+            )
             for start, end in _raised_marks(items, block, taken):
-                if not _affiliation_shape(block.text, start, end, start in line_starts):
+                if noted and noted[0][0] < start:
+                    authors = True
+                if _after_name(block.text, start, end):
+                    authors = True
+                elif not (
+                    authors and _before_affiliation(block.text, start, end, start in line_starts)
+                ):
                     continue
                 mark = block.text[start:end].strip()
                 start, end = removed_span(block.text, start, end)
@@ -450,6 +465,7 @@ class AffiliationMarkStep(TextStep):
                         step=self.id,
                     )
                 )
+            authors = authors or bool(noted)
         return edits
 
 
@@ -498,6 +514,28 @@ def _raised_marks(
         yield open_mark
 
 
+def raised_numbers(document: Document) -> dict[int, list[tuple[int, int]]]:
+    """Where each block holds a run of one to three digits set small and raised (tagged
+    `sup`, or the size and rise `_raised_marks` asks for), by block: the mass number of an
+    isotope, such as the "40" of "⁴⁰K" (#449)."""
+    items = document.content.items()
+    found: dict[int, list[tuple[int, int]]] = {}
+    for index, block in enumerate(document.blocks):
+        lines = list(_lines(items, block))
+        main = _main_size(run for _, _, line in lines for run in line.runs)
+        for _, offset, line in lines:
+            for run in line.runs:
+                end = offset + len(run.text)
+                if (
+                    _MASS_NUMBER.fullmatch(run.text)
+                    and _set_small(run, main)
+                    and _superscript(run, line, main)
+                ):
+                    found.setdefault(index, []).append((offset, end))
+                offset = end
+    return found
+
+
 def _superscript(run: TextRun, line: TextLine, main: float) -> bool:
     """Raised: tagged `sup`, or its box ends RISE em or more above the box of a run in the
     main size on the same line."""
@@ -513,20 +551,25 @@ def _superscript(run: TextRun, line: TextLine, main: float) -> bool:
     )
 
 
-def _affiliation_shape(text: str, start: int, end: int, line_start: bool) -> bool:
-    """The mark stands after a name ("Chi¹˒² Wasi", "Biggs ¹, Matthew", "Ahmad³*") or before
-    an affiliation: at the block's or a line's start, or after a comma or semicolon, and
-    before a capitalised word of two letters or more ("¹Meta AI", "², University",
-    "²Österreichische Akademie", "¹AI Lab"). So "x²", "N³", "size³ + 1", "small.¹", a
-    "⁵ is first" and the mass numbers of "¹H NMR of ¹³C", "¹⁸F-FDG" and "⁸⁷Rb" stay
-    (D-57)."""
-    before, after = text[:start], text[end:]
+def _after_name(text: str, start: int, end: int) -> bool:
+    """The mark stands after a name ("Chi¹˒² Wasi", "Biggs ¹, Matthew", "Ahmad³*")."""
+    before = text[:start]
+    if before.endswith(","):  # "Roe,¹ Ann Lee,²": the comma set before the mark (REVTeX)
+        before = before[:-1]
     word = _NAME_END.search(before.rstrip())
-    if word and word[0][0].isupper() and _AFTER_NAME.match(after):
-        return True
-    kept = before.rstrip()
+    return bool(word and word[0][0].isupper() and _AFTER_NAME.match(text, end))
+
+
+def _before_affiliation(text: str, start: int, end: int, line_start: bool) -> bool:
+    """The mark stands before an affiliation: at the block's or a line's start, or after a
+    comma or semicolon, and before a capitalised word of two letters or more ("¹Meta AI",
+    "², University", "²Österreichische Akademie", "¹AI Lab") that is no element symbol. So
+    "x²", "N³", "size³ + 1", "small.¹", a "⁵ is first" and the mass numbers of "¹H NMR of
+    ¹³C", "¹⁸F-FDG" and "⁸⁷Rb" stay (D-57). `AffiliationMarkStep` asks this only after the
+    author line (#448)."""
+    kept = text[:start].rstrip()
     at_start = not kept or line_start or kept[-1] in ",;"
-    affiliation = _AFFILIATION.match(after)
+    affiliation = _AFFILIATION.match(text, end)
     if not at_start or affiliation is None or affiliation[1] in ELEMENTS:
         return False
     return affiliation[1][0].isupper()

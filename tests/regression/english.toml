@@ -1169,6 +1169,22 @@ blocks = [{ kind = "paragraph", text = "There are 441K apps, 332M words, 100k st
 expected = ["There are 441 thousand apps, 332 million words, 100 thousand steps and a 175 billion model."]
 
 [[case]]
+id = "units-raised-mass-number-before-k-is-no-thousand"
+audit = 0
+issue = 449
+goal = "A raised mass number before K is potassium-40, not '40 thousand': written as superscript digits, which is how it is printed and reads the same on a second run; the voice reads it as '40K'."
+blocks = [{ kind = "paragraph", runs = ["We use ", { sup = "40" }, "K and ", { sup = "87" }, "Rb atoms."] }]
+expected = ["We use ⁴⁰K and 87Rb atoms."]
+
+[[case]]
+id = "units-plain-k-after-a-number-reads-thousand"
+audit = 0
+issue = 449
+goal = "Plain '40K' cannot be told from 'a 40K run' and keeps reading 'thousand' (#449)."
+blocks = [{ kind = "paragraph", text = "We use 40K and 87Rb atoms in 441K runs." }]
+expected = ["We use 40 thousand and 87Rb atoms in 441 thousand runs."]
+
+[[case]]
 id = "symbols-approximately-about"
 audit = 0
 issue = 68
@@ -2192,6 +2208,38 @@ goal = "A run tagged with a language or another role is read as printed."
 blocks = [{ kind = "paragraph", runs = ["She said ", { text = "bonjour", tags = ["p", "span", "lang:fr"] }, " and ", { text = "left", tags = ["p", "span", "role:note"] }, "."] }]
 expected = ["She said bonjour and left."]
 
+[[case]]
+id = "hidden-run-between-a-number-and-its-unit-on-a-new-line"
+audit = 0
+issue = 445
+goal = "A hidden run between a number and its unit on the next line: the unit reads as in the text without the run, on both runs ('m squared', then 'metres squared', before #445)."
+blocks = [{ kind = "paragraph", runs = ["The effect held at p < .05 ", { text = "Jane", tags = ["p", "span", "hidden"] }, "\nm² here."] }]
+expected = ["The effect held at p less than .05 square metres here."]
+
+[[case]]
+id = "hidden-run-inside-a-statistic"
+audit = 0
+issue = 445
+goal = "A page-break marker inside a comparison: the sign reads as without the marker on the first run too (read as printed before #445, as a word on the second run)."
+blocks = [{ kind = "paragraph", runs = ["It holds for x < ", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " 5 only."] }]
+expected = ["It holds for x less than 5 only."]
+
+[[case]]
+id = "hidden-run-inside-an-abbreviation"
+audit = 0
+issue = 445
+goal = "A page-break marker inside 'e.g.': read 'for example' on the first run too, the marker not read."
+blocks = [{ kind = "paragraph", runs = ["It works in some animals, e.", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, "g. in mice."] }]
+expected = ["It works in some animals, for example in mice."]
+
+[[case]]
+id = "number-and-unit-across-a-line-break"
+audit = 0
+issue = 445
+goal = "A line break between a number and its unit: the unit is read as one ('square metres'), not a letter and its power ('m squared', which a second run read 'metres squared')."
+blocks = [{ kind = "paragraph", text = "The plot was 5\nm² in size, and p < .05\nm² held." }]
+expected = ["The plot was 5 square metres in size, and p less than .05 square metres held."]
+
 # Affiliation marks in the title block (#93, D-692): the first page's paragraphs before the
 # first heading. A mark set small and raised (here tagged `sup`) of digits, commas and note
 # symbols, after a name or before an affiliation, is not read. Names and affiliations made
@@ -2394,9 +2442,10 @@ blocks = [
     { kind = "paragraph", runs = ["Quantitative ", { sup = "1" }, "H NMR of ", { sup = "13" }, "C-labelled sugars"] },
     { kind = "paragraph", runs = [{ sup = "18" }, "F-FDG PET in ", { sup = "238" }, "U miners"] },
     { kind = "paragraph", runs = ["Spin ", { sup = "3" }, "He and ", { sup = "4" }, "He films"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }] },
     { kind = "paragraph", runs = [{ sup = "1" }, "AI Lab, Example City"] },
 ]
-expected = ["Quantitative 1H NMR of 13C-labelled sugars", "18F-FDG PET in 238U miners", "Spin 3He and 4He films", "AI Lab, Example City"]
+expected = ["Quantitative 1H NMR of 13C-labelled sugars", "18F-FDG PET in 238U miners", "Spin 3He and 4He films", "Jane Roe", "AI Lab, Example City"]
 
 [[case]]
 id = "affiliation-marks-before-a-capital-outside-ascii"
@@ -2423,9 +2472,72 @@ blocks = [
     { kind = "paragraph", runs = ["Bose-Einstein condensation of\n", { sup = "87" }, "Rb in microgravity"] },
     { kind = "paragraph", runs = ["We trap ultracold atoms of\n", { sup = "6" }, "Li and ", { sup = "40" }, "Ca in a lattice and of\n", { sup = "171" }, "Yb, ", { sup = "87" }, "Sr and ", { sup = "133" }, "Cs."] },
     { kind = "paragraph", runs = [{ sup = "3" }, "He spin filters"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, " and Ann Lee", { sup = "2" }] },
     { kind = "paragraph", runs = [{ sup = "1" }, "UC Berkeley, ", { sup = "2" }, "AI Lab"] },
 ]
-expected = ["87Rb Bose-Einstein condensates in orbit", "Bose-Einstein condensation of 87Rb in microgravity", "We trap ultracold atoms of 6Li and 40Ca in a lattice and of 171Yb, 87Sr and 133Cs.", "3He spin filters", "UC Berkeley, AI Lab"]
+expected = ["87Rb Bose-Einstein condensates in orbit", "Bose-Einstein condensation of 87Rb in microgravity", "We trap ultracold atoms of 6Li and 40Ca in a lattice and of 171Yb, 87Sr and 133Cs.", "3He spin filters", "Jane Roe and Ann Lee", "UC Berkeley, AI Lab"]
+
+[[case]]
+id = "affiliation-marks-title-mass-numbers-before-the-author-line"
+audit = 0
+issue = 448
+goal = "A title's raised mass numbers before a two-letter formula are read; the marks of the author and affiliation lines after it go."
+blocks = [
+    { kind = "paragraph", runs = [{ sup = "13" }, "CO and C", { sup = "18" }, "O observations of the Taurus cloud"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, " and Ann Lee", { sup = "2" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Example Observatory, Example City"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "Space Lab, Example Town"] },
+]
+expected = ["13CO and C18O observations of the Taurus cloud", "Jane Roe and Ann Lee", "Example Observatory, Example City", "Space Lab, Example Town"]
+
+[[case]]
+id = "affiliation-marks-title-mass-numbers-after-a-comma-and-a-line-start"
+audit = 0
+issue = 448
+goal = "Raised mass numbers after a comma and at a line's start in a title are read; the affiliation marks after the author line go."
+blocks = [
+    { kind = "paragraph", runs = ["Mapping ", { sup = "12" }, "CO, ", { sup = "13" }, "CO and ", { sup = "15" }, "NH3 in\n", { sup = "13" }, "CH4-rich regions"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "AI Lab, Example City"] },
+]
+expected = ["Mapping 12CO, 13CO and 15NH3 in 13CH4-rich regions", "Jane Roe", "AI Lab, Example City"]
+
+[[case]]
+id = "affiliation-marks-before-an-element-symbol-word-are-read"
+audit = 0
+issue = 448
+goal = "After the author line, a mark before an affiliation whose first word is an element symbol is read as today (the safe way to fail, D-57)."
+blocks = [
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, ", Ann Lee", { sup = "2" }, " and Bo Kim", { sup = "3" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Ca' Foscari University"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "Co-design Lab"] },
+    { kind = "paragraph", runs = [{ sup = "3" }, "In Silico Institute"] },
+]
+expected = ["Jane Roe, Ann Lee and Bo Kim", "1Ca' Foscari University", "2Co-design Lab", "3In Silico Institute"]
+
+[[case]]
+id = "affiliation-marks-authors-and-affiliations-in-one-block"
+audit = 0
+issue = 448
+goal = "Authors and affiliations in one block after the title: the marks after the names and before the affiliations go."
+blocks = [
+    { kind = "paragraph", runs = ["Cold ", { sup = "13" }, "CO in the Taurus cloud"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, " and Ann Lee", { sup = "2" }, "\n", { sup = "1" }, "Example Observatory, ", { sup = "2" }, "Space Lab"] },
+]
+expected = ["Cold 13CO in the Taurus cloud", "Jane Roe and Ann Lee Example Observatory, Space Lab"]
+
+[[case]]
+id = "affiliation-marks-after-a-comma-in-the-author-line"
+audit = 0
+issue = 448
+goal = "An author line with its marks after a comma (REVTeX: 'Roe,¹˒² Ann Lee,¹') opens the affiliations; every author and affiliation mark goes (#585 review round 1)."
+blocks = [
+    { kind = "paragraph", text = "Cold atoms in orbit" },
+    { kind = "paragraph", runs = ["Jane Roe,", { sup = "1,2" }, " Ann Lee,", { sup = "1" }, " and Bo Kim", { sup = "2" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Department of Physics, Example University"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "AI Lab, Example City"] },
+]
+expected = ["Cold atoms in orbit", "Jane Roe, Ann Lee, and Bo Kim", "Department of Physics, Example University", "AI Lab, Example City"]
 
 # Figure and table notices name the figure by its caption label as the caption reads it, on
 # both runs (#374, D-707): a range, a fraction, a power or a multiplier in the label is read
@@ -2543,43 +2655,83 @@ utterances = ["The proofs conclude.", "See Appendix C.", "It gives the proofs."]
 id = "long-sentence-colon-beyond-the-limit"
 audit = 0
 issue = 460
-goal = "A sentence over the limit is cut before a clause (', which') and at its colon beyond the first 300 characters, not at the last comma that fits ('slow, steady, | patient voice') (D-719 PR 4)."
+goal = "A sentence over the limit is cut at its colon, not at the last comma that fits ('slow, steady, | patient voice'); the first part is kept whole while it fits (D-719 PR 4; two parts since the limit is 400 characters, #494)."
 blocks = [{ kind = "paragraph", text = "The listening script that the program builds for a long paper is read in parts, which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them: each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase." }]
 expected = [
     "The listening script that the program builds for a long paper is read in parts, which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them: each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase.",
 ]
 utterances = [
-    "The listening script that the program builds for a long paper is read in parts,",
-    "which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them:",
+    "The listening script that the program builds for a long paper is read in parts, which means that the place of every pause matters a great deal to a listener who has to hold many nested clauses, remarks in brackets and lists of conditions in mind at once while the slow, steady, patient voice goes on reading them:",
     "each part is short enough for the voice and ends where a reader would naturally take a breath, and no part is cut inside a phrase.",
+]
+
+[[case]]
+id = "long-sentence-colon-past-the-first-window"
+audit = 0
+issue = 494
+goal = "A sentence whose colon lies past the first window is cut first at the clause comma before 'which' inside that window, not at a later list comma ('slow, steady'), and then at its colon; no part is cut inside a phrase (D-719 PR 4, kept at the 400-character limit, #494)."
+blocks = [{ kind = "paragraph", text = "The listening script that the program builds for a long paper on the history of the regional schools is read aloud in parts, which means that the place of every single pause matters a great deal to a listener who has to keep many nested clauses, remarks in brackets, long lists of conditions and the names of several places and people in mind at the same time while the slow, steady and patient voice goes on reading all of them one after another without a break: each part is short enough for the voice and ends where a careful reader would naturally take a breath, and no part is ever cut inside a phrase." }]
+expected = [
+    "The listening script that the program builds for a long paper on the history of the regional schools is read aloud in parts, which means that the place of every single pause matters a great deal to a listener who has to keep many nested clauses, remarks in brackets, long lists of conditions and the names of several places and people in mind at the same time while the slow, steady and patient voice goes on reading all of them one after another without a break: each part is short enough for the voice and ends where a careful reader would naturally take a breath, and no part is ever cut inside a phrase.",
+]
+utterances = [
+    "The listening script that the program builds for a long paper on the history of the regional schools is read aloud in parts,",
+    "which means that the place of every single pause matters a great deal to a listener who has to keep many nested clauses, remarks in brackets, long lists of conditions and the names of several places and people in mind at the same time while the slow, steady and patient voice goes on reading all of them one after another without a break:",
+    "each part is short enough for the voice and ends where a careful reader would naturally take a breath, and no part is ever cut inside a phrase.",
 ]
 
 [[case]]
 id = "long-sentence-comma-before-a-conjunction"
 audit = 0
 issue = 460
-goal = "A comma before a conjunction ('but') wins over a comma inside a phrase ('cheap, small,') when a long sentence is cut (D-719 PR 4)."
+goal = "A sentence of 300 to 400 characters is one utterance: no cut at its comma before 'but' (#494; the cut rule is kept by long-sentence-comma-before-a-conjunction-over-the-limit)."
 blocks = [{ kind = "paragraph", text = "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room." }]
 expected = [
     "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
 ]
 utterances = [
-    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners,",
-    "but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
+    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room.",
+]
+
+[[case]]
+id = "long-sentence-comma-before-a-conjunction-over-the-limit"
+audit = 0
+issue = 494
+goal = "A comma before a conjunction ('but') wins over a comma inside a phrase ('cheap, small,') when a sentence over the limit is cut (D-719 PR 4, kept past the 400-character limit of #494)."
+blocks = [{ kind = "paragraph", text = "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months and with the help of two new assistants who had not taken part before, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room at the back of the old building." }]
+expected = [
+    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months and with the help of two new assistants who had not taken part before, used the same procedure as the first one and the same group of listeners, but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room at the back of the old building.",
+]
+utterances = [
+    "The second experiment, which we ran on a larger set of recordings from three different sites over a period of several months and with the help of two new assistants who had not taken part before, used the same procedure as the first one and the same group of listeners,",
+    "but this time the recordings were played back on a cheap, small, battery-powered loudspeaker in a quiet room at the back of the old building.",
 ]
 
 [[case]]
 id = "long-sentence-without-a-clause-mark"
 audit = 0
 issue = 460
-goal = "A long sentence with no clause mark is cut at a space, into parts of about the same length (D-719 PR 4)."
+goal = "A sentence of 300 to 400 characters with no clause mark is one utterance (#494; the cut at a space is kept by long-sentence-without-a-clause-mark-over-the-limit)."
 blocks = [{ kind = "paragraph", text = "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it." }]
 expected = [
     "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
 ]
 utterances = [
-    "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls",
-    "between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
+    "The voice reads this long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it.",
+]
+
+[[case]]
+id = "long-sentence-without-a-clause-mark-over-the-limit"
+audit = 0
+issue = 494
+goal = "A sentence over the limit with no clause mark is cut at a space, into parts of about the same length (D-719 PR 4, kept past the 400-character limit of #494)."
+blocks = [{ kind = "paragraph", text = "The voice reads this very long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it while sitting at home or on the train or walking through the park in the evening." }]
+expected = [
+    "The voice reads this very long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts of the sentence at about the same length because a very short last part would sound odd to the person who listens to it while sitting at home or on the train or walking through the park in the evening.",
+]
+utterances = [
+    "The voice reads this very long sentence without any mark inside it from the first word to the last word so that the program has to find a place to cut it that falls between two words and keeps both parts",
+    "of the sentence at about the same length because a very short last part would sound odd to the person who listens to it while sitting at home or on the train or walking through the park in the evening.",
 ]
 
 [[case]]
@@ -2622,13 +2774,57 @@ utterances = ["We repeat it (and/or 3 times) here, as in 2001 (input/output 2001
 id = "hidden-runs-in-a-table-read-when-its-notice-is-off"
 audit = 0
 issue = 463
-goal = "With 'Tables and figures' switched off a table is read as printed, without its hidden runs and page-break markers, as a paragraph is (D-719 PR 5)."
+goal = "With 'Tables and figures' switched off a table is read as a paragraph is: without its hidden runs and page-break markers, its numbers, units and abbreviations read (D-719 PR 5, #487, D-726)."
 switched_off = ["tables-and-figures"]
 blocks = [
     { kind = "table", runs = ["Group ", { text = "13", tags = ["td", "span", "epub:pagebreak"] }, " Mean ", { text = "SECRET", tags = ["td", "span", "hidden"] }, " 4.2"] },
     { kind = "paragraph", runs = ["Text ", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " here too."] },
 ]
 expected = ["Group Mean 4.2", "Text here too."]
+
+[[case]]
+id = "a-table-and-a-figure-read-as-a-paragraph-when-their-notice-is-off"
+audit = 0
+issue = 487
+goal = "With 'Tables and figures' switched off, a table's and a figure's printed text is read as the same text in a paragraph is: citation and link removed, units, abbreviations and statistics read (D-726)."
+switched_off = ["tables-and-figures"]
+blocks = [
+    { kind = "table", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019), data at https://example.org/data." },
+    { kind = "figure", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019), data at https://example.org/data." },
+    { kind = "paragraph", text = "Share 3.5 % at 12 m² e.g. p < .05 (Smith, 2019), data at https://example.org/data." },
+]
+expected = [
+    "Share 3.5 % at 12 square metres for example p less than .05, data.",
+    "Share 3.5 % at 12 square metres for example p less than .05, data.",
+    "Share 3.5 % at 12 square metres for example p less than .05, data.",
+]
+
+[[case]]
+id = "furniture-stays-as-printed-when-page-furniture-is-off"
+audit = 0
+issue = 487
+goal = "With 'Page furniture' switched off, a furniture block is read as printed: no unit, abbreviation, citation or link in it is read or removed, while the paragraph beside it is read as usual (D-128, #487)."
+switched_off = ["page-furniture"]
+blocks = [
+    { kind = "paragraph", text = "The share rose to 3.5 % in the second year." },
+    { kind = "furniture", role = "running-head", text = "Journal of Tests 12 m² e.g. (Smith, 2019) https://example.org/journal" },
+]
+expected = [
+    "The share rose to 3.5 % in the second year.",
+    "Journal of Tests 12 m² e.g. (Smith, 2019) https://example.org/journal",
+]
+
+[[case]]
+id = "formula-and-code-stay-as-printed-when-their-notices-are-off"
+audit = 0
+issue = 487
+goal = "With 'Formulas' and 'Code' switched off, a formula and a code block are read as printed: no unit, abbreviation, statistic, citation or link is read or removed in them (D-726)."
+switched_off = ["formulas", "code"]
+blocks = [
+    { kind = "formula", text = "a = 3.5 m² e.g. b < .05 (Smith, 2019)" },
+    { kind = "code", text = "x = 12  # m² e.g. https://example.org" },
+]
+expected = ["a = 3.5 m² e.g. b < .05 (Smith, 2019)", "x = 12 # m² e.g. https://example.org"]
 
 [[case]]
 id = "hidden-runs-in-a-table-with-its-notice-on"
@@ -2665,3 +2861,66 @@ expected = [
     "A figure is skipped. It shows: Share of 3.5 % at 12 square metres, for example p less than .05.",
     "Share of 3.5 % at 12 square metres, for example p less than .05.",
 ]
+
+[[case]]
+id = "an-initial-before-a-sentence-opener-ends-the-sentence"
+audit = 0
+issue = 477
+goal = "A single capital initial before a sentence opener ('called A. Then') ends the sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "The first set is called A. Then set B follows." }]
+expected = ["The first set is called A. Then set B follows."]
+utterances = ["The first set is called A.", "Then set B follows."]
+
+[[case]]
+id = "an-initial-before-a-name-ends-no-sentence"
+audit = 0
+issue = 477
+goal = "A single capital initial before a name ('J. Smith') ends no sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "The method of J. Smith was used." }]
+expected = ["The method of J. Smith was used."]
+utterances = ["The method of J. Smith was used."]
+
+[[case]]
+id = "a-dotted-capital-abbreviation-before-a-sentence-opener-ends-the-sentence"
+audit = 0
+issue = 477
+goal = "A dotted capital abbreviation before a sentence opener ('the U.S. The rest') ends the sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "Most data came from the U.S. The rest came from Canada." }]
+expected = ["Most data came from the U.S. The rest came from Canada."]
+utterances = ["Most data came from the U.S.", "The rest came from Canada."]
+
+[[case]]
+id = "a-dotted-capital-abbreviation-before-a-name-ends-no-sentence"
+audit = 0
+issue = 477
+goal = "A dotted capital abbreviation before a name ('U.S. Census Bureau') ends no sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "The data came from the U.S. Census Bureau in 2019." }]
+expected = ["The data came from the U.S. Census Bureau in 2019."]
+utterances = ["The data came from the U.S. Census Bureau in 2019."]
+
+[[case]]
+id = "dotted-initials-before-a-name-end-no-sentence"
+audit = 0
+issue = 477
+goal = "Dotted initials of a name ('J.R.R. Tolkien') end no sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "The novels of J.R.R. Tolkien were read." }]
+expected = ["The novels of J.R.R. Tolkien were read."]
+utterances = ["The novels of J.R.R. Tolkien were read."]
+
+[[case]]
+id = "a-letter-name-before-a-sentence-opener-ends-the-sentence"
+audit = 0
+issue = 477
+goal = "A letter that names a thing ('vitamin A.') before a sentence opener ends the sentence (#477, D-744)."
+blocks = [{ kind = "paragraph", text = "We measured vitamin A. The levels were low." }]
+expected = ["We measured vitamin A. The levels were low."]
+utterances = ["We measured vitamin A.", "The levels were low."]
+
+[[case]]
+id = "an-initial-before-a-surname-that-is-also-a-function-word-ends-no-sentence"
+audit = 0
+issue = 477
+goal = "An initial before a surname that is also an English function word ('Y. He', 'X. An', 'K. He') ends no sentence: such words are kept out of the sentence-opener list (#477, D-744, PR #547 review B1)."
+blocks = [{ kind = "paragraph", text = "We thank Y. He and X. An for comments on the draft. As shown by K. He and colleagues, residual networks train well." }]
+expected = ["We thank Y. He and X. An for comments on the draft. As shown by K. He and colleagues, residual networks train well."]
+utterances = ["We thank Y. He and X. An for comments on the draft.", "As shown by K. He and colleagues, residual networks train well."]

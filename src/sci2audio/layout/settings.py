@@ -43,6 +43,7 @@ class LayoutSettings:
     edge_share: float = 0.05  # share of lines left out on each side to find the text's edges
     line_numbers: int = 5  # this many bare numbers beside the text are line numbers
     contents_reach: float = 2.0  # em: a contents entry's page number ends this close to the edge
+    contents_rows: int = 4  # rows an entry with its page number at the left edge may run on (#529)
 
     # Columns and reading order
     text_share: float = 0.1  # share of lines left out on each side to find the text area
@@ -100,6 +101,8 @@ class LayoutSettings:
     footnote_rule_share: float = 0.5  # ... and at most this share of the column
     footnote_mark_rise: float = 0.1  # em: a mark in the notes' own size starts a note when
     #                                  raised this far above the text after it (#235)
+    footnote_mark_gap: float = 1.0  # em: ... or, on the text's baseline, this far before
+    #                                 the note's text, and printed in the text above (#457)
 
     # Tables, figures and algorithms (placeholders)
     caption_reach: float = 2.0  # em: a table or figure stands this close to its caption, ...
@@ -144,6 +147,20 @@ class LayoutSettings:
     #                                its last line, ...
     heading_rule_reach: float = 1.0  # em: ... and reaches this far past its words at one end
     #                                  (#48, D-385, D-390)
+    # outline titles that name the publisher's front matter, English and German (#456): such
+    # an entry starts a section of its own even where no printed heading matches it
+    front_matter_names: tuple[str, ...] = (
+        "Cover",
+        "Front Cover",
+        "Imprint",
+        "Copyright",
+        "Contents",
+        "Table of Contents",
+        "Titelei",
+        "Impressum",
+        "Inhalt",
+        "Inhaltsverzeichnis",
+    )
     # whole texts of headings that may stand in any bold or larger style. English only (v1.0):
     # papers in another language need their own list, passed in with that job's settings
     section_names: tuple[str, ...] = (

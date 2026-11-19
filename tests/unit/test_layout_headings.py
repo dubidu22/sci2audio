@@ -14,6 +14,7 @@ from hypothesis import example, given
 from hypothesis import strategies as st
 from test_layout import LEFT, RIGHT, content
 
+from sci2audio.app import default_selection, find_chapters
 from sci2audio.core import (
     BlockKind,
     Box,
@@ -835,3 +836,209 @@ def test_a_bold_line_over_a_wide_rule_inside_a_table_stays_in_the_table() -> Non
     assert header.id in [p.item for p in table.parts]
     assert "t2" in [p.item for p in table.parts]
     assert ("Structure Example", "") not in headings(doc)
+
+
+# Roman numerals alone (#459)
+
+
+def roman_paper(first: str = "I", size: float = 12.0, bold: bool = False) -> Page:
+    """Sections numbered by centred Roman numerals alone, set larger than the body and not
+    bold, as in the German journal of #459."""
+    page = Page().body()
+    for numeral in (first, "II", "III"):
+        page.heading(numeral, size, bold).body()
+    return page
+
+
+def test_a_heading_that_is_only_the_numeral_i_is_found_like_ii_and_iii() -> None:
+    """#459: "I" has one letter, too few for a heading on its own (`heading_letters`)."""
+    doc = roman_paper().build()
+    assert headings(doc) == [("I", ""), ("II", ""), ("III", "")]
+    assert [s.title for s in doc.sections] == ["I", "II", "III"]
+
+
+def test_a_lone_i_is_a_heading_only_in_the_style_of_the_roman_headings() -> None:
+    """A pronoun on a line of its own is set like the text; an "I" in another heading style,
+    or with no Roman heading in the document, stays text."""
+    body_style = Page().body().heading("I", 10.0, False).body()
+    body_style.heading("II", 12.0, False).body().heading("III", 12.0, False).body()
+    assert headings(body_style.build()) == [("II", ""), ("III", "")]
+    bold_other = Page().body().heading("I", 12.0, True).body()
+    bold_other.heading("II", 14.0).body().heading("III", 14.0).body()
+    assert headings(bold_other.build()) == [("II", ""), ("III", "")]
+    named = Page().body().heading("I", 14.0).body().heading("Methods", 14.0).body()
+    named.heading("Results", 14.0).body()
+    assert headings(named.build()) == [("Methods", ""), ("Results", "")]
+
+
+# The publisher's front matter named by the outline (#456, D-755)
+
+
+def journal_issue(*outline: OutlineEntry) -> Document:
+    """Four pages: a repository's cover sheet, the journal's cover, its imprint, then the
+    article: its title and author in body style, a heading set larger, running text."""
+    sheet = [set_line("Cite this paper as follows", 80), set_line("Terms of use", 100)]
+    cover = [set_line("Journal of Tests", 80, 14.0), set_line("Issue 55", 100)]
+    imprint = [set_line("Editors: A. Editor", 80), set_line("Copyright 2017", 100)]
+    article = Page()
+    plain(article, "An Article About Tests")
+    plain(article, "Ann Author")
+    article.heading("Introduction", 14.0).body().heading("Method", 14.0).body()
+    found = content(sheet, cover, imprint, article.lines)
+    return build_document(dataclasses.replace(found, outline=outline))
+
+
+FRONT = (
+    OutlineEntry("Cover", 1, 2),
+    OutlineEntry("Impressum", 1, 3),
+    OutlineEntry("Bildung und Tests", 1, 4),  # the article's entry: no printed match
+)
+
+
+def publisher_sections(doc: Document) -> list[tuple[str, int, int]]:
+    pages = {item: page.number for item, (page, _) in doc.content.items().items()}
+    return [
+        (
+            s.title,
+            pages[doc.blocks[s.start].parts[0].item],
+            pages[doc.blocks[s.end - 1].parts[0].item],
+        )
+        for s in doc.sections
+        if s.publisher
+    ]
+
+
+def test_outline_entries_naming_front_matter_start_publisher_sections() -> None:
+    """Each starts at its page's first block and ends before the page the next entry points
+    to; the first starts at block 0, so the cover sheet before it joins it. The article's
+    title and author stay out of them, and its headings are found as before."""
+    doc = journal_issue(*FRONT)
+    assert publisher_sections(doc) == [("Cover", 1, 2), ("Impressum", 3, 3)]
+    assert [(s.title, s.publisher) for s in doc.sections] == [
+        ("Cover", True),
+        ("Impressum", True),
+        ("Introduction", False),
+        ("Method", False),
+    ]
+    outside = [b.text for b in doc.blocks[doc.sections[1].end : doc.sections[2].start]]
+    assert outside == ["An Article About Tests", "Ann Author"]
+    assert headings(doc) == [("Introduction", ""), ("Method", "")]
+
+
+def test_german_and_english_front_matter_names_are_known() -> None:
+    for name in ("Inhaltsverzeichnis", "Titelei", "Imprint", "Table of Contents", "COPYRIGHT."):
+        doc = journal_issue(OutlineEntry(name, 1, 3), OutlineEntry("Article", 1, 4))
+        assert publisher_sections(doc) == [(name, 1, 3)]  # the title as stored
+
+
+def test_without_an_outline_nothing_is_front_matter() -> None:
+    """D-755: the cover sheet and imprint are found only through the outline, never by the
+    pages' looks."""
+    doc = journal_issue()
+    assert [s.publisher for s in doc.sections] == [False, False]
+    assert [s.title for s in doc.sections] == ["Introduction", "Method"]
+
+
+def test_a_front_matter_entry_on_a_page_with_a_heading_starts_no_publisher_section() -> None:
+    """The printed heading stands; an entry pointing at a page without blocks, or another
+    title, adds nothing."""
+    doc = journal_issue(OutlineEntry("Contents", 1, 4), OutlineEntry("Cover", 1, 2))
+    assert publisher_sections(doc) == [("Cover", 1, 3)]
+    doc = journal_issue(OutlineEntry("Covers of the issue", 1, 2))
+    assert publisher_sections(doc) == []
+
+
+def test_front_matter_with_no_entry_after_it_ends_at_the_next_heading() -> None:
+    doc = journal_issue(OutlineEntry("Cover", 1, 2))
+    assert [(s.title, s.publisher) for s in doc.sections] == [
+        ("Cover", True),
+        ("Introduction", False),
+        ("Method", False),
+    ]
+    assert doc.blocks[doc.sections[0].end].text == "Introduction"
+
+
+def test_two_front_matter_entries_for_one_page_make_one_publisher_section() -> None:
+    """The first entry names it; the second starts nothing inside it."""
+    doc = journal_issue(OutlineEntry("Cover", 1, 2), OutlineEntry("Titelei", 1, 2), *FRONT[1:])
+    assert publisher_sections(doc) == [("Cover", 1, 2), ("Impressum", 3, 3)]
+
+
+def test_front_matter_entries_are_taken_in_page_order() -> None:
+    """The first front matter by page starts at block 0, whatever the outline's order."""
+    doc = journal_issue(
+        OutlineEntry("Impressum", 1, 3), OutlineEntry("Cover", 1, 2), OutlineEntry("Article", 1, 4)
+    )
+    assert publisher_sections(doc) == [("Cover", 1, 2), ("Impressum", 3, 3)]
+
+
+def test_front_matter_with_nothing_after_it_ends_with_its_page() -> None:
+    """No heading and no later entry: the cover ends with its own page, so the body text
+    after it stays a chapter read by default, not the publisher's."""
+    sheet = [set_line("Cite this paper as follows", 80), set_line("Terms of use", 100)]
+    cover = [set_line("Journal of Tests", 80), set_line("Issue 55", 100)]
+    found = content(sheet, cover, Page().body().body().lines)
+    doc = build_document(dataclasses.replace(found, outline=(OutlineEntry("Cover", 1, 2),)))
+    assert publisher_sections(doc) == [("Cover", 1, 2)]
+    chapters = find_chapters(doc)
+    assert [c.publisher for c in chapters] == [True, False]
+    assert default_selection(chapters) == {1}
+    assert "Running text" in doc.blocks[chapters[1].start].text
+
+
+def test_front_matter_that_would_be_the_whole_document_is_none() -> None:
+    sheet = [set_line("Cite this paper as follows", 80), set_line("Terms of use", 100)]
+    found = content(sheet, [set_line("Issue 55", 80), *Page().body().lines])
+    doc = build_document(dataclasses.replace(found, outline=(OutlineEntry("Cover", 1, 2),)))
+    assert publisher_sections(doc) == []
+
+
+def test_front_matter_in_several_sections_that_would_be_the_whole_document_is_none() -> None:
+    """Review round 2 (F3): two pages, each named front matter, leave nothing to read by
+    default; the file is then read as without front matter."""
+    for second in ("Cover", "Impressum"):
+        found = content(Page().body().lines, Page().body().lines)
+        outline = (OutlineEntry("Cover", 1, 1), OutlineEntry(second, 1, 2))
+        doc = build_document(dataclasses.replace(found, outline=outline))
+        assert publisher_sections(doc) == []
+        assert default_selection(find_chapters(doc))
+
+
+def test_headings_under_front_matter_follow_it_at_the_top() -> None:
+    """Deeper headings after the imprint, which the section tree first puts under it, stay
+    sections (and chapters) of their own."""
+    imprint = [set_line("Editors: A. Editor", 80), set_line("Copyright 2017", 100)]
+    article = Page().heading("1.1 Background").body().heading("1.2 Aims").body()
+    article.heading("2 Results", 14.0).body().heading("2.1 More").body()
+    found = content(imprint, article.lines)
+    doc = build_document(dataclasses.replace(found, outline=(OutlineEntry("Impressum", 1, 1),)))
+    assert tree(doc.sections) == [
+        ("Impressum", 1),
+        ("1.1 Background", 2),
+        ("1.2 Aims", 2),
+        ("2 Results", 1),
+        [("2.1 More", 2)],
+    ]
+    assert [c.title for c in find_chapters(doc)] == [
+        "Impressum",
+        "1.1 Background",
+        "1.2 Aims",
+        "2 Results",
+    ]
+
+
+def test_front_matter_after_a_heading_starts_at_its_own_page() -> None:
+    """With a heading before it, the contents page does not reach back to block 0."""
+    title_page = Page().heading("A Study of Tests", 14.0).body()
+    contents_page = [set_line("Einleitung 3", 80), set_line("Methode 4", 100)]
+    article = Page().heading("Einleitung", 14.0).body().heading("Methode", 14.0).body()
+    found = content(title_page.lines, contents_page, article.lines)
+    outline = (OutlineEntry("A Study of Tests", 1, 1), OutlineEntry("Inhalt", 1, 2))
+    doc = build_document(dataclasses.replace(found, outline=outline))
+    assert [(s.title, s.publisher) for s in doc.sections] == [
+        ("A Study of Tests", False),
+        ("Inhalt", True),
+        ("Einleitung", False),
+        ("Methode", False),
+    ]
+    assert publisher_sections(doc) == [("Inhalt", 2, 2)]

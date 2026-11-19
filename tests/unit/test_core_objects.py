@@ -357,3 +357,9 @@ def test_where_the_language_came_from_is_kept_and_left_out_when_not_recorded() -
         PAPER, language_source=LanguageSource.FALLBACK, language_guess=LanguageGuess("", 5, 1, 1)
     )
     assert fallback.language == "en"
+
+
+def test_a_section_is_not_the_publisher_s_unless_marked() -> None:
+    """#456: `publisher` is set only for front matter the outline names."""
+    assert Section("Intro", 1, 0, 2).publisher is False
+    assert Section("Impressum", 1, 0, 2, publisher=True).publisher is True

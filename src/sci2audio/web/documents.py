@@ -40,7 +40,8 @@ from typing import BinaryIO
 from sci2audio.app import EXTRACTORS, JobBusyError, JobError, JobSettings, ScriptFiles, script_files
 from sci2audio.app.chunks import CHUNKS
 from sci2audio.app.lock import LOCK_NAME, work_folder_lock
-from sci2audio.output.names import clean
+from sci2audio.output.names import clean, retried
+from sci2audio.web.removal import AudiobookRemoved, AudiobookRemoveError
 
 ID = re.compile(r"\A[0-9a-f]{16}\Z")
 INCOMING = ".incoming"
@@ -83,11 +84,13 @@ class RemoveError(Exception):
 
 @dataclass(frozen=True)
 class Removed:
-    """What a removal took away."""
+    """What a removal took away; `audiobook` what the audiobook step did (#470), None
+    when it was not asked for."""
 
     id: str
     name: str
     freed_bytes: int
+    audiobook: AudiobookRemoved | None = None
 
 
 @dataclass(frozen=True)
@@ -169,8 +172,18 @@ def stored_name(name: str) -> str:
 class DocumentStore:
     """The documents under one work root."""
 
-    def __init__(self, work_root: Path, *, upload_limit: int, text_limit: int) -> None:
+    def __init__(
+        self,
+        work_root: Path,
+        *,
+        upload_limit: int,
+        text_limit: int,
+        legacy_root: Path | None = None,
+    ) -> None:
         self.root = work_root
+        # the working folders before #469: a document whose folder could not be moved yet
+        # is listed and used there (D-748), so none is ever missing
+        self.legacy_root = legacy_root
         self.upload_limit = upload_limit
         self.text_limit = text_limit
         # the ids being removed: gone for `get`, and a new copy of one waits (D-356)
@@ -193,7 +206,7 @@ class DocumentStore:
     def get(self, document_id: str) -> StoredDocument | None:
         if not ID.match(document_id) or document_id in self._removing:
             return None
-        folder = self.root / document_id
+        folder = self._folder(document_id)
         source = _newest(folder / SOURCE)
         if source is None:
             return None
@@ -201,14 +214,26 @@ class DocumentStore:
 
     def all(self) -> list[StoredDocument]:
         """Every document with a source file, most recently opened first."""
-        if not self.root.is_dir():
-            return []
-        found = [
-            document
-            for folder in self.root.iterdir()
-            if ID.match(folder.name) and (document := self.get(folder.name)) is not None
-        ]
+        ids: set[str] = set()
+        for root in self._roots():
+            with contextlib.suppress(OSError):
+                ids.update(folder.name for folder in root.iterdir() if ID.match(folder.name))
+        found = [document for name in ids if (document := self.get(name)) is not None]
         return sorted(found, key=lambda d: _mtime(d.source), reverse=True)
+
+    def _roots(self) -> list[Path]:
+        return [self.root] if self.legacy_root is None else [self.root, self.legacy_root]
+
+    def _folder(self, document_id: str) -> Path:
+        """The document's folder: the project folder, unless only a folder from before #469
+        holds its source (one not moved yet, D-748)."""
+        folder = self.root / document_id
+        if self.legacy_root is None or _newest(folder / SOURCE) is not None:
+            return folder
+        old = self.legacy_root / document_id
+        if not _is_link(old) and _newest(old / SOURCE) is not None:
+            return old
+        return folder
 
     def store(self, name: str, data: BinaryIO, *, in_use: str | None = None) -> StoredDocument:
         """Copy an opened file in (see the module docstring). The type is checked before
@@ -257,11 +282,10 @@ class DocumentStore:
                 part.unlink(missing_ok=True)
 
     def _place(self, part: Path, name: str, document_id: str, in_use: str | None) -> StoredDocument:
-        folder = self.root / document_id
+        folder = self._folder(document_id)  # an old folder not moved yet keeps its records
         source_folder = folder / SOURCE
         source_folder.mkdir(parents=True, exist_ok=True)
-        target = source_folder / name
-        os.replace(part, target)
+        target = _placed(part, source_folder, name)
         if document_id == in_use:
             return StoredDocument(document_id, folder, target)
         for other in source_folder.iterdir():  # a new name replaces the old one
@@ -278,12 +302,21 @@ class DocumentStore:
         with self._changes:
             yield self.get(document_id)
 
-    def remove(self, document_id: str, *, busy: Callable[[], str | None]) -> Removed | None:
+    def remove(
+        self,
+        document_id: str,
+        *,
+        busy: Callable[[], str | None],
+        audiobook: Callable[[StoredDocument], AudiobookRemoved] | None = None,
+    ) -> Removed | None:
         """Remove the document's whole working folder (D-353, D-355); None if there is no
         such document. `busy` names a job of this server that works on it, if any; it is
         asked once the id is already gone for `get`, so no job of this server can start
-        on it afterwards. DocumentBusyError when a job works on it here or in another
-        process (its lock), RemoveError when part of the folder could not be removed."""
+        on it afterwards. `audiobook` deletes the project's audiobook files (#470,
+        D-751): it runs first, under the working folder's lock, so a failure there leaves
+        the whole folder and the document listed. DocumentBusyError when a job works on it
+        here or in another process (its lock), RemoveError when part of the folder or an
+        audiobook file could not be removed."""
         with self._changes:
             document = self.get(document_id)
             if document is None:
@@ -295,50 +328,63 @@ class DocumentStore:
                 raise DocumentBusyError(reason)
             folder = self._inside_root(document)
             freed = _tree_size(folder)
-            self._remove_locked(folder)
+            first = None if audiobook is None else (lambda: audiobook(document))
+            done = self._remove_locked(folder, first)
             if _leftovers(folder):  # written during the removal by another program: once more
-                self._remove_locked(folder)
+                self._remove_locked(folder, None)
             left = _leftovers(folder)
             if left:
                 raise RemoveError(
                     f"could not remove {left[0]}: it was written during the removal", left[0]
                 )
-            return Removed(document_id, document.name, freed)
+            return Removed(document_id, document.name, freed, done)
         finally:
             with self._changes:
                 self._removing.discard(document_id)
                 self._changes.notify_all()
 
     def _inside_root(self, document: StoredDocument) -> Path:
-        """The working folder, refused unless it is a real folder directly in the work root:
-        never a link or a Windows junction, which would lead the removal elsewhere."""
+        """The working folder, refused unless it is a real folder directly in the work root
+        (or, not moved yet, in the old one): never a link or a Windows junction, which
+        would lead the removal elsewhere."""
         folder = document.folder
         if folder.is_symlink() or folder.is_junction():
             raise RemoveError(f"{folder} is a link, not a working folder", folder)
+        root = self.root if folder.parent == self.root else self.legacy_root
+        if root is None or folder.parent != root:
+            raise RemoveError(f"{folder} is not inside the working root {self.root}", folder)
         try:
             resolved = folder.resolve(strict=True)
-            root = self.root.resolve(strict=True)
+            real_root = root.resolve(strict=True)
         except OSError as error:
             raise _remove_error(folder, error) from error
-        if resolved.parent != root or resolved.name != document.id:
-            raise RemoveError(f"{folder} is not inside the working root {root}", folder)
+        if resolved.parent != real_root or resolved.name != document.id:
+            raise RemoveError(f"{folder} is not inside the working root {real_root}", folder)
         return folder
 
     @staticmethod
-    def _remove_locked(folder: Path) -> None:
+    def _remove_locked(
+        folder: Path, first: Callable[[], AudiobookRemoved] | None
+    ) -> AudiobookRemoved | None:
+        done = None
         try:
             with work_folder_lock(folder):
+                if first is not None:
+                    done = first()  # the audiobook files, before anything of the folder
                 _remove_folder(folder)
         except JobBusyError as error:
             raise DocumentBusyError(str(error)) from error
         except JobError as error:  # the lock file could not be opened
             raise RemoveError(str(error), folder / LOCK_NAME) from error
+        except AudiobookRemoveError as error:
+            raise RemoveError(str(error), error.path) from error
         # Windows can't remove the lock file while it is open; it is closed now. If this
         # fails, an empty lock file in an empty folder stays (allowed by `_leftovers`).
         with contextlib.suppress(OSError):
             (folder / LOCK_NAME).unlink(missing_ok=True)
         with contextlib.suppress(OSError):
             folder.rmdir()
+        return done
 
 
 def _leftovers(folder: Path) -> list[Path]:
@@ -473,6 +519,27 @@ def _tree_size(folder: Path) -> int:
 def _blocks(data: BinaryIO) -> Iterable[bytes]:
     while block := data.read(_BLOCK):
         yield block
+
+
+def _placed(part: Path, folder: Path, name: str) -> Path:
+    """Move the copy into `folder` under `name` and return where it is. A name the file
+    system refuses as an illegal byte sequence (EILSEQ: a Mac whose Unicode table is older
+    than Python's, #493) is retried once from its old characters, then as `document` with
+    its suffix, so the file is kept instead of failing with a 500. The folder is sci2audio's
+    own copy of the document (`source/`), never one of the person's."""
+    path = PurePath(name)
+    fallback = f"document{path.suffix}"
+    *first, last = dict.fromkeys((name, f"{retried(path.stem, 'document')}{path.suffix}", fallback))
+    for candidate in first:
+        try:
+            os.replace(part, folder / candidate)
+        except OSError as error:
+            if error.errno != errno.EILSEQ:
+                raise
+        else:
+            return folder / candidate
+    os.replace(part, folder / last)
+    return folder / last
 
 
 def _store_error(error: OSError, name: str) -> StoreError:

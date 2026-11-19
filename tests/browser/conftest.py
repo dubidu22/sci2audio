@@ -2,7 +2,8 @@
 127.0.0.1 in this process, driven by Playwright through pytest-playwright.
 
 - Every test here carries the `browser` marker: CI runs them in their own job (Chromium on
-  every PR; Chromium, Firefox and WebKit nightly), not in the three-system matrix.
+  every PR; Firefox and WebKit on Linux too when a PR changes a web path, reported only until
+  #437 closes; all three nightly, WebKit on macOS too), not in the three-system matrix.
 - The server gets the fake voice, a fake voice download and a small download plan, so no
   test needs the 355 MB of voice files or the network; ffmpeg is real (a few seconds).
 - The page may only talk to this server: every other request is aborted and fails the
@@ -217,6 +218,24 @@ def click_focuses(page: Page) -> bool:
     focus (#498): there a test checks a focus that a click would give only by the keys."""
     name = page.context.browser.browser_type.name  # type: ignore[union-attr]
     return not (name == "webkit" and sys.platform == "darwin")
+
+
+def at_rest(page: Page) -> None:
+    """Wait until a page that was just drawn stops moving: app.css applies and the web fonts
+    its text uses are in. A page still moves while they arrive, and in WebKit and Firefox a
+    click in that moment did nothing: no summary opened, no link followed (nightly-green
+    PR 3 traces, #509). Works before the load event too, so also while app.js is held back:
+    `document.fonts.ready` would not do, WebKit settles it only after the load event."""
+    expect(page.locator(".skip")).to_have_css("position", "absolute")  # app.css applies
+    # a layout starts the fonts the page shows
+    page.wait_for_function(
+        """() => {
+            document.body.getBoundingClientRect();
+            const faces = [...document.fonts];
+            return faces.some((f) => f.status === "loaded")
+                && faces.every((f) => f.status !== "loading");
+        }"""
+    )
 
 
 def settled(page: Page) -> None:

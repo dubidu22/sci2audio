@@ -6,7 +6,9 @@ left edge of a column and is much narrower than the column. The text below it in
 column, set smaller than the body text, is the column's notes; a column whose text below
 the line has a line in body size is not (the line belongs to something else, a table).
 The notes' lines are read again row by row and split where a row opens with a mark (a
-number or a symbol such as an asterisk or a dagger, set smaller than the row's text). A
+number or a symbol such as an asterisk or a dagger, set smaller than the row's text, or
+raised, or in the text's size as a line of its own before the note's indented text when
+the page's text above prints that mark, #457). A
 note's lines are joined into one block even where the paragraph step left them apart
 (#37: a note in a narrow column, cut into pieces at its wide word gaps). Text below a
 rule with no mark is one note without a label. A page without a rule has no footnotes.
@@ -63,7 +65,8 @@ def find_footnotes(
             if not inside:
                 continue
             lines = [on_page[part.item] for k in inside for part in blocks[k].parts]
-            replaced[inside[0]] = _notes(lines, settings, page_bars(page, settings))
+            marks = _body_marks(page, zone, settings)
+            replaced[inside[0]] = _notes(lines, settings, page_bars(page, settings), marks)
             dropped.update(inside[1:])
     out: list[Block] = []
     for k, block in enumerate(blocks):
@@ -142,13 +145,30 @@ def _size(runs: Iterable[TextRun]) -> float:
     return letters.most_common(1)[0][0] if letters else 0.0
 
 
-def _notes(lines: list[TextLine], settings: LayoutSettings, bars: Bars) -> list[Block]:
+def _body_marks(page: Page, zone: _Zone, settings: LayoutSettings) -> frozenset[str]:
+    """The note marks the page prints in its text above the zone: numbers or note symbols
+    set smaller than the line around them (#457)."""
+    found = set()
+    for line in page.lines:
+        if not line.box or line.box.y0 >= zone.top or len(line.runs) < 2:
+            continue
+        size = _size(line.runs)
+        for run in line.runs:
+            text = run.text.strip()
+            if run.size < (1 - settings.size_change) * size and _MARK.fullmatch(text):
+                found.add(text)
+    return frozenset(found)
+
+
+def _notes(
+    lines: list[TextLine], settings: LayoutSettings, bars: Bars, marks: frozenset[str] = frozenset()
+) -> list[Block]:
     """The lines read again row by row, top to bottom and left to right, and split into
     notes where a row opens with a mark; `bars` are the page's drawings (a fraction bar
-    keeps a space between its parts, #202)."""
+    keeps a space between its parts, #202), `marks` the marks printed in the text above."""
     notes: list[tuple[str, list[list[TextLine]]]] = []
     for row in rows(lines, settings.row_overlap):
-        mark = _mark(row, settings)
+        mark = _mark(row, settings, marks)
         if mark is not None or not notes:
             notes.append((mark or "", [row]))
         else:
@@ -162,11 +182,18 @@ def _bars_of(row: list[TextLine], bars: Bars) -> tuple[Box, ...]:
     return bars.meeting(union(boxes)) if boxes else ()
 
 
-def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
+def _mark(
+    row: list[TextLine], settings: LayoutSettings, marks: frozenset[str] = frozenset()
+) -> str | None:
     """The mark a row opens with: its first run, a number or note symbols set smaller
     than the row's text (the mark may be a line of its own), or set in the text's size but
     raised, as superior figures are: its box ends `footnote_mark_rise` em or more above the
-    next run's (#235, D-507; boxes are loose, so the next run's letters don't matter)."""
+    next run's (#235, D-507; boxes are loose, so the next run's letters don't matter).
+
+    A mark in the text's size on the same baseline counts too where it is a line of its
+    own, `footnote_mark_gap` em or more before the note's text, and the page's text above
+    prints that mark (`marks`) as a smaller mark (#457): so a note that opens with a year
+    ("1999 erschien ...") is not cut there."""
     first = row[0].runs[0]
     text = first.text.strip()
     size = _size(run for line in row for run in line.runs)
@@ -178,7 +205,15 @@ def _mark(row: list[TextLine], settings: LayoutSettings) -> str | None:
         and after.box
         and first.box.y1 <= after.box.y1 - settings.footnote_mark_rise * size
     )
-    return text if (smaller or raised) and _MARK.fullmatch(text) else None
+    own, text_after = row[0].box, row[1].box if len(row) > 1 else None
+    hanging = bool(
+        text in marks
+        and row[0].text.strip() == text
+        and own
+        and text_after
+        and text_after.x0 - own.x1 >= settings.footnote_mark_gap * size
+    )
+    return text if (smaller or raised or hanging) and _MARK.fullmatch(text) else None
 
 
 def _note(label: str, lines: list[list[TextLine]], settings: LayoutSettings, bars: Bars) -> Block:

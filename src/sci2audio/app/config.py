@@ -51,13 +51,28 @@ def default_models_folder() -> Path:
     return platformdirs.user_data_path("sci2audio", appauthor=False) / "models"
 
 
+def default_projects_root() -> Path:
+    """The folder that holds one project data folder per document (D-747, #469): the
+    user's data folder, so no system clean-up deletes a project's markers, position or copy
+    of the file, and not Documents, which is often synced. macOS `~/Library/Application
+    Support/sci2audio/projects`, Linux `~/.local/share/sci2audio/projects`, Windows
+    `%LOCALAPPDATA%\\sci2audio\\projects`."""
+    return platformdirs.user_data_path("sci2audio", appauthor=False) / "projects"
+
+
+def default_legacy_root() -> Path:
+    """Where the working folders were before #469 (D-164): `<user cache>/sci2audio/jobs`.
+    Only the migration (`app.projects`) and the listing of a folder not moved yet read it."""
+    return platformdirs.user_cache_path("sci2audio", appauthor=False) / "jobs"
+
+
 def default_work_folder(source: Path) -> Path:
-    """The working folder of an audio job (D-164): one per source file, named by the first
-    16 hex digits of the file's SHA-256, in the user's cache folder. The same file under
-    another name or in another folder gets the same folder, so its chunks are used again.
-    Raises OSError if the file can't be read."""
-    folder = platformdirs.user_cache_path("sci2audio", appauthor=False)
-    return folder / "jobs" / file_id(source)
+    """The working folder of a job (D-164, D-747): one per source file, named by the first
+    16 hex digits of the file's SHA-256, in the projects root. The same file under another
+    name or in another folder gets the same folder, so its chunks are used again.
+    Raises OSError if the file can't be read. Pure: it moves nothing; the command line
+    uses `app.projects.project_work_folder`, which first moves an old folder over."""
+    return default_projects_root() / file_id(source)
 
 
 # A file changed less than this long ago is hashed again on every call: a rewrite in place
