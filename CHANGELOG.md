@@ -46,6 +46,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- Small lines at the top of a page, and small caption lines at the foot, are read unless they really are running heads (#156): a continued table header or an "Algorithm 1" caption set smaller than the text at the top of a page is no longer dropped from the listening script; small running heads and footers on most pages are still left out.
 - EPUB and Markdown files with broken markup read the same on every Python version: sci2audio now brings its own copy of Python's HTML parser, whose handling of broken markup had changed in Python's security releases (#175, D-777).
 - A picture in an indented (pretty-printed) EPUB paragraph is placed before the paragraph's text, as a browser shows it, not after it, and a link to the place just before the picture leads to the picture (#328, D-777).
 - EPUB and Markdown files can no longer make sci2audio work for minutes or take gigabytes of memory: a book holds at most 2,000,000 tags, comments and declarations, one tag at most 1,000,000 characters, a paragraph (and a picture's SVG title or a table of contents entry) at most 4,000,000 characters, and a Markdown paragraph or block between blank lines at most 4,000,000 characters; a file past a limit is refused with a message that names it (#329, D-777, D-783). A table of contents past one of these limits is left out and the book is read without it.

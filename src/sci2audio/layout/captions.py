@@ -65,6 +65,13 @@ def find_captions(blocks: list[Block], content: Content) -> list[Block]:
     return out
 
 
+def starts_with_label(text: str) -> bool:
+    """True if the text opens with a caption label ("Algorithm 1", "Table 3 (continued)",
+    "Abb. 2"), whatever follows it: a line at the page's edge that does is no running head
+    (#156)."""
+    return _LABEL.match(text.strip()) is not None
+
+
 def caption_label(block: Block, lines: dict[str, TextLine]) -> str | None:
     """The caption label the block opens with, or None if it is not a caption."""
     found = _LABEL.match(block.text)
