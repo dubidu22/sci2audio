@@ -786,7 +786,12 @@ def test_a_raised_mass_number_keeps_every_magnitude_letter(letter: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("text", "raised"), [("At T = 104K the gas is hot.", (9, 10)), ("The x40K value.", (5, 7))]
+    ("text", "raised"),
+    [
+        ("At T = 104K the gas is hot.", (9, 10)),
+        ("The x40K value.", (5, 7)),
+        ("14K and more", (1, 2)),  # after a digit at the block's start
+    ],
 )
 def test_a_raised_run_glued_after_a_letter_or_digit_is_no_mass_number(
     text: str, raised: tuple[int, int]
@@ -797,6 +802,18 @@ def test_a_raised_run_glued_after_a_letter_or_digit_is_no_mass_number(
     assert not [e for e in found if e.reason.startswith('raised "')]
     first, second = read_twice(Case("glued", 0, 576, "an exponent", document, ()))
     assert first == second
+
+
+def test_a_raised_mass_number_at_the_block_start_is_a_mass_number() -> None:
+    """Nothing stands before it, whatever the block ends with ("⁴⁰K in rocks 5")."""
+    document = make_document(
+        [(BlockKind.HEADING, "40K in rocks 5"), (BlockKind.PARAGRAPH, "Text.")],
+        tags={0: [(0, 2, "sup")]},
+    )
+    found = UnitStep().find(document, EN)
+    assert [e for e in found if e.reason.startswith('raised "40"')] != []
+    first, second = read_twice(Case("start", 0, 572, "a block-start mass number", document, ()))
+    assert first == second == ["⁴⁰K in rocks 5", "Text."]
 
 
 def test_a_raised_number_before_a_unit_keeps_the_unit() -> None:
