@@ -8,17 +8,29 @@ import pytest
 from core_strategies import contents
 from hypothesis import event, given
 from hypothesis import strategies as st
-from pdf_maker import Text, glyph_number_pdf, joined_pdf, make_pdf
+from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf
 
 from sci2audio.app.readability import (
     Unreadable,
     page_ranges,
     pages_named,
+    picture_pages,
+    picture_warning,
     stop_message,
     unreadable,
     warning,
 )
-from sci2audio.core import Content, Page, Source, SourceFormat, TextLine, TextRun
+from sci2audio.core import (
+    Box,
+    Content,
+    Drawing,
+    Page,
+    Picture,
+    Source,
+    SourceFormat,
+    TextLine,
+    TextRun,
+)
 from sci2audio.extraction import legibility, read_pdf
 from sci2audio.extraction.legibility import MIN_LETTERS
 
@@ -206,3 +218,66 @@ def test_the_messages_name_the_pages() -> None:
     partly = warning(Unreadable((4,), stops=False))
     assert partly.startswith("The text of page 4 cannot be read")
     assert "Leave the chapters on those pages out." in partly
+
+
+# ---- pages of pictures only (#186) -------------------------------------------------------------
+
+
+def picture_page(number: int, *lines: str) -> Page:
+    """A page holding one picture and `lines` of text."""
+    text = tuple(TextLine(f"p{number}-l{k}", (TextRun(line),)) for k, line in enumerate(lines))
+    return Page(number, lines=text, pictures=(Picture(f"p{number}-i1"),))
+
+
+def test_a_page_of_pictures_only_is_named_and_a_blank_page_is_not() -> None:
+    content = pdf(page(1, 300), picture_page(2), Page(3), picture_page(4, "A caption."))
+    assert picture_pages(content) == (2,)
+
+
+def test_a_line_of_white_space_only_is_no_text() -> None:
+    assert picture_pages(pdf(page(1, 300), picture_page(2, " ", "\t"))) == (2,)
+
+
+def test_a_page_of_drawings_only_is_not_named() -> None:
+    """A scan is a picture; a page of vector lines only is a chart or a rule, not a scan."""
+    drawn = Page(2, drawings=(Drawing("p2-d1", Box(0, 0, 10, 10)),))
+    assert picture_pages(pdf(page(1, 300), drawn)) == ()
+
+
+@pytest.mark.parametrize("kind", [SourceFormat.EPUB, SourceFormat.MARKDOWN, SourceFormat.TEXT])
+def test_only_a_pdf_has_pages_of_pictures(kind: SourceFormat) -> None:
+    """An EPUB's file holding one picture is a cover or a plate, not a scan (D-772)."""
+    assert picture_pages(pdf(page(1, 300), picture_page(2), kind=kind)) == ()
+
+
+def test_a_scanned_page_among_text_pages_of_a_real_pdf() -> None:
+    """Extraction gives a scan without a text layer no lines; a scan with recognised text
+    (invisible, as text recognition lays it over the picture) has its text."""
+    plain = make_pdf([Text("A plain line of English text that reads well.", 72, 100)])
+    data = joined_pdf(plain, image_only_pdf(), make_pdf([]), image_only_pdf(ocr_text="Hi"))
+    assert picture_pages(read_pdf(data, "scans.pdf")) == (2,)
+
+
+def test_the_picture_warning_names_the_pages() -> None:
+    assert picture_warning([7]) == (
+        "Page 7 holds no text, only pictures (a scanned page?), so nothing on it is read."
+    )
+    assert picture_warning([12, 13, 14, 15, 16, 17, 18, 20]) == (
+        f"Pages 12{DASH}18, 20 hold no text, only pictures (scanned pages?), so nothing on "
+        "them is read."
+    )
+
+
+@given(contents())
+def test_the_pages_of_pictures_are_those_with_a_picture_and_no_text(content: Content) -> None:
+    named = picture_pages(content)
+    if content.source.format is not SourceFormat.PDF:
+        assert named == ()
+        return
+    expected = tuple(
+        p.number
+        for p in content.pages
+        if p.pictures and all(not line.text.strip() for line in p.lines)
+    )
+    event(f"named {min(len(named), 2)}")
+    assert named == expected

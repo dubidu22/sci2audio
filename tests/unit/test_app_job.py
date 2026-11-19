@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from output_helpers import NEWER, refuse_newer_names
-from pdf_maker import Text, glyph_number_pdf, joined_pdf, make_pdf
+from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf
 
 from sci2audio.app import (
     EXTRACTORS,
@@ -239,6 +239,32 @@ def test_a_readable_pdf_has_no_unreadable_key(tmp_path: Path) -> None:
     data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
     assert "unreadable" not in data
     assert job.report.unreadable is None
+
+
+def test_a_scanned_page_among_text_pages_is_a_report_warning(tmp_path: Path) -> None:
+    """#186: a page of pictures only is named in report.json, report.md and the key
+    `picture_pages`; the blank page after it is not."""
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    source = tmp_path / "scans.pdf"
+    source.write_bytes(joined_pdf(plain, image_only_pdf(), make_pdf([]), plain))
+    job = run_script_job(source, JobSettings(language="en"), tmp_path / "w")
+    warning = "Page 2 holds no text, only pictures (a scanned page?), so nothing on it is read."
+    assert job.report.warnings == (warning,)
+    assert job.report.picture_pages == (2,)
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert data["warnings"] == [warning]
+    assert data["picture_pages"] == {"pages": [2], "ranges": "2"}
+    assert list(data)[-1] == "picture_pages"
+    assert f"- {warning}" in job.files.report_markdown.read_text(encoding="utf-8")
+
+
+def test_a_pdf_of_text_has_no_picture_pages_key(tmp_path: Path) -> None:
+    job = run_script_job(small_pdf(tmp_path), JobSettings(), tmp_path / "w")
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert "picture_pages" not in data
+    assert job.report.picture_pages == ()
 
 
 def test_a_damaged_epub_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:

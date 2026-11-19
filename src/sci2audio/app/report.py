@@ -13,12 +13,20 @@ numbered from 1 for people.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
 from sci2audio import __version__
 from sci2audio.app.chapters import Chapter
-from sci2audio.app.readability import Unreadable, page_ranges, unreadable, warning
+from sci2audio.app.readability import (
+    Unreadable,
+    page_ranges,
+    picture_pages,
+    picture_warning,
+    unreadable,
+    warning,
+)
 from sci2audio.app.script import ScriptResult
 from sci2audio.core import Document, EditKind, LanguageGuess, LanguageSource, Source, Span
 from sci2audio.textprep import PAUSE_MARK, Category, Outcome, Status
@@ -95,6 +103,8 @@ class Report:
     order_line: str = ""
     # a PDF's pages whose text can't be read, and whether no audiobook is made (#442, #187)
     unreadable: Unreadable | None = None
+    # a PDF's pages that hold pictures and no text: scans, not read (#186)
+    picture_pages: tuple[int, ...] = ()
 
 
 def order_line(result: ScriptResult) -> str:
@@ -144,6 +154,9 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         warnings = (guessed, *warnings)
     if language := language_warning(document):
         warnings = (language, *warnings)
+    pictures = picture_pages(document.content)
+    if pictures:  # after the unreadable warning: it says what is missing from the audiobook
+        warnings = (picture_warning(pictures), *warnings)
     found = unreadable(document.content)
     if found is not None:  # first: it decides whether there is an audiobook at all
         warnings = (warning(found), *warnings)
@@ -163,6 +176,7 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         language_source=document.language_source,
         language_guess=document.language_guess,
         unreadable=found,
+        picture_pages=pictures,
     )
 
 
@@ -224,7 +238,8 @@ def language_line(report: Report) -> str:
 
 def report_data(report: Report) -> dict[str, Any]:
     """The report as JSON data, keys in a fixed order. `unreadable` (#442) is there only when
-    a page's text can't be read, so the reports of readable documents are as before."""
+    a page's text can't be read, and `picture_pages` (#186) only when a PDF page holds
+    pictures and no text, so the reports of other documents are as before."""
     data = {
         "format": FORMAT,
         "version": VERSION,
@@ -278,6 +293,11 @@ def report_data(report: Report) -> dict[str, Any]:
             "pages": list(report.unreadable.pages),
             "ranges": page_ranges(report.unreadable.pages),  # "1-3, 7" (en dash), for people
             "stops": report.unreadable.stops,
+        }
+    if report.picture_pages:
+        data["picture_pages"] = {
+            "pages": list(report.picture_pages),
+            "ranges": page_ranges(report.picture_pages),
         }
     return data
 
@@ -483,15 +503,25 @@ def _one_line(text: str) -> str:
 
 
 def shown_original(text: str) -> str:
-    """An edit's original text on one line, as a quote shows it (#118).
+    """An edit's original text on one line, as a quote shows it (#118, #207).
 
     Line breaks count as spaces, except in a text without a letter or digit: there each one
     shows as "↵". An edit of a line-end hyphen holds only a line break, or a hyphen and one,
     and would otherwise look empty ("“” → left out"); in running text a "↵" would only get
-    in the way of reading."""
+    in the way of reading. A format character (Unicode category Cf: soft hyphen, zero-width
+    space, joiners, byte order mark, direction marks) shows nothing on its own, so it shows
+    as its code point, "⟨U+200B⟩", wherever it stands: the same in every language."""
     if "\n" in text and not any(char.isalnum() for char in text):
-        return LINE_BREAK.join(_one_line(line) for line in text.split("\n"))
-    return _one_line(text)
+        return LINE_BREAK.join(_one_line(_visible(line)) for line in text.split("\n"))
+    return _one_line(_visible(text))
+
+
+def _visible(text: str) -> str:
+    """`text` with each format character as its code point in angle brackets (#207)."""
+    return "".join(
+        f"\u27e8U+{ord(char):04X}\u27e9" if unicodedata.category(char) == "Cf" else char
+        for char in text
+    )
 
 
 def _md(text: str) -> str:

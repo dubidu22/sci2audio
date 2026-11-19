@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from pdf_maker import Text, glyph_number_pdf, joined_pdf, make_pdf
+from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf
 from test_layout_language import german_pdf
 from web_helpers import (
     ORIGIN,
@@ -238,7 +238,31 @@ def test_a_glyph_number_page_among_plain_pages_is_a_warning_only(
 def test_a_readable_document_shows_no_unreadable_callout(server: tuple[FastAPI, Any]) -> None:
     client = client_of(server)
     doc = analysed(client)
-    assert 'id="unreadable"' not in client.get(f"/documents/{doc['id']}").text
+    page = client.get(f"/documents/{doc['id']}").text
+    assert 'id="unreadable"' not in page
+    assert 'id="picture-pages"' not in page
+
+
+def test_scanned_pages_among_text_pages_are_named(server: tuple[FastAPI, Any]) -> None:
+    """#186: pages of pictures only are named in the interface language."""
+    client = client_of(server)
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    data = joined_pdf(plain, image_only_pdf(), image_only_pdf(), plain)
+    doc = analysed_file(client, data, "scans.pdf")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    callout = re.search(r'<div class="callout warn" id="picture-pages">.*?</div></div>', page, re.S)
+    assert callout is not None
+    assert (
+        "2 pages hold no text, only pictures (2, 3; scanned pages?), so nothing on them is read."
+    ) in callout[0]
+    client.cookies.set("sci2audio-language", "de")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    assert (
+        "2 Seiten enthalten keinen Text, nur Bilder (2, 3; eingescannte Seiten?), deshalb wird "
+        "darauf nichts gelesen."
+    ) in page
 
 
 def test_every_proposed_change_is_listed_with_its_fate(
@@ -572,6 +596,15 @@ def test_the_check_table_shows_a_line_break_in_an_edit_as_the_report_does() -> N
     assert (kept.printed, joined.printed, running.printed) == ("↵", "-↵", "(Smith, 2019)")
     assert kept.printed_is_text
     assert (position.printed, position.printed_is_text) == (s("check.position"), False)
+
+
+def test_the_check_table_shows_an_invisible_character_as_the_report_does() -> None:
+    """#207: a removed zero-width space or soft hyphen is named by its code point."""
+    s = strings("de")
+    edit = {"category": "characters", "status": "accepted", "spoken": True, "kind": "remove"}
+    space = pages._row({**edit, "original": "\u200b"}, {}, s)
+    hyphen = pages._row({**edit, "original": "\u00ad\n"}, {}, s)
+    assert (space.printed, hyphen.printed) == ("\u27e8U+200B\u27e9", "\u27e8U+00AD\u27e9↵")
 
 
 @pytest.mark.parametrize(
