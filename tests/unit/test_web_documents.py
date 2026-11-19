@@ -358,3 +358,28 @@ def test_the_last_refusal_is_a_store_error(tmp_path: Path, monkeypatch: pytest.M
     with pytest.raises(documents.StoreError, match="could not keep"):
         store.store("Paper.pdf", io.BytesIO(b"%PDF-1.4 x"))
     assert leftovers(tmp_path) == []
+
+
+def test_another_error_while_placing_a_newer_name_is_tried_once(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only EILSEQ is retried: a full disk while the copy is put in place under a name with
+    a newer character is tried exactly once and answers the disk-full error, with nothing
+    left behind (review of #583, R2)."""
+    app, config = server
+    asked: list[str] = []
+
+    def full(source: Any, target: Any) -> None:
+        asked.append(PurePath(os.fspath(target)).name)
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(documents.os, "replace", full)
+    sent = f"{NEWER} My Paper.pdf"
+    response = program(app, config).post(
+        "/api/v1/documents", files={"file": (sent, pdf_bytes(), "application/pdf")}
+    )
+    assert response.status_code == 507
+    assert response.json()["error"] == "disk-full"
+    assert asked == [stored_name(sent)]
+    assert leftovers(config.work_root) == []
+    assert list(config.work_root.glob("*/source/*")) == []
