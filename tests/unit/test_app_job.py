@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from output_helpers import NEWER, refuse_newer_names
-from pdf_maker import Text, make_pdf
+from pdf_maker import Text, glyph_number_pdf, joined_pdf, make_pdf
 
 from sci2audio.app import (
     EXTRACTORS,
@@ -178,6 +178,67 @@ def test_a_guessed_encoding_is_a_report_warning(tmp_path: Path) -> None:
     assert json.loads(job.files.report_json.read_text(encoding="utf-8"))["warnings"] == [warning]
     assert warning in job.files.report_markdown.read_text(encoding="utf-8")
     assert "Caf\u00e9 notes" in job.files.script.read_text(encoding="utf-8")
+
+
+GLYPH_LINES = [
+    "Das Buch wurde in einer Zeit geschrieben, in der die Arbeit in den Quartieren",
+    "neu gedacht werden musste. Die Menschen, die dort leben, kennen ihre Nachbarn,",
+]
+
+
+def test_a_pdf_of_glyph_numbers_is_analysed_and_the_report_says_no_audiobook_is_made(
+    tmp_path: Path,
+) -> None:
+    """#442 part B, #187: the analysis still writes the script and the report (it speaks
+    nothing), and the report says why no audiobook will be made, naming the pages."""
+    source = tmp_path / "glyphs.pdf"
+    source.write_bytes(joined_pdf(*[glyph_number_pdf(GLYPH_LINES)] * 2))
+    job = run_script_job(source, JobSettings(language="de"), tmp_path / "w")
+    warning = (
+        "The text of pages 1, 2 cannot be read: the PDF's fonts give glyph numbers or wrong "
+        "letters there. That is most of the document, so no audiobook is made from it."
+    )
+    assert job.report.warnings[0] == warning
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert data["warnings"][0] == warning
+    assert data["unreadable"] == {"pages": [1, 2], "ranges": "1, 2", "stops": True}
+    assert list(data)[-1] == "unreadable"  # added at the end, after the warnings
+    assert warning in job.files.report_markdown.read_text(encoding="utf-8")
+
+
+def test_the_unreadable_warning_comes_before_every_other_warning(tmp_path: Path) -> None:
+    """It decides whether there is an audiobook at all, so it is read first: here before
+    the warning that the glyph numbers did not tell the text's language (D-495)."""
+    source = tmp_path / "glyphs.pdf"
+    source.write_bytes(glyph_number_pdf(GLYPH_LINES))
+    job = run_script_job(source, JobSettings(), tmp_path / "w")
+    warnings = job.report.warnings
+    assert len(warnings) == 2
+    assert warnings[0].startswith("The text of page 1 cannot be read")
+    assert warnings[1].startswith("sci2audio could not tell from the text")
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert data["warnings"] == list(warnings)
+
+
+def test_a_glyph_number_page_among_plain_pages_is_a_report_warning(tmp_path: Path) -> None:
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    source = tmp_path / "mixed.pdf"
+    source.write_bytes(joined_pdf(plain, plain, glyph_number_pdf(GLYPH_LINES), plain))
+    job = run_script_job(source, JobSettings(language="en"), tmp_path / "w")
+    assert job.report.warnings[0].startswith("The text of page 3 cannot be read")
+    assert job.report.warnings[0].endswith("Leave the chapters on those pages out.")
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert data["unreadable"] == {"pages": [3], "ranges": "3", "stops": False}
+
+
+def test_a_readable_pdf_has_no_unreadable_key(tmp_path: Path) -> None:
+    """Reports of readable documents are as before #442 (the corpus golden files too)."""
+    job = run_script_job(small_pdf(tmp_path), JobSettings(), tmp_path / "w")
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert "unreadable" not in data
+    assert job.report.unreadable is None
 
 
 def test_a_damaged_epub_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:
