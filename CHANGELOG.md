@@ -34,6 +34,7 @@ Audiobooks go to `Documents/sci2audio`; the voice files, library and settings st
 
 - Linux opens in the browser, not a window of its own.
 - No update check: look at the release page for a new version.
+- Windows: started "as administrator", the app's window runs Microsoft SmartScreen's checks of the pages it shows (all on your own computer, 127.0.0.1); started normally, as the Start menu does, sci2audio switches them off (#644).
 - The plugin interface for other voices and text steps is not public yet.
 
 ### Source
