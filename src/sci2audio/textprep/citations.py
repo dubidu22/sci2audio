@@ -1354,11 +1354,11 @@ class _Rules:
 
     def _pair(self, text: str, node: _Bracket) -> _Bracket | None:
         """The next bracket of the run, if `node` heads no list of it and "and" alone joins
-        them, and "and" makes a citation after it needed (#257, D-668), as before #414."""
+        them, and "and" makes a citation after it needed (#257, D-668), as before #414. The
+        next one is never decided yet: siblings are decided left to right, and a list that
+        took it would have taken `node` too (mutant 621-h)."""
         ahead = self._following.get(node.open)
         if ahead is None or self.words.and_word not in self.words.before:
-            return None
-        if ahead.open in self._numbered or ahead.open in self._paired:
             return None
         if self.pair_gap.fullmatch(text, node.close + 1, ahead.open) is None:
             return None

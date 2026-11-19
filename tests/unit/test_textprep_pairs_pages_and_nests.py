@@ -345,6 +345,9 @@ def _with_keys(printed: str) -> str:
         ("en", "Shown by ((Smith, 2019) (Lee, 2018)).", "Shown by Smith and Lee."),
         # the flat forms read the same
         ("en", "(Smith, 2019; and Lee, 2018) is cited.", "Smith and Lee is cited."),
+        # a join word before lead words too (read "Lee is cited." before)
+        ("en", "(Smith, 2019; and see Lee, 2018) is cited.", "Smith and Lee is cited."),
+        ("de", "(Müller, 2019; und vgl. Lee, 2018) wird zitiert.", "Müller und Lee wird zitiert."),
         ("en", "(Jones, 2020; ; Smith, 2019) is cited.", "Jones and Smith is cited."),
         # a join word joins a part to the one before it: after one that is no citation, it
         # opens none (#621 review round 1, M2)
