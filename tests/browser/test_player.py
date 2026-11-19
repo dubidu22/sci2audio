@@ -355,6 +355,33 @@ def test_a_skipped_code_block_shows_its_notice_and_its_code(
     check_axe(page, "player with a code block")
 
 
+def test_a_pdf_listing_is_shown_with_its_printed_indent(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """#282: a line printed four Courier characters in (6 points each at 10 point) is shown
+    four spaces in; the notice is unchanged."""
+    page = signed_in
+    rows = [("g = sns.relplot(", 0), ('data=fmri, kind="line",', 4), (")", 0)]
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text("The following example makes a figure.", 72, 100, size=11),
+            *(
+                Text(line, 72 + 6 * indent, 124 + 13 * k, "Courier", 10)
+                for k, (line, indent) in enumerate(rows)
+            ),
+            Text("Text after it.", 72, 190, size=11),
+        ],
+        PROSE_PAGE,
+    )
+    listen_to(page, live, tmp_path / "indent.pdf", pdf)
+    notice = page.locator(".notice")
+    expect(notice.locator("p")).to_have_text("Spoken notice: A code block is skipped.")
+    shown = "\n".join(" " * indent + line for line, indent in rows)
+    # exact: `to_have_text` folds white space
+    expect(notice.locator("pre.code")).to_have_js_property("textContent", shown)
+
+
 def test_a_listing_taller_than_the_window_keeps_its_spoken_notice_in_view(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
