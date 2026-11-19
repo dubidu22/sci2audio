@@ -41,11 +41,9 @@ MAX_SKIPPED_LINES = 10  # lines in one gap (2 at most in the corpus since #34)
 NOT_YET_ONE_BLOCK: dict[tuple[str, int, str], int] = {}
 MIN_START = 8  # letters a sentence's start must have at a line's end to be found there
 # Pages whose column count is not yet the truth's: the count layout gives today, and the
-# Issue that brings it to the truth. The labels of the PrivacyScore diagram stand in three
-# columns above its caption and are counted as text (D-508).
-NOT_YET_COLUMNS: dict[tuple[str, int], tuple[int, int]] = {
-    ("arxiv2017-maass-privacyscore", 3): (3, 238),
-}
+# Issue that brings it to the truth. Empty since #238: the labels of the PrivacyScore
+# diagram, in three columns above its caption, are no longer counted (D-508).
+NOT_YET_COLUMNS: dict[tuple[str, int], tuple[int, int]] = {}
 # Truth headings not yet found, each with the Issue that brings it there. Empty since #48
 # (D-385): the ACL checklist titles are found by the rule drawn under them.
 NOT_YET_HEADINGS: dict[tuple[str, str], int] = {}

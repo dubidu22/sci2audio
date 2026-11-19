@@ -84,24 +84,35 @@ class Reading:
 
 
 def reading_order(
-    elements: list[Element], width: float, size: float, settings: LayoutSettings
+    elements: list[Element],
+    width: float,
+    size: float,
+    settings: LayoutSettings,
+    uncounted: frozenset[str] = frozenset(),
 ) -> Reading:
     """The elements in reading order, and how many columns the page's running text has.
 
     A band counts for the columns if it holds a fair share of the page's text and a column
     of running text, so a table's cells don't. `width` is the width of the document's text
-    area; `size` its body font size.
+    area; `size` its body font size. Lines whose ids are `uncounted` (inside a captioned
+    figure, #238) are read and find gutters like any other, but neither their text nor
+    their fill counts for the columns.
     """
     wide = [e for e in elements if e.box.x1 - e.box.x0 > settings.wide * width]
     taken = {id(e) for e in wide}
     reading = Reading([], 1, {})
-    total = _text(elements)
+
+    def counted(group: list[Element]) -> list[Element]:
+        return [e for e in group if e.line is None or e.line.id not in uncounted]
+
+    total = _text(counted(elements))
     rest = [e for e in elements if id(e) not in taken]
     for band, after in _bands(rest, _edges(wide, elements, settings)):
         cuts = gutters(band, width, size, settings)
         band = across(band, cuts, width, size, settings)
         reading.ordered += _read_band(band, cuts, settings, reading.sides)
-        if _text(band) >= settings.column_text * total and _filled(band, cuts, settings):
+        mine = counted(band)
+        if _text(mine) >= settings.column_text * total and _filled(mine, cuts, settings):
             reading.columns = max(reading.columns, len(cuts) + 1)
         if after:
             reading.ordered.append(after)
