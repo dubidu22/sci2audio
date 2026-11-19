@@ -1,0 +1,15 @@
+{#- The speed field (#651): a speed typed with two decimals in the page's language, an ARIA
+    spinbutton that app.js wires (`speedField`): arrows ±0.01, Page keys ±0.10, Home and End
+    the limits. `speed` comes from pages._speed_field. With `buttons`, − and + beside it step
+    ±0.05; without them it stands beside the voice's slider. Its hint is its description, and
+    shows while the text typed is no number. The field and its buttons are drawn disabled
+    until the script wires them (#350). -#}
+{% macro speed_field(id, speed, label, buttons=False) -%}
+<span class="speed-field" data-min="{{ speed.min }}" data-max="{{ speed.max }}">
+{%- if buttons %}<button type="button" class="speed-step" data-by="-0.05" aria-label="{{ t('speed.slower') }}" title="{{ t('speed.slower') }}" disabled><span aria-hidden="true">−</span></button>{% endif -%}
+<input type="text" id="{{ id }}" class="speed-box" inputmode="decimal" role="spinbutton" autocomplete="off" spellcheck="false" size="4" maxlength="12" value="{{ speed.shown }}" data-value="{{ speed.value }}" aria-label="{{ label }}" aria-valuemin="{{ speed.min }}" aria-valuemax="{{ speed.max }}" aria-valuenow="{{ speed.value }}" aria-valuetext="{{ speed.text }}" aria-describedby="{{ id }}-hint" disabled>
+<span class="speed-unit" aria-hidden="true">×</span>
+{%- if buttons %}<button type="button" class="speed-step" data-by="0.05" aria-label="{{ t('speed.faster') }}" title="{{ t('speed.faster') }}" disabled><span aria-hidden="true">+</span></button>{% endif -%}
+<span class="speed-hint" id="{{ id }}-hint" hidden>{{ speed.hint }}</span>
+</span>
+{%- endmacro %}

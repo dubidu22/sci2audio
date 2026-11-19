@@ -2,6 +2,7 @@
 {% from "_paper.html" import paper_head with context %}
 {% from "_icons.html" import icon %}
 {% from "_keys.html" import key with context %}
+{% from "_speed.html" import speed_field with context %}
 {% block title %}{{ t('listen.title', name=document.name) }} · {{ t('common.app') }}{% endblock %}
 {% block scripts %}{% if view %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}
 {#- A piece of a block: a sentence the voice reads (`.s`) or text between sentences. Its parts
@@ -69,14 +70,20 @@
     <span id="now">{{ t('player.chapter', n=1, total=view.chapters|length) }} <span lang="{{ view.language }}">{{ view.chapters[0].title }}</span></span>
     <span id="clock" class="clock">{{ t('player.time_of', time='0:00', total=total) }}</span>
   </p>
-  <p class="dock-end">
+  <div class="dock-end">
     <button type="button" id="back-to-reading" class="sm" hidden>{{ t('listen.back_to_reading') }}</button>
     {#- a marker on the sentence being read (#474): pressed while it has one #}
     <button type="button" class="sm marker-button" id="marker" aria-pressed="false"{% if keys %} aria-keyshortcuts="M"{% endif %} disabled>{{ icon('mark', 's') }}<span>{{ t('marker.button') }}</span>{% if keys %}<kbd aria-hidden="true">M</kbd>{% endif %}</button>
-    <label class="visually-hidden" for="speed">{{ t('listen.speed') }}</label>
-    <select id="speed" class="speed">{% for value, label in speeds %}<option value="{{ value }}"{% if value == '1' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    {#- the speed (#152, #651): a button with the speed opens the usual speeds and the field #}
+    <div class="speed-menu">
+      <button type="button" id="speed" class="speed" aria-expanded="false" aria-controls="speed-panel" disabled><span class="visually-hidden">{{ t('listen.speed') }} </span><span id="speed-now">{{ speed.text }}</span></button>
+      <div class="speed-panel" id="speed-panel" role="group" aria-label="{{ t('listen.speed') }}" hidden>
+        <div class="speed-presets" role="group" aria-label="{{ t('speed.presets') }}">{% for value, label in speeds %}<button type="button" class="sm" data-speed="{{ value }}" aria-pressed="{{ 'true' if value == speed.value else 'false' }}" disabled>{{ label }}</button>{% endfor %}</div>
+        {{ speed_field('speed-exact', speed, t('speed.exact'), buttons=True) }}
+      </div>
+    </div>
     <span class="ai-label">{{ t('listen.ai_label') }}</span>
-  </p>
+  </div>
   <p class="marker-toast" id="marker-toast" hidden><span id="marker-said"></span> <button type="button" class="sm" id="marker-undo" disabled>{{ icon('undo', 's') }}<span>{{ t('marker.undo') }}</span></button> <button type="button" class="sm quiet" id="marker-add-note" hidden disabled>{{ t('marker.add_note') }}</button></p>
   <audio id="audio" preload="metadata"></audio>
 </section>

@@ -829,6 +829,7 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     call("GET", f"{api}/voices", 200)
     settings = call("GET", f"{api}/settings", 200).json()["settings"]
     call("PUT", f"{api}/settings", 200, data=settings, headers=same)
+    call("PUT", f"{api}/player/speed", 200, data={"speed": 1.25}, headers=same)  # (#651)
     call(
         "POST", f"{api}/documents/text", 201, 415,  # 415 until text files are read (#74)
         data={"text": "A short pasted note.", "name": "note"}, headers=same,

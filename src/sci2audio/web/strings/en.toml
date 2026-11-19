@@ -379,6 +379,13 @@ load_failed = "The audio could not be loaded. Is sci2audio still running?"
 time_of = "{time} of {total}"  # the dock's clock and the timeline (#393)
 speed_now = "Speed {speed}"  # said when a key changed the speed (#394)
 
+[speed]  # the typed speed field of the player and the voice (#651)
+slower = "Slower"
+faster = "Faster"
+exact = "Exact speed"  # the field beside the voice's slider
+presets = "Usual speeds"
+invalid = "Type a number from {min} to {max}, such as {example}."
+
 [js]
 moved = "{title} is now chapter {n} of {total}."  # the chapter list (#119)
 opening = "Opening…"

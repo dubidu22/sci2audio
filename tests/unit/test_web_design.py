@@ -663,7 +663,7 @@ def test_settings_shows_the_saved_defaults_and_showing_writes_nothing(tmp_path: 
     client = client_of((app, config))
     page = client.get("/settings").text
     assert f'value="{config.output_folder}"' in page
-    assert 'id="settings-speed" name="speed" min="0.5" max="2.0" step="0.05" value="1.0"' in page
+    assert 'id="settings-speed" name="speed" min="0.50" max="2.00" step="0.01" value="1.00"' in page
     assert not config.config_file.exists()
     folder = tmp_path / "Audiobooks"
     save_settings(JobSettings(output_folder=folder, speed=1.25), config.config_file)
