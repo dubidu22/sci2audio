@@ -4,7 +4,7 @@ sci2audio 1.4.0 comes as an installer for each system, with everything it needs 
 
 | Your computer | File | Size |
 |---|---|---|
-| Mac with an Apple chip (M1 or newer), macOS 12 or newer | `sci2audio-1.4.0-macos-arm64.dmg` | about 380 MB |
+| Mac with an Apple chip (M1 or newer), macOS 14 (Sonoma) or newer | `sci2audio-1.4.0-macos-arm64.dmg` | about 380 MB |
 | Windows 10 (version 1809 or newer) or Windows 11, 64-bit | `sci2audio-1.4.0-windows-x64-setup.exe` | about 280 MB |
 | Linux, 64-bit (x86_64), glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 and later) | `sci2audio-1.4.0-linux-x86_64.AppImage` | about 430 MB |
 

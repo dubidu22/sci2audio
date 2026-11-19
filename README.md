@@ -41,7 +41,7 @@ Numbers such as "7.5" and ".01" stay as printed: the voice reads them well.
 
 ## Installing
 
-sci2audio runs on Macs with Apple chips, Windows and Linux. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
+sci2audio runs on Macs with Apple chips (macOS 14 or newer), Windows and Linux. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
 
 ### The installers (the easy way)
 

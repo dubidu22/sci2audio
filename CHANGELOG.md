@@ -12,7 +12,7 @@ The first release made for other people to try. sci2audio turns scientific texts
 
 | Your computer | File | Size |
 |---|---|---|
-| Mac with an Apple chip, macOS 12 or newer | `sci2audio-1.4.0-macos-arm64.dmg` | about 380 MB |
+| Mac with an Apple chip, macOS 14 (Sonoma) or newer | `sci2audio-1.4.0-macos-arm64.dmg` | about 380 MB |
 | Windows 10 (1809 or newer) or 11, 64-bit | `sci2audio-1.4.0-windows-x64-setup.exe` | about 280 MB |
 | Linux x86_64 (Ubuntu 22.04, Debian 12, Fedora 36 or newer) | `sci2audio-1.4.0-linux-x86_64.AppImage` | about 430 MB |
 

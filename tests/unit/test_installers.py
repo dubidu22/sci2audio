@@ -114,6 +114,14 @@ def test_the_bundled_ffmpeg_is_lgpl_audio_only_and_reaches_no_network() -> None:
     assert {"mp3", "ipod", "null"} <= set(muxers)
 
 
+def test_the_mac_app_asks_for_the_macos_its_libraries_were_built_for() -> None:
+    """torch and onnxruntime publish macosx_14_0_arm64 wheels only (minos 14.0)."""
+    spec = (PACKAGING / "sci2audio.spec").read_text(encoding="utf-8")
+    assert '"LSMinimumSystemVersion": "14.0"' in spec
+    for doc in ("CHANGELOG.md", "docs/installing.md"):
+        assert "macOS 14 (Sonoma) or newer" in (ROOT / doc).read_text(encoding="utf-8"), doc
+
+
 def test_the_spec_leaves_imageio_ffmpegs_program_out_and_brings_its_own() -> None:
     spec = (PACKAGING / "sci2audio.spec").read_text(encoding="utf-8")
     assert 'DROPPED = "imageio_ffmpeg/binaries"' in spec

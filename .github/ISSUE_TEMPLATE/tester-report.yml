@@ -22,7 +22,7 @@ body:
     id: system
     attributes:
       label: sci2audio version and system
-      description: The version is on the privacy page and in `sci2audio --version`.
+      description: "`sci2audio --version` prints it, and so does the first line of the app's start-up log (\"sci2audio 1.4.0 starting on ...\"; where the log is: docs/installing.md)."
       placeholder: "sci2audio 1.4.0, macOS 15.2 on an M2"
     validations:
       required: true
