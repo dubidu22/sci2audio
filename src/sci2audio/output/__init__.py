@@ -20,7 +20,7 @@ from sci2audio.output.readalong import (
     read_readalong,
 )
 from sci2audio.output.wav import ChunkAudioError
-from sci2audio.output.write import AI_LABEL, write_audiobook
+from sci2audio.output.write import AI_LABEL, audiobook_targets, write_audiobook
 
 __all__ = [
     "AI_LABEL",
@@ -38,6 +38,7 @@ __all__ = [
     "ReadAlongError",
     "Spoken",
     "Written",
+    "audiobook_targets",
     "find_ffmpeg",
     "read_readalong",
     "write_audiobook",

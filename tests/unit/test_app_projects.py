@@ -788,3 +788,31 @@ def test_r11_a_copy_whose_commit_failed_is_thrown_away_next_time(
     assert not os.path.lexists(staging)
     assert tree_digest(root / ID) == original
     assert not (legacy / ID).exists()
+
+
+def test_a_linked_earlier_folder_is_never_compared_through(
+    legacy: Path, root: Path, tmp_path: Path
+) -> None:
+    """#544 (D-748): `from-earlier-version` in the project folder is a link to an outside
+    folder that holds a file identical to the old one. The merge never looks through the
+    link: the old file stays in the old folder and is named, the outside folder is as it
+    was. Without the `_through_folders` check of the earlier place, the old file would be
+    removed as "the same file" because of the file the link points to."""
+    if not can_link(tmp_path):
+        pytest.skip("this user can't make links")
+    old_folder(legacy, ID, {"position.json": b"old"})
+    old = (legacy / ID / "position.json").read_bytes()
+    new = root / ID
+    new.mkdir(parents=True)
+    (new / "position.json").write_bytes(b"new")  # differs: the old one goes to EARLIER
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "position.json").write_bytes(old)  # same size and SHA-256 as the old file
+    before = tree_digest(outside)
+    os.symlink(outside, new / EARLIER, target_is_directory=True)
+    outcome = migrate_one(legacy, root, ID)
+    assert outcome.moved is Moved.MERGED
+    assert outcome.left == (legacy / ID / "position.json",)
+    assert (legacy / ID / "position.json").read_bytes() == old
+    assert tree_digest(outside) == before
+    assert (new / "position.json").read_bytes() == b"new"

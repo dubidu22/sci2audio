@@ -77,8 +77,8 @@ from sci2audio.output import (
     Pause,
     Spoken,
     Written,
+    audiobook_targets,
     find_ffmpeg,
-    names,
     read_readalong,
     write_audiobook,
 )
@@ -325,21 +325,10 @@ def usable_cover(cover: Path | None, exe: Path) -> Path | None:
 def audiobook_files(
     out_folder: Path, book: BookInfo, titles: Sequence[str], settings: OutputSettings
 ) -> list[Path]:
-    """The files `write_audiobook` writes for these chapters (output's naming rules)."""
-    base = names.book_name(book.title)
-    count = len(titles)
-    mp3s = (
-        [names.chapter_file(base, n, count, title) for n, title in enumerate(titles, start=1)]
-        if settings.mp3
-        else []
-    )
-    files = [out_folder / name for name in mp3s]
-    if settings.m4b:
-        files.append(out_folder / f"{base}.m4b")
-    if settings.subtitles:
-        files += [out_folder / name for name in names.subtitle_files(base, mp3s, settings.m4b)]
-    files.append(out_folder / f"{base}.readalong.json")
-    return files
+    """The files `write_audiobook` writes for these chapters, named as it names them
+    (`output.audiobook_targets`, a name the file system refuses retried, #493)."""
+    named = audiobook_targets(out_folder, book.title, titles, settings)
+    return [*named.mp3s, *([named.m4b] if named.m4b else []), *named.subtitles, named.readalong]
 
 
 # ---- running -------------------------------------------------------------------------
@@ -715,6 +704,12 @@ def _encode(
     cannot be restored: the old versions are gone (output removes the old read-along file
     first, so it never vouches for a mixed set, D-119)."""
     _check_rates(work, spoken)
+    try:
+        # made before the names, so a name the folder refuses is retried here as output
+        # retries it, and the files to take back on failure are the ones written (#493)
+        out_folder.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise _encode_error(error, out_folder) from error
     targets = audiobook_files(out_folder, book, [c.title for c in chapters], settings)
     existed = {target for target in targets if target.exists()}
     try:

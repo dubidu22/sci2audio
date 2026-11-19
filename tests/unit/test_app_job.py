@@ -7,6 +7,7 @@ import threading
 from pathlib import Path
 
 import pytest
+from output_helpers import NEWER, refuse_newer_names
 from pdf_maker import Text, make_pdf
 
 from sci2audio.app import (
@@ -279,3 +280,25 @@ def test_the_reference_list_of_a_paper_is_not_spoken_by_default(tmp_path: Path) 
         overwrite=True,
     )
     assert [c.selected for c in chosen.result.chapters] == [False] * 6 + [True]
+
+
+@pytest.mark.parametrize("folder_exists", [True, False], ids=["folder", "new-folder"])
+def test_a_refused_stem_is_written_under_the_retried_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, folder_exists: bool
+) -> None:
+    """#493: the output folder is on a Mac whose Unicode table is older than Python's. In a
+    folder made by the job the names are tried once it is there."""
+    source = small_pdf(tmp_path, f"{NEWER} notes.pdf")
+    out = tmp_path / "out"
+    if folder_exists:
+        out.mkdir()
+    refuse_newer_names(monkeypatch)
+    job = run_script_job(source, JobSettings(output_folder=out), tmp_path / "w")
+    assert job.files.script == out / "notes.script.txt"
+    assert sorted(p.name for p in out.iterdir()) == [
+        "notes.report.json",
+        "notes.report.md",
+        "notes.script.txt",
+    ]
+    record = json.loads(job.files.record.read_text(encoding="utf-8"))
+    assert record["files"]["script"] == "notes.script.txt"

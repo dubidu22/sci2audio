@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import errno
 import math
+import os
 import re
 import struct
 import subprocess
 import wave
 from dataclasses import dataclass
 from pathlib import Path
+
+import pytest
 
 from sci2audio.core import AudioChunk, Span
 from sci2audio.output import BookInfo, Chapter, Pause, Spoken
@@ -131,3 +135,25 @@ def tags_of(meta: str) -> dict[str, str]:
 
 def unescape(value: str) -> str:
     return re.sub(r"\\(.)", r"\1", value)
+
+
+NEWER = "\U0001fae8"  # SHAKING FACE, Unicode 15.0 (2022): newer than an older Mac's table
+
+
+def refuse_newer_names(monkeypatch: pytest.MonkeyPatch, newer: str = NEWER) -> list[str]:
+    """Make `os.open` act as an APFS whose Unicode table is older than Python's (#493): a
+    name holding `newer` fails with EILSEQ in a folder that exists (in a missing one the
+    real error comes first, as on a Mac). Returns the names it was asked to open (the
+    probes), so a test can see that ordinary names are never tried."""
+    asked: list[str] = []
+    real = os.open
+
+    def fake(path, flags, mode=0o777, *args, **kwargs):  # type: ignore[no-untyped-def]
+        name = os.path.basename(os.fspath(path))
+        asked.append(name)
+        if newer in name and os.path.isdir(os.path.dirname(os.fspath(path)) or "."):
+            raise OSError(errno.EILSEQ, os.strerror(errno.EILSEQ), os.fspath(path))
+        return real(path, flags, mode, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", fake)
+    return asked
