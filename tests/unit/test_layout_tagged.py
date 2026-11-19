@@ -161,6 +161,23 @@ def test_code_is_a_code_block_and_quotes_are_paragraphs_keeping_their_lines() ->
     assert doc.blocks[0].is_placeholder
 
 
+def test_a_listing_figcaption_names_its_code_block() -> None:
+    """#281: a figure holding a code block and a "Listing 1: ..." figcaption."""
+    doc = build_document(
+        content(
+            [
+                line("def f():", "figure", "pre", "code"),
+                line("    return 1", "figure", "pre", "code", "br"),
+                line("Listing 1: A function.", "figure", "figcaption"),
+            ]
+        )
+    )
+    assert [(b.kind.value, b.label, b.describes) for b in doc.blocks] == [
+        ("code", "", None),
+        ("caption", "Listing 1", 0),
+    ]
+
+
 def test_hidden_text_contents_and_page_breaks_are_furniture() -> None:
     doc = build_document(
         content(
