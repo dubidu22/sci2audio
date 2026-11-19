@@ -947,10 +947,12 @@ def test_a_fresh_readalong_file_rewritten_in_place_is_read_again(tmp_path: Path)
     path.write_text(first, encoding="utf-8")
     seen = os.stat(path).st_mtime_ns
     assert player.load_readalong(path).chunks[0].span == Span(0, 0, 1)
+    assert player.audiobook_stamp(path) == hashlib.sha256(first.encode()).hexdigest()[:16]
     with path.open("r+", encoding="utf-8") as stream:  # in place: the same inode
         stream.write(second)
     os.utime(path, ns=(seen, seen))
     assert player.load_readalong(path).chunks[0].span == Span(0, 0, 2)
+    # the stamp asked for before the rewrite is not kept for the new bytes (#601 R1-1)
     assert player.audiobook_stamp(path) == hashlib.sha256(second.encode()).hexdigest()[:16]
 
 
