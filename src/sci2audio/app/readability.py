@@ -79,6 +79,35 @@ def warning(found: Unreadable) -> str:
     )
 
 
+def picture_pages(content: Content) -> tuple[int, ...]:
+    """The pages of a PDF that hold a picture and no text (#186): a scanned page in a PDF
+    whose other pages have text. A blank page (no text, no picture) is not one, and a line
+    of white space only is no text. Vector drawings do not count: a scan is a picture. PDF
+    only, as `unreadable` (D-772): an EPUB's page holding only a picture is a cover or a
+    plate, not a scan."""
+    if content.source.format is not SourceFormat.PDF:
+        return ()
+    return tuple(
+        page.number
+        for page in content.pages
+        if page.pictures and not any(line.text.strip() for line in page.lines)
+    )
+
+
+def picture_warning(pages: Iterable[int]) -> str:
+    """The report's warning for the pages that hold only pictures (#186), naming them."""
+    numbers = set(pages)
+    if len(numbers) == 1:
+        return (
+            f"Page {page_ranges(numbers)} holds no text, only pictures (a scanned page?), "
+            "so nothing on it is read."
+        )
+    return (
+        f"Pages {page_ranges(numbers)} hold no text, only pictures (scanned pages?), so "
+        "nothing on them is read."
+    )
+
+
 def page_ranges(pages: Iterable[int]) -> str:
     """Page numbers as people write them, "1-3, 7" with an en dash: a run of three or more
     as a range, a run of two as "4, 5"."""

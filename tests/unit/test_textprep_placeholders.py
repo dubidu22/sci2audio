@@ -167,6 +167,29 @@ def test_a_code_block_is_one_notice_in_its_language_and_nothing_inside_it_is_rea
     check_text_step(CodeNoticeStep(), allow_ask=False)
 
 
+@pytest.mark.parametrize(
+    ("label", "language", "notice"),
+    [
+        ("Listing 3", "en", "Listing 3 is skipped."),
+        ("LISTING 3", "en", "LISTING 3 is skipped."),
+        ("Listing 3", "de", "Listing 3 wird übersprungen."),
+        ("Quelltext 2", "de", "Quelltext 2 wird übersprungen."),
+    ],
+)
+def test_a_code_block_is_named_by_its_listing_caption(
+    label: str, language: str, notice: str
+) -> None:
+    """#281 (AC-281.2): layout points a listing's caption at its CODE block; the notice
+    names it, and the caption reads as printed in its place."""
+    code = "import seaborn as sns\ng = sns.relplot(data=fmri)"
+    document = make_document(
+        [caption(label, 1, ": Drawing a line plot."), (BlockKind.CODE, code)], language
+    )
+    assert read(document) == [f"{label}: Drawing a line plot.", notice]
+    (edit,) = CodeNoticeStep().find(document, StepContext(language))
+    assert edit.reason == f"{label} is not read; a short notice is read instead (D-55)"
+
+
 def test_switching_a_category_off_reads_the_placeholder_as_printed() -> None:
     document = make_document(
         [(BlockKind.TABLE, "a b"), Block(BlockKind.FORMULA, "x (1)", label="1")]

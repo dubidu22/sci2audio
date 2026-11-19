@@ -26,6 +26,9 @@
 {% if report.unreadable %}{# a PDF whose text is glyph numbers (#442, #187) #}
 <div class="callout {{ 'bad' if report.unreadable.stops else 'warn' }}" id="unreadable">{{ icon('alert', 'l') }}<div><p>{% if report.unreadable.stops %}{{ t('document.unreadable_stop', n=report.unreadable.pages|length, pages=report.unreadable.ranges) }}{% else %}{{ t('document.unreadable_pages', n=report.unreadable.pages|length, pages=report.unreadable.ranges) }}{% endif %}</p></div></div>
 {% endif %}
+{% if report.picture_pages %}{# a PDF's pages that are scans without text (#186) #}
+<div class="callout warn" id="picture-pages">{{ icon('alert', 'l') }}<div><p>{{ t('document.picture_pages', n=report.picture_pages.pages|length, pages=report.picture_pages.ranges) }}</p></div></div>
+{% endif %}
 {% if report.problems %}
 <div class="callout warn">{{ icon('alert', 'l') }}<div>
   <p>{{ t('document.problems') }}</p>
