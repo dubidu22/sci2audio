@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import pytest
 from core_strategies import contents
-from hypothesis import given
+from hypothesis import event, given
+from hypothesis import strategies as st
 from pdf_maker import Text, glyph_number_pdf, joined_pdf, make_pdf
 
 from sci2audio.app.readability import (
@@ -19,6 +20,7 @@ from sci2audio.app.readability import (
 )
 from sci2audio.core import Content, Page, Source, SourceFormat, TextLine, TextRun
 from sci2audio.extraction import legibility, read_pdf
+from sci2audio.extraction.legibility import MIN_LETTERS
 
 DASH = "\N{EN DASH}"
 GERMAN = [
@@ -102,6 +104,50 @@ def test_the_verdict_never_fails_and_names_only_unreadable_pages(content: Conten
     total = sum(m.characters for m in measured)
     held = sum(m.characters for m in measured if m.unreadable)
     assert found.stops is (2 * held > total)
+
+
+# a page `legibility` reads as readable, or as unreadable by either of two measures: the
+# glyph-number count, or the foreign letters (U+FFFD, private use); `contents()` alone never
+# makes an unreadable page (review of #577, R2)
+_PAGES = st.one_of(
+    st.tuples(st.just("readable"), st.integers(1, 400)),
+    st.tuples(st.just("glyphs"), st.integers(1, 400)),
+    st.tuples(st.just("foreign"), st.integers(MIN_LETTERS, 400), st.sampled_from("\ufffd\ue000")),
+)
+
+
+@st.composite
+def mixed_pdfs(draw: st.DrawFn) -> Content:
+    """A PDF of readable and unreadable pages, at least one unreadable, of any sizes."""
+    kinds = draw(st.lists(_PAGES, min_size=1, max_size=8))
+    if all(kind[0] == "readable" for kind in kinds):
+        kinds.insert(draw(st.integers(0, len(kinds))), ("glyphs", draw(st.integers(1, 400))))
+    pages = []
+    for number, (kind, count, *char) in enumerate(kinds, start=1):
+        if kind == "readable":
+            pages.append(page(number, count))
+        elif kind == "glyphs":
+            pages.append(glyph_page(number, count))
+        else:
+            line = TextLine(f"p{number}-l1", (TextRun(char[0] * count),))
+            pages.append(Page(number, lines=(line,)))
+    return pdf(*pages)
+
+
+@given(mixed_pdfs())
+def test_the_verdict_on_pdfs_with_unreadable_pages(content: Content) -> None:
+    measured = legibility(content)
+    bad = {m.number for m in measured if m.unreadable}
+    assert bad  # every example reaches the unreadable branch
+    found = unreadable(content)
+    assert found is not None
+    assert set(found.pages) == bad
+    assert set(found.pages) <= {p.number for p in content.pages}
+    assert list(found.pages) == sorted(found.pages)
+    total = sum(p.characters for p in content.pages)
+    held = sum(p.characters for p in content.pages if p.number in bad)
+    assert found.stops is (2 * held > total)
+    event("stops" if found.stops else "warns")
 
 
 # ---- on PDF files ----------------------------------------------------------------------------

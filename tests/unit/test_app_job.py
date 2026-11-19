@@ -205,6 +205,20 @@ def test_a_pdf_of_glyph_numbers_is_analysed_and_the_report_says_no_audiobook_is_
     assert warning in job.files.report_markdown.read_text(encoding="utf-8")
 
 
+def test_the_unreadable_warning_comes_before_every_other_warning(tmp_path: Path) -> None:
+    """It decides whether there is an audiobook at all, so it is read first: here before
+    the warning that the glyph numbers did not tell the text's language (D-495)."""
+    source = tmp_path / "glyphs.pdf"
+    source.write_bytes(glyph_number_pdf(GLYPH_LINES))
+    job = run_script_job(source, JobSettings(), tmp_path / "w")
+    warnings = job.report.warnings
+    assert len(warnings) == 2
+    assert warnings[0].startswith("The text of page 1 cannot be read")
+    assert warnings[1].startswith("sci2audio could not tell from the text")
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert data["warnings"] == list(warnings)
+
+
 def test_a_glyph_number_page_among_plain_pages_is_a_report_warning(tmp_path: Path) -> None:
     plain = make_pdf(
         [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
