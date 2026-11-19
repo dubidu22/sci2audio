@@ -133,6 +133,7 @@ def test_numbers_read_as_said(printed: str, said: str) -> None:
         "1 000\u2009000",
         # powers that are units (#68), statistics or footnote marks
         "5 m² and kg/m² and R² and 2019¹",
+        "5\nm² and .05\nm² and 5\tm²",  # a line break after a number is a space too (#445)
         # a run of superscript signs is no power the voice could say
         "10⁶⁻⁴ and x⁶⁻⁴ and 2⁻³⁺¹ and 2^3⁻⁴",
         "10⁶^0 and 33/310^2 and 3:10^2 and 2019-03-12^2",  # chained with a caret

@@ -2207,6 +2207,42 @@ language = "de"
 blocks = [{ kind = "paragraph", runs = ["Sie sagte ", { text = "bonjour", tags = ["p", "span", "lang:fr"] }, " und ", { text = "ging", tags = ["p", "span", "role:note"] }, "."] }]
 expected = ["Sie sagte bonjour und ging."]
 
+[[case]]
+id = "de-hidden-run-between-a-number-and-its-unit"
+audit = 0
+issue = 445
+goal = "Ein versteckter Lauf zwischen Zahl und Einheit: die Einheit wird gelesen wie ohne ihn, in beiden Läufen (vor #445 'm Quadrat', dann 'Meter Quadrat')."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Es sind 5 ", { text = "Jane", tags = ["p", "span", "hidden"] }, " m² hier."] }]
+expected = ["Es sind 5 Quadratmeter hier."]
+
+[[case]]
+id = "de-hidden-run-before-a-unit-on-a-new-line"
+audit = 0
+issue = 445
+goal = "Ein versteckter Lauf vor einer Einheit in der nächsten Zeile: gelesen wie ohne ihn, in beiden Läufen."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Es gilt p < .05 ", { text = "Jane", tags = ["p", "span", "hidden"] }, "\nm² hier."] }]
+expected = ["Es gilt p kleiner als 0 Komma 0 5 Quadratmeter hier."]
+
+[[case]]
+id = "de-hidden-run-inside-an-abbreviation"
+audit = 0
+issue = 445
+goal = "Eine Seitenmarke in 'z. B.': schon im ersten Lauf 'zum Beispiel', die Marke nicht gelesen."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Das gilt z.", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " B. für Mäuse."] }]
+expected = ["Das gilt zum Beispiel für Mäuse."]
+
+[[case]]
+id = "de-raised-mass-number-before-k"
+audit = 0
+issue = 449
+goal = "'40K-Atome' bleibt wie gedruckt, hochgestellt oder nicht: Deutsch liest kein 'K' als 'tausend' (#449)."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Wir nutzen ", { sup = "40" }, "K-Atome und 40K-Atome."] }]
+expected = ["Wir nutzen 40K-Atome und 40K-Atome."]
+
 # ---- #93 affiliation marks in the title block (D-692) ---------------------------------------
 
 [[case]]
