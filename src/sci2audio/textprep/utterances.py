@@ -42,12 +42,13 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
   best kind the cut nearest an even share of the rest wins, so parts keep about the same
   length, and no cut leaves a part under `MIN_PIECE` characters while another cut leaves none.
   A space between the words of a reading ("unter | anderem", "3 | Komma 5", "less than | or
-  equal to") ranks after every other space (#482): on a first run the reading is one
-  replacement, on a second run plain words, so finding it from the text keeps the cut where
-  the first run made it. A place inside an open bracket or quote ranks after every place
-  outside one (#481 review). A single word longer than the limit is cut where it must be. Its
-  limit: when every place near the even share lies inside a reading, a first run moves its
-  cut out of the replacement and a second run cannot (the script text is the same, D-577).
+  equal to", "newton | metres") ranks after every other space (#482): on a first run the
+  reading is one replacement, on a second run plain words, so finding it from the text keeps
+  the cut where the first run made it. A place inside an open bracket or quote ranks after
+  every place outside one (#481 review). A single word longer than the limit is cut where it
+  must be. Its limit: when every place near the even share lies inside a reading, a first
+  run moves its cut out of the replacement and a second run cannot (the script text is the
+  same, D-577).
   Every utterance after the first of a cut sentence is marked `continues` (D-157).
 - Spans: kept text (a piece whose text is the document's original text of its span) maps
   character by character, so a cut inside it is exact. A replacement is read as a whole
@@ -591,8 +592,9 @@ def _cut_point(
     inside = _inside(text, last_fit, pairs)
     joined = _joined(text, last_fit, readings)
     places = [
-        # 0 to 4 as `_rank`, 5 white space inside a reading, 6 to 11 the same inside a bracket
-        (rank + (rank == 4 and i in joined) + 6 * inside[i], i)
+        # 0 to 4 as `_rank`, 5 white space inside a reading (every place in `joined` follows
+        # white space, so `_rank` gives it 4), 6 to 11 the same inside a bracket
+        (rank + (i in joined) + 6 * inside[i], i)
         for i in range(last_fit, 0, -1)
         if counts[i] > 0 and (rank := _rank(text, i, openers)) is not None
     ]
@@ -613,7 +615,8 @@ def _cut_point(
 def _joined(text: str, last: int, readings: re.Pattern[str] | None) -> set[int]:
     """The places up to `last` after white space that joins the words of one reading (#482):
     white space with a digit right before or after it ("3 | Komma 5", "Seite | 12"), and white
-    space inside a match of `readings` ("unter | anderem", "less than | or equal to")."""
+    space inside a match of `readings` ("unter | anderem", "less than | or equal to") or right
+    before the word that ends one ("per | second": `_readings` matches only "per " there)."""
     out: set[int] = set()
     word_end = 0  # where the last word before the white space ends
     for i in range(1, min(last, len(text) - 1) + 1):
@@ -628,7 +631,7 @@ def _joined(text: str, last: int, readings: re.Pattern[str] | None) -> set[int]:
         for match in readings.finditer(text, 0, min(len(text), last + _LONGEST_READING)):
             out.update(
                 k
-                for k in range(match.start() + 1, min(match.end(), last + 1))
+                for k in range(match.start() + 1, min(match.end(), last, len(text) - 1) + 1)
                 if text[k - 1].isspace() and not text[k].isspace()
             )
     return out
@@ -642,46 +645,77 @@ _LONGEST_READING = 64
 def _readings(language: str) -> re.Pattern[str] | None:
     """The multi-word readings of the steps that a cut must not split, as one pattern (#482):
     the abbreviation list's readings with a space ("unter anderem", "for example"), the unit
-    list's ("Grad Celsius", "pound per square inch") and its words that join a unit to its
-    neighbours ("Kilometer pro Stunde", "square metres", "R squared"), the operators of the
-    statistics step ("less than or equal to", "kleiner oder gleich"), a power ("to the power
-    of minus", "hoch minus") and a date ("dritten Mai", "3 May"). Built from the lists at
-    first use, so a new entry is covered at once. None for a language without lists."""
-    # the statistics and German number modules import this module (through the footnotes
-    # and links steps), so their tables are read here, not at import
-    from sci2audio.textprep.numbers_de import MONTHS
-    from sci2audio.textprep.statistics import OPERATORS
-    from sci2audio.textprep.statistics_de import OPERATORS_DE
+    list's ("Grad Celsius", "pound per square inch"), two of its units side by side ("newton
+    metres") and its words that join a unit to its neighbours ("Kilometer pro Stunde", "square
+    metres", "R squared"), the numbers step's fractions ("17 out of 20", "ein Drittel"), the
+    statistics step's operators ("less than or equal to", "kleiner oder gleich") and symbols
+    ("confidence interval", "partielles Eta-Quadrat"), a power ("to the power of minus", "hoch
+    minus") and a date ("dritten Mai", "3 May"). Built from the lists at first use, so a new
+    entry is covered at once. None for a language without lists.
+
+    A joining word matches with the white space on its side only (" per ", "square "), so its
+    neighbour is never part of a match: a match never starts at a word that a longer word
+    around it would have to give back, which keeps the search linear on any text (#616 F2)."""
+    # the statistics and number modules import this module (through the footnotes and links
+    # steps), so their tables are read here, not at import
+    from sci2audio.textprep.numbers import OUT_OF
+    from sci2audio.textprep.numbers_de import FRACTIONS_OF_ONE, MONTHS
+    from sci2audio.textprep.statistics import OPERATORS, SYMBOL_READINGS
+    from sci2audio.textprep.statistics_de import OPERATORS_DE, SYMBOL_READINGS_DE
 
     listed, entries = units(language), abbreviations(language)
     if listed is None and entries is None:
         return None
+    german = language == "de"
     phrases = {
-        re.escape(reading.strip())
+        reading.strip()
         for entry in entries or ()
         for reading in (entry.reads, entry.before_year, entry.after_paragraph)
-        if " " in reading.strip()
     }
     for unit in listed.units if listed else ():
-        phrases.update(re.escape(name) for name in (unit.singular, unit.plural) if " " in name)
+        phrases.update((unit.singular, unit.plural))
+    phrases.update(OPERATORS_DE.values() if german else OPERATORS.values())
+    phrases.update(SYMBOL_READINGS_DE if german else SYMBOL_READINGS)
+    phrases.update(FRACTIONS_OF_ONE if german else ())
+    phrases.update(["hoch minus"] if german else ["to the power of minus", "to the power of"])
+    # each a whole match, bounded by what is not a letter or digit
+    whole = [re.escape(phrase) for phrase in phrases if " " in phrase]
+    if not german:
+        whole.append(rf"(?<=\d\s){re.escape(OUT_OF)}(?=\s+\d)")  # "17 out of 20"
+    names = "|".join(
+        sorted(
+            {
+                re.escape(name)
+                for unit in (listed.units if listed else ())
+                if not unit.per_only
+                for name in (unit.singular, unit.plural)
+            },
+            key=len,
+            reverse=True,
+        )
+    )
+    if names:
+        whole.append(rf"(?:{names})(?:\s+(?:{names}))+")  # "newton metres", "N m"
+    # each the white space on one side of a joining word, with the word
+    joins = []
     words = listed.words if listed else {}
     if per := words.get("per"):
-        phrases.add(rf"\S+\s+{re.escape(per)}\s+\S+")
+        joins.append(rf"(?<=\S)\s+{re.escape(per)}\s+(?=\S)")
     if listed and not listed.joined_powers:
-        phrases.update(
-            rf"{re.escape(words[key])}\s+\S+" for key in ("square", "cubic") if key in words
-        )
-    phrases.update(
-        rf"\S+\s+{re.escape(words[key])}" for key in ("squared", "cubed") if key in words
-    )
-    german = language == "de"
-    operators = OPERATORS_DE if german else OPERATORS
-    phrases.update(re.escape(reading) for reading in operators.values() if " " in reading)
-    phrases.update(["hoch minus"] if german else ["to the power of minus", "to the power of"])
+        joins += [
+            rf"(?<!\w){re.escape(words[key])}\s+(?=\S)"
+            for key in ("square", "cubic")
+            if key in words
+        ]
+    joins += [
+        rf"(?<=\S)\s+{re.escape(words[key])}(?!\w)" for key in ("squared", "cubed") if key in words
+    ]
     months = MONTHS if german else tuple(calendar.month_name[1:])
-    phrases.add(rf"\S+\s+(?-i:{'|'.join(months)})")  # "May", not "may"
-    alternatives = sorted(phrases, key=len, reverse=True)
-    return re.compile(rf"(?<!\w)(?:{'|'.join(alternatives)})(?!\w)", re.IGNORECASE)
+    joins.append(rf"(?<=\S)\s+(?-i:{'|'.join(months)})(?!\w)")  # "May", not "may"
+    alternatives = sorted(whole, key=len, reverse=True)
+    return re.compile(
+        rf"(?<!\w)(?:{'|'.join(alternatives)})(?!\w)|{'|'.join(joins)}", re.IGNORECASE
+    )
 
 
 def _outside_replacement(run: _Run, start: int, cut: int, counts: list[int], max_chars: int) -> int:

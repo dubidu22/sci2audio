@@ -167,6 +167,9 @@ _FRACTION_WORDS = {
     9: ("ninth", "ninths"),
     10: ("tenth", "tenths"),
 }
+# the words between the numbers of a fraction with no word for its denominator ("17 out of 20"),
+# which the sentence cutter keeps whole (#482)
+OUT_OF = "out of"
 # a unit chain after a fraction this step read as words ("3 quarters s⁻¹", "1 half m s⁻¹"): on
 # the first run the printed fraction ("3/4 s⁻¹") is a number before it, so the units step's
 # power is left alone on both runs (#335, D-605); not after a longer number ("2.5 quarters",
@@ -568,11 +571,9 @@ def _fractions(text: str) -> list[Candidate]:
             one, many = _FRACTION_WORDS[d]
             words = f" {one if n == 1 else many}"
         else:
-            words = " out of "
+            words = f" {OUT_OF} "
             start, end = start, start + 1
-            found.append(
-                Candidate(start, end, words, f'"{match.group()}" read as "{n} out of {d}"')
-            )
+            found.append(Candidate(start, end, words, f'"{match.group()}" read as "{n}{words}{d}"'))
             continue
         found.append(
             Candidate(start, match.end(), words, f'fraction "{match.group()}" read as "{n}{words}"')

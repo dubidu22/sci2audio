@@ -989,6 +989,12 @@ def _rebuilt_cuts(text: str, language: str) -> tuple[list[str], list[str]]:
         ("en", "x ≤ 5", "less than or equal to 5"),
         ("en", "10⁻³", "10 to the power of minus 3"),
         ("en", "2.5 m²", "2.5 square metres"),
+        # the numbers, units and statistics steps' readings (#616 review F1)
+        ("en", "95% CI", "confidence interval"),
+        ("en", "5 N m", "5 newton metres"),
+        ("en", "12/20", "12 out of 20"),
+        ("de", "1/2 der", "ein halb der"),
+        ("de", "ηp²", "partielles Eta-Quadrat"),
     ],
 )
 def test_a_long_sentence_is_cut_outside_a_reading_on_both_runs(
@@ -1063,6 +1069,42 @@ def test_a_space_inside_a_reading_ranks_after_every_other_space(
         ("de", "die Hörer hörten es", []),
         # German writes "Quadrat" into the unit ("Quadratmeter"): alone it joins nothing
         ("de", "das Quadrat hier", []),
+        # a reading inside a longer word is none ("in Verbindung mit", "that is")
+        ("de", "aaa darin Verbindung mit bbb", []),
+        ("en", "aaa that isotope bbb", []),
+        # the reading of "u. a." before a year, the singular unit name, both powers' words
+        ("de", "aaa und andere bbb", ["und | andere"]),
+        ("en", "aaa degree Celsius bbb", ["degree | Celsius"]),
+        ("en", "aaa x cubed bbb", ["x | cubed"]),
+        ("en", "aaa x squaredness bbb", []),  # a power's word is a whole word
+        ("en", "aaa cubic metres bbb", ["cubic | metres"]),
+        ("en", "a 10 to the power of 6", ["a | 10", "10 | to", "to | the", "the | power",
+                                          "power | of", "of | 6"]),
+        # a joining word joins on both sides, however many follow (#616 review F1)
+        ("en", "aaa joules per kilogram per kelvin", ["joules | per", "per | kilogram",
+                                                     "kilogram | per", "per | kelvin"]),
+        ("en", "aaa metres per second squared", ["metres | per", "per | second",
+                                                 "second | squared"]),
+        ("en", "aaa watts per square metre", ["watts | per", "per | square", "square | metre"]),
+        # units side by side, fractions, statistics symbols
+        ("en", "aaa newton metres bbb", ["newton | metres"]),
+        ("en", "aaa electronvolt angstroms bbb", ["electronvolt | angstroms"]),
+        ("en", "aaa newton metre seconds bbb", ["newton | metre", "metre | seconds"]),
+        ("en", "aaa 12 out of 20 bbb", ["aaa | 12", "12 | out", "out | of", "of | 20",
+                                        "20 | bbb"]),
+        ("en", "aaa out of reach", []),  # "out of" between numbers only
+        # a unit read only after "per" joins no unit name ("Tag", "Jahr"; English also lists
+        # "day" for "d", so "second | day" is joined)
+        ("de", "jede Minute Jahr für Jahr", []),
+        ("en", "on the second day", ["second | day"]),
+        ("en", "ask the Mayor", []),  # a month is a whole word
+        ("en", "aaa confidence intervals bbb", ["confidence | intervals"]),
+        ("en", "aaa odds ratio bbb", ["odds | ratio"]),
+        ("en", "aaa partial eta squared bbb", ["partial | eta", "eta | squared"]),
+        ("de", "aaa ein Drittel bbb", ["ein | Drittel"]),
+        ("de", "aaa partielles Eta-Quadrat bbb", ["partielles | Eta-Quadrat"]),
+        ("de", "aaa R Quadrat bbb", ["R | Quadrat"]),
+        ("de", "aaa Odds Ratio bbb", ["Odds | Ratio"]),
     ],
 )  # fmt: skip
 def test_the_spaces_that_join_a_reading_are_found_from_the_text(
