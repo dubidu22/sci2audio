@@ -67,10 +67,24 @@ Markdown, text). A page is `unreadable` when any of these holds:
   (formulas use Greek), with U+FFFD and private-use characters: glyph numbers far from
   Unicode, as Calibri's are, land there (#187's measure).
 
-## What the app does with it (#442 part B, batch B7; pinned by D-762)
+## What the app does with it (#442 part B, #187; D-762, D-772)
 
-- Preparing stops before voices, with a notice in English and German naming the pages, when
-  unreadable pages hold more than half of the document's characters (`characters` summed
-  over the unreadable pages, against all pages). No audio is written.
-- A document with at least one unreadable page below that share gets the #187 report
-  warning, naming those pages.
+`app.readability.unreadable(content)` turns the measures into the app's verdict, for PDFs only
+(D-772: a page is a printed page only there; EPUB, Markdown and text give their own letters):
+
+- **Stop.** When the unreadable pages hold more than half of the document's characters
+  (`characters` summed over the unreadable pages, times 2, more than the sum over all pages),
+  the audio job stops right after reading, before the voice is checked or made, with
+  `UnreadableTextError` (a kind of `UnreadableFileError`: exit code 5 on the command line,
+  error kind `unreadable-text` in the interface). Nothing is spoken and no file is written.
+- **Warning.** A document with at least one unreadable page below that share is voiced; the
+  report warns about it, naming the pages.
+
+The analysis (script job) always runs: it speaks nothing, and its report is where the person
+learns why. The report's warning comes first among its warnings, and its JSON gets
+`"unreadable": {"pages": [1, 2, 3], "ranges": "1–3", "stops": true}` at the end, only when a
+page is unreadable, so the reports of readable documents are as before. The document page
+shows the notice in English or German in step 1 (`document.unreadable_stop` or
+`document.unreadable_pages`) and, for a stop, blocks "Make the audiobook" with
+`make.needs_text`. Pages are named by their number from 1, as a PDF viewer counts,
+with runs of three or more as ranges ("1–3, 7").
