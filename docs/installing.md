@@ -2,11 +2,11 @@
 
 sci2audio 1.4.0 comes as an installer for each system, with everything it needs inside: Python, sci2audio and an audio-only ffmpeg. Download the file for your system from the [release page](https://github.com/dubidu22/sci2audio/releases/latest).
 
-| Your computer | File |
-|---|---|
-| Mac with an Apple chip (M1 or newer), macOS 12 or newer | `sci2audio-1.4.0-macos-arm64.dmg` |
-| Windows 10 (version 1809 or newer) or Windows 11, 64-bit | `sci2audio-1.4.0-windows-x64-setup.exe` |
-| Linux, 64-bit (x86_64), glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 and later) | `sci2audio-1.4.0-linux-x86_64.AppImage` |
+| Your computer | File | Size |
+|---|---|---|
+| Mac with an Apple chip (M1 or newer), macOS 12 or newer | `sci2audio-1.4.0-macos-arm64.dmg` | about 385 MB |
+| Windows 10 (version 1809 or newer) or Windows 11, 64-bit | `sci2audio-1.4.0-windows-x64-setup.exe` | about 340 MB |
+| Linux, 64-bit (x86_64), glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 and later) | `sci2audio-1.4.0-linux-x86_64.AppImage` | about 445 MB |
 
 Intel Macs are not supported: PyTorch, which runs the voice, no longer publishes builds for them.
 
