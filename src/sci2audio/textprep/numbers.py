@@ -50,9 +50,9 @@ _UNSIGNED = r"\d+(?:\.\d+)?"
 # it is a range dash, N2); the ASCII hyphen-minus is read right by the voice
 # its number may stand on the next line ("−" at a line end): a second run sees the joined
 # "− 5" and reads it so (#336, D-605). Not glued after a closing bracket ("(I − P)−1", an
-# inverse whose raise was lost, may as well be "f(x) minus 1": left as printed, #527, #589)
-# nor after an arrow ("←−0" is one arrow and a number, `arrows`)
-_MINUS = re.compile(r"(?<![\w.,)\]}←↔])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space> ?|\n)(?=\.?\d)")
+# inverse whose raise was lost, may as well be "f(x) minus 1": left as printed, #527, #589);
+# "←−0" is one arrow and a number (`arrows`, the first rule)
+_MINUS = re.compile(r"(?<![\w.,)\]}])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space> ?|\n)(?=\.?\d)")
 
 # --- N2 ranges ------------------------------------------------------------------------------
 # an en dash or figure dash, spaces allowed around it, or an em dash without spaces

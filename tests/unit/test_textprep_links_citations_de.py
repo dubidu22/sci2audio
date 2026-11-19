@@ -247,6 +247,8 @@ def test_german_citations(printed: str, said: str) -> None:
         "Die Erhebung (Welle 2017) zeigt es.",
         "Die Zahlen (Mai 2019) zeigen es.",  # a month, as before
         "Gemessen wurde im (Sommer 2019) und danach.",
+        # "↔" is a maths sign, as "→" and "←" are (#527, #593 review F2)
+        "Es gilt x ↔ [2] und y ←−→ [3].",
     ],
 )
 def test_german_brackets_that_are_no_citation_stay(text: str) -> None:

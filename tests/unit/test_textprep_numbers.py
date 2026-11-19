@@ -38,6 +38,10 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("X −→ α", "X → α"),
         ("X−→α∈R and (α−→β)∈τ", "X→α∈R and (α→β)∈τ"),
         ("a ←−→ b and x ←−5", "a ↔ b and x ←5"),
+        # ... and a longer one, with more minus signs (#593 review F1)
+        ("X −−→ α and Y ←−− β", "X → α and Y ← β"),
+        ("X ←−−→ Y and −−→AB", "X ↔ Y and →AB"),
+        ("b ←−−1", "b ←1"),
         # ... and a minus sign glued to a closing bracket is left as printed (an inverse
         # whose raise was lost, or "f(x) minus 1": the voice says "minus" either way, #589)
         (
@@ -339,6 +343,8 @@ def _read_all(text: str) -> str:
         ("It is -1/2 here.", "It is -1/2 here."),
         ("It is a−1/2 here.", "It is a−1/2 here."),
         ("It is (a)−1/2 here.", "It is (a)−1/2 here."),  # #527: glued to a bracket
+        ("It is [a]−1/2 here.", "It is [a]−1/2 here."),
+        ("It is {a}−1/2 here.", "It is {a}−1/2 here."),
         ("x ←−1/2 here", "x ←1 half here"),  # #527: one arrow, then the fraction
         # ... after "/" or ":" N1 reads "minus", so the fraction is read too (#332 review, R1-2)
         ("It is /−1/2 here.", "It is /minus 1 half here."),

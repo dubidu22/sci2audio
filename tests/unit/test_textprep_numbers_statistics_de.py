@@ -415,6 +415,23 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("S −→ ε und X−→α", "S → ε und X→α"),
         ("β ←− 0 und a ←−→ b", "β ← 0 und a ↔ b"),
         ("P′ ←− (I − P)−1", "P′ ← (I − P)−1"),
+        # #593 review F1: a long arrow with more than one minus sign is one arrow too
+        ("X −−→ α und Y ←−− β", "X → α und Y ← β"),
+        ("X ←−−→ Y", "X ↔ Y"),
+        ("−−→AB", "→AB"),
+        ("Dann gilt a ←−−1", "Dann gilt a ←1"),
+        # ... F2: the other rules read what follows the arrow on run 1 as on run 2
+        ("x ←−1:1", "x ←1 zu 1"),
+        ("x ←−1/2", "x ←ein halb"),
+        ("x ←−3-5", "x ←3 bis 5"),
+        ("x ←−→ [2]", "x ↔ [2]"),  # the citations step keeps the bracket after "↔" too
+        # ... F3: any space around a clock time's "Uhr" (#557)
+        ("um 13:30  Uhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
+        ("um 13:30\tUhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
+        ("um 13:30\nUhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
+        # ... F4: only a year read in hundreds ("1[1-9] hundert", alone) ends an ordinal
+        ("von 211 hundert 5. Jahr", "von 211 hundert fünftes Jahr"),
+        ("von 5 hundert 3. Kapitel", "von 5 hundert drittes Kapitel"),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:
@@ -546,6 +563,7 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
 @given(german_notation_documents())
 @example(make_document([(BlockKind.PARAGRAPH, "im Jahr 1998. Jahr")], "de"))  # #536
 @example(make_document([(BlockKind.PARAGRAPH, "um 13:30 Uhr 3. Mai")], "de"))  # #557
+@example(make_document([(BlockKind.PARAGRAPH, "←−1:1")], "de"))  # #593 review F2, seed 31337
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)
