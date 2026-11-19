@@ -936,6 +936,8 @@ def test_an_english_initial_ends_a_sentence_only_before_a_sentence_opener(
         # and without a full stop nothing ends
         ("Im Abs. 2. Teil steht es.", ["Im Absatz zweiter Teil steht es."]),
         ("Es gilt Abs. 2 Satz 3 hier.", ["Es gilt Absatz 2 Satz 3 hier."]),
+        # ... a dotted word left as printed counts with its full stop ("Az.", #406)
+        ("Es gilt Az. 3. Az. 4 gilt auch.", ["Es gilt Az. 3.", "Az. 4 gilt auch."]),
         # ... another word after the full stop is no label again: as before
         ("Es gilt Absatz 2. Studien zeigen es.", ["Es gilt Absatz 2. Studien zeigen es."]),
         # ... and the word must stand alone before the number: glued to a bracket it is not
@@ -949,6 +951,18 @@ def test_a_number_between_the_same_word_twice_ends_the_sentence(
     assert cut_read(text) == sentences
     # the same on a second run over the script, where the readings are plain words
     assert cut_read(" ".join(sentences)) == sentences
+
+
+def test_the_same_word_is_the_same_as_printed() -> None:
+    """#479: the two words are compared exactly, as the numbers step compares them, so both
+    steps agree on what is the same label; "absatz 2. Absatz" is no label again."""
+    assert cut("Es gilt absatz 2. Absatz 3 gilt.", language="de") == [
+        "Es gilt absatz 2. Absatz 3 gilt."
+    ]
+    assert cut("Es gilt Absatz 2. Absatz 3 gilt.", language="de") == [
+        "Es gilt Absatz 2.",
+        "Absatz 3 gilt.",
+    ]
 
 
 def _rebuilt_cuts(text: str, language: str) -> tuple[list[str], list[str]]:
@@ -1036,6 +1050,8 @@ def test_a_space_inside_a_reading_ranks_after_every_other_space(
         ("de", "am dritten Mai bbb", ["dritten | Mai"]),
         ("en", "aaa for example bbb", ["for | example"]),
         ("en", "aaa square metres bbb", ["square | metres"]),
+        ("en", "aaa degrees Celsius bbb", ["degrees | Celsius"]),
+        ("de", "aaa Grad Celsius bbb", ["Grad | Celsius"]),
         ("en", "aaa R squared bbb", ["R | squared"]),
         ("en", "a less than or equal to b", ["less | than", "than | or", "or | equal",
                                              "equal | to"]),
@@ -1045,6 +1061,8 @@ def test_a_space_inside_a_reading_ranks_after_every_other_space(
         # ... "may" the verb is no month, and plain words join nothing
         ("en", "it may rain here", []),
         ("de", "die Hörer hörten es", []),
+        # German writes "Quadrat" into the unit ("Quadratmeter"): alone it joins nothing
+        ("de", "das Quadrat hier", []),
     ],
 )  # fmt: skip
 def test_the_spaces_that_join_a_reading_are_found_from_the_text(
@@ -1055,11 +1073,12 @@ def test_the_spaces_that_join_a_reading_are_found_from_the_text(
 
 
 def test_a_comma_at_the_limit_before_a_clause_opener_is_a_clause_cut() -> None:
-    """#533 (1): the window holds the word after the last place that fits, so a comma right at
-    the limit before "which" ranks as a clause cut, over a plain comma nearer the even share."""
-    text = "a" * 44 + ", " + "b" * 13 + ", which " + "c " * 30 + "d."
+    """#533 (1): the window holds the word after the last place that fits, so a comma right
+    before the limit ranks as a clause cut when "which" follows past the limit, over a plain
+    comma nearer the even share."""
+    text = "a" * 44 + ", " + "b" * 12 + ", which " + "c " * 30 + "d."
     parts = cut(text, max_chars=60)
-    assert parts[0] == "a" * 44 + ", " + "b" * 13 + ","
+    assert parts[0] == "a" * 44 + ", " + "b" * 12 + ","
 
 
 def test_no_utterance_is_over_the_limit_when_the_text_holds_long_white_space_runs() -> None:
