@@ -200,8 +200,8 @@ class _Layout:
         taken = {id(e) for e in top}
         overlap, settings = self.settings.row_overlap, self.settings
         units: list[Unit] = [Held(_block(e, furniture, settings)) for e in by_rows(top, overlap)]
-        rows = rows_of(reading.ordered, edges, self.settings, self.size)
         bars = page_bars(page, self.settings)
+        rows = rows_of(reading.ordered, edges, self.settings, self.size, bars)
         lines = [union([e.box for e in row]) for row in rows if row[0].line is not None]
         for group in split_cells(rows, edges):
             if group[0].line is None:

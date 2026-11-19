@@ -144,17 +144,20 @@ def test_no_reference_list_is_read(paper: Path) -> None:
 
 def test_liu_s_list_without_a_heading_is_not_read_and_its_body_is() -> None:
     """#92, D-646: Liu (PRL, revtex) prints its list without a heading, entries [1] to [81]
-    in blocks 52 to 132, its one note as entry [59]; no other corpus paper uses the rule.
-    (Blocks 53 to 133 before #454: the centred affiliation's two italic lines are one block.)"""
+    in its last 81 blocks (page furniture among them), its one note as entry [59]; no other
+    corpus paper uses the rule.
+    The list is found by its first entry, so a change to how the body is cut into blocks
+    (#454, #322) does not move it."""
     (paper,) = [paper for paper in PAPERS if paper.stem == "arxiv2024-liu-orbital-hall"]
     doc, said = document(paper), spoken(paper)
-    listed = [i for i in range(52, 133) if doc.blocks[i].kind is not BlockKind.FURNITURE]
+    (first,) = [i for i, block in enumerate(doc.blocks) if block.text.startswith("[1] ")]
+    last = len(doc.blocks) - 1
+    listed = [i for i in range(first, last + 1) if doc.blocks[i].kind is not BlockKind.FURNITURE]
     assert unheaded_list(doc.blocks) == listed
-    assert doc.blocks[52].text.startswith("[1] ")
-    assert "[81] " in doc.blocks[132].text[:6]
-    assert len(doc.blocks) == 133
+    assert "[81] " in doc.blocks[last].text[:6]
+    assert last - first + 1 == 81
     assert all(said[i] == "" for i in listed)
-    assert said[51].startswith("Acknowledgments.")
+    assert said[first - 1].startswith("Acknowledgments.")
     # every other paper heads its list, so the rule is not used there
     for other in PAPERS:
         if other != paper:

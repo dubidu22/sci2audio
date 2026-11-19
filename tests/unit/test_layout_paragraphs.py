@@ -10,6 +10,7 @@ from test_layout import GUTTER, LEFT, MIDDLE, RIGHT, content, line
 
 from sci2audio.core import Block, BlockKind, Box, Document, Drawing, Part, TextLine, TextRun
 from sci2audio.layout import build_document
+from sci2audio.layout.geometry import union
 from sci2audio.layout.paragraphs import Held, Row
 from sci2audio.layout.paragraphs import paragraphs as make_paragraphs
 from sci2audio.layout.settings import LayoutSettings
@@ -834,6 +835,113 @@ def test_the_parts_of_an_inline_fraction_keep_a_space() -> None:
     assert (
         _third(_one_row(*pieces)) == "Bohr-magneton is B = eh2me . The Berry connection is defined"
     )
+
+
+# Liu p2's line "is within the energy gap s_int OH = -(e gs gv / 12 pi)(me / m*). Physically,"
+# (#322), its pieces and bars where liu prints them, in a column 245 pt wide: extraction gives
+# the denominator 12 pi last, and m* (with the rest of the line) before me.
+FRACTION_X, FRACTION_Y = LEFT - 54, ROW_Y - 454.72
+COLUMN_END = 299 + FRACTION_X
+
+
+def _piece(name: str, *runs: tuple[str, float, float, float, float, float]) -> TextLine:
+    """A piece of liu's line: its runs (text, size, x0, y0, x1, y1 on liu's page)."""
+    found = tuple(
+        TextRun(
+            text,
+            "Times",
+            size,
+            box=Box(x0 + FRACTION_X, y0 + FRACTION_Y, x1 + FRACTION_X, y1 + FRACTION_Y),
+        )
+        for text, size, x0, y0, x1, y1 in runs
+    )
+    return TextLine(name, found, union([run.box for run in found if run.box]))
+
+
+def _bar(name: str, x0: float, x1: float) -> Drawing:
+    return Drawing(
+        name, Box(x0 + FRACTION_X, 458.74 + FRACTION_Y, x1 + FRACTION_X, 459.54 + FRACTION_Y)
+    )
+
+
+def _fraction_page(first: float = 212.52, bars: bool = True) -> list[str]:
+    """The paragraphs of a two-column page whose left column's third line is liu's, its
+    first denominator starting at `first` (liu: 212.52, its bar from 208.66 to 229.24)."""
+    pieces = [
+        _piece(
+            "lead",
+            ("is within the energy gap", 10, 54.0, 454.72, 162.2, 463.67),
+            (" s", 10, 166.32, 454.72, 172.01, 463.56),
+            ("int", 7, 172.37, 453.18, 181.92, 459.37),
+        ),
+        _piece(
+            "num1",
+            ("OH", 7, 172.02, 459.47, 184.01, 465.73),
+            (" =", 10, 188.44, 454.72, 196.18, 463.56),
+            (" -", 10, 200.11, 454.16, 207.85, 463.56),
+            ("eg", 7, 209.06, 452.35, 216.72, 458.6),
+            ("s", 5, 216.72, 454.73, 220.06, 459.15),
+            ("g", 7, 220.56, 452.35, 224.44, 458.6),
+            ("v", 5, 224.45, 454.73, 227.99, 459.15),
+        ),
+        _piece(
+            "num2",
+            ("m", 7, 231.38, 452.71, 238.45, 458.9),
+            ("e", 5, 238.45, 455.08, 241.82, 459.51),
+        ),
+        _piece(
+            "den2",
+            ("m", 7, 231.24, 460.23, 238.3, 466.42),
+            ("*", 5, 238.31, 459.34, 241.97, 464.04),
+            (" . Physically,", 10, 243.67, 454.72, 299.01, 463.66),
+        ),
+        _piece(
+            "den1",
+            ("12", 7, first, 460.23, first + 7.94, 466.42),
+            ("pi", 7, first + 7.95, 460.23, first + 12.61, 466.42),
+        ),
+    ]
+    left = [line(f"left {k}", LEFT, 100 + 14 * k, COLUMN_END) for k in (0, 1, 3, 4)]
+    right = [line(f"right {k}", COLUMN_END + 16, 100 + 14 * k, RIGHT) for k in range(5)]
+    drawn = (_bar("bar1", 208.66, 229.24), _bar("bar2", 230.84, 242.87)) if bars else ()
+    doc = build_document(content([*left[:2], *pieces, *left[2:], *right], drawings=drawn))
+    return [b.text for b in doc.blocks if b.kind is BlockKind.PARAGRAPH]
+
+
+def test_a_line_ending_in_two_inline_fractions_reads_each_over_its_bar() -> None:
+    """#322, liu p2: the denominator read last joins its numerator's line instead of
+    starting a paragraph of its own, and "me", the second numerator, is read before its
+    denominator "m*", which starts 0.14 pt further left."""
+    (column,) = _fraction_page()
+    assert (
+        column.split("\n")[2] == "is within the energy gap sintOH = -egsgv 12pi me m* . Physically,"
+    )
+
+
+def test_a_piece_starting_beside_a_bar_is_no_denominator() -> None:
+    """Only a piece whose first letters stand within `fraction_inside` (0.1 em) of the bar's
+    ends is its denominator (Nowak p10: a word under a brace drawn as two short rules
+    starts beside them). 12pi starting 0.5 pt before the bar is; 2 pt before, it is not."""
+    (column,) = _fraction_page(first=208.16)
+    assert "-egsgv 12pi me m*" in column
+    assert "12pi" in _fraction_page(first=206.66)[1:]
+    # nor one whose first letters run past the bar's end by more: "12" ends 0.7 pt, then
+    # 1.7 pt, past it ("pi" then runs into "me", so no space is put between them)
+    (column,) = _fraction_page(first=222.0)
+    assert column.split("\n")[2].startswith("is within the energy gap sintOH = -egsgv 12pi")
+    assert "12pi" in _fraction_page(first=223.0)[1:]
+
+
+def test_a_table_rule_under_a_line_is_no_fraction_bar() -> None:
+    """A table's rule stands under its header line, not inside it: the first row under the
+    rule, within `fraction_reach` of it and inside its width, is a line of its own."""
+    header = [line("Model", LEFT, 100, 120, size=9), line("Accuracy", 200, 100, 240, size=9)]
+    rule = Drawing("rule", Box(LEFT, 111, 250, 111.5))
+    rows = [line("Base", LEFT, 114, 100, size=9), line("0.91", 200, 114, 220, size=9)]
+    doc = build_document(content([*header, *rows], drawings=(rule,)))
+    found = [text for b in doc.blocks for text in b.text.split("\n")]
+    assert "Base 0.91" in found or ("Base" in found and "0.91" in found)
+    assert not any("Model" in text and "Base" in text for text in found)
 
 
 def test_two_words_split_at_a_wide_gap_keep_their_space() -> None:
