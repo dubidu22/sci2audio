@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 from test_web_player import make, player_data, server, work_of
-from web_helpers import markers_of, offline, set_marker  # noqa: F401 - fixture
+from web_helpers import book_folder, markers_of, offline, set_marker  # noqa: F401 - fixture
 
 from sci2audio.core import Span
 from sci2audio.web.markers import MarkerBook, anchor_of, place
@@ -47,7 +47,7 @@ def book(tmp_path: Path) -> dict[str, Any]:
         "elements": elements,
         "pieces": cut,
         "work": work_of(config, doc),
-        "out": config.output_folder,
+        "out": book_folder(config.output_folder, "note.txt"),
     }
 
 

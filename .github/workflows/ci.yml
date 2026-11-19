@@ -136,7 +136,8 @@ jobs:
           done
 
   # The interface in a real browser (#77, #8, D-259): main flow, keyboard-only path and
-  # axe-core. Chromium on Linux on every PR; Firefox and WebKit run nightly.
+  # axe-core. Chromium on Linux on every PR; Firefox and WebKit on a PR that changes a web
+  # path (browser-reported) and in the nightly.
   # Two shards on two runners, half the tests each, so the browser tests no longer set the
   # run's length (D-759, CI speed plan item 3): every shard must pass for "CI passed".
   browser:
@@ -183,11 +184,97 @@ jobs:
         env:
           HYPOTHESIS_PROFILE: ci
 
+  # Does this PR change the web interface or its browser tests (D-759, plan item 4)? Then
+  # Firefox and WebKit on Linux run too. Not a PR (main, release/*, by hand): they run nightly.
+  web-paths:
+    name: web paths
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read  # the PR's list of changed files
+    outputs:
+      web: ${{ steps.files.outputs.web }}
+    steps:
+      - name: Does this PR change the web interface or its browser tests
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$PR" ]; then
+            echo "web=false" >> "$GITHUB_OUTPUT"
+            echo "Not a PR: Firefox and WebKit run in the nightly."
+            exit 0
+          fi
+          gh api --paginate "repos/$REPO/pulls/$PR/files?per_page=100" \
+            --jq '.[] | .filename, (.previous_filename // empty)' > files.txt
+          if grep -E '^(src/sci2audio/(web|app)/|tests/browser/)' files.txt; then
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web=false" >> "$GITHUB_OUTPUT"
+            echo "No web path changed: Firefox and WebKit run in the nightly."
+          fi
+
+  # Firefox and WebKit on Linux for a PR that changes a web path (D-759, plan item 4). Reported
+  # only until #437 closes: "CI passed" does not need them and its check of every job skips a
+  # name with "reported only" in it. The nightly still runs all engines, WebKit on macOS too.
+  browser-reported:
+    name: browser (Linux, ${{ matrix.browser }}, ${{ matrix.shard }}/2, reported only)
+    needs: web-paths
+    if: needs.web-paths.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40  # `playwright install --with-deps` can wait long on apt
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
+      - run: uv sync --locked
+      - name: Where the Playwright browsers go, and their version
+        id: playwright
+        shell: bash
+        run: |
+          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
+          echo "version=$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # zizmor: ignore[cache-poisoning] v6.1.0
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ matrix.browser }}-${{ steps.playwright.outputs.version }}
+      - name: Install the browser for Playwright
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: uv run playwright install --with-deps "$BROWSER"
+      # A runner has no sound card: Firefox then fails every <audio>, so the player tests
+      # need a sound server that plays into its null sink (#205).
+      - name: A silent sound server for Firefox
+        if: matrix.browser == 'firefox'
+        run: |
+          sudo apt-get install --yes --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+      - name: The tests of this shard
+        env:
+          BROWSER: ${{ matrix.browser }}
+          SHARD: ${{ matrix.shard }}
+        run: uv run --no-sync python .github/scripts/browser_shard.py "$BROWSER" "$SHARD" 2 "$RUNNER_TEMP/shard.txt"
+      - name: Browser tests (main flow, keyboard, axe-core)
+        env:
+          BROWSER: ${{ matrix.browser }}
+          HYPOTHESIS_PROFILE: ci
+        run: uv run pytest -m browser --browser "$BROWSER" -rA "@$RUNNER_TEMP/shard.txt"
+
   # The only check required by the ruleset on main. Its name must not change.
   ci-passed:
     name: CI passed
     if: always()
-    needs: [lint, licences, security, tests, browser]
+    needs: [lint, licences, security, tests, browser, web-paths]
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -7,8 +7,9 @@ audio. The app's records keep no folders (they are machine-specific), so the web
 task writes its own small record, `audiobook.json`, with the output folder (D-295).
 
 Nothing in these files is trusted as a path (D-295, D-192 to D-209): the record must name
-this document and an absolute folder; the folder is only ever one of three (the recorded
-one, the saved output folder, the server's default); file names must be bare names listed
+this document and an absolute folder; the folder is only ever the recorded one, one of the
+project's own audiobook folders (`project.json`, D-749), the saved output folder or the
+server's default (earlier audiobooks sit flat there); file names must be bare names listed
 in `audio.json`; a file is opened only as `<folder>/<name>` and must be a regular file in
 that very folder; and the read-along file must agree with `audio.json` (duration and
 chunk count) before any of its files is served or shown. The page also checks that every
@@ -55,6 +56,8 @@ from sci2audio.textprep import (
     TextStep,
     run_steps,
 )
+from sci2audio.web.figures import Catalog, Shown
+from sci2audio.web.project import read_project
 
 RECORD = "audiobook.json"  # the web's own record of where the audiobook went (D-295)
 RECORD_FORMAT = "sci2audio-web-audiobook"
@@ -138,14 +141,21 @@ def audiobook_stamp(readalong: Path) -> str:
     """The first 16 hex digits of the read-along file's SHA-256. Raises OSError. Kept
     while the file's identity, time and size stay: the audio job replaces the file whole
     (`write_texts`), which gives it a new identity even where two writes get the same
-    time (Windows' clock ticks in milliseconds)."""
-    stat = readalong.stat()
-    return _stamp(str(readalong), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+    time (Windows' clock ticks in milliseconds); a file changed in the last two seconds
+    is read each time (`file_version`)."""
+    version = file_version(readalong)
+    if version is None:  # too fresh to tell apart: read it
+        return _hash16(readalong)
+    return _stamp(str(readalong), version)
 
 
 @lru_cache(maxsize=256)  # the shelf asks for every audiobook's stamp on every page
 def _stamp(path: str, version: tuple[int, int, int]) -> str:
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+    return _hash16(Path(path))
+
+
+def _hash16(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
 @dataclass(frozen=True)
@@ -195,16 +205,27 @@ def audiobook_bounds(readalong: Path) -> Bounds:
     """The bounds of the read-along file at this path, read once per version of the file
     (kept as `audiobook_stamp` keeps its stamp) and kept small, so the shelf on every page
     costs no parse. Raises OSError or ReadAlongError."""
-    stat = readalong.stat()
-    if time.time_ns() - stat.st_mtime_ns < RACY_NS:  # too fresh to tell apart: read it
+    version = file_version(readalong)
+    if version is None:  # too fresh to tell apart: read it
         return Bounds.of(read_readalong(readalong))
-    return _bounds(str(readalong), (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+    return _bounds(str(readalong), version)
 
 
 # A file changed less than this long ago is read again on every call: a rewrite in place
 # within the file system's clock tick (about 16 ms on Windows) keeps its time and size, so
 # they cannot tell the two versions apart yet (as git treats "racy" files; #403 B1).
 RACY_NS = 2_000_000_000
+
+
+def file_version(path: Path) -> tuple[int, int, int] | None:
+    """What the caches of this module key a file's contents on: its identity, time and
+    size. The audio job replaces a file whole (`write_texts`), so a new file gets a new
+    identity even where two writes get the same time and size (#407). None for a file
+    changed in the last RACY_NS, which the caller reads afresh. Raises OSError."""
+    stat = path.stat()
+    if time.time_ns() - stat.st_mtime_ns < RACY_NS:
+        return None
+    return (stat.st_ino, stat.st_mtime_ns, stat.st_size)
 
 
 @lru_cache(maxsize=256)
@@ -365,15 +386,17 @@ def in_folder(folder: Path, name: str) -> Path | None:
 
 
 @lru_cache(maxsize=8)
-def _readalong(path: str, stamp: tuple[int, int]) -> ReadAlong:
+def _readalong(path: str, version: tuple[int, int, int]) -> ReadAlong:
     return read_readalong(Path(path))
 
 
 def load_readalong(path: Path) -> ReadAlong:
-    """The read-along file, read once per version of it on disk (the audio route asks on
-    every range request). Raises ReadAlongError or OSError."""
-    stat = path.stat()
-    return _readalong(str(path), (stat.st_mtime_ns, stat.st_size))
+    """The read-along file, read once per version of it on disk (`file_version`; the audio
+    route asks on every range request). Raises ReadAlongError or OSError."""
+    version = file_version(path)
+    if version is None:  # too fresh to tell apart: read it
+        return read_readalong(path)
+    return _readalong(str(path), version)
 
 
 @dataclass(frozen=True)
@@ -429,8 +452,12 @@ def _agrees(record: AudioRecord, data: ReadAlong) -> bool:
 def candidate_folders(
     work: Path, document_id: str, saved: Path | None, default: Path
 ) -> list[Path | None]:
-    """Where the audiobook may be, in order (D-295): recorded, saved, default."""
-    return [recorded_folder(work, document_id), saved, default]
+    """Where the audiobook may be, in order (D-295, D-749): the recorded one, the project's
+    own audiobook folders (newest first), then the saved and the default output folder,
+    which hold the audiobooks made before #469."""
+    project = read_project(work, document_id)
+    own = [] if project is None else list(reversed(project.folders()))
+    return [recorded_folder(work, document_id), *own, saved, default]
 
 
 # ---- the page's view -------------------------------------------------------------------
@@ -471,6 +498,7 @@ class BlockView:
     code: str = ""  # a code block's notice box: its code, line breaks kept, shown open (D-546)
     element: str | None = None  # a notice box: its element id
     chunk: int | None = None  # a notice box: its first chunk
+    figures: tuple[Shown, ...] = ()  # a notice box: the figure, table or formula itself (#293)
 
     @property
     def read(self) -> bool:
@@ -550,6 +578,8 @@ def build_view(
     record: AudioRecord,
     readalong: ReadAlong,
     steps: Sequence[TextStep] = BUILT_IN_STEPS,
+    *,
+    figures: bool = True,
 ) -> PlayerView:
     """The page for this audiobook (D-297, D-299). PlayerError("listen.mismatch") if a span
     points outside its block (the read-along file belongs to another document).
@@ -558,7 +588,8 @@ def build_view(
     after the block it is read in, so the page follows the voice, but only where the
     read-along shows the voice read it there (`_heard_moves`): an audiobook made before #213
     read its notes where printed, and shows them there. `steps` are the steps the audiobook
-    was made with: the built-in ones (tests pass others)."""
+    was made with: the built-in ones (tests pass others). With `figures`, a figure, table
+    or formula read as its notice shows itself in its notice box (#293)."""
     for chunk in readalong.chunks:
         try:
             document.check_span(chunk.span)
@@ -581,6 +612,7 @@ def build_view(
         moved_into.setdefault(target, []).append(block)
     levels = _heading_levels(document)
     pages = _page_starts(document, moved.keys())
+    catalog = Catalog(document) if figures else None
 
     element_of: list[str] = [""] * len(readalong.chunks)
     firsts = sentence_starts(readalong)
@@ -613,6 +645,8 @@ def build_view(
                 )
                 view.heading = levels.get(shown_here, 0) if shown_here == number else 0
                 view.page = pages.get(shown_here, "")
+                if catalog is not None and view.notice and not view.code:
+                    view.figures = tuple(catalog.images(shown_here, view.notice))
                 blocks.append(view)
         title_block = None
         if blocks and blocks[0].heading and blocks[0].index == chapter.start:
@@ -1023,16 +1057,17 @@ def _piece(
 
 
 def player_for(
-    work: Path, document_id: str, folders: Sequence[Path | None]
+    work: Path, document_id: str, folders: Sequence[Path | None], *, figures: bool = True
 ) -> tuple[PlayerView, Located, Document]:
     """Everything the listen page shows, or PlayerError saying why it can't, with the
     document it was made from (for the markers, #474). `folders` are the only folders the
     audiobook may be in (`candidate_folders`, or the one folder a command-line job names,
-    #154)."""
+    #154). Without `figures` no notice box shows its figure (a command-line job, #293)."""
     record = read_audio_record(work, document_id)
     located = locate(record, folders)
     document = load_document(work)
-    return build_view(document, record, located.readalong), located, document
+    view = build_view(document, record, located.readalong, figures=figures)
+    return view, located, document
 
 
 def audiobook_file(

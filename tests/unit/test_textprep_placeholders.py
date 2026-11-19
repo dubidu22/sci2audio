@@ -99,6 +99,28 @@ def spoken_text_of(text: str) -> str:
     return " ".join(text.split())
 
 
+@pytest.mark.parametrize(
+    ("blocks", "notice"),
+    [
+        ([(BlockKind.TABLE, "a b\nc d"), caption("Table 2", 1)], "Table 2 is skipped."),
+        ([caption("Figure 1", 2), (BlockKind.FIGURE, "")], "Figure 1 is skipped."),
+        ([Block(BlockKind.FORMULA, "x = y (16a)", label="16a")], "Formula 16a is skipped."),
+    ],
+    ids=["table", "figure", "formula"],
+)
+def test_a_page_with_glyph_numbers_still_reads_its_notices(blocks: list, notice: str) -> None:
+    """#574: the notice step reads a caption's label or a formula's name in a small document
+    of the page's used lines only, and that page keeps the count of characters from fonts
+    with no Unicode source, which is then more than its lines hold. The step must not fail."""
+    glyph_numbers = (BlockKind.PARAGRAPH, "'DV %XFK ZXUGH LQ HLQHU =HLW JHVFKULHEHQ")
+    document = make_document([glyph_numbers, *blocks])
+    page, *rest = document.content.pages
+    pages = (replace(page, unmapped=page.characters), *rest)
+    document = replace(document, content=replace(document.content, pages=pages))
+    index = next(i for i, b in enumerate(document.blocks) if b.is_placeholder)
+    assert read(document)[index] == notice  # strict: a failing step raises
+
+
 def test_several_captions_are_all_named_in_document_order() -> None:
     document = make_document(
         [
@@ -143,6 +165,29 @@ def test_a_code_block_is_one_notice_in_its_language_and_nothing_inside_it_is_rea
     off = read(document, switched_off={Category.CODE})
     assert off[1] == " ".join(code.split())  # read as printed: no link, unit or hyphen edit
     check_text_step(CodeNoticeStep(), allow_ask=False)
+
+
+@pytest.mark.parametrize(
+    ("label", "language", "notice"),
+    [
+        ("Listing 3", "en", "Listing 3 is skipped."),
+        ("LISTING 3", "en", "LISTING 3 is skipped."),
+        ("Listing 3", "de", "Listing 3 wird übersprungen."),
+        ("Quelltext 2", "de", "Quelltext 2 wird übersprungen."),
+    ],
+)
+def test_a_code_block_is_named_by_its_listing_caption(
+    label: str, language: str, notice: str
+) -> None:
+    """#281 (AC-281.2): layout points a listing's caption at its CODE block; the notice
+    names it, and the caption reads as printed in its place."""
+    code = "import seaborn as sns\ng = sns.relplot(data=fmri)"
+    document = make_document(
+        [caption(label, 1, ": Drawing a line plot."), (BlockKind.CODE, code)], language
+    )
+    assert read(document) == [f"{label}: Drawing a line plot.", notice]
+    (edit,) = CodeNoticeStep().find(document, StepContext(language))
+    assert edit.reason == f"{label} is not read; a short notice is read instead (D-55)"
 
 
 def test_switching_a_category_off_reads_the_placeholder_as_printed() -> None:

@@ -820,6 +820,7 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
         call("GET", f"{api}/documents/{ids.paper}/files/{name}", 200)
     call("GET", f"{api}/documents/{ids.paper}/files/none.txt", 404)
     call("GET", f"{api}/documents/{ids.paper}/audiobook/none.mp3", 404)
+    call("GET", f"{api}/documents/{ids.paper}/figures/0/0", 404)  # a heading: no image (#293)
     job = call("GET", f"{api}/jobs/{ids.audio_job}", 200).json()
     for name in _names(job, "files"):
         call("GET", f"{api}/jobs/{ids.audio_job}/files/{name}", 200)
@@ -846,8 +847,8 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     opened = call("POST", f"{api}/documents", 201, multipart={"file": throwaway}, headers=same)
     gone = opened.json()["id"]
     _check(gone not in (ids.paper, ids.note), "the throwaway document is one the walk needs")
-    call("DELETE", f"{api}/documents/{gone}", 200, headers=same)
-    call("DELETE", f"{api}/documents/{gone}", 404, headers=same)
+    call("DELETE", f"{api}/documents/{gone}?keep_audiobook=false", 200, headers=same)
+    call("DELETE", f"{api}/documents/{gone}?keep_audiobook=false", 404, headers=same)
     call("GET", "/openapi.json", 200)
     # another site as the way back: the switch goes home instead (D-321)
     back = call("GET", "/language?language=en&back=https://elsewhere.example/", 303,

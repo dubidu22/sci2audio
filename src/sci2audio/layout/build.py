@@ -19,7 +19,14 @@ from sci2audio.layout.captions import find_captions
 from sci2audio.layout.code import find_code
 from sci2audio.layout.footnotes import find_footnotes
 from sci2audio.layout.formulas import find_formulas
-from sci2audio.layout.furniture import PAGE_NUMBER, SIDEBAR, edges, find_furniture, page_label
+from sci2audio.layout.furniture import (
+    PAGE_NUMBER,
+    SIDEBAR,
+    edges,
+    find_furniture,
+    head_labels,
+    page_label,
+)
 from sci2audio.layout.geometry import body_size, boxed, holds, page_bars, text_area, union
 from sci2audio.layout.graphics import find_graphics, link_captions
 from sci2audio.layout.headings import find_headings
@@ -131,6 +138,7 @@ class _Layout:
         self.settings = settings
         self.bands = edges(content, settings)  # one answer for every furniture rule (D-504)
         self.furniture = find_furniture(content, settings, self.bands)
+        self.head_labels = head_labels(content, self.furniture, settings)
         self.size = body_size(content) or settings.body_size
         lines = [
             line
@@ -153,9 +161,12 @@ class _Layout:
         return reading_order(body, width, self.size, self.settings), self.furniture | sidebar
 
     def label(self, page: Page) -> str:
-        """The page label the page prints in its page number, or "" if it prints none."""
+        """The page label the page prints in its page number, else in its running head
+        (#535), or "" if it prints none."""
         numbers = [li for li in page.lines if self.furniture.get(li.id) == PAGE_NUMBER]
-        return page_label(numbers[0].text) if numbers else ""
+        if numbers:
+            return page_label(numbers[0].text)
+        return self.head_labels.get(page.number, "")
 
     def in_one_half(self, page: Page) -> bool:
         """True if nearly all the page's text lies in one half of the text area."""

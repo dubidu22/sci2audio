@@ -110,6 +110,8 @@ def test_a_bracket_of_lead_words_and_citations_goes_whole(text: str, spoken: str
         "rates [3e-4, 1e-4] and [1.2, 3.4] and [0]",
         "[n (−1) E ] and [S (0) E ]",
         "a list (1) and (2, 3)",  # round brackets are never numeric citations
+        # "↔" is a maths sign: the numbers step writes a long two-way arrow as it (#527, F2)
+        "x ↔ [2] and y ←−→ [3]",
     ],
 )
 def test_maths_intervals_and_data_in_brackets_are_not_citations(text: str) -> None:

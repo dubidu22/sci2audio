@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import dataclasses
 import errno
+import hashlib
 import itertools
 import json
 import os
 import re
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -24,6 +26,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pdf_maker import Text, make_pdf
 from web_helpers import (
+    book_folder,
     events,
     make_config,
     offline,  # noqa: F401 - fixture
@@ -48,6 +51,7 @@ from sci2audio.web.player import (
     sentence_starts,
     shown,
 )
+from sci2audio.web.project import PROJECT
 
 # ---- the view, from hand-made data ------------------------------------------------------
 
@@ -704,7 +708,7 @@ def test_the_audiobook_route_serves_only_its_own_files(tmp_path: Path) -> None:
     for name in names:
         answer = client.get(f"{base}/{name}")
         assert answer.status_code == 200, name
-        assert answer.content == (config.output_folder / name).read_bytes()
+        assert answer.content == (book_folder(config.output_folder) / name).read_bytes()
     mp3 = next(n for n in names if n.endswith(".mp3"))
     assert client.get(f"{base}/{mp3}").headers["content-type"] == "audio/mpeg"
     part = client.get(f"{base}/{mp3}", headers={"Range": "bytes=0-9"})
@@ -712,13 +716,13 @@ def test_the_audiobook_route_serves_only_its_own_files(tmp_path: Path) -> None:
     assert len(part.content) == 10
     saved = client.get(f"{base}/{mp3}?download=true")
     assert saved.headers["content-disposition"].startswith("attachment")
-    (config.output_folder / "other.mp3").write_bytes(b"x")
+    (book_folder(config.output_folder) / "other.mp3").write_bytes(b"x")
     for wrong in ("other.mp3", "..%2Fsettings.json", "%2E%2E", "audio.json", "document.json"):
         assert client.get(f"{base}/{wrong}").status_code == 404, wrong
     assert client.get(f"/api/v1/documents/0123456789abcdef/audiobook/{mp3}").status_code == 404
     other = make(client, make_pdf([Text("Another one.", 72, 100)]), "other.pdf")
     assert client.get(f"/api/v1/documents/{other['doc']['id']}/audiobook/{mp3}").status_code == 404
-    (config.output_folder / mp3).unlink()
+    (book_folder(config.output_folder) / mp3).unlink()
     assert client.get(f"{base}/{mp3}").status_code == 404
 
 
@@ -733,10 +737,11 @@ def test_the_record_finds_a_folder_the_saved_settings_dont_name(tmp_path: Path) 
         "format": "sci2audio-web-audiobook",
         "version": 1,
         "document": doc,
-        "folder": str(elsewhere.absolute()),
+        "folder": str(book_folder(elsewhere.absolute())),
     }
     assert client.get(f"/documents/{doc}/listen").text.count('class="s"') > 0
-    record_file.unlink()  # without it, the saved and the default folder hold nothing
+    record_file.unlink()
+    (work_of(config, doc) / PROJECT).unlink()  # without both, saved and default hold nothing
     page = client.get(f"/documents/{doc}/listen").text
     assert "The audiobook files are no longer in" in page
     assert "player-data" not in page
@@ -760,7 +765,20 @@ def test_a_record_that_is_not_ours_is_ignored(tmp_path: Path, change: dict[str, 
     record_file = work_of(config, doc) / player.RECORD
     stored = json.loads(record_file.read_text(encoding="utf-8"))
     record_file.write_text(json.dumps({**stored, **change}), encoding="utf-8")
+    (work_of(config, doc) / PROJECT).unlink()  # the project's own folders would find it
     assert "The audiobook files are no longer in" in client.get(f"/documents/{doc}/listen").text
+
+
+def test_the_project_record_finds_the_audiobook_without_the_player_s_record(
+    tmp_path: Path,
+) -> None:
+    """D-749: the project's own audiobook folders are looked in after the recorded one."""
+    client, config = server(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    made = make(client, output_folder=str(elsewhere))
+    doc = made["doc"]["id"]
+    (work_of(config, doc) / player.RECORD).unlink()
+    assert client.get(f"/documents/{doc}/listen").text.count('class="s"') > 0
 
 
 def test_files_of_another_audiobook_under_the_same_names_are_refused(tmp_path: Path) -> None:
@@ -769,7 +787,7 @@ def test_files_of_another_audiobook_under_the_same_names_are_refused(tmp_path: P
     doc = made["doc"]["id"]
     names = {f["name"] for f in made["job"]["files"]}
     readalong_name = next(n for n in names if n.endswith(".readalong.json"))
-    path = config.output_folder / readalong_name
+    path = book_folder(config.output_folder) / readalong_name
     data = json.loads(path.read_text(encoding="utf-8"))
     data["duration"] += 5
     path.write_text(json.dumps(data), encoding="utf-8")
@@ -784,7 +802,7 @@ def test_a_read_along_that_does_not_fit_the_document_is_refused(tmp_path: Path) 
     made = make(client)
     doc = made["doc"]["id"]
     name = next(f["name"] for f in made["job"]["files"] if f["name"].endswith(".readalong.json"))
-    path = config.output_folder / name
+    path = book_folder(config.output_folder) / name
     data = json.loads(path.read_text(encoding="utf-8"))
     data["chunks"][0]["end_char"] = 10_000
     path.write_text(json.dumps(data), encoding="utf-8")
@@ -826,8 +844,8 @@ def test_a_link_out_of_the_folder_is_not_followed(tmp_path: Path) -> None:
     mp3 = next(f["name"] for f in made["job"]["files"] if f["name"].endswith(".mp3"))
     secret = tmp_path / "secret.mp3"
     secret.write_bytes(b"not yours")
-    (config.output_folder / mp3).unlink()
-    os.symlink(secret, config.output_folder / mp3)
+    (book_folder(config.output_folder) / mp3).unlink()
+    os.symlink(secret, book_folder(config.output_folder) / mp3)
     assert client.get(f"/api/v1/documents/{doc}/audiobook/{mp3}").status_code == 404
     assert "no longer in" in client.get(f"/documents/{doc}/listen").text
 
@@ -877,14 +895,65 @@ def test_text_from_the_file_is_escaped(tmp_path: Path) -> None:
     assert "&lt;script&gt;alert(1)" in page
 
 
+def settle(path: Path, ns: int | None = None) -> int:
+    """Give the file a time long enough ago that the caches keep it (`RACY_NS`)."""
+    ns = time.time_ns() - 10 * player.RACY_NS if ns is None else ns
+    os.utime(path, ns=(ns, ns))
+    return ns
+
+
 def test_the_readalong_file_is_read_once_per_version(tmp_path: Path) -> None:
     path = tmp_path / "Book.readalong.json"
     path.write_text(to_json(readalong([(0, 0, 1)])), encoding="utf-8")
+    settle(path)
     first = player.load_readalong(path)
     assert player.load_readalong(path) is first
     path.write_text(to_json(readalong([(0, 0, 1), (0, 1, 2)])), encoding="utf-8")
     os.utime(path, ns=(1, 1))
     assert len(player.load_readalong(path).chunks) == 2
+
+
+def same_size_texts() -> tuple[str, str]:
+    first = to_json(readalong([(0, 0, 1)]))
+    second = to_json(readalong([(0, 0, 2)]))
+    assert first != second
+    assert len(first) == len(second)
+    return first, second
+
+
+def test_a_readalong_file_made_again_with_the_same_size_and_time_is_read_again(
+    tmp_path: Path,
+) -> None:
+    """#407: the audio job replaces the file whole; where the clock gives the new file the
+    old one's time (Windows) and it has the same size, its new identity tells them apart."""
+    path = tmp_path / "Book.readalong.json"
+    first, second = same_size_texts()
+    path.write_text(first, encoding="utf-8")
+    seen = settle(path)
+    assert player.load_readalong(path).chunks[0].span == Span(0, 0, 1)
+    new = tmp_path / "Book.readalong.json.new"
+    new.write_text(second, encoding="utf-8")
+    os.replace(new, path)  # as write_texts does: a new file in the old one's place
+    settle(path, seen)
+    assert os.stat(path).st_size == len(first)
+    assert player.load_readalong(path).chunks[0].span == Span(0, 0, 2)
+
+
+def test_a_fresh_readalong_file_rewritten_in_place_is_read_again(tmp_path: Path) -> None:
+    """A rewrite in place keeps the identity, and within one clock tick the time and size
+    too: a file changed in the last two seconds is read each time (#407, as #403 B1)."""
+    path = tmp_path / "Book.readalong.json"
+    first, second = same_size_texts()
+    path.write_text(first, encoding="utf-8")
+    seen = os.stat(path).st_mtime_ns
+    assert player.load_readalong(path).chunks[0].span == Span(0, 0, 1)
+    assert player.audiobook_stamp(path) == hashlib.sha256(first.encode()).hexdigest()[:16]
+    with path.open("r+", encoding="utf-8") as stream:  # in place: the same inode
+        stream.write(second)
+    os.utime(path, ns=(seen, seen))
+    assert player.load_readalong(path).chunks[0].span == Span(0, 0, 2)
+    # the stamp asked for before the rewrite is not kept for the new bytes (#601 R1-1)
+    assert player.audiobook_stamp(path) == hashlib.sha256(second.encode()).hexdigest()[:16]
 
 
 def test_a_broken_document_record_is_named(tmp_path: Path) -> None:

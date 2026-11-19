@@ -8,7 +8,7 @@ import time
 from collections.abc import Callable, Iterator
 
 import pytest
-from hypothesis import given
+from hypothesis import example, given
 from linear_time import assert_linear
 from notation_texts import german_notation_documents
 
@@ -390,6 +390,56 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         # ... and a dotted unit keeps the rule of a word (F2), as on main
         ("Es dauerte 1,5 Min.Pause.", "Es dauerte 1 Komma 5 Min.Pause."),
         ("Es waren 2,5 Mio.Einwohner.", "Es waren 2,5 Mio.Einwohner."),
+        # #536: the rest of a year read in hundreds is no ordinal before a noun, on either run
+        ("im Jahr 1998. Jahr", "im Jahr 19 hundert 98. Jahr"),
+        ("seit 1850. Jahr", "seit 18 hundert 50. Jahr"),
+        ("im Jahr 1998. Auflage", "im Jahr 19 hundert 98. Auflage"),
+        ("im Jahr 1900. Jahr", "im Jahr 19 hundert. Jahr"),
+        # ... and real ordinals keep their reading
+        ("das 98. Jahr", "das achtundneunzigste Jahr"),
+        ("am 3. Mai", "am dritten Mai"),
+        ("das 1998. Jahr", "das tausendneunhundertachtundneunzigste Jahr"),
+        ("Im Jahr 1998. Mai", "Im Jahr 19 hundert 98. Mai"),
+        # #557: a date after a clock time's "Uhr" reads as the date alone does ("dritter Mai")
+        ("um 13:30 Uhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
+        ("um 13.30 Uhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
+        ("Termin 13:30 Uhr 3. Mai", "Termin 13 Uhr 30 dritter Mai"),
+        ("13:30 Uhr, 3. Mai", "13 Uhr 30, dritter Mai"),
+        ("3. Mai", "dritter Mai"),
+        ("um 13:30 Uhr 3. Kapitel", "um 13 Uhr 30 drittes Kapitel"),
+        ("um 13:30 Uhr 30. Jahr", "um 13 Uhr 30 dreißigstes Jahr"),
+        # ... while the minutes after "Uhr" stay no ordinal (#253), nor a day after "13 Uhr"
+        ("13 Uhr 30. Jahr", "13 Uhr 30. Jahr"),
+        ("um 13 Uhr 3. Mai", "um 13 Uhr 3. Mai"),
+        # #527: an arrow printed as two glyphs is one arrow; a raised "−1" stays as printed
+        ("S −→ ε und X−→α", "S → ε und X→α"),
+        ("β ←− 0 und a ←−→ b", "β ← 0 und a ↔ b"),
+        ("P′ ←− (I − P)−1", "P′ ← (I − P)−1"),
+        # #593 review F1: a long arrow with more than one minus sign is one arrow too
+        ("X −−→ α und Y ←−− β", "X → α und Y ← β"),
+        ("X ←−−→ Y", "X ↔ Y"),
+        ("−−→AB", "→AB"),
+        ("Dann gilt a ←−−1", "Dann gilt a ←1"),
+        # ... F2: the other rules read what follows the arrow on run 1 as on run 2
+        ("x ←−1:1", "x ←1 zu 1"),
+        ("x ←−1/2", "x ←ein halb"),
+        ("x ←−3-5", "x ←3 bis 5"),
+        ("x ←−→ [2]", "x ↔ [2]"),  # the citations step keeps the bracket after "↔" too
+        # ... right arrows and several in one block, each masked at its own place (round 2 T1)
+        ("x −→1:1 und y −−→3/4 und z −→3-5", "x →1 zu 1 und y →3 Viertel und z →3 bis 5"),
+        # ... and a guard skips only its own ordinal, never the later ones (round 2 T2)
+        ("13 Uhr 30. Jahr und am 3. Mai", "13 Uhr 30. Jahr und am dritten Mai"),
+        (
+            "im Jahr 19 hundert 98. Jahr und am 3. Mai",
+            "im Jahr 19 hundert 98. Jahr und am dritten Mai",
+        ),
+        # ... F3: any space around a clock time's "Uhr" (#557)
+        ("um 13:30  Uhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
+        ("um 13:30\tUhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
+        ("um 13:30\nUhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
+        # ... F4: only a year read in hundreds ("1[1-9] hundert", alone) ends an ordinal
+        ("von 211 hundert 5. Jahr", "von 211 hundert fünftes Jahr"),
+        ("von 5 hundert 3. Kapitel", "von 5 hundert drittes Kapitel"),
     ],
 )
 def test_a_second_run_reads_nothing_new(printed: str, said: str) -> None:
@@ -519,6 +569,9 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
 
 
 @given(german_notation_documents())
+@example(make_document([(BlockKind.PARAGRAPH, "im Jahr 1998. Jahr")], "de"))  # #536
+@example(make_document([(BlockKind.PARAGRAPH, "um 13:30 Uhr 3. Mai")], "de"))  # #557
+@example(make_document([(BlockKind.PARAGRAPH, "←−1:1")], "de"))  # #593 review F2, seed 31337
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)

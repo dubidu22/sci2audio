@@ -80,25 +80,9 @@ def write_audiobook(
 
     out_folder = out_folder.absolute()  # ffmpeg gets absolute paths, never "name:" lookalikes
     out_folder.mkdir(parents=True, exist_ok=True)
-    base = names.book_name(book.title)
-    m4b = out_folder / f"{base}.m4b" if settings.m4b else None
-    mp3s = (
-        [
-            out_folder / names.chapter_file(base, n, len(chapters), c.title)
-            for n, c in enumerate(chapters, start=1)
-        ]
-        if settings.mp3
-        else []
-    )
-    subtitle_files = (
-        [
-            out_folder / name
-            for name in names.subtitle_files(base, [p.name for p in mp3s], m4b is not None)
-        ]
-        if settings.subtitles
-        else []
-    )
-    json_file = out_folder / f"{base}.readalong.json"
+    named = audiobook_targets(out_folder, book.title, [c.title for c in chapters], settings)
+    m4b, mp3s, json_file = named.m4b, list(named.mp3s), named.readalong
+    subtitle_files = list(named.subtitles)
     targets = [*mp3s, *([m4b] if m4b else []), *subtitle_files, json_file]
     if not overwrite and (existing := [t.name for t in targets if t.exists()]):
         raise FileExistsError(f"output files exist already, not replacing them: {existing}")
@@ -140,6 +124,43 @@ def write_audiobook(
                     target.unlink()
         raise
     return Written(m4b, tuple(mp3s), json_file, tuple(subtitle_files))
+
+
+def audiobook_targets(
+    out_folder: Path, title: str, chapter_titles: Sequence[str], settings: OutputSettings
+) -> Written:
+    """The files `write_audiobook` writes into `out_folder` for this book and these chapters:
+    the one place their names are made, so every check before writing and every record sees
+    the names written.
+
+    A name the folder's file system refuses (`names.refused`, #493) is made again from its
+    old characters (`names.retried`): the book's name, tried on its read-along file, and each
+    chapter's title, tried on its MP3. A retried name is checked like any other: an existing
+    file of that name is replaced only with `overwrite`. In a folder that does not exist yet
+    no name is tried (nothing can be there); `write_audiobook` makes the folder first."""
+    base = names.book_name(title)
+    if names.refused(out_folder, f"{base}.readalong.json"):
+        base = names.retried(title, "audiobook")
+    count = len(chapter_titles)
+    mp3s: list[Path] = []
+    if settings.mp3:
+        for number, chapter in enumerate(chapter_titles, start=1):
+            name = names.chapter_file(base, number, count, chapter)
+            if names.refused(out_folder, name):
+                name = names.chapter_file(base, number, count, names.older(chapter))
+            mp3s.append(out_folder / name)
+    m4b = out_folder / f"{base}.m4b" if settings.m4b else None
+    subtitle_files = (
+        names.subtitle_files(base, [p.name for p in mp3s], m4b is not None)
+        if settings.subtitles
+        else []
+    )
+    return Written(
+        m4b,
+        tuple(mp3s),
+        out_folder / f"{base}.readalong.json",
+        tuple(out_folder / name for name in subtitle_files),
+    )
 
 
 def _write_subtitles(

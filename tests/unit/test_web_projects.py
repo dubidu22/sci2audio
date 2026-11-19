@@ -64,7 +64,7 @@ def test_a_folder_that_can_t_be_moved_is_listed_and_used_where_it_is(tmp_path: P
     assert (folder / "source" / "again.pdf").read_bytes() == data
     assert not (config.work_root / project).exists()
     # a removal works on it as on any other (D-353 to D-356)
-    assert client.delete(f"/api/v1/documents/{project}").status_code == 200
+    assert client.delete(f"/api/v1/documents/{project}?keep_audiobook=false").status_code == 200
     assert not folder.exists()
     assert client.get("/api/v1/documents").json() == []
 

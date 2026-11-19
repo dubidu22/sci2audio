@@ -2207,6 +2207,42 @@ language = "de"
 blocks = [{ kind = "paragraph", runs = ["Sie sagte ", { text = "bonjour", tags = ["p", "span", "lang:fr"] }, " und ", { text = "ging", tags = ["p", "span", "role:note"] }, "."] }]
 expected = ["Sie sagte bonjour und ging."]
 
+[[case]]
+id = "de-hidden-run-between-a-number-and-its-unit"
+audit = 0
+issue = 445
+goal = "Ein versteckter Lauf zwischen Zahl und Einheit: die Einheit wird gelesen wie ohne ihn, in beiden Läufen (vor #445 'm Quadrat', dann 'Meter Quadrat')."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Es sind 5 ", { text = "Jane", tags = ["p", "span", "hidden"] }, " m² hier."] }]
+expected = ["Es sind 5 Quadratmeter hier."]
+
+[[case]]
+id = "de-hidden-run-before-a-unit-on-a-new-line"
+audit = 0
+issue = 445
+goal = "Ein versteckter Lauf vor einer Einheit in der nächsten Zeile: gelesen wie ohne ihn, in beiden Läufen."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Es gilt p < .05 ", { text = "Jane", tags = ["p", "span", "hidden"] }, "\nm² hier."] }]
+expected = ["Es gilt p kleiner als 0 Komma 0 5 Quadratmeter hier."]
+
+[[case]]
+id = "de-hidden-run-inside-an-abbreviation"
+audit = 0
+issue = 445
+goal = "Eine Seitenmarke in 'z. B.': schon im ersten Lauf 'zum Beispiel', die Marke nicht gelesen."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Das gilt z.", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " B. für Mäuse."] }]
+expected = ["Das gilt zum Beispiel für Mäuse."]
+
+[[case]]
+id = "de-raised-mass-number-before-k"
+audit = 0
+issue = 449
+goal = "'40K-Atome' bleibt wie gedruckt, hochgestellt oder nicht: Deutsch liest kein 'K' als 'tausend' (#449)."
+language = "de"
+blocks = [{ kind = "paragraph", runs = ["Wir nutzen ", { sup = "40" }, "K-Atome und 40K-Atome."] }]
+expected = ["Wir nutzen 40K-Atome und 40K-Atome."]
+
 # ---- #93 affiliation marks in the title block (D-692) ---------------------------------------
 
 [[case]]
@@ -2289,9 +2325,10 @@ goal = "Mass numbers set raised in a title are read as printed; a mark before a 
 language = "de"
 blocks = [
     { kind = "paragraph", runs = [{ sup = "1" }, "H-NMR-Spektroskopie an ", { sup = "13" }, "C-markierten Zuckern"] },
+    { kind = "paragraph", runs = ["Jana Rot", { sup = "1" }] },
     { kind = "paragraph", runs = [{ sup = "1" }, "KI Labor, Beispielstadt"] },
 ]
-expected = ["1H-NMR-Spektroskopie an 13C-markierten Zuckern", "KI Labor, Beispielstadt"]
+expected = ["1H-NMR-Spektroskopie an 13C-markierten Zuckern", "Jana Rot", "KI Labor, Beispielstadt"]
 
 [[case]]
 id = "de-affiliation-marks-before-umlauts"
@@ -2313,6 +2350,33 @@ goal = "A raised mass number before an element symbol at a line's start is read 
 language = "de"
 blocks = [{ kind = "paragraph", runs = ["Kondensate aus\n", { sup = "87" }, "Rb im Orbit"] }]
 expected = ["Kondensate aus 87Rb im Orbit"]
+
+[[case]]
+id = "de-affiliation-marks-title-mass-numbers-before-the-author-line"
+audit = 0
+issue = 448
+goal = "A German title's raised mass number before a two-letter formula is read; the marks of the author and affiliation lines after it go."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = [{ sup = "13" }, "CO-Beobachtungen der Taurus-Wolke"] },
+    { kind = "paragraph", runs = ["Jana Rot", { sup = "1" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Beispiel-Sternwarte, Beispielstadt"] },
+]
+expected = ["13CO-Beobachtungen der Taurus-Wolke", "Jana Rot", "Beispiel-Sternwarte, Beispielstadt"]
+
+[[case]]
+id = "de-affiliation-marks-after-a-comma-in-the-author-line"
+audit = 0
+issue = 448
+goal = "A German author line with its marks after a comma opens the affiliations; every author and affiliation mark goes (#585 review round 1)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kalte Atome" },
+    { kind = "paragraph", runs = ["Jana Rot,", { sup = "1" }, " Anna Lee,", { sup = "2" }, " und Bo Kim", { sup = "1" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Institut für Physik"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "KI Labor"] },
+]
+expected = ["Kalte Atome", "Jana Rot, Anna Lee, und Bo Kim", "Institut für Physik", "KI Labor"]
 
 [[case]]
 id = "de-notice-label-read-as-its-caption"
@@ -2610,3 +2674,50 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "Das zeigen Müller et al. (2019). Die Studie ist neu." }]
 expected = ["Das zeigen Müller et al. Die Studie ist neu."]
 utterances = ["Das zeigen Müller et al.", "Die Studie ist neu."]
+
+# ---- B5 German readings (#536, #557, #483, #527) ----------------------------------------------
+
+[[case]]
+id = "de-year-in-hundreds-before-a-full-stop-and-a-noun"
+audit = 0
+issue = 536
+goal = "Eine in Hunderten gelesene Jahreszahl vor Punkt und Nomen ('1998. Jahr') bleibt Jahr und Satzende, auch im zweiten Lauf: '98.' nach '19 hundert' ist keine Ordnungszahl."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Studie begann im Jahr 1998. Jahr für Jahr kamen neue Daten." }]
+expected = ["Die Studie begann im Jahr 19 hundert 98. Jahr für Jahr kamen neue Daten."]
+
+[[case]]
+id = "de-time-with-uhr-before-a-day-and-month"
+audit = 0
+issue = 557
+goal = "Ein Datum nach einer Uhrzeit mit 'Uhr' wird gelesen wie ohne die Uhrzeit davor ('3. Mai' ist 'dritter Mai'), in beiden Läufen; unverändert spräche die Stimme 'drei. Mai'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Sitzung beginnt um 13:30 Uhr 3. Mai im Hörsaal." }]
+expected = ["Die Sitzung beginnt um 13 Uhr 30 dritter Mai im Hörsaal."]
+
+[[case]]
+id = "de-season-term-or-noun-and-year-in-brackets-kept"
+audit = 0
+issue = 483
+goal = "Eine Klammer aus Jahreszeit, Semester oder einem Nomen wie 'Ausgabe' und einer Jahreszahl ist keine Quellenangabe und bleibt wie gedruckt; die Stimme liest sie so richtig."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Daten (Sommer 2019) und die Kurse (Wintersemester 2019) zeigen es, ebenso der Bericht (Ausgabe 2018)." }]
+expected = ["Die Daten (Sommer 2019) und die Kurse (Wintersemester 2019) zeigen es, ebenso der Bericht (Ausgabe 2018)."]
+
+[[case]]
+id = "de-surname-that-is-a-noun-still-cites"
+audit = 0
+issue = 483
+goal = "Ein Nachname, der auch ein Nomen ist ('Koch', 'Wagner'), bleibt mit Jahreszahl eine Quellenangabe und wird entfernt."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das zeigen frühere Arbeiten (Koch 2019; Wagner 2020)." }]
+expected = ["Das zeigen frühere Arbeiten."]
+
+[[case]]
+id = "de-arrow-printed-as-two-glyphs"
+audit = 0
+issue = 527
+goal = "Ein Pfeil aus zwei Zeichen ('←−', '−→') wird als ein Pfeil gelesen ('←', '→': 'Linkspfeil', 'Rechtspfeil'), nie 'minus'. Das hochgestellte '−1' nach der Klammer bleibt wie gedruckt; die Stimme spricht es dennoch 'minus eins' (#589)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Dann gilt β(0, S, 0) ←− 0, P′ ←− (I − P)−1 und S −→ ε." }]
+expected = ["Dann gilt β(0, S, 0) ← 0, P′ ← (I − P)−1 und S → ε."]

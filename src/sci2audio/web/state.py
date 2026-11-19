@@ -15,12 +15,14 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+import platformdirs
 from fastapi import Depends, Request
 
 from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, load_settings
 from sci2audio.app.projects import Moved, migrate_all, real_folder
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
+from sci2audio.web.figures import Figures
 from sci2audio.web.jobs import JobBoard, JobRecord
 from sci2audio.web.markers import MarkerBook
 from sci2audio.web.player import candidate_folders
@@ -84,6 +86,7 @@ class ServerState:
     stopping: threading.Event = field(default_factory=threading.Event)
     clock: Callable[[], float] = time.monotonic  # the markers' undo store; tests pass a fake
     markers: MarkerBook = field(init=False)  # every write of a markers file (#474)
+    figures: Figures = field(default_factory=Figures)  # the player's figures (#293)
 
     def __post_init__(self) -> None:
         if self.config.legacy_root is not None:
@@ -112,6 +115,24 @@ class ServerState:
             overwrite=overwrite,
             on_failure=self.kept.dispose,
         )
+
+    def protected_folders(self) -> list[Path]:
+        """Folders a removal never deletes in or above (#470, D-751, R3): home, Documents,
+        the output folders, and sci2audio's own folders."""
+        saved, _ = load_settings(self.config.config_file)
+        found = [
+            Path.home(),
+            platformdirs.user_documents_path(),
+            self.config.output_folder,
+            self.config.work_root,
+            self.config.config_file.parent,
+            self.config.models_dir,
+        ]
+        if saved.output_folder is not None:
+            found.append(saved.output_folder)
+        if self.config.legacy_root is not None:
+            found.append(self.config.legacy_root)
+        return found
 
     def preview_work(
         self, text: str, voice_id: str, speed: float, letter_speed: float = 1.0

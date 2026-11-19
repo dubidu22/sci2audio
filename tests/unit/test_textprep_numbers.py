@@ -33,6 +33,22 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("from − 3", "from minus 3"),
         ("N − 1", "N minus 1"),
         ("\u20123 dB", "minus 3 dB"),
+        # #527: an arrow printed as two glyphs is one arrow, glued or spaced, never "minus"
+        ("β ←− 0 and S −→ ε", "β ← 0 and S → ε"),
+        ("X −→ α", "X → α"),
+        ("X−→α∈R and (α−→β)∈τ", "X→α∈R and (α→β)∈τ"),
+        ("a ←−→ b and x ←−5", "a ↔ b and x ←5"),
+        # ... and a longer one, with more minus signs (#593 review F1)
+        ("X −−→ α and Y ←−− β", "X → α and Y ← β"),
+        ("X ←−−→ Y and −−→AB", "X ↔ Y and →AB"),
+        ("b ←−−1", "b ←1"),
+        # ... and a minus sign glued to a closing bracket is left as printed (an inverse
+        # whose raise was lost, or "f(x) minus 1": the voice says "minus" either way, #589)
+        (
+            "(I − P)−1 and f(x)−1 and [A]−1 and {B}−2",
+            "(I − P)−1 and f(x)−1 and [A]−1 and {B}−2",
+        ),
+        ("(a) − 1 and x −1", "(a) minus 1 and x minus 1"),
         # N2 ranges
         ("aged 3–5 years", "aged 3 to 5 years"),
         ("3 – 5", "3 to 5"),
@@ -123,7 +139,7 @@ def test_numbers_read_as_said(printed: str, said: str) -> None:
         # not ranges, minus signs or counts
         "the team won 3-1",
         "COVID-19 and 978-0-201 and 2019-13-45 and 2019-02-30",
-        "X −→ α and x−1",
+        "X → α and x−1",  # a two-glyph arrow is one arrow now (#527): read as said, above
         "arXiv:2401.17620 and v1.2.0",
         # times, chains, dates and fractions that have no reading right everywhere
         "at 10:30 and 9:05 am and 14:00 h",
@@ -133,6 +149,7 @@ def test_numbers_read_as_said(printed: str, said: str) -> None:
         "1 000\u2009000",
         # powers that are units (#68), statistics or footnote marks
         "5 m² and kg/m² and R² and 2019¹",
+        "5\nm² and .05\nm² and 5\tm²",  # a line break after a number is a space too (#445)
         # a run of superscript signs is no power the voice could say
         "10⁶⁻⁴ and x⁶⁻⁴ and 2⁻³⁺¹ and 2^3⁻⁴",
         "10⁶^0 and 33/310^2 and 3:10^2 and 2019-03-12^2",  # chained with a caret
@@ -325,6 +342,10 @@ def _read_all(text: str) -> str:
         ("It is 5−1/2 here.", "It is 5−1/2 here."),
         ("It is -1/2 here.", "It is -1/2 here."),
         ("It is a−1/2 here.", "It is a−1/2 here."),
+        ("It is (a)−1/2 here.", "It is (a)−1/2 here."),  # #527: glued to a bracket
+        ("It is [a]−1/2 here.", "It is [a]−1/2 here."),
+        ("It is {a}−1/2 here.", "It is {a}−1/2 here."),
+        ("x ←−1/2 here", "x ←1 half here"),  # #527: one arrow, then the fraction
         # ... after "/" or ":" N1 reads "minus", so the fraction is read too (#332 review, R1-2)
         ("It is /−1/2 here.", "It is /minus 1 half here."),
         ("ratio 1:−1/2", "ratio 1:minus 1 half"),

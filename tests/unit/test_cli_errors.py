@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 from cli_helpers import BROKEN, SEABORN, Cli, small_pdf
+from pdf_maker import glyph_number_pdf
 
 from sci2audio.cli import EXIT_CODES_HELP, CliEnv, Exit, _never_fail_on_characters
 
@@ -81,6 +82,23 @@ def test_a_damaged_pdf(cli: Cli, tmp_path: Path) -> None:
     result = cli("script", source, "-q")
     assert result.code == 5
     assert one_line(result.err).startswith("sci2audio: paper.pdf")
+
+
+def test_a_pdf_of_glyph_numbers_is_not_voiced(cli: Cli, tmp_path: Path) -> None:
+    """#442 part B: exit 5, the pages named, no audiobook and no voice made."""
+    source = tmp_path / "glyphs.pdf"
+    lines = [
+        "Das Buch wurde in einer Zeit geschrieben, in der die Arbeit in den Quartieren",
+        "neu gedacht werden musste. Die Menschen, die dort leben, kennen ihre Nachbarn,",
+    ]
+    source.write_bytes(glyph_number_pdf(lines))
+    result = cli("convert", source, "-q", "-o", tmp_path / "out")
+    assert result.code == 5
+    assert one_line(result.err).startswith(
+        "sci2audio: glyphs.pdf: the text of page 1 cannot be read: "
+    )
+    assert cli.voice.made == 0
+    assert not (tmp_path / "out").exists() or not list((tmp_path / "out").iterdir())
 
 
 def test_the_output_folder_is_a_file(cli: Cli, tmp_path: Path) -> None:

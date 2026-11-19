@@ -328,6 +328,8 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .notice details { margin: 6px 0 0 32px; }
 .notice .printed { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--pencil); }
 .notice .code { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; font-size: .92em; }
+/* the figure, table or formula itself (#293): its printed size at most, on its own white paper */
+.notice img.figure { display: block; height: auto; margin: 10px 0 0 32px; max-width: calc(100% - 32px); background: #fff; border: 1px solid var(--rule); border-radius: 2px; }
 .unread { color: var(--pencil); }
 .unread-tag { font-family: var(--ui); font-weight: 700; font-size: 13px; }
 .read-along .block.footnote, .read-along .block.caption { font-size: 16px; line-height: 1.65; color: var(--ink-2); }
