@@ -231,9 +231,10 @@ def _wait(
         if left <= 0:
             child.kill()
             return Stopped("time", step)
-        if not receive.poll(left if cancel is None else min(left, _CANCEL_SECONDS)):
-            continue
         try:
+            # On Windows, looking at an empty pipe whose child has ended raises (#485)
+            if not receive.poll(left if cancel is None else min(left, _CANCEL_SECONDS)):
+                continue
             kind, value = receive.recv()
         except (EOFError, OSError):  # ended without a word: the watch, a hard limit, a crash
             child.join()
@@ -292,9 +293,23 @@ def _child(
     except MemoryError:  # a hard limit refused an allocation Python asked for
         os._exit(MEMORY_EXIT)
     except BaseException as error:
+        if _out_of_memory(error):  # ... or one PDFium asked for, on Windows
+            os._exit(MEMORY_EXIT)
         send.send(("raised", _sendable(error)))
         return
     send.send(("done", result))
+
+
+# PDFium's allocator (PartitionAlloc) ends an allocation it cannot have with this Windows
+# exception (Chromium's kOomExceptionCode), and ctypes hands it on as an OSError with this
+# winerror (0xE0000008 as a signed number). Under load the job object's hard limit refuses
+# PDFium's memory before the watch looks, and the size message was lost (#485).
+_WINDOWS_OUT_OF_MEMORY = 0xE0000008 - (1 << 32)
+
+
+def _out_of_memory(error: BaseException) -> bool:
+    """True for the OSError a native allocation that ran out of memory raises on Windows."""
+    return isinstance(error, OSError) and getattr(error, "winerror", None) == _WINDOWS_OUT_OF_MEMORY
 
 
 def _sendable(error: BaseException) -> BaseException:

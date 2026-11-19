@@ -72,12 +72,14 @@ QUOTED = 60
 
 def removed_span(text: str, start: int, end: int) -> tuple[int, int]:
     """What removing `text[start:end]` covers: its text without the white space at its ends,
-    and the white space before it too when the block ends or closing punctuation follows."""
+    and the white space before it too when the block ends, closing punctuation follows, or
+    white space follows: "5 [run] m²" leaves "5 m²", the text without the run, which is what
+    a second run reads (#445)."""
     while start < end and text[start].isspace():
         start += 1
     while end > start and text[end - 1].isspace():
         end -= 1
-    if end == len(text) or text[end] in _CLOSING:
+    if end == len(text) or text[end] in _CLOSING or text[end].isspace():
         while start > 0 and text[start - 1].isspace():
             start -= 1
     return start, end

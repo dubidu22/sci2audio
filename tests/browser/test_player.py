@@ -17,7 +17,7 @@ from pdf_maker import Rect, Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_flow import open_paper
 
-from conftest import Live, check_axe, settled, tab_key
+from conftest import Live, at_rest, check_axe, settled, tab_key
 
 PER_CHARACTER = 2400  # samples at 24 kHz: 0.1 s per character
 
@@ -30,6 +30,9 @@ def make_audiobook(page: Page, live: Live) -> str:
     page.get_by_role("button", name="Make the audiobook").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
+    # the job page reloads itself when the job ends; a click while the reloaded page's
+    # fonts still arrived followed no link (Firefox, nightly-green PR 3 isolation)
+    at_rest(page)
     page.get_by_role("link", name="Listen with the text").click()
     page.wait_for_url(f"{live.url}/documents/{document}/listen")
     expect(page.get_by_role("heading", level=1)).to_have_text("paper")  # the title (#391)
@@ -242,9 +245,8 @@ def test_the_page_says_when_there_is_nothing_to_play(signed_in: Page, live: Live
 def test_the_page_says_when_the_files_are_gone(signed_in: Page, live: Live) -> None:
     page = signed_in
     document = make_audiobook(page, live)
-    for file in live.config.output_folder.iterdir():
-        if file.suffix == ".mp3":
-            file.unlink()
+    for file in live.config.output_folder.rglob("*.mp3"):  # in the project's folder (D-749)
+        file.unlink()
     page.goto(f"{live.url}/documents/{document}/listen")
     expect(page.locator("#listen-problem")).to_contain_text("The audiobook files are no longer in")
     check_axe(page, "player, files missing")
@@ -459,7 +461,8 @@ def test_the_dock_never_hides_the_page(signed_in: Page, live: Live) -> None:
         assert bar["fixed"] == (bar["height"] <= height / 4), f"{where}: {bar}"
         if (width, height) == (1280, 800):
             assert bar["fixed"], f"{where}: a wide window keeps the dock in view: {bar}"
-            assert bar["bottom"] == height, f"{where}: the dock stands at the foot: {bar}"
+            # Firefox lays out in sub-pixels: 799.99998 is the foot of an 800 px window (#501)
+            assert abs(bar["bottom"] - height) < 0.5, f"{where}: the dock stands at the foot: {bar}"
         padding = page.evaluate("() => document.documentElement.style.scrollPaddingBottom")
         assert (padding != "") == bar["fixed"], f"{where}: scroll padding {padding!r}"
         # the end of the page can be scrolled out from under the dock

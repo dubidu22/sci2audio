@@ -78,7 +78,7 @@ sci2audio listen paper.pdf           # play it in the browser with the text, sen
 
 `script` needs no voice and lists the chapters; choose them with `--chapters 1,3-5` (counted from 1, read in the order given, so `3,1` reads chapter 3 first; or `all`; by default every chapter but the reference list and an EPUB's publisher's pages). Switch a kind of text handling off with `--off citations` (read as printed) or on with `--on footnote-texts` (leave the notes out); `sci2audio script --help` lists the categories. `convert` takes the same options and `--voice`, `--speed`, `--letter-pace normal|slower|slowest` (how fast spelled-out abbreviations such as NLP are read), `--format both|m4b|mp3` and `--with-script`.
 
-Files go next to the input file, or into the folder given with `-o`; existing files are replaced only with `--overwrite`. If `convert` is stopped (Ctrl-C, a crash, a closed laptop), run the same command again: the sentences already spoken are kept in a speech cache in your cache folder, and `sci2audio clean paper.pdf` removes it. `listen` takes the same `-o` and `--work-folder` as `convert` and only plays what `convert` made there. The command line takes its defaults from the settings saved by the interface and never changes them; `--ignore-settings` uses the built-in defaults.
+Files go next to the input file, or into the folder given with `-o`; existing files are replaced only with `--overwrite`. If `convert` is stopped (Ctrl-C, a crash, a closed laptop), run the same command again: the sentences already spoken are kept in a speech cache in sci2audio's data folder, and `sci2audio clean paper.pdf` removes it. `listen` takes the same `-o` and `--work-folder` as `convert` and only plays what `convert` made there. The command line takes its defaults from the settings saved by the interface and never changes them; `--ignore-settings` uses the built-in defaults.
 
 Exit codes, for scripts:
 
@@ -89,7 +89,7 @@ Exit codes, for scripts:
 | 2 | a bad option or value |
 | 3 | the file does not exist or is not a file |
 | 4 | a file type sci2audio can't read |
-| 5 | the file is damaged, protected or can't be opened |
+| 5 | the file is damaged, protected or can't be opened, or its text can't be read |
 | 6 | the voice files are not installed (`sci2audio voices download`) |
 | 7 | output files exist (add `--overwrite`) |
 | 8 | another sci2audio job is working on this file |

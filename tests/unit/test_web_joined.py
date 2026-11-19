@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 from test_web_player import make, player_data, server, work_of
-from web_helpers import markers_of, offline, set_marker  # noqa: F401 - fixture
+from web_helpers import book_folder, markers_of, offline, set_marker  # noqa: F401 - fixture
 
 from sci2audio.core import Span
 from sci2audio.web.markers import MarkerBook, anchor_of, place
@@ -18,12 +18,14 @@ from sci2audio.web.player import load_document, locate, read_audio_record
 
 pytestmark = pytest.mark.usefixtures("offline")
 
+# over the 400-character cut limit (#494): cut once, its later piece the longest
 LONG = (
-    "The results of the second survey, which was carried out two years after the first one "
-    "in the same schools and with the same questionnaire and the same people asking the "
-    "questions, show that the share of teachers who use the new material in every lesson "
-    "has almost doubled since the start of the programme, while the share of those who "
-    "never use it has fallen by half in the same time and in every kind of school."
+    "In the second survey the share of teachers who use the new material in every lesson has "
+    "almost doubled since the start of the programme, while the share of those who never use "
+    "it has fallen by half in the same time, in the same schools, with the same questionnaire "
+    "and with the same people asking the questions, in every kind of school, from the small "
+    "village schools with one class for all ages to the large city schools with several "
+    "classes in each year."
 )
 TEXT = f"A short sentence first.\n\n{LONG}\n\nA short sentence last.\n"
 
@@ -45,7 +47,7 @@ def book(tmp_path: Path) -> dict[str, Any]:
         "elements": elements,
         "pieces": cut,
         "work": work_of(config, doc),
-        "out": config.output_folder,
+        "out": book_folder(config.output_folder, "note.txt"),
     }
 
 
@@ -89,11 +91,30 @@ def test_a_marker_set_on_one_piece_before_480_is_the_sentences_marker(
     old_span = _spans(book)[second]
     old, _ = MarkerBook().set(work, doc, anchor_of(document, old_span), lambda markers: None)
     shown = player_data(client.get(f"/documents/{doc}/listen").text)["markers"]
-    assert [(m["id"], m["chunk"], m["state"]) for m in shown] == [(old.id, second, "found")]
+    # placed on the second piece, named by the sentence's first piece (#520)
+    assert [(m["id"], m["chunk"], m["state"]) for m in shown] == [(old.id, first, "found")]
     assert book["elements"][second] == book["elements"][first]
     again = set_marker(client, doc, first, stamp, status=200)
     assert again["id"] == old.id
     assert len(markers_of(work)["markers"]) == 1
+
+
+def test_the_api_and_the_page_name_a_marked_cut_sentence_by_its_first_piece(
+    book: dict[str, Any],
+) -> None:
+    """#520 (web batch audit S1): a whole-sentence marker overlaps a later, longer piece most,
+    yet the POST answer and the page's marker data name the sentence by its first piece, as
+    `data-chunk`, the player's sentences and `MarkerIn.chunk` do."""
+    client, doc, stamp = book["client"], book["doc"], book["data"]["audiobook"]
+    first = book["pieces"][0]
+    spans = _spans(book)
+    longest = max(book["pieces"], key=lambda n: (spans[n].end - spans[n].start, -n))
+    assert longest != first, "the first piece is the longest: this test proves nothing"
+    for piece in (first, longest):  # set by any piece: the answer names the first
+        marker = set_marker(client, doc, piece, stamp, status=201 if piece == first else 200)
+        assert marker["chunk"] == first
+    shown = player_data(client.get(f"/documents/{doc}/listen").text)["markers"]
+    assert [(m["id"], m["chunk"], m["state"]) for m in shown] == [(marker["id"], first, "found")]
 
 
 def _spans(book: dict[str, Any]) -> list[Any]:

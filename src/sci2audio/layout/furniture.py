@@ -22,6 +22,19 @@ bigger paper (the LNI template on Letter paper starts 17 % down) prints nothing 
 its first row of text, where such templates put their heads, is in the top band too (#235,
 D-502 to D-504). Only that row: a lone number lower down stays text. The bottom band stays
 the paper's, since the foot of a small type area holds footnotes (D-503).
+
+A small journal page (#458) sets its heads a little past the band, draws a rule under them
+and prints the page number in the head's line ("Journal of Tests ∙ 61"). So for body-size
+heads a line's middle in the band will do, a rule just under the edge lines goes with them
+(the white past it is what sets them apart), and a number at either end of the line that is
+the page number plus the same offset on each page counts as the same text. Its footnotes
+reach down into the bottom band: lines under a footnote rule, set smaller and following it
+without white, are never furniture. A page that prints no page number of its own takes the
+one in its running head as its label (#535).
+
+A table of contents prints its page numbers at the right edge, after dot leaders, or, as a
+journal issue does, at the left edge with each entry's author and title in rows beside them
+(#529).
 """
 
 from __future__ import annotations
@@ -49,7 +62,7 @@ _PAGE_NUMBER = re.compile(
     r"(?:\s*(?:of|/)\s*\d{1,4})?$",
     re.IGNORECASE,
 )
-_CONTENTS_TITLE = {"contents", "tableofcontents"}
+_CONTENTS_TITLE = {"contents", "tableofcontents", "inhalt", "inhaltsverzeichnis"}  # German: #456
 _LEADER = re.compile(r"(?:\.\s?){4,}\s*\d{1,4}$|(?:…\s?){2,}\s*\d{1,4}$")
 
 
@@ -72,14 +85,17 @@ class Edges:
     # type area (D-502). None while something is printed in the paper's top band.
     first_row: float | None = None
 
-    def band(self, box: Box, page: Page) -> str:
-        """The band a box on this page stands in: "top", "bottom" or "" (neither)."""
+    def band(self, box: Box, page: Page, *, wide: bool = False) -> str:
+        """The band a box on this page stands in: "top", "bottom" or "" (neither). The box
+        stands wholly in the band; with `wide`, its middle will do (a body-size running head
+        reaching just past the band, #458)."""
         height = page.height or 0.0
-        if box.y1 <= self.settings.edge_band * height or (
+        top, bottom = (((box.y0 + box.y1) / 2,) * 2) if wide else (box.y1, box.y0)
+        if top <= self.settings.edge_band * height or (
             self.first_row is not None and box.y0 <= self.first_row
         ):
             return "top"
-        if box.y0 >= (1 - self.settings.edge_band) * height:
+        if bottom >= (1 - self.settings.edge_band) * height:
             return "bottom"
         return ""
 
@@ -111,7 +127,12 @@ def find_furniture(
     bands = bands or edges(content, settings)
     size = body_size(content) or settings.body_size
     pages = [page for page in content.pages if page.height and page.width]
-    measured = [_Page(page, size, bands) for page in pages]
+    repeats: dict[str, list[tuple[int, float]]] = defaultdict(list)  # exact text -> places
+    for page in pages:
+        for line in page.lines:
+            if line.box:
+                repeats[_exact(line.text)].append((page.number, line.box.y0))
+    measured = [_Page(page, size, bands, repeats) for page in pages]
     heads = _running_heads(pages, size, bands)
     body_heads = _body_heads(measured, len(pages))
     counted = _counted(pages, size, bands)
@@ -144,6 +165,48 @@ def _counted(pages: list[Page], size: float, bands: Edges) -> set[str]:
 def _exact(text: str) -> str:
     """The line with spacing and case evened out, numbers kept (D-323)."""
     return re.sub(r"\s+", "", text.casefold())
+
+
+_END_NUMBER = re.compile(r"^(\d{1,4})(?=\D)|(?<=\D)(\d{1,4})$")
+
+
+def _texts(text: str, page: int) -> list[str]:
+    """The line's exact text, and the same with a number at its start or end that is the
+    page's number plus some offset (the page number printed in the running head,
+    "Journal Name ∙ 61"), as that offset: one head on every page then (#458)."""
+    exact = _exact(text)
+    found = [exact]
+    for number in _END_NUMBER.finditer(exact):
+        start, end = number.span()
+        found.append(f"{exact[:start]}#{int(number.group()) - page}#{exact[end:]}")
+    return found
+
+
+def head_labels(
+    content: Content, furniture: dict[str, FurnitureRole], settings: LayoutSettings
+) -> dict[int, str]:
+    """The page number each page prints inside a running head line, by page (#535): a number
+    at the start or end of a running head that is the page's number plus the same offset on
+    `repeat_pages` pages or more, the rest of the line the same ("Tests in Print ∙ 61" on
+    page 7, "Tests in Print ∙ 63" on page 9), as `_texts` reads it for #458. A number that
+    does not follow the pages ("Heft 55", "Algorithm 3") gives none."""
+    found: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    for page in content.pages:
+        for line in page.lines:
+            if furniture.get(line.id) == RUNNING_HEAD:
+                exact = _exact(line.text)
+                for number in _END_NUMBER.finditer(exact):
+                    start, end = number.span()
+                    offset = int(number.group()) - page.number
+                    found[f"{exact[:start]}#{offset}#{exact[end:]}"].append(
+                        (page.number, number.group())
+                    )
+    labels: dict[int, str] = {}
+    for places in found.values():
+        if len({number for number, _ in places}) >= settings.repeat_pages:
+            for number, printed in places:
+                labels.setdefault(number, printed)
+    return labels
 
 
 def _shape(text: str) -> str:
@@ -180,12 +243,13 @@ def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
     settings, size = measured[0].settings, measured[0].size
     drift = settings.head_drift * size
     lines = [  # (band, exact text, page, height, line id)
-        (band, _exact(line.text), page.page.number, boxed(line).y0, line.id)
+        (band, text, page.page.number, boxed(line).y0, line.id)
         for page in measured
         for line in page.lines
         if line.id in page.apart  # a smaller line has its own rule and lends no pages here
         and settings.small * size <= line_size(line) <= settings.head_size * size
-        and (band := page.bands.band(boxed(line), page.page))
+        and (band := page.bands.band(boxed(line), page.page, wide=True))
+        for text in _texts(line.text, page.page.number)
     ]
     texts: Heads = defaultdict(list)
     for band, text, number, y, _ in lines:
@@ -206,7 +270,13 @@ def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
 class _Page:
     """One page's lines, measured once for the furniture rules."""
 
-    def __init__(self, page: Page, size: float, bands: Edges) -> None:
+    def __init__(
+        self,
+        page: Page,
+        size: float,
+        bands: Edges,
+        repeats: dict[str, list[tuple[int, float]]] | None = None,
+    ) -> None:
         self.page, self.size, self.bands, self.settings = page, size, bands, bands.settings
         self.lines = [line for line in page.lines if line.box]
         self.stamps = {line.id for line in self.lines if _is_stamp(line, page, self.settings)}
@@ -215,6 +285,8 @@ class _Page:
         self.alone = {row[0].id for row in self.rows if len(row) == 1}
         self.graphics = [g.box for g in (*page.pictures, *page.drawings) if g.box]
         self.apart = self._apart()
+        self.repeats = repeats or {}  # where each line's exact text stands in the document
+        self.notes = self._notes()
 
     def furniture(
         self, heads: Heads, body_heads: set[str], counted: set[str]
@@ -222,7 +294,7 @@ class _Page:
         found = dict.fromkeys(self.stamps, SIDE_STAMP)
         settings, height = self.settings, self.page.height or 0.0
         for line in self.lines:
-            if line.id in found:
+            if line.id in found or line.id in self.notes:
                 continue
             box, text = boxed(line), line.text.strip()
             band = self.bands.band(box, self.page)
@@ -262,6 +334,60 @@ class _Page:
             and not near
         )
 
+    def _notes(self) -> set[str]:
+        """The lines of the page's footnotes: the rows under a footnote rule (thin, in the
+        lower half, between `footnote_rule_width` em and `footnote_rule_share` of the text's
+        width) that follow it and each other with less than `apart` em of white. Smaller
+        letters alone don't make them furniture at the foot of the page (#458). Rows at the
+        foot of that stack that are lines alone on their row, a page number by its shape or
+        repeated word for word at their height on `repeat_pages` pages (a footer, D-323),
+        are left to the furniture rules, however close under the notes (review of #530, F1,
+        F2). A note's mark is never alone on its row: its text stands beside it."""
+        settings, page, size = self.settings, self.page, self.size
+        _, right = text_area(self.lines, settings.edge_share)
+        found: set[str] = set()
+        for rule in page.drawings:
+            box = rule.box
+            if (
+                box is None
+                or box.y1 - box.y0 > settings.footnote_rule_height
+                or box.y0 < settings.footnote_band * (page.height or 0.0)
+                or not settings.footnote_rule_width * size
+                <= box.x1 - box.x0
+                <= settings.footnote_rule_share * (right - box.x0)
+            ):
+                continue
+            reach = settings.footnote_reach * size
+            column = [
+                li
+                for li in self.lines
+                if boxed(li).y0 >= box.y1
+                and abs(boxed(li).x0 - box.x0) <= reach
+                and line_size(li) < settings.small * size  # notes are set smaller
+            ]
+            above, stack = [box], []
+            for row in rows(column, settings.row_overlap):
+                boxes = [boxed(li) for li in row]
+                if _white(above, boxes) >= settings.apart * size:
+                    break
+                stack.append(row)
+                above = boxes
+            while stack and self._own(stack[-1]):  # furniture at the foot, under the notes
+                stack.pop()
+            found.update(li.id for row in stack for li in row)
+        return found
+
+    def _own(self, row: list[TextLine]) -> bool:
+        """True for a row under the notes that is furniture of its own: one line, alone on
+        its page row, a page number by its shape or repeated word for word at its height."""
+        if len(row) != 1 or row[0].id not in self.alone:
+            return False
+        line, drift = row[0], self.settings.head_drift * self.size
+        places = self.repeats.get(_exact(line.text), [])
+        return bool(_PAGE_NUMBER.match(line.text.strip())) or (
+            _repeated(places, boxed(line).y0, drift) >= self.settings.repeat_pages
+        )
+
     def _apart(self) -> set[str]:
         """Lines in the top or bottom band with white of `apart` em between them and the body.
 
@@ -273,23 +399,33 @@ class _Page:
         parts = [([boxed(li) for li in row], [li.id for li in row]) for row in self.rows]
         parts += [([g], []) for g in self.graphics if not any(_inside(b, g) for b in boxes)]
         found: set[str] = set()
-        for ordered, inside in (
-            (
-                sorted(parts, key=lambda part: min(b.y0 for b in part[0])),
-                lambda b: self.bands.band(b, page) == "top",
-            ),
-            (
-                sorted(parts, key=lambda part: -max(b.y1 for b in part[0])),
-                lambda b: self.bands.band(b, page) == "bottom",
-            ),
+        for ordered, band in (
+            (sorted(parts, key=lambda part: min(b.y0 for b in part[0])), "top"),
+            (sorted(parts, key=lambda part: -max(b.y1 for b in part[0])), "bottom"),
         ):
-            for i, (part, _) in enumerate(ordered):
-                if not all(inside(box) for box in part):
+            for i, (part, ids) in enumerate(ordered):
+                # a line's middle will do (`Edges.band`), a graphic stands wholly in the band
+                inside = (self.bands.band(box, page, wide=bool(ids)) == band for box in part)
+                if not all(inside) and not (
+                    i and not ids and self._rule_under(part, ordered[i - 1][0])
+                ):
                     break
                 after = ordered[i + 1][0] if i + 1 < len(ordered) else None
                 if after is None or _white(part, after) >= settings.apart * self.size:
                     found.update(line for _, ids in ordered[: i + 1] for line in ids)
         return found
+
+    def _rule_under(self, part: list[Box], before: list[Box]) -> bool:
+        """True for a rule (a drawing at most `line_width` em thick) less than `apart` em
+        from the edge lines before it: it goes with them, and the white past it is the
+        white between them and the body (a running head ruled off from the text, #458)."""
+        (box,) = part if len(part) == 1 else (None,)
+        settings = self.settings
+        return (
+            box is not None
+            and box.y1 - box.y0 <= settings.line_width * self.size
+            and _white(before, part) < settings.apart * self.size
+        )
 
 
 def _is_stamp(line: TextLine, page: Page, settings: LayoutSettings) -> bool:
@@ -331,15 +467,19 @@ def _line_numbers(lines: list[TextLine], settings: LayoutSettings) -> dict[str, 
 
 
 def _contents(lines: list[TextLine], settings: LayoutSettings) -> dict[str, FurnitureRole]:
-    """A printed table of contents: its title and the entries under it with their pages."""
+    """A printed table of contents: its title and the entries under it with their pages,
+    printed at the right edge (or after dot leaders) or at the left edge (#529)."""
     found: dict[str, FurnitureRole] = {}
-    _, right = text_area(lines, settings.edge_share)
+    left, right = text_area(lines, settings.edge_share)
     size = median(run.size for line in lines for run in line.runs) if lines else 0.0
     reach = settings.contents_reach * max(size, 1.0)
     page_rows = rows(lines, settings.row_overlap)
     for start, row in enumerate(page_rows):
         if len(row) == 1 and re.sub(r"\W", "", row[0].text.casefold()) in _CONTENTS_TITLE:
-            entries = _entries(page_rows[start + 1 :], right - reach)
+            after = page_rows[start + 1 :]
+            entries = _entries(after, right - reach) or _left_entries(
+                after, left + reach, reach, settings.contents_rows
+            )
             if entries:
                 found.update({line.id: CONTENTS for line in row})
                 found.update({line.id: CONTENTS for line in entries})
@@ -364,6 +504,44 @@ def _entries(page_rows: list[list[TextLine]], edge: float) -> list[TextLine]:
             pending = []
         elif not pending and entries:
             pending = row
+        else:
+            break
+    return entries
+
+
+def _left_entries(
+    page_rows: list[list[TextLine]], edge: float, reach: float, more: int
+) -> list[TextLine]:
+    """Entries whose page number stands at the text's left edge, a piece of its own, with the
+    entry's text to its right (author and title, as a journal issue prints them, #529): each
+    entry's number at most `edge`, its text within `reach` of the first entry's text, then up
+    to `more` rows starting at that indent, right of the numbers. Page numbers never go down
+    from entry to entry, so a numbered heading after the contents ("1 Introduction") is no
+    entry."""
+    entries: list[TextLine] = []
+    indent: float | None = None
+    last, rows_after, numbers = 0, 0, 0.0  # numbers: where the column of page numbers ends
+    for row in page_rows:
+        number = row[0].text.strip()
+        at = boxed(row[1]).x0 if len(row) > 1 else 0.0
+        if (
+            len(row) > 1
+            and re.fullmatch(r"\d{1,4}", number)
+            and boxed(row[0]).x0 <= edge
+            and int(number) >= last
+            and (indent is None or abs(at - indent) <= reach)
+        ):
+            indent = at if indent is None else indent
+            entries += row
+            last, rows_after, numbers = int(number), 0, max(numbers, boxed(row[0]).x1)
+        elif (
+            indent is not None
+            and rows_after < more
+            and boxed(row[0]).x0 > numbers
+            and abs(boxed(row[0]).x0 - indent) <= reach
+        ):
+            entries += row
+            rows_after += 1
         else:
             break
     return entries

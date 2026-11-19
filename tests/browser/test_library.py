@@ -193,7 +193,7 @@ def test_the_search_filters_as_the_person_types_and_works_without_the_script(
     page.keyboard.press("Enter")  # the form, with the script: filters, stays on the page
     expect(rows.locator("visible=true")).to_have_count(1)
     expect(page.locator("#no-match")).to_be_empty()
-    page.keyboard.press("Control+a")
+    page.keyboard.press("ControlOrMeta+a")  # Select All is Cmd+A on macOS (#499)
     page.keyboard.press("Delete")
     expect(rows.locator("visible=true")).to_have_count(3)
     expect(page).to_have_url(live.url + "/")

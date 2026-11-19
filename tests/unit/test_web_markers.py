@@ -17,8 +17,9 @@ from hypothesis.stateful import RuleBasedStateMachine, invariant, precondition, 
 from web_helpers import FakeClock, markers_of
 
 from sci2audio.app import files
-from sci2audio.core import Document, Span
+from sci2audio.core import Document, Span, apply_edits
 from sci2audio.testing.documents import make_document
+from sci2audio.textprep import cut_utterances
 from sci2audio.web import markers as module
 from sci2audio.web.markers import (
     MARKERS,
@@ -582,6 +583,62 @@ def test_a_sentence_now_cut_in_two_goes_to_the_piece_it_overlaps_most() -> None:
     pieces = [Span(1, 0, 12), Span(1, 12, len(FIRST)), Span(1, len(FIRST) + 1, len(TEXT))]
     placed = one(document, first(), pieces)
     assert (placed.state, placed.chunk) == ("found", 1)  # 29 of its characters, not 12
+
+
+# a sentence of about 350 characters (cut at 300, one utterance at 400) and one of about 650
+# (three pieces at 300, two at 400), between two short ones
+_MID = (
+    "The teachers who took part in the second round of the study were asked to keep a diary "
+    "of every lesson in which they used the new material, to note what worked well and what "
+    "did not, and to send it back at the end of each month, so that the team could see how "
+    "the use of the material changed over the school year and where help was needed."
+)
+_LONG = (
+    "The second experiment, which we ran on a larger set of recordings from three different "
+    "sites over a period of several months and with the help of two new assistants who had not "
+    "taken part before, used the same procedure as the first one and the same group of "
+    "listeners, but this time the recordings were played back on a cheap, small, "
+    "battery-powered loudspeaker in a quiet room at the back of the old building, and the "
+    "listeners, who had heard the same recordings on good headphones a week before, were asked "
+    "to say which of the two versions they liked better and to write down in a few words what "
+    "made the difference for them."
+)
+
+
+def test_a_marker_in_a_sentence_whose_cut_moves_or_goes_lands_on_that_sentence() -> None:
+    """#494 (D-743 A2): an audiobook made again after the cut limit went from 300 to 400
+    characters. A marker set on any piece of the old cut, or on the whole sentence (#480),
+    is found on a chunk of the same sentence: the one-utterance sentence, or the new piece
+    it overlaps most."""
+    text = f"A short one first. {_MID} {_LONG} A short one last."
+    document = make_document([("paragraph", text)])
+    script = apply_edits(document, [])
+
+    def chunks(limit: int) -> list[Span]:
+        return [u.span for u in cut_utterances(document, script, max_chars=limit) if not u.pause]
+
+    old, new = chunks(300), chunks(400)
+    mid_at, long_at = text.index(_MID), text.index(_LONG)
+
+    def sentence_of(span: Span) -> str:
+        for sentence, at in ((_MID, mid_at), (_LONG, long_at)):
+            if at <= span.start < at + len(sentence):
+                return sentence
+        return ""
+
+    assert 300 < len(_MID) <= 400 < len(_LONG)
+    assert len([s for s in old if mid_at <= s.start < long_at]) == 2  # cut at 300
+    assert [(s.start, s.end) for s in new if mid_at <= s.start < long_at] == [
+        (mid_at, mid_at + len(_MID))
+    ]  # whole at 400
+    long_old = [(s.start, s.end) for s in old if sentence_of(s) == _LONG]
+    long_new = [(s.start, s.end) for s in new if sentence_of(s) == _LONG]
+    assert (len(long_old), len(long_new)) == (3, 2)  # the cuts moved
+    wholes = [Span(0, mid_at, mid_at + len(_MID)), Span(0, long_at, long_at + len(_LONG))]
+    for span in [s for s in old if sentence_of(s) in (_MID, _LONG)] + wholes:
+        placed = one(document, anchor_of(document, span), new)
+        assert placed.state == "found"
+        assert sentence_of(new[placed.chunk]) == sentence_of(span)
 
 
 def test_two_sentences_now_joined_into_one_show_both_markers_there() -> None:

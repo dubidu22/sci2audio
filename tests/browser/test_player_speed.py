@@ -11,6 +11,7 @@ from playwright.sync_api import Page, expect
 from test_player import chunk_id, highlighted, make_audiobook
 
 from conftest import Live, check_axe, tab_key
+from sci2audio.web.player import recorded_folder
 
 
 def rate(page: Page) -> dict[str, object]:
@@ -114,11 +115,13 @@ def test_the_speed_stays_on_the_m4b(signed_in: Page, live: Live) -> None:
     document = make_audiobook(page, live)
     work = live.state.store.get(document).folder
     record = json.loads((work / "audio.json").read_text(encoding="utf-8"))
+    folder = recorded_folder(work, document)  # the project's own audiobook folder (D-749)
+    assert folder is not None
     for name in record["files"]["mp3"]:
-        (live.config.output_folder / name).unlink()
+        (folder / name).unlink()
     record["files"]["mp3"] = []
     (work / "audio.json").write_text(json.dumps(record), encoding="utf-8")
-    readalong = live.config.output_folder / record["files"]["readalong"]
+    readalong = folder / record["files"]["readalong"]
     data = json.loads(readalong.read_text(encoding="utf-8"))
     for chapter in data["chapters"]:
         chapter["mp3"] = None
