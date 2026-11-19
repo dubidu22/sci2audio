@@ -18,10 +18,10 @@ from sci2audio.extraction import (
     Region,
     extract_epub_picture,
     extract_pdf_regions,
+    isolate,
     read_pdf,
 )
 from sci2audio.extraction import epub as epub_module
-from sci2audio.extraction import isolate
 from sci2audio.extraction import pdf as pdf_module
 from sci2audio.extraction.cover import png
 from sci2audio.extraction.pdf import region_scale
@@ -50,7 +50,7 @@ def pixels(image: bytes) -> tuple[int, int, list[bytes]]:
 
 def dark_box(image: bytes) -> tuple[int, int, int, int]:
     """The pixel box (x0, y0, x1, y1, exclusive end) of the image's dark pixels."""
-    width, height, rows = pixels(image)
+    width, _, rows = pixels(image)
     xs, ys = [], []
     for y, row in enumerate(rows):
         for x in range(width):
@@ -102,8 +102,7 @@ def test_a_region_is_what_extraction_places_there(tmp_path: Path, shape: object)
     width, height, _ = pixels(image)
     assert (width, height) == (440, 160)
     x0, y0, x1, y1 = dark_box(image)
-    assert abs(x0 - 20) <= 1 and abs(y0 - 20) <= 1
-    assert abs(x1 - 420) <= 1 and abs(y1 - 140) <= 1
+    assert [x0, y0, x1, y1] == pytest.approx([20, 20, 420, 140], abs=1)
 
 
 def test_the_part_off_the_page_is_left_out(tmp_path: Path) -> None:
@@ -166,7 +165,8 @@ def test_all_regions_come_from_one_child(tmp_path: Path, monkeypatch: pytest.Mon
     regions = [Region(1, Box(90, 190, 310, 270), 1.0)] * 5
     found = extract_pdf_regions(write(tmp_path, make_pdf(PAGE)), regions)
     assert started == ["child"]
-    assert len(found) == 5 and all(found)
+    assert len(found) == 5
+    assert all(found)
     assert extract_pdf_regions(write(tmp_path, make_pdf(PAGE)), []) == []
     assert started == ["child"]  # nothing asked, no child
 
@@ -301,7 +301,8 @@ def test_a_picture_over_the_limit_gives_none(
     assert extract_epub_picture(path, "OEBPS/images/fig.png") is None
     monkeypatch.setattr(epub_module, "MAX_COVER", 6_000_000)
     found = extract_epub_picture(path, "OEBPS/images/fig.png")
-    assert found is not None and found.data == bomb
+    assert found is not None
+    assert found.data == bomb
 
 
 @pytest.mark.parametrize(
