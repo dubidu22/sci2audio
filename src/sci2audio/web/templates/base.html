@@ -10,7 +10,7 @@
   <script src="/static/app.js" defer></script>
   {% block scripts %}{% endblock %}
 </head>
-<body>
+<body{% if launched_as == 'browser' %} data-keep-alive="/api/v1/jobs"{% endif %}>
 {{ sprite() }}
 <a class="skip" href="#main">{{ t('common.skip') }}</a>
 <div class="app">

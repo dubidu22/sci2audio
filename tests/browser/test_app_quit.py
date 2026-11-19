@@ -59,3 +59,41 @@ def test_quit_from_the_rail_by_keyboard(app_page: tuple[Page, Live]) -> None:
     expect(page.locator("#quit-ask")).to_be_hidden()
     assert live.state.quit.is_set()
     assert axe_problems(page, "the stopped page") == []
+
+
+def jobs_list_requests(page: Page, origin: str) -> list[str]:
+    asked: list[str] = []
+    url = f"{origin}/api/v1/jobs"
+    page.on("request", lambda r: asked.append(r.url) if r.url == url else None)
+    return asked
+
+
+def test_a_page_in_sight_keeps_the_app_without_a_window_awake(
+    app_page: tuple[Page, Live],
+) -> None:
+    """Reading is no request: the page asks for the job list once a minute while it is in
+    sight, so the idle stop never ends sci2audio under a reader (#631 F3)."""
+    page, live = app_page
+    page.clock.install()
+    page.goto(f"{live.url}/privacy")
+    asked = jobs_list_requests(page, live.url)
+    before = live.state.seen
+    page.clock.run_for(59_000)
+    assert asked == []
+    with page.expect_response(f"{live.url}/api/v1/jobs") as answer:
+        page.clock.run_for(2_000)
+    assert answer.value.status == 200
+    assert live.state.seen > before
+    assert len(asked) == 1
+
+
+def test_a_page_of_sci2audio_in_a_terminal_asks_nothing_to_stay_awake(
+    signed_in: Page, live: Live
+) -> None:
+    page = signed_in
+    page.clock.install()
+    page.goto(f"{live.url}/privacy")
+    asked = jobs_list_requests(page, live.url)
+    page.clock.run_for(5 * 60_000)
+    page.wait_for_timeout(300)
+    assert asked == []

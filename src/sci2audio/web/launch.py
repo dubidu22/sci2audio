@@ -90,19 +90,20 @@ class Watch:
     """The lifetime of the app without a window (launched as "browser", #215, D-797): no terminal
     and no window to close, so it stops when the rail's Quit item is pressed, or when no
     request has come for `idle` seconds while no job runs (the Listen page saves the
-    position every few seconds while it plays, so listening keeps it alive)."""
+    position every few seconds while it plays, and a page in sight asks for the job list
+    once a minute, so reading and listening keep it alive, #631 F3)."""
 
     def __init__(
         self,
         state: ServerState,
         stop: Callable[[], None],
         *,
-        idle: float = IDLE_STOP,
+        idle: float | None = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.state = state
         self.stop = stop
-        self.idle = idle
+        self.idle = IDLE_STOP if idle is None else idle
         self.clock = clock
         self.reason: str | None = None  # "quit" or "idle" once it stopped the server
 
@@ -117,8 +118,9 @@ class Watch:
         self.stop()
         return True
 
-    def run(self, ended: threading.Event, every: float = WATCH_EVERY) -> None:
+    def run(self, ended: threading.Event, every: float | None = None) -> None:
         """Looks every `every` seconds until it stopped the server or `ended` is set."""
+        every = WATCH_EVERY if every is None else every
         while not ended.wait(every):
             if self.check():
                 return
