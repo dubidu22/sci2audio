@@ -135,7 +135,7 @@ def test_the_document_page_shows_the_report_with_switches_and_chapters(
     assert 'data-blocked="needs_voice"' in page
     assert 'aria-disabled="true"' in page
     assert 'id="preview"' not in page
-    assert 'type="range" id="speed" name="speed" min="0.5" max="2.0" step="0.05"' in page
+    assert 'type="range" id="speed" name="speed" min="0.50" max="2.00" step="0.01"' in page
     assert str(server[1].output_folder) in page
     # the pace of spelled-out abbreviations, Normal by default (#295)
     assert "Spelled-out abbreviations" in page

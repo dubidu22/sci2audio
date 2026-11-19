@@ -32,6 +32,12 @@ from sci2audio.voices import (
 )
 from sci2audio.web import models
 from sci2audio.web.documents import DocumentBusyError, RemoveError, StoredDocument, StoreError
+from sci2audio.web.i18n import (
+    COOKIE_AGE,
+    PLAYER_SPEED_COOKIE,
+    known_player_speed,
+    player_speed_text,
+)
 from sci2audio.web.jobs import BoardBusyError, JobKind, JobRecord, JobState
 from sci2audio.web.markers import (
     MarkedAgain,
@@ -721,6 +727,27 @@ def put_settings(state: State, body: models.SettingsModel) -> models.SettingsMod
             507, "disk-full", f"could not save the settings: {error.strerror}"
         ) from error
     return _settings_model(settings)
+
+
+@router.put(
+    "/player/speed",
+    response_model=models.PlayerSpeed,
+    responses=_errors(*BODY),
+    summary="Keep the player's speed for the next Listen page",
+)
+def put_player_speed(body: models.PlayerSpeed, response: Response) -> models.PlayerSpeed:
+    """The player keeps its playback speed in a cookie like the appearance (#651, D-671):
+    a choice of the interface that grants nothing, set here so it stays HttpOnly."""
+    speed = known_player_speed(repr(body.speed)) or 1.0
+    response.set_cookie(
+        PLAYER_SPEED_COOKIE,
+        player_speed_text(speed),
+        max_age=COOKIE_AGE,
+        path="/",
+        samesite="strict",
+        httponly=True,
+    )
+    return models.PlayerSpeed(speed=speed)
 
 
 # --- jobs ------------------------------------------------------------------------------

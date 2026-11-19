@@ -94,6 +94,8 @@ class LayoutSettings:
     #                             0.16 em (review R1-2 of #323) ...
     fraction_reach: float = 0.6  # em: ... when both stand this close to the bar (the nearest
     #                              numerator letter; extraction's FRACTION_REACH)
+    fraction_inside: float = 0.1  # em: a denominator read after its line starts this close
+    #                               inside its bar's ends (#322; a word beside a brace does not)
 
     # Footnotes
     footnote_rule_height: float = 1.5  # points: a footnote rule is at most this thick, ...

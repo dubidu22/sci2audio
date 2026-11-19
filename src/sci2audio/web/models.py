@@ -101,6 +101,18 @@ class SettingsModel(Strict):
     output_folder: str | None = Field(default=None, max_length=4096)
 
 
+class PlayerSpeed(Strict):
+    """The player's playback speed, kept for the next Listen page (#651)."""
+
+    speed: float = Field(
+        ge=0.5,
+        le=3.0,
+        strict=True,
+        allow_inf_nan=False,
+        description="times the voice's own speed, 0.5 to 3; kept rounded to 0.01",
+    )
+
+
 class CategoryOut(BaseModel):
     id: str
     label: str

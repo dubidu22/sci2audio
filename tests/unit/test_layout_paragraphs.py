@@ -10,7 +10,9 @@ from test_layout import GUTTER, LEFT, MIDDLE, RIGHT, content, line
 
 from sci2audio.core import Block, BlockKind, Box, Document, Drawing, Part, TextLine, TextRun
 from sci2audio.layout import build_document
-from sci2audio.layout.paragraphs import Held, Row
+from sci2audio.layout.geometry import Bars, union
+from sci2audio.layout.order import Element
+from sci2audio.layout.paragraphs import Held, Row, _denominator, _over, rows_of
 from sci2audio.layout.paragraphs import paragraphs as make_paragraphs
 from sci2audio.layout.settings import LayoutSettings
 
@@ -834,6 +836,222 @@ def test_the_parts_of_an_inline_fraction_keep_a_space() -> None:
     assert (
         _third(_one_row(*pieces)) == "Bohr-magneton is B = eh2me . The Berry connection is defined"
     )
+
+
+# Liu p2's line "is within the energy gap s_int OH = -(e gs gv / 12 pi)(me / m*). Physically,"
+# (#322), its pieces and bars where liu prints them, in a column 245 pt wide: extraction gives
+# the denominator 12 pi last, and m* (with the rest of the line) before me.
+FRACTION_X, FRACTION_Y = LEFT - 54, ROW_Y - 454.72
+COLUMN_END = 299 + FRACTION_X
+
+
+def _piece(name: str, *runs: tuple[str, float, float, float, float, float]) -> TextLine:
+    """A piece of liu's line: its runs (text, size, x0, y0, x1, y1 on liu's page)."""
+    found = tuple(
+        TextRun(
+            text,
+            "Times",
+            size,
+            box=Box(x0 + FRACTION_X, y0 + FRACTION_Y, x1 + FRACTION_X, y1 + FRACTION_Y),
+        )
+        for text, size, x0, y0, x1, y1 in runs
+    )
+    return TextLine(name, found, union([run.box for run in found if run.box]))
+
+
+def _bar(name: str, x0: float, x1: float) -> Drawing:
+    return Drawing(
+        name, Box(x0 + FRACTION_X, 458.74 + FRACTION_Y, x1 + FRACTION_X, 459.54 + FRACTION_Y)
+    )
+
+
+def _fraction_page(first: float = 212.52, bars: bool = True) -> list[str]:
+    """The paragraphs of a two-column page whose left column's third line is liu's, its
+    first denominator starting at `first` (liu: 212.52, its bar from 208.66 to 229.24)."""
+    pieces = [
+        _piece(
+            "lead",
+            ("is within the energy gap", 10, 54.0, 454.72, 162.2, 463.67),
+            (" s", 10, 166.32, 454.72, 172.01, 463.56),
+            ("int", 7, 172.37, 453.18, 181.92, 459.37),
+        ),
+        _piece(
+            "num1",
+            ("OH", 7, 172.02, 459.47, 184.01, 465.73),
+            (" =", 10, 188.44, 454.72, 196.18, 463.56),
+            (" -", 10, 200.11, 454.16, 207.85, 463.56),
+            ("eg", 7, 209.06, 452.35, 216.72, 458.6),
+            ("s", 5, 216.72, 454.73, 220.06, 459.15),
+            ("g", 7, 220.56, 452.35, 224.44, 458.6),
+            ("v", 5, 224.45, 454.73, 227.99, 459.15),
+        ),
+        _piece(
+            "num2",
+            ("m", 7, 231.38, 452.71, 238.45, 458.9),
+            ("e", 5, 238.45, 455.08, 241.82, 459.51),
+        ),
+        _piece(
+            "den2",
+            ("m", 7, 231.24, 460.23, 238.3, 466.42),
+            ("*", 5, 238.31, 459.34, 241.97, 464.04),
+            (" . Physically,", 10, 243.67, 454.72, 299.01, 463.66),
+        ),
+        _piece(
+            "den1",
+            ("12", 7, first, 460.23, first + 7.94, 466.42),
+            ("pi", 7, first + 7.95, 460.23, first + 12.61, 466.42),
+        ),
+    ]
+    left = [line(f"left {k}", LEFT, 100 + 14 * k, COLUMN_END) for k in (0, 1, 3, 4)]
+    right = [line(f"right {k}", COLUMN_END + 16, 100 + 14 * k, RIGHT) for k in range(5)]
+    drawn = (_bar("bar1", 208.66, 229.24), _bar("bar2", 230.84, 242.87)) if bars else ()
+    doc = build_document(content([*left[:2], *pieces, *left[2:], *right], drawings=drawn))
+    return [b.text for b in doc.blocks if b.kind is BlockKind.PARAGRAPH]
+
+
+def test_a_line_ending_in_two_inline_fractions_reads_each_over_its_bar() -> None:
+    """#322, liu p2: the denominator read last joins its numerator's line instead of
+    starting a paragraph of its own, and "me", the second numerator, is read before its
+    denominator "m*", which starts 0.14 pt further left."""
+    (column,) = _fraction_page()
+    assert (
+        column.split("\n")[2] == "is within the energy gap sintOH = -egsgv 12pi me m* . Physically,"
+    )
+
+
+def test_a_piece_starting_beside_a_bar_is_no_denominator() -> None:
+    """Only a piece whose first letters stand within `fraction_inside` (0.1 em) of the bar's
+    ends is its denominator (Nowak p10: a word under a brace drawn as two short rules
+    starts beside them). 12pi starting 0.5 pt before the bar is; 2 pt before, it is not."""
+    (column,) = _fraction_page(first=208.16)
+    assert "-egsgv 12pi me m*" in column
+    assert "12pi" in _fraction_page(first=206.66)[1:]
+    # nor one whose first letters run past the bar's end by more: "12" ends 0.7 pt, then
+    # 1.7 pt, past it ("pi" then runs into "me", so no space is put between them)
+    (column,) = _fraction_page(first=222.0)
+    assert column.split("\n")[2].startswith("is within the energy gap sintOH = -egsgv 12pi")
+    assert "12pi" in _fraction_page(first=223.0)[1:]
+
+
+def test_a_table_rule_under_a_line_is_no_fraction_bar() -> None:
+    """A table's rule stands under its header line, not inside it: the first row under the
+    rule, within `fraction_reach` of it and inside its width, is a line of its own."""
+    header = [line("Model", LEFT, 100, 120, size=9), line("Accuracy", 200, 100, 240, size=9)]
+    rule = Drawing("rule", Box(LEFT, 111, 250, 111.5))
+    rows = [line("Base", LEFT, 114, 100, size=9), line("0.91", 200, 114, 220, size=9)]
+    doc = build_document(content([*header, *rows], drawings=(rule,)))
+    found = [text for b in doc.blocks for text in b.text.split("\n")]
+    assert "Base 0.91" in found or ("Base" in found and "0.91" in found)
+    assert not any("Model" in text and "Base" in text for text in found)
+
+
+# rows_of on its own (#322, review of #647): pieces whose runs have no boxes, so a piece's
+# letters are its whole box; body size 10, so `fraction_inside` is exactly 1 pt and
+# `fraction_reach` 6 pt. Every coordinate below is exact in binary.
+SIZE = 10.0
+# a numerator, raised, and the bar under it: the bar's middle (105.25) lies inside the
+# numerator's own height (99 to 107), below its letters' middle (103)
+NUMERATOR = Box(121, 99, 130, 107)
+UNDER = Box(120, 105, 131, 105.5)
+
+
+def _text(text: str, box: Box) -> Element:
+    return Element(box, TextLine(f"t-{text}", (TextRun(text, "Times", SIZE),), box))
+
+
+def _printed(
+    *pieces: Element, bars: tuple[Box, ...] = (UNDER,), other_column: tuple[Element, ...] = ()
+) -> list[list[str]]:
+    """The printed lines `rows_of` makes of the pieces, in this reading order, on a page
+    with these bars; the pieces in `other_column` stand in a second column."""
+    edges = {id(e): (300.0, 560.0) if e in other_column else (40.0, 290.0) for e in pieces}
+    found = rows_of(list(pieces), edges, LayoutSettings(), SIZE, Bars.of(bars, 2.5))
+    return [[e.line.text if e.line else "<mark>" for e in group] for group in found]
+
+
+def test_a_line_of_one_fraction_reads_its_numerator_first() -> None:
+    """A printed line of exactly two pieces, a numerator and its denominator starting
+    1 pt further left, reads the numerator first (liu p2 "me over m*")."""
+    up, down = _text("me", NUMERATOR), _text("m*", Box(120, 106, 128, 112))
+    assert _printed(up, down) == [["me", "m*"]]
+    # without the bar the denominator is a line of its own
+    assert _printed(up, down, bars=()) == [["me"], ["m*"]]
+
+
+def test_a_denominator_at_the_start_of_its_line_follows_its_numerator() -> None:
+    """The leftmost piece of a printed line is a denominator whose numerator starts further
+    right and is not the line's last piece: the numerator is read first, the rest keeps its
+    order."""
+    up, rest = _text("me", NUMERATOR), _text("is the mass", Box(140, 100, 170, 110))
+    down = _text("m*", Box(120, 106, 128, 112))
+    assert _printed(up, rest, down) == [["me", "m*", "is the mass"]]
+
+
+def test_a_piece_in_another_column_under_a_bar_is_no_denominator() -> None:
+    """The reading order puts the piece under the bar in the next column: it is not joined
+    to the line read before it, whatever the bar."""
+    up, down = _text("me", NUMERATOR), _text("m*", Box(120, 106, 128, 112))
+    assert _printed(up, down, other_column=(down,)) == [["me"], ["m*"]]
+
+
+def test_a_bar_whose_middle_is_on_the_line_s_bottom_edge_is_not_inside_it() -> None:
+    """Inside the line means strictly between its top and bottom: a rule whose middle lies
+    exactly on the bottom edge (107) is under the line, as a table's rule is, so the piece
+    under it is a line of its own; 0.25 pt higher it is a fraction bar.
+
+    A rule whose middle is on the line's top edge can have no numerator from the line above
+    it: every piece's letters lie inside the line (`_letter_boxes` is the piece's runs, the
+    line the union of the pieces), so their middles are below that edge and `fraction_bar`
+    refuses it whatever `_denominator` says."""
+    up, down = _text("me", NUMERATOR), _text("m*", Box(120, 108, 128, 114))
+    assert _printed(up, down, bars=(Box(120, 106.75, 131, 107.25),)) == [["me"], ["m*"]]
+    assert _printed(up, down, bars=(Box(120, 106.5, 131, 107),)) == [["me", "m*"]]
+
+
+def test_fraction_inside_counts_at_its_exact_value_at_both_ends() -> None:
+    """The denominator's first letters may start exactly `fraction_inside` (1 pt here)
+    before the bar's left end and end exactly that far past its right end; a quarter point
+    further they may not."""
+    up = _text("me", NUMERATOR)
+    for box, joined in [
+        (Box(119, 106, 127, 112), True),
+        (Box(118.75, 106, 127, 112), False),
+        (Box(125, 106, 132, 112), True),
+        (Box(125, 106, 132.25, 112), False),
+    ]:
+        down = _text("m*", box)
+        assert _printed(up, down) == ([["me", "m*"]] if joined else [["me"], ["m*"]]), box
+
+
+def test_a_denominator_cut_in_two_pieces_reads_its_numerator_once() -> None:
+    """Every piece is read once: "x = a over 12", the denominator extracted as "1" and "2",
+    both starting left of the numerator "a", reads "a" before "1" and never again before
+    "2". (A nested fraction cannot read a piece twice: a numerator is only looked for
+    among the pieces right of a denominator, so it can be found again only by a second
+    denominator left of it under a bar it stands over, which is this shape.)"""
+    lead = _text("x =", Box(100, 100, 118, 112))
+    up = _text("a", Box(140, 99, 150, 105))
+    one, two = _text("1", Box(120, 107.5, 128, 113.5)), _text("2", Box(129, 107.5, 136, 113.5))
+    assert _printed(lead, up, one, two, bars=(Box(120, 106, 150, 106.5),)) == [
+        ["x =", "a", "1", "2"]
+    ]
+
+
+def test_marks_are_neither_numerators_nor_denominators() -> None:
+    """`rows_of` asks `_denominator` only about a text piece read after a printed line that
+    ends in text, and every printed line of more than one element holds only text pieces
+    (a mark either waits as a line of its own or starts one), so `_over` only sees text.
+    Asked directly, a mark is no part of a fraction and nothing fails."""
+    mark = Element(Box(121, 99, 130, 107), graphics=(Drawing("icon", Box(121, 99, 130, 107)),))
+    up, down = _text("me", NUMERATOR), _text("m*", Box(120, 106, 128, 112))
+    settings, bars = LayoutSettings(), Bars.of((UNDER,), 2.5)
+    edges = {id(e): (40.0, 290.0) for e in (mark, up, down)}
+    assert _over(UNDER, up, down, settings, SIZE)
+    assert not _over(UNDER, mark, down, settings, SIZE)
+    assert not _over(UNDER, up, mark, settings, SIZE)
+    assert _denominator([up], down, edges, settings, SIZE, bars)
+    assert not _denominator([mark], down, edges, settings, SIZE, bars)
+    assert not _denominator([up], mark, edges, settings, SIZE, bars)
 
 
 def test_two_words_split_at_a_wide_gap_keep_their_space() -> None:

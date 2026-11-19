@@ -51,6 +51,8 @@ from sci2audio.web.i18n import (
     COOKIE_AGE,
     KEYS_COOKIE,
     LANGUAGES,
+    PLAYER_MAX_SPEED,
+    PLAYER_MIN_SPEED,
     THEME_COOKIE,
     THEMES,
     Strings,
@@ -62,6 +64,7 @@ from sci2audio.web.i18n import (
     known_language,
     known_theme,
     local_path,
+    player_speed_of,
     strings_of,
     theme_of,
 )
@@ -101,7 +104,7 @@ templates = Jinja2Templates(directory=str(files("sci2audio.web") / "templates"))
 State = Annotated[ServerState, state_of]
 
 EDITS_SHOWN = 500  # per category on the page; all of them are in report.md (D-248)
-SPEED_STEP = 0.05
+SPEED_STEP = 0.01  # any speed with two decimals (#651)
 
 
 _TAG = re.compile(r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$")
@@ -1001,11 +1004,7 @@ def _prepare(
         # the voice a job on this text uses (D-469) has its files: making can start (D-468)
         job_voice_installed=voice_pack(chosen_voice) in installed,
         voice_partly=_missing_packs(state, s),
-        speed=saved.speed,
-        speed_text=s("voice.speed_value", value=s.number(saved.speed)),
-        speed_min=MIN_SPEED,
-        speed_max=MAX_SPEED,
-        speed_step=SPEED_STEP,
+        speed=_speed_field(s, saved.speed, MIN_SPEED, MAX_SPEED, "voice.speed_value"),
         letter_paces=[
             {
                 "id": pace,
@@ -1087,13 +1086,28 @@ def _voice_language(voice_id: str) -> str:
     return next((v.language for v in VOICES if v.id == voice_id), "en")
 
 
-# the player's own speeds (#152): the playback rate, separate from the voice's speed
+# the player's own speeds (#152): the playback rate, separate from the voice's speed; the
+# usual ones as buttons, any other with two decimals in the speed field (#651)
 PLAYER_SPEEDS = (0.75, 1.0, 1.25, 1.5, 1.75, 2.0)
 
 
 def _speeds(s: Strings) -> list[tuple[str, str]]:
-    """Each speed's value for the select and its label in the page's language."""
-    return [(f"{v:g}", s("listen.speed_value", value=s.number(v))) for v in PLAYER_SPEEDS]
+    """Each usual speed's value for its button and its label in the page's language."""
+    return [(f"{v:.2f}", s("listen.speed_value", value=s.number(v))) for v in PLAYER_SPEEDS]
+
+
+def _speed_field(s: Strings, value: float, low: float, high: float, unit: str) -> dict[str, Any]:
+    """What a speed field (#651) is drawn with: its value (two decimals, the language's
+    decimal sign), its range, its text for screen readers and its hint."""
+    return {
+        "value": f"{value:.2f}",
+        "shown": s.fixed(value),
+        "text": s(unit, value=s.fixed(value)),
+        "min": f"{low:.2f}",
+        "max": f"{high:.2f}",
+        "step": SPEED_STEP,
+        "hint": s("speed.invalid", min=s.fixed(low), max=s.fixed(high), example=s.fixed(1.07)),
+    }
 
 
 def clock(seconds: float) -> str:
@@ -1168,6 +1182,9 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         view=view,
         voice=_voice_name(view.voice),
         speeds=_speeds(s),
+        speed=_speed_field(
+            s, player_speed_of(request), PLAYER_MIN_SPEED, PLAYER_MAX_SPEED, "listen.speed_value"
+        ),
         resume=None if position is None else _resume(view, position),
         # the stamp goes back with each save of the position (#153, review S1)
         data=data_block({**view.data(found.id), "audiobook": stamp, **marking}),
@@ -1401,11 +1418,7 @@ def settings_page(request: Request, state: State) -> HTMLResponse:
         themes=THEMES,
         announce=announce_of(request),
         output_folder=str(saved.output_folder or state.config.output_folder),
-        speed=saved.speed,
-        speed_text=s("voice.speed_value", value=s.number(saved.speed)),
-        speed_min=MIN_SPEED,
-        speed_max=MAX_SPEED,
-        speed_step=SPEED_STEP,
+        speed=_speed_field(s, saved.speed, MIN_SPEED, MAX_SPEED, "voice.speed_value"),
         warnings=warnings,
     )
 
