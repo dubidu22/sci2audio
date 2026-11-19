@@ -180,7 +180,14 @@ def test_no_two_full_stops_after_an_abbreviation(language: str, printed: str, sa
         ("en", "It holds [1], [2] and [3]. Then", "It holds. Then"),
         ("en", "It holds [1], [2], here.", "It holds, here."),
         ("de", "Es gilt [1], [2] und [3] hier.", "Es gilt hier."),
-        # a list without "and" too
+        # "and" anywhere in the list, or none
+        ("en", "It holds [1] and [2], [3] here.", "It holds here."),
+        (
+            "en",
+            "As shown in [1] and [2], [3], it holds.",
+            "As shown in references 1, 2 and 3, it holds.",
+        ),
+        ("en", "It holds [1] and [2] and [3] here.", "It holds here."),
         ("en", "It holds [1], [2] here.", "It holds here."),
         ("en", "It holds [1],[2],[3] here.", "It holds here."),
         # a needed list is read once over all its brackets

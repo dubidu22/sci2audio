@@ -1252,15 +1252,20 @@ class _Rules:
         self, text: str, roots: list[_Bracket]
     ) -> dict[int, tuple[list[_Bracket], bool]]:
         """The lists of square brackets in this look, each by its first bracket's opening: its
-        later brackets, and whether "and" joins the last one (#257, D-668; #414, D-791).
+        later brackets, and whether "and" joins two of them (#257, D-668; #414, D-791).
 
         A list is a run of two or more square brackets of one kind (whole numbers, lists and
         ranges, or listed keys; no page, no German decimal interval) set off only by "," and
-        maybe a last "and": "[1], [2] and [3]", "[1, 2], [3]", "[MH17], [Fa14] and [Ka20]".
-        A later bracket that is an interval or a label's number, or that a number is glued
-        after, ends the run before it. A run joined on by "or" to a further bracket ("[1], [2]
-        or [3]") is no list, so its brackets read as before (#414). One pass over the square
-        brackets in text order, each gap read once, so a block of n brackets costs O(n)."""
+        "and": "[1], [2] and [3]", "[1, 2], [3]", "[MH17], [Fa14] and [Ka20]", and "[1] and [2],
+        [3]" too (read "references 1 and 2, here" bracket by bracket before).
+        A later bracket that a number is glued after ends the run before it. Whether the
+        brackets are citations at all (no interval, no label's number) is decided at the first
+        one in `_numeric`, as for one bracket: with only "," and "and" between them, a later
+        bracket is an interval only after an interval ("CIs [1, 3], [2, 4]"), and a label word
+        or sign stands only before the first (no counterexample in 8,000 random texts,
+        `plans/b9-mutants/search_414h.py`). A run joined on by "or" to a further bracket
+        ("[1], [2] or [3]") is no list, so its brackets read as before (#414). One pass over the
+        square brackets in text order, each gap read once, so a block of n brackets costs O(n)."""
         squares: list[_Bracket] = []
         stack = list(roots)
         while stack:
@@ -1275,17 +1280,16 @@ class _Rules:
             head, last = squares[first], first
             kind = self._item_kind(text, head)
             joined = False
-            while kind is not None and not joined and last + 1 < len(squares):
+            while kind is not None and last + 1 < len(squares):
                 ahead = squares[last + 1]
                 gap = self.list_gap.fullmatch(text, squares[last].close + 1, ahead.open)
                 if (
                     gap is None
                     or self._item_kind(text, ahead) != kind
                     or _NUMBER_GLUED_AFTER.match(text, ahead.close + 1)
-                    or self._not_citations(text, ahead.open)
                 ):
                     break
-                joined = gap["join"] is not None
+                joined = joined or gap["join"] is not None
                 last += 1
             if last > first and not self.or_after.match(text, squares[last].close + 1):
                 lists[head.open] = (squares[first + 1 : last + 1], joined)
