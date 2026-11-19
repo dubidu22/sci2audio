@@ -16,14 +16,19 @@ headings are lines (D-343).
 
 markdown-it drops the rest of a block nested deeper than its nesting limit without an error,
 so a file that reaches the limit fails instead of losing text (D-351). A file of more lines
-than `MAX_LINES`, or more marks that can start markup than `MAX_MARKS`, fails before it is
-parsed, and the page reader stops at `markup.MAX_ITEMS` pieces of text (D-579).
+than `MAX_LINES`, more marks that can start markup than `MAX_MARKS`, or a block between two
+blank lines longer than `MAX_BLOCK` characters fails before it is parsed (D-579, #329), and
+the page reader stops at `markup.MAX_ITEMS` pieces of text, `markup.MAX_MARKUP` tags and
+`markup.MAX_LINE` characters in one line.
 
 Three things in the file are not read, as markdown-it and its footnote plugin have it: a
 note that no mark cites and everything after a ``<!--`` that is never closed (GitHub and a
 browser drop these too), and all but the last of two notes with one label. The unclosed
-comment is decided here, not left to Python's HTML parser, which reads it differently in
-different patch versions.
+comment is decided here, not left to the HTML parser, as Python's read it differently in
+different patch versions (sci2audio now brings its own copy, #175).
+
+An image's alternative text is its text only: inline HTML tags are left out and a line break
+is a space (#602), as markdown-it-py 4.3 started to keep both.
 """
 
 from __future__ import annotations
@@ -34,8 +39,9 @@ from pathlib import Path
 
 from markdown_it import MarkdownIt
 from markdown_it.common.utils import escapeHtml
+from markdown_it.renderer import RendererHTML
 from markdown_it.token import Token
-from markdown_it.utils import EnvType
+from markdown_it.utils import EnvType, OptionsDict
 from mdit_py_plugins.dollarmath import dollarmath_plugin
 from mdit_py_plugins.footnote import footnote_plugin
 from mdit_py_plugins.front_matter import front_matter_plugin
@@ -59,7 +65,12 @@ MAX_NESTING = 100  # markdown-it's nesting limit (D-351); far below Python's rec
 # (250,000 list items of one emphasis each), where the 64 MB byte limit allowed some 30 GB.
 MAX_LINES = 250_000  # printed lines, blank ones included
 MAX_MARKS = 500_000  # characters in _MARKS: one line of "*a* " costs about 470 times its size
+# characters between two blank lines (#329, D-777): markdown-it costs about 22 times the size
+# of a paragraph (one of 64 MB in short lines took 1.4 GB); 16 blocks at this limit took 595 MB
+MAX_BLOCK = 4_000_000
 _MARKS = "*_`[<$!\\&|~"
+_LINE = re.compile(r"[^\r\n]*(?:\r\n?|\n)?")  # one printed line and its line end
+_BLANK = re.compile(r"[ \t]*(?:\r\n?|\n)?")  # a blank line, as CommonMark has it
 _DATE = re.compile(r"^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?")
 
 
@@ -81,6 +92,11 @@ def read_markdown(data: bytes, name: str) -> Content:
             f"{name}: the Markdown holds too much markup to read (more than {MAX_MARKS:,}"
             " marks such as * _ ` [ <)"
         )
+    if longest_block(decoded.text) > MAX_BLOCK:
+        raise ExtractionError(
+            f"{name}: the Markdown holds a paragraph or block longer than {MAX_BLOCK:,}"
+            " characters (counted between blank lines)"
+        )
     parser = _parser()
     env: EnvType = {}
     too_deep = ExtractionError(f"{name}: the Markdown is nested too deeply to read")
@@ -97,9 +113,10 @@ def read_markdown(data: bytes, name: str) -> Content:
     try:
         reader.read(html)
     except TooMuchText as error:
-        raise ExtractionError(
-            f"{name}: the Markdown is too large to read (more than {error.limit:,} pieces of text)"
-        ) from None
+        message = error.message("Markdown") or (
+            f"the Markdown is too large to read (more than {error.limit:,} pieces of text)"
+        )
+        raise ExtractionError(f"{name}: {message}") from None
     (page,) = resolve_links((reader.page(),), anchors)
     if not page.lines and not page.pictures:
         raise ExtractionError(f"{name}: the file holds no text")
@@ -109,6 +126,22 @@ def read_markdown(data: bytes, name: str) -> Content:
         pages=(page,),
         metadata=_metadata(front),
     )
+
+
+def longest_block(text: str) -> int:
+    """The characters of the longest stretch of `text` between two blank lines (a line of
+    only spaces and tabs is blank), line ends included; a linear scan that copies no line."""
+    longest = block = 0
+    for line in _LINE.finditer(text):
+        start, end = line.span()
+        if start == end:  # the empty match at the end of the text
+            break
+        if _BLANK.fullmatch(text, start, end):
+            block = 0
+        else:
+            block += end - start
+            longest = max(longest, block)
+    return longest
 
 
 # ---- the parser ------------------------------------------------------------------------
@@ -135,6 +168,7 @@ def _parser() -> MarkdownIt:
         "footnote_close": _note_close,
         "footnote_anchor": _nothing,  # the back-link arrow is not in the file
         "html_block": _html_block,
+        "image": _image,
         "math_inline": _maths_inline,
         "math_inline_double": _maths_block,
         "math_block": _maths_block,
@@ -156,6 +190,30 @@ def _html_block(self: object, tokens: Sequence[Token], idx: int, *_: object) -> 
     if content.lstrip().startswith("<!--") and "-->" not in content:
         return ""
     return content
+
+
+def _image(
+    self: RendererHTML, tokens: Sequence[Token], idx: int, options: OptionsDict, env: EnvType
+) -> str:
+    """An image whose alternative text is its text only (#602): markdown-it-py 4.3 keeps
+    inline HTML and line breaks in it, which would reach the spoken figure notice."""
+    token = tokens[idx]
+    token.attrSet("alt", _alt_text(token.children or []))
+    return self.renderToken(tokens, idx, options, env)
+
+
+def _alt_text(tokens: Sequence[Token]) -> str:
+    """The text of an image's description: text and code as typed (escapes and entities
+    already resolved), nested images' text, a space for a line break, no HTML tags."""
+    out: list[str] = []
+    for token in tokens:
+        if token.type in ("text", "code_inline"):
+            out.append(token.content)
+        elif token.type == "image":
+            out.append(_alt_text(token.children or []))
+        elif token.type in ("softbreak", "hardbreak"):
+            out.append(" ")
+    return "".join(out)
 
 
 def _number(token: Token) -> str:
