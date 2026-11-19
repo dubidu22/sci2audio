@@ -260,6 +260,22 @@ def test_a_scanned_page_among_text_pages_is_a_report_warning(tmp_path: Path) -> 
     assert f"- {warning}" in job.files.report_markdown.read_text(encoding="utf-8")
 
 
+def test_the_picture_warning_comes_after_the_unreadable_one_and_before_the_rest(
+    tmp_path: Path,
+) -> None:
+    """The unreadable warning decides whether there is an audiobook, so it is first; the
+    picture warning says what the audiobook lacks, so it comes next, before the warning that
+    the text did not tell its language (D-495)."""
+    source = tmp_path / "glyphs and scan.pdf"
+    source.write_bytes(joined_pdf(glyph_number_pdf(GLYPH_LINES), image_only_pdf()))
+    job = run_script_job(source, JobSettings(), tmp_path / "w")
+    warnings = job.report.warnings
+    assert len(warnings) == 3
+    assert warnings[0].startswith("The text of page 1 cannot be read")
+    assert warnings[1].startswith("Page 2 holds no text, only pictures")
+    assert warnings[2].startswith("sci2audio could not tell from the text")
+
+
 def test_a_pdf_of_text_has_no_picture_pages_key(tmp_path: Path) -> None:
     job = run_script_job(small_pdf(tmp_path), JobSettings(), tmp_path / "w")
     data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
