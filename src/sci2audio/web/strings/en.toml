@@ -474,6 +474,7 @@ interface_local = "Its server listens only on 127.0.0.1, an address that only th
 interface_key = "The link sci2audio shows in the terminal carries a key that is new for each start. Your browser trades it for a cookie; without the key the server serves nothing."
 interface_pages = "Requests from other web pages are refused, and these pages load nothing from the internet: no fonts, scripts or images from elsewhere."
 interface_log = "sci2audio keeps no log of requests, so neither the key nor the names of your files are written to one."
+app_log = "When sci2audio runs as the app (not as `sci2audio ui`), it writes a short start-up log on this computer, in {path}: when it started and stopped, its version, how it shows the interface and, if it could not start, why. It holds no requests, no key and no file names, and nothing sends it anywhere."
 files_title = "Where your files are"
 files_intro = "sci2audio keeps what it makes in these places on this computer:"
 work_label = "Project folders"
@@ -492,6 +493,18 @@ limits = "Your browser and your operating system have features of their own, suc
 licence_title = "Open source"
 licence = "sci2audio is free software under the GNU General Public License, version 3 or later. Its source code is public, so anyone can check what this page says."
 
+[app]  # the app's own window (#215, D-797)
+close_title = "Quit sci2audio?"
+close_making = "An audiobook is being made. Closing sci2audio stops it; the sentences already spoken are kept, and making it again continues where it stopped."
+
+[quit]  # the app without a window (#215, D-797)
+title = "Quit sci2audio"
+intro = "This stops sci2audio on this computer. Start it again from your programs menu when you need it."
+button = "Quit sci2audio"
+making = "An audiobook is being made. Quitting stops it; the sentences already spoken are kept, and making it again continues where it stopped."
+stopped = "sci2audio has stopped. You can close this tab."
+not_here = "This sci2audio stops when you close its window or press Ctrl-C in its terminal."
+
 [nav]  # the rail, the shell of every page (#387, D-663)
 label = "Main"
 wordmark = "sci2audio, Library"
@@ -504,6 +517,7 @@ reading = "Reading and recent"
 settings = "Settings"
 privacy = "Privacy"
 shortcuts = "Keyboard shortcuts"  # opens the list of keys (#394)
+quit = "Quit sci2audio"  # the app without a window only (#215)
 
 [keys]  # the keyboard shortcuts sheet (#394); key names are said by screen readers
 title = "Keyboard shortcuts"

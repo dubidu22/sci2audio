@@ -1127,6 +1127,28 @@ function shortcutsSheet() {
   close.disabled = false;
 }
 
+// ---- quitting the app without a window (#215, D-797) ---------------------------------------
+
+function quitPage() {
+  const button = document.getElementById("quit-now");
+  if (!button) return;
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    try {
+      await send(button.dataset.api, { method: "POST" });
+    } catch (error) {
+      button.disabled = false;
+      say(error.failure || error.message, true);
+      return;
+    }
+    document.getElementById("quit-ask").hidden = true;
+    const done = document.getElementById("quit-done");
+    done.hidden = false;
+    done.focus();
+  });
+  button.disabled = false; // drawn disabled until here (#350, #427)
+}
+
 function focusTarget() {
   if (!location.hash) return;
   const target = document.getElementById(location.hash.slice(1));
@@ -1150,5 +1172,6 @@ document.addEventListener("DOMContentLoaded", () => {
   settingsPage();
   shelf();
   shortcutsSheet();
+  quitPage();
   focusTarget();
 });

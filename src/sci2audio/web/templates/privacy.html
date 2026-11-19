@@ -29,6 +29,9 @@
   <li>{{ t('privacy.interface_key') }}</li>
   <li>{{ t('privacy.interface_pages') }}</li>
   <li>{{ t('privacy.interface_log') }}</li>
+  {%- if launched_as != 'terminal' %}
+  <li id="app-log">{{ t('privacy.app_log', path=app_log) }}</li>
+  {%- endif %}
 </ul>
 
 <h2>{{ t('privacy.files_title') }}</h2>

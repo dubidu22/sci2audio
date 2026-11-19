@@ -23,7 +23,7 @@ from pathlib import Path, PurePath
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from sci2audio.app import load_settings, shown_original
@@ -43,7 +43,7 @@ from sci2audio.voices import (
     voice_pack,
 )
 from sci2audio.web.api import REDIRECTS, plan_hosts
-from sci2audio.web.config import UPLOAD_LIMIT
+from sci2audio.web.config import UPLOAD_LIMIT, app_log_file
 from sci2audio.web.documents import StoredDocument, supported_suffixes
 from sci2audio.web.i18n import (
     ANNOUNCE_COOKIE,
@@ -135,6 +135,7 @@ NAV_ITEMS = {
     "settings.html": "settings",
     "privacy.html": "privacy",
     "job.html": "job",
+    "quit.html": "quit",
 }
 
 
@@ -194,6 +195,7 @@ def _page(
         here=local_path(request.url.path + (f"?{query}" if query else "")),
         theme=theme_of(request),
         keys=keys_of(request),  # the page-wide single keys, on unless switched off (#394)
+        launched_as=state.config.launched_as,  # "browser": the rail's Quit item (#215)
     )
     return templates.TemplateResponse(request, name, context, status_code=status)
 
@@ -1315,6 +1317,7 @@ def privacy(request: Request, state: State) -> HTMLResponse:
         state,
         s,
         "privacy.html",
+        app_log=str(app_log_file()),
         hosts=hosts_shown(plan.files, s),
         folders=[
             ("work", str(state.config.work_root)),
@@ -1323,6 +1326,36 @@ def privacy(request: Request, state: State) -> HTMLResponse:
             ("voice", str(state.config.models_dir)),
         ],
     )
+
+
+# --- quitting the app without a window (#215, D-797) -------------------------------------
+
+
+def _quit_page(request: Request, state: State) -> HTMLResponse:
+    s = strings_of(request)
+    if state.config.launched_as != "browser":  # a terminal or a window stops it already
+        return _not_found(request, state, s, s("quit.not_here"))
+    current = state.board.current  # the running job, if any
+    making = current is not None and current.kind is not JobKind.PREVIEW
+    return _page(request, state, s, "quit.html", making=making)
+
+
+@router.get("/quit", response_class=HTMLResponse)
+def quit_page(request: Request, state: State) -> HTMLResponse:
+    """Asks before stopping sci2audio, and says when an audiobook is being made."""
+    return _quit_page(request, state)
+
+
+@router.post("/quit")
+def quit_now(request: Request, state: State) -> Response:
+    """Stops sci2audio: the launcher's watch sees `quit` and ends the server once this
+    answer is sent. The page's script sends it; the security checks (cookie and Origin)
+    have run before this."""
+    if state.config.launched_as != "browser":
+        s = strings_of(request)
+        return _not_found(request, state, s, s("quit.not_here"))
+    state.quit.set()
+    return JSONResponse({"stopping": True}, 202)
 
 
 # --- the language switch (D-288) -------------------------------------------------------

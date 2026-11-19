@@ -694,6 +694,7 @@ def _pages(ids: Ids) -> list[str]:
         f"/jobs/{ids.voice_job}",
         f"/documents/{ids.paper}/listen",
         f"/documents/{ids.note}/listen",  # nothing to play
+        "/quit",  # the scan's server runs as `sci2audio ui`: the not-found page (#215)
     ]
 
 
@@ -835,6 +836,7 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     call("POST", f"{api}/jobs/{ids.audio_job}/cancel", 409, headers=same)  # it has ended
     call("POST", f"{api}/voices/preview", 202, data={"text": "A preview."}, headers=same)
     call("DELETE", f"{api}/documents/{ids.paper}/chunks", 204, headers=same)
+    call("POST", "/quit", 404, headers=same)  # only the browser launch has Quit (#215)
     # removing a document (#120): a throwaway one of its own, never the paper or the note the
     # walk still needs; other bytes than both, since the id is their hash
     from web_helpers import pdf_bytes

@@ -87,6 +87,10 @@ class ServerState:
     clock: Callable[[], float] = time.monotonic  # the markers' undo store; tests pass a fake
     markers: MarkerBook = field(init=False)  # every write of a markers file (#474)
     figures: Figures = field(default_factory=Figures)  # the player's figures (#293)
+    # the app without a window (launched as "browser", #215): the rail's Quit item sets `quit`;
+    # `seen` is when the server last answered an authorised request (time.monotonic)
+    quit: threading.Event = field(default_factory=threading.Event)
+    seen: float = field(default_factory=time.monotonic)
 
     def __post_init__(self) -> None:
         if self.config.legacy_root is not None:

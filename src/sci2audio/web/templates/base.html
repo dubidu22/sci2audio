@@ -57,6 +57,9 @@
     <ul class="rail-foot">
       <li><a href="/settings"{% if nav == 'settings' %} aria-current="page"{% endif %}>{{ icon('settings') }}<span>{{ t('nav.settings') }}</span></a></li>
       <li><a href="/privacy"{% if nav == 'privacy' %} aria-current="page"{% endif %}>{{ icon('privacy') }}<span>{{ t('nav.privacy') }}</span></a></li>
+      {%- if launched_as == 'browser' %}
+      <li><a href="/quit" id="quit"{% if nav == 'quit' %} aria-current="page"{% endif %}>{{ icon('x') }}<span>{{ t('nav.quit') }}</span></a></li>
+      {%- endif %}
       {#- drawn disabled: app.js wires it (#350, #427) #}
       <li><button type="button" id="keys-open" aria-haspopup="dialog" disabled>{{ icon('keyboard') }}<span>{{ t('nav.shortcuts') }}</span>{% if keys is not sameas false %}<kbd aria-hidden="true">?</kbd>{% endif %}</button></li>
     </ul>

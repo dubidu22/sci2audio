@@ -258,6 +258,7 @@ def test_every_route_of_the_app_is_listed(tmp_path: Path) -> None:
         "/voice",
         "/privacy",
         "/settings",
+        "/quit",  # a page only when launched as "browser" (#215)
     }
     assert len(routes) >= 25  # every API route too (29 on 13 Nov 2026)
 

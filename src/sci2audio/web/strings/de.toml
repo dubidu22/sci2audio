@@ -479,6 +479,7 @@ interface_local = "Ihr Server lauscht nur unter 127.0.0.1, einer Adresse, die nu
 interface_key = "Der Link, den sci2audio im Terminal anzeigt, enthält einen Schlüssel, der bei jedem Start neu ist. Ihr Browser tauscht ihn gegen ein Cookie; ohne den Schlüssel liefert der Server nichts aus."
 interface_pages = "Anfragen von anderen Webseiten werden abgewiesen, und diese Seiten laden nichts aus dem Internet: keine Schriften, Skripte oder Bilder von anderswo."
 interface_log = "sci2audio führt kein Protokoll der Anfragen, also landen weder der Schlüssel noch die Namen Ihrer Dateien in einem."
+app_log = "Läuft sci2audio als App (nicht als `sci2audio ui`), schreibt es ein kurzes Startprotokoll auf diesem Computer, in {path}: wann es startete und endete, seine Version, wie es die Oberfläche zeigt und, falls es nicht starten konnte, warum. Es enthält keine Anfragen, keinen Schlüssel und keine Dateinamen, und nichts schickt es irgendwohin."
 files_title = "Wo Ihre Dateien liegen"
 files_intro = "sci2audio legt, was es erstellt, an diesen Orten auf diesem Computer ab:"
 work_label = "Projektordner"
@@ -497,6 +498,18 @@ limits = "Ihr Browser und Ihr Betriebssystem haben eigene Funktionen, etwa Erwei
 licence_title = "Freie Software"
 licence = "sci2audio ist freie Software unter der GNU General Public License, Version 3 oder später. Sein Quellcode ist öffentlich, sodass jeder prüfen kann, was diese Seite sagt."
 
+[app]  # das eigene Fenster der App (#215, D-797)
+close_title = "sci2audio beenden?"
+close_making = "Gerade entsteht ein Hörbuch. Schließen beendet sci2audio und hält es an; die schon gesprochenen Sätze bleiben erhalten, und ein neuer Start macht dort weiter."
+
+[quit]  # die App ohne Fenster (#215, D-797)
+title = "sci2audio beenden"
+intro = "Damit wird sci2audio auf diesem Computer beendet. Starten Sie es wieder über das Programmmenü, wenn Sie es brauchen."
+button = "sci2audio beenden"
+making = "Gerade entsteht ein Hörbuch. Beenden hält es an; die schon gesprochenen Sätze bleiben erhalten, und ein neuer Start macht dort weiter."
+stopped = "sci2audio ist beendet. Sie können diesen Tab schließen."
+not_here = "Dieses sci2audio endet, wenn Sie sein Fenster schließen oder in seinem Terminal Strg-C drücken."
+
 [nav]  # die Leiste, der Rahmen jeder Seite (#387, D-663)
 label = "Hauptnavigation"
 wordmark = "sci2audio, Bibliothek"
@@ -509,6 +522,7 @@ reading = "Gerade und zuletzt"
 settings = "Einstellungen"
 privacy = "Datenschutz"
 shortcuts = "Tastenkürzel"  # öffnet die Liste der Tasten (#394)
+quit = "sci2audio beenden"  # nur in der App ohne Fenster (#215)
 
 [keys]  # die Liste der Tastenkürzel (#394); Screenreader sagen die Tastennamen
 title = "Tastenkürzel"

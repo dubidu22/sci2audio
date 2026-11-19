@@ -76,7 +76,8 @@ jobs:
       # Only the app's own run-time dependencies are checked, not the dev tools.
       # espeakng-loader states no licence in its package metadata; it was checked by hand
       # (loader MIT, bundled espeak-ng GPL-3.0-or-later) and is listed in THIRD_PARTY_LICENSES.md.
-      - run: uv sync --locked --no-dev
+      # with the app window's extra (#215), as the installers bundle it
+      - run: uv sync --locked --no-dev --extra window
       - name: Refuse AGPL, non-commercial and unknown licences
         run: >
           uv run --no-sync --with pip-licenses pip-licenses
