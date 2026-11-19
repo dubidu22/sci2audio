@@ -10,9 +10,11 @@ never a traceback or a hang (D-315).
 
 from __future__ import annotations
 
+import re
 import time
 import tracemalloc
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -437,20 +439,39 @@ def test_white_space_between_inline_elements_is_not_counted(
 @pytest.mark.parametrize(
     "body",
     [
-        '<p>\n  <img src="x.png" alt=""/>\n  Some text</p>',
+        '<p><img src="x.png" alt=""/> Some text</p>',
+        '<p>\n  <img src="x.png" alt=""/>\n  Some text</p>',  # pretty-printed (#328)
         '<p><span> </span><img src="x.png" alt=""/>Text</p>',
+        '<p>\t<a id="q"/><img src="x.png" alt=""/>Text</p>',
     ],
 )
-def test_a_picture_after_white_space_in_a_line_still_follows_that_line(body: str) -> None:
-    """White space that is folded away still starts the line, as before the budget, so the
-    picture is placed after it (whether that is right is #328)."""
+def test_white_space_folded_away_does_not_start_a_line(body: str) -> None:
+    """#328: a picture after white space that is folded away (D-306) is placed before the
+    line, as a browser shows it, however the file is indented."""
+    assert read(make_epub(body)).pages[0].order == ("p1-i1", "p1-l1")
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        '<p>Some text <img src="x.png" alt=""/></p>',
+        '<p>Some <b>text</b>\n  <img src="x.png" alt=""/></p>',
+        '<pre>  <img src="x.png" alt=""/>code</pre>',  # kept white space in <pre>
+    ],
+)
+def test_a_picture_after_kept_text_still_follows_its_line(body: str) -> None:
     assert read(make_epub(body)).pages[0].order == ("p1-l1", "p1-i1")
 
 
-def test_an_anchor_before_such_a_picture_still_names_the_line() -> None:
-    content = read(make_epub('<span><b><a href="#q">\t<a id="q"/><img src="x.png" alt=""/>\n d a'))
+@pytest.mark.parametrize("space", ["", " ", "\n  ", "\t\n"])
+def test_an_anchor_before_a_picture_names_it_however_the_file_is_indented(space: str) -> None:
+    """#328: the anchor before the picture names the picture in every indentation, so a link
+    to it points at the same place."""
+    body = f'<span><b><a href="#q">{space}<a id="q"/><img src="x.png" alt=""/>\n d a'
+    content = read(make_epub(body))
     line, index = run_of(content, "d a")
-    assert "link:p1-l1" in line.runs[index].tags
+    assert "link:p1-i1" in line.runs[index].tags
+    assert content.pages[0].order == ("p1-i1", "p1-l1")
 
 
 @pytest.mark.parametrize(
@@ -504,6 +525,258 @@ def test_a_book_of_more_items_than_the_limit_fails() -> None:
 
 def test_the_item_limit_is_the_decided_one() -> None:
     assert markup_module.MAX_ITEMS == 1_000_000  # D-579
+
+
+# ---- the markup and line limits (#329, D-777) ---------------------------------------------
+
+MARKUP_MESSAGE = (
+    "book.epub: the EPUB holds too much markup to read (more than {:,} tags, comments and"
+    " declarations)"
+)
+LINE_MESSAGE = "book.epub: the EPUB holds a paragraph longer than {:,} characters"
+TAG_MESSAGE = "book.epub: the EPUB holds a tag longer than {:,} characters"
+
+
+def markup_of(text: str) -> int:
+    """The markup `PageReader` counts for `text`."""
+    reader = markup_module.PageReader(1, "c1.xhtml", markup_module.Anchors())
+    reader.read(text)
+    return reader.budget.markup
+
+
+WRAPPER = markup_of(xhtml(""))  # the made-up chapter's own html, head and body tags
+LONGEST_WRAPPER_TAG = max(map(len, re.findall(r"<[^>]*>", xhtml(""))))
+
+
+@pytest.mark.parametrize(
+    ("unit", "count"),
+    [
+        pytest.param("<p></p>", 1, id="element"),  # its end tag is paid for by the start
+        pytest.param("<br>", 1, id="void"),
+        pytest.param("<br/>", 1, id="self-closed void"),
+        pytest.param("<span/>", 1, id="self-closed"),
+        pytest.param("<b></b>", 1, id="inline"),
+        pytest.param("</p>", 1, id="stray end tag"),
+        pytest.param("<!---->", 1, id="comment"),
+        pytest.param("<!DOCTYPE x>", 1, id="declaration"),
+        pytest.param("<?x?>", 1, id="processing instruction"),
+        pytest.param("<![CDATA[]]>", 1, id="CDATA"),
+        pytest.param("<script></script>", 1, id="skipped element"),
+        pytest.param("   \n\t", 0, id="white space"),
+        pytest.param("text", 0, id="text"),
+    ],
+)
+def test_each_tag_comment_and_declaration_is_counted_once(unit: str, count: int) -> None:
+    assert markup_of(unit * 10) == 10 * count
+
+
+@pytest.mark.parametrize("unit", ["<p></p>", "<br>", "</p>", "<!---->", "<?x?>"])
+def test_markup_past_the_limit_fails(monkeypatch: pytest.MonkeyPatch, unit: str) -> None:
+    """Empty elements cost time but no item: 64 MB of "<p></p>" took 105 s (#329)."""
+    monkeypatch.setattr(markup_module, "MAX_MARKUP", WRAPPER + 1000)
+    assert texts(read(make_epub("<p>a</p>" + unit * 999)).pages[0]) == ["a"]
+    assert outcome(make_epub("<p>a</p>" + unit * 1000), "book.epub") == (
+        MARKUP_MESSAGE.format(WRAPPER + 1000)
+    )
+
+
+def test_markup_counts_across_the_whole_book(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(markup_module, "MAX_MARKUP", 2 * WRAPPER + 1000)
+    assert outcome(make_epub("<br>" * 500, "<br>" * 500), "book.epub") != (
+        MARKUP_MESSAGE.format(2 * WRAPPER + 1000)
+    )
+    assert outcome(make_epub("<br>" * 500, "<br>" * 501), "book.epub") == (
+        MARKUP_MESSAGE.format(2 * WRAPPER + 1000)
+    )
+
+
+def test_reading_stops_at_the_markup_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The reader raises at the first tag past the limit, so the rest of the file is not
+    parsed: a chapter of 1,000,000 empty elements fails about as fast as one of 2,000."""
+    monkeypatch.setattr(markup_module, "MAX_MARKUP", 1000)
+
+    def fails(text: str) -> float:
+        reader = markup_module.PageReader(1, "c1.xhtml", markup_module.Anchors())
+        started = time.process_time()
+        with pytest.raises(markup_module.TooMuchText) as raised:
+            reader.read(text)
+        assert (raised.value.kind, reader.budget.markup) == ("markup", 1001)
+        return time.process_time() - started
+
+    small = min(fails("<p></p>" * 2000) for _ in range(3))
+    large = min(fails("<p></p>" * 1_000_000) for _ in range(3))
+    assert large < 0.5 + 20 * small  # reading on to the end takes about 10 s
+
+
+@pytest.mark.parametrize(
+    "unit",
+    [
+        pytest.param("<li></li>", id="entries"),
+        pytest.param("<br>", id="start tags"),
+        pytest.param("</p>", id="end tags"),
+        pytest.param("<!---->", id="comments"),
+    ],
+)
+def test_the_navigation_document_counts_its_markup_too(
+    monkeypatch: pytest.MonkeyPatch, unit: str
+) -> None:
+    """A table of contents of empty entries is bounded as the chapters are; past the limit
+    the book reads without an outline (D-311), never with an error."""
+    entries = '<li><a href="c1.xhtml">One</a></li>'
+    reader = epub_module._NavReader("nav.xhtml")
+    reader.feed(nav(entries + unit * 100))
+    reader.close()
+    monkeypatch.setattr(markup_module, "MAX_MARKUP", reader.budget.markup)  # 100 units: at it
+    assert read(make_epub("<p>a</p>", nav_entries=entries + unit * 100)).outline
+    content = read(make_epub("<p>a</p>", nav_entries=entries + unit * 101))
+    assert content.outline == ()
+    assert texts(content.pages[0]) == ["a"]
+
+
+def test_a_line_past_the_line_limit_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """One paragraph costs about 16 times its size: one of 64 MB took 1 GB (#329)."""
+    monkeypatch.setattr(markup_module, "MAX_LINE", 1000)
+    assert texts(read(make_epub("<p>" + "a" * 1000 + "</p><p>" + "b" * 1000)).pages[0]) == [
+        "a" * 1000,
+        "b" * 1000,
+    ]
+    assert outcome(make_epub("<p>" + "a" * 1001), "book.epub") == LINE_MESSAGE.format(1000)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param("<p>" + "a" * 500 + "<b>" + "b" * 501 + "</b></p>", id="pieces add up"),
+        pytest.param("<p>" + "a b " * 250 + "c</p>", id="white space inside text counts"),
+        pytest.param("<p>a<br/>" + "b" * 1001 + "</p>", id="after a line break"),
+        pytest.param(
+            "<p>" + "a" * 500 + "<b>" + " " * 250 + "b" + " " * 250 + "</b></p>",
+            id="white space around text counts",
+        ),
+    ],
+)
+def test_the_line_limit_counts_the_text_as_stored(
+    monkeypatch: pytest.MonkeyPatch, body: str
+) -> None:
+    monkeypatch.setattr(markup_module, "MAX_LINE", 1000)
+    assert outcome(make_epub(body), "book.epub") == LINE_MESSAGE.format(1000)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param("<p>" + "a" * 999 + "<i> </i>" * 1000 + "</p>", id="folded white space"),
+        pytest.param("<pre>" + ("a" * 999 + "\n") * 3 + "</pre>", id="lines of pre"),
+        pytest.param("<p>" + "a" * 1000 + "</p>" * 1 + "<p>" + "b" * 1000, id="two lines"),
+    ],
+)
+def test_the_line_limit_is_per_line(monkeypatch: pytest.MonkeyPatch, body: str) -> None:
+    monkeypatch.setattr(markup_module, "MAX_LINE", 1000)
+    assert isinstance(outcome(make_epub(body), "book.epub"), Content)
+
+
+def test_a_paragraph_past_the_real_line_limit_fails_small() -> None:
+    """At the decided limit: an 8 MB paragraph is refused before its runs are built (with
+    the limit lifted it peaks at about 128 MB under tracemalloc)."""
+    data = make_epub("<p>" + "word " * (8 * 1024 * 1024 // 5) + "</p>")
+    tracemalloc.start()
+    try:
+        assert outcome(data, "book.epub") == LINE_MESSAGE.format(4_000_000)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 64 * 1024 * 1024
+
+
+def test_an_svg_title_is_bounded_as_a_line_is(monkeypatch: pytest.MonkeyPatch) -> None:
+    """#329 review F3: an SVG's title becomes its pictures' alternative text; a 60 MB one
+    took 935 MB and reached layout whole."""
+    monkeypatch.setattr(markup_module, "MAX_LINE", 1000)
+
+    def svg(title: str) -> bytes:
+        return make_epub(f'<svg><title>{title}</title><image href="a.png"/></svg>')
+
+    title = "a" * 593 + "<b>" + "b" * 400 + "</b>"  # 1,000 characters: a title is raw text
+    (picture,) = read(svg(title)).pages[0].pictures
+    assert picture.alt == title
+    assert outcome(svg("a" + title), "book.epub") == LINE_MESSAGE.format(1000)
+
+
+def tag(name: str, attributes: int, end: bool = False) -> str:
+    """A start (or end) tag of `name` with `attributes` one-letter attributes; it holds
+    len(name) + 2 * attributes + 2 characters (3 for an end tag)."""
+    return f"<{'/' if end else ''}{name}" + " a" * attributes + ">"
+
+
+@pytest.mark.parametrize(
+    ("make", "length"),
+    [
+        pytest.param(lambda n: tag("p", n) + "x</p>", lambda n: 2 * n + 3, id="start tag"),
+        pytest.param(lambda n: "<p>x" + tag("p", n, end=True), lambda n: 2 * n + 4, id="end tag"),
+        pytest.param(
+            lambda n: '<p a=">"' + " a" * n + ">x</p>", lambda n: 2 * n + 9, id="quoted >"
+        ),
+        pytest.param(lambda n: "<br" + " a" * n + "/>", lambda n: 2 * n + 5, id="self-closed"),
+    ],
+)
+def test_a_tag_past_the_tag_limit_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    make: Callable[[int], str],
+    length: Callable[[int], int],
+) -> None:
+    """#329 review F1: the parser's tag regex cost about 150 times a tag's size (8 MB of
+    attributes in one tag took 1.3 GB) before any other limit saw it."""
+    n = 500  # a tag of about 1,000 characters
+    monkeypatch.setattr(markup_module, "MAX_TAG", length(n))  # exactly at the limit: reads
+    assert isinstance(outcome(make_epub(make(n)), "book.epub"), Content)
+    monkeypatch.setattr(markup_module, "MAX_TAG", length(n) - 1)
+    assert outcome(make_epub(make(n)), "book.epub") == TAG_MESSAGE.format(length(n) - 1)
+
+
+def test_a_tag_in_the_navigation_document_is_bounded_too(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(markup_module, "MAX_TAG", 1000)
+    entry = '<li><a href="c1.xhtml"' + " a" * 480 + ">One</a></li>"
+    assert read(make_epub("<p>a</p>", nav_entries=entry)).outline
+    content = read(make_epub("<p>a</p>", nav_entries=entry.replace(" a" * 480, " a" * 500)))
+    assert content.outline == ()
+    assert texts(content.pages[0]) == ["a"]
+
+
+def test_a_navigation_label_is_bounded_as_a_line_is(monkeypatch: pytest.MonkeyPatch) -> None:
+    """#329 review F2: one 60 MB label took 935 MB; past the limit the book has no outline
+    and its pages still read."""
+    monkeypatch.setattr(markup_module, "MAX_LINE", 1000)
+
+    def book(label: str) -> Content:
+        return read(make_epub("<p>a</p>", nav_entries=f'<li><a href="c1.xhtml">{label}</a></li>'))
+
+    assert book("a" * 500 + "<b>" + "b" * 500 + "</b>").outline
+    two = '<li><a href="c1.xhtml">' + "a" * 600 + '</a></li><li><a href="c1.xhtml">' + "b" * 600
+    assert len(read(make_epub("<p>a</p>", nav_entries=two + "</a></li>")).outline) == 2  # each
+    content = book("a" * 500 + "<b>" + "b" * 501 + "</b>")
+    assert content.outline == ()
+    assert texts(content.pages[0]) == ["a"]
+
+
+def test_a_tag_past_the_real_tag_limit_fails_small() -> None:
+    """At the decided limit: one 4 MB tag is refused after the check's own bounded match
+    (176 MB; with the check lifted, the regex over the whole tag peaks at 653 MB)."""
+    data = make_epub(tag("p", 2_000_000) + "x</p>")
+    tracemalloc.start()
+    try:
+        assert outcome(data, "book.epub") == TAG_MESSAGE.format(1_000_000)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 256 * 1024 * 1024
+
+
+def test_the_markup_and_line_limits_are_the_decided_ones() -> None:
+    assert markup_module.MAX_MARKUP == 2_000_000  # D-777
+    assert markup_module.MAX_LINE == 4_000_000  # D-777
+    assert markup_module.MAX_TAG == 1_000_000  # D-783
 
 
 # ---- outline -------------------------------------------------------------------------------
@@ -921,6 +1194,54 @@ def test_any_markup_gives_folded_lines_with_unique_ids(body: str) -> None:
     ids = [item.id for item in (*page.lines, *page.pictures)]
     assert sorted(page.order) == sorted(ids)
     assert len(set(ids)) == len(ids)
+
+
+@settings(deadline=None)
+@given(st.lists(pieces, max_size=40).map("".join))
+def test_with_low_limits_any_markup_reads_or_names_a_limit(body: str) -> None:
+    """Items, markup and line length each stop a book with their own message (#329)."""
+    limits = (
+        ITEMS_MESSAGE.format(8),
+        MARKUP_MESSAGE.format(WRAPPER + 6),
+        LINE_MESSAGE.format(5),
+        TAG_MESSAGE.format(LONGEST_WRAPPER_TAG + 3),
+    )
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(markup_module, "MAX_ITEMS", 8)
+        patch.setattr(markup_module, "MAX_MARKUP", WRAPPER + 6)
+        patch.setattr(markup_module, "MAX_LINE", 5)
+        patch.setattr(markup_module, "MAX_TAG", LONGEST_WRAPPER_TAG + 3)
+        result = outcome(make_epub(body), "book.epub")
+    assert isinstance(result, Content) or result in limits, result
+
+
+INDENTS = st.text(alphabet=" \t\n\r\f", min_size=1, max_size=3)
+solid = st.one_of(  # pieces without white space, so white space can go between any two
+    st.sampled_from(["ab", "é", "c"]),
+    st.sampled_from([tag for tag in TAGS if tag != "svg"]).map(lambda tag: f"<{tag}>"),
+    st.sampled_from(TAGS).map(lambda tag: f"</{tag}>"),
+    st.sampled_from(TAGS).map(lambda tag: f"<{tag}/>"),
+    st.sampled_from(['<p id="x">', '<a id="y"/>', '<img src="a.png" alt=""/>', "<img/>"]),
+)
+
+
+@settings(deadline=None)
+@given(st.lists(st.tuples(solid, st.one_of(st.just(""), INDENTS)), max_size=30))
+def test_indenting_the_markup_never_moves_a_picture_or_an_anchor(
+    pieces_and_spaces: list[tuple[str, str]],
+) -> None:
+    """#328: white space between elements that is folded away does not change `Page.order`
+    or where an id points, as a browser shows the indented file the same way."""
+
+    def placed(text: str) -> tuple[tuple[str, ...], dict[tuple[str, str], str]]:
+        anchors = markup_module.Anchors()
+        reader = markup_module.PageReader(1, "c1.xhtml", anchors)
+        reader.read(text)
+        return reader.page().order, anchors.items
+
+    plain = "".join(piece for piece, _ in pieces_and_spaces)
+    indented = "".join(piece + space for piece, space in pieces_and_spaces)
+    assert placed(indented) == placed(plain)
 
 
 @settings(deadline=None)

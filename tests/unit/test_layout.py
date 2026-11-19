@@ -29,7 +29,7 @@ from sci2audio.core import (
 )
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.layout.build import _in_page_order, columns_per_page
-from sci2audio.layout.furniture import _is_stamp, edges
+from sci2audio.layout.furniture import _is_stamp, _pages_near, _repeated, edges
 from sci2audio.layout.split import kept
 
 LEFT, RIGHT, GUTTER = 70.0, 526.0, 16.0
@@ -188,6 +188,107 @@ def test_a_page_with_text_in_one_column_follows_the_document() -> None:
     end = column("end-", LEFT, MIDDLE - GUTTER / 2, 100, 8)
     doc = build_document(content(interleaved(left, right), end))
     assert columns_of(doc) == [2, 2]
+
+
+def diagram_page(caption: str | None, body: list[TextLine]) -> Content:
+    """A diagram in a frame from y 60 to 300 whose labels stand in three columns (as on
+    PrivacyScore p3, #238), its caption 10 pt under the frame if any, then the body from
+    y 340."""
+    labels = [  # set smaller than the body; two of three rows fill their column
+        line(
+            f"label {col}-{row} of the diagram", x0, 70 + 14 * row, x0 + (130 if row % 3 else 90), 8
+        )
+        for row in range(12)
+        for col, x0 in enumerate((LEFT + 6, 233, 386))
+    ]
+    under = [line(caption, LEFT, 310, 250)] if caption else []
+    return content(
+        [*labels, *under, *body], drawings=(Drawing("frame", Box(LEFT, 60, RIGHT, 300)),)
+    )
+
+
+def test_text_inside_a_captioned_figure_is_not_counted_as_columns() -> None:
+    """#238: the labels of a framed, captioned diagram are read inside its figure, and the
+    page counts the columns of its body only: two under the diagram, or one. Without a
+    caption no figure holds the labels, and their three columns count."""
+    left, right = two_columns("body", 340, 25)
+    two = build_document(diagram_page("Figure 1: The diagram.", interleaved(left, right)))
+    assert columns_of(two) == [2]
+    caption = next(b for b in two.blocks if b.kind is BlockKind.CAPTION)
+    assert caption.describes is not None
+    assert "label 0-0 of the diagram" in two.blocks[caption.describes].text
+    one = build_document(diagram_page("Figure 1: The diagram.", column("b", LEFT, RIGHT, 340, 25)))
+    assert columns_of(one) == [1]
+    uncaptioned = build_document(diagram_page(None, column("b", LEFT, RIGHT, 340, 25)))
+    assert columns_of(uncaptioned) == [3]
+    # nor do the labels count for the share of the page's text a band of columns must hold:
+    # six rows of two columns, a sixth of the labels' letters, still make the page two
+    left, right = two_columns("body", 340, 6)
+    short = build_document(diagram_page("Figure 1: The diagram.", interleaved(left, right)))
+    assert columns_of(short) == [2]
+
+
+def framed_in_a_column(top: int, cells: bool) -> Content:
+    """`top` lines of text across the page, then a framed diagram in the left column (12
+    labels of 8 pt, its caption and two lines under it) and text beside it: two short
+    columns of running text, or (`cells`) a table's cells, most of whose letters stand in
+    lines that leave white."""
+    lx1, rx0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    opening = [
+        line(
+            f"running text across the page, line {k} of the opening part", LEFT, 100 + 14 * k, RIGHT
+        )
+        for k in range(top)
+    ]
+    y = 100 + 14 * top + 20
+    frame = Box(LEFT, y, lx1, y + 178)
+    labels = [
+        line(f"label {k} of the diagram, set long", LEFT + 4, y + 5 + 14 * k, lx1 - 4, 8)
+        for k in range(12)
+    ]
+    caption = line("Figure 1: The diagram.", LEFT, frame.y1 + 8, lx1)
+    if cells:
+        under = [
+            line(f"a short cell {k} of the table here", LEFT, frame.y1 + 30 + 14 * k, LEFT + 90)
+            for k in range(4)
+        ]
+        beside = [
+            line(f"a short cell {k} of the table there", rx0, y + 14 * k, rx0 + 110)
+            if k % 3
+            else line(f"x{k}", rx0, y + 14 * k, RIGHT)
+            for k in range(10)
+        ]
+    else:
+        under = column("left-", LEFT, lx1, frame.y1 + 30, 2)
+        beside = column("right-", rx0, RIGHT, y, 8)
+    lines = [*opening, *labels, caption, *under, *beside]
+    return content(lines, drawings=(Drawing("frame", frame),))
+
+
+def test_a_captioned_figure_s_labels_count_neither_for_the_share_nor_for_the_fill() -> None:
+    """#238, each half of a band's count on its own: beside a framed diagram in the left
+    column, two short columns of text hold far less than a fifth of the page's text (with
+    the labels' letters they would hold more); and table cells beside it hold enough text
+    but leave white (the labels would fill their column). One column both times."""
+    assert columns_per_page(framed_in_a_column(20, cells=False)) == [1]
+    assert columns_per_page(framed_in_a_column(6, cells=True)) == [1]
+
+
+def test_a_captioned_table_s_cells_still_count_as_columns_if_they_fill_them() -> None:
+    """#238 leaves out the text of figures only: a table's cells are judged as before, by
+    the share of letters in lines that fill their column, so cells set like the diagram's
+    labels, under a table's caption, make three columns."""
+    body = column("b", LEFT, RIGHT, 340, 25)
+    assert columns_per_page(diagram_page("Table 1: The results.", body)) == [3]
+
+
+def test_the_figures_whose_text_is_not_counted_are_found_with_the_settings_given() -> None:
+    """The figures are found with the settings passed in: with `caption_reach` at 1 em the
+    caption 10 pt under the frame names nothing, and the labels' columns count."""
+    body = column("b", LEFT, RIGHT, 340, 25)
+    page = diagram_page("Figure 1: The diagram.", body)
+    assert columns_per_page(page) == [1]
+    assert columns_per_page(page, LayoutSettings(caption_reach=1.0)) == [3]
 
 
 def test_items_without_a_position_follow_in_stored_order() -> None:
@@ -423,6 +524,204 @@ def test_the_bottom_band_stays_the_paper_s_in_a_small_type_area() -> None:
         for n in range(1, 4)
     ]
     assert roles(build_document(content(*pages))) == []
+
+
+# Heads set smaller than the body (#156): the shape on two pages is not enough. Lines apart
+# from the body that repeat their shape at one height on most pages are heads (coverage);
+# in a short document, one apart from the body repeating word for word on half the pages
+# is one too; a caption label never is.
+
+SMALL = 9.0  # points: 0.9 of the body, below `small` (0.95)
+
+
+def small_header_page(number: int, below: float) -> list:
+    """A page whose table goes on from the page before: a small header at y 40, its first
+    row `below` points under it, the rows set like body text."""
+    header = line("Model Accuracy F1", LEFT, 40, 300, size=SMALL)
+    return [header, *column(f"t{number}-", LEFT, 300, 40 + SMALL + below, 30)]
+
+
+def test_a_small_continued_table_header_on_two_pages_is_not_a_running_head() -> None:
+    """#156, first case: set at 0.9 of the body on 2 of 6 pages, its first row 2 pt below."""
+    pages = [page_with_head(n, None) for n in range(1, 7)]
+    for n in (2, 3):
+        pages[n - 1] = small_header_page(n, below=2)
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert texts(doc).count("Model Accuracy F1") == 2
+
+
+def test_small_algorithm_captions_at_the_top_of_two_pages_are_not_running_heads() -> None:
+    """#156, second case: "Algorithm 1" and "Algorithm 2" at 0.9 of the body, apart from the
+    text, on two pages; on pages 3 and 4 their numbers even follow the page's."""
+    for numbers in ((3, 5), (3, 4)):
+        heads = dict(zip(numbers, ("Algorithm 1", "Algorithm 2"), strict=True))
+        pages = [page_with_head(n, heads.get(n), y=60, size=SMALL) for n in range(1, 7)]
+        doc = build_document(content(*pages))
+        assert texts(doc, BlockKind.FURNITURE) == []
+        assert {"Algorithm 1", "Algorithm 2"} <= set(texts(doc))
+
+
+def test_small_heads_that_alternate_by_page_are_running_heads_where_one_is_close() -> None:
+    """Author on even pages, title on odd ones, at 0.9 of the body on 6 of 7 pages; on page
+    5 the text starts right under the head: it is still one, the other pages lend it theirs
+    (coverage, as PrivacyScore p3 to p13)."""
+    heads = {n: "A. Author and B. Author" if n % 2 == 0 else "A Title" for n in range(2, 8)}
+    pages = [page_with_head(n, heads.get(n), size=SMALL) for n in range(1, 8)]
+    pages[4] = [line(heads[5], LEFT, 40, 300, size=SMALL), *column("p5-", LEFT, RIGHT, 51, 30)]
+    doc = build_document(content(*pages))
+    assert head_roles(doc) == [heads[n] for n in range(2, 8)]
+
+
+def test_a_small_continued_table_header_on_most_pages_close_to_its_rows_is_text() -> None:
+    """Only lines apart from the body lend their pages: a long table's small header on 4 of 6
+    pages, its rows 2 pt below, is not on most pages by that count."""
+    pages = [small_header_page(n, 2) if n <= 4 else page_with_head(n, None) for n in range(1, 7)]
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert texts(doc).count("Model Accuracy F1") == 4
+
+
+def test_a_small_header_below_a_small_head_does_not_borrow_its_pages() -> None:
+    """Coverage counts per height: a small head on 6 of 6 pages at y 40 and, apart from the
+    text, a small table header at y 62 on 2 of them."""
+    pages = []
+    for n in range(1, 7):
+        header = [line("Model Accuracy F1", LEFT, 62, 300, size=SMALL)] if n in (2, 3) else []
+        pages.append(
+            [
+                line("Preprint", LEFT, 40, 150, size=SMALL),
+                *header,
+                *column(f"p{n}-", LEFT, RIGHT, 84, 30),
+            ]
+        )
+    doc = build_document(content(*pages))
+    assert head_roles(doc) == ["Preprint"] * 6
+    assert texts(doc).count("Model Accuracy F1") == 2
+
+
+def test_a_small_header_apart_from_its_rows_on_three_of_ten_pages_is_text() -> None:
+    """Coverage needs `head_pages` pages and `head_share` of the document's: 3 of 10 pages
+    are the first but not the second (review of #620, T1)."""
+    pages = [page_with_head(n, None) for n in range(1, 11)]
+    for n in (2, 3, 4):
+        pages[n - 1] = small_header_page(n, below=12)
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert texts(doc).count("Model Accuracy F1") == 3
+
+
+def test_small_heads_a_little_higher_or_lower_on_each_page_are_running_heads() -> None:
+    """Heads 2 pt higher or lower from page to page, within `head_drift` (0.5 em, 5 pt):
+    through coverage (author and title alternating on 6 of 7 pages), and through a short
+    document's rule (the same head on 2 of 2 pages)."""
+    heads = {n: "A. Author and B. Author" if n % 2 == 0 else "A Title" for n in range(2, 8)}
+    pages = [page_with_head(n, heads.get(n), y=40 + 2 * (n % 3), size=SMALL) for n in range(1, 8)]
+    assert head_roles(build_document(content(*pages))) == [heads[n] for n in range(2, 8)]
+    pair = [page_with_head(n, "Tests in Print", y=38 + 2 * n, size=SMALL) for n in (1, 2)]
+    assert head_roles(build_document(content(*pair))) == ["Tests in Print"] * 2
+
+
+def test_a_small_line_listed_before_the_small_head_of_its_page_does_not_hide_it() -> None:
+    """A file may list a small line in the middle of the page (a table cell) before the
+    page's small head: the head is still found."""
+    pages = [
+        [line("n = 12", LEFT, 520, 120, size=SMALL), *page_with_head(n, "Tests in Print", size=8)]
+        for n in (1, 2)
+    ]
+    assert head_roles(build_document(content(*pages))) == ["Tests in Print"] * 2
+
+
+def test_an_edge_line_at_exactly_small_times_the_body_is_judged_as_body_size() -> None:
+    """At `small` (0.95) times the body a line is body size: such a head on 2 of 2 pages is
+    on too few (`head_pages`); a hair smaller it is a short document's small head."""
+    at = [page_with_head(n, "Tests in Print", size=9.5) for n in (1, 2)]
+    assert texts(build_document(content(*at)), BlockKind.FURNITURE) == []
+    below = [page_with_head(n, "Tests in Print", size=9.4) for n in (1, 2)]
+    assert head_roles(build_document(content(*below))) == ["Tests in Print"] * 2
+
+
+heights = st.integers(0, 20).map(float)  # on a grid, so places exactly `drift` apart occur
+
+
+@given(
+    st.lists(st.tuples(st.integers(1, 6), heights), max_size=30),
+    st.lists(heights, max_size=12),
+    st.sampled_from([0.0, 0.5, 5.0]),
+)
+@example([(1, 0.0), (1, 1.0)], [5.0, 6.0], 5.0)  # two places of one page, one leaves
+@example([(1, 0.0)], [10.0, 0.0], 0.5)  # heights asked for out of order
+@example([(1, 5.0), (2, 0.0)], [0.0, 5.0], 5.0)  # exactly `drift` apart, both ways
+def test_pages_near_counts_the_pages_as_repeated_does_for_each_height(
+    places: list[tuple[int, float]], wanted: list[float], drift: float
+) -> None:
+    assert _pages_near(places, wanted, drift) == [_repeated(places, y, drift) for y in wanted]
+
+
+def test_a_short_document_s_small_head_needs_white_below_it() -> None:
+    """Two of two pages: a small head apart from the text is a running head (word for word
+    on half the pages and more, D-326); the same head 2 pt above the text is not."""
+    apart = build_document(content(*(page_with_head(n, "Tests in Print", size=8) for n in (1, 2))))
+    assert head_roles(apart) == ["Tests in Print"] * 2
+    close = [
+        [line("Tests in Print", LEFT, 40, 300, size=8), *column(f"p{n}-", LEFT, RIGHT, 50, 30)]
+        for n in (1, 2)
+    ]
+    assert texts(build_document(content(*close)), BlockKind.FURNITURE) == []
+
+
+def test_a_small_header_apart_from_its_rows_on_two_of_six_pages_is_text() -> None:
+    """Word for word and apart from the text, but on 2 of 6 pages: less than `head_share`."""
+    pages = [page_with_head(n, None) for n in range(1, 7)]
+    for n in (2, 3):
+        pages[n - 1] = small_header_page(n, below=12)
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert texts(doc).count("Model Accuracy F1") == 2
+
+
+def test_word_for_word_means_the_numbers_too_in_a_short_document() -> None:
+    """ "Step 1" on page 1 and "Step 2" on page 2: the numbers follow the pages, which makes a
+    body-size journal head one head (#458), but not a short document's small one."""
+    heads = {1: "Step 1", 2: "Step 2"}
+    doc = build_document(content(*(page_with_head(n, heads[n], size=8) for n in (1, 2))))
+    assert texts(doc, BlockKind.FURNITURE) == []
+
+
+def test_a_small_caption_label_on_most_pages_is_not_a_running_head() -> None:
+    """ "Algorithm 1" to "Algorithm 3" apart from the text at the top of pages 2 to 4 of 4:
+    on most pages, but a caption's label (#156)."""
+    heads = {n: f"Algorithm {n - 1}" for n in (2, 3, 4)}
+    pages = [page_with_head(n, heads.get(n), y=60, size=SMALL) for n in range(1, 5)]
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert set(heads.values()) <= set(texts(doc))
+
+
+def test_a_small_caption_label_at_the_foot_of_two_pages_is_not_a_running_head() -> None:
+    """At the foot of the page a small line needs only its shape on two pages (a footer may
+    stand close under the notes), but a caption's label is never a head there either."""
+    pages = [page_with_head(n, None) for n in range(1, 5)]
+    for n in (2, 3):
+        pages[n - 1].append(line(f"Figure {n}: Results.", LEFT, 725, 300, size=SMALL))
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    footers = [page_with_head(n, None) for n in range(1, 5)]
+    for n in (2, 3):
+        footers[n - 1].append(line(f"Tests in Print {n}", LEFT, 725, 300, size=SMALL))
+    assert head_roles(build_document(content(*footers))) == ["Tests in Print 2", "Tests in Print 3"]
+
+
+def test_a_small_continued_table_header_in_the_first_row_of_a_small_type_area_is_text() -> None:
+    """The first row of a small type area is in the top band (D-502, #156's comment): a small
+    continued table header there, on 2 of 5 pages and close to its rows, stays text."""
+    pages = [small_area_page(n, None) for n in range(1, 6)]
+    for n in (2, 3):
+        header = line("Model Accuracy F1", LEFT, TYPE_TOP, 300, size=SMALL)
+        pages[n - 1] = [header, *column(f"t{n}-", LEFT, 300, TYPE_TOP + SMALL + 2, 30)]
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert texts(doc).count("Model Accuracy F1") == 2
 
 
 def test_the_last_line_of_a_full_page_is_not_a_footer() -> None:

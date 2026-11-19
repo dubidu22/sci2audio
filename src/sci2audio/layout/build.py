@@ -97,10 +97,20 @@ def columns_per_page(content: Content, settings: LayoutSettings | None = None) -
     """How many columns of text each page is set in (a sidebar doesn't count).
 
     A page whose text all stands in one half of a two-column document, as on a last page
-    that ends in the left column, follows the document's columns.
+    that ends in the left column, follows the document's columns. Text inside a figure that
+    a caption names (a diagram's labels) is read with the page but not counted: the page is
+    read again, once captions and figures are known (#238).
     """
-    layout = _Layout(content, settings or LayoutSettings())
-    found = [layout.read(page)[0].columns for page in content.pages]
+    settings = settings or LayoutSettings()
+    doc = build_document(content, settings)
+    # only a caption's figure holds lines: an uncaptioned one is made of graphics alone
+    # (`_block`, `graphics._groups`), and a table's cells are judged as before (`_filled`)
+    named = [doc.blocks[b.describes] for b in doc.blocks if b.describes is not None]
+    uncounted = frozenset(
+        part.item for block in named if block.kind is BlockKind.FIGURE for part in block.parts
+    )
+    layout = _Layout(content, settings)
+    found = [layout.read(page, uncounted)[0].columns for page in content.pages]
     if 2 not in found:
         return found
     return [
@@ -148,8 +158,11 @@ class _Layout:
         ]
         self.left, self.right = text_area(lines, settings.text_share)
 
-    def read(self, page: Page) -> tuple[Reading, dict[str, FurnitureRole]]:
-        """The page's text and figures in reading order, and its furniture."""
+    def read(
+        self, page: Page, uncounted: frozenset[str] = frozenset()
+    ) -> tuple[Reading, dict[str, FurnitureRole]]:
+        """The page's text and figures in reading order, and its furniture. Lines whose ids
+        are `uncounted` are read but not counted for the page's columns (#238)."""
         lines = [line for line in page.lines if line.box and line.id not in self.furniture]
         sidebar = self._sidebar(lines)
         body = [Element(boxed(line), line) for line in lines if line.id not in sidebar]
@@ -158,7 +171,8 @@ class _Layout:
         boxes = [e.box for e in body if e.line]
         spread = max(b.x1 for b in boxes) - min(b.x0 for b in boxes) if boxes else 0.0
         width = max(self.right - self.left, spread) or (page.width or 0.0)
-        return reading_order(body, width, self.size, self.settings), self.furniture | sidebar
+        reading = reading_order(body, width, self.size, self.settings, uncounted)
+        return reading, self.furniture | sidebar
 
     def label(self, page: Page) -> str:
         """The page label the page prints in its page number, else in its running head

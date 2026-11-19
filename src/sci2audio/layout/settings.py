@@ -34,6 +34,8 @@ class LayoutSettings:
     apart: float = 1.0  # em: ... with this much white between it and the body, is furniture
     # A body-size edge line apart from the body is a running head only when its text repeats
     # word for word (numbers too) and running heads at its height cover most pages (#33).
+    # A smaller one at the top of the page needs smaller lines apart from the body at its
+    # height on as many pages, or, apart itself, its exact text on `head_share` of them (#156).
     head_pages: int = 3  # ... they stand on at least this many pages ...
     head_share: float = 0.5  # ... and on at least this share of the document's pages
     graphic_clear: float = 1.0  # em: a page number has no graphic this close (not an axis tick)
