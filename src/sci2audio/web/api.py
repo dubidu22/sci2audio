@@ -343,6 +343,48 @@ def audiobook(
     return _file(found, download)
 
 
+@router.get(
+    "/documents/{document_id}/figures/{block}/{image}",
+    response_class=Response,
+    responses={
+        200: {"content": {"image/png": {}, "image/jpeg": {}}, "description": "The image"},
+        **_errors(404),
+    },
+    summary="A figure, table or formula as the file shows it, for the player",
+)
+def figure(
+    state: State,
+    document_id: str,
+    block: Annotated[int, Path_(ge=0)],
+    image: Annotated[int, Path_(ge=0)],
+) -> Response:
+    """Image `image` of placeholder block `block` (#293, D-771): a crop of the PDF page
+    rendered in the PDF reader's child process, or an EPUB picture read from the book by its
+    `ref`. The address holds only numbers: the region or the picture comes from the
+    project's own `document.json`, which must name this document, and the file from its own
+    copy. Not for a command-line job (its folders are read-only to the server, #154)."""
+    stored = state.store.get(document_id)
+    found = None
+    if stored is not None:
+        try:
+            document = load_document(stored.folder)
+        except PlayerError:
+            document = None
+        if document is not None:
+            found = state.figures.image(
+                document_id,
+                document,
+                block,
+                image,
+                stored.source,
+                stored.folder,
+                lambda: state.store.unchanged(document_id),
+            )
+    if found is None:
+        raise ApiError(404, "not-found", f"no image {image} of block {block} in {document_id}")
+    return Response(found.data, media_type=found.media_type)
+
+
 @router.post(
     "/documents/{document_id}/position",
     status_code=204,

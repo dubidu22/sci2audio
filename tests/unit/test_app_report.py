@@ -31,6 +31,7 @@ from sci2audio.core import (
 )
 from sci2audio.testing import make_document
 from sci2audio.textprep import Category, Stage, StepContext, TextStep
+from sci2audio.textprep.characters import UnicodeStep
 from sci2audio.textprep.hyphens import LineEndHyphenStep
 
 
@@ -212,3 +213,25 @@ def test_a_line_break_in_running_text_stays_a_space() -> None:
     assert shown_original("(Smith et al.,\n2019)") == "(Smith et al., 2019)"
     assert shown_original("a  b") == "a b"
     assert shown_original("") == ""
+
+
+def test_an_invisible_character_shows_as_its_code_point() -> None:
+    """#207: a format character shows nothing, so a quote names it by its code point, in
+    running text too; a line break beside one stays "↵"."""
+    assert shown_original("\u200b") == "\u27e8U+200B\u27e9"
+    assert shown_original("\u00ad\n") == "\u27e8U+00AD\u27e9↵"  # a soft hyphen at a line end
+    assert shown_original("Ft\u00adt (1998)") == "Ft\u27e8U+00AD\u27e9t (1998)"
+    assert shown_original("\ufeff\u200e") == "\u27e8U+FEFF\u27e9\u27e8U+200E\u27e9"
+    assert shown_original("a\u00a0b") == "a b"  # a no-break space is a space, not hidden
+
+
+def test_a_removed_invisible_character_quotes_visibly_in_the_report() -> None:
+    """#207: the unicode clean-up step's removals of a zero-width space and of a soft hyphen
+    at a line end quote what they remove; the JSON keeps the text as it is."""
+    document = make_document([("paragraph", "ab\u200b text here, a well\u00ad\nknown one.")])
+    report = build_report(prepare_script(document, JobSettings(), [UnicodeStep()]), {})
+    text = report_markdown(report)
+    assert "applied: “⟨U+200B⟩” → left out." in text
+    assert "applied: “⟨U+00AD⟩↵” → left out." in text
+    assert "“”" not in text
+    assert [edit["original"] for edit in report_data(report)["edits"]] == ["\u200b", "\u00ad\n"]

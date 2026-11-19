@@ -9,7 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
 from sci2audio.voices import PREVIEW_TEXT
 
-PREVIEW_LIMIT = 300  # characters of a preview sentence: the cutter's utterance limit (Q4)
+# characters of a voice preview text: a short sample, a limit of its own (not the cutter's, #534)
+PREVIEW_LIMIT = 300
 # how fast the voice reads letters it spells out ("NLP"): the keys of app's LETTER_PACES (#295)
 LetterPace = Literal["normal", "slower", "slowest"]
 LETTER_PACE_HELP = "how fast the voice reads letters it spells out, as in NLP (#295)"

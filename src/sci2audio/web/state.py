@@ -22,6 +22,7 @@ from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, loa
 from sci2audio.app.projects import Moved, migrate_all, real_folder
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
+from sci2audio.web.figures import Figures
 from sci2audio.web.jobs import JobBoard, JobRecord
 from sci2audio.web.markers import MarkerBook
 from sci2audio.web.player import candidate_folders
@@ -85,6 +86,7 @@ class ServerState:
     stopping: threading.Event = field(default_factory=threading.Event)
     clock: Callable[[], float] = time.monotonic  # the markers' undo store; tests pass a fake
     markers: MarkerBook = field(init=False)  # every write of a markers file (#474)
+    figures: Figures = field(default_factory=Figures)  # the player's figures (#293)
 
     def __post_init__(self) -> None:
         if self.config.legacy_root is not None:

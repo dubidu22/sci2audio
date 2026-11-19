@@ -17,6 +17,10 @@ whole: nowak's Figure 1 holds Algorithms 1 and 2, and its caption
 and theirs all name one FIGURE block (D-89). The line just above an algorithm's caption is
 the top of the algorithm's box.
 
+A listing's caption ("Listing 3: ...", #281) reads no float: a listing is text set in a
+typewriter font, which `code` makes a CODE block and names by its caption. A listing
+printed as a picture is a figure no caption names.
+
 The float is one block: a TABLE for a "Table" (or "Tabelle", "Tab.") caption, else a
 FIGURE. Its text is its lines read row by row (pieces of a row joined by a space where the
 page prints one, rows by a line break), each listing of a merged float on its own, as found:
@@ -55,6 +59,7 @@ from sci2audio.core import (
     Part,
     TextLine,
 )
+from sci2audio.layout.code import LISTING
 from sci2audio.layout.geometry import holds, line_size, minor, same_row, union
 from sci2audio.layout.settings import LayoutSettings
 from sci2audio.layout.split import kept, part_ends, read_rows
@@ -158,7 +163,7 @@ def _read_float(k: int, items: list[_Item], state: _State) -> None:
     """Read the float that caption `k` names, if one stands next to it."""
     label = state.blocks[k].label
     caption = [i for i in items if i.block == k]
-    if not caption:
+    if not caption or label.startswith(LISTING):  # a listing is code, found later (#281)
         return
     box = union([i.box for i in caption])
     others = [i for i in items if i.block != k]

@@ -62,6 +62,7 @@ from sci2audio.app import (
 from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
 from sci2audio.app.projects import project_work_folder
+from sci2audio.app.readability import picture_pages, picture_warning
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.output import OutputSettings
 from sci2audio.textprep import Category
@@ -553,11 +554,15 @@ def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
     return replace(settings, chapters=chapters)
 
 
-def _guessed_encoding(env: CliEnv, result: ScriptResult) -> None:
-    """Say when a text file's encoding was a guess (D-346), and when the text did not tell
-    its language or overruled the file's (D-498; a clear guess is only in the report)."""
+def _document_warnings(env: CliEnv, result: ScriptResult) -> None:
+    """Say when a PDF has pages of pictures only (#186), when a text file's encoding was a
+    guess (D-346), and when the text did not tell its language or overruled the file's
+    (D-498; a clear guess is only in the report)."""
+    content = result.document.content
+    pictures = picture_pages(content)
     for warning in (
-        encoding_warning(result.document.content.source),
+        picture_warning(pictures) if pictures else None,
+        encoding_warning(content.source),
         language_warning(result.document),
     ):
         if warning:
@@ -704,7 +709,7 @@ def run_script_command(args: argparse.Namespace, env: CliEnv) -> Exit:
 def _print_script(env: CliEnv, job: ScriptJob) -> None:
     out = env.out
     report = job.report
-    _guessed_encoding(env, job.result)
+    _document_warnings(env, job.result)
     _ignored(env, job.result.ignored_chapters, len(report.chapters))
     out.write("Chapters (choose with --chapters):\n")
     for entry in report.chapters:
@@ -839,7 +844,7 @@ def _wait(finished: threading.Event) -> None:
 
 def _print_audio(env: CliEnv, job: AudioJob, script: ScriptJob | None, work: Path) -> None:
     out = env.out
-    _guessed_encoding(env, job.result)
+    _document_warnings(env, job.result)
     _ignored(env, job.result.ignored_chapters, len(job.result.chapters))
     total = job.spoken + job.reused
     out.write(

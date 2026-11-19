@@ -128,7 +128,10 @@ def _each_pdf_read_once(request: pytest.FixtureRequest, monkeypatch: pytest.Monk
         *,
         on_step: Callable[[str], None] | None = None,
         cancel: threading.Event | None = None,
+        extra: tuple[object, ...] = (),
     ) -> object:
+        if extra:  # regions of a page (#293): what is asked differs from call to call
+            return real(target, path, on_step=on_step, cancel=cancel, extra=extra)
         try:
             data = Path(path).read_bytes()
         except OSError:

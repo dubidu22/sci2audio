@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 from cli_helpers import CORPUS, SEABORN, Cli, files_in, small_pdf
+from pdf_maker import Text, image_only_pdf, joined_pdf, make_pdf
 from syrupy.assertion import SnapshotAssertion
 from test_layout_language import ENGLISH, GERMAN
 
@@ -270,6 +271,21 @@ def test_a_text_file_read_by_a_guessed_encoding_is_named(cli: Cli, tmp_path: Pat
     result = cli("script", plain, "-o", tmp_path / "out2", "-q")
     assert result.code == 0, result.err
     assert "UTF-8" not in result.err  # (four words don't tell their language: D-495 warns)
+
+
+def test_a_scanned_page_is_named(cli: Cli, tmp_path: Path) -> None:
+    """#186: the command line prints the report's warning for a page of pictures only."""
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    source = tmp_path / "scans.pdf"
+    source.write_bytes(joined_pdf(plain, image_only_pdf()))
+    result = cli("script", source, "-o", tmp_path / "out", "-q", "--language", "en")
+    assert result.code == 0, result.err
+    assert (
+        "sci2audio: warning: Page 2 holds no text, only pictures (a scanned page?), so nothing "
+        "on it is read.\n"
+    ) in result.err
 
 
 def test_the_language_warnings_are_printed_once_and_a_clear_guess_is_not(
