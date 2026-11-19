@@ -18,7 +18,7 @@ the page.
 
 from __future__ import annotations
 
-import heapq
+import bisect
 import math
 from dataclasses import dataclass
 
@@ -58,21 +58,20 @@ def figures(graphics: list[Picture | Drawing], reach: float) -> list[Element]:
     ]
 
 
-_BAND = 8.0  # the open boxes are kept in bands this many times `reach` high (#354)
-
-
 def touching(boxes: list[Box], reach: float) -> list[int]:
     """For each box, a number its group shares: boxes that touch or nearly touch, `reach`
     or less apart across and down, are in one group, and so are boxes touching one of those.
 
-    A sweep from left to right, in time about linear in the boxes however they lie (#354):
-    the boxes whose right edge is still within `reach` of the sweep ("open") are all near
-    each other across, so a new box joins exactly the groups of the open boxes within
-    `reach` of it down the page. The open boxes are kept in bands of height by group: a band
-    the new box's reach covers wholly joins every group in it without looking at its boxes;
-    the bands at either end are looked at box by box, a group at a time. Open boxes of two
-    groups never stand within `reach` of each other down the page (they would be one group),
-    so a band holds few groups.
+    A sweep from left to right, in time about n log n however the boxes lie and whatever
+    their size in points (#354, review of #645). The boxes the sweep has passed whose right
+    edge plus `reach` it has not yet passed are "open": they are near the new box across.
+    Down the page each box stands for its span, from its top to its bottom plus `reach`,
+    and two boxes are near each other down the page exactly when their spans meet (the
+    same sums as comparing every pair, so the same answer to the last bit). Spans that meet
+    hold the lower of their two tops, so the new box joins the open groups whose top lies
+    in its span, and those whose span holds its top. A tree over the page's tops, in order,
+    finds both in a few steps: each node keeps the groups whose span covers it and those
+    with a top under it, with how far right their boxes there reach.
     """
     parent = list(range(len(boxes)))
 
@@ -82,57 +81,66 @@ def touching(boxes: list[Box], reach: float) -> list[int]:
             i = parent[i]
         return i
 
-    height = _BAND * reach if reach > 0 else _BAND
-    bands: dict[int, dict[int, set[int]]] = {}  # band -> group's root then -> open boxes
+    tops = sorted({box.y0 for box in boxes})
+    size = 1 << max(0, len(tops) - 1).bit_length()  # leaves: the tops, then empty ones
+    leaf = {y: k + size for k, y in enumerate(tops)}
+    # node -> {group: how far right its boxes filed there reach}, for the boxes whose span
+    # covers the node, and for those whose top lies under it
+    spans: list[dict[int, float] | None] = [None] * (2 * size)
+    starts: list[dict[int, float] | None] = [None] * (2 * size)
 
-    def band_range(low: float, high: float) -> range:
-        return range(math.floor(low / height), math.floor(high / height) + 1)
+    def look(table: list[dict[int, float] | None], node: int, x: float, found: list[int]) -> None:
+        """Add the groups filed at the node that reach `x` (one key per group), and forget
+        the others."""
+        entries = table[node] or {}
+        kept: dict[int, float] = {}
+        for key, until in entries.items():
+            if until >= x:
+                group = root(key)
+                kept[group] = max(until, kept.get(group, -math.inf))
+        table[node] = kept or None
+        found.extend(kept)
 
-    def tidy(band: dict[int, set[int]], key: int) -> int:
-        """The group's root, its boxes in this band filed under it (groups join later)."""
-        found = root(key)
-        if found != key:
-            moved, kept = band.pop(key), band.get(found)
-            if kept is None:
-                band[found] = moved
-            else:
-                if len(kept) < len(moved):  # the smaller set joins the larger
-                    moved, kept = kept, moved
-                    band[found] = kept
-                kept |= moved
-        return found
+    def file(table: list[dict[int, float] | None], node: int, i: int, until: float) -> None:
+        entries = table[node]
+        if entries is None:
+            table[node] = {i: until}
+        else:
+            entries[i] = until
 
-    closing: list[tuple[float, int]] = []  # (where the sweep passes a box's reach, box)
     for i in sorted(range(len(boxes)), key=lambda k: boxes[k].x0):
         box = boxes[i]
-        while closing and closing[0][0] < box.x0:
-            _, gone = heapq.heappop(closing)
-            group = root(gone)
-            for number in band_range(boxes[gone].y0, boxes[gone].y1):
-                band = bands[number]
-                for key in [k for k in band if k != group and root(k) == group]:
-                    tidy(band, key)
-                band[group].discard(gone)
-                if not band[group]:
-                    del band[group]
-                if not band:
-                    del bands[number]
-        low, high = box.y0 - reach, box.y1 + reach
-        for number in band_range(low, high):
-            band = bands.get(number, {})
-            whole = low <= number * height and (number + 1) * height <= high
-            for key in list(band):
-                if key not in band:
-                    continue  # filed under another key a moment ago
-                group = tidy(band, key)
-                if group != root(i) and (
-                    whole or any(boxes[k].y0 <= high and low <= boxes[k].y1 for k in band[group])
-                ):
-                    parent[group] = root(i)
-        group = root(i)
-        for number in band_range(box.y0, box.y1):
-            bands.setdefault(number, {}).setdefault(group, set()).add(i)
-        heapq.heappush(closing, (box.x1 + reach, i))
+        top = leaf[box.y0]
+        end = bisect.bisect_right(tops, box.y1 + reach) + size
+        cover = []  # the nodes that together hold leaves top up to (not including) end
+        low, high = top, end
+        while low < high:
+            if low & 1:
+                cover.append(low)
+                low += 1
+            if high & 1:
+                high -= 1
+                cover.append(high)
+            low, high = low >> 1, high >> 1
+        path = []  # the nodes above the box's top, from its leaf up
+        node = top
+        while node:
+            path.append(node)
+            node >>= 1
+        found: list[int] = []
+        for node in path:  # spans holding this box's top
+            if spans[node] is not None:
+                look(spans, node, box.x0, found)
+        for node in cover:  # tops inside this box's span
+            if starts[node] is not None:
+                look(starts, node, box.x0, found)
+        for group in found:  # roots, all joined to the box, a group of its own until now
+            parent[group] = i
+        until = box.x1 + reach
+        for node in cover:
+            file(spans, node, i, until)
+        for node in path:
+            file(starts, node, i, until)
     return [root(i) for i in range(len(boxes))]
 
 
