@@ -345,6 +345,12 @@ jobs:
               ForEach-Object { $_.CommandLine } | Where-Object { $_ -notmatch "--type=" })
             if (-not $up) {
               "app running: $([bool](Get-Process sci2audio-app -ErrorAction SilentlyContinue))"
+              # what a process started the same way gets: its groups and the variable
+              runas /trustlevel:0x20000 "cmd /c whoami /groups > C:\Users\Public\trust.txt & set WEBVIEW2 >> C:\Users\Public\trust.txt"
+              Start-Sleep 5
+              Get-Content C:\Users\Public\trust.txt -ErrorAction SilentlyContinue
+              "this step: $(whoami /groups | Select-String 'Mandatory Label')"
+              "UAC EnableLUA: $((Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System).EnableLUA)"
               $engine
               Get-Content "$env:LOCALAPPDATA\sci2audio\Logs\app.log" -ErrorAction SilentlyContinue
               throw "the window's debugging port never answered"
