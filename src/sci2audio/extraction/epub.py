@@ -10,8 +10,9 @@ where they stand between the lines. The navigation document (or, failing that, t
 `Content.outline`; the package file fills `Metadata`.
 
 Only the standard library is used (D-305): `zipfile`, `xml.etree` for the container, the
-package file and the NCX, which are refused when they declare an entity, and `html.parser`
-for XHTML, which recovers from malformed markup and never expands custom entities. A file
+package file and the NCX, which are refused when they declare an entity, and a copy of
+CPython's `html.parser` (`htmlparser`, #175) for XHTML, which recovers from malformed markup
+and never expands custom entities. A file
 that cannot be read raises `ExtractionError` with a message a person can act on (D-315).
 """
 
@@ -25,7 +26,6 @@ import xml.etree.ElementTree as ET
 import zipfile
 import zlib
 from dataclasses import dataclass, field
-from html.parser import HTMLParser
 from pathlib import Path
 from xml.parsers import expat
 
@@ -40,6 +40,7 @@ from sci2audio.core import (
 )
 from sci2audio.extraction.cover import Cover, media_type, small_enough
 from sci2audio.extraction.errors import ExtractionError
+from sci2audio.extraction.htmlparser import HTMLParser
 from sci2audio.extraction.language import stated_language
 from sci2audio.extraction.markup import (
     Anchors,
@@ -261,10 +262,10 @@ class _Book:
             try:
                 pages.append(self._page(number, package.readable(item), anchors, budget))
             except TooMuchText as error:
-                raise ExtractionError(
-                    f"{self.name}: the EPUB is too large or damaged (more than"
-                    f" {error.limit:,} pieces of text)"
-                ) from None
+                message = error.message("EPUB") or (
+                    f"the EPUB is too large or damaged (more than {error.limit:,} pieces of text)"
+                )
+                raise ExtractionError(f"{self.name}: {message}") from None
         return tuple(pages), anchors
 
     def _page(self, number: int, item: _Item, anchors: Anchors, budget: Budget) -> Page:
@@ -300,8 +301,8 @@ class _Book:
                     return _outline(
                         _ncx_entries(_xml(data, self, "NCX"), package.ncx.path), anchors
                     )
-        except (ExtractionError, ValueError, AssertionError):  # AssertionError: html.parser
-            return ()
+        except (ExtractionError, ValueError, AssertionError, TooMuchText):
+            return ()  # AssertionError: the HTML parser gave up
         return ()
 
 
@@ -499,7 +500,10 @@ class _Entry:
 
 
 class _NavReader(HTMLParser):
-    """The entries of the navigation document's `nav epub:type="toc"`, in order (D-311)."""
+    """The entries of the navigation document's `nav epub:type="toc"`, in order (D-311).
+
+    Every tag, comment and declaration counts towards `markup.MAX_MARKUP`, as in the
+    chapters (#329): past it the reader stops and the book has no outline."""
 
     def __init__(self, path: str) -> None:
         super().__init__(convert_charrefs=True)
@@ -511,6 +515,22 @@ class _NavReader(HTMLParser):
         self.label_tag = ""
         self.labelled: list[bool] = []  # per open <li>: label read already
         self.done = False
+        self.budget = Budget()  # only its markup count is used
+
+    def spend_markup(self) -> None:
+        self.budget.spend_markup()
+
+    def handle_comment(self, data: str) -> None:
+        self.spend_markup()
+
+    def handle_decl(self, decl: str) -> None:
+        self.spend_markup()
+
+    def handle_pi(self, data: str) -> None:
+        self.spend_markup()
+
+    def unknown_decl(self, data: str) -> None:
+        self.spend_markup()
 
     @classmethod
     def entries(cls, text: str, path: str) -> list[_Entry]:
@@ -520,6 +540,7 @@ class _NavReader(HTMLParser):
         return reader.found
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.spend_markup()
         values = dict(attrs)
         if self.done:
             return
@@ -550,6 +571,7 @@ class _NavReader(HTMLParser):
             self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
+        self.spend_markup()
         if not self.nav or self.done:
             return
         if tag == "nav":

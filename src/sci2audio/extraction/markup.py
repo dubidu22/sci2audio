@@ -4,8 +4,9 @@ Shared by the EPUB reader (one spine document per page) and the Markdown reader,
 Markdown to HTML first (D-340), so both give layout the same shape: one text line per block
 element, made of styled runs whose tags are the markup around them (D-307), bold and italic
 from the HTML default rendering (D-308), pictures with their alternative text and `ref`, and
-`Page.order` for where they stand between the lines. `html.parser` recovers from malformed
-markup and never expands custom entities or fetches anything.
+`Page.order` for where they stand between the lines. The HTML parser is a copy of CPython
+3.13.18's (`htmlparser`), so broken markup reads the same on every Python version (#175); it
+recovers from malformed markup and never expands custom entities or fetches anything.
 """
 
 from __future__ import annotations
@@ -14,16 +15,24 @@ import posixpath
 import re
 from collections import Counter
 from dataclasses import dataclass, field, replace
-from html.parser import HTMLParser
 from urllib.parse import unquote, urlsplit
 
 from sci2audio.core import Page, Picture, TextLine, TextRun
+from sci2audio.extraction.htmlparser import HTMLParser
 
 MAX_TAGGED = 100  # nested elements that add tags; deeper ones add none
 MAX_TAGS = 200  # tags one element carries, its ancestors' included; more are left out
 # lines, pieces of text and pictures read from one book (#158, #174, D-579): a book at the
 # limit took about 180 MB to read and 560 MB with layout; The Time Machine holds 873
 MAX_ITEMS = 1_000_000
+# tags, comments and declarations read from one book (#329, D-777): each costs about 11 µs
+# whether or not it holds text, so empty elements were bounded only by bytes (a 64 MB chapter
+# of "<p></p>" took 105 s); twice MAX_ITEMS, as real books hold fewer tags than items (The
+# Time Machine 0.65 per item), and 2,000,000 empty elements take about 22 s
+MAX_MARKUP = 2_000_000
+# characters of one line as the file stores them (#329, D-777): a paragraph costs about 16
+# times its size to read (one of 64 MB took 1 GB), and layout and the text steps get none longer
+MAX_LINE = 4_000_000
 
 # HTML block elements (and SVG text): each one ends the line before it and starts a new one.
 _BLOCKS = frozenset(
@@ -110,12 +119,26 @@ _LINK = "\x00link:"  # a placeholder tag, replaced once every page is read
 
 
 class TooMuchText(Exception):
-    """A book holds more items than its `Budget` allows; the reader turns it into its own
-    `ExtractionError` message."""
+    """A book holds more than its `Budget` allows; the reader turns it into its own
+    `ExtractionError` message. `kind` names the limit: "items" (`MAX_ITEMS`), "markup"
+    (`MAX_MARKUP`) or "line" (`MAX_LINE`)."""
 
-    def __init__(self, limit: int) -> None:
-        super().__init__(limit)
-        self.limit = limit
+    def __init__(self, limit: int, kind: str = "items") -> None:
+        super().__init__(limit, kind)
+        self.limit, self.kind = limit, kind
+
+    def message(self, what: str) -> str | None:
+        """The end of the error message for the markup and line limits ("the EPUB holds
+        ..."), `what` naming the file kind; None for the item limit, which each reader words
+        itself."""
+        if self.kind == "markup":
+            return (
+                f"the {what} holds too much markup to read (more than {self.limit:,} tags,"
+                " comments and declarations)"
+            )
+        if self.kind == "line":
+            return f"the {what} holds a paragraph longer than {self.limit:,} characters"
+        return None
 
 
 class Budget:
@@ -123,16 +146,28 @@ class Budget:
     pictures, and also each `id` and each link, which are kept for the whole book. A piece
     of text is counted as the file stores it, before pieces of the same style merge into one
     run, so one long line is bounded too; white space that is folded away is never kept and
-    counts nothing. The open elements are bounded by the same limit."""
+    counts nothing. The open elements are bounded by the same limit.
 
-    def __init__(self, limit: int | None = None) -> None:
+    The markup read is counted on its own (`MAX_MARKUP`): every start tag, every end tag that
+    closes no open element (one that does is paid for by its start tag), and every comment,
+    declaration, processing instruction and CDATA section, so a file of empty elements is
+    bounded too (#329)."""
+
+    def __init__(self, limit: int | None = None, markup_limit: int | None = None) -> None:
         self.limit = MAX_ITEMS if limit is None else limit
+        self.markup_limit = MAX_MARKUP if markup_limit is None else markup_limit
         self.used = 0
+        self.markup = 0
 
     def spend(self) -> None:
         self.used += 1
         if self.used > self.limit:
             raise TooMuchText(self.limit)
+
+    def spend_markup(self) -> None:
+        self.markup += 1
+        if self.markup > self.markup_limit:
+            raise TooMuchText(self.markup_limit, "markup")
 
 
 class PageReader(HTMLParser):
@@ -160,7 +195,8 @@ class PageReader(HTMLParser):
         self.waiting: list[Picture] = []  # pictures inside the line being read
         self.pending: list[str] = []  # anchors waiting for the next item
         self.continues = False  # the next line continues an element after a <br>
-        self.in_line = False  # text, white space too, came since the last line ended
+        self.in_line = False  # text that is kept came since the last line ended (#328)
+        self.line_length = 0  # characters of the line being read, as the file stores them
 
     def read(self, text: str) -> None:
         self.feed(text)
@@ -192,7 +228,8 @@ class PageReader(HTMLParser):
             self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
-        if not self.open[tag]:
+        if not self.open[tag]:  # closes nothing: not paid for by a start tag
+            self.budget.spend_markup()
             return
         if tag in _BLOCKS and not self.skipping:
             self.flush()
@@ -203,7 +240,17 @@ class PageReader(HTMLParser):
             if element.name == tag:
                 return
 
+    def handle_comment(self, data: str) -> None:
+        self.budget.spend_markup()
+
+    def handle_decl(self, decl: str) -> None:
+        self.budget.spend_markup()
+
+    def handle_pi(self, data: str) -> None:
+        self.budget.spend_markup()
+
     def unknown_decl(self, data: str) -> None:
+        self.budget.spend_markup()
         if data.startswith("CDATA["):  # XHTML may wrap text in a CDATA section
             self.handle_data(data[len("CDATA[") :])
 
@@ -225,6 +272,7 @@ class PageReader(HTMLParser):
     # -- building
 
     def start(self, tag: str, attrs: dict[str, str | None]) -> None:
+        self.budget.spend_markup()
         parent = self.stack[-1] if self.stack else None
         if self.skipping or tag in _SKIPPED:
             if tag not in _VOID:
@@ -313,9 +361,12 @@ class PageReader(HTMLParser):
     def add(self, text: str) -> None:
         if not text:
             return
-        self.in_line = True  # white space too: it decides where a picture goes (#328)
-        if self.folded_away(text):
-            return
+        if self.folded_away(text):  # it does not start a line either: a picture after it
+            return  # goes before the line, as a browser shows it (#328)
+        self.in_line = True
+        self.line_length += len(text)
+        if self.line_length > MAX_LINE:
+            raise TooMuchText(MAX_LINE, "line")
         self.budget.spend()
         top = self.stack[-1] if self.stack else None
         tags = self.intern(top.tags) if top else ()
@@ -341,6 +392,7 @@ class PageReader(HTMLParser):
         runs = _runs(self.segments, keep_white=self.open["pre"] > 0)
         self.segments = []
         self.in_line = False
+        self.line_length = 0
         if runs:
             self.budget.spend()
             if self.continues:
