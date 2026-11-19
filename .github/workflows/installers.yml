@@ -30,8 +30,13 @@ env:
   # The Python of .python-version, as uv downloads it (D-378); PyInstaller freezes it.
   UV_PYTHON_PREFERENCE: only-managed
 
+# Builds of one branch queue behind each other, never cancelled; a release, and a PR event
+# that starts nothing (another label added), are groups of their own, so the event that
+# starts nothing never takes the queued place of one that does.
 concurrency:
-  group: installers-${{ github.ref }}-${{ inputs.release && github.run_id || 'build' }}
+  group: >-
+    installers-${{ github.ref }}-${{ (inputs.release || (github.event.action == 'labeled'
+    && github.event.label.name != 'ci:installers')) && github.run_id || 'build' }}
   cancel-in-progress: false
 
 
