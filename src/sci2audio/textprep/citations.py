@@ -500,9 +500,7 @@ class _Rules:
         self.not_names = {*words.other_words, *re.sub(r"\\", "", words.joins).split("|")}
         # what sets off an inner bracket as an item of the bracket's list (#372, #415)
         self.item_after = re.compile(r"\s*[;,]")
-        self.item_separator = re.compile(
-            rf"\s*(?:[;,]\s*)+(?:(?:{words.and_word}|&)\s+)?", re.IGNORECASE
-        )
+        self.item_separator = re.compile(rf"\s*(?:[;,]\s*)+(?:(?:{words.and_word}|&)\s+)?")
         self.item_before = re.compile(rf"[;,]\s*(?:(?:{words.and_word}|&)\s+)?\Z")
         self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
         # a sign as the statistics step reads it counts as the sign: "x equals [12]" is "x =
@@ -1015,7 +1013,7 @@ class _Rules:
             after = text[child.close + 1 : bounds[2 * number + 3]]
             ahead = self.item_after.match(after) is not None or not after.strip()
             behind = self.item_before.search(before) is not None or not before.strip()
-            if not number and not behind and len(before) <= _LOOK_BACK:
+            if not number and not behind:
                 behind = self._only_lead_left(before)
             if not (ahead and behind):
                 continue
@@ -1296,8 +1294,6 @@ class _Rules:
 
     def _item_kind(self, text: str, node: _Bracket) -> str | None:
         """What a square bracket holds as an item of a list: "numbers", "keys" or None."""
-        if text[node.open] != "[":
-            return None
         inside = text[node.open + 1 : node.close]
         if self._decimal_interval(inside):
             return None
