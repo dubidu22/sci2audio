@@ -9,6 +9,7 @@ language is the switch's cookie, else the browser's `Accept-Language`, else Engl
 from __future__ import annotations
 
 import json
+import math
 import re
 import tomllib
 from collections.abc import Iterable, Mapping
@@ -39,6 +40,11 @@ ANNOUNCE = ("off", "on")
 # Keyboard shortcuts item work either way
 KEYS_COOKIE = "sci2audio-keys"
 KEYS = ("on", "off")
+# the player's playback speed (#651): a number with two decimals within the player's range;
+# anything else counts as 1, and a number outside the range as its nearest limit
+PLAYER_SPEED_COOKIE = "sci2audio-player-speed"
+PLAYER_MIN_SPEED = 0.5
+PLAYER_MAX_SPEED = 3.0
 
 PLURAL_FORMS = ("one", "other")  # the CLDR forms English and German share (D-290)
 
@@ -50,6 +56,8 @@ SCRIPT_KEYS = (
     "make.needs_",
     "job.state_",
     "voice.speed_value",
+    "listen.speed_value",  # the player's speed (#651)
+    "speed.",
     "common.decimal",
     "common.details",
     "common.megabytes",  # sizes, as Strings.size writes them (#391)
@@ -128,6 +136,11 @@ class Strings:
         text = f"{value:.{places}f}".rstrip("0").rstrip(".") if places else f"{value:.0f}"
         return text.replace(".", self.table["common.decimal"])
 
+    def fixed(self, value: float, places: int = 2) -> str:
+        """A decimal number with exactly `places` decimals and the language's decimal sign:
+        a speed keeps its width as it changes (#651)."""
+        return f"{value:.{places}f}".replace(".", self.table["common.decimal"])
+
     def size(self, n: int) -> str:
         """A file size in bytes, KB or MB (decimal units, as the voice page lists them)."""
         if n >= 1_000_000:
@@ -178,6 +191,25 @@ def known_keys(text: str | None) -> str | None:
     return _KEYS.get(text) if text else None
 
 
+def known_player_speed(text: str | None) -> float | None:
+    """The player speed `text` holds, rounded to 0.01 and kept within the player's range,
+    or None for text that is not a finite number (#651)."""
+    if not text or len(text) > 16:
+        return None
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    if not math.isfinite(value):
+        return None
+    return round(min(max(value, PLAYER_MIN_SPEED), PLAYER_MAX_SPEED), 2)
+
+
+def player_speed_text(value: float) -> str:
+    """A player speed as the cookie keeps it: two decimals, a dot."""
+    return f"{value:.2f}"
+
+
 def theme_of(request: Request) -> str:
     """The appearance of a request's page: the Settings cookie, else as the system."""
     return known_theme(request.cookies.get(THEME_COOKIE)) or "system"
@@ -193,6 +225,11 @@ def keys_of(request: Request) -> bool:
     """Whether the page-wide single keys work (#394 review S3). On unless the person
     switched them off."""
     return known_keys(request.cookies.get(KEYS_COOKIE)) != "off"
+
+
+def player_speed_of(request: Request) -> float:
+    """The speed the Listen page starts at (#651): the one last chosen, else 1."""
+    return known_player_speed(request.cookies.get(PLAYER_SPEED_COOKIE)) or 1.0
 
 
 def strings(language: str) -> Strings:

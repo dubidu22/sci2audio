@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_speed.html" import speed_field with context %}
 {% from "_remove.html" import remove_box with context %}
 {% from "_paper.html" import paper_head with context %}
 {% from "_making.html" import making with context %}
@@ -140,8 +141,8 @@
   </div>
   <div class="field">
     <label for="speed">{{ t('voice.speed') }}</label>
-    <p class="range"><input type="range" id="speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
-    <output id="speed-value" for="speed" aria-hidden="true">{{ speed_text }}</output></p>
+    <p class="range"><input type="range" id="speed" name="speed" min="{{ speed.min }}" max="{{ speed.max }}" step="{{ speed.step }}" value="{{ speed.value }}" aria-valuetext="{{ speed.text }}">
+    {{ speed_field('speed-exact', speed, t('speed.exact')) }}</p>
   </div>
   <fieldset class="field" id="letter-pace" aria-describedby="letter-pace-hint">
     <legend>{{ t('voice.letter_pace') }}</legend>

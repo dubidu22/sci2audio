@@ -68,6 +68,15 @@ def chunk_id(page: Page, words: str) -> str:
     return str(page.locator(".s", has_text=words).first.get_attribute("id"))
 
 
+def choose_speed(page: Page, preset: str) -> None:
+    """Chooses one of the player's usual speeds (#651), named as its button shows it (1.5
+    and a times sign): the dock's speed button opens them; Esc closes them again."""
+    page.locator("#speed").click()
+    page.locator("#speed-panel").get_by_role("button", name=preset, exact=True).click()
+    page.keyboard.press("Escape")
+    expect(page.locator("#speed-panel")).to_be_hidden()
+
+
 def paused(page: Page) -> bool:
     return bool(page.evaluate("() => document.getElementById('audio').paused"))
 

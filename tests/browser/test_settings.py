@@ -66,7 +66,11 @@ def test_the_defaults_are_saved_and_every_other_setting_is_kept(
     tab_to(page, "settings-speed")
     for _ in range(3):
         page.keyboard.press("ArrowLeft")
-    expect(page.locator("#settings-speed-value")).to_have_text("0.85 times")
+    exact = page.locator("#settings-speed-exact")
+    expect(exact).to_have_value("0.97")  # 0.01 a step (#651)
+    exact.fill("0.85")
+    exact.blur()  # leaving the field uses what was typed
+    expect(page.locator("#settings-speed")).to_have_attribute("aria-valuetext", "0.85 times")
     press_on(page, "Save the defaults")
     message = page.locator("#message")
     expect(message).to_have_text("Saved. New audiobooks use these defaults.")

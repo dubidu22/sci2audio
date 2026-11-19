@@ -384,6 +384,13 @@ load_failed = "Das Audio ließ sich nicht laden. Läuft sci2audio noch?"
 time_of = "{time} von {total}"  # die Uhr der Wiedergabeleiste und die Zeitleiste (#393)
 speed_now = "Tempo {speed}"  # gesagt, wenn eine Taste das Tempo geändert hat (#394)
 
+[speed]  # das eingetippte Tempo des Players und der Stimme (#651)
+slower = "Langsamer"
+faster = "Schneller"
+exact = "Genaues Tempo"  # das Feld neben dem Regler der Stimme
+presets = "Übliche Tempi"
+invalid = "Geben Sie eine Zahl von {min} bis {max} ein, etwa {example}."
+
 [js]
 moved = "{title} ist jetzt Kapitel {n} von {total}."  # die Kapitelliste (#119)
 opening = "Wird geöffnet …"

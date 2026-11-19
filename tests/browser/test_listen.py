@@ -17,7 +17,7 @@ from typing import Any, Literal
 
 from long_book import long_book
 from playwright.sync_api import Page, Route, expect
-from test_player import chunk_id, highlighted, make_audiobook, paused
+from test_player import choose_speed, chunk_id, highlighted, make_audiobook, paused
 
 from conftest import Live, check_axe, tab_key
 from sci2audio.core.export import to_data
@@ -161,7 +161,7 @@ def test_the_sentence_being_read_is_marked_plainly_and_a_heard_one_has_no_tint(
     assert heard["line"] == "none", heard
     marked_plainly(page, NOW)
     assert_beside(page, "#now-bar", NOW)
-    page.get_by_label("Speed").select_option("1.5")
+    choose_speed(page, "1.5\u00d7")
     page.wait_for_function("() => document.getElementById('audio').playbackRate === 1.5")
     marked_plainly(page, NOW)
     page.get_by_role("button", name="Pause").click()

@@ -227,6 +227,14 @@ input.switch:checked::after { transform: translateX(16px); }
 .seg button:focus-visible { outline-offset: -4px; }
 kbd { font: 700 12px/1 var(--ui); border: 1px solid var(--rule-strong); border-bottom-width: 2px; border-radius: 3px; padding: 2px 5px; color: var(--ink-2); background: var(--paper); }
 .range { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+/* the speed field (#651): a typed speed with two decimals, − and + beside it in the player */
+.speed-field { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+input.speed-box { width: calc(4ch + 16px); min-height: 34px; padding: 4px 7px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+input.speed-box[aria-invalid="true"] { border-color: var(--error); outline: 2px solid var(--error); outline-offset: 0; }
+.speed-unit { font-weight: 700; margin-left: -2px; }
+button.speed-step { min-height: 34px; width: 34px; padding: 0; font-size: 18px; font-weight: 700; line-height: 1; }
+.speed-hint { flex-basis: 100%; color: var(--error); font-size: 13.5px; }
+.speed-hint[hidden] { display: none; }
 progress { width: 100%; height: 8px; accent-color: var(--ink); }
 
 /* state chips (Form-Not-Colour rule: icon and word; never a highlighter, never a filled button) */
@@ -383,7 +391,15 @@ button.play svg { fill: currentColor; stroke: none; }
 .view .marker-row .mk-actions { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 8px 0 0; }
 .mk-edit { display: grid; gap: 6px; margin: 8px 0 0; }
 .mk-edit textarea { width: 100%; max-width: none; }
-select.speed { min-height: 34px; padding: 4px 8px; font-weight: 700; }
+/* the player's speed (#152, #651): a button with the speed opens a panel above it with the
+   usual speeds and the speed field */
+.speed-menu { position: relative; }
+button.speed { min-height: 34px; padding: 4px 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.speed-panel { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 20; width: max-content; max-width: min(24rem, calc(100vw - 32px)); display: grid; gap: 12px; padding: 12px; background: var(--paper); border: 1px solid var(--rule-strong); border-radius: var(--r); box-shadow: var(--pop-shadow); }
+.speed-panel[hidden] { display: none; }
+.speed-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.speed-presets button { font-variant-numeric: tabular-nums; }
+.speed-presets button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .ai-label { font-size: 12.5px; color: var(--pencil); border: 1px solid var(--rule); border-radius: var(--r); padding: 2px 6px; white-space: nowrap; }
 
 /* the context panel: Changes and Chapters (Captures waits for the study layer) */

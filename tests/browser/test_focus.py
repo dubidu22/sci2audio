@@ -219,20 +219,19 @@ def test_every_key_on_the_listen_page(signed_in: Page, live: Live) -> None:
     page.keyboard.press("Shift+ArrowLeft")
     expect(page.locator("#now")).to_contain_text("Chapter 1 of 2")
     expect(page.locator("#text .s.now")).to_have_id(first_of(page, 0))
-    # minus and plus step the speed, and say it
-    speed = page.get_by_label("Speed")
+    # minus and plus step the speed by 0.05 (#651), and say it
+    speed = page.locator("#speed-exact")
     page.keyboard.press("+")
-    expect(speed).to_have_value("1.25")
-    expect(page.locator("#message")).to_have_text("Speed 1.25\u00d7")
+    expect(speed).to_have_value("1.05")
+    expect(page.locator("#message")).to_have_text("Speed 1.05\u00d7")
+    expect(page.locator("#speed")).to_have_text("Speed 1.05\u00d7")
     page.keyboard.press("=")  # the + key without Shift
-    expect(speed).to_have_value("1.5")
+    expect(speed).to_have_value("1.10")
     page.keyboard.press("-")
     page.keyboard.press("-")
     page.keyboard.press("-")
-    expect(speed).to_have_value("0.75")
-    page.keyboard.press("-")  # the slowest stays
-    expect(speed).to_have_value("0.75")
-    assert page.locator("#audio").evaluate("a => a.playbackRate") == 0.75
+    expect(speed).to_have_value("0.95")
+    assert page.locator("#audio").evaluate("a => a.playbackRate") == 0.95
     # P hides and shows the side panel
     toggle = page.locator("#panel-toggle")
     page.keyboard.press("p")
@@ -266,15 +265,22 @@ def test_the_keys_stay_out_of_the_way(signed_in: Page, live: Live) -> None:
     open; Space and the arrows on a control do what the control does."""
     page = signed_in
     make_audiobook(page, live)
-    speed = page.get_by_label("Speed")
     toggle = page.locator("#panel-toggle")
-    # the speed select is typed into: letters, minus and plus choose nothing here
-    speed.focus()
+    # the speed field is typed into: letters, minus and plus choose nothing here (#651)
+    page.locator("#speed").focus()
+    page.keyboard.press("Enter")  # by keyboard, the panel opens with the focus in the field
+    speed = page.locator("#speed-exact")
+    expect(speed).to_be_focused()
     for key in ("f", "p", "-", "+", "?"):
         page.keyboard.press(key)
     assert not focusing(page)
     expect(toggle).to_have_attribute("aria-expanded", "true")
-    expect(speed).to_have_value("1")
+    expect(speed).to_have_value("fp-+?")
+    expect(speed).to_have_attribute("aria-invalid", "true")
+    assert page.locator("#audio").evaluate("a => a.playbackRate") == 1
+    page.keyboard.press("Escape")  # closes the panel; the last good speed comes back
+    expect(page.locator("#speed-panel")).to_be_hidden()
+    expect(speed).to_have_value("1.00")
     expect(page.locator("#keys")).not_to_have_attribute("open", "")
     # held Cmd, Ctrl or Alt: the browser's or the system's own. No chord with the left arrow:
     # it goes back in the history with Cmd or Ctrl in WebKit on macOS and with Alt on Linux
@@ -449,7 +455,7 @@ def test_esc_leaves_focus_from_the_speed_list(signed_in: Page, live: Live) -> No
     nobody_focused(page)
     page.keyboard.press("f")
     expect(page.locator("#focus-view")).to_be_focused()
-    page.get_by_label("Speed").focus()
+    page.locator("#speed").focus()  # the speed button, its panel closed (#651)
     page.keyboard.press("Escape")
     expect(page.locator("#focus-view")).to_be_hidden()
     assert not focusing(page)
@@ -507,7 +513,7 @@ def test_with_the_keys_switched_off_only_esc_and_the_rail_item_are_left(
     expect(page.locator("#keys-open kbd")).to_have_count(0)
     expect(page.locator(".focus-foot")).to_have_count(0)
     toggle = page.locator("#panel-toggle")
-    speed = page.get_by_label("Speed")
+    speed = page.locator("#speed-exact")
     before = highlighted(page)
     nobody_focused(page)
     for key in ("f", "F", "p", "?", "-", "+", "=", " ", "ArrowRight", "Shift+ArrowRight"):
@@ -516,7 +522,7 @@ def test_with_the_keys_switched_off_only_esc_and_the_rail_item_are_left(
     assert not focusing(page)
     expect(toggle).to_have_attribute("aria-expanded", "true")
     expect(page.locator("#keys")).to_be_hidden()
-    expect(speed).to_have_value("1")
+    expect(speed).to_have_value("1.00")
     assert paused(page)
     assert highlighted(page) == before
     expect(page.locator("#now")).to_contain_text("Chapter 1 of 2")
@@ -608,12 +614,15 @@ def test_plus_at_the_fastest_speed_stays_there(signed_in: Page, live: Live) -> N
     """S4 (e)."""
     page = signed_in
     make_audiobook(page, live)
-    speed = page.get_by_label("Speed")
-    speed.select_option("2")
+    speed = page.locator("#speed-exact")
+    page.locator("#speed").click()
+    speed.fill("3")
+    speed.press("Enter")
+    page.keyboard.press("Escape")
     nobody_focused(page)
     page.keyboard.press("+")
-    expect(speed).to_have_value("2")
-    assert page.locator("#audio").evaluate("a => a.playbackRate") == 2
+    expect(speed).to_have_value("3.00")  # the fastest the player offers (#651)
+    assert page.locator("#audio").evaluate("a => a.playbackRate") == 3
 
 
 def test_after_p_closes_the_panel_space_and_the_arrows_act_on_the_player(

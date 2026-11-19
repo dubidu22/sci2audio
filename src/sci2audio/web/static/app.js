@@ -26,6 +26,119 @@ function decimal(value) {
   return text.replace(".", STRINGS["common.decimal"] ?? ".");
 }
 
+// ---- the speed field (#651, templates/_speed.html) ------------------------------------------
+// A speed always shows two decimals in the page's language, so its width never jumps.
+function speedText(value) {
+  return Number(value).toFixed(2).replace(".", STRINGS["common.decimal"] ?? ".");
+}
+
+// The speed a person typed: digits with a decimal comma or point, a × or x after them if
+// they like; NaN for anything else (a sign, a letter, two decimal signs, nothing).
+function parseSpeed(text) {
+  const match = /^\s*(\d{0,3}(?:[.,]\d*)?)\s*[×xX]?\s*$/.exec(String(text));
+  if (!match || !/\d/.test(match[1])) return NaN;
+  return Number(match[1].replace(",", "."));
+}
+
+// A speed rounded to 0.01 and kept within its field's limits.
+function roundSpeed(value, min, max) {
+  return Math.min(max, Math.max(min, Math.round(value * 100) / 100));
+}
+
+const SPEED_KEYS = { ArrowUp: 0.01, ArrowDown: -0.01, PageUp: 0.1, PageDown: -0.1 };
+
+// Wires a speed field: arrows ±0.01, Page keys ±0.10, Home and End the limits, its − and +
+// buttons ±0.05; typed text is used on Enter or on leaving the field. Text that is no number
+// marks the field invalid and shows its hint; leaving it then puts the last speed back.
+// `said(value)` is the text screen readers hear; `changed(value)` is called on every change
+// the person made (not on `set` from the page's own code).
+function speedField(root, said, changed) {
+  const min = Number(root.dataset.min);
+  const max = Number(root.dataset.max);
+  const box = root.querySelector(".speed-box");
+  const hint = root.querySelector(".speed-hint");
+  const steps = root.querySelectorAll(".speed-step");
+  let value = roundSpeed(Number(box.dataset.value) || 1, min, max);
+
+  function show() {
+    box.value = speedText(value);
+    box.setAttribute("aria-valuenow", value.toFixed(2));
+    box.setAttribute("aria-valuetext", said(value));
+    box.removeAttribute("aria-invalid");
+    hint.hidden = true;
+    // aria-disabled, not disabled: a button at its limit keeps the focus
+    for (const step of steps) {
+      const end = Number(step.dataset.by) < 0 ? value <= min : value >= max;
+      step.setAttribute("aria-disabled", String(end));
+    }
+  }
+  function set(to, byPerson) {
+    const next = roundSpeed(to, min, max);
+    const moved = next !== value;
+    value = next;
+    show();
+    if (moved && byPerson) changed(value);
+    return moved;
+  }
+  function commit() {
+    const typed = parseSpeed(box.value);
+    if (Number.isNaN(typed)) show(); // nothing is used: the last speed comes back
+    else set(typed, true);
+  }
+  box.addEventListener("input", () => {
+    const wrong = Number.isNaN(parseSpeed(box.value));
+    if (wrong) box.setAttribute("aria-invalid", "true");
+    else box.removeAttribute("aria-invalid");
+    hint.hidden = !wrong;
+  });
+  box.addEventListener("change", commit);
+  box.addEventListener("focus", () => box.select());
+  box.addEventListener("keydown", (event) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const typed = parseSpeed(box.value);
+    const from = Number.isNaN(typed) ? value : typed;
+    if (event.key in SPEED_KEYS) set(from + SPEED_KEYS[event.key], true);
+    else if (event.key === "Home") set(min, true);
+    else if (event.key === "End") set(max, true);
+    else if (event.key === "Enter") {
+      commit();
+      return; // a form around it may still be sent (Settings)
+    } else return;
+    event.preventDefault();
+    box.select();
+  });
+  for (const step of steps) {
+    step.addEventListener("click", () => set(value + Number(step.dataset.by), true));
+    step.disabled = false; // drawn disabled: a click before this ran would be lost (#350)
+  }
+  show();
+  box.disabled = false; // drawn disabled: what is typed before this ran would be lost (#350)
+  return {
+    get value() {
+      return value;
+    },
+    set,
+  };
+}
+
+// The voice's speed: a slider for dragging, the speed field beside it for an exact value;
+// both move together (#651).
+function voiceSpeed(slider) {
+  const field = slider.parentElement.querySelector(".speed-field");
+  const said = (value) => tr("voice.speed_value", { value: speedText(value) });
+  const exact = speedField(field, said, (value) => {
+    slider.value = value.toFixed(2);
+    slider.setAttribute("aria-valuetext", said(value));
+  });
+  function slid() {
+    exact.set(Number(slider.value), false);
+    slider.setAttribute("aria-valuetext", said(Number(slider.value)));
+  }
+  slider.addEventListener("input", slid);
+  slid();
+  return () => exact.value;
+}
+
 // An error in the page's language: the table's sentence for its kind, then the app's own
 // words as details in English (D-291); an unknown kind shows those words alone.
 function failureOf(kind, words) {
@@ -480,15 +593,7 @@ function documentPage() {
   wire(document.getElementById("analyse"), () => analyse({}));
   if (box.dataset.events) follow(box.dataset.events, () => {}, () => reloadAt("step-check"));
 
-  const speed = document.getElementById("speed");
-  const speedValue = document.getElementById("speed-value");
-  function showSpeed() {
-    const text = tr("voice.speed_value", { value: decimal(speed.value) });
-    speedValue.textContent = text;
-    speed.setAttribute("aria-valuetext", text);
-  }
-  speed.addEventListener("input", showSpeed);
-  showSpeed();
+  const speed = voiceSpeed(document.getElementById("speed"));
   // how fast the voice reads letters it spells out (#295)
   const letterPace = () => {
     const chosen = document.querySelector('input[name="letter-pace"]:checked');
@@ -523,7 +628,7 @@ function documentPage() {
       try {
         const body = {
           voice: voice.value,
-          speed: Number(speed.value),
+          speed: speed(),
           letter_pace: letterPace(),
           text: document.getElementById("preview-text").value,
         };
@@ -565,7 +670,7 @@ function documentPage() {
         language: shown.language,
         switched_off: shown.switched_off,
         voice: voice.value,
-        speed: Number(speed.value),
+        speed: speed(),
         letter_pace: letterPace(),
         subtitles: document.getElementById("subtitles").checked,
         output_folder: folder,
@@ -1049,16 +1154,8 @@ function settingsPage() {
   const form = document.getElementById("defaults");
   if (!form) return;
   const folder = document.getElementById("settings-folder");
-  const speed = document.getElementById("settings-speed");
-  const speedValue = document.getElementById("settings-speed-value");
+  const speed = voiceSpeed(document.getElementById("settings-speed"));
   const save = document.getElementById("settings-save");
-  function showSpeed() {
-    const text = tr("voice.speed_value", { value: decimal(speed.value) });
-    speedValue.textContent = text;
-    speed.setAttribute("aria-valuetext", text);
-  }
-  speed.addEventListener("input", showSpeed);
-  showSpeed();
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!folder.value.trim()) {
@@ -1071,7 +1168,7 @@ function settingsPage() {
       // pace someone chose elsewhere are kept
       const saved = (await send(form.dataset.api)).settings;
       saved.output_folder = folder.value.trim();
-      saved.speed = Number(speed.value);
+      saved.speed = speed();
       await send(form.dataset.api, json("PUT", saved));
       say(tr("settings.saved"), true);
     } catch (error) {

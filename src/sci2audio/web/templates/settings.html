@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_speed.html" import speed_field with context %}
 {% block title %}{{ t('settings.title') }} · {{ t('common.app') }}{% endblock %}
 {% block main %}
 <h1>{{ t('settings.title') }}</h1>
@@ -38,8 +39,8 @@
     </div>
     <div class="field">
       <label for="settings-speed">{{ t('settings.speed') }}</label>
-      <p class="range"><input type="range" id="settings-speed" name="speed" min="{{ speed_min }}" max="{{ speed_max }}" step="{{ speed_step }}" value="{{ speed }}" aria-valuetext="{{ speed_text }}">
-      <output id="settings-speed-value" for="settings-speed" aria-hidden="true">{{ speed_text }}</output></p>
+      <p class="range"><input type="range" id="settings-speed" name="speed" min="{{ speed.min }}" max="{{ speed.max }}" step="{{ speed.step }}" value="{{ speed.value }}" aria-valuetext="{{ speed.text }}">
+      {{ speed_field('settings-speed-exact', speed, t('speed.exact')) }}</p>
     </div>
     {# drawn disabled; app.js enables it once its click is wired (#177, #350) #}
     <p><button type="submit" class="primary" id="settings-save" disabled>{{ t('settings.save') }}</button></p>
