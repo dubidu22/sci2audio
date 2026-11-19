@@ -18,6 +18,8 @@ the page.
 
 from __future__ import annotations
 
+import heapq
+import math
 from dataclasses import dataclass
 
 from sci2audio.core import Box, Drawing, Picture, TextLine
@@ -42,9 +44,37 @@ class Element:
 
 
 def figures(graphics: list[Picture | Drawing], reach: float) -> list[Element]:
-    """Pictures and drawings grouped into figures: those that touch or nearly touch."""
+    """Pictures and drawings grouped into figures: those that touch or nearly touch (within
+    `reach` across and down), each figure in the order of its first graphic, its graphics in
+    their order."""
     placed = [g for g in graphics if g.box]
-    parent = list(range(len(placed)))
+    found = touching([boxed(g) for g in placed], reach)
+    groups: dict[int, list[Picture | Drawing]] = {}
+    for graphic, group in zip(placed, found, strict=True):
+        groups.setdefault(group, []).append(graphic)
+    return [
+        Element(union([boxed(g) for g in group]), graphics=tuple(group))
+        for group in groups.values()
+    ]
+
+
+_BAND = 8.0  # the open boxes are kept in bands this many times `reach` high (#354)
+
+
+def touching(boxes: list[Box], reach: float) -> list[int]:
+    """For each box, a number its group shares: boxes that touch or nearly touch, `reach`
+    or less apart across and down, are in one group, and so are boxes touching one of those.
+
+    A sweep from left to right, in time about linear in the boxes however they lie (#354):
+    the boxes whose right edge is still within `reach` of the sweep ("open") are all near
+    each other across, so a new box joins exactly the groups of the open boxes within
+    `reach` of it down the page. The open boxes are kept in bands of height by group: a band
+    the new box's reach covers wholly joins every group in it without looking at its boxes;
+    the bands at either end are looked at box by box, a group at a time. Open boxes of two
+    groups never stand within `reach` of each other down the page (they would be one group),
+    so a band holds few groups.
+    """
+    parent = list(range(len(boxes)))
 
     def root(i: int) -> int:
         while parent[i] != i:
@@ -52,22 +82,58 @@ def figures(graphics: list[Picture | Drawing], reach: float) -> list[Element]:
             i = parent[i]
         return i
 
-    by_left = sorted(range(len(placed)), key=lambda i: boxed(placed[i]).x0)
-    for n, i in enumerate(by_left):
-        a = boxed(placed[i])
-        for j in by_left[n + 1 :]:
-            b = boxed(placed[j])
-            if b.x0 > a.x1 + reach:
-                break
-            if b.y0 <= a.y1 + reach and a.y0 <= b.y1 + reach:
-                parent[root(i)] = root(j)
-    groups: dict[int, list[Picture | Drawing]] = {}
-    for i, graphic in enumerate(placed):
-        groups.setdefault(root(i), []).append(graphic)
-    return [
-        Element(union([boxed(g) for g in group]), graphics=tuple(group))
-        for group in groups.values()
-    ]
+    height = _BAND * reach if reach > 0 else _BAND
+    bands: dict[int, dict[int, set[int]]] = {}  # band -> group's root then -> open boxes
+
+    def band_range(low: float, high: float) -> range:
+        return range(math.floor(low / height), math.floor(high / height) + 1)
+
+    def tidy(band: dict[int, set[int]], key: int) -> int:
+        """The group's root, its boxes in this band filed under it (groups join later)."""
+        found = root(key)
+        if found != key:
+            moved, kept = band.pop(key), band.get(found)
+            if kept is None:
+                band[found] = moved
+            else:
+                if len(kept) < len(moved):  # the smaller set joins the larger
+                    moved, kept = kept, moved
+                    band[found] = kept
+                kept |= moved
+        return found
+
+    closing: list[tuple[float, int]] = []  # (where the sweep passes a box's reach, box)
+    for i in sorted(range(len(boxes)), key=lambda k: boxes[k].x0):
+        box = boxes[i]
+        while closing and closing[0][0] < box.x0:
+            _, gone = heapq.heappop(closing)
+            group = root(gone)
+            for number in band_range(boxes[gone].y0, boxes[gone].y1):
+                band = bands[number]
+                for key in [k for k in band if k != group and root(k) == group]:
+                    tidy(band, key)
+                band[group].discard(gone)
+                if not band[group]:
+                    del band[group]
+                if not band:
+                    del bands[number]
+        low, high = box.y0 - reach, box.y1 + reach
+        for number in band_range(low, high):
+            band = bands.get(number, {})
+            whole = low <= number * height and (number + 1) * height <= high
+            for key in list(band):
+                if key not in band:
+                    continue  # filed under another key a moment ago
+                group = tidy(band, key)
+                if group != root(i) and (
+                    whole or any(boxes[k].y0 <= high and low <= boxes[k].y1 for k in band[group])
+                ):
+                    parent[group] = root(i)
+        group = root(i)
+        for number in band_range(box.y0, box.y1):
+            bands.setdefault(number, {}).setdefault(group, set()).add(i)
+        heapq.heappush(closing, (box.x1 + reach, i))
+    return [root(i) for i in range(len(boxes))]
 
 
 @dataclass
