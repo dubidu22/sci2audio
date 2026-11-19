@@ -425,6 +425,14 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("x ←−1/2", "x ←ein halb"),
         ("x ←−3-5", "x ←3 bis 5"),
         ("x ←−→ [2]", "x ↔ [2]"),  # the citations step keeps the bracket after "↔" too
+        # ... right arrows and several in one block, each masked at its own place (round 2 T1)
+        ("x −→1:1 und y −−→3/4 und z −→3-5", "x →1 zu 1 und y →3 Viertel und z →3 bis 5"),
+        # ... and a guard skips only its own ordinal, never the later ones (round 2 T2)
+        ("13 Uhr 30. Jahr und am 3. Mai", "13 Uhr 30. Jahr und am dritten Mai"),
+        (
+            "im Jahr 19 hundert 98. Jahr und am 3. Mai",
+            "im Jahr 19 hundert 98. Jahr und am dritten Mai",
+        ),
         # ... F3: any space around a clock time's "Uhr" (#557)
         ("um 13:30  Uhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
         ("um 13:30\tUhr 3. Mai", "um 13 Uhr 30 dritter Mai"),
