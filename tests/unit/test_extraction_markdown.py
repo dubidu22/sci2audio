@@ -152,6 +152,28 @@ def test_pictures_keep_alt_text_path_and_place() -> None:
     assert texts(content) == ["Before.", "Text inline."]
 
 
+@pytest.mark.parametrize(
+    ("markdown", "alt"),
+    [
+        pytest.param("![next <b>bold</b>](u.png)", "next bold", id="inline HTML (AC-1)"),
+        pytest.param("![line\\\nnext](u.png)", "line next", id="hard break (AC-2)"),
+        pytest.param("![line  \nnext](u.png)", "line next", id="hard break by spaces"),
+        pytest.param("![line\nnext](u.png)", "line next", id="soft break"),
+        pytest.param("![a \\* b](u.png)", "a * b", id="escape (AC-3)"),
+        pytest.param("![the `x` var](u.png)", "the x var", id="code span (AC-3)"),
+        pytest.param("![&amp; and &copy;](u.png)", "& and ©", id="entities (AC-3)"),
+        pytest.param("![*em* and **strong**](u.png)", "em and strong", id="emphasis"),
+        pytest.param("![a ![b](c.png) d](u.png)", "a b d", id="a nested image"),
+        pytest.param('![<img src="x.png" alt="y">](u.png)', "", id="only a tag"),
+    ],
+)
+def test_alt_text_is_the_text_only(markdown: str, alt: str) -> None:
+    """#602: markdown-it-py 4.3 keeps inline HTML and line breaks in an image's alt text;
+    the figure notice would read the tags."""
+    (picture,) = read(markdown).pages[0].pictures
+    assert picture.alt == alt
+
+
 def test_links_inside_the_file_resolve_and_others_keep_their_address() -> None:
     content = read(
         '<p id="top">Top</p>\n\n[up](#top) [web](https://example.org/a?b=1) <https://x.org>'
@@ -361,7 +383,11 @@ def test_deeply_nested_lists_are_read_whole_up_to_the_limit() -> None:
     "text",
     [nested_list(50), nested_list(3000), ">" * 100 + " deep\n\nafter\n", ">" * 5000 + " x\n"],
 )
-def test_nesting_past_the_limit_fails_rather_than_losing_text(text: str) -> None:
+def test_nesting_past_the_limit_fails_rather_than_losing_text(
+    monkeypatch: pytest.MonkeyPatch, text: str
+) -> None:
+    # 3,000 levels of list are 9 MB of indent in one block, which MAX_BLOCK refuses first
+    monkeypatch.setattr(markdown_module, "MAX_BLOCK", 10**9)
     with pytest.raises(ExtractionError, match=r"^notes\.md: the Markdown is nested too deeply"):
         read(text)
 
@@ -516,9 +542,115 @@ def test_more_pieces_of_text_than_the_limit_fail(monkeypatch: pytest.MonkeyPatch
     )
 
 
+BLOCK_MESSAGE = (
+    "notes.md: the Markdown holds a paragraph or block longer than {:,} characters"
+    " (counted between blank lines)"
+)
+
+
+def test_a_paragraph_past_the_block_limit_is_refused_before_parsing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """markdown-it costs about 22 times a paragraph's size: one of 64 MB in short lines
+    took 1.4 GB, one long line 1.2 GB (#329)."""
+    text = ("word " * 53 + "\n") * (8 * 1024 * 1024 // 266)  # 8 MB, no blank line
+    message = re.escape(BLOCK_MESSAGE.format(4_000_000))
+    assert refused_before_parsing(text, f"^{message}$", monkeypatch) < 40 * 1024 * 1024
+
+
+def test_one_long_line_is_refused_before_parsing(monkeypatch: pytest.MonkeyPatch) -> None:
+    text = "word " * (8 * 1024 * 1024 // 5)
+    message = re.escape(BLOCK_MESSAGE.format(4_000_000))
+    assert refused_before_parsing(text, f"^{message}$", monkeypatch) < 40 * 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a" * 9 + "\n\n" + "b" * 9, id="paragraphs"),
+        pytest.param("a" * 9 + "\n \t\n" + "b" * 9, id="a blank line of spaces and tabs"),
+        pytest.param("a" * 8 + "\r\n\r\n" + "b" * 9, id="CR LF"),
+        pytest.param("a" * 9 + "\r\r" + "b" * 9, id="CR"),
+        pytest.param("- " + "a" * 7 + "\n\n- " + "b" * 7 + "\n", id="list items"),
+    ],
+)
+def test_blocks_at_the_limit_read(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    """Each block holds 10 characters, its line end included."""
+    monkeypatch.setattr(markdown_module, "MAX_BLOCK", 10)
+    assert isinstance(outcome(text), Content)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a" * 11, id="one line"),
+        pytest.param("a" * 5 + "\n" + "b" * 5, id="two lines"),
+        pytest.param("x\n\n" + "a" * 5 + "\r\n" + "b" * 5, id="CR LF inside a block"),
+        pytest.param("- a\n- b\n- c\n- d", id="a tight list"),
+        pytest.param("```\nabc\ndefgh\n```", id="a code block"),
+        pytest.param("|a|b|\n|-|-|\n|c|d|", id="a table"),
+    ],
+)
+def test_a_block_past_the_limit_is_refused(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    monkeypatch.setattr(markdown_module, "MAX_BLOCK", 10)
+    assert outcome(text) == BLOCK_MESSAGE.format(10)
+
+
+@pytest.mark.parametrize(
+    ("text", "longest"),
+    [
+        ("", 0),
+        ("\n\n", 0),
+        ("abc", 3),
+        ("abc\n", 4),
+        ("ab\ncd\n\nefghij", 6),
+        ("ab\r\ncd\r\n \r\nx", 8),
+        ("ab\rcd\r\t\r", 6),
+        ("  \t  \n", 0),
+        (" " * 100 + "x", 101),  # spaces before text make no blank line
+    ],
+)
+def test_the_longest_block_counts_characters_between_blank_lines(text: str, longest: int) -> None:
+    assert markdown_module.longest_block(text) == longest
+
+
+def test_the_longest_block_is_found_in_linear_time() -> None:
+    def sized(size: int) -> str:
+        return ("a" * 50 + "\n" + " " * 50 + "\n\n") * (size // 103)
+
+    assert_linear(markdown_module.longest_block, sized, 4_000_000)
+
+
+def test_the_line_and_markup_limits_of_the_page_reader_apply(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """After rendering, the page reader's own limits (#329) stop the Markdown too."""
+    with monkeypatch.context() as patch:
+        patch.setattr(markup_module, "MAX_LINE", 5)
+        assert outcome("abcdef") == (
+            "notes.md: the Markdown holds a paragraph longer than 5 characters"
+        )
+    monkeypatch.setattr(markup_module, "MAX_MARKUP", 3)  # <ul> and two <li>
+    assert isinstance(outcome("- a\n- b\n"), Content)
+    assert outcome("- a\n- b\n- c\n") == (
+        "notes.md: the Markdown holds too much markup to read (more than 3 tags, comments"
+        " and declarations)"
+    )
+
+
+def test_the_tag_limit_applies_to_html_in_markdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(markup_module, "MAX_TAG", 100)
+    assert texts(read("<p" + " a" * 48 + ">x</p>\n")) == ["x"]  # 100 characters
+    assert outcome("<p" + " a" * 49 + ">x</p>\n") == (
+        "notes.md: the Markdown holds a tag longer than 100 characters"
+    )
+
+
 def test_the_limits_are_the_decided_ones() -> None:
     assert (markdown_module.MAX_LINES, markdown_module.MAX_MARKS) == (250_000, 500_000)
     assert markup_module.MAX_ITEMS == 1_000_000  # D-579
+    assert markdown_module.MAX_BLOCK == 4_000_000  # D-777
+    assert markup_module.MAX_TAG == 1_000_000  # D-783
 
 
 # ---- properties --------------------------------------------------------------------------
@@ -559,11 +691,19 @@ def test_with_low_limits_any_markdown_reads_or_names_a_limit(text: str) -> None:
         r"|the file is too large; sci2audio reads Markdown files of up to 4 lines"
         r"|the Markdown holds too much markup to read \(more than 5 marks"
         r"|the Markdown is too large to read \(more than 8 pieces of text\)"
+        r"|the Markdown holds a paragraph or block longer than 12 characters"
+        r"|the Markdown holds too much markup to read \(more than 9 tags"
+        r"|the Markdown holds a paragraph longer than 6 characters"
+        r"|the Markdown holds a tag longer than 8 characters"
     )
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(markdown_module, "MAX_LINES", 4)
         patch.setattr(markdown_module, "MAX_MARKS", 5)
+        patch.setattr(markdown_module, "MAX_BLOCK", 12)
         patch.setattr(markup_module, "MAX_ITEMS", 8)
+        patch.setattr(markup_module, "MAX_MARKUP", 9)
+        patch.setattr(markup_module, "MAX_LINE", 6)
+        patch.setattr(markup_module, "MAX_TAG", 8)
         content = outcome(text)
     if isinstance(content, str):
         assert re.match(rf"notes\.md: (?:{limits})", content), content
