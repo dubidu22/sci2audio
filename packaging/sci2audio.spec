@@ -157,7 +157,7 @@ if sys.platform == "darwin":
             "CFBundleDisplayName": "sci2audio",
             "CFBundleShortVersionString": VERSION,
             "CFBundleVersion": VERSION,
-            "LSMinimumSystemVersion": "12.0",
+            "LSMinimumSystemVersion": "14.0",  # torch and onnxruntime wheels: macosx_14_0_arm64
             "NSHighResolutionCapable": True,
             "LSApplicationCategoryType": "public.app-category.education",
         },

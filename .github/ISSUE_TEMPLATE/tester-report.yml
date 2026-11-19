@@ -1,0 +1,58 @@
+name: Tester report
+description: You tried an installer of sci2audio; tell us how it went, good or bad
+labels: [inbox, tester-report]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for trying sci2audio. Everything helps: what worked, what was confusing, what broke.
+        Please never attach a document you may not share (use your own, public domain or CC BY texts).
+  - type: dropdown
+    id: installer
+    attributes:
+      label: Which installer did you use?
+      options:
+        - macOS (.dmg)
+        - Windows (setup.exe)
+        - Linux (AppImage)
+        - uv tool install (command line)
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: sci2audio version and system
+      description: "`sci2audio --version` prints it, and so does the first line of the app's start-up log (\"sci2audio 1.4.0 starting on ...\"; where the log is: docs/installing.md)."
+      placeholder: "sci2audio 1.4.0, macOS 15.2 on an M2"
+    validations:
+      required: true
+  - type: dropdown
+    id: started
+    attributes:
+      label: Did it install and start?
+      options:
+        - "Yes, without trouble"
+        - "Yes, after the security warning (Open Anyway / Run anyway)"
+        - "No, it did not install"
+        - "No, it installed but did not start"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What did you do, and what happened?
+      description: Which kind of text (PDF paper, EPUB, Markdown), which language, which voice; what sounded right or wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: What would make it better for you?
+  - type: textarea
+    id: log
+    attributes:
+      label: The start-up log, if it did not start
+      description: |
+        macOS `~/Library/Logs/sci2audio/app.log`, Windows `%LOCALAPPDATA%\sci2audio\Logs\app.log`,
+        Linux `~/.local/state/sci2audio/log/app.log`. It holds no file names and no text.
+      render: text
