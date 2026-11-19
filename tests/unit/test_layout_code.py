@@ -536,3 +536,91 @@ def test_a_listing_caption_set_in_a_typewriter_font_is_not_cut() -> None:
     assert [(b.kind.value, b.text) for b in doc.blocks if b.kind is BlockKind.CAPTION] == [
         ("caption", "Listing 1: A caption set in the typewriter font that\nruns on.")
     ]
+
+
+def test_a_listing_caption_names_the_code_in_its_own_column() -> None:
+    """Review M1 (#600): column 1 ends with listing A and its caption, column 2 opens with
+    listing B and its caption. Code in the other column is farther, as on another page,
+    though its top lies above the caption."""
+    left, right, left2, right2 = 70.0, 290.0, 306.0, 526.0
+
+    def at(runs: tuple[TextRun, ...], y: float, x0: float, x1: float) -> TextLine:
+        return TextLine(f"t{next(_ids)}", runs, Box(x0, y, x1, y + 10))
+
+    lines = [
+        at(
+            prose(f"Left column running text line {k} here."),
+            100 + PITCH * k,
+            left,
+            right if k < 19 else 200,
+        )
+        for k in range(20)
+    ]
+    lines += [at(code("import a"), 420, left, left + 48), at(code("a.run()"), 434, left, left + 42)]
+    lines.append(at(prose("Listing 1: First."), 460, left, left + 120))
+    lines += [
+        at(code("import b"), 100, left2, left2 + 48),
+        at(code("b.run()"), 114, left2, left2 + 42),
+    ]
+    lines.append(at(prose("Listing 2: Second."), 140, left2, left2 + 120))
+    lines += [
+        at(
+            prose(f"Right column running text line {k} here."),
+            170 + PITCH * k,
+            left2,
+            right2 if k < 19 else 400,
+        )
+        for k in range(20)
+    ]
+    doc = build_document(content(lines))
+    assert described(doc) == [("Listing 1", "import a"), ("Listing 2", "import b")]
+
+
+_PIECES = st.lists(
+    st.tuples(
+        st.sampled_from(["code", "caption", "prose", "code", "caption"]),
+        st.sampled_from([2.0, 1.0]),
+    ),
+    min_size=1,
+    max_size=8,
+)
+
+
+@given(st.lists(_PIECES, min_size=2, max_size=4))
+def test_listings_captions_and_furniture_over_pages_keep_every_item_once(pages: list) -> None:
+    """Review S1 (#600), property: pages under a running head and over a page number, whose
+    bodies are prose, code and "Listing N:" caption lines in any order (so a page may end
+    and the next begin with code). Every item is in exactly one block, a CODE block holds
+    only monospace lines, a CODE block is named by one caption at most, and every
+    `describes` is in range and, for a listing caption, names a CODE block."""
+    built = []
+    for number, pieces in enumerate(pages, start=1):
+        lines = [head(), *(running() if number == 1 else [])]
+        y = 260.0 if number == 1 else 100.0
+        for k, (kind, step) in enumerate(pieces):
+            if kind == "code":
+                lines.append(text_line(code(f"x{k} = f({k})"), y, end=LEFT + 60))
+            elif kind == "caption":
+                lines.append(caption(f"Listing {number}{k}: Example {k}.", y))
+            else:
+                lines.append(text_line(prose(f"Some text {number} {k}."), y))
+            y += step * PITCH
+        built.append([*lines, page_number(number)])
+    found = content(*built)
+    doc = build_document(found)
+    items = {item.id: item for _, item in found.items().values()}
+    held = [part.item for block in doc.blocks for part in block.parts]
+    assert sorted(held) == sorted(items)
+    named: list[int] = []
+    for block in doc.blocks:
+        if block.kind is BlockKind.CODE:
+            for part in block.parts:
+                runs = [r for r in items[part.item].runs if r.text.strip()]
+                assert runs
+                assert all(monospace(r.font) for r in runs)
+        if block.describes is not None:
+            assert 0 <= block.describes < len(doc.blocks)
+            if block.label.startswith("Listing"):
+                assert doc.blocks[block.describes].kind is BlockKind.CODE
+                named.append(block.describes)
+    assert len(named) == len(set(named))

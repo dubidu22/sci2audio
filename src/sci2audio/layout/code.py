@@ -30,8 +30,8 @@ step reads a short notice instead, and the player shows the code.
   ends the run, and so does furniture between two code paragraphs on one page.
 - A listing's caption ("Listing 3: ...", German "Quelltext 3", #281) names the CODE block
   next to it in reading order, before or after it; when both are code, the nearer on the
-  page. A CODE block is named by one such caption at most, and a listing caption with no
-  CODE block next to it names nothing.
+  page in its column. A CODE block is named by one such caption at most, and a listing
+  caption with no CODE block next to it names nothing.
 
 A listing's indentation is not rebuilt: a PDF line holds no leading white space, and layout
 adds no text (#282).
@@ -173,7 +173,8 @@ def _white(
     caption: Block, code: Block, above: bool, lines: dict[str, TextLine], page_of: dict[str, int]
 ) -> float:
     """The white between a caption and the code block before (`above`) or after it, from
-    the caption's lines to the code's nearest line; infinite on another page or unknown."""
+    the caption's lines to the code's nearest line; infinite on another page, in another
+    column (the lines do not overlap across) or unknown."""
     own = [part.item for part in caption.parts if part.item in lines]
     other = [part.item for part in code.parts if part.item in lines]
     if not own or not other:
@@ -181,6 +182,8 @@ def _white(
     edge, near = (own[0], other[-1]) if above else (own[-1], other[0])
     a, b = lines[edge].box, lines[near].box
     if page_of[edge] != page_of[near] or a is None or b is None:
+        return math.inf
+    if a.x1 <= b.x0 or b.x1 <= a.x0:  # in another column: farther, as on another page
         return math.inf
     return _gap(b, a) if above else _gap(a, b)
 
