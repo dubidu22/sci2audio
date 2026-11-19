@@ -641,13 +641,14 @@ def _join_before(
     """A join word right before a link that is the last item of a list goes too when words
     follow the link: "We thank Smith and https://x.org here" reads "We thank Smith here", "We
     thank Smith, Lee, and https://x.org here" reads "We thank Smith, Lee here" (#402,
-    D-791). Where nothing follows the link, `_dangling_join` decides. Only after a word with
+    D-791). Where nothing or a punctuation mark follows the link, `_dangling_join` has
+    taken the join word already. Only after a word with
     a capital that does not start the sentence (a name), as `_join_after` asks of the word
     after a link, so "It rains and https://x.org shows it" keeps its "and" where it joins
     clauses; and only for a link removed alone. In German every noun has a capital, so
     "Wir messen die Daten und https://x.org zeigt sie" loses its "und" too: the link was
     the clause's subject, so neither reading mends it (a known limit, pinned by a test)."""
-    if end >= len(text) or text[end] in ".,;:!?)]":
+    if end >= len(text):
         return start, ""
     joins = [w for w in words.joins if w.isalpha()]  # "and", "or", "und", "oder"
     listed = "|".join(re.escape(w) for w in sorted(joins, key=len, reverse=True))

@@ -475,7 +475,7 @@ class _Rules:
         # (#257, #414); "or" joins none, and a list joined on to a bracket by it is no list
         self.list_gap = re.compile(rf"\s*,\s*|(?:\s*,)?\s+(?P<join>{words.and_word})\s+")
         self.or_after = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+\[")
-        self._lists: dict[int, tuple[list[_Bracket], bool]] = {}  # this look only
+        self._lists: dict[int, list[_Bracket]] = {}  # this look only
         self._paired: set[int] = set()  # the later brackets of lists, this look only
         self._numbered: set[int] = set()  # the square brackets decided, this look only
         self.identifiers = _identifiers_pattern(words)
@@ -1013,7 +1013,9 @@ class _Rules:
             after = text[child.close + 1 : bounds[2 * number + 3]]
             ahead = self.item_after.match(after) is not None or not after.strip()
             behind = self.item_before.search(before) is not None or not before.strip()
-            if not number and not behind:
+            if not behind:
+                # lead words: before the first item ("(see (Smith, 2019); (Lee, 2018))");
+                # before a later one they make no list, as the rest's parts then hold "see"
                 behind = self._only_lead_left(before)
             if not (ahead and behind):
                 continue
@@ -1040,8 +1042,8 @@ class _Rules:
     def _only_items(self, text: str, node: _Bracket) -> bool:
         """True if a bracket's own text, outside its inner brackets, is only lead words at its
         start, separators between them ("; and"), and a year shell's year at its end (#415).
-        Only the bracket's own text is read, at most the look-back, so a deep nest costs
-        linear time (#313, D-599)."""
+        Only the bracket's own text is read, which no other bracket's look reads, so a deep
+        nest costs linear time (#313, D-599)."""
         if not node.children:
             return False
         last = node.close
@@ -1052,8 +1054,6 @@ class _Rules:
             for before, after in itertools.pairwise(node.children)
         ]
         gaps.append(text[node.children[-1].close + 1 : last])
-        if sum(map(len, gaps)) > _LOOK_BACK:
-            return False
         if gaps[0].strip() and not self._only_lead_left(gaps[0]):
             return False
         return all(
@@ -1202,8 +1202,8 @@ class _Rules:
         listed = self._list(node)
         end = node.close + 1
         if listed is not None:
-            end = listed[0][-1].close + 1
-            inside = ", ".join(text[item.open + 1 : item.close] for item in [node, *listed[0]])
+            end = listed[-1].close + 1
+            inside = ", ".join(text[item.open + 1 : item.close] for item in [node, *listed])
         window = max(0, node.open - _LOOK_BACK)
         # judged on the words before it as a second run sees them, past the removals
         before = text[window : min(edge, node.open)].rstrip()
@@ -1224,7 +1224,7 @@ class _Rules:
             word not in self.words.before
             or any(before.lower().endswith(aside) for aside in self.words.asides)
         ) and not self._is_subject(text, at, end):
-            if listed is not None and self._needed_pair(listed):
+            if listed is not None and self._needed_pair(text, node, listed):
                 # an aside joined by "and" to a second bracket, which the "and" makes needed:
                 # both are needed, read as one ("between [1] and [3]" is "between references
                 # 1 and 3", #257, D-668); an aside starts no sentence
@@ -1248,11 +1248,9 @@ class _Rules:
             spoken = " " + spoken  # the removal before took the space: "and (Smith, 2019)[12]"
         return [(start, end, EditKind.REPLACE, spoken, reason)]
 
-    def _bracket_lists(
-        self, text: str, roots: list[_Bracket]
-    ) -> dict[int, tuple[list[_Bracket], bool]]:
+    def _bracket_lists(self, text: str, roots: list[_Bracket]) -> dict[int, list[_Bracket]]:
         """The lists of square brackets in this look, each by its first bracket's opening: its
-        later brackets, and whether "and" joins two of them (#257, D-668; #414, D-791).
+        later brackets (#257, D-668; #414, D-791).
 
         A list is a run of two or more square brackets of one kind (whole numbers, lists and
         ranges, or listed keys; no page, no German decimal interval) set off only by "," and
@@ -1274,12 +1272,11 @@ class _Rules:
                 squares.append(node)
             stack += node.children
         squares.sort(key=lambda node: node.open)
-        lists: dict[int, tuple[list[_Bracket], bool]] = {}
+        lists: dict[int, list[_Bracket]] = {}
         first = 0
         while first < len(squares):
             head, last = squares[first], first
             kind = self._item_kind(text, head)
-            joined = False
             while kind is not None and last + 1 < len(squares):
                 ahead = squares[last + 1]
                 gap = self.list_gap.fullmatch(text, squares[last].close + 1, ahead.open)
@@ -1289,10 +1286,9 @@ class _Rules:
                     or _NUMBER_GLUED_AFTER.match(text, ahead.close + 1)
                 ):
                     break
-                joined = joined or gap["join"] is not None
                 last += 1
             if last > first and not self.or_after.match(text, squares[last].close + 1):
-                lists[head.open] = (squares[first + 1 : last + 1], joined)
+                lists[head.open] = squares[first + 1 : last + 1]
             first = last + 1
         return lists
 
@@ -1305,19 +1301,24 @@ class _Rules:
             return "keys"
         return "numbers" if _NUMERIC.match(inside) else None
 
-    def _list(self, node: _Bracket) -> tuple[list[_Bracket], bool] | None:
-        """The list that starts at `node`, its later brackets now taken along, or None if
-        it starts no list or one of them is decided already in this look."""
+    def _list(self, node: _Bracket) -> list[_Bracket] | None:
+        """The list that starts at `node`, its later brackets now taken along, or None if it
+        starts no list. Siblings are decided left to right (`_visit`), so no later bracket of
+        a list is decided before its first (never in 10,000 random texts,
+        `plans/b9-mutants/search_414k.py`)."""
         found = self._lists.get(node.open)
-        if found is None or any(item.open in self._numbered for item in found[0]):
+        if found is None:
             return None
-        self._paired.update(item.open for item in found[0])
+        self._paired.update(item.open for item in found)
         return found
 
-    def _needed_pair(self, listed: tuple[list[_Bracket], bool]) -> bool:
+    def _needed_pair(self, text: str, node: _Bracket, listed: list[_Bracket]) -> bool:
         """True for a list of two brackets joined by "and", when "and" makes a citation after
         it needed: then the first is needed too (#257, D-668)."""
-        return len(listed[0]) == 1 and listed[1] and self.words.and_word in self.words.before
+        if len(listed) != 1 or self.words.and_word not in self.words.before:
+            return False
+        gap = self.list_gap.fullmatch(text, node.close + 1, listed[0].open)
+        return gap is not None and gap["join"] is not None
 
     def _paged(self, inside: str) -> tuple[str, str] | None:
         """One source and its page, as the source and the page's reading: "12, p. 3" is "12"

@@ -13,6 +13,8 @@ from hypothesis import strategies as st
 from sci2audio.core import BlockKind
 from sci2audio.testing import make_document, rebuilt_from_script
 from sci2audio.textprep import StepContext, run_steps, spoken_text
+from sci2audio.textprep.citations import CitationStep
+from sci2audio.textprep.links import LinkStep
 
 
 def read_all(text: str, language: str = "en") -> str:
@@ -216,6 +218,12 @@ def test_no_two_full_stops_after_an_abbreviation(language: str, printed: str, sa
         ("en", "It holds. [1], [2] and [3] show it.", "It holds. References 1, 2 and 3 show it."),
         ("en", "Refs. [1], [2] and [3] show it.", "References 1, 2 and 3 show it."),
         ("en", "See Refs. [1], [2] and [3].", "See references 1, 2 and 3."),
+        # the reading takes the place of "Refs." and the list goes, past a removal between
+        (
+            "en",
+            "Refs. (see https://x.org) [1], [2] and [3] show it.",
+            "References 1, 2 and 3 show it.",
+        ),
         (
             "de",
             "Wie in [1], [2] und [3] gezeigt, gilt es.",
@@ -247,6 +255,21 @@ def test_a_list_of_citation_brackets_is_one_citation(
     language: str, printed: str, said: str
 ) -> None:
     assert read_all(printed, language) == said
+
+
+@pytest.mark.parametrize(
+    ("printed", "named"),
+    [
+        ("It holds [1], [2] and [3] here.", 'list of numeric citations "[1], [2] and [3]"'),
+        ("As shown in [1], [2] and [3], it holds.", 'citation "[1], [2] and [3]" is part of'),
+        ("Between [1] and [3] it lies.", 'citations "[1] and [3]" are part of'),
+    ],
+)
+def test_a_list_is_named_whole_in_its_reason(printed: str, named: str) -> None:
+    (edit,) = CitationStep().find(
+        make_document([(BlockKind.PARAGRAPH, printed)]), StepContext("en")
+    )
+    assert named in edit.reason
 
 
 def test_an_or_list_is_not_read_as_one_citation() -> None:
@@ -307,6 +330,16 @@ def _with_keys(printed: str) -> str:
         ("en", "((Smith, 2019), & (Lee, 2018)) is cited.", "Smith and Lee is cited."),
         ("en", "(Jones, 2020; ; (Smith, 2019)) is cited.", "Jones and Smith is cited."),
         ("en", "((Smith, 2019); (Lee, 2018) 2021) is cited.", "Smith and Lee is cited."),
+        # lead words, a join word or an empty part, and a year shell, together
+        ("en", "(see (Smith, 2019); and (Lee, 2018)) is cited.", "Smith and Lee is cited."),
+        ("en", "(see (Smith, 2019); ; (Lee, 2018)) is cited.", "Smith and Lee is cited."),
+        ("en", "((Smith, 2019); ; (Lee, 2018)) is cited.", "Smith and Lee is cited."),
+        ("en", "((Smith, 2019); and (Lee, 2018) 2021) is cited.", "Smith and Lee is cited."),
+        (
+            "de",
+            "(vgl. (Müller, 2019); und (Lee, 2018)) wird zitiert.",
+            "Müller und Lee wird zitiert.",
+        ),
         ("en", "((Smith, 2019)) is cited.", "Smith is cited."),
         ("en", "(see (Smith, 2019)) is cited.", "Smith is cited."),
         ("en", "Shown by ((Smith, 2019) (Lee, 2018)).", "Shown by Smith and Lee."),
@@ -353,6 +386,10 @@ def test_a_subject_nest_keeps_every_name(language: str, printed: str, said: str)
         # the sentence's first word is no list's name
         ("en", "Smith and https://x.org agree.", "Smith and agree."),
         ("en", "It holds. Smith and https://x.org agree.", "It holds. Smith and agree."),
+        # ... nor one that opens a bracket or a quotation
+        ("en", "(Smith and https://x.org agree.)", "(Smith and agree.)"),
+        ("en", '"Smith and https://x.org agree."', '"Smith and agree."'),
+        ("de", "(Müller und https://x.org zeigen es.)", "(Müller und zeigen es.)"),
         # one "and" stays where one goes after the link already
         ("en", "We thank Smith and https://x.org and Lee here.", "We thank Smith and Lee here."),
         # a word that went with the link keeps the join word before it
@@ -393,6 +430,28 @@ def test_a_subject_nest_keeps_every_name(language: str, printed: str, said: str)
 )
 def test_a_join_word_before_a_removed_last_link(language: str, printed: str, said: str) -> None:
     assert read_all(printed, language) == said
+
+
+def test_a_name_glued_after_a_removed_link_still_takes_the_join_word() -> None:
+    """A name right after an earlier removal counts from where that removal ended, as every
+    repair of the link step does, so its "and" goes with the next link (the glued "TextSmith"
+    is a separate fault of the bracket removal)."""
+    printed = "Text <https://a.org>Smith and https://x.org here."
+    edits = LinkStep().find(make_document([(BlockKind.PARAGRAPH, printed)]), StepContext("en"))
+    assert [edit.reason.endswith('"and" before it goes too (TP-07)') for edit in edits] == [
+        False,
+        True,
+    ]
+
+
+@pytest.mark.parametrize("printed", ["Text ( (Smith, 2019)) more.", "Text ([1]) more."])
+def test_a_removed_nest_of_one_citation_is_named_a_bracket_of_lead_words(printed: str) -> None:
+    """Where the inner citation's removal takes the whole bracket, the reason names the
+    bracket as before #415, not the inner citation."""
+    (edit,) = CitationStep().find(
+        make_document([(BlockKind.PARAGRAPH, printed)]), StepContext("en")
+    )
+    assert edit.reason.startswith("bracket of lead words")
 
 
 # ---- the second run over all of them -------------------------------------------------------
