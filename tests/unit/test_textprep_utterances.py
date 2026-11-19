@@ -16,6 +16,7 @@ from sci2audio.core import BlockKind, Document, Edit, EditKind, ScriptPiece, Spa
 from sci2audio.extraction import extract_pdf
 from sci2audio.layout import build_document
 from sci2audio.testing import make_document
+from sci2audio.testing.documents import rebuilt_from_script
 from sci2audio.textprep import (
     ABBREVIATIONS,
     DEFAULT_MAX_CHARS,
@@ -25,7 +26,16 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
-from sci2audio.textprep.utterances import _BEFORE_NUMBERS, MIN_PIECE, _counts, _cut_point, _rank
+from sci2audio.textprep.utterances import (
+    _BEFORE_NUMBERS,
+    _PAIRS_DE,
+    MIN_PIECE,
+    _counts,
+    _cut_point,
+    _joined,
+    _rank,
+    _readings,
+)
 from sci2audio.textprep.wordlists import clause_openers, parse_clause_openers
 
 
@@ -903,3 +913,197 @@ def test_an_english_initial_ends_a_sentence_only_before_a_sentence_opener(
 ) -> None:
     # #477, D-744: "A." and "U.S." end a sentence before "Then" or "The", not before a name
     assert len(cut(text, language=language)) == parts
+
+
+# ---- B6: a label word again, readings, and the cut's own rules (#479, #482, #533) ----------
+
+
+@pytest.mark.parametrize(
+    ("text", "sentences"),
+    [
+        # #479: a number between the same word twice is that word's number; its full stop
+        # ends the sentence, as after a label word of the unit list ("Satz 2. Satz 3")
+        (
+            "Es gilt Abs. 2. Abs. 3 gilt hier auch.",
+            ["Es gilt Absatz 2.", "Absatz 3 gilt hier auch."],
+        ),
+        ("Es gilt Absatz 2. Absatz 3 gilt.", ["Es gilt Absatz 2.", "Absatz 3 gilt."]),
+        ("Es gilt Art. 3. Art. 4 gilt auch.", ["Es gilt Artikel 3.", "Artikel 4 gilt auch."]),
+        ("Es gilt Rn. 3. Rn. 4 gilt auch.", ["Es gilt Randnummer 3.", "Randnummer 4 gilt auch."]),
+        ("Es gilt Satz 2. Satz 3 gilt nicht.", ["Es gilt Satz 2.", "Satz 3 gilt nicht."]),
+        ("Es gilt Nr. 2. Nr. 3 gilt auch.", ["Es gilt Nummer 2.", "Nummer 3 gilt auch."]),
+        # ... an ordinal the numbers step reads cuts nothing (its full stop is read with it),
+        # and without a full stop nothing ends
+        ("Im Abs. 2. Teil steht es.", ["Im Absatz zweiter Teil steht es."]),
+        ("Es gilt Abs. 2 Satz 3 hier.", ["Es gilt Absatz 2 Satz 3 hier."]),
+        # ... another word after the full stop is no label again: as before
+        ("Es gilt Absatz 2. Studien zeigen es.", ["Es gilt Absatz 2. Studien zeigen es."]),
+        # ... and the word must stand alone before the number: glued to a bracket it is not
+        # the same word, so the sentence stays whole, as before
+        ("Es gilt (Absatz 2. Absatz 3) hier.", ["Es gilt (Absatz 2. Absatz 3) hier."]),
+    ],
+)
+def test_a_number_between_the_same_word_twice_ends_the_sentence(
+    text: str, sentences: list[str]
+) -> None:
+    assert cut_read(text) == sentences
+    # the same on a second run over the script, where the readings are plain words
+    assert cut_read(" ".join(sentences)) == sentences
+
+
+def _rebuilt_cuts(text: str, language: str) -> tuple[list[str], list[str]]:
+    """The utterances of a first run's script and of a second run over it (D-577)."""
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    context = StepContext(language)
+    first = run_steps(document, context, strict=True)
+    second = run_steps(rebuilt_from_script(document, first.script()), context, strict=True)
+    return (
+        [u.text for u in cut_utterances(first.document, first.script())],
+        [u.text for u in cut_utterances(second.document, second.script())],
+    )
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "read"),
+    [
+        ("de", "u. a.", "unter anderem"),
+        ("de", "3,5 %", "3 Komma 5 Prozent"),
+        ("de", "z. B.", "zum Beispiel"),
+        ("de", "am 3. Mai", "dritten Mai"),
+        ("de", "5 km/h", "5 Kilometer pro Stunde"),
+        ("en", "e.g.", "for example"),
+        ("en", "x ≤ 5", "less than or equal to 5"),
+        ("en", "10⁻³", "10 to the power of minus 3"),
+        ("en", "2.5 m²", "2.5 square metres"),
+    ],
+)
+def test_a_long_sentence_is_cut_outside_a_reading_on_both_runs(
+    language: str, printed: str, read: str
+) -> None:
+    """#482: a space between the words of a reading ranks below any other space, so a second
+    run, where the reading is plain words, cuts where the first run did. The reading moves
+    word by word across the even share of a sentence over the limit with no comma."""
+    filler = "die Hörer hörten jede Stelle" if language == "de" else "the people heard every word"
+    words = filler.split() * 30
+    for before in range(20, 50):
+        text = " ".join([*words[:before], printed, *words[: 75 - before]]) + "."
+        first, second = _rebuilt_cuts(text, language)
+        assert len(first) == 2, text
+        assert first == second, f"{text}\n{first}\n{second}"
+        assert read in first[0] or read in first[1], first  # the reading is not cut
+
+
+_UA = "aaaa bbbb cccc unter anderem dddd eeee ffff"
+_BRACKET_UA = "aaaa bbbb (cccc dddd) unter anderem eeee ffff gggg"
+
+
+@pytest.mark.parametrize(
+    ("text", "max_chars", "plain", "read"),
+    [
+        # the even share falls on "unter | anderem": the cut goes before "unter" or after
+        # "anderem", whichever is nearer
+        (_UA, 24, "aaaa bbbb cccc unter ", "aaaa bbbb cccc "),
+        (_UA, 42, "aaaa bbbb cccc unter ", "aaaa bbbb cccc unter anderem "),
+        # with nothing else to take, a space inside the reading is still a place
+        ("unter anderem", 9, "unter ", "unter "),
+        # ... and it beats every place inside a bracket
+        ("(aaaa bbbb)unter anderem(cccc dddd)", 30, "(aaaa bbbb)unter ", "(aaaa bbbb)unter "),
+        (_BRACKET_UA, 28, "aaaa bbbb (cccc dddd) unter ", "aaaa bbbb (cccc dddd) "),
+    ],
+)  # fmt: skip
+def test_a_space_inside_a_reading_ranks_after_every_other_space(
+    text: str, max_chars: int, plain: str, read: str
+) -> None:
+    counts = _counts(text)
+    for readings, part in ((None, plain), (_readings("de"), read)):
+        assert (
+            text[: _cut_point(text, counts, max_chars, None, frozenset(), _PAIRS_DE, readings)]
+            == part
+        )
+
+
+@pytest.mark.parametrize(
+    ("language", "text", "joined"),
+    [
+        ("de", "aaa 3 Komma 5 Prozent bbb", ["aaa | 3", "3 | Komma", "Komma | 5", "5 | Prozent"]),
+        ("de", "aaa unter anderem bbb", ["unter | anderem"]),
+        ("de", "aaa Kilometer pro Stunde bbb", ["Kilometer | pro", "pro | Stunde"]),
+        ("de", "aaa kleiner oder gleich bbb", ["kleiner | oder", "oder | gleich"]),
+        ("de", "aaa zehn hoch minus drei", ["hoch | minus"]),
+        ("de", "am dritten Mai bbb", ["dritten | Mai"]),
+        ("en", "aaa for example bbb", ["for | example"]),
+        ("en", "aaa square metres bbb", ["square | metres"]),
+        ("en", "aaa R squared bbb", ["R | squared"]),
+        ("en", "a less than or equal to b", ["less | than", "than | or", "or | equal",
+                                             "equal | to"]),
+        ("en", "a to the power of minus b", ["to | the", "the | power", "power | of",
+                                             "of | minus"]),
+        ("en", "on the third May bbb", ["third | May"]),
+        # ... "may" the verb is no month, and plain words join nothing
+        ("en", "it may rain here", []),
+        ("de", "die Hörer hörten es", []),
+    ],
+)  # fmt: skip
+def test_the_spaces_that_join_a_reading_are_found_from_the_text(
+    language: str, text: str, joined: list[str]
+) -> None:
+    found = _joined(text, len(text), _readings(language))
+    assert [f"{text[:i].split()[-1]} | {text[i:].split()[0]}" for i in sorted(found)] == joined
+
+
+def test_a_comma_at_the_limit_before_a_clause_opener_is_a_clause_cut() -> None:
+    """#533 (1): the window holds the word after the last place that fits, so a comma right at
+    the limit before "which" ranks as a clause cut, over a plain comma nearer the even share."""
+    text = "a" * 44 + ", " + "b" * 13 + ", which " + "c " * 30 + "d."
+    parts = cut(text, max_chars=60)
+    assert parts[0] == "a" * 44 + ", " + "b" * 13 + ","
+
+
+def test_no_utterance_is_over_the_limit_when_the_text_holds_long_white_space_runs() -> None:
+    """#533 (2): white space runs count as one space, so a window of many characters may hold
+    exactly the limit; it is widened until it holds more, never taken as the whole rest."""
+    text = "aaaa" + " " * 13 + "bbbbb" + " cccc dddd eeee ffff."
+    parts = cut(text, max_chars=10)
+    assert all(len(part) <= 10 for part in parts)
+    assert " ".join(parts) == "aaaa bbbbb cccc dddd eeee ffff."
+
+
+def test_the_even_share_counts_the_space_at_each_cut_once() -> None:
+    """#533 (3): what is left of a sentence after a cut is its rest without the space at the
+    cut, so the next part gets its even share of exactly that."""
+    text = (
+        "wwwwx, " + " ".join(["vvvv"] * 7)[:-4] + "vvvvy, " + " ".join(["uuuu"] * 12)[:-4]
+        + "uuuuz, tttt tttt."
+    )  # fmt: skip
+    assert [len(part) for part in cut(text, max_chars=60)] == [43, 34, 37]
+
+
+def test_on_a_tie_the_later_cut_wins() -> None:
+    """#533 (4): two places as near the even share: the later one, so the first part is the
+    longer one."""
+    text = "wwwwx, vvvvy, " + " ".join(["uuuu"] * 9)[:-4] + "uuuuz, " + " ".join(["tttt"] * 6) + "."
+    assert [len(part) for part in cut(text, max_chars=60)] == [48, 42]
+
+
+def test_a_cut_inside_a_replacement_too_long_for_one_call_ends_at_its_end() -> None:
+    """#533 (5): a replacement longer than the limit is cut where it must be; the part that
+    then starts inside it ends at the replacement's end when that fits."""
+    document = make_document([(BlockKind.PARAGRAPH, "x aaaa bbbb.")])
+    edit = Edit(Span(0, 0, 1), EditKind.REPLACE, "r", "x", replacement="one two three four")
+    utterances = cut_utterances(document, apply_edits(document, [edit]), max_chars=10)
+    assert [u.text for u in utterances] == ["one two", "three four", "aaaa bbbb."]
+
+
+def test_a_sentence_too_short_for_two_parts_of_40_is_cut_at_its_best_place() -> None:
+    """#533 (6): no cut of a 61-character sentence leaves two parts of 40 characters, so the
+    best kind of place wins (a comma), even though it leaves a part of 20; a part of 30 is
+    no fair part."""
+    text = "wwwwx, vvvvy, uuuuz, " + " ".join(["tttt"] * 8) + "."
+    assert [len(part) for part in cut(text, max_chars=60)] == [20, 40]
+
+
+def test_a_cut_that_leaves_two_parts_of_40_is_fair() -> None:
+    """#533 (7): a space that leaves two parts of exactly 40 characters beats a comma that
+    leaves a part of 20."""
+    text = "wwwwx, vvvvy, uuuuz, " + " ".join(["tttt"] * 12) + "."
+    assert [len(part) for part in cut(text, max_chars=60)] == [40, 40]
