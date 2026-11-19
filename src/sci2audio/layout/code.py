@@ -22,18 +22,30 @@ step reads a short notice instead, and the player shows the code.
   every word of it is one ("alice@uni-x.de" and "bob@uni-y.org" on two lines, ACL's
   "{alice,bob}@cs.uni-x.edu"). The links step reads them.
 
-A listing broken by a page break is two CODE blocks (#283). Its indentation is not
-rebuilt: a PDF line holds no leading white space, and layout adds no text (#282).
+- A listing broken by a page break is one CODE block (#283): code paragraphs with only
+  furniture between them (the page number at one page's foot, the running head at the
+  next one's top), the later one starting on a later page and no section, are one run. The
+  furniture is read just after the CODE block, as what met a paragraph running on across
+  a page waits until it ends. Anything else between (a footnote, a figure, a caption)
+  ends the run, and so does furniture between two code paragraphs on one page.
+- A listing's caption ("Listing 3: ...", German "Quelltext 3", #281) names the CODE block
+  next to it in reading order, before or after it; when both are code, the nearer on the
+  page in its column. A CODE block is named by one such caption at most, and a listing
+  caption with no CODE block next to it names nothing.
+
+A listing's indentation is not rebuilt: a PDF line holds no leading white space, and layout
+adds no text (#282).
 """
 
 from __future__ import annotations
 
+import math
 import re
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 
-from sci2audio.core import Block, BlockKind, Content, Part, Section, TextLine, TextRun
+from sci2audio.core import Block, BlockKind, Box, Content, Part, Section, TextLine, TextRun
 
 # Typewriter fonts by name: "LMMono10-Regular", "Courier", "Inconsolatazi4", "NimbusMonL",
 # "Consolas", "SourceCodePro", "FiraCode", TeX Gyre Cursor, and TeX's typewriter families
@@ -52,6 +64,7 @@ _LINK = re.compile(
     re.IGNORECASE,
 )
 _BRACES = re.compile(r"\{[^{}]*\}")
+LISTING = ("Listing", "LISTING", "Quelltext", "QUELLTEXT")  # a listing's caption labels
 _LARGER = 1.1  # a run more than this times the body size is larger than the body text
 
 
@@ -60,40 +73,123 @@ def monospace(font: str) -> bool:
     return bool(_MONOSPACE.search(font))
 
 
+def monospace_line(line: TextLine, size: float = 0.0) -> bool:
+    """True if every run of the line with visible text is in a typewriter font and none is
+    larger than the body text (`size`; 0 if unknown, then any size)."""
+    shown = [run for run in line.runs if run.text.strip()]
+    return bool(shown) and all(
+        monospace(run.font) and not (size and run.size > _LARGER * size) for run in shown
+    )
+
+
 def find_code(
     blocks: list[Block], sections: tuple[Section, ...], content: Content, size: float
 ) -> tuple[list[Block], tuple[Section, ...]]:
     """The blocks with each run of paragraphs made only of monospace lines joined into one
     CODE block, and the sections and caption links moved to the new block numbers; `size`
     is the body text's font size (0 if unknown)."""
-    lines = {item.id: item for _, item in content.items().values() if isinstance(item, TextLine)}
+    items = content.items()
+    lines = {item.id: item for _, item in items.values() if isinstance(item, TextLine)}
     if _typewritten(lines.values()):
         return blocks, sections
+    page_of = {key: page.number for key, (page, _) in items.items()}
     starts = {section.start for section in _all(sections)}
-    groups: list[tuple[list[int], bool]] = []  # old block numbers of each new block; code?
+    groups: list[_Group] = []
+    held: list[int] = []  # furniture met while a code run is open
     for number, block in enumerate(blocks):
         code = _code_paragraph(block, lines, size)
-        if code and groups and groups[-1][1] and number not in starts:
-            groups[-1][0].append(number)
+        run = groups[-1] if groups and groups[-1].code else None
+        if code and run and number not in starts:
+            last = blocks[run.members[-1]]
+            if not held or page_of[block.parts[0].item] > page_of[last.parts[-1].item]:
+                run.members.append(number)
+                run.carried += held  # read after the joined block (#283)
+                held = []
+                continue
+        if run and block.kind is BlockKind.FURNITURE:
+            held.append(number)
+            continue
+        groups += [_Group([k], False) for k in held]
+        held = []
+        groups.append(_Group([number], code))
+    groups += [_Group([k], False) for k in held]
+    kept: list[_Group] = []
+    for group in groups:
+        run = [blocks[k] for k in group.members]
+        if group.code and (_links("\n".join(b.text for b in run)) or _all_bold(run, lines)):
+            # only links or only bold: as printed, in the order read
+            kept += [_Group([k], False) for k in sorted(group.members + group.carried)]
         else:
-            groups.append(([number], code))
-    kept: list[tuple[list[int], bool]] = []
-    for members, code in groups:
-        run = [blocks[k] for k in members]
-        if code and (_links("\n".join(b.text for b in run)) or _all_bold(run, lines)):
-            kept += [([k], False) for k in members]  # only links or only bold: as printed
-        else:
-            kept.append((members, code))
-    new_of = {old: new for new, (members, _) in enumerate(kept) for old in members}
+            kept.append(group)
+            kept += [_Group([k], False) for k in group.carried]
+    new_of = {old: new for new, group in enumerate(kept) for old in group.members}
     out = [
-        _joined([blocks[k] for k in members]) if code else blocks[members[0]]
-        for members, code in kept
+        _joined([blocks[k] for k in group.members]) if group.code else blocks[group.members[0]]
+        for group in kept
     ]
     out = [
         replace(block, describes=new_of[block.describes]) if block.describes is not None else block
         for block in out
     ]
+    out = _listing_captions(out, lines, page_of)
     return out, tuple(_moved(section, new_of, len(out)) for section in sections)
+
+
+@dataclass
+class _Group:
+    """Old block numbers that become one new block (several only for code), and the
+    furniture met inside a code run, read after it."""
+
+    members: list[int]
+    code: bool
+    carried: list[int] = field(default_factory=list)
+
+
+def _listing_captions(
+    blocks: list[Block], lines: dict[str, TextLine], page_of: dict[str, int]
+) -> list[Block]:
+    """The blocks with each listing caption that names nothing naming the CODE block next to
+    it: the nearer one on the page if both neighbours are code (#281)."""
+    out = list(blocks)
+    named = {block.describes for block in blocks if block.describes is not None}
+    for k, block in enumerate(blocks):
+        if block.kind is not BlockKind.CAPTION or block.describes is not None:
+            continue
+        if not block.label.startswith(LISTING):
+            continue
+        near = [
+            (_white(block, blocks[n], n < k, lines, page_of), n)
+            for n in (k - 1, k + 1)
+            if 0 <= n < len(blocks) and blocks[n].kind is BlockKind.CODE and n not in named
+        ]
+        if near:
+            n = min(near)[1]
+            out[k] = replace(block, describes=n)
+            named.add(n)
+    return out
+
+
+def _white(
+    caption: Block, code: Block, above: bool, lines: dict[str, TextLine], page_of: dict[str, int]
+) -> float:
+    """The white between a caption and the code block before (`above`) or after it, from
+    the caption's lines to the code's nearest line; infinite on another page, in another
+    column (the lines do not overlap across) or unknown."""
+    own = [part.item for part in caption.parts if part.item in lines]
+    other = [part.item for part in code.parts if part.item in lines]
+    if not own or not other:
+        return math.inf
+    edge, near = (own[0], other[-1]) if above else (own[-1], other[0])
+    a, b = lines[edge].box, lines[near].box
+    if page_of[edge] != page_of[near] or a is None or b is None:
+        return math.inf
+    if a.x1 <= b.x0 or b.x1 <= a.x0:  # in another column: farther, as on another page
+        return math.inf
+    return _gap(b, a) if above else _gap(a, b)
+
+
+def _gap(upper: Box, lower: Box) -> float:
+    return lower.y0 - upper.y1
 
 
 def _typewritten(lines: Iterable[TextLine]) -> bool:
@@ -109,14 +205,7 @@ def _code_paragraph(block: Block, lines: dict[str, TextLine], size: float) -> bo
     if block.kind is not BlockKind.PARAGRAPH or not block.parts:
         return False
     return all(
-        part.item in lines and _monospace_line(lines[part.item], size) for part in block.parts
-    )
-
-
-def _monospace_line(line: TextLine, size: float) -> bool:
-    shown = [run for run in line.runs if run.text.strip()]
-    return bool(shown) and all(
-        monospace(run.font) and not (size and run.size > _LARGER * size) for run in shown
+        part.item in lines and monospace_line(lines[part.item], size) for part in block.parts
     )
 
 
