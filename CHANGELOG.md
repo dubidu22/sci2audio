@@ -47,6 +47,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- Pages with very many drawings lay out quickly (#354): a page of 100,000 small rectangles, the most a page may hold, took about 40 s to lay out and now takes about 3 s, and a page of many separate marks no longer slows down with each mark; the figures found are the same.
 - Small lines at the top of a page, and small caption lines at the foot, are read unless they really are running heads (#156): a continued table header or an "Algorithm 1" caption set smaller than the text at the top of a page is no longer dropped from the listening script; small running heads and footers on most pages are still left out.
 - EPUB and Markdown files with broken markup read the same on every Python version: sci2audio now brings its own copy of Python's HTML parser, whose handling of broken markup had changed in Python's security releases (#175, D-777).
 - A picture in an indented (pretty-printed) EPUB paragraph is placed before the paragraph's text, as a browser shows it, not after it, and a link to the place just before the picture leads to the picture (#328, D-777).

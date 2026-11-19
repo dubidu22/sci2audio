@@ -548,12 +548,14 @@ def _place(out: list[tuple[Block, str]]) -> list[Block]:
     kind, so they never pass it. With no block at all to join, they stay a block of their
     own."""
     blocks: list[Block] = []
+    joined: list[list[Part]] = []  # graphics joined at the end of each block, made once (#354)
     pending: list[Part] = []  # graphics to join the next block (none before them)
     for n, (block, action) in enumerate(out):
         if action == "furniture":
             head = FurnitureRole.RUNNING_HEAD
             parts = (*(Part(p.item) for p in pending), *block.parts)
             blocks.append(Block(BlockKind.FURNITURE, "", parts, role=head))
+            joined.append([])
             pending = []
             continue
         if action != "join":
@@ -561,15 +563,17 @@ def _place(out: list[tuple[Block, str]]) -> list[Block]:
                 block = replace(block, parts=(*(Part(p.item) for p in pending), *block.parts))
                 pending = []
             blocks.append(block)
+            joined.append([])
             continue
         after = out[n + 1][0] if n + 1 < len(out) else None
         if (after is not None and after.kind is BlockKind.FOOTNOTE) or not blocks:
             pending += block.parts
         else:
-            last = blocks[-1]
-            blocks[-1] = replace(
-                last, parts=(*last.parts, *(Part(p.item, len(last.text)) for p in block.parts))
-            )
+            joined[-1] += [Part(p.item, len(blocks[-1].text)) for p in block.parts]
+    blocks = [
+        replace(block, parts=(*block.parts, *more)) if more else block
+        for block, more in zip(blocks, joined, strict=True)
+    ]
     if pending:  # nothing at all to join: they stay a block of their own
         blocks.append(Block(BlockKind.FIGURE, "", tuple(Part(p.item) for p in pending)))
     return blocks
