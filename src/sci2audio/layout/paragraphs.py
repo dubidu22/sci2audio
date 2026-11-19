@@ -190,8 +190,7 @@ def _fractions_in_order(
                 found.append(upper)
                 placed.add(id(upper))
                 break
-        found.append(lower)
-        placed.add(id(lower))
+        found.append(lower)  # never looked at again: numerators are sought to its right
     return found
 
 
