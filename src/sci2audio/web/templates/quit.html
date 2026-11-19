@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ t('quit.title') }} · {{ t('common.app') }}{% endblock %}
+{% block main %}
+<header class="view-head">
+  <h1>{{ t('quit.title') }}</h1>
+</header>
+<p id="message" class="message" role="status" tabindex="-1"></p>
+<div class="panel">
+  <p id="quit-done" hidden tabindex="-1">{{ t('quit.stopped') }}</p>
+  <div id="quit-ask" class="stack">
+    {% if making %}<p class="callout warn" id="quit-making">{{ icon('alert', 's') }}{{ t('quit.making') }}</p>{% endif %}
+    <p>{{ t('quit.intro') }}</p>
+    {#- drawn disabled: app.js wires it (#350, #427); the script sends the POST, which
+        carries the page's Origin as the server requires (a form would send "null") #}
+    <p><button type="button" class="primary" id="quit-now" data-api="/quit" disabled>{{ icon('x', 's') }}{{ t('quit.button') }}</button></p>
+    <p><a class="btn" href="/">{{ icon('library', 's') }}{{ t('common.back_home') }}</a></p>
+  </div>
+</div>
+{% endblock %}

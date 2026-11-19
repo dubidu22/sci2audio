@@ -20,6 +20,12 @@ UPLOAD_LIMIT = 200 * 1024 * 1024  # bytes per opened file (D-198)
 TEXT_LIMIT = 5 * 1024 * 1024  # bytes of pasted text, UTF-8 (D-198)
 TOKEN_BYTES = 32  # 256 bits (D-193)
 
+# How sci2audio was launched (#215, D-797): "terminal" is `sci2audio ui` (a terminal to
+# stop it with Ctrl-C), "window" the app's own window, "browser" the app without a window
+# (Linux, or no window engine): it opens the browser, has a Quit item in the rail and stops
+# by itself when nothing has asked for anything for a while.
+LAUNCHES = frozenset({"terminal", "window", "browser"})
+
 
 def new_token() -> str:
     """A fresh start-up token for one server run."""
@@ -30,6 +36,13 @@ def default_work_root() -> Path:
     """The folder that holds one project data folder per document (`<sha256[:16]>`, D-747),
     the same folders as `app.default_work_folder` (D-164); a test keeps the two equal."""
     return default_projects_root()
+
+
+def app_log_file() -> Path:
+    """The app's short start-up log (#215): when it started and stopped, its version, how
+    it shows the interface and why it could not start. Written by the app only, never by
+    `sci2audio ui`."""
+    return platformdirs.user_log_path("sci2audio", appauthor=False) / "app.log"
 
 
 def default_output_folder() -> Path:
@@ -81,8 +94,13 @@ class ServerConfig:
     # the working folders before #469 (D-748): moved into `work_root` at start, and used
     # where they are until they could be moved; None: there are none (the tests' default)
     legacy_root: Path | None = None
+    launched_as: str = "terminal"  # one of LAUNCHES
 
     def __post_init__(self) -> None:
+        if self.launched_as not in LAUNCHES:
+            raise ValueError(
+                f"launched_as must be one of {sorted(LAUNCHES)}, got {self.launched_as!r}"
+            )
         if len(self.token) < 32:
             raise ValueError("the start-up token must be at least 32 characters")
         if not 0 < self.port < 65536:
@@ -115,7 +133,11 @@ class ServerConfig:
 
 
 def server_config(
-    port: int, *, token: str | None = None, outside: tuple[OutsideJob, ...] = ()
+    port: int,
+    *,
+    token: str | None = None,
+    outside: tuple[OutsideJob, ...] = (),
+    launched_as: str = "terminal",
 ) -> ServerConfig:
     """The configuration of a server run with the default folders."""
     return ServerConfig(
@@ -127,4 +149,5 @@ def server_config(
         output_folder=default_output_folder(),
         outside=outside,
         legacy_root=default_legacy_root(),
+        launched_as=launched_as,
     )
