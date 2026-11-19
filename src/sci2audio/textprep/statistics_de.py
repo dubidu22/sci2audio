@@ -77,6 +77,12 @@ _SQUARED_NAMES = {
     "ε": "Epsilon-Quadrat",
     "χ": "Chi-Quadrat",
 }
+_PARTIAL = "partielles "  # before "Eta-Quadrat" only
+_ODDS_RATIO_WORDS = "Odds Ratio"
+# the readings of S-de-3 and S-de-5, which the sentence cutter keeps whole (#482)
+SYMBOL_READINGS_DE = frozenset(
+    {*_SQUARED_NAMES.values(), _PARTIAL + _SQUARED_NAMES["η"], _ODDS_RATIO_WORDS}
+)
 # the capital words of those readings: never an author's name before "(2019)" (#101)
 READ_WORDS = frozenset(
     word for reading in _SQUARED_NAMES.values() for word in reading.split() if word[0].isupper()
@@ -170,7 +176,7 @@ def _squared(text: str, plain: str) -> list[Candidate]:
         partial = bool(match["p1"] or match["p2"])
         if partial and match["name"] != "η":
             continue
-        words = ("partielles " if partial else "") + _SQUARED_NAMES[match["name"]]
+        words = (_PARTIAL if partial else "") + _SQUARED_NAMES[match["name"]]
         start, end = match.span()
         found.append(Candidate(start, end, words, f'"{text[start:end]}" read as "{words}"'))
     return found
@@ -253,6 +259,6 @@ def _interval(text: str, interval: re.Match[str]) -> Candidate:
 
 def _odds_ratios(plain: str) -> list[Candidate]:
     return [
-        Candidate(m.start(), m.end(), "Odds Ratio", '"OR" read as "Odds Ratio"')
+        Candidate(m.start(), m.end(), _ODDS_RATIO_WORDS, f'"OR" read as "{_ODDS_RATIO_WORDS}"')
         for m in _ODDS_RATIO.finditer(plain)
     ]

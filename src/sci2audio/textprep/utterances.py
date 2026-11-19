@@ -30,20 +30,25 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
   "o. J.", and "Az.", "Fa.", "UAbs." and the "e." of "e. V." (#406, D-719). After a number
   of one to three digits and a full stop (an ordinal no step read, "Er wurde 3. Sieger"), a
   sentence ends only before a sentence opener of `data/de/sentence_openers.toml` ("Es
-  waren 3. Die Studie lief.") or after a label word ("Abbildung 1."), never before a digit
-  ("Am 3. 4. 2019"). Its limit: German capitalises nouns and the list holds none, so a
-  sentence that starts with a noun after such a number stays in the same utterance ("Es
-  waren 3. Studien zeigen das."): a pause and the pitch move, no text is lost.
+  waren 3. Die Studie lief."), after a label word ("Abbildung 1.") or between the same word
+  twice ("Absatz 2. Absatz 3", "Art. 3. Art. 4", #479, as the numbers step reads it), never
+  before a digit ("Am 3. 4. 2019"). Its limit: German capitalises nouns and the list holds
+  none, so a sentence that starts with a noun after such a number stays in the same
+  utterance ("Es waren 3. Studien zeigen das."): a pause and the pitch move, no text is lost.
 - The voice takes only so much text per call (Kokoro: about 510 phoneme tokens). A sentence
   longer than `max_chars` is cut at the best place that fits (#460, D-719): after ";" or ":",
   else after a comma before a word that opens a clause (`data/<language>/clause_openers.toml`:
   "…, but", "…, dass"), else after any comma, else after a dash, else at a space. Within the
   best kind the cut nearest an even share of the rest wins, so parts keep about the same
   length, and no cut leaves a part under `MIN_PIECE` characters while another cut leaves none.
-  A place inside an open bracket or quote ranks after every place outside one (#481 review).
-  A single word longer than the limit is cut where it must be. On a second run a cut beside a
-  multi-word reading ("u. a." read "unter anderem", "3,5 %") can fall one word later, since the
-  reading is then plain words; the script text is the same (D-577, #482).
+  A space between the words of a reading ("unter | anderem", "3 | Komma 5", "less than | or
+  equal to", "newton | metres") ranks after every other space (#482): on a first run the
+  reading is one replacement, on a second run plain words, so finding it from the text keeps
+  the cut where the first run made it. A place inside an open bracket or quote ranks after
+  every place outside one (#481 review). A single word longer than the limit is cut where it
+  must be. Its limit: when every place near the even share lies inside a reading, a first
+  run moves its cut out of the replacement and a second run cannot (the script text is the
+  same, D-577).
   Every utterance after the first of a cut sentence is marked `continues` (D-157).
 - Spans: kept text (a piece whose text is the document's original text of its span) maps
   character by character, so a cut inside it is exact. A replacement is read as a whole
@@ -54,11 +59,13 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
 
 from __future__ import annotations
 
+import calendar
 import re
 import unicodedata
 from bisect import bisect_right
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
+from functools import cache
 from itertools import pairwise
 
 from sci2audio.core import Document, ScriptPiece, Span
@@ -258,6 +265,7 @@ def cut_utterances(
     abbreviations = ABBREVIATIONS.get(language.split("-", 1)[0].lower(), frozenset())
     openers = clause_openers(language)
     pairs = _PAIRS_DE if language.lower().startswith("de") else _PAIRS_EN
+    readings = _readings(language.split("-", 1)[0].lower())
     utterances: list[Utterance] = []
     for run_or_pause in _runs(document, pieces):
         if isinstance(run_or_pause, ScriptPiece):
@@ -266,7 +274,7 @@ def cut_utterances(
         run = run_or_pause
         for start, end in _sentences(run, abbreviations, language):
             continues = False  # the sentence's first utterance starts it
-            for a, b in _fitted(run, start, end, max_chars, openers, pairs):
+            for a, b in _fitted(run, start, end, max_chars, openers, pairs, readings):
                 if utterance := _utterance(run, a, b, continues):
                     utterances.append(utterance)
                     continues = True
@@ -418,6 +426,7 @@ def _sentences(
             and _SHORT_NUMBER.match(word)
             and run.piece_at(match.start())[2]  # printed, not a step's words ("Fußnote 1.")
             and not _after_label(text, match.start() - len(word) + 1, language)
+            and not _label_again(text, match.start() - len(word) + 1, match.end())
             and not opens_sentence(text, match.end(), language)
         ):
             continue  # "Er wurde 3. Sieger", "Am 3. 4. 2019"; "Es waren 3. Die Studie" is cut
@@ -453,6 +462,20 @@ def _after_label(text: str, start: int, language: str) -> bool:
     return listed is not None and before is not None and before[1].lower() in listed.labels
 
 
+# the word after a full stop, with its own full stop if it has one
+_NEXT_WORD = re.compile(r"\s+([^\W\d_]+\.?)")
+
+
+def _label_again(text: str, start: int, end: int) -> bool:
+    """True if the word right before the number at `start` comes again right after its full
+    stop (`end`): "Es gilt Absatz 2. Absatz 3", "Art. 3. Art. 4" (#479). The number is that
+    word's, no ordinal; the numbers step leaves it as printed for the same reason (D-719), and
+    the words are compared exactly, as it compares them."""
+    before = _WORD_BEFORE.search(text, max(0, start - 32), start)
+    after = _NEXT_WORD.match(text, end)
+    return before is not None and after is not None and before[1] == after[1]
+
+
 def _counts(text: str) -> list[int]:
     """counts[i]: length of the spoken text of text[:i] (white space runs as one space)."""
     counts, spoken, pending_space = [0], 0, False
@@ -473,6 +496,7 @@ def _fitted(
     max_chars: int,
     openers: frozenset[str] = frozenset(),
     pairs: tuple[str, str] = ("", ""),
+    readings: re.Pattern[str] | None = None,
 ) -> list[tuple[int, int]]:
     """Cut text[start:end] into ranges whose spoken text has at most max_chars."""
     out = []
@@ -492,7 +516,9 @@ def _fitted(
             return out
         if left < 0:
             left = _counts(run.text[start:end])[-1]
-        cut = start + _cut_point(run.text[start:stop], counts, max_chars, left, openers, pairs)
+        cut = start + _cut_point(
+            run.text[start:stop], counts, max_chars, left, openers, pairs, readings
+        )
         cut = _outside_replacement(run, start, cut, counts, max_chars)
         out.append((start, cut))
         left = max(0, left - counts[min(cut - start, len(counts) - 1)] - 1)
@@ -509,7 +535,8 @@ _WORD_AFTER = re.compile(r"\s+[\"'(\[\u201c\u2018\u201e\u201a\u00bb]?([^\W\d_]+)
 def _rank(text: str, i: int, openers: frozenset[str]) -> int | None:
     """How good a cut before text[i] is, best first: 0 after ";" or ":", 1 after a comma
     before a word that opens a clause ("…, but", "…, dass"), 2 after any other comma, 3
-    after a dash, 4 at white space; None where no cut may fall (inside a word)."""
+    after a dash, 4 at white space; None where no cut may fall (inside a word). `_cut_point`
+    ranks white space inside a reading 5 (#482)."""
     mark = text[i - 1]
     if mark.isspace():
         return 4
@@ -548,6 +575,7 @@ def _cut_point(
     left: int | None = None,
     openers: frozenset[str] = frozenset(),
     pairs: tuple[str, str] = ("", ""),
+    readings: re.Pattern[str] | None = None,
 ) -> int:
     """Where to cut a text whose spoken length is over max_chars (an index > 0).
 
@@ -555,14 +583,18 @@ def _cut_point(
     may be shorter than the limit to end at a clause boundary (#460). Within a rank the cut
     nearest an even share of what is left of the sentence (`left`, spoken characters) wins, so
     parts keep about the same length; a cut that leaves a part under MIN_PIECE characters is
-    taken only when every cut does. A place inside an open bracket or quote (`pairs`) ranks
-    after every place outside one, so "(for example, | producing …)" is cut only when nothing
-    outside fits."""
+    taken only when every cut does. White space inside a reading (`readings`, `_joined`)
+    ranks 5, after every other white space (#482). A place inside an open bracket or quote
+    (`pairs`) ranks after every place outside one, so "(for example, | producing …)" is cut
+    only when nothing outside fits."""
     # counts never decrease, and the first spoken character always fits (max_chars >= 1)
     last_fit = bisect_right(counts, max_chars) - 1
     inside = _inside(text, last_fit, pairs)
+    joined = _joined(text, last_fit, readings)
     places = [
-        (rank + 5 * inside[i], i)
+        # 0 to 4 as `_rank`, 5 white space inside a reading (every place in `joined` follows
+        # white space, so `_rank` gives it 4), 6 to 11 the same inside a bracket
+        (rank + (i in joined) + 6 * inside[i], i)
         for i in range(last_fit, 0, -1)
         if counts[i] > 0 and (rank := _rank(text, i, openers)) is not None
     ]
@@ -578,6 +610,112 @@ def _cut_point(
     pool = fair or places
     best = min(rank for rank, _ in pool)
     return min((i for rank, i in pool if rank == best), key=lambda i: (abs(counts[i] - target), -i))
+
+
+def _joined(text: str, last: int, readings: re.Pattern[str] | None) -> set[int]:
+    """The places up to `last` after white space that joins the words of one reading (#482):
+    white space with a digit right before or after it ("3 | Komma 5", "Seite | 12"), and white
+    space inside a match of `readings` ("unter | anderem", "less than | or equal to") or right
+    before the word that ends one ("per | second": `_readings` matches only "per " there)."""
+    out: set[int] = set()
+    word_end = 0  # where the last word before the white space ends
+    for i in range(1, min(last, len(text) - 1) + 1):
+        if not text[i - 1].isspace():
+            word_end = i
+        elif not text[i].isspace() and (
+            text[i].isdigit() or (word_end > 0 and text[word_end - 1].isdigit())
+        ):
+            out.add(i)
+    if readings is not None:
+        # a reading that starts before `last` may end after it: look one reading further
+        for match in readings.finditer(text, 0, min(len(text), last + _LONGEST_READING)):
+            out.update(
+                k
+                for k in range(match.start() + 1, min(match.end(), last, len(text) - 1) + 1)
+                if text[k - 1].isspace() and not text[k].isspace()
+            )
+    return out
+
+
+# no reading of the lists is longer (the longest, "joules per kilogram per kelvin", has 30)
+_LONGEST_READING = 64
+
+
+@cache
+def _readings(language: str) -> re.Pattern[str] | None:
+    """The multi-word readings of the steps that a cut must not split, as one pattern (#482):
+    the abbreviation list's readings with a space ("unter anderem", "for example"), the unit
+    list's ("Grad Celsius", "pound per square inch"), two of its units side by side ("newton
+    metres") and its words that join a unit to its neighbours ("Kilometer pro Stunde", "square
+    metres", "R squared"), the numbers step's fractions ("17 out of 20", "ein Drittel"), the
+    statistics step's operators ("less than or equal to", "kleiner oder gleich") and symbols
+    ("confidence interval", "partielles Eta-Quadrat"), a power ("to the power of minus", "hoch
+    minus") and a date ("dritten Mai", "3 May"). Built from the lists at first use, so a new
+    entry is covered at once. None for a language without lists.
+
+    A joining word matches with the white space on its side only (" per ", "square "), so its
+    neighbour is never part of a match: a match never starts at a word that a longer word
+    around it would have to give back, which keeps the search linear on any text (#616 F2)."""
+    # the statistics and number modules import this module (through the footnotes and links
+    # steps), so their tables are read here, not at import
+    from sci2audio.textprep.numbers import OUT_OF
+    from sci2audio.textprep.numbers_de import FRACTIONS_OF_ONE, MONTHS
+    from sci2audio.textprep.statistics import OPERATORS, SYMBOL_READINGS
+    from sci2audio.textprep.statistics_de import OPERATORS_DE, SYMBOL_READINGS_DE
+
+    listed, entries = units(language), abbreviations(language)
+    if listed is None and entries is None:
+        return None
+    german = language == "de"
+    phrases = {
+        reading.strip()
+        for entry in entries or ()
+        for reading in (entry.reads, entry.before_year, entry.after_paragraph)
+    }
+    for unit in listed.units if listed else ():
+        phrases.update((unit.singular, unit.plural))
+    phrases.update(OPERATORS_DE.values() if german else OPERATORS.values())
+    phrases.update(SYMBOL_READINGS_DE if german else SYMBOL_READINGS)
+    phrases.update(FRACTIONS_OF_ONE if german else ())
+    phrases.update(["hoch minus"] if german else ["to the power of minus", "to the power of"])
+    # each a whole match, bounded by what is not a letter or digit
+    whole = [re.escape(phrase) for phrase in phrases if " " in phrase]
+    if not german:
+        whole.append(rf"(?<=\d\s){re.escape(OUT_OF)}(?=\s+\d)")  # "17 out of 20"
+    names = "|".join(
+        sorted(
+            {
+                re.escape(name)
+                for unit in (listed.units if listed else ())
+                if not unit.per_only
+                for name in (unit.singular, unit.plural)
+            },
+            key=len,
+            reverse=True,
+        )
+    )
+    if names:
+        whole.append(rf"(?:{names})(?:\s+(?:{names}))+")  # "newton metres", "N m"
+    # each the white space on one side of a joining word, with the word
+    joins = []
+    words = listed.words if listed else {}
+    if per := words.get("per"):
+        joins.append(rf"(?<=\S)\s+{re.escape(per)}\s+(?=\S)")
+    if listed and not listed.joined_powers:
+        joins += [
+            rf"(?<!\w){re.escape(words[key])}\s+(?=\S)"
+            for key in ("square", "cubic")
+            if key in words
+        ]
+    joins += [
+        rf"(?<=\S)\s+{re.escape(words[key])}(?!\w)" for key in ("squared", "cubed") if key in words
+    ]
+    months = MONTHS if german else tuple(calendar.month_name[1:])
+    joins.append(rf"(?<=\S)\s+(?-i:{'|'.join(months)})(?!\w)")  # "May", not "may"
+    alternatives = sorted(whole, key=len, reverse=True)
+    return re.compile(
+        rf"(?<!\w)(?:{'|'.join(alternatives)})(?!\w)|{'|'.join(joins)}", re.IGNORECASE
+    )
 
 
 def _outside_replacement(run: _Run, start: int, cut: int, counts: list[int], max_chars: int) -> int:

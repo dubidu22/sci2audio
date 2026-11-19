@@ -228,25 +228,38 @@ def run_case(case: Case) -> StepRun:
     return run_steps(case.document, context, switched_off=case.switched_off, strict=True)
 
 
-def read_twice(case: Case) -> tuple[list[str], list[str]]:
-    """Each block's text as a first run reads it and as a second run reads the first run's
-    script (`rebuilt_from_script`), in block order; a block read inside another (a moved
-    note, #213) counts where it is printed, so only the words are compared (D-577)."""
+def second_run(case: Case, first: StepRun) -> StepRun:
+    """The built-in steps on the first run's script (`rebuilt_from_script`), with the case's
+    switches, as a second run reads it (D-577)."""
     context = StepContext(case.document.language, switched_off=case.switched_off)
-    first = run_case(case)
     # a placeholder whose notice is off is read as printed, so it comes back as read (#463)
     read = [
         index
         for index, block in enumerate(case.document.blocks)
         if block.is_placeholder and not notice_read(block, context)
     ]
-    second = run_steps(
+    return run_steps(
         rebuilt_from_script(case.document, first.script(), own_output=read),
         context,
         switched_off=case.switched_off,
         strict=True,
     )
+
+
+def read_twice(case: Case) -> tuple[list[str], list[str]]:
+    """Each block's text as a first run reads it and as a second run reads the first run's
+    script (`second_run`), in block order; a block read inside another (a moved note, #213)
+    counts where it is printed, so only the words are compared (D-577)."""
+    first = run_case(case)
+    second = second_run(case, first)
     return _by_block(first, len(case.document.blocks)), _by_block(second, len(case.document.blocks))
+
+
+def cut_twice(case: Case) -> tuple[list[str], list[str]]:
+    """The utterances the cutter makes of a first run's script and of a second run's
+    (`second_run`): where the script is the same, the cuts should be too (#482)."""
+    first = run_case(case)
+    return said(first), said(second_run(case, first))
 
 
 def _by_block(run: StepRun, count: int) -> list[str]:
