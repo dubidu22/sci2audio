@@ -56,6 +56,7 @@ from sci2audio.web.documents import StoredDocument
 from sci2audio.web.jobs import JobCancelled, JobFailure, JobRecord, JobState
 from sci2audio.web.library import about_of, write_about
 from sci2audio.web.player import remove_position, write_record
+from sci2audio.web.project import ProjectError, audiobook_folder, record_files
 
 logger = logging.getLogger(__name__)
 
@@ -140,14 +141,22 @@ def audio_work(
     overwrite: bool,
     on_failure: Callable[[], None] = lambda: None,
 ) -> Callable[[JobRecord], Sequence[Path]]:
-    """`settings.output_folder` must be set (the server fills in its default).
-    `on_failure` runs when the job fails (the server drops its kept engine)."""
+    """`settings.output_folder` must be set (the server fills in its default): the
+    audiobook goes into the project's own folder in it (D-749). `on_failure` runs when the
+    job fails (the server drops its kept engine)."""
+    output = settings.output_folder
+    if output is None:
+        raise ValueError("the audio job needs an output folder")
 
     def work(job: JobRecord) -> Sequence[Path]:
         try:
+            folder = audiobook_folder(document.folder, document.id, document.name, output)
+        except ProjectError as error:
+            raise JobError(str(error)) from error
+        try:
             result = runner.run_audio(
                 document.source,
-                settings,
+                replace(settings, output_folder=folder),
                 document.folder,
                 voice=voice,
                 overwrite=overwrite,
@@ -192,12 +201,19 @@ def audio_work(
             remove_position(document.folder)  # a new audiobook starts at the start (#153)
         except OSError as error:  # its stamp no longer fits: the page ignores it anyway
             logger.warning("could not forget the listening position: %s", error)
-        return [
+        files = [
             *([written.m4b] if written.m4b else []),
             *written.mp3s,
             *written.subtitles,
             written.readalong,
         ]
+        try:
+            # every file this run wrote, with its hash, for removing the project (D-750);
+            # without it the files are never deleted by sci2audio, only kept
+            record_files(document.folder, document.id, written.readalong.parent, files)
+        except OSError as error:
+            logger.warning("could not record the audiobook's files: %s", error)
+        return files
 
     return work
 

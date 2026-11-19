@@ -35,15 +35,17 @@
 # ---
 # name: test_golden_file[sci2audio-beispiel-text]
   '''
-  sci2audio-beispiel-text.txt  language de  blocks 7
+  sci2audio-beispiel-text.txt  language de  blocks 9
   page labels  -
-  0  p1  paragraph  [p1-l1..p1-l2 (2)]  PAPERS HÖREN\nEine Pilotnotiz für die Tests von sci2audio
-  1  p1  paragraph  [p1-l3..p1-l6 (4)]  Diese Notiz beschreibt eine erfundene Pilotstudie und keine echten\nDaten. Jeder Satz darin ist unser eigener, und die Zeilen sind von\nHand bei etwa siebzig Zeichen umbrochen, wie es in Textdateien oft\nder Fall ist.
-  2  p1  paragraph  [p1-l7]  1. Einleitung
-  3  p1  paragraph  [p1-l8..p1-l10 (3)]  Viele Menschen hören wissenschaftliche Texte, während sie gehen,\nkochen oder pendeln. Ein Wort kann über zwei Zeilen getrennt wer-\nden, wie in diesem Beispiel, und wird doch als ganzes Wort gehört.
-  4  p1  paragraph  [p1-l11..p1-l12 (2)]  Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C.\nEin Gedankenstrich – kurz – und Anführungszeichen „wie diese“.
-  5  p1  paragraph  [p1-l13..p1-l14 (2)]  - erster Punkt\n- zweiter Punkt
-  6  p1  paragraph  [p1-l15..p1-l18 (4)]  Rosen sind rot,\ndie Hörerin wartet;\nein Vers im Gedicht\nbleibt, wo er bricht.
+  0  p1  paragraph  [p1-l1]  PAPERS HÖREN
+  1  p1  paragraph  [p1-l2]  Eine Pilotnotiz für die Tests von sci2audio
+  2  p1  paragraph  [p1-l3..p1-l6 (4)]  Diese Notiz beschreibt eine erfundene Pilotstudie und keine echten\nDaten. Jeder Satz darin ist unser eigener, und die Zeilen sind von\nHand bei etwa siebzig Zeichen umbrochen, wie es in Textdateien oft\nder Fall ist.
+  3  p1  paragraph  [p1-l7]  1. Einleitung
+  4  p1  paragraph  [p1-l8..p1-l10 (3)]  Viele Menschen hören wissenschaftliche Texte, während sie gehen,\nkochen oder pendeln. Ein Wort kann über zwei Zeilen getrennt wer-\nden, wie in diesem Beispiel, und wird doch als ganzes Wort gehört.
+  5  p1  paragraph  [p1-l11..p1-l12 (2)]  Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C.\nEin Gedankenstrich – kurz – und Anführungszeichen „wie diese“.
+  6  p1  list_item  [p1-l13]  - erster Punkt
+  7  p1  list_item  [p1-l14]  - zweiter Punkt
+  8  p1  paragraph  [p1-l15..p1-l18 (4)]  Rosen sind rot,\ndie Hörerin wartet;\nein Vers im Gedicht\nbleibt, wo er bricht.
   sections
   
   '''
@@ -92,16 +94,18 @@
 # ---
 # name: test_golden_file[sci2audio-sample-plain]
   '''
-  sci2audio-sample-plain.txt  language en  blocks 8
+  sci2audio-sample-plain.txt  language en  blocks 10
   page labels  -
-  0  p1  paragraph  [p1-l1..p1-l2 (2)]  LISTENING TO PAPERS\nA pilot note written for the sci2audio tests
-  1  p1  paragraph  [p1-l3..p1-l5 (3)]  This note describes a made-up pilot study and no real data. Every\nsentence in it is our own, and its lines are wrapped by hand at about\nseventy characters, as plain-text files often are.
-  2  p1  paragraph  [p1-l6]  1. Introduction
-  3  p1  paragraph  [p1-l7..p1-l10 (4)]  People listen to papers while they walk, cook or commute. Spoken text\nruns at about 150 words per minute, so a 6,000-word paper takes forty\nminutes. A word may be split across lines, as in this exam-\nple, which a listener hears whole.
-  4  p1  paragraph  [p1-l11]  A paragraph that starts with a tab, followed by several spaces.
-  5  p1  paragraph  [p1-l12..p1-l14 (3)]  The line above holds only spaces, so it ends a paragraph too. Some\nreaders prefer the café at noon; others read in Zürich at 7 °C. A dash\n– en, and one — em; quotes “like these” and µs for microseconds.
-  6  p1  paragraph  [p1-l15..p1-l16 (2)]  - first point\n- second point
-  7  p1  paragraph  [p1-l17..p1-l20 (4)]  Roses are red,\nthe listener waits;\na line in a poem\nkeeps where it breaks.
+  0  p1  paragraph  [p1-l1]  LISTENING TO PAPERS
+  1  p1  paragraph  [p1-l2]  A pilot note written for the sci2audio tests
+  2  p1  paragraph  [p1-l3..p1-l5 (3)]  This note describes a made-up pilot study and no real data. Every\nsentence in it is our own, and its lines are wrapped by hand at about\nseventy characters, as plain-text files often are.
+  3  p1  paragraph  [p1-l6]  1. Introduction
+  4  p1  paragraph  [p1-l7..p1-l10 (4)]  People listen to papers while they walk, cook or commute. Spoken text\nruns at about 150 words per minute, so a 6,000-word paper takes forty\nminutes. A word may be split across lines, as in this exam-\nple, which a listener hears whole.
+  5  p1  paragraph  [p1-l11]  A paragraph that starts with a tab, followed by several spaces.
+  6  p1  paragraph  [p1-l12..p1-l14 (3)]  The line above holds only spaces, so it ends a paragraph too. Some\nreaders prefer the café at noon; others read in Zürich at 7 °C. A dash\n– en, and one — em; quotes “like these” and µs for microseconds.
+  7  p1  list_item  [p1-l15]  - first point
+  8  p1  list_item  [p1-l16]  - second point
+  9  p1  paragraph  [p1-l17..p1-l20 (4)]  Roses are red,\nthe listener waits;\na line in a poem\nkeeps where it breaks.
   sections
   
   '''

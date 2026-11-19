@@ -46,7 +46,7 @@
   outline:
   == page 1  lines 18  pictures 0
   p1-l1  {p}PAPERS HÖREN
-  p1-l2  {p br}Eine Pilotnotiz für die Tests von sci2audio
+  p1-l2  {p}Eine Pilotnotiz für die Tests von sci2audio
   p1-l3  {p}Diese Notiz beschreibt eine erfundene Pilotstudie und keine echten
   p1-l4  {p br}Daten. Jeder Satz darin ist unser eigener, und die Zeilen sind von
   p1-l5  {p br}Hand bei etwa siebzig Zeichen umbrochen, wie es in Textdateien oft
@@ -57,8 +57,8 @@
   p1-l10  {p br}den, wie in diesem Beispiel, und wird doch als ganzes Wort gehört.
   p1-l11  {p}Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C.
   p1-l12  {p br}Ein Gedankenstrich – kurz – und Anführungszeichen „wie diese“.
-  p1-l13  {p}- erster Punkt
-  p1-l14  {p br}- zweiter Punkt
+  p1-l13  {ul li}- erster Punkt
+  p1-l14  {ul li}- zweiter Punkt
   p1-l15  {p}Rosen sind rot,
   p1-l16  {p br}die Hörerin wartet;
   p1-l17  {p br}ein Vers im Gedicht
@@ -123,7 +123,7 @@
   outline:
   == page 1  lines 20  pictures 0
   p1-l1  {p}LISTENING TO PAPERS
-  p1-l2  {p br}A pilot note written for the sci2audio tests
+  p1-l2  {p}A pilot note written for the sci2audio tests
   p1-l3  {p}This note describes a made-up pilot study and no real data. Every
   p1-l4  {p br}sentence in it is our own, and its lines are wrapped by hand at about
   p1-l5  {p br}seventy characters, as plain-text files often are.
@@ -136,8 +136,8 @@
   p1-l12  {p}The line above holds only spaces, so it ends a paragraph too. Some
   p1-l13  {p br}readers prefer the café at noon; others read in Zürich at 7 °C. A dash
   p1-l14  {p br}– en, and one — em; quotes “like these” and µs for microseconds.
-  p1-l15  {p}- first point
-  p1-l16  {p br}- second point
+  p1-l15  {ul li}- first point
+  p1-l16  {ul li}- second point
   p1-l17  {p}Roses are red,
   p1-l18  {p br}the listener waits;
   p1-l19  {p br}a line in a poem

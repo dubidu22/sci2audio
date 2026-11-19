@@ -16,45 +16,13 @@
 
 [floors.en]
 precision = 1.000
-recall = 0.993
+recall = 1.000
 
 [floors.de]
 precision = 1.000
-recall = 0.991
+recall = 1.000
 
 # --- natural sets ---
-
-[[error]]
-file = "sci2audio-sample-plain"
-kind = "FN"
-at = "LISTENING TO PAPERS | A pilot note written"
-class = "layout-join"
-issue = 466
-why = "a title line and its subtitle line are one plain-text paragraph"
-
-[[error]]
-file = "sci2audio-sample-plain"
-kind = "FN"
-at = "for microseconds. first point | second point Roses are"
-class = "layout-join"
-issue = 466
-why = "'- ' list items are lines of one plain-text paragraph"
-
-[[error]]
-file = "sci2audio-beispiel-text"
-kind = "FN"
-at = "PAPERS HÖREN | Eine Pilotnotiz für die"
-class = "layout-join"
-issue = 466
-why = "a title line and its subtitle line are one plain-text paragraph"
-
-[[error]]
-file = "sci2audio-beispiel-text"
-kind = "FN"
-at = "„wie diese“. erster Punkt | zweiter Punkt Rosen sind"
-class = "layout-join"
-issue = 466
-why = "'- ' list items are lines of one plain-text paragraph"
 
 # --- stress sets ---
 

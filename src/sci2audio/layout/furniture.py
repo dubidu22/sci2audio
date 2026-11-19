@@ -29,7 +29,12 @@ heads a line's middle in the band will do, a rule just under the edge lines goes
 (the white past it is what sets them apart), and a number at either end of the line that is
 the page number plus the same offset on each page counts as the same text. Its footnotes
 reach down into the bottom band: lines under a footnote rule, set smaller and following it
-without white, are never furniture.
+without white, are never furniture. A page that prints no page number of its own takes the
+one in its running head as its label (#535).
+
+A table of contents prints its page numbers at the right edge, after dot leaders, or, as a
+journal issue does, at the left edge with each entry's author and title in rows beside them
+(#529).
 """
 
 from __future__ import annotations
@@ -175,6 +180,33 @@ def _texts(text: str, page: int) -> list[str]:
         start, end = number.span()
         found.append(f"{exact[:start]}#{int(number.group()) - page}#{exact[end:]}")
     return found
+
+
+def head_labels(
+    content: Content, furniture: dict[str, FurnitureRole], settings: LayoutSettings
+) -> dict[int, str]:
+    """The page number each page prints inside a running head line, by page (#535): a number
+    at the start or end of a running head that is the page's number plus the same offset on
+    `repeat_pages` pages or more, the rest of the line the same ("Tests in Print ∙ 61" on
+    page 7, "Tests in Print ∙ 63" on page 9), as `_texts` reads it for #458. A number that
+    does not follow the pages ("Heft 55", "Algorithm 3") gives none."""
+    found: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    for page in content.pages:
+        for line in page.lines:
+            if furniture.get(line.id) == RUNNING_HEAD:
+                exact = _exact(line.text)
+                for number in _END_NUMBER.finditer(exact):
+                    start, end = number.span()
+                    offset = int(number.group()) - page.number
+                    found[f"{exact[:start]}#{offset}#{exact[end:]}"].append(
+                        (page.number, number.group())
+                    )
+    labels: dict[int, str] = {}
+    for places in found.values():
+        if len({number for number, _ in places}) >= settings.repeat_pages:
+            for number, printed in places:
+                labels.setdefault(number, printed)
+    return labels
 
 
 def _shape(text: str) -> str:
@@ -435,15 +467,19 @@ def _line_numbers(lines: list[TextLine], settings: LayoutSettings) -> dict[str, 
 
 
 def _contents(lines: list[TextLine], settings: LayoutSettings) -> dict[str, FurnitureRole]:
-    """A printed table of contents: its title and the entries under it with their pages."""
+    """A printed table of contents: its title and the entries under it with their pages,
+    printed at the right edge (or after dot leaders) or at the left edge (#529)."""
     found: dict[str, FurnitureRole] = {}
-    _, right = text_area(lines, settings.edge_share)
+    left, right = text_area(lines, settings.edge_share)
     size = median(run.size for line in lines for run in line.runs) if lines else 0.0
     reach = settings.contents_reach * max(size, 1.0)
     page_rows = rows(lines, settings.row_overlap)
     for start, row in enumerate(page_rows):
         if len(row) == 1 and re.sub(r"\W", "", row[0].text.casefold()) in _CONTENTS_TITLE:
-            entries = _entries(page_rows[start + 1 :], right - reach)
+            after = page_rows[start + 1 :]
+            entries = _entries(after, right - reach) or _left_entries(
+                after, left + reach, reach, settings.contents_rows
+            )
             if entries:
                 found.update({line.id: CONTENTS for line in row})
                 found.update({line.id: CONTENTS for line in entries})
@@ -468,6 +504,44 @@ def _entries(page_rows: list[list[TextLine]], edge: float) -> list[TextLine]:
             pending = []
         elif not pending and entries:
             pending = row
+        else:
+            break
+    return entries
+
+
+def _left_entries(
+    page_rows: list[list[TextLine]], edge: float, reach: float, more: int
+) -> list[TextLine]:
+    """Entries whose page number stands at the text's left edge, a piece of its own, with the
+    entry's text to its right (author and title, as a journal issue prints them, #529): each
+    entry's number at most `edge`, its text within `reach` of the first entry's text, then up
+    to `more` rows starting at that indent, right of the numbers. Page numbers never go down
+    from entry to entry, so a numbered heading after the contents ("1 Introduction") is no
+    entry."""
+    entries: list[TextLine] = []
+    indent: float | None = None
+    last, rows_after, numbers = 0, 0, 0.0  # numbers: where the column of page numbers ends
+    for row in page_rows:
+        number = row[0].text.strip()
+        at = boxed(row[1]).x0 if len(row) > 1 else 0.0
+        if (
+            len(row) > 1
+            and re.fullmatch(r"\d{1,4}", number)
+            and boxed(row[0]).x0 <= edge
+            and int(number) >= last
+            and (indent is None or abs(at - indent) <= reach)
+        ):
+            indent = at if indent is None else indent
+            entries += row
+            last, rows_after, numbers = int(number), 0, max(numbers, boxed(row[0]).x1)
+        elif (
+            indent is not None
+            and rows_after < more
+            and boxed(row[0]).x0 > numbers
+            and abs(boxed(row[0]).x0 - indent) <= reach
+        ):
+            entries += row
+            rows_after += 1
         else:
             break
     return entries
