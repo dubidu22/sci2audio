@@ -197,6 +197,7 @@ def _page(
         keys=keys_of(request),  # the page-wide single keys, on unless switched off (#394)
         launched_as=state.config.launched_as,  # "browser": the rail's Quit item (#215)
     )
+    state.language = s.language  # the app window asks before closing in it (#215)
     return templates.TemplateResponse(request, name, context, status_code=status)
 
 

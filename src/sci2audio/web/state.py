@@ -91,6 +91,8 @@ class ServerState:
     # `seen` is when the server last answered an authorised request (time.monotonic)
     quit: threading.Event = field(default_factory=threading.Event)
     seen: float = field(default_factory=time.monotonic)
+    # the language of the last page rendered: the app window's close question speaks it (#631)
+    language: str | None = None
 
     def __post_init__(self) -> None:
         if self.config.legacy_root is not None:
