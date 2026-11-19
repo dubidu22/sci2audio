@@ -89,7 +89,7 @@ Exit codes, for scripts:
 | 2 | a bad option or value |
 | 3 | the file does not exist or is not a file |
 | 4 | a file type sci2audio can't read |
-| 5 | the file is damaged, protected or can't be opened |
+| 5 | the file is damaged, protected or can't be opened, or its text can't be read |
 | 6 | the voice files are not installed (`sci2audio voices download`) |
 | 7 | output files exist (add `--overwrite`) |
 | 8 | another sci2audio job is working on this file |

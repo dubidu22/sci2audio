@@ -1169,6 +1169,22 @@ blocks = [{ kind = "paragraph", text = "There are 441K apps, 332M words, 100k st
 expected = ["There are 441 thousand apps, 332 million words, 100 thousand steps and a 175 billion model."]
 
 [[case]]
+id = "units-raised-mass-number-before-k-is-no-thousand"
+audit = 0
+issue = 449
+goal = "A raised mass number before K is potassium-40, not '40 thousand': written as superscript digits, which is how it is printed and reads the same on a second run; the voice reads it as '40K'."
+blocks = [{ kind = "paragraph", runs = ["We use ", { sup = "40" }, "K and ", { sup = "87" }, "Rb atoms."] }]
+expected = ["We use ⁴⁰K and 87Rb atoms."]
+
+[[case]]
+id = "units-plain-k-after-a-number-reads-thousand"
+audit = 0
+issue = 449
+goal = "Plain '40K' cannot be told from 'a 40K run' and keeps reading 'thousand' (#449)."
+blocks = [{ kind = "paragraph", text = "We use 40K and 87Rb atoms in 441K runs." }]
+expected = ["We use 40 thousand and 87Rb atoms in 441 thousand runs."]
+
+[[case]]
 id = "symbols-approximately-about"
 audit = 0
 issue = 68
@@ -2191,6 +2207,38 @@ issue = 193
 goal = "A run tagged with a language or another role is read as printed."
 blocks = [{ kind = "paragraph", runs = ["She said ", { text = "bonjour", tags = ["p", "span", "lang:fr"] }, " and ", { text = "left", tags = ["p", "span", "role:note"] }, "."] }]
 expected = ["She said bonjour and left."]
+
+[[case]]
+id = "hidden-run-between-a-number-and-its-unit-on-a-new-line"
+audit = 0
+issue = 445
+goal = "A hidden run between a number and its unit on the next line: the unit reads as in the text without the run, on both runs ('m squared', then 'metres squared', before #445)."
+blocks = [{ kind = "paragraph", runs = ["The effect held at p < .05 ", { text = "Jane", tags = ["p", "span", "hidden"] }, "\nm² here."] }]
+expected = ["The effect held at p less than .05 square metres here."]
+
+[[case]]
+id = "hidden-run-inside-a-statistic"
+audit = 0
+issue = 445
+goal = "A page-break marker inside a comparison: the sign reads as without the marker on the first run too (read as printed before #445, as a word on the second run)."
+blocks = [{ kind = "paragraph", runs = ["It holds for x < ", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " 5 only."] }]
+expected = ["It holds for x less than 5 only."]
+
+[[case]]
+id = "hidden-run-inside-an-abbreviation"
+audit = 0
+issue = 445
+goal = "A page-break marker inside 'e.g.': read 'for example' on the first run too, the marker not read."
+blocks = [{ kind = "paragraph", runs = ["It works in some animals, e.", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, "g. in mice."] }]
+expected = ["It works in some animals, for example in mice."]
+
+[[case]]
+id = "number-and-unit-across-a-line-break"
+audit = 0
+issue = 445
+goal = "A line break between a number and its unit: the unit is read as one ('square metres'), not a letter and its power ('m squared', which a second run read 'metres squared')."
+blocks = [{ kind = "paragraph", text = "The plot was 5\nm² in size, and p < .05\nm² held." }]
+expected = ["The plot was 5 square metres in size, and p less than .05 square metres held."]
 
 # Affiliation marks in the title block (#93, D-692): the first page's paragraphs before the
 # first heading. A mark set small and raised (here tagged `sup`) of digits, commas and note

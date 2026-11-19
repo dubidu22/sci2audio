@@ -116,7 +116,9 @@ def through_unread(
     or a stray accent in "x <¯ 3", would otherwise hide a ratio or a sign that a second run,
     after the clean-up, finds. `unread` are more ranges a step removes, such as the footnote
     marks the footnotes step found ("bzw.¹", #316, D-577). The candidates' spans are mapped
-    back onto the printed text, taking in any unread characters inside."""
+    back onto the printed text, taking in the characters the Unicode step removes; a span with
+    `unread` ranges inside is cut into the pieces beside them (`_around`), since an earlier
+    step removes those ranges and a candidate over them would be set aside (#445)."""
     skipped = {at for start, end in unread for at in range(start, end)}
     kept: list[int] = []
     at = 0
@@ -134,14 +136,32 @@ def through_unread(
         return rules(text)
     read = "".join(text[i] for i in kept)
     kept.append(len(text))
+    found = []
+    for c in rules(read):
+        start = kept[c.start]
+        end = kept[c.end - 1] + 1 if c.end > c.start else kept[c.start]
+        found += _around(Candidate(start, end, c.replacement, c.reason), unread)
+    return found
+
+
+def _around(candidate: Candidate, unread: Sequence[tuple[int, int]]) -> list[Candidate]:
+    """The candidate in pieces beside the `unread` ranges inside it, as
+    `furniture.edits_around` places a link around a page-break marker (#434): the first piece
+    keeps the replacement, the others are removed with the same reason. "e.[13]g." reads "for
+    example" on the first run as on the second, which no longer sees the marker (#445)."""
+    pieces, at = [], candidate.start
+    # overlapping or touching ranges need no joining: a range that starts before `at` is
+    # passed over, and one that starts at `at` adds no empty piece
+    for skip_start, skip_end in sorted(unread):
+        if at <= skip_start < skip_end <= candidate.end:
+            if skip_start > at:
+                pieces.append((at, skip_start))
+            at = skip_end
+    if at < candidate.end or not pieces:
+        pieces.append((at, candidate.end))
     return [
-        Candidate(
-            kept[c.start],
-            kept[c.end - 1] + 1 if c.end > c.start else kept[c.start],
-            c.replacement,
-            c.reason,
-        )
-        for c in rules(read)
+        Candidate(s, e, candidate.replacement if n == 0 else "", candidate.reason)
+        for n, (s, e) in enumerate(pieces)
     ]
 
 

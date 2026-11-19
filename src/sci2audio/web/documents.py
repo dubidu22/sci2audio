@@ -40,7 +40,7 @@ from typing import BinaryIO
 from sci2audio.app import EXTRACTORS, JobBusyError, JobError, JobSettings, ScriptFiles, script_files
 from sci2audio.app.chunks import CHUNKS
 from sci2audio.app.lock import LOCK_NAME, work_folder_lock
-from sci2audio.output.names import clean
+from sci2audio.output.names import clean, retried
 from sci2audio.web.removal import AudiobookRemoved, AudiobookRemoveError
 
 ID = re.compile(r"\A[0-9a-f]{16}\Z")
@@ -285,8 +285,7 @@ class DocumentStore:
         folder = self._folder(document_id)  # an old folder not moved yet keeps its records
         source_folder = folder / SOURCE
         source_folder.mkdir(parents=True, exist_ok=True)
-        target = source_folder / name
-        os.replace(part, target)
+        target = _placed(part, source_folder, name)
         if document_id == in_use:
             return StoredDocument(document_id, folder, target)
         for other in source_folder.iterdir():  # a new name replaces the old one
@@ -520,6 +519,27 @@ def _tree_size(folder: Path) -> int:
 def _blocks(data: BinaryIO) -> Iterable[bytes]:
     while block := data.read(_BLOCK):
         yield block
+
+
+def _placed(part: Path, folder: Path, name: str) -> Path:
+    """Move the copy into `folder` under `name` and return where it is. A name the file
+    system refuses as an illegal byte sequence (EILSEQ: a Mac whose Unicode table is older
+    than Python's, #493) is retried once from its old characters, then as `document` with
+    its suffix, so the file is kept instead of failing with a 500. The folder is sci2audio's
+    own copy of the document (`source/`), never one of the person's."""
+    path = PurePath(name)
+    fallback = f"document{path.suffix}"
+    *first, last = dict.fromkeys((name, f"{retried(path.stem, 'document')}{path.suffix}", fallback))
+    for candidate in first:
+        try:
+            os.replace(part, folder / candidate)
+        except OSError as error:
+            if error.errno != errno.EILSEQ:
+                raise
+        else:
+            return folder / candidate
+    os.replace(part, folder / last)
+    return folder / last
 
 
 def _store_error(error: OSError, name: str) -> StoreError:

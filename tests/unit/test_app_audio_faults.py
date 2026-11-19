@@ -5,6 +5,7 @@ Never a half-written file afterwards."""
 
 from __future__ import annotations
 
+import dataclasses
 import errno
 import json
 import re
@@ -21,6 +22,7 @@ from pathlib import Path
 
 import pytest
 from audio_fakes import FakeVoice, chunk_count
+from output_helpers import NEWER, refuse_newer_names
 
 from sci2audio.app import (
     AudioProgress,
@@ -32,6 +34,7 @@ from sci2audio.app import (
     clean_work_folder,
     run_audio_job,
 )
+from sci2audio.app import audio as audio_module
 from sci2audio.output import Ffmpeg, find_ffmpeg
 from sci2audio.output import readalong as readalong_module
 from sci2audio.testing import no_network
@@ -339,3 +342,61 @@ def test_records_are_written_last_and_a_failed_record_says_the_audiobook_is_ther
     monkeypatch.undo()
     job = run(tmp_path, FakeVoice(), overwrite=True)
     assert json.loads(job.record.read_text())["chunks"]["reused"] == chunks()
+
+
+# ---- a name the Mac refuses (#493, CRIT-02) ------------------------------------------------
+
+
+def newer_title(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The book's title holds a character newer than an older Mac's Unicode table."""
+    real = audio_module.book_info
+    monkeypatch.setattr(
+        audio_module,
+        "book_info",
+        lambda document: dataclasses.replace(real(document), title=f"{NEWER} PyMedPhys"),
+    )
+
+
+def test_a_refused_book_name_is_written_under_the_retried_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    newer_title(monkeypatch)
+    refuse_newer_names(monkeypatch)
+    job = run(tmp_path, FakeVoice())
+    assert job.written.readalong.name == "PyMedPhys.readalong.json"
+    assert all(NEWER not in name for name in outputs(tmp_path))
+    assert len(outputs(tmp_path)) == ENCODES + 1
+    record = json.loads(job.record.read_text(encoding="utf-8"))
+    assert record["files"]["readalong"] == "PyMedPhys.readalong.json"
+
+
+def test_the_check_before_speech_names_the_retried_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The person's own file under the retried name: refused before any speech (D-163),
+    named in the refusal, and kept byte for byte."""
+    newer_title(monkeypatch)
+    refuse_newer_names(monkeypatch)
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "PyMedPhys.m4b").write_bytes(b"the person's own file")
+    voice = FakeVoice()
+    with pytest.raises(OutputExistsError, match=r"PyMedPhys\.m4b"):
+        run(tmp_path, voice)
+    assert voice.made == 0
+    assert (out / "PyMedPhys.m4b").read_bytes() == b"the person's own file"
+    assert outputs(tmp_path) == ["PyMedPhys.m4b"]
+
+
+def test_a_failed_run_takes_back_its_files_under_retried_names(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The output folder does not exist before the run: its names are tried once it is made,
+    so the files this run put in place are the ones taken back."""
+    newer_title(monkeypatch)
+    refuse_newer_names(monkeypatch)
+    ffmpeg = FailingFfmpeg(find_ffmpeg(), fail_at=3, calls=[])
+    with pytest.raises(JobError, match="No space left on device"):
+        run(tmp_path, FakeVoice(), ffmpeg=ffmpeg)
+    assert outputs(tmp_path) == []
+    assert leftovers(tmp_path) == []

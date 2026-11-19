@@ -690,3 +690,17 @@ def truetype_program(glyphs: int, *, cmap: bool = False, post: bool = False) -> 
         directory += struct.pack(">4sIII", tag, 0, offset + len(body), len(data))
         body += data + b"\0" * (-len(data) % 4)
     return header + directory + body
+
+
+def joined_pdf(*parts: bytes) -> bytes:
+    """One PDF holding every page of `parts`, in order, each with its own fonts (pypdfium2's
+    page import copies a page's resources): a glyph-number page beside plain pages (#442)."""
+    joined = pdfium.PdfDocument.new()
+    for data in parts:
+        part = pdfium.PdfDocument(data)
+        joined.import_pages(part)
+        part.close()
+    buffer = io.BytesIO()
+    joined.save(buffer)
+    joined.close()
+    return buffer.getvalue()
