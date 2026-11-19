@@ -2758,3 +2758,58 @@ utterances = [
     "Die Hörerinnen und Hörer der langen Aufnahme bewerteten in der zweiten Runde der Studie sehr ruhig und genau jede einzelne Stelle und die Pausen unter anderem nach jedem Absatz und den Anteil von 3 Komma 5 Prozent",
     "der Sätze sehr ruhig und genau jede einzelne Stelle als zu lang für ein ruhiges Hören am Abend in einem stillen Raum ohne jede Ablenkung durch Musik oder Gespräche im Hintergrund der Wohnung.",
 ]
+
+# ---- B9 Zitatlisten und Bindewörter (#414, #415, #402; D-791) -----------------------------------
+
+[[case]]
+id = "de-citations-a-list-of-citation-brackets-is-one-citation"
+audit = 0
+issue = 414
+goal = "Eine Liste von Zitatklammern, durch Kommas und ein letztes 'und' verbunden, ist ein Zitat: als Einschub fällt sie ganz weg, wo der Satz sie braucht, wird sie einmal gelesen ('Quellen 1, 2 und 3') (#414, D-791)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt [1], [2] und [3] hier." },
+    { kind = "paragraph", text = "Wie in [1], [2] und [3] gezeigt, gilt es." },
+    { kind = "paragraph", text = "[1], [2] und [3] zeigen es." },
+]
+expected = [
+    "Es gilt hier.",
+    "Wie in Quellen 1, 2 und 3 gezeigt, gilt es.",
+    "Quellen 1, 2 und 3 zeigen es.",
+]
+
+[[case]]
+id = "de-citations-subject-nests-keep-every-name"
+audit = 0
+issue = 415
+goal = "Ein verschachteltes Zitat als Subjekt nennt jeden Namen, wie seine flache Form (#415, D-791)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "((Müller, 2019) 2021) wird zitiert." },
+    { kind = "paragraph", text = "(vgl. (Müller, 2019); (Lee, 2018)) wird zitiert." },
+    { kind = "paragraph", text = "((Müller, 2019) (Lee, 2018)) wird zitiert." },
+    { kind = "paragraph", text = "((Müller, 2019); und (Lee, 2018)) wird zitiert." },
+    { kind = "paragraph", text = "(Jones, 2020; ; (Müller, 2019)) wird zitiert." },
+]
+expected = [
+    "Müller wird zitiert.",
+    "Müller und Lee wird zitiert.",
+    "Müller und Lee wird zitiert.",
+    "Müller und Lee wird zitiert.",
+    "Jones und Müller wird zitiert.",
+]
+
+[[case]]
+id = "de-links-a-join-word-before-a-last-link-goes"
+audit = 0
+issue = 402
+goal = "Ein Bindewort vor einem entfernten Link, der das letzte Glied einer Aufzählung ist, fällt mit ihm weg ('Wir danken Müller hier.'); zwischen zwei Sätzen bleibt es ('Es regnet und zeigt es.') (#402, D-791)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wir danken Müller und https://x.org hier." },
+    { kind = "paragraph", text = "Es regnet und https://x.org zeigt es." },
+]
+expected = [
+    "Wir danken Müller hier.",
+    "Es regnet und zeigt es.",
+]
