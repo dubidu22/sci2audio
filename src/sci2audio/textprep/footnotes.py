@@ -88,6 +88,7 @@ _CLOSING = frozenset(".,;:!?)]}\u2019\u201d\u201c\u2018\u00ab\u00bb\u203a\u2039\
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
+_MASS_NUMBER = re.compile(r"[0-9]{1,3}")  # an isotope's mass number has at most three digits
 _BRACKETED = re.compile(r"\[([^\[\]]+)\]|\(([^()]+)\)")  # "[1]" or "(1)": one pair
 # what a mark's removal says about its note (#213)
 _READ_AFTER = "the note is read after the sentence that holds it"
@@ -496,6 +497,28 @@ def _raised_marks(
             offset = end
     if open_mark:
         yield open_mark
+
+
+def raised_numbers(document: Document) -> dict[int, list[tuple[int, int]]]:
+    """Where each block holds a run of one to three digits set small and raised (tagged
+    `sup`, or the size and rise `_raised_marks` asks for), by block: the mass number of an
+    isotope, such as the "40" of "⁴⁰K" (#449)."""
+    items = document.content.items()
+    found: dict[int, list[tuple[int, int]]] = {}
+    for index, block in enumerate(document.blocks):
+        lines = list(_lines(items, block))
+        main = _main_size(run for _, _, line in lines for run in line.runs)
+        for _, offset, line in lines:
+            for run in line.runs:
+                end = offset + len(run.text)
+                if (
+                    _MASS_NUMBER.fullmatch(run.text)
+                    and _set_small(run, main)
+                    and _superscript(run, line, main)
+                ):
+                    found.setdefault(index, []).append((offset, end))
+                offset = end
+    return found
 
 
 def _superscript(run: TextRun, line: TextLine, main: float) -> bool:

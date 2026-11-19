@@ -174,7 +174,8 @@ def test_only_digits_commas_and_note_symbols_make_a_mark(text: str) -> None:
 )
 def test_digits_commas_and_note_symbols_make_a_mark(text: str) -> None:
     document = tagged(sup("Jane Roe", (text,), " and Ann Lee"))
-    assert removed(document) == [text.strip()]
+    # " 2 " has white space on both sides once stripped: the space before goes too (#445)
+    assert removed(document) == [" 2" if text == " 2 " else text]
 
 
 # ---- the two shapes ---------------------------------------------------------------------

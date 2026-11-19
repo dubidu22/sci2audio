@@ -13,8 +13,25 @@ from hypothesis import given
 from hypothesis import strategies as st
 from linear_time import assert_linear
 
-from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Span, check_edits
+from sci2audio.core import (
+    Block,
+    BlockKind,
+    Box,
+    Content,
+    Document,
+    Edit,
+    EditKind,
+    Page,
+    Part,
+    Source,
+    SourceFormat,
+    Span,
+    TextLine,
+    TextRun,
+    check_edits,
+)
 from sci2audio.testing import check_text_step, make_document
+from sci2audio.testing.regression import Case, read_twice
 from sci2audio.textprep import (
     AbbreviationStep,
     Category,
@@ -25,7 +42,7 @@ from sci2audio.textprep import (
     spoken_text,
     wording_for,
 )
-from sci2audio.textprep.notation import edits_through_unread
+from sci2audio.textprep.notation import Candidate, edits_through_unread, through_unread
 from sci2audio.textprep.numbers_de import _NOUN_ENDINGS
 from sci2audio.textprep.wordlists import (
     abbreviations,
@@ -681,6 +698,130 @@ def test_only_replace_edits_are_mapped_back_through_unread_characters(edit: Edit
     span, so the adapter refuses it instead (#159)."""
     with pytest.raises(ValueError, match="only replace edits"):
         edits_through_unread(0, "5\u00adkg", lambda read: [edit], "fake")
+
+
+def _whole(read: str) -> list[Candidate]:
+    """One candidate over the whole text it is given, so a test sees how it is mapped back."""
+    return [Candidate(0, len(read), "R", "why")]
+
+
+@pytest.mark.parametrize(
+    ("text", "unread", "pieces"),
+    [
+        # one range inside: the first piece keeps the replacement, the rest is removed (#445)
+        ("e.Xg.", [(2, 3)], [(0, 2, "R"), (3, 5, "")]),
+        ("aXbYc", [(1, 2), (3, 4)], [(0, 1, "R"), (2, 3, ""), (4, 5, "")]),
+        # overlapping or touching ranges are one: no empty piece between them
+        ("aXYb", [(1, 3), (2, 3)], [(0, 1, "R"), (3, 4, "")]),
+        ("aXYb", [(1, 2), (2, 3)], [(0, 1, "R"), (3, 4, "")]),
+        ("aXYb", [(1, 2), (1, 1), (2, 3)], [(0, 1, "R"), (3, 4, "")]),
+        ("ab", [(1, 1)], [(0, 2, "R")]),  # an empty range cuts nothing
+        ("aXbc", [(1, 2), (3, 3)], [(0, 1, "R"), (2, 4, "")]),
+        # a range at the start or the end lies outside the candidate, which is not cut
+        ("Xab", [(0, 1)], [(1, 3, "R")]),
+        ("abX", [(2, 3)], [(0, 2, "R")]),
+        # characters the Unicode step removes are taken in, not cut around (D-150)
+        ("a\u00adb", [], [(0, 3, "R")]),
+        ("a\u200bbXc", [(3, 4)], [(0, 3, "R"), (4, 5, "")]),
+    ],
+)
+def test_a_candidate_over_an_unread_range_is_cut_around_it(
+    text: str, unread: list[tuple[int, int]], pieces: list[tuple[int, int, str]]
+) -> None:
+    found = through_unread(text, _whole, unread)
+    assert [(c.start, c.end, c.replacement) for c in found] == pieces
+    assert {c.reason for c in found} == {"why"}
+
+
+def test_an_empty_candidate_is_kept_where_it_stands() -> None:
+    """A candidate that inserts (start == end) is mapped back, never dropped."""
+    found = through_unread("aXb", lambda read: [Candidate(1, 1, "R", "why")], [(1, 2)])
+    assert [(c.start, c.end, c.replacement) for c in found] == [(2, 2, "R")]
+
+
+def test_a_magnitude_after_a_raised_mass_number_is_no_thousand() -> None:
+    """#449: a run of one to three digits set small and raised before "K" (here sized and
+    placed as in a PDF, no tag) is a mass number; the digits become superscript digits and
+    the "K" stays. Plain, too long or not raised: "thousand" as before."""
+    runs = [
+        ("We use ", 10.0, 100.0),
+        ("40", 7.0, 97.0),  # small and raised: a mass number
+        ("K, ", 10.0, 100.0),
+        ("40", 10.0, 100.0),  # the text's size: plain
+        ("K, ", 10.0, 100.0),
+        ("40", 7.0, 103.0),  # small but on the line: no mass number
+        ("K, ", 10.0, 100.0),
+        ("40", 10.0, 97.0),  # raised but in the text's size: no mass number
+        ("K, ", 10.0, 100.0),
+        ("238", 7.0, 97.0),  # three digits: a mass number
+        ("K, ", 10.0, 100.0),
+        ("40", 7.0, 97.0),  # raised before a glued unit: the unit is read as before
+        ("kg and ", 10.0, 100.0),
+        ("1234", 7.0, 97.0),  # four digits: no mass number
+        ("K.", 10.0, 100.0),
+    ]
+    line, x = [], 0.0
+    for text, size, top in runs:
+        line.append(TextRun(text, size=size, box=Box(x, top, x + 5 * len(text), top + size)))
+        x += 5 * len(text)
+    text = "".join(run.text for run in line)
+    page = Page(1, (TextLine("l0", tuple(line)),))
+    block = Block(BlockKind.PARAGRAPH, text, (Part("l0", 0),))
+    document = Document(Content(Source("a.pdf", SourceFormat.PDF), (page,)), "en", (block,))
+    run = run_steps(document, EN, steps=(UNITS,), strict=True)
+    assert spoken_text(run.script()) == (
+        "We use ⁴⁰K, 40 thousand, 40 thousand, 40 thousand, ²³⁸K, 40 kilograms and 1234 thousand."
+    )
+    (raised,) = [e for e in run.accepted if e.span.start == 7]
+    assert (raised.span.end, raised.kind) == (9, EditKind.REPLACE)
+    assert raised.reason == 'raised "40" before "K" kept as printed, not "thousand"'
+
+
+@pytest.mark.parametrize("letter", ["K", "k", "M", "B", "bn"])
+def test_a_raised_mass_number_keeps_every_magnitude_letter(letter: str) -> None:
+    document = make_document(
+        [(BlockKind.PARAGRAPH, f"We use 40{letter} now")], tags={0: [(7, 9, "sup")]}
+    )
+    assert spoken_text(run_steps(document, EN, steps=(UNITS,)).script()) == f"We use ⁴⁰{letter} now"
+
+
+@pytest.mark.parametrize(
+    ("text", "raised"),
+    [
+        ("At T = 104K the gas is hot.", (9, 10)),
+        ("The x40K value.", (5, 7)),
+        ("14K and more", (1, 2)),  # after a digit at the block's start
+    ],
+)
+def test_a_raised_run_glued_after_a_letter_or_digit_is_no_mass_number(
+    text: str, raised: tuple[int, int]
+) -> None:
+    """An exponent ("10⁴K") is no mass number: no superscript edit, the same on both runs."""
+    document = make_document([(BlockKind.PARAGRAPH, text)], tags={0: [(*raised, "sup")]})
+    found = UnitStep().find(document, EN)
+    assert not [e for e in found if e.reason.startswith('raised "')]
+    first, second = read_twice(Case("glued", 0, 576, "an exponent", document, ()))
+    assert first == second
+
+
+def test_a_raised_mass_number_at_the_block_start_is_a_mass_number() -> None:
+    """Nothing stands before it, whatever the block ends with ("⁴⁰K in rocks 5")."""
+    document = make_document(
+        [(BlockKind.HEADING, "40K in rocks 5"), (BlockKind.PARAGRAPH, "Text.")],
+        tags={0: [(0, 2, "sup")]},
+    )
+    found = UnitStep().find(document, EN)
+    assert [e for e in found if e.reason.startswith('raised "40"')] != []
+    first, second = read_twice(Case("start", 0, 572, "a block-start mass number", document, ()))
+    assert first == second == ["⁴⁰K in rocks 5", "Text."]
+
+
+def test_a_raised_number_before_a_unit_keeps_the_unit() -> None:
+    """Only a magnitude changes: a raised number before a unit is read as before."""
+    document = make_document([(BlockKind.PARAGRAPH, "We use 40 kg now")], tags={0: [(7, 9, "sup")]})
+    assert (
+        spoken_text(run_steps(document, EN, steps=(UNITS,)).script()) == "We use 40 kilograms now"
+    )
 
 
 # ---- German (#113, D-476, D-480) -----------------------------------------------------------
