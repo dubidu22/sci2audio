@@ -476,6 +476,9 @@ class LinkStep(TextStep):
                 if bare and not join:
                     end, join = _join_after(text, start, end, words)
                     repair += join
+                if bare and not join:
+                    start, join = _join_before(text, start, end, claimed, words)
+                    repair += join
                 following = runs[position][0].start if position < len(runs) else len(text)
                 stop = _stop_after_abbreviation(text, start, end, following, words, language)
                 if stop:
@@ -630,6 +633,34 @@ def _join_after(text: str, start: int, end: int, words: LinkWords) -> tuple[int,
     if not after or not text[after.end() : after.end() + 8].lstrip()[:1].isupper():
         return end, ""
     return after.end(), f'; "{after.group(1)}" after it goes too'
+
+
+def _join_before(
+    text: str, start: int, end: int, claimed: int, words: LinkWords
+) -> tuple[int, str]:
+    """A join word right before a link that is the last item of a list goes too when words
+    follow the link: "We thank Smith and https://x.org here" reads "We thank Smith here", "We
+    thank Smith, Lee, and https://x.org here" reads "We thank Smith, Lee here" (#402,
+    D-791). Where nothing follows the link, `_dangling_join` decides. Only after a word with
+    a capital that does not start the sentence (a name), as `_join_after` asks of the word
+    after a link, so "It rains and https://x.org shows it" keeps its "and" where it joins
+    clauses; and only for a link removed alone. In German every noun has a capital, so
+    "Wir messen die Daten und https://x.org zeigt sie" loses its "und" too: the link was
+    the clause's subject, so neither reading mends it (a known limit, pinned by a test)."""
+    if end >= len(text) or text[end] in ".,;:!?)]":
+        return start, ""
+    joins = [w for w in words.joins if w.isalpha()]  # "and", "or", "und", "oder"
+    listed = "|".join(re.escape(w) for w in sorted(joins, key=len, reverse=True))
+    window = max(claimed, start - _LOOK_BACK)
+    left = re.search(
+        rf"(?<!\S)([^\W\d_][\w’'-]*)(\s*,)?\s+({listed})\Z", text[window:start], re.IGNORECASE
+    )
+    if not left or not left.group(1)[0].isupper():
+        return start, ""
+    if _starts_sentence(text, window + left.start(1), -1, words.abbreviations):
+        return start, ""  # "And https://x.org shows it", "Smith and https://x.org": no list
+    cut = window + left.end(1)
+    return cut, f'; "{text[cut:start].strip()}" before it goes too'
 
 
 def _tidied(text: str, edits: list[Edit]) -> list[Edit]:

@@ -478,6 +478,8 @@ _SIBLINGS = st.sampled_from(
         "(527794, https://example.org)",
         "(results)",
         "(12,345)",
+        "[1], [2] and [3]",  # B9 (#414, #415)
+        "((Smith, 2019) (Lee, 2018))",
     ]
 )
 
@@ -664,8 +666,25 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
         ("As in [MH17], [GKL+19; Knu84] and [PM10] it is. ", 2000),  # #254
         # #285 review round 1: the second look at a text without its identifiers
         ("Smith (527794) (2019) and (see (527794)) here. ", 2000),
+        # B9 (#414, #415): lists of brackets, one long list, "or" lists, subject nests
+        ("It holds [1], [2] and [3] here. ", 4000),
+        ("[1], ", 20_000),
+        ("It holds [1], [2] or [3] here. ", 4000),
+        ("((Smith, 2019) (Lee, 2018)) is cited. ", 3000),
+        ("(see (Smith, 2019); and (Lee, 2018)) is cited. ", 2500),
     ],
-    ids=["numeric", "author-year", "nests", "keys", "identifiers"],
+    ids=[
+        "numeric",
+        "author-year",
+        "nests",
+        "keys",
+        "identifiers",
+        "lists",
+        "one-list",
+        "or-lists",
+        "nests-side-by-side",
+        "nests-after-lead",
+    ],
 )
 def test_a_long_block_takes_linear_time(unit: str, count: int) -> None:  # S2: 100,000 characters
     # 8 times the text against a base run (#276); it took 17 s for 80,000 characters before
@@ -986,6 +1005,10 @@ def _shell(n: int) -> str:
     return "Data (" + "(Smith, 2019); " * n + "(Lee, 2020) 2021) here."
 
 
+def _side_by_side(n: int) -> str:
+    return "(" + "(Smith, 2019) " * n + "(Lee, 2020)) is cited."
+
+
 def _sentences(n: int) -> str:
     return " ".join(["((Smith, 2019); (Lee, 2018); Jones, 2020) is cited."] * n)
 
@@ -995,6 +1018,7 @@ def _sentences(n: int) -> str:
     [
         (_wide, 240, "Smith, " * 239 + "Smith and Jones is cited."),
         (_shell, 240, "Data here."),
+        (_side_by_side, 240, "Smith, " * 239 + "Smith and Lee is cited."),  # #415
         (_sentences, 800, " ".join(["Smith, Lee and Jones is cited."] * 800)),
     ],
 )
