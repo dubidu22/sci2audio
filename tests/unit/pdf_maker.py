@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 import hashlib
 import io
+import itertools
 import re
 import struct
 import zlib
@@ -109,6 +110,81 @@ def _rect(item: Rect) -> object:
     )
     raw.FPDFPath_SetDrawMode(obj, raw.FPDF_FILLMODE_ALTERNATE, False)
     return obj
+
+
+def cropped(
+    data: bytes,
+    crop: tuple[float, float, float, float],
+    media: tuple[float, float, float, float] | None = None,
+) -> bytes:
+    """`data` with every page's /CropBox (and /MediaBox, if given) set, in PDF space: left,
+    bottom, right, top, y upwards. A journal page cut from a larger sheet looks like this
+    (#458)."""
+    document = pdfium.PdfDocument(data)
+    for index in range(len(document)):
+        page = document[index]
+        if media is not None:
+            page.set_mediabox(*media)
+        page.set_cropbox(*crop)
+        page.close()
+    buffer = io.BytesIO()
+    document.save(buffer)
+    document.close()
+    return buffer.getvalue()
+
+
+def turned(data: bytes, turn: int) -> bytes:
+    """`data` with every page stored unturned and shown through /Rotate `turn` (90, 180 or
+    270, clockwise): each page is placed as a form XObject on a page of the unturned size,
+    turned back the other way, so the page as shown is the page of `data` (#537)."""
+    source = pdfium.PdfDocument(data)
+    document = pdfium.PdfDocument.new()
+    for index in range(len(source)):
+        width, height = source[index].get_size()
+        # x' = a x + c y + e, y' = b x + d y + f: the shown page's point on the unturned page
+        a, b, c, d, e, f = {
+            90: (0, 1, -1, 0, height, 0),
+            180: (-1, 0, 0, -1, width, height),
+            270: (0, -1, 1, 0, 0, width),
+        }[turn]
+        form = raw.FPDF_NewFormObjectFromXObject(
+            raw.FPDF_NewXObjectFromPage(document.raw, source.raw, index)
+        )
+        raw.FPDFPageObj_Transform(form, a, b, c, d, e, f)
+        page = document.new_page(*((height, width) if turn in (90, 270) else (width, height)))
+        raw.FPDFPage_InsertObject(page.raw, form)
+        raw.FPDFPage_GenerateContent(page.raw)
+        page.set_rotation(turn)
+        page.close()
+    buffer = io.BytesIO()
+    document.save(buffer)
+    document.close()
+    source.close()
+    return buffer.getvalue()
+
+
+def spread(texts: list[Text], *, inherited: bool = True) -> bytes:
+    """Two pages cut from one sheet of twice the page width (1200 x 800): one content
+    stream draws `texts` (Helvetica, positions on the sheet from its top left) and each
+    page's /CropBox covers one half. With `inherited` the /MediaBox stands only on the
+    /Pages node, as in the seaborn corpus paper, so the pages inherit it (#543); else each
+    page states its own."""
+    content = b"".join(
+        b"BT /F1 %g Tf %g %g Td (%s) Tj ET\n" % (t.size, t.x, HEIGHT - t.y, t.text.encode())
+        for t in texts
+    )
+    media = b" /MediaBox [0 0 %g %g]" % (2 * WIDTH, HEIGHT)
+    page = b"<< /Type /Page /Parent 2 0 R /CropBox [%g 0 %g %g] /Contents 4 0 R%s >>"
+    objects = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        2: b"<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2"
+        b" /Resources << /Font << /F1 5 0 R >> >>%s >>" % (media if inherited else b""),
+        3: page % (0, WIDTH, HEIGHT, b"" if inherited else media),
+        4: stream(content),
+        5: _HELVETICA,
+        6: page % (WIDTH, 2 * WIDTH, HEIGHT, b"" if inherited else media),
+    }
+    return raw_pdf(objects)
 
 
 def in_form(data: bytes, scale: float, dx: float, dy: float) -> bytes:
@@ -472,3 +548,159 @@ def flate_bomb(spaces: int, chunk: int = 1 << 20) -> bytes:
         5: _HELVETICA,
     }
     return raw_pdf(objects)
+
+
+# ---- fonts with no Unicode source (#442) ----------------------------------------------------
+
+GLYPH_ORDERS = {"shifted": -29, "far": 300}  # glyph number minus code point, per font kind
+
+
+def glyph_number_pdf(
+    lines: list[str],
+    *,
+    order: str = "shifted",
+    cmap: bool = False,
+    post: bool = False,
+    to_unicode: bool = False,
+    plain: tuple[str, ...] = (),
+) -> bytes:
+    """One page whose `lines` are set in a CID font with Identity-H encoding, as Acrobat
+    Distiller writes a TrueType font it subsets: each character's code is its glyph number,
+    the code point moved by `GLYPH_ORDERS[order]` ("shifted" is the usual TrueType glyph
+    order, "DV" for "as"; "far" lands past Latin Extended-A, as Calibri's glyph numbers do).
+    The embedded program is written here (`truetype_program`, rectangles for glyphs, no real
+    font, so no licence), with a cmap and a post table only if asked; `to_unicode` adds the
+    map that gives the right letters. `plain` lines follow in Helvetica, 20 pt apart."""
+    shift = GLYPH_ORDERS[order]
+    codes = sorted({ord(c) + shift for line in lines for c in line})
+    content = b""
+    for k, line in enumerate(lines):
+        hexed = "".join(f"{ord(c) + shift:04X}" for c in line).encode()
+        content += b"BT /F1 10 Tf 72 %d Td <%s> Tj ET\n" % (720 - 20 * k, hexed)
+    for k, line in enumerate(plain, len(lines)):
+        content += b"BT /F2 10 Tf 72 %d Td (%s) Tj ET\n" % (720 - 20 * k, line.encode())
+    program = truetype_program(max(codes) + 1, cmap=cmap, post=post)
+    descendant = (
+        b"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /ABCDEF+GlyphNumbers"
+        b" /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>"
+        b" /FontDescriptor 8 0 R /CIDToGIDMap /Identity /DW 500 >>"
+    )
+    objects = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: _PAGE % (b"[0 0 612 792]", b"<< /Font << /F1 6 0 R /F2 5 0 R >> >>", b""),
+        4: stream(content),
+        5: _HELVETICA,
+        6: b"<< /Type /Font /Subtype /Type0 /BaseFont /ABCDEF+GlyphNumbers"
+        b" /Encoding /Identity-H /DescendantFonts [7 0 R]%s >>"
+        % (b" /ToUnicode 10 0 R" if to_unicode else b""),
+        7: descendant,
+        8: b"<< /Type /FontDescriptor /FontName /ABCDEF+GlyphNumbers /Flags 6"
+        b" /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200"
+        b" /CapHeight 700 /StemV 80 /FontFile2 9 0 R >>",
+        9: stream(program, b"/Length1 %d" % len(program)),
+    }
+    if to_unicode:
+        entries = [f"<{code:04X}> <{code - shift:04X}>" for code in codes]
+        blocks = "".join(
+            f"{len(chunk)} beginbfchar {' '.join(chunk)} endbfchar "
+            for chunk in (entries[i : i + 100] for i in range(0, len(entries), 100))
+        )
+        objects[10] = stream(
+            b"/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CMapName /G def"
+            b" 1 begincodespacerange <0000> <FFFF> endcodespacerange %s"
+            b"endcmap CMapName currentdict /CMap defineresource pop end end" % blocks.encode()
+        )
+    return raw_pdf(objects)
+
+
+def truetype_program(glyphs: int, *, cmap: bool = False, post: bool = False) -> bytes:
+    """A TrueType font program of `glyphs` glyphs, each a rectangle (glyphs 0 and 3, the
+    .notdef and the space, empty), with the tables a reader needs (head, hhea, maxp, hmtx,
+    loca, glyf) and, if asked, a cmap (Unicode to glyph, an empty map) and a post table
+    (version 3, no glyph names): either one is a Unicode source of its own (#442)."""
+    glyf, loca = b"", []
+    for glyph in range(glyphs):
+        loca.append(len(glyf))
+        if glyph in (0, 3):
+            continue
+        xs, ys = (50, 450, 450, 50), (0, 0, 600, 600)
+        glyf += struct.pack(">hhhhhHH", 1, 50, 0, 450, 600, 3, 0) + bytes([1] * 4)
+        glyf += struct.pack(">4h", xs[0], *(b - a for a, b in itertools.pairwise(xs)))
+        glyf += struct.pack(">4h", ys[0], *(b - a for a, b in itertools.pairwise(ys)))
+    loca.append(len(glyf))
+    tables = {
+        b"head": struct.pack(
+            ">IIIIHHqqhhhhHHhhh",
+            0x10000,
+            0,
+            0,
+            0x5F0F3CF5,
+            0,
+            1000,
+            0,
+            0,
+            0,
+            -200,
+            1000,
+            800,
+            0,
+            3,
+            2,
+            1,
+            0,
+        ),
+        b"hhea": struct.pack(
+            ">IhhhHhhhhhhhhhhhH",
+            0x10000,
+            800,
+            -200,
+            0,
+            1000,
+            0,
+            0,
+            1000,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            glyphs,
+        ),
+        b"maxp": struct.pack(">IH13H", 0x10000, glyphs, 4, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+        b"hmtx": struct.pack(f">{2 * glyphs}h", *(500, 50) * glyphs),
+        b"loca": struct.pack(f">{len(loca)}I", *loca),
+        b"glyf": glyf,
+    }
+    if cmap:  # format 4 with only the closing segment: maps nothing, but is there
+        tables[b"cmap"] = (
+            struct.pack(">HHHHI", 0, 1, 3, 1, 12)
+            + struct.pack(">8H", 4, 24, 0, 2, 2, 0, 0, 0xFFFF)
+            + struct.pack(">4H", 0, 0xFFFF, 1, 0)
+        )
+    if post:
+        tables[b"post"] = struct.pack(">IIhhIIIII", 0x30000, 0, 0, 0, 0, 0, 0, 0, 0)
+    header = struct.pack(">IHHHH", 0x10000, len(tables), 0, 0, 0)
+    offset, directory, body = 12 + 16 * len(tables), b"", b""
+    for tag in sorted(tables):
+        data = tables[tag]
+        directory += struct.pack(">4sIII", tag, 0, offset + len(body), len(data))
+        body += data + b"\0" * (-len(data) % 4)
+    return header + directory + body
+
+
+def joined_pdf(*parts: bytes) -> bytes:
+    """One PDF holding every page of `parts`, in order, each with its own fonts (pypdfium2's
+    page import copies a page's resources): a glyph-number page beside plain pages (#442)."""
+    joined = pdfium.PdfDocument.new()
+    for data in parts:
+        part = pdfium.PdfDocument(data)
+        joined.import_pages(part)
+        part.close()
+    buffer = io.BytesIO()
+    joined.save(buffer)
+    joined.close()
+    return buffer.getvalue()

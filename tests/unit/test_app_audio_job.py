@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 from audio_fakes import FakeVoice, chunk_count
-from pdf_maker import Text, make_pdf
+from pdf_maker import Text, glyph_number_pdf, joined_pdf, make_pdf
 
 from sci2audio.app import (
     AudioProgress,
@@ -22,6 +22,8 @@ from sci2audio.app import (
     JobSettings,
     OutputExistsError,
     Phase,
+    UnreadableFileError,
+    UnreadableTextError,
     clean_work_folder,
     run_audio_job,
 )
@@ -168,7 +170,8 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
     tmp_path: Path,
 ) -> None:
     events: list[AudioProgress] = []
-    job = run(PYMEDPHYS, tmp_path, FakeVoice(), progress=events.append, clock=Clock())
+    voice = FakeVoice()
+    job = run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=Clock())
     phases = list(dict.fromkeys(e.phase for e in events))
     assert phases == [
         Phase.READING,
@@ -199,8 +202,12 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
         ready = event.chunks_done >= len(first_chapter) and measured_so_far >= 1000  # D-382
         assert (event.seconds_left is not None) == ready, event
         if event.seconds_left is not None:  # every call costs 1 s whatever its length, and
-            shown += 1  # the cost model finds that: one second per chunk left (D-380)
-            left = event.chunks_total - event.chunks_done
+            shown += 1  # the cost model finds that: one second per chunk left (D-380), except
+            # that a chunk longer than any measured one costs that one's second per character
+            # (D-384): at the default limit (#494) such chunks are still to come here
+            spoken = [len(text) for text in voice.texts]
+            longest = max(spoken[warm_up : event.chunks_done])
+            left = sum(1.0 if n <= longest else n / longest for n in spoken[event.chunks_done :])
             assert event.seconds_left == pytest.approx(left)
     assert shown > 0
     assert events_spoken[-1].seconds_left == 0
@@ -267,7 +274,8 @@ def test_the_estimate_fits_a_cost_per_call_per_character_and_per_square(
     clock = CostClock(cost, slow=4)
     voice = FakeVoice(on_speak=clock.speak)
     events: list[AudioProgress] = []
-    run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=clock)
+    # the 300-character limit this test was written for (#494 raised the default)
+    run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=clock, max_chars=300)
     lengths = [len(text) for text in voice.texts]
     estimates = [
         e for e in events if e.phase is Phase.SPEAKING and e.chunks_done and e.seconds_left
@@ -276,7 +284,15 @@ def test_the_estimate_fits_a_cost_per_call_per_character_and_per_square(
     plain_rate_off = 0.0
     for event in estimates:
         real = sum(cost(n) for n in lengths[event.chunks_done :])
-        assert event.seconds_left == pytest.approx(real, rel=1e-6)
+        # D-384: a chunk longer than every measured one costs the longest one's time per
+        # character, so the fitted curve is never stretched past what it saw; which chunks
+        # come later than the longest measured one depends on where the text is cut (#477)
+        longest = max(lengths[audio_module.WARM_UP_CALLS : event.chunks_done])
+        fitted = sum(
+            cost(n) if n <= longest else n * cost(longest) / longest
+            for n in lengths[event.chunks_done :]
+        )
+        assert event.seconds_left == pytest.approx(fitted, rel=1e-6)
         assert event.characters_per_second is not None
         plain = (event.characters_total - event.characters_done) / event.characters_per_second
         plain_rate_off = max(plain_rate_off, abs(plain - real) / real)
@@ -569,3 +585,61 @@ def test_the_audiobook_follows_the_chosen_order(tmp_path: Path) -> None:
     record = json.loads(job.record.read_text(encoding="utf-8"))
     assert record["settings"]["chapters"] == [2, 0]
     assert [(c["index"], c["selected"]) for c in record["chapters"]][:2] == [(2, True), (0, True)]
+
+
+# ---- a PDF whose text can't be read (#442 part B, AC-442.3) -----------------------------------
+
+GLYPH_LINES = [
+    "Das Buch wurde in einer Zeit geschrieben, in der die Arbeit in den Quartieren",
+    "neu gedacht werden musste. Die Menschen, die dort leben, kennen ihre Nachbarn,",
+]
+
+
+def test_a_pdf_of_glyph_numbers_stops_before_the_voice_and_writes_nothing(
+    tmp_path: Path,
+) -> None:
+    """The #442 file's kind: every page is glyph numbers, so no voice is made, nothing is
+    spoken, and neither the output folder nor the working folder gets a file."""
+    source = tmp_path / "gemeinwesenarbeit.pdf"
+    source.write_bytes(joined_pdf(*[glyph_number_pdf(GLYPH_LINES)] * 3))
+    voice = FakeVoice()
+    seen: list[AudioProgress] = []
+    with pytest.raises(UnreadableTextError) as raised:
+        run(source, tmp_path, voice, progress=seen.append)
+    assert isinstance(raised.value, UnreadableFileError)  # the command line's exit 5
+    assert str(raised.value) == (
+        "gemeinwesenarbeit.pdf: the text of pages 1\u20133 cannot be read: the PDF's fonts "
+        "give glyph numbers or wrong letters there, so the voice would read nonsense; no "
+        "audiobook is made from it"
+    )
+    assert voice.made == 0
+    assert voice.texts == []
+    assert Phase.TEXT_STEPS not in {event.phase for event in seen}  # stopped right after reading
+    assert outputs(tmp_path) == []
+    work = tmp_path / "work"
+    left = sorted(p.name for p in work.rglob("*") if p.is_file()) if work.exists() else []
+    assert all(name.endswith(".lock") for name in left), left
+
+
+def test_the_stop_comes_before_a_missing_voice(tmp_path: Path) -> None:
+    """The person learns first that the file can't be read: setting up the voice would not
+    help."""
+    source = tmp_path / "glyphs.pdf"
+    source.write_bytes(glyph_number_pdf(GLYPH_LINES))
+    missing = replace(FakeVoice().source(), installed=lambda voice: False)
+    settings = JobSettings(output_folder=tmp_path / "out")
+    with pytest.raises(UnreadableTextError):
+        run_audio_job(source, settings, tmp_path / "work", voice=missing)
+
+
+def test_a_glyph_number_page_among_longer_plain_pages_is_voiced(tmp_path: Path) -> None:
+    """Less than half of the characters: the audiobook is made, and the report (the script
+    job's) names the page."""
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    source = tmp_path / "mixed.pdf"
+    source.write_bytes(joined_pdf(plain, glyph_number_pdf(GLYPH_LINES), plain))
+    job = run(source, tmp_path, FakeVoice())
+    assert job.spoken > 0
+    assert job.written.readalong.is_file()

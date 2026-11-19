@@ -159,6 +159,9 @@ def test_the_note_box_pauses_esc_leaves_it_and_a_note_survives_a_reload(
     expect(page.locator(".mk-left")).to_have_text("300 characters left")
     page.get_by_role("textbox", name="Note").fill("Kept.\nTwo lines.")
     rows(page).first.get_by_role("button", name="Save").click()
+    # the row shows the note only once the server has stored it; a reload before that
+    # cancels the save (#506)
+    expect(rows(page).first.locator(".mk-note")).to_have_text("Kept.\nTwo lines.")
     page.reload()
     page.locator("#tab-markers").click()
     expect(rows(page).first.locator(".mk-note")).to_have_text("Kept.\nTwo lines.")
@@ -320,6 +323,7 @@ def test_the_markers_tab_passes_axe_in_light_dark_and_german(signed_in: Page, li
     page.locator("#marker-add-note").click()
     page.get_by_role("textbox", name="Note").fill("A note.")
     page.keyboard.press("Control+Enter")
+    expect(rows(page).first.locator(".mk-note")).to_have_text("A note.")  # stored (#506)
     for theme in ("light", "dark"):
         page.emulate_media(color_scheme=theme)
         check_axe(page, f"listen, markers tab, {theme}")

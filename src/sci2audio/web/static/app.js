@@ -266,7 +266,7 @@ function librarySearch() {
   });
 }
 
-// ---- removing a document (#120, D-359 to D-362) ------------------------------------------
+// ---- removing a document (#120, D-359 to D-362, #470) ---------------------------------------
 
 function removal() {
   for (const button of document.querySelectorAll("button.remove-now")) {
@@ -279,7 +279,11 @@ function removal() {
       say(tr("remove.removing"));
       let removed;
       try {
-        removed = await send(`/api/v1/documents/${button.dataset.document}`, { method: "DELETE" });
+        // the box's "keep" tick; without audiobook files there is none, and nothing to keep
+        const keep = button.closest("details")?.querySelector("input.remove-keep");
+        const query = `keep_audiobook=${keep && keep.checked ? "true" : "false"}`;
+        const url = `/api/v1/documents/${button.dataset.document}?${query}`;
+        removed = await send(url, { method: "DELETE" });
       } catch (error) {
         sending = false;
         button.removeAttribute("aria-disabled");
@@ -287,9 +291,30 @@ function removal() {
         return;
       }
       let text = tr("remove.done", { name: removed.name });
-      let stays = "";
-      if (removed.audiobook_folder) stays = tr("remove.stays_folder", { folder: removed.audiobook_folder });
-      else if (button.dataset.audio) stays = tr("remove.stays");
+      // what happened to the audiobook files (#470, D-751)
+      const parts = [];
+      // whole folders (path == folder) come first and are not counted as files
+      const chosen = removed.kept.filter((kept) => kept.reason === "kept-by-choice");
+      const folders = removed.kept.filter(
+        (kept) => kept.path === kept.folder && kept.reason !== "kept-by-choice",
+      );
+      const files = removed.kept.filter((kept) => kept.path !== kept.folder);
+      const stayed = files.length + removed.kept_more;
+      if (removed.deleted_files) parts.push(tr("remove.deleted", { n: removed.deleted_files }));
+      if (chosen.length) {
+        parts.push(tr("remove.stays_folder", { folder: chosen[chosen.length - 1].path }));
+      }
+      if (stayed) {
+        const where = (files[0] ?? removed.kept[removed.kept.length - 1]).folder;
+        parts.push(tr("remove.kept_some", { n: stayed, folder: where }));
+      }
+      if (folders.length) {
+        parts.push(tr("remove.kept_folder", { n: folders.length, folder: folders[0].path }));
+      }
+      if (button.dataset.earlier) {
+        parts.push(tr("remove.stays_earlier", { folder: button.dataset.earlier }));
+      } else if (!parts.length && button.dataset.audio) parts.push(tr("remove.stays"));
+      const stays = parts.join(" ");
       const page = document.getElementById("document");
       if (page) {
         // the document page: its steps make no sense any more; the result replaces them

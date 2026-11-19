@@ -115,6 +115,30 @@ def extract_epub_cover(path: Path) -> Cover | None:
     return Cover(image, kind) if image and kind and small_enough(image) else None
 
 
+def extract_epub_picture(path: Path, ref: str) -> Cover | None:
+    """The picture the EPUB at `path` stores at `ref` (a `Picture.ref`, D-310), for the
+    player (#293), under the checks of `extract_epub_cover`: a JPEG or PNG of at most
+    `MAX_COVER` bytes whose header gives a size within the pixel limits. `ref` is the file's
+    own text, so it is used only as a name inside the zip: it must already be a clean path
+    there (no "..", no leading "/", no address) and name a member. None otherwise, or if the
+    file can't be read."""
+    if not ref or clean_path(ref) != ref:
+        return None
+    try:
+        data = path.read_bytes()
+        book = _open(data, path.name)
+    except (OSError, ExtractionError):
+        return None
+    try:
+        image = book.read(ref, limit=MAX_COVER, missing_ok=True)
+    except ExtractionError:
+        return None
+    finally:
+        book.close()
+    kind = media_type(image) if image else None
+    return Cover(image, kind) if image and kind and small_enough(image) else None
+
+
 # ---- the zip -------------------------------------------------------------------------
 
 

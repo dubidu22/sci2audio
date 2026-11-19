@@ -31,7 +31,6 @@ import re
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import (
-    SKIPPED_KINDS,
     Candidate,
     fold,
     pick,
@@ -39,6 +38,7 @@ from sci2audio.textprep.notation import (
     to_edits,
 )
 from sci2audio.textprep.numbers_de import find_numbers_de
+from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.units import reads_unit_after_per
 
@@ -111,10 +111,12 @@ _CARET = re.compile(
 )
 # not before a caret: "10−410^2" runs into a power, which a second run would read apart (#340)
 _TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,⁺⁻^])")
-# not after a number and a space ("5 m²" is a unit, the units step's); a caret exponent before
-# the space is no such number, since the caret rule may turn it into a word ("x^2 x⁶")
+# not after a number and a space or line break ("5 m²", "5\nm²" are units, the units step's,
+# #445); a caret exponent before the space is no such number, since the caret rule may turn it
+# into a word ("x^2 x⁶"). After "." or "," only a space counts: "e.g.\nm²" is read as on
+# main, since its second run is #564's.
 _LETTER_POWER = re.compile(
-    r"(?<![\w/])(?<!(?<!\^)\d )(?<![.,] )(?P<base>[^\W\d_"
+    r"(?<![\w/])(?<!(?<!\^)\d\s)(?<![.,] )(?P<base>[^\W\d_"
     + _SUPERSCRIPTS
     + r"])(?P<exp>"
     + _SUPER
@@ -238,7 +240,7 @@ class NumbersStep(TextStep):
         marks = unread_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
-            if block.kind in SKIPPED_KINDS or not block.text:
+            if not read_as_prose(block, context) or not block.text:
                 continue
             unread = marks.get(index, ())
             edits += to_edits(index, through_unread(block.text, find, unread), self.id)

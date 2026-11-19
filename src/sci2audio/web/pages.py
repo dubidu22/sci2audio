@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
+import stat
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -87,7 +89,9 @@ from sci2audio.web.player import (
     player_for,
     read_position,
     recorded_folder,
+    sentence_starts,
 )
+from sci2audio.web.project import PROJECT, read_project
 from sci2audio.web.state import ServerState, state_of
 from sci2audio.web.tasks import plan_digest
 
@@ -198,16 +202,59 @@ def _not_found(request: Request, state: ServerState, s: Strings, what: str) -> H
     return _page(request, state, s, "missing.html", 404, what=what)
 
 
+# Removing a project deletes its audiobook files unless the person ticks "keep" (Colin,
+# D-754): the box's state when it is drawn. The API has no default (D-751).
+KEEP_AUDIOBOOK_DEFAULT = False
+
+
 def _removal(document: StoredDocument) -> dict[str, Any]:
-    """What removing the document takes away and where its audiobook stays (D-359)."""
+    """What removing the document takes away and what stays (D-359, D-751): the project
+    folders' audiobook files counted as the box is drawn (sizes only; the hashes are
+    checked when the button is pressed), and an audiobook made before #469 elsewhere."""
+    project = read_project(document.folder, document.id)
+    record = document.folder / PROJECT
+    # a record that exists but can't be read: nothing is deleted, and the box says why (R4)
+    unread = project is None and os.path.lexists(record)
+    own = [] if project is None else project.folders()
+    audiobooks = []
+    for audiobook in [] if project is None else project.audiobooks:
+        if _linked(audiobook.folder):  # never followed, so nothing in it goes (D-751)
+            continue
+        sizes = [_file_size(audiobook.folder / f.name) for f in audiobook.files]
+        found = [size for size in sizes if size is not None]
+        if found:
+            audiobooks.append(
+                {"folder": str(audiobook.folder), "files": len(found), "bytes": sum(found)}
+            )
     folder = recorded_folder(document.folder, document.id)
     return {
         "bytes": document.folder_bytes,
-        "folder": None if folder is None else str(folder),
+        "audiobooks": audiobooks,
+        "keep": KEEP_AUDIOBOOK_DEFAULT,
+        # an audiobook made before #469, outside any project folder: it always stays
+        "folder": None if folder is None or folder in own or unread else str(folder),
+        "record_unread": str(record) if unread else None,
         "has_audio": document.has_audio,
         # counted from the file as the box is drawn (D-728 ruling 3); None: it can't be read
         "markers": count_markers(document.folder, document.id),
     }
+
+
+def _linked(path: Path) -> bool:
+    """A symbolic link or a Windows junction."""
+    try:
+        return path.is_symlink() or path.is_junction()
+    except OSError:
+        return False
+
+
+def _file_size(path: Path) -> int | None:
+    """The size of a regular file (no link), or None."""
+    try:
+        info = path.lstat()
+    except OSError:
+        return None
+    return info.st_size if stat.S_ISREG(info.st_mode) else None
 
 
 # --- the library and the rail's shelf (#389, D-664) -------------------------------------
@@ -1086,7 +1133,9 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         prepare=not found.outside,
     )
     try:
-        view, located, made_from = player_for(found.work, found.document, found.folders)
+        view, located, made_from = player_for(
+            found.work, found.document, found.folders, figures=not found.outside
+        )
     except PlayerError as error:
         return _page(
             request,
@@ -1140,13 +1189,14 @@ def _markers_data(
     except (MarkersBroken, OSError):
         return {"markers": [], "markers_file": str(work / MARKERS)}
     spans = [chunk.span for chunk in located.readalong.chunks]
+    firsts = sentence_starts(located.readalong)  # a sentence by its first piece (#520)
     return {
         "markers": [
             {
                 "id": p.marker.id,
                 "text": p.marker.anchor.text,
                 "note": p.marker.note,
-                "chunk": p.chunk,
+                "chunk": None if p.chunk is None else firsts[p.chunk],
                 "state": p.state,
             }
             for p in place(markers, made_from, spans)

@@ -49,12 +49,12 @@ from sci2audio.textprep.abbreviations import reads_full_stop
 from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN
 from sci2audio.textprep.furniture import edits_around, hidden_removals, read_around
 from sci2audio.textprep.links import (
-    SKIPPED_KINDS,
     link_removals,
     only_links_after,
     only_links_before,
     without_links,
 )
+from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.statistics import OPERATORS, interval_openings
 from sci2audio.textprep.statistics_de import OPERATORS_DE, READ_WORDS
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
@@ -412,7 +412,7 @@ class CitationStep(TextStep):
         hidden = hidden_removals(document, context)  # read as a second run reads (#434)
         edits = []
         for index, block in enumerate(document.blocks):
-            if block.kind in SKIPPED_KINDS or not block.text.strip():
+            if not read_as_prose(block, context) or not block.text.strip():
                 continue
             unread = hidden.get(index, [])
             text, kept = read_around(block.text, unread)

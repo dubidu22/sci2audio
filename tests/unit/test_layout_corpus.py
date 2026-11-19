@@ -172,15 +172,29 @@ def _same_piece(block: str, item: str) -> bool:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_pages_carry_their_printed_page_numbers(paper: Path) -> None:
-    """#31: the page numbers the truth lists are the pages' labels; other pages have none."""
+    """#31: the page numbers the truth lists are the pages' labels. A page without one is
+    labelled with the number its running head prints at its start or end when that number
+    is the page's number plus one offset on every page whose head has such a number (#535,
+    PrivacyScore: "2 Max Maass, ...", "PrivacyScore 3"); other pages have none."""
     doc = document(paper)
+    furniture = truth(paper)["furniture"]
     printed = {
         number: item["text"]
-        for item in truth(paper)["furniture"]
+        for item in furniture
         if item["kind"] == "page-number"
         for number in item["pages"]
     }
-    expected = [printed.get(page.number, "") for page in doc.content.pages]
+    in_heads = {  # page -> numbers at the start or end of its running head, with their offset
+        number: [(int(n), int(n) - number) for n in re.findall(r"^\d+|\d+$", item["text"])]
+        for item in furniture
+        if item["kind"] == "running-head" and len(item["pages"]) == 1
+        for number in item["pages"]
+    }
+    offsets = {offset for found in in_heads.values() for _, offset in found}
+    heads = {page: str(found[0][0]) for page, found in in_heads.items() if found}
+    if len(offsets) != 1 or len(heads) < 2:
+        heads = {}
+    expected = [printed.get(p.number) or heads.get(p.number, "") for p in doc.content.pages]
     assert list(doc.page_labels) == expected
 
 
@@ -335,8 +349,17 @@ def test_the_sections_are_the_truth_headings(paper: Path) -> None:
 
 @pytest.mark.parametrize("paper", PAPERS, ids=IDS)
 def test_each_section_starts_at_its_heading_with_its_printed_number(paper: Path) -> None:
+    """Exception (#456, D-755): a publisher section from the outline starts at its page's
+    first block; it has no heading. The corpus papers have none."""
     doc = document(paper)
-    sections = flattened(doc.sections)
+    pages = {item: page.number for item, (page, _) in doc.content.items().items()}
+    firsts: dict[int, int] = {}
+    for index, block in enumerate(doc.blocks):
+        if block.parts:
+            firsts.setdefault(pages[block.parts[0].item], index)
+    publisher = [s.start for s in flattened(doc.sections) if s.publisher]
+    assert set(publisher) <= set(firsts.values()) | {0}
+    sections = [s for s in flattened(doc.sections) if not s.publisher]
     headings = [i for i, block in enumerate(doc.blocks) if block.kind is BlockKind.HEADING]
     assert [section.start for section in sections] == headings
     expected = [

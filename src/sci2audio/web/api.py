@@ -58,6 +58,8 @@ from sci2audio.web.player import (
     sentence_starts,
     write_position,
 )
+from sci2audio.web.project import read_project
+from sci2audio.web.removal import KEPT_LIMIT, AudiobookRemoved, Kept, carry_out, plan
 from sci2audio.web.state import ApiError, Listening, ServerState, state_of
 from sci2audio.web.tasks import plan_digest, script_work, voices_work
 
@@ -197,17 +199,40 @@ def list_documents(state: State) -> list[models.DocumentOut]:
     "/documents/{document_id}",
     response_model=models.RemovedOut,
     responses=_errors(404, 409, 500),
-    summary="Remove a document and its whole working folder",
+    summary="Remove a document, its working folder and, unless kept, its audiobook files",
 )
-def remove_document(state: State, document_id: str) -> models.RemovedOut:
-    """Removes the copy of the file, its analysis, the speech cache and the records; never
-    anything in an output folder, so the audiobook stays (#120, D-353 to D-358). Refused
-    with 409 while a job works on the document; 500 names what could not be removed, and
-    the document then stays listed for another try."""
+def remove_document(
+    state: State,
+    document_id: str,
+    keep_audiobook: Annotated[
+        bool,
+        Query(description="true keeps the audiobook files; required, so every removal says"),
+    ],
+) -> models.RemovedOut:
+    """Removes the copy of the file, its analysis, the speech cache and the records, and,
+    unless `keep_audiobook`, the audiobook files sci2audio wrote into the project's own
+    folders and which are unchanged since (#470, D-751); never anything else. Refused with
+    409 while a job works on the document; 500 names what could not be removed, and the
+    document then stays listed for another try."""
     document = _document(state, document_id)
     folder = recorded_folder(document.folder, document.id)
+
+    def audiobook(found: StoredDocument) -> AudiobookRemoved:
+        project = read_project(found.folder, found.id)
+        if keep_audiobook:
+            folders = [] if project is None else project.folders()
+            return AudiobookRemoved(kept=tuple(Kept(f, "kept-by-choice", f) for f in folders))
+        others = [
+            other
+            for d in state.store.all()
+            if d.id != found.id and (other := read_project(d.folder, d.id)) is not None
+        ]
+        return carry_out(plan(project, state.protected_folders(), others))
+
     try:
-        removed = state.store.remove(document_id, busy=lambda: _job_on(state, document_id))
+        removed = state.store.remove(
+            document_id, busy=lambda: _job_on(state, document_id), audiobook=audiobook
+        )
     except DocumentBusyError as error:
         raise ApiError(409, "busy", str(error)) from error
     except RemoveError as error:
@@ -215,11 +240,21 @@ def remove_document(state: State, document_id: str) -> models.RemovedOut:
     if removed is None:  # removed meanwhile by another request
         raise ApiError(404, "not-found", f"no document {document_id}; open the file again")
     state.board.forget(document_id)
+    done = removed.audiobook or AudiobookRemoved()
+    # whole folders first, so the limit cuts files, which the answer counts (R3)
+    stayed = sorted(done.kept, key=lambda k: not k.whole)
     return models.RemovedOut(
         id=removed.id,
         name=removed.name,
         freed_bytes=removed.freed_bytes,
         audiobook_folder=None if folder is None else str(folder),
+        deleted_files=done.files,
+        deleted_bytes=done.bytes,
+        kept=[
+            models.KeptOut(path=str(k.path), reason=k.reason, folder=str(k.folder))
+            for k in stayed[:KEPT_LIMIT]
+        ],
+        kept_more=max(0, len(stayed) - KEPT_LIMIT),
     )
 
 
@@ -295,9 +330,10 @@ def audiobook(
     state: State, document_id: str, name: str, download: Download = False
 ) -> FileResponse:
     """A file the document's latest audio job wrote, by name as written, for the player
-    (#78, D-295): only names its record lists, only from the recorded, the saved or the
-    default output folder, and only once the read-along file there agrees with the
-    record. Range requests answer 206, so the player can seek."""
+    (#78, D-295): only names its record lists, only from the recorded folder, the project's
+    own audiobook folders (D-749), the saved or the default output folder, and only once
+    the read-along file there agrees with the record. Range requests answer 206, so the
+    player can seek."""
     document = state.listening(document_id)
     if document is None:
         raise ApiError(404, "not-found", f"no document {document_id}")
@@ -305,6 +341,48 @@ def audiobook(
     if found is None:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook file {name!r}")
     return _file(found, download)
+
+
+@router.get(
+    "/documents/{document_id}/figures/{block}/{image}",
+    response_class=Response,
+    responses={
+        200: {"content": {"image/png": {}, "image/jpeg": {}}, "description": "The image"},
+        **_errors(404),
+    },
+    summary="A figure, table or formula as the file shows it, for the player",
+)
+def figure(
+    state: State,
+    document_id: str,
+    block: Annotated[int, Path_(ge=0)],
+    image: Annotated[int, Path_(ge=0)],
+) -> Response:
+    """Image `image` of placeholder block `block` (#293, D-771): a crop of the PDF page
+    rendered in the PDF reader's child process, or an EPUB picture read from the book by its
+    `ref`. The address holds only numbers: the region or the picture comes from the
+    project's own `document.json`, which must name this document, and the file from its own
+    copy. Not for a command-line job (its folders are read-only to the server, #154)."""
+    stored = state.store.get(document_id)
+    found = None
+    if stored is not None:
+        try:
+            document = load_document(stored.folder)
+        except PlayerError:
+            document = None
+        if document is not None:
+            found = state.figures.image(
+                document_id,
+                document,
+                block,
+                image,
+                stored.source,
+                stored.folder,
+                lambda: state.store.unchanged(document_id),
+            )
+    if found is None:
+        raise ApiError(404, "not-found", f"no image {image} of block {block} in {document_id}")
+    return Response(found.data, media_type=found.media_type)
 
 
 @router.post(
@@ -415,7 +493,8 @@ def _marker_out(book: _Book, marker: Marker) -> models.MarkerOut:
         changed=marker.changed,
         text=marker.anchor.text,
         note=marker.note,
-        chunk=placed.chunk,
+        # the sentence by its first piece, as the page and the player name it (#520)
+        chunk=None if placed.chunk is None else book.firsts[placed.chunk],
         state=placed.state,
     )
 

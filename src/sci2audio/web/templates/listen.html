@@ -27,6 +27,7 @@
 {% if block.notice %}
 <div class="block notice s" id="{{ block.element }}" data-chunk="{{ block.chunk }}">
   <p>{{ icon('skip') }}<span><b>{{ t('listen.notice') }}</b> {{ block.notice }}</span></p>
+  {% for figure in block.figures %}<img class="figure" src="/api/v1/documents/{{ document.id }}/figures/{{ figure.block }}/{{ figure.n }}" alt="{{ figure.alt }}"{% if figure.width %} width="{{ figure.width }}" height="{{ figure.height }}"{% endif %} loading="lazy" decoding="async">{% endfor %}
   {% if block.printed %}<details><summary>{{ t('listen.found') }}</summary><p class="printed">{{ block.printed }}</p></details>{% endif %}
   {% if block.code %}<pre class="code" translate="no"><code>{{ block.code }}</code></pre>{% endif %}
 </div>

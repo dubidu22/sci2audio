@@ -20,7 +20,17 @@ import numpy as np
 import pytest
 
 from sci2audio.testing import check_voice_engine, no_network
-from sci2audio.voices import KokoroEngine, create_kokoro_engine, speak_to_wav
+from sci2audio.textprep import DEFAULT_MAX_CHARS
+from sci2audio.voices import (
+    PCM_FLOAT32,
+    KokoroEngine,
+    ParameterValues,
+    SynthesisRequest,
+    SynthesizedAudio,
+    VoiceSelection,
+    create_kokoro_engine,
+    speak_to_wav,
+)
 
 CORPUS = Path(__file__).parents[1] / "corpus"
 WER_LIMIT = 0.10
@@ -297,3 +307,82 @@ def test_statistics_are_heard_as_words(engine: KokoroEngine, tmp_path: Path) -> 
     expected = words(script)
     wer = edit_distance(expected, got) / len(expected)
     assert wer < STATISTICS_WER_LIMIT, f"WER {wer:.2f}: said {script!r}, heard {heard!r}"
+
+
+# --- one sentence per call up to the cut limit (#494) -------------------------------------
+
+# own sentences, in the spoken form the text steps hand over; each is one utterance
+LIMIT_PROSE = (
+    "The teachers who took part in the second round of the study were asked to keep a shorter "
+    "diary of every lesson in which they used the new material, to note what worked well and "
+    "what did not, and to send it back at the end of each month, so that the team could see "
+    "how the use of the material changed over the school year and where the teachers needed "
+    "more help than the written guide could give them."
+)
+# digits the voice reads out make it denser than prose: over its 510 tokens per call
+LIMIT_NUMBERS = (
+    "Between 2019 and 2023 the 14 clinics treated 1284 patients aged 18 to 65, of whom 312 "
+    "took 25 milligrams and 297 took 50 milligrams twice a day for 12 weeks, while 675 took "
+    "placebo; at week 24 the mean score fell by 73 points in the first group, 91 points in "
+    "the second and 24 points in the third, a difference of 49 points that held in all 14 "
+    "clinics and in 1187 of the 1284 patients."
+)
+
+
+def synthesize(engine: KokoroEngine, text: str, voice: str) -> SynthesizedAudio:
+    return engine.createSession().synthesize(
+        SynthesisRequest(
+            text=text,
+            voice=VoiceSelection(source="builtin", key=voice),
+            parameters=ParameterValues({"speed": 1.0}),
+            format=PCM_FLOAT32,
+        )
+    )
+
+
+def digits_and_words(text: str, pattern: str) -> tuple[str, list[str]]:
+    """Every digit in order, joined (whisper writes "1284" as "1284", "12 84" or "1.284"),
+    and the words that are not numbers."""
+    found = re.findall(pattern, text.lower())
+    return "".join(w for w in found if w.isdigit()), [w for w in found if not w.isdigit()]
+
+
+def assert_spoken_whole(text: str, got: str, pattern: str, limit: float) -> None:
+    said_digits, said_words = digits_and_words(text, pattern)
+    heard_digits, heard_words = digits_and_words(got, pattern)
+    assert heard_digits == said_digits, f"a number was lost: heard {got!r}"
+    wer = edit_distance(said_words, heard_words) / len(said_words)
+    assert wer < limit, f"WER {wer:.2f} of the words: heard {got!r}"
+
+
+@pytest.mark.slow
+def test_a_sentence_at_the_cut_limit_is_one_model_call(engine: KokoroEngine) -> None:
+    """#494: a sentence of DEFAULT_MAX_CHARS characters is spoken in one pass of the model,
+    so the voice keeps its own pause and pitch at the commas."""
+    assert len(LIMIT_PROSE) == DEFAULT_MAX_CHARS
+    with no_network():
+        result = synthesize(engine, LIMIT_PROSE, "af_heart")
+    assert len(result.segments) == 1
+    assert result.duration.seconds > 15
+
+
+@pytest.mark.slow
+def test_a_dense_sentence_over_the_model_limit_is_spoken_whole(
+    engine: KokoroEngine, tmp_path: Path
+) -> None:
+    """#494 (D-743 A1): a sentence under the cut limit but over the model's 510 tokens is
+    split by the voice itself, and every number and word is still heard."""
+    whisper_dir = os.environ.get("SCI2AUDIO_TEST_WHISPER")
+    if not whisper_dir:
+        pytest.skip("SCI2AUDIO_TEST_WHISPER is not set (run tests/integration/prepare_models.py)")
+    from faster_whisper import WhisperModel
+
+    assert len(LIMIT_NUMBERS) <= DEFAULT_MAX_CHARS
+    path = tmp_path / "dense.wav"
+    with no_network():
+        assert len(synthesize(engine, LIMIT_NUMBERS, "af_heart").segments) > 1
+        speak_to_wav(engine.createSession(), LIMIT_NUMBERS, "af_heart", path)
+        recogniser = WhisperModel(whisper_dir, device="cpu", compute_type="int8")
+        segments, _ = recogniser.transcribe(at_16_khz(path), language="en", beam_size=5)
+        got = " ".join(s.text for s in segments)
+    assert_spoken_whole(LIMIT_NUMBERS, got, r"[a-z0-9]+", WER_LIMIT)
