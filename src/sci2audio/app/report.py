@@ -18,6 +18,7 @@ from typing import Any
 
 from sci2audio import __version__
 from sci2audio.app.chapters import Chapter
+from sci2audio.app.readability import Unreadable, page_ranges, unreadable, warning
 from sci2audio.app.script import ScriptResult
 from sci2audio.core import Document, EditKind, LanguageGuess, LanguageSource, Source, Span
 from sci2audio.textprep import PAUSE_MARK, Category, Outcome, Status
@@ -92,6 +93,8 @@ class Report:
     language_guess: LanguageGuess | None = None
     # the chosen chapters' order when it is not printed order (#119), else ""
     order_line: str = ""
+    # a PDF's pages whose text can't be read, and whether no audiobook is made (#442, #187)
+    unreadable: Unreadable | None = None
 
 
 def order_line(result: ScriptResult) -> str:
@@ -141,6 +144,9 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         warnings = (guessed, *warnings)
     if language := language_warning(document):
         warnings = (language, *warnings)
+    found = unreadable(document.content)
+    if found is not None:  # first: it decides whether there is an audiobook at all
+        warnings = (warning(found), *warnings)
     return Report(
         source_name=source.name,
         source_format=str(source.format),
@@ -156,6 +162,7 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         warnings=warnings,
         language_source=document.language_source,
         language_guess=document.language_guess,
+        unreadable=found,
     )
 
 
@@ -216,8 +223,9 @@ def language_line(report: Report) -> str:
 
 
 def report_data(report: Report) -> dict[str, Any]:
-    """The report as JSON data, keys in a fixed order."""
-    return {
+    """The report as JSON data, keys in a fixed order. `unreadable` (#442) is there only when
+    a page's text can't be read, so the reports of readable documents are as before."""
+    data = {
         "format": FORMAT,
         "version": VERSION,
         "sci2audio": __version__,
@@ -265,6 +273,13 @@ def report_data(report: Report) -> dict[str, Any]:
         "not_run": list(report.not_run),
         "warnings": list(report.warnings),
     }
+    if report.unreadable is not None:
+        data["unreadable"] = {
+            "pages": list(report.unreadable.pages),
+            "ranges": page_ranges(report.unreadable.pages),  # "1-3, 7" (en dash), for people
+            "stops": report.unreadable.stops,
+        }
+    return data
 
 
 def report_markdown(report: Report) -> str:
