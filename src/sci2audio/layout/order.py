@@ -18,6 +18,8 @@ the page.
 
 from __future__ import annotations
 
+import bisect
+import math
 from dataclasses import dataclass
 
 from sci2audio.core import Box, Drawing, Picture, TextLine
@@ -42,9 +44,36 @@ class Element:
 
 
 def figures(graphics: list[Picture | Drawing], reach: float) -> list[Element]:
-    """Pictures and drawings grouped into figures: those that touch or nearly touch."""
+    """Pictures and drawings grouped into figures: those that touch or nearly touch (within
+    `reach` across and down), each figure in the order of its first graphic, its graphics in
+    their order."""
     placed = [g for g in graphics if g.box]
-    parent = list(range(len(placed)))
+    found = touching([boxed(g) for g in placed], reach)
+    groups: dict[int, list[Picture | Drawing]] = {}
+    for graphic, group in zip(placed, found, strict=True):
+        groups.setdefault(group, []).append(graphic)
+    return [
+        Element(union([boxed(g) for g in group]), graphics=tuple(group))
+        for group in groups.values()
+    ]
+
+
+def touching(boxes: list[Box], reach: float) -> list[int]:
+    """For each box, a number its group shares: boxes that touch or nearly touch, `reach`
+    or less apart across and down, are in one group, and so are boxes touching one of those.
+
+    A sweep from left to right, in time about n log n however the boxes lie and whatever
+    their size in points (#354, review of #645). The boxes the sweep has passed whose right
+    edge plus `reach` it has not yet passed are "open": they are near the new box across.
+    Down the page each box stands for its span, from its top to its bottom plus `reach`,
+    and two boxes are near each other down the page exactly when their spans meet (the
+    same sums as comparing every pair, so the same answer to the last bit). Spans that meet
+    hold the lower of their two tops, so the new box joins the open groups whose top lies
+    in its span, and those whose span holds its top. A tree over the page's tops, in order,
+    finds both in a few steps: each node keeps the groups whose span covers it and those
+    with a top under it, with how far right their boxes there reach.
+    """
+    parent = list(range(len(boxes)))
 
     def root(i: int) -> int:
         while parent[i] != i:
@@ -52,22 +81,67 @@ def figures(graphics: list[Picture | Drawing], reach: float) -> list[Element]:
             i = parent[i]
         return i
 
-    by_left = sorted(range(len(placed)), key=lambda i: boxed(placed[i]).x0)
-    for n, i in enumerate(by_left):
-        a = boxed(placed[i])
-        for j in by_left[n + 1 :]:
-            b = boxed(placed[j])
-            if b.x0 > a.x1 + reach:
-                break
-            if b.y0 <= a.y1 + reach and a.y0 <= b.y1 + reach:
-                parent[root(i)] = root(j)
-    groups: dict[int, list[Picture | Drawing]] = {}
-    for i, graphic in enumerate(placed):
-        groups.setdefault(root(i), []).append(graphic)
-    return [
-        Element(union([boxed(g) for g in group]), graphics=tuple(group))
-        for group in groups.values()
-    ]
+    tops = sorted({box.y0 for box in boxes})
+    size = 1 << max(0, len(tops) - 1).bit_length()  # leaves: the tops, then empty ones
+    leaf = {y: k + size for k, y in enumerate(tops)}
+    # node -> {group: how far right its boxes filed there reach}, for the boxes whose span
+    # covers the node, and for those whose top lies under it
+    spans: list[dict[int, float] | None] = [None] * (2 * size)
+    starts: list[dict[int, float] | None] = [None] * (2 * size)
+
+    def look(table: list[dict[int, float] | None], node: int, x: float, found: list[int]) -> None:
+        """Add the groups filed at the node that reach `x` (one key per group), and forget
+        the others."""
+        entries = table[node] or {}
+        kept: dict[int, float] = {}
+        for key, until in entries.items():
+            if until >= x:
+                group = root(key)
+                kept[group] = max(until, kept.get(group, -math.inf))
+        table[node] = kept or None
+        found.extend(kept)
+
+    def file(table: list[dict[int, float] | None], node: int, i: int, until: float) -> None:
+        entries = table[node]
+        if entries is None:
+            table[node] = {i: until}
+        else:
+            entries[i] = until
+
+    for i in sorted(range(len(boxes)), key=lambda k: boxes[k].x0):
+        box = boxes[i]
+        top = leaf[box.y0]
+        end = bisect.bisect_right(tops, box.y1 + reach) + size
+        cover = []  # the nodes that together hold leaves top up to (not including) end
+        low, high = top, end
+        while low < high:
+            if low & 1:
+                cover.append(low)
+                low += 1
+            if high & 1:
+                high -= 1
+                cover.append(high)
+            low, high = low >> 1, high >> 1
+        path = []  # the nodes above the box's top, from its leaf up
+        node = top
+        while node:
+            path.append(node)
+            node >>= 1
+        found: list[int] = []
+        for node in path:  # spans holding this box's top
+            if spans[node] is not None:
+                look(spans, node, box.x0, found)
+        for node in cover:  # tops inside this box's span
+            if starts[node] is not None:
+                look(starts, node, box.x0, found)
+        for group in found:  # roots, all joined to the box, a group of its own until now
+            parent[group] = i
+        until = box.x1 + reach
+        for node in cover:
+            file(spans, node, i, until)
+        for node in path:
+            file(starts, node, i, until)
+    return [root(i) for i in range(len(boxes))]
 
 
 @dataclass
