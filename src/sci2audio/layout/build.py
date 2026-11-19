@@ -103,6 +103,8 @@ def columns_per_page(content: Content, settings: LayoutSettings | None = None) -
     """
     settings = settings or LayoutSettings()
     doc = build_document(content, settings)
+    # only a caption's figure holds lines: an uncaptioned one is made of graphics alone
+    # (`_block`, `graphics._groups`), and a table's cells are judged as before (`_filled`)
     named = [doc.blocks[b.describes] for b in doc.blocks if b.describes is not None]
     uncounted = frozenset(
         part.item for block in named if block.kind is BlockKind.FIGURE for part in block.parts

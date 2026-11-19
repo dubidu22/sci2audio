@@ -29,7 +29,7 @@ from sci2audio.core import (
 )
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.layout.build import _in_page_order, columns_per_page
-from sci2audio.layout.furniture import _is_stamp, edges
+from sci2audio.layout.furniture import _is_stamp, _pages_near, _repeated, edges
 from sci2audio.layout.split import kept
 
 LEFT, RIGHT, GUTTER = 70.0, 526.0, 16.0
@@ -209,8 +209,8 @@ def diagram_page(caption: str | None, body: list[TextLine]) -> Content:
 
 def test_text_inside_a_captioned_figure_is_not_counted_as_columns() -> None:
     """#238: the labels of a framed, captioned diagram are read inside its figure, and the
-    page counts the columns of its body only: two under the diagram, one, and three for
-    labels without a caption (nothing says they are a figure)."""
+    page counts the columns of its body only: two under the diagram, or one. Without a
+    caption no figure holds the labels, and their three columns count."""
     left, right = two_columns("body", 340, 25)
     two = build_document(diagram_page("Figure 1: The diagram.", interleaved(left, right)))
     assert columns_of(two) == [2]
@@ -226,6 +226,69 @@ def test_text_inside_a_captioned_figure_is_not_counted_as_columns() -> None:
     left, right = two_columns("body", 340, 6)
     short = build_document(diagram_page("Figure 1: The diagram.", interleaved(left, right)))
     assert columns_of(short) == [2]
+
+
+def framed_in_a_column(top: int, cells: bool) -> Content:
+    """`top` lines of text across the page, then a framed diagram in the left column (12
+    labels of 8 pt, its caption and two lines under it) and text beside it: two short
+    columns of running text, or (`cells`) a table's cells, most of whose letters stand in
+    lines that leave white."""
+    lx1, rx0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    opening = [
+        line(
+            f"running text across the page, line {k} of the opening part", LEFT, 100 + 14 * k, RIGHT
+        )
+        for k in range(top)
+    ]
+    y = 100 + 14 * top + 20
+    frame = Box(LEFT, y, lx1, y + 178)
+    labels = [
+        line(f"label {k} of the diagram, set long", LEFT + 4, y + 5 + 14 * k, lx1 - 4, 8)
+        for k in range(12)
+    ]
+    caption = line("Figure 1: The diagram.", LEFT, frame.y1 + 8, lx1)
+    if cells:
+        under = [
+            line(f"a short cell {k} of the table here", LEFT, frame.y1 + 30 + 14 * k, LEFT + 90)
+            for k in range(4)
+        ]
+        beside = [
+            line(f"a short cell {k} of the table there", rx0, y + 14 * k, rx0 + 110)
+            if k % 3
+            else line(f"x{k}", rx0, y + 14 * k, RIGHT)
+            for k in range(10)
+        ]
+    else:
+        under = column("left-", LEFT, lx1, frame.y1 + 30, 2)
+        beside = column("right-", rx0, RIGHT, y, 8)
+    lines = [*opening, *labels, caption, *under, *beside]
+    return content(lines, drawings=(Drawing("frame", frame),))
+
+
+def test_a_captioned_figure_s_labels_count_neither_for_the_share_nor_for_the_fill() -> None:
+    """#238, each half of a band's count on its own: beside a framed diagram in the left
+    column, two short columns of text hold far less than a fifth of the page's text (with
+    the labels' letters they would hold more); and table cells beside it hold enough text
+    but leave white (the labels would fill their column). One column both times."""
+    assert columns_per_page(framed_in_a_column(20, cells=False)) == [1]
+    assert columns_per_page(framed_in_a_column(6, cells=True)) == [1]
+
+
+def test_a_captioned_table_s_cells_still_count_as_columns_if_they_fill_them() -> None:
+    """#238 leaves out the text of figures only: a table's cells are judged as before, by
+    the share of letters in lines that fill their column, so cells set like the diagram's
+    labels, under a table's caption, make three columns."""
+    body = column("b", LEFT, RIGHT, 340, 25)
+    assert columns_per_page(diagram_page("Table 1: The results.", body)) == [3]
+
+
+def test_the_figures_whose_text_is_not_counted_are_found_with_the_settings_given() -> None:
+    """The figures are found with the settings passed in: with `caption_reach` at 1 em the
+    caption 10 pt under the frame names nothing, and the labels' columns count."""
+    body = column("b", LEFT, RIGHT, 340, 25)
+    page = diagram_page("Figure 1: The diagram.", body)
+    assert columns_per_page(page) == [1]
+    assert columns_per_page(page, LayoutSettings(caption_reach=1.0)) == [3]
 
 
 def test_items_without_a_position_follow_in_stored_order() -> None:
@@ -535,6 +598,64 @@ def test_a_small_header_below_a_small_head_does_not_borrow_its_pages() -> None:
     doc = build_document(content(*pages))
     assert head_roles(doc) == ["Preprint"] * 6
     assert texts(doc).count("Model Accuracy F1") == 2
+
+
+def test_a_small_header_apart_from_its_rows_on_three_of_ten_pages_is_text() -> None:
+    """Coverage needs `head_pages` pages and `head_share` of the document's: 3 of 10 pages
+    are the first but not the second (review of #620, T1)."""
+    pages = [page_with_head(n, None) for n in range(1, 11)]
+    for n in (2, 3, 4):
+        pages[n - 1] = small_header_page(n, below=12)
+    doc = build_document(content(*pages))
+    assert texts(doc, BlockKind.FURNITURE) == []
+    assert texts(doc).count("Model Accuracy F1") == 3
+
+
+def test_small_heads_a_little_higher_or_lower_on_each_page_are_running_heads() -> None:
+    """Heads 2 pt higher or lower from page to page, within `head_drift` (0.5 em, 5 pt):
+    through coverage (author and title alternating on 6 of 7 pages), and through a short
+    document's rule (the same head on 2 of 2 pages)."""
+    heads = {n: "A. Author and B. Author" if n % 2 == 0 else "A Title" for n in range(2, 8)}
+    pages = [page_with_head(n, heads.get(n), y=40 + 2 * (n % 3), size=SMALL) for n in range(1, 8)]
+    assert head_roles(build_document(content(*pages))) == [heads[n] for n in range(2, 8)]
+    pair = [page_with_head(n, "Tests in Print", y=38 + 2 * n, size=SMALL) for n in (1, 2)]
+    assert head_roles(build_document(content(*pair))) == ["Tests in Print"] * 2
+
+
+def test_a_small_line_listed_before_the_small_head_of_its_page_does_not_hide_it() -> None:
+    """A file may list a small line in the middle of the page (a table cell) before the
+    page's small head: the head is still found."""
+    pages = [
+        [line("n = 12", LEFT, 520, 120, size=SMALL), *page_with_head(n, "Tests in Print", size=8)]
+        for n in (1, 2)
+    ]
+    assert head_roles(build_document(content(*pages))) == ["Tests in Print"] * 2
+
+
+def test_an_edge_line_at_exactly_small_times_the_body_is_judged_as_body_size() -> None:
+    """At `small` (0.95) times the body a line is body size: such a head on 2 of 2 pages is
+    on too few (`head_pages`); a hair smaller it is a short document's small head."""
+    at = [page_with_head(n, "Tests in Print", size=9.5) for n in (1, 2)]
+    assert texts(build_document(content(*at)), BlockKind.FURNITURE) == []
+    below = [page_with_head(n, "Tests in Print", size=9.4) for n in (1, 2)]
+    assert head_roles(build_document(content(*below))) == ["Tests in Print"] * 2
+
+
+heights = st.integers(0, 20).map(float)  # on a grid, so places exactly `drift` apart occur
+
+
+@given(
+    st.lists(st.tuples(st.integers(1, 6), heights), max_size=30),
+    st.lists(heights, max_size=12),
+    st.sampled_from([0.0, 0.5, 5.0]),
+)
+@example([(1, 0.0), (1, 1.0)], [5.0, 6.0], 5.0)  # two places of one page, one leaves
+@example([(1, 0.0)], [10.0, 0.0], 0.5)  # heights asked for out of order
+@example([(1, 5.0), (2, 0.0)], [0.0, 5.0], 5.0)  # exactly `drift` apart, both ways
+def test_pages_near_counts_the_pages_as_repeated_does_for_each_height(
+    places: list[tuple[int, float]], wanted: list[float], drift: float
+) -> None:
+    assert _pages_near(places, wanted, drift) == [_repeated(places, y, drift) for y in wanted]
 
 
 def test_a_short_document_s_small_head_needs_white_below_it() -> None:
