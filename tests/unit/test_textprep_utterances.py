@@ -928,6 +928,8 @@ def test_an_english_initial_ends_a_sentence_only_before_a_sentence_opener(
             ["Es gilt Absatz 2.", "Absatz 3 gilt hier auch."],
         ),
         ("Es gilt Absatz 2. Absatz 3 gilt.", ["Es gilt Absatz 2.", "Absatz 3 gilt."]),
+        # ... also where the label opens the paragraph (the word before starts at 0)
+        ("Abs. 2. Abs. 3 gilt.", ["Absatz 2.", "Absatz 3 gilt."]),
         ("Es gilt Art. 3. Art. 4 gilt auch.", ["Es gilt Artikel 3.", "Artikel 4 gilt auch."]),
         ("Es gilt Rn. 3. Rn. 4 gilt auch.", ["Es gilt Randnummer 3.", "Randnummer 4 gilt auch."]),
         ("Es gilt Satz 2. Satz 3 gilt nicht.", ["Es gilt Satz 2.", "Satz 3 gilt nicht."]),
@@ -1105,12 +1107,31 @@ def test_a_space_inside_a_reading_ranks_after_every_other_space(
         ("de", "aaa partielles Eta-Quadrat bbb", ["partielles | Eta-Quadrat"]),
         ("de", "aaa R Quadrat bbb", ["R | Quadrat"]),
         ("de", "aaa Odds Ratio bbb", ["Odds | Ratio"]),
+        # at the very start and the very end of the text
+        ("de", "unter anderem bbb", ["unter | anderem"]),
+        ("de", "5 Komma 3", ["5 | Komma", "Komma | 3"]),
+        ("en", "aaa per s", ["aaa | per", "per | s"]),
     ],
 )  # fmt: skip
 def test_the_spaces_that_join_a_reading_are_found_from_the_text(
     language: str, text: str, joined: list[str]
 ) -> None:
     found = _joined(text, len(text), _readings(language))
+    assert [f"{text[:i].split()[-1]} | {text[i:].split()[0]}" for i in sorted(found)] == joined
+
+
+@pytest.mark.parametrize(
+    ("text", "last", "joined"),
+    [
+        ("aaa unter anderem bbb", 9, []),  # "unter | anderem" is place 10
+        ("aaa unter anderem bbb", 10, ["unter | anderem"]),
+        ("aaa 3 Komma 5", 5, ["aaa | 3"]),  # "3 | Komma" is place 6
+    ],
+)
+def test_no_joined_place_is_past_the_last_place(text: str, last: int, joined: list[str]) -> None:
+    """`_joined` looks one reading past `last` to find a reading that starts before it, but
+    returns no place after `last`."""
+    found = _joined(text, last, _readings("de"))
     assert [f"{text[:i].split()[-1]} | {text[i:].split()[0]}" for i in sorted(found)] == joined
 
 
