@@ -346,7 +346,10 @@ def _with_keys(printed: str) -> str:
         # the flat forms read the same
         ("en", "(Smith, 2019; and Lee, 2018) is cited.", "Smith and Lee is cited."),
         ("en", "(Jones, 2020; ; Smith, 2019) is cited.", "Jones and Smith is cited."),
-        ("en", "(RNNGs; and Dyer et al., 2016) help.", "(RNNGs) help."),
+        # a join word joins a part to the one before it: after one that is no citation, it
+        # opens none (#621 review round 1, M2)
+        ("en", "(RNNGs; and Dyer et al., 2016) help.", "(RNNGs; and Dyer et al., 2016) help."),
+        ("en", "(RNNGs; Dyer et al., 2016; and Kim, 2019) help.", "(RNNGs) help."),
         # as an aside the nest still goes whole
         ("en", "It holds ((Smith, 2019) (Lee, 2018)) here.", "It holds here."),
         ("en", "It holds ((Smith, 2019) 2021) here.", "It holds here."),
@@ -364,6 +367,113 @@ def _with_keys(printed: str) -> str:
 )
 def test_a_subject_nest_keeps_every_name(language: str, printed: str, said: str) -> None:
     assert read_all(printed, language) == said
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # M1: an inner bracket read with its names after lead words stays in the rest, whose
+        # parts name it already: read as on main
+        (
+            "en",
+            "(see (Smith, 2019; Lee, 2020), Lee, 2020) found it.",
+            "Smith and Lee, Lee found it.",
+        ),
+        (
+            "en",
+            "(see (Smith, 2019; Lee, 2020), Jones, 2020) is cited.",
+            "Smith and Lee, Jones is cited.",
+        ),
+        (
+            "de",
+            "(vgl. (Müller, 2019; Lee, 2020), Jones, 2020) wird zitiert.",
+            "Müller und Lee, Jones wird zitiert.",
+        ),
+        # M2: "; and" after an inner citation that lead words open reads as the flat form ...
+        ("en", "(e.g. (Smith, 2019); and Jones, 2020) is cited.", "Smith and Jones is cited."),
+        (
+            "en",
+            "(e.g. (Smith, 2019; Lee, 2020); and Jones, 2020) is cited.",
+            "Smith, Lee and Jones is cited.",
+        ),
+        (
+            "de",
+            "(z. B. (Müller, 2019); und Jones, 2020) wird zitiert.",
+            "Müller und Jones wird zitiert.",
+        ),
+        # ... and after "see"/"vgl.", whose inner citation stays read, as on main (#626)
+        (
+            "en",
+            "(see (Smith, 2019); and Jones, 2020) is cited.",
+            "(see Smith; and Jones, 2020) is cited.",
+        ),
+        (
+            "en",
+            "(see (Smith, 2019; Lee, 2020); and Jones, 2020) is cited.",
+            "(see Smith and Lee; and Jones, 2020) is cited.",
+        ),
+        (
+            "de",
+            "(vgl. (Müller, 2019); und Jones, 2020) wird zitiert.",
+            "(vergleiche Müller; und Jones, 2020) wird zitiert.",
+        ),
+    ],
+)
+def test_a_lead_word_nest_with_a_flat_part_reads_its_names_once(
+    language: str, printed: str, said: str
+) -> None:
+    """#621 review round 1, M1 and M2."""
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        ("en", "Table [1], [2] and [3] show it.", "Table [1], references 2 and 3 show it."),
+        ("en", "Table [1], [2], [3] and [4] show it.", "Table [1], references 3 and 4 show it."),
+        (
+            "en",
+            "The values x = [1], [2] and [3] hold.",
+            "The values x equals [1], references 2 and 3 hold.",
+        ),
+        ("en", "x = [1], [2], [3] and [4] hold.", "x equals [1], references 3 and 4 hold."),
+        ("en", "Eq. [1], [2] and [3] hold.", "Equation [1], references 2 and 3 hold."),
+        ("en", "It holds[1], [2] and [3] here.", "It holds[1], references 2 and 3 here."),
+        ("de", "Siehe Tabelle [1], [2] und [3].", "Siehe Tabelle [1], Quellen 2 und 3."),
+        ("de", "Es gilt x = [1], [2] und [3] hier.", "Es gilt x gleich [1], Quellen 2 und 3 hier."),
+        # only "and" alone makes a pair, as before
+        ("en", "Table [1], [2], and [3] show it.", "Table [1], and reference 3 show it."),
+        # a run that "or" ends is no list either: its pairs read as before (#622)
+        (
+            "en",
+            "It holds [1] and [2] or [3] here.",
+            "It holds references 1 and 2 or reference 3 here.",
+        ),
+        (
+            "en",
+            "It holds [1], [2] and [3] or [4] here.",
+            "It holds, references 2 and 3 or reference 4 here.",
+        ),
+        # an interval first: the bracket after it reads as before (#151)
+        (
+            "en",
+            "CI [1, 3] and [12] show it.",
+            "confidence interval 1 to 3 and reference 12 show it.",
+        ),
+    ],
+)
+def test_a_run_whose_first_bracket_is_no_citation_reads_as_before(
+    language: str, printed: str, said: str
+) -> None:
+    """#621 review round 1, M3: after a label word, a sign or a glued word the later brackets
+    read one by one as before #414, an aside joined by "and" to the next as a D-668 pair.
+    What such a run should read is the ruling question #634; this pins only that B9 changes
+    nothing here."""
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
 
 
 # ---- #402 a join word before a removed last link (B9, D-791) ------------------------------

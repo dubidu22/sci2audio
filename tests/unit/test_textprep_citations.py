@@ -11,7 +11,7 @@ import re
 from collections.abc import Callable
 
 import pytest
-from hypothesis import assume, given
+from hypothesis import assume, example, given
 from hypothesis import strategies as st
 from linear_time import assert_linear
 
@@ -441,6 +441,8 @@ _NESTS = st.recursive(
     st.sampled_from([" found it.", " is cited.", " here.", ")", " zeigt das."]),
     st.sampled_from(["en", "de"]),
 )
+# found with --hypothesis-seed=5 on the #621 head efae3c7 (review round 1, M1)
+@example("", "(see (Smith, 2019; Lee, 2020), Lee, 2020)", " found it.", "en")
 def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
     before: str, nest: str, after: str, language: str
 ) -> None:

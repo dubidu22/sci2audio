@@ -350,8 +350,10 @@ def _part_pattern(words: CitationWords) -> re.Pattern[str]:
     )
     years, locator = _years(words), _locator(words)
     return re.compile(
-        # a join word after the ";" before it: "(Smith, 2019; and Lee, 2018)" (#415)
-        rf"\A\s*(?:(?:{words.and_word}|&)\s+)?(?:(?:{leads})\s+)*(?P<authors>{_authors(words)})"
+        # a join word after the ";" before it: "(Smith, 2019; and Lee, 2018)", also after
+        # lead words an inner citation's removal leaves: "(e.g. ; and Lee, 2018)" (#415)
+        rf"\A\s*(?:(?:{words.and_word}|&)\s+)?(?:(?:{leads})\s+)*"
+        rf"(?:(?:{words.and_word}|&)\s+)?(?P<authors>{_authors(words)})"
         rf"(?:\s*\(\s*{years}{locator}\s*\)|\s*,?\s+{years}{locator}|\s*,\s*{years}{locator})"
         # a full stop may end the part: "(See Smith (2019).)" (D-447, #145)
         rf"(?P<tail>{locator})\s*\.?\s*\Z",
@@ -476,6 +478,8 @@ class _Rules:
         self.list_gap = re.compile(rf"\s*,\s*|(?:\s*,)?\s+(?P<join>{words.and_word})\s+")
         self.or_after = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+\[")
         self._lists: dict[int, list[_Bracket]] = {}  # this look only
+        self._following: dict[int, _Bracket] = {}  # the next bracket of a run, this look only
+        self.pair_gap = re.compile(rf"\s+{words.and_word}\s+")
         self._paired: set[int] = set()  # the later brackets of lists, this look only
         self._numbered: set[int] = set()  # the square brackets decided, this look only
         self.identifiers = _identifiers_pattern(words)
@@ -500,6 +504,9 @@ class _Rules:
         self.not_names = {*words.other_words, *re.sub(r"\\", "", words.joins).split("|")}
         # what sets off an inner bracket as an item of the bracket's list (#372, #415)
         self.item_after = re.compile(r"\s*[;,]")
+        self.joined_part = re.compile(
+            rf"\s*(?:(?:{leads})\s+)*(?:{words.and_word}|&)\s", re.IGNORECASE
+        )
         self.item_separator = re.compile(rf"\s*(?:[;,]\s*)+(?:(?:{words.and_word}|&)\s+)?")
         self.item_before = re.compile(rf"[;,]\s*(?:(?:{words.and_word}|&)\s+)?\Z")
         self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
@@ -823,7 +830,7 @@ class _Rules:
         if _FULL_STOP_INSIDE.search(inside) and not self._starts_sentence(text, node.open):
             return None  # "It holds (Smith, 2019.)": its full stop ends the sentence outside
         parts = self._parts(text, node)
-        named = [part for part in parts or () if self._is_citation(text, part)]
+        named = self._named(text, parts)
         cited = self._cited(text, parts or [], named)
         if not cited or not all(cited):
             whole = self._cited_once_inner_citations_go(text, node, decided)
@@ -956,7 +963,7 @@ class _Rules:
             # (Lee, 2018)) is cited", "(see (Smith, 2019); (Lee, 2018)) is cited" and
             # "((Smith, 2019) 2021) is cited" (#415, D-791; "((Smith, 2019)) is cited" read
             # "is cited." before, D-605)
-            listed = self._listed_inner_names(text, node, decided)
+            listed = self._listed_inner_names(text, node, decided, any_decided=True)
             if len(listed) == len(inner):
                 names = sorted(name for _, child_names in listed for name in child_names)
                 taken = {edit for child, _ in listed for edit in decided.get(child.open) or ()}
@@ -968,7 +975,7 @@ class _Rules:
         if rest.strip() and not (self._year_shell(text, node) and _YEAR_ONLY.fullmatch(rest)):
             local = _Bracket(read.open, read.close)
             parts = self._parts(read.text, local)
-            named = [part for part in parts or () if self._is_citation(read.text, part)]
+            named = self._named(read.text, parts)
             if not parts or not all(self._cited(read.text, parts, named)):
                 return None
             names = [
@@ -981,7 +988,7 @@ class _Rules:
             # "((Smith, 2019); Jones, 2020) is cited" reads "Smith and Jones" (#278, D-605),
             # and so does every inner citation of the list: "((Smith, 2019); (Lee, 2018))
             # is cited" reads "Smith and Lee" (#372, D-668)
-            listed = self._listed_inner_names(text, node, decided)
+            listed = self._listed_inner_names(text, node, decided, any_decided=False)
             if names is None and len(listed) < len(node.children):
                 return None  # "((Smith, 2019)) is cited": nothing left to name, as before
             if listed:
@@ -995,7 +1002,12 @@ class _Rules:
         return [self._removed(text, node.open, end, "citation")]
 
     def _listed_inner_names(
-        self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
+        self,
+        text: str,
+        node: _Bracket,
+        decided: dict[int, list[_Found] | None],
+        *,
+        any_decided: bool,
     ) -> list[tuple[_Bracket, list[tuple[int, int]]]]:
         """The inner brackets that are items of the bracket's list and are citations as a
         whole, each with its names' spans: "((Smith, 2019); (Lee, 2018); Jones, 2020)" lists
@@ -1004,7 +1016,12 @@ class _Rules:
         the bracket's edge or by white space before another item ("((Smith, 2019) (Lee,
         2018))"), and the first item maybe by lead words ("(see (Smith, 2019); (Lee, 2018))",
         #415, D-791); any other inner bracket ("((Smith, 2019) Jones, 2020)") is not listed
-        and reads as before. In a year shell the year counts as the edge (#375)."""
+        and reads as before. In a year shell the year counts as the edge (#375).
+
+        Beside parts of its own (`any_decided` false) an item is one removed whole: one read
+        with its names stays in the rest, whose parts name it already ("(see (Smith, 2019;
+        Lee, 2020), Jones, 2020)" is "(see Smith and Lee, Jones, 2020)" then; #621 review
+        round 1, M1). Of a bracket of items only, any decided inner citation is one (#415)."""
         listed = []
         bounds = [node.open, *(i for child in node.children for i in (child.open, child.close))]
         bounds.append(node.children[-1].close + 1 if self._year_shell(text, node) else node.close)
@@ -1020,7 +1037,10 @@ class _Rules:
                 continue
             # an item holds no bracket: parsing one that does reads the nest below it, at
             # every level of a deep nest (quadratic, Windows CI on #621)
-            if child.children or not decided.get(child.open):
+            handled = decided.get(child.open)
+            if child.children or not handled:
+                continue
+            if not any_decided and (len(handled) != 1 or handled[0][2] is not EditKind.REMOVE):
                 continue
             parts = self._parts(text, child)
             named = [part for part in parts or () if self._is_citation(text, part)]
@@ -1234,6 +1254,20 @@ class _Rules:
                     f'citations "{printed}" are part of the sentence: read as "{spoken}" (TP-04)'
                 )
                 return [(node.open, end, EditKind.REPLACE, spoken, reason)]
+            pair = self._pair(text, node) if listed is None else None
+            if pair is not None:
+                # a bracket of a run whose first is no citation ("Table [1], [2] and [3]") or
+                # that "or" ends reads as before #414: an aside joined by "and" to the next
+                # bracket is a D-668 pair (#621 review round 1, M3; what such a run should
+                # read is #634)
+                self._paired.add(pair.open)
+                inside = f"{inside}, {text[pair.open + 1 : pair.close]}"
+                spoken = self._spoken(inside)
+                printed = _printed(text[node.open : pair.close + 1])
+                reason = (
+                    f'citations "{printed}" are part of the sentence: read as "{spoken}" (TP-04)'
+                )
+                return [(node.open, pair.close + 1, EditKind.REPLACE, spoken, reason)]
             what = "citation key" if keys else "numeric citation"
             if listed is not None:
                 # an aside list goes whole, as one bracket "[1–3]" does (#414, D-791)
@@ -1260,11 +1294,14 @@ class _Rules:
         A later bracket that a number is glued after ends the run before it. Whether the
         brackets are citations at all (no interval, no label's number) is decided at the first
         one in `_numeric`, as for one bracket: with only "," and "and" between them, a later
-        bracket is an interval only after an interval ("CIs [1, 3], [2, 4]"), and a label word
-        or sign stands only before the first (no counterexample in 8,000 random texts,
-        `plans/b9-mutants/search_414h.py`). A run joined on by "or" to a further bracket
-        ("[1], [2] or [3]") is no list, so its brackets read as before (#414). One pass over the
-        square brackets in text order, each gap read once, so a block of n brackets costs O(n)."""
+        bracket is an interval only after an interval ("CIs [1, 3], [2, 4]"). Where the first
+        is no citation (after a label word, a sign or a glued word: "Table [1], [2] and [3]"),
+        the run makes no list and its later brackets read one by one as before, an aside
+        joined by "and" alone to the next as a D-668 pair (`_pair`, from `_following`); what
+        such a run should read is #634 (#621 review round 1, M3). A run joined on by "or" to a
+        further bracket ("[1], [2] or [3]") is no list either, so its brackets read as before
+        (#414). One pass over the square brackets in text order, each gap read once, so a
+        block of n brackets costs O(n)."""
         squares: list[_Bracket] = []
         stack = list(roots)
         while stack:
@@ -1274,6 +1311,7 @@ class _Rules:
             stack += node.children
         squares.sort(key=lambda node: node.open)
         lists: dict[int, list[_Bracket]] = {}
+        self._following = {}
         first = 0
         while first < len(squares):
             head, last = squares[first], first
@@ -1287,6 +1325,7 @@ class _Rules:
                     or _NUMBER_GLUED_AFTER.match(text, ahead.close + 1)
                 ):
                     break
+                self._following[squares[last].open] = ahead
                 last += 1
             if last > first and not self.or_after.match(text, squares[last].close + 1):
                 lists[head.open] = squares[first + 1 : last + 1]
@@ -1312,6 +1351,18 @@ class _Rules:
             return None
         self._paired.update(item.open for item in found)
         return found
+
+    def _pair(self, text: str, node: _Bracket) -> _Bracket | None:
+        """The next bracket of the run, if `node` heads no list of it and "and" alone joins
+        them, and "and" makes a citation after it needed (#257, D-668), as before #414."""
+        ahead = self._following.get(node.open)
+        if ahead is None or self.words.and_word not in self.words.before:
+            return None
+        if ahead.open in self._numbered or ahead.open in self._paired:
+            return None
+        if self.pair_gap.fullmatch(text, node.close + 1, ahead.open) is None:
+            return None
+        return ahead
 
     def _needed_pair(self, text: str, node: _Bracket, listed: list[_Bracket]) -> bool:
         """True for a list of two brackets joined by "and", when "and" makes a citation after
@@ -1462,6 +1513,22 @@ class _Rules:
             else:
                 result.append((start, end))
         return result
+
+    def _named(self, text: str, parts: list[tuple[int, int]] | None) -> list[tuple[int, int]]:
+        """The parts that are citations. One that a join word opens ("; and Lee, 2018") is
+        one only after a part that is one too, as the join word joins it to that part:
+        "(RNNGs; and Dyer et al., 2016)" and "(see (Smith, 2019); and Jones, 2020)" keep "and
+        Jones, 2020" as printed, as before #415 (#621 review round 1, M2; the "see" rule
+        itself is #626)."""
+        named = []
+        previous = True  # the first part may open with one: "(e.g. ; and Lee, 2018)" (#415)
+        for part in parts or ():
+            previous = self._is_citation(text, part) and (
+                previous or self.joined_part.match(text, part[0], part[1]) is None
+            )
+            if previous:
+                named.append(part)
+        return named
 
     def _is_citation(self, text: str, part: tuple[int, int]) -> bool:
         piece = text[part[0] : part[1]]
