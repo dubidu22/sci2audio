@@ -35,7 +35,22 @@ from web_helpers import (
     upload,
 )
 
-from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Page, Section, Span
+from sci2audio.core import (
+    Block,
+    BlockKind,
+    Box,
+    Document,
+    Edit,
+    EditKind,
+    Page,
+    Part,
+    Section,
+    Span,
+    TextLine,
+    TextRun,
+)
+from sci2audio.extraction import extract_pdf
+from sci2audio.layout import build_document
 from sci2audio.output import ReadAlong
 from sci2audio.output.readalong import ChapterTimes, ChunkTimes, to_json
 from sci2audio.testing.documents import make_document
@@ -43,10 +58,12 @@ from sci2audio.textprep import BUILT_IN_STEPS, Category, Stage, StepContext, Tex
 from sci2audio.voices import EngineError
 from sci2audio.web import create_app, player, tasks
 from sci2audio.web.player import (
+    MAX_INDENT,
     AudioRecord,
     PlayerError,
     bare_name,
     build_view,
+    indented,
     joined_hyphens,
     sentence_starts,
     shown,
@@ -284,6 +301,104 @@ def test_a_code_block_shows_its_notice_and_its_code_with_its_line_breaks() -> No
     block = off.chapters[0].blocks[1]
     assert (block.notice, block.code) == ("", "")
     assert block.pieces[0].text == " ".join(code.split("\n"))
+
+
+CHAR = 5.25  # points: one character of a 10 point typewriter font
+
+
+def boxed(document: Document, indents: Sequence[int], left: float = 166.86) -> Document:
+    """The document with a box for each line of page 1, `indents[k]` characters in for its
+    k-th line, one line pitch apart, as a PDF gives them."""
+    page = document.content.pages[0]
+    lines = tuple(
+        dataclasses.replace(
+            line,
+            box=Box(
+                left + CHAR * indent,
+                100 + 12 * k,
+                left + CHAR * (indent + len(line.text)),
+                110 + 12 * k,
+            ),
+        )
+        for k, (line, indent) in enumerate(zip(page.lines, indents, strict=True))
+    )
+    content = dataclasses.replace(document.content, pages=(dataclasses.replace(page, lines=lines),))
+    return dataclasses.replace(document, content=content)
+
+
+SEABORN = ["g = sns.relplot(", 'data=fmri, kind="line",', 'x="timepoint", y="signal",', ")"]
+
+
+def test_a_pdf_code_block_is_shown_with_its_printed_indent() -> None:
+    """#282: a PDF line holds no leading spaces; the view indents each line by its left
+    edge against the block's leftmost line, in characters of the font. The block's text,
+    and so the script, stays as printed."""
+    code = "\n".join(SEABORN)
+    document = boxed(make_document([("code", code)]), [0, 4, 4, 0])
+    view = build_view(document, record(chunks=1), readalong([(0, 0, len(code))]))
+    shown_code = view.chapters[0].blocks[0].code
+    assert shown_code.split("\n") == [
+        "g = sns.relplot(",
+        '    data=fmri, kind="line",',
+        '    x="timepoint", y="signal",',
+        ")",
+    ]
+    assert document.blocks[0].text == code
+
+
+def test_a_code_block_without_line_boxes_keeps_its_own_spaces() -> None:
+    """EPUB, Markdown and text code: its text holds its indent already."""
+    code = "def f():\n    return 1"
+    document = make_document([("code", code)])
+    view = build_view(document, record(chunks=1), readalong([(0, 0, len(code))]))
+    assert view.chapters[0].blocks[0].code == code
+
+
+def test_the_indent_is_measured_on_each_page_and_capped() -> None:
+    """A listing over a page break (#283) is measured against its leftmost line on each
+    page (odd and even pages have other margins); a line is never drawn more than
+    `MAX_INDENT` characters in."""
+    block = Block(
+        BlockKind.CODE,
+        "a(\nb\nc(\nd\ne",
+        tuple(Part(f"l{k}", start) for k, start in enumerate([0, 3, 5, 8, 10])),
+    )
+    lefts = [(1, 100.0), (1, 110.5), (2, 60.0), (2, 70.5), (2, 60.0 + CHAR * 90)]
+    texts = ["a(", "b", "c(", "d", "e"]
+    lines = {
+        f"l{k}": (page, TextLine(f"l{k}", (TextRun(text),), Box(x0, 0, x0 + CHAR * len(text), 10)))
+        for k, ((page, x0), text) in enumerate(zip(lefts, texts, strict=True))
+    }
+    assert indented(block, lines).split("\n") == ["a(", "  b", "c(", "  d", " " * MAX_INDENT + "e"]
+
+
+def test_one_line_set_wider_does_not_change_the_character_width() -> None:
+    """The width is the median over the block's lines: one line whose box is wider than
+    its letters (a wide glyph, a box padded by the PDF) leaves the others' indent."""
+    block = Block(BlockKind.CODE, "f(\nx\ny", (Part("a", 0), Part("b", 3), Part("c", 5)))
+    boxes = {"a": (0.0, "f(", 2), "b": (4 * CHAR, "x", 1), "c": (0.0, "y", 4)}
+    lines = {
+        key: (1, TextLine(key, (TextRun(text),), Box(x0, 0, x0 + CHAR * chars, 10)))
+        for key, (x0, text, chars) in boxes.items()
+    }
+    assert indented(block, lines).split("\n") == ["f(", "    x", "y"]
+
+
+def test_seaborn_shows_its_four_argument_lines_indented() -> None:
+    """AC-282.2: the seaborn paper's listing on page 2, as the corpus PDF prints it."""
+    paper = (
+        Path(__file__).resolve().parents[1] / "corpus" / "papers" / "joss2021-waskom-seaborn.pdf"
+    )
+    document = build_document(extract_pdf(paper))
+    (block,) = [b for b in document.blocks if b.kind is BlockKind.CODE]
+    shown_lines = indented(block, player._code_lines(document)).split("\n")
+    assert [line for line in shown_lines if line.startswith(" ")] == [
+        '    data=fmri, kind="line",',
+        '    x="timepoint", y="signal",',
+        '    hue="event", style="event", col="region",',
+        "    height=3.5, aspect=.8,",
+    ]
+    assert [line.strip() for line in shown_lines] == block.text.split("\n")
 
 
 def test_chapters_not_in_the_audiobook_are_not_shown() -> None:

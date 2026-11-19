@@ -27,6 +27,7 @@ import contextlib
 import hashlib
 import json
 import math
+import statistics
 import time
 import unicodedata
 from collections.abc import Collection, Iterable, Sequence
@@ -40,7 +41,7 @@ from sci2audio.app import find_chapters
 from sci2audio.app.chapters import Chapter
 from sci2audio.app.files import write_texts
 from sci2audio.app.report import Pages
-from sci2audio.core import BlockKind, Document, Edit, EditKind, Section, SpanError
+from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Section, SpanError, TextLine
 from sci2audio.core.export import from_data
 from sci2audio.output import ReadAlong, ReadAlongError, read_readalong
 from sci2audio.textprep import (
@@ -613,6 +614,7 @@ def build_view(
     levels = _heading_levels(document)
     pages = _page_starts(document, moved.keys())
     catalog = Catalog(document) if figures else None
+    code_lines = _code_lines(document)
 
     element_of: list[str] = [""] * len(readalong.chunks)
     firsts = sentence_starts(readalong)
@@ -645,6 +647,8 @@ def build_view(
                 )
                 view.heading = levels.get(shown_here, 0) if shown_here == number else 0
                 view.page = pages.get(shown_here, "")
+                if view.code:
+                    view.code = indented(document.blocks[shown_here], code_lines)
                 if catalog is not None and view.notice and not view.code:
                     view.figures = tuple(catalog.images(shown_here, view.notice))
                 blocks.append(view)
@@ -944,6 +948,52 @@ def _joins(run: StepRun) -> dict[int, frozenset[int]]:
 
 
 _CATEGORIES = frozenset(str(category) for category in Category)
+
+
+MAX_INDENT = 40  # characters: a code line is never drawn further in than this (#282)
+
+
+def _code_lines(document: Document) -> dict[str, tuple[int, TextLine]]:
+    """The text lines of the document's CODE blocks that have a box, with their pages."""
+    wanted = {p.item for b in document.blocks if b.kind is BlockKind.CODE for p in b.parts}
+    if not wanted:
+        return {}
+    return {
+        line.id: (page.number, line)
+        for page in document.content.pages
+        for line in page.lines
+        if line.id in wanted and line.box is not None
+    }
+
+
+def indented(block: Block, lines: dict[str, tuple[int, TextLine]]) -> str:
+    """A code block's text as the player shows it, each printed line indented as on its
+    page (#282): a PDF line holds no leading white space, so a line starting further right
+    than the block's leftmost line on that page gets one space for each character width it
+    stands in, the width measured on the block's own lines (a typewriter font's letters are
+    all one width), at most `MAX_INDENT`. The block's text stays as printed; only the view
+    gains the spaces. A block without line boxes (EPUB, Markdown, text) keeps its text."""
+    found = [(p.start, *lines[p.item]) for p in block.parts if p.item in lines]
+    widths = [_box_width(line) / len(line.text) for _, _, line in found if line.text]
+    width = statistics.median(widths) if widths else 0.0
+    if width <= 0:
+        return block.text.strip("\n")
+    left: dict[int, float] = {}
+    for _, page, line in found:
+        x0 = line.box.x0 if line.box else 0.0
+        left[page] = min(left.get(page, x0), x0)
+    starts = [0, *(k + 1 for k, char in enumerate(block.text) if char == "\n")]
+    indent: dict[int, int] = {}
+    for start, page, line in found:
+        if line.box is not None:
+            indent[start] = min(MAX_INDENT, round((line.box.x0 - left[page]) / width))
+    rows = block.text.split("\n")
+    shown = [" " * indent.get(start, 0) + row for start, row in zip(starts, rows, strict=True)]
+    return "\n".join(shown).strip("\n")
+
+
+def _box_width(line: TextLine) -> float:
+    return line.box.x1 - line.box.x0 if line.box else 0.0
 
 
 def _block_view(
