@@ -86,4 +86,11 @@ def test_the_copy_names_its_source_and_keeps_the_psf_notice() -> None:
     assert "Copyright (c) 2001-2024 Python Software Foundation; All Rights Reserved" in head
     assert "PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2" in head
     assert "Summary of the changes made to Python" in head
-    assert imported_modules(EXTRACTION / "htmlparser.py") == {"re", "html", "html.entities"}
+    # it needs only these, identical from 3.12.10 to 3.13.18; mutmut adds its own import to
+    # the files it mutates, which is not the copy's
+    imported = imported_modules(EXTRACTION / "htmlparser.py")
+    assert {name for name in imported if name.split(".")[0] != "mutmut"} == {
+        "re",
+        "html",
+        "html.entities",
+    }
