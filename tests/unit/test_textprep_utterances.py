@@ -995,6 +995,7 @@ def test_a_long_sentence_is_cut_outside_a_reading_on_both_runs(
 
 _UA = "aaaa bbbb cccc unter anderem dddd eeee ffff"
 _BRACKET_UA = "aaaa bbbb (cccc dddd) unter anderem eeee ffff gggg"
+_SEMICOLON_UA = "(aaaa bbbb cccc dddd; eeee)unter anderem(ffff)"
 
 
 @pytest.mark.parametrize(
@@ -1008,6 +1009,8 @@ _BRACKET_UA = "aaaa bbbb (cccc dddd) unter anderem eeee ffff gggg"
         ("unter anderem", 9, "unter ", "unter "),
         # ... and it beats every place inside a bracket
         ("(aaaa bbbb)unter anderem(cccc dddd)", 30, "(aaaa bbbb)unter ", "(aaaa bbbb)unter "),
+        # ... even a semicolon inside one, nearer the even share
+        (_SEMICOLON_UA, 36, _SEMICOLON_UA[:33], _SEMICOLON_UA[:33]),
         (_BRACKET_UA, 28, "aaaa bbbb (cccc dddd) unter ", "aaaa bbbb (cccc dddd) "),
     ],
 )  # fmt: skip
