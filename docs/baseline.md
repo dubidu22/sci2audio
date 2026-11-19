@@ -20,6 +20,7 @@ What sci2audio should manage. `scripts/speed.py` prints each line as met, not me
 | Speech faster than real time (real-time factor at least 1) on the reference machine, the MacBook Pro M4, with the device the app picks by itself | speed script on the M4 (Colin, before v1.0) | no |
 | The time estimate within ±25 % of the real remaining speaking time, from the moment it is shown while a minute or more of speech is left | speed script, every machine | no |
 | Encoding (MP3s, M4B, read-along) at least 50 times faster than real time | speed script; `test_output_long.py` benchmark | no |
+| A page of 100,000 drawings (the reader's limit, #185) laid out in under 15 s; a page of drawings laid out in time about linear in the drawings (#354: 5 such pages took 198 s before, 18.5 s after on a 4-core cloud container; a drawing as tall as a PDF can make costs no more than a small one) | `test_layout_figure_speed.py`: benchmark (fails above 15 s) and the growth test in the fast suite | yes, nightly and on every PR |
 
 ## Speed script (#11, D-281 to D-287)
 

@@ -8,5 +8,5 @@ Comment[de]=Wissenschaftliche Texte offline in getreue Hörbücher verwandeln
 Exec=sci2audio
 Icon=sci2audio
 Terminal=false
-Categories=AudioVideo;Audio;
+Categories=AudioVideo;Audio;Education;
 Keywords=audiobook;PDF;EPUB;text to speech;

@@ -10,7 +10,11 @@ import json
 import os
 import re
 import runpy
+import shutil
+import subprocess
 import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from types import ModuleType
 
@@ -63,10 +67,34 @@ def test_every_download_is_pinned_by_its_sha256(name: str) -> None:
         assert re.fullmatch(r"[0-9a-f]{64}", found[f"{stem}_SHA256"]), stem
 
 
-def test_espeak_ngs_source_is_a_pinned_commit() -> None:
+@pytest.mark.parametrize(
+    ("stem", "hashed"),
+    [
+        ("ESPEAK_NG", "ESPEAK_NG_SHA256"),
+        ("APPIMAGE_RUNTIME", "APPIMAGE_RUNTIME_SOURCE_SHA256"),  # tools.env pins its binary
+        ("SQUASHFUSE", "SQUASHFUSE_SHA256"),
+    ],
+)
+def test_each_source_from_git_is_a_pinned_commit_and_hash(stem: str, hashed: str) -> None:
     found = pins(PACKAGING / "ffmpeg" / "sources.env")
-    assert re.fullmatch(r"[0-9a-f]{40}", found["ESPEAK_NG_COMMIT"])
-    assert re.fullmatch(r"[0-9a-f]{64}", found["ESPEAK_NG_SHA256"])
+    assert found[f"{stem}_GIT"].startswith("https://github.com/"), stem
+    assert re.fullmatch(r"[0-9a-f]{40}", found[f"{stem}_COMMIT"]), stem
+    assert re.fullmatch(r"[0-9a-f]{64}", found[hashed]), stem
+
+
+def test_the_sources_name_the_runtime_the_appimage_uses(tmp_path: Path) -> None:
+    """The type-2 runtime's source is the release tools.env downloads the runtime of, and
+    libfuse 3 and squashfuse come with it (#635 F3)."""
+    sources = pins(PACKAGING / "ffmpeg" / "sources.env")
+    tools = pins(PACKAGING / "tools.env")
+    assert sources["APPIMAGE_RUNTIME_VERSION"] in tools["APPIMAGE_RUNTIME_URL"]
+    assert sources["LIBFUSE_URL"].endswith(f"fuse-{sources['LIBFUSE_VERSION']}.tar.xz")
+    note = build.source_note("1.4.0", tmp_path)
+    for named in ("type-2 runtime", "libfuse 3", "squashfuse", "LGPL-2.1", "BSD-2-Clause"):
+        assert named in note
+    third = (ROOT / "THIRD_PARTY_LICENSES.md").read_text(encoding="utf-8")
+    assert "libfuse/libfuse) 3.15.0" in third
+    assert "vasi/squashfuse) 0.5.2" in third
 
 
 def test_the_bundled_ffmpeg_is_lgpl_audio_only_and_reaches_no_network() -> None:
@@ -92,6 +120,117 @@ def test_the_spec_leaves_imageio_ffmpegs_program_out_and_brings_its_own() -> Non
     assert spec.count("without_imageio_ffmpeg(found.") == 2  # binaries and datas
     assert 'binaries.append((str(FFMPEG), "ffmpeg"))' in spec
     assert 'datas.append((str(LICENSES), "licenses"))' in spec
+
+
+# ---- the archives are checked by their SHA-256 ----------------------------------------------
+
+SOURCES = ("ffmpeg", "lame", "espeak", "runtime", "fuse", "squashfuse")
+BASH = shutil.which("bash")
+needs_bash = pytest.mark.skipif(
+    sys.platform == "win32" or BASH is None, reason="the scripts run in bash"
+)
+
+
+def bash(script: Path, *args: Path | str) -> subprocess.CompletedProcess[str]:
+    command = [str(BASH), str(script), *(str(a) for a in args)]
+    return subprocess.run(command, capture_output=True, text=True, check=False)
+
+
+def sha(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def fake_sources(tmp_path: Path) -> tuple[Path, Path, dict[str, Path]]:
+    """The two scripts beside a sources.env that pins small stand-in archives (no network:
+    every archive is already in the downloads folder)."""
+    here = tmp_path / "ffmpeg"
+    here.mkdir()
+    for script in ("build.sh", "sources_archive.sh"):
+        shutil.copy2(PACKAGING / "ffmpeg" / script, here / script)
+    downloads = tmp_path / "downloads"
+    downloads.mkdir()
+    files = {
+        "ffmpeg": downloads / "ffmpeg-1.tar.xz",
+        "lame": downloads / "lame-2.tar.gz",
+        "espeak": downloads / "espeak-ng-3.tar",
+        "runtime": downloads / "type2-runtime-4.tar",
+        "fuse": downloads / "fuse-5.tar.xz",
+        "squashfuse": downloads / "squashfuse-6.tar",
+    }
+    for name, path in files.items():
+        path.write_bytes(f"the {name} archive".encode())
+    git = "https://example.invalid/never.git"
+    commit = "0" * 40
+    (here / "sources.env").write_text(
+        "\n".join(
+            [
+                "FFMPEG_VERSION=1", "FFMPEG_URL=https://example.invalid/f",
+                f"FFMPEG_SHA256={sha(files['ffmpeg'])}",
+                "LAME_VERSION=2", "LAME_URL=https://example.invalid/l",
+                f"LAME_SHA256={sha(files['lame'])}",
+                "ESPEAK_NG_VERSION=3", f"ESPEAK_NG_GIT={git}", f"ESPEAK_NG_COMMIT={commit}",
+                f"ESPEAK_NG_SHA256={sha(files['espeak'])}",
+                "APPIMAGE_RUNTIME_VERSION=4", f"APPIMAGE_RUNTIME_GIT={git}",
+                f"APPIMAGE_RUNTIME_COMMIT={commit}",
+                f"APPIMAGE_RUNTIME_SOURCE_SHA256={sha(files['runtime'])}",
+                "LIBFUSE_VERSION=5", "LIBFUSE_URL=https://example.invalid/u",
+                f"LIBFUSE_SHA256={sha(files['fuse'])}",
+                "SQUASHFUSE_VERSION=6", f"SQUASHFUSE_GIT={git}", f"SQUASHFUSE_COMMIT={commit}",
+                f"SQUASHFUSE_SHA256={sha(files['squashfuse'])}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )  # fmt: skip
+    return here, downloads, files
+
+
+@needs_bash
+def test_the_sources_archive_holds_every_pinned_archive(tmp_path: Path) -> None:
+    here, downloads, files = fake_sources(tmp_path)
+    done = bash(here / "sources_archive.sh", "1.4.0", downloads, tmp_path / "out")
+    assert done.returncode == 0, done.stderr
+    import tarfile
+
+    with tarfile.open(tmp_path / "out" / "sci2audio-1.4.0-sources.tar") as archive:
+        names = {Path(n).name for n in archive.getnames()}
+        readme = archive.extractfile("sci2audio-1.4.0-sources/README.txt").read().decode()  # type: ignore[union-attr]
+    assert {p.name for p in files.values()} | {"build.sh", "sources.env", "README.txt"} <= names
+    for path in files.values():
+        assert path.name in readme
+    for named in ("type-2 runtime", "libfuse 5", "squashfuse 6", "LGPL-2.1-only", "BSD-2-Clause"):
+        assert named in readme
+
+
+@needs_bash
+@pytest.mark.parametrize("tampered", SOURCES)
+def test_the_sources_archive_refuses_an_archive_whose_hash_differs(
+    tmp_path: Path, tampered: str
+) -> None:
+    here, downloads, files = fake_sources(tmp_path)
+    files[tampered].write_bytes(b"something else")
+    done = bash(here / "sources_archive.sh", "1.4.0", downloads, tmp_path / "out")
+    assert done.returncode == 1
+    assert re.search(
+        rf"{re.escape(files[tampered].name)}: SHA-256 [0-9a-f]{{64}}, expected", done.stderr
+    )
+    assert not (tmp_path / "out" / "sci2audio-1.4.0-sources.tar").exists()
+
+
+@needs_bash
+@pytest.mark.parametrize("tampered", ["ffmpeg", "lame"])
+def test_the_ffmpeg_build_refuses_an_archive_whose_hash_differs(
+    tmp_path: Path, tampered: str
+) -> None:
+    here, downloads, files = fake_sources(tmp_path)
+    files[tampered].write_bytes(b"something else")
+    done = bash(here / "build.sh", downloads, tmp_path / "out")
+    assert done.returncode == 1
+    assert re.search(
+        rf"{re.escape(files[tampered].name)}: SHA-256 [0-9a-f]{{64}}, expected", done.stderr
+    )
 
 
 @pytest.mark.parametrize(
@@ -157,7 +296,10 @@ def frozen(folder: Path, system: str, *, imageio: bool = False) -> Path:
     (internal / "ffmpeg").mkdir(parents=True)
     (internal / "ffmpeg" / build.ffmpeg_name(system)).write_bytes(b"x")
     (internal / "licenses").mkdir()
-    for name in ("LICENSE", "THIRD_PARTY_LICENSES.md", "SOURCE.txt", "python-packages.txt"):
+    for name in (
+        "LICENSE", "THIRD_PARTY_LICENSES.md", "SOURCE.txt", "python-packages.txt",
+        *build.vendored_licences(system),
+    ):  # fmt: skip
         (internal / "licenses" / name).write_text("x", encoding="utf-8")
     if imageio:
         (internal / "imageio_ffmpeg" / "binaries").mkdir(parents=True)
@@ -177,6 +319,109 @@ def test_imageio_ffmpegs_program_in_the_folder_fails_the_build(tmp_path: Path) -
     ]
 
 
+@pytest.mark.parametrize("system", ["macos", "windows", "linux"])
+def test_torchs_test_programs_fail_the_build(tmp_path: Path, system: str) -> None:
+    folder = frozen(tmp_path / "sci2audio", system)
+    tools = folder / "_internal" / "torch" / "bin"
+    tools.mkdir(parents=True)
+    (tools / "torch_shm_manager").write_bytes(b"x")
+    assert build.check_bundle(folder, system) == []
+    (tools / "protoc").write_bytes(b"x")
+    (tools / "test_api").write_bytes(b"x")
+    assert build.check_bundle(folder, system) == [
+        "torch/bin holds torch's test programs: protoc, test_api (#635 F2)"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("system", "needed"), [("linux", True), ("macos", True), ("windows", False)]
+)
+def test_torch_keeps_the_one_program_it_needs_at_import(
+    tmp_path: Path, system: str, needed: bool
+) -> None:
+    folder = frozen(tmp_path / "sci2audio", system)
+    (folder / "_internal" / "torch").mkdir()
+    problem = "torch/bin/torch_shm_manager is missing: torch needs it at import"
+    assert build.check_bundle(folder, system) == ([problem] if needed else [])
+
+
+def test_a_large_file_twice_in_the_bundle_fails_the_build(tmp_path: Path) -> None:
+    folder = frozen(tmp_path / "sci2audio", "linux")
+    library = os.urandom(build.DUPLICATE_SIZE)
+    (folder / "_internal" / "torch" / "lib").mkdir(parents=True)
+    (folder / "_internal" / "torch" / "bin").mkdir()
+    (folder / "_internal" / "torch" / "bin" / "torch_shm_manager").write_bytes(b"x")
+    (folder / "_internal" / "torch" / "lib" / "libc10.so").write_bytes(library)
+    (folder / "_internal" / "libc10.so").write_bytes(library)
+    assert build.check_bundle(folder, "linux") == [
+        "_internal/libc10.so and _internal/torch/lib/libc10.so are the same file of 1 MB (#635 F2)"
+    ]
+
+
+def test_only_large_files_with_the_same_bytes_are_duplicates(tmp_path: Path) -> None:
+    same = os.urandom(2000)
+    (tmp_path / "a").write_bytes(same)
+    (tmp_path / "b").mkdir()
+    (tmp_path / "b" / "a").write_bytes(same)
+    (tmp_path / "c").write_bytes(os.urandom(2000))  # the same size, other bytes
+    (tmp_path / "small").write_bytes(b"x" * 10)
+    (tmp_path / "small2").write_bytes(b"x" * 10)  # the same bytes, too small to count
+    assert build.duplicates(tmp_path, least=1000) == [(2000, ["a", "b/a"])]
+    assert build.duplicates(tmp_path, least=2001) == []
+    if sys.platform != "win32":
+        (tmp_path / "link").symlink_to(tmp_path / "c")  # a link is not a second copy
+        assert build.duplicates(tmp_path, least=1000) == [(2000, ["a", "b/a"])]
+
+
+def spec_function(name: str) -> object:
+    """A function of packaging/sci2audio.spec, run without PyInstaller."""
+    import ast
+
+    source = (PACKAGING / "sci2audio.spec").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    keep = [
+        node
+        for node in tree.body
+        if (isinstance(node, ast.FunctionDef) and node.name == name)
+        or (
+            isinstance(node, ast.Assign)
+            and all(isinstance(t, ast.Name) and t.id.startswith("TORCH_") for t in node.targets)
+        )
+    ]
+    space: dict[str, object] = {"os": os, "Path": Path}
+    exec(compile(ast.Module(body=keep, type_ignores=[]), "sci2audio.spec", "exec"), space)  # noqa: S102
+    return space[name]
+
+
+def test_the_spec_keeps_one_copy_of_torchs_libraries_and_leaves_torch_bin_out(
+    tmp_path: Path,
+) -> None:
+    lib = tmp_path / "torch" / "lib"
+    lib.mkdir(parents=True)
+    for name in ("libc10.so", "libtorch_cpu.so"):
+        (lib / name).write_bytes(b"x")
+    other = tmp_path / "libssl.so"
+    other.write_bytes(b"x")
+    binaries = [
+        ("libc10.so", str(lib / "libc10.so"), "BINARY"),  # the analysis's copy at the top
+        ("libssl.so", str(other), "BINARY"),  # not torch's: stays
+        (str(Path("torch/bin/protoc")), str(tmp_path / "protoc"), "BINARY"),
+    ]
+    datas = [
+        (str(Path("torch/lib/libc10.so")), str(lib / "libc10.so"), "DATA"),
+        (str(Path("torch/lib/libtorch_cpu.so")), str(lib / "libtorch_cpu.so"), "DATA"),
+        (str(Path("torch/bin/test_api")), str(tmp_path / "test_api"), "DATA"),
+        (str(Path("torch/bin/torch_shm_manager")), str(tmp_path / "shm"), "DATA"),
+    ]
+    one_copy = spec_function("one_copy")
+    everything = binaries + datas
+    assert one_copy(binaries, everything) == [("libssl.so", str(other), "BINARY")]  # type: ignore[operator]
+    assert one_copy(datas, everything) == [datas[0], datas[1], datas[3]]  # type: ignore[operator]
+    spec = (PACKAGING / "sci2audio.spec").read_text(encoding="utf-8")
+    assert "found.binaries = one_copy(without_imageio_ffmpeg(found.binaries), everything)" in spec
+    assert "found.datas = one_copy(without_imageio_ffmpeg(found.datas), everything)" in spec
+
+
 def test_a_missing_ffmpeg_licence_or_program_fails_the_build(tmp_path: Path) -> None:
     folder = frozen(tmp_path / "sci2audio", "windows")
     (folder / "_internal" / "ffmpeg" / "ffmpeg.exe").unlink()
@@ -187,6 +432,71 @@ def test_a_missing_ffmpeg_licence_or_program_fails_the_build(tmp_path: Path) -> 
         "licenses/SOURCE.txt is missing",
         "sci2audio-app.exe is missing",
     ]
+
+
+@pytest.mark.parametrize(
+    ("system", "missing"),
+    [
+        ("linux", "espeakng-loader-LICENSE"),
+        ("macos", "espeakng-loader-LICENSE"),
+        ("windows", "espeakng-loader-LICENSE"),
+        ("windows", "clr-loader-LICENSE"),
+        ("windows", "winpthreads-COPYING"),
+    ],
+)
+def test_a_bundle_without_a_vendored_licence_text_fails(
+    tmp_path: Path, system: str, missing: str
+) -> None:
+    folder = frozen(tmp_path / "sci2audio", system)
+    (folder / "_internal" / "licenses" / missing).unlink()
+    assert build.check_bundle(folder, system) == [f"licenses/{missing} is missing"]
+
+
+def test_the_windows_only_licence_texts_are_not_asked_for_elsewhere() -> None:
+    assert build.vendored_licences("linux") == ["espeakng-loader-LICENSE"]
+    assert build.vendored_licences("macos") == ["espeakng-loader-LICENSE"]
+    assert set(build.vendored_licences("windows")) == {
+        "espeakng-loader-LICENSE", "clr-loader-LICENSE", "winpthreads-COPYING",
+    }  # fmt: skip
+
+
+def test_the_vendored_licence_texts_are_the_projects_own() -> None:
+    folder = PACKAGING / "licenses"
+    readme = (folder / "README.md").read_text(encoding="utf-8")
+    for name in build.vendored_licences("windows"):
+        text = (folder / name).read_text(encoding="utf-8")
+        assert "Permission is hereby granted, free of charge" in text, name  # MIT
+        assert f"`{name}`" in readme  # with where it was taken from
+    assert "Benedikt Reinartz" in (folder / "clr-loader-LICENSE").read_text(encoding="utf-8")
+    assert "thewh1teagle" in (folder / "espeakng-loader-LICENSE").read_text(encoding="utf-8")
+    winpthreads = (folder / "winpthreads-COPYING").read_text(encoding="utf-8")
+    assert "mingw-w64 project" in winpthreads
+    assert "Lockless Inc." in winpthreads  # the BSD-3-Clause part
+    assert readme.count("https://github.com/") == 3
+
+
+def test_the_licences_folder_holds_every_text_and_refuses_what_ci_refuses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ffmpeg = tmp_path / "ffmpeg"
+    (ffmpeg / "licenses").mkdir(parents=True)
+    (ffmpeg / "licenses" / "FFmpeg-COPYING.LGPLv2.1").write_text("LGPL", encoding="utf-8")
+    python = tmp_path / "Python-LICENSE.txt"
+    python.write_text("PSF", encoding="utf-8")
+    monkeypatch.setattr(build, "python_licence", lambda: python)
+    commands: list[list[str]] = []
+    monkeypatch.setattr(build.subprocess, "run", lambda command, **kwargs: commands.append(command))
+    dest = tmp_path / "licenses"
+    build.licences(dest, ffmpeg, "1.4.0", "windows")
+    names = {p.name for p in dest.iterdir()}
+    assert {
+        "LICENSE", "THIRD_PARTY_LICENSES.md", "Python-LICENSE.txt", "SOURCE.txt",
+        "FFmpeg-COPYING.LGPLv2.1", *build.vendored_licences("windows"),
+    } <= names  # fmt: skip
+    [command] = commands
+    assert command[1:3] == ["-m", "piplicenses"]
+    assert f"--fail-on={build.REFUSED}" in command
+    assert f"--output-file={dest / 'python-packages.txt'}" in command
 
 
 def test_the_source_note_names_the_release_files_and_ffmpegs_configuration(tmp_path: Path) -> None:
@@ -229,10 +539,17 @@ def test_the_appimage_folder_holds_apprun_the_desktop_file_and_the_icon(tmp_path
 def test_the_windows_installer_is_per_user_and_its_uninstaller_keeps_the_persons_files() -> None:
     script = (PACKAGING / "windows" / "sci2audio.iss").read_text(encoding="utf-8")
     assert "PrivilegesRequired=lowest" in script
+    # never for all users, never elevated (#635 F1): no dialog that offers it
+    assert "PrivilegesRequiredOverridesAllowed" not in script
     assert "DefaultDirName={autopf}\\sci2audio" in script
-    uninstall = script[script.index("[UninstallDelete]") :]
-    deleted = re.findall(r'Name: "([^"]+)"', uninstall)
-    assert deleted == ["{app}"]  # the program folder, nothing of the person's
+    # no folder page: a folder chosen by hand could be Documents\sci2audio, the
+    # audiobooks' own folder, or a folder of the person's (#635 F1)
+    assert re.search(r"^DisableDirPage=yes$", script, re.M)
+    # the uninstaller removes what it installed; nothing is deleted by a wildcard, and
+    # never the program folder as a whole or anything above it
+    assert "[UninstallDelete]" not in script
+    assert "filesandordirs" not in script
+    assert "[InstallDelete]" not in script
 
 
 def test_the_refusals_match_the_ci_licences_job() -> None:
@@ -290,6 +607,10 @@ def test_the_window_report_of_a_working_app_passes() -> None:
             "the window shows '/start', not the library",
         ),  # type: ignore[dict-item]
         ({"page": {**good_report()["page"], "rail": False}}, "the rail is not drawn"),  # type: ignore[dict-item]
+        (
+            {"page": {k: v for k, v in good_report()["page"].items() if k != "rail"}},  # type: ignore[union-attr]
+            "the rail is not drawn",
+        ),  # a report without it: the page could not be read
         ({"page": {**good_report()["page"], "lang": ""}}, "the page language is ''"),  # type: ignore[dict-item]
         ({"token": "abc"}, "the report names the start-up token"),
     ],
@@ -308,6 +629,140 @@ def test_the_report_written_by_the_app_passes_the_smoke_check(tmp_path: Path) ->
     write_report(tmp_path / "r.json", config, "window", good_report()["page"])  # type: ignore[arg-type]
     report = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
     assert smoke.window_problems(report) == []
+
+
+class Ran:
+    def __init__(self, returncode: int) -> None:
+        self.returncode = returncode
+
+
+def test_the_window_check_fails_when_the_app_ends_badly_after_a_good_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    report = tmp_path / "report.json"
+
+    def app(command: list[str], **kwargs: object) -> Ran:
+        report.write_text(json.dumps(good_report()), encoding="utf-8")
+        return Ran(returncode)
+
+    monkeypatch.setattr(smoke.subprocess, "run", app)
+    returncode = 0
+    smoke.smoke_window(tmp_path / "sci2audio-app", report)
+    returncode = 1
+    with pytest.raises(smoke.Failed, match="the app ended with 1"):
+        smoke.smoke_window(tmp_path / "sci2audio-app", report)
+
+
+@pytest.mark.parametrize(("quit", "passes"), [(202, True), (404, False), (None, False)])
+def test_the_browser_check_needs_quit_to_be_accepted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, quit: int | None, passes: bool
+) -> None:
+    report = tmp_path / "report.json"
+
+    def app(command: list[str], **kwargs: object) -> Ran:
+        found = {"start": "http://127.0.0.1:5/start", "library": "/", "quit_in_rail": True}
+        if quit is not None:
+            found["quit"] = quit  # type: ignore[assignment]
+        report.write_text(json.dumps(found), encoding="utf-8")
+        return Ran(0)
+
+    monkeypatch.setattr(smoke.subprocess, "run", app)
+    if passes:
+        smoke.smoke_browser(tmp_path / "sci2audio-app", report)
+    else:
+        with pytest.raises(smoke.Failed, match=f"^Quit answered {quit}$"):
+            smoke.smoke_browser(tmp_path / "sci2audio-app", report)
+
+
+class App(BaseHTTPRequestHandler):
+    """The app's start link, library and Quit, as the stand-in browser meets them."""
+
+    def do_GET(self) -> None:
+        if self.path.startswith("/start?token="):
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.send_header("Set-Cookie", "session=s; Path=/; HttpOnly")
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'<nav><button id="quit">Quit</button></nav>')
+
+    def do_POST(self) -> None:
+        ok = self.path == "/quit" and "session=s" in self.headers.get("Cookie", "")
+        self.send_response(202 if ok else 403)
+        self.end_headers()
+
+    def log_message(self, *args: object) -> None:
+        return None
+
+
+def test_the_stand_in_browser_presses_quit_and_never_writes_the_token(tmp_path: Path) -> None:
+    server = ThreadingHTTPServer(("127.0.0.1", 0), App)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        port = server.server_address[1]
+        report = tmp_path / "report.json"
+        smoke.visit(f"http://127.0.0.1:{port}/start?token=secret-start-token", report)
+    finally:
+        server.shutdown()
+        server.server_close()
+    text = report.read_text(encoding="utf-8")
+    assert "secret-start-token" not in text
+    assert "?" not in text
+    assert json.loads(text) == {
+        "start": f"http://127.0.0.1:{port}/start",
+        "library": "/",
+        "quit_in_rail": True,
+        "quit_page": 200,
+        "quit": 202,
+    }
+
+
+def installed(version: str, *, mp3: bool) -> object:
+    """A stand-in for the installed command line: prints `version`, writes a script and
+    an M4B, and MP3s only when `mp3`."""
+
+    def call(program: Path, *args: str | Path, timeout: float = 900) -> str:
+        if args[0] == "--version":
+            return f"sci2audio {version}\n"
+        out = Path(args[args.index("-o") + 1])
+        out.mkdir(parents=True, exist_ok=True)
+        if args[0] == "script":
+            stem = Path(args[1]).stem
+            for suffix in ("script.txt", "report.json", "report.md"):
+                (out / f"{stem}.{suffix}").write_text("x", encoding="utf-8")
+        else:
+            stem = Path(args[1]).stem
+            (out / f"{stem}.m4b").write_bytes(b"\0\0\0\x20ftypM4A " + b"\0" * 20_000)
+            if mp3:
+                (out / f"{stem}-01.mp3").write_bytes(b"ID3" + b"\0" * 20_000)
+        return ""
+
+    return call
+
+
+def test_the_command_line_check_passes_a_working_program(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(smoke, "call", installed("1.4.0", mp3=True))
+    smoke.smoke_cli(tmp_path / "sci2audio", "1.4.0", tmp_path / "models", tmp_path / "w", False)
+
+
+def test_the_command_line_check_fails_on_another_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(smoke, "call", installed("1.3.9", mp3=True))
+    with pytest.raises(smoke.Failed, match=re.escape("version 'sci2audio 1.3.9', expected 1.4.0")):
+        smoke.smoke_cli(tmp_path / "sci2audio", "1.4.0", tmp_path / "models", tmp_path / "w", False)
+
+
+def test_the_command_line_check_fails_when_only_the_m4b_is_written(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(smoke, "call", installed("1.4.0", mp3=False))
+    with pytest.raises(smoke.Failed, match="no MP3 of the en text"):
+        smoke.smoke_cli(tmp_path / "sci2audio", "1.4.0", tmp_path / "models", tmp_path / "w", False)
 
 
 def test_audio_files_are_recognised_by_their_first_bytes(tmp_path: Path) -> None:
@@ -400,3 +855,21 @@ def test_the_smoke_tests_cover_every_system_and_every_check() -> None:
     # an elevated WebView2 ignores it on the hosted runners; the app never opens a port
     steps = "\n".join(line for line in job.splitlines() if not line.lstrip().startswith("#"))
     assert "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS" not in steps
+
+
+def test_the_release_attests_every_file_it_publishes() -> None:
+    attest = RELEASE[RELEASE.index("actions/attest-build-provenance") :]
+    assert re.match(r"[^\n]+\n        with:\n          subject-path: dist/\*\n", attest)
+
+
+def test_the_uninstall_check_keeps_every_part() -> None:
+    step = INSTALLERS[INSTALLERS.index("The uninstaller keeps the person's files") :]
+    step = step[: step.index('echo "Uninstalled')]
+    for check in (
+        '"$FOLDER/unins000.exe" //VERYSILENT',
+        'test ! -e "$FOLDER"',  # the program folder is gone
+        'test -n "$(ls -A "$MODELS")"',  # the voice files stay
+        'test -s "$WORK/online/audio-en/en.m4b"',  # the audiobooks stay
+        'test -s "$log"',  # the log stays
+    ):
+        assert check in step, check

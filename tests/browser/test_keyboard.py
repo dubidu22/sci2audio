@@ -107,7 +107,12 @@ def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     tab_to(page, "speed")
     for _ in range(4):
         page.keyboard.press("ArrowRight")
-    expect(page.locator("#speed-value")).to_have_text("1.2 times")
+    expect(page.locator("#speed-exact")).to_have_value("1.04")  # 0.01 a step (#651)
+    # the field beside it: Tab reaches it, and the arrows step it as the slider (#651)
+    tab_to(page, "speed-exact")
+    page.keyboard.press("PageUp")
+    expect(page.locator("#speed-exact")).to_have_value("1.14")
+    expect(page.locator("#speed")).to_have_value("1.14")
     # the pace of spelled-out abbreviations: one stop for the group, arrows choose (#295)
     tab_to(page, "letter-pace-normal")
     page.keyboard.press("ArrowDown")

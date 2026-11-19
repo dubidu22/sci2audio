@@ -363,20 +363,74 @@ function readAlong() {
     if (sentence) playFrom(Number(sentence.dataset.chunk), true);
   });
 
-  // ---- speed (#152) -------------------------------------------------------------------
+  // ---- speed (#152, #651) ---------------------------------------------------------------
   // a new file resets `playbackRate` to `defaultPlaybackRate`, so both are set: the speed
-  // stays across the chapters' files, jumps and the M4B; the voice keeps its pitch
-  function applySpeed() {
-    const value = Number(speed.value) || 1;
+  // stays across the chapters' files, jumps and the M4B; the voice keeps its pitch. The dock
+  // shows it on a button that opens the usual speeds and the speed field (app.js); the speed
+  // chosen is kept for the next Listen page in a cookie (PUT /api/v1/player/speed).
+  const speedPanel = document.getElementById("speed-panel");
+  const speedNow = document.getElementById("speed-now");
+  const presets = speedPanel.querySelectorAll("button[data-speed]");
+  const speedSaid = (value) => tr("listen.speed_value", { value: speedText(value) });
+  let keepSpeed = 0; // the timer that keeps the speed once the person stops changing it
+  const playerSpeed = speedField(speedPanel.querySelector(".speed-field"), speedSaid, (value) => {
+    applySpeed(value);
+    clearTimeout(keepSpeed);
+    keepSpeed = setTimeout(() => {
+      // a speed not kept is only not offered next time: nothing to tell the person
+      send("/api/v1/player/speed", json("PUT", { speed: value })).catch(() => {});
+    }, 500);
+  });
+  function applySpeed(value) {
     audio.preservesPitch = true;
     if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = true;
     if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = true;
     audio.defaultPlaybackRate = value;
     audio.playbackRate = value;
+    speedNow.textContent = speedSaid(value);
+    for (const preset of presets) {
+      preset.setAttribute("aria-pressed", String(Number(preset.dataset.speed) === value));
+    }
   }
-  speed.addEventListener("change", applySpeed);
-  audio.addEventListener("loadedmetadata", applySpeed);
-  applySpeed();
+  audio.addEventListener("loadedmetadata", () => applySpeed(playerSpeed.value));
+  applySpeed(playerSpeed.value);
+  for (const preset of presets) {
+    preset.addEventListener("click", () => playerSpeed.set(Number(preset.dataset.speed), true));
+    preset.disabled = false; // drawn disabled (#350)
+  }
+
+  // the panel opens above the button; a keyboard opens it with the focus in the field, a
+  // pointer leaves the focus on the button (a touch screen's keyboard stays away). Esc, a
+  // click elsewhere or the focus leaving it closes it.
+  function showSpeedPanel(open, focus) {
+    speedPanel.hidden = !open;
+    speed.setAttribute("aria-expanded", String(open));
+    placeSpeedPanel();
+    if (open && focus) document.getElementById("speed-exact").focus();
+  }
+  // a narrow window may put the button near its left edge: the panel moves right to stay in
+  function placeSpeedPanel() {
+    speedPanel.style.right = "";
+    if (speedPanel.hidden) return;
+    const left = speedPanel.getBoundingClientRect().left;
+    if (left < 8) speedPanel.style.right = `${left - 8}px`;
+  }
+  window.addEventListener("resize", placeSpeedPanel);
+  speed.addEventListener("click", (event) => showSpeedPanel(speedPanel.hidden, event.detail === 0));
+  speed.disabled = false;
+  const speedMenu = speed.parentElement;
+  speedMenu.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || speedPanel.hidden) return;
+    event.preventDefault(); // Esc closes the panel only, and leaves Focus listening on
+    showSpeedPanel(false);
+    speed.focus();
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!speedPanel.hidden && !speedMenu.contains(event.target)) showSpeedPanel(false);
+  });
+  speedMenu.addEventListener("focusout", (event) => {
+    if (event.relatedTarget && !speedMenu.contains(event.relatedTarget)) showSpeedPanel(false);
+  });
 
   // ---- Focus listening (#394, DESIGN.md "Focus") ------------------------------------------
   // A mode of this page with no address of its own: the rail, the sheet and the panel give
@@ -847,12 +901,10 @@ function readAlong() {
   // so no browser or system shortcut is taken.
   const CONTROLS = "button, a[href], input, select, textarea, summary, audio, [role='tab'], [tabindex]:not([tabindex='-1'])";
 
+  // − and + step the speed by 0.05, as the panel's buttons (#651), and say it
   function stepSpeed(by) {
-    const to = speed.selectedIndex + by;
-    if (to < 0 || to >= speed.options.length) return;
-    speed.selectedIndex = to;
-    speed.dispatchEvent(new Event("change"));
-    say(tr("player.speed_now", { speed: speed.options[to].text }));
+    if (!playerSpeed.set(playerSpeed.value + by * 0.05, true)) return; // at a limit
+    say(tr("player.speed_now", { speed: speedSaid(playerSpeed.value) }));
   }
 
   document.addEventListener("keydown", (event) => {

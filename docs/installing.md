@@ -73,7 +73,7 @@ With the GitHub command line you can also check that the release workflow built 
 
 ## The source
 
-sci2audio is free software under the GNU General Public License, version 3 or later. Each installer has a `licenses` folder with the licence of every part. The release page holds the complete source: `sci2audio-1.4.0.tar.gz`, and `sci2audio-1.4.0-sources.tar` with FFmpeg, LAME and espeak-ng and the script that builds the bundled ffmpeg.
+sci2audio is free software under the GNU General Public License, version 3 or later. Each installer has a `licenses` folder with the licence of every part. The release page holds the complete source: `sci2audio-1.4.0.tar.gz`, and `sci2audio-1.4.0-sources.tar` with FFmpeg, LAME and espeak-ng, the script that builds the bundled ffmpeg, and the Linux AppImage's runtime with the libfuse and squashfuse it links.
 
 ## With uv instead
 

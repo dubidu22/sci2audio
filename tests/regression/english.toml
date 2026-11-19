@@ -1985,7 +1985,7 @@ expected = [
 id = "citations-a-pair-of-numeric-citations-the-sentence-needs"
 audit = 0
 issue = 257
-goal = "An aside bracket joined by 'and' to a needed one is needed too: 'between [1] and [3]' reads 'between references 1 and 3', not 'between and reference 3' (D-668)."
+goal = "An aside bracket joined by 'and' to a needed one is needed too: 'between [1] and [3]' reads 'between references 1 and 3', not 'between and reference 3' (D-668); a needed pair reads once over both: 'in [1] and [3]' reads 'in references 1 and 3' (#414, D-791)."
 blocks = [
     { kind = "paragraph", text = "Between [1] and [3] it lies." },
     { kind = "paragraph", text = "It lies between [1] and [3]." },
@@ -2000,7 +2000,7 @@ expected = [
     "Between references 1 and 3 it lies.",
     "It lies between references 1 and 3.",
     "Between references MH17 and Fa14 it lies.",
-    "It was shown in reference 1 and reference 3.",
+    "It was shown in references 1 and 3.",
     "It holds or reference 3 here.",
 ]
 
@@ -2945,4 +2945,75 @@ expected = ["The listeners of the long recording rated in the second round of th
 utterances = [
     "The listeners of the long recording rated in the second round of the study very calmly and carefully every single part of all the pauses for example after each paragraph and the share x less than or equal to 5 of",
     "the sentences very calmly and carefully every single part as too long for calm listening in the evening in a quiet room without any distraction by music or talk in the background of the flat.",
+]
+
+# ---- B9 citation lists and join words (#414, #415, #402; D-791) ---------------------------------
+
+[[case]]
+id = "citations-a-list-of-citation-brackets-is-one-citation"
+audit = 0
+issue = 414
+goal = "A list of citation brackets joined by commas and maybe a last 'and' is one citation, as one bracket '[1–3]' is: it goes whole as an aside, or is read once over the whole list where the sentence needs it ('references 1, 2 and 3') (#414, D-791)."
+blocks = [
+    { kind = "paragraph", text = "It holds [1], [2] and [3] here." },
+    { kind = "paragraph", text = "It holds [1], [2], [3], and [4] here." },
+    { kind = "paragraph", text = "It holds [1, 2], [3] and [4] here." },
+    { kind = "paragraph", text = "It holds [1], [2] here." },
+    { kind = "paragraph", text = "As shown in [1], [2] and [3], it holds." },
+    { kind = "paragraph", text = "[1], [2] and [3] show it." },
+    { kind = "paragraph", text = "Refs. [2–6], [8] and [9] show it." },
+    { kind = "paragraph", text = "It was found in [MH17], [Fa14] and [Ka20]." },
+    { kind = "heading", text = "References" },
+    { kind = "paragraph", text = "[MH17] M. Maass. A tool. 2017.\n[Fa14] S. Fahl. A study. 2014.\n[Ka20] K. Kam. A survey. 2020." },
+]
+sections = [{ title = "References", level = 1, start = 8, end = 10 }]
+expected = [
+    "It holds here.",
+    "It holds here.",
+    "It holds here.",
+    "It holds here.",
+    "As shown in references 1, 2 and 3, it holds.",
+    "References 1, 2 and 3 show it.",
+    "References 2 to 6, 8 and 9 show it.",
+    "It was found in references MH17, Fa14 and Ka20.",
+]
+
+[[case]]
+id = "citations-subject-nests-keep-every-name"
+audit = 0
+issue = 415
+goal = "A citation nest that is the subject names every author, as its flat form does: a year shell around one citation, lead words before the list, items side by side, a join word or an empty part between items (#415, D-791)."
+blocks = [
+    { kind = "paragraph", text = "((Smith, 2019) 2021) is cited." },
+    { kind = "paragraph", text = "(see (Smith, 2019); (Lee, 2018)) is cited." },
+    { kind = "paragraph", text = "((Smith, 2019) (Lee, 2018)) is cited." },
+    { kind = "paragraph", text = "((Smith, 2019); and (Lee, 2018)) is cited." },
+    { kind = "paragraph", text = "(Jones, 2020; ; (Smith, 2019)) is cited." },
+    { kind = "paragraph", text = "(Smith, 2019; and Lee, 2018) is cited." },
+    { kind = "paragraph", text = "(Jones, 2020; ; Smith, 2019) is cited." },
+]
+expected = [
+    "Smith is cited.",
+    "Smith and Lee is cited.",
+    "Smith and Lee is cited.",
+    "Smith and Lee is cited.",
+    "Jones and Smith is cited.",
+    "Smith and Lee is cited.",
+    "Jones and Smith is cited.",
+]
+
+[[case]]
+id = "links-a-join-word-before-a-last-link-goes"
+audit = 0
+issue = 402
+goal = "A join word before a removed link that is the last item of a list goes with it ('We thank Smith here.'); it stays where it joins clauses ('It rains and shows it.') (#402, D-791)."
+blocks = [
+    { kind = "paragraph", text = "We thank Smith and https://x.org here." },
+    { kind = "paragraph", text = "We thank Smith, Lee, and https://x.org here." },
+    { kind = "paragraph", text = "It rains and https://x.org shows it." },
+]
+expected = [
+    "We thank Smith here.",
+    "We thank Smith, Lee here.",
+    "It rains and shows it.",
 ]

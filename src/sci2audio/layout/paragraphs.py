@@ -33,6 +33,8 @@ from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
 from sci2audio.layout.captions import opens_caption
 from sci2audio.layout.geometry import (
     Bars,
+    boxed,
+    fraction_bar,
     holds,
     letter_size,
     minor,
@@ -85,12 +87,16 @@ def rows_of(
     edges: dict[int, tuple[float, float]],
     settings: LayoutSettings,
     size: float,
+    bars: Bars | None = None,
 ) -> list[list[Element]]:
     """The page's text lines grouped into printed lines: neighbours in the reading order on
     one baseline in one column (`edges` gives each element's column edges). A loose line or
     mark read between two pieces of one printed line, inside the two together (a fraction
     bar, an icon by a name), does not end the line: it is read just after it (#163, D-438).
-    `size` is the body text's size."""
+    The denominator of a fraction in the line, under one of the page's `bars`, is in the
+    line too, and is read right after its numerator (#322). `size` is the body text's
+    size."""
+    bars = bars or Bars()
     found: list[list[Element]] = []
     after: list[Element] = []  # marks drawn inside the printed line being read
     following = _following_lines(ordered)
@@ -108,14 +114,84 @@ def rows_of(
             ):
                 after.append(element)
                 continue
-        elif latest is not None and _one_line(latest, element, edges, settings):
+        elif latest is not None and (
+            _one_line(latest, element, edges, settings)
+            or _denominator(found[-1], element, edges, settings, size, bars)
+        ):
             found[-1].append(element)
             continue
         found += [[mark] for mark in after]
         after = []
         found.append([element])
     found += [[mark] for mark in after]
-    return [sorted(group, key=lambda e: e.box.x0) for group in found]
+    return [_fractions_in_order(group, settings, size, bars) for group in found]
+
+
+def _over(bar: Box, upper: Element, lower: Element, settings: LayoutSettings, size: float) -> bool:
+    """True if the bar is a fraction bar over the first letters of `lower` with `upper`
+    over it (#202), and those first letters start inside the bar's width: a word under a
+    brace drawn as two short rules starts beside them (Nowak p10, #322)."""
+    if upper.line is None or lower.line is None:
+        return False
+    first = _first_letters(lower.line)
+    reach = settings.fraction_inside * size
+    return (
+        bar.x0 - reach <= first.x0
+        and first.x1 <= bar.x1 + reach
+        and fraction_bar(
+            bar, upper.line, lower.line, size, settings.fraction_bar, settings.fraction_reach
+        )
+    )
+
+
+def _first_letters(piece: TextLine) -> Box:
+    boxes = [run.box for run in piece.runs if run.box is not None and run.text.strip()]
+    return boxes[0] if boxes else boxed(piece)
+
+
+def _denominator(
+    group: list[Element],
+    element: Element,
+    edges: dict[int, tuple[float, float]],
+    settings: LayoutSettings,
+    size: float,
+    bars: Bars,
+) -> bool:
+    """True if the text piece read after the printed line `group` is the denominator of a
+    fraction whose numerator is in it (#322, liu p2 "e gs g over 12 pi"): under a bar that
+    stands inside the height of the line read so far. A table's rule stands under its line,
+    not inside it."""
+    texts = [e for e in group if e.line is not None]
+    if element.line is None or not texts or edges[id(texts[-1])] != edges[id(element)]:
+        return False
+    line = union([e.box for e in texts])
+    inside = [b for b in bars.meeting(line) if line.y0 < (b.y0 + b.y1) / 2 < line.y1]
+    return any(_over(bar, upper, element, settings, size) for bar in inside for upper in texts)
+
+
+def _fractions_in_order(
+    group: list[Element], settings: LayoutSettings, size: float, bars: Bars
+) -> list[Element]:
+    """The printed line's pieces from left to right, except that a numerator is read just
+    before its denominator when it starts further right (liu p2 "me over m*", #322)."""
+    pieces = sorted(group, key=lambda e: e.box.x0)
+    near = bars.meeting(union([e.box for e in pieces])) if len(pieces) > 1 else ()
+    if not near:
+        return pieces
+    placed: set[int] = set()
+    found: list[Element] = []
+    for k, lower in enumerate(pieces):
+        if id(lower) in placed:
+            continue
+        for upper in pieces[k + 1 :]:
+            if id(upper) not in placed and any(
+                _over(bar, upper, lower, settings, size) for bar in near
+            ):
+                found.append(upper)
+                placed.add(id(upper))
+                break
+        found.append(lower)  # never looked at again: numerators are sought to its right
+    return found
 
 
 def inline_mark(element: Element, size: float, settings: LayoutSettings) -> bool:
