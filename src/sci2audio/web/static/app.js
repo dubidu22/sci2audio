@@ -1149,6 +1149,22 @@ function quitPage() {
   button.disabled = false; // drawn disabled until here (#350, #427)
 }
 
+// The app without a window (launched as "browser", #215): the server stops by itself after
+// 15 minutes without a request while no job runs. Reading sends none, so a page that is in
+// sight asks for the job list once a minute; a hidden or closed tab lets it stop (#631 F3).
+const KEEP_ALIVE_EVERY = 60_000;
+
+function keepAlive() {
+  const url = document.body.dataset.keepAlive;
+  if (!url) return;
+  window.setInterval(() => {
+    if (document.visibilityState !== "visible") return;
+    const done = document.getElementById("quit-done");
+    if (done && !done.hidden) return; // Quit was pressed
+    fetch(url, { cache: "no-store" }).catch(() => {}); // gone: nothing left to keep
+  }, KEEP_ALIVE_EVERY);
+}
+
 function focusTarget() {
   if (!location.hash) return;
   const target = document.getElementById(location.hash.slice(1));
@@ -1173,5 +1189,6 @@ document.addEventListener("DOMContentLoaded", () => {
   shelf();
   shortcutsSheet();
   quitPage();
+  keepAlive();
   focusTarget();
 });

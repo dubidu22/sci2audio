@@ -5,11 +5,14 @@ open only in the installers' smoke tests on macOS and Windows (#13)."""
 
 from __future__ import annotations
 
+import html
 import http.cookiejar
 import json
 import logging
+import os
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterator
@@ -17,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
 from web_helpers import ORIGIN, browser, make_config, program
 
 from sci2audio import __version__
@@ -49,18 +53,26 @@ class FakeWindow:
     def __init__(self, title: str, url: str, **options: Any) -> None:
         self.title, self.url, self.options = title, url, options
         self.events = FakeEvents()
-        self.pages: list[dict[str, Any]] = []  # what evaluate_js answers, one per call
-        self.dialogs: list[tuple[str, str]] = []
-        self.answer = False  # the person's answer to a confirmation dialog
+        self.pages: list[Any] = []  # what run_js answers, one per call
         self.destroyed = False
+        # pywebview's own close question: asked by the engine on its GUI thread (#631 F1)
+        self.confirm_close = options.get("confirm_close", False)
+        self.localization = dict(options.get("localization") or {})
+
+    def run_js(self, script: str) -> str:
+        assert script == window.SELF_CHECK
+        page = self.pages.pop(0)
+        if isinstance(page, Exception):
+            raise page
+        return json.dumps(page)
 
     def evaluate_js(self, script: str) -> str:
-        assert script == window.SELF_CHECK
-        return json.dumps(self.pages.pop(0))
+        # wraps the script in eval(), which the pages' CSP refuses in a real window (#215)
+        pytest.fail("evaluate_js fails under the pages' Content-Security-Policy")
 
     def create_confirmation_dialog(self, title: str, message: str) -> bool:
-        self.dialogs.append((title, message))
-        return self.answer
+        # from a closing handler this hangs the window on macOS (#631 F1): never used
+        pytest.fail("a dialog of the app's own: use confirm_close")
 
     def destroy(self) -> None:
         self.destroyed = True
@@ -159,42 +171,72 @@ def test_the_window_opens_the_start_link_and_closing_it_stops_the_server(
         {"private_mode": False, "storage_path": str(folders / "data" / "window")}
     ]
     assert len(win.events.closing.handlers) == 1
-    assert win.events.loaded.handlers == []  # no self test asked for
+    assert len(win.events.loaded.handlers) == 1  # each page load: the question's language
+    assert win.options["confirm_close"] is False  # asked only while an audiobook is made
+    assert win.localization["global.quit"] == strings("en")("app.close_quit")
 
 
-def make_window(folders: Path, language: str = "en") -> tuple[window.AppWindow, FakeWindow]:
+def make_window(folders: Path) -> tuple[window.AppWindow, FakeWindow]:
     sock = bind()
     config = make_config(folders, port=sock.getsockname()[1], launched_as="window")
     server = launch.Background(sock, config)
-    app_window = window.AppWindow(FakeWebview(), server, config, strings(language))
-    win = FakeWindow("sci2audio", config.start_url)
+    app_window = window.AppWindow(FakeWebview(), server, config)
+    win = FakeWindow("sci2audio", config.start_url, localization={"global.quit": "Quit"})
     app_window.window = win
     return app_window, win
 
 
 def test_closing_asks_only_while_an_audiobook_is_being_made(folders: Path) -> None:
-    app_window, win = make_window(folders, "de")
+    app_window, win = make_window(folders)
     state = app_window.server.state
-    assert app_window.closing() is True  # nothing runs: it closes at once
-    assert win.dialogs == []
+    assert app_window.closing() is True  # the window may always close ...
+    assert win.confirm_close is False  # ... and nothing runs: at once
     preview, gate = a_job(state, JobKind.PREVIEW)
     try:
-        assert app_window.closing() is True  # a voice preview is not worth a question
-        assert win.dialogs == []
+        assert app_window.closing() is True
+        assert win.confirm_close is False  # a voice preview is not worth a question
     finally:
         gate.set()
         preview.join(10)
     job, gate = a_job(state)
     try:
-        win.answer = False
-        assert app_window.closing() is False  # the window stays open
-        win.answer = True
         assert app_window.closing() is True
+        assert win.confirm_close is True  # pywebview asks, and Cancel keeps it open
+        app_window._checked.set()  # the self test closes without asking
+        assert app_window.closing() is True
+        assert win.confirm_close is False
     finally:
         gate.set()
         job.join(10)
+
+
+def test_the_close_question_speaks_the_language_of_the_last_page(
+    folders: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(window, "system_language", lambda: "en")
+    app_window, win = make_window(folders)
+    question = win.localization  # the engine's own dictionary: changed in place
+    app_window.closing()
+    en = strings("en")
+    assert question == {
+        "global.quitConfirmation": en("app.close_making"),
+        "global.quit": en("app.close_quit"),
+        "global.cancel": en("app.close_cancel"),
+    }
+    config = app_window.config
+    client = TestClient(
+        app_window.server.app,
+        base_url=config.origin,
+        headers={"Authorization": f"Bearer {config.token}"},
+    )
+    assert client.get("/", headers={"Accept-Language": "de-DE"}).status_code == 200
+    assert app_window.server.state.language == "de"
+    app_window.loaded()  # macOS reads the strings before `closing` runs: each load sets them
     de = strings("de")
-    assert win.dialogs == [(de("app.close_title"), de("app.close_making"))] * 2
+    assert win.localization is question
+    assert question["global.quitConfirmation"] == de("app.close_making")
+    assert question["global.quit"] == de("app.close_quit") == "sci2audio beenden"
+    assert question["global.cancel"] == de("app.close_cancel")
 
 
 def test_the_self_test_reads_the_interface_writes_its_report_and_closes(
@@ -221,6 +263,20 @@ def test_the_self_test_reads_the_interface_writes_its_report_and_closes(
         "page": {**library, "host": f"127.0.0.1:{port}"},
     }
     assert win.url.split("token=")[1] not in report.read_text(encoding="utf-8")
+
+
+def test_a_self_test_that_cannot_read_the_page_reports_why_and_closes(folders: Path) -> None:
+    report = folders / "report.json"
+
+    def while_open(win: FakeWindow) -> None:
+        win.pages = [RuntimeError("EvalError: refused by the CSP")]
+        win.events.loaded.fire()
+
+    webview = FakeWebview(while_open)
+    window.run_window(webview, selftest=report)
+    assert webview.windows[0].destroyed  # it never waits for the smoke test's timeout
+    found = json.loads(report.read_text(encoding="utf-8"))
+    assert found["page"] == {"error": "RuntimeError: EvalError: refused by the CSP"}
 
 
 def test_a_self_test_whose_page_never_loaded_fails(folders: Path) -> None:
@@ -257,7 +313,17 @@ def test_webview2_gets_smartscreen_switched_off_and_keeps_other_switches() -> No
 
 @pytest.mark.parametrize(
     ("name", "language"),
-    [("de_DE", "de"), ("de_AT", "de"), ("en_GB", "en"), ("fr_FR", "en"), (None, "en"), ("C", "en")],
+    [
+        ("de_DE", "de"),
+        ("de_AT", "de"),
+        ("German_Germany", "de"),  # Windows names (#631 F2)
+        ("English_United Kingdom", "en"),
+        ("en_GB", "en"),
+        ("fr_FR", "en"),
+        ("French_France", "en"),
+        (None, "en"),
+        ("C", "en"),
+    ],
 )
 def test_the_dialogs_speak_the_systems_language_if_sci2audio_does(
     name: str | None, language: str
@@ -418,11 +484,21 @@ def test_the_rail_has_quit_and_the_privacy_page_the_log_only_where_they_apply(
     ):
         config = make_config(tmp_path / launched_as, launched_as=launched_as)
         client = program(create_app(config), config)
-        assert ('id="quit"' in client.get("/").text) is has_quit
-        privacy = client.get("/privacy").text
-        assert ('id="app-log"' in privacy) is has_log
-        if has_log:
-            assert "app.log" in privacy
+        library = client.get("/").text
+        assert ('id="quit"' in library) is has_quit
+        # only the browser needs a page in sight to keep the app awake (#631 F3)
+        assert ('data-keep-alive="/api/v1/jobs"' in library) is has_quit
+        for language in ("en", "de"):
+            s = strings(language)
+            privacy = client.get("/privacy", headers={"Accept-Language": language}).text
+            assert ('id="app-log"' in privacy) is has_log
+            if has_log:
+                assert "app.log" in privacy
+            # the app has no terminal that shows a link (#631 N1)
+            key = "privacy.interface_key_app" if has_log else "privacy.interface_key"
+            other = "privacy.interface_key" if has_log else "privacy.interface_key_app"
+            assert html.escape(s(key), quote=False) in privacy
+            assert html.escape(s(other), quote=False) not in privacy
 
 
 @pytest.mark.parametrize("launched_as", ["terminal", "window"])
@@ -502,3 +578,206 @@ def test_the_app_without_a_window_opens_the_browser_and_quit_stops_it(
 def test_launched_as_takes_only_the_known_ways(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="launched_as"):
         make_config(tmp_path, launched_as="kiosk")
+
+
+# ---- when the app cannot start: the log and a message (#631 F4) ----------------------------
+
+
+@pytest.fixture
+def messages(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
+    shown: list[tuple[str, str]] = []
+    monkeypatch.setattr(window, "show_message", lambda title, text: shown.append((title, text)))
+    monkeypatch.setattr(window, "system_language", lambda: "en")
+    return shown
+
+
+def test_an_error_ends_the_app_with_its_reason_in_the_log_and_a_message_naming_it(
+    folders: Path, monkeypatch: pytest.MonkeyPatch, messages: list[tuple[str, str]]
+) -> None:
+    def broken() -> int:
+        raise OSError("no free port")
+
+    monkeypatch.setattr(window, "load_webview", lambda: None)
+    monkeypatch.setattr(window, "run_browser", broken)
+    assert window.main([]) == 1
+    log_file = folders / "logs" / "app.log"
+    text = log_file.read_text(encoding="utf-8")
+    assert "the app stopped with an error" in text
+    assert "Traceback" in text
+    assert "OSError: no free port" in text
+    assert "sci2audio could not start: OSError: no free port" in text
+    en = strings("en")
+    assert messages == [(en("app.failed_title"), en("app.failed", path=str(log_file)))]
+    assert str(log_file) in messages[0][1]
+
+
+def test_a_normal_stop_shows_no_message(
+    folders: Path, monkeypatch: pytest.MonkeyPatch, messages: list[tuple[str, str]]
+) -> None:
+    monkeypatch.setattr(window, "load_webview", lambda: None)
+    monkeypatch.setattr(window, "run_browser", lambda: 0)
+    assert window.main([]) == 0
+    monkeypatch.setattr(window, "load_webview", FakeWebview)
+    assert window.main([]) == 0  # the window opened and was closed
+    assert messages == []
+    assert "could not start" not in (folders / "logs" / "app.log").read_text(encoding="utf-8")
+
+
+def test_a_server_that_cannot_start_in_the_app_shows_the_message(
+    folders: Path, monkeypatch: pytest.MonkeyPatch, messages: list[tuple[str, str]]
+) -> None:
+    monkeypatch.setattr(launch.Background, "start", lambda self, timeout=60: False)
+    monkeypatch.setattr(window, "load_webview", FakeWebview)
+    assert window.main([]) == 1
+    assert len(messages) == 1
+    assert str(folders / "logs" / "app.log") in messages[0][1]
+    text = (folders / "logs" / "app.log").read_text(encoding="utf-8")
+    assert "sci2audio could not start: the server did not start" in text
+
+
+def test_the_message_is_a_message_box_on_windows_an_alert_on_macos_and_nothing_on_linux(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import ctypes
+
+    boxes: list[tuple[Any, ...]] = []
+    user32 = type("User32", (), {"MessageBoxW": staticmethod(lambda *a: boxes.append(a))})
+    monkeypatch.setattr(ctypes, "windll", type("WinDLL", (), {"user32": user32}), raising=False)
+    runs: list[list[str]] = []
+    monkeypatch.setattr(window.subprocess, "run", lambda args, **kw: runs.append(args))
+    window.show_message("A title", 'It said "no" in C:\\Logs', "win32")
+    assert boxes == [(None, 'It said "no" in C:\\Logs', "A title", 0x10)]
+    assert runs == []
+    window.show_message("A title", 'It said "no" in C:\\Logs', "darwin")
+    assert runs == [
+        [
+            "/usr/bin/osascript",
+            "-e",
+            'display alert "A title" message "It said \\"no\\" in C:\\\\Logs" as critical',
+        ]
+    ]
+    window.show_message("A title", "text", "linux")
+    assert len(boxes) == 1
+    assert len(runs) == 1
+
+    def broken(args: list[str], **kw: Any) -> None:
+        raise FileNotFoundError(args[0])
+
+    monkeypatch.setattr(window.subprocess, "run", broken)
+    window.show_message("A title", "text", "darwin")  # never hides the real failure
+
+
+# ---- what the review's mutants showed untested (#631 T1) -----------------------------------
+
+
+@pytest.mark.parametrize(("launched_as", "stops"), [("terminal", False), ("browser", True)])
+def test_only_the_app_without_a_window_stops_when_idle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, launched_as: str, stops: bool
+) -> None:
+    monkeypatch.setattr(launch, "IDLE_STOP", 0)
+    monkeypatch.setattr(launch, "WATCH_EVERY", 0.01)
+    monkeypatch.setattr(launch, "SHUTDOWN_WAIT", 0.1)
+    told: list[bool] = []
+
+    def run(server: Any, sockets: Any) -> None:  # uvicorn, while the watch would look
+        deadline = time.monotonic() + 0.5
+        while not server.should_exit and time.monotonic() < deadline:
+            time.sleep(0.01)
+        told.append(server.should_exit)
+
+    monkeypatch.setattr(launch.uvicorn.Server, "run", run)
+    sock = bind()
+    try:
+        config = make_config(tmp_path, port=sock.getsockname()[1], launched_as=launched_as)
+        launch.serve(sock, config, open_browser=False, say=lambda text: None)
+    finally:
+        sock.close()
+    assert told == [stops]
+
+
+def test_the_app_window_never_stops_when_idle(
+    folders: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(launch, "IDLE_STOP", 0)
+    monkeypatch.setattr(launch, "WATCH_EVERY", 0.01)
+    sock = bind()
+    config = make_config(folders, port=sock.getsockname()[1], launched_as="window")
+    server = launch.Background(sock, config)
+    assert server.start()
+    try:
+        time.sleep(0.3)
+        assert server._thread.is_alive()
+        assert answers(config.origin)
+    finally:
+        server.stop()
+
+
+def test_the_idle_stop_comes_exactly_after_the_quiet_spell(tmp_path: Path) -> None:
+    state = create_app(make_config(tmp_path, launched_as="browser")).state.sci2audio
+    clock = Clock()
+    state.seen = clock.now
+    clock.now = state.seen + 900 - 0.001
+    assert launch.Watch(state, lambda: None, idle=900, clock=clock).check() is False
+    clock.now = state.seen + 900
+    assert launch.Watch(state, lambda: None, idle=900, clock=clock).check() is True
+
+
+def test_the_app_switches_smartscreen_off_before_the_window_engine_starts(
+    folders: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv(window.WEBVIEW2_ARGUMENTS, raising=False)
+    monkeypatch.setattr(sys, "platform", "win32")
+    seen: list[str | None] = []
+    monkeypatch.setattr(window, "load_webview", FakeWebview)
+
+    def run_window(webview: Any, *, selftest: Path | None = None) -> int:
+        seen.append(os.environ.get(window.WEBVIEW2_ARGUMENTS))
+        return 0
+
+    monkeypatch.setattr(window, "run_window", run_window)
+    assert window.main([]) == 0
+    assert seen == [window.NO_SMARTSCREEN]
+
+
+def a_waiting_job(state: Any) -> Any:
+    return state.board.start(
+        JobKind.AUDIO, None, None, lambda job: job.cancel.wait(30) and [], cancellable=True
+    )
+
+
+def test_stopping_the_app_window_cancels_the_job_and_ends_the_event_streams(
+    folders: Path,
+) -> None:
+    sock = bind()
+    server = launch.Background(sock, make_config(folders, port=sock.getsockname()[1]))
+    assert server.start()
+    job = a_waiting_job(server.state)
+    server.stop()
+    job.join(10)
+    assert job.cancel.is_set()
+    assert server.state.stopping.is_set()
+    assert server.state.board.current is None
+
+
+def test_stopping_the_app_window_ends_the_server_at_once(folders: Path) -> None:
+    sock = bind()
+    server = launch.Background(sock, make_config(folders, port=sock.getsockname()[1]))
+    assert server.start()
+    began = time.monotonic()
+    server.stop()
+    assert time.monotonic() - began < launch.SHUTDOWN_WAIT + 2
+    assert not server._thread.is_alive()
+
+
+def test_the_quit_page_does_not_warn_about_a_voice_preview(tmp_path: Path) -> None:
+    config = make_config(tmp_path, launched_as="browser")
+    app = create_app(config)
+    state = app.state.sci2audio
+    client = browser(app, config)
+    preview, gate = a_job(state, JobKind.PREVIEW)
+    try:
+        assert state.board.current is preview
+        assert 'id="quit-making"' not in client.get("/quit").text
+    finally:
+        gate.set()
+        preview.join(10)
