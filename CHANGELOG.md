@@ -4,7 +4,43 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
-### Added
+## [1.4.0] - 2026-11-19
+
+The first release made for other people to try. sci2audio turns scientific texts (PDF, EPUB, Markdown, plain text) into faithful audiobooks, in English and German, entirely on your computer. It now comes as an installer for each system. Feedback is very welcome: [open a tester report](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).
+
+### Download
+
+| Your computer | File |
+|---|---|
+| Mac with an Apple chip, macOS 12 or newer | `sci2audio-1.4.0-macos-arm64.dmg` |
+| Windows 10 (1809 or newer) or 11, 64-bit | `sci2audio-1.4.0-windows-x64-setup.exe` |
+| Linux x86_64 (Ubuntu 22.04, Debian 12, Fedora 36 or newer) | `sci2audio-1.4.0-linux-x86_64.AppImage` |
+
+Intel Macs are not supported: PyTorch has no builds for them. `SHA256SUMS.txt` lists every file's checksum; `gh attestation verify <file> --repo dubidu22/sci2audio` checks that this repository's release workflow built it. With uv instead: `uv tool install sci2audio` (see the README).
+
+### First start
+
+The installers are not signed with a paid certificate, so the first start warns once:
+
+- **macOS:** open the app, click Done, then **System Settings → Privacy & Security → Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/sci2audio.app`).
+- **Windows:** "Windows protected your PC" → **More info → Run anyway**. The installer needs no administrator rights.
+- **Linux:** `chmod +x` the AppImage and run it; it opens in your browser, with **Quit sci2audio** in the menu.
+
+The first audiobook asks to download the voices: English (Kokoro and a spaCy model, about 355 MB) and German (Thorsten, about 330 MB), from huggingface.co and github.com, each file shown with its size and licence first. That is the only time sci2audio uses the internet, and only when you agree.
+
+Audiobooks go to `Documents/sci2audio`; the voice files, library and settings stay in your user folders. Uninstalling keeps all of them; [docs/installing.md](docs/installing.md) lists where they are, step by step for each system.
+
+### Known limits
+
+- Linux opens in the browser, not a window of its own.
+- No update check: look at the release page for a new version.
+- The plugin interface for other voices and text steps is not public yet.
+
+### Source
+
+sci2audio is GPL-3.0-or-later. Each installer carries a `licenses` folder. `sci2audio-1.4.0.tar.gz` and `sci2audio-1.4.0-sources.tar` (FFmpeg, LAME, espeak-ng and the build script of the bundled ffmpeg) on this page are the complete source.
+
+### Added since 1.0.0
 
 - The app (#215, D-797): `sci2audio-app` shows sci2audio in a window of its own on macOS and Windows (pywebview, with the extra `sci2audio[window]`), on the same local server as `sci2audio ui`. Closing the window stops sci2audio; while an audiobook is being made it asks first. Where there is no window engine (Linux, or Windows without WebView2) the app opens the browser instead: the rail then has “Quit sci2audio”, and sci2audio stops by itself after 15 minutes in which nothing asked for anything while no audiobook is being made. The app writes a short start-up log (when it started and stopped, its version, and why it could not start; no requests, keys or file names), which the privacy page names.
 - Installers for testers (#215, #13, D-797, D-798): a `.dmg` for Macs with Apple Silicon, a `setup.exe` for Windows 10 and 11 (for one person, no administrator rights; uninstalling keeps your audiobooks, voice files and settings) and an AppImage for Linux (opens in the browser, with Quit). Nothing to install besides: Python, sci2audio and an audio-only FFmpeg are inside. The voice files are still downloaded on first use, when you ask. They are not signed with a paid certificate, so macOS and Windows warn on the first start. Each release attaches them with SHA256SUMS.txt, build provenance attestations and the source of the programs inside.
@@ -38,7 +74,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - PDFs are read in a separate process with limits (#185, #28): a damaged or hostile PDF can no longer take all memory or hang the app. The reader stops above 1 GB, each step (opening, each page, the outline) may take 60 seconds, and a page with more than 100,000 drawings and pictures, or a file with more than 500,000, is refused with a clear message. A reader that cannot start says so, and its start-up does not count against the first step (D-616).
 - The player shows figures, tables and formulas where their notice is read (#293): in a PDF, the notice box holds a picture of that part of the page, rendered on your computer in the PDF reader's own limited process and kept in the project's folder (at most 64 MB, removed with the project); in an EPUB, the picture the book holds (JPEG or PNG). Each picture carries the file's alternative text, else its caption, else the notice. The text stays the page to read and steer: a picture is no stop for the keys, and a click on it plays from the notice. Markdown pictures and books opened with `sci2audio listen` show none yet (D-771).
 
-### Changed
+### Changed since 1.0.0
 
 - Each document's audiobook goes into a folder of its own (#469, #552; D-749, D-750): in the audiobook folder you chose (by default Documents/sci2audio), a document's chapters, M4B, read-along and subtitle files go into a folder named after it, such as "paper"; a name already taken gets "paper (2)". sci2audio records in the document's `project.json` which files it wrote there, with their size and checksum, so it can later tell them from files you put there or changed. Its other data stays in sci2audio's own data folder; documents opened in an earlier version move there once, on the first start (#532).
 - Removing a document from the library deletes its audiobook files too, after a warning (#470, #569; D-751, D-754): the box names the folder and how many files go, and "Keep the audiobook files" keeps them all. Only files sci2audio wrote into the document's own folder and that are unchanged since are deleted, and the folder goes only once nothing else is in it; a file you put there or changed, a link, and an audiobook made before each document had its own folder are never deleted, and the message after the removal says where files stayed.
@@ -46,7 +82,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - An EPUB's publisher pages are not chosen by default (#190): its imprint, colophon, copyright page, table of contents or index (tagged as such in the file) are left out of the chapters read, as the reference list is; you can choose them again. The title page, preface, chapters, epilogue and endnotes stay chosen. In The Time Machine, Imprint, Colophon and Uncopyright are left out. The document page's chapter list says why ("publisher's page, not read by default"), and the report JSON marks such a chapter with `"publisher": true` (#376).
 - CI no longer runs when a label is added to a pull request: each label used to start a new run that cancelled the run of the same commit and left a red "CI passed" check on it (#360). The label `ci:full` now starts one run by hand on the PR's branch, on Linux, macOS and Windows, which no later run cancels. "CI passed" still fails whenever a job it needs was cancelled, skipped or failed (D-620).
 
-### Fixed
+### Fixed since 1.0.0
 
 - "Make the audiobook" on a document page opened just as its analysis ends waits for the finished analysis (#299): such a page showed the report and the button while it still followed the analysis, and the analysis's end reloaded it in the middle of the start, so you stayed on the document page and your choices were not remembered. The button now becomes available once the page has the finished analysis, and the start always goes on to the audiobook's job page.
 - The player no longer shows the text of an earlier audiobook (#407): where a new read-along file had the same size and time as the old one (Windows' clock can give two writes the same time), the player kept highlighting the old text. The player now also tells the files apart by their identity, and reads a file changed in the last two seconds afresh.
@@ -168,5 +204,6 @@ The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or pla
 - Development and process (no change for users): core data objects for extracted content and the reading document (#17); corpus truth sentences with footnote marks and inline maths (#39); test strategies that build overlapping spans (#47); axe-core waits for the page's stylesheet (#129); the same-day quarantine of flaky tests (D-374) and the fixes that emptied it (#138, #147, #157, #161, #166); layout properties for sections without positions and tagged base levels (#195, #199); review, merge and plan rules for agents in `CLAUDE.md` (D-68 to D-72, D-80).
 - The release workflow installs the built package on Linux, macOS and Windows and runs it on a corpus PDF before it publishes to PyPI, then installs the release from PyPI on all three (#80).
 
-[Unreleased]: https://github.com/dubidu22/sci2audio/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/dubidu22/sci2audio/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/dubidu22/sci2audio/compare/v1.0.0...v1.4.0
 [1.0.0]: https://github.com/dubidu22/sci2audio/releases/tag/v1.0.0

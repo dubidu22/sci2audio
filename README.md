@@ -41,7 +41,17 @@ Numbers such as "7.5" and ".01" stay as printed: the voice reads them well.
 
 ## Installing
 
-sci2audio runs on macOS with Apple chips, Windows and Linux. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
+sci2audio runs on Macs with Apple chips, Windows and Linux. Intel Macs are not supported, because PyTorch no longer publishes builds for them.
+
+### The installers (the easy way)
+
+Download the file for your system from the [latest release](https://github.com/dubidu22/sci2audio/releases/latest): a `.dmg` for macOS, a `setup.exe` for Windows, an AppImage for Linux. Python, sci2audio and ffmpeg are inside. The installers are not signed with a paid certificate, so macOS and Windows warn the first time; [docs/installing.md](docs/installing.md) shows how to get past that once, where your files go, and how to check a download.
+
+The first time it asks to download the voices (the Kokoro model, its English voices and a spaCy English model, about 355 MB; the German voice Thorsten by Thorsten-Voice, about 330 MB). It shows every file with its size and licence first and downloads only after you agree. After that, sci2audio works without a network.
+
+Tried it? [Tell us how it went](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).
+
+### With uv (for the command line)
 
 1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) (0.13.8 or newer), a tool that installs Python programs together with the Python they need.
 2. Install sci2audio:
@@ -63,7 +73,7 @@ sci2audio runs on macOS with Apple chips, Windows and Linux. Intel Macs are not 
 
    This opens the interface in your browser; it stays on this computer. The first time, it asks to download the voices (the Kokoro model, its English voices and a spaCy English model, about 355 MB; the German voice Thorsten by Thorsten-Voice, about 330 MB). It shows every file with its size and licence first and downloads only after you agree; `sci2audio voices download --language en` or `--language de` fetches one language only. A text is read by a voice of its own language: German texts by Thorsten, English texts by the chosen English voice. After that, sci2audio works without a network.
 
-ffmpeg, which writes the MP3 and M4B files, comes with sci2audio (through the `imageio-ffmpeg` package). If that build is missing for your system, sci2audio uses an `ffmpeg` on your PATH.
+With uv, ffmpeg, which writes the MP3 and M4B files, comes with sci2audio (through the `imageio-ffmpeg` package); the installers bring an audio-only ffmpeg of their own. If that build is missing for your system, sci2audio uses an `ffmpeg` on your PATH.
 
 To update: `uv tool upgrade sci2audio`. To remove: `uv tool uninstall sci2audio`, then delete the folders listed on the privacy page.
 
