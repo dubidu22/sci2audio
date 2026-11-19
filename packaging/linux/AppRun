@@ -1,0 +1,9 @@
+#!/bin/sh
+# The AppImage's start (#215, D-797): with no arguments the app (the interface in the
+# default browser, with a Quit item); with arguments the command line, as `sci2audio`.
+# `ARGV0` and `APPIMAGE` are set by the AppImage runtime.
+here=$(dirname "$(readlink -f "$0")")
+if [ "$#" -eq 0 ]; then
+  exec "$here/sci2audio/sci2audio-app"
+fi
+exec "$here/sci2audio/sci2audio" "$@"

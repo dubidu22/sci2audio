@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=sci2audio
+GenericName=Audiobook maker
+GenericName[de]=Hörbuch-Ersteller
+Comment=Turn scientific texts into faithful audiobooks, offline
+Comment[de]=Wissenschaftliche Texte offline in getreue Hörbücher verwandeln
+Exec=sci2audio
+Icon=sci2audio
+Terminal=false
+Categories=AudioVideo;Audio;Education;
+Keywords=audiobook;PDF;EPUB;text to speech;
