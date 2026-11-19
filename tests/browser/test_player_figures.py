@@ -162,3 +162,34 @@ def test_a_figure_below_the_first_screen_loads_when_scrolled_to(
         arg=FIGURE,
     )
     expect(figure).to_be_visible()
+
+
+def test_an_image_that_failed_before_the_script_ran_is_hidden_too(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """Review R2-5: player.js hides a figure whose load failed before it was wired, not
+    only one whose error event comes after."""
+    page = signed_in
+    open_figure(page, live, tmp_path)
+    held: list[Route] = []
+
+    def gone(route: Route) -> None:
+        route.fulfill(status=404, body="")
+
+    page.route("**/static/player.js", lambda route: held.append(route))
+    page.route("**/figures/**", gone)
+    page.reload(wait_until="commit")
+    page.wait_for_function("(s) => document.querySelector(s) !== null", arg=FIGURE)
+    page.wait_for_function(
+        """(s) => { const i = document.querySelector(s);
+            return i.complete && i.naturalWidth === 0; }""",
+        arg=FIGURE,
+    )
+    assert page.evaluate("(s) => document.querySelector(s).hidden", FIGURE) is False
+    assert held, "player.js was not requested"
+    held[0].continue_()
+    at_rest(page)
+    expect(page.locator(FIGURE)).to_be_hidden()
+    expect(page.locator("#text .notice > p")).to_contain_text("Figure 1")
+    page.unroute("**/static/player.js")
+    page.unroute("**/figures/**")

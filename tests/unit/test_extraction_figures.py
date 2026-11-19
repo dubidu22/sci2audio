@@ -318,3 +318,16 @@ def test_an_unreadable_epub_gives_no_picture(tmp_path: Path, data: bytes | None)
     if data is not None:
         path.write_bytes(data)
     assert extract_epub_picture(path, "OEBPS/images/fig.png") is None
+
+
+@pytest.mark.parametrize("ref", ["../images/fig1.png", "/images/fig1.png"])
+def test_a_member_named_outside_the_book_is_never_read(tmp_path: Path, ref: str) -> None:
+    """Review R2-1 of #582: a hostile book can hold a member literally named "../x" or
+    "/x" (zipfile keeps both names as written); the guard refuses the name itself."""
+    path = tmp_path / "hostile.epub"
+    path.write_bytes(
+        make_epub("<p>x</p>", metadata="<dc:title>T</dc:title>", extra_files={ref: PNG})
+    )
+    with zipfile.ZipFile(path) as archive:
+        assert ref in archive.namelist()
+    assert extract_epub_picture(path, ref) is None

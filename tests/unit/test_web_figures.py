@@ -724,3 +724,88 @@ def test_is_kept_looks_without_reading(tmp_path: Path, monkeypatch: pytest.Monke
     assert not is_kept(tmp_path, "missing.png")
     assert not is_kept(tmp_path / "nowhere", "a.png")
     assert opened == []
+
+
+# ---- round 2 of the review (#582) --------------------------------------------------------
+
+
+def test_a_link_is_not_read_where_the_system_has_no_o_nofollow(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review R2-2: on Windows `os.O_NOFOLLOW` does not exist, and the `lstat` check is
+    the one guard against a link in place of a kept crop."""
+    monkeypatch.delattr(os, "O_NOFOLLOW", raising=False)
+    folder = tmp_path / CACHE_FOLDER
+    folder.mkdir()
+    outside = tmp_path / "outside.png"
+    outside.write_bytes(PNG)
+    try:
+        (folder / "a.png").symlink_to(outside)
+    except OSError:  # pragma: no cover - a system that can't make links
+        pytest.skip("this system can't make links")
+    assert read_cached(tmp_path, "a.png") is None
+
+
+def test_one_child_renders_at_most_twelve_crops(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review R2-3: the batch is the asked crop and the next 11 not kept, never more."""
+    pages = [
+        [
+            Text(f"Page {n} holds chart number {n}.", 72, 80, size=11),
+            Rect(100, 100 + 7 * n, 400, 350),
+        ]
+        for n in range(1, 14)
+    ]
+    data = figure_pdf(*pages)
+    document = pdf_document(data)
+    catalog = Catalog(document)
+    shown = [s for n in kinds(document)[BlockKind.FIGURE] for s in catalog.images(n)]
+    assert len(shown) == 14
+    source = tmp_path / "paper.pdf"
+    source.write_bytes(data)
+    folder = tmp_path / "project"
+    folder.mkdir()
+    doc = document.content.source.sha256[:16]
+    asked: list[list[Region]] = []
+
+    def render(path: Path, regions: list[Region]) -> list[bytes | None]:
+        asked.append(list(regions))
+        return [PNG] * len(regions)
+
+    monkeypatch.setattr(figures, "extract_pdf_regions", render)
+
+    class Here:
+        folder = tmp_path / "project"
+
+    first = shown[0]
+    found = Figures().image(
+        doc, document, first.block, 0, source, folder, lambda: nullcontext(Here())
+    )
+    assert found is not None
+    assert len(asked) == 1
+    assert len(asked[0]) == 12
+    assert asked[0] == [s.region for s in shown[:12]]
+
+
+def test_an_epub_table_holding_a_picture_shows_none(tmp_path: Path) -> None:
+    """Review R2-4: an EPUB table keeps its text view, even when it holds a picture."""
+    base = build_document(read_epub(figure_epub(), "book.epub"))
+    (figure, *_) = kinds(base)[BlockKind.FIGURE]
+    pictures = {p.id for page in base.content.pages for p in page.pictures if p.ref}
+    assert images(base, figure)  # as a figure it shows its picture
+    document = _as(base, figure, BlockKind.TABLE)
+    block = document.blocks[figure]
+    assert block.kind is BlockKind.TABLE
+    assert block.is_placeholder
+    assert {part.item for part in block.parts} & pictures  # the table does reach the picture
+    assert images(document, figure, "Table 1 is skipped.") == []
+    client, config, doc = _made(tmp_path, figure_epub(), "book.epub")
+    stored = _figure_of(config, doc)
+    address = f"/api/v1/documents/{doc}/figures/{stored}/0"
+    assert client.get(address).status_code == 200
+    record = work_of(config, doc) / "document.json"
+    data = json.loads(record.read_text(encoding="utf-8"))
+    data["blocks"][stored]["kind"] = str(BlockKind.TABLE)
+    record.write_text(json.dumps(data), encoding="utf-8")
+    _not_found(client, address)
