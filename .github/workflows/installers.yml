@@ -4,7 +4,7 @@ name: Installers
 # per-user setup.exe for Windows and an AppImage for Linux, each built on its own system,
 # installed there as a person installs it and tested: the command line on a corpus PDF, a
 # short English and German audiobook, offline (Linux), the app's window (macOS, Windows,
-# with Playwright attached to WebView2), the browser with Quit (Linux) and the uninstaller
+# read by its own self test), the browser with Quit and Playwright (Linux) and the uninstaller
 # (Windows). The release workflow calls it, so a release ships what was tested here. On a
 # PR it runs only with the label "ci:installers" (when added, and on each push while it is
 # on); it is a workflow of its own, so it never cancels a CI run (#360), and no job of it is
@@ -318,52 +318,29 @@ jobs:
         env:
           APP: ${{ steps.installed.outputs.app }}
         run: uv run --no-project python scripts/installer_smoke.py browser "$APP" "$WORK/browser.json"
-      - name: Playwright in the app's WebView2 window (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
+      # Playwright on the installed app's pages "where possible" (#13 AC-2): on Linux, in
+      # Chromium opened on the app's own start link, ending with Quit. Not on Windows: the
+      # hosted runners' processes are elevated, and an elevated WebView2 ignores the
+      # debugging port of WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS, which the app never opens
+      # itself; not on macOS, where WKWebView has none. The self test above reads the
+      # window's page there.
+      - name: Playwright on the installed app's pages, ending with Quit (Linux)
+        if: runner.os == 'Linux'
         env:
           APP: ${{ steps.installed.outputs.app }}
         run: |
           uv sync --locked
-          # the self test's engine must be gone before the next window starts on its data folder
-          Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Wait-Process -Timeout 60 -ErrorAction SilentlyContinue
-          # The runner's processes are elevated, and an elevated WebView2 ignores the
-          # flags of WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS (#644). So the app runs here as a
-          # person runs it, with a basic user's token (runas /trustlevel), which starts it
-          # with the account's own environment: the variable is set for the account for
-          # this step. The debugging port is the workflow's, never the app's (#13 AC-2).
-          $name = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"
-          [Environment]::SetEnvironmentVariable($name, "--remote-debugging-port=9222", "User")
-          $exe = $env:APP -replace "/", "\"
-          try {
-            runas /trustlevel:0x20000 "`"$exe`""
-            $up = $false
-            foreach ($i in 1..90) {
-              try { Invoke-RestMethod http://127.0.0.1:9222/json/version -NoProxy | Out-Null; $up = $true; break } catch { Start-Sleep 2 }
-            }
-            $engine = @(Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" |
-              ForEach-Object { $_.CommandLine } | Where-Object { $_ -notmatch "--type=" })
-            if (-not $up) {
-              "app running: $([bool](Get-Process sci2audio-app -ErrorAction SilentlyContinue))"
-              # what a process started the same way gets: its groups and the variable
-              runas /trustlevel:0x20000 "cmd /c whoami /groups > C:\Users\Public\trust.txt & set WEBVIEW2 >> C:\Users\Public\trust.txt"
-              Start-Sleep 5
-              Get-Content C:\Users\Public\trust.txt -ErrorAction SilentlyContinue
-              "this step: $(whoami /groups | Select-String 'Mandatory Label')"
-              "UAC EnableLUA: $((Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System).EnableLUA)"
-              $engine
-              Get-Content "$env:LOCALAPPDATA\sci2audio\Logs\app.log" -ErrorAction SilentlyContinue
-              throw "the window's debugging port never answered"
-            }
-            # what a person's window gets too: the app's own switch keeps SmartScreen off
-            if (-not ($engine -match "msSmartScreenProtection")) { $engine; throw "SmartScreen is not switched off" }
-            $env:SCI2AUDIO_APP_CDP = "http://127.0.0.1:9222"
-            uv run pytest tests/browser/test_installed_window.py -p no:randomly -v
-            if ($LASTEXITCODE -ne 0) { throw "Playwright in the window failed" }
-          } finally {
-            [Environment]::SetEnvironmentVariable($name, $null, "User")
-            Get-Process sci2audio-app -ErrorAction SilentlyContinue | Stop-Process -Force
-          }
+          uv run playwright install --with-deps chromium
+          start="$WORK/start-url"
+          rm -f "$start"
+          BROWSER="\"$(uv python find)\" \"$PWD/scripts/installer_smoke.py\" record \"$start\" %s" "$APP" &
+          app=$!
+          for _ in $(seq 120); do [ -s "$start" ] && break; sleep 1; done
+          test -s "$start" || { kill "$app"; echo "the app never opened its start link"; exit 1; }
+          SCI2AUDIO_APP_START="$(cat "$start")" uv run pytest tests/browser/test_installed_window.py -p no:randomly -v
+          for _ in $(seq 60); do kill -0 "$app" 2>/dev/null || break; sleep 1; done
+          if kill -0 "$app" 2>/dev/null; then kill "$app"; echo "Quit did not stop the app"; exit 1; fi
+          wait "$app"
       - name: The uninstaller keeps the person's files (Windows)
         if: runner.os == 'Windows'
         env:

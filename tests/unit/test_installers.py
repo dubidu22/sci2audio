@@ -245,6 +245,12 @@ def test_the_refusals_match_the_ci_licences_job() -> None:
 # ---- installer_smoke ------------------------------------------------------------------------
 
 
+def test_the_recording_stand_in_writes_the_start_link_down(tmp_path: Path) -> None:
+    link = tmp_path / "start-url"
+    assert smoke.main(["record", str(link), "http://127.0.0.1:5/start?token=t"]) == 0
+    assert link.read_text(encoding="utf-8") == "http://127.0.0.1:5/start?token=t"
+
+
 def good_report() -> dict[str, object]:
     return {
         "version": "1.4.0",
@@ -386,6 +392,11 @@ def test_the_smoke_tests_cover_every_system_and_every_check() -> None:
         "installer_smoke.py window",
         "installer_smoke.py browser",
         "tests/browser/test_installed_window.py",
+        'installer_smoke.py\\" record',
+        "SCI2AUDIO_APP_START",
         "unins000.exe",
     ):
         assert step in job, step
+    # an elevated WebView2 ignores it on the hosted runners; the app never opens a port
+    steps = "\n".join(line for line in job.splitlines() if not line.lstrip().startswith("#"))
+    assert "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS" not in steps

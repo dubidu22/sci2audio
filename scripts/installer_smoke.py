@@ -227,6 +227,12 @@ def stand_in(report: Path, url: str) -> None:
     )
 
 
+def record(path: Path, url: str) -> None:
+    """Named in BROWSER for the Playwright step: writes the start link down for the tests
+    and returns at once."""
+    path.write_text(url, encoding="utf-8")
+
+
 # ---- the program --------------------------------------------------------------------------
 
 
@@ -246,6 +252,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     helper = sub.add_parser("stand-in")
     helper.add_argument("report", type=Path)
     helper.add_argument("url")
+    helper = sub.add_parser("record")
+    helper.add_argument("report", type=Path)
+    helper.add_argument("url")
     helper = sub.add_parser("visit")
     helper.add_argument("report", type=Path)
     helper.add_argument("url")
@@ -259,6 +268,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             smoke_browser(args.app, args.report)
         elif args.action == "stand-in":
             stand_in(args.report, args.url)
+        elif args.action == "record":
+            record(args.report, args.url)
         else:
             visit(args.url, args.report)
     except Failed as failure:
