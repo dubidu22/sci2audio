@@ -37,11 +37,13 @@ def read_all(text: str, language: str = "en") -> str:
         ("en", "Between [1, 2] and [3] it lies.", "Between references 1, 2 and 3 it lies."),
         ("en", "Between [1] and [3\u20135] it lies.", "Between references 1 and 3 to 5 it lies."),
         ("de", "Zwischen [1] und [3] liegt es.", "Zwischen Quellen 1 und 3 liegt es."),
-        # only "and" / "und" join a pair; two brackets the sentence needs read as before
+        # only "and" / "und" join a pair
         ("en", "It holds [1] or [3] here.", "It holds or reference 3 here."),
         ("de", "Zwischen [1] oder [3] liegt es.", "Zwischen oder Quelle 3 liegt es."),
-        ("en", "It was shown in [1] and [3].", "It was shown in reference 1 and reference 3."),
-        ("en", "[1] and [3] show it.", "Reference 1 and reference 3 show it."),
+        # two brackets the sentence needs read once over both, as a needed list does (#414,
+        # D-791; read "reference 1 and reference 3" before)
+        ("en", "It was shown in [1] and [3].", "It was shown in references 1 and 3."),
+        ("en", "[1] and [3] show it.", "References 1 and 3 show it."),
         # a partner that is no citation, a number glued on, a German decimal interval
         ("en", "Between [1] and [x] it lies.", "Between and [x] it lies."),
         ("en", "Between [1] and [MH17] it lies.", "Between and [MH17] it lies."),

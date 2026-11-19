@@ -98,6 +98,7 @@ class CitationWords:
     # words that may stand before an identifier in brackets: "(grant no. DMS-1912345)" (#285)
     funding: str = r"(?!)"
     and_word: str = "and"  # between two identifiers: "(0801700 and 527794)"
+    or_word: str = "or"  # a list of citation brackets with it is no one citation (#414)
     # a page after a numeric citation's source, and how it is read: "[12, p. 3]" (#257)
     page_lead: str = r"pp?\.|pages?"
     page_words: tuple[str, str] = ("page", "pages")
@@ -255,6 +256,7 @@ WORDS: dict[str, CitationWords] = {
             r"|Nr\."
         ),
         and_word="und",
+        or_word="oder",
         page_lead=r"S\.|Seiten?|pp?\.",
         page_words=("Seite", "Seiten"),
         name_leads=frozenset((
@@ -348,7 +350,8 @@ def _part_pattern(words: CitationWords) -> re.Pattern[str]:
     )
     years, locator = _years(words), _locator(words)
     return re.compile(
-        rf"\A\s*(?:(?:{leads})\s+)*(?P<authors>{_authors(words)})"
+        # a join word after the ";" before it: "(Smith, 2019; and Lee, 2018)" (#415)
+        rf"\A\s*(?:(?:{words.and_word}|&)\s+)?(?:(?:{leads})\s+)*(?P<authors>{_authors(words)})"
         rf"(?:\s*\(\s*{years}{locator}\s*\)|\s*,?\s+{years}{locator}|\s*,\s*{years}{locator})"
         # a full stop may end the part: "(See Smith (2019).)" (D-447, #145)
         rf"(?P<tail>{locator})\s*\.?\s*\Z",
@@ -468,9 +471,12 @@ class _Rules:
             rf"\s*(?P<source>{_NUMBER}|{_KEY})\s*,\s*(?:{words.page_lead})\s*"
             r"(?P<first>[1-9]\d{0,4})(?:\s*[-–—]\s*(?P<last>[1-9]\d{0,4}))?\s*\Z"
         )
-        # a second square bracket joined to one by "and": "between [1] and [3]" (#257)
-        self.pair_after = re.compile(rf"\s+{words.and_word}\s+\[([^\[\]]*)\]")
-        self._paired: set[int] = set()  # the second brackets of pairs, this look only
+        # what joins two square brackets of a list: "[1], [2]", "[2] and [3]", "[2], and [3]"
+        # (#257, #414); "or" joins none, and a list joined on to a bracket by it is no list
+        self.list_gap = re.compile(rf"\s*,\s*|(?:\s*,)?\s+(?P<join>{words.and_word})\s+")
+        self.or_after = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+\[")
+        self._lists: dict[int, tuple[list[_Bracket], bool]] = {}  # this look only
+        self._paired: set[int] = set()  # the later brackets of lists, this look only
         self._numbered: set[int] = set()  # the square brackets decided, this look only
         self.identifiers = _identifiers_pattern(words)
         leads = "|".join(
@@ -492,6 +498,12 @@ class _Rules:
         self.others_end = re.compile(rf"(\S+)\s+(?:{words.others})\s*\Z")
         self.pair_end = re.compile(rf"(\S+)\s+(?:{words.joins})\s+\S+\s*\Z")
         self.not_names = {*words.other_words, *re.sub(r"\\", "", words.joins).split("|")}
+        # what sets off an inner bracket as an item of the bracket's list (#372, #415)
+        self.item_after = re.compile(r"\s*[;,]")
+        self.item_separator = re.compile(
+            rf"\s*(?:[;,]\s*)+(?:(?:{words.and_word}|&)\s+)?", re.IGNORECASE
+        )
+        self.item_before = re.compile(rf"[;,]\s*(?:(?:{words.and_word}|&)\s+)?\Z")
         self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
         # a sign as the statistics step reads it counts as the sign: "x equals [12]" is "x =
         # [12]" after the first run, so a second run decides the same (#101)
@@ -593,6 +605,7 @@ class _Rules:
         self._paired, self._numbered = set(), set()
         self._link_starts = {end: start for start, end in links}  # for `_numeric`
         roots = brackets(text)
+        self._lists = self._bracket_lists(text, roots)
         for node in roots:
             self._visit(text, node, found, cuts)
         found.sort()
@@ -778,7 +791,8 @@ class _Rules:
             # "((Smith, 2019); (Lee, 2018)) is cited" names them all, as the flat form does
             # (#372, D-668); a list of names is the only reading here that replaces anything
             nest = self._cited_once_inner_citations_go(text, node, decided) or []
-            if any(kind is EditKind.REPLACE for _, _, kind, *_ in nest):
+            if any(kind is EditKind.REPLACE for _, _, kind, *_ in nest) or _keeps_text(nest, node):
+                # ... and so does one: "((Smith, 2019)) is cited" reads "Smith" (#415, D-791)
                 return nest
             # "(see (527794))" without its identifier is "(see)": a pointer to nothing
             return [self._removed(text, node.open, node.close + 1, "bracket of lead words")]
@@ -933,6 +947,23 @@ class _Rules:
         read = _Read.of(text, node, edits)
         if read is None:
             return None  # an inner edit before the look-back, or the nest is too long
+        end = self._glued_page(text, node.close + 1)
+        subject = self._is_subject(text, node.open, end)
+        role = "is the subject of the sentence" if subject else "is part of the sentence"
+        if (subject or self._previous_word(text, node.open) in self.words.nouns) and (
+            self._only_items(text, node)
+        ):
+            # a bracket of inner citations only, besides lead words, separators and a year
+            # shell's year, names every one of them, as the flat form does: "((Smith, 2019)
+            # (Lee, 2018)) is cited", "(see (Smith, 2019); (Lee, 2018)) is cited" and
+            # "((Smith, 2019) 2021) is cited" (#415, D-791; "((Smith, 2019)) is cited" read
+            # "is cited." before, D-605)
+            listed = self._listed_inner_names(text, node, decided)
+            if len(listed) == len(inner):
+                names = sorted(name for _, child_names in listed for name in child_names)
+                taken = {edit for child, _ in listed for edit in decided.get(child.open) or ()}
+                kept = [edit for edit in edits if edit not in taken]
+                return self._with_inner(self._subject(text, node, names, end, role), kept)
         self._separators_left(text, node, read)
         names = None
         rest = read.text[read.open + 1 : read.close]
@@ -946,8 +977,6 @@ class _Rules:
                 (read.printed(start), read.printed(end - 1) + 1)
                 for start, end in (self._part_authors(read.text, part) for part in named)
             ]
-        end = self._glued_page(text, node.close + 1)
-        subject = self._is_subject(text, node.open, end)
         if subject or self._previous_word(text, node.open) in self.words.nouns:
             # "((Smith, 2019) Jones, 2020) is cited" reads "Jones is cited" on both runs; an
             # inner citation listed with the others keeps its names, as in the flat form:
@@ -964,18 +993,19 @@ class _Rules:
                 # the listed brackets' own removals give way to the names' edits
                 taken = {edit for child, _ in listed for edit in decided.get(child.open) or ()}
                 edits = [edit for edit in edits if edit not in taken]
-            role = "is the subject of the sentence" if subject else "is part of the sentence"
             return self._with_inner(self._subject(text, node, names, end, role), edits)
         return [self._removed(text, node.open, end, "citation")]
 
     def _listed_inner_names(
         self, text: str, node: _Bracket, decided: dict[int, list[_Found] | None]
     ) -> list[tuple[_Bracket, list[tuple[int, int]]]]:
-        """The inner brackets that are items of the bracket's list and go whole as citations,
-        each with its names' spans: "((Smith, 2019); (Lee, 2018); Jones, 2020)" lists the two
-        first ones, "(Jones, 2020; (Smith, 2019))" the last one (#278, #372). An item is set
-        off by ";" or "," on each side, or by the bracket's edge, and has a separator on one
-        side at least; any other inner bracket ("((Smith, 2019) Jones, 2020)") is not listed
+        """The inner brackets that are items of the bracket's list and are citations as a
+        whole, each with its names' spans: "((Smith, 2019); (Lee, 2018); Jones, 2020)" lists
+        the two first ones, "(Jones, 2020; (Smith, 2019))" the last one (#278, #372). An item
+        is set off on each side by ";" or "," (maybe with a join word after it: "; and"), by
+        the bracket's edge or by white space before another item ("((Smith, 2019) (Lee,
+        2018))"), and the first item maybe by lead words ("(see (Smith, 2019); (Lee, 2018))",
+        #415, D-791); any other inner bracket ("((Smith, 2019) Jones, 2020)") is not listed
         and reads as before. In a year shell the year counts as the edge (#375)."""
         listed = []
         bounds = [node.open, *(i for child in node.children for i in (child.open, child.close))]
@@ -983,14 +1013,13 @@ class _Rules:
         for number, child in enumerate(node.children):
             before = text[bounds[2 * number] + 1 : child.open]
             after = text[child.close + 1 : bounds[2 * number + 3]]
-            ahead = re.match(r"\s*[;,]", after) is not None
-            behind = re.search(r"[;,]\s*$", before) is not None
-            if not (ahead or behind):
+            ahead = self.item_after.match(after) is not None or not after.strip()
+            behind = self.item_before.search(before) is not None or not before.strip()
+            if not number and not behind and len(before) <= _LOOK_BACK:
+                behind = self._only_lead_left(before)
+            if not (ahead and behind):
                 continue
-            if not (ahead or not after.strip()) or not (behind or not before.strip()):
-                continue
-            handled = decided.get(child.open) or []
-            if len(handled) != 1 or handled[0][2] is not EditKind.REMOVE:
+            if not decided.get(child.open):
                 continue
             parts = self._parts(text, child)
             named = [part for part in parts or () if self._is_citation(text, part)]
@@ -1001,13 +1030,37 @@ class _Rules:
 
     @staticmethod
     def _year_shell(text: str, node: _Bracket) -> bool:
-        """True if the bracket is a year shell around a list of inner brackets: "((Smith,
-        2019); (Lee, 2020) 2021)" is "( 2021)" once they go, so it goes with them; as the
-        subject, it names them all (#375, D-668). One inner bracket in a year shell ("((Smith,
-        2019) 2020)") goes in `_shells` (#339), as before."""
-        if len(node.children) < 2:
+        """True if the bracket is a year shell around inner brackets: "((Smith, 2019); (Lee,
+        2020) 2021)" is "( 2021)" once they go, so it goes with them; as the subject, it names
+        them all (#375, D-668), and so it does around one: "((Smith, 2019) 2021) is cited"
+        reads "Smith is cited" (#415, D-791). As an aside, one inner bracket in a year shell
+        goes whole, as in `_shells` (#339)."""
+        if not node.children:
             return False
         return _SHELL_YEAR.fullmatch(text, node.children[-1].close + 1, node.close + 1) is not None
+
+    def _only_items(self, text: str, node: _Bracket) -> bool:
+        """True if a bracket's own text, outside its inner brackets, is only lead words at its
+        start, separators between them ("; and"), and a year shell's year at its end (#415).
+        Only the bracket's own text is read, at most the look-back, so a deep nest costs
+        linear time (#313, D-599)."""
+        if not node.children:
+            return False
+        last = node.close
+        if self._year_shell(text, node):
+            last = node.children[-1].close + 1
+        gaps = [text[node.open + 1 : node.children[0].open]] + [
+            text[before.close + 1 : after.open]
+            for before, after in itertools.pairwise(node.children)
+        ]
+        gaps.append(text[node.children[-1].close + 1 : last])
+        if sum(map(len, gaps)) > _LOOK_BACK:
+            return False
+        if gaps[0].strip() and not self._only_lead_left(gaps[0]):
+            return False
+        return all(
+            not gap.strip() or self.item_separator.fullmatch(gap) is not None for gap in gaps[1:]
+        )
 
     def _years_after_inner_names(
         self,
@@ -1145,13 +1198,19 @@ class _Rules:
         if self._not_citations(text, node.open):
             return None
         if node.open in self._paired:
-            return []  # the second bracket of a pair: read with the first
+            return []  # a later bracket of a list: decided with the first (#257, #414)
         self._numbered.add(node.open)
+        # a list of brackets is one citation, decided here at its first: "[1], [2] and [3]"
+        listed = self._list(node)
+        end = node.close + 1
+        if listed is not None:
+            end = listed[0][-1].close + 1
+            inside = ", ".join(text[item.open + 1 : item.close] for item in [node, *listed[0]])
         window = max(0, node.open - _LOOK_BACK)
         # judged on the words before it as a second run sees them, past the removals
         before = text[window : min(edge, node.open)].rstrip()
         previous = before.split()[-1] if before.split() else ""
-        printed = _printed(text[node.open : node.close + 1])
+        printed = _printed(text[node.open : end])
         word = re.sub(r"\A\W*\d*", "", previous).lower()  # "8See" -> "see", "(see" -> "see"
         start = node.open
         if previous.lower() in self.words.refs or previous in self.words.ref_words:
@@ -1159,17 +1218,28 @@ class _Rules:
             if edge < node.open:
                 # "Ref. (see https://x.org) [3, 4]": the reading takes the place of "Ref." and
                 # the bracket goes, so neither edit crosses the removal between them
-                return self._read_at_ref_word(text, node, inside, start, start + len(previous))
-            printed = _printed(text[start : node.close + 1])
+                return self._read_at_ref_word(
+                    text, node.open, end, inside, start, start + len(previous)
+                )
+            printed = _printed(text[start:end])
         elif (
             word not in self.words.before
             or any(before.lower().endswith(aside) for aside in self.words.asides)
-        ) and not self._is_subject(text, at, node.close + 1):
-            pair = self._pair(text, node, inside)
-            if pair is not None:
-                return [pair]
+        ) and not self._is_subject(text, at, end):
+            if listed is not None and self._needed_pair(listed):
+                # an aside joined by "and" to a second bracket, which the "and" makes needed:
+                # both are needed, read as one ("between [1] and [3]" is "between references
+                # 1 and 3", #257, D-668); an aside starts no sentence
+                spoken = self._spoken(inside)
+                reason = (
+                    f'citations "{printed}" are part of the sentence: read as "{spoken}" (TP-04)'
+                )
+                return [(node.open, end, EditKind.REPLACE, spoken, reason)]
             what = "citation key" if keys else "numeric citation"
-            return [self._removed(text, node.open, node.close + 1, what)]
+            if listed is not None:
+                # an aside list goes whole, as one bracket "[1–3]" does (#414, D-791)
+                what = "list of citation keys" if keys else "list of numeric citations"
+            return [self._removed(text, node.open, end, what)]
         spoken = self._spoken(inside)
         if before.endswith("("):  # "( [53] discusses": no space after the bracket
             start = window + len(before)
@@ -1178,31 +1248,76 @@ class _Rules:
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
         if edge < node.open and not text[start - 1 : start].isspace():
             spoken = " " + spoken  # the removal before took the space: "and (Smith, 2019)[12]"
-        return [(start, node.close + 1, EditKind.REPLACE, spoken, reason)]
+        return [(start, end, EditKind.REPLACE, spoken, reason)]
 
-    def _pair(self, text: str, node: _Bracket, inside: str) -> _Found | None:
-        """An aside bracket joined by "and" to a second square bracket that the sentence
-        needs: both are needed, read as one ("between [1] and [3]" is "between references 1
-        and 3", #257, D-668). Only two of a kind (numbers or listed keys), no pages, and only
-        if the second is not decided yet in this look."""
-        after = self.pair_after.match(text, node.close + 1)
-        if after is None or self.words.and_word not in self.words.before:
+    def _bracket_lists(
+        self, text: str, roots: list[_Bracket]
+    ) -> dict[int, tuple[list[_Bracket], bool]]:
+        """The lists of square brackets in this look, each by its first bracket's opening: its
+        later brackets, and whether "and" joins the last one (#257, D-668; #414, D-791).
+
+        A list is a run of two or more square brackets of one kind (whole numbers, lists and
+        ranges, or listed keys; no page, no German decimal interval) set off only by "," and
+        maybe a last "and": "[1], [2] and [3]", "[1, 2], [3]", "[MH17], [Fa14] and [Ka20]".
+        A later bracket that is an interval or a label's number, or that a number is glued
+        after, ends the run before it. A run joined on by "or" to a further bracket ("[1], [2]
+        or [3]") is no list, so its brackets read as before (#414). One pass over the square
+        brackets in text order, each gap read once, so a block of n brackets costs O(n)."""
+        squares: list[_Bracket] = []
+        stack = list(roots)
+        while stack:
+            node = stack.pop()
+            if text[node.open] == "[":
+                squares.append(node)
+            stack += node.children
+        squares.sort(key=lambda node: node.open)
+        lists: dict[int, tuple[list[_Bracket], bool]] = {}
+        first = 0
+        while first < len(squares):
+            head, last = squares[first], first
+            kind = self._item_kind(text, head)
+            joined = False
+            while kind is not None and not joined and last + 1 < len(squares):
+                ahead = squares[last + 1]
+                gap = self.list_gap.fullmatch(text, squares[last].close + 1, ahead.open)
+                if (
+                    gap is None
+                    or self._item_kind(text, ahead) != kind
+                    or _NUMBER_GLUED_AFTER.match(text, ahead.close + 1)
+                    or self._not_citations(text, ahead.open)
+                ):
+                    break
+                joined = gap["join"] is not None
+                last += 1
+            if last > first and not self.or_after.match(text, squares[last].close + 1):
+                lists[head.open] = (squares[first + 1 : last + 1], joined)
+            first = last + 1
+        return lists
+
+    def _item_kind(self, text: str, node: _Bracket) -> str | None:
+        """What a square bracket holds as an item of a list: "numbers", "keys" or None."""
+        if text[node.open] != "[":
             return None
-        other, other_open = after.group(1), after.start(1) - 1
-        if other_open in self._numbered:
+        inside = text[node.open + 1 : node.close]
+        if self._decimal_interval(inside):
             return None
-        keys = _keys(inside, self.keys) is not None
-        if keys != (_keys(other, self.keys) is not None):
+        if _keys(inside, self.keys) is not None:
+            return "keys"
+        return "numbers" if _NUMERIC.match(inside) else None
+
+    def _list(self, node: _Bracket) -> tuple[list[_Bracket], bool] | None:
+        """The list that starts at `node`, its later brackets now taken along, or None if
+        it starts no list or one of them is decided already in this look."""
+        found = self._lists.get(node.open)
+        if found is None or any(item.open in self._numbered for item in found[0]):
             return None
-        if not keys and not (_NUMERIC.match(inside) and _NUMERIC.match(other)):
-            return None
-        if _NUMBER_GLUED_AFTER.match(text, after.end()) or self._decimal_interval(other):
-            return None
-        self._paired.add(other_open)
-        spoken = self._spoken(f"{inside}, {other}")  # an aside starts no sentence
-        printed = _printed(text[node.open : after.end()])
-        reason = f'citations "{printed}" are part of the sentence: read as "{spoken}" (TP-04)'
-        return (node.open, after.end(), EditKind.REPLACE, spoken, reason)
+        self._paired.update(item.open for item in found[0])
+        return found
+
+    def _needed_pair(self, listed: tuple[list[_Bracket], bool]) -> bool:
+        """True for a list of two brackets joined by "and", when "and" makes a citation after
+        it needed: then the first is needed too (#257, D-668)."""
+        return len(listed[0]) == 1 and listed[1] and self.words.and_word in self.words.before
 
     def _paged(self, inside: str) -> tuple[str, str] | None:
         """One source and its page, as the source and the page's reading: "12, p. 3" is "12"
@@ -1219,18 +1334,19 @@ class _Rules:
         return source, f"{page} {match['first']}"
 
     def _read_at_ref_word(
-        self, text: str, node: _Bracket, inside: str, start: int, end: int
+        self, text: str, opening: int, closed: int, inside: str, start: int, end: int
     ) -> list[_Found]:
-        """A numeric citation after its reference word with a removal between them: the
-        reading in place of the word, the bracket removed."""
+        """A numeric citation (or a list of them, from `opening` to `closed`) after its
+        reference word with a removal between them: the reading in place of the word, the
+        brackets removed."""
         spoken = self._spoken(inside)
         if self._starts_sentence(text, start):
             spoken = spoken[0].upper() + spoken[1:]
-        printed = _printed(text[start:end] + " " + text[node.open : node.close + 1])
+        printed = _printed(text[start:end] + " " + text[opening:closed])
         reason = f'citation "{printed}" is part of the sentence: read as "{spoken}" (TP-04)'
         return [
             (start, end, EditKind.REPLACE, spoken, reason),
-            (node.open, node.close + 1, EditKind.REMOVE, "", reason),
+            (opening, closed, EditKind.REMOVE, "", reason),
         ]
 
     def _decimal_interval(self, inside: str) -> bool:
@@ -1309,6 +1425,8 @@ class _Rules:
         cuts.append(node.close)
         parts = []
         for number, (start, end) in enumerate(itertools.pairwise(cuts)):
+            if number and not text[start + 1 : end].strip():
+                continue  # an empty part: "(Jones, 2020; ; Smith, 2019)" lists two (#415)
             parts.append((start + (1 if number else 0), end))
         return self._split_after_brackets(text, parts)
 
@@ -1569,6 +1687,13 @@ def _pairs(roots: list[_Bracket]) -> dict[int, int]:
         pairs[node.open], pairs[node.close] = node.close, node.open
         stack += node.children
     return pairs
+
+
+def _keeps_text(found: list[_Found], node: _Bracket) -> bool:
+    """True if `found` are edits of the bracket that keep some of its text (its names)."""
+    return bool(found) and not (
+        len(found) == 1 and found[0][0] <= node.open and node.close < found[0][1]
+    )
 
 
 def _adjacent(text: str, end: int, position: int) -> bool:

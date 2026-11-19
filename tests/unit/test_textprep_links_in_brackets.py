@@ -110,7 +110,9 @@ def test_links_in_brackets_read_the_same_on_a_second_run(
         ("en", "Text (((Smith, 2019) 2020) 2021) more.", "Text more."),
         ("en", "Text ((((Smith, 2019) 2020) 2021) 2022) more.", "Text more."),
         ("en", "the method (((Smith, 2019) 2020) 2021) works.", "the method works."),
-        ("en", "((Smith, 2019) 2020) is cited.", "is cited."),
+        # one citation in a year shell as the subject keeps its names (#415, D-791; read "is
+        # cited." before)
+        ("en", "((Smith, 2019) 2020) is cited.", "Smith is cited."),
         ("de", "Text ((Müller, 2019) 2020) mehr.", "Text mehr."),
         ("de", "Text ((((Müller, 2019) 2020) 2021) 2022) mehr.", "Text mehr."),
         # a shell with more than a year stays
@@ -125,8 +127,10 @@ def test_links_in_brackets_read_the_same_on_a_second_run(
         ),
         ("de", "((Müller, 2019); Weber, 2020) wird zitiert.", "Müller und Weber wird zitiert."),
         ("en", "Text ((Smith, 2019); Jones, 2020) here.", "Text here."),
-        # only an inner citation that opens the bracket keeps its names (round 2, N1)
-        ("en", "(e.g. (Smith, 2019); Jones, 2020) is cited.", "Jones is cited."),
+        # an inner citation after lead words is an item too, as in the flat form (#415, D-791;
+        # read "Jones is cited." before); other text before it is no lead (round 2, N1)
+        ("en", "(e.g. (Smith, 2019); Jones, 2020) is cited.", "Smith and Jones is cited."),
+        ("en", "(foo (Smith, 2019); Jones, 2020) is cited.", "(foo) is cited."),
         # #372: every inner citation that is an item of the list keeps its names
         ("en", "(Jones, 2020; (Smith, 2019)) is cited.", "Jones and Smith is cited."),
         (
@@ -159,8 +163,10 @@ def test_links_in_brackets_read_the_same_on_a_second_run(
         ("de", "Daten ((Müller, 2019); (Lee, 2020) 2021) hier.", "Daten hier."),
         # other nest shapes read as before
         ("en", "((Smith, 2019) Jones, 2020) is cited.", "Jones is cited."),
-        ("en", "((Smith, 2019)) is cited.", "is cited."),
-        ("en", "(see (Smith, 2019); (Lee, 2018)) is cited.", "(see Smith) is cited."),
+        # a nest of one citation, and one after lead words, keep their names as the flat form
+        # does (#415, D-791; read "is cited." and "(see Smith) is cited." before)
+        ("en", "((Smith, 2019)) is cited.", "Smith is cited."),
+        ("en", "(see (Smith, 2019); (Lee, 2018)) is cited.", "Smith and Lee is cited."),
         ("en", "Data ((Smith, 2019); foo (Lee, 2020) 2021) here.", "Data (foo 2021) here."),
     ],
 )

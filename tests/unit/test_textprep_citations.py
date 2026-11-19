@@ -394,7 +394,9 @@ def read_all(text: str, language: str = "en") -> str:
         ("en", "(see (Smith, 2019) 2020) found it.", "Smith found it."),
         ("en", "(see (Smith, 2019; Lee, 2020) 2021) found it.", "Smith and Lee found it."),
         ("en", "(cf. (Smith, 2020) 2020) is cited.", "Smith is cited."),
-        ("en", "(cf. (Smith, 2020) (Lee, 2019) 2020) is cited.", "Smith is cited."),
+        # two inner citations side by side are both items: both names stay, as in the flat
+        # form (#415, D-791; read "Smith is cited." before)
+        ("en", "(cf. (Smith, 2020) (Lee, 2019) 2020) is cited.", "Smith and Lee is cited."),
         ("en", "(see (Smith, 2020) [1] 2020) is cited.", "Smith is cited."),
         ("en", "It holds ((cf. (Smith, 2020) [1] 2020) the) here.", "It holds (Smith the) here."),
         ("en", "(see (Smith, 2019) and Lee, 2020) found it.", "Smith and Lee found it."),
@@ -450,12 +452,12 @@ def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
     assert read_all(once, language) == once, (text, once)
 
 
-def test_an_empty_nest_as_the_subject_goes_whole() -> None:
-    """Read "() is cited." before D-577 (S3 of the #279 review): a second look sees "()" and
-    removes it, as the bracket held nothing but a citation. Keeping the names as the subject
-    is #278's."""
+def test_a_nest_of_one_citation_as_the_subject_keeps_its_names() -> None:
+    """Read "() is cited." before D-577 (S3 of the #279 review), then "is cited." (D-605); a
+    bracket around one citation as the subject names it, as the flat form does (#415,
+    D-791)."""
     once = read_all("((Smith, 2019)) is cited.")
-    assert once == "is cited."
+    assert once == "Smith is cited."
     assert read_all(once) == once
 
 
