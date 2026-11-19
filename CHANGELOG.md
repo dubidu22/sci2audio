@@ -45,6 +45,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- German "Abs. 2. Abs. 3" ends its sentence after the first number (#479): a number between the same word twice ("Absatz 2. Absatz 3", "Art. 3. Art. 4") is that word's number, so the voice pauses there as after "Satz 2. Satz 3". A long sentence is no longer cut between the words of a reading (#482), such as "unter anderem", "3 Komma 5 Prozent", "for example" or "less than or equal to", also when the script is read again.
 - An edit that removes an invisible character no longer quotes as empty (#207): the report and the document page show a zero-width space, a soft hyphen or another invisible format character as its code point, "⟨U+200B⟩", so "“” → left out" now reads "“⟨U+200B⟩” → left out".
 - German brackets of a season, a term or a noun before a year stay in the text (#483): "(Sommer 2019)", "(Wintersemester 2019)" or "(Ausgabe 2018)" were removed as if they were citations; now they are read as printed. A name that is also a noun, such as "(Koch 2019)", is still left out as a citation, and so is "(Sommer et al. 2019)" or "(vgl. Sommer 2019)".
 - German years and times before a date read the same on a second run (#536, #557): "im Jahr 1998. Jahr" keeps "98." as part of the year instead of reading "achtundneunzigstes" on a second run, and "um 13:30 Uhr 3. Mai" reads "13 Uhr 30 dritter Mai", the same reading the date gets without the time before it.
