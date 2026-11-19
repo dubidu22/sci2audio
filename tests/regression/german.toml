@@ -2325,9 +2325,10 @@ goal = "Mass numbers set raised in a title are read as printed; a mark before a 
 language = "de"
 blocks = [
     { kind = "paragraph", runs = [{ sup = "1" }, "H-NMR-Spektroskopie an ", { sup = "13" }, "C-markierten Zuckern"] },
+    { kind = "paragraph", runs = ["Jana Rot", { sup = "1" }] },
     { kind = "paragraph", runs = [{ sup = "1" }, "KI Labor, Beispielstadt"] },
 ]
-expected = ["1H-NMR-Spektroskopie an 13C-markierten Zuckern", "KI Labor, Beispielstadt"]
+expected = ["1H-NMR-Spektroskopie an 13C-markierten Zuckern", "Jana Rot", "KI Labor, Beispielstadt"]
 
 [[case]]
 id = "de-affiliation-marks-before-umlauts"
@@ -2349,6 +2350,33 @@ goal = "A raised mass number before an element symbol at a line's start is read 
 language = "de"
 blocks = [{ kind = "paragraph", runs = ["Kondensate aus\n", { sup = "87" }, "Rb im Orbit"] }]
 expected = ["Kondensate aus 87Rb im Orbit"]
+
+[[case]]
+id = "de-affiliation-marks-title-mass-numbers-before-the-author-line"
+audit = 0
+issue = 448
+goal = "A German title's raised mass number before a two-letter formula is read; the marks of the author and affiliation lines after it go."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = [{ sup = "13" }, "CO-Beobachtungen der Taurus-Wolke"] },
+    { kind = "paragraph", runs = ["Jana Rot", { sup = "1" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Beispiel-Sternwarte, Beispielstadt"] },
+]
+expected = ["13CO-Beobachtungen der Taurus-Wolke", "Jana Rot", "Beispiel-Sternwarte, Beispielstadt"]
+
+[[case]]
+id = "de-affiliation-marks-after-a-comma-in-the-author-line"
+audit = 0
+issue = 448
+goal = "A German author line with its marks after a comma opens the affiliations; every author and affiliation mark goes (#585 review round 1)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kalte Atome" },
+    { kind = "paragraph", runs = ["Jana Rot,", { sup = "1" }, " Anna Lee,", { sup = "2" }, " und Bo Kim", { sup = "1" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Institut für Physik"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "KI Labor"] },
+]
+expected = ["Kalte Atome", "Jana Rot, Anna Lee, und Bo Kim", "Institut für Physik", "KI Labor"]
 
 [[case]]
 id = "de-notice-label-read-as-its-caption"
