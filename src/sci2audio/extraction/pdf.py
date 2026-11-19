@@ -9,13 +9,13 @@ PDFium crashes when two threads call it at once, even for different files, so ev
 through `_PDFIUM`: the one piece of global state this stage has (KB audit "PDFium thread-safety
 crash", D-65).
 
-A file from a user is read in a child process (`extract_pdf`, `extract_pdf_cover`; #185, #28,
-D-581): PDFium decodes streams and loads pages before our limits can count anything, so the
-child has a memory limit (`MAX_MEMORY`) and a time limit for each step (`STEP_SECONDS`), and
-a crash inside PDFium ends only the child. Each read has its own process, so two reads no
-longer wait for each other's lock; at most `MAX_PDF_READERS` children run at once. The child
-reports each page it starts ("page 3 of 400"), which `extract_pdf` hands on as progress
-(#343), and a cancelled read ends the child at once (#344).
+A file from a user is read in a child process (`extract_pdf`, `extract_pdf_cover`,
+`extract_pdf_regions`; #185, #28, D-581): PDFium decodes streams and loads pages before our
+limits can count anything, so the child has a memory limit (`MAX_MEMORY`) and a time limit for
+each step (`STEP_SECONDS`), and a crash inside PDFium ends only the child. Each read has its
+own process, so two reads no longer wait for each other's lock; at most `MAX_PDF_READERS`
+children run at once. The child reports each page it starts ("page 3 of 400"), which
+`extract_pdf` hands on as progress (#343), and a cancelled read ends the child at once (#344).
 `read_pdf` reads bytes in this process, without those limits: it is the child's own work.
 """
 
@@ -160,11 +160,12 @@ def _isolated(
     *,
     on_step: Callable[[str], None] | None = None,
     cancel: threading.Event | None = None,
+    extra: tuple[object, ...] = (),
 ) -> object:
     try:
         return isolate.run(
             target,  # type: ignore[arg-type]
-            (path, {name: globals()[name] for name in _LIMITS}),
+            (path, {name: globals()[name] for name in _LIMITS}, *extra),
             memory=MAX_MEMORY,
             step_seconds=STEP_SECONDS,
             readers=_READERS,
@@ -187,6 +188,8 @@ _LIMITS = (
     "MAX_GRAPHICS",
     "OUTLINE_DEPTH",
     "COVER_SIZE",
+    "REGION_SIDE",
+    "REGION_PIXELS",
 )
 
 
@@ -368,6 +371,113 @@ def _cover_of_file(path_text: str, limits: dict[str, int]) -> Cover | None:
         finally:
             document.close()
     return Cover(image, "image/png")
+
+
+# ---- regions of a page, for the player (#293) -----------------------------------------
+REGION_SCALE = 3.0  # pixels a point (216 dpi): a formula's small type stays sharp
+REGION_SIDE = 2_000  # pixels on a region image's longer side, at most ...
+REGION_PIXELS = 4_000_000  # ... and in all
+
+
+@dataclass(frozen=True)
+class Region:
+    """A part of a page to render: the page's number (from 1) and a box in points from the
+    top left of the page as shown, as `Content` places its items, at `scale` pixels a point.
+    The part of the box outside the page is left out."""
+
+    page: int
+    box: Box
+    scale: float = REGION_SCALE
+
+
+def region_scale(box: Box, scale: float) -> float:
+    """`scale`, lowered so the box's image has at most `REGION_SIDE` pixels on its longer
+    side and `REGION_PIXELS` in all."""
+    width, height = box.x1 - box.x0, box.y1 - box.y0
+    if width <= 0 or height <= 0 or not math.isfinite(scale) or scale <= 0:
+        return 0.0
+    scale = min(scale, REGION_SIDE / max(width, height))
+    return min(scale, math.sqrt(REGION_PIXELS / (width * height)))
+
+
+def extract_pdf_regions(path: Path, regions: list[Region]) -> list[bytes | None]:
+    """Each region of the PDF at `path` as a PNG, rendered in a child process with the
+    limits of `extract_pdf` (one step a region); None for a region that is not on its page
+    or can't be rendered, and for all of them if the file can't be read or the child is
+    stopped (a missing image never stops anything)."""
+    if not regions:
+        return []
+    try:
+        result = _isolated(_regions_of_file, str(path), extra=(list(regions),))
+    except ExtractionError:
+        return [None] * len(regions)
+    if not isinstance(result, list) or len(result) != len(regions):
+        return [None] * len(regions)
+    return [image if isinstance(image, bytes) else None for image in result]
+
+
+def _regions_of_file(
+    path_text: str, limits: dict[str, int], regions: list[Region]
+) -> list[bytes | None]:
+    """The child's work for `extract_pdf_regions`."""
+    globals().update(limits)
+    try:
+        data = Path(path_text).read_bytes()
+    except OSError:
+        return [None] * len(regions)
+    found: list[bytes | None] = []
+    with _PDFIUM:
+        try:
+            document = pdfium.PdfDocument(data)
+        except pdfium.PdfiumError:
+            return [None] * len(regions)
+        try:
+            for number, region in enumerate(regions, 1):
+                isolate.report(f"region {number} of {len(regions)}")
+                found.append(_region(document, region))
+        finally:
+            document.close()
+    return found
+
+
+def _region(document: pdfium.PdfDocument, region: Region) -> bytes | None:
+    if not 1 <= region.page <= len(document):
+        return None
+    try:
+        page = document[region.page - 1]
+    except pdfium.PdfiumError:
+        return None
+    try:
+        width, height = page.get_size()  # as shown: PDFium turns the page by its /Rotate
+        if not (math.isfinite(width) and math.isfinite(height)) or min(width, height) <= 0:
+            return None
+        box = region.box
+        x0, y0 = max(box.x0, 0.0), max(box.y0, 0.0)
+        x1, y1 = min(box.x1, width), min(box.y1, height)
+        if x1 - x0 < 1 or y1 - y0 < 1:  # off the page, or less than a point
+            return None
+        scale = region_scale(Box(x0, y0, x1, y1), region.scale)
+        if scale <= 0:
+            return None
+        bitmap = page.render(
+            scale=scale, crop=(x0, height - y1, width - x1, y0), rev_byteorder=True
+        )
+        try:
+            if bitmap.n_channels != 3:
+                return None
+            pixels = bytes(
+                ctypes.cast(
+                    bitmap.buffer,
+                    ctypes.POINTER(ctypes.c_ubyte * (bitmap.stride * bitmap.height)),
+                ).contents
+            )
+            return png(bitmap.width, bitmap.height, pixels, bitmap.stride)
+        finally:
+            bitmap.close()
+    except (pdfium.PdfiumError, ValueError):
+        return None
+    finally:
+        page.close()
 
 
 def _load_message(name: str, data: bytes, error: pdfium.PdfiumError) -> str:

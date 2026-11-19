@@ -347,6 +347,13 @@ function readAlong() {
     moveTo(to);
   });
 
+  // a figure that can't be shown (gone, or the reader stopped) leaves only its notice (#293)
+  for (const figure of text.querySelectorAll("img.figure")) {
+    const hide = () => { figure.hidden = true; };
+    figure.addEventListener("error", hide);
+    if (figure.complete && figure.naturalWidth === 0) hide(); // failed before this ran
+  }
+
   // a click (or a screen reader's Enter) on a sentence plays from it (D-298)
   text.addEventListener("click", (event) => {
     if (event.target.closest("summary, details")) return;

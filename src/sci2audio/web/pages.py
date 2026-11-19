@@ -1133,7 +1133,9 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         prepare=not found.outside,
     )
     try:
-        view, located, made_from = player_for(found.work, found.document, found.folders)
+        view, located, made_from = player_for(
+            found.work, found.document, found.folders, figures=not found.outside
+        )
     except PlayerError as error:
         return _page(
             request,

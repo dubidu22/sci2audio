@@ -56,6 +56,7 @@ from sci2audio.textprep import (
     TextStep,
     run_steps,
 )
+from sci2audio.web.figures import Catalog, Shown
 from sci2audio.web.project import read_project
 
 RECORD = "audiobook.json"  # the web's own record of where the audiobook went (D-295)
@@ -477,6 +478,7 @@ class BlockView:
     code: str = ""  # a code block's notice box: its code, line breaks kept, shown open (D-546)
     element: str | None = None  # a notice box: its element id
     chunk: int | None = None  # a notice box: its first chunk
+    figures: tuple[Shown, ...] = ()  # a notice box: the figure, table or formula itself (#293)
 
     @property
     def read(self) -> bool:
@@ -556,6 +558,8 @@ def build_view(
     record: AudioRecord,
     readalong: ReadAlong,
     steps: Sequence[TextStep] = BUILT_IN_STEPS,
+    *,
+    figures: bool = True,
 ) -> PlayerView:
     """The page for this audiobook (D-297, D-299). PlayerError("listen.mismatch") if a span
     points outside its block (the read-along file belongs to another document).
@@ -564,7 +568,8 @@ def build_view(
     after the block it is read in, so the page follows the voice, but only where the
     read-along shows the voice read it there (`_heard_moves`): an audiobook made before #213
     read its notes where printed, and shows them there. `steps` are the steps the audiobook
-    was made with: the built-in ones (tests pass others)."""
+    was made with: the built-in ones (tests pass others). With `figures`, a figure, table
+    or formula read as its notice shows itself in its notice box (#293)."""
     for chunk in readalong.chunks:
         try:
             document.check_span(chunk.span)
@@ -587,6 +592,7 @@ def build_view(
         moved_into.setdefault(target, []).append(block)
     levels = _heading_levels(document)
     pages = _page_starts(document, moved.keys())
+    catalog = Catalog(document) if figures else None
 
     element_of: list[str] = [""] * len(readalong.chunks)
     firsts = sentence_starts(readalong)
@@ -619,6 +625,8 @@ def build_view(
                 )
                 view.heading = levels.get(shown_here, 0) if shown_here == number else 0
                 view.page = pages.get(shown_here, "")
+                if catalog is not None and view.notice and not view.code:
+                    view.figures = tuple(catalog.images(shown_here, view.notice))
                 blocks.append(view)
         title_block = None
         if blocks and blocks[0].heading and blocks[0].index == chapter.start:
@@ -1029,16 +1037,17 @@ def _piece(
 
 
 def player_for(
-    work: Path, document_id: str, folders: Sequence[Path | None]
+    work: Path, document_id: str, folders: Sequence[Path | None], *, figures: bool = True
 ) -> tuple[PlayerView, Located, Document]:
     """Everything the listen page shows, or PlayerError saying why it can't, with the
     document it was made from (for the markers, #474). `folders` are the only folders the
     audiobook may be in (`candidate_folders`, or the one folder a command-line job names,
-    #154)."""
+    #154). Without `figures` no notice box shows its figure (a command-line job, #293)."""
     record = read_audio_record(work, document_id)
     located = locate(record, folders)
     document = load_document(work)
-    return build_view(document, record, located.readalong), located, document
+    view = build_view(document, record, located.readalong, figures=figures)
+    return view, located, document
 
 
 def audiobook_file(
