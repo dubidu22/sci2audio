@@ -1028,9 +1028,11 @@ def test_the_readalong_file_is_read_once_per_version(tmp_path: Path) -> None:
     assert len(player.load_readalong(path).chunks) == 2
 
 
-def same_size_texts() -> tuple[str, str]:
-    first = to_json(readalong([(0, 0, 1)]))
-    second = to_json(readalong([(0, 0, 2)]))
+def same_size_texts() -> tuple[bytes, bytes]:
+    """Two read-along files of the same size in bytes (written as bytes, so Windows adds
+    no carriage returns)."""
+    first = to_json(readalong([(0, 0, 1)])).encode()
+    second = to_json(readalong([(0, 0, 2)])).encode()
     assert first != second
     assert len(first) == len(second)
     return first, second
@@ -1043,11 +1045,11 @@ def test_a_readalong_file_made_again_with_the_same_size_and_time_is_read_again(
     old one's time (Windows) and it has the same size, its new identity tells them apart."""
     path = tmp_path / "Book.readalong.json"
     first, second = same_size_texts()
-    path.write_text(first, encoding="utf-8")
+    path.write_bytes(first)
     seen = settle(path)
     assert player.load_readalong(path).chunks[0].span == Span(0, 0, 1)
     new = tmp_path / "Book.readalong.json.new"
-    new.write_text(second, encoding="utf-8")
+    new.write_bytes(second)
     os.replace(new, path)  # as write_texts does: a new file in the old one's place
     settle(path, seen)
     assert os.stat(path).st_size == len(first)
@@ -1059,16 +1061,16 @@ def test_a_fresh_readalong_file_rewritten_in_place_is_read_again(tmp_path: Path)
     too: a file changed in the last two seconds is read each time (#407, as #403 B1)."""
     path = tmp_path / "Book.readalong.json"
     first, second = same_size_texts()
-    path.write_text(first, encoding="utf-8")
+    path.write_bytes(first)
     seen = os.stat(path).st_mtime_ns
     assert player.load_readalong(path).chunks[0].span == Span(0, 0, 1)
-    assert player.audiobook_stamp(path) == hashlib.sha256(first.encode()).hexdigest()[:16]
-    with path.open("r+", encoding="utf-8") as stream:  # in place: the same inode
+    assert player.audiobook_stamp(path) == hashlib.sha256(first).hexdigest()[:16]
+    with path.open("r+b") as stream:  # in place: the same inode
         stream.write(second)
     os.utime(path, ns=(seen, seen))
     assert player.load_readalong(path).chunks[0].span == Span(0, 0, 2)
     # the stamp asked for before the rewrite is not kept for the new bytes (#601 R1-1)
-    assert player.audiobook_stamp(path) == hashlib.sha256(second.encode()).hexdigest()[:16]
+    assert player.audiobook_stamp(path) == hashlib.sha256(second).hexdigest()[:16]
 
 
 def test_a_broken_document_record_is_named(tmp_path: Path) -> None:
