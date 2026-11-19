@@ -32,6 +32,7 @@ from sci2audio.core import Document, Edit
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import (
     Candidate,
+    arrows,
     fold,
     pick,
     through_unread,
@@ -48,8 +49,10 @@ _UNSIGNED = r"\d+(?:\.\d+)?"
 # U+2212 minus, and U+2012 figure dash where no number stands before it (between two numbers
 # it is a range dash, N2); the ASCII hyphen-minus is read right by the voice
 # its number may stand on the next line ("−" at a line end): a second run sees the joined
-# "− 5" and reads it so (#336, D-605)
-_MINUS = re.compile(r"(?<![\w.,])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space> ?|\n)(?=\.?\d)")
+# "− 5" and reads it so (#336, D-605). Not glued after a closing bracket ("(I − P)−1", an
+# inverse whose raise was lost, may as well be "f(x) minus 1": left as printed, #527, #589);
+# "←−0" is one arrow and a number (`arrows`, the first rule)
+_MINUS = re.compile(r"(?<![\w.,)\]}])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space> ?|\n)(?=\.?\d)")
 
 # --- N2 ranges ------------------------------------------------------------------------------
 # an en dash or figure dash, spaces allowed around it, or an em dash without spaces
@@ -146,10 +149,11 @@ _TIME_AFTER = re.compile(r"\s*(?:[ap]\.?m\b\.?|h\b|hrs?\b|hours?\b|o'clock)", re
 # a range after "8:64" makes it a volume and its pages; "to" is how this step reads that range
 _RANGE_AFTER = re.compile(r"\s*(?:[\u2013\u2012\u2014-]|\s+to\s)\s*\d")
 # not before a signed power, colon or hyphen ("3/3⁻⁴", "3/33:3", "3/33-53": no plain denominator);
-# after a minus sign only where N1 reads it "minus" ("−1/2", "x/−1/2", not "5−1/2"), as a
-# second run reads the fraction after "minus " (#304)
+# after a minus sign only where N1 reads it "minus" ("−1/2", "x/−1/2", not "5−1/2" or
+# "(a)−1/2", #527), as a second run reads the fraction after "minus " (#304); after an arrow
+# printed as two glyphs it is read, as a second run reads it after the one arrow ("←1/2")
 _FRACTION = re.compile(
-    r"(?<![\w.,/:-])(?<![\w.,]\u2212)(?<!-\n)(?P<n>\d{1,3})/(?P<d>\d{1,3})"
+    r"(?<![\w.,/:-])(?<![\w.,)\]}]\u2212)(?<!-\n)(?P<n>\d{1,3})/(?P<d>\d{1,3})"
     r"(?![\w/:⁺⁻^-]|[.,]\d)"
 )
 _FRACTION_WORDS = {
@@ -256,6 +260,7 @@ def find_numbers(text: str) -> list[Candidate]:
     plain = fold(text)
     return pick(
         [
+            *arrows(text),
             *_iso_dates(text),
             *_unjoined(text, _roman_numerals(plain, text)),
             *_grouped_digits(text),

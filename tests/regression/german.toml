@@ -2674,3 +2674,50 @@ language = "de"
 blocks = [{ kind = "paragraph", text = "Das zeigen Müller et al. (2019). Die Studie ist neu." }]
 expected = ["Das zeigen Müller et al. Die Studie ist neu."]
 utterances = ["Das zeigen Müller et al.", "Die Studie ist neu."]
+
+# ---- B5 German readings (#536, #557, #483, #527) ----------------------------------------------
+
+[[case]]
+id = "de-year-in-hundreds-before-a-full-stop-and-a-noun"
+audit = 0
+issue = 536
+goal = "Eine in Hunderten gelesene Jahreszahl vor Punkt und Nomen ('1998. Jahr') bleibt Jahr und Satzende, auch im zweiten Lauf: '98.' nach '19 hundert' ist keine Ordnungszahl."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Studie begann im Jahr 1998. Jahr für Jahr kamen neue Daten." }]
+expected = ["Die Studie begann im Jahr 19 hundert 98. Jahr für Jahr kamen neue Daten."]
+
+[[case]]
+id = "de-time-with-uhr-before-a-day-and-month"
+audit = 0
+issue = 557
+goal = "Ein Datum nach einer Uhrzeit mit 'Uhr' wird gelesen wie ohne die Uhrzeit davor ('3. Mai' ist 'dritter Mai'), in beiden Läufen; unverändert spräche die Stimme 'drei. Mai'."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Sitzung beginnt um 13:30 Uhr 3. Mai im Hörsaal." }]
+expected = ["Die Sitzung beginnt um 13 Uhr 30 dritter Mai im Hörsaal."]
+
+[[case]]
+id = "de-season-term-or-noun-and-year-in-brackets-kept"
+audit = 0
+issue = 483
+goal = "Eine Klammer aus Jahreszeit, Semester oder einem Nomen wie 'Ausgabe' und einer Jahreszahl ist keine Quellenangabe und bleibt wie gedruckt; die Stimme liest sie so richtig."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Die Daten (Sommer 2019) und die Kurse (Wintersemester 2019) zeigen es, ebenso der Bericht (Ausgabe 2018)." }]
+expected = ["Die Daten (Sommer 2019) und die Kurse (Wintersemester 2019) zeigen es, ebenso der Bericht (Ausgabe 2018)."]
+
+[[case]]
+id = "de-surname-that-is-a-noun-still-cites"
+audit = 0
+issue = 483
+goal = "Ein Nachname, der auch ein Nomen ist ('Koch', 'Wagner'), bleibt mit Jahreszahl eine Quellenangabe und wird entfernt."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Das zeigen frühere Arbeiten (Koch 2019; Wagner 2020)." }]
+expected = ["Das zeigen frühere Arbeiten."]
+
+[[case]]
+id = "de-arrow-printed-as-two-glyphs"
+audit = 0
+issue = 527
+goal = "Ein Pfeil aus zwei Zeichen ('←−', '−→') wird als ein Pfeil gelesen ('←', '→': 'Linkspfeil', 'Rechtspfeil'), nie 'minus'. Das hochgestellte '−1' nach der Klammer bleibt wie gedruckt; die Stimme spricht es dennoch 'minus eins' (#589)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Dann gilt β(0, S, 0) ←− 0, P′ ←− (I − P)−1 und S −→ ε." }]
+expected = ["Dann gilt β(0, S, 0) ← 0, P′ ← (I − P)−1 und S → ε."]

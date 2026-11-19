@@ -1,4 +1,4 @@
-# ruff: noqa: RUF002
+# ruff: noqa: RUF002, RUF003
 # (minus signs, dashes, primes and math letters are what these rules are about)
 """Shared helpers for the number and statistics steps (#67): candidate edits and folding.
 
@@ -57,6 +57,44 @@ def pick(candidates: Iterable[Candidate]) -> list[Candidate]:
             starts.insert(at, candidate.start)
             kept.insert(at, candidate)
     return kept
+
+
+# an arrow printed in pieces: PDF text gives a long arrow ("\\longleftarrow",
+# "\\longrightarrow") as an arrow and a minus sign, "←−", "−→", "←−→", and a longer one or a
+# vector ("\\overrightarrow{AB}") with more minus signs, "−−→", "←−−" (#593 review F1); also
+# glued to its variables ("X−→α"). The voices read "left minus" and "minus right"; one arrow
+# is "left arrow", "right arrow" ("Linkspfeil", "Rechtspfeil"), never "minus" (#527)
+_TWO_GLYPH_ARROW = re.compile("←\u2212+→|←\u2212+|\u2212+→")
+
+
+def _one_arrow(glyphs: str) -> str:
+    """The one arrow a run of glyphs prints: "←−−→" is "↔", "←−−" "←", "−−→" "→"."""
+    if glyphs[0] == "←":
+        return "↔" if glyphs[-1] == "→" else "←"
+    return "→"
+
+
+def as_one_arrow(text: str, found: Sequence[Candidate]) -> str:
+    """The text with each arrow `arrows` found written as its one arrow, repeated to the
+    printed length, so other rules decide on a first run as a second run will (spans stay
+    valid): "←−1:1" is "←←1:1" to them, as "←1:1" is on a second run (#593 review F2)."""
+    pieces = []
+    at = 0
+    for candidate in found:
+        one = candidate.replacement * (candidate.end - candidate.start)
+        pieces += [text[at : candidate.start], one]
+        at = candidate.end
+    return "".join([*pieces, text[at:]])
+
+
+def arrows(text: str) -> list[Candidate]:
+    """Arrows printed as an arrow and a minus sign, read as one arrow (#527)."""
+    found = []
+    for match in _TWO_GLYPH_ARROW.finditer(text):
+        one = _one_arrow(match[0])
+        reason = f'arrow printed in pieces "{match[0]}" read as one arrow "{one}"'
+        found.append(Candidate(*match.span(), one, reason))
+    return found
 
 
 def _overlap(a: Candidate, b: Candidate) -> bool:
