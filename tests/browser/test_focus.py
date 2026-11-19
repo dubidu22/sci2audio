@@ -462,6 +462,26 @@ def test_esc_leaves_focus_from_the_speed_list(signed_in: Page, live: Live) -> No
     expect(page.get_by_role("button", name="Focus listening")).to_be_focused()
 
 
+def test_esc_in_focus_closes_the_speed_panel_first(signed_in: Page, live: Live) -> None:
+    """#651 review M2: with the speed panel open in Focus, the first Esc closes only the
+    panel and gives the focus to the speed button; the second leaves Focus."""
+    page = signed_in
+    make_audiobook(page, live)
+    nobody_focused(page)
+    page.keyboard.press("f")
+    expect(page.locator("#focus-view")).to_be_focused()
+    page.locator("#speed").focus()
+    page.keyboard.press("Enter")  # by keyboard, the panel opens with the focus in the field
+    expect(page.locator("#speed-exact")).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(page.locator("#speed-panel")).to_be_hidden()
+    expect(page.locator("#speed")).to_be_focused()
+    assert focusing(page)
+    page.keyboard.press("Escape")
+    expect(page.locator("#focus-view")).to_be_hidden()
+    assert not focusing(page)
+
+
 def test_a_held_key_acts_once(signed_in: Page, live: Live) -> None:
     """N1: a key held down repeats; F, P and Space switch once all the same (? opens the
     sheet, whose being open stops the repeats). An even count of presses: toggled by each

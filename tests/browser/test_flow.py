@@ -134,11 +134,11 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     exact = page.get_by_role("spinbutton", name="Exact speed")
     expect(exact).to_have_value("1.05")
     expect(speed).to_have_attribute("aria-valuetext", "1.05 times")
-    exact.fill("1.25")
+    exact.fill("1.07")
     exact.press("Enter")
-    expect(speed).to_have_value("1.25")
-    expect(speed).to_have_attribute("aria-valuetext", "1.25 times")
-    expect(exact).to_have_attribute("aria-valuetext", "1.25 times")
+    expect(speed).to_have_value("1.07")
+    expect(speed).to_have_attribute("aria-valuetext", "1.07 times")
+    expect(exact).to_have_attribute("aria-valuetext", "1.07 times")
     page.get_by_label("Voice", exact=True).select_option("bm_george")
     abbreviations = page.get_by_role("group", name="Spelled-out abbreviations")
     expect(abbreviations.get_by_role("radio", name="Normal")).to_be_checked()
@@ -148,7 +148,7 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     expect(player).to_be_visible()
     expect(player).to_be_focused()
     until(lambda: player.evaluate("audio => audio.readyState") >= 1)  # the WAV loaded
-    assert live.voice.spoken[-1] == (PREVIEW_TEXT, "bm_george", 1.25)
+    assert live.voice.spoken[-1] == (PREVIEW_TEXT, "bm_george", 1.07)
     assert live.voice.letter_speeds[-1] == 0.7
     check_axe(page, "document with the voice installed and a preview")
 
@@ -170,7 +170,7 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     check_axe(page, "audiobook done")
     settings = page.request.get(f"{live.url}/api/v1/settings").json()["settings"]
     assert settings["voice"] == "bm_george"  # remembered for the next document (D-246)
-    assert settings["speed"] == 1.25
+    assert settings["speed"] == 1.07
     assert settings["letter_pace"] == "slower"
     assert settings["output_folder"] == str(live.config.output_folder)
     spoken = {text for text, _, _ in live.voice.spoken}
