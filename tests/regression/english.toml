@@ -2442,9 +2442,10 @@ blocks = [
     { kind = "paragraph", runs = ["Quantitative ", { sup = "1" }, "H NMR of ", { sup = "13" }, "C-labelled sugars"] },
     { kind = "paragraph", runs = [{ sup = "18" }, "F-FDG PET in ", { sup = "238" }, "U miners"] },
     { kind = "paragraph", runs = ["Spin ", { sup = "3" }, "He and ", { sup = "4" }, "He films"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }] },
     { kind = "paragraph", runs = [{ sup = "1" }, "AI Lab, Example City"] },
 ]
-expected = ["Quantitative 1H NMR of 13C-labelled sugars", "18F-FDG PET in 238U miners", "Spin 3He and 4He films", "AI Lab, Example City"]
+expected = ["Quantitative 1H NMR of 13C-labelled sugars", "18F-FDG PET in 238U miners", "Spin 3He and 4He films", "Jane Roe", "AI Lab, Example City"]
 
 [[case]]
 id = "affiliation-marks-before-a-capital-outside-ascii"
@@ -2471,9 +2472,72 @@ blocks = [
     { kind = "paragraph", runs = ["Bose-Einstein condensation of\n", { sup = "87" }, "Rb in microgravity"] },
     { kind = "paragraph", runs = ["We trap ultracold atoms of\n", { sup = "6" }, "Li and ", { sup = "40" }, "Ca in a lattice and of\n", { sup = "171" }, "Yb, ", { sup = "87" }, "Sr and ", { sup = "133" }, "Cs."] },
     { kind = "paragraph", runs = [{ sup = "3" }, "He spin filters"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, " and Ann Lee", { sup = "2" }] },
     { kind = "paragraph", runs = [{ sup = "1" }, "UC Berkeley, ", { sup = "2" }, "AI Lab"] },
 ]
-expected = ["87Rb Bose-Einstein condensates in orbit", "Bose-Einstein condensation of 87Rb in microgravity", "We trap ultracold atoms of 6Li and 40Ca in a lattice and of 171Yb, 87Sr and 133Cs.", "3He spin filters", "UC Berkeley, AI Lab"]
+expected = ["87Rb Bose-Einstein condensates in orbit", "Bose-Einstein condensation of 87Rb in microgravity", "We trap ultracold atoms of 6Li and 40Ca in a lattice and of 171Yb, 87Sr and 133Cs.", "3He spin filters", "Jane Roe and Ann Lee", "UC Berkeley, AI Lab"]
+
+[[case]]
+id = "affiliation-marks-title-mass-numbers-before-the-author-line"
+audit = 0
+issue = 448
+goal = "A title's raised mass numbers before a two-letter formula are read; the marks of the author and affiliation lines after it go."
+blocks = [
+    { kind = "paragraph", runs = [{ sup = "13" }, "CO and C", { sup = "18" }, "O observations of the Taurus cloud"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, " and Ann Lee", { sup = "2" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Example Observatory, Example City"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "Space Lab, Example Town"] },
+]
+expected = ["13CO and C18O observations of the Taurus cloud", "Jane Roe and Ann Lee", "Example Observatory, Example City", "Space Lab, Example Town"]
+
+[[case]]
+id = "affiliation-marks-title-mass-numbers-after-a-comma-and-a-line-start"
+audit = 0
+issue = 448
+goal = "Raised mass numbers after a comma and at a line's start in a title are read; the affiliation marks after the author line go."
+blocks = [
+    { kind = "paragraph", runs = ["Mapping ", { sup = "12" }, "CO, ", { sup = "13" }, "CO and ", { sup = "15" }, "NH3 in\n", { sup = "13" }, "CH4-rich regions"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "AI Lab, Example City"] },
+]
+expected = ["Mapping 12CO, 13CO and 15NH3 in 13CH4-rich regions", "Jane Roe", "AI Lab, Example City"]
+
+[[case]]
+id = "affiliation-marks-before-an-element-symbol-word-are-read"
+audit = 0
+issue = 448
+goal = "After the author line, a mark before an affiliation whose first word is an element symbol is read as today (the safe way to fail, D-57)."
+blocks = [
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, ", Ann Lee", { sup = "2" }, " and Bo Kim", { sup = "3" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Ca' Foscari University"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "Co-design Lab"] },
+    { kind = "paragraph", runs = [{ sup = "3" }, "In Silico Institute"] },
+]
+expected = ["Jane Roe, Ann Lee and Bo Kim", "1Ca' Foscari University", "2Co-design Lab", "3In Silico Institute"]
+
+[[case]]
+id = "affiliation-marks-authors-and-affiliations-in-one-block"
+audit = 0
+issue = 448
+goal = "Authors and affiliations in one block after the title: the marks after the names and before the affiliations go."
+blocks = [
+    { kind = "paragraph", runs = ["Cold ", { sup = "13" }, "CO in the Taurus cloud"] },
+    { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, " and Ann Lee", { sup = "2" }, "\n", { sup = "1" }, "Example Observatory, ", { sup = "2" }, "Space Lab"] },
+]
+expected = ["Cold 13CO in the Taurus cloud", "Jane Roe and Ann Lee Example Observatory, Space Lab"]
+
+[[case]]
+id = "affiliation-marks-after-a-comma-in-the-author-line"
+audit = 0
+issue = 448
+goal = "An author line with its marks after a comma (REVTeX: 'Roe,¹˒² Ann Lee,¹') opens the affiliations; every author and affiliation mark goes (#585 review round 1)."
+blocks = [
+    { kind = "paragraph", text = "Cold atoms in orbit" },
+    { kind = "paragraph", runs = ["Jane Roe,", { sup = "1,2" }, " Ann Lee,", { sup = "1" }, " and Bo Kim", { sup = "2" }] },
+    { kind = "paragraph", runs = [{ sup = "1" }, "Department of Physics, Example University"] },
+    { kind = "paragraph", runs = [{ sup = "2" }, "AI Lab, Example City"] },
+]
+expected = ["Cold atoms in orbit", "Jane Roe, Ann Lee, and Bo Kim", "Department of Physics, Example University", "AI Lab, Example City"]
 
 # Figure and table notices name the figure by its caption label as the caption reads it, on
 # both runs (#374, D-707): a range, a fraction, a power or a multiplier in the label is read
