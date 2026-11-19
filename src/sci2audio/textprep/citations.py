@@ -1012,11 +1012,10 @@ class _Rules:
             before = text[bounds[2 * number] + 1 : child.open]
             after = text[child.close + 1 : bounds[2 * number + 3]]
             ahead = self.item_after.match(after) is not None or not after.strip()
-            behind = self.item_before.search(before) is not None or not before.strip()
-            if not behind:
-                # lead words: before the first item ("(see (Smith, 2019); (Lee, 2018))");
-                # before a later one they make no list, as the rest's parts then hold "see"
-                behind = self._only_lead_left(before)
+            # or the bracket's edge, or lead words: before the first item ("(see (Smith, 2019);
+            # (Lee, 2018))"); before a later one they make no list, as the rest's parts then
+            # hold "see"
+            behind = self.item_before.search(before) is not None or self._only_lead_left(before)
             if not (ahead and behind):
                 continue
             if not decided.get(child.open):
