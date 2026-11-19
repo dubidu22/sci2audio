@@ -338,29 +338,45 @@ def test_unknown_jobs(server: tuple[FastAPI, Any]) -> None:
         assert response.json()["error"] == "not-found"
 
 
-@pytest.mark.quarantined(
-    issue=525,
-    reason="a snapshot event comes first on Windows without a code cause",
-    platform="win32",
-)
 def test_events_keep_the_stream_alive_and_end_when_the_server_stops(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # The server stops only once the first keep-alive has been read, not after a fixed
+    # time, so a slow start of the stream under load cannot hide the keep-alive (#525).
     monkeypatch.setattr(api, "KEEP_ALIVE", 0.05)
     config = make_config(tmp_path)
     runner = BlockingRunner()
     app = create_app(config, runner=runner)
+    stopping = app.state.sci2audio.stopping
     client = program(app, config)
     doc = upload(client, pdf_bytes())
     job = start(client, doc["id"])
     assert runner.started.wait(10)
-    timer = threading.Timer(0.5, app.state.sci2audio.stopping.set)
-    timer.start()
+    # only a bound on a broken stream, never what makes the test pass
+    give_up = threading.Timer(30, stopping.set)
+    give_up.start()
+    seen: list[tuple[str, str]] = []
+    name = ""
+    after_stop = 0  # lines read once the server was told to stop
     try:
-        seen = events(client, job["id"])
+        with client.stream("GET", f"/api/v1/jobs/{job['id']}/events") as stream:
+            assert stream.status_code == 200
+            for line in stream.iter_lines():
+                if stopping.is_set():
+                    after_stop += 1
+                    if after_stop > 100:  # some 2.5 s of keep-alives: the stop was ignored
+                        break
+                if line.startswith(":"):
+                    seen.append(("", line))
+                    stopping.set()  # the first keep-alive is in: now stop the server
+                elif line.startswith("event: "):
+                    name = line.removeprefix("event: ")
+                elif line.startswith("data: "):
+                    seen.append((name, line.removeprefix("data: ")))
     finally:
-        timer.cancel()
+        give_up.cancel()
         runner.go.set()
+    assert after_stop <= 100, "the stream went on after the server stopped"
     assert seen[0][0] == "snapshot"
     assert ("", ": keep-alive") in seen
     assert "end" not in [name for name, _ in seen]

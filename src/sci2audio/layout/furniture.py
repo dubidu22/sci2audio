@@ -7,15 +7,24 @@ body (white between, or smaller letters), so a heading or the last line of a pag
 text. Furniture still becomes blocks (kind `furniture`), so nothing is lost; a text step
 removes them from the listening script with a marked edit.
 
-A running head set smaller than the body needs only to repeat at its height, numbers aside.
-One set at body size needs stronger evidence (#33, D-322 to D-327): the same text, numbers
-too, and running heads at that height on most pages. So "Algorithm 1" and "Algorithm 2", or
-a table header continued on the next page, stay text. A table header repeated word for word
-with white below it on most pages of a short paper would still be taken; a body-size head on
-fewer than `head_pages` pages is read aloud, and so is a head that names a section printed on
-one page only. A rule under the line is no evidence: tables print one under their header too.
-Smaller lines keep the shape rule in v1.0, so a continued table header or "Algorithm 1/2"
-set smaller than the body is still taken (D-328, #156).
+A running head set at body size needs strong evidence (#33, D-322 to D-327): the same text,
+numbers too, and running heads at that height on most pages. So "Algorithm 1" and
+"Algorithm 2", or a table header continued on the next page, stay text. A table header
+repeated word for word with white below it on most pages of a short paper would still be
+taken; a body-size head on fewer than `head_pages` pages is read aloud, and so is a head that
+names a section printed on one page only. A rule under the line is no evidence: tables print
+one under their header too.
+
+A line set smaller than the body (a small-type table header, an algorithm's caption, or a
+real head) is one when it repeats its shape (numbers aside) at its height on `repeat_pages`
+pages and opens with no caption label ("Algorithm 1", "Table 3 (continued)"). At the foot
+of the page that will do. At the top, where a continued table header or an algorithm's
+caption stands, it needs more (#156): such lines apart from the body stand at that height
+on most pages, as for body-size heads, whatever their text (an author on even pages, a title
+on odd ones; the line itself may stand close to the text on a page or two); or, in a short
+document, the line is apart from the body and repeats word for word, numbers too, on
+`head_share` of the pages. So a small continued table header close to its rows stays text
+however often it repeats.
 
 The top band is the top `edge_band` of the paper. A document set in a small type area on
 bigger paper (the LNI template on Letter paper starts 17 % down) prints nothing there; then
@@ -45,6 +54,7 @@ from dataclasses import dataclass
 from statistics import median
 
 from sci2audio.core import Box, Content, FurnitureRole, Page, TextLine
+from sci2audio.layout.captions import starts_with_label
 from sci2audio.layout.geometry import body_size, boxed, line_size, rows, text_area
 from sci2audio.layout.settings import LayoutSettings
 
@@ -133,12 +143,12 @@ def find_furniture(
             if line.box:
                 repeats[_exact(line.text)].append((page.number, line.box.y0))
     measured = [_Page(page, size, bands, repeats) for page in pages]
-    heads = _running_heads(pages, size, bands)
-    body_heads = _body_heads(measured, len(pages))
+    shapes = _running_heads(pages, size, bands)
+    heads = _body_heads(measured, len(pages)) | _small_heads(measured, shapes, len(pages))
     counted = _counted(pages, size, bands)
     found: dict[str, FurnitureRole] = {}
     for page in measured:
-        found.update(page.furniture(heads, body_heads, counted))
+        found.update(page.furniture(heads, counted))
     return found
 
 
@@ -215,7 +225,7 @@ def _shape(text: str) -> str:
 
 
 def _running_heads(pages: list[Page], size: float, bands: Edges) -> Heads:
-    """Where edge lines no larger than body text stand, by band and shape."""
+    """Where edge lines no larger than body text stand, by band and shape (numbers aside)."""
     seen: Heads = defaultdict(list)
     for page in pages:
         for line in page.lines:
@@ -228,6 +238,28 @@ def _running_heads(pages: list[Page], size: float, bands: Edges) -> Heads:
 def _repeated(places: list[tuple[int, float]], y: float, drift: float) -> int:
     """On how many pages the same shape stands at this height, give or take `drift`."""
     return len({number for number, other in places if abs(other - y) <= drift})
+
+
+def _pages_near(places: list[tuple[int, float]], heights: list[float], drift: float) -> list[int]:
+    """For each height, on how many pages a place stands at it, give or take `drift`: one
+    sweep over places and heights in order, so many repeats cost no more than sorting them."""
+    ordered = sorted(places, key=lambda place: place[1])
+    counts: dict[int, int] = defaultdict(int)  # page -> places in the window
+    found = [0] * len(heights)
+    low = high = 0
+    for k in sorted(range(len(heights)), key=heights.__getitem__):
+        y = heights[k]
+        while high < len(ordered) and ordered[high][1] <= y + drift:
+            counts[ordered[high][0]] += 1
+            high += 1
+        while low < high and ordered[low][1] < y - drift:
+            number = ordered[low][0]
+            counts[number] -= 1
+            if not counts[number]:
+                del counts[number]
+            low += 1
+        found[k] = len(counts)
+    return found
 
 
 def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
@@ -267,6 +299,61 @@ def _body_heads(measured: list[_Page], page_count: int) -> set[str]:
     return found
 
 
+def _small_heads(measured: list[_Page], shapes: Heads, page_count: int) -> set[str]:
+    """The edge lines set smaller than the body that are running heads (#156).
+
+    Each repeats its shape at its height on `repeat_pages` pages (D-326) and opens with no
+    caption label. In the bottom band that will do: no table header or float caption set
+    there repeats so, and a footer may stand close under the notes (review of #530, F1). In
+    the top band, where a continued table header or an algorithm's caption stands, either
+    such lines apart from the body stand at that height, whatever their text, on
+    `head_pages` pages and on `head_share` of the document's (only apart lines lend their
+    pages), or the line is apart from the body and its exact text, numbers too, stands at its
+    height on `repeat_pages` pages and on `head_share` of the document's: a short document's
+    heads.
+    """
+    if not measured:
+        return set()
+    settings, size = measured[0].settings, measured[0].size
+    drift = settings.head_drift * size
+    found: set[str] = set()
+    lines = []  # top band: (page, height, line id, apart, exact text)
+    for page in measured:
+        for line in page.lines:
+            if (
+                line.id in page.stamps
+                or line.id in page.notes
+                or line_size(line) >= settings.small * size
+                or starts_with_label(line.text)
+            ):
+                continue
+            box = boxed(line)
+            band = page.bands.band(box, page.page)
+            places = shapes.get((band, _shape(line.text)), [])
+            if not band or _repeated(places, box.y0, drift) < settings.repeat_pages:
+                continue
+            if band == "bottom":
+                found.add(line.id)
+            else:
+                apart = line.id in page.apart
+                lines.append((page.page.number, box.y0, line.id, apart, _exact(line.text)))
+    lending = [(number, y) for number, y, _, apart, _ in lines if apart]
+    covered = _pages_near(lending, [entry[1] for entry in lines], drift)
+    most = max(settings.head_pages, settings.head_share * page_count)
+    found.update(entry[2] for entry, pages in zip(lines, covered, strict=True) if pages >= most)
+    texts: dict[str, list[tuple[str, int, float]]] = defaultdict(list)
+    for number, y, line_id, apart, text in lines:
+        if apart:
+            texts[text].append((line_id, number, y))
+    short = max(settings.repeat_pages, settings.head_share * page_count)
+    for same in texts.values():
+        repeats = _pages_near([(number, y) for _, number, y in same], [y for *_, y in same], drift)
+        found.update(
+            line_id for (line_id, _, _), pages in zip(same, repeats, strict=True) if pages >= short
+        )
+    return found
+
+
 class _Page:
     """One page's lines, measured once for the furniture rules."""
 
@@ -288,25 +375,18 @@ class _Page:
         self.repeats = repeats or {}  # where each line's exact text stands in the document
         self.notes = self._notes()
 
-    def furniture(
-        self, heads: Heads, body_heads: set[str], counted: set[str]
-    ) -> dict[str, FurnitureRole]:
+    def furniture(self, heads: set[str], counted: set[str]) -> dict[str, FurnitureRole]:
         found = dict.fromkeys(self.stamps, SIDE_STAMP)
         settings, height = self.settings, self.page.height or 0.0
         for line in self.lines:
             if line.id in found or line.id in self.notes:
                 continue
-            box, text = boxed(line), line.text.strip()
+            box = boxed(line)
             band = self.bands.band(box, self.page)
-            small = line_size(line) < settings.small * self.size
-            loose = small or line.id in self.apart
-            places = heads.get((band, _shape(text)), [])
-            drift = settings.head_drift * self.size
+            loose = line_size(line) < settings.small * self.size or line.id in self.apart
             if band and (line.id in counted or self._is_page_number(line)):
                 found[line.id] = PAGE_NUMBER
-            elif line.id in body_heads or (  # smaller: the shape will do (D-326)
-                small and _repeated(places, box.y0, drift) >= settings.repeat_pages
-            ):
+            elif line.id in heads:
                 found[line.id] = RUNNING_HEAD
             elif box.y0 >= (1 - settings.footer_band) * height and loose:
                 found[line.id] = FOOTER
