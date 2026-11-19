@@ -397,7 +397,9 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
     file it is a time in; a position the audiobook does not have is refused (422), and so
     is one sent by a page drawn for another audiobook than the one there now (409: the
     audio job ran again while the page stayed open). An audiobook `sci2audio listen` opened
-    keeps its position in its own working folder too (#154)."""
+    keeps its position in its working folder too (#154): with the default folders that is
+    the file's cache folder, shared with the interface's document of the same file, whose
+    Listen page offers the position only for the same read-along file (#381)."""
     document = state.listening(document_id)
     if document is None:
         raise ApiError(404, "not-found", f"no document {document_id}")
