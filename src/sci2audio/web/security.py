@@ -41,6 +41,35 @@ CSP = (
     "media-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; "
     "form-action 'self'"
 )
+# Every feature the interface does not use is off (#172, ZAP 10063); playing audio stays,
+# and the player starts the next chapter by itself. Only names Chromium knows, so the
+# browser logs no "unrecognized feature".
+PERMISSIONS_POLICY = ", ".join(
+    f"{feature}=()" if feature != "autoplay" else "autoplay=(self)"
+    for feature in (
+        "accelerometer",
+        "autoplay",
+        "camera",
+        "clipboard-read",
+        "clipboard-write",
+        "display-capture",
+        "encrypted-media",
+        "fullscreen",
+        "geolocation",
+        "gyroscope",
+        "magnetometer",
+        "microphone",
+        "midi",
+        "payment",
+        "picture-in-picture",
+        "publickey-credentials-get",
+        "screen-wake-lock",
+        "serial",
+        "sync-xhr",
+        "usb",
+        "xr-spatial-tracking",
+    )
+)
 SECURITY_HEADERS: tuple[tuple[bytes, bytes], ...] = (
     (b"content-security-policy", CSP.encode()),
     (b"x-content-type-options", b"nosniff"),
@@ -49,6 +78,9 @@ SECURITY_HEADERS: tuple[tuple[bytes, bytes], ...] = (
     (b"cache-control", b"no-store"),
     (b"cross-origin-opener-policy", b"same-origin"),
     (b"cross-origin-resource-policy", b"same-origin"),
+    # every resource is the server's own or a data: image, so none needs CORP (ZAP 90004)
+    (b"cross-origin-embedder-policy", b"require-corp"),
+    (b"permissions-policy", PERMISSIONS_POLICY.encode()),
 )
 _REPLACED = frozenset(name for name, _ in SECURITY_HEADERS)
 

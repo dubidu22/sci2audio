@@ -20,6 +20,7 @@ from fastapi import Depends, Request
 
 from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, load_settings
 from sci2audio.app.projects import Moved, migrate_all, real_folder
+from sci2audio.app.updates import STATE_NAME, UpdateCheck
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.figures import Figures
@@ -93,6 +94,8 @@ class ServerState:
     seen: float = field(default_factory=time.monotonic)
     # the language of the last page rendered: the app window's close question speaks it (#631)
     language: str | None = None
+    # the opt-in update check (#217), its file next to the settings file; tests pass a fake
+    updates: UpdateCheck = field(init=False)
 
     def __post_init__(self) -> None:
         if self.config.legacy_root is not None:
@@ -107,6 +110,10 @@ class ServerState:
         self.board = JobBoard(classify)
         self.kept = KeptVoice(lambda: self.voice(self.config.models_dir))
         self.markers = MarkerBook(self.clock)
+        # `sci2audio listen` serves its outside jobs and never checks (D-837)
+        self.updates = UpdateCheck(
+            self.config.config_file.parent / STATE_NAME, available=not self.config.outside
+        )
 
     def audio_work(self, document: StoredDocument, settings: JobSettings, overwrite: bool) -> Work:
         """An audio job into the person's output folder (D-199): the one in the settings,
