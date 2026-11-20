@@ -11,8 +11,10 @@ Every plugin runs behind a guard. It gets a copy of the document, so a plugin th
 the document it was given changes nothing the other steps see; it runs in a worker thread
 with a time limit; and any exception but Ctrl+C counts as a failure, `SystemExit` and other
 BaseExceptions included. The runner then drops the step's edits and records the problem, as
-for any failing step (D-111). A thread cannot be stopped:
-a plugin past its time limit is left running with its result thrown away (Q5 of the plan).
+for any failing step (D-111). Loading a plugin (its import, its factory, its attributes)
+runs in a worker thread with a time limit too: the app loads the plugins when it starts, so
+a plugin that hangs there would stop every command (#684). A thread cannot be stopped: a
+plugin past its time limit is left running with its result thrown away (Q5 of the plan).
 Nothing here runs at import time; the app loads the plugins once per `JobRunner`.
 """
 
@@ -20,9 +22,10 @@ from __future__ import annotations
 
 import copy
 import threading
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from importlib.metadata import EntryPoint, entry_points
+from typing import Any
 
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.registry import BUILT_IN_STEPS
@@ -37,6 +40,9 @@ from sci2audio.textprep.steps import (
 
 PLUGIN_GROUP = "sci2audio.text_steps"
 PLUGIN_TIMEOUT = 60.0  # seconds per plugin per document; built-in steps take well under one
+# seconds per entry point: on the start-up path of every command, yet room for a heavy import
+# on a slow disk (D-845)
+PLUGIN_LOAD_TIMEOUT = 30.0
 
 
 @dataclass(frozen=True)
@@ -99,8 +105,17 @@ def load_plugin_steps(
     """Load the steps of the `sci2audio.text_steps` entry points.
 
     `points` defaults to the installed entry points; `reserved` to the ids of the built-in
-    steps, which no plugin may take.
+    steps, which no plugin may take. Each entry point has `PLUGIN_LOAD_TIMEOUT` to load.
     """
+    return _load(points, reserved, timeout, PLUGIN_LOAD_TIMEOUT)
+
+
+def _load(
+    points: Iterable[EntryPoint] | None,
+    reserved: Iterable[str] | None,
+    timeout: float,
+    load_timeout: float,
+) -> LoadedPlugins:
     if points is None:
         points = entry_points(group=PLUGIN_GROUP)
     taken = {step.id for step in BUILT_IN_STEPS} if reserved is None else set(reserved)
@@ -113,7 +128,7 @@ def load_plugin_steps(
         seen.add((point.name, point.value))
         distribution, version = _distribution(point)
         try:
-            step = _step(point, taken, timeout)
+            step = _step(point, taken, timeout, load_timeout)
         except _Rejected as rejected:
             problems.append(PluginProblem(point.name, distribution, str(rejected)))
             continue
@@ -140,10 +155,17 @@ def installed_steps(
     entry_points: Iterable[EntryPoint] | None = None,
     *,
     timeout: float = PLUGIN_TIMEOUT,
+    load_timeout: float | None = None,
 ) -> InstalledSteps:
-    """The built-in steps with the plugins, each plugin after the built-in steps of its stage."""
-    loaded = load_plugin_steps(
-        entry_points, reserved=[step.id for step in built_in], timeout=timeout
+    """The built-in steps with the plugins, each plugin after the built-in steps of its stage.
+
+    `load_timeout` defaults to `PLUGIN_LOAD_TIMEOUT` as it is when the function is called.
+    """
+    loaded = _load(
+        entry_points,
+        [step.id for step in built_in],
+        timeout,
+        PLUGIN_LOAD_TIMEOUT if load_timeout is None else load_timeout,
     )
     ordered = [
         step
@@ -157,6 +179,32 @@ def installed_steps(
 
 class _Rejected(Exception):
     pass
+
+
+class _TimedOut(Exception):
+    pass
+
+
+def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T:
+    """`call()` in a daemon thread: its result, or what it raised, re-raised here; _TimedOut
+    if it is still running after `timeout` seconds. The thread cannot be stopped and is left
+    to finish on its own; a daemon thread never keeps the program from ending."""
+    result: dict[str, Any] = {}
+
+    def work() -> None:
+        try:
+            result["value"] = call()
+        except BaseException as error:  # handed to the caller's thread below
+            result["error"] = error
+
+    worker = threading.Thread(target=work, name=name, daemon=True)
+    worker.start()
+    worker.join(timeout)
+    if worker.is_alive():
+        raise _TimedOut
+    if "error" in result:
+        raise result["error"]
+    return result["value"]
 
 
 def _distribution(point: EntryPoint) -> tuple[str, str]:
@@ -185,9 +233,26 @@ def _said(error: BaseException) -> str:
         return type(error).__name__
 
 
-def _step(point: EntryPoint, taken: set[str], timeout: float) -> _GuardedStep:
+def _step(point: EntryPoint, taken: set[str], timeout: float, load_timeout: float) -> _GuardedStep:
     """The entry point's step behind the guard; _Rejected if it is not one this sci2audio
-    can run.
+    can run, or if loading it takes longer than `load_timeout` seconds."""
+    try:
+        step = _in_worker(
+            lambda: _made(point, timeout), load_timeout, f"loading text step {point.name}"
+        )
+    except _TimedOut:
+        raise _Rejected(f"took longer than {load_timeout:g} s to load; left out") from None
+    if problems := step_problems(step):
+        raise _Rejected("; ".join(problems))
+    if point.name != step.id:
+        raise _Rejected(f"entry point name {point.name!r} is not the step's id {step.id!r}")
+    if step.id in taken:
+        raise _Rejected(f"a built-in step has the id {step.id!r}")
+    return step
+
+
+def _made(point: EntryPoint, timeout: float) -> _GuardedStep:
+    """The plugin's step, imported, made and read into the guard; _Rejected if it fails.
 
     Everything that touches the plugin's objects is plugin code and may fail in any way: a
     property that raises, a BaseException that is not an Exception. The runner is made at
@@ -218,18 +283,11 @@ def _step(point: EntryPoint, taken: set[str], timeout: float) -> _GuardedStep:
             )
         # the attributes are read once, into the guard; every later check and the runner
         # read the guard's copies, never the plugin's code again
-        step = _GuardedStep(step, timeout, None)
+        return _GuardedStep(step, timeout, None)
     except (_Rejected, KeyboardInterrupt):
         raise
     except BaseException as error:
         raise _Rejected(f"failed while its attributes were read: {_said(error)}") from error
-    if problems := step_problems(step):
-        raise _Rejected("; ".join(problems))
-    if point.name != step.id:
-        raise _Rejected(f"entry point name {point.name!r} is not the step's id {step.id!r}")
-    if step.id in taken:
-        raise _Rejected(f"a built-in step has the id {step.id!r}")
-    return step
 
 
 def _declares_version(step: TextStep) -> bool:
@@ -271,25 +329,19 @@ class _GuardedStep(TextStep):
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         given = copy.deepcopy(document)
-        result: dict[str, object] = {}
-
-        def work() -> None:
-            try:
-                result["edits"] = self.step.find(given, context)
-            except BaseException as error:  # handed to the job's thread below
-                result["error"] = error
-
-        worker = threading.Thread(target=work, name=f"text step {self.id}", daemon=True)
-        worker.start()
-        worker.join(self.timeout)
-        if worker.is_alive():
-            raise StepError(f"took longer than {self.timeout:g} s; its edits are left out")
-        error = result.get("error")
-        if isinstance(error, KeyboardInterrupt | Exception):
-            raise error  # Ctrl+C stops the job; the runner reports an Exception as it is
-        if isinstance(error, SystemExit):
+        try:
+            edits = _in_worker(
+                lambda: self.step.find(given, context), self.timeout, f"text step {self.id}"
+            )
+        except _TimedOut:
+            raise StepError(
+                f"took longer than {self.timeout:g} s; its edits are left out"
+            ) from None
+        except (KeyboardInterrupt, Exception):
+            raise  # Ctrl+C stops the job; the runner reports an Exception as it is
+        except SystemExit as error:
             raise StepError(f"called SystemExit({error.code!r})") from error
-        if isinstance(error, BaseException):  # a BaseException would end the job (S1)
+        except BaseException as error:  # a BaseException would end the job
             raise StepError(f"raised {_said(error)}") from error
         try:
             changed = given != document
@@ -299,7 +351,7 @@ class _GuardedStep(TextStep):
             raise StepError(f"left its copy of the document unreadable: {_said(error)}") from error
         if changed:
             raise StepError("changed the document it was given; a step may only propose edits")
-        return result["edits"]  # type: ignore[return-value]  # checked by the runner
+        return edits  # checked by the runner
 
     def __repr__(self) -> str:
         return f"<text-step plugin {self.id}>"

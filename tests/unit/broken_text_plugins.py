@@ -179,3 +179,24 @@ class UnequalStep(_Plugin):
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         object.__setattr__(document, "blocks", (_Unequal(),))
         return []
+
+
+HANG = threading.Event()  # set by a test when it ends, so a hanging plugin lets go
+
+
+def hanging_factory() -> TextStep:
+    HANG.wait(5)
+    return AlphaStep()
+
+
+class HangingPropertyStep(_Plugin):
+    """Its id takes forever to compute."""
+
+    @property
+    def id(self) -> str:  # type: ignore[override]
+        HANG.wait(5)
+        return "hanging-property"
+
+
+def interrupting_factory() -> TextStep:
+    raise KeyboardInterrupt
