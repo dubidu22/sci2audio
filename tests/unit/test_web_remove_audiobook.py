@@ -138,7 +138,7 @@ def test_the_recorded_files_and_their_folder_go_by_default(one: dict[str, Any]) 
 
 
 def test_a_recorded_file_already_gone_is_skipped_and_the_rest_goes(one: dict[str, Any]) -> None:
-    """A stale record entry (#552 round 1, N1) is not an error: it is simply not there."""
+    """A stale record entry (#552) is not an error: it is simply not there."""
     gone = sorted(one["files"])[0]
     (one["book"] / gone).unlink()
     response = remove(one["client"], one["doc"])
@@ -149,7 +149,7 @@ def test_a_recorded_file_already_gone_is_skipped_and_the_rest_goes(one: dict[str
 
 
 def test_an_empty_project_folder_left_by_a_failed_first_run_goes(one: dict[str, Any]) -> None:
-    """A folder recorded with no files yet (#552 round 1, N3) is removed with `rmdir`."""
+    """A folder recorded with no files yet (#552) is removed with `rmdir`."""
     for name in one["files"]:
         (one["book"] / name).unlink()
     record(one["work"], one["doc"], one["book"])
@@ -263,8 +263,8 @@ def test_at_most_fifty_kept_paths_are_named_and_the_rest_counted(one: dict[str, 
 def test_a_whole_folder_that_stayed_is_listed_before_the_limit_cuts_files(
     one: dict[str, Any], tmp_path: Path
 ) -> None:
-    """Whole folders come first, so the count of files that stayed stays exact (#569
-    round 1, R3)."""
+    """Whole folders come first, so the count of files that stayed stays exact
+    (#569)."""
     for n in range(removal.KEPT_LIMIT + 7):
         (one["book"] / f"mine {n:03}.txt").write_text("mine")
     elsewhere = tmp_path / "elsewhere"
@@ -485,7 +485,7 @@ def test_s9_a_file_that_can_t_be_deleted_is_named_and_a_second_press_finishes(
 def test_s9_a_file_held_open_on_windows_is_named_and_a_second_press_finishes(
     one: dict[str, Any],
 ) -> None:
-    """A real fault, not a patched one (#569 round 1, R2a): every audiobook file is held
+    """A real fault, not a patched one (#569): every audiobook file is held
     open, so the first one of the record can't go and nothing of the project goes."""
     book, files = one["book"], one["files"]
     held = [(book / name).open("rb") for name in sorted(files)]
@@ -512,7 +512,7 @@ def test_s9_a_file_held_open_on_windows_is_named_and_a_second_press_finishes(
 def test_s9_a_read_only_folder_is_named_and_a_second_press_finishes(
     one: dict[str, Any],
 ) -> None:
-    """A real fault, not a patched one (#569 round 1, R2b): the audiobook folder is made
+    """A real fault, not a patched one (#569): the audiobook folder is made
     read-only, so its first recorded file can't be deleted."""
     book, files = one["book"], one["files"]
     book.chmod(0o555)
@@ -582,7 +582,7 @@ def test_s10_a_folder_swapped_for_a_link_after_the_check_is_not_followed(
 def test_s10_a_folder_swapped_after_the_check_keeps_the_person_s_clutter(
     one: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The folder is checked again before its entries are listed (#569 round 1, R1): a
+    """The folder is checked again before its entries are listed (#569): a
     link to a folder of the person's that holds only a `.DS_Store` deletes nothing."""
     mine, moved = tmp_path / "mine", tmp_path / "moved"
     mine.mkdir()
@@ -637,7 +637,7 @@ def test_s10_a_folder_above_swapped_after_the_check_is_seen_by_its_real_path(
     one: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The output folder is swapped for a link to a folder of the person's that holds a
-    folder of the same name (#569 round 2, R1): the project folder lstats as a plain
+    folder of the same name (#569): the project folder lstats as a plain
     folder, so only its real path shows the change, and nothing of the person's goes."""
     output, book = one["config"].output_folder, one["book"]
     moved, mine = tmp_path / "moved output", tmp_path / "mine"
@@ -715,7 +715,7 @@ def test_s11_a_folder_inside_the_project_folder_keeps_it(one: dict[str, Any]) ->
     assert (one["book"] / "extra" / "file.txt").read_text() == "mine"
 
 
-# ---- audiobooks made before #469 (S12) -------------------------------------------------------
+# ---- audiobooks made before #469 -------------------------------------------------------
 
 
 def test_s12_an_audiobook_made_before_its_own_folder_stays_and_is_named(
@@ -771,8 +771,8 @@ def test_the_box_names_what_goes_and_the_keep_box_in_german(one: dict[str, Any])
 
 
 def test_a_record_that_can_t_be_read_says_so_and_nothing_is_deleted(one: dict[str, Any]) -> None:
-    """Not the line about an audiobook made before #469, which would be untrue (#569
-    round 1, R4): the box says the record can't be read and names it."""
+    """Not the line about an audiobook made before #469, which would be untrue (#569):
+    the box says the record can't be read and names it."""
     record_path = one["work"] / PROJECT
     record_path.write_text("{not json", encoding="utf-8")
     page = browser(one["app"], one["config"])
@@ -796,7 +796,7 @@ def test_a_record_that_can_t_be_read_says_so_and_nothing_is_deleted(one: dict[st
 
 
 def test_the_message_after_the_press_in_german_names_the_folder() -> None:
-    """The script's strings (#569 round 1, R3): files counted with their folder, whole
+    """The script's strings (#569): files counted with their folder, whole
     folders in a sentence of their own."""
     de = i18n.strings("de")
     script = json.loads(de.script_json())

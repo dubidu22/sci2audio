@@ -223,7 +223,7 @@ def test_names_are_safe_everywhere(title: str) -> None:
 
 @given(st.text(), st.text(), st.integers(1, 9999))
 def test_every_file_name_fits_the_file_system(title: str, chapter: str, number: int) -> None:
-    """Review of PR #85, must-fix 1: 255 bytes (ext4, APFS) and 255 UTF-16 units (NTFS) for
+    """#85: 255 bytes (ext4, APFS) and 255 UTF-16 units (NTFS) for
     every name output makes, partial names included."""
     book = names.book_name(title)
     mp3 = names.chapter_file(book, number, number, chapter)
@@ -322,7 +322,7 @@ def test_readalong_round_trip_property(
     m4b: str | None,
     with_mp3s: bool,
 ) -> None:
-    """Review of PR #85, should-fix 4: any timeline and spans survive the file."""
+    """#85: any timeline and spans survive the file."""
     chapters, pieces, frames, rate, settings = book
     spans = data.draw(
         st.lists(

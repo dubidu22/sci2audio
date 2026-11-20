@@ -448,7 +448,7 @@ def _thousands(text: str) -> list[Candidate]:
             continue  # "M = 2.345": a point decimal, read by N-de-1 (or left as printed)
         # in round brackets "(12.345)" reads "(12 345)", as the voice reads "1 234" well: read
         # "(12345)", "(Projekt 12345)" or "(12345-mal)", the citations step would take it for
-        # an identifier on a second run (#285, review round 1)
+        # an identifier on a second run (#285)
         words = number.replace(".", " " if _in_round_bracket(text, match.start()) else "")
         found.append(Candidate(*match.span(), words, f'"{number}" read as the number "{words}"'))
     return found
@@ -653,7 +653,7 @@ def _abbreviated_nouns() -> dict[str, str]:
 _ABBREVIATED_NOUNS = _abbreviated_nouns()
 # "13 Uhr 30. Jahr" is a second run of "13:30. Jahr": the number after "Uhr" is the minutes.
 # Not after a clock time's own "Uhr" ("13:30 Uhr 3. Mai", any space between): there "3." is
-# a day, read as a second run reads it after "13 Uhr 30" (#557, #593 review F3)
+# a day, read as a second run reads it after "13 Uhr 30" (#557, #593)
 _AFTER_UHR = re.compile(r"\bUhr\s+\Z")
 _CLOCK_UHR = re.compile(r"\d[:.]\d\d\s+Uhr\s+\Z")
 _UHR_WINDOW = 24  # characters looked back for "Uhr" and the clock time before it
@@ -680,7 +680,7 @@ _FULL_DATE = (
 )
 # a date without its year that ends a range: "3.4.2019-5.4." (#318); before what a date
 # without its year may stand before, so both runs decide alike: a full date, or a fraction
-# that `_dates` reads "ein ..." (#332 review round 1)
+# that `_dates` reads "ein ..." (#332)
 _YEARLESS_END = (
     r"(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?![\w.,]|\s*(?!" + _DATE_AHEAD + r")\d)"
 )
@@ -695,7 +695,7 @@ _NUMERIC_DATE = re.compile(
     + _STOP
     + r"(?P<d>0?[1-9]|[12]\d|3[01])\.(?P<m>0?[1-9]|1[0-2])\."
     # a year glued to "-" and a digit stays as printed ("3.4.2019-03-12", #303), unless a
-    # full date follows: "3.4.2019-5.4.2019" is a range (#311 review round 1)
+    # full date follows: "3.4.2019-5.4.2019" is a range (#311)
     r"(?:(?P<y>1[5-9]\d\d|20\d\d)(?![\d_]|[⁺⁻^]|[.,:/]\d|-(?!"
     + _FULL_DATE
     + r"|"
@@ -855,7 +855,7 @@ _DATE_BEFORE = re.compile(r"(?<![\d.])\d{1,2}\.\d{1,2}\.\s*\Z")  # a date withou
 _AFTER_HOCH = re.compile(r"\bhoch (?:minus |plus )?\Z")
 # ... nor the last part of a dotted number read with "Punkt" ("Kapitel 1.2.3. Tag" is "Kapitel 1
 # Punkt 2 Punkt 3. Tag" after the first run, #349); only that reading has a digit before
-# "Punkt", so "Der Punkt 3. Mai" keeps its ordinal (review S1 of PR #368)
+# "Punkt", so "Der Punkt 3. Mai" keeps its ordinal (#368)
 _AFTER_PUNKT = re.compile(r"\d Punkt \Z")
 # ... nor a source number the citations step reads ("unter [12]. Studie" is "unter Quelle 12.
 # Studie" after the first run; the words are the German wording's, #212)
@@ -977,7 +977,7 @@ _TIME_BEFORE = re.compile(r"\b(?:um|ab|gegen|von|bis|zwischen|seit|und)\s+\Z", r
 _LETTER_POWER_AFTER = re.compile(r"\s[^\W\d_][⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]")
 # ... and a letter power that ends a unit chain after it ("2/3 m s⁻²", "3/4 kg m²"), if the
 # powers rule leaves that power to the units step after the printed number (`_unit_chain`):
-# after the fraction's words it would read it (review S1 and B1 of PR #359)
+# after the fraction's words it would read it (#359)
 _CHAIN_POWER_AFTER = re.compile(
     r"\s(?:[^\W\d_]{1,3}[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]*[\s·⋅]+)+(?P<base>[^\W\d_])[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]"
 )

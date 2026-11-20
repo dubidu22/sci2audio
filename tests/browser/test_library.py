@@ -282,7 +282,7 @@ def test_a_file_dropped_on_the_opener_opens_and_is_analysed(signed_in: Page, liv
 
 
 def test_a_file_dropped_beside_the_opener_stays_out_of_the_tab(signed_in: Page, live: Live) -> None:
-    """#446 review N1: a file dropped elsewhere on the library page would open in the tab
+    """#446: a file dropped elsewhere on the library page would open in the tab
     and leave the app; the page cancels that drop and opens nothing."""
     page = signed_in
     page.goto(live.url + "/")

@@ -389,7 +389,7 @@ class CountingPoint:
 
 def test_no_plugins_never_imports_a_plugin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """`--no-plugins` keeps plugin code out of the process, not only out of the job
-    (#667 review S1): a plugin whose import hangs or exits cannot stop the command."""
+    (#667): a plugin whose import hangs or exits cannot stop the command."""
     from sci2audio.textprep import plugins
 
     point = CountingPoint()

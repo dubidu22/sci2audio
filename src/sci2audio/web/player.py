@@ -815,7 +815,7 @@ def _parts(
 
 def _heard_moves(run: StepRun, readalong: ReadAlong) -> dict[int, int]:
     """The moves of `run` (block -> the block it is read in) that the audiobook was read
-    with (review R1-2, R2-1). The read-along is taken as a row of runs, one per stretch of
+    with. The read-along is taken as a row of runs, one per stretch of
     chunks of one block. A moved block counts when it stands in a stretch of blocks moved to
     the same target (notes read at one position, in block order) and that stretch comes
     right after a run of the target, or right before the target's first run (a move to the
@@ -936,7 +936,7 @@ def joined_hyphens(
     """By block, the offsets of the line-end hyphens whose words the voice read joined: the
     line-end-hyphens step's joins that the settled run of `steps` accepted, with the job's
     categories (#286, #666). A join set aside because an earlier step won (a link, a
-    citation, the reference list) is not one: that text shows as printed (review M1)."""
+    citation, the reference list) is not one: that text shows as printed."""
     return _joins(_settled(document, switched_off, steps))
 
 

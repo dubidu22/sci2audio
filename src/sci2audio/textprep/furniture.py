@@ -66,7 +66,7 @@ PAGE_BREAK_TAGS = frozenset({"epub:pagebreak", "role:doc-pagebreak"})
 # a removal before one of these takes the white space before it ("text x." reads "text.")
 _CLOSING = frozenset(",;:.!?)]")
 # a reason quotes at most this many characters of the hidden text, so a long hidden passage
-# gives a report line of usual length (#436 review round 1, N1)
+# gives a report line of usual length (#436)
 QUOTED = 60
 
 

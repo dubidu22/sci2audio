@@ -92,12 +92,12 @@ def test_no_sentence_ends_after_an_abbreviation(abbreviation: str) -> None:
         ("It holds (in 2022)[ours]. Then more.", ["It holds (in 2022)[ours].", "Then more."]),
         # "no." glued to a bracket is still an abbreviation only before a number
         ("The answer [no.] Then we stop.", ["The answer [no.]", "Then we stop."]),
-        # glued to a dash or a slash (review of #105, S1)
+        # glued to a dash or a slash (#105)
         ("Results\u2014e.g. Table 2 shows it.", ["Results\u2014e.g. Table 2 shows it."]),
         ("Results\u2013e.g. Table 2 shows it.", ["Results\u2013e.g. Table 2 shows it."]),
         ("The results/e.g. Table 2 agree.", ["The results/e.g. Table 2 agree."]),
         # a capital glued to a bracket or an apostrophe is no initial: these end a sentence
-        # (review of #105, M1)
+        # (#105)
         ("I SAID I DON'T. Then we left.", ["I SAID I DON'T.", "Then we left."]),
         ("We cite [1]A. Next.", ["We cite [1]A.", "Next."]),
         ("It is in Table 1(a)B. Next.", ["It is in Table 1(a)B.", "Next."]),
@@ -264,7 +264,7 @@ def test_no_cut_leaves_a_part_under_the_minimum_when_another_cut_does_not() -> N
 
 
 def test_a_semicolon_that_leaves_a_clipped_last_part_is_not_taken() -> None:
-    # the fair filter checks the part after the cut too (#481 review N3)
+    # the fair filter checks the part after the cut too (#481)
     text = "w " * 80 + "b, " + "c " * 62 + "d; " + "e " * 8 + "f."  # 308 characters
     parts = cut(text, max_chars=SIZED_FOR)
     assert parts[0].endswith("b,")
@@ -361,7 +361,7 @@ def test_a_closing_mark_of_an_inline_list_opens_no_bracket_for_cutting(
     text: str, language: str
 ) -> None:
     # the ")" of "a)" closes nothing: the depth stays at zero, so the later "(" still counts
-    # as open and no part ends inside it (#481 review round 2); sized for a 300 limit (#494)
+    # as open and no part ends inside it (#481); sized for a 300 limit (#494)
     parts = cut(text, language=language, max_chars=SIZED_FOR)
     assert len(parts) > 1
     for part in parts:
@@ -552,7 +552,7 @@ def test_a_block_of_many_sentences_is_cut_in_linear_time() -> None:
         # a single capital after a maths symbol is a letter, no initial (#141)
         ("Let x \u2208 N. This holds.", ["Let x \u2208 N.", "This holds."]),
         ("Take A \u2282 B. Then C.", ["Take A \u2282 B.", "Then C."]),
-        # ... also when the symbol is glued to the variable before it (#478 review S1)
+        # ... also when the symbol is glued to the variable before it (#478)
         ("Let x= N. This holds.", ["Let x= N.", "This holds."]),
         ("Let 2x\u2264 N. This holds.", ["Let 2x\u2264 N.", "This holds."]),
         # ... and after a label word of the unit list
@@ -672,7 +672,7 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         ("Siehe Kap. (Müller, 2019). Dann mehr.", ["Siehe Kapitel.", "Dann mehr."]),
         ("Siehe z. B. (Müller, 2019). Dann mehr.", ["Siehe zum Beispiel.", "Dann mehr."]),
         ("Die 12. (Müller & Schmidt, 2019). Dann mehr.", ["Die 12.", "Dann mehr."]),
-        # PR #267 review: the first part of a compound opens no sentence (R1) ...
+        # #267: the first part of a compound opens no sentence ...
         ("Der 2. In-vitro-Versuch lief gut.", ["Der zweite In-vitro-Versuch lief gut."]),
         ("Es folgte der 2. Vor-Ort-Termin.", ["Es folgte der zweite Vor-Ort-Termin."]),
         ("Die 3. Nach-Untersuchung kam.", ["Die dritte Nach-Untersuchung kam."]),
@@ -681,7 +681,7 @@ def cut_read(text: str, language: str = "de") -> list[str]:
             "Es dauerte 2 Std. Ein-Euro-Jobs kamen später.",
             ["Es dauerte 2 Stunden Ein-Euro-Jobs kamen später."],
         ),
-        # ... nor a word that is also a noun after an ordinal (R3) ...
+        # ... nor a word that is also a noun after an ordinal ...
         ("Der 3. Laut des Wortes ist stumm.", ["Der dritte Laut des Wortes ist stumm."]),
         ("Das 2. Ich ist stark.", ["Das zweite Ich ist stark."]),
         # ... and a German quote opens a sentence, its closing one may end it (R4)
@@ -701,7 +701,7 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         # ... but not before a lower-case word, nor after an abbreviation inside the quote
         ("Er sagte „gut.“ und ging.", ["Er sagte „gut.“ und ging."]),
         ("Er sagte „z. B.“ dazu.", ["Er sagte „zum Beispiel“ dazu."]),
-        # PR #333 review R1-3: the closing quote is taken off before the abbreviation and
+        # #333: the closing quote is taken off before the abbreviation and
         # initial checks, so "Dr." and "A." inside it end no sentence
         ("Er nannte „Dr.“ Müller dann.", ["Er nannte „Dr.“ Müller dann."]),
         ("Er sagte „A.“ Dann ging er.", ["Er sagte „A.“ Dann ging er."]),
@@ -718,7 +718,7 @@ def cut_read(text: str, language: str = "de") -> list[str]:
             ["Er sagte «ja.»", "\u2039Nein.\u203a", "Dann ging er."],
         ),
         ("Er sagte \u203az. B.\u2039 dazu.", ["Er sagte \u203azum Beispiel\u2039 dazu."]),
-        # PR #333 review R2-1: an initial inside them ends no sentence, as in „A.“
+        # #333: an initial inside them ends no sentence, as in „A.“
         ("Er sagte \u203aA.\u2039 Dann ging er.", ["Er sagte \u203aA.\u2039 Dann ging er."]),
         ("Er sagte \u2039A.\u203a Dann ging er.", ["Er sagte \u2039A.\u203a Dann ging er."]),
         ("Er nannte \u203aDr.\u2039 Müller dann.", ["Er nannte \u203aDr.\u2039 Müller dann."]),
@@ -749,7 +749,7 @@ def test_german_sentences_end_where_german_ends_them(text: str, sentences: list[
         "He said “yes.“ Then he left.",
         "She asked \u2018when?\u2018 Then she left.",
         "He wrote «stop.» Then he left.",
-        # ... nor the single guillemets (PR #333 review R1-4), after or before the full stop
+        # ... nor the single guillemets (#333), after or before the full stop
         "He wrote \u203astop.\u2039 Then he left.",
         "He wrote \u2039stop.\u203a Then he left.",
         "He wrote stop. \u203aThen\u2039 he left.",
@@ -991,7 +991,7 @@ def _rebuilt_cuts(text: str, language: str) -> tuple[list[str], list[str]]:
         ("en", "x ≤ 5", "less than or equal to 5"),
         ("en", "10⁻³", "10 to the power of minus 3"),
         ("en", "2.5 m²", "2.5 square metres"),
-        # the numbers, units and statistics steps' readings (#616 review F1)
+        # the numbers, units and statistics steps' readings (#616)
         ("en", "95% CI", "confidence interval"),
         ("en", "5 N m", "5 newton metres"),
         ("en", "12/20", "12 out of 20"),
@@ -1082,7 +1082,7 @@ def test_a_space_inside_a_reading_ranks_after_every_other_space(
         ("en", "aaa cubic metres bbb", ["cubic | metres"]),
         ("en", "a 10 to the power of 6", ["a | 10", "10 | to", "to | the", "the | power",
                                           "power | of", "of | 6"]),
-        # a joining word joins on both sides, however many follow (#616 review F1)
+        # a joining word joins on both sides, however many follow (#616)
         ("en", "aaa joules per kilogram per kelvin", ["joules | per", "per | kilogram",
                                                      "kilogram | per", "per | kelvin"]),
         ("en", "aaa metres per second squared", ["metres | per", "per | second",

@@ -133,7 +133,7 @@ def test_white_after_a_stacked_script_is_measured_from_the_row_s_letters() -> No
 @pytest.mark.parametrize("start", [100, 90])
 @pytest.mark.parametrize("leading", [10.5, 11, 12])
 def test_a_wrapped_line_keeps_the_spaces_after_its_scripts(start: float, leading: float) -> None:
-    """Review M1 of #128: the next printed line of a paragraph starts back under the line
+    """#128: the next printed line of a paragraph starts back under the line
     above and, with tight leading, overlaps its loose boxes; it is no script stacked under
     that line, so its spaces are measured from its own letters ("word1 is", not "word1is")."""
     font = "Times-Roman"
@@ -169,7 +169,7 @@ def test_a_wrapped_line_keeps_the_spaces_after_its_scripts(start: float, leading
 def test_digits_of_a_stacked_fraction_keep_their_space(
     numerator: str, denominator: str, after: str, white: float, printed: str
 ) -> None:
-    """Review M2 of #128: a fraction 1/2 set as numerator over denominator must not read
+    """#128: a fraction 1/2 set as numerator over denominator must not read
     "12" (twelve). The denominator starts back under the numerator, so their letters touch
     along the line; the space PDFium adds between two digits on different baselines stays."""
     x = 100 + width("j = ")
@@ -208,7 +208,7 @@ def _fraction(
     [
         ("1", "h", 0.2, 0.4, "so B = 1 h then more", 7),  # Liu p2: 1 over h-bar
         # TeX keeps the rule's thickness when it sets a fraction smaller: liu's 0.8 pt bar
-        # over 5 pt letters is 0.16 em (review R1-2 of #323)
+        # over 5 pt letters is 0.16 em (#323)
         ("1", "h", 0.2, 0.8, "so B = 1 h", 5),  # "then" is over 1 em of 5 pt away: a new line
         ("eE", "h", -2.0, 0.4, "so B = eE h then more", 7),  # Liu p3: eE over h-bar
         ("1", "h", 0.2, None, "so B = 1h then more", 7),  # no rule: a script stack, as before
@@ -227,7 +227,7 @@ def test_a_fraction_over_its_bar_keeps_its_space(
 
 
 def test_an_underlined_word_keeps_a_subscript_after_it_joined() -> None:
-    """Review R1-3 of #323: a subscript stored right after an underlined word, tucked
+    """#323: a subscript stored right after an underlined word, tucked
     0.5 pt back under its last letter, stands below the word's baseline but above no bar:
     the underline is under the word, not between the word and the subscript."""
     end = 72 + width("word")
@@ -388,7 +388,7 @@ def test_a_turned_page_is_read_as_shown(turn: int) -> None:
 def test_slightly_skewed_words_on_either_side_of_level_read_as_one_line(turn: int) -> None:
     """Words skewed by +0.2, -0.2 and +0.2 degrees (a scan's text layer) stand at angles
     either side of 0 and 2π: they are one line, upright and on a turned page, where text
-    that reads left to right sits at 0 (review M1 of #559)."""
+    that reads left to right sits at 0 (#559)."""
 
     def word(x: float, deg: float, text: bytes) -> bytes:
         cos, sin = math.cos(math.radians(deg)), math.sin(math.radians(deg))
@@ -547,7 +547,7 @@ def test_a_bookmark_loop_ends_and_the_pages_are_still_read() -> None:
     )
     assert [line.text for page in content.pages for line in page.lines] == ["Page 1", "Page 2"]
 
-    # a child list that points back at an ancestor (review of #133, N3)
+    # a child list that points back at an ancestor (#133)
     data = outlined_pdf(2, (Mark("a", 1, (Mark("b", 2, loop=True),)), Mark("c", 2)))
     content = read_pdf(data, "m.pdf")
     assert content.outline == (
@@ -818,7 +818,7 @@ def test_an_accent_stored_apart_is_never_a_line_of_its_own(
 
 
 def test_two_accents_stacked_on_one_letter_both_go_onto_it() -> None:
-    """Review M1 of #671: a circumflex and an acute drawn as glyphs of their own over the
+    """#671: a circumflex and an acute drawn as glyphs of their own over the
     "e" of "Nguyen" ("Nguyễn" set as "ê" with a second accent). The circumflex is no letter
     for the acute to go onto, though `isalpha` holds for it (category Lm): in either stored
     order both go onto the "e", in the order they are stored, and the page loses neither."""

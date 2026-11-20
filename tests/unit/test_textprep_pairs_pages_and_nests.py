@@ -350,7 +350,7 @@ def _with_keys(printed: str) -> str:
         ("de", "(Müller, 2019; und vgl. Lee, 2018) wird zitiert.", "Müller und Lee wird zitiert."),
         ("en", "(Jones, 2020; ; Smith, 2019) is cited.", "Jones and Smith is cited."),
         # a join word joins a part to the one before it: after one that is no citation, it
-        # opens none (#621 review round 1, M2)
+        # opens none (#621)
         ("en", "(RNNGs; and Dyer et al., 2016) help.", "(RNNGs; and Dyer et al., 2016) help."),
         ("en", "(RNNGs; Dyer et al., 2016; and Kim, 2019) help.", "(RNNGs) help."),
         # as an aside the nest still goes whole
@@ -425,7 +425,7 @@ def test_a_subject_nest_keeps_every_name(language: str, printed: str, said: str)
 def test_a_lead_word_nest_with_a_flat_part_reads_its_names_once(
     language: str, printed: str, said: str
 ) -> None:
-    """#621 review round 1, M1 and M2."""
+    """#621."""
     once = read_all(printed, language)
     assert once == said
     assert read_all(once, language) == once
@@ -470,7 +470,7 @@ def test_a_lead_word_nest_with_a_flat_part_reads_its_names_once(
 def test_a_run_whose_first_bracket_is_no_citation_reads_as_before(
     language: str, printed: str, said: str
 ) -> None:
-    """#621 review round 1, M3: after a label word, a sign or a glued word the later brackets
+    """#621: after a label word, a sign or a glued word the later brackets
     read one by one as before #414, an aside joined by "and" to the next as a D-668 pair.
     What such a run should read is the ruling question #634; this pins only that B9 changes
     nothing here."""

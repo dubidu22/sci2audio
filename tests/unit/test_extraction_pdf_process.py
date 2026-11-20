@@ -524,7 +524,7 @@ def test_a_stopped_child_gives_no_cover(tmp_path: Path, monkeypatch: pytest.Monk
     assert extract_pdf_cover(PAPER) is not None
 
 
-# ---- drawings and pictures (#185 review comment) -------------------------------------------
+# ---- drawings and pictures (#185) ------------------------------------------------------
 
 
 def rectangles(count: int) -> bytes:
@@ -549,7 +549,7 @@ def picture_uses(count: int) -> bytes:
 
 def nested_drawings(levels: int) -> bytes:
     """Forms drawing the next form ten times, `levels` deep, the last a rectangle: 10 **
-    levels rectangles from a few KB (#185 review comment: 7 levels took 1.96 GB)."""
+    levels rectangles from a few KB (#185: 7 levels took 1.96 GB)."""
     objects = {
         1: b"<< /Type /Catalog /Pages 2 0 R >>",
         2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",

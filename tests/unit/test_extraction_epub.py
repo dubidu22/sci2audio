@@ -485,7 +485,7 @@ def test_ids_and_links_count_as_they_are_kept_for_the_whole_book(
     monkeypatch: pytest.MonkeyPatch, element: str
 ) -> None:
     """An empty element with an id or a link keeps it until the book is read: 300,000 of
-    them took 52 MB from 5 MB of XHTML (review R1-2 of #327)."""
+    them took 52 MB from 5 MB of XHTML (#327)."""
     monkeypatch.setattr(markup_module, "MAX_ITEMS", 10)
     at_limit = "<p>a</p>" + "".join(element.format(n) for n in range(8))  # 2 + 8 items
     assert texts(read(make_epub(at_limit)).pages[0]) == ["a"]
@@ -495,7 +495,7 @@ def test_ids_and_links_count_as_they_are_kept_for_the_whole_book(
 
 
 def test_unclosed_elements_are_bounded_by_the_same_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    """300,000 unclosed <span>s held 51 MB from 1.8 MB of XHTML (review R1-3 of #327)."""
+    """300,000 unclosed <span>s held 51 MB from 1.8 MB of XHTML (#327)."""
     monkeypatch.setattr(markup_module, "MAX_ITEMS", 10)
     assert texts(read(make_epub("<span>" * 5 + "a")).pages[0]) == ["a"]
     assert outcome(make_epub("<span>" * 20 + "a"), "book.epub") == ITEMS_MESSAGE.format(10)
@@ -689,7 +689,7 @@ def test_a_paragraph_past_the_real_line_limit_fails_small() -> None:
 
 
 def test_an_svg_title_is_bounded_as_a_line_is(monkeypatch: pytest.MonkeyPatch) -> None:
-    """#329 review F3: an SVG's title becomes its pictures' alternative text; a 60 MB one
+    """#329: an SVG's title becomes its pictures' alternative text; a 60 MB one
     took 935 MB and reached layout whole."""
     monkeypatch.setattr(markup_module, "MAX_LINE", 1000)
 
@@ -724,7 +724,7 @@ def test_a_tag_past_the_tag_limit_fails(
     make: Callable[[int], str],
     length: Callable[[int], int],
 ) -> None:
-    """#329 review F1: the parser's tag regex cost about 150 times a tag's size (8 MB of
+    """#329: the parser's tag regex cost about 150 times a tag's size (8 MB of
     attributes in one tag took 1.3 GB) before any other limit saw it."""
     n = 500  # a tag of about 1,000 characters
     monkeypatch.setattr(markup_module, "MAX_TAG", length(n))  # exactly at the limit: reads
@@ -745,7 +745,7 @@ def test_a_tag_in_the_navigation_document_is_bounded_too(
 
 
 def test_a_navigation_label_is_bounded_as_a_line_is(monkeypatch: pytest.MonkeyPatch) -> None:
-    """#329 review F2: one 60 MB label took 935 MB; past the limit the book has no outline
+    """#329: one 60 MB label took 935 MB; past the limit the book has no outline
     and its pages still read."""
     monkeypatch.setattr(markup_module, "MAX_LINE", 1000)
 

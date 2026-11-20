@@ -180,7 +180,7 @@ BROKEN: dict[str, bytes] = {
     "a long note": json.dumps(
         {**_valid(), "markers": [{**_valid()["markers"][0], "note": "x" * (NOTE_LIMIT + 1)}]}
     ).encode(),
-    # more markers than a document holds, each one valid, the file well under 2 MB (round 1 N2)
+    # more markers than a document holds, each one valid, the file well under 2 MB
     "more than 2000 markers": json.dumps(
         {
             **_valid(),
@@ -679,7 +679,7 @@ def test_a_sentence_the_layout_now_spreads_over_two_blocks_is_found() -> None:
 
 
 def test_the_same_sentence_three_times_in_one_block_takes_the_one_nearest_its_old_place() -> None:
-    """Step 2 (round 1 S1a): text put before all three, so step 1 fails; the marker was on
+    """Step 2: text put before all three, so step 1 fails; the marker was on
     the middle one and stays there."""
     old = f"{SECOND} {SECOND} {SECOND}"
     middle = len(SECOND) + 1
@@ -705,7 +705,7 @@ def split_far(gap: int) -> Document:
 
 
 def test_a_split_sentence_is_looked_for_twenty_blocks_either_side_and_no_further() -> None:
-    """Step 3's window (round 1 S1b)."""
+    """Step 3's window."""
     near = split_far(15)
     assert near.blocks[16].text == "It fell by twelve"
     assert module._Finder(near).find(first()) == (17, 0, len("points on early shifts."))
@@ -717,7 +717,7 @@ def test_a_split_sentence_is_looked_for_twenty_blocks_either_side_and_no_further
 
 
 def test_a_split_sentence_goes_to_the_block_with_the_larger_share_the_earlier_on_a_tie() -> None:
-    """Step 3 (round 1 S1c): the larger share wins in either direction."""
+    """Step 3: the larger share wins in either direction."""
     earlier = make_document(
         [
             ("heading", "1 Results"),
@@ -731,7 +731,7 @@ def test_a_split_sentence_goes_to_the_block_with_the_larger_share_the_earlier_on
 
 
 def test_a_place_two_chunks_overlap_alike_is_shown_on_the_first() -> None:
-    """Step 5 (round 1 S1d): 20 characters each, the first chunk wins."""
+    """Step 5: 20 characters each, the first chunk wins."""
     document = paper()
     pieces = [Span(1, 0, 20), Span(1, 21, len(FIRST))]
     assert [min(p.end, len(FIRST)) - p.start for p in pieces] == [20, 20]
@@ -746,14 +746,14 @@ def test_a_place_two_chunks_overlap_alike_is_shown_on_the_first() -> None:
     ],
 )
 def test_runs_of_white_space_read_as_one_space(printed: str) -> None:
-    """Round 1 S1e: the stored anchor has single spaces."""
+    """The stored anchor has single spaces."""
     document = make_document([("heading", "1 Results"), ("paragraph", f"{printed} {SECOND}")])
     assert module._Finder(document).find(first()) == (1, 0, len(printed))
     assert one(document, first()).state == "found"
 
 
 def test_soft_hyphens_are_read_through_both_ways() -> None:
-    """Round 1 S1f: a soft hyphen now in the block, or one stored in the anchor."""
+    """A soft hyphen now in the block, or one stored in the anchor."""
     printed = "It fell by twel\u00adve points on early shifts."
     now = make_document([("heading", "1 Results"), ("paragraph", f"{printed} {SECOND}")])
     assert module._Finder(now).find(first()) == (1, 0, len(printed))

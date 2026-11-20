@@ -6,7 +6,7 @@ block to where the white space after the sentence holding its mark starts, by th
 cutter's sentence rule on the block's text without its marks, or to the block's end if that
 sentence runs on. A note whose mark is not found, whose mark stands only in another note, or
 whose place another rule rewrote, is read where layout placed it (the foot of its column, in
-reading order), as before #213 (Q2).
+reading order), as before #213.
 
 Two categories (D-142): "Footnotes" (on by default) holds `FootnoteStep`, which removes the
 marks and introduces the notes; "Footnote texts" (off by default) holds `FootnoteTextStep`,
@@ -86,7 +86,7 @@ LINKED_KINDS = MARKED_KINDS | {BlockKind.FOOTNOTE}
 _LINK = "link:"
 # also the closing quotes: U+2019, U+201D (English), U+201C, U+2018, U+00AB (German) and U+00BB
 # (Swiss guillemets close with it; #212, #248 S2), and the single guillemets U+203A and U+2039
-# that quote inside them (PR #333 review R1-4)
+# that quote inside them (#333)
 _CLOSING = frozenset(".,;:!?)]}\u2019\u201d\u201c\u2018\u00ab\u00bb\u203a\u2039\"'")
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
@@ -403,7 +403,7 @@ _AFTER_NAME = re.compile(r"\Z|[\s,;\u2217*\u2020\u2021\u00a7\u00b6]")
 # an affiliation after the mark: a capital, after at most one space ("¹Meta AI", "² Univ")
 _AFFILIATION = re.compile(r" ?([^\W\d_]{2,})")
 # the chemical elements whose symbol has two letters: a raised number before one is its mass
-# number ("⁸⁷Rb", "³He"), not an affiliation's mark (#436 review round 2, B1, D-57); a symbol
+# number ("⁸⁷Rb", "³He"), not an affiliation's mark (#436, D-57); a symbol
 # of one letter ("¹H", "¹⁸F-FDG") is already too short for an affiliation
 # fmt: off
 ELEMENTS = frozenset({

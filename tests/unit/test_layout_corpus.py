@@ -583,7 +583,7 @@ def test_each_line_stands_in_its_block_as_found(paper: Path) -> None:
     assert wrong == []
 
 
-# Formulas whose every printed piece the review of PR #61 checked, by the items they hold:
+# Formulas whose every printed piece the #61 checked, by the items they hold:
 # nowak's Eq. (14), two rows each with its limits; arsiwalla's Eq. (2), a diagram of six
 # terms joined by eight arrows.
 WHOLE_FORMULAS = {
@@ -715,7 +715,7 @@ def golden_text(name: str, doc: Document) -> str:
 
 # Printed lines of the corpus that #125 and #126 put right, read as the page prints them:
 # an accent drawn as its own glyph on its letter, and a line under a tall brace on its own
-# (review S1 of #671). No truth sentence covers them, so a golden update alone could undo it.
+# (#671). No truth sentence covers them, so a golden update alone could undo it.
 ACUTE, CARON, DASH = (unicodedata.lookup(n) for n in ("ACUTE ACCENT", "CARON", "EN DASH"))
 PRINTED_AS_ON_THE_PAGE = {
     "acl2023-chi-plue": (

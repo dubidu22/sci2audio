@@ -329,7 +329,7 @@ function dropOnto(form, open) {
     open();
   });
   // a file dropped beside the opener would open in the tab and leave the app: the page
-  // takes no file anywhere else (#446 review N1)
+  // takes no file anywhere else (#446)
   for (const type of ["dragover", "drop"]) {
     document.addEventListener(type, (event) => {
       if (!carriesFiles(event) || form.contains(event.target)) return;
@@ -1208,7 +1208,7 @@ function settingsPage() {
 // counts too, since letters and arrows choose in it.
 const NOT_TYPED = new Set(["button", "checkbox", "radio", "range", "submit", "reset", "color", "file", "image"]);
 
-// The page-wide single keys, unless switched off in Settings (#394 review S3): then only
+// The page-wide single keys, unless switched off in Settings (#394): then only
 // Esc and the rail's Keyboard shortcuts item are left.
 function shortcutsOn() {
   return document.documentElement.dataset.keys !== "off";

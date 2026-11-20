@@ -266,7 +266,7 @@ def test_a_footnote_mark_after_a_name_starts_the_affiliations_of_its_own_block()
         [("18",), "F-FDG PET"],  # at the start, but a one-letter word follows
         [("1",), "H-NMR-Spektroskopie"],
         ["Labs, ", ("238",), "U miners"],
-        [("87",), "Rb condensates"],  # a two-letter element symbol (review round 2, B1)
+        [("87",), "Rb condensates"],  # a two-letter element symbol
         ["Labs, ", ("3",), "He films"],
         ["Atoms of\n", ("6",), "Li"],
     ],
@@ -308,7 +308,7 @@ def test_a_mark_at_a_line_start_comes_before_an_affiliation() -> None:
 @pytest.mark.parametrize(
     ("text", "start", "end", "after"),
     [
-        ("Jane Roe,1 Ann", 9, 10, True),  # REVTeX: the comma set before the mark (#585 review)
+        ("Jane Roe,1 Ann", 9, 10, True),  # REVTeX: the comma set before the mark (#585)
         ("Mapping 12CO,13CO and", 13, 15, False),  # a mass number glued after a comma
         ("Mapping 12CO, 13CO", 14, 16, False),
     ],

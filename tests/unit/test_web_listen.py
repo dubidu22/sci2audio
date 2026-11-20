@@ -470,7 +470,7 @@ def test_the_sentence_is_announced_only_when_switched_on(tmp_path: Path) -> None
 
 
 def test_the_marks_stay_in_the_audiobooks_language_after_a_new_analysis(tmp_path: Path) -> None:
-    """Review S1 of #444: the run behind the marks is rebuilt from `document.json`, which
+    """#444: the run behind the marks is rebuilt from `document.json`, which
     only the audio job writes, beside `audio.json` and from the same document. An analysis
     in another language afterwards changes neither, so the marks stay those of the audio."""
     from test_layout_language import german_pdf

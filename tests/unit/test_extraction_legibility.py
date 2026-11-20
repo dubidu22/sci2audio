@@ -146,7 +146,7 @@ def test_a_page_whose_characters_pdfium_maps_never_looks_at_a_font_program(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The map error is asked first: a font's program (megabytes for some fonts) is copied
-    only for a character PDFium could not map (review M1 of #562)."""
+    only for a character PDFium could not map (#562)."""
 
     def refuse(textpage: object, index: int) -> bool:
         raise AssertionError("a font was looked at for a character PDFium mapped")

@@ -477,7 +477,7 @@ def test_a_moved_footnote_shows_after_the_block_it_is_read_in() -> None:
 
 
 def test_an_audiobook_read_with_notes_where_printed_shows_them_there() -> None:
-    """Review R1-2: the page is built by today's steps, the audio may be older. A read-along
+    """The page is built by today's steps, the audio may be older. A read-along
     that reads the note where it is printed (before #213) shows it there, in its printed
     chapter, although today's steps would move it."""
     document = make_document(
@@ -514,7 +514,7 @@ class _ToTheStart(TextStep):
 
 
 def test_a_chapter_that_starts_with_a_moved_block_is_the_chapter_it_is_read_in() -> None:
-    """Review R1-1: the chapter is found from where its first piece is read, not from where
+    """The chapter is found from where its first piece is read, not from where
     that piece is printed."""
     document = make_document(
         [
@@ -569,7 +569,7 @@ def _notes_paper(notes: int) -> Document:
 def test_notes_read_together_at_one_position_all_show_where_they_are_read(
     notes: int, at: int
 ) -> None:
-    """Review R2-1: the voice reads the target, note 1, note 2, ..., the rest of the target;
+    """The voice reads the target, note 1, note 2, ..., the rest of the target;
     every note of that stretch is shown in the target's chapter, after the target."""
     document = _notes_paper(notes)
     moved = list(range(3, 3 + notes))
@@ -586,7 +586,7 @@ def test_notes_read_together_at_one_position_all_show_where_they_are_read(
 
 
 def test_notes_printed_together_and_read_there_stay_where_printed() -> None:
-    """Review R2-1: an old-style read-along reads two notes together where they are printed,
+    """An old-style read-along reads two notes together where they are printed,
     under a heading that does not hold their marks: they stay there."""
     document = _notes_paper(2)
     spans = [(0, 0, 5), (1, 0, 20), (2, 0, 5), (3, 0, 9), (4, 0, 9), (5, 0, 5)]
@@ -661,7 +661,7 @@ def test_a_word_joined_at_the_cut_of_a_cut_sentence_shows_joined() -> None:
     ],
 )
 def test_a_hyphen_in_a_link_at_a_line_end_shows_as_printed(text: str) -> None:
-    """Review M1 of #290: the links step wins over the join, so the voice never joined it
+    """#290: the links step wins over the join, so the voice never joined it
     and the address shows with its printed hyphen."""
     document = make_document([("paragraph", text)])
     view = build_view(document, record(chunks=1), readalong([(0, 0, len(text))]))
@@ -670,7 +670,7 @@ def test_a_hyphen_in_a_link_at_a_line_end_shows_as_printed(text: str) -> None:
 
 
 def test_a_join_inside_a_removed_reference_list_is_not_shown_as_joined() -> None:
-    """Review M1 of #290: the reference-list step removes the whole block first, so the
+    """#290: the reference-list step removes the whole block first, so the
     line-end-hyphens join there is set aside and the text shows as printed."""
     document = make_document(
         [("heading", "References"), ("paragraph", "Doe, J. (2020). A con-\ntributing study.")],

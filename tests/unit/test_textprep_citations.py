@@ -239,7 +239,7 @@ def test_a_bracketed_citation_the_sentence_needs_keeps_its_names(text: str, spok
         "in force (EU 2016) and (NATO 1949)",
         "a page (Smith 2001, p. Mill) is no Roman page",
         "This held (Smith 2001, p. Dix) too.",
-        # a year range is no reprint (#481 review S2)
+        # a year range is no reprint (#481)
         "It ran (Fall 2019/2020) here.",
     ],
 )
@@ -317,7 +317,7 @@ def test_the_step_reads_english_and_german_and_its_switch_reads_citations_as_pri
 @pytest.mark.parametrize(
     ("text", "spoken"),
     [
-        # M2 (review of #103): a removal never leaves two marks side by side
+        # a removal never leaves two marks side by side (#103)
         ("It holds. (Smith, 2019). Then more.", "It holds. Then more."),
         ("We use it, presented by Zimmeck et al. (2019). Then more.",
          "We use it, presented by Zimmeck et al. Then more."),
@@ -331,7 +331,7 @@ def test_the_step_reads_english_and_german_and_its_switch_reads_citations_as_pri
         ("This e.g. [3] shows it.", "This e.g. reference 3 shows it."),
         ("Eq. [3] holds and Fig. [2] too.", "Eq. [3] holds and Fig. [2] too."),
         ("Algorithm [5] runs.", "Algorithm [5] runs."),
-        # ... but only a capitalised label word: these are citations (review round 2, R2-2)
+        # ... but only a capitalised label word: these are citations
         ("the EM algorithm [5] works.", "the EM algorithm works."),
         ("the Schrödinger equation [4] holds.", "the Schrödinger equation holds."),
         ("Bayes' theorem [3] holds.", "Bayes' theorem holds."),
@@ -364,7 +364,7 @@ def test_no_removal_leaves_doubled_marks_or_a_wrong_capital(text: str, spoken: s
         # a lead word left alone once its citations go: the bracket goes whole, as a second
         # run would remove "(see also)" (D-577; read "It holds (see also)." before)
         ("It holds (see also (Smith, 2019); Jones, 2020).", "It holds."),
-        # numeric citations inside are read in too (review round 1, M1)
+        # numeric citations inside are read in too
         ("It holds ((Smith, 2019) [3] Jones, 2020) here.", "It holds here."),
         ("It holds ([1] Jones, 2020) here.", "It holds here."),
         # an inner reading in words goes in as a second run sees it ... (S1)
@@ -390,7 +390,7 @@ def read_all(text: str, language: str = "en") -> str:
 @pytest.mark.parametrize(
     ("language", "printed", "said"),
     [
-        # a nest as the subject whose inner citation keeps its names (review round 2, M1)
+        # a nest as the subject whose inner citation keeps its names
         ("en", "(see (Smith, 2019) 2020) found it.", "Smith found it."),
         ("en", "(see (Smith, 2019; Lee, 2020) 2021) found it.", "Smith and Lee found it."),
         ("en", "(cf. (Smith, 2020) 2020) is cited.", "Smith is cited."),
@@ -404,7 +404,7 @@ def read_all(text: str, language: str = "en") -> str:
         ("de", "(vgl. (Müller, 2019) 2020) zeigt das.", "Müller zeigt das."),
         ("de", "wie (vgl. (Müller, 2019) 2020) zeigt", "wie Müller zeigt"),
         ("de", "Es gilt ((vgl. (Weber, 2020) [1] 2020) das) hier.", "Es gilt (Weber das) hier."),
-        # a page glued to an inner citation goes with it (review round 2, M2)
+        # a page glued to an inner citation goes with it
         ("en", "It holds ((Smith, 2019)[p. 4] Jones, 2020) here.", "It holds here."),
         ("de", "Es gilt ((Müller, 2019)[S. 4] Schmidt, 2020) hier.", "Es gilt hier."),
     ],
@@ -441,12 +441,12 @@ _NESTS = st.recursive(
     st.sampled_from([" found it.", " is cited.", " here.", ")", " zeigt das."]),
     st.sampled_from(["en", "de"]),
 )
-# found with --hypothesis-seed=5 on the #621 head efae3c7 (review round 1, M1)
+# found with --hypothesis-seed=5 on the #621 head efae3c7
 @example("", "(see (Smith, 2019; Lee, 2020), Lee, 2020)", " found it.", "en")
 def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
     before: str, nest: str, after: str, language: str
 ) -> None:
-    """Review round 2 of #279, M1: a nest's edits crossed its inner bracket's, and settling
+    """#279: a nest's edits crossed its inner bracket's, and settling
     them left a stray ")"."""
     text = before + nest + after
     once = read_all(text, language)
@@ -455,7 +455,7 @@ def test_a_nest_reads_balanced_and_the_same_on_a_second_run(
 
 
 def test_a_nest_of_one_citation_as_the_subject_keeps_its_names() -> None:
-    """Read "() is cited." before D-577 (S3 of the #279 review), then "is cited." (D-605); a
+    """Read "() is cited." before D-577 (#279), then "is cited." (D-605); a
     bracket around one citation as the subject names it, as the flat form does (#415,
     D-791)."""
     once = read_all("((Smith, 2019)) is cited.")
@@ -542,7 +542,7 @@ def test_an_identifier_says_why_it_is_not_read() -> None:
 @pytest.mark.parametrize(
     ("language", "printed", "said"),
     [
-        # #285 review round 1, R1-2: the other brackets are judged as a second run sees them
+        # #285: the other brackets are judged as a second run sees them
         ("en", "As shown by Smith (527794) (2019), it grew.", "As shown by Smith, it grew."),
         ("de", "Text (527794) (2019) mehr.", "Text mehr."),
         ("de", "Wie Müller (527794) (2019) zeigt, wuchs es.", "Wie Müller zeigt, wuchs es."),
@@ -559,7 +559,7 @@ def test_an_identifier_says_why_it_is_not_read() -> None:
         ("de", "Text (vgl. (527794)) mehr.", "Text mehr."),
         ("en", "Text (see) more.", "Text (see) more."),  # no identifier went: as before
         ("en", "Text ( (527794)) more.", "Text more."),
-        # review round 2, R2-1: a bracket of identifiers once its inner citation goes
+        # a bracket of identifiers once its inner citation goes
         ("en", "Text (527794 (Smith, 2019)) more.", "Text more."),
         ("en", "Text (grant 527794 (Smith, 2019)) more.", "Text more."),
         ("en", "( 527794 (Smith, 2019) )", ""),
@@ -607,7 +607,7 @@ _IDENTIFIERS = st.one_of(
             "(12.345-mal)",
         ]
     ),
-    # review round 2: citations inside identifier text, "(grant 527794 (Smith, 2019))"
+    # citations inside identifier text, "(grant 527794 (Smith, 2019))"
     st.builds(
         "({}{}{}{})".format,
         st.sampled_from(["", " ", "grant no. ", "FKZ "]),
@@ -643,7 +643,7 @@ def _with_identifiers(draw: st.DrawFn) -> tuple[str, str]:
 
 @given(_with_identifiers(), st.sampled_from(["en", "de"]))
 def test_identifier_brackets_add_no_second_run_change(case: tuple[str, str], language: str) -> None:
-    """#285 review round 1, R1-1 and R1-2: removing an identifier changed how the brackets
+    """#285: removing an identifier changed how the brackets
     next to it or around it were read on a second run. A text that reads the same on a
     second run without identifiers does so with them."""
     base, text = case
@@ -666,7 +666,7 @@ def test_a_deep_nest_of_brackets_does_not_crash() -> None:  # M3
         ("Smith (2019) shows it [3]. ", 4000),
         ("Text ((Smith, 2019) Jones, 2020) here. ", 6000),  # #271: each nest judged on its own
         ("As in [MH17], [GKL+19; Knu84] and [PM10] it is. ", 2000),  # #254
-        # #285 review round 1: the second look at a text without its identifiers
+        # #285: the second look at a text without its identifiers
         ("Smith (527794) (2019) and (see (527794)) here. ", 2000),
         # B9 (#414, #415): lists of brackets, one long list, "or" lists, subject nests
         ("It holds [1], [2] and [3] here. ", 4000),
@@ -897,14 +897,14 @@ def test_the_generated_sentences_mostly_hold_citations() -> None:
         # (D-588)
         ("en", "It holds ((( (Smith, 2019) ))) here.", "It holds here."),
         ("de", "Es gilt [[( [12] )]] hier.", "Es gilt hier."),
-        # ... but only brackets that pair up (#330 review round 2)
+        # ... but only brackets that pair up (#330)
         ("en", "Text ( [12] ] more.", "Text ( ] more."),
     ],
 )  # fmt: skip
 def test_the_edge_rules_read_the_same_on_a_second_run(
     language: str, printed: str, said: str
 ) -> None:
-    # PR #330 review round 1, R1-4: each row fails without the rule its comment names
+    # #330: each row fails without the rule its comment names
     once = read_all(printed, language)
     assert once == said
     assert read_all(once, language) == once
@@ -933,7 +933,7 @@ def _nest(opening: str, inner: str, closing: str, levels: int) -> str:
         ("en", "It holds (", "(527794, (Smith, 2019))", ", Lee, 2020)", 3200, "It holds found."),
         ("en", "It holds (Lee, 2020; ", "(Smith, 2019)", ")", 3200, "It holds found."),
         # a lead word and a year after the names an inner citation keeps: one look, not one
-        # per level, which took 88 s at 800 levels (#330 review round 2, D-599)
+        # per level, which took 88 s at 800 levels (#330, D-599)
         ("en", "It holds (see ", "(Smith, 2019)", " (2019))", 800, "It holds found."),
         (
             "en", "It holds (cf. ", "(Smith, 2019, https://x.org)", " (2019))", 800,
@@ -1130,7 +1130,7 @@ def test_listed_keys_read_as_numeric_citations_do(printed: str, said: str) -> No
 @pytest.mark.parametrize("language", ["en", "de"])
 @pytest.mark.parametrize("numbered", [True, False], ids=["numbered-list", "no-list"])
 def test_key_shapes_no_entry_prints_stay(printed: str, language: str, numbered: bool) -> None:
-    """Review B1 of PR #377: a key is a citation only where the document's entries print it."""
+    """#377: a key is a citation only where the document's entries print it."""
     entries = ("[1] A. Author. A study. 2019.", "[2] B. Author. More. 2020.") if numbered else ()
     assert read_with_keys(printed, language, entries) == printed
 

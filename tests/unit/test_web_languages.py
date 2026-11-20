@@ -415,7 +415,7 @@ def test_the_page_without_the_start_cookie_is_in_the_readers_language(
     server_: tuple[FastAPI, Any], cookie: str | None, accept: str | None, language: str
 ) -> None:
     """The 401 page someone sees before the start link is the only page outside the
-    templates; it follows the same choice of language (review of PR #142, S1)."""
+    templates; it follows the same choice of language (#142)."""
     app, _ = server_
     client = anonymous(app)
     if cookie is not None:

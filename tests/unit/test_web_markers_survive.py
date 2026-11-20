@@ -135,7 +135,7 @@ def test_a_page_of_another_audiobook_and_a_chunk_that_is_no_sentence_are_refused
 def test_a_chunk_whose_span_is_empty_or_outside_the_document_is_no_sentence(
     marked: dict[str, Any], case: str, end: Any
 ) -> None:
-    """Round 1 S2: the route refuses it itself (422), never through the file's read-back
+    """The route refuses it itself (422), never through the file's read-back
     guard (503), and the file is unchanged."""
     client, doc, config = marked["client"], marked["doc"], marked["config"]
     [path] = book_folder(config.output_folder).glob("*.readalong.json")

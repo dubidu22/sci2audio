@@ -126,7 +126,7 @@ def pdfium_chars(data: bytes) -> int:
 def test_a_page_exactly_at_the_character_limit_is_read_and_one_more_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Review S4 of #188: the limit is pinned at its boundary, so `>=` for `>` fails."""
+    """#188: the limit is pinned at its boundary, so `>=` for `>` fails."""
     data = dense_pdf(1, 1_000)
     count = pdfium_chars(data)
     monkeypatch.setattr(pdf, "MAX_PAGE_CHARS", count)
@@ -201,7 +201,7 @@ def text_of(data: bytes) -> list[str]:
             id="wrong-startxref",
         ),
         pytest.param(one_page_pdf() + bytes(2048), ["Hello world"], id="junk-after-the-end"),
-        # past PDFium's 4 KB window for startxref, so it rebuilds the table (review M1 of #188)
+        # past PDFium's 4 KB window for startxref, so it rebuilds the table (#188)
         pytest.param(one_page_pdf() + bytes(4096), ["Hello world"], id="4-kb-after-the-end"),
         pytest.param(one_page_pdf() + bytes(1 << 20), ["Hello world"], id="1-mb-after-the-end"),
         pytest.param(one_page_pdf() + HTML, ["Hello world"], id="web-page-after-the-end"),
@@ -351,7 +351,7 @@ def test_any_page_tree_gives_content_or_a_clear_error(
 
 
 # Cut short or whole: the decision looks at the last %%EOF and what follows it (D-395, as
-# applied after review round 1 of #188, M1 and S1).
+# applied after #188).
 
 TAILS = {
     "4-kb-zeros": bytes(4096),
@@ -392,7 +392,7 @@ def smallest_paper_alone() -> Content:
 
 
 def test_a_file_cut_inside_an_incremental_update_is_cut_short() -> None:
-    """Review S1 of #188: the earlier revision's %%EOF and startxref are whole, so PDFium
+    """#188: the earlier revision's %%EOF and startxref are whole, so PDFium
     would read that revision, a page short, without a word."""
     original = make_pdf([Text("first page", 50, 50)])
     updated = with_page_added(original, "second page")
@@ -416,7 +416,7 @@ def test_a_corpus_paper_cut_inside_an_incremental_update_is_cut_short() -> None:
 def test_a_paper_without_its_eof_marker_is_cut_short_only_if_pdfium_rebuilds_its_table(
     paper: Path,
 ) -> None:
-    """Review S5 of #188: with only the five bytes %%EOF removed, PDFium still finds a valid
+    """#188: with only the five bytes %%EOF removed, PDFium still finds a valid
     table for six papers, so their end is there and they are read; nowak is linearized, its
     table is rebuilt, and it is refused (its end can't be told from a cut). The decision
     only, as in the trailing-bytes test."""
@@ -461,7 +461,7 @@ TAILS_OF_DIGITS = {
 @pytest.mark.timeout(10)
 @pytest.mark.parametrize("tail", TAILS_OF_DIGITS.values(), ids=TAILS_OF_DIGITS.keys())
 def test_digits_after_the_end_are_searched_in_linear_time(tail: bytes) -> None:
-    """Review M2 of #188: the first object pattern took 53 s for 100 KB of digits."""
+    """#188: the first object pattern took 53 s for 100 KB of digits."""
     data = one_page_pdf() + tail
     start = time.perf_counter()
     assert not pdf._cut_short(data, xref_valid=True)

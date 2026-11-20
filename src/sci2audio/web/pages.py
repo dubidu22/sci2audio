@@ -1196,7 +1196,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             s, player_speed_of(request), PLAYER_MIN_SPEED, PLAYER_MAX_SPEED, "listen.speed_value"
         ),
         resume=None if position is None else _resume(view, position),
-        # the stamp goes back with each save of the position (#153, review S1)
+        # the stamp goes back with each save of the position (#153)
         data=data_block({**view.data(found.id), "audiobook": stamp, **marking}),
         markers=marking["markers"],
         markers_file=marking["markers_file"],

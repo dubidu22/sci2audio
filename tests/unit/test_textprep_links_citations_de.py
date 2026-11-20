@@ -228,7 +228,7 @@ def test_german_citations(printed: str, said: str) -> None:
         "Das trat (EU 2016) in Kraft.",
         "Das steht im Heft (BLK-Heft 72 1999).",
         "Es lief (eins/zwei 2019) gut.",
-        # a year range is no reprint (#481 review S2); a page that is no Roman numeral, a
+        # a year range is no reprint (#481); a page that is no Roman numeral, a
         # fraction before a year (N1)
         "Das galt (Wintersemester 2019/2020) noch.",
         "Das galt (Saison 1999/2000) noch.",
@@ -247,7 +247,7 @@ def test_german_citations(printed: str, said: str) -> None:
         "Die Erhebung (Welle 2017) zeigt es.",
         "Die Zahlen (Mai 2019) zeigen es.",  # a month, as before
         "Gemessen wurde im (Sommer 2019) und danach.",
-        # "↔" is a maths sign, as "→" and "←" are (#527, #593 review F2)
+        # "↔" is a maths sign, as "→" and "←" are (#527, #593)
         "Es gilt x ↔ [2] und y ←−→ [3].",
     ],
 )
@@ -431,7 +431,7 @@ def test_the_citations_step_alone_decides_an_aside_the_same_on_a_second_run(
         ("Lärm wirkt (vgl. (Müller, 2019) Schmidt, 2020). Dann", "Lärm wirkt. Dann"),
         ("Lärm wirkt ((Müller, 2019)). Dann", "Lärm wirkt. Dann"),
         ("((Müller, 2019) Schmidt, 2020) zeigt das.", "Schmidt zeigt das."),
-        # numeric citations inside are read in too (review round 1, M1)
+        # numeric citations inside are read in too
         ("Es gilt ((Müller, 2019) [3] Schmidt, 2020) hier.", "Es gilt hier."),
         # a nest of one citation as the subject keeps its names, as the flat form does (#415,
         # D-791; read "() zeigt das." before D-577, then "zeigt das." under D-605)
@@ -463,7 +463,7 @@ def test_a_nested_citation_reads_the_same_on_a_second_run(printed: str, said: st
         ("die (OPP-115) und (COVID-19) Daten", "die (OPP-115) und (COVID-19) Daten"),
         ("siehe (3) und (12)", "siehe (3) und (12)"),
         ("Es waren 12.345 Fälle", "Es waren 12345 Fälle"),  # outside brackets as before
-        # review round 1, R1-1: any thousands number in round brackets reads with spaces, so
+        # any thousands number in round brackets reads with spaces, so
         # run 2 sees no identifier after a funding word or before "-mal"
         ("Gefördert (Projekt 12.345) und mehr.", "Gefördert (Projekt 12 345) und mehr."),
         ("Gefördert (FKZ 12.345) und mehr.", "Gefördert (FKZ 12 345) und mehr."),
@@ -522,7 +522,7 @@ def test_long_german_blocks_take_linear_time(sized: Callable[[int], str], size: 
 
 def test_a_deep_german_nest_takes_about_as_long_as_plain_citations() -> None:
     """The citations step skips a bracket longer than its cap, so a deep nest costs the same
-    at any depth past it and a ratio against a smaller nest says nothing (#277 review, F1).
+    at any depth past it and a ratio against a smaller nest says nothing (#277).
     Against plain citations of the same length it is about 6 times as long; a cap twice or
     four times as high makes it about 24 or 88 times."""
 

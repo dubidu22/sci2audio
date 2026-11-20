@@ -498,7 +498,7 @@ def test_a_junction_in_place_of_an_old_folder_is_never_followed(
     assert not (root / ID).exists()
 
 
-# ---- review round 1 of PR #532 -------------------------------------------------------------
+# ---- #532 -------------------------------------------------------------
 
 
 @pytest.mark.timeout(30)

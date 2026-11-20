@@ -307,7 +307,7 @@ def test_one_numbered_bold_line_does_not_make_a_document_numbered() -> None:
 
 
 def test_a_title_starting_with_a_one_letter_word_gets_no_made_up_number() -> None:
-    """Review of #50: "A" counts as a number only where letters number headings."""
+    """#50: "A" counts as a number only where letters number headings."""
     page = Page().heading("1 Introduction").body().heading("2 Method").body()
     page.heading("A Note on Ethics").body()
     doc = page.build()
@@ -322,7 +322,7 @@ def test_letters_number_appendices_when_more_than_one_heading_uses_them() -> Non
 
 
 def test_sizes_a_rounding_error_apart_are_one_style() -> None:
-    """Review of #50: 11.94 and 12.0 point headings are one style, not two."""
+    """#50: 11.94 and 12.0 point headings are one style, not two."""
     page = Page().heading("1 Introduction", 11.94).body().heading("2 Method", 12.0).body()
     page.heading("3 Results", 11.94).body().heading("References", 12.0).body()
     doc = page.build()
@@ -361,7 +361,7 @@ def numbered_papers(draw: st.DrawFn) -> tuple[Page, list[tuple[str, int, str]]]:
 def test_any_numbered_paper_gets_its_headings_and_levels(
     paper: tuple[Page, list[tuple[str, int, str]]],
 ) -> None:
-    """Review of #50: a property that sees headings in every example."""
+    """#50: a property that sees headings in every example."""
     page, expected = paper
     doc = page.build()
     sections, stack = [], list(doc.sections)
@@ -425,7 +425,7 @@ def test_the_font_rules_level_stands_when_the_outline_disagrees() -> None:
 
 
 def test_the_font_rules_level_stands_for_unnumbered_headings_too() -> None:
-    """Review of #146 (M1): without numbers the outline's level would differ (D-271)."""
+    """#146: without numbers the outline's level would differ (D-271)."""
     page = Page().heading("Summary", 14.0).body().heading("Details", 12.0).body()
     page.heading("Statement of need", 14.0).body().heading("More", 12.0).body()
     alone = page.build()
@@ -440,7 +440,7 @@ def test_the_font_rules_level_stands_for_unnumbered_headings_too() -> None:
 
 
 def test_an_added_numbered_heading_under_the_appendices_title_moves_down_too() -> None:
-    """Review of #146 (S1): the same shift as the font rules give "A.1"."""
+    """#146: the same shift as the font rules give "A.1"."""
     page = Page().heading("1 Introduction").body().heading("2 Method").body()
     page.heading("Appendices", 16.0).body().heading("A Proofs").body()
     page.heading("A.1 First", 10.0).body()
@@ -463,7 +463,7 @@ def test_an_added_numbered_heading_under_the_appendices_title_moves_down_too() -
 
 
 def test_the_shift_starts_at_the_first_common_title_and_not_before() -> None:
-    """Review of #146, round 2: a second common title does not move the shift's start, and
+    """#146: a second common title does not move the shift's start, and
     an added numbered heading before the first one is not shifted."""
     page = Page().heading("1 Introduction").body()
     plain(page, "1.1 Early").body()
@@ -480,7 +480,7 @@ def test_the_shift_starts_at_the_first_common_title_and_not_before() -> None:
 
 
 def test_the_first_of_two_entries_naming_one_block_decides_its_level() -> None:
-    """Review of #146 (N1)."""
+    """#146."""
     page = Page().heading("Summary", 14.0).body().heading("Statement of need", 14.0).body()
     plain(page, "A Closer Look").body()
     first = (OutlineEntry("Summary", 1, 1), OutlineEntry("Statement of need", 1, 1))
@@ -554,8 +554,8 @@ def test_an_entry_without_letters_adds_nothing() -> None:
 
 
 def test_titles_are_compared_after_nfkc_case_and_spaces() -> None:
-    """A ligature on the page ("ﬁ"), full-width letters (only NFKC folds them, review of
-    #146, S2), another case and extra spaces in the bookmark."""
+    """A ligature on the page ("ﬁ"), full-width letters (only NFKC folds them,
+    #146), another case and extra spaces in the bookmark."""
     page = Page().heading("1 Introduction").body().heading("2 Method").body()
     plain(page, "Final  Deﬁnitions").body()
     plain(page, "Closing Words").body()
@@ -816,7 +816,7 @@ def test_after_the_appendices_title_a_ruled_heading_is_level_one_and_the_shift_g
 
 
 def test_a_header_row_split_into_cells_over_a_table_rule_is_not_a_heading() -> None:
-    """Review of #180 (M1): the rule is measured against the block's whole last row. An
+    """#180: the rule is measured against the block's whole last row. An
     uncaptioned table's bold header cells read as one block over a booktabs rule that
     overhangs the row by 6 points (`\\tabcolsep`) at each end: less than one em, so no
     heading, though it starts far before the last cell ("F1")."""
@@ -1015,7 +1015,7 @@ def test_front_matter_that_would_be_the_whole_document_is_none() -> None:
 
 
 def test_front_matter_in_several_sections_that_would_be_the_whole_document_is_none() -> None:
-    """Review round 2 (F3): two pages, each named front matter, leave nothing to read by
+    """Two pages, each named front matter, leave nothing to read by
     default; the file is then read as without front matter."""
     for second in ("Cover", "Impressum"):
         found = content(Page().body().lines, Page().body().lines)
