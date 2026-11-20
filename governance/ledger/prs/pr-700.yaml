@@ -8,5 +8,5 @@ critical: no
 compactions: 0
 fixes_kinds: ""
 note: "PRODUCT.md names the opt-in update check (#678); CHANGELOG Fixed lines for #671 and #682 (#686, audit F3)"
-rounds: 1
-merged: ""
+rounds: 2
+merged: "91866ff (squash of 5465f8f, 2026-11-20)"

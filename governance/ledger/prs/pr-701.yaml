@@ -8,5 +8,5 @@ critical: yes
 compactions: 0
 fixes_kinds: ""
 note: "ADR-008 the Study layer for v1.5 (#395, D-850, D-854); issue edits #397 #398 #399; v2 issues #702 to #705"
-rounds: 1
-merged: ""
+rounds: 2
+merged: "b98b1fc (squash of 92c2894, 2026-11-20)"
