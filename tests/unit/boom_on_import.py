@@ -1,4 +1,4 @@
-"""A plugin module whose import raises a BaseException subclass (review S1 of #676)."""
+"""A plugin module whose import raises a BaseException subclass."""
 
 from broken_text_plugins import Boom
 

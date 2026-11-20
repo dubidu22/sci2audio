@@ -144,7 +144,7 @@ class Boom(BaseException):
 
 
 class BadPropertyStep(_Plugin):
-    """Its languages are computed, and computing them fails (review M1 of #676)."""
+    """Its languages are computed, and computing them fails."""
 
     id = "bad-property"
 

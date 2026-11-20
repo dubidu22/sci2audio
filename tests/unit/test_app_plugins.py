@@ -94,8 +94,8 @@ def test_the_command_line_names_the_installed_plugins(
 def test_broken_installed_plugins_do_not_stop_the_command_line(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Review M1 and S1 of #676: the runner the command line makes at start-up loads every
-    installed plugin; plugin code that fails while it loads is a warning, never a crash."""
+    """The runner the command line makes at start-up loads every installed plugin; plugin
+    code that fails while it loads is a warning, never a crash."""
     site = tmp_path / "site"
     info = site / "bad-plugins-0.1.dist-info"
     info.mkdir(parents=True)

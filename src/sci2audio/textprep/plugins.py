@@ -168,7 +168,7 @@ def _distribution(point: EntryPoint) -> tuple[str, str]:
             return "", ""
         metadata = dist.metadata
         # .get, not [...]: a missing field is None here, never a deprecation warning or a
-        # KeyError (review S2 of #676)
+        # KeyError
         return str(metadata.get("Name") or ""), str(metadata.get("Version") or "")
     except KeyboardInterrupt:
         raise
@@ -191,8 +191,8 @@ def _step(point: EntryPoint, taken: set[str], timeout: float) -> _GuardedStep:
 
     Everything that touches the plugin's objects is plugin code and may fail in any way: a
     property that raises, a BaseException that is not an Exception. The runner is made at
-    start-up, so such a failure here would stop every command (review M1, S1 of #676); it
-    rejects the plugin instead. Only Ctrl+C gets through.
+    start-up, so such a failure here would stop every command; it rejects the plugin
+    instead. Only Ctrl+C gets through.
     """
     try:
         made = point.load()
