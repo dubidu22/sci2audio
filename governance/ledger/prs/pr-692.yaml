@@ -6,4 +6,5 @@ labels: "lane:infra, risk:high"
 plan: plans/infra-b-i2-plan.md
 critical: yes
 compactions: 0
-fixes_kinds: "promised-test-missing"
+fixes_kinds: ""
+note: "META-03 check for the finding kind of #671 S1 and #675 (a promised test absent from the PR), D-842"
