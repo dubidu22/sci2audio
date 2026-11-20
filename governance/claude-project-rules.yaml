@@ -9,7 +9,7 @@
 #   execution_profile: decoupled model routing and token-economy settings
 #   <section>:         active rules with id, applies_to, rule
 
-version: 1.6.0
+version: 1.7.0
 date: 2026-11-20
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
@@ -295,7 +295,7 @@ hard_invariants_and_owner_prefs:
     rule: "Every issue carries a milestone, a lane label and, where it applies, risk:high or risk:low; an issue without acceptance criteria is not started, the thread asks the coordinator for them first (D-702, D-738). Enforced by: review only."
   - id: INV-12
     applies_to: implementation
-    rule: "The decision log is docs/kb/00-index/decision-log.md in dubidu22/sci2audio-design; pending decisions collect in the workspace's kb/kb-batch-<date>-pending.md. A row is 'Decided' when Colin stated or approved it (his words and time quoted) and 'Decided (Claude)' otherwise; a revised older row gets a status note naming the newer entry (D-714). Enforced by: KB thread only."
+    rule: "The decision log is governance/kb/decision-log.md in this repository (moved from dubidu22/sci2audio-design on 20 Nov 2026); pending decisions collect in governance/kb/pending-decisions.md and the KB thread merges them in one PR per day. A row is 'Decided' when Colin stated or approved it (his words and time quoted) and 'Decided (Claude)' otherwise; a revised older row gets a status note naming the newer entry (D-714). Enforced by: KB thread only."
   - id: INV-13
     applies_to: implementation
     rule: "Release: R1 sets version, CHANGELOG and README on release/X.Y; R2 is the release-day PR with Colin's hand-step results and the changelog date; R3 forward-merges release/X.Y into main after the tag, then the milestone closes. The release-checklist runs (ZAP, nightly, mutation) run on the release branch (D-669, D-714). Enforced by: docs/release-checklist.md."

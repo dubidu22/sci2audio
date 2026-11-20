@@ -1,7 +1,7 @@
 # Extract for assist threads. Generated with claude-project-rules.yaml; do not edit.
 # It holds the rules scoped to this role or to all. If it and the full file ever differ, the full file wins.
 extract_for: assist
-version: 1.6.0
+version: 1.7.0
 date: 2026-11-20
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
