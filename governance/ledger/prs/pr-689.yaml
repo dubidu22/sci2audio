@@ -9,6 +9,6 @@ compactions: 0
 fixes_kinds: ""
 issues: "#667 #669"
 head: 13ec9c2
-ci: "Linux pending at open; then main merged in, ci:full, label removed (D-698)"
+ci: "Linux green at 13ec9c2; main merge a no-op (caecf7a already in); ci:full run 44791741669 green on ubuntu, macos, windows; label removed (D-698). Firefox report-only job failed test_flow.py:305 (hold wait), not from this PR"
 local_checks: "ruff, format, lint-imports, deptry clean; fast 8597 passed (-k 'not espeak')"
 follow_ups: "#688 (v2, lane:web)"
