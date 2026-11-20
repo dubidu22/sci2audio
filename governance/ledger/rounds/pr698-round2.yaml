@@ -1,0 +1,11 @@
+pr: 698
+round: 2
+date: 2026-11-20
+thread: review-web-b-w2
+head: f7e818a
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr698-round2.md
