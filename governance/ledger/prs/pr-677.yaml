@@ -1,0 +1,9 @@
+pr: 677
+opened: 2026-11-20
+thread: layout-b-l1
+lane: extraction
+labels: "lane:extraction, risk:low"
+plan: none (issue #670 states the fix; coordinator's go 20 Nov)
+critical: no
+compactions: 0
+fixes_kinds: ""
