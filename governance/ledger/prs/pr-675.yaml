@@ -8,10 +8,11 @@ critical: yes                 # a network call (the opt-in update check), D-837
 compactions: 0
 fixes_kinds: ""
 issues: "#217 #172"
-head: db9df93
+head: 39ccb8e
 ci_full: green on ubuntu, macos, windows at c691608; label removed (D-698). First run at bd92586 failed: ZAP never scanned the two new routes (walk now calls them), title had two (#N)
 local_checks: "ruff, format, lint-imports, deptry clean; fast 8445 passed (3 espeak tests deselected on macOS); browser 196 passed"
 follow_ups: "#672 #673 #674 (v2, risk:low); #678 (v1.4, lane:docs)"
 round_1: "answered in 51b6735: M1 M2 S1 S2 S3 S4 N4 fixed; N1 N2 N3 not changed (reasons in plans/answer-pr675-round1.md)"
 notes: "CLAUDE.md hard-rule line added in 51b6735 after Colin's own yes in this session (D-838)"
 round_2: "approved 51b6735, 0 findings; main 2cd4f20 merged (merge commit db9df93, PR diff unchanged); final ci:full started"
+final_merge: "main 20f9575 merged (39ccb8e); CHANGELOG Unreleased keeps both sides (#217 and #216 under Added, #172 under Security); PR diff otherwise unchanged; ci:full started"
