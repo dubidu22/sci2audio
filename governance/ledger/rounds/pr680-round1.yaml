@@ -1,0 +1,12 @@
+pr: 680
+round: 1
+date: 2026-11-20
+thread: review-infra-b-i1
+head: c6322ae
+critical: yes
+verdict: changes_requested
+must_fix: 0
+should_fix: 4
+kinds: "brittle-test, missing-critical-path, config-drift, pr-body"
+report: plans/review-pr680-round1.md
+merged: ""
