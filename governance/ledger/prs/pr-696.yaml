@@ -1,0 +1,14 @@
+pr: 696
+opened: 2026-11-20
+thread: web-b-w2
+lane: web
+labels: "lane:web, lane:docs, risk:high"
+plan: plans/web-b-w2-plan.md
+critical: yes                 # #685, privacy text about the network (D-847)
+compactions: 0
+fixes_kinds: ""
+issues: "#666 #668 #685"
+head: 51daacd
+ci: "Linux pending at open; then main merged in if behind, ci:full on the coordinator's word, label removed (D-698)"
+local_checks: "ruff, format, lint-imports, deptry clean; fast 8635 passed (-k 'not espeak'); browser 198 passed (Chromium)"
+follow_ups: "#688 (v2, lane:web)"
