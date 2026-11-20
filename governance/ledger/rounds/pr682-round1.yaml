@@ -9,4 +9,4 @@ must_fix: 0
 should_fix: 1
 kinds: "misplaced-comment"
 report: plans/review-pr682-round1.md
-merged: ""
+merged: caecf7a
