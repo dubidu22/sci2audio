@@ -32,3 +32,17 @@ jobs:
           python3 .github/governance/pr_checks.py --config .github/governance/pr-checks.json \
             --title "$PR_TITLE" --labels "$PR_LABELS" \
             --files "$RUNNER_TEMP/changed.txt" --commits "$RUNNER_TEMP/commits.txt" --diff "$RUNNER_TEMP/diff.txt"
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        if: ${{ !cancelled() }}
+      - name: Check that the promised tests exist
+        if: ${{ !cancelled() }}
+        # opt-in (#687): only a body with the heading costs a sync and a collection of the named files
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.md"
+          mapfile -t files < <(python3 .github/governance/promised_tests.py files "$RUNNER_TEMP/body.md")
+          if [ "${#files[@]}" -gt 0 ]; then
+            uv run --frozen pytest --collect-only -q -p no:cacheprovider "${files[@]}" > "$RUNNER_TEMP/collected.txt" || true
+          fi
+          python3 .github/governance/promised_tests.py check "$RUNNER_TEMP/body.md" "$RUNNER_TEMP/collected.txt"
