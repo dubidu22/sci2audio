@@ -1,0 +1,12 @@
+pr: 676
+round: 2
+date: 2026-11-20
+thread: review-plugins-b-p1
+head: 3e24d63
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 1
+kinds: "narrating-comment"
+report: plans/review-pr676-round2.md
+merged: ""
