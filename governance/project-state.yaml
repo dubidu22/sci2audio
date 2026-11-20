@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-19T17:12Z
+updated: 2026-11-20T12:50Z
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -15,6 +15,8 @@ active_now:
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
   lanes_active: []                                   # D-830: release 1.4.0 shipped 19 Nov 17:12Z; all code lanes closed for this release (D-795). Full lane history: plans/decisions-d712-d714.md
   lanes_waiting: []                                  # v2 backlog (milestone 10) waits for Colin's next ask / tester feedback
+  kb_thread: "kb-2026-11-20 (Opus 5.5 medium): compiles D-831..D-833 into the decision log, PR into main pending; first KB run in ./governance (D-831)"
+  triage_running: "v1.4 milestone triage (17 open issues) and three backlog issues (espeak tests on macOS, CodeQL paths-ignore, lanes.yml governance owner); batch plan goes to Colin before any lane starts (Colin 20 Nov)"
   audits_running: []                                 # B1, B3, folders, B7, B2, B8 light audits done; web B8 DONE 19 Nov 02:22Z (#582 678fe3c, #293 #534 #541 closed, #596 filed)
 notifications_pending: []                            # v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
 open_owner_items:
