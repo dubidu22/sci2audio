@@ -26,6 +26,7 @@ import hashlib
 import math
 import re
 import threading
+import unicodedata
 from bisect import bisect_left, bisect_right
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
@@ -71,6 +72,31 @@ STACK = 2.0  # em: a script stacked under another starts at most this far back u
 # over 5 pt letters is 0.16 em, so the limit leaves room above that (review R1-2 of #323).
 FRACTION_BAR = 0.25  # em of the larger letter: a fraction bar is at most this thick ...
 FRACTION_REACH = 0.6  # em: ... with numerator and denominator at most this far from it
+# A spacing accent drawn as a glyph of its own over its letter, but stored apart from it (after
+# the word, or a few words on), jumps back along the line and so comes out as a line holding
+# only the accent (Chi p6 "Marasovic," with its acute apart, #125). It goes onto the letter
+# it stands over. An accent stored in reading order inside a line stays as stored: the text
+# step of #65 joins a TeX accent onto its letter as a marked edit and leaves a hat in maths
+# alone (D-835).
+ACCENT_LINES = 8  # lines stored before and after a lone accent searched for its letter
+ACCENT_REACH = 0.5  # em: an accent stands at most this far above or below its letter's line
+# Each spacing accent's combining form: textprep has its own (`characters`), which extraction
+# cannot import.
+_COMBINING = {
+    "\u00b4": "\u0301",  # acute
+    "`": "\u0300",  # grave
+    "\u02c7": "\u030c",  # caron
+    "\u02c6": "\u0302",  # circumflex
+    "\u02dc": "\u0303",  # tilde
+    "\u00a8": "\u0308",  # diaeresis
+    "\u00af": "\u0304",  # macron
+    "\u02d8": "\u0306",  # breve
+    "\u02d9": "\u0307",  # dot above
+    "\u00b8": "\u0327",  # cedilla
+    "\u02db": "\u0328",  # ogonek
+    "\u02da": "\u030a",  # ring
+    "\u02dd": "\u030b",  # double acute
+}
 SAME_LINE = 0.3  # a character overlapping the line by this share of its height continues it
 BOLD_WEIGHT = 600  # a font weight from this value on is bold
 _ITALIC_FLAG = 1 << 6  # PDF font descriptor flag "Italic"
@@ -831,7 +857,62 @@ def _lines(
         lines[-1].add(char, space)
         unmapped += char.unmapped
         space = None
-    return tuple(_text_line(line, f"p{number}-l{i}") for i, line in enumerate(lines, 1)), unmapped
+    placed = _accents_onto_letters(lines)
+    return tuple(
+        _text_line(line, f"p{number}-l{i}")
+        for i, line in enumerate(lines, 1)
+        if i - 1 not in placed  # the page keeps its numbering: the accent's id goes missing
+    ), unmapped
+
+
+def _accents_onto_letters(lines: list[_Line]) -> set[int]:
+    """Each line that holds only a spacing accent is put onto the letter it stands over in
+    one of the `ACCENT_LINES` lines stored before or after it (#125): of the letters under
+    it, the one overlapping it most across, so not a letter of the line under the accent's
+    own, whose loose box may touch it (Chi p6 "Doug" under "Marasovic,"); the nearest line
+    stored wins a tie. The indexes of the lines so placed."""
+    placed: set[int] = set()
+    for i, line in enumerate(lines):
+        if not _lone_accent(line):
+            continue
+        accent = line.chars[0]
+        near = range(max(0, i - ACCENT_LINES), min(len(lines), i + ACCENT_LINES + 1))
+        found = [
+            (_across(c, accent), -abs(j - i), c)
+            for j in near
+            if j != i
+            for c in lines[j].chars
+            if _under(c, accent)
+        ]
+        if found:
+            letter = max(found, key=lambda f: (f[0], f[1]))[2]
+            letter.text = unicodedata.normalize("NFC", letter.text + _COMBINING[accent.text])
+            placed.add(i)
+    return placed
+
+
+def _lone_accent(line: _Line) -> bool:
+    return len(line.chars) == 1 and line.chars[0].text in _COMBINING
+
+
+def _under(letter: _Char, accent: _Char) -> bool:
+    """True if the accent stands over (or, a cedilla, under) the letter: the letter's extent
+    along the line holds the accent's middle, and across they overlap or stand at most
+    `ACCENT_REACH` em apart."""
+    if len(letter.text) != 1 or not letter.text.isalpha():
+        return False
+    turn = abs(letter.angle - accent.angle)
+    if min(turn, math.tau - turn) > 0.01:
+        return False
+    reach = ACCENT_REACH * max(letter.style[1], accent.style[1], 1.0)
+    return (
+        letter.u0 <= (accent.u0 + accent.u1) / 2 <= letter.u1 and _across(letter, accent) >= -reach
+    )
+
+
+def _across(a: _Char, b: _Char) -> float:
+    """How far the two characters overlap across the line (negative: the white between)."""
+    return min(a.v1, b.v1) - max(a.v0, b.v0)
 
 
 def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]:

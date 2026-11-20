@@ -115,7 +115,7 @@ def rows_of(
                 after.append(element)
                 continue
         elif latest is not None and (
-            _one_line(latest, element, edges, settings)
+            (_one_line(latest, element, edges, settings) and _on_row(found[-1], element, settings))
             or _denominator(found[-1], element, edges, settings, size, bars)
         ):
             found[-1].append(element)
@@ -207,6 +207,49 @@ def _one_line(
 ) -> bool:
     """True if two text pieces read one after the other are one printed line."""
     return edges[id(a)] == edges[id(b)] and same_row(a.box, b.box, settings.row_overlap)
+
+
+def _on_row(row: list[Element], piece: Element, settings: LayoutSettings) -> bool:
+    """True if the text piece's base letters overlap those of the row's pieces so far
+    (`_band`). A piece on one line with the piece before it joins the row only if this
+    holds too: measured against the row as a whole and by its letters, not its box, a
+    piece reaching into the line below (a brace whose box hangs 7 pt under the baseline,
+    a tall accent) does not take that line into the row (#126)."""
+    pieces = [e for e in row if e.line is not None]
+    return same_row(_band(pieces, settings), _band([piece], settings), settings.row_overlap)
+
+
+def _band(pieces: list[Element], settings: LayoutSettings) -> Box:
+    """Where the pieces' base letters stand across the line: the median top and bottom, by
+    letters, of the runs set within `same_size` of their largest size (a script is smaller,
+    and in "0[n(-1)" outnumbers the base letters); a piece whose runs have no box counts as
+    one run with the piece's box."""
+    found: list[tuple[float, Box, int]] = []  # size, box, letters
+    for piece in pieces:
+        if piece.line is None:
+            continue
+        runs = [r for r in piece.line.runs if r.box is not None and r.text.strip()]
+        if runs:
+            found += [(r.size, r.box, len(r.text.strip())) for r in runs if r.box]
+        else:
+            letters = len(piece.line.text.strip()) or 1
+            found.append((letter_size(piece.line.runs), piece.box, letters))
+    largest = max(size for size, _, _ in found)
+    base = [(box, n) for size, box, n in found if size >= (1 - settings.same_size) * largest]
+    weights = [n for _, n in base]
+    top = _weighted_median([box.y0 for box, _ in base], weights)
+    bottom = _weighted_median([box.y1 for box, _ in base], weights)
+    return Box(min(p.box.x0 for p in pieces), top, max(p.box.x1 for p in pieces), bottom)
+
+
+def _weighted_median(values: list[float], weights: list[int]) -> float:
+    pairs = sorted(zip(values, weights, strict=True))
+    half, total = sum(weights) / 2, 0
+    for value, weight in pairs:
+        total += weight
+        if total >= half:
+            return value
+    return pairs[-1][0]
 
 
 def _following_lines(ordered: list[Element]) -> dict[int, Element | None]:
