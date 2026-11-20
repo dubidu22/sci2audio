@@ -145,3 +145,62 @@ def test_the_design_record_and_the_working_files_belong_to_the_docs_lane(path: s
     assert results["ownership"] == "ok"
     assert "unowned" not in results
     assert check([path, "src/sci2audio/cli.py"], ["lane:cli"])["ownership"] == "ok"
+
+
+KB_CRITICAL = [
+    "governance/kb/README.md",
+    "governance/kb/**/adr-*.md",
+    "governance/kb/**/playbook-*.md",
+    "governance/kb/**/doc-*.md",
+]
+# the definition of "not critical" (#681): a KB file of neither kind fails the guard below
+KB_RECORDS = [
+    "governance/kb/**/audit-*.md",
+    "governance/kb/**/working-*.md",
+    "governance/kb/**/feature-*.md",
+    "governance/kb/decision-log.md",
+    "governance/kb/pending-decisions.md",
+    "governance/kb/merged-batches/**",
+    "governance/kb/00-index/**",
+    "governance/kb/**/tools/**",
+]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "governance/kb/README.md",
+        "governance/kb/01-audit-and-roadmap/adr-001-evolve-core-not-rewrite.md",
+        "governance/kb/01-audit-and-roadmap/playbook-dev-lifecycle-operating-model.md",
+        "governance/kb/02-product-and-pipeline/doc-pipeline-architecture.md",
+    ],
+)
+def test_kb_process_contract_and_architecture_documents_are_critical(path: str) -> None:
+    assert PR_CHECKS.matches(path, CONFIG["critical_paths"])
+    assert check([path], ["lane:docs"])["critical"] == "FAIL"
+    assert check([path], ["lane:docs", "risk:high"])["critical"] == "ok"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "governance/kb/decision-log.md",
+        "governance/kb/pending-decisions.md",
+        "governance/kb/01-audit-and-roadmap/audit-process-and-velocity.md",
+        "governance/kb/02-product-and-pipeline/working-product-open-questions.md",
+        "governance/kb/merged-batches/kb-batch-2026-11-20-pending.md",
+    ],
+)
+def test_the_decision_log_and_the_kb_records_are_not_critical(path: str) -> None:
+    """The daily decision-log PR stays outside review (D-703c)."""
+    assert "critical" not in check([path], [])
+
+
+def test_every_kb_file_is_critical_or_a_record() -> None:
+    files = tracked_files("governance/kb")
+    assert len(files) > 40, files
+    match = PR_CHECKS.matches
+    kinds = {p: (match(p, KB_CRITICAL), match(p, KB_RECORDS)) for p in files}
+    wrong = {p: k for p, k in kinds.items() if k not in ((True, False), (False, True))}
+    assert not wrong, wrong
+    assert all(g in CONFIG["critical_paths"] for g in KB_CRITICAL)
