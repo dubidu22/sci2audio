@@ -1,0 +1,11 @@
+pr: 700
+round: 2
+date: 2026-11-20
+thread: review-docs-b-d1
+head: 5465f8f
+critical: no
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr700-round2.md
