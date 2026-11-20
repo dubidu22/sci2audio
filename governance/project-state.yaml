@@ -1,11 +1,12 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-20T17:20Z
+updated: 2026-11-20T17:40Z
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
   paused: false                                      # Colin "continue" 16 Nov 16:21:35Z (CMD-06); paused 13:24Z–16:21Z
+  local_test_rule: "until a branch contains main 2cd4f20 (#677), every local pytest run on Colin's Mac deselects tests/unit/test_extraction_pdf_process.py::test_a_child_that_ends_without_a_result_is_named (macOS crash dialog; 14 reports 20 Nov); branches merge main before their final ci:full run (Colin 20 Nov ~17:30Z)"
   pause_exceptions:
     - "a thread still answers Colin's own messages in its thread"
   slow_down: false

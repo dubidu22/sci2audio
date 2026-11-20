@@ -1,0 +1,12 @@
+pr: 676
+round: 1
+date: 2026-11-20
+thread: review-plugins-b-p1
+head: 6f25cd4
+critical: yes
+verdict: changes_requested
+must_fix: 1
+should_fix: 2
+kinds: "unguarded-plugin-code, baseexception-escape, deprecated-api"
+report: plans/review-pr676-round1.md
+merged: ""
