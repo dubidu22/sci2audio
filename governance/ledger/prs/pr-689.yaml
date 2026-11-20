@@ -8,8 +8,9 @@ critical: yes                 # the CLI help golden changes (D-847)
 compactions: 0
 fixes_kinds: ""
 issues: "#667 #669"
-head: d4b2111
+head: 597a7b1
 ci: "Linux green at 13ec9c2; main merge a no-op (caecf7a already in); ci:full run 44791741669 green on ubuntu, macos, windows; label removed (D-698). Firefox report-only job failed test_flow.py:305 (hold wait), not from this PR"
 local_checks: "ruff, format, lint-imports, deptry clean; fast 8597 passed (-k 'not espeak')"
 follow_ups: "#688 (v2, lane:web)"
 round_1: "answered in d4b2111: S1 (lazy CLI runner, no plugin imported under --no-plugins) and S2 fixed, N2 filtered; N1 N3 accepted, N4 N5 noted"
+round_2: "approved d4b2111, 0 findings; main a431fcd merged (597a7b1, PR diff unchanged); final ci:full started"
