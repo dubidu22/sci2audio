@@ -35,6 +35,8 @@ from web_helpers import (
     upload,
 )
 
+from sci2audio import __version__
+from sci2audio.app import JobRunner
 from sci2audio.core import (
     Block,
     BlockKind,
@@ -65,6 +67,7 @@ from sci2audio.web.player import (
     build_view,
     indented,
     joined_hyphens,
+    read_audio_record,
     sentence_starts,
     shown,
 )
@@ -1085,3 +1088,108 @@ def test_a_broken_document_record_is_named(tmp_path: Path) -> None:
         "The record of this audiobook can&#39;t be read"
         in client.get(f"/documents/{doc}/listen").text
     )
+
+
+# ---- the steps the audiobook was made with (#666) ---------------------------------------
+
+
+def said_parts(view: player.PlayerView) -> list[tuple[str, str]]:
+    return [
+        (part.text, part.said)
+        for chapter in view.chapters
+        for block in chapter.blocks
+        for piece in block.pieces
+        for part in piece.parts
+        if part.mark == "said"
+    ]
+
+
+def test_the_read_along_uses_the_plugin_steps_it_is_given() -> None:
+    from web_helpers import AMPERSAND_TEXT, plugin_steps
+
+    document = make_document([("paragraph", AMPERSAND_TEXT)])
+    data = readalong([(0, 0, len(AMPERSAND_TEXT))])
+    made = record(chunks=1, made_with=__version__)
+    assert said_parts(build_view(document, made, data, plugin_steps())) == [("&", "and")]
+    assert said_parts(build_view(document, made, data)) == []
+
+
+def test_joined_hyphens_takes_the_steps_it_is_given() -> None:
+    text = "asking questions, and con-\ntributing code."
+    document = make_document([("paragraph", text)])
+    assert joined_hyphens(document, frozenset()) == {0: frozenset({text.index("-")})}
+    assert joined_hyphens(document, frozenset(), steps=()) == {}
+
+
+def plugin_server(tmp_path: Path) -> tuple[Any, Any]:
+    from web_helpers import plugin_steps
+
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    app = create_app(
+        config, runner=JobRunner(plugin_steps()), voice=lambda models_dir: voice.source()
+    )
+    return program(app, config), config
+
+
+def ampersand_pdf() -> bytes:
+    from web_helpers import AMPERSAND_TEXT
+
+    return make_pdf([Text(AMPERSAND_TEXT, 72, 100, size=11)])
+
+
+def test_the_listen_page_uses_the_servers_plugin_steps(tmp_path: Path) -> None:
+    client, _ = plugin_server(tmp_path)
+    made = make(client, ampersand_pdf(), "salt.pdf")
+    assert made["job"]["state"] == "done", made["job"]
+    page = client.get(f"/documents/{made['doc']['id']}/listen").text
+    assert '<span class="said"' in page
+    assert "and" in page[page.index('<span class="said"') :].split(">", 1)[0]
+
+
+def test_an_audiobook_made_without_plugins_shows_no_plugin_edits(tmp_path: Path) -> None:
+    client, config = plugin_server(tmp_path)
+    made = make(client, ampersand_pdf(), "salt.pdf")
+    doc = made["doc"]["id"]
+    record_file = work_of(config, doc) / "audio.json"
+    data = json.loads(record_file.read_text(encoding="utf-8"))
+    data["settings"]["plugins"] = False  # as `sci2audio convert --no-plugins` records it
+    data.pop("plugins", None)
+    record_file.write_text(json.dumps(data), encoding="utf-8")
+    page = client.get(f"/documents/{doc}/listen").text
+    assert '<span class="said"' not in page
+
+
+def test_a_record_without_a_plugin_list_uses_the_built_in_steps(tmp_path: Path) -> None:
+    """No released record was made with a plugin: a record without the list (#669) names
+    none (D-852)."""
+    client, config = server(tmp_path)
+    made = make(client)
+    work = work_of(config, made["doc"]["id"])
+    assert read_audio_record(work, made["doc"]["id"]).plugins == frozenset()
+    data = json.loads((work / "audio.json").read_text(encoding="utf-8"))
+    data["plugins"] = [{"step": "ampersand-and", "distribution": "x", "version": "1"}]
+    (work / "audio.json").write_text(json.dumps(data), encoding="utf-8")
+    assert read_audio_record(work, made["doc"]["id"]).plugins == frozenset({"ampersand-and"})
+    data["plugins"] = "not a list"
+    (work / "audio.json").write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(PlayerError):
+        read_audio_record(work, made["doc"]["id"])
+
+
+def test_a_plugin_installed_after_the_audiobook_shows_no_edit(tmp_path: Path) -> None:
+    """The reviewer's probe (#696 M1): a book made without the plugin, opened by a server
+    that has it, shows only what the voice said."""
+    from web_helpers import plugin_steps
+
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    before = create_app(config, voice=lambda models_dir: voice.source())
+    made = make(program(before, config), ampersand_pdf(), "salt.pdf")
+    assert made["job"]["state"] == "done", made["job"]
+    after = create_app(
+        config, runner=JobRunner(plugin_steps()), voice=lambda models_dir: voice.source()
+    )
+    page = program(after, config).get(f"/documents/{made['doc']['id']}/listen").text
+    assert "Salt &amp; pepper" in page
+    assert '<span class="said"' not in page

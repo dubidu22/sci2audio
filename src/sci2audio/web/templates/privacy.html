@@ -24,6 +24,14 @@
 <p>{{ t('privacy.updates') }}</p>
 <p>{{ t('privacy.updates_host') }} <code>{{ update_host }}</code></p>
 
+<h2 id="plugins" tabindex="-1">{{ t('privacy.plugins_title') }}</h2>
+<p>{{ t('privacy.plugins') }}</p>
+<p id="plugins-installed">{% if plugins %}{{ t('privacy.plugins_installed') }} {% for plugin in plugins %}<code>{{ plugin.step }}</code>{% if plugin.distribution %} ({{ plugin.distribution }}{% if plugin.version %} {{ plugin.version }}{% endif %}){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% elif not plugin_problems %}{{ t('privacy.plugins_none') }}{% endif %}</p>
+{%- if plugin_problems %}{# installed, and its import ran, though it did not load (#696 M2) #}
+<p id="plugins-problems">{{ t('privacy.plugins_problems') }}</p>
+<ul aria-labelledby="plugins-problems">{% for problem in plugin_problems %}<li><code>{{ problem.name }}</code>{% if problem.distribution %} ({{ problem.distribution }}){% endif %}: <span lang="en">{{ problem.message }}</span></li>{% endfor %}</ul>
+{%- endif %}
+
 <h2>{{ t('privacy.telemetry_title') }}</h2>
 <p>{{ t('privacy.telemetry') }}</p>
 
