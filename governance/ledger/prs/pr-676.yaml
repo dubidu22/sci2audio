@@ -1,0 +1,9 @@
+pr: 676
+opened: 2026-11-20
+thread: plugins-b-p1
+lane: textprep
+labels: "lane:textprep, lane:app, lane:cli, lane:docs, risk:high"
+plan: plans/plugins-b-p1-plan.md
+critical: yes                 # the text-step interface becomes public (layer contract, CRIT-01, D-836)
+compactions: 0
+fixes_kinds: ""
