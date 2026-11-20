@@ -6,9 +6,12 @@ record faithfully. Broken and hostile PDFs are in `test_extraction_pdf_broken.py
 
 import math
 import threading
+import unicodedata
 from pathlib import Path
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from pdf_maker import (
     HEIGHT,
     Mark,
@@ -32,6 +35,7 @@ from sci2audio.extraction.pdf import (
     _GENERATED,
     _SPACE,
     OUTLINE_DEPTH,
+    _accents_onto_letters,
     _Char,
     _char_text,
     _Line,
@@ -673,3 +677,157 @@ def test_a_journal_cut_from_bigger_sheets_reads_on_across_its_heads_and_notes() 
         f"{full}\nacross the page break" in b.text and b.kind is BlockKind.PARAGRAPH
         for b in document.blocks
     )
+
+
+# Spacing accents drawn as glyphs of their own (#125)
+
+
+def advance(text: str) -> float:
+    """How far the text moves the pen: `width` measures the ink, so measure between bars."""
+    return width(f"|{text}|") - width("||") if text else 0.0
+
+
+def over(word: str, k: int, accent: str, x: float, y: float) -> Text:
+    """The accent drawn over letter `k` of `word`, set from x."""
+    middle = x + advance(word[:k]) + advance(word[k]) / 2
+    return Text(accent, middle - advance(accent) / 2, y)
+
+
+def test_an_accent_stored_after_its_word_goes_onto_its_letter() -> None:
+    """Chi p6: the acute over the "c" of "Marasovic," is stored after the next word."""
+    data = make_pdf(
+        [
+            Text("Ana Marasovic, Swabha", 50, 100),
+            over("Ana Marasovic, Swabha", 12, "\u00b4", 50, 100),
+        ]
+    )
+    assert lines_of(data) == ["Ana Marasović, Swabha"]
+
+
+def _chars_at(text: str, x: float, top: float, step: float = 5.0) -> _Line:
+    """A line of characters `step` wide from x, 12 pt high from `top` (PDFium's loose boxes
+    of a 10 pt font)."""
+    style = ("NimbusRomNo9L-Regu", 10.0, False, False)
+    line = _Line()
+    for k, letter in enumerate(text):
+        x0, x1 = x + k * step, x + (k + 1) * step
+        line.add(_Char(letter, style, (x0, top, x1, top + 12), 0.0, x0, x1, top, top + 12), None)
+    return line
+
+
+def test_an_accent_goes_onto_its_own_line_not_the_one_under_it() -> None:
+    """Chi p6: the accent over the "c" of "Marasovic," is stored after "Swabha", and the line
+    stored right after it, one line pitch down, has a letter under it too ("Doug"), its box
+    touching the accent's; the accent goes onto the line it overlaps, its own."""
+    lines = [
+        _chars_at("Marasovic,", 435, 72.6),
+        _chars_at("Swabha", 492, 72.6),
+        _chars_at("\u00b4", 474, 72.5, step=3.4),
+        _chars_at("Doug", 465, 84.6),
+    ]
+    assert _accents_onto_letters(lines) == {2}
+    assert [c.text for c in lines[0].chars][8] == "\u0107"
+    assert "".join(c.text for c in lines[3].chars) == "Doug"
+
+
+def test_an_accent_stored_before_its_word_goes_onto_its_letter() -> None:
+    """Stored even before the line above (PDFium hands an accent stored right before its own
+    line over inside that line, which leaves it for the text step)."""
+    data = make_pdf(
+        [
+            over("Marasovic,", 8, "\u00b4", 50, 100),
+            Text("Above", 50, 80),
+            Text("Marasovic,", 50, 100),
+        ]
+    )
+    assert lines_of(data) == ["Above", "Marasović,"]
+
+
+def test_an_accent_with_no_letter_under_it_stays_as_it_is() -> None:
+    data = make_pdf(
+        [Text("Marasovic,", 50, 100), Text("\u00b4", 200, 100), Text("\u00a8", 50, 140)]
+    )
+    assert lines_of(data) == ["Marasovic,", "\u00b4", "\u00a8"]
+
+
+def test_an_accent_inside_a_line_is_left_for_the_text_step() -> None:
+    """A TeX accent stored in reading order, before its letter ("Garcia" with the acute set
+    before the "i"), is the #65 text step's to join."""
+    assert lines_of(make_pdf([Text("Garc\u00b4ia", 50, 100)])) == ["Garc\u00b4ia"]
+
+
+def test_an_accent_put_onto_its_letter_leaves_the_other_ids_as_numbered() -> None:
+    data = make_pdf(
+        [
+            Text("Marasovic, Swabha", 50, 100),
+            over("Marasovic, Swabha", 8, "\u00b4", 50, 100),
+            Text("Swayamdipta", 50, 130),
+        ]
+    )
+    found = read_pdf(data, "made.pdf").pages[0].lines
+    assert [(line.id, line.text) for line in found] == [
+        ("p1-l1", "Marasović, Swabha"),
+        ("p1-l3", "Swayamdipta"),
+    ]
+
+
+COMBINING = {
+    "\u00b4": "\u0301",
+    "`": "\u0300",
+    "\u02c6": "\u0302",
+    "\u02dc": "\u0303",
+    "\u00a8": "\u0308",
+    "\u00af": "\u0304",
+    "\u00b8": "\u0327",
+}
+
+
+@given(
+    st.text("abcdeilmnorsuyzACENOSUZ", min_size=2, max_size=8),
+    st.data(),
+    st.sampled_from(sorted(COMBINING)),
+    st.none() | st.sampled_from(sorted(COMBINING)),
+    st.booleans(),
+)
+@settings(max_examples=30, deadline=None)
+def test_an_accent_stored_apart_is_never_a_line_of_its_own(
+    word: str, data: st.DataObject, accent: str, second: str | None, first: bool
+) -> None:
+    """The accent, now and then with a second one stacked on the same letter, is drawn over
+    a letter of a word and stored before or after the printed line: it never comes out as a
+    line of its own; it goes onto that letter, or, where PDFium hands it over inside the
+    line, stays there for the text step. No letter and no accent is lost."""
+    k = data.draw(st.integers(0, len(word) - 1))
+    start = 50 + width("stored") + 3
+    printed = [Text("stored", 50, 100), Text(word, start, 100)]
+    printed.append(Text("stored", start + width(word) + 3, 100))
+    # the same accent twice in one place PDFium takes for a glyph drawn twice and keeps once
+    drawn = [accent] if second in (None, accent) else [accent, second]
+    accented = [over(word, k, mark, start, 100) for mark in drawn]
+    found = lines_of(make_pdf([*accented, *printed] if first else [*printed, *accented]))
+    assert not any(set(text) <= set(COMBINING) for text in found)
+    # PDFium's generated spaces around the word vary with where the accent is stored
+    read = unicodedata.normalize("NFD", "".join("".join(found).split()))
+    marks = set(COMBINING) | set(COMBINING.values())
+    assert "".join(c for c in read if c not in marks) == f"stored{word}stored"
+    for mark in set(drawn):
+        assert read.count(mark) + read.count(COMBINING[mark]) == drawn.count(mark)
+    if len(drawn) == 1 and accent not in read:
+        composed = word[: k + 1] + COMBINING[accent] + word[k + 1 :]
+        assert read == unicodedata.normalize("NFD", f"stored{composed}stored")
+
+
+def test_two_accents_stacked_on_one_letter_both_go_onto_it() -> None:
+    """Review M1 of #671: a circumflex and an acute drawn as glyphs of their own over the
+    "e" of "Nguyen" ("Nguyễn" set as "ê" with a second accent). The circumflex is no letter
+    for the acute to go onto, though `isalpha` holds for it (category Lm): in either stored
+    order both go onto the "e", in the order they are stored, and the page loses neither."""
+    for marks in (("\u02c6", "\u00b4"), ("\u00b4", "\u02c6")):
+        lines = [
+            _chars_at("Nguyen", 100, 72.6),
+            _chars_at(marks[0], 120, 72.4, step=5.0),
+            _chars_at(marks[1], 120, 72.5, step=5.0),
+        ]
+        assert _accents_onto_letters(lines) == {1, 2}
+        expected = "e" + "".join({"\u02c6": "\u0302", "\u00b4": "\u0301"}[m] for m in marks)
+        assert lines[0].chars[4].text == unicodedata.normalize("NFC", expected)

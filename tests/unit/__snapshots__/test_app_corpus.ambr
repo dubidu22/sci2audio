@@ -184,7 +184,7 @@
         'applied': 69,
         'label': 'Characters and hyphenation',
         'not_spoken': 0,
-        'set_aside': 15,
+        'set_aside': 14,
         'switched_off': 0,
       }),
       'citations': dict({
@@ -534,10 +534,10 @@
         'block': 80,
         'category': 'references',
         'chapter': 10,
-        'end': 209,
+        'end': 207,
         'kind': 'remove',
         'original': '''
-          Pradeep Dasigi, Nelson F Liu, Ana Marasovic, Noah A ´
+          Pradeep Dasigi, Nelson F Liu, Ana Marasović, Noah A
           Smith, and Matt Gardner. 2019. Quoref: A
           reading comprehension dataset with questions re-
           quiring coreferential reasoning. arXiv preprint
@@ -1110,7 +1110,7 @@
         'block': 80,
         'category': 'links',
         'chapter': 10,
-        'end': 208,
+        'end': 206,
         'kind': 'remove',
         'original': '''
           
@@ -1121,12 +1121,12 @@
         'reason': 'arXiv identifier "arXiv:1908.05803" is not read (TP-07)',
         'said': '',
         'spoken': False,
-        'start': 191,
+        'start': 189,
         'status': 'set-aside',
         'step': 'links',
         'won_by': dict({
           'block': 80,
-          'end': 209,
+          'end': 207,
           'kind': 'remove',
           'page': 6,
           'printed_page': '44',
@@ -2014,31 +2014,6 @@
         'start': 196,
         'status': 'accepted',
         'step': 'abbreviations',
-      }),
-      dict({
-        'block': 80,
-        'category': 'characters',
-        'chapter': 10,
-        'end': 53,
-        'kind': 'remove',
-        'original': '´',
-        'page': 6,
-        'printed_page': '44',
-        'reason': 'accent mark "´" without its letter not read',
-        'said': '',
-        'spoken': False,
-        'start': 52,
-        'status': 'set-aside',
-        'step': 'unicode-clean-up',
-        'won_by': dict({
-          'block': 80,
-          'end': 209,
-          'kind': 'remove',
-          'page': 6,
-          'printed_page': '44',
-          'start': 0,
-          'step': 'reference-list',
-        }),
       }),
       dict({
         'block': 4,
@@ -3438,7 +3413,7 @@
         'block': 80,
         'category': 'characters',
         'chapter': 10,
-        'end': 144,
+        'end': 142,
         'kind': 'remove',
         'original': '''
           -
@@ -3449,12 +3424,12 @@
         'reason': 'word split at a line end joined: "requiring"',
         'said': '',
         'spoken': False,
-        'start': 142,
+        'start': 140,
         'status': 'set-aside',
         'step': 'line-end-hyphens',
         'won_by': dict({
           'block': 80,
-          'end': 209,
+          'end': 207,
           'kind': 'remove',
           'page': 6,
           'printed_page': '44',
@@ -3834,7 +3809,7 @@
   | Category | Applied | Not spoken (chapter not chosen) | Set aside | Switched off |
   |---|---|---|---|---|
   | Page furniture | 11 | 1 | 0 | 0 |
-  | Characters and hyphenation | 69 | 0 | 15 | 0 |
+  | Characters and hyphenation | 69 | 0 | 14 | 0 |
   | Footnotes | 4 | 0 | 0 | 0 |
   | Footnote texts | 0 | 0 | 0 | 2 |
   | Citations | 17 | 0 | 0 | 0 |
@@ -3861,9 +3836,8 @@
   - page 8 (printed 46), chapter 13, applied: “46” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 9 (printed 47), chapter 13, applied: “47” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   
-  ## Characters and hyphenation (84)
+  ## Characters and hyphenation (83)
   
-  - page 6 (printed 44), chapter 11, set aside: the remove edit of step reference-list (page 6 (printed 44)) won: “´” → left out. Reason: accent mark "´" without its letter not read. Step: unicode-clean-up.
   - page 1 (printed 39), chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
   - page 1 (printed 39), chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
   - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
@@ -4009,7 +3983,7 @@
   - page 5 (printed 43), chapter 11, not spoken (chapter not chosen): “OpenAI GPT-3 Models Overview. Accessed on 2023- 01-10.” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Rahul Aralikatte, Matthew Lamm, Daniel Hardt, and Anders Søgaard. 2021. Ellipsis resolution as ques- tion answering: An evaluation. In Proceedings of the 16th Conference of the European Chapter of the Asso- ciation for Computational Linguistics: Main Volume, pages 810–817, Online. Association for Computa- tional Linguistics.” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Johan Bos and Jennifer Spenader. 2011. An annotated corpus for the analysis of VP ellipsis. Language resources and evaluation, 45(4):463–494.” → left out. Reason: the reference list is not read. Step: reference-list.
-  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Pradeep Dasigi, Nelson F Liu, Ana Marasovic, Noah A ´ Smith, and Matt Gardner. 2019. Quoref: A reading comprehension dataset with questions re- quiring coreferential reasoning. arXiv preprint arXiv:1908.05803.” → left out. Reason: the reference list is not read. Step: reference-list.
+  - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Pradeep Dasigi, Nelson F Liu, Ana Marasović, Noah A Smith, and Matt Gardner. 2019. Quoref: A reading comprehension dataset with questions re- quiring coreferential reasoning. arXiv preprint arXiv:1908.05803.” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Alan Garnham. 2010. Models of processing: Discourse. Wiley Interdisciplinary Reviews: Cognitive Science, 1(6):845–853.” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Hans Kamp. 1981. A theory of truth and semantic representation. In Formal methods in the study of language, pages 277–322.” → left out. Reason: the reference list is not read. Step: reference-list.
   - page 6 (printed 44), chapter 11, not spoken (chapter not chosen): “Kian Kenyon-Dean, Jackie Chi Kit Cheung, and Doina Precup. 2016. Verb phrase ellipsis resolution us- ing discriminative and margin-infused algorithms. In Proceedings of the 2016 Conference on Empiri- cal Methods in Natural Language Processing, pages 1734–1743.” → left out. Reason: the reference list is not read. Step: reference-list.

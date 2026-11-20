@@ -19,6 +19,7 @@ Accept a wanted change with `uv run pytest --snapshot-update` and explain the di
 import itertools
 import re
 import tomllib
+import unicodedata
 from functools import cache
 from pathlib import Path
 
@@ -710,3 +711,32 @@ def golden_text(name: str, doc: Document) -> str:
             f"{indent}{section.level}  blocks {section.start}-{section.end}  {section.title}"
         )
     return "\n".join(out) + "\n"
+
+
+# Printed lines of the corpus that #125 and #126 put right, read as the page prints them:
+# an accent drawn as its own glyph on its letter, and a line under a tall brace on its own
+# (review S1 of #671). No truth sentence covers them, so a golden update alone could undo it.
+ACUTE, CARON, DASH = (unicodedata.lookup(n) for n in ("ACUTE ACCENT", "CARON", "EN DASH"))
+PRINTED_AS_ON_THE_PAGE = {
+    "acl2023-chi-plue": (
+        "Suchin Gururangan, Ana Marasović, Swabha\n",
+        f"({{SOUPS}} 2016), pages\n321{DASH}340.",
+        f"({{USENIX}} Security 18), pages\n531{DASH}548.",
+    ),
+    "acl2023-hardt-ellipsis": ("Ana Marasović, Noah A\nSmith, and Matt Gardner.",),
+    "arxiv2024-liu-orbital-hall": (
+        f"J. Železn{ACUTE}y, I. M. Miron, T. Jungwirth,\nJ. Sinova",
+        "L. Šmejkal,\nT. Jungwirth",
+    ),
+}
+
+
+@pytest.mark.parametrize("stem", sorted(PRINTED_AS_ON_THE_PAGE))
+def test_accents_and_lines_under_braces_read_as_printed(stem: str) -> None:
+    (paper,) = [p for p in PAPERS if p.stem == stem]
+    texts = [block.text for block in document(paper).blocks]
+    for printed in PRINTED_AS_ON_THE_PAGE[stem]:
+        assert any(printed in text for text in texts), printed
+    lines = [line for text in texts for line in text.split("\n")]
+    assert not any(line.strip() in (ACUTE, CARON) for line in lines)
+    assert not any(line.endswith((f" {ACUTE}", f",{ACUTE}", f" {CARON}")) for line in lines)
