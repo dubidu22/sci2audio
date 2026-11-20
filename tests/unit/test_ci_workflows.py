@@ -391,6 +391,8 @@ def test_the_pr_body_reaches_the_promised_tests_check_only_through_the_environme
     """#687: the body is text anyone opening a PR writes, so it never enters a script."""
     step = block(GOVERNANCE, "      - name: Check that the promised tests exist")
     assert "PR_BODY: ${{ github.event.pull_request.body }}" in block(step, "        env:")
+    # shown beside a failing title or ownership step, not only after it is fixed
+    assert "        if: ${{ !cancelled() }}" in step
     script = block(step, "        run: |")
     assert "${{" not in script
     assert "printf '%s' \"$PR_BODY\"" in script
@@ -414,4 +416,9 @@ def test_the_governance_check_runs_pr_code_only_without_write_access() -> None:
     permissions = block(GOVERNANCE, "permissions:").strip().splitlines()
     assert sorted(line.strip() for line in permissions) == ["contents: read", "pull-requests: read"]
     assert "permissions:" not in block(GOVERNANCE, "jobs:")
-    assert "persist-credentials: false" in GOVERNANCE
+    checkout = next(
+        u for u in re.findall(r"^\s+- uses: (.+)$", GOVERNANCE, re.M) if "checkout@" in u
+    )
+    assert "persist-credentials: false" in block(
+        block(GOVERNANCE, f"      - uses: {checkout}"), "        with:"
+    )

@@ -11,7 +11,8 @@ Checks that every test a plan promises exists on the pull request's head (#687, 
 The promises are the backticked pytest node IDs (`tests/unit/test_x.py::test_name`) in the section
 under the level-2 heading HEADING, up to the next heading of level 1 or 2. A body without the
 heading passes: the check is opt-in until the plan template requires it. A heading that lists no
-node ID fails, so an empty promise never passes. A parametrized test may be promised without its
+node ID fails, so an empty promise never passes, and so does a backticked `.py::` token that is no
+node ID, so no listed promise is dropped unread. Lines in fenced code blocks are not read. A parametrized test may be promised without its
 parameters and a class without its methods. Standard library only, like pr_checks.py.
 """
 
@@ -22,24 +23,56 @@ import sys
 from pathlib import Path
 
 HEADING = "## Tests promised in the plan"
-NODE_RE = re.compile(r"`([\w./-]+\.py::[^`\s]+)`")
+# parameters may hold spaces (`test_x[a b]`); names may not
+NODE_RE = re.compile(r"[\w./-]+\.py(::\w+)+(\[[^`\]]*\])?")
+TOKEN_RE = re.compile(r"`([^`]*\.py::[^`]*)`")
 END_RE = re.compile(r"^#{1,2}(\s|$)")
+FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 
 
-def promised(body: str) -> list[str] | None:
+def section(body: str) -> list[str] | None:
+    """The lines under HEADING outside fenced code blocks, where a `#` line is no heading."""
     lines = body.replace("\r\n", "\n").split("\n")
     try:
         start = [line.rstrip() for line in lines].index(HEADING)
     except ValueError:
         return None
     out: list[str] = []
+    fence = ""
     for line in lines[start + 1 :]:
+        opened = FENCE_RE.match(line)
+        if fence:
+            if opened and opened.group(1)[0] == fence[0] and len(opened.group(1)) >= len(fence):
+                fence = ""
+            continue
+        if opened:
+            fence = opened.group(1)
+            continue
         if END_RE.match(line):
             break
-        for node in NODE_RE.findall(line):
-            if node not in out:
-                out.append(node)
+        out.append(line)
     return out
+
+
+def tokens(body: str) -> list[str] | None:
+    lines = section(body)
+    if lines is None:
+        return None
+    out: list[str] = []
+    for line in lines:
+        for token in TOKEN_RE.findall(line):
+            if token not in out:
+                out.append(token)
+    return out
+
+
+def promised(body: str) -> list[str] | None:
+    found = tokens(body)
+    return None if found is None else [t for t in found if NODE_RE.fullmatch(t)]
+
+
+def unreadable(body: str) -> list[str]:
+    return [t for t in tokens(body) or [] if not NODE_RE.fullmatch(t)]
 
 
 def missing(promises: list[str], collected: list[str]) -> list[str]:
@@ -66,10 +99,15 @@ def main(argv: list[str]) -> int:
             print(path)
         return 0
     if len(argv) == 3 and argv[0] == "check":
-        promises = promised(Path(argv[1]).read_text(encoding="utf-8"))
+        body = Path(argv[1]).read_text(encoding="utf-8")
+        promises = promised(body)
         if promises is None:
             print(f'ok   promised tests: no "{HEADING}" section (opt-in)')
             return 0
+        bad = unreadable(body)
+        if bad:
+            print(f"FAIL promised tests: not read as a node ID: {', '.join(bad)}")
+            return 1
         if not promises:
             print(f"FAIL promised tests: the section lists no node ID; name each test as `tests/...py::test_name` under {HEADING}")
             return 1
@@ -79,6 +117,11 @@ def main(argv: list[str]) -> int:
         absent = missing(promises, collected)
         if absent:
             print(f"FAIL promised tests: not collected on the PR head: {', '.join(absent)}")
+            if not collected:
+                # a failed sync or a collection error leaves no test ID: show why instead of blaming the IDs
+                print("     the collection gave no test; its last lines:")
+                for line in [line for line in text.splitlines() if line.strip()][-5:]:
+                    print(f"     {line}")
             return 1
         print(f"ok   promised tests: {len(promises)} of {len(promises)} collect")
         return 0

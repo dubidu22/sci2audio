@@ -34,6 +34,7 @@ jobs:
             --files "$RUNNER_TEMP/changed.txt" --commits "$RUNNER_TEMP/commits.txt" --diff "$RUNNER_TEMP/diff.txt"
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: Check that the promised tests exist
+        if: ${{ !cancelled() }}
         # opt-in (#687): only a body with the heading costs a sync and a collection of the named files
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
