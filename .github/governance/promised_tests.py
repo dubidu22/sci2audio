@@ -10,8 +10,9 @@ Checks that every test a plan promises exists on the pull request's head (#687, 
 
 The promises are the backticked pytest node IDs (`tests/unit/test_x.py::test_name`) in the section
 under the level-2 heading HEADING, up to the next heading of level 1 or 2. A body without the
-heading passes: the check is opt-in until the plan template requires it. A heading that lists no
-node ID fails, so an empty promise never passes, and so does any `.py::` in the section that is
+heading passes, since PRs without a plan (decision log, Dependabot) carry none. A line that is
+almost the heading fails, because PLAN-01 requires the exact heading in a plan's PR (D-849) and a
+near miss would otherwise pass as absent. A heading that lists no node ID fails, so an empty promise never passes, and so does any `.py::` in the section that is
 not a backticked node ID, so no listed promise is dropped unread. Lines in fenced code blocks are not read. A parametrized test may be promised without its
 parameters and a class without its methods. Standard library only, like pr_checks.py.
 """
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 HEADING = "## Tests promised in the plan"
@@ -29,18 +31,13 @@ TOKEN_RE = re.compile(r"`([^`]*\.py::[^`]*)`")
 BARE_RE = re.compile(r"\S*\.py::\S*")
 END_RE = re.compile(r"^#{1,2}(\s|$)")
 FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+# another level, case, a leading space, bold, a missing "the", a trailing colon or full stop
+NEAR_RE = re.compile(r"\s*(#{1,6}\s*)?(\*\*|__)?\s*tests\s+promised\s+in\s+(the\s+)?plan\s*(\*\*|__)?\s*[:.]?\s*", re.I)
 
 
-def section(body: str) -> list[str] | None:
-    """The lines under HEADING outside fenced code blocks, where a `#` line is no heading."""
-    lines = body.replace("\r\n", "\n").split("\n")
-    try:
-        start = [line.rstrip() for line in lines].index(HEADING)
-    except ValueError:
-        return None
-    out: list[str] = []
+def outside_fences(lines: list[str]) -> Iterator[str]:
     fence = ""
-    for line in lines[start + 1 :]:
+    for line in lines:
         opened = FENCE_RE.match(line)
         if fence:
             if opened and opened.group(1)[0] == fence[0] and len(opened.group(1)) >= len(fence):
@@ -49,10 +46,30 @@ def section(body: str) -> list[str] | None:
         if opened:
             fence = opened.group(1)
             continue
-        if END_RE.match(line):
+        yield line
+
+
+def section(body: str) -> list[str] | None:
+    """The lines under HEADING outside fenced code blocks, where a `#` line is no heading and
+    HEADING shown as an example does not start the section."""
+    out: list[str] = []
+    started = False
+    for line in outside_fences(body.replace("\r\n", "\n").split("\n")):
+        if not started:
+            started = line.rstrip() == HEADING
+        elif END_RE.match(line):
             break
-        out.append(line)
-    return out
+        else:
+            out.append(line)
+    return out if started else None
+
+
+def near_miss(body: str) -> str | None:
+    """The first line outside fenced code blocks that is almost HEADING, when HEADING is absent."""
+    lines = list(outside_fences(body.replace("\r\n", "\n").split("\n")))
+    if HEADING in (line.rstrip() for line in lines):
+        return None
+    return next((line.strip() for line in lines if NEAR_RE.fullmatch(line)), None)
 
 
 def read(body: str) -> tuple[list[str], list[str]] | None:
@@ -111,6 +128,10 @@ def main(argv: list[str]) -> int:
         body = Path(argv[1]).read_text(encoding="utf-8")
         promises = promised(body)
         if promises is None:
+            near = near_miss(body)
+            if near is not None:
+                print(f'FAIL promised tests: near-miss heading "{near}"; write it exactly as {HEADING}')
+                return 1
             print(f'ok   promised tests: no "{HEADING}" section (opt-in)')
             return 0
         bad = unreadable(body)

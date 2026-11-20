@@ -86,6 +86,33 @@ def test_the_governance_check_reads_the_same_lanes_as_lanes_yml() -> None:
     assert {f"lane:{lane}": globs for lane, globs in lanes().items()} == CONFIG["label_paths"]
 
 
+def derived_pr_checks(cfg: dict) -> dict:
+    """The scaffold's `pr_checks_config`, except that `governance_paths` comes from the config
+    (#683): the scaffold derives it from `workspace_root` and cannot hold the working-file list."""
+    labels = list(cfg["ownership_labels"])
+    paths: dict[str, list[str]] = {}
+    for entry in cfg["label_paths"]:
+        label, _, glob = entry.partition("=")
+        paths.setdefault(label, []).append(glob)
+    lock = {"lane:infra", "lane:core"} <= set(labels)
+    return {
+        "ownership_labels": labels,
+        "label_paths": paths,
+        "open_labels": [label for label in ("lane:docs",) if label in labels],
+        "lock_label": "lane:infra" if lock else "",
+        "locked_label": "lane:core" if lock else "",
+        "critical_paths": list(cfg["critical_paths"]),
+        "doc_paths": list(cfg["doc_paths"]),
+        "governance_paths": list(cfg["governance_paths"]),
+    }
+
+
+def test_pr_checks_json_is_derived_from_governance_config() -> None:
+    cfg = json.loads((ROOT / "governance" / "governance-config.json").read_text(encoding="utf-8"))
+    written = (GITHUB / "governance" / "pr-checks.json").read_text(encoding="utf-8")
+    assert json.dumps(derived_pr_checks(cfg), indent=2) + "\n" == written
+
+
 def test_the_labeler_marks_the_paths_the_check_holds_critical() -> None:
     labeler = (GITHUB / "labeler.yml").read_text(encoding="utf-8")
     assert re.findall(r'^\s+- "(.+)"$', labeler, re.M) == CONFIG["critical_paths"]
