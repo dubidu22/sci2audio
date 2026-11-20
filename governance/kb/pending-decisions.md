@@ -37,3 +37,6 @@ Plan B-I1 (#664, #665; `plans/infra-b-i1-plan.md`) approved. CodeQL moves to adv
 
 ## D-840 (2026-11-20, coordinator)
 Plan B-L2 (#181, #54, #59, #55, #56; `plans/layout-b-l2-plan.md`) approved as one non-critical PR, every rule shaped so the corpus output stays byte-identical; a golden change would make it critical and stop it before the PR. #181 is narrowed from "whatever its width" to: the rule is read before the line, lies under at least half of it, and no footnote or inline host takes it first; the wide reading would move footnote rules, running-head rules and fraction bars in the corpus. New setting `plot_size` (4 em) for uncaptioned scatter plots (#59). #55 takes only text smaller than the body and none when one drawing holds it all (D-57 safe side). #56 keeps small row-mates to the column of the line that brings them unless the table already spans both columns.
+
+## D-841 (2026-11-20, coordinator)
+B-L2 (#181) changes one golden line after all: Liu p4's two fraction bars (p4-d1, p4-d2), which the D-90 fallback put into the page-number furniture block, now join the paragraph of their own inline fraction. Accepted as the right reading rather than tightening #181 to keep the corpus byte-identical; the PR becomes risk:high and critical (CRIT-01), with the line explained in the PR body and a three-system run before review. Amends D-840's "non-critical".
