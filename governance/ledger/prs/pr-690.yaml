@@ -6,4 +6,6 @@ labels: "lane:textprep, lane:docs, risk:high"
 plan: plans/plugins-b-p2-plan.md
 critical: yes                 # a safety mechanism of the text-step plugin interface (CRIT-01, D-845)
 compactions: 0
-fixes_kinds: ""
+fixes_kinds: ""               # not claimed: #693 still holds run-time plugin code in the job thread
+rounds: 2
+merged: 44c59c2               # pinned to 75dda9b; closes #684; follow-ups #693, #694
