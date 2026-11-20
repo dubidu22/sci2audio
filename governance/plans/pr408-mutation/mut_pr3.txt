@@ -1,0 +1,41 @@
+BASELINE PASS
+0 KILLED abbreviations.py     "date": _DATE,\n    "law": _LAW,\n} ->     "date": _DATE,\n    "law":  FAILED tests/unit/test_textprep_regression_german.py::test_the_script_is_the_expected_one[de-abbreviations-legal-forms-inside-a-citation]
+1 KILLED links.py bare = start == run[0].start -> bare = True FAILED tests/unit/test_textprep_pairs_pages_and_nests.py::test_a_join_word_after_a_removed_link[en-We downloaded it from https://x.org and Smith.-We downloaded it and Smith.]
+2 KILLED links.py                 if bare and not join:\n ->                 if not join:\n FAILED tests/unit/test_textprep_pairs_pages_and_nests.py::test_a_join_word_after_a_removed_link[en-We downloaded it from https://x.org and Smith.-We downloaded it and Smith.]
+3 KILLED links.py     if not last[-1:].isalpha() or last.lower() in  ->     if last.lower() in joins: FAILED tests/unit/test_textprep_pairs_pages_and_nests.py::test_a_join_word_after_a_removed_link[en-We thank, https://x.org and Smith.-We thank, and Smith.]
+4 SURVIVED links.py     if not last[-1:].isalpha() or last.lower() in  ->     if not last[-1:].isalpha()
+5 KILLED links.py     if not after or not text[after.end() : after.e ->     if not after: FAILED tests/unit/test_textprep_pairs_pages_and_nests.py::test_a_join_word_after_a_removed_link[en-We use https://x.org and then run it.-We use and then run it.]
+6 SURVIVED links.py     if reads_full_stop(text, kept_end, language):\n -> 
+7 SURVIVED links.py     if reads_full_stop(after, kept_end - low, lang -> 
+8 SURVIVED links.py     if following < len(text) and not text[end + 1  -> 
+9 SURVIVED links.py     if not kept.endswith(".") or not _ends_abbrevi ->     if not kept.endswith("."):
+10 SURVIVED links.py     if text[end : end + 1] != "." or not (end + 1  ->     if text[end : end + 1] != 
+11 KILLED links.py                 if stop:\n ->                 if False:\n FAILED tests/unit/test_textprep_pairs_pages_and_nests.py::test_no_two_full_stops_after_an_abbreviation[en-Smith et al. https://x.org. Then more.-Smith et al. Then more.]
+12 SURVIVED citations.py         if after is None or self.words.and_word no ->         if after is None:
+13 SURVIVED citations.py         if other_open in self._numbered or self._p ->         if self._paged(inside)
+14 SURVIVED citations.py         if other_open in self._numbered or self._p ->         if other_open in self.
+15 SURVIVED citations.py         if keys != (_keys(other, self.keys) is not -> 
+16 SURVIVED citations.py         if not keys and not (_NUMERIC.match(inside -> 
+17 SURVIVED citations.py         if _NUMBER_GLUED_AFTER.match(text, after.e ->         if self._decimal_inter
+18 SURVIVED citations.py         if _NUMBER_GLUED_AFTER.match(text, after.e ->         if _NUMBER_GLUED_AFTER
+19 SURVIVED citations.py         if self._starts_sentence(text, node.open): -> 
+20 SURVIVED citations.py             return []  # the second bracket of a p ->             pass
+21 KILLED citations.py         if not _NUMERIC.match(source) and _keys(so ->  FAILED tests/unit/test_textprep_pairs_pages_and_nests.py::test_a_numeric_citation_with_a_page[en-In [MH17, p. 3] it is.-In [MH17, p. 3] it is.]
+22 KILLED citations.py r"(?P<first>[1-9]\d{0,4})(?:\s*[-–—]\s*(?P<last>[1 -> r"(?P<first>[1-9]\d{0,4})(?:\s FAILED tests/unit/test_textprep_pairs_pages_and_nests.py::test_a_numeric_citation_with_a_page[en-This holds [12, p. 3; 14] here.-This holds [12, p. 3; 14] here.]
+23 KILLED citations.py             if any(kind is EditKind.REPLACE for _, ->  FAILED tests/unit/test_textprep_regression.py::test_the_script_is_the_expected_one[citations-a-subject-nest-keeps-every-name] FAILED tests/unit/test_textprep_links_in_brackets.py::test_citation_nests_read_the_same_on_a_second_run[en-((Smith, 2019); (Lee, 2018)) is cited.-Smith and Lee is cited.]
+24 KILLED citations.py             if names is None and not (1 < len(list ->             if names is None a FAILED tests/unit/test_textprep_citations.py::test_a_subject_nest_of_nests_reads_as_before
+25 SURVIVED citations.py             if names is None and not (1 < len(list ->             if names is None a
+26 KILLED citations.py             if not (ahead or behind):\n             ->  FAILED tests/unit/test_textprep_citations.py::test_a_nest_that_keeps_inner_names_reads_the_same_on_a_second_run[en-(cf. (Smith, 2020) (Lee, 2019) 2020) is cited.-Smith is cited.]
+27 KILLED citations.py             if not (ahead or not after.strip()) or ->  FAILED tests/unit/test_textprep_links_in_brackets.py::test_citation_nests_read_the_same_on_a_second_run[en-(e.g. (Smith, 2019); Jones, 2020) is cited.-Jones is cited.]
+28 SURVIVED citations.py                 number + 1 < len(node.children) or ->                 True
+29 SURVIVED citations.py                 number > 0 and re.fullmatch(r"\s*[ ->                 re.fullmatch(r
+30 KILLED citations.py             if not parts or len(named) != len(part ->  FAILED tests/unit/test_textprep_citations.py::test_a_subject_nest_of_nests_reads_as_before
+31 SURVIVED citations.py             if len(handled) != 1 or handled[0][2]  -> 
+32 SURVIVED citations.py         if len(node.children) < 2:\n            ret ->         if not node.children:\n
+33 KILLED citations.py         if rest.strip() and not (self._year_shell( ->         if rest.strip() and no FAILED tests/unit/test_textprep_links_in_brackets.py::test_citation_nests_read_the_same_on_a_second_run[en-Data ((Smith, 2019); foo (Lee, 2020) 2021) here.-Data (foo 2021) here.]
+34 KILLED citations.py         if rest.strip() and not (self._year_shell( ->         if rest.strip(): FAILED tests/unit/test_textprep_links_in_brackets.py::test_citation_nests_read_the_same_on_a_second_run[en-Data ((Smith, 2019); (Lee, 2020) 2021) here.-Data here.] FAILED tests/unit/test_textprep_citations.py::test_lists_of_inner_citations_take_linear_time[_shell-240-Data here.]
+35 SURVIVED citations.py                     if not hung or read.text[hung. ->                     if not hun
+36 SURVIVED citations.py             if behind and ahead and kept < behind. ->             if behind and ahea
+37 SURVIVED citations.py                     if not hung or read.text[previ ->                     if not hun
+38 SURVIVED citations.py                 for _start, _end, previous_at in r ->                 for _start, _e
+39 KILLED citations.py                 for _start, _end, next_at in remov ->                 for _start, _e FAILED tests/unit/test_textprep_regression.py::test_the_script_is_the_expected_one[citations-a-subject-nest-keeps-every-name] FAILED tests/unit/test_textprep_citations.py::test_lists_of_inner_citations_take_linear_time[_wide-240-left0]

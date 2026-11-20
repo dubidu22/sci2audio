@@ -1,0 +1,31 @@
+en|Each rule is X −−→ α and Y ←−− β here.
+en|The vector −−→AB and −→v are drawn.
+en|Then β ←−1 and β ← −1 hold.
+en|Then x→−1 and (a)−1/2 and f(x)−1 hold.
+en|Then [a, b]−1 and {x}−2 and A−1 hold.
+de|Die Regel X −−→ α und Y ←−− β gilt.
+de|Der Vektor −−→AB ist gezeichnet.
+en|Let X ←−→ Y be a bijection, and X ←−−→ Y too.
+en|Then β(0, S, 0) ←−\n0 holds and X −\n→ α.
+en|Write p(X −→ α) = 0.5 and the cost (n − 1)−1 = 2.
+de|Die Daten (Winter 2019) und (Herbst 2020) sowie (Stand 2020) und (Version 2019).
+de|Die Kurse (Wintersemester 2019/20) und (WS 2019/20) und (SoSe 2021) laufen.
+de|Laut (Sommer 2019, S. 3) und (Sommer 2019a) und (Sommer 2019; Koch 2020) gilt es.
+de|Laut (vgl. Sommer 2019) und (Sommer et al. 2019) und (Sommer und Koch 2019) gilt es.
+de|Laut (Sommer, 2019) und (Koch 2019) und (Wagner 2020) gilt es.
+de|Wie Sommer (2019) zeigt, und wie Winter (2020) schreibt, gilt es.
+de|Die Daten (im Sommer 2019) und (Sommer 2019 bis 2020) sowie (Sommer 2019 und 2020) gelten.
+de|Die Daten [Sommer 2019] und (Sommer  2019) und ( Sommer 2019 ) gelten.
+de|Die Daten (Frühjahr 2021) und (Mai 2019) und (Quartal 2019) und (Welle 2018) gelten.
+de|Das zeigt eine Arbeit (Herbst 2020) über Herbstlaub.
+de|Die Studie begann im Jahr 1998. Jahr für Jahr kamen neue Daten.
+de|Seit 1850. Jahr und im Jahr 1998. Auflage und 1105. Jahr.
+de|Das 98. Jahr, am 3. Mai, das 1998. Jahr, 13 Uhr 30. Jahr.
+de|Die Sitzung beginnt um 13:30 Uhr 3. Mai im Hörsaal.
+de|Um 9.05 Uhr 3. Mai und um 9:05 Uhr 12. Juni und um 13:30 Uhr, 3. Mai.
+de|Um 13:30 Uhr 3. Kapitel und um 13 Uhr 3. Mai und um 13:30\nUhr 3. Mai.
+de|Um 13:30 Uhr 30. Jahr und 13:30. Jahr und um 13:30 Uhr 1. Platz.
+de|Um 13:30 Uhr 3. und 4. Mai und um 13:30  Uhr 3. Mai.
+de|Um 13:30 Uhr 1998. Jahr und im Jahr 1998.\nJahr kam es.
+de|Im Jahr 1900. Jahr und 1999. Mai und 1998. Mai.
+de|Von 11 hundert 5. Jahr.

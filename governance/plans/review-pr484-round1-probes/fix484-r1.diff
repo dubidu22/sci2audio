@@ -1,0 +1,57 @@
+--- a/src/sci2audio/testing/documents.py	2026-11-16 20:20:01.630780448 +0000
++++ b/src/sci2audio/testing/documents.py	2026-11-17 01:47:58.906411321 +0000
+@@ -140,7 +140,7 @@
+     for piece in script:
+         pieces[piece.span.block].append(piece)
+     items = document.content.items()
+-    blocks, pictures = [], {}
++    blocks, pictures, tags = [], {}, {}
+     for index, (block, own) in enumerate(zip(document.blocks, pieces, strict=True)):
+         if alts := [
+             item.alt for part in block.parts if isinstance(item := items[part.item][1], Picture)
+@@ -151,6 +151,8 @@
+             # placeholder comes back as printed and the second run makes the same notice
+             # again, however the notice reads its label (D-707)
+             blocks.append(Block(block.kind, block.text, role=block.role, label=block.label))
++            if kept := _run_tags(block, items):
++                tags[index] = kept  # the printed text is unchanged, so its run tags still fit
+             continue
+         text = "".join(piece.text for piece in own)
+         blocks.append(
+@@ -168,9 +170,25 @@
+         document.content.source.name,
+         sections=document.sections,
+         pictures=pictures,
++        tags=tags,
+     )
+ 
+ 
++def _run_tags(block: Block, items) -> list[tuple[int, int, tuple[str, ...]]]:
++    """The block's tagged runs as (start, end, tags) in its text (a hidden run, #463)."""
++    out = []
++    for part in block.parts:
++        line = items[part.item][1]
++        if not isinstance(line, TextLine) or block.text[part.start : part.start + len(line.text)] != line.text:
++            continue
++        offset = part.start
++        for run in line.runs:
++            if run.tags and run.text:
++                out.append((offset, offset + len(run.text), tuple(run.tags)))
++            offset += len(run.text)
++    return out
++
++
+ def _rebuilt_label(block: Block, pieces: Sequence[ScriptPiece], text: str) -> str:
+     """The block's label as the rebuilt text prints it, or "" if its words went (#324).
+ 
+--- a/src/sci2audio/testing/text_steps.py	2026-11-17 01:47:37.866751869 +0000
++++ b/src/sci2audio/testing/text_steps.py	2026-11-17 01:47:58.906753120 +0000
+@@ -307,7 +307,7 @@
+     # step may read (a hidden run, #463): the check below reads it on its own output
+     inside = _edited_inside(document, first)
+     for index, (was, now) in enumerate(zip(before, after, strict=True)):
+-        if was != now and index not in inside:
++        if was != now:
+             problems.append(
+                 f"not idempotent: run on its own output, block {index} changed again "
+                 f"from {was!r} to {now!r}"

@@ -1,0 +1,20 @@
+de|Die Daten (Frühjahr und Sommer 2019) und (Herbst/Winter 2019) und (Sommer- und Wintersemester 2019) gelten.
+de|Die Daten (Stand: 2020) und (Stand März 2020) und (Ausgabe 3, 2018) gelten.
+de|Laut (Sommer 2019), (Koch 2020) gilt es.
+de|Laut (Sommer 2019, 2020) und (Sommer 2019, 2020a) gilt es.
+de|Wie die Daten (Sommer\n2019) zeigen, gilt es.
+de|Die Daten (Sommer 2019) zeigen es.\nNeue Zeile (Winter 2020).
+de|Die Werte (vgl. Abb. 3; Sommer 2019) und (s. Sommer 2019) gelten.
+de|Das zeigt Koch (Sommer 2019) und Wagner (Winter 2020).
+de|Das zeigt (Version 2019) und (Fassung 2021) und (Jahrgang 1999) und (Semester 2019).
+de|Das zeigt (Sommer 1499) und (Sommer 2100) und (Sommer 1500).
+en|Data (Summer 2019) and (Winter 2020) and (Sommer 2019) are here.
+de|Der Pfeil X −→ Y und die Folge a−→b sowie p ←−q und x−→ 0.
+de|Für alle n −→ ∞ gilt x −→ 0 und X−→2.
+en|For n −→ ∞ we get x −→ 0 and X−→2 and x−→−1.
+en|Let a ←− −1 and b ←−−1 hold.
+en|Then f ◦ g −→ h and the map A −→ B −→ C commute.
+en|We set k ←− i + l and P′ ←− (I − P)−1 here.
+en|We have (1 − p)−1 and (1 − p)−1/2 and |x|−1 and ‖x‖−1 here.
+en|We have x²−1 and e−1 and 10−3 and 2)−3 here.
+en|See Figure 3)−2 and Table [2]−1.

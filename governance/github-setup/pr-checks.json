@@ -1,0 +1,82 @@
+{
+  "ownership_labels": [
+    "lane:core",
+    "lane:extraction",
+    "lane:layout",
+    "lane:textprep",
+    "lane:voices",
+    "lane:output",
+    "lane:app",
+    "lane:web",
+    "lane:cli",
+    "lane:infra",
+    "lane:docs"
+  ],
+  "label_paths": {
+    "lane:core": [
+      "src/sci2audio/core/**"
+    ],
+    "lane:extraction": [
+      "src/sci2audio/extraction/**"
+    ],
+    "lane:layout": [
+      "src/sci2audio/layout/**"
+    ],
+    "lane:textprep": [
+      "src/sci2audio/textprep/**",
+      "src/sci2audio/testing/**"
+    ],
+    "lane:voices": [
+      "src/sci2audio/voices/**"
+    ],
+    "lane:output": [
+      "src/sci2audio/output/**"
+    ],
+    "lane:app": [
+      "src/sci2audio/app/**"
+    ],
+    "lane:web": [
+      "src/sci2audio/web/**"
+    ],
+    "lane:cli": [
+      "src/sci2audio/cli.py"
+    ],
+    "lane:infra": [
+      ".github/**",
+      "pyproject.toml",
+      "uv.lock",
+      ".pre-commit-config.yaml"
+    ],
+    "lane:docs": [
+      "docs/**",
+      "*.md",
+      ".claude/**"
+    ]
+  },
+  "open_labels": [
+    "lane:docs"
+  ],
+  "lock_label": "lane:infra",
+  "locked_label": "lane:core",
+  "critical_paths": [
+    "src/sci2audio/core/**",
+    ".github/**",
+    "pyproject.toml",
+    "uv.lock",
+    "tests/corpus/**",
+    "tests/unit/__snapshots__/**",
+    "tests/regression/**",
+    "THIRD_PARTY_LICENSES.md"
+  ],
+  "doc_paths": [
+    "docs/**",
+    "**/README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    ".github/**",
+    ".claude/**"
+  ],
+  "governance_paths": [
+    "governance/**"
+  ]
+}

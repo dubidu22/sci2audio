@@ -1,0 +1,14 @@
+baseline PASS
+E2 word-before window 8: killed tests/unit/test_textprep_utterances.py::test_a_number_between_the_same_word_twice_ends_the_sentence[Es gilt Rn. 3
+E3 no left word bound: SURVIVED
+E4 no right word bound: SURVIVED
+E5 range from match start: killed tests/unit/test_textprep_utterances.py::test_a_space_inside_a_reading_ranks_after_every_other_space[aaaa bbbb ccc
+E7 up to last only: killed tests/unit/test_textprep_utterances.py::test_a_space_inside_a_reading_ranks_after_every_other_space[aaaa bbbb (cc
+E10 alternatives unsorted: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-x \u2264 5-
+E11 operators swapped: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-x \u2264 5-
+E12 no before_year: SURVIVED
+E13 no after_paragraph: SURVIVED
+E14 only plural unit: SURVIVED
+E15 only squared: SURVIVED
+E16 only square: SURVIVED
+E17 power of only minus: SURVIVED

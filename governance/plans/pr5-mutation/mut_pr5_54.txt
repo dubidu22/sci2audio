@@ -1,0 +1,2 @@
+BASELINE PASS
+54 KILLED statistics.py from sci2audio.textprep.footnotes import unread_ma -> from sci2audio.textprep.footno FAILED tests/unit/test_textprep_regression.py::test_the_script_is_the_expected_one[hidden-page-break-against-a-statistic] FAILED tests/unit/test_textprep_regression.py::test_the_script_reads_the_same_on_a_second_run[hidden-page-break-against-a-statistic]

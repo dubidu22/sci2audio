@@ -1,0 +1,53 @@
+baseline PASS
+533-1 window max+1: killed tests/unit/test_textprep_utterances.py::test_a_comma_at_the_limit_before_a_clause_opener_is_a_clause_cut
+533-2 >= in window: killed tests/unit/test_textprep_utterances.py::test_no_utterance_is_over_the_limit_when_the_text_holds_long_white_space_runs
+533-3 left without -1: killed tests/unit/test_textprep_utterances.py::test_the_even_share_counts_the_space_at_each_cut_once
+533-4 tie-break i: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-1/2 der-ein halb der]
+533-5 return after never: killed tests/unit/test_textprep_utterances.py::test_a_cut_inside_a_replacement_too_long_for_one_call_ends_at_its_end
+533-6 MIN_PIECE 30: killed tests/unit/test_textprep_utterances.py::test_on_a_tie_the_later_cut_wins
+533-7 MIN_PIECE 50: killed tests/unit/test_textprep_utterances.py::test_the_even_share_counts_the_space_at_each_cut_once
+479-a no label-again: killed tests/unit/test_textprep_utterances.py::test_a_number_between_the_same_word_twice_ends_the_sentence[Es gilt Abs. 2. Abs. 3 gilt hier 
+479-b case-insensitive compare: killed tests/unit/test_textprep_utterances.py::test_the_same_word_is_the_same_as_printed
+479-c next word without dot: killed tests/unit/test_textprep_utterances.py::test_a_number_between_the_same_word_twice_ends_the_sentence[Es gilt Az. 3. Az. 4 gilt auch.-s
+479-d word after anything: killed tests/unit/test_textprep_utterances.py::test_german_sentences_end_where_german_ends_them[Es folgt 2. Teilnehmer Gruppe B.-sentences0]
+482-a no reading rank: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-u. a.-unter anderem]
+482-b bracket penalty 5: killed tests/unit/test_textprep_utterances.py::test_a_space_inside_a_reading_ranks_after_every_other_space[(aaaa bbbb cccc dddd; eeee)unter 
+482-c no digit after: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-3,5 %-3 Komma 5 Prozent]
+482-d no digit before: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-3,5 %-3 Komma 5 Prozent]
+482-e no readings: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-u. a.-unter anderem]
+482-f no abbreviation readings: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-u. a.-unter anderem]
+482-g no unit names: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa degrees Celsius bbb-joined
+482-h no per: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-5 km/h-5 Kilometer pro Stunde]
+482-i no square/cubic: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-2.5 m\xb2-2.5 square metres]
+482-j no squared/cubed: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa x cubed bbb-joined21]
+482-k no operators: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-x \u2264 5-less than or equal t
+482-l no powers: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-10\u207b\xb3-10 to the power of
+482-m no months: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-am 3. Mai-dritten Mai]
+482-n months any case: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-it may rain here-joined14]
+482-o no look past last: killed tests/unit/test_textprep_utterances.py::test_a_space_inside_a_reading_ranks_after_every_other_space[aaaa bbbb cccc unter anderem dddd
+482-p joined_powers ignored: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[de-das Quadrat hier-joined16]
+E2 word-before window 8: killed tests/unit/test_textprep_utterances.py::test_a_number_between_the_same_word_twice_ends_the_sentence[Es gilt Rn. 3. Rn. 4 gilt auch.-s
+E3 no left word bound: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[de-aaa darin Verbindung mit bbb-j
+E4 no right word bound: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa that isotope bbb-joined18]
+E5 range from match start: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-1/2 der-ein halb der]
+E7 match end left out: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-5 km/h-5 Kilometer pro Stunde]
+E10 alternatives unsorted: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-x \u2264 5-less than or equal t
+E11 operators swapped: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-x \u2264 5-less than or equal t
+E12 no before_year: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[de-aaa und andere bbb-joined19]
+E13 no after_paragraph: SURVIVED
+E14 only plural unit: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa degree Celsius bbb-joined2
+E15 only squared: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa x cubed bbb-joined21]
+E16 only square: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa cubic metres bbb-joined22]
+E17 power of only minus: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-a 10 to the power of 6-joined2
+R1 no unit chain: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-5 N m-5 newton metres]
+R2 chain of two only: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa newton metre seconds bbb-j
+R3 chain names plural only: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-5 N m-5 newton metres]
+R4 per-only units in the chain: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[de-jede Minute Jahr f\xfcr Jahr-j
+R5 no out of: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-12/20-12 out of 20]
+R6 out of anywhere: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa out of reach-joined31]
+R7 no statistics symbols: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-95% CI-confidence interval]
+R8 symbols of the other language: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[en-95% CI-confidence interval]
+R9 no fractions of one: killed tests/unit/test_textprep_utterances.py::test_a_long_sentence_is_cut_outside_a_reading_on_both_runs[de-1/2 der-ein halb der]
+R10 month inside a word: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-ask the Mayor-joined34]
+R11 squared inside a word: SURVIVED
+N1 guard back: SURVIVED

@@ -1,0 +1,28 @@
+BASELINE PASS
+0 KILLED abbreviations.py _LAW = re.compile(_SPACE + r"(?:§|Art\.|Abs\.)") -> _LAW = re.compile(_SPACE + r"( FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_legal_forms_read_the_same_on_both_runs[Daten i. S. d. Abs. 2 hier.-Daten im Sinne des Absatz 2 hier.]
+1 SURVIVED abbreviations.py "date": _DATE, "law": _LAW} -> "date": _DATE, "law": _WORD}
+2 KILLED abbreviations.py and (not entry.after_sentence or _after_sentence(t -> and True FAILED tests/unit/test_textprep_units_abbreviations.py::test_german_abbreviations_read[die Hs. B-die Hs. B]
+3 KILLED abbreviations.py _after_paragraph(text, start) or _HALF_SENTENCE_AF -> _after_paragraph(text, start) FAILED tests/unit/test_textprep_units_abbreviations.py::test_german_abbreviations_read[S. 1 Hs. 2-Satz 1 Halbsatz 2]
+4 KILLED abbreviations.py and not (entry.inside_citation and _citation_goes_ -> and True FAILED tests/unit/test_textprep_regression_german.py::test_the_script_is_the_expected_one[de-abbreviations-legal-forms-inside-a-citation]
+5 KILLED abbreviations.py rf"\s+(?:[{_UPPER}]{{2,}}(?![{_LOWER}])|§| -> rf"\s+(?:§| FAILED tests/unit/test_textprep_regression_german.py::test_the_script_is_the_expected_one[de-abbreviations-legal-forms-inside-a-citation]
+6 SURVIVED abbreviations.py (?![{_LOWER}])|§| -> |§|
+7 KILLED abbreviations.py |§|(?:Satz|Absatz|Artikel|Nummer|Paragraph)\s+\d) -> |§) FAILED tests/unit/test_textprep_regression_german.py::test_the_script_is_the_expected_one[de-abbreviations-legal-forms-inside-a-citation]
+8 SURVIVED abbreviations.py entry.before in ("label", "number") and form.group -> entry.before in ("label",) and
+9 SURVIVED abbreviations.py (?:(?<![^\W\d_])S\.|\bSatz)\s*\d+\s+\Z -> (?:S\.|\bSatz)\s*\d+\s+\Z
+10 KILLED abbreviations.py if not entries or text[max(0, start - _AROUND) : s -> if True: FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_legal_forms_read_the_same_on_both_runs[Das gilt i. S. v. 3. Abschnitt.-Das gilt im Sinne von 3. Abschnitt.]
+11 KILLED numbers_de.py     before = _before_read(text, start)\n ->     before = _before(text, sta FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_legal_forms_read_the_same_on_both_runs[Das gilt i. S. v. 3. Abschnitt.-Das gilt im Sinne von 3. Abschnitt.]
+12 KILLED numbers_de.py previous = _PREVIOUS_WORD.search(_before_read(text -> previous = _PREVIOUS_WORD.sear FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_legal_forms_read_the_same_on_both_runs[Das gilt i. S. v. 3. Abschnitt.-Das gilt im Sinne von 3. Abschnitt.]
+13 KILLED abbreviations.py and (not entry.after_page or _after_page(text, mat -> and True FAILED tests/unit/test_textprep_regression_german.py::test_the_script_is_the_expected_one[de-abbreviations-f-after-a-page]
+14 NOT FOUND abbreviations.py if entry.after_paragraph and _after_paragraph(text, start):
+15 NOT FOUND abbreviations.py if entry.after_paragraph and _after_paragraph(text, start):
+16 SURVIVED abbreviations.py (?<![^\W\d_])Abs\.|\bAbsatz -> Abs\.|\bAbsatz
+17 KILLED abbreviations.py (?<![^\W\d_])S\.|\bSeiten? -> S\.|\bSeiten? FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_f_reads_folgende_only_after_a_page[Siehe AS. 12 f. dazu.-Siehe AS. 12 f. dazu.]
+18 KILLED abbreviations.py \d+(?:\s*[-\u2013\u2014]\s*\d+)?\s+\Z" -> \d+\s+\Z" FAILED tests/unit/test_textprep_regression_german.py::test_the_script_is_the_expected_one[de-abbreviations-f-after-a-page]
+19 KILLED abbreviations.py (?:0?[1-9]|1[0-2])\. -> \d{1,2}\. FAILED tests/unit/test_textprep_units_abbreviations.py::test_german_abbreviations_read[v. 12.13.2015-v. 12.13.2015]
+20 KILLED abbreviations.py (?:[1-9]|[012]\d|3[01])\. -> \d{1,2}\. FAILED tests/unit/test_textprep_units_abbreviations.py::test_german_abbreviations_read[v. 32.03.2015-v. 32.03.2015]
+21 NOT FOUND abbreviations.py "word": _WORD, "date": _DATE}
+22 KILLED numbers_de.py and not _YEAR_LIKE.fullmatch(match["n"]) -> and True FAILED tests/unit/test_textprep_regression_german.py::test_the_script_is_the_expected_one[de-numbers-a-year-ending-a-sentence-is-no-ordinal]
+23 KILLED numbers_de.py _YEAR_LIKE = re.compile(r"1[1-9]\d\d|20\d\d") -> _YEAR_LIKE = re.compile(r"\d\d FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_a_four_digit_year_before_a_noun_is_no_ordinal[Das war 2100. Auflage 3 folgte.-Das war zweitausendhundertste Auflage 3 folgte.]
+24 SURVIVED numbers_de.py _YEAR_LIKE = re.compile(r"1[1-9]\d\d|20\d\d") -> _YEAR_LIKE = re.compile(r"1[0-
+25 KILLED numbers_de.py or reads_unit_after_per(plain, match.start("base") -> or False FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_a_unit_after_per_reads_in_the_singular[de-Es sind 2 Liter pro m^2 hier.-Es sind 2 Liter pro Quadratmeter hier.]
+26 KILLED numbers.py if match["base"].isalpha() and reads_unit_after_pe -> if False: FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_a_unit_after_per_reads_in_the_singular[en-It is 2 L per m^2 here.-It is 2 litres per square metre here.]
