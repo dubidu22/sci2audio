@@ -52,7 +52,7 @@ Success means the listener can follow a dense academic text by ear, trusts that 
   4. **Listen page (read-along player)**: the text as printed with the sentence being read highlighted, and play from any sentence. Previous/next sentence and chapter, speed 0.75×–2×, scroll with the reading, and "continue from 3:12". It also lists what is not in the audiobook, and names the synthetic voice.
 - **Other surfaces:** voice setup and download (packs per language, files, sizes, licences, hosts, explicit consent); the privacy page (every statement checked against the code); removing a document (what goes, what stays); error pages; a language switch (EN/DE).
 - **Command line** with the same options (`script`, `convert`, `listen`, `voices download`, `clean`). It reads the interface's saved settings and never changes them.
-- **Planned study layer:** capture at the current sentence while listening, review the captured material, export to Zotero (citations, quotes), Obsidian (notes, Markdown) and Anki (cards). These tools run on the same computer; how sci2audio reaches them (local APIs, files) is undecided.
+- **Planned study layer:** capture at the current sentence while listening, review the captured material, export to Zotero (citations, quotes), Obsidian (notes, Markdown) and Anki (cards). The first version (v1.5) is decided in ADR-008 (`governance/kb/01-audit-and-roadmap/adr-008-study-layer.md`, D-850): marks, notes and quotes, a Captures page, and exports as files (Markdown, RIS, CSV); cards, card review and local connections to Zotero or Anki come later.
 - **Documents range** from a few pages to books of 1,000+ pages with many nested chapters. Jobs take minutes to hours; the user may leave and come back.
 - **Typical usage scenes:** at a desk next to Word, Overleaf, Zotero or a PDF viewer; listening with headphones, eyes on or off the screen; returning later to continue.
 
@@ -75,7 +75,7 @@ Success means the listener can follow a dense academic text by ear, trusts that 
   - Installers with an app window, an opt-in update check, and public plugin interfaces (v1.3).
   - Word-level highlighting, and a personal abbreviation and pronunciation list (Later).
 - **Undecided:**
-  - The scope, order and integration mechanism of the study layer (capture types, Zotero/Obsidian/Anki connection, headphone and media-key capture, voice notes).
+  - The study layer after v1.5 (ADR-008): a local connection to Zotero or Anki, headphone and media-key capture, voice notes.
   - Whether phones ever get more than exported files.
   - A logo.
 
