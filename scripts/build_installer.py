@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import plistlib
 import re
 import shutil
 import subprocess
@@ -235,8 +236,28 @@ def run(*args: str | Path, env: dict[str, str] | None = None) -> None:
     subprocess.run([str(a) for a in args], check=True, env=env)
 
 
+def check_app(app: Path) -> list[str]:
+    """What is wrong with the built `sci2audio.app`: empty when Finder starts the app in
+    a window and the command line is beside it (#716)."""
+    info = plistlib.loads((app / "Contents" / "Info.plist").read_bytes())
+    problems = []
+    if info.get("CFBundleExecutable") != "sci2audio-app":
+        problems.append(
+            f"the app bundle starts {info.get('CFBundleExecutable')!r}, not sci2audio-app (#716)"
+        )
+    if info.get("LSBackgroundOnly"):
+        problems.append("the app bundle is declared background-only (LSBackgroundOnly, #716)")
+    for program in ("sci2audio-app", "sci2audio"):
+        if not (app / "Contents" / "MacOS" / program).is_file():
+            problems.append(f"Contents/MacOS/{program} is missing")
+    return problems
+
+
 def macos_dmg(work: Path, out: Path) -> None:
     app = work / "dist" / "sci2audio.app"
+    problems = check_app(app)
+    if problems:
+        raise SystemExit("build_installer: " + "; ".join(problems))
     # ad-hoc signature: Apple Silicon runs no unsigned code; not notarised (no paid account,
     # D-797 q4), so the first start goes through Privacy & Security, "Open Anyway"
     run("codesign", "--force", "--deep", "--sign", "-", app)

@@ -19,7 +19,7 @@ Copy this list into the release Issue and tick each item.
 
 For a tester release (as 1.4.0, D-797 q5) the listening test, the screen-reader pass and the speed numbers may be skipped; the mutation run and the ZAP scan are then started by workflow dispatch and their results pasted into the release Issue.
 
-- [ ] **First start of the downloaded installers:** download the `.dmg` and the `setup.exe` from the release page on a real Mac and PC, and go through the first-start steps of `docs/installing.md` once (CI cannot reproduce the quarantine a browser download gets). Optional for a tester release.
+- [ ] **First start of the downloaded installers:** download the `.dmg` and the `setup.exe` from the release page on a real Mac and PC, and go through the first-start steps of `docs/installing.md` once (CI cannot reproduce the quarantine a browser download gets). Start the app as a person does: a double-click in Finder (macOS) and the Start menu or desktop entry in Explorer (Windows), never a program by its path; 1.4.0's bundle started the command line from Finder and passed every start by path (#716). Optional for a tester release.
 
 - [ ] **Listening test:** follow `docs/listening-tests/template.md` with the same 10 paragraphs; save the result as `docs/listening-tests/<version>.md` and compare with the last release.
 - [ ] **Screen-reader pass:** one full job (open a file, read the pre-analysis, start, play, use read-along, and at 320 px scroll the library table sideways with the arrow keys) with VoiceOver on macOS and NVDA on Windows, keyboard only. Note every problem as an Issue.

@@ -13,6 +13,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- The macOS app opens its window again when started from Finder or the Dock: 1.4.0's app bundle started the command line, which quit at once without a window (#716).
 - A text-step plugin whose import or set-up hangs no longer stops sci2audio from starting: loading gives up after 30 s and lists the plugin as a problem (#684).
 - Accents a PDF draws apart from their letter are read with it: names such as "Marasović" and "Šmejkal" keep their accent, and braces reaching below a line no longer join it to the next line of a reference (#125, #126).
 - Headings set with a rule or numbered like a list, plots without a caption and their labels, and tables without rules on a two-column page are read where they belong (#181, #54, #59, #55, #56).
