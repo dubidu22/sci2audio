@@ -85,7 +85,11 @@
     "governance/rules/**",
     "governance/project_instructions.md",
     "governance/governance-config.json",
-    "governance/tools/**"
+    "governance/tools/**",
+    "governance/kb/README.md",
+    "governance/kb/**/adr-*.md",
+    "governance/kb/**/playbook-*.md",
+    "governance/kb/**/doc-*.md"
   ],
   "doc_paths": [
     "docs/**",
