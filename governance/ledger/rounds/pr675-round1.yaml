@@ -1,0 +1,12 @@
+pr: 675
+round: 1
+date: 2026-11-20
+thread: review-web-b-w1
+head: c691608
+critical: yes
+verdict: changes_requested
+must_fix: 2
+should_fix: 4
+kinds: "state-not-applied, unwanted-side-effect, weak-guard, missing-test"
+report: plans/review-pr675-round1.md
+merged: ""
