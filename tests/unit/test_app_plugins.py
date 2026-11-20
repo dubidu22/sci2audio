@@ -2,14 +2,17 @@
 them (#216, PE-10)."""
 
 import json
+import sys
+import time
 from importlib.metadata import EntryPoint
 from pathlib import Path
 
+import broken_text_plugins
 import pytest
 from cli_helpers import Cli
 
 from sci2audio.app import JobRunner, JobSettings
-from sci2audio.textprep import BUILT_IN_STEPS, Category
+from sci2audio.textprep import BUILT_IN_STEPS, Category, plugins
 from sci2audio.textprep.api import PLUGIN_GROUP
 from sci2audio.textprep.plugins import installed_steps
 
@@ -113,3 +116,49 @@ def test_broken_installed_plugins_do_not_stop_the_command_line(
     assert result.code == 0, result.err
     for name in ("bad-property", "boom-import", "boom-factory"):
         assert f"the text step {name} failed and was left out: plugin not loaded" in result.err
+
+
+def hanging_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A real dist-info whose entry point blocks at import, and a 0.2 s load limit (#684)."""
+    info = tmp_path / "site" / "hang-plugin-0.1.dist-info"
+    info.mkdir(parents=True)
+    (info / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: hang-plugin\nVersion: 0.1\n", encoding="utf-8"
+    )
+    (info / "entry_points.txt").write_text(
+        f"[{PLUGIN_GROUP}]\nhanging-import = hanging_on_import:Step\n", encoding="utf-8"
+    )
+    monkeypatch.syspath_prepend(str(tmp_path / "site"))
+    monkeypatch.setattr(plugins, "PLUGIN_LOAD_TIMEOUT", 0.2)
+    monkeypatch.delitem(sys.modules, "hanging_on_import", raising=False)  # import it again
+    broken_text_plugins.HANG.clear()
+
+
+@pytest.fixture
+def let_go():
+    yield
+    broken_text_plugins.HANG.set()
+
+
+def test_a_runner_is_made_well_before_a_hanging_plugin_would_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, let_go
+) -> None:
+    hanging_site(tmp_path, monkeypatch)
+    started = time.monotonic()
+    made = JobRunner()
+    assert time.monotonic() - started < 3
+    assert [problem.name for problem in made.steps.problems] == ["hanging-import"]
+
+
+def test_the_command_line_names_a_plugin_that_hung_while_loading(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, let_go
+) -> None:
+    hanging_site(tmp_path, monkeypatch)
+    result = Cli(tmp_path)("script", source(tmp_path), "-o", tmp_path / "out", "-q")
+    assert result.code == 0, result.err
+    assert (
+        "the text step hanging-import failed and was left out: plugin not loaded: "
+        "took longer than 0.2 s to load; left out"
+    ) in result.err
+    data = json.loads((tmp_path / "out" / "note.report.json").read_text(encoding="utf-8"))
+    assert [problem["step"] for problem in data["problems"]] == ["hanging-import"]
