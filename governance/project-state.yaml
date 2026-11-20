@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-20T21:45Z   # clock time; hour marks written earlier today were estimates (D-856)
+updated: 2026-11-20T21:55Z   # clock time; hour marks written earlier today were estimates (D-856)
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -16,7 +16,7 @@ active_now:
   lanes_active: []                                   # batch 2 closed 20 Nov 21:40Z (D-857): #691 #689 #690 #692 #698 #696 #700 #701 #707 merged, 2.0 rounds avg, 0 reverts; all threads retired (plugins-b-p1, web-b-w1, infra-b-i1, infra-b-i3, docs-b-d1); light audit running (plans/audit-batch-2026-11-20b.md)
   lanes_waiting:                                     # v1.4 remainder, batch 3 proposal; starts on Colin's go
     - "textprep B-P3: #693 (critical: plugin results still run plugin code in the job thread) and #694; new thread"
-    - "infra B-I4: #695 review-tag check, #706 stale scaffold copy; new thread (both risk:low)"
+    - "infra B-I4: #695 review-tag check, #706 stale scaffold copy; new thread (both risk:low). Hand-off from infra-b-i3 (7f5ee89): the skill generator/scaffold drop governance_paths and write the old PLAN-01, so after any regeneration copy back only claude-project-rules.yaml and rules/*.yaml and re-insert governance_paths and the D-849 text by exact replace (test_ruleset.py and test_lanes.py guard it); ruff excludes .github/governance, never pass that path to ruff format"
     - "web tests: #697 Firefox resume flake (cause hunt), #699 WebKit timeouts (after nightly evidence); new thread, risk:low"
     - "layout #679 (new thread); voices #663 (new thread)"
     - "docs: KB audit of batch 2 proposes the unguarded-plugin-code check (META-03, D-857)"
