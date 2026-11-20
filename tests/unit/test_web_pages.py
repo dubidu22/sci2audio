@@ -684,3 +684,57 @@ def test_the_language_choice_is_not_saved_with_the_settings(server: tuple[FastAP
     assert client.get("/api/v1/settings").json()["settings"]["language"] == ""
     other = analysed(client)  # the next document starts automatic
     assert shown_of(client.get(f"/documents/{other['id']}").text)["language"] == ""
+
+
+# ---- the text-step plugins an analysis ran with (#668) ----------------------------------
+
+
+def plugin_client(tmp_path: Path) -> tuple[TestClient, Any]:
+    from web_helpers import make_config, plugin_steps
+
+    from sci2audio.app import JobRunner
+    from sci2audio.web import create_app
+
+    config = make_config(tmp_path)
+    app = create_app(config, runner=JobRunner(plugin_steps()))
+    client = browser(app, config)
+    client.headers["Origin"] = ORIGIN
+    return client, config
+
+
+def analysed_salt(client: TestClient) -> str:
+    from pdf_maker import Text, make_pdf
+    from web_helpers import AMPERSAND_TEXT
+
+    doc = upload(client, make_pdf([Text(AMPERSAND_TEXT, 72, 100, size=11)]), "salt.pdf")
+    body = {"kind": "script", "document": doc["id"], "settings": {}}
+    job = client.post("/api/v1/jobs", json=body).json()
+    assert wait(client, job["id"])["state"] == "done"
+    return str(doc["id"])
+
+
+def test_the_document_page_lists_the_plugins_that_ran(tmp_path: Path) -> None:
+    client, _ = plugin_client(tmp_path)
+    page = client.get(f"/documents/{analysed_salt(client)}").text
+    assert 'id="plugins"' in page
+    listed = page[page.index('id="plugins"') :].split("</div></div>", 1)[0]
+    assert "ampersand-and" in listed
+    assert "sci2audio-example 0.1" in listed
+    assert "switched off" not in listed
+
+
+def test_the_document_page_says_when_plugins_were_off(
+    tmp_path: Path, server: tuple[FastAPI, Any]
+) -> None:
+    client, config = plugin_client(tmp_path)
+    doc = analysed_salt(client)
+    report_file = next((config.work_root / doc).rglob("*.report.json"))
+    data = json.loads(report_file.read_text(encoding="utf-8"))
+    data.pop("plugins")
+    data["settings"]["plugins"] = False  # as `sci2audio script --no-plugins` writes it
+    report_file.write_text(json.dumps(data), encoding="utf-8")
+    page = client.get(f"/documents/{doc}").text
+    assert "Text-step plugins were switched off for this analysis." in page
+    assert "ampersand-and" not in page[page.index('id="plugins"') :].split("</div></div>", 1)[0]
+    plain = client_of(server)  # no plugin installed: no plugin callout at all
+    assert 'id="plugins"' not in plain.get(f"/documents/{analysed(plain)['id']}").text

@@ -707,6 +707,18 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     assert updates.UpdateState().enabled is False
     assert updates.RELEASES_URL.startswith("https://api.github.com/")
     assert updates.HEADERS == {"User-Agent": "sci2audio", "Accept": "application/vnd.github+json"}
+    # 2c: text-step plugins are other people's code with the network open, not sandboxed;
+    # --no-plugins keeps them out of a command-line job, uninstalling out of the interface
+    from sci2audio import cli
+    from sci2audio.textprep.plugins import PLUGIN_GROUP
+
+    assert '"--no-plugins"' in Path(cli.__file__).read_text(encoding="utf-8")
+    for table, network, sandbox in ((EN, "network", "sandbox"), (DE, "Netz", "Sandbox")):
+        point = table["privacy.plugins"]
+        assert PLUGIN_GROUP in point
+        assert "--no-plugins" in point
+        assert network in point
+        assert sandbox in point
     for table in (EN, DE):
         assert {"“sci2audio”", "„sci2audio“"} & set(
             re.findall(r"[“„]sci2audio[”“]", table["privacy.updates"])
@@ -770,3 +782,24 @@ def test_launch_opens_only_a_loopback_socket() -> None:
     assert "HOST" in source
     assert "0.0.0.0" not in source  # noqa: S104 - the check that it never binds there
     assert "::" not in source
+
+
+def test_the_privacy_page_names_the_installed_plugins(
+    tmp_path: Path, server_: tuple[FastAPI, Any]
+) -> None:
+    """The page lists the plugins this server's runner loaded, or says there are none (#685)."""
+    from web_helpers import make_config, plugin_steps
+
+    from sci2audio.app import JobRunner
+    from sci2audio.web import create_app
+
+    for language in ("en", "de"):
+        none = client_in(server_, language).get("/privacy").text
+        assert html.escape(strings(language)("privacy.plugins_none")) in none
+    config = make_config(tmp_path / "with")
+    app = create_app(config, runner=JobRunner(plugin_steps()))
+    for language in ("en", "de"):
+        page = client_in((app, config), language).get("/privacy").text
+        section = page[page.index('id="plugins"') :]
+        assert "<code>ampersand-and</code> (sci2audio-example 0.1)" in section
+        assert html.escape(strings(language)("privacy.plugins_none")) not in page

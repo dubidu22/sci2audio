@@ -1157,7 +1157,11 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     )
     try:
         view, located, made_from = player_for(
-            found.work, found.document, found.folders, figures=not found.outside
+            found.work,
+            found.document,
+            found.folders,
+            figures=not found.outside,
+            steps=state.runner.steps,
         )
     except PlayerError as error:
         return _page(
@@ -1344,6 +1348,7 @@ def privacy(request: Request, state: State) -> HTMLResponse:
         app_log=str(app_log_file()),
         hosts=hosts_shown(plan.files, s),
         update_host=urlsplit(RELEASES_URL).hostname,
+        plugins=getattr(state.runner.steps, "plugins", ()),  # the runner's, live (#685)
         folders=[
             ("work", str(state.config.work_root)),
             ("output", str(saved.output_folder or state.config.output_folder)),

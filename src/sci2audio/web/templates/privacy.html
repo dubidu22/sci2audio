@@ -24,6 +24,10 @@
 <p>{{ t('privacy.updates') }}</p>
 <p>{{ t('privacy.updates_host') }} <code>{{ update_host }}</code></p>
 
+<h2 id="plugins" tabindex="-1">{{ t('privacy.plugins_title') }}</h2>
+<p>{{ t('privacy.plugins') }}</p>
+<p id="plugins-installed">{% if plugins %}{{ t('privacy.plugins_installed') }} {% for plugin in plugins %}<code>{{ plugin.step }}</code>{% if plugin.distribution %} ({{ plugin.distribution }}{% if plugin.version %} {{ plugin.version }}{% endif %}){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}{{ t('privacy.plugins_none') }}{% endif %}</p>
+
 <h2>{{ t('privacy.telemetry_title') }}</h2>
 <p>{{ t('privacy.telemetry') }}</p>
 

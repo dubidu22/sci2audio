@@ -314,6 +314,9 @@ class AudioRecord:
     mp3s: tuple[str, ...]
     readalong: str
     made_with: str = ""  # the sci2audio version that made it ("" if the record has none)
+    # made with the installed text-step plugins (#667); a record from before #667 says
+    # nothing and was made with them
+    plugins_on: bool = True
 
     @property
     def names(self) -> frozenset[str]:
@@ -354,6 +357,7 @@ def read_audio_record(work: Path, document_id: str) -> AudioRecord:
             mp3s=tuple(files["mp3"]),
             readalong=files["readalong"],
             made_with=str(data.get("sci2audio", "")),
+            plugins_on=data["settings"].get("plugins") is not False,
         )
     except PlayerError:
         raise
@@ -589,8 +593,9 @@ def build_view(
     after the block it is read in, so the page follows the voice, but only where the
     read-along shows the voice read it there (`_heard_moves`): an audiobook made before #213
     read its notes where printed, and shows them there. `steps` are the steps the audiobook
-    was made with: the built-in ones (tests pass others). With `figures`, a figure, table
-    or formula read as its notice shows itself in its notice box (#293)."""
+    was made with: the server's runner's, plugins included (#666; tests pass others). With
+    `figures`, a figure, table or formula read as its notice shows itself in its notice box
+    (#293)."""
     for chunk in readalong.chunks:
         try:
             document.check_span(chunk.span)
@@ -923,12 +928,16 @@ def shown(
     return "".join(out)
 
 
-def joined_hyphens(document: Document, switched_off: frozenset[str]) -> dict[int, frozenset[int]]:
+def joined_hyphens(
+    document: Document,
+    switched_off: frozenset[str],
+    steps: Sequence[TextStep] = BUILT_IN_STEPS,
+) -> dict[int, frozenset[int]]:
     """By block, the offsets of the line-end hyphens whose words the voice read joined: the
-    line-end-hyphens step's joins that the settled run of the built-in steps accepted, with
-    the job's categories (#286). A join set aside because an earlier step won (a link, a
+    line-end-hyphens step's joins that the settled run of `steps` accepted, with the job's
+    categories (#286, #666). A join set aside because an earlier step won (a link, a
     citation, the reference list) is not one: that text shows as printed (review M1)."""
-    return _joins(_settled(document, switched_off, BUILT_IN_STEPS))
+    return _joins(_settled(document, switched_off, steps))
 
 
 def _settled(
@@ -1107,16 +1116,25 @@ def _piece(
 
 
 def player_for(
-    work: Path, document_id: str, folders: Sequence[Path | None], *, figures: bool = True
+    work: Path,
+    document_id: str,
+    folders: Sequence[Path | None],
+    *,
+    figures: bool = True,
+    steps: Sequence[TextStep] = BUILT_IN_STEPS,
 ) -> tuple[PlayerView, Located, Document]:
     """Everything the listen page shows, or PlayerError saying why it can't, with the
     document it was made from (for the markers, #474). `folders` are the only folders the
     audiobook may be in (`candidate_folders`, or the one folder a command-line job names,
-    #154). Without `figures` no notice box shows its figure (a command-line job, #293)."""
+    #154). Without `figures` no notice box shows its figure (a command-line job, #293).
+    `steps` are the server's (its runner's, plugins included, #666); an audiobook its
+    record says was made without plugins is shown with their steps left out."""
     record = read_audio_record(work, document_id)
     located = locate(record, folders)
     document = load_document(work)
-    view = build_view(document, record, located.readalong, figures=figures)
+    if not record.plugins_on:
+        steps = tuple(step for step in steps if getattr(step, "plugin", None) is None)
+    view = build_view(document, record, located.readalong, steps, figures=figures)
     return view, located, document
 
 
