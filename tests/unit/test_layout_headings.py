@@ -682,6 +682,27 @@ def test_a_line_with_a_rule_under_it_is_a_level_one_heading() -> None:
     assert page.drawings[0].id in holder(doc, "Ethics Review Form")  # its own part (D-391)
 
 
+def test_a_narrow_rule_under_an_indented_line_joins_that_line() -> None:
+    """#181: a rule from x 70 to 165 under a line indented to x 85 is read before the line;
+    it joins the line's block, not the paragraph read before. It stops short of the line's
+    end, so it marks no heading (D-385 kept, D-840); rules as wide as half the text and as
+    the whole column do."""
+    for x1, heading in ((165.0, False), (326.0, True), (RIGHT, True)):
+        page = numbered().ruled("Ethics Review Form", indent=15.0, x1=x1).body()
+        doc = page.build()
+        assert page.drawings[0].id in holder(doc, "Ethics Review Form"), x1
+        assert (("Ethics Review Form", "") in headings(doc)) is heading, x1
+
+
+def test_a_rule_under_less_than_half_of_a_line_still_joins_the_block_before() -> None:
+    """Liu p4: a rule read before a line it lies under for less than half of the line's width
+    (a fraction bar) is not that line's; it joins the block read before, as before (D-90,
+    D-840)."""
+    page = numbered().ruled("Ethics Review Form of a longer kind", indent=30.0, x1=LEFT + 40)
+    doc = page.body().build()
+    assert page.drawings[0].id not in holder(doc, "Ethics Review Form of a longer kind")
+
+
 def test_the_same_line_without_a_rule_is_not_a_heading() -> None:
     """hardt's "Single Sentence" and "Two Actions": bold labels at body size."""
     doc = numbered().heading("Ethics Review Form", 10.0).body().build()
@@ -1042,3 +1063,31 @@ def test_front_matter_after_a_heading_starts_at_its_own_page() -> None:
         ("Methode", False),
     ]
     assert publisher_sections(doc) == [("Inhalt", 2, 2)]
+
+
+# Numbered headings set like list markers (#54)
+
+
+def test_two_numbered_headings_next_to_each_other_are_headings_not_list_items() -> None:
+    """#54: "1. Introduction" and "2. Related work" open with list markers in sequence, and
+    lists are found before headings; heading-sized or bold, they are headings."""
+    for size, bold in ((12.0, True), (12.0, False), (10.0, True)):
+        page = Page().heading("1. Introduction", size, bold)
+        page.heading("2. Related work", size, bold).body()
+        doc = page.build()
+        found = [(b.kind, b.text) for b in doc.blocks if b.text.startswith(("1.", "2."))]
+        assert found == [
+            (BlockKind.HEADING, "1. Introduction"),
+            (BlockKind.HEADING, "2. Related work"),
+        ], (size, bold)
+        assert headings(doc) == [("1. Introduction", "1"), ("2. Related work", "2")]
+
+
+def test_a_numbered_list_in_body_text_stays_a_list() -> None:
+    page = Page().heading("1 Data").body()
+    for text in ("1. The first entry of the list.", "2. The second entry of the list."):
+        page.lines.append(set_line(text, page.y))
+        page.y += PITCH
+    doc = page.body().build()
+    items = [b.text for b in doc.blocks if b.kind is BlockKind.LIST_ITEM]
+    assert items == ["1. The first entry of the list.", "2. The second entry of the list."]

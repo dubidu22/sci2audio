@@ -621,3 +621,136 @@ def test_a_mark_in_a_pages_last_printed_line_stands_just_after_it() -> None:
     doc = build([*lines, first, second, bar])
     assert [b.kind for b in doc.blocks] == [BlockKind.PARAGRAPH]
     assert [p.item for p in doc.blocks[0].parts][-3:] == [first.id, "bar", second.id]
+
+
+# Scatter plots of small markers (#59)
+
+
+def markers(x0: float, y0: float, across: int, down: int, step: float, size: float = 2.0) -> list:
+    """Small square markers on a grid, `step` apart from one marker's start to the next."""
+    return [
+        Drawing(f"m{next(_ids)}", Box(x, y, x + size, y + size))
+        for k in range(across)
+        for j in range(down)
+        for x, y in [(x0 + k * step, y0 + j * step)]
+    ]
+
+
+def test_an_uncaptioned_scatter_plot_is_one_figure() -> None:
+    """#59: dots are thin both ways, so they counted as lines and the plot joined the
+    paragraph before it. Markers that touch, and markers spread up to `float_gap` (1 em)
+    apart, 15 by 10 em in all: one FIGURE."""
+    for step in (2.0, 12.0):  # touching; 10 points of white between markers
+        text = running(count=4)
+        dots = markers(LEFT, 180, 13 if step == 12.0 else 75, 9 if step == 12.0 else 50, step)
+        doc = build([*text, *dots, *running(top=320, count=4)])
+        (figure,) = of(doc, BlockKind.FIGURE)
+        assert {p.item for p in figure.parts} == {d.id for d in dots}, step
+
+
+def test_a_small_logo_of_dots_still_joins_the_block_before() -> None:
+    """The JOSS first page: a logo of 9 small paths, 2 by 3.2 em, stays a mark (D-90): a
+    plot is at least `plot_size` (4 em) both ways (D-840)."""
+    text = running(count=4)
+    logo = markers(LEFT, 162, 3, 3, 9.0, size=4.0)
+    logo += [Drawing(f"m{next(_ids)}", Box(LEFT + 8, 172, LEFT + 12, 194))]
+    doc = build([*text, *logo, *running(top=220, count=4)])
+    assert of(doc, BlockKind.FIGURE) == []
+    holder = [b for b in doc.blocks if {d.id for d in logo} <= {p.item for p in b.parts}]
+    assert [b.kind for b in holder] == [BlockKind.PARAGRAPH]
+
+
+@given(st.integers(1, 12), st.integers(1, 12), st.floats(2.0, 12.0))
+def test_markers_are_a_plot_exactly_when_they_spread_a_plot_size(
+    across: int, down: int, step: float
+) -> None:
+    """Markers on a grid, at most `float_gap` of white apart, are one FIGURE when there are at
+    least 3 of them and they reach `plot_size` (4 em, 40 points here) both ways; else they
+    join the paragraph before them, as a mark or lines do (D-90). Every marker is read in
+    exactly one block either way."""
+    dots = markers(LEFT, 180, across, down, step)
+    doc = build([*running(count=4), *dots, *running(top=340, count=4)])
+    width, height = (across - 1) * step + 2.0, (down - 1) * step + 2.0
+    plot = across * down >= 3 and width >= 40.0 and height >= 40.0
+    figures = of(doc, BlockKind.FIGURE)
+    assert len(figures) == (1 if plot else 0)
+    if plot:
+        assert {p.item for p in figures[0].parts} == {d.id for d in dots}
+    read = [p.item for b in doc.blocks for p in b.parts if p.item.startswith("m")]
+    assert sorted(read) == sorted(d.id for d in dots)
+
+
+# Text inside a figure no caption names (#55)
+
+
+def test_an_uncaptioned_chart_takes_the_labels_inside_it() -> None:
+    """#55: the tick and axis labels, set smaller than the body text inside the box the
+    curve and axes span, are the figure's, read row by row, not running text."""
+    curve = Drawing("curve", Box(120, 300, 400, 380))
+    x_axis = Drawing("x-axis", Box(100, 380, 400, 380.5))
+    y_axis = Drawing("y-axis", Box(119.5, 290, 120, 380.5))
+    labels = [
+        line("10", 102, 300, 112, size=8),
+        line("0", 104, 372, 112, size=8),
+        line("time", 240, 372, 262, size=8),
+    ]
+    doc = build([*running(count=4), *labels, curve, x_axis, y_axis, *running(top=420, count=4)])
+    (figure,) = of(doc, BlockKind.FIGURE)
+    assert {p.item for p in figure.parts} == {"curve", "x-axis", "y-axis", *(t.id for t in labels)}
+    assert figure.text == "10\n0 time"
+    paragraphs = " ".join(b.text for b in of(doc, BlockKind.PARAGRAPH))
+    assert "time" not in paragraphs
+
+
+def test_text_on_a_background_stays_running_text() -> None:
+    """A background box (one drawing) around a paragraph keeps the paragraph, whether its
+    text is set at the body size or smaller (an aside): one drawing holding all the text is
+    a background, not a chart (D-840)."""
+    for size in (10.0, 8.0):
+        aside = [line(f"Aside text, line {k}.", 90, 300 + 12 * k, 500, size=size) for k in range(4)]
+        background = Drawing("background", Box(80, 290, 510, 350))
+        doc = build([*running(count=4), *aside, background, *running(top=380, count=4)])
+        read = [p.item for b in of(doc, BlockKind.FIGURE) for p in b.parts]
+        assert not set(read) & {li.id for li in aside}, size
+
+
+# A rule-less table on a two-column page (#56)
+
+LEFT_END, RIGHT_START = MIDDLE - 8, MIDDLE + 8  # the two columns of `test_layout`
+
+
+def _two_column_page(cells: list[TextLine], caption: TextLine, *aside: TextLine) -> list:
+    """Running text in both columns with white above and below a table at y 260 to 288,
+    and a small aside at the table's second row."""
+    left = [line(f"Left text, line {k}.", LEFT, 100 + 14 * k, LEFT_END) for k in range(8)]
+    left += [line(f"Left text, line {k}.", LEFT, 350 + 14 * k, LEFT_END) for k in range(6)]
+    right = [line(f"Right text, line {k}.", RIGHT_START, 100 + 14 * k, RIGHT) for k in range(8)]
+    right += [line(f"Right text, line {k}.", RIGHT_START, 350 + 14 * k, RIGHT) for k in range(6)]
+    return [*left, *right, *cells, caption, *aside]
+
+
+def small_cells(top: float, rows: list[list[str]], x0: float, step: float) -> list[TextLine]:
+    return [
+        line(cell, x0 + step * c, top + 14 * r, x0 + step * c + 40, size=8)
+        for r, row in enumerate(rows)
+        for c, cell in enumerate(row)
+    ]
+
+
+def test_a_rule_less_table_does_not_take_a_small_line_from_the_other_column() -> None:
+    """#56: a cell brings the small lines on its row, but not one in the other column."""
+    cells = small_cells(260, ROWS, LEFT, 60)
+    caption = line("Table 1: Scores.", LEFT, 302, LEFT + 80)
+    aside = line("an aside in small type", RIGHT_START, 274, RIGHT_START + 90, size=8)
+    doc = build(_two_column_page(cells, caption, aside))
+    table = named(doc, "Table 1")
+    assert table.text == READ
+    assert aside.id not in {p.item for p in table.parts}
+
+
+def test_a_rule_less_table_across_both_columns_keeps_its_cells() -> None:
+    """Under a caption across both columns, the cells on the other side are the table's."""
+    cells = small_cells(260, ROWS, LEFT, 180)
+    caption = line("Table 1: Scores across the page.", LEFT, 302, RIGHT)
+    doc = build(_two_column_page(cells, caption))
+    assert named(doc, "Table 1").text == READ
