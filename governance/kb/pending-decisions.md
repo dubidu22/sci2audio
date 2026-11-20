@@ -24,5 +24,6 @@ Owner messages: "Yes, regenerate" and "Yes, apply" (20 Nov 2026).
 The knowledge base and the design record of `dubidu22/sci2audio-design` moved into `governance/kb/` and `docs/design/` of the product repository (PR #658, merged 20 Nov 2026), with ruleset versions 1.7.0 and 1.8.0. Four privacy redactions are marked in the decision log. The design repository is archived.
 Owner message: "Approve" (20 Nov 2026).
 
-## D-833 (2026-11-20, coordinator)
-The governance PR checks, the critical-path labeler and CODEOWNERS live in `.github` (PRs #660 and #661, issue #659). Branch `main` requires the checks "CI passed" and "governance pr checks". Code-owner review was withdrawn because one account authors every PR, so a code-owner lock cannot bind.
+## D-833 (2026-11-20, owner)
+The governance PR checks, the critical-path labeler and CODEOWNERS live in `.github` (PRs #660 and #661, issue #659). Colin applied the repository settings himself: branch `main` requires the checks "CI passed" and "governance pr checks", and code-owner review was withdrawn because one account authors every PR, so a code-owner lock cannot bind.
+Owner messages: "I have done the github settings you proposed originally" and "Done" (20 Nov 2026).
