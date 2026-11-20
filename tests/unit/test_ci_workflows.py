@@ -428,3 +428,35 @@ def test_the_governance_check_runs_pr_code_only_without_write_access() -> None:
     assert "persist-credentials: false" in block(
         block(GOVERNANCE, f"      - uses: {checkout}"), "        with:"
     )
+
+
+def browser_shard():  # type: ignore[no-untyped-def]
+    """`.github/scripts/browser_shard.py`, imported as a module."""
+    script = ROOT / ".github" / "scripts" / "browser_shard.py"
+    spec = importlib.util.spec_from_file_location("browser_shard", script)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_browser_shard_reads_only_test_ids_not_the_quarantine_banner() -> None:
+    """The quarantine banner names a test with "::" too; read as a test it made the shard's
+    argument file hold "#697 tests/..." and pytest exit 4 with no test run (#698 review M1)."""
+    listing = "\n".join(
+        [
+            "1 quarantined test(s), all to be fixed before v1.0 (D-374, #80):",
+            "  #697 tests/browser/test_flow.py::test_resume[firefox]",
+            "tests/browser/test_flow.py::test_open[firefox]",
+            "tests/browser/test_flow.py::test_resume[firefox]",
+            "tests/browser/test_axe.py::test_start_page[firefox]",
+            "",
+            "3 tests collected in 0.42s",
+        ]
+    )
+    assert browser_shard().browser_tests(listing) == [
+        "tests/browser/test_flow.py::test_open[firefox]",
+        "tests/browser/test_flow.py::test_resume[firefox]",
+        "tests/browser/test_axe.py::test_start_page[firefox]",
+    ]
