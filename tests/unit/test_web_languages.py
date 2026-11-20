@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import ast
 import html
 import json
 import re
@@ -36,6 +37,7 @@ from web_helpers import (
 )
 
 import sci2audio.web
+from sci2audio.app import updates
 from sci2audio.app.settings import LETTER_PACES
 from sci2audio.textprep import Category
 from sci2audio.voices import PACKS, VOICES, download_plan
@@ -600,10 +602,91 @@ def test_the_privacy_page_lists_the_hosts_and_folders_of_this_server(
         assert 'href="/voice"' in page
 
 
+# Modules that open connections, and calls that do so without importing one of them
+NETWORK_MODULES = (
+    "aiohttp",
+    "ftplib",
+    "http.client",
+    "http.server",
+    "httpx",
+    "imaplib",
+    "poplib",
+    "requests",
+    "smtplib",
+    "socket",
+    "socketserver",
+    "ssl",
+    "telnetlib",
+    "urllib.request",
+    "urllib3",
+    "websocket",
+    "websockets",
+    "xmlrpc",
+)
+NETWORK_CALLS = frozenset(
+    {"create_connection", "getaddrinfo", "open_connection", "start_server", "urlopen"}
+)
+
+
+def _network_module(name: str) -> bool:
+    return any(name == m or name.startswith(m + ".") for m in NETWORK_MODULES)
+
+
+def network_uses(source: str) -> list[str]:
+    """Every import of a network module and every network call in `source`, found in its
+    syntax tree: `from urllib import request`, `import json, requests`, an import inside a
+    function and `importlib.import_module("requests")` count as much as a plain import."""
+    found = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            found += [a.name for a in node.names if _network_module(a.name)]
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            names = [node.module] + [f"{node.module}.{a.name}" for a in node.names]
+            found += [name for name in names if _network_module(name)]
+        elif isinstance(node, ast.Call):
+            called = node.func
+            name = called.attr if isinstance(called, ast.Attribute) else getattr(called, "id", "")
+            if name in ("import_module", "__import__") and node.args:
+                first = node.args[0]
+                if isinstance(first, ast.Constant) and isinstance(first.value, str):
+                    found += [first.value] if _network_module(first.value) else []
+            elif name in NETWORK_CALLS:
+                found.append(f"{name}()")
+    return found
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import requests",
+        "import json, requests",
+        "from urllib import request",
+        "from http import client",
+        "import ssl",
+        "def f():\n    import socket",
+        "import importlib\nimportlib.import_module('requests')",
+        "__import__('httpx')",
+        "import asyncio\nasyncio.open_connection('example.org', 80)",
+        "from urllib.request import urlopen",
+    ],
+)
+def test_the_network_guard_sees_every_way_in(source: str) -> None:
+    assert network_uses(source), source
+
+
+@pytest.mark.parametrize(
+    "source",
+    ["import json", "from urllib.parse import urlsplit", "import asyncio\nasyncio.sleep(1)"],
+)
+def test_the_network_guard_lets_the_rest_pass(source: str) -> None:
+    assert network_uses(source) == []
+
+
 def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> None:
     """Point by point: if one of these fails, the code changed and the page must too."""
-    # 1 and 2: the only network code is the voice download (tests/unit/test_*_network*,
-    # the `offline` fixture everywhere); the voice runs with Hugging Face offline
+    # 1 and 2: the only network code is the voice download and the update check the person
+    # turns on (tests/unit/test_*_network*, test_app_updates, the `offline` fixture
+    # everywhere); the voice runs with Hugging Face offline
     from sci2audio.voices.runtime import ENVIRONMENT
 
     assert ENVIRONMENT["HF_HUB_OFFLINE"] == "1"
@@ -611,15 +694,23 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     networked = {
         path.relative_to(package).as_posix()
         for path in package.rglob("*.py")
-        if re.search(
-            r"^\s*(import|from)\s+(urllib\.request|http\.client|requests|httpx|socket"
-            r"|aiohttp|urllib3)\b",
-            path.read_text(encoding="utf-8"),
-            re.M,
-        )
+        if network_uses(path.read_text(encoding="utf-8"))
     }
     # launch opens the 127.0.0.1 socket; testing refuses connections in tests
-    assert networked <= {"voices/download.py", "web/launch.py", "testing/text_steps.py"}
+    assert networked <= {
+        "voices/download.py",
+        "app/updates.py",
+        "web/launch.py",
+        "testing/text_steps.py",
+    }
+    # 2b: the update check is off until turned on, asks one host, sends two headers
+    assert updates.UpdateState().enabled is False
+    assert updates.RELEASES_URL.startswith("https://api.github.com/")
+    assert updates.HEADERS == {"User-Agent": "sci2audio", "Accept": "application/vnd.github+json"}
+    for table in (EN, DE):
+        assert {"“sci2audio”", "„sci2audio“"} & set(
+            re.findall(r"[“„]sci2audio[”“]", table["privacy.updates"])
+        )
     # 3: FastAPI's telemetry is off in code (D-195; test_web_security proves nothing records)
     assert dict.fromkeys(server.TELEMETRY_OFF, False) == server.TELEMETRY_OFF
     assert set(server.TELEMETRY_OFF) >= {"tracing", "metrics", "logs", "auto_configure"}
@@ -662,6 +753,16 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     for table in (EN, DE):
         for name in ("opened.json", "about.json", "position.json"):
             assert f"({name})" in table["privacy.work"], name
+
+
+def test_the_privacy_page_names_the_update_checks_host_from_the_code(
+    server_: tuple[FastAPI, Any],
+) -> None:
+    host = updates.RELEASES_URL.split("/")[2]
+    for language in ("en", "de"):
+        page = client_in(server_, language).get("/privacy").text
+        section = page[page.index('id="update-check"') :]
+        assert f"<code>{host}</code>" in section.split("</p>", 2)[1], language
 
 
 def test_launch_opens_only_a_loopback_socket() -> None:

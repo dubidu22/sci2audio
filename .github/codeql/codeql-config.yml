@@ -1,0 +1,6 @@
+name: sci2audio
+# Neither ships nor runs in CI: the clickable design prototype, and the governance workspace with
+# the template copy of pr_checks.py (the copy CI runs is .github/governance/, which stays scanned).
+paths-ignore:
+  - docs/design/prototype/**
+  - governance/**

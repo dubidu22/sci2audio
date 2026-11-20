@@ -20,6 +20,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from sci2audio import __version__
 from sci2audio.app import JobRunner, VoiceSource
+from sci2audio.app.updates import UpdateCheck
 from sci2audio.web import api, pages
 from sci2audio.web.config import ServerConfig
 from sci2audio.web.limits import BodyLimit
@@ -65,9 +66,10 @@ def create_app(
     fetch: Fetch | None = None,
     voice: Callable[[Path], VoiceSource] | None = None,
     clock: Callable[[], float] | None = None,
+    updates: UpdateCheck | None = None,
 ) -> FastAPI:
     """The server's app. `fetch` replaces the voice download's network fetch, `voice` the
-    Kokoro voice and `clock` the markers' undo clock (tests)."""
+    Kokoro voice, `clock` the markers' undo clock and `updates` the update check (tests)."""
     app = FastAPI(
         title="sci2audio",
         version=__version__,
@@ -83,6 +85,9 @@ def create_app(
         state.markers = MarkerBook(clock)
     if voice is not None:
         state.voice = voice
+    if updates is not None:
+        state.updates = updates
+    state.updates.poll()  # turned on and not checked for a day: check now (#217)
     app.state.sci2audio = state
     app.include_router(api.router)
     app.include_router(pages.router)

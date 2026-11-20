@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
@@ -99,6 +100,22 @@ class SettingsModel(Strict):
     letter_pace: LetterPace = Field(default="normal", description=LETTER_PACE_HELP)
     subtitles: StrictBool = Field(default=False, description=SUBTITLES_HELP)
     output_folder: str | None = Field(default=None, max_length=4096)
+
+
+class UpdatesIn(Strict):
+    """Turn the update check on or off (#217)."""
+
+    enabled: StrictBool = Field(description="look for a new version once a day")
+
+
+class UpdatesOut(BaseModel):
+    """The update check (#217): the choice and the last check's result."""
+
+    enabled: bool
+    checked_at: datetime | None = Field(description="when the last check was made (UTC)")
+    outcome: Literal["newer", "current", "failed"] | None
+    latest: str | None = Field(description="the newest version the last answer named")
+    release_url: str | None = Field(description="the newer version's release page, if any")
 
 
 class PlayerSpeed(Strict):

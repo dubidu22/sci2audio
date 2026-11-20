@@ -26,6 +26,7 @@ from schemathesis.specs.openapi.checks import positive_data_acceptance
 from test_web_player import player_data
 from web_helpers import ORIGIN, make_config, pdf_bytes, program, set_marker, upload, wait
 
+from sci2audio.app.updates import STATE_NAME, UpdateCheck
 from sci2audio.testing import no_network
 from sci2audio.web import create_app
 
@@ -38,7 +39,11 @@ def served(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     folder: Path = tmp_path_factory.mktemp("schemathesis")
     config = make_config(folder)
     voice = FakeVoice()
-    app = create_app(config, voice=lambda models_dir: voice.source())
+    # PUT /api/v1/updates may turn the update check on: it asks a fake, never the network
+    updates = UpdateCheck(
+        config.config_file.parent / STATE_NAME, fetch=lambda: b'{"tag_name": "v9.0.0"}'
+    )
+    app = create_app(config, voice=lambda models_dir: voice.source(), updates=updates)
     client = program(app, config)
     doc = upload(client, pdf_bytes(), "seed.pdf")
     response = client.post("/api/v1/jobs", json={"kind": "script", "document": doc["id"]})

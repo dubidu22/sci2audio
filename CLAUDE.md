@@ -8,7 +8,7 @@ PDF, EPUB, Markdown or text in; a faithful listening script and MP3/M4B with cha
 
 ## Hard rules
 
-- **No network calls** except a voice or model download the user started. No telemetry, no analytics, no crash upload, no paid APIs.
+- **No network calls** except a voice or model download the user started, and the update check the user turned on (at most one request a day to the GitHub releases API, sending nothing but the request itself; off by default). No telemetry, no analytics, no crash upload, no paid APIs.
 - **The web interface binds to 127.0.0.1 only.**
 - **Licence gate:** every new dependency, copied file, model, voice or sample text names its licence in the PR body and in `THIRD_PARTY_LICENSES.md` (or `tests/corpus/LICENSES.md`). AGPL, SSPL, non-commercial and unclear licences are refused. Third-party texts never enter the repo.
 - **Faithful text:** text steps propose marked edits (remove, replace, pause, ask) with a reason; nothing rewrites text silently and nothing summarises (D-57).

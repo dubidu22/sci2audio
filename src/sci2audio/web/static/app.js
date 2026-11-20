@@ -1142,6 +1142,31 @@ function shelf() {
 
 // ---- the Settings page (#388) -----------------------------------------------------------
 
+// The update check's switch (#217): the server keeps the choice and makes the request,
+// never this page.
+function updatesSwitch() {
+  const form = document.getElementById("updates");
+  if (!form) return;
+  const box = document.getElementById("settings-updates");
+  if (!box) return;
+  form.addEventListener("submit", (event) => event.preventDefault());
+  box.addEventListener("change", async () => {
+    const enabled = box.checked;
+    box.disabled = true;
+    try {
+      await send(form.dataset.api, json("PUT", { enabled }));
+      say(enabled ? tr("js.updates_on") : tr("js.updates_off"), true);
+    } catch (error) {
+      // off holds for this run even when it could not be saved: show the server's state
+      box.checked = await send(form.dataset.api).then((now) => now.enabled, () => !enabled);
+      say(explain(error), true);
+    } finally {
+      box.disabled = false;
+    }
+  });
+  box.disabled = false;
+}
+
 function settingsPage() {
   // the announcement and keyboard switches save themselves when the script runs; their
   // buttons are for pages without the script
@@ -1151,6 +1176,7 @@ function settingsPage() {
     box.addEventListener("change", () => box.form.requestSubmit());
     document.getElementById(`${name}-save-line`).hidden = true;
   }
+  updatesSwitch();
   const form = document.getElementById("defaults");
   if (!form) return;
   const folder = document.getElementById("settings-folder");

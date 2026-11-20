@@ -55,6 +55,11 @@
     {% endif %}
     {% endblock %}
     <ul class="rail-foot">
+      {%- if update_notice %}
+      {#- a newer version, from the update check the person turned on (#217); the app window
+          opens other sites in the system browser #}
+      <li><a href="{{ update_notice[1] }}" id="update-notice" target="_blank" rel="noopener noreferrer">{{ icon('info') }}<span>{{ t('nav.update', version=update_notice[0]) }}</span></a></li>
+      {%- endif %}
       <li><a href="/settings"{% if nav == 'settings' %} aria-current="page"{% endif %}>{{ icon('settings') }}<span>{{ t('nav.settings') }}</span></a></li>
       <li><a href="/privacy"{% if nav == 'privacy' %} aria-current="page"{% endif %}>{{ icon('privacy') }}<span>{{ t('nav.privacy') }}</span></a></li>
       {%- if launched_as == 'browser' %}

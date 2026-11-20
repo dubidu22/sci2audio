@@ -21,13 +21,16 @@ from datetime import UTC, datetime
 from importlib.resources import files
 from pathlib import Path, PurePath
 from typing import Annotated, Any
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
+from sci2audio import __version__
 from sci2audio.app import load_settings, shown_original
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
+from sci2audio.app.updates import RELEASES_URL, Outcome, release_page
 from sci2audio.app.voice import primary_language
 from sci2audio.core import Document
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, PAUSE_MARK, Category
@@ -188,6 +191,9 @@ def _page(
     if "library_count" not in context:
         context["library_count"] = len(state.store.all()) + len(state.config.outside)
     query = request.url.query
+    state.updates.poll()  # a server running for days checks again when a page is asked
+    newer = state.updates.newer_version()
+    context["update_notice"] = None if newer is None else (newer, release_page(newer))
     context.setdefault("nav", NAV_ITEMS.get(name))
     context.update(
         t=s,
@@ -1337,6 +1343,7 @@ def privacy(request: Request, state: State) -> HTMLResponse:
         "privacy.html",
         app_log=str(app_log_file()),
         hosts=hosts_shown(plan.files, s),
+        update_host=urlsplit(RELEASES_URL).hostname,
         folders=[
             ("work", str(state.config.work_root)),
             ("output", str(saved.output_folder or state.config.output_folder)),
@@ -1420,7 +1427,28 @@ def settings_page(request: Request, state: State) -> HTMLResponse:
         output_folder=str(saved.output_folder or state.config.output_folder),
         speed=_speed_field(s, saved.speed, MIN_SPEED, MAX_SPEED, "voice.speed_value"),
         warnings=warnings,
+        updates=_update_status(state, s),
     )
+
+
+def _update_status(state: ServerState, s: Strings) -> dict[str, Any]:
+    """The update check's switch and its last result in words (#217)."""
+    found = state.updates.state()
+    if not state.updates.available:
+        return {"available": False, "enabled": False, "status": None}
+    if not found.enabled:
+        return {"available": True, "enabled": False, "status": None}
+    if found.checked_at is None:
+        return {"available": True, "enabled": True, "status": s("settings.updates_waiting")}
+    date = found.checked_at.astimezone().date().isoformat()
+    newer = state.updates.newer_version()
+    if found.outcome is Outcome.FAILED:
+        status = s("settings.updates_failed", date=date)
+    elif newer is not None:
+        status = s("settings.updates_newer", version=newer, date=date)
+    else:
+        status = s("settings.updates_current", version=__version__, date=date)
+    return {"available": True, "enabled": True, "status": status}
 
 
 @router.get("/appearance")
