@@ -26,8 +26,9 @@ from web_helpers import (
 )
 
 from sci2audio.app import updates
-from sci2audio.app.updates import STATE_NAME, Outcome, UpdateCheck
+from sci2audio.app.updates import STATE_NAME, Outcome, UpdateCheck, load_update_state
 from sci2audio.web import create_app
+from sci2audio.web.config import OutsideJob
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -117,6 +118,58 @@ def test_a_server_as_shipped_makes_no_request(tmp_path: Path, offline: list[str]
     state.updates.join(10)
     assert offline == []
     assert not state.updates.file.exists()
+
+
+def test_sci2audio_listen_never_runs_the_check(tmp_path: Path, offline: list[str]) -> None:  # noqa: F811
+    """`sci2audio listen` starts the server for its outside job: no check there (D-837)."""
+    job = OutsideJob("0123456789abcdef", "paper.pdf", tmp_path / "w", tmp_path / "o")
+    config = make_config(tmp_path, outside=(job,))
+    file = config.config_file.parent / STATE_NAME
+    file.parent.mkdir(parents=True)
+    file.write_text('{"version": 1, "enabled": true}', encoding="utf-8")  # on, never checked
+    app = create_app(config)  # the real fetch: `offline` fails on any attempt
+    client = browser(app, config)
+    client.headers["Origin"] = ORIGIN
+    for path in ("/", "/settings", "/privacy"):
+        page = client.get(path).text
+        assert NOTICE not in page
+    assert 'id="settings-updates"' not in client.get("/settings").text
+    assert client.put("/api/v1/updates", json={"enabled": True}).status_code == 200
+    app.state.sci2audio.updates.join(10)
+    assert offline == []
+    assert load_update_state(file).checked_at is None
+
+
+def test_turning_it_off_on_a_full_disk_answers_507_and_is_off_for_the_run(
+    server: Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = server.client()
+    turn(client, True, server)
+
+    def full(target: Path, text: str, *, overwrite: bool) -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(updates, "write_text_atomically", full)
+    response = client.put("/api/v1/updates", json={"enabled": False})
+    assert response.status_code == 507
+    assert "could not save" in response.json()["message"]
+    assert client.get("/api/v1/updates").json()["enabled"] is False
+    server.now = START + timedelta(days=3)
+    assert NOTICE not in client.get("/").text
+    server.check.join(10)
+    assert server.release.calls == 1
+
+
+def test_a_save_error_without_a_reason_still_says_something(
+    server: Server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken(target: Path, text: str, *, overwrite: bool) -> None:
+        raise OSError("the folder went away")
+
+    monkeypatch.setattr(updates, "write_text_atomically", broken)
+    message = server.client().put("/api/v1/updates", json={"enabled": True}).json()["message"]
+    assert "None" not in message
+    assert "the folder went away" in message
 
 
 def test_off_by_default_the_fake_is_never_asked(server: Server) -> None:

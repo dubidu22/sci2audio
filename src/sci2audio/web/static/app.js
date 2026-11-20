@@ -1157,7 +1157,8 @@ function updatesSwitch() {
       await send(form.dataset.api, json("PUT", { enabled }));
       say(enabled ? tr("js.updates_on") : tr("js.updates_off"), true);
     } catch (error) {
-      box.checked = !enabled;
+      // off holds for this run even when it could not be saved: show the server's state
+      box.checked = await send(form.dataset.api).then((now) => now.enabled, () => !enabled);
       say(explain(error), true);
     } finally {
       box.disabled = false;

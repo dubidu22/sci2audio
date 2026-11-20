@@ -761,7 +761,9 @@ def put_updates(state: State, body: models.UpdatesIn) -> models.UpdatesOut:
     try:
         state.updates.set_enabled(body.enabled)
     except OSError as error:
-        raise ApiError(507, "disk-full", f"could not save the choice: {error.strerror}") from error
+        raise ApiError(
+            507, "disk-full", f"could not save the choice: {error.strerror or error}"
+        ) from error
     return _updates(state)
 
 

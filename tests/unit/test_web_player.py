@@ -69,6 +69,7 @@ from sci2audio.web.player import (
     shown,
 )
 from sci2audio.web.project import PROJECT
+from sci2audio.web.security import PERMISSIONS_POLICY
 
 # ---- the view, from hand-made data ------------------------------------------------------
 
@@ -829,6 +830,9 @@ def test_the_audiobook_route_serves_only_its_own_files(tmp_path: Path) -> None:
     part = client.get(f"{base}/{mp3}", headers={"Range": "bytes=0-9"})
     assert part.status_code == 206
     assert len(part.content) == 10
+    # the player's audio carries the page-wide headers too (#172)
+    assert part.headers["permissions-policy"] == PERMISSIONS_POLICY
+    assert part.headers["cross-origin-embedder-policy"] == "require-corp"
     saved = client.get(f"{base}/{mp3}?download=true")
     assert saved.headers["content-disposition"].startswith("attachment")
     (book_folder(config.output_folder) / "other.mp3").write_bytes(b"x")

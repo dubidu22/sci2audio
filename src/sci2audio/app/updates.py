@@ -175,7 +175,9 @@ def _utc_now() -> datetime:
 
 class UpdateCheck:
     """One server run's update check: `file` keeps the state, `fetch` asks the release
-    source (tests pass a fake), `now` is the clock, `current` the running version."""
+    source (tests pass a fake), `now` is the clock, `current` the running version.
+    `available` false is a server that never checks (`sci2audio listen`, D-837): the
+    choice can still be changed, but no request is made and no notice shown."""
 
     def __init__(
         self,
@@ -184,13 +186,18 @@ class UpdateCheck:
         fetch: Fetch = fetch_latest_release,
         now: Callable[[], datetime] = _utc_now,
         current: str = __version__,
+        available: bool = True,
     ) -> None:
         self.file = file
+        self.available = available
         self._fetch = fetch
         self._now = now
         self._current = _version(current) or (0, 0, 0)
         self._lock = threading.Lock()  # every read-modify-write of the state
         self._unsaved: UpdateState | None = None  # a result the disk would not take
+        # turned off in this run: holds even when the disk would not take the choice, since
+        # the person asked for no more requests
+        self._off = False
         self._thread: threading.Thread | None = None
 
     def state(self) -> UpdateState:
@@ -198,15 +205,26 @@ class UpdateCheck:
             return self._read()
 
     def _read(self) -> UpdateState:
-        return self._unsaved if self._unsaved is not None else load_update_state(self.file)
+        state = self._unsaved if self._unsaved is not None else load_update_state(self.file)
+        return replace(state, enabled=False) if self._off else state
+
+    def _due(self, now: datetime) -> bool:
+        """Due by what this run holds and by the file: either one saying off is off."""
+        if not self.available or not self._read().due(now):
+            return False
+        return self._unsaved is None or load_update_state(self.file).enabled
 
     def set_enabled(self, enabled: bool) -> UpdateState:
-        """Turn the check on or off (OSError if the choice can't be saved). Turning it on
-        starts a check when none was made in the last day."""
+        """Turn the check on or off (OSError if the choice can't be saved). Off takes effect
+        for this run even then; on does not. Turning it on starts a check when none was
+        made in the last day."""
         with self._lock:
+            if not enabled:
+                self._off = True
             state = replace(self._read(), enabled=enabled)
             save_update_state(state, self.file)
             self._unsaved = None
+            self._off = not enabled
         self.poll()
         return state
 
@@ -215,7 +233,7 @@ class UpdateCheck:
         with self._lock:
             state = self._read()
             running = self._thread is not None and self._thread.is_alive()
-            if state.due(self._now()) and not running:
+            if self._due(self._now()) and not running:
                 self._thread = threading.Thread(
                     target=self.check, name="sci2audio-update-check", daemon=True
                 )
@@ -232,7 +250,7 @@ class UpdateCheck:
         """Ask the release source now if a check is due, and keep the result."""
         now = self._now()
         with self._lock:
-            if not self._read().due(now):  # read again: turned off or removed meanwhile
+            if not self._due(now):  # read again: turned off or removed meanwhile
                 return self._read()
         try:
             found = latest_version(self._fetch())
@@ -258,7 +276,7 @@ class UpdateCheck:
     def newer_version(self) -> str | None:
         """The newer version to tell the person about, or None (off, none, or installed)."""
         state = self.state()
-        if not state.enabled or state.latest is None:
+        if not self.available or not state.enabled or state.latest is None:
             return None
         latest = _version(state.latest)
         return state.latest if latest is not None and latest > self._current else None

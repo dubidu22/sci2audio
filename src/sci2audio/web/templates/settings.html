@@ -73,6 +73,7 @@
     </div>
   </form>
 </section>
+{%- if updates.available %}
 <section class="panel" aria-labelledby="updates-head">
   <h2 id="updates-head">{{ t('settings.updates') }}</h2>
   {#- off by default; on, sci2audio asks the release source once a day (#217). Drawn
@@ -88,4 +89,5 @@
     </div>
   </form>
 </section>
+{%- endif %}
 {% endblock %}

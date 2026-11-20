@@ -515,6 +515,90 @@ def test_turning_it_on_on_a_full_disk_says_so(file: Path, monkeypatch: pytest.Mo
     assert check.state().enabled is False
 
 
+def test_turning_it_off_on_a_full_disk_still_stops_it_for_this_run(
+    file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fetch, clock = FakeRelease(), Clock()
+    check = turned_on(file, fetch, clock)
+
+    def full(target: Path, text: str, *, overwrite: bool) -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(updates, "write_text_atomically", full)
+    clock.now = START + timedelta(days=1)
+    check.poll()  # a result the disk will not take: kept in memory, still on
+    check.join(10)
+    assert (fetch.calls, check.state().enabled) == (2, True)
+    with pytest.raises(OSError, match="No space"):
+        check.set_enabled(False)
+    assert check.state().enabled is False  # off for this run, though not saved
+    assert check.newer_version() is None
+    with no_network() as attempts:
+        for days in (2, 3, 10):
+            clock.now = START + timedelta(days=days)
+            check.poll()
+            check.join(10)
+            check.check()
+    assert fetch.calls == 2
+    assert attempts == []
+
+
+def test_off_in_memory_wins_over_a_file_that_still_says_on(file: Path) -> None:
+    fetch, clock = FakeRelease(), Clock()
+    check = turned_on(file, fetch, clock)
+    real = updates.write_text_atomically
+
+    def full(target: Path, text: str, *, overwrite: bool) -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    updates.write_text_atomically = full  # type: ignore[assignment]
+    try:
+        with pytest.raises(OSError, match="No space"):
+            check.set_enabled(False)
+    finally:
+        updates.write_text_atomically = real  # type: ignore[assignment]
+    assert load_update_state(file).enabled is True  # the file could not be changed
+    clock.now = START + timedelta(days=2)
+    assert check.check().enabled is False
+    assert fetch.calls == 1
+
+
+def test_a_check_not_available_here_never_asks(file: Path) -> None:
+    fetch, clock = FakeRelease(), Clock()
+    file.parent.mkdir(parents=True)
+    file.write_text('{"version": 1, "enabled": true}', encoding="utf-8")
+    check = UpdateCheck(file, fetch=fetch, now=clock, current="1.4.0", available=False)
+    with no_network() as attempts:
+        check.poll()
+        check.join(10)
+        check.check()
+        check.set_enabled(True)
+        check.join(10)
+    assert fetch.calls == 0
+    assert attempts == []
+    assert check.newer_version() is None
+
+
+def test_a_failed_check_writes_one_line_to_the_app_log(file: Path, tmp_path: Path) -> None:
+    """The privacy page says the app's start-up log notes a failed update check (D-293)."""
+    from sci2audio.web import window
+
+    log = tmp_path / "log" / "sci2audio.log"
+    saved = (window.log.handlers[:], window.log.level, window.log.propagate)
+    window.open_log(log)
+    try:
+        body = b'{"tag_name": "not a version", "secret": "BODY-TEXT"}'
+        turned_on(file, lambda: body, Clock())
+    finally:
+        for handler in window.log.handlers:
+            handler.close()
+        window.log.handlers[:], window.log.level, window.log.propagate = saved
+    lines = log.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert "WARNING the update check did not work" in lines[0]
+    assert "BODY-TEXT" not in lines[0]
+
+
 def test_killed_while_writing_the_result_leaves_the_old_file(
     file: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

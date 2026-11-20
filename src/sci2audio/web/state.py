@@ -110,7 +110,10 @@ class ServerState:
         self.board = JobBoard(classify)
         self.kept = KeptVoice(lambda: self.voice(self.config.models_dir))
         self.markers = MarkerBook(self.clock)
-        self.updates = UpdateCheck(self.config.config_file.parent / STATE_NAME)
+        # `sci2audio listen` serves its outside jobs and never checks (D-837)
+        self.updates = UpdateCheck(
+            self.config.config_file.parent / STATE_NAME, available=not self.config.outside
+        )
 
     def audio_work(self, document: StoredDocument, settings: JobSettings, overwrite: bool) -> Work:
         """An audio job into the person's output folder (D-199): the one in the settings,

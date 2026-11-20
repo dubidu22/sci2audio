@@ -1434,10 +1434,12 @@ def settings_page(request: Request, state: State) -> HTMLResponse:
 def _update_status(state: ServerState, s: Strings) -> dict[str, Any]:
     """The update check's switch and its last result in words (#217)."""
     found = state.updates.state()
+    if not state.updates.available:
+        return {"available": False, "enabled": False, "status": None}
     if not found.enabled:
-        return {"enabled": False, "status": None}
+        return {"available": True, "enabled": False, "status": None}
     if found.checked_at is None:
-        return {"enabled": True, "status": s("settings.updates_waiting")}
+        return {"available": True, "enabled": True, "status": s("settings.updates_waiting")}
     date = found.checked_at.astimezone().date().isoformat()
     newer = state.updates.newer_version()
     if found.outcome is Outcome.FAILED:
@@ -1446,7 +1448,7 @@ def _update_status(state: ServerState, s: Strings) -> dict[str, Any]:
         status = s("settings.updates_newer", version=newer, date=date)
     else:
         status = s("settings.updates_current", version=__version__, date=date)
-    return {"enabled": True, "status": status}
+    return {"available": True, "enabled": True, "status": status}
 
 
 @router.get("/appearance")
