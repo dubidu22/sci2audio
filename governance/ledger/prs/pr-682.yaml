@@ -1,0 +1,9 @@
+pr: 682
+opened: 2026-11-20
+thread: layout-b-l1
+lane: layout
+labels: "lane:layout, risk:high"
+plan: plans/layout-b-l2-plan.md
+critical: yes                 # one golden line (Liu p4 fraction bars), accepted as D-841
+compactions: 0
+fixes_kinds: ""
