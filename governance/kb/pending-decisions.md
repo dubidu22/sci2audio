@@ -43,3 +43,6 @@ B-L2 (#181) changes one golden line after all: Liu p4's two fraction bars (p4-d1
 
 ## D-842 (2026-11-21, coordinator)
 Batch of 20 Nov 2026 closed: six PRs merged (#677, #671, #676, #675, #680, #682), 1.7 review rounds on average, two at most, no revert, no gate override. The finding kind "missing-test" (a test promised in the plan absent from the PR) came up in #671 and #675; per META-03 it gets a check, not a reminder: the batch audit proposes the mechanism and it becomes an issue in the next batch. Two process lessons recorded for threads: removing the ci:full label restarts "governance pr checks", so the label comes off before the merge step; several threads commit in the shared governance worktree, so every commit stages only its own files.
+
+## D-843 (2026-11-21, owner)
+Colin: "Start batch 2" (21 Nov 2026, ~04:35Z). Batch 2 of the v1.4 remainder runs as proposed: textprep B-P2 #684 (critical); web/app B-W2 #666 #668 #685 as one web PR (#685 critical), then #667 #669 as one app PR; infra B-I2 #681 #687 (both critical). Threads plugins-b-p1, web-b-w1 and infra-b-i1 each take the batch after a THR-01 fitness check; a mismatch replaces the thread. Afterwards docs #678 #686, layout #679 in a new thread, voices #663; #683 waits for Colin. The local deselect rule for the abort test (20 Nov) is lifted: every branch now starts from main with #677.
