@@ -9,3 +9,4 @@ must_fix: 0
 should_fix: 0
 kinds: ""
 report: plans/review-pr692-round3.md
+merged: a431fcd
