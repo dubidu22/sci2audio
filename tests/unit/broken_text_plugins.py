@@ -179,3 +179,63 @@ class UnequalStep(_Plugin):
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         object.__setattr__(document, "blocks", (_Unequal(),))
         return []
+
+
+HANG = threading.Event()  # set by a test when it ends, so a hanging plugin lets go
+
+
+def hanging_factory() -> TextStep:
+    HANG.wait(5)
+    return AlphaStep()
+
+
+class HangingPropertyStep(_Plugin):
+    """Its id takes forever to compute."""
+
+    @property
+    def id(self) -> str:  # type: ignore[override]
+        HANG.wait(5)
+        return "hanging-property"
+
+
+def interrupting_factory() -> TextStep:
+    raise KeyboardInterrupt
+
+
+class _NoRepr:
+    """An id like a lazy translation: not a str, and it cannot even be shown."""
+
+    def __repr__(self) -> str:
+        raise RuntimeError("no repr")
+
+
+class LazyIdStep(_Plugin):
+    id = _NoRepr()  # type: ignore[assignment]
+
+
+class _SlowVersion:
+    def __ne__(self, other: object) -> bool:
+        HANG.wait(5)
+        return False
+
+    __hash__ = object.__hash__
+
+
+class SlowVersionStep(_Plugin):
+    id = "slow-version"
+    api_version = _SlowVersion()  # type: ignore[assignment]
+
+
+class _TouchyId(str):
+    """A str whose own methods fail: only a plain copy of it is safe to hash or sort."""
+
+    def __hash__(self) -> int:
+        raise RuntimeError("no hash")
+
+    def __lt__(self, other: object) -> bool:
+        raise RuntimeError("no order")
+
+
+class TouchyIdStep(_Plugin):
+    id = _TouchyId("touchy-id")
+    languages = (_TouchyId("en"),)

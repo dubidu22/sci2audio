@@ -8,6 +8,14 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 - An update check you can turn on in Settings (#217): once a day it asks GitHub for the newest version's number and shows a link to its release page. It is off by default, sends nothing but the request itself, and never downloads or installs anything; the privacy page says what it sends.
 - Text-step plugins: other Python packages can add text steps through the `sci2audio.text_steps` entry point. The public interface is `sci2audio.textprep.api` (contract version 1). Plugins run after the built-in steps of their stage, follow the category switches, and are listed in the report. A plugin that fails to load, raises, takes longer than 60 s or changes the document is left out with a problem in the report, and the job goes on. `docs/plugins.md` shows how to write one and check it, and a voice engine, with the conformance suite in `sci2audio.testing` (#216, #203).
+- `sci2audio script` and `sci2audio convert` take `--no-plugins` to run a job with the built-in text steps only; the report says so (#667). An audiobook's record names the text-step plugins that made it (#669).
+- The read-along shows the edits of the text-step plugins the audiobook was made with (#666), the document page lists the plugins an analysis ran with (#668), and the privacy page says what an installed plugin can do and lists the installed ones (#685).
+
+### Fixed
+
+- A text-step plugin whose import or set-up hangs no longer stops sci2audio from starting: loading gives up after 30 s and lists the plugin as a problem (#684).
+- Accents a PDF draws apart from their letter are read with it: names such as "Marasović" and "Šmejkal" keep their accent, and braces reaching below a line no longer join it to the next line of a reference (#125, #126).
+- Headings set with a rule or numbered like a list, plots without a caption and their labels, and tables without rules on a two-column page are read where they belong (#181, #54, #59, #55, #56).
 
 ### Security
 

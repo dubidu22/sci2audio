@@ -119,6 +119,14 @@ def order_line(result: ScriptResult) -> str:
     return f"Read in the chosen order, not as printed: {names}."
 
 
+PLUGINS_OFF = "Text-step plugins: switched off for this job."
+
+
+def plugins_off(report: Report) -> bool:
+    """True when the job ran without the installed text-step plugins (#667)."""
+    return report.settings.get("plugins") is False
+
+
 def plugins_line(report: Report) -> str:
     """One line naming the text-step plugins the job ran with (#216)."""
     names = ", ".join(
@@ -336,6 +344,7 @@ def report_markdown(report: Report) -> str:
         "",
         *([_md(report.order_line), ""] if report.order_line else []),
         *([_md(plugins_line(report)), ""] if report.plugins else []),
+        *([PLUGINS_OFF, ""] if plugins_off(report) else []),
         "## Chapters",
         "",
         "| No. | Chapter | Page | Read | Utterances |",

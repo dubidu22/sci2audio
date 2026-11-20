@@ -96,6 +96,8 @@ class AmpersandStep(TextStep):
 
 `id` is kebab-case and unique. `languages` holds primary tags (`"en"`, `"de"`) or `ANY_LANGUAGE`; a job in `"en-GB"` runs a step for `"en"`. `find` must not reach the network, keep state between calls, or depend on anything but its arguments.
 
+Your plugin's code runs in a worker thread, not in the program's main thread: its import, its factory, its attributes and `find`. So it must not call `signal.signal` or anything else that works only in the main thread. Loading has 30 seconds and `find` has 60 seconds per document (see below).
+
 ## Making it known: the entry point
 
 In your package's `pyproject.toml`:
@@ -115,8 +117,10 @@ Install your package in the environment sci2audio runs in (`uv pip install -e .`
 
 - **Order.** Plugins run after the built-in steps of their stage, sorted by id. Block steps still run before inline steps, and move steps last. When a plugin's edit overlaps an edit that an earlier step proposed, the earlier edit wins. So a plugin adds to the reading and never overrides a built-in rule.
 - **Switches.** Your step's category is switched on and off with the built-in steps of that category (`--on` and `--off` on the command line, the switches in the app). A switched-off step still runs, and its edits are listed as switched off.
+- **Running without plugins.** `sci2audio script --no-plugins` and `sci2audio convert --no-plugins` run a job with the built-in steps only; the report says the plugins were switched off. The audiobook's record (`audio.json`) lists the plugins that made it.
 - **Not loaded.** A plugin is not loaded when:
   - its import fails, its factory raises, or reading one of its attributes raises (any exception, `sys.exit` included);
+  - loading it (the import, the factory, reading its attributes) takes longer than 30 seconds;
   - it does not give a `TextStep`;
   - it has an invalid attribute, or `api_version` is missing or different;
   - its entry point is not named after its id;

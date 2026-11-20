@@ -86,6 +86,33 @@ def test_the_governance_check_reads_the_same_lanes_as_lanes_yml() -> None:
     assert {f"lane:{lane}": globs for lane, globs in lanes().items()} == CONFIG["label_paths"]
 
 
+def derived_pr_checks(cfg: dict) -> dict:
+    """The scaffold's `pr_checks_config`, except that `governance_paths` comes from the config
+    (#683): the scaffold derives it from `workspace_root` and cannot hold the working-file list."""
+    labels = list(cfg["ownership_labels"])
+    paths: dict[str, list[str]] = {}
+    for entry in cfg["label_paths"]:
+        label, _, glob = entry.partition("=")
+        paths.setdefault(label, []).append(glob)
+    lock = {"lane:infra", "lane:core"} <= set(labels)
+    return {
+        "ownership_labels": labels,
+        "label_paths": paths,
+        "open_labels": [label for label in ("lane:docs",) if label in labels],
+        "lock_label": "lane:infra" if lock else "",
+        "locked_label": "lane:core" if lock else "",
+        "critical_paths": list(cfg["critical_paths"]),
+        "doc_paths": list(cfg["doc_paths"]),
+        "governance_paths": list(cfg["governance_paths"]),
+    }
+
+
+def test_pr_checks_json_is_derived_from_governance_config() -> None:
+    cfg = json.loads((ROOT / "governance" / "governance-config.json").read_text(encoding="utf-8"))
+    written = (GITHUB / "governance" / "pr-checks.json").read_text(encoding="utf-8")
+    assert json.dumps(derived_pr_checks(cfg), indent=2) + "\n" == written
+
+
 def test_the_labeler_marks_the_paths_the_check_holds_critical() -> None:
     labeler = (GITHUB / "labeler.yml").read_text(encoding="utf-8")
     assert re.findall(r'^\s+- "(.+)"$', labeler, re.M) == CONFIG["critical_paths"]
@@ -145,3 +172,62 @@ def test_the_design_record_and_the_working_files_belong_to_the_docs_lane(path: s
     assert results["ownership"] == "ok"
     assert "unowned" not in results
     assert check([path, "src/sci2audio/cli.py"], ["lane:cli"])["ownership"] == "ok"
+
+
+KB_CRITICAL = [
+    "governance/kb/README.md",
+    "governance/kb/**/adr-*.md",
+    "governance/kb/**/playbook-*.md",
+    "governance/kb/**/doc-*.md",
+]
+# the definition of "not critical" (#681): a KB file of neither kind fails the guard below
+KB_RECORDS = [
+    "governance/kb/**/audit-*.md",
+    "governance/kb/**/working-*.md",
+    "governance/kb/**/feature-*.md",
+    "governance/kb/decision-log.md",
+    "governance/kb/pending-decisions.md",
+    "governance/kb/merged-batches/**",
+    "governance/kb/00-index/**",
+    "governance/kb/**/tools/**",
+]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "governance/kb/README.md",
+        "governance/kb/01-audit-and-roadmap/adr-001-evolve-core-not-rewrite.md",
+        "governance/kb/01-audit-and-roadmap/playbook-dev-lifecycle-operating-model.md",
+        "governance/kb/02-product-and-pipeline/doc-pipeline-architecture.md",
+    ],
+)
+def test_kb_process_contract_and_architecture_documents_are_critical(path: str) -> None:
+    assert PR_CHECKS.matches(path, CONFIG["critical_paths"])
+    assert check([path], ["lane:docs"])["critical"] == "FAIL"
+    assert check([path], ["lane:docs", "risk:high"])["critical"] == "ok"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "governance/kb/decision-log.md",
+        "governance/kb/pending-decisions.md",
+        "governance/kb/01-audit-and-roadmap/audit-process-and-velocity.md",
+        "governance/kb/02-product-and-pipeline/working-product-open-questions.md",
+        "governance/kb/merged-batches/kb-batch-2026-11-20-pending.md",
+    ],
+)
+def test_the_decision_log_and_the_kb_records_are_not_critical(path: str) -> None:
+    """The daily decision-log PR stays outside review (D-703c)."""
+    assert "critical" not in check([path], [])
+
+
+def test_every_kb_file_is_critical_or_a_record() -> None:
+    files = tracked_files("governance/kb")
+    assert len(files) > 40, files
+    match = PR_CHECKS.matches
+    kinds = {p: (match(p, KB_CRITICAL), match(p, KB_RECORDS)) for p in files}
+    wrong = {p: k for p, k in kinds.items() if k not in ((True, False), (False, True))}
+    assert not wrong, wrong
+    assert all(g in CONFIG["critical_paths"] for g in KB_CRITICAL)

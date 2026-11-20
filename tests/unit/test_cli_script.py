@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+from importlib.metadata import EntryPoint
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,8 @@ from test_layout_language import ENGLISH, GERMAN
 
 from sci2audio.app import JobSettings, run_script_job
 from sci2audio.cli import chapter_numbers
-from sci2audio.textprep import Category
+from sci2audio.textprep import Category, installed_steps
+from sci2audio.textprep.plugins import PLUGIN_GROUP
 
 TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
 
@@ -342,3 +344,73 @@ def test_a_publishers_page_is_listed_as_not_read(cli: Cli, tmp_path: Path) -> No
     assert re.fullmatch(r"\s+17  \[ \]  Colophon  not read  \(publisher's page\)", colophon)
     epilogue = next(line for line in lines if "Epilogue" in line)
     assert "[x]" in epilogue
+
+
+AMPERSAND = EntryPoint("ampersand-and", "example_text_plugin:AmpersandStep", PLUGIN_GROUP)
+
+
+def test_no_plugins_runs_only_the_built_in_steps(tmp_path: Path) -> None:
+    """`--no-plugins` (#667): the job runs the built-in steps only, and says so."""
+    cli = Cli(tmp_path, steps=installed_steps(entry_points=[AMPERSAND]))
+    source = small_pdf(tmp_path / "in", ["Salt & pepper are on the table."])
+    on = cli("script", source, "-o", tmp_path / "on")
+    off = cli("script", source, "-o", tmp_path / "off", "--no-plugins")
+    assert (on.code, off.code) == (0, 0), off.err
+    assert "Salt and pepper" in (tmp_path / "on" / "note.script.txt").read_text(encoding="utf-8")
+    assert "Salt & pepper" in (tmp_path / "off" / "note.script.txt").read_text(encoding="utf-8")
+    with_plugins, without = report(tmp_path / "on", "note"), report(tmp_path / "off", "note")
+    assert [p["step"] for p in with_plugins["plugins"]] == ["ampersand-and"]
+    assert "plugins" not in with_plugins["settings"]
+    assert "plugins" not in without
+    assert without["settings"]["plugins"] is False
+    line = "Text-step plugins: switched off for this job."
+    assert line in (tmp_path / "off" / "note.report.md").read_text(encoding="utf-8")
+    assert line.removesuffix(".") in off.out
+    assert "switched off" not in on.out
+
+
+class CountingPoint:
+    """An installed entry point that counts how often its plugin is imported."""
+
+    name = "ampersand-and"
+    value = "example_text_plugin:AmpersandStep"
+    group = PLUGIN_GROUP
+    dist = None
+
+    def __init__(self) -> None:
+        self.loads = 0
+
+    def load(self) -> type:
+        from example_text_plugin import AmpersandStep
+
+        self.loads += 1
+        return AmpersandStep
+
+
+def test_no_plugins_never_imports_a_plugin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`--no-plugins` keeps plugin code out of the process, not only out of the job
+    (#667 review S1): a plugin whose import hangs or exits cannot stop the command."""
+    from sci2audio.textprep import plugins
+
+    point = CountingPoint()
+    monkeypatch.setattr(plugins, "entry_points", lambda **kwargs: [point])
+    source = small_pdf(tmp_path / "in", ["Salt & pepper are on the table."])
+    off = Cli(tmp_path / "off")("script", source, "-o", tmp_path / "off" / "out", "--no-plugins")
+    assert off.code == 0, off.err
+    assert point.loads == 0
+    on = Cli(tmp_path / "on")("script", source, "-o", tmp_path / "on" / "out")
+    assert on.code == 0, on.err
+    assert point.loads == 1
+    script = (tmp_path / "on" / "out" / "note.script.txt").read_text(encoding="utf-8")
+    assert "Salt and pepper" in script
+
+
+def test_a_command_that_runs_no_job_imports_no_plugin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sci2audio.textprep import plugins
+
+    point = CountingPoint()
+    monkeypatch.setattr(plugins, "entry_points", lambda **kwargs: [point])
+    assert Cli(tmp_path)("voices").code == 0
+    assert point.loads == 0

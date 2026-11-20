@@ -875,6 +875,17 @@ def _record(
             "readalong": written.readalong.name,
             "subtitles": [path.name for path in written.subtitles],
         },
+        # the plugins that made the script (#669); none: no key, so records read as before
+        **(
+            {
+                "plugins": [
+                    {"step": p.step, "distribution": p.distribution, "version": p.version}
+                    for p in result.run.plugins
+                ]
+            }
+            if result.run.plugins
+            else {}
+        ),
     }
 
 

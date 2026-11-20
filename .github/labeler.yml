@@ -15,3 +15,7 @@
           - "governance/project_instructions.md"
           - "governance/governance-config.json"
           - "governance/tools/**"
+          - "governance/kb/README.md"
+          - "governance/kb/**/adr-*.md"
+          - "governance/kb/**/playbook-*.md"
+          - "governance/kb/**/doc-*.md"

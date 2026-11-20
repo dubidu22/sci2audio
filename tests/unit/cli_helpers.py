@@ -11,7 +11,9 @@ from pathlib import Path
 from audio_fakes import FakeVoice
 from pdf_maker import Text, make_pdf
 
+from sci2audio.app import JobRunner
 from sci2audio.cli import CliEnv, run
+from sci2audio.textprep import TextStep
 from sci2audio.voices import PACKS, RemoteFile
 from sci2audio.voices.download import Fetch
 
@@ -42,6 +44,7 @@ class Cli:
     missing: Callable[[Path], list[RemoteFile]] | None = None
     asked: list[str] = field(default_factory=list)
     env: CliEnv | None = None
+    steps: Sequence[TextStep] | None = None  # the runner's steps; None: the installed ones
 
     @property
     def config(self) -> Path:
@@ -84,6 +87,7 @@ class Cli:
             voice_source=lambda models: self.voice.source(),
             missing_voice_files=missing,
             fetch=self.fetch,
+            **({} if self.steps is None else {"runner": JobRunner(self.steps)}),
         )
 
     def __call__(self, *argv: str | Path) -> Result:
