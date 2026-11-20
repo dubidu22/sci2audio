@@ -1,0 +1,12 @@
+pr: 682
+round: 1
+date: 2026-11-20
+thread: review-layout-b-l1
+head: 90d1199
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 1
+kinds: "misplaced-comment"
+report: plans/review-pr682-round1.md
+merged: ""
