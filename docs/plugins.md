@@ -224,9 +224,7 @@ class ToneSession:
         speed = _number(values.get("speed", 1.0), 0.5, 2.0)
         _number(values.get("letter_speed", 1.0), 0.25, 1.0)  # a tone cannot slow letters
         samples = np.full(int(len(request.text) * 10 / speed), 0.25, dtype="<f4")
-        return SynthesizedAudio(
-            samples.tobytes(), PCM_FLOAT32, Duration(len(samples) / RATE), RATE
-        )
+        return SynthesizedAudio(samples.tobytes(), PCM_FLOAT32, Duration(len(samples) / RATE), RATE)
 
     def dispose(self) -> None:
         self.disposed = True
