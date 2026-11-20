@@ -3,7 +3,8 @@
 The command line and the server each make one `JobRunner`. The audio job also holds an
 operating-system lock on its working folder, so two processes never work on one folder
 (D-161). A runner loads the text-step plugins once, when it is made (#216, D-836), and runs
-them with the built-in steps in every job unless a job is given other steps.
+them with the built-in steps in every job unless a job is given other steps or its settings
+switch the plugins off (#667).
 """
 
 from __future__ import annotations
@@ -28,6 +29,13 @@ class JobRunner:
         """`steps` defaults to the built-in steps with the installed plugins."""
         self._lock = threading.Lock()
         self.steps: Sequence[TextStep] = installed_steps() if steps is None else steps
+
+    def steps_for(self, settings: JobSettings) -> Sequence[TextStep]:
+        """The steps a job with `settings` runs: without the plugins' steps when its
+        `plugins` is false (#667); a runner made with other steps keeps its own."""
+        if settings.plugins:
+            return self.steps
+        return tuple(step for step in self.steps if getattr(step, "plugin", None) is None)
 
     @property
     def busy(self) -> bool:
@@ -63,7 +71,7 @@ class JobRunner:
                 overwrite=overwrite,
                 progress=progress,
                 pages=pages,
-                steps=self.steps if steps is None else steps,
+                steps=self.steps_for(settings) if steps is None else steps,
                 max_chars=max_chars,
             )
 
@@ -92,6 +100,6 @@ class JobRunner:
                 overwrite=overwrite,
                 progress=progress,
                 cancel=cancel,
-                steps=self.steps if steps is None else steps,
+                steps=self.steps_for(settings) if steps is None else steps,
                 max_chars=max_chars,
             )

@@ -235,3 +235,13 @@ def test_a_removed_invisible_character_quotes_visibly_in_the_report() -> None:
     assert "applied: “⟨U+00AD⟩↵” → left out." in text
     assert "“”" not in text
     assert [edit["original"] for edit in report_data(report)["edits"]] == ["\u200b", "\u00ad\n"]
+
+
+def test_the_report_says_when_plugins_were_switched_off() -> None:
+    line = "Text-step plugins: switched off for this job."
+    off = build_report(prepared(), {"plugins": False})
+    assert line in report_markdown(off)
+    assert report_data(off)["settings"]["plugins"] is False
+    on = build_report(prepared(), {})
+    assert "Text-step plugins" not in report_markdown(on)
+    assert "plugins" not in report_data(on)["settings"]

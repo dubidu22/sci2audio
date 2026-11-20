@@ -23,7 +23,8 @@ from sci2audio.app import (
     run_script_job,
     script_files,
 )
-from sci2audio.textprep import Category
+from sci2audio.app.job import settings_data
+from sci2audio.textprep import BUILT_IN_STEPS, Category, installed_steps
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 SEABORN = CORPUS / "papers" / "joss2021-waskom-seaborn.pdf"
@@ -405,3 +406,19 @@ def test_a_refused_stem_is_written_under_the_retried_name(
     ]
     record = json.loads(job.files.record.read_text(encoding="utf-8"))
     assert record["files"]["script"] == "notes.script.txt"
+
+
+def test_plugins_off_drops_only_the_plugin_steps() -> None:
+    from test_cli_script import AMPERSAND
+
+    runner = JobRunner(installed_steps(entry_points=[AMPERSAND]))
+    assert "ampersand-and" in [step.id for step in runner.steps_for(JobSettings())]
+    off = runner.steps_for(JobSettings(plugins=False))
+    assert [step.id for step in off] == [step.id for step in BUILT_IN_STEPS]
+    own = JobRunner(BUILT_IN_STEPS[:2])  # a runner made with other steps keeps them
+    assert list(own.steps_for(JobSettings(plugins=False))) == list(BUILT_IN_STEPS[:2])
+
+
+def test_settings_data_names_plugins_only_when_off() -> None:
+    assert "plugins" not in settings_data(JobSettings())  # every golden stays as it was
+    assert settings_data(JobSettings(plugins=False))["plugins"] is False

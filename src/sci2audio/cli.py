@@ -63,7 +63,7 @@ from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
 from sci2audio.app.projects import project_work_folder
 from sci2audio.app.readability import picture_pages, picture_warning
-from sci2audio.app.report import plugins_line
+from sci2audio.app.report import PLUGINS_OFF, plugins_line, plugins_off
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.output import OutputSettings
 from sci2audio.textprep import Category
@@ -346,6 +346,11 @@ def _add_job_options(parser: _Parser) -> None:
         action="store_true",
         help="use the built-in defaults, not the settings saved by the interface",
     )
+    parser.add_argument(
+        "--no-plugins",
+        action="store_true",
+        help="run only the built-in text steps, without installed text-step plugins",
+    )
     parser.add_argument("-q", "--quiet", action="store_true", help="no progress lines")
 
 
@@ -536,6 +541,8 @@ def _settings(args: argparse.Namespace, env: CliEnv) -> JobSettings:
     for name in ("voice", "speed", "letter_pace", "subtitles"):
         if getattr(args, name, None) is not None:
             changes[name] = getattr(args, name)
+    if args.no_plugins:
+        changes["plugins"] = False
     try:
         settings = replace(base, **changes)  # checks every value again
     except ValueError as error:
@@ -728,6 +735,8 @@ def _print_script(env: CliEnv, job: ScriptJob) -> None:
             out.write(f"  {label}: {number}\n")
     if report.plugins:
         out.write(plugins_line(report).removesuffix(".") + "\n")
+    if plugins_off(report):
+        out.write(PLUGINS_OFF.removesuffix(".") + "\n")
     for step, message in report.problems:
         env.err.write(f"{PROG}: warning: the text step {step} failed and was left out: {message}\n")
     out.write("Wrote:\n")
