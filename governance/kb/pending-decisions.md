@@ -40,3 +40,6 @@ Plan B-L2 (#181, #54, #59, #55, #56; `plans/layout-b-l2-plan.md`) approved as on
 
 ## D-841 (2026-11-20, coordinator)
 B-L2 (#181) changes one golden line after all: Liu p4's two fraction bars (p4-d1, p4-d2), which the D-90 fallback put into the page-number furniture block, now join the paragraph of their own inline fraction. Accepted as the right reading rather than tightening #181 to keep the corpus byte-identical; the PR becomes risk:high and critical (CRIT-01), with the line explained in the PR body and a three-system run before review. Amends D-840's "non-critical".
+
+## D-842 (2026-11-21, coordinator)
+Batch of 20 Nov 2026 closed: six PRs merged (#677, #671, #676, #675, #680, #682), 1.7 review rounds on average, two at most, no revert, no gate override. The finding kind "missing-test" (a test promised in the plan absent from the PR) came up in #671 and #675; per META-03 it gets a check, not a reminder: the batch audit proposes the mechanism and it becomes an issue in the next batch. Two process lessons recorded for threads: removing the ci:full label restarts "governance pr checks", so the label comes off before the merge step; several threads commit in the shared governance worktree, so every commit stages only its own files.
