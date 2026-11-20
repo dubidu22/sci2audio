@@ -35,6 +35,8 @@ def profile(text: str) -> dict[str, str]:
             inside = True
             continue
         if inside:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             if not line.startswith("  "):
                 break
             key, _, value = line.strip().partition(": ")
@@ -59,6 +61,12 @@ def rules(text: str) -> dict[str, str]:
     return out
 
 
+def applies_to(block: str) -> list[str]:
+    found = re.search(r"^    applies_to: (\S+)$", block, re.MULTILINE)
+    assert found, block
+    return found.group(1).split(",")
+
+
 def rule_text(block: str) -> str:
     found = re.search(r'^    rule: (".*")$', block, re.MULTILINE)
     assert found, block
@@ -76,7 +84,10 @@ def test_every_extract_repeats_the_rules_and_the_profile_of_the_ruleset(extract:
     text = extract.read_text(encoding="utf-8")
     full = rules(RULESET)
     own = rules(text)
-    assert own, f"{extract.name} holds no rule"
+    role = re.search(r"^extract_for: (\S+)$", text, re.MULTILINE)
+    assert role, f"{extract.name} names no role"
+    scoped = {i for i, b in full.items() if {role.group(1), "all"} & set(applies_to(b))}
+    assert set(own) == scoped, f"{extract.name}: rules missing or extra: {set(own) ^ scoped}"
     for rule_id, block in own.items():
         assert block == full.get(rule_id), f"{extract.name}: {rule_id} differs from the ruleset"
     assert profile(text) == profile(RULESET)

@@ -50,29 +50,26 @@ def outside_fences(lines: list[str]) -> Iterator[str]:
 
 
 def section(body: str) -> list[str] | None:
-    """The lines under HEADING outside fenced code blocks, where a `#` line is no heading."""
-    lines = body.replace("\r\n", "\n").split("\n")
-    try:
-        start = [line.rstrip() for line in lines].index(HEADING)
-    except ValueError:
-        return None
+    """The lines under HEADING outside fenced code blocks, where a `#` line is no heading and
+    HEADING shown as an example does not start the section."""
     out: list[str] = []
-    for line in outside_fences(lines[start + 1 :]):
-        if END_RE.match(line):
+    started = False
+    for line in outside_fences(body.replace("\r\n", "\n").split("\n")):
+        if not started:
+            started = line.rstrip() == HEADING
+        elif END_RE.match(line):
             break
-        out.append(line)
-    return out
+        else:
+            out.append(line)
+    return out if started else None
 
 
 def near_miss(body: str) -> str | None:
     """The first line outside fenced code blocks that is almost HEADING, when HEADING is absent."""
-    lines = body.replace("\r\n", "\n").split("\n")
+    lines = list(outside_fences(body.replace("\r\n", "\n").split("\n")))
     if HEADING in (line.rstrip() for line in lines):
         return None
-    for line in outside_fences(lines):
-        if NEAR_RE.fullmatch(line):
-            return line.strip()
-    return None
+    return next((line.strip() for line in lines if NEAR_RE.fullmatch(line)), None)
 
 
 def read(body: str) -> tuple[list[str], list[str]] | None:

@@ -268,3 +268,24 @@ def test_the_exact_heading_wins_over_a_near_miss(tmp_path: Path) -> None:
     result = run("check", str(body), str(collected))
     assert result.returncode == 0
     assert result.stdout.strip() == "ok   promised tests: 1 of 1 collect"
+
+
+def test_a_fenced_example_of_the_heading_does_not_start_the_section() -> None:
+    """A body that explains PLAN-01 shows the heading in a fence before its real section."""
+    body = (
+        "## What and why\n\n```\n## Tests promised in the plan\n- `tests/a.py::example`\n```\n\n"
+        "## Tests promised in the plan\n\n- `tests/a.py::t1`\n\n## Risk\n"
+    )
+    assert PROMISED.promised(body) == ["tests/a.py::t1"]
+
+
+def test_a_fenced_heading_does_not_hide_a_near_miss(tmp_path: Path) -> None:
+    body = tmp_path / "body.md"
+    body.write_text(
+        "```\n## Tests promised in the plan\n```\n\n### Tests promised in the plan\n\n"
+        f"- `{HERE}::t`\n",
+        encoding="utf-8",
+    )
+    result = run("check", str(body), str(tmp_path / "absent.txt"))
+    assert result.returncode == 1
+    assert result.stdout.startswith('FAIL promised tests: near-miss heading "### Tests promised')
