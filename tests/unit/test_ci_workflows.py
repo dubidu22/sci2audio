@@ -382,3 +382,36 @@ def test_codeql_ignores_the_prototype_and_the_workspace_and_nothing_that_ships_o
     scanned = tracked_files("src", ".github")
     assert ".github/governance/pr_checks.py" in scanned
     assert not [p for p in scanned if pr_checks.matches(p, ignored)]
+
+
+GOVERNANCE = (WORKFLOWS / "governance-pr-checks.yml").read_text(encoding="utf-8")
+
+
+def test_the_pr_body_reaches_the_promised_tests_check_only_through_the_environment() -> None:
+    """#687: the body is text anyone opening a PR writes, so it never enters a script."""
+    step = block(GOVERNANCE, "      - name: Check that the promised tests exist")
+    assert "PR_BODY: ${{ github.event.pull_request.body }}" in block(step, "        env:")
+    script = block(step, "        run: |")
+    assert "${{" not in script
+    assert "printf '%s' \"$PR_BODY\"" in script
+    assert "promised_tests.py files" in script
+    assert "promised_tests.py check" in script
+    assert "uv run --frozen pytest --collect-only -q" in script
+
+
+def test_the_governance_check_keeps_its_job_name_and_pins_setup_uv() -> None:
+    assert "    name: governance pr checks" in block(GOVERNANCE, "  checks:")
+    uses = re.findall(r"^\s+- uses: (.+)$", GOVERNANCE, re.M)
+    assert any(u.startswith("astral-sh/setup-uv@") for u in uses), uses
+    assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40} # v\d+(\.\d+)*", u) for u in uses), uses
+
+
+def test_the_governance_check_runs_pr_code_only_without_write_access() -> None:
+    """Collecting the promised tests runs the PR's conftest code: never with a token that can
+    write or with the base repository's secrets (pull_request_target)."""
+    assert "pull_request_target" not in GOVERNANCE
+    assert block(GOVERNANCE, "on:").strip().startswith("pull_request:")
+    permissions = block(GOVERNANCE, "permissions:").strip().splitlines()
+    assert sorted(line.strip() for line in permissions) == ["contents: read", "pull-requests: read"]
+    assert "permissions:" not in block(GOVERNANCE, "jobs:")
+    assert "persist-credentials: false" in GOVERNANCE
