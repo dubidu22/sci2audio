@@ -137,3 +137,45 @@ class RemovingStep(_Plugin):
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         end = document.blocks[0].text.find(" ")
         return [Edit(Span(0, 0, end), EditKind.REMOVE, reason="test", step=self.id)]
+
+
+class Boom(BaseException):
+    """Not an Exception: what a careless plugin might raise."""
+
+
+class BadPropertyStep(_Plugin):
+    """Its languages are computed, and computing them fails (review M1 of #676)."""
+
+    id = "bad-property"
+
+    @property
+    def languages(self) -> tuple[str, ...]:
+        raise RuntimeError("no language list")
+
+
+def boom_factory() -> TextStep:
+    raise Boom("from the factory")
+
+
+class BoomStep(_Plugin):
+    id = "boom"
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        raise Boom("from find")
+
+
+class _Unequal:
+    def __eq__(self, other: object) -> bool:
+        raise Boom("from __eq__")
+
+    __hash__ = object.__hash__
+
+
+class UnequalStep(_Plugin):
+    """Leaves an object in its copy that cannot even be compared."""
+
+    id = "unequal"
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        object.__setattr__(document, "blocks", (_Unequal(),))
+        return []

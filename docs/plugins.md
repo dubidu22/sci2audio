@@ -116,7 +116,7 @@ Install your package in the environment sci2audio runs in (`uv pip install -e .`
 - **Order.** Plugins run after the built-in steps of their stage, sorted by id. Block steps still run before inline steps, and move steps last. When a plugin's edit overlaps an edit that an earlier step proposed, the earlier edit wins. So a plugin adds to the reading and never overrides a built-in rule.
 - **Switches.** Your step's category is switched on and off with the built-in steps of that category (`--on` and `--off` on the command line, the switches in the app). A switched-off step still runs, and its edits are listed as switched off.
 - **Not loaded.** A plugin is not loaded when:
-  - its import fails, or its factory raises;
+  - its import fails, its factory raises, or reading one of its attributes raises (any exception, `sys.exit` included);
   - it does not give a `TextStep`;
   - it has an invalid attribute, or `api_version` is missing or different;
   - its entry point is not named after its id;
@@ -124,7 +124,7 @@ Install your package in the environment sci2audio runs in (`uv pip install -e .`
 
   The report lists such plugins as problems ("plugin not loaded: …"), and the other plugins still load.
 - **Failing at run time.** These count as failing:
-  - `find` raises, or calls `sys.exit`;
+  - `find` raises any exception, or calls `sys.exit`;
   - it returns edits that break the rules (spans outside their block, another step's id, edits that overlap each other, a block step's edit that does not cover its block, a move from a step that is not a move step);
   - it takes longer than 60 seconds on a document;
   - it changes the document it was given.

@@ -9,8 +9,9 @@ built-in rule (D-836).
 
 Every plugin runs behind a guard. It gets a copy of the document, so a plugin that changes
 the document it was given changes nothing the other steps see; it runs in a worker thread
-with a time limit; and `SystemExit` counts as a failure. The runner then drops the step's
-edits and records the problem, as for any failing step (D-111). A thread cannot be stopped:
+with a time limit; and any exception but Ctrl+C counts as a failure, `SystemExit` and other
+BaseExceptions included. The runner then drops the step's edits and records the problem, as
+for any failing step (D-111). A thread cannot be stopped:
 a plugin past its time limit is left running with its result thrown away (Q5 of the plan).
 Nothing here runs at import time; the app loads the plugins once per `JobRunner`.
 """
@@ -112,11 +113,12 @@ def load_plugin_steps(
         seen.add((point.name, point.value))
         distribution, version = _distribution(point)
         try:
-            step = _step(point, taken)
+            step = _step(point, taken, timeout)
         except _Rejected as rejected:
             problems.append(PluginProblem(point.name, distribution, str(rejected)))
             continue
         info = PluginInfo(step.id, step.category, distribution, version, point.value)
+        step.plugin = info
         found.setdefault(step.id, []).append((step, info))
     steps: list[TextStep] = []
     plugins: list[PluginInfo] = []
@@ -128,7 +130,7 @@ def load_plugin_steps(
             ]
             continue
         [(step, info)] = found[step_id]
-        steps.append(guarded(step, timeout=timeout, plugin=info))
+        steps.append(step)
         plugins.append(info)
     return LoadedPlugins(tuple(steps), tuple(plugins), tuple(problems))
 
@@ -158,31 +160,69 @@ class _Rejected(Exception):
 
 
 def _distribution(point: EntryPoint) -> tuple[str, str]:
-    dist = point.dist
-    if dist is None:
+    """The name and version of the package that holds the entry point; ("", "") if it does
+    not say. A damaged install of someone else's package must not stop sci2audio."""
+    try:
+        dist = point.dist
+        if dist is None:
+            return "", ""
+        metadata = dist.metadata
+        # .get, not [...]: a missing field is None here, never a deprecation warning or a
+        # KeyError (review S2 of #676)
+        return str(metadata.get("Name") or ""), str(metadata.get("Version") or "")
+    except KeyboardInterrupt:
+        raise
+    except BaseException:
         return "", ""
-    return dist.metadata["Name"] or "", dist.version or ""
 
 
-def _step(point: EntryPoint, taken: set[str]) -> TextStep:
-    """The entry point's step; _Rejected if it is not one this sci2audio can run."""
+def _said(error: BaseException) -> str:
+    try:
+        return f"{type(error).__name__}: {error}"
+    except KeyboardInterrupt:
+        raise
+    except BaseException:
+        return type(error).__name__
+
+
+def _step(point: EntryPoint, taken: set[str], timeout: float) -> _GuardedStep:
+    """The entry point's step behind the guard; _Rejected if it is not one this sci2audio
+    can run.
+
+    Everything that touches the plugin's objects is plugin code and may fail in any way: a
+    property that raises, a BaseException that is not an Exception. The runner is made at
+    start-up, so such a failure here would stop every command (review M1, S1 of #676); it
+    rejects the plugin instead. Only Ctrl+C gets through.
+    """
     try:
         made = point.load()
-    except (Exception, SystemExit) as error:
-        raise _Rejected(f"could not be loaded: {type(error).__name__}: {error}") from error
-    if not callable(made):
-        raise _Rejected(f"{point.value} is not a TextStep class or a factory")
+    except KeyboardInterrupt:
+        raise
+    except BaseException as error:
+        raise _Rejected(f"could not be loaded: {_said(error)}") from error
     try:
-        step = made()
-    except (Exception, SystemExit) as error:
-        raise _Rejected(f"failed to make its step: {type(error).__name__}: {error}") from error
-    if not isinstance(step, TextStep):
-        raise _Rejected(f"did not give a TextStep, got {type(step).__name__}")
-    if not _declares_version(step):
-        raise _Rejected(
-            "does not declare api_version; set api_version = 1 (the text-step contract "
-            "it targets) in the step's class"
-        )
+        if not callable(made):
+            raise _Rejected(f"{point.value} is not a TextStep class or a factory")
+        try:
+            step = made()
+        except KeyboardInterrupt:
+            raise
+        except BaseException as error:
+            raise _Rejected(f"failed to make its step: {_said(error)}") from error
+        if not isinstance(step, TextStep):
+            raise _Rejected(f"did not give a TextStep, got {type(step).__name__}")
+        if not _declares_version(step):
+            raise _Rejected(
+                "does not declare api_version; set api_version = 1 (the text-step contract "
+                "it targets) in the step's class"
+            )
+        # the attributes are read once, into the guard; every later check and the runner
+        # read the guard's copies, never the plugin's code again
+        step = _GuardedStep(step, timeout, None)
+    except (_Rejected, KeyboardInterrupt):
+        raise
+    except BaseException as error:
+        raise _Rejected(f"failed while its attributes were read: {_said(error)}") from error
     if problems := step_problems(step):
         raise _Rejected("; ".join(problems))
     if point.name != step.id:
@@ -245,11 +285,19 @@ class _GuardedStep(TextStep):
         if worker.is_alive():
             raise StepError(f"took longer than {self.timeout:g} s; its edits are left out")
         error = result.get("error")
+        if isinstance(error, KeyboardInterrupt | Exception):
+            raise error  # Ctrl+C stops the job; the runner reports an Exception as it is
         if isinstance(error, SystemExit):
             raise StepError(f"called SystemExit({error.code!r})") from error
-        if isinstance(error, BaseException):
-            raise error
-        if given != document:
+        if isinstance(error, BaseException):  # a BaseException would end the job (S1)
+            raise StepError(f"raised {_said(error)}") from error
+        try:
+            changed = given != document
+        except KeyboardInterrupt:
+            raise
+        except BaseException as error:  # the plugin left in its copy what cannot compare
+            raise StepError(f"left its copy of the document unreadable: {_said(error)}") from error
+        if changed:
             raise StepError("changed the document it was given; a step may only propose edits")
         return result["edits"]  # type: ignore[return-value]  # checked by the runner
 

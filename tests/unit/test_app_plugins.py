@@ -89,3 +89,27 @@ def test_the_command_line_names_the_installed_plugins(
     assert result.code == 0, result.err
     assert "Text-step plugins: ampersand-and (amp-plugin 0.1)\n" in result.out
     assert "the text step future failed and was left out: plugin not loaded" in result.err
+
+
+def test_broken_installed_plugins_do_not_stop_the_command_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review M1 and S1 of #676: the runner the command line makes at start-up loads every
+    installed plugin; plugin code that fails while it loads is a warning, never a crash."""
+    site = tmp_path / "site"
+    info = site / "bad-plugins-0.1.dist-info"
+    info.mkdir(parents=True)
+    (info / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: bad-plugins\nVersion: 0.1\n", encoding="utf-8"
+    )
+    (info / "entry_points.txt").write_text(
+        f"[{PLUGIN_GROUP}]\nbad-property = broken_text_plugins:BadPropertyStep\n"
+        "boom-import = boom_on_import:Step\n"
+        "boom-factory = broken_text_plugins:boom_factory\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(site))
+    result = Cli(tmp_path)("script", source(tmp_path), "-o", tmp_path / "out", "-q")
+    assert result.code == 0, result.err
+    for name in ("bad-property", "boom-import", "boom-factory"):
+        assert f"the text step {name} failed and was left out: plugin not loaded" in result.err

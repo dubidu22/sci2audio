@@ -3,6 +3,7 @@
 import subprocess
 import sys
 import time
+import warnings
 from importlib.metadata import EntryPoint
 from pathlib import Path
 
@@ -135,6 +136,11 @@ def test_a_real_distribution_on_the_path_is_found(
         (broken_point("other-name", "AlphaStep"), "entry point name 'other-name' is not"),
         (broken_point("page-furniture", "FurnitureClash"), "a built-in step has the id"),
         (point("instance", "example_text_plugin:_AMPERSAND"), "not a TextStep class"),
+        # review M1, S1 of #676: plugin code that fails while it is inspected, or with a
+        # BaseException that is not an Exception
+        (broken_point("bad-property", "BadPropertyStep"), "RuntimeError: no language list"),
+        (point("boom-import", "boom_on_import:Step"), "could not be loaded: Boom: at import"),
+        (broken_point("boom-factory", "boom_factory"), "Boom: from the factory"),
     ],
 )
 def test_a_broken_plugin_is_a_problem_and_the_others_still_load(
@@ -157,6 +163,23 @@ def test_an_entry_point_listed_twice_loads_once() -> None:
     loaded = load_plugin_steps([AMPERSAND, AMPERSAND])
     assert ids(loaded) == ["ampersand-and"]
     assert loaded.problems == ()
+
+
+def test_a_distribution_without_metadata_loads_without_a_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    info = tmp_path / "bare-0.1.dist-info"  # review S2 of #676: no METADATA file
+    info.mkdir()
+    (info / "entry_points.txt").write_text(
+        f"[{PLUGIN_GROUP}]\nampersand-and = example_text_plugin:AmpersandStep\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        loaded = load_plugin_steps()
+    [plugin] = loaded.plugins
+    assert (plugin.step, plugin.distribution, plugin.version) == ("ampersand-and", "", "")
 
 
 def test_a_problem_names_its_distribution() -> None:
@@ -190,7 +213,7 @@ def run_with(*attributes: str, strict: bool = False, timeout: float = 5.0):
     return run_steps(paper(), EN, steps, strict=strict)
 
 
-@pytest.mark.parametrize("attribute", ["RaisingStep", "ExitingStep"])
+@pytest.mark.parametrize("attribute", ["RaisingStep", "ExitingStep", "BoomStep", "UnequalStep"])
 def test_a_plugin_that_fails_is_left_out_and_the_run_goes_on(attribute: str) -> None:
     run = run_with(attribute, "RemovingStep")
     clean = run_with("RemovingStep")
@@ -203,7 +226,9 @@ def test_a_failing_plugin_keeps_its_own_error_in_the_problem() -> None:
     assert problem.message == "ValueError: boom"
 
 
-@pytest.mark.parametrize("attribute", ["RaisingStep", "ExitingStep", "MutatingStep"])
+@pytest.mark.parametrize(
+    "attribute", ["RaisingStep", "ExitingStep", "MutatingStep", "BoomStep", "UnequalStep"]
+)
 def test_a_strict_run_raises_for_a_broken_plugin(attribute: str) -> None:
     with pytest.raises(StepError):
         run_with(attribute, strict=True)
