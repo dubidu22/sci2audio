@@ -18,7 +18,7 @@ Thread: review-plugins-b-p1 (Opus 5.5). Head reviewed: 6f25cd4. Date: 2026-11-20
 - (i) No licence item; the fake plugins are our own code. No unrelated change.
 - (j) #666, #667, #668, #669 exist, open, milestone v1.4, lane and risk labels set; #666 is the web read-along follow-up.
 - CI: three-system `ci:full` green at 6f25cd4 (`tests` on ubuntu, macos, windows pass; `CI passed` pass).
-- Local run (macOS M4, worktree at 6f25cd4): RESULT_PLACEHOLDER
+- Local run (macOS M4, worktree at 6f25cd4): fast suite (`-k "not espeak"`) 8418 passed, 6 skipped, 6 xfailed; lint-imports 3 kept, deptry clean, ruff check and format clean. Probes for M1, S1 and S2 run against the same worktree.
 
 ## Findings
 
