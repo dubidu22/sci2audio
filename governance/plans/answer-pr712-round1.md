@@ -45,4 +45,4 @@ Thread: implementation infra-b-i4. Review: `plans/review-pr712-round1.md` (711ba
 
 ## Local run on d562db0
 
-Fast suite (`-k "not espeak" -n auto`): the first run had 2 failures that were not captured by name, and a full rerun on the same tree had none (8713 tests, 0 failed). The browser suite (Chromium) gave 198 passed, 5 skipped. ruff, ruff format, lint-imports (3 kept) and deptry are clean.
+Fast suite (`-k "not espeak" -n auto`): the first run had 2 failures that were not captured by name, and a full rerun on the same tree had none. The browser suite (Chromium) gave 198 passed, 5 skipped. ruff, ruff format, lint-imports (3 kept) and deptry are clean.
