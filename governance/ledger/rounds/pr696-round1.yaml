@@ -1,0 +1,11 @@
+pr: 696
+round: 1
+date: 2026-11-20
+thread: review-web-b-w2
+head: 3ee16ee
+critical: yes
+verdict: changes_requested
+must_fix: 2
+should_fix: 2
+kinds: "correctness,false-privacy-statement,stale-state-wording,raw-markup"
+report: plans/review-pr696-round1.md
