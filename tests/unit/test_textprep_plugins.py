@@ -1,5 +1,6 @@
 """Text-step plugins: discovery through the entry point, order, and the guard (#216, PE-10)."""
 
+import inspect
 import subprocess
 import sys
 import time
@@ -22,6 +23,7 @@ from sci2audio.textprep import (
     Stage,
     StepContext,
     StepError,
+    api,
     check_registry,
     run_steps,
 )
@@ -141,6 +143,8 @@ def test_a_real_distribution_on_the_path_is_found(
         (broken_point("bad-property", "BadPropertyStep"), "RuntimeError: no language list"),
         (point("boom-import", "boom_on_import:Step"), "could not be loaded: Boom: at import"),
         (broken_point("boom-factory", "boom_factory"), "Boom: from the factory"),
+        # checking a step's attributes runs plugin code too: a repr that fails
+        (point("lazy-id", "broken_text_plugins:LazyIdStep"), "RuntimeError: no repr"),
     ],
 )
 def test_a_broken_plugin_is_a_problem_and_the_others_still_load(
@@ -195,6 +199,95 @@ def test_importing_the_public_module_loads_no_plugin_and_no_test_tool() -> None:
         "assert 'pytest' not in sys.modules and 'hypothesis' not in sys.modules\n"
     )
     subprocess.run([sys.executable, "-c", code], check=True)
+
+
+# ---- a time limit for loading (#684) ----------------------------------------------------
+
+
+@pytest.fixture
+def hang(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delitem(sys.modules, "hanging_on_import", raising=False)  # import it again
+    broken.HANG.clear()
+    yield
+    broken.HANG.set()
+
+
+def load_quickly(*entries: EntryPoint):
+    started = time.monotonic()
+    steps = installed_steps(entry_points=[*entries, AMPERSAND], load_timeout=0.2)
+    assert time.monotonic() - started < 3
+    assert "ampersand-and" in [step.id for step in steps]
+    return steps
+
+
+def test_a_plugin_whose_import_hangs_is_left_out_and_the_others_still_load(hang) -> None:
+    steps = load_quickly(point("hanging-import", "hanging_on_import:Step"))
+    [problem] = steps.problems
+    assert problem.name == "hanging-import"
+    assert problem.message == "took longer than 0.2 s to load; left out"
+
+
+def test_a_plugin_whose_factory_hangs_is_left_out(hang) -> None:
+    steps = load_quickly(broken_point("alpha", "hanging_factory"))
+    assert [p.name for p in steps.problems] == ["alpha"]
+    assert "took longer than 0.2 s to load" in steps.problems[0].message
+
+
+def test_a_plugin_whose_attributes_hang_is_left_out(hang) -> None:
+    steps = load_quickly(broken_point("hanging-property", "HangingPropertyStep"))
+    assert [p.name for p in steps.problems] == ["hanging-property"]
+    assert "took longer than 0.2 s to load" in steps.problems[0].message
+
+
+def test_a_plugin_whose_version_check_hangs_is_left_out(hang) -> None:
+    steps = load_quickly(broken_point("slow-version", "SlowVersionStep"))
+    assert [p.name for p in steps.problems] == ["slow-version"]
+    assert "took longer than 0.2 s to load" in steps.problems[0].message
+
+
+def test_a_plugin_s_id_and_languages_are_kept_as_plain_copies() -> None:
+    steps = installed_steps(
+        entry_points=[broken_point("touchy-id", "TouchyIdStep"), broken_point("alpha", "AlphaStep")]
+    )
+    assert steps.problems == ()
+    [step] = [step for step in steps if step.id == "touchy-id"]
+    assert type(step.id) is str
+    assert [type(language) for language in step.languages] == [str]
+    assert type(steps.plugins[1].step) is str
+
+
+def test_ctrl_c_while_a_plugin_loads_is_not_swallowed() -> None:
+    with pytest.raises(KeyboardInterrupt):
+        installed_steps(entry_points=[broken_point("alpha", "interrupting_factory")])
+
+
+def test_the_public_loader_is_unchanged() -> None:
+    assert str(inspect.signature(load_plugin_steps)) == (
+        "(points: 'Iterable[EntryPoint] | None' = None, *, "
+        "reserved: 'Iterable[str] | None' = None, timeout: 'float' = 60.0) -> 'LoadedPlugins'"
+    )
+    assert api.__all__ == [
+        "ANY_LANGUAGE",
+        "PLUGIN_GROUP",
+        "TEXT_STEP_API",
+        "Block",
+        "BlockKind",
+        "Category",
+        "Document",
+        "Edit",
+        "EditKind",
+        "FurnitureRole",
+        "LoadedPlugins",
+        "Part",
+        "PluginInfo",
+        "PluginProblem",
+        "Section",
+        "Span",
+        "Stage",
+        "StepContext",
+        "TextStep",
+        "load_plugin_steps",
+    ]
 
 
 # ---- the guard at run time --------------------------------------------------------------

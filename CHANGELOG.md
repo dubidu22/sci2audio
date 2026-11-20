@@ -11,6 +11,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - `sci2audio script` and `sci2audio convert` take `--no-plugins` to run a job with the built-in text steps only; the report says so (#667). An audiobook's record names the text-step plugins that made it (#669).
 - The read-along shows the edits of the text-step plugins the audiobook was made with (#666), the document page lists the plugins an analysis ran with (#668), and the privacy page says what an installed plugin can do and lists the installed ones (#685).
 
+### Fixed
+
+- A text-step plugin whose import or set-up hangs no longer stops sci2audio from starting: loading gives up after 30 s and lists the plugin as a problem (#684).
+
 ### Security
 
 - Every answer of the interface's server also carries a `Permissions-Policy` that switches off the browser features the interface does not use, and `Cross-Origin-Embedder-Policy: require-corp` (#172).
