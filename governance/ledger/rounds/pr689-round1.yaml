@@ -1,0 +1,11 @@
+pr: 689
+round: 1
+date: 2026-11-20
+thread: review-web-b-w2
+head: 13ec9c2
+critical: yes
+verdict: changes_requested
+must_fix: 0
+should_fix: 2
+kinds: "switch-not-applied,stale-comment"
+report: plans/review-pr689-round1.md
