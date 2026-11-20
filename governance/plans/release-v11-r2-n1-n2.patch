@@ -1,0 +1,26 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b7fd46c..f3e0067 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,7 +6,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
+ 
+ ## [1.1.0] - 2026-11-16
+ 
+-German reading and a better player. German texts are read as German: a German voice (Kokoro Thorsten), German rules for abbreviations, units, numbers, dates, statistics, links, citations and sentence ends, notices in German, and the text's language guessed when the file states none. Footnotes are read right after the sentence that marks them. The audiobook can come with SRT and WebVTT subtitles. The player gets a speed control, remembers where you stopped, and `sci2audio listen` opens a command-line audiobook in it; chapters can be read in any order, and an EPUB's publisher pages are left out by default. PDFs are read in a separate process with memory and time limits, page progress and a quick cancel, and many readings now come out the same when the script is read a second time.
++German reading and a better player. German texts are read as German: a German voice (Kokoro Thorsten), German rules for abbreviations, units, numbers, dates, statistics, links, citations and sentence ends, notices in German, and the text's language guessed when the file states none. Footnotes are read right after the sentence that marks them. The audiobook can come with SRT and WebVTT subtitles. The player gets a speed control, remembers where you stopped, and `sci2audio listen` opens a command-line audiobook in it; chapters can be read in any order, and an EPUB's publisher pages are left out by default. PDFs are read in a separate process with memory and time limits, page progress and a quick cancel, and many readings that changed on a second pass over the script now stay the same.
+ 
+ ### Added
+ 
+diff --git a/docs/listening-tests/1.1.0.md b/docs/listening-tests/1.1.0.md
+index cf8bc7d..d189315 100644
+--- a/docs/listening-tests/1.1.0.md
++++ b/docs/listening-tests/1.1.0.md
+@@ -7,7 +7,7 @@ Device and headphones: MacBook Pro M4 (`release/1.1`, the read-along player of `
+ 
+ Use the same 13 paragraphs from `tests/corpus/` every time (rows 1 to 10 in English, chosen for 1.0.0; rows 11 to 13 in German, added for 1.1.0), so results are comparable between releases. Score each line from 1 (bad) to 5 (perfect) and note what you heard.
+ 
+-Rows 1 to 10 are the paragraphs of 1.0.0. Rows 11 to 13 are new: German texts are read as German since 1.1.0, so the German corpus paper gets three rows that later releases use too. The Notes column says first what each paragraph is there to check; add what you heard after it.
++Rows 1 to 10 are the paragraphs of 1.0.0. Rows 11 to 13 are new: German texts are read as German since 1.1.0, so the German corpus paper gets three rows that later releases use too. The Notes column says first what each paragraph is there to check; add what you heard after it. Make the audiobook of each paper with the default settings, after `sci2audio voices download --language de` once for the German voice: `sci2audio convert <file>` (or the interface), then listen in the read-along view with `sci2audio listen <file>`.
+ 
+ | # | Paragraph (corpus file, position) | Terms and names | Numbers, units, statistics | Pauses (headings, lists) | Notices (formulas, tables, figures) | Read-along in sync | Notes |
+ |---|---|---|---|---|---|---|---|

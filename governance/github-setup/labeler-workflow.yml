@@ -1,0 +1,16 @@
+# Sets risk:high on pull requests that touch critical paths, so criticality does not rest on a thread's
+# own judgement alone (CRIT-03). Copy to .github/workflows/labeler.yml. Check the action's current
+# version and settings before use: https://github.com/actions/labeler
+name: label critical paths
+on:
+  pull_request_target:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          sync-labels: false

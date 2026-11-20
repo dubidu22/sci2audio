@@ -1,0 +1,12 @@
+# Paths whose change is critical (project_profile.critical_paths). Copy to .github/labeler.yml.
+"risk:high":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/sci2audio/core/**"
+          - ".github/**"
+          - "pyproject.toml"
+          - "uv.lock"
+          - "tests/corpus/**"
+          - "tests/unit/__snapshots__/**"
+          - "tests/regression/**"
+          - "THIRD_PARTY_LICENSES.md"

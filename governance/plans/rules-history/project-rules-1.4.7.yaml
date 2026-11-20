@@ -1,0 +1,535 @@
+# sci2audio: project rules for Claude (machine-readable)
+#
+# SCHEMA
+#   version / date: semver of this file and the date it was last checked (UTC)
+#   authority:  order used when sources disagree (first wins; within one source the newest entry wins)
+#   sources:    key -> where that source lives; a rule's `source` names keys, D-numbers, issues (#n) or msg:<id>
+#   project_profile, execution_profile: lanes, labels, model routing and token economy
+#   <section>:  a list of rules: id (stable, never reused), applies_to (owner | coordinator | implementation |
+#               review | kb | audit | all), rule, source, values (optional)
+#   references: descriptions of workflows, not thread behaviour
+# Current state (pause, slow down, horizon, milestones, notifications) lives in project-state.yaml (META-02).
+# Only the coordinator edits this file (META-01).
+# Changelog: 1.4.7 (18 Nov 2026, D-765): execution_lanes gains web and docs as lanes of their own (practice since 16 Nov: web batches, docs B4; LANE-02 counts them separately); lane_mapping_note updated. Precondition of #560.
+# Changelog: 1.4.6 (18 Nov 2026, D-759 done): TST-08 names isolate.yml; PR-05/REV nightly practice reads the reported Firefox/WebKit legs of web PRs; ci_browser_nightly reference updated for shards, isolate.yml and scoped mutation (#545 #546 #551 #553 #554).
+# Changelog: 1.4.5 (18 Nov 2026, D-760): MRG-03 catch-up merge no longer required (Colin turned off 'Require branches to be up to date' on ruleset main, 19:25Z); new MRG-04 red-main rule; D-758 merge slot retired.
+# Changelog: 1.4.4 (18 Nov 2026, D-741): LANE-02: several lanes run in parallel while they do not block each other (Colin 18 Nov 13:06Z), replacing the one-thread limit of D-705.
+# Changelog: 1.4.3 (18 Nov 2026, D-739): TST-07/TST-08 follow audit M4 (same-day quarantine first, 40-run isolation after, result into the issue); CMD-07 allows filing issues during a freeze (audit M2).
+# Changelog: 1.4.2 (18 Nov 2026, D-738): audit minor items: REV-09 and PLAN-04 added, LANE-02 priority exception, REV-06 round reports go to the author directly, AUTO-02 and CMD-04 trimmed, WD-01 covers the freeze.
+# Changelog: 1.4.1 (18 Nov 2026, D-737): freeze rule CMD-07 added; TST-07/TST-08 merged into one order (isolation run, then same-day quarantine), per governance audit 18 Nov.
+# Changelog: 1.4.0 (16 Nov 2026, D-712 to D-714): governance audit fixes applied, see plans/governance-audit-2026-11-16.md; state moved to project-state.yaml.
+
+version: 1.4.7
+date: '2026-11-18'
+project: sci2audio
+owner: Colin (claude.ai account "Q", GitHub dubidu22; account shared with his wife, who does not use this project)
+time_zone_owner: Europe/Berlin
+authority:
+- colin_messages_newer
+- project_instructions
+- kb_decision_log
+- pending_kb_batch
+- project_rules
+- claude_md
+- project_memory
+sources:
+  colin_messages_newer: a message of Colin's newer than the conflicting entry (in a thread, attached by id, or a decision card)
+  project_instructions: claude.ai project instructions (session context of every thread)
+  kb_decision_log: dubidu22/sci2audio-design docs/kb/00-index/decision-log.md (main); a "Decided" (Colin) row beats a "Decided (Claude)" row
+  pending_kb_batch: the newest /mnt/project-files/kb/kb-batch-<date>-pending.md
+  project_rules: this file and project-state.yaml; a summary that must match the sources above
+  claude_md: dubidu22/sci2audio CLAUDE.md, .claude/rules/tests.md, .claude/rules/licences.md, .github/lanes.yml (main)
+  project_memory: /tmp/claude/memory/team/silo/MEMORY.md and its topic files
+  release_checklist: dubidu22/sci2audio docs/release-checklist.md
+  D-712: '"slow down" moves only non-critical reviews to the cheaper setting (Colin''s approval of the audit, 16 Nov 16:08Z; pending KB)'
+  D-713: rules-file edits stay with the coordinator, with a one-line note to Colin on each change (16 Nov 16:08Z; pending KB)
+  D-714: governance audit fixes adopted (Colin, 16 Nov 16:08:30Z, "i approve your suggestions. apply all"; plans/governance-audit-2026-11-16.md; pending KB)
+project_profile:
+  state_file: /mnt/project-files/rules/project-state.yaml
+  plans_dir: /mnt/project-files/plans
+  ledgers:
+  - /mnt/project-files/ledger/implementation.md
+  - /mnt/project-files/ledger/review.md
+  execution_lanes:
+  - extraction/voices
+  - layout
+  - textprep
+  - app/release
+  - web
+  - docs
+  file_ownership_labels:
+  - lane:core
+  - lane:extraction
+  - lane:layout
+  - lane:textprep
+  - lane:voices
+  - lane:output
+  - lane:app
+  - lane:web
+  - lane:cli
+  - lane:infra
+  - lane:docs
+  other_labels:
+  - risk:high
+  - risk:low
+  - ci:full
+  - ui:screens
+  - bug
+  - feature
+  - chore
+  - testing
+  - accessibility
+  lane_mapping_note: 'Execution lanes are who works; lane:* labels (.github/lanes.yml) are which files a PR may touch. extraction/voices -> lane:extraction, lane:voices, lane:output. layout -> lane:layout. textprep -> lane:textprep (incl. src/sci2audio/testing). app/release -> lane:app, lane:cli (and lane:web when a PR spans both). web -> lane:web (src/sci2audio/web, static, templates, browser tests). docs -> lane:docs (docs/, CLAUDE.md, KB process text). app and web share files often, so LANE-02 keeps them apart unless their PRs touch disjoint files (D-761 B7/B8). lane:core and lane:infra are shared and critical; lane:infra is the lock. (D-765)'
+execution_profile:
+  model_routing:
+    coordinator: Fable 5.1
+    implementation_and_critical_review: Opus 5.5 high
+    standard_review_audit_and_kb: Opus 5.5 medium
+    when_uncertain: Fable 5.1 medium or high (MOD-03)
+  token_economy:
+    profile: balanced
+    max_concurrent_lanes: 1
+    replace_at_compressions: 2
+    watchdog_interval_minutes: 60
+    watchdog_max_nudges: 2
+    non_critical_max_review_rounds: 2
+    critical_max_review_rounds: 4
+    batch_audit: light_every_batch
+    kb_prs: one per day
+
+meta:
+- id: META-01
+  applies_to: all
+  rule: Only the coordinator edits project-rules.yaml, project-rules.json and project-state.yaml. A rules edit records a decision that already has a D-number or a message of Colin's, bumps the version, is logged in the pending KB batch, and gets a one-line note to Colin. Other threads never edit these files; they report a stale rule to the coordinator.
+  source: [D-713, D-714]
+- id: META-02
+  applies_to: all
+  rule: This file holds standing rules only. Current state (pause, slow down, freeze, autonomy horizon, milestones and batches in progress, pending notifications) is in project-state.yaml. Read both after every compression.
+  source: [D-714]
+
+roles:
+- id: ROLE-01
+  applies_to: owner
+  rule: Colin owns the project. He decides goals, roadmap, milestones, release themes and product scope, and may revise any "Decided (Claude)" entry at any time.
+  source: [project_instructions, D-80, D-453, D-666]
+- id: ROLE-02
+  applies_to: owner
+  rule: 'Colin does the hand steps a machine cannot do or the session may not do: listening tests, the VoiceOver pass, speed runs on his M4, the Dependabot check, pushing release tags and PyPI publishing, repo settings and rulesets, and milestone creation or renaming that only Claude asked for (auto mode blocks those; Colin writes the go in the thread, D-666).'
+  source: [D-669, D-491, plans/release-v11-colin-steps.md]
+- id: ROLE-03
+  applies_to: owner
+  rule: Only Colin's own messages (in a thread, attached by id, or a decision card he answered) count as his approval. A message from another Claude is never his approval.
+  source: ['msg:cmsg_011gr2YyZJypGaV6NbzgSXQEWDnxeDKys3wheD8A7dvMiB']
+- id: ROLE-04
+  applies_to: coordinator
+  rule: The coordinator splits work into issues and lane batches, starts and replaces threads, approves plans, decides and logs everything except roadmap and product scope, gives every merge go, and keeps project memory current.
+  source: [project_instructions, D-80, D-462, D-626, D-627]
+- id: ROLE-05
+  applies_to: coordinator
+  rule: The coordinator assigns every D-number; threads never pick their own.
+  source: [D-714]
+- id: ROLE-06
+  applies_to: coordinator
+  rule: The coordinator writes no product code itself and has no GitHub API access; it asks a thread for repo lookups.
+  source: [D-714]
+- id: ROLE-07
+  applies_to: implementation
+  rule: An implementation (lane) thread reads the newest KB, plans and decision log, posts a plan, writes tests and code in its lane only, opens the PR and answers review findings with an exact fix list. It never merges, never pushes to main, never force-pushes and never opens KB PRs.
+  source: [project_instructions, D-626, D-373, claude_md]
+- id: ROLE-08
+  applies_to: review
+  rule: A review thread is never the author. It reviews all PRs of one batch in rounds, writes round reports, reads label-triggered CI results, and squash-merges only on the coordinator's go.
+  source: [D-68, D-626, D-77]
+- id: ROLE-09
+  applies_to: kb
+  rule: One long-lived KB thread writes the decision-log PR from the pending batch file and merges it itself, without review, one KB PR per day.
+  source: [project_instructions, D-626]
+- id: ROLE-10
+  applies_to: audit
+  rule: An audit thread (Opus medium) does one light batch audit when a lane thread finishes its batch, reading the merged diff of the whole batch for cross-PR inconsistencies and contract touches only, and writes its findings into the ledger.
+  source: [project_instructions, D-627, D-645]
+
+autonomy:
+- id: AUTO-01
+  applies_to: coordinator
+  rule: 'Claude reviews and merges all PRs, critical ones included, and makes all decisions itself without waiting for Colin, until the horizon in project-state.yaml. Roadmap and product scope wait for Colin (for example the Study-layer scope before ADR #395), and so does a critical PR at the round-4 stop (REV-02). Testing and reviewing stay strict.'
+  source: [project_instructions, D-80, D-462, D-553, D-702a, 'msg:cmsg_011gr2YyZJypGaV6NbzgSXQE5UjVxoVZj6L9uvpQF3iE5V', D-703e]
+- id: AUTO-02
+  applies_to: coordinator
+  rule: Attach Colin's autonomy messages (autonomy_messages in project-state.yaml) to every review-thread start and every merge-go message, so the session safety check clears the merge.
+  source: [D-714, D-738]
+- id: AUTO-03
+  applies_to: coordinator
+  rule: Work beyond the current milestone may start in any lane that is not blocked.
+  source: [D-553]
+
+models:
+- id: MOD-03
+  applies_to: coordinator
+  rule: Model routing is in execution_profile. Effort is fixed when a thread starts, so the coordinator picks it from the work's criticality; a review thread that serves a whole batch starts at the effort of the batch's most critical PR. When uncertain (a critical decision, a hard review, a conflicting plan) the coordinator may run that thread on Fable 5.1 medium or high.
+  source: [project_instructions, D-80, D-626, D-714]
+
+lanes:
+- id: LANE-01
+  applies_to: all
+  rule: PRs are batched by lane, not by issue. One PR per lane covers several related issues; small follow-ups are folded into the lane's next PR. These are execution lanes (who works); the lane:* labels of LANE-03 are file-ownership labels.
+  source: [project_instructions, D-626, D-703a]
+- id: LANE-02
+  applies_to: coordinator
+  rule: Several lanes run in parallel as long as they do not block each other (D-741); each lane has at most one implementation thread and one review thread. Lanes block each other when they touch the same files, goldens, regression cases or layer contract; then the later one waits. The coordinator decides and lists the active lanes in project-state.yaml. A bug Colin marks as priority gets its own parallel implementation thread (D-732).
+  source: [D-705, D-732, D-738, D-741, 'msg:cmsg_011gr2YyZJypGaV6NbzgSXQE5cwtWasr7uD9azqtazxBfd']
+  values: {max_active_implementation_threads_per_lane: 1, max_active_review_threads_per_lane: 1, superseded: 'At most three implementation threads run at once, one per lane.'}
+- id: LANE-03
+  applies_to: implementation
+  rule: 'A PR changes only files its lane owns, plus their tests and docs. extraction/voices: extraction, voices, output. layout: layout. textprep: textprep, testing. app/release: app, web, cli. core and infra are shared: a PR touching them is critical and carries lane:infra as the lock, and lane:core where core changes.'
+  source: [claude_md, D-703a, D-714]
+  values:
+    ownership:
+      extraction/voices: [extraction, voices, output]
+      layout: [layout]
+      textprep: [textprep]
+      app/release: [app, web, cli]
+      cross_cutting_needs_lane_infra: [core, infra]
+      any_lane: [docs]
+    lanes_yml: [core, extraction, layout, textprep, voices, output, app, web, cli, infra, docs]
+- id: LANE-04
+  applies_to: coordinator
+  rule: A release thread counts as the one implementation thread of LANE-02. A release thread started before D-705 finishes beside the others (listed in project-state.yaml).
+  source: [D-702b, D-705]
+
+threads:
+- id: THR-01
+  applies_to: coordinator
+  rule: A lane thread lives for one batch (its plan and its PRs). It is replaced when its PRs are merged, at its second compression (THR-04) or when it fails a fitness check (THR-03); in every case it first finishes its current step and hands over at the next hand-off, never mid-round.
+  source: [project_instructions, D-626, D-714]
+- id: THR-02
+  applies_to: all
+  rule: Every new thread first reads the newest 20 rows of the decision log, the pending KB batch, the rows its plan or brief cites, and its plan file, and gets its issue list in its instructions.
+  source: [project_instructions, D-626, D-635, D-714]
+- id: THR-03
+  applies_to: coordinator
+  rule: Before a thread is given its next issue or batch it passes a fitness check, reporting its compression count and stating the current plan and open review items from memory. If it cannot, it is replaced at the next hand-off.
+  source: [project_instructions, D-627, D-630, D-635]
+- id: THR-04
+  applies_to: all
+  rule: A thread at its second context compression finishes the step it is in (a review round, a fix commit, a KB PR) and is replaced at the next hand-off, never mid-round. This applies to every thread, the KB thread included.
+  source: [D-702d, D-703d]
+- id: THR-05
+  applies_to: coordinator
+  rule: One review thread per batch handles all its PRs and rounds; it may serve the next batch of the same lane while it passes THR-03.
+  source: [project_instructions, D-626, D-702c]
+- id: THR-06
+  applies_to: all
+  rule: 'Every implementation and review thread appends one table row per PR (review: one per round) to its ledger: turns this thread spent on that PR or round, counted, not estimated; compressions so far; review rounds; findings; CI reruns; post-merge defects. Size goes in the notes column.'
+  source: [project_instructions, D-627, D-714]
+  values:
+    ledgers: [/mnt/project-files/ledger/implementation.md, /mnt/project-files/ledger/review.md]
+- id: THR-08
+  applies_to: coordinator
+  rule: After a merge the coordinator gets the KB batch entry written, resolves finished threads and tells the other running threads to merge the new main. A thread that resolved itself while it still has work is reopened.
+  source: [D-714]
+- id: THR-09
+  applies_to: all
+  rule: Threads report in a few lines; detail, decision texts and round reports live in /mnt/project-files/plans/ (review threads have a limit of 24 attached files).
+  source: [project_instructions, D-701]
+- id: THR-10
+  applies_to: all
+  rule: Files on /mnt/project-files lag about 20 s; a thread reads a shared file or memory file again just before it writes it.
+  source: [D-714]
+
+watchdog:
+- id: WD-01
+  applies_to: coordinator
+  rule: While a thread owes a result, the coordinator keeps a check 60 minutes out. When it fires it reads the silent threads and nudges them. After two nudges without progress it replaces the thread at the next hand-off, or for a critical PR tells Colin. No checks fire during a pause (CMD-05), nor during a freeze (CMD-07) while no thread owes a result.
+  source: [D-702h, D-714, D-738]
+  values: {interval_minutes: 60, max_nudges: 2}
+
+plans:
+- id: PLAN-01
+  applies_to: implementation
+  rule: Every implementation thread posts a plan before any code or tests; writing tests counts as implementation. Only reading the issue, KB and code comes first.
+  source: [project_instructions, D-62, D-72]
+- id: PLAN-02
+  applies_to: coordinator
+  rule: Non-critical work starts right after the plan is posted if the coordinator has high confidence the plan is better than the alternatives. Otherwise, and for all critical work, the plan waits for the coordinator's explicit approval.
+  source: [project_instructions, D-72, D-80]
+- id: PLAN-03
+  applies_to: all
+  rule: Plan files live in /mnt/project-files/plans/ and pin their numbers (option and item numbers stay stable across revisions). A deviation from an approved plan needs its own coordinator approval and D-number.
+  source: [D-695, D-699]
+- id: PLAN-04
+  applies_to: implementation
+  rule: An issue without acceptance criteria is not started; the thread asks the coordinator for them first.
+  source: [claude_md, D-738]
+
+critical:
+- id: CRIT-01
+  applies_to: all
+  rule: A change is critical when it touches a layer contract, the core dataclasses, the KB's process, contract or architecture documents (not the daily decision-log PR of KB-03), a golden file, regression cases, packaging, release or CI, or a safety mechanism, whatever its labels say. risk:high also makes it critical.
+  source: [project_instructions, D-69, D-703c]
+- id: CRIT-02
+  applies_to: all
+  rule: Also risk:high and therefore critical are licences and third-party content, anything that deletes or overwrites user files (including new UI paths that delete user files), and any network call.
+  source: [claude_md]
+- id: CRIT-03
+  applies_to: all
+  rule: 'Critical work gets the full process: a plan approved by the coordinator, review on Opus high (also under "slow down", D-712), exact fix lists, issues for anything deferred, and the heavy checks on the final round.'
+  source: [project_instructions, D-626, D-712]
+
+pull_requests:
+- id: PR-01
+  applies_to: implementation
+  rule: 'PR title "<area>: <outcome> (#N)". The body gives Closes #N, the feature ID, a test summary, a licence note, the risk and out-of-scope follow-ups.'
+  source: [claude_md]
+- id: PR-02
+  applies_to: implementation
+  rule: 'Never write "fixes #N" (or closes or resolves) in branch commit messages; the closing keyword belongs in the PR body only.'
+  source: ['#278']
+- id: PR-03
+  applies_to: implementation
+  rule: No fixed size limit. Split a PR only when its parts can be reviewed, tested and merged on their own.
+  source: [D-75]
+- id: PR-04
+  applies_to: implementation
+  rule: Run lint, format check, lint-imports, deptry and the fast tests before opening a PR, and the browser tests for any interface change.
+  source: [claude_md]
+- id: PR-05
+  applies_to: implementation
+  rule: A PR goes to review only after its Linux CI is green. A critical PR also needs one green ci:full run on the head handed to review; the author then removes the ci:full label so fix commits run Linux only.
+  source: [D-698, D-714]
+- id: PR-06
+  applies_to: implementation
+  rule: During a review round the author freezes the branch unless the fix list or CI asks for a change, and pushes one fix commit per round.
+  source: [D-698]
+- id: PR-08
+  applies_to: all
+  rule: Before fixing a bug on main, check whether the open release branch already fixed it. If so, port that fix to main word for word so the forward-merge stays clean.
+  source: [D-701]
+- id: PR-09
+  applies_to: implementation
+  rule: Mutation claims in a PR body or answer name the exact command, the test paths and the clean (unmutated) baseline run that passed first. Run mutants from a clean worktree of the code under test with its own tests.
+  source: [D-676]
+
+reviews:
+- id: REV-01
+  applies_to: review
+  rule: Every PR is reviewed before merging in a separate thread that did not write it. The only exception is the daily decision-log PR of KB-03; KB process, contract and architecture documents are critical (CRIT-01) and are reviewed like code.
+  source: [D-68, D-626, D-703c, D-714]
+- id: REV-02
+  applies_to: all
+  rule: A non-critical PR gets at most two review rounds; remaining items become GitHub issues. A critical PR continues up to round 4, then stops and waits for Colin's approval. This hard stop is the explicit exception within the autonomy of AUTO-01.
+  source: [project_instructions, D-626, D-703e]
+- id: REV-03
+  applies_to: review
+  rule: For critical PRs, on the final round only, the review thread adds ci:full for the three-system run on the final head and reads mutation and nightly-seed results from dispatched workflows instead of running them. Earlier rounds run Linux CI only, apart from the author's pre-review run of PR-05.
+  source: [project_instructions, D-626, D-698, D-714]
+- id: REV-04
+  applies_to: review
+  rule: Round reports go to plans/review-pr<N>-round<K>.md with the head SHA, the verdict, what was verified, and numbered findings (B/M must fix, S should fix, N notes).
+  source: [D-714]
+- id: REV-05
+  applies_to: all
+  rule: Fix lists are exact; "most" or "some" is never used. Every finding is answered as fixed (how, and which test fails on the old head), deferred (with an issue link and milestone) or declined (with a reason).
+  source: [project_instructions, D-68]
+- id: REV-06
+  applies_to: review
+  rule: The review thread sends the author thread the round-report path directly; the coordinator gets one line with the verdict and the finding count.
+  source: [D-714, D-738]
+- id: REV-07
+  applies_to: review
+  rule: The reviewer merges main locally before judging, runs the corpus comparison for any change that can affect output (every unexpected file must stay byte-identical), and checks each safety mechanism has a test that fails without it.
+  source: [D-714]
+- id: REV-08
+  applies_to: review
+  rule: Each review starts from the area's review-checks memory and the REVIEW LESSONS line of project memory.
+  source: [D-714]
+- id: REV-09
+  applies_to: review
+  rule: A failure that also fails on main does not block a PR; the round report names the matching main run. A bug older than the PR is fixed first in its own lane PR.
+  source: [D-725, D-729, D-731, D-738]
+
+merging:
+- id: MRG-01
+  applies_to: review
+  rule: The review thread squash-merges only on the coordinator's go, pinned to the reviewed head SHA (REST merge with sha= and merge_method=squash; merge commits are refused by the repo).
+  source: [D-77]
+- id: MRG-02
+  applies_to: review
+  rule: Merge only with "CI passed" green, and for critical PRs only after macOS and Windows succeeded on the reviewed head (check the tests (macos-latest) and tests (windows-latest) jobs themselves).
+  source: [claude_md, D-580]
+- id: MRG-03
+  applies_to: review
+  rule: A branch behind main merges on its own green reviewed head; the ruleset no longer requires it to be up to date (D-760, Colin 18 Nov 19:25Z). The review thread updates the branch with a merge (update-branch, no force-push) only when GitHub reports a conflict or when the PR touches files that changed on main since the branch was reviewed; then it waits for CI on the new head, confirms the PR diff is unchanged, and merges pinned to the new head.
+  source: [D-714, D-760]
+- id: MRG-04
+  applies_to: all
+  rule: After a merge, the three-system CI on main is the integration check. If main goes red, the lane that merged last fixes or reverts it before any other PR merges; the coordinator announces the hold. A merge slot (one PR at a time, D-758) is used only while main is red or when two approved PRs touch the same files.
+  source: [D-758, D-760]
+
+testing:
+- id: TST-01
+  applies_to: implementation
+  rule: Tests come first. Write a failing test for a bug, a characterisation test before moving or splitting code, a regression case before any text-rule change, and for each safety mechanism a test that fails without it.
+  source: [claude_md, '#345']
+- id: TST-03
+  applies_to: implementation
+  rule: Text steps must pass the second-run idempotency check (running the text rules twice changes nothing), Hypothesis property tests and a fuzz check. New skip rules must also apply to every rule the fuzz check covers.
+  source: [claude_md, '#353', D-699]
+- id: TST-04
+  applies_to: all
+  rule: Golden files (corpus truth files, syrupy snapshots, English regression cases) change only in a critical PR that explains the diff. Made-up test fixtures stay separate from corpus golden tests.
+  source: [D-69, claude_md]
+- id: TST-05
+  applies_to: implementation
+  rule: The first PR that adds a kind of code adds its test pipeline and CI wiring, per the table in .claude/rules/tests.md.
+  source: [claude_md, D-58, D-76]
+- id: TST-06
+  applies_to: all
+  rule: Never weaken, delete, skip or quarantine a test to get CI green. If a test is wrong, say why in the PR. Tests make no network calls.
+  source: [claude_md]
+- id: TST-07
+  applies_to: all
+  rule: A test that fails twice without a code cause is quarantined the same day, with the quarantined marker and a linked GitHub issue, and is fixed before the next release; no quarantined test may remain at release.
+  source: [project_instructions, D-374, D-702f, D-725, D-739]
+- id: TST-08
+  applies_to: all
+  rule: A test with a known code cause is fixed, not quarantined. Every flaky test gets an issue. The 40-run isolation per browser (D-682) runs after the same-day quarantine of TST-07 through the isolate.yml workflow (dispatch; mode=stop is the gating check, mode=full gives the pass counts); the issue quotes the done/asked table of a mode=full run, and if it finds a code cause the test is fixed and the quarantine removed. No scratch branches for isolation.
+  source: [D-682, D-700, D-374, D-739, D-759]
+- id: TST-09
+  applies_to: all
+  rule: A flaky security scan (ZAP) is re-run once, not quarantined.
+  source: [D-602]
+
+ci:
+- id: CI-01
+  applies_to: all
+  rule: Every PR runs lint and the fast suite on Linux. Push events start CI for main and release/** branches; other branch pushes start none.
+  source: [D-580]
+- id: CI-02
+  applies_to: all
+  rule: macOS and Windows run on pushes to main and release/**, on workflow_dispatch, and when the ci:full label is added to a PR (ci-full-label.yml dispatches ci.yml on the PR branch).
+  source: [D-580, D-620, D-643]
+- id: CI-05
+  applies_to: all
+  rule: PRs into a release/N.N branch trigger Linux CI only automatically. A critical PR into a release branch still gets a manual ci:full three-system run on its final round, so PR-05 and MRG-02 still apply.
+  source: [D-702g, D-703b]
+- id: CI-06
+  applies_to: all
+  rule: '"CI passed" is the only required check and stays strict. A run cancelled by hand stays red and is never skipped.'
+  source: [D-620]
+- id: CI-08
+  applies_to: all
+  rule: Hosted-runner mutation runs longer than about 5 hours die without a result (#246). A missing mutation result does not hold a release tag.
+  source: ['#246', D-531, D-696]
+
+github:
+- id: GH-01
+  applies_to: all
+  rule: Anything deferred, from a review, a plan or an audit, gets a GitHub issue with a milestone the same day.
+  source: [project_instructions, D-68]
+- id: GH-03
+  applies_to: all
+  rule: Every issue carries a milestone, a lane label and, where it applies, risk:high or risk:low. Milestone numbers are in project-state.yaml; labels in project_profile.
+  source: [claude_md, D-702]
+- id: GH-04
+  applies_to: all
+  rule: From cloud sessions GraphQL is blocked. Use REST (gh api repos/...), create branches with git push, and create PRs through the REST pulls endpoint.
+  source: [D-714]
+
+release:
+- id: REL-01
+  applies_to: coordinator
+  rule: When the release PRs are merged, cut release/X.Y from that merge commit. Feature work keeps landing on main, which moves to the next dev version.
+  source: [D-490, D-669]
+- id: REL-02
+  applies_to: coordinator
+  rule: R1 sets the version, CHANGELOG and README on release/X.Y. R2 is the release-day PR carrying Colin's hand-step results and the changelog date. R3 forward-merges release/X.Y into main after the tag.
+  source: [D-669]
+- id: REL-03
+  applies_to: coordinator
+  rule: The release checklist runs (ZAP, nightly, mutation) run on the release branch. Fixes go into release/X.Y by PR under CI-05.
+  source: [D-669, D-678, release_checklist, D-703b]
+- id: REL-04
+  applies_to: owner
+  rule: Colin does the release hand steps. These are switching his clone to the release branch, the listening test (rows scored 1 to 5), the VoiceOver pass, scripts/speed.py on the M4 and the Dependabot check. After that he pushes the tag and checks PyPI on the coordinator's word.
+  source: [D-669, plans/release-v11-colin-steps.md]
+- id: REL-08
+  applies_to: coordinator
+  rule: After the tag, close the milestone.
+  source: [D-714]
+
+kb:
+- id: KB-01
+  applies_to: all
+  rule: Every decision, Claude's own included, is recorded in the KB decision log. Colin's statements become F- entries and decisions D- entries.
+  source: [project_instructions, D-71]
+- id: KB-02
+  applies_to: kb
+  rule: Status is "Decided" when Colin stated or approved it (quote his words and the time), or "Decided (Claude)" when Claude decided alone. A revised older row gets a status note naming the newer entry.
+  source: [D-714]
+- id: KB-03
+  applies_to: kb
+  rule: Decisions collect through the day in /mnt/project-files/kb/kb-batch-<date>-pending.md. One KB PR per day is branched from KB main, written and self-merged (squash, pinned SHA) by the KB thread without review.
+  source: [project_instructions, D-373, D-626]
+- id: KB-04
+  applies_to: kb
+  rule: 'KB PR bodies never put "fixes", "closes" or "resolves" next to a code PR or issue link; write "records decisions of sci2audio PR #N".'
+  source: [D-714]
+- id: KB-05
+  applies_to: kb
+  rule: Each table row has exactly six cells and no raw "|" inside a cell; rows go above the newest D-row. "Colin informed" times are read from the project chat itself.
+  source: [D-714]
+
+reporting:
+- id: REP-01
+  applies_to: coordinator
+  rule: Colin is informed in the project chat only when he asks about progress or when a decision is critical. A critical merge gets one line.
+  source: [project_instructions, D-626, D-702g]
+- id: REP-02
+  applies_to: all
+  rule: Posts are short. Detail stays in plan files, and review heads are not repeated. Colin watches token efficiency.
+  source: [project_instructions]
+- id: REP-03
+  applies_to: all
+  rule: Analyses go into Claude Docs in the claude.ai "sci2audio" folder.
+  source: [project_instructions]
+- id: REP-04
+  applies_to: coordinator
+  rule: When Colin returns after hours away with decisions to report, he gets one batched post.
+  source: [D-714]
+
+owner_preferences:
+- id: PREF-01
+  applies_to: all
+  rule: Terminal commands for Colin carry no comments inside the code block; explanations go beside it. He uses zsh on a MacBook Pro M4, with his clone at ~/Documents/Projekte/sci2audio.
+  source: [D-714]
+- id: PREF-02
+  applies_to: all
+  rule: Times are given to Colin in Europe/Berlin.
+  source: [D-714]
+
+code_hard_rules:
+- id: CODE-01
+  applies_to: all
+  rule: The Hard rules of CLAUDE.md (no network calls or telemetry, 127.0.0.1 only, faithful text), the licence gate of .claude/rules/licences.md (AGPL, SSPL, non-commercial and unclear licences refused) and the layer contract (cli -> web -> app -> stages -> core, enforced by lint-imports) bind every PR. Fix the design, never the contract.
+  source: [claude_md, D-45, D-46, D-57, D-63]
+
+control_commands:
+- id: CMD-04
+  applies_to: all
+  rule: '"slow down": non-critical reviews on the cheaper setting (Opus 5.5 medium); critical reviews stay on Opus high. Lasts until "continue".'
+  source: [D-702e, D-712, D-738]
+- id: CMD-05
+  applies_to: all
+  rule: '"pause all threads" / "stop": no new thread turns until "continue"; the coordinator messages every running thread to stop and confirms each one stopped. A thread still answers Colin''s own messages in its thread.'
+  source: [D-702e, D-714]
+- id: CMD-06
+  applies_to: all
+  rule: '"continue" / "continue as usual" / "continue everything": back to normal pace, lifting a pause, slow down or freeze.'
+  source: [D-604, D-639]
+- id: CMD-07
+  applies_to: all
+  rule: '"dont start working on new issues" (freeze): no new implementation, review or audit thread starts and no new issue work begins; filing the issues GH-01 and TST-08 require stays allowed (filing only); running PRs finish their current round and merge; the daily KB decision-log PR still goes out; threads still answer Colin''s own messages. The coordinator sets thread_freeze in project-state.yaml. Lasts until "continue" or a new ask from Colin.'
+  source: [D-736, D-737, D-739]
+
+references: {ci_labels: 'Labels other than ci:full start no CI run; ui:screens renders interface screenshots (ui-screens.yml). (D-643)', ci_tags: No CI on tags; the release workflow smoke-tests the wheel on all three systems when a v* tag is pushed. (D-580), ci_browser_nightly: 'Browser tests: Linux Chromium in two shards "browser (Linux, Chromium, 1/2)" and "2/2" on every PR; PRs touching web paths also run Firefox and WebKit on Linux as reported-only legs (red leg leaves "CI passed" green but the run red; reviewers read them like a nightly result, a repeat fail is a fix; required once #437 closes). "CI passed" fails on any cancelled or skipped leg; re-run the failed jobs once. Nightly 02:17 UTC: Chromium, Firefox, WebKit on Linux and WebKit on macOS in two shards each (a green WebKit nightly for #437 means both shards green), slow, property (property tests only) and benchmark suites; manual runs can pick parts. A web PR no longer needs a branch nightly before merging: read its reported legs, except WebKit macOS (nightly only). Flaky-test isolation: isolate.yml (TST-08). ZAP on web/app PRs and nightly 03:47 UTC. Mutation is dispatch-only and scoped to named functions (#551). (D-259, D-759)', ci_free: GitHub Actions are free for this public repo; move heavy checks into Actions wherever possible., release_tag_date: The release workflow refuses a tag whose version has no dated CHANGELOG heading; the date changes if the tag is pushed on a later day.}

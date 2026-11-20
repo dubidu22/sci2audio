@@ -1,0 +1,115 @@
+--- a/src/sci2audio/textprep/utterances.py	2026-11-16 23:26:50.782270842 +0000
++++ b/src/sci2audio/textprep/utterances.py	2026-11-16 23:35:36.950758641 +0000
+@@ -240,6 +240,7 @@
+     language = language or document.language
+     abbreviations = ABBREVIATIONS.get(language.split("-", 1)[0].lower(), frozenset())
+     openers = clause_openers(language)
++    pairs = _PAIRS_DE if language.lower().startswith("de") else _PAIRS_EN
+     utterances: list[Utterance] = []
+     for run_or_pause in _runs(document, pieces):
+         if isinstance(run_or_pause, ScriptPiece):
+@@ -248,7 +249,7 @@
+         run = run_or_pause
+         for start, end in _sentences(run, abbreviations, language):
+             continues = False  # the sentence's first utterance starts it
+-            for a, b in _fitted(run, start, end, max_chars, openers):
++            for a, b in _fitted(run, start, end, max_chars, openers, pairs):
+                 if utterance := _utterance(run, a, b, continues):
+                     utterances.append(utterance)
+                     continues = True
+@@ -436,7 +437,8 @@
+ 
+ 
+ def _fitted(
+-    run: _Run, start: int, end: int, max_chars: int, openers: frozenset[str] = frozenset()
++    run: _Run, start: int, end: int, max_chars: int, openers: frozenset[str] = frozenset(),
++    pairs: tuple[str, str] = ("", ""),
+ ) -> list[tuple[int, int]]:
+     """Cut text[start:end] into ranges whose spoken text has at most max_chars."""
+     out = []
+@@ -456,7 +458,7 @@
+             return out
+         if left < 0:
+             left = _counts(run.text[start:end])[-1]
+-        cut = start + _cut_point(run.text[start:stop], counts, max_chars, left, openers)
++        cut = start + _cut_point(run.text[start:stop], counts, max_chars, left, openers, pairs)
+         cut = _outside_replacement(run, start, cut, counts, max_chars)
+         out.append((start, cut))
+         left = max(0, left - counts[min(cut - start, len(counts) - 1)] - 1)
+@@ -487,12 +489,29 @@
+     return 3 if mark in _DASHES else None
+ 
+ 
++_PAIRS_EN = ("([{\u201c\u00ab", ")]}\u201d\u00bb")
++_PAIRS_DE = ("([{\u201e\u00bb", ")]}\u201c\u00ab")
++
++
++def _inside(text: str, last: int, pairs: tuple[str, str]) -> list[bool]:
++    """For each place up to `last`, whether it is inside an open bracket or quotation."""
++    out, depth = [False], 0
++    for char in text[:last]:
++        if char in pairs[0]:
++            depth += 1
++        elif char in pairs[1]:
++            depth = max(0, depth - 1)
++        out.append(depth > 0)
++    return out
++
++
+ def _cut_point(
+     text: str,
+     counts: list[int],
+     max_chars: int,
+     left: int | None = None,
+     openers: frozenset[str] = frozenset(),
++    pairs: tuple[str, str] = ("", ""),
+ ) -> int:
+     """Where to cut a text whose spoken length is over max_chars (an index > 0).
+ 
+@@ -503,8 +522,9 @@
+     taken only when every cut does."""
+     # counts never decrease, and the first spoken character always fits (max_chars >= 1)
+     last_fit = bisect_right(counts, max_chars) - 1
++    inside = _inside(text, last_fit, pairs)
+     places = [
+-        (rank, i)
++        (rank + 5 * inside[i], i)
+         for i in range(last_fit, 0, -1)
+         if counts[i] > 0 and (rank := _rank(text, i, openers)) is not None
+     ]
+--- a/src/sci2audio/textprep/citations.py	2026-11-16 23:26:50.778270842 +0000
++++ b/src/sci2audio/textprep/citations.py	2026-11-16 23:33:39.597607884 +0000
+@@ -298,6 +298,15 @@
+ _FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
+ 
+ 
++_SLASHED = re.compile(r"(\d{4})[a-z]?/(\d{4})")
++
++
++def _no_period(text: str) -> bool:
++    """A slashed year is the year of the edition used only when it is more than a year later:
++    "2019/2020" is a winter term or a season, never a reprint (#481 review)."""
++    return all(int(b) - int(a) > 1 for a, b in _SLASHED.findall(text))
++
++
+ def _years(words: CitationWords) -> str:
+     """Years or their stand-ins, joined by commas: "2016a,b", "2019, in press"; a year may
+     carry the year of the edition used after a slash: "1974/2004" (#455, D-719)."""
+@@ -771,7 +780,7 @@
+                 # same (#266, D-534)
+                 return None
+             return [self._removed(text, node.open, node.close + 1, "citation")]
+-        if self.years_only.match(inside) and (
++        if self.years_only.match(inside) and _no_period(inside) and (
+             names := self._names_before(text, _before_removals(text, node.open, found, self._runs))
+         ):
+             end = self._glued_page(text, node.close + 1)
+@@ -1317,7 +1326,7 @@
+     def _is_citation(self, text: str, part: tuple[int, int]) -> bool:
+         piece = text[part[0] : part[1]]
+         match = self.part.match(piece)
+-        if match is None:
++        if match is None or not _no_period(piece):
+             return False
+         # an acronym is an author only right before ", 2020" ("(WHO, 2020)", not "BERT (") or
+         # with a page after the year ("(WBGU 2011, S. 1)", #455); "(EU 2016)" stays as printed

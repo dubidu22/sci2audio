@@ -1,0 +1,8 @@
+BASELINE PASS
+0 KILLED furniture.py                 if skip_start > at:\n ->                 if True:\n FAILED tests/unit/test_textprep_hidden_runs.py::test_links_and_citations_read_the_text_without_hidden_runs[runs7-Shown here.]
+1 KILLED footnotes.py if not at_start or affiliation is None or affiliat -> if not at_start or affiliation FAILED tests/unit/test_textprep_affiliation_marks.py::test_maths_and_sentence_marks_are_read[runs14]
+2 KILLED footnotes.py "Rb", "Sr" -> "Sr" FAILED tests/unit/test_textprep_affiliation_marks.py::test_maths_and_sentence_marks_are_read[runs14]
+3 KILLED footnotes.py     "He", "Li", ->     "Li", FAILED tests/unit/test_textprep_affiliation_marks.py::test_maths_and_sentence_marks_are_read[runs15]
+4 KILLED footnotes.py     "He", "Li", ->     "He", FAILED tests/unit/test_textprep_affiliation_marks.py::test_maths_and_sentence_marks_are_read[runs16]
+5 KILLED footnotes.py "Yb", "Lu" -> "Lu" FAILED tests/unit/test_textprep_regression.py::test_the_script_is_the_expected_one[affiliation-marks-not-before-element-symbols]
+6 KILLED footnotes.py     return affiliation[1][0].isupper()\n ->     return True\n FAILED tests/unit/test_textprep_affiliation_marks.py::test_maths_and_sentence_marks_are_read[runs4] FAILED tests/unit/test_textprep_footnotes.py::test_a_superscript_that_looks_like_maths_is_kept[5 is first-5]
