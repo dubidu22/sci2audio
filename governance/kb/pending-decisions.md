@@ -16,17 +16,5 @@ Until an entry is compiled it ranks just below the decision log (`authority`).
 
 ## Entries
 
-## D-831 (2026-11-20, owner)
-The project workspace moved from the claude.ai Project into `./governance` in the product repository (PR #657, merged 20 Nov 2026). Ruleset 1.4.7 was migrated onto the governance generator as 1.5.0 and regenerated for Claude Code as 1.6.0 (role extracts in `governance/rules/`). META-01 replaces D-713. The authority order now puts the ruleset above the decision log; this amends D-714 b.
-Owner messages: "Yes, regenerate" and "Yes, apply" (20 Nov 2026).
-
-## D-832 (2026-11-20, owner)
-The knowledge base and the design record of `dubidu22/sci2audio-design` moved into `governance/kb/` and `docs/design/` of the product repository (PR #658, merged 20 Nov 2026), with ruleset versions 1.7.0 and 1.8.0. Four privacy redactions are marked in the decision log. The design repository is archived.
-Owner message: "Approve" (20 Nov 2026).
-
-## D-833 (2026-11-20, owner)
-The governance PR checks, the critical-path labeler and CODEOWNERS live in `.github` (PRs #660 and #661, issue #659). Colin applied the repository settings himself: branch `main` requires the checks "CI passed" and "governance pr checks", and code-owner review was withdrawn because one account authors every PR, so a code-owner lock cannot bind.
-Owner messages: "I have done the github settings you proposed originally" and "Done" (20 Nov 2026).
-
 ## D-834 (2026-11-20, coordinator)
 Triage of milestone v1.4 after release 1.4.0 (Colin, 20 Nov 2026: "close what 1.4.0 already covers, move what belongs to v1.5 or v2, and propose the first batch per lane for the rest"). Nothing is covered by 1.4.0, so nothing was closed; nothing belongs to the study layer. Six reading features moved to v2: #135, #134, #122, #49, #41, #32. Eleven issues stay as 1.4.x work: #217, #216, #203, #181, #172, #125, #126, #59, #56, #55, #54. Three new backlog issues in v1.4: #663 (real-espeak tests exit pytest on macOS), #664 (CodeQL scans the design prototype and the governance workspace; default setup cannot take paths-ignore), #665 (lanes.yml owner of governance/** and docs/design/**). Rule applied: a bug stays, a new reading feature goes to v2.
