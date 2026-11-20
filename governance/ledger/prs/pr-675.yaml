@@ -6,7 +6,7 @@ labels: "lane:app, lane:web, lane:docs, risk:high"
 plan: plans/web-b-w1-plan.md
 critical: yes                 # a network call (the opt-in update check), D-837
 compactions: 0
-fixes_kinds: "fail-open-opt-out"
+fixes_kinds: ""
 issues: "#217 #172"
 head: 51b6735
 ci_full: green on ubuntu, macos, windows at c691608; label removed (D-698). First run at bd92586 failed: ZAP never scanned the two new routes (walk now calls them), title had two (#N)
