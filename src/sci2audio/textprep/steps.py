@@ -3,8 +3,9 @@
 A text step looks at the document and proposes marked edits (`sci2audio.core.Edit`) on spans
 inside one block; it never changes the text. The runner (`run_steps`) collects the edits of
 all steps, settles overlaps and hands the accepted ones to `apply_edits`, so read-along, the
-report and the per-category switches keep working. Internal in v1.0; plugins through the
-`sci2audio.text_steps` entry point follow in v1.1 (PE-10).
+report and the per-category switches keep working. Public since 1.4.x: plugins from other
+packages load through the `sci2audio.text_steps` entry point, and `sci2audio.textprep.api`
+names what they may rely on (#216, PE-10).
 """
 
 from __future__ import annotations
@@ -110,6 +111,10 @@ class StepContext:
     def __post_init__(self) -> None:
         if not self.language:
             raise ValueError("a step context needs the job's language, e.g. 'en'")
+
+
+class StepError(RuntimeError):
+    """A step failed or returned invalid edits (raised only in strict runs)."""
 
 
 class TextStep(ABC):

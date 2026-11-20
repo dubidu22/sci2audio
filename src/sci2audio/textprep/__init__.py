@@ -3,7 +3,9 @@
 A `TextStep` proposes `Edit`s; `run_steps` runs the built-in steps (`BUILT_IN_STEPS`, coarse
 to fine), settles overlapping edits (the earlier step wins) and keeps every proposal for the
 report; `StepRun.script()` is the listening script, and `cut_utterances` cuts it into what
-the voice says in one call each.
+the voice says in one call each. `installed_steps` adds the plugins of the
+`sci2audio.text_steps` entry point (#216); plugin authors use `sci2audio.textprep.api`, the
+public part of this package.
 
 Pipeline stage; may import only ``sci2audio.core``.
 """
@@ -22,6 +24,16 @@ from sci2audio.textprep.placeholders import (
     TableFigureNoticeStep,
     notice_read,
     read_over,
+)
+from sci2audio.textprep.plugins import (
+    PLUGIN_GROUP,
+    PLUGIN_TIMEOUT,
+    InstalledSteps,
+    LoadedPlugins,
+    PluginInfo,
+    PluginProblem,
+    installed_steps,
+    load_plugin_steps,
 )
 from sci2audio.textprep.references import (
     GERMAN_REFERENCE_TITLES,
@@ -70,6 +82,8 @@ __all__ = [
     "DEFAULT_SWITCHED_OFF",
     "GERMAN_REFERENCE_TITLES",
     "PAUSE_MARK",
+    "PLUGIN_GROUP",
+    "PLUGIN_TIMEOUT",
     "REFERENCE_NAMES",
     "REFERENCE_TITLES",
     "TEXT_STEP_API",
@@ -84,10 +98,14 @@ __all__ = [
     "FormulaNoticeStep",
     "FurnitureStep",
     "HiddenRunStep",
+    "InstalledSteps",
     "LineEndHyphenStep",
     "LinkStep",
+    "LoadedPlugins",
     "NumbersStep",
     "Outcome",
+    "PluginInfo",
+    "PluginProblem",
     "ReferenceListStep",
     "Stage",
     "StatisticsStep",
@@ -104,7 +122,9 @@ __all__ = [
     "Wording",
     "check_registry",
     "cut_utterances",
+    "installed_steps",
     "is_reference_title",
+    "load_plugin_steps",
     "notice_read",
     "overlap",
     "read_over",

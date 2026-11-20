@@ -29,7 +29,7 @@ from sci2audio.app.readability import (
 )
 from sci2audio.app.script import ScriptResult
 from sci2audio.core import Document, EditKind, LanguageGuess, LanguageSource, Source, Span
-from sci2audio.textprep import PAUSE_MARK, Category, Outcome, Status
+from sci2audio.textprep import PAUSE_MARK, Category, Outcome, PluginInfo, Status
 
 FORMAT = "sci2audio-report"
 VERSION = 1
@@ -105,6 +105,8 @@ class Report:
     unreadable: Unreadable | None = None
     # a PDF's pages that hold pictures and no text: scans, not read (#186)
     picture_pages: tuple[int, ...] = ()
+    # the text-step plugins the job ran with (#216)
+    plugins: tuple[PluginInfo, ...] = ()
 
 
 def order_line(result: ScriptResult) -> str:
@@ -115,6 +117,16 @@ def order_line(result: ScriptResult) -> str:
     chosen = [c.chapter for c in result.chapters if c.selected]
     names = ", ".join(f"{c.index + 1}. {_one_line(c.title)}" for c in chosen)
     return f"Read in the chosen order, not as printed: {names}."
+
+
+def plugins_line(report: Report) -> str:
+    """One line naming the text-step plugins the job ran with (#216)."""
+    names = ", ".join(
+        plugin.step
+        + (f" ({plugin.distribution} {plugin.version})".rstrip() if plugin.distribution else "")
+        for plugin in report.plugins
+    )
+    return f"Text-step plugins: {names}."
 
 
 def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
@@ -177,6 +189,7 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         language_guess=document.language_guess,
         unreadable=found,
         picture_pages=pictures,
+        plugins=result.run.plugins,
     )
 
 
@@ -294,6 +307,17 @@ def report_data(report: Report) -> dict[str, Any]:
             "ranges": page_ranges(report.unreadable.pages),  # "1-3, 7" (en dash), for people
             "stops": report.unreadable.stops,
         }
+    if report.plugins:  # only when there are some: reports without plugins stay as they were
+        data["plugins"] = [
+            {
+                "step": plugin.step,
+                "category": str(plugin.category),
+                "distribution": plugin.distribution,
+                "version": plugin.version,
+                "entry_point": plugin.entry_point,
+            }
+            for plugin in report.plugins
+        ]
     if report.picture_pages:
         data["picture_pages"] = {
             "pages": list(report.picture_pages),
@@ -311,6 +335,7 @@ def report_markdown(report: Report) -> str:
         "in chapters that are not chosen are listed but not spoken.",
         "",
         *([_md(report.order_line), ""] if report.order_line else []),
+        *([_md(plugins_line(report)), ""] if report.plugins else []),
         "## Chapters",
         "",
         "| No. | Chapter | Page | Read | Utterances |",

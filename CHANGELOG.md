@@ -4,6 +4,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+
+- Text-step plugins: other Python packages can add text steps through the `sci2audio.text_steps` entry point. The public interface is `sci2audio.textprep.api` (contract version 1). Plugins run after the built-in steps of their stage, follow the category switches, and are listed in the report. A plugin that fails to load, raises, takes longer than 60 s or changes the document is left out with a problem in the report, and the job goes on. `docs/plugins.md` shows how to write one and check it, and a voice engine, with the conformance suite in `sci2audio.testing` (#216, #203).
+
 ## [1.4.0] - 2026-11-19
 
 The first release made for other people to try. sci2audio turns scientific texts (PDF, EPUB, Markdown, plain text) into faithful audiobooks, in English and German, entirely on your computer. It now comes as an installer for each system. Feedback is very welcome: [open a tester report](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).
