@@ -30,6 +30,7 @@ active_now:
   audits_running: []                                 # B1, B3, folders, B7, B2, B8 light audits done; web B8 DONE 19 Nov 02:22Z (#582 678fe3c, #293 #534 #541 closed, #596 filed)
 notifications_pending: []                            # v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
 open_owner_items:
+  - "approve the ruleset edits in issue #683 (lane lists in governance-config.json and project_profile now differ from .github/lanes.yml after #665; META-01)"
   - "close milestone v1.0 (0 issues) and anything about milestone 7 (D-702 item 9)"
   - "Study-layer scope before ADR #395"
   - "rename milestone 7 'v1.2.x abbreviations' to 'v1.2.x': it now holds general fixes (#479 #482 #483 #485 #487 #488 #493 #506); a Claude-asked rename is Colin's hand step (ROLE-02) (D-738)"
