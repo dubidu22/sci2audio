@@ -1,0 +1,11 @@
+pr: 698
+round: 1
+date: 2026-11-20
+thread: review-web-b-w2
+head: 80f4459
+critical: no
+verdict: changes_requested
+must_fix: 1
+should_fix: 0
+kinds: "fragile-output-parsing"
+report: plans/review-pr698-round1.md
