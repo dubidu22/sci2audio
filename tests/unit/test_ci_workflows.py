@@ -362,11 +362,12 @@ def test_codeql_runs_with_the_least_permission_and_pinned_actions() -> None:
         "contents: read",
         "security-events: write",
     ]
-    uses = re.findall(r"uses: (\S+)", codeql)
+    # the version comment is Dependabot's to rewrite, so only its shape is checked
+    uses = re.findall(r"^\s+- uses: (.+)$", codeql, re.M)
     assert len(uses) == 3, uses
-    assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", u) for u in uses), uses
-    checkout = block(job, f"      - uses: {uses[0]} # v7.0.1")
-    assert "persist-credentials: false" in checkout
+    assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40} # v\d+(\.\d+)*", u) for u in uses), uses
+    checkout = next(u for u in uses if u.startswith("actions/checkout@"))
+    assert "persist-credentials: false" in block(job, f"      - uses: {checkout}")
 
 
 def test_codeql_ignores_the_prototype_and_the_workspace_and_nothing_that_ships_or_runs() -> None:

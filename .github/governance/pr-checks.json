@@ -84,7 +84,8 @@
     "governance/claude-project-rules.yaml",
     "governance/rules/**",
     "governance/project_instructions.md",
-    "governance/governance-config.json"
+    "governance/governance-config.json",
+    "governance/tools/**"
   ],
   "doc_paths": [
     "docs/**",

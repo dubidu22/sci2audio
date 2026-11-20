@@ -114,8 +114,9 @@ def test_the_rules_and_the_governance_tools_need_the_infra_lane(path: str) -> No
     assert check([path], ["lane:infra", "risk:high"])["ownership"] == "ok"
 
 
-@pytest.mark.parametrize("path", RULES)
+@pytest.mark.parametrize("path", [*RULES, "governance/tools/ledger_tool.py"])
 def test_a_rules_change_needs_risk_high(path: str) -> None:
+    """The ruleset is the owner's (META-01); tools/ holds the merge gate (MRG-01)."""
     assert check([path], ["lane:infra"])["critical"] == "FAIL"
     assert check([path], ["lane:infra", "risk:high"])["critical"] == "ok"
 
