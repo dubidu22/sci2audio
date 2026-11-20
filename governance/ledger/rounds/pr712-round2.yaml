@@ -9,3 +9,4 @@ must_fix: 0
 should_fix: 0
 kinds: ""
 report: plans/review-pr712-round2.md
+merged: 9ad6d11
