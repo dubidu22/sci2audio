@@ -119,4 +119,18 @@ If Colin chooses 1C instead, #397 and #398 also drop the card type and the C key
 
 ## Colin's decisions
 
-(appended when Colin has answered)
+Answered 2026-11-20 20:04 CET (19:04 UTC) on the three question cards in the assist thread "Study layer scope options". Verbatim, the option labels he chose:
+
+1. "Study layer v1.5: which capture types ship first, and is card review in v1.5?" → **"Mark, note, quote only"** (option C: the card type, the C key and card review move to v2).
+2. "The capture record: how is it anchored, stored and removed?" → **"As the marker today (Recommended)"** (option 2A for anchor, file and removal: text anchor with the time computed per audiobook; one `captures.json` per document in its work folder; removal at once with Undo from the toast only; a v1.3 marker without a note becomes a mark, with a note a note).
+3. "Which export files come first? Local program connections (Zotero API, AnkiConnect) wait for v2 in every case (D-665)." → **"Markdown, CSV and RIS/BibTeX"** (option C: all three targets as files; the Zotero file makes a new item with the quotes as notes).
+
+Consequences for the issues under Colin's choices (1C, 2A, 3C), for the coordinator and the ADR:
+
+- #397 and #398 drop the card type and the C key; the dock shows three capture keys (M, N, Q), which the design does not draw, so the ADR or #397 says how the dock looks with three.
+- #398 is narrowed: no card review, and removal offers Undo in the toast (no strike-through cancel).
+- #399 writes Markdown (Obsidian), RIS or BibTeX (Zotero; the ADR picks one) and a CSV. Note for the coordinator: with no cards in v1.5 the Anki CSV has nothing to carry; the ADR decides whether the CSV ships in v1.5 as a plain table of all captures (type, page, sentence, text) or waits for the card type in v2. Not decided here.
+- #396 and #475 as recommended (2A). #418 stays in v1.5.
+- New v2 issues: the card type with the C key and the Anki export of cards; card review; removal by cancel with Restore; a user-started local connection to Zotero or Anki with its own ADR.
+
+The coordinator logs the D-number and starts the ADR (#395).
