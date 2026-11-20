@@ -786,26 +786,48 @@ COMBINING = {
     st.text("abcdeilmnorsuyzACENOSUZ", min_size=2, max_size=8),
     st.data(),
     st.sampled_from(sorted(COMBINING)),
+    st.none() | st.sampled_from(sorted(COMBINING)),
     st.booleans(),
 )
 @settings(max_examples=30, deadline=None)
 def test_an_accent_stored_apart_is_never_a_line_of_its_own(
-    word: str, data: st.DataObject, accent: str, first: bool
+    word: str, data: st.DataObject, accent: str, second: str | None, first: bool
 ) -> None:
-    """The accent is drawn over a letter of a word and stored before or after the printed
-    line: it never comes out as a line of its own; it goes onto that letter, or, where
-    PDFium hands it over inside the line, stays there for the text step. No letter is lost."""
+    """The accent, now and then with a second one stacked on the same letter, is drawn over
+    a letter of a word and stored before or after the printed line: it never comes out as a
+    line of its own; it goes onto that letter, or, where PDFium hands it over inside the
+    line, stays there for the text step. No letter and no accent is lost."""
     k = data.draw(st.integers(0, len(word) - 1))
     start = 50 + width("stored") + 3
     printed = [Text("stored", 50, 100), Text(word, start, 100)]
     printed.append(Text("stored", start + width(word) + 3, 100))
-    accented = over(word, k, accent, start, 100)
-    found = lines_of(make_pdf([accented, *printed] if first else [*printed, accented]))
-    assert accent not in found
+    # the same accent twice in one place PDFium takes for a glyph drawn twice and keeps once
+    drawn = [accent] if second in (None, accent) else [accent, second]
+    accented = [over(word, k, mark, start, 100) for mark in drawn]
+    found = lines_of(make_pdf([*accented, *printed] if first else [*printed, *accented]))
+    assert not any(set(text) <= set(COMBINING) for text in found)
     # PDFium's generated spaces around the word vary with where the accent is stored
-    read = "".join("".join(found).split())
-    composed = word[: k + 1] + COMBINING[accent] + word[k + 1 :]
-    if accent in read:  # left in the line, for the text step
-        assert read.replace(accent, "", 1) == f"stored{word}stored"
-    else:
-        assert read == unicodedata.normalize("NFC", f"stored{composed}stored")
+    read = unicodedata.normalize("NFD", "".join("".join(found).split()))
+    marks = set(COMBINING) | set(COMBINING.values())
+    assert "".join(c for c in read if c not in marks) == f"stored{word}stored"
+    for mark in set(drawn):
+        assert read.count(mark) + read.count(COMBINING[mark]) == drawn.count(mark)
+    if len(drawn) == 1 and accent not in read:
+        composed = word[: k + 1] + COMBINING[accent] + word[k + 1 :]
+        assert read == unicodedata.normalize("NFD", f"stored{composed}stored")
+
+
+def test_two_accents_stacked_on_one_letter_both_go_onto_it() -> None:
+    """Review M1 of #671: a circumflex and an acute drawn as glyphs of their own over the
+    "e" of "Nguyen" ("Nguyễn" set as "ê" with a second accent). The circumflex is no letter
+    for the acute to go onto, though `isalpha` holds for it (category Lm): in either stored
+    order both go onto the "e", in the order they are stored, and the page loses neither."""
+    for marks in (("\u02c6", "\u00b4"), ("\u00b4", "\u02c6")):
+        lines = [
+            _chars_at("Nguyen", 100, 72.6),
+            _chars_at(marks[0], 120, 72.4, step=5.0),
+            _chars_at(marks[1], 120, 72.5, step=5.0),
+        ]
+        assert _accents_onto_letters(lines) == {1, 2}
+        expected = "e" + "".join({"\u02c6": "\u0302", "\u00b4": "\u0301"}[m] for m in marks)
+        assert lines[0].chars[4].text == unicodedata.normalize("NFC", expected)

@@ -866,40 +866,46 @@ def _lines(
 
 
 def _accents_onto_letters(lines: list[_Line]) -> set[int]:
-    """Each line that holds only a spacing accent is put onto the letter it stands over in
-    one of the `ACCENT_LINES` lines stored before or after it (#125): of the letters under
-    it, the one overlapping it most across, so not a letter of the line under the accent's
-    own, whose loose box may touch it (Chi p6 "Doug" under "Marasovic,"); the nearest line
-    stored wins a tie. The indexes of the lines so placed."""
+    """Each line that holds only spacing accents (one, or two stacked over one letter) is
+    put onto the letters they stand over in the `ACCENT_LINES` lines stored before or after
+    it (#125): for each accent, of the letters under it, the one overlapping it most across,
+    so not a letter of the line under the accent's own, whose loose box may touch it (Chi p6
+    "Doug" under "Marasovic,"); the nearest line stored wins a tie. A line is placed only if
+    each of its accents finds a letter, so none is lost. The indexes of the lines placed."""
     placed: set[int] = set()
     for i, line in enumerate(lines):
-        if not _lone_accent(line):
+        if not _only_accents(line):
             continue
-        accent = line.chars[0]
         near = range(max(0, i - ACCENT_LINES), min(len(lines), i + ACCENT_LINES + 1))
-        found = [
-            (_across(c, accent), -abs(j - i), c)
-            for j in near
-            if j != i
-            for c in lines[j].chars
-            if _under(c, accent)
-        ]
-        if found:
-            letter = max(found, key=lambda f: (f[0], f[1]))[2]
-            letter.text = unicodedata.normalize("NFC", letter.text + _COMBINING[accent.text])
+        found = [_letter_under(accent, lines, near, i) for accent in line.chars]
+        letters = [letter for letter in found if letter is not None]
+        if len(letters) == len(line.chars):
+            for accent, letter in zip(line.chars, letters, strict=True):
+                letter.text = unicodedata.normalize("NFC", letter.text + _COMBINING[accent.text])
             placed.add(i)
     return placed
 
 
-def _lone_accent(line: _Line) -> bool:
-    return len(line.chars) == 1 and line.chars[0].text in _COMBINING
+def _letter_under(accent: _Char, lines: list[_Line], near: range, i: int) -> _Char | None:
+    found = [
+        (_across(c, accent), -abs(j - i), c)
+        for j in near
+        if j != i
+        for c in lines[j].chars
+        if _under(c, accent)
+    ]
+    return max(found, key=lambda f: (f[0], f[1]))[2] if found else None
+
+
+def _only_accents(line: _Line) -> bool:
+    return bool(line.chars) and all(c.text in _COMBINING for c in line.chars)
 
 
 def _under(letter: _Char, accent: _Char) -> bool:
     """True if the accent stands over (or, a cedilla, under) the letter: the letter's extent
     along the line holds the accent's middle, and across they overlap or stand at most
     `ACCENT_REACH` em apart."""
-    if len(letter.text) != 1 or not letter.text.isalpha():
+    if not _letter(letter.text):
         return False
     turn = abs(letter.angle - accent.angle)
     if min(turn, math.tau - turn) > 0.01:
@@ -907,6 +913,19 @@ def _under(letter: _Char, accent: _Char) -> bool:
     reach = ACCENT_REACH * max(letter.style[1], accent.style[1], 1.0)
     return (
         letter.u0 <= (accent.u0 + accent.u1) / 2 <= letter.u1 and _across(letter, accent) >= -reach
+    )
+
+
+def _letter(text: str) -> bool:
+    """True if the text is one letter, with any accents already put onto it. A spacing
+    accent is none, though `isalpha` holds for some (circumflex and caron are modifier letters): a
+    second accent stacked over the same letter goes onto the letter, not onto the first
+    accent, whose line is left out (review M1 of #671)."""
+    base, *marks = unicodedata.normalize("NFD", text) or " "
+    return (
+        text not in _COMBINING
+        and base.isalpha()
+        and all(unicodedata.combining(mark) for mark in marks)
     )
 
 
