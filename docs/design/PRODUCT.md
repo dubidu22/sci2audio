@@ -64,7 +64,7 @@ Success means the listener can follow a dense academic text by ear, trusts that 
 - **Hard technical rules:**
   - The interface binds to 127.0.0.1 only.
   - Pages load nothing from the internet, so fonts, icons and scripts must be bundled.
-  - There are no network calls except the voice download the user starts.
+  - There are no network calls except the voice download the user starts and the update check the user turned on.
   - There is one interface, never a second UI (D-45).
   - The pipeline never stops mid-run to ask.
 - **Built with:** FastAPI with server-rendered Jinja templates, plain CSS and JS (`src/sci2audio/web`). The browser tests include keyboard and axe-core checks.
