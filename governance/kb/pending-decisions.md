@@ -46,3 +46,7 @@ Batch of 20 Nov 2026 closed: six PRs merged (#677, #671, #676, #675, #680, #682)
 
 ## D-843 (2026-11-21, owner)
 Colin: "Start batch 2" (21 Nov 2026, ~04:35Z). Batch 2 of the v1.4 remainder runs as proposed: textprep B-P2 #684 (critical); web/app B-W2 #666 #668 #685 as one web PR (#685 critical), then #667 #669 as one app PR; infra B-I2 #681 #687 (both critical). Threads plugins-b-p1, web-b-w1 and infra-b-i1 each take the batch after a THR-01 fitness check; a mismatch replaces the thread. Afterwards docs #678 #686, layout #679 in a new thread, voices #663; #683 waits for Colin. The local deselect rule for the abort test (20 Nov) is lifted: every branch now starts from main with #677.
+
+
+## D-844 (2026-11-21, coordinator)
+Plugin guard copies: `run_plugins` gives every plugin call its own deep copy of the document (one copy per call, not one per job), and a change to the copy counts as plugin failure. Deviation from plan plugins-b-p1 §3, accepted in review of #676 (note N2); cost is a copy per plugin per stage, acceptable for text documents. Recorded here because the plugins thread's fitness check named it as the one undecided item.
