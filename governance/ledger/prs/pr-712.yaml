@@ -2,7 +2,7 @@ pr: 712
 opened: 2026-11-20
 thread: infra-b-i4
 lane: infra
-labels: "lane:infra, risk:low"
+labels: "lane:infra, lane:cli, lane:extraction, lane:layout, lane:textprep, lane:web, risk:low"
 plan: plans/infra-b-i4-plan.md
 critical: no
 compactions: 0
