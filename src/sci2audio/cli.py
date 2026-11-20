@@ -26,7 +26,7 @@ import multiprocessing
 import sys
 import threading
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from enum import IntEnum
 from pathlib import Path
 from typing import IO, Any, TextIO
@@ -63,10 +63,10 @@ from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
 from sci2audio.app.projects import project_work_folder
 from sci2audio.app.readability import picture_pages, picture_warning
-from sci2audio.app.report import plugins_line
+from sci2audio.app.report import PLUGINS_OFF, plugins_line, plugins_off
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.output import OutputSettings
-from sci2audio.textprep import Category
+from sci2audio.textprep import BUILT_IN_STEPS, Category
 from sci2audio.voices import (
     DEFAULT_VOICE,
     DEFAULT_VOICES,
@@ -138,13 +138,25 @@ class CliEnv:
     ask: Callable[[str], str]  # asks a question on the terminal; EOFError without one
     interactive: bool  # a person can answer questions (stdin is a terminal)
     live: bool  # stderr is a terminal: progress is rewritten in one line
-    runner: JobRunner = field(default_factory=JobRunner)
+    # None: made by `job_runner` when a job starts, so a command that runs no job, and a job
+    # with --no-plugins, never imports an installed plugin (#667 review S1)
+    runner: JobRunner | None = None
     config_file: Callable[[], Path] = default_config_file
     models_folder: Callable[[], Path] = default_models_folder
     work_folder: Callable[[Path], Path] = project_work_folder  # moves an old folder (D-748)
     voice_source: Callable[[Path], VoiceSource] = kokoro_voice
     missing_voice_files: Callable[[Path], list[RemoteFile]] = missing_files
     fetch: Fetch | None = None  # the download's fetch; None = the real one
+
+    def job_runner(self, settings: JobSettings) -> JobRunner:
+        """The runner for a job with `settings`: the one given, else one made now, from the
+        built-in steps alone when the job's plugins are off."""
+        if self.runner is not None:
+            return self.runner
+        if not settings.plugins:
+            return JobRunner(BUILT_IN_STEPS)
+        self.runner = JobRunner()
+        return self.runner
 
     @classmethod
     def real(cls) -> CliEnv:
@@ -346,6 +358,11 @@ def _add_job_options(parser: _Parser) -> None:
         action="store_true",
         help="use the built-in defaults, not the settings saved by the interface",
     )
+    parser.add_argument(
+        "--no-plugins",
+        action="store_true",
+        help="run only the built-in text steps, without installed text-step plugins",
+    )
     parser.add_argument("-q", "--quiet", action="store_true", help="no progress lines")
 
 
@@ -536,6 +553,8 @@ def _settings(args: argparse.Namespace, env: CliEnv) -> JobSettings:
     for name in ("voice", "speed", "letter_pace", "subtitles"):
         if getattr(args, name, None) is not None:
             changes[name] = getattr(args, name)
+    if args.no_plugins:
+        changes["plugins"] = False
     try:
         settings = replace(base, **changes)  # checks every value again
     except ValueError as error:
@@ -693,7 +712,7 @@ def run_script_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     work = _work_folder(args, env, source)
     progress = Progress(env, args.quiet)
     try:
-        job = env.runner.run_script(
+        job = env.job_runner(settings).run_script(
             source,
             settings,
             work,
@@ -728,6 +747,8 @@ def _print_script(env: CliEnv, job: ScriptJob) -> None:
             out.write(f"  {label}: {number}\n")
     if report.plugins:
         out.write(plugins_line(report).removesuffix(".") + "\n")
+    if plugins_off(report):
+        out.write(PLUGINS_OFF.removesuffix(".") + "\n")
     for step, message in report.problems:
         env.err.write(f"{PROG}: warning: the text step {step} failed and was left out: {message}\n")
     out.write("Wrote:\n")
@@ -773,7 +794,7 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     try:
         job = _audio_in_thread(env, progress, source, settings, work, voice, output, args.overwrite)
         if args.with_script:
-            script = env.runner.run_script(
+            script = env.job_runner(settings).run_script(
                 source,
                 settings,
                 work,
@@ -805,7 +826,7 @@ def _audio_in_thread(
 
     def work_on() -> None:
         try:
-            outcome["job"] = env.runner.run_audio(
+            outcome["job"] = env.job_runner(settings).run_audio(
                 source,
                 settings,
                 work,

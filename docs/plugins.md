@@ -115,6 +115,7 @@ Install your package in the environment sci2audio runs in (`uv pip install -e .`
 
 - **Order.** Plugins run after the built-in steps of their stage, sorted by id. Block steps still run before inline steps, and move steps last. When a plugin's edit overlaps an edit that an earlier step proposed, the earlier edit wins. So a plugin adds to the reading and never overrides a built-in rule.
 - **Switches.** Your step's category is switched on and off with the built-in steps of that category (`--on` and `--off` on the command line, the switches in the app). A switched-off step still runs, and its edits are listed as switched off.
+- **Running without plugins.** `sci2audio script --no-plugins` and `sci2audio convert --no-plugins` run a job with the built-in steps only; the report says the plugins were switched off. The audiobook's record (`audio.json`) lists the plugins that made it.
 - **Not loaded.** A plugin is not loaded when:
   - its import fails, its factory raises, or reading one of its attributes raises (any exception, `sys.exit` included);
   - it does not give a `TextStep`;

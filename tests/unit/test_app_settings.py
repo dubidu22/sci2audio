@@ -64,6 +64,8 @@ def test_values_are_normalised() -> None:
         ("subtitles", 1),
         ("subtitles", "yes"),
         ("subtitles", None),
+        ("plugins", "no"),
+        ("plugins", 0),
     ],
 )
 def test_bad_values_are_refused(field: str, value: object) -> None:
@@ -77,7 +79,8 @@ def test_language_tags_are_accepted(language: str) -> None:
 
 
 def test_the_file_keeps_every_setting_but_the_chosen_chapters(tmp_path: Path) -> None:
-    kept = {f.name for f in fields(JobSettings)} - {"chapters"}
+    # the plugin switch belongs to one job, like the chapters (#667)
+    kept = {f.name for f in fields(JobSettings)} - {"chapters", "plugins"}
     assert set(config_module.KEPT) == kept
     settings = JobSettings(
         language="en-GB",
@@ -259,3 +262,17 @@ def test_the_chapters_keep_the_persons_order() -> None:
     assert JobSettings(chapters=()).chapters == ()
     assert JobSettings(chapters=None).chapters is None
     assert JobSettings(chapters=(2, 0)) != JobSettings(chapters=(0, 2))
+
+
+def test_plugins_must_be_true_or_false() -> None:
+    assert JobSettings().plugins is True
+    assert JobSettings(plugins=False).plugins is False
+    with pytest.raises(ValueError, match="plugins"):
+        JobSettings(plugins="no")  # type: ignore[arg-type]
+
+
+def test_the_plugin_switch_is_not_kept(tmp_path: Path) -> None:
+    file = tmp_path / "settings.json"
+    save_settings(JobSettings(plugins=False), file)
+    assert "plugins" not in json.loads(file.read_text(encoding="utf-8"))
+    assert load_settings(file)[0].plugins is True

@@ -643,3 +643,48 @@ def test_a_glyph_number_page_among_longer_plain_pages_is_voiced(tmp_path: Path) 
     job = run(source, tmp_path, FakeVoice())
     assert job.spoken > 0
     assert job.written.readalong.is_file()
+
+
+def plugin_steps():  # type: ignore[no-untyped-def]
+    from test_cli_script import AMPERSAND
+
+    from sci2audio.textprep import installed_steps
+
+    return installed_steps(entry_points=[AMPERSAND])
+
+
+def test_the_record_names_the_plugins_that_made_it(tmp_path: Path) -> None:
+    source = small_pdf(tmp_path, "Salt & pepper are on the table.")
+    run(source, tmp_path, FakeVoice(), steps=plugin_steps())
+    record = json.loads((tmp_path / "work" / "audio.json").read_text(encoding="utf-8"))
+    assert record["plugins"] == [{"step": "ampersand-and", "distribution": "", "version": ""}]
+    assert record["version"] == 1  # an addition: the format stays version 1
+
+
+def test_a_record_without_plugins_has_no_plugin_key(tmp_path: Path) -> None:
+    source = small_pdf(tmp_path, "Salt & pepper are on the table.")
+    run(source, tmp_path, FakeVoice())
+    record = json.loads((tmp_path / "work" / "audio.json").read_text(encoding="utf-8"))
+    assert "plugins" not in record
+    assert "plugins" not in record["settings"]
+    off = tmp_path / "off"
+    settings = JobSettings(plugins=False, output_folder=off / "out")
+    JobRunner(plugin_steps()).run_audio(source, settings, off / "work", voice=FakeVoice().source())
+    record = json.loads((off / "work" / "audio.json").read_text(encoding="utf-8"))
+    assert "plugins" not in record
+    assert record["settings"]["plugins"] is False
+
+
+def test_records_with_and_without_plugins_load_in_the_player(tmp_path: Path) -> None:
+    """The 1.4.0 player reads named fields only, so the new key is safe both ways (#669)."""
+    from sci2audio.web.player import read_audio_record
+
+    source = small_pdf(tmp_path, "Salt & pepper are on the table.")
+    run(source, tmp_path, FakeVoice(), steps=plugin_steps())
+    work = tmp_path / "work"
+    data = json.loads((work / "audio.json").read_text(encoding="utf-8"))
+    document_id = data["source"]["sha256"][:16]
+    assert read_audio_record(work, document_id).readalong
+    del data["plugins"]  # as a record made before #669
+    (work / "audio.json").write_text(json.dumps(data), encoding="utf-8")
+    assert read_audio_record(work, document_id).readalong

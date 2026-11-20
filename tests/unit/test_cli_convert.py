@@ -14,9 +14,11 @@ from pathlib import Path
 import pytest
 from audio_fakes import FakeVoice
 from cli_helpers import Cli, files_in, small_pdf
+from test_cli_script import AMPERSAND
 
 from sci2audio import cli as cli_module
 from sci2audio.app.lock import work_folder_lock
+from sci2audio.textprep import installed_steps
 from sci2audio.voices import RemoteFile
 
 LINES = (
@@ -490,3 +492,20 @@ def test_ctrl_c_on_a_terminal_reaches_the_reader_too_and_still_reads_as_cancelle
     )
     assert "cannot be read" not in result.err
     assert "damaged" not in result.err
+
+
+def test_no_plugins_makes_the_audiobook_without_plugins(tmp_path: Path) -> None:
+    """`convert --no-plugins` (#667) and the record of the plugins that made it (#669)."""
+    steps = installed_steps(entry_points=[AMPERSAND])
+    made = {}
+    for name, flags in (("on", ()), ("off", ("--no-plugins",))):
+        cli = Cli(tmp_path / name, steps=steps)
+        source = small_pdf(tmp_path / name / "in", ["Salt & pepper are on the table."])
+        result = cli("convert", source, "-o", tmp_path / name / "book", "-q", *flags)
+        assert result.code == 0, result.err
+        made[name] = json.loads((cli.work(source) / "audio.json").read_text(encoding="utf-8"))
+    assert [p["step"] for p in made["on"]["plugins"]] == ["ampersand-and"]
+    assert set(made["on"]["plugins"][0]) == {"step", "distribution", "version"}
+    assert "plugins" not in made["on"]["settings"]
+    assert "plugins" not in made["off"]
+    assert made["off"]["settings"]["plugins"] is False

@@ -165,6 +165,8 @@ def settings_data(settings: JobSettings) -> dict[str, Any]:
         "voice": settings.voice,
         "speed": settings.speed,
         "letter_pace": settings.letter_pace,
+        # only when off, so every record made with the plugins reads as before (#667)
+        **({} if settings.plugins else {"plugins": False}),
     }
 
 
