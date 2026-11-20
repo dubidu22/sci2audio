@@ -1,0 +1,11 @@
+pr: 712
+round: 1
+date: 2026-11-20
+thread: review-infra-b-i2
+head: c0d934e
+critical: no
+verdict: changes_requested
+must_fix: 0
+should_fix: 1
+kinds: "narrating-comment"
+report: plans/review-pr712-round1.md
