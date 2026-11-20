@@ -1,0 +1,11 @@
+pr: 715
+round: 1
+date: 2026-11-20
+thread: review-plugins-b-p2
+head: bafda4d
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 1
+kinds: "unguarded-plugin-code"
+report: plans/review-pr715-round1.md
