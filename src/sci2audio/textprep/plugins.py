@@ -30,6 +30,7 @@ from typing import Any
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.registry import BUILT_IN_STEPS
 from sci2audio.textprep.steps import (
+    TEXT_STEP_API,
     Category,
     Stage,
     StepContext,
@@ -238,26 +239,23 @@ def _step(point: EntryPoint, taken: set[str], timeout: float, load_timeout: floa
     can run, or if loading it takes longer than `load_timeout` seconds."""
     try:
         step = _in_worker(
-            lambda: _made(point, timeout), load_timeout, f"loading text step {point.name}"
+            lambda: _made(point, taken, timeout), load_timeout, f"loading text step {point.name}"
         )
     except _TimedOut:
         raise _Rejected(f"took longer than {load_timeout:g} s to load; left out") from None
-    if problems := step_problems(step):
-        raise _Rejected("; ".join(problems))
-    if point.name != step.id:
-        raise _Rejected(f"entry point name {point.name!r} is not the step's id {step.id!r}")
-    if step.id in taken:
-        raise _Rejected(f"a built-in step has the id {step.id!r}")
     return step
 
 
-def _made(point: EntryPoint, timeout: float) -> _GuardedStep:
-    """The plugin's step, imported, made and read into the guard; _Rejected if it fails.
+def _made(point: EntryPoint, taken: set[str], timeout: float) -> _GuardedStep:
+    """The plugin's step, imported, made, checked and copied into the guard; _Rejected if
+    it fails or breaks a rule. Runs in the loading worker, so it may be given up.
 
-    Everything that touches the plugin's objects is plugin code and may fail in any way: a
-    property that raises, a BaseException that is not an Exception. The runner is made at
-    start-up, so such a failure here would stop every command; it rejects the plugin
-    instead. Only Ctrl+C gets through.
+    Everything that touches the plugin's objects is plugin code and may fail or hang in any
+    way: a property that raises, a BaseException that is not an Exception, an id whose repr
+    raises, a version whose `!=` never returns. Checking the attributes is such code too.
+    The runner is made at start-up, so such a failure here would stop every command; it
+    rejects the plugin instead. Only Ctrl+C gets through. What leaves this function holds
+    plain `str` and `tuple` copies, so the caller can hash, sort and show them safely.
     """
     try:
         made = point.load()
@@ -283,7 +281,15 @@ def _made(point: EntryPoint, timeout: float) -> _GuardedStep:
             )
         # the attributes are read once, into the guard; every later check and the runner
         # read the guard's copies, never the plugin's code again
-        return _GuardedStep(step, timeout, None)
+        guard = _GuardedStep(step, timeout, None)
+        if problems := step_problems(guard):
+            raise _Rejected("; ".join(problems))
+        guard.keep_plain_copies()
+        if point.name != guard.id:
+            raise _Rejected(f"entry point name {point.name!r} is not the step's id {guard.id!r}")
+        if guard.id in taken:
+            raise _Rejected(f"a built-in step has the id {guard.id!r}")
+        return guard
     except (_Rejected, KeyboardInterrupt):
         raise
     except BaseException as error:
@@ -326,6 +332,13 @@ class _GuardedStep(TextStep):
         self.category = step.category
         self.stage = step.stage
         self.api_version = step.api_version
+
+    def keep_plain_copies(self) -> None:
+        """Replace the checked values with plain built-in ones: a str or tuple subclass of
+        the plugin's would run its own methods wherever the id is hashed, sorted or shown."""
+        self.id = str.__str__(self.id)
+        self.languages = tuple(str.__str__(language) for language in self.languages)
+        self.api_version = TEXT_STEP_API  # step_problems found it equal
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         given = copy.deepcopy(document)

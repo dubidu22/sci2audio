@@ -143,6 +143,8 @@ def test_a_real_distribution_on_the_path_is_found(
         (broken_point("bad-property", "BadPropertyStep"), "RuntimeError: no language list"),
         (point("boom-import", "boom_on_import:Step"), "could not be loaded: Boom: at import"),
         (broken_point("boom-factory", "boom_factory"), "Boom: from the factory"),
+        # checking a step's attributes runs plugin code too: a repr that fails
+        (point("lazy-id", "broken_text_plugins:LazyIdStep"), "RuntimeError: no repr"),
     ],
 )
 def test_a_broken_plugin_is_a_problem_and_the_others_still_load(
@@ -235,6 +237,23 @@ def test_a_plugin_whose_attributes_hang_is_left_out(hang) -> None:
     steps = load_quickly(broken_point("hanging-property", "HangingPropertyStep"))
     assert [p.name for p in steps.problems] == ["hanging-property"]
     assert "took longer than 0.2 s to load" in steps.problems[0].message
+
+
+def test_a_plugin_whose_version_check_hangs_is_left_out(hang) -> None:
+    steps = load_quickly(broken_point("slow-version", "SlowVersionStep"))
+    assert [p.name for p in steps.problems] == ["slow-version"]
+    assert "took longer than 0.2 s to load" in steps.problems[0].message
+
+
+def test_a_plugin_s_id_and_languages_are_kept_as_plain_copies() -> None:
+    steps = installed_steps(
+        entry_points=[broken_point("touchy-id", "TouchyIdStep"), broken_point("alpha", "AlphaStep")]
+    )
+    assert steps.problems == ()
+    [step] = [step for step in steps if step.id == "touchy-id"]
+    assert type(step.id) is str
+    assert [type(language) for language in step.languages] == [str]
+    assert type(steps.plugins[1].step) is str
 
 
 def test_ctrl_c_while_a_plugin_loads_is_not_swallowed() -> None:
