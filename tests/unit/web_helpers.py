@@ -197,3 +197,26 @@ def book_folder(output: Path, name: str = "paper.pdf") -> Path:
     """Where the audiobook of a document opened as `name` goes in `output`: its project's
     own folder (D-749)."""
     return output / folder_name(name)
+
+
+def plugin_steps(distribution: str = "sci2audio-example", version: str = "0.1") -> Any:
+    """The built-in steps with `example_text_plugin.AmpersandStep` loaded as an installed
+    plugin of `distribution` (#216): what a server's runner holds with that plugin."""
+    from importlib.metadata import EntryPoint
+
+    from sci2audio.textprep import Category, InstalledSteps, installed_steps
+    from sci2audio.textprep.plugins import PLUGIN_GROUP, PluginInfo
+
+    point = EntryPoint("ampersand-and", "example_text_plugin:AmpersandStep", PLUGIN_GROUP)
+    loaded = installed_steps(entry_points=[point])
+    info = PluginInfo(
+        "ampersand-and",
+        Category.CHARACTERS,
+        distribution,
+        version,
+        "example_text_plugin:AmpersandStep",
+    )
+    return InstalledSteps(loaded, (info,), ())
+
+
+AMPERSAND_TEXT = "Salt & pepper are on the table."

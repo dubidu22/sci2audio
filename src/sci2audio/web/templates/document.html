@@ -36,6 +36,16 @@
   <ul>{% for problem in report.problems %}<li lang="en">{{ t('document.problem', step=problem.step, message=problem.message) }}</li>{% endfor %}</ul>
 </div></div>
 {% endif %}
+{% if report.plugins or (report.settings and report.settings.plugins is sameas false) %}{# #668 #}
+<div class="callout" id="plugins">{{ icon('info', 'l') }}<div>
+  {%- if report.plugins %}
+  <p>{{ t('document.plugins') }}</p>
+  <ul>{% for plugin in report.plugins %}<li><code lang="en">{{ plugin.step }}</code>{% if plugin.distribution %} ({{ plugin.distribution }}{% if plugin.version %} {{ plugin.version }}{% endif %}){% endif %}</li>{% endfor %}</ul>
+  {%- else %}
+  <p>{{ t('document.plugins_off') }}</p>
+  {%- endif %}
+</div></div>
+{% endif %}
 {% if report.not_run %}<div class="callout">{{ icon('info', 'l') }}<div><p>{{ t('document.not_run', steps=report.not_run|join(', ')) }}</p></div></div>{% endif %}
 {% if report.warnings %}
 <div class="callout">{{ icon('info', 'l') }}<div>
