@@ -1,0 +1,11 @@
+pr: 700
+round: 1
+date: 2026-11-20
+thread: review-docs-b-d1
+head: 1636cc7
+critical: no
+verdict: changes_requested
+must_fix: 0
+should_fix: 1
+kinds: "stale-doc-claim"
+report: plans/review-pr700-round1.md
