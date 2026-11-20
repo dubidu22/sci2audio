@@ -216,3 +216,4 @@ One line per PR. Turns = the authoring thread's turns spent on that PR (estimate
 - 14:05Z PR #656 c5edccf green (CI ci:full, ci:installers 44531072121); answer plans/review-pr656-round1-answer.md; review thread told
 - 14:06Z PR #656 merged (release 1.4.0 docs/version); implementation batch done: #630, #631, #635, #656 merged
 - 13:33Z 2026-11-20 plugins-b-p1 (textprep/core, Opus 5.5 high): PR #676 (#216 #203, critical, D-836) opened, head 1ad0818; fast 8421 passed locally (3 macOS espeak tests deselected), ruff/lint-imports/deptry clean; ci:full running; follow-ups #666 #667 #668 #669; turns ~40, compressions 0, review rounds 0
+- 13:37Z 2026-11-20 PR #676 pre-review fix 6f25cd4: ruff format of the voice block in docs/plugins.md (ruff 0.17 formats Markdown code; my local check covered src and tests only), title cut to one issue number (#216) for PR-01; ci:full run again; CI reruns 0
