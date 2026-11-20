@@ -102,7 +102,7 @@ This is the layer rule of D-46 applied to the study layer; #396's "reading and w
 | #398 web: the Captures page and review | Narrowed: no card review; removal with Undo in the toast, no strike-through cancel |
 | #399 app, web: export captures | Narrowed: Markdown, RIS and the CSV of 2.2 C; no Anki card file |
 | #418 web: captures on the library and the shelf | Stays: counts the three types |
-| New, v2 | The card type, the C key and the Anki export of cards; card review; removal by cancel with Restore; a user-started local connection to Zotero or Anki with its own ADR (risk:high) |
+| New, v2 | #702 the card type, the C key and the Anki export of cards; #703 card review; #704 removal by cancel with Restore; #705 a user-started local connection to Zotero or Anki with its own ADR (risk:high) |
 
 `docs/design/PRODUCT.md` no longer lists the study layer's scope as undecided; it points here.
 
