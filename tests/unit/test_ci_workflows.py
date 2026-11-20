@@ -8,6 +8,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -309,3 +310,74 @@ def test_every_test_that_reads_the_nightly_profile_runs_in_the_nightly_property_
         if "::" in line
     }
     assert readers <= selected, sorted(readers - selected)
+
+
+def load_pr_checks():
+    path = ROOT / ".github" / "governance" / "pr_checks.py"
+    spec = importlib.util.spec_from_file_location("sci2audio_pr_checks", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def tracked_files(*folders: str) -> list[str]:
+    git = shutil.which("git")
+    assert git is not None
+    listing = subprocess.run(
+        [git, "ls-files", "--", *folders],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return listing.splitlines()
+
+
+def codeql_ignored() -> list[str]:
+    config = (ROOT / ".github" / "codeql" / "codeql-config.yml").read_text(encoding="utf-8")
+    return [line.strip()[2:] for line in block(config, "paths-ignore:").splitlines()]
+
+
+def test_codeql_scans_the_languages_of_the_default_setup_with_the_config_file() -> None:
+    """#664: only advanced setup takes paths-ignore; the categories keep the default setup's
+    names, so the alert history and its dismissals carry over."""
+    codeql = (WORKFLOWS / "codeql.yml").read_text(encoding="utf-8")
+    assert "        language: [actions, javascript-typescript, python]" in codeql
+    assert "          build-mode: none" in codeql
+    assert "          config-file: ./.github/codeql/codeql-config.yml" in codeql
+    assert '          category: "/language:${{ matrix.language }}"' in codeql
+    assert block(codeql, "  push:").strip() == "branches: [main]"
+    assert block(codeql, "  pull_request:").strip() == "branches: [main]"
+    assert "schedule:" in block(codeql, "on:")
+
+
+def test_codeql_runs_with_the_least_permission_and_pinned_actions() -> None:
+    codeql = (WORKFLOWS / "codeql.yml").read_text(encoding="utf-8")
+    assert re.search(r"^permissions: \{\}$", codeql, re.M), codeql
+    job = block(codeql, "  analyze:")
+    permissions = block(job, "    permissions:").strip().splitlines()
+    assert sorted(line.strip() for line in permissions) == [
+        "contents: read",
+        "security-events: write",
+    ]
+    uses = re.findall(r"uses: (\S+)", codeql)
+    assert len(uses) == 3, uses
+    assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", u) for u in uses), uses
+    checkout = block(job, f"      - uses: {uses[0]} # v7.0.1")
+    assert "persist-credentials: false" in checkout
+
+
+def test_codeql_ignores_the_prototype_and_the_workspace_and_nothing_that_ships_or_runs() -> None:
+    """The prototype and governance/ (with the template copy of pr_checks.py) neither ship nor
+    run; .github/governance/ is the copy CI runs on every PR, so it stays scanned."""
+    ignored = codeql_ignored()
+    assert ignored == ["docs/design/prototype/**", "governance/**"]
+    pr_checks = load_pr_checks()
+    unshipped = tracked_files("docs/design/prototype", "governance")
+    assert unshipped
+    assert all(pr_checks.matches(p, ignored) for p in unshipped)
+    scanned = tracked_files("src", ".github")
+    assert ".github/governance/pr_checks.py" in scanned
+    assert not [p for p in scanned if pr_checks.matches(p, ignored)]
