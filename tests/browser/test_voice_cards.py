@@ -64,7 +64,7 @@ def count_ended_jobs(page: Page) -> None:
 
 
 def test_a_sample_stopped_while_it_is_made_never_plays(signed_in: Page, live: Live) -> None:
-    """#446 review S1a: Stop, pressed while the sample is still being made, wins over the
+    """#446: Stop, pressed while the sample is still being made, wins over the
     job that ends after it; the sample never plays."""
     page = signed_in
     live.install_voice()
@@ -87,7 +87,7 @@ def test_a_sample_stopped_while_it_is_made_never_plays(signed_in: Page, live: Li
 
 
 def test_a_sample_played_to_its_end_gives_the_button_back(signed_in: Page, live: Live) -> None:
-    """#446 review S1c: when the sample ends, its button offers Play again."""
+    """#446: when the sample ends, its button offers Play again."""
     page = signed_in
     live.install_voice()
     page.goto(live.url + "/voice")

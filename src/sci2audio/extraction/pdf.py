@@ -69,7 +69,7 @@ STACK = 2.0  # em: a script stacked under another starts at most this far back u
 # two never read as one word ("1ℏ", #202, D-575). Layout keeps a space between pieces of a
 # line by the same measure (LayoutSettings.fraction_bar, fraction_reach).
 # TeX keeps a fraction rule's thickness when it sets the fraction smaller: liu's 0.8 pt bar
-# over 5 pt letters is 0.16 em, so the limit leaves room above that (review R1-2 of #323).
+# over 5 pt letters is 0.16 em, so the limit leaves room above that (#323).
 FRACTION_BAR = 0.25  # em of the larger letter: a fraction bar is at most this thick ...
 FRACTION_REACH = 0.6  # em: ... with numerator and denominator at most this far from it
 # A spacing accent drawn as a glyph of its own over its letter, but stored apart from it (after
@@ -139,7 +139,7 @@ MAX_PDF_READERS = 2  # children alive at once; each may take MAX_MEMORY
 _READERS = isolate.Readers(MAX_PDF_READERS)
 HEADER_ZONE = 1024  # a PDF's %PDF- header stands within its first 1,024 bytes (PDF 32000-1)
 # "12 0 obj": the start of an object. Anchored at the start of a digit run and possessive, so
-# a long run of digits or white space costs one pass, not one per start (review M2 of #188).
+# a long run of digits or white space costs one pass, not one per start (#188).
 _OBJECT = re.compile(rb"(?<!\d)\d++\s++\d++\s++obj\b")
 # Permission bits of the /P entry (PDF 32000-1, table 22), counted from 1 as the standard does
 _COPY = 1 << 4  # bit 5: copy or extract text
@@ -308,8 +308,8 @@ _CUT_SHORT = "{name}: the PDF is cut short (an unfinished download?); download i
 
 
 def _cut_short(data: bytes, xref_valid: bool) -> bool:
-    """True if the file starts like a PDF but its end is missing (D-395, as applied after
-    review rounds 1 and 2 of #188): object data follows its last %%EOF, so the cut fell
+    """True if the file starts like a PDF but its end is missing (D-395, as applied in
+    #188): object data follows its last %%EOF, so the cut fell
     inside a later section (an incremental update, the rest of a linearized file); or it
     has no %%EOF at all and PDFium had to rebuild the cross-reference table or couldn't
     open the file. PDFium reads a cut file as far as it can, and the rest is lost without
@@ -761,7 +761,7 @@ class _Line:
         shifted = abs(char.base - last.base) > SHIFT * small
         if char.u0 - last.u1 <= 0:
             # letters that touch get no space, except a digit under a digit (a fraction 1/2
-            # set as 1 over 2), which would read as one number, "12" (review M2 of #128),
+            # set as 1 over 2), which would read as one number, "12" (#128),
             # and a denominator under its numerator's bar ("1ℏ" for 1 over ℏ, #202)
             digits = last.text.isdigit() and char.text.isdigit()
             return shifted and (digits or self._across_bar(last, char))
@@ -783,7 +783,7 @@ class _Line:
         """True if the char starts back under the end of this line's letters and beside
         them, as a subscript stored after the superscript above it: at most `STACK` em back,
         and after the line's first letter, so the next printed line of a paragraph, whose
-        loose boxes may overlap this one's, is no script (review M1 of #128)."""
+        loose boxes may overlap this one's, is no script (#128)."""
         reach = max(c.u1 for c in self.chars)
         size = max(self.chars[-1].style[1], char.style[1], 1.0)
         overlap = min(self.bottom, char.v1) - max(self.top, char.v0)
@@ -920,7 +920,7 @@ def _letter(text: str) -> bool:
     """True if the text is one letter, with any accents already put onto it. A spacing
     accent is none, though `isalpha` holds for some (circumflex and caron are modifier letters): a
     second accent stacked over the same letter goes onto the letter, not onto the first
-    accent, whose line is left out (review M1 of #671)."""
+    accent, whose line is left out (#671)."""
     base, *marks = unicodedata.normalize("NFD", text) or " "
     return (
         text not in _COMBINING

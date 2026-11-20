@@ -156,7 +156,7 @@ def test_the_check_finds_a_dark_block_that_drifted() -> None:
     ],
 )
 def test_the_check_finds_a_token_set_again_after_its_blocks(added: str, message: str) -> None:
-    # the two mutants of PR #409 review S2, and a token set again on a part of the page
+    # the two mutants of #409, and a token set again on a part of the page
     css = CSS.read_text(encoding="utf-8")
     with pytest.raises(AssertionError, match=message):
         check_tokens(css + "\n" + added + "\n")
@@ -325,7 +325,7 @@ def outside_addresses(name: str, text: str) -> list[str]:
         # No page, style sheet or picture needs "//" at all (comments in CSS are /* */), so
         # every one is reported: an address without its scheme can sit in any attribute or
         # CSS function (srcset, poster, a refresh <meta>, image-set()), not just src and
-        # url() (PR #409 review B1).
+        # url() (#409).
         found += [
             f"// on line {text.count(chr(10), 0, m.start()) + 1}" for m in SLASHES.finditer(text)
         ]
@@ -359,7 +359,7 @@ def test_no_page_refers_to_an_address_outside_this_server() -> None:
         ("static/app.css", "src: url(fonts/literata-cyrillic-wght-normal.woff2);"),
         ("templates/base.html", '<link rel="stylesheet" href="http://127.0.0.1:9/x.css">'),
         ("templates/base.html", '<script src="//cdn.example/x.js"></script>'),
-        # the four the review found passing (PR #409 B1): an IP number, no scheme
+        # four that passed the check before (#409): an IP number, no scheme
         ("templates/base.html", '<img srcset="//192.168.1.9/x.png 1x" alt="">'),
         ("static/app.css", '.x { background-image: image-set("//192.168.1.9/x.png" 1x); }'),
         ("templates/base.html", '<meta http-equiv="refresh" content="0;url=//192.168.1.9/">'),
@@ -632,7 +632,7 @@ def test_the_announce_switch_shows_the_cookie(tmp_path: Path) -> None:
 
 
 def test_the_keys_switch_is_on_by_default_and_the_html_carries_it_off(tmp_path: Path) -> None:
-    """#394 review S3: the page-wide single keys work unless switched off in Settings; the
+    """#394: the page-wide single keys work unless switched off in Settings; the
     choice reaches the scripts as data-keys on every page."""
     client = client_of(server(tmp_path))
     page = client.get("/settings").text

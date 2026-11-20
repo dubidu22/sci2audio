@@ -214,7 +214,7 @@ def audiobook_bounds(readalong: Path) -> Bounds:
 
 # A file changed less than this long ago is read again on every call: a rewrite in place
 # within the file system's clock tick (about 16 ms on Windows) keeps its time and size, so
-# they cannot tell the two versions apart yet (as git treats "racy" files; #403 B1).
+# they cannot tell the two versions apart yet (as git treats "racy" files; #403).
 RACY_NS = 2_000_000_000
 
 
@@ -629,7 +629,7 @@ def build_view(
         if not 0 <= times.first_chunk < len(readalong.chunks):
             raise PlayerError("listen.mismatch")
         first = readalong.chunks[times.first_chunk].span.block
-        chapter = _chapter_of(chapters, moved.get(first, first))  # where it is read (R1-1)
+        chapter = _chapter_of(chapters, moved.get(first, first))  # where it is read
         used.add(chapter.index)
         blocks: list[BlockView] = []
         for number in range(chapter.start, chapter.end):
@@ -815,7 +815,7 @@ def _parts(
 
 def _heard_moves(run: StepRun, readalong: ReadAlong) -> dict[int, int]:
     """The moves of `run` (block -> the block it is read in) that the audiobook was read
-    with (review R1-2, R2-1). The read-along is taken as a row of runs, one per stretch of
+    with. The read-along is taken as a row of runs, one per stretch of
     chunks of one block. A moved block counts when it stands in a stretch of blocks moved to
     the same target (notes read at one position, in block order) and that stretch comes
     right after a run of the target, or right before the target's first run (a move to the
@@ -936,7 +936,7 @@ def joined_hyphens(
     """By block, the offsets of the line-end hyphens whose words the voice read joined: the
     line-end-hyphens step's joins that the settled run of `steps` accepted, with the job's
     categories (#286, #666). A join set aside because an earlier step won (a link, a
-    citation, the reference list) is not one: that text shows as printed (review M1)."""
+    citation, the reference list) is not one: that text shows as printed."""
     return _joins(_settled(document, switched_off, steps))
 
 

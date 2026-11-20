@@ -212,7 +212,7 @@ def test_the_corpus_has_the_footnote_marks_the_plan_counted() -> None:
 
 
 # every corpus document, not only the papers: the EPUB, Markdown and text samples carry labels
-# and footnotes of their own (review N2 of PR #353)
+# and footnotes of their own (#353)
 _EXTRACT = {".pdf": extract_pdf, ".epub": extract_epub, ".md": extract_markdown,
             ".txt": extract_text}  # fmt: skip
 DOCUMENTS = sorted(
@@ -228,7 +228,7 @@ def test_every_corpus_document_reads_the_same_on_a_second_run(path: Path) -> Non
     differently the second time, and a caption label a step spelled out ("Abb. 1", maass)
     still names its figure (as the runner's property checks on made-up documents). Only a
     caption's label is rebuilt as the script reads it; a footnote's mark is never mapped
-    into its introduction (review B1 of PR #353)."""
+    into its introduction (#353)."""
     doc = build_document(_EXTRACT[path.suffix](path))
     script = run_steps(doc, StepContext(doc.language), strict=True).script()
     rebuilt = rebuilt_from_script(doc, script)

@@ -63,7 +63,7 @@ def touching(boxes: list[Box], reach: float) -> list[int]:
     or less apart across and down, are in one group, and so are boxes touching one of those.
 
     A sweep from left to right, in time about n log n however the boxes lie and whatever
-    their size in points (#354, review of #645). The boxes the sweep has passed whose right
+    their size in points (#354, #645). The boxes the sweep has passed whose right
     edge plus `reach` it has not yet passed are "open": they are near the new box across.
     Down the page each box stands for its span, from its top to its bottom plus `reach`,
     and two boxes are near each other down the page exactly when their spans meet (the

@@ -134,7 +134,7 @@ def test_built_in_steps_may_clean_the_printed_text_inside_a_placeholder() -> Non
     """Unicode clean-up and line-end hyphens edit inside a formula, table, code block or
     figure: the text read when a notice is switched off. Those edits change nothing more on
     their own output, so every built-in step keeps the contract on such placeholders
-    (review B1 of PR #450, D-710)."""
+    (#450, D-710)."""
     samples = [d for d in SAMPLE_DOCUMENTS if d.content.source.name.startswith(("plac", "plat"))]
     assert len(samples) == 2
     inside = set()
@@ -159,7 +159,7 @@ class Neighbour(InsidePlaceholder):
     """An inline step that removes "loss" from each text block and, while a text block
     says "loss", the first character of each placeholder: its edit inside a placeholder
     hangs on another block it also changes, so only the second-run check over every
-    block sees that it is not idempotent (review S1 of PR #484)."""
+    block sees that it is not idempotent (#484)."""
 
     id = "neighbour"
 
@@ -244,8 +244,8 @@ def test_a_step_failing_on_its_own_output_inside_a_placeholder_is_reported() -> 
 
 class LaterPlaceholderChanges(TextStep):
     """Spells out "ﬁ" in a formula, which changes nothing more on its own output, and
-    doubles the first "e" in a table, which changes it again each time (review S1 of
-    round 2 of #450): every placeholder is compared, not only the first."""
+    doubles the first "e" in a table, which changes it again each time (#450):
+    every placeholder is compared, not only the first."""
 
     id = "later-placeholder-changes"
     languages = ("en",)
@@ -275,7 +275,7 @@ class ReadsByPrintedFigure(TextStep):
     """Cleans "dirty" to "clean" inside a figure; in a paragraph reads "Z" as "W" always and
     "X" as "Y" only while some placeholder prints "clean". A real second run sees the
     printed figure, so the paragraph reads the same: only placeholders are rebuilt from the
-    step's own output (review S2 of round 2 of #450)."""
+    step's own output (#450)."""
 
     id = "reads-by-printed-figure"
     languages = ("en",)
@@ -318,7 +318,7 @@ NOWAK = PAPERS / "acl2023-nowak-prefix-probabilities.pdf"
 def test_a_step_cleaning_inside_placeholders_keeps_the_contract(step: TextStep) -> None:
     """On the sample documents and on a corpus paper whose figures hold
     ligatures and invisible characters (13 such edits by the clean-up step per run, 26 for
-    both switch settings, review B1 of #450)."""
+    both switch settings, #450)."""
     paper = build_document(extract_pdf(NOWAK))
     check_text_step(step, [*SAMPLE_DOCUMENTS, paper])
 

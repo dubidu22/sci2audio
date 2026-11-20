@@ -1,5 +1,5 @@
 """The running job on the rail's shelf without holding the browser's connections (#387, PR
-#409 review B2): a page opens one event stream per job, however many of its parts follow
+#409): a page opens one event stream per job, however many of its parts follow
 it, and a page that follows no job asks for it now and then instead. A browser keeps at
 most six HTTP/1.1 connections to one server, and each open stream holds one for as long as
 its job runs."""

@@ -433,7 +433,7 @@ def install_pack(config: Any, pack: str) -> None:
 
 def test_the_download_button_names_what_is_still_missing(server: tuple[FastAPI, Any]) -> None:
     """With the English pack in place, the button names the German pack's size, not the
-    whole download's: the download skips the files already there (#421 N1)."""
+    whole download's: the download skips the files already there (#421)."""
     _app, config = server
     plan = download_plan()
     install_pack(config, "en")

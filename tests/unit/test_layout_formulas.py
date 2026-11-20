@@ -125,7 +125,7 @@ def test_what_waited_for_a_paragraph_cut_at_a_formula_follows_its_own_page() -> 
 
 
 def test_two_figures_waiting_for_a_cut_paragraph_follow_their_page_in_order() -> None:
-    """Review of #200 (S1): two figures at page 1's foot wait for a paragraph that runs on
+    """#200: two figures at page 1's foot wait for a paragraph that runs on
     to page 2; after the formula cut they follow the formula, in their own order, and page
     2 reads as before, its second formula included (D-434)."""
     before = [line(f"Running text, line {k}.", LEFT, 100 + 14 * k, RIGHT) for k in range(3)]
@@ -169,7 +169,7 @@ def test_a_picture_with_an_equation_number_is_that_formula() -> None:
 
 def test_a_row_piece_reaching_the_edge_is_part_of_its_formula() -> None:
     """nowak (14): the second row's last piece ends near the column's edge, but it starts a
-    formula's indent in, so it is no running text (review of PR #61)."""
+    formula's indent in, so it is no running text (#61)."""
     rows = [math("P = I + P + P", 110, 160, 300), math("= I + P", 110, 176, 170)]
     edge = math("P n = (I - P) -1", 175, 176, RIGHT - 4)
     doc = build([*paragraph(100, 4), *rows, edge, number("(14)", 160), *paragraph(210, 3)])
@@ -192,7 +192,7 @@ def test_inline_maths_on_a_row_of_running_text_stays_in_its_paragraph() -> None:
 
 def test_a_diagram_its_arrows_join_is_one_formula() -> None:
     """arsiwalla Eq. (2): the arrows reach from the numbered row to the rows above and
-    below, and bring them into the formula (review of PR #61)."""
+    below, and bring them into the formula (#61)."""
     top = [math("A", 285, 140, 295), math("X", 200, 152, 215), math("Y", 370, 152, 385)]
     middle = [math("R", 180, 190, 192), math("S", 390, 190, 402), number("(2)", 190)]
     bottom = [math("U", 200, 228, 215), math("V", 370, 228, 385), math("B", 285, 240, 295)]
@@ -212,7 +212,7 @@ def test_a_diagram_its_arrows_join_is_one_formula() -> None:
 def test_a_frame_does_not_bring_a_quotation_into_a_formula() -> None:
     """A framed box (a definition, a prompt) holding a formula and a centred quotation: the
     frame's rules are no connectors, and plain text never joins a formula by growth, so the
-    quotation is still read (review of PR #61, round 2)."""
+    quotation is still read (#61)."""
     running_text = [
         line(f"Running text, line {k}.", LEFT, y, RIGHT) for k, y in enumerate([180, 194, 208])
     ]
@@ -240,7 +240,7 @@ def test_a_frame_does_not_bring_a_quotation_into_a_formula() -> None:
 def test_a_caption_after_a_formula_at_a_page_top_is_no_part_of_the_paragraph() -> None:
     """nowak p5: the paragraph runs on past the formula at the page's top; the algorithm
     under the formula, caption and lines, comes out on its own, and the paragraph goes on
-    in the other column (paragraphs.py, review of PR #61)."""
+    in the other column (paragraphs.py, #61)."""
     left_x1, right_x0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
     page1 = [line(f"Left column, line {k}.", LEFT, 100 + 14 * k, left_x1) for k in range(30)]
     page1 += [line(f"Right column, line {k}.", right_x0, 100 + 14 * k, RIGHT) for k in range(29)]

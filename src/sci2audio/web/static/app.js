@@ -197,7 +197,7 @@ function reloadAt(hash) {
 // stream that breaks off is reopened by the browser on its own and stays CONNECTING while
 // the server is away, so a stream that hasn't reopened LOST_AFTER ms after an error counts
 // as lost: the page says so and stops trying.
-// A page holds one stream per job, however many parts of it follow that job (#409 B2): a
+// A page holds one stream per job, however many parts of it follow that job (#409): a
 // browser keeps at most six connections to this server, and every open stream holds one
 // for as long as its job runs. A part that follows later gets the latest progress at once.
 // `quiet` is for a part that only shows the job on the side (the rail's shelf): it adds no
@@ -329,7 +329,7 @@ function dropOnto(form, open) {
     open();
   });
   // a file dropped beside the opener would open in the tab and leave the app: the page
-  // takes no file anywhere else (#446 review N1)
+  // takes no file anywhere else (#446)
   for (const type of ["dragover", "drop"]) {
     document.addEventListener(type, (event) => {
       if (!carriesFiles(event) || form.contains(event.target)) return;
@@ -853,7 +853,7 @@ function drawSegments(box, chapters, now) {
 // Waits until the job is no longer running, asking the server, never trusting the stream
 // alone: Cancel frees the speech cache only once the voice has stopped writing to it.
 // Wait until the job at `url` has left "running"; give up after `limit` ms (a voice stuck
-// in native code may ignore the cancel): then nothing may be deleted (#433 N3)
+// in native code may ignore the cancel): then nothing may be deleted (#433)
 async function stopped(url, limit) {
   const until = Date.now() + limit;
   for (;;) {
@@ -1208,7 +1208,7 @@ function settingsPage() {
 // counts too, since letters and arrows choose in it.
 const NOT_TYPED = new Set(["button", "checkbox", "radio", "range", "submit", "reset", "color", "file", "image"]);
 
-// The page-wide single keys, unless switched off in Settings (#394 review S3): then only
+// The page-wide single keys, unless switched off in Settings (#394): then only
 // Esc and the rail's Keyboard shortcuts item are left.
 function shortcutsOn() {
   return document.documentElement.dataset.keys !== "off";
@@ -1274,7 +1274,7 @@ function quitPage() {
 
 // The app without a window (launched as "browser", #215): the server stops by itself after
 // 15 minutes without a request while no job runs. Reading sends none, so a page that is in
-// sight asks for the job list once a minute; a hidden or closed tab lets it stop (#631 F3).
+// sight asks for the job list once a minute; a hidden or closed tab lets it stop (#631).
 const KEEP_ALIVE_EVERY = 60_000;
 
 function keepAlive() {

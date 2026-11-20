@@ -46,7 +46,7 @@ labels = [
 ]
 # words right before "1" that ask for the dative ("nach einer Stunde", "in einem Meter", "ab
 # einem Kilogramm") and the accusative ("für einen Meter"); with a number "über" and "auf"
-# mean "more than" and a target: "über eine Million", "auf einen Meter" (review of PR #228);
+# mean "more than" and a target: "über eine Million", "auf einen Meter" (#228);
 # anything else reads the nominative
 dative = [
     "aus", "bei", "beim", "binnen", "mit", "nach", "seit", "von", "vom", "zu", "zum", "zur",
@@ -529,7 +529,7 @@ plural = "Mikromol"
 gender = "n"
 
 # signs the voice reads right after most numbers, listed so "1" before them reads "ein"
-# ("ein Prozent", "einen Euro"; review of PR #228); "‰" it does not read at all
+# ("ein Prozent", "einen Euro"; #228); "‰" it does not read at all
 [[unit]]
 printed = ["%"]
 singular = "Prozent"

@@ -6,7 +6,7 @@ reach of its right edge: 20,000 rectangles at one spot took 54 s, a file of 5 pa
 `order.touching` gives the same groups (pinned against a plain all-pairs reference) and
 grows about linearly in the drawings on a page, however they lie (pinned with
 `assert_linear`, which times a page of n/8 drawings against one of n), however tall they
-are: a drawing from -1e30 to 1e30 pt costs no more than a small one (review of #645).
+are: a drawing from -1e30 to 1e30 pt costs no more than a small one (#645).
 """
 
 from __future__ import annotations
@@ -119,7 +119,7 @@ FAMILIES: dict[str, Layout] = {
     # every drawing at one spot (the quadratic case of #354: 54 s at 20,000)
     "one spot": lambda n: [Box(100, 100, 110, 110)] * n,
     # two spots 3 pt apart down the page, too far to touch (quadratic in the bands of the
-    # first fix, review of #645)
+    # first fix, #645)
     "two spots": lambda n: [
         Box(100, 100, 110, 110) if k % 2 else Box(100, 113, 110, 115) for k in range(n)
     ],

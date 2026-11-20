@@ -218,7 +218,7 @@ class Figures:
         shown = found[0]
         if shown.region is None:
             # the reader holds the whole book in memory: one read a document at a time, so
-            # a page of lazy images does not hold it six times over (#582 review F1)
+            # a page of lazy images does not hold it six times over (#582)
             with self._lock(document_id):
                 picture = extract_epub_picture(source, shown.ref)
             return None if picture is None else Image(picture.data, picture.media_type)

@@ -1,4 +1,4 @@
-"""The wheel ships every file of the package, the data files too (#68, review of PR #116).
+"""The wheel ships every file of the package, the data files too (#68, #116).
 
 The word lists of the text steps are package data read with `importlib.resources`
 (`textprep/data/en/*.toml`, D-229). Hatchling decides what goes in the wheel, offline, from
@@ -55,7 +55,7 @@ def test_the_fonts_and_their_licences_are_in_the_wheel() -> None:
 
 
 def test_the_wheel_names_the_font_licence_and_carries_its_texts(tmp_path: Path) -> None:
-    # the wheel holds GPL code and OFL fonts: its metadata says both (PR #409 review S1)
+    # the wheel holds GPL code and OFL fonts: its metadata says both (#409)
     built = Path(
         next(WheelBuilder(str(ROOT)).build(directory=str(tmp_path), versions=["standard"]))
     )

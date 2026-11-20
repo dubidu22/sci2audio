@@ -426,8 +426,8 @@ class _Left(Exception):
 
 def _remove_entry(path: Path) -> None:
     """Remove a file, a link or junction (never what it points to) or a folder tree,
-    walking it ourselves so the first path left is known exactly on every Python (#120,
-    review round 1, M2). A file already gone counts as removed; a read-only one is made
+    walking it ourselves so the first path left is known exactly on every Python (#120).
+    A file already gone counts as removed; a read-only one is made
     writable and tried once more."""
     try:
         _remove_tree(path)

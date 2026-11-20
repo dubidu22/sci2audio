@@ -327,7 +327,7 @@ def uncovered(page: Page) -> bool:
 
 
 def test_below_1280_px_the_focus_never_goes_under_the_panel(signed_in: Page, live: Live) -> None:
-    """#444 review S2 (WCAG 2.4.11): the open panel closes when the focus leaves it, by Tab
+    """#444 (WCAG 2.4.11): the open panel closes when the focus leaves it, by Tab
     past its last control or Shift+Tab before its first, and the focus stays where it went."""
     page = signed_in
     make_audiobook(page, live)
@@ -393,7 +393,7 @@ def test_below_1280_px_a_click_on_text_inside_the_panel_leaves_it_open(
 def test_below_1280_px_a_press_that_never_ends_does_not_hold_the_panel_open(
     signed_in: Page, live: Live
 ) -> None:
-    """#451 review S2: a press inside the panel whose release never comes (a drag out of the
+    """#451: a press inside the panel whose release never comes (a drag out of the
     window, a context menu, another window) ends with the next key, a context menu or the
     window losing the focus; the next move of the focus outside then closes the panel."""
     page = signed_in
@@ -444,7 +444,7 @@ def test_the_timeline_moves_the_reading_by_keyboard(signed_in: Page, live: Live)
 
 
 def test_a_jump_ahead_while_playing_leaves_no_tint(signed_in: Page, live: Live) -> None:
-    """#444 review S4 (a): only a sentence the voice read through in order keeps the tint;
+    """#444 (a): only a sentence the voice read through in order keeps the tint;
     one left by a jump of two or more sentences while playing does not."""
     page = signed_in
     make_audiobook(page, live)
@@ -464,7 +464,7 @@ def test_a_jump_ahead_while_playing_leaves_no_tint(signed_in: Page, live: Live) 
 def test_a_timeline_move_saves_the_position_and_reaches_the_end(
     signed_in: Page, live: Live
 ) -> None:
-    """#444 review S4 (b) and N1: a move on the timeline is saved like every move (#153);
+    """#444 (b): a move on the timeline is saved like every move (#153);
     End reaches the book's end, which a 5 s step could not."""
     page = signed_in
     make_audiobook(page, live)

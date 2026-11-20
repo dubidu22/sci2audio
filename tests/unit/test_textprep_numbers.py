@@ -38,7 +38,7 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("X −→ α", "X → α"),
         ("X−→α∈R and (α−→β)∈τ", "X→α∈R and (α→β)∈τ"),
         ("a ←−→ b and x ←−5", "a ↔ b and x ←5"),
-        # ... and a longer one, with more minus signs (#593 review F1)
+        # ... and a longer one, with more minus signs (#593)
         ("X −−→ α and Y ←−− β", "X → α and Y ← β"),
         ("X ←−−→ Y and −−→AB", "X ↔ Y and →AB"),
         ("b ←−−1", "b ←1"),
@@ -106,7 +106,7 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("50\u202f000 and 12\u00a0345", "50,000 and 12,345"),
         ("1 000 000 reads", "1,000,000 reads"),
         # R1 Roman numerals
-        ("Fig. II and Exp. III", "Fig. 2 and Exp. 3"),  # short keywords (review of #132)
+        ("Fig. II and Exp. III", "Fig. 2 and Exp. 3"),  # short keywords (#132)
         ("Sec. IV, Figs. I/II", "Sec. 4, Figs. 1 and 2"),
         ("Fig.II shows", "Fig.2 shows"),
         ("World War II", "World War 2"),
@@ -190,7 +190,7 @@ def test_each_edit_quotes_the_printed_number() -> None:
     ],
 )
 def test_a_power_joined_to_a_number_reads_the_same_on_a_second_run(printed: str, said: str) -> None:
-    """Run 1 must not read a base that run 2 would read differently (review of #132, round 3)."""
+    """Run 1 must not read a base that run 2 would read differently (#132)."""
     assert read(printed) == said
     assert read(said) == said
 
@@ -219,7 +219,7 @@ def test_english_and_german() -> None:
 
 @pytest.mark.timeout(60)
 def test_a_long_block_is_quick() -> None:
-    """100,000 characters: every look back is bounded (review of PR #132)."""
+    """100,000 characters: every look back is bounded (#132)."""
     unit = "In 1234 cases 3–5 (p < .05) at 2.50 and 1/2 of 10⁶. "  # 2000 times: 100,000 chars
     edits = assert_linear(
         lambda text: STEP.find(make_document([(BlockKind.PARAGRAPH, text)]), EN),
@@ -259,8 +259,8 @@ def test_pathological_blocks_take_linear_time(sized: Callable[[int], str], size:
 )
 def test_characters_not_read_do_not_hide_a_number(printed: str, said: str) -> None:
     """A soft hyphen, zero-width space or stray accent, which the Unicode step removes last
-    (D-150), does not keep a rule from its number; else a second run would find it (review of
-    PR #132)."""
+    (D-150), does not keep a rule from its number; else a second run would find it
+    (#132)."""
     document = make_document([(BlockKind.PARAGRAPH, printed)])
     run = run_steps(document, EN, strict=True)
     assert spoken_text(run.script()) == said
@@ -346,7 +346,7 @@ def _read_all(text: str) -> str:
         ("It is [a]−1/2 here.", "It is [a]−1/2 here."),
         ("It is {a}−1/2 here.", "It is {a}−1/2 here."),
         ("x ←−1/2 here", "x ←1 half here"),  # #527: one arrow, then the fraction
-        # ... after "/" or ":" N1 reads "minus", so the fraction is read too (#332 review, R1-2)
+        # ... after "/" or ":" N1 reads "minus", so the fraction is read too (#332)
         ("It is /−1/2 here.", "It is /minus 1 half here."),
         ("ratio 1:−1/2", "ratio 1:minus 1 half"),
         ("12:−3/4", "12:minus 3 quarters"),
@@ -376,7 +376,7 @@ def test_a_second_run_reads_the_same_after_a_sign(printed: str, said: str) -> No
         ("It is x^250 000 000 here.", "It is x to the power of 250,000,000 here."),
         ("It is 10^250 000 here.", "It is 10^250 000 here."),  # one plain-space group
         ("It is 10^250 000 000 5 here.", "It is 10^250 000 000 5 here."),  # a digit runs on
-        # #210 (review S1 of PR #361): a signed grouped exponent reads its sign too
+        # #210 (#361): a signed grouped exponent reads its sign too
         ("It is 10^-250 000 000 here.", "It is 10 to the power of minus 250,000,000 here."),
         ("It is 10^+250 000 000 here.", "It is 10 to the power of 250,000,000 here."),
         ("It is 10^\u2212250 000 000 here.", "It is 10 to the power of minus 250,000,000 here."),
@@ -441,7 +441,7 @@ def test_the_numbers_step_keeps_its_contract_on_the_issue_shapes() -> None:
 
 
 def test_a_fraction_word_after_a_longer_number_is_no_fraction_reading() -> None:
-    """Pins the look-behind of `_UNIT_CHAIN_AFTER_FRACTION` (review N1 of PR #359): the step
+    """Pins the look-behind of `_UNIT_CHAIN_AFTER_FRACTION` (#359): the step
     reads no fraction with a decimal or longer numerator, so "2.5 quarters" or "1,003
     halves" is prose, and a letter power after it is read as before."""
     assert read("It is 2.5 quarters s⁻¹ here.") == (

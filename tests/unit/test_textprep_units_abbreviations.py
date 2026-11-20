@@ -437,7 +437,7 @@ def test_the_steps_declare_their_categories_and_stage() -> None:
             "441 thousand apps, 332 million words, 100 thousand steps, 175 billion tokens, "
             "2 billion people, 1.5 thousand items",
         ),
-        ("trained on 15M", "trained on 15 million"),  # at the end of the block (review)
+        ("trained on 15M", "trained on 15 million"),  # at the end of the block
         ("441K", "441 thousand"),
         ("300K.", "300 thousand."),
         # left as printed
@@ -694,7 +694,7 @@ def test_an_edit_behind_an_unread_character_is_mapped_onto_the_printed_text() ->
     ],
 )
 def test_only_replace_edits_are_mapped_back_through_unread_characters(edit: Edit) -> None:
-    """Review F3 of PR #208: a remove or pause edit would come back as a remove of another
+    """#208: a remove or pause edit would come back as a remove of another
     span, so the adapter refuses it instead (#159)."""
     with pytest.raises(ValueError, match="only replace edits"):
         edits_through_unread(0, "5\u00adkg", lambda read: [edit], "fake")
@@ -853,7 +853,7 @@ def test_both_steps_handle_german() -> None:
         ("Müller u. a., 2019", "Müller und andere, 2019"),
         ("Müller u.a. 2019", "Müller und andere 2019"),
         ("bzw. so", "beziehungsweise so"),
-        # review of PR #228: capitals with umlauts, "u. a." only after a name, "ff.", "o. ä."
+        # #228: capitals with umlauts, "u. a." only after a name, "ff.", "o. ä."
         ("Dr. Özdemir", "Doktor Özdemir"),
         ("Hunde usw. Ältere Studien", "Hunde und so weiter. Ältere Studien"),
         ("Das gilt u. a. 2019", "Das gilt unter anderem 2019"),
@@ -984,7 +984,7 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("Gruppe 3 C", "Gruppe 3 C"),
         ("5 m Abstand", "5 Meter Abstand"),
         ("1 A Strom", "ein Ampere Strom"),
-        # review of PR #228: case after "über", "auf", "ab"; German label joins; "min."
+        # #228: case after "über", "auf", "ab"; German label joins; "min."
         ("über 1 kg", "über ein Kilogramm"),
         ("auf 1 m", "auf einen Meter"),
         ("ab 1 kg", "ab einem Kilogramm"),
@@ -1013,7 +1013,7 @@ def test_english_text_does_not_take_the_german_list() -> None:
         ("3 Std. Fahrt", "3 Stunden Fahrt"),
         ("5 Min. Pause", "5 Minuten Pause"),
         ("2 Std. danach", "2 Stunden danach"),  # lower case: no new sentence
-        # the first part of a compound opens no sentence (PR #267 review R1)
+        # the first part of a compound opens no sentence (#267)
         ("2 Std. Ein-Euro-Jobs", "2 Stunden Ein-Euro-Jobs"),
         ("2 Std. In\u2010vitro", "2 Stunden In\u2010vitro"),
         ("2 Std. »Danach«", "2 Stunden. »Danach«"),  # a German quote opens it (R4)
@@ -1116,7 +1116,7 @@ def test_the_sentence_openers_load_and_hold_no_noun() -> None:
     nouns |= {entry.reads for entry in abbreviations("de") or () if entry.reads[:1].isupper()}
     nouns |= set(_NOUN_ENDINGS)
     assert not openers & {word for noun in nouns for word in noun.split()}
-    # nor a word that is also a noun after an ordinal ("der 3. Laut", PR #267 review R3)
+    # nor a word that is also a noun after an ordinal ("der 3. Laut", #267)
     assert not openers & {"Laut", "Ich", "Sein", "Nichts", "Etwas", "Ja", "Nein", "Mal", "Teil"}
 
 
@@ -1132,7 +1132,7 @@ def test_the_english_sentence_openers_load_and_hold_no_unit_name_or_one_letter()
     nouns |= {entry.reads for entry in abbreviations("en") or () if entry.reads[:1].isupper()}
     assert not openers & {word.capitalize() for noun in nouns for word in noun.split()}
     assert not openers & {"Census", "Bureau", "Researchers", "Army", "Tolkien", "Smith"}
-    # nor a word that is also a surname after an initial ("Y. He", "X. An", PR #547 review B1)
+    # nor a word that is also a surname after an initial ("Y. He", "X. An", #547)
     assert not openers & {"He", "Her", "An", "So", "To", "On", "Or", "Still", "Even"}
 
 
@@ -1260,7 +1260,7 @@ def test_no_unit_after_a_fraction_read_out_of(printed: str, read: str) -> None:
 
 
 def test_a_number_with_more_digits_before_out_of_keeps_its_unit() -> None:
-    """Pins the look-behind of `_OUT_OF` (review N1 of PR #359): "1,017 out of" is no
+    """Pins the look-behind of `_OUT_OF` (#359): "1,017 out of" is no
     reading of a fraction (the numbers step reads none with a 4-digit numerator)."""
     assert said(UNITS, "It was 1,017 out of 20 kg.") == "It was 1,017 out of 20 kilograms."
     assert said(UNITS, "It was 2.5 out of 20 kg.") == "It was 2.5 out of 20 kilograms."

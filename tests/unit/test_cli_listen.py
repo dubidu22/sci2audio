@@ -157,7 +157,7 @@ def test_no_such_file(cli: Cli, tmp_path: Path, started: list[dict[str, Any]]) -
 def test_a_missing_document_record_is_refused(
     cli: Cli, made: tuple[Path, Path], started: list[dict[str, Any]]
 ) -> None:
-    """#378 review N1: the page needs the document the job read; without it, no start."""
+    """#378: the page needs the document the job read; without it, no start."""
     source, out = made
     (cli.work(source) / "document.json").unlink()
     result = cli("listen", source, "-o", out)
@@ -167,7 +167,7 @@ def test_a_missing_document_record_is_refused(
 
 
 def test_the_file_id_is_its_hash_and_follows_a_new_version(tmp_path: Path) -> None:
-    """#378 review N2: the file is read in blocks and once per version; a new version
+    """#378: the file is read in blocks and once per version; a new version
     under the same name, time and size gets its own id."""
     from sci2audio.app import file_id
 

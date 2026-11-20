@@ -390,7 +390,7 @@ exact_case = true
 [[abbreviation]]
 printed = ["i. S. d.", "i.S.d."]
 # "des" or "der": "des" before "§", "Art." and "Abs." ("des Paragraphen", "des Artikels",
-# "des Absatzes"); "i. S. d. DSGVO" (der) stays as printed (#264 review round 1)
+# "des Absatzes"); "i. S. d. DSGVO" (der) stays as printed (#264)
 reads = "im Sinne des"
 before = "law"
 exact_case = true

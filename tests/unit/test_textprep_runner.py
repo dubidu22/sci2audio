@@ -366,7 +366,7 @@ def test_the_built_in_steps_never_fail_and_are_idempotent(document: Document) ->
     second = run_steps(rebuilt, context, strict=True)
     assert render_blocks(rebuilt, second.script()) == render_blocks(document, script)
     # a note read at its mark (#213) stays where the first run read it: its mark is gone
-    # from the text the voice read, so the second run moves nothing (review N2 of #307)
+    # from the text the voice read, so the second run moves nothing (#307)
     assert [e for e in second.accepted if e.kind is EditKind.MOVE] == []
 
 

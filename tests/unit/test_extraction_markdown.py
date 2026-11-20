@@ -250,7 +250,7 @@ def test_a_mark_without_a_note_stays_text() -> None:
 
 
 # markdown-it leaves out some text of the file on purpose (the uncited note and the unclosed
-# comment as GitHub and a browser do); pinned so it is decided, not accidental (review of #169).
+# comment as GitHub and a browser do); pinned so it is decided, not accidental (#169).
 
 
 def test_a_note_nobody_cites_is_not_read() -> None:

@@ -50,7 +50,7 @@ class AudiobookRemoveError(Exception):
 @dataclass(frozen=True)
 class Kept:
     """A path that stayed and why; `folder` is the project folder it is in, or the path
-    itself when a whole folder stayed (#569 round 1, R3)."""
+    itself when a whole folder stayed (#569)."""
 
     path: Path
     reason: str
@@ -142,7 +142,7 @@ def carry_out(planned: AudiobookPlan) -> AudiobookRemoved:
     """Delete the planned files, then each project folder left empty (but for clutter).
     Each file, and each folder before its entries are listed, is looked at once more just
     before it goes: still a regular file or folder, no link, at the same real place
-    (#569 round 1, R1). AudiobookRemoveError names the first file that could not go."""
+    (#569). AudiobookRemoveError names the first file that could not go."""
     files = size = 0
     kept = list(planned.kept)
     for item in planned.delete:
