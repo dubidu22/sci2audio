@@ -30,12 +30,16 @@ class JobRunner:
         self._lock = threading.Lock()
         self.steps: Sequence[TextStep] = installed_steps() if steps is None else steps
 
-    def steps_for(self, settings: JobSettings) -> Sequence[TextStep]:
-        """The steps a job with `settings` runs: without the plugins' steps when its
-        `plugins` is false (#667); a runner made with other steps keeps its own."""
+    def steps_for(
+        self, settings: JobSettings, steps: Sequence[TextStep] | None = None
+    ) -> Sequence[TextStep]:
+        """The steps a job with `settings` runs: `steps`, else the runner's, without the
+        plugins' steps when its `plugins` is false (#667), so the report and the record
+        never say "off" beside a plugin's edits. Other steps given are kept."""
+        chosen = self.steps if steps is None else steps
         if settings.plugins:
-            return self.steps
-        return tuple(step for step in self.steps if getattr(step, "plugin", None) is None)
+            return chosen
+        return tuple(step for step in chosen if getattr(step, "plugin", None) is None)
 
     @property
     def busy(self) -> bool:
@@ -71,7 +75,7 @@ class JobRunner:
                 overwrite=overwrite,
                 progress=progress,
                 pages=pages,
-                steps=self.steps_for(settings) if steps is None else steps,
+                steps=self.steps_for(settings, steps),
                 max_chars=max_chars,
             )
 
@@ -100,6 +104,6 @@ class JobRunner:
                 overwrite=overwrite,
                 progress=progress,
                 cancel=cancel,
-                steps=self.steps_for(settings) if steps is None else steps,
+                steps=self.steps_for(settings, steps),
                 max_chars=max_chars,
             )

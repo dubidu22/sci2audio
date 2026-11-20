@@ -24,7 +24,7 @@ from sci2audio.textprep import Category
 
 CONFIG_NAME = "settings.json"
 CONFIG_VERSION = 1
-KEPT = (  # every JobSettings field but the chosen chapters
+KEPT = (  # every JobSettings field but the chosen chapters and the plugin switch (#667)
     "language",
     "switched_off",
     "voice",
