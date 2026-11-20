@@ -50,3 +50,6 @@ Colin: "Start batch 2" (21 Nov 2026, ~04:35Z). Batch 2 of the v1.4 remainder run
 
 ## D-844 (2026-11-21, coordinator)
 Plugin guard copies: `run_plugins` gives every plugin call its own deep copy of the document (one copy per call, not one per job), and a change to the copy counts as plugin failure. Deviation from plan plugins-b-p1 §3, accepted in review of #676 (note N2); cost is a copy per plugin per stage, acceptable for text documents. Recorded here because the plugins thread's fitness check named it as the one undecided item.
+
+## D-845 (2026-11-21, coordinator)
+Plan B-P2 (#684, plans/plugins-b-p2-plan.md) approved. A text-step plugin's import, factory and attribute reads run in the same worker-thread guard as `find`, one entry point after another, each under `PLUGIN_LOAD_TIMEOUT = 30 s` (a module constant, shorter than the 60 s `find` budget because loading sits on the start-up path of every command; long enough for a heavy import on a slow disk). A plugin that runs out of time becomes a `PluginProblem` and the others still load; Ctrl+C is re-raised. `sci2audio.textprep.api` is unchanged. Not chosen: parallel loading under one deadline (non-deterministic order, import-lock contention) and one shared deadline (plugins after a hanging one would get no time).
