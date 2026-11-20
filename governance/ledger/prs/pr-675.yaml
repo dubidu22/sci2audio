@@ -1,0 +1,15 @@
+pr: 675
+opened: 2026-11-20
+thread: web-b-w1
+lane: app/web
+labels: "lane:app, lane:web, lane:docs, risk:high, ci:full"
+plan: plans/web-b-w1-plan.md
+critical: yes                 # a network call (the opt-in update check), D-837
+compactions: 0
+fixes_kinds: ""
+issues: "#217 #172"
+head: bd92586
+ci_full: pending (label added at open; removed after the three-system run is green, D-698)
+local_checks: "ruff, format, lint-imports, deptry clean; fast 8445 passed (3 espeak tests deselected on macOS); browser 196 passed"
+follow_ups: "#672 #673 #674 (v2, risk:low)"
+notes: "CLAUDE.md hard-rule line held for Colin's confirmation (peer request alone does not authorise a CLAUDE.md edit); proposed text in the PR body"
