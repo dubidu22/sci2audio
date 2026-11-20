@@ -16,7 +16,7 @@ Verdict: **changes requested** (2 must-fix, 4 should-fix, 4 notes).
 - **(h) Browser.** `tests/browser/test_updates.py`: switch on/off, rail link is the built one, axe clean off and on; the fence sees no outside request.
 - **(i) Tests fail without the change**, by reading: new module and endpoints, header assertions on `main`'s `SECURITY_HEADERS` fail.
 - **(j) Licence and scope.** No new dependency (`requests`, Apache-2.0, D-122); licence note present. `scripts/zap_scan.py` gains the two new routes with a fake fetch, which keeps the ZAP walk complete and offline; in scope. CLAUDE.md §4 line deliberately held back for the owner (not a finding).
-- **Local run** (temporary worktree at c691608, macOS): RESULTS_PLACEHOLDER
+- **Local run** (temporary worktree at c691608, macOS): ruff, ruff format, lint-imports (3 kept), deptry green; `pytest -m "not slow and not benchmark and not browser" -k "not espeak"` with `test_a_child_that_ends_without_a_result_is_named` deselected (#677, macOS crash dialog): 8441 passed, 6 skipped, 6 xfailed, 0 failed; `pytest -m browser` (Chromium): 196 passed, 5 skipped. Three-system `ci:full` green at this head. Ledger entry for this round follows separately (this commit touches only the report).
 
 ## Must fix
 
