@@ -52,10 +52,12 @@ Because the stock tools cannot hold the edits, the guard goes one step up (META-
 
 ## Tests promised in the plan
 
-Written first; each one fails on `main`:
+Written first. On `main`, 9 of these 20 cases fail. The other 11 pass there and guard against a revert or against over-matching, as the PR body lists (round 1, N2):
 - `tests/unit/test_promised_tests.py::test_a_near_miss_heading_fails` (parametrized: `### …`, trailing `:`, a leading space, lower case, a bold plain line, a line without `#`)
 - `tests/unit/test_promised_tests.py::test_a_near_miss_inside_a_code_block_is_not_a_heading`
 - `tests/unit/test_promised_tests.py::test_the_exact_heading_wins_over_a_near_miss`
+- `tests/unit/test_promised_tests.py::test_a_fenced_example_of_the_heading_does_not_start_the_section` (round 1, S1)
+- `tests/unit/test_promised_tests.py::test_a_fenced_heading_does_not_hide_a_near_miss` (round 1, S1)
 - `tests/unit/test_lanes.py::test_pr_checks_json_is_derived_from_governance_config`
 - `tests/unit/test_ruleset.py::test_plan_01_carries_the_promised_tests_wording`
 - `tests/unit/test_ruleset.py::test_every_extract_repeats_the_rules_and_the_profile_of_the_ruleset`
