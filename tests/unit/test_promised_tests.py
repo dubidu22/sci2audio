@@ -235,7 +235,7 @@ def test_a_promise_without_both_backticks_fails(tmp_path: Path) -> None:
     ],
 )
 def test_a_near_miss_heading_fails(tmp_path: Path, heading: str) -> None:
-    """The heading is mandatory for a plan's PR (D-849), so a misspelt one must not pass as absent."""
+    """The heading is mandatory in a plan's PR (D-849): a misspelt one must not pass as absent."""
     body = tmp_path / "body.md"
     body.write_text(
         f"## What and why\n\nCloses #1.\n\n{heading}\n\n- `{HERE}::t`\n", encoding="utf-8"

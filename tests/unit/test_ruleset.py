@@ -17,10 +17,11 @@ CONFIG = json.loads((GOVERNANCE / "governance-config.json").read_text(encoding="
 EXTRACTS = sorted((GOVERNANCE / "rules").glob("*.yaml"))
 
 PLAN_01 = (
-    "Every implementation thread writes a numbered plan in ./governance/plans/ before writing tests or code. "
-    "The plan names every test it promises as a pytest node ID, and the PR body repeats that list under the "
-    "heading '## Tests promised in the plan'; the governance check fails the PR when a listed test does not "
-    "collect. Deviating from an approved plan requires a new coordinator D-number."
+    "Every implementation thread writes a numbered plan in ./governance/plans/ before writing "
+    "tests or code. The plan names every test it promises as a pytest node ID, and the PR body "
+    "repeats that list under the heading '## Tests promised in the plan'; the governance check "
+    "fails the PR when a listed test does not collect. Deviating from an approved plan requires "
+    "a new coordinator D-number."
 )
 
 
