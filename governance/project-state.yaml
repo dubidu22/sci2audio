@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-20T22:43Z   # clock time; hour marks written earlier today were estimates (D-856)
+updated: 2026-11-20T22:44Z   # clock time; hour marks written earlier today were estimates (D-856)
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -18,6 +18,7 @@ active_now:
     - "infra B-I4 (thread infra-b-i4): #708 (critical, PR 1) and #695 #706 (PR 2); plan approved 22:04Z (D-860); PR 2 = #712 (#695 #706, c0d934e) Linux green 22:24Z after adding the five touched lane labels (cli, extraction, layout, textprep, web), round 1 22:33Z: 0 must, 1 should (pattern misses ~20 tag forms, split-line tags), fix commit owed, round 2 last; was open 22:14Z, Linux CI watched; PR 1 = #713 (#708, b208787) round 1 approved 22:43Z (0 findings), merge go given; follow-up Issues #709 #710 #711 filed; hand-off from infra-b-i3: after any ruleset regeneration copy back only claude-project-rules.yaml and rules/*.yaml and re-insert governance_paths and the D-849 text by exact replace; ruff excludes .github/governance"
     - "web tests B-T1 (thread web-tests-b-t1): #699 (intermittent WebKit, not every run; locale en-US fix + at_rest guards), #714 (speed panel lost clicks in Safari; the real nightly red; player.js fix risk:low) and #697 (Firefox flake, instrumented 40 runs running); plan approved 22:23Z (D-862), implementing"
   lanes_waiting:                                     # batch 3 remainder; start when a lane frees
+    - "RELEASE FIX #716 (critical): macOS bundle starts the CLI instead of the window; v1.4.1 patch release; own thread per D-732 on Colin's word (D-863)"
     - "layout #679 (new thread, risk:low); voices #663 (new thread, risk:low)"
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
     - "tests/browser/test_voice_cards.py::test_a_sample_stopped_while_it_is_made_never_plays[firefox]: first failure 22:22Z on #712 (report-only Firefox shard; comment-only PR, no code cause); a second failure -> same-day quarantine with Issue (D-374)"
