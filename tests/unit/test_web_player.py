@@ -1160,12 +1160,36 @@ def test_an_audiobook_made_without_plugins_shows_no_plugin_edits(tmp_path: Path)
     assert '<span class="said"' not in page
 
 
-def test_an_older_record_reads_as_plugins_on(tmp_path: Path) -> None:
+def test_a_record_without_a_plugin_list_uses_the_built_in_steps(tmp_path: Path) -> None:
+    """No released record was made with a plugin: a record without the list (#669) names
+    none (D-852)."""
     client, config = server(tmp_path)
     made = make(client)
     work = work_of(config, made["doc"]["id"])
-    assert read_audio_record(work, made["doc"]["id"]).plugins_on is True
+    assert read_audio_record(work, made["doc"]["id"]).plugins == frozenset()
     data = json.loads((work / "audio.json").read_text(encoding="utf-8"))
-    data["settings"]["plugins"] = False
+    data["plugins"] = [{"step": "ampersand-and", "distribution": "x", "version": "1"}]
     (work / "audio.json").write_text(json.dumps(data), encoding="utf-8")
-    assert read_audio_record(work, made["doc"]["id"]).plugins_on is False
+    assert read_audio_record(work, made["doc"]["id"]).plugins == frozenset({"ampersand-and"})
+    data["plugins"] = "not a list"
+    (work / "audio.json").write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(PlayerError):
+        read_audio_record(work, made["doc"]["id"])
+
+
+def test_a_plugin_installed_after_the_audiobook_shows_no_edit(tmp_path: Path) -> None:
+    """The reviewer's probe (#696 M1): a book made without the plugin, opened by a server
+    that has it, shows only what the voice said."""
+    from web_helpers import plugin_steps
+
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    before = create_app(config, voice=lambda models_dir: voice.source())
+    made = make(program(before, config), ampersand_pdf(), "salt.pdf")
+    assert made["job"]["state"] == "done", made["job"]
+    after = create_app(
+        config, runner=JobRunner(plugin_steps()), voice=lambda models_dir: voice.source()
+    )
+    page = program(after, config).get(f"/documents/{made['doc']['id']}/listen").text
+    assert "Salt &amp; pepper" in page
+    assert '<span class="said"' not in page

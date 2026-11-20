@@ -39,6 +39,7 @@ from web_helpers import (
 import sci2audio.web
 from sci2audio.app import updates
 from sci2audio.app.settings import LETTER_PACES
+from sci2audio.textprep import BUILT_IN_STEPS as BUILT_IN
 from sci2audio.textprep import Category
 from sci2audio.voices import PACKS, VOICES, download_plan
 from sci2audio.web import i18n, library, pages, player, server, window
@@ -713,12 +714,28 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     from sci2audio.textprep.plugins import PLUGIN_GROUP
 
     assert '"--no-plugins"' in Path(cli.__file__).read_text(encoding="utf-8")
-    for table, network, sandbox in ((EN, "network", "sandbox"), (DE, "Netz", "Sandbox")):
+    for table, network, sandbox, restart in (
+        (EN, "network", "sandbox", "restart"),
+        (DE, "Netz", "Sandbox", "neu starten"),
+    ):
         point = table["privacy.plugins"]
         assert PLUGIN_GROUP in point
         assert "--no-plugins" in point
         assert network in point
         assert sandbox in point
+        # plugins load once, when sci2audio starts (#696 S1)
+        assert restart in point
+        assert "`" not in point  # the page shows no Markdown (#696 S2)
+    assert "started" in EN["privacy.plugins_installed"]
+    assert "Start" in DE["privacy.plugins_installed"]
+    # "without even loading them": --no-plugins gives a runner of the built-in steps (#689)
+    import io
+
+    from sci2audio.app import JobSettings
+    from sci2audio.textprep import BUILT_IN_STEPS
+
+    env = cli.CliEnv(io.StringIO(), io.StringIO(), input, interactive=False, live=False)
+    assert list(env.job_runner(JobSettings(plugins=False)).steps) == list(BUILT_IN_STEPS)
     for table in (EN, DE):
         assert {"“sci2audio”", "„sci2audio“"} & set(
             re.findall(r"[“„]sci2audio[”“]", table["privacy.updates"])
@@ -803,3 +820,17 @@ def test_the_privacy_page_names_the_installed_plugins(
         section = page[page.index('id="plugins"') :]
         assert "<code>ampersand-and</code> (sci2audio-example 0.1)" in section
         assert html.escape(strings(language)("privacy.plugins_none")) not in page
+    # a plugin that failed to load is installed too, and its import ran (#696 M2)
+    from sci2audio.textprep import InstalledSteps
+    from sci2audio.textprep.plugins import PluginProblem
+
+    problem = PluginProblem("no-such", "sci2audio-broken", "could not be loaded: boom")
+    config = make_config(tmp_path / "broken")
+    broken = create_app(config, runner=JobRunner(InstalledSteps(BUILT_IN, (), (problem,))))
+    for language in ("en", "de"):
+        page = client_in((broken, config), language).get("/privacy").text
+        section = page[page.index('id="plugins"') :]
+        assert html.escape(strings(language)("privacy.plugins_none")) not in page
+        assert html.escape(strings(language)("privacy.plugins_problems")) in section
+        listed = "<code>no-such</code> (sci2audio-broken): "
+        assert listed + '<span lang="en">could not be loaded: boom</span>' in section

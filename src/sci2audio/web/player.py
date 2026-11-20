@@ -314,9 +314,9 @@ class AudioRecord:
     mp3s: tuple[str, ...]
     readalong: str
     made_with: str = ""  # the sci2audio version that made it ("" if the record has none)
-    # made with the installed text-step plugins (#667); a record from before #667 says
-    # nothing and was made with them
-    plugins_on: bool = True
+    # the ids of the text-step plugins that made it (#669); a record without the list was
+    # made with none, as every released one (D-852)
+    plugins: frozenset[str] = frozenset()
 
     @property
     def names(self) -> frozenset[str]:
@@ -357,7 +357,7 @@ def read_audio_record(work: Path, document_id: str) -> AudioRecord:
             mp3s=tuple(files["mp3"]),
             readalong=files["readalong"],
             made_with=str(data.get("sci2audio", "")),
-            plugins_on=data["settings"].get("plugins") is not False,
+            plugins=frozenset(str(plugin["step"]) for plugin in data.get("plugins", ())),
         )
     except PlayerError:
         raise
@@ -1127,13 +1127,15 @@ def player_for(
     document it was made from (for the markers, #474). `folders` are the only folders the
     audiobook may be in (`candidate_folders`, or the one folder a command-line job names,
     #154). Without `figures` no notice box shows its figure (a command-line job, #293).
-    `steps` are the server's (its runner's, plugins included, #666); an audiobook its
-    record says was made without plugins is shown with their steps left out."""
+    `steps` are the server's (its runner's, plugins included, #666); of their plugin steps
+    only those the record names made the audiobook and are used (D-852), so a plugin
+    installed, upgraded or added since shows no edit the voice never said."""
     record = read_audio_record(work, document_id)
     located = locate(record, folders)
     document = load_document(work)
-    if not record.plugins_on:
-        steps = tuple(step for step in steps if getattr(step, "plugin", None) is None)
+    steps = tuple(
+        step for step in steps if getattr(step, "plugin", None) is None or step.id in record.plugins
+    )
     view = build_view(document, record, located.readalong, steps, figures=figures)
     return view, located, document
 

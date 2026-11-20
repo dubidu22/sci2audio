@@ -1348,7 +1348,8 @@ def privacy(request: Request, state: State) -> HTMLResponse:
         app_log=str(app_log_file()),
         hosts=hosts_shown(plan.files, s),
         update_host=urlsplit(RELEASES_URL).hostname,
-        plugins=getattr(state.runner.steps, "plugins", ()),  # the runner's, live (#685)
+        plugins=getattr(state.runner.steps, "plugins", ()),  # loaded at start (#685)
+        plugin_problems=getattr(state.runner.steps, "problems", ()),
         folders=[
             ("work", str(state.config.work_root)),
             ("output", str(saved.output_folder or state.config.output_folder)),
