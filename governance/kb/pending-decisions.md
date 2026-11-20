@@ -74,3 +74,6 @@ The Firefox resume test (tests/browser/test_flow.py::test_resume_of_a_paused_rep
 
 ## D-852 (2026-11-21, coordinator)
 Plan change for B-W2 PR A (#696), from review round 1 M1: the read-along uses exactly the text-step plugins the audiobook record names (#669), not the server's current plugin set; a record without a plugins key uses the built-in steps only. The plan's "older records read as plugins on" is withdrawn because no released record was made with a plugin, and the faithful-text rule (D-57) forbids showing an edit the voice never spoke. Also from the round: the privacy page lists plugins that failed to load (their import code ran), and says that installing or removing a plugin takes effect after a restart.
+
+## D-853 (2026-11-21, owner)
+Colin: "Start both" (21 Nov 2026, ~15:40Z). Batch 2 wave 2 starts: infra B-I3 (#683 ruleset lanes and the PLAN-01 wording, one critical PR; new thread infra-b-i3) and docs B-D1 (ADR for the Study layer closing #395, critical; #678 and #686 in a second docs PR; the v1.5 issue edits and four v2 issues per D-850; new thread docs-b-d1). Lanes active: web/app (#696 finishing), infra, docs.
