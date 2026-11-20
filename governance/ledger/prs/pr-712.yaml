@@ -8,3 +8,5 @@ critical: no
 compactions: 0
 fixes_kinds: ""
 note: "#695 review-round tags out of comments and docstrings (REVIEW_TAG test, ~440 tags in 128 files, comments only, lane:infra lock); #706 scaffold pr-checks.json copy byte-equal plus test; follow-ups #709 #710 #711 (D-860)"
+rounds: 2
+merged: "9ad6d11 (squash of d562db0, 2026-11-20)"
