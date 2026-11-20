@@ -215,3 +215,4 @@ One line per PR. Turns = the authoring thread's turns spent on that PR (estimate
 - 13:11Z PR #656 round 1 fix commit c5edccf (F1 macOS 14, F2 tester form version); ci:full + ci:installers
 - 14:05Z PR #656 c5edccf green (CI ci:full, ci:installers 44531072121); answer plans/review-pr656-round1-answer.md; review thread told
 - 14:06Z PR #656 merged (release 1.4.0 docs/version); implementation batch done: #630, #631, #635, #656 merged
+- 13:33Z 2026-11-20 plugins-b-p1 (textprep/core, Opus 5.5 high): PR #676 (#216 #203, critical, D-836) opened, head 1ad0818; fast 8421 passed locally (3 macOS espeak tests deselected), ruff/lint-imports/deptry clean; ci:full running; follow-ups #666 #667 #668 #669; turns ~40, compressions 0, review rounds 0
