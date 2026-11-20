@@ -164,7 +164,7 @@ def test_a_body_without_the_heading_passes_the_check(tmp_path: Path) -> None:
 
 
 def test_a_hash_line_inside_a_code_block_does_not_end_the_section() -> None:
-    """Review round 1 of #692, S1: a shell comment in a fence is not a heading."""
+    """A shell comment in a fence is not a heading."""
     body = (
         "## Tests promised in the plan\n- `tests/a.py::t1`\n\n```bash\n# comment in a fence\n"
         "## nor this\n```\n\n~~~\n# tilde fence\n~~~\n- `tests/a.py::t2`\n"
@@ -174,7 +174,7 @@ def test_a_hash_line_inside_a_code_block_does_not_end_the_section() -> None:
 
 
 def test_a_promise_that_cannot_be_read_fails(tmp_path: Path) -> None:
-    """Review round 1 of #692, S1: a listed promise is never dropped without a word."""
+    """A listed promise is never dropped without a word."""
     spaced = "tests/a.py::t[a b]"
     assert PROMISED.promised(f"## Tests promised in the plan\n- `{spaced}`\n") == [spaced]
     body = tmp_path / "body.md"
@@ -204,3 +204,18 @@ def test_a_collection_that_gives_no_test_says_so(tmp_path: Path) -> None:
         "     ERROR: something broke",
         "     no tests ran in 0.01s",
     ]
+
+
+def test_a_promise_without_both_backticks_fails(tmp_path: Path) -> None:
+    body = tmp_path / "body.md"
+    body.write_text(
+        f"## Tests promised in the plan\n- `{HERE}::t`\n- {HERE}::bare\n- `{HERE}::unclosed\n",
+        encoding="utf-8",
+    )
+    collected = tmp_path / "collected.txt"
+    collected.write_text(f"{HERE}::t\n", encoding="utf-8")
+    result = run("check", str(body), str(collected))
+    assert result.returncode == 1
+    assert result.stdout.strip() == (
+        f"FAIL promised tests: not read as a node ID: {HERE}::bare, `{HERE}::unclosed"
+    )

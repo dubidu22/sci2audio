@@ -11,8 +11,8 @@ Checks that every test a plan promises exists on the pull request's head (#687, 
 The promises are the backticked pytest node IDs (`tests/unit/test_x.py::test_name`) in the section
 under the level-2 heading HEADING, up to the next heading of level 1 or 2. A body without the
 heading passes: the check is opt-in until the plan template requires it. A heading that lists no
-node ID fails, so an empty promise never passes, and so does a backticked `.py::` token that is no
-node ID, so no listed promise is dropped unread. Lines in fenced code blocks are not read. A parametrized test may be promised without its
+node ID fails, so an empty promise never passes, and so does any `.py::` in the section that is
+not a backticked node ID, so no listed promise is dropped unread. Lines in fenced code blocks are not read. A parametrized test may be promised without its
 parameters and a class without its methods. Standard library only, like pr_checks.py.
 """
 
@@ -26,6 +26,7 @@ HEADING = "## Tests promised in the plan"
 # parameters may hold spaces (`test_x[a b]`); names may not
 NODE_RE = re.compile(r"[\w./-]+\.py(::\w+)+(\[[^`\]]*\])?")
 TOKEN_RE = re.compile(r"`([^`]*\.py::[^`]*)`")
+BARE_RE = re.compile(r"\S*\.py::\S*")
 END_RE = re.compile(r"^#{1,2}(\s|$)")
 FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 
@@ -54,25 +55,33 @@ def section(body: str) -> list[str] | None:
     return out
 
 
-def tokens(body: str) -> list[str] | None:
+def read(body: str) -> tuple[list[str], list[str]] | None:
+    """(promises, unreadable): a `.py::` in the section that is not a backticked node ID is
+    unreadable, whether its backticks are missing, unpaired or around something else."""
     lines = section(body)
     if lines is None:
         return None
-    out: list[str] = []
+    good: list[str] = []
+    bad: list[str] = []
     for line in lines:
         for token in TOKEN_RE.findall(line):
-            if token not in out:
-                out.append(token)
-    return out
+            into = good if NODE_RE.fullmatch(token) else bad
+            if token not in into:
+                into.append(token)
+        for rest in BARE_RE.findall(TOKEN_RE.sub(" ", line)):
+            if rest not in bad:
+                bad.append(rest)
+    return good, bad
 
 
 def promised(body: str) -> list[str] | None:
-    found = tokens(body)
-    return None if found is None else [t for t in found if NODE_RE.fullmatch(t)]
+    found = read(body)
+    return None if found is None else found[0]
 
 
 def unreadable(body: str) -> list[str]:
-    return [t for t in tokens(body) or [] if not NODE_RE.fullmatch(t)]
+    found = read(body)
+    return [] if found is None else found[1]
 
 
 def missing(promises: list[str], collected: list[str]) -> list[str]:

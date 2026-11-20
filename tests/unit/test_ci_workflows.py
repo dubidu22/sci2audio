@@ -393,6 +393,12 @@ def test_the_pr_body_reaches_the_promised_tests_check_only_through_the_environme
     assert "PR_BODY: ${{ github.event.pull_request.body }}" in block(step, "        env:")
     # shown beside a failing title or ownership step, not only after it is fixed
     assert "        if: ${{ !cancelled() }}" in step
+    # without uv the step would report every promise missing beside the real failure
+    setup_line = next(
+        line for line in GOVERNANCE.splitlines() if "- uses: astral-sh/setup-uv@" in line
+    )
+    setup = block(GOVERNANCE, setup_line)
+    assert "        if: ${{ !cancelled() }}" in setup
     script = block(step, "        run: |")
     assert "${{" not in script
     assert "printf '%s' \"$PR_BODY\"" in script
