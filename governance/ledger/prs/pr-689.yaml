@@ -1,0 +1,14 @@
+pr: 689
+opened: 2026-11-20
+thread: web-b-w2
+lane: app/release
+labels: "lane:app, lane:cli, lane:docs, risk:high"
+plan: plans/web-b-w2-plan.md
+critical: yes                 # the CLI help golden changes (D-847)
+compactions: 0
+fixes_kinds: ""
+issues: "#667 #669"
+head: 13ec9c2
+ci: "Linux pending at open; then main merged in, ci:full, label removed (D-698)"
+local_checks: "ruff, format, lint-imports, deptry clean; fast 8597 passed (-k 'not espeak')"
+follow_ups: "#688 (v2, lane:web)"
