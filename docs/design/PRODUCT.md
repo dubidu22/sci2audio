@@ -37,7 +37,7 @@ Success means the listener can follow a dense academic text by ear, trusts that 
 
 - **Faithful, not rewritten.** Every change to the text is a marked edit (remove, replace, pause, ask) with a reason. Changes appear in a report, are counted on the document page, and can be switched off by category. Nothing is summarised and nothing is changed silently (D-57).
 - **The text preparation is the differentiator, not the voice.** sci2audio understands academic text: two-column layout, running heads, line-end hyphens, author-year and numeric citations, URLs and DOIs, statistics (t, p, CI, χ²), units, abbreviations, footnotes read right after their mark, and spoken notices for tables, figures and formulas in the text's language. Neighbouring tools (Abogen, Audiblez, commercial TTS readers) either read the raw text or rewrite it with AI.
-- **Entirely local.** No account, no upload, no telemetry, no update check. The only network access is a voice download the user starts, shown file by file with size and licence first.
+- **Entirely local.** No account, no upload, no telemetry. The update check is off until the user turns it on in Settings; then sci2audio asks GitHub once a day for the number of its newest version, one request with no version number, no identifier and no cookie, and downloads and installs nothing. Otherwise the only network access is a voice download the user starts, shown file by file with size and licence first.
 - **Free and open source** (GPL-3.0-or-later).
 
 ## Operating Context
