@@ -113,6 +113,13 @@ def test_pr_checks_json_is_derived_from_governance_config() -> None:
     assert json.dumps(derived_pr_checks(cfg), indent=2) + "\n" == written
 
 
+def test_the_scaffold_copy_of_pr_checks_json_equals_the_live_one() -> None:
+    """github-setup/ is the owner's copy-from source (#706): a stale copy copied over would
+    undo the lanes of #665 and the critical paths of #691."""
+    copy = ROOT / "governance" / "github-setup" / "pr-checks.json"
+    assert copy.read_bytes() == (GITHUB / "governance" / "pr-checks.json").read_bytes()
+
+
 def test_the_labeler_marks_the_paths_the_check_holds_critical() -> None:
     labeler = (GITHUB / "labeler.yml").read_text(encoding="utf-8")
     assert re.findall(r'^\s+- "(.+)"$', labeler, re.M) == CONFIG["critical_paths"]
