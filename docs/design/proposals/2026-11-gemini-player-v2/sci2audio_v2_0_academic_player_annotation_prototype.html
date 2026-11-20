@@ -1,0 +1,2285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sci2audio — Crisp Minimalist Academic Audio Player</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter (Crisp UI & Sans), Newsreader (Crisp Editorial Serif), JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', 'system-ui', 'sans-serif'],
+            serif: ['"Newsreader"', 'Georgia', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Ultra-clean minimalist scrollbars */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.6);
+    }
+
+    /* Crisp Sentence Node Styling */
+    .sentence-node {
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 0.25rem;
+      padding: 0.12rem 0.22rem;
+      margin: 0 -0.12rem;
+      cursor: pointer;
+      display: inline;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+    .sentence-node:hover {
+      background-color: #F1F5F9;
+    }
+    .dark .sentence-node:hover {
+      background-color: #1E293B;
+    }
+
+    /* Crisp High-Contrast Active Sentence Highlight */
+    .sentence-active {
+      background-color: #F1F5F9 !important;
+      color: #020617 !important;
+      box-shadow: inset 0 -2px 0 0 #0F172A;
+    }
+    .dark .sentence-active {
+      background-color: #1E293B !important;
+      color: #F8FAFC !important;
+      box-shadow: inset 0 -2px 0 0 #F8FAFC;
+    }
+
+    /* Multi-Sentence Range Selection */
+    .sentence-in-range {
+      background-color: #EEF2FF !important;
+      box-shadow: inset 0 -2px 0 0 #4F46E5;
+    }
+    .dark .sentence-in-range {
+      background-color: rgba(79, 70, 229, 0.2) !important;
+      box-shadow: inset 0 -2px 0 0 #818CF8;
+    }
+
+    /* Paragraph Dimming Focus Mode (When in Full-Text View) */
+    .paragraph-dim-mode p.reading-paragraph:not(.active-paragraph) {
+      opacity: 0.25;
+      transition: opacity 0.3s ease;
+    }
+    .paragraph-dim-mode p.reading-paragraph:not(.active-paragraph):hover {
+      opacity: 0.65;
+    }
+
+    /* Waveform animation for offline voice notes */
+    @keyframes crispWave {
+      0%, 100% { transform: scaleY(0.25); }
+      50% { transform: scaleY(1); }
+    }
+    .wave-bar {
+      animation: crispWave 0.8s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased h-screen overflow-hidden flex flex-col transition-colors duration-200 select-none">
+
+  <!-- ===================================================================== -->
+  <!-- FLOATING ZEN RESTORE PILL (Visible when Top Bar is toggled off)       -->
+  <!-- ===================================================================== -->
+  <div id="floatingZenControls" class="hidden fixed top-4 right-4 z-50 flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-full px-3 py-1.5 shadow-sm">
+    <button onclick="setReadingMode('full')" id="zenBtnFull" class="px-2 py-0.5 rounded-full text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white transition">
+      Full Text
+    </button>
+    <button onclick="setReadingMode('sentence')" id="zenBtnSentence" class="px-2 py-0.5 rounded-full text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white transition">
+      Sentence Focus
+    </button>
+    <div class="h-3 w-px bg-slate-200 dark:bg-slate-800 mx-0.5"></div>
+    <button onclick="toggleSettingsDrawer()" class="px-2 py-0.5 rounded-full text-[11px] font-semibold text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1" title="Open View & Settings Tab (Shortcut: S)">
+      <span>⚙️ View &amp; Settings</span>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 1. CRISP MINIMALIST TOP NAVIGATION BAR (52px, Pure White)             -->
+  <!-- ===================================================================== -->
+  <header id="topHeaderBar" class="h-13 shrink-0 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md px-5 py-2.5 flex items-center justify-between z-30">
+    <!-- Left: Outline Toggle + Crisp Brand & Document Title -->
+    <div class="flex items-center gap-3.5 min-w-0">
+      <button onclick="toggleViewElement('leftOutline')" id="btnLeftOutline" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition" title="Toggle Outline & Skipped Figures Drawer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h14" />
+        </svg>
+        <span class="hidden sm:inline" data-i18n="outlineBtn">Outline</span>
+      </button>
+
+      <div class="h-3.5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
+
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="font-semibold text-xs tracking-tight text-slate-950 dark:text-white">sci2audio</span>
+        <span class="text-slate-300 dark:text-slate-700 hidden md:inline">/</span>
+        <span class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[180px] lg:max-w-[300px] hidden md:inline">
+          Chapman — A violent history of benevolence
+        </span>
+        <span id="headerPagePill" class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-800 hidden sm:inline">
+          p. 14
+        </span>
+      </div>
+    </div>
+
+    <!-- Center: Instant Reading Mode Segmented Switch (Full Text vs. Sentence-Level N±1) -->
+    <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-800 text-xs">
+      <button onclick="setReadingMode('full')" id="modeBtn-full" class="px-3 py-1 rounded-md font-medium transition bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-sm">
+        Full Text
+      </button>
+      <button onclick="setReadingMode('sentence')" id="modeBtn-sentence" class="px-3 py-1 rounded-md font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white flex items-center gap-1.5" title="Display only the active sentence with previous and next sentences shown faintly">
+        <span>Sentence Focus</span>
+        <span class="text-[10px] font-mono opacity-60 hidden sm:inline">(N±1)</span>
+      </button>
+      <button onclick="applyPureZenPreset()" id="modeBtn-zen" class="px-2.5 py-1 rounded-md font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hidden md:inline-flex items-center gap-1" title="Hide all chrome & panels for pure sentence-level reading">
+        <span>Pure Zen</span>
+      </button>
+    </div>
+
+    <!-- Right: View & Settings Tab Trigger, Export Hub & Margin Toggle -->
+    <div class="flex items-center gap-2">
+      <!-- Dedicated View & Settings Tab Button -->
+      <button onclick="toggleSettingsDrawer()" id="btnSettingsTab" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-900 hover:bg-slate-200/70 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 transition" title="Configure independent view elements, typography & audio UX (Shortcut: S)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+        </svg>
+        <span>Settings</span>
+      </button>
+
+      <!-- Export & Sync Hub Button -->
+      <button onclick="openExportModal('obsidian')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white dark:bg-white dark:text-slate-950 hover:opacity-90 transition">
+        <span data-i18n="exportBtn">Export</span>
+        <span id="headerExportCount" class="text-[10px] font-mono opacity-75">(4)</span>
+      </button>
+
+      <!-- Right Margin Stream Toggle -->
+      <button onclick="toggleViewElement('rightMargin')" id="btnRightMargin" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition" title="Toggle Margin Stream (Notes & Quotes)">
+        <span class="hidden sm:inline" data-i18n="marginBtn">Notes</span>
+        <span id="marginBadgeCount" class="font-mono text-[11px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">4</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- 2. MAIN WORKSPACE: CANVAS + INDEPENDENTLY TOGGLEABLE PANELS           -->
+  <!-- ===================================================================== -->
+  <div class="flex-1 flex min-h-0 overflow-hidden relative" onclick="closePopoversOnOutsideClick(event)">
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- LEFT OUTLINE & FIGURES DRAWER (Off by default for crisp whitespace) -->
+    <!-- ------------------------------------------------------------------- -->
+    <aside id="leftDrawer" class="hidden w-72 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex-col justify-between overflow-y-auto z-20">
+      <div class="p-5 space-y-6">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Outline &amp; Figures</span>
+          <button onclick="toggleViewElement('leftOutline', false)" class="text-xs text-slate-400 hover:text-slate-900 dark:hover:text-white p-1">✕</button>
+        </div>
+
+        <!-- Chapters & Page Jumps -->
+        <div class="space-y-2.5">
+          <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="text-[10px] font-mono uppercase text-slate-400 mb-1">Kapitel 1 von 1</div>
+            <div class="text-xs font-semibold text-slate-900 dark:text-white leading-snug">
+              1. A VIOLENT HISTORY OF BENEVOLENCE
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-1">
+              <button onclick="setReadingMode('full'); scrollToElement('page1Block')" class="w-full text-left px-2 py-1.5 rounded-md text-xs text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between transition">
+                <span>Seite 1 — Figure 1</span>
+                <span class="font-mono text-[10px]">00:18</span>
+              </button>
+              <button onclick="scrollToActiveSentence()" class="w-full text-left px-2 py-1.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white flex items-center justify-between transition">
+                <span>Seite 14 — Moral Economy</span>
+                <span class="font-mono text-[10px]">24:05</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="jumpChapter(-1)" class="px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-950 transition">
+              ← Vorheriges Kap.
+            </button>
+            <button onclick="jumpChapter(1)" class="px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-950 transition">
+              Nächstes Kap. →
+            </button>
+          </div>
+        </div>
+
+        <!-- Skipped Figures Section -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Skipped Figures (1)</span>
+            <span class="text-[10px] font-mono text-slate-400">Seite 1</span>
+          </div>
+          <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+            <div class="text-xs font-medium text-slate-900 dark:text-white">
+              Figure 1: Moral Economy Matrix
+            </div>
+            <p class="text-[11px] text-slate-500 leading-relaxed">
+              Skipped in main audio track. Inspect inline or play a 15s local audio description.
+            </p>
+            <div class="flex items-center gap-1.5 pt-1">
+              <button onclick="setReadingMode('full'); toggleFigurePreview(true)" class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 transition">
+                Inspect
+              </button>
+              <button onclick="playFigureDescription()" class="px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition">
+                🔊 15s Audio
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footnotes List -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Seite 14 Footnotes</span>
+            <span class="text-[10px] font-mono text-slate-400">4 refs</span>
+          </div>
+          <div id="footnoteInspectorList" class="space-y-1.5"></div>
+        </div>
+      </div>
+
+      <!-- Hotkey Reference -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 space-y-1.5 bg-white dark:bg-slate-950">
+        <div class="font-semibold text-slate-800 dark:text-slate-200">Keyboard Shortcuts</div>
+        <div class="grid grid-cols-2 gap-y-1 gap-x-2">
+          <div class="flex justify-between"><span>Obsidian Note</span><kbd class="font-mono text-slate-900 dark:text-white">N</kbd></div>
+          <div class="flex justify-between"><span>Zotero Quote</span><kbd class="font-mono text-slate-900 dark:text-white">Q</kbd></div>
+          <div class="flex justify-between"><span>Bookmark</span><kbd class="font-mono text-slate-900 dark:text-white">B</kbd></div>
+          <div class="flex justify-between"><span>Voice Note</span><kbd class="font-mono text-slate-900 dark:text-white">V</kbd></div>
+          <div class="flex justify-between"><span>Anki Card</span><kbd class="font-mono text-slate-900 dark:text-white">A</kbd></div>
+          <div class="flex justify-between"><span>View Settings</span><kbd class="font-mono text-slate-900 dark:text-white">S</kbd></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- CENTER PANE: CRISP PURE-WHITE READING CANVAS                        -->
+    <!-- ------------------------------------------------------------------- -->
+    <main id="readerScrollContainer" class="flex-1 overflow-y-auto px-6 sm:px-14 lg:px-24 pt-12 pb-40 scroll-smooth bg-white dark:bg-slate-950 flex flex-col">
+      <div id="centerContentColumn" class="max-w-[62ch] w-full mx-auto flex-1 flex flex-col">
+
+        <!-- 1. DOCUMENT HEADER BLOCK (Independently toggleable) -->
+        <header id="paperHeaderBlock" class="mb-12 pb-8 border-b border-slate-200 dark:border-slate-800">
+          <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-3">
+            <span>Kapitel 1 von 1</span>
+            <span>•</span>
+            <span>Chapman, Christopher.pdf</span>
+            <span>•</span>
+            <span class="text-slate-600 dark:text-slate-300">Voice: Heart (Local Neural)</span>
+          </div>
+
+          <h1 class="font-serif text-3xl sm:text-[34px] font-normal tracking-tight text-slate-950 dark:text-white leading-[1.22] mb-3.5">
+            A violent history of benevolence: interlocking oppression in the moral economies of social working
+          </h1>
+
+          <p id="headerInstructionText" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Der Text wie gedruckt; der Satz, der gerade gelesen wird, ist hervorgehoben. Klicken Sie auf einen Satz, um ab dort abzuspielen, oder drücken Sie <kbd class="font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800">N</kbd> für eine Notiz bzw. <kbd class="font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800">Q</kbd> für ein Zitat.
+          </p>
+        </header>
+
+        <!-- 2. SEITE 1 SKIPPED FIGURE CALLOUT (Independently toggleable) -->
+        <section id="page1Block" class="mb-12">
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2.5">
+            <span>Seite 1</span>
+            <span>00:18</span>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/50 px-4 py-3.5 transition">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-white"></span>
+                <span class="text-xs text-slate-900 dark:text-white font-medium">
+                  A figure is skipped in audio <span class="text-slate-500 font-normal">— Figure 1: Moral Economy Valuation Matrix</span>
+                </span>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <button onclick="playFigureDescription()" class="text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white font-medium">
+                  🔊 15s Audio Caption
+                </button>
+                <button onclick="toggleFigurePreview()" id="btnToggleFigure" class="text-slate-500 hover:text-slate-900 dark:hover:text-white underline underline-offset-4">
+                  Inspect Figure ▾
+                </button>
+              </div>
+            </div>
+
+            <!-- Collapsible Extracted Diagram -->
+            <div id="figurePreviewContent" class="hidden mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <div class="flex items-center justify-between text-[11px] text-slate-500 mb-2.5">
+                <span class="font-mono uppercase">Extracted from PDF (Seite 1)</span>
+                <button onclick="captureFigureToObsidian()" class="text-slate-900 dark:text-white font-medium hover:underline">
+                  + Save Diagram to Obsidian Note
+                </button>
+              </div>
+              <svg viewBox="0 0 600 130" class="w-full h-auto rounded-lg bg-white dark:bg-slate-950 p-3 border border-slate-200 dark:border-slate-800">
+                <rect x="16" y="16" width="175" height="96" rx="8" fill="#F8FAFC" stroke="#0F172A" stroke-width="1.2"/>
+                <text x="103" y="50" text-anchor="middle" fill="#0F172A" class="text-[11px] font-semibold">Exaltation &amp; Valorization</text>
+                <text x="103" y="70" text-anchor="middle" fill="#64748B" class="text-[9px]">White Citizens &amp; State</text>
+                <text x="103" y="86" text-anchor="middle" fill="#64748B" class="text-[9px]">Ceremonial Commemoration</text>
+
+                <path d="M 202 50 L 392 50" stroke="#0F172A" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <path d="M 392 82 L 202 82" stroke="#64748B" stroke-width="1.2"/>
+                <rect x="235" y="34" width="130" height="62" rx="6" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.5"/>
+                <text x="300" y="62" text-anchor="middle" fill="#0F172A" class="text-[10px] font-semibold">Moral Economy</text>
+                <text x="300" y="78" text-anchor="middle" fill="#64748B" class="text-[9px]">Relational Worth (Thobani)</text>
+
+                <rect x="408" y="16" width="175" height="96" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.2"/>
+                <text x="495" y="50" text-anchor="middle" fill="#0F172A" class="text-[11px] font-semibold">Normative Devaluation</text>
+                <text x="495" y="70" text-anchor="middle" fill="#64748B" class="text-[9px]">Indigenous &amp; Racialized</text>
+                <text x="495" y="86" text-anchor="middle" fill="#64748B" class="text-[9px]">Populations in Social Policy</text>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. SEITE 14 READING SECTION (Supports Both Full Text & Sentence-Level N±1 Mode) -->
+        <section id="page14Block" class="flex-1 flex flex-col">
+          <div id="page14Divider" class="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-8 pb-2 border-b border-slate-100 dark:border-slate-900">
+            <span>Seite 14</span>
+            <span>23:32 – 25:10</span>
+          </div>
+
+          <!-- Inline Footnote Quick-Preview Popover -->
+          <div id="inlineFootnotePopover" class="hidden mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1.5 transition">
+            <div class="flex items-center justify-between">
+              <span id="fnPopoverTitle" class="font-mono font-semibold text-slate-900 dark:text-white">Footnote [41]</span>
+              <button onclick="closeInlineFootnote()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">✕</button>
+            </div>
+            <p id="fnPopoverBody" class="font-serif text-sm text-slate-700 dark:text-slate-300 leading-relaxed"></p>
+          </div>
+
+          <!-- DYNAMIC TRANSCRIPT OR SENTENCE-LEVEL (N-1 / N / N+1) CANVAS -->
+          <article id="academicTranscriptCanvas" class="font-serif text-[20px] sm:text-[21px] text-slate-900 dark:text-slate-100 space-y-8 select-text flex-1">
+            <!-- Populated by renderTranscript() -->
+          </article>
+
+          <!-- 4. BOTTOM FOOTNOTES SECTION (Independently toggleable) -->
+          <footer id="bottomFootnotesSection" class="mt-20 pt-8 border-t border-slate-200 dark:border-slate-800 space-y-3 text-xs text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
+            <div class="font-sans text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-2">
+              Fußnoten &amp; Referenzen • Seite 14
+            </div>
+            <div id="bottomFootnotesContainer" class="space-y-2.5"></div>
+          </footer>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- RIGHT PANE 1: DEDICATED VIEW & SETTINGS TAB (Independently Toggles) -->
+    <!-- ------------------------------------------------------------------- -->
+    <aside id="settingsDrawer" class="hidden w-80 sm:w-96 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 backdrop-blur-md flex-col min-h-0 z-30">
+      <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-950">
+        <div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white">View &amp; Settings</h2>
+          <p class="text-[11px] text-slate-500 mt-0.5">Toggle every interface element independently</p>
+        </div>
+        <button onclick="toggleSettingsDrawer(false)" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+          ✕
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-7 text-xs">
+
+        <!-- SECTION A: 1-CLICK VIEW PRESETS -->
+        <div class="space-y-2.5">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">1-Click View Presets</div>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="applyPureZenPreset()" class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-900 dark:hover:border-white text-left transition">
+              <div class="font-semibold text-slate-900 dark:text-white">Pure Sentence</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Only N±1, zero UI</div>
+            </button>
+            <button onclick="applyMinimalSentencePreset()" class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-900 dark:hover:border-white text-left transition">
+              <div class="font-semibold text-slate-900 dark:text-white">Focused N±1</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">N±1 + Player bar</div>
+            </button>
+            <button onclick="applyFullStudioPreset()" class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-900 dark:hover:border-white text-left transition">
+              <div class="font-semibold text-slate-900 dark:text-white">Full Studio</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">All panels active</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- SECTION B: SENTENCE-LEVEL READING MODE -->
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-sm">
+          <label class="flex items-start justify-between gap-3 cursor-pointer">
+            <div>
+              <div class="font-semibold text-slate-900 dark:text-white">Sentence-Level Reading (N±1)</div>
+              <p class="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                Displays only the currently spoken sentence in the center. Only the previous and next sentence are shown faintly.
+              </p>
+            </div>
+            <input id="chkSentenceMode" type="checkbox" onchange="setReadingMode(this.checked ? 'sentence' : 'full')" class="mt-0.5 rounded accent-slate-900 dark:accent-white w-4 h-4 shrink-0" />
+          </label>
+
+          <!-- Context Neighbor Opacity Slider -->
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-900 space-y-1.5">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-slate-600 dark:text-slate-400">Prev / Next Sentence Faintness</span>
+              <span id="neighborOpacityVal" class="font-mono text-slate-900 dark:text-white">22%</span>
+            </div>
+            <input id="neighborOpacitySlider" type="range" min="0" max="60" value="22" oninput="updateNeighborOpacity(this.value)" class="w-full accent-slate-900 dark:accent-white cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          </div>
+        </div>
+
+        <!-- SECTION C: INDEPENDENT VIEW ELEMENT TOGGLES -->
+        <div class="space-y-2.5">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Independent View Elements</div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-900">
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Top Navigation Bar</span>
+              <input id="chkView-topBar" type="checkbox" checked onchange="toggleViewElement('topBar', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Document Header &amp; Metadata</span>
+              <input id="chkView-paperHeader" type="checkbox" checked onchange="toggleViewElement('paperHeader', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Skipped Figures &amp; Page Dividers</span>
+              <input id="chkView-skippedFigures" type="checkbox" checked onchange="toggleViewElement('skippedFigures', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Inline Sentence Action Bar (N / Q / B)</span>
+              <input id="chkView-inlineActions" type="checkbox" checked onchange="toggleViewElement('inlineActions', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Inline Footnote Badges ([41], [42])</span>
+              <input id="chkView-footnoteBadges" type="checkbox" checked onchange="toggleViewElement('footnoteBadges', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Bottom Footnotes Reference Block</span>
+              <input id="chkView-bottomFootnotes" type="checkbox" checked onchange="toggleViewElement('bottomFootnotes', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Right Margin Stream (Notes &amp; Quotes)</span>
+              <input id="chkView-rightMargin" type="checkbox" checked onchange="toggleViewElement('rightMargin', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Left Outline &amp; Chapters Drawer</span>
+              <input id="chkView-leftOutline" type="checkbox" onchange="toggleViewElement('leftOutline', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition">
+              <span>Bottom Audio Player Dock</span>
+              <input id="chkView-bottomDock" type="checkbox" checked onchange="toggleViewElement('bottomDock', this.checked)" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+          </div>
+        </div>
+
+        <!-- SECTION D: TYPOGRAPHY, THEME & LANGUAGE -->
+        <div class="space-y-2.5">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Typography &amp; Appearance</div>
+          <div class="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3.5">
+            <div class="flex items-center justify-between">
+              <span>Font Family</span>
+              <div class="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px]">
+                <button onclick="setFontFamily('serif')" id="fontBtn-serif" class="px-2.5 py-0.5 rounded-md font-medium bg-white dark:bg-slate-800 shadow-sm">Serif</button>
+                <button onclick="setFontFamily('sans')" id="fontBtn-sans" class="px-2.5 py-0.5 rounded-md font-medium text-slate-500">Crisp Sans</button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span>Color Surface</span>
+              <button onclick="toggleTheme()" class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px] font-medium hover:bg-slate-50 dark:hover:bg-slate-900">
+                Switch Pure White / Dark
+              </button>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span>UI Language (Sprache)</span>
+              <div class="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px]">
+                <button onclick="setLanguage('de')" id="langBtn-de" class="px-2.5 py-0.5 rounded-md font-medium bg-white dark:bg-slate-800 shadow-sm">DE</button>
+                <button onclick="setLanguage('en')" id="langBtn-en" class="px-2.5 py-0.5 rounded-md font-medium text-slate-500">EN</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION E: PDF AUTO-HEAL & ACOUSTIC UX -->
+        <div class="space-y-2.5">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">PDF &amp; Acoustic UX</div>
+          <div class="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+            <label class="flex items-start justify-between gap-3 cursor-pointer">
+              <div>
+                <div class="font-medium text-slate-900 dark:text-white">✨ Auto-Heal PDF Artifacts</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Fixes <code class="font-mono">mate-rial</code> → <code class="font-mono">material</code> on export.</div>
+              </div>
+              <input id="toggleAutoHeal" type="checkbox" checked onchange="togglePdfAutoHeal(this.checked)" class="mt-0.5 rounded accent-slate-900 dark:accent-white w-4 h-4 shrink-0" />
+            </label>
+
+            <label class="flex items-start justify-between gap-3 cursor-pointer pt-2 border-t border-slate-100 dark:border-slate-900">
+              <div>
+                <div class="font-medium text-slate-900 dark:text-white">⏱️ 3s Reaction-Time Buffer</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Captures previous sentence when bookmarking within 3s.</div>
+              </div>
+              <input id="chkReactionBuffer" type="checkbox" checked class="mt-0.5 rounded accent-slate-900 dark:accent-white w-4 h-4 shrink-0" />
+            </label>
+
+            <label class="flex items-center justify-between cursor-pointer pt-2 border-t border-slate-100 dark:border-slate-900">
+              <span>🔔 Embedded Quote Chime</span>
+              <input id="chkAcousticEarcons" type="checkbox" checked class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+
+            <label class="flex items-center justify-between cursor-pointer">
+              <span>📄 Page-Turn Earcon</span>
+              <input id="chkPageEarcon" type="checkbox" checked onchange="if(this.checked) playEarcon('pageTurn')" class="rounded accent-slate-900 dark:accent-white w-4 h-4" />
+            </label>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- ------------------------------------------------------------------- -->
+    <!-- RIGHT PANE 2: CRISP MARGIN STREAM (Notes, Quotes, Inbox, Anki)      -->
+    <!-- ------------------------------------------------------------------- -->
+    <aside id="rightMarginDrawer" class="w-80 lg:w-96 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 flex flex-col min-h-0 transition-all duration-200">
+      <div class="px-6 pt-5 pb-3.5 border-b border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-950 space-y-3.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Margin Stream</span>
+          <div class="flex items-center gap-2">
+            <button onclick="openNoteComposer()" class="text-xs font-medium text-slate-900 dark:text-white hover:underline">
+              + Note (N)
+            </button>
+            <button onclick="toggleViewElement('rightMargin', false)" class="text-xs text-slate-400 hover:text-slate-900 dark:hover:text-white p-1" title="Hide Margin Stream">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Crisp Filter Pills -->
+        <div class="flex items-center gap-1 text-[11px] font-medium text-slate-500 overflow-x-auto">
+          <button onclick="setMarginFilter('all')" id="filterTab-all" class="px-2.5 py-1 rounded-md bg-slate-900 text-white dark:bg-white dark:text-slate-950 transition">
+            All
+          </button>
+          <button onclick="setMarginFilter('obsidian')" id="filterTab-obsidian" class="px-2.5 py-1 rounded-md hover:text-slate-900 dark:hover:text-white transition">
+            Notes
+          </button>
+          <button onclick="setMarginFilter('zotero')" id="filterTab-zotero" class="px-2.5 py-1 rounded-md hover:text-slate-900 dark:hover:text-white transition">
+            Quotes
+          </button>
+          <button onclick="setMarginFilter('inbox')" id="filterTab-inbox" class="px-2.5 py-1 rounded-md hover:text-slate-900 dark:hover:text-white transition">
+            Inbox
+          </button>
+          <button onclick="setMarginFilter('anki')" id="filterTab-anki" class="px-2.5 py-1 rounded-md hover:text-slate-900 dark:hover:text-white transition">
+            Anki
+          </button>
+        </div>
+      </div>
+
+      <!-- CRISP INLINE NOTE COMPOSER -->
+      <div id="inlineNoteComposer" class="hidden mx-5 mt-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-900 dark:border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-white animate-pulse"></span>
+            <span class="text-[11px] font-semibold text-slate-900 dark:text-white">Audio Paused • Obsidian Note</span>
+          </div>
+          <span id="composerTargetMeta" class="text-[11px] font-mono text-slate-400">p. 14 • 24:05</span>
+        </div>
+
+        <blockquote id="composerQuotePreview" class="font-serif text-xs italic text-slate-500 border-l-2 border-slate-300 dark:border-slate-700 pl-3 line-clamp-2"></blockquote>
+
+        <textarea id="noteTextarea" rows="3" placeholder="Write your thought... Use [[WikiLinks]] or #tags. Cmd/Ctrl+Enter to save & resume." class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-slate-900 dark:focus:border-white leading-relaxed"></textarea>
+
+        <div class="flex items-center justify-between gap-1 flex-wrap text-[11px]">
+          <div class="flex items-center gap-1">
+            <button onclick="insertIntoNote('[[Thobani - Exalted Subjects]] ')" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-950 font-mono text-[10px]">[[Thobani]]</button>
+            <button onclick="insertIntoNote('#moral-economy ')" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-950 font-mono text-[10px]">#moral-economy</button>
+          </div>
+          <button onclick="openVoiceNoteModal()" class="text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:underline">
+            🎙️ Dictate (V)
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+          <label class="flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer">
+            <input id="chkAlsoSaveZotero" type="checkbox" class="rounded accent-slate-900 w-3.5 h-3.5" />
+            <span>+ Zotero Quote</span>
+          </label>
+          <div class="flex items-center gap-1.5">
+            <button onclick="cancelNoteComposer()" class="px-2.5 py-1 rounded-md text-xs text-slate-500 hover:text-slate-900">Cancel</button>
+            <button onclick="saveNoteFromComposer()" class="px-3 py-1 rounded-md text-xs font-medium bg-slate-900 text-white dark:bg-white dark:text-slate-950 hover:opacity-90 transition">
+              Save &amp; Resume ▶
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Margin Cards Stream -->
+      <div id="marginStreamList" class="flex-1 overflow-y-auto p-5 pb-32 space-y-3.5"></div>
+    </aside>
+
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 3. CRISP FLOATING BOTTOM AUDIO DOCK (Independently Toggleable)        -->
+  <!-- ===================================================================== -->
+  <div id="bottomAudioDock" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 w-[94%] max-w-2xl pointer-events-none">
+    <div class="pointer-events-auto relative rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 py-2.5 flex items-center justify-between gap-4">
+
+      <!-- Left: Sentence Transport Controls -->
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="stepSentence(-1)" class="p-2 rounded-lg text-slate-500 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Vorheriger Satz (Left Arrow)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <button id="btnPlayPause" onclick="togglePlayback()" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-slate-950 text-white dark:bg-white dark:text-slate-950 hover:opacity-90 transition flex items-center gap-1.5">
+          <span id="playPauseIcon">▶</span>
+          <span id="playPauseText" data-i18n="playBtn">Abspielen</span>
+        </button>
+
+        <button onclick="stepSentence(1)" class="p-2 rounded-lg text-slate-500 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Nächster Satz (Right Arrow)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <button onclick="scrollToActiveSentence()" class="p-2 rounded-lg text-slate-500 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Zurück zur Lesestelle">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="7" />
+            <circle cx="12" cy="12" r="2" fill="currentColor" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Center: Minimalist Timeline Scrubber -->
+      <div class="flex items-center gap-3 flex-1 min-w-0">
+        <span id="currentTimeDisplay" class="font-mono text-[11px] font-medium text-slate-900 dark:text-white shrink-0">24:05</span>
+        <div class="relative flex-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-full cursor-pointer" onclick="scrubTimeline(event)">
+          <div id="timelineProgressFill" class="absolute top-0 left-0 h-full bg-slate-900 dark:bg-white rounded-full transition-all" style="width: 35.2%"></div>
+          <div id="timelineMarkersContainer" class="absolute inset-0 pointer-events-none"></div>
+        </div>
+        <span class="font-mono text-[11px] text-slate-400 shrink-0 hidden sm:inline">1:08:24</span>
+      </div>
+
+      <!-- Right: Speed Pill + Pacing Mode Popover Trigger -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <span id="loopStatusBadge" class="hidden px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-mono">
+          0.85x
+        </span>
+
+        <select id="speedSelect" onchange="changePlaybackSpeed(this.value)" class="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-[11px] px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer">
+          <option value="0.85">0.85x</option>
+          <option value="1.0" selected>1.0x</option>
+          <option value="1.2">1.2x</option>
+          <option value="1.5">1.5x</option>
+        </select>
+
+        <!-- Hands-Free Pacing Mode Popover -->
+        <div class="relative">
+          <button onclick="togglePopover('pacingPopover')" id="btnPacingPopover" class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition" title="Hands-Free Bluetooth Headphone Controls">
+            <span>🎧</span>
+            <span class="hidden md:inline text-[11px]">Pacing</span>
+          </button>
+
+          <div id="pacingPopover" class="hidden absolute bottom-12 right-0 w-76 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-4 space-y-3.5 text-xs z-50">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-slate-900 dark:text-white">🎧 Hands-Free Pacing Mode</span>
+              <span class="text-[10px] font-mono text-slate-400">OS Media Keys</span>
+            </div>
+
+            <div class="space-y-1.5">
+              <button onclick="triggerAcousticBookmark(true)" class="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 transition flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-slate-900 dark:text-white">Double-Tap Headphone</div>
+                  <div class="text-[11px] text-slate-500">Bookmark (with 3s Grace Buffer)</div>
+                </div>
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">Test 🔖</span>
+              </button>
+
+              <button onclick="triggerWaitWhatLoop()" class="w-full text-left p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 transition flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-slate-900 dark:text-white">Triple-Tap Headphone</div>
+                  <div class="text-[11px] text-slate-500">Rewind 2 sentences at 0.85x</div>
+                </div>
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">Test 🐢</span>
+              </button>
+            </div>
+
+            <div class="pt-2.5 border-t border-slate-100 dark:border-slate-800">
+              <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-slate-700 dark:text-slate-300">Beim Lesen mitscrollen</span>
+                <input id="chkAutoScroll" type="checkbox" checked class="rounded accent-slate-900 w-3.5 h-3.5" />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 4. MODAL: CRISP EXPORT & LOCAL ECOSYSTEM SYNC HUB                     -->
+  <!-- ===================================================================== -->
+  <div id="exportModal" class="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-950 dark:text-white">
+            Local Academic Ecosystem Sync Hub
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Offline desktop integration via <code class="font-mono text-slate-900 dark:text-white">sci2audio://</code> links &amp; localhost ports.
+          </p>
+        </div>
+        <button onclick="closeExportModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-900">✕</button>
+      </div>
+
+      <div class="px-6 pt-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-5 bg-slate-50/60 dark:bg-slate-950/60 text-xs overflow-x-auto">
+        <button onclick="switchExportTab('obsidian')" id="modalTab-obsidian" class="pb-2.5 font-semibold border-b-2 border-slate-950 dark:border-white text-slate-950 dark:text-white">
+          Obsidian Vault (.md)
+        </button>
+        <button onclick="switchExportTab('zotero')" id="modalTab-zotero" class="pb-2.5 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900">
+          Zotero Desktop (:23119)
+        </button>
+        <button onclick="switchExportTab('anki')" id="modalTab-anki" class="pb-2.5 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900">
+          Anki Flashcards (:8765)
+        </button>
+        <button onclick="switchExportTab('s2a')" id="modalTab-s2a" class="pb-2.5 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900">
+          Offline Mobile (.s2a Beam)
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1 space-y-4">
+        <!-- TAB 1: OBSIDIAN -->
+        <div id="exportContent-obsidian" class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs space-y-0.5">
+              <div class="font-semibold text-slate-900 dark:text-white">Live Local File Watcher Connected</div>
+              <div class="font-mono text-[11px] text-slate-500">~/Obsidian/Studium/Literature/Chapman (2014).md</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="copyObsidianMarkdown()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                Copy Markdown
+              </button>
+              <button onclick="downloadMarkdownFile()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                Download .md
+              </button>
+              <button onclick="triggerObsidianURI()" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white dark:bg-white dark:text-slate-950">
+                Open in Obsidian ↗
+              </button>
+            </div>
+          </div>
+          <pre id="obsidianMarkdownCode" class="p-4 rounded-xl bg-slate-950 text-slate-200 font-mono text-xs overflow-x-auto leading-relaxed select-all"></pre>
+        </div>
+
+        <!-- TAB 2: ZOTERO -->
+        <div id="exportContent-zotero" class="hidden space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs space-y-0.5">
+              <div class="font-semibold text-slate-900 dark:text-white">Zotero Local HTTP Server (127.0.0.1:23119)</div>
+              <div class="text-[11px] text-slate-500">Parent Item: <strong>Chapman, C. (2014)</strong> • Hyphens healed &amp; footnotes attached</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <select id="citationFormatSelect" onchange="updateZoteroPreview()" class="px-2.5 py-1.5 rounded-lg text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <option value="apa">APA (Chapman, 2014, p. 14)</option>
+                <option value="latex">LaTeX \autocite[p.~14]{chapman2014violent}</option>
+                <option value="chicago">Chicago (Chapman 2014, 14)</option>
+              </select>
+              <button onclick="copyAllLatexCitations()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                Copy All Quotes
+              </button>
+              <button onclick="simulateZoteroSync()" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white dark:bg-white dark:text-slate-950">
+                Sync Child Notes to Zotero
+              </button>
+            </div>
+          </div>
+          <pre id="zoteroJsonCode" class="p-4 rounded-xl bg-slate-950 text-slate-200 font-mono text-xs overflow-x-auto leading-relaxed select-all"></pre>
+        </div>
+
+        <!-- TAB 3: ANKI -->
+        <div id="exportContent-anki" class="hidden space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs space-y-0.5">
+              <div class="font-semibold text-slate-900 dark:text-white">AnkiConnect Local Bridge (127.0.0.1:8765)</div>
+              <div class="text-[11px] text-slate-500">Target Deck: <strong>Studium::Social_Work::Chapman</strong> • Includes sliced .opus sentence audio</div>
+            </div>
+            <button onclick="triggerAnkiAction()" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white dark:bg-white dark:text-slate-950">
+              + Create Card from Active Sentence
+            </button>
+          </div>
+          <div id="ankiCardsPreviewList" class="space-y-2.5"></div>
+        </div>
+
+        <!-- TAB 4: OFFLINE MOBILE .S2A BUNDLE -->
+        <div id="exportContent-s2a" class="hidden space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center p-5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div class="flex flex-col items-center justify-center bg-white p-4 rounded-xl border border-slate-200">
+              <svg viewBox="0 0 120 120" class="w-28 h-28 text-slate-900">
+                <rect x="10" y="10" width="30" height="30" fill="none" stroke="currentColor" stroke-width="6"/>
+                <rect x="18" y="18" width="14" height="14" fill="currentColor"/>
+                <rect x="80" y="10" width="30" height="30" fill="none" stroke="currentColor" stroke-width="6"/>
+                <rect x="88" y="18" width="14" height="14" fill="currentColor"/>
+                <rect x="10" y="80" width="30" height="30" fill="none" stroke="currentColor" stroke-width="6"/>
+                <rect x="18" y="88" width="14" height="14" fill="currentColor"/>
+                <rect x="50" y="20" width="10" height="10" fill="currentColor"/>
+                <rect x="50" y="40" width="20" height="10" fill="currentColor"/>
+                <rect x="45" y="60" width="15" height="15" fill="currentColor"/>
+                <rect x="70" y="55" width="10" height="25" fill="currentColor"/>
+                <rect x="90" y="60" width="20" height="10" fill="currentColor"/>
+                <rect x="55" y="85" width="25" height="10" fill="currentColor"/>
+                <rect x="85" y="85" width="25" height="25" fill="currentColor"/>
+              </svg>
+              <span class="text-[10px] font-mono text-slate-500 mt-2">Local LAN: 192.168.1.42</span>
+            </div>
+            <div class="md:col-span-2 space-y-2 text-xs">
+              <div class="text-sm font-semibold text-slate-900 dark:text-white">Zero-Cloud Mobile Sync (.s2a Open Archive)</div>
+              <p class="text-slate-500 leading-relaxed">
+                Scan this local Wi-Fi QR code with the offline iOS/Android app or sync via Syncthing/iCloud. Headphone bookmarks merge cleanly via <code class="font-mono">annotations.jsonl</code>.
+              </p>
+              <div class="p-3 rounded-lg bg-slate-950 text-slate-200 font-mono text-[11px] space-y-1">
+                <div>📦 Chapman_1b970f352ff479f7.s2a/</div>
+                <div class="pl-4 text-slate-400">├── manifest.json (sentence map, page anchors, DOI)</div>
+                <div class="pl-4 text-slate-400">├── audio/heart_neural.opus (68m, 24MB)</div>
+                <div class="pl-4 text-slate-400">└── annotations.jsonl (append-only notes &amp; voice memos)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 5. MODAL: OFFLINE VOICE NOTE DICTATION (WHISPER.CPP)                  -->
+  <!-- ===================================================================== -->
+  <div id="voiceModal" class="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-slate-900 dark:bg-white animate-ping"></span>
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white">Offline Voice Note (whisper.cpp)</h4>
+        </div>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Local STT</span>
+      </div>
+
+      <div class="h-12 rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-center gap-1.5 px-6 border border-slate-200 dark:border-slate-800">
+        <div class="w-1 h-6 bg-slate-900 dark:bg-white rounded-full wave-bar" style="animation-delay: 0.0s"></div>
+        <div class="w-1 h-9 bg-slate-900 dark:bg-white rounded-full wave-bar" style="animation-delay: 0.15s"></div>
+        <div class="w-1 h-4 bg-slate-900 dark:bg-white rounded-full wave-bar" style="animation-delay: 0.3s"></div>
+        <div class="w-1 h-8 bg-slate-900 dark:bg-white rounded-full wave-bar" style="animation-delay: 0.1s"></div>
+        <div class="w-1 h-5 bg-slate-900 dark:bg-white rounded-full wave-bar" style="animation-delay: 0.25s"></div>
+      </div>
+
+      <p id="voiceTranscriptPreview" class="font-serif text-sm italic text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800">
+        "Listening..."
+      </p>
+
+      <div class="flex items-center justify-end gap-2">
+        <button onclick="closeVoiceNoteModal()" class="px-3.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-900">Cancel</button>
+        <button onclick="commitVoiceNote()" class="px-4 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white dark:bg-white dark:text-slate-950">
+          Save Voice Note &amp; Resume ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CRISP TOAST CONTAINER                                                 -->
+  <!-- ===================================================================== -->
+  <div id="toastContainer" class="fixed bottom-20 right-6 z-50 flex flex-col gap-1.5 pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- APPLICATION LOGIC & INDEPENDENT VIEW STATE                            -->
+  <!-- ===================================================================== -->
+  <script>
+    // -----------------------------------------------------------------------
+    // 1. AUTHENTIC PAPER CONTENT (CHAPMAN, PAGE 1 & PAGE 14)
+    // -----------------------------------------------------------------------
+    const PAPER_META = {
+      docId: '1b970f352ff479f7',
+      title: 'A violent history of benevolence: interlocking oppression in the moral economies of social working',
+      author: 'Chapman, Christopher',
+      year: '2014',
+      citekey: 'chapman2014violent',
+      totalSeconds: 4104
+    };
+
+    const FOOTNOTES = {
+      '*': {
+        id: '*',
+        label: '† / *',
+        shortCite: 'Chrisjohn & Young (Total Institutions)',
+        fullText: '* Chrisjohn and Young mobilize Goffman’s analysis of “total institutions” in their discussion of Indian residential schools. In their analysis, individuals subjected to diverse “total institu-tions” may suffer many of the same consequences, but the cumulative result on a community or population varies widely.',
+        healedText: '* Chrisjohn and Young mobilize Goffman’s analysis of “total institutions” in their discussion of Indian residential schools. In their analysis, individuals subjected to diverse “total institutions” may suffer many of the same consequences, but the cumulative result on a community or population varies widely.'
+      },
+      '41': {
+        id: '41',
+        label: '41',
+        shortCite: 'Thobani (2007), Exalted Subjects, p. 18',
+        fullText: 'Thobani, S. (2007). Exalted Subjects: Studies in the Making of Race and Nation in Canada. University of Toronto Press, p. 18.',
+        healedText: 'Thobani, S. (2007). Exalted Subjects: Studies in the Making of Race and Nation in Canada. University of Toronto Press, p. 18.'
+      },
+      '42': {
+        id: '42',
+        label: '42',
+        shortCite: 'Lebron (2017), Making of Black Lives Matter',
+        fullText: 'Lebron, C. J. (2017). The Making of Black Lives Matter: A Brief History of an Idea. Oxford University Press.',
+        healedText: 'Lebron, C. J. (2017). The Making of Black Lives Matter: A Brief History of an Idea. Oxford University Press.'
+      },
+      '43': {
+        id: '43',
+        label: '43',
+        shortCite: 'Garza (2014), A Herstory of #BlackLivesMatter',
+        fullText: 'Garza, A. (2014). A Herstory of the #BlackLivesMatter Movement. The Feminist Wire.',
+        healedText: 'Garza, A. (2014). A Herstory of the #BlackLivesMatter Movement. The Feminist Wire.'
+      }
+    };
+
+    const SENTENCES = [
+      {
+        id: 's1', index: 1, paragraph: 1, page: 14, timestamp: '23:32', seconds: 1412,
+        rawText: 'disablism, and vice versa.',
+        cleanText: 'disablism, and vice versa.',
+        footnote: null, hasHyphenArtifact: false, isEmbeddedQuote: false
+      },
+      {
+        id: 's2', index: 2, paragraph: 2, page: 14, timestamp: '23:36', seconds: 1416,
+        rawText: 'A normatively taken-for-granted foundation to these interlocking legacies can be found in the tenet that some kinds of people are superior to others.',
+        cleanText: 'A normatively taken-for-granted foundation to these interlocking legacies can be found in the tenet that some kinds of people are superior to others.',
+        footnote: null, hasHyphenArtifact: false, isEmbeddedQuote: false
+      },
+      {
+        id: 's3', index: 3, paragraph: 2, page: 14, timestamp: '23:45', seconds: 1425,
+        rawText: 'In her study of the “making of race and nation in Canada,” Sunera Thobani traces the workings of what she calls a “moral economy”† that differentiates and distributes human worth or value.',
+        cleanText: 'In her study of the “making of race and nation in Canada,” Sunera Thobani traces the workings of what she calls a “moral economy” that differentiates and distributes human worth or value.',
+        footnote: '*', hasHyphenArtifact: false, isEmbeddedQuote: false
+      },
+      {
+        id: 's4', index: 4, paragraph: 2, page: 14, timestamp: '23:54', seconds: 1434,
+        rawText: 'She uses this framework to describe the ongoing denigration of Indigenous peoples and racialized immigrants in social policy.',
+        cleanText: 'She uses this framework to describe the ongoing denigration of Indigenous peoples and racialized immigrants in social policy.',
+        footnote: null, hasHyphenArtifact: false, isEmbeddedQuote: false
+      },
+      {
+        id: 's5', index: 5, paragraph: 2, page: 14, timestamp: '24:00', seconds: 1440,
+        rawText: 'Moral economies always operate in two directions at once: in Thobani’s critique, they devalue Indigenous and racialized folks while simultaneously exalting or valorizing white citizens.41',
+        cleanText: 'Moral economies always operate in two directions at once: in Thobani’s critique, they devalue Indigenous and racialized folks while simultaneously exalting or valorizing white citizens.',
+        footnote: '41', hasHyphenArtifact: false, isEmbeddedQuote: false
+      },
+      {
+        id: 's6', index: 6, paragraph: 3, page: 14, timestamp: '24:05', seconds: 1445,
+        rawText: 'According to moral economy analyses, the ascribed value of differentiated humans rises and falls in relation to one another and as a result of concrete human action and interpretation.',
+        cleanText: 'According to moral economy analyses, the ascribed value of differentiated humans rises and falls in relation to one another and as a result of concrete human action and interpretation.',
+        footnote: null, hasHyphenArtifact: false, isEmbeddedQuote: false
+      },
+      {
+        id: 's7', index: 7, paragraph: 3, page: 14, timestamp: '24:16', seconds: 1456,
+        rawText: 'For example, when extravagant ceremonies commemorate the deaths of police or military, the value placed on the lives of those killed by police or by our military inextricably degrades.',
+        cleanText: 'For example, when extravagant ceremonies commemorate the deaths of police or military, the value placed on the lives of those killed by police or by our military inextricably degrades.',
+        footnote: null, hasHyphenArtifact: false, isEmbeddedQuote: false
+      },
+      {
+        id: 's8', index: 8, paragraph: 4, page: 14, timestamp: '24:25', seconds: 1465,
+        rawText: 'The understanding that moral differentiation significantly underlies mate-rial violence also animates the Black Lives Matter movement.42',
+        cleanText: 'The understanding that moral differentiation significantly underlies material violence also animates the Black Lives Matter movement.',
+        footnote: '42', hasHyphenArtifact: true, hyphenPair: ['mate-rial', 'material'], isEmbeddedQuote: false
+      },
+      {
+        id: 's9', index: 9, paragraph: 4, page: 14, timestamp: '24:33', seconds: 1473,
+        rawText: 'The very name of the movement challenges how Black people are normatively devalued in social workings such as the criminal justice system.',
+        cleanText: 'The very name of the movement challenges how Black people are normatively devalued in social workings such as the criminal justice system.',
+        footnote: null, hasHyphenArtifact: false, isEmbeddedQuote: false
+      },
+      {
+        id: 's10', index: 10, paragraph: 4, page: 14, timestamp: '24:41', seconds: 1481,
+        rawText: 'Alicia Garza, a co-founder of Black Lives Matter, writes: “Black Lives Matter is an ideological and political intervention in a world where Black lives are systematically and intentionally targeted for demise.',
+        cleanText: 'Alicia Garza, a co-founder of Black Lives Matter, writes: “Black Lives Matter is an ideological and political intervention in a world where Black lives are systematically and intentionally targeted for demise.',
+        footnote: null, hasHyphenArtifact: false, isEmbeddedQuote: true
+      },
+      {
+        id: 's11', index: 11, paragraph: 4, page: 14, timestamp: '24:52', seconds: 1492,
+        rawText: 'It is an affirmation of Black folks’ contributions to this soci-ety, our humanity, and our resilience in the face of deadly oppression.”43',
+        cleanText: 'It is an affirmation of Black folks’ contributions to this society, our humanity, and our resilience in the face of deadly oppression.”',
+        footnote: '43', hasHyphenArtifact: true, hyphenPair: ['soci-ety', 'society'], isEmbeddedQuote: true
+      },
+      {
+        id: 's12', index: 12, paragraph: 4, page: 14, timestamp: '25:01', seconds: 1501,
+        rawText: 'This movement resists material police violence; it also resists the moral economy in which Black lives are normatively devalued.',
+        cleanText: 'This movement resists material police violence; it also resists the moral economy in which Black lives are normatively devalued.',
+        footnote: null, hasHyphenArtifact: false, isEmbeddedQuote: false
+      }
+    ];
+
+    // -----------------------------------------------------------------------
+    // 2. APPLICATION & INDEPENDENT VIEW STATE
+    // -----------------------------------------------------------------------
+    let state = {
+      lang: 'de',
+      fontFamily: 'serif',
+      activeSentenceIdx: 5, // Sentence 6 ("According to moral economy analyses...")
+      rangeStartIdx: 5,
+      rangeEndIdx: 5,
+      isPlaying: false,
+      wasPlayingBeforeNote: false,
+      playbackSpeed: 1.0,
+      autoHealPdf: true,
+      neighborOpacity: 0.22,
+      settingsDrawerOpen: false,
+      marginFilter: 'all',
+      sentenceStartedAtMs: Date.now(),
+      playbackTimer: null,
+
+      // Independent View Element Visibility Flags
+      view: {
+        sentenceLevelMode: false, // false = Full Text, true = Only Prev (N-1), Active (N), Next (N+1)
+        topBar: true,
+        paperHeader: true,
+        skippedFigures: true,
+        inlineActions: true,
+        footnoteBadges: true,
+        bottomFootnotes: true,
+        rightMargin: true,
+        leftOutline: false,
+        bottomDock: true
+      },
+
+      annotations: [
+        {
+          id: 'ann-1',
+          type: 'obsidian',
+          sentenceIds: ['s6'],
+          page: 14,
+          timestamp: '24:05',
+          seconds: 1445,
+          quote: 'According to moral economy analyses, the ascribed value of differentiated humans rises and falls in relation to one another and as a result of concrete human action and interpretation.',
+          footnoteId: null,
+          healedHyphen: false,
+          note: 'Connects directly to [[Thobani - Exalted Subjects]] and explains how state ceremonies devalue marginalized lives. Use in Chapter 2. #moral-economy #thesis-ch2',
+          tags: ['#moral-economy', '#thesis-ch2']
+        },
+        {
+          id: 'ann-2',
+          type: 'zotero',
+          sentenceIds: ['s5'],
+          page: 14,
+          timestamp: '24:00',
+          seconds: 1440,
+          quote: 'Moral economies always operate in two directions at once: in Thobani’s critique, they devalue Indigenous and racialized folks while simultaneously exalting or valorizing white citizens.',
+          footnoteId: '41',
+          healedHyphen: false,
+          note: '',
+          tags: ['#zotero-quote', '#thobani']
+        },
+        {
+          id: 'ann-3',
+          type: 'inbox',
+          sentenceIds: ['s8'],
+          page: 14,
+          timestamp: '24:25',
+          seconds: 1465,
+          quote: 'The understanding that moral differentiation significantly underlies material violence also animates the Black Lives Matter movement.',
+          footnoteId: '42',
+          healedHyphen: true,
+          note: '🎧 Captured via Headphone Double-Tap (3s Reaction Buffer applied)',
+          tags: ['#inbox']
+        },
+        {
+          id: 'ann-4',
+          type: 'anki',
+          sentenceIds: ['s3'],
+          page: 14,
+          timestamp: '23:45',
+          seconds: 1425,
+          quote: 'In her study of the “making of race and nation in Canada,” Sunera Thobani traces the workings of what she calls a “moral economy” that differentiates and distributes human worth or value.',
+          footnoteId: '*',
+          healedHyphen: false,
+          note: 'Q: What term does Sunera Thobani use for the system that differentiates and distributes human worth in social policy? → A: A "moral economy" (Chapman, p. 14).',
+          tags: ['#anki-card']
+        }
+      ]
+    };
+
+    // -----------------------------------------------------------------------
+    // 3. WEB AUDIO API SYNTHESIZER FOR SUBTLE EARCONS
+    // -----------------------------------------------------------------------
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playEarcon(type) {
+      try {
+        const ctx = getAudioCtx();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'bookmark') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(180, now + 0.055);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        } else if (type === 'quoteChime') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, now);
+          osc.frequency.setValueAtTime(783.99, now + 0.08);
+          gain.gain.setValueAtTime(0.05, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.start(now);
+          osc.stop(now + 0.23);
+        } else if (type === 'pageTurn') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(340, now);
+          osc.frequency.exponentialRampToValueAtTime(220, now + 0.07);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.085);
+        } else if (type === 'loopBack') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(560, now);
+          osc.frequency.setValueAtTime(420, now + 0.09);
+          gain.gain.setValueAtTime(0.09, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.start(now);
+          osc.stop(now + 0.23);
+        }
+      } catch (e) {}
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. INDEPENDENT VIEW SYSTEM & PRESETS
+    // -----------------------------------------------------------------------
+    function syncViewDOM() {
+      const v = state.view;
+
+      // 1. Top Navigation Bar vs. Floating Restore Pill
+      document.getElementById('topHeaderBar').classList.toggle('hidden', !v.topBar);
+      document.getElementById('floatingZenControls').classList.toggle('hidden', v.topBar);
+
+      // 2. Document Header, Skipped Figures & Bottom Footnotes (automatically hidden in Sentence-Level Mode unless forced, or governed by independent flags)
+      const showHeader = v.paperHeader && !v.sentenceLevelMode;
+      const showFigures = v.skippedFigures && !v.sentenceLevelMode;
+      const showBottomFn = v.bottomFootnotes && !v.sentenceLevelMode;
+
+      document.getElementById('paperHeaderBlock').classList.toggle('hidden', !showHeader);
+      document.getElementById('page1Block').classList.toggle('hidden', !showFigures);
+      document.getElementById('page14Divider').classList.toggle('hidden', !showFigures);
+      document.getElementById('bottomFootnotesSection').classList.toggle('hidden', !showBottomFn);
+
+      // 3. Left Outline Drawer
+      const leftDrawer = document.getElementById('leftDrawer');
+      leftDrawer.classList.toggle('hidden', !v.leftOutline);
+      leftDrawer.classList.toggle('flex', v.leftOutline);
+
+      // 4. Right Margin Stream
+      const rightDrawer = document.getElementById('rightMarginDrawer');
+      rightDrawer.classList.toggle('hidden', !v.rightMargin);
+      rightDrawer.classList.toggle('flex', v.rightMargin);
+
+      // 5. Bottom Audio Dock
+      document.getElementById('bottomAudioDock').classList.toggle('hidden', !v.bottomDock);
+
+      // 6. Sync Checkboxes inside the Settings Tab
+      document.getElementById('chkSentenceMode').checked = v.sentenceLevelMode;
+      document.getElementById('chkView-topBar').checked = v.topBar;
+      document.getElementById('chkView-paperHeader').checked = v.paperHeader;
+      document.getElementById('chkView-skippedFigures').checked = v.skippedFigures;
+      document.getElementById('chkView-inlineActions').checked = v.inlineActions;
+      document.getElementById('chkView-footnoteBadges').checked = v.footnoteBadges;
+      document.getElementById('chkView-bottomFootnotes').checked = v.bottomFootnotes;
+      document.getElementById('chkView-rightMargin').checked = v.rightMargin;
+      document.getElementById('chkView-leftOutline').checked = v.leftOutline;
+      document.getElementById('chkView-bottomDock').checked = v.bottomDock;
+
+      // 7. Sync Segmented Mode Buttons in Top Bar
+      const fullBtn = document.getElementById('modeBtn-full');
+      const sentBtn = document.getElementById('modeBtn-sentence');
+      if (!v.sentenceLevelMode) {
+        fullBtn.className = 'px-3 py-1 rounded-md font-medium transition bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-sm';
+        sentBtn.className = 'px-3 py-1 rounded-md font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white flex items-center gap-1.5';
+      } else {
+        sentBtn.className = 'px-3 py-1 rounded-md font-medium transition bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-sm flex items-center gap-1.5';
+        fullBtn.className = 'px-3 py-1 rounded-md font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white';
+      }
+
+      renderTranscript();
+    }
+
+    function toggleViewElement(key, forceValue = null) {
+      state.view[key] = forceValue !== null ? forceValue : !state.view[key];
+      syncViewDOM();
+    }
+
+    function setReadingMode(mode) {
+      state.view.sentenceLevelMode = (mode === 'sentence');
+      syncViewDOM();
+    }
+
+    function applyPureZenPreset() {
+      state.view = {
+        sentenceLevelMode: true,
+        topBar: false,
+        paperHeader: false,
+        skippedFigures: false,
+        inlineActions: false,
+        footnoteBadges: false,
+        bottomFootnotes: false,
+        rightMargin: false,
+        leftOutline: false,
+        bottomDock: false
+      };
+      syncViewDOM();
+      showToast('Pure Sentence Mode — Use ←/→, Space, N (Note), Q (Quote), S (Settings)');
+    }
+
+    function applyMinimalSentencePreset() {
+      state.view = {
+        sentenceLevelMode: true,
+        topBar: true,
+        paperHeader: false,
+        skippedFigures: false,
+        inlineActions: true,
+        footnoteBadges: true,
+        bottomFootnotes: false,
+        rightMargin: false,
+        leftOutline: false,
+        bottomDock: true
+      };
+      syncViewDOM();
+      showToast('Focused Sentence Mode (N±1)');
+    }
+
+    function applyFullStudioPreset() {
+      state.view = {
+        sentenceLevelMode: false,
+        topBar: true,
+        paperHeader: true,
+        skippedFigures: true,
+        inlineActions: true,
+        footnoteBadges: true,
+        bottomFootnotes: true,
+        rightMargin: true,
+        leftOutline: true,
+        bottomDock: true
+      };
+      syncViewDOM();
+      showToast('Full Studio View restored');
+    }
+
+    function updateNeighborOpacity(val) {
+      state.neighborOpacity = parseInt(val, 10) / 100;
+      document.getElementById('neighborOpacityVal').textContent = `${val}%`;
+      renderTranscript();
+    }
+
+    function toggleSettingsDrawer(force = null) {
+      const drawer = document.getElementById('settingsDrawer');
+      state.settingsDrawerOpen = force !== null ? force : !state.settingsDrawerOpen;
+      drawer.classList.toggle('hidden', !state.settingsDrawerOpen);
+      drawer.classList.toggle('flex', state.settingsDrawerOpen);
+    }
+
+    function setFontFamily(fam) {
+      state.fontFamily = fam;
+      const canvas = document.getElementById('academicTranscriptCanvas');
+      canvas.classList.toggle('font-serif', fam === 'serif');
+      canvas.classList.toggle('font-sans', fam === 'sans');
+
+      document.getElementById('fontBtn-serif').className = fam === 'serif'
+        ? 'px-2.5 py-0.5 rounded-md font-medium bg-white dark:bg-slate-800 shadow-sm'
+        : 'px-2.5 py-0.5 rounded-md font-medium text-slate-500';
+      document.getElementById('fontBtn-sans').className = fam === 'sans'
+        ? 'px-2.5 py-0.5 rounded-md font-medium bg-white dark:bg-slate-800 shadow-sm'
+        : 'px-2.5 py-0.5 rounded-md font-medium text-slate-500';
+    }
+
+    // -----------------------------------------------------------------------
+    // 5. RENDERING FULL TEXT OR SENTENCE-LEVEL (N-1 / N / N+1) CANVAS
+    // -----------------------------------------------------------------------
+    function formatSentenceContent(s) {
+      let displayHtml = state.autoHealPdf ? s.cleanText : s.rawText;
+      if (state.autoHealPdf && s.hasHyphenArtifact && s.hyphenPair) {
+        const healedWord = s.hyphenPair[1];
+        displayHtml = displayHtml.replace(
+          healedWord,
+          `<span class="underline decoration-slate-400 decoration-dotted underline-offset-4" title="Auto-healed PDF hyphen: '${s.hyphenPair[0]}' → '${healedWord}'">${healedWord}</span>`
+        );
+      }
+
+      let footnoteHtml = '';
+      if (s.footnote && state.view.footnoteBadges) {
+        if (state.autoHealPdf) {
+          footnoteHtml = `<sup onclick="event.stopPropagation(); inspectFootnote('${s.footnote}')" class="inline-flex items-center px-1.5 py-0.2 ml-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-950 text-slate-600 dark:text-slate-300 font-mono text-[11px] cursor-pointer border border-slate-200 dark:border-slate-700 transition" title="Inspect Footnote [${FOOTNOTES[s.footnote].label}]">${FOOTNOTES[s.footnote].label}</sup>`;
+        } else {
+          footnoteHtml = `<span class="text-slate-400 font-mono text-xs">${s.footnote === '*' ? '†' : s.footnote}</span>`;
+        }
+      }
+
+      return `${displayHtml}${footnoteHtml}`;
+    }
+
+    function buildInlineActionToolbar(rangeLabel, isMultiRange) {
+      if (!state.view.inlineActions) return '';
+      return `
+        <div class="pt-2 pb-1 flex flex-wrap items-center justify-between gap-2 font-sans text-xs">
+          <div class="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 shadow-2xs">
+            <span class="font-mono text-[11px] text-slate-900 dark:text-white font-medium mr-1">${rangeLabel}</span>
+            <button onclick="expandSelectionRange(-1)" class="px-1.5 py-0.5 rounded text-[11px] text-slate-500 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              [-1 Satz]
+            </button>
+            <button onclick="expandSelectionRange(1)" class="px-1.5 py-0.5 rounded text-[11px] text-slate-500 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              [+1 Satz]
+            </button>
+            ${isMultiRange ? `<button onclick="resetSelectionRange()" class="px-1.5 py-0.5 text-[10px] font-mono text-slate-500 hover:text-slate-950 underline">Reset</button>` : ''}
+          </div>
+
+          <div class="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-1.5 py-1 shadow-2xs">
+            <button onclick="openNoteComposer()" class="px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              Note <kbd class="font-mono text-[10px] opacity-50">N</kbd>
+            </button>
+            <button onclick="captureZoteroQuote()" class="px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              Quote <kbd class="font-mono text-[10px] opacity-50">Q</kbd>
+            </button>
+            <button onclick="triggerAcousticBookmark(false)" class="px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Quick Bookmark">
+              🔖 <kbd class="font-mono text-[10px] opacity-50">B</kbd>
+            </button>
+            <button onclick="openVoiceNoteModal()" class="px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Voice Note">
+              🎙️ <kbd class="font-mono text-[10px] opacity-50">V</kbd>
+            </button>
+            <button onclick="triggerAnkiAction()" class="px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Anki Flashcard">
+              🎴 <kbd class="font-mono text-[10px] opacity-50">A</kbd>
+            </button>
+            <button onclick="copyActiveSentenceCitation()" class="px-2 py-0.5 rounded text-[11px] text-slate-400 hover:text-slate-900 dark:hover:text-white transition" title="Copy Citation (Cmd+Shift+C)">
+              📋
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTranscript() {
+      const container = document.getElementById('academicTranscriptCanvas');
+      const startS = SENTENCES[state.rangeStartIdx];
+      const endS = SENTENCES[state.rangeEndIdx];
+      const isMultiRange = state.rangeStartIdx !== state.rangeEndIdx;
+      const rangeLabel = isMultiRange
+        ? `Sätze ${startS.index}–${endS.index} • ${startS.timestamp}`
+        : `Satz ${startS.index} / ${SENTENCES.length} • ${startS.timestamp}`;
+
+      // -------------------------------------------------------------------
+      // MODE A: SENTENCE-LEVEL READING MODE (Only N-1, N, N+1 displayed)
+      // -------------------------------------------------------------------
+      if (state.view.sentenceLevelMode) {
+        const prevS = state.activeSentenceIdx > 0 ? SENTENCES[state.activeSentenceIdx - 1] : null;
+        const activeS = SENTENCES[state.activeSentenceIdx];
+        const nextS = state.activeSentenceIdx < SENTENCES.length - 1 ? SENTENCES[state.activeSentenceIdx + 1] : null;
+
+        // If the user expanded range in sentence mode, show all sentences in range as the focal block
+        const activeSlice = SENTENCES.slice(state.rangeStartIdx, state.rangeEndIdx + 1);
+        const activeCombinedHtml = activeSlice.map(s => formatSentenceContent(s)).join(' ');
+
+        container.innerHTML = `
+          <div class="min-h-[64vh] flex flex-col justify-center space-y-12 py-8">
+            <!-- PREVIOUS SENTENCE (N-1) SHOWN FAINTLY -->
+            <div style="opacity: ${prevS ? state.neighborOpacity : 0}" class="transition-opacity duration-300 hover:opacity-75 cursor-pointer select-none" onclick="${prevS ? `selectSentence(${state.activeSentenceIdx - 1})` : ''}">
+              ${prevS ? `
+                <div class="font-sans text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5">← Vorheriger Satz (${prevS.timestamp})</div>
+                <p class="text-lg sm:text-xl leading-relaxed text-slate-600 dark:text-slate-400">${formatSentenceContent(prevS)}</p>
+              ` : `<div class="h-12"></div>`}
+            </div>
+
+            <!-- ACTIVE SENTENCE (N) CRISP & PROMINENT -->
+            <div class="py-6 border-y border-slate-100 dark:border-slate-900 space-y-5">
+              <p id="sentence-${activeS.id}" class="text-2xl sm:text-[28px] leading-[1.6] tracking-[-0.01em] text-slate-950 dark:text-white font-normal">
+                ${activeCombinedHtml}
+              </p>
+              ${buildInlineActionToolbar(rangeLabel, isMultiRange)}
+            </div>
+
+            <!-- NEXT SENTENCE (N+1) SHOWN FAINTLY -->
+            <div style="opacity: ${nextS ? state.neighborOpacity : 0}" class="transition-opacity duration-300 hover:opacity-75 cursor-pointer select-none" onclick="${nextS ? `selectSentence(${state.activeSentenceIdx + 1})` : ''}">
+              ${nextS ? `
+                <div class="font-sans text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5">Nächster Satz (${nextS.timestamp}) →</div>
+                <p class="text-lg sm:text-xl leading-relaxed text-slate-600 dark:text-slate-400">${formatSentenceContent(nextS)}</p>
+              ` : `<div class="h-12"></div>`}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // -------------------------------------------------------------------
+      // MODE B: CRISP FULL-TEXT EDITORIAL VIEW
+      // -------------------------------------------------------------------
+      const paragraphs = {};
+      SENTENCES.forEach((s, idx) => {
+        if (!paragraphs[s.paragraph]) paragraphs[s.paragraph] = [];
+        paragraphs[s.paragraph].push({ ...s, idx });
+      });
+
+      const activeParagraphKey = String(SENTENCES[state.activeSentenceIdx].paragraph);
+      let html = '';
+
+      Object.keys(paragraphs).forEach(pKey => {
+        const isCurrentPara = pKey === activeParagraphKey;
+        html += `<div class="space-y-3">`;
+        html += `<p class="reading-paragraph leading-[1.95] tracking-[-0.004em] ${isCurrentPara ? 'active-paragraph' : ''}">`;
+
+        paragraphs[pKey].forEach(s => {
+          const isActive = s.idx === state.activeSentenceIdx;
+          const isInRange = s.idx >= state.rangeStartIdx && s.idx <= state.rangeEndIdx && isMultiRange;
+
+          let classes = 'sentence-node ';
+          if (isActive) classes += 'sentence-active ';
+          if (isInRange) classes += 'sentence-in-range ';
+
+          html += `<span id="sentence-${s.id}" onclick="selectSentence(${s.idx})" class="${classes}">${formatSentenceContent(s)}</span> `;
+        });
+
+        html += `</p>`;
+
+        if (isCurrentPara) {
+          html += buildInlineActionToolbar(rangeLabel, isMultiRange);
+        }
+
+        html += `</div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderFootnotes() {
+      const sidebarList = document.getElementById('footnoteInspectorList');
+      const bottomContainer = document.getElementById('bottomFootnotesContainer');
+
+      let sidebarHtml = '';
+      let bottomHtml = '';
+
+      Object.values(FOOTNOTES).forEach(fn => {
+        const textToShow = state.autoHealPdf ? fn.healedText : fn.fullText;
+
+        sidebarHtml += `
+          <div onclick="inspectFootnote('${fn.id}')" class="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-400 cursor-pointer transition space-y-1">
+            <div class="font-mono text-[10px] font-semibold text-slate-900 dark:text-white">[${fn.label}] ${fn.shortCite}</div>
+            <p class="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">${textToShow}</p>
+          </div>
+        `;
+
+        bottomHtml += `
+          <div class="leading-relaxed">
+            <span class="font-mono font-semibold text-slate-900 dark:text-white mr-1.5">[${fn.label}]</span>
+            <span>${textToShow}</span>
+          </div>
+        `;
+      });
+
+      sidebarList.innerHTML = sidebarHtml;
+      bottomContainer.innerHTML = bottomHtml;
+    }
+
+    function inspectFootnote(fnId) {
+      const fn = FOOTNOTES[fnId];
+      if (!fn) return;
+      const pop = document.getElementById('inlineFootnotePopover');
+      document.getElementById('fnPopoverTitle').textContent = `Footnote [${fn.label}] — ${fn.shortCite}`;
+      document.getElementById('fnPopoverBody').textContent = state.autoHealPdf ? fn.healedText : fn.fullText;
+      pop.classList.remove('hidden');
+    }
+
+    function closeInlineFootnote() {
+      document.getElementById('inlineFootnotePopover').classList.add('hidden');
+    }
+
+    // -----------------------------------------------------------------------
+    // 6. SENTENCE SELECTION & RANGE EXPANSION
+    // -----------------------------------------------------------------------
+    function selectSentence(idx, fromAudioAdvance = false) {
+      state.activeSentenceIdx = idx;
+      state.rangeStartIdx = idx;
+      state.rangeEndIdx = idx;
+      state.sentenceStartedAtMs = Date.now();
+
+      const s = SENTENCES[idx];
+      document.getElementById('currentTimeDisplay').textContent = s.timestamp;
+      document.getElementById('headerPagePill').textContent = `p. ${s.page}`;
+
+      const pct = Math.min(100, Math.max(6, ((idx + 1) / SENTENCES.length) * 65 + 15));
+      document.getElementById('timelineProgressFill').style.width = `${pct}%`;
+
+      if (fromAudioAdvance && s.isEmbeddedQuote && document.getElementById('chkAcousticEarcons').checked) {
+        playEarcon('quoteChime');
+        showToast('🔔 Embedded Quotation: Alicia Garza (2014)');
+      }
+
+      renderTranscript();
+
+      if (!state.view.sentenceLevelMode && fromAudioAdvance && document.getElementById('chkAutoScroll').checked) {
+        scrollToActiveSentence();
+      }
+    }
+
+    function expandSelectionRange(direction) {
+      if (direction < 0 && state.rangeStartIdx > 0) {
+        state.rangeStartIdx -= 1;
+      } else if (direction > 0 && state.rangeEndIdx < SENTENCES.length - 1) {
+        state.rangeEndIdx += 1;
+      }
+      renderTranscript();
+    }
+
+    function resetSelectionRange() {
+      state.rangeStartIdx = state.activeSentenceIdx;
+      state.rangeEndIdx = state.activeSentenceIdx;
+      renderTranscript();
+    }
+
+    function getSelectedRangeData() {
+      const slice = SENTENCES.slice(state.rangeStartIdx, state.rangeEndIdx + 1);
+      const quoteText = slice.map(s => state.autoHealPdf ? s.cleanText : s.rawText).join(' ');
+      const firstS = slice[0];
+      const footnoteObj = slice.find(s => s.footnote);
+      const healedHyphen = slice.some(s => s.hasHyphenArtifact) && state.autoHealPdf;
+
+      return {
+        sentenceIds: slice.map(s => s.id),
+        page: firstS.page,
+        timestamp: firstS.timestamp,
+        seconds: firstS.seconds,
+        quote: quoteText,
+        footnoteId: footnoteObj ? footnoteObj.footnote : null,
+        healedHyphen
+      };
+    }
+
+    // -----------------------------------------------------------------------
+    // 7. CAPTURE WORKFLOWS: OBSIDIAN, ZOTERO, BOOKMARK, VOICE, ANKI, COPY
+    // -----------------------------------------------------------------------
+    function openNoteComposer() {
+      if (!state.view.rightMargin) toggleViewElement('rightMargin', true);
+
+      state.wasPlayingBeforeNote = state.isPlaying;
+      if (state.isPlaying) togglePlayback(false);
+
+      const data = getSelectedRangeData();
+      document.getElementById('composerTargetMeta').textContent = `p. ${data.page} • ${data.timestamp}`;
+      document.getElementById('composerQuotePreview').textContent = `"${data.quote}"`;
+      document.getElementById('inlineNoteComposer').classList.remove('hidden');
+
+      const textarea = document.getElementById('noteTextarea');
+      textarea.focus();
+    }
+
+    function cancelNoteComposer() {
+      document.getElementById('inlineNoteComposer').classList.add('hidden');
+      document.getElementById('noteTextarea').value = '';
+    }
+
+    function insertIntoNote(snippet) {
+      const textarea = document.getElementById('noteTextarea');
+      textarea.value += snippet;
+      textarea.focus();
+    }
+
+    function saveNoteFromComposer() {
+      const noteText = document.getElementById('noteTextarea').value.trim();
+      const alsoZotero = document.getElementById('chkAlsoSaveZotero').checked;
+      const data = getSelectedRangeData();
+      const extractedTags = (noteText.match(/#[a-zA-Z0-9_-]+/g) || ['#literature-note']);
+
+      state.annotations.unshift({
+        id: 'ann-' + Date.now(),
+        type: 'obsidian',
+        sentenceIds: data.sentenceIds,
+        page: data.page,
+        timestamp: data.timestamp,
+        seconds: data.seconds,
+        quote: data.quote,
+        footnoteId: data.footnoteId,
+        healedHyphen: data.healedHyphen,
+        note: noteText || 'Margin note linked to sentence.',
+        tags: extractedTags
+      });
+
+      if (alsoZotero) {
+        state.annotations.unshift({
+          id: 'ann-z-' + Date.now(),
+          type: 'zotero',
+          sentenceIds: data.sentenceIds,
+          page: data.page,
+          timestamp: data.timestamp,
+          seconds: data.seconds,
+          quote: data.quote,
+          footnoteId: data.footnoteId,
+          healedHyphen: data.healedHyphen,
+          note: '',
+          tags: extractedTags
+        });
+      }
+
+      cancelNoteComposer();
+      renderMarginStream();
+      renderTimelineMarkers();
+      showToast(`Saved note to Obsidian Vault (p. ${data.page})`);
+
+      if (state.wasPlayingBeforeNote) togglePlayback(true);
+    }
+
+    function captureZoteroQuote() {
+      const data = getSelectedRangeData();
+      state.annotations.unshift({
+        id: 'ann-' + Date.now(),
+        type: 'zotero',
+        sentenceIds: data.sentenceIds,
+        page: data.page,
+        timestamp: data.timestamp,
+        seconds: data.seconds,
+        quote: data.quote,
+        footnoteId: data.footnoteId,
+        healedHyphen: data.healedHyphen,
+        note: '',
+        tags: ['#zotero-quote']
+      });
+
+      renderMarginStream();
+      renderTimelineMarkers();
+      showToast(`❝ Quote saved to Zotero (p. ${data.page})`);
+    }
+
+    function triggerAcousticBookmark(simulatedFromHeadphone = false) {
+      playEarcon('bookmark');
+      const useGraceBuffer = document.getElementById('chkReactionBuffer').checked;
+      const elapsed = Date.now() - state.sentenceStartedAtMs;
+
+      if (useGraceBuffer && (simulatedFromHeadphone || elapsed < 3500) && state.activeSentenceIdx > 0) {
+        state.rangeStartIdx = state.activeSentenceIdx - 1;
+        state.rangeEndIdx = state.activeSentenceIdx;
+        renderTranscript();
+      }
+
+      const data = getSelectedRangeData();
+      state.annotations.unshift({
+        id: 'ann-' + Date.now(),
+        type: 'inbox',
+        sentenceIds: data.sentenceIds,
+        page: data.page,
+        timestamp: data.timestamp,
+        seconds: data.seconds,
+        quote: data.quote,
+        footnoteId: data.footnoteId,
+        healedHyphen: data.healedHyphen,
+        note: useGraceBuffer
+          ? '🎧 Acoustic Bookmark (3s Grace Buffer captured previous + active sentence)'
+          : '🎧 Acoustic Bookmark saved for desk review',
+        tags: ['#inbox']
+      });
+
+      renderMarginStream();
+      renderTimelineMarkers();
+      showToast('🔖 Acoustic Bookmark added to Inbox');
+    }
+
+    function triggerWaitWhatLoop() {
+      playEarcon('loopBack');
+      const newIdx = Math.max(0, state.activeSentenceIdx - 2);
+      selectSentence(newIdx);
+      changePlaybackSpeed('0.85');
+      document.getElementById('speedSelect').value = '0.85';
+      document.getElementById('loopStatusBadge').classList.remove('hidden');
+      if (!state.isPlaying) togglePlayback(true);
+      showToast('🐢 Rewound 2 sentences at 0.85x speed');
+    }
+
+    function triggerAnkiAction() {
+      const data = getSelectedRangeData();
+      state.annotations.unshift({
+        id: 'ann-' + Date.now(),
+        type: 'anki',
+        sentenceIds: data.sentenceIds,
+        page: data.page,
+        timestamp: data.timestamp,
+        seconds: data.seconds,
+        quote: data.quote,
+        footnoteId: data.footnoteId,
+        healedHyphen: data.healedHyphen,
+        note: `Q: Explain how moral differentiation functions in this passage (Chapman, p. ${data.page}) — Attached 8s audio slice (${data.timestamp}.opus)`,
+        tags: ['#anki-card']
+      });
+      renderMarginStream();
+      renderTimelineMarkers();
+      renderAnkiPreviewList();
+      showToast(`🎴 Anki Flashcard + .opus audio slice queued (:8765)`);
+    }
+
+    function copyActiveSentenceCitation() {
+      const data = getSelectedRangeData();
+      const cite = `"${data.quote}" (Chapman, ${PAPER_META.year}, p. ${data.page})`;
+      copyToClipboard(cite);
+      showToast(`📋 Copied citation (Chapman, 2014, p. ${data.page})`);
+    }
+
+    function openVoiceNoteModal() {
+      state.wasPlayingBeforeNote = state.isPlaying;
+      if (state.isPlaying) togglePlayback(false);
+
+      document.getElementById('voiceModal').classList.remove('hidden');
+      document.getElementById('voiceModal').classList.add('flex');
+
+      const s = SENTENCES[state.activeSentenceIdx];
+      const preview = document.getElementById('voiceTranscriptPreview');
+      preview.textContent = 'Listening via local whisper.cpp...';
+
+      setTimeout(() => {
+        preview.textContent = `"Compare Chapman's argument on page ${s.page} with [[Thobani - Exalted Subjects]] regarding how state ceremonies devalue marginalized populations. #moral-economy"`;
+      }, 600);
+    }
+
+    function closeVoiceNoteModal() {
+      document.getElementById('voiceModal').classList.add('hidden');
+      document.getElementById('voiceModal').classList.remove('flex');
+    }
+
+    function commitVoiceNote() {
+      const transcript = document.getElementById('voiceTranscriptPreview').textContent.replace(/^"|"$/g, '');
+      const data = getSelectedRangeData();
+
+      state.annotations.unshift({
+        id: 'ann-' + Date.now(),
+        type: 'obsidian',
+        sentenceIds: data.sentenceIds,
+        page: data.page,
+        timestamp: data.timestamp,
+        seconds: data.seconds,
+        quote: data.quote,
+        footnoteId: data.footnoteId,
+        healedHyphen: data.healedHyphen,
+        note: `🎙️ ${transcript}`,
+        tags: ['#moral-economy', '#voice-note']
+      });
+
+      closeVoiceNoteModal();
+      renderMarginStream();
+      renderTimelineMarkers();
+      showToast('🎙️ Voice note transcribed & saved to Obsidian');
+
+      if (state.wasPlayingBeforeNote) togglePlayback(true);
+    }
+
+    function playFigureDescription() {
+      playEarcon('quoteChime');
+      showToast('🔊 Playing local vision-caption audio for Figure 1 (15s)...');
+    }
+
+    function captureFigureToObsidian() {
+      state.annotations.unshift({
+        id: 'ann-' + Date.now(),
+        type: 'obsidian',
+        sentenceIds: ['s1'],
+        page: 1,
+        timestamp: '00:18',
+        seconds: 18,
+        quote: '[Figure 1 Diagram: Interlocking Oppression & Moral Economy Valuation Matrix]',
+        footnoteId: null,
+        healedHyphen: false,
+        note: 'Embedded extracted Figure 1 diagram from Seite 1 into Obsidian Literature Note.',
+        tags: ['#figure']
+      });
+      renderMarginStream();
+      showToast('📊 Figure 1 saved to Margin Stream');
+    }
+
+    // -----------------------------------------------------------------------
+    // 8. RENDERING THE CRISP MARGIN STREAM
+    // -----------------------------------------------------------------------
+    function setMarginFilter(filter) {
+      state.marginFilter = filter;
+      ['all', 'obsidian', 'zotero', 'inbox', 'anki'].forEach(tab => {
+        const el = document.getElementById(`filterTab-${tab}`);
+        if (tab === filter) {
+          el.className = 'px-2.5 py-1 rounded-md bg-slate-900 text-white dark:bg-white dark:text-slate-950 transition';
+        } else {
+          el.className = 'px-2.5 py-1 rounded-md hover:text-slate-900 dark:hover:text-white transition';
+        }
+      });
+      renderMarginStream();
+    }
+
+    function formatWikiLinksAndTags(text) {
+      if (!text) return '';
+      return text
+        .replace(/\[\[([^\]]+)\]\]/g, '<span class="text-slate-900 dark:text-white font-medium underline decoration-slate-400 underline-offset-2 cursor-pointer">[[$1]]</span>')
+        .replace(/(#[a-zA-Z0-9_-]+)/g, '<span class="font-mono text-[10px] text-slate-500">$1</span>');
+    }
+
+    function renderMarginStream() {
+      const list = document.getElementById('marginStreamList');
+      document.getElementById('marginBadgeCount').textContent = state.annotations.length;
+      document.getElementById('headerExportCount').textContent = `(${state.annotations.length})`;
+
+      const filtered = state.annotations.filter(a => {
+        if (state.marginFilter === 'all') return true;
+        return a.type === state.marginFilter;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="py-16 text-center text-xs text-slate-400 space-y-1">
+            <div>No annotations in this filter.</div>
+            <div class="text-[11px]">Press <kbd class="font-mono">N</kbd> for Note or <kbd class="font-mono">Q</kbd> for Quote.</div>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = filtered.map(ann => {
+        let typeLabel = 'Obsidian Note';
+        let badgeStyle = 'bg-slate-900 text-white dark:bg-white dark:text-slate-950';
+        if (ann.type === 'zotero') {
+          typeLabel = 'Zotero Quote';
+          badgeStyle = 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700';
+        } else if (ann.type === 'inbox') {
+          typeLabel = 'Inbox Bookmark';
+          badgeStyle = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+        } else if (ann.type === 'anki') {
+          typeLabel = 'Anki Card';
+          badgeStyle = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+        }
+
+        const fnLine = ann.footnoteId && FOOTNOTES[ann.footnoteId]
+          ? `<div onclick="inspectFootnote('${ann.footnoteId}')" class="text-[11px] font-mono text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer transition">
+               ↳ Footnote [${FOOTNOTES[ann.footnoteId].label}]: ${FOOTNOTES[ann.footnoteId].shortCite}
+             </div>`
+          : '';
+
+        const noteBlock = ann.note
+          ? `<div class="text-xs text-slate-800 dark:text-slate-200 leading-relaxed pt-1">${formatWikiLinksAndTags(ann.note)}</div>`
+          : '';
+
+        return `
+          <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5 transition hover:border-slate-300 dark:hover:border-slate-700">
+            <div class="flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-medium ${badgeStyle}">${typeLabel}</span>
+                ${ann.healedHyphen ? '<span class="text-[10px] font-mono text-slate-400" title="Auto-healed PDF hyphenation">✨ Healed</span>' : ''}
+              </div>
+              <button onclick="jumpToAnnotation('${ann.sentenceIds[0]}')" class="font-mono text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                p. ${ann.page} • ${ann.timestamp} ↗
+              </button>
+            </div>
+
+            <blockquote class="font-serif text-[13px] italic text-slate-600 dark:text-slate-400 border-l-2 border-slate-200 dark:border-slate-700 pl-3 leading-relaxed">
+              “${ann.quote}”
+            </blockquote>
+
+            ${fnLine}
+            ${noteBlock}
+
+            <div class="pt-1.5 flex items-center justify-between text-[11px] text-slate-400">
+              <div class="flex items-center gap-3">
+                <button onclick="copyCitation('${ann.id}', 'apa')" class="hover:text-slate-900 dark:hover:text-white transition">Copy APA</button>
+                <button onclick="copyCitation('${ann.id}', 'latex')" class="font-mono hover:text-slate-900 dark:hover:text-white transition">\\autocite</button>
+              </div>
+              <button onclick="deleteAnnotation('${ann.id}')" class="hover:text-rose-600 transition">Remove</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function jumpToAnnotation(sentenceId) {
+      const idx = SENTENCES.findIndex(s => s.id === sentenceId);
+      if (idx !== -1) {
+        selectSentence(idx);
+        scrollToActiveSentence();
+      }
+    }
+
+    function copyCitation(annId, style) {
+      const ann = state.annotations.find(a => a.id === annId);
+      if (!ann) return;
+      const text = style === 'latex'
+        ? `\\enquote{${ann.quote}} \\autocite[p.~${ann.page}]{${PAPER_META.citekey}}`
+        : `"${ann.quote}" (Chapman, ${PAPER_META.year}, p. ${ann.page})`;
+      copyToClipboard(text);
+      showToast(`Copied ${style.toUpperCase()} citation to clipboard`);
+    }
+
+    function deleteAnnotation(annId) {
+      state.annotations = state.annotations.filter(a => a.id !== annId);
+      renderMarginStream();
+      renderTimelineMarkers();
+    }
+
+    // -----------------------------------------------------------------------
+    // 9. PLAYBACK & TIMELINE CONTROLS
+    // -----------------------------------------------------------------------
+    function togglePlayback(forceState = null) {
+      state.isPlaying = forceState !== null ? forceState : !state.isPlaying;
+      const icon = document.getElementById('playPauseIcon');
+      const text = document.getElementById('playPauseText');
+
+      if (state.isPlaying) {
+        icon.textContent = '⏸';
+        text.textContent = 'Pause';
+        state.sentenceStartedAtMs = Date.now();
+        const intervalMs = Math.round(4200 / state.playbackSpeed);
+        clearInterval(state.playbackTimer);
+        state.playbackTimer = setInterval(() => {
+          if (state.activeSentenceIdx < SENTENCES.length - 1) {
+            selectSentence(state.activeSentenceIdx + 1, true);
+          } else {
+            togglePlayback(false);
+          }
+        }, intervalMs);
+      } else {
+        icon.textContent = '▶';
+        text.textContent = state.lang === 'de' ? 'Abspielen' : 'Play';
+        clearInterval(state.playbackTimer);
+      }
+    }
+
+    function stepSentence(delta) {
+      const nextIdx = Math.min(SENTENCES.length - 1, Math.max(0, state.activeSentenceIdx + delta));
+      selectSentence(nextIdx);
+      if (!state.view.sentenceLevelMode) scrollToActiveSentence();
+    }
+
+    function jumpChapter(delta) {
+      if (delta < 0) {
+        scrollToElement('page1Block');
+        showToast('Kapitel 1 — Anfang (Seite 1)');
+      } else {
+        scrollToElement('page14Block');
+        showToast('Kapitel 1 — Aktuelle Lesestelle (Seite 14)');
+      }
+    }
+
+    function changePlaybackSpeed(val) {
+      state.playbackSpeed = parseFloat(val);
+      if (state.playbackSpeed !== 0.85) {
+        document.getElementById('loopStatusBadge').classList.add('hidden');
+      }
+      if (state.isPlaying) togglePlayback(true);
+      showToast(`Playback speed: ${val}x`);
+    }
+
+    function scrubTimeline(e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickPct = (e.clientX - rect.left) / rect.width;
+      const mappedIdx = Math.min(SENTENCES.length - 1, Math.max(0, Math.floor(clickPct * SENTENCES.length)));
+      selectSentence(mappedIdx);
+      if (!state.view.sentenceLevelMode) scrollToActiveSentence();
+    }
+
+    function renderTimelineMarkers() {
+      const container = document.getElementById('timelineMarkersContainer');
+      container.innerHTML = state.annotations.map(ann => {
+        const sIdx = SENTENCES.findIndex(s => s.id === ann.sentenceIds[0]);
+        const pct = sIdx !== -1 ? ((sIdx + 1) / SENTENCES.length) * 65 + 15 : 35;
+        return `<span class="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-white" style="left: ${pct}%"></span>`;
+      }).join('');
+    }
+
+    // -----------------------------------------------------------------------
+    // 10. EXPORT & LOCAL ECOSYSTEM MODAL
+    // -----------------------------------------------------------------------
+    function generateObsidianMarkdown() {
+      let md = `---\ntitle: "${PAPER_META.title}"\nauthor: "${PAPER_META.author}"\nyear: ${PAPER_META.year}\ncitekey: "${PAPER_META.citekey}"\nsource: sci2audio\ndoc_id: "${PAPER_META.docId}"\ntags: [literature-note, moral-economy, social-work]\n---\n\n# ${PAPER_META.title}\n\n`;
+
+      state.annotations.forEach(ann => {
+        const deepLink = `sci2audio://listen/${PAPER_META.docId}?page=${ann.page}&sentence=${ann.sentenceIds[0]}&t=${ann.seconds}`;
+        md += `### Annotation (p. ${ann.page} • ${ann.timestamp})\n`;
+        md += `> [!quote] Chapman (${PAPER_META.year}, p. ${ann.page}) — [🎧 Listen at ${ann.timestamp}](${deepLink})\n`;
+        md += `> "${ann.quote}"\n`;
+        if (ann.footnoteId && FOOTNOTES[ann.footnoteId]) {
+          md += `> *Footnote [${FOOTNOTES[ann.footnoteId].label}]:* ${FOOTNOTES[ann.footnoteId].healedText}\n`;
+        }
+        if (ann.note) {
+          md += `\n${ann.note}\n`;
+        }
+        md += `\n---\n\n`;
+      });
+
+      return md;
+    }
+
+    function generateZoteroPayload() {
+      const format = document.getElementById('citationFormatSelect') ? document.getElementById('citationFormatSelect').value : 'apa';
+      const payload = {
+        localServer: "http://127.0.0.1:23119/connector/saveStandaloneNote",
+        parentCitekey: PAPER_META.citekey,
+        autoHealedHyphens: state.autoHealPdf,
+        selectedCitationFormat: format,
+        childNotes: state.annotations.map(ann => {
+          let formattedCite = `"${ann.quote}" (Chapman, 2014, p. ${ann.page})`;
+          if (format === 'latex') formattedCite = `\\enquote{${ann.quote}} \\autocite[p.~${ann.page}]{${PAPER_META.citekey}}`;
+          if (format === 'chicago') formattedCite = `"${ann.quote}" (Chapman 2014, ${ann.page})`;
+          return {
+            page: ann.page,
+            audioURI: `sci2audio://listen/${PAPER_META.docId}?page=${ann.page}&t=${ann.seconds}`,
+            formattedCitation: formattedCite,
+            attachedFootnote: ann.footnoteId ? FOOTNOTES[ann.footnoteId].healedText : null,
+            note: ann.note || null
+          };
+        })
+      };
+      return JSON.stringify(payload, null, 2);
+    }
+
+    function updateZoteroPreview() {
+      document.getElementById('zoteroJsonCode').textContent = generateZoteroPayload();
+    }
+
+    function renderAnkiPreviewList() {
+      const container = document.getElementById('ankiCardsPreviewList');
+      if (!container) return;
+      const cards = state.annotations.filter(a => a.type === 'anki' || a.type === 'obsidian');
+      container.innerHTML = cards.map(c => `
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 text-xs">
+          <div class="space-y-1">
+            <div class="font-mono text-[10px] text-slate-400">Deck: Studium::Social_Work • p. ${c.page} (${c.timestamp})</div>
+            <div class="font-medium text-slate-900 dark:text-white">${c.note || 'Cloze card generated from highlighted sentence'}</div>
+            <div class="font-serif italic text-slate-500">Source: "${c.quote}"</div>
+          </div>
+          <button onclick="playEarcon('bookmark'); showToast('🔊 Playing sliced 8s sentence audio (.opus)')" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0">
+            ▶ Audio Slice
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function openExportModal(defaultTab = 'obsidian') {
+      document.getElementById('obsidianMarkdownCode').textContent = generateObsidianMarkdown();
+      document.getElementById('zoteroJsonCode').textContent = generateZoteroPayload();
+      renderAnkiPreviewList();
+      document.getElementById('exportModal').classList.remove('hidden');
+      document.getElementById('exportModal').classList.add('flex');
+      switchExportTab(defaultTab);
+    }
+
+    function closeExportModal() {
+      document.getElementById('exportModal').classList.add('hidden');
+      document.getElementById('exportModal').classList.remove('flex');
+    }
+
+    function switchExportTab(tab) {
+      ['obsidian', 'zotero', 'anki', 's2a'].forEach(t => {
+        document.getElementById(`exportContent-${t}`).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById(`modalTab-${t}`);
+        if (t === tab) {
+          btn.className = 'pb-2.5 font-semibold border-b-2 border-slate-950 dark:border-white text-slate-950 dark:text-white';
+        } else {
+          btn.className = 'pb-2.5 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900';
+        }
+      });
+    }
+
+    function copyObsidianMarkdown() {
+      copyToClipboard(generateObsidianMarkdown());
+      showToast('Copied Obsidian Markdown with sci2audio:// links');
+    }
+
+    function downloadMarkdownFile() {
+      const blob = new Blob([generateObsidianMarkdown()], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Chapman - A violent history of benevolence.md';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Downloaded Chapman - A violent history of benevolence.md');
+    }
+
+    function triggerObsidianURI() {
+      showToast('Opened obsidian://new — Synced with local Obsidian Vault');
+    }
+
+    function copyAllLatexCitations() {
+      const cites = state.annotations.map(a => `"${a.quote}" \\autocite[p.~${a.page}]{${PAPER_META.citekey}}`).join('\n\n');
+      copyToClipboard(cites);
+      showToast('Copied all citations to clipboard');
+    }
+
+    function simulateZoteroSync() {
+      showToast(`Synced ${state.annotations.length} Child Notes to Zotero Desktop (:23119)`);
+    }
+
+    // -----------------------------------------------------------------------
+    // 11. POPOVERS, LANGUAGE & UTILITIES
+    // -----------------------------------------------------------------------
+    function togglePopover(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden');
+    }
+
+    function closePopoversOnOutsideClick(e) {
+      if (!e.target.closest('#pacingPopover') && !e.target.closest('#btnPacingPopover')) {
+        document.getElementById('pacingPopover').classList.add('hidden');
+      }
+    }
+
+    function setLanguage(lang) {
+      state.lang = lang;
+      document.getElementById('langBtn-de').className = lang === 'de'
+        ? 'px-2.5 py-0.5 rounded-md font-medium bg-white dark:bg-slate-800 shadow-sm'
+        : 'px-2.5 py-0.5 rounded-md font-medium text-slate-500';
+      document.getElementById('langBtn-en').className = lang === 'en'
+        ? 'px-2.5 py-0.5 rounded-md font-medium bg-white dark:bg-slate-800 shadow-sm'
+        : 'px-2.5 py-0.5 rounded-md font-medium text-slate-500';
+
+      document.getElementById('headerInstructionText').innerHTML = lang === 'de'
+        ? 'Der Text wie gedruckt; der Satz, der gerade gelesen wird, ist hervorgehoben. Klicken Sie auf einen Satz, um ab dort abzuspielen, oder drücken Sie <kbd class="font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800">N</kbd> für eine Notiz bzw. <kbd class="font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800">Q</kbd> für ein Zitat.'
+        : 'The text as printed; the currently spoken sentence is highlighted. Click any sentence to play from there, or press <kbd class="font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800">N</kbd> for an Obsidian Note or <kbd class="font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800">Q</kbd> for a Zotero Quote.';
+
+      document.getElementById('playPauseText').textContent = state.isPlaying ? 'Pause' : (lang === 'de' ? 'Abspielen' : 'Play');
+      showToast(lang === 'de' ? 'Sprache: Deutsch' : 'Language: English');
+    }
+
+    function toggleFigurePreview(forceOpen = null) {
+      const content = document.getElementById('figurePreviewContent');
+      const btn = document.getElementById('btnToggleFigure');
+      const shouldShow = forceOpen !== null ? forceOpen : content.classList.contains('hidden');
+      content.classList.toggle('hidden', !shouldShow);
+      btn.textContent = shouldShow ? 'Hide Figure ▴' : 'Inspect Figure ▾';
+      if (forceOpen) scrollToElement('page1Block');
+    }
+
+    function togglePdfAutoHeal(checked) {
+      state.autoHealPdf = checked;
+      renderTranscript();
+      renderFootnotes();
+      showToast(checked ? '✨ Auto-Heal PDF: ON (mate-rial → material)' : 'Auto-Heal PDF: OFF');
+    }
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    function scrollToElement(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function scrollToActiveSentence() {
+      const s = SENTENCES[state.activeSentenceIdx];
+      const el = document.getElementById(`sentence-${s.id}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function copyToClipboard(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'px-3.5 py-2 rounded-lg bg-slate-950 text-white dark:bg-white dark:text-slate-950 text-xs font-medium shadow-md transition-all duration-200';
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 250);
+      }, 2400);
+    }
+
+    // -----------------------------------------------------------------------
+    // 12. GLOBAL KEYBOARD SHORTCUTS (N, Q, B, V, A, S, CMD+SHIFT+C, ARROWS)
+    // -----------------------------------------------------------------------
+    window.addEventListener('keydown', (e) => {
+      const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      if (tag === 'textarea' || tag === 'input') {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          saveNoteFromComposer();
+        } else if (e.key === 'Escape') {
+          cancelNoteComposer();
+        }
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        copyActiveSentenceCitation();
+        return;
+      }
+
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        openNoteComposer();
+      } else if (e.key === 'q' || e.key === 'Q') {
+        e.preventDefault();
+        captureZoteroQuote();
+      } else if (e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        triggerAcousticBookmark(false);
+      } else if (e.key === 'v' || e.key === 'V') {
+        e.preventDefault();
+        openVoiceNoteModal();
+      } else if (e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        triggerAnkiAction();
+      } else if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        toggleSettingsDrawer();
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlayback();
+      } else if (e.key === 'ArrowRight' || e.key === ']') {
+        e.preventDefault();
+        stepSentence(1);
+      } else if (e.key === 'ArrowLeft' || e.key === '[') {
+        e.preventDefault();
+        stepSentence(-1);
+      }
+    });
+
+    // Initialize on load
+    window.onload = function () {
+      syncViewDOM();
+      renderFootnotes();
+      renderMarginStream();
+      renderTimelineMarkers();
+    };
+  </script>
+</body>
+</html>

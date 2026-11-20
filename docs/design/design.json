@@ -1,0 +1,541 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-15T19:22:48+00:00",
+  "title": "Design System: sci2audio",
+  "extensions": {
+    "colorMeta": {
+      "cobalt": {
+        "role": "primary",
+        "displayName": "Binder Cobalt",
+        "darkValue": "#1C2E78",
+        "canonical": "oklch(42.0% 0.170 267)",
+        "tonalRamp": [
+          "#030824",
+          "#0E1F5A",
+          "#1F3997",
+          "#395CC6",
+          "#5A81EF",
+          "#85AAFF",
+          "#B4D0FF",
+          "#DCEEFF"
+        ]
+      },
+      "cobalt-deep": {
+        "role": "primary",
+        "displayName": "Cobalt Deep",
+        "darkValue": "#15235E",
+        "canonical": "oklch(35.4% 0.148 267)",
+        "tonalRamp": [
+          "#030921",
+          "#122154",
+          "#253D8D",
+          "#405FBA",
+          "#6183E2",
+          "#8BABFC",
+          "#B8D0FF",
+          "#DFEEFF"
+        ]
+      },
+      "cobalt-line": {
+        "role": "primary",
+        "displayName": "Cobalt Line",
+        "darkValue": "#2D41A0"
+      },
+      "on-cobalt": {
+        "role": "primary",
+        "displayName": "On Cobalt",
+        "darkValue": "#FFFFFF"
+      },
+      "on-cobalt-2": {
+        "role": "primary",
+        "displayName": "Cobalt Mist",
+        "darkValue": "#C3CCF0"
+      },
+      "hl-read": {
+        "role": "secondary",
+        "displayName": "Reading Yellow",
+        "darkValue": "#F2DC3A",
+        "canonical": "oklch(92.5% 0.171 101)",
+        "tonalRamp": [
+          "#110B00",
+          "#332500",
+          "#584300",
+          "#7C6500",
+          "#A08A00",
+          "#C1B031",
+          "#DED388",
+          "#F7F1C2"
+        ]
+      },
+      "hl-note": {
+        "role": "secondary",
+        "displayName": "Note Green",
+        "darkValue": "#6CD27C",
+        "canonical": "oklch(83.1% 0.157 147)",
+        "tonalRamp": [
+          "#001100",
+          "#003202",
+          "#005805",
+          "#007C28",
+          "#36A24C",
+          "#72C47D",
+          "#AAE1AF",
+          "#D7F9D9"
+        ]
+      },
+      "hl-quote": {
+        "role": "secondary",
+        "displayName": "Quote Blue",
+        "darkValue": "#5FB6F0",
+        "canonical": "oklch(78.9% 0.120 240)",
+        "tonalRamp": [
+          "#000D1B",
+          "#002A47",
+          "#004A79",
+          "#006DA3",
+          "#3792CA",
+          "#71B6E6",
+          "#A9D8FA",
+          "#D6F3FF"
+        ]
+      },
+      "hl-card": {
+        "role": "secondary",
+        "displayName": "Card Pink",
+        "darkValue": "#F07DB8",
+        "canonical": "oklch(78.6% 0.149 349)",
+        "tonalRamp": [
+          "#1A020E",
+          "#450B2D",
+          "#761950",
+          "#A13A73",
+          "#C95E97",
+          "#E88CBA",
+          "#FCBBDA",
+          "#FFE1F4"
+        ]
+      },
+      "hl-mark": {
+        "role": "secondary",
+        "displayName": "Mark Orange",
+        "darkValue": "#F0A53C",
+        "canonical": "oklch(82.1% 0.149 72)",
+        "tonalRamp": [
+          "#180600",
+          "#411B00",
+          "#6F3200",
+          "#985300",
+          "#BF7700",
+          "#DEA04E",
+          "#F4C994",
+          "#FFEAC9"
+        ]
+      },
+      "error": {
+        "role": "tertiary",
+        "displayName": "Error Red",
+        "darkValue": "#FF8A80",
+        "canonical": "oklch(50.0% 0.182 30)",
+        "tonalRamp": [
+          "#200000",
+          "#510000",
+          "#890000",
+          "#B7271C",
+          "#E25242",
+          "#FF8674",
+          "#FFB7A9",
+          "#FFDFD6"
+        ]
+      },
+      "error-wash": {
+        "role": "tertiary",
+        "displayName": "Error Wash",
+        "darkValue": "#3A1A18",
+        "canonical": "oklch(95.6% 0.019 26)",
+        "tonalRamp": [
+          "#0E0A0A",
+          "#2C2423",
+          "#4E4240",
+          "#716261",
+          "#948583",
+          "#B8AAA9",
+          "#D8CECD",
+          "#F3EDEC"
+        ]
+      },
+      "wait": {
+        "role": "tertiary",
+        "displayName": "Wait Umber",
+        "darkValue": "#FFC870",
+        "canonical": "oklch(45.6% 0.099 69)",
+        "tonalRamp": [
+          "#140800",
+          "#3A1F00",
+          "#643A00",
+          "#8A5A1A",
+          "#B07E41",
+          "#D0A574",
+          "#EACBAA",
+          "#FFEBD6"
+        ]
+      },
+      "wait-wash": {
+        "role": "tertiary",
+        "displayName": "Wait Wash",
+        "darkValue": "#33280F",
+        "canonical": "oklch(96.8% 0.033 84)",
+        "tonalRamp": [
+          "#0D0B06",
+          "#2B261B",
+          "#4D4432",
+          "#6F6551",
+          "#938873",
+          "#B6AD9B",
+          "#D7D0C4",
+          "#F2EEE6"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "darkValue": "#E9EAED",
+        "canonical": "oklch(20.9% 0.010 268)",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#25262A",
+          "#43454A",
+          "#63666C",
+          "#868990",
+          "#ABAEB4",
+          "#CFD1D5",
+          "#EDEEF1"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink Soft",
+        "darkValue": "#C4C7CD",
+        "canonical": "oklch(36.3% 0.015 264)",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#24262B",
+          "#41454D",
+          "#62666F",
+          "#858992",
+          "#AAAEB6",
+          "#CED1D7",
+          "#EDEEF2"
+        ]
+      },
+      "pencil": {
+        "role": "neutral",
+        "displayName": "Pencil",
+        "darkValue": "#A2A6AE",
+        "canonical": "oklch(48.1% 0.014 264)",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#24262B",
+          "#42454C",
+          "#62666E",
+          "#858992",
+          "#AAAEB5",
+          "#CED1D6",
+          "#EDEEF2"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "darkValue": "#1C1F25",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#262626",
+          "#454545",
+          "#666666",
+          "#898989",
+          "#AEAEAE",
+          "#D1D1D1",
+          "#EEEEEE"
+        ]
+      },
+      "desk": {
+        "role": "neutral",
+        "displayName": "Desk",
+        "darkValue": "#111317",
+        "canonical": "oklch(95.1% 0.005 258)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#262628",
+          "#444547",
+          "#646669",
+          "#87898C",
+          "#ACAEB0",
+          "#D0D1D3",
+          "#EEEEEF"
+        ]
+      },
+      "desk-2": {
+        "role": "neutral",
+        "displayName": "Desk Shade",
+        "darkValue": "#181B20",
+        "canonical": "oklch(92.4% 0.006 255)",
+        "tonalRamp": [
+          "#0A0B0C",
+          "#252728",
+          "#434548",
+          "#64666A",
+          "#87898D",
+          "#ACAEB1",
+          "#CFD1D3",
+          "#EDEEF0"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "darkValue": "#30343C",
+        "canonical": "oklch(88.8% 0.008 261)",
+        "tonalRamp": [
+          "#0A0B0C",
+          "#252629",
+          "#434549",
+          "#64666B",
+          "#86898E",
+          "#ACAEB2",
+          "#CFD1D4",
+          "#EDEEF0"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Rule Strong",
+        "darkValue": "#6E737C",
+        "canonical": "oklch(65.5% 0.013 260)",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#24272B",
+          "#41454C",
+          "#62666E",
+          "#848991",
+          "#AAAEB5",
+          "#CED1D6",
+          "#EDEEF2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Focus Sentence",
+        "purpose": "The current sentence in focus listening only."
+      },
+      "headline": {
+        "displayName": "Chapter Head",
+        "purpose": "Chapter and paper titles in Literata; 28px paper title, 22px section heads."
+      },
+      "view-title": {
+        "displayName": "View Title",
+        "purpose": "App view titles in Atkinson."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Step, dialog and section heads, 17-19px."
+      },
+      "reading": {
+        "displayName": "Reading",
+        "purpose": "Sheet paragraphs, max 66ch."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All interface text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, column heads, capture type labels; sentence case, never uppercase."
+      },
+      "figures": {
+        "displayName": "Figures",
+        "purpose": "Tabular lining figures for every number."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sheet",
+        "value": "0 1px 2px rgba(22,24,29,.06), 0 8px 24px -12px rgba(22,24,29,.18)",
+        "dark": "0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6)",
+        "purpose": "The paper sheet on the listen screen only."
+      },
+      {
+        "name": "pop",
+        "value": "0 2px 6px rgba(22,24,29,.10), 0 16px 40px -16px rgba(22,24,29,.30)",
+        "dark": "0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7)",
+        "purpose": "Popovers, menus, dialogs, toasts, the capture composer, the overlaid context panel."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "All state transitions: switches, flag slide-out (.45s), capture arrival (.7s), toasts (.4s)."
+      },
+      {
+        "name": "sweep",
+        "value": "background-size var(--dur) linear",
+        "purpose": "The reading highlight advancing with speech over the sentence's spoken duration; whole-sentence highlight under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact",
+        "value": "max-width: 1399px",
+        "purpose": "Rail 232px, panel 320px, sheet padding 48px, capture keys drop labels."
+      },
+      {
+        "name": "narrow",
+        "value": "max-width: 1279px",
+        "purpose": "Context panel becomes a right overlay; side columns stack."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink-filled action; one per region. Cobalt is never a button fill.",
+      "html": "<button class=\"ds-btn-primary\">Continue from 28:14</button>",
+      "css": ".ds-btn-primary{font-family:var(--ui,'Atkinson Hyperlegible',system-ui,sans-serif);display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:7px 14px;border-radius:4px;border:1px solid var(--rule-strong,#8C9199);font-weight:700;font-size:14.5px;cursor:pointer;background:var(--ink,#16181D);border-color:var(--ink,#16181D);color:var(--paper,#FFFFFF);transition:background .2s cubic-bezier(.16,1,.3,1)}.ds-btn-primary:hover{background:var(--ink-2,#3A3E46)}.ds-btn-primary:focus-visible{outline:2px solid var(--cobalt,#2340A8);outline-offset:2px;}"
+    },
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default outlined paper button.",
+      "html": "<button class=\"ds-btn\">Start of the chapter</button>",
+      "css": ".ds-btn{font-family:var(--ui,'Atkinson Hyperlegible',system-ui,sans-serif);display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:7px 14px;border-radius:4px;border:1px solid var(--rule-strong,#8C9199);font-weight:700;font-size:14.5px;cursor:pointer;background:var(--paper,#FFFFFF);color:var(--ink,#16181D)}.ds-btn:hover{background:var(--desk-2,#E3E6EA)}.ds-btn:focus-visible{outline:2px solid var(--cobalt,#2340A8);outline-offset:2px;}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Label above, hint below in pencil; hairline-outlined paper field.",
+      "html": "<div class=\"ds-field\"><label for=\"ds-f\">Output folder</label><input id=\"ds-f\" class=\"ds-input\" value=\"~/Audiobooks\"><span>Your audiobook stays in this folder.</span></div>",
+      "css": ".ds-field{font-family:var(--ui,'Atkinson Hyperlegible',system-ui,sans-serif);display:grid;gap:6px;max-width:360px;color:var(--ink,#16181D)}.ds-field label{font-weight:700;font-size:14px}.ds-field span{color:var(--pencil,#5A5E66);font-size:13.5px}.ds-input{font:inherit;font-size:15px;min-height:38px;padding:7px 10px;border:1px solid var(--rule-strong,#8C9199);border-radius:4px;background:var(--paper,#FFFFFF);color:var(--ink,#16181D)}.ds-input:focus-visible{outline:2px solid var(--cobalt,#2340A8);outline-offset:2px;}"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Cobalt binder rail; the current item becomes a paper tab.",
+      "html": "<nav class=\"ds-rail\"><a href=\"#\" aria-current=\"page\">Library<span>7</span></a><a href=\"#\">Captures<span>9</span></a><a href=\"#\">Voices</a></nav>",
+      "css": ".ds-rail{font-family:var(--ui,'Atkinson Hyperlegible',system-ui,sans-serif);background:var(--cobalt,#2340A8);padding:12px;display:grid;gap:2px;width:240px}.ds-rail a{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:4px;color:#FFFFFF;text-decoration:none;font-size:15px}.ds-rail a span{margin-left:auto;font-size:13px;color:var(--on-cobalt-2,#CCD5F4);font-variant-numeric:tabular-nums}.ds-rail a:hover{background:var(--cobalt-deep,#1A3087)}.ds-rail a[aria-current=page]{background:var(--paper,#FFFFFF);color:var(--ink,#16181D);font-weight:700}.ds-rail a[aria-current=page] span{color:var(--pencil,#5A5E66)}.ds-rail a:focus-visible{outline:2px solid var(--hl-read,#FFE94A);outline-offset:2px}"
+    },
+    {
+      "name": "State Chips",
+      "kind": "chip",
+      "refersTo": "chip-ready",
+      "description": "Icon plus word; outlines and washes, never fluorescent, never button-like.",
+      "html": "<div class=\"ds-chips\"><span class=\"ds-state ds-ready\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m4.5 12.5 5 5 10-11\"/></svg>Ready</span><span class=\"ds-state ds-making\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M3 12h2M7 8v8M11 5v14M15 9v6M19 7v10\"/></svg>Making</span><span class=\"ds-state ds-warn\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3 2.5 20h19z\"/><path d=\"M12 10v4.5M12 17.5h.01\"/></svg>Offline</span><span class=\"ds-state ds-failed\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3 2.5 20h19z\"/><path d=\"M12 10v4.5M12 17.5h.01\"/></svg>Stopped</span></div>",
+      "css": ".ds-chips{display:flex;gap:10px;flex-wrap:wrap}.ds-state{font-family:var(--ui,'Atkinson Hyperlegible',system-ui,sans-serif);display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;padding:2px 8px 2px 6px;border-radius:4px;white-space:nowrap}.ds-ready{color:var(--ink,#16181D);box-shadow:inset 0 0 0 1px var(--rule-strong,#8C9199)}.ds-making{color:var(--ink,#16181D);box-shadow:inset 0 0 0 1px var(--ink,#16181D);border-radius:999px}.ds-warn{color:var(--wait,#7A4B00);box-shadow:inset 0 0 0 1px currentColor;border-radius:999px}.ds-failed{background:var(--error-wash,#FDECEA);color:var(--error,#B42318)}"
+    },
+    {
+      "name": "Capture Flags",
+      "kind": "custom",
+      "refersTo": "flag",
+      "description": "Squared highlighter tabs, one colour per capture type.",
+      "html": "<div class=\"ds-flags\"><span class=\"ds-flag\" style=\"--c:#7BE38A\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 20h4L19 9l-4-4L4 16z\"/><path d=\"m13 7 4 4\"/></svg></span><span class=\"ds-flag\" style=\"--c:#6CC4FF\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 17c3 0 4-2 4-5V7H5v5h4M15 17c3 0 4-2 4-5V7h-4v5h4\"/></svg></span><span class=\"ds-flag\" style=\"--c:#FF8FC8\"></span><span class=\"ds-flag\" style=\"--c:#FFB347\"></span></div>",
+      "css": ".ds-flags{display:grid;gap:6px;justify-items:start}.ds-flag{display:inline-grid;place-items:center;width:24px;height:18px;background:var(--c);color:#16181D;border-radius:0 3px 3px 0;box-shadow:inset 0 0 0 1px rgba(22,24,29,.28);transition:transform .45s cubic-bezier(.16,1,.3,1)}.ds-flag:hover{transform:translateX(3px)}"
+    },
+    {
+      "name": "Capture (marginalia)",
+      "kind": "custom",
+      "refersTo": "flag",
+      "description": "A ruled row with a hanging flag; cancelled state strikes through in pencil with restore.",
+      "html": "<div class=\"ds-caps\"><article class=\"ds-cap\"><span class=\"ds-flag2\" style=\"--c:#6CC4FF\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 17c3 0 4-2 4-5V7H5v5h4M15 17c3 0 4-2 4-5V7h-4v5h4\"/></svg></span><span class=\"k\">Quote to cite</span><q>Reaction times on the vigilance task fell by 12 ms for each additional hour of sleep.</q><span class=\"f\">p. 7 · 18:42</span></article><article class=\"ds-cap ds-cancelled\"><span class=\"ds-flag2\" style=\"--c:#7BE38A\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 20h4L19 9l-4-4L4 16z\"/><path d=\"m13 7 4 4\"/></svg></span><span class=\"k\">Note</span><q>Naps were not counted.</q><span class=\"f\">p. 7 · 19:05<button><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10a6 6 0 0 1 0 12h-3\"/></svg>Restore</button></span></article></div>",
+      "css": ".ds-caps{font-family:var(--ui,'Atkinson Hyperlegible',system-ui,sans-serif);max-width:320px;border-bottom:1px solid var(--rule,#D7DADF);color:var(--ink,#16181D)}.ds-cap{border-top:1px solid var(--rule,#D7DADF);padding:14px 4px 14px 40px;position:relative;display:grid;gap:6px}.ds-flag2{position:absolute;left:0;top:14px;display:inline-grid;place-items:center;width:24px;height:18px;background:var(--c);color:#16181D;border-radius:0 3px 3px 0;box-shadow:inset 0 0 0 1px rgba(22,24,29,.28)}.ds-cap .k{font-size:12.5px;font-weight:700;color:var(--pencil,#5A5E66)}.ds-cap q{font:italic 400 15.5px/1.5 var(--read,Literata,Georgia,serif);quotes:none}.ds-cap .f{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--pencil,#5A5E66);font-variant-numeric:tabular-nums}.ds-cap .f button{margin-left:auto;display:inline-flex;gap:6px;align-items:center;border:0;background:none;font:inherit;font-weight:700;color:var(--ink,#16181D);padding:4px 8px;border-radius:4px;cursor:pointer}.ds-cap .f button:hover{background:var(--desk-2,#E3E6EA)}.ds-cancelled{border-top-style:dashed}.ds-cancelled q{text-decoration:line-through;color:var(--pencil,#5A5E66)}"
+    },
+    {
+      "name": "Reading Sweep",
+      "kind": "custom",
+      "refersTo": "sheet",
+      "description": "Literata on paper; the sentence being read fills with reading yellow, skipped citations struck in pencil.",
+      "html": "<div class=\"ds-sheet\"><p>Reaction times fell by 12 ms per hour of sleep <span class=\"cut\">(t(34) = 2.81, p &lt; .01)</span>. <span class=\"ds-s\">Naps, e.g. after lunch, were not counted.</span></p></div>",
+      "css": ".ds-sheet{background:var(--paper,#FFFFFF);box-shadow:0 1px 2px rgba(22,24,29,.06),0 8px 24px -12px rgba(22,24,29,.18);border-radius:2px;padding:28px 40px;max-width:520px}.ds-sheet p{font:400 20px/1.8 Literata,Georgia,serif;color:var(--ink,#16181D);margin:0}.ds-sheet .cut{color:var(--pencil,#5A5E66);text-decoration:line-through;font-size:.92em}.ds-s{background-image:linear-gradient(#FFE94A,#FFE94A);background-color:rgba(255,233,74,.3);background-repeat:no-repeat;background-size:60% 100%;transition:background-size 2s linear;border-radius:2px;padding:2px 0;-webkit-box-decoration-break:clone;box-decoration-break:clone}.ds-sheet:hover .ds-s{background-size:100% 100%}"
+    },
+    {
+      "name": "Toast with Undo",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "Ink popover confirming a capture, with undo.",
+      "html": "<div class=\"ds-toast\"><span class=\"ds-tf\"></span><span>Note saved at p. 7</span><button>Undo</button></div>",
+      "css": ".ds-toast{font-family:var(--ui,'Atkinson Hyperlegible',system-ui,sans-serif);display:flex;gap:12px;align-items:center;background:var(--ink,#16181D);color:var(--paper,#FFFFFF);border-radius:4px;padding:10px 12px 10px 14px;box-shadow:0 2px 6px rgba(22,24,29,.10),0 16px 40px -16px rgba(22,24,29,.30);font-size:14.5px;min-width:320px}.ds-tf{width:24px;height:18px;background:#7BE38A;border-radius:0 3px 3px 0}.ds-toast button{margin-left:auto;background:none;border:1px solid rgba(255,255,255,.5);color:inherit;border-radius:4px;padding:4px 10px;font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}.ds-toast button:hover{background:rgba(255,255,255,.12)}.ds-toast button:focus-visible{outline:2px solid #6CC4FF;outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Working Reader",
+    "overview": "The app is the student's own marked-up copy of the paper. A bright white sheet of bond paper lies on a cool grey desk; the shell around it is a binder-cobalt rail. Ink is black, marginalia and cancels are pencil grey, and colour enters only as highlighter: the voice sweeps the sentence it reads in yellow, and every capture sticks out of the page edge as a small coloured flag at its sentence, mirrored along the top of the timeline.\n\nDensity is that of a working document, not a showcase. Hairline rules divide everything; surfaces are paper panels with 4px corners and no lift. The reading column is the product and is defended at every width: tools appear beside it and recede. The interface speaks in Atkinson Hyperlegible, the paper speaks in Literata, and every number is set in tabular figures.\n\nThe world refuses the category default for reading tools: a grey sidebar, a blue selection highlight, and a notes panel of rounded cards.",
+    "keyCharacteristics": [
+      "White paper sheet on a cool grey desk, cobalt rail as the shell.",
+      "Highlighter fluorescents carry meaning, never decoration.",
+      "Captures are flags and ruled marginalia, not cards.",
+      "Changes cancel in pencil and can be undone; nothing silently disappears.",
+      "Two bundled faces: Atkinson Hyperlegible for interface, Literata for reading.",
+      "Hairline rules and 4px corners; one soft shadow, reserved for the sheet and popovers."
+    ],
+    "rules": [
+      {
+        "name": "The Highlighter Rule",
+        "body": "Fluorescents appear only for reading (the yellow sweep) and the four capture types (note green, quote blue, card pink, mark orange). Never on status chips, buttons, navigation or decoration. Never two highlighter fills in one region of text: a sentence carries one highlight at a time. Flags, flag strips, timeline ticks and the four capture keys are the capture index and show each type in its own colour as a small tab.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Cobalt Rule",
+        "body": "Cobalt is the shell. It is not an accent for buttons or links on paper; primary actions are ink.",
+        "section": "colors"
+      },
+      {
+        "name": "The Form-Not-Colour Rule",
+        "body": "State is carried by an icon and a word as well as colour: every chip has its icon, every cancel its strike-through.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Literata is for the paper and anything quoted from it (sheet, printed/read columns, captured quotes, card faces). Atkinson is for everything the app says. Never mix them within one line of interface.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every number (counts, times, pages, sizes, percentages) is set with tabular lining figures (`tnum`, `lnum`).",
+        "section": "typography"
+      },
+      {
+        "name": "The Column Wins Rule",
+        "body": "The reading column never collapses. Panels collapse first, then labels, then the rail narrows.",
+        "section": "layout"
+      },
+      {
+        "name": "The One Sheet Rule",
+        "body": "A soft offset shadow belongs only to the paper sheet and to popovers. Panels, steps, rows and cards are flat with a hairline. No hard offset shadows anywhere.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep the reading column at full measure (66ch) and collapse the panel, labels and rail before it.",
+      "**Do** use exactly one highlighter per meaning: yellow for being read; green note, blue quote, pink card, orange mark.",
+      "**Do** draw captures as ruled marginalia with a hanging flag.",
+      "**Do** cancel instead of deleting: pencil strike-through plus undo for switched-off changes and removed captures.",
+      "**Do** set every number in tabular figures.",
+      "**Do** carry state with icon and word: ready is an outline with a check, in progress an ink-outline pill, warning an outline in Wait Umber, error an error wash.",
+      "**Do** use Literata for anything from the paper and Atkinson Hyperlegible for everything the app says."
+    ],
+    "donts": [
+      "**Don't** put highlighter fluorescents on status chips, buttons or decoration, or two highlighter fills in one region.",
+      "**Don't** box captures as cards or nest a card inside a card.",
+      "**Don't** make a status chip look like a filled button.",
+      "**Don't** give a shadow to anything but the paper sheet and popovers; never a hard offset shadow.",
+      "**Don't** use cobalt as an accent on paper; primary actions are ink.",
+      "**Don't** silently remove anything the user or the rules changed.",
+      "**Don't** use uppercase tracked labels or kickers above headings."
+    ]
+  }
+}

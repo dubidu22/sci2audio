@@ -2,9 +2,8 @@
 
 Durable project knowledge that every new thread reads before acting:
 
-- `decision-log.md` — a pointer: sci2audio's decision log lives in the repository
-  `dubidu22/sci2audio-design` (`docs/kb/00-index/decision-log.md`), where the KB thread
-  merges one PR per day. `merged-batches/` keeps the Project's pending batch files as history.
+- `decision-log.md` — every decision, owner or Claude, newest first (critical
+  only for process/architecture changes; routine batch entries are exempt).
 - `architecture.md` — layer order, contracts, invariants (critical).
 - `process.md` — how batches, reviews and releases run here (critical).
 

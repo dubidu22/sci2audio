@@ -83,6 +83,8 @@ The macOS, Windows and Linux installers bundle sci2audio with the run-time depen
 
 The interface's two typefaces (design "The Working Reader", D-663; #385, D-670). Both are under the **SIL Open Font License 1.1** (`OFL-1.1`); neither notice names a Reserved Font Name. The files are used unmodified, exactly as the named npm release ships them, and the licence text of each family ships beside them in `src/sci2audio/web/static/fonts/` (`OFL-atkinson.txt`: © 2020 Braille Institute of America, Inc.; `OFL-literata.txt`: © 2017 The Literata Project Authors). Each subset is loaded only when a page uses its characters (`unicode-range`). A test checks every file below against its SHA-256 and that the wheel carries each font and both licences.
 
+The design prototype in `docs/design/prototype/fonts/` (moved from `dubidu22/sci2audio-design` on 20 Nov 2026) carries the same two families, Atkinson Hyperlegible (400, 400 italic, 700) and Literata (regular, italic), unmodified, with the same two OFL texts beside them. It is a design record, not part of the wheel.
+
 | File in `src/sci2audio/web/static/fonts/` | Subset | Upstream release | SHA-256 |
 |---|---|---|---|
 | `atkinson-hyperlegible-latin-400-normal.woff2` | Latin, 400 | [@fontsource/atkinson-hyperlegible](https://www.npmjs.com/package/@fontsource/atkinson-hyperlegible/v/5.3.0) 5.3.0 (npm tarball `atkinson-hyperlegible-5.3.0.tgz`, `files/atkinson-hyperlegible-latin-400-normal.woff2`), built from Atkinson Hyperlegible 1.006 | `d64ba838ef5472bba248620ec4fd8b5aa7cf0db2908e0bb230600caf279ba7bc` |

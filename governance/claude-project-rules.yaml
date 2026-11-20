@@ -9,7 +9,7 @@
 #   execution_profile: decoupled model routing and token-economy settings
 #   <section>:         active rules with id, applies_to, rule
 
-version: 1.6.0
+version: 1.8.0
 date: 2026-11-20
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
@@ -31,7 +31,7 @@ project_profile:
   target_platforms: ["ubuntu-latest", "macos-latest", "windows-latest"]
   fast_checks: "uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m \"not slow and not benchmark and not browser\"; for a change to the interface also uv run pytest -m browser"
   local_environment: "zsh on macOS (MacBook Pro M4)"
-  local_clone_path: "~/Documents/Projekte/sci2audio"
+  local_clone_path: "~/Projekte/sci2audio"
   execution_lanes: ["extraction/voices", "layout", "textprep", "app/release", "web", "docs"]
   file_ownership_labels: ["lane:core", "lane:extraction", "lane:layout", "lane:textprep", "lane:voices", "lane:output", "lane:app", "lane:web", "lane:cli", "lane:infra", "lane:docs"]
   lane_mapping_note: "Execution lanes are who works; lane:* labels (.github/lanes.yml) are which files a PR may touch. extraction/voices -> lane:extraction, lane:voices, lane:output. layout -> lane:layout. textprep -> lane:textprep (incl. src/sci2audio/testing). app/release -> lane:app, lane:cli (and lane:web when a PR spans both). web -> lane:web (src/sci2audio/web, static, templates, browser tests). docs -> lane:docs (docs/, CLAUDE.md, KB process text). app and web share files often, so LANE-02 keeps them apart unless their PRs touch disjoint files (D-761 B7/B8). lane:core and lane:infra are shared and critical; lane:infra is the lock. (D-765)"
@@ -295,7 +295,7 @@ hard_invariants_and_owner_prefs:
     rule: "Every issue carries a milestone, a lane label and, where it applies, risk:high or risk:low; an issue without acceptance criteria is not started, the thread asks the coordinator for them first (D-702, D-738). Enforced by: review only."
   - id: INV-12
     applies_to: implementation
-    rule: "The decision log is docs/kb/00-index/decision-log.md in dubidu22/sci2audio-design; pending decisions collect in the workspace's kb/kb-batch-<date>-pending.md. A row is 'Decided' when Colin stated or approved it (his words and time quoted) and 'Decided (Claude)' otherwise; a revised older row gets a status note naming the newer entry (D-714). Enforced by: KB thread only."
+    rule: "The decision log is governance/kb/decision-log.md in this repository (moved from dubidu22/sci2audio-design on 20 Nov 2026); pending decisions collect in governance/kb/pending-decisions.md and the KB thread merges them in one PR per day. A row is 'Decided' when Colin stated or approved it (his words and time quoted) and 'Decided (Claude)' otherwise; a revised older row gets a status note naming the newer entry (D-714). Enforced by: KB thread only."
   - id: INV-13
     applies_to: implementation
     rule: "Release: R1 sets version, CHANGELOG and README on release/X.Y; R2 is the release-day PR with Colin's hand-step results and the changelog date; R3 forward-merges release/X.Y into main after the tag, then the milestone closes. The release-checklist runs (ZAP, nightly, mutation) run on the release branch (D-669, D-714). Enforced by: docs/release-checklist.md."

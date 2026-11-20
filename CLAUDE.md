@@ -30,7 +30,7 @@ Keep a later web version possible: no global state (each job gets its settings a
 
 ## Workflow
 
-The full rules are the project instructions in the claude.ai project and the decision log in `dubidu22/sci2audio-design` (`docs/kb/00-index/decision-log.md`); this is a short summary. The machine-readable summary of the active rules is `rules/project-rules.yaml` in the claude.ai project files, with the current state in `rules/project-state.yaml`.
+The full rules are `governance/claude-project-rules.yaml` (role extracts in `governance/rules/`) and the decision log `governance/kb/decision-log.md`; this is a short summary. The current state is `governance/project-state.yaml`; the design record is `docs/design/`.
 
 1. **Autonomy and reporting.** While the autonomy grant in `rules/project-state.yaml` holds, the coordinator reviews and merges all PRs, critical ones included, and decides everything except roadmap and product scope (D-80, D-462, D-702a). Colin is told only when he asks about progress or when a decision is critical; a critical merge gets one line (D-626, D-702g).
 2. **Lanes.** PRs are batched by lane (extraction/voices, layout, textprep, app/release): one PR per lane covers several related Issues. Several lanes run in parallel while they do not block each other, with at most one implementation thread and one review thread per lane, except that a bug Colin marks as priority gets its own parallel implementation thread (D-732); lanes that touch the same files, golden files, regression cases or layer contract wait for each other (D-741, LANE-02). A lane thread lives for one batch (D-626). A PR changes files of its own lane only (`.github/lanes.yml`). An Issue without acceptance criteria is not started; ask the coordinator for them first (PLAN-04).
