@@ -8,3 +8,5 @@ critical: yes
 compactions: 0
 fixes_kinds: ""
 note: "META-03 check for the finding kind of #671 S1 and #675 (a promised test absent from the PR), D-842"
+rounds: 3
+merged: "a431fcd (squash of 359dd9b, 2026-11-20)"
