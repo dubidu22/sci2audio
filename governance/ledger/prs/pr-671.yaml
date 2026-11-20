@@ -1,0 +1,9 @@
+pr: 671
+opened: 2026-11-20
+thread: layout-b-l1
+lane: layout
+labels: "lane:layout, lane:extraction, risk:high"
+plan: plans/layout-b-l1-plan.md
+critical: yes                 # golden files change; extraction/pdf.py touched under D-835
+compactions: 0
+fixes_kinds: ""
