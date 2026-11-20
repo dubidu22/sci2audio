@@ -1096,3 +1096,74 @@ def test_the_thresholds_are_settings() -> None:
     )
     short = LayoutSettings(stack_reach=0.5)
     assert _third(_one_row(*liu, settings=short)) == "the integral J1st 0[n] gives the field"
+
+
+# A tall piece and a row's letters (#126)
+
+
+def ran(name: str, *runs: tuple[str, float, float, float, float, float]) -> TextLine:
+    """A piece whose runs have boxes: (text, size, x0, y0, x1, y1) each."""
+    made = tuple(TextRun(t, "Times", s, box=Box(x0, y0, x1, y1)) for t, s, x0, y0, x1, y1 in runs)
+    return TextLine(name, made, union([run.box for run in made if run.box]))
+
+
+def test_braces_reaching_below_the_line_do_not_take_in_the_next_line() -> None:
+    """Chi p6: the braces of "{SOUPS}" (CMSY10, 9.9 pt) have boxes reaching 7 pt below the
+    baseline, so the piece's box overlaps the printed line under it, "321-340."; that line
+    is a row of its own, read after it."""
+    text = lines("a", LEFT, RIGHT, 100, 2, last=1.0)
+    y = 100 + 2 * PITCH
+    braced = ran(
+        "braced",
+        ("able Privacy and Security (", 10.0, LEFT, y, 300, y + 10),
+        ("{", 9.9, 300, y + 1.5, 305, y + 20),
+        ("SOUPS", 10.0, 305, y, 340, y + 10),
+        ("}", 9.9, 340, y + 1.5, 345, y + 20),
+        (" 2016), pages", 10.0, 345, y, RIGHT, y + 10),
+    )
+    last = line("321-340.", LEFT, y + PITCH, LEFT + 40)
+    doc = build_document(content([*text, braced, last]))
+    assert paragraphs(doc) == [joined(text, [braced, last])]
+
+
+def test_a_tall_piece_between_two_lines_does_not_chain_them() -> None:
+    """A piece read between two printed lines and overlapping both (an accent drawn as a
+    glyph of its own, #125) joins the row above; the line below is measured against that
+    row as a whole, not against the tall piece, and stays a row of its own."""
+    y = 100 + 2 * PITCH
+    upper = line("Suchin Gururangan, Ana Marasovic, Swabha", LEFT, y, RIGHT)
+    tall = line("\u00b4", 200, y + 4.9, 203, height=14.2)
+    lower = line("Swayamdipta, Kyle Lo, Iz Beltagy.", LEFT, y + PITCH, 300)
+    ordered = [Element(piece.box, piece) for piece in (upper, tall, lower)]
+    edges = {id(e): (LEFT, RIGHT) for e in ordered}
+    rows = rows_of(ordered, edges, LayoutSettings(), 10.0)
+    assert [[e.line.text for e in row if e.line] for row in rows] == [
+        [upper.text, tall.text],
+        [lower.text],
+    ]
+
+
+def test_scripts_outnumbering_their_base_letters_stay_in_the_row() -> None:
+    """Liu p2 "J1st0[n(-1)E]": the piece "0[n(-1)" holds more letters in scripts than on
+    the baseline; it is measured by its base letters, so it stays in its row."""
+    text = lines("a", LEFT, RIGHT, 100, 5)
+    y = 100 + 2 * PITCH
+    pieces = [
+        ran(
+            "j",
+            ("ing integral J", 10.0, LEFT, y, 300, y + 10),
+            ("1st", 7.0, 300, y - 1.5, 310, y + 5),
+        ),
+        ran(
+            "script",
+            ("0", 7.0, 300, y + 4.5, 304, y + 11),
+            ("[", 10.0, 311, y - 0.5, 314, y + 9.5),
+            ("n", 10.0, 314, y, 320, y + 9),
+            ("(-1)", 7.0, 320, y - 3.5, 335, y + 3.5),
+        ),
+        line("E", 320, y + 5, 324, size=7),
+        line("]. Next one feeds the field", 335.5, y, RIGHT),
+    ]
+    doc = build_document(content([*text[:2], *pieces, *text[3:]]))
+    (block,) = paragraphs(doc)
+    assert block.split("\n")[2] == "ing integral J1st0[n(-1)E]. Next one feeds the field"

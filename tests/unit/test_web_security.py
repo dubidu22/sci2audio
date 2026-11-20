@@ -27,7 +27,7 @@ from web_helpers import (
 
 from sci2audio.testing import NetworkUsedError
 from sci2audio.web import api, pages
-from sci2audio.web.security import CSP, LocalOnly
+from sci2audio.web.security import CSP, PERMISSIONS_POLICY, LocalOnly
 from sci2audio.web.server import TELEMETRY_OFF
 
 pytestmark = pytest.mark.usefixtures("offline")
@@ -262,10 +262,16 @@ def test_security_headers_on_every_kind_of_answer(server: tuple[FastAPI, Any]) -
         anonymous(app).get("/api/v1/settings"),
         client.get("/", headers={"Host": "evil.example"}),
         client.get("/", headers={"Origin": "https://evil.example"}),
+        client.get("/static/app.js", headers={"Range": "bytes=0-9"}),
+        anonymous(app).post("/start?token=x"),
     ]
-    assert [a.status_code for a in answers] == [200, 200, 200, 404, 404, 401, 421, 403]
+    assert [a.status_code for a in answers] == [200, 200, 200, 404, 404, 401, 421, 403, 206, 405]
     for answer in answers:
         assert answer.headers["content-security-policy"] == CSP
+        assert answer.headers["permissions-policy"] == PERMISSIONS_POLICY
+        assert answer.headers["cross-origin-embedder-policy"] == "require-corp"
+        assert answer.headers["cross-origin-opener-policy"] == "same-origin"
+        assert answer.headers["cross-origin-resource-policy"] == "same-origin"
         assert answer.headers["x-content-type-options"] == "nosniff"
         assert answer.headers["referrer-policy"] == "no-referrer"
         assert answer.headers["x-frame-options"] == "DENY"
@@ -273,6 +279,20 @@ def test_security_headers_on_every_kind_of_answer(server: tuple[FastAPI, Any]) -
         assert "access-control-allow-origin" not in answer.headers
     assert "frame-ancestors 'none'" in CSP
     assert "script-src 'self'" in CSP
+
+
+def test_the_permissions_policy_turns_off_every_feature_but_playing_audio() -> None:
+    features = dict(part.split("=") for part in PERMISSIONS_POLICY.split(", "))
+    assert features.pop("autoplay") == "(self)"  # the player starts the next chapter itself
+    assert set(features.values()) == {"()"}
+    assert {"camera", "microphone", "geolocation", "payment", "usb", "fullscreen"} <= set(features)
+    # the interface's own script uses none of the switched-off features
+    script = "".join(
+        (Path(pages.__file__).parent / "static" / name).read_text(encoding="utf-8")
+        for name in ("app.js", "player.js")
+    )
+    for used in ("clipboard", "geolocation", "getUserMedia", "requestFullscreen", "share("):
+        assert used not in script, used
 
 
 def test_no_cors_preflight_is_answered(server: tuple[FastAPI, Any]) -> None:

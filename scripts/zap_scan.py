@@ -533,7 +533,13 @@ def local_server(work: Path) -> Iterator[tuple[Any, Any, Any]]:
     config = make_config(work, port=sock.getsockname()[1])
     voice = FakeVoice()
     fetch = browser_fixtures.SlowFetch()
-    app = create_app(config, fetch=fetch, voice=lambda models_dir: voice.source())
+    from sci2audio.app.updates import STATE_NAME, UpdateCheck
+
+    # the walk turns the update check on (#217): it asks a fake, never GitHub
+    updates = UpdateCheck(
+        config.config_file.parent / STATE_NAME, fetch=lambda: b'{"tag_name": "v9.0.0"}'
+    )
+    app = create_app(config, fetch=fetch, voice=lambda models_dir: voice.source(), updates=updates)
     server = uvicorn.Server(uvicorn_config(app))
     thread = threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True)
     thread.start()
@@ -830,6 +836,9 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     settings = call("GET", f"{api}/settings", 200).json()["settings"]
     call("PUT", f"{api}/settings", 200, data=settings, headers=same)
     call("PUT", f"{api}/player/speed", 200, data={"speed": 1.25}, headers=same)  # (#651)
+    call("GET", f"{api}/updates", 200)
+    call("PUT", f"{api}/updates", 200, data={"enabled": True}, headers=same)  # (#217)
+    call("PUT", f"{api}/updates", 200, data={"enabled": False}, headers=same)
     call(
         "POST", f"{api}/documents/text", 201, 415,  # 415 until text files are read (#74)
         data={"text": "A short pasted note.", "name": "note"}, headers=same,

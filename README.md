@@ -109,8 +109,8 @@ Exit codes, for scripts:
 
 sci2audio is a program on your computer, not an online service. Nobody receives your data, neither its makers nor anyone else.
 
-- It sends nothing anywhere: no telemetry, no usage statistics, no crash reports, no update check, no account.
-- It uses the network only for the voice download you start, after showing every file, its size and licence.
+- It sends nothing anywhere: no telemetry, no usage statistics, no crash reports, no account.
+- It uses the network only for the voice download you start, after showing every file, its size and licence, and for the update check if you turn it on in Settings: then once a day one request to GitHub for the newest version's number, with nothing sent but the request itself. It is off by default and never downloads or installs anything.
 - The interface's server listens only on 127.0.0.1, with a key that is new for each start, and refuses requests from other web pages. The pages load nothing from the internet.
 - Your files, their analysis, the speech cache, the settings and the voice stay in folders on your computer. The interface's privacy page (`/privacy`) names them and says how to remove them.
 
