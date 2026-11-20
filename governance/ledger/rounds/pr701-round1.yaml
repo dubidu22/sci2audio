@@ -1,0 +1,11 @@
+pr: 701
+round: 1
+date: 2026-11-20
+thread: review-docs-b-d1
+head: b6905d2
+critical: yes
+verdict: changes_requested
+must_fix: 0
+should_fix: 3
+kinds: "issue-scope-drift, underspecified-contract, self-contradiction"
+report: plans/review-pr701-round1.md
