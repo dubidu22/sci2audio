@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-20T21:58Z   # clock time; hour marks written earlier today were estimates (D-856)
+updated: 2026-11-20T22:00Z   # clock time; hour marks written earlier today were estimates (D-856)
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -13,13 +13,12 @@ active_now:
   watchdog_interval_minutes: 60                      # D-702h; threads started 20 Nov ~14:00Z, next check when active
   milestones_in_progress: []   # v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
-  lanes_active: []                                   # batch 2 closed 20 Nov 21:40Z (D-857): #691 #689 #690 #692 #698 #696 #700 #701 #707 merged, 2.0 rounds avg, 0 reverts; all threads retired (plugins-b-p1, web-b-w1, infra-b-i1, infra-b-i3, docs-b-d1); light audit running (plans/audit-batch-2026-11-20b.md)
-  lanes_waiting:                                     # v1.4 remainder, batch 3 proposal; starts on Colin's go
-    - "textprep B-P3: #693 (critical: plugin results and plugin exceptions still run plugin code in the job thread; first test = hostile-plugin isolation test, D-858) and #694; new thread"
-    - "infra B-I4: #708 promised-tests heading (risk:high), #695 review-tag check, #706 stale scaffold copy; new thread. Hand-off from infra-b-i3 (7f5ee89): the skill generator/scaffold drop governance_paths and write the old PLAN-01, so after any regeneration copy back only claude-project-rules.yaml and rules/*.yaml and re-insert governance_paths and the D-849 text by exact replace (test_ruleset.py and test_lanes.py guard it); ruff excludes .github/governance, never pass that path to ruff format"
-    - "web tests: #699 WebKit failures on main (fails every run, nightly red until fixed) and #697 Firefox resume flake (cause hunt); new thread, risk:low"
-    - "layout #679 (new thread); voices #663 (new thread)"
-    - "docs: KB audit of batch 2 proposes the unguarded-plugin-code check (META-03, D-857)"
+  lanes_active:                                      # batch 3 (D-859) started 20 Nov 22:00Z on Colin's "Start batch 3"; plans owed first
+    - "textprep B-P3 (thread textprep-b-p3): #693 (critical; first test = hostile-plugin isolation test, D-858) and #694; plan plans/textprep-b-p3-plan.md"
+    - "infra B-I4 (thread infra-b-i4): #708 (critical), #695, #706; plan plans/infra-b-i4-plan.md; hand-off from infra-b-i3: after any ruleset regeneration copy back only claude-project-rules.yaml and rules/*.yaml and re-insert governance_paths and the D-849 text by exact replace; ruff excludes .github/governance"
+    - "web tests B-T1 (thread web-tests-b-t1): #699 (fails every WebKit run, nightly red) and #697 (Firefox flake, 38/40 locally, cause unknown); plan plans/web-tests-b-t1-plan.md"
+  lanes_waiting:                                     # batch 3 remainder; start when a lane frees
+    - "layout #679 (new thread, risk:low); voices #663 (new thread, risk:low)"
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
     - "tests/browser/test_flow.py::test_resume_of_a_paused_replace_never_asks_to_replace_again[firefox]: failed 20 Nov on PR #689 and again on #696 51daacd (report-only Firefox shard, hold.reached.wait(30) timed out, no code cause) -> quarantined for Firefox in #698 (merged 9066c3d, Issue #697); 40 isolated runs each (D-682): Chromium 40/40 pass, Firefox 38/40 (2x the same wait(30) assertion), so it reproduces at ~1 in 20 on Firefox only, cause unknown, quarantine stays, Issue open"
     - "WebKit report-only shard on #696 51daacd: test_joined.py::test_the_mark_and_the_bar_stay_on_the_sentence_through_its_pieces and test_player_figures.py::test_the_page_with_a_figure_passes_axe_in_light_dark_and_german timed out; fail on main 44c59c2 too (author ran both locally), so not caused by #696; Issue filed by the web thread; nightly WebKit coverage, quarantine only after a second nightly failure"
@@ -28,7 +27,6 @@ active_now:
 notifications_pending: []                            # v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
 open_owner_items:
   - "upstream governance skill: the generator should read governance_paths and keep the D-849 PLAN-01 wording, so a ruleset re-run needs no hand edit (found by infra-b-i3, D-855); low priority, CI tests guard the edits meanwhile"
-  - "close milestones v1.0, v1.0.1, v1.2, v1.2.x (0 open issues each; walked through 20 Nov 09:15Z); milestone 7 rename is done"
 milestones: {1: v1.0, 2: v1.1, 3: v1.0.1, 4: v1.2, 5: v1.4, 6: Later, 7: v1.2.x, 8: "v1.3 The Working Reader", 9: "v1.5 Study layer", 10: v2}
 roadmap_order: [v1.2, v1.2.x abbreviations, "v1.3 The Working Reader", "v1.4 installers, update check, plugins", "v1.5 Study layer", Later]   # D-666, D-573
 control_commands_reference:                          # meanings: CMD-04 to CMD-06 in project-rules.yaml
