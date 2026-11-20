@@ -1,0 +1,11 @@
+pr: 690
+round: 2
+date: 2026-11-20
+thread: review-plugins-b-p2
+head: 0c78cc1
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr690-round2.md
