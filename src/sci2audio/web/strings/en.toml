@@ -387,6 +387,8 @@ presets = "Usual speeds"
 invalid = "Type a number from {min} to {max}, such as {example}."
 
 [js]
+updates_on = "sci2audio now looks for new versions once a day."
+updates_off = "sci2audio no longer looks for new versions."
 moved = "{title} is now chapter {n} of {total}."  # the chapter list (#119)
 opening = "Opening…"
 drop_one = "Drop one file at a time."
@@ -470,10 +472,13 @@ wrong-origin = "Requests from other pages are refused."
 title = "Privacy: what stays on this computer"
 intro = "sci2audio is a program on your computer, not an online service. This page says what it does with your files and when it uses the network. Nobody receives your data: not the makers of sci2audio, nor anyone else."
 local_title = "Nothing leaves this computer"
-local = "sci2audio sends nothing anywhere: no telemetry, no usage statistics, no crash reports, no update check. It needs no account and uses no online service. Reading the file, preparing the text and speaking it all happen on this computer; the Kokoro voice runs here too, with its libraries told to stay offline."
+local = "sci2audio sends nothing anywhere: no telemetry, no usage statistics, no crash reports, and no update check unless you turn it on. It needs no account and uses no online service. Reading the file, preparing the text and speaking it all happen on this computer; the Kokoro voice runs here too, with its libraries told to stay offline."
 network_title = "The one exception: the voice download you start"
 network = "sci2audio uses the network only to download the voice files, and only after you tick the consent box on the voice page and press “Download the voice”. That page lists every file with its size and licence before anything is fetched. After the download sci2audio needs no network."
 voice_link = "Go to the voice page"
+updates_title = "The update check you can turn on"
+updates = "It is off until you turn it on in Settings. Then sci2audio asks GitHub, where it is published, once a day for the number of its newest version: one request whose only label is the name “sci2audio”, with no version number, no identifier and no cookie. GitHub sees this computer’s internet address, as with any web page. sci2audio downloads and installs nothing; it shows a link to the release page."
+updates_host = "The one address it asks:"
 telemetry_title = "The web framework’s telemetry is switched off"
 telemetry = "The interface runs on FastAPI, a web framework that comes with OpenTelemetry built in, a way of recording what a program does. sci2audio switches all of it off in its code, and its tests check that nothing is recorded."
 interface_title = "The interface is for you only"
@@ -482,7 +487,7 @@ interface_key = "The link sci2audio shows in the terminal carries a key that is 
 interface_key_app = "The address the app opens carries a key that is new for each start. The window or your browser trades it for a cookie; without the key the server serves nothing."
 interface_pages = "Requests from other web pages are refused, and these pages load nothing from the internet: no fonts, scripts or images from elsewhere."
 interface_log = "sci2audio keeps no log of requests, so neither the key nor the names of your files are written to one."
-app_log = "When sci2audio runs as the app (not as `sci2audio ui`), it writes a short start-up log on this computer, in {path}: when it started and stopped, its version, how it shows the interface and, if it could not start, why. It holds no requests, no key and no file names, and nothing sends it anywhere."
+app_log = "When sci2audio runs as the app (not as `sci2audio ui`), it writes a short start-up log on this computer, in {path}: when it started and stopped, its version, how it shows the interface and, if it could not start, why; also when an update check you turned on did not work. It holds no requests, no key and no file names, and nothing sends it anywhere."
 files_title = "Where your files are"
 files_intro = "sci2audio keeps what it makes in these places on this computer:"
 work_label = "Project folders"
@@ -529,6 +534,7 @@ settings = "Settings"
 privacy = "Privacy"
 shortcuts = "Keyboard shortcuts"  # opens the list of keys (#394)
 quit = "Quit sci2audio"  # the app without a window only (#215)
+update = "New: sci2audio {version}"  # the update check found a newer version (#217)
 
 [keys]  # the keyboard shortcuts sheet (#394); key names are said by screen readers
 title = "Keyboard shortcuts"
@@ -577,6 +583,14 @@ announce_save = "Save"
 keys_save = "Save"
 keys = "Keyboard shortcuts"
 keys_hint = "Single keys such as Space, F, P and M work while you listen. Switch them off if they get in the way of your screen reader or other keys; Esc and the list of shortcuts work either way."
+updates = "New versions"
+updates_switch = "Look for new versions"
+updates_hint = "Once a day, sci2audio asks GitHub for the number of its newest version and shows a link when there is one. It sends nothing else and never downloads or installs anything."
+updates_privacy = "What the check sends"
+updates_waiting = "Not checked yet."
+updates_current = "You have the newest version, {version} (checked on {date})."
+updates_newer = "A new version is out: sci2audio {version} (checked on {date}). The link is in the side bar."
+updates_failed = "The last check, on {date}, did not work. sci2audio tries again a day later."
 
 [paper]  # the header of a document's pages, Prepare and Listen (#391)
 tabs = "Prepare or listen"

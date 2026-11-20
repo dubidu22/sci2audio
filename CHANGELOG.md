@@ -4,6 +4,14 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+
+- An update check you can turn on in Settings (#217): once a day it asks GitHub for the newest version's number and shows a link to its release page. It is off by default, sends nothing but the request itself, and never downloads or installs anything; the privacy page says what it sends.
+
+### Security
+
+- Every answer of the interface's server also carries a `Permissions-Policy` that switches off the browser features the interface does not use, and `Cross-Origin-Embedder-Policy: require-corp` (#172).
+
 ## [1.4.0] - 2026-11-19
 
 The first release made for other people to try. sci2audio turns scientific texts (PDF, EPUB, Markdown, plain text) into faithful audiobooks, in English and German, entirely on your computer. It now comes as an installer for each system. Feedback is very welcome: [open a tester report](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).

@@ -729,6 +729,42 @@ def put_settings(state: State, body: models.SettingsModel) -> models.SettingsMod
     return _settings_model(settings)
 
 
+def _updates(state: ServerState) -> models.UpdatesOut:
+    found = state.updates.state()
+    return models.UpdatesOut(
+        enabled=found.enabled,
+        checked_at=found.checked_at,
+        outcome=None if found.outcome is None else found.outcome.value,
+        latest=found.latest,
+        release_url=state.updates.release_url(),
+    )
+
+
+@router.get(
+    "/updates",
+    response_model=models.UpdatesOut,
+    responses=_errors(),
+    summary="The update check",
+)
+def get_updates(state: State) -> models.UpdatesOut:
+    return _updates(state)
+
+
+@router.put(
+    "/updates",
+    response_model=models.UpdatesOut,
+    responses=_errors(507, *BODY),
+    summary="Turn the update check on or off",
+    description="On: at most one request a day to the release source (#217); off by default.",
+)
+def put_updates(state: State, body: models.UpdatesIn) -> models.UpdatesOut:
+    try:
+        state.updates.set_enabled(body.enabled)
+    except OSError as error:
+        raise ApiError(507, "disk-full", f"could not save the choice: {error.strerror}") from error
+    return _updates(state)
+
+
 @router.put(
     "/player/speed",
     response_model=models.PlayerSpeed,

@@ -36,6 +36,7 @@ from web_helpers import (
 )
 
 import sci2audio.web
+from sci2audio.app import updates
 from sci2audio.app.settings import LETTER_PACES
 from sci2audio.textprep import Category
 from sci2audio.voices import PACKS, VOICES, download_plan
@@ -602,8 +603,9 @@ def test_the_privacy_page_lists_the_hosts_and_folders_of_this_server(
 
 def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> None:
     """Point by point: if one of these fails, the code changed and the page must too."""
-    # 1 and 2: the only network code is the voice download (tests/unit/test_*_network*,
-    # the `offline` fixture everywhere); the voice runs with Hugging Face offline
+    # 1 and 2: the only network code is the voice download and the update check the person
+    # turns on (tests/unit/test_*_network*, test_app_updates, the `offline` fixture
+    # everywhere); the voice runs with Hugging Face offline
     from sci2audio.voices.runtime import ENVIRONMENT
 
     assert ENVIRONMENT["HF_HUB_OFFLINE"] == "1"
@@ -619,7 +621,20 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
         )
     }
     # launch opens the 127.0.0.1 socket; testing refuses connections in tests
-    assert networked <= {"voices/download.py", "web/launch.py", "testing/text_steps.py"}
+    assert networked <= {
+        "voices/download.py",
+        "app/updates.py",
+        "web/launch.py",
+        "testing/text_steps.py",
+    }
+    # 2b: the update check is off until turned on, asks one host, sends two headers
+    assert updates.UpdateState().enabled is False
+    assert updates.RELEASES_URL.startswith("https://api.github.com/")
+    assert updates.HEADERS == {"User-Agent": "sci2audio", "Accept": "application/vnd.github+json"}
+    for table in (EN, DE):
+        assert {"“sci2audio”", "„sci2audio“"} & set(
+            re.findall(r"[“„]sci2audio[”“]", table["privacy.updates"])
+        )
     # 3: FastAPI's telemetry is off in code (D-195; test_web_security proves nothing records)
     assert dict.fromkeys(server.TELEMETRY_OFF, False) == server.TELEMETRY_OFF
     assert set(server.TELEMETRY_OFF) >= {"tracing", "metrics", "logs", "auto_configure"}
@@ -662,6 +677,16 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     for table in (EN, DE):
         for name in ("opened.json", "about.json", "position.json"):
             assert f"({name})" in table["privacy.work"], name
+
+
+def test_the_privacy_page_names_the_update_checks_host_from_the_code(
+    server_: tuple[FastAPI, Any],
+) -> None:
+    host = updates.RELEASES_URL.split("/")[2]
+    for language in ("en", "de"):
+        page = client_in(server_, language).get("/privacy").text
+        section = page[page.index('id="update-check"') :]
+        assert f"<code>{host}</code>" in section.split("</p>", 2)[1], language
 
 
 def test_launch_opens_only_a_loopback_socket() -> None:
