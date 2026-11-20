@@ -1,0 +1,10 @@
+pr: 712
+opened: 2026-11-20
+thread: infra-b-i4
+lane: infra
+labels: "lane:infra, risk:low"
+plan: plans/infra-b-i4-plan.md
+critical: no
+compactions: 0
+fixes_kinds: ""
+note: "#695 review-round tags out of comments and docstrings (REVIEW_TAG test, ~440 tags in 128 files, comments only, lane:infra lock); #706 scaffold pr-checks.json copy byte-equal plus test; follow-ups #709 #710 #711 (D-860)"
