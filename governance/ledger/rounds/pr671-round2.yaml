@@ -1,0 +1,12 @@
+pr: 671
+round: 2
+date: 2026-11-20
+thread: review-layout-b-l1
+head: 6a759bb
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr671-round2.md
+merged: ""
