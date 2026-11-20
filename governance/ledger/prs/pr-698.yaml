@@ -1,0 +1,12 @@
+pr: 698
+opened: 2026-11-20
+thread: web-b-w2
+lane: web
+labels: "lane:web, risk:low"
+plan: none                    # coordinator's instruction, D-374 and D-702f quarantine
+critical: no
+compactions: 0
+fixes_kinds: ""
+issues: "#697 (refs, stays open)"
+head: "see PR"
+notes: "quarantines test_resume_of_a_paused_replace_never_asks_to_replace_again for Firefox only; the 40-run isolation per browser (D-682) follows after merge"
