@@ -1,0 +1,10 @@
+pr: 713
+opened: 2026-11-20
+thread: infra-b-i4
+lane: infra
+labels: "lane:infra, risk:high"
+plan: plans/infra-b-i4-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+note: "#708 a level-2 test-named section with node IDs fails the promised-tests check as a near miss naming heading and line (fail, not adopt, D-860); presence not novelty by design; probe flags only the seven pre-D-849 bodies incl. #689"
