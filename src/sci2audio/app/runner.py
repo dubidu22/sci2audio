@@ -2,7 +2,8 @@
 
 The command line and the server each make one `JobRunner`. The audio job also holds an
 operating-system lock on its working folder, so two processes never work on one folder
-(D-161).
+(D-161). A runner loads the text-step plugins once, when it is made (#216, D-836), and runs
+them with the built-in steps in every job unless a job is given other steps.
 """
 
 from __future__ import annotations
@@ -17,14 +18,16 @@ from sci2audio.app.job import JobBusyError, Phase, ScriptJob, run_script_job
 from sci2audio.app.settings import JobSettings
 from sci2audio.app.voice import VoiceSource
 from sci2audio.output import OutputSettings
-from sci2audio.textprep import BUILT_IN_STEPS, DEFAULT_MAX_CHARS, TextStep
+from sci2audio.textprep import DEFAULT_MAX_CHARS, TextStep, installed_steps
 
 
 class JobRunner:
     """Runs one job at a time. The cli and the server each make one; no global state."""
 
-    def __init__(self) -> None:
+    def __init__(self, steps: Sequence[TextStep] | None = None) -> None:
+        """`steps` defaults to the built-in steps with the installed plugins."""
         self._lock = threading.Lock()
+        self.steps: Sequence[TextStep] = installed_steps() if steps is None else steps
 
     @property
     def busy(self) -> bool:
@@ -48,7 +51,7 @@ class JobRunner:
         overwrite: bool = False,
         progress: Callable[[Phase], None] | None = None,
         pages: Callable[[int, int], None] | None = None,
-        steps: Sequence[TextStep] = BUILT_IN_STEPS,
+        steps: Sequence[TextStep] | None = None,
         max_chars: int = DEFAULT_MAX_CHARS,
     ) -> ScriptJob:
         """`run_script_job` on this runner; JobBusyError if a job is running on it."""
@@ -60,7 +63,7 @@ class JobRunner:
                 overwrite=overwrite,
                 progress=progress,
                 pages=pages,
-                steps=steps,
+                steps=self.steps if steps is None else steps,
                 max_chars=max_chars,
             )
 
@@ -75,7 +78,7 @@ class JobRunner:
         overwrite: bool = False,
         progress: Callable[[AudioProgress], None] | None = None,
         cancel: threading.Event | None = None,
-        steps: Sequence[TextStep] = BUILT_IN_STEPS,
+        steps: Sequence[TextStep] | None = None,
         max_chars: int = DEFAULT_MAX_CHARS,
     ) -> AudioJob:
         """`run_audio_job` on this runner; JobBusyError if a job is running on it."""
@@ -89,6 +92,6 @@ class JobRunner:
                 overwrite=overwrite,
                 progress=progress,
                 cancel=cancel,
-                steps=steps,
+                steps=self.steps if steps is None else steps,
                 max_chars=max_chars,
             )

@@ -19,7 +19,8 @@ here so every rule PR places its step deliberately. Planned order for v1.0:
   mark; moves run last, so they never block a rule about the text
 
 No built-in v1.0 step proposes `ask` edits (the interface has no way to answer them before
-UC-04); the conformance test enforces it. Plugins (`sci2audio.text_steps`) follow in v1.1.
+UC-04); the conformance test enforces it. Plugins (`sci2audio.text_steps`, #216) run after
+the built-in steps of their stage (`plugins.installed_steps`).
 """
 
 from __future__ import annotations

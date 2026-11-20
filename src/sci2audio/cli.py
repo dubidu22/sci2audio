@@ -63,6 +63,7 @@ from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
 from sci2audio.app.projects import project_work_folder
 from sci2audio.app.readability import picture_pages, picture_warning
+from sci2audio.app.report import plugins_line
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.output import OutputSettings
 from sci2audio.textprep import Category
@@ -725,6 +726,8 @@ def _print_script(env: CliEnv, job: ScriptJob) -> None:
         out.write("Edits that change what is heard:\n")
         for label, number in applied:
             out.write(f"  {label}: {number}\n")
+    if report.plugins:
+        out.write(plugins_line(report).removesuffix(".") + "\n")
     for step, message in report.problems:
         env.err.write(f"{PROG}: warning: the text step {step} failed and was left out: {message}\n")
     out.write("Wrote:\n")

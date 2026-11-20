@@ -16,7 +16,9 @@ already moved or would chain (a moved block is no target, a target block does no
 `StepRun.read_at` says in which block's place a block is read.
 
 A step that raises or returns invalid edits is dropped, with a problem in the result: the
-run never stops halfway (D-61 (3)). `strict=True` raises instead, for tests.
+run never stops halfway (D-61 (3)). `strict=True` raises instead, for tests. Steps from
+`installed_steps` bring the plugins they hold and the plugins that did not load: the result
+lists the first, and the second as problems (#216).
 """
 
 from __future__ import annotations
@@ -28,12 +30,14 @@ from enum import StrEnum
 from functools import cached_property
 
 from sci2audio.core import Document, Edit, EditKind, ScriptPiece, Span, apply_edits, check_edits
+from sci2audio.textprep.plugins import InstalledSteps, PluginInfo
 from sci2audio.textprep.registry import BUILT_IN_STEPS, check_registry
 from sci2audio.textprep.steps import (
     DEFAULT_SWITCHED_OFF,
     Category,
     Stage,
     StepContext,
+    StepError,
     TextStep,
 )
 
@@ -77,6 +81,7 @@ class StepRun:
     outcomes: tuple[Outcome, ...]
     problems: tuple[StepProblem, ...] = ()
     not_run: tuple[str, ...] = ()  # ids of steps that don't handle the job's language
+    plugins: tuple[PluginInfo, ...] = ()  # the plugin steps among the steps (#216)
 
     def edits(self, status: Status) -> tuple[Edit, ...]:
         """The edits with this status, in step order, then document order."""
@@ -105,10 +110,6 @@ class StepRun:
         return self.moved.get(block, block)
 
 
-class StepError(RuntimeError):
-    """A step failed or returned invalid edits (raised only in strict runs)."""
-
-
 def run_steps(
     document: Document,
     context: StepContext,
@@ -132,6 +133,13 @@ def run_steps(
     outcomes: list[Outcome] = []
     problems: list[StepProblem] = []
     not_run: list[str] = []
+    plugins: tuple[PluginInfo, ...] = ()
+    if isinstance(steps, InstalledSteps):
+        plugins = steps.plugins
+        problems += [
+            StepProblem(problem.name, f"plugin not loaded: {problem.message}")
+            for problem in steps.problems
+        ]
     for step in steps:
         if not step.handles(context.language):
             not_run.append(step.id)
@@ -151,7 +159,7 @@ def run_steps(
             else:
                 accepted.add(edit, step.stage)
                 outcomes.append(Outcome(edit, step.category, Status.ACCEPTED))
-    return StepRun(document, tuple(outcomes), tuple(problems), tuple(not_run))
+    return StepRun(document, tuple(outcomes), tuple(problems), tuple(not_run), plugins)
 
 
 def _proposed(step: TextStep, document: Document, context: StepContext) -> list[Edit]:

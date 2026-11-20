@@ -134,3 +134,15 @@ Limits, measured on the same container: a Flate bomb that unpacks to 1.1 GB is s
 1 GB limit after 0.9 s; a page of 1,000,000 rectangles is refused after 3.8 s; the densest page
 the limits allow takes about 2 s; a 400-page book reads in 21 s and a 1,000-page book in 66 s,
 well inside the 60 s per step.
+
+## The text-step plugin guard (#216)
+
+Every plugin step runs behind a guard (D-836): a deep copy of the document, a worker thread
+with a 60 s limit, and a comparison of the copy with the original afterwards. The table is the
+guard around a step that does almost nothing (the docs' "&" step), so it is the guard's own
+cost per plugin per document, on the largest corpus paper (`arxiv2024-arsiwalla-qualia-meaning`,
+28 pages): `uv run pytest tests/unit/test_textprep_plugins.py -m benchmark --benchmark-only -p no:xdist`.
+
+| Machine | Guard per plugin and document (mean of 52) | Date | Commit |
+|---|---|---|---|
+| MacBook Pro M4, macOS | 23.9 ms (median 19.9 ms) | 2026-11-20 | branch of f98d446 |

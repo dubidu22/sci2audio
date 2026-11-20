@@ -27,6 +27,8 @@ uv run pytest -m browser
 
 Which tests a change needs is described in `.claude/rules/tests.md` (it applies to people too). Before a release, follow `docs/release-checklist.md`.
 
+To add a text rule without changing sci2audio, write a text-step plugin: `docs/plugins.md` shows how, and how to run the conformance suite (`sci2audio.testing`) against your step or voice engine.
+
 To see how fast sci2audio speaks on your machine, run `uv run python scripts/speed.py` after `uv run sci2audio voices download` (`--quick` for a short run, `--help` for the options); `docs/baseline.md` holds the numbers measured so far and the performance budget.
 
 For a change to the server or the interface, the "ZAP baseline scan" workflow runs OWASP ZAP against the local server on your PR (#12). To run it yourself you need Docker (on macOS and Windows: Docker Desktop 4.34 or later with host networking turned on): `uv run python scripts/zap_scan.py`. It writes `zap-out/zap-summary.md`; a Low alert that is fine here goes into `scripts/zap/accepted.toml` with a reason and a decision, a High or Medium one is fixed. A red nightly run of the workflow gets an Issue, opened by hand.
