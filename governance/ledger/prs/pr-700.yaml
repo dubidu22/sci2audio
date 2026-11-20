@@ -1,5 +1,5 @@
 pr: 700
-opened: 2026-11-21
+opened: 2026-11-20
 thread: docs-b-d1
 lane: docs
 labels: "lane:docs, risk:low"
@@ -8,5 +8,5 @@ critical: no
 compactions: 0
 fixes_kinds: ""
 note: "PRODUCT.md names the opt-in update check (#678); CHANGELOG Fixed lines for #671 and #682 (#686, audit F3)"
-rounds: 0
+rounds: 1
 merged: ""

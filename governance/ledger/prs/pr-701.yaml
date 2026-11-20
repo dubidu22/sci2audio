@@ -1,5 +1,5 @@
 pr: 701
-opened: 2026-11-21
+opened: 2026-11-20
 thread: docs-b-d1
 lane: docs
 labels: "lane:docs, risk:high"
@@ -8,5 +8,5 @@ critical: yes
 compactions: 0
 fixes_kinds: ""
 note: "ADR-008 the Study layer for v1.5 (#395, D-850, D-854); issue edits #397 #398 #399; v2 issues #702 to #705"
-rounds: 0
+rounds: 1
 merged: ""

@@ -1,6 +1,6 @@
 # docs-b-d1: the Study-layer ADR, and two docs leftovers
 
-Thread docs-b-d1, docs lane, batch B-D1 (D-853). Written 21 Nov 2026.
+Thread docs-b-d1, docs lane, batch B-D1 (D-853). Written 20 Nov 2026.
 Read: `rules/implementation.yaml`, `CLAUDE.md`, Issues #395 to #399, #418, #475, #678, #686; `plans/study-layer-scope-options.md` ("Colin's decisions"); D-850 in `kb/pending-decisions.md`; D-57, D-663, D-665, D-723 in `kb/decision-log.md`; ADR-007 as the format; "The Working Reader" at b4a7523 (`DESIGN.md`, `IMPLEMENTATION-PROMPT.md`, `prototype/app/app.js`); `src/sci2audio/web/markers.py` (the v1.3 marker); `plans/audit-batch-2026-11-20.md` (F3).
 
 ## 1. Two PRs
@@ -67,7 +67,7 @@ Format as ADR-007: status line (Decided: Colin for the scope, 20 Nov 2026 19:04 
 
 ## 4. GitHub actions (not in a PR)
 
-Each narrowed body gets a paragraph at the top: "**Scope per D-850 / ADR-008 (21 Nov 2026):** …"; the old criteria are edited to match, nothing else in the body changes.
+Each narrowed body gets a paragraph at the top: "**Scope per D-850 / ADR-008 (20 Nov 2026):** …"; the old criteria are edited to match, nothing else in the body changes.
 
 - **#397:** N, Q, M (no C, no card); the note pauses and opens the box; quote and mark save at once; the dock shows three keys as ADR 2.2 B; M and Q toggle.
 - **#398:** no card review; removal at once with Undo in the toast, no strike-through cancel and no Restore; the Captures page lists the three types with filters.
