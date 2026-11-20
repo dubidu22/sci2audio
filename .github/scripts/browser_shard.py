@@ -14,6 +14,13 @@ import sys
 from pathlib import Path
 
 
+def browser_tests(listing: str) -> list[str]:
+    """The test ids of `pytest --collect-only -q` output: the lines that start with `tests/`.
+    The quarantine banner (tests/conftest.py) names tests with "::" too, indented and after
+    the issue number; read as a test, it made pytest exit 4 with nothing run (#698)."""
+    return [line for line in listing.splitlines() if line.startswith("tests/") and "::" in line]
+
+
 def main(browser: str, shard: int, total: int, out: Path) -> None:
     if not 1 <= shard <= total:
         sys.exit(f"shard {shard} is not between 1 and {total}")
@@ -35,7 +42,7 @@ def main(browser: str, shard: int, total: int, out: Path) -> None:
         capture_output=True,
         text=True,
     ).stdout
-    tests = [line for line in listing.splitlines() if "::" in line]
+    tests = browser_tests(listing)
     mine = tests[shard - 1 :: total]
     if not mine:
         sys.exit(f"shard {shard} of {total} has no tests ({len(tests)} collected)")
