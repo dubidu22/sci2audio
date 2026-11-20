@@ -97,7 +97,16 @@
     "tests/corpus/**",
     "tests/unit/__snapshots__/**",
     "tests/regression/**",
-    "THIRD_PARTY_LICENSES.md"
+    "THIRD_PARTY_LICENSES.md",
+    "governance/claude-project-rules.yaml",
+    "governance/rules/**",
+    "governance/project_instructions.md",
+    "governance/governance-config.json",
+    "governance/tools/**",
+    "governance/kb/README.md",
+    "governance/kb/**/adr-*.md",
+    "governance/kb/**/playbook-*.md",
+    "governance/kb/**/doc-*.md"
   ],
   "no_telemetry": true,
   "local_ui_loopback_only": true,
@@ -137,9 +146,23 @@
     "lane:infra=pyproject.toml",
     "lane:infra=uv.lock",
     "lane:infra=.pre-commit-config.yaml",
-    "lane:docs=docs/**",
+    "lane:infra=governance/claude-project-rules.yaml",
+    "lane:infra=governance/rules/**",
+    "lane:infra=governance/project_instructions.md",
+    "lane:infra=governance/governance-config.json",
+    "lane:infra=governance/github-setup/**",
+    "lane:infra=governance/tools/**",
     "lane:docs=*.md",
-    "lane:docs=.claude/**"
+    "lane:docs=docs/**",
+    "lane:docs=docs/design/**",
+    "lane:docs=.claude/**",
+    "lane:docs=governance/kb/**",
+    "lane:docs=governance/plans/**",
+    "lane:docs=governance/ledger/**",
+    "lane:docs=governance/project-state.yaml",
+    "lane:docs=governance/memory/**",
+    "lane:docs=governance/release/**",
+    "lane:docs=governance/workflow-export.md"
   ],
   "doc_paths": [
     "docs/**",
@@ -148,6 +171,15 @@
     "CONTRIBUTING.md",
     ".github/**",
     ".claude/**"
+  ],
+  "governance_paths": [
+    "governance/kb/**",
+    "governance/plans/**",
+    "governance/ledger/**",
+    "governance/project-state.yaml",
+    "governance/memory/**",
+    "governance/release/**",
+    "governance/workflow-export.md"
   ],
   "runtime_verification": false,
   "owner_prefs": [
