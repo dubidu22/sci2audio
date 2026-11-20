@@ -1,0 +1,9 @@
+pr: 690
+opened: 2026-11-20
+thread: plugins-b-p2
+lane: textprep
+labels: "lane:textprep, lane:docs, risk:high"
+plan: plans/plugins-b-p2-plan.md
+critical: yes                 # a safety mechanism of the text-step plugin interface (CRIT-01, D-845)
+compactions: 0
+fixes_kinds: ""
