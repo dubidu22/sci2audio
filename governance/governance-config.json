@@ -1,5 +1,5 @@
 {
-  "ruleset_version": "1.7.0",
+  "ruleset_version": "1.8.0",
   "project_name": "sci2audio",
   "repo_slug": "dubidu22/sci2audio",
   "is_public": true,
@@ -7,7 +7,7 @@
   "owner_gh": "dubidu22",
   "timezone": "Europe/Berlin",
   "local_os_shell": "zsh on macOS (MacBook Pro M4)",
-  "local_clone_path": "~/Documents/Projekte/sci2audio",
+  "local_clone_path": "~/Projekte/sci2audio",
   "workspace_root": "./governance",
   "environment": "claude_code",
   "default_branch": "main",
