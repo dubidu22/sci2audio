@@ -43,7 +43,7 @@ The single source of truth for the sci2audio.com redesign, re-architecture and (
 | Path | Purpose |
 |---|---|
 | `00-index/` | This file, decision log, glossary, sources |
-| `01-audit-and-roadmap/` | Repo and process audit, ADR-001–005 and **ADR-007 (pivot)**, the **open-source desktop app playbook** (active plan), lifecycle and Claude toolkit playbooks |
+| `01-audit-and-roadmap/` | Repo and process audit, ADR-001–005, **ADR-007 (pivot)** and ADR-008 (the Study layer, v1.5), the **open-source desktop app playbook** (active plan), lifecycle and Claude toolkit playbooks |
 | `02-product-and-pipeline/` | Product truth, UX redesign, mobile app scope, accessibility, pipeline architecture, detectors and prompts; **English text preparation: rules vs. spaCy (audit, 9 Nov)** |
 | `03-monetization-and-economics/` | **Archived:** pricing, unit economics, payments and credit, iOS payment ADR, abuse guardrails |
 | `04-legal-and-compliance/` | Voice/model licences (**active**); GDPR doc (used for the shutdown); copyright, terms, tax and lawyer brief (**archived**) |
@@ -91,7 +91,7 @@ Rule: an `[advisor proposal]` becomes a `[session decision]` only when Colin say
 | Folder | Files |
 |---|---|
 | `00-index/` (4) | `README.md`, `../decision-log.md`, `glossary-de-en.md`, `sources-and-provenance.md` |
-| `01-audit-and-roadmap/` (15) | `audit-repo-state-2026-11-08.md`, `audit-process-and-velocity.md`, `audit-pdfium-thread-crash.md`, `adr-001`…`adr-005`, `adr-007-pivot-open-source-local-app.md`, `playbook-open-source-desktop-app.md`, `playbook-phase-0-foundation.md`, `playbook-phases-1-4-refactor-roadmap.md`, `playbook-dev-lifecycle-operating-model.md`, `playbook-claude-toolkit-and-skills.md`, `working-tech-risks-and-open-questions.md` |
+| `01-audit-and-roadmap/` (16) | `audit-repo-state-2026-11-08.md`, `audit-process-and-velocity.md`, `audit-pdfium-thread-crash.md`, `adr-001`…`adr-005`, `adr-007-pivot-open-source-local-app.md`, `adr-008-study-layer.md`, `playbook-open-source-desktop-app.md`, `playbook-phase-0-foundation.md`, `playbook-phases-1-4-refactor-roadmap.md`, `playbook-dev-lifecycle-operating-model.md`, `playbook-claude-toolkit-and-skills.md`, `working-tech-risks-and-open-questions.md` |
 | `02-product-and-pipeline/` (9 + tools) | `doc-product-truth-and-positioning.md`, `doc-ux-redesign-spec.md`, `doc-mobile-listening-app.md`, `doc-accessibility-requirements.md`, `doc-pipeline-architecture.md`, `doc-prompts-and-detector-rules.md`, `playbook-pipeline-optimization.md`, `working-product-open-questions.md`, `audit-english-rules-vs-spacy-2026-11-09.md`; `tools/extract_prompts.py`, `tools/english_check/` |
 | `03-monetization-and-economics/` (7 + tool) | `audit-pricing-consistency.md`, `doc-pricing-model-option-packages.md`, `doc-unit-economics.md`, `doc-payments-and-credit-system.md`, `adr-006-ios-payment-route.md`, `playbook-quota-and-abuse-guardrails.md`, `working-monetization-open-questions.md`; `tools/unit_economics.py` |
 | `04-legal-and-compliance/` (6) | `audit-legal-readiness.md`, `doc-gdpr-and-subprocessors.md`, `doc-copyright-and-tos-liability.md`, `doc-voice-and-model-licensing.md`, `playbook-business-and-tax-setup.md`, `working-legal-questions-for-lawyer.md` |
