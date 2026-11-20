@@ -8,5 +8,5 @@ critical: yes
 compactions: 0
 fixes_kinds: ""
 note: "#683 ruleset lanes (D-848) and PLAN-01 wording (D-849); near-miss heading fails (N1 of #692); tests guard against a generator re-run; Issue #706 filed for the stale github-setup copy"
-rounds: 0
-merged: ""
+rounds: 2
+merged: "b00002d (squash of 54a5934, 2026-11-20)"
