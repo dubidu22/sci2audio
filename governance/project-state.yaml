@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-20T22:10Z   # clock time; hour marks written earlier today were estimates (D-856)
+updated: 2026-11-20T22:04Z   # clock time; hour marks written earlier today were estimates (D-856)
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -15,7 +15,7 @@ active_now:
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
   lanes_active:                                      # batch 3 (D-859) started 20 Nov 22:00Z on Colin's "Start batch 3"; plans owed first
     - "textprep B-P3 (thread textprep-b-p3): #693 (critical; first test = hostile-plugin isolation test, D-858) and #694; plan plans/textprep-b-p3-plan.md"
-    - "infra B-I4 (thread infra-b-i4): #708 (critical, PR 1) and #695 #706 (PR 2); plan approved 22:10Z (D-860), implementing both; hand-off from infra-b-i3: after any ruleset regeneration copy back only claude-project-rules.yaml and rules/*.yaml and re-insert governance_paths and the D-849 text by exact replace; ruff excludes .github/governance"
+    - "infra B-I4 (thread infra-b-i4): #708 (critical, PR 1) and #695 #706 (PR 2); plan approved 22:04Z (D-860), implementing both; hand-off from infra-b-i3: after any ruleset regeneration copy back only claude-project-rules.yaml and rules/*.yaml and re-insert governance_paths and the D-849 text by exact replace; ruff excludes .github/governance"
     - "web tests B-T1 (thread web-tests-b-t1): #699 (fails every WebKit run, nightly red) and #697 (Firefox flake, 38/40 locally, cause unknown); plan plans/web-tests-b-t1-plan.md"
   lanes_waiting:                                     # batch 3 remainder; start when a lane frees
     - "layout #679 (new thread, risk:low); voices #663 (new thread, risk:low)"
