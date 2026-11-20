@@ -1,0 +1,12 @@
+pr: 675
+round: 2
+date: 2026-11-20
+thread: review-web-b-w1
+head: 51b6735
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr675-round2.md
+merged: ""
