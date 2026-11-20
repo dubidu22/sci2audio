@@ -1,0 +1,40 @@
+# Light audit: batch of 20/21 Nov 2026 (#677, #671, #676, #675, #680, #682)
+
+Auditor: audit thread (ROLE-09, `batch_audit_mode: light_every_batch`), Opus medium, 20 Nov 2026. Read: the squash diffs `4f05cbe..origin/main` (2cd4f20, 8068a5b, 20f9575, d6cd100, e76b3a3, caecf7a), the six PR bodies, the review reports `review-pr{671,675,676,677,680,682}-round*.md` and their ledger rounds. Not a re-review.
+
+## Result: 0 blocking, 4 should-fix, 8 notes
+
+### Should-fix
+
+**F1 (should-fix). Plugin load-time code runs unguarded on the start-up path of every command.** `textprep/plugins.py:_step` calls `point.load()` and the factory `made()` in the caller's thread with no time limit; only `find` runs behind the worker-thread guard. `JobRunner()` calls `installed_steps()` in its constructor, and the runner is built at every CLI start (`cli.py:141`, `default_factory=JobRunner`) and every server start (`web/server.py:82`), so a plugin whose import or factory hangs blocks `convert`, `voices`, `ui` and the app before anything is shown. The #676 reviews covered exceptions at load (S1, BaseException) but not a hang. Fix: load each entry point inside the same thread-plus-`join(timeout)` guard and reject it with a `PluginProblem` on timeout. Issue to file: lane:textprep, risk:high (text-step interface), v1.4.
+
+**F2 (should-fix). The privacy page's network promise and the plugin interface disagree across #675 and #676.** #675's privacy page and `test_what_the_privacy_page_says_is_what_the_code_does` state that the only network code is the voice download and the update check, which is true of the `sci2audio` package (the AST guard scans only `src/sci2audio`). #676 runs third-party plugin code in-process, and `docs/plugins.md:133` says network access is not blocked during a job. Neither the privacy page nor the strings mention plugins (`plugin` does not occur in `web/strings/en.toml`). Each review saw only its own half. Fix: one sentence on the privacy page (and the test that pins it) that installed text-step plugins are other people's code which sci2audio does not check for network use, or a runtime block in the guard; note that `no_network()` patches `socket` process-wide and would also block a running voice download or update check, so the sentence is the cheaper and safer first step. Issue to file: lane:web, risk:high (privacy text about network calls), v1.4.
+
+**F3 (should-fix). CHANGELOG Unreleased misses the two layout/extraction fixes.** After the three merges that touched it (#676, #675 and none from #671/#682) the section reads coherently: Added has the update check and text-step plugins, Security has the two headers, no line is duplicated or lost. But #671 (names like "Marasović" and "Šmejkal" are read with their accent; two reference lines are no longer joined) and #682 (ruled and numbered headings, uncaptioned plots and their labels, rule-less tables) are user-visible and have no "Fixed" line, unlike earlier layout batches (audit B13, A6). Neither PR body says why. Fix: two "Fixed" lines in the next layout or docs PR.
+
+**F4 (should-fix). #681 carries the wrong lane and risk label.** Its acceptance criteria change `.github/labeler.yml` and `critical_paths` in `.github/governance/pr-checks.json`, which are lane:infra critical paths (CRIT-01: CI workflows and checks). It is labelled `lane:docs`, `risk:low`. Should be `lane:infra` (plus `lane:docs` if the KB folder moves) and `risk:high`.
+
+### Notes
+
+- **N1. Start-up order and shared state: no interaction found.** `JobRunner` (and so plugin loading) is built before `ServerState`; `UpdateCheck` is made in `ServerState.__post_init__` and writes `update-check.json` beside the settings file through `write_text_atomically`. Plugins get no state file and no reference to `ServerState`; the update check's daemon thread and the per-call plugin guard threads share no object. `sci2audio listen` (outside jobs) never checks (M2 of #675, fixed). The only cross-effect is F1/F2.
+- **N2. Network imports (hard rule).** A grep of `src/sci2audio` for `requests`, `httpx`, `urllib.request`, `urllib3`, `socket`, `http.client`, `aiohttp`, `huggingface_hub` finds `requests` only in `app/updates.py` and `voices/download.py`, and `socket` only in `web/launch.py` (the 127.0.0.1 socket) and `testing/text_steps.py` (the `no_network` patch). Other hits are `urllib.parse`. The AST guard's allow-list is exactly these four files, not two as the plan said; the two extra are named in the test with reasons.
+- **N3. 127.0.0.1 only.** `web/config.py:18` `HOST = "127.0.0.1"` is unchanged and asserted in the privacy test; no `0.0.0.0` or other host in `src`.
+- **N4. Faithful text.** #682's five rules move pieces between blocks only; the one golden change (Liu p4) moves two fraction bars, no block text changes. #671's `layout/paragraphs.py` change only splits rows the old rule joined. #671's `extraction/pdf.py` composes a lone spacing accent onto its letter (NFC), which changes extracted text toward what the page prints; it is extraction, not a text step, so D-57 does not apply, and every changed line is listed in the PR body.
+- **N5. Goldens.** `git diff 4f05cbe origin/main --stat` over `tests/unit/__snapshots__`, `tests/regression` and `tests/corpus`: five snapshot files, all from #671 (extraction, layout, app, textprep furniture, citations) plus two `test_layout_corpus.ambr` lines from #682. Every changed line is declared in the PR bodies (#671 lists app and furniture counts too). No regression case or corpus file changed.
+- **N6. Follow-up issues (GH-01).** #666, #667, #668, #669, #672, #673, #674, #678, #681, #683 exist, are open and each has a milestone, a lane label and a risk label (#681's are wrong, F4). #671, #677 and #682 name no new follow-ups. All closed issues of the batch are closed. Milestone `v1.4` is still open after 1.4.0 shipped on 19 Nov and holds 7 of these follow-ups; the coordinator may want to say whether it means the next release.
+- **N7. `pr-checks.json` narrowing (#680).** `governance/**` is no longer critical by path; the KB's process and contract documents are now found only by reading. Tracked in #681.
+- **N8. Local checkout.** `~/Projekte/sci2audio` `main` is at 20f9575, behind `origin/main` by #675, #680 and #682, so a thread that reads `CLAUDE.md` there sees the old network rule. A `git pull` on main fixes it.
+
+## META-03: the recurring "planned test missing" finding
+
+Seen as #671 round 1 S1 (plan §4 corpus check absent) and #675 round 1 S1/S3 (AST guard and the 206 header test absent); the ledger kind `missing-test` now occurs in more than one PR. Reminders have not held.
+
+**Proposal: plan test items carry pytest node IDs, and the governance check proves each exists at the PR head.**
+
+- The plan's tests section lists each promised test as a line `- T<n>: <what> -> tests/unit/test_x.py::test_name` (a name, not a description; the author chooses it at plan time, which tests-first already demands).
+- The PR body gets a section `## Plan tests` that names the plan file. `pr_checks.py` (the "governance pr checks" job) reads that plan from the `governance` branch, extracts every `-> path::name`, runs `pytest --collect-only -q` on the head and fails with the list of node IDs not collected. A test the author drops or renames needs a line `T<n>: dropped, <reason>` in the PR body, which the reviewer then judges.
+- Cost: about 80 lines in `.github/governance/pr_checks.py` plus tests in `test_lanes.py`-style unit tests; one CI step of about 10 s (collection only); a few minutes per plan. It is a lane:infra, risk:high change to a required check, so it needs the coordinator's plan approval, and the plan template wording is a ruleset touch (META-01, owner). It proves presence, not that the test asserts the right thing; that stays the reviewer's job, but the reviewer no longer has to diff plan against tests by hand.
+
+## Verdict
+
+**Pass: 0 blocking.** The batch is consistent; F1 and F2 are cross-PR gaps no single review could see and should become Issues (lane and risk as given) before the next release; F3 and F4 are small corrections.
