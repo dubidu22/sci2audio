@@ -40,6 +40,10 @@ Fix: a pointer press inside the menu keeps it open (`pressedInside`, set on `poi
 
 Hypothesis from the code: the refused run's card is server-drawn after the page reloads itself (`reloadAt("result")`). The URL is then already `/jobs/<id>-audio-N`, so `wait_for_url` returns at once even if the click on "Replace these files" did nothing. The hold then waits 30 s for a job that never started. Check: 40 isolated Firefox runs with an instrumented test that records page requests on failure (a POST `/api/v1/jobs` or none). Results go here and into #697. If the cause is confirmed: `at_rest(page)` before the click, and `expect_request(POST /api/v1/jobs)` around it so a lost click fails at once with a clear message. Then 40 isolated runs per browser (Firefox, Chromium, and WebKit as audit N6 asks), one pytest process each; the quarantine is lifted only on 40 of 40 in Firefox with the cause explained.
 
+### 4.1 Result of the diagnosis run (20 Nov)
+
+Instrumented loop on main's test (Firefox, `--run-quarantined`, one pytest process per run): run 13 of 14 failed. The page had sent **no request at all** after the click on "Replace these files", the URL was the refused run's own (`/jobs/<id>-audio-3`) before and after, and the voice had spoken nothing (`hold.calls == 0`). So the cause is confirmed: a click that did nothing, hidden by a `wait_for_url` that the page already matched. Fix as proposed: `at_rest(page)` before the click, `expect_request(POST /api/v1/jobs)` around it with `overwrite` true, and `wait_for_url` for an address other than the refused run's.
+
 ## 5. Tests promised in the plan
 
 - `tests/browser/test_player.py::test_a_second_step_while_the_file_loads_stays_on_its_sentence`
