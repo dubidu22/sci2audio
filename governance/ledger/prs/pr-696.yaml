@@ -8,10 +8,11 @@ critical: yes                 # #685, privacy text about the network (D-847)
 compactions: 0
 fixes_kinds: ""
 issues: "#666 #668 #685"
-head: 07f7e76
+head: b5b8913
 ci: "Linux pending at open; then main merged in if behind, ci:full on the coordinator's word, label removed (D-698)"
 local_checks: "ruff, format, lint-imports, deptry clean; fast 8635 passed (-k 'not espeak'); browser 198 passed (Chromium)"
 follow_ups: "#688 (v2, lane:web)"
 pre_review: "body fixed for the promised-tests check (11 of 11); main 44c59c2 merged (3ee16ee); ci:full set; WebKit timeouts also on main (#699); Firefox resume flake quarantined in #698 (#697)"
 ci_full: "green on ubuntu, macos, windows at 3ee16ee (run 44805866211); label removed; frozen for review round 1"
 round_1: "answered in 07f7e76: M1 (read-along uses exactly the record's plugins, D-852), M2 (load problems listed), S1 (restart), S2 (no backticks), N1 fixed"
+round_2: "approved 07f7e76, 0 findings; N4 (player_for docstring says upgraded, match is by id) and N5 N6 go to the next web PR; main 9066c3d merged (b5b8913, PR diff unchanged); final ci:full started"
