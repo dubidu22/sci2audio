@@ -1,0 +1,11 @@
+pr: 692
+round: 3
+date: 2026-11-20
+thread: review-infra-b-i2
+head: 359dd9b
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr692-round3.md
