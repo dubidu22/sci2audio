@@ -7,15 +7,21 @@ out. `installed_steps` puts the plugins after the built-in steps of their stage,
 built-in edit wins an overlap (Q15), so a plugin adds to the reading and never overrides a
 built-in rule (D-836).
 
-Every plugin runs behind a guard. It gets a copy of the document, so a plugin that changes
-the document it was given changes nothing the other steps see; it runs in a worker thread
-with a time limit; and any exception but Ctrl+C counts as a failure, `SystemExit` and other
-BaseExceptions included. The runner then drops the step's edits and records the problem, as
-for any failing step (D-111). Loading a plugin (its import, its factory, its attributes)
-runs in a worker thread with a time limit too: the app loads the plugins when it starts, so
-a plugin that hangs there would stop every command (#684). A thread cannot be stopped: a
-plugin past its time limit is left running with its result thrown away (Q5 of the plan).
-Nothing here runs at import time; the app loads the plugins once per `JobRunner`.
+Every plugin runs behind a guard. It gets copies of the document and the context, so a
+plugin that changes what it was given changes nothing the other steps see; it runs in a
+worker thread with a time limit; and any exception but Ctrl+C counts as a failure,
+`SystemExit` and other BaseExceptions included. The runner then drops the step's edits and
+records the problem, as for any failing step (D-111). Loading a plugin (its import, its
+factory, its attributes) runs in a worker thread with a time limit too: the app loads the
+plugins when it starts, so a plugin that hangs there would stop every command (#684). A
+thread cannot be stopped: a plugin past its time limit is left running with its result
+thrown away (Q5 of the plan). Nothing here runs at import time; the app loads the plugins
+once per `JobRunner`.
+
+No object of the plugin's leaves a worker (#693): any of them may run plugin code when it
+is compared, hashed, shown or dropped, and only the worker is under the time limit. So the
+worker hands back plain built-in values (copies of the id and languages, edits rebuilt from
+plain ints and strs) or the text of a failure, never what the plugin returned or raised.
 """
 
 from __future__ import annotations
@@ -27,7 +33,7 @@ from dataclasses import dataclass
 from importlib.metadata import EntryPoint, entry_points
 from typing import Any
 
-from sci2audio.core import Document, Edit
+from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.registry import BUILT_IN_STEPS
 from sci2audio.textprep.steps import (
     TEXT_STEP_API,
@@ -73,6 +79,10 @@ class LoadedPlugins:
     steps: tuple[TextStep, ...]
     plugins: tuple[PluginInfo, ...]
     problems: tuple[PluginProblem, ...]
+
+
+class PluginError(StepError):
+    """A plugin's `find` raised an Exception; the message is that exception as text."""
 
 
 class InstalledSteps(tuple[TextStep, ...]):
@@ -123,13 +133,30 @@ def _load(
     problems: list[PluginProblem] = []
     found: dict[str, list[tuple[TextStep, PluginInfo]]] = {}
     seen: set[tuple[str, str]] = set()
+    # (distribution, top-level package) -> the entry point whose load ran out of time, and
+    # its worker: while that worker lives it holds the package's import lock, so another
+    # entry point of the package could only wait out its own limit too (#694)
+    hung: dict[tuple[str, str], tuple[str, threading.Thread]] = {}
     for point in points:
         if (point.name, point.value) in seen:  # one distribution on the path twice
             continue
         seen.add((point.name, point.value))
         distribution, version = _distribution(point)
+        package = (distribution, point.value.partition(":")[0].strip().partition(".")[0])
+        if package in hung and hung[package][1].is_alive():
+            message = (
+                f"left out: {hung[package][0]!r} of the same package {package[1]!r} took "
+                f"longer than {load_timeout:g} s to load"
+            )
+            problems.append(PluginProblem(point.name, distribution, message))
+            continue
         try:
             step = _step(point, taken, timeout, load_timeout)
+        except _TimedOut as timed_out:
+            hung[package] = (point.name, timed_out.worker)
+            message = f"took longer than {load_timeout:g} s to load; left out"
+            problems.append(PluginProblem(point.name, distribution, message))
+            continue
         except _Rejected as rejected:
             problems.append(PluginProblem(point.name, distribution, str(rejected)))
             continue
@@ -183,28 +210,43 @@ class _Rejected(Exception):
 
 
 class _TimedOut(Exception):
-    pass
+    def __init__(self, worker: threading.Thread) -> None:
+        super().__init__()
+        self.worker = worker  # still running
 
 
-def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T:
-    """`call()` in a daemon thread: its result, or what it raised, re-raised here; _TimedOut
-    if it is still running after `timeout` seconds. The thread cannot be stopped and is left
-    to finish on its own; a daemon thread never keeps the program from ending."""
+@dataclass(frozen=True)
+class _Failure:
+    """Why a call in the worker failed, as plain text made in the worker."""
+
+    message: str
+    raised: bool = False  # the plugin's find raised an Exception; `message` is its text
+
+
+def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Failure:
+    """`call()` in a daemon thread: its result, which must hold only built-in values, or a
+    _Failure; _TimedOut if it is still running after `timeout` seconds. What the call
+    raised never reaches this thread, only its text: an exception holds the frames it
+    passed, and so the plugin's objects. Ctrl+C there is raised here anew. The thread
+    cannot be stopped and is left to finish on its own; a daemon thread never keeps the
+    program from ending."""
     result: dict[str, Any] = {}
 
     def work() -> None:
         try:
             result["value"] = call()
-        except BaseException as error:  # handed to the caller's thread below
-            result["error"] = error
+        except KeyboardInterrupt:
+            result["interrupted"] = True
+        except BaseException as error:  # a path the call does not turn into a _Failure
+            result["value"] = _Failure(f"failed: {_said(error)}")
 
     worker = threading.Thread(target=work, name=name, daemon=True)
     worker.start()
     worker.join(timeout)
     if worker.is_alive():
-        raise _TimedOut
-    if "error" in result:
-        raise result["error"]
+        raise _TimedOut(worker)
+    if "interrupted" in result:
+        raise KeyboardInterrupt
     return result["value"]
 
 
@@ -236,14 +278,22 @@ def _said(error: BaseException) -> str:
 
 def _step(point: EntryPoint, taken: set[str], timeout: float, load_timeout: float) -> _GuardedStep:
     """The entry point's step behind the guard; _Rejected if it is not one this sci2audio
-    can run, or if loading it takes longer than `load_timeout` seconds."""
-    try:
-        step = _in_worker(
-            lambda: _made(point, taken, timeout), load_timeout, f"loading text step {point.name}"
-        )
-    except _TimedOut:
-        raise _Rejected(f"took longer than {load_timeout:g} s to load; left out") from None
+    can run, _TimedOut if loading it takes longer than `load_timeout` seconds."""
+    step = _in_worker(
+        lambda: _loaded(point, taken, timeout), load_timeout, f"loading text step {point.name}"
+    )
+    if isinstance(step, _Failure):
+        raise _Rejected(step.message)
     return step
+
+
+def _loaded(point: EntryPoint, taken: set[str], timeout: float) -> _GuardedStep | _Failure:
+    """`_made`, with a rejection as plain text: the _Rejected and the plugin's exception it
+    was raised from die here, in the worker."""
+    try:
+        return _made(point, taken, timeout)
+    except _Rejected as rejected:
+        return _Failure(str.__str__(rejected.args[0]))
 
 
 def _made(point: EntryPoint, taken: set[str], timeout: float) -> _GuardedStep:
@@ -317,7 +367,7 @@ def guarded(
 
 
 class _GuardedStep(TextStep):
-    """A plugin step with its own `find`: a copy of the document, a worker thread, a limit.
+    """A plugin step with its own `find`: copies of its input, a worker thread, a limit.
 
     Takes the plugin's declared attributes; `handles` is TextStep's own, so a plugin's
     languages decide which jobs it runs in.
@@ -335,36 +385,128 @@ class _GuardedStep(TextStep):
 
     def keep_plain_copies(self) -> None:
         """Replace the checked values with plain built-in ones: a str or tuple subclass of
-        the plugin's would run its own methods wherever the id is hashed, sorted or shown."""
+        the plugin's would run its own methods wherever the id is hashed, sorted or shown.
+        `step_problems` checks with isinstance and str(), which an object can pass without
+        being a str, a Category or a Stage; such a value is rejected here."""
+        languages = tuple(self.languages)
+        if not all(issubclass(type(language), str) for language in languages):
+            names = ", ".join(type(language).__name__ for language in languages)
+            raise _Rejected(
+                f"languages must be a non-empty tuple of primary tags like 'en' or '*', "
+                f"got a tuple of {names}"
+            )
+        for name, kind in (("category", Category), ("stage", Stage)):
+            if type(getattr(self, name)) is not kind:
+                raise _Rejected(
+                    f"{name} must be a {kind.__name__}, got a {type(getattr(self, name)).__name__}"
+                )
         self.id = str.__str__(self.id)
-        self.languages = tuple(str.__str__(language) for language in self.languages)
+        self.languages = tuple(str.__str__(language) for language in languages)
         self.api_version = TEXT_STEP_API  # step_problems found it equal
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
-        given = copy.deepcopy(document)
         try:
             edits = _in_worker(
-                lambda: self.step.find(given, context), self.timeout, f"text step {self.id}"
+                lambda: _run(self.step, document, context), self.timeout, f"text step {self.id}"
             )
         except _TimedOut:
             raise StepError(
                 f"took longer than {self.timeout:g} s; its edits are left out"
             ) from None
-        except (KeyboardInterrupt, Exception):
-            raise  # Ctrl+C stops the job; the runner reports an Exception as it is
-        except SystemExit as error:
-            raise StepError(f"called SystemExit({error.code!r})") from error
-        except BaseException as error:  # a BaseException would end the job
-            raise StepError(f"raised {_said(error)}") from error
-        try:
-            changed = given != document
-        except KeyboardInterrupt:
-            raise
-        except BaseException as error:  # the plugin left in its copy what cannot compare
-            raise StepError(f"left its copy of the document unreadable: {_said(error)}") from error
-        if changed:
-            raise StepError("changed the document it was given; a step may only propose edits")
-        return edits  # checked by the runner
+        if isinstance(edits, _Failure):
+            raise (PluginError if edits.raised else StepError)(edits.message)
+        return edits  # checked further by the runner
 
     def __repr__(self) -> str:
         return f"<text-step plugin {self.id}>"
+
+
+def _run(step: TextStep, document: Document, context: StepContext) -> list[Edit] | _Failure:
+    """The plugin's `find` on copies of the document and the context, in the worker: its
+    edits rebuilt from plain values, or why it failed. The copies, what `find` returned
+    and what it raised are compared, read and dropped here."""
+    given, its_context = copy.deepcopy(document), copy.deepcopy(context)
+    try:
+        edits = step.find(given, its_context)
+    except KeyboardInterrupt:
+        raise
+    except Exception as error:  # the runner shows it as it is
+        return _Failure(_said(error), raised=True)
+    except SystemExit as error:
+        return _Failure(f"called SystemExit({_shown(error.code)})")
+    except BaseException as error:  # a BaseException would end the job
+        return _Failure(f"raised {_said(error)}")
+    try:
+        changed = bool(given != document)
+    except KeyboardInterrupt:
+        raise
+    except BaseException as error:  # the plugin left in its copy what cannot compare
+        return _Failure(f"left its copy of the document unreadable: {_said(error)}")
+    if changed:
+        return _Failure("changed the document it was given; a step may only propose edits")
+    try:
+        return _plain_edits(edits)
+    except _Rejected as rejected:
+        return _Failure(str.__str__(rejected.args[0]))
+    except KeyboardInterrupt:
+        raise
+    except BaseException as error:  # an edit's own code failed while it was read
+        return _Failure(f"failed while its edits were read: {_said(error)}")
+
+
+def _shown(value: object) -> str:
+    try:
+        return repr(value)
+    except KeyboardInterrupt:
+        raise
+    except BaseException:
+        return type(value).__name__
+
+
+def _plain_edits(edits: object) -> list[Edit]:
+    """The edits rebuilt from exact ints, strs and EditKinds; _Rejected if they are not a
+    list of Edit. A subclass's own methods (`__eq__`, `__index__`, `__hash__` ...) would
+    run wherever the runner compares, slices or sorts them."""
+    if not isinstance(edits, list) or not all(isinstance(edit, Edit) for edit in edits):
+        raise _Rejected(f"find must return a list of Edit, got {type(edits).__name__}")
+    plain = []
+    for edit in edits:
+        kind = edit.kind
+        if type(kind) is not EditKind:
+            raise _Rejected(f"find returned an edit whose kind is not an EditKind, got {kind!r}")
+        to = edit.to
+        try:
+            plain.append(
+                Edit(
+                    _plain_span(edit.span, "span"),
+                    kind,
+                    reason=_plain_text(edit.reason, "reason"),
+                    step=_plain_text(edit.step, "step"),
+                    replacement=_plain_text(edit.replacement, "replacement"),
+                    to=None if to is None else _plain_span(to, "target"),
+                )
+            )
+        except ValueError as error:  # core's own check, on the plain values
+            raise _Rejected(f"find returned an edit that breaks the rules: {error}") from None
+    return plain
+
+
+def _plain_span(span: object, field: str) -> Span:
+    if not isinstance(span, Span):
+        raise _Rejected(f"find returned an edit whose {field} is not a Span")
+    return Span(*(_whole(getattr(span, name), field) for name in ("block", "start", "end")))
+
+
+def _whole(number: object, field: str) -> int:
+    if not issubclass(type(number), int):
+        raise _Rejected(
+            f"find returned an edit whose {field} holds a {type(number).__name__}, "
+            f"not a whole number"
+        )
+    return int.__index__(number)  # type: ignore[arg-type]  # an exact int, without its override
+
+
+def _plain_text(text: object, field: str) -> str:
+    if not issubclass(type(text), str):
+        raise _Rejected(f"find returned an edit whose {field} is not a str")
+    return str.__str__(text)  # type: ignore[arg-type]

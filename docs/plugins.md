@@ -96,7 +96,7 @@ class AmpersandStep(TextStep):
 
 `id` is kebab-case and unique. `languages` holds primary tags (`"en"`, `"de"`) or `ANY_LANGUAGE`; a job in `"en-GB"` runs a step for `"en"`. `find` must not reach the network, keep state between calls, or depend on anything but its arguments.
 
-Your plugin's code runs in a worker thread, not in the program's main thread: its import, its factory, its attributes and `find`. So it must not call `signal.signal` or anything else that works only in the main thread. Loading has 30 seconds and `find` has 60 seconds per document (see below).
+Your plugin's code runs in a worker thread, not in the program's main thread: its import, its factory, every read of its attributes, `find`, the comparison of its copy of the document with the original, the reading of the edits it returns, and the formatting of any exception it raises. Every object your plugin hands over stays in that thread: the job gets back plain copies (the id and languages as `str`, the edits rebuilt from plain `int` and `str` values) or the text of a failure. So it must not call `signal.signal` or anything else that works only in the main thread. Loading has 30 seconds and `find` has 60 seconds per document, including reading its edits (see below). One exception: your step object itself lives as long as the job's steps, so its `__del__` runs wherever sci2audio drops them, at the end of the program.
 
 ## Making it known: the entry point
 
@@ -120,7 +120,8 @@ Install your package in the environment sci2audio runs in (`uv pip install -e .`
 - **Running without plugins.** `sci2audio script --no-plugins` and `sci2audio convert --no-plugins` run a job with the built-in steps only; the report says the plugins were switched off. The audiobook's record (`audio.json`) lists the plugins that made it.
 - **Not loaded.** A plugin is not loaded when:
   - its import fails, its factory raises, or reading one of its attributes raises (any exception, `sys.exit` included);
-  - loading it (the import, the factory, reading its attributes) takes longer than 30 seconds;
+  - loading it (the import, the factory, reading its attributes) takes longer than 30 seconds; while that import still runs, another entry point in the same top-level module of the same installed package is left out at once, since it could only wait for it;
+  - its `languages` are not `str`, or its `category` or `stage` is not exactly a `Category` or `Stage`;
   - it does not give a `TextStep`;
   - it has an invalid attribute, or `api_version` is missing or different;
   - its entry point is not named after its id;
@@ -129,11 +130,11 @@ Install your package in the environment sci2audio runs in (`uv pip install -e .`
   The report lists such plugins as problems ("plugin not loaded: …"), and the other plugins still load.
 - **Failing at run time.** These count as failing:
   - `find` raises any exception, or calls `sys.exit`;
-  - it returns edits that break the rules (spans outside their block, another step's id, edits that overlap each other, a block step's edit that does not cover its block, a move from a step that is not a move step);
+  - it returns edits that break the rules (spans outside their block, another step's id, edits that overlap each other, a block step's edit that does not cover its block, a move from a step that is not a move step, a `kind` that is not an `EditKind`, offsets that are not whole numbers or texts that are not `str`);
   - it takes longer than 60 seconds on a document;
   - it changes the document it was given.
 
-  Each plugin gets its own copy of the document. When a plugin fails, all its edits are left out, the report says why, and the job goes on: a plugin can never stop a job or change the text other than through its edits. Ctrl+C still stops the job.
+  Each plugin gets its own copy of the document and of the `StepContext`. When a plugin fails, all its edits are left out, the report says why, and the job goes on: a plugin can never stop a job or change the text other than through its edits. Ctrl+C still stops the job.
 - **What is not enforced in a job.** Network access is not blocked while a job runs. The conformance suite below checks it, and the project's rules forbid it: sci2audio works offline.
 
 ## Checking your step with the conformance suite

@@ -30,7 +30,7 @@ from enum import StrEnum
 from functools import cached_property
 
 from sci2audio.core import Document, Edit, EditKind, ScriptPiece, Span, apply_edits, check_edits
-from sci2audio.textprep.plugins import InstalledSteps, PluginInfo
+from sci2audio.textprep.plugins import InstalledSteps, PluginError, PluginInfo
 from sci2audio.textprep.registry import BUILT_IN_STEPS, check_registry
 from sci2audio.textprep.steps import (
     DEFAULT_SWITCHED_OFF,
@@ -149,7 +149,11 @@ def run_steps(
         except Exception as error:
             if strict:
                 raise StepError(f"text step {step.id!r} failed: {error}") from error
-            problems.append(StepProblem(step.id, f"{type(error).__name__}: {error}"))
+            # a plugin's error arrives as its own text, made inside the guard's time limit
+            said = (
+                str(error) if isinstance(error, PluginError) else f"{type(error).__name__}: {error}"
+            )
+            problems.append(StepProblem(step.id, said))
             continue
         for edit in edits:
             if step.category in switched_off:
