@@ -80,4 +80,4 @@ The existing tests stay green: `tests/unit/test_lanes.py` as a whole, and `tests
 - The skill's generator and scaffold should read `governance_paths` and keep the D-849 PLAN-01 wording, so a re-run needs no hand step. That is an upstream skill change and the owner's call. I will name it in the PR body; the tests above catch a revert until then.
 - `governance/github-setup/pr-checks.json` is stale against `.github/governance/pr-checks.json`. It gets an Issue only if the coordinator wants one.
 
-Handoff (THR-07): goal: the #683, D-848 and D-849 PR. Done: findings and plan. Next: coordinator approval, then tests first.
+Handoff (THR-07): goal: PR #707 (#683, D-848, D-849) merged. Done: approved (D-855), PR open at ffb0d7b, Linux and three-system run (44814898215) green, ci:full removed, Issue #706, ledger pr-707.yaml. Next: wait for plans/review-pr707-round1.md, then one fix commit and plans/answer-pr707-round1.md.
