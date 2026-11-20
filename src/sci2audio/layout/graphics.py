@@ -61,6 +61,7 @@ from sci2audio.core import (
 )
 from sci2audio.layout.code import LISTING
 from sci2audio.layout.geometry import holds, line_size, minor, same_row, union
+from sci2audio.layout.order import touching
 from sci2audio.layout.settings import LayoutSettings
 from sci2audio.layout.split import kept, part_ends, read_rows
 
@@ -108,6 +109,8 @@ class _State:
     lines: dict[str, int] = field(default_factory=dict)  # each text line's id: its length
     floats: list[_Float] = field(default_factory=list)
     taken: dict[str, int] = field(default_factory=dict)  # item id: its float
+    # each text line's column edges, as its printed row has them (#56)
+    columns: dict[str, tuple[float, float]] = field(default_factory=dict)
 
     def kind(self, item: _Item) -> BlockKind:
         return self.blocks[item.block].kind
@@ -118,12 +121,17 @@ class _State:
 
 
 def find_graphics(
-    blocks: list[Block], content: Content, body: float, settings: LayoutSettings
+    blocks: list[Block],
+    content: Content,
+    body: float,
+    settings: LayoutSettings,
+    columns: dict[str, tuple[float, float]] | None = None,
 ) -> tuple[list[Block], Links]:
     """The blocks with tables, figures and algorithms as placeholders, and the graphics no
-    caption names as furniture, figures or parts of the blocks next to them."""
+    caption names as furniture, figures or parts of the blocks next to them. `columns` gives
+    each text line's column edges, where its printed row has them."""
     lengths = {li.id: len(li.text) for page in content.pages for li in page.lines}
-    state = _State(blocks, body, settings, lengths)
+    state = _State(blocks, body, settings, lengths, columns=columns or {})
     owner = {part.item: k for k, block in enumerate(blocks) for part in block.parts}
     pages = [_items(page, owner) for page in content.pages]
     read: set[int] = set()  # a caption over two pages names a float on its first page
@@ -298,7 +306,9 @@ class _Walk:
                 todo.append(heapq.heappop(self.east)[2])
 
     def _row(self, item: _Item) -> list[_Item]:
-        """The small lines on the item's row not yet taken."""
+        """The small lines on the item's row not yet taken, in the item's column or in one
+        that what the walk spans reaches into: a small line in the other column of a
+        two-column page is no cell of a table in this one (#56)."""
         overlap = self.state.settings.row_overlap
         last = bisect.bisect_left(self.tops, item.box.y1)
         return [
@@ -307,7 +317,17 @@ class _Walk:
             if i.box.y1 > item.box.y0
             and i.id not in self.seen
             and same_row(i.box, item.box, overlap)
+            and self._reaches(item, i)
         ]
+
+    def _reaches(self, item: _Item, other: _Item) -> bool:
+        """True if `other` stands in the column of `item` (a line without column edges is
+        taken as one in it) or the walk's span reaches into the column `other` stands in."""
+        columns = self.state.columns
+        mine, theirs = columns.get(item.id), columns.get(other.id)
+        if mine is None or theirs is None or mine == theirs:
+            return True
+        return self.left < theirs[1] and self.right > theirs[0]
 
 
 def _ruled(walk: _Walk, ahead: list[_Item], state: _State) -> bool:
@@ -368,8 +388,14 @@ def _loose(items: list[_Item], state: _State, actions: dict[int, str]) -> dict[i
     the rest become figures (new floats)."""
     gap = state.settings.float_gap * state.body
     groups = {k: g for k, g in _groups(items, state).items() if k not in actions}
-    found, figures = {}, []
+    plots = _plots(groups, state)
+    plotted = {k for keys in plots for k in keys}
+    found: dict[int, str] = {}
+    # a plot of many separate markers enters the merge below as one figure, not one each
+    figures = [[i for k in keys for i in groups[k]] for keys in plots]
     for k, group in groups.items():
+        if k in plotted:
+            continue
         if _minor(group, state):
             found[k] = "join"
         else:
@@ -382,8 +408,56 @@ def _loose(items: list[_Item], state: _State, actions: dict[int, str]) -> dict[i
         merged = [m for m in merged if m not in near]
         merged.append([i for m in near for i in m] + group)
     for group in merged:
-        state.floats.append(_Float(BlockKind.FIGURE, [], [group]))
-        state.take(len(state.floats) - 1, group)
+        listing = group + _labels(group, items, state)
+        state.floats.append(_Float(BlockKind.FIGURE, [], [listing]))
+        state.take(len(state.floats) - 1, listing)
+    return found
+
+
+def _labels(group: list[_Item], items: list[_Item], state: _State) -> list[_Item]:
+    """The text a figure no caption names takes: the lines wholly inside the box its graphics
+    span and set smaller than the body text (tick and axis labels, a legend), that a float
+    may take (#55). None if a single graphic holds them all: a background or a frame
+    around text, whose text stays running text however small (D-840); running text in the
+    body size is never taken."""
+    box = union([i.box for i in group])
+    found = [
+        i
+        for i in items
+        if i.line is not None
+        and i.id not in state.taken
+        and state.kind(i) in _TAKE
+        and _small(i, state)
+        and holds(box, i.box)
+    ]
+    if any(all(holds(g.box, i.box) for i in found) for g in group):
+        return []
+    return found
+
+
+def _plots(groups: dict[int, list[_Item]], state: _State) -> list[list[int]]:
+    """The groups that make a scatter plot: groups of dots only (drawings at most
+    `line_width` both ways, which count as lines), judged together when they stand within
+    `float_gap` of each other, at least 3 dots spread at least `plot_size` both across and
+    down (#59); the block keys of each plot. A logo of small paths stays a mark: the JOSS
+    first-page logos reach 3.2 em (D-840)."""
+    settings = state.settings
+    width, size = settings.line_width * state.body, settings.plot_size * state.body
+    dotted = [
+        k
+        for k, group in groups.items()
+        if all(max(i.box.x1 - i.box.x0, i.box.y1 - i.box.y0) <= width for i in group)
+    ]
+    boxes = [union([i.box for i in groups[k]]) for k in dotted]
+    clusters: dict[int, list[int]] = {}
+    for k, cluster in zip(dotted, touching(boxes, settings.float_gap * state.body), strict=True):
+        clusters.setdefault(cluster, []).append(k)
+    found = []
+    for keys in clusters.values():
+        box = union([i.box for k in keys for i in groups[k]])
+        dots = sum(len(groups[k]) for k in keys)
+        if dots >= 3 and box.x1 - box.x0 >= size and box.y1 - box.y0 >= size:
+            found.append(keys)
     return found
 
 
@@ -396,8 +470,9 @@ def _hosts(
     """The line each joining group of graphics on the page stands in, by the group's block:
     the text line on the page whose box holds the group's whole box, without slack (D-329,
     D-330); the smallest such box, on a tie the line read first (`read` gives each item's
-    block and place in it). A group is judged as one (D-331). Groups made furniture or
-    figures stay as they are."""
+    block and place in it). A group is judged as one (D-331). Else a rule read before the
+    line it stands under (`_ruled_line`), unless a footnote follows it, which takes its rule
+    (#51). Groups made furniture or figures stay as they are."""
     lines = [i for i in items if i.line is not None]
     found = {}
     for k, group in _groups(items, state).items():
@@ -407,7 +482,39 @@ def _hosts(
         holding = [i for i in lines if holds(i.box, box)]
         if holding:
             found[k] = min(holding, key=lambda i: (_area(i.box), read[i.id])).id
+            continue
+        under = _ruled_line(group, box, lines, state, read)
+        footnote = k + 1 < len(state.blocks) and state.blocks[k + 1].kind is BlockKind.FOOTNOTE
+        if under is not None and not footnote:
+            found[k] = under.id
     return found
+
+
+def _ruled_line(
+    group: list[_Item],
+    box: Box,
+    lines: list[_Item],
+    state: _State,
+    read: dict[str, tuple[int, int]],
+) -> _Item | None:
+    """The text line a rule stands under although it is read before it: a narrow rule under
+    an indented heading starts left of the line, so it is read first and would join the
+    block before (#181). The rule's top overlaps the foot of the line's box or stands at
+    most `heading_rule_gap` below it, and it lies under at least half of the line's width:
+    a fraction bar under a short stretch of a long line is no rule of that line (Liu p4,
+    D-840). The nearest such line."""
+    if not all(_is_line(i, state) for i in group):
+        return None
+    gap = state.settings.heading_rule_gap * state.body
+    first = read[group[0].id]
+    under = [
+        i
+        for i in lines
+        if i.box.y0 < box.y0 <= i.box.y1 + gap
+        and first < read[i.id]
+        and min(i.box.x1, box.x1) - max(i.box.x0, box.x0) >= (i.box.x1 - i.box.x0) / 2
+    ]
+    return min(under, key=lambda i: (abs(box.y0 - i.box.y1), read[i.id]), default=None)
 
 
 def _area(box: Box) -> float:

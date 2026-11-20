@@ -100,7 +100,7 @@ def find_headings(
     found = [
         (index, block, _style(block, lines, settings))
         for index, block in enumerate(blocks)
-        if block.kind is BlockKind.PARAGRAPH and block.text.strip()
+        if (block.kind is BlockKind.PARAGRAPH or _numbered_item(block)) and block.text.strip()
     ]
     sizes = _same_sizes([style.size for _, _, style in found], settings.same_size)
     texts = [
@@ -119,6 +119,22 @@ def find_headings(
     heads += [(start, 1, name) for start, (_, name) in front.items()]
     tree = section_tree(sorted(heads), len(blocks))
     return out, _publisher(tree, {start: end for start, (end, _) in front.items()})
+
+
+# a list item's label as `lists` gives it for a numbered marker: "1." or "1)"
+_NUMBERED_ITEM = re.compile(r"\d{1,2}[.)]")
+
+
+def _numbered_item(block: Block) -> bool:
+    """True for a one-line list item numbered "1." or "1)": lists are found before headings,
+    so a numbered heading set like a list marker ("1. Introduction" over "2. Related work")
+    is a list item by now. The heading rules judge it as they judge a paragraph; one they
+    don't take stays a list item (#54)."""
+    return (
+        block.kind is BlockKind.LIST_ITEM
+        and _NUMBERED_ITEM.fullmatch(block.label or "") is not None
+        and "\n" not in block.text.strip()
+    )
 
 
 def front_matter(

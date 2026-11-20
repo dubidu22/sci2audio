@@ -114,6 +114,7 @@ class LayoutSettings:
     line_width: float = 1.0  # em: a drawing at most this thick is a line (a rule, an arrow)
     mark_height: float = 2.0  # em: a graphic no caption names at most this tall is a mark
     #                            (an icon), not a figure
+    plot_size: float = 4.0  # em: small markers spread at least this far both ways are a plot
 
     # Display formulas (placeholders)
     formula_indent: float = 2.0  # em: a display line starts this far in from its column's
