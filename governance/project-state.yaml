@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-21T05:45Z
+updated: 2026-11-21T05:55Z
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -14,7 +14,7 @@ active_now:
   milestones_in_progress: []   # v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
   lanes_active:                                      # batch 2 (D-843) started 21 Nov 05:00Z after THR-01 fitness checks passed (all three); briefs sent 05:00Z, plans owed first
-    - "textprep B-P2: #684 (critical); plan approved 05:10Z (D-845), implementing; thread plugins-b-p1 (2nd batch)"
+    - "textprep B-P2: #684 (critical); plan approved 05:10Z (D-845); PR #690 open 05:55Z (head f7d8898), Linux CI pending, then ci:full; coordinator watches CI for the threads; thread plugins-b-p1 (2nd batch)"
     - "web/app B-W2: PR B app #667 #669 (critical, CLI help golden) first, then PR A web #666 #668 #685 (critical); plan approved 05:30Z (D-847); PR B = #689 open 05:45Z (head 13ec9c2), Linux CI pending, then ci:full; thread web-b-w1 (2nd batch)"
     - "infra B-I2: #681 and #687 as two critical PRs; plan approved 05:20Z (D-846), implementing; thread infra-b-i1 (2nd batch)"
   lanes_waiting:                                     # after batch 2
