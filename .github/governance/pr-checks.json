@@ -45,12 +45,26 @@
       ".github/**",
       "pyproject.toml",
       "uv.lock",
-      ".pre-commit-config.yaml"
+      ".pre-commit-config.yaml",
+      "governance/claude-project-rules.yaml",
+      "governance/rules/**",
+      "governance/project_instructions.md",
+      "governance/governance-config.json",
+      "governance/github-setup/**",
+      "governance/tools/**"
     ],
     "lane:docs": [
-      "docs/**",
       "*.md",
-      ".claude/**"
+      "docs/**",
+      "docs/design/**",
+      ".claude/**",
+      "governance/kb/**",
+      "governance/plans/**",
+      "governance/ledger/**",
+      "governance/project-state.yaml",
+      "governance/memory/**",
+      "governance/release/**",
+      "governance/workflow-export.md"
     ]
   },
   "open_labels": [
@@ -66,7 +80,12 @@
     "tests/corpus/**",
     "tests/unit/__snapshots__/**",
     "tests/regression/**",
-    "THIRD_PARTY_LICENSES.md"
+    "THIRD_PARTY_LICENSES.md",
+    "governance/claude-project-rules.yaml",
+    "governance/rules/**",
+    "governance/project_instructions.md",
+    "governance/governance-config.json",
+    "governance/tools/**"
   ],
   "doc_paths": [
     "docs/**",
@@ -77,6 +96,12 @@
     ".claude/**"
   ],
   "governance_paths": [
-    "governance/**"
+    "governance/kb/**",
+    "governance/plans/**",
+    "governance/ledger/**",
+    "governance/project-state.yaml",
+    "governance/memory/**",
+    "governance/release/**",
+    "governance/workflow-export.md"
   ]
 }

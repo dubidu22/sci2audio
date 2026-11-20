@@ -10,3 +10,8 @@
           - "tests/unit/__snapshots__/**"
           - "tests/regression/**"
           - "THIRD_PARTY_LICENSES.md"
+          - "governance/claude-project-rules.yaml"
+          - "governance/rules/**"
+          - "governance/project_instructions.md"
+          - "governance/governance-config.json"
+          - "governance/tools/**"
