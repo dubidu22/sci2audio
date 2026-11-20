@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import operator
 import os
+import signal
 import subprocess
 import sys
 import textwrap
@@ -490,8 +491,27 @@ def test_the_time_message_names_the_step(step: str, detail: str) -> None:
     assert message == f"a.pdf: the PDF is too large or damaged ({detail})"
 
 
-def test_a_child_that_ends_without_a_result_is_named() -> None:
-    stopped = isolate.run(os.abort, (), memory=1024**3, step_seconds=60, readers=isolate.Readers(1))
+def _exits() -> None:
+    os._exit(1)
+
+
+def _killed() -> None:
+    os.kill(os.getpid(), signal.SIGKILL)
+
+
+# Not os.abort: on macOS a SIGABRT opens the crash reporter on every run of the suite (#670).
+@pytest.mark.parametrize(
+    "end",
+    [
+        _exits,
+        pytest.param(
+            _killed,
+            marks=pytest.mark.skipif(not hasattr(signal, "SIGKILL"), reason="no SIGKILL"),
+        ),
+    ],
+)
+def test_a_child_that_ends_without_a_result_is_named(end: Callable[[], None]) -> None:
+    stopped = isolate.run(end, (), memory=1024**3, step_seconds=60, readers=isolate.Readers(1))
     assert stopped == isolate.Stopped("ended", "opening")
     assert str(pdf._stopped("a.pdf", stopped)) == (
         "a.pdf: the PDF is damaged (the PDF reader stopped unexpectedly)"
