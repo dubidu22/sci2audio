@@ -9,4 +9,4 @@ must_fix: 0
 should_fix: 1
 kinds: "narrating-comment"
 report: plans/review-pr676-round2.md
-merged: ""
+merged: 20f9575
