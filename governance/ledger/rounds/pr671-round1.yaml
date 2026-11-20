@@ -1,0 +1,12 @@
+pr: 671
+round: 1
+date: 2026-11-20
+thread: review-layout-b-l1
+head: 933cdf4
+critical: yes
+verdict: changes_requested
+must_fix: 1
+should_fix: 1
+kinds: "lost-input, missing-test"
+report: plans/review-pr671-round1.md
+merged: ""
