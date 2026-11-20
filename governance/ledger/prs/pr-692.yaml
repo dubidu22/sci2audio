@@ -1,0 +1,9 @@
+pr: 692
+opened: 2026-11-20
+thread: infra-b-i1
+lane: infra
+labels: "lane:infra, risk:high"
+plan: plans/infra-b-i2-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: "promised-test-missing"
