@@ -24,7 +24,12 @@ lanes:
   cli:
     paths: [src/sci2audio/cli.py]
   infra:
-    paths: [.github/**, pyproject.toml, uv.lock, .pre-commit-config.yaml]
+    # the ruleset, its role extracts and the governance tooling: only the owner changes them (META-01)
+    paths: [.github/**, pyproject.toml, uv.lock, .pre-commit-config.yaml,
+            governance/claude-project-rules.yaml, governance/rules/**, governance/project_instructions.md,
+            governance/governance-config.json, governance/github-setup/**, governance/tools/**]
     single_threaded: true
   docs:
-    paths: ["*.md", docs/**, .claude/**]
+    paths: ["*.md", docs/**, docs/design/**, .claude/**,
+            governance/kb/**, governance/plans/**, governance/ledger/**, governance/project-state.yaml,
+            governance/memory/**, governance/release/**, governance/workflow-export.md]
