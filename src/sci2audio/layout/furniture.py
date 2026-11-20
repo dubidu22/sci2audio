@@ -421,8 +421,8 @@ class _Page:
         letters alone don't make them furniture at the foot of the page (#458). Rows at the
         foot of that stack that are lines alone on their row, a page number by its shape or
         repeated word for word at their height on `repeat_pages` pages (a footer, D-323),
-        are left to the furniture rules, however close under the notes (#530,
-        F2). A note's mark is never alone on its row: its text stands beside it."""
+        are left to the furniture rules, however close under the notes
+        (#530). A note's mark is never alone on its row: its text stands beside it."""
         settings, page, size = self.settings, self.page, self.size
         _, right = text_area(self.lines, settings.edge_share)
         found: set[str] = set()

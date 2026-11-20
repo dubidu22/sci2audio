@@ -437,7 +437,7 @@ def test_the_steps_declare_their_categories_and_stage() -> None:
             "441 thousand apps, 332 million words, 100 thousand steps, 175 billion tokens, "
             "2 billion people, 1.5 thousand items",
         ),
-        ("trained on 15M", "trained on 15 million"),  # at the end of the block (review)
+        ("trained on 15M", "trained on 15 million"),  # at the end of the block
         ("441K", "441 thousand"),
         ("300K.", "300 thousand."),
         # left as printed

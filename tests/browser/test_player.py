@@ -96,7 +96,7 @@ def test_the_highlight_follows_the_voice_into_the_next_chapter(signed_in: Page, 
     make_audiobook(page, live)
     expect(page.locator("#text")).to_contain_text(
         "Things happen (Smith, 2020) (not read) and more."
-    )  # #444 N2
+    )  # #444
     expect(page.locator("#text")).not_to_contain_text("A book about things")  # not chosen
     # the Chapters panel lists the chosen chapters only, and names no other (#472)
     expect(page.locator(".outline .ot")).to_have_text(["Introduction", "Methods"])

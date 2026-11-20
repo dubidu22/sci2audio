@@ -308,8 +308,8 @@ _CUT_SHORT = "{name}: the PDF is cut short (an unfinished download?); download i
 
 
 def _cut_short(data: bytes, xref_valid: bool) -> bool:
-    """True if the file starts like a PDF but its end is missing (D-395, as applied after
-    review rounds 1 and 2 of #188): object data follows its last %%EOF, so the cut fell
+    """True if the file starts like a PDF but its end is missing (D-395, as applied in
+    #188): object data follows its last %%EOF, so the cut fell
     inside a later section (an incremental update, the rest of a linearized file); or it
     has no %%EOF at all and PDFium had to rebuild the cross-reference table or couldn't
     open the file. PDFium reads a cut file as far as it can, and the rest is lost without

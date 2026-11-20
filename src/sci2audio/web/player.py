@@ -214,7 +214,7 @@ def audiobook_bounds(readalong: Path) -> Bounds:
 
 # A file changed less than this long ago is read again on every call: a rewrite in place
 # within the file system's clock tick (about 16 ms on Windows) keeps its time and size, so
-# they cannot tell the two versions apart yet (as git treats "racy" files; #403 B1).
+# they cannot tell the two versions apart yet (as git treats "racy" files; #403).
 RACY_NS = 2_000_000_000
 
 
@@ -629,7 +629,7 @@ def build_view(
         if not 0 <= times.first_chunk < len(readalong.chunks):
             raise PlayerError("listen.mismatch")
         first = readalong.chunks[times.first_chunk].span.block
-        chapter = _chapter_of(chapters, moved.get(first, first))  # where it is read (R1-1)
+        chapter = _chapter_of(chapters, moved.get(first, first))  # where it is read
         used.add(chapter.index)
         blocks: list[BlockView] = []
         for number in range(chapter.start, chapter.end):

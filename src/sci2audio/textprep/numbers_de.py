@@ -1292,7 +1292,7 @@ def find_numbers_de(text: str) -> list[Candidate]:
     "2.5" not as a decimal.
     """
     # the other rules read the text as a second run sees it after the arrows: "←−1:1" is
-    # "←1:1", so its ratio is read on both runs, not left after "−" on the first (#593 F2)
+    # "←1:1", so its ratio is read on both runs, not left after "−" on the first (#593)
     found_arrows = arrows(text)
     text = as_one_arrow(text, found_arrows)
     plain = fold(text)

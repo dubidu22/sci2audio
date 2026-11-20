@@ -115,7 +115,7 @@ def test_the_memory_message_names_the_limit(
 
 def test_the_watch_stops_a_child_that_grows_past_the_limit() -> None:
     """Up to 1.25 times the limit in 10 MB steps: still under the hard limit at twice the
-    limit (with the child's own address space), so only the watch can stop it (#345 B1)."""
+    limit (with the child's own address space), so only the watch can stop it (#345)."""
     stopped = isolate.run(
         grow, (50, 10 * MB, 0.01), memory=400 * MB, step_seconds=60, readers=isolate.Readers(1)
     )
@@ -277,7 +277,7 @@ def raise_two_part() -> None:
 
 
 def test_an_error_that_cannot_cross_to_this_process_arrives_named() -> None:
-    """Without the check in the child it arrived as an unrelated TypeError (#345 S1)."""
+    """Without the check in the child it arrived as an unrelated TypeError (#345)."""
     with pytest.raises(RuntimeError, match=r"^TwoPartError: a/b$"):
         isolate.run(raise_two_part, (), memory=1024**3, step_seconds=60, readers=isolate.Readers(1))
 
@@ -287,7 +287,7 @@ def raise_permission(path: str, limits: dict[str, object]) -> None:
 
 
 def test_an_os_error_in_the_child_is_not_a_failed_start() -> None:
-    """Only a child that could not be started gets the start message (#345 S5)."""
+    """Only a child that could not be started gets the start message (#345)."""
     with pytest.raises(PermissionError, match="not allowed"):
         pdf._isolated(raise_permission, "a.pdf")
 
@@ -334,7 +334,7 @@ def sleep_with_marks(folder, seconds):
 
 def test_a_child_whose_parent_is_gone_ends_after_twice_its_step_time(tmp_path: Path) -> None:
     """The parent ends a slow step; when the parent itself was killed, the child's watch ends
-    it after twice the step time, so it does not read on alone (#345 S2, plan Q9). The child's
+    it after twice the step time, so it does not read on alone (#345, plan Q9). The child's
     work lives in a module of its own that imports nothing heavy, so that the child starts
     within one step time on every system (Windows CI took longer than 0.25 s to import pytest
     in the child)."""
@@ -385,7 +385,7 @@ def test_each_reported_step_starts_the_childs_own_clock_anew(
 ) -> None:
     """Eight steps of 0.2 s at a 0.5 s step limit: 1.6 s in all, past the child's own limit
     of twice a step, so only a clock that each report restarts lets the read finish; a long
-    book (about 1,800 pages in 120 s) would otherwise be stopped (#345 R2-1). The child's
+    book (about 1,800 pages in 120 s) would otherwise be stopped (#345). The child's
     work lives in a small module of its own, so the child starts quickly on every system."""
     (tmp_path / "steady_steps.py").write_text(STEPS)
     monkeypatch.syspath_prepend(str(tmp_path))
@@ -469,7 +469,7 @@ def test_a_page_that_takes_longer_than_a_step_may_is_stopped(
 
 
 def test_a_read_reports_each_page_and_then_the_outline(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Each report starts a step's time anew; the outline is a step of its own (#345 S3).
+    """Each report starts a step's time anew; the outline is a step of its own (#345).
     A page step names the page count too, for the job's progress (#343)."""
     steps: list[str] = []
     monkeypatch.setattr(isolate, "_report", steps.append)
@@ -620,7 +620,7 @@ def two_pages_of_rectangles(per_page: int) -> bytes:
 def test_the_limits_are_the_decided_ones() -> None:
     assert (pdf.MAX_PAGE_GRAPHICS, pdf.MAX_GRAPHICS) == (100_000, 500_000)
     assert (pdf.MAX_MEMORY, pdf.STEP_SECONDS, pdf.MAX_PDF_READERS) == (1024**3, 60, 2)
-    assert pdf._READERS.limit == pdf.MAX_PDF_READERS  # the cap reads use (#345 S4)
+    assert pdf._READERS.limit == pdf.MAX_PDF_READERS  # the cap reads use (#345)
     assert isolate.START_SECONDS == 30  # a reader's start, before its first step (D-616)
 
 

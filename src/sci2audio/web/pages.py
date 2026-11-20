@@ -828,7 +828,7 @@ def _segments(chapters: int, current: int) -> list[str]:
     ]
 
 
-# How long Cancel waits for the job to stop before it gives up and deletes nothing (#433 N3)
+# How long Cancel waits for the job to stop before it gives up and deletes nothing (#433)
 STOP_WAIT_MS = 120_000
 
 

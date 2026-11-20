@@ -1065,7 +1065,7 @@ def test_a_readalong_file_made_again_with_the_same_size_and_time_is_read_again(
 
 def test_a_fresh_readalong_file_rewritten_in_place_is_read_again(tmp_path: Path) -> None:
     """A rewrite in place keeps the identity, and within one clock tick the time and size
-    too: a file changed in the last two seconds is read each time (#407, as #403 B1)."""
+    too: a file changed in the last two seconds is read each time (#407, as #403)."""
     path = tmp_path / "Book.readalong.json"
     first, second = same_size_texts()
     path.write_bytes(first)
@@ -1076,7 +1076,7 @@ def test_a_fresh_readalong_file_rewritten_in_place_is_read_again(tmp_path: Path)
         stream.write(second)
     os.utime(path, ns=(seen, seen))
     assert player.load_readalong(path).chunks[0].span == Span(0, 0, 2)
-    # the stamp asked for before the rewrite is not kept for the new bytes (#601 R1-1)
+    # the stamp asked for before the rewrite is not kept for the new bytes (#601)
     assert player.audiobook_stamp(path) == hashlib.sha256(second).hexdigest()[:16]
 
 
@@ -1178,7 +1178,7 @@ def test_a_record_without_a_plugin_list_uses_the_built_in_steps(tmp_path: Path) 
 
 
 def test_a_plugin_installed_after_the_audiobook_shows_no_edit(tmp_path: Path) -> None:
-    """The reviewer's probe (#696 M1): a book made without the plugin, opened by a server
+    """#696: a book made without the plugin, opened by a server
     that has it, shows only what the voice said."""
     from web_helpers import plugin_steps
 

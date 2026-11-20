@@ -289,7 +289,7 @@ def _open(part: str, opening: str, closing: str) -> int:
 @pytest.mark.parametrize(
     ("text", "language", "opening", "closing"),
     [
-        # a comma inside a bracket lies nearest the even share; one outside wins (#481 S1)
+        # a comma inside a bracket lies nearest the even share; one outside wins (#481)
         (
             "w " * 60 + "(for example, " + "x " * 40 + "y) and " + "z " * 40 + "end, " + "v " * 20,
             "en",
@@ -705,7 +705,7 @@ def cut_read(text: str, language: str = "de") -> list[str]:
         # initial checks, so "Dr." and "A." inside it end no sentence
         ("Er nannte „Dr.“ Müller dann.", ["Er nannte „Dr.“ Müller dann."]),
         ("Er sagte „A.“ Dann ging er.", ["Er sagte „A.“ Dann ging er."]),
-        # R1-4: the single guillemets quote inside »…« and «…»; they close a sentence, and
+        # the single guillemets quote inside »…« and «…»; they close a sentence, and
         # open the next one
         ("Er sagte \u203aja.\u2039 Dann ging er.", ["Er sagte \u203aja.\u2039", "Dann ging er."]),
         ("Er sagte \u2039ja.\u203a Dann ging er.", ["Er sagte \u2039ja.\u203a", "Dann ging er."]),
@@ -764,8 +764,8 @@ def test_a_citation_after_a_read_english_abbreviation_keeps_the_sentence_end() -
         "See for example.",
         "Then more.",
     ]
-    # "et al." stays as printed and the citation takes the full stop after it (M2 of the #66
-    # review); the printed sentence ended after the citation, so the cutter ends it (D-719)
+    # "et al." stays as printed and the citation takes the full stop after it (#66); the
+    # printed sentence ended after the citation, so the cutter ends it (D-719)
     assert cut_read("Smith et al. (2019). Then more.", "en") == ["Smith et al.", "Then more."]
 
 

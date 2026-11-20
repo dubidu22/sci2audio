@@ -655,7 +655,7 @@ def _readings(language: str) -> re.Pattern[str] | None:
 
     A joining word matches with the white space on its side only (" per ", "square "), so its
     neighbour is never part of a match: a match never starts at a word that a longer word
-    around it would have to give back, which keeps the search linear on any text (#616 F2)."""
+    around it would have to give back, which keeps the search linear on any text (#616)."""
     # the statistics and number modules import this module (through the footnotes and links
     # steps), so their tables are read here, not at import
     from sci2audio.textprep.numbers import OUT_OF

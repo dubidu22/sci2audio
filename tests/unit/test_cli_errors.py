@@ -197,7 +197,7 @@ def test_the_command_hands_a_packaged_reader_start_to_the_reader(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A packaged build (v1.3) starts itself again for each PDF reader process; without
-    `freeze_support` first, such a start would run the command instead (D-581, #345 N2)."""
+    `freeze_support` first, such a start would run the command instead (D-581, #345)."""
     import multiprocessing
 
     from sci2audio import cli as cli_module

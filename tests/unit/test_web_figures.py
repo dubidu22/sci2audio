@@ -601,7 +601,7 @@ def test_a_command_line_job_shows_no_figure(tmp_path: Path) -> None:
     assert '<img class="figure"' not in page.text
 
 
-# ---- round 1 of the review (#582) --------------------------------------------------------
+# ---- #582: lazy images, the EPUB reader, the crops ---------------------------------------
 
 
 def test_one_document_reads_its_book_once_at_a_time(
@@ -726,7 +726,7 @@ def test_is_kept_looks_without_reading(tmp_path: Path, monkeypatch: pytest.Monke
     assert opened == []
 
 
-# ---- round 2 of the review (#582) --------------------------------------------------------
+# ---- #582: links, the batch of crops, EPUB tables -----------------------------------------
 
 
 def test_a_link_is_not_read_where_the_system_has_no_o_nofollow(

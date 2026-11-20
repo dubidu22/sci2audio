@@ -461,7 +461,7 @@ def test_ctrl_c_on_a_terminal_reaches_the_reader_too_and_still_reads_as_cancelle
     tmp_path: Path, source: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A terminal's Ctrl-C reaches every process of the group: the reader child gets real
-    SIGINTs from its start on, the program one KeyboardInterrupt (PR #366 B1, D-628)."""
+    SIGINTs from its start on, the program one KeyboardInterrupt (PR #366, D-628)."""
     import reader_targets
 
     from sci2audio.extraction import pdf

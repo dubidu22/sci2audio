@@ -110,7 +110,7 @@ def test_a_bracket_of_lead_words_and_citations_goes_whole(text: str, spoken: str
         "rates [3e-4, 1e-4] and [1.2, 3.4] and [0]",
         "[n (−1) E ] and [S (0) E ]",
         "a list (1) and (2, 3)",  # round brackets are never numeric citations
-        # "↔" is a maths sign: the numbers step writes a long two-way arrow as it (#527, F2)
+        # "↔" is a maths sign: the numbers step writes a long two-way arrow as it (#527)
         "x ↔ [2] and y ←−→ [3]",
     ],
 )
@@ -336,7 +336,7 @@ def test_the_step_reads_english_and_german_and_its_switch_reads_citations_as_pri
         ("the Schrödinger equation [4] holds.", "the Schrödinger equation holds."),
         ("Bayes' theorem [3] holds.", "Bayes' theorem holds."),
         ("the first step [7] holds.", "the first step holds."),
-        # "Reference" and "References" are read along, as "Ref." is (KB review, K5)
+        # "Reference" and "References" are read along, as "Ref." is
         ("As discussed in Reference [12], it holds.", "As discussed in reference 12, it holds."),
         ("References [3, 5] show it.", "References 3 and 5 show it."),
         ("the reference [52] list", "the reference list"),
@@ -551,7 +551,7 @@ def test_an_identifier_says_why_it_is_not_read() -> None:
         ("de", "Text (Müller, 2019; 527794) mehr.", "Text mehr."),
         ("en", "(Smith, 2019; 527794) found it.", "Smith found it."),
         ("en", "It grew (527794; (Smith, 2019) Jones, 2020) fast.", "It grew fast."),
-        # R1-3: a bracket left with only lead words goes whole
+        # a bracket left with only lead words goes whole
         ("en", "Text (see (527794)) more.", "Text more."),
         ("en", "Text (cf. (527794)) more.", "Text more."),
         ("en", "Text (e.g., (527794)) more.", "Text more."),

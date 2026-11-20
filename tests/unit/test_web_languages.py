@@ -723,9 +723,9 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
         assert "--no-plugins" in point
         assert network in point
         assert sandbox in point
-        # plugins load once, when sci2audio starts (#696 S1)
+        # plugins load once, when sci2audio starts (#696)
         assert restart in point
-        assert "`" not in point  # the page shows no Markdown (#696 S2)
+        assert "`" not in point  # the page shows no Markdown (#696)
     assert "started" in EN["privacy.plugins_installed"]
     assert "Start" in DE["privacy.plugins_installed"]
     # "without even loading them": --no-plugins gives a runner of the built-in steps (#689)
@@ -820,7 +820,7 @@ def test_the_privacy_page_names_the_installed_plugins(
         section = page[page.index('id="plugins"') :]
         assert "<code>ampersand-and</code> (sci2audio-example 0.1)" in section
         assert html.escape(strings(language)("privacy.plugins_none")) not in page
-    # a plugin that failed to load is installed too, and its import ran (#696 M2)
+    # a plugin that failed to load is installed too, and its import ran (#696)
     from sci2audio.textprep import InstalledSteps
     from sci2audio.textprep.plugins import PluginProblem
 

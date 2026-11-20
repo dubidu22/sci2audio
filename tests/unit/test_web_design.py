@@ -359,7 +359,7 @@ def test_no_page_refers_to_an_address_outside_this_server() -> None:
         ("static/app.css", "src: url(fonts/literata-cyrillic-wght-normal.woff2);"),
         ("templates/base.html", '<link rel="stylesheet" href="http://127.0.0.1:9/x.css">'),
         ("templates/base.html", '<script src="//cdn.example/x.js"></script>'),
-        # the four the review found passing (PR #409 B1): an IP number, no scheme
+        # four that passed the check before (#409): an IP number, no scheme
         ("templates/base.html", '<img srcset="//192.168.1.9/x.png 1x" alt="">'),
         ("static/app.css", '.x { background-image: image-set("//192.168.1.9/x.png" 1x); }'),
         ("templates/base.html", '<meta http-equiv="refresh" content="0;url=//192.168.1.9/">'),

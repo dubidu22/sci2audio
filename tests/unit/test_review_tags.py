@@ -14,7 +14,7 @@ import ast
 import io
 import re
 import tokenize
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 import pytest
@@ -25,8 +25,20 @@ SKIPPED = {"regression", "corpus", "__snapshots__", "__pycache__"}
 REVIEW_TAG = re.compile(
     # "(#667 review S1)", "(#481 review)", "(#350, review N1)", "(#569 round 1, R3)"
     r"#\d+,?\s+(?i:review\b|round\s+\d+)"
-    # "review round 2 of #83", "Review round 1 of #692, S1:"
-    r"|\b(?i:review\s+round)\s+\d+"
+    # "(#601 R1-1)", "(PR #409 B1)", "(#696 M1)": a finding after an issue number; the
+    # letters are the reviews' (blocking, must, should, note, finding, round, test), not a
+    # question or a decision of the issue ("#64, Q2", "#315, D5")
+    r"|#\d+,?\s+[BFMNRST]\d+(?:-\d+)?\b"
+    # "(R1-1)", "# R1-3:": a finding of a numbered round
+    r"|\bR\d+-\d+\b"
+    # "review round 2 of #83", "Review round 1 of #692, S1:", "review rounds 1 and 2 of #188"
+    r"|\b(?i:review\s+rounds?)\s+\d+"
+    # "Review #489 S1:"
+    r"|\b(?i:review)\s+#\d+"
+    # "(round 1 of the review, N3)", "round 2 of the review (#582)"
+    r"|\b(?i:round)\s+\d+\s+of\s+the\s+(?i:review)"
+    # "(review)", "(KB review, K5)", "The reviewer's probe"
+    r"|\((?i:review)\)|\b(?i:review),\s+[A-Z]{1,2}\d+|\b(?i:reviewer's\s+probe)"
     # "(review of PR #228)", "(review of #530, F1)"
     r"|\b(?i:review)\s+of\s+(?:PR\s+)?#\d+"
     # "(review M1)", "(review R1-2, R2-1)"; the finding letters are capitals
@@ -41,10 +53,24 @@ JS_COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
 HTML_COMMENT = re.compile(r"\{#.*?#\}|<!--.*?-->", re.S)
 
 
+def joined(comments: Iterable[tuple[int, str]]) -> Iterator[tuple[int, str]]:
+    """Comments on consecutive lines as one text at the first line's number, their markers
+    dropped, so a tag split over two lines ("(M2 of the #66" / "# review)") is still seen."""
+    first, lines = 0, []
+    for number, text in comments:
+        if lines and number != first + len(lines):
+            yield first, "\n".join(lines)
+            lines = []
+        if not lines:
+            first = number
+        lines.append(re.sub(r"^(#|//)", "", text))
+    if lines:
+        yield first, "\n".join(lines)
+
+
 def python_texts(source: str) -> Iterator[tuple[int, str]]:
-    for token in tokenize.generate_tokens(io.StringIO(source).readline):
-        if token.type == tokenize.COMMENT:
-            yield token.start[0], token.string
+    tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+    yield from joined((t.start[0], t.string) for t in tokens if t.type == tokenize.COMMENT)
     for node in ast.walk(ast.parse(source)):
         kinds = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
         if isinstance(node, kinds) and node.body:
@@ -58,7 +84,11 @@ def python_texts(source: str) -> Iterator[tuple[int, str]]:
 
 
 def toml_texts(source: str) -> Iterator[tuple[int, str]]:
-    """The `#` comment of each line; the files hold no multi-line strings."""
+    """The `#` comments, consecutive ones joined; the files hold no multi-line strings."""
+    return joined(toml_comments(source))
+
+
+def toml_comments(source: str) -> Iterator[tuple[int, str]]:
     for number, line in enumerate(source.splitlines(), 1):
         quote = ""
         for at, char in enumerate(line):
@@ -77,13 +107,19 @@ def matched_texts(pattern: re.Pattern[str], source: str) -> Iterator[tuple[int, 
         yield source.count("\n", 0, match.start()) + 1, match.group(0)
 
 
+def js_texts(source: str) -> Iterator[tuple[int, str]]:
+    found = list(matched_texts(JS_COMMENT, source))
+    yield from joined(item for item in found if item[1].startswith("//"))
+    yield from (item for item in found if not item[1].startswith("//"))
+
+
 def texts(path: Path, source: str) -> Iterator[tuple[int, str]]:
     if path.suffix == ".py":
         return python_texts(source)
     if path.suffix == ".toml":
         return toml_texts(source)
     if path.suffix in {".js", ".css"}:
-        return matched_texts(JS_COMMENT, source)
+        return js_texts(source)
     if path.suffix == ".html":
         return matched_texts(HTML_COMMENT, source)
     return iter(())
@@ -132,6 +168,20 @@ def test_no_comment_or_docstring_carries_a_review_tag() -> None:
         "round 2 of #450",
         "(#264 round 1)",
         "(round 1)",
+        "as applied after review rounds 1 and 2 of #188",
+        "(R1-1)",
+        "(#601 R1-1)",
+        "(#345 R2-1)",
+        "# R1-3: a bracket",
+        "Review #489 S1: the panel",
+        "Review #489 S3 (M1, M2):",
+        "(round 1 of the review, N3)",
+        "# ---- round 2 of the review (#582) ----",
+        "keeps its reading (review)",
+        "(KB review, K5)",
+        "the review found passing (PR #409 B1)",
+        "The reviewer's probe (#696 M1)",
+        "what the review's mutants showed untested (#631 T1)",
     ],
 )
 def test_the_pattern_catches_every_known_form(text: str) -> None:
@@ -148,6 +198,10 @@ def test_the_pattern_catches_every_known_form(text: str) -> None:
         "a review of the literature",
         "a held key toggles once (#394)",
         "Software\nReview\nRepository",
+        "a reviewer can check it",
+        "review the changed file",
+        "outside review (D-703c)",
+        "a ruling of #185, D-581",
     ],
 )
 def test_the_pattern_leaves_plain_words_alone(text: str) -> None:
@@ -167,5 +221,9 @@ def test_only_comments_and_docstrings_are_read() -> None:
     assert tags(Path("a.toml"), toml) == [(2, "review B1")]
     js = 'const s = "review M1";\n// a comment (review S2)\n/* a block\n (round 1) */\n'
     assert tags(Path("a.js"), js) == [(2, "review S2"), (4, "(round 1)")]
+    split = "x = 1  # a removal takes one along (M2 of the #66\n# review): Smith et al.\n"
+    assert tags(Path("b.py"), split) == [(1, "#66\n review")]
+    js_split = "// a click (#12\n// review) is lost\n"
+    assert tags(Path("b.js"), js_split) == [(1, "#12\n review")]
     html = '<p title="review M1">{# a note (review N1) #}</p>\n<!-- (#9 review) -->\n'
     assert tags(Path("a.html"), html) == [(1, "review N1"), (2, "#9 review")]

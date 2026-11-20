@@ -293,7 +293,7 @@ _KEY_ITEMS = re.compile(_KEY)
 # shaped like keys, but they name a thing (particulate matter, an ion, a product); a bracket
 # holding one stays as printed (D-646)
 KEY_LOOK_ALIKES = frozenset(("PM10", "PM25", "SO42", "Win10", "Win11", "COVID19"))
-# "↔" too: the numbers step reads "←−→" as it, and "x ←−→ [2]" keeps its bracket (#593 F2)
+# "↔" too: the numbers step reads "←−→" as it, and "x ←−→ [2]" keeps its bracket (#593)
 _MATHS_SIGNS = "=∈∉→←↔↦<>≤≥×±∼≈⊂⊆∪∩"
 _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"

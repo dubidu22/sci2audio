@@ -211,7 +211,7 @@ def test_a_joined_word_and_a_placeholders_notice_are_not_marked() -> None:
 
 
 def test_page_furniture_is_never_shown_but_its_removal_is_counted() -> None:
-    """Review #489 S1: the sheet is the text without its furniture, as it is heard, so the
+    """#489: the sheet is the text without its furniture, as it is heard, so the
     furniture step's removal counts although no block of it is drawn."""
     document = make_document(
         [("heading", "1 One"), ("furniture", "Journal of Things 12"), ("paragraph", TEXT)]
@@ -225,7 +225,7 @@ def test_page_furniture_is_never_shown_but_its_removal_is_counted() -> None:
 
 
 def test_a_notice_box_counts_once_and_the_edits_inside_its_text_do_not() -> None:
-    """Review #489 S3 (M1, M2): a placeholder read as its notice draws the box, not its
+    """#489: a placeholder read as its notice draws the box, not its
     text. Today's run sets aside every other edit in a placeholder's text (searched: each
     stage, REMOVE, PAUSE and an insert, at its start, inside and at its end), so the guard
     is pinned on `_shown` itself with the edit the run would have to accept."""
@@ -259,7 +259,7 @@ def test_a_notice_box_counts_once_and_the_edits_inside_its_text_do_not() -> None
 
 
 def test_only_the_removal_of_page_furniture_counts() -> None:
-    """Review #489 S1: the furniture rule is its own, not a side effect of the whole-block
+    """#489: the furniture rule is its own, not a side effect of the whole-block
     rule: no other edit in a furniture block is counted, whole or not."""
     document = make_document([("paragraph", "Text."), ("furniture", "Journal of Things 12")])
     cut = Edit(Span(1, 0, 7), EditKind.REMOVE, "a part", "test")
@@ -269,7 +269,7 @@ def test_only_the_removal_of_page_furniture_counts() -> None:
 
 
 def test_a_moved_note_counts_only_when_the_audiobook_read_it_at_its_mark() -> None:
-    """Review #489 S3 (M3, M4): a footnote move counts when the read-along reads the note
+    """#489: a footnote move counts when the read-along reads the note
     at its mark (#213); an audiobook that read it where printed shows it there, unmoved."""
     document = make_document(
         [

@@ -85,7 +85,7 @@ BACKLINK_TAGS = frozenset({"role:doc-backlink", "epub:backlink"})
 LINKED_KINDS = MARKED_KINDS | {BlockKind.FOOTNOTE}
 _LINK = "link:"
 # also the closing quotes: U+2019, U+201D (English), U+201C, U+2018, U+00AB (German) and U+00BB
-# (Swiss guillemets close with it; #212, #248 S2), and the single guillemets U+203A and U+2039
+# (Swiss guillemets close with it; #212, #248), and the single guillemets U+203A and U+2039
 # that quote inside them (#333)
 _CLOSING = frozenset(".,;:!?)]}\u2019\u201d\u201c\u2018\u00ab\u00bb\u203a\u2039\"'")
 _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF001 (the minus sign is meant)
@@ -274,7 +274,7 @@ class FootnoteStep(TextStep):
             else:
                 spans.append([offset, end])
         # where the last back-link edit ends: the next one's white space starts after it. Each
-        # edit ends on a letter (rstrip), so this only guards the no-overlap rule (#194 N1).
+        # edit ends on a letter (rstrip), so this only guards the no-overlap rule (#194).
         taken = 0
         for start, end in spans:
             text = block.text[start:end]
@@ -360,7 +360,7 @@ class FootnoteStep(TextStep):
         (page, label) of the note it marks."""
         runs = list(_runs(items, block))
         main = _main_size(run for _, _, run in runs)
-        # the runs beside each run on its own line: a rise is measured on the line (#248 M1)
+        # the runs beside each run on its own line: a rise is measured on the line (#248)
         beside = [
             (line.runs[k - 1] if k else None, line.runs[k + 1] if k + 1 < len(line.runs) else None)
             for _, _, line in _lines(items, block)
@@ -723,7 +723,7 @@ def _raised(run: TextRun, neighbours: Iterable[TextRun | None], main: float) -> 
     """A superior figure set in the text's own size: its box ends RISE em or more above the
     box of the run before or after it in the same text line (#212, D-519). The rise is
     measured only against a neighbour in the text's size, not one set small: a subscript
-    would make the normal run beside it look raised (#248 S1)."""
+    would make the normal run beside it look raised (#248)."""
     if run.box is None or main <= 0:
         return False
     return any(

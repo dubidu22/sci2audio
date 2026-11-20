@@ -661,7 +661,7 @@ def graphic_runs(block: Block, lines: set[str]) -> str:
 
 # Liu's inline fractions in running text (#202): numerator and denominator as each paragraph
 # reads them. The first five were joined before D-575 ("eℏ2me", "1ℏ", "∂Emq∂q", "iℏ", "eEℏ");
-# the last three already read with a space (digits under digits, #128 M2, or white printed).
+# the last three already read with a space (digits under digits, #128, or white printed).
 LIU_FRACTIONS = (
     "µB = eℏ 2me . The",
     "= 1 ℏ ∂Emq ∂q δm,m′",  # noqa: RUF001 (as liu prints it)

@@ -212,7 +212,7 @@ def test_the_search_filters_as_the_person_types_and_works_without_the_script(
 
 
 def test_a_long_search_is_cut_as_the_server_cuts_it(signed_in: Page, live: Live) -> None:
-    """#462 F5: the server reads the first 200 characters of a search; the script does the
+    """#462: the server reads the first 200 characters of a search; the script does the
     same, so a longer one finds the same rows with or without it."""
     page = signed_in
     full_library(live)

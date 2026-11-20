@@ -439,7 +439,7 @@ def test_cancel_gives_up_on_a_voice_that_does_not_stop(
 ) -> None:
     """A voice stuck in native code may ignore the cancel. Cancel waits a while (two
     minutes; here 1.5 s), then says the voice did not stop, deletes nothing, and gives its
-    button back (#433 N3)."""
+    button back (#433)."""
     page = signed_in
     monkeypatch.setattr(pages, "STOP_WAIT_MS", 1500)
     live.install_voice()
