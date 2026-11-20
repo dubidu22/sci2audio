@@ -362,7 +362,7 @@ class _Headings:
         if last is None:
             return False
         # the last row: the block's lines that stand at the last one's height (a table's
-        # header split into cells is one row; review of #180, M1)
+        # header split into cells is one row; #180)
         line = union([box for box in boxes if box and last.y0 <= (box.y0 + box.y1) / 2 <= last.y1])
         rules = (self.drawings[part.item] for part in block.parts if part.item in self.drawings)
         return any(

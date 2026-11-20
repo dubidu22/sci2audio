@@ -33,7 +33,7 @@ MAX_MARKUP = 2_000_000
 # characters of one line as the file stores them (#329, D-777): a paragraph costs about 16
 # times its size to read (one of 64 MB took 1 GB), and layout and the text steps get none longer
 MAX_LINE = 4_000_000
-# characters of one start or end tag, its "<" and ">" included (#329 review F1, D-783): the
+# characters of one start or end tag, its "<" and ">" included (#329, D-783): the
 # parser's tag regex costs about 150 times a tag's size (one of 8 MB took 1.3 GB), before any
 # other limit sees it; The Time Machine's longest tag holds 272
 MAX_TAG = 1_000_000
@@ -156,7 +156,7 @@ def check_line(length: int) -> None:
 
 class TagLimitedParser(HTMLParser):
     """The copied parser, with each start and end tag checked against `MAX_TAG` before the
-    parser's own regex runs over the whole tag (#329 review F1, D-783). The check matches the
+    parser's own regex runs over the whole tag (#329, D-783). The check matches the
     same regex only up to the limit (`endpos`, so a normal tag copies nothing); a check for
     the next ">" would not do, as a quoted ">" (`<p a=">" a a ...>`) does not end the tag."""
 
@@ -213,7 +213,7 @@ class _Svg:
 
     title: list[str] = field(default_factory=list)
     pictures: list[int] = field(default_factory=list)
-    length: int = 0  # characters of the title, bounded as a line is (#329 review F3)
+    length: int = 0  # characters of the title, bounded as a line is (#329)
 
 
 class PageReader(TagLimitedParser):

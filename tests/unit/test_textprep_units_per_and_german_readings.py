@@ -165,7 +165,7 @@ def test_after_page_is_read_from_the_abbreviation_list() -> None:
     assert entry.after_page
 
 
-# ---- #264 legal forms, review round 1 ------------------------------------------------------
+# ---- #264 legal forms ---------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -368,7 +368,7 @@ def test_units_after_per_take_linear_time(language: str) -> None:
 
 
 def test_ordinals_after_abbreviations_take_linear_time() -> None:
-    # the word before each ordinal is looked up in the text around it only (#264 round 1)
+    # the word before each ordinal is looked up in the text around it only (#264)
     unit = "Das gilt i. V. m. 2. Alternative, i. S. d. 3. Abschnitts und gem. 4. Absatz. "
     step = NumbersStep()
 

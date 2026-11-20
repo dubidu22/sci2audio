@@ -290,7 +290,7 @@ def test_a_quick_run_writes_every_number_offline(tmp_path: Path) -> None:
     assert any(line.startswith("Performance budget") for line in said)
 
 
-# ---- review round 1: nothing is lost after a long run, errors are messages -----------------
+# ---- nothing is lost after a long run, errors are messages -------------------------------
 
 
 def never_called(models: Path, device: str):  # type: ignore[no-untyped-def]

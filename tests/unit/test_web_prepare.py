@@ -259,7 +259,7 @@ def test_the_card_of_a_job_that_failed_in_its_first_chapter(tmp_path: Path) -> N
 
 def test_the_card_of_a_job_paused_before_its_first_sentence(tmp_path: Path) -> None:
     """Paused while the voice loads: nothing was spoken and nothing freed, so the card says
-    paused, not cancelled, and offers Resume (#433 N1)."""
+    paused, not cancelled, and offers Resume (#433)."""
     voice = FakeVoice()
     gate, loading = threading.Event(), threading.Event()
     make = voice.make
@@ -283,7 +283,7 @@ def test_the_card_of_a_job_paused_before_its_first_sentence(tmp_path: Path) -> N
     assert '<p id="job-kept">Nothing is spoken yet.</p>' in paused
     assert "Cancelled" not in paused
     assert "Resume" in paused
-    # Resume restarts with this run's settings, and the card says so (#433 N2)
+    # Resume restarts with this run's settings, and the card says so (#433)
     assert "This uses the settings this run was started with" in paused
 
 
@@ -303,7 +303,7 @@ def held_encoding(monkeypatch: pytest.MonkeyPatch, gate: threading.Event | None)
 def test_the_card_of_a_job_that_failed_while_writing_the_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Every chapter was spoken: the card says so, and every segment is done (#433 S2)."""
+    """Every chapter was spoken: the card says so, and every segment is done (#433)."""
     held_encoding(monkeypatch, None)
     _app, client = server(tmp_path, FakeVoice())
     doc = upload(client, paper_bytes())

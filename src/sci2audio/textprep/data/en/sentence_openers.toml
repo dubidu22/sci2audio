@@ -10,7 +10,7 @@
 # ("A. A. Milne", "J. I. Smith"). The price: "in the U.S. Researchers found" stays one
 # sentence. Each word is one word, matched as printed, with its capital.
 # Left out because each is also a surname that follows an initial ("Y. He", "X. An", "J. So",
-# "S. Even"): "He", "Her", "An", "So", "To", "On", "Or", "Still", "Even" (PR #547 review B1).
+# "S. Even"): "He", "Her", "An", "So", "To", "On", "Or", "Still", "Even" (#547).
 
 openers = [
     # articles and determiners

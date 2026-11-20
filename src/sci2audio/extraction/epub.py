@@ -515,7 +515,7 @@ class _NavReader(TagLimitedParser):
         self.nav = 0  # depth inside the toc nav (0: outside)
         self.lists = 0  # <ol>/<ul> depth inside it
         self.label: list[str] | None = None  # text of the label being read
-        self.label_length = 0  # its characters (#329 review F2)
+        self.label_length = 0  # its characters (#329)
         self.label_tag = ""
         self.labelled: list[bool] = []  # per open <li>: label read already
         self.done = False

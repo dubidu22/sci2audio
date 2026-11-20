@@ -85,7 +85,7 @@ def test_each_source_from_git_is_a_pinned_commit_and_hash(stem: str, hashed: str
 
 def test_the_sources_name_the_runtime_the_appimage_uses(tmp_path: Path) -> None:
     """The type-2 runtime's source is the release tools.env downloads the runtime of, and
-    libfuse 3 and squashfuse come with it (#635 F3)."""
+    libfuse 3 and squashfuse come with it (#635)."""
     sources = pins(PACKAGING / "ffmpeg" / "sources.env")
     tools = pins(PACKAGING / "tools.env")
     assert sources["APPIMAGE_RUNTIME_VERSION"] in tools["APPIMAGE_RUNTIME_URL"]
@@ -659,11 +659,11 @@ def test_the_appimage_folder_holds_apprun_the_desktop_file_and_the_icon(tmp_path
 def test_the_windows_installer_is_per_user_and_its_uninstaller_keeps_the_persons_files() -> None:
     script = (PACKAGING / "windows" / "sci2audio.iss").read_text(encoding="utf-8")
     assert "PrivilegesRequired=lowest" in script
-    # never for all users, never elevated (#635 F1): no dialog that offers it
+    # never for all users, never elevated (#635): no dialog that offers it
     assert "PrivilegesRequiredOverridesAllowed" not in script
     assert "DefaultDirName={autopf}\\sci2audio" in script
     # no folder page: a folder chosen by hand could be Documents\sci2audio, the
-    # audiobooks' own folder, or a folder of the person's (#635 F1)
+    # audiobooks' own folder, or a folder of the person's (#635)
     assert re.search(r"^DisableDirPage=yes$", script, re.M)
     # the uninstaller removes what it installed; nothing is deleted by a wildcard, and
     # never the program folder as a whole or anything above it

@@ -441,7 +441,7 @@ def test_numbers_of_two_styles_make_no_run() -> None:
     assert tags_of(text) == [("p",), ("p", "br")]
 
 
-# ---- review of #561, round 1: spaced dashes (M1), one long token (M2), the property (S1) ----
+# ---- #561: spaced dashes, one long token, the property ---------------------------------
 
 
 def test_a_spaced_dash_wrapped_to_a_line_s_start_stays_in_its_sentence() -> None:
@@ -516,7 +516,7 @@ def test_hard_wrapped_prose_with_capitals_dashes_and_a_long_token_is_one_paragra
     assert tags_of(text + "\n") == [("p",), *[("p", "br")] * text.count("\n")]
 
 
-# ---- review of #561, round 2: closers looked through, the two-letter minimum ----------
+# ---- #561: closers looked through, the two-letter minimum ----------
 
 
 @pytest.mark.parametrize(
@@ -525,13 +525,13 @@ def test_hard_wrapped_prose_with_capitals_dashes_and_a_long_token_is_one_paragra
 )
 def test_punctuation_before_closing_quotes_or_brackets_keeps_the_lines_joined(line: str) -> None:
     """A short line ending in a comma inside closing quotes or a bracket runs on: the
-    closers are looked through (review of #561, round 2, S1a)."""
+    closers are looked through (#561)."""
     text = f"{line}\nThen the second line runs on for quite a long while here.\n"
     assert tags_of(text) == [("p",), ("p", "br")]
 
 
 def test_a_two_letter_line_can_be_a_title_line() -> None:
     """Two letters are enough: "EU" alone before a capital starts a new paragraph after it
-    (review of #561, round 2, S1b); "0" has none and stays joined."""
+    (#561); "0" has none and stays joined."""
     text = "EU\nThe second line runs on for quite a long while here, as prose does.\n"
     assert tags_of(text) == [("p",), ("p",)]

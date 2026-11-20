@@ -146,7 +146,7 @@ def test_a_footnote_mark_is_not_mapped_into_its_introduction(
     text: str, label: str, language: str
 ) -> None:
     """The footnotes step replaces a note's mark with its introduction ("Footnote.",
-    "Fußnote."): that is no label, so the rebuilt note has none (review B1 of PR #353)."""
+    "Fußnote."): that is no label, so the rebuilt note has none (#353)."""
     document = make_document(
         [Block(BlockKind.PARAGRAPH, "Text."), Block(BlockKind.FOOTNOTE, text, label=label)],
         language,
@@ -242,7 +242,7 @@ def _rebuilt(document: Document) -> Document:
 
 def test_a_tagged_run_across_a_line_break_keeps_its_tag_on_each_line() -> None:
     """A tagged range may not cross a line break, so a run holding one is cut there; a run
-    of a part that goes back over a range before it is left out (round 2 S1 of #484, the
+    of a part that goes back over a range before it is left out (#484, the
     shape the nightly seeds found: overlapping parts and a run "0\n" tagged "h1")."""
     h1, h2 = ("h1",), ("h2",)
     document = _placeholders(
@@ -264,7 +264,7 @@ def test_a_tagged_run_across_a_line_break_keeps_its_tag_on_each_line() -> None:
 def test_a_tagged_run_ending_in_a_line_break_gives_no_empty_range() -> None:
     """Cut at its line break, "a\n" leaves an empty piece after it, which gets no range.
     `make_document` would pass over an empty range at a line's edge, so the helper's own
-    ranges are checked too (review round 2 of #484)."""
+    ranges are checked too (#484)."""
     lines = [TextLine("l0", (TextRun("a\n", tags=("hidden",)),)), TextLine("l1", (TextRun("b"),))]
     document = _placeholders(("a\nb", [(lines[0], 0), (lines[1], 2)]))
     assert _run_tags(document.blocks[0], document.content.items()) == [(0, 1, ("hidden",))]

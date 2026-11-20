@@ -67,7 +67,7 @@ class OutsideJob:
     def id(self) -> str:
         """The job's key in the server's addresses: `cli-` and the document id, which no
         document the web holds can have, so a file also opened in the interface never
-        takes its place (#378 review S1)."""
+        takes its place (#378)."""
         return f"{OUTSIDE_PREFIX}{self.document}"
 
 

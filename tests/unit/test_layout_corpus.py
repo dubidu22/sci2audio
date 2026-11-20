@@ -583,7 +583,7 @@ def test_each_line_stands_in_its_block_as_found(paper: Path) -> None:
     assert wrong == []
 
 
-# Formulas whose every printed piece the review of PR #61 checked, by the items they hold:
+# Formulas whose every printed piece the #61 checked, by the items they hold:
 # nowak's Eq. (14), two rows each with its limits; arsiwalla's Eq. (2), a diagram of six
 # terms joined by eight arrows.
 WHOLE_FORMULAS = {
@@ -661,7 +661,7 @@ def graphic_runs(block: Block, lines: set[str]) -> str:
 
 # Liu's inline fractions in running text (#202): numerator and denominator as each paragraph
 # reads them. The first five were joined before D-575 ("eℏ2me", "1ℏ", "∂Emq∂q", "iℏ", "eEℏ");
-# the last three already read with a space (digits under digits, #128 M2, or white printed).
+# the last three already read with a space (digits under digits, #128, or white printed).
 LIU_FRACTIONS = (
     "µB = eℏ 2me . The",
     "= 1 ℏ ∂Emq ∂q δm,m′",  # noqa: RUF001 (as liu prints it)
@@ -715,7 +715,7 @@ def golden_text(name: str, doc: Document) -> str:
 
 # Printed lines of the corpus that #125 and #126 put right, read as the page prints them:
 # an accent drawn as its own glyph on its letter, and a line under a tall brace on its own
-# (review S1 of #671). No truth sentence covers them, so a golden update alone could undo it.
+# (#671). No truth sentence covers them, so a golden update alone could undo it.
 ACUTE, CARON, DASH = (unicodedata.lookup(n) for n in ("ACUTE ACCENT", "CARON", "EN DASH"))
 PRINTED_AS_ON_THE_PAGE = {
     "acl2023-chi-plue": (

@@ -72,7 +72,7 @@ def test_a_page_in_sight_keeps_the_app_without_a_window_awake(
     app_page: tuple[Page, Live],
 ) -> None:
     """Reading is no request: the page asks for the job list once a minute while it is in
-    sight, so the idle stop never ends sci2audio under a reader (#631 F3)."""
+    sight, so the idle stop never ends sci2audio under a reader (#631)."""
     page, live = app_page
     page.clock.install()
     page.goto(f"{live.url}/privacy")

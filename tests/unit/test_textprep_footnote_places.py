@@ -274,7 +274,7 @@ def _marked(language: str, text: str) -> Document:
         ("en", "See Section 2.¹ Then more.", "See Section 2. Then more."),
         ("en", "It weighs approx.¹ 5 kg.", "It weighs approximately 5 kilograms."),
         ("en", "It weighs 5 kg.¹ Then more.", "It weighs 5 kilograms. Then more."),
-        # PR #333 review R1-2: a unit and a statistics label with the mark glued after them
+        # #333: a unit and a statistics label with the mark glued after them
         ("en", "It weighs 5 kg¹ today.", "It weighs 5 kilograms today."),
         ("de", "Es waren 5 kg¹ heute.", "Es waren 5 Kilogramm heute."),
         ("de", "Es dauerte 2 Std.¹ Dann kam er.", "Es dauerte 2 Stunden. Dann kam er."),
@@ -314,7 +314,7 @@ def test_a_mark_hides_no_abbreviation_or_number_from_the_first_run(
 def test_with_footnotes_switched_off_the_marks_stay_and_are_read_on_both_runs(
     text: str, said: str
 ) -> None:
-    # PR #333 review R1-1 (D-595): the marks stay in the text, so no step reads past them;
+    # #333 (D-595): the marks stay in the text, so no step reads past them;
     # both runs read what main read before #316
     off = DEFAULT_SWITCHED_OFF | {Category.FOOTNOTES}
     context = StepContext("de")
@@ -335,6 +335,6 @@ def test_with_footnotes_switched_off_the_marks_stay_and_are_read_on_both_runs(
     ],
 )
 def test_a_mark_after_a_single_guillemet_is_a_mark(text: str, said: str) -> None:
-    # PR #333 review R1-4: German quotes inside »…« with U+203A … U+2039, Swiss inside «…» with
+    # #333: German quotes inside »…« with U+203A … U+2039, Swiss inside «…» with
     # U+2039 … U+203A
     assert _body(_marked("de", text), StepContext("de")) == said

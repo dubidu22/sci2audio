@@ -321,7 +321,7 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("2,5Å", "2 Komma 5 Ångström"),
         ("1.234Å", "1234 Ångström"),
         ("×.2,5", "mal.2 Komma 5"),
-        # review of PR #242: nightly seeds 303 and 505
+        # #242: nightly seeds 303 and 505
         ("seit 1998x mehr", "seit 1998 mal mehr"),
         ("bis 1998x mehr", "bis 1998 mal mehr"),
         ("95 %-KI [1; 1],1–1", "95 Prozent Konfidenzintervall [1; 1],1 bis 1"),
@@ -329,7 +329,7 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         (
             "Kapitel I %CI",
             "Kapitel I %CI",
-        ),  # seed 1717, review round 2  # seed 303 after round 1: no "Newton"
+        ),  # seeds 1717 and 303: no "Newton"
         (
             "Das KI [1,2; 3,4],1–2 war breit.",
             "Das Konfidenzintervall [1 Komma 2; 3 Komma 4],1 bis 2 war breit.",
@@ -339,7 +339,7 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("im 1234-1234", "im 12 hundert 34-1234"),
         ("1–11.3.2020", "1 bis elften März 2020"),
         ("vom 1.3.2020–11.3.2020", "vom ersten März 2020 bis elften März 2020"),
-        # review of PR #263 (F1, F2): no "bis" for the dash, no date after it, as on main;
+        # #263 (F1, F2): no "bis" for the dash, no date after it, as on main;
         # an em dash between full dates is a range like the en dash
         ("vom 1.–3.4.2020", "vom 1.–3.4.2020"),
         # ... a range from a date without its year is read with "bis" (#318, D-577; read
@@ -358,9 +358,9 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("Siehe 12. Kap. dazu.", "Siehe zwölftes Kap. dazu."),
         ("die 12. Aufl. erschien", "die zwölfte Auflage erschien"),
         ("5x× 3", "5x mal 3"),
-        # review of PR #256 (D1): an abbreviation before a link the links step removes
+        # #256: an abbreviation before a link the links step removes
         ("Siehe Kap. https://x.org/a (ebd., S. 3).", "Siehe Kapitel (ebenda, Seite 3)."),
-        # an opener the links step removes with the link, and a long gap (PR #263 review G1)
+        # an opener the links step removes with the link, and a long gap (#263)
         ("Siehe Kap. <https://x.org/a> 3 dazu.", "Siehe Kapitel 3 dazu."),
         ("Siehe Kap. (siehe https://x.org/a) 3 dazu.", "Siehe Kapitel 3 dazu."),
         ("Siehe Kap.          https://x.org/a 3 dazu.", "Siehe Kapitel 3 dazu."),
@@ -383,7 +383,7 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("Es sind 0,05%a.", "Es sind 0,05%a."),
         ("Eine 2,5%ige Lösung.", "Eine 2 Komma 5%ige Lösung."),  # an adjective of it
         ("Ein 2,5‰iger Anteil.", "Ein 2 Komma 5‰iger Anteil."),
-        # PR #273 review: coordinates read as before, glued or spaced (F1) ...
+        # #273: coordinates read as before, glued or spaced ...
         ("Bei 52,5°N und 13,4°O.", "Bei 52 Komma 5°N und 13 Komma 4°O."),
         ("Bei 52,5 °N gemessen.", "Bei 52 Komma 5 °N gemessen."),
         ("Bei 52,5°NNE.", "Bei 52 Komma 5°NNE."),
@@ -415,7 +415,7 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("S −→ ε und X−→α", "S → ε und X→α"),
         ("β ←− 0 und a ←−→ b", "β ← 0 und a ↔ b"),
         ("P′ ←− (I − P)−1", "P′ ← (I − P)−1"),
-        # #593 review F1: a long arrow with more than one minus sign is one arrow too
+        # #593: a long arrow with more than one minus sign is one arrow too
         ("X −−→ α und Y ←−− β", "X → α und Y ← β"),
         ("X ←−−→ Y", "X ↔ Y"),
         ("−−→AB", "→AB"),
@@ -425,9 +425,9 @@ def test_a_german_job_reads_numbers_and_statistics(printed: str, said: str) -> N
         ("x ←−1/2", "x ←ein halb"),
         ("x ←−3-5", "x ←3 bis 5"),
         ("x ←−→ [2]", "x ↔ [2]"),  # the citations step keeps the bracket after "↔" too
-        # ... right arrows and several in one block, each masked at its own place (round 2 T1)
+        # ... right arrows and several in one block, each masked at its own place
         ("x −→1:1 und y −−→3/4 und z −→3-5", "x →1 zu 1 und y →3 Viertel und z →3 bis 5"),
-        # ... and a guard skips only its own ordinal, never the later ones (round 2 T2)
+        # ... and a guard skips only its own ordinal, never the later ones
         ("13 Uhr 30. Jahr und am 3. Mai", "13 Uhr 30. Jahr und am dritten Mai"),
         (
             "im Jahr 19 hundert 98. Jahr und am 3. Mai",
@@ -505,7 +505,7 @@ def _abbreviations_seconds(text: str) -> float:
 def test_the_link_look_ahead_of_the_abbreviations_step_takes_linear_time(
     unit: str, count: int
 ) -> None:
-    """Review of PR #263 (F3): the look past a removed link after an abbreviation runs the
+    """#263: the look past a removed link after an abbreviation runs the
     links step's pass once per block and bisects it. Eight times the text takes about eight
     times as long; the limit, 32, is four times that and half of quadratic, so a shared
     runner does not decide (#274: the macOS runner measured 8.7 for four times the text)."""
@@ -535,7 +535,7 @@ class _CountedSpans(list[tuple[int, int]]):
     ids=["link-after-label", "dense"],
 )
 def test_the_link_look_ahead_looks_at_one_removal_per_abbreviation(unit: str) -> None:
-    """#274: the timing test above cannot tell the quadratic look-ahead of the #263 review
+    """#274: the timing test above cannot tell the quadratic look-ahead of #263
     from a busy runner on small blocks (its end-to-end ratio was 7 for four times the text,
     as the links pass dominates). Counted instead: each look past an abbreviation looks at
     one removal, found by bisection, not at every removal before it."""
@@ -551,7 +551,7 @@ def test_the_link_look_ahead_looks_at_one_removal_per_abbreviation(unit: str) ->
 
 
 def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:
-    # review round 2 of PR #242: one walk over the file-number spans, not one per number
+    # #242: one walk over the file-number spans, not one per number
     assert_linear(
         lambda text: UnitStep().find(make_document([(BlockKind.PARAGRAPH, text)], "de"), DE),
         lambda n: "1 O 1/12 " * n,
@@ -571,7 +571,7 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
 @given(german_notation_documents())
 @example(make_document([(BlockKind.PARAGRAPH, "im Jahr 1998. Jahr")], "de"))  # #536
 @example(make_document([(BlockKind.PARAGRAPH, "um 13:30 Uhr 3. Mai")], "de"))  # #557
-@example(make_document([(BlockKind.PARAGRAPH, "←−1:1")], "de"))  # #593 review F2, seed 31337
+@example(make_document([(BlockKind.PARAGRAPH, "←−1:1")], "de"))  # #593, seed 31337
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)
@@ -599,7 +599,7 @@ def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None
     ],
 )
 def test_a_court_file_number_is_kept_but_nothing_after_it(printed: str, said: str) -> None:
-    """Review of PR #242, items 1 and 2: the number in its usual shape, with or without
+    """#242, items 1 and 2: the number in its usual shape, with or without
     "Az.", stays as printed; a dash before it is no range; what follows it is read."""
     assert read_all(printed) == said
 
@@ -617,7 +617,7 @@ def test_a_court_file_number_is_kept_but_nothing_after_it(printed: str, said: st
     ],
 )
 def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str) -> None:
-    """Review of PR #242, items 3 and 7."""
+    """#242, items 3 and 7."""
     assert read_all(printed) == said
     assert read_all(said) == said
 
@@ -644,7 +644,7 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
         ("Am 3.4. 2019-03-12 lief es.", "Am dritten April zwölfter März 2019 lief es."),
         ("Am 3.4. 12.03.2019-05 lief es.", "Am dritten April 12.03.2019-05 lief es."),
         ("Am 3.4. 12 Fälle.", "Am 3.4. 12 Fälle."),  # before a plain number: as before
-        # review round 1 of PR #311: a hyphen between two full dates is a range
+        # #311: a hyphen between two full dates is a range
         (
             "Laufzeit 1.1.2020-31.12.2020 gut.",
             "Laufzeit erster Januar 2020 bis einunddreißigsten Dezember 2020 gut.",
@@ -673,7 +673,7 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
         ("Am 3.4. 2/3 Tag.", "Am 3.4. 2 Drittel Tag."),  # the digit stays: so does the date
         ("Am 3.4. 1/12 Liter.", "Am 3.4. 1 von 12 Liter."),  # read with digits: date stays
         # a range whose yearless end stands before what a yearless date may stand before: a
-        # full date, or a fraction read "ein ..." (#332 review round 1, R1-1)
+        # full date, or a fraction read "ein ..." (#332)
         ("Vom 3.4.2019-5.4. 1/2 Tag.", "Vom dritten April 2019 bis fünften April ein halb Tag."),
         (
             "Vom 3.4.2019-5.4. 12.03.2019 an.",
@@ -714,14 +714,14 @@ def test_a_dotted_date_glued_to_a_dash_reads_the_same_on_a_second_run(
         ("Vom 1.–3.4.2020 lief es.", "Vom 1.–3.4.2020 lief es."),
         # #349: no ordinal after "Punkt", the reading of a dotted number's point
         ("Kapitel 1.2.3. Tag.", "Kapitel 1 Punkt 2 Punkt 3. Tag."),
-        # review S1 of PR #368: after the word "Punkt" an ordinal reads as before
+        # #368: after the word "Punkt" an ordinal reads as before
         ("Der Punkt 3. Mai war gut.", "Der Punkt dritter Mai war gut."),
         ("Im Punkt 2. Teil steht es.", "Im Punkt zweiter Teil steht es."),
         ("Die Note war 2. Punkt 3. Platz.", "Die Note war 2. Punkt dritter Platz."),
         ("Kapitel 1 Punkt 2 Punkt 3. Tag.", "Kapitel 1 Punkt 2 Punkt 3. Tag."),
         ("Am 3. Tag kam er.", "Am dritten Tag kam er."),
         # D-719: a label's number, then the same label again, ends the sentence; also when
-        # the label is an abbreviation read first ("Kap." as "Kapitel", #478 review N2)
+        # the label is an abbreviation read first ("Kap." as "Kapitel", #478)
         ("Es gilt Satz 2. Satz 3 hier.", "Es gilt Satz 2. Satz 3 hier."),
         ("Siehe Kap. 2. Kap. 3 folgt.", "Siehe Kapitel 2. Kapitel 3 folgt."),
     ],
@@ -737,7 +737,7 @@ def test_german_ranges_and_dotted_numbers_read_the_same_on_a_second_run(
 @pytest.mark.parametrize(
     ("printed", "said"),
     [
-        # review S1 of PR #359: a fraction before a unit chain ending in a letter power stays
+        # #359: a fraction before a unit chain ending in a letter power stays
         ("Es ist 2/3 m s⁻² hier.", "Es ist 2/3 m s⁻² hier."),
         ("Es ist 1/2 m · s⁻¹ hier.", "Es ist 1/2 m · s⁻¹ hier."),
         ("Es ist 1/2 W m⁻² K⁻¹ hier.", "Es ist 1/2 W m⁻² K⁻¹ hier."),

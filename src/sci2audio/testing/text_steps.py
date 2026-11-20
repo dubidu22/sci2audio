@@ -190,7 +190,7 @@ def _sample_documents() -> tuple[Document, ...]:
     # placeholders whose printed text a step cleans, read when their notice is switched off:
     # a soft hyphen and a ligature in a formula, a ligature and a page-break marker in a
     # table, a zero-width space and a hidden run in code (#463), a line-end hyphen in a
-    # figure (review B1 of PR #450, D-710); then a figure whose alt text holds a number, a
+    # figure (#450, D-710); then a figure whose alt text holds a number, a
     # unit, a citation and a link, read as a paragraph is (#464)
     placeholders = [
         Block(BlockKind.FORMULA, "coe\u00adfﬁcient a = b (2)", label="2"),

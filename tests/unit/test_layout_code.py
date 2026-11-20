@@ -112,7 +112,7 @@ def test_two_listings_with_prose_between_them_are_two_code_blocks() -> None:
         (("doi:10.21105/joss.03021", 0),),
         (("https://doi.org/10.21105/joss.03021", 0),),
         (("www.example.org/data", 0),),
-        (("alice@uni-x.de", 0), ("bob@uni-y.org", 0)),  # review S1: one address per author
+        (("alice@uni-x.de", 0), ("bob@uni-y.org", 0)),  # one address per author
         (("{alice,bob}@cs.uni-x.edu", 0),),  # ACL's brace form
         (("{alice, bob}@cs.uni-x.edu", 0),),
     ],
@@ -133,7 +133,7 @@ def test_a_monospace_link_on_lines_of_its_own_is_read(rows: tuple) -> None:
 
 
 def test_two_monospace_e_mail_paragraphs_are_read() -> None:
-    """Review S1: two addresses that layout reads as two paragraphs stay two paragraphs."""
+    """Two addresses that layout reads as two paragraphs stay two paragraphs."""
     doc = build(
         text_line(code("alice@uni-x.de"), 300), text_line(code("bob@uni-y.org"), 300 + 2 * PITCH)
     )
@@ -141,7 +141,7 @@ def test_two_monospace_e_mail_paragraphs_are_read() -> None:
 
 
 def test_a_document_set_wholly_in_a_typewriter_font_has_no_code() -> None:
-    """Review M1: a typed memo or an RFC printed in Courier is read as today; code can only
+    """A typed memo or an RFC printed in Courier is read as today; code can only
     be told from text that is not itself typewriter type."""
     typed = [
         text_line((TextRun(f"Typed text, line {k}.", "Courier", 10.0),), 100 + PITCH * k, end=RIGHT)
@@ -155,7 +155,7 @@ def test_a_document_set_wholly_in_a_typewriter_font_has_no_code() -> None:
 @pytest.mark.parametrize("font", ["Times-Bold", "LMMono10-Bold", "CourierNewPS-BoldMT"])
 @pytest.mark.parametrize("size", [10.0, 10.5])
 def test_a_bold_monospace_heading_stays_a_heading(font: str, size: float) -> None:
-    """Review M2: numbered bold headings at about body size are headings whatever their
+    """Numbered bold headings at about body size are headings whatever their
     font, and the sections they open keep their blocks."""
     titles = ["1 Introduction", "2 The relplot() function", "3 Results"]
     lines = []
@@ -170,7 +170,7 @@ def test_a_bold_monospace_heading_stays_a_heading(font: str, size: float) -> Non
 
 
 def test_bold_keyword_lines_inside_a_listing_are_part_of_it() -> None:
-    """Review R2-1: a listing that sets its "end" lines wholly in bold is one CODE block,
+    """A listing that sets its "end" lines wholly in bold is one CODE block,
     not code plus a paragraph "end end" read aloud."""
     bold_end = (TextRun("end", "LMMono10-Bold", 10.0, bold=True),)
     rows = [code("for k = 1:3"), code("  if k > 1"), code("    disp(k)"), bold_end, bold_end]
@@ -261,7 +261,7 @@ def test_typewriter_fonts_are_monospace(font: str) -> None:
         "CMR10",
         "MonotypeCorsiva",
         "NimbusRomNo9L",
-        "LucidaSansUnicode",  # review M3: a bare "code" matched these four
+        "LucidaSansUnicode",  # a bare "code" matched these four
         "ArialUnicodeMS",
         "EncodeSans-Regular",
         "Barcode39",
@@ -539,7 +539,7 @@ def test_a_listing_caption_set_in_a_typewriter_font_is_not_cut() -> None:
 
 
 def test_a_listing_caption_names_the_code_in_its_own_column() -> None:
-    """Review M1 (#600): column 1 ends with listing A and its caption, column 2 opens with
+    """#600: column 1 ends with listing A and its caption, column 2 opens with
     listing B and its caption. Code in the other column is farther, as on another page,
     though its top lies above the caption."""
     left, right, left2, right2 = 70.0, 290.0, 306.0, 526.0
@@ -588,7 +588,7 @@ _PIECES = st.lists(
 
 @given(st.lists(_PIECES, min_size=2, max_size=4))
 def test_listings_captions_and_furniture_over_pages_keep_every_item_once(pages: list) -> None:
-    """Review S1 (#600), property: pages under a running head and over a page number, whose
+    """#600, property: pages under a running head and over a page number, whose
     bodies are prose, code and "Listing N:" caption lines in any order (so a page may end
     and the next begin with code). Every item is in exactly one block, a CODE block holds
     only monospace lines, a CODE block is named by one caption at most, and every

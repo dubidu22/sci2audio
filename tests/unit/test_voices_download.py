@@ -243,7 +243,7 @@ def test_a_german_file_with_a_wrong_checksum_keeps_nothing(
     tmp_path: Path, two_packs: tuple[RemoteFile, ...]
 ) -> None:
     """The German pack is checked like the English one: wrong bytes of the right size are
-    refused and no partial file stays (#211 review)."""
+    refused and no partial file stays (#211)."""
     weights = two_packs[1]
     server = FakeServer({**SERVED, weights.url: b"x" * weights.size})
     with no_network(), pytest.raises(DownloadError, match="checksum"):

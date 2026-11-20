@@ -36,7 +36,7 @@ THEME_COOKIE = "sci2audio-theme"
 THEMES = ("system", "light", "dark")
 ANNOUNCE_COOKIE = "sci2audio-announce"
 ANNOUNCE = ("off", "on")
-# the page-wide single keys (#394 review S3): on unless switched off; Esc and the rail's
+# the page-wide single keys (#394): on unless switched off; Esc and the rail's
 # Keyboard shortcuts item work either way
 KEYS_COOKIE = "sci2audio-keys"
 KEYS = ("on", "off")
@@ -222,7 +222,7 @@ def announce_of(request: Request) -> bool:
 
 
 def keys_of(request: Request) -> bool:
-    """Whether the page-wide single keys work (#394 review S3). On unless the person
+    """Whether the page-wide single keys work (#394). On unless the person
     switched them off."""
     return known_keys(request.cookies.get(KEYS_COOKIE)) != "off"
 

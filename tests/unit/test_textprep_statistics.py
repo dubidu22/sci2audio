@@ -51,7 +51,7 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("r = −.32", "r equals −.32"),  # the minus sign is the numbers step's
         ("x≥-3", "x greater than or equal to -3"),
         ("w =\nw1", "w equals w1"),
-        ("∆ = 0.883 and ∇ = 0", "∆ equals 0.883 and ∇ equals 0"),  # review of #132
+        ("∆ = 0.883 and ∇ = 0", "∆ equals 0.883 and ∇ equals 0"),  # #132
         ("W = ⟨A, B⟩ and ⟨x⟩ = 1", "W equals ⟨A, B⟩ and ⟨x⟩ equals 1"),
         # S2 degrees of freedom
         ("t(34) = 2.45", "t of 34 equals 2.45"),
@@ -76,7 +76,7 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("CI = [1.2, 3.4]", "confidence interval equals 1.2 to 3.4"),
         ("95% CIs overlap", "95% confidence intervals overlap"),
         ("CI: 1.2–3.4", "confidence interval: 1.2–3.4"),  # the range is the numbers step's
-        ("95%CI[1.2,3.4]", "95% confidence interval 1.2 to 3.4"),  # glued (review of #132)
+        ("95%CI[1.2,3.4]", "95% confidence interval 1.2 to 3.4"),  # glued (#132)
         ("(95%CI[1.2,3.4])", "(95% confidence interval 1.2 to 3.4)"),
         ("95% CI [1, 3]of all", "95% confidence interval 1 to 3 of all"),
         # S5 odds ratio
@@ -144,7 +144,7 @@ def test_each_edit_quotes_the_printed_notation() -> None:
 def test_signs_and_accents_other_steps_read_are_read_on_the_first_run(
     printed: str, said: str
 ) -> None:
-    """Else a second run on the script reads the operator (review of PR #132, round 2)."""
+    """Else a second run on the script reads the operator (#132)."""
     document = make_document([(BlockKind.PARAGRAPH, printed)])
     run = run_steps(document, EN, strict=True)
     assert spoken_text(run.script()) == said
@@ -192,7 +192,7 @@ def test_english_and_german() -> None:
 def test_long_and_pathological_blocks_take_linear_time(
     sized: Callable[[int], str], size: int
 ) -> None:
-    """About 100,000 characters each: no look back over the whole block (review of PR #132)."""
+    """About 100,000 characters each: no look back over the whole block (#132)."""
     assert_linear(
         lambda text: STEP.find(make_document([(BlockKind.PARAGRAPH, text)]), EN), sized, size
     )
@@ -253,7 +253,7 @@ def test_confidence_intervals_read_the_same_on_a_second_run() -> None:
 
 @pytest.mark.parametrize(
     ("printed", "said"),
-    [  # review F1 of PR #208: a bracket joined on that is no pair is a citation, as on main
+    [  # #208: a bracket joined on that is no pair is a citation, as on main
         (
             "The 95% CI [1, 3] and [12] agree.",
             "The 95% confidence interval 1 to 3 and reference 12 agree.",
@@ -268,7 +268,7 @@ def test_confidence_intervals_read_the_same_on_a_second_run() -> None:
             "Noise confidence interval 1 to 3 and references 2 to 6 and 16 here.",
         ),
         ("CI [a, b] and [12] hold.", "confidence interval [a, b] and reference 12 hold."),
-        # review F2: the steps agree on the last interval; the bracket after it cites
+        # the steps agree on the last interval; the bracket after it cites
         (
             "The CIs "
             + ", ".join(f"[{n}, {n + 1}]" for n in range(1, MAX_JOINED_INTERVALS + 2))
@@ -298,7 +298,7 @@ def test_the_citations_step_leaves_alone_exactly_the_intervals_read_here() -> No
 
 @pytest.mark.parametrize(
     "printed",
-    [  # review F4 of PR #208: the citations step finds the intervals in the text as read
+    [  # #208: the citations step finds the intervals in the text as read
         "two CIs [1, 3] and \u200b[2, 4] overlap.",
         "two CIs [1, 3]\u200b and [2, 4] overlap.",
         "two C\u00adIs [1, 3] and [2, 4] overlap.",

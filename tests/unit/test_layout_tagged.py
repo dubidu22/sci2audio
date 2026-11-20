@@ -512,7 +512,7 @@ def _flat(sections: tuple) -> list:
     return [x for s in sections for x in (s, *_flat(s.children))]
 
 
-# ---- review of PR #192, round 1 -------------------------------------------------------
+# ---- #192 -------------------------------------------------------
 
 
 def _note_label(text: str) -> str:

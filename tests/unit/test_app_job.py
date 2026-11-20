@@ -426,7 +426,7 @@ def test_settings_data_names_plugins_only_when_off() -> None:
 
 def test_plugins_off_also_filters_steps_given_to_the_job(tmp_path: Path) -> None:
     """Steps passed in with plugins off lose their plugin steps too, so the report and the
-    record never say "off" beside a plugin's edits (#667 review N2)."""
+    record never say "off" beside a plugin's edits (#667)."""
     from test_cli_script import AMPERSAND
 
     steps = installed_steps(entry_points=[AMPERSAND])

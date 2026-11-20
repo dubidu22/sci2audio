@@ -348,7 +348,7 @@ def test_a_whole_web_job_writes_only_into_its_project_folders(
     assert not (home / "cache").exists()
 
 
-# ---- review round 1 of PR #552 ---------------------------------------------------------------
+# ---- #552 ---------------------------------------------------------------
 
 
 @pytest.mark.parametrize("name", ["../escape", "ABSOLUTE", "a/b", "a\\b", ".", "..", "", "x" * 61])

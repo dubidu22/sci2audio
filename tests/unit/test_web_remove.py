@@ -617,7 +617,7 @@ def test_the_privacy_page_names_the_removal(tmp_path: Path) -> None:
     assert "Remove this document" in text
 
 
-# --- review round 1 of PR #168 ---------------------------------------------------------
+# --- #168 ---------------------------------------------------------
 
 
 def test_a_job_start_that_checked_before_the_removal_never_starts(
@@ -880,7 +880,7 @@ def test_a_folder_that_keeps_filling_up_is_not_reported_as_removed(
 
 
 def test_the_openapi_document_never_says_internal_server_error(tmp_path: Path) -> None:
-    """Review round 3, M4: the ZAP baseline scan reads the phrase in /openapi.json as an
+    """The ZAP baseline scan reads the phrase in /openapi.json as an
     error disclosure (90022, 10023); the removal's 500 answer has its own words."""
     _app, client, _config = server(tmp_path)
     response = client.get("/openapi.json")

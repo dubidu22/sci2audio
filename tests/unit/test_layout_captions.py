@@ -231,7 +231,7 @@ def test_a_list_starts_at_its_first_marker() -> None:
 
 def test_a_block_whose_markers_make_no_list_stays_whole() -> None:
     """A block is cut only where its pieces become items: one that starts at "2.", or
-    whose markers are not set alike, stays one paragraph (review of #53)."""
+    whose markers are not set alike, stays one paragraph (#53)."""
     late = build("2. A second point that goes on", "3. a third point.", full=True)
     assert items(late) == []
     assert late.blocks[-1].text == "2. A second point that goes on\n3. a third point."

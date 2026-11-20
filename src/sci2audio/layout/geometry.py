@@ -108,7 +108,7 @@ def separators(
     script set close to its neighbour. A piece that starts more than `stack_reach` em back,
     under earlier letters, is out of its place and keeps a space, so no words run together.
     A digit that starts back under a digit (a fraction 1/2 set as 1 over 2) keeps a space,
-    so the two never read as one number (review M2 of #128). Pieces without a position, or a
+    so the two never read as one number (#128). Pieces without a position, or a
     line without sizes, keep a space (#36, D-274 to D-277). A piece that starts under one
     of the `bars` drawn below the piece before it is a fraction's denominator under its
     numerator and keeps a space ("eℏ 2me", not "eℏ2me"; #202, D-575): `bar` and `bar_reach`
@@ -141,7 +141,7 @@ def fraction_bar(
     `lower`: at most `thickness` em thick and three times as wide; the letters of `upper` it
     stands under (its runs, or the whole piece where runs have no box) all have their
     middles above it, the nearest of them within `reach` em of it (a superscript in the
-    numerator may stand higher, review R1-1 of #323), and the first letters of `lower` have
+    numerator may stand higher, #323), and the first letters of `lower` have
     their middle below it and stand within `reach` em; each overlaps it across (#202, D-575).
     The em is `size`, the printed line's letter size (`separators`), not the size of the
     fraction's own letters as in extraction, which measures the same way inside one

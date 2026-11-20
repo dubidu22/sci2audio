@@ -286,7 +286,7 @@ def italic(text: str, x0: float, y0: float, x1: float) -> TextLine:
 
 
 def test_an_upright_line_under_centred_italic_lines_starts_a_paragraph() -> None:
-    """Review of #476, S1 (Liu p1): a centred affiliation in italic is one paragraph, the
+    """#476 (Liu p1): a centred affiliation in italic is one paragraph, the
     upright date under it another; in centred lines a short line ends nothing, so the change
     of style does."""
     middle = (LEFT + RIGHT) / 2
@@ -302,7 +302,7 @@ def test_an_upright_line_under_centred_italic_lines_starts_a_paragraph() -> None
 
 
 def test_an_indented_paragraph_starting_lower_case_stays_apart() -> None:
-    """Review of #476, S2: a real first-line indent ends the paragraph even after a line
+    """#476: a real first-line indent ends the paragraph even after a line
     without a full stop, when the new paragraph starts in lower case ("pandas")."""
     first = [
         line("Running text that fills its column from edge to edge and goes", LEFT, 100, RIGHT),
@@ -319,7 +319,7 @@ def test_an_indented_paragraph_starting_lower_case_stays_apart() -> None:
 
 
 def test_an_outdented_entry_starting_lower_case_stays_apart() -> None:
-    """Review of #476, S2: author-year entries with hanging indents; an entry ending in a
+    """#476: author-year entries with hanging indents; an entry ending in a
     link without a full stop, then one by "van Dijk": the outdent ends the entry."""
     entries = [
         [line("Albers, A. (2021). A study of the listening of papers. Journal of",
@@ -335,7 +335,7 @@ def test_an_outdented_entry_starting_lower_case_stays_apart() -> None:
 
 
 def test_items_lettered_with_a_full_stop_stay_apart() -> None:
-    """Review of #476, S3: "i." and "a." items (which `lists` does not split) start in lower
+    """#476: "i." and "a." items (which `lists` does not split) start in lower
     case after a row without a full stop; each stays its own block."""
     for marks in (("i.", "ii.", "iii."), ("a.", "b.", "c.")):
         words = ("we read the paper aloud", "we listen to it", "we compare the two readings")
@@ -357,7 +357,7 @@ def rows_at(spans: list[tuple[float, float]], top: float = 200.0) -> list[TextLi
 
 
 def test_rows_ending_at_two_edges_are_no_flush_right_block() -> None:
-    """Review of #476, round 2: rows that start at three places but end at two edges are no
+    """#476: rows that start at three places but end at two edges are no
     flush-right lines, so the indented third row starts a paragraph."""
     above = lines("a", LEFT, RIGHT, 100, 3)
     block = rows_at([(LEFT, 450), (LEFT + 8, 450), (LEFT + 20, 400), (LEFT, 400)])
@@ -366,7 +366,7 @@ def test_rows_ending_at_two_edges_are_no_flush_right_block() -> None:
 
 
 def test_rows_with_two_middles_are_no_centred_block() -> None:
-    """Review of #476, round 2: rows whose middles stand at two places are not centred, so
+    """#476: rows whose middles stand at two places are not centred, so
     the indented third row starts a paragraph."""
     above = lines("a", LEFT, RIGHT, 100, 3)
     block = rows_at([(LEFT, 450), (LEFT + 10, 440), (LEFT + 30, 380), (LEFT, 410)])
@@ -374,7 +374,7 @@ def test_rows_with_two_middles_are_no_centred_block() -> None:
 
 
 def test_one_italic_word_leaves_a_centred_row_upright() -> None:
-    """Review of #476, round 2: a row is italic when most of its letters are, so a journal's
+    """#476: a row is italic when most of its letters are, so a journal's
     name in italic does not end a centred block of upright rows."""
     middle = (LEFT + RIGHT) / 2
 
@@ -394,7 +394,7 @@ def test_one_italic_word_leaves_a_centred_row_upright() -> None:
 
 @given(st.sampled_from(["e.g. the ones on the shelf.", "i.e. the ones on the shelf."]))
 def test_a_short_line_goes_on_with_e_g_and_i_e(start: str) -> None:
-    """Review of #476, round 2: "e.g." and "i.e." are no lettered list marks, so a short
+    """#476: "e.g." and "i.e." are no lettered list marks, so a short
     line ending inside a sentence goes on with them."""
     rows = [
         line(
@@ -680,7 +680,7 @@ def test_paragraphs_run_on_across_columns_and_past_a_footnote(page: tuple) -> No
     assert paragraphs(build_document(found)) == expected
 
 
-# A float at a page's top, then a caption (review of PR #61)
+# A float at a page's top, then a caption (#61)
 
 
 def _row(text: str, x0: float, y0: float, x1: float, column: tuple[float, float], page: int):
@@ -806,7 +806,7 @@ def test_a_subscript_stacked_under_a_superscript_follows_it() -> None:
 
 
 def test_digits_of_a_stacked_fraction_keep_their_space() -> None:
-    """Review M2 of #128, Liu p4 "vF = 3/2 at": the denominator starts back under the
+    """#128, Liu p4 "vF = 3/2 at": the denominator starts back under the
     numerator; joined, the two digits would read as one number ("32", thirty-two)."""
     pieces = (
         at("the Fermi velocity vF = 3", LEFT, 300),
@@ -945,7 +945,7 @@ def test_a_table_rule_under_a_line_is_no_fraction_bar() -> None:
     assert not any("Model" in text and "Base" in text for text in found)
 
 
-# rows_of on its own (#322, review of #647): pieces whose runs have no boxes, so a piece's
+# rows_of on its own (#322, #647): pieces whose runs have no boxes, so a piece's
 # letters are its whole box; body size 10, so `fraction_inside` is exactly 1 pt and
 # `fraction_reach` 6 pt. Every coordinate below is exact in binary.
 SIZE = 10.0

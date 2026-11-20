@@ -186,7 +186,7 @@ def test_each_outline_entry_names_a_truth_heading(paper: Path) -> None:
 
 
 def test_a_printed_number_is_taken_off_the_front_only() -> None:
-    """Review of #133: nothing in the middle of a heading looks like a number to strip."""
+    """#133: nothing in the middle of a heading looks like a number to strip."""
     assert PRINTED_NUMBER.sub("", "2.1 Setup", count=1) == "Setup"
     assert PRINTED_NUMBER.sub("", "A Proofs", count=1) == "Proofs"
     checklist = "ACL 2023 Responsible NLP Checklist"

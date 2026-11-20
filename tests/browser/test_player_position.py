@@ -131,7 +131,7 @@ def test_nothing_is_offered_before_anything_was_heard(signed_in: Page, live: Liv
 def test_the_offer_waits_for_the_script_before_it_can_be_pressed(
     signed_in: Page, live: Live
 ) -> None:
-    """Review N1 of #373 (the #350 lesson): the server draws the offer's buttons, the
+    """#373 (the #350 lesson): the server draws the offer's buttons, the
     deferred script wires them, so they start disabled and are enabled once wired."""
     page = signed_in
     make_audiobook(page, live)

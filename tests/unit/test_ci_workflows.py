@@ -46,7 +46,7 @@ def test_ci_passed_fails_on_any_job_that_did_not_succeed() -> None:
     job = block(CI, "  ci-passed:")
     assert "    name: CI passed" in job  # the ruleset's required check: never renamed
     # the job's own condition, at the job's indent: a step's "if: always()" does not count
-    # (review round 1 of PR #364, S1); it reports in a cancelled run too, never skipped
+    # (#364); it reports in a cancelled run too, never skipped
     assert re.search(r"^    if: always\(\)$", job, re.M), job
     assert "needs: [lint, licences, security, tests, browser, web-paths]" in job
     for result in ("failure", "cancelled", "skipped"):
@@ -443,7 +443,7 @@ def browser_shard():  # type: ignore[no-untyped-def]
 
 def test_the_browser_shard_reads_only_test_ids_not_the_quarantine_banner() -> None:
     """The quarantine banner names a test with "::" too; read as a test it made the shard's
-    argument file hold "#697 tests/..." and pytest exit 4 with no test run (#698 review M1)."""
+    argument file hold "#697 tests/..." and pytest exit 4 with no test run (#698)."""
     listing = "\n".join(
         [
             "1 quarantined test(s), all to be fixed before v1.0 (D-374, #80):",

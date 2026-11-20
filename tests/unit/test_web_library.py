@@ -301,7 +301,7 @@ def test_heard_offers_to_continue_only_where_the_listen_page_would(tmp_path: Pat
 
 def test_the_bounds_of_a_fresh_read_along_file_are_read_again(tmp_path: Path) -> None:
     """The bounds are kept per (inode, mtime, size), which a rewrite in place within one
-    clock tick keeps (#403 B1): a file changed in the last two seconds is read each time."""
+    clock tick keeps (#403): a file changed in the last two seconds is read each time."""
     path = tmp_path / "Book.readalong.json"
     first = readalong_text(100.0)
     path.write_text(first, encoding="utf-8")
@@ -822,7 +822,7 @@ def deep_place(config: Any, doc: str, record: str) -> Path:
 def test_a_record_nested_too_deep_fails_no_page(
     server: tuple[FastAPI, Any], record: str, shape: str
 ) -> None:
-    """The shelf reads every document's records on every page (#420 B1): one deep record
+    """The shelf reads every document's records on every page (#420): one deep record
     must read as nothing, or as broken on its own Listen page, never as a server error."""
     client = client_of(server)
     _app, config = server

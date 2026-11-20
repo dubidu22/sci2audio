@@ -601,13 +601,13 @@ def test_a_command_line_job_shows_no_figure(tmp_path: Path) -> None:
     assert '<img class="figure"' not in page.text
 
 
-# ---- round 1 of the review (#582) --------------------------------------------------------
+# ---- #582: lazy images, the EPUB reader, the crops ---------------------------------------
 
 
 def test_one_document_reads_its_book_once_at_a_time(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Review F1: the EPUB reader holds the whole book in memory, so six lazy images asked
+    """The EPUB reader holds the whole book in memory, so six lazy images asked
     at once read it one after the other, and every answer is still the picture."""
     document = build_document(read_epub(figure_epub(), "book.epub"))
     source = tmp_path / "book.epub"
@@ -659,7 +659,7 @@ def _figure_pages() -> list[list[Text | Rect]]:
 def test_a_miss_does_not_read_the_kept_crops_after_it(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Review F3: the crops after the asked one are looked at (`is_kept`), never read."""
+    """The crops after the asked one are looked at (`is_kept`), never read."""
     data = figure_pdf(*_figure_pages())
     document = pdf_document(data)
     source = tmp_path / "paper.pdf"
@@ -726,13 +726,13 @@ def test_is_kept_looks_without_reading(tmp_path: Path, monkeypatch: pytest.Monke
     assert opened == []
 
 
-# ---- round 2 of the review (#582) --------------------------------------------------------
+# ---- #582: links, the batch of crops, EPUB tables -----------------------------------------
 
 
 def test_a_link_is_not_read_where_the_system_has_no_o_nofollow(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Review R2-2: on Windows `os.O_NOFOLLOW` does not exist, and the `lstat` check is
+    """On Windows `os.O_NOFOLLOW` does not exist, and the `lstat` check is
     the one guard against a link in place of a kept crop."""
     monkeypatch.delattr(os, "O_NOFOLLOW", raising=False)
     folder = tmp_path / CACHE_FOLDER
@@ -749,7 +749,7 @@ def test_a_link_is_not_read_where_the_system_has_no_o_nofollow(
 def test_one_child_renders_at_most_twelve_crops(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Review R2-3: the batch is the asked crop and the next 11 not kept, never more."""
+    """The batch is the asked crop and the next 11 not kept, never more."""
     pages = [
         [
             Text(f"Page {n} holds chart number {n}.", 72, 80, size=11),
@@ -789,7 +789,7 @@ def test_one_child_renders_at_most_twelve_crops(
 
 
 def test_an_epub_table_holding_a_picture_shows_none(tmp_path: Path) -> None:
-    """Review R2-4: an EPUB table keeps its text view, even when it holds a picture."""
+    """An EPUB table keeps its text view, even when it holds a picture."""
     base = build_document(read_epub(figure_epub(), "book.epub"))
     (figure, *_) = kinds(base)[BlockKind.FIGURE]
     pictures = {p.id for page in base.content.pages for p in page.pictures if p.ref}

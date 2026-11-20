@@ -63,7 +63,7 @@ def test_the_listen_page_shows_a_command_line_job(tmp_path: Path) -> None:
 
 
 def test_the_librarys_search_finds_a_command_line_job_by_its_name(tmp_path: Path) -> None:
-    """#416 (#446 review S1b): every row is found by its title or file name, also an
+    """#416 (#446): every row is found by its title or file name, also an
     audiobook the command line made, and hidden by a query that does not match it."""
     job, client, _config = outside_job(tmp_path)
 
@@ -183,7 +183,7 @@ def test_an_outside_job_keeps_its_position_in_its_working_folder(tmp_path: Path)
 
 
 def test_a_file_also_opened_in_the_interface_keeps_the_two_apart(tmp_path: Path) -> None:
-    """#378 review S1: the web document of the same file has the same file id; the start
+    """#378: the web document of the same file has the same file id; the start
     page's command-line link still plays the command line's audiobook, and the web
     document's own listen page looks only in its own folders."""
     job, client, _config = outside_job(tmp_path)
@@ -218,7 +218,7 @@ def nothing_served(client: Any, job: OutsideJob, real: Path) -> None:
 
 
 def test_the_web_record_of_a_folder_is_not_tried(tmp_path: Path) -> None:
-    """#378 review S2 (M2): a web record in the job's working folder names where the files
+    """#378: a web record in the job's working folder names where the files
     are; a command-line job never follows it."""
     job, client, _config = outside_job(tmp_path)
     real = moved_away(job, tmp_path)
@@ -234,7 +234,7 @@ def test_the_web_record_of_a_folder_is_not_tried(tmp_path: Path) -> None:
 
 
 def test_the_settings_output_folder_is_not_tried(tmp_path: Path) -> None:
-    """#378 review S2 (M3): the interface's saved output folder holds the files; a
+    """#378: the interface's saved output folder holds the files; a
     command-line job never looks there."""
     job, client, config = outside_job(tmp_path)
     real = moved_away(job, tmp_path)

@@ -272,7 +272,7 @@ def test_a_message_from_zap_becomes_what_was_seen() -> None:
     assert zap._seen(message) == zap.Seen("GET", "/documents/x", 404, "de")
 
 
-# --- review round 1 ---------------------------------------------------------------------------
+# --- what counts as scanned, how a failed run exits, the notes, the walk ---------------------
 
 
 def test_refusals_never_count_as_a_route_scanned() -> None:

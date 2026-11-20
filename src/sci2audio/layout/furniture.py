@@ -304,7 +304,7 @@ def _small_heads(measured: list[_Page], shapes: Heads, page_count: int) -> set[s
 
     Each repeats its shape at its height on `repeat_pages` pages (D-326) and opens with no
     caption label. In the bottom band that will do: no table header or float caption set
-    there repeats so, and a footer may stand close under the notes (review of #530, F1). In
+    there repeats so, and a footer may stand close under the notes (#530). In
     the top band, where a continued table header or an algorithm's caption stands, either
     such lines apart from the body stand at that height, whatever their text, on
     `head_pages` pages and on `head_share` of the document's (only apart lines lend their
@@ -421,8 +421,8 @@ class _Page:
         letters alone don't make them furniture at the foot of the page (#458). Rows at the
         foot of that stack that are lines alone on their row, a page number by its shape or
         repeated word for word at their height on `repeat_pages` pages (a footer, D-323),
-        are left to the furniture rules, however close under the notes (review of #530, F1,
-        F2). A note's mark is never alone on its row: its text stands beside it."""
+        are left to the furniture rules, however close under the notes
+        (#530). A note's mark is never alone on its row: its text stands beside it."""
         settings, page, size = self.settings, self.page, self.size
         _, right = text_area(self.lines, settings.edge_share)
         found: set[str] = set()
