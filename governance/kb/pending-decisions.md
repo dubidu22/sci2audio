@@ -27,3 +27,6 @@ Owner message: "Approve" (20 Nov 2026).
 ## D-833 (2026-11-20, owner)
 The governance PR checks, the critical-path labeler and CODEOWNERS live in `.github` (PRs #660 and #661, issue #659). Colin applied the repository settings himself: branch `main` requires the checks "CI passed" and "governance pr checks", and code-owner review was withdrawn because one account authors every PR, so a code-owner lock cannot bind.
 Owner messages: "I have done the github settings you proposed originally" and "Done" (20 Nov 2026).
+
+## D-834 (2026-11-20, coordinator)
+Triage of milestone v1.4 after release 1.4.0 (Colin, 20 Nov 2026: "close what 1.4.0 already covers, move what belongs to v1.5 or v2, and propose the first batch per lane for the rest"). Nothing is covered by 1.4.0, so nothing was closed; nothing belongs to the study layer. Six reading features moved to v2: #135, #134, #122, #49, #41, #32. Eleven issues stay as 1.4.x work: #217, #216, #203, #181, #172, #125, #126, #59, #56, #55, #54. Three new backlog issues in v1.4: #663 (real-espeak tests exit pytest on macOS), #664 (CodeQL scans the design prototype and the governance workspace; default setup cannot take paths-ignore), #665 (lanes.yml owner of governance/** and docs/design/**). Rule applied: a bug stays, a new reading feature goes to v2.
