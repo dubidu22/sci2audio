@@ -1,0 +1,12 @@
+pr: 680
+round: 2
+date: 2026-11-20
+thread: review-infra-b-i1
+head: dc94e5f
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr680-round2.md
+merged: ""
