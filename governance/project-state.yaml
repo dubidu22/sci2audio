@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-20T20:45Z
+updated: 2026-11-20T21:10Z
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -17,10 +17,12 @@ active_now:
   lanes_active:                                      # Colin "Start all three" 20 Nov 14:00Z; impl threads Opus 5.5 high, plans awaited, no code before approval (PLAN-02)
     - "layout B-L1: #125 #126, thread layout-b-l1, critical (goldens), also lane:extraction, PR #671 ci:full green at 933cdf4, review round 1 done 16:20Z: 1 must-fix (stacked second accent lost), 1 should-fix (corpus check missing); round 2 approved 6a759bb (0 findings) 19:00Z; MERGED 8068a5b pinned to 60ff256 (20:25Z); #679 filed (pre-existing Hypothesis failure, also on main); #677 (#670) merged 2cd4f20 pinned to 1c0bbc2 (review approved, 0 findings)"
     - "textprep/core B-P1: #216 #203, thread plugins-b-p1, critical (text-step contract), also lane:app lane:cli lane:docs, PR #676 ci:full green at 6f25cd4 (after one fix commit: ruff format, governance check), follow-ups #666-#669 filed, review round 1 done 17:55Z: 1 must-fix (plugin attribute raising escapes the loader and stops start-up), 2 should-fix; round 2 approved 3e24d63 (1 should-fix: review tags in comments) 19:35Z; tags stripped (9121fbe), main merged in, MERGED 20f9575 pinned to 85d9202 (20:40Z). Lesson: removing ci:full restarts governance pr checks, so remove the label before the merge step and wait for it"
+    - "infra B-I1: #664 #665 on top of Colin's CodeQL PR #680 (advanced setup done 20 Nov ~21:00Z), thread infra-b-i1, critical (CI workflows), state: plan pending"
     - "web/app B-W1: #217 #172, thread web-b-w1, critical (network call), also lane:docs (CLAUDE.md network rule widened), PR #675 ci:full green at c691608, follow-ups #672-#674 filed, review round 1 done 18:15Z: 2 must-fix (off-switch not applied on a failed save; `listen` runs the check), 4 should-fix; fix 51b6735 pushed incl. the CLAUDE.md line (D-838, Colin's yes given in the web session); round 2 approved 51b6735 (0 findings) 20:05Z; main merged in, final head db9df93, ci:full running, then merge go"
   lanes_waiting:                                     # proposed 1.4.x batches (D-834), start only on Colin's go
     - "layout B-L1: #125 #126 (Chi p6 goldens change: critical); then B-L2: #181 #54 #59 #55 #56"
     - "textprep/core B-P1: #216 #203 public text-step plugin interface (critical)"
+    - "infra B-I1: #664 #665 on top of Colin's CodeQL PR #680 (advanced setup done 20 Nov ~21:00Z), thread infra-b-i1, critical (CI workflows), state: plan pending"
     - "web/app B-W1: #217 opt-in update check (network call: critical) + #172 headers"
     - "infra B-I1 after a lane frees: #664 #665 (CI workflows: critical); voices #663 folds in or rides alone"
   kb_thread: "none; daily PR #662 merged 20 Nov (f98d446), first KB run in ./governance passed; main merged into governance"
@@ -28,7 +30,6 @@ active_now:
   audits_running: []                                 # B1, B3, folders, B7, B2, B8 light audits done; web B8 DONE 19 Nov 02:22Z (#582 678fe3c, #293 #534 #541 closed, #596 filed)
 notifications_pending: []                            # v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
 open_owner_items:
-  - "CodeQL: switch the repository from default setup to advanced setup (Settings > Code security) so #664 can add paths-ignore; a repository setting is Colin's hand step (ROLE-14)"
   - "close milestone v1.0 (0 issues) and anything about milestone 7 (D-702 item 9)"
   - "Study-layer scope before ADR #395"
   - "rename milestone 7 'v1.2.x abbreviations' to 'v1.2.x': it now holds general fixes (#479 #482 #483 #485 #487 #488 #493 #506); a Claude-asked rename is Colin's hand step (ROLE-02) (D-738)"
