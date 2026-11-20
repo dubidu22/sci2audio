@@ -66,13 +66,14 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     layout = _Layout(content, settings)
     units = [unit for page in content.pages for unit in layout.units(page)]
     blocks = find_footnotes(paragraphs(units, settings), content, layout.size, settings)
-    blocks, links = find_graphics(find_captions(blocks, content), content, layout.size, settings)
     columns = {
         piece.id: (unit.left, unit.right)
         for unit in units
         if isinstance(unit, Row)
         for piece in unit.pieces
     }
+    captioned = find_captions(blocks, content)
+    blocks, links = find_graphics(captioned, content, layout.size, settings, columns)
     named = set(links.named.values())
     blocks = find_formulas(blocks, content, columns, named, layout.size, settings)
     blocks = find_lists(blocks, content)
