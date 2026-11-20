@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-21T12:00Z
+updated: 2026-11-21T12:10Z
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -14,10 +14,10 @@ active_now:
   milestones_in_progress: []   # v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
   lanes_active:                                      # batch 2 (D-843) started 21 Nov 05:00Z after THR-01 fitness checks passed (all three); briefs sent 05:00Z, plans owed first
-    - "textprep B-P2: #684 (critical); plan approved 05:10Z (D-845); PR #690 MERGED 44c59c2 12:00Z (2 rounds; round 1 must-fix M1 unguarded-plugin-code, second time after #676 -> META-03 candidate at batch close; follow-ups #693 #694); textprep lane closed for v1.4, hand-off owed; coordinator watches CI for the threads; thread plugins-b-p1 (2nd batch)"
+    - "textprep B-P2: #684 (critical); plan approved 05:10Z (D-845); PR #690 MERGED 44c59c2 12:00Z (2 rounds; round 1 must-fix M1 unguarded-plugin-code, second time after #676 -> META-03 candidate at batch close; follow-ups #693 #694); textprep lane closed for v1.4; thread plugins-b-p1 retired after 2 PRs; hand-off in chat 12:10Z: #693 (critical) #694 open, all plugin code behind _in_worker in textprep/plugins.py, fake plugins in tests/unit/{broken_text_plugins,hanging_on_import,boom_on_import}.py; coordinator watches CI for the threads; thread plugins-b-p1 (2nd batch)"
     - "web/app B-W2: PR B app #667 #669 (critical, CLI help golden) first, then PR A web #666 #668 #685 (critical); plan approved 05:30Z (D-847); PR B = #689 MERGED 45e3344 11:30Z (2 rounds; reviewer merged with ci:full label still shown, checks green, no harm); PR A (web #666 #668 #685, critical) branches from main now; thread web-b-w1 (2nd batch)"
     - "infra B-I2: #681 and #687 as two critical PRs; plan approved 05:20Z (D-846); PR #691 (#681) MERGED c4c2de8 08:00Z (1 round, 0 findings); PR #692 (#687) MERGED a431fcd 10:20Z (3 rounds: 1 should, 3 should, approved); promised-tests check live on main, opt-in; infra-b-i1 retired after 3 PRs (THR-02), hand-off owed; thread infra-b-i1 (2nd batch)"
   lanes_waiting:                                     # after batch 2
     - "infra B-I3: #683 (D-848) and the PLAN-01 wording (D-849) in one risk:high PR; hand-off from infra-b-i1 (fb7e9c0): #683 text predates #680/#691, so align with today's pr-checks.json (governance/tools/**, KB adr-/playbook-/doc-/README globs); once the heading is mandatory a near-miss heading must fail (#692 N1); prove by dry run that a re-scaffold reproduces pr-checks.json; starts on Colin's next message (new thread needs a user turn); new infra thread (infra-b-i1 reaches 3 PRs with #692, THR-02)"
     - "docs B-D1: #395 Study-layer ADR (critical KB doc, scope D-850; files the four v2 issues and narrows #397 #398 #399 first), #678 #686; new docs thread"
-    - "layout #679 (new thread); voices #663"
+    - "layout #679 (new thread); voices #663; textprep follow-ups #693 (critical) #694 (new thread, later batch)"
