@@ -81,3 +81,5 @@ Seen in #676 (round 1 S1, and audit F1 of batch 1: loading unguarded), in #690 (
 ## Verdict
 
 **Pass: 0 blocking.** The hard rules hold on b00002d, every golden change is declared, the ruleset and its extracts agree, the quarantine and the shard fix behave, and the first audit's four findings are closed. F1 is the next leak of a finding kind that keeps coming back; the META-03 test (draft A) should land with #693 before v1.4.x. F2 makes the new governance check fail closed on the case it already missed once. F3 corrects the v1.5 Issues before the Study layer starts.
+
+Issues (20 Nov 2026): draft B filed as #708; draft A appended to #693; draft C applied to #398 (third criterion moved to #418, "Not read in this audiobook" / "Not found" added), #396 (remove box counts captures) and #397 (privacy page names captures.json).
