@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-20T15:50Z
+updated: 2026-11-20T16:05Z
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -16,7 +16,7 @@ active_now:
   lanes_active:                                      # Colin "Start all three" 20 Nov 14:00Z; impl threads Opus 5.5 high, plans awaited, no code before approval (PLAN-02)
     - "layout B-L1: #125 #126, thread layout-b-l1, critical (goldens), also lane:extraction, PR #671 ci:full green at 933cdf4, review round 1 running (subagent, Opus; app refused a session start from an event turn); #677 (#670) open"
     - "textprep/core B-P1: #216 #203, thread plugins-b-p1, critical (text-step contract), also lane:app lane:cli lane:docs, PR #676 open (head 1ad0818), ci:full running, follow-ups #666-#669 filed; then review thread"
-    - "web/app B-W1: #217 #172, thread web-b-w1, critical (network call), also lane:docs (CLAUDE.md network rule widened), PR #675 open (head bd92586), ci:full running, follow-ups #672-#674 filed; CLAUDE.md line asked for; then review thread"
+    - "web/app B-W1: #217 #172, thread web-b-w1, critical (network call), also lane:docs (CLAUDE.md network rule widened), PR #675 open (head bd92586), ci:full running, follow-ups #672-#674 filed; CLAUDE.md line waits for Colin's yes (thread refuses it on a coordinator instruction); then review thread"
   lanes_waiting:                                     # proposed 1.4.x batches (D-834), start only on Colin's go
     - "layout B-L1: #125 #126 (Chi p6 goldens change: critical); then B-L2: #181 #54 #59 #55 #56"
     - "textprep/core B-P1: #216 #203 public text-step plugin interface (critical)"
@@ -25,7 +25,9 @@ active_now:
   kb_thread: "none; daily PR #662 merged 20 Nov (f98d446), first KB run in ./governance passed; main merged into governance"
   triage_running: []                                 # v1.4 triage done 20 Nov 13:05Z (D-834); batch plan shown to Colin, waiting for his go
   audits_running: []                                 # B1, B3, folders, B7, B2, B8 light audits done; web B8 DONE 19 Nov 02:22Z (#582 678fe3c, #293 #534 #541 closed, #596 filed)
-notifications_pending: []                            # v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
+notifications_pending:
+  - "CLAUDE.md network-rule line for #675 (D-837): the web thread edits CLAUDE.md only on Colin's own yes; asked 20 Nov 16:05Z"
+# v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
 open_owner_items:
   - "CodeQL: switch the repository from default setup to advanced setup (Settings > Code security) so #664 can add paths-ignore; a repository setting is Colin's hand step (ROLE-14)"
   - "close milestone v1.0 (0 issues) and anything about milestone 7 (D-702 item 9)"
