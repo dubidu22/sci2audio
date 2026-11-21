@@ -409,7 +409,7 @@ def test_a_body_size_head_needs_head_pages_but_a_smaller_one_does_not() -> None:
 
 def header_page(number: int, cells: tuple[tuple[str, float, float], ...], head: bool) -> list:
     """A page with a body-size head at y 40 (if `head`) and a row of table-header cells at
-    y 62, 1.2 em below the head and 1.2 em above the body (review of #149)."""
+    y 62, 1.2 em below the head and 1.2 em above the body (#149)."""
     body = column(f"p{number}-", LEFT, RIGHT, 84, 30)
     header = [line(text, x0, 62, x1) for text, x0, x1 in cells]
     return [*([line("Tests in Print", LEFT, 40, 300)] if head else []), *header, *body]
@@ -417,7 +417,7 @@ def header_page(number: int, cells: tuple[tuple[str, float, float], ...], head: 
 
 def test_a_continued_table_header_under_a_real_head_is_not_a_running_head() -> None:
     """The pooled count is per height: a real head on 6 of 6 pages at y 40 does not lend its
-    pages to a header repeated at y 62 on 2 of them (review of #149, M1)."""
+    pages to a header repeated at y 62 on 2 of them (#149)."""
     cells = (("Model Accuracy F1", LEFT, 300),)
     pages = [header_page(n, cells if n in (2, 3) else (), head=True) for n in range(1, 7)]
     doc = build_document(content(*pages))
@@ -427,7 +427,7 @@ def test_a_continued_table_header_under_a_real_head_is_not_a_running_head() -> N
 
 def test_a_table_header_in_two_cells_on_two_pages_is_not_a_running_head() -> None:
     """The pooled count counts pages, not lines: two cells on each of 2 of 6 pages are 4 lines
-    but 2 pages (review of #149, M2)."""
+    but 2 pages (#149)."""
     cells = (("Model", LEFT, 150), ("Accuracy F1", 300, 450))
     pages = [header_page(n, cells if n in (2, 3) else (), head=False) for n in range(1, 7)]
     doc = build_document(content(*pages))
@@ -436,7 +436,7 @@ def test_a_table_header_in_two_cells_on_two_pages_is_not_a_running_head() -> Non
 
 def test_a_smaller_head_does_not_lend_its_pages_to_a_body_size_line() -> None:
     """A small head on 6 of 6 pages and a body-size header on 2 of them, on the same row: the
-    small head is a running head by its own rule; the header is text (review of #149, S1)."""
+    small head is a running head by its own rule; the header is text (#149)."""
     pages = [
         [
             line("Preprint", LEFT, 40, 150, size=8),
@@ -602,7 +602,7 @@ def test_a_small_header_below_a_small_head_does_not_borrow_its_pages() -> None:
 
 def test_a_small_header_apart_from_its_rows_on_three_of_ten_pages_is_text() -> None:
     """Coverage needs `head_pages` pages and `head_share` of the document's: 3 of 10 pages
-    are the first but not the second (review of #620, T1)."""
+    are the first but not the second (#620)."""
     pages = [page_with_head(n, None) for n in range(1, 11)]
     for n in (2, 3, 4):
         pages[n - 1] = small_header_page(n, below=12)
@@ -823,7 +823,7 @@ def test_a_page_number_beside_a_footer_goes_up_with_the_page() -> None:
 
 
 def test_in_page_order_moves_a_block_back_past_every_later_page_block() -> None:
-    """Review of #200 (S1), made-up blocks: no page built today cuts the piece from the
+    """#200, made-up blocks: no page built today cuts the piece from the
     next page into more than one block before the waiting blocks, so the pass is tested
     on its own. A block moves back past every block from a later page, two from one page
     keep their order, a block without items stays where it is read, and blocks already in
@@ -851,8 +851,8 @@ def test_in_page_order_moves_a_block_back_past_every_later_page_block() -> None:
 
 
 @given(contents())
-@example(content([line("\n", LEFT, 100, 200)]))  # a line's own break is kept (review of #53)
-@example(  # a mark with no block before it stays before the running heads (review of #57)
+@example(content([line("\n", LEFT, 100, 200)]))  # a line's own break is kept (#53)
+@example(  # a mark with no block before it stays before the running heads (#57)
     Content(
         Source("0", SourceFormat.PDF),
         (
@@ -1102,7 +1102,7 @@ def note_texts(doc: Document) -> list[str]:
 
 
 def test_a_small_footer_set_tight_under_the_notes_stays_furniture() -> None:
-    """Review of #530, F1: 8 pt of white under the notes, less than `apart`; repeated word
+    """#530: 8 pt of white under the notes, less than `apart`; repeated word
     for word at its height, the footer ends the notes and is a running head, as on main."""
     footer = "Journal of Tests, volume 55"
     doc = build_document(noted_pages(lambda n: [line(footer, LEFT, 747, 250, size=7)]))
@@ -1112,7 +1112,7 @@ def test_a_small_footer_set_tight_under_the_notes_stays_furniture() -> None:
 
 
 def test_a_small_page_number_set_tight_under_the_notes_stays_a_page_number() -> None:
-    """Review of #530, F2: a number alone on its row ends the notes; a note's mark is never
+    """#530: a number alone on its row ends the notes; a note's mark is never
     alone (its text stands beside it)."""
     doc = build_document(noted_pages(lambda n: [line(str(n + 54), LEFT, 747, LEFT + 8, size=8)]))
     assert doc.page_labels == ("55", "56", "57", "58")
@@ -1120,7 +1120,7 @@ def test_a_small_page_number_set_tight_under_the_notes_stays_a_page_number() -> 
 
 
 def test_a_small_line_tight_under_the_notes_away_from_their_rule_is_not_a_note() -> None:
-    """Review of #530, T1: a one-off small footer at the right of the foot is no note line,
+    """#530: a one-off small footer at the right of the foot is no note line,
     however close under them: it stays a footer, as on main."""
     received = "Received 3 May 2017"
     foot = [  # one more note row down to y 748, the footer 4 pt under it, in the footer band
@@ -1133,7 +1133,7 @@ def test_a_small_line_tight_under_the_notes_away_from_their_rule_is_not_a_note()
 
 
 def test_a_short_rule_in_the_upper_half_shields_no_lines_from_the_furniture_rules() -> None:
-    """Review of #530, T3: only a rule in the lower half is a footnote rule. A small head
+    """#530: only a rule in the lower half is a footnote rule. A small head
     with a short rule over it keeps the shape rule for smaller heads (D-326)."""
     pages = []
     for n in range(1, 4):

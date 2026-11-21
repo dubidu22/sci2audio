@@ -265,7 +265,7 @@ def test_ctrl_c_stops_after_the_current_sentence_and_the_rerun_continues(
 
 def test_a_second_ctrl_c_stops_at_once(tmp_path: Path, source: Path) -> None:
     """D-219: the first Ctrl-C asks the job to stop after the sentence; a second one does
-    not wait for it (review round 1, S1)."""
+    not wait for it."""
     pressed = threading.Event()
 
     def press_twice_then_take_long(text: str) -> bool:
@@ -292,8 +292,7 @@ def test_a_second_ctrl_c_stops_at_once(tmp_path: Path, source: Path) -> None:
 def test_an_unknown_voice_with_every_chapter_is_refused_before_reading(
     cli: Cli, source: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """D-222: the voice is checked before the file is read, also with --chapters all
-    (review round 1, S2)."""
+    """D-222: the voice is checked before the file is read, also with --chapters all."""
     read: list[Path] = []
     real = cli_module.read_document
 
@@ -312,7 +311,7 @@ def test_an_unknown_voice_with_every_chapter_is_refused_before_reading(
 def test_with_script_refuses_an_existing_audiobook_and_writes_no_script(
     cli: Cli, source: Path, tmp_path: Path
 ) -> None:
-    """All or nothing (review round 1, S3): the audiobook exists, the script doesn't."""
+    """All or nothing: the audiobook exists, the script doesn't."""
     out = tmp_path / "b"
     assert cli("convert", source, "-o", out, "-q").code == 0
     before = {p.name: p.stat().st_mtime_ns for p in out.iterdir()}
@@ -325,7 +324,7 @@ def test_with_script_refuses_an_existing_audiobook_and_writes_no_script(
 def test_with_script_refuses_an_existing_script_before_any_speech(
     cli: Cli, source: Path, tmp_path: Path
 ) -> None:
-    """All or nothing (review round 1, S3): the script exists, the audiobook doesn't."""
+    """All or nothing: the script exists, the audiobook doesn't."""
     out = tmp_path / "b"
     assert cli("script", source, "-o", out, "-q").code == 0
     before = {p.name: p.stat().st_mtime_ns for p in out.iterdir()}
@@ -462,7 +461,7 @@ def test_ctrl_c_on_a_terminal_reaches_the_reader_too_and_still_reads_as_cancelle
     tmp_path: Path, source: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A terminal's Ctrl-C reaches every process of the group: the reader child gets real
-    SIGINTs from its start on, the program one KeyboardInterrupt (PR #366 B1, D-628)."""
+    SIGINTs from its start on, the program one KeyboardInterrupt (PR #366, D-628)."""
     import reader_targets
 
     from sci2audio.extraction import pdf

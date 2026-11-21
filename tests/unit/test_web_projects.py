@@ -131,7 +131,7 @@ def test_the_server_s_folders_are_the_project_and_the_old_root(
 
 
 def test_a_linked_old_preview_folder_is_not_moved(tmp_path: Path) -> None:
-    """Review round 1 of #532, R10: a link (or a junction) in place of the old preview
+    """#532: a link (or a junction) in place of the old preview
     folder stays; nothing is moved through it."""
     if not can_link(tmp_path):
         pytest.skip("this user can't make links")
@@ -147,7 +147,7 @@ def test_a_linked_old_preview_folder_is_not_moved(tmp_path: Path) -> None:
 
 
 def test_an_old_folder_that_is_a_link_is_never_listed_or_used(tmp_path: Path) -> None:
-    """Review round 1 of #532, R5a: `<old root>/<id>` as a link to a folder holding
+    """#532: `<old root>/<id>` as a link to a folder holding
     `source/` is not listed, not opened through the link, and a new upload of the same
     bytes goes into the project root."""
     if not can_link(tmp_path):

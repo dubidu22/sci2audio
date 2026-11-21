@@ -12,7 +12,7 @@ sentence ("discussed in [26].", "Refs. [53, 58]", "[12] showed") is read as "ref
 the same way, a needed key as printed ("reference MH17", "Quelle MH17"), but only where the
 document prints each key of the bracket as an entry's label at a line's start ("[MH17]
 Maass, M.: …"), so that names of things shaped like keys ("[Mn12] clusters", "[EU27]") stay
-as printed (review B1 of PR #377); look-alikes ("[PM10]") stay as printed in any case.
+as printed (#377); look-alikes ("[PM10]") stay as printed in any case.
 
 Author-year citations are brackets whose every ";"-part is a citation: optional lead words
 ("see", "e.g.,"), authors (names joined by ",", "and", "&", each maybe with "et al."), years
@@ -293,7 +293,7 @@ _KEY_ITEMS = re.compile(_KEY)
 # shaped like keys, but they name a thing (particulate matter, an ion, a product); a bracket
 # holding one stays as printed (D-646)
 KEY_LOOK_ALIKES = frozenset(("PM10", "PM25", "SO42", "Win10", "Win11", "COVID19"))
-# "↔" too: the numbers step reads "←−→" as it, and "x ←−→ [2]" keeps its bracket (#593 F2)
+# "↔" too: the numbers step reads "←−→" as it, and "x ←−→ [2]" keeps its bracket (#593)
 _MATHS_SIGNS = "=∈∉→←↔↦<>≤≥×±∼≈⊂⊆∪∩"
 _YEAR = r"(?:1[5-9]\d\d|20\d\d)(?:[a-z](?:\s*,\s*[a-z](?![a-z]))*)?(?![\w])"
 _LETTER = r"(?:[^\W\d_]|[̀-ͯ])"
@@ -319,7 +319,7 @@ _SLASHED = re.compile(r"(\d{4})[a-z]?/(\d{4})")
 
 def _no_period(text: str) -> bool:
     """A slashed year is the year of the edition used only when it is more than a year later:
-    "2019/2020" is a winter term or a season, never a reprint (#481 review)."""
+    "2019/2020" is a winter term or a season, never a reprint (#481)."""
     return all(int(b) - int(a) > 1 for a, b in _SLASHED.findall(text))
 
 
@@ -459,7 +459,7 @@ class _Rules:
         keys: frozenset[str] = frozenset(),
     ) -> None:
         self.words = words
-        self.keys = keys  # the keys the document's entries print (#254, review B1 of PR #377)
+        self.keys = keys  # the keys the document's entries print (#254, #377)
         self.wording = wording
         self.abbreviations = abbreviations
         self.part = _part_pattern(words)
@@ -524,7 +524,7 @@ class _Rules:
         2019) (2019)" is "Lee (2019)" then, "(Smith, 2019, https://x.org)" is "(Smith, 2019)"
         and "(see (527794))" is "(see)". So the brackets are decided again on that text, look
         after look, until a look changes nothing, however deep the nest; a later look's edit
-        takes along the earlier ones inside it (#285 review round 1; #306, #308, #309, D-577,
+        takes along the earlier ones inside it (#285; #306, #308, #309, D-577,
         D-588). The looks are bounded by the text's brackets, which no look adds, and all
         looks together read at most a fixed multiple of the text: a nest that needs more stays
         as printed, so no shape costs quadratic time (D-599).
@@ -534,7 +534,7 @@ class _Rules:
         looks = len(_LOOK_BRACKETS.findall(text))
         # the work all looks may do: a fixed multiple of the text, so no shape that needs a
         # look per level costs quadratic time; a nest still unsettled then stays as printed
-        # (#330 review round 2, D-599)
+        # (#330, D-599)
         budget = _LOOK_WORK * (len(text) + _LOOK_BACK)
         gone = [(a, b) for a, b, _, _, why in found if why.startswith(_IDENTIFIER_REASON)]
         if gone:
@@ -586,8 +586,7 @@ class _Rules:
         links: list[tuple[int, int]],
     ) -> list[_Found]:
         """The edits once the brackets are decided again on the text without the removed
-        identifiers; an identifier inside an edit of that look goes with it (#285 review
-        round 1)."""
+        identifiers; an identifier inside an edit of that look goes with it (#285)."""
         read, cuts = _without(text, gone)
         read_links = [(cuts.read(start), cuts.read(end)) for start, end in links]
         back = [
@@ -688,8 +687,8 @@ class _Rules:
         )
 
     def _tidied(self, text: str, found: list[_Found]) -> list[_Found]:
-        """Removals that would leave two marks side by side take one along (M2 of the #66
-        review): "Smith et al. (2019). Then" reads "Smith et al. Then"; "noise [12], [3]." reads
+        """Removals that would leave two marks side by side take one along (#66):
+        "Smith et al. (2019). Then" reads "Smith et al. Then"; "noise [12], [3]." reads
         "noise."; "x. [12]. [3]." reads "x."."""
         result = [list(item) for item in found]
         kept_end = 0  # end of the text kept before the next edit
@@ -855,7 +854,7 @@ class _Rules:
     ) -> bool:
         """True if a bracket holds only identifiers, as read once its inner brackets' edits
         are made: "(527794 (Smith, 2019))" is "(527794)" then, which a second run removes
-        (#285 review round 2). A bracket with inner brackets is read only if its own text,
+        (#285). A bracket with inner brackets is read only if its own text,
         outside them, has a run of five digits, so a deep nest costs no more than before
         (#313)."""
         if not node.children:
@@ -910,8 +909,7 @@ class _Rules:
         self, text: str, parts: list[tuple[int, int]], named: list[tuple[int, int]]
     ) -> list[bool]:
         """Which parts go as citations: those `named`, and next to them identifiers ("(Smith,
-        2019; 527794)"), as a second run, seeing "(527794)", would remove those (#285 review
-        round 1)."""
+        2019; 527794)"), as a second run, seeing "(527794)", would remove those (#285)."""
         cited = set(named)
         return [
             part in cited or (bool(cited) and bool(self.identifiers.match(text, *part)))
@@ -1020,8 +1018,8 @@ class _Rules:
 
         Beside parts of its own (`any_decided` false) an item is one removed whole: one read
         with its names stays in the rest, whose parts name it already ("(see (Smith, 2019;
-        Lee, 2020), Jones, 2020)" is "(see Smith and Lee, Jones, 2020)" then; #621 review
-        round 1, M1). Of a bracket of items only, any decided inner citation is one (#415)."""
+        Lee, 2020), Jones, 2020)" is "(see Smith and Lee, Jones, 2020)" then; #621).
+        Of a bracket of items only, any decided inner citation is one (#415)."""
         listed = []
         bounds = [node.open, *(i for child in node.children for i in (child.open, child.close))]
         bounds.append(node.children[-1].close + 1 if self._year_shell(text, node) else node.close)
@@ -1092,7 +1090,7 @@ class _Rules:
         """The inner brackets of years that follow a name once the inner edits before them are
         made: "(see (Smith, 2019) (2019))" is "(see Smith (2019))" then, which a second run
         decides as one citation; read so in this look, a nest of them is decided inner first
-        (#330 review round 2, D-599). `edits` are sorted and apart, `starts` theirs; only the
+        (#330, D-599). `edits` are sorted and apart, `starts` theirs; only the
         look-back before each bracket is read."""
         years = set()
         for child in inner:
@@ -1172,7 +1170,7 @@ class _Rules:
         """A nest's own edits and those of its inner brackets that stay in its kept names:
         "(see (Smith, 2019) and Lee, 2020) found it" keeps "Smith" of the inner bracket, so
         its ", 2019)" goes with the outer edits; an inner edit inside an outer one goes with
-        it. None if two cross, so the nest stays as before (#279 review round 2)."""
+        it. None if two cross, so the nest stays as before (#279)."""
         kept = []
         for edit in inner:
             if any(start <= edit[0] and edit[1] <= end for start, end, *_ in outer):
@@ -1258,7 +1256,7 @@ class _Rules:
             if pair is not None:
                 # a bracket of a run whose first is no citation ("Table [1], [2] and [3]") or
                 # that "or" ends reads as before #414: an aside joined by "and" to the next
-                # bracket is a D-668 pair (#621 review round 1, M3; what such a run should
+                # bracket is a D-668 pair (#621; what such a run should
                 # read is #634)
                 self._paired.add(pair.open)
                 inside = f"{inside}, {text[pair.open + 1 : pair.close]}"
@@ -1298,7 +1296,7 @@ class _Rules:
         is no citation (after a label word, a sign or a glued word: "Table [1], [2] and [3]"),
         the run makes no list and its later brackets read one by one as before, an aside
         joined by "and" alone to the next as a D-668 pair (`_pair`, from `_following`); what
-        such a run should read is #634 (#621 review round 1, M3). A run joined on by "or" to a
+        such a run should read is #634 (#621). A run joined on by "or" to a
         further bracket ("[1], [2] or [3]") is no list either, so its brackets read as before
         (#414). One pass over the square brackets in text order, each gap read once, so a
         block of n brackets costs O(n)."""
@@ -1518,7 +1516,7 @@ class _Rules:
         """The parts that are citations. One that a join word opens ("; and Lee, 2018") is
         one only after a part that is one too, as the join word joins it to that part:
         "(RNNGs; and Dyer et al., 2016)" and "(see (Smith, 2019); and Jones, 2020)" keep "and
-        Jones, 2020" as printed, as before #415 (#621 review round 1, M2; the "see" rule
+        Jones, 2020" as printed, as before #415 (#621; the "see" rule
         itself is #626)."""
         named = []
         previous = True  # the first part may open with one: "(e.g. ; and Lee, 2018)" (#415)
@@ -1998,7 +1996,7 @@ def _merged(earlier: list[_Found], later: list[_Found]) -> list[_Found]:
     """The edits of two looks: a later edit wins and takes along the earlier ones inside it
     (both lists sorted, each without overlaps). A later edit never crosses an earlier one nor
     lies inside it: `_Rewrite.printed` puts its ends outside every removal and drops an edit
-    that ends inside a reading (PR #330 review round 1, R1-4)."""
+    that ends inside a reading (#330)."""
     ends = [end for _, end, *_ in earlier]
     inside = set()
     for start, end, *_ in later:
@@ -2073,7 +2071,7 @@ def _clear_of_links(text: str, found: list[_Found], links: list[tuple[int, int]]
 def _keys(inside: str, listed: frozenset[str]) -> list[str] | None:
     """The alphanumeric keys a square bracket holds ("MH17, Fa14"), or None if it holds
     anything else, a look-alike ("PM10") or a key no entry of the document prints (#254,
-    D-646; review B1 of PR #377)."""
+    D-646; #377)."""
     if not _KEYS.match(inside):
         return None
     keys = _KEY_ITEMS.findall(inside)
@@ -2083,7 +2081,7 @@ def _keys(inside: str, listed: frozenset[str]) -> list[str] | None:
 
 
 # an entry's label at a line's start and its first author: "[MH17] Maass, M.: …", "[Knu84] D.
-# Knuth. …" (#254, review B1 of PR #377); a sentence that starts with a key ("[MH17] zeigen
+# Knuth. …" (#254, #377); a sentence that starts with a key ("[MH17] zeigen
 # das.") is no entry, or a second run would find its own key listed
 _KEY_ENTRY = re.compile(
     rf"^\[({_KEY})\][ \t]+(?:[A-Z]\.(?:\s?-?[A-Z]\.)*\s?[A-Z][^\W\d_]|[A-Z][^\W\d_]+,\s[A-Z]\.)",

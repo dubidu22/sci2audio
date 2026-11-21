@@ -206,7 +206,7 @@ def _grown(
     """The chains, each grown by the loose graphics that reach into it (a diagram's arrows,
     arsiwalla Eq. (2)) and by the chains of maths those graphics reach in turn, until none
     is left. A graphic as wide as the column is a rule or a frame, no connector; a chain of
-    plain text (a quotation in a framed box) never joins (review of PR #61)."""
+    plain text (a quotation in a framed box) never joins (#61)."""
     settings = state.settings
     gap = settings.float_gap * state.body
     width = settings.full_line * (edges[1] - edges[0])

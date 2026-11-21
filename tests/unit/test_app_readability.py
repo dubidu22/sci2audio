@@ -120,7 +120,7 @@ def test_the_verdict_never_fails_and_names_only_unreadable_pages(content: Conten
 
 # a page `legibility` reads as readable, or as unreadable by either of two measures: the
 # glyph-number count, or the foreign letters (U+FFFD, private use); `contents()` alone never
-# makes an unreadable page (review of #577, R2)
+# makes an unreadable page (#577)
 _PAGES = st.one_of(
     st.tuples(st.just("readable"), st.integers(1, 400)),
     st.tuples(st.just("glyphs"), st.integers(1, 400)),

@@ -64,7 +64,7 @@ _ARROW = frozenset("<>=-−!:~|")
 # is one ("x = ≤ 3" reads both, so a second run on the script finds nothing more)
 _SIGNS = "".join(sorted({key[0] for key in OPERATORS} | {"\u0338"}))
 # maths symbols that stand for a quantity: increment, nabla, infinity, angle brackets
-# ("∆ = 0.88", "W = ⟨A, ⊕⟩", "⟨x⟩ = 1"; review of PR #132)
+# ("∆ = 0.88", "W = ⟨A, ⊕⟩", "⟨x⟩ = 1"; #132)
 _QUANTITY_SIGNS = "∆∇∞"
 # signs the units step (#68) reads as words ("times", "approximately"), so they are words to
 # this step on a second run too

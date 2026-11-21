@@ -6,5 +6,7 @@
 /governance/governance-config.json           @dubidu22
 /governance/rules/                           @dubidu22
 /governance/project_instructions.md          @dubidu22
+/governance/dispatcher_instructions.md       @dubidu22
+/governance/claude-md-snippet.md             @dubidu22
 /.github/governance/                         @dubidu22
 /.github/workflows/governance-pr-checks.yml  @dubidu22

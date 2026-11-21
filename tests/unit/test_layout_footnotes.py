@@ -121,7 +121,7 @@ def test_a_mark_set_close_to_its_note_is_joined_without_a_space() -> None:
 
 
 def test_a_mark_that_is_a_line_of_its_own_is_read() -> None:
-    """Review of #52: the mark is a small line of its own at the left end of its row; its
+    """#52: the mark is a small line of its own at the left end of its row; its
     size is compared with the row's text, not with itself."""
     lines = [
         mark("1", RULE_Y + 6),
@@ -133,14 +133,14 @@ def test_a_mark_that_is_a_line_of_its_own_is_read() -> None:
 
 
 def test_a_mark_with_white_before_it_is_read_and_the_text_kept_as_found() -> None:
-    """Review of #52: a mark run printed with white before it (" 1") gives the label "1";
+    """#52: a mark run printed with white before it (" 1") gives the label "1";
     the note's text keeps the white, as a block's text is its lines as found."""
     lines = [note(" 1", " A note.", RULE_Y + 6), note(" 2", " Second.", RULE_Y + 16)]
     assert footnotes(build(lines, rule())) == [("1", " 1 A note."), ("2", " 2 Second.")]
 
 
 def test_two_rules_over_one_column_give_each_note_once() -> None:
-    """Review of #52: a second short rule below the first (a rule within the notes) must
+    """#52: a second short rule below the first (a rule within the notes) must
     not read the notes below it a second time."""
     lines = [note("1", " First.", RULE_Y + 6), note("2", " Second.", RULE_Y + 26)]
     doc = build(lines, rule(), rule(y=RULE_Y + 20))
@@ -367,7 +367,7 @@ def page_feet(draw: st.DrawFn) -> tuple[list[TextLine], list[Drawing]]:
 def test_any_rules_and_lines_at_the_foot_keep_every_line_in_one_block(
     found: tuple[list[TextLine], list[Drawing]],
 ) -> None:
-    """Review of #52: overlapping zones, rules over body text or over nothing never fail
+    """#52: overlapping zones, rules over body text or over nothing never fail
     and never read a line twice; every line's text stands at its part's start; each
     footnote opens with its label after any white."""
     lines, rules = found
@@ -467,7 +467,7 @@ def test_a_number_in_the_notes_size_close_to_its_text_is_no_label() -> None:
 
 
 def test_a_mark_at_the_start_of_a_longer_line_is_no_hanging_label() -> None:
-    """Review of #530, T2: the number must be a line of its own. Here "1" opens a line that
+    """#530: the number must be a line of its own. Here "1" opens a line that
     goes on ("1 *case was seen*", a run of its own first), with a piece far to its right;
     the body prints mark 1,
     but the line is the first note's text going on, not a second note."""

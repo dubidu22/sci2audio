@@ -4,6 +4,7 @@ macOS, Windows and Linux after installing the installer as a person does.
     python scripts/installer_smoke.py cli PROGRAM VERSION --models FOLDER --work FOLDER [--offline]
     python scripts/installer_smoke.py window APP REPORT
     python scripts/installer_smoke.py browser APP REPORT
+    python scripts/installer_smoke.py launch BUNDLE [--log FILE] [--timeout SECONDS]
 
 `cli` checks the command line of the installed copy: its version, a listening script of a
 corpus PDF and, with the voice files in FOLDER, a short English and a short German audiobook
@@ -18,6 +19,10 @@ loads, and the app writes what it saw to REPORT and quits (macOS, Windows).
 named in BROWSER) gets the start link, opens the library, finds Quit, presses it and writes
 REPORT; the app must then stop by itself.
 
+`launch` starts the macOS bundle as Finder does, through Launch Services (`open -a`, no
+program path, no arguments), waits for the app's start line "running in a window" in its
+app.log, and quits it (#716: 1.4.0's bundle started the command line, which quit at once).
+
 Only the standard library: it runs on the runner's Python, outside the installed program.
 """
 
@@ -27,6 +32,7 @@ import argparse
 import http.cookiejar
 import json
 import os
+import plistlib
 import re
 import socket
 import subprocess
@@ -45,6 +51,8 @@ TEXTS = {
     "de": "# Ein kurzer Test\n\nDas ist das installierte sci2audio. Es liest zwei Sätze vor.\n",
 }
 LOCAL = re.compile(r"^http://127\.0\.0\.1:\d+$")
+START_LINE = "running in a window"  # sci2audio.web.window.run_window
+MAC_LOG = Path.home() / "Library" / "Logs" / "sci2audio" / "app.log"
 
 
 class Failed(Exception):
@@ -172,6 +180,69 @@ def smoke_window(app: Path, report: Path, timeout: float = 300) -> None:
     say("the window opened the interface on 127.0.0.1")
 
 
+# ---- launch -------------------------------------------------------------------------------
+
+
+def log_size(log: Path) -> int:
+    return log.stat().st_size if log.is_file() else 0
+
+
+def new_lines(log: Path, offset: int) -> str:
+    """What the log got after its first `offset` bytes, with "\\n" line ends."""
+    if not log.is_file():
+        return ""
+    with log.open("rb") as file:
+        file.seek(offset)
+        return file.read().decode("utf-8", errors="replace").replace("\r\n", "\n")
+
+
+def running(bundle: Path) -> bool:
+    pattern = f"{bundle}/Contents/MacOS/"
+    found = subprocess.run(
+        ["/usr/bin/pgrep", "-f", pattern], stdout=subprocess.DEVNULL, check=False
+    )
+    return found.returncode == 0
+
+
+def quit_app(bundle: Path, identifier: str, timeout: float, poll: float) -> str | None:
+    """Quits the app as the Dock does; a problem when it is still running after `timeout`.
+    Nothing is sent to an app that is not running: the Apple Event would start it."""
+    if not running(bundle):
+        return None
+    quit_it = f'tell application id "{identifier}" to quit'
+    subprocess.run(["/usr/bin/osascript", "-e", quit_it], timeout=60, check=False)
+    deadline = time.monotonic() + timeout
+    while running(bundle):
+        if time.monotonic() > deadline:
+            subprocess.run(["/usr/bin/pkill", "-f", f"{bundle}/Contents/MacOS/"], check=False)
+            return f"the app was still running {timeout:.0f} s after it was asked to quit"
+        time.sleep(poll)
+    return None
+
+
+def smoke_launch(bundle: Path, log: Path, timeout: float = 30, poll: float = 0.5) -> None:
+    info = plistlib.loads((bundle / "Contents" / "Info.plist").read_bytes())
+    offset = log_size(log)  # the window self test writes the same line: only new ones count
+    say(f"$ open -a {bundle}")
+    try:
+        opened = subprocess.run(["/usr/bin/open", "-a", str(bundle)], timeout=60, check=False)
+    except subprocess.TimeoutExpired as error:
+        raise Failed("open -a did not return within 60 s") from error
+    deadline = time.monotonic() + timeout
+    while START_LINE not in new_lines(log, offset) and time.monotonic() < deadline:
+        time.sleep(poll)
+    written = new_lines(log, offset)
+    problem = quit_app(bundle, info["CFBundleIdentifier"], timeout, poll)
+    check(opened.returncode == 0, f"open -a ended with {opened.returncode}")
+    check(
+        START_LINE in written,
+        f"no start line ({START_LINE!r}) in {log} within {timeout:.0f} s of open -a;"
+        f" new lines: {written.strip() or 'none'}",
+    )
+    check(problem is None, str(problem))
+    say("Launch Services started the app in a window, and it quit")
+
+
 # ---- browser ------------------------------------------------------------------------------
 
 
@@ -249,6 +320,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         part = sub.add_parser(name)
         part.add_argument("app", type=Path)
         part.add_argument("report", type=Path)
+    launch = sub.add_parser("launch")
+    launch.add_argument("bundle", type=Path)
+    launch.add_argument("--log", type=Path, default=MAC_LOG)
+    launch.add_argument("--timeout", type=float, default=30)
     helper = sub.add_parser("stand-in")
     helper.add_argument("report", type=Path)
     helper.add_argument("url")
@@ -266,6 +341,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             smoke_window(args.app, args.report)
         elif args.action == "browser":
             smoke_browser(args.app, args.report)
+        elif args.action == "launch":
+            smoke_launch(args.bundle, args.log, args.timeout)
         elif args.action == "stand-in":
             stand_in(args.report, args.url)
         elif args.action == "record":

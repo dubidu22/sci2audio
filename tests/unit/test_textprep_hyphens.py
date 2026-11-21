@@ -208,7 +208,7 @@ def test_rule_5_self_compounds_keep_the_hyphen() -> None:
     ],
 )
 def test_the_rule_reads_through_tex_accents_and_ligatures(printed: str, spoken: str) -> None:
-    """Review S1 of #98: an accent set apart or a ligature does not end or shorten a word."""
+    """#98: an accent set apart or a ligature does not end or shorten a word."""
     assert read(printed) == [spoken]
 
 

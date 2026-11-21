@@ -1,5 +1,5 @@
 """Reflow (WCAG 2.2 SC 1.4.10, AA; D-257): at 320 CSS pixels wide no page state scrolls
-sideways, in English and in German (#79, review of PR #142, M1). axe-core does not check
+sideways, in English and in German (#79, #142). axe-core does not check
 this. Wide tables may scroll inside their own region; the page itself may not."""
 
 from __future__ import annotations

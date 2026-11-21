@@ -271,11 +271,6 @@ def test_pause_then_resume_speaks_only_what_is_missing(signed_in: Page, live: Li
     assert not set(again) & set(before), "Resume spoke a kept sentence again"
 
 
-@pytest.mark.quarantined(
-    issue=697,
-    reason="the fake voice's hold is not reached within 30 s in Firefox in CI, twice",
-    browser="firefox",
-)
 def test_resume_of_a_paused_replace_never_asks_to_replace_again(
     signed_in: Page, live: Live
 ) -> None:
@@ -304,8 +299,15 @@ def test_resume_of_a_paused_replace_never_asks_to_replace_again(
     hold = Hold(after=2)
     live.voice.fail_on = hold
     first = len(live.voice.texts)  # what the finished build spoke
-    page.get_by_role("button", name="Replace these files").click()
-    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    # The card is drawn by the page's reload when the refused run ended, and a click while
+    # that page's fonts still arrived sent nothing in Firefox (#697). The address is already
+    # a job's, so only the request shows that Replace started a run.
+    at_rest(page)
+    refused = page.url
+    with page.expect_request(re.compile(r"/api/v1/jobs$")) as replaced:
+        page.get_by_role("button", name="Replace these files").click()
+    assert replaced.value.post_data_json["overwrite"] is True
+    page.wait_for_url(lambda url: url != refused and "/jobs/" in url)
     try:
         assert hold.reached.wait(30)
         with page.expect_response(re.compile(r"/api/v1/jobs/[^/]+/cancel$")):
@@ -439,7 +441,7 @@ def test_cancel_gives_up_on_a_voice_that_does_not_stop(
 ) -> None:
     """A voice stuck in native code may ignore the cancel. Cancel waits a while (two
     minutes; here 1.5 s), then says the voice did not stop, deletes nothing, and gives its
-    button back (#433 N3)."""
+    button back (#433)."""
     page = signed_in
     monkeypatch.setattr(pages, "STOP_WAIT_MS", 1500)
     live.install_voice()
@@ -700,7 +702,7 @@ def test_the_preview_sentence_follows_the_voice_language(signed_in: Page, live: 
 def test_a_german_book_keeps_the_remembered_english_voice(
     signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """#211 review: making a German book with the German voice must not replace the English
+    """#211: making a German book with the German voice must not replace the English
     voice the person chose before; a voice of the same language still replaces it."""
     page = signed_in
     plan = small_plan()  # its second file stands for the German pack here
@@ -817,7 +819,7 @@ def test_replace_waits_until_the_page_script_runs(signed_in: Page, live: Live) -
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
 
     # the finished job's other buttons wait the same way; the ZAP walk clicks "Free the
-    # speech cache" right after this page loads (#177 review R1-1)
+    # speech cache" right after this page loads (#177)
     release = reload_holding_back_app_js(page, live)
     page.locator("#cache-free-open").click()  # the confirm opens without the script
     free = page.get_by_role("button", name="Delete the speech cache")

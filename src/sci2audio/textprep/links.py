@@ -492,7 +492,7 @@ class LinkStep(TextStep):
                     and text[end : end + 1] in ("(", "[")
                 ):
                     # "Text (see https://x.org)(more)" reads "Text (more)": the bracket glued
-                    # after the link's keeps the space before (#371 review round 1, S1)
+                    # after the link's keeps the space before (#371)
                     start += 1
             noted = any(link.printed_end >= 0 for link in run)
             access = "; the access note after it goes too" if noted else ""
@@ -544,7 +544,7 @@ def _access_pattern(words: LinkWords) -> re.Pattern[str] | None:
     return re.compile(
         rf"\s*[(\[]\s*(?:{listed})(?!\w)[^()\[\]\d]{{0,40}}\d[^()\[\]]{{0,40}}[)\]]"
         # a note set off by commas takes its closing comma too ("…, abgerufen am 3.5.2017,
-        # zeigt es", review of PR #256)
+        # zeigt es", #256)
         rf"|\s*,\s*(?:{listed})(?!\w)\s*:?\s*{_DATE}(?:,(?=\s+[^\W\d_]))?",
         re.IGNORECASE,
     )
@@ -574,7 +574,7 @@ def _leading_join(text: str, start: int, end: int, words: LinkWords) -> tuple[in
     https://example.org and Lee, 2019)" leaves "(Lee, 2019)", not "( and Lee, 2019)" (#337).
 
     A "/" goes only with white space on both sides ("(see https://example.org / Lee,
-    2019)"): one glued to the address belongs to it (#371 review round 2, N2)."""
+    2019)"): one glued to the address belongs to it (#371)."""
     if not re.search(r"[(\[]\s*\Z", text[max(0, start - _LOOK_BACK) : start]):
         return end, ""
     joins = sorted((w for w in words.joins if w != "/"), key=len, reverse=True)
@@ -907,7 +907,7 @@ def _repair(
     if colon:
         return claimed + colon.start(), end, "; the colon before it goes too"
     # 4. a preposition or verb right before it
-    # German chains two: "z. B. unter https://...", "siehe z. B. https://..." (#256 review)
+    # German chains two: "z. B. unter https://...", "siehe z. B. https://..." (#256)
     chain = rf"(?:{befores})(?:\s+(?:{befores})){{0,{words.chained - 1}}}"
     word = re.search(rf"(?<![\w.-])({chain})\s+\Z", before, re.IGNORECASE)
     first = re.match(befores, word.group(1), re.IGNORECASE) if word else None
@@ -1091,7 +1091,7 @@ def _starts_sentence(
 ) -> bool:
     """True at the start of the block or after a sentence end; also right after a removal
     that started a sentence (`sentence_at`, where that removal ended). The full stop of one
-    of `stops` ("z. B.", "e.g.") ends no sentence (review of PR #256)."""
+    of `stops` ("z. B.", "e.g.") ends no sentence (#256)."""
     if 0 <= sentence_at <= position and not text[sentence_at:position].strip():
         return True
     window = max(0, position - _LOOK_BACK)

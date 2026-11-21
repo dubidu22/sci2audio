@@ -235,7 +235,7 @@ def test_an_outline_item_without_a_page_is_named_as_such() -> None:
 @pytest.mark.timeout(10)
 def test_many_anchors_into_one_long_page_are_checked_quickly() -> None:
     """One large chapter file with a long anchored table of contents (D-311): each page's
-    ids are collected once, not once per entry (review of PR #140, finding 1)."""
+    ids are collected once, not once per entry (#140)."""
     lines = tuple(TextLine(f"l{n}", (TextRun("a"),)) for n in range(50_000))
     outline = tuple(OutlineEntry(f"S{n}", 1, 1, item=f"l{n * 25}") for n in range(2_000))
     content = Content(PAPER.source, (Page(1, lines=lines),), outline=outline)

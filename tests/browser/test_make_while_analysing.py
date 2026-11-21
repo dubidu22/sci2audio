@@ -21,8 +21,8 @@ from sci2audio.app import job as job_module
 def held_after_the_report(
     monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[threading.Event, threading.Event]:
-    """The first analysis writes its report and script, then waits for `gate` (the probe of
-    review R3-1 of #289, with an event in place of a pause)."""
+    """The first analysis writes its report and script, then waits for `gate` (the probe of #289,
+    with an event in place of a pause)."""
     real = job_module._write
     written = threading.Event()
     gate = threading.Event()

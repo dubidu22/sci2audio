@@ -233,7 +233,7 @@ def test_the_step_is_the_first_inline_step_so_a_link_inside_never_wins() -> None
         (["Read (", ("x", HIDDEN), "https://x.org) now."], "Read now."),
         (["A", ("13", PAGE_BREAK), " b. See https://x.org now."], "A b. now."),  # before it
         (["As shown [12] here", ("13", PAGE_BREAK), " before."], "As shown here before."),
-        # two removals that touch: the second takes the space before "]" (review round 2, S1)
+        # two removals that touch: the second takes the space before "]"
         (["Shown [1, 2 ", ("x", HIDDEN), " ", ("y", HIDDEN), "] here."], "Shown here."),
     ],
 )

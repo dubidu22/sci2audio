@@ -444,7 +444,7 @@ def test_leaving_focus_brings_the_sentence_into_view(signed_in: Page, live: Live
     page.set_viewport_size({"width": 1280, "height": 720})
 
 
-# --- round 1 of the review of #451 -------------------------------------------------------
+# --- #451 -------------------------------------------------------------------------
 
 
 def test_esc_leaves_focus_from_the_speed_list(signed_in: Page, live: Live) -> None:
@@ -463,7 +463,7 @@ def test_esc_leaves_focus_from_the_speed_list(signed_in: Page, live: Live) -> No
 
 
 def test_esc_in_focus_closes_the_speed_panel_first(signed_in: Page, live: Live) -> None:
-    """#651 review M2: with the speed panel open in Focus, the first Esc closes only the
+    """#651: with the speed panel open in Focus, the first Esc closes only the
     panel and gives the focus to the speed button; the second leaves Focus."""
     page = signed_in
     make_audiobook(page, live)
@@ -691,7 +691,7 @@ def narrow(page: Page) -> None:
 
 
 def test_p_over_the_page_gives_the_focus_back_where_it_was(signed_in: Page, live: Live) -> None:
-    """#461, #489 review S2: below 1280 px the panel opens over the page and takes the focus;
+    """#461, #489: below 1280 px the panel opens over the page and takes the focus;
     P closing it gives the focus back to the page, not to the toggle, so Space then plays
     instead of opening the panel again, and the arrows move by sentence."""
     page = signed_in
@@ -725,7 +725,7 @@ def test_p_over_the_page_gives_the_focus_back_where_it_was(signed_in: Page, live
 def test_p_over_the_page_gives_the_focus_back_to_the_control_it_left(
     signed_in: Page, live: Live
 ) -> None:
-    """#489 review S2: a control focused when P opened the panel has the focus again when P
+    """#489: a control focused when P opened the panel has the focus again when P
     closes it; the close button and Esc still give it to the toggle (#444). (The panel
     covers the toggle here; the wide test above presses it.)"""
     page = signed_in

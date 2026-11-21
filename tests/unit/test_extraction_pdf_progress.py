@@ -121,8 +121,8 @@ def test_with_a_cancel_to_watch_a_step_is_stopped_at_its_own_time_limit(
 ) -> None:
     """The parent looks at the cancel every 0.1 s; the time limit stays one step time from
     the step's start, neither shorter nor stretched by the slices. Timed from the page
-    step's arrival to the moment the parent decides, before the child is joined (PR #366
-    S1): a slow runner's join does not count."""
+    step's arrival to the moment the parent decides, before the child is joined (#366):
+    a slow runner's join does not count."""
     started: dict[str, float] = {}
     decided: list[float] = []
     real_wait = isolate._wait
@@ -276,7 +276,7 @@ def test_a_pdf_read_with_its_cancel_set_raises_at_once() -> None:
         extract_pdf(PAPER, cancel=cancel)
 
 
-# ---- Ctrl-C on a terminal reaches the child too (#344, PR #366 B1, D-628) -------------------
+# ---- Ctrl-C on a terminal reaches the child too (#344, PR #366, D-628) -------------------
 
 
 posix_only = pytest.mark.skipif(

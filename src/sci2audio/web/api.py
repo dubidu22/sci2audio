@@ -92,7 +92,7 @@ MEDIA_TYPES = {
 
 # Our own words for answers whose standard phrase reads like a leaked server error: the
 # OpenAPI document must never say "Internal Server Error" (the ZAP baseline scan flags it
-# as error disclosure, alerts 90022 and 10023; #120 review round 3)
+# as error disclosure, alerts 90022 and 10023; #120)
 DESCRIPTIONS = {500: "sci2audio could not finish; the message says what is left to do"}
 
 

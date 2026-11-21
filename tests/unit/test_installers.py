@@ -8,6 +8,7 @@ import importlib
 import importlib.util
 import json
 import os
+import plistlib
 import re
 import runpy
 import shutil
@@ -84,7 +85,7 @@ def test_each_source_from_git_is_a_pinned_commit_and_hash(stem: str, hashed: str
 
 def test_the_sources_name_the_runtime_the_appimage_uses(tmp_path: Path) -> None:
     """The type-2 runtime's source is the release tools.env downloads the runtime of, and
-    libfuse 3 and squashfuse come with it (#635 F3)."""
+    libfuse 3 and squashfuse come with it (#635)."""
     sources = pins(PACKAGING / "ffmpeg" / "sources.env")
     tools = pins(PACKAGING / "tools.env")
     assert sources["APPIMAGE_RUNTIME_VERSION"] in tools["APPIMAGE_RUNTIME_URL"]
@@ -452,6 +453,95 @@ def test_the_spec_keeps_one_copy_of_torchs_libraries_and_leaves_torch_bin_out(
     assert "found.datas = one_copy(without_imageio_ffmpeg(found.datas), everything)" in spec
 
 
+class Step:
+    """A stand-in for one of PyInstaller's build steps (Analysis, PYZ, EXE, COLLECT,
+    BUNDLE): it keeps what the spec gave it."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.args = args
+        self.kwargs = kwargs
+        self.binaries: list[object] = []
+        self.datas: list[object] = []
+        self.pure: list[object] = []
+        self.scripts: list[object] = []
+
+
+def run_spec(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, platform: str) -> dict[str, object]:
+    """packaging/sci2audio.spec as PyInstaller runs it on `platform`, without PyInstaller."""
+    hooks = ModuleType("PyInstaller.utils.hooks")
+
+    def collect_all(package: str) -> object:
+        raise ImportError(package)
+
+    setattr(hooks, "collect_all", collect_all)  # noqa: B010
+    setattr(hooks, "copy_metadata", lambda package: [])  # noqa: B010
+    for name in ("PyInstaller", "PyInstaller.utils"):
+        monkeypatch.setitem(sys.modules, name, ModuleType(name))
+    monkeypatch.setitem(sys.modules, "PyInstaller.utils.hooks", hooks)
+    monkeypatch.setenv("SCI2AUDIO_VERSION", "1.4.0")
+    monkeypatch.setenv("SCI2AUDIO_FFMPEG", str(tmp_path / "ffmpeg"))
+    monkeypatch.setenv("SCI2AUDIO_LICENSES", str(tmp_path / "licenses"))
+    monkeypatch.setattr(sys, "platform", platform)
+    space: dict[str, object] = {"SPECPATH": str(PACKAGING), "__name__": "sci2audio_spec"}
+    space.update(dict.fromkeys(("Analysis", "PYZ", "EXE", "COLLECT", "BUNDLE"), Step))
+    source = (PACKAGING / "sci2audio.spec").read_text(encoding="utf-8")
+    exec(compile(source, "sci2audio.spec", "exec"), space)  # noqa: S102
+    return space
+
+
+def test_the_mac_app_bundle_starts_the_app_not_the_command_line(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """PyInstaller names the first program of the folder unless the spec says (#716): 1.4.0
+    started the command line, which quit at once, and was declared background-only
+    because the folder took `console` from the command line."""
+    bundle = run_spec(monkeypatch, tmp_path, "darwin")["app"]
+    assert isinstance(bundle, Step)
+    info = bundle.kwargs["info_plist"]
+    assert isinstance(info, dict)
+    assert info["CFBundleExecutable"] == "sci2audio-app"
+    assert info["LSBackgroundOnly"] is False
+    (folder,) = bundle.args
+    assert isinstance(folder, Step)
+    programs = [part.kwargs["name"] for part in folder.args if isinstance(part, Step)]
+    assert sorted(programs) == ["sci2audio", "sci2audio-app"]  # the command line stays
+
+
+def mac_app(tmp_path: Path, **info: object) -> Path:
+    """A built sci2audio.app as far as `check_app` looks at it."""
+    app = tmp_path / "sci2audio.app"
+    programs = app / "Contents" / "MacOS"
+    programs.mkdir(parents=True)
+    for program in ("sci2audio-app", "sci2audio"):
+        (programs / program).write_bytes(b"x")
+    plist = {"CFBundleExecutable": "sci2audio-app", "CFBundleIdentifier": "io.github.x", **info}
+    (app / "Contents" / "Info.plist").write_bytes(plistlib.dumps(plist))
+    return app
+
+
+def test_a_built_mac_app_with_the_app_as_main_program_passes(tmp_path: Path) -> None:
+    assert build.check_app(mac_app(tmp_path)) == []
+    assert build.check_app(mac_app(tmp_path / "b", LSBackgroundOnly=False)) == []
+
+
+def test_a_built_mac_app_that_starts_the_command_line_fails_the_build(tmp_path: Path) -> None:
+    assert build.check_app(mac_app(tmp_path, CFBundleExecutable="sci2audio")) == [
+        "the app bundle starts 'sci2audio', not sci2audio-app (#716)"
+    ]
+
+
+def test_a_built_mac_app_declared_background_only_fails_the_build(tmp_path: Path) -> None:
+    assert build.check_app(mac_app(tmp_path, LSBackgroundOnly=True)) == [
+        "the app bundle is declared background-only (LSBackgroundOnly, #716)"
+    ]
+
+
+def test_a_built_mac_app_without_the_command_line_fails_the_build(tmp_path: Path) -> None:
+    app = mac_app(tmp_path)
+    (app / "Contents" / "MacOS" / "sci2audio").unlink()
+    assert build.check_app(app) == ["Contents/MacOS/sci2audio is missing"]
+
+
 def test_a_missing_ffmpeg_licence_or_program_fails_the_build(tmp_path: Path) -> None:
     folder = frozen(tmp_path / "sci2audio", "windows")
     (folder / "_internal" / "ffmpeg" / "ffmpeg.exe").unlink()
@@ -569,17 +659,32 @@ def test_the_appimage_folder_holds_apprun_the_desktop_file_and_the_icon(tmp_path
 def test_the_windows_installer_is_per_user_and_its_uninstaller_keeps_the_persons_files() -> None:
     script = (PACKAGING / "windows" / "sci2audio.iss").read_text(encoding="utf-8")
     assert "PrivilegesRequired=lowest" in script
-    # never for all users, never elevated (#635 F1): no dialog that offers it
+    # never for all users, never elevated (#635): no dialog that offers it
     assert "PrivilegesRequiredOverridesAllowed" not in script
     assert "DefaultDirName={autopf}\\sci2audio" in script
     # no folder page: a folder chosen by hand could be Documents\sci2audio, the
-    # audiobooks' own folder, or a folder of the person's (#635 F1)
+    # audiobooks' own folder, or a folder of the person's (#635)
     assert re.search(r"^DisableDirPage=yes$", script, re.M)
     # the uninstaller removes what it installed; nothing is deleted by a wildcard, and
     # never the program folder as a whole or anything above it
     assert "[UninstallDelete]" not in script
     assert "filesandordirs" not in script
     assert "[InstallDelete]" not in script
+
+
+def test_the_windows_entries_and_the_appimage_start_the_app() -> None:
+    """Every way a person starts the installed app runs `sci2audio-app`, never the command
+    line (#716: the macOS bundle did)."""
+    script = (PACKAGING / "windows" / "sci2audio.iss").read_text(encoding="utf-8")
+    entries = [
+        line for line in script.splitlines() if line.startswith(('Name: "{auto', "Filename:"))
+    ]
+    assert len(entries) == 3  # the Start menu, the desktop and "Launch" after installing
+    for entry in entries:
+        assert 'Filename: "{app}\\sci2audio-app.exe"' in entry, entry
+    run = (PACKAGING / "linux" / "AppRun").read_text(encoding="utf-8")
+    no_arguments = run[run.index('if [ "$#" -eq 0 ]') : run.index("fi\n")]
+    assert 'exec "$here/sci2audio/sci2audio-app"' in no_arguments
 
 
 def test_the_refusals_match_the_ci_licences_job() -> None:
@@ -827,6 +932,94 @@ def test_the_offline_check_fails_where_the_network_answers(monkeypatch: pytest.M
     assert smoke.no_network() is True
 
 
+class LaunchServices:
+    """Stand-ins for `open`, `osascript` and `pgrep`: `open` writes `line` to the log, and
+    the app runs from `open` until `osascript` quits it."""
+
+    def __init__(self, log: Path, line: str | None) -> None:
+        self.log = log
+        self.line = line
+        self.running = False
+        self.commands: list[list[str]] = []
+
+    def __call__(self, command: list[str], **kwargs: object) -> Ran:
+        self.commands.append(command)
+        if command[0] == "/usr/bin/open":
+            self.running = True
+            if self.line is not None:
+                with self.log.open("a", encoding="utf-8") as log:
+                    log.write(self.line)
+        elif command[0] == "/usr/bin/osascript":
+            self.running = False
+        elif command[0] == "/usr/bin/pgrep":
+            return Ran(0 if self.running else 1)
+        return Ran(0)
+
+
+def launch_setup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, line: str | None) -> tuple:
+    bundle = tmp_path / "sci2audio.app"
+    (bundle / "Contents").mkdir(parents=True)
+    info = {"CFBundleIdentifier": "io.github.dubidu22.sci2audio"}
+    (bundle / "Contents" / "Info.plist").write_bytes(plistlib.dumps(info))
+    log = tmp_path / "app.log"
+    log.write_text("09:00 INFO running in a window on http://127.0.0.1:5\n", encoding="utf-8")
+    services = LaunchServices(log, line)
+    monkeypatch.setattr(smoke.subprocess, "run", services)
+    return bundle, log, services
+
+
+def test_the_launch_check_counts_only_lines_written_after_its_start(tmp_path: Path) -> None:
+    log = tmp_path / "app.log"
+    old = "09:00 INFO running in a window on http://127.0.0.1:5\n"
+    log.write_text(old, encoding="utf-8")
+    offset = smoke.log_size(log)
+    assert smoke.START_LINE not in smoke.new_lines(log, offset)
+    with log.open("a", encoding="utf-8") as file:
+        file.write("09:05 INFO running in a window on http://127.0.0.1:6\n")
+    assert smoke.new_lines(log, offset) == "09:05 INFO running in a window on http://127.0.0.1:6\n"
+    assert smoke.log_size(tmp_path / "none.log") == 0
+    assert smoke.new_lines(tmp_path / "none.log", 0) == ""
+    crlf = tmp_path / "crlf.log"  # a log written in text mode on Windows
+    crlf.write_bytes(b"old\r\n09:05 INFO running in a window\r\n")
+    assert smoke.new_lines(crlf, len(b"old\r\n")) == "09:05 INFO running in a window\n"
+
+
+def test_the_launch_check_fails_when_the_window_line_never_comes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # the earlier start's line is in the log already: it must not count
+    bundle, log, services = launch_setup(tmp_path, monkeypatch, None)
+    with pytest.raises(smoke.Failed, match="no start line"):
+        smoke.smoke_launch(bundle, log, timeout=0.2, poll=0.05)
+    bundle, log, services = launch_setup(tmp_path / "b", monkeypatch, "INFO running in a window\n")
+    smoke.smoke_launch(bundle, log, timeout=5, poll=0.05)
+    assert [
+        "/usr/bin/osascript",
+        "-e",
+        'tell application id "io.github.dubidu22.sci2audio" to quit',
+    ] in (services.commands)
+    assert not services.running
+
+    def hangs(command: list[str], **kwargs: object) -> Ran:
+        raise smoke.subprocess.TimeoutExpired(command, 60)
+
+    monkeypatch.setattr(smoke.subprocess, "run", hangs)
+    with pytest.raises(smoke.Failed, match="open -a did not return within 60 s"):
+        smoke.smoke_launch(bundle, log, timeout=0.2, poll=0.05)
+
+
+def test_the_launch_check_starts_the_bundle_through_launch_services(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, log, services = launch_setup(tmp_path, monkeypatch, "INFO running in a window\n")
+    assert smoke.main(["launch", str(bundle), "--log", str(log), "--timeout", "5"]) == 0
+    assert services.commands[0] == [
+        "/usr/bin/open",
+        "-a",
+        str(bundle),
+    ]  # as Finder: no program path
+
+
 # ---- the workflows ------------------------------------------------------------------------
 
 
@@ -903,3 +1096,13 @@ def test_the_uninstall_check_keeps_every_part() -> None:
         'test -s "$log"',  # the log stays
     ):
         assert check in step, check
+
+
+def test_the_macos_smoke_test_starts_the_bundle_through_launch_services() -> None:
+    job = INSTALLERS[INSTALLERS.index("  smoke:") :]
+    assert 'echo "bundle=$HOME/Applications/sci2audio.app" >> "$GITHUB_OUTPUT"' in job
+    step = job[job.index("The app starts from Finder, through Launch Services (macOS)") :]
+    step = step[: step.index("      - name:")]
+    assert "if: runner.os == 'macOS'" in step
+    assert "BUNDLE: ${{ steps.installed.outputs.bundle }}" in step
+    assert 'installer_smoke.py launch "$BUNDLE"' in step

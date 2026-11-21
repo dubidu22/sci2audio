@@ -55,7 +55,7 @@ class FakeWindow:
         self.events = FakeEvents()
         self.pages: list[Any] = []  # what run_js answers, one per call
         self.destroyed = False
-        # pywebview's own close question: asked by the engine on its GUI thread (#631 F1)
+        # pywebview's own close question: asked by the engine on its GUI thread (#631)
         self.confirm_close = options.get("confirm_close", False)
         self.localization = dict(options.get("localization") or {})
 
@@ -71,7 +71,7 @@ class FakeWindow:
         pytest.fail("evaluate_js fails under the pages' Content-Security-Policy")
 
     def create_confirmation_dialog(self, title: str, message: str) -> bool:
-        # from a closing handler this hangs the window on macOS (#631 F1): never used
+        # from a closing handler this hangs the window on macOS (#631): never used
         pytest.fail("a dialog of the app's own: use confirm_close")
 
     def destroy(self) -> None:
@@ -316,7 +316,7 @@ def test_webview2_gets_smartscreen_switched_off_and_keeps_other_switches() -> No
     [
         ("de_DE", "de"),
         ("de_AT", "de"),
-        ("German_Germany", "de"),  # Windows names (#631 F2)
+        ("German_Germany", "de"),  # Windows names (#631)
         ("English_United Kingdom", "en"),
         ("en_GB", "en"),
         ("fr_FR", "en"),
@@ -486,7 +486,7 @@ def test_the_rail_has_quit_and_the_privacy_page_the_log_only_where_they_apply(
         client = program(create_app(config), config)
         library = client.get("/").text
         assert ('id="quit"' in library) is has_quit
-        # only the browser needs a page in sight to keep the app awake (#631 F3)
+        # only the browser needs a page in sight to keep the app awake (#631)
         assert ('data-keep-alive="/api/v1/jobs"' in library) is has_quit
         for language in ("en", "de"):
             s = strings(language)
@@ -494,7 +494,7 @@ def test_the_rail_has_quit_and_the_privacy_page_the_log_only_where_they_apply(
             assert ('id="app-log"' in privacy) is has_log
             if has_log:
                 assert "app.log" in privacy
-            # the app has no terminal that shows a link (#631 N1)
+            # the app has no terminal that shows a link (#631)
             key = "privacy.interface_key_app" if has_log else "privacy.interface_key"
             other = "privacy.interface_key" if has_log else "privacy.interface_key_app"
             assert html.escape(s(key), quote=False) in privacy
@@ -580,7 +580,7 @@ def test_launched_as_takes_only_the_known_ways(tmp_path: Path) -> None:
         make_config(tmp_path, launched_as="kiosk")
 
 
-# ---- when the app cannot start: the log and a message (#631 F4) ----------------------------
+# ---- when the app cannot start: the log and a message (#631) ----------------------------
 
 
 @pytest.fixture
@@ -667,7 +667,7 @@ def test_the_message_is_a_message_box_on_windows_an_alert_on_macos_and_nothing_o
     window.show_message("A title", "text", "darwin")  # never hides the real failure
 
 
-# ---- what the review's mutants showed untested (#631 T1) -----------------------------------
+# ---- what mutation testing showed untested (#631) --------------------------------------
 
 
 @pytest.mark.parametrize(("launched_as", "stops"), [("terminal", False), ("browser", True)])

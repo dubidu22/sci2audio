@@ -419,16 +419,26 @@ function readAlong() {
   speed.addEventListener("click", (event) => showSpeedPanel(speedPanel.hidden, event.detail === 0));
   speed.disabled = false;
   const speedMenu = speed.parentElement;
-  speedMenu.addEventListener("keydown", (event) => {
+  // Esc from anywhere while the panel is open: Safari gives a clicked button no focus, so
+  // after a click on the speed button or a preset the focus is not in the menu (#699)
+  document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || speedPanel.hidden) return;
     event.preventDefault(); // Esc closes the panel only, and leaves Focus listening on
     showSpeedPanel(false);
     speed.focus();
   });
+  // a press inside the menu keeps it open: Safari's mousedown on a button there moves the
+  // focus out to the page, and closing then lost the button's click (#699)
+  let pressedInside = false;
   document.addEventListener("pointerdown", (event) => {
-    if (!speedPanel.hidden && !speedMenu.contains(event.target)) showSpeedPanel(false);
+    pressedInside = speedMenu.contains(event.target);
+    if (!speedPanel.hidden && !pressedInside) showSpeedPanel(false);
+  });
+  document.addEventListener("pointerup", () => {
+    pressedInside = false;
   });
   speedMenu.addEventListener("focusout", (event) => {
+    if (pressedInside) return;
     if (event.relatedTarget && !speedMenu.contains(event.relatedTarget)) showSpeedPanel(false);
   });
 
@@ -912,7 +922,7 @@ function readAlong() {
     if (document.querySelector("dialog[open]")) return;
     const key = event.key;
     // Esc leaves Focus from anywhere in it, a field or the speed list too, and with the keys
-    // switched off (#394 review S1, S3)
+    // switched off (#394)
     if (key === "Escape") {
       if (!focusing) return;
       event.preventDefault();
@@ -921,7 +931,7 @@ function readAlong() {
     }
     if (!shortcutsOn() || typing(event.target)) return;
     const onControl = event.target instanceof Element && event.target.closest(CONTROLS);
-    const once = !event.repeat; // a held key toggles once (#394 review N1)
+    const once = !event.repeat; // a held key toggles once (#394)
     if (key === " " && !onControl) {
       if (once) play.click();
     } else if ((key === "ArrowLeft" || key === "ArrowRight") && !onControl) {
@@ -1060,7 +1070,7 @@ function readAlong() {
       seek(0, chapters[0].start, false);
       done(`${tr("player.chapter", { n: 1, total: chapters.length })} ${chapters[0].title}`);
     });
-    // drawn disabled: a click before this script ran would be lost (#350, review N1)
+    // drawn disabled: a click before this script ran would be lost (#350)
     for (const id of ["resume-continue", "resume-start"]) {
       document.getElementById(id).disabled = false;
     }
@@ -1076,7 +1086,7 @@ function readAlong() {
 // ---- the context panel (#393): Changes, Chapters and Markers (#474) --------------------------
 // Beside the desk from 1280 px, where its button hides and shows it; below, it opens over
 // the page, takes the focus, and Esc or its button closes it and gives the focus back. The
-// focus never reaches what it covers: when the focus leaves it, it closes (#444 review S2).
+// focus never reaches what it covers: when the focus leaves it, it closes (#444).
 function contextPanel() {
   const listen = document.getElementById("listen");
   const panel = document.getElementById("context");
@@ -1106,7 +1116,7 @@ function contextPanel() {
   // where it is, so Space and the arrows go on acting on the player (#461). If the focus is
   // in the panel when P closes it, it goes back where it was when P opened the panel, or to
   // the page if that was nowhere, never to the toggle, where Space would open the panel
-  // again (#489 review S2); with no such place (the wide panel open from the start) it goes
+  // again (#489); with no such place (the wide panel open from the start) it goes
   // to the toggle.
   let before = null; // the element focused when P opened the panel, or null
   function set(open, keep = false) {
@@ -1141,7 +1151,7 @@ function contextPanel() {
     pressing = true;
   });
   // the press ends with the pointer, and also when it can no longer be one: a key, a
-  // context menu, or the window losing the focus (#394 review S2)
+  // context menu, or the window losing the focus (#394)
   function released() {
     pressing = false;
   }

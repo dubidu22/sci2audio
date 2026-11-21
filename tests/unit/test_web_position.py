@@ -310,7 +310,7 @@ def test_a_new_audiobook_drops_the_saved_position(tmp_path: Path) -> None:
     assert not record.exists()
     assert 'id="resume"' not in client.get(f"/documents/{doc}/listen").text
     # a listen page drawn for the old audiobook, still open, saves on pause: refused,
-    # so the new audiobook is not offered a place nobody heard in it (review S1)
+    # so the new audiobook is not offered a place nobody heard in it
     new = stamp_of(client, doc)
     assert new != old
     late = client.post(url, json={"chapter": 0, "time": 1.5, "audiobook": old})

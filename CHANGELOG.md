@@ -14,12 +14,40 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ### Fixed
 
 - A text-step plugin whose import or set-up hangs no longer stops sci2audio from starting: loading gives up after 30 s and lists the plugin as a problem (#684).
+- A text-step plugin can no longer stop or hang a job through what its `find` returns or raises: its edits, its error and its copies of the document and the context are read inside the guard, under its time limit, and the job gets only plain copies (#693).
+- Several text-step plugins in one package whose import hangs wait the 30 s load limit once, not once each (#694).
 - Accents a PDF draws apart from their letter are read with it: names such as "Marasović" and "Šmejkal" keep their accent, and braces reaching below a line no longer join it to the next line of a reference (#125, #126).
 - Headings set with a rule or numbered like a list, plots without a caption and their labels, and tables without rules on a two-column page are read where they belong (#181, #54, #59, #55, #56).
 
 ### Security
 
 - Every answer of the interface's server also carries a `Permissions-Policy` that switches off the browser features the interface does not use, and `Cross-Origin-Embedder-Policy: require-corp` (#172).
+
+## [1.4.1] - 2026-11-21
+
+A fix for the Mac: sci2audio 1.4.0 did not open from Finder or the Dock. Nothing else changed; if 1.4.0 works for you on Windows or Linux, you need not update. Feedback is very welcome: [open a tester report](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).
+
+### Download
+
+| Your computer | File | Size |
+|---|---|---|
+| Mac with an Apple chip, macOS 14 (Sonoma) or newer | `sci2audio-1.4.1-macos-arm64.dmg` | about 380 MB |
+| Windows 10 (1809 or newer) or 11, 64-bit | `sci2audio-1.4.1-windows-x64-setup.exe` | about 280 MB |
+| Linux x86_64 (Ubuntu 22.04, Debian 12, Fedora 36 or newer) | `sci2audio-1.4.1-linux-x86_64.AppImage` | about 430 MB |
+
+Intel Macs are not supported: PyTorch has no builds for them. `SHA256SUMS.txt` lists every file's checksum; `gh attestation verify <file> --repo dubidu22/sci2audio` checks that this repository's release workflow built it. With uv instead: `uv tool install sci2audio` (see the README).
+
+### First start
+
+The installers are not signed with a paid certificate, so the first start warns once:
+
+- **macOS:** open the app, click Done, then **System Settings → Privacy & Security → Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/sci2audio.app`). To replace 1.4.0, drag the new sci2audio onto Applications and choose Replace.
+- **Windows:** "Windows protected your PC" → **More info → Run anyway**. The installer needs no administrator rights.
+- **Linux:** `chmod +x` the AppImage and run it; it opens in your browser, with **Quit sci2audio** in the menu.
+
+### Fixed
+
+- The macOS app opens its window again when started from Finder or the Dock: 1.4.0's app bundle started the command line, which quit at once without a window (#716).
 
 ## [1.4.0] - 2026-11-19
 

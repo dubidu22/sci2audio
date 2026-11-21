@@ -81,7 +81,7 @@
   "critical_areas": [
     "layer contracts (lint-imports layers, voice plugin contract, text-step interface)",
     "core dataclasses (sci2audio.core)",
-    "KB process, contract or architecture documents (excluding the daily decision-log PR)",
+    "KB process, contract or architecture documents (excluding the KB thread's decision-log PR)",
     "golden files (corpus truth files, syrupy snapshots, English regression cases)",
     "packaging, release and CI workflows",
     "safety mechanisms",
@@ -101,6 +101,8 @@
     "governance/claude-project-rules.yaml",
     "governance/rules/**",
     "governance/project_instructions.md",
+    "governance/dispatcher_instructions.md",
+    "governance/claude-md-snippet.md",
     "governance/governance-config.json",
     "governance/tools/**",
     "governance/kb/README.md",
@@ -128,7 +130,7 @@
     "A mutation claim in a PR body names the exact command, the test paths and the clean baseline run that passed first; mutants run from a clean worktree (D-676). [check: review only]",
     "A flaky test gets an issue the same day; the 40-run isolation per browser runs through isolate.yml after the same-day quarantine and its result goes into the issue; a found code cause fixes the test and lifts the quarantine; a flaky ZAP scan is re-run once (D-682, D-739, D-602). [check: .github/workflows/isolate.yml]",
     "Every issue carries a milestone, a lane label and, where it applies, risk:high or risk:low; an issue without acceptance criteria is not started, the thread asks the coordinator for them first (D-702, D-738). [check: review only]",
-    "The decision log is governance/kb/decision-log.md in this repository (moved from dubidu22/sci2audio-design on 20 Nov 2026); pending decisions collect in governance/kb/pending-decisions.md and the KB thread merges them in one PR per day. A row is 'Decided' when Colin stated or approved it (his words and time quoted) and 'Decided (Claude)' otherwise; a revised older row gets a status note naming the newer entry (D-714). [check: KB thread only]",
+    "The decision log is governance/kb/decision-log.md in this repository (moved from dubidu22/sci2audio-design on 20 Nov 2026); pending decisions collect in governance/kb/pending-decisions.md and the KB thread merges them in one PR per milestone or batch (kb_pr_cadence). A row is 'Decided' when Colin stated or approved it (his words and time quoted) and 'Decided (Claude)' otherwise; a revised older row gets a status note naming the newer entry (D-714). [check: KB thread only]",
     "Release: R1 sets version, CHANGELOG and README on release/X.Y; R2 is the release-day PR with Colin's hand-step results and the changelog date; R3 forward-merges release/X.Y into main after the tag, then the milestone closes. The release-checklist runs (ZAP, nightly, mutation) run on the release branch (D-669, D-714). [check: docs/release-checklist.md]"
   ],
   "label_paths": [
@@ -149,6 +151,8 @@
     "lane:infra=governance/claude-project-rules.yaml",
     "lane:infra=governance/rules/**",
     "lane:infra=governance/project_instructions.md",
+    "lane:infra=governance/dispatcher_instructions.md",
+    "lane:infra=governance/claude-md-snippet.md",
     "lane:infra=governance/governance-config.json",
     "lane:infra=governance/github-setup/**",
     "lane:infra=governance/tools/**",
@@ -172,7 +176,9 @@
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     ".github/**",
-    ".claude/**"
+    ".claude/**",
+    "governance/dispatcher_instructions.md",
+    "governance/claude-md-snippet.md"
   ],
   "governance_paths": [
     "governance/kb/**",

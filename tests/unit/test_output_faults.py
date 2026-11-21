@@ -228,7 +228,7 @@ def test_a_failed_rerun_leaves_no_old_readalong_file(job: Job, tmp_path: Path) -
 def test_interrupt_while_waiting_for_ffmpeg_kills_it(
     job: Job, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Review of PR #85, should-fix 2: Ctrl-C after the feed, while ffmpeg finishes."""
+    """#85: Ctrl-C after the feed, while ffmpeg finishes."""
     started: list[subprocess.Popen[bytes]] = []
 
     class Interrupted(subprocess.Popen):  # type: ignore[type-arg]
@@ -254,7 +254,7 @@ def test_interrupt_while_waiting_for_ffmpeg_kills_it(
 
 
 def test_a_file_appearing_during_the_run_is_not_replaced(job: Job, tmp_path: Path) -> None:
-    """Review of PR #85, small item 5: without overwrite, the final rename refuses a target
+    """#85: without overwrite, the final rename refuses a target
     that appeared after the up-front check."""
     out = tmp_path / "out"
     target = out / "A Study of Tones.m4b"
@@ -278,7 +278,7 @@ def test_a_file_appearing_during_the_run_is_not_replaced(job: Job, tmp_path: Pat
 def test_long_non_ascii_titles_can_be_written(
     job: Job, tmp_path: Path, title: str, chapter: str
 ) -> None:
-    """Review of PR #85, must-fix 1: these stopped with ENAMETOOLONG before."""
+    """#85: these stopped with ENAMETOOLONG before."""
     from dataclasses import replace
 
     chapters = [replace(c, title=chapter) for c in job.chapters]
@@ -380,7 +380,7 @@ def test_missing_ffmpeg_gives_a_clear_message(
 def test_missing_ffmpeg_changes_nothing_on_disk_even_with_overwrite(
     job: Job, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Review of PR #85, should-fix 3: ffmpeg is found before the old read-along file goes."""
+    """#85: ffmpeg is found before the old read-along file goes."""
     out = tmp_path / "out"
     first = write_audiobook(
         job.folder, out, job.chapters, job.spoken, job.book, ffmpeg=Touching(Path("unused"))

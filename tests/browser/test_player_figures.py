@@ -139,7 +139,7 @@ def test_the_page_with_a_figure_passes_axe_in_light_dark_and_german(
 def test_a_figure_below_the_first_screen_loads_when_scrolled_to(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
-    """Review F2 of #582: a lazy image that has not started is not hidden as failed at
+    """#582: a lazy image that has not started is not hidden as failed at
     start (it would then never load), and it loads once scrolled to."""
     page = signed_in
     listen_to(page, live, tmp_path / "late.pdf", late_figure_pdf())
@@ -167,7 +167,7 @@ def test_a_figure_below_the_first_screen_loads_when_scrolled_to(
 def test_an_image_that_failed_before_the_script_ran_is_hidden_too(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
-    """Review R2-5: player.js hides a figure whose load failed before it was wired, not
+    """player.js hides a figure whose load failed before it was wired, not
     only one whose error event comes after."""
     page = signed_in
     open_figure(page, live, tmp_path)

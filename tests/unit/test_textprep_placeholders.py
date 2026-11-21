@@ -513,7 +513,7 @@ def test_an_unheaded_list_at_the_end_goes_with_its_inner_last_lines_and_notes() 
         (BlockKind.PARAGRAPH, "[5] The limit is taken after the integral."),  # a note
         (BlockKind.FOOTNOTE, "1 A note."),
         (BlockKind.PARAGRAPH, ENTRIES[5].replace("[6]", "[7]")),  # a step of 2: [6] merged away
-        (BlockKind.PARAGRAPH, "(2020)."),  # after the last entry: read (review S1 of PR #377)
+        (BlockKind.PARAGRAPH, "(2020)."),  # after the last entry: read (#377)
     ]
     assert unheaded(*blocks) == [1, 2, 4, 5, 6, 8]
 
@@ -546,7 +546,7 @@ def test_numbered_lines_that_are_no_reference_list_stay(
 
 @pytest.mark.parametrize("title", ["Notes", "Endnotes", "Anmerkungen", "Appendix B"])
 def test_numbered_entries_right_after_another_heading_have_a_heading(title: str) -> None:
-    """Review S2 of PR #377: such a list is printed with a heading, so it is read."""
+    """#377: such a list is printed with a heading, so it is read."""
     blocks = [BODY, (BlockKind.HEADING, title), (BlockKind.FURNITURE, "5"), *entries()]
     assert unheaded(*blocks) == []
 
@@ -563,12 +563,12 @@ def test_an_unheaded_list_after_a_section_s_text_and_after_a_reference_heading_g
     ["We thank all in 2020 for help.", "Received 3 May 2020."],
 )
 def test_a_short_dated_sentence_after_the_list_is_read(last: str) -> None:
-    """Review S1 of PR #377: only blocks between two entries are an entry's last lines."""
+    """#377: only blocks between two entries are an entry's last lines."""
     assert unheaded(BODY, *entries(), (BlockKind.PARAGRAPH, last)) == [1, 2, 3, 4, 5, 6]
 
 
 def test_a_numbered_body_list_with_years_but_no_authors_stays() -> None:
-    """Review N1 of PR #377: an entry needs an author besides its year."""
+    """#377: an entry needs an author besides its year."""
     steps = [f"[{n}] In 201{n} we ran step {n} of the protocol." for n in range(1, 7)]
     assert unheaded((BlockKind.HEADING, "Results"), BODY, *entries(steps)) == []
     assert unheaded(BODY, *entries(steps)) == []
@@ -672,12 +672,12 @@ def test_every_placeholder_reads_exactly_a_notice(document: Document) -> None:
         ("Tab. 2", "Tabelle 2"),
         ("Abb. 3a", "Abbildung 3a"),
         ("Abb. A.1", "Abbildung A.1"),  # no digit before the point
-        # review S2 of PR #368: what the caption keeps as printed, the notice keeps too
+        # #368: what the caption keeps as printed, the notice keeps too
         ("Tabelle 2.1a", "Tabelle 2.1a"),
         ("Abb. 3.1a", "Abbildung 3.1a"),
         ("Abb. S3.1", "Abbildung S3.1"),
         ("FIG. 3.1", "FIG. 3.1"),
-        # review S3: a range and a decimal comma read as in the caption
+        # a range and a decimal comma read as in the caption
         ("Abbildung 1.2-1.4", "Abbildung 1 Punkt 2 bis 1 Punkt 4"),
         ("Abb. 3.1\u20133.4", "Abbildung 3 Punkt 1 bis 3 Punkt 4"),
         ("Abb. 3\u20135", "Abbildung 3 bis 5"),
@@ -695,7 +695,7 @@ def test_a_german_notice_names_the_figure_as_its_caption_reads(printed: str, rea
 @pytest.mark.parametrize(
     ("printed", "after", "read_as"),
     [
-        # review round 2, S2 of PR #368: the label is read in its caption's context, where a
+        # #368: the label is read in its caption's context, where a
         # fraction before ":" stays as printed
         ("Tab. 1/2", ": Verlauf der Werte.", "Tabelle 1/2"),
         ("Abb. 3/4", ": Verlauf der Werte.", "Abbildung 3/4"),
@@ -722,7 +722,7 @@ def test_a_german_notice_reads_its_label_in_the_captions_context(
 def test_with_the_numbers_switched_off_a_german_notice_keeps_its_label_as_printed(
     printed: str, read_as: str
 ) -> None:
-    """Review round 2, S1 of PR #368: the switch holds for the notice as for the caption."""
+    """#368: the switch holds for the notice as for the caption."""
     off = {Category.NUMBERS_AND_UNITS, *DEFAULT_SWITCHED_OFF}
     assert _notice_and_caption(printed, ": Verlauf.", off) == [
         f"{read_as} wird übersprungen.",
@@ -860,8 +860,8 @@ def test_a_formula_label_ending_in_an_abbreviation_is_read_inside_its_notice(
     label: str, notice: str
 ) -> None:
     """Read on its own, the label's stop would stay at the end of the text ("Formel 3
-    folgende."); read inside the notice it goes, as in the notice that is read (review S1
-    of PR #450)."""
+    folgende."); read inside the notice it goes, as in the notice that is read
+    (#450)."""
     document = make_document([Block(BlockKind.FORMULA, f"x = y ({label})", label=label)], "de")
     run = run_steps(document, StepContext("de"), strict=True)
     assert spoken_text(run.script()) == notice
@@ -1014,7 +1014,7 @@ def test_an_alt_text_read_as_nothing_adds_nothing_to_the_notice(
     """A link or citation alone reads as nothing in a paragraph, so the notice says nothing
     about what the figure shows rather than reading the link (#464). Nothing means no letter
     or digit is left: what is left of "[3], [4]" is ", " and of the German one " \u2013 ",
-    which must not give "It shows: ." (review N1 of PR #484)."""
+    which must not give "It shows: ." (#484)."""
     document = make_document([(BlockKind.FIGURE, "")], language, pictures={0: [alt]})
     (edit,) = TableFigureNoticeStep().find(document, StepContext(language))
     assert edit.replacement == notice

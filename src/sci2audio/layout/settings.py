@@ -91,7 +91,7 @@ class LayoutSettings:
     #                             it is a fraction bar, and the denominator keeps a space (#202,
     #                             D-575; extraction's FRACTION_BAR). TeX keeps the rule's
     #                             thickness in a smaller fraction: 0.8 pt over 5 pt letters is
-    #                             0.16 em (review R1-2 of #323) ...
+    #                             0.16 em (#323) ...
     fraction_reach: float = 0.6  # em: ... when both stand this close to the bar (the nearest
     #                              numerator letter; extraction's FRACTION_REACH)
     fraction_inside: float = 0.1  # em: a denominator read after its line starts this close

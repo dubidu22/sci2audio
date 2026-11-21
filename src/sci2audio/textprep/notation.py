@@ -61,7 +61,7 @@ def pick(candidates: Iterable[Candidate]) -> list[Candidate]:
 
 # an arrow printed in pieces: PDF text gives a long arrow ("\\longleftarrow",
 # "\\longrightarrow") as an arrow and a minus sign, "←−", "−→", "←−→", and a longer one or a
-# vector ("\\overrightarrow{AB}") with more minus signs, "−−→", "←−−" (#593 review F1); also
+# vector ("\\overrightarrow{AB}") with more minus signs, "−−→", "←−−" (#593); also
 # glued to its variables ("X−→α"). The voices read "left minus" and "minus right"; one arrow
 # is "left arrow", "right arrow" ("Linkspfeil", "Rechtspfeil"), never "minus" (#527)
 _TWO_GLYPH_ARROW = re.compile("←\u2212+→|←\u2212+|\u2212+→")
@@ -77,7 +77,7 @@ def _one_arrow(glyphs: str) -> str:
 def as_one_arrow(text: str, found: Sequence[Candidate]) -> str:
     """The text with each arrow `arrows` found written as its one arrow, repeated to the
     printed length, so other rules decide on a first run as a second run will (spans stay
-    valid): "←−1:1" is "←←1:1" to them, as "←1:1" is on a second run (#593 review F2)."""
+    valid): "←−1:1" is "←←1:1" to them, as "←1:1" is on a second run (#593)."""
     pieces = []
     at = 0
     for candidate in found:

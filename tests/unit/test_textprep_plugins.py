@@ -3,8 +3,10 @@
 import inspect
 import subprocess
 import sys
+import threading
 import time
 import warnings
+from dataclasses import dataclass
 from importlib.metadata import EntryPoint
 from pathlib import Path
 
@@ -259,6 +261,71 @@ def test_a_plugin_s_id_and_languages_are_kept_as_plain_copies() -> None:
 def test_ctrl_c_while_a_plugin_loads_is_not_swallowed() -> None:
     with pytest.raises(KeyboardInterrupt):
         installed_steps(entry_points=[broken_point("alpha", "interrupting_factory")])
+
+
+def test_a_language_that_is_not_a_str_is_a_readable_problem() -> None:
+    loaded = load_plugin_steps([broken_point("not-str-language", "NotStrLanguageStep")])
+    message = problem_for(loaded, "not-str-language")
+    assert message.startswith("languages must be a non-empty tuple of primary tags")
+    assert "TypeError" not in message
+    assert "descriptor" not in message
+
+
+def test_entry_points_of_one_hanging_module_wait_one_limit_not_one_each(hang) -> None:
+    before = set(threading.enumerate())  # workers an earlier test left still finishing
+    steps = installed_steps(
+        entry_points=[
+            point("hanging-import", "hanging_on_import:Step"),
+            point("hanging-too", "hanging_on_import:Step"),
+            AMPERSAND,
+        ],
+        load_timeout=1.0,
+    )
+    assert [step.id for step in steps if step.id == "ampersand-and"] == ["ampersand-and"]
+    first, second = steps.problems
+    assert first.message == "took longer than 1 s to load; left out"
+    # the second entry point is left out at once, with no worker of its own to wait for
+    assert (second.name, second.message) == (
+        "hanging-too",
+        "left out: 'hanging-import' of the same package 'hanging_on_import' took longer than "
+        "1 s to load",
+    )
+    started_here = [t.name for t in set(threading.enumerate()) - before]
+    assert "loading text step hanging-too" not in started_here
+    assert "loading text step hanging-import" in started_here  # still held by the import
+
+
+@dataclass(frozen=True)
+class _Distribution:
+    metadata: dict[str, str]
+
+
+@dataclass(frozen=True)
+class _DistributedPoint:
+    """An entry point of an installed package, without installing one."""
+
+    name: str
+    value: str
+    dist: _Distribution
+    group: str = PLUGIN_GROUP
+
+    def load(self):
+        return EntryPoint(self.name, self.value, self.group).load()
+
+
+def test_a_hanging_package_does_not_hold_up_another_distribution(hang) -> None:
+    def of(package: str, name: str) -> _DistributedPoint:
+        return _DistributedPoint(
+            name, "hanging_on_import:Step", _Distribution({"Name": package, "Version": "1"})
+        )
+
+    steps = installed_steps(
+        entry_points=[of("one", "hanging-import"), of("two", "hanging-too")], load_timeout=0.2
+    )
+    assert [(p.distribution, p.message) for p in steps.problems] == [
+        ("one", "took longer than 0.2 s to load; left out"),
+        ("two", "took longer than 0.2 s to load; left out"),
+    ]
 
 
 def test_the_public_loader_is_unchanged() -> None:
