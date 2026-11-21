@@ -426,3 +426,26 @@ class _LooksLikeEn:
 class NotStrLanguageStep(_Plugin):
     id = "not-str-language"
     languages = (_LooksLikeEn(),)  # type: ignore[assignment]
+
+
+class CyclicPlantStep(_Plugin):
+    """Plants in its copy an object that refers to itself: only the collector frees it."""
+
+    id = "cyclic-plant"
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        planted = traced(object)()
+        planted.me = planted
+        object.__setattr__(document.blocks[0], "text", planted)
+        return []
+
+
+class CyclicErrorStep(_Plugin):
+    """Raises an error that refers to itself."""
+
+    id = "cyclic-error"
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        error = traced(Exception)("cyclic")
+        error.me = error
+        raise error

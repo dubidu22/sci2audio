@@ -280,7 +280,7 @@ def test_entry_points_of_one_hanging_module_wait_one_limit_not_one_each(hang) ->
         ],
         load_timeout=0.5,
     )
-    assert time.monotonic() - started < 0.9
+    assert time.monotonic() - started < 0.8  # two waits would be 1.0 s
     assert [step.id for step in steps if step.id == "ampersand-and"] == ["ampersand-and"]
     first, second = steps.problems
     assert first.message == "took longer than 0.5 s to load; left out"

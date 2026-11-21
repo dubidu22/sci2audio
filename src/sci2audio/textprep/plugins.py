@@ -21,12 +21,17 @@ once per `JobRunner`.
 No object of the plugin's leaves a worker (#693): any of them may run plugin code when it
 is compared, hashed, shown or dropped, and only the worker is under the time limit. So the
 worker hands back plain built-in values (copies of the id and languages, edits rebuilt from
-plain ints and strs) or the text of a failure, never what the plugin returned or raised.
+plain ints and strs) or the text of a failure, never what the plugin returned or raised;
+what a call left in reference cycles is collected there too. Not covered is what outlives
+a call: the plugin's step object lives as long as the job's steps, and what the plugin
+keeps on it or in its module's globals is freed wherever that is dropped, so a finalizer
+(`__del__`) of such an object may run in the job's thread.
 """
 
 from __future__ import annotations
 
 import copy
+import gc
 import threading
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
@@ -227,9 +232,10 @@ def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Fail
     """`call()` in a daemon thread: its result, which must hold only built-in values, or a
     _Failure; _TimedOut if it is still running after `timeout` seconds. What the call
     raised never reaches this thread, only its text: an exception holds the frames it
-    passed, and so the plugin's objects. Ctrl+C there is raised here anew. The thread
-    cannot be stopped and is left to finish on its own; a daemon thread never keeps the
-    program from ending."""
+    passed, and so the plugin's objects. Garbage the call left in cycles is collected
+    in the thread before it ends. Ctrl+C there is raised here anew. The thread cannot be
+    stopped and is left to finish on its own; a daemon thread never keeps the program
+    from ending."""
     result: dict[str, Any] = {}
 
     def work() -> None:
@@ -239,6 +245,9 @@ def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Fail
             result["interrupted"] = True
         except BaseException as error:  # a path the call does not turn into a _Failure
             result["value"] = _Failure(f"failed: {_said(error)}")
+        # what the call left in reference cycles is freed only by the collector, which would
+        # otherwise run its finalizers in whatever thread triggers it next: the job's
+        gc.collect()
 
     worker = threading.Thread(target=work, name=name, daemon=True)
     worker.start()

@@ -154,6 +154,15 @@ def test_an_offset_whose_index_raises_is_read_as_a_plain_int() -> None:
     assert "Smith" not in "".join(piece.text for piece in run.script())
 
 
+@pytest.mark.parametrize("attribute", ["CyclicPlantStep", "CyclicErrorStep"])
+def test_an_object_in_a_reference_cycle_is_freed_in_the_worker(attribute: str, calls) -> None:
+    run = run_with(attribute)
+    gc.collect()  # what the worker left for the collector would die here, in this thread
+    assert [p.step for p in run.problems] == [getattr(broken, attribute).id]
+    assert "__del__" in [dunder for dunder, _ in calls]
+    assert outside_the_guard(calls) == []
+
+
 def test_a_plugin_error_whose_str_blocks_is_given_up(hang) -> None:
     started = time.monotonic()
     run = run_with("SlowMessageStep", timeout=0.2)
