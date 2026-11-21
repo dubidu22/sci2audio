@@ -176,7 +176,9 @@
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     ".github/**",
-    ".claude/**"
+    ".claude/**",
+    "governance/dispatcher_instructions.md",
+    "governance/claude-md-snippet.md"
   ],
   "governance_paths": [
     "governance/kb/**",
