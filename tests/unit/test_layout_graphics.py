@@ -397,7 +397,7 @@ def test_an_icon_drawn_in_a_line_stands_just_after_that_line() -> None:
 
 
 def test_a_logo_on_every_page_inside_a_line_box_stays_a_running_head() -> None:
-    """D-91 before D-329 (review of #164, S1): a repeated logo is furniture even where its
+    """D-91 before D-329 (#164): a repeated logo is furniture even where its
     box lies inside a tall line's box; only groups that join a neighbour stand in a line."""
     pages = [
         [
@@ -415,7 +415,7 @@ def test_a_logo_on_every_page_inside_a_line_box_stays_a_running_head() -> None:
 
 
 def test_a_mark_in_two_lines_of_one_size_stands_in_the_one_read_first() -> None:
-    """D-329 (review of #164, S2): two line boxes of the same size both hold the mark (two
+    """D-329 (#164): two line boxes of the same size both hold the mark (two
     lines printed over each other); on a tie the mark stands in the line read first."""
     lines = running(count=3)
     first = line("over", 200, 142, 260)
@@ -600,7 +600,7 @@ def test_a_mark_in_a_line_is_no_float_before_a_line_that_opens_like_a_caption() 
 
 
 def test_a_picture_too_tall_for_a_mark_still_ends_the_row() -> None:
-    """Review of #204 (S1): in a line set at 30 pt, a picture 26 pt tall between the two
+    """#204: in a line set at 30 pt, a picture 26 pt tall between the two
     pieces is no loose line or mark (D-438), so the row ends there as today."""
     lines = running(count=3)
     first = line("A Big", LEFT, 200, 160, size=30.0)
@@ -612,7 +612,7 @@ def test_a_picture_too_tall_for_a_mark_still_ends_the_row() -> None:
 
 
 def test_a_mark_in_a_pages_last_printed_line_stands_just_after_it() -> None:
-    """Review of #204 (S2): a fraction bar between the two pieces of the page's last
+    """#204: a fraction bar between the two pieces of the page's last
     printed line is read after the row once the reading ends."""
     lines = running(count=2)
     first = line("the share is 1", LEFT, 128, 200)

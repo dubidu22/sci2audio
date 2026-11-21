@@ -173,7 +173,7 @@ OUT_OF = "out of"
 # a unit chain after a fraction this step read as words ("3 quarters s⁻¹", "1 half m s⁻¹"): on
 # the first run the printed fraction ("3/4 s⁻¹") is a number before it, so the units step's
 # power is left alone on both runs (#335, D-605); not after a longer number ("2.5 quarters",
-# "1,003 halves"), whose fraction words are prose (review N1 of PR #359)
+# "1,003 halves"), whose fraction words are prose (#359)
 _UNIT_CHAIN_AFTER_FRACTION = re.compile(
     r"(?<![\w^.,])\d{1,3} (?:"
     + "|".join(word for pair in _FRACTION_WORDS.values() for word in pair)
@@ -204,7 +204,7 @@ _KEYWORDS = frozenset(
 )
 _PLURAL_KEYWORDS = {"studies": "study", "classes": "class", "wars": "war"}
 # keywords printed short with a full stop, as the abbreviations step (#68) reads them in full:
-# "Fig. II" must read "Figure 2" on the first run, not "Figure II" (review of PR #132)
+# "Fig. II" must read "Figure 2" on the first run, not "Figure II" (#132)
 _ABBREVIATED_KEYWORDS = {
     "fig": "figure",
     "figs": "figure",
@@ -285,7 +285,7 @@ _JOINED_AFTER = re.compile(r"\s*[\u2013\u2014\u2012:/-]\s*\.?\d|\.?\d|\s\d|\s+(?
 _GLUED_MINUS = re.compile(r"\d\u2212\Z")
 _JOINED_BEFORE = re.compile(r"\d\s*(?:[\u2013\u2014\u2012:/-]|\sto\s)\s*\Z|\d\s\Z")
 # every look back before a match reads at most this many characters, so a long block takes
-# linear time (review of PR #132); what the rules look for before a number is a few words
+# linear time (#132); what the rules look for before a number is a few words
 WINDOW = 64
 
 

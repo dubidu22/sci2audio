@@ -12,11 +12,11 @@ A reference list printed without a heading (PRL and revtex style, #92, D-646) is
 in a document with no reference-list section: the last run of text blocks that starts with
 the entry "[1] …", counts its entries up ("[N]" at a line start, a step of 1 to 3, since
 layout may merge or split an entry's lines), holds at least five entries, at least half of
-them with a year and an author ("N. Nagaosa", "Fahl, S.", review N1 of PR #377), and ends at
+them with a year and an author ("N. Nagaosa", "Fahl, S.", #377), and ends at
 the document's end or at a heading (an appendix after it is read). A run right after a
-heading that names no reference list ("Notes", "Anmerkungen") has a heading, so it is read
-(review S2). A short block with a year between two entries ("(2020).") is an entry's last
-line; after the last entry it is not (review S1).
+heading that names no reference list ("Notes", "Anmerkungen") has a heading, so it is read.
+A short block with a year between two entries ("(2020).") is an entry's last
+line; after the last entry it is not.
 Furniture, footnotes and placeholders between the entries are skipped; a note printed as an
 entry of the list (revtex "footinbib") goes with the list.
 """
@@ -41,7 +41,7 @@ REFERENCE_TITLES = (
 )
 # German (#221, D-481): the app's four German chapter names, the two spellings of
 # "Bibliographie", the counterparts of "Works cited" and "Literature cited", and the
-# combined titles of German theses (review round 1 of #222)
+# combined titles of German theses (#222)
 GERMAN_REFERENCE_TITLES = (
     "Literatur",
     "Literaturverzeichnis",

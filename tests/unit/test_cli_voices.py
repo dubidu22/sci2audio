@@ -86,7 +86,7 @@ def test_yes_on_the_terminal_downloads(tmp_path: Path) -> None:
     assert server.fetched == [f.url for f in FILES]
     assert missing_files(cli.models) == []
     assert leftovers(cli.models) == []
-    # the plan goes to stderr (round 1 of the review, N3); stdout carries only the result
+    # the plan goes to stderr; stdout carries only the result
     assert result.err.startswith(f"The voice download puts these files into {cli.models}:\n")
     assert result.out == f"The voice files are installed in {cli.models}.\n"
     assert "Downloading: " in result.err

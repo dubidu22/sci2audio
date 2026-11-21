@@ -123,7 +123,7 @@ def test_the_announce_switch_saves_itself(signed_in: Page, live: Live) -> None:
 def test_the_keys_switch_saves_itself_and_every_page_carries_it(
     signed_in: Page, live: Live
 ) -> None:
-    """#451 review S3: on by default; switched off, every page says so to its scripts."""
+    """#451: on by default; switched off, every page says so to its scripts."""
     page = signed_in
     page.goto(live.url + "/settings")
     switch = page.get_by_role("switch", name="Keyboard shortcuts")

@@ -247,7 +247,7 @@ def test_the_keep_tick_goes_with_the_request_and_outlives_a_failure(
 def test_more_files_stay_than_the_answer_names_and_all_are_counted(
     signed_in: Page, live: Live
 ) -> None:
-    """The message counts the files the answer only counts (`kept_more`, #569 round 2)."""
+    """The message counts the files the answer only counts (`kept_more`, #569)."""
     page = signed_in
     _document, folder = with_book(live, "many.pdf", "A paper with many notes.")
     mine = KEPT_LIMIT + 3
@@ -291,7 +291,7 @@ def test_files_that_stay_are_counted_after_the_removal(signed_in: Page, live: Li
         "sci2audio did not write them, or they changed since. "
         f"The folder {linked} was left as it is: "
         "sci2audio could not be sure it is still the audiobook folder it made."
-    )  # the folder is named, and only files are counted (#569 round 1, R3)
+    )  # the folder is named, and only files are counted (#569)
     assert (elsewhere / "book.mp3").read_bytes() == b"ID3 elsewhere"
     assert sorted(p.name for p in folder.iterdir()) == ["01 Introduction.mp3", "my notes.txt"]
     check_axe(page, "start page after a removal that kept files")

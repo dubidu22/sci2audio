@@ -365,7 +365,7 @@ def test_another_error_while_placing_a_newer_name_is_tried_once(
 ) -> None:
     """Only EILSEQ is retried: a full disk while the copy is put in place under a name with
     a newer character is tried exactly once and answers the disk-full error, with nothing
-    left behind (review of #583, R2)."""
+    left behind (#583)."""
     app, config = server
     asked: list[str] = []
 

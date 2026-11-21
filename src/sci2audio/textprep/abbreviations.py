@@ -48,12 +48,12 @@ _DATE = re.compile(
     _SPACE + r"(?:[1-9]|[012]\d|3[01])\.\s?(?:(?:0?[1-9]|1[0-2])\.|(?:Januar|Februar|März"
     r"|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\b)"
 )
-# a law's paragraph or article: "i. S. d. § 3", "i. S. d. Art. 4" (#264 review round 1)
+# a law's paragraph or article: "i. S. d. § 3", "i. S. d. Art. 4" (#264)
 _LAW = re.compile(_SPACE + r"(?:§|Art\.|Abs\.)")
 _FOLLOWS = {"label": _LABEL, "number": _NUMBER, "word": _WORD, "date": _DATE, "law": _LAW}
 # a sentence after the full stop: white space, maybe an opening quote or bracket, a capital
 _NEXT_SENTENCE = re.compile(r"\s+[\"'(\[\u201c\u2018]?[A-Z]")
-# German: a capital is any upper-case letter ("Dr. Özdemir", "usw. Über"; review of PR #228);
+# German: a capital is any upper-case letter ("Dr. Özdemir", "usw. Über"; #228);
 # English keeps [A-Z] as it was
 _UPPER = "".join(c for c in map(chr, range(0x250)) if c.isupper())
 _LOWER = "".join(c for c in map(chr, range(0x250)) if c.islower())
@@ -196,7 +196,7 @@ def read_before(text: str, start: int, language: str) -> tuple[int, str] | None:
     """Where an abbreviation this step reads ends right before `start`, with only white space
     between, its start and its reading: "i. V. m. 2. Alternative" gives the start of "i. V.
     m." and "in Verbindung mit". The numbers step takes the reading as the word before an
-    ordinal, as a second run sees it ("mit zweiter", #264 review round 1)."""
+    ordinal, as a second run sees it ("mit zweiter", #264)."""
     entries = abbreviations(language)
     if not entries or text[max(0, start - _AROUND) : start].rstrip()[-1:] != ".":
         return None
@@ -331,7 +331,7 @@ def _after_paragraph(text: str, start: int) -> bool:
     return _PARAGRAPH_BEFORE.search(text, max(0, start - 32), start) is not None
 
 
-# a sentence's number after "S." or "Satz", right before "Hs." (#264 review round 1)
+# a sentence's number after "S." or "Satz", right before "Hs." (#264)
 _SENTENCE_BEFORE = re.compile(r"(?:(?<![^\W\d_])S\.|\bSatz)\s*\d+\s+\Z")
 
 
@@ -339,7 +339,7 @@ def _after_sentence(text: str, start: int) -> bool:
     return _SENTENCE_BEFORE.search(text, max(0, start - 32), start) is not None
 
 
-# what goes on with a law citation after "a. F." (#264 review round 1): a word in capitals
+# what goes on with a law citation after "a. F." (#264): a word in capitals
 # ("BDSG", "GG"), "§", or a label word and its number ("Satz 2"); a listed label
 # abbreviation ("Abs.", "Nr.", "S.") is checked against the list
 # a law's name goes on with the citation: capitals ("BDSG"), or capitals and lower case ending
@@ -363,7 +363,7 @@ def _citation_goes_on(text: str, end: int, by_form: dict[str, tuple[Abbreviation
 
 def _after_name(text: str, start: int) -> bool:
     """True if the word right before starts with a capital: "Müller u. a. (2019)" names
-    authors, "gilt u. a. 2019" does not (review of PR #228)."""
+    authors, "gilt u. a. 2019" does not (#228)."""
     word = _NAME_BEFORE.search(text, max(0, start - 64), start)
     return word is not None and word.group(1).isupper()
 

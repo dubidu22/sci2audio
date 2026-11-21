@@ -45,7 +45,7 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
   equal to", "newton | metres") ranks after every other space (#482): on a first run the
   reading is one replacement, on a second run plain words, so finding it from the text keeps
   the cut where the first run made it. A place inside an open bracket or quote ranks after
-  every place outside one (#481 review). A single word longer than the limit is cut where it
+  every place outside one (#481). A single word longer than the limit is cut where it
   must be. Its limit: when every place near the even share lies inside a reading, a first
   run moves its cut out of the replacement and a second run cannot (the script text is the
   same, D-577).
@@ -147,7 +147,7 @@ def _german_abbreviations() -> frozenset[str]:
 
 ABBREVIATIONS["de"] = _german_abbreviations()
 
-# quotes and brackets that may follow a full stop; "«" closes a German "»" (PR #267 review R4)
+# quotes and brackets that may follow a full stop; "«" closes a German "»" (#267)
 _CLOSING = "\"')]\u201d\u2019\u00ab"
 # ... and that may open the next sentence ("„" and "»", #227)
 _OPENING = "\"'([{\u201c\u2018\u201e\u00bb"
@@ -156,7 +156,7 @@ _SENTENCE_END = re.compile(rf"[.?!]+[{re.escape(_CLOSING)}]*(?=\s+(\S))")
 # in Swiss «…», with U+00BB: after ".", "!" or "?" these end a sentence there too (#315, D-577,
 # German only); in English they open a quote. The single guillemets U+203A and U+2039 quote
 # inside »…« and «…»: either may close a quote, and either may open the next sentence
-# (PR #333 review R1-4)
+# (#333)
 _SINGLE_GUILLEMETS = "\u203a\u2039"
 _CLOSING_DE = _CLOSING + "\u201c\u2018\u00bb" + _SINGLE_GUILLEMETS
 _OPENING_DE = _OPENING + _SINGLE_GUILLEMETS
@@ -551,7 +551,7 @@ def _rank(text: str, i: int, openers: frozenset[str]) -> int | None:
 
 
 # what opens and closes a bracket or a quote, by language; never a straight quote or an
-# apostrophe, which cannot tell opening from closing (#481 review S1)
+# apostrophe, which cannot tell opening from closing (#481)
 _PAIRS_EN = ("([{\u201c\u00ab", ")]}\u201d\u00bb")
 _PAIRS_DE = ("([{\u201e\u00bb", ")]}\u201c\u00ab")
 
@@ -655,7 +655,7 @@ def _readings(language: str) -> re.Pattern[str] | None:
 
     A joining word matches with the white space on its side only (" per ", "square "), so its
     neighbour is never part of a match: a match never starts at a word that a longer word
-    around it would have to give back, which keeps the search linear on any text (#616 F2)."""
+    around it would have to give back, which keeps the search linear on any text (#616)."""
     # the statistics and number modules import this module (through the footnotes and links
     # steps), so their tables are read here, not at import
     from sci2audio.textprep.numbers import OUT_OF

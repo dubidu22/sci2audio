@@ -139,7 +139,7 @@ class CliEnv:
     interactive: bool  # a person can answer questions (stdin is a terminal)
     live: bool  # stderr is a terminal: progress is rewritten in one line
     # None: made by `job_runner` when a job starts, so a command that runs no job, and a job
-    # with --no-plugins, never imports an installed plugin (#667 review S1)
+    # with --no-plugins, never imports an installed plugin (#667)
     runner: JobRunner | None = None
     config_file: Callable[[], Path] = default_config_file
     models_folder: Callable[[], Path] = default_models_folder

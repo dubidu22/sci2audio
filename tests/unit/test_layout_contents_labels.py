@@ -137,7 +137,7 @@ def test_numbers_away_from_the_left_edge_or_the_entries_indent_are_no_entries() 
 
 def test_two_entries_on_one_page_are_both_entries() -> None:
     """Page numbers may repeat (two short pieces on one page): they never go down, but they
-    may stay (review of #558, S1a)."""
+    may stay (#558)."""
     entries = [("4", ["A. Writer", "A short piece"]), ("4", ["B. Writer", "Another one"])]
     entries += [("9", ["C. Writer", "The next piece"])]
     doc = build_document(content(contents_page("Contents", entries, [])))
@@ -147,7 +147,7 @@ def test_two_entries_on_one_page_are_both_entries() -> None:
 
 def test_a_lone_number_after_the_title_is_no_entry() -> None:
     """A row holding only a number has no entry text beside it: it and what follows stay
-    text (review of #558, S1b)."""
+    text (#558)."""
     lone = line("3", NUMBERS, 130, NUMBERS + 5)
     rows = [line("A. Writer", INDENT, 141, 330), line("A title of our own", INDENT, 152, 330)]
     body = column("text-", LEFT, RIGHT, 300, 6)
@@ -157,7 +157,7 @@ def test_a_lone_number_after_the_title_is_no_entry() -> None:
 
 def test_jittered_numbers_and_indents_as_printed_are_still_entries() -> None:
     """The German page as measured: page numbers right-aligned ("9" starts 5 points right of
-    "17"), entry texts starting between 87.4 and 89.1, a run-on row at 89.1 (review of #558,
+    "17"), entry texts starting between 87.4 and 89.1, a run-on row at 89.1 (#558,
     S1c). Every row is contents."""
     x = LEFT - 53.9  # the page's numbers start at 53.9 there, here at LEFT
     printed = [  # (page, its x, the entry's rows with their x)
@@ -180,7 +180,7 @@ def test_jittered_numbers_and_indents_as_printed_are_still_entries() -> None:
 def test_entries_whose_indent_drifts_away_from_the_first_end_the_contents() -> None:
     """Each entry's text is compared with the first entry's indent, not the one before: an
     indent creeping 8 points per entry ends the contents at the entry that stands more than
-    `contents_reach` (20 points here) from the first (review of #558, S1c)."""
+    `contents_reach` (20 points here) from the first (#558)."""
     lines, top = [line("Contents", LEFT, 100, 140, size=14)], 130.0
     for k, page in enumerate(["3", "5", "7", "9"]):
         lines += [

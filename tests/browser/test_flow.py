@@ -439,7 +439,7 @@ def test_cancel_gives_up_on_a_voice_that_does_not_stop(
 ) -> None:
     """A voice stuck in native code may ignore the cancel. Cancel waits a while (two
     minutes; here 1.5 s), then says the voice did not stop, deletes nothing, and gives its
-    button back (#433 N3)."""
+    button back (#433)."""
     page = signed_in
     monkeypatch.setattr(pages, "STOP_WAIT_MS", 1500)
     live.install_voice()
@@ -700,7 +700,7 @@ def test_the_preview_sentence_follows_the_voice_language(signed_in: Page, live: 
 def test_a_german_book_keeps_the_remembered_english_voice(
     signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """#211 review: making a German book with the German voice must not replace the English
+    """#211: making a German book with the German voice must not replace the English
     voice the person chose before; a voice of the same language still replaces it."""
     page = signed_in
     plan = small_plan()  # its second file stands for the German pack here
@@ -817,7 +817,7 @@ def test_replace_waits_until_the_page_script_runs(signed_in: Page, live: Live) -
     expect(page.locator("#result")).to_have_text("Your audiobook is ready")
 
     # the finished job's other buttons wait the same way; the ZAP walk clicks "Free the
-    # speech cache" right after this page loads (#177 review R1-1)
+    # speech cache" right after this page loads (#177)
     release = reload_holding_back_app_js(page, live)
     page.locator("#cache-free-open").click()  # the confirm opens without the script
     free = page.get_by_role("button", name="Delete the speech cache")

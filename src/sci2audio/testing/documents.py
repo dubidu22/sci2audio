@@ -211,7 +211,7 @@ def _rebuilt_label(block: Block, pieces: Sequence[ScriptPiece], text: str) -> st
     inside the span stands for its part ("Abb. 1" spelled out becomes "Abbildung 1"). A
     replacement running past the label's edge cannot be mapped, and the label goes. Other
     labels are not mapped: a step replaces a footnote's mark with its introduction or a
-    placeholder's text with a notice, which is no label (review B1 of PR #353).
+    placeholder's text with a notice, which is no label (#353).
     """
     if not block.label:
         return ""

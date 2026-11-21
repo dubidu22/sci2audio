@@ -289,3 +289,120 @@ def test_a_fenced_heading_does_not_hide_a_near_miss(tmp_path: Path) -> None:
     result = run("check", str(body), str(tmp_path / "absent.txt"))
     assert result.returncode == 1
     assert result.stdout.startswith('FAIL promised tests: near-miss heading "### Tests promised')
+
+
+PR_689 = """Closes #667
+Closes #669
+
+Batch B-W2, PR B (app). Plan: `governance/plans/web-b-w2-plan.md` §2 (branch `governance`).
+
+## What changes
+
+- `JobSettings.plugins: bool = True`, checked like `subtitles`.
+
+## Plan tests
+
+Plan: `governance/plans/web-b-w2-plan.md`. Each was written first and failed before the change.
+
+- T1 `tests/unit/test_cli_script.py::test_no_plugins_runs_only_the_built_in_steps`
+- T2 `tests/unit/test_cli_convert.py::test_no_plugins_makes_the_audiobook_without_plugins`
+- T11 `tests/unit/test_cli_golden.py::test_command_help_text`: snapshot updated (see below)
+
+**One existing test changed on purpose:** `test_app_settings.py::test_the_file_keeps_every_setting`.
+
+## Licence
+
+No new dependency, copied file, model or text.
+"""
+
+
+def test_the_body_shape_of_pr_689_fails(tmp_path: Path) -> None:
+    """#708: #689 listed its plan's tests under "## Plan tests" and passed as no section."""
+    body = tmp_path / "body.md"
+    body.write_text(PR_689, encoding="utf-8")
+    assert run("files", str(body)).stdout == ""
+    result = run("check", str(body), str(tmp_path / "absent.txt"))
+    assert result.returncode == 1
+    assert result.stdout.strip() == (
+        'FAIL promised tests: "## Plan tests" (line 10) lists node IDs; '
+        "list the plan's tests under ## Tests promised in the plan"
+    )
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        "## Plan tests",
+        "## Tests",
+        "## How it was tested",
+        "## Tests (written first; each failed on main)",
+        "## TESTS",
+    ],
+)
+def test_node_ids_under_a_test_named_heading_fail_as_a_near_miss(
+    tmp_path: Path, heading: str
+) -> None:
+    body = tmp_path / "body.md"
+    body.write_text(
+        f"## What and why\n\nCloses #1.\n\n{heading}\n\n- `{HERE}::t`\n\n## Risk\n",
+        encoding="utf-8",
+    )
+    result = run("check", str(body), str(tmp_path / "absent.txt"))
+    assert result.returncode == 1
+    assert result.stdout.startswith(f'FAIL promised tests: "{heading}" (line 5) lists node IDs')
+
+
+def test_a_test_named_heading_without_node_ids_passes(tmp_path: Path) -> None:
+    """A docs or decision-log PR says how it was tested without naming a test."""
+    body = tmp_path / "body.md"
+    body.write_text(
+        "## How it was tested\n\nRead the page; `uv run pytest` is green.\n", encoding="utf-8"
+    )
+    result = run("check", str(body), str(tmp_path / "absent.txt"))
+    assert result.returncode == 0
+    assert "(opt-in)" in result.stdout
+
+
+def test_a_fenced_node_id_under_a_test_named_heading_passes(tmp_path: Path) -> None:
+    body = tmp_path / "body.md"
+    body.write_text(f"## Tests\n\n```\n- `{HERE}::t`\n```\n", encoding="utf-8")
+    result = run("check", str(body), str(tmp_path / "absent.txt"))
+    assert result.returncode == 0
+    assert "(opt-in)" in result.stdout
+
+
+@pytest.mark.parametrize("heading", ["## What and why", "### Plan tests", "# Tests"])
+def test_node_ids_under_another_heading_pass(tmp_path: Path, heading: str) -> None:
+    """Only a level-2 heading that names tests is taken for a misnamed promise (#708)."""
+    body = tmp_path / "body.md"
+    body.write_text(f"## Summary\n\n{heading}\n\n- `{HERE}::t`\n", encoding="utf-8")
+    result = run("check", str(body), str(tmp_path / "absent.txt"))
+    assert result.returncode == 0
+    assert "(opt-in)" in result.stdout
+
+
+def test_the_exact_heading_wins_over_a_test_named_section(tmp_path: Path) -> None:
+    body = tmp_path / "body.md"
+    body.write_text(
+        f"## Tests promised in the plan\n\n- `{HERE}::t`\n\n"
+        f"## Test summary\n\n- `{HERE}::old` still passes\n",
+        encoding="utf-8",
+    )
+    collected = tmp_path / "collected.txt"
+    collected.write_text(f"{HERE}::t\n", encoding="utf-8")
+    result = run("check", str(body), str(collected))
+    assert result.returncode == 0
+    assert result.stdout.strip() == "ok   promised tests: 1 of 1 collect"
+
+
+def test_a_section_of_tests_already_on_main_passes(tmp_path: Path) -> None:
+    """The check proves presence, not novelty: whether the promises are the plan's is the
+    reviewer's call (#708)."""
+    old = f"{HERE}::test_a_body_without_the_heading_promises_nothing"
+    body = tmp_path / "body.md"
+    body.write_text(f"## Tests promised in the plan\n- `{old}`\n", encoding="utf-8")
+    collected = tmp_path / "collected.txt"
+    collected.write_text(f"{old}\n", encoding="utf-8")
+    result = run("check", str(body), str(collected))
+    assert result.returncode == 0
+    assert result.stdout.strip() == "ok   promised tests: 1 of 1 collect"

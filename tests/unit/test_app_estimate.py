@@ -82,7 +82,7 @@ def test_a_cost_exactly_per_character_keeps_the_plain_rate() -> None:
 
 def test_the_curve_is_not_used_beyond_the_longest_measured_chunk() -> None:
     """A first chapter of names and headings measures only short chunks; the curve fitted
-    on them must not price the long paragraphs that follow (#136 review, D-384). The
+    on them must not price the long paragraphs that follow (#136, D-384). The
     voice costs about what Kokoro does on CPU (0.5 s a call, 0.012 s a character,
     0.00005 s a character squared), with noise of up to 15 % on each measured call. The
     curve fitted on chunks of 10 to 60 characters says 31 % too little for chunks of 150

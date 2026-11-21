@@ -187,7 +187,7 @@ def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
     A line with a list marker (`_items`) opens an item only where the shape says list: as
     the paragraph's first line, right after a line that opens or continues an item, or after
     a line ending in a colon. A spaced dash that a hard wrap put at a line's start ("Texte
-    - meist unterwegs - und") stays inside its sentence (review of #561, M1).
+    - meist unterwegs - und") stays inside its sentence (#561).
 
     Lines are short against the paragraph's longest line that holds a space: a lone long
     token (a URL, a DOI) on a line of its own does not make the filled lines short (M2)."""

@@ -178,7 +178,7 @@ def clause_openers(language: str) -> frozenset[str]:
 
 
 # white space, maybe an opening quote or bracket, then a word that is not the first part of
-# a compound ("Der 2. In-vitro-Versuch" is no "In", PR #267 review R1)
+# a compound ("Der 2. In-vitro-Versuch" is no "In", #267)
 _NEXT_WORD = re.compile(r"\s+[\"'(\[\u201c\u2018\u201e\u00bb]?([^\W\d_]+)\b(?![-\u2010\u2011])")
 
 

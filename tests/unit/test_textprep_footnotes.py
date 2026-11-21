@@ -342,7 +342,7 @@ def test_a_figure_not_raised_on_its_line_or_after_maths_is_kept(
 def test_a_label_like_run_at_a_line_end_is_not_raised_by_the_next_lines_run(
     language: str,
 ) -> None:
-    """#248 M1: font boxes of lines one above the other overlap with normal leading; a run
+    """#248: font boxes of lines one above the other overlap with normal leading; a run
     ending line 1 is not measured against the first run of line 2 (it would look raised by
     about 1 em)."""
     document = boxed_lines(
@@ -355,7 +355,7 @@ def test_a_label_like_run_at_a_line_end_is_not_raised_by_the_next_lines_run(
 
 @pytest.mark.parametrize("language", ["de", "en"])
 def test_a_run_beside_a_subscript_is_not_raised(language: str) -> None:
-    """#248 S1: the rise is measured only against a neighbour in the text's size; a
+    """#248: the rise is measured only against a neighbour in the text's size; a
     subscript set lower makes the normal run before it look raised."""
     document = boxed(
         ("die Werte", 100, 110), ("4", 100, 110), ("i", 104, 112, 7.0), (" danach", 100, 110),

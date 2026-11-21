@@ -124,7 +124,7 @@ def test_other_text_is_not_a_link(text: str) -> None:
             "https://doi.org/\n10.48550/arXiv.2311.03973",
             "https://doi.org/\n10.48550/arXiv.2311.03973",
         ),
-        # broken at a hyphen: the link claims the hyphen and the line break (review of #98, N1)
+        # broken at a hyphen: the link claims the hyphen and the line break (#98)
         (
             "https://aclanthology.org/2023.acl-\nshort.4 here",
             "https://aclanthology.org/2023.acl-\nshort.4",
@@ -268,7 +268,7 @@ def test_each_edit_names_the_link_as_printed_and_its_repair() -> None:
 @pytest.mark.parametrize(
     ("text", "spoken"),
     [
-        # M1 (review of #103): a repair that reaches over a later link takes it along
+        # a repair that reaches over a later link takes it along (#103)
         ("See https://a.org (mirror at www.b.org/x).", "(mirror)."),  # "mirror" is a word
         ("See https://a.org (or www.b.org/x) for details.", ""),
         ("It works (see https://a.org/x and also www.b.org/y).", "It works."),
@@ -446,7 +446,7 @@ def test_any_text_keeps_the_contract(text: str) -> None:
 
 
 def test_the_generated_sentences_mostly_hold_links() -> None:
-    # density probe (review of #83): most examples must exercise the step
+    # density probe (#83): most examples must exercise the step
     found = []
 
     @given(sentences())

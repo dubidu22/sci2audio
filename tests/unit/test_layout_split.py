@@ -1,5 +1,5 @@
 """Keeping some of a block's parts (layout `split.kept`): each kept line's text as found,
-graphics holding no text wherever they stand (review of PR #61). Cutting a block and reading
+graphics holding no text wherever they stand (#61). Cutting a block and reading
 lines row by row, with pieces of a printed line joined by a space only where the page prints
 one (#36) or a fraction bar stands between them (#202)."""
 
@@ -173,7 +173,7 @@ def test_a_piece_under_a_fraction_bar_keeps_a_space() -> None:
 
 
 def test_a_numerator_with_a_raised_superscript_keeps_its_space() -> None:
-    """Review R1-1 of #323, liu p2 "∂E^m_q over ∂q": the reach to the bar is measured from
+    """#323, liu p2 "∂E^m_q over ∂q": the reach to the bar is measured from
     the numerator letter nearest it (the subscript q, 0.02 em above), not from its
     superscript m, here lifted 2 pt more than liu prints it (0.72 em above the bar)."""
     numerator = TextLine(
@@ -199,7 +199,7 @@ def test_a_numerator_with_a_raised_superscript_keeps_its_space() -> None:
 
 
 def test_an_underlined_piece_keeps_a_subscript_after_it_joined() -> None:
-    """Review R1-3 of #323: an underline under a word does not stand between the word and
+    """#323: an underline under a word does not stand between the word and
     a subscript tucked back under its last letter (the subscript's middle is above it)."""
     word = TextLine(
         "w", (TextRun("word", "Times", 10.0, box=Box(0, 100, 30, 110)),), Box(0, 100, 30, 110)

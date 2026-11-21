@@ -352,7 +352,7 @@ def owner_locked_pdf(text: str, permissions: int, revision: int = 3) -> bytes:
     Written here, after algorithms 2, 3 and 4 or 5 of PDF 32000-1, 7.6.3, so the tests need
     no pikepdf (MPL-2.0, not a dependency) and cover revision 2 too. pikepdf can write
     revision 3 with accessibility forbidden; from revision 4 on (AES) qpdf always allows it
-    (review S3 of #188)."""
+    (#188)."""
     length = 5 if revision == 2 else 16
     rounds = 0 if revision == 2 else 50
     file_id = _md5(text.encode())

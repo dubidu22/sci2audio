@@ -248,7 +248,7 @@ def test_edits_only_remove_or_replace_and_never_touch_plain_characters(text: str
 
 
 def test_a_maths_hat_inside_a_word_is_left_alone() -> None:
-    """Review M1 of #98: in liu, "v\N{MODIFIER LETTER CIRCUMFLEX ACCENT}y" is the hat of v,
+    """#98: in liu, "v\N{MODIFIER LETTER CIRCUMFLEX ACCENT}y" is the hat of v,
     not "y" with a circumflex."""
     liu = "1/2{L\N{MODIFIER LETTER CIRCUMFLEX ACCENT} z, v\N{MODIFIER LETTER CIRCUMFLEX ACCENT}y}"
     assert edits_of(liu) == []
@@ -260,7 +260,7 @@ def test_a_maths_hat_inside_a_word_is_left_alone() -> None:
 
 
 def test_a_letterlike_symbol_that_looks_like_its_letter_is_named() -> None:
-    """Review N3 of #98: 'read "K" as "K"' would look like an edit that does nothing."""
+    """#98: 'read "K" as "K"' would look like an edit that does nothing."""
     assert edits_of("at 300 \N{KELVIN SIGN} only")[0][3] == (
         'mathematical characters U+212A KELVIN SIGN read as "K"'
     )
@@ -284,7 +284,7 @@ def test_an_apostrophe_accent_before_a_contraction_stays() -> None:
 
 @pytest.mark.parametrize(
     ("text", "read_on"),
-    [  # what the contraction check sees after an acute (#160, review F3 of PR #208)
+    [  # what the contraction check sees after an acute (#160, #208)
         ("\u2113\u02c7\u2113", "l\u013e"),  # a math letter folded, an accent composed
         ("\u02c7\u0131", "\u01d0"),  # TeX's dotless i takes the accent as "i"
         ("\u00b4q", "q"),  # no single letter for "q" with an acute: the accent is dropped

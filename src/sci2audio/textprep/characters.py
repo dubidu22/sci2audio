@@ -170,7 +170,7 @@ def _accent(text: str, i: int) -> _Run | None:
     if letter.isascii() and letter.isalpha():
         inside_word = before.isalpha()
         if char == _CIRCUMFLEX and not (inside_word and letter.lower() in _VOWELS):
-            return None  # "ˆj", "vˆy": a hat in maths (review M1 of #98)
+            return None  # "ˆj", "vˆy": a hat in maths (#98)
         if char == "\u00b4" and inside_word and _CONTRACTION.match(_read_on(text, j)):
             return None  # "it´s": an apostrophe
         composed = unicodedata.normalize("NFC", letter + ACCENTS[char])
@@ -244,7 +244,7 @@ def _reason(run: _Run, original: str) -> str:
         return f'ligature "{original}" read as "{run.replacement}"'
     if run.kind == "math":
         if any(_LETTERLIKE_FIRST <= char <= _LETTERLIKE_LAST for char in original):
-            # "K" (Kelvin sign) looks like "K": name the characters (review N3 of #98)
+            # "K" (Kelvin sign) looks like "K": name the characters (#98)
             return f'mathematical characters {_names(original)} read as "{run.replacement}"'
         return f'mathematical characters "{original}" read as "{run.replacement}"'
     if run.kind == "accent":

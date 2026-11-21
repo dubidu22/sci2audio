@@ -44,7 +44,7 @@ def listen_to(page: Page, live: Live, path: Path, pdf: bytes) -> None:
     """Open this PDF, make its audiobook and open the player. The start waits until the
     page no longer follows the analysis: a page drawn while the analysis job ends shows
     the Make button and still reloads itself, which cancels the start's move to the job
-    page (review R3-1 of #289, as `open_paper` does for #138)."""
+    page (#289, as `open_paper` does for #138)."""
     live.install_voice()
     live.voice.samples_per_character = PER_CHARACTER
     path.write_bytes(pdf)
@@ -96,7 +96,7 @@ def test_the_highlight_follows_the_voice_into_the_next_chapter(signed_in: Page, 
     make_audiobook(page, live)
     expect(page.locator("#text")).to_contain_text(
         "Things happen (Smith, 2020) (not read) and more."
-    )  # #444 N2
+    )  # #444
     expect(page.locator("#text")).not_to_contain_text("A book about things")  # not chosen
     # the Chapters panel lists the chosen chapters only, and names no other (#472)
     expect(page.locator(".outline .ot")).to_have_text(["Introduction", "Methods"])
@@ -334,7 +334,7 @@ def test_a_footnote_lights_up_after_the_sentence_with_its_mark(
 
 
 # a page of running text: code is told from text only where the text is not itself set in
-# a typewriter font (review M1 of #289), so a made-up PDF with a listing needs some
+# a typewriter font (#289), so a made-up PDF with a listing needs some
 PROSE_PAGE = [
     Text(f"Running text on the second page, line {k}, set in a proportional font.", 72, 80 + 14 * k)
     for k in range(30)
@@ -394,7 +394,7 @@ def test_a_pdf_listing_is_shown_with_its_printed_indent(
 def test_a_listing_taller_than_the_window_keeps_its_spoken_notice_in_view(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
-    """Review F1 of #288: when the reading reaches a code block taller than the window, its
+    """#288: when the reading reaches a code block taller than the window, its
     top, where the spoken notice stands, comes to rest at the window's top, above the dock."""
     page = signed_in
     page.set_viewport_size({"width": 1280, "height": 720})
@@ -447,7 +447,7 @@ def test_text_from_the_file_cannot_change_how_the_page_parses(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
     # `<!--<script>` in a heading would make the browser read the rest of the page as
-    # part of the data block, if `<` were not escaped there (review of PR #144, M1)
+    # part of the data block, if `<` were not escaped there (#144)
     page = signed_in
     pdf = make_pdf(
         [
@@ -473,7 +473,7 @@ SIZES = [(1280, 800), (768, 640), (768, 576), (390, 844), (320, 568), (320, 256)
 
 
 def test_the_dock_never_hides_the_page(signed_in: Page, live: Live) -> None:
-    # review of PR #144, M2: the sticky bar covered the text at small widths and at zoom; the
+    # #144: the sticky bar covered the text at small widths and at zoom; the
     # dock (#393) is pinned to the window's foot by the same rule
     page = signed_in
     document = make_audiobook(page, live)

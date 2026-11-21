@@ -91,7 +91,7 @@ def system_language(
 ) -> str:
     """The language of the app's own messages before any page was shown: the system's, if
     sci2audio speaks it. Windows names locales like `German_Germany`, which
-    `locale.normalize` turns into `de_DE...` (#631 F2)."""
+    `locale.normalize` turns into `de_DE...` (#631)."""
     with contextlib.suppress(ValueError):
         name = locale.normalize(getlocale()[0] or "").lower()
         for language in LANGUAGES:
@@ -145,7 +145,7 @@ class AppWindow:
 
     Closing asks through pywebview's own `confirm_close`, never with a dialog of ours: the
     `closing` handler runs on the GUI thread, and on macOS a dialog opened from it waits
-    for that same thread and the window hangs (#631 F1). The handler only decides whether
+    for that same thread and the window hangs (#631). The handler only decides whether
     to ask and in which language."""
 
     def __init__(
@@ -164,7 +164,7 @@ class AppWindow:
         self.window: Any = None
 
     def strings(self) -> Strings:
-        """The language of the page the window showed last, else the system's (#631 F2)."""
+        """The language of the page the window showed last, else the system's (#631)."""
         return strings(self.server.state.language or system_language())
 
     def open(self) -> None:
@@ -284,7 +284,7 @@ def _applescript(text: str) -> str:
 
 
 def show_message(title: str, text: str, platform: str | None = None) -> None:
-    """A native message for a person who has no terminal (#631 F4): a message box on
+    """A native message for a person who has no terminal (#631): a message box on
     Windows, an alert on macOS; on Linux nothing (the log says it)."""
     platform = platform or sys.platform
     with contextlib.suppress(Exception):  # the message must never hide the real failure

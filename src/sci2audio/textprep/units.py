@@ -211,7 +211,7 @@ class UnitStep(TextStep):
         potassium-40 (#449). Its magnitude edit becomes a `replace` of the raised digits with
         superscript digits, so the letter stays as printed and a second run, which sees no
         run tags, reads "⁴⁰K" the same. A mass number begins a word: a raised run glued after
-        a letter or a digit ("10⁴K", an exponent) keeps its magnitude edit (#572 review)."""
+        a letter or a digit ("10⁴K", an exponent) keeps its magnitude edit (#572)."""
         ends = {end: start for start, end in raised}
         kept = []
         for edit in edits:

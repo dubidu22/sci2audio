@@ -91,7 +91,7 @@ class Watch:
     and no window to close, so it stops when the rail's Quit item is pressed, or when no
     request has come for `idle` seconds while no job runs (the Listen page saves the
     position every few seconds while it plays, and a page in sight asks for the job list
-    once a minute, so reading and listening keep it alive, #631 F3)."""
+    once a minute, so reading and listening keep it alive, #631)."""
 
     def __init__(
         self,
