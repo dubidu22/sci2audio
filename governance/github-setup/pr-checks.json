@@ -49,6 +49,8 @@
       "governance/claude-project-rules.yaml",
       "governance/rules/**",
       "governance/project_instructions.md",
+      "governance/dispatcher_instructions.md",
+      "governance/claude-md-snippet.md",
       "governance/governance-config.json",
       "governance/github-setup/**",
       "governance/tools/**"
@@ -84,6 +86,8 @@
     "governance/claude-project-rules.yaml",
     "governance/rules/**",
     "governance/project_instructions.md",
+    "governance/dispatcher_instructions.md",
+    "governance/claude-md-snippet.md",
     "governance/governance-config.json",
     "governance/tools/**",
     "governance/kb/README.md",

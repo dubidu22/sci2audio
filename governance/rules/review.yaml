@@ -1,8 +1,8 @@
 # Extract for review threads. Generated with claude-project-rules.yaml; do not edit.
 # It holds the rules scoped to this role or to all. If it and the full file ever differ, the full file wins.
 extract_for: review
-version: 1.8.0
-date: 2026-11-20
+version: 1.9.0
+date: 2026-11-21
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
 public_repo: true
@@ -19,8 +19,8 @@ project_profile:
   execution_lanes: ["extraction/voices", "layout", "textprep", "app/release", "web", "docs"]
   file_ownership_labels: ["lane:core", "lane:extraction", "lane:layout", "lane:textprep", "lane:voices", "lane:output", "lane:app", "lane:web", "lane:cli", "lane:infra", "lane:docs"]
   lane_mapping_note: "Execution lanes are who works; lane:* labels (.github/lanes.yml) are which files a PR may touch. extraction/voices -> lane:extraction, lane:voices, lane:output. layout -> lane:layout. textprep -> lane:textprep (incl. src/sci2audio/testing). app/release -> lane:app, lane:cli (and lane:web when a PR spans both). web -> lane:web (src/sci2audio/web, static, templates, browser tests). docs -> lane:docs (docs/, CLAUDE.md, KB process text). app and web share files often, so LANE-02 keeps them apart unless their PRs touch disjoint files (D-761 B7/B8). lane:core and lane:infra are shared and critical; lane:infra is the lock. (D-765)"
-  critical_paths: ["src/sci2audio/core/**", ".github/**", "pyproject.toml", "uv.lock", "tests/corpus/**", "tests/unit/__snapshots__/**", "tests/regression/**", "THIRD_PARTY_LICENSES.md", "governance/claude-project-rules.yaml", "governance/rules/**", "governance/project_instructions.md", "governance/governance-config.json", "governance/tools/**", "governance/kb/README.md", "governance/kb/**/adr-*.md", "governance/kb/**/playbook-*.md", "governance/kb/**/doc-*.md"]
-  label_paths: ["lane:core=src/sci2audio/core/**", "lane:extraction=src/sci2audio/extraction/**", "lane:layout=src/sci2audio/layout/**", "lane:textprep=src/sci2audio/textprep/**", "lane:textprep=src/sci2audio/testing/**", "lane:voices=src/sci2audio/voices/**", "lane:output=src/sci2audio/output/**", "lane:app=src/sci2audio/app/**", "lane:web=src/sci2audio/web/**", "lane:cli=src/sci2audio/cli.py", "lane:infra=.github/**", "lane:infra=pyproject.toml", "lane:infra=uv.lock", "lane:infra=.pre-commit-config.yaml", "lane:infra=governance/claude-project-rules.yaml", "lane:infra=governance/rules/**", "lane:infra=governance/project_instructions.md", "lane:infra=governance/governance-config.json", "lane:infra=governance/github-setup/**", "lane:infra=governance/tools/**", "lane:docs=*.md", "lane:docs=docs/**", "lane:docs=docs/design/**", "lane:docs=.claude/**", "lane:docs=governance/kb/**", "lane:docs=governance/plans/**", "lane:docs=governance/ledger/**", "lane:docs=governance/project-state.yaml", "lane:docs=governance/memory/**", "lane:docs=governance/release/**", "lane:docs=governance/workflow-export.md"]
+  critical_paths: ["src/sci2audio/core/**", ".github/**", "pyproject.toml", "uv.lock", "tests/corpus/**", "tests/unit/__snapshots__/**", "tests/regression/**", "THIRD_PARTY_LICENSES.md", "governance/claude-project-rules.yaml", "governance/rules/**", "governance/project_instructions.md", "governance/dispatcher_instructions.md", "governance/claude-md-snippet.md", "governance/governance-config.json", "governance/tools/**", "governance/kb/README.md", "governance/kb/**/adr-*.md", "governance/kb/**/playbook-*.md", "governance/kb/**/doc-*.md"]
+  label_paths: ["lane:core=src/sci2audio/core/**", "lane:extraction=src/sci2audio/extraction/**", "lane:layout=src/sci2audio/layout/**", "lane:textprep=src/sci2audio/textprep/**", "lane:textprep=src/sci2audio/testing/**", "lane:voices=src/sci2audio/voices/**", "lane:output=src/sci2audio/output/**", "lane:app=src/sci2audio/app/**", "lane:web=src/sci2audio/web/**", "lane:cli=src/sci2audio/cli.py", "lane:infra=.github/**", "lane:infra=pyproject.toml", "lane:infra=uv.lock", "lane:infra=.pre-commit-config.yaml", "lane:infra=governance/claude-project-rules.yaml", "lane:infra=governance/rules/**", "lane:infra=governance/project_instructions.md", "lane:infra=governance/dispatcher_instructions.md", "lane:infra=governance/claude-md-snippet.md", "lane:infra=governance/governance-config.json", "lane:infra=governance/github-setup/**", "lane:infra=governance/tools/**", "lane:docs=*.md", "lane:docs=docs/**", "lane:docs=docs/design/**", "lane:docs=.claude/**", "lane:docs=governance/kb/**", "lane:docs=governance/plans/**", "lane:docs=governance/ledger/**", "lane:docs=governance/project-state.yaml", "lane:docs=governance/memory/**", "lane:docs=governance/release/**", "lane:docs=governance/workflow-export.md"]
   doc_paths: ["docs/**", "**/README.md", "CHANGELOG.md", "CONTRIBUTING.md", ".github/**", ".claude/**"]
   governance_paths: ["governance/kb/**", "governance/plans/**", "governance/ledger/**", "governance/project-state.yaml", "governance/memory/**", "governance/release/**", "governance/workflow-export.md"]
   workspace_root: "./governance"
@@ -32,28 +32,38 @@ project_profile:
 
 execution_profile:
   model_routing:
-    coordinator: "Fable 5.1"
+    coordinator: "Opus 5.5 high"
     specify: "Opus 5.5 high"
     critical_work: "Opus 5.5 high"
     implementation: "Opus 5.5 high"
     review_kb_audit: "Opus 5.5 medium"
-    operations: "Opus 5.5 medium"
+    operations: "Sonnet 5.5 high"
   token_economy:
-    profile_name: balanced
-    max_concurrent_lanes: 3
-    replace_after_prs: 3
-    replace_at_compressions: 2
-    watchdog_interval_minutes: 60
-    watchdog_max_nudges: 2
+    profile_name: frugal
+    max_concurrent_lanes: 2
+    replace_after_prs: 2
+    replace_at_compressions: 1
+    watchdog_interval_minutes: 120
+    watchdog_max_nudges: 3
     non_critical_max_review_rounds: 2
     critical_max_review_rounds: 4
-    batch_audit_mode: "light_every_batch"
-    kb_pr_cadence: "daily"
-    reporting_verbosity: "terse_batched"
+    batch_audit_mode: "critical_only"
+    kb_pr_cadence: "per_milestone_or_batch"
+    reporting_verbosity: "ultra_terse"
     offload_heavy_checks_to_ci: true
-    goal_turn_cap: 30
+    goal_turn_cap: 20
     cache_ttl_minutes: 60
     coordinator_compact_every_batches: 1
+
+# Read only this when you start; ask a running thread or search for anything else.
+start_reading:
+  - "the pull request's diff"
+  - "the plan it implements"
+  - "the previous round report for this pull request"
+leave_unread:
+  - "the implementation thread's chat"
+  - "other pull requests"
+  - "code outside the diff, unless a finding needs it"
 
 rules:
   - id: META-01
@@ -67,7 +77,7 @@ rules:
     rule: "No thread changes settings of the Claude app, the project, the account, the repository or the hosting (default model, a chat's model, permissions, secrets, branch protection, billing). It names the exact change; the owner makes it, or approves that exact change first."
   - id: ROLE-07
     applies_to: review
-    rule: "A review thread is never the PR author. It reviews all PRs of a batch in rounds, writes round reports and their ledger entries, inspects CI checks, and squash-merges only on the coordinator's explicit go."
+    rule: "A review thread is never the PR author. It reviews all PRs of a batch in rounds, writes round reports and their ledger entries, inspects CI checks, and squash-merges only on an explicit go (dispatcher for PRs confirmed non-critical, coordinator for critical ones). After a merge it watches the run on main for the merge commit and records the result in the round entry, so nobody else has to watch."
   - id: THR-02
     applies_to: all
     rule: "A worker thread (including the KB thread) is replaced once it has handled execution_profile.token_economy.replace_after_prs PRs, counted from its ledger entries, or noticed replace_at_compressions compressions, whichever comes first. It finishes its current atomic step (review round, fix commit, or KB PR) and is replaced at the next hand-off, never mid-step. The coordinator is never replaced."
@@ -79,13 +89,16 @@ rules:
     rule: "Working files (plans, round reports, ledger entries, batch files, state, pending decisions) live on branch governance: their one writer commits them in a second worktree (git worktree add ../<repo>-governance governance), rebasing before each push, never force-pushing, never on a product branch."
   - id: THR-14
     applies_to: all
-    rule: "The ruleset, its config, and the decision log change on main by pull request only, and main holds the copy that counts: a copy on governance that differs from it is not valid. The coordinator merges main into governance after each such merge."
+    rule: "The ruleset, its config, and the decision log change on main by pull request only, and main holds the copy that counts: a copy on governance that differs from it is not valid. The dispatcher merges main into governance after each such merge."
   - id: THR-07
     applies_to: all
-    rule: "A thread silent for longer than execution_profile.token_economy.cache_ttl_minutes pays for its whole history again on its next message. Before such a wait, write a three-line handoff (goal, done, next) into your plan or round report. Except for the coordinator, work that resumes after the gap goes to a fresh thread started from that handoff."
+    rule: "A thread silent for longer than execution_profile.token_economy.cache_ttl_minutes pays for its whole history again on its next message. Before such a wait, write a three-line handoff (goal, done, next) into your plan or round report, and under it what you tried and ruled out, with the evidence. Except for the coordinator, work that resumes after the gap goes to a fresh thread started from that handoff."
   - id: THR-09
     applies_to: all
     rule: "A thread keeps its model and its tool set from first message to last; changing either re-sends the whole history uncached, so work that needs another model goes to another thread. Keep tool output out of the chat: quiet flags, tail -50, or a file read only where it fails; report a check in one line."
+  - id: THR-15
+    applies_to: implementation,review
+    rule: "A worker's report starts with one word: done, question, blocked, review or handoff. It stops only as blocked (two attempts failed for different reasons; finishing would break a rule, name its id; or it needs a destructive git operation, never attempted), question (plan or scope must change) or review (the owner must look). blocked and question carry the evidence and a line Recommended: <one action>, and go in the PR's ledger entry."
   - id: CRIT-01
     applies_to: all
     rule: "A change is critical if it touches layer contracts (lint-imports layers, voice plugin contract, text-step interface), core dataclasses (sci2audio.core), KB process, contract or architecture documents (excluding the daily decision-log PR), golden files (corpus truth files, syrupy snapshots, English regression cases), packaging, release and CI workflows, safety mechanisms, licences and third-party content, anything that deletes or overwrites user files, network calls, or carries risk:high."
@@ -101,6 +114,9 @@ rules:
   - id: PR-05
     applies_to: implementation,review
     rule: "A comment says why the code is as it is, never what it does, what changed or who asked; add no other. The reviewer treats a narrating or change-history comment as a finding (kind narrating-comment). Create no file the rules, the approved plan or the owner did not name: no summary, notes or report files, and new markdown only under project_profile.doc_paths. Reports go in the PR body or the ledger."
+  - id: PR-06
+    applies_to: review
+    rule: "A PR does the task at the size it was asked: a feature, option, abstraction or test the plan does not name is a finding. A new dependency, tool or service needs three lines in the PR body: what it does, what the project already has for that, and the difference that justifies it."
   - id: REV-01
     applies_to: review
     rule: "Non-critical PRs run up to execution_profile.token_economy.non_critical_max_review_rounds rounds; should-fix leftovers are then deferred to issues, must-fix findings never (they stop the PR for the coordinator). Critical PRs run up to round 4, then hit a hard stop requiring owner sign-off."
@@ -115,10 +131,13 @@ rules:
     rule: "A retry, a timeout or deadline, a cache, or a raised limit added to make a failure go away is a workaround until the PR names the cause it removes; the reviewer treats it as a finding (REV-05). A PR that claims to remove a finding kind for good names it in fixes_kinds of its ledger entry. If the kind comes back, ledger_tool.py stats marks the fix regressed and the next fix goes one step up (META-03)."
   - id: MRG-01
     applies_to: review
-    rule: "Squash-merge only on the coordinator's explicit go, pinned to the reviewed head SHA, with no open B/M finding in the latest round report (ledger_tool.py gate <N> passes) and required CI green (and all target_platforms green for critical PRs). If behind main, update via merge commit (never force-push), re-verify diff and CI, and merge on the new SHA."
+    rule: "Squash-merge only on an explicit go (dispatcher for PRs confirmed non-critical, coordinator for critical ones), pinned to the reviewed head SHA, with no open B/M finding in the latest round report (ledger_tool.py gate <N> passes) and required CI green (and all target_platforms green for critical PRs). If behind main, update via merge commit (never force-push), re-verify diff and CI, and merge on the new SHA."
   - id: MRG-02
     applies_to: coordinator,review
     rule: "Only the owner can let a PR merge that the gate stops, and only once: the coordinator records the owner's reason and the head SHA it is for in ./governance/ledger/overrides/pr-<N>.yaml. The override holds for that head only; a changed PR needs a new decision. It is never turned into a setting or a standing exception. The same reason a second time means the rule itself changes (META-01)."
+  - id: VER-02
+    applies_to: review,audit
+    rule: "A check counts only after it has failed once on a case known to be wrong; until then green proves nothing (pr_checks.py --self-test does this for the pull-request checks). A result that looks too good is a measurement error until shown otherwise. A summary from another thread, a tool or an older note is a claim: check it against the file, the diff or the output before a decision rests on it."
   - id: CI-01
     applies_to: all
     rule: "Fast checks run automatically on PRs; full target_platforms matrix runs on main, release/**, and via explicit full-CI dispatch/label on critical PRs (including critical PRs into release branches). Offload heavy suites to CI actions whenever possible."
@@ -133,4 +152,4 @@ rules:
     rule: "Cut release/X.Y from the release-ready main merge commit. Release fixes land via PR on release/X.Y and port verbatim to main. No quarantined tests may remain at tag time."
   - id: PREF-01
     applies_to: all
-    rule: "Report times to Colin in Europe/Berlin. Terminal commands for Colin carry no comments inside the code block; explanations go beside it."
+    rule: "Report times to Colin in Europe/Berlin. Terminal commands for Colin carry no comments inside the code block; explanations go beside it. For a decision the coordinator would otherwise put to Colin, or a real open choice in a critical plan, the coordinator first asks one advisor thread on Fable 5.1 medium effort for a second opinion: it reads only, writes no files, answers once, and the D-entry quotes its verdict."

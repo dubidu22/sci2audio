@@ -8,6 +8,10 @@ Read the ledger: one small file per PR and per review round (ledger/README.md).
     python3 ledger_tool.py gate <PR number> [--head SHA]
                                                   # may this PR be merged? exit 0 only if the entries say yes (MRG-01),
                                                   # or the owner's one-off override for exactly this head is recorded
+    python3 ledger_tool.py status                 # what is open now, a few lines, PRs by number (ROLE-17)
+    python3 ledger_tool.py triage                 # what was left behind and has no decision yet; exit 1 while anything is
+                                                  # open. Run before a new batch is composed (THR-16)
+    python3 ledger_tool.py flags                  # one line per thing an audit should judge, from the entries alone (ROLE-15)
 
 The ledger directory defaults to `../ledger` next to this script's folder (the
 scaffolded `tools/`), or `./ledger`. This tool only reads. Entries are flat
@@ -17,6 +21,7 @@ scaffolded `tools/`), or `./ledger`. This tool only reads. Entries are flat
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -25,6 +30,11 @@ PR_KEYS = ("pr", "opened", "thread", "lane", "labels", "critical", "compactions"
 ROUND_KEYS = ("pr", "round", "date", "thread", "head", "verdict", "must_fix", "should_fix", "report")
 REVERT_KEYS = ("pr", "date", "by", "reason")
 OVERRIDE_KEYS = ("pr", "date", "by", "head", "reason")
+DEFERRED_KEYS = ("pr", "date", "what", "decision")
+DECISIONS = ("open", "planned", "postponed", "dropped")
+# first word of a worker thread's report (THR-15); the ones in OPEN_HANDBACKS stop a merge until cleared
+HANDBACKS = ("done", "question", "blocked", "review", "handoff")
+OPEN_HANDBACKS = ("question", "blocked", "review")
 MIN_REASON = 20
 INT_KEYS = {"pr", "round", "compactions", "must_fix", "should_fix"}
 
@@ -67,6 +77,127 @@ def load_reverts(ledger: Path) -> list[dict[str, str]]:
 def load_overrides(ledger: Path) -> list[dict[str, str]]:
     folder = ledger / "overrides"
     return [dict(read_entry(p), _file=p.name) for p in sorted(folder.glob("*.yaml"))] if folder.is_dir() else []
+
+
+def load_deferred(ledger: Path) -> tuple[list[dict[str, str]], str]:
+    """(entries of deferred/, the date from deferred/since.txt or '')."""
+    folder = ledger / "deferred"
+    if not folder.is_dir():
+        return [], ""
+    since = ""
+    marker = folder / "since.txt"
+    if marker.is_file():
+        m = re.search(r"^\d{4}-\d{2}-\d{2}$", marker.read_text(encoding="utf-8"), re.MULTILINE)
+        since = m.group(0) if m else ""
+    return [dict(read_entry(p), _file=p.name) for p in sorted(folder.glob("*.yaml"))], since
+
+
+def deferred_problems(e: dict[str, str]) -> list[str]:
+    out = [f"`{k}` is missing" for k in DEFERRED_KEYS if not e.get(k)]
+    if e.get("pr") and not re.fullmatch(r"\d+", e["pr"]):
+        out.append(f"`pr` must be a whole number, got '{e['pr']}'")
+    decision = e.get("decision", "")
+    if decision and decision not in DECISIONS:
+        out.append(f"`decision` must be one of {', '.join(DECISIONS)}, got '{decision}'")
+    if decision == "planned" and not re.fullmatch(r"#?\d+", e.get("issue", "")):
+        out.append("a planned item names the `issue` (a number) that carries it")
+    if decision in ("postponed", "dropped") and len(e.get("reason", "").strip()) < MIN_REASON:
+        out.append(f"a {decision} item says why in `reason` (at least {MIN_REASON} characters)")
+    if decision == "postponed" and not e.get("until"):
+        out.append("a postponed item says `until` when (a milestone, a date or an event)")
+    if decision == "dropped" and "owner" not in e.get("by", "").lower():
+        out.append("dropping an item is the owner's call: `by` names the owner and where they said it")
+    return out
+
+
+def handback_problems(e: dict[str, str]) -> list[str]:
+    hb = e.get("handback", "")
+    if not hb:
+        return []
+    if hb not in HANDBACKS:
+        return [f"`handback` must be one of {', '.join(HANDBACKS)}, got '{hb}'"]
+    if hb in ("question", "blocked") and len(e.get("recommended", "").strip()) < 10:
+        return [f"a `{hb}` hand-back carries `recommended`: the one next action the thread proposes"]
+    return []
+
+
+def triage(rounds: list[dict[str, str]], deferred: list[dict[str, str]], since: str) -> tuple[list[str], list[str]]:
+    """(lines that still need a decision, lines that are settled)."""
+    todo: list[str] = []
+    settled: list[str] = []
+    per_pr: dict[str, int] = {}
+    for e in deferred:
+        wrong = deferred_problems(e)
+        per_pr[e.get("pr", "")] = per_pr.get(e.get("pr", ""), 0) + 1
+        label = f"deferred/{e['_file']} (PR #{e.get('pr', '?')}): {e.get('what', '').strip() or '(no text)'}"
+        if wrong:
+            todo.append(f"{label}: " + "; ".join(wrong))
+        elif e["decision"] == "open":
+            todo.append(f"{label}: no decision yet. Plan it (issue), postpone it (reason, until) or ask the owner to drop it")
+        else:
+            how = {"planned": f"planned in #{e.get('issue', '').lstrip('#')}", "postponed": f"postponed until {e.get('until', '')}",
+                   "dropped": f"dropped by {e.get('by', '')}"}[e["decision"]]
+            settled.append(f"{label}: {how}")
+    for r in sorted((r for r in rounds if r.get("merged")), key=lambda r: num(r.get("pr"))):
+        left = num(r.get("should_fix"))
+        if left and (not since or r.get("date", "") >= since) and per_pr.get(r.get("pr", ""), 0) < left:
+            have = per_pr.get(r.get("pr", ""), 0)
+            todo.append(f"PR #{r.get('pr')} was merged with {left} should-fix finding(s) open, {have} recorded in deferred/: "
+                        f"write one entry per finding from {r.get('report') or 'the round report'}")
+    return todo, settled
+
+
+def flags(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: list[dict[str, str]],
+          overrides: list[dict[str, str]], deferred: list[dict[str, str]], since: str) -> list[str]:
+    """One line per thing an audit should judge. Derived from the entries; nobody writes a flag by hand."""
+    out: list[str] = []
+    per_pr = {e.get("pr", ""): len([r for r in rounds if r.get("pr") == e.get("pr")]) for e in prs}
+    out += [f"flag: rounds | PR #{p} took {n} review rounds" for p, n in sorted(per_pr.items(), key=lambda kv: num(kv[0])) if n >= 3]
+    out += [f"flag: compactions | PR #{e.get('pr')} was compacted {e.get('compactions')} times while in work"
+            for e in prs if num(e.get("compactions")) >= 2]
+    seen: dict[str, list[str]] = {}
+    for r in sorted(rounds, key=lambda r: (num(r.get("pr")), num(r.get("round")))):
+        for k in kinds_of(r):
+            if r.get("pr", "?") not in seen.setdefault(k, []):
+                seen[k].append(r.get("pr", "?"))
+    out += [f"flag: repeated-kind | {k} in {', '.join('#' + p for p in v)}" for k, v in sorted(seen.items()) if len(v) > 1]
+    out += [f"flag: regressed | {kind} claimed fixed by #{pr}, back in {', '.join('#' + p for p in back)}"
+            for kind, pr, standing, back in fix_claims(prs, rounds) if standing == "regressed"]
+    merged = {r.get("pr") for r in rounds if r.get("merged")}
+    out += [f"flag: revert | PR #{e.get('pr')} was reverted: {e.get('reason', '').strip()}"
+            for e in sorted(reverts, key=lambda e: num(e.get("pr"))) if e.get("pr") in merged]
+    out += [f"flag: override | PR #{o.get('pr')} was merged on an owner override: {o.get('reason', '').strip()}"
+            for o in sorted(overrides, key=lambda o: num(o.get("pr")))]
+    out += [f"flag: handback | PR #{e.get('pr')} handed back `{e['handback']}`: {e.get('recommended', '').strip() or '(no recommendation)'}"
+            for e in sorted(prs, key=lambda e: num(e.get("pr"))) if e.get("handback") in OPEN_HANDBACKS]
+    todo, _ = triage(rounds, deferred, since)
+    out += [f"flag: untriaged | {line}" for line in todo]
+    return out
+
+
+def seam_status(ledger: Path, rounds: list[dict[str, str]]) -> tuple[bool, str] | None:
+    """(due, one line) for the seam audit, or None when the project has no seam groups.
+
+    Reads `seam_groups` and `seam_audit_every_prs` from governance-config.json next to the ledger. Counts
+    merge rounds dated after the newest ledger/audits/seam-<date>.md; nobody keeps the count by hand.
+    """
+    try:
+        cfg = json.loads((ledger.parent / "governance-config.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(cfg, dict) or not cfg.get("seam_groups"):
+        return None
+    every = cfg.get("seam_audit_every_prs")
+    every = every if isinstance(every, int) and not isinstance(every, bool) and every > 0 else 15
+    dates = sorted(m.group(1) for p in (ledger / "audits").glob("seam-*.md")
+                   if (m := re.fullmatch(r"seam-(\d{4}-\d{2}-\d{2})(-\d+)?\.md", p.name))) if (ledger / "audits").is_dir() else []
+    last = dates[-1] if dates else ""
+    merged = len({r.get("pr") for r in rounds if r.get("merged") and r.get("date", "") > last})
+    since = f"since the seam audit of {last}" if last else "and no seam audit has run yet"
+    if merged >= every:
+        return True, (f"{merged} PRs merged {since} (due every {every}): start a fresh read-only session with the output of "
+                      "tools/seam_audit.py brief (ROLE-16)")
+    return False, f"{merged} of {every} PRs merged {since}"
 
 
 def kinds_of(entry: dict[str, str], key: str = "kinds") -> list[str]:
@@ -159,6 +290,11 @@ def _gate(pr: str, prs: list[dict[str, str]], rounds: list[dict[str, str]]) -> t
     if first is None or first.get("critical") not in ("yes", "no"):
         reasons.append("round 1 does not record the reviewer's `critical: yes|no` (CRIT-03)")
     last = mine[-1]
+    mine_entry = next((e for e in prs if e.get("pr") == pr), {})
+    if mine_entry.get("handback") in OPEN_HANDBACKS:
+        reasons.append(f"the implementation thread handed back `{mine_entry['handback']}` (THR-15): "
+                       f"{mine_entry.get('recommended', '').strip() or 'no recommendation recorded'}. Settle it, then the thread "
+                       "sets `handback: done`")
     if last.get("merged"):
         reasons.append(f"already merged ({last['merged']})")
     if not re.fullmatch(r"\d+", last.get("must_fix", "")):
@@ -187,6 +323,7 @@ def problems(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: l
         out += [f"overrides/{e['_file']}: {w}" for w in override_problems(e)]
     recorded = {k for r in rounds for k in kinds_of(r)}
     for e in prs:
+        out += [f"prs/{e['_file']}: {w}" for w in handback_problems(e)]
         for kind in kinds_of(e, "fixes_kinds"):
             if kind not in recorded:
                 out.append(f"prs/{e['_file']}: `fixes_kinds` names '{kind}', a finding kind no review round has recorded")
@@ -236,6 +373,35 @@ def status_of(pr: str, rounds: list[dict[str, str]]) -> tuple[str, int, str]:
     if last.get("merged"):
         return f"merged {last['merged'][:9]}", len(mine), confirmed
     return f"round {last.get('round')}: {last.get('verdict', '?')}, {num(last.get('must_fix'))} must-fix", len(mine), confirmed
+
+
+def status(prs: list[dict[str, str]], rounds: list[dict[str, str]], deferred: list[dict[str, str]], since: str) -> str:
+    """What is open now, in a few lines: the answer to "what is pending" without a list kept in a chat."""
+    merged = {r.get("pr") for r in rounds if r.get("merged")}
+    lines: list[str] = []
+    for e in sorted((e for e in prs if e.get("pr") not in merged), key=lambda e: num(e.get("pr"))):
+        pr = e.get("pr", "?")
+        mine = sorted((r for r in rounds if r.get("pr") == pr), key=lambda r: num(r.get("round")))
+        if e.get("handback") in OPEN_HANDBACKS:
+            what = f"{e['handback']}: {e.get('recommended', '').strip() or 'no recommendation'}"
+            who = "coordinator"
+        elif not mine:
+            what, who = "in work, no review round yet", e.get("thread", "implementation")
+        else:
+            last = mine[-1]
+            must = num(last.get("must_fix"))
+            ok, _ = _gate(pr, prs, rounds)
+            if ok:
+                what, who = f"round {last.get('round')} {last.get('verdict')}, gate passes", "merge"
+            elif must:
+                what, who = f"round {last.get('round')} {last.get('verdict')}, {must} must-fix", e.get("thread", "implementation")
+            else:
+                what, who = f"round {last.get('round')} {last.get('verdict')}, gate stops", "coordinator"
+        lines.append(f"  #{pr}  {what}  [next: {who}]")
+    todo, _ = triage(rounds, deferred, since)
+    out = [f"Open PRs: {len(lines)}" + (":" if lines else "."), *lines]
+    out.append(f"Leftovers without a decision: {len(todo)}" + (" (ledger_tool.py triage)." if todo else "."))
+    return "\n".join(out) + "\n"
 
 
 def table(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: list[dict[str, str]] | None = None) -> str:
@@ -305,6 +471,9 @@ def stats(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: list
                                  + ". The fix did not remove the cause: go one step up the ladder (META-03)"}[standing]
             lines.append(f"  {kind}: #{pr}, {tail}")
     used = sorted(overrides or [], key=lambda o: num(o.get("pr")))
+    waiting = [e for e in prs if e.get("handback") in OPEN_HANDBACKS]
+    if waiting:
+        lines.append("Hand-backs waiting (THR-15): " + ", ".join(f"#{e.get('pr', '?')} {e['handback']}" for e in waiting) + ".")
     lines.append(f"Owner overrides of the merge gate: {len(used)}"
                  + (": " + ", ".join(f"#{o.get('pr', '?')} ({o.get('date', '?')})" for o in used)
                     + ". Each is a one-off; several for the same reason mean the rule is wrong, change the rule (META-01)." if used else "."))
@@ -313,7 +482,7 @@ def stats(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: list
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Read the per-PR and per-round ledger entries")
-    ap.add_argument("cmd", choices=["table", "stats", "check", "gate"])
+    ap.add_argument("cmd", choices=["table", "stats", "check", "gate", "triage", "flags", "status"])
     ap.add_argument("pr", nargs="?", help="PR number (gate only)")
     ap.add_argument("--ledger", type=Path, help="ledger directory (default: ../ledger next to this script, or ./ledger)")
     ap.add_argument("--head", default="", help="gate only: the PR's current head SHA, needed for an owner override when no round is recorded")
@@ -336,13 +505,35 @@ def main() -> int:
         print(f"PR #{number}: {'may be merged by owner override' if by_override else 'may be merged' if ok else 'must not be merged'}")
         print("\n".join(f"  - {r}" for r in reasons))
         return 0 if ok else 1
+    deferred, since = load_deferred(ledger)
+    if args.cmd == "status":
+        print(status(prs, rounds, deferred, since), end="")
+        return 0
+    if args.cmd == "triage":
+        todo, settled = triage(rounds, deferred, since)
+        if settled:
+            print(f"Settled ({len(settled)}):\n" + "\n".join(f"  {line}" for line in settled))
+        if todo:
+            print(f"Needs a decision before the next batch ({len(todo)}):\n" + "\n".join(f"  {line}" for line in todo))
+            return 1
+        print("Nothing is waiting for a decision." + (f" (Merges before {since} are not counted.)" if since else ""))
+        return 0
+    seam = seam_status(ledger, rounds)
+    if args.cmd == "flags":
+        found = flags(prs, rounds, reverts, overrides, deferred, since)
+        if seam and seam[0]:
+            found.append(f"flag: seam-audit-due | {seam[1]}")
+        print("\n".join(found) if found else "No flags.")
+        return 0
     if args.cmd == "table":
         print(table(prs, rounds, reverts), end="")
         return 0
     if args.cmd == "stats":
         print(stats(prs, rounds, reverts, overrides), end="")
+        if seam:
+            print(f"Seam audit: {'DUE, ' if seam[0] else 'not due, '}{seam[1]}.")
         return 0
-    found = problems(prs, rounds, reverts, overrides)
+    found = problems(prs, rounds, reverts, overrides) + [f"deferred/{e['_file']}: {w}" for e in deferred for w in deferred_problems(e)]
     print("\n".join(found) if found else f"{len(prs)} PR entries and {len(rounds)} round entries, no problems.")
     return 1 if found else 0
 

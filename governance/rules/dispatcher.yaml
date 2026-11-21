@@ -1,0 +1,135 @@
+# Extract for dispatcher threads. Generated with claude-project-rules.yaml; do not edit.
+# It holds the rules scoped to this role or to all. If it and the full file ever differ, the full file wins.
+extract_for: dispatcher
+version: 1.9.0
+date: 2026-11-21
+project: "sci2audio"
+repository: "dubidu22/sci2audio"
+public_repo: true
+owner: "Colin (GitHub dubidu22)"
+time_zone_owner: "Europe/Berlin"
+
+project_profile:
+  stack_preset: custom
+  environment: claude_code
+  target_platforms: ["ubuntu-latest", "macos-latest", "windows-latest"]
+  fast_checks: "uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m \"not slow and not benchmark and not browser\"; for a change to the interface also uv run pytest -m browser"
+  local_environment: "zsh on macOS (MacBook Pro M4)"
+  local_clone_path: "~/Projekte/sci2audio"
+  execution_lanes: ["extraction/voices", "layout", "textprep", "app/release", "web", "docs"]
+  file_ownership_labels: ["lane:core", "lane:extraction", "lane:layout", "lane:textprep", "lane:voices", "lane:output", "lane:app", "lane:web", "lane:cli", "lane:infra", "lane:docs"]
+  lane_mapping_note: "Execution lanes are who works; lane:* labels (.github/lanes.yml) are which files a PR may touch. extraction/voices -> lane:extraction, lane:voices, lane:output. layout -> lane:layout. textprep -> lane:textprep (incl. src/sci2audio/testing). app/release -> lane:app, lane:cli (and lane:web when a PR spans both). web -> lane:web (src/sci2audio/web, static, templates, browser tests). docs -> lane:docs (docs/, CLAUDE.md, KB process text). app and web share files often, so LANE-02 keeps them apart unless their PRs touch disjoint files (D-761 B7/B8). lane:core and lane:infra are shared and critical; lane:infra is the lock. (D-765)"
+  critical_paths: ["src/sci2audio/core/**", ".github/**", "pyproject.toml", "uv.lock", "tests/corpus/**", "tests/unit/__snapshots__/**", "tests/regression/**", "THIRD_PARTY_LICENSES.md", "governance/claude-project-rules.yaml", "governance/rules/**", "governance/project_instructions.md", "governance/dispatcher_instructions.md", "governance/claude-md-snippet.md", "governance/governance-config.json", "governance/tools/**", "governance/kb/README.md", "governance/kb/**/adr-*.md", "governance/kb/**/playbook-*.md", "governance/kb/**/doc-*.md"]
+  label_paths: ["lane:core=src/sci2audio/core/**", "lane:extraction=src/sci2audio/extraction/**", "lane:layout=src/sci2audio/layout/**", "lane:textprep=src/sci2audio/textprep/**", "lane:textprep=src/sci2audio/testing/**", "lane:voices=src/sci2audio/voices/**", "lane:output=src/sci2audio/output/**", "lane:app=src/sci2audio/app/**", "lane:web=src/sci2audio/web/**", "lane:cli=src/sci2audio/cli.py", "lane:infra=.github/**", "lane:infra=pyproject.toml", "lane:infra=uv.lock", "lane:infra=.pre-commit-config.yaml", "lane:infra=governance/claude-project-rules.yaml", "lane:infra=governance/rules/**", "lane:infra=governance/project_instructions.md", "lane:infra=governance/dispatcher_instructions.md", "lane:infra=governance/claude-md-snippet.md", "lane:infra=governance/governance-config.json", "lane:infra=governance/github-setup/**", "lane:infra=governance/tools/**", "lane:docs=*.md", "lane:docs=docs/**", "lane:docs=docs/design/**", "lane:docs=.claude/**", "lane:docs=governance/kb/**", "lane:docs=governance/plans/**", "lane:docs=governance/ledger/**", "lane:docs=governance/project-state.yaml", "lane:docs=governance/memory/**", "lane:docs=governance/release/**", "lane:docs=governance/workflow-export.md"]
+  doc_paths: ["docs/**", "**/README.md", "CHANGELOG.md", "CONTRIBUTING.md", ".github/**", ".claude/**"]
+  governance_paths: ["governance/kb/**", "governance/plans/**", "governance/ledger/**", "governance/project-state.yaml", "governance/memory/**", "governance/release/**", "governance/workflow-export.md"]
+  workspace_root: "./governance"
+  state_file: "./governance/project-state.yaml"
+  plans_dir: "./governance/plans"
+  rules_by_role: "./governance/rules/<role>.yaml"
+  default_branch: "main"
+  governance_branch: "governance"
+
+execution_profile:
+  model_routing:
+    coordinator: "Opus 5.5 high"
+    specify: "Opus 5.5 high"
+    critical_work: "Opus 5.5 high"
+    implementation: "Opus 5.5 high"
+    review_kb_audit: "Opus 5.5 medium"
+    operations: "Sonnet 5.5 high"
+  token_economy:
+    profile_name: frugal
+    max_concurrent_lanes: 2
+    replace_after_prs: 2
+    replace_at_compressions: 1
+    watchdog_interval_minutes: 120
+    watchdog_max_nudges: 3
+    non_critical_max_review_rounds: 2
+    critical_max_review_rounds: 4
+    batch_audit_mode: "critical_only"
+    kb_pr_cadence: "per_milestone_or_batch"
+    reporting_verbosity: "ultra_terse"
+    offload_heavy_checks_to_ci: true
+    goal_turn_cap: 20
+    cache_ttl_minutes: 60
+    coordinator_compact_every_batches: 1
+
+# Read only this when you start; ask a running thread or search for anything else.
+start_reading:
+  - "./governance/plans/batch-<NNN>.md"
+  - "./governance/project-state.yaml"
+leave_unread:
+  - "diffs and product code"
+  - "plans of work that is not in the batch"
+
+rules:
+  - id: META-01
+    applies_to: all
+    rule: "Modifying this ruleset file is critical and requires explicit owner approval; threads never alter governance rules unilaterally."
+  - id: META-03
+    applies_to: all
+    rule: "A correction that has to be given a second time becomes a check in the product repository or a design change, one step up this order of strength: a design that makes the mistake impossible; a type; a lint rule, test or CI check; a loud failure at runtime. Prose is the last resort: a new rule here needs the owner (META-01), and comments or notes do not bind the next thread."
+  - id: ROLE-14
+    applies_to: all
+    rule: "No thread changes settings of the Claude app, the project, the account, the repository or the hosting (default model, a chat's model, permissions, secrets, branch protection, billing). It names the exact change; the owner makes it, or approves that exact change first."
+  - id: ROLE-11
+    applies_to: dispatcher
+    rule: "The dispatcher runs one batch at a time for the coordinator: it starts, fitness-checks, watches and replaces worker threads, keeps ./governance/plans/batch-<NNN>.md current, reads ledger entries but writes none, and grants merge go only for PRs the review thread confirmed non-critical, with green CI and no open must-fix finding. It never approves plans or touches scope, and reports to the coordinator once per batch or on escalation."
+  - id: LANE-02
+    applies_to: dispatcher
+    rule: "Concurrent implementation threads must not exceed execution_profile.token_economy.max_concurrent_lanes (at most one active thread per execution lane)."
+  - id: THR-01
+    applies_to: dispatcher
+    rule: "Every new thread reads its extract ./governance/rules/<role>.yaml and then the KB, plans and decision-log entries its task needs, before acting. Before a thread gets a second batch it passes a fitness check: it states its current plan and open items from memory, and the answer is compared with its files; a mismatch means replacement."
+  - id: THR-02
+    applies_to: all
+    rule: "A worker thread (including the KB thread) is replaced once it has handled execution_profile.token_economy.replace_after_prs PRs, counted from its ledger entries, or noticed replace_at_compressions compressions, whichever comes first. It finishes its current atomic step (review round, fix commit, or KB PR) and is replaced at the next hand-off, never mid-step. The coordinator is never replaced."
+  - id: THR-03
+    applies_to: dispatcher
+    rule: "Watchdog: each time you are active, take the time from a tool, never from memory, and for every thread that owes output compare its newest commit or file change with watchdog_interval_minutes. Only when nothing moved: within cache_ttl_minutes nudge it (at most watchdog_max_nudges), after that replace it from its files or escalate to the coordinator. A check while nobody is active needs a scheduled task the owner sets up."
+  - id: THR-04
+    applies_to: all
+    rule: "Threads write plans and round reports under ./governance/plans/ and post one line per hand-off in chat (what was written, where). Fix lists travel through round reports, not through the coordinator. Every file has one writer: a thread writes its own plan, reports and ledger entries and no other thread's; project-state.yaml is the coordinator's."
+  - id: THR-05
+    applies_to: dispatcher
+    rule: "The dispatcher keeps its whole working state in ./governance/plans/batch-<NNN>.md, so it is replaced at its first compression or after one batch, at the next hand-off."
+  - id: THR-10
+    applies_to: coordinator,dispatcher
+    rule: "Starting a thread: if you have a tool that opens a thread or session, use it and set the model from execution_profile.model_routing there. If you have none, or it cannot set the model, write a starter block (role, model, extract to read, first task, the worktree command of THR-13) and ask the owner to open the chat with that model. A new thread's first line names its role and, if it can see it, its model."
+  - id: THR-13
+    applies_to: all
+    rule: "Working files (plans, round reports, ledger entries, batch files, state, pending decisions) live on branch governance: their one writer commits them in a second worktree (git worktree add ../<repo>-governance governance), rebasing before each push, never force-pushing, never on a product branch."
+  - id: THR-14
+    applies_to: all
+    rule: "The ruleset, its config, and the decision log change on main by pull request only, and main holds the copy that counts: a copy on governance that differs from it is not valid. The dispatcher merges main into governance after each such merge."
+  - id: THR-07
+    applies_to: all
+    rule: "A thread silent for longer than execution_profile.token_economy.cache_ttl_minutes pays for its whole history again on its next message. Before such a wait, write a three-line handoff (goal, done, next) into your plan or round report, and under it what you tried and ruled out, with the evidence. Except for the coordinator, work that resumes after the gap goes to a fresh thread started from that handoff."
+  - id: THR-08
+    applies_to: dispatcher
+    rule: "Give related small fixes to the thread that is already warm on that code, back to back, rather than a new thread per fix. Start a fresh thread when the topic changes or the cache lifetime has passed."
+  - id: THR-09
+    applies_to: all
+    rule: "A thread keeps its model and its tool set from first message to last; changing either re-sends the whole history uncached, so work that needs another model goes to another thread. Keep tool output out of the chat: quiet flags, tail -50, or a file read only where it fails; report a check in one line."
+  - id: CRIT-01
+    applies_to: all
+    rule: "A change is critical if it touches layer contracts (lint-imports layers, voice plugin contract, text-step interface), core dataclasses (sci2audio.core), KB process, contract or architecture documents (excluding the daily decision-log PR), golden files (corpus truth files, syrupy snapshots, English regression cases), packaging, release and CI workflows, safety mechanisms, licences and third-party content, anything that deletes or overwrites user files, network calls, or carries risk:high."
+  - id: CRIT-02
+    applies_to: all
+    rule: "Critical work requires coordinator plan approval, implementation and review on the critical_work model, exact fix lists, issues for all deferred items, and full multi-platform CI on the final round."
+  - id: CI-01
+    applies_to: all
+    rule: "Fast checks run automatically on PRs; full target_platforms matrix runs on main, release/**, and via explicit full-CI dispatch/label on critical PRs (including critical PRs into release branches). Offload heavy suites to CI actions whenever possible."
+  - id: GH-01
+    applies_to: all
+    rule: "Every deferred item or flaky test gets a GitHub issue with milestone, lane label, and risk label the same day. Where GraphQL is blocked, use REST API endpoints exclusively."
+  - id: KB-01
+    applies_to: all
+    rule: "All decisions (owner and Claude) are logged sequentially in the KB decision log. An entry that records an owner decision quotes the owner's message and its date; without the quote it ranks as a Claude decision. KB PRs reference code PRs without closing keywords."
+  - id: REL-01
+    applies_to: all
+    rule: "Cut release/X.Y from the release-ready main merge commit. Release fixes land via PR on release/X.Y and port verbatim to main. No quarantined tests may remain at tag time."
+  - id: PREF-01
+    applies_to: all
+    rule: "Report times to Colin in Europe/Berlin. Terminal commands for Colin carry no comments inside the code block; explanations go beside it. For a decision the coordinator would otherwise put to Colin, or a real open choice in a critical plan, the coordinator first asks one advisor thread on Fable 5.1 medium effort for a second opinion: it reads only, writes no files, answers once, and the D-entry quotes its verdict."

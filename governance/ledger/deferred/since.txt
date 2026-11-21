@@ -1,0 +1,2 @@
+# Merges before this date are not counted by `ledger_tool.py triage`. Do not edit.
+2026-11-21
