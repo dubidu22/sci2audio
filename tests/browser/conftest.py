@@ -184,6 +184,13 @@ def signed_in(page: Page, live: Live) -> Iterator[Page]:
             route.abort()
 
     page.route("**/*", fence)
+    # Silent: headless WebKit and Firefox play the fake voice's tones through the speakers.
+    # Volume, not `muted`, which would also loosen the browsers' rules for starting audio.
+    page.context.add_init_script(
+        """document.addEventListener("loadstart", (event) => {
+            if (event.target instanceof HTMLMediaElement) event.target.volume = 0;
+        }, true);"""
+    )
     page.set_default_timeout(15_000)
     page.goto(live.start_url)
     assert page.url == live.url + "/"
