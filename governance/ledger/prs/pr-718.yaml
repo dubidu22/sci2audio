@@ -1,0 +1,12 @@
+pr: 718
+opened: 2026-11-21
+thread: release-fix-716
+lane: infra
+labels: "lane:infra, risk:high, bug, ci:installers"
+plan: plans/release-fix-716-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+note: "#716 priority bug (D-732, D-865): the macOS bundle names sci2audio-app as CFBundleExecutable and is no longer LSBackgroundOnly; the build checks the built Info.plist; the installers' macOS smoke test starts the bundle through Launch Services (open -a) and waits for the app.log start line; local build verified (built bundle passes, shipped 1.4.0 fails the check); patch release 1.4.1 follows as PR 2 into release/1.4; Issue #717 filed (quit by Apple Event logs no stopped line)"
+rounds: 0
+merged: ""
