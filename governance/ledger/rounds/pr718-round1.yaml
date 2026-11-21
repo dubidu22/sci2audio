@@ -9,3 +9,4 @@ must_fix: 0
 should_fix: 0
 kinds: ""
 report: plans/review-pr718-round1.md
+merged: 9fe4bda
