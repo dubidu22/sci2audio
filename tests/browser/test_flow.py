@@ -271,11 +271,6 @@ def test_pause_then_resume_speaks_only_what_is_missing(signed_in: Page, live: Li
     assert not set(again) & set(before), "Resume spoke a kept sentence again"
 
 
-@pytest.mark.quarantined(
-    issue=697,
-    reason="the fake voice's hold is not reached within 30 s in Firefox in CI, twice",
-    browser="firefox",
-)
 def test_resume_of_a_paused_replace_never_asks_to_replace_again(
     signed_in: Page, live: Live
 ) -> None:
