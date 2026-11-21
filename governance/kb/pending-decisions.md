@@ -127,3 +127,7 @@ v1.4.1 released 2026-11-21T16:23Z. PR #721 (cherry-pick of the #716 fix 9fe4bda 
 ## D-869 (2026-11-21, coordinator)
 
 Colin asked that a person can start listening after the first chapter is generated, download the whole audiobook as M4B or MP3 later from the library, and generate the remaining chapters later, all together or one by one. Specified as four Issues with acceptance criteria, labelled inbox with no milestone, because the milestone and the roadmap order are Colin's decision: #723 LW-01 (app, output: each chapter becomes playable as soon as it is spoken; critical, risk:high; supersedes the partial-audiobook part of #401), #724 LW-02 (web: start listening at the first chapter), #725 LW-03 (on-demand M4B/MP3 download from the chapter audio, no speech run again), #726 LW-04 (generate the remaining chapters later in the same project). #724 to #726 depend on #723. No implementation starts while CMD-07 (D-866) holds.
+
+## D-870 (2026-11-21, Colin)
+
+Colin: the listen-while-generating Issues come before the Study layer. Colin created milestone 11 "v1.5 Listen while generating" and renamed milestone 9 to "v1.6 Study layer" (ROLE-02 hand steps). #723 to #726 are in milestone 11. Roadmap order: v1.4, v1.5 Listen while generating, v1.6 Study layer, Later. Implementation still waits for Colin's "continue" (CMD-07, D-866).
