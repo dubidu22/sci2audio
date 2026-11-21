@@ -13,6 +13,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- The macOS app opens its window again when started from Finder or the Dock: 1.4.0's app bundle started the command line, which quit at once without a window (#716).
 - A text-step plugin whose import or set-up hangs no longer stops sci2audio from starting: loading gives up after 30 s and lists the plugin as a problem (#684).
 - A text-step plugin can no longer stop or hang a job through what its `find` returns or raises: its edits, its error and its copies of the document and the context are read inside the guard, under its time limit, and the job gets only plain copies (#693).
 - Several text-step plugins in one package whose import hangs wait the 30 s load limit once, not once each (#694).

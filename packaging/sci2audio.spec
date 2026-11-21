@@ -153,6 +153,11 @@ if sys.platform == "darwin":
         bundle_identifier="io.github.dubidu22.sci2audio",
         version=VERSION,
         info_plist={
+            # Finder and the Dock start the app; `sci2audio` stays in Contents/MacOS as the
+            # command line. Without these PyInstaller takes the main program from the folder's
+            # first one and `console` from its last, the command line both times (#716).
+            "CFBundleExecutable": "sci2audio-app",
+            "LSBackgroundOnly": False,
             "CFBundleName": "sci2audio",
             "CFBundleDisplayName": "sci2audio",
             "CFBundleShortVersionString": VERSION,

@@ -3,11 +3,11 @@ name: Installers
 # The installers for testers (#215, #13, D-797, D-798): a .dmg for Apple Silicon Macs, a
 # per-user setup.exe for Windows and an AppImage for Linux, each built on its own system,
 # installed there as a person installs it and tested: the command line on a corpus PDF, a
-# short English and German audiobook, offline (Linux), the app's window (macOS, Windows,
-# read by its own self test), the browser with Quit and Playwright (Linux) and the uninstaller
-# (Windows). The release workflow calls it, so a release ships what was tested here. On a
-# PR it runs only with the label "ci:installers" (when added, and on each push while it is
-# on); it is a workflow of its own, so it never cancels a CI run (#360), and no job of it is
+# short English and German audiobook, offline (Linux), the start through Launch Services as
+# Finder starts it (macOS, #716), the app's window (macOS, Windows, read by its own self
+# test), the browser with Quit and Playwright (Linux) and the uninstaller (Windows). The
+# release workflow calls it, so a release ships what was tested here. On a PR it runs only
+# with the label "ci:installers" (when added, and on each push while it is on); it is a workflow of its own, so it never cancels a CI run (#360), and no job of it is
 # a required check.
 #
 # FFmpeg is built here from pinned sources: audio only, LGPL (packaging/ffmpeg, D-798), and
@@ -248,6 +248,7 @@ jobs:
               bin="$HOME/Applications/sci2audio.app/Contents/MacOS"
               echo "cli=$bin/sci2audio" >> "$GITHUB_OUTPUT"
               echo "app=$bin/sci2audio-app" >> "$GITHUB_OUTPUT"
+              echo "bundle=$HOME/Applications/sci2audio.app" >> "$GITHUB_OUTPUT"
               ;;
             Windows)
               setup=$(ls installers/*-setup.exe)
@@ -308,6 +309,13 @@ jobs:
           python=$(uv python find)
           HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9 \
             "$python" scripts/installer_smoke.py cli "$CLI" "$VERSION" --models "$MODELS" --work "$WORK/proxy"
+      # as a person starts it: Launch Services runs the bundle's main program, which must be
+      # the app, not the command line (#716); never a program started by its path
+      - name: The app starts from Finder, through Launch Services (macOS)
+        if: runner.os == 'macOS'
+        env:
+          BUNDLE: ${{ steps.installed.outputs.bundle }}
+        run: uv run --no-project python scripts/installer_smoke.py launch "$BUNDLE"
       - name: The app's window opens the interface (macOS, Windows)
         if: runner.os != 'Linux'
         env:
