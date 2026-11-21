@@ -7,6 +7,7 @@ plan: plans/web-tests-b-t1-plan.md
 critical: no                  # one interface change in player.js (speed panel); risk word from the coordinator pending
 compactions: 0
 fixes_kinds: ""
-issues: "#714 (closes), #699 (refs, stays open: markers cause not found), #697 (refs, cause fixed, quarantine stays until a 40 of 40 isolation run)"
-head: 999a78c
+issues: "#699 (closes), #714 (closes), #697 (refs, quarantine stays until a 40 of 40 isolation run), #720 (new, markers cause not found)"
+head: dd21cd1
 notes: "#699's four are intermittent in CI and passed in the 20 Nov nightly; the red nightly came from seven macOS-WebKit speed-panel tests (#714), fixed in player.js. #697: a lost Replace click hidden by wait_for_url; isolation of the fix Firefox 39/40 and 40/40, Chromium 39/40, WebKit 38/40 (the other failures are 5 s job waits under machine load)."
+ci: "Linux green on dd21cd1 (run 44844004190); local suites Chromium 199/0, Firefox 194/4, WebKit 179/20 (playback-dependent failures from the machine, also on main)"
