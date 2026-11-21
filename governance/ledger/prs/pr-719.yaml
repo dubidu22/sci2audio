@@ -1,0 +1,12 @@
+pr: 719
+opened: 2026-11-21
+thread: web-tests-b-t1
+lane: web
+labels: "lane:web, risk:low, testing"
+plan: plans/web-tests-b-t1-plan.md
+critical: no                  # one interface change in player.js (speed panel); risk word from the coordinator pending
+compactions: 0
+fixes_kinds: ""
+issues: "#714 (closes), #699 (refs, stays open: markers cause not found), #697 (refs, cause fixed, quarantine stays until a 40 of 40 isolation run)"
+head: 999a78c
+notes: "#699's four are intermittent in CI and passed in the 20 Nov nightly; the red nightly came from seven macOS-WebKit speed-panel tests (#714), fixed in player.js. #697: a lost Replace click hidden by wait_for_url; isolation of the fix Firefox 39/40 and 40/40, Chromium 39/40, WebKit 38/40 (the other failures are 5 s job waits under machine load)."
