@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-21T01:38Z   # clock time; hour marks written earlier today were estimates (D-856)
+updated: 2026-11-21T02:11Z   # clock time; hour marks written earlier today were estimates (D-856)
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -13,11 +13,8 @@ active_now:
   watchdog_interval_minutes: 60                      # D-702h; threads started 20 Nov ~14:00Z, next check when active
   milestones_in_progress: []   # v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
-  lanes_active:                                      # batch 3 (D-859) started 20 Nov 22:00Z on Colin's "Start batch 3"; plans owed first
-    - "textprep B-P3 (thread textprep-b-p3): #693 and #694 in one critical PR; plan approved 22:06Z (D-861); PR #715 MERGED 431cf1b 01:38Z (2 rounds + 1 should-fix fixed; textprep lane done, thread textprep-b-p3 retired)"
-    - "infra B-I4 (thread infra-b-i4): #708 (critical, PR 1) and #695 #706 (PR 2); plan approved 22:04Z (D-860); PR 2 = #712 (#695 #706) MERGED 9ad6d11 22:53Z (2 rounds; six lane labels for the comment sweep; main push run on 9ad6d11 green on three systems); infra lane done for batch 3; thread infra-b-i4 retired after 2 PRs; hand-off 22:54Z: #709 (reuse REVIEW_TAG), #710 (extend the byte-equal test), #711 (workflow change, critical) open for the next infra thread 22:14Z, Linux CI watched; PR 1 = #713 (#708) MERGED c82b2d6 22:44Z (1 round, 0 findings; N1 N3 noted on #711); follow-up Issues #709 #710 #711 filed; hand-off from infra-b-i3: after any ruleset regeneration copy back only claude-project-rules.yaml and rules/*.yaml and re-insert governance_paths and the D-849 text by exact replace; ruff excludes .github/governance"
-    - "web tests B-T1 (thread web-tests-b-t1): #699 (intermittent WebKit, not every run; locale en-US fix + at_rest guards), #714 (speed panel lost clicks in Safari; the real nightly red; player.js fix risk:low) and #697 (Firefox flake, instrumented 40 runs running); plan approved 22:23Z (D-862), implementing"
-    - "RELEASE FIX (thread release-fix-716, started 22:49Z on Colin's word, D-864, priority bug beside the lanes per D-732): #716 macOS bundle main executable, Launch-Services smoke test, docs; PR 1 = #718 MERGED 9fe4bda 01:38Z (1 round, 0 findings; installers run incl. macOS Launch-Services step green); PR 2 = v1.4.1 waits for Colin to create release/1.4 at 5c18f8c (command given 01:38Z)"
+  lanes_active:                                      # batch 3 started work closed 2026-11-21T02:11Z (D-867): #713 c82b2d6, #712 9ad6d11, #715 431cf1b, #718 9fe4bda, #719 f17ce89 merged; all threads retired; only the v1.4.1 patch is still running
+    - "RELEASE FIX (thread release-fix-716): PR 1 #718 MERGED 9fe4bda; PR 2 = v1.4.1 from release/1.4 waits for Colin to create the branch at 5c18f8c (command given), then PR into release/1.4, review, ci:full + ci:installers, merge, Colin pushes tag v1.4.1 and approves the pypi deployment, double-clicks the DMG, then a forward docs PR to main"
   lanes_waiting:                                     # batch 3 remainder; start when a lane frees
     - "layout #679; voices #663; infra #709 #710 #711; next textprep/web batches: PARKED until Colin says continue (CMD-07, D-866)"
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
