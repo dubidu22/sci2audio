@@ -188,12 +188,12 @@ def log_size(log: Path) -> int:
 
 
 def new_lines(log: Path, offset: int) -> str:
-    """What the log got after its first `offset` bytes."""
+    """What the log got after its first `offset` bytes, with "\\n" line ends."""
     if not log.is_file():
         return ""
     with log.open("rb") as file:
         file.seek(offset)
-        return file.read().decode("utf-8", errors="replace")
+        return file.read().decode("utf-8", errors="replace").replace("\r\n", "\n")
 
 
 def running(bundle: Path) -> bool:

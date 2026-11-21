@@ -979,6 +979,9 @@ def test_the_launch_check_counts_only_lines_written_after_its_start(tmp_path: Pa
     assert smoke.new_lines(log, offset) == "09:05 INFO running in a window on http://127.0.0.1:6\n"
     assert smoke.log_size(tmp_path / "none.log") == 0
     assert smoke.new_lines(tmp_path / "none.log", 0) == ""
+    crlf = tmp_path / "crlf.log"  # a log written in text mode on Windows
+    crlf.write_bytes(b"old\r\n09:05 INFO running in a window\r\n")
+    assert smoke.new_lines(crlf, len(b"old\r\n")) == "09:05 INFO running in a window\n"
 
 
 def test_the_launch_check_fails_when_the_window_line_never_comes(
