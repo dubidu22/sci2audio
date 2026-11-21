@@ -64,6 +64,17 @@ def browser_type_launch_args(browser_type_launch_args: dict[str, Any]) -> dict[s
     return browser_type_launch_args
 
 
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args: dict[str, Any], browser_name: str) -> dict[str, Any]:
+    """English in WebKit whatever the computer's language: WebKit on macOS asks for the
+    system's languages, and on a German Mac every page came in German (#699). Chromium and
+    Firefox ask for English already, and a `locale` there would also outrank a test's own
+    `page.set_extra_http_headers` asking for German."""
+    if browser_name == "webkit" and "locale" not in browser_context_args:
+        return {**browser_context_args, "locale": "en-US"}
+    return browser_context_args
+
+
 class SlowFetch:
     """The voice download's fetch: serves `SERVED` in blocks, `delay` seconds apart."""
 

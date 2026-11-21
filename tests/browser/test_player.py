@@ -53,9 +53,13 @@ def listen_to(page: Page, live: Live, path: Path, pdf: bytes) -> None:
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
     expect(page.locator("#summary")).to_be_visible()
     settled(page)
+    # a click while the page's fonts still arrived did nothing (WebKit, #699), as in
+    # `make_audiobook`
+    at_rest(page)
     page.get_by_role("button", name="Make the audiobook").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
+    at_rest(page)  # the job page reloads itself when the job ends
     page.get_by_role("link", name="Listen with the text").click()
     page.wait_for_url(re.compile(r"/listen$"))
 
@@ -441,6 +445,40 @@ def test_a_second_jump_while_a_file_loads_wins(signed_in: Page, live: Live) -> N
     time = page.evaluate("() => document.getElementById('audio').currentTime")
     assert time < 6, time  # in chapter 1, not at the later sentence's time
     assert highlighted(page) == early
+
+
+def test_a_second_step_while_the_file_loads_stays_on_its_sentence(
+    signed_in: Page, live: Live
+) -> None:
+    """Two steps in one go, paused, before the file has loaded (#699): the second jump finds
+    the file chosen but not loaded. WebKit then reads `currentTime` as 0, so a jump that set
+    it at once fell back to the start of the chapter, with no sentence marked."""
+    page = signed_in
+    make_audiobook(page, live)
+    second = chunk_id(page, "Things happen")
+    page.evaluate(
+        """() => {
+            const next = document.getElementById('next-sentence');
+            next.click();
+            next.click();
+        }"""
+    )
+    page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
+    page.evaluate(
+        "() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))"
+    )
+    assert paused(page)
+    assert highlighted(page) == second
+    start = page.evaluate(
+        f"""() => {{
+            const data = JSON.parse(document.getElementById('player-data').textContent);
+            const chunk = Number(document.getElementById('{second}').dataset.chunk);
+            return data.chunks[chunk][0] - data.chapters[data.chunks[chunk][2]].offset;
+        }}"""
+    )
+    time = page.evaluate("() => document.getElementById('audio').currentTime")
+    assert abs(time - start) < 0.05, (time, start)
+    expect(page.locator("#marker")).to_be_enabled()
 
 
 def test_text_from_the_file_cannot_change_how_the_page_parses(

@@ -11,7 +11,7 @@ from typing import Any
 
 from playwright.sync_api import ConsoleMessage, Page, expect
 
-from conftest import Live, check_axe
+from conftest import Live, at_rest, check_axe
 from sci2audio.app.updates import STATE_NAME, UpdateCheck
 from sci2audio.web.security import PERMISSIONS_POLICY
 
@@ -62,6 +62,9 @@ def test_the_update_check_is_off_until_turned_on(signed_in: Page, live: Live) ->
     page.goto(live.url + "/")
     expect(page.locator("#update-notice")).to_be_visible()
     page.goto(live.url + "/settings")
+    # a click while the page's fonts still arrived did not go through: WebKit found the
+    # switch unchanged after it (#699)
+    at_rest(page)
     with page.expect_response(lambda r: r.url.endswith("/api/v1/updates")):
         page.get_by_role("switch", name="Look for new versions").uncheck()
     page.reload()
