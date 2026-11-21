@@ -143,7 +143,7 @@ rules:
     rule: "Critical work always waits for explicit coordinator plan approval; non-critical work may proceed immediately when confidence is high."
   - id: CRIT-01
     applies_to: all
-    rule: "A change is critical if it touches layer contracts (lint-imports layers, voice plugin contract, text-step interface), core dataclasses (sci2audio.core), KB process, contract or architecture documents (excluding the daily decision-log PR), golden files (corpus truth files, syrupy snapshots, English regression cases), packaging, release and CI workflows, safety mechanisms, licences and third-party content, anything that deletes or overwrites user files, network calls, or carries risk:high."
+    rule: "A change is critical if it touches layer contracts (lint-imports layers, voice plugin contract, text-step interface), core dataclasses (sci2audio.core), KB process, contract or architecture documents (excluding the KB thread's decision-log PR), golden files (corpus truth files, syrupy snapshots, English regression cases), packaging, release and CI workflows, safety mechanisms, licences and third-party content, anything that deletes or overwrites user files, network calls, or carries risk:high."
   - id: CRIT-02
     applies_to: all
     rule: "Critical work requires coordinator plan approval, implementation and review on the critical_work model, exact fix lists, issues for all deferred items, and full multi-platform CI on the final round."

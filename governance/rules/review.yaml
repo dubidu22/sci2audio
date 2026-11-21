@@ -101,7 +101,7 @@ rules:
     rule: "A worker's report starts with one word: done, question, blocked, review or handoff. It stops only as blocked (two attempts failed for different reasons; finishing would break a rule, name its id; or it needs a destructive git operation, never attempted), question (plan or scope must change) or review (the owner must look). blocked and question carry the evidence and a line Recommended: <one action>, and go in the PR's ledger entry."
   - id: CRIT-01
     applies_to: all
-    rule: "A change is critical if it touches layer contracts (lint-imports layers, voice plugin contract, text-step interface), core dataclasses (sci2audio.core), KB process, contract or architecture documents (excluding the daily decision-log PR), golden files (corpus truth files, syrupy snapshots, English regression cases), packaging, release and CI workflows, safety mechanisms, licences and third-party content, anything that deletes or overwrites user files, network calls, or carries risk:high."
+    rule: "A change is critical if it touches layer contracts (lint-imports layers, voice plugin contract, text-step interface), core dataclasses (sci2audio.core), KB process, contract or architecture documents (excluding the KB thread's decision-log PR), golden files (corpus truth files, syrupy snapshots, English regression cases), packaging, release and CI workflows, safety mechanisms, licences and third-party content, anything that deletes or overwrites user files, network calls, or carries risk:high."
   - id: CRIT-02
     applies_to: all
     rule: "Critical work requires coordinator plan approval, implementation and review on the critical_work model, exact fix lists, issues for all deferred items, and full multi-platform CI on the final round."
