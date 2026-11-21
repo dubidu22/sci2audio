@@ -197,7 +197,10 @@ def new_lines(log: Path, offset: int) -> str:
 
 
 def running(bundle: Path) -> bool:
-    found = subprocess.run(["/usr/bin/pgrep", "-f", f"{bundle}/Contents/MacOS/"], check=False)
+    pattern = f"{bundle}/Contents/MacOS/"
+    found = subprocess.run(
+        ["/usr/bin/pgrep", "-f", pattern], stdout=subprocess.DEVNULL, check=False
+    )
     return found.returncode == 0
 
 
@@ -221,7 +224,10 @@ def smoke_launch(bundle: Path, log: Path, timeout: float = 30, poll: float = 0.5
     info = plistlib.loads((bundle / "Contents" / "Info.plist").read_bytes())
     offset = log_size(log)  # the window self test writes the same line: only new ones count
     say(f"$ open -a {bundle}")
-    opened = subprocess.run(["/usr/bin/open", "-a", str(bundle)], timeout=60, check=False)
+    try:
+        opened = subprocess.run(["/usr/bin/open", "-a", str(bundle)], timeout=60, check=False)
+    except subprocess.TimeoutExpired as error:
+        raise Failed("open -a did not return within 60 s") from error
     deadline = time.monotonic() + timeout
     while START_LINE not in new_lines(log, offset) and time.monotonic() < deadline:
         time.sleep(poll)

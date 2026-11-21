@@ -997,6 +997,13 @@ def test_the_launch_check_fails_when_the_window_line_never_comes(
     ] in (services.commands)
     assert not services.running
 
+    def hangs(command: list[str], **kwargs: object) -> Ran:
+        raise smoke.subprocess.TimeoutExpired(command, 60)
+
+    monkeypatch.setattr(smoke.subprocess, "run", hangs)
+    with pytest.raises(smoke.Failed, match="open -a did not return within 60 s"):
+        smoke.smoke_launch(bundle, log, timeout=0.2, poll=0.05)
+
 
 def test_the_launch_check_starts_the_bundle_through_launch_services(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
