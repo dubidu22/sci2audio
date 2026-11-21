@@ -8,5 +8,5 @@ critical: yes
 compactions: 0
 fixes_kinds: ""
 note: "#716 priority bug (D-732, D-865): the macOS bundle names sci2audio-app as CFBundleExecutable and is no longer LSBackgroundOnly; the build checks the built Info.plist; the installers' macOS smoke test starts the bundle through Launch Services (open -a) and waits for the app.log start line; local build verified (built bundle passes, shipped 1.4.0 fails the check); patch release 1.4.1 follows as PR 2 into release/1.4; Issue #717 filed (quit by Apple Event logs no stopped line)"
-rounds: 0
-merged: ""
+rounds: 1
+merged: "9fe4bda (squash of 4ae2227, 2026-11-21)"
