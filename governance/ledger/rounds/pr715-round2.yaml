@@ -9,3 +9,4 @@ must_fix: 0
 should_fix: 1
 kinds: "brittle-test"
 report: plans/review-pr715-round2.md
+merged: 431cf1b
