@@ -9,6 +9,8 @@ edit the same file. Nobody maintains a table by hand; print one when needed:
     python3 tools/ledger_tool.py check      # entries with missing or malformed fields
     python3 tools/ledger_tool.py gate 12    # may PR 12 be merged? (run before every merge, MRG-01)
                                             # add --head <sha> when an owner override exists and no round is recorded
+    python3 tools/ledger_tool.py triage     # what was left behind without a decision; run before a new batch (THR-16)
+    python3 tools/ledger_tool.py flags      # one line per thing an audit should judge (ROLE-15)
 
 | File | Writer | Written |
 |------|--------|---------|
@@ -16,7 +18,8 @@ edit the same file. Nobody maintains a table by hand; print one when needed:
 | `rounds/pr<N>-round<K>.yaml` | the review thread | at the end of round K; `merged` filled in after the merge |
 | `reverts/pr-<N>.yaml` | the review thread that merges the revert | when merged PR N is reverted |
 | `overrides/pr-<N>.yaml` | the coordinator, on the owner's word | when the owner lets PR N merge although the gate stops it (`MRG-02`) |
-| `audits/batch-<NNN>.md` | the audit thread | after a merged batch (`ROLE-09`) |
+| `deferred/pr<N>-<k>.yaml` | the coordinator | one per should-fix finding a merged PR left open, or point a thread set aside (`THR-16`) |
+| `audits/batch-<NNN>.md` | the audit thread | after a merged batch (`ROLE-09`, `ROLE-15`) |
 
 `prs/pr-<N>.yaml`:
 
@@ -30,6 +33,9 @@ plan: plans/plan-003-app_cli-import.md
 critical: no                  # the author's statement from the plan (CRIT-01)
 compactions: 0                # how often this thread's context was compacted while on this PR
 fixes_kinds: ""               # optional: finding kinds this PR claims to remove for good (REV-06), e.g. "timer-workaround"
+handback: ""                  # the first word of the thread's last report when it is not done: question | blocked |
+                              # review | handoff (THR-15). question, blocked and review stop the merge gate
+recommended: ""               # with question or blocked: the one next action the thread proposes
 ```
 
 `rounds/pr<N>-round<K>.yaml`:
@@ -74,10 +80,32 @@ setting and nobody keeps it "on". The file is a record, not proof: the merge
 still happens on the owner's own message, and the coordinator names every
 override in its next report to the owner.
 
+`deferred/pr<N>-<k>.yaml` (one per leftover; `k` counts them per PR):
+
+```yaml
+pr: 12
+date: 2026-02-03
+what: "S2: the import dialog does not remember the last folder"
+decision: open                # open | planned | postponed | dropped
+issue: ""                     # planned: the issue that carries it
+until: ""                     # postponed: a milestone, a date or an event
+reason: ""                    # postponed and dropped: why
+by: ""                        # dropped: the owner, and where they said it
+```
+
+`triage` lists every entry that is still `open` and every merged PR whose
+last round left more should-fix findings than there are entries. It exits 1
+while anything is listed, and no batch starts then. Planning and postponing
+are the coordinator's call; dropping is the owner's. Merges dated before the
+day in `deferred/since.txt` are not counted, so an older ledger is not asked
+to account for the time before this rule.
+
 What the numbers are for:
 
 - **Merge go.** A PR may be merged only when its latest round has
   `must_fix: 0` (`MRG-01`).
+  The dispatcher grants merge go only when round 1 says `critical: no`
+  (`ROLE-11`); everything else goes to the coordinator.
 - **Quality.** `stats` shows the share of merged PRs that were reverted.
   Faster or cheaper is only better if this number does not go up.
 - **Repeated findings.** `stats` lists finding kinds that came up in more
@@ -91,6 +119,11 @@ What the numbers are for:
   regressed fix did not remove the cause; the next one goes a step up the
   ladder in `META-03`. A PR that branched before the fix and was not updated
   can show up here too; the reviewer says so in the round report.
+- **Audit flags.** `flags` prints one line per thing worth judging: a PR
+  with three or more rounds, a thread compacted twice on one PR, a finding
+  kind seen in several PRs, a regressed fix, a revert, an override, a waiting
+  hand-back, an untriaged leftover. The audit thread starts from these lines
+  and gives each one of five verdicts (`ROLE-15`). Nobody writes a flag by hand.
 - **Overrides.** `stats` counts the owner's overrides of the merge gate.
   Several for the same reason mean the rule is wrong: change the rule.
 - **Replacement.** A worker thread is replaced after `replace_after_prs` PRs
