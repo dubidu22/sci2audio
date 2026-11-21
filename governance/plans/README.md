@@ -8,11 +8,19 @@ another thread's file (`THR-04`).
 |------|--------|------|
 | `plan-<NNN>-<lane>-<slug>.md` | implementation thread | before writing tests or code |
 | `review-pr<N>-round<K>.md` | review thread | end of every review round |
-| `batch-<NNN>.md` | coordinator | when a batch is composed |
+| `batch-<NNN>.md` | coordinator composes it, then the dispatcher is its only writer | when a batch is composed |
 
 Every plan and round report ends with a three-line handoff, kept current:
 `Goal:` what this thread is for, `Done:` what is finished and where,
 `Next:` the next step. A fresh thread starts from those three lines (`THR-07`).
+Under them, when there is something to say: `Ruled out:` what was tried and
+did not work, each with the evidence (the command and what it printed, or the
+file and line). It is what stops the next thread from spending an hour on the
+same dead end.
+
+A report's first word is its status (`THR-15`): `done`, `question`, `blocked`,
+`review` or `handoff`. `question` and `blocked` are followed by the evidence
+and one line `Recommended: <one action>`.
 
 A plan states: goal, lane and labels, whether the work is critical (`CRIT-01`),
 files it expects to touch, tests it will add first, open questions. A round

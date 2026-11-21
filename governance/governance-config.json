@@ -1,5 +1,5 @@
 {
-  "ruleset_version": "1.8.0",
+  "ruleset_version": "1.9.0",
   "project_name": "sci2audio",
   "repo_slug": "dubidu22/sci2audio",
   "is_public": true,
@@ -21,28 +21,28 @@
     "windows-latest"
   ],
   "model_preset": "custom",
-  "coordinator_model": "Fable 5.1",
+  "coordinator_model": "Opus 5.5 high",
   "specify_model": "Opus 5.5 high",
   "critical_model": "Opus 5.5 high",
   "implementation_model": "Opus 5.5 high",
   "review_model": "Opus 5.5 medium",
-  "ops_model": "Opus 5.5 medium",
+  "ops_model": "Sonnet 5.5 high",
   "escalate_after_round": 2,
   "rounds_after_escalation": 2,
-  "profile_key": "balanced",
+  "profile_key": "frugal",
   "token_cfg": {
-    "max_concurrent_lanes": 3,
-    "replace_at_compressions": 2,
-    "replace_after_prs": 3,
-    "watchdog_interval_minutes": 60,
-    "watchdog_max_nudges": 2,
+    "max_concurrent_lanes": 2,
+    "replace_at_compressions": 1,
+    "replace_after_prs": 2,
+    "watchdog_interval_minutes": 120,
+    "watchdog_max_nudges": 3,
     "non_critical_max_review_rounds": 2,
     "critical_max_review_rounds": 4,
-    "batch_audit_mode": "light_every_batch",
-    "kb_pr_cadence": "daily",
-    "reporting_verbosity": "terse_batched",
+    "batch_audit_mode": "critical_only",
+    "kb_pr_cadence": "per_milestone_or_batch",
+    "reporting_verbosity": "ultra_terse",
     "offload_heavy_checks_to_ci": true,
-    "goal_turn_cap": 30
+    "goal_turn_cap": 20
   },
   "autonomy_horizon": "until Colin asks to stop or no open issues are left to work on",
   "owner_hand_steps": [
@@ -164,6 +164,8 @@
     "lane:docs=governance/release/**",
     "lane:docs=governance/workflow-export.md"
   ],
+  "seam_groups": [],
+  "seam_audit_every_prs": 15,
   "doc_paths": [
     "docs/**",
     "**/README.md",
@@ -183,10 +185,11 @@
   ],
   "runtime_verification": false,
   "owner_prefs": [
-    "Terminal commands for Colin carry no comments inside the code block; explanations go beside it."
+    "Terminal commands for Colin carry no comments inside the code block; explanations go beside it.",
+    "For a decision the coordinator would otherwise put to Colin, or a real open choice in a critical plan, the coordinator first asks one advisor thread on Fable 5.1 medium effort for a second opinion: it reads only, writes no files, answers once, and the D-entry quotes its verdict."
   ],
   "acceptance_contracts": false,
-  "dispatcher": false,
+  "dispatcher": true,
   "cache_ttl_minutes": 60,
   "coordinator_compact_every_batches": 1,
   "active_milestones": []
