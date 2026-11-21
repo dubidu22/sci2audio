@@ -8,4 +8,4 @@ critical: yes                 # a safety mechanism of the text-step plugin inter
 compactions: 0
 fixes_kinds: "unguarded-plugin-code"   # META-03 check: tests/unit/test_textprep_plugin_isolation.py
 rounds: 2                     # round 1: S1 fixed in c79069d, T6 made structural in 0710344; round 2: time bound dropped in 266f10f; main 9ad6d11 merged in 022db85
-merged: ""                    # head 022db85 with ci:full; the review thread merges on the coordinator's go; closes #693, #694
+merged: 431cf1b                # pinned to 022db85; closes #693, #694
