@@ -10,7 +10,7 @@ import json
 from playwright.sync_api import Page, expect
 from test_player import choose_speed, chunk_id, highlighted, make_audiobook
 
-from conftest import Live, check_axe, tab_key
+from conftest import Live, check_axe, click_focuses, tab_key
 from sci2audio.web.i18n import PLAYER_SPEED_COOKIE
 from sci2audio.web.player import recorded_folder
 
@@ -39,7 +39,8 @@ def test_the_usual_speeds_set_the_rate_and_keep_the_pitch(signed_in: Page, live:
     button.click()
     expect(button).to_have_attribute("aria-expanded", "true")
     expect(panel).to_be_visible()
-    expect(button).to_be_focused()  # a pointer leaves the focus on the button
+    if click_focuses(page):  # in Safari the click gives the button no focus (#498)
+        expect(button).to_be_focused()  # a pointer leaves the focus on the button
     presets = panel.locator("button[data-speed]")
     expect(presets).to_have_text([f"{n}{TIMES}" for n in ("0.75", "1", "1.25", "1.5", "1.75", "2")])
     expect(presets.nth(1)).to_have_attribute("aria-pressed", "true")

@@ -271,11 +271,6 @@ def test_pause_then_resume_speaks_only_what_is_missing(signed_in: Page, live: Li
     assert not set(again) & set(before), "Resume spoke a kept sentence again"
 
 
-@pytest.mark.quarantined(
-    issue=697,
-    reason="the fake voice's hold is not reached within 30 s in Firefox in CI, twice",
-    browser="firefox",
-)
 def test_resume_of_a_paused_replace_never_asks_to_replace_again(
     signed_in: Page, live: Live
 ) -> None:
@@ -304,8 +299,15 @@ def test_resume_of_a_paused_replace_never_asks_to_replace_again(
     hold = Hold(after=2)
     live.voice.fail_on = hold
     first = len(live.voice.texts)  # what the finished build spoke
-    page.get_by_role("button", name="Replace these files").click()
-    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    # The card is drawn by the page's reload when the refused run ended, and a click while
+    # that page's fonts still arrived sent nothing in Firefox (#697). The address is already
+    # a job's, so only the request shows that Replace started a run.
+    at_rest(page)
+    refused = page.url
+    with page.expect_request(re.compile(r"/api/v1/jobs$")) as replaced:
+        page.get_by_role("button", name="Replace these files").click()
+    assert replaced.value.post_data_json["overwrite"] is True
+    page.wait_for_url(lambda url: url != refused and "/jobs/" in url)
     try:
         assert hold.reached.wait(30)
         with page.expect_response(re.compile(r"/api/v1/jobs/[^/]+/cancel$")):

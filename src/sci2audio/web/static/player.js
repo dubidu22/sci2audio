@@ -419,16 +419,26 @@ function readAlong() {
   speed.addEventListener("click", (event) => showSpeedPanel(speedPanel.hidden, event.detail === 0));
   speed.disabled = false;
   const speedMenu = speed.parentElement;
-  speedMenu.addEventListener("keydown", (event) => {
+  // Esc from anywhere while the panel is open: Safari gives a clicked button no focus, so
+  // after a click on the speed button or a preset the focus is not in the menu (#699)
+  document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || speedPanel.hidden) return;
     event.preventDefault(); // Esc closes the panel only, and leaves Focus listening on
     showSpeedPanel(false);
     speed.focus();
   });
+  // a press inside the menu keeps it open: Safari's mousedown on a button there moves the
+  // focus out to the page, and closing then lost the button's click (#699)
+  let pressedInside = false;
   document.addEventListener("pointerdown", (event) => {
-    if (!speedPanel.hidden && !speedMenu.contains(event.target)) showSpeedPanel(false);
+    pressedInside = speedMenu.contains(event.target);
+    if (!speedPanel.hidden && !pressedInside) showSpeedPanel(false);
+  });
+  document.addEventListener("pointerup", () => {
+    pressedInside = false;
   });
   speedMenu.addEventListener("focusout", (event) => {
+    if (pressedInside) return;
     if (event.relatedTarget && !speedMenu.contains(event.relatedTarget)) showSpeedPanel(false);
   });
 
