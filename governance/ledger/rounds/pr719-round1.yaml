@@ -1,0 +1,11 @@
+pr: 719
+round: 1
+date: 2026-11-21
+thread: review-web-b-w2
+head: c12427b
+critical: no
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr719-round1.md
