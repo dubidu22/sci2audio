@@ -1,0 +1,12 @@
+pr: 721
+opened: 2026-11-21
+thread: release-fix-716
+lane: infra
+labels: "lane:infra, risk:high, bug, ci:installers"
+plan: plans/release-fix-716-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+note: "sci2audio 1.4.1 into release/1.4 (D-865): #718's squash 9fe4bda cherry-picked with -x (CHANGELOG hand merge), version 1.4.1, CHANGELOG [1.4.1] dated 2026-11-21, docs/installing.md file names 1.4.1 with the 1.4.0 workaround kept; part of #716 (closed by #718); after merge Colin tags v1.4.1, approves PyPI and double-clicks the DMG"
+rounds: 0
+merged: ""
