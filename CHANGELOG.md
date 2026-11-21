@@ -4,6 +4,32 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-21
+
+A fix for the Mac: sci2audio 1.4.0 did not open from Finder or the Dock. Nothing else changed; if 1.4.0 works for you on Windows or Linux, you need not update. Feedback is very welcome: [open a tester report](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).
+
+### Download
+
+| Your computer | File | Size |
+|---|---|---|
+| Mac with an Apple chip, macOS 14 (Sonoma) or newer | `sci2audio-1.4.1-macos-arm64.dmg` | about 380 MB |
+| Windows 10 (1809 or newer) or 11, 64-bit | `sci2audio-1.4.1-windows-x64-setup.exe` | about 280 MB |
+| Linux x86_64 (Ubuntu 22.04, Debian 12, Fedora 36 or newer) | `sci2audio-1.4.1-linux-x86_64.AppImage` | about 430 MB |
+
+Intel Macs are not supported: PyTorch has no builds for them. `SHA256SUMS.txt` lists every file's checksum; `gh attestation verify <file> --repo dubidu22/sci2audio` checks that this repository's release workflow built it. With uv instead: `uv tool install sci2audio` (see the README).
+
+### First start
+
+The installers are not signed with a paid certificate, so the first start warns once:
+
+- **macOS:** open the app, click Done, then **System Settings → Privacy & Security → Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/sci2audio.app`). To replace 1.4.0, drag the new sci2audio onto Applications and choose Replace.
+- **Windows:** "Windows protected your PC" → **More info → Run anyway**. The installer needs no administrator rights.
+- **Linux:** `chmod +x` the AppImage and run it; it opens in your browser, with **Quit sci2audio** in the menu.
+
+### Fixed
+
+- The macOS app opens its window again when started from Finder or the Dock: 1.4.0's app bundle started the command line, which quit at once without a window (#716).
+
 ## [1.4.0] - 2026-11-19
 
 The first release made for other people to try. sci2audio turns scientific texts (PDF, EPUB, Markdown, plain text) into faithful audiobooks, in English and German, entirely on your computer. It now comes as an installer for each system. Feedback is very welcome: [open a tester report](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).

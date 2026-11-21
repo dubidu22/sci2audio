@@ -25,6 +25,8 @@ sci2audio opens in a window of its own. Closing the window stops it; while an au
 
 The command line is inside the app: `/Applications/sci2audio.app/Contents/MacOS/sci2audio --help`.
 
+sci2audio 1.4.0 does not open from Finder or the Dock: it starts the command line, which quits at once without a window (#716). Version 1.4.1 fixes this. Until you have it, start 1.4.0 in Terminal with `open /Applications/sci2audio.app/Contents/MacOS/sci2audio-app` (or `/Applications/sci2audio.app/Contents/MacOS/sci2audio ui`).
+
 ## Windows
 
 1. Run `sci2audio-1.4.0-windows-x64-setup.exe`. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**.
