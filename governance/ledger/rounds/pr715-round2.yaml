@@ -1,0 +1,11 @@
+pr: 715
+round: 2
+date: 2026-11-21
+thread: review-plugins-b-p2
+head: 0710344
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 1
+kinds: "brittle-test"
+report: plans/review-pr715-round2.md
