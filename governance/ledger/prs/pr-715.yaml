@@ -7,5 +7,5 @@ plan: plans/textprep-b-p3-plan.md
 critical: yes                 # a safety mechanism of the text-step plugin interface (CRIT-01, D-861)
 compactions: 0
 fixes_kinds: "unguarded-plugin-code"   # META-03 check: tests/unit/test_textprep_plugin_isolation.py
-rounds: 0
+rounds: 1                     # round 1: approved, S1 fixed in c79069d
 merged: ""                    # closes #693, #694
