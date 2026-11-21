@@ -3,6 +3,7 @@
 import inspect
 import subprocess
 import sys
+import threading
 import time
 import warnings
 from dataclasses import dataclass
@@ -271,6 +272,7 @@ def test_a_language_that_is_not_a_str_is_a_readable_problem() -> None:
 
 
 def test_entry_points_of_one_hanging_module_wait_one_limit_not_one_each(hang) -> None:
+    before = set(threading.enumerate())  # workers an earlier test left still finishing
     started = time.monotonic()
     steps = installed_steps(
         entry_points=[
@@ -278,14 +280,22 @@ def test_entry_points_of_one_hanging_module_wait_one_limit_not_one_each(hang) ->
             point("hanging-too", "hanging_on_import:Step"),
             AMPERSAND,
         ],
-        load_timeout=0.5,
+        load_timeout=1.0,
     )
-    assert time.monotonic() - started < 0.8  # two waits would be 1.0 s
+    elapsed = time.monotonic() - started
     assert [step.id for step in steps if step.id == "ampersand-and"] == ["ampersand-and"]
     first, second = steps.problems
-    assert first.message == "took longer than 0.5 s to load; left out"
-    assert second.name == "hanging-too"
-    assert "'hanging-import'" in second.message
+    assert first.message == "took longer than 1 s to load; left out"
+    # the second entry point is left out at once, with no worker of its own to wait for
+    assert (second.name, second.message) == (
+        "hanging-too",
+        "left out: 'hanging-import' of the same package 'hanging_on_import' took longer than "
+        "1 s to load",
+    )
+    started_here = [t.name for t in set(threading.enumerate()) - before]
+    assert "loading text step hanging-too" not in started_here
+    assert "loading text step hanging-import" in started_here  # still held by the import
+    assert elapsed < 1.6  # only a safety net: two waits would take 2 s
 
 
 @dataclass(frozen=True)
