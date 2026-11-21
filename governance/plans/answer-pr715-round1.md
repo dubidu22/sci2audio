@@ -18,6 +18,10 @@ Thread: textprep-b-p3. Review read: `plans/review-pr715-round1.md` (6ca361d). On
 
 The PR body's behaviour-change paragraph now says that a strict run's error text includes the plugin's error type ("text step 'raising' failed: ValueError: boom", was "… failed: boom"). Strict runs are for tests, and no test pins the old text.
 
+## N1, second fix commit 0710344
+
+Tightening to 0.8 s failed on Linux CI (0.83 s on c79069d). By the coordinator's decision the test is now structural: the second entry point's exact problem text ("left out: 'hanging-import' of the same package 'hanging_on_import' took longer than 1 s to load") and the absence of a "loading text step hanging-too" worker among the threads started during the call prove that it never waited, while the first entry point's worker is still alive. The time bound remains as a safety net only: the limit is 1.0 s, the bound 1.6 s, and two waits would be 2 s. Five runs of the plugin test files in random order pass locally. My 0.8 s bound was the mistake: ten local runs say nothing about a loaded CI runner.
+
 ## N3
 
 No change: the top-level-package key is D-861's choice.
@@ -30,4 +34,4 @@ The PR body's `## Tests promised in the plan` adds `tests/unit/test_textprep_plu
 
 ruff check and format clean, lint-imports 3 kept, deptry clean; fast suite `-k "not espeak"` (macOS M4): 8720 passed, 6 skipped, 6 xfailed. Benchmark `test_benchmark_the_guard_on_the_largest_paper`: mean 36.4 ms.
 
-Handoff (THR-07): goal: PR #715 to merge. Done: round 1 answered with one fix commit. Next: round 2 on c79069d (Linux CI), then the coordinator's go for the main merge and the final three-system run.
+Handoff (THR-07): goal: PR #715 to merge. Done: round 1 answered with one fix commit. Next: round 2 on 0710344 (Linux CI), then the coordinator's go for the main merge and the final three-system run.
