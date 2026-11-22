@@ -9,4 +9,5 @@ must_fix: 0
 should_fix: 0
 kinds: ""
 report: plans/review-pr735-round1.md
-merged: ""
+merged: 204c188d2152572a9bd4702196f2c6e2dbfaba7a
+merged_note: "squash-merged by review-735 on the dispatcher go, pinned to 401c78f; main CI run 45057369204 on 204c188: success (ubuntu, macos, windows, CI passed)"
