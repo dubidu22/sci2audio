@@ -148,6 +148,12 @@ three systems (run 45066994414); the coordinator gave the merge go pinned
 to e24fa58; ci:full comes off first, then Colin runs the pinned merge (as for #742). After the
 merge: docs-b-d2 (D-874), now that the lane:infra lock is free.
 
+Merged by Colin by hand, each pinned to its reviewed head (21:29 to 21:31Z):
+#742 f85a633, #740 b5a40a0, #739 4ca072a. Review subagents fill in `merged:`.
+main merged into governance (4ab6dfe). Main CI on 4ca072a running.
+Slot A is done. Slot B: docs-b-d2 (D-874, critical) runs as an Opus high subagent:
+Issue, then a plan for the coordinator. Then #720 (lane:web) last.
+
 Merge gates: #735 gate open, go given, merged 204c188. #742 gate open (critical); the
 coordinator gave the go pinned to 85dd312. Pre-merge check passed (macOS, Windows, Linux
 and CI passed green; ci:full off). The app's permission check refused relaying the merge
