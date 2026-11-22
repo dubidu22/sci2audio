@@ -198,3 +198,14 @@ The dispatcher stays but changes, as the read-only audit of 22 Nov recommended (
 (6) A required check: `governance pr checks` fails a `risk:high` PR that has no ledger round entry approving its current head. This is the META-03 check for the gate skips of #737 and #741.
 The same PR fixes `ledger_tool.py stats` reporting #737 as not merged, if that is a tool bug. Setting the repository ruleset so that no one can bypass the required checks is Colin's own hand step (ROLE-14).
 Owner message: "Yes, start it" (22 Nov 2026), answering "Start the critical ruleset PR with the audit's changes?".
+
+## D-883 (2026-11-22, coordinator)
+
+Plan docs-b-d2 (`plans/docs-b-d2-plan.md`, #746, D-874) is approved as one critical PR: `infra: working files leave main, and a check keeps them off (#746)`, labels lane:infra, lane:docs and risk:high.
+- Deletions: the 772 working files leave main (plans, the two ledger tables, project-state.yaml, pending-decisions.md). Every one exists on branch governance.
+- Pointer: a one-line `governance/README.md` points to branch governance.
+- Check: `.github/scripts/working_files.py` scans the tracked tree in the `lint and layers` job of `ci.yml`, so `CI passed` goes red when a working file is back on main. It scans the whole tree rather than the diff, so a branch with stale copies also fails. Branch governance is exempt by the triggers, not by name in the script.
+- CLAUDE.md: its six state-file mentions now name branch governance.
+- Kept on main (the open choice, decided as the author recommends): `plans/README.md`, `ledger/README.md` and `ledger/deferred/since.txt`, because the generator writes them on main through ruleset PRs and #745 edits one.
+- Order: the PR waits for #745 (the lane:infra lock), with which it shares no file.
+Condition added: before the one-time merge of main into governance after this PR, the dispatcher pushes a backup tag `governance-before-d874` at governance's head. It then runs the plan's §3 procedure (merge without commit, restore the working paths from HEAD, check the empty diff), and reports that empty-diff output in the batch file. A plain `git merge main` there would silently delete most working files, so the tag makes a mistake recoverable with one command. After that merge, plain merges are safe, because the new check keeps main from touching those paths again.
