@@ -1,0 +1,15 @@
+pr: 735
+opened: 2026-11-22
+thread: layout-b-l3
+lane: layout
+labels: "lane:layout, risk:low"
+plan: plans/layout-b-l3-plan.md
+critical: no                  # no golden, contract, core or CI file; corpus blocks and column counts identical (probe)
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+issues: "#679 (closes)"
+head: 401c78f
+notes: "Cause: beside a short column the gutter strip (10 % may cross) opens where its short lines end; order._column put anything starting inside the strip in the next column. Fix: right of a gutter only when x1 > end, the split gutters.splits checks. Corpus probe: 3 elements wholly inside a strip (waskom tick labels in a figure), no block moves."
+ci: "local fast suite green (8794 passed; 3 real-espeak tests deselected, #663); nightly profile on test_layout.py 70 passed; Linux CI pending"
