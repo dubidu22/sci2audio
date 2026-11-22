@@ -165,6 +165,20 @@ def test_a_gutter_that_begins_inside_a_column_keeps_its_long_lines_in_it() -> No
     assert texts(doc) == [li.text for li in first + middle + last]
 
 
+def test_a_centred_heading_atop_a_short_column_is_read_in_its_column() -> None:
+    """#679: the left column holds so few lines that the strip beside it, which a few lines
+    may cross, opens where its short lines end, left of where its centred heading starts.
+    The heading ends inside that strip, so it is still read first in its own column."""
+    x1 = MIDDLE - GUTTER / 2
+    quarter = (x1 - LEFT) / 4
+    heading = line("Methods", LEFT + 1.2 * quarter, 80, x1 - 1.2 * quarter)
+    body = [line(f"left-{k}", LEFT, 94 + 14 * k, LEFT + quarter if k % 2 else x1) for k in range(6)]
+    right = column("right-", MIDDLE + GUTTER / 2, RIGHT, 80, 40)
+    doc = build_document(content([heading, *body, *right]))
+    assert texts(doc) == [li.text for li in [heading, *body, *right]]
+    assert columns_of(doc) == [2]
+
+
 def test_a_page_background_or_a_frame_does_not_cut_the_columns() -> None:
     for box in (Box(0, 0, 600, 800), Box(60, 90, 536, 520)):
         left, right = two_columns("a", 100, 30)
@@ -975,7 +989,26 @@ def column_pages(draw: st.DrawFn) -> tuple[Content, list[str], int]:
     return content(list(stored)), expected, count
 
 
+def found_679() -> tuple[Content, list[str], int]:
+    """#679, drawn by the `dev` profile: column 0 holds 7 of the page's 50 lines, so the
+    strip beside it, which 5 lines may cross, opens at the end of its two short lines
+    (x 105.3), right where its centred heading starts."""
+    full = [(70.0, 211.3), (227.3, 368.7), (384.7, 526.0)]
+    other = [
+        {0: (105.3, 176.0), 3: (70.0, 105.3), 6: (70.0, 105.3)},
+        {6: (262.7, 333.3), 23: (262.7, 333.3)},
+        {0: (420.0, 490.7), 4: (420.0, 490.7)},
+    ]
+    lines = []
+    for col, rows in enumerate((7, 27, 16)):
+        for row in range(rows):
+            x0, x1 = other[col].get(row, full[col])
+            lines.append(line(f"c{col}r{row}", x0, 80 + 14 * row, x1))
+    return content(lines), [li.text for li in lines], 3
+
+
 @given(column_pages())
+@example(found_679())
 def test_any_clean_column_page_reads_column_by_column(page: tuple[Content, list[str], int]) -> None:
     found, expected, count = page
     doc = build_document(found)

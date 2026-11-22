@@ -454,6 +454,9 @@ def _spans(element: Element, cuts: Cuts) -> bool:
 
 
 def _column(element: Element, cuts: Cuts) -> int:
-    """The column the element starts in. A gutter may begin inside the longest lines of the
-    column to its left (it allows a few to cross), so their middle can lie past its start."""
-    return sum(element.box.x0 >= start for start, _ in cuts)
+    """The column of an element that crosses no gutter: right of each gutter it reaches past.
+    That is the split `gutters` found the gutter with (what ends inside it is left of it).
+    A gutter may begin inside the longest lines of the column to its left (it allows a few to
+    cross), so their middle can lie past its start; beside a short column it may even begin
+    where its short lines end, left of where a centred or indented line of it starts (#679)."""
+    return sum(element.box.x1 > end for _, end in cuts)
