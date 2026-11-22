@@ -72,8 +72,8 @@ Threads exist only once their first line says so.
 
 | Slot | Thread | Items | State |
 |---|---|---|---|
-| A | infra-b-i5 | #709 #710 #711, ledger `fixed`, brittle-test check | starter block posted, waiting for Colin to start it |
-| B | layout-b-l3 | #679 | starter block posted, waiting for Colin to start it |
+| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | starter block withdrawn (D-877); the Opus dispatcher starts this thread |
+| B | layout-b-l3 | #679 | starter block withdrawn (D-877); the Opus dispatcher starts this thread |
 
 Queue for slot B after layout-b-l3: voices-b-v1 (#663), docs-b-d2 (D-874), then
 #720 (see note).
@@ -85,6 +85,20 @@ Notes:
   slot A plan must say how the PR lanes are split (one PR per lane, `.github/lanes.yml`).
 - #710 and #711 are risk:low, lane:infra; they can ride with the critical PR or be a PR of their own.
 - The batch file says composed 16:05Z; the Mac clock read 16:02Z at start.
+
+D-877 (coordinator, 2026-11-22): the ruleset is regenerated so the dispatcher runs
+on Opus 5.5 high; a Sonnet dispatcher cannot start Opus sessions. After that PR
+merges, an Opus dispatcher takes over this batch from this file and starts the
+workers itself. Slot A item 3 (hand-written `fixed` value in
+`tools/ledger_tool.py`) is dropped: the regenerated ledger tool brings a `fixed`
+decision, and the coordinator re-records `ledger/deferred/pr715-1.yaml` with it.
+Slot A therefore keeps #709 #710 #711 and the brittle-test check (item 4).
+
+Handoff for the successor (THR-07):
+- Goal: close milestone v1.4 (#709 #710 #711, #720, #679, #663, the D-874 docs change, the brittle-test check); v1.5 is batch 005.
+- Done: read the instructions and this file; no worker thread was ever started; starter blocks written and withdrawn; only this file changed.
+- Next: after the ruleset PR merges, start `infra-b-i5` (slot A, critical plan to the coordinator) and `layout-b-l3` (slot B) yourself; then voices-b-v1, docs-b-d2, #720.
+- Kept notes: #720 is lane:web, so it is the last item in slot B. #709 is lane:textprep and risk:high while slot A is lane:infra, so the slot A plan must split PRs by lane. Local constraints for workers: one `uv run` at a time; three real-espeak tests exit the interpreter, deselect them locally (#663); do not touch the shared checkout; never force-push. Starter text is in the shared notes folder, `batch-004-starters.md`, withdrawn but reusable.
 
 Merge gates: none yet.
 Escalations: none yet.
