@@ -76,7 +76,7 @@ Threads exist only once their first line says so.
 | B | layout-b-l3 | #679 | running, Opus 5.5 high confirmed (local_3f956e8c-d059-4c66-b72a-ee630dc3270f); PR #735 (head 401c78f, lane:layout, risk:low) open 18:05Z; body fixed, Linux CI and governance pr checks green 18:14Z; review thread review-735 (Opus 5.5 medium) started on Colin's go (local_27a9761d-ffb5-453b-a305-e86b0c1db8bc); round 1 approved, critical: no, must_fix 0 (234bfcb); gate open, merge go given 18:50Z pinned to 401c78f |
 
 Slot B: layout-b-l3 done, #735 merged as 204c188 (main CI running). voices-b-v1 (#663)
-started on Colin's go (local_718d5252-0d42-443c-889d-a35b1c464728); PR #739 (head 74e4d1d, lane:voices only, risk:low; cause: espeak-ng exits on data paths over 159 bytes) open; Linux CI red 19:37Z on test_a_non_ascii_path_is_measured_in_bytes, fixed in four commits (path-length independence plus Windows boundary-test fixes); green on all three systems at 744cc83, ci:full off. Review subagent review-b004-b (Opus, medium) running. Then docs-b-d2 (D-874), then
+started on Colin's go (local_718d5252-0d42-443c-889d-a35b1c464728); PR #739 (head 74e4d1d, lane:voices only, risk:low; cause: espeak-ng exits on data paths over 159 bytes) open; Linux CI red 19:37Z on test_a_non_ascii_path_is_measured_in_bytes, fixed in four commits (path-length independence plus Windows boundary-test fixes); green on all three systems at 744cc83, ci:full off. Round 1 (review-b004-b, 51db8dd): critical: no, 0 must-fix, 1 should-fix (S1 Windows limit 214), 2 notes (N1 follow-up Issue, N2 docstring); sent back to voices-b-v1 for one fix commit. Then docs-b-d2 (D-874), then
 #720 (see note).
 
 Notes:
@@ -143,8 +143,8 @@ fixed by the fresh subagent infra-b-i6 (Opus high). #742 approved, critical, gat
 open; merge go asked of the coordinator.
 
 #740 round 1 fixed by infra-b-i6 in e24fa58 (S1, S2; nothing deferred). Round 2
-(aae0a89): approved, 0 must-fix, 0 should-fix. ci:full on e24fa58 running; then the
-coordinator's go.
+(aae0a89): approved, 0 must-fix, 0 should-fix. ci:full on e24fa58 green on all
+three systems (run 45066994414); merge go asked of the coordinator.
 
 Merge gates: #735 gate open, go given, merged 204c188. #742 gate open (critical); the
 coordinator gave the go pinned to 85dd312. Pre-merge check passed (macOS, Windows, Linux
