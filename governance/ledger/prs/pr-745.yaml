@@ -1,0 +1,13 @@
+pr: 745
+opened: 2026-11-22
+thread: ruleset-d882
+lane: infra
+labels: "lane:infra, risk:high, ci:full"
+plan: plans/ruleset-1-13-d882-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "ruleset 1.12.0 -> 1.13.0 (Colin's yes 'Yes, apply', 22 Nov 2026, settings thread): D-882 THR-10, MRG-01 with ledger/gos, ROLE-11, THR-05, ROLE-17/THR-04; ledger_tool.py gos, updated_head, approved, merges recorded in the PR entry (#737); governance pr checks gates risk:high PRs on the ledger of branch governance; PLAN-01 restored; closes #743"
+merged: ""
