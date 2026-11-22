@@ -142,6 +142,10 @@ Slot A round 1 (review-b004-a, 2a80bc4): #740 changes requested, 0 must-fix,
 fixed by the fresh subagent infra-b-i6 (Opus high). #742 approved, critical, gate
 open; merge go asked of the coordinator.
 
+#740 round 1 fixed by infra-b-i6 in e24fa58 (S1, S2; nothing deferred). Round 2
+(aae0a89): approved, 0 must-fix, 0 should-fix. ci:full on e24fa58 running; then the
+coordinator's go.
+
 Merge gates: #735 gate open, go given, merged 204c188. #742 gate open (critical); the
 coordinator gave the go pinned to 85dd312. Pre-merge check passed (macOS, Windows, Linux
 and CI passed green; ci:full off). The app's permission check refused relaying the merge
