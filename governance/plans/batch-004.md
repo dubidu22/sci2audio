@@ -72,8 +72,8 @@ Threads exist only once their first line says so.
 
 | Slot | Thread | Items | State |
 |---|---|---|---|
-| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | started on Colin's go (local_f085fc59-3aa0-4778-9297-574cf5ff13da); first line pending |
-| B | layout-b-l3 | #679 | started on Colin's go (local_3f956e8c-d059-4c66-b72a-ee630dc3270f); first line pending |
+| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | running, Opus 5.5 high confirmed (local_f085fc59-3aa0-4778-9297-574cf5ff13da); opened #734 (brittle-test check); critical plan `plans/infra-b-i5-plan.md` (PR A lane:infra #710 #711 #734, PR B lane:textprep #709, both risk:high) sent to the coordinator 18:03Z, waiting for approval |
+| B | layout-b-l3 | #679 | running, Opus 5.5 high confirmed (local_3f956e8c-d059-4c66-b72a-ee630dc3270f); fix 401c78f on `claude/layout-b-l3-679`, fast suite running, PR next |
 
 Queue for slot B after layout-b-l3: voices-b-v1 (#663), docs-b-d2 (D-874), then
 #720 (see note).
