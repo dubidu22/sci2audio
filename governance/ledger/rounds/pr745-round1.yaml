@@ -1,0 +1,13 @@
+pr: 745
+round: 1
+date: 2026-11-22
+thread: review-745
+head: 4473133bcc768de384b54ae666c84fe34a07be0e
+critical: yes
+verdict: changes_requested
+must_fix: 1
+should_fix: 4
+kinds: "unsound-guard, weak-guard, missing-test, incomplete-residual-risk"
+report: plans/review-pr745-round1.md
+merged: ""
+updated_head: ""
