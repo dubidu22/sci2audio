@@ -68,6 +68,7 @@ from sci2audio.voices.download import (
 )
 from sci2audio.voices.engine import API_VERSION
 from sci2audio.voices.errors import EngineError, InvalidInputError, ModelNotFoundError
+from sci2audio.voices.espeak import check_espeak_data
 from sci2audio.voices.letters import english_spans, letter_speed, per_sound, speed_tensor
 from sci2audio.voices.runtime import prepare_environment
 from sci2audio.voices.types import (
@@ -220,6 +221,7 @@ def _kokoro_pipeline_factory(models_dir: Path, device: str) -> PipelineFactory:
 
     def make(lang_code: str) -> Any:
         _check_pack(models_dir, _PACK_OF_CODE.get(lang_code, ENGLISH))
+        check_espeak_data()
         if lang_code == "d":
             from sci2audio.voices.kokoro_german import german_pipeline
 

@@ -12,11 +12,13 @@ permissions:
   pull-requests: read
 jobs:
   checks:
+    name: governance pr checks  # the status-check name the main ruleset requires
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Check title, labels, ownership and critical paths
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -30,3 +32,28 @@ jobs:
           python3 .github/governance/pr_checks.py --config .github/governance/pr-checks.json \
             --title "$PR_TITLE" --labels "$PR_LABELS" \
             --files "$RUNNER_TEMP/changed.txt" --commits "$RUNNER_TEMP/commits.txt" --diff "$RUNNER_TEMP/diff.txt"
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        if: ${{ !cancelled() }}
+      - name: Check that the promised tests exist
+        if: ${{ !cancelled() }}
+        # opt-in (#687): only a body with the heading costs a sync and a collection of the named files
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.md"
+          mapfile -t files < <(python3 .github/governance/promised_tests.py files "$RUNNER_TEMP/body.md")
+          if [ "${#files[@]}" -gt 0 ]; then
+            uv run --frozen pytest --collect-only -q -p no:cacheprovider "${files[@]}" > "$RUNNER_TEMP/collected.txt" || true
+            # the promises already on the base are shown, not judged (#711): the base's files,
+            # collected with the head's environment so the note costs no second sync
+            if git worktree add --detach --quiet "$RUNNER_TEMP/base" "$PR_BASE"; then
+              script="$GITHUB_WORKSPACE/.github/governance/promised_tests.py"
+              mapfile -t old < <(cd "$RUNNER_TEMP/base" && python3 "$script" files "$RUNNER_TEMP/body.md")
+              if [ "${#old[@]}" -gt 0 ]; then
+                (cd "$RUNNER_TEMP/base" && PYTHONPATH="$RUNNER_TEMP/base/src" "$GITHUB_WORKSPACE/.venv/bin/python" \
+                  -m pytest --collect-only -q -p no:cacheprovider "${old[@]}") > "$RUNNER_TEMP/base-collected.txt" || true
+              fi
+            fi
+          fi
+          python3 .github/governance/promised_tests.py check "$RUNNER_TEMP/body.md" "$RUNNER_TEMP/collected.txt" "$RUNNER_TEMP/base-collected.txt"

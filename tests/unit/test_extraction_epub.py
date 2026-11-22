@@ -385,6 +385,7 @@ def test_many_tokens_on_many_elements_stay_small_and_fast() -> None:
         _, peak = tracemalloc.get_traced_memory()
     finally:
         tracemalloc.stop()
+    # clock-bound: before the cap the read copied 1.56 GB; the capped read takes a fraction of 10 s
     assert time.perf_counter() - started < 10
     assert peak < 100 * 1024 * 1024
     runs = content.pages[0].lines[0].runs

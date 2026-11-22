@@ -5,9 +5,10 @@ The German model is Kokoro-82M fine-tuned by Thorsten-Voice on the Thorsten-Voic
 builds the German pipeline itself from three parts:
 
 - Pronunciation: upstream misaki's `EspeakG2P(language="de")` on the espeak-ng that
-  espeakng-loader ships. The text reaches it unchanged: no number, date or abbreviation
-  rewriting here (D-470, D-57); the German text steps in textprep do that as marked
-  edits, and espeak-ng reads any digits left.
+  espeakng-loader ships, once `voices.espeak` has checked its data folder. The text
+  reaches it unchanged: no number, date or abbreviation rewriting here (D-470, D-57); the
+  German text steps in textprep do that as marked edits, and espeak-ng reads any digits
+  left.
 - `to_kokoro_phonemes`: espeak-ng writes a few symbols Kokoro's 178-symbol vocabulary
   lacks, and kokoro would drop them silently. The short ü (U+028F) becomes `y` (the
   substitution the model's training data used); bracket symbols carry no sound and go.
@@ -35,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from sci2audio.voices.errors import InvalidInputError, ModelLoadError
+from sci2audio.voices.espeak import espeak_g2p
 from sci2audio.voices.letters import german_spans, per_sound, speed_tensor
 
 MAX_PHONEMES = 510  # kokoro's limit per call (its context of 512 minus the two pad tokens)
@@ -281,9 +283,7 @@ class GermanPipeline:
 
 def german_pipeline(folder: Path, weights: str, device: str, repo_id: str) -> GermanPipeline:
     """The German pipeline from the files of the German voice pack in `folder`."""
-    from misaki.espeak import EspeakG2P
-
     return GermanPipeline(
         model=load_german_model(folder, weights, device, repo_id),
-        g2p=EspeakG2P(language="de"),
+        g2p=espeak_g2p("de"),
     )

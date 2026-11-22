@@ -227,6 +227,7 @@ def wait_for_stopping(cli: Cli) -> None:
     never depends on how fast a loaded machine handles it."""
     deadline = time.monotonic() + 10
     while cli.env is None or STOPPING not in cli.env.err.getvalue():  # type: ignore[attr-defined]
+        # clock-bound: the wait loop's way out after 10 s; what it waits for is far quicker
         assert time.monotonic() < deadline, "the Ctrl-C was not taken within 10 s"
         time.sleep(0.01)
 
@@ -280,7 +281,8 @@ def test_a_second_ctrl_c_stops_at_once(tmp_path: Path, source: Path) -> None:
     cli = Cli(tmp_path, voice=FakeVoice(fail_on=press_twice_then_take_long))
     started = time.monotonic()
     result = cli("convert", source, "-o", tmp_path / "b", "-q")
-    assert time.monotonic() - started < 5  # it did not wait for the sentence to end
+    # clock-bound: it did not wait for the sentence to end, which takes 10 s
+    assert time.monotonic() - started < 5
     assert result.code == 130
     assert result.err == (
         "sci2audio: stopping after the current sentence; finished sentences are kept\n"
@@ -445,7 +447,8 @@ def test_ctrl_c_while_the_pdf_is_read_stops_the_reader_at_once(
     began = time.monotonic()
     result = Cli(tmp_path)("convert", source, "-o", tmp_path / "b", "-q")
     assert started.exists()
-    assert time.monotonic() - began < 25  # not the reader's 30 s
+    # clock-bound: it did not wait for the reader's 30 s
+    assert time.monotonic() - began < 25
     assert result.code == 130
     assert result.err.endswith(
         "sci2audio: the job was cancelled while the file was read; "

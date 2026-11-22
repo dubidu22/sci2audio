@@ -406,3 +406,44 @@ def test_a_section_of_tests_already_on_main_passes(tmp_path: Path) -> None:
     result = run("check", str(body), str(collected))
     assert result.returncode == 0
     assert result.stdout.strip() == "ok   promised tests: 1 of 1 collect"
+
+
+def test_a_banner_line_is_not_read_as_a_test(tmp_path: Path) -> None:
+    """A quarantine banner names a test after its issue (`  #697 tests/...::...`); only lines
+    that start with `tests/` are collected tests, as in `browser_shard.py` (#698)."""
+    one = "tests/unit/test_a.py::test_one"
+    listing = f"  #697 {one}\n{one}[x]\n\n1 test collected in 0.01s\n"
+    assert PROMISED.collected(listing) == [f"{one}[x]"]
+    body = tmp_path / "body.md"
+    body.write_text(f"## Tests promised in the plan\n- `{one}`\n", encoding="utf-8")
+    collected = tmp_path / "collected.txt"
+    collected.write_text(f"  #697 {one}\nno tests ran in 0.01s\n", encoding="utf-8")
+    result = run("check", str(body), str(collected))
+    assert result.returncode == 1
+    assert result.stdout.splitlines()[:2] == [
+        f"FAIL promised tests: not collected on the PR head: {one}",
+        "     the collection gave no test; its last lines:",
+    ]
+
+
+def test_promises_already_on_the_base_are_listed_without_failing(tmp_path: Path) -> None:
+    """Presence is the check; novelty is shown to the reviewer, not judged (#711)."""
+    old, new = "tests/unit/test_a.py::test_old", "tests/unit/test_a.py::test_new"
+    body = tmp_path / "body.md"
+    body.write_text(f"## Tests promised in the plan\n- `{old}`\n- `{new}`\n", encoding="utf-8")
+    collected = tmp_path / "collected.txt"
+    collected.write_text(f"{old}\n{new}\n", encoding="utf-8")
+    base = tmp_path / "base.txt"
+    base.write_text(f"  #697 {new}\n{old}\n", encoding="utf-8")
+    result = run("check", str(body), str(collected), str(base))
+    assert result.returncode == 0, result.stdout
+    assert result.stdout.splitlines() == [
+        "ok   promised tests: 2 of 2 collect",
+        f"note promised tests: already collect on the base: {old}",
+    ]
+    base.write_text(f"{new}x\n", encoding="utf-8")
+    result = run("check", str(body), str(collected), str(base))
+    assert result.stdout.splitlines() == ["ok   promised tests: 2 of 2 collect"]
+    gone = run("check", str(body), str(collected), str(tmp_path / "absent.txt"))
+    assert gone.returncode == 0
+    assert gone.stdout.splitlines() == ["ok   promised tests: 2 of 2 collect"]

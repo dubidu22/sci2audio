@@ -140,6 +140,7 @@ def test_a_cancel_during_a_hanging_read_stops_the_reader_and_the_next_job_reads_
         deadline = time.monotonic() + 60
         while not (book.parent / "started").exists():
             assert thread.is_alive()
+            # clock-bound: the wait loop's way out after 60 s; what it waits for is far quicker
             assert time.monotonic() < deadline
             time.sleep(0.02)
         cancelled = time.monotonic()
@@ -148,11 +149,13 @@ def test_a_cancel_during_a_hanging_read_stops_the_reader_and_the_next_job_reads_
         error = outcome["error"]
         assert isinstance(error, JobCancelledError)
         assert str(error) == CANCELLED_WHILE_READING
-        assert outcome["ended"] - cancelled < 1.0  # type: ignore[operator]
+        # clock-bound: a cancel that is not watched waits out the 30 s hang; the watch takes 0.1 s
+        assert outcome["ended"] - cancelled < 5.0  # type: ignore[operator]
         assert multiprocessing.active_children() == []
         assert readers.alive == 0
     began = time.monotonic()
     run_script_job(PYMEDPHYS, settings(tmp_path), tmp_path / "work")
-    assert time.monotonic() - began < 30  # it did not wait for the hanging read
+    # clock-bound: it did not wait for the hanging read, which takes 30 s
+    assert time.monotonic() - began < 30
     assert readers.most == 1
     assert not (book.parent / "finished").exists()

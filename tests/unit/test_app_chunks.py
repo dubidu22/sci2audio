@@ -158,6 +158,7 @@ def test_another_process_holding_the_lock_keeps_the_job_out(tmp_path: Path) -> N
                     break
             except JobBusyError:
                 assert sys.platform == "win32", "the lock outlived its process"
+                # clock-bound: the wait loop's way out after 15 s; what it waits for is far quicker
                 assert time.monotonic() < deadline, "the lock was not freed in 15 s"
                 time.sleep(0.1)
     finally:

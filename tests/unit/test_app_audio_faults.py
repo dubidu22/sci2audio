@@ -92,6 +92,7 @@ def test_a_job_killed_mid_run_resumes_without_speaking_finished_chunks(tmp_path:
         deadline = time.monotonic() + 120
         while not (killed / "hanging").exists():
             assert child.poll() is None, "the job ended before it was killed"
+            # clock-bound: the wait loop's way out after 120 s; what it waits for is far quicker
             assert time.monotonic() < deadline
             time.sleep(0.05)
         child.kill()  # SIGKILL / TerminateProcess: no clean-up runs
