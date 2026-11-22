@@ -134,6 +134,9 @@ def test_the_check_passes_on_a_clean_tree(tmp_path: Path) -> None:
 
 
 def test_the_pointer_file_is_the_line_the_check_prints() -> None:
+    """A KB index record (D-884): a lane owns it and the KB test counts it as a record."""
+    assert WF.POINTER_FILE == "governance/kb/00-index/working-files.md"
+    assert WF.working_files([WF.POINTER_FILE]) == []
     assert (ROOT / WF.POINTER_FILE).read_text(encoding="utf-8") == WF.POINTER + "\n"
     assert "branch `governance`" in WF.POINTER
 

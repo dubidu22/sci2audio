@@ -25,7 +25,7 @@ KEPT = (
     "governance/ledger/README.md",
     "governance/ledger/deferred/since.txt",
 )
-POINTER_FILE = "governance/README.md"
+POINTER_FILE = "governance/kb/00-index/working-files.md"
 POINTER = (
     "Working files (plans, round reports, batch files, ledger entries, `project-state.yaml`, "
     "`kb/pending-decisions.md`) live only on branch `governance` (THR-13, D-874): "
