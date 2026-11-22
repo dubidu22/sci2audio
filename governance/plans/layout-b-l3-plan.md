@@ -35,8 +35,8 @@ Both fail on main 880b170 (checked with the probe on the issue's page). Then the
 
 ## Tests promised in the plan
 
-- tests/unit/test_layout.py::test_any_clean_column_page_reads_column_by_column
-- tests/unit/test_layout.py::test_a_centred_heading_atop_a_short_column_is_read_in_its_column
+- `tests/unit/test_layout.py::test_any_clean_column_page_reads_column_by_column`
+- `tests/unit/test_layout.py::test_a_centred_heading_atop_a_short_column_is_read_in_its_column`
 
 ## 4. Size
 
