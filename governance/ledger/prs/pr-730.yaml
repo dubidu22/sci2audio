@@ -10,5 +10,5 @@ fixes_kinds: ""
 handback: ""
 recommended: ""
 note: "ruleset 1.9.0 -> 1.10.0 (D-877, Colin's yes 'Yes, with restore', 22 Nov 2026): dispatcher_model Opus 5.5 high, promised_tests_check 'the governance check'; generator brings the ledger `fixed` decision and the dispatcher model note; PLAN-01 D-849 wording restored by exact replace; governance_paths now kept by the generator; closes #729"
-rounds: 0
-merged: ""
+rounds: 1
+merged: "880b1708e6d8c1224b7b2d6d12f1a507afe42aa2 (2026-11-22T17:30:18Z, squash by Colin by hand after the auto-mode permission check refused it to the review thread; pinned to reviewed head 4ec26e4)"
