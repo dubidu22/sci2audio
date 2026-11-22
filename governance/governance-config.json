@@ -1,5 +1,5 @@
 {
-  "ruleset_version": "1.11.0",
+  "ruleset_version": "1.12.0",
   "project_name": "sci2audio",
   "repo_slug": "dubidu22/sci2audio",
   "is_public": true,
@@ -44,17 +44,16 @@
     "offload_heavy_checks_to_ci": true,
     "goal_turn_cap": 20
   },
-  "autonomy_horizon": "until milestone v1.6 Study layer is complete or Colin asks to stop",
+  "autonomy_horizon": "until Colin asks to stop",
   "owner_hand_steps": [
     "listening test (rows scored 1 to 5) and the VoiceOver pass",
     "speed run (scripts/speed.py) on the M4 and the Dependabot check",
     "pushing release tags and PyPI publishing",
-    "repository settings and rulesets, milestone creation or renaming that only Claude asked for"
+    "repository settings and rulesets"
   ],
   "notify_triggers": [
     "a release is tagged and shipped",
-    "a critical decision or a critical merge (one line)",
-    "milestone v1.6 Study layer complete: the autonomy period ends"
+    "something waits for Colin: a decision AUTO-02 reserves for him, a critical PR stopped at its last review round, or an owner hand step"
   ],
   "execution_lanes": [
     "extraction/voices",

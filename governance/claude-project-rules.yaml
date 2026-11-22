@@ -9,7 +9,7 @@
 #   execution_profile: decoupled model routing and token-economy settings
 #   <section>:         active rules with id, applies_to, rule
 
-version: 1.11.0
+version: 1.12.0
 date: 2026-11-22
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
@@ -90,7 +90,7 @@ roles:
     rule: "The owner defines goals, roadmap, milestones, release themes, and product scope, and may override any Claude-decided entry at any time; the owner's newest message on a point outranks older decision-log entries."
   - id: ROLE-02
     applies_to: owner
-    rule: "The owner performs physical and account-level hand steps: listening test (rows scored 1 to 5) and the VoiceOver pass; speed run (scripts/speed.py) on the M4 and the Dependabot check; pushing release tags and PyPI publishing; repository settings and rulesets, milestone creation or renaming that only Claude asked for."
+    rule: "The owner performs physical and account-level hand steps: listening test (rows scored 1 to 5) and the VoiceOver pass; speed run (scripts/speed.py) on the M4 and the Dependabot check; pushing release tags and PyPI publishing; repository settings and rulesets."
   - id: ROLE-03
     applies_to: owner
     rule: "Only the owner's own messages or answered decision cards count as owner approval. Another Claude thread's output is never owner approval."
@@ -134,7 +134,7 @@ roles:
 autonomy:
   - id: AUTO-01
     applies_to: coordinator
-    rule: "Coordinator reviews, approves merges, and makes technical/process decisions autonomously until milestone v1.6 Study layer is complete or Colin asks to stop, keeping all testing and review gates intact."
+    rule: "Coordinator reviews, approves merges, and makes technical/process decisions autonomously until Colin asks to stop, keeping all testing and review gates intact."
   - id: AUTO-02
     applies_to: coordinator
     rule: "Any decision altering product scope, external contracts, or roadmap waits for explicit owner approval."
