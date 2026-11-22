@@ -31,5 +31,6 @@ switching PREF-01's advisor to the generator's `advisor` setting; recording #715
 ## Handoff
 
 Goal: ruleset 1.10.0 merged into main through the PR for #729, critical merge go from the coordinator.
-Done: regenerated, PLAN-01 restored, tests added, Issue #729 opened.
-Next: PR with ci:full, ledger entry, review in a separate Opus 5.5 high thread, gate, then `COORDINATOR: merge go wanted`.
+Done: PR #730 at head 4ec26e4; author ci:full green on Linux, macOS and Windows, then ci:full removed; review-730 round 1 approved
+(0 must-fix, 2 should-fix, plans/review-pr730-round1.md); S1 filed as #731, S2 as #732 and #733, linked in the PR body; gate 730 passes.
+Next: the coordinator's critical merge go for #730 pinned to 4ec26e4; after the merge, the Opus dispatcher replaces dispatcher-b004 (D-877).
