@@ -11,4 +11,4 @@ handback: ""
 recommended: ""
 note: "ruleset 1.10.0 -> 1.11.0 (Colin's yes 'Yes, apply', 22 Nov 2026): autonomy_horizon 'until milestone v1.6 Study layer is complete or Colin asks to stop', notify trigger for the end of the grant; PLAN-01 D-849 wording restored by exact replace; closes #736"
 rounds: 1
-merged: "1bebb96940cd1c0c6ec7d340cbb79fcbe9a6ac89 (2026-11-22T18:55:59Z, squash by Colin by hand before review round 2; pinned to f9ef427; the author ci:full run 45057154107 was still running on macOS and Windows at the merge)"
+merged: "1bebb96940cd1c0c6ec7d340cbb79fcbe9a6ac89 (2026-11-22T18:55:59Z, squash by Colin by hand before review round 2; pinned to f9ef427; the author ci:full run 45057154107 was still running on macOS and Windows at the merge and finished green on all three systems after it)"
