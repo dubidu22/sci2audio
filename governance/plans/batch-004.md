@@ -75,7 +75,8 @@ Threads exist only once their first line says so.
 | A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | running, Opus 5.5 high confirmed (local_f085fc59-3aa0-4778-9297-574cf5ff13da); opened #734 (brittle-test check); critical plan `plans/infra-b-i5-plan.md` (PR A lane:infra #710 #711 #734, PR B lane:textprep #709, both risk:high) approved by the coordinator (D-878), who told the thread directly; implementing; PR A (#710 #711 #734) committed on `infra-b-i5-a`, fast suite running; PR B (#709) test written |
 | B | layout-b-l3 | #679 | running, Opus 5.5 high confirmed (local_3f956e8c-d059-4c66-b72a-ee630dc3270f); PR #735 (head 401c78f, lane:layout, risk:low) open 18:05Z; body fixed, Linux CI and governance pr checks green 18:14Z; review thread review-735 (Opus 5.5 medium) started on Colin's go (local_27a9761d-ffb5-453b-a305-e86b0c1db8bc); round 1 approved, critical: no, must_fix 0 (234bfcb); gate open, merge go given 18:50Z pinned to 401c78f |
 
-Queue for slot B after layout-b-l3: voices-b-v1 (#663), docs-b-d2 (D-874), then
+Slot B: layout-b-l3 done, #735 merged as 204c188 (main CI running). voices-b-v1 (#663)
+proposed as a card (task_f8ebaddd), waits for Colin's click. Then docs-b-d2 (D-874), then
 #720 (see note).
 
 Notes:
