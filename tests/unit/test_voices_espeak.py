@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -20,11 +21,16 @@ SPEAK = (
 
 
 def linked_data(base: Path, length: int) -> Path:
-    """A folder `length` bytes long whose entries link to the wheel's espeak-ng data."""
+    """A folder `length` bytes long holding the wheel's espeak-ng data."""
     folder = base.resolve() / ("x" * (length - len(str(base.resolve()).encode()) - 1))
-    folder.mkdir()
-    for entry in Path(wheel_data_path()).iterdir():
-        (folder / entry.name).symlink_to(entry, target_is_directory=entry.is_dir())
+    if sys.platform == "win32":
+        # Windows' stat gives a file symlink's own size, 0, and espeak-ng reads that many
+        # bytes of phondata: a real copy, which still fits MAX_PATH at the 229-byte limit
+        shutil.copytree(wheel_data_path(), folder)
+    else:
+        folder.mkdir()
+        for entry in Path(wheel_data_path()).iterdir():
+            (folder / entry.name).symlink_to(entry, target_is_directory=entry.is_dir())
     assert len(str(folder).encode()) == length
     return folder
 
@@ -65,7 +71,9 @@ def test_a_data_path_past_the_limit_is_refused_before_espeak_loads(tmp_path: Pat
 
 def test_a_non_ascii_path_is_measured_in_bytes(tmp_path: Path) -> None:
     base = tmp_path.resolve()
-    folder = base / ("ü" * ((ESPEAK_PATH_LIMIT - len(str(base).encode())) // 2))
+    # each "ü" is one character but two bytes: one more than half the room left goes past
+    # the limit in bytes, whatever the parity of the base path's length
+    folder = base / ("ü" * ((ESPEAK_PATH_LIMIT - len(str(base).encode())) // 2 + 1))
     folder.mkdir()
     (folder / "phontab").write_bytes(b"")
     assert len(str(folder)) <= ESPEAK_PATH_LIMIT < len(str(folder).encode())
