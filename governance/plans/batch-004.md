@@ -131,7 +131,7 @@ override recorded as D-879 by the coordinator; review-737 stays idle. main merge
 into governance (d06f563, ruleset 1.11.0). Main CI passed on all three systems for
 204c188 (#735, run 45057369204) and 1bebb96 (#737, run 45057845400) at 19:07Z.
 
-Watch for the coordinator (outside the batch): #741 (ruleset 1.12.0) ci:full on f9c4d5a; when it finishes, tell settings-max-autonomy (local_55e5365e-12fa-45a7-98ea-163c5932e7ad) the result. The merge go is the coordinator's.
+Watch for the coordinator (outside the batch): #741 (ruleset 1.12.0) ci:full on f9c4d5a; green on all three systems plus both browser shards at 19:47Z, and I told settings-max-autonomy (local_55e5365e-12fa-45a7-98ea-163c5932e7ad). The merge go is the coordinator's.
 
 Merge gates: #735 gate open, go given, merged 204c188.
 Escalations: none yet.
