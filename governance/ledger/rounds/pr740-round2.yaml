@@ -1,0 +1,12 @@
+pr: 740
+round: 2
+date: 2026-11-22
+thread: review-b004-a
+head: e24fa5864bfa227cbb82da3ec668970ec2dd88f2
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr740-round2.md
+merged: ""
