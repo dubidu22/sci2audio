@@ -237,6 +237,13 @@ def same_head(a: str, b: str) -> bool:
     return bool(a) and bool(b) and min(len(a), len(b)) >= 7 and (a.startswith(b) or b.startswith(a))
 
 
+def exact_head(a: str, b: str) -> bool:
+    """Two full 40-character commit SHAs that are equal. `approved` takes no prefix: a short SHA is cheap to
+    collide with (review-745 S1)."""
+    a, b = a.strip().lower(), b.strip().lower()
+    return a == b and bool(re.fullmatch(r"[0-9a-f]{40}", a))
+
+
 def override_problems(e: dict[str, str]) -> list[str]:
     out = [f"`{k}` is missing" for k in OVERRIDE_KEYS if not e.get(k)]
     if e.get("pr") and not re.fullmatch(r"\d+", e["pr"]):
@@ -374,15 +381,16 @@ def approved(pr: str, rounds: list[dict[str, str]], overrides: list[dict[str, st
     override for that head is recorded (MRG-02). The governance check runs this for a risk:high PR, on the ledger
     of branch governance (D-882)."""
     for o in reversed(overrides):
-        if o.get("pr") == pr and not override_problems(o) and same_head(o["head"], head):
+        if o.get("pr") == pr and not override_problems(o) and exact_head(o["head"], head):
             return True, f"owner override by {o['by']} on {o['date']} for head {o['head']} (overrides/{o['_file']})"
     mine = sorted((r for r in rounds if r.get("pr") == pr), key=lambda r: num(r.get("round")))
     if not mine:
         return False, "no review round is recorded"
     last = mine[-1]
     heads = reviewed_heads(last)
-    if not any(same_head(h, head) for h in heads):
-        return False, f"round {last.get('round')} is for head {' updated to '.join(heads) or '(none)'}, not for this head"
+    if not any(exact_head(h, head) for h in heads):
+        return False, (f"round {last.get('round')} is for head {' updated to '.join(heads) or '(none)'}, not for this head "
+                       "(the check takes only a full 40-character SHA)")
     if last.get("verdict") != "approved" or num(last.get("must_fix"), -1) != 0:
         return False, (f"round {last.get('round')} for this head says verdict '{last.get('verdict', '')}', "
                        f"must_fix {last.get('must_fix', '?')}")
@@ -415,7 +423,7 @@ def problems(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: l
         if e.get("pr") and not re.fullmatch(r"\d+", e["pr"]):
             out.append(f"{where}: `pr` must be a whole number, got '{e['pr']}'")
         elif e.get("pr") and e["pr"] not in merged:
-            out.append(f"{where}: PR #{e['pr']} has no round entry that records a merge")
+            out.append(f"{where}: PR #{e['pr']} has no round or PR entry that records a merge")
     for kind, entries, keys in (("prs", prs, PR_KEYS), ("rounds", rounds, ROUND_KEYS)):
         seen: set[tuple[str, str]] = set()
         for e in entries:
@@ -586,8 +594,9 @@ def main() -> int:
             print(f"error: {args.cmd} needs a PR number, e.g. `ledger_tool.py {args.cmd} 12`", file=sys.stderr)
             return 2
     if args.cmd == "approved":
-        if not re.fullmatch(r"[0-9a-fA-F]{7,40}", args.head):
-            print("error: approved needs the PR's head, e.g. `ledger_tool.py approved 12 --head 3f9c2ab`", file=sys.stderr)
+        if not re.fullmatch(r"[0-9a-fA-F]{40}", args.head):
+            print("error: approved needs the PR's full 40-character head SHA, e.g. `ledger_tool.py approved 12 --head <sha>`",
+                  file=sys.stderr)
             return 2
         ok, why = approved(number, rounds, overrides, args.head)
         print(f"PR #{number} at {args.head}: {'approved' if ok else 'no approving review round for this head'}")

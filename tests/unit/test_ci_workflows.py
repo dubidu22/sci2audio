@@ -452,7 +452,14 @@ def test_the_governance_check_gates_a_risk_high_pr_on_the_ledger_of_branch_gover
     environment."""
     header = "      - name: Check that a risk:high PR has an approving review round for its head"
     step = block(GOVERNANCE, header)
-    assert GOVERNANCE.rstrip().endswith(step.rstrip()), "the gate is the last step"
+    # every later step runs the PR's code (pr_checks.py, the PR's conftest), which could rewrite
+    # $GITHUB_ENV, $GITHUB_PATH or the runner for a step after it (review-745 M1)
+    steps = re.findall(r"^      - (?:name|uses): (.+)$", block(GOVERNANCE, "    steps:"), re.M)
+    assert steps[0].startswith("actions/checkout@"), steps
+    assert steps[1] == header.removeprefix("      - name: "), steps
+    for later in steps[2:]:
+        if not later.startswith("astral-sh/setup-uv@"):
+            assert "        if: ${{ !cancelled() }}" in block(GOVERNANCE, f"      - name: {later}")
     assert "        if: ${{ !cancelled() }}" in step
     env = block(step, "        env:")
     for line in (
@@ -464,6 +471,7 @@ def test_the_governance_check_gates_a_risk_high_pr_on_the_ledger_of_branch_gover
         assert line in env, line
     script = block(step, "        run: |")
     assert "${{" not in script
+    assert script.strip().startswith("set -o pipefail")
     assert "*,risk:high,*) ;;" in script
     assert (
         "git fetch --no-tags origin +refs/heads/governance:refs/remotes/origin/governance" in script

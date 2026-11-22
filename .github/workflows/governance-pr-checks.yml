@@ -19,7 +19,35 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Check that a risk:high PR has an approving review round for its head
+        if: ${{ !cancelled() }}
+        # D-882: the ledger comes from branch governance, never from the PR, and the tool that judges it from the
+        # PR's base commit. It runs first, before any step runs the PR's code, which could otherwise change
+        # $GITHUB_ENV, $GITHUB_PATH or the runner for it. Read-only token either way. The round entry lands
+        # after this run, so the review thread re-runs the check once it pushed its approval (MRG-01).
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -o pipefail
+          case ",$PR_LABELS," in
+            *,risk:high,*) ;;
+            *) echo "Not risk:high: no review round needed here."; exit 0 ;;
+          esac
+          git fetch --no-tags origin +refs/heads/governance:refs/remotes/origin/governance
+          mkdir "$RUNNER_TEMP/governance"
+          git archive origin/governance governance/ledger | tar -x -C "$RUNNER_TEMP/governance"
+          tool="$RUNNER_TEMP/ledger_tool.py"
+          git show "$PR_BASE:governance/tools/ledger_tool.py" > "$tool" 2> /dev/null || true
+          if ! grep -q '^def approved(' "$tool"; then
+            # bootstrap (#743): the base has no approved command yet
+            cp governance/tools/ledger_tool.py "$tool"
+          fi
+          python3 "$tool" approved "$PR_NUMBER" --head "$PR_HEAD" --ledger "$RUNNER_TEMP/governance/governance/ledger"
       - name: Check title, labels, ownership and critical paths
+        if: ${{ !cancelled() }}
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
@@ -57,28 +85,3 @@ jobs:
             fi
           fi
           python3 .github/governance/promised_tests.py check "$RUNNER_TEMP/body.md" "$RUNNER_TEMP/collected.txt" "$RUNNER_TEMP/base-collected.txt"
-      - name: Check that a risk:high PR has an approving review round for its head
-        if: ${{ !cancelled() }}
-        # D-882: the ledger comes from branch governance, never from the PR, and the tool that judges it from the
-        # PR's base commit, so a PR cannot change its own verdict. Read-only token either way. The round
-        # entry lands after this run, so the review thread re-runs the check once it pushed its approval (MRG-01).
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          case ",$PR_LABELS," in
-            *,risk:high,*) ;;
-            *) echo "Not risk:high: no review round needed here."; exit 0 ;;
-          esac
-          git fetch --no-tags origin +refs/heads/governance:refs/remotes/origin/governance
-          mkdir "$RUNNER_TEMP/governance"
-          git archive origin/governance governance/ledger | tar -x -C "$RUNNER_TEMP/governance"
-          tool="$RUNNER_TEMP/ledger_tool.py"
-          git show "$PR_BASE:governance/tools/ledger_tool.py" > "$tool" 2> /dev/null || true
-          if ! grep -q '^def approved(' "$tool"; then
-            # bootstrap (#743): the base has no approved command yet
-            cp governance/tools/ledger_tool.py "$tool"
-          fi
-          python3 "$tool" approved "$PR_NUMBER" --head "$PR_HEAD" --ledger "$RUNNER_TEMP/governance/governance/ledger"

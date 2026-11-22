@@ -9,9 +9,11 @@ edit the same file. Nobody maintains a table by hand; print one when needed:
     python3 tools/ledger_tool.py check      # entries with missing or malformed fields
     python3 tools/ledger_tool.py gate 12    # may PR 12 be merged? (run before every merge, MRG-01)
                                             # add --head <sha> when an owner override exists and no round is recorded
-    python3 tools/ledger_tool.py approved 12 --head 3f9c2ab
+    python3 tools/ledger_tool.py approved 12 --head <full sha>
                                             # does the latest round approve exactly this head? `governance pr checks`
-                                            # runs it for a risk:high PR, on the ledger of branch governance (D-882)
+                                            # runs it for a risk:high PR, on the ledger of branch governance (D-882);
+                                            # it counts only a full 40-character SHA in `head`, `updated_head` or an
+                                            # override, so write round and override heads in full
     python3 tools/ledger_tool.py triage     # what was left behind without a decision; run before a new batch (THR-16)
     python3 tools/ledger_tool.py flags      # one line per thing an audit should judge (ROLE-15)
 
