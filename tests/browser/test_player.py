@@ -482,56 +482,75 @@ def test_a_second_step_while_the_file_loads_stays_on_its_sentence(
 
 
 def test_steps_while_the_audio_still_seeks_end_on_the_last_one(signed_in: Page, live: Live) -> None:
-    """Two steps, paused, the second while the first one's seek still runs (#720): Linux
-    WebKit lost the position of a seek started over a running one and ended at 0, with no
-    sentence marked. Tried at several gaps between the steps, each from the same sentence."""
+    """Back and on again, paused, inside one file, the second step while the first one's seek
+    may still run (#720): Linux WebKit lost the position of a seek started over a running one
+    and ended at 0, with no sentence marked. So the page never sets the time while the element
+    seeks (counted through the element's own `currentTime` setter), and each pair ends on the
+    sentence it started from, at its start. Tried at several gaps between the two steps, the
+    first none: both in one task, where every browser still seeks at the second one."""
     page = signed_in
     make_audiobook(page, live)
     page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
     page.locator("#next-sentence").click()
-    lost = page.evaluate(
+    page.locator("#next-sentence").click()
+    found = page.evaluate(
         """async (gaps) => {
             const audio = document.getElementById('audio');
             const next = document.getElementById('next-sentence');
             const previous = document.getElementById('previous-sentence');
             const data = JSON.parse(document.getElementById('player-data').textContent);
             const order = [...new Set(data.chunks.map((c) => c[3]))];
+            const own = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
+            let over = 0; // times set while the element still sought
+            Object.defineProperty(audio, 'currentTime', {
+                configurable: true,
+                get() { return own.get.call(this); },
+                set(value) { if (this.seeking) over += 1; own.set.call(this, value); },
+            });
             const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+            // at rest: the file's metadata in and no seek running, still so a moment later
+            // (a jump waiting for a seek starts its own in that seek's `seeked`)
+            const quiet = () => !audio.seeking && audio.readyState >= 1;
             const settle = async () => {
-                for (let waited = 0; audio.seeking && waited < 5000; waited += 5) await wait(5);
-                await wait(150);
+                const deadline = performance.now() + 10000;
+                do {
+                    while (!quiet()) {
+                        if (performance.now() > deadline) throw new Error('audio never settled');
+                        await wait(5);
+                    }
+                    await wait(50);
+                } while (!quiet());
             };
             const now = () => document.querySelector('#text .s.now')?.id ?? '';
-            const startOf = (id) => {
-                const chunk = data.chunks[Number(document.getElementById(id).dataset.chunk)];
-                return chunk[0] - data.chapters[chunk[2]].offset;
-            };
+            const chunkOf = (id) => data.chunks[Number(document.getElementById(id).dataset.chunk)];
+            const startOf = (id) => chunkOf(id)[0] - data.chapters[chunkOf(id)[2]].offset;
             await settle();
-            const from = now();
-            const want = order[order.indexOf(from) + 2];
+            const want = now();
+            const before = order[order.indexOf(want) - 1];
+            const src = audio.getAttribute('src');
+            if (!before || chunkOf(before)[2] !== chunkOf(want)[2]) {
+                return { want, before, gaps: [] };
+            }
             const lost = [];
             for (const gap of gaps) {
-                next.click();
-                await wait(gap);
+                previous.click();
+                if (gap > 0) await wait(gap);
                 next.click();
                 await settle();
                 const time = audio.currentTime;
                 if (now() !== want || Math.abs(time - startOf(want)) > 0.05) {
-                    lost.push({ gap, want, marked: now(), time });
+                    lost.push({ gap, marked: now(), time });
+                    break;
                 }
-                for (let back = 0; now() !== from && back < 4; back++) {
-                    previous.click();
-                    await settle();
-                }
-                if (now() !== from) return { from, lost, stuck: now() };
             }
-            return { from, lost };
+            return { want, before, same_file: audio.getAttribute('src') === src, over, lost, gaps };
         }""",
         [0, 1, 2, 4, 6, 8, 10, 12, 15, 20, 25, 30, 40],
     )
-    assert lost["from"], lost
-    assert lost["lost"] == [], lost
-    assert "stuck" not in lost, lost
+    assert found["gaps"], found  # the sentence before is in the same chapter, so the same file
+    assert found["same_file"], found
+    assert found["over"] == 0, found
+    assert found["lost"] == [], found
     assert paused(page)
 
 
