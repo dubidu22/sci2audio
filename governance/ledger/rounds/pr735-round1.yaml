@@ -1,0 +1,12 @@
+pr: 735
+round: 1
+date: 2026-11-22
+thread: review-735
+head: 401c78f824a721a5146db2d9ac419c38ce022fcc
+critical: no
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr735-round1.md
+merged: ""
