@@ -658,7 +658,7 @@ expected = ["A Type 1 error in the Phase 1 and 2 trial of Henry VIII, the part I
 id = "roman-numerals-after-short-keywords"
 audit = 0
 issue = 67
-goal = "A Roman numeral after a keyword printed short ('Fig.', 'Exp.', 'Sec.') is read as a number on the first run, beside the keyword read in full by #68 (TP-13, D-185; review of PR #132)."
+goal = "A Roman numeral after a keyword printed short ('Fig.', 'Exp.', 'Sec.') is read as a number on the first run, beside the keyword read in full by #68 (TP-13, D-185; PR #132)."
 blocks = [{ kind = "paragraph", text = "See Fig. II and Exp. III in Sec. IV, but not the end. II" }]
 expected = ["See Figure 2 and Experiment 3 in Section 4, but not the end. II"]
 
@@ -967,7 +967,7 @@ expected = ["The corpus (12 languages) is open."]
 id = "link-at-a-sentence-start"
 audit = 0
 issue = 66
-goal = "A link that starts a sentence takes the mark after it, so no '..' or '.,' is left (D-168, review of PR #103)."
+goal = "A link that starts a sentence takes the mark after it, so no '..' or '.,' is left (D-168, PR #103)."
 blocks = [{ kind = "paragraph", text = "The code is public. https://example.org/code. It runs offline." }]
 expected = ["The code is public. It runs offline."]
 
@@ -975,7 +975,7 @@ expected = ["The code is public. It runs offline."]
 id = "citation-at-a-sentence-start"
 audit = 0
 issue = 66
-goal = "A citation removed between two sentences, or before a full stop after 'et al.', leaves one full stop (D-173, review of PR #103)."
+goal = "A citation removed between two sentences, or before a full stop after 'et al.', leaves one full stop (D-173, PR #103)."
 blocks = [{ kind = "paragraph", text = "It holds. (Smith, 2019). The corpus of Zimmeck et al. (2019). Then more." }]
 expected = ["It holds. The corpus of Zimmeck et al. Then more."]
 
@@ -983,7 +983,7 @@ expected = ["It holds. The corpus of Zimmeck et al. Then more."]
 id = "label-before-a-link-inside-a-sentence"
 audit = 0
 issue = 66
-goal = "A label takes the whole sentence only when nothing but links and their words follow the link (D-168, review of PR #103)."
+goal = "A label takes the whole sentence only when nothing but links and their words follow the link (D-168, PR #103)."
 blocks = [{ kind = "paragraph", text = "Contact: help@example.org or see https://example.org/help. Code: https://example.org/code is where it lives." }]
 expected = ["is where it lives."]
 
@@ -991,7 +991,7 @@ expected = ["is where it lives."]
 id = "numeric-citation-after-an-abbreviation"
 audit = 0
 issue = 66
-goal = "'Reference' is not capitalised after 'cf.', and a bracket after 'Eq.' is its number, not a citation (D-171, D-172, review of PR #103)."
+goal = "'Reference' is not capitalised after 'cf.', and a bracket after 'Eq.' is its number, not a citation (D-171, D-172, PR #103)."
 blocks = [{ kind = "paragraph", text = "This was shown before, cf. [4], and Eq. [3] holds." }]
 expected = ["This was shown before, compare reference 4, and Equation [3] holds."]
 
@@ -1204,7 +1204,7 @@ expected = ["A 3 times 4 grid, d times d matrices, 2 times faster, a 10 times sp
 id = "symbols-x-before-a-power"
 audit = 0
 issue = 130
-goal = "An x glued to a number with a superscript after it is the variable with its power, not 'times': '2x²' was '2 times ²', '3x⁻²' was '3 times ⁻²' (German second-run property, #130; review of PR #242)."
+goal = "An x glued to a number with a superscript after it is the variable with its power, not 'times': '2x²' was '2 times ²', '3x⁻²' was '3 times ⁻²' (German second-run property, #130; PR #242)."
 blocks = [{ kind = "paragraph", text = "The 2x² term, 3x⁻² slope and 1x⁶ grew 3x faster." }]
 expected = ["The 2x² term, 3x⁻² slope and 1x⁶ grew 3 times faster."]
 
@@ -1236,7 +1236,7 @@ expected = ["With μ equals 3 and μB, the 5 micrometres and 2 micrometres films
 id = "symbols-x-in-a-formula"
 audit = 0
 issue = 68
-goal = "A glued x next to an operator is the variable, not 'times'; '10x speedup' still reads 'times' (D-242, review of PR #116); '=' reads 'equals' (#67, D-177)."
+goal = "A glued x next to an operator is the variable, not 'times'; '10x speedup' still reads 'times' (D-242, PR #116); '=' reads 'equals' (#67, D-177)."
 blocks = [{ kind = "paragraph", text = "We set y = 2x + 1. The term 3x^2 dominates. Let f(x) = 4x. It gives a 10x speedup." }]
 expected = ["We set y equals 2x + 1. The term 3x^2 dominates. Let f(x) equals 4x. It gives a 10 times speedup."]
 
@@ -1244,7 +1244,7 @@ expected = ["We set y equals 2x + 1. The term 3x^2 dominates. Let f(x) equals 4x
 id = "units-sub-figure-labels-in-lists"
 audit = 0
 issue = 68
-goal = "Sub-figure and panel labels in a list after a plural label word are labels, not billions; '7B model' still reads 'billion' (D-236, D-241, review of PR #116)."
+goal = "Sub-figure and panel labels in a list after a plural label word are labels, not billions; '7B model' still reads 'billion' (D-236, D-241, PR #116)."
 blocks = [{ kind = "paragraph", text = "See Figs. 2A and 3B, panels 2A and 4B, and Figure 1, panels A and 3B. Our 7B model wins." }]
 expected = ["See Figures 2A and 3B, panels 2A and 4B, and Figure 1, panels A and 3B. Our 7 billion model wins."]
 
@@ -1252,7 +1252,7 @@ expected = ["See Figures 2A and 3B, panels 2A and 4B, and Figure 1, panels A and
 id = "units-magnitude-at-the-end"
 audit = 0
 issue = 68
-goal = "A glued magnitude letter as the last characters of a block reads too (D-241, review of PR #116 and KB #34)."
+goal = "A glued magnitude letter as the last characters of a block reads too (D-241, PR #116 and KB #34)."
 blocks = [
     { kind = "paragraph", text = "The model was trained on 15M" },
     { kind = "list_item", text = "441K" },
@@ -1263,7 +1263,7 @@ expected = ["The model was trained on 15 million", "441 thousand"]
 id = "abbreviations-label-in-square-brackets"
 audit = 0
 issue = 68
-goal = "A label word before a bracketed number reads in full: 'Eq. [3]' (D-230, D-171, review of PR #116)."
+goal = "A label word before a bracketed number reads in full: 'Eq. [3]' (D-230, D-171, PR #116)."
 blocks = [{ kind = "paragraph", text = "Eq. [3] and Eq.[4] hold." }]
 expected = ["Equation [3] and Equation [4] hold."]
 
@@ -1351,7 +1351,7 @@ expected = ["The sources are on the project page; see also the method."]
 id = "links-after-an-abbreviation-keep-the-full-stop"
 audit = 0
 issue = 101
-goal = "The full stop of 'e.g.' or 'i.e.' before a link ends no sentence, so the link's removal keeps the sentence's own full stop: main read 'online, for example Then more.' as one sentence (review of PR #256)."
+goal = "The full stop of 'e.g.' or 'i.e.' before a link ends no sentence, so the link's removal keeps the sentence's own full stop: main read 'online, for example Then more.' as one sentence (PR #256)."
 blocks = [{ kind = "paragraph", text = "The data are online, e.g. https://x.org. Then more." }]
 expected = ["The data are online, for example. Then more."]
 
@@ -1367,7 +1367,7 @@ expected = ["Let x equals [12]. We have p less than [1]. So y equals [3]."]
 id = "symbols-x-chain-after-a-spaced-x"
 audit = 0
 issue = 130
-goal = "A chain of x's after a spaced first x is read whole on the first run: '11 x1x1' was '11 times 1x1', and a second run read the rest (German second-run property, review round 2 of PR #242)."
+goal = "A chain of x's after a spaced first x is read whole on the first run: '11 x1x1' was '11 times 1x1', and a second run read the rest (German second-run property, PR #242)."
 blocks = [{ kind = "paragraph", text = "A grid of 11 x1x1 cells." }]
 expected = ["A grid of 11 times 1 times 1 cells."]
 
@@ -1419,7 +1419,7 @@ expected = [
 id = "citations-a-grant-number-in-brackets-is-not-read"
 audit = 0
 issue = 285
-goal = "A bracket that holds only an identifier, such as a grant or award number, is not read: '(0801700)' and '(527794)' were read as long numbers (Colin's listening test, seaborn Acknowledgements). An identifier is a run of five digits or more, alone or in a code of letters and digits, maybe after a funding word. Years, small numbers, grouped or labelled quantities and names with short numbers stay (D-547). The other brackets are read as a second run reads them without the identifier: a year after it, citations beside it in one bracket, and a bracket left with only lead words go (review round 1 of PR #300)."
+goal = "A bracket that holds only an identifier, such as a grant or award number, is not read: '(0801700)' and '(527794)' were read as long numbers (Colin's listening test, seaborn Acknowledgements). An identifier is a run of five digits or more, alone or in a code of letters and digits, maybe after a funding word. Years, small numbers, grouped or labelled quantities and names with short numbers stay (D-547). The other brackets are read as a second run reads them without the identifier: a year after it, citations beside it in one bracket, and a bracket left with only lead words go (PR #300)."
 blocks = [
     { kind = "paragraph", text = "The first author was supported by the IGERT program (0801700) and by the Simons Society of Fellows (527794). Many thanks." },
     { kind = "paragraph", text = "Funded by the NSF (grant no. DMS-1912345) and the NIH (0801700, 527794). Then more." },
@@ -1499,7 +1499,7 @@ expected = [
 id = "citations-a-nest-of-any-depth"
 audit = 0
 issue = 306
-goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, and a year bracket after the names an inner citation keeps is read with them, so each bracket is a citation as a second run sees it, and the whole nest goes on the first run (D-588, D-599; nightly seeds 555 and 8080 of PR #330; review round 2)."
+goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, and a year bracket after the names an inner citation keeps is read with them, so each bracket is a citation as a second run sees it, and the whole nest goes on the first run (D-588, D-599; nightly seeds 555 and 8080 of PR #330)."
 blocks = [
     { kind = "paragraph", text = "It holds ((((Smith, 2019), Lee, 2020), Lee, 2020), Lee, 2020) found it." },
     { kind = "paragraph", text = "It holds (((527794, (Smith, 2019)) (Smith, 2019), Lee, 2020), Lee, 2020) found it." },
@@ -1663,7 +1663,7 @@ expected = [
 id = "numbers-powers-with-grouped-or-glued-exponents"
 audit = 0
 issue = 340
-goal = "A caret power whose exponent groups its thousands with spaces reads the whole exponent (#210); a signed grouped exponent reads its sign too (review S1 of PR #361); one plain-space group is no grouped number and stays as printed, as before; a power of ten whose minus exponent runs into a caret power ('10−410^2') is left as printed, as a second run would read it differently; a plain '× 10−4' reads as before (D-605)."
+goal = "A caret power whose exponent groups its thousands with spaces reads the whole exponent (#210); a signed grouped exponent reads its sign too (PR #361); one plain-space group is no grouped number and stays as printed, as before; a power of ten whose minus exponent runs into a caret power ('10−410^2') is left as printed, as a second run would read it differently; a plain '× 10−4' reads as before (D-605)."
 blocks = [
     { kind = "paragraph", text = "It is 10^250 000 000 here." },
     { kind = "paragraph", text = "It is 3 × 10−410^2 here." },
@@ -1731,7 +1731,7 @@ expected = [
 id = "links-a-link-bracket-glued-to-the-next-bracket"
 audit = 0
 issue = 326
-goal = "A link ends at the bracket it closes when another bracket is glued right after it, so the next bracket is judged on its own, as with a space between them, on both runs; a glued bracket that stays keeps the space before the link (D-605, #371 review round 1 S1)."
+goal = "A link ends at the bracket it closes when another bracket is glued right after it, so the next bracket is judged on its own, as with a space between them, on both runs; a glued bracket that stays keeps the space before the link (D-605, #371)."
 blocks = [
     { kind = "paragraph", text = "(Smith, 2019, https://example.org)(Smith, 2019) it holds." },
     { kind = "paragraph", text = "(see https://example.org)(Smith, 2019) it holds." },
@@ -1875,7 +1875,7 @@ expected = [
 id = "citations-alphanumeric-keys-as-asides"
 audit = 0
 issue = 254
-goal = "Alphanumeric keys (alpha style: '[GKL+19]', '[Knu84]'; LNI: '[MH17]') that the document's list prints as entry labels are citations like numeric ones: an aside goes (D-646, review B1 of PR #377)."
+goal = "Alphanumeric keys (alpha style: '[GKL+19]', '[Knu84]'; LNI: '[MH17]') that the document's list prints as entry labels are citations like numeric ones: an aside goes (D-646, PR #377)."
 blocks = [
     { kind = "paragraph", text = "This was shown before [GKL+19, Knu84]." },
     { kind = "paragraph", text = "The method [MH17] works well." },
@@ -1919,7 +1919,7 @@ expected = [
 id = "citations-key-shapes-without-entries-stay"
 audit = 0
 issue = 254
-goal = "A bracket shaped like a key is no citation unless the document prints each key as an entry label: metal clusters, groups, studies, keys and cells stay as printed, as do look-alikes such as '[PM10]' (review B1 of PR #377)."
+goal = "A bracket shaped like a key is no citation unless the document prints each key as an entry label: metal clusters, groups, studies, keys and cells stay as printed, as do look-alikes such as '[PM10]' (PR #377)."
 blocks = [
     { kind = "paragraph", text = "The [Mn12] clusters and [Al13] clusters are magnetic." },
     { kind = "paragraph", text = "The [EU27] countries and the [UK21] study agree." },
@@ -2088,7 +2088,7 @@ expected = [
 id = "citations-a-key-label-inside-a-line-is-no-entry"
 audit = 0
 issue = 383
-goal = "A key bracket followed by initials inside a sentence is no entry label, so with no list in the document the key stays as printed (review of PR #377 round 2)."
+goal = "A key bracket followed by initials inside a sentence is no entry label, so with no list in the document the key stays as printed (PR #377)."
 blocks = [
     { kind = "paragraph", text = "The tool of [Mn12] A. Bee works." },
 ]
@@ -2100,7 +2100,7 @@ expected = [
 id = "references-numbered-body-items-with-an-abbreviation-are-read"
 audit = 0
 issue = 383
-goal = "Numbered body items at the document's end are no unheaded reference list because 'USA. Then' is no author's initials (review of PR #377 round 2)."
+goal = "Numbered body items at the document's end are no unheaded reference list because 'USA. Then' is no author's initials (PR #377)."
 blocks = [
     { kind = "heading", text = "Results" },
     { kind = "paragraph", text = "[1] In 2011 we went to the USA. Then we ran it." },
@@ -2124,7 +2124,7 @@ expected = [
 id = "references-a-heading-counts-only-right-before-the-list"
 audit = 0
 issue = 383
-goal = "A heading that names no reference list keeps an unheaded list from going only right before it: after a stray numbered note the list below is removed (review of PR #377 round 2)."
+goal = "A heading that names no reference list keeps an unheaded list from going only right before it: after a stray numbered note the list below is removed (PR #377)."
 blocks = [
     { kind = "heading", text = "Notes" },
     { kind = "paragraph", text = "[3] A stray note." },
@@ -2451,7 +2451,7 @@ expected = ["Quantitative 1H NMR of 13C-labelled sugars", "18F-FDG PET in 238U m
 id = "affiliation-marks-before-a-capital-outside-ascii"
 audit = 0
 issue = 93
-goal = "A mark before an affiliation that starts with a capital outside ASCII goes too (#436 review round 1, S1)."
+goal = "A mark before an affiliation that starts with a capital outside ASCII goes too (#436)."
 blocks = [
     { kind = "paragraph", runs = ["Jane Roe", { sup = "1" }, " Ann Lee", { sup = "2" }] },
     { kind = "paragraph", runs = [{ sup = "1" }, "École Normale, ", { sup = "2" }, " Örebro University"] },
@@ -2530,7 +2530,7 @@ expected = ["Cold 13CO in the Taurus cloud", "Jane Roe and Ann Lee Example Obser
 id = "affiliation-marks-after-a-comma-in-the-author-line"
 audit = 0
 issue = 448
-goal = "An author line with its marks after a comma (REVTeX: 'Roe,¹˒² Ann Lee,¹') opens the affiliations; every author and affiliation mark goes (#585 review round 1)."
+goal = "An author line with its marks after a comma (REVTeX: 'Roe,¹˒² Ann Lee,¹') opens the affiliations; every author and affiliation mark goes (#585)."
 blocks = [
     { kind = "paragraph", text = "Cold atoms in orbit" },
     { kind = "paragraph", runs = ["Jane Roe,", { sup = "1,2" }, " Ann Lee,", { sup = "1" }, " and Bo Kim", { sup = "2" }] },
@@ -2920,7 +2920,7 @@ utterances = ["We measured vitamin A.", "The levels were low."]
 id = "an-initial-before-a-surname-that-is-also-a-function-word-ends-no-sentence"
 audit = 0
 issue = 477
-goal = "An initial before a surname that is also an English function word ('Y. He', 'X. An', 'K. He') ends no sentence: such words are kept out of the sentence-opener list (#477, D-744, PR #547 review B1)."
+goal = "An initial before a surname that is also an English function word ('Y. He', 'X. An', 'K. He') ends no sentence: such words are kept out of the sentence-opener list (#477, D-744, PR #547)."
 blocks = [{ kind = "paragraph", text = "We thank Y. He and X. An for comments on the draft. As shown by K. He and colleagues, residual networks train well." }]
 expected = ["We thank Y. He and X. An for comments on the draft. As shown by K. He and colleagues, residual networks train well."]
 utterances = ["We thank Y. He and X. An for comments on the draft.", "As shown by K. He and colleagues, residual networks train well."]
