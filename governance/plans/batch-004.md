@@ -159,7 +159,7 @@ first merge of main into governance after this PR (D-883 condition): first
 then plan §3 exactly, and record its empty-diff output here. If the diff is not empty: commit
 nothing, `git merge --abort`, and end the turn with `COORDINATOR: governance merge stopped`.
 #720 started early as web-b-w3 (Opus high subagent) in the free slot (lane:web, no shared files).
-Main CI: f85a633 (#742) green on all three systems; b5a40a0 and 4ca072a still running.
+Main CI green on all three systems: f85a633 (#742, run 45072390054), b5a40a0 (#740, 45072407648), 4ca072a (#739, 45072516858; first Windows run of the 214 limit) at 21:42Z.
 Watch for the coordinator: #745 (ruleset 1.13.0) ci:full; tell settings-d882 (local_b679f474-afc5-4905-a6f9-7d827c0f0283).
 
 Merge gates: #735 gate open, go given, merged 204c188. #742 gate open (critical); the
