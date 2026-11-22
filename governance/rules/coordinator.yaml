@@ -1,7 +1,7 @@
 # Extract for coordinator threads. Generated with claude-project-rules.yaml; do not edit.
 # It holds the rules scoped to this role or to all. If it and the full file ever differ, the full file wins.
 extract_for: coordinator
-version: 1.11.0
+version: 1.12.0
 date: 2026-11-22
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
@@ -94,7 +94,7 @@ rules:
     rule: "Answer the owner's short questions directly. Keep open hand steps in owner_open_steps in ./governance/project-state.yaml and remove one when its assist thread reports it done; asked what is open, list them by title only. When the owner wants to do one, or an answer needs more than a few lines of instructions, start an assist thread for it instead of walking through it here."
   - id: AUTO-01
     applies_to: coordinator
-    rule: "Coordinator reviews, approves merges, and makes technical/process decisions autonomously until milestone v1.6 Study layer is complete or Colin asks to stop, keeping all testing and review gates intact."
+    rule: "Coordinator reviews, approves merges, and makes technical/process decisions autonomously until Colin asks to stop, keeping all testing and review gates intact."
   - id: AUTO-02
     applies_to: coordinator
     rule: "Any decision altering product scope, external contracts, or roadmap waits for explicit owner approval."

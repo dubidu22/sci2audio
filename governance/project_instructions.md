@@ -114,4 +114,4 @@ context is the project's memory, so protect it:
 `continue` / `continue as usual`. Reflect each one in `project-state.yaml`.
 
 ## Autonomy horizon
-until milestone v1.6 Study layer is complete or Colin asks to stop (token profile: frugal).
+until Colin asks to stop (token profile: frugal).
