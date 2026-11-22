@@ -99,15 +99,22 @@ def upper_bounds(test: ast.AST, filled: set[str]) -> bool:
     return False
 
 
-def is_unmarked(expr: ast.AST) -> bool:
-    """`expr` holds `pytest.mark.slow` or `pytest.mark.benchmark`, called or not."""
-    return any(
-        isinstance(node, ast.Attribute)
-        and node.attr in UNMARKED
-        and isinstance(node.value, ast.Attribute)
-        and node.value.attr == "mark"
-        for node in ast.walk(expr)
+def is_mark(expr: ast.AST) -> bool:
+    target = expr.func if isinstance(expr, ast.Call) else expr
+    return (
+        isinstance(target, ast.Attribute)
+        and target.attr in UNMARKED
+        and isinstance(target.value, ast.Attribute)
+        and target.value.attr == "mark"
     )
+
+
+def is_unmarked(expr: ast.AST) -> bool:
+    """`expr` is `pytest.mark.slow` or `pytest.mark.benchmark`, called or not, or a list or tuple
+    holding one. A mark nested deeper, as on one `pytest.param` of a parametrize, leaves the other
+    values in the fast suite."""
+    items = expr.elts if isinstance(expr, (ast.List, ast.Tuple)) else [expr]
+    return any(is_mark(item) for item in items)
 
 
 def units(body: list[ast.stmt]) -> Iterator[ast.FunctionDef | ast.AsyncFunctionDef]:
@@ -263,6 +270,12 @@ def test_slow_benchmark_and_browser_tests_are_not_read() -> None:
         assert findings("import time\nimport pytest\n" + "\n".join(lines) + "\n") == [], lines
     unmarked = "import time\nimport pytest\n@pytest.mark.timeout(9)\ndef test_x():\n"
     assert len(findings(unmarked + "\n".join(bound) + "\n")) == 1
+    one_value_slow = [
+        "@pytest.mark.parametrize('n', [pytest.param(1, marks=pytest.mark.slow), 2])",
+        "def test_x(n):",
+        *bound,
+    ]
+    assert len(findings("import time\nimport pytest\n" + "\n".join(one_value_slow) + "\n")) == 1
     files = [path.relative_to(ROOT).as_posix() for path in scanned()]
     assert not [path for path in files if path.startswith("tests/browser/")]
     assert "tests/unit/web_helpers.py" in files

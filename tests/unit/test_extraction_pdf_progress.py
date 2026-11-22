@@ -146,7 +146,9 @@ def test_with_a_cancel_to_watch_a_step_is_stopped_at_its_own_time_limit(
     )
     assert stopped == isolate.Stopped("time", "page 1 of 1")
     took = decided[0] - started["page 1 of 1"]  # from the page step's start to the decision
-    # clock-bound: it catches a limit stretched by the 0.1 s slices; timed before the join (#366)
+    # With the parent's limit broken, the child's own watch still stops the step at 2 x 1.0 s
+    # with the same result, so a bound at or above 2 s would hide that bug.
+    # clock-bound: 1.5 s must stay below the child's 2 s watch; timed before the join (#366)
     assert 1.0 <= took < 1.5
 
 
