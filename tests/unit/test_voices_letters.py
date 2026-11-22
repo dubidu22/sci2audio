@@ -27,6 +27,7 @@ from sci2audio.voices import (
     SynthesisRequest,
     VoiceSelection,
 )
+from sci2audio.voices.espeak import espeak_g2p
 from sci2audio.voices.kokoro_german import GermanPipeline, to_kokoro_phonemes
 from sci2audio.voices.letters import (
     capitals,
@@ -154,9 +155,7 @@ def test_english_without_capitals_has_no_spans() -> None:
 
 
 def espeak_german() -> Any:
-    from misaki.espeak import EspeakG2P
-
-    return EspeakG2P(language="de")
+    return espeak_g2p("de")
 
 
 def german_sounds(g2p: Any, vocab: dict[str, int]) -> Any:
