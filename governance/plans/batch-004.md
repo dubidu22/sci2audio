@@ -144,7 +144,9 @@ open; merge go asked of the coordinator.
 
 #740 round 1 fixed by infra-b-i6 in e24fa58 (S1, S2; nothing deferred). Round 2
 (aae0a89): approved, 0 must-fix, 0 should-fix. ci:full on e24fa58 green on all
-three systems (run 45066994414); merge go asked of the coordinator.
+three systems (run 45066994414); the coordinator gave the merge go pinned
+to e24fa58; ci:full comes off first, then Colin runs the pinned merge (as for #742). After the
+merge: docs-b-d2 (D-874), now that the lane:infra lock is free.
 
 Merge gates: #735 gate open, go given, merged 204c188. #742 gate open (critical); the
 coordinator gave the go pinned to 85dd312. Pre-merge check passed (macOS, Windows, Linux
