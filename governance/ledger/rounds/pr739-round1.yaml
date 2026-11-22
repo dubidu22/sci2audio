@@ -1,0 +1,12 @@
+pr: 739
+round: 1
+date: 2026-11-22
+thread: review-b004-b
+head: 744cc83e654fecce770a27ee1d3930a70c46cb05
+critical: no
+verdict: changes_requested
+must_fix: 0
+should_fix: 1
+kinds: "undefined-behaviour-margin, narrating-comment"
+report: plans/review-pr739-round1.md
+merged: ""
