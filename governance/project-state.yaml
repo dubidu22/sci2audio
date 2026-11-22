@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-21T02:11Z   # clock time; hour marks written earlier today were estimates (D-856)
+updated: 2026-11-22T00:18Z   # clock time from date -u (D-856); ruleset 1.9.0 on main (D-872)
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -9,14 +9,15 @@ active_now:
   pause_exceptions:
     - "a thread still answers Colin's own messages in its thread"
   slow_down: false
+  thread_freeze_lift_at: 2026-11-22T16:00Z           # 17:00 Europe/Berlin; Colin 2026-11-22T00:16Z: "Lift the freeze today at 17:00" (D-873); takes effect when the coordinator is next active after that time; first step then THR-16 triage (#715 should-fix into ledger/deferred/)
   thread_freeze: true                                # Colin 2026-11-20T23:08Z: "please only finish what has been started" (CMD-07; Fable usage at 95%): no new threads, no new batches or audits; running PRs (#715, web tests, release fix #716 incl. v1.4.1) finish; coordinator keeps its own activity minimal (D-866)                               # lifted by Colin "continue working on multiple lanes..." 18 Nov 13:06:43Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQE5cwtWasr7uD9azqtazxBfd (D-741); frozen 17 Nov 11:15Z to 18 Nov 13:06Z (D-736)
-  watchdog_interval_minutes: 60                      # D-702h; threads started 20 Nov ~14:00Z, next check when active
+  watchdog_interval_minutes: 120                     # frugal profile, ruleset 1.9.0 (D-871); was 60 (D-702h)
   milestones_in_progress: []   # v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
-  lanes_active:                                      # batch 3 started work closed 2026-11-21T02:11Z (D-867): #713 c82b2d6, #712 9ad6d11, #715 431cf1b, #718 9fe4bda, #719 f17ce89 merged; all threads retired; only the v1.4.1 patch is still running
-    - "RELEASE FIX (thread release-fix-716): PR 1 #718 MERGED 9fe4bda; PR 2 = v1.4.1 from release/1.4 waits for Colin to create the branch at 5c18f8c (command given), then PR into release/1.4, review, ci:full + ci:installers, merge, Colin pushes tag v1.4.1 and approves the pypi deployment, double-clicks the DMG, then a forward docs PR to main"
-  lanes_waiting:                                     # batch 3 remainder; start when a lane frees
-    - "layout #679; voices #663; infra #709 #710 #711; next textprep/web batches: PARKED until Colin says continue (CMD-07, D-866)"
+  lanes_active: []                                   # batch 3 closed (D-867); v1.4.1 released 2026-11-21T16:23Z, #721 207ea14, forward #722 2414900 (D-868); release-fix-716 thread done
+  lanes_waiting:                                     # next batch after the lift; frugal profile: 2 lanes, dispatcher on (D-871)
+    - "v1.4 remainder: #720 #711 #710 #709 (infra), #679 (layout), #663 (voices)"
+    - "v1.5 Listen while generating (milestone 11, D-870): #723 LW-01 critical first; #724 #725 #726 depend on it"
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
     - "tests/browser/test_voice_cards.py::test_a_sample_stopped_while_it_is_made_never_plays[firefox]: first failure 22:22Z on #712 (report-only Firefox shard; comment-only PR, no code cause); a second failure -> same-day quarantine with Issue (D-374)"
     - "tests/browser/test_flow.py::test_resume_of_a_paused_replace_never_asks_to_replace_again[firefox]: failed 20 Nov on PR #689 and again on #696 51daacd (report-only Firefox shard, hold.reached.wait(30) timed out, no code cause) -> quarantined for Firefox in #698 (merged 9066c3d, Issue #697); 40 isolated runs each (D-682): Chromium 40/40 pass, Firefox 38/40 (2x the same wait(30) assertion), so it reproduces at ~1 in 20 on Firefox only, cause unknown, quarantine stays, Issue open"
@@ -25,6 +26,7 @@ active_now:
   audits_running: []                                 # batch-2026-11-20b audit PASS 21:50Z (D-858): 0 blocking, 3 should-fix -> #693 extended (plugin exception path + isolation test), #708 filed, ADR-008 issue edits done (#396 #397 #398); all audit follow-ups filed 21:58Z; #699 is a real WebKit failure, not a flake                                 # batch 2026-11-20 audit PASS 04:00Z, 0 blocking, 4 should-fix -> #684 #685 #686 #687, #681 relabelled infra/high (plans/audit-batch-2026-11-20.md)                                 # B1, B3, folders, B7, B2, B8 light audits done; web B8 DONE 19 Nov 02:22Z (#582 678fe3c, #293 #534 #541 closed, #596 filed)
 notifications_pending: []                            # v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
 open_owner_items:
+  - "double-click the downloaded 1.4.1 DMG and confirm the window opens (D-868)"
   - "upstream governance skill: the generator should read governance_paths and keep the D-849 PLAN-01 wording, so a ruleset re-run needs no hand edit (found by infra-b-i3, D-855); low priority, CI tests guard the edits meanwhile"
 milestones: {1: v1.0, 2: v1.1, 3: v1.0.1, 4: v1.2, 5: v1.4, 6: Later, 7: v1.2.x, 8: "v1.3 The Working Reader", 9: "v1.6 Study layer", 10: v2, 11: "v1.5 Listen while generating"}
 roadmap_order: [v1.2, v1.2.x abbreviations, "v1.3 The Working Reader", "v1.4 installers, update check, plugins", "v1.5 Listen while generating", "v1.6 Study layer", Later]   # D-666, D-573, D-870
