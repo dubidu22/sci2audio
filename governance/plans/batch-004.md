@@ -137,5 +137,11 @@ Watch for the coordinator (outside the batch): #741 (ruleset 1.12.0) ci:full on 
 
 D-881 (Colin's word, via the coordinator): no more cards. Every implementation and review thread starts as a background dispatcher subagent (Agent tool, opus, worktree isolation when it writes files). The subagents write their own ledger entries. infra-b-i5 stopped after 2 PRs; its handoff is in plans/infra-b-i5-plan.md.
 
-Merge gates: #735 gate open, go given, merged 204c188.
+Slot A round 1 (review-b004-a, 2a80bc4): #740 changes requested, 0 must-fix,
+2 should-fix (S1 the 1.5 s bound's reason, S2 a slow mark on one parametrize value),
+fixed by the fresh subagent infra-b-i6 (Opus high). #742 approved, critical, gate
+open; merge go asked of the coordinator.
+
+Merge gates: #735 gate open, go given, merged 204c188. #742 gate open (critical),
+waits for the coordinator's go.
 Escalations: none yet.
