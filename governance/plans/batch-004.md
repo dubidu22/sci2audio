@@ -72,11 +72,11 @@ Threads exist only once their first line says so.
 
 | Slot | Thread | Items | State |
 |---|---|---|---|
-| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | running, Opus 5.5 high confirmed (local_f085fc59-3aa0-4778-9297-574cf5ff13da); opened #734 (brittle-test check); critical plan `plans/infra-b-i5-plan.md` (PR A lane:infra #710 #711 #734, PR B lane:textprep #709, both risk:high) approved by the coordinator (D-878), who told the thread directly; implementing; PR A (#710 #711 #734) committed on `infra-b-i5-a`, fast suite running; PR B (#709) test written; idle 19:02Z with a finished suite, nudge 1 at 19:30Z |
+| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | running, Opus 5.5 high confirmed (local_f085fc59-3aa0-4778-9297-574cf5ff13da); opened #734 (brittle-test check); critical plan `plans/infra-b-i5-plan.md` (PR A lane:infra #710 #711 #734, PR B lane:textprep #709, both risk:high) approved by the coordinator (D-878), who told the thread directly; implementing; PR A (#710 #711 #734) committed on `infra-b-i5-a`, fast suite running; PR B (#709) test written; idle 19:02Z with a finished suite, nudge 1 at 19:30Z; PR A open as #740 (#710 #711 #734, risk:high, ci:full running), critical review card once three systems are green; PR B (#709) in its fast suite |
 | B | layout-b-l3 | #679 | running, Opus 5.5 high confirmed (local_3f956e8c-d059-4c66-b72a-ee630dc3270f); PR #735 (head 401c78f, lane:layout, risk:low) open 18:05Z; body fixed, Linux CI and governance pr checks green 18:14Z; review thread review-735 (Opus 5.5 medium) started on Colin's go (local_27a9761d-ffb5-453b-a305-e86b0c1db8bc); round 1 approved, critical: no, must_fix 0 (234bfcb); gate open, merge go given 18:50Z pinned to 401c78f |
 
 Slot B: layout-b-l3 done, #735 merged as 204c188 (main CI running). voices-b-v1 (#663)
-started on Colin's go (local_718d5252-0d42-443c-889d-a35b1c464728); PR #739 (head 74e4d1d, lane:voices only, risk:low; cause: espeak-ng exits on data paths over 159 bytes) open, Linux CI running; review card next. Then docs-b-d2 (D-874), then
+started on Colin's go (local_718d5252-0d42-443c-889d-a35b1c464728); PR #739 (head 74e4d1d, lane:voices only, risk:low; cause: espeak-ng exits on data paths over 159 bytes) open; Linux CI red 19:37Z on test_a_non_ascii_path_is_measured_in_bytes (159 < 159), sent back to the author; review card once green. Then docs-b-d2 (D-874), then
 #720 (see note).
 
 Notes:
@@ -130,6 +130,8 @@ wrap-up recap comes first. So on a ROLE-17 event, the recap itself starts with
 override recorded as D-879 by the coordinator; review-737 stays idle. main merged
 into governance (d06f563, ruleset 1.11.0). Main CI passed on all three systems for
 204c188 (#735, run 45057369204) and 1bebb96 (#737, run 45057845400) at 19:07Z.
+
+Watch for the coordinator (outside the batch): #741 (ruleset 1.12.0) ci:full on f9c4d5a; when it finishes, tell settings-max-autonomy (local_55e5365e-12fa-45a7-98ea-163c5932e7ad) the result. The merge go is the coordinator's.
 
 Merge gates: #735 gate open, go given, merged 204c188.
 Escalations: none yet.
