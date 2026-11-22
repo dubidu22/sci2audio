@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-22T16:05Z   # clock time from date -u (D-856); ruleset 1.9.0 on main (D-872)
+updated: 2026-11-22T16:05Z   # clock time from date -u (D-856); ruleset 1.12.0 on main (D-880)
 active_now:
   autonomy_horizon: "until Colin asks to stop"       # ruleset 1.12.0, #741 3fb4d1b, Colin "Yes, with CLAUDE.md" 22 Nov 2026 (D-880); replaces "until milestone v1.6 Study layer is complete" (1.11.0, D-879)
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -31,6 +31,7 @@ notify_triggers:                                     # post in chat and wait (ru
   - "a release is tagged and shipped"
   - "something waits for Colin: a decision AUTO-02 reserves for him, a critical PR stopped at its last review round, or an owner hand step"
 open_owner_items:
+  - "GitHub repository ruleset for main: no bypass of the required checks (CI passed, governance pr checks), so the new gate check also binds the merge button (D-882; after its PR merges)"
   - "double-click the downloaded 1.4.1 DMG and confirm the window opens (D-868)"
   - "upstream governance skill: the generator should read governance_paths and keep the D-849 PLAN-01 wording, so a ruleset re-run needs no hand edit (found by infra-b-i3, D-855); low priority, CI tests guard the edits meanwhile"
 milestones: {1: v1.0, 2: v1.1, 3: v1.0.1, 4: v1.2, 5: v1.4, 6: Later, 7: v1.2.x, 8: "v1.3 The Working Reader", 9: "v1.6 Study layer", 10: v2, 11: "v1.5 Listen while generating"}
