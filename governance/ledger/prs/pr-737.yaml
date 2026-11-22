@@ -1,0 +1,14 @@
+pr: 737
+opened: 2026-11-22
+thread: ruleset-maximum-autonomy
+lane: infra
+labels: "lane:infra, risk:high"
+plan: plans/ruleset-1-11-settings-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: "promised-tests-format, missing-plan, untestable-condition, dead-setting"
+handback: ""
+recommended: ""
+note: "ruleset 1.10.0 -> 1.11.0 (Colin's yes 'Yes, apply', 22 Nov 2026): autonomy_horizon 'until milestone v1.6 Study layer is complete or Colin asks to stop', notify trigger for the end of the grant; PLAN-01 D-849 wording restored by exact replace; closes #736"
+rounds: 1
+merged: ""
