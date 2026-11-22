@@ -329,6 +329,7 @@ def test_the_running_card_while_the_files_are_written(
         board = app.state.sci2audio.board
         deadline = time.monotonic() + 30
         while (board.current.snapshot()["progress"] or {}).get("phase") != "encoding":
+            # clock-bound: the wait loop's way out after 30 s; what it waits for is far quicker
             assert time.monotonic() < deadline, "the job never began writing"
             time.sleep(0.02)
         running = card(client.get(f"/jobs/{job}").text)

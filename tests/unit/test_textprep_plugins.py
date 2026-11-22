@@ -217,6 +217,7 @@ def hang(monkeypatch: pytest.MonkeyPatch):
 def load_quickly(*entries: EntryPoint):
     started = time.monotonic()
     steps = installed_steps(entry_points=[*entries, AMPERSAND], load_timeout=0.2)
+    # clock-bound: the planted imports never end; 3 s is 15 times the 0.2 s load limit
     assert time.monotonic() - started < 3
     assert "ampersand-and" in [step.id for step in steps]
     return steps
@@ -404,6 +405,7 @@ def test_a_slow_plugin_is_given_up_and_the_run_goes_on() -> None:
     try:
         started = time.monotonic()
         run = run_with("SlowStep", "RemovingStep", timeout=0.2)
+        # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit
         assert time.monotonic() - started < 3
     finally:
         broken.SlowStep.release.set()

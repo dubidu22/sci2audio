@@ -140,6 +140,7 @@ def run_with(attribute: str, timeout: float = 5.0):
 def test_a_planted_object_whose_comparison_blocks_is_given_up(hang) -> None:
     started = time.monotonic()
     run = run_with("BlockingEqStep", timeout=0.2)
+    # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit
     assert time.monotonic() - started < 3
     [problem] = run.problems
     assert problem.step == "blocking-eq"
@@ -166,6 +167,7 @@ def test_an_object_in_a_reference_cycle_is_freed_in_the_worker(attribute: str, c
 def test_a_plugin_error_whose_str_blocks_is_given_up(hang) -> None:
     started = time.monotonic()
     run = run_with("SlowMessageStep", timeout=0.2)
+    # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit
     assert time.monotonic() - started < 3
     [problem] = run.problems
     assert problem.step == "slow-message"

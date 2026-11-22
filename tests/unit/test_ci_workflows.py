@@ -407,6 +407,21 @@ def test_the_pr_body_reaches_the_promised_tests_check_only_through_the_environme
     assert "uv run --frozen pytest --collect-only -q" in script
 
 
+def test_the_base_is_collected_from_the_environment_without_a_new_sync() -> None:
+    """#711: the promises that already collect on the base are listed. The base's files are
+    collected with the head's synced interpreter, so the list costs no second sync, and the
+    base commit reaches the script only through the environment."""
+    step = block(GOVERNANCE, "      - name: Check that the promised tests exist")
+    assert "PR_BASE: ${{ github.event.pull_request.base.sha }}" in block(step, "        env:")
+    script = block(step, "        run: |")
+    assert 'git worktree add --detach --quiet "$RUNNER_TEMP/base" "$PR_BASE"' in script
+    assert 'PYTHONPATH="$RUNNER_TEMP/base/src" "$GITHUB_WORKSPACE/.venv/bin/python"' in script
+    assert script.count("uv run") == 1
+    assert "uv sync" not in script
+    check = next(line for line in script.splitlines() if "promised_tests.py check" in line)
+    assert check.rstrip().endswith('"$RUNNER_TEMP/base-collected.txt"'), check
+
+
 def test_the_governance_check_keeps_its_job_name_and_pins_setup_uv() -> None:
     assert "    name: governance pr checks" in block(GOVERNANCE, "  checks:")
     uses = re.findall(r"^\s+- uses: (.+)$", GOVERNANCE, re.M)

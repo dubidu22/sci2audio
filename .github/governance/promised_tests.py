@@ -3,10 +3,12 @@
 Checks that every test a plan promises exists on the pull request's head (#687, META-03).
 
     python3 promised_tests.py files BODY            the test files to collect, one per line
-    python3 promised_tests.py check BODY COLLECTED  compares the promises with the collected tests
+    python3 promised_tests.py check BODY COLLECTED [BASE]
+                                                    compares the promises with the collected tests
 
     BODY       the pull request body
     COLLECTED  output of `pytest --collect-only -q <the files>` (may be absent when there is no promise)
+    BASE       the same output for the promised files on the base commit (optional, may be absent)
 
 The promises are the backticked pytest node IDs (`tests/unit/test_x.py::test_name`) in the section
 under the level-2 heading HEADING, up to the next heading of level 1 or 2. A body without the
@@ -20,7 +22,9 @@ parameters and a class without its methods. Standard library only, like pr_check
 
 The check proves that each promise collects on the head, not that it is new: a section that
 lists only tests already on main passes. Whether the promises are the plan's is the reviewer's
-call against the plan.
+call against the plan, so the promises that already collect on the base are printed as a note
+beside the result (#711). Only lines that start with `tests/` are collected tests: a quarantine
+banner (`  #697 tests/...::...`) names a test without being one (#698).
 """
 
 from __future__ import annotations
@@ -131,6 +135,14 @@ def missing(promises: list[str], collected: list[str]) -> list[str]:
     return [node for node in promises if not kept(node)]
 
 
+def collected(listing: str) -> list[str]:
+    return [line.strip() for line in listing.splitlines() if line.startswith("tests/")]
+
+
+def read_listing(path: Path) -> str:
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
 def files(promises: list[str]) -> list[str]:
     # a file that does not exist is not passed to pytest, which would stop at it: its promises are missing
     out: list[str] = []
@@ -147,7 +159,7 @@ def main(argv: list[str]) -> int:
         for path in files(promises):
             print(path)
         return 0
-    if len(argv) == 3 and argv[0] == "check":
+    if len(argv) in (3, 4) and argv[0] == "check":
         body = Path(argv[1]).read_text(encoding="utf-8")
         promises = promised(body)
         if promises is None:
@@ -168,19 +180,23 @@ def main(argv: list[str]) -> int:
         if not promises:
             print(f"FAIL promised tests: the section lists no node ID; name each test as `tests/...py::test_name` under {HEADING}")
             return 1
-        listing = Path(argv[2])
-        text = listing.read_text(encoding="utf-8") if listing.is_file() else ""
-        collected = [line.strip() for line in text.splitlines() if "::" in line]
-        absent = missing(promises, collected)
+        text = read_listing(Path(argv[2]))
+        on_head = collected(text)
+        absent = missing(promises, on_head)
         if absent:
             print(f"FAIL promised tests: not collected on the PR head: {', '.join(absent)}")
-            if not collected:
+            if not on_head:
                 # a failed sync or a collection error leaves no test ID: show why instead of blaming the IDs
                 print("     the collection gave no test; its last lines:")
                 for line in [line for line in text.splitlines() if line.strip()][-5:]:
                     print(f"     {line}")
             return 1
         print(f"ok   promised tests: {len(promises)} of {len(promises)} collect")
+        if len(argv) == 4:
+            on_base = collected(read_listing(Path(argv[3])))
+            old = [node for node in promises if node not in missing(promises, on_base)]
+            if old:
+                print(f"note promised tests: already collect on the base: {', '.join(old)}")
         return 0
     print(__doc__, file=sys.stderr)
     return 2
