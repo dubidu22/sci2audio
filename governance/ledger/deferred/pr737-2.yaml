@@ -1,0 +1,9 @@
+pr: 737
+date: 2026-11-22
+what: "S2: the end-of-autonomy notify trigger was only in the config, not in project-state.yaml"
+decision: fixed               # notify_triggers added to project-state.yaml (D-879)
+commit: "013069d"
+issue: ""
+until: ""
+reason: ""
+by: ""

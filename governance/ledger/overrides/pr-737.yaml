@@ -1,0 +1,5 @@
+pr: 737
+date: 2026-11-22
+by: "owner, chat message to the coordinator of 2026-11-22T19:00Z"
+head: f9ef427
+reason: "Content was clean. Round 1 reviewed the settings change as clean (extracts byte-equal apart from the named PLAN-01 restore, 86 ruleset tests pass); its two must-fix findings were process, not content: B1 the PR body listed test files instead of node IDs, M1 no plan or PR ledger entry. Merged by Colin before round 2 and before the three-system run (D-879)."

@@ -1,0 +1,9 @@
+pr: 737
+date: 2026-11-22
+what: "S1: 'complete' in the new autonomy horizon can be read two ways"
+decision: fixed               # pinned in D-879 and in project-state.yaml: GitHub milestone 9 closed after R3 of the v1.6 release
+commit: "013069d"
+issue: ""
+until: ""
+reason: ""
+by: ""
