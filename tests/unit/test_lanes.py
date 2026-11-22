@@ -120,6 +120,23 @@ def test_the_scaffold_copy_of_pr_checks_json_equals_the_live_one() -> None:
     assert copy.read_bytes() == (GITHUB / "governance" / "pr-checks.json").read_bytes()
 
 
+@pytest.mark.parametrize(
+    ("copy", "live"),
+    [
+        ("pr-checks.json", ".github/governance/pr-checks.json"),
+        ("pr_checks.py", ".github/governance/pr_checks.py"),
+        ("pr-check-exemptions.json", ".github/governance/pr-check-exemptions.json"),
+        ("labeler.yml", ".github/labeler.yml"),
+        ("labeler-workflow.yml", ".github/workflows/labeler.yml"),
+        ("pr-checks-workflow.yml", ".github/workflows/governance-pr-checks.yml"),
+    ],
+)
+def test_each_scaffold_copy_equals_its_live_file(copy: str, live: str) -> None:
+    """The README tells the owner to copy these files over the live ones (#710): a stale copy
+    would drop the critical paths of #683 and #691 and unpin the actions."""
+    assert (ROOT / "governance" / "github-setup" / copy).read_bytes() == (ROOT / live).read_bytes()
+
+
 def test_the_labeler_marks_the_paths_the_check_holds_critical() -> None:
     labeler = (GITHUB / "labeler.yml").read_text(encoding="utf-8")
     assert re.findall(r'^\s+- "(.+)"$', labeler, re.M) == CONFIG["critical_paths"]
