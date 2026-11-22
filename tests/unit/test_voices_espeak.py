@@ -17,7 +17,9 @@ SPEAK = (
     "sys.stdout.reconfigure(encoding='utf-8')\n"  # Windows' console code page lacks IPA
     "from phonemizer.backend.espeak.wrapper import EspeakWrapper\n"
     "EspeakWrapper.set_data_path(sys.argv[1])\n"
-    "print(misaki.espeak.EspeakG2P(language='de')('Brücke')[0])\n"
+    "g2p = misaki.espeak.EspeakG2P(language='de')\n"
+    "print(g2p('Brücke')[0])\n"
+    "print(g2p.backend._espeak._espeak.info()[1].decode())\n"  # the folder espeak-ng uses
 )
 
 
@@ -48,16 +50,28 @@ def speak(data: Path) -> subprocess.CompletedProcess[str]:
 
 
 def test_espeak_exits_on_a_data_path_past_its_buffer(tmp_path: Path) -> None:
-    """Pins espeak-ng's own behaviour, which `ESPEAK_PATH_LIMIT` mirrors."""
+    """Pins espeak-ng's own behaviour, which `ESPEAK_PATH_LIMIT` mirrors.
+
+    Past the limit espeak-ng never uses the folder. On POSIX it then falls back to the
+    wheel's build-time folder and exits; on Windows it first tries `ESPEAK_DATA_PATH` and
+    the registry, so what it does next depends on the machine.
+    """
     (tmp_path / "at").mkdir()
     (tmp_path / "over").mkdir()
-    at_limit = speak(linked_data(tmp_path / "at", ESPEAK_PATH_LIMIT))
+    at = linked_data(tmp_path / "at", ESPEAK_PATH_LIMIT)
+    at_limit = speak(at)
     assert at_limit.returncode == 0, at_limit.stderr
-    assert "bɾˈʏkə" in at_limit.stdout  # noqa: RUF001 - IPA for "Brücke"
-    over = speak(linked_data(tmp_path / "over", ESPEAK_PATH_LIMIT + 1))
-    assert over.returncode == 1
-    assert "phontab" in over.stderr
-    assert over.stdout == ""  # the process ended before it could speak
+    sounds, used = at_limit.stdout.splitlines()
+    assert sounds == "bɾˈʏkə"  # noqa: RUF001 - IPA for "Brücke"
+    assert Path(used) == at
+    over = linked_data(tmp_path / "over", ESPEAK_PATH_LIMIT + 1)
+    past = speak(over)
+    if sys.platform == "win32" and past.returncode == 0:
+        assert Path(past.stdout.splitlines()[1]) != over
+    else:
+        assert past.returncode == 1
+        assert "phontab" in past.stderr
+        assert past.stdout == ""  # the process ended before it could speak
 
 
 def test_a_data_path_past_the_limit_is_refused_before_espeak_loads(tmp_path: Path) -> None:
