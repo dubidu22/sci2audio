@@ -153,7 +153,7 @@ Merged by Colin by hand, each pinned to its reviewed head (21:29 to 21:31Z):
 main merged into governance (4ab6dfe). Main CI on 4ca072a running.
 Slot A is done. Slot B: docs-b-d2 (D-874, critical) runs as an Opus high subagent:
 Issue #746, plan plans/docs-b-d2-plan.md (8270496) approved as written (D-883): the three
-generator-written README/since.txt files stay on main. The author is implementing. Waits for #745 (lane:infra lock). WARNING for the
+generator-written README/since.txt files stay on main. Code on `claude/docs-b-d2-746` (deca673), 31 tests pass; blocked: no lane owns `governance/README.md` (test_lanes fails). Asked the coordinator for a D-number on option (a) (add it to lane:docs) or (b) (move the pointer). Waits for #745 (lane:infra lock). WARNING for the
 first merge of main into governance after this PR (D-883 condition): first
 `git tag governance-before-d874 && git push origin governance-before-d874` at governance's head,
 then plan §3 exactly, and record its empty-diff output here. If the diff is not empty: commit
