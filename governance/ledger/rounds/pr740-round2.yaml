@@ -9,4 +9,4 @@ must_fix: 0
 should_fix: 0
 kinds: ""
 report: plans/review-pr740-round2.md
-merged: ""
+merged: b5a40a0dd3b006fce318bda4a2bd64c716c08045
