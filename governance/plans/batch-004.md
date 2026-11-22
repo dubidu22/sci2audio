@@ -67,4 +67,24 @@ critical work (PLAN-02).
 
 ## Progress (dispatcher)
 
-_Not started._
+Started 2026-11-22T16:02Z (17:02 Berlin) by dispatcher thread 1 (Sonnet 5.5).
+Threads exist only once their first line says so.
+
+| Slot | Thread | Items | State |
+|---|---|---|---|
+| A | infra-b-i5 | #709 #710 #711, ledger `fixed`, brittle-test check | starter block posted, waiting for Colin to start it |
+| B | layout-b-l3 | #679 | starter block posted, waiting for Colin to start it |
+
+Queue for slot B after layout-b-l3: voices-b-v1 (#663), docs-b-d2 (D-874), then
+#720 (see note).
+
+Notes:
+- #720 carries lane:web, not app, cli or infra, so it moves to slot B as the
+  last item (after docs-b-d2). Slot A item 2 is dropped.
+- #709 carries lane:textprep and risk:high, while slot A is lane:infra. The
+  slot A plan must say how the PR lanes are split (one PR per lane, `.github/lanes.yml`).
+- #710 and #711 are risk:low, lane:infra; they can ride with the critical PR or be a PR of their own.
+- The batch file says composed 16:05Z; the Mac clock read 16:02Z at start.
+
+Merge gates: none yet.
+Escalations: none yet.
