@@ -13,10 +13,11 @@ active_now:
   watchdog_interval_minutes: 120                     # frugal profile, ruleset 1.9.0 (D-871); was 60 (D-702h)
   milestones_in_progress: [v1.4]   # remainder after v1.4.1 (batch 4, D-876); v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
-  current_batch: plans/batch-004.md                  # composed 2026-11-22T16:05Z (D-876); run by the dispatcher (D-871), which writes that file from now on
+  current_batch: plans/batch-004.md                  # composed 2026-11-22T16:05Z (D-876); run by the dispatcher, which writes that file from now on
+  dispatcher: "dispatcher-b004-2 on Opus 5.5 high, started 2026-11-22T17:40Z from the batch-004 handoff; replaces the Sonnet dispatcher-b004 (ruleset 1.10.0, #730 880b170, D-877)"
   lanes_active:                                      # batch 4, two slots (frugal); per-slot detail is in the batch file, not here
-    - "slot A, app/release (lane:infra lock): #709 #710 #711 #720 + ledger 'fixed' value + brittle-test check"
-    - "slot B, one lane after another: layout #679, then voices #663, then docs D-874"
+    - "slot A, app/release (lane:infra lock): #709 #710 #711 + brittle-test check (ledger 'fixed' came with 1.10.0, D-877)"
+    - "slot B, one lane after another: layout #679, then voices #663, then docs D-874, then #720 (lane:web)"
   lanes_waiting:                                     # batch 5
     - "v1.5 Listen while generating (milestone 11, D-870): #723 LW-01 critical first; #724 #725 #726 depend on it"
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
@@ -27,6 +28,7 @@ active_now:
   audits_running: []                                 # batch-2026-11-20b audit PASS 21:50Z (D-858): 0 blocking, 3 should-fix -> #693 extended (plugin exception path + isolation test), #708 filed, ADR-008 issue edits done (#396 #397 #398); all audit follow-ups filed 21:58Z; #699 is a real WebKit failure, not a flake                                 # batch 2026-11-20 audit PASS 04:00Z, 0 blocking, 4 should-fix -> #684 #685 #686 #687, #681 relabelled infra/high (plans/audit-batch-2026-11-20.md)                                 # B1, B3, folders, B7, B2, B8 light audits done; web B8 DONE 19 Nov 02:22Z (#582 678fe3c, #293 #534 #541 closed, #596 filed)
 notifications_pending: []                            # v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
 open_owner_items:
+  - "Claude Code permissions: the auto-mode check refuses a review thread's gh pr merge, so every merge waits for Colin (#730, 22 Nov); allow it for this repo, or approve each merge (ROLE-14: Colin's setting)"
   - "double-click the downloaded 1.4.1 DMG and confirm the window opens (D-868)"
   - "upstream governance skill: the generator should read governance_paths and keep the D-849 PLAN-01 wording, so a ruleset re-run needs no hand edit (found by infra-b-i3, D-855); low priority, CI tests guard the edits meanwhile"
 milestones: {1: v1.0, 2: v1.1, 3: v1.0.1, 4: v1.2, 5: v1.4, 6: Later, 7: v1.2.x, 8: "v1.3 The Working Reader", 9: "v1.6 Study layer", 10: v2, 11: "v1.5 Listen while generating"}
