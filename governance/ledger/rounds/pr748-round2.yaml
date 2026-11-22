@@ -1,0 +1,12 @@
+pr: 748
+round: 2
+date: 2026-11-22
+thread: review-b004-c
+head: 5dffb20f44946eab4ff447afb9e078ff543eeba3
+critical: no
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr748-round2.md
+merged: ""
