@@ -43,7 +43,7 @@ origin/governance -- governance` shows 166 A and 4 M, no D).
 Files:
 
 1. **Delete** the 772 working files (section 1).
-2. **New `governance/README.md`**, exactly one line, also the check's hint:
+2. **New `governance/kb/00-index/working-files.md`** (D-884; was `governance/README.md`), exactly one line, also the check's hint:
    ``Working files (plans, round reports, batch files, ledger entries, `project-state.yaml`, `kb/pending-decisions.md`) live only on branch `governance` (THR-13, D-874): `git worktree add ../sci2audio-governance governance`.``
    Worded so it is also true on branch governance, where the merge brings it.
 3. **New `.github/scripts/working_files.py`** (standard library, beside
@@ -161,19 +161,10 @@ with #745). Recommended: keep them.
 ## Handoff (THR-07)
 
 - Goal: #746 (D-874): working files off main, a one-line pointer, and a CI check that fails when one comes back.
-- Done: plan approved (D-883, the three generator files stay). Branch `claude/docs-b-d2-746` at deca673 (pushed, no PR): 772 deletions, `.github/scripts/working_files.py`, the `ci.yml` step, `CLAUDE.md`, `governance/README.md`, `tests/unit/test_working_files.py` (all 31 pass). ruff, format, lint-imports, deptry clean.
-- Next: question to the coordinator (below); then rebase onto main after #745 merges, fast checks, PR with `ci:full`, ledger entry.
+- Done: plan approved (D-883); the pointer path amended by D-884 to `governance/kb/00-index/working-files.md` (a KB index record, lane:docs), with no change to `governance-config.json`, `lanes.yml` or `pr-checks.json`, so #746 criterion 6 holds. Branch `claude/docs-b-d2-746` at 4e13910 (pushed, no PR): 772 deletions, `.github/scripts/working_files.py`, the `ci.yml` step, `CLAUDE.md`, the pointer, `tests/unit/test_working_files.py`. Lane, CI-workflow, ledger, promised-tests and ruleset tests pass (156); ruff, format, lint-imports and deptry are clean.
+- Next: once #745 merges, merge main into the branch (a merge commit, since the branch is pushed and is never force-pushed), run the fast checks, open the PR (`Closes #746`, D-883/D-884, the §3 merge note, the promised tests), run `ci:full`, write `ledger/prs/pr-<N>.yaml`.
 
-Status: question. The approved pointer path breaks an existing test.
-`tests/unit/test_lanes.py::test_every_file_of_the_workspace_and_the_design_record_has_exactly_one_lane`
-fails on `governance/README.md`: no lane owns it (section 3 expected only an `unowned` WARN from
-`governance pr checks` and missed this test). Fixing it means deviating from the plan (PLAN-01), so it needs a D-number.
-Options: (a) add `governance/README.md` to `lane:docs` in `governance-config.json` `label_paths`,
-`.github/lanes.yml`, `.github/governance/pr-checks.json` and its byte-equal copy in `github-setup/`. These are
-lane:infra files, and the config is the generator's input, so the entry survives a regeneration. #745 changes only
-`ruleset_version` in the config, a different hunk. It breaks AC6 of #746 ("no generator file changes"). (b) Put the
-pointer in an owned, non-working path, e.g. `governance/kb/00-index/working-files.md` (a KB record), which is harder to find.
-Recommended: (a).
+Status: handoff. Waiting for #745 (lane:infra lock). Answered question: D-884 chose option (b).
 Unrelated: `tests/unit/test_textprep_numbers_statistics_de.py::test_a_german_job_reads_the_same_on_a_second_run`
 failed locally under the dev Hypothesis profile (paragraphs `1–1`, `←−=1`). The branch changes no `src/`, and main CI
 on 4ca072a is green. I added this example to #597 (the same kind).
