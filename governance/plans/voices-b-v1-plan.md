@@ -33,7 +33,7 @@ Alternatives rejected:
 
 1. `tests/unit/test_voices_espeak.py::test_espeak_exits_on_a_data_path_past_its_buffer`: characterisation of the upstream behaviour, so the limit stays honest. A subprocess runs misaki's `EspeakG2P("de")` on a folder of links to the wheel's data, at exactly `ESPEAK_PATH_LIMIT` bytes (speaks, exit 0) and at one byte more (exit 1, `phontab` in stderr). It passes on main, because it pins espeak-ng's behaviour, not ours.
 2. `tests/unit/test_voices_espeak.py::test_a_data_path_past_the_limit_is_refused_before_espeak_loads`: `check_espeak_data` on a path one byte over the limit raises `ModelLoadError` naming #663 and the limit, and one at the limit passes. Fails on main (no module).
-3. `tests/unit/test_voices_espeak.py::test_a_data_folder_without_phontab_is_refused`: fails on main.
+3. `tests/unit/test_voices_espeak.py::test_a_data_folder_without_phontab_is_refused`, and `::test_a_non_ascii_path_is_measured_in_bytes` (espeak-ng counts bytes, not characters): fail on main.
 4. `tests/unit/test_voices_espeak.py::test_the_wheels_data_folder_passes_the_check`: the real default path passes. Fails on main.
 5. `tests/unit/test_voices_kokoro.py::test_a_too_long_espeak_path_fails_the_pipeline_with_a_model_load_error`: the factory raises `ModelLoadError` for English and German before any pipeline is built (fake pipelines, `check_espeak_data` patched to a long path). Fails on main.
 
@@ -48,6 +48,7 @@ Size: about 50 lines in `src/sci2audio/voices`, 90 in tests.
 - `tests/unit/test_voices_espeak.py::test_espeak_exits_on_a_data_path_past_its_buffer`
 - `tests/unit/test_voices_espeak.py::test_a_data_path_past_the_limit_is_refused_before_espeak_loads`
 - `tests/unit/test_voices_espeak.py::test_a_data_folder_without_phontab_is_refused`
+- `tests/unit/test_voices_espeak.py::test_a_non_ascii_path_is_measured_in_bytes`
 - `tests/unit/test_voices_espeak.py::test_the_wheels_data_folder_passes_the_check`
 - `tests/unit/test_voices_kokoro.py::test_a_too_long_espeak_path_fails_the_pipeline_with_a_model_load_error`
 - `tests/unit/test_voices_german.py::test_real_espeak_german_gives_only_kokoro_symbols`
