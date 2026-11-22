@@ -8,8 +8,8 @@ Thread: `web-b-w3`, implementation, lane:web, batch 004, Opus 5.5 high. Status: 
 |---|---|---|---|
 | `isolate.yml` run 45073565421 on main 4ca072a (Linux, mode full) | WebKit | 60 | 1 (run 41) |
 | same | Chromium | 60 | 0 |
-| local, macOS M4 | WebKit | 60 | see §6 |
-| local, macOS M4 | Chromium | 40 | see §6 |
+| local, macOS M4 | WebKit | 60 | 0 |
+| local, macOS M4 | Chromium | 40 | 0 |
 
 Second red run without a known cause at the time (the first was PR #698's shard, run 44805485750).
 
@@ -38,4 +38,7 @@ About 25 lines in `player.js`, one browser test of about 50 lines. One PR `web: 
 
 ## 6. Results
 
-(filled in after the runs)
+- Test 1 before the fix (`isolate.yml` run 45074411978, head 8a80ef9, test only): Linux Chromium 19/20, red at gap 4 ms with `time: 0`; Linux WebKit 20/20. The loss is not WebKit's alone: a seek over a running one ended at 0 in Linux Chromium too.
+- After the fix (run 45074919355, head dd11405): both tests 60/60 in Linux Chromium and 60/60 in Linux WebKit.
+- Local, head dd11405: fast suite 8845 passed; `pytest -m browser` (Chromium) 200 passed, 5 skipped; player, markers, listen and focus tests in WebKit and Chromium 128 passed.
+- PR #748.

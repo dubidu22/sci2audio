@@ -1,0 +1,13 @@
+pr: 748
+opened: 2026-11-22
+thread: web-b-w3
+lane: web
+labels: "lane:web, risk:low, testing"
+plan: plans/web-b-w3-plan.md
+critical: no
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "closes #720; cause from the trace of isolate run 45073565421 (WebKit 59/60): a seek started over a running one ended at 0 on Linux; player.js makes one seek at a time; new test red 1/20 in Linux Chromium before the fix (run 45074411978), both tests 60/60 in Linux Chromium and WebKit after it (run 45074919355)"
+merged: ""
