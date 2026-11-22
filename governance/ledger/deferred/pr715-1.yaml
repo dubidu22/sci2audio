@@ -1,8 +1,9 @@
 pr: 715
 date: 2026-11-22
 what: "S1 (brittle-test): T6's elapsed < 1.6 clock bound in tests/unit/test_textprep_plugins.py sits close to what CI measures"
-decision: planned             # fixed before merge: the bound was dropped in 266f10f, after round 2; the merge 431cf1b is pinned to 022db85, which contains it (pr-715.yaml). The ledger has no "fixed" value yet, so this names the PR that carried the fix (D-875).
-issue: "#715"
+decision: fixed               # the bound was dropped after round 2; the merge 431cf1b is pinned to 022db85, which contains it (pr-715.yaml). Re-recorded with the 1.10.0 `fixed` value (D-877); first recorded as planned against #715 (D-875).
+commit: "266f10f"
+issue: ""
 until: ""
 reason: ""
 by: ""
