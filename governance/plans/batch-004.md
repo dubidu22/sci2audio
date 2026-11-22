@@ -153,12 +153,12 @@ Merged by Colin by hand, each pinned to its reviewed head (21:29 to 21:31Z):
 main merged into governance (4ab6dfe). Main CI on 4ca072a running.
 Slot A is done. Slot B: docs-b-d2 (D-874, critical) runs as an Opus high subagent:
 Issue #746, plan plans/docs-b-d2-plan.md (8270496) approved as written (D-883): the three
-generator-written README/since.txt files stay on main. Code on `claude/docs-b-d2-746` (deca673), 31 tests pass; blocked: no lane owns `governance/README.md` (test_lanes fails). D-884 (coordinator): option (b), so the pointer moves to `governance/kb/00-index/working-files.md`, with no config change; passed to the author. Waits for #745 (lane:infra lock). WARNING for the
+generator-written README/since.txt files stay on main. Code on `claude/docs-b-d2-746` (deca673), 31 tests pass; blocked: no lane owns `governance/README.md` (test_lanes fails). D-884 (coordinator): option (b), so the pointer moves to `governance/kb/00-index/working-files.md`, with no config change; passed to the author. Branch at 4e13910 (D-884 applied, fast checks green). Waits for #745 to merge (three-system run green on 095cb2a, the coordinator's conditional go). WARNING for the
 first merge of main into governance after this PR (D-883 condition): first
 `git tag governance-before-d874 && git push origin governance-before-d874` at governance's head,
 then plan §3 exactly, and record its empty-diff output here. If the diff is not empty: commit
 nothing, `git merge --abort`, and end the turn with `COORDINATOR: governance merge stopped`.
-#720 started early as web-b-w3 (Opus high subagent) in the free slot (lane:web, no shared files).
+#720 started early as web-b-w3 (Opus high subagent) in the free slot (lane:web, no shared files). PR #748 (dd11405, lane:web, risk:low, Linux green). Cause: a second seek while audio.seeking ended at 0; fix: one seek at a time. WebKit went from 59/60 to 60/60. Review round 1 with review-b004-b.
 Main CI green on all three systems: f85a633 (#742, run 45072390054), b5a40a0 (#740, 45072407648), 4ca072a (#739, 45072516858; first Windows run of the 214 limit) at 21:42Z.
 Watch for the coordinator: #745 (ruleset 1.13.0) ci:full; tell settings-d882 (local_b679f474-afc5-4905-a6f9-7d827c0f0283).
 
