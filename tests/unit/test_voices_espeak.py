@@ -14,6 +14,7 @@ from sci2audio.voices.espeak import ESPEAK_PATH_LIMIT, check_espeak_data, wheel_
 
 SPEAK = (
     "import sys, misaki.espeak\n"
+    "sys.stdout.reconfigure(encoding='utf-8')\n"  # Windows' console code page lacks IPA
     "from phonemizer.backend.espeak.wrapper import EspeakWrapper\n"
     "EspeakWrapper.set_data_path(sys.argv[1])\n"
     "print(misaki.espeak.EspeakG2P(language='de')('Brücke')[0])\n"
