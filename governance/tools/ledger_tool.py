@@ -31,7 +31,7 @@ ROUND_KEYS = ("pr", "round", "date", "thread", "head", "verdict", "must_fix", "s
 REVERT_KEYS = ("pr", "date", "by", "reason")
 OVERRIDE_KEYS = ("pr", "date", "by", "head", "reason")
 DEFERRED_KEYS = ("pr", "date", "what", "decision")
-DECISIONS = ("open", "planned", "postponed", "dropped")
+DECISIONS = ("open", "fixed", "planned", "postponed", "dropped")
 # first word of a worker thread's report (THR-15); the ones in OPEN_HANDBACKS stop a merge until cleared
 HANDBACKS = ("done", "question", "blocked", "review", "handoff")
 OPEN_HANDBACKS = ("question", "blocked", "review")
@@ -99,6 +99,8 @@ def deferred_problems(e: dict[str, str]) -> list[str]:
     decision = e.get("decision", "")
     if decision and decision not in DECISIONS:
         out.append(f"`decision` must be one of {', '.join(DECISIONS)}, got '{decision}'")
+    if decision == "fixed" and not re.fullmatch(r"[0-9a-fA-F]{7,40}", e.get("commit", "")):
+        out.append("a fixed item names the `commit` (7 to 40 hex characters) that fixed it")
     if decision == "planned" and not re.fullmatch(r"#?\d+", e.get("issue", "")):
         out.append("a planned item names the `issue` (a number) that carries it")
     if decision in ("postponed", "dropped") and len(e.get("reason", "").strip()) < MIN_REASON:
@@ -133,9 +135,9 @@ def triage(rounds: list[dict[str, str]], deferred: list[dict[str, str]], since: 
         if wrong:
             todo.append(f"{label}: " + "; ".join(wrong))
         elif e["decision"] == "open":
-            todo.append(f"{label}: no decision yet. Plan it (issue), postpone it (reason, until) or ask the owner to drop it")
+            todo.append(f"{label}: no decision yet. Fixed already (commit), plan it (issue), postpone it (reason, until) or ask the owner to drop it")
         else:
-            how = {"planned": f"planned in #{e.get('issue', '').lstrip('#')}", "postponed": f"postponed until {e.get('until', '')}",
+            how = {"fixed": f"fixed in {e.get('commit', '')}", "planned": f"planned in #{e.get('issue', '').lstrip('#')}", "postponed": f"postponed until {e.get('until', '')}",
                    "dropped": f"dropped by {e.get('by', '')}"}[e["decision"]]
             settled.append(f"{label}: {how}")
     for r in sorted((r for r in rounds if r.get("merged")), key=lambda r: num(r.get("pr"))):

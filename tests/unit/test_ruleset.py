@@ -1,6 +1,8 @@
 """The ruleset, its role extracts and its config agree (#683, D-848, D-849). The skill's generator
-writes all three, but it knows neither the D-849 wording of PLAN-01 nor `governance_paths`, so a
-re-run undoes both silently; these tests make that undo fail (META-03)."""
+writes all three. It keeps `governance_paths` since ruleset 1.10.0 (D-877), but its PLAN-01 says
+"by its test ID" and "does not exist", while the check reads backticked pytest node IDs, so the
+D-849 wording is restored by exact replace after each re-run; these tests make a missed restore
+or a dropped path list fail (META-03)."""
 
 from __future__ import annotations
 

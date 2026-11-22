@@ -86,7 +86,8 @@ override in its next report to the owner.
 pr: 12
 date: 2026-02-03
 what: "S2: the import dialog does not remember the last folder"
-decision: open                # open | planned | postponed | dropped
+decision: open                # open | fixed | planned | postponed | dropped
+commit: ""                    # fixed: the commit that fixed it (also before the merge, in the PR itself)
 issue: ""                     # planned: the issue that carries it
 until: ""                     # postponed: a milestone, a date or an event
 reason: ""                    # postponed and dropped: why
@@ -96,7 +97,8 @@ by: ""                        # dropped: the owner, and where they said it
 `triage` lists every entry that is still `open` and every merged PR whose
 last round left more should-fix findings than there are entries. It exits 1
 while anything is listed, and no batch starts then. Planning and postponing
-are the coordinator's call; dropping is the owner's. Merges dated before the
+are the coordinator's call, and so is `fixed` when the commit is named;
+dropping is the owner's. Merges dated before the
 day in `deferred/since.txt` are not counted, so an older ledger is not asked
 to account for the time before this rule.
 

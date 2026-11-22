@@ -1,8 +1,8 @@
 # Extract for audit threads. Generated with claude-project-rules.yaml; do not edit.
 # It holds the rules scoped to this role or to all. If it and the full file ever differ, the full file wins.
 extract_for: audit
-version: 1.9.0
-date: 2026-11-21
+version: 1.10.0
+date: 2026-11-22
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
 public_repo: true
@@ -23,6 +23,7 @@ project_profile:
   label_paths: ["lane:core=src/sci2audio/core/**", "lane:extraction=src/sci2audio/extraction/**", "lane:layout=src/sci2audio/layout/**", "lane:textprep=src/sci2audio/textprep/**", "lane:textprep=src/sci2audio/testing/**", "lane:voices=src/sci2audio/voices/**", "lane:output=src/sci2audio/output/**", "lane:app=src/sci2audio/app/**", "lane:web=src/sci2audio/web/**", "lane:cli=src/sci2audio/cli.py", "lane:infra=.github/**", "lane:infra=pyproject.toml", "lane:infra=uv.lock", "lane:infra=.pre-commit-config.yaml", "lane:infra=governance/claude-project-rules.yaml", "lane:infra=governance/rules/**", "lane:infra=governance/project_instructions.md", "lane:infra=governance/dispatcher_instructions.md", "lane:infra=governance/claude-md-snippet.md", "lane:infra=governance/governance-config.json", "lane:infra=governance/github-setup/**", "lane:infra=governance/tools/**", "lane:docs=*.md", "lane:docs=docs/**", "lane:docs=docs/design/**", "lane:docs=.claude/**", "lane:docs=governance/kb/**", "lane:docs=governance/plans/**", "lane:docs=governance/ledger/**", "lane:docs=governance/project-state.yaml", "lane:docs=governance/memory/**", "lane:docs=governance/release/**", "lane:docs=governance/workflow-export.md"]
   doc_paths: ["docs/**", "**/README.md", "CHANGELOG.md", "CONTRIBUTING.md", ".github/**", ".claude/**", "governance/dispatcher_instructions.md", "governance/claude-md-snippet.md"]
   governance_paths: ["governance/kb/**", "governance/plans/**", "governance/ledger/**", "governance/project-state.yaml", "governance/memory/**", "governance/release/**", "governance/workflow-export.md"]
+  promised_tests_check: "the governance check"
   workspace_root: "./governance"
   state_file: "./governance/project-state.yaml"
   plans_dir: "./governance/plans"
@@ -38,6 +39,7 @@ execution_profile:
     implementation: "Opus 5.5 high"
     review_kb_audit: "Opus 5.5 medium"
     operations: "Sonnet 5.5 high"
+    dispatcher: "Opus 5.5 high"
   token_economy:
     profile_name: frugal
     max_concurrent_lanes: 2

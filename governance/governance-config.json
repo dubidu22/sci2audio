@@ -1,5 +1,5 @@
 {
-  "ruleset_version": "1.9.0",
+  "ruleset_version": "1.10.0",
   "project_name": "sci2audio",
   "repo_slug": "dubidu22/sci2audio",
   "is_public": true,
@@ -180,6 +180,16 @@
     "governance/dispatcher_instructions.md",
     "governance/claude-md-snippet.md"
   ],
+  "runtime_verification": false,
+  "owner_prefs": [
+    "Terminal commands for Colin carry no comments inside the code block; explanations go beside it.",
+    "For a decision the coordinator would otherwise put to Colin, or a real open choice in a critical plan, the coordinator first asks one advisor thread on Fable 5.1 medium effort for a second opinion: it reads only, writes no files, answers once, and the D-entry quotes its verdict."
+  ],
+  "acceptance_contracts": false,
+  "dispatcher": true,
+  "advisor": false,
+  "advisor_model": "",
+  "dispatcher_model": "Opus 5.5 high",
   "governance_paths": [
     "governance/kb/**",
     "governance/plans/**",
@@ -189,13 +199,7 @@
     "governance/release/**",
     "governance/workflow-export.md"
   ],
-  "runtime_verification": false,
-  "owner_prefs": [
-    "Terminal commands for Colin carry no comments inside the code block; explanations go beside it.",
-    "For a decision the coordinator would otherwise put to Colin, or a real open choice in a critical plan, the coordinator first asks one advisor thread on Fable 5.1 medium effort for a second opinion: it reads only, writes no files, answers once, and the D-entry quotes its verdict."
-  ],
-  "acceptance_contracts": false,
-  "dispatcher": true,
+  "promised_tests_check": "the governance check",
   "cache_ttl_minutes": 60,
   "coordinator_compact_every_batches": 1,
   "active_milestones": []
