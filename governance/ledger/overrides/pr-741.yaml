@@ -1,0 +1,5 @@
+pr: 741
+date: 2026-11-22
+by: "owner, chat message to the coordinator of 2026-11-22 (after 19:56Z)"
+head: f9c4d5a
+reason: "correct previous setup. Merged by Colin by hand before any review round; the author's ci:full run was green on all three systems and the local checks passed (114 ruleset, lane and CI tests, audit_rules 0 errors). Colin: 'It is ok this time' (D-880)."
