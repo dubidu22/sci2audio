@@ -354,7 +354,7 @@ utterances = [
 id = "de-abbreviations-legal-forms-inside-a-citation"
 audit = 0
 issue = 264
-goal = "'a. F.' and 'n. F.' end no sentence inside a law citation (before 'BDSG', 'Abs.', 'Satz 2'), but do before a new sentence; 'i. S. d.' is read only before a law's '§', 'Art.' or 'Abs.', where it is 'des' (review round 1 of PR #382)."
+goal = "'a. F.' and 'n. F.' end no sentence inside a law citation (before 'BDSG', 'Abs.', 'Satz 2'), but do before a new sentence; 'i. S. d.' is read only before a law's '§', 'Art.' or 'Abs.', where it is 'des' (PR #382)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Nach § 28 a. F. BDSG gilt das. Nach Art. 7 a. F. EGBGB gilt das." },
@@ -391,7 +391,7 @@ expected = ["Laut Müller und andere gilt das unter anderem in Berlin."]
 id = "de-abbreviations-u-a-before-a-year-after-a-lower-case-word"
 audit = 0
 issue = 113
-goal = "'u. a.' before a year reads 'und andere' only after a name: 'gilt u. a. 2019' is 'unter anderem' (review of PR #228)."
+goal = "'u. a.' before a year reads 'und andere' only after a name: 'gilt u. a. 2019' is 'unter anderem' (PR #228)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Das gilt u. a. 2019 und 2020." }]
 expected = ["Das gilt unter anderem 2019 und 2020."]
@@ -400,7 +400,7 @@ expected = ["Das gilt unter anderem 2019 und 2020."]
 id = "de-abbreviations-capitals-with-umlauts"
 audit = 0
 issue = 113
-goal = "A capital with an umlaut counts as a capital after an abbreviation: a name after 'Dr.', a new sentence after 'usw.' (review of PR #228)."
+goal = "A capital with an umlaut counts as a capital after an abbreviation: a name after 'Dr.', a new sentence after 'usw.' (PR #228)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Laut Prof. Dr. Özdemir gilt das für Katzen usw. Über die Studie wissen wir mehr." }]
 expected = ["Laut Professor Doktor Özdemir gilt das für Katzen und so weiter. Über die Studie wissen wir mehr."]
@@ -410,7 +410,7 @@ utterances = ["Laut Professor Doktor Özdemir gilt das für Katzen und so weiter
 id = "de-abbreviations-lower-case-ae-and-ff"
 audit = 0
 issue = 113
-goal = "'o. ä.', 'o.ä.', 'u. ä.', 'u.ä.' with a lower-case 'ä' read too; 'ff.' after a page reads 'folgende' (review of PR #228)."
+goal = "'o. ä.', 'o.ä.', 'u. ä.', 'u.ä.' with a lower-case 'ä' read too; 'ff.' after a page reads 'folgende' (PR #228)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Hunde o. ä. sind hier, Katzen o.ä. auch, Pferde u. ä. ebenso, Mäuse u.ä. nicht, siehe S. 12 ff." }]
 expected = ["Hunde oder Ähnliches sind hier, Katzen oder Ähnliches auch, Pferde und Ähnliches ebenso, Mäuse und Ähnliches nicht, siehe Seite 12 folgende."]
@@ -529,7 +529,7 @@ expected = ["Siehe Abbildung 2 A und Gruppe 3 C."]
 id = "de-units-percent-euro-and-per-mille"
 audit = 0
 issue = 113
-goal = "'%' and '€' are listed as units so '1' before them reads 'ein' (review of PR #228); glued '10%' the voice reads right as printed; '‰' reads 'Promille'."
+goal = "'%' and '€' are listed as units so '1' before them reads 'ein' (PR #228); glued '10%' the voice reads right as printed; '‰' reads 'Promille'."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Es stieg um 10 % und 10% auf 5 €, um 1 % auf 1 € und 5 ‰." }]
 expected = ["Es stieg um 10 Prozent und 10% auf 5 Euro, um ein Prozent auf einen Euro und 5 Promille."]
@@ -538,7 +538,7 @@ expected = ["Es stieg um 10 Prozent und 10% auf 5 Euro, um ein Prozent auf einen
 id = "de-units-one-after-ueber-auf-ab"
 audit = 0
 issue = 113
-goal = "With a number, 'über' and 'auf' take the accusative ('über eine Million', 'auf einen Meter'), 'ab' the dative (review of PR #228)."
+goal = "With a number, 'über' and 'auf' take the accusative ('über eine Million', 'auf einen Meter'), 'ab' the dative (PR #228)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Es kostete über 1 Mio. Euro, stieg auf 1 m und galt ab 1 kg." }]
 expected = ["Es kostete über eine Million Euro, stieg auf einen Meter und galt ab einem Kilogramm."]
@@ -547,7 +547,7 @@ expected = ["Es kostete über eine Million Euro, stieg auf einen Meter und galt 
 id = "de-units-german-label-joins"
 audit = 0
 issue = 113
-goal = "Labels joined by 'und', 'oder', 'bzw.', 'sowie' or 'bis' stay labels: no unit after them (review of PR #228)."
+goal = "Labels joined by 'und', 'oder', 'bzw.', 'sowie' or 'bis' stay labels: no unit after them (PR #228)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Die Bedingungen 1 bzw. 2 V und die Gruppen 1 und 2 K." }]
 expected = ["Die Bedingungen 1 beziehungsweise 2 V und die Gruppen 1 und 2 K."]
@@ -556,7 +556,7 @@ expected = ["Die Bedingungen 1 beziehungsweise 2 V und die Gruppen 1 und 2 K."]
 id = "de-units-one-in-a-compound"
 audit = 0
 issue = 113
-goal = "'1' starting a hyphenated compound reads 'Ein' ('Ein-Kilogramm-Packung'); a decimal stays a number (review of PR #228)."
+goal = "'1' starting a hyphenated compound reads 'Ein' ('Ein-Kilogramm-Packung'); a decimal stays a number (PR #228)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Eine 1-kg-Packung und ein 1,5-l-Behälter." }]
 expected = ["Eine Ein-Kilogramm-Packung und ein 1 Komma 5-Liter-Behälter."]
@@ -565,7 +565,7 @@ expected = ["Eine Ein-Kilogramm-Packung und ein 1 Komma 5-Liter-Behälter."]
 id = "de-units-min-with-a-full-stop"
 audit = 0
 issue = 113
-goal = "'min.' after a number is the unit and does not end the sentence; 'min.' before a number is 'minimal' (review of PR #228)."
+goal = "'min.' after a number is the unit and does not end the sentence; 'min.' before a number is 'minimal' (PR #228)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Nach 12 min. Pause waren es max. 5, min. 3." }]
 expected = ["Nach 12 Minuten Pause waren es maximal 5, minimal 3."]
@@ -668,7 +668,7 @@ expected = ["Es gab F mit 2 und 57 Freiheitsgraden gleich 4 Komma 1; Chi-Quadrat
 id = "de-statistics-confidence-interval-after-percent"
 audit = 0
 issue = 130
-goal = "'95 %-KI' reads '95 Prozent Konfidenzintervall' (statistics runs before units, review of PR #228) and the interval 'bis' (S-de-4)."
+goal = "'95 %-KI' reads '95 Prozent Konfidenzintervall' (statistics runs before units, PR #228) and the interval 'bis' (S-de-4)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Das 95 %-KI [1,2; 3,4] schloss die Null nicht ein." }]
 expected = ["Das 95 Prozent Konfidenzintervall 1 Komma 2 bis 3 Komma 4 schloss die Null nicht ein."]
@@ -695,7 +695,7 @@ expected = ["Siehe Abbildung 1 zu 1 und 10 hoch 6 bis 10 hoch 7 Zellen."]
 id = "de-numbers-court-file-numbers"
 audit = 0
 issue = 130
-goal = "A court's file number stays as printed with or without 'Az.' ('VI ZR 8/14' is no fraction), a dash before one is no range, and 'Aktenzeichen' keeps only the number, so a date after it is read (review of PR #242)."
+goal = "A court's file number stays as printed with or without 'Az.' ('VI ZR 8/14' is no fraction), a dash before one is no range, and 'Aktenzeichen' keeps only the number, so a date after it is read (PR #242)."
 language = "de"
 blocks = [
   { kind = "paragraph", text = "BGH, Urteil vom 13.1.2015 – VI ZR 8/14. BVerfG, Beschluss v. 15.12.1983 – 1 BvR 209/83." },
@@ -710,7 +710,7 @@ expected = [
 id = "de-numbers-thousands-after-a-year-word"
 audit = 0
 issue = 130
-goal = "A number with a thousands point after a word that may introduce a year ('von 1.500') is read in hundreds, which the voice says right; left as printed it was 'eins fünfhundert'. Before a unit it is a count: 'um 1.200 Euro' reads '1200' (review of PR #242)."
+goal = "A number with a thousands point after a word that may introduce a year ('von 1.500') is read in hundreds, which the voice says right; left as printed it was 'eins fünfhundert'. Before a unit it is a count: 'um 1.200 Euro' reads '1200' (PR #242)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Der Preis stieg von 1.500 auf 2.000 Euro und um 1.200 Euro im Jahr darauf." }]
 expected = ["Der Preis stieg von 15 hundert auf 2000 Euro und um 1200 Euro im Jahr darauf."]
@@ -719,7 +719,7 @@ expected = ["Der Preis stieg von 15 hundert auf 2000 Euro und um 1200 Euro im Ja
 id = "de-numbers-joined-numbers-before-a-noun"
 audit = 0
 issue = 130
-goal = "The noun after the last number of a joined run decides whether the run is years: 'zwischen 1234 und 1567 Probanden' are counts, 'zwischen 1990 und 1995 gab es' years (review of PR #242)."
+goal = "The noun after the last number of a joined run decides whether the run is years: 'zwischen 1234 und 1567 Probanden' are counts, 'zwischen 1990 und 1995 gab es' years (PR #242)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Zwischen 1234 und 1567 Probanden nahmen teil; zwischen 1990 und 1995 gab es keine." }]
 expected = ["Zwischen 1234 und 1567 Probanden nahmen teil; zwischen 19 hundert 90 und 19 hundert 95 gab es keine."]
@@ -728,7 +728,7 @@ expected = ["Zwischen 1234 und 1567 Probanden nahmen teil; zwischen 19 hundert 9
 id = "de-statistics-interval-before-a-full-stop"
 audit = 0
 issue = 130
-goal = "An interval read at a sentence end has no space before the full stop (review of PR #242)."
+goal = "An interval read at a sentence end has no space before the full stop (PR #242)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "OR = 2,3, 95 %-KI [1,1; 4,8]. Danach nicht." }]
 expected = ["Odds Ratio gleich 2 Komma 3, 95 Prozent Konfidenzintervall 1 Komma 1 bis 4 Komma 8. Danach nicht."]
@@ -755,7 +755,7 @@ expected = ["Die Messung lief vom ersten März 2020 bis elften März 2020 im Lab
 id = "de-numbers-date-after-a-dash-without-bis"
 audit = 0
 issue = 253
-goal = "A date after a dash that is not read 'bis' (a dotted day before it) stays as printed, as on main; read, it gave 'vom 1.–dritter April 2020' (review of PR #263, F1). An em dash between full dates reads 'bis' with the ending 'bis' gives (F2)."
+goal = "A date after a dash that is not read 'bis' (a dotted day before it) stays as printed, as on main; read, it gave 'vom 1.–dritter April 2020' (PR #263). An em dash between full dates reads 'bis' with the ending 'bis' gives (PR #263)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Die Messung lief vom 1.–3.4.2020 im Labor." },
@@ -770,7 +770,7 @@ expected = [
 id = "de-numbers-dotted-date-glued-to-a-dash"
 audit = 0
 issue = 303
-goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the hyphen is read 'bis', the second date in the dative (#334, D-605). A date without a year before a full date is read too ('am 3.4. 12.03.2019'), as a second run reads it once the full date is words; before a plain number it stays as printed. A hyphen between two full dates is a range, read 'bis' as a dash is ('3.4.2019-5.4.2019', review round 1 of PR #311)."
+goal = "A dotted date whose year is followed by '-' and a digit stays as printed, as one followed by '.', ',', ':' or '/' and a digit does: '3.4.2019-03-12' read 'dritten April 2019-03-12', and a second run read the ISO date on its own (D-562). A dotted date and an ISO date apart from each other are both read; a date range with spaces round the hyphen is read 'bis', the second date in the dative (#334, D-605). A date without a year before a full date is read too ('am 3.4. 12.03.2019'), as a second run reads it once the full date is words; before a plain number it stays as printed. A hyphen between two full dates is a range, read 'bis' as a dash is ('3.4.2019-5.4.2019', PR #311)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Es lief am 3.4.2019-03-12 und am 3.4.2019-2020 und am 3.4.2019-03 gut." },
@@ -833,7 +833,7 @@ expected = [
 id = "de-abbreviations-before-a-removed-link"
 audit = 0
 issue = 253
-goal = "A label abbreviation before a link the links step removes is read as before what follows the link: 'Kap. https://x.org/a (ebd., S. 3)' kept 'Kap.', and a second run, without the link, read 'Kapitel' (review of PR #256, D1)."
+goal = "A label abbreviation before a link the links step removes is read as before what follows the link: 'Kap. https://x.org/a (ebd., S. 3)' kept 'Kap.', and a second run, without the link, read 'Kapitel' (PR #256)."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Siehe Kap. https://x.org/a (ebd., S. 3)." }]
 expected = ["Siehe Kapitel (ebenda, Seite 3)."]
@@ -967,7 +967,7 @@ expected = ["Sie prüft die „Top 1 Million“ jeden Monat.", "Fußnote 9. Eine
 id = "de-footnote-mark-after-guillemets-and-single-quote"
 audit = 0
 issue = 212
-goal = "A mark after the other German closing quotes is left out too: « (»…«), ‘ (‚…‘) and the Swiss » («…») (review of PR #248, S2)."
+goal = "A mark after the other German closing quotes is left out too: « (»…«), ‘ (‚…‘) and the Swiss » («…») (PR #248)."
 language = "de"
 blocks = [
     { kind = "paragraph", runs = ["Sie prüft die »Top 1 Million«", { sup = "7" }, ", es ist ‚klein‘", { sup = "8" }, " und «gross»", { sup = "9" }, "."] },
@@ -1048,7 +1048,7 @@ expected = [
 id = "de-links-after-an-abbreviation"
 audit = 0
 issue = 101
-goal = "The full stop of 'z. B.', 'u. a.', 'ggf.' before a link ends no sentence, so the link's removal keeps the sentence's own full stop; up to two words before the link go with it ('z. B. unter'); 'bzw.' joins two links and goes before one (review of PR #256)."
+goal = "The full stop of 'z. B.', 'u. a.', 'ggf.' before a link ends no sentence, so the link's removal keeps the sentence's own full stop; up to two words before the link go with it ('z. B. unter'); 'bzw.' joins two links and goes before one (PR #256)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Die Daten liegen z. B. unter https://x.org. Dann mehr." },
@@ -1291,7 +1291,7 @@ expected = [
 id = "de-citations-a-grant-number-in-brackets-is-not-read"
 audit = 0
 issue = 285
-goal = "A bracket that holds only an identifier, such as a grant number or a Förderkennzeichen, is not read, as in English. A thousands number in round brackets reads with spaces ('(12.345)' as '(12 345)', '(Projekt 12.345)' as '(Projekt 12 345)', which the voice reads as one number): read '(12345)', a second run would take it for an identifier (D-547, review round 1 of PR #300). The other brackets are read as a second run reads them without the identifier."
+goal = "A bracket that holds only an identifier, such as a grant number or a Förderkennzeichen, is not read, as in English. A thousands number in round brackets reads with spaces ('(12.345)' as '(12 345)', '(Projekt 12.345)' as '(Projekt 12 345)', which the voice reads as one number): read '(12345)', a second run would take it for an identifier (D-547, PR #300). The other brackets are read as a second run reads them without the identifier."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Gefördert vom BMBF (FKZ 01IS18026A) und der DFG (527794). Dann mehr." },
@@ -1375,7 +1375,7 @@ expected = [
 id = "de-citations-a-nest-of-any-depth"
 audit = 0
 issue = 306
-goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, and a year bracket after the names an inner citation keeps is read with them, so the whole nest goes on the first run (D-588, D-599; nightly seeds 555 and 8080 of PR #330; review round 2)."
+goal = "A nest of citations is decided inner first, whatever its depth: a separator or lead word that an inner citation leaves at the edge goes with it, and a year bracket after the names an inner citation keeps is read with them, so the whole nest goes on the first run (D-588, D-599; nightly seeds 555 and 8080 of PR #330)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Es gilt ((((Müller, 2019), Weber, 2020), Weber, 2020), Weber, 2020) hier." },
@@ -1524,7 +1524,7 @@ expected = [
 id = "de-numbers-a-range-with-a-yearless-end-before-a-fraction-or-a-date"
 audit = 0
 issue = 318
-goal = "A range from a full date to a date without its year is read when the yearless end stands before what such a date may stand before: a full date, or a fraction read 'ein ...'; before '1/12', read '1 von 12', or a plain number it stays as printed, on both runs. An invalid end ('31.4.') is not read (#332 review round 1)."
+goal = "A range from a full date to a date without its year is read when the yearless end stands before what such a date may stand before: a full date, or a fraction read 'ein ...'; before '1/12', read '1 von 12', or a plain number it stays as printed, on both runs. An invalid end ('31.4.') is not read (#332)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Vom 3.4.2019-5.4. 1/2 Tag." },
@@ -1572,7 +1572,7 @@ expected = [
 id = "de-numbers-no-ordinal-after-punkt"
 audit = 0
 issue = 349
-goal = "The last part of a dotted section number read with 'Punkt' is no ordinal before a noun, on the second run either: 'Kapitel 1.2.3. Tag.' reads '1 Punkt 2 Punkt 3. Tag.' on both runs (D-605). After the word 'Punkt' itself an ordinal reads as before (review S1 of PR #368)."
+goal = "The last part of a dotted section number read with 'Punkt' is no ordinal before a noun, on the second run either: 'Kapitel 1.2.3. Tag.' reads '1 Punkt 2 Punkt 3. Tag.' on both runs (D-605). After the word 'Punkt' itself an ordinal reads as before (PR #368)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Kapitel 1.2.3. Tag." },
@@ -1595,7 +1595,7 @@ expected = [
 id = "de-notice-dotted-caption-labels"
 audit = 0
 issue = 249
-goal = "A German notice names the figure as its caption reads the label's numbers: a dotted number with 'Punkt' ('Tabelle 2 Punkt 1 wird übersprungen.'), a range with 'bis', a decimal comma with 'Komma', and a label the caption keeps as printed ('2.1a', 'S3.1', '3/4' before ':') as printed, the label read in its caption's context, on both runs (D-605, review S2 and S3 of PR #368 and S2 of its round 2). English notices are unchanged."
+goal = "A German notice names the figure as its caption reads the label's numbers: a dotted number with 'Punkt' ('Tabelle 2 Punkt 1 wird übersprungen.'), a range with 'bis', a decimal comma with 'Komma', and a label the caption keeps as printed ('2.1a', 'S3.1', '3/4' before ':') as printed, the label read in its caption's context, on both runs (D-605, PR #368). English notices are unchanged."
 language = "de"
 blocks = [
     { kind = "caption", text = "Tabelle 2.1: Mittelwerte.", label = "Tabelle 2.1", describes = 1 },
@@ -1657,7 +1657,7 @@ expected = [
 id = "de-numbers-a-unit-power-after-a-fraction"
 audit = 0
 issue = 335
-goal = "A fraction before a unit chain that ends in a letter power is left as printed, as one before a letter power is ('1/5 m⁶'), so the power is not read only on a second run after the fraction words; where the first run reads that power ('x²', 'R²', 't²' after 's'), or the unit is one word ('1/4 cm²'), the fraction is read, as before (review S1 and B1 of PR #359, D-605)."
+goal = "A fraction before a unit chain that ends in a letter power is left as printed, as one before a letter power is ('1/5 m⁶'), so the power is not read only on a second run after the fraction words; where the first run reads that power ('x²', 'R²', 't²' after 's'), or the unit is one word ('1/4 cm²'), the fraction is read, as before (PR #359, D-605)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Es ist 2/3 m s⁻² hier." },
@@ -1692,7 +1692,7 @@ expected = [
 id = "de-links-in-brackets-read-the-same-on-a-second-run"
 audit = 0
 issue = 337
-goal = "A link ends at the bracket it closes when another bracket is glued after it, and a glued bracket that stays keeps the space before the link (#326, #371 review round 1 S1), and a join word or separator a removed link leaves at a bracket's start goes with it (#337), on both runs (D-605)."
+goal = "A link ends at the bracket it closes when another bracket is glued after it, and a glued bracket that stays keeps the space before the link (#326, #371), and a join word or separator a removed link leaves at a bracket's start goes with it (#337), on both runs (D-605)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "(siehe https://example.org)(Müller, 2019) es gilt." },
@@ -1852,7 +1852,7 @@ expected = [
 id = "de-citations-alphanumeric-keys-as-asides"
 audit = 0
 issue = 254
-goal = "LNI keys ('[Fa14]', '[MH17]') that the document's list prints as entry labels are citations like numeric ones: an aside goes (D-646, review B1 of PR #377)."
+goal = "LNI keys ('[Fa14]', '[MH17]') that the document's list prints as entry labels are citations like numeric ones: an aside goes (D-646, PR #377)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Fahl et al. haben gezeigt [Fa14], dass es geht." },
@@ -1902,7 +1902,7 @@ expected = [
 id = "de-citations-key-shapes-without-entries-stay"
 audit = 0
 issue = 254
-goal = "A bracket shaped like a key is no citation unless the document prints each key as an entry label: '[Mn12]', '[EU27]', '[PM10]' stay as printed (review B1 of PR #377)."
+goal = "A bracket shaped like a key is no citation unless the document prints each key as an entry label: '[Mn12]', '[EU27]', '[PM10]' stay as printed (PR #377)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Die [Mn12] Cluster und die [EU27] Staaten sind gemeint." },
@@ -2017,7 +2017,7 @@ expected = ["Daten hier."]
 id = "de-citations-a-key-label-inside-a-line-is-no-entry"
 audit = 0
 issue = 383
-goal = "Eine Schlüsselklammer mit Initialen mitten im Satz ist kein Eintrag; ohne Liste im Dokument bleibt der Schlüssel wie gedruckt (Review von PR #377, Runde 2)."
+goal = "Eine Schlüsselklammer mit Initialen mitten im Satz ist kein Eintrag; ohne Liste im Dokument bleibt der Schlüssel wie gedruckt (PR #377)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Das Werkzeug von [Mn12] A. Bee läuft." },
@@ -2030,7 +2030,7 @@ expected = [
 id = "de-references-numbered-body-items-with-an-abbreviation-are-read"
 audit = 0
 issue = 383
-goal = "Nummerierte Punkte am Ende des Dokuments sind keine Literaturliste ohne Überschrift, denn 'USA. Dann' sind keine Initialen (Review von PR #377, Runde 2)."
+goal = "Nummerierte Punkte am Ende des Dokuments sind keine Literaturliste ohne Überschrift, denn 'USA. Dann' sind keine Initialen (PR #377)."
 language = "de"
 blocks = [
     { kind = "heading", text = "Ergebnisse" },
@@ -2055,7 +2055,7 @@ expected = [
 id = "de-references-a-heading-counts-only-right-before-the-list"
 audit = 0
 issue = 383
-goal = "Eine Überschrift, die keine Literaturliste nennt, schützt eine Liste nur direkt davor: nach einer losen Notiz wird die Liste darunter entfernt (Review von PR #377, Runde 2)."
+goal = "Eine Überschrift, die keine Literaturliste nennt, schützt eine Liste nur direkt davor: nach einer losen Notiz wird die Liste darunter entfernt (PR #377)."
 language = "de"
 blocks = [
     { kind = "heading", text = "Anmerkungen" },
@@ -2076,7 +2076,7 @@ expected = [
 id = "de-abbreviations-legal-forms-cut-where-the-citation-ends"
 audit = 0
 issue = 384
-goal = "Nach 'a. F.' geht die Angabe nur vor einem Großbuchstabenwort ohne Kleinbuchstaben ('CDs' beginnt einen Satz) und vor einer Nummer-Abkürzung ('S. 2') weiter (Review von PR #382, Runde 2)."
+goal = "Nach 'a. F.' geht die Angabe nur vor einem Großbuchstabenwort ohne Kleinbuchstaben ('CDs' beginnt einen Satz) und vor einer Nummer-Abkürzung ('S. 2') weiter (PR #382)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Nach § 28 a. F. CDs gilt das." },
@@ -2096,7 +2096,7 @@ utterances = [
 id = "de-abbreviations-hs-only-after-a-sentence-number"
 audit = 0
 issue = 384
-goal = "'Hs.' liest 'Halbsatz' nur nach der Nummer eines Satzes ('S. 1', 'Satz 1'), nicht nach 'BGS. 1', wo das 'S.' Teil eines Wortes ist (Review von PR #382, Runde 2)."
+goal = "'Hs.' liest 'Halbsatz' nur nach der Nummer eines Satzes ('S. 1', 'Satz 1'), nicht nach 'BGS. 1', wo das 'S.' Teil eines Wortes ist (PR #382)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Nach BGS. 1 Hs. 2 gilt das." },
@@ -2300,7 +2300,7 @@ expected = ["Es hielt, 95 Prozent Konfidenzintervall 1 Komma 2 bis 3 Komma 4."]
 id = "de-hidden-page-break-glued-to-links"
 audit = 0
 issue = 434
-goal = "A page-break marker glued to a DOI or URL does not keep the link in the script (#436 review round 1, B1)."
+goal = "A page-break marker glued to a DOI or URL does not keep the link in the script (#436)."
 language = "de"
 blocks = [
     { kind = "paragraph", runs = ["Siehe https://doi.org/10.1000/18", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " und mehr."] },
@@ -2312,7 +2312,7 @@ expected = ["und mehr.", "und mehr."]
 id = "de-hidden-page-break-glued-to-a-citation"
 audit = 0
 issue = 434
-goal = "A page-break marker glued to a numbered citation leaves the citation to go, as on a second run (#436 review round 1, B1)."
+goal = "A page-break marker glued to a numbered citation leaves the citation to go, as on a second run (#436)."
 language = "de"
 blocks = [{ kind = "paragraph", runs = ["Wie gezeigt [12]", { text = "13", tags = ["p", "span", "epub:pagebreak"] }, " wurde."] }]
 expected = ["Wie gezeigt wurde."]
@@ -2321,7 +2321,7 @@ expected = ["Wie gezeigt wurde."]
 id = "de-affiliation-marks-not-isotope-numbers"
 audit = 0
 issue = 93
-goal = "Mass numbers set raised in a title are read as printed; a mark before a two-letter affiliation goes (#436 review round 1, B2, D-57)."
+goal = "Mass numbers set raised in a title are read as printed; a mark before a two-letter affiliation goes (#436, D-57)."
 language = "de"
 blocks = [
     { kind = "paragraph", runs = [{ sup = "1" }, "H-NMR-Spektroskopie an ", { sup = "13" }, "C-markierten Zuckern"] },
@@ -2334,7 +2334,7 @@ expected = ["1H-NMR-Spektroskopie an 13C-markierten Zuckern", "Jana Rot", "KI La
 id = "de-affiliation-marks-before-umlauts"
 audit = 0
 issue = 93
-goal = "A mark before an affiliation that starts with Ä, Ö or Ü goes too (#436 review round 1, S1)."
+goal = "A mark before an affiliation that starts with Ä, Ö or Ü goes too (#436)."
 language = "de"
 blocks = [
     { kind = "paragraph", runs = ["Anna Müller", { sup = "1,2" }, " Ben Kraus", { sup = "3" }] },
@@ -2346,7 +2346,7 @@ expected = ["Anna Müller Ben Kraus", "Ärztekammer Nordrhein, Überseemuseum Br
 id = "de-affiliation-marks-not-before-element-symbols"
 audit = 0
 issue = 93
-goal = "A raised mass number before an element symbol at a line's start is read as printed (#436 review round 2, B1, D-57)."
+goal = "A raised mass number before an element symbol at a line's start is read as printed (#436, D-57)."
 language = "de"
 blocks = [{ kind = "paragraph", runs = ["Kondensate aus\n", { sup = "87" }, "Rb im Orbit"] }]
 expected = ["Kondensate aus 87Rb im Orbit"]
@@ -2368,7 +2368,7 @@ expected = ["13CO-Beobachtungen der Taurus-Wolke", "Jana Rot", "Beispiel-Sternwa
 id = "de-affiliation-marks-after-a-comma-in-the-author-line"
 audit = 0
 issue = 448
-goal = "A German author line with its marks after a comma opens the affiliations; every author and affiliation mark goes (#585 review round 1)."
+goal = "A German author line with its marks after a comma opens the affiliations; every author and affiliation mark goes (#585)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Kalte Atome" },
