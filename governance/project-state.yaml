@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-22T00:18Z   # clock time from date -u (D-856); ruleset 1.9.0 on main (D-872)
+updated: 2026-11-22T16:05Z   # clock time from date -u (D-856); ruleset 1.9.0 on main (D-872)
 active_now:
   autonomy_horizon: "until Colin asks to stop or no open issues are left to work on"   # Colin 18 Nov 13:04:30Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQELq58FgdhSWK8dGHRJmDbCv, D-740; replaces "until v1.3 finished" (D-702a). The freeze (CMD-07) still holds until "continue".
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -9,16 +9,16 @@ active_now:
   pause_exceptions:
     - "a thread still answers Colin's own messages in its thread"
   slow_down: false
-  thread_freeze_lift_at: 2026-11-22T16:00Z           # 17:00 Europe/Berlin; Colin 2026-11-22T00:16Z: "Lift the freeze today at 17:00" (D-873); takes effect when the coordinator is next active after that time; first step then THR-16 triage (#715 should-fix into ledger/deferred/)
-  thread_freeze: true                                # Colin 2026-11-20T23:08Z: "please only finish what has been started" (CMD-07; Fable usage at 95%): no new threads, no new batches or audits; running PRs (#715, web tests, release fix #716 incl. v1.4.1) finish; coordinator keeps its own activity minimal (D-866)                               # lifted by Colin "continue working on multiple lanes..." 18 Nov 13:06:43Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQE5cwtWasr7uD9azqtazxBfd (D-741); frozen 17 Nov 11:15Z to 18 Nov 13:06Z (D-736)
+  thread_freeze: false                               # lifted by Colin "continue" 2026-11-22T15:58Z (CMD-06, D-875), as planned for 17:00 Berlin (D-873); frozen 2026-11-20T23:08Z to 2026-11-22T15:58Z: Colin 2026-11-20T23:08Z: "please only finish what has been started" (CMD-07; Fable usage at 95%): no new threads, no new batches or audits; running PRs (#715, web tests, release fix #716 incl. v1.4.1) finish; coordinator keeps its own activity minimal (D-866)                               # lifted by Colin "continue working on multiple lanes..." 18 Nov 13:06:43Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQE5cwtWasr7uD9azqtazxBfd (D-741); frozen 17 Nov 11:15Z to 18 Nov 13:06Z (D-736)
   watchdog_interval_minutes: 120                     # frugal profile, ruleset 1.9.0 (D-871); was 60 (D-702h)
-  milestones_in_progress: []   # v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
+  milestones_in_progress: [v1.4]   # remainder after v1.4.1 (batch 4, D-876); v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
-  lanes_active: []                                   # batch 3 closed (D-867); v1.4.1 released 2026-11-21T16:23Z, #721 207ea14, forward #722 2414900 (D-868); release-fix-716 thread done
-  lanes_waiting:                                     # next batch after the lift; frugal profile: 2 lanes, dispatcher on (D-871)
-    - "v1.4 remainder: #720 #711 #710 #709 (infra), #679 (layout), #663 (voices)"
+  current_batch: plans/batch-004.md                  # composed 2026-11-22T16:05Z (D-876); run by the dispatcher (D-871), which writes that file from now on
+  lanes_active:                                      # batch 4, two slots (frugal); per-slot detail is in the batch file, not here
+    - "slot A, app/release (lane:infra lock): #709 #710 #711 #720 + ledger 'fixed' value + brittle-test check"
+    - "slot B, one lane after another: layout #679, then voices #663, then docs D-874"
+  lanes_waiting:                                     # batch 5
     - "v1.5 Listen while generating (milestone 11, D-870): #723 LW-01 critical first; #724 #725 #726 depend on it"
-    - "docs: Issue + PR replacing main's stale working-file copies (plans, ledger, state, pending) with a pointer to branch governance, plus a check that fails if they return (D-874)"
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
     - "tests/browser/test_voice_cards.py::test_a_sample_stopped_while_it_is_made_never_plays[firefox]: first failure 22:22Z on #712 (report-only Firefox shard; comment-only PR, no code cause); a second failure -> same-day quarantine with Issue (D-374)"
     - "tests/browser/test_flow.py::test_resume_of_a_paused_replace_never_asks_to_replace_again[firefox]: failed 20 Nov on PR #689 and again on #696 51daacd (report-only Firefox shard, hold.reached.wait(30) timed out, no code cause) -> quarantined for Firefox in #698 (merged 9066c3d, Issue #697); 40 isolated runs each (D-682): Chromium 40/40 pass, Firefox 38/40 (2x the same wait(30) assertion), so it reproduces at ~1 in 20 on Firefox only, cause unknown, quarantine stays, Issue open"
