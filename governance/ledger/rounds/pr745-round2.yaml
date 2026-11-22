@@ -1,0 +1,12 @@
+pr: 745
+round: 2
+date: 2026-11-22
+thread: review-745
+head: 095cb2a5596ce0c7671b2db746df09e41569a307
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr745-round2.md
+merged: ""
+updated_head: ""
