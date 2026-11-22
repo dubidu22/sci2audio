@@ -9,7 +9,7 @@
 #   execution_profile: decoupled model routing and token-economy settings
 #   <section>:         active rules with id, applies_to, rule
 
-version: 1.10.0
+version: 1.11.0
 date: 2026-11-22
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
@@ -134,7 +134,7 @@ roles:
 autonomy:
   - id: AUTO-01
     applies_to: coordinator
-    rule: "Coordinator reviews, approves merges, and makes technical/process decisions autonomously until Colin asks to stop or no open issues are left to work on, keeping all testing and review gates intact."
+    rule: "Coordinator reviews, approves merges, and makes technical/process decisions autonomously until milestone v1.6 Study layer is complete or Colin asks to stop, keeping all testing and review gates intact."
   - id: AUTO-02
     applies_to: coordinator
     rule: "Any decision altering product scope, external contracts, or roadmap waits for explicit owner approval."
