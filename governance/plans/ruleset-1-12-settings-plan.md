@@ -37,4 +37,4 @@ Not in scope: the generator's PLAN-01 upstream (D-849 follow-up, Colin's call); 
 
 Goal: ruleset 1.12.0 merged into main for #738, critical merge go from the coordinator.
 Done: regenerated and committed on `claude/ruleset-max-autonomy-9cab47` (f9c4d5a).
-Next: PR, `ledger/prs/pr-<N>.yaml`, author ci:full, critical review in a separate thread.
+Next: PR #741 open with `ledger/prs/pr-741.yaml`; author ci:full, then the critical review in a separate thread.

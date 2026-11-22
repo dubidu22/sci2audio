@@ -1,0 +1,14 @@
+pr: 741
+opened: 2026-11-22
+thread: ruleset-max-autonomy
+lane: infra
+labels: "lane:infra, lane:docs, risk:high, ci:full"
+plan: plans/ruleset-1-12-settings-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "ruleset 1.11.0 -> 1.12.0 (Colin's yes 'Yes, with CLAUDE.md', 22 Nov 2026, answered card in the settings thread): autonomy_horizon 'until Colin asks to stop', notify triggers limited to a shipped release and what waits for Colin, milestone creation or renaming no longer an owner hand step, CLAUDE.md workflow item 1 matches; PLAN-01 D-849 wording restored by exact replace; closes #738"
+rounds: 0
+merged: ""
