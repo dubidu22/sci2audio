@@ -1,0 +1,9 @@
+pr: 730
+date: 2026-11-22
+what: "S2 (deferred-without-issue): two out-of-scope items in the PR body had no Issue; filed as #732 and #733"
+decision: planned             # the second item is #733
+commit: ""
+issue: "#732"
+until: ""
+reason: ""
+by: ""

@@ -1,0 +1,9 @@
+pr: 730
+date: 2026-11-22
+what: "S1 (contradiction): dispatcher_instructions.md states the session-model limit behind D-877, which conflicts with PREF-01's advisor on Fable 5.1"
+decision: planned
+commit: ""
+issue: "#731"
+until: ""
+reason: ""
+by: ""
