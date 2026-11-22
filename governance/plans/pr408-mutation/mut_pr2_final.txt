@@ -1,5 +1,0 @@
-BASELINE PASS
-1 SURVIVED abbreviations.py "date": _DATE, "law": _LAW} -> "date": _DATE, "law": _WORD}
-24 KILLED numbers_de.py _YEAR_LIKE = re.compile(r"1[1-9]\d\d|20\d\d") -> _YEAR_LIKE = re.compile(r"1[0- FAILED tests/unit/test_textprep_regression_german.py::test_the_script_is_the_expected_one[de-numbers-the-year-range-starts-at-1100]
-32 KILLED units.py per=after_per and position == 0, -> per=after_per, FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_a_squared_second_after_pro_is_one_word[Das sind pro m s\xb2 mehr.-Das sind pro Meter Sekunde hoch 2 mehr.]
-41 KILLED units.py (?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\) -> (?![aAI{units}]\b)[A-Za-z]|\) FAILED tests/unit/test_textprep_units_per_and_german_readings.py::test_x_after_a_said_comparison_of_a_variable[Then xy less than 2x slower.-Then xy less than 2 times slower.]

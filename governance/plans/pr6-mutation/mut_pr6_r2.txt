@@ -1,3 +1,0 @@
-BASELINE PASS
-26 KILLED testing/text_steps.py             if (block := document.blocks[edit.span ->             if (block := docum FAILED tests/unit/test_textprep_conformance.py::test_a_text_block_read_by_a_placeholder_is_not_checked_on_its_own
-34 KILLED testing/text_steps.py         for index in inside\n        if before[inde ->         for index in inside[:1 FAILED tests/unit/test_textprep_conformance.py::test_every_placeholder_is_checked_on_its_own_output
