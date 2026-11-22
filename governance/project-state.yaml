@@ -3,7 +3,7 @@
 project: sci2audio
 updated: 2026-11-22T16:05Z   # clock time from date -u (D-856); ruleset 1.9.0 on main (D-872)
 active_now:
-  autonomy_horizon: "until milestone v1.6 Study layer is complete or Colin asks to stop"   # ruleset 1.11.0, #737 1bebb96, Colin "Yes, apply" 22 Nov 2026 (D-879); "complete" = GitHub milestone 9 closed after R3 of the v1.6 release (D-879); replaces "until Colin asks to stop or no open issues are left" (D-740)
+  autonomy_horizon: "until Colin asks to stop"       # ruleset 1.12.0, #741 3fb4d1b, Colin "Yes, with CLAUDE.md" 22 Nov 2026 (D-880); replaces "until milestone v1.6 Study layer is complete" (1.11.0, D-879)
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
   paused: false                                      # Colin "continue" 16 Nov 16:21:35Z (CMD-06); paused 13:24Z–16:21Z
   pause_exceptions:
@@ -27,8 +27,9 @@ active_now:
     - "tests/unit/test_core_properties.py Hypothesis too_slow health check: failed once on this Mac (20 Nov, two tests in one run) under load from parallel suites, passed alone, never in CI; threads run one uv command at a time"
   audits_running: []                                 # batch-2026-11-20b audit PASS 21:50Z (D-858): 0 blocking, 3 should-fix -> #693 extended (plugin exception path + isolation test), #708 filed, ADR-008 issue edits done (#396 #397 #398); all audit follow-ups filed 21:58Z; #699 is a real WebKit failure, not a flake                                 # batch 2026-11-20 audit PASS 04:00Z, 0 blocking, 4 should-fix -> #684 #685 #686 #687, #681 relabelled infra/high (plans/audit-batch-2026-11-20.md)                                 # B1, B3, folders, B7, B2, B8 light audits done; web B8 DONE 19 Nov 02:22Z (#582 678fe3c, #293 #534 #541 closed, #596 filed)
 notifications_pending: []                            # v1.4.0-released notice sent 19 Nov 17:12Z; v1.3-complete 16 Nov 17:45Z
-notify_triggers:                                     # post in chat and wait (ruleset 1.11.0 notify_triggers, D-879)
-  - "milestone v1.6 Study layer complete: the autonomy period ends"
+notify_triggers:                                     # post in chat and wait (ruleset 1.12.0 notify_triggers, D-880); Colin is told nothing else unless he asks
+  - "a release is tagged and shipped"
+  - "something waits for Colin: a decision AUTO-02 reserves for him, a critical PR stopped at its last review round, or an owner hand step"
 open_owner_items:
   - "Claude Code permissions: the auto-mode check refuses a review thread's gh pr merge, so every merge waits for Colin (#730, 22 Nov); allow it for this repo, or approve each merge (ROLE-14: Colin's setting)"
   - "double-click the downloaded 1.4.1 DMG and confirm the window opens (D-868)"
