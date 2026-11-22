@@ -72,8 +72,8 @@ Threads exist only once their first line says so.
 
 | Slot | Thread | Items | State |
 |---|---|---|---|
-| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | proposed as a session card 17:43Z (task_7448ae31), waits for Colin's click; not started |
-| B | layout-b-l3 | #679 | proposed as a session card 17:43Z (task_8512e06f), waits for Colin's click; not started |
+| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | started on Colin's go (local_f085fc59-3aa0-4778-9297-574cf5ff13da); first line pending |
+| B | layout-b-l3 | #679 | started on Colin's go (local_3f956e8c-d059-4c66-b72a-ee630dc3270f); first line pending |
 
 Queue for slot B after layout-b-l3: voices-b-v1 (#663), docs-b-d2 (D-874), then
 #720 (see note).
