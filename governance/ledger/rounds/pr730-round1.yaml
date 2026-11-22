@@ -1,0 +1,12 @@
+pr: 730
+round: 1
+date: 2026-11-22
+thread: review-730
+head: 4ec26e46c376608b0464c7767aa340710300ccd6
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 2
+kinds: "contradiction, deferred-without-issue"
+report: plans/review-pr730-round1.md
+merged: ""
