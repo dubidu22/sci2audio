@@ -72,8 +72,8 @@ Threads exist only once their first line says so.
 
 | Slot | Thread | Items | State |
 |---|---|---|---|
-| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | starter block withdrawn (D-877); the Opus dispatcher starts this thread |
-| B | layout-b-l3 | #679 | starter block withdrawn (D-877); the Opus dispatcher starts this thread |
+| A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | proposed as a session card 17:43Z (task_7448ae31), waits for Colin's click; not started |
+| B | layout-b-l3 | #679 | proposed as a session card 17:43Z (task_8512e06f), waits for Colin's click; not started |
 
 Queue for slot B after layout-b-l3: voices-b-v1 (#663), docs-b-d2 (D-874), then
 #720 (see note).
@@ -99,6 +99,21 @@ Handoff for the successor (THR-07):
 - Done: read the instructions and this file; no worker thread was ever started; starter blocks written and withdrawn; only this file changed.
 - Next: after the ruleset PR merges, start `infra-b-i5` (slot A, critical plan to the coordinator) and `layout-b-l3` (slot B) yourself; then voices-b-v1, docs-b-d2, #720.
 - Kept notes: #720 is lane:web, so it is the last item in slot B. #709 is lane:textprep and risk:high while slot A is lane:infra, so the slot A plan must split PRs by lane. Local constraints for workers: one `uv run` at a time; three real-espeak tests exit the interpreter, deselect them locally (#663); do not touch the shared checkout; never force-push. Starter text is in the shared notes folder, `batch-004-starters.md`, withdrawn but reusable.
+
+Dispatcher thread 2 (Opus 5.5 high) took over 2026-11-22T17:36Z (18:36 Berlin).
+- Main CI for #730 (880b170, run 45049808113) passed on all three systems at 17:42Z.
+- Start limit: this dispatcher was itself started by a session, so the app refuses
+  direct session starts from it (and from any turn an automated event starts).
+  Workers therefore go up as session cards (on Opus 5.5 high, each in its own
+  worktree) that Colin starts with one click. Told the coordinator once.
+- #731 (coordinator advisor start, lane:infra, v1.4) is not in this batch; left for the coordinator.
+
+Handoff for the successor (THR-07, dispatcher 2):
+- Goal: as above.
+- Done: main green after #730; cards for infra-b-i5 and layout-b-l3 proposed.
+- Next: once each thread's first line names its role and model, watch it; relay
+  infra-b-i5's critical plan to the coordinator; start review threads (critical:
+  Opus 5.5 high; otherwise Opus 5.5 medium); merge go only via `ledger_tool.py gate`.
 
 Merge gates: none yet.
 Escalations: none yet.
