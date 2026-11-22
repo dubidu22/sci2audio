@@ -146,6 +146,6 @@ Ledger: `prs/pr-<A>.yaml` with `fixes_kinds: "brittle-test"`; `prs/pr-<B>.yaml`.
 
 ## Handoff (THR-07)
 
-- Goal: PR A (#710 #711 #734) and PR B (#709), both critical, to review.
-- Done: rules, batch file and Issues read; #734 opened; prototype scan found 24 hits; this plan.
-- Next: on the coordinator's approval, tests first, then code, fast checks, both PRs with `ci:full`, ledger entries.
+- Goal: PR A #740 (#710 #711 #734) and PR B #742 (#709), both critical, through review.
+- Done: approved as D-878. #740 open, `ci:full` green on 465b96f, label removed, branch frozen. #742 open with `ci:full`. Ledger entries `prs/pr-740.yaml` (`fixes_kinds: brittle-test`) and `prs/pr-742.yaml`. Local fast suites: 8824 passed (A, before the rebase onto 1bebb96), 8797 passed (B, on 1bebb96).
+- Next: when #742's `ci:full` run is green, remove the label. Review rounds go to a new thread: this thread has handled 2 PRs (THR-02). Kept notes: the 25 clock bounds and their reasons are listed in #740's body. The 5 bounds loosened to 5 s each name the failure they still catch. PR B also dropped one bare "(F2)" that the pattern does not match.
