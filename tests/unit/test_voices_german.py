@@ -18,6 +18,7 @@ from hypothesis import strategies as st
 
 from sci2audio.testing import no_network
 from sci2audio.voices import InvalidInputError, ModelLoadError
+from sci2audio.voices.espeak import espeak_g2p
 from sci2audio.voices.kokoro_german import (
     DROPPED,
     MAX_PHONEMES,
@@ -66,10 +67,8 @@ def test_an_unknown_symbol_is_refused_not_dropped() -> None:
 
 def test_real_espeak_german_gives_only_kokoro_symbols() -> None:
     """espeakng-loader ships espeak-ng with the package, so CI runs the real pronunciation."""
-    from misaki.espeak import EspeakG2P
-
     with no_network():
-        raw, _ = EspeakG2P(language="de")(GERMAN_WORDS)
+        raw, _ = espeak_g2p("de")(GERMAN_WORDS)
     assert SHORT_UE in raw  # the case the mapping exists for
     phonemes = to_kokoro_phonemes(raw, VOCAB)
     assert set(phonemes) - {" "} <= set(VOCAB)

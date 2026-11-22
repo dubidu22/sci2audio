@@ -28,6 +28,7 @@ from sci2audio.voices import (
     AudioFormat,
     EngineError,
     InvalidInputError,
+    ModelLoadError,
     ModelNotFoundError,
     ParameterValues,
     SynthesisRequest,
@@ -36,6 +37,7 @@ from sci2audio.voices import (
     download_plan,
     voice_pack,
 )
+from sci2audio.voices import espeak as espeak_module
 from sci2audio.voices import kokoro_engine as kokoro_module
 from sci2audio.voices.download import german_dir
 
@@ -109,6 +111,18 @@ def test_a_missing_german_pack_is_reported_before_loading(
     make = kokoro_module._kokoro_pipeline_factory(tmp_path, "cpu")
     with no_network(), pytest.raises(ModelNotFoundError, match="German voice files are not"):
         make("d")
+
+
+@pytest.mark.parametrize("lang_code", ["a", "b", "d"])
+def test_a_too_long_espeak_path_fails_the_pipeline_with_a_model_load_error(
+    lang_code: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#663: espeak-ng would exit the process; English and German both start it."""
+    monkeypatch.setattr(kokoro_module, "missing_files", lambda models_dir, languages=None: [])
+    monkeypatch.setattr(espeak_module, "wheel_data_path", lambda: "/" + "x" * 300)
+    make = kokoro_module._kokoro_pipeline_factory(fake_models_dir(tmp_path), "cpu")
+    with no_network(), pytest.raises(ModelLoadError, match="#663"):
+        make(lang_code)
 
 
 def test_voice_is_passed_as_a_local_file_never_a_name(
