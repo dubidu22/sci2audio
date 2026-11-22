@@ -6,7 +6,8 @@ What is read: `#` comments and the docstrings of modules, classes and functions 
 `//` and `/* */` comments in `.js` and `.css` files, `#` comments in `.toml` files and `{# #}` and
 `<!-- -->` comments in `.html` templates, under `src/` and `tests/`. Python string literals and
 TOML values are data and are not read. The regression cases, the corpus and the snapshots are
-golden files and are skipped."""
+golden files and are skipped by that scan; the regression cases' `goal` strings are read by a
+test of their own (#709)."""
 
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ import ast
 import io
 import re
 import tokenize
+import tomllib
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 
@@ -41,6 +43,8 @@ REVIEW_TAG = re.compile(
     r"|\((?i:review)\)|\b(?i:review),\s+[A-Z]{1,2}\d+|\b(?i:reviewer's\s+probe)"
     # "(review of PR #228)", "(review of #530, F1)"
     r"|\b(?i:review)\s+of\s+(?:PR\s+)?#\d+"
+    # "(Review von PR #377, Runde 2)"
+    r"|\b(?i:review)\s+von\s+(?:PR\s+)?#\d+"
     # "(review M1)", "(review R1-2, R2-1)"; the finding letters are capitals
     r"|\b(?i:review)\s+[A-Z]{1,2}\d+"
     # "(round 2, N1)", "(round 1 S1a)", "round 2 of #450"
@@ -149,6 +153,18 @@ def test_no_comment_or_docstring_carries_a_review_tag() -> None:
     assert hits == [], "review tags say who asked, not why:\n" + "\n".join(hits)
 
 
+def test_no_regression_goal_carries_a_review_tag() -> None:
+    """A goal says what a case's rule must reach; the issue, PR or decision it came from may
+    stay, but which review asked for it is not part of that (#709)."""
+    hits = []
+    for path in sorted((ROOT / "tests" / "regression").glob("*.toml")):
+        cases = tomllib.loads(path.read_text(encoding="utf-8")).get("case", [])
+        for case in cases:
+            for match in REVIEW_TAG.finditer(case.get("goal", "")):
+                hits.append(f"{path.relative_to(ROOT)}: {case['id']}: {match.group(0)}")
+    assert hits == [], "review tags in goal strings:\n" + "\n".join(hits)
+
+
 @pytest.mark.parametrize(
     "text",
     [
@@ -182,6 +198,9 @@ def test_no_comment_or_docstring_carries_a_review_tag() -> None:
         "the review found passing (PR #409 B1)",
         "The reviewer's probe (#696 M1)",
         "what the review's mutants showed untested (#631 T1)",
+        "(Review von PR #377, Runde 2)",
+        "(review S1 of PR #361)",
+        "(review of PR #377 round 2)",
     ],
 )
 def test_the_pattern_catches_every_known_form(text: str) -> None:
@@ -202,6 +221,8 @@ def test_the_pattern_catches_every_known_form(text: str) -> None:
         "review the changed file",
         "outside review (D-703c)",
         "a ruling of #185, D-581",
+        "ein Review von Fachleuten",
+        "in der zweiten Runde 2019",
     ],
 )
 def test_the_pattern_leaves_plain_words_alone(text: str) -> None:
