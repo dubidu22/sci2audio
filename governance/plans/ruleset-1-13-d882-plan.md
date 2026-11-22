@@ -1,6 +1,7 @@
 # Ruleset 1.13.0: the dispatcher changes of D-882
 
 Thread: ruleset-d882 (settings thread, critical work, Opus 5.5 high). Lane: infra. Critical: yes (META-01, CRIT-01: ruleset, extracts, `governance/tools/**`, a CI workflow).
+Owner's yes to the preview below: "Yes, apply" (Colin, 22 Nov 2026, in the settings thread; META-01). Issue #743, PR #745.
 Source: D-882 in `kb/pending-decisions.md` (Colin: "Yes, start it", 22 Nov 2026) and the read-only audit of 22 Nov (session "Audit: do we need the dispatcher?"), whose wording is used below where it fits.
 
 ## Why by hand
@@ -77,5 +78,5 @@ Parametrized ones (`test_a_d882_rule_keeps_its_wording`) collect as one node per
 ## Handoff
 
 Goal: ruleset 1.13.0 merged into main with the six D-882 changes and the stats fix; critical merge go from the coordinator.
-Done: plan written.
-Next: Colin's yes to the preview, then Issue, branch off main, PR.
+Done: plan written; Colin's yes ("Yes, apply"); Issue #743; PR #745 rebased onto #740 (4473133), `governance/github-setup/pr-checks-workflow.yml` byte-equal to the live workflow; `prs/pr-745.yaml`.
+Next: ci:full green on three systems, then the critical review subagent.
