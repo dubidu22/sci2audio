@@ -6,12 +6,11 @@ espeak-ng copies its data folder into a fixed buffer (`path_home[N_PATH_HOME]` i
 `speech.h`: 160 bytes on POSIX, 230 on Windows). A longer path is cut, espeak-ng falls back
 to the folder baked in when the wheel was built, finds no `phontab` there and calls
 `exit(1)`, which ends the whole process: the app's server mid-job, or pytest without a
-summary. On Windows espeak-ng's `snprintf` is MSVC's `_snprintf`, which leaves a cut path
-without its terminating zero byte, so what happens there is undefined. A missing or
-unreadable `phontab` ends the process the same way. `check_espeak_data`
-raises `ModelLoadError` for both before espeak-ng can.
-
-misaki is imported only inside the functions that need it.
+summary. On Windows espeak-ng's `snprintf` is MSVC's `_snprintf`, which leaves a cut copy
+without its terminating zero byte. The first copy is the folder plus `/espeak-ng-data`, so
+from 215 bytes on Windows espeak-ng reads past its buffer: undefined. A missing or
+unreadable `phontab` ends the process the same way. `check_espeak_data` raises
+`ModelLoadError` for all of these before espeak-ng can.
 """
 
 from __future__ import annotations
@@ -23,8 +22,10 @@ from typing import Any
 
 from sci2audio.voices.errors import ModelLoadError
 
-# the buffer less its terminating zero byte
-ESPEAK_PATH_LIMIT = 229 if sys.platform == "win32" else 159
+# espeak-ng copies the folder plus "/espeak-ng-data" first, then the folder alone, into
+# path_home[N_PATH_HOME]; POSIX snprintf cuts and terminates the first copy, so only the
+# second must fit there, while MSVC's _snprintf leaves a copy that does not fit unterminated
+ESPEAK_PATH_LIMIT = 230 - 1 - len("/espeak-ng-data") if sys.platform == "win32" else 159
 
 
 def wheel_data_path() -> str:

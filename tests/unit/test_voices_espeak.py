@@ -28,7 +28,7 @@ def linked_data(base: Path, length: int) -> Path:
     folder = base.resolve() / ("x" * (length - len(str(base.resolve()).encode()) - 1))
     if sys.platform == "win32":
         # Windows' stat gives a file symlink's own size, 0, and espeak-ng reads that many
-        # bytes of phondata: a real copy, which still fits MAX_PATH at the 229-byte limit
+        # bytes of phondata: a real copy, which fits MAX_PATH at the limit
         shutil.copytree(wheel_data_path(), folder)
     else:
         folder.mkdir()
@@ -53,8 +53,9 @@ def test_espeak_exits_on_a_data_path_past_its_buffer(tmp_path: Path) -> None:
     """Pins espeak-ng's own behaviour, which `ESPEAK_PATH_LIMIT` mirrors.
 
     One byte past the limit, POSIX espeak-ng falls back to the wheel's build-time folder
-    and exits. On Windows the cut path loses its terminating zero byte (MSVC's
-    `_snprintf`), so espeak-ng reads past its buffer: undefined, nothing to pin.
+    and exits. On Windows a copy that does not fit loses its terminating zero byte (MSVC's
+    `_snprintf`), so past the limit espeak-ng reads past its buffer: undefined, nothing to
+    pin.
     """
     (tmp_path / "at").mkdir()
     (tmp_path / "over").mkdir()
