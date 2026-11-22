@@ -52,9 +52,9 @@ def speak(data: Path) -> subprocess.CompletedProcess[str]:
 def test_espeak_exits_on_a_data_path_past_its_buffer(tmp_path: Path) -> None:
     """Pins espeak-ng's own behaviour, which `ESPEAK_PATH_LIMIT` mirrors.
 
-    Past the limit espeak-ng never uses the folder. On POSIX it then falls back to the
-    wheel's build-time folder and exits; on Windows it first tries `ESPEAK_DATA_PATH` and
-    the registry, so what it does next depends on the machine.
+    One byte past the limit, POSIX espeak-ng falls back to the wheel's build-time folder
+    and exits. On Windows the cut path loses its terminating zero byte (MSVC's
+    `_snprintf`), so espeak-ng reads past its buffer: undefined, nothing to pin.
     """
     (tmp_path / "at").mkdir()
     (tmp_path / "over").mkdir()
@@ -64,11 +64,8 @@ def test_espeak_exits_on_a_data_path_past_its_buffer(tmp_path: Path) -> None:
     sounds, used = at_limit.stdout.splitlines()
     assert sounds == "bɾˈʏkə"  # noqa: RUF001 - IPA for "Brücke"
     assert Path(used) == at
-    over = linked_data(tmp_path / "over", ESPEAK_PATH_LIMIT + 1)
-    past = speak(over)
-    if sys.platform == "win32" and past.returncode == 0:
-        assert Path(past.stdout.splitlines()[1]) != over
-    else:
+    if sys.platform != "win32":
+        past = speak(linked_data(tmp_path / "over", ESPEAK_PATH_LIMIT + 1))
         assert past.returncode == 1
         assert "phontab" in past.stderr
         assert past.stdout == ""  # the process ended before it could speak

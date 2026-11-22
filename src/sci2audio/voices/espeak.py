@@ -6,7 +6,9 @@ espeak-ng copies its data folder into a fixed buffer (`path_home[N_PATH_HOME]` i
 `speech.h`: 160 bytes on POSIX, 230 on Windows). A longer path is cut, espeak-ng falls back
 to the folder baked in when the wheel was built, finds no `phontab` there and calls
 `exit(1)`, which ends the whole process: the app's server mid-job, or pytest without a
-summary. A missing or unreadable `phontab` ends it the same way. `check_espeak_data`
+summary. On Windows espeak-ng's `snprintf` is MSVC's `_snprintf`, which leaves a cut path
+without its terminating zero byte, so what happens there is undefined. A missing or
+unreadable `phontab` ends the process the same way. `check_espeak_data`
 raises `ModelLoadError` for both before espeak-ng can.
 
 misaki is imported only inside the functions that need it.
