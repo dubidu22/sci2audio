@@ -9,6 +9,9 @@ edit the same file. Nobody maintains a table by hand; print one when needed:
     python3 tools/ledger_tool.py check      # entries with missing or malformed fields
     python3 tools/ledger_tool.py gate 12    # may PR 12 be merged? (run before every merge, MRG-01)
                                             # add --head <sha> when an owner override exists and no round is recorded
+    python3 tools/ledger_tool.py approved 12 --head 3f9c2ab
+                                            # does the latest round approve exactly this head? `governance pr checks`
+                                            # runs it for a risk:high PR, on the ledger of branch governance (D-882)
     python3 tools/ledger_tool.py triage     # what was left behind without a decision; run before a new batch (THR-16)
     python3 tools/ledger_tool.py flags      # one line per thing an audit should judge (ROLE-15)
 
@@ -17,6 +20,7 @@ edit the same file. Nobody maintains a table by hand; print one when needed:
 | `prs/pr-<N>.yaml` | the implementation thread that opened PR N | when the PR opens; `compactions` updated at its hand-offs |
 | `rounds/pr<N>-round<K>.yaml` | the review thread | at the end of round K; `merged` filled in after the merge |
 | `reverts/pr-<N>.yaml` | the review thread that merges the revert | when merged PR N is reverted |
+| `gos/pr-<N>.yaml` | the coordinator | when it gives the merge go for critical PR N (`MRG-01`) |
 | `overrides/pr-<N>.yaml` | the coordinator, on the owner's word | when the owner lets PR N merge although the gate stops it (`MRG-02`) |
 | `deferred/pr<N>-<k>.yaml` | the coordinator | one per should-fix finding a merged PR left open, or point a thread set aside (`THR-16`) |
 | `audits/batch-<NNN>.md` | the audit thread | after a merged batch (`ROLE-09`, `ROLE-15`) |
@@ -36,6 +40,8 @@ fixes_kinds: ""               # optional: finding kinds this PR claims to remove
 handback: ""                  # the first word of the thread's last report when it is not done: question | blocked |
                               # review | handoff (THR-15). question, blocked and review stop the merge gate
 recommended: ""               # with question or blocked: the one next action the thread proposes
+merged: ""                    # the merge commit SHA, only when no round records the merge (an owner override,
+                              # a merge by hand); written by whoever records that merge
 ```
 
 `rounds/pr<N>-round<K>.yaml`:
@@ -54,6 +60,8 @@ kinds: "timer-workaround, missing-test"   # a short name per kind of finding, re
                               # use narrating-comment and unsolicited-file for PR-05 findings
 report: plans/review-pr12-round1.md
 merged: ""                    # merge commit SHA, last round only
+updated_head: ""              # MRG-01: the new head after merging main into a behind PR and re-verifying;
+                              # gate, approved and the go file then take it beside `head`
 ```
 
 `reverts/pr-<N>.yaml`:
@@ -64,6 +72,18 @@ date: 2026-02-09
 by: "#19"                     # the PR or commit that reverted it
 reason: "import broke files with a BOM"
 ```
+
+`gos/pr-<N>.yaml` (the coordinator's merge go for a critical PR):
+
+```yaml
+pr: 12
+head: 3f9c2ab                 # the reviewed head the go is for: the latest round's `head` or `updated_head`
+by: "coordinator (session coordinator-1)"
+time: 2026-02-03T14:05Z
+```
+
+`gate` passes a PR whose round 1 says `critical: yes` only with this file, and
+only for the head it names. A go for another head does not carry over.
 
 `overrides/pr-<N>.yaml` (only when the owner decides against the gate):
 
@@ -107,7 +127,11 @@ What the numbers are for:
 - **Merge go.** A PR may be merged only when its latest round has
   `must_fix: 0` (`MRG-01`).
   The dispatcher grants merge go only when round 1 says `critical: no`
-  (`ROLE-11`); everything else goes to the coordinator.
+  (`ROLE-11`); everything else goes to the coordinator, whose go is the
+  file `gos/pr-<N>.yaml`. For a `risk:high` PR the required check
+  `governance pr checks` also fails until the latest round on branch
+  `governance` approves the PR's current head; the review thread re-runs
+  it after pushing that round entry.
 - **Quality.** `stats` shows the share of merged PRs that were reverted.
   Faster or cheaper is only better if this number does not go up.
 - **Repeated findings.** `stats` lists finding kinds that came up in more
