@@ -146,6 +146,12 @@ Ledger: `prs/pr-<A>.yaml` with `fixes_kinds: "brittle-test"`; `prs/pr-<B>.yaml`.
 
 ## Handoff (THR-07)
 
-- Goal: PR A #740 (#710 #711 #734) and PR B #742 (#709), both critical, through review.
-- Done: approved as D-878. #740 open, `ci:full` green on 465b96f, label removed, branch frozen. #742 open with `ci:full`. Ledger entries `prs/pr-740.yaml` (`fixes_kinds: brittle-test`) and `prs/pr-742.yaml`. Local fast suites: 8824 passed (A, before the rebase onto 1bebb96), 8797 passed (B, on 1bebb96).
-- Next: when #742's `ci:full` run is green, remove the label. Review rounds go to a new thread: this thread has handled 2 PRs (THR-02). Kept notes: the 25 clock bounds and their reasons are listed in #740's body. The 5 bounds loosened to 5 s each name the failure they still catch. PR B also dropped one bare "(F2)" that the pattern does not match.
+- Goal: PR A #740 (#710 #711 #734) and PR B #742 (#709), both critical, through review and merge.
+- Done: plan approved as D-878. Both PRs are open, `risk:high`, with `ci:full` green on all three systems (#740 on 465b96f, #742 on 85dd312). The labels are removed and both branches are frozen for review. Ledger entries: `prs/pr-740.yaml` (`fixes_kinds: brittle-test`) and `prs/pr-742.yaml`.
+- Next: a fresh implementation thread answers the review rounds for both PRs (THR-02: this thread has handled 2), one fix commit per round, an exact fix list, and Issues for anything deferred.
+
+Kept notes for the successor:
+- #740's body lists the 25 clock bounds and why each stays. The five loosened to 5 s each name the failure they still catch: the 30 s hang, the slot that never frees, the 53 s search. The 1.5 s time-limit bound stays tight on purpose.
+- In CI, the base collection of #711 runs with the head's `.venv` and `PYTHONPATH=<base>/src`. I checked locally that this imports the base's own package.
+- #742 also dropped one bare "(F2)", which `REVIEW_TAG` does not match.
+- Local fast suites: 8824 passed (A, on 880b170 before the rebase onto 1bebb96) and 8797 passed (B, on 1bebb96).
