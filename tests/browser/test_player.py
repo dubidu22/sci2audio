@@ -481,6 +481,60 @@ def test_a_second_step_while_the_file_loads_stays_on_its_sentence(
     expect(page.locator("#marker")).to_be_enabled()
 
 
+def test_steps_while_the_audio_still_seeks_end_on_the_last_one(signed_in: Page, live: Live) -> None:
+    """Two steps, paused, the second while the first one's seek still runs (#720): Linux
+    WebKit lost the position of a seek started over a running one and ended at 0, with no
+    sentence marked. Tried at several gaps between the steps, each from the same sentence."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
+    page.locator("#next-sentence").click()
+    lost = page.evaluate(
+        """async (gaps) => {
+            const audio = document.getElementById('audio');
+            const next = document.getElementById('next-sentence');
+            const previous = document.getElementById('previous-sentence');
+            const data = JSON.parse(document.getElementById('player-data').textContent);
+            const order = [...new Set(data.chunks.map((c) => c[3]))];
+            const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+            const settle = async () => {
+                for (let waited = 0; audio.seeking && waited < 5000; waited += 5) await wait(5);
+                await wait(150);
+            };
+            const now = () => document.querySelector('#text .s.now')?.id ?? '';
+            const startOf = (id) => {
+                const chunk = data.chunks[Number(document.getElementById(id).dataset.chunk)];
+                return chunk[0] - data.chapters[chunk[2]].offset;
+            };
+            await settle();
+            const from = now();
+            const want = order[order.indexOf(from) + 2];
+            const lost = [];
+            for (const gap of gaps) {
+                next.click();
+                await wait(gap);
+                next.click();
+                await settle();
+                const time = audio.currentTime;
+                if (now() !== want || Math.abs(time - startOf(want)) > 0.05) {
+                    lost.push({ gap, want, marked: now(), time });
+                }
+                for (let back = 0; now() !== from && back < 4; back++) {
+                    previous.click();
+                    await settle();
+                }
+                if (now() !== from) return { from, lost, stuck: now() };
+            }
+            return { from, lost };
+        }""",
+        [0, 1, 2, 4, 6, 8, 10, 12, 15, 20, 25, 30, 40],
+    )
+    assert lost["from"], lost
+    assert lost["lost"] == [], lost
+    assert "stuck" not in lost, lost
+    assert paused(page)
+
+
 def test_text_from_the_file_cannot_change_how_the_page_parses(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
