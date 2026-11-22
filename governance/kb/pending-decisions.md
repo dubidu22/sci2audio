@@ -149,3 +149,12 @@ Owner message: "Lift the freeze today at 17:00 (in 15h 45min)" (22 Nov 2026, 00:
 
 Main's copies of the working files (plans, ledger, project-state.yaml, pending-decisions.md), left there by the workspace move (#657), are never updated and already differ from branch governance, where THR-13 keeps the copies that count. In the first batch after the freeze lifts (D-873), the docs lane replaces them on main with a one-line pointer to branch governance and adds a check that fails when a working file reappears on main (META-03). The Issue is filed at batch composition. Branch governance still never opens a PR into main (THR-14).
 Owner message: "yes thats a good idea" (22 Nov 2026, ~00:25Z).
+
+## D-875 (2026-11-22, owner)
+
+The CMD-07 freeze (D-866) is lifted at 2026-11-22T15:58Z (16:58 Berlin), two minutes before the time set in D-873, by Colin's "continue" (CMD-06). THR-16 triage before the batch: #715's open should-fix S1 (kind brittle-test) had been fixed after round 2 in 266f10f, inside the pinned head 022db85. The ledger has no value for a finding fixed after its last round, so `ledger/deferred/pr715-1.yaml` records it as `planned` against #715 with the commit named, and batch 004 adds a `fixed` value to `ledger_tool.py`. Triage is clear.
+Owner message: "continue" (22 Nov 2026, 15:58Z).
+
+## D-876 (2026-11-22, coordinator)
+
+Batch 004 (`plans/batch-004.md`) closes the v1.4 remainder before v1.5 starts, following the roadmap order (D-870): slot A, the app/release lane under the lane:infra lock, takes #709, #710, #711 and #720, plus the ledger `fixed` value (D-875) and a META-03 check for the finding kind brittle-test (#680, #715: no wall-clock bound asserted in the fast suite). Slot B runs layout #679, then voices #663, then the D-874 docs change, one after another; the docs thread files the D-874 Issue itself (amends D-874, which had the coordinator file it, ROLE-05). v1.5 #723 (critical) is batch 005, since only two slots run under the frugal profile. The other repeated kinds from `ledger_tool.py stats` need no new check: "correctness" (#692, #696, #707) names three unrelated logic errors, not one kind of mistake a single mechanism can stop; "missing-test" (#671, #675) has been guarded by the promised-tests check since #692 and #713 and has not come back. First batch run by the dispatcher (D-871).
