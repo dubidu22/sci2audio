@@ -1,0 +1,14 @@
+pr: 730
+opened: 2026-11-22
+thread: settings-1-10
+lane: infra
+labels: "lane:infra, risk:high, ci:full"
+plan: plans/ruleset-1-10-settings-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "ruleset 1.9.0 -> 1.10.0 (D-877, Colin's yes 'Yes, with restore', 22 Nov 2026): dispatcher_model Opus 5.5 high, promised_tests_check 'the governance check'; generator brings the ledger `fixed` decision and the dispatcher model note; PLAN-01 D-849 wording restored by exact replace; governance_paths now kept by the generator; closes #729"
+rounds: 0
+merged: ""
