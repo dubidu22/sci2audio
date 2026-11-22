@@ -2,7 +2,7 @@ pr: 739
 opened: 2026-11-22
 thread: voices-b-v1
 lane: voices
-labels: "lane:voices, risk:low, ci:full"
+labels: "lane:voices, risk:low"
 plan: plans/voices-b-v1-plan.md
 critical: no                  # no pyproject, conftest, .github, golden, contract or core file
 compactions: 0
@@ -10,6 +10,6 @@ fixes_kinds: ""
 handback: ""
 recommended: ""
 issues: "#663 (closes)"
-head: 74e4d1d
+head: 744cc83
 notes: "Cause: espeak-ng copies its data path into path_home[160] (230 on Windows); a longer path is cut, espeak-ng falls back to the wheel's build-time folder and exit(1)s on the missing phontab, ending the process. Measured: 159 bytes speaks, 160 exits with the issue's message. The old iCloud checkout path no longer exists; today's paths are 85/140 bytes and the three tests pass. Fix: voices/espeak.py check_espeak_data raises ModelLoadError first (German G2P and the Kokoro factory for every language)."
-ci: "local fast suite green with nothing deselected (8805 passed, 6 skipped, 6 xfailed); ci:full set for the macOS acceptance, author removes it once green"
+ci: "local fast suite green with nothing deselected (8805 passed); ci:full on 744cc83: tests ubuntu, macos, windows and CI passed green (run of job 137343943229); ci:full removed. Pre-review fixes: 2c393d8 non-ASCII parity and Windows copy, cf57964 UTF-8 stdout, 0bbb575/744cc83 boundary exit pinned on POSIX only (MSVC _snprintf leaves a cut path unterminated)"
