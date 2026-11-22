@@ -1,0 +1,12 @@
+pr: 740
+opened: 2026-11-22
+thread: infra-b-i5
+lane: infra
+labels: "lane:infra, risk:high, ci:full"
+plan: plans/infra-b-i5-plan.md
+critical: yes                 # the governance workflow and promised_tests.py (CRIT-01, D-878)
+compactions: 0
+fixes_kinds: "brittle-test"   # META-03 check: tests/unit/test_clock_bounds.py
+handback: ""
+recommended: ""
+note: "closes #710, #711, #734; PR B (#709, lane:textprep) is separate"

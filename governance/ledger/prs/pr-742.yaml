@@ -1,0 +1,12 @@
+pr: 742
+opened: 2026-11-22
+thread: infra-b-i5
+lane: textprep
+labels: "lane:textprep, risk:high, ci:full"
+plan: plans/infra-b-i5-plan.md
+critical: yes                 # English and German regression cases are golden files (CRIT-01, D-878)
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "closes #709; goal strings only, every other case value identical; PR A is #740"
