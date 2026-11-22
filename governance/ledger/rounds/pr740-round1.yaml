@@ -1,0 +1,12 @@
+pr: 740
+round: 1
+date: 2026-11-22
+thread: review-b004-a
+head: 465b96f3b95729ace33e8a2ef88dd8f19b037219
+critical: yes
+verdict: changes_requested
+must_fix: 0
+should_fix: 2
+kinds: "vague-reason, weak-guard"
+report: plans/review-pr740-round1.md
+merged: ""
