@@ -42,3 +42,4 @@ About 25 lines in `player.js`, one browser test of about 50 lines. One PR `web: 
 - After the fix (run 45074919355, head dd11405): both tests 60/60 in Linux Chromium and 60/60 in Linux WebKit.
 - Local, head dd11405: fast suite 8845 passed; `pytest -m browser` (Chromium) 200 passed, 5 skipped; player, markers, listen and focus tests in WebKit and Chromium 128 passed.
 - PR #748.
+- Round 1 (B1, S1, `plans/review-pr748-round1.md`): the first test changed file at its second step and slept a fixed 150 ms, so its Chromium red was not this cause. Head 5dffb20 steps back and on inside one file, both steps in one task first, and counts `currentTime` sets made while seeking: main's `player.js` red 10/10 in Chromium and WebKit (local); the fix 40/40 in both, locally and in Linux (`isolate.yml` 45078070293).

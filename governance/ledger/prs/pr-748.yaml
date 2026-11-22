@@ -9,5 +9,5 @@ compactions: 0
 fixes_kinds: ""
 handback: ""
 recommended: ""
-note: "closes #720; cause from the trace of isolate run 45073565421 (WebKit 59/60): a seek started over a running one ended at 0 on Linux; player.js makes one seek at a time; new test red 1/20 in Linux Chromium before the fix (run 45074411978), both tests 60/60 in Linux Chromium and WebKit after it (run 45074919355)"
+note: "closes #720; cause from the trace of isolate run 45073565421 (WebKit 59/60): a seek started over a running one ended at 0 on Linux; player.js makes one seek at a time; markers test 60/60 in Linux Chromium and WebKit after it (run 45074919355); round 1 (B1, S1) head 5dffb20: new test steps inside one file, red 10/10 on main player.js in Chromium and WebKit (local), green 40/40 local and 40/40 Linux (run 45078070293)"
 merged: ""
