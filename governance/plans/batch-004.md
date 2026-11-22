@@ -152,10 +152,13 @@ Merged by Colin by hand, each pinned to its reviewed head (21:29 to 21:31Z):
 #742 f85a633, #740 b5a40a0, #739 4ca072a. Review subagents fill in `merged:`.
 main merged into governance (4ab6dfe). Main CI on 4ca072a running.
 Slot A is done. Slot B: docs-b-d2 (D-874, critical) runs as an Opus high subagent:
-Issue #746, plan plans/docs-b-d2-plan.md (8270496) sent to the coordinator; open choice: keep the three
-generator-written README/since.txt files on main. Waits for #745 (lane:infra lock). WARNING for the
-first merge of main into governance after this PR: follow plan §3 (restore working files, empty-diff check).
-Then #720 (lane:web) last.
+Issue #746, plan plans/docs-b-d2-plan.md (8270496) approved as written (D-883): the three
+generator-written README/since.txt files stay on main. The author is implementing. Waits for #745 (lane:infra lock). WARNING for the
+first merge of main into governance after this PR (D-883 condition): first
+`git tag governance-before-d874 && git push origin governance-before-d874` at governance's head,
+then plan §3 exactly, and record its empty-diff output here. If the diff is not empty: commit
+nothing, `git merge --abort`, and end the turn with `COORDINATOR: governance merge stopped`.
+#720 started early as web-b-w3 (Opus high subagent) in the free slot (lane:web, no shared files).
 Main CI: f85a633 (#742) green on all three systems; b5a40a0 and 4ca072a still running.
 Watch for the coordinator: #745 (ruleset 1.13.0) ci:full; tell settings-d882 (local_b679f474-afc5-4905-a6f9-7d827c0f0283).
 
