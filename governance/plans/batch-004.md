@@ -9,7 +9,7 @@ Close milestone v1.4: #709, #710, #711, #720, #679 and #663, plus two
 process checks (META-03) and the D-874 docs change. v1.5 (#723 to #726) is
 batch 005 and does not start in this batch.
 
-## Settings (ruleset 1.9.0, frugal)
+## Settings (ruleset 1.12.0 since D-880, frugal)
 
 - At most 2 implementation threads at once, one per lane (LANE-02).
 - Models: implementation and critical work on Opus 5.5 high, review on
