@@ -765,6 +765,7 @@ def test_stopping_the_app_window_ends_the_server_at_once(folders: Path) -> None:
     assert server.start()
     began = time.monotonic()
     server.stop()
+    # clock-bound: a stop that waited on the server would take SHUTDOWN_WAIT + 10 s
     assert time.monotonic() - began < launch.SHUTDOWN_WAIT + 2
     assert not server._thread.is_alive()
 

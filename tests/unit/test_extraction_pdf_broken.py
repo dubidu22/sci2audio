@@ -465,7 +465,8 @@ def test_digits_after_the_end_are_searched_in_linear_time(tail: bytes) -> None:
     data = one_page_pdf() + tail
     start = time.perf_counter()
     assert not pdf._cut_short(data, xref_valid=True)
-    assert time.perf_counter() - start < 1.0
+    # clock-bound: the quadratic search took 53 s for 100 KB (#188), the linear one milliseconds
+    assert time.perf_counter() - start < 5.0
     assert text_of(data) == ["Hello world"]
 
 

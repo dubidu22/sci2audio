@@ -215,7 +215,8 @@ def in_test(*body: str) -> str:
 )
 def test_every_known_form_of_a_clock_bound_is_caught(body: list[str]) -> None:
     found = findings(in_test(*body))
-    assert len(found) == 1 and ": clock bound: assert" in found[0], found
+    assert len(found) == 1, found
+    assert ": clock bound: assert" in found[0]
 
 
 @pytest.mark.parametrize(

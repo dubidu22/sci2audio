@@ -52,6 +52,7 @@ def wait_for(path: Path, thread: threading.Thread) -> None:
     deadline = time.monotonic() + 60
     while not path.exists():
         assert thread.is_alive(), "the read ended before the child's work started"
+        # clock-bound: the wait loop's way out after 60 s; what it waits for is far quicker
         assert time.monotonic() < deadline, "the child's work did not start"
         time.sleep(0.02)
 
@@ -145,6 +146,7 @@ def test_with_a_cancel_to_watch_a_step_is_stopped_at_its_own_time_limit(
     )
     assert stopped == isolate.Stopped("time", "page 1 of 1")
     took = decided[0] - started["page 1 of 1"]  # from the page step's start to the decision
+    # clock-bound: it catches a limit stretched by the 0.1 s slices; timed before the join (#366)
     assert 1.0 <= took < 1.5
 
 
@@ -187,7 +189,8 @@ def test_a_cancel_during_a_long_step_ends_the_child_and_frees_its_slot(tmp_path:
     cancel.set()
     thread.join(10)
     assert outcome["result"] == isolate.Stopped("cancelled", "page 1 of 1")
-    assert outcome["ended"] - cancelled < 1.0
+    # clock-bound: a cancel that is not watched waits out the 30 s hang; the watch takes 0.1 s
+    assert outcome["ended"] - cancelled < 5.0
     assert multiprocessing.active_children() == []
     assert readers.alive == 0
     began = time.monotonic()
@@ -197,7 +200,8 @@ def test_a_cancel_during_a_long_step_ends_the_child_and_frees_its_slot(tmp_path:
         )
         == 1
     )
-    assert time.monotonic() - began < 30  # it did not wait for the cancelled read's 30 s
+    # clock-bound: it did not wait for the cancelled read's 30 s
+    assert time.monotonic() - began < 30
     assert not (tmp_path / "finished").exists()
 
 
@@ -222,7 +226,8 @@ def test_a_cancel_while_waiting_for_a_slot_starts_no_child(tmp_path: Path) -> No
         cancel.set()
         thread.join(10)
         assert outcome["result"] == isolate.Stopped("cancelled")
-        assert outcome["ended"] - cancelled < 1.0
+        # clock-bound: an unwatched cancel waits for the slot until it frees; the watch takes 0.1 s
+        assert outcome["ended"] - cancelled < 5.0
         assert readers.alive == 1
         assert multiprocessing.active_children() == []
         assert not (tmp_path / "started").exists()

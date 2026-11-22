@@ -641,6 +641,7 @@ def test_a_short_read_does_not_wait_for_a_long_one(tmp_path: Path) -> None:
     time.sleep(0.3)  # the long read is under way
     read(PAPER)
     reading.join()
+    # clock-bound: an order of two events, not a duration: the long read takes about 2 s
     assert ended[PAPER.name] < ended["long.pdf"]
 
 

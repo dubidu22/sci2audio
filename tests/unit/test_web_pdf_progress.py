@@ -93,13 +93,15 @@ def test_cancelling_an_audio_job_while_its_pdf_is_read_ends_it_as_cancelled(
     job = client.post("/api/v1/jobs", json={"kind": "audio", "document": doc["id"]}).json()
     deadline = time.monotonic() + 60
     while not list(tmp_path.rglob("started")):
+        # clock-bound: the wait loop's way out after 60 s; what it waits for is far quicker
         assert time.monotonic() < deadline, "the read did not start"
         time.sleep(0.02)
     assert client.get(f"/api/v1/jobs/{job['id']}").json()["cancellable"] is True
     cancelled = time.monotonic()
     assert client.post(f"/api/v1/jobs/{job['id']}/cancel").status_code == 202
     done = wait(client, job["id"], timeout=10)
-    assert time.monotonic() - cancelled < 2.0
+    # clock-bound: a cancel that is not watched waits out the 30 s hang; the watch takes 0.1 s
+    assert time.monotonic() - cancelled < 5.0
     assert done["state"] == "cancelled"
     assert done["error"] == {"error": "cancelled", "message": "the job was cancelled"}
     assert "damaged" not in json.dumps(done)

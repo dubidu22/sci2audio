@@ -146,6 +146,7 @@ def test_a_runner_is_made_well_before_a_hanging_plugin_would_load(
     hanging_site(tmp_path, monkeypatch)
     started = time.monotonic()
     made = JobRunner()
+    # clock-bound: the hanging import never ends; 3 s is 15 times the 0.2 s load limit
     assert time.monotonic() - started < 3
     assert [problem.name for problem in made.steps.problems] == ["hanging-import"]
 
