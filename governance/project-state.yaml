@@ -18,6 +18,7 @@ active_now:
   lanes_waiting:                                     # next batch after the lift; frugal profile: 2 lanes, dispatcher on (D-871)
     - "v1.4 remainder: #720 #711 #710 #709 (infra), #679 (layout), #663 (voices)"
     - "v1.5 Listen while generating (milestone 11, D-870): #723 LW-01 critical first; #724 #725 #726 depend on it"
+    - "docs: Issue + PR replacing main's stale working-file copies (plans, ledger, state, pending) with a pointer to branch governance, plus a check that fails if they return (D-874)"
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
     - "tests/browser/test_voice_cards.py::test_a_sample_stopped_while_it_is_made_never_plays[firefox]: first failure 22:22Z on #712 (report-only Firefox shard; comment-only PR, no code cause); a second failure -> same-day quarantine with Issue (D-374)"
     - "tests/browser/test_flow.py::test_resume_of_a_paused_replace_never_asks_to_replace_again[firefox]: failed 20 Nov on PR #689 and again on #696 51daacd (report-only Firefox shard, hold.reached.wait(30) timed out, no code cause) -> quarantined for Firefox in #698 (merged 9066c3d, Issue #697); 40 isolated runs each (D-682): Chromium 40/40 pass, Firefox 38/40 (2x the same wait(30) assertion), so it reproduces at ~1 in 20 on Firefox only, cause unknown, quarantine stays, Issue open"

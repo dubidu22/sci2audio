@@ -144,3 +144,8 @@ Ruleset 1.9.0 (D-871) is on main through #727 (closes #728), squash 85aed7e, pin
 
 The CMD-07 freeze (D-866) is lifted at 17:00 Europe/Berlin on 22 Nov 2026 (16:00Z), recorded in project-state.yaml as `thread_freeze_lift_at`. Nothing wakes the coordinator by itself (THR-03), so the lift takes effect at its first activity after that time; the first step then is the THR-16 triage (#715's should-fix finding into ledger/deferred/), then the next batch under ruleset 1.9.0 (frugal, two lanes, dispatcher on).
 Owner message: "Lift the freeze today at 17:00 (in 15h 45min)" (22 Nov 2026, 00:16Z).
+
+## D-874 (2026-11-22, owner)
+
+Main's copies of the working files (plans, ledger, project-state.yaml, pending-decisions.md), left there by the workspace move (#657), are never updated and already differ from branch governance, where THR-13 keeps the copies that count. In the first batch after the freeze lifts (D-873), the docs lane replaces them on main with a one-line pointer to branch governance and adds a check that fails when a working file reappears on main (META-03). The Issue is filed at batch composition. Branch governance still never opens a PR into main (THR-14).
+Owner message: "yes thats a good idea" (22 Nov 2026, ~00:25Z).
