@@ -126,5 +126,10 @@ Reporting note: the coordinator reads only my first 400 characters, and the
 wrap-up recap comes first. So on a ROLE-17 event, the recap itself starts with
 `COORDINATOR:`. The 18:03Z plan hand-back was lost this way.
 
-Merge gates: none yet.
+#737 merged as 1bebb96 at 18:55Z after round 1 with must-fix open; owner
+override recorded as D-879 by the coordinator; review-737 stays idle. main merged
+into governance (d06f563, ruleset 1.11.0). Main CI passed on all three systems for
+204c188 (#735, run 45057369204) and 1bebb96 (#737, run 45057845400) at 19:07Z.
+
+Merge gates: #735 gate open, go given, merged 204c188.
 Escalations: none yet.
