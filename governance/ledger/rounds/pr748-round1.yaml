@@ -1,0 +1,12 @@
+pr: 748
+round: 1
+date: 2026-11-22
+thread: review-b004-b
+head: dd11405fc1060401a03715f538a4d680f325f3b8
+critical: no
+verdict: changes_requested
+must_fix: 1
+should_fix: 1
+kinds: "test-misses-fix, hidden-wait"
+report: plans/review-pr748-round1.md
+merged: ""
