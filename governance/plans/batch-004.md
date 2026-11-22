@@ -73,7 +73,7 @@ Threads exist only once their first line says so.
 | Slot | Thread | Items | State |
 |---|---|---|---|
 | A | infra-b-i5 | #709 #710 #711, brittle-test check (ledger `fixed` dropped, D-877) | running, Opus 5.5 high confirmed (local_f085fc59-3aa0-4778-9297-574cf5ff13da); opened #734 (brittle-test check); critical plan `plans/infra-b-i5-plan.md` (PR A lane:infra #710 #711 #734, PR B lane:textprep #709, both risk:high) approved by the coordinator (D-878), who told the thread directly; implementing |
-| B | layout-b-l3 | #679 | running, Opus 5.5 high confirmed (local_3f956e8c-d059-4c66-b72a-ee630dc3270f); PR #735 (head 401c78f, lane:layout, risk:low) open 18:05Z; body fixed, Linux CI and governance pr checks green 18:14Z; review thread review-735 (Opus 5.5 medium) proposed as a card (task_70892b09), waits for Colin's click |
+| B | layout-b-l3 | #679 | running, Opus 5.5 high confirmed (local_3f956e8c-d059-4c66-b72a-ee630dc3270f); PR #735 (head 401c78f, lane:layout, risk:low) open 18:05Z; body fixed, Linux CI and governance pr checks green 18:14Z; review thread review-735 (Opus 5.5 medium) started on Colin's go (local_27a9761d-ffb5-453b-a305-e86b0c1db8bc) |
 
 Queue for slot B after layout-b-l3: voices-b-v1 (#663), docs-b-d2 (D-874), then
 #720 (see note).
@@ -117,7 +117,7 @@ Handoff for the successor (THR-07, dispatcher 2):
 
 Outside the batch: #737 (ruleset 1.11.0, autonomy until v1.6, Colin's own change,
 lane:infra, risk:high, head f9ef427). Critical review card review-737 (Opus 5.5 high)
-proposed 18:40Z (task_97159852) at the coordinator's request; the coordinator gives
+proposed 18:40Z at the coordinator's request, started on Colin's go (local_ad2c2b47-68b1-452b-9bbb-c8f3d3eca845); the coordinator gives
 the merge go. After its merge: merge main into governance (THR-14). It shares
 lane:infra with infra-b-i5's PR A, so whichever merges second rebases.
 
