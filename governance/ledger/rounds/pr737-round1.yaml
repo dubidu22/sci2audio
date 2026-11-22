@@ -1,0 +1,12 @@
+pr: 737
+round: 1
+date: 2026-11-22
+thread: review-737
+head: f9ef4275f0618d358bb697709695e968ae38fa4e
+critical: yes
+verdict: changes_requested
+must_fix: 2
+should_fix: 2
+kinds: "promised-tests-format, missing-plan, untestable-condition, dead-setting"
+report: plans/review-pr737-round1.md
+merged: ""
