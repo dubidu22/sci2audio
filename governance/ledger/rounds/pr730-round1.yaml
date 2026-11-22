@@ -9,4 +9,5 @@ must_fix: 0
 should_fix: 2
 kinds: "contradiction, deferred-without-issue"
 report: plans/review-pr730-round1.md
-merged: ""
+merged: 880b1708e6d8c1224b7b2d6d12f1a507afe42aa2
+merged_note: "squash-merged by Colin by hand at 2026-11-22T17:30:18Z, pinned to 4ec26e4; main CI run 45049808113 on 880b170: success (ubuntu, macos, windows, CI passed)"
