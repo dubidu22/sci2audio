@@ -161,5 +161,19 @@ with #745). Recommended: keep them.
 ## Handoff (THR-07)
 
 - Goal: #746 (D-874): working files off main, a one-line pointer, and a CI check that fails when one comes back.
-- Done: Issue #746 opened; readers on main inventoried; one-time governance merge simulated; this plan written. No code, no branch, no PR.
-- Next: on the coordinator's approval and after #745 merges, a thread implements section 3 tests first, runs the fast checks and `ci:full`, opens the PR with the post-merge commands for the dispatcher.
+- Done: plan approved (D-883, the three generator files stay). Branch `claude/docs-b-d2-746` at deca673 (pushed, no PR): 772 deletions, `.github/scripts/working_files.py`, the `ci.yml` step, `CLAUDE.md`, `governance/README.md`, `tests/unit/test_working_files.py` (all 31 pass). ruff, format, lint-imports, deptry clean.
+- Next: question to the coordinator (below); then rebase onto main after #745 merges, fast checks, PR with `ci:full`, ledger entry.
+
+Status: question. The approved pointer path breaks an existing test.
+`tests/unit/test_lanes.py::test_every_file_of_the_workspace_and_the_design_record_has_exactly_one_lane`
+fails on `governance/README.md`: no lane owns it (section 3 expected only an `unowned` WARN from
+`governance pr checks` and missed this test). Fixing it means deviating from the plan (PLAN-01), so it needs a D-number.
+Options: (a) add `governance/README.md` to `lane:docs` in `governance-config.json` `label_paths`,
+`.github/lanes.yml`, `.github/governance/pr-checks.json` and its byte-equal copy in `github-setup/`. These are
+lane:infra files, and the config is the generator's input, so the entry survives a regeneration. #745 changes only
+`ruleset_version` in the config, a different hunk. It breaks AC6 of #746 ("no generator file changes"). (b) Put the
+pointer in an owned, non-working path, e.g. `governance/kb/00-index/working-files.md` (a KB record), which is harder to find.
+Recommended: (a).
+Unrelated: `tests/unit/test_textprep_numbers_statistics_de.py::test_a_german_job_reads_the_same_on_a_second_run`
+failed locally under the dev Hypothesis profile (paragraphs `1–1`, `←−=1`). The branch changes no `src/`, and main CI
+on 4ca072a is green. I added this example to #597 (the same kind).
