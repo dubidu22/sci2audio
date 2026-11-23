@@ -108,3 +108,22 @@ def _pieces_in(chapter: Chapter, pieces: Sequence[ScriptPiece], run: StepRun) ->
     """The chapter's pieces in reading order: a block moved elsewhere (a footnote read at its
     mark, #213) belongs to the chapter it is read in, not the one it is printed in."""
     return [piece for piece in pieces if chapter.holds(run.read_at(piece.span.block))]
+
+
+def speakable(result: ScriptResult, max_chars: int = DEFAULT_MAX_CHARS) -> tuple[int, ...]:
+    """The indices of the book's chapters that have something to say, in printed order,
+    chosen or not (D-903: a chapter's number is its place among them). A chapter not
+    chosen is cut into utterances here, without speaking them; the text steps already ran
+    on the whole document."""
+    pieces = result.run.script()
+    out = []
+    for script in sorted(result.chapters, key=lambda c: c.chapter.index):
+        if script.selected:
+            said = script.spoken > 0
+        else:
+            mine = _pieces_in(script.chapter, pieces, result.run)
+            cut = cut_utterances(result.document, mine, max_chars=max_chars)
+            said = any(not utterance.pause for utterance in cut)
+        if said:
+            out.append(script.chapter.index)
+    return tuple(out)

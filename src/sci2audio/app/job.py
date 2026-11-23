@@ -103,6 +103,44 @@ class OutputExistsError(JobError):
     """An output file exists and `overwrite` was not given."""
 
 
+class SettingsChangedError(OutputExistsError):
+    """The project's chapters were made under other settings than this job's (#726):
+    chapters made with these would not match them. The person keeps the settings the
+    chapters were made with (`keep_settings`) or replaces every chapter (`overwrite`).
+    `old` and `new` are the two settings as the chapter record keeps them, `changes` the
+    choices that differ, in words."""
+
+    def __init__(self, old: dict[str, Any], new: dict[str, Any]) -> None:
+        self.old, self.new = old, new
+        self.changes = settings_changes(old, new)
+        listed = "; ".join(self.changes) or "the settings"
+        super().__init__(
+            f"the chapters made so far were made with other settings ({listed}); keep the "
+            "settings they were made with, or choose to replace them all"
+        )
+
+
+def settings_changes(old: dict[str, Any], new: dict[str, Any], where: str = "") -> list[str]:
+    """The choices that differ between two settings records, as "speed: 1.0, now 1.2"."""
+    out: list[str] = []
+    for name in sorted({*old, *new}):
+        label = f"{where}{name}"
+        before, after = old.get(name), new.get(name)
+        if isinstance(before, dict) and isinstance(after, dict):
+            out.extend(settings_changes(before, after, f"{label} "))
+        elif before != after:
+            out.append(f"{label}: {_shown(before)}, now {_shown(after)}")
+    return out
+
+
+def _shown(value: Any) -> str:
+    if value is None or value == "":
+        return "default"
+    if isinstance(value, list):
+        return ", ".join(_shown(v) for v in value) or "none"
+    return str(value)
+
+
 class JobBusyError(JobError):
     """The runner, or another process on the same working folder, is already running a job
     (one job at a time)."""

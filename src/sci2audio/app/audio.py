@@ -45,7 +45,7 @@ from pathlib import Path
 from typing import Any
 
 from sci2audio import __version__
-from sci2audio.app.chapters import document_title
+from sci2audio.app.chapters import document_title, find_chapters, selected
 from sci2audio.app.chunks import (
     cache_size,
     chunk_file,
@@ -61,11 +61,13 @@ from sci2audio.app.job import (
     JobError,
     OutputExistsError,
     Phase,
+    SettingsChangedError,
     UnreadableTextError,
     check_folders,
     check_readable,
     json_text,
     read_document,
+    settings_changes,
     settings_data,
 )
 from sci2audio.app.lock import work_folder_lock
@@ -76,10 +78,11 @@ from sci2audio.app.playable import (
     read_record,
     settings_key,
     write_record,
+    write_spoken,
 )
 from sci2audio.app.readability import stop_message, unreadable
 from sci2audio.app.report import Pages
-from sci2audio.app.script import ScriptResult, prepare_script
+from sci2audio.app.script import ScriptResult, prepare_script, speakable
 from sci2audio.app.settings import JobSettings
 from sci2audio.app.voice import VoiceSource
 from sci2audio.core import AudioChunk, BlockKind, Document, Span
@@ -102,7 +105,13 @@ from sci2audio.output import (
     read_readalong,
 )
 from sci2audio.output.ffmpeg import LOCAL_ONLY
-from sci2audio.textprep import BUILT_IN_STEPS, DEFAULT_MAX_CHARS, TextStep, Utterance
+from sci2audio.textprep import (
+    BUILT_IN_STEPS,
+    DEFAULT_MAX_CHARS,
+    Category,
+    TextStep,
+    Utterance,
+)
 from sci2audio.voices import (
     Engine,
     EngineError,
@@ -455,6 +464,7 @@ def run_audio_job(
     voice: VoiceSource,
     output_settings: OutputSettings | None = None,
     overwrite: bool = False,
+    keep_settings: bool = False,
     progress: Callable[[AudioProgress], None] | None = None,
     cancel: threading.Event | None = None,
     steps: Sequence[TextStep] = BUILT_IN_STEPS,
@@ -468,19 +478,32 @@ def run_audio_job(
     the records). Without `output_settings` the job writes the chapters' MP3s and the
     read-along file, no M4B (`JOB_OUTPUT`). Existing audiobook files are replaced only with
     `overwrite`, checked before any speech; the job's own files of an unfinished run are
-    reused or replaced without it (#723). Raises JobError (or a subclass) when the job
-    cannot go on; JobCancelledError when `cancel` is set. Only whole chapters are left.
+    reused or replaced without it (#723).
+
+    Chapters chosen beyond those the project has made are added to them (#726): the made
+    ones are reused, only the new ones spoken. Made under other settings, the job raises
+    SettingsChangedError before any speech, unless `keep_settings` (the new chapters are
+    made with the settings the others were made with: only the chapter choice and the
+    output folder are taken from `settings`) or `overwrite` (every chapter made anew).
+
+    Raises JobError (or a subclass) when the job cannot go on; JobCancelledError when
+    `cancel` is set. Only whole chapters are left.
     """
     tell: Callable[[AudioProgress], None] = progress or (lambda event: None)
-    # the person's choice of subtitles is a job setting (D-606); output writes them
-    output_settings = replace(output_settings or JOB_OUTPUT, subtitles=settings.subtitles)
-    if settings.voice and settings.voice not in voice.voices:
-        raise JobError(f"there is no {voice.engine} voice {settings.voice!r}; choose another voice")
+    keep_settings = keep_settings and not overwrite
+    if not keep_settings:
+        _check_voice_name(settings, voice)
     check_readable(source)
     out_folder = (settings.output_folder or source.absolute().parent).absolute()
     check_folders((out_folder, work))
     _check_cancel(cancel)
     with work_folder_lock(work):
+        record = read_record(work)
+        if keep_settings:
+            settings, output_settings, steps = _kept(record, settings, output_settings, steps)
+            _check_voice_name(settings, voice)
+        # the person's choice of subtitles is a job setting (D-606); output writes them
+        output_settings = replace(output_settings or JOB_OUTPUT, subtitles=settings.subtitles)
         document = read_document(
             source,
             settings,
@@ -500,6 +523,21 @@ def run_audio_job(
                 f"{voice.languages.get(voice_id, document.language)}) are not installed; "
                 "run the voice download for that language"
             )
+        book = book_info(document)
+        made = {
+            "settings": {k: v for k, v in settings_data(settings).items() if k != "chapters"},
+            "voice": [voice.engine, voice.version_of(voice_id), voice_id],
+            "output": dataclasses.asdict(output_settings),
+            "book": [book.title, list(book.authors), book.language],
+        }
+        # the chapter choice is not part of the key: adding chapters keeps the settings (#726)
+        key = settings_key(made)
+        chosen, _ = selected(find_chapters(document), settings.chapters)
+        order = "book" if list(chosen) == sorted(chosen) else "chosen"
+        owned = record.owned(out_folder) if record is not None else set()
+        union = _adding(record, owned, key, made, chosen, order, overwrite, keep_settings)
+        if union is not None:
+            settings = replace(settings, chapters=union)
         tell(AudioProgress(Phase.TEXT_STEPS))
         result = prepare_script(document, settings, steps, max_chars)
         plan = plan_audio(
@@ -513,28 +551,37 @@ def run_audio_job(
         if not plan.chunks:
             raise JobError("there is nothing to read in the chosen chapters")
         titles = {chapter.chapter.index: chapter.chapter.title for chapter in result.chapters}
+        # D-903: in printed order a chapter is numbered by its place among the book's
+        # chapters with something to say, so its files stay the same when others are added;
+        # in an order the person chose (#119) by its place among the chosen
+        if order == "book":
+            places = speakable(result, max_chars)
+        else:
+            places = tuple(dict.fromkeys(chunk.chapter for chunk in plan.chunks))
+        numbers = {index: n for n, index in enumerate(places, start=1)}
         try:
             run = _CancellableFfmpeg(
                 (ffmpeg or Ffmpeg(find_ffmpeg())).exe, inner=ffmpeg, cancel=cancel
             )
         except FfmpegNotFoundError as error:
             raise JobError(str(error)) from error
-        book = book_info(document)
         book = replace(book, cover=usable_cover(write_cover(source, work), run.exe))
-        book_plan = _BookPlan.of(plan, titles, book, output_settings)
-        key = settings_key(
-            {
-                "settings": settings_data(settings),
-                "voice": [voice.engine, voice.version_of(voice_id), voice_id],
-                "output": dataclasses.asdict(output_settings),
-                "book": [book.title, list(book.authors), book.language],
-            }
+        book_plan = _BookPlan.of(plan, titles, book, output_settings, numbers, len(places))
+        found_files = _check_targets(
+            work, out_folder, book_plan, record, owned, key, overwrite, adding=union is not None
         )
-        found_files = _check_targets(work, out_folder, book_plan, key, overwrite)
         _check_cancel(cancel)
 
         chapters = _Chapters(
-            work, out_folder, book_plan, key, found_files, run, overwrite, tell, result.document
+            work,
+            out_folder,
+            book_plan,
+            ChapterRecord(False, key, book_plan.order, order=order, made=made),
+            found_files,
+            run,
+            overwrite,
+            tell,
+            result.document,
         )
         speech = _speak(
             plan,
@@ -575,18 +622,27 @@ def run_audio_job(
 
 @dataclass(frozen=True)
 class _BookPlan:
-    """The chapters the job is to speak, in document order, with their numbers among them
-    (counted from 1: the number in a chapter's file name and track tag) and their chunks."""
+    """The chapters the job is to speak, in the order read, with their numbers in the book
+    (counted from 1: the number in a chapter's file name and track tag, D-903), the book's
+    chapter count and their chunks."""
 
     order: tuple[int, ...]  # job chapter indices
     titles: dict[int, str]
     chunks: dict[int, tuple[PlannedChunk, ...]]
     book: BookInfo
     settings: OutputSettings
+    numbers: dict[int, int]
+    count: int
 
     @classmethod
     def of(
-        cls, plan: AudioPlan, titles: dict[int, str], book: BookInfo, settings: OutputSettings
+        cls,
+        plan: AudioPlan,
+        titles: dict[int, str],
+        book: BookInfo,
+        settings: OutputSettings,
+        numbers: dict[int, int],
+        count: int,
     ) -> _BookPlan:
         chunks: dict[int, list[PlannedChunk]] = {}
         for chunk in plan.chunks:
@@ -597,26 +653,43 @@ class _BookPlan:
             {index: tuple(c) for index, c in chunks.items()},
             book,
             settings,
+            numbers,
+            count,
         )
 
     def number(self, index: int) -> int:
+        """Chapter `index`'s number in the book."""
+        return self.numbers[index]
+
+    def place(self, index: int) -> int:
+        """Chapter `index`'s place among the job's chapters, counted from 1."""
         return self.order.index(index) + 1
 
     def planned_titles(self) -> list[str]:
         return [self.titles[index] for index in self.order]
 
+    def planned_numbers(self) -> list[int]:
+        return [self.numbers[index] for index in self.order]
+
     def targets(self, out_folder: Path) -> Written:
-        return audiobook_targets(out_folder, self.book.title, self.planned_titles(), self.settings)
+        return audiobook_targets(
+            out_folder,
+            self.book.title,
+            self.planned_titles(),
+            self.settings,
+            self.planned_numbers(),
+            self.count,
+        )
 
     def chapter_files(self, out_folder: Path, index: int) -> set[str]:
         """The names of chapter `index`'s files: its MP3 and its subtitle pair."""
         targets = self.targets(out_folder)
-        number = self.number(index)
+        place = self.place(index)
         if not targets.mp3s:
             return set()
-        names = {targets.mp3s[number - 1].name}
+        names = {targets.mp3s[place - 1].name}
         if self.settings.subtitles:
-            names |= {p.name for p in targets.subtitles[2 * (number - 1) : 2 * number]}
+            names |= {p.name for p in targets.subtitles[2 * (place - 1) : 2 * place]}
         return names
 
     def spoken(self, work: Path, index: int, keys: Collection[str] | None) -> list[Spoken]:
@@ -634,7 +707,7 @@ class _BookPlan:
             self.book,
             self.titles[index],
             self.number(index),
-            len(self.order),
+            self.count,
             spoken,
             self.settings,
         )
@@ -650,19 +723,120 @@ class _Found:
     record: ChapterRecord | None
 
 
+def _check_voice_name(settings: JobSettings, voice: VoiceSource) -> None:
+    if settings.voice and settings.voice not in voice.voices:
+        raise JobError(f"there is no {voice.engine} voice {settings.voice!r}; choose another voice")
+
+
+def _kept(
+    record: ChapterRecord | None,
+    settings: JobSettings,
+    output_settings: OutputSettings | None,
+    steps: Sequence[TextStep],
+) -> tuple[JobSettings, OutputSettings | None, Sequence[TextStep]]:
+    """The settings the project's chapters were made with, for a job that keeps them
+    (#726): only the chapter choice and the output folder are this job's. A project with
+    no chapters made keeps nothing: the job's own settings."""
+    if record is None or not record.chapters:
+        return settings, output_settings, steps
+    if record.made is None:  # a version 1 record holds only their hash
+        raise OutputExistsError(
+            "the chapters made so far were made by an earlier version of sci2audio, which "
+            "did not keep their settings; choose to replace them"
+        )
+    data, output = record.made["settings"], record.made["output"]
+    try:
+        kept = JobSettings(
+            language=data["language"],
+            switched_off=frozenset(Category(c) for c in data["switched_off"]),
+            chapters=settings.chapters,
+            voice=data["voice"],
+            speed=data["speed"],
+            letter_pace=data["letter_pace"],
+            subtitles=output["subtitles"],
+            plugins=data.get("plugins", True),
+            output_folder=settings.output_folder,
+        )
+        kept_output = OutputSettings(**output)
+    except (KeyError, TypeError, ValueError) as error:
+        raise OutputExistsError(
+            "the settings the chapters made so far were made with cannot be read; "
+            "choose to replace them"
+        ) from error
+    if not kept.plugins:  # as the runner leaves them out (#667)
+        steps = tuple(step for step in steps if getattr(step, "plugin", None) is None)
+    return kept, kept_output, steps
+
+
+def _adding(
+    record: ChapterRecord | None,
+    owned: Collection[str],
+    key: str,
+    made: dict[str, Any],
+    chosen: Sequence[int],
+    order: str,
+    overwrite: bool,
+    kept: bool = False,
+) -> tuple[int, ...] | None:
+    """The chapters the job makes when it adds to the chapters the project has made
+    (#726): those and the chosen ones, in printed order. None when there is nothing to add
+    to (no chapter made, `overwrite`) or nothing to add to a finished audiobook (D-163).
+    Checked before any speech: made under other settings (SettingsChangedError), made by a
+    version that kept no settings, or read in an order the person chose (#119), the
+    project is not added to without `overwrite`. With the settings `kept`, what still
+    differs is what keeping cannot bring back (the voice's version, the book's details)."""
+    if overwrite or record is None:
+        return None
+    generated = {
+        c.index for c in record.chapters if c.files and {f.name for f in c.files} <= set(owned)
+    }
+    if not generated:
+        return None
+    if record.made is None:
+        raise OutputExistsError(
+            "the chapters made so far were made by an earlier version of sci2audio, which "
+            "did not keep their settings; choose to replace them"
+        )
+    if record.settings != key:
+        if kept:
+            changes = "; ".join(settings_changes(record.made, made))
+            raise OutputExistsError(
+                f"the chapters made so far cannot be matched: {changes}; choose to replace them"
+            )
+        raise SettingsChangedError(record.made, made)
+    if record.order == "chosen" or order == "chosen":
+        if tuple(chosen) != record.planned:
+            raise OutputExistsError(
+                "chapters are added only to an audiobook read in printed order, and this one "
+                "is read in the order chosen; choose to replace them"
+            )
+        return None
+    if record.complete and set(chosen) <= generated:
+        return None
+    return tuple(sorted({*chosen, *generated}))
+
+
 def _check_targets(
-    work: Path, out_folder: Path, plan: _BookPlan, key: str, overwrite: bool
+    work: Path,
+    out_folder: Path,
+    plan: _BookPlan,
+    record: ChapterRecord | None,
+    owned: Collection[str],
+    key: str,
+    overwrite: bool,
+    *,
+    adding: bool,
 ) -> _Found:
     """Refuse, before any speech, to replace an existing audiobook without `overwrite`
     (D-163; output checks again when it writes, D-119). A file the working folder's
-    chapter record names, unchanged, from an unfinished run under the same settings is the
-    job's own (#723): a chapter whose files are all such and whose fingerprint is the same
-    is reused, any other such file is replaced."""
-    record = read_record(work)
+    chapter record names, unchanged, from an unfinished run under the same settings, or
+    from a finished one the job adds chapters to (#726), is the job's own (#723): a chapter
+    whose files are all such and whose fingerprint is the same is reused, any other such
+    file is replaced."""
     same = record is not None and record.settings == key
-    owned = record.owned(out_folder) if record is not None and same else set()
+    owned = set(owned) if same else set()
     if not overwrite:
-        if record is not None and record.complete:
+        if record is not None and record.complete and not adding:
             owned = set()  # a finished audiobook is replaced only with overwrite (D-163)
         targets = plan.targets(out_folder)
         names = [*targets.mp3s, *([targets.m4b] if targets.m4b else []), *targets.subtitles]
@@ -697,7 +871,7 @@ class _Chapters:
         work: Path,
         out_folder: Path,
         plan: _BookPlan,
-        key: str,
+        record: ChapterRecord,
         found: _Found,
         ffmpeg: _CancellableFfmpeg,
         overwrite: bool,
@@ -712,7 +886,7 @@ class _Chapters:
         self.ffmpeg = ffmpeg
         self.overwrite = overwrite
         self.tell = tell
-        self.record = ChapterRecord(False, key, plan.order)
+        self.record = record
         self.writer: BookWriter | None = None
         self.added: list[int] = []
         self.rates: set[int] = set()
@@ -739,7 +913,9 @@ class _Chapters:
         written = reused is not None and reused.fingerprint == fingerprint
         try:
             writer = self._writer()
-            writer.add(number, spoken, written=written)
+            # the chunk list the whole book is built from later (#725), before the files
+            spoken_sha = write_spoken(self.work, index, spoken)
+            writer.add(self.plan.place(index), spoken, written=written)
         except Exception as error:
             raise _encode_error(error, self.out_folder) from error
         if written and reused is not None:
@@ -753,6 +929,7 @@ class _Chapters:
             number,
             fingerprint,
             tuple(f for f in files if f.name in names),
+            spoken_sha,
         )
         self._save(self._placed(self.record.with_chapter(chapter)))
         self.added.append(index)
@@ -784,12 +961,16 @@ class _Chapters:
             _remove_old_records(self.work)
             _write_document(self.work, self.document)
             base = self.record
-            if self.found.record is not None:  # an unfinished run's files stay ours
+            if self.found.record is not None:  # an earlier run's files stay ours
                 old = self.found.record
                 kept = [*old.book, *old.pending, *(f for c in old.chapters for f in c.files)]
                 for file in kept:
                     if file.name in self.found.keep:
                         base = base.with_pending(file)
+                # a whole-book file built from its chapters stays the project's (#725)
+                base = replace(
+                    base, built=tuple(b for b in old.built if b.file.name in self.found.keep)
+                )
             self._save(base)
             try:
                 self.out_folder.mkdir(parents=True, exist_ok=True)
@@ -805,6 +986,8 @@ class _Chapters:
                 overwrite=self.overwrite,
                 keep=[self.out_folder / name for name in self.found.keep],
                 vouch=self._vouch,
+                numbers=self.plan.planned_numbers(),
+                count=self.plan.count,
             )
         return self.writer
 

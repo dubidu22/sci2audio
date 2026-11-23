@@ -2,7 +2,9 @@
 
 `JobRunner.run_script` runs the script job (#70): a file in, the listening script and the
 pre-analysis report out. `JobRunner.run_audio` runs the audio job (#71): a file in, the
-audiobook out, resuming from the working folder's chunk cache. Each job gets its
+audiobook out, resuming from the working folder's chunk cache; a job choosing more
+chapters than the project has made adds them (#726). `JobRunner.run_book` builds the whole
+audiobook as one M4B or MP3 from the chapters made, on request (#725). Each job gets its
 `JobSettings` and working folder passed in; the settings file (`load_settings`,
 `save_settings`) and the default folders are used only by the command line and the server.
 """
@@ -16,6 +18,7 @@ from sci2audio.app.audio import (
     plan_audio,
     run_audio_job,
 )
+from sci2audio.app.book import BookProgress, BuiltBook, MissingChaptersError, build_book
 from sci2audio.app.chapters import (
     REFERENCE_NAMES,
     Chapter,
@@ -42,13 +45,19 @@ from sci2audio.app.job import (
     Phase,
     ScriptFiles,
     ScriptJob,
+    SettingsChangedError,
     UnreadableFileError,
     UnreadableTextError,
     UnsupportedFileError,
     run_script_job,
     script_files,
 )
-from sci2audio.app.playable import PlayableChapter, playable_chapters
+from sci2audio.app.playable import (
+    ChapterState,
+    PlayableChapter,
+    chapter_states,
+    playable_chapters,
+)
 from sci2audio.app.report import (
     Report,
     build_report,
@@ -60,7 +69,7 @@ from sci2audio.app.report import (
     shown_original,
 )
 from sci2audio.app.runner import JobRunner
-from sci2audio.app.script import ChapterScript, ScriptResult, prepare_script
+from sci2audio.app.script import ChapterScript, ScriptResult, prepare_script, speakable
 from sci2audio.app.settings import JobSettings
 from sci2audio.app.voice import VoiceSource, kokoro_voice
 
@@ -70,13 +79,17 @@ __all__ = [
     "AudioJob",
     "AudioPlan",
     "AudioProgress",
+    "BookProgress",
+    "BuiltBook",
     "Chapter",
     "ChapterScript",
+    "ChapterState",
     "JobBusyError",
     "JobCancelledError",
     "JobError",
     "JobRunner",
     "JobSettings",
+    "MissingChaptersError",
     "OutputExistsError",
     "Phase",
     "PlannedChunk",
@@ -85,12 +98,15 @@ __all__ = [
     "ScriptFiles",
     "ScriptJob",
     "ScriptResult",
+    "SettingsChangedError",
     "SkippedUtterance",
     "UnreadableFileError",
     "UnreadableTextError",
     "UnsupportedFileError",
     "VoiceSource",
+    "build_book",
     "build_report",
+    "chapter_states",
     "chunk_key",
     "clean_work_folder",
     "default_config_file",
@@ -116,4 +132,5 @@ __all__ = [
     "script_files",
     "script_text",
     "shown_original",
+    "speakable",
 ]
