@@ -1,0 +1,13 @@
+pr: 751
+round: 3
+date: 2026-11-23
+thread: review-pr751-1
+head: bf417b9159985eedee42bd325c3e65a186de31ee
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr751-round3.md
+merged: ""
+updated_head: ""
