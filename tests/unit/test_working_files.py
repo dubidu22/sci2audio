@@ -6,7 +6,6 @@ governance is exempt because CI never runs there, not because the script knows i
 from __future__ import annotations
 
 import importlib.util
-import json
 import re
 import shutil
 import subprocess
@@ -99,21 +98,6 @@ def test_the_generated_files_stay_on_main(path: str) -> None:
 @pytest.mark.parametrize("path", OTHERS)
 def test_other_governance_files_are_not_working_files(path: str) -> None:
     assert WF.working_files([path]) == []
-
-
-def test_every_working_path_is_a_governance_path() -> None:
-    """pr_checks.py treats a governance-only PR apart (the decision-log PR); a working file
-    outside `governance_paths` would make it judge a stray working file as product code."""
-    pr_checks = ROOT / ".github" / "governance" / "pr-checks.json"
-    globs = json.loads(pr_checks.read_text(encoding="utf-8"))["governance_paths"]
-    spec = importlib.util.spec_from_file_location(
-        "sci2audio_pr_checks_working", ROOT / ".github" / "governance" / "pr_checks.py"
-    )
-    assert spec is not None
-    assert spec.loader is not None
-    pr = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(pr)
-    assert all(pr.matches(path, globs) for path in WORKING)
 
 
 def test_the_check_fails_on_a_tracked_working_file(tmp_path: Path) -> None:

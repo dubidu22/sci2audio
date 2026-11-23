@@ -125,9 +125,8 @@ packages = ["src/sci2audio"]
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
-# governance/ holds the project workspace (plans, probe scripts, records), not product code;
-# .github/governance/ is the governance skill's PR-check script, kept identical to its source
-extend-exclude = ["governance", ".github/governance"]
+# governance/ holds the archived KB (records and probe scripts), not product code
+extend-exclude = ["governance"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PT", "S"]

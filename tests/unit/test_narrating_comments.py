@@ -1,42 +1,39 @@
 """No comment or docstring tells the history of the code (PR-05, D-891). The review-tag test (#695)
-sees one form of it only, so a strict phrase list in `pr_checks.py` fails a pull request, and this
-scan of the tree uses the same list, so the author meets it in the fast suite before review.
+sees one form of it only, so this scan of the tree fails on a precise phrase list in the fast
+suite, before review.
 
 A phrase list cannot tell a comment that says what the code does from one that says why it is so;
-that stays the reviewer's finding. The broad list in `pr_checks.py` keeps warning about it."""
+that stays the reviewer's finding."""
 
 from __future__ import annotations
 
 import ast
-import importlib.util
 import io
+import re
 import tokenize
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SCANNED = ("src", "tests", "scripts", ".github", "governance/tools")
-# they quote the phrases to define or test them
-QUOTING = {
-    ROOT / ".github" / "governance" / "pr_checks.py",
-    ROOT / "governance" / "github-setup" / "pr_checks.py",
-    Path(__file__).resolve(),
-}
-
-
-def load_pr_checks():
-    path = ROOT / ".github" / "governance" / "pr_checks.py"
-    spec = importlib.util.spec_from_file_location("sci2audio_pr_checks_comments", path)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-PR_CHECKS = load_pr_checks()
-HISTORY_RE = PR_CHECKS.HISTORY_RE
+SCANNED = ("src", "tests", "scripts", ".github")
+# it quotes the phrases to define and test them
+QUOTING = {Path(__file__).resolve()}
+# the history of the change or of the conversation: precise enough to fail on (D-891)
+HISTORY_RE = re.compile(
+    r"\b(?:previously|as (?:requested|discussed|agreed)|"
+    r"per (?:the )?(?:review|feedback|request)\b(?! rounds?\b)|"
+    r"was changed|changed (?:from|to)\b|now uses?\b|now we\b|we now\b|"
+    r"(?:the )?(?:old|new) (?:implementation|code|approach|behaviou?r)\b|"
+    r"in this (?:PR|commit|change)\b|(?:before|after) this (?:PR|commit|change)\b|"
+    r"this (?:PR|commit) (?:adds|removes|changes|fixes|moves|replaces)\b|"
+    r"reviewer (?:asked|wanted|said|found)\b|"
+    r"(?:ended|went away|was dropped|were dropped) (?:with|in) the move\b|"
+    r"(?:was|were) (?:added|removed|renamed|moved|replaced|rewritten) "
+    r"(?:in|by|for|when) (?:#\d|PR|the review|D-\d)|"
+    r"used to (?:be|call|use|read|write|return|live|sit|run)\b)",
+    re.IGNORECASE,
+)
 
 
 def comments_and_docstrings(source: str) -> list[tuple[int, str]]:
@@ -108,47 +105,3 @@ def test_the_history_list_catches_change_history(text: str) -> None:
 )
 def test_the_history_list_leaves_why_comments_alone(text: str) -> None:
     assert not HISTORY_RE.search(text), text
-
-
-def diff_adding(path: str, *lines: str) -> str:
-    added = "".join(f"+{line}\n" for line in lines)
-    return (
-        f"diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n"
-        f"@@ -1,0 +1,{len(lines)} @@\n{added}"
-    )
-
-
-def comment_results(diff: str, exemptions: list[dict] | None = None) -> list[dict]:
-    results = PR_CHECKS.run_checks(
-        {}, "x: y (#1)", [], [("M", "src/a.py")], "", exemptions, None, diff
-    )
-    return [r for r in results if r["check"] == "comments"]
-
-
-def test_an_added_change_history_comment_fails_the_pr_check() -> None:
-    for path, line in (
-        ("src/a.py", "# previously this read the whole file"),
-        (".github/workflows/ci.yml", "  # the job now uses the cached wheel"),
-        ("src/sci2audio/web/static/app.js", "// as requested, the button stays"),
-    ):
-        results = comment_results(diff_adding(path, line))
-        assert [r["status"] for r in results] == ["FAIL"], (path, results)
-        assert f"{path}:1" in results[0]["message"]
-
-
-def test_a_broad_list_match_only_warns() -> None:
-    results = comment_results(diff_adding("src/a.py", "# an old position no longer fits"))
-    assert [r["status"] for r in results] == ["WARN"]
-
-
-def test_a_sanctioned_exemption_lets_a_comment_through() -> None:
-    exemption = {
-        "check": "comments",
-        "paths": ["tests/fixtures/**"],
-        "kind": "sanctioned",
-        "reason": "fixture files quote narrating comments as test input",
-    }
-    assert PR_CHECKS.exemption_errors([exemption]) == []
-    diff = diff_adding("tests/fixtures/sample.py", "# previously this read the whole file")
-    results = comment_results(diff, [exemption])
-    assert [r["status"] for r in results] == ["ok"]

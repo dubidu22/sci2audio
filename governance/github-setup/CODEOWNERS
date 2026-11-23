@@ -1,9 +1,0 @@
-# Governance files only the owner approves. Add these lines to the repository's CODEOWNERS file
-# (.github/CODEOWNERS) and require code-owner review on `main` in the branch protection.
-# Then an acceptance contract or a ruleset change reaches the default branch only through a pull request
-# the owner has reviewed, whatever a thread writes elsewhere.
-/governance/claude-project-rules.yaml        @dubidu22
-/governance/governance-config.json           @dubidu22
-/governance/rules/                           @dubidu22
-/.github/governance/                         @dubidu22
-/.github/workflows/governance-pr-checks.yml  @dubidu22

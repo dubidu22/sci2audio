@@ -1,4 +1,4 @@
-# Paths whose change is critical (project_profile.critical_paths). Copy to .github/labeler.yml.
+# Paths whose change is critical: a PR that touches one gets risk:high.
 "risk:high":
   - changed-files:
       - any-glob-to-any-file:
@@ -10,15 +10,5 @@
           - "tests/unit/__snapshots__/**"
           - "tests/regression/**"
           - "THIRD_PARTY_LICENSES.md"
-          - "governance/claude-project-rules.yaml"
-          - "governance/rules/**"
-          - "governance/project_instructions.md"
-          - "governance/dispatcher_instructions.md"
-          - "governance/project_chat_instructions.md"
-          - "governance/claude-md-snippet.md"
-          - "governance/governance-config.json"
-          - "governance/tools/**"
-          - "governance/kb/README.md"
-          - "governance/kb/**/adr-*.md"
-          - "governance/kb/**/playbook-*.md"
-          - "governance/kb/**/doc-*.md"
+          - ".claude/**"
+          - "CLAUDE.md"
