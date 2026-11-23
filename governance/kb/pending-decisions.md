@@ -253,3 +253,13 @@ Work resumes in the claude.ai project "sci2audio-v1.4+" (CMD-06). Colin: "contin
 ## D-890 (2026-11-23, coordinator)
 
 Merge go for #749, pinned to bdc8247 (`ledger/gos/pr-749.yaml`): critical round 1 approved there with 0 must-fix and 0 should-fix (review-b004-e, `plans/review-pr749-round1.md`), three-system run 45124663555 green on that head; `ledger_tool.py gate 749` passes. Review note N2 is taken into the one-time governance merge (D-883 §3): before its commit, `git diff --cached --stat origin/main -- governance/plans/README.md governance/ledger/README.md governance/ledger/deferred/since.txt` must also print nothing; if it prints anything, abort as for a non-empty diff.
+Outcome: #749 squash-merged as 1cbfbd2; main CI run 45139630420 green on Linux, macOS and Windows. Backup tag `governance-before-d874` at f12fe96 was pushed by Colin ("done", 2026-11-23T08:37Z), because the cloud proxy refused tag pushes (HTTP 403). The one-time merge is 6409f52, with both diffs empty.
+
+## D-891 (2026-11-23, coordinator)
+
+Batch 004 audit (`plans/audit-batch-004.md`, 3cd4a3b): 0 blocking, 3 should-fix, 7 notes.
+- F1, data: `merged:` filled in `ledger/prs/pr-741.yaml` (3fb4d1b) and `pr-721.yaml` (207ea14, release/1.4). Check: `ledger_tool.py check` fails on a PR entry without a merge record whose `(#N)` closes a squash subject on main or release/*. This goes into batch 005, slot A (lane:infra, critical).
+- F2, data: `ledger/deferred/pr745-1.yaml` records S4 as planned in #747. Check: a round entry field `deferred: <n>`, and `check` fails when fewer `deferred/pr<N>-*.yaml` exist. Same batch-005 item as F1.
+- F3: v1.4 stays open only for #731. Moving #731 to another milestone goes to Colin (ROLE-01).
+- `stats`: `narrating-comment` regressed after #712's fix (seen again in #739), so it goes one step up the META-03 ladder: a lint check in batch 005, slot A.
+- Owner PR #751 (ruleset 1.14.0, the claude.ai Project, Colin's "Yes, apply" 23 Nov) gets its critical review now that the lane:infra lock is free.

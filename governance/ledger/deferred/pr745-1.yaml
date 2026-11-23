@@ -1,0 +1,9 @@
+pr: 745
+date: 2026-11-23
+what: "S4 (incomplete-residual-risk): PRs into release/* run their branch's own governance-pr-checks.yml without the gate step, so a risk:high release fix is not gated until the step reaches that branch"
+decision: planned             # deferred in round 2 (review-pr745-round2.md); recorded by the coordinator after audit batch-004 F2 (D-891)
+commit: ""
+issue: "#747"
+until: ""
+reason: ""
+by: ""
