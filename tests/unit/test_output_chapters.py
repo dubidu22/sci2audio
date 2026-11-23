@@ -6,16 +6,19 @@ from __future__ import annotations
 import errno
 import hashlib
 import subprocess
+import wave
 from dataclasses import fields, replace
 from pathlib import Path
 
+import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from output_helpers import Job, ffmetadata, ffmpeg_exe, make_job, tags_of
+from output_helpers import RATE, Job, ffmetadata, ffmpeg_exe, make_job, tags_of
 
 from sci2audio.core import AudioChunk, Span
 from sci2audio.output import (
+    BookInfo,
     BookWriter,
     Chapter,
     ChunkAudioError,
@@ -97,8 +100,14 @@ def ranges(job: Job) -> list[tuple[int, int]]:
 
 @pytest.mark.parametrize(
     "settings",
-    [ALL, OutputSettings(), OutputSettings(m4b=False), OutputSettings(mp3=False, subtitles=True)],
-    ids=["everything", "default", "mp3-only", "m4b-only"],
+    [
+        ALL,
+        OutputSettings(),
+        OutputSettings(m4b=False),
+        OutputSettings(m4b=False, subtitles=True),
+        OutputSettings(mp3=False, subtitles=True),
+    ],
+    ids=["everything", "default", "mp3-only", "mp3-and-subtitles", "m4b-only"],
 )
 def test_chapter_by_chapter_writes_the_same_bytes_as_write_audiobook(
     tmp_path: Path, settings: OutputSettings
@@ -111,12 +120,53 @@ def test_chapter_by_chapter_writes_the_same_bytes_as_write_audiobook(
     assert [p.name for p in written.mp3s] == sorted(n for n in whole if n.endswith(".mp3"))
 
 
-def test_chapter_by_chapter_with_clause_joins_writes_the_same_bytes(tmp_path: Path) -> None:
-    job = make_job(
-        tmp_path / "job", pauses=(Pause.CLAUSE, Pause.SENTENCE, Pause.CLAUSE, Pause.PARAGRAPH)
-    )
-    whole = written_whole(job, tmp_path / "whole")
-    by_chapter(job, tmp_path / "parts").finish()
+def quiet_edged_job(folder: Path) -> Job:
+    """Every chunk a tone between a quiet lead and tail, as a voice leaves them, and every
+    pause a clause pause, inside a chapter and at a chapter's start: the joins trim."""
+    chapters, spoken = [], []
+    for c, count in enumerate((3, 2)):
+        chapters.append(Chapter(f"Part {c + 1}", len(spoken)))
+        for _ in range(count):
+            index = len(spoken)
+            samples = np.concatenate(
+                [
+                    np.zeros(6000),
+                    6000 * np.sin(np.arange(4800) * 0.06 * (index + 2)),
+                    np.zeros(7000),
+                ]
+            ).astype("<i2")
+            name = f"chunks/{index:04d}.wav"
+            (folder / name).parent.mkdir(parents=True, exist_ok=True)
+            with wave.open(str(folder / name), "wb") as audio:
+                audio.setnchannels(1)
+                audio.setsampwidth(2)
+                audio.setframerate(RATE)
+                audio.writeframes(samples.tobytes())
+            chunk = AudioChunk(Span(index, 0, 5), name, len(samples) / RATE)
+            spoken.append(Spoken(chunk, Pause.CLAUSE, f"Piece {index},", index > 0))
+    return Job(folder, chapters, spoken, BookInfo("Joined Pieces", ("Ada Lovelace",)))
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [ALL, OutputSettings(m4b=False, subtitles=True)],
+    ids=["everything", "mp3-and-subtitles"],
+)
+def test_chapter_by_chapter_with_clause_joins_writes_the_same_bytes(
+    tmp_path: Path, settings: OutputSettings
+) -> None:
+    job = quiet_edged_job(tmp_path / "job")
+    whole = written_whole(job, tmp_path / "whole", settings)
+    writer = by_chapter(job, tmp_path / "parts", settings)
+    writer.finish()
+    # every chunk sits at a join inside its chapter: trimmed on the joined side(s) only,
+    # and a chapter's first chunk keeps its lead, its last chunk its tail
+    for chapter in writer.chapters:
+        assert all(a.kept < a.frames for a in chapter.audio)
+        assert chapter.audio[0].skip_start == 0
+        assert chapter.audio[-1].skip_end == 0
+        assert all(a.skip_start for a in chapter.audio[1:])
+        assert all(a.skip_end for a in chapter.audio[:-1])
     assert hashes(tmp_path / "parts") == whole
 
 
