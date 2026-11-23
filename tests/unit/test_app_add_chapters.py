@@ -18,9 +18,12 @@ from sci2audio.app import (
     JobSettings,
     OutputExistsError,
     SettingsChangedError,
+    job,
     run_audio_job,
 )
 from sci2audio.app.playable import RECORD, read_record
+from sci2audio.core import Content, Document
+from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.output import read_readalong
 
 UNIT = Path(__file__).resolve().parent
@@ -125,6 +128,44 @@ def test_keep_settings_makes_the_new_chapters_with_the_old_settings(tmp_path: Pa
     whole = tmp_path / "whole"
     run(whole, FakeVoice(), (0, 1), settings={"speed": 1.2, "voice": "bm_george"})
     assert files(tmp_path) == files(whole)
+
+
+@pytest.mark.parametrize("given", ["", "en"], ids=["auto", "en"])
+def test_keep_settings_lays_the_document_out_with_the_kept_language(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, given: str
+) -> None:
+    """The layout follows the language (#767): a job that keeps the settings reads the
+    document again when the kept language is not the one it was given."""
+    run(tmp_path, FakeVoice(), (0,), settings={"language": "de"})
+    laid_out: list[tuple[str, str]] = []  # the language asked for, the document's own
+
+    def record(content: Content, settings: LayoutSettings) -> Document:
+        document = build_document(content, settings)
+        laid_out.append((settings.language, document.language))
+        return document
+
+    monkeypatch.setattr(job, "build_document", record)
+    voice = FakeVoice()
+    run(tmp_path, voice, (1,), settings={"language": given}, keep_settings=True)
+    assert laid_out[-1] == ("de", "de")  # the document in use was laid out as kept
+    assert len(laid_out) == 2  # read as given, then again as kept
+    assert voice.texts
+    assert all("Beta" in text for text in voice.texts)
+
+
+def test_keep_settings_reads_the_document_once_when_the_language_is_the_same(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run(tmp_path, FakeVoice(), (0,), settings={"language": "de"})
+    asked: list[str] = []
+
+    def record(content: Content, settings: LayoutSettings) -> Document:
+        asked.append(settings.language)
+        return build_document(content, settings)
+
+    monkeypatch.setattr(job, "build_document", record)
+    run(tmp_path, FakeVoice(), (1,), settings={"language": "de"}, keep_settings=True)
+    assert asked == ["de"]
 
 
 def test_keep_settings_on_a_new_project_uses_the_settings_given(tmp_path: Path) -> None:
