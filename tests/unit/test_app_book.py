@@ -33,7 +33,8 @@ def run(folder: Path, voice: FakeVoice, chapters: tuple[int, ...] = (0, 1, 2), *
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(BOOK, encoding="utf-8", newline="\n")
-    settings = JobSettings(chapters=chapters, output_folder=folder / "out")
+    subtitles = kwargs.pop("subtitles", False)
+    settings = JobSettings(chapters=chapters, output_folder=folder / "out", subtitles=subtitles)
     return run_audio_job(path, settings, folder / "work", voice=voice.source(), **kwargs)
 
 
@@ -204,3 +205,29 @@ def test_a_project_with_no_chapter_made_says_so(tmp_path: Path) -> None:
     (tmp_path / "work").mkdir()
     with pytest.raises(book_module.JobError, match="no chapter"):
         build(tmp_path)
+
+
+def test_a_book_whose_subtitles_were_removed_is_built_again(tmp_path: Path) -> None:
+    run(tmp_path, FakeVoice(), subtitles=True)
+    first = build(tmp_path)
+    pair = [tmp_path / "out" / "book.srt", tmp_path / "out" / "book.vtt"]
+    texts = [p.read_text(encoding="utf-8") for p in pair]
+    assert all(texts)
+    pair[1].unlink()
+    again = build(tmp_path)
+    assert not again.reused
+    assert again.path == first.path
+    assert [p.read_text(encoding="utf-8") for p in pair] == texts
+    assert build(tmp_path).reused  # and current again afterwards
+
+
+def test_a_book_whose_subtitles_were_edited_is_not_taken_as_current(tmp_path: Path) -> None:
+    """An edited subtitle file is no longer the project's: the book is neither reused
+    without it nor written over it (D-163)."""
+    run(tmp_path, FakeVoice(), subtitles=True)
+    build(tmp_path)
+    srt = tmp_path / "out" / "book.srt"
+    srt.write_text("someone edited it", encoding="utf-8")
+    with pytest.raises(OutputExistsError, match=r"book\.srt"):
+        build(tmp_path)
+    assert srt.read_text(encoding="utf-8") == "someone edited it"

@@ -499,22 +499,39 @@ def run_audio_job(
     _check_cancel(cancel)
     with work_folder_lock(work):
         record = read_record(work)
-        if keep_settings:
+
+        def read(settings: JobSettings) -> Document:
+            document = read_document(
+                source,
+                settings,
+                lambda phase: tell(AudioProgress(phase)),
+                pages=lambda page, pages: tell(
+                    AudioProgress(Phase.READING, page=page, pages=pages)
+                ),
+                cancel=cancel,
+            )
+            # a PDF that is mostly glyph numbers is not voiced: nothing is spoken or
+            # written (#442)
+            found = unreadable(document.content)
+            if found is not None and found.stops:
+                raise UnreadableTextError(stop_message(source.name, found))
+            return document
+
+        document = read(settings)
+        # the working folder's record is this book's, or another book's whose files are
+        # its own and whose settings are never this book's (#726)
+        same = record is not None and _same_book(record, book_info(document), out_folder)
+        if keep_settings and same:
+            assert record is not None  # noqa: S101 (same implies a record)
+            given = settings
             settings, output_settings, steps = _kept(record, settings, output_settings, steps)
+            _check_voice_name(settings, voice)
+            if settings.language != given.language:  # the layout follows the language
+                document = read(settings)
+        elif keep_settings:
             _check_voice_name(settings, voice)
         # the person's choice of subtitles is a job setting (D-606); output writes them
         output_settings = replace(output_settings or JOB_OUTPUT, subtitles=settings.subtitles)
-        document = read_document(
-            source,
-            settings,
-            lambda phase: tell(AudioProgress(phase)),
-            pages=lambda page, pages: tell(AudioProgress(Phase.READING, page=page, pages=pages)),
-            cancel=cancel,
-        )
-        # a PDF that is mostly glyph numbers is not voiced: nothing is spoken or written (#442)
-        found = unreadable(document.content)
-        if found is not None and found.stops:
-            raise UnreadableTextError(stop_message(source.name, found))
         # the voice follows the job's language (D-469); its files must be there (D-468)
         voice_id = voice.voice_for(settings.voice, document.language)
         if not voice.installed(voice_id):
@@ -535,7 +552,9 @@ def run_audio_job(
         chosen, _ = selected(find_chapters(document), settings.chapters)
         order = "book" if list(chosen) == sorted(chosen) else "chosen"
         owned = record.owned(out_folder) if record is not None else set()
-        union = _adding(record, owned, key, made, chosen, order, overwrite, keep_settings)
+        union = _adding(
+            record if same else None, owned, key, made, chosen, order, overwrite, keep_settings
+        )
         if union is not None:
             settings = replace(settings, chapters=union)
         tell(AudioProgress(Phase.TEXT_STEPS))
@@ -728,6 +747,21 @@ def _check_voice_name(settings: JobSettings, voice: VoiceSource) -> None:
         raise JobError(f"there is no {voice.engine} voice {settings.voice!r}; choose another voice")
 
 
+def _same_book(record: ChapterRecord, book: BookInfo, out_folder: Path) -> bool:
+    """True if the chapter record is of this book (its title and authors). A version 1
+    record keeps no book details, but its files carry the book's name, as this job's
+    would: `<book> - NN <title>.mp3`, `<book>.readalong.json`, `<book>.m4b`."""
+    if record.made is not None:
+        return list(record.made.get("book", [])[:2]) == [book.title, list(book.authors)]
+    named = audiobook_targets(out_folder, book.title, [book.title], OutputSettings())
+    base = named.readalong.name.removesuffix(".readalong.json")
+    files = [*record.book, *record.pending, *(f for c in record.chapters for f in c.files)]
+    return any(
+        f.name.startswith(f"{base} - ") or f.name in (named.readalong.name, f"{base}.m4b")
+        for f in files
+    )
+
+
 def _kept(
     record: ChapterRecord | None,
     settings: JobSettings,
@@ -784,8 +818,9 @@ def _adding(
     Checked before any speech: made under other settings (SettingsChangedError), made by a
     version that kept no settings, or read in an order the person chose (#119), the
     project is not added to without `overwrite`. With the settings `kept`, what still
-    differs is what keeping cannot bring back (the voice's version). A record of another
-    book adds nothing: that book's files are checked as any other files."""
+    differs is what keeping cannot bring back (the voice's version). `record` is this
+    book's (`_same_book`): another book's adds nothing, and its files are checked as any
+    other files."""
     if overwrite or record is None:
         return None
     generated = {
@@ -798,8 +833,6 @@ def _adding(
             "the chapters made so far were made by an earlier version of sci2audio, which "
             "did not keep their settings; choose to replace them"
         )
-    if record.made.get("book") != made["book"]:
-        return None  # another book in this working folder: its files are its own
     if record.settings != key:
         if kept:
             changes = "; ".join(settings_changes(record.made, made))

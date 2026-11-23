@@ -175,9 +175,9 @@ def test_a_custom_order_project_is_not_extended(tmp_path: Path) -> None:
         run(other, voice, (2, 0))
 
 
-def test_a_version_1_record_reads_and_asks_for_a_choice(tmp_path: Path) -> None:
-    run(tmp_path, FakeVoice(), (0,))
-    path = tmp_path / "work" / RECORD
+def as_version_1(work: Path) -> None:
+    """The working folder's chapter record as #723 (version 1) wrote it."""
+    path = work / RECORD
     data = json.loads(path.read_text(encoding="utf-8"))
     for key in ("order", "made", "built"):
         del data[key]
@@ -185,6 +185,11 @@ def test_a_version_1_record_reads_and_asks_for_a_choice(tmp_path: Path) -> None:
         del chapter["spoken"]
     data["version"] = 1
     path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_a_version_1_record_reads_and_asks_for_a_choice(tmp_path: Path) -> None:
+    run(tmp_path, FakeVoice(), (0,))
+    as_version_1(tmp_path / "work")
     record = read_record(tmp_path / "work")
     assert record is not None
     assert record.version == 1
@@ -272,3 +277,45 @@ def test_another_book_in_the_same_working_folder_is_not_added_to(tmp_path: Path)
     assert voice.texts
     assert all("Delta" in text for text in voice.texts)
     assert "other - 01 Delta.mp3" in mp3s(tmp_path)
+
+
+def other_book(folder: Path) -> Path:
+    path = folder / "in" / "other.md"
+    path.write_text("# Delta\n\nThe chapter Delta starts here.", encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize("keep", [False, True], ids=["plain", "keep-settings"])
+def test_another_books_version_1_record_neither_refuses_nor_lends_its_settings(
+    tmp_path: Path, keep: bool
+) -> None:
+    run(tmp_path, FakeVoice(), (0,), settings={"speed": 1.2})
+    as_version_1(tmp_path / "work")
+    alpha = (tmp_path / "out" / "book - 01 Alpha.mp3").read_bytes()
+    voice = FakeVoice()
+    run_audio_job(
+        other_book(tmp_path),
+        JobSettings(output_folder=tmp_path / "out"),
+        tmp_path / "work",
+        voice=voice.source(),
+        keep_settings=keep,
+    )
+    assert voice.texts
+    assert all("Delta" in text for text in voice.texts)
+    assert {speed for _, _, speed in voice.spoken} == {1.0}
+    assert "other - 01 Delta.mp3" in mp3s(tmp_path)
+    assert (tmp_path / "out" / "book - 01 Alpha.mp3").read_bytes() == alpha
+
+
+def test_keep_settings_never_takes_another_books_settings(tmp_path: Path) -> None:
+    run(tmp_path, FakeVoice(), (0,), settings={"speed": 1.2, "voice": "bm_george"})
+    voice = FakeVoice()
+    run_audio_job(
+        other_book(tmp_path),
+        JobSettings(output_folder=tmp_path / "out"),
+        tmp_path / "work",
+        voice=voice.source(),
+        keep_settings=True,
+    )
+    assert voice.spoken
+    assert {(v, s) for _, v, s in voice.spoken} == {("af_heart", 1.0)}
