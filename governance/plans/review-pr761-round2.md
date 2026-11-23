@@ -28,3 +28,4 @@
 ## Merge
 
 - Squash-merged by this thread on the coordinator's go (D-901), pinned to a839955, after `ledger_tool.py gate 761` said it may be merged and `tests (ubuntu|macos|windows-latest)`, `CI passed` and `governance pr checks` were green on that head: `9f622af7b2e73c53522f428a578bd20ddd8d0261`.
+- Main CI run 45174895872 on 9f622af: `tests (ubuntu-latest)`, `tests (macos-latest)`, `tests (windows-latest)` and `CI passed` all success.

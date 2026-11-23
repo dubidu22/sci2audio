@@ -12,3 +12,4 @@ kinds: ""
 report: plans/review-pr761-round2.md
 merged: 9f622af7b2e73c53522f428a578bd20ddd8d0261
 updated_head: ""
+main_ci: "run 45174895872 on 9f622af: tests ubuntu, macos, windows and CI passed all success"
