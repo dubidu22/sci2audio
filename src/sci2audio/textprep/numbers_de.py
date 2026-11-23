@@ -155,6 +155,14 @@ YEAR_WORDS = frozenset(
 _MAYBE_YEAR_WORDS = frozenset(
     {"seit", "bis", "ab", "um", "von", "zwischen", "im", "anfang", "mitte", "ende"}
 )
+# nouns before a number that make it a year as the words above do, printed with a capital
+# ("Ausgabe 1998", but "er stand 1998"; "Auflage 1500 Exemplare" is a count, #591). Not in
+# YEAR_WORDS, which the citations step reads too
+_EDITION_WORDS = frozenset({"ausgabe", "stand", "fassung", "jahrgang", "auflage"})
+# ... and "Version" only when the number ends the phrase ("(Version 1998)"): "Version 1234
+# läuft" is software's (#591)
+_VERSION = "version"
+_PHRASE_END = re.compile(r"\s*(?:[)\],;:!?]|\.(?!\d)|\Z)")
 # "zwischen 1990 und 1995": a number joined on to a year is a year too
 _DIGIT_BEFORE = re.compile(r"\d\s*\Z")
 # a "bis" a range made: after a number, or after "Uhr" ("13 Uhr–1234")
@@ -184,7 +192,8 @@ def _is_year(text: str, start: int, end: int, years: list[tuple[int, int]]) -> b
     word = previous["word"].lower()
     if word in YEAR_WORDS:
         return True
-    if word not in _MAYBE_YEAR_WORDS or previous["dot"]:
+    edition = previous["word"][0].isupper() and word in _EDITION_WORDS | {_VERSION}
+    if not (edition or word in _MAYBE_YEAR_WORDS) or previous["dot"]:
         return False
     if word == "bis" and _RANGE_BEFORE.search(before, 0, previous.start()):
         return False  # "1 bis 1234": a range ("1–1234" on the first run), not "bis 1998"
@@ -192,6 +201,8 @@ def _is_year(text: str, start: int, end: int, years: list[tuple[int, int]]) -> b
     # decides for the whole run, as on a second run, where "1234 und" has no year before it
     while joined_next := _JOINED_NEXT.match(text, end):
         end = joined_next.end()
+    if word == _VERSION:
+        return _PHRASE_END.match(text, end) is not None
     if unit_follows(text, end, "de"):
         return False  # "seit 1998 %": the units step's ("1998 Prozent", a capital after it)
     following = _NEXT_WORD.match(text, end)

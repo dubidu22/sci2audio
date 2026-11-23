@@ -2813,3 +2813,64 @@ expected = [
     "Wir danken Müller hier.",
     "Es regnet und zeigt es.",
 ]
+
+# ---- #594, #249, #591 German number readings ------------------------------------------------
+
+[[case]]
+id = "de-time-with-uhr-on-the-next-line-reads-uhr-once"
+audit = 0
+issue = 594
+goal = "Eine Uhrzeit, deren 'Uhr' nach einem Zeilenumbruch oder Tabulator steht, liest 'Uhr' einmal ('13 Uhr 30'), in beiden Läufen; ein Datum danach bleibt 'dritter Mai'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Sitzung beginnt um 13:30\nUhr 3. Mai im Hörsaal." },
+    { kind = "paragraph", text = "Die Pause beginnt um 15:45\tUhr im Foyer." },
+    { kind = "paragraph", text = "Das Ende ist um 17:30 Uhr." },
+]
+expected = [
+    "Die Sitzung beginnt um 13 Uhr 30 dritter Mai im Hörsaal.",
+    "Die Pause beginnt um 15 Uhr 45 im Foyer.",
+    "Das Ende ist um 17 Uhr 30.",
+]
+
+[[case]]
+id = "de-dotted-labels-read-punkt-in-utterances"
+audit = 0
+issue = 249
+goal = "Eine Formel '(3.2)', eine Tabelle 'Tabelle 2.1' und 'Abschnitt 3.2' im Text lesen den Punkt als 'Punkt', in Hinweis, Bildunterschrift und Äußerungen, in beiden Läufen; unverändert spräche die Stimme 'drei.zwei'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Abschnitt 3.2 zeigt die Werte." },
+    { kind = "formula", text = "a = b (3.2)", label = "3.2" },
+    { kind = "caption", text = "Tabelle 2.1: Mittelwerte.", label = "Tabelle 2.1", describes = 3 },
+    { kind = "table", text = "a b" },
+]
+expected = [
+    "Abschnitt 3 Punkt 2 zeigt die Werte.",
+    "Formel 3 Punkt 2 wird übersprungen.",
+    "Tabelle 2 Punkt 1: Mittelwerte.",
+    "Tabelle 2 Punkt 1 wird übersprungen.",
+]
+utterances = [
+    "Abschnitt 3 Punkt 2 zeigt die Werte.",
+    "Formel 3 Punkt 2 wird übersprungen.",
+    "Tabelle 2 Punkt 1: Mittelwerte.",
+    "Tabelle 2 Punkt 1 wird übersprungen.",
+]
+
+[[case]]
+id = "de-year-after-an-edition-word-reads-in-hundreds"
+audit = 0
+issue = 591
+goal = "Ein Jahr von 1100 bis 1999 nach 'Ausgabe', 'Stand', 'Fassung', 'Jahrgang', 'Auflage' oder 'Version' wird in Hunderten gelesen ('19 hundert 98'), in beiden Läufen; folgt ein Nomen ('1500 Exemplare', '1500 Punkte') oder nach 'Version' ein weiteres Wort ('Version 1234 läuft'), bleibt es eine Anzahl. Unverändert spräche die Stimme 'tausendneunhundertachtundneunzig'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Bericht (Ausgabe 1998), die Norm (Stand 1998) und das Gesetz (Fassung 1998) gelten." },
+    { kind = "paragraph", text = "Der Jahrgang 1998 und die Auflage 1985 erschienen, die Software (Version 1998) auch." },
+    { kind = "paragraph", text = "Die Auflage 1500 Exemplare, der Stand 1500 Punkte und Version 1234 läuft." },
+]
+expected = [
+    "Der Bericht (Ausgabe 19 hundert 98), die Norm (Stand 19 hundert 98) und das Gesetz (Fassung 19 hundert 98) gelten.",
+    "Der Jahrgang 19 hundert 98 und die Auflage 19 hundert 85 erschienen, die Software (Version 19 hundert 98) auch.",
+    "Die Auflage 1500 Exemplare, der Stand 1500 Punkte und Version 1234 läuft.",
+]

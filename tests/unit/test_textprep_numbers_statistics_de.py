@@ -625,6 +625,34 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
 @pytest.mark.parametrize(
     ("printed", "said"),
     [
+        ("(Ausgabe 1998)", "(Ausgabe 19 hundert 98)"),
+        ("(Stand 1998)", "(Stand 19 hundert 98)"),
+        ("(Fassung 1998)", "(Fassung 19 hundert 98)"),
+        ("der Jahrgang 1998 ist", "der Jahrgang 19 hundert 98 ist"),
+        ("die Auflage 1985 erschien", "die Auflage 19 hundert 85 erschien"),
+        ("Ausgabe 1990 und 1995 erschienen", "Ausgabe 19 hundert 90 und 19 hundert 95 erschienen"),
+        ("(Version 1998)", "(Version 19 hundert 98)"),
+        ("in Version 1998.", "in Version 19 hundert 98."),
+        # a count: a noun or a unit follows, or any word after "Version" (software)
+        ("Auflage 1500 Exemplare", "Auflage 1500 Exemplare"),
+        ("Stand 1500 Punkte", "Stand 1500 Punkte"),
+        ("Ausgabe 1500 m", "Ausgabe 1500 Meter"),
+        ("Version 1234 läuft", "Version 1234 läuft"),
+        ("Version 1234 von", "Version 1234 von"),
+        # the verb "stand" is no edition word; a year outside 1100 to 1999 is left alone
+        ("er stand 1500 dort", "er stand 1500 dort"),
+        ("(Ausgabe 2018)", "(Ausgabe 2018)"),
+    ],
+)
+def test_a_year_after_an_edition_word(printed: str, said: str) -> None:
+    """#591: after "Ausgabe", "Stand", "Fassung", "Jahrgang", "Auflage" or "Version"."""
+    assert read_all(printed) == said
+    assert read_all(said) == said
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
         # #303 (D-562): a dotted date glued to "-" and a digit stays as printed on both runs
         ("Es lief am 3.4.2019-03-12 gut.", "Es lief am 3.4.2019-03-12 gut."),
         ("1–1am 3.4.2019-03-12", "1 bis 1am 3.4.2019-03-12"),
