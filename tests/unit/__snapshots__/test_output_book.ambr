@@ -1,0 +1,63 @@
+# serializer version: 1
+# name: test_the_chapter_marks_and_tags_of_the_book_files
+  dict({
+    'm4b': dict({
+      'chapters': list([
+        tuple(
+          0,
+          2600,
+          'Introduction',
+        ),
+        tuple(
+          2600,
+          4750,
+          'Methods; data = 1 # 2',
+        ),
+        tuple(
+          4750,
+          8050,
+          'Results',
+        ),
+      ]),
+      'tags': dict({
+        'album': 'A Study of Tones',
+        'artist': 'Ada Lovelace; Alan Turing',
+        'comment': 'AI-generated audio: text-to-speech made with sci2audio <version>.',
+        'genre': 'Audiobook',
+        'title': 'A Study of Tones',
+      }),
+    }),
+    'mp3': dict({
+      'chapters': list([
+        tuple(
+          0,
+          2600,
+          'Introduction',
+        ),
+        tuple(
+          2600,
+          4750,
+          'Methods; data = 1 # 2',
+        ),
+        tuple(
+          4750,
+          8050,
+          'Results',
+        ),
+      ]),
+      'tags': dict({
+        'album': 'A Study of Tones',
+        'artist': 'Ada Lovelace; Alan Turing',
+        'comment': 'AI-generated audio: text-to-speech made with sci2audio <version>.',
+        'genre': 'Audiobook',
+        'language': 'eng',
+        'title': 'A Study of Tones',
+      }),
+      'toc': list([
+        'ch0',
+        'ch1',
+        'ch2',
+      ]),
+    }),
+  })
+# ---
