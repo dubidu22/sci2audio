@@ -1,7 +1,7 @@
 # Extract for implementation threads. Generated with claude-project-rules.yaml; do not edit.
 # It holds the rules scoped to this role or to all. If it and the full file ever differ, the full file wins.
 extract_for: implementation
-version: 1.14.0
+version: 1.15.0
 date: 2026-11-23
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
@@ -190,4 +190,4 @@ rules:
     rule: "Release: R1 sets version, CHANGELOG and README on release/X.Y; R2 is the release-day PR with Colin's hand-step results and the changelog date; R3 forward-merges release/X.Y into main after the tag, then the milestone closes. The release-checklist runs (ZAP, nightly, mutation) run on the release branch (D-669, D-714). Enforced by: docs/release-checklist.md."
   - id: PREF-01
     applies_to: all
-    rule: "Report times to Colin in Europe/Berlin. Terminal commands for Colin carry no comments inside the code block; explanations go beside it. For a decision the coordinator would otherwise put to Colin, or a real open choice in a critical plan, the coordinator first asks one advisor thread on Fable 5.1 medium effort for a second opinion: it reads only, writes no files, answers once, and the D-entry quotes its verdict."
+    rule: "Report times to Colin in Europe/Berlin. Terminal commands for Colin carry no comments inside the code block; explanations go beside it."

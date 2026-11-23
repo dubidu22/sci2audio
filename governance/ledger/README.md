@@ -6,7 +6,9 @@ edit the same file. Nobody maintains a table by hand; print one when needed:
 
     python3 tools/ledger_tool.py table      # PRs and rounds as tables
     python3 tools/ledger_tool.py stats      # rounds per PR, compactions per PR, PRs per thread
-    python3 tools/ledger_tool.py check      # entries with missing or malformed fields
+    python3 tools/ledger_tool.py check      # entries with missing or malformed fields, merges no entry records,
+                                            # deferrals without a deferred/ entry; needs `git fetch origin main
+                                            # 'release/*'` first, or --subjects FILE, and exits 2 without them
     python3 tools/ledger_tool.py gate 12    # may PR 12 be merged? (run before every merge, MRG-01)
                                             # add --head <sha> when an owner override exists and no round is recorded
     python3 tools/ledger_tool.py approved 12 --head <full sha>
@@ -43,7 +45,9 @@ handback: ""                  # the first word of the thread's last report when 
                               # review | handoff (THR-15). question, blocked and review stop the merge gate
 recommended: ""               # with question or blocked: the one next action the thread proposes
 merged: ""                    # the merge commit SHA, only when no round records the merge (an owner override,
-                              # a merge by hand); written by whoever records that merge
+                              # a merge by hand); written by whoever records that merge. It starts with the
+                              # SHA ("3fb4d1b (squash, 2026-11-22)"): `check` fails on a PR whose squash
+                              # subject on main or release/* ends with (#N) while no entry records it
 ```
 
 `rounds/pr<N>-round<K>.yaml`:
@@ -58,6 +62,8 @@ critical: no                  # round 1: the reviewer's own finding from the dif
 verdict: changes_requested    # approved | changes_requested
 must_fix: 2                   # open B/M findings after this round
 should_fix: 1
+deferred: 0                   # findings of this or earlier rounds this round sets aside instead of fixing;
+                              # each needs a deferred/pr<N>-<k>.yaml. Required from PR 760 on (D-891 F2)
 kinds: "timer-workaround, missing-test"   # a short name per kind of finding, reused across PRs (REV-05);
                               # use narrating-comment and unsolicited-file for PR-05 findings
 report: plans/review-pr12-round1.md
@@ -116,8 +122,10 @@ reason: ""                    # postponed and dropped: why
 by: ""                        # dropped: the owner, and where they said it
 ```
 
-`triage` lists every entry that is still `open` and every merged PR whose
-last round left more should-fix findings than there are entries. It exits 1
+`triage` lists every entry that is still `open`, every merged PR whose
+last round left more should-fix findings than there are entries, and every
+PR whose rounds' `deferred` add up to more than its entries; `check` fails
+on that last case too. It exits 1
 while anything is listed, and no batch starts then. Planning and postponing
 are the coordinator's call, and so is `fixed` when the commit is named;
 dropping is the owner's. Merges dated before the

@@ -5,6 +5,7 @@ starts on an unproved claim (THR-16)."""
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -246,3 +247,184 @@ def test_the_ledger_readme_documents_the_d882_formats() -> None:
         "it counts only a full 40-character SHA",
     ):
         assert fragment in text, fragment
+
+
+# D-891 F1: #741 and #721 were merged by hand and their entries kept `merged: ""`, so `stats`
+# and `status` counted them as open. The squash subjects on main and release/* know better.
+def merged_rounds(pr_number: str, **fields: str) -> dict[str, str]:
+    return {
+        "pr": pr_number,
+        "round": "1",
+        "date": "2026-11-23",
+        "thread": "review-1",
+        "head": HEAD,
+        "critical": "no",
+        "verdict": "approved",
+        "must_fix": "0",
+        "should_fix": "0",
+        "deferred": "0",
+        "report": "plans/review.md",
+        **fields,
+        "_file": f"pr{pr_number}-round1.yaml",
+    }
+
+
+def ledger_pr(number: str, **fields: str) -> dict[str, str]:
+    base = {"pr": number, "opened": "2026-11-22", "thread": "impl-1", "lane": "infra"}
+    return {
+        **base,
+        "labels": "lane:infra",
+        "critical": "no",
+        "compactions": "0",
+        **fields,
+        "_file": f"pr-{number}.yaml",
+    }
+
+
+def merge_problems(prs, rounds, subjects) -> list[str]:
+    numbers = LEDGER_TOOL.squash_numbers(subjects)
+    return [p for p in LEDGER_TOOL.problems(prs, rounds, merged_numbers=numbers) if "squash" in p]
+
+
+def test_check_fails_on_a_merged_pr_whose_entry_records_no_merge() -> None:
+    found = merge_problems(
+        [ledger_pr("741", merged="")], [], ["governance: pin the ruleset (#741)"]
+    )
+    assert len(found) == 1
+    assert found[0].startswith("prs/pr-741.yaml: PR #741 is merged")
+
+
+def test_check_passes_when_the_merge_is_recorded() -> None:
+    subjects = ["governance: pin the ruleset (#741)", "voices: a fix (#744) (#753)"]
+    in_pr = ledger_pr("741", merged="3fb4d1b (squash, 2026-11-22)")
+    in_round = ledger_pr("753")
+    rounds = [merged_rounds("753", merged="8965914")]
+    assert merge_problems([in_pr, in_round], rounds, subjects) == []
+
+
+def test_check_takes_the_last_number_of_a_squash_subject() -> None:
+    assert LEDGER_TOOL.squash_numbers(["voices: a fix (#744) (#753)"]) == {"753"}
+    assert merge_problems([ledger_pr("744")], [], ["voices: a fix (#744) (#753)"]) == []
+    other = ["Merge branch 'release/1.4' into main", "docs: (#12) note"]
+    assert LEDGER_TOOL.squash_numbers(other) == set()
+
+
+def test_check_counts_a_squash_subject_on_a_release_branch(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    ledger = repo / "ledger"
+    (ledger / "prs").mkdir(parents=True)
+    (ledger / "rounds").mkdir()
+    (ledger / "prs" / "pr-721.yaml").write_text(
+        "pr: 721\nopened: 2026-11-21\nthread: impl-1\nlane: release\nlabels: lane:app\n"
+        'critical: no\ncompactions: 0\nmerged: ""\n',
+        encoding="utf-8",
+    )
+
+    git_exe = shutil.which("git")
+    assert git_exe is not None
+
+    def git(*args: str) -> None:
+        subprocess.run(
+            [git_exe, "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+        )
+
+    git("init", "-q", "-b", "main")
+    git("commit", "-q", "--allow-empty", "-m", "start")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    git("commit", "-q", "--allow-empty", "-m", "release: R1 for 1.4 (#721)")
+    git("update-ref", "refs/remotes/origin/release/1.4", "HEAD")
+    result = run_check("--ledger", str(ledger))
+    assert result.returncode == 1
+    assert "prs/pr-721.yaml: PR #721 is merged" in result.stdout
+
+
+def run_check(*args: str) -> subprocess.CompletedProcess[str]:
+    tool = ROOT / "governance" / "tools" / "ledger_tool.py"
+    return subprocess.run(
+        [sys.executable, str(tool), "check", *args], capture_output=True, text=True, check=False
+    )
+
+
+def test_check_exits_2_when_the_subjects_cannot_be_read(tmp_path: Path) -> None:
+    ledger = tmp_path / "ledger"
+    (ledger / "prs").mkdir(parents=True)
+    (ledger / "rounds").mkdir()
+    result = run_check("--ledger", str(ledger))
+    assert result.returncode == 2
+    assert "--subjects" in result.stderr
+    subjects = tmp_path / "subjects.txt"
+    subjects.write_text("docs: a note (#3)\n", encoding="utf-8")
+    assert run_check("--ledger", str(ledger), "--subjects", str(subjects)).returncode == 0
+    missing = run_check("--ledger", str(ledger), "--subjects", str(tmp_path / "none.txt"))
+    assert missing.returncode == 2
+
+
+# D-891 F2: #745's approving round set S4 aside with `should_fix: 0`, so nothing in the ledger
+# said a deferred/ entry was owed. `deferred` counts what a round sets aside.
+NEW = str(LEDGER_TOOL.DEFERRED_FROM_PR)
+
+
+def deferred_entry(pr_number: str, k: int) -> dict[str, str]:
+    return {
+        "pr": pr_number,
+        "date": "2026-11-23",
+        "what": f"S{k}: left for later",
+        "decision": "planned",
+        "issue": "#747",
+        "_file": f"pr{pr_number}-{k}.yaml",
+    }
+
+
+def deferral_problems(rounds, deferred) -> list[str]:
+    prs = [ledger_pr(r["pr"]) for r in rounds]
+    return [
+        p
+        for p in LEDGER_TOOL.problems(prs, rounds, deferred=deferred, merged_numbers=set())
+        if "deferred" in p
+    ]
+
+
+def test_check_fails_when_fewer_deferred_files_than_the_rounds_defer() -> None:
+    rounds = [
+        merged_rounds(NEW, deferred="1"),
+        {**merged_rounds(NEW, round="2", deferred="1"), "_file": f"pr{NEW}-round2.yaml"},
+    ]
+    found = deferral_problems(rounds, [deferred_entry(NEW, 1)])
+    assert found == [
+        f"PR #{NEW}: its rounds set aside 2 finding(s) (`deferred`), deferred/ holds 1 entry for it"
+    ]
+
+
+def test_check_passes_when_every_deferral_has_a_file() -> None:
+    rounds = [merged_rounds(NEW, deferred="2")]
+    assert deferral_problems(rounds, [deferred_entry(NEW, 1), deferred_entry(NEW, 2)]) == []
+
+
+def test_a_new_round_entry_without_deferred_fails() -> None:
+    entry_ = merged_rounds(NEW)
+    del entry_["deferred"]
+    assert deferral_problems([entry_], []) == [f"rounds/pr{NEW}-round1.yaml: `deferred` is missing"]
+
+
+def test_an_old_round_entry_without_deferred_passes() -> None:
+    old = str(LEDGER_TOOL.DEFERRED_FROM_PR - 1)
+    entry_ = merged_rounds(old)
+    del entry_["deferred"]
+    assert deferral_problems([entry_], []) == []
+
+
+def test_deferred_must_be_a_whole_number() -> None:
+    assert deferral_problems([merged_rounds(NEW, deferred="one")], []) == [
+        f"rounds/pr{NEW}-round1.yaml: `deferred` must be a whole number, got 'one'"
+    ]
+
+
+def test_triage_lists_a_round_that_deferred_without_a_file() -> None:
+    todo, _ = LEDGER_TOOL.triage([merged_rounds(NEW, deferred="1", merged="abc1234")], [], "")
+    assert todo == [
+        f"PR #{NEW}: its rounds set aside 1 finding(s) (`deferred`), 0 recorded in deferred/: "
+        "write one entry per finding from plans/review.md"
+    ]
