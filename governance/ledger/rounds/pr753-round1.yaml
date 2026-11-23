@@ -9,5 +9,5 @@ must_fix: 0
 should_fix: 0
 kinds: ""
 report: plans/review-pr753-round1.md
-merged: ""
+merged: 8965914ec63de5cb814a3fa36c35b179f3dc3531
 updated_head: ""

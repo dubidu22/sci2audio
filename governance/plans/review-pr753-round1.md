@@ -24,3 +24,8 @@
 - Goal: review round 1 of #753.
 - Done: diff, tests, acceptance criteria and the three-system run checked at dae7c19; approved.
 - Next: the merge go (`ledger/gos/pr-753.yaml`, or the dispatcher's go for a non-critical PR per MRG-01); then this thread runs `ledger_tool.py gate 753` and squash-merges pinned to dae7c19.
+
+## Merge
+
+- Squash-merged by this thread (review-b005) on the coordinator's go (D-898), pinned to dae7c19, after `ledger_tool.py gate 753` said it may be merged and `CI passed` and `governance pr checks` were green on that head: `8965914ec63de5cb814a3fa36c35b179f3dc3531`. No branch update was needed.
+- N1: closing note on #744 (issuecomment-7098266470). N2: Issue #755 (lane:voices, risk:low, milestone Later).
