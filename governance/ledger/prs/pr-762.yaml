@@ -2,12 +2,12 @@ pr: 762
 opened: 2026-11-23
 thread: impl-725b
 lane: output
-labels: "risk:high, lane:output, ci:full"
+labels: "risk:high, lane:output"
 plan: plans/impl-725-plan.md
 critical: yes
 compactions: 0
-fixes_kinds: ""
+fixes_kinds: "test"
 handback: "done"
 recommended: ""
-note: "PR 1 of #725/#726 (D-903): write_book_file (M4B byte-identical to finish, MP3 with ID3 CHAP/CTOC), BookWriter/audiobook_targets numbers+count (defaults unchanged), book_file_name, BookKind; new snapshot test_output_book.ambr; characterisation 67ecab6 first; bundled ffmpeg writes CHAP/CTOC on Linux, ci:full settles macOS/Windows; fast 7822 passed locally (1 torch-only error, torch not installable here); title fixed to one issue number (PR-01); ci:full run 45178892989 green on ubuntu, macos, windows at bc5b481ebf6adf4b6303dd30ef0ebb8200e4f91f (MP3 CHAP/CTOC test passes on all three); ci:full label removed; governance check red only on the review-round gate (MRG-01)"
+note: "PR 1 of #725/#726 (D-903): write_book_file (M4B byte-identical to finish, MP3 with ID3 CHAP/CTOC), BookWriter/audiobook_targets numbers+count (defaults unchanged), book_file_name, BookKind; new snapshot test_output_book.ambr; characterisation 67ecab6 first; bundled ffmpeg writes CHAP/CTOC on Linux, ci:full settles macOS/Windows; fast 7822 passed locally (1 torch-only error, torch not installable here); title fixed to one issue number (PR-01); ci:full run 45178892989 green on ubuntu, macos, windows at bc5b481ebf6adf4b6303dd30ef0ebb8200e4f91f (MP3 CHAP/CTOC test passes on all three); ci:full label removed; governance check red only on the review-round gate (MRG-01); round 1 (B1): fix 3041d5d moved quiet_edged_job and a new assert_joins_trim into tests/unit/output_helpers.py, book byte test on edge-silent chunks with a cover, proven to fail with the join trim removed; 16b6e7a drops review tags from a docstring (test_review_tags); ci:full run 45202299756 green on ubuntu, macos, windows at 16b6e7ae64ecd37bc39234dd7422c4587536c84a; ci:full label removed again"
 merged: ""
