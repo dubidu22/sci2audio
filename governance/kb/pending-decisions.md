@@ -144,3 +144,13 @@ Merge go for #764 (#724, lane:web plus lane:app, critical), pinned to 9d38cec.
 - WebKit (report-only): two tests each failed once and passed on the rerun and on main's nightly. That is not a second failure, so D-374 does not apply. `test_joined` stays on watch.
 - Review note N2: `book_key` includes `planned`, which matters for #726 (PR 4 of D-903).
 - After this merge, PR 2 of D-903 can start.
+Outcome: #764 merged as eab9fb2; main CI 45202066107 green on three systems.
+
+## D-906 (2026-11-23, coordinator)
+
+Merge go for #762 (PR 1 of D-903, lane:output, critical), pinned to 16b6e7a.
+- Round 1 found 1 must-fix: a book byte test that could not fail, the same kind as #754's M1.
+- The META-03 step for that repeat: `quiet_edged_job` and `assert_joins_trim` are now shared in `tests/unit/output_helpers.py`.
+- Round 2 approved with 0 must-fix. ci:full run 45202299756 is green.
+- The merge waits until impl-725b fixes `prs/pr-762.yaml` (`fixes_kinds: vacuous-test`, `handback: done`) and the gate passes.
+- Note: the flaky-watch line in `project-state.yaml` (889257c) was written by a worker thread after the coordinator's request was relayed. The content is right, but the file's writer is the coordinator (META-02); later edits stay with the coordinator.
