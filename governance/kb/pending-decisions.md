@@ -130,3 +130,8 @@ Plan impl-725 (`plans/impl-725-plan.md`, fd1fd5c, #725 and #726) is approved as 
 Choice 4.1, as recommended: a chapter's number comes from its place among the book's speakable chapters, not among the chosen ones. Chapters added later then need no renaming or re-encoding. A full-book export stays byte-identical. The only golden change is the MP3 track total of a partial run (n/12 becomes n/13). This is a technical choice that serves #726's accepted criteria, not new scope. The PR shows the snapshot diff and explains it.
 
 No code is written until #724 merges (D-902). If the wait goes past the cache window, a fresh thread codes from the plan's handoff (THR-07).
+Amended (2026-11-23T12:42Z): PR 1 (lane:output) shares no file with #724, so it started at once as #762 (impl-725b). PR 2 onward waits for #724.
+
+## D-904 (2026-11-23, coordinator)
+
+The plan-promised test `tests/unit/test_app_audio_chapters.py::test_the_laid_out_document_is_written_before_the_first_chapter_is_spoken` (impl-724 plan, D-902) is renamed to `..._is_playable` in #764 (PLAN-01). The promise is unchanged. `document.json` is written where the records are cleared, which is before the first chapter is playable. "Spoken" named the wrong moment. The governance check of promised tests reads the new name, and the plan notes the rename.
