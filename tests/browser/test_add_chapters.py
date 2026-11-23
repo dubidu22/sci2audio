@@ -40,7 +40,7 @@ def first_chapter_only(page: Page, live: Live) -> str:
     return document
 
 
-def test_generate_the_remaining_chapters_and_listen_while_they_are_made(
+def test_generate_a_chapter_from_the_project_page_and_listen_while_it_is_made(
     signed_in: Page, live: Live
 ) -> None:
     page = signed_in
