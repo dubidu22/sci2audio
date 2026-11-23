@@ -187,3 +187,4 @@ Took over 2026-11-23T06:44Z on the coordinator's `handover done` (D-887); only w
 - #749 head bdc8247: ci:full run 45124663555 green (tests on ubuntu, macos, windows succeeded); `governance pr checks` red only for the missing approving round (1.13.0 rule); `ledger_tool.py gate 749`: no review round recorded.
 - Critical review round 1 of #749 starts as subagent review-b004-d (Opus, high, own worktree) at 06:45Z.
 - 07:30Z: review-b004-d stopped at its first line on an API network error (ENOTFOUND), nothing written; resumed from its transcript.
+- 2026-11-23T07:33:38Z: stopped by CMD-05 (D-888); #749 round 1 not finished, restart it from the top on head bdc8247
