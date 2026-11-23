@@ -20,6 +20,12 @@ A paragraph goes on across a column or page break when its last line fills the c
 the next column starts with a line in the same style that is not indented. Figures and
 furniture met while a paragraph is open wait until it closes, and so does text that
 interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float.
+A listing starts a block of its own (#599): a line set wholly in a typewriter font, after a
+line of the paragraph that is not, with another such line right under it on the line
+pitch, ends the paragraph, so code printed right under a full line is not read as prose.
+A single such line is the paragraph's: a code name wrapped onto a line of its own, with
+prose or more white under it (a caption's last line, #603). Links are no listing, and in a
+document set mostly in a typewriter font (a typed memo) nothing is.
 """
 
 from __future__ import annotations
@@ -31,6 +37,7 @@ from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
 from sci2audio.layout.captions import opens_caption
+from sci2audio.layout.code import monospace_line, only_links, typewritten
 from sci2audio.layout.geometry import (
     Bars,
     boxed,
@@ -387,6 +394,7 @@ class Paragraphs:
         rows = [unit for unit in units if isinstance(unit, Row)]
         self.pitch = _pitch(rows, settings) or settings.line_pitch
         self.body = _body_size(rows)
+        self.typed = typewritten(piece for row in rows for piece in row.pieces)
         self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
         self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
 
@@ -549,11 +557,31 @@ class Paragraphs:
             return False
         if not _split_word(last, next_row) and self._breaks(rows, next_row):
             return False  # (a paragraph does not end inside a word)
+        if self._listing(last, next_row):
+            return False
         return (
             not spacing
             or not _below(last, next_row, self.settings)
             or self._close_by(last, next_row)
         )
+
+    def _listing(self, last: Row, row: Row) -> bool:
+        """True if a listing starts at the row (#599): it is set wholly in a typewriter font
+        and the paragraph's last row is not, and another such row stands right under it. A
+        lone such row is the paragraph's (a code name wrapped onto a line of its own, #603),
+        and so are links and any row of a typed document."""
+        if self.typed or not self._monospace(row) or self._monospace(last):
+            return False
+        after = self.later.get(id(row))
+        return (
+            after is not None
+            and self._stacked(row, after)
+            and self._monospace(after)
+            and not only_links(f"{row.text}\n{after.text}")
+        )
+
+    def _monospace(self, row: Row) -> bool:
+        return all(monospace_line(piece, self.body) for piece in row.pieces)
 
     def _breaks(self, rows: list[Row], next_row: Row) -> bool:
         """True if a change of weight, a short line, an indent or an outdent ends the
