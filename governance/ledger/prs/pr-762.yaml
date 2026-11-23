@@ -1,0 +1,13 @@
+pr: 762
+opened: 2026-11-23
+thread: impl-725b
+lane: output
+labels: "risk:high, lane:output, ci:full"
+plan: plans/impl-725-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "PR 1 of #725/#726 (D-903): write_book_file (M4B byte-identical to finish, MP3 with ID3 CHAP/CTOC), BookWriter/audiobook_targets numbers+count (defaults unchanged), book_file_name, BookKind; new snapshot test_output_book.ambr; characterisation 67ecab6 first; bundled ffmpeg writes CHAP/CTOC on Linux, ci:full settles macOS/Windows; fast 7822 passed locally (1 torch-only error, torch not installable here)"
+merged: ""
