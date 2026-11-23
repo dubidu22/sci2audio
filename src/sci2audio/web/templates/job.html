@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}{{ job.title }} · {{ t('common.app') }}{% endblock %}
 {% block main %}
 {#- The job page of the jobs that are not an audiobook (#391): the voice download, a preview,
-    an analysis. An audiobook job is shown on its document's Prepare page. -#}
+    an analysis, the whole audiobook built as one file (#725). An audiobook job is shown on
+    its document's Prepare page. -#}
 <div class="view-head"><h1 id="job-title" tabindex="-1">{{ job.title }}</h1></div>
 <div id="job" class="panel" data-id="{{ job.id }}" data-kind="{{ job.kind }}" data-state="{{ job.state }}"
      data-document="{{ job.document or '' }}"
@@ -28,6 +30,18 @@
 <h2 id="result" tabindex="-1">{{ t('setup.installed') }}</h2>
 {% endif %}
 
+{% if job.state == 'done' and job.kind == 'book' %}
+<h2 id="result" tabindex="-1">{{ t('book.ready') }}</h2>
+{% if job.progress.partial %}
+<p id="book-partial-note">{{ t('book.partial_note') }}</p>
+<ul class="book-left">{% for title in job.progress.missing + job.progress.unavailable %}<li>{{ title }}</li>{% endfor %}</ul>
+{% endif %}
+{% for file in job.files %}
+<p class="buttons"><a class="btn primary" id="book-save" href="/api/v1/documents/{{ job.document }}/audiobook/{{ file.name | urlencode }}?download=true" download>{{ icon('download', 's') }}<span>{{ t('job.download', name=file.name, size=size_text(file.size)) }}</span></a></p>
+<p>{{ t('book.folder', folder=file.folder) }}</p>
+{% endfor %}
+{% endif %}
+
 {% if job.state == 'failed' %}
 <h2 id="result" tabindex="-1">{{ t('job.failed', reason=job.failure.reason) }}</h2>
 {% if job.failure.details %}<p>{{ t('common.details') }} <span lang="en">{{ job.failure.details }}</span></p>{% endif %}
@@ -36,6 +50,7 @@
 <h2 id="result" tabindex="-1">{{ t('job.cancelled') }}</h2>
 {% endif %}
 
-{% if document %}<p><a href="/documents/{{ document.id }}">{{ t('job.back') }}</a></p>{% endif %}
+{% if document and job.kind == 'book' %}<p><a href="/documents/{{ document.id }}/listen">{{ t('book.back') }}</a></p>
+{% elif document %}<p><a href="/documents/{{ document.id }}">{{ t('job.back') }}</a></p>{% endif %}
 </div>
 {% endblock %}

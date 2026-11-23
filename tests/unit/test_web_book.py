@@ -103,7 +103,8 @@ def test_a_book_job_builds_the_file_and_the_download_serves_it(tmp_path: Path) -
     assert got.content == (folder / name).read_bytes()
 
     mp3 = built(client, doc["id"], kind="mp3")["progress"]["name"]
-    assert mp3.endswith(".mp3") and mp3 != name
+    assert mp3.endswith(".mp3")
+    assert mp3 != name
     got = client.get(f"/api/v1/documents/{doc['id']}/audiobook/{mp3}")
     assert got.status_code == 200
     assert got.headers["content-type"] == "audio/mpeg"
@@ -111,7 +112,7 @@ def test_a_book_job_builds_the_file_and_the_download_serves_it(tmp_path: Path) -
 
 
 def test_a_current_build_is_served_without_a_job(tmp_path: Path) -> None:
-    app, client, config = server(tmp_path)
+    _, client, config = server(tmp_path)
     doc = made(client)
     name = built(client, doc["id"])["progress"]["name"]
     jobs = len(client.get("/api/v1/jobs").json())
@@ -136,10 +137,15 @@ def test_a_current_build_is_served_without_a_job(tmp_path: Path) -> None:
 def test_missing_chapters_answer_409_unless_partial_is_asked(tmp_path: Path) -> None:
     _, client, config = server(tmp_path)
     doc = upload(client, paper_bytes())
-    assert wait(
-        client,
-        client.post("/api/v1/jobs", json={"kind": "script", "document": doc["id"]}).json()["id"],
-    )["state"] == "done"
+    assert (
+        wait(
+            client,
+            client.post("/api/v1/jobs", json={"kind": "script", "document": doc["id"]}).json()[
+                "id"
+            ],
+        )["state"]
+        == "done"
+    )
     titles = [c["title"] for c in client.get(f"/api/v1/documents/{doc['id']}/chapters").json()]
     assert titles[:2] == ["Introduction", "Methods"]  # the default leaves out the references
     gate, reached = threading.Event(), threading.Event()
@@ -231,7 +237,8 @@ def test_a_book_job_can_be_cancelled(tmp_path: Path) -> None:
     assert not any(".partial" in p.name for p in folder.iterdir())
     work = app.state.sci2audio.store.get(doc["id"]).folder
     record = read_record(work)
-    assert record is not None and record.built == ()
+    assert record is not None
+    assert record.built == ()
 
 
 def test_removing_the_project_removes_the_built_file(tmp_path: Path) -> None:

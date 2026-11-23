@@ -1416,9 +1416,63 @@ def audiobook_file(
     every check; else None."""
     with contextlib.suppress(PlayerError):
         current = current_audiobook(work, document_id, folders)
-        if name not in current.record.names:
-            return None
-        return in_folder(current.located.folder, name)
+        if name in current.record.names:
+            return in_folder(current.located.folder, name)
+        return _built(work, current.located.folder, name)
+    return None
+
+
+# ---- the whole book, built on request (#725, LW-03) ---------------------------------------
+
+
+@dataclass(frozen=True)
+class WholeBook:
+    """What the download dialog needs to know of the document's whole-book file of one kind.
+
+    `missing` are the titles of the chosen chapters not made yet. `name` is a file to serve
+    now: one built from exactly the chapters made, as the chapter record vouches for it
+    (size and SHA-256), or the M4B an audio job of before #725 wrote. `buildable` is false
+    for an audiobook without a chapter record (made before #723): only its own M4B is there."""
+
+    missing: tuple[str, ...]
+    name: str | None
+    buildable: bool = True
+
+
+def whole_book(work: Path, current: Current, kind: str) -> WholeBook:
+    """The document's whole-book file of `kind` ("m4b" or "mp3") in the folder its
+    audiobook is in."""
+    record = _chapter_record(work)
+    if record is None:
+        old = current.record.m4b if kind == "m4b" else None
+        return WholeBook((), old, buildable=False)
+    try:
+        planned = planned_chapters(record, load_document(work))
+    except PlayerError:
+        planned = [Planned(index, "", None) for index in record.planned]
+    made = {chapter.index for chapter in record.chapters}
+    missing = tuple(p.title or str(p.index + 1) for p in planned if p.index not in made)
+    held = tuple(chapter.fingerprint for chapter in record.chapters)
+    folder = current.located.folder
+    for entry in record.built:
+        if entry.kind != kind or entry.chapters != held:
+            continue
+        file = entry.file
+        if _vouched(folder, file.name, file.bytes, file.sha256) is not None:
+            return WholeBook(missing, file.name)
+    return WholeBook(missing, None)
+
+
+def _built(work: Path, folder: Path, name: str) -> Path | None:
+    """`<folder>/<name>` if the chapter record names it as a whole-book file and vouches
+    for it there."""
+    record = _chapter_record(work)
+    if record is None:
+        return None
+    for entry in record.built:
+        file = entry.file
+        if file.name == name:
+            return _vouched(folder, file.name, file.bytes, file.sha256)
     return None
 
 

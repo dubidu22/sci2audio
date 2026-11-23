@@ -98,7 +98,10 @@ def create_app(
 
     @app.exception_handler(ApiError)
     async def api_error(request: Request, error: ApiError) -> JSONResponse:
-        return JSONResponse({"error": error.kind, "message": error.message}, error.status)
+        body: dict[str, Any] = {"error": error.kind, "message": error.message}
+        if error.chapters is not None:
+            body["chapters"] = error.chapters
+        return JSONResponse(body, error.status)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, error: StarletteHTTPException) -> JSONResponse:

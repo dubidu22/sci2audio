@@ -552,6 +552,21 @@ table.papers { width: 100%; margin: 0; border: 0; min-width: 640px; }
 .panel.missing > svg { color: var(--error); flex: none; }
 .panel.missing p:last-child { margin: 0; }
 details.remove { margin: 8px 0; }
+/* the whole audiobook as one file (#725): a disclosure like the removal's */
+details.book { margin: 8px 0; }
+.papers .book { margin: 6px 0 0; font-size: 13.5px; }
+.papers .book summary { margin-left: -10px; }
+.book summary { list-style: none; display: inline-flex; gap: 6px; font-weight: 700; color: var(--ink-2); }
+.book summary::-webkit-details-marker { display: none; }
+.book[open] summary { background: var(--desk-2); }
+.book-box { margin: 8px 0 0; padding: 12px 14px; border: 1px solid var(--rule-strong); border-radius: var(--r); background: var(--paper); display: grid; gap: 8px; max-width: 60ch; overflow-wrap: anywhere; }
+.book-box p, .book-box ul { margin: 0; font-size: 14px; }
+.book-box fieldset { margin: 0; padding: 0; border: 0; display: grid; gap: 6px; }
+.book-box legend { font-weight: 700; margin-bottom: 4px; }
+.book-box .hint { display: block; color: var(--ink-2); font-size: 13px; }
+.book-missing { display: grid; gap: 6px; }
+.book-missing[hidden] { display: none; }
+.listen-book { margin: 0 0 8px; }
 .remove summary { list-style: none; display: inline-flex; gap: 6px; font-weight: 700; color: var(--ink-2); }
 .remove summary::-webkit-details-marker { display: none; }
 .remove[open] summary { background: var(--desk-2); }

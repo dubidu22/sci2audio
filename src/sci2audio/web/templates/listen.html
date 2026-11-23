@@ -3,6 +3,7 @@
 {% from "_icons.html" import icon %}
 {% from "_keys.html" import key with context %}
 {% from "_speed.html" import speed_field with context %}
+{% from "_download.html" import book_box with context %}
 {% block title %}{{ t('listen.title', name=document.name) }} · {{ t('common.app') }}{% endblock %}
 {% block scripts %}{% if view %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}
 {% from "_listen_chapter.html" import sheet_chapter with context %}
@@ -14,6 +15,7 @@
 {% if document.outside %}<p><a href="/">{{ t('common.back_home') }}</a></p>{% else %}<p><a href="/documents/{{ document.id }}#step-make">{{ t('listen.back') }}</a></p>{% endif %}
 {% else %}
 <script id="player-data" type="application/json">{{ data | safe }}</script>
+{% if not document.outside %}<div class="listen-book">{{ book_box(document.id, document.name, false) }}</div>{% endif %}
 {#- The Listen page (#392, #393; DESIGN.md "Listen"): the desk with the sheet and one context
     panel beside it, and the dock. Every button player.js wires is drawn disabled, so a press
     before the script ran is never lost silently (#350, #427). -#}

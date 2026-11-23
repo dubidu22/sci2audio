@@ -71,7 +71,8 @@ def test_an_audio_job_writes_the_audiobook_to_the_output_folder(tmp_path: Path) 
     assert final["progress"]["skipped"] == []
     assert final["progress"]["spoken"] == len(voice.spoken) > 0
     names = [f["name"] for f in final["files"]]
-    assert names[0].endswith(".m4b")
+    # the whole book is built on request (#725): the job writes the chapters only
+    assert not any(name.endswith(".m4b") for name in names)
     assert names[-1].endswith(".readalong.json")
     assert any(name.endswith(".mp3") for name in names)
     assert all(
@@ -83,7 +84,11 @@ def test_an_audio_job_writes_the_audiobook_to_the_output_folder(tmp_path: Path) 
     assert client.get(f"/api/v1/documents/{doc['id']}").json()["has_audio"] is True
 
     base = f"/api/v1/jobs/{job['id']}/files"
-    m4b = client.get(f"{base}/{names[0]}")
+    book = client.post(f"/api/v1/documents/{doc['id']}/book", json={"kind": "m4b"})
+    assert book.status_code == 202, book.text
+    built = wait(client, book.json()["job"]["id"])
+    assert built["state"] == "done", built["error"]
+    m4b = client.get(f"/api/v1/jobs/{built['id']}/files/{built['progress']['name']}")
     assert m4b.status_code == 200
     assert m4b.headers["content-type"] == "audio/mp4"
     mp3 = next(name for name in names if name.endswith(".mp3"))
@@ -302,25 +307,28 @@ def test_a_replace_paused_while_writing_resumes_without_asking_again(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Paused while the files are written: output has already taken away the old read-along
-    (D-119), so the old set is incomplete; Resume writes the whole new set (D-733)."""
+    (D-119), so the old set is incomplete; Resume writes the whole new set (D-733). The web
+    job writes no M4B (#725): its files are written with each chapter's (#723), so the pause
+    comes while the first of two chapters is written."""
     from sci2audio.app import audio
 
-    # writing the book's own files, once every chapter's are written (#723)
-    encode = audio._Chapters.finish
+    # writing a chapter's files, once its last sentence is spoken (#723)
+    encode = audio._Chapters.done
     writing, gate = threading.Event(), threading.Event()
 
     def held(*args: Any, **kwargs: Any) -> Any:
-        writing.set()
-        assert gate.wait(30)
+        if not writing.is_set():
+            writing.set()
+            assert gate.wait(30)
         return encode(*args, **kwargs)
 
     voice = FakeVoice()
     client, config = server(tmp_path, voice)
-    doc = upload(client, six_sentences())
+    doc = upload(client, paper_bytes())
     assert wait(client, start_audio(client, doc["id"])["id"])["state"] == "done"
     names = sorted(p.name for p in book_folder(config.output_folder).iterdir())
 
-    monkeypatch.setattr(audio._Chapters, "finish", held)
+    monkeypatch.setattr(audio._Chapters, "done", held)
     job = start_audio(client, doc["id"], overwrite=True)
     assert writing.wait(30)
     assert client.post(f"/api/v1/jobs/{job['id']}/cancel").status_code == 202
@@ -328,9 +336,10 @@ def test_a_replace_paused_while_writing_resumes_without_asking_again(
     paused = wait(client, job["id"])
     assert paused["state"] == "cancelled"
     readalong = next(book_folder(config.output_folder).glob("*.readalong.json"))
-    assert json.loads(readalong.read_text(encoding="utf-8"))["m4b"] is None  # a partial set
+    chapters = json.loads(readalong.read_text(encoding="utf-8"))["chapters"]
+    assert len(chapters) == 1  # a partial set: the second chapter is not written yet
 
-    monkeypatch.setattr(audio._Chapters, "finish", encode)
+    monkeypatch.setattr(audio._Chapters, "done", encode)
     resumed = wait(client, resumed_as_the_card_sends(client, paused)["id"])
     assert resumed["state"] == "done", resumed["error"]
     assert resumed["progress"]["spoken"] == 0  # every sentence came from the cache
@@ -360,12 +369,15 @@ def test_a_paused_first_build_still_refuses_a_file_that_appeared(tmp_path: Path)
     assert paused["state"] == "cancelled"
     assert paused["overwrite"] is False
     book_folder(config.output_folder).mkdir(parents=True, exist_ok=True)
-    (book_folder(config.output_folder) / "paper.m4b").write_bytes(b"someone else's")
+    # a file of the name the job writes (the web job writes no M4B, #725)
+    (book_folder(config.output_folder) / "paper.readalong.json").write_bytes(b"someone else's")
     voice.fail_on = lambda text: False
     refused = wait(client, resumed_as_the_card_sends(client, paused)["id"])
     assert refused["state"] == "failed"
     assert refused["error"]["error"] == "output-exists"
-    assert (book_folder(config.output_folder) / "paper.m4b").read_bytes() == b"someone else's"
+    assert (book_folder(config.output_folder) / "paper.readalong.json").read_bytes() == (
+        b"someone else's"
+    )
 
 
 def test_script_jobs_never_say_overwrite(tmp_path: Path) -> None:

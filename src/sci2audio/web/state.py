@@ -21,13 +21,22 @@ from fastapi import Depends, Request
 from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, load_settings
 from sci2audio.app.projects import Moved, migrate_all, real_folder
 from sci2audio.app.updates import STATE_NAME, UpdateCheck
+from sci2audio.output import BookKind, Ffmpeg
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.figures import Figures
 from sci2audio.web.jobs import JobBoard, JobRecord
 from sci2audio.web.markers import MarkerBook
 from sci2audio.web.player import candidate_folders
-from sci2audio.web.tasks import PREVIEW_FOLDER, Fetch, KeptVoice, audio_work, classify, preview_work
+from sci2audio.web.tasks import (
+    PREVIEW_FOLDER,
+    Fetch,
+    KeptVoice,
+    audio_work,
+    book_work,
+    classify,
+    preview_work,
+)
 
 Work = Callable[[JobRecord], Sequence[Path]]
 logger = logging.getLogger(__name__)
@@ -36,11 +45,14 @@ logger = logging.getLogger(__name__)
 class ApiError(Exception):
     """An error answer: status, kind for programs, message for people."""
 
-    def __init__(self, status: int, kind: str, message: str) -> None:
+    def __init__(
+        self, status: int, kind: str, message: str, chapters: Sequence[str] | None = None
+    ) -> None:
         super().__init__(message)
         self.status = status
         self.kind = kind
         self.message = message
+        self.chapters = None if chapters is None else list(chapters)
 
 
 @dataclass(frozen=True)
@@ -96,6 +108,7 @@ class ServerState:
     language: str | None = None
     # the opt-in update check (#217), its file next to the settings file; tests pass a fake
     updates: UpdateCheck = field(init=False)
+    book_ffmpeg: Ffmpeg | None = None  # the whole-book build's ffmpeg (#725); tests pass one
 
     def __post_init__(self) -> None:
         if self.config.legacy_root is not None:
@@ -127,6 +140,23 @@ class ServerState:
             self.kept.source(),
             overwrite=overwrite,
             on_failure=self.kept.dispose,
+        )
+
+    def book_work(
+        self,
+        document: StoredDocument,
+        folder: Path,
+        kind: BookKind,
+        partial_ok: bool,
+    ) -> Work:
+        """The whole audiobook of `kind` built into `folder`, where its chapters are (#725)."""
+        return book_work(
+            self.runner,
+            document,
+            folder,
+            kind,
+            partial_ok=partial_ok,
+            ffmpeg=self.book_ffmpeg,
         )
 
     def protected_folders(self) -> list[Path]:
