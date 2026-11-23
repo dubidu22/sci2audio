@@ -32,3 +32,7 @@ All five are fixed, each with a test that fails on the known-wrong case (VER-02,
 
 - Done: B1, S1, S2 and S3 verified fixed by mutation on the new head; CI green.
 - Not done: none.
+
+## Merge
+
+Squash-merged by review-b005 on the coordinator go D-911, pinned to 8a2a12a, as 1fbff7c. Main CI run 45238098859 on 1fbff7c: tests on ubuntu, macos and windows and CI passed all success.
