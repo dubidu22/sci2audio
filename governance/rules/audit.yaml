@@ -1,7 +1,7 @@
 # Extract for audit threads. Generated with claude-project-rules.yaml; do not edit.
 # It holds the rules scoped to this role or to all. If it and the full file ever differ, the full file wins.
 extract_for: audit
-version: 1.12.0
+version: 1.13.0
 date: 2026-11-22
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
@@ -86,7 +86,7 @@ rules:
     rule: "A worker thread (including the KB thread) is replaced once it has handled execution_profile.token_economy.replace_after_prs PRs, counted from its ledger entries, or noticed replace_at_compressions compressions, whichever comes first. It finishes its current atomic step (review round, fix commit, or KB PR) and is replaced at the next hand-off, never mid-step. The coordinator is never replaced."
   - id: THR-04
     applies_to: all
-    rule: "Threads write plans and round reports under ./governance/plans/ and post one line per hand-off in chat (what was written, where). Fix lists travel through round reports, not through the coordinator. Every file has one writer: a thread writes its own plan, reports and ledger entries and no other thread's; project-state.yaml is the coordinator's."
+    rule: "Threads write plans and round reports under ./governance/plans/ and post one line per hand-off in chat (what was written, where). Fix lists travel through round reports, not through the coordinator. Every file has one writer: a thread writes its own plan, reports and ledger entries and no other thread's; project-state.yaml is the coordinator's. The dispatcher sends the coordinator one line per event, starting with `COORDINATOR:`; the content goes in the batch file."
   - id: THR-13
     applies_to: all
     rule: "Working files (plans, round reports, ledger entries, batch files, state, pending decisions) live on branch governance: their one writer commits them in a second worktree (git worktree add ../<repo>-governance governance), rebasing before each push, never force-pushing, never on a product branch."
