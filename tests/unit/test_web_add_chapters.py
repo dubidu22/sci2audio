@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import threading
 import time
@@ -108,6 +109,30 @@ def test_the_chapters_list_their_states(tmp_path: Path) -> None:
     assert 'id="generate-rest"' in listen
 
 
+def test_a_chapter_file_changed_after_it_was_made_reads_as_not_generated(tmp_path: Path) -> None:
+    """A chapter counts as generated only while its files are the ones the chapter record
+    vouches for: one edited in place, its size kept, is offered again."""
+    client, config, doc, _gate = project(tmp_path, [0, 1])
+    folder = book_folder(config.output_folder)
+    methods = folder / "paper - 02 Methods.mp3"
+    data = bytearray(methods.read_bytes())
+    data[-1] ^= 0xFF
+    methods.write_bytes(bytes(data))
+    stamp = methods.stat().st_mtime_ns + 5_000_000_000
+    os.utime(methods, ns=(stamp, stamp))
+    assert states(client, doc) == [
+        ("Introduction", "generated"),
+        ("Methods", "not-generated"),
+        ("Results", "not-generated"),
+    ]
+    page = client.get(f"/documents/{doc}").text
+    assert re.search(r'id="chapter-state-1"[^>]*>not generated<', page)
+    assert re.search(r'<button type="button" class="sm generate" data-chapter="1"', page)
+    rest = re.search(r'<button[^>]*id="generate-rest"[^>]*>', page)
+    assert rest is not None
+    assert 'data-chapters="[1, 2]"' in rest[0]
+
+
 def test_a_project_without_an_audiobook_lists_no_states(tmp_path: Path) -> None:
     client, _config = server(tmp_path)
     doc = upload(client, three_chapters())["id"]
@@ -204,6 +229,30 @@ def test_keep_settings_starts_the_job_with_the_old_settings(tmp_path: Path) -> N
     assert record is not None
     assert record.made is not None
     assert record.made["settings"]["speed"] == 1.2
+
+
+def test_generate_notes_the_projects_settings_not_the_forms(tmp_path: Path) -> None:
+    """Generate keeps the project's settings, whatever the form holds now: the web's record
+    of what the book is made with, written while the job runs, says the project's."""
+    client, config, doc, gate = project(tmp_path, [0])
+    work = work_of(config, doc)
+    made_first = json.loads((work / "audio.json").read_text(encoding="utf-8"))
+    kept = sorted(made_first["settings"]["switched_off"])
+    other = sorted({"citations", "links"} ^ set(kept))
+    assert other != kept
+    gate.open.clear()
+    job = start(client, doc, [1, 2], settings={"switched_off": other}, keep_settings=True)
+    try:
+        assert gate.reached.wait(60)
+        record = json.loads((work / "audiobook.json").read_text(encoding="utf-8"))
+        assert record["made"]["switched_off"] == kept
+        assert record["made"]["voice"] == made_first["voice"]
+    finally:
+        gate.open.set()
+    done = wait(client, job)
+    assert done["state"] == "done", done["error"]
+    made_last = json.loads((work / "audio.json").read_text(encoding="utf-8"))
+    assert sorted(made_last["settings"]["switched_off"]) == kept
 
 
 def test_the_stamp_stays_when_a_chapter_is_added(tmp_path: Path) -> None:
