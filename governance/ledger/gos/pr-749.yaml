@@ -1,0 +1,5 @@
+pr: 749
+head: bdc8247c3da2a008990d05bad6662c98033b74c8
+by: coordinator (claude.ai project thread, D-889)
+time: 2026-11-23T08:34Z
+reason: critical round 1 approved at this head, 0 must-fix (review-pr749-round1.md); three-system run 45124663555 green on it

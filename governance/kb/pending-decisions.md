@@ -249,3 +249,7 @@ All work stops (CMD-05). Colin: "stop all processes we are moving back to the cl
 Work resumes in the claude.ai project "sci2audio-v1.4+" (CMD-06). Colin: "continue" (2026-11-23T08:27Z), the first message in the project.
 - `paused: false`. The coordinator now runs as a thread of that project. It cannot open threads itself; it asks the project's channel session for each worker thread (review, implementation, KB, audit) and passes the brief. This replaces the dispatcher subagents of D-881; no dispatcher runs until one is opened this way.
 - #749 is unchanged at head bdc8247 (checked 08:28Z). Next: its critical review round 1 from the top (Opus 5.5 high, a thread that did not write it), then the coordinator's go as `ledger/gos/pr-749.yaml`, the pinned squash merge, the D-883 backup tag and §3 governance merge. Then the batch audit, the KB decision-log PR for D-834 onward, and batch 005 (v1.5).
+
+## D-890 (2026-11-23, coordinator)
+
+Merge go for #749, pinned to bdc8247 (`ledger/gos/pr-749.yaml`): critical round 1 approved there with 0 must-fix and 0 should-fix (review-b004-e, `plans/review-pr749-round1.md`), three-system run 45124663555 green on that head; `ledger_tool.py gate 749` passes. Review note N2 is taken into the one-time governance merge (D-883 §3): before its commit, `git diff --cached --stat origin/main -- governance/plans/README.md governance/ledger/README.md governance/ledger/deferred/since.txt` must also print nothing; if it prints anything, abort as for a non-empty diff.
