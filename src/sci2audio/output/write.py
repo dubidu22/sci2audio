@@ -16,10 +16,11 @@ audio; the read-along file is written last: when it exists, every file of the ru
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import os
 import sys
 import tempfile
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 
 from sci2audio import __version__
@@ -50,6 +51,7 @@ _ISO_639_2 = {
     "pt": "por",
 }
 _JPEG, _PNG = b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n"
+_BLOCK = 1 << 20
 
 
 def write_audiobook(
@@ -94,7 +96,16 @@ def write_audiobook(
     for chapter, target in zip(timeline.chapters, mp3s, strict=False):
         with _atomic(target, overwrite) as partial:
             run.run(
-                _mp3_args(timeline, chapter, len(chapters), book, settings, cover, partial),
+                _mp3_args(
+                    timeline,
+                    chapter,
+                    chapter.index + 1,
+                    len(chapters),
+                    book,
+                    settings,
+                    cover,
+                    partial,
+                ),
                 _feed(timeline, audio, chapter.first, chapter.stop),
             )
     if m4b is not None:
@@ -223,18 +234,37 @@ def _partial(target: Path) -> Path:
     return target.with_name(f".{target.name}.partial")
 
 
+Vouch = Callable[[Path, int, str], None]
+"""Told each file's target, size and SHA-256 once its partial is complete and before it is
+renamed into place: a caller that records it there never finds a whole file of its own
+that its record does not name (#723)."""
+
+
 @contextlib.contextmanager
-def _atomic(target: Path, overwrite: bool) -> Iterator[Path]:
+def _atomic(target: Path, overwrite: bool, vouch: Vouch | None = None) -> Iterator[Path]:
     """Yield a temporary path next to `target`; move it to `target` if the block succeeds,
     remove it if anything goes wrong."""
     partial = _partial(target)
     try:
         yield partial
+        if vouch is not None:
+            vouch(target, *_measure(partial))
         _commit(partial, target, overwrite)
     except BaseException:
         with contextlib.suppress(OSError):
             partial.unlink(missing_ok=True)
         raise
+
+
+def _measure(path: Path) -> tuple[int, str]:
+    """The file's size and SHA-256."""
+    digest = hashlib.sha256()
+    size = 0
+    with path.open("rb") as f:
+        while block := f.read(_BLOCK):
+            digest.update(block)
+            size += len(block)
+    return size, digest.hexdigest()
 
 
 def _commit(partial: Path, target: Path, overwrite: bool) -> None:
@@ -295,6 +325,7 @@ def _metadata_args(tags: dict[str, str]) -> list[str]:
 def _mp3_args(
     timeline: Timeline,
     chapter: ChapterRange,
+    number: int,
     count: int,
     book: BookInfo,
     settings: OutputSettings,
@@ -312,7 +343,7 @@ def _mp3_args(
     tags = {
         "title": chapter.title,
         **_tags(book),
-        "track": f"{chapter.index + 1}/{count}",
+        "track": f"{number}/{count}",
         "language": _language(book),
     }
     return [*args, *_metadata_args(tags), "-f", "mp3", "-y", str(partial)]
