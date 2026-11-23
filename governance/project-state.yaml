@@ -3,7 +3,7 @@
 project: sci2audio
 updated: 2026-11-23T08:57Z   # clock time from date -u (D-856); ruleset 1.13.0 on main (#745 3bf852f, D-882); batch 005 composed (D-893)
 active_now:
-  autonomy_horizon: "until Colin asks to stop"       # ruleset 1.12.0, #741 3fb4d1b, Colin "Yes, with CLAUDE.md" 22 Nov 2026 (D-880); replaces "until milestone v1.6 Study layer is complete" (1.11.0, D-879)
+  autonomy_horizon: "until batch 005 is finished, then pause"   # Colin "stop working after this batch is finished." 2026-11-23T09:00:47Z (D-894); before: "until Colin asks to stop", ruleset 1.12.0, #741 3fb4d1b, Colin "Yes, with CLAUDE.md" 22 Nov 2026 (D-880); replaces "until milestone v1.6 Study layer is complete" (1.11.0, D-879)
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
   paused: false                                      # Colin "continue" 2026-11-23T08:27Z in the claude.ai project (CMD-06, D-889); paused 07:33Z to 08:27Z for the move (CMD-05, D-888)
   pause_exceptions: []

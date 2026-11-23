@@ -37,3 +37,10 @@ Batch 004 audit (`plans/audit-batch-004.md`, 3cd4a3b): 0 blocking, 3 should-fix,
 ## D-893 (2026-11-23, coordinator)
 
 Batch 004 is done (v1.4 has no open Issue). Batch 005 is composed as `plans/batch-005.md`. Slot A is #723 (critical, plan first), then #725 and #726. Slot B is #744, then the infra check PR (D-891 F1, F2 and narrating-comment, plus D-892's PREF-01 removal) once #751 has merged, then #724. #723 to #726 all carry acceptance criteria (PLAN-04). No dispatcher runs, so the coordinator asks the project for each thread (D-889).
+
+## D-894 (2026-11-23, owner)
+
+Work stops once batch 005 is finished. Colin: "stop working after this batch is finished." (2026-11-23T09:00:47Z). Batch 004 had closed before the message, so it is read as batch 005. The coordinator asked Colin once to confirm that reading.
+- `autonomy_horizon` becomes "until batch 005 is finished, then pause".
+- Batch 005 runs to its end: its PRs, its audit, its decision-log PR and the batch report. #751, already in flight, finishes too.
+- Then the coordinator sets `paused: true`, composes no batch 006 and starts no thread.
