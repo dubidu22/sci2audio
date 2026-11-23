@@ -1,0 +1,13 @@
+pr: 761
+opened: 2026-11-23
+thread: impl-723
+lane: app
+labels: "risk:high, lane:app, lane:web, ci:full"
+plan: plans/impl-723-plan.md
+critical: yes
+compactions: 1
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "PR B of #723 (closes it, after PR A #754 f1a9c1f); chapters.json record (app/playable.py), chapter-by-chapter job, ready/playable events, JOB_OUTPUT no M4B by default, CLI unchanged (snapshot 0597e04), web keeps M4B (4.1); 5 new fault tests + benchmark row; existing tests changed listed in PR body; ci:full run pending"
+merged: ""
