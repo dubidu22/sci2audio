@@ -22,7 +22,7 @@
 
 - **N1** (note). The new test comment says a "no chat can open another" line "would send Colin click steps PREF-01 avoids". "As few clicks as possible" is in the "For Colin" paragraph of `project_chat_instructions.md`, not in PREF-01. The comment's reason is right and the cited rule is wrong. The next ruleset PR (D-892, which edits PREF-01) can correct it in passing. Not a finding against merge.
 - **N2** (note, ROLE-14 hand step). After the merge, Colin re-pastes the text below the line of `governance/project_chat_instructions.md` into the Project's instructions. The pasted copy still has the old "No chat here can open another chat" paragraph. The coordinator names this step.
-- **N3** (note, MRG-01). `governance pr checks` must be re-run on bf417b9 after this entry is on governance, and must be green before the merge.
+- **N3** (note, MRG-01). `governance pr checks` re-run on bf417b9 after this entry was pushed (runs 45154731699, 45150596164, 45150595559): all success, "round 3 approved this head with 0 must-fix".
 
 ## Handoff (THR-07)
 
