@@ -1,11 +1,11 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-23T06:20Z   # clock time from date -u (D-856); ruleset 1.13.0 on main (#745 3bf852f, D-882)
+updated: 2026-11-23T07:33Z   # clock time from date -u (D-856); ruleset 1.13.0 on main (#745 3bf852f, D-882); paused for the move to the claude.ai project (D-888)
 active_now:
   autonomy_horizon: "until Colin asks to stop"       # ruleset 1.12.0, #741 3fb4d1b, Colin "Yes, with CLAUDE.md" 22 Nov 2026 (D-880); replaces "until milestone v1.6 Study layer is complete" (1.11.0, D-879)
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
-  paused: false                                      # Colin "continue" 16 Nov 16:21:35Z (CMD-06); paused 13:24Z–16:21Z
+  paused: true                                       # Colin "stop all processes we are moving back to the cloud project space in claude" 2026-11-23T07:33Z (CMD-05, D-888); before: "continue" 16 Nov 16:21:35Z (CMD-06)
   pause_exceptions:
     - "a thread still answers Colin's own messages in its thread"
   slow_down: false

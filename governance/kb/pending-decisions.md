@@ -231,3 +231,15 @@ Batch 004 gets a new dispatcher, and `dispatcher-b004-2` is retired. Colin: "let
 - Then: the coordinator sends `handover done` to `dispatcher-b004-3` (local_e2bcebe3, Opus 5.5 high, started 2026-11-23) and archives the old session.
 - What the new dispatcher does: #749's critical review and merge, the D-883 backup tag and §3 governance merge, and the batch-end audit, KB PR and report.
 - The test of the fix: #749's merge is the first run by a session that has the allow rule. A block there is reported, not routed around.
+Outcome: the handover took place at about 07:10Z. `dispatcher-b004-2` wrote its handover (batch-004.md 4ae35d9) and was archived together with its six finished side sessions; `dispatcher-b004-3` took over.
+
+## D-888 (2026-11-23, owner)
+
+All work stops (CMD-05). Colin: "stop all processes we are moving back to the cloud project space in claude" (2026-11-23T07:33Z).
+- The coordinator sets `paused: true`, and the dispatcher `dispatcher-b004-3` was told to stop its #749 review subagent and every watcher, start and merge nothing, and note the stop in `batch-004.md`.
+- Coordination moves back to the claude.ai project. This replaces the Claude Code coordinator setup of the last days (D-881's subagent hosting, and the `.claude/settings.local.json` merge rule, which only helps Claude Code sessions).
+- State at the stop:
+  - #749 (#746, critical) is open at head bdc8247, three systems green, `ci:full` off; its critical review round 1 never finished and restarts from the top.
+  - Batch 004's open items, in order (handover section of `batch-004.md`): #749 review and merge; the backup tag `governance-before-d874` and the §3 governance merge (D-883); the batch audit; the KB decision-log PR for D-834 onward; the batch report.
+  - Batch 005 (v1.5, #723 to #726) has not started.
+  - No owner items are open.
