@@ -2,12 +2,12 @@ pr: 765
 opened: 2026-11-23
 thread: impl-725b
 lane: app, cli
-labels: "risk:high, lane:app, lane:cli, ci:full"
+labels: "risk:high, lane:app, lane:cli"
 plan: plans/impl-725-plan.md
 critical: yes
 compactions: 1
 fixes_kinds: ""
-handback: ""
+handback: "done"
 recommended: ""
-note: "PR 2 of #725/#726 (D-903): numbering by book place (speakable), settings key without the chapter choice, chapter record v2 (order, made, spoken, built), adding chapters with SettingsChangedError / keep_settings, app/book.py build_book from spoken/<index>.json and the chunk cache, runner.run_book, CLI --keep-settings; three golden files changed as 4.1 predicts; tests first b505ff3, code 19c22fa, fix 9e160c0 (another book in the same working folder, found by test_app_cover in the full fast suite); local fast suite 9078 passed, only torch-only voice tests fail here; ci:full requested before review"
+note: "PR 2 of #725/#726 (D-903): numbering by book place (speakable), settings key without the chapter choice, chapter record v2 (order, made, spoken, built), adding chapters with SettingsChangedError / keep_settings, app/book.py build_book from spoken/<index>.json and the chunk cache, runner.run_book, CLI --keep-settings; three golden files changed as 4.1 predicts; tests first b505ff3, code 19c22fa, fix 9e160c0 (another book in the same working folder, found by test_app_cover in the full fast suite); local fast suite 9078 passed, only torch-only voice tests fail here; ci:full run 45213028392 green on ubuntu, macos, windows at 9e160c09ba794d82d3d499bc6c780ae643c7758d; ci:full label removed; body test IDs written in full so promised tests collect 34 of 34; governance check red only on the review-round gate (MRG-01)"
 merged: ""
