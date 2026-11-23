@@ -135,3 +135,12 @@ Amended (2026-11-23T12:42Z): PR 1 (lane:output) shares no file with #724, so it 
 ## D-904 (2026-11-23, coordinator)
 
 The plan-promised test `tests/unit/test_app_audio_chapters.py::test_the_laid_out_document_is_written_before_the_first_chapter_is_spoken` (impl-724 plan, D-902) is renamed to `..._is_playable` in #764 (PLAN-01). The promise is unchanged. `document.json` is written where the records are cleared, which is before the first chapter is playable. "Spoken" named the wrong moment. The governance check of promised tests reads the new name, and the plan notes the rename.
+
+## D-905 (2026-11-23, coordinator)
+
+Merge go for #764 (#724, lane:web plus lane:app, critical), pinned to 9d38cec.
+- Round 1 approved with 0 must-fix. All 27 promised tests are present, and the D-902 kill test stops before chapter 1.
+- Three-system run 45184320620 is green.
+- WebKit (report-only): two tests each failed once and passed on the rerun and on main's nightly. That is not a second failure, so D-374 does not apply. `test_joined` stays on watch.
+- Review note N2: `book_key` includes `planned`, which matters for #726 (PR 4 of D-903).
+- After this merge, PR 2 of D-903 can start.
