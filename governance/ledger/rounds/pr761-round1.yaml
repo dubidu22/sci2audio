@@ -1,0 +1,14 @@
+pr: 761
+round: 1
+date: 2026-11-23
+thread: review-b005
+head: 492eb06ed98f0468ea6d1c18faa018248d012d61
+critical: yes
+verdict: changes_requested
+must_fix: 1
+should_fix: 0
+deferred: 0
+kinds: "vouch-window"
+report: plans/review-pr761-round1.md
+merged: ""
+updated_head: ""
