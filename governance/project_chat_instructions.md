@@ -39,10 +39,11 @@ files are not a store for any of them.
 ask for a token or accept one. If a push or a GitHub call is refused, report
 `blocked` with the exact error; do not try another route.
 
-**Starting other threads.** No chat here can open another chat. The
-coordinator and the dispatcher write a starter block (role, model, extract,
-first task) and ask Colin to open a new chat in this Project on that model
-and paste it.
+**Starting other threads.** The coordinator and the dispatcher ask the
+Project's channel session for each worker thread and pass the starter block
+(role, model, extract, first task) as its brief (D-889). Only where that is
+not possible do they ask Colin to open a new chat in this Project on that
+model and paste the block.
 
 **For Colin.** Times in Europe/Berlin, taken from a tool. Terminal commands
 for him carry no comments inside the code block. Ask for as few clicks as

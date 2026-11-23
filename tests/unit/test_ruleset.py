@@ -102,8 +102,6 @@ def test_the_profile_holds_the_paths_of_the_config(key: str) -> None:
 
 # D-882 (ruleset 1.13.0): the dispatcher changes of the audit of 22 Nov 2026. The generator has
 # no setting for them, so they are exact replaces too, and a regeneration that drops one fails here.
-# Its THR-10 and THR-05 texts (subagent hosting, D-881) ended with the move to the claude.ai
-# Project (D-888, ruleset 1.14.0); the D888 pins below replace them.
 D882 = {
     "MRG-01": (
         "for critical ones the coordinator, whose go is the file "
@@ -183,3 +181,25 @@ def test_the_project_chat_instructions_set_up_the_clone_and_the_governance_workt
     ):
         assert line in text, line
     assert "governance/project_chat_instructions.md" in CONFIG["critical_paths"]
+
+
+# D-889: the coordinator asks the Project's channel session for each worker thread, so a
+# pasted line saying no chat can open another would send Colin click steps PREF-01 avoids.
+PROJECT_CHANNEL_START = "ask the Project's channel session for"
+
+
+def test_the_project_chat_instructions_start_threads_through_the_channel_session() -> None:
+    text = " ".join(
+        (GOVERNANCE / "project_chat_instructions.md").read_text(encoding="utf-8").split()
+    )
+    assert PROJECT_CHANNEL_START + " each worker thread" in text
+    assert "(D-889)" in text
+    assert "No chat here can open another chat" not in text
+    assert "Never ask for a token or accept one." in text
+
+
+@pytest.mark.parametrize("name", ["project_instructions.md", "dispatcher_instructions.md"])
+def test_an_instruction_file_starts_threads_through_the_channel_session(name: str) -> None:
+    text = " ".join((GOVERNANCE / name).read_text(encoding="utf-8").split())
+    assert PROJECT_CHANNEL_START + " the thread" in text
+    assert "(D-889)" in text
