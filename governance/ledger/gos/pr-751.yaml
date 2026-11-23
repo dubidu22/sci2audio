@@ -1,0 +1,5 @@
+pr: 751
+head: bf417b9159985eedee42bd325c3e65a186de31ee
+by: coordinator (claude.ai project thread, D-896)
+time: 2026-11-23T10:21Z
+reason: critical round 3 approved at this head, 0 must-fix (review-pr751-round3.md); three-system run 45150607713 green on it; Colin's own change ("Yes, apply", 23 Nov)

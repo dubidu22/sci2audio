@@ -53,3 +53,11 @@ Plan impl-723 (`plans/impl-723-plan.md`, f79a009, #723 LW-01) is approved as wri
 - Accepted rule change: a killed or cancelled job keeps whole, recorded chapters (instead of all or nothing, D-119/D-160). Book-level files stay all or nothing. The five named fault tests change their assertion to the new rule and are renamed where "no file" no longer holds. This is a changed rule, not a weakened test: every one still asserts no partial file and no overwrite on the rerun, and the PR body lists each change.
 - The CLI keeps writing the M4B with byte-identical output.
 - Lanes: PR A (lane:output) runs alongside #744 (lane:voices) in the same execution lane. They share no files (LANE-02).
+
+## D-896 (2026-11-23, coordinator)
+
+Merge go for #751 (ruleset 1.14.0, the claude.ai Project, Colin's change), pinned to bf417b9 (`ledger/gos/pr-751.yaml`).
+- Rounds: round 1 stopped on preconditions (no three-system run, behind main). Round 2 found 1 must-fix: the Project chat instructions had every thread opened by Colin, against D-889. The rewording is pinned by tests. Round 3 approved with 0 must-fix and 0 should-fix.
+- Three-system run 45150607713 is green on that head.
+- After the merge, Colin re-pastes the Project instructions from `governance/project_chat_instructions.md` (an owner hand step).
+- The next ruleset PR (batch 005, slot B, item 2) also fixes the test comment that cites PREF-01 for "few clicks" (round 3 note).
