@@ -500,11 +500,16 @@ STOPPED_JOB = textwrap.dedent(
             return super().run(args, feed)
 
     commit = write._commit
+    name, _, nth = at.partition("#")
+    seen = []
 
     def _commit(partial, target, overwrite):
-        if how == "after-rename" and target.name.endswith(at):
+        if target.name.endswith(name):
+            seen.append(target.name)
+        if how == "after-rename" and len(seen) == int(nth or 1) and target.name.endswith(name):
             commit(partial, target, overwrite)
-        if how in ("before-rename", "after-rename") and target.name.endswith(at):
+            hang()
+        if how == "before-rename" and len(seen) == int(nth or 1) and target.name.endswith(name):
             hang()
         commit(partial, target, overwrite)
 
@@ -523,7 +528,8 @@ STOPPED_JOB = textwrap.dedent(
 def kill_while(folder: Path, how: str, at: str) -> None:
     """Run the book's job in another process and kill it outright (SIGKILL, no clean-up)
     while it is `how`: speaking a chunk with `at` in it, running ffmpeg the `at`-th time,
-    or putting the file ending in `at` in place (before or after the rename)."""
+    or putting the file ending in `at` in place (before or after the rename; `name#n`: the
+    n-th time a file ending in `name` is put in place)."""
     folder.mkdir()
     child = subprocess.Popen(
         [sys.executable, "-c", STOPPED_JOB, str(UNIT), str(folder), how, at, BOOK]
@@ -620,6 +626,24 @@ def test_a_kill_between_vouching_and_renaming_resumes_cleanly(tmp_path: Path, wh
     assert ((killed / "out" / "book - 02 Beta.mp3").exists()) == (when == "after-rename")
     assert record.owned(killed / "out") == {n for n in outputs(killed) if not n.startswith(".")}
     resumed_like_an_uninterrupted_run(tmp_path, killed, ["book - 01 Alpha.mp3"])
+
+
+@pytest.mark.parametrize("when", ["before-rename", "after-rename"])
+@pytest.mark.parametrize("nth", [2, 3])
+def test_a_kill_while_the_readalong_file_is_replaced_resumes_cleanly(
+    tmp_path: Path, when: str, nth: int
+) -> None:
+    """The read-along file is replaced after every chapter. Until the new one is in place
+    the record still names the old one, so a kill on either side of the rename leaves a
+    file the resume takes as its own, without `overwrite`."""
+    killed = tmp_path / "killed"
+    kill_while(killed, when, f"readalong.json#{nth}")
+    record = read_record(killed / "work")
+    assert record is not None
+    assert [c.number for c in record.chapters] == list(range(1, nth))
+    assert record.owned(killed / "out") == {n for n in outputs(killed) if not n.startswith(".")}
+    kept = ["book - 01 Alpha.mp3", "book - 02 Beta.mp3"][: nth - 1]
+    resumed_like_an_uninterrupted_run(tmp_path, killed, kept)
 
 
 def test_a_full_disk_while_a_chapter_is_encoded_keeps_the_chapters_before_it(

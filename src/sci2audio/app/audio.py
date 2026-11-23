@@ -713,6 +713,7 @@ class _Chapters:
         self.added: list[int] = []
         self.rates: set[int] = set()
         self.in_book = False  # writing the book's files (the M4B and its subtitles)
+        self.placing: set[str] = set()  # book files vouched for, maybe not yet in place
 
     @property
     def playable(self) -> tuple[int, ...]:
@@ -737,7 +738,10 @@ class _Chapters:
             writer.add(number, spoken, written=written)
         except Exception as error:
             raise _encode_error(error, self.out_folder) from error
-        files = reused.files if written and reused is not None else self.record.pending
+        if written and reused is not None:
+            files = reused.files
+        else:
+            files = tuple(self.record.newest_pending().values())
         names = self.plan.chapter_files(self.out_folder, index)
         chapter = PlayableChapter(
             index,
@@ -746,7 +750,7 @@ class _Chapters:
             fingerprint,
             tuple(f for f in files if f.name in names),
         )
-        self._save(self.record.with_chapter(chapter))
+        self._save(self._placed(self.record.with_chapter(chapter)))
         self.added.append(index)
         self.tell(dataclasses.replace(event, ready=index, playable=self.playable))
 
@@ -760,7 +764,13 @@ class _Chapters:
             raise _encode_error(error, self.out_folder) from error
 
     def complete(self) -> None:
-        self._save(dataclasses.replace(self.record, complete=True))
+        self._save(dataclasses.replace(self._placed(self.record), complete=True))
+
+    def _placed(self, record: ChapterRecord) -> ChapterRecord:
+        """`record` once the book's files vouched for since the last step are in place."""
+        record = record.with_book_files(self.placing)
+        self.placing = set()
+        return record
 
     def _writer(self) -> BookWriter:
         if self.writer is None:
@@ -795,10 +805,11 @@ class _Chapters:
     def _vouch(self, target: Path, size: int, sha256: str) -> None:
         file = RecordedFile(target.name, size, sha256)
         assert self.writer is not None  # noqa: S101 (output vouches while writing)
+        # the record keeps the entry for the file now in place until the step is done:
+        # a stop before the rename leaves that file, which a rerun must still take as its own
         if self.in_book or target.name == self.writer.targets.readalong.name:
-            self._save(self.record.with_book_file(file))
-        else:
-            self._save(self.record.with_pending(file))
+            self.placing.add(target.name)
+        self._save(self.record.with_pending(file))
 
     def _save(self, record: ChapterRecord) -> None:
         try:

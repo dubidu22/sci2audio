@@ -22,7 +22,11 @@ else's:
 - `planned` are the chapters the job is to speak (job chapter indices, in the job's order);
   `chapters` the chapters whose files are complete, each with output's
   `chapter_fingerprint`; `book` the read-along file, the M4B and the book's subtitles;
-  `pending` the files of the chapter being written, put in place before it is complete.
+  `pending` the files vouched for before they are put in place: those of the chapter being
+  written, and a new read-along file, M4B or subtitle file until the step that writes it
+  is done. An entry of the same name elsewhere in the record, or earlier in `pending`, stays
+  until then, as it still vouches for the file in place should the job stop before the
+  rename.
 - Names are bare, as in the job's other records (folders are machine-specific).
 - Read strictly: missing, too large, a link, another format or version, or broken reads as
   no record.
@@ -33,6 +37,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+from collections.abc import Collection
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePath
 from typing import Any
@@ -84,7 +89,7 @@ class ChapterRecord:
     planned: tuple[int, ...]
     chapters: tuple[PlayableChapter, ...] = ()
     book: tuple[RecordedFile, ...] = ()
-    # files of the chapter being written, put in place before the chapter is complete
+    # files vouched for before they are put in place, newest last (module docstring)
     pending: tuple[RecordedFile, ...] = ()
 
     def owned(self, folder: Path) -> set[str]:
@@ -93,13 +98,23 @@ class ChapterRecord:
         return {f.name for f in files if f.matches(folder)}
 
     def with_pending(self, file: RecordedFile) -> ChapterRecord:
-        return replace(self, pending=_put(self.pending, file))
+        """The record vouching for `file` too; an entry of the same name stays, as the file
+        in place may still be the one it names."""
+        return replace(self, pending=(*(f for f in self.pending if f != file), file))
 
-    def with_book_file(self, file: RecordedFile) -> ChapterRecord:
-        """The record with `file` among the book's files, replacing one of the same name
-        there or in `pending` (an unfinished run's file this run writes again)."""
-        pending = tuple(f for f in self.pending if f.name != file.name)
-        return replace(self, book=_put(self.book, file), pending=pending)
+    def newest_pending(self) -> dict[str, RecordedFile]:
+        """The newest `pending` entry of each name."""
+        return {f.name: f for f in self.pending}
+
+    def with_book_files(self, names: Collection[str]) -> ChapterRecord:
+        """The record once the files `names` are in place: the newest `pending` entry of each
+        becomes the book's entry of that name, and the older entries go."""
+        newest = self.newest_pending()
+        placed = [f for name, f in newest.items() if name in names]
+        done = {f.name for f in placed}
+        book = (*(f for f in self.book if f.name not in done), *placed)
+        pending = tuple(f for f in self.pending if f.name not in done)
+        return replace(self, book=book, pending=pending)
 
     def with_chapter(self, chapter: PlayableChapter) -> ChapterRecord:
         """The record with `chapter` complete (replacing an entry of the same index), in
@@ -110,10 +125,6 @@ class ChapterRecord:
         names = {f.name for f in chapter.files}
         pending = tuple(f for f in self.pending if f.name not in names)
         return replace(self, chapters=tuple(chapters), pending=pending)
-
-
-def _put(files: tuple[RecordedFile, ...], file: RecordedFile) -> tuple[RecordedFile, ...]:
-    return (*(f for f in files if f.name != file.name), file)
 
 
 def file_sha256(path: Path) -> str:
