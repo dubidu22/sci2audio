@@ -1,0 +1,14 @@
+pr: 769
+round: 2
+date: 2026-11-23
+thread: review-b005
+head: e2f635876d80b1ccc94760920dccb8c5a884d8aa
+critical: no
+verdict: approved
+must_fix: 0
+should_fix: 0
+deferred: 0
+kinds: ""
+report: plans/review-pr769-round2.md
+merged: ""
+updated_head: ""
