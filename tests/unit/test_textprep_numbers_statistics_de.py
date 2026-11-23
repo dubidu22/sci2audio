@@ -629,12 +629,16 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
         ("(Stand 1998)", "(Stand 19 hundert 98)"),
         ("(Fassung 1998)", "(Fassung 19 hundert 98)"),
         ("der Jahrgang 1998 ist", "der Jahrgang 19 hundert 98 ist"),
-        ("die Auflage 1985 erschien", "die Auflage 19 hundert 85 erschien"),
+        ("(Auflage 1985)", "(Auflage 19 hundert 85)"),
+        ("die Auflage 1985.", "die Auflage 19 hundert 85."),
         ("Ausgabe 1990 und 1995 erschienen", "Ausgabe 19 hundert 90 und 19 hundert 95 erschienen"),
-        ("(Version 1998)", "(Version 19 hundert 98)"),
-        ("in Version 1998.", "in Version 19 hundert 98."),
-        # a count: a noun or a unit follows, or any word after "Version" (software)
+        # a count: a noun or a unit follows, any word after "Auflage" (a print run)
+        ("Die Auflage 1500 wurde verkauft.", "Die Auflage 1500 wurde verkauft."),
         ("Auflage 1500 Exemplare", "Auflage 1500 Exemplare"),
+        # a version number after "Version", wherever it stands (software, "1909" is 2019-09)
+        ("Windows 10 (Version 1909)", "Windows 10 (Version 1909)"),
+        ("(Version 1903)", "(Version 1903)"),
+        ("Version 1234.", "Version 1234."),
         ("Stand 1500 Punkte", "Stand 1500 Punkte"),
         ("Ausgabe 1500 m", "Ausgabe 1500 Meter"),
         ("Version 1234 läuft", "Version 1234 läuft"),

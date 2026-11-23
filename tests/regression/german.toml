@@ -2862,15 +2862,17 @@ utterances = [
 id = "de-year-after-an-edition-word-reads-in-hundreds"
 audit = 0
 issue = 591
-goal = "Ein Jahr von 1100 bis 1999 nach 'Ausgabe', 'Stand', 'Fassung', 'Jahrgang', 'Auflage' oder 'Version' wird in Hunderten gelesen ('19 hundert 98'), in beiden Läufen; folgt ein Nomen ('1500 Exemplare', '1500 Punkte') oder nach 'Version' ein weiteres Wort ('Version 1234 läuft'), bleibt es eine Anzahl. Unverändert spräche die Stimme 'tausendneunhundertachtundneunzig'."
+goal = "Ein Jahr von 1100 bis 1999 nach 'Ausgabe', 'Stand', 'Fassung' oder 'Jahrgang' wird in Hunderten gelesen ('19 hundert 98'), nach 'Auflage' nur, wenn die Zahl die Wendung schließt ('(Auflage 1985)'), in beiden Läufen; folgt ein Nomen ('1500 Exemplare', '1500 Punkte') oder nach 'Auflage' ein weiteres Wort ('Die Auflage 1500 wurde verkauft'), bleibt es eine Anzahl. Nach 'Version' bleibt jede Zahl eine Versionsnummer ('Version 1909', 'Version 1234.'). Unverändert spräche die Stimme 'tausendneunhundertachtundneunzig'."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Der Bericht (Ausgabe 1998), die Norm (Stand 1998) und das Gesetz (Fassung 1998) gelten." },
-    { kind = "paragraph", text = "Der Jahrgang 1998 und die Auflage 1985 erschienen, die Software (Version 1998) auch." },
+    { kind = "paragraph", text = "Der Jahrgang 1998 erschien in der dritten Auflage (Auflage 1985)." },
     { kind = "paragraph", text = "Die Auflage 1500 Exemplare, der Stand 1500 Punkte und Version 1234 läuft." },
+    { kind = "paragraph", text = "Die Auflage 1500 wurde verkauft, Windows 10 (Version 1909) und Version 1234." },
 ]
 expected = [
     "Der Bericht (Ausgabe 19 hundert 98), die Norm (Stand 19 hundert 98) und das Gesetz (Fassung 19 hundert 98) gelten.",
-    "Der Jahrgang 19 hundert 98 und die Auflage 19 hundert 85 erschienen, die Software (Version 19 hundert 98) auch.",
+    "Der Jahrgang 19 hundert 98 erschien in der dritten Auflage (Auflage 19 hundert 85).",
     "Die Auflage 1500 Exemplare, der Stand 1500 Punkte und Version 1234 läuft.",
+    "Die Auflage 1500 wurde verkauft, Windows 10 (Version 1909) und Version 1234.",
 ]
