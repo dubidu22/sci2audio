@@ -161,6 +161,8 @@ def progress_fraction(progress: Mapping[str, Any] | None) -> float | None:
     total = progress.get("bytes_total")
     if total:
         return min(1.0, (progress.get("bytes_done") or 0) / total)
+    if progress.get("phase") == "building" and progress.get("fraction") is not None:
+        return min(1.0, float(progress["fraction"]))  # the whole-book file (#725)
     return None
 
 

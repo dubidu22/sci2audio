@@ -27,6 +27,14 @@ class ErrorOut(BaseModel):
     message: str = Field(description="what went wrong, in words a person can act on")
 
 
+class BookErrorOut(ErrorOut):
+    """An error of the whole-book download (#725); `missing-chapters` names the chapters."""
+
+    chapters: list[str] | None = Field(
+        default=None, description="missing-chapters: the titles of the chapters not made yet"
+    )
+
+
 class DocumentOut(BaseModel):
     id: str = Field(description="the first 16 hex digits of the file's SHA-256")
     name: str = Field(description="the file name as opened")
@@ -190,7 +198,7 @@ class FileOut(BaseModel):
 
 class JobOut(BaseModel):
     id: str
-    kind: Literal["script", "audio", "voices", "preview"]
+    kind: Literal["script", "audio", "voices", "preview", "book"]
     document: str | None
     state: Literal["running", "done", "failed", "cancelled"]
     started: str
@@ -203,6 +211,26 @@ class JobOut(BaseModel):
     progress: dict[str, Any] | None
     error: ErrorOut | None
     files: list[FileOut]
+
+
+class BookIn(Strict):
+    """Which whole-book file to download (#725)."""
+
+    kind: Literal["m4b", "mp3"] = Field(
+        default="m4b", description="m4b: one file with chapter marks; mp3: one MP3 with ID3 ones"
+    )
+    partial_ok: StrictBool = Field(
+        default=False, description="build it from the chapters made when others are missing"
+    )
+
+
+class BookOut(BaseModel):
+    """The whole-book file: its name when it is built already (200), else the job that
+    builds it (202), whose progress names the file once done."""
+
+    name: str | None = Field(description="download it from …/audiobook/{name}?download=true")
+    partial: bool = Field(description="chapters the person chose are missing from it")
+    job: JobOut | None
 
 
 class PlanFileOut(BaseModel):

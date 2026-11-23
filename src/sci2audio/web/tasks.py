@@ -8,6 +8,9 @@
 - voices: `voices.download_voice_files`, the one download function (D-104, D-122),
   started only after consent (D-203). Cancelled by raising from its progress callback;
   the download removes the `.part` file of the file it was fetching (D-202).
+- book: `JobRunner.run_book` (#725) builds the whole audiobook as one M4B or MP3 from the
+  chapters made, into the folder they are in, or reuses the file built before; cancelled
+  through its event, leaving no half file. The file joins the project's record (D-750).
 - preview: one sentence with one voice at one speed into `<work_root>/preview/` (D-249),
   through `voices.speak_to_wav`, the call the audio job speaks with.
 
@@ -34,18 +37,21 @@ from typing import Any, BinaryIO
 from sci2audio import __version__
 from sci2audio.app import (
     AudioProgress,
+    BookProgress,
     JobBusyError,
     JobCancelledError,
     JobError,
     JobRunner,
     JobSettings,
+    MissingChaptersError,
     OutputExistsError,
     Phase,
     UnreadableTextError,
     VoiceSource,
+    find_chapters,
 )
 from sci2audio.app import UnsupportedFileError as AppUnsupportedFileError
-from sci2audio.output import OutputSettings
+from sci2audio.output import BookKind, Ffmpeg, book_subtitles
 from sci2audio.voices import (
     DownloadError,
     DownloadPlan,
@@ -184,9 +190,6 @@ def audio_work(
                 overwrite=overwrite,
                 progress=progress,
                 cancel=job.cancel,
-                # the library's only whole-book file until it can build one on request
-                # (#725); the chapters are playable before it either way (#723)
-                output_settings=OutputSettings(),
             )
         except (JobCancelledError, OutputExistsError, JobBusyError):
             raise  # the engine is fine
@@ -243,6 +246,77 @@ def audio_work(
         return files
 
     return work
+
+
+BOOK_STEP = 0.01  # the share of the build between two progress reports
+
+
+def book_work(
+    runner: JobRunner,
+    document: StoredDocument,
+    folder: Path,
+    kind: BookKind,
+    *,
+    partial_ok: bool,
+    ffmpeg: Ffmpeg | None = None,
+) -> Callable[[JobRecord], Sequence[Path]]:
+    """Build the whole audiobook of `kind` into `folder`, the one its chapters are in."""
+
+    def work(job: JobRecord) -> Sequence[Path]:
+        told = -1.0
+
+        def progress(event: BookProgress) -> None:
+            nonlocal told
+            if event.fraction >= 1.0 or event.fraction - told >= BOOK_STEP:
+                told = event.fraction
+                job.report({"phase": "building", "fraction": event.fraction})
+
+        job.report({"phase": "building", "fraction": 0.0})
+        built = runner.run_book(
+            document.folder,
+            folder,
+            kind,
+            partial_ok=partial_ok,
+            progress=progress,
+            cancel=job.cancel,
+            ffmpeg=ffmpeg,
+        )
+        titles = _titles(document)
+        job.report(
+            {
+                "phase": "done",
+                "name": built.path.name,
+                "kind": str(built.kind),
+                "partial": built.partial,
+                "reused": built.reused,
+                "missing": [_title(titles, i) for i in built.missing],
+                "unavailable": [_title(titles, i) for i in built.unavailable],
+            }
+        )
+        # the book's subtitles come with its M4B when they are on (output's `book_subtitles`)
+        pair = [p for p in book_subtitles(built.path) if p.is_file()]
+        if built.kind is not BookKind.M4B:
+            pair = []
+        try:
+            # removing the project removes the built file too (D-750)
+            record_files(document.folder, document.id, folder, [built.path, *pair])
+        except OSError as error:
+            logger.warning("could not record the audiobook's files: %s", error)
+        return [built.path]
+
+    return work
+
+
+def _titles(document: StoredDocument) -> dict[int, str]:
+    """The chapters' titles by their index, for the person, who never sees an index."""
+    try:
+        return {c.index: c.title for c in find_chapters(load_document(document.folder))}
+    except PlayerError:
+        return {}
+
+
+def _title(titles: dict[int, str], index: int) -> str:
+    return titles.get(index) or str(index + 1)
 
 
 def _note_made(
@@ -367,6 +441,7 @@ def classify(error: BaseException) -> tuple[JobState, JobFailure] | None:
 # earlier entries win: the subclasses come before JobError
 _KINDS: tuple[tuple[str, type[BaseException] | tuple[type[BaseException], ...]], ...] = (
     ("busy", JobBusyError),
+    ("missing-chapters", MissingChaptersError),  # #725: chapters gone from the cache
     ("output-exists", OutputExistsError),
     ("unsupported-file", AppUnsupportedFileError),
     ("unreadable-text", UnreadableTextError),  # #442

@@ -18,6 +18,9 @@ from playwright.sync_api import Page, expect
 from test_flow import open_paper
 
 from conftest import Live, at_rest, check_axe, settled, tab_key
+from sci2audio.app import build_book
+from sci2audio.output import BookKind
+from sci2audio.web.player import recorded_folder
 
 PER_CHARACTER = 2400  # samples at 24 kHz: 0.1 s per character
 
@@ -38,6 +41,15 @@ def make_audiobook(page: Page, live: Live) -> str:
     expect(page.get_by_role("heading", level=1)).to_have_text("paper")  # the title (#391)
     expect(page.get_by_role("link", name="Listen")).to_have_attribute("aria-current", "page")
     return document
+
+
+def built_m4b(live: Live, document: str) -> tuple[Path, str]:
+    """Build the made audiobook's M4B, as the download does (#725): the web job writes none.
+    Returns the project's audiobook folder and the M4B's name."""
+    work = live.state.store.get(document).folder
+    folder = recorded_folder(work, document)
+    assert folder is not None
+    return folder, build_book(work, folder, BookKind.M4B).path.name
 
 
 def listen_to(page: Page, live: Live, path: Path, pdf: bytes) -> None:
@@ -211,8 +223,8 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         assert outline != "none", f"no focus ring on {order[-1]} after {order}"
     # the paper header's tabs first (#391), then the dock in the order it shows (#393), the
     # Focus button (#394), the panel's button, and the panel: its selected tab, the
-    # chapters and the follow switch; the hidden button, the status line and the panel's
-    # other tab are skipped
+    # chapters, the whole-book download (#725) and the follow switch; the hidden button, the
+    # status line and the panel's other tab are skipped
     assert order == [
         "tab-prepare",
         "tab-listen",
@@ -227,6 +239,7 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         "panel-close",
         "BUTTON",
         "BUTTON",
+        "SUMMARY",
         "follow",
     ], order
     sentences = page.evaluate(

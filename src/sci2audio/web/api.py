@@ -21,6 +21,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
 from sci2audio.core import Document, Span, SpanError
+from sci2audio.output import BookKind
 from sci2audio.textprep import Category
 from sci2audio.voices import (
     DEFAULT_VOICE,
@@ -61,6 +62,7 @@ from sci2audio.web.player import (
     load_document,
     recorded_folder,
     sentence_starts,
+    whole_book,
     write_position,
 )
 from sci2audio.web.project import read_project
@@ -346,6 +348,70 @@ def audiobook(
     if found is None:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook file {name!r}")
     return _file(found, download)
+
+
+@router.post(
+    "/documents/{document_id}/book",
+    response_model=models.BookOut,
+    responses={
+        202: {"model": models.BookOut, "description": "the job that builds it"},
+        **_errors(404, *BODY),
+        409: {"model": models.BookErrorOut},
+    },
+    summary="The whole audiobook as one M4B or MP3: the file built before, or a job to build it",
+)
+def whole_audiobook(
+    state: State, document_id: str, body: models.BookIn, response: Response
+) -> models.BookOut:
+    """The document's whole audiobook as one file of `kind` (#725), built from the chapters
+    made, into the folder they are in. A file built before from exactly these chapters
+    answers 200 with its name; otherwise a book job builds it (202). Chosen chapters not
+    made yet answer 409 `missing-chapters` with their titles, unless `partial_ok`: then
+    the file holds the chapters made and is named partial. The file is downloaded from
+    `…/audiobook/{name}?download=true`."""
+    document = _document(state, document_id)
+    if state.board.current is not None:
+        raise ApiError(409, "busy", "a job is running; wait until it has finished")
+    listening = state.listening(document_id)
+    if listening is None:
+        raise ApiError(404, "not-found", f"no document {document_id}; open the file again")
+    try:
+        current = current_audiobook(listening.work, listening.document, listening.folders)
+    except PlayerError as error:
+        raise ApiError(404, "not-found", f"{document.name} has no audiobook yet") from error
+    book = whole_book(listening.work, current, body.kind)
+    if book.missing and not body.partial_ok:
+        raise ApiError(
+            409,
+            "missing-chapters",
+            f"these chapters are not made yet: {', '.join(book.missing)}",
+            chapters=book.missing,
+        )
+    if book.name is not None:
+        return models.BookOut(name=book.name, partial=bool(book.missing), job=None)
+    if not book.buildable:
+        raise ApiError(
+            409,
+            "not-buildable",
+            "this audiobook was made by an earlier version of sci2audio; make it again to "
+            "download it as one file",
+        )
+    work = state.book_work(document, current.located.folder, BookKind(body.kind), body.partial_ok)
+    with state.store.unchanged(document.id) as still:
+        if still is None:
+            raise ApiError(404, "not-found", f"no document {document.id}; open the file again")
+        try:
+            job = state.board.start(
+                JobKind.BOOK,
+                document.id,
+                {"kind": body.kind, "partial_ok": body.partial_ok},
+                work,
+                cancellable=True,
+            )
+        except BoardBusyError as error:
+            raise ApiError(409, "busy", str(error)) from error
+    response.status_code = 202
+    return models.BookOut(name=None, partial=bool(book.missing), job=_job_out(job))
 
 
 @router.get(

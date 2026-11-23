@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_remove.html" import remove_box with context %}
+{% from "_download.html" import book_box with context %}
 {% from "_icons.html" import icon %}
 {#- The library (#389, DESIGN.md "Library"): the opener, then every document in one table. -#}
 {% block title %}{{ t('library.title') }} · {{ t('common.app') }}{% endblock %}
@@ -74,6 +75,7 @@
       <td class="paper">
         <a class="title" href="{{ row.href }}">{{ row.title }}</a>
         {% if row.meta %}<span class="meta">{{ row.meta }}</span>{% endif %}
+        {% if row.document and row.audio %}{{ book_box(row.id, row.title, true) }}{% endif %}
         {% if row.document %}{{ remove_box(row.document, removals[row.id], row.id == busy_document, true) }}{% endif %}
       </td>
       <td><span class="chip {{ row.chip[0] }}" data-state="{{ row.state }}">{{ icon(row.chip[1], 's') }}{{ t('library.state_' ~ row.state) }}</span></td>

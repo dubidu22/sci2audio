@@ -17,12 +17,11 @@ from typing import Any, Literal
 
 from long_book import long_book
 from playwright.sync_api import Page, Route, expect
-from test_player import choose_speed, chunk_id, highlighted, make_audiobook, paused
+from test_player import built_m4b, choose_speed, chunk_id, highlighted, make_audiobook, paused
 
 from conftest import Live, check_axe, tab_key
 from sci2audio.core.export import to_data
 from sci2audio.output.readalong import to_json
-from sci2audio.web.player import recorded_folder
 
 NOW = "#text .s.now"
 
@@ -529,10 +528,11 @@ def test_a_book_of_a_thousand_pages_moves_one_sentence_at_a_time(
     stored = live.state.store.get(document)
     assert stored is not None
     work = stored.folder
-    folder = recorded_folder(work, document)
-    assert folder is not None
     record = json.loads((work / "audio.json").read_text(encoding="utf-8"))
-    book, readalong = long_book(m4b=record["files"]["m4b"])
+    # one M4B, as the download builds it (#725): the web job writes none
+    folder, m4b = built_m4b(live, document)
+    record["files"]["m4b"] = m4b
+    book, readalong = long_book(m4b=m4b)
     (work / "document.json").write_text(json.dumps(to_data(book)), encoding="utf-8")
     (folder / record["files"]["readalong"]).write_text(to_json(readalong), encoding="utf-8")
     record["files"]["mp3"] = []

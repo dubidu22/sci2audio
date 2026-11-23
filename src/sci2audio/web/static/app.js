@@ -178,6 +178,7 @@ async function send(url, options) {
   if (!response.ok) {
     const failure = new Error(data.message || response.statusText);
     failure.kind = data.error;
+    failure.data = data;
     failure.failure = failureOf(data.error, data.message || response.statusText);
     throw failure;
   }
@@ -467,6 +468,81 @@ function removal() {
   }
 }
 
+// ---- the whole audiobook as one file (#725) ---------------------------------------------
+
+// The box's buttons ask for the file: one built before is saved at once; else the job page
+// builds it, with its progress and Cancel. Chapters not made yet are named in the box, which
+// then offers the ready ones as a partial file.
+function bookBoxes() {
+  for (const box of document.querySelectorAll("details.book")) {
+    const now = box.querySelector("button.book-now");
+    const partial = box.querySelector("button.book-partial");
+    const missing = box.querySelector(".book-missing");
+    let sending = false;
+    async function ask(partialOk, button) {
+      if (sending) return;
+      sending = true;
+      button.setAttribute("aria-disabled", "true");
+      const kind = box.querySelector("input[type=radio]:checked")?.value || "m4b";
+      const doc = button.dataset.document;
+      say(tr("js.book_asking"));
+      let answer;
+      try {
+        answer = await send(
+          `/api/v1/documents/${doc}/book`,
+          json("POST", { kind, partial_ok: partialOk }),
+        );
+      } catch (error) {
+        sending = false;
+        button.removeAttribute("aria-disabled");
+        if (error.kind === "missing-chapters" && error.data && error.data.chapters) {
+          const list = missing.querySelector("ul");
+          list.replaceChildren(
+            ...error.data.chapters.map((title) => {
+              const item = document.createElement("li");
+              item.textContent = title;
+              return item;
+            }),
+          );
+          missing.hidden = false;
+          partial.hidden = false;
+          say("");
+          missing.focus();
+          return;
+        }
+        say(explain(error), true);
+        return;
+      }
+      if (answer.job) {
+        location.assign(`/jobs/${answer.job.id}`);
+        return;
+      }
+      sending = false;
+      button.removeAttribute("aria-disabled");
+      const link = document.createElement("a");
+      link.href = `/api/v1/documents/${doc}/audiobook/${encodeURIComponent(answer.name)}?download=true`;
+      link.download = answer.name;
+      link.hidden = true;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      say(tr("js.book_saving", { name: answer.name }));
+    }
+    now.addEventListener("click", () => ask(false, now));
+    partial.addEventListener("click", () => ask(true, partial));
+    // a change of kind asks again from the start: the missing chapters are the same, but
+    // the person chooses again whether a partial file will do
+    for (const radio of box.querySelectorAll("input[type=radio]")) {
+      radio.addEventListener("change", () => {
+        missing.hidden = true;
+        partial.hidden = true;
+      });
+    }
+    now.disabled = false; // drawn disabled until this click is attached (#427)
+    partial.disabled = false;
+  }
+}
+
 // ---- the document page -----------------------------------------------------------------
 
 function chosen(name) {
@@ -717,6 +793,7 @@ function describe(progress) {
     }
   }
   if (progress.bytes_total) parts.push(tr("js.percent", { n: Math.floor((100 * progress.bytes_done) / progress.bytes_total) }));
+  if (progress.phase === "building" && progress.fraction != null) parts.push(tr("js.percent", { n: Math.floor(100 * progress.fraction) }));
   return parts.join(", ");
 }
 
@@ -724,6 +801,7 @@ function fraction(progress) {
   if (progress.phase === "reading" && progress.pages) return progress.page / progress.pages;
   if (progress.chunks_total) return progress.chunks_done / progress.chunks_total;
   if (progress.bytes_total) return progress.bytes_done / progress.bytes_total;
+  if (progress.phase === "building" && progress.fraction != null) return progress.fraction;
   return null;
 }
 
@@ -1315,6 +1393,7 @@ document.addEventListener("DOMContentLoaded", () => {
   startPage();
   librarySearch();
   removal();
+  bookBoxes();
   documentPage();
   makingCard();
   jobPage();

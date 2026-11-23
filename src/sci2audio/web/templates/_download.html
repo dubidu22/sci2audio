@@ -1,0 +1,27 @@
+{#- Downloading the whole audiobook as one file (#725, LW-03): a disclosure with the two kinds
+    and one button. app.js asks the server: a file built before is saved at once, else the
+    job page builds it with progress and a Cancel button. When chosen chapters are not made
+    yet, the box names them and offers the ready ones as a partial file. The same markup
+    serves the library's rows and the Listen page. Import it "with context". -#}
+{% from "_icons.html" import icon %}
+{% macro book_box(document_id, name, named) %}
+<details class="book">
+  <summary class="btn quiet sm">{{ icon('download', 's') }}<span>{% if named %}{{ t('book.summary_named', name=name) }}{% else %}{{ t('book.summary') }}{% endif %}</span></summary>
+  <div class="book-box">
+    <fieldset class="book-kinds">
+      <legend>{{ t('book.kind') }}</legend>
+      <p><label><input type="radio" name="book-kind-{{ document_id }}" value="m4b" checked> M4B</label> <span class="hint">{{ t('book.hint_audiobook') }}</span></p>
+      <p><label><input type="radio" name="book-kind-{{ document_id }}" value="mp3"> MP3</label> <span class="hint">{{ t('book.hint_any_player') }}</span></p>
+    </fieldset>
+    <div class="book-missing" id="book-missing-{{ document_id }}" tabindex="-1" hidden>
+      <p>{{ t('book.missing') }}</p>
+      <ul class="book-missing-list"></ul>
+      <p>{{ t('book.partial_hint') }}</p>
+    </div>
+    <p class="buttons">
+      <button type="button" class="primary book-now" data-document="{{ document_id }}" disabled>{{ icon('download', 's') }}<span>{{ t('book.now') }}</span></button>
+      <button type="button" class="book-partial" data-document="{{ document_id }}" hidden disabled>{{ t('book.partial') }}</button>
+    </p>
+  </div>
+</details>
+{% endmacro %}

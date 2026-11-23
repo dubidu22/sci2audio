@@ -31,6 +31,7 @@ class JobKind(StrEnum):
     AUDIO = "audio"
     VOICES = "voices"
     PREVIEW = "preview"  # a voice preview (D-249)
+    BOOK = "book"  # the whole audiobook as one file, built on request (#725)
 
 
 class JobState(StrEnum):

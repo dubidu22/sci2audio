@@ -3,6 +3,7 @@
 {% from "_icons.html" import icon %}
 {% from "_keys.html" import key with context %}
 {% from "_speed.html" import speed_field with context %}
+{% from "_download.html" import book_box with context %}
 {% block title %}{{ t('listen.title', name=document.name) }} · {{ t('common.app') }}{% endblock %}
 {% block scripts %}{% if view %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}
 {% from "_listen_chapter.html" import sheet_chapter with context %}
@@ -145,6 +146,8 @@
       {% endif %}
       </ol>
     </nav>
+    {#- the whole audiobook as one file (#725), beside the chapters it holds #}
+    {% if not document.outside %}<div class="listen-book">{{ book_box(document.id, document.name, false) }}</div>{% endif %}
     <p class="setting-switch follow"><input type="checkbox" role="switch" class="switch" id="follow" checked> <label for="follow">{{ t('listen.follow') }}</label></p>
   </div>
   {#- the markers (#474, D-723): player.js draws the rows from the data block, in reading

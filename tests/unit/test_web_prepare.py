@@ -350,7 +350,9 @@ def test_the_card_once_done(tmp_path: Path) -> None:
     done = card(client.get(f"/jobs/{job}").text)
     assert re.search(r'<h3 id="result"[^>]*>Your audiobook is ready</h3>', done)
     assert f'href="/documents/{doc["id"]}/listen"' in done
-    assert "paper.m4b" in done
+    # the chapters' files; the whole book is built on request from Listen (#725)
+    assert re.search(r"paper - 01 [^<]*\.mp3", done)
+    assert ".m4b" not in done
     assert 'id="cache-free"' in done
 
 

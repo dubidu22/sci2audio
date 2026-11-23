@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 
 from playwright.sync_api import Page, expect
+from test_player import built_m4b
 from web_helpers import paper_bytes
 
 from conftest import Live, check_axe, settled
@@ -61,14 +62,26 @@ def test_subtitles_are_chosen_on_the_page_and_chromium_reads_them(
     files = page.evaluate("(url) => fetch(url).then((r) => r.json())", f"/api/v1/jobs/{job}")
     names = [f["name"] for f in files["files"]]
     vtts = [name for name in names if name.endswith(".vtt")]
-    assert len(vtts) == len([n for n in names if n.endswith(".mp3")]) + 1
+    # one pair a chapter; the book's own pair comes with its M4B, built on request (#725)
+    assert len(vtts) == len([n for n in names if n.endswith(".mp3")])
     assert len([n for n in names if n.endswith(".srt")]) == len(vtts)
     (readalong,) = [name for name in names if name.endswith(".readalong.json")]
     times = page.evaluate(
         "(url) => fetch(url).then((r) => r.json())", f"/api/v1/jobs/{job}/files/{readalong}"
     )
-    book = next(name for name in vtts if name == readalong.replace(".readalong.json", ".vtt"))
-    cues = page.evaluate(READ_TRACK, f"/api/v1/jobs/{job}/files/{book}")
+    document = job.split("-")[0]
+    folder, m4b = built_m4b(live, document)
+    book = folder / m4b.removesuffix(".m4b")
+    assert book.with_suffix(".srt").is_file()
+    # the book's subtitles are not served (they are saved beside the M4B): Chromium reads
+    # them from an address of the test server's
+    page.route(
+        f"{live.url}/book.vtt",
+        lambda route: route.fulfill(
+            body=book.with_suffix(".vtt").read_bytes(), content_type="text/vtt"
+        ),
+    )
+    cues = page.evaluate(READ_TRACK, "/book.vtt")
     assert cues, "Chromium read no cue"
     starts = {round(c[0] * 1000) for c in cues}
     ends = {round(c[1] * 1000) for c in cues}

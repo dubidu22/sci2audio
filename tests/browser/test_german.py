@@ -119,7 +119,10 @@ def test_the_main_flow_in_german(signed_in: Page, live: Live) -> None:
     page.get_by_role("button", name="Hörbuch erstellen").click()
     page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
     expect(page.locator("#result")).to_have_text("Ihr Hörbuch ist fertig")
-    expect(page.get_by_role("link", name=re.compile(r"^paper\.m4b speichern \("))).to_be_visible()
+    # the chapters' files; the whole book is built on request (#725)
+    expect(
+        page.get_by_role("link", name=re.compile(r"^paper - 01 .*\.mp3 speichern \(")).first
+    ).to_be_visible()
     check_axe(page, "de: audiobook done")
 
     # the player (#78): German controls; chapter titles keep the document's language (D-291)
