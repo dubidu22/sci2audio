@@ -198,6 +198,7 @@ The dispatcher stays but changes, as the read-only audit of 22 Nov recommended (
 (6) A required check: `governance pr checks` fails a `risk:high` PR that has no ledger round entry approving its current head. This is the META-03 check for the gate skips of #737 and #741.
 The same PR fixes `ledger_tool.py stats` reporting #737 as not merged, if that is a tool bug. Setting the repository ruleset so that no one can bypass the required checks is Colin's own hand step (ROLE-14).
 Owner message: "Yes, start it" (22 Nov 2026), answering "Start the critical ruleset PR with the audit's changes?".
+Outcome: #745 (ruleset 1.13.0) squash-merged 2026-11-23T06:17:26Z as 3bf852f, at the gated head 095cb2a. Round 2 approved with 0 must-fix, the coordinator's go was pinned to that head, and three-system run 45075077530 was green on it (tests on ubuntu, macos and windows succeeded, D-580). Colin ran the merge by hand, because auto mode blocked the review thread's merge step from 22:11Z on. The gate passed, so no override was needed. From now on a critical merge go is written as `ledger/gos/pr-<N>.yaml`. The repository ruleset with no bypass of the required checks is Colin's open hand step.
 
 ## D-883 (2026-11-22, coordinator)
 
