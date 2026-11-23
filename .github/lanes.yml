@@ -27,8 +27,8 @@ lanes:
     # the ruleset, its role extracts and the governance tooling: only the owner changes them (META-01)
     paths: [.github/**, pyproject.toml, uv.lock, .pre-commit-config.yaml,
             governance/claude-project-rules.yaml, governance/rules/**, governance/project_instructions.md,
-            governance/dispatcher_instructions.md, governance/claude-md-snippet.md,
-            governance/governance-config.json, governance/github-setup/**, governance/tools/**]
+            governance/dispatcher_instructions.md, governance/project_chat_instructions.md,
+            governance/claude-md-snippet.md, governance/governance-config.json, governance/github-setup/**, governance/tools/**]
     single_threaded: true
   docs:
     paths: ["*.md", docs/**, docs/design/**, .claude/**,

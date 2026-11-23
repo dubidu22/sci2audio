@@ -9,8 +9,8 @@
 #   execution_profile: decoupled model routing and token-economy settings
 #   <section>:         active rules with id, applies_to, rule
 
-version: 1.13.0
-date: 2026-11-22
+version: 1.14.0
+date: 2026-11-23
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
 public_repo: true
@@ -35,9 +35,9 @@ project_profile:
   execution_lanes: ["extraction/voices", "layout", "textprep", "app/release", "web", "docs"]
   file_ownership_labels: ["lane:core", "lane:extraction", "lane:layout", "lane:textprep", "lane:voices", "lane:output", "lane:app", "lane:web", "lane:cli", "lane:infra", "lane:docs"]
   lane_mapping_note: "Execution lanes are who works; lane:* labels (.github/lanes.yml) are which files a PR may touch. extraction/voices -> lane:extraction, lane:voices, lane:output. layout -> lane:layout. textprep -> lane:textprep (incl. src/sci2audio/testing). app/release -> lane:app, lane:cli (and lane:web when a PR spans both). web -> lane:web (src/sci2audio/web, static, templates, browser tests). docs -> lane:docs (docs/, CLAUDE.md, KB process text). app and web share files often, so LANE-02 keeps them apart unless their PRs touch disjoint files (D-761 B7/B8). lane:core and lane:infra are shared and critical; lane:infra is the lock. (D-765)"
-  critical_paths: ["src/sci2audio/core/**", ".github/**", "pyproject.toml", "uv.lock", "tests/corpus/**", "tests/unit/__snapshots__/**", "tests/regression/**", "THIRD_PARTY_LICENSES.md", "governance/claude-project-rules.yaml", "governance/rules/**", "governance/project_instructions.md", "governance/dispatcher_instructions.md", "governance/claude-md-snippet.md", "governance/governance-config.json", "governance/tools/**", "governance/kb/README.md", "governance/kb/**/adr-*.md", "governance/kb/**/playbook-*.md", "governance/kb/**/doc-*.md"]
-  label_paths: ["lane:core=src/sci2audio/core/**", "lane:extraction=src/sci2audio/extraction/**", "lane:layout=src/sci2audio/layout/**", "lane:textprep=src/sci2audio/textprep/**", "lane:textprep=src/sci2audio/testing/**", "lane:voices=src/sci2audio/voices/**", "lane:output=src/sci2audio/output/**", "lane:app=src/sci2audio/app/**", "lane:web=src/sci2audio/web/**", "lane:cli=src/sci2audio/cli.py", "lane:infra=.github/**", "lane:infra=pyproject.toml", "lane:infra=uv.lock", "lane:infra=.pre-commit-config.yaml", "lane:infra=governance/claude-project-rules.yaml", "lane:infra=governance/rules/**", "lane:infra=governance/project_instructions.md", "lane:infra=governance/dispatcher_instructions.md", "lane:infra=governance/claude-md-snippet.md", "lane:infra=governance/governance-config.json", "lane:infra=governance/github-setup/**", "lane:infra=governance/tools/**", "lane:docs=*.md", "lane:docs=docs/**", "lane:docs=docs/design/**", "lane:docs=.claude/**", "lane:docs=governance/kb/**", "lane:docs=governance/plans/**", "lane:docs=governance/ledger/**", "lane:docs=governance/project-state.yaml", "lane:docs=governance/memory/**", "lane:docs=governance/release/**", "lane:docs=governance/workflow-export.md"]
-  doc_paths: ["docs/**", "**/README.md", "CHANGELOG.md", "CONTRIBUTING.md", ".github/**", ".claude/**", "governance/dispatcher_instructions.md", "governance/claude-md-snippet.md"]
+  critical_paths: ["src/sci2audio/core/**", ".github/**", "pyproject.toml", "uv.lock", "tests/corpus/**", "tests/unit/__snapshots__/**", "tests/regression/**", "THIRD_PARTY_LICENSES.md", "governance/claude-project-rules.yaml", "governance/rules/**", "governance/project_instructions.md", "governance/dispatcher_instructions.md", "governance/project_chat_instructions.md", "governance/claude-md-snippet.md", "governance/governance-config.json", "governance/tools/**", "governance/kb/README.md", "governance/kb/**/adr-*.md", "governance/kb/**/playbook-*.md", "governance/kb/**/doc-*.md"]
+  label_paths: ["lane:core=src/sci2audio/core/**", "lane:extraction=src/sci2audio/extraction/**", "lane:layout=src/sci2audio/layout/**", "lane:textprep=src/sci2audio/textprep/**", "lane:textprep=src/sci2audio/testing/**", "lane:voices=src/sci2audio/voices/**", "lane:output=src/sci2audio/output/**", "lane:app=src/sci2audio/app/**", "lane:web=src/sci2audio/web/**", "lane:cli=src/sci2audio/cli.py", "lane:infra=.github/**", "lane:infra=pyproject.toml", "lane:infra=uv.lock", "lane:infra=.pre-commit-config.yaml", "lane:infra=governance/claude-project-rules.yaml", "lane:infra=governance/rules/**", "lane:infra=governance/project_instructions.md", "lane:infra=governance/dispatcher_instructions.md", "lane:infra=governance/project_chat_instructions.md", "lane:infra=governance/claude-md-snippet.md", "lane:infra=governance/governance-config.json", "lane:infra=governance/github-setup/**", "lane:infra=governance/tools/**", "lane:docs=*.md", "lane:docs=docs/**", "lane:docs=docs/design/**", "lane:docs=.claude/**", "lane:docs=governance/kb/**", "lane:docs=governance/plans/**", "lane:docs=governance/ledger/**", "lane:docs=governance/project-state.yaml", "lane:docs=governance/memory/**", "lane:docs=governance/release/**", "lane:docs=governance/workflow-export.md"]
+  doc_paths: ["docs/**", "**/README.md", "CHANGELOG.md", "CONTRIBUTING.md", ".github/**", ".claude/**", "governance/dispatcher_instructions.md", "governance/project_chat_instructions.md", "governance/claude-md-snippet.md"]
   governance_paths: ["governance/kb/**", "governance/plans/**", "governance/ledger/**", "governance/project-state.yaml", "governance/memory/**", "governance/release/**", "governance/workflow-export.md"]
   promised_tests_check: "the governance check"
   workspace_root: "./governance"
@@ -71,7 +71,7 @@ execution_profile:
     offload_heavy_checks_to_ci: true
     goal_turn_cap: 20
     cache_ttl_minutes: 60
-    coordinator_compact_every_batches: 1
+    coordinator_compact_every_batches: 0
 
 meta:
   - id: META-01
@@ -171,16 +171,13 @@ threads_and_watchdog:
     rule: "Threads write plans and round reports under ./governance/plans/ and post one line per hand-off in chat (what was written, where). Fix lists travel through round reports, not through the coordinator. Every file has one writer: a thread writes its own plan, reports and ledger entries and no other thread's; project-state.yaml is the coordinator's. The dispatcher sends the coordinator one line per event, starting with `COORDINATOR:`; the content goes in the batch file."
   - id: THR-05
     applies_to: dispatcher
-    rule: "The dispatcher keeps its whole working state in ./governance/plans/batch-<NNN>.md, so it is replaced at its first compression or after one batch, at the next hand-off, and never while one of its subagents is running."
+    rule: "The dispatcher keeps its whole working state in ./governance/plans/batch-<NNN>.md, so it is replaced at its first compression or after one batch, at the next hand-off."
   - id: THR-06
     applies_to: coordinator
     rule: "The coordinator lives for the whole project and keeps its context small: it reads summaries, ledger entries and state files, never diffs, logs, research or whole contracts, and hands lookups to a running thread. At each hand-off it writes state to ./governance/project-state.yaml and new decisions to ./governance/kb/pending-decisions.md, which only it writes, and re-reads them and its rules after any compression."
   - id: THR-10
     applies_to: coordinator,dispatcher
-    rule: "Starting a thread: the dispatcher starts implementation and review threads as background subagents of its own session (Agent tool, with the slot's model and effort from execution_profile.model_routing, and `isolation: worktree` when the thread writes files); it writes a starter block only if it has no such tool. Otherwise, if you have a tool that opens a thread or session, use it and set the model from execution_profile.model_routing there. If you have none, or it cannot set the model, write a starter block (role, model, extract to read, first task, the worktree command of THR-13) and ask the owner to open the chat with that model. A new thread's first line names its role and, if it can see it, its model."
-  - id: THR-11
-    applies_to: coordinator
-    rule: "At a pause and at the end of each batch, after writing state, give the owner this line to paste while the cache is warm: /compact Keep: active milestone, open decisions, next batch. You cannot run it yourself; do not wait for it."
+    rule: "Starting a thread: if you have a tool that opens a thread or session, use it and set the model from execution_profile.model_routing there. If you have none, or it cannot set the model, write a starter block (role, model, extract to read, first task, the worktree command of THR-13) and ask the owner to open the chat with that model. A new thread's first line names its role and, if it can see it, its model."
   - id: THR-12
     applies_to: coordinator
     rule: "Before starting a thread the owner will see or has to answer in, post one line here: what it does and what the owner has to do in it. Post one more line when a thread is waiting for the owner. Never start work silently."
