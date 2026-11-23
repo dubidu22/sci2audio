@@ -1,0 +1,5 @@
+pr: 768
+head: 8a2a12a9cf6cafd5c4d386f1c97ae8b14fea4924
+by: coordinator (claude.ai project thread, D-911)
+time: 2026-11-23T18:25Z
+reason: non-critical round 2 approved at this head, 0 must-fix (review-pr768-round2); Linux CI, Chromium shards and ZAP green; go written by the coordinator because no dispatcher runs (D-889)

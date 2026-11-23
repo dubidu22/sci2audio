@@ -184,3 +184,10 @@ Three changes to impl-725 plan §2.3 and §2.4 for PR 4 (#726, web) are accepted
 Amends D-909 for PR 4 (#726):
 - (a) The project page's Generate buttons also use `keep_settings`, as #726 AC2 asks. The settings-changed choice still comes up from "Make the audiobook" when more chapters are chosen under other settings, and a browser test covers it. This replaces D-909 item 3's "the project page uses the form's settings".
 - (b) #726 AC1 (the Listen page lists every chapter, with its state) replaces #472's "the Chapters panel names no other chapter". The newer accepted criterion of milestone v1.5 (D-870) wins, so this is a changed requirement and not a weaker test. `test_player`'s #472 assertion changes to the AC1 behaviour, and the PR body names both Issues.
+
+## D-911 (2026-11-23, coordinator)
+
+Merge go for #768 (PR 3 of D-903, #725, lane:web, not critical), pinned to 8a2a12a.
+- Round 1 found 1 must-fix (no test that a stale whole-book file is never served) and 3 should-fix. All are fixed with tests that fail without their checks.
+- Round 2 approved with 0 must-fix.
+- The merge waits until impl-725c sets `fixes_kinds: missing-test` and `handback: done` in `prs/pr-768.yaml` and the gate passes.
