@@ -201,3 +201,11 @@ Merge go for #769 (PR 4 of D-903, #726, lane:web, not critical), pinned to e2f63
 - The merge waits until impl-725c sets `handback: done` and the gate passes.
 - With this merge every Issue of batch 005 is done: #723, #724, #725, #726, #744 and #756 to #759.
 - Review note: when a chapter's MP3 is deleted, the page lists no chapter states. That is #724's behaviour and outside this batch. review-b005 files it as an Issue for milestone Later (GH-01).
+
+## D-913 (2026-11-23, coordinator)
+
+Batch 005 audit (`plans/audit-batch-005.md`, d33f280): 0 blocking, 2 should-fix, 5 notes.
+- S1: #766 (lane:cli) and #767 (lane:app) now carry milestone v1.5 and risk:low.
+  - #766 is a bug in `convert --with-script --keep-settings`, so v1.5 is not complete.
+  - No v1.5 release is cut in this batch. Under D-894 the work stops here, and Colin decides the next batch.
+- S2: report-only WebKit failures are tallied in #772 (v1.5, lane:web), with the D-374 rule as acceptance criteria.
