@@ -336,3 +336,37 @@ def test_chapters_the_analysis_left_out_can_be_generated(tmp_path: Path) -> None
     page = client.get(f"/documents/{doc}").text
     assert page.count('class="sm generate"') == 2
     assert 'data-chapters="[1, 2]"' in page
+
+
+def test_adding_paused_mid_chapter_resumes_with_the_same_choice(tmp_path: Path) -> None:
+    """Pause (the web's cancel) while a chapter is added, then Resume as the card does: the
+    paused job's keep_settings goes with it, the chapters made stay, nothing is mixed."""
+    client, config, doc, gate = project(tmp_path, [0])
+    gate.open.clear()
+    job = start(client, doc, [1, 2], settings={"speed": 1.2}, keep_settings=True)
+    try:
+        assert gate.reached.wait(60)
+        cancel = client.post(f"/api/v1/jobs/{job}/cancel")
+        assert cancel.status_code == 202, cancel.text
+    finally:
+        gate.open.set()
+    paused = wait(client, job)
+    assert paused["state"] == "cancelled"
+    assert paused["keep_settings"] is True
+    assert states(client, doc) == [
+        ("Introduction", "generated"),
+        ("Methods", "generated"),
+        ("Results", "not-generated"),
+    ]
+    # the card's data carries the choice on: Resume sends it back
+    page = client.get(f"/jobs/{job}").text
+    assert 'data-keep-settings="true"' in page
+    resumed = audio(
+        client, doc, paused["settings"]["chapters"], settings=paused["settings"], keep_settings=True
+    )
+    assert resumed["state"] == "done", resumed["error"]
+    assert [state for _title, state in states(client, doc)] == ["generated"] * 3
+    record = read_record(work_of(config, doc))
+    assert record is not None
+    assert record.made is not None
+    assert record.made["settings"]["speed"] == 1.0  # all three as the first was made
