@@ -178,3 +178,9 @@ Three changes to impl-725 plan §2.3 and §2.4 for PR 4 (#726, web) are accepted
 2. A saved position stores the chapter's document index and the time within that chapter. Positions saved before this change must still be read, or mapped, and this needs a test: no saved place is lost.
 3. Generate on the Listen page uses `keep_settings`, and the project page uses the form's settings.
 #726 was closed by #765's merge although its web criteria are still open. It is reopened, and PR 4 closes it.
+
+## D-910 (2026-11-23, coordinator)
+
+Amends D-909 for PR 4 (#726):
+- (a) The project page's Generate buttons also use `keep_settings`, as #726 AC2 asks. The settings-changed choice still comes up from "Make the audiobook" when more chapters are chosen under other settings, and a browser test covers it. This replaces D-909 item 3's "the project page uses the form's settings".
+- (b) #726 AC1 (the Listen page lists every chapter, with its state) replaces #472's "the Chapters panel names no other chapter". The newer accepted criterion of milestone v1.5 (D-870) wins, so this is a changed requirement and not a weaker test. `test_player`'s #472 assertion changes to the AC1 behaviour, and the PR body names both Issues.
