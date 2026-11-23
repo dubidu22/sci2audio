@@ -41,3 +41,7 @@
 
 - Done: B1, S1 and S2 verified fixed, with tests that fail on the mutation. D1 deferred to #767.
 - Not done: none.
+
+## Merge
+
+Squash-merged by review-b005 on the coordinator go D-908, pinned to adeba28, as ebd6e40. Main CI run 45221066638 on ebd6e40: tests on ubuntu, macos and windows and CI passed all success.
