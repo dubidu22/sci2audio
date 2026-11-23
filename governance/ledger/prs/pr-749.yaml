@@ -1,0 +1,13 @@
+pr: 749
+opened: 2026-11-23
+thread: docs-b-d2
+lane: infra
+labels: "lane:infra, lane:docs, risk:high, ci:full"
+plan: plans/docs-b-d2-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "closes #746 (D-874); plan approved D-883, pointer moved to governance/kb/00-index/working-files.md by D-884; 772 working files leave main, .github/scripts/working_files.py fails the lint job when one is tracked; main merged in (bdc8247) after #745 and #748; the dispatcher's next merge of main into governance must keep the working files (PR body, After the merge)"
+merged: ""
