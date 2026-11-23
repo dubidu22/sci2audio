@@ -101,3 +101,13 @@ Merge go for #760 (ruleset 1.15.0 plus the ledger and narration checks, closes #
 - Every ruleset file changes exactly two lines: the version and PREF-01. The D-882 and D-849 texts are byte-identical to main.
 - ci:full run 45160343600 is green.
 - After the merge, every new round entry carries `deferred:`.
+Outcome: #760 merged as e3a328e; main CI 45164259001 green on three systems.
+
+## D-901 (2026-11-23, coordinator)
+
+Merge go for #761 (PR B of #723, lane:app; closes #723), pinned to a839955.
+- Round 1 found 1 must-fix (B1): a stop between the hash record and the rename left a file that the record no longer vouched for.
+- The fresh thread impl-723b fixed it: the new hash stays pending until the rename is done, and a new kill test covers the window.
+- Round 2 approved with 0 must-fix.
+- Every changed test follows from the D-895 rule and none of them checks less.
+- Three-system run 45172191271 is green.

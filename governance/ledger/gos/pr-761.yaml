@@ -1,0 +1,5 @@
+pr: 761
+head: a83995537dd542c5834ccd3211b002e7a045cb5e
+by: coordinator (claude.ai project thread, D-901)
+time: 2026-11-23T12:30Z
+reason: critical round 2 approved at this head, 0 must-fix (review-pr761-round2); three-system run 45172191271 green on it
