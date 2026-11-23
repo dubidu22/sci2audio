@@ -214,3 +214,7 @@ Condition added: before the one-time merge of main into governance after this PR
 ## D-884 (2026-11-22, coordinator)
 
 Amends D-883: the pointer to branch governance goes to `governance/kb/00-index/working-files.md` (lane:docs), not to a new `governance/README.md`. No lane owns `governance/README.md`, so `test_lanes.py::test_every_file_of_the_workspace_and_the_design_record_has_exactly_one_lane` fails. Giving it a lane would mean editing `governance-config.json`, `.github/lanes.yml` and both `pr-checks.json` copies: a ruleset-config change that needs Colin (META-01) and breaks #746 criterion 6. The pointer stays findable: the CI check prints it whenever it fails, and CLAUDE.md names branch governance in its six state-file mentions. The new file is a record (index), not a KB document, so it is not critical by name.
+
+## D-885 (2026-11-23, owner)
+
+The v1.4.1 macOS DMG opens the app window. Colin: "it opens" (2026-11-23, about 06:37Z), answering the owner item "double-click the downloaded 1.4.1 DMG and confirm the window opens". This closes the last open point of D-868: the #716 fix works in the shipped 1.4.1 installer.
