@@ -32,3 +32,7 @@
 
 - Done: B1 fixed with a guard that fails on the vacuous case; the byte test now catches a missing join trim in `write_book_file`.
 - Not done: none.
+
+## Merge
+
+Squash-merged by review-b005 on the coordinator go D-906, pinned to 16b6e7a, as 51dd21d. Main CI run 45211348862 on 51dd21d: tests on ubuntu, macos and windows and CI passed all success.
