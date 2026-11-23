@@ -1,0 +1,14 @@
+pr: 762
+round: 1
+date: 2026-11-23
+thread: review-b005
+head: bc5b481ebf6adf4b6303dd30ef0ebb8200e4f91f
+critical: yes
+verdict: changes_requested
+must_fix: 1
+should_fix: 0
+deferred: 0
+kinds: "vacuous-test"
+report: plans/review-pr762-round1.md
+merged: ""
+updated_head: ""
