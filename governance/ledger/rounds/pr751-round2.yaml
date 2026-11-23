@@ -1,0 +1,13 @@
+pr: 751
+round: 2
+date: 2026-11-23
+thread: review-pr751-1
+head: b54bf4560c310ea5bc67d8ba850e4e66986760ba
+critical: yes
+verdict: changes_requested
+must_fix: 1
+should_fix: 1
+kinds: "stale-instruction, narrating-comment"
+report: plans/review-pr751-round2.md
+merged: ""
+updated_head: ""
