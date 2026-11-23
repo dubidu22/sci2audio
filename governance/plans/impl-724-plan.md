@@ -1,8 +1,8 @@
 # impl-724 plan: start listening when the first chapter is ready (#724, LW-02)
 
 Thread impl-724 (implementation, Opus 5.5 high), batch 005 slot B item 3. Written 2026-11-23
-on main 9f622af (#723 merged: #754 f1a9c1f, #761 9f622af). Status: **waiting for the
-coordinator** (an open choice in 1, and the lane overlap check with #725/#726, LANE-02).
+on main 9f622af (#723 merged: #754 f1a9c1f, #761 9f622af). Status: **approved as D-902** (choice A,
+critical, `risk:high`, #724 before #725/#726; a kill fault test added).
 
 ## 0. What #723 left and what is missing for the web
 
@@ -171,8 +171,13 @@ I recommend #724 first, then #726 builds its "Generate" buttons on the states fr
 ## 4. Tests promised (pytest node IDs)
 
 App:
-- `tests/unit/test_app_audio_chapters.py::test_the_laid_out_document_is_written_before_the_first_chapter_is_spoken`
+- `tests/unit/test_app_audio_chapters.py::test_the_laid_out_document_is_written_before_the_first_chapter_is_playable`
+  (named "..._is_spoken" before coding: the document is written where the old records are
+  removed, just before the first chapter's files are put in place, so an old `audio.json`
+  never stands beside a new `document.json`; see 7)
 - `tests/unit/test_app_audio_chapters.py::test_audio_json_is_still_written_only_at_the_end`
+- `tests/unit/test_app_audio_faults.py::test_a_kill_after_the_document_is_written_resumes_without_overwrite`
+  (D-902 ruling 2)
 
 Web, unit (TestClient where a route is involved):
 - `tests/unit/test_web_listen_growing.py::test_the_listen_page_plays_the_first_chapter_while_the_job_runs`
@@ -189,6 +194,7 @@ Web, unit (TestClient where a route is involved):
 - `tests/unit/test_web_listen_growing.py::test_an_audiobook_without_a_chapter_record_keeps_the_readalong_stamp`
 - `tests/unit/test_web_listen_growing.py::test_markers_in_a_chapter_that_just_arrived_get_their_sentence`
 - `tests/unit/test_web_audio.py::test_the_job_card_offers_start_listening_once_a_chapter_is_playable`
+- `tests/unit/test_web_audio.py::test_the_running_card_hides_start_listening_before_a_chapter_is_playable`
 - `tests/unit/test_web_audio.py::test_the_web_record_names_the_folder_and_settings_at_job_start`
 - `tests/unit/test_web_audio.py::test_a_job_for_another_book_still_forgets_the_position`
 
@@ -219,9 +225,21 @@ change (A) first, then the growing view with its unit tests, the stamp, the rout
 pages and the browser tests. One PR: `web: start listening while the rest is generated (#724)`,
 labels `lane:web` (+ `lane:app` with A), `risk:low` unless ruled critical.
 
+## 7. While coding
+
+- `document.json` is written in `_Chapters._writer`, right after the old records are removed
+  and before the first chapter's files are put in place (after the first chapter is spoken).
+  Written before the first chapter is spoken, a kill while speaking it would leave the old
+  `audio.json` (still vouching for the finished book, D-119) beside a new `document.json`.
+  The kill test of D-902 runs at exactly that point.
+- The web writes `made` into `audiobook.json` at the first playable chapter, not at job start:
+  the voice follows the document's language (D-469), known only from the laid-out document.
+- The book key stamps a finished book only while its chapter record vouches for the very
+  read-along file (size and SHA-256); a read-along file changed by hand keeps the old rule
+  (its hash), as `test_web_outside` and `test_web_markers_survive` expect.
+
 ## Handoff (THR-07)
 
 - Goal: #724 LW-02, plan above.
-- Done: plan written; nothing coded.
-- Next: the coordinator's ruling on 1 (A/B/C), on criticality, and on LANE-02 against
-  #725/#726; then code in the order of 6.
+- Done: plan approved (D-902); code and tests on `claude/project-thread-vxzknj`.
+- Next: PR, Linux CI, `ci:full`, then review.
