@@ -1,0 +1,13 @@
+pr: 760
+opened: 2026-11-23
+thread: impl-infra-b005
+lane: infra
+labels: "lane:infra, lane:docs, risk:high, ci:full"
+plan: plans/impl-infra-b005-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: "narrating-comment"
+handback: ""
+recommended: ""
+note: "closes #756 (F1 unrecorded merges), #757 (F2 deferred: <n>, required from PR 760), #758 (HISTORY_RE fails added change-history comments; tree test over comments and docstrings), #759 (PREF-01 advisor sentence removed, ruleset 1.15.0, D-892); head a25a67e; trial check on the real ledger flags prs/pr-753.yaml (merged starts with the date)"
+merged: ""
