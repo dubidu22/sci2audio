@@ -111,3 +111,10 @@ Merge go for #761 (PR B of #723, lane:app; closes #723), pinned to a839955.
 - Round 2 approved with 0 must-fix.
 - Every changed test follows from the D-895 rule and none of them checks less.
 - Three-system run 45172191271 is green.
+
+## D-902 (2026-11-23, coordinator)
+
+Plan impl-724 (`plans/impl-724-plan.md`, 69ccf6a, #724) is approved with three rulings.
+1. Option A: `app/audio.py` writes `document.json` before the first chapter, and `audio.json` still comes only at the end. The PR is lane:web plus lane:app.
+2. It counts as critical (risk:high). It changes when the job runner writes a file into the job folder that the D-895 rule governs, and `app/audio.py` was critical in #723. So it needs a fault test: a kill after `document.json` and before the first chapter, after which the rerun needs no overwrite. The review is on Opus 5.5 high, with ci:full before review.
+3. LANE-02: #724 goes first. #725 and #726 share web files with it, and #726 also `app/audio.py`, so their code starts only after #724 merges. impl-725 may write its plan now, on top of #724's plan.
