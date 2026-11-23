@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -14,10 +14,12 @@ from output_helpers import (
     NEWER,
     RATE,
     Job,
+    assert_joins_trim,
     chapters_of,
     decoded_samples,
     ffmetadata,
     make_job,
+    quiet_edged_job,
     refuse_newer_names,
     streams,
     tags_of,
@@ -134,7 +136,11 @@ def test_finish_writes_the_m4b_it_wrote_before_the_book_file_split(tmp_path: Pat
 def test_the_book_m4b_is_byte_identical_to_the_one_finish_writes(
     tmp_path: Path, settings: OutputSettings
 ) -> None:
-    job = make_job(tmp_path / "job", cover=cover_file(tmp_path))
+    """On chunks whose clause joins trim the voice's quiet edges, as the app's chunks do:
+    `write_book_file` trims its chapters itself, so only such chunks test that step."""
+    job = quiet_edged_job(tmp_path / "job")
+    job = replace(job, book=replace(job.book, cover=cover_file(tmp_path)))
+    assert_joins_trim(job)
     written = by_chapter(job, tmp_path / "job-output", settings).finish()
     assert written.m4b is not None
     out = tmp_path / "built"
