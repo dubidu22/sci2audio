@@ -1,7 +1,0 @@
-baseline PASS
-12 word-before from 1: killed tests/unit/test_textprep_utterances.py::test_a_number_between_the_same_word_twice_ends_the_sentence[Abs. 2. Abs. 3 gilt.-sentences2]
-37 finditer from 1: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[de-unter anderem bbb-joined43]
-8 range from 2: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[de-5 Komma 3-joined44]
-26 word_end > 1: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[de-5 Komma 3-joined44]
-55 last dropped: killed tests/unit/test_textprep_utterances.py::test_no_joined_place_is_past_the_last_place[aaa unter anderem bbb-9-joined0]
-58 len - 2: killed tests/unit/test_textprep_utterances.py::test_the_spaces_that_join_a_reading_are_found_from_the_text[en-aaa per s-joined45]
