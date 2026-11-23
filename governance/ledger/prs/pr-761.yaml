@@ -1,13 +1,13 @@
 pr: 761
 opened: 2026-11-23
-thread: impl-723
+thread: impl-723, impl-723b (round 1 fix)
 lane: app
 labels: "risk:high, lane:app, lane:web"
 plan: plans/impl-723-plan.md
 critical: yes
 compactions: 1
-fixes_kinds: ""
-handback: "2026-11-23"
+fixes_kinds: "vouch-window"
+handback: "done"
 recommended: ""
-note: "PR B of #723 (closes it, after PR A #754 f1a9c1f); chapters.json record (app/playable.py), chapter-by-chapter job, ready/playable events, JOB_OUTPUT no M4B by default, CLI unchanged (snapshot 0597e04), web keeps M4B (4.1); 5 new fault tests + benchmark row; existing tests changed listed in PR body; fix commit 492eb06 (LF sources for two snapshot tests, Windows CRLF); ci:full run 45163940997 green on ubuntu, macos, windows at 492eb06ed98f0468ea6d1c18faa018248d012d61; ci:full label removed"
+note: "PR B of #723 (closes it, after PR A #754 f1a9c1f); chapters.json record (app/playable.py), chapter-by-chapter job, ready/playable events, JOB_OUTPUT no M4B by default, CLI unchanged (snapshot 0597e04), web keeps M4B (4.1); 5 new fault tests + benchmark row; existing tests changed listed in PR body; fix commit 492eb06 (LF sources for two snapshot tests, Windows CRLF); ci:full run 45163940997 green on ubuntu, macos, windows at 492eb06ed98f0468ea6d1c18faa018248d012d61; ci:full label removed; round 1 fix a839955 (B1 vouch-window: a replaced book file stays vouched for under its old entry until the step that writes it is done; new test test_a_kill_while_the_readalong_file_is_replaced_resumes_cleanly, before-rename cases fail on 492eb06); ci:full run 45172191271 green on ubuntu, macos, windows at a83995537dd542c5834ccd3211b002e7a045cb5e; ci:full label removed"
 merged: ""
