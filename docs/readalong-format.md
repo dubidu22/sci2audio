@@ -6,8 +6,11 @@ original words it reads, so the player (#78) can highlight the document's own bl
 (OU-02, decision Q9). Output owns this format; `sci2audio.output.read_readalong` reads it. The
 browser's Listen page (`sci2audio.web.player`) uses it with the audio job's `document.json`.
 
-The file is written last, after every audio file it names is complete. If it exists, the
-audio is complete. A run that replaces earlier output removes the old file first.
+The file names only audio files that are complete: it is written after them. A run that
+writes the book chapter by chapter (#723) rewrites it after each chapter, so while the run
+goes on it lists the chapters done so far, in document order, with `m4b` set to `null`; the
+times of a chapter never change when a later one is added. A run that replaces earlier
+output removes the old file first.
 
 ## Example
 
