@@ -35,7 +35,7 @@ def book(folder: Path, parts: tuple[str, ...] = TITLES) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / "book.md"
     text = [f"# {t}\n\nThe chapter {t} starts here. It ends with {t}." for t in parts]
-    path.write_text("\n\n".join(text), encoding="utf-8")
+    path.write_text("\n\n".join(text), encoding="utf-8", newline="\n")
     return path
 
 

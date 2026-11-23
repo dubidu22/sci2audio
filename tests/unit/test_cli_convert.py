@@ -526,7 +526,7 @@ def test_convert_writes_the_same_files_as_before_chapters_became_playable_early(
     source = tmp_path / "in" / "three.md"
     source.parent.mkdir()
     parts = [f"# Part {n}\n\nThe text of part {n} is here. It has two sentences." for n in "ABC"]
-    source.write_text("\n\n".join(parts), encoding="utf-8")
+    source.write_text("\n\n".join(parts), encoding="utf-8", newline="\n")
     out = tmp_path / "b"
     result = cli("convert", source, "-o", out, "-q", "--subtitles", "--chapters", "1,3")
     assert result.code == 0, result.err
