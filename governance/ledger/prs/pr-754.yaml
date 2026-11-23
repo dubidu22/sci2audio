@@ -9,5 +9,5 @@ compactions: 0
 fixes_kinds: ""
 handback: ""
 recommended: ""
-note: "PR A of #723 (part of, PR B closes it); BookWriter writes a chapter's files on their own, read-along rewritten per chapter, vouch before rename, chapter_fingerprint; byte-equal to write_audiobook; head 5742b76; ci:full green on 3 OS (tests macos, ubuntu, windows), ci:full label removed; governance pr checks red only for the missing review round (D-882)"
+note: "PR A of #723 (part of, PR B closes it); BookWriter writes a chapter's files on their own, read-along rewritten per chapter, vouch before rename, chapter_fingerprint; byte-equal to write_audiobook; round 1 fix commit e07c3f185886828c05c6f444fe0a6cf408273388 (M1 join test with quiet edges, fails without the trim; S1 mp3-and-subtitles case; tests only); ci:full run 45150916921 green on ubuntu, macos, windows; ci:full label removed"
 merged: ""
