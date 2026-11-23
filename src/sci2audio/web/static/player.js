@@ -45,7 +45,7 @@ function readAlong() {
   let marked = null; // its element
   let following = true; // false after the person scrolled away by hand (D-301)
   let frame = 0;
-  let pending = null; // what to do once the file being loaded is ready
+  let pending = null; // a jump waiting for its file to load or the seek before it to end
   let touched = false; // the person played or moved: from then on the position is kept
   let savedAt = 0; // when the position was last sent (performance.now())
   let focusing = false; // Focus listening is shown (#394)
@@ -170,7 +170,8 @@ function readAlong() {
   }
 
   function update() {
-    // while a file loads, its time is still 0: the jump's own highlight stands
+    // while a file loads, its time is still 0, and while a jump waits for the seek before
+    // it, the time is that seek's: the jump's own highlight stands
     if (loaded < 0 || pending) return;
     highlight(chunkAt(bookTime()));
     showTime(bookTime());
@@ -220,22 +221,27 @@ function readAlong() {
       update();
     };
     if (loaded !== c) showChapter(c);
-    // a jump made while another file is still loading replaces that jump
-    if (pending) audio.removeEventListener("loadedmetadata", pending);
+    // a jump made while another file is still loading, or another seek still runs, replaces
+    // that jump
+    if (pending) audio.removeEventListener(pending.event, pending.run);
     pending = null;
     const src = source(c);
-    if (audio.getAttribute("src") !== src) {
-      loaded = c;
-      pending = () => {
-        pending = null;
-        go();
-      };
-      audio.addEventListener("loadedmetadata", pending, { once: true });
-      audio.src = src;
-    } else {
-      loaded = c;
+    loaded = c;
+    // one seek at a time: Linux WebKit loses the place of a seek started while another one
+    // still runs and ends at 0, with nothing marked (#720)
+    const event =
+      audio.getAttribute("src") !== src ? "loadedmetadata" : audio.seeking ? "seeked" : "";
+    if (!event) {
       go();
+      return;
     }
+    const run = () => {
+      pending = null;
+      go();
+    };
+    pending = { event, run };
+    audio.addEventListener(event, run, { once: true });
+    if (event === "loadedmetadata") audio.src = src;
   }
 
   function playFrom(index, start) {

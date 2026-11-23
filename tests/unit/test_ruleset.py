@@ -98,3 +98,60 @@ def test_every_extract_repeats_the_rules_and_the_profile_of_the_ruleset(extract:
 @pytest.mark.parametrize("key", ["critical_paths", "label_paths", "doc_paths", "governance_paths"])
 def test_the_profile_holds_the_paths_of_the_config(key: str) -> None:
     assert json.loads(profile(RULESET)[key]) == CONFIG[key]
+
+
+# D-882 (ruleset 1.13.0): the dispatcher changes of the audit of 22 Nov 2026. The generator has
+# no setting for them, so they are exact replaces too, and a regeneration that drops one fails here.
+D882 = {
+    "THR-10": (
+        "the dispatcher starts implementation and review threads as background subagents of its "
+        "own session (Agent tool, with the slot's model and effort from "
+        "execution_profile.model_routing, and `isolation: worktree` when the thread writes files); "
+        "it writes a starter block only if it has no such tool.",
+    ),
+    "MRG-01": (
+        "for critical ones the coordinator, whose go is the file "
+        "./governance/ledger/gos/pr-<N>.yaml with the head SHA, the coordinator and the time, "
+        "written by the coordinator and required by ledger_tool.py gate <N>",
+        "For a risk:high PR, re-run `governance pr checks` on that head after the approving round "
+        "entry is pushed.",
+        "record the new SHA as `updated_head` in the latest round entry",
+    ),
+    "ROLE-11": (
+        "It also watches CI and merges for PRs outside the batch that the coordinator names, and "
+        "records them in the batch file.",
+    ),
+    "THR-05": ("and never while one of its subagents is running.",),
+    "ROLE-17": (
+        "A dispatcher event reaches you as one line starting with `COORDINATOR:`; its content is "
+        "in ./governance/plans/batch-<NNN>.md, read it there.",
+    ),
+    "THR-04": (
+        "The dispatcher sends the coordinator one line per event, starting with `COORDINATOR:`; "
+        "the content goes in the batch file.",
+    ),
+}
+
+
+@pytest.mark.parametrize("rule_id", sorted(D882))
+def test_a_d882_rule_keeps_its_wording(rule_id: str) -> None:
+    """Each extract repeats the ruleset's block byte for byte (the test above), so the ruleset
+    is enough here."""
+    text = rule_text(rules(RULESET)[rule_id])
+    for fragment in D882[rule_id]:
+        assert text.count(fragment) == 1, f"{rule_id} lost: {fragment}"
+
+
+def test_the_dispatcher_instructions_carry_the_d882_changes() -> None:
+    text = " ".join((GOVERNANCE / "dispatcher_instructions.md").read_text(encoding="utf-8").split())
+    for fragment in (
+        "Start implementation and review threads as background subagents of your own session: "
+        "the Agent tool, with the slot's model and effort from `execution_profile.model_routing`, "
+        "and `isolation: worktree` when the thread writes files. Write a starter block only if "
+        "you have no such tool.",
+        "never while one of your subagents is running (`THR-05`)",
+        "every event reaches the Coordinator as one line starting with `COORDINATOR:`, and its "
+        "content goes in the batch file",
+        "You also watch CI and merges for PRs outside the batch that the Coordinator names",
+    ):
+        assert fragment in text, fragment
