@@ -263,3 +263,10 @@ Batch 004 audit (`plans/audit-batch-004.md`, 3cd4a3b): 0 blocking, 3 should-fix,
 - F3: v1.4 stays open only for #731. Moving #731 to another milestone goes to Colin (ROLE-01).
 - `stats`: `narrating-comment` regressed after #712's fix (seen again in #739), so it goes one step up the META-03 ladder: a lint check in batch 005, slot A.
 - Owner PR #751 (ruleset 1.14.0, the claude.ai Project, Colin's "Yes, apply" 23 Nov) gets its critical review now that the lane:infra lock is free.
+
+## D-892 (2026-11-23, owner)
+
+#731 is closed as not planned, so the Fable advisor second opinion of PREF-01 is dropped. Colin chose "Close it as not planned" (2026-11-23T08:48Z) on the card "Move #731 (coordinator's advisor) out of v1.4 so v1.4 can close?", whose consequence read: "The Fable advisor second opinion (PREF-01) is dropped; that rule then needs a ruleset change."
+- From now on the coordinator asks no advisor thread before a decision it puts to Colin.
+- The PREF-01 text is removed by the next ruleset PR after #751 (META-01, batch 005, slot A), not inside #751, which is under review.
+- With #731 closed, milestone v1.4 has no open Issue.
