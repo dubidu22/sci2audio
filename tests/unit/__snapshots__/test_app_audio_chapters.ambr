@@ -78,6 +78,8 @@
           'sha256': '<sha256 of book.readalong.json>',
         }),
       ]),
+      'built': list([
+      ]),
       'chapters': list([
         dict({
           'files': list([
@@ -90,6 +92,7 @@
           'fingerprint': "<sha256 of the chapter's input>",
           'index': 0,
           'number': 1,
+          'spoken': '<sha256 of spoken/0.json>',
           'title': 'Alpha',
         }),
         dict({
@@ -103,6 +106,7 @@
           'fingerprint': "<sha256 of the chapter's input>",
           'index': 1,
           'number': 2,
+          'spoken': '<sha256 of spoken/1.json>',
           'title': 'Beta',
         }),
         dict({
@@ -116,11 +120,48 @@
           'fingerprint': "<sha256 of the chapter's input>",
           'index': 2,
           'number': 3,
+          'spoken': '<sha256 of spoken/2.json>',
           'title': 'Gamma',
         }),
       ]),
       'complete': True,
       'format': 'sci2audio-chapters',
+      'made': dict({
+        'book': list([
+          'book',
+          list([
+          ]),
+          'en',
+        ]),
+        'output': dict({
+          'aac_bitrate': '64k',
+          'chapter_pause': 2.0,
+          'clause_pause': 0.25,
+          'heading_pause': 1.0,
+          'm4b': False,
+          'mp3': True,
+          'mp3_bitrate': '64k',
+          'paragraph_pause': 0.6,
+          'pause_edit': 0.5,
+          'sentence_pause': 0.3,
+          'subtitles': False,
+        }),
+        'settings': dict({
+          'language': '',
+          'letter_pace': 'normal',
+          'speed': 1.0,
+          'switched_off': list([
+            'footnote-texts',
+          ]),
+          'voice': '',
+        }),
+        'voice': list([
+          'fake',
+          'fake-1',
+          'af_heart',
+        ]),
+      }),
+      'order': 'book',
       'pending': list([
       ]),
       'planned': list([
@@ -129,7 +170,7 @@
         2,
       ]),
       'settings': '<sha256 of the settings, the voice and the book>',
-      'version': 1,
+      'version': 2,
     }),
     'readalong.json': dict({
       'chapters': list([
