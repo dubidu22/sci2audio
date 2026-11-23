@@ -218,3 +218,7 @@ Amends D-883: the pointer to branch governance goes to `governance/kb/00-index/w
 ## D-885 (2026-11-23, owner)
 
 The v1.4.1 macOS DMG opens the app window. Colin: "it opens" (2026-11-23, about 06:37Z), answering the owner item "double-click the downloaded 1.4.1 DMG and confirm the window opens". This closes the last open point of D-868: the #716 fix works in the shipped 1.4.1 installer.
+
+## D-886 (2026-11-23, owner)
+
+The upstream change to the governance skill is dropped: the generator will not be taught to read `governance_paths` and keep the D-849 PLAN-01 wording (follow-up of D-855). Colin: "drop it" (2026-11-23), answering the advice to leave it. Ruleset re-runs keep re-applying the two edits by exact replace, and the CI tests of D-855 keep guarding them.
