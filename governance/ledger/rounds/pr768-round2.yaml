@@ -1,0 +1,14 @@
+pr: 768
+round: 2
+date: 2026-11-23
+thread: review-b005
+head: 8a2a12a9cf6cafd5c4d386f1c97ae8b14fea4924
+critical: no
+verdict: approved
+must_fix: 0
+should_fix: 0
+deferred: 0
+kinds: ""
+report: plans/review-pr768-round2.md
+merged: ""
+updated_head: ""
