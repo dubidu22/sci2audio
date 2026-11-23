@@ -45,6 +45,7 @@ from sci2audio.app import (
     Phase,
     ScriptJob,
     ScriptResult,
+    SettingsChangedError,
     UnreadableFileError,
     UnsupportedFileError,
     VoiceSource,
@@ -409,6 +410,12 @@ def add_convert(parser: _Parser) -> None:
         "--with-script",
         action="store_true",
         help="also write the listening script and the report",
+    )
+    parser.add_argument(
+        "--keep-settings",
+        action="store_true",
+        help="add chapters with the settings the audiobook's other chapters were made with, "
+        "not the current ones",
     )
     _add_models_option(parser)
 
@@ -792,7 +799,16 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     progress = Progress(env, args.quiet)
     script: ScriptJob | None = None
     try:
-        job = _audio_in_thread(env, progress, source, settings, work, voice, output, args.overwrite)
+        job = _audio_in_thread(
+            env,
+            progress,
+            source,
+            settings,
+            work,
+            voice,
+            output,
+            (args.overwrite, args.keep_settings),
+        )
         if args.with_script:
             script = env.job_runner(settings).run_script(
                 source,
@@ -816,13 +832,14 @@ def _audio_in_thread(
     work: Path,
     voice: VoiceSource,
     output: OutputSettings,
-    overwrite: bool,
+    choices: tuple[bool, bool],  # overwrite, keep the settings the chapters were made with
 ) -> AudioJob:
     """Run the audio job in a worker thread, so the first Ctrl-C can ask it to stop at its
     next cancel point (D-219); a second Ctrl-C stops at once."""
     cancel = threading.Event()
     finished = threading.Event()
     outcome: dict[str, Any] = {}
+    overwrite, keep_settings = choices
 
     def work_on() -> None:
         try:
@@ -833,6 +850,7 @@ def _audio_in_thread(
                 voice=voice,
                 output_settings=output,
                 overwrite=overwrite,
+                keep_settings=keep_settings,
                 progress=progress.audio,
                 cancel=cancel,
             )
@@ -1150,6 +1168,8 @@ COMMANDS: tuple[Command, ...] = (
 _JOB_ERRORS: tuple[tuple[type[JobError], Exit, str], ...] = (
     (UnsupportedFileError, Exit.UNSUPPORTED, ""),
     (UnreadableFileError, Exit.UNREADABLE, ""),
+    # before its base class: the other choice is to keep the settings (#726)
+    (SettingsChangedError, Exit.EXISTS, " (add --keep-settings or --overwrite)"),
     (OutputExistsError, Exit.EXISTS, " (add --overwrite)"),
     (JobBusyError, Exit.BUSY, ""),
     (JobCancelledError, Exit.INTERRUPTED, "; run the same command again to continue"),

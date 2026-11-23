@@ -261,7 +261,7 @@ def test_a_chapter_whose_every_sentence_failed_gets_no_file_and_keeps_the_number
     [
         "",
         "not json",
-        '{"format": "sci2audio-chapters", "version": 2}',
+        '{"format": "sci2audio-chapters", "version": 3}',
         '{"format": "other", "version": 1}',
         json.dumps(
             {
@@ -334,6 +334,7 @@ def test_the_records_snapshot_of_a_chapters_only_job(
     chapters["settings"] = "<sha256 of the settings, the voice and the book>"
     for entry in [*chapters["chapters"]]:
         entry["fingerprint"] = "<sha256 of the chapter's input>"
+        entry["spoken"] = f"<sha256 of spoken/{entry['index']}.json>"
         for file in entry["files"]:
             file["sha256"] = f"<sha256 of {file['name']}>"
             file["bytes"] = "<size>"

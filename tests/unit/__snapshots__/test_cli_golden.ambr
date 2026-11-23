@@ -64,7 +64,7 @@
                            [--letter-pace {normal,slower,slowest}]
                            [--format {both,m4b,mp3}]
                            [--subtitles | --no-subtitles] [--with-script]
-                           [--models-folder FOLDER]
+                           [--keep-settings] [--models-folder FOLDER]
                            FILE
   
   Make the audiobook of FILE. Running the same command again continues an
@@ -108,6 +108,8 @@
                           chapter MP3 and one for the M4B (default: as saved,
                           else off)
     --with-script         also write the listening script and the report
+    --keep-settings       add chapters with the settings the audiobook's other
+                          chapters were made with, not the current ones
     --models-folder FOLDER
                           where the voice files are (default: in the user's data
                           folder)

@@ -161,3 +161,15 @@ above 20 %.
 | Machine | First chapter playable after | Whole job | Share | Date | Commit |
 |---|---|---|---|---|---|
 | Linux cloud container, x86_64, 4 cores | 0.34 to 0.41 s | 2.46 to 2.51 s | 14 to 16 % (3 rounds) | 2026-11-23 | branch of f1a9c1f |
+
+## Building the whole audiobook on request (#725)
+
+The whole-book file (one M4B or one MP3 with chapter marks) is built from the chunk cache
+when the person asks for it, not by the job. The table is a ten-chapter Markdown book of
+117 s of fake-voice audio: `uv run pytest tests/unit/test_app_book_speed.py -m benchmark -s -p no:xdist`
+(nightly). The encoding budget above (50 times faster than real time) applies; the test
+fails below 10 times, so a slow CI machine does not fail it.
+
+| Machine | M4B | MP3 | Date | Commit |
+|---|---|---|---|---|
+| Linux cloud container, x86_64, 4 cores | 0.90 to 0.98 s (119 to 130x) | 0.34 to 0.37 s (315 to 347x) | 2026-11-23 | branch of eab9fb2 + #762 |

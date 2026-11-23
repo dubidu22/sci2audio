@@ -15,10 +15,11 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from sci2audio.app.audio import AudioJob, AudioProgress, run_audio_job
+from sci2audio.app.book import BookProgress, BuiltBook, build_book
 from sci2audio.app.job import JobBusyError, Phase, ScriptJob, run_script_job
 from sci2audio.app.settings import JobSettings
 from sci2audio.app.voice import VoiceSource
-from sci2audio.output import OutputSettings
+from sci2audio.output import BookKind, Ffmpeg, OutputSettings
 from sci2audio.textprep import DEFAULT_MAX_CHARS, TextStep, installed_steps
 
 
@@ -88,12 +89,16 @@ class JobRunner:
         voice: VoiceSource,
         output_settings: OutputSettings | None = None,
         overwrite: bool = False,
+        keep_settings: bool = False,
         progress: Callable[[AudioProgress], None] | None = None,
         cancel: threading.Event | None = None,
         steps: Sequence[TextStep] | None = None,
         max_chars: int = DEFAULT_MAX_CHARS,
     ) -> AudioJob:
-        """`run_audio_job` on this runner; JobBusyError if a job is running on it."""
+        """`run_audio_job` on this runner; JobBusyError if a job is running on it. A job
+        that keeps the settings the project's chapters were made with (#726) is given every
+        step: the job leaves out the plugins' when those settings did."""
+        chosen = self.steps if steps is None else steps
         with self._one_job():
             return run_audio_job(
                 source,
@@ -102,8 +107,32 @@ class JobRunner:
                 voice=voice,
                 output_settings=output_settings,
                 overwrite=overwrite,
+                keep_settings=keep_settings,
                 progress=progress,
                 cancel=cancel,
-                steps=self.steps_for(settings, steps),
+                steps=chosen if keep_settings else self.steps_for(settings, steps),
                 max_chars=max_chars,
+            )
+
+    def run_book(
+        self,
+        work: Path,
+        out_folder: Path,
+        kind: BookKind = BookKind.M4B,
+        *,
+        partial_ok: bool = False,
+        progress: Callable[[BookProgress], None] | None = None,
+        cancel: threading.Event | None = None,
+        ffmpeg: Ffmpeg | None = None,
+    ) -> BuiltBook:
+        """`build_book` on this runner (#725); JobBusyError if a job is running on it."""
+        with self._one_job():
+            return build_book(
+                work,
+                out_folder,
+                kind,
+                partial_ok=partial_ok,
+                progress=progress,
+                cancel=cancel,
+                ffmpeg=ffmpeg,
             )
