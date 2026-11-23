@@ -1,0 +1,5 @@
+pr: 769
+head: e2f635876d80b1ccc94760920dccb8c5a884d8aa
+by: coordinator (claude.ai project thread, D-912)
+time: 2026-11-23T19:26Z
+reason: non-critical round 2 approved at this head, 0 must-fix (review-pr769-round2); CI green; go written by the coordinator because no dispatcher runs (D-889)

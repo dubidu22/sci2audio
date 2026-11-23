@@ -191,3 +191,13 @@ Merge go for #768 (PR 3 of D-903, #725, lane:web, not critical), pinned to 8a2a1
 - Round 1 found 1 must-fix (no test that a stale whole-book file is never served) and 3 should-fix. All are fixed with tests that fail without their checks.
 - Round 2 approved with 0 must-fix.
 - The merge waits until impl-725c sets `fixes_kinds: missing-test` and `handback: done` in `prs/pr-768.yaml` and the gate passes.
+Outcome: #768 merged as 1fbff7c; main CI 45238098859 green on three systems.
+
+## D-912 (2026-11-23, coordinator)
+
+Merge go for #769 (PR 4 of D-903, #726, lane:web, not critical), pinned to e2f6358.
+- Round 1 found 0 must-fix and 2 should-fix (missing tests for the vouch in `chapter_states` and for `_kept_settings`). Both are fixed.
+- Round 2 approved with 0 must-fix.
+- The merge waits until impl-725c sets `handback: done` and the gate passes.
+- With this merge every Issue of batch 005 is done: #723, #724, #725, #726, #744 and #756 to #759.
+- Review note: when a chapter's MP3 is deleted, the page lists no chapter states. That is #724's behaviour, and changing it is not in this batch's scope. It is left for Colin's next batch, not filed now.
