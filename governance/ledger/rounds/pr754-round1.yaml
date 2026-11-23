@@ -1,0 +1,13 @@
+pr: 754
+round: 1
+date: 2026-11-23
+thread: review-b005
+head: 5742b767172b250aeb4e3feb1aef3dda4a09006c
+critical: yes
+verdict: changes_requested
+must_fix: 1
+should_fix: 1
+kinds: "vacuous-test, missing-case"
+report: plans/review-pr754-round1.md
+merged: ""
+updated_head: ""
