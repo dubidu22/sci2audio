@@ -25,3 +25,8 @@
 - Goal: critical review round 2 of #754.
 - Done: fix commit verified, both fixes shown to fail on a wrong case, three-system run green on e07c3f1.
 - Next: the coordinator's go `ledger/gos/pr-754.yaml` for head e07c3f1; then this thread runs `ledger_tool.py gate 754`, squash-merges pinned to that head, and records the merge commit here. Not merged yet.
+
+## Merge
+
+- Squash-merged on the coordinator's go (D-897, `ledger/gos/pr-754.yaml`), pinned to e07c3f1, after `ledger_tool.py gate 754` said it may be merged: `f1a9c1f15e92b26ba2309bffd5befa7eff12e4af`. The first attempt was refused because `governance pr checks` was still red from before round 2 was recorded; rerunning that job (run 45154984816) turned it green, then the merge went through. No branch update was needed.
+- Main CI run 45155540428 on f1a9c1f: `tests (ubuntu-latest)`, `tests (macos-latest)`, `tests (windows-latest)`, both Chromium shards and `CI passed` all success.
