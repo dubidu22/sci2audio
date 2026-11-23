@@ -17,7 +17,6 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - A text-step plugin can no longer stop or hang a job through what its `find` returns or raises: its edits, its error and its copies of the document and the context are read inside the guard, under its time limit, and the job gets only plain copies (#693).
 - Several text-step plugins in one package whose import hangs wait the 30 s load limit once, not once each (#694).
 - Accents a PDF draws apart from their letter are read with it: names such as "Marasović" and "Šmejkal" keep their accent, and braces reaching below a line no longer join it to the next line of a reference (#125, #126).
-- A text file with one paragraph of more than 4,000,000 characters between blank lines is refused with a clear message instead of using about a gigabyte of memory, as Markdown and EPUB already did (#607). An EPUB whose table of contents file (NCX, EPUB 2) holds more than 200,000 elements gets no outline, as a damaged one does, instead of being read whole (#608).
 - Headings set with a rule or numbered like a list, plots without a caption and their labels, and tables without rules on a two-column page are read where they belong (#181, #54, #59, #55, #56).
 
 ### Security

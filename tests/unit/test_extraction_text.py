@@ -194,13 +194,11 @@ def test_the_limit_is_the_decided_one() -> None:
 
 
 def test_a_large_file_is_read_in_linear_time() -> None:
-    """Eight times the lines against a base run, on CPU time (#298)."""
-    line = "A line of an ordinary plain-text file, about sixty chars.\n"
-    # a paragraph of 50 lines: 100,000 lines without a blank one are past MAX_PARAGRAPH (#607)
-    paragraph = line * 50 + "\n"
-    content = assert_linear(
-        lambda text: read(text.encode()), lambda n: paragraph * (n // 50), 100_000
-    )
+    """Eight times the lines against a base run, on CPU time (#298). One paragraph of 100,000
+    lines, so that a reader quadratic in a paragraph's lines fails; the lines are short (28
+    characters) to keep the paragraph, 2.8 million characters, under `MAX_PARAGRAPH` (#607)."""
+    line = "A short line of plain text.\n"
+    content = assert_linear(lambda text: read(text.encode()), lambda n: line * n, 100_000)
     assert len(content.pages[0].lines) == 100_000
 
 
