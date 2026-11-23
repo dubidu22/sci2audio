@@ -200,3 +200,17 @@ Tried and ruled out, with evidence:
 - `settings_key` today holds `settings_data(settings)`, which includes `chapters` (`app/job.py:164`): adding chapters would read as changed settings. PR 2 leaves the chapter choice out of the key.
 - Text steps run on the whole document (`app/script.py:83`), so a chapter's script doesn't depend on the chapter choice. A later chapter's chunks match the cache.
 - Unchecked: whether the bundled ffmpeg writes ID3 `CHAP`/`CTOC` frames for the book MP3 on all three systems. PR 1's first test and `ci:full` settle it; if it cannot, report a question.
+
+## Handoff (THR-07), 2026-11-23, impl-725b after PR 1 and PR 2
+
+- Goal: #725 (LW-03) and #726 (LW-04) in four PRs (section 3). impl-725b did PR 1 and PR 2 (THR-02); PR 3 and PR 4 go to a fresh thread.
+- Done:
+  - PR 1, #762 (output), merged as 51dd21d after 2 rounds. Round 1 B1 was a vacuous byte test; the fix added `assert_joins_trim` in `tests/unit/output_helpers.py`.
+  - PR 2, #765 (app, CLI), open at 9e160c0. ci:full run 45213028392 is green on three systems; it waits for review.
+- What PR 3 and PR 4 build on, as merged in PR 2:
+  - `app.build_book(work, out_folder, kind, *, partial_ok, progress, cancel, ffmpeg) -> BuiltBook(path, kind, chapters, missing, unavailable, partial, reused)`, also `JobRunner.run_book`. It raises `MissingChaptersError(missing, unavailable)` when chapters are missing and `partial_ok` is false, and `OutputExistsError` for a file it does not own. Progress comes as `BookProgress(fraction)`.
+  - `run_audio_job` / `JobRunner.run_audio(..., keep_settings=)` raise `SettingsChangedError(old, new)`, with `.changes` listing what differs as strings, for the web's 409 `settings-changed`. A record of another book in the same working folder adds nothing.
+  - `ChapterRecord` v2 has `order`, `made`, `built`, and `PlayableChapter.spoken`. `app.chapter_states(work, out_folder, [(index, title)])` returns ChapterState(index, title, generated). `app.speakable(result)` lists the chapters that have something to say.
+  - The built file lives in the output folder and is recorded in `chapters.json` `built`. PR 3 adds it to `record_files` (D-750).
+- Next: PR 3 removes the D-895 line in `web/tasks.py` and adds `book_work` and JobKind.BOOK. PR 4 drops `planned` from `book_key` (2.4; the #764 review noted that book_key includes planned). Both are non-critical and run browser tests.
+- Not done: `convert --with-script --keep-settings` writes the script with the settings given, which is out of scope in the #765 body. No Issue has been opened unless review asks for one.
