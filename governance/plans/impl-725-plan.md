@@ -1,6 +1,6 @@
 # impl-725: the whole audiobook on demand (#725, LW-03) and the remaining chapters later (#726, LW-04)
 
-Status: **waiting for coordinator approval** (critical: output files, the job's reuse and overwrite rules, file names of chapters, a new golden file; `risk:high` for PR 1 and PR 2, CRIT-01, PLAN-02). One open choice (4.1). No code or tests before approval, and none before #724 has merged (D-902).
+Status: **approved (D-903, 4.1: numbers from the book's place). Coding waits for #724's merge (D-902) and goes to a fresh thread.** (critical: output files, the job's reuse and overwrite rules, file names of chapters, a new golden file; `risk:high` for PR 1 and PR 2, CRIT-01, PLAN-02). One open choice (4.1). No code or tests before approval, and none before #724 has merged (D-902).
 Written 2026-11-23 by impl-725 (Opus 5.5 high) on main at 9f622af (after #723's PR B #761), on top of `plans/impl-724-plan.md` as D-902 asks (section 2.4). Batch: `plans/batch-005.md`, slot A.
 
 ## 1. What changes
@@ -186,3 +186,17 @@ Runs: the fast checks before each PR, `uv run pytest -m browser` for 3 and 4, `c
 - Goal: plan #725 (LW-03) and #726 (LW-04) and get it approved.
 - Done: this plan, from main 9f622af (`web/tasks.py`, `app/audio.py`, `app/playable.py`, `app/script.py`, `output/chapters.py`, `output/write.py`, `output/names.py`, web routes, `cli.py`).
 - Next: the coordinator decides 4.1 and approves; after #724 merges (D-902), rebase this plan's 2.4 on what merged, then PR 1. Per THR-07 the coding may go to a fresh thread started from this handoff, since the wait for #724 is likely longer than an hour.
+
+## Handoff (THR-07), 2026-11-23, after approval
+
+- Goal: #725 (LW-03) and #726 (LW-04) in four PRs (section 3), plan approved as written with 4.1 = number chapters by their place among the book's speakable chapters (D-903).
+- Done: plan only (this file, on main 9f622af and `impl-724-plan.md`). No branch, no code, no tests, no Issues opened.
+- Next (fresh implementation thread, Opus 5.5 high): wait until #724 has merged (D-902). Then read #724's merged diff against section 2.4 and report any difference that touches it before coding. Then PR 1 (output, `risk:high`, characterisation test first: `test_finish_writes_the_m4b_it_wrote_before_the_book_file_split`), `ci:full` before review; PR 2 after PR 1 merges; PR 3 and PR 4 after PR 2.
+
+Tried and ruled out, with evidence:
+- Numbering among the chosen chapters (today): adding a chapter renames and retags every later chapter's MP3, so #726's "finished chapter files are reused" fails. Rename and retag by stream copy was the alternative; D-903 chose the book's numbering.
+- Building the book from the chapter MP3s: a second lossy encoding, and the M4B would not equal today's job output (#725 AC golden comparison). Built from the chunk cache instead.
+- Finding a chapter's chunks again with a new text run: `chapter_fingerprint` holds `__version__`, so after any app update every older project's download would fail. `spoken/<index>.json` per chapter instead.
+- `settings_key` today holds `settings_data(settings)`, which includes `chapters` (`app/job.py:164`): adding chapters would read as changed settings. PR 2 leaves the chapter choice out of the key.
+- Text steps run on the whole document (`app/script.py:83`), so a chapter's script doesn't depend on the chapter choice. A later chapter's chunks match the cache.
+- Unchecked: whether the bundled ffmpeg writes ID3 `CHAP`/`CTOC` frames for the book MP3 on all three systems. PR 1's first test and `ci:full` settle it; if it cannot, report a question.
