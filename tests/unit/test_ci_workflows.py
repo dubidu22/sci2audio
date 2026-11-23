@@ -445,6 +445,43 @@ def test_the_governance_check_runs_pr_code_only_without_write_access() -> None:
     )
 
 
+def test_the_governance_check_gates_a_risk_high_pr_on_the_ledger_of_branch_governance() -> None:
+    """D-882: a risk:high PR fails the required check until the latest round entry on branch
+    governance approves its head. The ledger never comes from the PR and the judging tool comes
+    from the base commit, so a PR cannot approve itself; nothing reaches the script but the
+    environment."""
+    header = "      - name: Check that a risk:high PR has an approving review round for its head"
+    step = block(GOVERNANCE, header)
+    # every later step runs the PR's code (pr_checks.py, the PR's conftest), which could rewrite
+    # $GITHUB_ENV, $GITHUB_PATH or the runner for a step after it (review-745 M1)
+    steps = re.findall(r"^      - (?:name|uses): (.+)$", block(GOVERNANCE, "    steps:"), re.M)
+    assert steps[0].startswith("actions/checkout@"), steps
+    assert steps[1] == header.removeprefix("      - name: "), steps
+    for later in steps[2:]:
+        if not later.startswith("astral-sh/setup-uv@"):
+            assert "        if: ${{ !cancelled() }}" in block(GOVERNANCE, f"      - name: {later}")
+    assert "        if: ${{ !cancelled() }}" in step
+    env = block(step, "        env:")
+    for line in (
+        "PR_NUMBER: ${{ github.event.pull_request.number }}",
+        "PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}",
+        "PR_BASE: ${{ github.event.pull_request.base.sha }}",
+        "PR_HEAD: ${{ github.event.pull_request.head.sha }}",
+    ):
+        assert line in env, line
+    script = block(step, "        run: |")
+    assert "${{" not in script
+    assert script.strip().startswith("set -o pipefail")
+    assert "*,risk:high,*) ;;" in script
+    assert (
+        "git fetch --no-tags origin +refs/heads/governance:refs/remotes/origin/governance" in script
+    )
+    assert "git archive origin/governance governance/ledger" in script
+    assert 'git show "$PR_BASE:governance/tools/ledger_tool.py"' in script
+    ledger = '--ledger "$RUNNER_TEMP/governance/governance/ledger"'
+    assert f'approved "$PR_NUMBER" --head "$PR_HEAD" {ledger}' in script
+
+
 def browser_shard():  # type: ignore[no-untyped-def]
     """`.github/scripts/browser_shard.py`, imported as a module."""
     script = ROOT / ".github" / "scripts" / "browser_shard.py"
