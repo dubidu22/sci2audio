@@ -1,0 +1,13 @@
+pr: 751
+opened: 2026-11-23
+thread: settings-session-d888
+lane: infra
+labels: "risk:high, lane:infra"
+plan: ""
+critical: yes
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "closes #750 (D-888); ruleset 1.14.0 for the claude.ai Project; opened from Colin's settings session, plan was the preview Colin approved there (no plan file, PR body); entry written by the review thread because none existed (coordinator's instruction)"
+merged: ""

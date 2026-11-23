@@ -1,0 +1,13 @@
+pr: 751
+round: 1
+date: 2026-11-23
+thread: review-pr751-1
+head: f168cbf3e7c48e4d3a2280f4f3a806e786fbc9a3
+critical: yes
+verdict: changes_requested
+must_fix: 2
+should_fix: 0
+kinds: "ci-full-missing, behind-main"
+report: plans/review-pr751-round1.md
+merged: ""
+updated_head: ""
