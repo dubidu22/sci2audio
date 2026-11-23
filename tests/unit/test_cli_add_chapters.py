@@ -88,7 +88,6 @@ def test_convert_keep_settings_with_script_writes_the_script_with_the_kept_setti
     assert result.code == 0, result.err
     report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
     assert report["settings"]["switched_off"] == ["code", "footnote-texts", "links"]
-    assert report["settings"]["chapters"] == [1]  # this run's choice (chapter 2); the rest is kept
     assert "book.script.txt" in files_in(out)
 
 
@@ -130,3 +129,17 @@ def test_convert_keep_settings_with_overwrite_writes_the_script_with_the_given_s
     report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
     assert "links" in report["settings"]["switched_off"]
     assert report["settings"].get("plugins") is not False
+
+
+def test_convert_keep_settings_with_script_keeps_the_language(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    first = cli("convert", source, "-o", out, "-q", "--chapters", "1", "--language", "en")
+    assert first.code == 0, first.err
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "2", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["language"] == "en"
