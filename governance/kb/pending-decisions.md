@@ -61,3 +61,12 @@ Merge go for #751 (ruleset 1.14.0, the claude.ai Project, Colin's change), pinne
 - Three-system run 45150607713 is green on that head.
 - After the merge, Colin re-pastes the Project instructions from `governance/project_chat_instructions.md` (an owner hand step).
 - The next ruleset PR (batch 005, slot B, item 2) also fixes the test comment that cites PREF-01 for "few clicks" (round 3 note).
+
+## D-897 (2026-11-23, coordinator)
+
+Merge go for #754 (PR A of #723, lane:output), pinned to e07c3f1 (`ledger/gos/pr-754.yaml`).
+- Round 1 found 1 must-fix: the join byte test could not fail. Round 2 approved with 0 must-fix and 0 should-fix.
+- Byte identity holds: 98 files across 12 inputs.
+- Three-system run 45150916921 is green on that head.
+- If the branch needs an update from main first, MRG-01's `updated_head` path applies.
+- PR B of #723 starts after the merge.
