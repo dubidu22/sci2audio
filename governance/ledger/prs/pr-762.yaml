@@ -7,7 +7,7 @@ plan: plans/impl-725-plan.md
 critical: yes
 compactions: 0
 fixes_kinds: ""
-handback: ""
+handback: "done"
 recommended: ""
-note: "PR 1 of #725/#726 (D-903): write_book_file (M4B byte-identical to finish, MP3 with ID3 CHAP/CTOC), BookWriter/audiobook_targets numbers+count (defaults unchanged), book_file_name, BookKind; new snapshot test_output_book.ambr; characterisation 67ecab6 first; bundled ffmpeg writes CHAP/CTOC on Linux, ci:full settles macOS/Windows; fast 7822 passed locally (1 torch-only error, torch not installable here)"
+note: "PR 1 of #725/#726 (D-903): write_book_file (M4B byte-identical to finish, MP3 with ID3 CHAP/CTOC), BookWriter/audiobook_targets numbers+count (defaults unchanged), book_file_name, BookKind; new snapshot test_output_book.ambr; characterisation 67ecab6 first; bundled ffmpeg writes CHAP/CTOC on Linux, ci:full settles macOS/Windows; fast 7822 passed locally (1 torch-only error, torch not installable here); title fixed to one issue number (PR-01); ci:full run 45178892989 green on ubuntu, macos, windows at bc5b481ebf6adf4b6303dd30ef0ebb8200e4f91f (MP3 CHAP/CTOC test passes on all three); ci:full label removed; governance check red only on the review-round gate (MRG-01)"
 merged: ""
