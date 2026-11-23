@@ -12,11 +12,13 @@ import wave
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from sci2audio.core import AudioChunk, Span
 from sci2audio.output import BookInfo, Chapter, Pause, Spoken
 from sci2audio.output.ffmpeg import find_ffmpeg
+from sci2audio.output.write import _inspect_all, _trim_joins
 
 RATE = 24000
 
@@ -62,6 +64,41 @@ def make_job(
             spoken.append(Spoken(chunk, pauses[index % len(pauses)]))
     book = BookInfo("A Study of Tones", ("Ada Lovelace", "Alan Turing"), "en-GB", cover)
     return Job(folder, chapters, spoken, book)
+
+
+def quiet_edged_job(folder: Path) -> Job:
+    """Every chunk a tone between a quiet lead and tail, as a voice leaves them, and every
+    pause a clause pause, inside a chapter and at a chapter's start: the joins trim."""
+    chapters, spoken = [], []
+    for c, count in enumerate((3, 2)):
+        chapters.append(Chapter(f"Part {c + 1}", len(spoken)))
+        for _ in range(count):
+            index = len(spoken)
+            samples = np.concatenate(
+                [
+                    np.zeros(6000),
+                    6000 * np.sin(np.arange(4800) * 0.06 * (index + 2)),
+                    np.zeros(7000),
+                ]
+            ).astype("<i2")
+            name = f"chunks/{index:04d}.wav"
+            (folder / name).parent.mkdir(parents=True, exist_ok=True)
+            with wave.open(str(folder / name), "wb") as audio:
+                audio.setnchannels(1)
+                audio.setsampwidth(2)
+                audio.setframerate(RATE)
+                audio.writeframes(samples.tobytes())
+            chunk = AudioChunk(Span(index, 0, 5), name, len(samples) / RATE)
+            spoken.append(Spoken(chunk, Pause.CLAUSE, f"Piece {index},", index > 0))
+    return Job(folder, chapters, spoken, BookInfo("Joined Pieces", ("Ada Lovelace",)))
+
+
+def assert_joins_trim(job: Job) -> None:
+    """Fail unless the job's clause joins leave out some of the voice's edge silence: a
+    test that holds two ways of joining chunks to byte equality proves nothing about the
+    join on chunks with no quiet edges (#480)."""
+    audio = _trim_joins(_inspect_all(job.folder, job.spoken), job.chapters, job.spoken)
+    assert any(chunk.kept < chunk.frames for chunk in audio), "no join trims anything"
 
 
 def ffmpeg_exe() -> str:

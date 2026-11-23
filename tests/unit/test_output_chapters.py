@@ -6,19 +6,24 @@ from __future__ import annotations
 import errno
 import hashlib
 import subprocess
-import wave
 from dataclasses import fields, replace
 from pathlib import Path
 
-import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from output_helpers import RATE, Job, ffmetadata, ffmpeg_exe, make_job, tags_of
+from output_helpers import (
+    Job,
+    assert_joins_trim,
+    ffmetadata,
+    ffmpeg_exe,
+    make_job,
+    quiet_edged_job,
+    tags_of,
+)
 
 from sci2audio.core import AudioChunk, Span
 from sci2audio.output import (
-    BookInfo,
     BookWriter,
     Chapter,
     ChunkAudioError,
@@ -26,6 +31,7 @@ from sci2audio.output import (
     OutputSettings,
     Pause,
     Spoken,
+    audiobook_targets,
     chapter_fingerprint,
     find_ffmpeg,
     read_readalong,
@@ -120,33 +126,6 @@ def test_chapter_by_chapter_writes_the_same_bytes_as_write_audiobook(
     assert [p.name for p in written.mp3s] == sorted(n for n in whole if n.endswith(".mp3"))
 
 
-def quiet_edged_job(folder: Path) -> Job:
-    """Every chunk a tone between a quiet lead and tail, as a voice leaves them, and every
-    pause a clause pause, inside a chapter and at a chapter's start: the joins trim."""
-    chapters, spoken = [], []
-    for c, count in enumerate((3, 2)):
-        chapters.append(Chapter(f"Part {c + 1}", len(spoken)))
-        for _ in range(count):
-            index = len(spoken)
-            samples = np.concatenate(
-                [
-                    np.zeros(6000),
-                    6000 * np.sin(np.arange(4800) * 0.06 * (index + 2)),
-                    np.zeros(7000),
-                ]
-            ).astype("<i2")
-            name = f"chunks/{index:04d}.wav"
-            (folder / name).parent.mkdir(parents=True, exist_ok=True)
-            with wave.open(str(folder / name), "wb") as audio:
-                audio.setnchannels(1)
-                audio.setsampwidth(2)
-                audio.setframerate(RATE)
-                audio.writeframes(samples.tobytes())
-            chunk = AudioChunk(Span(index, 0, 5), name, len(samples) / RATE)
-            spoken.append(Spoken(chunk, Pause.CLAUSE, f"Piece {index},", index > 0))
-    return Job(folder, chapters, spoken, BookInfo("Joined Pieces", ("Ada Lovelace",)))
-
-
 @pytest.mark.parametrize(
     "settings",
     [ALL, OutputSettings(m4b=False, subtitles=True)],
@@ -156,6 +135,7 @@ def test_chapter_by_chapter_with_clause_joins_writes_the_same_bytes(
     tmp_path: Path, settings: OutputSettings
 ) -> None:
     job = quiet_edged_job(tmp_path / "job")
+    assert_joins_trim(job)
     whole = written_whole(job, tmp_path / "whole", settings)
     writer = by_chapter(job, tmp_path / "parts", settings)
     writer.finish()
@@ -511,3 +491,90 @@ def test_an_old_read_along_file_is_removed_before_any_chapter_is_written(tmp_pat
     old = out / "A Study of Tones.readalong.json"
     BookWriter(job.folder, out, job.book, [c.title for c in job.chapters], overwrite=True)
     assert not old.exists()
+
+
+def test_given_numbers_name_and_tag_the_chapters(tmp_path: Path) -> None:
+    """Chapters are numbered by their place in the book, not among those chosen (#726,
+    D-903): the second chapter written here is the book's third of thirteen."""
+    job = make_job(tmp_path / "job")
+    out = tmp_path / "out"
+    (a, b), _, (e, f) = ranges(job)
+    titles = ["Introduction", "Results"]
+    writer = BookWriter(job.folder, out, job.book, titles, ALL, numbers=[1, 3], count=13)
+    writer.add(1, job.spoken[a:b])
+    writer.add(2, job.spoken[e:f])
+    written = writer.finish()
+    assert [p.name for p in written.mp3s] == [
+        "A Study of Tones - 01 Introduction.mp3",
+        "A Study of Tones - 03 Results.mp3",
+    ]
+    assert [tags_of(ffmetadata(p))["track"] for p in written.mp3s] == ["1/13", "3/13"]
+    assert writer.fingerprint(2, job.spoken[e:f]) == chapter_fingerprint(
+        job.book, "Results", 3, 13, job.spoken[e:f], ALL
+    )
+    assert audiobook_targets(out, job.book.title, titles, ALL, [1, 3], 13) == writer.targets
+    wide = audiobook_targets(out, job.book.title, titles, ALL, [1, 3], 100)
+    assert wide.mp3s[1].name == "A Study of Tones - 003 Results.mp3"
+
+
+def test_numbers_must_fit_the_chapters_and_the_count(tmp_path: Path) -> None:
+    job = make_job(tmp_path / "job")
+    out = tmp_path / "out"
+    for numbers, count, message in (
+        ([1], 3, "one number per chapter"),
+        ([2, 1], 3, "increasing"),
+        ([1, 1], 3, "increasing"),
+        ([0, 2], 3, "from 1 to 3"),
+        ([1, 4], 3, "from 1 to 3"),
+    ):
+        with pytest.raises(ValueError, match=message):
+            BookWriter(job.folder, out, job.book, ["A", "B"], numbers=numbers, count=count)
+
+
+def test_numbers_left_out_keep_every_file_as_before(tmp_path: Path) -> None:
+    job = make_job(tmp_path / "job", cover=cover_file(tmp_path))
+    titles = [c.title for c in job.chapters]
+    by_chapter(job, tmp_path / "default").finish()
+    writer = BookWriter(job.folder, tmp_path / "given", job.book, titles, ALL, numbers=[1, 2, 3])
+    for number, (first, stop) in enumerate(ranges(job), start=1):
+        writer.add(number, job.spoken[first:stop])
+    writer.finish()
+    assert hashes(tmp_path / "given") == hashes(tmp_path / "default")
+    assert audiobook_targets(tmp_path, "T", titles, ALL) == audiobook_targets(
+        tmp_path, "T", titles, ALL, [1, 2, 3], 3
+    )
+
+
+BOOK_CHAPTERS = 3  # make_job's book
+
+
+@settings(max_examples=8, deadline=None)
+@given(
+    first=st.sets(st.integers(min_value=1, max_value=BOOK_CHAPTERS), min_size=1),
+    later=st.sets(st.integers(min_value=1, max_value=BOOK_CHAPTERS), min_size=1),
+)
+def test_a_chapter_added_between_two_others_leaves_their_files_unchanged(
+    tmp_path_factory: pytest.TempPathFactory, first: set[int], later: set[int]
+) -> None:
+    """A book written for some chapters, then for those and more (any set, any chapters
+    added before, between or after): every chapter written first keeps its file's name
+    and bytes, and its subtitles, so a file already copied to a phone stays the same."""
+    tmp = tmp_path_factory.mktemp("added")
+    job = make_job(tmp / "job")
+    spans = ranges(job)
+
+    def write(numbers: list[int], out: Path) -> dict[str, str]:
+        titles = [job.chapters[n - 1].title for n in numbers]
+        writer = BookWriter(
+            job.folder, out, job.book, titles, ALL, numbers=numbers, count=BOOK_CHAPTERS
+        )
+        for place, number in enumerate(numbers, start=1):
+            start, stop = spans[number - 1]
+            writer.add(place, job.spoken[start:stop])
+        written = writer.finish()
+        mine = {*written.mp3s, *written.subtitles[: 2 * len(numbers)]}
+        return {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in mine}
+
+    before = write(sorted(first), tmp / "before")
+    after = write(sorted(first | later), tmp / "after")
+    assert {name: after.get(name) for name in before} == before
