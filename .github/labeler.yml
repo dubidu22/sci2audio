@@ -14,6 +14,7 @@
           - "governance/rules/**"
           - "governance/project_instructions.md"
           - "governance/dispatcher_instructions.md"
+          - "governance/project_chat_instructions.md"
           - "governance/claude-md-snippet.md"
           - "governance/governance-config.json"
           - "governance/tools/**"
