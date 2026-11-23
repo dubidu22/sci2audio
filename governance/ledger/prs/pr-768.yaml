@@ -1,0 +1,13 @@
+pr: 768
+opened: 2026-11-23
+thread: impl-725c
+lane: web
+labels: "lane:web"
+plan: plans/impl-725-plan.md
+critical: no
+compactions: 0
+fixes_kinds: ""
+handback: "review"
+recommended: ""
+note: "PR 3 of the plan, closes #725 (LW-03). Started on #765's head (D-907), merged origin/main after #765 merged (D-908, no API change from its review). The web job writes no M4B (D-895 line removed); POST /documents/{id}/book serves a current build (200), starts a cancellable book job (202) or answers 409 missing-chapters with titles; built file served by the audiobook route, recorded for removal (D-750) with the M4B's subtitle pair. Box in templates/_download.html (a file the plan does not name; reason in the PR body). 9 promised tests added; 9 existing tests changed for the missing M4B, each with its reason in the PR body. Local: fast suite 9009 passed (Kokoro tests not run, torch not downloadable in this sandbox), browser 209 passed. Out of scope noted: the output m4b flag is part of the app's settings key, relevant to PR 4."
+merged: ""
