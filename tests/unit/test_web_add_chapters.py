@@ -295,6 +295,7 @@ def test_adding_to_a_finished_project_shows_the_growing_view_until_done(tmp_path
             data = player_data(page)
             if len(data.get("chapters", [])) == 2:
                 break
+            # clock-bound: the wait loop's way out after 60 s; Methods takes a second
             assert time.monotonic() < deadline
             time.sleep(0.05)
         assert data["growing"]["events"] == f"/api/v1/jobs/{job}/events"
