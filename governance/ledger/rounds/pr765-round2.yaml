@@ -1,0 +1,14 @@
+pr: 765
+round: 2
+date: 2026-11-23
+thread: review-b005
+head: adeba2857d88fecd3708233efe60d27f61862e83
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+deferred: 1
+kinds: "missing-test"
+report: plans/review-pr765-round2.md
+merged: ""
+updated_head: ""

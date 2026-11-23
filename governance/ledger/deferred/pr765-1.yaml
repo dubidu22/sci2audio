@@ -1,0 +1,9 @@
+pr: 765
+date: 2026-11-23
+what: "S1 round 2 (missing-test): no test covers the re-read of the document when the kept language differs from the given one (keep_settings, app/audio.py)"
+decision: planned
+commit: ""
+issue: "767"
+until: ""
+reason: ""
+by: ""
