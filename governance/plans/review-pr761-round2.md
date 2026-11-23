@@ -24,3 +24,7 @@
 - Goal: critical review round 2 of #761.
 - Done: fix verified against round 1's reproduction and shown to fail without the fix; three-system run green on a839955.
 - Next: the coordinator's go `ledger/gos/pr-761.yaml` for a839955; then `ledger_tool.py gate 761`, rerun `governance pr checks` if still red, squash-merge pinned to a839955, record the merge and main's three-system run.
+
+## Merge
+
+- Squash-merged by this thread on the coordinator's go (D-901), pinned to a839955, after `ledger_tool.py gate 761` said it may be merged and `tests (ubuntu|macos|windows-latest)`, `CI passed` and `governance pr checks` were green on that head: `9f622af7b2e73c53522f428a578bd20ddd8d0261`.
