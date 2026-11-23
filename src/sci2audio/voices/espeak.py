@@ -9,12 +9,17 @@ to the folder baked in when the wheel was built, finds no `phontab` there and ca
 summary. On Windows espeak-ng's `snprintf` is MSVC's `_snprintf`, which leaves a cut copy
 without its terminating zero byte. The first copy is the folder plus `/espeak-ng-data`, so
 from 215 bytes on Windows espeak-ng reads past its buffer: undefined. A missing or
-unreadable `phontab` ends the process the same way. `check_espeak_data` raises
-`ModelLoadError` for all of these before espeak-ng can.
+unreadable `phontab` ends the process the same way. phonemizer hands espeak-ng the folder
+as UTF-8 bytes, which espeak-ng checks with the narrow C API before it sets a UTF-8 locale:
+Windows reads them in the ANSI code page, so a non-ASCII folder names another, missing one
+there unless that code page is UTF-8 (#744). `check_espeak_data` raises `ModelLoadError`
+for all of these before espeak-ng can.
 """
 
 from __future__ import annotations
 
+import codecs
+import locale
 import os
 import sys
 from pathlib import Path
@@ -36,6 +41,11 @@ def wheel_data_path() -> str:
     return str(misaki.espeak.espeakng_loader.get_data_path())
 
 
+def windows_ansi_encoding() -> str | None:
+    """The code page Windows reads espeak-ng's narrow paths in; `None` where bytes are kept."""
+    return locale.getencoding() if sys.platform == "win32" else None
+
+
 def check_espeak_data(folder: str | Path | None = None) -> None:
     """Raise `ModelLoadError` where espeak-ng could not use `folder` (default: the wheel's).
 
@@ -49,6 +59,14 @@ def check_espeak_data(folder: str | Path | None = None) -> None:
             f"espeak-ng cannot use its data folder {path}: the path is {size} bytes, "
             f"espeak-ng reads at most {ESPEAK_PATH_LIMIT} and would end the program (#663); "
             "install or check out sci2audio in a folder with a shorter path"
+        )
+    encoding = windows_ansi_encoding()
+    if encoding is not None and not str(path).isascii() and codecs.lookup(encoding).name != "utf-8":
+        raise ModelLoadError(
+            f"espeak-ng cannot use its data folder {path}: Windows reads its name in the "
+            f"code page {encoding}, where a character outside ASCII names another folder, "
+            "and espeak-ng would end the program (#744); install or check out sci2audio in "
+            "a folder whose path holds only ASCII characters"
         )
     phontab = path / "phontab"
     if not (phontab.is_file() and os.access(phontab, os.R_OK)):

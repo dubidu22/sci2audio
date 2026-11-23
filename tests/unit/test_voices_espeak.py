@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 import shutil
 import subprocess
 import sys
@@ -9,8 +10,13 @@ from pathlib import Path
 
 import pytest
 
-from sci2audio.voices import ModelLoadError
-from sci2audio.voices.espeak import ESPEAK_PATH_LIMIT, check_espeak_data, wheel_data_path
+from sci2audio.voices import ModelLoadError, espeak
+from sci2audio.voices.espeak import (
+    ESPEAK_PATH_LIMIT,
+    check_espeak_data,
+    wheel_data_path,
+    windows_ansi_encoding,
+)
 
 SPEAK = (
     "import sys, misaki.espeak\n"
@@ -102,3 +108,73 @@ def test_a_data_folder_without_phontab_is_refused(tmp_path: Path) -> None:
 def test_the_wheels_data_folder_passes_the_check() -> None:
     assert (Path(wheel_data_path()) / "phontab").is_file()
     check_espeak_data()
+
+
+def non_ascii_data(base: Path) -> Path:
+    """The wheel's espeak-ng data in a folder below one named with a non-ASCII character."""
+    folder = base.resolve() / "Jürgen" / "data"
+    if sys.platform == "win32":
+        shutil.copytree(wheel_data_path(), folder)  # file symlinks read as empty there
+    else:
+        folder.mkdir(parents=True)
+        for entry in Path(wheel_data_path()).iterdir():
+            (folder / entry.name).symlink_to(entry, target_is_directory=entry.is_dir())
+    return folder
+
+
+def test_espeak_on_a_non_ascii_data_folder(tmp_path: Path) -> None:
+    """Pins espeak-ng's own behaviour, which the code page check mirrors (#744).
+
+    phonemizer hands espeak-ng the folder as UTF-8 bytes. POSIX opens them as they are;
+    Windows reads them in the ANSI code page, where they name another folder unless that
+    code page is UTF-8: espeak-ng falls back to its build-time folder and exits.
+    """
+    folder = non_ascii_data(tmp_path)
+    result = speak(folder)
+    encoding = windows_ansi_encoding()
+    if encoding is None or codecs.lookup(encoding).name == "utf-8":
+        assert result.returncode == 0, result.stderr
+        sounds, used = result.stdout.splitlines()
+        assert sounds == "bɾˈʏkə"  # noqa: RUF001 - IPA for "Brücke"
+        assert Path(used) == folder
+    else:
+        assert result.returncode == 1, (encoding, result.stdout, result.stderr)
+        assert "phontab" in result.stderr
+        assert result.stdout == ""  # the process ended before it could speak
+
+
+def test_a_non_ascii_data_folder_is_refused_under_an_ansi_code_page(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = tmp_path.resolve() / "Jürgen"
+    folder.mkdir()
+    (folder / "phontab").write_bytes(b"")
+    monkeypatch.setattr(espeak, "windows_ansi_encoding", lambda: "cp1252")
+    with pytest.raises(ModelLoadError, match=r"cp1252.*#744") as error:
+        check_espeak_data(folder)
+    assert str(folder) in str(error.value)
+
+
+def test_a_non_ascii_data_folder_passes_where_espeak_reads_utf8(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = tmp_path.resolve() / "Jürgen"
+    folder.mkdir()
+    (folder / "phontab").write_bytes(b"")
+    for encoding in (None, "utf-8", "cp65001"):
+        monkeypatch.setattr(espeak, "windows_ansi_encoding", lambda e=encoding: e)
+        check_espeak_data(folder)
+    ascii_folder = tmp_path.resolve() / "Juergen"
+    ascii_folder.mkdir()
+    (ascii_folder / "phontab").write_bytes(b"")
+    monkeypatch.setattr(espeak, "windows_ansi_encoding", lambda: "cp1252")
+    check_espeak_data(ascii_folder)
+
+
+def test_windows_ansi_encoding_is_set_on_windows_only() -> None:
+    encoding = windows_ansi_encoding()
+    if sys.platform == "win32":
+        assert encoding is not None
+        codecs.lookup(encoding)
+    else:
+        assert encoding is None
