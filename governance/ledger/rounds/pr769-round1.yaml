@@ -1,0 +1,14 @@
+pr: 769
+round: 1
+date: 2026-11-23
+thread: review-b005
+head: c23164624a1b889a7b1bb4138788dabb7a918526
+critical: no
+verdict: changes_requested
+must_fix: 0
+should_fix: 2
+deferred: 0
+kinds: "missing-test"
+report: plans/review-pr769-round1.md
+merged: ""
+updated_head: ""
